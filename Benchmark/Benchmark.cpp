@@ -206,7 +206,7 @@ int main(int argc, char** argv)
 			if (output == "")
 			{
 				char temp[255];
-				GetTempPathA(sizeof(temp) / sizeof(wchar_t), temp);
+				GetTempPathA(sizeof(temp) / sizeof(temp[0]), temp);
 
 				output = temp;
 				output += "testout.wav";

@@ -60,7 +60,7 @@ wstring RegistryHelper::readValue(wstring key, wstring valuename)
 
 	if (status != ERROR_SUCCESS)
 	{
-		delete buf;
+		delete[] buf;
 		throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 	}
 
@@ -68,7 +68,7 @@ wstring RegistryHelper::readValue(wstring key, wstring valuename)
 	if (buf[bufSize / sizeof(wchar_t) - 1] == L'\0')
 		bufSize -= sizeof(wchar_t);
 	result = wstring((wchar_t*)buf, (wstring::size_type)bufSize / sizeof(wchar_t));
-	delete buf;
+	delete[] buf;
 
 	return result;
 }
@@ -102,12 +102,12 @@ unsigned long RegistryHelper::readDWORDValue(wstring key, wstring valuename)
 
 	if (status != ERROR_SUCCESS)
 	{
-		delete buf;
+		delete[] buf;
 		throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 	}
 
 	result = ((unsigned long*)buf)[0];
-	delete buf;
+	delete[] buf;
 
 	return result;
 }
@@ -141,7 +141,7 @@ vector<wstring> RegistryHelper::readMultiValue(wstring key, wstring valuename)
 
 	if (status != ERROR_SUCCESS)
 	{
-		delete buf;
+		delete[] buf;
 		throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 	}
 
@@ -163,7 +163,7 @@ vector<wstring> RegistryHelper::readMultiValue(wstring key, wstring valuename)
 	if (length > start)
 		result.push_back(wstring(buf + start, length - start));
 
-	delete buf;
+	delete[] buf;
 
 	return result;
 }
@@ -236,7 +236,7 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, wstring val
 
 	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, (const BYTE*)data, (DWORD)((value.size() + 2) * sizeof(wchar_t)));
 
-	delete data;
+	delete[] data;
 
 	RegCloseKey(keyHandle);
 
@@ -264,7 +264,7 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, vector<wstr
 
 	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, (const BYTE*)data, (DWORD)(size * sizeof(wchar_t)));
 
-	delete data;
+	delete[] data;
 
 	RegCloseKey(keyHandle);
 

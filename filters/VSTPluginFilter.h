@@ -63,6 +63,7 @@ private:
 	// Delay compensation buffers
 	unsigned delayBufferLength = 0;
 	double** delayBuffers = NULL;
+	double* delayTempBuffer = NULL;
 	unsigned delayBufferOffset = 0;
 
 	bool skipProcessing = false;

@@ -460,7 +460,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 				throw exception("Could not read process parameters from process memory");
 
 			wchar_t* cmdLineBuf = new wchar_t[processParams.CommandLine.Length / sizeof(wchar_t)];
-			SCOPE_EXIT{delete cmdLineBuf; };
+			SCOPE_EXIT{delete[] cmdLineBuf; };
 			if (!ReadProcessMemory(processHandle, processParams.CommandLine.Buffer, cmdLineBuf, processParams.CommandLine.Length, NULL))
 				throw exception("Could not read command line from process memory");
 			wstring cmdLine(cmdLineBuf, processParams.CommandLine.Length / sizeof(wchar_t));

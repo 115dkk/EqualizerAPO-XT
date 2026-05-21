@@ -47,6 +47,7 @@ void RegexSearchFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int a
 	vector<Value> result;
 	if (found)
 	{
+		result.reserve(match.size());
 		for (unsigned i = 0; i < match.size(); i++)
 			result.push_back(match.str(i));
 	}

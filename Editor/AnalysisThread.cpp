@@ -41,9 +41,9 @@ AnalysisThread::~AnalysisThread()
 		fftw_free(resultFreqData);
 
 	if (buf != NULL)
-		delete buf;
+		delete[] buf;
 	if (buf2 != NULL)
-		delete buf2;
+		delete[] buf2;
 	if (timeData != NULL)
 		fftw_free(timeData);
 	if (freqData != NULL)
@@ -169,12 +169,12 @@ void AnalysisThread::run()
 		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
 		{
 			if (buf != NULL)
-				delete buf;
+				delete[] buf;
 			buf = new double[frameCount * channelCount];
 			memset(buf, 0, frameCount * channelCount * sizeof(double));
 
 			if (buf2 != NULL)
-				delete buf2;
+				delete[] buf2;
 			buf2 = new double[frameCount * channelCount];
 		}
 		for (unsigned i = 0; i < channelCount; i++)
