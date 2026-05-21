@@ -53,12 +53,13 @@
 2026-05-22에 아래 명령을 실행했습니다.
 
 - `MSBuild.exe EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64 /m`
-- `MSBuild.exe EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /m`
-- `MSBuild.exe Common.vcxproj /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /m`
+- `C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64 /m`
 
-결과는 로컬 환경 문제로 실패했습니다.
+결과는 로컬 외부 의존성 문제로 실패했습니다.
 
-- 프로젝트 기본값인 `v145` 플랫폼 도구 집합이 설치되어 있지 않습니다.
-- 임시로 `v143`을 지정하면 컴파일 단계까지 진행되지만 `sndfile.h`, `fftw3.h`, `mpParser.h`가 없습니다.
-- Qt 빌드는 `qmake`와 Qt 헤더가 없어 실행하지 못했습니다.
+- Visual Studio Build Tools 2026 설치 뒤 MSBuild 18.6.3은 프로젝트를 컴파일 단계까지 진행합니다.
+- `UpdateChecker` 빌드는 `QtWidgets` 헤더를 찾지 못해 실패합니다.
+- `Common` 빌드는 `sndfile.h`, `fftw3.h`, `mpParser.h`를 찾지 못해 실패합니다.
+- Qt 빌드는 `qmake`가 PATH와 `C:\Qt`에서 확인되지 않아 실행하지 못했습니다.
+- 로컬 `gh`는 `C:\Program Files\GitHub CLI\gh.exe`에 설치되어 있지만 저장된 GitHub 토큰이 만료되어 있습니다.
 - 코드 변경 자체의 공백 오류 검사는 `git diff --check`로 통과했습니다.
