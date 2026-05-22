@@ -16,7 +16,6 @@ permissions:
 env:
   SOLUTION_FILE: EqualizerAPO.sln
   BUILD_CONFIGURATION: Release
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build:
@@ -405,18 +404,52 @@ jobs:
         }
 
       
-    #
-    # Configure MSVC
-    #
-    - name: Configure MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: ${{ matrix.msvcdevplatform }}
-
     # Build Qt projects with qmake (Editor, DeviceSelector, UpdateChecker)
     - name: Build Qt Applications
       shell: pwsh
       run: |
+        function Import-VsDevEnvironment {
+          param([string]$Arch)
+
+          $vswherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswherePath)) {
+            Write-Error "vswhere.exe not found at $vswherePath"
+            exit 1
+          }
+
+          $vsInstallPath = & $vswherePath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
+          if (-not $vsInstallPath) {
+            $vsInstallPath = & $vswherePath -products * -requires Microsoft.Component.MSBuild -property installationPath -latest
+          }
+          if (-not $vsInstallPath) {
+            Write-Error "Visual Studio installation not found"
+            exit 1
+          }
+
+          $devCmdPath = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
+          if (-not (Test-Path $devCmdPath)) {
+            Write-Error "VsDevCmd.bat not found at $devCmdPath"
+            exit 1
+          }
+
+          Write-Host "Configuring MSVC environment for $Arch"
+          $environment = cmd /c "`"$devCmdPath`" -arch=$Arch -no_logo >nul && set"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "VsDevCmd.bat failed for architecture $Arch"
+            exit $LASTEXITCODE
+          }
+
+          foreach ($line in $environment) {
+            if ($line -match "^(.*?)=(.*)$") {
+              Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
+            }
+          }
+
+          Write-Host "Configured MSVC target: $env:VSCMD_ARG_TGT_ARCH"
+        }
+
+        Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
+
         # Find qmake from Qt installation
         $qmakeCommand = Get-Command qmake -ErrorAction SilentlyContinue
         $qmakePath = if ($qmakeCommand) { $qmakeCommand.Source } else { "" }
