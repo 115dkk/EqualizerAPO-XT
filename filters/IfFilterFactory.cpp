@@ -203,7 +203,7 @@ bool IfFilterFactory::toBoolean(const Value& value)
 	{
 	case 'i':
 		{
-			int i = (int)value.GetInteger();
+			int i = static_cast<int>(value.GetInteger());
 			result = (i != 0);
 		}
 		break;

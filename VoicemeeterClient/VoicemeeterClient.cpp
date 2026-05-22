@@ -155,7 +155,7 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 	case VBVMR_CBCOMMAND_STARTING:
 	{
 		VBVMR_LPT_AUDIOINFO audioInfo = (VBVMR_LPT_AUDIOINFO)lpData;
-		sampleRate = (float)audioInfo->samplerate;
+		sampleRate = static_cast<float>(audioInfo->samplerate);
 		maxFrameCount = audioInfo->nbSamplePerFrame;
 		for (FilterEngine* engine : engines)
 			if (engine != nullptr)

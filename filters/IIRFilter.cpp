@@ -28,8 +28,8 @@ using namespace std;
 IIRFilter::IIRFilter(const vector<double>& coefficients)
 {
 	order = (unsigned)coefficients.size() / 2 - 1;
-	a = (double*)MemoryHelper::alloc(order * sizeof(double));
-	b = (double*)MemoryHelper::alloc(order * sizeof(double));
+	a = static_cast<double*>(MemoryHelper::alloc(order * sizeof *a));
+	b = static_cast<double*>(MemoryHelper::alloc(order * sizeof *b));
 	x = nullptr;
 	y = nullptr;
 
@@ -62,8 +62,8 @@ vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, 
 	if (y != nullptr)
 		MemoryHelper::free(y);
 
-	x = (double*)MemoryHelper::alloc(order * channelCount * sizeof(double));
-	y = (double*)MemoryHelper::alloc(order * channelCount * sizeof(double));
+	x = static_cast<double*>(MemoryHelper::alloc(order * channelCount * sizeof *x));
+	y = static_cast<double*>(MemoryHelper::alloc(order * channelCount * sizeof *y));
 	std::fill_n(x, order * channelCount, 0.0);
 	std::fill_n(y, order * channelCount, 0.0);
 
@@ -105,7 +105,7 @@ void IIRFilter::process(double** output, double** input, unsigned frameCount)
 			xo[0] = sample;
 			yo[0] = sum;
 
-			outputChannel[j] = (double)sum;
+			outputChannel[j] = static_cast<double>(sum);
 		}
 	}
 

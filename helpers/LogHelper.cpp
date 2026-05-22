@@ -88,7 +88,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		GetLocalTime(&___st);
 		DWORD threadId = GetCurrentThreadId();
 		fwprintf(fp, L"%04d-%02d-%02d %02d:%02d:%02d.%03d %d %08X (%S:%d): ",
-			___st.wYear, ___st.wMonth, ___st.wDay, ___st.wHour, ___st.wMinute, ___st.wSecond, ___st.wMilliseconds, threadId, (DWORD)(unsigned long long)caller, file, line);
+			___st.wYear, ___st.wMonth, ___st.wDay, ___st.wHour, ___st.wMinute, ___st.wSecond, ___st.wMilliseconds, threadId, static_cast<DWORD>(reinterpret_cast<uintptr_t>(caller)), file, line);
 	}
 
 	if (trace)

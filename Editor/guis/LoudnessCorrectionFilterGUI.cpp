@@ -32,8 +32,8 @@ LoudnessCorrectionFilterGUI::LoudnessCorrectionFilterGUI(double refLevel, double
 	ui->refOffsetDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->attDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 
-	ui->refLevelSpinBox->setValue((int)refLevel);
-	ui->refOffsetSpinBox->setValue((int)refOffset);
+	ui->refLevelSpinBox->setValue(static_cast<int>(refLevel));
+	ui->refOffsetSpinBox->setValue(static_cast<int>(refOffset));
 	ui->attSpinBox->setValue(att);
 
 	connect(&timer, SIGNAL(timeout()), this, SLOT(updateVolume()));

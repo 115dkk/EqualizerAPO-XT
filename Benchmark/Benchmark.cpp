@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 			for (unsigned i = 0; i < frameCount; i++)
 			{
 				double t = i * 1.0 / sampleRate;
-				float s = (float)sin(((sweepFrom + sweepDiff * (t / length) / 2) * t) * 2 * M_PI);
+				float s = static_cast<float>(sin(((sweepFrom + sweepDiff * (t / length) / 2) * t) * 2 * M_PI));
 
 				for (unsigned j = 0; j < channelCount; j++)
 					buf[i * channelCount + j] = s;
@@ -165,7 +165,7 @@ int main(int argc, char** argv)
 			wstring connectionName = StringHelper::toWString(connectionnameArg.getValue(), CP_ACP);
 			wstring deviceGuid = StringHelper::toWString(guidArg.getValue(), CP_ACP);
 			engine.setDeviceInfo(false, true, deviceName, connectionName, deviceGuid, deviceName + L" " + connectionName + L" " + deviceGuid);
-			engine.initialize((float)sampleRate, channelCount, channelCount, channelCount, channelMask, batchsize);
+			engine.initialize(static_cast<float>(sampleRate), channelCount, channelCount, channelCount, channelMask, batchsize);
 
 			double initTime = timer.stop();
 			if (!verbose)
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 
 			cout << "\nWriting output to " << output << "\n";
 
-			SF_INFO info = {frameCount, (int)sampleRate, (int)channelCount, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
+			SF_INFO info = {frameCount, static_cast<int>(sampleRate), static_cast<int>(channelCount), SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
 			SNDFILE* outFile = sf_open(output.c_str(), SFM_WRITE, &info);
 			if (outFile == nullptr)
 			{

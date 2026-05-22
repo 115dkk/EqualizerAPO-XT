@@ -52,7 +52,7 @@ vector<wstring> ChannelFilter::initialize(float sampleRate, unsigned maxFrameCou
 		else
 			channelNr = ChannelHelper::getChannelIndex(currentWord, channelNames);
 
-		if (channelNr != -1 && channelNr < (int)channelCount)
+		if (channelNr != -1 && channelNr < static_cast<int>(channelCount))
 		{
 			selectedChannels[channelNr] = true;
 		}

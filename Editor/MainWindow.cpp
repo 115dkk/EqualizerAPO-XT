@@ -91,7 +91,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	ui->mainToolBar->addWidget(new QLabel(tr("Device: ")));
 
 	deviceComboBox = new QComboBox;
-	connect(deviceComboBox, SIGNAL(activated(int)), this, SLOT(deviceSelected(int)));
+	connect(deviceComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::deviceSelected);
 	ui->mainToolBar->addWidget(deviceComboBox);
 
 	spacer = new QWidget;
@@ -128,7 +128,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 		if (apoInfo->isInstalled())
 			deviceComboBox->addItem(QString::fromStdWString(apoInfo->getConnectionName()) + " - " + QString::fromStdWString(apoInfo->getDeviceName()), QVariant::fromValue(apoInfo));
 
-	connect(channelConfigurationComboBox, SIGNAL(activated(int)), this, SLOT(channelConfigurationSelected(int)));
+	connect(channelConfigurationComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::channelConfigurationSelected);
 
 	analysisPlotScene = new AnalysisPlotScene(ui->graphicsView);
 	ui->graphicsView->setScene(analysisPlotScene);
@@ -417,7 +417,7 @@ void MainWindow::deviceSelected(int index)
 		const GUIChannelHelper::ChannelConfigurationInfo* selectedInfo = nullptr;
 		for (const GUIChannelHelper::ChannelConfigurationInfo& info : infos)
 		{
-			if (info.channelMask == (int)apoInfo->getChannelMask())
+			if (info.channelMask == static_cast<int>(apoInfo->getChannelMask()))
 			{
 				selectedInfo = &info;
 				break;
@@ -460,7 +460,7 @@ void MainWindow::channelConfigurationSelected(int index)
 	if (selectedDevice != nullptr)
 	{
 		unsigned channelCount = selectedDevice->getChannelCount();
-		if (channelMask != 0 && channelMask != (int)selectedDevice->getChannelMask())
+		if (channelMask != 0 && channelMask != static_cast<int>(selectedDevice->getChannelMask()))
 		{
 			channelCount = 0;
 			for (int i = 0; i < 31; i++)
@@ -1132,7 +1132,7 @@ void MainWindow::updateRecentFiles()
 template<class T> QList<T> MainWindow::toQList(const std::vector<T>& vector)
 {
 	QList<T> list;
-	list.reserve((int)vector.size());
+	list.reserve(static_cast<int>(vector.size()));
 	for (T t : vector)
 		list.append(t);
 

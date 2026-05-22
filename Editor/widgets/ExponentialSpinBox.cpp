@@ -43,7 +43,7 @@ void ExponentialSpinBox::stepBy(int steps)
 			v = minimum();
 	}
 
-	setValue((int)v);
+	setValue(static_cast<int>(v));
 }
 
 int ExponentialSpinBox::valueFromText(const QString& text) const

@@ -54,7 +54,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	{
 		double freq = i * 1.0 * sampleRate / (filterLength * 2);
 		double dbGain = gainIterator.gainAt(freq);
-		double gain = (double)pow(10.0, dbGain / 20.0);
+		double gain = pow(10.0, dbGain / 20.0);
 
 		freqData[i][0] = gain;
 		freqData[i][1] = 0;
@@ -74,7 +74,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 
 	for (unsigned i = 0; i < filterLength; i++)
 	{
-		double factor = (double)(0.5 * (1 + cos(2 * M_PI * i * 1.0 / (2 * filterLength))));
+		double factor = 0.5 * (1 + cos(2 * M_PI * i * 1.0 / (2 * filterLength)));
 		timeData[i][0] *= factor;
 		timeData[i][1] *= factor;
 	}
@@ -103,7 +103,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 void GraphicEQFilter::mps(fftw_complex* timeData, fftw_complex* freqData, fftw_plan planForward, fftw_plan planReverse)
 {
 	double threshold = pow(10.0, -100.0 / 20.0);
-	double logThreshold = (double)log(threshold);
+	double logThreshold = log(threshold);
 
 	for (unsigned i = 0; i < filterLength * 2; i++)
 	{

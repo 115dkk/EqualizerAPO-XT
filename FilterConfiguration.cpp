@@ -132,7 +132,7 @@ unsigned FilterConfiguration::doTransition(FilterConfiguration* nextConfig, unsi
 
 	for (unsigned f = 0; f < frameCount; f++)
 	{
-		double factor = 0.5f * (1.0f - cos(transitionCounter * (double)M_PI / transitionLength));
+		double factor = 0.5f * (1.0f - cos(transitionCounter * static_cast<double>(M_PI) / transitionLength));
 		if (transitionCounter >= transitionLength)
 			factor = 1.0f;
 

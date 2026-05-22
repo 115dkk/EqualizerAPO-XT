@@ -84,7 +84,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	emptyChannels = (double**)MemoryHelper::alloc(emptyChannelCount * sizeof(double*));
 	for (unsigned i = 0; i < emptyChannelCount; i++)
 	{
-		emptyChannels[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
+		emptyChannels[i] = static_cast<double*>(MemoryHelper::alloc(maxFrameCount * sizeof *emptyChannels[i]));
 		std::fill_n(emptyChannels[i], maxFrameCount, 0.0);
 	}
 
@@ -94,7 +94,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// Allocate float buffers for conversion
 	if (firstEffect->numInputs() > 0) {
 		floatInputs = (float**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(float*));
-		_floatInputBuffer = (float*)MemoryHelper::alloc(firstEffect->numInputs() * maxFrameCount * sizeof(float));
+		_floatInputBuffer = static_cast<float*>(MemoryHelper::alloc(firstEffect->numInputs() * maxFrameCount * sizeof *_floatInputBuffer));
 		for (int i = 0; i < firstEffect->numInputs(); ++i) {
 			floatInputs[i] = _floatInputBuffer + i * maxFrameCount;
 		}
@@ -102,7 +102,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 	if (firstEffect->numOutputs() > 0) {
 		floatOutputs = (float**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(float*));
-		_floatOutputBuffer = (float*)MemoryHelper::alloc(firstEffect->numOutputs() * maxFrameCount * sizeof(float));
+		_floatOutputBuffer = static_cast<float*>(MemoryHelper::alloc(firstEffect->numOutputs() * maxFrameCount * sizeof *_floatOutputBuffer));
 		for (int i = 0; i < firstEffect->numOutputs(); ++i) {
 			floatOutputs[i] = _floatOutputBuffer + i * maxFrameCount;
 		}
@@ -115,10 +115,10 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		delayBuffers = (double**)MemoryHelper::alloc(channelCount * sizeof(double*));
 		for (unsigned i = 0; i < channelCount; i++)
 		{
-			delayBuffers[i] = (double*)MemoryHelper::alloc(delayBufferLength * sizeof(double));
+			delayBuffers[i] = static_cast<double*>(MemoryHelper::alloc(delayBufferLength * sizeof *delayBuffers[i]));
 			std::fill_n(delayBuffers[i], delayBufferLength, 0.0);
 		}
-		delayTempBuffer = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
+		delayTempBuffer = static_cast<double*>(MemoryHelper::alloc(maxFrameCount * sizeof *delayTempBuffer));
 		delayBufferOffset = 0;
 	}
 

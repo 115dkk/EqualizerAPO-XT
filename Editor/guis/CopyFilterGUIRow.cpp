@@ -51,8 +51,8 @@ CopyFilterGUIRow::CopyFilterGUIRow(Assignment::Summand summand, std::vector<wstr
 		ui->channelComboBox->addItem(QString::fromStdWString(channelName));
 	ui->channelComboBox->setEditText(QString::fromStdWString(summand.channel).trimmed());
 
-	connect(ui->modeComboBox, SIGNAL(activated(int)), this, SIGNAL(updateModel()));
-	connect(ui->factorSpinBox, SIGNAL(valueChanged(double)), this, SIGNAL(updateModel()));
+	connect(ui->modeComboBox, QOverload<int>::of(&QComboBox::activated), this, &CopyFilterGUIRow::updateModel);
+	connect(ui->factorSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &CopyFilterGUIRow::updateModel);
 	connect(ui->channelComboBox, SIGNAL(editTextChanged(QString)), this, SIGNAL(updateModel()));
 	connect(ui->channelComboBox, SIGNAL(editTextChanged(QString)), this, SIGNAL(updateChannels()));
 }

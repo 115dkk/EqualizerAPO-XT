@@ -60,7 +60,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 		if (channelIndex != -1)
 			channelName = channelNames[channelIndex];
 		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
-		ia.targetChannel = (int)(it - outChannelNames.begin());
+		ia.targetChannel = static_cast<int>(it - outChannelNames.begin());
 		if (it == outChannelNames.end())
 			outChannelNames.push_back(channelName);
 
@@ -78,9 +78,9 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 				is.channel = -1;
 
 			if (s.isDecibel)
-				is.factor = (double)pow(10.0, s.factor / 20.0);
+				is.factor = pow(10.0, s.factor / 20.0);
 			else
-				is.factor = (double)s.factor;
+				is.factor = s.factor;
 		}
 	}
 

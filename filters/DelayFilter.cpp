@@ -51,7 +51,7 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		buffers[i] = (double*)MemoryHelper::alloc(sizeof(double) * bufferLength);
+		buffers[i] = static_cast<double*>(MemoryHelper::alloc(sizeof *buffers[i] * bufferLength));
 		std::fill_n(buffers[i], bufferLength, 0.0);
 	}
 

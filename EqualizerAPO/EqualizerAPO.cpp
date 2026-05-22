@@ -430,7 +430,7 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 	if (pipe != INVALID_HANDLE_VALUE)
 	{
 		DWORD bytesWritten;
-		if (!WriteFile(pipe, message.c_str(), (int)message.length(), &bytesWritten, nullptr))
+		if (!WriteFile(pipe, message.c_str(), static_cast<int>(message.length()), &bytesWritten, nullptr))
 			LogF(L"Could not write to pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
 
 		FlushFileBuffers(pipe);

@@ -55,9 +55,9 @@ void expectClose(double actual, double expected, int sample)
 vector<double> renderImpulseResponse(const vector<double>& impulseResponse, int leadingSilentFrames)
 {
 	HConvSingle filter = {};
-	hcInitSingle(&filter, const_cast<double*>(impulseResponse.data()), (int)impulseResponse.size(), frameLength, 1);
+	hcInitSingle(&filter, const_cast<double*>(impulseResponse.data()), static_cast<int>(impulseResponse.size()), frameLength, 1);
 
-	const int framesToRender = leadingSilentFrames + (int)((impulseResponse.size() + frameLength - 1) / frameLength) + 3;
+	const int framesToRender = leadingSilentFrames + static_cast<int>((impulseResponse.size() + frameLength - 1) / frameLength) + 3;
 	vector<double> input(frameLength, 0.0);
 	vector<double> output(frameLength, 0.0);
 	vector<double> rendered((size_t)framesToRender * frameLength, 0.0);
@@ -116,7 +116,7 @@ vector<double> renderConvolutionFilter(const wstring& filename, int firstFrameLe
 {
 	ConvolutionFilter filter(filename);
 	vector<wstring> channels = {L"L"};
-	filter.initialize((float)sampleRate, frameLength, channels);
+	filter.initialize(static_cast<float>(sampleRate), frameLength, channels);
 
 	const int framesToRender = sampleRate / frameLength * 2 + 4;
 	vector<double> inputStorage(frameLength, 0.0);

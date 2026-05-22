@@ -81,7 +81,7 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 	connect(ui.installPostMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.useOriginalAPOPreMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.useOriginalAPOPostMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
-	connect(ui.installModeComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.installModeComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.allowSilentBufferCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 	connect(ui.autoCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
 

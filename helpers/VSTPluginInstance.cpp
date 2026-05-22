@@ -34,7 +34,7 @@ vst_time_info vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
 
 static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, int64_t value, const char* ptr, float opt)
 {
-	VSTPluginInstance* instance = effect != nullptr ? (VSTPluginInstance*)effect->host_internal : nullptr;
+	VSTPluginInstance* instance = effect != nullptr ? static_cast<VSTPluginInstance*>(effect->host_internal) : nullptr;
 #ifdef _DEBUG
 	TraceFStatic(L"vst: %p opcode: %d index: %d value: %Id ptr: %p opt: %f host_internal: %p",
 		effect, opcode, index, value, ptr, opt, effect != nullptr ? effect->host_internal : nullptr);
@@ -49,7 +49,7 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return equalizerApoVSTID;
 
 	case VST_EFFECT_OPCODE_PRODUCT_NAME:
-		strcpy_s((char*) ptr, 64, "Equalizer APO");
+		strcpy_s(const_cast<char*>(ptr), 64, "Equalizer APO");
 		return 1;
 
 	case VST_EFFECT_OPCODE_VENDOR_VERSION:
@@ -95,14 +95,14 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 	case VST_HOST_OPCODE_EDITOR_RESIZE:
 		if (instance != nullptr)
 		{
-			instance->onSizeWindow((int)index, (int)value);
+			instance->onSizeWindow(static_cast<int>(index), static_cast<int>(value));
 			return 0;
 		}
 		return 1;
 
 	case VST_HOST_OPCODE_SUPPORTS:
 		{
-			char* s = (char*)ptr;
+			const char* s = ptr;
 #ifdef _DEBUG
 			TraceFStatic(L"VST canDo: %S", s);
 #endif
@@ -312,7 +312,7 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 	if (effect->flags & VST_EFFECT_FLAG_CHUNKS)
 	{
 		BYTE* chunk = nullptr;
-		int size = (int)effect->control(effect, VST_EFFECT_OPCODE_GET_CHUNK_DATA, 1, 0, &chunk, 0.0f);
+		int size = static_cast<int>(effect->control(effect, VST_EFFECT_OPCODE_GET_CHUNK_DATA, 1, 0, &chunk, 0.0f));
 		DWORD stringLength = 0;
 		CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &stringLength);
 		vector<wchar_t> string(stringLength);

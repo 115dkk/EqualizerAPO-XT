@@ -196,7 +196,7 @@ void RegistryHelper::writeValue(wstring key, wstring valuename, wstring value)
 {
 	HKEY keyHandle = openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY);
 
-	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_SZ, (const BYTE*)value.c_str(), (DWORD)((value.size() + 1) * sizeof(wchar_t)));
+	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_SZ, reinterpret_cast<const BYTE*>(value.c_str()), static_cast<DWORD>((value.size() + 1) * sizeof(wchar_t)));
 
 	RegCloseKey(keyHandle);
 
@@ -224,7 +224,7 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, wstring val
 	data.push_back(L'\0');
 	data.push_back(L'\0');
 
-	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), (DWORD)(data.size() * sizeof(wchar_t)));
+	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), static_cast<DWORD>(data.size() * sizeof(wchar_t)));
 
 	RegCloseKey(keyHandle);
 
@@ -249,7 +249,7 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, vector<wstr
 	}
 	data.push_back(L'\0');
 
-	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), (DWORD)(data.size() * sizeof(wchar_t)));
+	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), static_cast<DWORD>(data.size() * sizeof(wchar_t)));
 
 	RegCloseKey(keyHandle);
 
