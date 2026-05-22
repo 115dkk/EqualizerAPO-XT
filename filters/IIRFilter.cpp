@@ -64,8 +64,8 @@ vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, 
 
 	x = (double*)MemoryHelper::alloc(order * channelCount * sizeof(double));
 	y = (double*)MemoryHelper::alloc(order * channelCount * sizeof(double));
-	memset(x, 0, order * channelCount * sizeof(double));
-	memset(y, 0, order * channelCount * sizeof(double));
+	std::fill_n(x, order * channelCount, 0.0);
+	std::fill_n(y, order * channelCount, 0.0);
 
 	return channelNames;
 }

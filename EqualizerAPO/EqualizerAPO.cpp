@@ -457,7 +457,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 		float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
 
 		if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
-			memset(inputFrames, 0, ppInputConnections[0]->u32ValidFrameCount * engine.getInputChannelCount() * sizeof(float));
+			std::fill_n(inputFrames, ppInputConnections[0]->u32ValidFrameCount * engine.getInputChannelCount(), 0.0f);
 
 		if (childRT)
 		{
@@ -489,7 +489,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 			}
 			else
 			{
-				memset(outputFrames, 0, ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount() * sizeof(float));
+				std::fill_n(outputFrames, ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount(), 0.0f);
 				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
 			}
 		}

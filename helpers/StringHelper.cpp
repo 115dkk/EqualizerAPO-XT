@@ -77,7 +77,7 @@ string StringHelper::toString(const wstring& s, unsigned codepage)
 wstring StringHelper::toLowerCase(const wstring& s)
 {
 	vector<wchar_t> charBuf(s.length() + 1);
-	memcpy(charBuf.data(), s.c_str(), (s.length() + 1) * sizeof(wchar_t));
+	std::copy_n(s.c_str(), s.length() + 1, charBuf.data());
 	errno_t err = _wcslwr_s(charBuf.data(), charBuf.size());
 
 	wstring result = charBuf.data();
@@ -91,7 +91,7 @@ wstring StringHelper::toLowerCase(const wstring& s)
 wstring StringHelper::toUpperCase(const wstring& s)
 {
 	vector<wchar_t> charBuf(s.length() + 1);
-	memcpy(charBuf.data(), s.c_str(), (s.length() + 1) * sizeof(wchar_t));
+	std::copy_n(s.c_str(), s.length() + 1, charBuf.data());
 	errno_t err = _wcsupr_s(charBuf.data(), charBuf.size());
 
 	wstring result = charBuf.data();

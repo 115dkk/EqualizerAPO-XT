@@ -90,7 +90,7 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 	if (module == nullptr)
 		throw InitError(L"Failed to load " voicemeeterRemoteFileName);
 
-	memset(&vmr, 0, sizeof(T_VBVMR_INTERFACE));
+	vmr = {};
 
 #define LOAD_PROC(proc) vmr.proc = (T_ ## proc)GetProcAddress(module, # proc);if (vmr.proc == nullptr) throw InitError(L"Did not find function \"" # proc L"\" in " voicemeeterRemoteFileName)
 	LOAD_PROC(VBVMR_Login);
@@ -203,7 +203,7 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 			else
 			{
 				for (int j = 0; j < 8; j++)
-					memcpy(audioBuffer->audiobuffer_w[8 * i + j], audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs * sizeof(float));
+					std::copy_n(audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs, audioBuffer->audiobuffer_w[8 * i + j]);
 			}
 		}
 	}

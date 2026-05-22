@@ -205,8 +205,7 @@ std::wstring VSTPluginInstance::getName() const
 	if (effect == nullptr)
 		return L"";
 
-	char buf[256];
-	memset(buf, 0, sizeof(buf));
+	char buf[256] = {};
 	effect->control(effect, VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
 	buf[255] = '\0'; // just to be sure
 

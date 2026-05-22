@@ -462,7 +462,7 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
 		if (realChannelCount == outputChannelCount && input != output) {
-			memcpy(output, input, outputChannelCount * frameCount * sizeof(float));
+			std::copy_n(input, outputChannelCount * frameCount, output);
 		}
 		return;
 	}
@@ -502,7 +502,7 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 		// Bypass mode
 		if (realChannelCount == outputChannelCount && input != output) {
 			for (unsigned c = 0; c < realChannelCount; c++)
-				memcpy(output[c], input[c], frameCount * sizeof(float));
+				std::copy_n(input[c], frameCount, output[c]);
 		}
 		return;
 	}
@@ -543,7 +543,7 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
 		if (realChannelCount == outputChannelCount && input != output) {
-			memcpy(output, input, outputChannelCount * frameCount * sizeof(double));
+			std::copy_n(input, outputChannelCount * frameCount, output);
 		}
 		return;
 	}
@@ -572,7 +572,7 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 		// Bypass mode
 		if (realChannelCount == outputChannelCount && input != output) {
 			for (unsigned c = 0; c < realChannelCount; c++)
-				memcpy(output[c], input[c], frameCount * sizeof(double));
+				std::copy_n(input[c], frameCount, output[c]);
 		}
 		return;
 	}

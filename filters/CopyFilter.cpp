@@ -125,7 +125,7 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] = is.factor;
 			else if (is.factor == 1.0)
-				memcpy(output[ia.targetChannel], input[is.channel], frameCount * sizeof(double));
+				std::copy_n(input[is.channel], frameCount, output[ia.targetChannel]);
 			else
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] = is.factor * input[is.channel][f];

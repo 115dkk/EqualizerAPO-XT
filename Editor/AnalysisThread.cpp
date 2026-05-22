@@ -171,7 +171,7 @@ void AnalysisThread::run()
 			if (buf != nullptr)
 				delete[] buf;
 			buf = new double[frameCount * channelCount];
-			memset(buf, 0, frameCount * channelCount * sizeof(double));
+			std::fill_n(buf, frameCount * channelCount, 0.0);
 
 			if (buf2 != nullptr)
 				delete[] buf2;
@@ -272,7 +272,7 @@ void AnalysisThread::run()
 		{
 			latency = 0;
 			peakGain = -numeric_limits<double>::infinity();
-			memset(freqData, 0, frameCount * sizeof(fftw_complex));
+			std::fill_n(&freqData[0][0], frameCount * 2, 0.0);
 		}
 
 		mutex.lock();
@@ -282,7 +282,7 @@ void AnalysisThread::run()
 				fftw_free(resultFreqData);
 			resultFreqData = fftw_alloc_complex(frameCount);
 		}
-		memcpy(resultFreqData, freqData, frameCount * sizeof(fftw_complex));
+		std::copy_n(&freqData[0][0], frameCount * 2, &resultFreqData[0][0]);
 		this->freqDataLength = frameCount;
 		this->freqDataSampleRate = sampleRate;
 		this->latency = latency;
