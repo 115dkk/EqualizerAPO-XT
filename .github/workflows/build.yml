@@ -86,6 +86,9 @@ jobs:
             msvcdevplatform: arm64
 
     runs-on: ${{ matrix.os }}
+    # On a pull request only run the AVX2 variant; the full SIMD/platform
+    # matrix and the release packaging stay on the push to main.
+    if: github.event_name != 'pull_request' || matrix.simd_variant == 'avx2'
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -910,6 +913,72 @@ jobs:
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/tls/
         if-no-files-found: error
         retention-days: 90
+
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install cppcheck
+      run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+    - name: Run cppcheck
+      run: |
+        cppcheck \
+          --enable=warning,style,performance,portability \
+          --inline-suppr \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          --suppress=unmatchedSuppression \
+          --suppress=*:libHybridConv-0.1.1/* \
+          --suppress=*:deps/* \
+          --error-exitcode=0 \
+          --quiet \
+          --std=c++17 \
+          -i libHybridConv-0.1.1 \
+          -i deps \
+          -i build-Editor-Desktop_Qt_6_7_2_MSVC2022_32bit \
+          -i build-Editor-Desktop_Qt_6_7_2_MSVC2022_64bit \
+          -i build-Editor-Desktop_Qt_6_7_2_MSVC2019_ARM64 \
+          --output-file=cppcheck-report.txt \
+          .
+        echo "--- cppcheck report ---"
+        cat cppcheck-report.txt || true
+        if [ -s cppcheck-report.txt ]; then
+          line_count=$(wc -l < cppcheck-report.txt)
+          echo "::warning::cppcheck reported ${line_count} lines of findings (currently non-blocking; treated as baseline)"
+        fi
+
+    - name: Upload cppcheck report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cppcheck-report
+        path: cppcheck-report.txt
+        retention-days: 30
+
+  cross-variant-compare:
+    needs: build
+    runs-on: ubuntu-latest
+    # The PR pipeline only builds AVX2, so there is nothing to compare
+    # across variants. The full SIMD diff stays on the push to main.
+    if: github.event_name != 'pull_request'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download per-variant audio outputs
+      uses: actions/download-artifact@v4
+      with:
+        pattern: audio-regression-output-*
+        path: artifacts
+
+    - name: Install numpy
+      run: python3 -m pip install --quiet numpy
+
+    - name: Compare SIMD variants
+      run: python3 Tests/AudioRegressionTests/scripts/cross_variant_compare.py
 
   create-release:
     needs: build
