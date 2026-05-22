@@ -21,6 +21,7 @@ PRECOMPILED_HEADER = stdafx.h
 SOURCES += \
 	main.cpp \
 	UpdateChecker.cpp \
+	UpdateInfoFormatter.cpp \
 	AutoSizeTextEdit.cpp \
 	../helpers/StringHelper.cpp \
 	../helpers/TaskSchedulerHelper.cpp \
@@ -28,6 +29,7 @@ SOURCES += \
 
 HEADERS += \
 	UpdateChecker.h \
+	UpdateInfoFormatter.h \
 	AutoSizeTextEdit.h \
 	../helpers/StringHelper.h \
 	../helpers/TaskSchedulerHelper.h \

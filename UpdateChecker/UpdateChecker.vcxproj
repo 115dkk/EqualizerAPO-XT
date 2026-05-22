@@ -376,6 +376,7 @@
     <ClCompile Include="..\helpers\TaskSchedulerHelper.cpp" />
     <ClCompile Include="AutoSizeTextEdit.cpp" />
     <ClCompile Include="UpdateChecker.cpp" />
+    <ClCompile Include="UpdateInfoFormatter.cpp" />
     <ClCompile Include="main.cpp" />
     <QtMoc Include="AutoSizeTextEdit.h" />
     <ClInclude Include="..\helpers\RegistryHelper.h" />
@@ -383,6 +384,7 @@
     <ClInclude Include="..\helpers\TaskSchedulerHelper.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="UpdateInfoFormatter.h" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>

@@ -3,9 +3,13 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
 
 #include "Editor/helpers/ConvolutionPathHelper.h"
+#include "UpdateChecker/UpdateInfoFormatter.h"
 
 namespace
 {
@@ -71,6 +75,25 @@ int main(int argc, char** argv)
 	expectFalse(
 		ConvolutionPathHelper::relativePathStaysInConfigDirectory("C:/Impulse/room.wav"),
 		"absolute path was accepted as relative");
+
+	QJsonObject release;
+	release["download-url"] = "https://example.invalid";
+	QJsonArray versions;
+	QJsonObject version;
+	version["version"] = "<b>2.0</b>";
+	version["date"] = "not-a-date";
+	version["info"] = QJsonArray({ "<script>alert(1)</script>", "Fix & verify" });
+	versions.append(version);
+	release["versions"] = versions;
+
+	QString newestVersion;
+	QString html = UpdateInfoFormatter::releaseHtml(QJsonDocument(release), &newestVersion);
+	if (newestVersion != "<b>2.0</b>")
+		fail("newest version was not preserved");
+	if (html.contains("<script>") || html.contains("<b>2.0</b>") || html.contains("Fix & verify"))
+		fail("release notes were not HTML-escaped");
+	if (!html.contains("&lt;script&gt;alert(1)&lt;/script&gt;") || !html.contains("Fix &amp; verify"))
+		fail("escaped release notes are missing");
 
 	printf("EditorLogicTests passed\n");
 	return 0;

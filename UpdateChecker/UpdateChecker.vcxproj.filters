@@ -37,6 +37,7 @@
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="UpdateInfoFormatter.h" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="UpdateChecker.h" />
@@ -46,6 +47,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="UpdateChecker.cpp" />
+    <ClCompile Include="UpdateInfoFormatter.cpp" />
     <ClCompile Include="AutoSizeTextEdit.cpp" />
     <ClCompile Include="..\helpers\StringHelper.cpp">
       <Filter>helpers</Filter>

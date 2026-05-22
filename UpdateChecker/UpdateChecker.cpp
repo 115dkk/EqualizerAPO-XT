@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "UpdateChecker.h"
+#include "UpdateInfoFormatter.h"
 
 UpdateChecker::UpdateChecker(QWidget* parent, const QJsonDocument& doc)
 	: QDialog(parent)
@@ -28,27 +29,7 @@ UpdateChecker::UpdateChecker(QWidget* parent, const QJsonDocument& doc)
 	QJsonObject docObj = doc.object();
 	downloadUrl = docObj.value("download-url").toString();
 
-	QJsonArray versionsArray = docObj.value("versions").toArray();
-	QString html = "<style>\n.date{font-size:small;font-style:italic;color:gray;}\nul{margin:5px;}\nli{margin:2px;}\n</style>\n";
-	bool first = true;
-	for (QJsonValue versionValue : versionsArray)
-	{
-		QJsonObject versionObj = versionValue.toObject();
-		QString version = versionObj.value("version").toString();
-		if (first)
-		{
-			newestVersion = version;
-			first = false;
-		}
-		QDate date = QDate::fromString(versionObj.value("date").toString(), Qt::ISODate);
-		html.append(QString("<div><b>%0 </b><span class=\"date\">(%1)</span></div>").arg(version).arg(QLocale().toString(date, QLocale::ShortFormat)));
-		html.append("<ul>");
-		QJsonArray infoArray = versionObj.value("info").toArray();
-		for (QJsonValue v : infoArray)
-			html.append("<li>" + v.toString() + "</li>");
-		html.append("</ul>");
-	}
-
+	QString html = UpdateInfoFormatter::releaseHtml(doc, &newestVersion);
 	ui.versionBrowser->setHtml(html);
 	ui.versionBrowser->document()->adjustSize();
 
