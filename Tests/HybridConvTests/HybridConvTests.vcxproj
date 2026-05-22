@@ -238,6 +238,7 @@ if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll"
     <ClCompile Include="HybridConvTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\filters\ConvolutionFilePath.h" />
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

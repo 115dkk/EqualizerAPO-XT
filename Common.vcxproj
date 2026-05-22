@@ -314,6 +314,7 @@
     <ClInclude Include="filters\ChannelFilter.h" />
     <ClInclude Include="filters\ChannelFilterFactory.h" />
     <ClInclude Include="filters\ConvolutionFilter.h" />
+    <ClInclude Include="filters\ConvolutionFilePath.h" />
     <ClInclude Include="filters\ConvolutionFilterFactory.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
@@ -370,6 +371,7 @@
     <ClCompile Include="filters\ChannelFilter.cpp" />
     <ClCompile Include="filters\ChannelFilterFactory.cpp" />
     <ClCompile Include="filters\ConvolutionFilter.cpp" />
+    <ClCompile Include="filters\ConvolutionFilePath.cpp" />
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />

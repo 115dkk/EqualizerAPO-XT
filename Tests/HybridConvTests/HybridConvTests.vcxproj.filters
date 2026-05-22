@@ -16,6 +16,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\filters\ConvolutionFilePath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h">
       <Filter>Header Files</Filter>
     </ClInclude>

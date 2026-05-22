@@ -20,6 +20,9 @@
     <ClInclude Include="filters\ConvolutionFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ConvolutionFilePath.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\ConvolutionFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -166,6 +169,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ConvolutionFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ConvolutionFilePath.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp">

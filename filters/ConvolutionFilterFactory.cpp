@@ -18,11 +18,10 @@
 */
 
 #include "stdafx.h"
-#include <Shlwapi.h>
 
 #include "helpers/MemoryHelper.h"
-#include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
+#include "ConvolutionFilePath.h"
 #include "ConvolutionFilter.h"
 #include "ConvolutionFilterFactory.h"
 
@@ -34,25 +33,9 @@ vector<IFilter*> ConvolutionFilterFactory::createFilter(const wstring& configPat
 
 	if (command == L"Convolution")
 	{
-		wstring value = parameters;
-		while (value.length() > 0 && iswspace(value[0]))
-			value = value.substr(1);
-
-		wstring absolutePath;
-		if (PathIsRelativeW(value.c_str()))
-		{
-			wchar_t filePath[MAX_PATH];
-			configPath._Copy_s(filePath, sizeof(filePath) / sizeof(wchar_t), MAX_PATH);
-			if (configPath.size() < MAX_PATH)
-				filePath[configPath.size()] = L'\0';
-			else
-				filePath[MAX_PATH - 1] = L'\0';
-			PathRemoveFileSpecW(filePath);
-			PathAppendW(filePath, value.c_str());
-			absolutePath = filePath;
-		}
-		else
-			absolutePath = value;
+		wstring absolutePath = ConvolutionFilePath::resolve(configPath, parameters);
+		if (absolutePath.empty())
+			return vector<IFilter*>(0);
 
 		void* mem = MemoryHelper::alloc(sizeof(ConvolutionFilter));
 		filter = new(mem) ConvolutionFilter(absolutePath);
