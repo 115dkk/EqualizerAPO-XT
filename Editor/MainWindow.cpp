@@ -20,6 +20,7 @@
 #include <sstream>
 #include <QDrag>
 #include <QElapsedTimer>
+#include <QFrame>
 #include <QLabel>
 #include <QMimeData>
 #include <QPushButton>
@@ -92,33 +93,45 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 		version += QString(".%0").arg(REVISION);
 	setWindowTitle(tr("Equalizer APO %0 Configuration Editor").arg(version));
 
+	ui->mainToolBar->setObjectName(QStringLiteral("MainToolBar"));
+
 	QWidget* spacer = new QWidget;
+	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
 	spacer->setFixedWidth(10);
 	ui->mainToolBar->addWidget(spacer);
 
 	instantModeCheckBox = new QCheckBox(tr("Instant mode"));
+	instantModeCheckBox->setObjectName(QStringLiteral("InstantModeCheckBox"));
 	instantModeCheckBox->setChecked(true);
 	instantModeCheckBox->setToolTip(tr("Changes are saved immediately"));
 	connect(instantModeCheckBox, SIGNAL(toggled(bool)), this, SLOT(instantModeEnabled(bool)));
 	ui->mainToolBar->addWidget(instantModeCheckBox);
 
 	spacer = new QWidget;
+	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
 	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	ui->mainToolBar->addWidget(spacer);
 
-	ui->mainToolBar->addWidget(new QLabel(tr("Device: ")));
+	QLabel* deviceLabel = new QLabel(tr("Device"));
+	deviceLabel->setObjectName(QStringLiteral("ToolBarLabel"));
+	ui->mainToolBar->addWidget(deviceLabel);
 
 	deviceComboBox = new QComboBox;
+	deviceComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
 	connect(deviceComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::deviceSelected);
 	ui->mainToolBar->addWidget(deviceComboBox);
 
 	spacer = new QWidget;
+	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
 	spacer->setFixedWidth(10);
 	ui->mainToolBar->addWidget(spacer);
 
-	ui->mainToolBar->addWidget(new QLabel(tr("Channel configuration: ")));
+	QLabel* channelLabel = new QLabel(tr("Channels"));
+	channelLabel->setObjectName(QStringLiteral("ToolBarLabel"));
+	ui->mainToolBar->addWidget(channelLabel);
 
 	channelConfigurationComboBox = new QComboBox;
+	channelConfigurationComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
 	channelConfigurationComboBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 	ui->mainToolBar->addWidget(channelConfigurationComboBox);
 
@@ -152,8 +165,29 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	ui->graphicsView->setScene(analysisPlotScene);
 	eqGraphView = new EqGraphView(ui->dockWidgetContents);
 	eqGraphView->setObjectName(QStringLiteral("ModernAnalysisGraph"));
-	ui->gridLayout_2->addWidget(eqGraphView, 0, 1, 2, 1);
+	ui->analysisDockLayout->insertWidget(1, eqGraphView, 1);
 	ui->graphicsView->hide();
+
+	ui->analysisControlBar->setObjectName(QStringLiteral("analysisControlBar"));
+	ui->analysisControlBar->setAttribute(Qt::WA_StyledBackground, true);
+	for (QLabel* label : { ui->startFromLabel, ui->analysisChannelLabel, ui->resolutionLabel })
+		label->setObjectName(QStringLiteral("AnalysisFormLabel"));
+	for (QComboBox* combo : { ui->startFromComboBox, ui->analysisChannelComboBox })
+		combo->setObjectName(QStringLiteral("AnalysisFormCombo"));
+	ui->resolutionSpinBox->setObjectName(QStringLiteral("AnalysisFormSpin"));
+	for (QFrame* chip : { ui->peakChip, ui->latencyChip, ui->initChip, ui->cpuChip })
+	{
+		chip->setObjectName(QStringLiteral("AnalysisStatChip"));
+		chip->setAttribute(Qt::WA_StyledBackground, true);
+	}
+	for (QLabel* label : { ui->peakGainLabel, ui->latencyLabel, ui->initTimeLabel, ui->cpuUsageLabel })
+		label->setObjectName(QStringLiteral("AnalysisStatLabel"));
+	for (QLabel* value : { ui->peakGainValueLabel, ui->latencyValueLabel, ui->initTimeValueLabel, ui->cpuUsageValueLabel })
+	{
+		value->setObjectName(QStringLiteral("AnalysisStatValue"));
+		value->setProperty("severity", QStringLiteral("normal"));
+	}
+	ui->tabWidget->setObjectName(QStringLiteral("MainTabWidget"));
 
 	analysisThread = new AnalysisThread;
 	analysisThread->start();
