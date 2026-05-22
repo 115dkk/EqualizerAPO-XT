@@ -21,57 +21,31 @@
 #include <algorithm>
 
 #include "FilterEngine.h"
-#include "helpers/MemoryHelper.h"
 #include "FilterConfiguration.h"
 
-using namespace std;
-
-FilterConfiguration::FilterConfiguration(FilterEngine* engine, const vector<FilterInfo*>& filterInfos, unsigned allChannelCount)
+FilterConfiguration::FilterConfiguration(FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
 {
 	this->allChannelCount = allChannelCount;
 	realChannelCount = engine->getRealChannelCount();
 	outputChannelCount = engine->getOutputChannelCount();
 	unsigned maxFrameCount = engine->getMaxFrameCount();
 
-	allSamplesData = (double*)MemoryHelper::alloc(allChannelCount * maxFrameCount * sizeof(double));
-	allSamples2Data = (double*)MemoryHelper::alloc(allChannelCount * maxFrameCount * sizeof(double));
-	allSamples = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
+	allSamplesData.resize(static_cast<size_t>(allChannelCount) * maxFrameCount);
+	allSamples2Data.resize(static_cast<size_t>(allChannelCount) * maxFrameCount);
+	allSamples.resize(allChannelCount);
 	for (size_t i = 0; i < allChannelCount; i++)
-		allSamples[i] = allSamplesData + i * maxFrameCount;
-	allSamples2 = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
+		allSamples[i] = allSamplesData.data() + i * maxFrameCount;
+	allSamples2.resize(allChannelCount);
 	for (size_t i = 0; i < allChannelCount; i++)
-		allSamples2[i] = allSamples2Data + i * maxFrameCount;
-	currentSamples = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
-	currentSamples2 = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
+		allSamples2[i] = allSamples2Data.data() + i * maxFrameCount;
+	currentSamples.resize(allChannelCount);
+	currentSamples2.resize(allChannelCount);
 
-	filterCount = (unsigned)filterInfos.size();
-	this->filterInfos = (FilterInfo**)MemoryHelper::alloc(filterCount * sizeof(FilterInfo*));
-	for (size_t i = 0; i < filterCount; i++)
-		this->filterInfos[i] = filterInfos[i];
+	this->filterInfos = std::move(filterInfos);
 }
 
 FilterConfiguration::~FilterConfiguration()
 {
-	MemoryHelper::free(currentSamples2);
-	MemoryHelper::free(currentSamples);
-
-	MemoryHelper::free(allSamples2);
-	MemoryHelper::free(allSamples2Data);
-
-	MemoryHelper::free(allSamples);
-	MemoryHelper::free(allSamplesData);
-
-	for (size_t i = 0; i < filterCount; i++)
-	{
-		filterInfos[i]->filter->~IFilter();
-		MemoryHelper::free(filterInfos[i]->filter);
-		if (filterInfos[i]->inChannels != NULL)
-			MemoryHelper::free(filterInfos[i]->inChannels);
-		if (filterInfos[i]->outChannels != NULL)
-			MemoryHelper::free(filterInfos[i]->outChannels);
-		MemoryHelper::free(filterInfos[i]);
-	}
-	MemoryHelper::free(filterInfos);
 }
 
 #pragma AVRT_CODE_BEGIN
@@ -112,49 +86,49 @@ void FilterConfiguration::read(double* input, unsigned frameCount)
 void FilterConfiguration::read(double** input, unsigned frameCount)
 {
 	for (unsigned c = 0; c < realChannelCount; c++)
-		memcpy(allSamples[c], input[c], frameCount * sizeof(double));
+		std::copy_n(input[c], frameCount, allSamples[c]);
 }
 
 void FilterConfiguration::process(unsigned frameCount)
 {
 	for (unsigned c = realChannelCount; c < allChannelCount; c++)
-		memset(allSamples[c], 0, frameCount * sizeof(double));
+		std::fill_n(allSamples[c], frameCount, 0.0);
 
 	// for real mono input and >= stereo output, upmix to stereo as the Windows audio system would do automatically if no APO was present
 	if (realChannelCount == 1 && outputChannelCount >= 2)
-		memcpy(allSamples[1], allSamples[0], frameCount * sizeof(double));
+		std::copy_n(allSamples[0], frameCount, allSamples[1]);
 
-	for (size_t i = 0; i < filterCount; i++)
+	for (const auto& filterInfoPtr : filterInfos)
 	{
-		FilterInfo* filterInfo = filterInfos[i];
-		for (size_t j = 0; j < filterInfo->inChannelCount; j++)
+		FilterInfo* filterInfo = filterInfoPtr.get();
+		for (size_t j = 0; j < filterInfo->inChannels.size(); j++)
 			currentSamples[j] = allSamples[filterInfo->inChannels[j]];
 		if (filterInfo->inPlace)
 		{
-			for (size_t j = 0; j < filterInfo->outChannelCount; j++)
+			for (size_t j = 0; j < filterInfo->outChannels.size(); j++)
 				currentSamples2[j] = allSamples[filterInfo->outChannels[j]];
 		}
 		else
 		{
-			for (size_t j = 0; j < filterInfo->outChannelCount; j++)
+			for (size_t j = 0; j < filterInfo->outChannels.size(); j++)
 				currentSamples2[j] = allSamples2[filterInfo->outChannels[j]];
 		}
 
-		filterInfo->filter->process(currentSamples2, currentSamples, frameCount);
+		filterInfo->filter->process(currentSamples2.data(), currentSamples.data(), frameCount);
 
 		if (!filterInfo->inPlace)
 		{
-			for (size_t j = 0; j < filterInfo->outChannelCount; j++)
-				swap(allSamples[filterInfo->outChannels[j]], allSamples2[filterInfo->outChannels[j]]);
-			swap(currentSamples, currentSamples2);
+			for (size_t j = 0; j < filterInfo->outChannels.size(); j++)
+				std::swap(allSamples[filterInfo->outChannels[j]], allSamples2[filterInfo->outChannels[j]]);
+			std::swap(currentSamples, currentSamples2);
 		}
 	}
 }
 
 unsigned FilterConfiguration::doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength)
 {
-	double** currentSamples = allSamples;
-	double** nextSamples = nextConfig->allSamples;
+	double** currentSamples = allSamples.data();
+	double** nextSamples = nextConfig->allSamples.data();
 
 	for (unsigned f = 0; f < frameCount; f++)
 	{
@@ -206,11 +180,11 @@ void FilterConfiguration::write(double* output, unsigned frameCount)
 void FilterConfiguration::write(double** output, unsigned frameCount)
 {
 	for (unsigned i = 0; i < outputChannelCount; i++)
-		memcpy(output[i], allSamples[i], frameCount * sizeof(double));
+		std::copy_n(allSamples[i], frameCount, output[i]);
 }
 #pragma AVRT_CODE_END
 
 bool FilterConfiguration::isEmpty()
 {
-	return filterCount == 0;
+	return filterInfos.empty();
 }

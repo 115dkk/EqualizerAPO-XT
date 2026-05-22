@@ -61,6 +61,15 @@
 using namespace std;
 using namespace mup;
 
+void FilterDeleter::operator()(IFilter* filter) const
+{
+	if (filter == nullptr)
+		return;
+
+	filter->~IFilter();
+	MemoryHelper::free(filter);
+}
+
 void FilterEngine::FilterConfigurationDeleter::operator()(FilterConfiguration* config) const
 {
 	if (config == nullptr)
@@ -278,7 +287,7 @@ void FilterEngine::loadConfig(const wstring& customPath)
 	}
 
 	void* mem = MemoryHelper::alloc(sizeof(FilterConfiguration));
-	FilterConfigurationPtr config(new(mem) FilterConfiguration(this, filterInfos, (unsigned)allChannelNames.size()));
+	FilterConfigurationPtr config(new(mem) FilterConfiguration(this, move(filterInfos), (unsigned)allChannelNames.size()));
 
 	filterInfos.clear();
 
@@ -590,8 +599,8 @@ void FilterEngine::addFilters(const vector<IFilter*>& filters)
 	for (vector<IFilter*>::const_iterator it = filters.begin(); it != filters.end(); it++)
 	{
 		IFilter* filter = *it;
-		FilterInfo* filterInfo = (FilterInfo*)MemoryHelper::alloc(sizeof(FilterInfo));
-		filterInfo->filter = filter;
+		auto filterInfo = make_unique<FilterInfo>();
+		filterInfo->filter.reset(filter);
 		filterInfo->inPlace = filter->getInPlace();
 		vector<wstring> savedChannelNames = currentChannelNames;
 		bool allChannels = filter->getAllChannels();
@@ -600,13 +609,11 @@ void FilterEngine::addFilters(const vector<IFilter*>& filters)
 
 		if (lastChannelNames == currentChannelNames)
 		{
-			filterInfo->inChannelCount = 0;
-			filterInfo->inChannels = NULL;
+			filterInfo->inChannels.clear();
 		}
 		else
 		{
-			filterInfo->inChannelCount = currentChannelNames.size();
-			filterInfo->inChannels = (size_t*)MemoryHelper::alloc(filterInfo->inChannelCount * sizeof(size_t));
+			filterInfo->inChannels.resize(currentChannelNames.size());
 
 			size_t c = 0;
 			for (vector<wstring>::iterator it2 = currentChannelNames.begin(); it2 != currentChannelNames.end(); it2++)
@@ -622,13 +629,11 @@ void FilterEngine::addFilters(const vector<IFilter*>& filters)
 
 		if (filterInfo->inPlace && lastInPlace && lastNewChannelNames == newChannelNames)
 		{
-			filterInfo->outChannelCount = 0;
-			filterInfo->outChannels = NULL;
+			filterInfo->outChannels.clear();
 		}
 		else
 		{
-			filterInfo->outChannelCount = newChannelNames.size();
-			filterInfo->outChannels = (size_t*)MemoryHelper::alloc(filterInfo->outChannelCount * sizeof(size_t));
+			filterInfo->outChannels.resize(newChannelNames.size());
 
 			size_t c = 0;
 			for (vector<wstring>::iterator it2 = newChannelNames.begin(); it2 != newChannelNames.end(); it2++)
@@ -651,7 +656,7 @@ void FilterEngine::addFilters(const vector<IFilter*>& filters)
 		if (!lastInPlace)
 			swap(lastChannelNames, lastNewChannelNames);
 
-		filterInfos.push_back(filterInfo);
+		filterInfos.push_back(move(filterInfo));
 
 		if (filter->getSelectChannels())
 			currentChannelNames = newChannelNames;

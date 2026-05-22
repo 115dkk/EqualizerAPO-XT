@@ -112,7 +112,7 @@ private:
 	unsigned maxFrameCount;
 
 	// only used during loading
-	std::vector<FilterInfo*> filterInfos;
+	std::vector<std::unique_ptr<FilterInfo>> filterInfos;
 	std::vector<std::wstring> currentChannelNames;
 	std::vector<std::wstring> lastChannelNames;
 	std::vector<std::wstring> lastNewChannelNames;
