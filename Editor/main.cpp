@@ -17,6 +17,10 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <cstdio>
+#include <cstring>
+#include <string>
+
 #include <QTranslator>
 #include <QApplication>
 #include <QDir>
@@ -25,16 +29,93 @@
 #include <QSettings>
 #include <QStyleFactory>
 #include <QStyleHints>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <shellapi.h>
+
 #include "CustomStyle.h"
 #include "MainWindow.h"
 #include "SkinManager.h"
+#include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 
 
+namespace
+{
+std::wstring executableDirectory()
+{
+	wchar_t buffer[MAX_PATH];
+	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+	if (length == 0)
+		return std::wstring();
+	std::wstring path(buffer, length);
+	size_t slash = path.find_last_of(L"\\/");
+	if (slash == std::wstring::npos)
+		return path;
+	return path.substr(0, slash);
+}
+
+bool matchesHook(const char* arg, const char* name)
+{
+	return std::strcmp(arg, name) == 0;
+}
+
+int handleVelopackHook(int argc, char* argv[])
+{
+	for (int i = 1; i < argc; i++)
+	{
+		const char* arg = argv[i];
+		if (arg == nullptr || arg[0] != '-')
+			continue;
+
+		std::wstring exeDir = executableDirectory();
+		if (matchesHook(arg, "--veloapp-install"))
+		{
+			auto rc = ApoRegistration::install(exeDir);
+			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+		}
+		if (matchesHook(arg, "--veloapp-updated"))
+		{
+			ApoRegistration::stopAudioService();
+			auto rc = ApoRegistration::install(exeDir);
+			ApoRegistration::startAudioService();
+			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+		}
+		if (matchesHook(arg, "--veloapp-obsolete"))
+		{
+			ApoRegistration::stopAudioService();
+			return 0;
+		}
+		if (matchesHook(arg, "--veloapp-uninstall"))
+		{
+			auto rc = ApoRegistration::uninstall(exeDir);
+			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
+		}
+	}
+	return -1;
+}
+
+void launchDeviceSelector(const std::wstring& exeDir)
+{
+	std::wstring deviceSelector = exeDir;
+	if (!deviceSelector.empty() && deviceSelector.back() != L'\\' && deviceSelector.back() != L'/')
+		deviceSelector.push_back(L'\\');
+	deviceSelector += L"DeviceSelector.exe";
+
+	HINSTANCE result = ShellExecuteW(nullptr, L"open", deviceSelector.c_str(), L"/i", exeDir.c_str(), SW_SHOWNORMAL);
+	if (reinterpret_cast<INT_PTR>(result) <= 32)
+		fwprintf(stderr, L"DeviceSelector launch failed (code=%lld)\n", static_cast<long long>(reinterpret_cast<INT_PTR>(result)));
+}
+}
 
 int main(int argc, char* argv[])
 {
+	int hookResult = handleVelopackHook(argc, argv);
+	if (hookResult >= 0)
+		return hookResult;
+
 	int result = -1;
 #ifdef _DEBUG
 	// _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -124,7 +205,11 @@ int main(int argc, char* argv[])
 		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
-		w.doChecks();
+		bool firstRun = !qEnvironmentVariableIsEmpty("VELOPACK_FIRSTRUN");
+		if (firstRun)
+			launchDeviceSelector(executableDirectory());
+		else
+			w.doChecks();
 
 		result = application.exec();
 
