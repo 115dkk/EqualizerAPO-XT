@@ -16,6 +16,7 @@ permissions:
 env:
   SOLUTION_FILE: EqualizerAPO.sln
   BUILD_CONFIGURATION: Release
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build:
@@ -68,15 +69,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v3
       with:
         msbuild-architecture: ${{ matrix.platform }}
-
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
 
     - name: Download dependency release assets
       shell: pwsh
@@ -120,7 +118,7 @@ jobs:
 
     # Clone tclap repository (header-only library)
     - name: Download TCLAP
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: TheFireKahuna/tclap
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -652,7 +650,7 @@ jobs:
 
     # Upload artifacts
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}
         path: |
@@ -693,10 +691,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Download all artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         path: ${{ github.workspace }}\artifacts
 
@@ -796,7 +794,7 @@ jobs:
       run: makensis ${{ github.workspace }}\Setup\${{ matrix.setup_file }}.nsi
 
     - name: Upload installers
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: EqualizerAPO_Setup-${{ matrix.installer_name }}
         path: ${{ github.workspace }}\Setup\*.exe
@@ -813,10 +811,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Download installer artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         pattern: EqualizerAPO_Setup-*
         path: ${{ github.workspace }}\release-input
