@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -21,8 +21,9 @@
 #include "VSTPluginFilterGUIDialog.h"
 #include "ui_VSTPluginFilterGUIDialog.h"
 
-using namespace std;
-using namespace std::placeholders;
+using std::bind;
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginInstance* effect, bool autoApply)
 	: QDialog(parent, Qt::WindowCloseButtonHint),

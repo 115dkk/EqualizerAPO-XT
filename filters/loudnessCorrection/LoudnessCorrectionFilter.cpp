@@ -19,9 +19,10 @@
 
 #include "stdafx.h"
 #include "LoudnessCorrectionFilter.h"
-#include "helpers/MemoryHelper.h"
 
 #include "VolumeController.h"
+
+#include <chrono>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -39,20 +40,17 @@ LoudnessCorrectionFilter::LoudnessCorrectionFilter(const FilterParameters& fPara
 	{
 		_parameters.attenuation = 0.0;
 	}
-	InitializeCriticalSection(&_parameterUpdateSection);
 }
 
 LoudnessCorrectionFilter::~LoudnessCorrectionFilter()
 {
-	if (_stopParameterUpdateThreadEvent)
 	{
-		SetEvent(_stopParameterUpdateThreadEvent);
+		std::lock_guard<std::mutex> lock(_parameterUpdateThreadMutex);
+		_stopParameterUpdateThread = true;
 	}
-	WaitForSingleObject(_parameterUpdateThreadHandle, INFINITE);
-	DeleteCriticalSection(&_parameterUpdateSection);
-	CloseHandle(_stopParameterUpdateThreadEvent);
-	CloseHandle(_parameterUpdateThreadHandle);
-	CloseHandle(_parameterchangedEvent);
+	_parameterUpdateThreadCv.notify_all();
+	if (_parameterUpdateThread.joinable())
+		_parameterUpdateThread.join();
 }
 
 std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames)
@@ -74,8 +72,10 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 		double preAmp;
 		getLShelfParamter(vol, freqLS, qLS, gainLS, preAmp);
 		_attFactor = exp(preAmp / 6 * log(2));
-		getHShelfParamter(vol + (double)preAmp, freqHS, qHS, gainHS);
+		_pendingAttFactor = _attFactor;
+		getHShelfParamter(vol + preAmp, freqHS, qHS, gainHS);
 		_neutral = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
+		_neutralUpDate = _neutral;
 	}
 
 	for (unsigned i = 0; i < _channelCount; i++)
@@ -83,9 +83,12 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 		_lowShelfBiquads[i] = BiQuad(BiQuad::LOW_SHELF, gainLS, freqLS, _sampleRate, qLS, false);
 		_highShelfBiquads[i] = BiQuad(BiQuad::HIGH_SHELF, gainHS, freqHS, _sampleRate, qHS, false);
 	}
-	_stopParameterUpdateThreadEvent = CreateEvent(NULL, true, false, NULL);
-	_parameterchangedEvent = CreateEvent(NULL, true, false, NULL);
-	_parameterUpdateThreadHandle = CreateThread(NULL, 0, &parameterUpdateThread, this, 0, NULL);
+	{
+		std::lock_guard<std::mutex> lock(_parameterUpdateThreadMutex);
+		_stopParameterUpdateThread = false;
+	}
+	_parameterChanged.store(false);
+	_parameterUpdateThread = std::thread(parameterUpdateThread, this);
 
 	return channelNames;
 }
@@ -130,41 +133,45 @@ void LoudnessCorrectionFilter::getHShelfParamter(const double& volume, double& f
 	}
 }
 
-unsigned long __stdcall LoudnessCorrectionFilter::parameterUpdateThread(void* parameter)
+void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* lCorrection)
 {
-	LoudnessCorrectionFilter* lCorrection = (LoudnessCorrectionFilter*)parameter;
-	VolumeController VolumeController;
+	VolumeController volumeController;
 	double volOld(lCorrection->_parameters.referenceLevel);
 	double vol(lCorrection->_parameters.referenceLevel);
 	double freqLS, qLS, gainLS, preAmp;
 	double freqHS, qHS, gainHS;
 	HRESULT res;
-	while (WaitForSingleObject(lCorrection->_stopParameterUpdateThreadEvent, 0) == WAIT_TIMEOUT)
+	while (true)
 	{
-		if (WaitForSingleObject(lCorrection->_parameterchangedEvent, 0) == WAIT_TIMEOUT)
 		{
-			res = VolumeController.getVolume(vol);
+			std::unique_lock<std::mutex> lock(lCorrection->_parameterUpdateThreadMutex);
+			if (lCorrection->_parameterUpdateThreadCv.wait_for(lock, std::chrono::milliseconds(10), [lCorrection] {return lCorrection->_stopParameterUpdateThread; }))
+				break;
+		}
+
+		if (!lCorrection->_parameterChanged.load())
+		{
+			res = volumeController.getVolume(vol);
 			if (res == S_OK)
 			{
 				if (vol != volOld)
 				{
 					lCorrection->getLShelfParamter(vol, freqLS, qLS, gainLS, preAmp);
-					lCorrection->_attFactor = exp(preAmp / 6 * log(2));
-					lCorrection->getHShelfParamter(vol + (double)preAmp, freqHS, qHS, gainHS);
-					lCorrection->upDateBiquadCoefficients(freqHS, qHS, gainHS, true);
-					lCorrection->upDateBiquadCoefficients(freqLS, qLS, gainLS, false);
+					lCorrection->getHShelfParamter(vol + preAmp, freqHS, qHS, gainHS);
+					{
+						std::lock_guard<std::mutex> lock(lCorrection->_parameterUpdateMutex);
+						lCorrection->_pendingAttFactor = exp(preAmp / 6 * log(2));
+						lCorrection->upDateBiquadCoefficients(freqHS, qHS, gainHS, true);
+						lCorrection->upDateBiquadCoefficients(freqLS, qLS, gainLS, false);
+						lCorrection->_neutralUpDate = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
+					}
 					volOld = vol;
 
-					lCorrection->_neutralUpDate = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
-
-					SetEvent(lCorrection->_parameterchangedEvent);
+					lCorrection->_parameterChanged.store(true);
 				}
 			}
 		}
-		Sleep(10);
-		// ==========================
 	}
-	return 0;
 }
 
 bool LoudnessCorrectionFilter::upDateNeutral()
@@ -187,15 +194,16 @@ void LoudnessCorrectionFilter::process(double** output, double** input, unsigned
 		output = input;
 		return;
 	}
-	if (WaitForSingleObject(_parameterchangedEvent, 0) == WAIT_OBJECT_0)
+	if (_parameterChanged.exchange(false))
 	{
+		std::lock_guard<std::mutex> lock(_parameterUpdateMutex);
+		_attFactor = _pendingAttFactor;
 		for (unsigned i = 0; i < _channelCount; i++)
 		{
 			_lowShelfBiquads[i].setCoefficients(_aLS, _a0LS);
 			_highShelfBiquads[i].setCoefficients(_aHS, _a0HS);
 		}
 		_neutral = upDateNeutral();
-		ResetEvent(_parameterchangedEvent);
 	}
 	for (unsigned i = 0; i < _channelCount; i++)
 	{
@@ -206,7 +214,7 @@ void LoudnessCorrectionFilter::process(double** output, double** input, unsigned
 			_tempResult = _lowShelfBiquads[i].process(inputChannel[j]);
 			_lowShelfBiquads[i].removeDenormals();
 			_tempResult *= _attFactor;
-			outputChannel[j] = (double)_highShelfBiquads[i].process(_tempResult);
+			outputChannel[j] = _highShelfBiquads[i].process(_tempResult);
 			_highShelfBiquads[i].removeDenormals();
 
 			// if there is nearly no loudness correction necessary => set output=input to achive best quality
@@ -233,27 +241,25 @@ void LoudnessCorrectionFilter::upDateBiquadCoefficients(const double& freq, cons
 	beta = 2 * sqrt(A) * alpha;
 
 	double a0;
-	TryEnterCriticalSection(&_parameterUpdateSection);
 	if (highshelf)
 	{
 		a0 = (A + 1) - (A - 1) * cs + beta;
-		_a0HS = (double)((A * ((A + 1) + (A - 1) * cs + beta)) / a0);
-		_aHS[0] = (double)((-2 * A * ((A - 1) + (A + 1) * cs)) / a0);
-		_aHS[1] = (double)((A * ((A + 1) + (A - 1) * cs - beta)) / a0);
+		_a0HS = (A * ((A + 1) + (A - 1) * cs + beta)) / a0;
+		_aHS[0] = (-2 * A * ((A - 1) + (A + 1) * cs)) / a0;
+		_aHS[1] = (A * ((A + 1) + (A - 1) * cs - beta)) / a0;
 
-		_aHS[2] = (double)((2 * ((A - 1) - (A + 1) * cs)) / a0);
-		_aHS[3] = (double)(((A + 1) - (A - 1) * cs - beta) / a0);
+		_aHS[2] = (2 * ((A - 1) - (A + 1) * cs)) / a0;
+		_aHS[3] = ((A + 1) - (A - 1) * cs - beta) / a0;
 	}
 	else
 	{
 		a0 = (A + 1) + (A - 1) * cs + beta;
-		_a0LS = (double)((A * ((A + 1) - (A - 1) * cs + beta)) / a0);
-		_aLS[0] = (double)((2 * A * ((A - 1) - (A + 1) * cs)) / a0);
-		_aLS[1] = (double)((A * ((A + 1) - (A - 1) * cs - beta)) / a0);
+		_a0LS = (A * ((A + 1) - (A - 1) * cs + beta)) / a0;
+		_aLS[0] = (2 * A * ((A - 1) - (A + 1) * cs)) / a0;
+		_aLS[1] = (A * ((A + 1) - (A - 1) * cs - beta)) / a0;
 
-		_aLS[2] = (double)((-2 * ((A - 1) + (A + 1) * cs)) / a0);
-		_aLS[3] = (double)(((A + 1) + (A - 1) * cs - beta) / a0);
+		_aLS[2] = (-2 * ((A - 1) + (A + 1) * cs)) / a0;
+		_aLS[3] = ((A + 1) + (A - 1) * cs - beta) / a0;
 	}
-	LeaveCriticalSection(&_parameterUpdateSection);
 }
 #pragma AVRT_CODE_END

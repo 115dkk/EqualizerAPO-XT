@@ -58,8 +58,8 @@ private slots:
 	void lineEditEditingCanceled();
 
 private:
-	CopyFilterGUIChannelItem* source = NULL;
-	CopyFilterGUIChannelItem* target = NULL;
+	CopyFilterGUIChannelItem* source = nullptr;
+	CopyFilterGUIChannelItem* target = nullptr;
 	double factor = 1.0;
 	bool isDecibel = false;
 };

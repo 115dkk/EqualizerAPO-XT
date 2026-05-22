@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -26,7 +26,8 @@
 
 static const double DEFAULT_HEIGHT = 88;
 
-using namespace std;
+using std::vector;
+using std::wstring;
 
 CopyFilterGUI::CopyFilterGUI(CopyFilter* filter, FilterTable* filterTable)
 	: ui(new Ui::CopyFilterGUI)

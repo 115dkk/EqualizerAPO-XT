@@ -29,6 +29,8 @@ After that, the project will focus on:
 
 Use the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases) when XT builds are published. A push to `main` builds all supported variants and creates a GitHub Release with Velopack-packaged installers and a source code zip.
 
+The installed update checker reads the matching Velopack channel feed and opens the correct channel setup asset when a newer release is available. The flow is documented in [docs/VelopackUpdates.md](docs/VelopackUpdates.md).
+
 Until then, build locally or use upstream Equalizer APO for normal production use.
 
 ## Building
@@ -64,5 +66,10 @@ CI currently builds these variants:
 - `windows-x64-avx512`
 - `windows-x64-avx10_1`
 - `windows-arm64`
+
+The SIMD matrix, dependency artifact names, installer artifact names, and test
+policy are tracked in [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
+
+The broad preparation/refactoring pass is summarized in [docs/RefactoringBaseline.md](docs/RefactoringBaseline.md).
 
 Qt tools are built through qmake in CI and in the documented local setup. A full Visual Studio solution build also needs a working Qt VS Tools/QtMsBuild setup.

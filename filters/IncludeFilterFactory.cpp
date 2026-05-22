@@ -23,9 +23,13 @@
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
 #include "FilterEngine.h"
+#include "FilterFactoryRegistry.h"
 #include "IncludeFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(3, IncludeFilterFactory)
+
+using std::vector;
+using std::wstring;
 
 const int RECURSION_LIMIT = 100;
 

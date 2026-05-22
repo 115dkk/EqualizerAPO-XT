@@ -43,6 +43,6 @@ private:
 
 	std::wstring filename;
 	unsigned maxFrameCount;
-	bool beforeFirstProcess;
+	unsigned filterFrameCount;
 };
 #pragma AVRT_VTABLES_END

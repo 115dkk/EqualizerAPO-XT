@@ -22,13 +22,19 @@
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/LogHelper.h"
 #include "VSTPluginFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(13, VSTPluginFilterFactory)
+
+using std::shared_ptr;
+using std::unordered_map;
+using std::vector;
+using std::wstring;
 
 vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	VSTPluginFilter* filter = NULL;
+	VSTPluginFilter* filter = nullptr;
 
 	if (command == L"VSTPlugin")
 	{
@@ -72,19 +78,19 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 					int x = i + 2;
 					if (x <= parts.size())
 					{
-						float f = wcstof(parts[x].c_str(), NULL);
+						float f = wcstof(parts[x].c_str(), nullptr);
 						paramMap[value.c_str()] = f;
 					}
 				}
 				else
 				{
-					float f = wcstof(value.c_str(), NULL);
+					float f = wcstof(value.c_str(), nullptr);
 					paramMap[key] = f;
 				}
 			}
 		}
 
-		if (library != NULL)
+		if (library != nullptr)
 		{
 			bool create = true;
 			if (configPath != L"")
@@ -122,7 +128,7 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

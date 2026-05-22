@@ -27,9 +27,14 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "LoudnessCorrectionFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "LoudnessCorrectionFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(14, LoudnessCorrectionFilterFactory)
+
+using std::regex;
+using std::vector;
+using std::wstring;
 
 LoudnessCorrectionFilterFactory::LoudnessCorrectionFilterFactory()
 {

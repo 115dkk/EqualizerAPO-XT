@@ -42,7 +42,7 @@ public:
 		return message.empty();
 	}
 
-	std::wstring getMessage()
+	std::wstring getMessage() const
 	{
 		return message;
 	}

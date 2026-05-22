@@ -31,7 +31,7 @@ bool DisableWheelFilter::eventFilter(QObject* obj, QEvent* event)
 	if (event->type() == QEvent::Wheel)
 	{
 		QWidget* widget = qobject_cast<QWidget*>(obj);
-		if (widget == NULL || !widget->hasFocus())
+		if (widget == nullptr || !widget->hasFocus())
 		{
 			QApplication::sendEvent(scrollTarget, event);
 			return true;

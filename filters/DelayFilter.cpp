@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -23,12 +23,13 @@
 #include "helpers/MemoryHelper.h"
 #include "DelayFilter.h"
 
-using namespace std;
+using std::vector;
+using std::wstring;
 
 DelayFilter::DelayFilter(double delay, bool isMs)
 	: delay(delay), isMs(isMs)
 {
-	buffers = NULL;
+	buffers = nullptr;
 }
 
 DelayFilter::~DelayFilter()
@@ -51,8 +52,8 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		buffers[i] = (double*)MemoryHelper::alloc(sizeof(double) * bufferLength);
-		memset(buffers[i], 0, sizeof(double) * bufferLength);
+		buffers[i] = static_cast<double*>(MemoryHelper::alloc(sizeof *buffers[i] * bufferLength));
+		std::fill_n(buffers[i], bufferLength, 0.0);
 	}
 
 	bufferOffset = 0;
@@ -71,24 +72,24 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 
 		if (bufferLength <= frameCount)
 		{
-			memcpy(outputChannel, bufferChannel + bufferOffset, (bufferLength - bufferOffset) * sizeof(double));
-			memcpy(outputChannel + bufferLength - bufferOffset, bufferChannel, bufferOffset * sizeof(double));
-			memcpy(outputChannel + bufferLength, inputChannel, (frameCount - bufferLength) * sizeof(double));
-			memcpy(bufferChannel, inputChannel + frameCount - bufferLength, bufferLength * sizeof(double));
+			std::copy_n(bufferChannel + bufferOffset, bufferLength - bufferOffset, outputChannel);
+			std::copy_n(bufferChannel, bufferOffset, outputChannel + bufferLength - bufferOffset);
+			std::copy_n(inputChannel, frameCount - bufferLength, outputChannel + bufferLength);
+			std::copy_n(inputChannel + frameCount - bufferLength, bufferLength, bufferChannel);
 		}
 		else
 		{
 			if (bufferLength < bufferOffset + frameCount)
 			{
-				memcpy(outputChannel, bufferChannel + bufferOffset, (bufferLength - bufferOffset) * sizeof(double));
-				memcpy(outputChannel + bufferLength - bufferOffset, bufferChannel, (frameCount - (bufferLength - bufferOffset)) * sizeof(double));
-				memcpy(bufferChannel + bufferOffset, inputChannel, (bufferLength - bufferOffset) * sizeof(double));
-				memcpy(bufferChannel, inputChannel + bufferLength - bufferOffset, (frameCount - (bufferLength - bufferOffset)) * sizeof(double));
+				std::copy_n(bufferChannel + bufferOffset, bufferLength - bufferOffset, outputChannel);
+				std::copy_n(bufferChannel, frameCount - (bufferLength - bufferOffset), outputChannel + bufferLength - bufferOffset);
+				std::copy_n(inputChannel, bufferLength - bufferOffset, bufferChannel + bufferOffset);
+				std::copy_n(inputChannel + bufferLength - bufferOffset, frameCount - (bufferLength - bufferOffset), bufferChannel);
 			}
 			else
 			{
-				memcpy(outputChannel, bufferChannel + bufferOffset, frameCount * sizeof(double));
-				memcpy(bufferChannel + bufferOffset, inputChannel, frameCount * sizeof(double));
+				std::copy_n(bufferChannel + bufferOffset, frameCount, outputChannel);
+				std::copy_n(inputChannel, frameCount, bufferChannel + bufferOffset);
 			}
 		}
 	}
@@ -102,13 +103,13 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 
 void DelayFilter::cleanup()
 {
-	if (buffers != NULL)
+	if (buffers != nullptr)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
 			MemoryHelper::free(buffers[i]);
 
 		MemoryHelper::free(buffers);
-		buffers = NULL;
+		buffers = nullptr;
 	}
 }
 

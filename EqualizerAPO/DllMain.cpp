@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2012  Jonas Thedering
 
@@ -27,7 +27,8 @@
 #include "../helpers/RegistryHelper.h"
 #include "../helpers/LogHelper.h"
 
-using namespace std;
+using std::string;
+using std::wstring;
 
 static HINSTANCE hModule;
 
@@ -53,7 +54,7 @@ STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** ppv)
 		return CLASS_E_CLASSNOTAVAILABLE;
 
 	ClassFactory* factory = new ClassFactory();
-	if (factory == NULL)
+	if (factory == nullptr)
 		return E_OUTOFMEMORY;
 
 	HRESULT hr = factory->QueryInterface(iid, ppv);
@@ -100,7 +101,7 @@ STDAPI DllRegisterServer()
 		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32", L"", filename);
 		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32", L"ThreadingModel", L"Both");
 	}
-	catch (RegistryException e)
+	catch (const RegistryException&)
 	{
 		UnregisterAPO(EQUALIZERAPO_POST_MIX_GUID);
 		UnregisterAPO(EQUALIZERAPO_PRE_MIX_GUID);
@@ -124,7 +125,7 @@ STDAPI DllUnregisterServer()
 		RegistryHelper::deleteKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32");
 		RegistryHelper::deleteKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString);
 	}
-	catch (RegistryException e)
+	catch (const RegistryException&)
 	{
 		return E_FAIL;
 	}

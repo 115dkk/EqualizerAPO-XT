@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -26,21 +27,24 @@
 
 class FilterEngine;
 
+struct FilterDeleter
+{
+	void operator()(IFilter* filter) const;
+};
+
 struct FilterInfo
 {
-	IFilter* filter;
-	bool inPlace;
-	size_t* inChannels;
-	size_t inChannelCount;
-	size_t* outChannels;
-	size_t outChannelCount;
+	std::unique_ptr<IFilter, FilterDeleter> filter;
+	bool inPlace = true;
+	std::vector<size_t> inChannels;
+	std::vector<size_t> outChannels;
 };
 
 #pragma AVRT_VTABLES_BEGIN
 class FilterConfiguration
 {
 public:
-	FilterConfiguration(FilterEngine* engine, const std::vector<FilterInfo*>& filterInfos, unsigned allChannelCount);
+	FilterConfiguration(FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount);
 	~FilterConfiguration();
 
 	void read(double* input, unsigned frameCount);
@@ -49,20 +53,19 @@ public:
 	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength);
 	void write(double* output, unsigned frameCount);
 	void write(double** output, unsigned frameCount);
-	double** getOutputSamples() {return allSamples;}
+	double** getOutputSamples() {return allSamples.data();}
 	bool isEmpty();
 
 private:
 	unsigned realChannelCount;
 	unsigned outputChannelCount;
 	unsigned allChannelCount;
-	double* allSamplesData;
-	double* allSamples2Data;
-	double** allSamples;
-	double** allSamples2;
-	double** currentSamples;
-	double** currentSamples2;
-	FilterInfo** filterInfos;
-	unsigned filterCount;
+	std::vector<double> allSamplesData;
+	std::vector<double> allSamples2Data;
+	std::vector<double*> allSamples;
+	std::vector<double*> allSamples2;
+	std::vector<double*> currentSamples;
+	std::vector<double*> currentSamples2;
+	std::vector<std::unique_ptr<FilterInfo>> filterInfos;
 };
 #pragma AVRT_VTABLES_END

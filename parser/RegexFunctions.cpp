@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -18,11 +18,18 @@
 */
 
 #include "stdafx.h"
+#include <memory>
 #include <regex>
 
 #include "RegexFunctions.h"
 
-using namespace std;
+using std::make_unique;
+using std::regex;
+using std::string;
+using std::vector;
+using std::wregex;
+using std::wsmatch;
+using std::wstring;
 using namespace mup;
 
 RegexSearchFunction::RegexSearchFunction()
@@ -62,7 +69,7 @@ const char_type* RegexSearchFunction::GetDesc() const
 
 IToken* RegexSearchFunction::Clone() const
 {
-	return new RegexSearchFunction(*this);
+	return make_unique<RegexSearchFunction>(*this).release();
 }
 
 RegexReplaceFunction::RegexReplaceFunction()
@@ -96,5 +103,5 @@ const char_type* RegexReplaceFunction::GetDesc() const
 
 IToken* RegexReplaceFunction::Clone() const
 {
-	return new RegexReplaceFunction(*this);
+	return make_unique<RegexReplaceFunction>(*this).release();
 }

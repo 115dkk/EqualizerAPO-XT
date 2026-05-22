@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -25,7 +25,14 @@
 #include "FrequencyPlotItem.h"
 #include "FrequencyPlotView.h"
 
-using namespace std;
+using std::abs;
+using std::ceil;
+using std::floor;
+using std::log10;
+using std::max;
+using std::min;
+using std::pow;
+using std::vector;
 
 FrequencyPlotView::FrequencyPlotView(QWidget* parent)
 	: QGraphicsView(parent)

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -27,7 +27,11 @@
 #include "LogHelper.h"
 #include "ChannelHelper.h"
 
-using namespace std;
+using std::find;
+using std::to_wstring;
+using std::unordered_map;
+using std::vector;
+using std::wstring;
 
 unordered_map<wstring, int> ChannelHelper::channelNameToPosMap;
 unordered_map<int, wstring> ChannelHelper::channelPosToNameMap;
@@ -104,15 +108,15 @@ vector<wstring> ChannelHelper::getChannelNames(int channelCount, int channelMask
 	return channelNames;
 }
 
-int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowNew)
+int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional)
 {
 	int channelIndex = -1;
 
 	if (iswdigit(word[0]))
 	{
-		channelIndex = wcstol(word.c_str(), NULL, 10) - 1;
+		channelIndex = wcstol(word.c_str(), nullptr, 10) - 1;
 
-		if (channelIndex < 0 || channelIndex >= (int)channelNames.size())
+		if (channelIndex < 0 || channelIndex >= static_cast<int>(channelNames.size()))
 		{
 			LogFStatic(L"Channel number %s out of range (1 - %d)", word.c_str(), channelNames.size());
 			channelIndex = -1;
@@ -138,8 +142,8 @@ int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wst
 		}
 
 		if (pos != channelNames.end())
-			channelIndex = (int)(pos - channelNames.begin());
-		else if (!allowNew)
+			channelIndex = static_cast<int>(pos - channelNames.begin());
+		else if (!allowAdditional)
 			LogFStatic(L"Invalid channel position %s", word.c_str());
 	}
 

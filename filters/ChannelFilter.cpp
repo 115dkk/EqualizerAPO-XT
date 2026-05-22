@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -26,7 +26,9 @@
 #include "helpers/ChannelHelper.h"
 #include "ChannelFilter.h"
 
-using namespace std;
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 ChannelFilter::ChannelFilter(const vector<wstring>& words)
 	: words(words)
@@ -52,7 +54,7 @@ vector<wstring> ChannelFilter::initialize(float sampleRate, unsigned maxFrameCou
 		else
 			channelNr = ChannelHelper::getChannelIndex(currentWord, channelNames);
 
-		if (channelNr != -1 && channelNr < (int)channelCount)
+		if (channelNr != -1 && channelNr < static_cast<int>(channelCount))
 		{
 			selectedChannels[channelNr] = true;
 		}

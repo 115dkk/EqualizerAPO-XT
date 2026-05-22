@@ -51,13 +51,13 @@ QPointF CopyFilterGUIChannelItem::getPerimeterPointTo(QPointF oppositePoint)
 
 CopyFilterGUIChannelItem* CopyFilterGUIChannelItem::findAt(QPointF mousePos)
 {
-	CopyFilterGUIChannelItem* result = NULL;
+	CopyFilterGUIChannelItem* result = nullptr;
 
 	QList<QGraphicsItem*> items = scene()->items(mousePos);
 	for (QGraphicsItem* item : items)
 	{
 		CopyFilterGUIChannelItem* channelItem = qgraphicsitem_cast<CopyFilterGUIChannelItem*>(item);
-		if (channelItem != NULL && channelItem->output != output)
+		if (channelItem != nullptr && channelItem->output != output)
 		{
 			result = channelItem;
 			break;
@@ -88,7 +88,7 @@ void CopyFilterGUIChannelItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
 void CopyFilterGUIChannelItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-	if (currentConnection == NULL)
+	if (currentConnection == nullptr)
 	{
 		if (!boundingRect().contains(event->pos()))
 		{
@@ -97,11 +97,11 @@ void CopyFilterGUIChannelItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 		}
 	}
 
-	if (currentConnection != NULL)
+	if (currentConnection != nullptr)
 	{
 		CopyFilterGUIChannelItem* item = findAt(event->scenePos());
 
-		if (item == NULL)
+		if (item == nullptr)
 		{
 			QLineF line;
 			if (output)
@@ -119,10 +119,10 @@ void CopyFilterGUIChannelItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
 void CopyFilterGUIChannelItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-	if (currentConnection != NULL)
+	if (currentConnection != nullptr)
 	{
 		CopyFilterGUIChannelItem* item = findAt(event->scenePos());
-		if (item != NULL)
+		if (item != nullptr)
 		{
 			CopyFilterGUIChannelItem* source;
 			CopyFilterGUIChannelItem* target;
@@ -149,7 +149,7 @@ void CopyFilterGUIChannelItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event
 
 		scene()->removeItem(currentConnection);
 		delete currentConnection;
-		currentConnection = NULL;
+		currentConnection = nullptr;
 	}
 	else
 	{
@@ -158,7 +158,7 @@ void CopyFilterGUIChannelItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event
 		for (QGraphicsItem* item : items)
 		{
 			CopyFilterGUIConnectionItem* connItem = qgraphicsitem_cast<CopyFilterGUIConnectionItem*>(item);
-			if (connItem != NULL)
+			if (connItem != nullptr)
 			{
 				if (connItem->getSource() == this || connItem->getTarget() == this)
 					connItem->setSelected(true);

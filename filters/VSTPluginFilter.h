@@ -48,22 +48,22 @@ private:
 	size_t channelCount;
 	unsigned effectChannelCount;
 	size_t effectCount = 0;
-	VSTPluginInstance** effects = NULL;
+	VSTPluginInstance** effects = nullptr;
 	size_t emptyChannelCount = 0;
-	double** emptyChannels = NULL;
-	double** inputArray = NULL;
-	double** outputArray = NULL;
+	double** emptyChannels = nullptr;
+	double** inputArray = nullptr;
+	double** outputArray = nullptr;
 
 	// Buffers for float conversion
-	float** floatInputs = NULL;
-	float* _floatInputBuffer = NULL;
-	float** floatOutputs = NULL;
-	float* _floatOutputBuffer = NULL;
+	float** floatInputs = nullptr;
+	float* _floatInputBuffer = nullptr;
+	float** floatOutputs = nullptr;
+	float* _floatOutputBuffer = nullptr;
 
 	// Delay compensation buffers
 	unsigned delayBufferLength = 0;
-	double** delayBuffers = NULL;
-	double* delayTempBuffer = NULL;
+	double** delayBuffers = nullptr;
+	double* delayTempBuffer = nullptr;
 	unsigned delayBufferOffset = 0;
 
 	bool skipProcessing = false;

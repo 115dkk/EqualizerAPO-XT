@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of Equalizer APO, a system-wide equalizer.
 	Copyright (C) 2022  Jonas Thedering
 
@@ -36,7 +36,11 @@
 #endif
 #define IDM_RESTART 200
 
-using namespace std;
+using std::find;
+using std::min;
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 static long __stdcall callback(void* lpUser, long nCommand, void* lpData, long nnn);
 
@@ -61,9 +65,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		client.run();
 		return 0;
 	}
-	catch (InitError e)
+	catch (const InitError& e)
 	{
-		MessageBoxW(NULL, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
+		MessageBoxW(nullptr, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
 		return -1;
 	}
 }
@@ -85,14 +89,14 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 	else
 		throw InitError(L"Voicemeeter is not installed");
 
-	HMODULE module = NULL;
+	HMODULE module = nullptr;
 	module = LoadLibraryW((voicemeeterDirectory + L"\\" voicemeeterRemoteFileName).c_str());
-	if (module == NULL)
+	if (module == nullptr)
 		throw InitError(L"Failed to load " voicemeeterRemoteFileName);
 
-	memset(&vmr, 0, sizeof(T_VBVMR_INTERFACE));
+	vmr = {};
 
-#define LOAD_PROC(proc) vmr.proc = (T_ ## proc)GetProcAddress(module, # proc);if (vmr.proc == NULL) throw InitError(L"Did not find function \"" # proc L"\" in " voicemeeterRemoteFileName)
+#define LOAD_PROC(proc) vmr.proc = (T_ ## proc)GetProcAddress(module, # proc);if (vmr.proc == nullptr) throw InitError(L"Did not find function \"" # proc L"\" in " voicemeeterRemoteFileName)
 	LOAD_PROC(VBVMR_Login);
 	LOAD_PROC(VBVMR_Logout);
 	LOAD_PROC(VBVMR_GetVoicemeeterType);
@@ -109,7 +113,7 @@ VoicemeeterClient::~VoicemeeterClient()
 {
 	if (wTimer != 0)
 	{
-		KillTimer(NULL, wTimer);
+		KillTimer(nullptr, wTimer);
 		wTimer = 0;
 	}
 	endSoftware();
@@ -117,11 +121,11 @@ VoicemeeterClient::~VoicemeeterClient()
 
 void VoicemeeterClient::run()
 {
-	wTimer = SetTimer(NULL, 0, 500, NULL);
+	wTimer = SetTimer(nullptr, 0, 500, nullptr);
 	PostThreadMessage(mainThreadId, WM_COMMAND, IDM_RESTART, 0);
 
 	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
+	while (GetMessage(&msg, nullptr, 0, 0))
 	{
 		switch (msg.message)
 		{
@@ -155,10 +159,10 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 	case VBVMR_CBCOMMAND_STARTING:
 	{
 		VBVMR_LPT_AUDIOINFO audioInfo = (VBVMR_LPT_AUDIOINFO)lpData;
-		sampleRate = (float)audioInfo->samplerate;
+		sampleRate = static_cast<float>(audioInfo->samplerate);
 		maxFrameCount = audioInfo->nbSamplePerFrame;
 		for (FilterEngine* engine : engines)
-			if (engine != NULL)
+			if (engine != nullptr)
 				engine->initialize(sampleRate, 8, 8, 8, 0, maxFrameCount);
 		VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
 	}
@@ -177,13 +181,13 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 
 		for (unsigned i = 0; i < n; i++)
 		{
-			FilterEngine* engine = NULL;
+			FilterEngine* engine = nullptr;
 			if (i < engines.size())
 				engine = engines[i];
 
 			bool idle = true;
 			bool inputSilent = true;
-			if (engine != NULL)
+			if (engine != nullptr)
 			{
 				inputSilent = isBufferSilent(audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
 				idle = inputSilent && idleSampleCounts[i] > 10 * engine->getSampleRate();
@@ -203,7 +207,7 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 			else
 			{
 				for (int j = 0; j < 8; j++)
-					memcpy(audioBuffer->audiobuffer_w[8 * i + j], audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs * sizeof(float));
+					std::copy_n(audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs, audioBuffer->audiobuffer_w[8 * i + j]);
 			}
 		}
 	}
@@ -270,7 +274,7 @@ void VoicemeeterClient::detectVoicemeeterType()
 		{
 			idleSampleCounts.clear();
 			for (FilterEngine* engine : engines)
-				if (engine != NULL)
+				if (engine != nullptr)
 					delete engine;
 			engines.clear();
 
@@ -289,7 +293,7 @@ void VoicemeeterClient::detectVoicemeeterType()
 				}
 				else
 				{
-					engines.push_back(NULL);
+					engines.push_back(nullptr);
 				}
 
 				idleSampleCounts.push_back(0);
@@ -300,9 +304,9 @@ void VoicemeeterClient::detectVoicemeeterType()
 
 void VoicemeeterClient::endSoftware()
 {
-	if (vmr.VBVMR_Logout != NULL)
+	if (vmr.VBVMR_Logout != nullptr)
 		vmr.VBVMR_Logout();
-	if (vmr.VBVMR_AudioCallbackUnregister != NULL)
+	if (vmr.VBVMR_AudioCallbackUnregister != nullptr)
 		vmr.VBVMR_AudioCallbackUnregister();
 }
 
@@ -312,7 +316,7 @@ void VoicemeeterClient::handleCommand(WPARAM wparam, LPARAM lparam)
 	{
 	case IDM_RESTART:
 		Sleep(50);
-		if (vmr.VBVMR_AudioCallbackStart != NULL)
+		if (vmr.VBVMR_AudioCallbackStart != nullptr)
 			vmr.VBVMR_AudioCallbackStart();
 		break;
 	}

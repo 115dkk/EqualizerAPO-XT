@@ -27,9 +27,18 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "IIRFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "IIRFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(6, IIRFilterFactory)
+
+using std::find;
+using std::regex;
+using std::vector;
+using std::wregex;
+using std::wsmatch;
+using std::wstringstream;
+using std::wstring;
 
 static wregex regexType(L"^\\s*ON\\s+([A-Za-z]+)");
 static wregex regexOrder(L"\\s*Order\\s+([0-9]+)");
@@ -41,7 +50,7 @@ IIRFilterFactory::IIRFilterFactory()
 
 vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	IIRFilter* filter = NULL;
+	IIRFilter* filter = nullptr;
 
 	if (command.find(L"Filter") == 0)
 	{
@@ -58,7 +67,7 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 				if (found)
 				{
 					wstring orderString = match.str(1);
-					unsigned order = wcstol(orderString.c_str(), NULL, 10);
+					unsigned order = wcstol(orderString.c_str(), nullptr, 10);
 
 					if (order < 1)
 					{
@@ -81,7 +90,7 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 								vector<double> coefficients;
 								for (auto it = coefficientStrings.begin(); it != coefficientStrings.end(); it++)
 								{
-									coefficients.push_back(wcstod(it->c_str(), NULL));
+									coefficients.push_back(wcstod(it->c_str(), nullptr));
 								}
 
 								wstringstream stream;
@@ -103,7 +112,7 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

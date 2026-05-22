@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -20,7 +20,7 @@
 #include <cmath>
 #include "ExponentialSpinBox.h"
 
-using namespace std;
+
 
 ExponentialSpinBox::ExponentialSpinBox(QWidget* parent)
 	: QSpinBox(parent)
@@ -43,7 +43,7 @@ void ExponentialSpinBox::stepBy(int steps)
 			v = minimum();
 	}
 
-	setValue((int)v);
+	setValue(static_cast<int>(v));
 }
 
 int ExponentialSpinBox::valueFromText(const QString& text) const

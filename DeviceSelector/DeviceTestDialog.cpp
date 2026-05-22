@@ -54,7 +54,7 @@ DeviceTestDialog::DeviceTestDialog(QWidget* parent)
 			devices.append(QVector<std::shared_ptr<DeviceAPOInfo>>(inputDevices.begin(), inputDevices.end()));
 		}
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 	}

@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -29,12 +29,15 @@
 #include "helpers/MemoryHelper.h"
 #include "ConvolutionFilter.h"
 
-using namespace std;
+using std::abs;
+using std::vector;
+using std::wstring;
 
 ConvolutionFilter::ConvolutionFilter(wstring filename)
 {
 	this->filename = filename;
-	filters = NULL;
+	filters = nullptr;
+	filterFrameCount = 0;
 }
 
 ConvolutionFilter::~ConvolutionFilter()
@@ -49,9 +52,11 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 	this->sampleRate = sampleRate;
 	this->maxFrameCount = maxFrameCount;
 	channelCount = (unsigned)channelNames.size();
-	beforeFirstProcess = true;
+	filterFrameCount = 0;
 
 	initializeFilters(maxFrameCount);
+	if (filters != nullptr)
+		filterFrameCount = maxFrameCount;
 
 	return channelNames;
 }
@@ -59,18 +64,19 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 #pragma AVRT_CODE_BEGIN
 void ConvolutionFilter::process(double** output, double** input, unsigned frameCount)
 {
-	if (filters == NULL)
+	if (filters == nullptr)
+		return;
+	if (frameCount == 0)
 		return;
 
-	if (beforeFirstProcess && frameCount != maxFrameCount)
+	if (frameCount != filterFrameCount)
 	{
-		// should hopefully not happen, but happens with merged Bluetooth devices on Windows 11
 		cleanup();
 		initializeFilters(frameCount);
+		if (filters == nullptr)
+			return;
+		filterFrameCount = frameCount;
 	}
-
-	// only allow reinitialization before first process call
-	beforeFirstProcess = false;
 
 	for (unsigned i = 0; i < channelCount; i++)
 	{
@@ -87,14 +93,15 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 
 void ConvolutionFilter::cleanup()
 {
-	if (filters != NULL)
+	if (filters != nullptr)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
 			hcCloseSingle(&filters[i]);
 
 		MemoryHelper::free(filters);
-		filters = NULL;
+		filters = nullptr;
 	}
+	filterFrameCount = 0;
 }
 
 void ConvolutionFilter::initializeFilters(unsigned frameCount)
@@ -102,7 +109,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	SF_INFO info;
 
 	SNDFILE* inFile = sf_wchar_open(filename.c_str(), SFM_READ, &info);
-	if (inFile == NULL)
+	if (inFile == nullptr)
 	{
 		LogF(L"Error while reading impulse response file: %S", sf_strerror(inFile));
 	}
@@ -123,7 +130,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 			numRead += sf_readf_double(inFile, interleavedBuf + numRead * fileChannelCount, fileFrameCount - numRead);
 
 		sf_close(inFile);
-		inFile = NULL;
+		inFile = nullptr;
 
 		double** bufs = new double* [fileChannelCount];
 		for (unsigned i = 0; i < fileChannelCount; i++)

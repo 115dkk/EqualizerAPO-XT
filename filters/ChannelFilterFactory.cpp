@@ -22,13 +22,17 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "ChannelFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "ChannelFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(5, ChannelFilterFactory)
+
+using std::vector;
+using std::wstring;
 
 vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	ChannelFilter* filter = NULL;
+	ChannelFilter* filter = nullptr;
 
 	if (command == L"Channel")
 	{
@@ -59,7 +63,7 @@ vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, w
 		filter = new(mem) ChannelFilter(words);
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

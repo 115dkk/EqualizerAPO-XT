@@ -40,7 +40,7 @@ QList<FilterTemplate> CopyFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* CopyFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	CopyFilterGUI* result = NULL;
+	CopyFilterGUI* result = nullptr;
 
 	if (command == "Copy")
 	{

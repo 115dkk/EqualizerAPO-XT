@@ -428,9 +428,9 @@ long __stdcall VBVMR_Output_GetDeviceNumber(void);
 	/** 
 	@brief Return pointer on Output Device Descriptor according index
 	@param zindex : zero based index
-	@param nType : Pointer on 32bit long receiving the type (pointer can be NULL).
-	@param szName : Pointer on string (256 char min) receiving the device name (pointer can be NULL).
-	@param szHardwareId : Pointer on string (256 char min) receiving the hardware ID (pointer can be NULL).
+	@param nType : Pointer on 32bit long receiving the type (pointer can be nullptr).
+	@param szName : Pointer on string (256 char min) receiving the device name (pointer can be nullptr).
+	@param szHardwareId : Pointer on string (256 char min) receiving the hardware ID (pointer can be nullptr).
 	@return :	 0: OK (no error).
 	*/
 
@@ -447,9 +447,9 @@ long __stdcall VBVMR_Input_GetDeviceNumber(void);
 	/** 
 	@brief Return pointer on Input Device Descriptor according index
 	@param zindex : zero based index
-	@param nType : Pointer on 32bit long receiving the type (pointer can be NULL).
-	@param szName : Pointer on string (256 char min) receiving the device name (pointer can be NULL).
-	@param szHardwareId : Pointer on string (256 char min) receiving the hardware ID (pointer can be NULL).
+	@param nType : Pointer on 32bit long receiving the type (pointer can be nullptr).
+	@param szName : Pointer on string (256 char min) receiving the device name (pointer can be nullptr).
+	@param szHardwareId : Pointer on string (256 char min) receiving the hardware ID (pointer can be nullptr).
 	@return :	 0: OK (no error).
 	*/
 

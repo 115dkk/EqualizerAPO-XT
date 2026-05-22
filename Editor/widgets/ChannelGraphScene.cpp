@@ -30,7 +30,7 @@ ChannelGraphScene::ChannelGraphScene(QWidget* parent)
 QPointF ChannelGraphScene::getNextChannelPoint(QGraphicsItem* lastItem, bool output)
 {
 	int x = 0;
-	if (lastItem != NULL)
+	if (lastItem != nullptr)
 	{
 		QRectF lastRect = lastItem->sceneBoundingRect();
 		x = lastRect.left() + lastRect.width() + 1 + GUIHelper::scale(10);

@@ -1,0 +1,205 @@
+/*
+    This file is part of EqualizerAPO, a system-wide equalizer.
+    Copyright (C) 2014  Jonas Thedering
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+#include "stdafx.h"
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <exception>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <Shlwapi.h>
+#include <Ks.h>
+#include <KsMedia.h>
+#include <mpParser.h>
+#include <mpPackageCommon.h>
+#include <mpPackageNonCmplx.h>
+#include <mpPackageStr.h>
+#include <mpPackageMatrix.h>
+
+#include "helpers/RegistryHelper.h"
+#include "helpers/StringHelper.h"
+#include "helpers/LogHelper.h"
+#include "helpers/MemoryHelper.h"
+#include "helpers/ChannelHelper.h"
+#include "ConfigurationFileReader.h"
+#include "FilterEngine.h"
+#include "filters/ExpressionFilterFactory.h"
+#include "filters/DeviceFilterFactory.h"
+#include "filters/StageFilterFactory.h"
+#include "filters/IfFilterFactory.h"
+#include "filters/ChannelFilterFactory.h"
+#include "filters/BiQuadFilterFactory.h"
+#include "filters/IIRFilterFactory.h"
+#include "filters/PreampFilterFactory.h"
+#include "filters/DelayFilterFactory.h"
+#include "filters/CopyFilterFactory.h"
+#include "filters/IncludeFilterFactory.h"
+#include "filters/ConvolutionFilterFactory.h"
+#include "filters/GraphicEQFilterFactory.h"
+#include "filters/VSTPluginFilterFactory.h"
+#include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
+
+using std::exception;
+using std::find;
+using std::lock_guard;
+using std::make_unique;
+using std::max;
+using std::move;
+using std::mutex;
+using std::string;
+using std::stringstream;
+using std::swap;
+using std::thread;
+using std::unique_lock;
+using std::vector;
+using std::wstring;
+using namespace mup;
+
+
+void FilterEngine::loadConfig(const wstring& customPath)
+{
+	lock_guard<mutex> lock(loadMutex);
+	timer.start();
+	previousConfig.reset();
+
+	allChannelNames = ChannelHelper::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
+
+	currentChannelNames = allChannelNames;
+	lastChannelNames.clear();
+	lastNewChannelNames.clear();
+	watchRegistryKeys.clear();
+	parser->ClearVar();
+
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+	{
+		IFilterFactory* factory = it->get();
+		vector<IFilter*> newFilters = factory->startOfConfiguration();
+		if (!newFilters.empty())
+			addFilters(newFilters);
+	}
+
+	if (customPath.empty())
+		loadConfigFile(configPath + L"\\config.txt");
+	else
+		loadConfigFile(customPath);
+
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+	{
+		IFilterFactory* factory = it->get();
+		vector<IFilter*> newFilters = factory->endOfConfiguration();
+		if (!newFilters.empty())
+			addFilters(newFilters);
+	}
+
+	void* mem = MemoryHelper::alloc(sizeof(FilterConfiguration));
+	FilterConfigurationPtr config(new(mem) FilterConfiguration(this, move(filterInfos), (unsigned)allChannelNames.size()));
+
+	filterInfos.clear();
+
+	double loadTime = timer.stop();
+	TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
+
+	if (!currentConfig)
+		currentConfig = move(config);
+	else
+		nextConfig = move(config);
+}
+
+void FilterEngine::loadConfigFile(const wstring& path)
+{
+	TraceF(L"Loading configuration from %s", path.c_str());
+
+	stringstream inputStream = ConfigurationFileReader::readWithRetry(path);
+	if (!inputStream.good())
+		return;
+
+	vector<wstring> savedChannelNames = currentChannelNames;
+
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+	{
+		IFilterFactory* factory = it->get();
+		vector<IFilter*> newFilters = factory->startOfFile(path);
+		if (!newFilters.empty())
+			addFilters(newFilters);
+	}
+
+	while (inputStream.good())
+	{
+		string encodedLine;
+		getline(inputStream, encodedLine);
+		if (encodedLine.size() > 0 && encodedLine[encodedLine.size() - 1] == '\r')
+			encodedLine.resize(encodedLine.size() - 1);
+
+		wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
+		if (line.find(L'\uFFFD') != -1)
+			line = StringHelper::toWString(encodedLine, CP_ACP);
+
+		size_t pos = line.find(L':');
+		if (pos != -1)
+		{
+			wstring key = line.substr(0, pos);
+			wstring value = line.substr(pos + 1);
+
+			// allow to use indentation
+			key = StringHelper::trim(key);
+
+			for (auto it = factories.cbegin(); it != factories.cend(); it++)
+			{
+				IFilterFactory* factory = it->get();
+
+				vector<IFilter*> newFilters;
+				try
+				{
+					newFilters = factory->createFilter(path, key, value);
+				}
+				catch (const exception& e)
+				{
+					LogF(L"%S", e.what());
+				}
+
+				if (key == L"")
+					break;
+				if (!newFilters.empty())
+				{
+					addFilters(newFilters);
+					break;
+				}
+			}
+		}
+	}
+
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+	{
+		IFilterFactory* factory = it->get();
+		vector<IFilter*> newFilters = factory->endOfFile(path);
+		if (!newFilters.empty())
+			addFilters(newFilters);
+	}
+
+	// restore channels selected in outer configuration file
+	currentChannelNames = savedChannelNames;
+}
+
+void FilterEngine::watchRegistryKey(const std::wstring& key)
+{
+	watchRegistryKeys.insert(key);
+}

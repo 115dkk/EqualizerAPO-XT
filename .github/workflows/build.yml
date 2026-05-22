@@ -242,6 +242,8 @@ jobs:
 
         $projects = @(
           "Common.vcxproj",
+          "Tests\HybridConvTests\HybridConvTests.vcxproj",
+          "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
           "EqualizerAPO\EqualizerAPO.vcxproj",
           "Benchmark\Benchmark.vcxproj",
           "VoicemeeterClient\VoicemeeterClient.vcxproj"
@@ -291,6 +293,9 @@ jobs:
           Write-Host "Building with instruction set: $instructionSet (variant: ${{ matrix.simd_variant }})"
           $buildParams += "/p:EnableEnhancedInstructionSet=$instructionSet"
         }
+        if ($env:Qt6_DIR) {
+          $buildParams += "/p:QT_ROOT=$env:Qt6_DIR"
+        }
 
         foreach ($project in $projects) {
           Write-Host "`n=== Building $project ==="
@@ -298,6 +303,32 @@ jobs:
           msbuild $project @buildParams
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Build failed for $project"
+            exit $LASTEXITCODE
+          }
+        }
+
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:Qt6_DIR\bin;$env:PATH"
+        $testExecutables = @(
+          "${{ github.workspace }}\Tests\EditorLogicTests\${{ matrix.platform }}\Release\EditorLogicTests.exe"
+        )
+
+        $canRunAudioSimdTests = "${{ matrix.platform }}" -ne "x64" -or "${{ matrix.simd_variant }}" -eq "avx2"
+        if ($canRunAudioSimdTests) {
+          $testExecutables += "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
+        } else {
+          Write-Warning "Skipping HybridConvTests for ${{ matrix.simd_variant }} because GitHub-hosted x64 runners do not guarantee that instruction set at runtime. The project is still built for this variant."
+        }
+
+        foreach ($testExe in $testExecutables) {
+          if (-not (Test-Path $testExe)) {
+            Write-Error "Test executable not found: $testExe"
+            exit 1
+          }
+
+          Write-Host "`n=== Running $(Split-Path $testExe -Leaf) ==="
+          & $testExe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "$(Split-Path $testExe -Leaf) failed"
             exit $LASTEXITCODE
           }
         }
@@ -340,6 +371,14 @@ jobs:
         Write-Host "Using build tool: $buildTool"
 
         $BuildPlatform = "${{ matrix.platform }}"
+        $updateChannel = if ($BuildPlatform -eq "ARM64") {
+          "arm64"
+        } elseif ($BuildPlatform -eq "x64") {
+          "x64-" + ("${{ matrix.simd_variant }}" -replace "_", "-")
+        } else {
+          $BuildPlatform.ToLowerInvariant()
+        }
+        Write-Host "Qt update channel: $updateChannel"
         if ($BuildPlatform -eq "x64") {
           # Set compiler flags based on SIMD variant
           $simdFlags = switch ("${{ matrix.simd_variant }}") {
@@ -366,11 +405,12 @@ jobs:
           & $lreleasePath ..\$projectPath
           # Remove /arch:AVX2 from .pro file and replace with our SIMD variant
           # This is done by removing the hardcoded /arch flag and adding our SIMD variant (if specified)
+          $qmakeChannelArg = "EAPO_UPDATE_CHANNEL=$updateChannel"
           if ($BuildPlatform -eq "x64") {
-            & $qmakePath ..\$projectPath -r "CONFIG+=release" "QMAKE_CXXFLAGS-=/arch:AVX2" "QMAKE_CXXFLAGS+=$simdFlags"
+            & $qmakePath ..\$projectPath -r "CONFIG+=release" $qmakeChannelArg "QMAKE_CXXFLAGS-=/arch:AVX2" "QMAKE_CXXFLAGS+=$simdFlags"
           }
           else {
-            & $qmakePath ..\$projectPath -r "CONFIG+=release"
+            & $qmakePath ..\$projectPath -r "CONFIG+=release" $qmakeChannelArg
           }
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "$projectName qmake failed"

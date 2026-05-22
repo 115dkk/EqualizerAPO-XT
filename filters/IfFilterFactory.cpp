@@ -23,9 +23,13 @@
 #include "parser/RegexFunctions.h"
 #include "parser/RegistryFunctions.h"
 #include "FilterEngine.h"
+#include "FilterFactoryRegistry.h"
 #include "IfFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(1, IfFilterFactory)
+
+using std::vector;
+using std::wstring;
 using namespace mup;
 
 void IfFilterFactory::initialize(FilterEngine* engine)
@@ -85,7 +89,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 					executeElse = true;
 				}
 			}
-			catch (ParserError e)
+			catch (const ParserError& e)
 			{
 				LogF(L"Error while evaluating If(%s): %s", expression.c_str(), e.GetMsg().c_str());
 				falseCount++;
@@ -129,7 +133,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 					executeElse = false;
 				}
 			}
-			catch (ParserError e)
+			catch (const ParserError& e)
 			{
 				LogF(L"Error while evaluating ElseIf(%s): %s", expression.c_str(), e.GetMsg().c_str());
 			}
@@ -203,7 +207,7 @@ bool IfFilterFactory::toBoolean(const Value& value)
 	{
 	case 'i':
 		{
-			int i = (int)value.GetInteger();
+			int i = static_cast<int>(value.GetInteger());
 			result = (i != 0);
 		}
 		break;

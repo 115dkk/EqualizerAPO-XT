@@ -43,7 +43,7 @@ sf_count_t seekDevice(sf_count_t offset, int whence, void* user_data)
 sf_count_t readDevice(void* ptr, sf_count_t count, void* user_data)
 {
 	QIODevice* device = (QIODevice*)user_data;
-	return device->read((char*)ptr, count);
+	return device->read(static_cast<char*>(ptr), count);
 }
 
 sf_count_t writeDevice(const void* ptr, sf_count_t count, void* user_data)

@@ -46,7 +46,7 @@ FilterTableRow::FilterTableRow(FilterTable* table, int number, FilterTable::Item
 
 	ui->stackedWidget->setContentsMargins(0, 5, 0, 5);
 
-	if (gui != NULL)
+	if (gui != nullptr)
 	{
 		connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
 		ui->stackedWidget->addWidget(gui);
@@ -87,7 +87,7 @@ QSize FilterTableRow::sizeHint() const
 
 void FilterTableRow::mouseDoubleClickEvent(QMouseEvent*)
 {
-	if (gui == NULL && ui->stackedWidget->currentIndex() == 1)
+	if (gui == nullptr && ui->stackedWidget->currentIndex() == 1)
 		ui->actionEditText->trigger();
 }
 
@@ -153,7 +153,7 @@ void FilterTableRow::on_actionAdd_triggered()
 	QPoint p = ui->toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));
 	QAction* action = menu->exec(p);
 	ui->actionAdd->setChecked(false);
-	if (action != NULL)
+	if (action != nullptr)
 	{
 		FilterTemplate t = action->data().value<FilterTemplate>();
 		QString line = t.getLine();

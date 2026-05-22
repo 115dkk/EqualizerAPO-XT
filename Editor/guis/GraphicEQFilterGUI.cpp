@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -33,7 +33,9 @@
 static const double DEFAULT_TABLE_WIDTH = 119;
 static const double DEFAULT_VIEW_HEIGHT = 150;
 
-using namespace std;
+using std::replace;
+using std::sort;
+using std::vector;
 
 QRegularExpression GraphicEQFilterGUI::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 
@@ -73,7 +75,7 @@ GraphicEQFilterGUI::GraphicEQFilterGUI(GraphicEQFilter* filter, QString configPa
 	ui->toolBar->addAction(ui->actionResetResponse);
 
 	connect(scene, SIGNAL(nodeInserted(int,double,double)), this, SLOT(insertRow(int,double,double)));
-	connect(scene, SIGNAL(nodeRemoved(int)), this, SLOT(removeRow(int)));
+	connect(scene, &GraphicEQFilterGUIScene::nodeRemoved, this, &GraphicEQFilterGUI::removeRow);
 	connect(scene, SIGNAL(nodeUpdated(int,double,double)), this, SLOT(updateRow(int,double,double)));
 	connect(scene, SIGNAL(nodeMoved(int,int)), this, SLOT(moveRow(int,int)));
 	connect(scene, SIGNAL(nodeSelectionChanged(int,bool)), this, SLOT(selectRow(int,bool)));

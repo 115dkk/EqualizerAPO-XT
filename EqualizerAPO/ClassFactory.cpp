@@ -35,7 +35,7 @@ HRESULT __stdcall ClassFactory::QueryInterface(const IID& iid, void** ppv)
 		*ppv = static_cast<IClassFactory*>(this);
 	else
 	{
-		*ppv = NULL;
+		*ppv = nullptr;
 		return E_NOINTERFACE;
 	}
 
@@ -61,11 +61,11 @@ ULONG __stdcall ClassFactory::Release()
 
 HRESULT __stdcall ClassFactory::CreateInstance(IUnknown* pUnknownOuter, const IID& iid, void** ppv)
 {
-	if (pUnknownOuter != NULL && iid != __uuidof(IUnknown))
+	if (pUnknownOuter != nullptr && iid != __uuidof(IUnknown))
 		return E_NOINTERFACE;
 
 	EqualizerAPO* apo = new EqualizerAPO(pUnknownOuter);
-	if (apo == NULL)
+	if (apo == nullptr)
 		return E_OUTOFMEMORY;
 
 	HRESULT hr = apo->NonDelegatingQueryInterface(iid, ppv);

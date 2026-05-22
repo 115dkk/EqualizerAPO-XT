@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -18,9 +18,11 @@
 */
 
 #include "stdafx.h"
+#include <memory>
 #include "StringOperators.h"
 
-using namespace std;
+using std::make_unique;
+using std::wstring;
 using namespace mup;
 
 void AddOperator::Eval(ptr_val_type& ret, const ptr_val_type* arg, int argc)
@@ -53,5 +55,5 @@ const char_type* AddOperator::GetDesc() const
 
 IToken* AddOperator::Clone() const
 {
-	return new AddOperator(*this);
+	return make_unique<AddOperator>(*this).release();
 }

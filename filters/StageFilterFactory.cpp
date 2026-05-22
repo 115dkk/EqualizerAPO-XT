@@ -22,9 +22,13 @@
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
 #include "FilterEngine.h"
+#include "FilterFactoryRegistry.h"
 #include "StageFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(4, StageFilterFactory)
+
+using std::vector;
+using std::wstring;
 
 void StageFilterFactory::initialize(FilterEngine* engine)
 {

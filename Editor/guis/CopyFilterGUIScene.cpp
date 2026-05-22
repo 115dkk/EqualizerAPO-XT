@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -28,7 +28,9 @@
 #include "CopyFilterGUIChannelItem.h"
 #include "CopyFilterGUIScene.h"
 
-using namespace std;
+using std::list;
+using std::vector;
+using std::wstring;
 
 void CopyFilterGUIScene::load(const vector<wstring>& channelNames, vector<Assignment> assignments)
 {
@@ -37,8 +39,8 @@ void CopyFilterGUIScene::load(const vector<wstring>& channelNames, vector<Assign
 	QHash<QString, CopyFilterGUIChannelItem*> inputChannelMap;
 	QHash<QString, CopyFilterGUIChannelItem*> outputChannelMap;
 
-	QGraphicsItem* lastInputItem = NULL;
-	lastOutputItem = NULL;
+	QGraphicsItem* lastInputItem = nullptr;
+	lastOutputItem = nullptr;
 
 	for (unsigned i = 0; i < channelNames.size(); i++)
 	{
@@ -76,7 +78,7 @@ void CopyFilterGUIScene::load(const vector<wstring>& channelNames, vector<Assign
 		if (oc == "")
 			continue;
 		CopyFilterGUIChannelItem* outputItem = outputChannelMap.value(oc.toUpper());
-		if (outputItem == NULL)
+		if (outputItem == nullptr)
 		{
 			outputItem = new CopyFilterGUIChannelItem(oc, true);
 			outputItem->setPos(getNextChannelPoint(lastOutputItem, true));
@@ -91,7 +93,7 @@ void CopyFilterGUIScene::load(const vector<wstring>& channelNames, vector<Assign
 			if (ic == " ")
 				continue;
 			CopyFilterGUIChannelItem* inputItem = inputChannelMap.value(ic.toUpper());
-			if (inputItem == NULL)
+			if (inputItem == nullptr)
 			{
 				inputItem = new CopyFilterGUIChannelItem(ic, false);
 				inputItem->setPos(getNextChannelPoint(lastInputItem, false));
@@ -123,7 +125,7 @@ std::vector<Assignment> CopyFilterGUIScene::buildAssignments()
 	for (QGraphicsItem* item : items())
 	{
 		CopyFilterGUIConnectionItem* connItem = qgraphicsitem_cast<CopyFilterGUIConnectionItem*>(item);
-		if (connItem != NULL && connItem->getTarget() != NULL)
+		if (connItem != nullptr && connItem->getTarget() != nullptr)
 		{
 			connItems.push_back(connItem);
 		}
@@ -144,7 +146,7 @@ std::vector<Assignment> CopyFilterGUIScene::buildAssignments()
 	{
 		QString oc = connItem->getTarget()->getName();
 		Assignment* assignment = channelAssignmentMap.value(oc);
-		if (assignment == NULL)
+		if (assignment == nullptr)
 		{
 			Assignment newAssignment;
 			newAssignment.targetChannel = oc.toStdWString();
@@ -215,13 +217,13 @@ void CopyFilterGUIScene::lineEditEditingCanceled()
 
 void CopyFilterGUIScene::keyPressEvent(QKeyEvent* event)
 {
-	// focusItem != NULL means that the cursor is inside a line edit
-	if (event->key() == Qt::Key_Delete && focusItem() == NULL)
+	// focusItem != nullptr means that the cursor is inside a line edit
+	if (event->key() == Qt::Key_Delete && focusItem() == nullptr)
 	{
 		for (QGraphicsItem* item : selectedItems())
 		{
 			CopyFilterGUIConnectionItem* connectionItem = qgraphicsitem_cast<CopyFilterGUIConnectionItem*>(item);
-			if (connectionItem != NULL)
+			if (connectionItem != nullptr)
 			{
 				removeItem(connectionItem);
 				delete connectionItem;

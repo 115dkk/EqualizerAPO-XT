@@ -27,9 +27,13 @@
 #include "parser/StringOperators.h"
 #include "parser/LogicalOperators.h"
 #include "FilterEngine.h"
+#include "FilterFactoryRegistry.h"
 #include "ExpressionFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(2, ExpressionFilterFactory)
+
+using std::vector;
+using std::wstring;
 using namespace mup;
 
 void ExpressionFilterFactory::initialize(FilterEngine* engine)
@@ -96,7 +100,7 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 						output += resultString;
 						TraceF(L"Inline expression %s evaluated to %s", expression.c_str(), resultString.c_str());
 					}
-					catch (ParserError e)
+					catch (const ParserError& e)
 					{
 						LogF(L"Error while evaluating inline expression %s: %s", expression.c_str(), e.GetMsg().c_str());
 					}
@@ -142,7 +146,7 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 				resultString = result.ToString().c_str();
 			TraceF(L"Expression %s evaluated to %s", expression.c_str(), resultString.c_str());
 		}
-		catch (ParserError e)
+		catch (const ParserError& e)
 		{
 			LogF(L"Error while evaluating expression %s: %s", expression.c_str(), e.GetMsg().c_str());
 		}

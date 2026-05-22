@@ -24,15 +24,25 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "GraphicEQFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "GraphicEQFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(12, GraphicEQFilterFactory)
+
+using std::find;
+using std::regex;
+using std::sort;
+using std::vector;
+using std::wregex;
+using std::wsmatch;
+using std::wsregex_iterator;
+using std::wstring;
 
 static wregex regexNumber(L"[-+0-9.eE]+");
 
 vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	GraphicEQFilter* filter = NULL;
+	GraphicEQFilter* filter = nullptr;
 
 	if (command == L"GraphicEQ")
 	{
@@ -50,8 +60,8 @@ vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath,
 			if (it != end)
 			{
 				wsmatch gainMatch = *it;
-				double freq = wcstod(freqMatch.str(0).c_str(), NULL);
-				double gain = wcstod(gainMatch.str(0).c_str(), NULL);
+				double freq = wcstod(freqMatch.str(0).c_str(), nullptr);
+				double gain = wcstod(gainMatch.str(0).c_str(), nullptr);
 				FilterNode node(freq, gain);
 				nodes.push_back(node);
 			}
@@ -64,7 +74,7 @@ vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath,
 		filter = new(mem) GraphicEQFilter(nodes, 16384);
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

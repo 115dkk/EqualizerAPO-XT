@@ -20,6 +20,9 @@
     <ClInclude Include="filters\ConvolutionFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ConvolutionFilePath.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\ConvolutionFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -89,6 +92,9 @@
     <ClInclude Include="helpers\LogHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\MemoryHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\PrecisionTimer.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -124,6 +130,7 @@
     </ClInclude>
     <ClInclude Include="VoicemeeterAPOInfo.h" />
     <ClInclude Include="AbstractAPOInfo.h" />
+    <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
@@ -163,6 +170,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ConvolutionFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ConvolutionFilePath.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp">
@@ -231,6 +241,9 @@
     <ClCompile Include="helpers\LogHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
+    <ClCompile Include="helpers\MemoryHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
     <ClCompile Include="helpers\RegistryHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
@@ -257,9 +270,18 @@
     </ClCompile>
     <ClCompile Include="VoicemeeterAPOInfo.cpp" />
     <ClCompile Include="AbstractAPOInfo.cpp" />
+    <ClCompile Include="ConfigurationFileReader.cpp" />
     <ClCompile Include="DeviceAPOInfo.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Install.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Load.cpp" />
+    <ClCompile Include="DeviceAPOInfo.State.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Uninstall.cpp" />
     <ClCompile Include="FilterConfiguration.cpp" />
     <ClCompile Include="FilterEngine.cpp" />
+    <ClCompile Include="FilterEngine.Configuration.cpp" />
+    <ClCompile Include="FilterEngine.Process.cpp" />
+    <ClCompile Include="FilterEngine.Runtime.cpp" />
+    <ClCompile Include="FilterFactoryRegistry.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp">
       <Filter>filters\loudnessCorrection</Filter>

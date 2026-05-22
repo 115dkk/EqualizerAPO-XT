@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2012  Jonas Thedering
 
@@ -25,12 +25,13 @@
 #include "RegistryHelper.h"
 #include "LogHelper.h"
 
-using namespace std;
+using std::log;
+using std::wstring;
 
 bool LogHelper::initialized = false;
 wstring LogHelper::logPath;
 bool LogHelper::enableTrace = false;
-FILE* LogHelper::presetFP = NULL;
+FILE* LogHelper::presetFP = nullptr;
 bool LogHelper::compact = false;
 bool LogHelper::useConsoleColors = false;
 
@@ -52,7 +53,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 			if (RegistryHelper::readValue(APP_REGPATH, L"EnableTrace") != L"false")
 				enableTrace = true;
 		}
-		catch (RegistryException e)
+		catch (const RegistryException& e)
 		{
 			LogFStatic(L"%s", e.getMessage());
 		}
@@ -62,7 +63,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		return;
 
 	FILE* fp;
-	if (presetFP == NULL)
+	if (presetFP == nullptr)
 	{
 		errno_t err = _wfopen_s(&fp, logPath.c_str(), L"at");
 		if (err != 0)
@@ -88,7 +89,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		GetLocalTime(&___st);
 		DWORD threadId = GetCurrentThreadId();
 		fwprintf(fp, L"%04d-%02d-%02d %02d:%02d:%02d.%03d %d %08X (%S:%d): ",
-			___st.wYear, ___st.wMonth, ___st.wDay, ___st.wHour, ___st.wMinute, ___st.wSecond, ___st.wMilliseconds, threadId, (DWORD)(unsigned long long)caller, file, line);
+			___st.wYear, ___st.wMonth, ___st.wDay, ___st.wHour, ___st.wMinute, ___st.wSecond, ___st.wMilliseconds, threadId, static_cast<DWORD>(reinterpret_cast<uintptr_t>(caller)), file, line);
 	}
 
 	if (trace)
@@ -107,7 +108,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		SetConsoleTextAttribute(con, 7); // Set console color to light grey (default)
 	}
 
-	if (presetFP == NULL)
+	if (presetFP == nullptr)
 		fclose(fp);
 	else
 		fflush(fp);

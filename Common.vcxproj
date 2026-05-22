@@ -305,6 +305,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AbstractAPOInfo.h" />
+    <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
@@ -314,6 +315,7 @@
     <ClInclude Include="filters\ChannelFilter.h" />
     <ClInclude Include="filters\ChannelFilterFactory.h" />
     <ClInclude Include="filters\ConvolutionFilter.h" />
+    <ClInclude Include="filters\ConvolutionFilePath.h" />
     <ClInclude Include="filters\ConvolutionFilterFactory.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
@@ -341,6 +343,7 @@
     <ClInclude Include="helpers\ChannelHelper.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\LogHelper.h" />
+    <ClInclude Include="helpers\MemoryHelper.h" />
     <ClInclude Include="helpers\PrecisionTimer.h" />
     <ClInclude Include="helpers\RegistryHelper.h" />
     <ClInclude Include="helpers\ScopeGuard.h" />
@@ -360,15 +363,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AbstractAPOInfo.cpp" />
+    <ClCompile Include="ConfigurationFileReader.cpp" />
     <ClCompile Include="DeviceAPOInfo.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Install.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Load.cpp" />
+    <ClCompile Include="DeviceAPOInfo.State.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Uninstall.cpp" />
     <ClCompile Include="FilterConfiguration.cpp" />
     <ClCompile Include="FilterEngine.cpp" />
+    <ClCompile Include="FilterEngine.Configuration.cpp" />
+    <ClCompile Include="FilterEngine.Process.cpp" />
+    <ClCompile Include="FilterEngine.Runtime.cpp" />
+    <ClCompile Include="FilterFactoryRegistry.cpp" />
     <ClCompile Include="filters\BiQuad.cpp" />
     <ClCompile Include="filters\BiQuadFilter.cpp" />
     <ClCompile Include="filters\BiQuadFilterFactory.cpp" />
     <ClCompile Include="filters\ChannelFilter.cpp" />
     <ClCompile Include="filters\ChannelFilterFactory.cpp" />
     <ClCompile Include="filters\ConvolutionFilter.cpp" />
+    <ClCompile Include="filters\ConvolutionFilePath.cpp" />
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
@@ -394,6 +407,7 @@
     <ClCompile Include="helpers\ChannelHelper.cpp" />
     <ClCompile Include="helpers\GainIterator.cpp" />
     <ClCompile Include="helpers\LogHelper.cpp" />
+    <ClCompile Include="helpers\MemoryHelper.cpp" />
     <ClCompile Include="helpers\RegistryHelper.cpp" />
     <ClCompile Include="helpers\StringHelper.cpp" />
     <ClCompile Include="helpers\VSTPluginInstance.cpp" />

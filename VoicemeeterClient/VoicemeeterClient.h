@@ -59,7 +59,7 @@ public:
 	{
 	}
 
-	std::wstring getMessage()
+	std::wstring getMessage() const
 	{
 		return message;
 	}

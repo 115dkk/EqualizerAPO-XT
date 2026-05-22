@@ -24,13 +24,18 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "DelayFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "DelayFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(9, DelayFilterFactory)
+
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	DelayFilter* filter = NULL;
+	DelayFilter* filter = nullptr;
 
 	if (command == L"Delay")
 	{
@@ -59,7 +64,7 @@ vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wst
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

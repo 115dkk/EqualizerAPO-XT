@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2024  Jonas Thedering
 
@@ -25,17 +25,20 @@
 #include "StringHelper.h"
 #include "ServiceHelper.h"
 
-using namespace std;
+using std::make_shared;
+using std::shared_ptr;
+using std::vector;
+using std::wstring;
 
 void ServiceHelper::restartService(const wstring& serviceName)
 {
-	SC_HANDLE scManager = OpenSCManagerW(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-	if (scManager == NULL)
+	SC_HANDLE scManager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+	if (scManager == nullptr)
 		throw ServiceException(L"OpenSCManager failed (" + StringHelper::getSystemErrorString(GetLastError()) + L")");
 	SCOPE_EXIT{CloseServiceHandle(scManager); };
 
 	vector<shared_ptr<Service>> services;
-	shared_ptr<Service> mainService(new Service(scManager, serviceName, true));
+	shared_ptr<Service> mainService = make_shared<Service>(scManager, serviceName, true);
 	services.push_back(mainService);
 
 	DWORD mainState = mainService->getState();
@@ -44,7 +47,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 		vector<wstring> dependentServices = mainService->getActiveDependentServices();
 		for (wstring dependentServiceName : dependentServices)
 		{
-			shared_ptr<Service> dependentService(new Service(scManager, dependentServiceName.c_str(), false));
+			shared_ptr<Service> dependentService = make_shared<Service>(scManager, dependentServiceName.c_str(), false);
 			services.insert(prev(services.end()), dependentService);
 		}
 	}
@@ -103,7 +106,7 @@ Service::Service(SC_HANDLE scManager, const std::wstring& serviceName, bool allo
 	if (allowEnumerate)
 		desiredAccess |= SERVICE_ENUMERATE_DEPENDENTS;
 	serviceHandle = OpenServiceW(scManager, serviceName.c_str(), SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS);
-	if (serviceHandle == NULL)
+	if (serviceHandle == nullptr)
 		fail(L"OpenService", GetLastError());
 }
 
@@ -129,7 +132,7 @@ DWORD Service::getState()
 
 void Service::start()
 {
-	if (!StartServiceW(serviceHandle, 0, NULL))
+	if (!StartServiceW(serviceHandle, 0, nullptr))
 		fail(L"StartService", GetLastError());
 }
 
@@ -145,7 +148,7 @@ DWORD Service::stop()
 vector<wstring> Service::getActiveDependentServices()
 {
 	DWORD bytesNeeded, count;
-	if (EnumDependentServicesW(serviceHandle, SERVICE_ACTIVE, NULL, 0, &bytesNeeded, &count))
+	if (EnumDependentServicesW(serviceHandle, SERVICE_ACTIVE, nullptr, 0, &bytesNeeded, &count))
 		// if the call succeeds, there are no dependent services
 		return vector<wstring>();
 

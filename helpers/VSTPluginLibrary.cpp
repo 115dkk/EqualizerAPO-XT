@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -22,10 +22,22 @@
 #include "LogHelper.h"
 #include "VSTPluginLibrary.h"
 
-using namespace std;
+using std::find;
+using std::make_shared;
+using std::shared_ptr;
+using std::weak_ptr;
+using std::wstring;
 
 std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> VSTPluginLibrary::instanceMap;
 std::wstring VSTPluginLibrary::defaultPluginPath;
+
+struct VSTPluginLibrary::MakeSharedEnabler : VSTPluginLibrary
+{
+	MakeSharedEnabler(const wstring& libPath)
+		: VSTPluginLibrary(libPath)
+	{
+	}
+};
 
 std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& libPath)
 {
@@ -38,9 +50,9 @@ std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& l
 		ptr = instance.lock();
 	}
 
-	if (ptr == NULL)
+	if (ptr == nullptr)
 	{
-		ptr = shared_ptr<VSTPluginLibrary>(new VSTPluginLibrary(libPath));
+		ptr = make_shared<MakeSharedEnabler>(libPath);
 		instanceMap[libPath] = ptr;
 	}
 
@@ -67,7 +79,7 @@ bool VSTPluginLibrary::loadFunctions()
 {
 	VSTPluginMain = (vstPluginMain)GetProcAddress(module, "VSTPluginMain");
 
-	return VSTPluginMain != NULL;
+	return VSTPluginMain != nullptr;
 }
 
 VSTPluginLibrary::VSTPluginLibrary(const wstring& libPath)

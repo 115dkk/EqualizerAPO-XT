@@ -38,7 +38,7 @@ protected:
 	virtual bool loadFunctions() = 0;
 	virtual int customInitialize();
 
-	HMODULE module = NULL;
+	HMODULE module = nullptr;
 
 private:
 	unsigned short getFileArchitecture(const std::wstring& filePath);

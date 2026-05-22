@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2013  Jonas Thedering
 
@@ -20,7 +20,9 @@
 #include "stdafx.h"
 #include "BiQuad.h"
 
-using namespace std;
+using std::log10;
+using std::pow;
+using std::sqrt;
 
 BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandwidthOrQOrS, bool isBandwidthOrS)
 {

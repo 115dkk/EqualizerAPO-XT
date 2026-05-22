@@ -23,8 +23,12 @@
 #include <IFilter.h>
 #include <filters/BiQuad.h>
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <regex>
 #include <sstream>
+#include <thread>
 
 #pragma AVRT_VTABLES_BEGIN
 class LoudnessCorrectionFilter : public IFilter
@@ -86,25 +90,28 @@ private:
 	void upDateBiquadCoefficients(const double& freq, const double& bandwidthOrQOrS, const double& dbGain, bool highshelf);
 	bool upDateNeutral();
 
-	void* _parameterUpdateThreadHandle;
-	static unsigned long __stdcall parameterUpdateThread(void* parameter);
-	void* _stopParameterUpdateThreadEvent;
-	void* _parameterchangedEvent;
-	CRITICAL_SECTION _parameterUpdateSection;
+	std::thread _parameterUpdateThread;
+	static void parameterUpdateThread(LoudnessCorrectionFilter* filter);
+	std::mutex _parameterUpdateMutex;
+	std::mutex _parameterUpdateThreadMutex;
+	std::condition_variable _parameterUpdateThreadCv;
+	bool _stopParameterUpdateThread = false;
+	std::atomic_bool _parameterChanged = false;
 
 	FilterParameters _parameters;
-	size_t _channelCount;
-	float _sampleRate;
-	double _attFactor;
+	size_t _channelCount = 0;
+	float _sampleRate = 0.0f;
+	double _attFactor = 1.0;
+	double _pendingAttFactor = 1.0;
 	std::vector<BiQuad> _lowShelfBiquads;
 	std::vector<BiQuad> _highShelfBiquads;
 
-	bool _neutral;
-	bool _neutralUpDate;
-	double _tempResult;
-	double _aLS[4];
-	double _a0LS;
-	double _aHS[4];
-	double _a0HS;
+	bool _neutral = true;
+	bool _neutralUpDate = true;
+	double _tempResult = 0.0;
+	double _aLS[4] = {};
+	double _a0LS = 0.0;
+	double _aHS[4] = {};
+	double _a0HS = 0.0;
 };
 #pragma AVRT_VTABLES_END

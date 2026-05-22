@@ -24,19 +24,19 @@
 VolumeController::VolumeController()
 {
 	HRESULT hr;
-	CoInitialize(NULL);
-	IMMDeviceEnumerator* deviceEnumerator = NULL;
-	hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (LPVOID*)&deviceEnumerator);
-	IMMDevice* defaultDevice = NULL;
+	CoInitialize(nullptr);
+	IMMDeviceEnumerator* deviceEnumerator = nullptr;
+	hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (LPVOID*)&deviceEnumerator);
+	IMMDevice* defaultDevice = nullptr;
 
 	hr = deviceEnumerator->GetDefaultAudioEndpoint(eRender, eMultimedia,  &defaultDevice);
 	deviceEnumerator->Release();
-	deviceEnumerator = NULL;
+	deviceEnumerator = nullptr;
 
-	_endpointVolume = NULL;
-	hr = defaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, NULL, (LPVOID*)&_endpointVolume);
+	_endpointVolume = nullptr;
+	hr = defaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, nullptr, (LPVOID*)&_endpointVolume);
 	defaultDevice->Release();
-	defaultDevice = NULL;
+	defaultDevice = nullptr;
 	float inkrement;
 	_endpointVolume->GetVolumeRange(&_minVol, &_maxVol, &inkrement);
 }
@@ -53,5 +53,5 @@ HRESULT VolumeController::setVolume(double volume)
 {
 	volume = fmin(volume, _maxVol);
 	volume = fmax(volume, _minVol);
-	return _endpointVolume->SetMasterVolumeLevel(float(volume), NULL);
+	return _endpointVolume->SetMasterVolumeLevel(float(volume), nullptr);
 }

@@ -22,13 +22,17 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "PreampFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "PreampFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(8, PreampFilterFactory)
+
+using std::vector;
+using std::wstring;
 
 vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	PreampFilter* filter = NULL;
+	PreampFilter* filter = nullptr;
 
 	if (command == L"Preamp")
 	{
@@ -46,7 +50,7 @@ vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, ws
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

@@ -58,7 +58,7 @@ private:
 	static std::wstring getStartupPath();
 	static std::wstring getClientPath();
 	static void createLink(const std::wstring& lnkPath, const std::wstring& path, const std::wstring& args);
-	static std::wstring getLinkArgs(const std::wstring& lnkPath, std::wstring* path = NULL);
+	static std::wstring getLinkArgs(const std::wstring& lnkPath, std::wstring* path = nullptr);
 	static std::vector<std::wstring> splitArgs(const std::wstring& argString);
 	static std::wstring joinArgs(const std::vector<std::wstring>& args);
 	static void closeProcess(unsigned long processId);

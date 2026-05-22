@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -24,7 +24,12 @@
 #include "Editor/widgets/FrequencyPlotView.h"
 #include "GraphicEQFilterGUIScene.h"
 
-using namespace std;
+using std::abs;
+using std::max;
+using std::min;
+using std::move;
+using std::set;
+using std::vector;
 
 GraphicEQFilterGUIScene::GraphicEQFilterGUIScene(QObject* parent)
 	: FrequencyPlotScene(parent)
@@ -35,7 +40,7 @@ void GraphicEQFilterGUIScene::setNodes(const std::vector<FilterNode>& nodes)
 {
 	noUpdateModel = true;
 
-	for (int i = (int)this->nodes.size() - 1; i >= 0; i--)
+	for (int i = static_cast<int>(this->nodes.size()) - 1; i >= 0; i--)
 		removeNode(i);
 
 	this->nodes = nodes;
@@ -210,7 +215,7 @@ void GraphicEQFilterGUIScene::itemMoved(int index)
 	}
 	else if (hz > oldHz)
 	{
-		while (newIndex < (int)nodes.size() - 1 && nodes[newIndex + 1].freq < hz)
+		while (newIndex < static_cast<int>(nodes.size()) - 1 && nodes[newIndex + 1].freq < hz)
 		{
 			nodes[newIndex] = nodes[newIndex + 1];
 			items[newIndex] = items[newIndex + 1];
@@ -265,7 +270,7 @@ void GraphicEQFilterGUIScene::keyPressEvent(QKeyEvent* event)
 			for (QGraphicsItem* item : selectedItems())
 			{
 				GraphicEQFilterGUIItem* plotItem = qgraphicsitem_cast<GraphicEQFilterGUIItem*>(item);
-				if (plotItem != NULL)
+				if (plotItem != nullptr)
 				{
 					// this works for multiple items because the index of the other items is updated inside removeNode
 					int index = plotItem->getIndex();
@@ -282,7 +287,7 @@ void GraphicEQFilterGUIScene::keyPressEvent(QKeyEvent* event)
 		for (QGraphicsItem* item : selectedItems())
 		{
 			GraphicEQFilterGUIItem* plotItem = qgraphicsitem_cast<GraphicEQFilterGUIItem*>(item);
-			if (plotItem != NULL)
+			if (plotItem != nullptr)
 			{
 				int index = plotItem->getIndex();
 				FilterNode node = nodes[index];
@@ -324,12 +329,12 @@ vector<FilterNode>& GraphicEQFilterGUIScene::getNodes()
 
 int GraphicEQFilterGUIScene::verifyBands(const std::vector<FilterNode>& nodes)
 {
-	const vector<double>& bands = getBands((int)nodes.size());
+	const vector<double>& bands = getBands(static_cast<int>(nodes.size()));
 
 	int bandCount = -1;
 	if (!bands.empty())
 	{
-		bandCount = (int)nodes.size();
+		bandCount = static_cast<int>(nodes.size());
 		for (unsigned i = 0; i < nodes.size(); i++)
 		{
 			if (abs(nodes[i].freq - bands[i]) > 0.1)

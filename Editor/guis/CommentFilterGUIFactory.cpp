@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -21,7 +21,7 @@
 #include "CommentFilterGUI.h"
 #include "CommentFilterGUIFactory.h"
 
-using namespace std;
+using std::list;
 
 CommentFilterGUIFactory::CommentFilterGUIFactory()
 {
@@ -40,7 +40,7 @@ IFilterGUI* CommentFilterGUIFactory::createFilterGUI(QString& command, QString& 
 	if (lastWasComment)
 		command = command.mid(1).trimmed();
 
-	return NULL;
+	return nullptr;
 }
 
 IFilterGUI* CommentFilterGUIFactory::decorateFilterGUI(IFilterGUI* gui)

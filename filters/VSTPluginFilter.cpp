@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -22,7 +22,7 @@
 #include "helpers/LogHelper.h"
 #include "VSTPluginFilter.h"
 
-using namespace std;
+using std::max;
 
 VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, std::unordered_map<std::wstring, float> paramMap)
 	: library(library), chunkData(chunkData), paramMap(paramMap)
@@ -84,8 +84,8 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	emptyChannels = (double**)MemoryHelper::alloc(emptyChannelCount * sizeof(double*));
 	for (unsigned i = 0; i < emptyChannelCount; i++)
 	{
-		emptyChannels[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
-		memset(emptyChannels[i], 0, maxFrameCount * sizeof(double));
+		emptyChannels[i] = static_cast<double*>(MemoryHelper::alloc(maxFrameCount * sizeof *emptyChannels[i]));
+		std::fill_n(emptyChannels[i], maxFrameCount, 0.0);
 	}
 
 	inputArray = (double**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(double*));
@@ -94,7 +94,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// Allocate float buffers for conversion
 	if (firstEffect->numInputs() > 0) {
 		floatInputs = (float**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(float*));
-		_floatInputBuffer = (float*)MemoryHelper::alloc(firstEffect->numInputs() * maxFrameCount * sizeof(float));
+		_floatInputBuffer = static_cast<float*>(MemoryHelper::alloc(firstEffect->numInputs() * maxFrameCount * sizeof *_floatInputBuffer));
 		for (int i = 0; i < firstEffect->numInputs(); ++i) {
 			floatInputs[i] = _floatInputBuffer + i * maxFrameCount;
 		}
@@ -102,7 +102,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 	if (firstEffect->numOutputs() > 0) {
 		floatOutputs = (float**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(float*));
-		_floatOutputBuffer = (float*)MemoryHelper::alloc(firstEffect->numOutputs() * maxFrameCount * sizeof(float));
+		_floatOutputBuffer = static_cast<float*>(MemoryHelper::alloc(firstEffect->numOutputs() * maxFrameCount * sizeof *_floatOutputBuffer));
 		for (int i = 0; i < firstEffect->numOutputs(); ++i) {
 			floatOutputs[i] = _floatOutputBuffer + i * maxFrameCount;
 		}
@@ -115,10 +115,10 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		delayBuffers = (double**)MemoryHelper::alloc(channelCount * sizeof(double*));
 		for (unsigned i = 0; i < channelCount; i++)
 		{
-			delayBuffers[i] = (double*)MemoryHelper::alloc(delayBufferLength * sizeof(double));
-			memset(delayBuffers[i], 0, delayBufferLength * sizeof(double));
+			delayBuffers[i] = static_cast<double*>(MemoryHelper::alloc(delayBufferLength * sizeof *delayBuffers[i]));
+			std::fill_n(delayBuffers[i], delayBufferLength, 0.0);
 		}
-		delayTempBuffer = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
+		delayTempBuffer = static_cast<double*>(MemoryHelper::alloc(maxFrameCount * sizeof *delayTempBuffer));
 		delayBufferOffset = 0;
 	}
 
@@ -160,7 +160,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 	if (skipProcessing)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(double));
+			std::copy_n(input[i], frameCount, output[i]);
 		return;
 	}
 
@@ -206,7 +206,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				{
 					// For non-replacing, VST expects to add to the output. Clear float buffer first.
 					for (int j = 0; j < effect->numOutputs(); j++)
-						memset(floatOutputs[j], 0, frameCount * sizeof(float));
+						std::fill_n(floatOutputs[j], frameCount, 0.0f);
 					effect->process(floatInputs, floatOutputs, frameCount);
 				}
 
@@ -222,7 +222,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				for (int j = effect->numOutputs(); j < effect->numInputs(); j++)
 				{
 					if (channelOffset + j < channelCount)
-						memset(output[channelOffset + j], 0, frameCount * sizeof(double));
+						std::fill_n(output[channelOffset + j], frameCount, 0.0);
 				}
 			}
 
@@ -230,7 +230,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		}
 
 		// Apply delay compensation if needed
-		if (delayBuffers != NULL && delayBufferLength > 0)
+		if (delayBuffers != nullptr && delayBufferLength > 0)
 		{
 			for (unsigned i = 0; i < channelCount; i++)
 			{
@@ -239,29 +239,29 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 
 				if (delayBufferLength <= frameCount)
 				{
-					memcpy(delayTempBuffer, outputChannel + frameCount - delayBufferLength, delayBufferLength * sizeof(double));
-					memmove(outputChannel + delayBufferLength, outputChannel, (frameCount - delayBufferLength) * sizeof(double));
-					memcpy(outputChannel, delayBuffer + delayBufferOffset, (delayBufferLength - delayBufferOffset) * sizeof(double));
-					memcpy(outputChannel + delayBufferLength - delayBufferOffset, delayBuffer, delayBufferOffset * sizeof(double));
-					memcpy(delayBuffer, delayTempBuffer, delayBufferLength * sizeof(double));
+					std::copy_n(outputChannel + frameCount - delayBufferLength, delayBufferLength, delayTempBuffer);
+					std::copy_backward(outputChannel, outputChannel + frameCount - delayBufferLength, outputChannel + frameCount);
+					std::copy_n(delayBuffer + delayBufferOffset, delayBufferLength - delayBufferOffset, outputChannel);
+					std::copy_n(delayBuffer, delayBufferOffset, outputChannel + delayBufferLength - delayBufferOffset);
+					std::copy_n(delayTempBuffer, delayBufferLength, delayBuffer);
 				}
 				else
 				{
-					memcpy(delayTempBuffer, outputChannel, frameCount * sizeof(double));
+					std::copy_n(outputChannel, frameCount, delayTempBuffer);
 
 					if (delayBufferLength < delayBufferOffset + frameCount)
 					{
 						// Wrapping around the delay buffer
-						memcpy(outputChannel, delayBuffer + delayBufferOffset, (delayBufferLength - delayBufferOffset) * sizeof(double));
-						memcpy(outputChannel + delayBufferLength - delayBufferOffset, delayBuffer, (frameCount - (delayBufferLength - delayBufferOffset)) * sizeof(double));
-						memcpy(delayBuffer + delayBufferOffset, delayTempBuffer, (delayBufferLength - delayBufferOffset) * sizeof(double));
-						memcpy(delayBuffer, delayTempBuffer + delayBufferLength - delayBufferOffset, (frameCount - (delayBufferLength - delayBufferOffset)) * sizeof(double));
+						std::copy_n(delayBuffer + delayBufferOffset, delayBufferLength - delayBufferOffset, outputChannel);
+						std::copy_n(delayBuffer, frameCount - (delayBufferLength - delayBufferOffset), outputChannel + delayBufferLength - delayBufferOffset);
+						std::copy_n(delayTempBuffer, delayBufferLength - delayBufferOffset, delayBuffer + delayBufferOffset);
+						std::copy_n(delayTempBuffer + delayBufferLength - delayBufferOffset, frameCount - (delayBufferLength - delayBufferOffset), delayBuffer);
 					}
 					else
 					{
 						// Simple case - no wrapping
-						memcpy(outputChannel, delayBuffer + delayBufferOffset, frameCount * sizeof(double));
-						memcpy(delayBuffer + delayBufferOffset, delayTempBuffer, frameCount * sizeof(double));
+						std::copy_n(delayBuffer + delayBufferOffset, frameCount, outputChannel);
+						std::copy_n(delayTempBuffer, frameCount, delayBuffer + delayBufferOffset);
 					}
 				}
 			}
@@ -282,7 +282,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		}
 
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(double));
+			std::copy_n(input[i], frameCount, output[i]);
 	}
 }
 #pragma AVRT_CODE_END
@@ -304,7 +304,7 @@ std::unordered_map<std::wstring, float> VSTPluginFilter::getParamMap() const
 
 void VSTPluginFilter::cleanup()
 {
-	if (effects != NULL)
+	if (effects != nullptr)
 	{
 		for (unsigned i = 0; i < effectCount; i++)
 		{
@@ -314,59 +314,59 @@ void VSTPluginFilter::cleanup()
 			MemoryHelper::free(effect);
 		}
 		MemoryHelper::free(effects);
-		effects = NULL;
+		effects = nullptr;
 	}
 	effectCount = 0;
 
-	if (emptyChannels != NULL)
+	if (emptyChannels != nullptr)
 	{
 		for (unsigned i = 0; i < emptyChannelCount; i++)
 			MemoryHelper::free(emptyChannels[i]);
 		MemoryHelper::free(emptyChannels);
-		emptyChannels = NULL;
+		emptyChannels = nullptr;
 	}
 	emptyChannelCount = 0;
 
-	if (inputArray != NULL)
+	if (inputArray != nullptr)
 	{
 		MemoryHelper::free(inputArray);
-		inputArray = NULL;
+		inputArray = nullptr;
 	}
 
-	if (outputArray != NULL)
+	if (outputArray != nullptr)
 	{
 		MemoryHelper::free(outputArray);
-		outputArray = NULL;
+		outputArray = nullptr;
 	}
     
-    if (floatInputs != NULL) {
+    if (floatInputs != nullptr) {
 		MemoryHelper::free(floatInputs);
-		floatInputs = NULL;
+		floatInputs = nullptr;
 	}
-	if (_floatInputBuffer != NULL) {
+	if (_floatInputBuffer != nullptr) {
 		MemoryHelper::free(_floatInputBuffer);
-		_floatInputBuffer = NULL;
+		_floatInputBuffer = nullptr;
 	}
-	if (floatOutputs != NULL) {
+	if (floatOutputs != nullptr) {
 		MemoryHelper::free(floatOutputs);
-		floatOutputs = NULL;
+		floatOutputs = nullptr;
 	}
-	if (_floatOutputBuffer != NULL) {
+	if (_floatOutputBuffer != nullptr) {
 		MemoryHelper::free(_floatOutputBuffer);
-		_floatOutputBuffer = NULL;
+		_floatOutputBuffer = nullptr;
 	}
 
-	if (delayBuffers != NULL)
+	if (delayBuffers != nullptr)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
 			MemoryHelper::free(delayBuffers[i]);
 		MemoryHelper::free(delayBuffers);
-		delayBuffers = NULL;
+		delayBuffers = nullptr;
 	}
-	if (delayTempBuffer != NULL)
+	if (delayTempBuffer != nullptr)
 	{
 		MemoryHelper::free(delayTempBuffer);
-		delayTempBuffer = NULL;
+		delayTempBuffer = nullptr;
 	}
 	delayBufferLength = 0;
 	delayBufferOffset = 0;

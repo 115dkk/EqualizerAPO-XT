@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -28,7 +28,7 @@
 #include "helpers/RegistryHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 
-using namespace std;
+
 
 int main(int argc, char* argv[])
 {

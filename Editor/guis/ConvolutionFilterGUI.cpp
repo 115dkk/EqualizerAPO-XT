@@ -21,6 +21,7 @@
 #define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
 #include <sndfile.h>
 
+#include "Editor/helpers/ConvolutionPathHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "ConvolutionFilterGUI.h"
 #include "ui_ConvolutionFilterGUI.h"
@@ -32,6 +33,8 @@ ConvolutionFilterGUI::ConvolutionFilterGUI(const QString& configPath, unsigned d
 
 	this->configPath = configPath;
 	ui->pathLineEdit->setText(path);
+	ui->labelError->setWordWrap(true);
+	ui->selectFileToolButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
 	updateFileInfo();
 }
@@ -52,8 +55,9 @@ void ConvolutionFilterGUI::on_selectFileToolButton_clicked()
 	QFileInfo fileInfo(configPath);
 	QDir configDir = fileInfo.absoluteDir();
 	QString path = ui->pathLineEdit->text();
-	if (path.length() > 0)
-		fileInfo.setFile(configDir, path);
+	QString absolutePath = ConvolutionPathHelper::absolutePathForConfig(configPath, path);
+	if (!absolutePath.isEmpty())
+		fileInfo.setFile(absolutePath);
 
 	QFileDialog dialog(this, tr("Select impulse response file"), fileInfo.absolutePath(), "*.wav;*.flac;*.ogg");
 	dialog.setFileMode(QFileDialog::ExistingFile);
@@ -62,11 +66,8 @@ void ConvolutionFilterGUI::on_selectFileToolButton_clicked()
 		dialog.selectFile(fileInfo.fileName());
 	if (dialog.exec() == QDialog::Accepted)
 	{
-		QString absolutePath = dialog.selectedFiles().first();
-		QString relativePath = configDir.relativeFilePath(absolutePath);
-		if (relativePath.startsWith("../../"))
-			relativePath = absolutePath;
-		ui->pathLineEdit->setText(QDir::toNativeSeparators(relativePath));
+		QString selectedPath = dialog.selectedFiles().first();
+		ui->pathLineEdit->setText(ConvolutionPathHelper::displayPathForSelection(configPath, selectedPath));
 		updateFileInfo();
 
 		emit updateModel();
@@ -93,9 +94,7 @@ void ConvolutionFilterGUI::updateFileInfo()
 	}
 	else
 	{
-		QFileInfo fileInfo(configPath);
-		QDir configDir = fileInfo.absoluteDir();
-		fileInfo.setFile(configDir, path);
+		QFileInfo fileInfo(ConvolutionPathHelper::absolutePathForConfig(configPath, path));
 		if (!fileInfo.exists())
 		{
 			error = tr("File not found");
@@ -110,7 +109,7 @@ void ConvolutionFilterGUI::updateFileInfo()
 			{
 				mask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
 			}
-			catch (RegistryException e)
+			catch (const RegistryException& e)
 			{
 				// ignore
 			}
@@ -122,9 +121,9 @@ void ConvolutionFilterGUI::updateFileInfo()
 			}
 			else
 			{
-				SF_INFO info;
+				SF_INFO info = {};
 				SNDFILE* file = sf_wchar_open(path.toStdWString().c_str(), SFM_READ, &info);
-				if (file == NULL)
+				if (file == nullptr)
 				{
 					error = tr("Unsupported file format");
 					labelsVisible = false;

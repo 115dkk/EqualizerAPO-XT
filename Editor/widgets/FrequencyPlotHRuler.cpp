@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -25,7 +25,11 @@
 #include "FrequencyPlotView.h"
 #include "FrequencyPlotHRuler.h"
 
-using namespace std;
+using std::ceil;
+using std::floor;
+using std::log10;
+using std::pow;
+using std::vector;
 
 FrequencyPlotHRuler::FrequencyPlotHRuler(QWidget* parent)
 	: QWidget(parent)

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2013  Jonas Thedering
 
@@ -19,11 +19,15 @@
 
 #include "stdafx.h"
 #include <string>
+#include <vector>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "StringHelper.h"
 
-using namespace std;
+using std::find;
+using std::string;
+using std::vector;
+using std::wstring;
 
 wstring StringHelper::replaceCharacters(const wstring& s, const wstring& chars, const wstring& replacement)
 {
@@ -49,34 +53,37 @@ wstring StringHelper::replaceIllegalCharacters(const wstring& filename)
 
 wstring StringHelper::toWString(const string& s, unsigned codepage)
 {
-	int length = MultiByteToWideChar(codepage, 0, s.c_str(), -1, NULL, 0);
-	wchar_t* charBuf = new wchar_t[length];
-	MultiByteToWideChar(codepage, 0, s.c_str(), -1, charBuf, length);
-	wstring result = charBuf;
-	delete[] charBuf;
+	int length = MultiByteToWideChar(codepage, 0, s.c_str(), -1, nullptr, 0);
+	if (length == 0)
+		return L"";
+
+	vector<wchar_t> charBuf(length);
+	MultiByteToWideChar(codepage, 0, s.c_str(), -1, charBuf.data(), length);
+	wstring result = charBuf.data();
 
 	return result;
 }
 
 string StringHelper::toString(const wstring& s, unsigned codepage)
 {
-	int length = WideCharToMultiByte(codepage, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
-	char* charBuf = new char[length];
-	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf, length, NULL, NULL);
-	string result = charBuf;
-	delete[] charBuf;
+	int length = WideCharToMultiByte(codepage, 0, s.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	if (length == 0)
+		return "";
+
+	vector<char> charBuf(length);
+	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf.data(), length, nullptr, nullptr);
+	string result = charBuf.data();
 
 	return result;
 }
 
 wstring StringHelper::toLowerCase(const wstring& s)
 {
-	wchar_t* charBuf = new wchar_t[s.length() + 1];
-	memcpy(charBuf, s.c_str(), (s.length() + 1) * sizeof(wchar_t));
-	errno_t err = _wcslwr_s(charBuf, s.length() + 1);
+	vector<wchar_t> charBuf(s.length() + 1);
+	std::copy_n(s.c_str(), s.length() + 1, charBuf.data());
+	errno_t err = _wcslwr_s(charBuf.data(), charBuf.size());
 
-	wstring result = charBuf;
-	delete[] charBuf;
+	wstring result = charBuf.data();
 
 	if (err == 0)
 		return result;
@@ -86,12 +93,11 @@ wstring StringHelper::toLowerCase(const wstring& s)
 
 wstring StringHelper::toUpperCase(const wstring& s)
 {
-	wchar_t* charBuf = new wchar_t[s.length() + 1];
-	memcpy(charBuf, s.c_str(), (s.length() + 1) * sizeof(wchar_t));
-	errno_t err = _wcsupr_s(charBuf, s.length() + 1);
+	vector<wchar_t> charBuf(s.length() + 1);
+	std::copy_n(s.c_str(), s.length() + 1, charBuf.data());
+	errno_t err = _wcsupr_s(charBuf.data(), charBuf.size());
 
-	wstring result = charBuf;
-	delete[] charBuf;
+	wstring result = charBuf.data();
 
 	if (err == 0)
 		return result;
@@ -166,7 +172,7 @@ wstring StringHelper::getSystemErrorString(long status)
 {
 	wchar_t* buf;
 
-	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, status, 0, (LPTSTR)&buf, 0, NULL) != 0)
+	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, status, 0, (LPTSTR)&buf, 0, nullptr) != 0)
 	{
 		wstring result(buf);
 		LocalFree(buf);

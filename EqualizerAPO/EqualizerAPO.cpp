@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2012  Jonas Thedering
 
@@ -28,7 +28,9 @@
 #include "../DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
 
-using namespace std;
+using std::abs;
+using std::string;
+using std::wstring;
 
 long EqualizerAPO::instCount = 0;
 const CRegAPOProperties<1> EqualizerAPO::regPostMixProperties(
@@ -42,16 +44,16 @@ EqualizerAPO::EqualizerAPO(IUnknown* pUnkOuter)
 	: CBaseAudioProcessingObject(regPostMixProperties)
 {
 	refCount = 1;
-	if (pUnkOuter != NULL)
+	if (pUnkOuter != nullptr)
 		this->pUnkOuter = pUnkOuter;
 	else
 		this->pUnkOuter = reinterpret_cast<IUnknown*>(static_cast<INonDelegatingUnknown*>(this));
 
 	allowSilentBufferModification = false;
 
-	childAPO = NULL;
-	childRT = NULL;
-	childCfg = NULL;
+	childAPO = nullptr;
+	childRT = nullptr;
+	childCfg = nullptr;
 
 	InterlockedIncrement(&instCount);
 }
@@ -99,9 +101,9 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 
 	TraceF(L"Initialize");
 
-	if ((NULL == pbyData) && (0 != cbDataSize))
+	if ((nullptr == pbyData) && (0 != cbDataSize))
 		return E_INVALIDARG;
-	if ((NULL != pbyData) && (0 == cbDataSize))
+	if ((nullptr != pbyData) && (0 == cbDataSize))
 		return E_POINTER;
 	if (cbDataSize != sizeof(APOInitSystemEffects))
 		return E_INVALIDARG;
@@ -114,7 +116,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	{
 		TraceF(L"APO GUID: %s", RegistryHelper::getGuidString(apoGuid).c_str());
 	}
-	catch (RegistryException e)
+	catch (const RegistryException&)
 	{
 		LogF(L"Could not convert apo guid to guid string");
 	}
@@ -137,7 +139,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 		if (RegistryHelper::valueExists(APP_REGPATH, L"DeviceTestPipeName"))
 			deviceTestPipeName = RegistryHelper::readValue(APP_REGPATH, L"DeviceTestPipeName");
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		LogF(L"%s", e.getMessage().c_str());
 	}
@@ -162,7 +164,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			allowSilentBufferModification = apoInfo.getCurrentInstallState().allowSilentBufferModification;
 		}
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		LogF(L"Could not read endpoint device info because of: %s", e.getMessage().c_str());
 	}
@@ -179,7 +181,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			return S_OK;
 		}
 
-		hr = CoCreateInstance(childGuid, NULL, CLSCTX_INPROC_SERVER, __uuidof(IAudioProcessingObject), (void**)&childAPO);
+		hr = CoCreateInstance(childGuid, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IAudioProcessingObject), (void**)&childAPO);
 		if (FAILED(hr))
 		{
 			LogF(L"Error in CoCreateInstance for child apo");
@@ -332,7 +334,7 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 		outFormat.guidFormatType.Data1, outFormat.dwSamplesPerFrame, outFormat.dwBytesPerSampleContainer,
 		outFormat.dwValidBitsPerSample, outFormat.fFramesPerSecond, outFormat.dwChannelMask, maxOutputFrameCount);
 
-	if (childCfg != NULL)
+	if (childCfg != nullptr)
 	{
 		hr = childCfg->LockForProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections,
 			ppOutputConnections);
@@ -357,7 +359,7 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 		maxFrameCount = maxOutputFrameCount;
 
 	unsigned realChannelCount;
-	if (childCfg != NULL)
+	if (childCfg != nullptr)
 		realChannelCount = outFormat.dwSamplesPerFrame;
 	else
 		realChannelCount = inFormat.dwSamplesPerFrame;
@@ -398,22 +400,22 @@ HRESULT EqualizerAPO::UnlockForProcess()
 
 void EqualizerAPO::resetChild()
 {
-	if (childAPO != NULL)
+	if (childAPO != nullptr)
 	{
 		childAPO->Release();
-		childAPO = NULL;
+		childAPO = nullptr;
 	}
 
-	if (childRT != NULL)
+	if (childRT != nullptr)
 	{
 		childRT->Release();
-		childRT = NULL;
+		childRT = nullptr;
 	}
 
-	if (childCfg != NULL)
+	if (childCfg != nullptr)
 	{
 		childCfg->Release();
-		childCfg = NULL;
+		childCfg = nullptr;
 	}
 }
 
@@ -421,16 +423,16 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 {
 	string message = "{\"deviceGuid\":\"" + StringHelper::toString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
 
-	HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 	if (pipe == INVALID_HANDLE_VALUE)
 	{
 		if (WaitNamedPipeW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), 1000))
-			pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+			pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 	}
 	if (pipe != INVALID_HANDLE_VALUE)
 	{
 		DWORD bytesWritten;
-		if (!WriteFile(pipe, message.c_str(), (int)message.length(), &bytesWritten, NULL))
+		if (!WriteFile(pipe, message.c_str(), static_cast<int>(message.length()), &bytesWritten, nullptr))
 			LogF(L"Could not write to pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
 
 		FlushFileBuffers(pipe);
@@ -457,7 +459,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 		float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
 
 		if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
-			memset(inputFrames, 0, ppInputConnections[0]->u32ValidFrameCount * engine.getInputChannelCount() * sizeof(float));
+			std::fill_n(inputFrames, ppInputConnections[0]->u32ValidFrameCount * engine.getInputChannelCount(), 0.0f);
 
 		if (childRT)
 		{
@@ -489,7 +491,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 			}
 			else
 			{
-				memset(outputFrames, 0, ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount() * sizeof(float));
+				std::fill_n(outputFrames, ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount(), 0.0f);
 				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
 			}
 		}
@@ -518,7 +520,7 @@ HRESULT EqualizerAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
 		*ppv = static_cast<IAudioSystemEffects*>(this);
 	else
 	{
-		*ppv = NULL;
+		*ppv = nullptr;
 		return E_NOINTERFACE;
 	}
 

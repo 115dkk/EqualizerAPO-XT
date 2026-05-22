@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -27,7 +27,9 @@
 #include "CopyFilterGUIRow.h"
 #include "CopyFilterGUIForm.h"
 
-using namespace std;
+using std::list;
+using std::vector;
+using std::wstring;
 
 CopyFilterGUIForm::CopyFilterGUIForm(QWidget* parent)
 	: QWidget(parent)
@@ -36,13 +38,13 @@ CopyFilterGUIForm::CopyFilterGUIForm(QWidget* parent)
 
 void CopyFilterGUIForm::load(vector<Assignment> assignments)
 {
-	if (gridLayout != NULL)
+	if (gridLayout != nullptr)
 		delete gridLayout;
 
 	for (QObject* object : children())
 	{
 		QWidget* widget = qobject_cast<QWidget*>(object);
-		if (widget != NULL)
+		if (widget != nullptr)
 			widget->setVisible(false);
 		object->deleteLater();
 	}
@@ -125,7 +127,7 @@ void CopyFilterGUIForm::setChannelNames(const vector<wstring>& channelNames)
 	for (int row = 0; row < gridLayout->rowCount() - 1; row++)
 	{
 		QLayoutItem* item = gridLayout->itemAtPosition(row, 1);
-		if (item != NULL)
+		if (item != nullptr)
 		{
 			QComboBox* targetComboBox = qobject_cast<QComboBox*>(item->widget());
 			targetComboBox->blockSignals(true);
@@ -147,11 +149,11 @@ vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
 {
 	vector<Assignment> assignments;
 
-	Assignment* currentAssignment = NULL;
+	Assignment* currentAssignment = nullptr;
 	for (int row = 0; row < gridLayout->rowCount() - 1; row++)
 	{
 		QLayoutItem* item = gridLayout->itemAtPosition(row, 1);
-		if (item != NULL)
+		if (item != nullptr)
 		{
 			QComboBox* targetComboBox = qobject_cast<QComboBox*>(item->widget());
 			QString oc = targetComboBox->currentText().trimmed();
@@ -160,9 +162,9 @@ vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
 			currentAssignment->targetChannel = oc.toStdWString();
 		}
 
-		if (currentAssignment != NULL)
+		if (currentAssignment != nullptr)
 		{
-			if (pressedButton != NULL)
+			if (pressedButton != nullptr)
 			{
 				QWidget* removeButton = gridLayout->itemAtPosition(row, 5)->widget();
 				if (removeButton == pressedButton)
@@ -175,7 +177,7 @@ vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
 			CopyFilterGUIRow* summandWidget = qobject_cast<CopyFilterGUIRow*>(summandItem->widget());
 			currentAssignment->sourceSum.push_back(summandWidget->buildSummand());
 
-			if (pressedButton != NULL)
+			if (pressedButton != nullptr)
 			{
 				QWidget* addSummandButton = gridLayout->itemAtPosition(row, 4)->widget();
 				if (addSummandButton == pressedButton)

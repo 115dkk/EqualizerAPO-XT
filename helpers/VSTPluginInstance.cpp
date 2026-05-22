@@ -19,13 +19,18 @@
 
 #include "stdafx.h"
 #include <wincrypt.h>
-#include <inttypes.h>
+#include <vector>
+#include "LogHelper.h"
 #include "StringHelper.h"
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 
-using namespace std;
+using std::find;
+using std::max;
+using std::string;
+using std::vector;
+using std::wstring;
 
 #define equalizerApoVSTID VST_FOURCC('E', 'A', 'P', 'O');
 
@@ -33,11 +38,10 @@ vst_time_info vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
 
 static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, int64_t value, const char* ptr, float opt)
 {
-	VSTPluginInstance* instance = effect != NULL ? (VSTPluginInstance*)effect->host_internal : NULL;
+	VSTPluginInstance* instance = effect != nullptr ? static_cast<VSTPluginInstance*>(effect->host_internal) : nullptr;
 #ifdef _DEBUG
-	printf("vst: %p opcode: %d index: %d value: %" PRIdPTR " ptr: %p opt: %f host_internal: %p\n",
-		effect, opcode, index, value, ptr, opt, effect != NULL ? effect->host_internal : NULL);
-	fflush(stdout);
+	TraceFStatic(L"vst: %p opcode: %d index: %d value: %Id ptr: %p opt: %f host_internal: %p",
+		effect, opcode, index, value, ptr, opt, effect != nullptr ? effect->host_internal : nullptr);
 #endif
 
 	switch (opcode)
@@ -49,43 +53,43 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return equalizerApoVSTID;
 
 	case VST_EFFECT_OPCODE_PRODUCT_NAME:
-		strcpy_s((char*) ptr, 64, "Equalizer APO");
+		strcpy_s(const_cast<char*>(ptr), 64, "Equalizer APO");
 		return 1;
 
 	case VST_EFFECT_OPCODE_VENDOR_VERSION:
 		return (intptr_t) (MAJOR << 24 | MINOR << 16 | REVISION << 8 | 0);
 
 	case VST_HOST_OPCODE_PIN_CONNECTED:
-		if (instance != NULL)
+		if (instance != nullptr)
 			return index < instance->getUsedChannelCount() ? 0 : 1;
 		else
 			return 0;
 
 	case VST_HOST_OPCODE_IO_NEED_IDLE:
-		return effect != NULL ? effect->control(effect, VST_HOST_OPCODE_KEEPALIVE_OR_IDLE, 0, 0, NULL, 0.0f) : 0;
+		return effect != nullptr ? effect->control(effect, VST_HOST_OPCODE_KEEPALIVE_OR_IDLE, 0, 0, nullptr, 0.0f) : 0;
 
 	case VST_HOST_OPCODE_EDITOR_UPDATE:
-		return effect != NULL ? effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f) : 0;
+		return effect != nullptr ? effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, nullptr, 0.0f) : 0;
 
 	case VST_HOST_OPCODE_GET_TIME:
-		if (instance != NULL) {
+		if (instance != nullptr) {
 			vstTime.sampleRate = instance->getSampleRate();
 			return (intptr_t)&vstTime;
 		}
 		return 0;
 
 	case VST_HOST_OPCODE_GET_SAMPLE_RATE:
-		if (instance != NULL)
+		if (instance != nullptr)
 			return (intptr_t)instance->getSampleRate();
 		return 0;
 
 	case VST_HOST_OPCODE_GET_ACTIVE_THREAD:
-		if (instance != NULL)
+		if (instance != nullptr)
 			return instance->getProcessLevel();
 		return 0;
 
 	case VST_HOST_OPCODE_LANGUAGE:
-		if (instance != NULL)
+		if (instance != nullptr)
 			return instance->getLanguage();
 		return 0;
 
@@ -93,19 +97,18 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return 1;
 
 	case VST_HOST_OPCODE_EDITOR_RESIZE:
-		if (instance != NULL)
+		if (instance != nullptr)
 		{
-			instance->onSizeWindow((int)index, (int)value);
+			instance->onSizeWindow(static_cast<int>(index), static_cast<int>(value));
 			return 0;
 		}
 		return 1;
 
 	case VST_HOST_OPCODE_SUPPORTS:
 		{
-			char* s = (char*)ptr;
+			const char* s = ptr;
 #ifdef _DEBUG
-			printf("VST canDo: %s\n", s);
-			fflush(stdout);
+			TraceFStatic(L"VST canDo: %S", s);
 #endif
 			if (strcmp(s, "startStopProcess") == 0 ||
 				strcmp(s, "sizeWindow") == 0)
@@ -114,7 +117,7 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return 0;
 
 	case VST_HOST_OPCODE_AUTOMATE:
-		if (instance != NULL)
+		if (instance != nullptr)
 			instance->onAutomate();
 		return 0;
 
@@ -135,10 +138,10 @@ VSTPluginInstance::VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& li
 
 VSTPluginInstance::~VSTPluginInstance()
 {
-	if (effect != NULL)
+	if (effect != nullptr)
 	{
-		effect->control(effect, VST_EFFECT_OPCODE_DESTROY, 0, 0, NULL, 0.0f);
-		effect = NULL;
+		effect->control(effect, VST_EFFECT_OPCODE_DESTROY, 0, 0, nullptr, 0.0f);
+		effect = nullptr;
 	}
 }
 
@@ -152,13 +155,13 @@ bool VSTPluginInstance::initialize()
 		effect->host_internal = this;
 		if (effect->magic_number == VST_MAGICNUMBER)
 		{
-			effect->control(effect, VST_EFFECT_OPCODE_INITIALIZE, 0, 0, NULL, 0.0f);
+			effect->control(effect, VST_EFFECT_OPCODE_INITIALIZE, 0, 0, nullptr, 0.0f);
 
 			usedChannelCount = max(numInputs(), numOutputs());
 		}
 		else
 		{
-			effect = NULL;
+			effect = nullptr;
 		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
@@ -171,7 +174,7 @@ bool VSTPluginInstance::initialize()
 
 int VSTPluginInstance::numInputs() const
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return 0;
 
 	return effect->num_inputs;
@@ -179,7 +182,7 @@ int VSTPluginInstance::numInputs() const
 
 int VSTPluginInstance::numOutputs() const
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return 0;
 
 	return effect->num_outputs;
@@ -187,7 +190,7 @@ int VSTPluginInstance::numOutputs() const
 
 bool VSTPluginInstance::canReplacing() const
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return true;
 
 	return (effect->flags & VST_EFFECT_FLAG_SUPPORTS_FLOAT) != 0;
@@ -195,7 +198,7 @@ bool VSTPluginInstance::canReplacing() const
 
 int VSTPluginInstance::uniqueID() const
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return 0;
 
 	return effect->unique_id;
@@ -203,11 +206,10 @@ int VSTPluginInstance::uniqueID() const
 
 std::wstring VSTPluginInstance::getName() const
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return L"";
 
-	char buf[256];
-	memset(buf, 0, sizeof(buf));
+	char buf[256] = {};
 	effect->control(effect, VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
 	buf[255] = '\0'; // just to be sure
 
@@ -241,7 +243,7 @@ bool VSTPluginInstance::canDoubleReplacing() const
 
 int VSTPluginInstance::getInitialDelay() const
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return 0;
 
 	return effect->delay;
@@ -264,17 +266,17 @@ void VSTPluginInstance::setLanguage(int value)
 
 void VSTPluginInstance::prepareForProcessing(float sampleRate, int blockSize)
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
 	this->sampleRate = sampleRate;
-	effect->control(effect, VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, NULL, sampleRate);
-	effect->control(effect, VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, NULL, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, nullptr, sampleRate);
+	effect->control(effect, VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, nullptr, 0.0f);
 }
 
 void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap)
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
 	if (effect->flags & VST_EFFECT_FLAG_CHUNKS)
@@ -282,11 +284,10 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 		if (chunkData != L"")
 		{
 			DWORD bufSize = 0;
-			CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, NULL, &bufSize, NULL, NULL);
-			BYTE* buf = new BYTE[bufSize];
-			if (CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, buf, &bufSize, NULL, NULL) == TRUE)
-				effect->control(effect, VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, bufSize, buf, 0.0f);
-			delete[] buf;
+			CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, nullptr, &bufSize, nullptr, nullptr);
+			vector<BYTE> buf(bufSize);
+			if (CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, buf.data(), &bufSize, nullptr, nullptr) == TRUE)
+				effect->control(effect, VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, bufSize, buf.data(), 0.0f);
 		}
 	}
 	else
@@ -306,7 +307,7 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 
 void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_map<std::wstring, float>& paramMap) const
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
 	chunkData = L"";
@@ -314,14 +315,13 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 
 	if (effect->flags & VST_EFFECT_FLAG_CHUNKS)
 	{
-		BYTE* chunk = NULL;
-		int size = (int)effect->control(effect, VST_EFFECT_OPCODE_GET_CHUNK_DATA, 1, 0, &chunk, 0.0f);
+		BYTE* chunk = nullptr;
+		int size = static_cast<int>(effect->control(effect, VST_EFFECT_OPCODE_GET_CHUNK_DATA, 1, 0, &chunk, 0.0f));
 		DWORD stringLength = 0;
-		CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &stringLength);
-		wchar_t* string = new wchar_t[stringLength];
-		if (CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string, &stringLength) == TRUE)
-			chunkData = string;
-		delete[] string;
+		CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &stringLength);
+		vector<wchar_t> string(stringLength);
+		if (CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string.data(), &stringLength) == TRUE)
+			chunkData = string.data();
 	}
 	else
 	{
@@ -338,16 +338,16 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 
 void VSTPluginInstance::startProcessing()
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 1, NULL, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, NULL, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 1, nullptr, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, nullptr, 0.0f);
 }
 
 void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray, int frameCount)
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
 	effect->process_float(effect, inputArray, outputArray, frameCount);
@@ -355,7 +355,7 @@ void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray
 
 void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** outputArray, int frameCount)
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
 	effect->process_double(effect, inputArray, outputArray, frameCount);
@@ -363,7 +363,7 @@ void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** out
 
 void VSTPluginInstance::process(float** inputArray, float** outputArray, int frameCount)
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
 	effect->process(effect, inputArray, outputArray, frameCount);
@@ -371,16 +371,16 @@ void VSTPluginInstance::process(float** inputArray, float** outputArray, int fra
 
 void VSTPluginInstance::stopProcessing()
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_END, 0, 0, NULL, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 0, NULL, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_END, 0, 0, nullptr, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 0, nullptr, 0.0f);
 }
 
 void VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
 	vst_rect_t* rect;
@@ -394,18 +394,18 @@ void VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
 
 void VSTPluginInstance::doIdle()
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, nullptr, 0.0f);
 }
 
 void VSTPluginInstance::stopEditing()
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, NULL, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, nullptr, 0.0f);
 }
 
 void VSTPluginInstance::setAutomateFunc(std::function<void()> func)

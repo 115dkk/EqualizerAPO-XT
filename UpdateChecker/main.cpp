@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2024  Jonas Dahlinger
 
@@ -26,10 +26,13 @@
 #include <QtWidgets/QApplication>
 #include <helpers/TaskSchedulerHelper.h>
 #include "UpdateChecker.h"
+#include "UpdateInfoFormatter.h"
+#include "VelopackUpdateInfo.h"
 #include "version.h"
 
-using namespace std::chrono_literals;
 
+
+QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, bool autoMode, bool* ok, QString* errorMessage);
 void showFailureMessage(QString message, QString title);
 
 int main(int argc, char* argv[])
@@ -65,7 +68,7 @@ int main(int argc, char* argv[])
 			QString workingDir = QDir::toNativeSeparators(QCoreApplication::applicationDirPath());
 			TaskSchedulerHelper::scheduleAtLogon(L"EqualizerAPOUpdateChecker", programPath.toStdWString(), L"-a", workingDir.toStdWString());
 		}
-		catch (TaskSchedulerException e)
+		catch (const TaskSchedulerException& e)
 		{
 			QMessageBox::critical(nullptr, UpdateChecker::tr("Error installing Update Checker"), QString::fromStdWString(e.getMessage()));
 			return 2;
@@ -78,7 +81,7 @@ int main(int argc, char* argv[])
 		{
 			TaskSchedulerHelper::unschedule(L"EqualizerAPOUpdateChecker");
 		}
-		catch (TaskSchedulerException e)
+		catch (const TaskSchedulerException& e)
 		{
 			QMessageBox::critical(nullptr, UpdateChecker::tr("Error uninstalling Update Checker"), QString::fromStdWString(e.getMessage()));
 			return 2;
@@ -91,7 +94,9 @@ int main(int argc, char* argv[])
 	if (REVISION != 0)
 		version += QString(".%0").arg(REVISION);
 
-	QString url = "https://equalizerapo.sourceforge.io/checkVersion?installed=" + QUrl::toPercentEncoding(version);
+	QString channel = VelopackUpdateInfo::defaultChannel();
+	QString url = VelopackUpdateInfo::githubLatestReleaseUrl("115dkk/EqualizerAPO-XT");
+	QString skipVersion;
 	if (autoMode)
 	{
 		QSettings settings(QString::fromWCharArray(UPDATE_CHECKER_REGPATH), QSettings::NativeFormat);
@@ -101,21 +106,99 @@ int main(int argc, char* argv[])
 			return 1;
 		settings.setValue("lastCheckDate", QDateTime::currentDateTime(QTimeZone::systemTimeZone()).toString(Qt::DateFormat::ISODate));
 
-		QString skipVersion = settings.value("skipVersion").toString();
-		if (!skipVersion.isEmpty())
-			url += "&skip=" + QUrl::toPercentEncoding(skipVersion);
-	}
-	else
-	{
-		url += "&manual=true";
+		skipVersion = settings.value("skipVersion").toString();
 	}
 
 	QNetworkAccessManager manager;
+	int result = 0;
+	auto showNoUpdateMessage = [&]()
+	{
+		if (!autoMode)
+			QMessageBox::information(nullptr, UpdateChecker::tr("No update available"), UpdateChecker::tr("The installed version %0 of Equalizer APO is up to date.").arg(version));
+	};
+
+	bool requestOk = false;
+	QString requestError;
+	QByteArray json = readUpdateUrl(manager, url, autoMode, &requestOk, &requestError);
+	if (!requestOk)
+	{
+		showFailureMessage(requestError, UpdateChecker::tr("Error while checking for update"));
+	}
+	else if (json.isEmpty())
+	{
+		showNoUpdateMessage();
+	}
+	else
+	{
+		QJsonParseError error;
+		QJsonDocument rawDoc = QJsonDocument::fromJson(json, &error);
+		if (error.error != QJsonParseError::NoError)
+		{
+			showFailureMessage(error.errorString(), UpdateChecker::tr("Error while reading response of update check"));
+		}
+		else
+		{
+			QJsonDocument updateDoc = rawDoc;
+			if (VelopackUpdateInfo::isGitHubRelease(rawDoc))
+			{
+				updateDoc = QJsonDocument();
+
+				QString feedUrl = VelopackUpdateInfo::feedAssetUrl(rawDoc, channel);
+				if (!feedUrl.isEmpty())
+				{
+					bool feedRequestOk = false;
+					QString feedRequestError;
+					QByteArray feedJson = readUpdateUrl(manager, feedUrl, autoMode, &feedRequestOk, &feedRequestError);
+					if (feedRequestOk && !feedJson.isEmpty())
+					{
+						QJsonParseError feedError;
+						QJsonDocument feedDoc = QJsonDocument::fromJson(feedJson, &feedError);
+						if (feedError.error == QJsonParseError::NoError)
+							updateDoc = VelopackUpdateInfo::fromVelopackFeed(feedDoc, rawDoc, channel, version);
+					}
+				}
+
+				if (updateDoc.isEmpty())
+					updateDoc = VelopackUpdateInfo::fromGitHubRelease(rawDoc, channel, version);
+			}
+
+			if (autoMode && !skipVersion.isEmpty() && !updateDoc.isEmpty())
+			{
+				QString newestVersion;
+				UpdateInfoFormatter::releaseHtml(updateDoc, &newestVersion);
+				if (newestVersion == skipVersion)
+					updateDoc = QJsonDocument();
+			}
+
+			if (updateDoc.isEmpty())
+			{
+				showNoUpdateMessage();
+			}
+			else
+			{
+				UpdateChecker dialog(nullptr, updateDoc);
+				dialog.show();
+				result = app.exec();
+			}
+		}
+	}
+
+	return result;
+}
+
+QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, bool autoMode, bool* ok, QString* errorMessage)
+{
+	if (ok != nullptr)
+		*ok = false;
+	if (errorMessage != nullptr)
+		errorMessage->clear();
+
 	QNetworkReply* reply = nullptr;
 	int tries = autoMode ? 10 : 1;
 	while (tries-- > 0)
 	{
 		QNetworkRequest request(QUrl(url, QUrl::StrictMode));
+		request.setHeader(QNetworkRequest::UserAgentHeader, "EqualizerAPO-XT UpdateChecker");
 		reply = manager.get(request);
 		QEventLoop loop;
 		QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -127,44 +210,34 @@ int main(int argc, char* argv[])
 
 		if (reply->isFinished() && reply->error() != QNetworkReply::HostNotFoundError)
 			break;
-		else if (tries > 0)
+
+		reply->abort();
+		reply->deleteLater();
+		reply = nullptr;
+		if (tries > 0)
 			QThread::sleep(5);
 	}
 
-	int result = 0;
-	if (reply != nullptr && reply->isFinished())
+	if (reply == nullptr || !reply->isFinished())
 	{
-		if (reply->error() != QNetworkReply::NoError)
-		{
-			showFailureMessage(reply->errorString(), UpdateChecker::tr("Error while checking for update"));
-		}
-		else
-		{
-			QByteArray json = reply->readAll();
-			if (json.isEmpty())
-			{
-				if (!autoMode)
-					QMessageBox::information(nullptr, UpdateChecker::tr("No update available"), UpdateChecker::tr("The installed version %0 of Equalizer APO is up to date.").arg(version));
-			}
-			else
-			{
-				QJsonParseError error;
-				QJsonDocument doc = QJsonDocument::fromJson(json, &error);
-				if (error.error != QJsonParseError::NoError)
-				{
-					showFailureMessage(error.errorString(), UpdateChecker::tr("Error while reading response of update check"));
-				}
-				else
-				{
-					UpdateChecker dialog(nullptr, doc);
-					dialog.show();
-					result = app.exec();
-				}
-			}
-		}
+		if (errorMessage != nullptr)
+			*errorMessage = UpdateChecker::tr("The update check timed out.");
+		return QByteArray();
 	}
 
-	return result;
+	if (reply->error() != QNetworkReply::NoError)
+	{
+		if (errorMessage != nullptr)
+			*errorMessage = reply->errorString();
+		reply->deleteLater();
+		return QByteArray();
+	}
+
+	QByteArray body = reply->readAll();
+	reply->deleteLater();
+	if (ok != nullptr)
+		*ok = true;
+	return body;
 }
 
 void showFailureMessage(QString message, QString title)

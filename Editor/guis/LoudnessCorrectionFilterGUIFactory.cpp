@@ -27,13 +27,13 @@ LoudnessCorrectionFilterGUIFactory::LoudnessCorrectionFilterGUIFactory()
 
 LoudnessCorrectionFilterGUIFactory::~LoudnessCorrectionFilterGUIFactory()
 {
-	if (timer != NULL)
+	if (timer != nullptr)
 		timer->stop();
 
-	if (volumeController != NULL)
+	if (volumeController != nullptr)
 	{
 		delete volumeController;
-		volumeController = NULL;
+		volumeController = nullptr;
 	}
 }
 
@@ -51,7 +51,7 @@ QList<FilterTemplate> LoudnessCorrectionFilterGUIFactory::createFilterTemplates(
 
 IFilterGUI* LoudnessCorrectionFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	LoudnessCorrectionFilterGUI* result = NULL;
+	LoudnessCorrectionFilterGUI* result = nullptr;
 
 	if (command == "LoudnessCorrection")
 	{
@@ -60,7 +60,7 @@ IFilterGUI* LoudnessCorrectionFilterGUIFactory::createFilterGUI(QString& command
 		{
 			result = new LoudnessCorrectionFilterGUI(params.referenceLevel, params.referenceOffset, params.attenuation);
 
-			if (timer == NULL)
+			if (timer == nullptr)
 			{
 				timer = new QTimer(this);
 				connect(timer, SIGNAL(timeout()), this, SLOT(checkVolume()));
@@ -74,7 +74,7 @@ IFilterGUI* LoudnessCorrectionFilterGUIFactory::createFilterGUI(QString& command
 
 void LoudnessCorrectionFilterGUIFactory::checkVolume()
 {
-	if (volumeController == NULL)
+	if (volumeController == nullptr)
 	{
 		volumeController = new VolumeController();
 		volumeController->getVolume(lastVolume);

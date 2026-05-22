@@ -65,7 +65,7 @@ private:
 	int frameCount = 0;
 
 	// output
-	fftw_complex* resultFreqData = NULL;
+	fftw_complex* resultFreqData = nullptr;
 	int freqDataLength = 0;
 	int freqDataSampleRate;
 	double peakGain;
@@ -77,9 +77,9 @@ private:
 	// internal (not protected by mutex)
 	int lastFrameCount = -1;
 	int lastChannelCount = -1;
-	double* buf = NULL;
-	double* buf2 = NULL;
-	double* timeData = NULL;
-	fftw_complex* freqData = NULL;
-	fftw_plan planForward = NULL;
+	double* buf = nullptr;
+	double* buf2 = nullptr;
+	double* timeData = nullptr;
+	fftw_complex* freqData = nullptr;
+	fftw_plan planForward = nullptr;
 };

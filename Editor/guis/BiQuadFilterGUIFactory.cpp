@@ -43,7 +43,7 @@ QList<FilterTemplate> BiQuadFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* BiQuadFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	BiQuadFilterGUI* result = NULL;
+	BiQuadFilterGUI* result = nullptr;
 
 	if (command.startsWith("Filter"))
 	{

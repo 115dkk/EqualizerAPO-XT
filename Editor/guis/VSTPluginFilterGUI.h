@@ -58,7 +58,7 @@ private:
 
 	Ui::VSTPluginFilterGUI* ui;
 	std::shared_ptr<VSTPluginLibrary> library;
-	VSTPluginInstance* effect = NULL;
+	VSTPluginInstance* effect = nullptr;
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;

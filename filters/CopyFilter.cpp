@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -26,13 +26,17 @@
 #include "helpers/ChannelHelper.h"
 #include "CopyFilter.h"
 
-using namespace std;
+using std::find;
+using std::pow;
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 CopyFilter::CopyFilter(const vector<Assignment>& assignments)
 {
 	this->assignments = assignments;
 
-	internalAssignments = NULL;
+	internalAssignments = nullptr;
 	assignmentCount = 0;
 }
 
@@ -60,7 +64,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 		if (channelIndex != -1)
 			channelName = channelNames[channelIndex];
 		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
-		ia.targetChannel = (int)(it - outChannelNames.begin());
+		ia.targetChannel = static_cast<int>(it - outChannelNames.begin());
 		if (it == outChannelNames.end())
 			outChannelNames.push_back(channelName);
 
@@ -78,9 +82,9 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 				is.channel = -1;
 
 			if (s.isDecibel)
-				is.factor = (double)pow(10.0, s.factor / 20.0);
+				is.factor = pow(10.0, s.factor / 20.0);
 			else
-				is.factor = (double)s.factor;
+				is.factor = s.factor;
 		}
 	}
 
@@ -125,7 +129,7 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] = is.factor;
 			else if (is.factor == 1.0)
-				memcpy(output[ia.targetChannel], input[is.channel], frameCount * sizeof(double));
+				std::copy_n(input[is.channel], frameCount, output[ia.targetChannel]);
 			else
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] = is.factor * input[is.channel][f];
@@ -151,20 +155,20 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 
 void CopyFilter::cleanup()
 {
-	if (internalAssignments != NULL)
+	if (internalAssignments != nullptr)
 	{
 		for (unsigned i = 0; i < assignmentCount; i++)
 		{
 			InternalAssignment& ia = internalAssignments[i];
-			if (ia.sourceSum != NULL)
+			if (ia.sourceSum != nullptr)
 			{
 				MemoryHelper::free(ia.sourceSum);
-				ia.sourceSum = NULL;
+				ia.sourceSum = nullptr;
 			}
 		}
 
 		MemoryHelper::free(internalAssignments);
-		internalAssignments = NULL;
+		internalAssignments = nullptr;
 	}
 }
 

@@ -30,7 +30,7 @@ QList<FilterTemplate> PreampFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* PreampFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	PreampFilterGUI* result = NULL;
+	PreampFilterGUI* result = nullptr;
 
 	if (command == "Preamp")
 	{

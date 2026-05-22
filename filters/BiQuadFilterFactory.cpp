@@ -27,9 +27,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "BiQuadFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "BiQuadFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(7, BiQuadFilterFactory)
+
+using std::find;
+using std::regex;
+using std::string;
+using std::vector;
+using std::wregex;
+using std::wsmatch;
+using std::wstringstream;
+using std::wstring;
 
 static wregex regexType(L"^\\s*ON\\s+([A-Za-z]+)");
 static wregex regexFreq(L"\\s+Fc\\s*([-+0-9.eE\u00A0]+)\\s*H\\s*z");
@@ -67,7 +77,7 @@ BiQuadFilterFactory::BiQuadFilterFactory()
 
 vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	BiQuadFilter* filter = NULL;
+	BiQuadFilter* filter = nullptr;
 
 	if (command.find(L"Filter") == 0)
 	{
@@ -118,7 +128,7 @@ vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, ws
 					else
 					{
 						wstring gainString = match.str(1);
-						gain = wcstod(gainString.c_str(), NULL);
+						gain = wcstod(gainString.c_str(), nullptr);
 						if (type == BiQuad::PEAKING)
 							stream << ", gain " << gain << " dB";
 						else
@@ -135,7 +145,7 @@ vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, ws
 				if (found)
 				{
 					wstring qString = match.str(1);
-					bandwidthOrQOrS = wcstod(qString.c_str(), NULL);
+					bandwidthOrQOrS = wcstod(qString.c_str(), nullptr);
 					stream << " and Q " << bandwidthOrQOrS;
 				}
 
@@ -147,7 +157,7 @@ vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, ws
 					else
 					{
 						wstring bwString = match.str(1);
-						bandwidthOrQOrS = wcstod(bwString.c_str(), NULL);
+						bandwidthOrQOrS = wcstod(bwString.c_str(), nullptr);
 						isBandwidthOrS = true;
 						stream << " and bandwidth " << bandwidthOrQOrS << " octaves";
 					}
@@ -161,7 +171,7 @@ vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, ws
 					else
 					{
 						wstring slopeString = match.str(1);
-						bandwidthOrQOrS = wcstod(slopeString.c_str(), NULL);
+						bandwidthOrQOrS = wcstod(slopeString.c_str(), nullptr);
 						isBandwidthOrS = true;
 						stream << " and slope " << bandwidthOrQOrS << " dB";
 					}
@@ -212,7 +222,7 @@ vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, ws
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

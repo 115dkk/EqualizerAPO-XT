@@ -25,9 +25,16 @@
 #ifndef NO_FILTERENGINE
 #include "FilterEngine.h"
 #endif
+#include "FilterFactoryRegistry.h"
 #include "DeviceFilterFactory.h"
 
-using namespace std;
+REGISTER_FILTER_FACTORY(0, DeviceFilterFactory)
+
+using std::find;
+using std::regex;
+using std::vector;
+using std::wregex;
+using std::wstring;
 
 static wregex regexGuid(L"\\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\}");
 

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -22,7 +22,8 @@
 #include "ConvolutionFilterGUI.h"
 #include "ConvolutionFilterGUIFactory.h"
 
-using namespace std;
+using std::list;
+using std::shared_ptr;
 
 ConvolutionFilterGUIFactory::ConvolutionFilterGUIFactory()
 {
@@ -31,7 +32,7 @@ ConvolutionFilterGUIFactory::ConvolutionFilterGUIFactory()
 void ConvolutionFilterGUIFactory::initialize(FilterTable* filterTable)
 {
 	shared_ptr<AbstractAPOInfo> selectedDevice = filterTable->getSelectedDevice();
-	if (selectedDevice != NULL)
+	if (selectedDevice != nullptr)
 		deviceSampleRate = filterTable->getSelectedDevice()->getSampleRate();
 	else
 		deviceSampleRate = 0;
@@ -51,7 +52,7 @@ void ConvolutionFilterGUIFactory::startOfFile(const QString& configPath)
 
 IFilterGUI* ConvolutionFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	ConvolutionFilterGUI* result = NULL;
+	ConvolutionFilterGUI* result = nullptr;
 
 	if (command == "Convolution")
 	{

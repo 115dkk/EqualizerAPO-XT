@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -22,7 +22,12 @@
 #include "FilterEngine.h"
 #include "AnalysisThread.h"
 
-using namespace std;
+using std::abs;
+using std::log10;
+using std::mutex;
+using std::numeric_limits;
+using std::shared_ptr;
+using std::sqrt;
 
 AnalysisThread::AnalysisThread()
 {
@@ -37,18 +42,18 @@ AnalysisThread::~AnalysisThread()
 
 	wait();
 
-	if (resultFreqData != NULL)
+	if (resultFreqData != nullptr)
 		fftw_free(resultFreqData);
 
-	if (buf != NULL)
+	if (buf != nullptr)
 		delete[] buf;
-	if (buf2 != NULL)
+	if (buf2 != nullptr)
 		delete[] buf2;
-	if (timeData != NULL)
+	if (timeData != nullptr)
 		fftw_free(timeData);
-	if (freqData != NULL)
+	if (freqData != nullptr)
 		fftw_free(freqData);
-	if (planForward != NULL)
+	if (planForward != nullptr)
 		fftw_destroy_plan(planForward);
 }
 
@@ -168,12 +173,12 @@ void AnalysisThread::run()
 
 		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
 		{
-			if (buf != NULL)
+			if (buf != nullptr)
 				delete[] buf;
 			buf = new double[frameCount * channelCount];
-			memset(buf, 0, frameCount * channelCount * sizeof(double));
+			std::fill_n(buf, frameCount * channelCount, 0.0);
 
-			if (buf2 != NULL)
+			if (buf2 != nullptr)
 				delete[] buf2;
 			buf2 = new double[frameCount * channelCount];
 		}
@@ -182,15 +187,15 @@ void AnalysisThread::run()
 
 		if (frameCount != lastFrameCount)
 		{
-			if (timeData != NULL)
+			if (timeData != nullptr)
 				fftw_free(timeData);
 			timeData = fftw_alloc_real(frameCount);
 
-			if (freqData != NULL)
+			if (freqData != nullptr)
 				fftw_free(freqData);
 			freqData = fftw_alloc_complex(frameCount);
 
-			if (planForward != NULL)
+			if (planForward != nullptr)
 				fftw_destroy_plan(planForward);
 			planForward = fftw_plan_dft_r2c_1d(frameCount, timeData, freqData, FFTW_ESTIMATE);
 		}
@@ -272,17 +277,17 @@ void AnalysisThread::run()
 		{
 			latency = 0;
 			peakGain = -numeric_limits<double>::infinity();
-			memset(freqData, 0, frameCount * sizeof(fftw_complex));
+			std::fill_n(&freqData[0][0], frameCount * 2, 0.0);
 		}
 
 		mutex.lock();
 		if (this->freqDataLength != frameCount)
 		{
-			if (resultFreqData != NULL)
+			if (resultFreqData != nullptr)
 				fftw_free(resultFreqData);
 			resultFreqData = fftw_alloc_complex(frameCount);
 		}
-		memcpy(resultFreqData, freqData, frameCount * sizeof(fftw_complex));
+		std::copy_n(&freqData[0][0], frameCount * 2, &resultFreqData[0][0]);
 		this->freqDataLength = frameCount;
 		this->freqDataSampleRate = sampleRate;
 		this->latency = latency;
