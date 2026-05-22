@@ -10,7 +10,13 @@
 #include <QStringList>
 #include <QVector>
 
+#include <QFile>
+#include <QTemporaryDir>
+#include <QTextStream>
+
 #include "Editor/helpers/ConvolutionPathHelper.h"
+#include "Editor/import/ConfigDependencyScanner.h"
+#include "Editor/import/ImportManifest.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
@@ -246,6 +252,60 @@ int main(int argc, char** argv)
 	expectEqual(depths[3], 0, "include should reset channel depth");
 	expectEqual(depths[4], 0, "channel all depth");
 	expectEqual(depths[5], 0, "post channel-all depth");
+
+	{
+		QTemporaryDir tempDir;
+		expectTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+
+		QString surroundDir = tempDir.path() + "/Surround";
+		expectTrue(QDir().mkpath(surroundDir), "failed to create Surround dir");
+
+		auto writeText = [](const QString& path, const QString& body) {
+			QFile f(path);
+			expectTrue(f.open(QIODevice::WriteOnly | QIODevice::Text), QString("could not open %1 for write").arg(path));
+			QTextStream ts(&f);
+			ts << body;
+		};
+		auto writeBlob = [](const QString& path, int bytes) {
+			QFile f(path);
+			expectTrue(f.open(QIODevice::WriteOnly), QString("could not open %1 for write").arg(path));
+			f.write(QByteArray(bytes, '\0'));
+		};
+
+		writeText(surroundDir + "/main.txt",
+			"# main\n"
+			"Preamp: -3 dB\n"
+			"Include: child.txt\n"
+			"Convolution: ir.wav\n");
+		writeText(surroundDir + "/child.txt",
+			"Convolution: nested.wav\n");
+		writeBlob(surroundDir + "/ir.wav", 128);
+		writeBlob(surroundDir + "/nested.wav", 64);
+
+		EqAPO::Import::ImportManifest manifest = EqAPO::Import::ConfigDependencyScanner::scan(
+			surroundDir + "/main.txt", tempDir.path() + "/configdir");
+
+		expectFalse(manifest.hasErrors, "scan should not flag any errors for this tree");
+		expectEqual(int(manifest.items.size()), 4, "expected root + child + ir + nested");
+
+		expectEqual(manifest.items[0].kind, "Root", "first item must be the root config");
+		expectEqual(manifest.items[0].destRelative, "Surround/main.txt", "root dest path");
+		expectTrue(manifest.totalBytes > 0, "totalBytes should be positive");
+
+		QStringList destRels;
+		for (const auto& item : manifest.items)
+			destRels.append(item.destRelative);
+		expectTrue(destRels.contains("Surround/main.txt"), "root present in items");
+		expectTrue(destRels.contains("Surround/child.txt"), "include child present");
+		expectTrue(destRels.contains("Surround/ir.wav"), "ir wav present");
+		expectTrue(destRels.contains("Surround/nested.wav"), "nested wav present");
+
+		// Missing reference should surface as a non-fatal warning + hasErrors.
+		writeText(surroundDir + "/broken.txt", "Convolution: does_not_exist.wav\n");
+		auto broken = EqAPO::Import::ConfigDependencyScanner::scan(surroundDir + "/broken.txt", tempDir.path() + "/configdir");
+		expectTrue(broken.hasErrors, "missing dependency must flag hasErrors");
+		expectTrue(!broken.warnings.isEmpty(), "missing dependency must produce a warning");
+	}
 
 	printf("EditorLogicTests passed\n");
 	return 0;
