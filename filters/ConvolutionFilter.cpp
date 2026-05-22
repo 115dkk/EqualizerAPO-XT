@@ -35,6 +35,7 @@ ConvolutionFilter::ConvolutionFilter(wstring filename)
 {
 	this->filename = filename;
 	filters = NULL;
+	filterFrameCount = 0;
 }
 
 ConvolutionFilter::~ConvolutionFilter()
@@ -49,9 +50,11 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 	this->sampleRate = sampleRate;
 	this->maxFrameCount = maxFrameCount;
 	channelCount = (unsigned)channelNames.size();
-	beforeFirstProcess = true;
+	filterFrameCount = 0;
 
 	initializeFilters(maxFrameCount);
+	if (filters != NULL)
+		filterFrameCount = maxFrameCount;
 
 	return channelNames;
 }
@@ -61,16 +64,17 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 {
 	if (filters == NULL)
 		return;
+	if (frameCount == 0)
+		return;
 
-	if (beforeFirstProcess && frameCount != maxFrameCount)
+	if (frameCount != filterFrameCount)
 	{
-		// should hopefully not happen, but happens with merged Bluetooth devices on Windows 11
 		cleanup();
 		initializeFilters(frameCount);
+		if (filters == NULL)
+			return;
+		filterFrameCount = frameCount;
 	}
-
-	// only allow reinitialization before first process call
-	beforeFirstProcess = false;
 
 	for (unsigned i = 0; i < channelCount; i++)
 	{
@@ -95,6 +99,7 @@ void ConvolutionFilter::cleanup()
 		MemoryHelper::free(filters);
 		filters = NULL;
 	}
+	filterFrameCount = 0;
 }
 
 void ConvolutionFilter::initializeFilters(unsigned frameCount)

@@ -89,6 +89,9 @@
     <ClInclude Include="helpers\LogHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\MemoryHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\PrecisionTimer.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -229,6 +232,9 @@
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\LogHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\MemoryHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\RegistryHelper.cpp">

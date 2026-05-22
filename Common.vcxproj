@@ -341,6 +341,7 @@
     <ClInclude Include="helpers\ChannelHelper.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\LogHelper.h" />
+    <ClInclude Include="helpers\MemoryHelper.h" />
     <ClInclude Include="helpers\PrecisionTimer.h" />
     <ClInclude Include="helpers\RegistryHelper.h" />
     <ClInclude Include="helpers\ScopeGuard.h" />
@@ -394,6 +395,7 @@
     <ClCompile Include="helpers\ChannelHelper.cpp" />
     <ClCompile Include="helpers\GainIterator.cpp" />
     <ClCompile Include="helpers\LogHelper.cpp" />
+    <ClCompile Include="helpers\MemoryHelper.cpp" />
     <ClCompile Include="helpers\RegistryHelper.cpp" />
     <ClCompile Include="helpers\StringHelper.cpp" />
     <ClCompile Include="helpers\VSTPluginInstance.cpp" />
