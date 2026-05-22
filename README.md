@@ -70,4 +70,6 @@ CI currently builds these variants:
 The SIMD matrix, dependency artifact names, installer artifact names, and test
 policy are tracked in [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
 
+The broad preparation/refactoring pass is summarized in [docs/RefactoringBaseline.md](docs/RefactoringBaseline.md).
+
 Qt tools are built through qmake in CI and in the documented local setup. A full Visual Studio solution build also needs a working Qt VS Tools/QtMsBuild setup.
