@@ -82,7 +82,7 @@ jobs:
     - name: Download FFTW artifacts
       uses: dawidd6/action-download-artifact@v3
       with:
-        github_token: ${{ secrets.GH_PAT }}
+        github_token: ${{ secrets.GH_PAT || github.token }}
         workflow: c-cpp.yml
         repo: TheFireKahuna/amd-fftw
         name: ${{ matrix.fftw_artifact }}
@@ -96,7 +96,7 @@ jobs:
     - name: Download muParserX artifacts
       uses: dawidd6/action-download-artifact@v3
       with:
-        github_token: ${{ secrets.GH_PAT }}
+        github_token: ${{ secrets.GH_PAT || github.token }}
         workflow: c-cpp.yml
         repo: TheFireKahuna/muparserx
         name: ${{ matrix.muparserx_artifact }}
@@ -110,7 +110,7 @@ jobs:
     - name: Download libsndfile artifacts
       uses: dawidd6/action-download-artifact@v3
       with:
-        github_token: ${{ secrets.GH_PAT }}
+        github_token: ${{ secrets.GH_PAT || github.token }}
         workflow: action.yml
         repo: TheFireKahuna/libsndfile
         name: ${{ matrix.libsndfile_artifact }}
