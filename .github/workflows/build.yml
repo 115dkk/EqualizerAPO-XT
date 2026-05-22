@@ -510,7 +510,8 @@ jobs:
           "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
           "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
           "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
-          "/p:PlatformToolset=v143"  # Override to VS 2022 toolset for CI (project uses v145/VS 2026)
+          "/p:PlatformToolset=v143",  # Override to VS 2022 toolset for CI (project uses v145/VS 2026)
+          "/p:PreferredToolArchitecture=x64"  # 64-bit host cl.exe avoids the 32-bit PCH heap limit on ARM64
         )
 
         $BuildPlatform = "${{ matrix.platform }}"
@@ -561,6 +562,10 @@ jobs:
 
 
     - name: Run audio regression tests
+      # AVX-512 and AVX10.1 binaries cannot be executed on GitHub-hosted
+      # x64 runners; we still build them but skip the runtime test step.
+      # The ARM64 runner natively runs NEON code so it stays included.
+      if: matrix.platform != 'x64' || matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx' || matrix.simd_variant == 'avx2'
       shell: pwsh
       run: |
         $variant = "${{ matrix.simd_variant }}"
@@ -603,7 +608,7 @@ jobs:
         }
 
     - name: Upload audio regression outputs
-      if: always()
+      if: (matrix.platform != 'x64' || matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx' || matrix.simd_variant == 'avx2')
       uses: actions/upload-artifact@v4
       with:
         name: audio-regression-output-${{ matrix.simd_variant }}
