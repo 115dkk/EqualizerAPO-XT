@@ -7,6 +7,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -15,6 +16,9 @@
 #include <windows.h>
 
 #include "Editor/FilterTable.h"
+#include "Editor/import/ConfigDependencyScanner.h"
+#include "Editor/import/ImportDialog.h"
+#include "Editor/import/ImportExecutor.h"
 #include "helpers/RegistryHelper.h"
 
 IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& path, QWidget* parent)
@@ -64,6 +68,14 @@ IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& pa
 	openButton->setToolTip(tr("Open include file"));
 	connect(openButton, SIGNAL(clicked()), this, SLOT(openFile()));
 	layout->addWidget(openButton, 0, Qt::AlignTop);
+
+	importButton = new QToolButton(this);
+	importButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	importButton->setIcon(QIcon(QStringLiteral(":/icons/document-save.ico")));
+	importButton->setToolTip(tr("Copy this file and its dependencies into the config directory"));
+	importButton->setVisible(false);
+	connect(importButton, SIGNAL(clicked()), this, SLOT(importToConfig()));
+	layout->addWidget(importButton, 0, Qt::AlignTop);
 
 	updateFileInfo();
 }
@@ -134,6 +146,7 @@ QFileInfo IncludeCardEditor::currentFileInfo() const
 void IncludeCardEditor::updateFileInfo()
 {
 	QString error;
+	bool offerImport = false;
 	QString path = pathEdit->text();
 	if (path.isEmpty())
 	{
@@ -160,11 +173,51 @@ void IncludeCardEditor::updateFileInfo()
 			}
 
 			if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
-				error = tr("The file is not readable for the audio service.\nChange the file permissions or copy the file to the config directory.");
+			{
+				error = tr("The file is not readable for the audio service.\nClick the import button to copy it into the config directory.");
+				offerImport = true;
+			}
 		}
 	}
 
 	statusLabel->setVisible(!error.isEmpty());
 	statusLabel->setText(error);
 	openButton->setEnabled(error.isEmpty() && !pathEdit->text().isEmpty());
+	importButton->setVisible(offerImport);
+}
+
+void IncludeCardEditor::importToConfig()
+{
+	if (filterTable == nullptr)
+		return;
+
+	QFileInfo fileInfo = currentFileInfo();
+	if (!fileInfo.exists())
+		return;
+
+	QString sourcePath = fileInfo.absoluteFilePath();
+	QString configDir = QFileInfo(filterTable->getConfigPath()).absolutePath();
+
+	auto manifest = EqAPO::Import::ConfigDependencyScanner::scan(sourcePath, configDir);
+	if (manifest.items.isEmpty())
+	{
+		QMessageBox::warning(this, tr("Import"), tr("Nothing to import: %1").arg(manifest.warnings.join('\n')));
+		return;
+	}
+
+	EqAPO::Import::ImportDialog dialog(manifest, configDir, this);
+	if (dialog.exec() != QDialog::Accepted)
+		return;
+
+	auto result = EqAPO::Import::ImportExecutor::execute(manifest, configDir);
+	if (!result.success)
+	{
+		QMessageBox::warning(this, tr("Import"),
+			tr("Some files could not be copied:\n%1").arg(result.errors.join('\n')));
+		return;
+	}
+
+	pathEdit->setText(QDir::toNativeSeparators(manifest.rootDest));
+	updateFileInfo();
+	emit updateModel();
 }

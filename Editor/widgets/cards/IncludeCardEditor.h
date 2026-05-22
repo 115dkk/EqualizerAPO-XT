@@ -22,6 +22,7 @@ private slots:
 	void chooseFile();
 	void openFile();
 	void pathEdited();
+	void importToConfig();
 
 private:
 	QFileInfo currentFileInfo() const;
@@ -32,4 +33,5 @@ private:
 	QLabel* statusLabel = nullptr;
 	QToolButton* chooseButton = nullptr;
 	QToolButton* openButton = nullptr;
+	QToolButton* importButton = nullptr;
 };

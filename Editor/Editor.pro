@@ -171,6 +171,7 @@ SOURCES += main.cpp\
 	widgets/FilterCardRow.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
+	import/ImportDialog.cpp \
 	import/ImportExecutor.cpp \
 	widgets/MiddleClickTabBar.cpp
 
@@ -312,6 +313,7 @@ HEADERS  += \
 	widgets/FilterCardRow.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \
+	import/ImportDialog.h \
 	import/ImportExecutor.h \
 	import/ImportManifest.h \
 	widgets/MiddleClickTabBar.h
