@@ -23,6 +23,9 @@
 #include <vector>
 #include <memory>
 #include <unordered_set>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -30,6 +33,7 @@
 #include "FilterConfiguration.h"
 #include "helpers/PrecisionTimer.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/Win32Event.h"
 
 namespace mup {
 class ParserX;
@@ -66,15 +70,24 @@ public:
 	unsigned getChannelMask() const {return channelMask;}
 	float getSampleRate() const {return sampleRate;}
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
-	mup::ParserX* getParser() {return parser;}
+	mup::ParserX* getParser() {return parser.get();}
 
 private:
+	struct FilterConfigurationDeleter
+	{
+		void operator()(FilterConfiguration* config) const;
+	};
+	using FilterConfigurationPtr = std::unique_ptr<FilterConfiguration, FilterConfigurationDeleter>;
+
 	void addFilters(const std::vector<IFilter*>& filters);
 	void cleanupConfigurations();
-	static unsigned long __stdcall notificationThread(void* parameter);
+	static void notificationThread(FilterEngine* engine);
+	bool acquireLoadPermit();
+	void releaseLoadPermit();
+	void finishTransitionIfReady();
 	void resizeBuffers(unsigned frameCount);
 
-	std::vector<IFilterFactory*> factories;
+	std::vector<std::unique_ptr<IFilterFactory>> factories;
 
 	std::vector<std::unique_ptr<double[]>> inputBuf2D, outputBuf2D;
 	std::vector<double*> inputBuf2DPtrs, outputBuf2DPtrs;
@@ -105,19 +118,22 @@ private:
 	std::vector<std::wstring> lastNewChannelNames;
 	std::vector<std::wstring> allChannelNames;
 	bool lastInPlace;
-	mup::ParserX* parser;
+	std::unique_ptr<mup::ParserX> parser;
 
-	FilterConfiguration* currentConfig;
-	FilterConfiguration* nextConfig;
-	FilterConfiguration* previousConfig;
+	FilterConfigurationPtr currentConfig;
+	FilterConfigurationPtr nextConfig;
+	FilterConfigurationPtr previousConfig;
 
 	unsigned transitionCounter;
 	unsigned transitionLength;
-	HANDLE loadSemaphore;
-	CRITICAL_SECTION loadSection;
+	std::mutex loadMutex;
+	std::mutex loadPermitMutex;
+	std::condition_variable loadPermitCv;
+	bool loadPermitAvailable;
 	PrecisionTimer timer;
-	void* threadHandle;
-	void* shutdownEvent;
+	std::thread notificationWorker;
+	std::unique_ptr<Win32Event> shutdownEvent;
+	bool shutdownRequested;
 	std::unordered_set<std::wstring> watchRegistryKeys;
 	bool lastInputWasSilent;
 };

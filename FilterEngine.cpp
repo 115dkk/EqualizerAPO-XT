@@ -60,9 +60,17 @@
 using namespace std;
 using namespace mup;
 
+void FilterEngine::FilterConfigurationDeleter::operator()(FilterConfiguration* config) const
+{
+	if (config == nullptr)
+		return;
+
+	config->~FilterConfiguration();
+	MemoryHelper::free(config);
+}
+
 FilterEngine::FilterEngine()
-	: parser(nullptr),
-      allocatedFrameCount(0),
+	: allocatedFrameCount(0),
 	  preMix(false),
 	  capture(false),
 	  postMixInstalled(true),
@@ -70,57 +78,48 @@ FilterEngine::FilterEngine()
       realChannelCount(0),
       outputChannelCount(0),
 	  lastInputWasSilent(false),
-	  threadHandle(nullptr),
-	  currentConfig(nullptr),
-	  nextConfig(nullptr),
-	  previousConfig(nullptr),
+	  loadPermitAvailable(true),
+	  shutdownRequested(false),
 	  transitionCounter(0)
 {
-	InitializeCriticalSection(&loadSection);
-	loadSemaphore = CreateSemaphore(NULL, 1, 1, NULL);
-	parser = new ParserX();
+	parser = make_unique<ParserX>();
 	parser->EnableAutoCreateVar(true);
 
-	factories.push_back(new DeviceFilterFactory());
-	factories.push_back(new IfFilterFactory());
-	factories.push_back(new ExpressionFilterFactory());
-	factories.push_back(new IncludeFilterFactory());
-	factories.push_back(new StageFilterFactory());
-	factories.push_back(new ChannelFilterFactory());
-	factories.push_back(new IIRFilterFactory());
-	factories.push_back(new BiQuadFilterFactory());
-	factories.push_back(new PreampFilterFactory());
-	factories.push_back(new DelayFilterFactory());
-	factories.push_back(new CopyFilterFactory());
-	factories.push_back(new ConvolutionFilterFactory());
-	factories.push_back(new GraphicEQFilterFactory());
-	factories.push_back(new VSTPluginFilterFactory());
-	factories.push_back(new LoudnessCorrectionFilterFactory());
+	factories.push_back(make_unique<DeviceFilterFactory>());
+	factories.push_back(make_unique<IfFilterFactory>());
+	factories.push_back(make_unique<ExpressionFilterFactory>());
+	factories.push_back(make_unique<IncludeFilterFactory>());
+	factories.push_back(make_unique<StageFilterFactory>());
+	factories.push_back(make_unique<ChannelFilterFactory>());
+	factories.push_back(make_unique<IIRFilterFactory>());
+	factories.push_back(make_unique<BiQuadFilterFactory>());
+	factories.push_back(make_unique<PreampFilterFactory>());
+	factories.push_back(make_unique<DelayFilterFactory>());
+	factories.push_back(make_unique<CopyFilterFactory>());
+	factories.push_back(make_unique<ConvolutionFilterFactory>());
+	factories.push_back(make_unique<GraphicEQFilterFactory>());
+	factories.push_back(make_unique<VSTPluginFilterFactory>());
+	factories.push_back(make_unique<LoudnessCorrectionFilterFactory>());
 }
 
 FilterEngine::~FilterEngine()
 {
 	// Make sure notification thread is terminated before cleaning up, otherwise deleted memory might be accessed in loadConfig
-	if (threadHandle != NULL)
+	if (notificationWorker.joinable())
 	{
-		SetEvent(shutdownEvent);
-		if (WaitForSingleObject(threadHandle, INFINITE) == WAIT_OBJECT_0)
 		{
-			TraceF(L"Successfully terminated directory change notification thread");
+			lock_guard<mutex> lock(loadPermitMutex);
+			shutdownRequested = true;
+			loadPermitAvailable = true;
 		}
-		CloseHandle(shutdownEvent);
-		CloseHandle(threadHandle);
-		threadHandle = NULL;
+		loadPermitCv.notify_all();
+		shutdownEvent->set();
+		notificationWorker.join();
+		TraceF(L"Successfully terminated directory change notification thread");
+		shutdownEvent.reset();
 	}
 
 	cleanupConfigurations();
-
-	for (IFilterFactory* factory : factories)
-		delete factory;
-
-	delete parser;
-	CloseHandle(loadSemaphore);
-	DeleteCriticalSection(&loadSection);
 }
 
 void FilterEngine::resizeBuffers(unsigned frameCount) {
@@ -172,87 +171,81 @@ void FilterEngine::setDeviceInfo(bool capture, bool postMixInstalled, const wstr
 
 void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsigned realChannelCount, unsigned outputChannelCount, unsigned channelMask, unsigned maxFrameCount, const wstring& customPath)
 {
-	EnterCriticalSection(&loadSection);
+	bool shouldLoadConfig = false;
 
-	cleanupConfigurations();
-
-	this->sampleRate = sampleRate;
-	this->inputChannelCount = inputChannelCount;
-	this->realChannelCount = realChannelCount;
-	this->outputChannelCount = outputChannelCount;
-	this->maxFrameCount = maxFrameCount;
-	this->transitionCounter = 0;
-	this->transitionLength = (unsigned)(sampleRate / 100);
-	resizeBuffers(maxFrameCount);
-
-	unsigned deviceChannelCount;
-	if (capture)
-		deviceChannelCount = inputChannelCount;
-	else
-		deviceChannelCount = outputChannelCount;
-
-	if (channelMask == 0)
-		channelMask = ChannelHelper::getDefaultChannelMask(deviceChannelCount);
-
-	this->channelMask = channelMask;
-
-	vector<wstring> channelNames = ChannelHelper::getChannelNames(deviceChannelCount, channelMask);
-	TraceF(L"%d channels for this device: %s", deviceChannelCount, StringHelper::join(channelNames, L" ").c_str());
-
-	try
 	{
-		configPath = RegistryHelper::readValue(APP_REGPATH, L"ConfigPath");
-	}
-	catch (RegistryException e)
-	{
-		LogF(L"Can't read config path because of: %s", e.getMessage().c_str());
-		LeaveCriticalSection(&loadSection);
-		return;
+		lock_guard<mutex> lock(loadMutex);
+
+		cleanupConfigurations();
+
+		this->sampleRate = sampleRate;
+		this->inputChannelCount = inputChannelCount;
+		this->realChannelCount = realChannelCount;
+		this->outputChannelCount = outputChannelCount;
+		this->maxFrameCount = maxFrameCount;
+		this->transitionCounter = 0;
+		this->transitionLength = (unsigned)(sampleRate / 100);
+		resizeBuffers(maxFrameCount);
+
+		unsigned deviceChannelCount;
+		if (capture)
+			deviceChannelCount = inputChannelCount;
+		else
+			deviceChannelCount = outputChannelCount;
+
+		if (channelMask == 0)
+			channelMask = ChannelHelper::getDefaultChannelMask(deviceChannelCount);
+
+		this->channelMask = channelMask;
+
+		vector<wstring> channelNames = ChannelHelper::getChannelNames(deviceChannelCount, channelMask);
+		TraceF(L"%d channels for this device: %s", deviceChannelCount, StringHelper::join(channelNames, L" ").c_str());
+
+		try
+		{
+			configPath = RegistryHelper::readValue(APP_REGPATH, L"ConfigPath");
+		}
+		catch (RegistryException e)
+		{
+			LogF(L"Can't read config path because of: %s", e.getMessage().c_str());
+			return;
+		}
+
+		parser->ClearConst();
+		parser->ClearFun();
+		parser->ClearInfixOprt();
+		parser->ClearOprt();
+		parser->ClearPostfixOprt();
+		parser->AddPackage(PackageCommon::Instance());
+		parser->AddPackage(PackageNonCmplx::Instance());
+		parser->AddPackage(PackageStr::Instance());
+		parser->AddPackage(PackageMatrix::Instance());
+
+		for (const auto& factory : factories)
+			factory->initialize(this);
+
+		shouldLoadConfig = configPath != L"";
 	}
 
-	parser->ClearConst();
-	parser->ClearFun();
-	parser->ClearInfixOprt();
-	parser->ClearOprt();
-	parser->ClearPostfixOprt();
-	parser->AddPackage(PackageCommon::Instance());
-	parser->AddPackage(PackageNonCmplx::Instance());
-	parser->AddPackage(PackageStr::Instance());
-	parser->AddPackage(PackageMatrix::Instance());
-
-	for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
-	{
-		IFilterFactory* factory = *it;
-		factory->initialize(this);
-	}
-
-	if (configPath != L"")
+	if (shouldLoadConfig)
 	{
 		loadConfig(customPath);
 
-		if (threadHandle == NULL && customPath.empty())
+		lock_guard<mutex> lock(loadMutex);
+		if (!notificationWorker.joinable() && customPath.empty())
 		{
-			shutdownEvent = CreateEventW(NULL, true, false, NULL);
-			threadHandle = CreateThread(NULL, 0, notificationThread, this, 0, NULL);
-			if (threadHandle == INVALID_HANDLE_VALUE)
-				threadHandle = NULL;
-			else
-				TraceF(L"Successfully created directory change notification thread %d for %s and its subtree", GetThreadId(threadHandle), configPath.c_str());
+			shutdownEvent = make_unique<Win32Event>(true, false);
+			notificationWorker = thread(notificationThread, this);
+			TraceF(L"Successfully created directory change notification thread for %s and its subtree", configPath.c_str());
 		}
 	}
-	LeaveCriticalSection(&loadSection);
 }
 
 void FilterEngine::loadConfig(const wstring& customPath)
 {
-	EnterCriticalSection(&loadSection);
+	lock_guard<mutex> lock(loadMutex);
 	timer.start();
-	if (previousConfig != NULL)
-	{
-		previousConfig->~FilterConfiguration();
-		MemoryHelper::free(previousConfig);
-		previousConfig = NULL;
-	}
+	previousConfig.reset();
 
 	allChannelNames = ChannelHelper::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
 
@@ -262,9 +255,9 @@ void FilterEngine::loadConfig(const wstring& customPath)
 	watchRegistryKeys.clear();
 	parser->ClearVar();
 
-	for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
-		IFilterFactory* factory = *it;
+		IFilterFactory* factory = it->get();
 		vector<IFilter*> newFilters = factory->startOfConfiguration();
 		if (!newFilters.empty())
 			addFilters(newFilters);
@@ -275,28 +268,26 @@ void FilterEngine::loadConfig(const wstring& customPath)
 	else
 		loadConfigFile(customPath);
 
-	for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
-		IFilterFactory* factory = *it;
+		IFilterFactory* factory = it->get();
 		vector<IFilter*> newFilters = factory->endOfConfiguration();
 		if (!newFilters.empty())
 			addFilters(newFilters);
 	}
 
 	void* mem = MemoryHelper::alloc(sizeof(FilterConfiguration));
-	FilterConfiguration* config = new(mem) FilterConfiguration(this, filterInfos, (unsigned)allChannelNames.size());
+	FilterConfigurationPtr config(new(mem) FilterConfiguration(this, filterInfos, (unsigned)allChannelNames.size()));
 
 	filterInfos.clear();
 
 	double loadTime = timer.stop();
 	TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
 
-	if (currentConfig == NULL)
-		currentConfig = config;
+	if (!currentConfig)
+		currentConfig = move(config);
 	else
-		nextConfig = config;
-
-	LeaveCriticalSection(&loadSection);
+		nextConfig = move(config);
 }
 
 void FilterEngine::loadConfigFile(const wstring& path)
@@ -336,9 +327,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 
 	vector<wstring> savedChannelNames = currentChannelNames;
 
-	for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
-		IFilterFactory* factory = *it;
+		IFilterFactory* factory = it->get();
 		vector<IFilter*> newFilters = factory->startOfFile(path);
 		if (!newFilters.empty())
 			addFilters(newFilters);
@@ -364,9 +355,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			// allow to use indentation
 			key = StringHelper::trim(key);
 
-			for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
+			for (auto it = factories.cbegin(); it != factories.cend(); it++)
 			{
-				IFilterFactory* factory = *it;
+				IFilterFactory* factory = it->get();
 
 				vector<IFilter*> newFilters;
 				try
@@ -389,9 +380,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 		}
 	}
 
-	for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
+	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
-		IFilterFactory* factory = *it;
+		IFilterFactory* factory = it->get();
 		vector<IFilter*> newFilters = factory->endOfFile(path);
 		if (!newFilters.empty())
 			addFilters(newFilters);
@@ -484,7 +475,7 @@ void convertDoubleToFloat(float* dest, const double* src, size_t count) {
 // Process interleaved audio (float*)
 void FilterEngine::process(float* output, float* input, unsigned frameCount)
 {
-	if (currentConfig->isEmpty() && nextConfig == NULL)
+	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -504,11 +495,11 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	currentConfig->read(inputBuf1D.data(), frameCount);
 	currentConfig->process(frameCount);
 
-	if (nextConfig != NULL)
+	if (nextConfig)
 	{
 		nextConfig->read(inputBuf1D.data(), frameCount);
 		nextConfig->process(frameCount);
-		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
 	currentConfig->write(outputBuf1D.data(), frameCount);
@@ -517,20 +508,13 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	const unsigned outputSampleCount = outputChannelCount * frameCount;
 	convertDoubleToFloat(output, outputBuf1D.data(), outputSampleCount);
 
-	if (nextConfig != NULL && transitionCounter >= transitionLength)
-	{
-		previousConfig = currentConfig;
-		currentConfig = nextConfig;
-		nextConfig = NULL;
-		transitionCounter = 0;
-		ReleaseSemaphore(loadSemaphore, 1, NULL);
-	}
+	finishTransitionIfReady();
 }
 
 // Process non-interleaved audio (float**)
 void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
-	if (currentConfig->isEmpty() && nextConfig == NULL)
+	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -551,11 +535,11 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 	currentConfig->read(inputBuf2DPtrs.data(), frameCount);
 	currentConfig->process(frameCount);
 
-	if (nextConfig != NULL)
+	if (nextConfig)
 	{
 		nextConfig->read(inputBuf2DPtrs.data(), frameCount);
 		nextConfig->process(frameCount);
-		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
 	currentConfig->write(outputBuf2DPtrs.data(), frameCount);
@@ -566,20 +550,13 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 	}
 
 	// Transition logic remains the same
-	if (nextConfig != NULL && transitionCounter >= transitionLength)
-	{
-		previousConfig = currentConfig;
-		currentConfig = nextConfig;
-		nextConfig = NULL;
-		transitionCounter = 0;
-		ReleaseSemaphore(loadSemaphore, 1, NULL);
-	}
+	finishTransitionIfReady();
 }
 
 // Process interleaved audio (double*) - native double precision without conversion
 void FilterEngine::process(double* output, double* input, unsigned frameCount)
 {
-	if (currentConfig->isEmpty() && nextConfig == NULL)
+	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -592,29 +569,22 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 	currentConfig->read(input, frameCount);
 	currentConfig->process(frameCount);
 
-	if (nextConfig != NULL)
+	if (nextConfig)
 	{
 		nextConfig->read(input, frameCount);
 		nextConfig->process(frameCount);
-		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
 	currentConfig->write(output, frameCount);
 
-	if (nextConfig != NULL && transitionCounter >= transitionLength)
-	{
-		previousConfig = currentConfig;
-		currentConfig = nextConfig;
-		nextConfig = NULL;
-		transitionCounter = 0;
-		ReleaseSemaphore(loadSemaphore, 1, NULL);
-	}
+	finishTransitionIfReady();
 }
 
 // Process non-interleaved audio (double**) - native double precision without conversion
 void FilterEngine::process(double** output, double** input, unsigned frameCount)
 {
-	if (currentConfig->isEmpty() && nextConfig == NULL)
+	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -628,23 +598,16 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 	currentConfig->read(input, frameCount);
 	currentConfig->process(frameCount);
 
-	if (nextConfig != NULL)
+	if (nextConfig)
 	{
 		nextConfig->read(input, frameCount);
 		nextConfig->process(frameCount);
-		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
 	currentConfig->write(output, frameCount);
 
-	if (nextConfig != NULL && transitionCounter >= transitionLength)
-	{
-		previousConfig = currentConfig;
-		currentConfig = nextConfig;
-		nextConfig = NULL;
-		transitionCounter = 0;
-		ReleaseSemaphore(loadSemaphore, 1, NULL);
-	}
+	finishTransitionIfReady();
 }
 #pragma AVRT_CODE_END
 
@@ -725,39 +688,52 @@ void FilterEngine::addFilters(const vector<IFilter*>& filters)
 
 void FilterEngine::cleanupConfigurations()
 {
-	if (currentConfig != NULL)
-	{
-		currentConfig->~FilterConfiguration();
-		MemoryHelper::free(currentConfig);
-		currentConfig = NULL;
-	}
+	currentConfig.reset();
+	nextConfig.reset();
+	previousConfig.reset();
+}
 
-	if (nextConfig != NULL)
-	{
-		nextConfig->~FilterConfiguration();
-		MemoryHelper::free(nextConfig);
-		nextConfig = NULL;
-	}
+bool FilterEngine::acquireLoadPermit()
+{
+	unique_lock<mutex> lock(loadPermitMutex);
+	loadPermitCv.wait(lock, [&] {return shutdownRequested || loadPermitAvailable; });
+	if (shutdownRequested)
+		return false;
 
-	if (previousConfig != NULL)
+	loadPermitAvailable = false;
+	return true;
+}
+
+void FilterEngine::releaseLoadPermit()
+{
 	{
-		previousConfig->~FilterConfiguration();
-		MemoryHelper::free(previousConfig);
-		previousConfig = NULL;
+		lock_guard<mutex> lock(loadPermitMutex);
+		loadPermitAvailable = true;
+	}
+	loadPermitCv.notify_one();
+}
+
+void FilterEngine::finishTransitionIfReady()
+{
+	if (nextConfig && transitionCounter >= transitionLength)
+	{
+		previousConfig = move(currentConfig);
+		currentConfig = move(nextConfig);
+		transitionCounter = 0;
+		releaseLoadPermit();
 	}
 }
 
-unsigned long __stdcall FilterEngine::notificationThread(void* parameter)
+void FilterEngine::notificationThread(FilterEngine* engine)
 {
-	FilterEngine* engine = (FilterEngine*)parameter;
 
 	HANDLE notificationHandle = FindFirstChangeNotificationW(engine->configPath.c_str(), true, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 	if (notificationHandle == INVALID_HANDLE_VALUE)
 		notificationHandle = NULL;
 
-	HANDLE registryEvent = CreateEventW(NULL, true, false, NULL);
+	Win32Event registryEvent(true, false);
 
-	HANDLE handles[3] = {engine->shutdownEvent, notificationHandle, registryEvent};
+	HANDLE handles[3] = {engine->shutdownEvent->get(), notificationHandle, registryEvent.get()};
 	while (true)
 	{
 		vector<HKEY> keyHandles;
@@ -767,7 +743,7 @@ unsigned long __stdcall FilterEngine::notificationThread(void* parameter)
 			{
 				HKEY keyHandle = RegistryHelper::openKey(*it, KEY_NOTIFY | KEY_WOW64_64KEY);
 				keyHandles.push_back(keyHandle);
-				RegNotifyChangeKeyValue(keyHandle, false, REG_NOTIFY_CHANGE_LAST_SET, registryEvent, true);
+				RegNotifyChangeKeyValue(keyHandle, false, REG_NOTIFY_CHANGE_LAST_SET, registryEvent.get(), true);
 			}
 			catch (RegistryException e)
 			{
@@ -775,7 +751,7 @@ unsigned long __stdcall FilterEngine::notificationThread(void* parameter)
 			}
 		}
 
-		DWORD which = WaitForMultipleObjects(3, handles, false, INFINITE);
+		DWORD which = Win32Event::waitAny(3, handles);
 
 		for (auto it = keyHandles.begin(); it != keyHandles.end(); it++)
 		{
@@ -793,12 +769,10 @@ unsigned long __stdcall FilterEngine::notificationThread(void* parameter)
 			{
 				FindNextChangeNotification(notificationHandle);
 				// Wait for second event within 10 milliseconds to avoid loading twice
-				WaitForMultipleObjects(1, &notificationHandle, false, 10);
+				Win32Event::waitOne(notificationHandle, 10);
 			}
 
-			HANDLE handles[2] = {engine->shutdownEvent, engine->loadSemaphore};
-			DWORD which = WaitForMultipleObjects(2, handles, false, INFINITE);
-			if (which == WAIT_OBJECT_0)
+			if (!engine->acquireLoadPermit())
 			{
 				// Shutdown
 				break;
@@ -806,12 +780,9 @@ unsigned long __stdcall FilterEngine::notificationThread(void* parameter)
 
 			engine->loadConfig();
 			FindNextChangeNotification(notificationHandle);
-			ResetEvent(registryEvent);
+			registryEvent.reset();
 		}
 	}
 
 	FindCloseChangeNotification(notificationHandle);
-	CloseHandle(registryEvent);
-
-	return 0;
 }
