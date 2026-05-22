@@ -225,8 +225,10 @@ jobs:
         arch: ${{ matrix.platform == 'ARM64' && 'win64_msvc2022_arm64' || 'win64_msvc2022_64' }}
         dir: '${{ github.workspace }}\Qt'
         install-deps: 'true'
+        archives: 'qtbase qttools qtsvg qttranslations'
         set-env: 'true'
         setup-python: 'false'
+        aqtversion: '==3.2.*'
         extra: '--external 7z'
 
     # Build the solution (excluding Qt VS Tools projects which will be built separately)
