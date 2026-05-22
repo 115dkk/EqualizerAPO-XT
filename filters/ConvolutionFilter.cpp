@@ -149,7 +149,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		{
 			delete[] bufs[i];
 		}
-		delete bufs;
-		delete interleavedBuf;
+		delete[] bufs;
+		delete[] interleavedBuf;
 	}
 }

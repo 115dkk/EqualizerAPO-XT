@@ -19,7 +19,6 @@
 
 #include "stdafx.h"
 #include <string>
-#include <sstream>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "StringHelper.h"
@@ -54,7 +53,7 @@ wstring StringHelper::toWString(const string& s, unsigned codepage)
 	wchar_t* charBuf = new wchar_t[length];
 	MultiByteToWideChar(codepage, 0, s.c_str(), -1, charBuf, length);
 	wstring result = charBuf;
-	delete charBuf;
+	delete[] charBuf;
 
 	return result;
 }
@@ -65,7 +64,7 @@ string StringHelper::toString(const wstring& s, unsigned codepage)
 	char* charBuf = new char[length];
 	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf, length, NULL, NULL);
 	string result = charBuf;
-	delete charBuf;
+	delete[] charBuf;
 
 	return result;
 }
@@ -77,7 +76,7 @@ wstring StringHelper::toLowerCase(const wstring& s)
 	errno_t err = _wcslwr_s(charBuf, s.length() + 1);
 
 	wstring result = charBuf;
-	delete charBuf;
+	delete[] charBuf;
 
 	if (err == 0)
 		return result;
@@ -92,7 +91,7 @@ wstring StringHelper::toUpperCase(const wstring& s)
 	errno_t err = _wcsupr_s(charBuf, s.length() + 1);
 
 	wstring result = charBuf;
-	delete charBuf;
+	delete[] charBuf;
 
 	if (err == 0)
 		return result;
@@ -144,20 +143,23 @@ vector<wstring> StringHelper::split(const wstring& s, wchar_t splitChar, bool sk
 
 wstring StringHelper::join(const vector<wstring>& strings, const wstring& separator)
 {
-	wstringstream stream;
+	if (strings.empty())
+		return L"";
 
-	bool first = true;
+	size_t length = separator.length() * (strings.size() - 1);
+	for (const wstring& string : strings)
+		length += string.length();
 
+	wstring result;
+	result.reserve(length);
 	for (vector<wstring>::const_iterator it = strings.cbegin(); it != strings.cend(); it++)
 	{
-		if (first)
-			first = false;
-		else
-			stream << separator;
-		stream << *it;
+		if (it != strings.cbegin())
+			result += separator;
+		result += *it;
 	}
 
-	return stream.str();
+	return result;
 }
 
 wstring StringHelper::getSystemErrorString(long status)

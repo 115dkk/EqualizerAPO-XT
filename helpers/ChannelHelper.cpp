@@ -81,14 +81,16 @@ int ChannelHelper::getDefaultChannelMask(int channelCount)
 vector<wstring> ChannelHelper::getChannelNames(int channelCount, int channelMask)
 {
 	vector<wstring> channelNames;
+	channelNames.reserve(channelCount);
 	int c = 1;
 	for (int i = 0; i < 31; i++)
 	{
 		int channelPos = 1 << i;
 		if (channelMask & channelPos)
 		{
-			if (channelPosToNameMap.find(channelPos) != channelPosToNameMap.end())
-				channelNames.push_back(channelPosToNameMap[channelPos]);
+			auto it = channelPosToNameMap.find(channelPos);
+			if (it != channelPosToNameMap.end())
+				channelNames.push_back(it->second);
 			else
 				channelNames.push_back(to_wstring((unsigned long long)c));
 			c++;

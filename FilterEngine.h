@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include <unordered_set>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -68,7 +69,7 @@ public:
 	mup::ParserX* getParser() {return parser;}
 
 private:
-	void addFilters(std::vector<IFilter*> filters);
+	void addFilters(const std::vector<IFilter*>& filters);
 	void cleanupConfigurations();
 	static unsigned long __stdcall notificationThread(void* parameter);
 	void resizeBuffers(unsigned frameCount);
@@ -76,6 +77,7 @@ private:
 	std::vector<IFilterFactory*> factories;
 
 	std::vector<std::unique_ptr<double[]>> inputBuf2D, outputBuf2D;
+	std::vector<double*> inputBuf2DPtrs, outputBuf2DPtrs;
 	std::vector<double> inputBuf1D, outputBuf1D;
 	unsigned allocatedFrameCount;
 

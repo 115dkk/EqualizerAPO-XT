@@ -33,12 +33,14 @@ FilterConfiguration::FilterConfiguration(FilterEngine* engine, const vector<Filt
 	outputChannelCount = engine->getOutputChannelCount();
 	unsigned maxFrameCount = engine->getMaxFrameCount();
 
+	allSamplesData = (double*)MemoryHelper::alloc(allChannelCount * maxFrameCount * sizeof(double));
+	allSamples2Data = (double*)MemoryHelper::alloc(allChannelCount * maxFrameCount * sizeof(double));
 	allSamples = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
 	for (size_t i = 0; i < allChannelCount; i++)
-		allSamples[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
+		allSamples[i] = allSamplesData + i * maxFrameCount;
 	allSamples2 = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
 	for (size_t i = 0; i < allChannelCount; i++)
-		allSamples2[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
+		allSamples2[i] = allSamples2Data + i * maxFrameCount;
 	currentSamples = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
 	currentSamples2 = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
 
@@ -53,13 +55,11 @@ FilterConfiguration::~FilterConfiguration()
 	MemoryHelper::free(currentSamples2);
 	MemoryHelper::free(currentSamples);
 
-	for (size_t i = 0; i < allChannelCount; i++)
-		MemoryHelper::free(allSamples2[i]);
 	MemoryHelper::free(allSamples2);
+	MemoryHelper::free(allSamples2Data);
 
-	for (size_t i = 0; i < allChannelCount; i++)
-		MemoryHelper::free(allSamples[i]);
 	MemoryHelper::free(allSamples);
+	MemoryHelper::free(allSamplesData);
 
 	for (size_t i = 0; i < filterCount; i++)
 	{

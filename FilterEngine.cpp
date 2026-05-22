@@ -136,12 +136,16 @@ void FilterEngine::resizeBuffers(unsigned frameCount) {
 
 			// Resize 2D buffers (for non-interleaved audio)
 			inputBuf2D.resize(inputChannelCount);
+			inputBuf2DPtrs.resize(inputChannelCount);
 			for (unsigned i = 0; i < inputChannelCount; ++i) {
 				inputBuf2D[i] = make_unique<double[]>(frameCount);
+				inputBuf2DPtrs[i] = inputBuf2D[i].get();
 			}
 			outputBuf2D.resize(outputChannelCount);
+			outputBuf2DPtrs.resize(outputChannelCount);
 			for (unsigned i = 0; i < outputChannelCount; ++i) {
 				outputBuf2D[i] = make_unique<double[]>(frameCount);
+				outputBuf2DPtrs[i] = outputBuf2D[i].get();
 			}
 		}
 		catch (const std::bad_alloc& e) {
@@ -538,29 +542,23 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 
 	resizeBuffers(frameCount);
 
-	// Create temporary raw pointer arrays for the FilterConfiguration interface
-	vector<double*> tempInputPtrs(inputChannelCount);
-	vector<double*> tempOutputPtrs(outputChannelCount);
-	for (unsigned i = 0; i < inputChannelCount; ++i) tempInputPtrs[i] = inputBuf2D[i].get();
-	for (unsigned i = 0; i < outputChannelCount; ++i) tempOutputPtrs[i] = outputBuf2D[i].get();
-
 	// Optimized conversion for each channel
 	for (unsigned c = 0; c < inputChannelCount; c++) {
 		convertFloatToDouble(inputBuf2D[c].get(), input[c], frameCount);
 	}
 
 	// Core processing logic is the same
-	currentConfig->read(tempInputPtrs.data(), frameCount);
+	currentConfig->read(inputBuf2DPtrs.data(), frameCount);
 	currentConfig->process(frameCount);
 
 	if (nextConfig != NULL)
 	{
-		nextConfig->read(tempInputPtrs.data(), frameCount);
+		nextConfig->read(inputBuf2DPtrs.data(), frameCount);
 		nextConfig->process(frameCount);
 		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
 	}
 
-	currentConfig->write(tempOutputPtrs.data(), frameCount);
+	currentConfig->write(outputBuf2DPtrs.data(), frameCount);
 
 	// Optimized conversion back for each channel
 	for (unsigned c = 0; c < outputChannelCount; c++) {
@@ -650,9 +648,9 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 }
 #pragma AVRT_CODE_END
 
-void FilterEngine::addFilters(vector<IFilter*> filters)
+void FilterEngine::addFilters(const vector<IFilter*>& filters)
 {
-	for (vector<IFilter*>::iterator it = filters.begin(); it != filters.end(); it++)
+	for (vector<IFilter*>::const_iterator it = filters.begin(); it != filters.end(); it++)
 	{
 		IFilter* filter = *it;
 		FilterInfo* filterInfo = (FilterInfo*)MemoryHelper::alloc(sizeof(FilterInfo));

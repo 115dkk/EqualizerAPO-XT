@@ -56,6 +56,8 @@ private:
 	unsigned realChannelCount;
 	unsigned outputChannelCount;
 	unsigned allChannelCount;
+	double* allSamplesData;
+	double* allSamples2Data;
 	double** allSamples;
 	double** allSamples2;
 	double** currentSamples;
