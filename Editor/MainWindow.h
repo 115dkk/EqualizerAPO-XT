@@ -31,6 +31,7 @@
 #include "DeviceAPOInfo.h"
 #include "Editor/AnalysisPlotScene.h"
 #include "Editor/AnalysisThread.h"
+#include "Editor/widgets/EqGraphView.h"
 #include "helpers/RegistryHelper.h"
 
 #define EDITOR_REGPATH USER_REGPATH L"\\Configuration Editor"
@@ -121,6 +122,7 @@ private:
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
 	AnalysisPlotScene* analysisPlotScene;
+	EqGraphView* eqGraphView = nullptr;
 	AnalysisThread* analysisThread = nullptr;
 	bool restart = false;
 	bool noSavePreferences = false;

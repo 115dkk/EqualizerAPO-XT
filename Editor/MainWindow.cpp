@@ -150,6 +150,10 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 
 	analysisPlotScene = new AnalysisPlotScene(ui->graphicsView);
 	ui->graphicsView->setScene(analysisPlotScene);
+	eqGraphView = new EqGraphView(ui->dockWidgetContents);
+	eqGraphView->setObjectName(QStringLiteral("ModernAnalysisGraph"));
+	ui->gridLayout_2->addWidget(eqGraphView, 0, 1, 2, 1);
+	ui->graphicsView->hide();
 
 	analysisThread = new AnalysisThread;
 	analysisThread->start();

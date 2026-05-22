@@ -43,3 +43,10 @@ QToolButton#FilterCardIconButton {
     min-width: 22px;
     min-height: 22px;
 }
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor, QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph {
+    background: transparent;
+    border: none;
+}
+QLabel#EditableValue {
+    padding: 6px 10px;
+}

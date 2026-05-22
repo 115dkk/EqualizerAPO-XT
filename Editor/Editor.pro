@@ -158,6 +158,9 @@ SOURCES += main.cpp\
 	helpers/QtSndfileHandle.cpp \
 	SkinManager.cpp \
 	widgets/AudioKnob.cpp \
+	widgets/cards/FilterCardEditorFactory.cpp \
+	widgets/cards/IncludeCardEditor.cpp \
+	widgets/cards/PreampCardEditor.cpp \
 	widgets/EditableValue.cpp \
 	widgets/ChBadge.cpp \
 	widgets/EqGraphView.cpp \
@@ -291,6 +294,9 @@ HEADERS  += \
 	SkinTokens.h \
 	SkinManager.h \
 	widgets/AudioKnob.h \
+	widgets/cards/FilterCardEditorFactory.h \
+	widgets/cards/IncludeCardEditor.h \
+	widgets/cards/PreampCardEditor.h \
 	widgets/EditableValue.h \
 	widgets/ChBadge.h \
 	widgets/EqGraphView.h \

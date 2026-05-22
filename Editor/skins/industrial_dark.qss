@@ -41,3 +41,10 @@ QToolButton#FilterCardIconButton {
     min-height: 22px;
 }
 QToolButton#FilterCardIconButton:hover { background: #1a1a28; }
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor, QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph {
+    background: transparent;
+    border: none;
+}
+QLabel#EditableValue {
+    padding: 6px 10px;
+}

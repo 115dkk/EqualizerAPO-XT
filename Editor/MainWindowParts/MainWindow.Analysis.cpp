@@ -84,6 +84,8 @@ void MainWindow::updateAnalysisPanel()
 	int sampleRate = analysisThread->getFreqDataSampleRate();
 	int latency = analysisThread->getLatency();
 	analysisPlotScene->setFreqData(analysisThread->getFreqData(), analysisThread->getFreqDataLength(), sampleRate);
+	if (eqGraphView != nullptr)
+		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
 
 	double peakGain = analysisThread->getPeakGain();
 	ui->peakGainValueLabel->setText(tr("%0 dB").arg(peakGain, 0, 'f', 1));

@@ -50,3 +50,10 @@ QToolButton#FilterCardIconButton {
 QToolButton#FilterCardIconButton:hover {
     background: rgba(59,130,246,0.20);
 }
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor, QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph {
+    background: transparent;
+    border: none;
+}
+QLabel#EditableValue {
+    padding: 6px 10px;
+}

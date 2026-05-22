@@ -58,6 +58,7 @@
 #include "FilterTable.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterCardRow.h"
+#include "Editor/widgets/cards/FilterCardEditorFactory.h"
 
 using std::list;
 using std::max;
@@ -189,10 +190,21 @@ void FilterTable::updateGuis()
 
 			if (gui != nullptr)
 			{
-				for (IFilterGUIFactory* factory : factories)
+				bool usingCardEditor = false;
+				if (renderMode == ModernCards)
 				{
-					gui = factory->decorateFilterGUI(gui);
+					IFilterGUI* cardGui = FilterCardEditorFactory::create(this, key, value);
+					if (cardGui != nullptr)
+					{
+						delete gui;
+						gui = cardGui;
+						usingCardEditor = true;
+					}
 				}
+
+				if (!usingCardEditor)
+					for (IFilterGUIFactory* factory : factories)
+						gui = factory->decorateFilterGUI(gui);
 			}
 		}
 

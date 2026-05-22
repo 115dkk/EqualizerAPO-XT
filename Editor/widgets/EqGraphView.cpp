@@ -1,15 +1,47 @@
 #include "EqGraphView.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include <QPainter>
 #include <QPainterPath>
+#include <QVector>
 
 #include "Editor/SkinManager.h"
+
+namespace
+{
+constexpr double MinHz = 20.0;
+constexpr double MaxHz = 20000.0;
+
+double xToHz(const QRectF& graphRect, double x)
+{
+	const double t = graphRect.width() <= 0.0 ? 0.0 : (x - graphRect.left()) / graphRect.width();
+	return MinHz * std::pow(MaxHz / MinHz, t);
+}
+
+double dbToY(const QRectF& graphRect, double db, double minDb, double maxDb)
+{
+	const double bounded = qBound(minDb, db, maxDb);
+	const double t = (maxDb - bounded) / (maxDb - minDb);
+	return graphRect.top() + graphRect.height() * t;
+}
+
+}
 
 EqGraphView::EqGraphView(QWidget* parent)
 	: QWidget(parent)
 {
 	setMinimumHeight(180);
 	setObjectName(QStringLiteral("EqGraphView"));
+}
+
+void EqGraphView::setNodes(const std::vector<FilterNode>& nodes, unsigned sampleRate, const QString& channel)
+{
+	currentNodes = nodes;
+	currentSampleRate = sampleRate;
+	currentChannel = channel.isEmpty() ? QStringLiteral("All") : channel;
+	update();
 }
 
 void EqGraphView::setChannel(const QString& channel)
@@ -34,43 +66,64 @@ void EqGraphView::paintEvent(QPaintEvent*)
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	QRectF graphRect = rect().adjusted(16, 14, -16, -24);
+	QRectF graphRect = rect().adjusted(18, 16, -18, -28);
 	painter.fillRect(rect(), QColor(tokens.graph));
 
 	QPen gridPen(QColor(tokens.border), 1);
 	gridPen.setCosmetic(true);
 	painter.setPen(gridPen);
-	for (int i = 0; i <= 6; i++)
+
+	const QVector<double> frequencyTicks = {20.0, 50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0};
+	for (double hz : frequencyTicks)
 	{
-		double x = graphRect.left() + graphRect.width() * i / 6.0;
+		const double t = std::log(hz / MinHz) / std::log(MaxHz / MinHz);
+		double x = graphRect.left() + graphRect.width() * t;
 		painter.drawLine(QPointF(x, graphRect.top()), QPointF(x, graphRect.bottom()));
 	}
-	for (int i = 0; i <= 4; i++)
+
+	GainIterator gainIterator(currentNodes);
+	QVector<double> sampledDb;
+	sampledDb.reserve(qMax(2, static_cast<int>(graphRect.width())));
+	double maxAbsDb = 0.0;
+	for (int x = static_cast<int>(graphRect.left()); x <= static_cast<int>(graphRect.right()); x++)
 	{
-		double y = graphRect.top() + graphRect.height() * i / 4.0;
+		const double db = gainIterator.gainAt(xToHz(graphRect, x));
+		const double finiteDb = std::isfinite(db) ? db : -120.0;
+		sampledDb.append(finiteDb);
+		maxAbsDb = std::max(maxAbsDb, std::abs(finiteDb));
+	}
+
+	const double rangeDb = qBound(12.0, std::ceil(maxAbsDb / 6.0) * 6.0, 60.0);
+	const double minDb = -rangeDb;
+	const double maxDb = rangeDb;
+	for (int db = static_cast<int>(minDb); db <= static_cast<int>(maxDb); db += 6)
+	{
+		double y = dbToY(graphRect, db, minDb, maxDb);
 		painter.drawLine(QPointF(graphRect.left(), y), QPointF(graphRect.right(), y));
 	}
 
 	QPen zeroPen(QColor(tokens.mutedText), 1.4);
 	zeroPen.setCosmetic(true);
 	painter.setPen(zeroPen);
-	double zeroY = graphRect.center().y();
+	double zeroY = dbToY(graphRect, 0.0, minDb, maxDb);
 	painter.drawLine(QPointF(graphRect.left(), zeroY), QPointF(graphRect.right(), zeroY));
 
 	QPainterPath curve;
-	curve.moveTo(graphRect.left(), zeroY + graphRect.height() * 0.05);
-	curve.cubicTo(
-		graphRect.left() + graphRect.width() * 0.18, zeroY - graphRect.height() * 0.16,
-		graphRect.left() + graphRect.width() * 0.28, zeroY + graphRect.height() * 0.10,
-		graphRect.left() + graphRect.width() * 0.38, zeroY + graphRect.height() * 0.03);
-	curve.cubicTo(
-		graphRect.left() + graphRect.width() * 0.52, zeroY - graphRect.height() * 0.18,
-		graphRect.left() + graphRect.width() * 0.64, zeroY - graphRect.height() * 0.22,
-		graphRect.left() + graphRect.width() * 0.74, zeroY - graphRect.height() * 0.06);
-	curve.cubicTo(
-		graphRect.left() + graphRect.width() * 0.84, zeroY + graphRect.height() * 0.08,
-		graphRect.left() + graphRect.width() * 0.92, zeroY + graphRect.height() * 0.02,
-		graphRect.right(), zeroY);
+	bool first = true;
+	for (int i = 0; i < sampledDb.size(); i++)
+	{
+		const double x = graphRect.left() + i;
+		const double y = dbToY(graphRect, sampledDb[i], minDb, maxDb);
+		if (first)
+		{
+			curve.moveTo(x, y);
+			first = false;
+		}
+		else
+		{
+			curve.lineTo(x, y);
+		}
+	}
 
 	QPainterPath fillPath = curve;
 	fillPath.lineTo(graphRect.right(), zeroY);
@@ -85,24 +138,14 @@ void EqGraphView::paintEvent(QPaintEvent*)
 	painter.setPen(curvePen);
 	painter.drawPath(curve);
 
-	QVector<QPointF> nodes = {
-		QPointF(graphRect.left() + graphRect.width() * 0.32, zeroY + graphRect.height() * 0.08),
-		QPointF(graphRect.left() + graphRect.width() * 0.58, zeroY - graphRect.height() * 0.21),
-		QPointF(graphRect.left() + graphRect.width() * 0.78, zeroY - graphRect.height() * 0.03)
-	};
-	QVector<QColor> nodeColors = { QColor("#22c55e"), QColor("#6366f1"), QColor("#ec4899") };
-	painter.setPen(QPen(QColor(tokens.graph), 2));
-	for (int i = 0; i < nodes.size(); i++)
-	{
-		painter.setBrush(nodeColors[i]);
-		painter.drawEllipse(nodes[i], 6, 6);
-	}
-
 	painter.setPen(QColor(tokens.mutedText));
 	QFont labelFont = font();
 	labelFont.setPointSizeF(qMax(7.0, labelFont.pointSizeF() - 1.0));
 	painter.setFont(labelFont);
 	painter.drawText(QRectF(graphRect.left(), graphRect.bottom() + 3, graphRect.width(), 18), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("20 Hz"));
-	painter.drawText(QRectF(graphRect.left(), graphRect.bottom() + 3, graphRect.width(), 18), Qt::AlignCenter, currentChannel);
+	painter.drawText(QRectF(graphRect.left(), graphRect.bottom() + 3, graphRect.width(), 18), Qt::AlignCenter, currentSampleRate == 0 ? currentChannel : QStringLiteral("%1 - %2 Hz").arg(currentChannel).arg(currentSampleRate));
 	painter.drawText(QRectF(graphRect.left(), graphRect.bottom() + 3, graphRect.width(), 18), Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("20 kHz"));
+
+	painter.drawText(QRectF(graphRect.left() + 4, graphRect.top() + 3, 70, 18), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("+%1 dB").arg(maxDb, 0, 'f', 0));
+	painter.drawText(QRectF(graphRect.left() + 4, graphRect.bottom() - 21, 70, 18), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("%1 dB").arg(minDb, 0, 'f', 0));
 }
