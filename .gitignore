@@ -185,6 +185,12 @@ ClientBin/
 *.publishsettings
 node_modules/
 orleans.codegen.cs
+deps/
+Qt/
+tools/
+build-*/
+DeviceSelector/translations/DeviceSelector_*.qm
+UpdateChecker/translations/UpdateChecker_*.qm
 
 # Since there are multiple workflows, uncomment next line to ignore bower_components 
 # (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)

@@ -24,21 +24,17 @@ Download the latest version from the [Releases page](https://github.com/TheFireK
 ## Building EqualizerAPO
 This project uses a fully automated Github Actions CI pipeline for both the main project and all dependencies.
 
-The following forked repositories are used for a stable pipeline, each including a CI pipline and a packaged release using the latest Github Actions build:
+The following forked repositories are used for a stable pipeline, each including a CI pipeline and packaged releases:
 - [AOCL-FFTW 5.1 (FFTW 3.3.10)](https://github.com/thefirekahuna/amd-fftw)
-- [muparserx 4.0.12](https://github.com/thefirekahuna/muparserx)
+- [muparserx 4.0.13](https://github.com/thefirekahuna/muparserx)
 - [libsndfile 1.2.2](https://github.com/thefirekahuna/libsndfile)
 - [tclap 1.2.5](https://github.com/thefirekahuna/tclap)
 
-Local builds are configured via shared environment variables, directly configurable in the relevant .vcxproj and .pro files as follows:
-```
-  <PropertyGroup>
-    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">F:\Git\libsndfile\include</LIBSNDFILE_INCLUDE>
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">F:\Git\libsndfile\out\build\x64-Release</LIBSNDFILE_LIB>
-    <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">F:\Git\amd-fftw\build\include</FFTW_INCLUDE>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">F:\Git\amd-fftw\out\build\x64-Release</FFTW_LIB>
-    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">F:\Git\muparserx\parser</MUPARSERX_INCLUDE>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">F:\Git\muparserx\lib64</MUPARSERX_LIB>
-    <TCLAP_ROOT Condition="'$(TCLAP_ROOT)'==''">F:\Git\tclap</TCLAP_ROOT>
-  </PropertyGroup>
-```
+Local dependency setup is documented in [docs/LocalDependencySetup.md](docs/LocalDependencySetup.md). By default, project files look for dependencies under the repo-local `deps/` directory:
+
+- `deps/fftw`
+- `deps/libsndfile`
+- `deps/muparserx`
+- `deps/tclap`
+
+The same shared environment variables can still override those defaults: `FFTW_INCLUDE`, `FFTW_LIB`, `LIBSNDFILE_INCLUDE`, `LIBSNDFILE_LIB`, `MUPARSERX_INCLUDE`, `MUPARSERX_LIB`, and `TCLAP_ROOT`.

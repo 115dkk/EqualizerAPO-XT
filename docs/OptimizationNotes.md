@@ -52,14 +52,12 @@
 
 2026-05-22에 아래 명령을 실행했습니다.
 
-- `MSBuild.exe EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64 /m`
-- `C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64 /m`
-
-결과는 로컬 외부 의존성 문제로 실패했습니다.
-
-- Visual Studio Build Tools 2026 설치 뒤 MSBuild 18.6.3은 프로젝트를 컴파일 단계까지 진행합니다.
-- `UpdateChecker` 빌드는 `QtWidgets` 헤더를 찾지 못해 실패합니다.
-- `Common` 빌드는 `sndfile.h`, `fftw3.h`, `mpParser.h`를 찾지 못해 실패합니다.
-- Qt 빌드는 `qmake`가 PATH와 `C:\Qt`에서 확인되지 않아 실행하지 못했습니다.
-- 로컬 `gh`는 `C:\Program Files\GitHub CLI\gh.exe`에 설치되어 있지만 저장된 GitHub 토큰이 만료되어 있습니다.
-- 코드 변경 자체의 공백 오류 검사는 `git diff --check`로 통과했습니다.
+- TheFireKahuna 쪽 GitHub Actions artifact는 확인 시점에 모두 만료되어 있었습니다.
+- 대신 각 저장소의 GitHub Release 자산을 `deps/`에 설치했습니다.
+- Visual Studio Build Tools 2026에는 ATL 구성 요소가 없어 `atls.lib` 링크 오류가 났고, `Microsoft.VisualStudio.Component.VC.14.51.ATL`을 추가 설치했습니다.
+- Qt 6.10.1 `win64_msvc2022_64`는 공식 Qt 저장소에서 `qtbase`, `qttools`, `qtsvg`, `qttranslations` 패키지를 받아 `Qt/`에 설치했습니다.
+- `Common`, `EqualizerAPO`, `Benchmark`, `VoicemeeterClient`는 Release x64 MSBuild 재빌드가 통과했습니다.
+- `Editor`, `DeviceSelector`, `UpdateChecker`는 qmake/nmake Release x64 빌드가 통과했습니다.
+- 세 Qt 실행 파일은 `windeployqt --release --no-opengl-sw` 배포가 통과했고, `platforms/qwindows.dll`과 SVG 플러그인이 배치됐습니다.
+- `Benchmark.exe --help` 실행이 통과해 콘솔 실행 파일의 DLL 로딩을 확인했습니다.
+- `EqualizerAPO.sln` 전체 MSBuild는 Qt VS Tools의 `QtMsBuild` 파일이 없어 `DeviceSelector.vcxproj`, `UpdateChecker.vcxproj`에서 실패합니다. CI와 로컬 검증은 이 두 프로젝트를 qmake로 빌드합니다.
