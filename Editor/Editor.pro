@@ -90,6 +90,7 @@ SOURCES += main.cpp\
 	widgets/CompactToolBar.cpp \
 	guis/ConvolutionFilterGUIFactory.cpp \
 	guis/ConvolutionFilterGUI.cpp \
+	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
 	MainWindow.cpp \
@@ -211,6 +212,7 @@ HEADERS  += \
 	widgets/CompactToolBar.h \
 	guis/ConvolutionFilterGUIFactory.h \
 	guis/ConvolutionFilterGUI.h \
+	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
 	widgets/EscapableLineEdit.h \
 	../version.h \

@@ -243,6 +243,7 @@ jobs:
         $projects = @(
           "Common.vcxproj",
           "Tests\HybridConvTests\HybridConvTests.vcxproj",
+          "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
           "EqualizerAPO\EqualizerAPO.vcxproj",
           "Benchmark\Benchmark.vcxproj",
           "VoicemeeterClient\VoicemeeterClient.vcxproj"
@@ -292,6 +293,9 @@ jobs:
           Write-Host "Building with instruction set: $instructionSet (variant: ${{ matrix.simd_variant }})"
           $buildParams += "/p:EnableEnhancedInstructionSet=$instructionSet"
         }
+        if ($env:Qt6_DIR) {
+          $buildParams += "/p:QT_ROOT=$env:Qt6_DIR"
+        }
 
         foreach ($project in $projects) {
           Write-Host "`n=== Building $project ==="
@@ -303,18 +307,24 @@ jobs:
           }
         }
 
-        $testExe = "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
-        if (-not (Test-Path $testExe)) {
-          Write-Error "HybridConvTests executable not found: $testExe"
-          exit 1
-        }
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:Qt6_DIR\bin;$env:PATH"
+        $testExecutables = @(
+          "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe",
+          "${{ github.workspace }}\Tests\EditorLogicTests\${{ matrix.platform }}\Release\EditorLogicTests.exe"
+        )
 
-        $env:PATH = "$env:FFTW_LIB;$env:PATH"
-        Write-Host "`n=== Running HybridConvTests ==="
-        & $testExe
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "HybridConvTests failed"
-          exit $LASTEXITCODE
+        foreach ($testExe in $testExecutables) {
+          if (-not (Test-Path $testExe)) {
+            Write-Error "Test executable not found: $testExe"
+            exit 1
+          }
+
+          Write-Host "`n=== Running $(Split-Path $testExe -Leaf) ==="
+          & $testExe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "$(Split-Path $testExe -Leaf) failed"
+            exit $LASTEXITCODE
+          }
         }
 
       
