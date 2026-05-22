@@ -22,18 +22,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [
-          windows-x64-sse2,
-          windows-x64-avx,
-          windows-x64-avx2,
-          windows-x64-avx512,
-          windows-x64-avx10_1,
-          windows-arm64
-        ]
-        # On a pull request, exclude every variant except AVX2. The full
-        # matrix, cross-variant compare, and release packaging stay on
-        # the push to main.
-        exclude: ${{ fromJson(github.event_name == 'pull_request' && '[{"name":"windows-x64-sse2"},{"name":"windows-x64-avx"},{"name":"windows-x64-avx512"},{"name":"windows-x64-avx10_1"},{"name":"windows-arm64"}]' || '[]') }}
+        # On a pull request only the AVX2 variant runs. On push to main the
+        # full six-variant matrix runs. matrix.name is evaluated at workflow
+        # parse time, so we drive it from a fromJson expression rather than
+        # matrix.exclude (which the runner appears to ignore in PR context).
+        name: ${{ fromJson(github.event_name == 'pull_request' && '["windows-x64-avx2"]' || '["windows-x64-sse2","windows-x64-avx","windows-x64-avx2","windows-x64-avx512","windows-x64-avx10_1","windows-arm64"]') }}
         include:
           - name: windows-x64-sse2
             os: windows-2025

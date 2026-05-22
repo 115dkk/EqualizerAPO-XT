@@ -17,6 +17,12 @@
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -29,6 +35,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\import\ImportExecutor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\import\ImportManifest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h">
