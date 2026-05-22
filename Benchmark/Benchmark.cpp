@@ -186,7 +186,8 @@ int main(int argc, char** argv)
 			if (!verbose)
 				cout << "\nLoading configuration took " << initTime * 1000.0 << " ms\n";
 
-			unsigned repeatCount = std::max(1u, repeatArg.getValue());
+			unsigned repeatCount = repeatArg.getValue();
+			if (repeatCount < 1) repeatCount = 1;
 			bool profileEnabled = profileArg.getValue();
 
 			if (profileEnabled)
