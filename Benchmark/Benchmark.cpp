@@ -24,6 +24,9 @@
 #endif
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <algorithm>
+#include <numeric>
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <string>
@@ -37,6 +40,7 @@
 #include "../helpers/StringHelper.h"
 #include "../helpers/PrecisionTimer.h"
 #include "../helpers/MemoryHelper.h"
+#include "../helpers/PerfProfile.h"
 
 using std::cerr;
 using std::cout;
@@ -62,6 +66,9 @@ int main(int argc, char** argv)
 
 		TCLAP::SwitchArg noPauseArg("", "nopause", "Do not wait for key press at the end", cmd);
 		TCLAP::SwitchArg verboseArg("v", "verbose", "Print trace and error messages to console instead of logfile", cmd);
+		TCLAP::SwitchArg profileArg("", "profile", "Enable per-stage performance instrumentation (FilterEngine + filter breakdown)", cmd);
+		TCLAP::ValueArg<unsigned> repeatArg("", "repeat", "Number of times to repeat the processing loop for averaging (Default: 1)", false, 1, "integer", cmd);
+		TCLAP::ValueArg<string> dumpCsvArg("", "dump-batches", "Path to a CSV file to write per-batch timings to", false, "", "string", cmd);
 		TCLAP::ValueArg<string> guidArg("", "guid", "Endpoint GUID to use when parsing configuration (Default: <empty>)", false, "", "string", cmd);
 		TCLAP::ValueArg<string> connectionnameArg("", "connectionname", "Connection name to use when parsing configuration (Default: File output)", false, "File output", "string", cmd);
 		TCLAP::ValueArg<string> devicenameArg("", "devicename", "Device name to use when parsing configuration (Default: Benchmark)", false, "Benchmark", "string", cmd);
@@ -179,19 +186,80 @@ int main(int argc, char** argv)
 			if (!verbose)
 				cout << "\nLoading configuration took " << initTime * 1000.0 << " ms\n";
 
-			cout << "\nProcessing " << frameCount << " frames from " << channelCount << " channel(s)\n";
+			unsigned repeatCount = repeatArg.getValue();
+			if (repeatCount < 1) repeatCount = 1;
+			bool profileEnabled = profileArg.getValue();
+
+			if (profileEnabled)
+			{
+				PerfProfile::reset();
+				PerfProfile::enable();
+			}
+
+			cout << "\nProcessing " << frameCount << " frames from " << channelCount << " channel(s)";
+			if (repeatCount > 1)
+				cout << " x" << repeatCount << " repetitions";
+			cout << "\n";
+
+			vector<double> batchTimes;
+			batchTimes.reserve(((size_t)frameCount / batchsize + 1) * repeatCount);
 
 			timer.start();
 
-			for (unsigned i = 0; i < frameCount; i += batchsize)
+			PrecisionTimer batchTimer;
+			for (unsigned r = 0; r < repeatCount; r++)
 			{
-				engine.process(buf2.data() + i * channelCount, buf.data() + i * channelCount, min(batchsize, frameCount - i));
+				for (unsigned i = 0; i < frameCount; i += batchsize)
+				{
+					unsigned actual = min(batchsize, frameCount - i);
+					batchTimer.start();
+					engine.process(buf2.data() + i * channelCount, buf.data() + i * channelCount, actual);
+					batchTimes.push_back(batchTimer.stop());
+				}
 			}
 
 			double time = timer.stop();
 
-			cout << frameCount * channelCount << " samples processed in " << time << " seconds\n";
-			cout << "This is equivalent to " << 100.0f * time / length << "% CPU load (one core) when processing in real time\n";
+			if (profileEnabled)
+				PerfProfile::disable();
+
+			double totalAudio = length * repeatCount;
+
+			cout << frameCount * channelCount * repeatCount << " samples processed in " << time << " seconds\n";
+			cout << "This is equivalent to " << 100.0f * time / totalAudio << "% CPU load (one core) when processing in real time\n";
+
+			if (!batchTimes.empty())
+			{
+				vector<double> sorted = batchTimes;
+				std::sort(sorted.begin(), sorted.end());
+				auto pick = [&](double pct) {
+					size_t n = sorted.size();
+					size_t idx = (size_t)(pct * (n - 1));
+					return sorted[idx];
+				};
+				double sum = std::accumulate(sorted.begin(), sorted.end(), 0.0);
+				double mean = sum / sorted.size();
+				cout << "Batch timings (n=" << sorted.size() << ", " << batchsize << " frames each, microseconds):\n";
+				cout << "  min:    " << sorted.front() * 1e6 << "\n";
+				cout << "  median: " << pick(0.50) * 1e6 << "\n";
+				cout << "  mean:   " << mean * 1e6 << "\n";
+				cout << "  p95:    " << pick(0.95) * 1e6 << "\n";
+				cout << "  p99:    " << pick(0.99) * 1e6 << "\n";
+				cout << "  max:    " << sorted.back() * 1e6 << "\n";
+			}
+
+			if (profileEnabled)
+				PerfProfile::report(cout);
+
+			string dumpCsvPath = dumpCsvArg.getValue();
+			if (!dumpCsvPath.empty())
+			{
+				std::ofstream csv(dumpCsvPath);
+				csv << "batch_index,seconds\n";
+				for (size_t i = 0; i < batchTimes.size(); i++)
+					csv << i << "," << batchTimes[i] << "\n";
+				cout << "\nPer-batch timings written to " << dumpCsvPath << "\n";
+			}
 
 			unsigned clipCount = 0;
 			float max = 0;

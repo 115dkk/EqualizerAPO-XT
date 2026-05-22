@@ -19,9 +19,11 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <typeinfo>
 
 #include "FilterEngine.h"
 #include "FilterConfiguration.h"
+#include "helpers/PerfProfile.h"
 
 FilterConfiguration::FilterConfiguration(FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
 {
@@ -114,7 +116,15 @@ void FilterConfiguration::process(unsigned frameCount)
 				currentSamples2[j] = allSamples2[filterInfo->outChannels[j]];
 		}
 
-		filterInfo->filter->process(currentSamples2.data(), currentSamples.data(), frameCount);
+		if (PerfProfile::active())
+		{
+			PerfScope _ps(typeid(*filterInfo->filter).name());
+			filterInfo->filter->process(currentSamples2.data(), currentSamples.data(), frameCount);
+		}
+		else
+		{
+			filterInfo->filter->process(currentSamples2.data(), currentSamples.data(), frameCount);
+		}
 
 		if (!filterInfo->inPlace)
 		{
