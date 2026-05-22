@@ -7,8 +7,8 @@ runtime-dispatching one universal x64 binary.
 
 | Matrix name | Platform | SIMD variant | MSBuild instruction set | Qt flag | Dependency release assets | Installer artifact |
 | --- | --- | --- | --- | --- | --- | --- |
-| `windows-x64-sse2` | `x64` | `sse2` | `NotSet` | none | vcpkg `fftw3[sse2]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-sse2` |
-| `windows-x64-avx` | `x64` | `avx` | `AdvancedVectorExtensions` | `/arch:AVX` | vcpkg `fftw3[avx]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-avx` |
+| `windows-x64-sse2` | `x64` | `sse2` | `NotSet` | none | vcpkg `fftw3[sse2,threads]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-sse2` |
+| `windows-x64-avx` | `x64` | `avx` | `AdvancedVectorExtensions` | `/arch:AVX` | vcpkg `fftw3[avx,threads]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-avx` |
 | `windows-x64-avx2` | `x64` | `avx2` | `AdvancedVectorExtensions2` | `/arch:AVX2` | `*-x64-avx2` | `EqualizerAPO_Setup-x64-avx2` |
 | `windows-x64-avx512` | `x64` | `avx512` | `AdvancedVectorExtensions512` | `/arch:AVX512` | `*-x64-avx512` | `EqualizerAPO_Setup-x64-avx512` |
 | `windows-x64-avx10_1` | `x64` | `avx10_1` | `AdvancedVectorExtensions101` | `/arch:AVX10.1` | `*-x64-avx10` | `EqualizerAPO_Setup-x64-avx10_1` |

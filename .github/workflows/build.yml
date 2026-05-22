@@ -214,7 +214,7 @@ jobs:
         }
 
         $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
-        $fftwFeature = if ("${{ matrix.simd_variant }}" -eq "avx") { "fftw3[avx]:x64-windows" } else { "fftw3[sse2]:x64-windows" }
+        $fftwFeature = if ("${{ matrix.simd_variant }}" -eq "avx") { "fftw3[avx,threads]:x64-windows" } else { "fftw3[sse2,threads]:x64-windows" }
         & $vcpkgExe install $fftwFeature "libsndfile:x64-windows" --clean-after-build
         if ($LASTEXITCODE -ne 0) {
           throw "vcpkg dependency install failed"
