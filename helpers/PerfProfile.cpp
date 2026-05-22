@@ -20,11 +20,19 @@
 #include "stdafx.h"
 #include "PerfProfile.h"
 #include <algorithm>
+#include <cstdint>
 #include <iomanip>
+#include <iostream>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 namespace PerfProfile
 {
@@ -35,14 +43,36 @@ namespace
 {
 	struct Entry
 	{
-		uint64_t count = 0;
+		std::uint64_t count = 0;
 		double total = 0.0;
 		double minVal = 0.0;
 		double maxVal = 0.0;
 	};
 
-	std::mutex s_mutex;
-	std::unordered_map<std::string, Entry> s_entries;
+	std::mutex& mutex_instance()
+	{
+		static std::mutex m;
+		return m;
+	}
+
+	std::unordered_map<std::string, Entry>& entries_instance()
+	{
+		static std::unordered_map<std::string, Entry> e;
+		return e;
+	}
+
+	LARGE_INTEGER qpc_frequency()
+	{
+		LARGE_INTEGER f;
+		QueryPerformanceFrequency(&f);
+		return f;
+	}
+}
+
+double qpc_to_seconds(std::int64_t delta)
+{
+	static LARGE_INTEGER freq = qpc_frequency();
+	return static_cast<double>(delta) / static_cast<double>(freq.QuadPart);
 }
 
 void enable()
@@ -57,14 +87,14 @@ void disable()
 
 void reset()
 {
-	std::lock_guard<std::mutex> lock(s_mutex);
-	s_entries.clear();
+	std::lock_guard<std::mutex> lock(mutex_instance());
+	entries_instance().clear();
 }
 
 void record(const char* label, double seconds)
 {
-	std::lock_guard<std::mutex> lock(s_mutex);
-	auto& entry = s_entries[label];
+	std::lock_guard<std::mutex> lock(mutex_instance());
+	auto& entry = entries_instance()[label];
 	if (entry.count == 0)
 	{
 		entry.minVal = seconds;
@@ -83,11 +113,12 @@ void report(std::ostream& os)
 {
 	std::vector<std::pair<std::string, Entry>> rows;
 	{
-		std::lock_guard<std::mutex> lock(s_mutex);
-		rows.assign(s_entries.begin(), s_entries.end());
+		std::lock_guard<std::mutex> lock(mutex_instance());
+		auto& entries = entries_instance();
+		rows.assign(entries.begin(), entries.end());
 	}
 
-	std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
+	std::sort(rows.begin(), rows.end(), [](const std::pair<std::string, Entry>& a, const std::pair<std::string, Entry>& b) {
 		return a.second.total > b.second.total;
 	});
 
@@ -103,9 +134,9 @@ void report(std::ostream& os)
 
 	for (const auto& row : rows)
 	{
-		const auto& label = row.first;
-		const auto& entry = row.second;
-		double avg_us = entry.count > 0 ? (entry.total / entry.count) * 1e6 : 0.0;
+		const std::string& label = row.first;
+		const Entry& entry = row.second;
+		double avg_us = entry.count > 0 ? (entry.total / static_cast<double>(entry.count)) * 1e6 : 0.0;
 		os << "  " << std::left << std::setw(56) << label
 			<< std::right << std::setw(10) << entry.count
 			<< std::setw(14) << std::fixed << std::setprecision(3) << (entry.total * 1000.0)
@@ -117,4 +148,25 @@ void report(std::ostream& os)
 	os << "=================================================\n";
 }
 
+}
+
+PerfScope::PerfScope(const char* label)
+	: start_count_(0), label_(label), active_(PerfProfile::active())
+{
+	if (active_)
+	{
+		LARGE_INTEGER c;
+		QueryPerformanceCounter(&c);
+		start_count_ = c.QuadPart;
+	}
+}
+
+PerfScope::~PerfScope()
+{
+	if (active_)
+	{
+		LARGE_INTEGER c;
+		QueryPerformanceCounter(&c);
+		PerfProfile::record(label_, PerfProfile::qpc_to_seconds(c.QuadPart - start_count_));
+	}
 }

@@ -20,14 +20,12 @@
 #pragma once
 
 #include <atomic>
-#include <ostream>
-#include "PrecisionTimer.h"
+#include <cstdint>
+#include <iosfwd>
 
 namespace PerfProfile
 {
 	// Active flag: relaxed atomic so the hot-path check is a single load with no fences.
-	// The release/uninstall build of EqualizerAPO.dll links the same translation units,
-	// so the flag stays off by default and Benchmark.exe is the only consumer that flips it.
 	extern std::atomic<bool> g_active;
 
 	inline bool active() noexcept
@@ -42,25 +40,18 @@ namespace PerfProfile
 	void report(std::ostream& os);
 }
 
+// RAII timer. Implementation lives in PerfProfile.cpp to avoid pulling
+// <windows.h> (via PrecisionTimer.h) into every translation unit that
+// only needs to declare a profile scope.
 class PerfScope
 {
-	PrecisionTimer timer_;
+	std::int64_t start_count_;
 	const char* label_;
 	bool active_;
 
 public:
-	explicit PerfScope(const char* label) noexcept
-		: label_(label), active_(PerfProfile::active())
-	{
-		if (active_)
-			timer_.start();
-	}
-
-	~PerfScope() noexcept
-	{
-		if (active_)
-			PerfProfile::record(label_, timer_.stop());
-	}
+	explicit PerfScope(const char* label);
+	~PerfScope();
 
 	PerfScope(const PerfScope&) = delete;
 	PerfScope& operator=(const PerfScope&) = delete;
