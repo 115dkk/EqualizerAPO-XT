@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -23,7 +23,10 @@
 #include "parser/RegexFunctions.h"
 #include "parser/RegistryFunctions.h"
 #include "FilterEngine.h"
+#include "FilterFactoryRegistry.h"
 #include "IfFilterFactory.h"
+
+REGISTER_FILTER_FACTORY(1, IfFilterFactory)
 
 using std::vector;
 using std::wstring;

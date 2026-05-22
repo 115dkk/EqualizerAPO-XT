@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -25,7 +25,10 @@
 #ifndef NO_FILTERENGINE
 #include "FilterEngine.h"
 #endif
+#include "FilterFactoryRegistry.h"
 #include "DeviceFilterFactory.h"
+
+REGISTER_FILTER_FACTORY(0, DeviceFilterFactory)
 
 using std::find;
 using std::regex;

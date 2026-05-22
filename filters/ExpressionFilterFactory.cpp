@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -27,7 +27,10 @@
 #include "parser/StringOperators.h"
 #include "parser/LogicalOperators.h"
 #include "FilterEngine.h"
+#include "FilterFactoryRegistry.h"
 #include "ExpressionFilterFactory.h"
+
+REGISTER_FILTER_FACTORY(2, ExpressionFilterFactory)
 
 using std::vector;
 using std::wstring;

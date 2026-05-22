@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -24,7 +24,10 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "GraphicEQFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "GraphicEQFilterFactory.h"
+
+REGISTER_FILTER_FACTORY(12, GraphicEQFilterFactory)
 
 using std::find;
 using std::regex;

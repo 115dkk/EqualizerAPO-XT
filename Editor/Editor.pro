@@ -120,6 +120,7 @@ SOURCES += main.cpp\
 	../FilterEngine.Configuration.cpp \
 	../FilterEngine.Process.cpp \
 	../FilterEngine.Runtime.cpp \
+	../FilterFactoryRegistry.cpp \
 	../FilterConfiguration.cpp \
 	../filters/ChannelFilterFactory.cpp \
 	../filters/ExpressionFilterFactory.cpp \

@@ -374,6 +374,7 @@
     <ClCompile Include="FilterEngine.Configuration.cpp" />
     <ClCompile Include="FilterEngine.Process.cpp" />
     <ClCompile Include="FilterEngine.Runtime.cpp" />
+    <ClCompile Include="FilterFactoryRegistry.cpp" />
     <ClCompile Include="filters\BiQuad.cpp" />
     <ClCompile Include="filters\BiQuadFilter.cpp" />
     <ClCompile Include="filters\BiQuadFilterFactory.cpp" />

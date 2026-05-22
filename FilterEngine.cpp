@@ -42,21 +42,7 @@
 #include "helpers/ChannelHelper.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
-#include "filters/ExpressionFilterFactory.h"
-#include "filters/DeviceFilterFactory.h"
-#include "filters/StageFilterFactory.h"
-#include "filters/IfFilterFactory.h"
-#include "filters/ChannelFilterFactory.h"
-#include "filters/BiQuadFilterFactory.h"
-#include "filters/IIRFilterFactory.h"
-#include "filters/PreampFilterFactory.h"
-#include "filters/DelayFilterFactory.h"
-#include "filters/CopyFilterFactory.h"
-#include "filters/IncludeFilterFactory.h"
-#include "filters/ConvolutionFilterFactory.h"
-#include "filters/GraphicEQFilterFactory.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
+#include "FilterFactoryRegistry.h"
 
 using std::exception;
 using std::find;
@@ -108,21 +94,7 @@ FilterEngine::FilterEngine()
 	parser = make_unique<ParserX>();
 	parser->EnableAutoCreateVar(true);
 
-	factories.push_back(make_unique<DeviceFilterFactory>());
-	factories.push_back(make_unique<IfFilterFactory>());
-	factories.push_back(make_unique<ExpressionFilterFactory>());
-	factories.push_back(make_unique<IncludeFilterFactory>());
-	factories.push_back(make_unique<StageFilterFactory>());
-	factories.push_back(make_unique<ChannelFilterFactory>());
-	factories.push_back(make_unique<IIRFilterFactory>());
-	factories.push_back(make_unique<BiQuadFilterFactory>());
-	factories.push_back(make_unique<PreampFilterFactory>());
-	factories.push_back(make_unique<DelayFilterFactory>());
-	factories.push_back(make_unique<CopyFilterFactory>());
-	factories.push_back(make_unique<ConvolutionFilterFactory>());
-	factories.push_back(make_unique<GraphicEQFilterFactory>());
-	factories.push_back(make_unique<VSTPluginFilterFactory>());
-	factories.push_back(make_unique<LoudnessCorrectionFilterFactory>());
+	factories = FilterFactoryRegistry::createFactories();
 }
 
 FilterEngine::~FilterEngine()

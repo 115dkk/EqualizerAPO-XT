@@ -281,6 +281,7 @@
     <ClCompile Include="FilterEngine.Configuration.cpp" />
     <ClCompile Include="FilterEngine.Process.cpp" />
     <ClCompile Include="FilterEngine.Runtime.cpp" />
+    <ClCompile Include="FilterFactoryRegistry.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp">
       <Filter>filters\loudnessCorrection</Filter>

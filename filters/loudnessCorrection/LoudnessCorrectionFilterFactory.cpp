@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Alexander Walch
 
@@ -27,7 +27,10 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "LoudnessCorrectionFilter.h"
+#include "FilterFactoryRegistry.h"
 #include "LoudnessCorrectionFilterFactory.h"
+
+REGISTER_FILTER_FACTORY(14, LoudnessCorrectionFilterFactory)
 
 using std::regex;
 using std::vector;
