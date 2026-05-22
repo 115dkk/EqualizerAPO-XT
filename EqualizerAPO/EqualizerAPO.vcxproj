@@ -330,8 +330,8 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;USE_WINDDK;NDEBUG;_WINDOWS;_USRDLL;UNICODE;_UNICODE;EQUALIZERAPO_EXPORTS</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <StringPooling>true</StringPooling>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
