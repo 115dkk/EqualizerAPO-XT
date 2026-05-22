@@ -555,7 +555,67 @@ jobs:
           }
         }
 
-      
+
+    - name: Run audio regression tests
+      shell: pwsh
+      run: |
+        $variant = "${{ matrix.simd_variant }}"
+        $platform = "${{ matrix.platform }}"
+        $exe = "${{ github.workspace }}\Tests\AudioRegressionTests\$platform\Release\AudioRegressionTests.exe"
+        if (-not (Test-Path $exe)) {
+          Write-Error "AudioRegressionTests executable not found at $exe"
+          exit 1
+        }
+
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
+
+        $repoRefDir = "${{ github.workspace }}\Tests\AudioRegressionTests\references"
+        $hasRefs = Test-Path (Join-Path $repoRefDir "preamp_minus6.raw")
+        $primaryVariant = "avx2"
+        $isPrimary = ($variant -eq $primaryVariant)
+
+        Push-Location "${{ github.workspace }}\Tests\AudioRegressionTests"
+        try {
+          if ($hasRefs) {
+            Write-Host "Reference set present in tree; running verify mode for variant '$variant'"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "AudioRegressionTests verify failed for variant '$variant'"
+              exit $LASTEXITCODE
+            }
+          } elseif ($isPrimary) {
+            Write-Host "No reference set in tree; primary variant '$primaryVariant' will record fresh references"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "AudioRegressionTests reference generation failed"
+              exit $LASTEXITCODE
+            }
+          } else {
+            Write-Host "No reference set in tree; recording variant output only (non-primary variant)"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+          }
+        } finally {
+          Pop-Location
+        }
+
+    - name: Upload audio regression outputs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: audio-regression-output-${{ matrix.simd_variant }}
+        path: Tests/AudioRegressionTests/output
+        retention-days: 14
+        if-no-files-found: warn
+
+    - name: Upload audio regression references (primary variant)
+      if: matrix.simd_variant == 'avx2'
+      uses: actions/upload-artifact@v4
+      with:
+        name: audio-regression-references
+        path: Tests/AudioRegressionTests/references
+        retention-days: 30
+        if-no-files-found: warn
+
     # Build Qt projects with qmake (Editor, DeviceSelector, UpdateChecker)
     - name: Build Qt Applications
       shell: pwsh
