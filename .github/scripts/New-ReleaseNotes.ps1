@@ -69,7 +69,7 @@ function Get-ChannelFromAssetName {
   if ($lowerName -match "avx2") {
     return "x64-avx2"
   }
-  if ($lowerName -match "(^|[-_])avx($|[-_])") {
+  if ($lowerName -match "(^|[-_.])avx($|[-_.])") {
     return "x64-avx"
   }
 
