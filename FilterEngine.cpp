@@ -42,7 +42,7 @@
 #include "helpers/ChannelHelper.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 
 using std::exception;
 using std::find;

@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "IIRFilter.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "IIRFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(6, IIRFilterFactory)

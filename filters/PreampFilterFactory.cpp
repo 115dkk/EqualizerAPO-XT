@@ -22,7 +22,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "PreampFilter.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "PreampFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(8, PreampFilterFactory)
