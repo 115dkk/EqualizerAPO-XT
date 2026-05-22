@@ -19,8 +19,8 @@
 
 #include "stdafx.h"
 #include <wincrypt.h>
-#include <inttypes.h>
 #include <vector>
+#include "LogHelper.h"
 #include "StringHelper.h"
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
@@ -36,9 +36,8 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 {
 	VSTPluginInstance* instance = effect != NULL ? (VSTPluginInstance*)effect->host_internal : NULL;
 #ifdef _DEBUG
-	printf("vst: %p opcode: %d index: %d value: %" PRIdPTR " ptr: %p opt: %f host_internal: %p\n",
+	TraceFStatic(L"vst: %p opcode: %d index: %d value: %Id ptr: %p opt: %f host_internal: %p",
 		effect, opcode, index, value, ptr, opt, effect != NULL ? effect->host_internal : NULL);
-	fflush(stdout);
 #endif
 
 	switch (opcode)
@@ -105,8 +104,7 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		{
 			char* s = (char*)ptr;
 #ifdef _DEBUG
-			printf("VST canDo: %s\n", s);
-			fflush(stdout);
+			TraceFStatic(L"VST canDo: %S", s);
 #endif
 			if (strcmp(s, "startStopProcess") == 0 ||
 				strcmp(s, "sizeWindow") == 0)
