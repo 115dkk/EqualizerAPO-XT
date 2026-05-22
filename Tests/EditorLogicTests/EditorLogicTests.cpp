@@ -16,6 +16,7 @@
 
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
+#include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
@@ -305,6 +306,21 @@ int main(int argc, char** argv)
 		auto broken = EqAPO::Import::ConfigDependencyScanner::scan(surroundDir + "/broken.txt", tempDir.path() + "/configdir");
 		expectTrue(broken.hasErrors, "missing dependency must flag hasErrors");
 		expectTrue(!broken.warnings.isEmpty(), "missing dependency must produce a warning");
+
+		QString configDest = tempDir.path() + "/configdir";
+		EqAPO::Import::ExecutionResult exec = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
+		expectTrue(exec.success, "executor should succeed on clean manifest");
+		expectEqual(exec.filesCopied, 4, "executor must copy four files");
+
+		expectTrue(QFile::exists(configDest + "/Surround/main.txt"), "main.txt missing after import");
+		expectTrue(QFile::exists(configDest + "/Surround/child.txt"), "child.txt missing after import");
+		expectTrue(QFile::exists(configDest + "/Surround/ir.wav"), "ir.wav missing after import");
+		expectTrue(QFile::exists(configDest + "/Surround/nested.wav"), "nested.wav missing after import");
+
+		// Re-executing should be idempotent (overwrites are allowed).
+		EqAPO::Import::ExecutionResult exec2 = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
+		expectTrue(exec2.success, "second execute should also succeed");
+		expectEqual(exec2.filesCopied, 4, "second execute should still report four copies");
 	}
 
 	printf("EditorLogicTests passed\n");
