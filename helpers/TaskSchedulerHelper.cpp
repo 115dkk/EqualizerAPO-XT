@@ -24,68 +24,62 @@
 #include <stdio.h>
 #include <comdef.h>
 #include <taskschd.h>
+#include <wrl/client.h>
 #define SECURITY_WIN32
 #include <Security.h>
 #include "StringHelper.h"
-#include "ScopeGuard.h"
 #include "TaskSchedulerHelper.h"
+
+using Microsoft::WRL::ComPtr;
 
 void TaskSchedulerHelper::scheduleAtLogon(const std::wstring& taskName, const std::wstring& programPath, const std::wstring& programArgs, const std::wstring& workingDir)
 {
-	HRESULT hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, 0, NULL);
+	HRESULT hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr, RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, 0, nullptr);
 	if (FAILED(hr))
 		fail(L"CoInitializeSecurity", hr);
 
-	ITaskService* pService = NULL;
-	hr = CoCreateInstance(CLSID_TaskScheduler, NULL, CLSCTX_INPROC_SERVER, IID_ITaskService, (void**)&pService);
+	ComPtr<ITaskService> pService;
+	hr = CoCreateInstance(CLSID_TaskScheduler, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pService));
 	if (FAILED(hr))
 		fail(L"CoCreateInstance", hr);
-	SCOPE_EXIT{if (pService != NULL) pService->Release();};
 
 	hr = pService->Connect(_variant_t(), _variant_t(), _variant_t(), _variant_t());
 	if (FAILED(hr))
 		fail(L"ITaskService::Connect", hr);
 
-	ITaskFolder* pRootFolder = NULL;
+	ComPtr<ITaskFolder> pRootFolder;
 	hr = pService->GetFolder(_bstr_t(L"\\"), &pRootFolder);
 	if (FAILED(hr))
 		fail(L"ITaskService::GetFolder", hr);
-	SCOPE_EXIT{pRootFolder->Release(); };
 
 	// remove any existing task first
 	pRootFolder->DeleteTask(_bstr_t(taskName.c_str()), 0);
 
-	ITaskDefinition* pTask = NULL;
+	ComPtr<ITaskDefinition> pTask;
 	hr = pService->NewTask(0, &pTask);
-
-	pService->Release();
-	pService = NULL;
 
 	if (FAILED(hr))
 		fail(L"ITaskService::NewTask", hr);
-	SCOPE_EXIT{pTask->Release(); };
 
 	wchar_t userName[255];
 	ULONG userNameSize = sizeof(userName)/sizeof(wchar_t);
 	if (!GetUserNameExW(NameSamCompatible, userName, &userNameSize))
 		fail(L"GetUserNameExW", GetLastError());
 
-	IRegistrationInfo* pRegInfo= NULL;
+	ComPtr<IRegistrationInfo> pRegInfo;
 	hr = pTask->get_RegistrationInfo(&pRegInfo);
 	if (FAILED(hr))
 		fail(L"ITaskDefinition::get_RegistrationInfo", hr);
 
 	hr = pRegInfo->put_Author(userName);
-	pRegInfo->Release();
 	if (FAILED(hr))
 		fail(L"IRegistrationInfo::put_Author", hr);
 
 	{
-		ITaskSettings* pSettings = NULL;
+		ComPtr<ITaskSettings> pSettings;
 		hr = pTask->get_Settings(&pSettings);
 		if (FAILED(hr))
 			fail(L"ITaskDefinition::get_Settings", hr);
-		SCOPE_EXIT{pSettings->Release();};
 
 		hr = pSettings->put_StartWhenAvailable(VARIANT_TRUE);
 		if (FAILED(hr))
@@ -104,25 +98,21 @@ void TaskSchedulerHelper::scheduleAtLogon(const std::wstring& taskName, const st
 			fail(L"ITaskSettings::put_RunOnlyIfNetworkAvailable", hr);
 	}
 
-	ITriggerCollection* pTriggerCollection = NULL;
+	ComPtr<ITriggerCollection> pTriggerCollection;
 	hr = pTask->get_Triggers(&pTriggerCollection);
 	if (FAILED(hr))
 		fail(L"ITaskDefinition::get_Triggers", hr);
 
-	ITrigger* pTrigger = NULL;
+	ComPtr<ITrigger> pTrigger;
 	hr = pTriggerCollection->Create(TASK_TRIGGER_LOGON, &pTrigger);
-	pTriggerCollection->Release();
 	if (FAILED(hr))
 		fail(L"ITriggerCollection::Create", hr);
 
 	{
-		ILogonTrigger* pLogonTrigger = NULL;
-		hr = pTrigger->QueryInterface(
-			IID_ILogonTrigger, (void**)&pLogonTrigger);
-		pTrigger->Release();
+		ComPtr<ILogonTrigger> pLogonTrigger;
+		hr = pTrigger.As(&pLogonTrigger);
 		if (FAILED(hr))
 			fail(L"QueryInterface(ILogonTrigger)", hr);
-		SCOPE_EXIT{pLogonTrigger->Release();};
 
 		hr = pLogonTrigger->put_Id(_bstr_t(L"Trigger1"));
 		if (FAILED(hr))
@@ -132,36 +122,31 @@ void TaskSchedulerHelper::scheduleAtLogon(const std::wstring& taskName, const st
 		if (FAILED(hr))
 			fail(L"ILogonTrigger::put_UserId", hr);
 
-		IRepetitionPattern* repetitionPattern = NULL;
+		ComPtr<IRepetitionPattern> repetitionPattern;
 		hr = pLogonTrigger->get_Repetition(&repetitionPattern);
 		if (FAILED(hr))
 			fail(L"ILogonTrigger::get_Repetition", hr);
 
 		hr = repetitionPattern->put_Interval(_bstr_t(L"P1D"));
-		repetitionPattern->Release();
 		if (FAILED(hr))
 			fail(L"IRepetitionPattern::put_Interval", hr);
 	}
 
-	IActionCollection* pActionCollection = NULL;
+	ComPtr<IActionCollection> pActionCollection;
 	hr = pTask->get_Actions(&pActionCollection);
 	if (FAILED(hr))
 		fail(L"ITaskDefinition::get_Actions", hr);
 
-	IAction* pAction = NULL;
+	ComPtr<IAction> pAction;
 	hr = pActionCollection->Create(TASK_ACTION_EXEC, &pAction);
-	pActionCollection->Release();
 	if (FAILED(hr))
 		fail(L"IActionCollection::Create", hr);
 
 	{
-		IExecAction* pExecAction = NULL;
-		hr = pAction->QueryInterface(
-			IID_IExecAction, (void**)&pExecAction);
-		pAction->Release();
+		ComPtr<IExecAction> pExecAction;
+		hr = pAction.As(&pExecAction);
 		if (FAILED(hr))
 			fail(L"QueryInterface(IExecAction)", hr);
-		SCOPE_EXIT{pExecAction->Release(); };
 
 		hr = pExecAction->put_Path(_bstr_t(programPath.c_str()));
 		if (FAILED(hr))
@@ -176,10 +161,10 @@ void TaskSchedulerHelper::scheduleAtLogon(const std::wstring& taskName, const st
 			fail(L"IExecAction::put_WorkingDirectory", hr);
 	}
 
-	IRegisteredTask* pRegisteredTask = NULL;
+	ComPtr<IRegisteredTask> pRegisteredTask;
 	hr = pRootFolder->RegisterTaskDefinition(
 		_bstr_t(taskName.c_str()),
-		pTask,
+		pTask.Get(),
 		TASK_CREATE_OR_UPDATE,
 		_variant_t(),
 		_variant_t(),
@@ -188,30 +173,27 @@ void TaskSchedulerHelper::scheduleAtLogon(const std::wstring& taskName, const st
 		&pRegisteredTask);
 	if (FAILED(hr))
 		fail(L"ITaskFolder::RegisterTaskDefinition", hr);
-	pRegisteredTask->Release();
 }
 
 void TaskSchedulerHelper::unschedule(const std::wstring& taskName)
 {
-	HRESULT hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, 0, NULL);
+	HRESULT hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr, RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, 0, nullptr);
 	if (FAILED(hr))
 		fail(L"CoInitializeSecurity", hr);
 
-	ITaskService* pService = NULL;
-	hr = CoCreateInstance(CLSID_TaskScheduler, NULL, CLSCTX_INPROC_SERVER, IID_ITaskService, (void**)&pService);
+	ComPtr<ITaskService> pService;
+	hr = CoCreateInstance(CLSID_TaskScheduler, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pService));
 	if (FAILED(hr))
 		fail(L"CoCreateInstance", hr);
-	SCOPE_EXIT{pService->Release(); };
 
 	hr = pService->Connect(_variant_t(), _variant_t(), _variant_t(), _variant_t());
 	if (FAILED(hr))
 		fail(L"ITaskService::Connect", hr);
 
-	ITaskFolder* pRootFolder = NULL;
+	ComPtr<ITaskFolder> pRootFolder;
 	hr = pService->GetFolder(_bstr_t(L"\\"), &pRootFolder);
 	if (FAILED(hr))
 		fail(L"ITaskService::GetFolder", hr);
-	SCOPE_EXIT{pRootFolder->Release(); };
 
 	// remove any existing task first
 	pRootFolder->DeleteTask(_bstr_t(taskName.c_str()), 0);
