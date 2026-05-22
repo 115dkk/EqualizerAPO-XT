@@ -242,6 +242,7 @@ jobs:
 
         $projects = @(
           "Common.vcxproj",
+          "Tests\HybridConvTests\HybridConvTests.vcxproj",
           "EqualizerAPO\EqualizerAPO.vcxproj",
           "Benchmark\Benchmark.vcxproj",
           "VoicemeeterClient\VoicemeeterClient.vcxproj"
@@ -300,6 +301,20 @@ jobs:
             Write-Error "Build failed for $project"
             exit $LASTEXITCODE
           }
+        }
+
+        $testExe = "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
+        if (-not (Test-Path $testExe)) {
+          Write-Error "HybridConvTests executable not found: $testExe"
+          exit 1
+        }
+
+        $env:PATH = "$env:FFTW_LIB;$env:PATH"
+        Write-Host "`n=== Running HybridConvTests ==="
+        & $testExe
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "HybridConvTests failed"
+          exit $LASTEXITCODE
         }
 
       
