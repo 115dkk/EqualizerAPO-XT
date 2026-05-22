@@ -2,7 +2,7 @@
  *   Copyright (C) 2009 by Christian Borss                                 *
  *   christian.borss@rub.de                                                *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
+ *   This program is LGPL-licensed software; you can redistribute it and/or modify *
  *   it under the terms of the GNU Library General Public License as       *
  *   published by the Free Software Foundation; either version 2 of the    *
  *   License, or (at your option) any later version.                       *
@@ -23,9 +23,11 @@
 #ifndef _M_ARM64
 #include <immintrin.h>
 #endif
-#include <stdio.h>
-#include <stdlib.h>
+#include <algorithm>
+#include <memory>
 #include <string.h>
+#include <unordered_map>
+#include <vector>
 #ifdef WIN32
 #include <Windows.h>
 #else
@@ -33,7 +35,66 @@
 #endif
 #include <math.h>
 #include <fftw3.h>
+#include "../helpers/LogHelper.h"
+#include "HcAlignedStorage.h"
 #include "libHybridConv_eapo.h"
+
+namespace
+{
+struct HConvSingleStorage
+{
+	HcAlignedPtr<double> dftTime;
+	HcAlignedPtr<fftw_complex> dftFreq;
+	HcAlignedPtr<double> inFreqReal;
+	HcAlignedPtr<double> inFreqImag;
+	std::vector<int> stepTask;
+	std::vector<HcAlignedPtr<double>> filterReal;
+	std::vector<HcAlignedPtr<double>> filterImag;
+	std::vector<double*> filterRealPtrs;
+	std::vector<double*> filterImagPtrs;
+	std::vector<HcAlignedPtr<double>> mixReal;
+	std::vector<HcAlignedPtr<double>> mixImag;
+	std::vector<double*> mixRealPtrs;
+	std::vector<double*> mixImagPtrs;
+	HcAlignedPtr<double> historyTime;
+};
+
+struct HConvDualStorage
+{
+	HcAlignedPtr<double> paddedFilter;
+	HcAlignedPtr<double> inLong;
+	HcAlignedPtr<double> outLong;
+	std::unique_ptr<HConvSingle> shortFilter;
+	std::unique_ptr<HConvSingle> longFilter;
+};
+
+struct HConvTrippleStorage
+{
+	HcAlignedPtr<double> paddedFilter;
+	HcAlignedPtr<double> inMedium;
+	HcAlignedPtr<double> outMedium;
+	std::unique_ptr<HConvSingle> shortFilter;
+	std::unique_ptr<HConvDual> mediumFilter;
+};
+
+std::unordered_map<HConvSingle*, HConvSingleStorage>& singleStorageMap()
+{
+	static std::unordered_map<HConvSingle*, HConvSingleStorage> storage;
+	return storage;
+}
+
+std::unordered_map<HConvDual*, HConvDualStorage>& dualStorageMap()
+{
+	static std::unordered_map<HConvDual*, HConvDualStorage> storage;
+	return storage;
+}
+
+std::unordered_map<HConvTripple*, HConvTrippleStorage>& trippleStorageMap()
+{
+	static std::unordered_map<HConvTripple*, HConvTrippleStorage> storage;
+	return storage;
+}
+}
 
 
 double hcTime(void)
@@ -53,11 +114,8 @@ double hcTime(void)
 double getProcTime(int flen, int num, double dur)
 {
 	HConvSingle filter;
-	double* x;
-	double* h;
-	double* y;
 	int xlen, hlen, ylen;
-	int size, n;
+	int n;
 	int pos;
 	double t_start, t_diff;
 	double counter = 0.0;
@@ -65,8 +123,7 @@ double getProcTime(int flen, int num, double dur)
 	double lin, mul;
 
 	xlen = 2048 * 2048;
-	size = sizeof(double) * xlen;
-	x = (double*)fftw_malloc(size);
+	std::vector<double> x(xlen);
 	lin = pow(10.0, -100.0 / 20.0);	// 0.00001 = -100dB
 	mul = pow(lin, 1.0 / (double)xlen);
 	x[0] = 1.0;
@@ -74,8 +131,7 @@ double getProcTime(int flen, int num, double dur)
 		x[n] = (double)(-mul * x[n - 1]);
 
 	hlen = flen * num;
-	size = sizeof(double) * hlen;
-	h = (double*)fftw_malloc(size);
+	std::vector<double> h(hlen);
 	lin = pow(10.0, -60.0 / 20.0);	// 0.001 = -60dB
 	mul = pow(lin, 1.0 / (double)hlen);
 	h[0] = 1.0;
@@ -83,10 +139,9 @@ double getProcTime(int flen, int num, double dur)
 		h[n] = (double)(mul * h[n - 1]);
 
 	ylen = flen;
-	size = sizeof(double) * ylen;
-	y = (double*)fftw_malloc(size);
+	std::vector<double> y(ylen);
 
-	hcInitSingle(&filter, h, hlen, flen, 1);
+	hcInitSingle(&filter, h.data(), hlen, flen, 1);
 
 	t_diff = 0.0;
 	t_start = hcTime();
@@ -95,7 +150,7 @@ double getProcTime(int flen, int num, double dur)
 	{
 		hcPutSingle(&filter, &x[pos]);
 		hcProcessSingle(&filter);
-		hcGetSingle(&filter, y);
+		hcGetSingle(&filter, y.data());
 		pos += flen;
 		if (pos >= xlen)
 			pos = 0;
@@ -103,12 +158,9 @@ double getProcTime(int flen, int num, double dur)
 		t_diff = hcTime() - t_start;
 	}
 	proc_time = t_diff / counter;
-	printf("Processing time: %7.3f us\n", 1000000.0 * proc_time);
+	LogFStatic(L"Processing time: %7.3f us", 1000000.0 * proc_time);
 
 	hcCloseSingle(&filter);
-	fftw_free(x);
-	fftw_free(h);
-	fftw_free(y);
 
 	return proc_time;
 }
@@ -706,6 +758,8 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 {
 	int i, j, size, num, pos;
 	double gain;
+	auto& storage = singleStorageMap()[filter];
+	storage = HConvSingleStorage();
 
 	filter->step = 0;
 	filter->maxstep = steps;
@@ -713,19 +767,24 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 	filter->framelength = flen;
 
 	size = sizeof(double) * 2 * flen;
-	filter->dft_time = (double*)fftw_malloc(size);
+	storage.dftTime = makeHcAlignedArray<double>(2 * (size_t)flen);
+	filter->dft_time = storage.dftTime.get();
 
 	size = sizeof(fftw_complex) * (flen + 1);
-	filter->dft_freq = (fftw_complex*)fftw_malloc(size);
+	storage.dftFreq = makeHcAlignedArray<fftw_complex>((size_t)flen + 1);
+	filter->dft_freq = storage.dftFreq.get();
 
 	size = sizeof(double) * (flen + 1);
-	filter->in_freq_real = (double*)fftw_malloc(size);
-	filter->in_freq_imag = (double*)fftw_malloc(size);
+	storage.inFreqReal = makeHcAlignedArray<double>((size_t)flen + 1);
+	storage.inFreqImag = makeHcAlignedArray<double>((size_t)flen + 1);
+	filter->in_freq_real = storage.inFreqReal.get();
+	filter->in_freq_imag = storage.inFreqImag.get();
 
 	filter->num_filterbuf = (hlen + flen - 1) / flen;
 
 	size = sizeof(int) * (steps + 1);
-	filter->steptask = (int*)malloc(size);
+	storage.stepTask.resize((size_t)steps + 1);
+	filter->steptask = storage.stepTask.data();
 	num = filter->num_filterbuf / steps;
 	for (i = 0; i <= steps; i++)
 		filter->steptask[i] = i * num;
@@ -737,29 +796,42 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 	}
 
 	size = sizeof(double*) * filter->num_filterbuf;
-	filter->filterbuf_freq_real = (double**)fftw_malloc(size);
-	filter->filterbuf_freq_imag = (double**)fftw_malloc(size);
+	storage.filterReal.resize(filter->num_filterbuf);
+	storage.filterImag.resize(filter->num_filterbuf);
+	storage.filterRealPtrs.resize(filter->num_filterbuf);
+	storage.filterImagPtrs.resize(filter->num_filterbuf);
+	filter->filterbuf_freq_real = storage.filterRealPtrs.data();
+	filter->filterbuf_freq_imag = storage.filterImagPtrs.data();
 	for (i = 0; i < filter->num_filterbuf; i++) {
 		size = sizeof(double) * (flen + 1);
-		filter->filterbuf_freq_real[i] = (double*)fftw_malloc(size);
-		filter->filterbuf_freq_imag[i] = (double*)fftw_malloc(size);
+		storage.filterReal[i] = makeHcAlignedArray<double>((size_t)flen + 1);
+		storage.filterImag[i] = makeHcAlignedArray<double>((size_t)flen + 1);
+		filter->filterbuf_freq_real[i] = storage.filterReal[i].get();
+		filter->filterbuf_freq_imag[i] = storage.filterImag[i].get();
 	}
 
 	filter->num_mixbuf = filter->num_filterbuf + 1;
 
 	size = sizeof(double*) * filter->num_mixbuf;
-	filter->mixbuf_freq_real = (double**)fftw_malloc(size);
-	filter->mixbuf_freq_imag = (double**)fftw_malloc(size);
+	storage.mixReal.resize(filter->num_mixbuf);
+	storage.mixImag.resize(filter->num_mixbuf);
+	storage.mixRealPtrs.resize(filter->num_mixbuf);
+	storage.mixImagPtrs.resize(filter->num_mixbuf);
+	filter->mixbuf_freq_real = storage.mixRealPtrs.data();
+	filter->mixbuf_freq_imag = storage.mixImagPtrs.data();
 	for (i = 0; i < filter->num_mixbuf; i++) {
 		size = sizeof(double) * (flen + 1);
-		filter->mixbuf_freq_real[i] = (double*)fftw_malloc(size);
-		filter->mixbuf_freq_imag[i] = (double*)fftw_malloc(size);
+		storage.mixReal[i] = makeHcAlignedArray<double>((size_t)flen + 1);
+		storage.mixImag[i] = makeHcAlignedArray<double>((size_t)flen + 1);
+		filter->mixbuf_freq_real[i] = storage.mixReal[i].get();
+		filter->mixbuf_freq_imag[i] = storage.mixImag[i].get();
 		memset(filter->mixbuf_freq_real[i], 0, size);
 		memset(filter->mixbuf_freq_imag[i], 0, size);
 	}
 
 	size = sizeof(double) * flen;
-	filter->history_time = (double*)fftw_malloc(size);
+	storage.historyTime = makeHcAlignedArray<double>(flen);
+	filter->history_time = storage.historyTime.get();
 	memset(filter->history_time, 0, size);
 
 	// Use FFTW_MEASURE for production for potentially higher performance, at the cost of a longer setup time.
@@ -810,24 +882,7 @@ void hcCloseSingle(HConvSingle* filter)
 {
 	fftw_destroy_plan(filter->ifft);
 	fftw_destroy_plan(filter->fft);
-	fftw_free(filter->history_time);
-	for (int i = 0; i < filter->num_mixbuf; i++) {
-		fftw_free(filter->mixbuf_freq_real[i]);
-		fftw_free(filter->mixbuf_freq_imag[i]);
-	}
-	fftw_free(filter->mixbuf_freq_real);
-	fftw_free(filter->mixbuf_freq_imag);
-	for (int i = 0; i < filter->num_filterbuf; i++) {
-		fftw_free(filter->filterbuf_freq_real[i]);
-		fftw_free(filter->filterbuf_freq_imag[i]);
-	}
-	fftw_free(filter->filterbuf_freq_real);
-	fftw_free(filter->filterbuf_freq_imag);
-	fftw_free(filter->in_freq_real);
-	fftw_free(filter->in_freq_imag);
-	fftw_free(filter->dft_freq);
-	fftw_free(filter->dft_time);
-	free(filter->steptask);
+	singleStorageMap().erase(filter);
 	memset(filter, 0, sizeof(HConvSingle));
 }
 
@@ -835,13 +890,11 @@ void hcCloseSingle(HConvSingle* filter)
 void hcBenchmarkDual(int sflen, int lflen)
 {
 	HConvDual filter;
-	double* x, * h, * y;
-	int xlen, hlen, ylen, size, n, pos;
+	int xlen, hlen, ylen, n, pos;
 	double t_start, t_diff, counter = 0.0, signal_time, cpu_load, lin, mul;
 
 	xlen = 2048 * 2048;
-	size = sizeof(double) * xlen;
-	x = (double*)fftw_malloc(size);
+	std::vector<double> x(xlen);
 	lin = pow(10.0, -100.0 / 20.0);
 	mul = pow(lin, 1.0 / (double)xlen);
 	x[0] = 1.0;
@@ -849,8 +902,7 @@ void hcBenchmarkDual(int sflen, int lflen)
 		x[n] = (double)(-mul * x[n - 1]);
 
 	hlen = 96000;
-	size = sizeof(double) * hlen;
-	h = (double*)fftw_malloc(size);
+	std::vector<double> h(hlen);
 	lin = pow(10.0, -60.0 / 20.0);
 	mul = pow(lin, 1.0 / (double)hlen);
 	h[0] = 1.0;
@@ -858,16 +910,15 @@ void hcBenchmarkDual(int sflen, int lflen)
 		h[n] = (double)(mul * h[n - 1]);
 
 	ylen = sflen;
-	size = sizeof(double) * ylen;
-	y = (double*)fftw_malloc(size);
+	std::vector<double> y(ylen);
 
-	hcInitDual(&filter, h, hlen, sflen, lflen);
+	hcInitDual(&filter, h.data(), hlen, sflen, lflen);
 
 	t_diff = 0.0;
 	t_start = hcTime();
 	pos = 0;
 	while (t_diff < 10.0) {
-		hcProcessDual(&filter, &(x[pos]), y);
+		hcProcessDual(&filter, &(x[pos]), y.data());
 		pos += sflen;
 		if (pos >= xlen) pos = 0;
 		counter += 1.0;
@@ -875,12 +926,9 @@ void hcBenchmarkDual(int sflen, int lflen)
 	}
 	signal_time = counter * sflen / 48000.0;
 	cpu_load = 100.0 * t_diff / signal_time;
-	printf("Estimated CPU load: %5.2f %%\n", cpu_load);
+	LogFStatic(L"Estimated CPU load: %5.2f %%", cpu_load);
 
 	hcCloseDual(&filter);
-	fftw_free(x);
-	fftw_free(h);
-	fftw_free(y);
 }
 
 
@@ -932,10 +980,13 @@ void hcInitDual(HConvDual* filter, double* h, int hlen, int sflen, int lflen)
 	int size;
 	double* h2 = NULL;
 	int h2len = 2 * lflen + 1;
+	auto& storage = dualStorageMap()[filter];
+	storage = HConvDualStorage();
 
 	if (hlen < h2len) {
 		size = sizeof(double) * h2len;
-		h2 = (double*)fftw_malloc(size);
+		storage.paddedFilter = makeHcAlignedArray<double>(h2len);
+		h2 = storage.paddedFilter.get();
 		memset(h2, 0, size);
 		memcpy(h2, h, sizeof(double) * hlen);
 		h = h2;
@@ -948,31 +999,28 @@ void hcInitDual(HConvDual* filter, double* h, int hlen, int sflen, int lflen)
 	filter->flen_short = sflen;
 
 	size = sizeof(double) * lflen;
-	filter->in_long = (double*)fftw_malloc(size);
+	storage.inLong = makeHcAlignedArray<double>(lflen);
+	filter->in_long = storage.inLong.get();
 	memset(filter->in_long, 0, size);
-	filter->out_long = (double*)fftw_malloc(size);
+	storage.outLong = makeHcAlignedArray<double>(lflen);
+	filter->out_long = storage.outLong.get();
 	memset(filter->out_long, 0, size);
 
-	filter->f_short = (HConvSingle*)malloc(sizeof(HConvSingle));
+	storage.shortFilter = std::make_unique<HConvSingle>();
+	filter->f_short = storage.shortFilter.get();
 	hcInitSingle(filter->f_short, h, 2 * lflen, sflen, 1);
 
-	filter->f_long = (HConvSingle*)malloc(sizeof(HConvSingle));
+	storage.longFilter = std::make_unique<HConvSingle>();
+	filter->f_long = storage.longFilter.get();
 	hcInitSingle(filter->f_long, &(h[2 * lflen]), hlen - 2 * lflen, lflen, lflen / sflen);
-
-	if (h2 != NULL) {
-		fftw_free(h2);
-	}
 }
 
 
 void hcCloseDual(HConvDual* filter)
 {
 	hcCloseSingle(filter->f_short);
-	free(filter->f_short);
 	hcCloseSingle(filter->f_long);
-	free(filter->f_long);
-	fftw_free(filter->out_long);
-	fftw_free(filter->in_long);
+	dualStorageMap().erase(filter);
 	memset(filter, 0, sizeof(HConvDual));
 }
 
@@ -983,13 +1031,11 @@ void hcCloseDual(HConvDual* filter)
 void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 {
 	HConvTripple filter;
-	double* x, * h, * y;
 	int xlen, hlen, ylen, size, n, pos;
 	double t_start, t_diff, counter = 0.0, signal_time, cpu_load, lin, mul;
 
 	xlen = 2048 * 2048;
-	size = sizeof(double) * xlen;
-	x = (double*)fftw_malloc(size);
+	std::vector<double> x(xlen);
 	lin = pow(10.0, -100.0 / 20.0);
 	mul = pow(lin, 1.0 / (double)xlen);
 	x[0] = 1.0;
@@ -997,8 +1043,7 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 		x[n] = (double)(-mul * x[n - 1]);
 
 	hlen = 96000;
-	size = sizeof(double) * hlen;
-	h = (double*)fftw_malloc(size);
+	std::vector<double> h(hlen);
 	lin = pow(10.0, -60.0 / 20.0);
 	mul = pow(lin, 1.0 / (double)hlen);
 	h[0] = 1.0;
@@ -1006,10 +1051,9 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 		h[n] = (double)(mul * h[n - 1]);
 
 	ylen = sflen;
-	size = sizeof(double) * ylen;
-	y = (double*)fftw_malloc(size);
+	std::vector<double> y(ylen);
 
-	hcInitTripple(&filter, h, hlen, sflen, mflen, lflen);
+	hcInitTripple(&filter, h.data(), hlen, sflen, mflen, lflen);
 
 	t_diff = 0.0;
 	t_start = hcTime();
@@ -1017,7 +1061,7 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 	pos = 0;
 	while (t_diff < 10.0) {
 		for (n = 0; n < size; n++) {
-			hcProcessTripple(&filter, &(x[pos]), y);
+			hcProcessTripple(&filter, &(x[pos]), y.data());
 			pos += sflen;
 			if (pos >= xlen) pos = 0;
 		}
@@ -1026,12 +1070,9 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 	}
 	signal_time = counter * (double)mflen / 48000.0;
 	cpu_load = 100.0 * t_diff / signal_time;
-	printf("Estimated CPU load: %5.2f %%\n", cpu_load);
+	LogFStatic(L"Estimated CPU load: %5.2f %%", cpu_load);
 
 	hcCloseTripple(&filter);
-	fftw_free(x);
-	fftw_free(h);
-	fftw_free(y);
 }
 
 
@@ -1078,10 +1119,13 @@ void hcInitTripple(HConvTripple* filter, double* h, int hlen, int sflen, int mfl
 	int size;
 	double* h2 = NULL;
 	int h2len = mflen + 2 * lflen + 1;
+	auto& storage = trippleStorageMap()[filter];
+	storage = HConvTrippleStorage();
 
 	if (hlen < h2len) {
 		size = sizeof(double) * h2len;
-		h2 = (double*)fftw_malloc(size);
+		storage.paddedFilter = makeHcAlignedArray<double>(h2len);
+		h2 = storage.paddedFilter.get();
 		memset(h2, 0, size);
 		memcpy(h2, h, sizeof(double) * hlen);
 		h = h2;
@@ -1094,30 +1138,27 @@ void hcInitTripple(HConvTripple* filter, double* h, int hlen, int sflen, int mfl
 	filter->flen_short = sflen;
 
 	size = sizeof(double) * mflen;
-	filter->in_medium = (double*)fftw_malloc(size);
+	storage.inMedium = makeHcAlignedArray<double>(mflen);
+	filter->in_medium = storage.inMedium.get();
 	memset(filter->in_medium, 0, size);
-	filter->out_medium = (double*)fftw_malloc(size);
+	storage.outMedium = makeHcAlignedArray<double>(mflen);
+	filter->out_medium = storage.outMedium.get();
 	memset(filter->out_medium, 0, size);
 
-	filter->f_short = (HConvSingle*)malloc(sizeof(HConvSingle));
+	storage.shortFilter = std::make_unique<HConvSingle>();
+	filter->f_short = storage.shortFilter.get();
 	hcInitSingle(filter->f_short, h, mflen, sflen, 1);
 
-	filter->f_medium = (HConvDual*)malloc(sizeof(HConvDual));
+	storage.mediumFilter = std::make_unique<HConvDual>();
+	filter->f_medium = storage.mediumFilter.get();
 	hcInitDual(filter->f_medium, &(h[mflen]), hlen - mflen, mflen, lflen);
-
-	if (h2 != NULL) {
-		fftw_free(h2);
-	}
 }
 
 
 void hcCloseTripple(HConvTripple* filter)
 {
 	hcCloseSingle(filter->f_short);
-	free(filter->f_short);
 	hcCloseDual(filter->f_medium);
-	free(filter->f_medium);
-	fftw_free(filter->out_medium);
-	fftw_free(filter->in_medium);
+	trippleStorageMap().erase(filter);
 	memset(filter, 0, sizeof(HConvTripple));
 }
