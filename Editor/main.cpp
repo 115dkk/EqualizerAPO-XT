@@ -39,6 +39,7 @@
 #include "SkinManager.h"
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/VelopackBootstrap.h"
 #include "Editor/helpers/GUIHelper.h"
 
 
@@ -205,11 +206,14 @@ int main(int argc, char* argv[])
 		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
-		bool firstRun = !qEnvironmentVariableIsEmpty("VELOPACK_FIRSTRUN");
+		bool firstRun = VelopackBootstrap::isFirstRun();
 		if (firstRun)
 			launchDeviceSelector(executableDirectory());
 		else
 			w.doChecks();
+
+		if (VelopackBootstrap::isVelopackInstall() && !firstRun)
+			VelopackBootstrap::triggerBackgroundUpdate(QStringLiteral("115dkk/EqualizerAPO-XT").toStdWString());
 
 		result = application.exec();
 
