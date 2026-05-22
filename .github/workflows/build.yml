@@ -30,6 +30,10 @@ jobs:
           windows-x64-avx10_1,
           windows-arm64
         ]
+        # On a pull request, exclude every variant except AVX2. The full
+        # matrix, cross-variant compare, and release packaging stay on
+        # the push to main.
+        exclude: ${{ fromJson(github.event_name == 'pull_request' && '[{"name":"windows-x64-sse2"},{"name":"windows-x64-avx"},{"name":"windows-x64-avx512"},{"name":"windows-x64-avx10_1"},{"name":"windows-arm64"}]' || '[]') }}
         include:
           - name: windows-x64-sse2
             os: windows-2025
@@ -428,6 +432,7 @@ jobs:
           "Common.vcxproj",
           "Tests\HybridConvTests\HybridConvTests.vcxproj",
           "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
+          "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj",
           "EqualizerAPO\EqualizerAPO.vcxproj",
           "Benchmark\Benchmark.vcxproj",
           "VoicemeeterClient\VoicemeeterClient.vcxproj"
@@ -505,7 +510,8 @@ jobs:
           "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
           "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
           "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
-          "/p:PlatformToolset=v143"  # Override to VS 2022 toolset for CI (project uses v145/VS 2026)
+          "/p:PlatformToolset=v143",  # Override to VS 2022 toolset for CI (project uses v145/VS 2026)
+          "/p:PreferredToolArchitecture=x64"  # 64-bit host cl.exe avoids the 32-bit PCH heap limit on ARM64
         )
 
         $BuildPlatform = "${{ matrix.platform }}"
@@ -554,7 +560,71 @@ jobs:
           }
         }
 
-      
+
+    - name: Run audio regression tests
+      # AVX-512 and AVX10.1 binaries cannot be executed on GitHub-hosted
+      # x64 runners; we still build them but skip the runtime test step.
+      # The ARM64 runner natively runs NEON code so it stays included.
+      if: matrix.platform != 'x64' || matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx' || matrix.simd_variant == 'avx2'
+      shell: pwsh
+      run: |
+        $variant = "${{ matrix.simd_variant }}"
+        $platform = "${{ matrix.platform }}"
+        $exe = "${{ github.workspace }}\Tests\AudioRegressionTests\$platform\Release\AudioRegressionTests.exe"
+        if (-not (Test-Path $exe)) {
+          Write-Error "AudioRegressionTests executable not found at $exe"
+          exit 1
+        }
+
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
+
+        $repoRefDir = "${{ github.workspace }}\Tests\AudioRegressionTests\references"
+        $hasRefs = Test-Path (Join-Path $repoRefDir "preamp_minus6.raw")
+        $primaryVariant = "avx2"
+        $isPrimary = ($variant -eq $primaryVariant)
+
+        Push-Location "${{ github.workspace }}\Tests\AudioRegressionTests"
+        try {
+          if ($hasRefs) {
+            Write-Host "Reference set present in tree; running verify mode for variant '$variant'"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "AudioRegressionTests verify failed for variant '$variant'"
+              exit $LASTEXITCODE
+            }
+          } elseif ($isPrimary) {
+            Write-Host "No reference set in tree; primary variant '$primaryVariant' will record fresh references"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "AudioRegressionTests reference generation failed"
+              exit $LASTEXITCODE
+            }
+          } else {
+            Write-Host "No reference set in tree; recording variant output only (non-primary variant)"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+          }
+        } finally {
+          Pop-Location
+        }
+
+    - name: Upload audio regression outputs
+      if: (matrix.platform != 'x64' || matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx' || matrix.simd_variant == 'avx2')
+      uses: actions/upload-artifact@v4
+      with:
+        name: audio-regression-output-${{ matrix.simd_variant }}
+        path: Tests/AudioRegressionTests/output
+        retention-days: 14
+        if-no-files-found: warn
+
+    - name: Upload audio regression references (primary variant)
+      if: matrix.simd_variant == 'avx2'
+      uses: actions/upload-artifact@v4
+      with:
+        name: audio-regression-references
+        path: Tests/AudioRegressionTests/references
+        retention-days: 30
+        if-no-files-found: warn
+
     # Build Qt projects with qmake (Editor, DeviceSelector, UpdateChecker)
     - name: Build Qt Applications
       shell: pwsh
@@ -849,6 +919,72 @@ jobs:
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/tls/
         if-no-files-found: error
         retention-days: 90
+
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install cppcheck
+      run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+    - name: Run cppcheck
+      run: |
+        cppcheck \
+          --enable=warning,style,performance,portability \
+          --inline-suppr \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          --suppress=unmatchedSuppression \
+          --suppress=*:libHybridConv-0.1.1/* \
+          --suppress=*:deps/* \
+          --error-exitcode=0 \
+          --quiet \
+          --std=c++17 \
+          -i libHybridConv-0.1.1 \
+          -i deps \
+          -i build-Editor-Desktop_Qt_6_7_2_MSVC2022_32bit \
+          -i build-Editor-Desktop_Qt_6_7_2_MSVC2022_64bit \
+          -i build-Editor-Desktop_Qt_6_7_2_MSVC2019_ARM64 \
+          --output-file=cppcheck-report.txt \
+          .
+        echo "--- cppcheck report ---"
+        cat cppcheck-report.txt || true
+        if [ -s cppcheck-report.txt ]; then
+          line_count=$(wc -l < cppcheck-report.txt)
+          echo "::warning::cppcheck reported ${line_count} lines of findings (currently non-blocking; treated as baseline)"
+        fi
+
+    - name: Upload cppcheck report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cppcheck-report
+        path: cppcheck-report.txt
+        retention-days: 30
+
+  cross-variant-compare:
+    needs: build
+    runs-on: ubuntu-latest
+    # The PR pipeline only builds AVX2, so there is nothing to compare
+    # across variants. The full SIMD diff stays on the push to main.
+    if: github.event_name != 'pull_request'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download per-variant audio outputs
+      uses: actions/download-artifact@v4
+      with:
+        pattern: audio-regression-output-*
+        path: artifacts
+
+    - name: Install numpy
+      run: python3 -m pip install --quiet numpy
+
+    - name: Compare SIMD variants
+      run: python3 Tests/AudioRegressionTests/scripts/cross_variant_compare.py
 
   create-release:
     needs: build

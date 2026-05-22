@@ -202,8 +202,12 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 		}
 		catch (const RegistryException& e)
 		{
-			LogF(L"Can't read config path because of: %s", e.getMessage().c_str());
-			return;
+			if (customPath.empty())
+			{
+				LogF(L"Can't read config path because of: %s", e.getMessage().c_str());
+				return;
+			}
+			TraceF(L"Registry ConfigPath unavailable (%s); proceeding with caller-supplied custom path", e.getMessage().c_str());
 		}
 
 		parser->ClearConst();
@@ -219,7 +223,7 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 		for (const auto& factory : factories)
 			factory->initialize(this);
 
-		shouldLoadConfig = configPath != L"";
+		shouldLoadConfig = !customPath.empty() || configPath != L"";
 	}
 
 	if (shouldLoadConfig)
