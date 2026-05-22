@@ -215,29 +215,51 @@ jobs:
 
         Write-Host "`nAll dependency paths configured successfully"
 
-    - name: Configure aqt
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    # Install Qt for Editor, DeviceSelector, and UpdateChecker.
+    # Keep aqt concurrency at 1 to avoid intermittent archive extraction races.
+    - name: Install Qt
       shell: pwsh
       run: |
-        Set-Content -Path "${{ github.workspace }}\aqt-settings.ini" -Encoding ASCII -Value @(
+        $ErrorActionPreference = "Stop"
+
+        $configPath = "${{ github.workspace }}\aqt-settings.ini"
+        Set-Content -Path $configPath -Encoding ASCII -Value @(
           "[aqt]",
           "concurrency: 1"
         )
 
-    # Install Qt for Editor, DeviceSelector, and UpdateChecker
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '6.10.1'
-        host: ${{ matrix.platform == 'ARM64' && 'windows_arm64' || 'windows' }}
-        target: 'desktop'
-        arch: ${{ matrix.platform == 'ARM64' && 'win64_msvc2022_arm64' || 'win64_msvc2022_64' }}
-        dir: '${{ github.workspace }}\Qt'
-        install-deps: 'true'
-        archives: 'qtbase qttools qtsvg qttranslations'
-        set-env: 'true'
-        setup-python: 'false'
-        aqtversion: '==3.2.*'
-        extra: '--config ${{ github.workspace }}\aqt-settings.ini --external 7z'
+        python -m pip install --upgrade "setuptools>=70.1.0" "py7zr==1.0.*" "aqtinstall==3.2.*"
+
+        $qtHost = if ("${{ matrix.platform }}" -eq "ARM64") { "windows_arm64" } else { "windows" }
+        $qtArch = if ("${{ matrix.platform }}" -eq "ARM64") { "win64_msvc2022_arm64" } else { "win64_msvc2022_64" }
+        $qtArchDir = if ("${{ matrix.platform }}" -eq "ARM64") { "msvc2022_arm64" } else { "msvc2022_64" }
+        $qtOutput = "${{ github.workspace }}\Qt"
+
+        python -m aqt -c $configPath install-qt $qtHost desktop 6.10.1 $qtArch `
+          --autodesktop `
+          --outputdir $qtOutput `
+          --archives qtbase qttools qtsvg qttranslations `
+          --external 7z
+
+        $qtRoot = Join-Path $qtOutput "6.10.1\$qtArchDir"
+        if (-not (Test-Path (Join-Path $qtRoot "bin\qmake.exe"))) {
+          Write-Error "qmake.exe not found under $qtRoot"
+          exit 1
+        }
+        if (-not (Test-Path (Join-Path $qtRoot "include\QtCore\QCoreApplication"))) {
+          Write-Error "QtCore headers not found under $qtRoot"
+          exit 1
+        }
+
+        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+        echo "Qt6_DIR=$qtRoot" >> $env:GITHUB_ENV
+        echo "$qtRoot\bin" >> $env:GITHUB_PATH
+        Write-Host "QT_ROOT=$qtRoot"
 
     # Build the solution (excluding Qt VS Tools projects which will be built separately)
     - name: Build solution
