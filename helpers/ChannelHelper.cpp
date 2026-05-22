@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -27,7 +27,11 @@
 #include "LogHelper.h"
 #include "ChannelHelper.h"
 
-using namespace std;
+using std::find;
+using std::to_wstring;
+using std::unordered_map;
+using std::vector;
+using std::wstring;
 
 unordered_map<wstring, int> ChannelHelper::channelNameToPosMap;
 unordered_map<int, wstring> ChannelHelper::channelPosToNameMap;

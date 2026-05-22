@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -27,7 +27,9 @@
 #include "CopyFilterGUIRow.h"
 #include "CopyFilterGUIForm.h"
 
-using namespace std;
+using std::list;
+using std::vector;
+using std::wstring;
 
 CopyFilterGUIForm::CopyFilterGUIForm(QWidget* parent)
 	: QWidget(parent)

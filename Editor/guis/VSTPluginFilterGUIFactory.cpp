@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -24,7 +24,9 @@
 #include "VSTPluginFilterGUI.h"
 #include "VSTPluginFilterGUIFactory.h"
 
-using namespace std;
+using std::list;
+using std::unordered_map;
+using std::wstring;
 
 QList<FilterTemplate> VSTPluginFilterGUIFactory::createFilterTemplates()
 {

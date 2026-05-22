@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -19,5 +19,3 @@
 
 #include "stdafx.h"
 #include "IFilter.h"
-
-using namespace std;

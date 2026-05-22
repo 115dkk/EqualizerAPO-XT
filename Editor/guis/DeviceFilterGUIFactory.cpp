@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -21,7 +21,8 @@
 #include "DeviceFilterGUI.h"
 #include "DeviceFilterGUIFactory.h"
 
-using namespace std;
+using std::list;
+using std::shared_ptr;
 
 DeviceFilterGUIFactory::DeviceFilterGUIFactory()
 {

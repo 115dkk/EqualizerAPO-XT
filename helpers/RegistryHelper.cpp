@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2012  Jonas Thedering
 
@@ -28,7 +28,12 @@
 #include "StringHelper.h"
 #include "RegistryHelper.h"
 
-using namespace std;
+using std::endl;
+using std::find;
+using std::string;
+using std::vector;
+using std::wofstream;
+using std::wstring;
 
 DWORD RegistryHelper::windowsVersion = 0;
 

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -26,7 +26,9 @@
 #include "DelayFilter.h"
 #include "DelayFilterFactory.h"
 
-using namespace std;
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {

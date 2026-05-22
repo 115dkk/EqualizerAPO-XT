@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -25,7 +25,8 @@
 #include "FilterEngine.h"
 #include "IncludeFilterFactory.h"
 
-using namespace std;
+using std::vector;
+using std::wstring;
 
 const int RECURSION_LIMIT = 100;
 

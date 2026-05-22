@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -22,7 +22,11 @@
 #include "LogHelper.h"
 #include "VSTPluginLibrary.h"
 
-using namespace std;
+using std::find;
+using std::make_shared;
+using std::shared_ptr;
+using std::weak_ptr;
+using std::wstring;
 
 std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> VSTPluginLibrary::instanceMap;
 std::wstring VSTPluginLibrary::defaultPluginPath;

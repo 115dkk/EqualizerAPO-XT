@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -24,7 +24,8 @@
 #include "PreampFilter.h"
 #include "PreampFilterFactory.h"
 
-using namespace std;
+using std::vector;
+using std::wstring;
 
 vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -22,7 +22,7 @@
 #include "AbstractLibrary.h"
 #include "helpers/LogHelper.h"
 
-using namespace std;
+using std::wstring;
 
 AbstractLibrary::~AbstractLibrary()
 {

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -26,7 +26,11 @@
 #include "helpers/ChannelHelper.h"
 #include "CopyFilter.h"
 
-using namespace std;
+using std::find;
+using std::pow;
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 CopyFilter::CopyFilter(const vector<Assignment>& assignments)
 {

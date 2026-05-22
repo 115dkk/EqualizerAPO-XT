@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -24,7 +24,10 @@
 #include "VSTPluginFilter.h"
 #include "VSTPluginFilterFactory.h"
 
-using namespace std;
+using std::shared_ptr;
+using std::unordered_map;
+using std::vector;
+using std::wstring;
 
 vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {

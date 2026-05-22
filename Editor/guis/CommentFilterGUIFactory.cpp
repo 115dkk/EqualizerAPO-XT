@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -21,7 +21,7 @@
 #include "CommentFilterGUI.h"
 #include "CommentFilterGUIFactory.h"
 
-using namespace std;
+using std::list;
 
 CommentFilterGUIFactory::CommentFilterGUIFactory()
 {

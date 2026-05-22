@@ -1,4 +1,4 @@
-/*
+﻿/*
 This file is part of EqualizerAPO, a system-wide equalizer.
 Copyright (C) 2014  Jonas Thedering
 
@@ -23,7 +23,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "../helpers/RegistryHelper.h"
 #include "../FilterEngine.h"
 
-using namespace std;
+using std::make_unique;
+using std::string;
+using std::wstring;
 using namespace mup;
 
 ReadRegStringFunction::ReadRegStringFunction(FilterEngine* engine)

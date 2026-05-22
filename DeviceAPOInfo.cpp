@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2012  Jonas Thedering
 
@@ -30,7 +30,11 @@
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
 
-using namespace std;
+using std::make_shared;
+using std::move;
+using std::shared_ptr;
+using std::vector;
+using std::wstring;
 
 #define protectedDGKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio"
 #define protectedDGValueName L"DisableProtectedAudioDG"

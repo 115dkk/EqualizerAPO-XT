@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -24,7 +24,9 @@
 #include "AnalysisPlotScene.h"
 #include "AnalysisPlotView.h"
 
-using namespace std;
+using std::abs;
+using std::floor;
+using std::min;
 
 AnalysisPlotView::AnalysisPlotView(QWidget* parent)
 	: FrequencyPlotView(parent)

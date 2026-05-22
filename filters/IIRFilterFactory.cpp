@@ -1,4 +1,4 @@
-/*
+﻿/*
 This file is part of EqualizerAPO, a system-wide equalizer.
 Copyright (C) 2014  Jonas Thedering
 
@@ -29,7 +29,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "IIRFilter.h"
 #include "IIRFilterFactory.h"
 
-using namespace std;
+using std::find;
+using std::regex;
+using std::vector;
+using std::wregex;
+using std::wsmatch;
+using std::wstringstream;
+using std::wstring;
 
 static wregex regexType(L"^\\s*ON\\s+([A-Za-z]+)");
 static wregex regexOrder(L"\\s*Order\\s+([0-9]+)");

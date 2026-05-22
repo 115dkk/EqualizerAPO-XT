@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -29,7 +29,9 @@
 #include "helpers/MemoryHelper.h"
 #include "ConvolutionFilter.h"
 
-using namespace std;
+using std::abs;
+using std::vector;
+using std::wstring;
 
 ConvolutionFilter::ConvolutionFilter(wstring filename)
 {

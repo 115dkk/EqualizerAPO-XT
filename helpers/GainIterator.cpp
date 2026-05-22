@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -22,7 +22,8 @@
 
 #include "GainIterator.h"
 
-using namespace std;
+using std::log;
+using std::vector;
 
 GainIterator::GainIterator(const vector<FilterNode>& nodes)
 {

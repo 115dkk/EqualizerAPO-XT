@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include <filesystem>
 #define WIN32_LEAN_AND_MEAN
@@ -7,7 +7,8 @@
 #include "helpers/StringHelper.h"
 #include "ConvolutionFilePath.h"
 
-using namespace std;
+using std::wstring;
+namespace filesystem = std::filesystem;
 
 namespace
 {

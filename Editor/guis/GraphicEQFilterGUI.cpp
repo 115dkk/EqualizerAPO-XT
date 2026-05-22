@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -33,7 +33,9 @@
 static const double DEFAULT_TABLE_WIDTH = 119;
 static const double DEFAULT_VIEW_HEIGHT = 150;
 
-using namespace std;
+using std::replace;
+using std::sort;
+using std::vector;
 
 QRegularExpression GraphicEQFilterGUI::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 

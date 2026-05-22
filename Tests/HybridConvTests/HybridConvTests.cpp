@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO-XT.
 
 	Simple regression tests for the libHybridConv bridge. These tests are
@@ -22,7 +22,9 @@
 #include "helpers/LogHelper.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 
-using namespace std;
+using std::string;
+using std::vector;
+using std::wstring;
 
 namespace
 {

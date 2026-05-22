@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -25,7 +25,8 @@
 #include "ConvolutionFilter.h"
 #include "ConvolutionFilterFactory.h"
 
-using namespace std;
+using std::vector;
+using std::wstring;
 
 vector<IFilter*> ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {

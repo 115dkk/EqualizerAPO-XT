@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2019  Jonas Thedering
 
@@ -21,7 +21,7 @@
 #include <memory>
 #include "LogicalOperators.h"
 
-using namespace std;
+using std::make_unique;
 using namespace mup;
 
 NotOperator::NotOperator()

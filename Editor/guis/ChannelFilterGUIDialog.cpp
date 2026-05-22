@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -29,7 +29,8 @@
 #define PROPERTY_POSITION "CHANNEL_POSITION"
 #define PROPERTY_NAME "CHANNEL_NAME"
 
-using namespace std;
+using std::vector;
+using std::wstring;
 
 ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, QStringList selectedChannels, int selectedChannelMask, const vector<wstring>& channelNames)
 	: QDialog(parent),

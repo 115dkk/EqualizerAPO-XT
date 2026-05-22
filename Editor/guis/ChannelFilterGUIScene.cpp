@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -21,7 +21,8 @@
 #include "ChannelFilterGUIChannelItem.h"
 #include "ChannelFilterGUIScene.h"
 
-using namespace std;
+using std::vector;
+using std::wstring;
 
 ChannelFilterGUIScene::ChannelFilterGUIScene()
 {

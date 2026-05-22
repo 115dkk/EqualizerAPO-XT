@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2012  Jonas Thedering
 
@@ -25,7 +25,8 @@
 #include "RegistryHelper.h"
 #include "LogHelper.h"
 
-using namespace std;
+using std::log;
+using std::wstring;
 
 bool LogHelper::initialized = false;
 wstring LogHelper::logPath;

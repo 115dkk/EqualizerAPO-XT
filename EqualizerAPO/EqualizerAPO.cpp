@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2012  Jonas Thedering
 
@@ -28,7 +28,9 @@
 #include "../DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
 
-using namespace std;
+using std::abs;
+using std::string;
+using std::wstring;
 
 long EqualizerAPO::instCount = 0;
 const CRegAPOProperties<1> EqualizerAPO::regPostMixProperties(

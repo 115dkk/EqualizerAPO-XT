@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -26,7 +26,14 @@
 #include "GraphicEQFilter.h"
 #include "GraphicEQFilterFactory.h"
 
-using namespace std;
+using std::find;
+using std::regex;
+using std::sort;
+using std::vector;
+using std::wregex;
+using std::wsmatch;
+using std::wsregex_iterator;
+using std::wstring;
 
 static wregex regexNumber(L"[-+0-9.eE]+");
 

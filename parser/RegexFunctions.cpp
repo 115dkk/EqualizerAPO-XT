@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -23,7 +23,13 @@
 
 #include "RegexFunctions.h"
 
-using namespace std;
+using std::make_unique;
+using std::regex;
+using std::string;
+using std::vector;
+using std::wregex;
+using std::wsmatch;
+using std::wstring;
 using namespace mup;
 
 RegexSearchFunction::RegexSearchFunction()

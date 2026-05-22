@@ -26,7 +26,11 @@
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 
-using namespace std;
+using std::find;
+using std::max;
+using std::string;
+using std::vector;
+using std::wstring;
 
 #define equalizerApoVSTID VST_FOURCC('E', 'A', 'P', 'O');
 

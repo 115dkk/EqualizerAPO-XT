@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -20,7 +20,9 @@
 #include <cmath>
 #include "AnalysisPlotScene.h"
 
-using namespace std;
+using std::log10;
+using std::sqrt;
+using std::vector;
 
 AnalysisPlotScene::AnalysisPlotScene(QObject* parent)
 	: FrequencyPlotScene(parent)

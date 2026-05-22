@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of Equalizer APO, a system-wide equalizer.
 	Copyright (C) 2022  Jonas Thedering
 
@@ -36,7 +36,11 @@
 #endif
 #define IDM_RESTART 200
 
-using namespace std;
+using std::find;
+using std::min;
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 static long __stdcall callback(void* lpUser, long nCommand, void* lpData, long nnn);
 

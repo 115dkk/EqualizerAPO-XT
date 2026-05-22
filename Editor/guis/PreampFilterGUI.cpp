@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -23,7 +23,7 @@
 #include "PreampFilterGUI.h"
 #include "ui_PreampFilterGUI.h"
 
-using namespace std;
+
 
 PreampFilterGUI::PreampFilterGUI(double dbGain)
 	: ui(new Ui::PreampFilterGUI)

@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2017  Jonas Thedering
 
@@ -29,7 +29,15 @@
 #include "helpers/StringHelper.h"
 #include "VoicemeeterAPOInfo.h"
 
-using namespace std;
+using std::exception;
+using std::find;
+using std::list;
+using std::make_shared;
+using std::shared_ptr;
+using std::sort;
+using std::vector;
+using std::wstringstream;
+using std::wstring;
 
 #define voicemeeterKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
 #define voicemeeterWowKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -22,7 +22,12 @@
 #include "FilterEngine.h"
 #include "AnalysisThread.h"
 
-using namespace std;
+using std::abs;
+using std::log10;
+using std::mutex;
+using std::numeric_limits;
+using std::shared_ptr;
+using std::sqrt;
 
 AnalysisThread::AnalysisThread()
 {

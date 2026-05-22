@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2024  Jonas Dahlinger
 
@@ -30,7 +30,7 @@
 #include "VelopackUpdateInfo.h"
 #include "version.h"
 
-using namespace std::chrono_literals;
+
 
 QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, bool autoMode, bool* ok, QString* errorMessage);
 void showFailureMessage(QString message, QString title);

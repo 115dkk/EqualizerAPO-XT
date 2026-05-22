@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -29,7 +29,9 @@
 #include "helpers/MemoryHelper.h"
 #include "GraphicEQFilter.h"
 
-using namespace std;
+using std::exp;
+using std::log;
+using std::pow;
 
 GraphicEQFilter::GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned filterLength)
 	: ConvolutionFilter(L""), nodes(nodes), filterLength(filterLength)

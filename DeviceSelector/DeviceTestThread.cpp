@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2024  Jonas Thedering
 
@@ -23,7 +23,9 @@
 #include <ObjBase.h>
 #include "DeviceTestThread.h"
 
-using namespace std::chrono_literals;
+using std::find;
+using std::log;
+using std::thread;
 
 DeviceTestThread::DeviceTestThread(QObject* parent, const QVector<std::shared_ptr<DeviceAPOInfo>>& devices)
 	: QThread(parent)

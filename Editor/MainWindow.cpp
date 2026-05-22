@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2015  Jonas Thedering
 
@@ -46,7 +46,14 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
-using namespace std;
+using std::find;
+using std::list;
+using std::set;
+using std::shared_ptr;
+using std::string;
+using std::stringstream;
+using std::vector;
+using std::wstring;
 
 MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	: QMainWindow(parent), ui(new Ui::MainWindow), configDir(configDir)

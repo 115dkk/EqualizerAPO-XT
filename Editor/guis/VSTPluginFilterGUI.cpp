@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -33,8 +33,13 @@
 #include "VSTPluginFilterGUI.h"
 #include "ui_VSTPluginFilterGUI.h"
 
-using namespace std;
-using namespace std::placeholders;
+using std::bind;
+using std::replace;
+using std::string;
+using std::unordered_map;
+using std::wstring;
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap)
 	: ui(new Ui::VSTPluginFilterGUI), library(library), chunkData(chunkData), paramMap(paramMap)

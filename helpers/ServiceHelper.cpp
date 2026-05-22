@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of EqualizerAPO, a system-wide equalizer.
 	Copyright (C) 2024  Jonas Thedering
 
@@ -25,7 +25,10 @@
 #include "StringHelper.h"
 #include "ServiceHelper.h"
 
-using namespace std;
+using std::make_shared;
+using std::shared_ptr;
+using std::vector;
+using std::wstring;
 
 void ServiceHelper::restartService(const wstring& serviceName)
 {

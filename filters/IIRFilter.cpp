@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -21,7 +21,9 @@
 #include "helpers/MemoryHelper.h"
 #include "IIRFilter.h"
 
-using namespace std;
+using std::abs;
+using std::vector;
+using std::wstring;
 
 #define IS_DENORMAL(d) (abs(d) < DBL_MIN)
 

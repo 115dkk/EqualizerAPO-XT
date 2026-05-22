@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2012  Jonas Thedering
 
@@ -38,7 +38,15 @@
 #include "../helpers/PrecisionTimer.h"
 #include "../helpers/MemoryHelper.h"
 
-using namespace std;
+using std::cerr;
+using std::cout;
+using std::log10;
+using std::max;
+using std::min;
+using std::string;
+using std::stringstream;
+using std::vector;
+using std::wstring;
 
 int main(int argc, char** argv)
 {

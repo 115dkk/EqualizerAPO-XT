@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -58,7 +58,20 @@
 #include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
 
-using namespace std;
+using std::exception;
+using std::find;
+using std::lock_guard;
+using std::make_unique;
+using std::max;
+using std::move;
+using std::mutex;
+using std::string;
+using std::stringstream;
+using std::swap;
+using std::thread;
+using std::unique_lock;
+using std::vector;
+using std::wstring;
 using namespace mup;
 
 void FilterDeleter::operator()(IFilter* filter) const

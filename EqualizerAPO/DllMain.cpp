@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2012  Jonas Thedering
 
@@ -27,7 +27,8 @@
 #include "../helpers/RegistryHelper.h"
 #include "../helpers/LogHelper.h"
 
-using namespace std;
+using std::string;
+using std::wstring;
 
 static HINSTANCE hModule;
 

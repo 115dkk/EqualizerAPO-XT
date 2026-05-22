@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2013  Jonas Thedering
 
@@ -24,7 +24,10 @@
 #include <windows.h>
 #include "StringHelper.h"
 
-using namespace std;
+using std::find;
+using std::string;
+using std::vector;
+using std::wstring;
 
 wstring StringHelper::replaceCharacters(const wstring& s, const wstring& chars, const wstring& replacement)
 {

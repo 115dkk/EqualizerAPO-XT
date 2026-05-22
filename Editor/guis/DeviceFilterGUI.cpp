@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -24,7 +24,8 @@
 #include <VoicemeeterAPOInfo.h>
 #include "ui_DeviceFilterGUI.h"
 
-using namespace std;
+using std::shared_ptr;
+using std::string;
 
 DeviceFilterGUI::DeviceFilterGUI(DeviceFilterGUIFactory* factory)
 	: ui(new Ui::DeviceFilterGUI)

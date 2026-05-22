@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -24,7 +24,12 @@
 #include "Editor/widgets/FrequencyPlotView.h"
 #include "GraphicEQFilterGUIScene.h"
 
-using namespace std;
+using std::abs;
+using std::max;
+using std::min;
+using std::move;
+using std::set;
+using std::vector;
 
 GraphicEQFilterGUIScene::GraphicEQFilterGUIScene(QObject* parent)
 	: FrequencyPlotScene(parent)

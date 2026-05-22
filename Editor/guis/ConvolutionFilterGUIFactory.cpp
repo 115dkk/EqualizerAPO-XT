@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -22,7 +22,8 @@
 #include "ConvolutionFilterGUI.h"
 #include "ConvolutionFilterGUIFactory.h"
 
-using namespace std;
+using std::list;
+using std::shared_ptr;
 
 ConvolutionFilterGUIFactory::ConvolutionFilterGUIFactory()
 {

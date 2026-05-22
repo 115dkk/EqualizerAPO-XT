@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2014  Jonas Thedering
 
@@ -57,7 +57,15 @@
 #include "helpers/RegistryHelper.h"
 #include "FilterTable.h"
 
-using namespace std;
+using std::list;
+using std::max;
+using std::min;
+using std::move;
+using std::replace;
+using std::shared_ptr;
+using std::string;
+using std::vector;
+using std::wstring;
 
 FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 	: QWidget(parent), mainWindow(mainWindow)

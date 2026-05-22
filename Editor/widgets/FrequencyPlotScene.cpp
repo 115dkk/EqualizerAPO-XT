@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -21,7 +21,9 @@
 #include "FrequencyPlotView.h"
 #include "FrequencyPlotScene.h"
 
-using namespace std;
+using std::log;
+using std::pow;
+using std::vector;
 
 static double maxX = 1000;
 static double maxY = 500;

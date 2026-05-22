@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of EqualizerAPO, a system-wide equalizer.
     Copyright (C) 2015  Jonas Thedering
 
@@ -28,7 +28,9 @@
 #include "CopyFilterGUIChannelItem.h"
 #include "CopyFilterGUIScene.h"
 
-using namespace std;
+using std::list;
+using std::vector;
+using std::wstring;
 
 void CopyFilterGUIScene::load(const vector<wstring>& channelNames, vector<Assignment> assignments)
 {

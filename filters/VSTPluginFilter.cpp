@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -22,7 +22,7 @@
 #include "helpers/LogHelper.h"
 #include "VSTPluginFilter.h"
 
-using namespace std;
+using std::max;
 
 VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, std::unordered_map<std::wstring, float> paramMap)
 	: library(library), chunkData(chunkData), paramMap(paramMap)
