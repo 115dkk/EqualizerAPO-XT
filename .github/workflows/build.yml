@@ -996,7 +996,7 @@ jobs:
         retention-days: 90
 
   create-release:
-    needs: create-installer
+    needs: build
     runs-on: windows-2025
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
@@ -1007,10 +1007,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
 
-    - name: Download installer artifacts
+    - name: Download build artifacts
       uses: actions/download-artifact@v7
       with:
-        pattern: EqualizerAPO_Setup-*
+        pattern: EqualizerAPO-*
         path: ${{ github.workspace }}\release-input
 
     - name: Resolve release version
@@ -1073,35 +1073,73 @@ jobs:
         $tag = "${{ steps.version.outputs.tag }}"
         $targetCommit = "${{ github.sha }}"
         $inputRoot = "${{ github.workspace }}\release-input"
-        $installerArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO_Setup-*")
+        $licensePath = "${{ github.workspace }}\License.txt"
+        $iconPath = "${{ github.workspace }}\Editor\icons\applications-graphics-rotated.ico"
+        $configSource = "${{ github.workspace }}\Setup\config"
+        $extrasSource = @(
+          "${{ github.workspace }}\Setup\Configuration tutorial (online).url",
+          "${{ github.workspace }}\Setup\Configuration reference (online).url"
+        )
+        $qtPluginFolders = @('iconengines', 'imageformats', 'platforms', 'styles', 'tls')
+        $buildArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO-*")
 
-        if ($installerArtifacts.Count -eq 0) {
-          Write-Error "No installer artifacts were found in $inputRoot"
+        if ($buildArtifacts.Count -eq 0) {
+          Write-Error "No build artifacts were found in $inputRoot"
           exit 1
         }
 
-        foreach ($artifact in $installerArtifacts) {
-          $variant = $artifact.Name.Substring("EqualizerAPO_Setup-".Length)
+        foreach ($artifact in $buildArtifacts) {
+          $variant = $artifact.Name.Substring("EqualizerAPO-".Length)
           $channel = ($variant -replace "_", "-").ToLowerInvariant()
           $packId = "EqualizerAPO-XT-$channel"
           $packTitle = "EqualizerAPO-XT $variant"
           $outputDir = "${{ github.workspace }}\velopack-output\$channel"
           $packDir = "${{ github.workspace }}\velopack-input\$channel"
-          $mainExe = "EqualizerAPO-XT-$channel-Installer.exe"
-          $framework = if ($variant -eq "arm64") { "vcredist143-arm64" } else { "vcredist143-x64" }
-          $installer = Get-ChildItem -Path $artifact.FullName -Filter "*.exe" | Select-Object -First 1
+          $mainExe = "Editor.exe"
+          $framework = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist143-arm64" } else { "vcredist143-x64" }
 
-          if (-not $installer) {
-            Write-Error "No installer exe found in $($artifact.FullName)"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          if (Test-Path $packDir) {
+            Remove-Item -Path $packDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
+
+          Write-Host "`n=== Preparing Velopack pack dir for $variant ==="
+          # Copy everything from the build artifact (binaries + Qt deps at top level)
+          Copy-Item -Path (Join-Path $artifact.FullName "*") -Destination $packDir -Recurse -Force
+
+          # Editor.exe calls addLibraryPath("qt"), so Qt plugin folders must live under qt\
+          $qtTarget = Join-Path $packDir "qt"
+          New-Item -ItemType Directory -Force -Path $qtTarget | Out-Null
+          foreach ($folder in $qtPluginFolders) {
+            $source = Join-Path $packDir $folder
+            if (Test-Path $source) {
+              $dest = Join-Path $qtTarget $folder
+              if (Test-Path $dest) {
+                Remove-Item -Path $dest -Recurse -Force
+              }
+              Move-Item -Path $source -Destination $dest -Force
+              Write-Host "Relocated $folder -> qt\$folder"
+            }
+          }
+
+          # Bundle the sample configs and shortcuts
+          if (Test-Path $configSource) {
+            $configTarget = Join-Path $packDir "config"
+            New-Item -ItemType Directory -Force -Path $configTarget | Out-Null
+            Copy-Item -Path (Join-Path $configSource "*") -Destination $configTarget -Recurse -Force
+          }
+          foreach ($extra in $extrasSource) {
+            if (Test-Path $extra) {
+              Copy-Item -Path $extra -Destination $packDir -Force
+            }
+          }
+
+          if (-not (Test-Path (Join-Path $packDir $mainExe))) {
+            Write-Error "$mainExe not found in $packDir"
             exit 1
           }
 
-          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
-          Copy-Item -Path $installer.FullName -Destination (Join-Path $packDir $mainExe) -Force
-          Set-Content -Path (Join-Path $packDir "README.txt") -Value "Run $mainExe to launch the full EqualizerAPO-XT installer." -Encoding UTF8
-
-          Write-Host "`n=== Creating Velopack package for $variant ==="
           vpk download github `
             --repoUrl $repoUrl `
             --token $env:GITHUB_TOKEN `
@@ -1112,18 +1150,26 @@ jobs:
             $global:LASTEXITCODE = 0
           }
 
-          vpk pack `
-            --packId $packId `
-            --packVersion "${{ steps.version.outputs.pack_version }}" `
-            --packDir $packDir `
-            --mainExe $mainExe `
-            --packTitle $packTitle `
-            --packAuthors "EqualizerAPO-XT contributors" `
-            --outputDir $outputDir `
-            --channel $channel `
-            --framework $framework `
-            --noPortable `
-            --skipVeloAppCheck
+          $packArgs = @(
+            'pack',
+            '--packId', $packId,
+            '--packVersion', '${{ steps.version.outputs.pack_version }}',
+            '--packDir', $packDir,
+            '--mainExe', $mainExe,
+            '--packTitle', $packTitle,
+            '--packAuthors', 'EqualizerAPO-XT contributors',
+            '--outputDir', $outputDir,
+            '--channel', $channel,
+            '--framework', $framework,
+            '--noPortable',
+            '--skipVeloAppCheck'
+          )
+          if (Test-Path $iconPath) {
+            $packArgs += @('--icon', $iconPath)
+          }
+
+          Write-Host "vpk $($packArgs -join ' ')"
+          vpk @packArgs
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
