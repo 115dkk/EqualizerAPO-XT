@@ -34,35 +34,35 @@ jobs:
             platform: x64
             simd_variant: avx2
             arch_flag: AdvancedVectorExtensions2
-            fftw_artifact: fftw-windows-release-x64-avx2
-            muparserx_artifact: muparserx-msvc-release-x64-avx2
-            libsndfile_artifact: libsndfile-x64-avx2
+            fftw_asset: fftw-windows-release-x64-avx2.zip
+            muparserx_asset: muparserx-msvc-release-x64-avx2.zip
+            libsndfile_asset: libsndfile-x64-avx2.zip
             msvcdevplatform: x64
           - name: windows-x64-avx512
             os: windows-2025
             platform: x64
             simd_variant: avx512
             arch_flag: AdvancedVectorExtensions512
-            fftw_artifact: fftw-windows-release-x64-avx512
-            muparserx_artifact: muparserx-msvc-release-x64-avx512
-            libsndfile_artifact: libsndfile-x64-avx512
+            fftw_asset: fftw-windows-release-x64-avx512.zip
+            muparserx_asset: muparserx-msvc-release-x64-avx512.zip
+            libsndfile_asset: libsndfile-x64-avx512.zip
             msvcdevplatform: x64
           - name: windows-x64-avx10_1
             os: windows-2025
             platform: x64
             simd_variant: avx10_1
             arch_flag: AdvancedVectorExtensions101
-            fftw_artifact: fftw-windows-release-x64-avx10
-            muparserx_artifact: muparserx-msvc-release-x64-avx10
-            libsndfile_artifact: libsndfile-x64-avx10
+            fftw_asset: fftw-windows-release-x64-avx10.zip
+            muparserx_asset: muparserx-msvc-release-x64-avx10.zip
+            libsndfile_asset: libsndfile-x64-avx10.zip
             msvcdevplatform: x64
           - name: windows-arm64
             os: windows-11-arm
             platform: ARM64
             simd_variant: neon
-            fftw_artifact: fftw-windows-release-arm64
-            muparserx_artifact: muparserx-msvc-release-ARM64
-            libsndfile_artifact: libsndfile-arm64
+            fftw_asset: fftw-windows-release-arm64.zip
+            muparserx_asset: muparserx-msvc-release-ARM64.zip
+            libsndfile_asset: libsndfile-arm64.zip
             msvcdevplatform: x86_arm64 
 
     runs-on: ${{ matrix.os }}
@@ -78,47 +78,45 @@ jobs:
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v2
 
-    # Download FFTW from amd-fftw repository artifacts
-    - name: Download FFTW artifacts
-      uses: dawidd6/action-download-artifact@v3
-      with:
-        github_token: ${{ secrets.GH_PAT || github.token }}
-        workflow: c-cpp.yml
-        repo: TheFireKahuna/amd-fftw
-        name: ${{ matrix.fftw_artifact }}
-        path: ${{ github.workspace }}\deps\fftw
-        check_artifacts: true
-        search_artifacts: true
-        workflow_conclusion: success
-        allow_forks: true
+    - name: Download dependency release assets
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
 
-    # Download muParserX from repository artifacts
-    - name: Download muParserX artifacts
-      uses: dawidd6/action-download-artifact@v3
-      with:
-        github_token: ${{ secrets.GH_PAT || github.token }}
-        workflow: c-cpp.yml
-        repo: TheFireKahuna/muparserx
-        name: ${{ matrix.muparserx_artifact }}
-        path: ${{ github.workspace }}\deps\muparserx
-        check_artifacts: true
-        search_artifacts: true
-        workflow_conclusion: success
-        allow_forks: true
+        $downloadRoot = "${{ github.workspace }}\deps\_downloads"
+        New-Item -ItemType Directory -Force -Path $downloadRoot | Out-Null
 
-    # Download muParserX from repository artifacts
-    - name: Download libsndfile artifacts
-      uses: dawidd6/action-download-artifact@v3
-      with:
-        github_token: ${{ secrets.GH_PAT || github.token }}
-        workflow: action.yml
-        repo: TheFireKahuna/libsndfile
-        name: ${{ matrix.libsndfile_artifact }}
-        path: ${{ github.workspace }}\deps\libsndfile
-        check_artifacts: true
-        search_artifacts: true
-        workflow_conclusion: success
-        allow_forks: true
+        $downloads = @(
+          @{
+            Repo = "TheFireKahuna/amd-fftw"
+            Asset = "${{ matrix.fftw_asset }}"
+            Destination = "${{ github.workspace }}\deps\fftw"
+          },
+          @{
+            Repo = "TheFireKahuna/muparserx"
+            Asset = "${{ matrix.muparserx_asset }}"
+            Destination = "${{ github.workspace }}\deps\muparserx"
+          },
+          @{
+            Repo = "TheFireKahuna/libsndfile"
+            Asset = "${{ matrix.libsndfile_asset }}"
+            Destination = "${{ github.workspace }}\deps\libsndfile"
+          }
+        )
+
+        foreach ($download in $downloads) {
+          $url = "https://github.com/$($download.Repo)/releases/latest/download/$($download.Asset)"
+          $zipPath = Join-Path $downloadRoot $download.Asset
+
+          Write-Host "Downloading $($download.Repo) release asset $($download.Asset)"
+          curl.exe --fail --location --retry 5 --retry-delay 5 --output $zipPath $url
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download $url"
+          }
+
+          New-Item -ItemType Directory -Force -Path $download.Destination | Out-Null
+          Expand-Archive -Path $zipPath -DestinationPath $download.Destination -Force
+        }
 
     # Clone tclap repository (header-only library)
     - name: Download TCLAP

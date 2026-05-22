@@ -5,7 +5,7 @@ runtime-dispatching one universal x64 binary.
 
 ## CI Variants
 
-| Matrix name | Platform | SIMD variant | MSBuild instruction set | Qt flag | Dependency artifacts | Installer artifact |
+| Matrix name | Platform | SIMD variant | MSBuild instruction set | Qt flag | Dependency release assets | Installer artifact |
 | --- | --- | --- | --- | --- | --- | --- |
 | `windows-x64-avx2` | `x64` | `avx2` | `AdvancedVectorExtensions2` | `/arch:AVX2` | `*-x64-avx2` | `EqualizerAPO_Setup-x64-avx2` |
 | `windows-x64-avx512` | `x64` | `avx512` | `AdvancedVectorExtensions512` | `/arch:AVX512` | `*-x64-avx512` | `EqualizerAPO_Setup-x64-avx512` |
