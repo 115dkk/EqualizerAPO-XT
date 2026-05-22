@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include <ObjBase.h>
 #include <aclapi.h>
 #include <authz.h>
@@ -53,22 +54,20 @@ wstring RegistryHelper::readValue(wstring key, wstring valuename)
 		throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
 	}
 
-	wchar_t* buf = new wchar_t[bufSize / sizeof(wchar_t) + 1];
-	status = RegQueryValueExW(keyHandle, valuename.c_str(), NULL, NULL, (LPBYTE)buf, &bufSize);
+	vector<wchar_t> buf(bufSize / sizeof(wchar_t) + 1);
+	status = RegQueryValueExW(keyHandle, valuename.c_str(), NULL, NULL, reinterpret_cast<LPBYTE>(buf.data()), &bufSize);
 
 	RegCloseKey(keyHandle);
 
 	if (status != ERROR_SUCCESS)
 	{
-		delete[] buf;
 		throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 	}
 
 	// Remove zero-termination
 	if (buf[bufSize / sizeof(wchar_t) - 1] == L'\0')
 		bufSize -= sizeof(wchar_t);
-	result = wstring((wchar_t*)buf, (wstring::size_type)bufSize / sizeof(wchar_t));
-	delete[] buf;
+	result = wstring(buf.data(), (wstring::size_type)bufSize / sizeof(wchar_t));
 
 	return result;
 }
@@ -95,19 +94,14 @@ unsigned long RegistryHelper::readDWORDValue(wstring key, wstring valuename)
 		throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
 	}
 
-	BYTE* buf = new BYTE[bufSize];
-	status = RegQueryValueExW(keyHandle, valuename.c_str(), NULL, NULL, buf, &bufSize);
+	status = RegQueryValueExW(keyHandle, valuename.c_str(), NULL, NULL, reinterpret_cast<LPBYTE>(&result), &bufSize);
 
 	RegCloseKey(keyHandle);
 
 	if (status != ERROR_SUCCESS)
 	{
-		delete[] buf;
 		throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 	}
-
-	result = ((unsigned long*)buf)[0];
-	delete[] buf;
 
 	return result;
 }
@@ -134,14 +128,13 @@ vector<wstring> RegistryHelper::readMultiValue(wstring key, wstring valuename)
 		throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
 	}
 
-	wchar_t* buf = new wchar_t[bufSize / sizeof(wchar_t) + 1];
-	status = RegQueryValueExW(keyHandle, valuename.c_str(), NULL, NULL, (LPBYTE)buf, &bufSize);
+	vector<wchar_t> buf(bufSize / sizeof(wchar_t) + 1);
+	status = RegQueryValueExW(keyHandle, valuename.c_str(), NULL, NULL, reinterpret_cast<LPBYTE>(buf.data()), &bufSize);
 
 	RegCloseKey(keyHandle);
 
 	if (status != ERROR_SUCCESS)
 	{
-		delete[] buf;
 		throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 	}
 
@@ -155,15 +148,13 @@ vector<wstring> RegistryHelper::readMultiValue(wstring key, wstring valuename)
 	{
 		if (buf[i] == L'\0')
 		{
-			result.push_back(wstring(buf + start, i - start));
+			result.push_back(wstring(buf.data() + start, i - start));
 			start = i + 1;
 		}
 	}
 
 	if (length > start)
-		result.push_back(wstring(buf + start, length - start));
-
-	delete[] buf;
+		result.push_back(wstring(buf.data() + start, length - start));
 
 	return result;
 }
@@ -229,14 +220,11 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, wstring val
 {
 	HKEY keyHandle = openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY);
 
-	wchar_t* data = new wchar_t[value.size() + 2];
-	value._Copy_s(data, (value.size() + 2) * sizeof(wchar_t), value.size());
-	data[value.size()] = L'\0';
-	data[value.size() + 1] = L'\0';
+	wstring data = value;
+	data.push_back(L'\0');
+	data.push_back(L'\0');
 
-	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, (const BYTE*)data, (DWORD)((value.size() + 2) * sizeof(wchar_t)));
-
-	delete[] data;
+	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), (DWORD)(data.size() * sizeof(wchar_t)));
 
 	RegCloseKey(keyHandle);
 
@@ -252,19 +240,16 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, vector<wstr
 	for (wstring value : values)
 		size += value.size() + 1;
 
-	wchar_t* data = new wchar_t[size];
-	size_t offset = 0;
+	wstring data;
+	data.reserve(size);
 	for (wstring value : values)
 	{
-		value._Copy_s(data + offset, size * sizeof(wchar_t), value.size());
-		offset += value.size();
-		data[offset++] = L'\0';
+		data.append(value);
+		data.push_back(L'\0');
 	}
-	data[offset] = L'\0';
+	data.push_back(L'\0');
 
-	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, (const BYTE*)data, (DWORD)(size * sizeof(wchar_t)));
-
-	delete[] data;
+	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_MULTI_SZ, reinterpret_cast<const BYTE*>(data.data()), (DWORD)(data.size() * sizeof(wchar_t)));
 
 	RegCloseKey(keyHandle);
 
@@ -570,15 +555,14 @@ bool RegistryHelper::isWindowsVersionAtLeast(unsigned major, unsigned minor)
 		DWORD size = GetFileVersionInfoSizeW(L"kernel32.dll", &handle);
 		if (size != 0)
 		{
-			void* data = malloc(size);
-			if (GetFileVersionInfo(L"kernel32.dll", handle, size, data))
+			vector<char> data(size);
+			if (GetFileVersionInfo(L"kernel32.dll", handle, size, data.data()))
 			{
 				VS_FIXEDFILEINFO* info;
 				UINT len;
-				if (VerQueryValueW(data, L"\\", (LPVOID*)&info, &len))
+				if (VerQueryValueW(data.data(), L"\\", (LPVOID*)&info, &len))
 					windowsVersion = info->dwProductVersionMS;
 			}
-			free(data);
 		}
 	}
 

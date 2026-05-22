@@ -28,7 +28,7 @@ class ChannelHelper
 public:
 	static int getDefaultChannelMask(int channelCount);
 	static std::vector<std::wstring> getChannelNames(int channelCount, int channelMask);
-	static int getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowNew = false);
+	static int getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional = false);
 
 private:
 	ChannelHelper();

@@ -104,7 +104,7 @@ vector<wstring> ChannelHelper::getChannelNames(int channelCount, int channelMask
 	return channelNames;
 }
 
-int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowNew)
+int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional)
 {
 	int channelIndex = -1;
 
@@ -139,7 +139,7 @@ int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wst
 
 		if (pos != channelNames.end())
 			channelIndex = (int)(pos - channelNames.begin());
-		else if (!allowNew)
+		else if (!allowAdditional)
 			LogFStatic(L"Invalid channel position %s", word.c_str());
 	}
 

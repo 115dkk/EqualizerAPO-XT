@@ -42,6 +42,7 @@ protected:
 	bool loadFunctions() override;
 
 private:
+	struct MakeSharedEnabler;
 	VSTPluginLibrary(const std::wstring& libPath);
 	static std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> instanceMap;
 	static std::wstring defaultPluginPath;

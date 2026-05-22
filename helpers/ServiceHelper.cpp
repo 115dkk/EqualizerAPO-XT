@@ -35,7 +35,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 	SCOPE_EXIT{CloseServiceHandle(scManager); };
 
 	vector<shared_ptr<Service>> services;
-	shared_ptr<Service> mainService(new Service(scManager, serviceName, true));
+	shared_ptr<Service> mainService = make_shared<Service>(scManager, serviceName, true);
 	services.push_back(mainService);
 
 	DWORD mainState = mainService->getState();
@@ -44,7 +44,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 		vector<wstring> dependentServices = mainService->getActiveDependentServices();
 		for (wstring dependentServiceName : dependentServices)
 		{
-			shared_ptr<Service> dependentService(new Service(scManager, dependentServiceName.c_str(), false));
+			shared_ptr<Service> dependentService = make_shared<Service>(scManager, dependentServiceName.c_str(), false);
 			services.insert(prev(services.end()), dependentService);
 		}
 	}

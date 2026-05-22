@@ -52,7 +52,7 @@ void TaskSchedulerHelper::scheduleAtLogon(const std::wstring& taskName, const st
 		fail(L"ITaskService::GetFolder", hr);
 	SCOPE_EXIT{pRootFolder->Release(); };
 
-	// possibly delete existing task
+	// remove any existing task first
 	pRootFolder->DeleteTask(_bstr_t(taskName.c_str()), 0);
 
 	ITaskDefinition* pTask = NULL;
@@ -213,7 +213,7 @@ void TaskSchedulerHelper::unschedule(const std::wstring& taskName)
 		fail(L"ITaskService::GetFolder", hr);
 	SCOPE_EXIT{pRootFolder->Release(); };
 
-	// possibly delete existing task
+	// remove any existing task first
 	pRootFolder->DeleteTask(_bstr_t(taskName.c_str()), 0);
 }
 

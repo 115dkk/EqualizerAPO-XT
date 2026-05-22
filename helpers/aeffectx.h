@@ -1781,10 +1781,10 @@ enum VST_EFFECT_CATEGORY {
 	 *   int32_t effect_id = callback(nullptr, VST_HOST_OPCODE_CURRENT_EFFECT_ID, 0, 0, 0);
 	 *   if (effect_id == 0) {
 	 *     // ... logic specific to making the container.
-	 *     return new vst_container_effect();
+	 *     return create_vst_container_effect();
 	 *   } else {
 	 *     // ... logic specific to make sub effects
-	 *     return new vst_sub_effect();
+	 *     return create_vst_sub_effect();
 	 *   }
 	 * }
 	 *
@@ -1870,7 +1870,7 @@ enum VST_EFFECT_FLAG {
 	/** Effect is an Instrument/Generator
 	 *
 	 * This must be set in addition to @ref VST_EFFECT_CATEGORY_INSTRUMENT otherwise instruments don't work right.
-	 * @note (VST 2.x) Flag is new to VST 2.x and later.
+	 * @note (VST 2.x) Flag was added in VST 2.x and later.
 	 */
 	VST_EFFECT_FLAG_1ls8 = 1 << 8,
 	/** @sa VST_EFFECT_FLAG_1ls8 */
@@ -1880,7 +1880,7 @@ enum VST_EFFECT_FLAG {
 	 *
 	 * Not to be confused with choosing to tell the host there is no tail.
 	 * @sa VST_EFFECT_OPCODE_GET_TAIL_SAMPLES
-	 * @note (VST 2.x) Flag is new to VST 2.x and later.
+	 * @note (VST 2.x) Flag was added in VST 2.x and later.
 	 */
 	VST_EFFECT_FLAG_1ls9 = 1 << 9,
 	/** @sa VST_EFFECT_FLAG_1ls9 */
@@ -2016,9 +2016,9 @@ enum VST_EFFECT_OPCODE {
 	 */
 	VST_EFFECT_OPCODE_09 = 0x09,
 
-	/** Set the new sample rate for the plugin to use.
+	/** Set the updated sample rate for the plugin to use.
 	 *
-	 * @param p_float New sample rate as a float (double on 64-bit because register upgrades).
+	 * @param p_float Updated sample rate as a float (double on 64-bit because register upgrades).
 	 */
 	VST_EFFECT_OPCODE_0A              = 0x0A,
 	/** @sa VST_EFFECT_OPCODE_0A */
@@ -2384,7 +2384,7 @@ enum VST_EFFECT_OPCODE {
 	 * @note (VST 2.0+) Available from VST 2.0 onwards.
 	 * @param p_int2 Pointer to a @ref vst_speaker_arrangement_t structure.
 	 * @param p_ptr Pointer to a @ref vst_speaker_arrangement_t structure.
-	 * @return @ref VST_STATUS_TRUE if we accept the new arrangement, @ref VST_STATUS_FALSE if we don't in which case
+	 * @return @ref VST_STATUS_TRUE if we accept the updated arrangement, @ref VST_STATUS_FALSE if we don't in which case
 	 *         the host is required to ask for the speaker arrangement via @ref VST_EFFECT_OPCODE_GET_SPEAKER_ARRANGEMENT
 	 *         and may retry this op-code with different values.
 	 */
@@ -2688,7 +2688,7 @@ enum VST_EFFECT_OPCODE {
 
 	/** Begin processing of audio.
 	 *
-	 * Host is requesting that we prepare for a new section of audio separate from the previous section.
+	 * Host is requesting that we prepare for another section of audio separate from the previous section.
 	 * @note (VST 2.3+) Available from VST 2.3 onwards.
 	 */
 	VST_EFFECT_OPCODE_47 = 0x47,
@@ -2926,7 +2926,7 @@ typedef void (VST_FUNCTION_INTERFACE* vst_effect_process_t) (struct vst_effect_t
  *
  * @param self Pointer to the effect itself.
  * @param index Parameter index.
- * @param value New value for the parameter.
+ * @param value Updated value for the parameter.
  */
 typedef void(VST_FUNCTION_INTERFACE* vst_effect_set_parameter_t)(struct vst_effect_t* self, uint32_t index, float value);
 
@@ -3165,7 +3165,7 @@ struct vst_effect_t {
  *
  * Must be present in VST 2.x plug-ins but must not be present in VST 1.x plug-ins.
  *
- * @return A new instance of the VST 2.x effect.
+ * @return A created instance of the VST 2.x effect.
  */
 #define VST_ENTRYPOINT \
 	vst_effect_t* VSTPluginMain(vst_host_callback_t callback)
@@ -3174,7 +3174,7 @@ struct vst_effect_t {
  *
  * Do not implement in VST 2.1 or later plug-ins!
  *
- * @return A new instance of the VST 1.x effect.
+ * @return A created instance of the VST 1.x effect.
  */
 #define VST_ENTRYPOINT_WINDOWS \
 	vst_effect_t* MAIN(vst_host_callback_t callback) { return VSTPluginMain(callback); }
@@ -3183,7 +3183,7 @@ struct vst_effect_t {
  *
  * Do not implement in VST 2.1 or later plug-ins!
  *
- * @return A new instance of the VST 1.x effect.
+ * @return A created instance of the VST 1.x effect.
  */
 #define VST_ENTRYPOINT_MACOS \
 	vst_effect_t* main_macho(vst_host_callback_t callback) { return VSTPluginMain(callback); }
@@ -3192,7 +3192,7 @@ struct vst_effect_t {
  *
  * Present in some VST 2.3 and earlier compatible plug-ins that support MacOS.
  *
- * @return A new instance of the VST 2.x effect.
+ * @return A created instance of the VST 2.x effect.
  */
 #define VST_ENTRYPOINT_MACOS_POWERPC \
 	vst_effect_t* main(vst_host_callback_t callback) { return VSTPluginMain(callback); }

@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <wincrypt.h>
 #include <inttypes.h>
+#include <vector>
 #include "StringHelper.h"
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
@@ -283,10 +284,9 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 		{
 			DWORD bufSize = 0;
 			CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, NULL, &bufSize, NULL, NULL);
-			BYTE* buf = new BYTE[bufSize];
-			if (CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, buf, &bufSize, NULL, NULL) == TRUE)
-				effect->control(effect, VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, bufSize, buf, 0.0f);
-			delete[] buf;
+			vector<BYTE> buf(bufSize);
+			if (CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, buf.data(), &bufSize, NULL, NULL) == TRUE)
+				effect->control(effect, VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, bufSize, buf.data(), 0.0f);
 		}
 	}
 	else
@@ -318,10 +318,9 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 		int size = (int)effect->control(effect, VST_EFFECT_OPCODE_GET_CHUNK_DATA, 1, 0, &chunk, 0.0f);
 		DWORD stringLength = 0;
 		CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &stringLength);
-		wchar_t* string = new wchar_t[stringLength];
-		if (CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string, &stringLength) == TRUE)
-			chunkData = string;
-		delete[] string;
+		vector<wchar_t> string(stringLength);
+		if (CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string.data(), &stringLength) == TRUE)
+			chunkData = string.data();
 	}
 	else
 	{

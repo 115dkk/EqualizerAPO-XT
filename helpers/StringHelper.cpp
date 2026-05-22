@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include <string>
+#include <vector>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "StringHelper.h"
@@ -50,10 +51,12 @@ wstring StringHelper::replaceIllegalCharacters(const wstring& filename)
 wstring StringHelper::toWString(const string& s, unsigned codepage)
 {
 	int length = MultiByteToWideChar(codepage, 0, s.c_str(), -1, NULL, 0);
-	wchar_t* charBuf = new wchar_t[length];
-	MultiByteToWideChar(codepage, 0, s.c_str(), -1, charBuf, length);
-	wstring result = charBuf;
-	delete[] charBuf;
+	if (length == 0)
+		return L"";
+
+	vector<wchar_t> charBuf(length);
+	MultiByteToWideChar(codepage, 0, s.c_str(), -1, charBuf.data(), length);
+	wstring result = charBuf.data();
 
 	return result;
 }
@@ -61,22 +64,23 @@ wstring StringHelper::toWString(const string& s, unsigned codepage)
 string StringHelper::toString(const wstring& s, unsigned codepage)
 {
 	int length = WideCharToMultiByte(codepage, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
-	char* charBuf = new char[length];
-	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf, length, NULL, NULL);
-	string result = charBuf;
-	delete[] charBuf;
+	if (length == 0)
+		return "";
+
+	vector<char> charBuf(length);
+	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf.data(), length, NULL, NULL);
+	string result = charBuf.data();
 
 	return result;
 }
 
 wstring StringHelper::toLowerCase(const wstring& s)
 {
-	wchar_t* charBuf = new wchar_t[s.length() + 1];
-	memcpy(charBuf, s.c_str(), (s.length() + 1) * sizeof(wchar_t));
-	errno_t err = _wcslwr_s(charBuf, s.length() + 1);
+	vector<wchar_t> charBuf(s.length() + 1);
+	memcpy(charBuf.data(), s.c_str(), (s.length() + 1) * sizeof(wchar_t));
+	errno_t err = _wcslwr_s(charBuf.data(), charBuf.size());
 
-	wstring result = charBuf;
-	delete[] charBuf;
+	wstring result = charBuf.data();
 
 	if (err == 0)
 		return result;
@@ -86,12 +90,11 @@ wstring StringHelper::toLowerCase(const wstring& s)
 
 wstring StringHelper::toUpperCase(const wstring& s)
 {
-	wchar_t* charBuf = new wchar_t[s.length() + 1];
-	memcpy(charBuf, s.c_str(), (s.length() + 1) * sizeof(wchar_t));
-	errno_t err = _wcsupr_s(charBuf, s.length() + 1);
+	vector<wchar_t> charBuf(s.length() + 1);
+	memcpy(charBuf.data(), s.c_str(), (s.length() + 1) * sizeof(wchar_t));
+	errno_t err = _wcsupr_s(charBuf.data(), charBuf.size());
 
-	wstring result = charBuf;
-	delete[] charBuf;
+	wstring result = charBuf.data();
 
 	if (err == 0)
 		return result;

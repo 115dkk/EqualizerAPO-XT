@@ -27,6 +27,14 @@ using namespace std;
 std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> VSTPluginLibrary::instanceMap;
 std::wstring VSTPluginLibrary::defaultPluginPath;
 
+struct VSTPluginLibrary::MakeSharedEnabler : VSTPluginLibrary
+{
+	MakeSharedEnabler(const wstring& libPath)
+		: VSTPluginLibrary(libPath)
+	{
+	}
+};
+
 std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& libPath)
 {
 	shared_ptr<VSTPluginLibrary> ptr;
@@ -40,7 +48,7 @@ std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& l
 
 	if (ptr == NULL)
 	{
-		ptr = shared_ptr<VSTPluginLibrary>(new VSTPluginLibrary(libPath));
+		ptr = make_shared<MakeSharedEnabler>(libPath);
 		instanceMap[libPath] = ptr;
 	}
 
