@@ -23,6 +23,9 @@ SOURCES += main.cpp\
 	../helpers/LogHelper.cpp \
 	../helpers/StringHelper.cpp \
 	../helpers/RegistryHelper.cpp \
+	../helpers/ServiceHelper.cpp \
+	../helpers/ApoRegistration.cpp \
+	../helpers/VelopackBootstrap.cpp \
 	../parser/LogicalOperators.cpp \
 	IFilterGUIFactory.cpp \
 	IFilterGUI.cpp \
@@ -173,6 +176,9 @@ HEADERS  += \
 	../helpers/LogHelper.h \
 	../helpers/StringHelper.h \
 	../helpers/RegistryHelper.h \
+	../helpers/ServiceHelper.h \
+	../helpers/ApoRegistration.h \
+	../helpers/VelopackBootstrap.h \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	helpers/GUIHelper.h \

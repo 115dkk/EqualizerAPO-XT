@@ -33,9 +33,6 @@
     <ClInclude Include="..\helpers\StringHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="..\helpers\TaskSchedulerHelper.h">
-      <Filter>helpers</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="UpdateInfoFormatter.h" />
     <ClInclude Include="VelopackUpdateInfo.h" />
@@ -52,9 +49,6 @@
     <ClCompile Include="VelopackUpdateInfo.cpp" />
     <ClCompile Include="AutoSizeTextEdit.cpp" />
     <ClCompile Include="..\helpers\StringHelper.cpp">
-      <Filter>helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\helpers\TaskSchedulerHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
   </ItemGroup>

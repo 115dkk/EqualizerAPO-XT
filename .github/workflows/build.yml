@@ -850,153 +850,8 @@ jobs:
         if-no-files-found: error
         retention-days: 90
 
-  # Create installer (runs after all platforms are built)
-  create-installer:
-    needs: build
-    runs-on: windows-2025
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    strategy:
-      matrix:
-        include:
-          - platform: x64
-            simd_variant: sse2
-            setup_file: Setup64
-            installer_name: x64-sse2
-          - platform: x64
-            simd_variant: avx
-            setup_file: Setup64
-            installer_name: x64-avx
-          - platform: x64
-            simd_variant: avx2
-            setup_file: Setup64
-            installer_name: x64-avx2
-          - platform: x64
-            simd_variant: avx512
-            setup_file: Setup64
-            installer_name: x64-avx512
-          - platform: x64
-            simd_variant: avx10_1
-            setup_file: Setup64
-            installer_name: x64-avx10_1
-          - platform: ARM64
-            simd_variant: neon
-            setup_file: SetupARM64
-            installer_name: arm64
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
-
-    - name: Download all artifacts
-      uses: actions/download-artifact@v7
-      with:
-        path: ${{ github.workspace }}\artifacts
-
-    - name: Prepare installer files
-      shell: pwsh
-      run: |
-        # Copy binaries to expected locations for NSIS
-        # NSIS expects:
-        # - Project binaries (.exe, EqualizerAPO.dll) in Platform\Release\
-        # - Dependencies (Qt DLLs, libfftw3.dll, sndfile.dll, etc.) in lib64\
-
-        $simdVariant = "${{ matrix.simd_variant }}"
-        $artifactDir = "${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-$simdVariant"
-        $targetBinDir = "${{ github.workspace }}\${{ matrix.platform }}\Release"
-        $targetLibDir = "${{ github.workspace }}\lib64"
-
-        if (Test-Path $artifactDir) {
-          New-Item -ItemType Directory -Force -Path $targetBinDir | Out-Null
-          New-Item -ItemType Directory -Force -Path $targetLibDir | Out-Null
-
-          # Copy project binaries to Platform\Release
-          $projectBinaries = @(
-            "EqualizerAPO.dll",
-            "Benchmark.exe",
-            "VoicemeeterClient.exe",
-            "DeviceSelector.exe",
-            "UpdateChecker.exe",
-            "Editor.exe"
-          )
-
-          foreach ($file in $projectBinaries) {
-            $sourcePath = Join-Path $artifactDir $file
-            if (Test-Path $sourcePath) {
-              Copy-Item $sourcePath -Destination $targetBinDir -Force
-              Write-Host "Copied to binaries: $file"
-            } else {
-              Write-Warning "Project binary not found: $file"
-            }
-          }
-
-          # Copy all dependency DLLs and Qt folders to lib64
-          # Qt folders are grouped under lib64\qt\<folder>\...
-          $qtFolders = @('platforms', 'styles', 'iconengines', 'imageformats', 'tls')
-          $qtTargetDir = Join-Path $targetLibDir 'qt'
-          New-Item -ItemType Directory -Force -Path $qtTargetDir | Out-Null
-
-          Get-ChildItem -Path $artifactDir | ForEach-Object {
-            $name = $_.Name
-
-            # Skip project binaries (already copied above)
-            if ($projectBinaries -contains $name) {
-              return
-            }
-
-            if ($_.PSIsContainer -and $qtFolders -contains $name) {
-              # Qt runtime folder -> lib64\qt\<name>\... (preserve subfolders & DLLs)
-              $dest = Join-Path $qtTargetDir $name
-              Copy-Item -Path $_.FullName -Destination $dest -Recurse -Force
-              Write-Host "Copied Qt folder to lib64\qt: $name\"
-            }
-            elseif ($_.PSIsContainer) {
-              # Non-Qt directories (if any) still go at lib64 root
-              Copy-Item -Path $_.FullName -Destination $targetLibDir -Recurse -Force
-              Write-Host "Copied non-Qt folder to lib64: $name\"
-            }
-            else {
-              # Individual files (DLLs, etc.) go in lib64 root
-              Copy-Item -Path $_.FullName -Destination $targetLibDir -Force
-              Write-Host "Copied to lib64: $name"
-            }
-          }
-          Write-Host "`nArtifacts organized for NSIS installer:"
-          Write-Host "  Binaries: $targetBinDir"
-          Write-Host "  Dependencies: $targetLibDir"
-        } else {
-          Write-Error "Artifact directory not found: $artifactDir"
-          exit 1
-        }
-
-    - name: Install NSIS
-      uses: negrutiu/nsis-install@v2
-
-    - name: Install `NsArray` from web
-      uses: negrutiu/nsis-install-plugin@v1
-      with:
-        url: https://nsis.sourceforge.io/mediawiki/images/9/97/NsArray.zip
-
-    - name: Install `NSISpcre` from web
-      uses: negrutiu/nsis-install-plugin@v1
-      with:
-        url: https://github.com/mazinsw/NSISpcre/archive/refs/heads/master.zip
-    - name: Install `AccessControl` from web
-      uses: negrutiu/nsis-install-plugin@v1
-      with:
-        url: https://nsis.sourceforge.io/mediawiki/images/4/4a/AccessControl.zip
-    - name: Build installer
-      run: makensis ${{ github.workspace }}\Setup\${{ matrix.setup_file }}.nsi
-
-    - name: Upload installers
-      uses: actions/upload-artifact@v7
-      with:
-        name: EqualizerAPO_Setup-${{ matrix.installer_name }}
-        path: ${{ github.workspace }}\Setup\*.exe
-        if-no-files-found: warn
-        retention-days: 90
-
   create-release:
-    needs: create-installer
+    needs: build
     runs-on: windows-2025
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
@@ -1007,10 +862,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
 
-    - name: Download installer artifacts
+    - name: Download build artifacts
       uses: actions/download-artifact@v7
       with:
-        pattern: EqualizerAPO_Setup-*
+        pattern: EqualizerAPO-*
         path: ${{ github.workspace }}\release-input
 
     - name: Resolve release version
@@ -1073,35 +928,73 @@ jobs:
         $tag = "${{ steps.version.outputs.tag }}"
         $targetCommit = "${{ github.sha }}"
         $inputRoot = "${{ github.workspace }}\release-input"
-        $installerArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO_Setup-*")
+        $licensePath = "${{ github.workspace }}\License.txt"
+        $iconPath = "${{ github.workspace }}\Editor\icons\applications-graphics-rotated.ico"
+        $configSource = "${{ github.workspace }}\Setup\config"
+        $extrasSource = @(
+          "${{ github.workspace }}\Setup\Configuration tutorial (online).url",
+          "${{ github.workspace }}\Setup\Configuration reference (online).url"
+        )
+        $qtPluginFolders = @('iconengines', 'imageformats', 'platforms', 'styles', 'tls')
+        $buildArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO-*")
 
-        if ($installerArtifacts.Count -eq 0) {
-          Write-Error "No installer artifacts were found in $inputRoot"
+        if ($buildArtifacts.Count -eq 0) {
+          Write-Error "No build artifacts were found in $inputRoot"
           exit 1
         }
 
-        foreach ($artifact in $installerArtifacts) {
-          $variant = $artifact.Name.Substring("EqualizerAPO_Setup-".Length)
+        foreach ($artifact in $buildArtifacts) {
+          $variant = $artifact.Name.Substring("EqualizerAPO-".Length)
           $channel = ($variant -replace "_", "-").ToLowerInvariant()
           $packId = "EqualizerAPO-XT-$channel"
           $packTitle = "EqualizerAPO-XT $variant"
           $outputDir = "${{ github.workspace }}\velopack-output\$channel"
           $packDir = "${{ github.workspace }}\velopack-input\$channel"
-          $mainExe = "EqualizerAPO-XT-$channel-Installer.exe"
-          $framework = if ($variant -eq "arm64") { "vcredist143-arm64" } else { "vcredist143-x64" }
-          $installer = Get-ChildItem -Path $artifact.FullName -Filter "*.exe" | Select-Object -First 1
+          $mainExe = "Editor.exe"
+          $framework = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist143-arm64" } else { "vcredist143-x64" }
 
-          if (-not $installer) {
-            Write-Error "No installer exe found in $($artifact.FullName)"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          if (Test-Path $packDir) {
+            Remove-Item -Path $packDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
+
+          Write-Host "`n=== Preparing Velopack pack dir for $variant ==="
+          # Copy everything from the build artifact (binaries + Qt deps at top level)
+          Copy-Item -Path (Join-Path $artifact.FullName "*") -Destination $packDir -Recurse -Force
+
+          # Editor.exe calls addLibraryPath("qt"), so Qt plugin folders must live under qt\
+          $qtTarget = Join-Path $packDir "qt"
+          New-Item -ItemType Directory -Force -Path $qtTarget | Out-Null
+          foreach ($folder in $qtPluginFolders) {
+            $source = Join-Path $packDir $folder
+            if (Test-Path $source) {
+              $dest = Join-Path $qtTarget $folder
+              if (Test-Path $dest) {
+                Remove-Item -Path $dest -Recurse -Force
+              }
+              Move-Item -Path $source -Destination $dest -Force
+              Write-Host "Relocated $folder -> qt\$folder"
+            }
+          }
+
+          # Bundle the sample configs and shortcuts
+          if (Test-Path $configSource) {
+            $configTarget = Join-Path $packDir "config"
+            New-Item -ItemType Directory -Force -Path $configTarget | Out-Null
+            Copy-Item -Path (Join-Path $configSource "*") -Destination $configTarget -Recurse -Force
+          }
+          foreach ($extra in $extrasSource) {
+            if (Test-Path $extra) {
+              Copy-Item -Path $extra -Destination $packDir -Force
+            }
+          }
+
+          if (-not (Test-Path (Join-Path $packDir $mainExe))) {
+            Write-Error "$mainExe not found in $packDir"
             exit 1
           }
 
-          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
-          Copy-Item -Path $installer.FullName -Destination (Join-Path $packDir $mainExe) -Force
-          Set-Content -Path (Join-Path $packDir "README.txt") -Value "Run $mainExe to launch the full EqualizerAPO-XT installer." -Encoding UTF8
-
-          Write-Host "`n=== Creating Velopack package for $variant ==="
           vpk download github `
             --repoUrl $repoUrl `
             --token $env:GITHUB_TOKEN `
@@ -1112,18 +1005,26 @@ jobs:
             $global:LASTEXITCODE = 0
           }
 
-          vpk pack `
-            --packId $packId `
-            --packVersion "${{ steps.version.outputs.pack_version }}" `
-            --packDir $packDir `
-            --mainExe $mainExe `
-            --packTitle $packTitle `
-            --packAuthors "EqualizerAPO-XT contributors" `
-            --outputDir $outputDir `
-            --channel $channel `
-            --framework $framework `
-            --noPortable `
-            --skipVeloAppCheck
+          $packArgs = @(
+            'pack',
+            '--packId', $packId,
+            '--packVersion', '${{ steps.version.outputs.pack_version }}',
+            '--packDir', $packDir,
+            '--mainExe', $mainExe,
+            '--packTitle', $packTitle,
+            '--packAuthors', 'EqualizerAPO-XT contributors',
+            '--outputDir', $outputDir,
+            '--channel', $channel,
+            '--framework', $framework,
+            '--noPortable',
+            '--skipVeloAppCheck'
+          )
+          if (Test-Path $iconPath) {
+            $packArgs += @('--icon', $iconPath)
+          }
+
+          Write-Host "vpk $($packArgs -join ' ')"
+          vpk @packArgs
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }

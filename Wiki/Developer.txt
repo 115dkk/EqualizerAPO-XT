@@ -31,22 +31,22 @@ The following software has been successfully used to compile Equalizer APO.
 
 6. [Qt 5](http://www.qt.io/download-open-source/). The 32 and 64 bit versions for MSVC2019 should be installed to C:\\Qt. Qt Creator is used instead of Visual Studio as IDE. The prebuilt versions can be used for development although Equalizer APO ships with custom-built variants with reduced dependencies. Currently only needed to build the Configuration Editor.
 
-7. [NSIS](http://nsis.sourceforge.net/). Needed to create the installer. Additionaly, the plugins [NSISpcre](http://nsis.sourceforge.net/NSISpcre_plug-in), [AccessControl](http://nsis.sourceforge.net/AccessControl_plug-in) and [nsArray](https://nsis.sourceforge.io/Arrays_in_NSIS#nsArray_plug-in) are needed.
+7. [Velopack](https://velopack.io/) (vpk CLI, installed via `dotnet tool install -g vpk`). Needed by CI to package the binaries into Setup.exe / .nupkg artifacts. Local development does not require it; only the CI `create-release` job calls it.
 
 ## Source code organization
-The Equalizer APO project consists of five parts:
+The Equalizer APO project consists of these parts:
 
 * EqualizerAPO. This is the main project, which generates the Audio Processing Object DLL, EqualizerAPO.dll. It contains the boilerplate code for COM and implements the APO interfaces, calling the class ParametricEQ, which contains the actual filtering algorithm and is also used by the Benchmark project.
 
-* Configurator. This is the GUI utility which is called during the setup process to allow the user to select the audio devices for which the APO should be registered.
+* DeviceSelector. The GUI utility which is launched after the first install to let the user select the audio devices for which the APO should be registered.
 
 * Benchmark. A console program to test the audio processing implementation without actually installing it for an audio device. It can be handy when experimenting with new filter types or tuning existing ones, especially to evaluate the performance.
 
-* Editor. The Qt Creator project that builds the Configuration Editor.
+* Editor. The Qt Creator project that builds the Configuration Editor. Editor.exe is the `--mainExe` of the Velopack package and handles all Velopack install/update/uninstall hooks via `helpers/ApoRegistration`.
 
-* Setup. Not a Visual Studio project, but a set of NSIS scripts and additional files that are used to create the installers.
+* Setup. Holds the sample config files (`config/`) and the documentation `.url` shortcuts that the CI packaging step bundles into the Velopack output.
 
-The file build.bat in the top-level directory uses msbuild to build all three Visual Studio projects for both 32 and 64 bit, Qt's build tools to build the Configuration Editor for 32 and 64 bit and then calls NSIS to create both installers.
+The file build.bat in the top-level directory uses msbuild to build the Visual Studio projects and Qt's build tools to build the Qt-based applications (Editor, DeviceSelector, UpdateChecker). The CI workflow at `.github/workflows/build.yml` calls `vpk pack` on the resulting artifacts to produce the Velopack installer.
 
 # APO development
 An APO (Audio Processing Object) is a user-space program module that is loaded by the Windows Audio Service to process the audio sample data before it is sent to the audio device driver. APOs are normally distributed and installed together with the audio driver and have to be signed to make sure that they don't circumvent any audio-related DRM measures. There are two kinds of APOs, GFX (global effect, applied after mixing the audio streams together) and LFX (local effect, applied before mixing). Only one GFX and one LFX APO can be registered for an output device and only one LFX APO can be registered for an input device. An APO is implemented as a COM object which is assigned a GUID under which it is registered in the system registry. More detailed information and code samples can be found in the documents [Custom Audio Effects in Windows Vista](http://msdn.microsoft.com/en-us/windows/hardware/gg463025.aspx) and [Reusing Windows Vista Audio System Effects](http://msdn.microsoft.com/en-us/library/windows/hardware/gg463044.aspx).

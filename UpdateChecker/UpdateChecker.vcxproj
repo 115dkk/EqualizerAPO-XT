@@ -373,7 +373,6 @@
     <QtUic Include="UpdateChecker.ui" />
     <QtMoc Include="UpdateChecker.h" />
     <ClCompile Include="..\helpers\StringHelper.cpp" />
-    <ClCompile Include="..\helpers\TaskSchedulerHelper.cpp" />
     <ClCompile Include="AutoSizeTextEdit.cpp" />
     <ClCompile Include="UpdateChecker.cpp" />
     <ClCompile Include="UpdateInfoFormatter.cpp" />
@@ -382,7 +381,6 @@
     <QtMoc Include="AutoSizeTextEdit.h" />
     <ClInclude Include="..\helpers\RegistryHelper.h" />
     <ClInclude Include="..\helpers\StringHelper.h" />
-    <ClInclude Include="..\helpers\TaskSchedulerHelper.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UpdateInfoFormatter.h" />

@@ -77,7 +77,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 - 공용 오디오 처리 변경은 `FilterEngine`, `FilterConfiguration`, `IFilter`, `filters/`, `helpers/`의 영향 범위를 같이 확인합니다.
 - 필터를 추가하거나 바꿀 때는 런타임 구현, factory, 설정 파싱, Editor GUI, 리소스 파일, 프로젝트 파일 포함 여부를 함께 확인합니다.
 - GUI 변경은 Qt `.ui`, `.qrc`, `.pro`, 번역 파일 영향을 확인합니다. 번역 파일은 요청이나 실제 문자열 변경이 있을 때만 건드립니다.
-- 설치 관련 변경은 `Setup/Setup.nsi`, 아키텍처별 `Setup*.nsi`, CI의 설치 파일 준비 단계를 함께 확인합니다.
+- 설치 관련 변경은 CI `create-release` job의 `vpk pack` 호출과 `helpers/ApoRegistration`, `helpers/VelopackBootstrap`, `Editor/main.cpp`의 Velopack 훅 처리를 함께 확인합니다. NSIS 기반 설치는 제거되었습니다.
 - 릴리스 버전 변경은 `version.h`를 기준으로 합니다.
 - 외부 의존성을 저장소에 새로 넣지 않습니다. 이미 있는 vendored 코드나 라이선스 파일은 필요한 범위에서만 수정합니다.
 - 빌드 산출물, Qt 배포 DLL, 임시 디렉터리, IDE 로컬 설정은 커밋하지 않습니다.

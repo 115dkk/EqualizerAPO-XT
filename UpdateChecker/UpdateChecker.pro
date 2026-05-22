@@ -28,7 +28,6 @@ SOURCES += \
 	VelopackUpdateInfo.cpp \
 	AutoSizeTextEdit.cpp \
 	../helpers/StringHelper.cpp \
-	../helpers/TaskSchedulerHelper.cpp \
 	stdafx.cpp
 
 HEADERS += \
@@ -37,7 +36,6 @@ HEADERS += \
 	VelopackUpdateInfo.h \
 	AutoSizeTextEdit.h \
 	../helpers/StringHelper.h \
-	../helpers/TaskSchedulerHelper.h \
 	../helpers/RegistryHelper.h \
 	resource.h \
 	stdafx.h

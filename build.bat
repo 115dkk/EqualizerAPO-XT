@@ -34,19 +34,5 @@ call "C:\Qt\6.7.2\msvc2019_arm64\bin\qmake.bat" ..\Editor\Editor.pro -r "CONFIG+
 if %ERRORLEVEL% GEQ 1 goto done
 cd..
 
-if defined ProgramFiles(x86) (
-	set nsis="%ProgramFiles(x86)%\NSIS\makensis.exe"
-) else (
-	set nsis="%ProgramFiles%\NSIS\makensis.exe"
-)
-
-cd Setup
-%nsis% Setup32.nsi
-if %ERRORLEVEL% GEQ 1 goto done
-%nsis% Setup64.nsi
-if %ERRORLEVEL% GEQ 1 goto done
-%nsis% SetupARM64.nsi
-cd..
-
 :done
 pause

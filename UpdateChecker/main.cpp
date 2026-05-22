@@ -25,7 +25,6 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QtWidgets/QApplication>
-#include <helpers/TaskSchedulerHelper.h>
 #include "UpdateChecker.h"
 #include "UpdateInfoFormatter.h"
 #include "VelopackUpdateInfo.h"
@@ -57,38 +56,8 @@ int main(int argc, char* argv[])
 
 	QCommandLineParser parser;
 	QCommandLineOption autoOption("a", "Automatic mode (no dialog if no new version, respect skip version, only check every 24 hours)");
-	QCommandLineOption installOption("i", "Install scheduled task");
-	QCommandLineOption uninstallOption("u", "Uninstall scheduled task");
-	parser.addOptions(QList<QCommandLineOption>() << autoOption << installOption << uninstallOption);
+	parser.addOptions(QList<QCommandLineOption>() << autoOption);
 	parser.process(app);
-	if (parser.isSet(installOption))
-	{
-		try
-		{
-			QString programPath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
-			QString workingDir = QDir::toNativeSeparators(QCoreApplication::applicationDirPath());
-			TaskSchedulerHelper::scheduleAtLogon(L"EqualizerAPOUpdateChecker", programPath.toStdWString(), L"-a", workingDir.toStdWString());
-		}
-		catch (const TaskSchedulerException& e)
-		{
-			QMessageBox::critical(nullptr, UpdateChecker::tr("Error installing Update Checker"), QString::fromStdWString(e.getMessage()));
-			return 2;
-		}
-		return 0;
-	}
-	if (parser.isSet(uninstallOption))
-	{
-		try
-		{
-			TaskSchedulerHelper::unschedule(L"EqualizerAPOUpdateChecker");
-		}
-		catch (const TaskSchedulerException& e)
-		{
-			QMessageBox::critical(nullptr, UpdateChecker::tr("Error uninstalling Update Checker"), QString::fromStdWString(e.getMessage()));
-			return 2;
-		}
-		return 0;
-	}
 	bool autoMode = parser.isSet(autoOption);
 
 	QString version = QString("%0.%1").arg(MAJOR).arg(MINOR);
