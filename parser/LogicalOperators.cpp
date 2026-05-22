@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <memory>
 #include "LogicalOperators.h"
 
 using namespace std;
@@ -40,5 +41,5 @@ const char_type* NotOperator::GetDesc() const
 
 IToken* NotOperator::Clone() const
 {
-	return new NotOperator(*this);
+	return make_unique<NotOperator>(*this).release();
 }

@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <memory>
 #include <regex>
 
 #include "RegexFunctions.h"
@@ -62,7 +63,7 @@ const char_type* RegexSearchFunction::GetDesc() const
 
 IToken* RegexSearchFunction::Clone() const
 {
-	return new RegexSearchFunction(*this);
+	return make_unique<RegexSearchFunction>(*this).release();
 }
 
 RegexReplaceFunction::RegexReplaceFunction()
@@ -96,5 +97,5 @@ const char_type* RegexReplaceFunction::GetDesc() const
 
 IToken* RegexReplaceFunction::Clone() const
 {
-	return new RegexReplaceFunction(*this);
+	return make_unique<RegexReplaceFunction>(*this).release();
 }

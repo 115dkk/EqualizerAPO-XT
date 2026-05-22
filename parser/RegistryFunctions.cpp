@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "stdafx.h"
+#include <memory>
 #include "RegistryFunctions.h"
 #include "../helpers/RegistryHelper.h"
 #include "../FilterEngine.h"
@@ -62,7 +63,7 @@ const char_type* ReadRegStringFunction::GetDesc() const
 
 IToken* ReadRegStringFunction::Clone() const
 {
-	return new ReadRegStringFunction(*this);
+	return make_unique<ReadRegStringFunction>(*this).release();
 }
 
 ReadRegDWORDFunction::ReadRegDWORDFunction(FilterEngine* engine)
@@ -102,5 +103,5 @@ const char_type* ReadRegDWORDFunction::GetDesc() const
 
 IToken* ReadRegDWORDFunction::Clone() const
 {
-	return new ReadRegDWORDFunction(*this);
+	return make_unique<ReadRegDWORDFunction>(*this).release();
 }

@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <memory>
 #include "StringOperators.h"
 
 using namespace std;
@@ -53,5 +54,5 @@ const char_type* AddOperator::GetDesc() const
 
 IToken* AddOperator::Clone() const
 {
-	return new AddOperator(*this);
+	return make_unique<AddOperator>(*this).release();
 }
