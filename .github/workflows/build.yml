@@ -63,7 +63,7 @@ jobs:
             fftw_asset: fftw-windows-release-arm64.zip
             muparserx_asset: muparserx-msvc-release-ARM64.zip
             libsndfile_asset: libsndfile-arm64.zip
-            msvcdevplatform: x86_arm64 
+            msvcdevplatform: arm64
 
     runs-on: ${{ matrix.os }}
     steps:
