@@ -65,4 +65,7 @@ CI currently builds these variants:
 - `windows-x64-avx10_1`
 - `windows-arm64`
 
+The SIMD matrix, dependency artifact names, installer artifact names, and test
+policy are tracked in [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
+
 Qt tools are built through qmake in CI and in the documented local setup. A full Visual Studio solution build also needs a working Qt VS Tools/QtMsBuild setup.

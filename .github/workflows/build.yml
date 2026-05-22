@@ -309,9 +309,15 @@ jobs:
 
         $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:Qt6_DIR\bin;$env:PATH"
         $testExecutables = @(
-          "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe",
           "${{ github.workspace }}\Tests\EditorLogicTests\${{ matrix.platform }}\Release\EditorLogicTests.exe"
         )
+
+        $canRunAudioSimdTests = "${{ matrix.platform }}" -ne "x64" -or "${{ matrix.simd_variant }}" -eq "avx2"
+        if ($canRunAudioSimdTests) {
+          $testExecutables += "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
+        } else {
+          Write-Warning "Skipping HybridConvTests for ${{ matrix.simd_variant }} because GitHub-hosted x64 runners do not guarantee that instruction set at runtime. The project is still built for this variant."
+        }
 
         foreach ($testExe in $testExecutables) {
           if (-not (Test-Path $testExe)) {
