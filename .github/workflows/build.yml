@@ -215,6 +215,14 @@ jobs:
 
         Write-Host "`nAll dependency paths configured successfully"
 
+    - name: Configure aqt
+      shell: pwsh
+      run: |
+        Set-Content -Path "${{ github.workspace }}\aqt-settings.ini" -Encoding ASCII -Value @(
+          "[aqt]",
+          "concurrency: 1"
+        )
+
     # Install Qt for Editor, DeviceSelector, and UpdateChecker
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
@@ -229,7 +237,7 @@ jobs:
         set-env: 'true'
         setup-python: 'false'
         aqtversion: '==3.2.*'
-        extra: '--external 7z'
+        extra: '--config ${{ github.workspace }}\aqt-settings.ini --external 7z'
 
     # Build the solution (excluding Qt VS Tools projects which will be built separately)
     - name: Build solution
