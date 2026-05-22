@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <chrono>
 #include <helpers/RegistryHelper.h>
 #include <helpers/ServiceHelper.h>
 #include <ObjBase.h>
@@ -112,7 +113,7 @@ void DeviceTestThread::run()
 			}
 		}
 
-		std::chrono::time_point timeout = std::chrono::steady_clock::now() + 3s;
+		const auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds{3};
 		std::string message;
 		try
 		{

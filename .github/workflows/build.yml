@@ -488,15 +488,12 @@ jobs:
 
 
           & $lreleasePath ..\$projectPath
-          # Remove /arch:AVX2 from .pro file and replace with our SIMD variant
-          # This is done by removing the hardcoded /arch flag and adding our SIMD variant (if specified)
           $qmakeChannelArg = "EAPO_UPDATE_CHANNEL=$updateChannel"
+          $qmakeArgs = @("..\$projectPath", "-r", "CONFIG+=release", $qmakeChannelArg)
           if ($BuildPlatform -eq "x64") {
-            & $qmakePath ..\$projectPath -r "CONFIG+=release" $qmakeChannelArg "QMAKE_CXXFLAGS-=/arch:AVX2" "QMAKE_CXXFLAGS+=$simdFlags"
+            $qmakeArgs += "EAPO_SIMD_FLAGS=$simdFlags"
           }
-          else {
-            & $qmakePath ..\$projectPath -r "CONFIG+=release" $qmakeChannelArg
-          }
+          & $qmakePath @qmakeArgs
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "$projectName qmake failed"
             Set-Location ..

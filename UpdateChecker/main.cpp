@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <chrono>
 #include <QDir>
 #include <QStyleHints>
 #include <QCommandLineParser>
@@ -203,7 +204,7 @@ QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, boo
 		QEventLoop loop;
 		QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
 		QTimer timer;
-		timer.setInterval(10s);
+		timer.setInterval(std::chrono::seconds{10});
 		timer.setSingleShot(true);
 		QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
 		loop.exec();
