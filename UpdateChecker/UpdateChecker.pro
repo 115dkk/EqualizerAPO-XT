@@ -14,6 +14,9 @@ TEMPLATE = app
 DEFINES += WIN32
 DEFINES += _UNICODE
 DEFINES += MUP_USE_WIDE_STRING
+!isEmpty(EAPO_UPDATE_CHANNEL) {
+	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
+}
 QMAKE_CXXFLAGS_RELEASE += /O2
 
 PRECOMPILED_HEADER = stdafx.h
@@ -22,6 +25,7 @@ SOURCES += \
 	main.cpp \
 	UpdateChecker.cpp \
 	UpdateInfoFormatter.cpp \
+	VelopackUpdateInfo.cpp \
 	AutoSizeTextEdit.cpp \
 	../helpers/StringHelper.cpp \
 	../helpers/TaskSchedulerHelper.cpp \
@@ -30,6 +34,7 @@ SOURCES += \
 HEADERS += \
 	UpdateChecker.h \
 	UpdateInfoFormatter.h \
+	VelopackUpdateInfo.h \
 	AutoSizeTextEdit.h \
 	../helpers/StringHelper.h \
 	../helpers/TaskSchedulerHelper.h \
