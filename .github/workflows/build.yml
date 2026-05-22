@@ -262,6 +262,51 @@ jobs:
         Write-Host "  LIB (linker search path): $env:LIB"
         Write-Host ""
 
+        function Resolve-QtRoot {
+          $candidates = @()
+
+          if ($env:QT_ROOT) {
+            $candidates += $env:QT_ROOT
+          }
+          if ($env:Qt6_DIR) {
+            $candidates += $env:Qt6_DIR
+            $candidates += (Join-Path $env:Qt6_DIR "..\..\..")
+          }
+
+          $qmakeCommand = Get-Command qmake -ErrorAction SilentlyContinue
+          if ($qmakeCommand) {
+            $candidates += (Split-Path (Split-Path $qmakeCommand.Source -Parent) -Parent)
+          }
+
+          $workspaceQt = "${{ github.workspace }}\Qt"
+          $candidates += $workspaceQt
+
+          $workspaceQmake = Get-ChildItem -Path $workspaceQt -Recurse -Filter qmake.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($workspaceQmake) {
+            $candidates += (Split-Path (Split-Path $workspaceQmake.FullName -Parent) -Parent)
+          }
+
+          foreach ($candidate in $candidates) {
+            if ([string]::IsNullOrWhiteSpace($candidate)) {
+              continue
+            }
+
+            $resolved = [System.IO.Path]::GetFullPath($candidate)
+            if ((Test-Path (Join-Path $resolved "include\QtCore\QCoreApplication")) -and
+                (Test-Path (Join-Path $resolved "lib\Qt6Core.lib")) -and
+                (Test-Path (Join-Path $resolved "bin\Qt6Core.dll"))) {
+              return $resolved
+            }
+          }
+
+          Write-Error "Could not locate a Qt root containing include, lib, and bin directories"
+          exit 1
+        }
+
+        $qtRoot = Resolve-QtRoot
+        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+        Write-Host "QT_ROOT=$qtRoot"
+
         $buildParams = @(
           "/m",
           "/p:Configuration=${{ env.BUILD_CONFIGURATION }}",
@@ -291,9 +336,7 @@ jobs:
           Write-Host "Building with instruction set: $instructionSet (variant: ${{ matrix.simd_variant }})"
           $buildParams += "/p:EnableEnhancedInstructionSet=$instructionSet"
         }
-        if ($env:Qt6_DIR) {
-          $buildParams += "/p:QT_ROOT=$env:Qt6_DIR"
-        }
+        $buildParams += "/p:QT_ROOT=$qtRoot"
 
         foreach ($project in $projects) {
           Write-Host "`n=== Building $project ==="
@@ -305,7 +348,7 @@ jobs:
           }
         }
 
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:Qt6_DIR\bin;$env:PATH"
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$qtRoot\bin;$env:PATH"
         $testExecutables = @(
           "${{ github.workspace }}\Tests\EditorLogicTests\${{ matrix.platform }}\Release\EditorLogicTests.exe"
         )
@@ -345,20 +388,32 @@ jobs:
       shell: pwsh
       run: |
         # Find qmake from Qt installation
-        $qmakePath = Get-Command qmake -ErrorAction SilentlyContinue
+        $qmakeCommand = Get-Command qmake -ErrorAction SilentlyContinue
+        $qmakePath = if ($qmakeCommand) { $qmakeCommand.Source } else { "" }
         if (-not $qmakePath) {
+          $qmakePath = "$env:QT_ROOT\bin\qmake.exe"
+        }
+        if (-not (Test-Path $qmakePath)) {
           $qmakePath = "$env:Qt6_DIR\bin\qmake.exe"
         }
         Write-Host "Using qmake: $qmakePath"
 
-        $lreleasePath = Get-Command lrelease -ErrorAction SilentlyContinue
+        $lreleaseCommand = Get-Command lrelease -ErrorAction SilentlyContinue
+        $lreleasePath = if ($lreleaseCommand) { $lreleaseCommand.Source } else { "" }
         if (-not $lreleasePath) {
+          $lreleasePath = "$env:QT_ROOT\bin\lrelease.exe"
+        }
+        if (-not (Test-Path $lreleasePath)) {
           $lreleasePath = "$env:Qt6_DIR\bin\lrelease.exe"
         }
         Write-Host "Using lrelease: $lreleasePath"
 
-        $windeployqtPath = Get-Command windeployqt -ErrorAction SilentlyContinue
+        $windeployqtCommand = Get-Command windeployqt -ErrorAction SilentlyContinue
+        $windeployqtPath = if ($windeployqtCommand) { $windeployqtCommand.Source } else { "" }
         if (-not $windeployqtPath) {
+          $windeployqtPath = "$env:QT_ROOT\bin\windeployqt.exe"
+        }
+        if (-not (Test-Path $windeployqtPath)) {
           $windeployqtPath = "$env:Qt6_DIR\bin\windeployqt.exe"
         }
         Write-Host "Using windeployqt: $windeployqtPath"
