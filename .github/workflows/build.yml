@@ -680,3 +680,157 @@ jobs:
         path: ${{ github.workspace }}\Setup\*.exe
         if-no-files-found: warn
         retention-days: 90
+
+  create-release:
+    needs: create-installer
+    runs-on: windows-2025
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download installer artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: EqualizerAPO_Setup-*
+        path: ${{ github.workspace }}\release-input
+
+    - name: Resolve release version
+      id: version
+      shell: pwsh
+      run: |
+        function Get-VersionPart {
+          param([string]$Name)
+
+          $line = Select-String -Path version.h -Pattern "^\s*#define\s+$Name\s+(\d+)" | Select-Object -First 1
+          if (-not $line) {
+            throw "Could not find version part: $Name"
+          }
+          return $line.Matches[0].Groups[1].Value
+        }
+
+        $major = Get-VersionPart "MAJOR"
+        $minor = Get-VersionPart "MINOR"
+        $revision = Get-VersionPart "REVISION"
+        $baseVersion = "$major.$minor.$revision"
+        $packVersion = "$baseVersion-main.${{ github.run_number }}"
+        $tag = "v$packVersion"
+
+        "base_version=$baseVersion" >> $env:GITHUB_OUTPUT
+        "pack_version=$packVersion" >> $env:GITHUB_OUTPUT
+        "tag=$tag" >> $env:GITHUB_OUTPUT
+
+        Write-Host "Base version: $baseVersion"
+        Write-Host "Release version: $packVersion"
+        Write-Host "Release tag: $tag"
+
+    - name: Create source archive
+      shell: pwsh
+      run: |
+        $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
+        git archive --format=zip --output="$sourceZip" HEAD
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+        if (-not (Test-Path $sourceZip)) {
+          Write-Error "Source archive was not created"
+          exit 1
+        }
+        Write-Host "Created source archive: $sourceZip"
+
+    - name: Create Velopack release
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        dotnet tool install -g vpk
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+        $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+
+        $repoUrl = "https://github.com/${{ github.repository }}"
+        $releaseName = "EqualizerAPO-XT ${{ steps.version.outputs.pack_version }}"
+        $tag = "${{ steps.version.outputs.tag }}"
+        $targetCommit = "${{ github.sha }}"
+        $inputRoot = "${{ github.workspace }}\release-input"
+        $installerArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO_Setup-*")
+
+        if ($installerArtifacts.Count -eq 0) {
+          Write-Error "No installer artifacts were found in $inputRoot"
+          exit 1
+        }
+
+        foreach ($artifact in $installerArtifacts) {
+          $variant = $artifact.Name.Substring("EqualizerAPO_Setup-".Length)
+          $channel = ($variant -replace "_", "-").ToLowerInvariant()
+          $packId = "EqualizerAPO-XT-$channel"
+          $packTitle = "EqualizerAPO-XT $variant"
+          $outputDir = "${{ github.workspace }}\velopack-output\$channel"
+          $packDir = "${{ github.workspace }}\velopack-input\$channel"
+          $mainExe = "EqualizerAPO-XT-$channel-Installer.exe"
+          $framework = if ($variant -eq "arm64") { "vcredist143-arm64" } else { "vcredist143-x64" }
+          $installer = Get-ChildItem -Path $artifact.FullName -Filter "*.exe" | Select-Object -First 1
+
+          if (-not $installer) {
+            Write-Error "No installer exe found in $($artifact.FullName)"
+            exit 1
+          }
+
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
+          Copy-Item -Path $installer.FullName -Destination (Join-Path $packDir $mainExe) -Force
+          Set-Content -Path (Join-Path $packDir "README.txt") -Value "Run $mainExe to launch the full EqualizerAPO-XT installer." -Encoding UTF8
+
+          Write-Host "`n=== Creating Velopack package for $variant ==="
+          vpk download github `
+            --repoUrl $repoUrl `
+            --token $env:GITHUB_TOKEN `
+            --outputDir $outputDir `
+            --channel $channel
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "No previous Velopack release was downloaded for channel $channel. Continuing with a full package."
+            $global:LASTEXITCODE = 0
+          }
+
+          vpk pack `
+            --packId $packId `
+            --packVersion "${{ steps.version.outputs.pack_version }}" `
+            --packDir $packDir `
+            --mainExe $mainExe `
+            --packTitle $packTitle `
+            --packAuthors "EqualizerAPO-XT contributors" `
+            --outputDir $outputDir `
+            --channel $channel `
+            --framework $framework `
+            --noPortable `
+            --skipVeloAppCheck
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          vpk upload github `
+            --repoUrl $repoUrl `
+            --token $env:GITHUB_TOKEN `
+            --outputDir $outputDir `
+            --channel $channel `
+            --publish `
+            --merge `
+            --releaseName $releaseName `
+            --tag $tag `
+            --targetCommitish $targetCommit
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+        }
+
+        $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
+        gh release upload $tag $sourceZip --clobber --repo "${{ github.repository }}"
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }

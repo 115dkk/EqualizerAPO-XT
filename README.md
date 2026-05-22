@@ -27,7 +27,7 @@ After that, the project will focus on:
 
 ## Installation
 
-Use the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases) when XT builds are published.
+Use the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases) when XT builds are published. A push to `main` builds all supported variants and creates a GitHub Release with Velopack-packaged installers and a source code zip.
 
 Until then, build locally or use upstream Equalizer APO for normal production use.
 
