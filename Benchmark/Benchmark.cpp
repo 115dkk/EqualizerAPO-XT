@@ -22,10 +22,12 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
-#include <cstdio>
+#include <cstdlib>
+#include <iostream>
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <string>
+#include <vector>
 #include <sndfile.h>
 #include <tclap/CmdLine.h>
 
@@ -78,20 +80,19 @@ int main(int argc, char** argv)
 		unsigned channelMask;
 		unsigned frameCount;
 		float length;
-		float* buf;
+		vector<float> buf;
 
 		if (REVISION == 0)
-			printf("Benchmark %d.%d\n", MAJOR, MINOR);
+			cout << "Benchmark " << MAJOR << "." << MINOR << "\n";
 		else
-			printf("Benchmark %d.%d.%d\n", MAJOR, MINOR, REVISION);
+			cout << "Benchmark " << MAJOR << "." << MINOR << "." << REVISION << "\n";
 
-		printf("Run \"%s -h\" to show usage info\n", argv[0]);
-		printf("\n");
+		cout << "Run \"" << argv[0] << " -h\" to show usage info\n\n";
 
 		string input = inputArg.getValue();
 		if (input != "")
 		{
-			printf("Reading sound data from %s\n", input.c_str());
+			cout << "Reading sound data from " << input << "\n";
 
 			PrecisionTimer timer;
 			timer.start();
@@ -100,7 +101,7 @@ int main(int argc, char** argv)
 			SNDFILE* inFile = sf_open(input.c_str(), SFM_READ, &info);
 			if (inFile == NULL)
 			{
-				fprintf(stderr, "%s", sf_strerror(inFile));
+				cerr << sf_strerror(inFile);
 				return 1;
 			}
 
@@ -110,17 +111,17 @@ int main(int argc, char** argv)
 			frameCount = (unsigned)info.frames;
 			length = float(frameCount) / sampleRate;
 
-			buf = new float[frameCount * channelCount];
+			buf.resize((size_t)frameCount * channelCount);
 
 			sf_count_t numRead = 0;
 			while (numRead < frameCount)
-				numRead += sf_readf_float(inFile, buf + numRead * channelCount, frameCount - numRead);
+				numRead += sf_readf_float(inFile, buf.data() + numRead * channelCount, frameCount - numRead);
 
 			sf_close(inFile);
 			inFile = NULL;
 
 			double readTime = timer.stop();
-			printf("Reading input file took %g seconds\n", readTime);
+			cout << "Reading input file took " << readTime << " seconds\n";
 		}
 		else
 		{
@@ -133,12 +134,12 @@ int main(int argc, char** argv)
 			length = lengthArg.getValue();
 			frameCount = (unsigned)(length * sampleRate);
 
-			printf("No input file given, so generating linear sine sweep from %g to %g Hz over %g seconds\n", sweepFrom, sweepTo, length);
+			cout << "No input file given, so generating linear sine sweep from " << sweepFrom << " to " << sweepTo << " Hz over " << length << " seconds\n";
 
 			PrecisionTimer timer;
 			timer.start();
 
-			buf = new float[frameCount * channelCount];
+			buf.resize((size_t)frameCount * channelCount);
 			for (unsigned i = 0; i < frameCount; i++)
 			{
 				double t = i * 1.0 / sampleRate;
@@ -149,14 +150,12 @@ int main(int argc, char** argv)
 			}
 
 			double genTime = timer.stop();
-			printf("Generating sweep took %g seconds\n", genTime);
+			cout << "Generating sweep took " << genTime << " seconds\n";
 		}
 
 		unsigned batchsize = batchsizeArg.getValue();
 
-		float* buf2 = new float[frameCount * channelCount];
-		for (unsigned i = 0; i < frameCount * channelCount; i++)
-			buf2[i] = 0.0f;
+		vector<float> buf2((size_t)frameCount * channelCount, 0.0f);
 
 		PrecisionTimer timer;
 		timer.start();
@@ -170,21 +169,21 @@ int main(int argc, char** argv)
 
 			double initTime = timer.stop();
 			if (!verbose)
-				printf("\nLoading configuration took %g ms\n", initTime * 1000.0);
+				cout << "\nLoading configuration took " << initTime * 1000.0 << " ms\n";
 
-			printf("\nProcessing %d frames from %d channel(s)\n", frameCount, channelCount);
+			cout << "\nProcessing " << frameCount << " frames from " << channelCount << " channel(s)\n";
 
 			timer.start();
 
 			for (unsigned i = 0; i < frameCount; i += batchsize)
 			{
-				engine.process(buf2 + i * channelCount, buf + i * channelCount, min(batchsize, frameCount - i));
+				engine.process(buf2.data() + i * channelCount, buf.data() + i * channelCount, min(batchsize, frameCount - i));
 			}
 
 			double time = timer.stop();
 
-			printf("%d samples processed in %f seconds\n", frameCount * channelCount, time);
-			printf("This is equivalent to %.2f%% CPU load (one core) when processing in real time\n", 100.0f * time / length);
+			cout << frameCount * channelCount << " samples processed in " << time << " seconds\n";
+			cout << "This is equivalent to " << 100.0f * time / length << "% CPU load (one core) when processing in real time\n";
 
 			unsigned clipCount = 0;
 			float max = 0;
@@ -197,10 +196,10 @@ int main(int argc, char** argv)
 					clipCount++;
 			}
 
-			printf("Max output level: %f (%f dB)", max, log10(max) * 20.0f);
+			cout << "Max output level: " << max << " (" << log10(max) * 20.0f << " dB)";
 			if (clipCount > 0)
-				printf(" (%d samples clipped!)", clipCount);
-			printf("\n");
+				cout << " (" << clipCount << " samples clipped!)";
+			cout << "\n";
 
 			string output = outputArg.getValue();
 			if (output == "")
@@ -212,35 +211,32 @@ int main(int argc, char** argv)
 				output += "testout.wav";
 			}
 
-			printf("\nWriting output to %s\n", output.c_str());
+			cout << "\nWriting output to " << output << "\n";
 
 			SF_INFO info = {frameCount, (int)sampleRate, (int)channelCount, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
 			SNDFILE* outFile = sf_open(output.c_str(), SFM_WRITE, &info);
 			if (outFile == NULL)
 			{
-				fprintf(stderr, "%s", sf_strerror(outFile));
+				cerr << sf_strerror(outFile);
 				return 1;
 			}
 
 			sf_count_t numWritten = 0;
 			while (numWritten < frameCount)
-				numWritten += sf_writef_float(outFile, buf2 + numWritten * channelCount, frameCount - numWritten);
+				numWritten += sf_writef_float(outFile, buf2.data() + numWritten * channelCount, frameCount - numWritten);
 
 			sf_close(outFile);
 			outFile = NULL;
-
-			delete[] buf;
-			delete[] buf2;
 		}
 
 		if (!noPauseArg.getValue())
-			system("pause");
+			std::system("pause");
 
 		return 0;
 	}
 	catch (TCLAP::ArgException e)
 	{
-		printf("Error: %s for arg %s\n", e.error().c_str(), e.argId().c_str());
+		cerr << "Error: " << e.error() << " for arg " << e.argId() << "\n";
 		return -1;
 	}
 }
