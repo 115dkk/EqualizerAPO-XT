@@ -24,9 +24,9 @@ class FilterCardModel
 public:
 	static FilterCardDescriptor describeLine(const QString& line, int depth = 0);
 	static QVector<int> calculateDepths(const QList<QString>& lines);
+	static QString commandForLine(const QString& line, QString* parameters);
 
 private:
-	static QString commandForLine(const QString& line, QString* parameters);
 	static QStringList parseChannelList(const QString& text);
 	static QString compactWhitespace(QString text);
 };
