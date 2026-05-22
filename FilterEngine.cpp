@@ -40,6 +40,7 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
+#include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
 #include "filters/ExpressionFilterFactory.h"
 #include "filters/DeviceFilterFactory.h"
@@ -294,36 +295,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 {
 	TraceF(L"Loading configuration from %s", path.c_str());
 
-	HANDLE hFile = INVALID_HANDLE_VALUE;
-	while (hFile == INVALID_HANDLE_VALUE)
-	{
-		hFile = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			DWORD error = GetLastError();
-			if (error != ERROR_SHARING_VIOLATION)
-			{
-				LogF(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
-				return;
-			}
-
-			// file is being written, so wait
-			Sleep(1);
-		}
-	}
-
-	stringstream inputStream;
-
-	char buf[8192];
-	unsigned long bytesRead = -1;
-	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, NULL) && bytesRead != 0)
-	{
-		inputStream.write(buf, bytesRead);
-	}
-
-	CloseHandle(hFile);
-
-	inputStream.seekg(0);
+	stringstream inputStream = ConfigurationFileReader::readWithRetry(path);
+	if (!inputStream.good())
+		return;
 
 	vector<wstring> savedChannelNames = currentChannelNames;
 
