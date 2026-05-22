@@ -987,3 +987,27 @@ jobs:
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }
+
+    - name: Write release notes
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $notesPath = "${{ github.workspace }}\release-notes.md"
+        .\.github\scripts\New-ReleaseNotes.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "${{ steps.version.outputs.tag }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -WorkflowRunId "${{ github.run_id }}" `
+          -TargetCommit "${{ github.sha }}" `
+          -OutputPath $notesPath
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+        gh release edit "${{ steps.version.outputs.tag }}" `
+          --repo "${{ github.repository }}" `
+          --notes-file $notesPath
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
