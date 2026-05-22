@@ -40,6 +40,7 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
+#include "helpers/PerfProfile.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
 #include "filters/ExpressionFilterFactory.h"
@@ -153,6 +154,8 @@ void convertDoubleToFloat(float* dest, const double* src, size_t count) {
 // Process interleaved audio (float*)
 void FilterEngine::process(float* output, float* input, unsigned frameCount)
 {
+	PerfScope _eapo_total("FilterEngine::process(float interleaved)");
+
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
@@ -167,24 +170,45 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 
 	// Conversion from float to double using SIMD
 	const unsigned inputSampleCount = inputChannelCount * frameCount;
-	convertFloatToDouble(inputBuf1D.data(), input, inputSampleCount);
+	{
+		PerfScope _ps("FilterEngine::convertFloatToDouble");
+		convertFloatToDouble(inputBuf1D.data(), input, inputSampleCount);
+	}
 
-	// The core processing logic remains unchanged
-	currentConfig->read(inputBuf1D.data(), frameCount);
-	currentConfig->process(frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::read(interleaved)");
+		currentConfig->read(inputBuf1D.data(), frameCount);
+	}
+	{
+		PerfScope _ps("FilterConfiguration::process(current)");
+		currentConfig->process(frameCount);
+	}
 
 	if (nextConfig)
 	{
-		nextConfig->read(inputBuf1D.data(), frameCount);
-		nextConfig->process(frameCount);
+		{
+			PerfScope _ps("FilterConfiguration::read(interleaved)");
+			nextConfig->read(inputBuf1D.data(), frameCount);
+		}
+		{
+			PerfScope _ps("FilterConfiguration::process(next)");
+			nextConfig->process(frameCount);
+		}
+		PerfScope _ps("FilterConfiguration::doTransition");
 		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
-	currentConfig->write(outputBuf1D.data(), frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::write(interleaved)");
+		currentConfig->write(outputBuf1D.data(), frameCount);
+	}
 
 	// Conversion from double back to float using SIMD
 	const unsigned outputSampleCount = outputChannelCount * frameCount;
-	convertDoubleToFloat(output, outputBuf1D.data(), outputSampleCount);
+	{
+		PerfScope _ps("FilterEngine::convertDoubleToFloat");
+		convertDoubleToFloat(output, outputBuf1D.data(), outputSampleCount);
+	}
 
 	finishTransitionIfReady();
 }
@@ -192,6 +216,8 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 // Process non-interleaved audio (float**)
 void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
+	PerfScope _eapo_total("FilterEngine::process(float planar)");
+
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode
@@ -204,36 +230,56 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 
 	resizeBuffers(frameCount);
 
-	// Optimized conversion for each channel
-	for (unsigned c = 0; c < inputChannelCount; c++) {
-		convertFloatToDouble(inputBuf2D[c].get(), input[c], frameCount);
+	{
+		PerfScope _ps("FilterEngine::convertFloatToDouble");
+		for (unsigned c = 0; c < inputChannelCount; c++) {
+			convertFloatToDouble(inputBuf2D[c].get(), input[c], frameCount);
+		}
 	}
 
-	// Core processing logic is the same
-	currentConfig->read(inputBuf2DPtrs.data(), frameCount);
-	currentConfig->process(frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::read(planar)");
+		currentConfig->read(inputBuf2DPtrs.data(), frameCount);
+	}
+	{
+		PerfScope _ps("FilterConfiguration::process(current)");
+		currentConfig->process(frameCount);
+	}
 
 	if (nextConfig)
 	{
-		nextConfig->read(inputBuf2DPtrs.data(), frameCount);
-		nextConfig->process(frameCount);
+		{
+			PerfScope _ps("FilterConfiguration::read(planar)");
+			nextConfig->read(inputBuf2DPtrs.data(), frameCount);
+		}
+		{
+			PerfScope _ps("FilterConfiguration::process(next)");
+			nextConfig->process(frameCount);
+		}
+		PerfScope _ps("FilterConfiguration::doTransition");
 		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
-	currentConfig->write(outputBuf2DPtrs.data(), frameCount);
-
-	// Optimized conversion back for each channel
-	for (unsigned c = 0; c < outputChannelCount; c++) {
-		convertDoubleToFloat(output[c], outputBuf2D[c].get(), frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::write(planar)");
+		currentConfig->write(outputBuf2DPtrs.data(), frameCount);
 	}
 
-	// Transition logic remains the same
+	{
+		PerfScope _ps("FilterEngine::convertDoubleToFloat");
+		for (unsigned c = 0; c < outputChannelCount; c++) {
+			convertDoubleToFloat(output[c], outputBuf2D[c].get(), frameCount);
+		}
+	}
+
 	finishTransitionIfReady();
 }
 
 // Process interleaved audio (double*) - native double precision without conversion
 void FilterEngine::process(double* output, double* input, unsigned frameCount)
 {
+	PerfScope _eapo_total("FilterEngine::process(double interleaved)");
+
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
@@ -243,18 +289,33 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 		return;
 	}
 
-	// Direct double-precision processing - no float conversion needed!
-	currentConfig->read(input, frameCount);
-	currentConfig->process(frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::read(interleaved)");
+		currentConfig->read(input, frameCount);
+	}
+	{
+		PerfScope _ps("FilterConfiguration::process(current)");
+		currentConfig->process(frameCount);
+	}
 
 	if (nextConfig)
 	{
-		nextConfig->read(input, frameCount);
-		nextConfig->process(frameCount);
+		{
+			PerfScope _ps("FilterConfiguration::read(interleaved)");
+			nextConfig->read(input, frameCount);
+		}
+		{
+			PerfScope _ps("FilterConfiguration::process(next)");
+			nextConfig->process(frameCount);
+		}
+		PerfScope _ps("FilterConfiguration::doTransition");
 		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
-	currentConfig->write(output, frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::write(interleaved)");
+		currentConfig->write(output, frameCount);
+	}
 
 	finishTransitionIfReady();
 }
@@ -262,6 +323,8 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 // Process non-interleaved audio (double**) - native double precision without conversion
 void FilterEngine::process(double** output, double** input, unsigned frameCount)
 {
+	PerfScope _eapo_total("FilterEngine::process(double planar)");
+
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
 		// Bypass mode
@@ -272,18 +335,33 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 		return;
 	}
 
-	// Direct double-precision processing - no float conversion needed!
-	currentConfig->read(input, frameCount);
-	currentConfig->process(frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::read(planar)");
+		currentConfig->read(input, frameCount);
+	}
+	{
+		PerfScope _ps("FilterConfiguration::process(current)");
+		currentConfig->process(frameCount);
+	}
 
 	if (nextConfig)
 	{
-		nextConfig->read(input, frameCount);
-		nextConfig->process(frameCount);
+		{
+			PerfScope _ps("FilterConfiguration::read(planar)");
+			nextConfig->read(input, frameCount);
+		}
+		{
+			PerfScope _ps("FilterConfiguration::process(next)");
+			nextConfig->process(frameCount);
+		}
+		PerfScope _ps("FilterConfiguration::doTransition");
 		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
 	}
 
-	currentConfig->write(output, frameCount);
+	{
+		PerfScope _ps("FilterConfiguration::write(planar)");
+		currentConfig->write(output, frameCount);
+	}
 
 	finishTransitionIfReady();
 }
