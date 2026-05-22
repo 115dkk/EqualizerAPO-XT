@@ -4,9 +4,18 @@
 
 ## 프로젝트 개요
 
-EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 1.4.2를 바탕으로 한 포크입니다. 주요 변경점은 64비트 double 기반 오디오 처리, AVX2/AVX-512/AVX10.1 최적화, ARM64 빌드, Visual Studio 2022와 GitHub Actions를 이용한 자동 빌드입니다.
+EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 1.4.2를 바탕으로 한 포크입니다. 주요 변경점은 64비트 double 기반 오디오 처리, AVX2/AVX-512/AVX10.1 최적화, ARM64 빌드, Visual Studio 2022/2026과 GitHub Actions를 이용한 자동 빌드입니다.
 
 핵심 출력물은 Windows APO DLL, Qt 기반 GUI 도구, 보조 실행 파일, NSIS 설치 파일입니다. 외부 의존성은 FFTW, libsndfile, muparserx, TCLAP, Qt, NSIS입니다.
+
+## 작업 우선순위와 TODO
+
+- [ ] 리버브 재생이 약 1000ms 지점에서 사라지는 문제를 먼저 재현합니다. 관련 코드는 `filters/`, `libHybridConv-0.1.1/`, 버퍼 수명, frame count 계산, delay/convolution 처리 경로를 함께 확인합니다.
+- [ ] 문제를 고친 뒤 재발을 막을 수 있는 검증 방법을 남깁니다. 자동 테스트가 어렵다면 최소 재현 설정, 벤치마크 실행 방법, 수동 확인 절차를 문서로 남깁니다.
+- [ ] Editor와 보조 GUI의 사용 흐름을 정리하고 낡은 UI를 단계적으로 고칩니다. 필터 편집, 파일 선택, 오류 표시, convolution 관련 화면을 우선 확인합니다.
+- [ ] convolution 기능을 확장합니다. 런타임 처리, 설정 파싱, GUI, 문서, 설치 산출물이 같은 기능 범위를 지원해야 합니다.
+- [ ] AVX2/AVX-512 중심의 포크 변경을 AVX10 방향으로 정리합니다. AVX를 지원하지 않는 장치와 ARM64 경로도 함께 고려합니다.
+- [ ] SIMD 변경은 빌드 플래그, 런타임 CPU 기능 확인, 외부 의존성 변형, CI matrix, 설치 파일 이름이 서로 맞는지 확인합니다.
 
 ## 저장소 구조
 
@@ -31,7 +40,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 ## 빌드와 검증
 
-- C++ 프로젝트는 Visual Studio 2022 계열 도구와 Windows SDK 10.0을 기준으로 합니다.
+- C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을 기준으로 합니다. 현재 로컬 프로젝트는 VS 2026 `v145`에서도 빌드하며, CI는 필요하면 VS 2022 `v143` toolset으로 덮어씁니다.
 - `.vcxproj`는 C++17을 사용합니다. 기존 `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다.
 - Qt 도구는 `Editor`, `DeviceSelector`, `UpdateChecker`에서 `.pro` 파일을 중심으로 관리합니다.
 - 로컬 전체 빌드는 `build.bat`를 기준으로 봅니다. 이 스크립트는 Win32, x64, ARM64 MSBuild, Qt qmake/jom, NSIS 설치 파일 생성을 차례로 실행합니다.
