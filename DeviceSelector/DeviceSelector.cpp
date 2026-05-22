@@ -50,7 +50,7 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 		std::vector<std::shared_ptr<AbstractAPOInfo>> inputDevices = DeviceAPOInfo::loadAllInfos(true);
 		addDevices(inputDevices, inputNode);
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 	}
@@ -182,7 +182,7 @@ void DeviceSelector::onDialogAccepted()
 						deviceUpdated = true;
 				}
 			}
-			catch (RegistryException e)
+			catch (const RegistryException& e)
 			{
 				QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 			}

@@ -412,7 +412,7 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 	{
 		mask = RegistryHelper::getFileAccessForUser(library->getLibPath(), SECURITY_LOCAL_SERVICE_RID);
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		// ignore
 	}
@@ -447,7 +447,7 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 				{
 					mask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
 				}
-				catch (RegistryException e)
+				catch (const RegistryException& e)
 				{
 					// ignore
 				}

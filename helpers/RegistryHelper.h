@@ -71,7 +71,7 @@ public:
 	RegistryException(const std::wstring& message)
 		: message(message) {}
 
-	std::wstring getMessage()
+	std::wstring getMessage() const
 	{
 		return message;
 	}

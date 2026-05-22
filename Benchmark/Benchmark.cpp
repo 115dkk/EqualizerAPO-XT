@@ -234,7 +234,7 @@ int main(int argc, char** argv)
 
 		return 0;
 	}
-	catch (TCLAP::ArgException e)
+	catch (const TCLAP::ArgException& e)
 	{
 		cerr << "Error: " << e.error() << " for arg " << e.argId() << "\n";
 		return -1;

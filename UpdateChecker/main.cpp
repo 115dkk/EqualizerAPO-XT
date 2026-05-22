@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 			QString workingDir = QDir::toNativeSeparators(QCoreApplication::applicationDirPath());
 			TaskSchedulerHelper::scheduleAtLogon(L"EqualizerAPOUpdateChecker", programPath.toStdWString(), L"-a", workingDir.toStdWString());
 		}
-		catch (TaskSchedulerException e)
+		catch (const TaskSchedulerException& e)
 		{
 			QMessageBox::critical(nullptr, UpdateChecker::tr("Error installing Update Checker"), QString::fromStdWString(e.getMessage()));
 			return 2;
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 		{
 			TaskSchedulerHelper::unschedule(L"EqualizerAPOUpdateChecker");
 		}
-		catch (TaskSchedulerException e)
+		catch (const TaskSchedulerException& e)
 		{
 			QMessageBox::critical(nullptr, UpdateChecker::tr("Error uninstalling Update Checker"), QString::fromStdWString(e.getMessage()));
 			return 2;

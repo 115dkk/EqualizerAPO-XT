@@ -495,7 +495,7 @@ void DeviceAPOInfo::install()
 		{
 			RegistryHelper::createKey(keyPath + L"\\FxProperties");
 		}
-		catch (RegistryException e)
+		catch (const RegistryException&)
 		{
 			// Permissions were not sufficient, so change them
 			RegistryHelper::takeOwnership(keyPath);

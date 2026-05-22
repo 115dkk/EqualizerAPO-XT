@@ -50,7 +50,7 @@ void ReadRegStringFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int
 
 		engine->watchRegistryKey(key);
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		throw ParserError(e.getMessage());
 	}
@@ -90,7 +90,7 @@ void ReadRegDWORDFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int 
 
 		engine->watchRegistryKey(key);
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		throw ParserError(e.getMessage());
 	}

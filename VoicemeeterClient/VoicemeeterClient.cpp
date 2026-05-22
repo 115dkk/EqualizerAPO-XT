@@ -61,7 +61,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		client.run();
 		return 0;
 	}
-	catch (InitError e)
+	catch (const InitError& e)
 	{
 		MessageBoxW(NULL, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
 		return -1;

@@ -67,7 +67,7 @@ void DeviceTestThread::run()
 		emit log(tr("Restarting audio service..."));
 		ServiceHelper::restartService(L"AudioSrv");
 	}
-	catch (ServiceException e)
+	catch (const ServiceException& e)
 	{
 		emit logError(tr("Restart failed."));
 		emit abort(QString::fromStdWString(e.getMessage()), -1);
@@ -104,7 +104,7 @@ void DeviceTestThread::run()
 					emit setItemStatus(deviceGuid, true, ItemStatusType::waiting);
 				testInfo->deviceInfo->testAPOInstallation();
 			}
-			catch (DeviceException e)
+			catch (const DeviceException& e)
 			{
 				emit showErrorDialog(QString::fromStdWString(e.getMessage()));
 			}
@@ -228,7 +228,7 @@ void DeviceTestThread::run()
 					emit log(tr("Restarting audio service..."));
 					ServiceHelper::restartService(L"AudioSrv");
 				}
-				catch (ServiceException e)
+				catch (const ServiceException& e)
 				{
 					emit logError(tr("Restart failed."));
 					emit abort(QString::fromStdWString(e.getMessage()), -1);
@@ -236,7 +236,7 @@ void DeviceTestThread::run()
 				}
 			}
 		}
-		catch (ReceiveException e)
+		catch (const ReceiveException& e)
 		{
 			emit showErrorDialog(QString::fromStdWString(e.getMessage()));
 			return;

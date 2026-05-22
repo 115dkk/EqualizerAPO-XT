@@ -109,7 +109,7 @@ void ReceiveThread::run()
 			cond.notify_all();
 		}
 	}
-	catch (ReceiveException e)
+	catch (const ReceiveException& e)
 	{
 		std::scoped_lock lock(mutex);
 		caughtException = e;

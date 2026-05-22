@@ -52,7 +52,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 			if (RegistryHelper::readValue(APP_REGPATH, L"EnableTrace") != L"false")
 				enableTrace = true;
 		}
-		catch (RegistryException e)
+		catch (const RegistryException& e)
 		{
 			LogFStatic(L"%s", e.getMessage());
 		}

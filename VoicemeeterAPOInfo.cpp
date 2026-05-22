@@ -141,7 +141,7 @@ VoicemeeterAPOInfo::VoicemeeterAPOInfo(const wstring& connectionName, bool voice
 		if (RegistryHelper::keyExists(voicemeeterClientKeyPath) && RegistryHelper::valueExists(voicemeeterClientKeyPath, sampleRateValueName))
 			sampleRate = (unsigned)RegistryHelper::readDWORDValue(voicemeeterClientKeyPath, sampleRateValueName);
 	}
-	catch (RegistryException e)
+	catch (const RegistryException&)
 	{
 		// ignore
 	}
@@ -490,7 +490,7 @@ void VoicemeeterAPOInfo::saveVoicemeeterSampleRate(unsigned sampleRate)
 		RegistryHelper::createKey(voicemeeterClientKeyPath);
 		RegistryHelper::writeDWORDValue(voicemeeterClientKeyPath, sampleRateValueName, sampleRate);
 	}
-	catch (RegistryException e)
+	catch (const RegistryException&)
 	{
 		// ignore
 	}

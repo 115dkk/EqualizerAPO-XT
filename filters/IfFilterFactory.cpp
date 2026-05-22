@@ -85,7 +85,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 					executeElse = true;
 				}
 			}
-			catch (ParserError e)
+			catch (const ParserError& e)
 			{
 				LogF(L"Error while evaluating If(%s): %s", expression.c_str(), e.GetMsg().c_str());
 				falseCount++;
@@ -129,7 +129,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 					executeElse = false;
 				}
 			}
-			catch (ParserError e)
+			catch (const ParserError& e)
 			{
 				LogF(L"Error while evaluating ElseIf(%s): %s", expression.c_str(), e.GetMsg().c_str());
 			}

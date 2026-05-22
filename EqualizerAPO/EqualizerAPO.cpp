@@ -114,7 +114,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	{
 		TraceF(L"APO GUID: %s", RegistryHelper::getGuidString(apoGuid).c_str());
 	}
-	catch (RegistryException e)
+	catch (const RegistryException&)
 	{
 		LogF(L"Could not convert apo guid to guid string");
 	}
@@ -137,7 +137,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 		if (RegistryHelper::valueExists(APP_REGPATH, L"DeviceTestPipeName"))
 			deviceTestPipeName = RegistryHelper::readValue(APP_REGPATH, L"DeviceTestPipeName");
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		LogF(L"%s", e.getMessage().c_str());
 	}
@@ -162,7 +162,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			allowSilentBufferModification = apoInfo.getCurrentInstallState().allowSilentBufferModification;
 		}
 	}
-	catch (RegistryException e)
+	catch (const RegistryException& e)
 	{
 		LogF(L"Could not read endpoint device info because of: %s", e.getMessage().c_str());
 	}

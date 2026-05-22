@@ -215,7 +215,7 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 		{
 			configPath = RegistryHelper::readValue(APP_REGPATH, L"ConfigPath");
 		}
-		catch (RegistryException e)
+		catch (const RegistryException& e)
 		{
 			LogF(L"Can't read config path because of: %s", e.getMessage().c_str());
 			return;
@@ -347,7 +347,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 				{
 					newFilters = factory->createFilter(path, key, value);
 				}
-				catch (exception e)
+				catch (const exception& e)
 				{
 					LogF(L"%S", e.what());
 				}
@@ -724,7 +724,7 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 				keyHandles.push_back(keyHandle);
 				RegNotifyChangeKeyValue(keyHandle, false, REG_NOTIFY_CHANGE_LAST_SET, registryEvent.get(), true);
 			}
-			catch (RegistryException e)
+			catch (const RegistryException& e)
 			{
 				LogFStatic(L"%s", e.getMessage().c_str());
 			}
