@@ -41,7 +41,7 @@ private slots:
 
 private:
 	FilterTable* filterTable;
-	QTimer* timer = NULL;
-	VolumeController* volumeController = NULL;
+	QTimer* timer = nullptr;
+	VolumeController* volumeController = nullptr;
 	double lastVolume = -1;
 };

@@ -28,7 +28,7 @@ using namespace std;
 
 vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	CopyFilter* filter = NULL;
+	CopyFilter* filter = nullptr;
 
 	if (command == L"Copy")
 	{
@@ -74,7 +74,7 @@ vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstr
 					}
 					else
 					{
-						summand.factor = wcstod(factor.c_str(), NULL);
+						summand.factor = wcstod(factor.c_str(), nullptr);
 						summand.isDecibel = factor.size() > 2 && StringHelper::toLowerCase(factor.substr(factor.size() - 2)) == L"db";
 					}
 
@@ -91,7 +91,7 @@ vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstr
 		filter = new(mem) CopyFilter(assignments);
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

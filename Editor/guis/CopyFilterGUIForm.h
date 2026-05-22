@@ -33,7 +33,7 @@ public:
 
 	void load(std::vector<Assignment> assignments);
 	void setChannelNames(const std::vector<std::wstring>& channelNames);
-	std::vector<Assignment> buildAssignments(QWidget* pressedButton = NULL);
+	std::vector<Assignment> buildAssignments(QWidget* pressedButton = nullptr);
 
 signals:
 	void updateModel();
@@ -45,6 +45,6 @@ private slots:
 	void addAssignment();
 
 private:
-	QGridLayout* gridLayout = NULL;
+	QGridLayout* gridLayout = nullptr;
 	std::vector<std::wstring> inputChannelNames;
 };

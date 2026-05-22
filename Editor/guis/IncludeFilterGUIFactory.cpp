@@ -38,7 +38,7 @@ QList<FilterTemplate> IncludeFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* IncludeFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	IncludeFilterGUI* result = NULL;
+	IncludeFilterGUI* result = nullptr;
 
 	if (command == "Include")
 	{

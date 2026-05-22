@@ -110,7 +110,7 @@ private:
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
 	AnalysisPlotScene* analysisPlotScene;
-	AnalysisThread* analysisThread = NULL;
+	AnalysisThread* analysisThread = nullptr;
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;

@@ -30,8 +30,8 @@ IIRFilter::IIRFilter(const vector<double>& coefficients)
 	order = (unsigned)coefficients.size() / 2 - 1;
 	a = (double*)MemoryHelper::alloc(order * sizeof(double));
 	b = (double*)MemoryHelper::alloc(order * sizeof(double));
-	x = NULL;
-	y = NULL;
+	x = nullptr;
+	y = nullptr;
 
 	double a0 = coefficients[order + 1];
 	b0 = coefficients[0] / a0;
@@ -47,9 +47,9 @@ IIRFilter::~IIRFilter()
 	MemoryHelper::free(a);
 	MemoryHelper::free(b);
 
-	if (x != NULL)
+	if (x != nullptr)
 		MemoryHelper::free(x);
-	if (y != NULL)
+	if (y != nullptr)
 		MemoryHelper::free(y);
 }
 
@@ -57,9 +57,9 @@ vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, 
 {
 	channelCount = (unsigned)channelNames.size();
 
-	if (x != NULL)
+	if (x != nullptr)
 		MemoryHelper::free(x);
-	if (y != NULL)
+	if (y != nullptr)
 		MemoryHelper::free(y);
 
 	x = (double*)MemoryHelper::alloc(order * channelCount * sizeof(double));

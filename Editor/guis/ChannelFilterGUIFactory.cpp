@@ -39,7 +39,7 @@ QList<FilterTemplate> ChannelFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* ChannelFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	ChannelFilterGUI* result = NULL;
+	ChannelFilterGUI* result = nullptr;
 
 	if (command == "Channel")
 	{

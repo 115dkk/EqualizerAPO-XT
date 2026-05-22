@@ -34,7 +34,7 @@ using namespace std;
 ConvolutionFilter::ConvolutionFilter(wstring filename)
 {
 	this->filename = filename;
-	filters = NULL;
+	filters = nullptr;
 	filterFrameCount = 0;
 }
 
@@ -53,7 +53,7 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 	filterFrameCount = 0;
 
 	initializeFilters(maxFrameCount);
-	if (filters != NULL)
+	if (filters != nullptr)
 		filterFrameCount = maxFrameCount;
 
 	return channelNames;
@@ -62,7 +62,7 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 #pragma AVRT_CODE_BEGIN
 void ConvolutionFilter::process(double** output, double** input, unsigned frameCount)
 {
-	if (filters == NULL)
+	if (filters == nullptr)
 		return;
 	if (frameCount == 0)
 		return;
@@ -71,7 +71,7 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	{
 		cleanup();
 		initializeFilters(frameCount);
-		if (filters == NULL)
+		if (filters == nullptr)
 			return;
 		filterFrameCount = frameCount;
 	}
@@ -91,13 +91,13 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 
 void ConvolutionFilter::cleanup()
 {
-	if (filters != NULL)
+	if (filters != nullptr)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
 			hcCloseSingle(&filters[i]);
 
 		MemoryHelper::free(filters);
-		filters = NULL;
+		filters = nullptr;
 	}
 	filterFrameCount = 0;
 }
@@ -107,7 +107,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	SF_INFO info;
 
 	SNDFILE* inFile = sf_wchar_open(filename.c_str(), SFM_READ, &info);
-	if (inFile == NULL)
+	if (inFile == nullptr)
 	{
 		LogF(L"Error while reading impulse response file: %S", sf_strerror(inFile));
 	}
@@ -128,7 +128,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 			numRead += sf_readf_double(inFile, interleavedBuf + numRead * fileChannelCount, fileFrameCount - numRead);
 
 		sf_close(inFile);
-		inFile = NULL;
+		inFile = nullptr;
 
 		double** bufs = new double* [fileChannelCount];
 		for (unsigned i = 0; i < fileChannelCount; i++)

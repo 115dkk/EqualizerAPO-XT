@@ -24,5 +24,5 @@
 class MiddleClickTabWidget : public QTabWidget
 {
 public:
-	MiddleClickTabWidget(QWidget* parent = NULL);
+	MiddleClickTabWidget(QWidget* parent = nullptr);
 };

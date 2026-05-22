@@ -708,7 +708,7 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 
 	HANDLE notificationHandle = FindFirstChangeNotificationW(engine->configPath.c_str(), true, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 	if (notificationHandle == INVALID_HANDLE_VALUE)
-		notificationHandle = NULL;
+		notificationHandle = nullptr;
 
 	Win32Event registryEvent(true, false);
 

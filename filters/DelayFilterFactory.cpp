@@ -30,7 +30,7 @@ using namespace std;
 
 vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	DelayFilter* filter = NULL;
+	DelayFilter* filter = nullptr;
 
 	if (command == L"Delay")
 	{
@@ -59,7 +59,7 @@ vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wst
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 
 			SF_INFO info;
 			SNDFILE* inFile = sf_open(input.c_str(), SFM_READ, &info);
-			if (inFile == NULL)
+			if (inFile == nullptr)
 			{
 				cerr << sf_strerror(inFile);
 				return 1;
@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 				numRead += sf_readf_float(inFile, buf.data() + numRead * channelCount, frameCount - numRead);
 
 			sf_close(inFile);
-			inFile = NULL;
+			inFile = nullptr;
 
 			double readTime = timer.stop();
 			cout << "Reading input file took " << readTime << " seconds\n";
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
 
 			SF_INFO info = {frameCount, (int)sampleRate, (int)channelCount, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
 			SNDFILE* outFile = sf_open(output.c_str(), SFM_WRITE, &info);
-			if (outFile == NULL)
+			if (outFile == nullptr)
 			{
 				cerr << sf_strerror(outFile);
 				return 1;
@@ -226,7 +226,7 @@ int main(int argc, char** argv)
 				numWritten += sf_writef_float(outFile, buf2.data() + numWritten * channelCount, frameCount - numWritten);
 
 			sf_close(outFile);
-			outFile = NULL;
+			outFile = nullptr;
 		}
 
 		if (!noPauseArg.getValue())

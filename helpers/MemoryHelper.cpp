@@ -35,10 +35,10 @@ void* MemoryHelper::alloc(size_t size)
 #else
 	void* memory = _aligned_malloc(size, 16);
 #endif
-	if (memory == NULL)
+	if (memory == nullptr)
 	{
 		LogFStatic(L"Allocation of %Iu bytes failed.", size);
-		return NULL;
+		return nullptr;
 	}
 
 	return memory;

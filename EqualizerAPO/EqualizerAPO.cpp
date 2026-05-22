@@ -42,16 +42,16 @@ EqualizerAPO::EqualizerAPO(IUnknown* pUnkOuter)
 	: CBaseAudioProcessingObject(regPostMixProperties)
 {
 	refCount = 1;
-	if (pUnkOuter != NULL)
+	if (pUnkOuter != nullptr)
 		this->pUnkOuter = pUnkOuter;
 	else
 		this->pUnkOuter = reinterpret_cast<IUnknown*>(static_cast<INonDelegatingUnknown*>(this));
 
 	allowSilentBufferModification = false;
 
-	childAPO = NULL;
-	childRT = NULL;
-	childCfg = NULL;
+	childAPO = nullptr;
+	childRT = nullptr;
+	childCfg = nullptr;
 
 	InterlockedIncrement(&instCount);
 }
@@ -99,9 +99,9 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 
 	TraceF(L"Initialize");
 
-	if ((NULL == pbyData) && (0 != cbDataSize))
+	if ((nullptr == pbyData) && (0 != cbDataSize))
 		return E_INVALIDARG;
-	if ((NULL != pbyData) && (0 == cbDataSize))
+	if ((nullptr != pbyData) && (0 == cbDataSize))
 		return E_POINTER;
 	if (cbDataSize != sizeof(APOInitSystemEffects))
 		return E_INVALIDARG;
@@ -179,7 +179,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			return S_OK;
 		}
 
-		hr = CoCreateInstance(childGuid, NULL, CLSCTX_INPROC_SERVER, __uuidof(IAudioProcessingObject), (void**)&childAPO);
+		hr = CoCreateInstance(childGuid, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IAudioProcessingObject), (void**)&childAPO);
 		if (FAILED(hr))
 		{
 			LogF(L"Error in CoCreateInstance for child apo");
@@ -332,7 +332,7 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 		outFormat.guidFormatType.Data1, outFormat.dwSamplesPerFrame, outFormat.dwBytesPerSampleContainer,
 		outFormat.dwValidBitsPerSample, outFormat.fFramesPerSecond, outFormat.dwChannelMask, maxOutputFrameCount);
 
-	if (childCfg != NULL)
+	if (childCfg != nullptr)
 	{
 		hr = childCfg->LockForProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections,
 			ppOutputConnections);
@@ -357,7 +357,7 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 		maxFrameCount = maxOutputFrameCount;
 
 	unsigned realChannelCount;
-	if (childCfg != NULL)
+	if (childCfg != nullptr)
 		realChannelCount = outFormat.dwSamplesPerFrame;
 	else
 		realChannelCount = inFormat.dwSamplesPerFrame;
@@ -398,22 +398,22 @@ HRESULT EqualizerAPO::UnlockForProcess()
 
 void EqualizerAPO::resetChild()
 {
-	if (childAPO != NULL)
+	if (childAPO != nullptr)
 	{
 		childAPO->Release();
-		childAPO = NULL;
+		childAPO = nullptr;
 	}
 
-	if (childRT != NULL)
+	if (childRT != nullptr)
 	{
 		childRT->Release();
-		childRT = NULL;
+		childRT = nullptr;
 	}
 
-	if (childCfg != NULL)
+	if (childCfg != nullptr)
 	{
 		childCfg->Release();
-		childCfg = NULL;
+		childCfg = nullptr;
 	}
 }
 
@@ -421,16 +421,16 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 {
 	string message = "{\"deviceGuid\":\"" + StringHelper::toString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
 
-	HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 	if (pipe == INVALID_HANDLE_VALUE)
 	{
 		if (WaitNamedPipeW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), 1000))
-			pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+			pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 	}
 	if (pipe != INVALID_HANDLE_VALUE)
 	{
 		DWORD bytesWritten;
-		if (!WriteFile(pipe, message.c_str(), (int)message.length(), &bytesWritten, NULL))
+		if (!WriteFile(pipe, message.c_str(), (int)message.length(), &bytesWritten, nullptr))
 			LogF(L"Could not write to pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
 
 		FlushFileBuffers(pipe);
@@ -518,7 +518,7 @@ HRESULT EqualizerAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
 		*ppv = static_cast<IAudioSystemEffects*>(this);
 	else
 	{
-		*ppv = NULL;
+		*ppv = nullptr;
 		return E_NOINTERFACE;
 	}
 

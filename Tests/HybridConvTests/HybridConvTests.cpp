@@ -100,7 +100,7 @@ wstring createImpulseResponseFile(const vector<double>& impulseResponse)
 	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
 
 	SNDFILE* file = sf_wchar_open(filename.c_str(), SFM_WRITE, &info);
-	if (file == NULL)
+	if (file == nullptr)
 		fail("could not create temporary impulse response file");
 
 	sf_count_t written = sf_writef_double(file, impulseResponse.data(), (sf_count_t)impulseResponse.size());

@@ -114,7 +114,7 @@ void DeviceSelector::addDevices(std::vector<std::shared_ptr<AbstractAPOInfo>>& d
 		bool checked = false;
 		if (apoInfo->isInstalled())
 		{
-			if (voicemeeterInfo != NULL && !voicemeeterInfo->isVoicemeeterInstalled())
+			if (voicemeeterInfo != nullptr && !voicemeeterInfo->isVoicemeeterInstalled())
 				checked = false;
 			else
 				checked = true;
@@ -166,19 +166,19 @@ void DeviceSelector::onDialogAccepted()
 				if (checked && !info->isInstalled())
 				{
 					info->install();
-					if (deviceInfo != NULL)
+					if (deviceInfo != nullptr)
 						deviceUpdated = true;
 				}
 				else if (!checked && info->isInstalled())
 				{
 					info->uninstall();
-					if (deviceInfo != NULL)
+					if (deviceInfo != nullptr)
 						deviceUpdated = true;
 				}
 				else if (checked && (info->canBeUpgraded() || info->hasChanges() || info->isEnhancementsDisabled()))
 				{
 					info->reinstall();
-					if (deviceInfo != NULL)
+					if (deviceInfo != nullptr)
 						deviceUpdated = true;
 				}
 			}
@@ -231,15 +231,15 @@ void DeviceSelector::finish(bool deviceUpdated)
 			if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tokenHandle))
 			{
 				LUID luid;
-				if (LookupPrivilegeValue(NULL, SE_SHUTDOWN_NAME, &luid))
+				if (LookupPrivilegeValue(nullptr, SE_SHUTDOWN_NAME, &luid))
 				{
 					TOKEN_PRIVILEGES tp;
 					tp.PrivilegeCount = 1;
 					tp.Privileges[0].Luid = luid;
 					tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-					if (AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL))
-						InitiateShutdownW(NULL, NULL, 0, SHUTDOWN_RESTART | SHUTDOWN_GRACE_OVERRIDE, SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_MAINTENANCE);
+					if (AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
+						InitiateShutdownW(nullptr, nullptr, 0, SHUTDOWN_RESTART | SHUTDOWN_GRACE_OVERRIDE, SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_MAINTENANCE);
 				}
 
 				CloseHandle(tokenHandle);
@@ -295,7 +295,7 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 
 		std::shared_ptr<AbstractAPOInfo> info = item->data(0, Qt::UserRole).value<std::shared_ptr<AbstractAPOInfo>>();
 		DeviceAPOInfo* deviceInfo = dynamic_cast<DeviceAPOInfo*>(info.get());
-		if (deviceInfo != NULL)
+		if (deviceInfo != nullptr)
 		{
 			QObject* sender = QObject::sender();
 			if (sender == ui.installPreMixCheckBox)
@@ -375,7 +375,7 @@ void DeviceSelector::updateButtons()
 
 		std::shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<std::shared_ptr<AbstractAPOInfo>>();
 		DeviceAPOInfo* deviceApoInfo = dynamic_cast<DeviceAPOInfo*>(apoInfo.get());
-		if (deviceApoInfo != NULL)
+		if (deviceApoInfo != nullptr)
 		{
 			isInput = deviceApoInfo->isInput();
 			hasOriginalAPOPreMix = deviceApoInfo->getOriginalAPOPreMix() != L"";
@@ -495,7 +495,7 @@ QString DeviceSelector::getStateText(const std::shared_ptr<AbstractAPOInfo>& apo
 		state = tr("APO can be installed");
 
 	VoicemeeterAPOInfo* voicemeeterInfo = dynamic_cast<VoicemeeterAPOInfo*>(apoInfo.get());
-	if (voicemeeterInfo != NULL && !voicemeeterInfo->isVoicemeeterInstalled())
+	if (voicemeeterInfo != nullptr && !voicemeeterInfo->isVoicemeeterInstalled())
 		state += ", " + tr("Voicemeeter was uninstalled");
 	else if (apoInfo->isDefaultDevice())
 		state += ", " + tr("Default device");

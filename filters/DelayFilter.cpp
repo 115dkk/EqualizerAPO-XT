@@ -28,7 +28,7 @@ using namespace std;
 DelayFilter::DelayFilter(double delay, bool isMs)
 	: delay(delay), isMs(isMs)
 {
-	buffers = NULL;
+	buffers = nullptr;
 }
 
 DelayFilter::~DelayFilter()
@@ -102,13 +102,13 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 
 void DelayFilter::cleanup()
 {
-	if (buffers != NULL)
+	if (buffers != nullptr)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
 			MemoryHelper::free(buffers[i]);
 
 		MemoryHelper::free(buffers);
-		buffers = NULL;
+		buffers = nullptr;
 	}
 }
 

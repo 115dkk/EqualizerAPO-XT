@@ -61,27 +61,27 @@ template<> struct to_WString_type_traits<std::wstring>
 
 template<typename type> struct from_WString_type_traits
 {
-	static inline type cast_fromWString(const std::wstring& input) {return (type)wcstod(input.c_str(), NULL);}
+	static inline type cast_fromWString(const std::wstring& input) {return (type)wcstod(input.c_str(), nullptr);}
 };
 
 template<> struct from_WString_type_traits<float>
 {
-	static inline float cast_fromWString(const std::wstring& input) {return (float)wcstod(input.c_str(), NULL);}
+	static inline float cast_fromWString(const std::wstring& input) {return (float)wcstod(input.c_str(), nullptr);}
 };
 
 template<> struct from_WString_type_traits<double>
 {
-	static inline double cast_fromWString(const std::wstring& input) {return wcstod(input.c_str(), NULL);}
+	static inline double cast_fromWString(const std::wstring& input) {return wcstod(input.c_str(), nullptr);}
 };
 
 template<> struct from_WString_type_traits<int>
 {
-	static inline int cast_fromWString(const std::wstring& input) {return (int)wcstol(input.c_str(), NULL, 10);}
+	static inline int cast_fromWString(const std::wstring& input) {return (int)wcstol(input.c_str(), nullptr, 10);}
 };
 
 template<> struct from_WString_type_traits<bool>
 {
-	static inline bool cast_fromWString(const std::wstring& input) {return wcstol(input.c_str(), NULL, 10) == 0 ? false : true;}
+	static inline bool cast_fromWString(const std::wstring& input) {return wcstol(input.c_str(), nullptr, 10) == 0 ? false : true;}
 };
 
 template<> struct from_WString_type_traits<std::wstring>

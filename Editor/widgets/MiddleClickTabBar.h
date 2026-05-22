@@ -24,7 +24,7 @@
 class MiddleClickTabBar : public QTabBar
 {
 public:
-	MiddleClickTabBar(QWidget* parent = NULL);
+	MiddleClickTabBar(QWidget* parent = nullptr);
 
 protected:
 	void mouseReleaseEvent(QMouseEvent* event) override;

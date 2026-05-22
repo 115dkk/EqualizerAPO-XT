@@ -49,5 +49,5 @@ protected:
 
 private:
 	bool output;
-	CopyFilterGUIConnectionItem* currentConnection = NULL;
+	CopyFilterGUIConnectionItem* currentConnection = nullptr;
 };

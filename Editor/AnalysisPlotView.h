@@ -26,7 +26,7 @@ class AnalysisPlotView : public FrequencyPlotView
 	Q_OBJECT
 
 public:
-	AnalysisPlotView(QWidget* parent = NULL);
+	AnalysisPlotView(QWidget* parent = nullptr);
 
 protected:
 	void drawBackground(QPainter* painter, const QRectF& rect) override;

@@ -29,7 +29,7 @@ QList<FilterTemplate> StageFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* StageFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	StageFilterGUI* result = NULL;
+	StageFilterGUI* result = nullptr;
 
 	if (command == "Stage")
 	{

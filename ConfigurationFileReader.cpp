@@ -12,7 +12,7 @@ std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& pat
 	HANDLE hFile = INVALID_HANDLE_VALUE;
 	while (hFile == INVALID_HANDLE_VALUE)
 	{
-		hFile = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		hFile = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
 			DWORD error = GetLastError();
@@ -29,7 +29,7 @@ std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& pat
 	std::stringstream inputStream;
 	char buf[8192];
 	unsigned long bytesRead = 0;
-	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, NULL) && bytesRead != 0)
+	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr) && bytesRead != 0)
 		inputStream.write(buf, bytesRead);
 
 	CloseHandle(hFile);

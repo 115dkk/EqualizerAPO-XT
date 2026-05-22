@@ -35,7 +35,7 @@ QList<FilterTemplate> VSTPluginFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	VSTPluginFilterGUI* result = NULL;
+	VSTPluginFilterGUI* result = nullptr;
 
 	if (command == "VSTPlugin")
 	{

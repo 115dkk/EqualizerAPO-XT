@@ -34,7 +34,7 @@ void ChannelFilterGUIScene::load(vector<wstring> channelNames, QStringList selec
 
 	QHash<QString, ChannelFilterGUIChannelItem*> channelMap;
 
-	QGraphicsItem* lastItem = NULL;
+	QGraphicsItem* lastItem = nullptr;
 
 	channelNames.push_back(L"ALL");
 
@@ -57,7 +57,7 @@ void ChannelFilterGUIScene::load(vector<wstring> channelNames, QStringList selec
 	for (QString c : selectedChannels)
 	{
 		ChannelFilterGUIChannelItem* item = channelMap.value(c.toUpper());
-		if (item == NULL)
+		if (item == nullptr)
 		{
 			item = new ChannelFilterGUIChannelItem(c);
 			item->setPos(getNextChannelPoint(lastItem, false));
@@ -81,7 +81,7 @@ QStringList ChannelFilterGUIScene::getSelectedChannels()
 	for (QGraphicsItem* item : items(Qt::AscendingOrder))
 	{
 		ChannelFilterGUIChannelItem* channelItem = qgraphicsitem_cast<ChannelFilterGUIChannelItem*>(item);
-		if (channelItem != NULL)
+		if (channelItem != nullptr)
 		{
 			if (channelItem->isSelected())
 				selectedChannels.append(channelItem->getName());

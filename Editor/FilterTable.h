@@ -52,7 +52,7 @@ public:
 
 		QString text;
 		QVariantMap prefs;
-		IFilterGUI* gui = NULL;
+		IFilterGUI* gui = nullptr;
 	};
 
 	explicit FilterTable(MainWindow* mainWindow, QWidget* parent = 0);
@@ -63,7 +63,7 @@ public:
 	void propagateChannels();
 	QList<QString> getLines();
 	void setLines(const QString& configPath, const QList<QString>& lines);
-	Item* addLine(const QString& line, Item* before = NULL);
+	Item* addLine(const QString& line, Item* before = nullptr);
 	void removeItem(Item* item);
 	QMenu* createAddPopupMenu();
 	void cut();
@@ -131,8 +131,8 @@ private:
 	bool internalDrag = false;
 	QList<Item*> items;
 	QSet<Item*> selected;
-	Item* focused = NULL;
-	Item* selectionStart = NULL;
+	Item* focused = nullptr;
+	Item* selectionStart = nullptr;
 	QList<IFilterGUIFactory*> factories;
 	bool scrollingNow = false;
 	QPointF scrollStartPoint;

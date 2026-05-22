@@ -265,7 +265,7 @@ void GraphicEQFilterGUIScene::keyPressEvent(QKeyEvent* event)
 			for (QGraphicsItem* item : selectedItems())
 			{
 				GraphicEQFilterGUIItem* plotItem = qgraphicsitem_cast<GraphicEQFilterGUIItem*>(item);
-				if (plotItem != NULL)
+				if (plotItem != nullptr)
 				{
 					// this works for multiple items because the index of the other items is updated inside removeNode
 					int index = plotItem->getIndex();
@@ -282,7 +282,7 @@ void GraphicEQFilterGUIScene::keyPressEvent(QKeyEvent* event)
 		for (QGraphicsItem* item : selectedItems())
 		{
 			GraphicEQFilterGUIItem* plotItem = qgraphicsitem_cast<GraphicEQFilterGUIItem*>(item);
-			if (plotItem != NULL)
+			if (plotItem != nullptr)
 			{
 				int index = plotItem->getIndex();
 				FilterNode node = nodes[index];

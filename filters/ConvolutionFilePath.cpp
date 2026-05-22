@@ -20,7 +20,7 @@ wstring unquote(wstring value)
 
 wstring expandEnvironmentStrings(const wstring& value)
 {
-	DWORD requiredLength = ExpandEnvironmentStringsW(value.c_str(), NULL, 0);
+	DWORD requiredLength = ExpandEnvironmentStringsW(value.c_str(), nullptr, 0);
 	if (requiredLength == 0)
 		return value;
 

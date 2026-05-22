@@ -37,16 +37,16 @@ void ReceiveThread::stop()
 {
 	if (pipeName != L"")
 	{
-		HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+		HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 		if (pipe == INVALID_HANDLE_VALUE)
 		{
 			if (WaitNamedPipeW((L"\\\\.\\pipe\\" + pipeName).c_str(), 1000))
-				pipe = CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+				pipe = CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 		}
 		if (pipe != INVALID_HANDLE_VALUE)
 		{
 			DWORD bytesWritten;
-			WriteFile(pipe, "stop", 4, &bytesWritten, NULL);
+			WriteFile(pipe, "stop", 4, &bytesWritten, nullptr);
 			FlushFileBuffers(pipe);
 			CloseHandle(pipe);
 		}
@@ -69,7 +69,7 @@ void ReceiveThread::run()
 		if (!InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION))
 			throw ReceiveException(L"Could not initialize security descriptor: " + StringHelper::getSystemErrorString(GetLastError()));
 
-		if (!SetSecurityDescriptorDacl(pSD, TRUE, NULL, FALSE))
+		if (!SetSecurityDescriptorDacl(pSD, TRUE, nullptr, FALSE))
 			throw ReceiveException(L"Could not set security descriptor DACL: " + StringHelper::getSystemErrorString(GetLastError()));
 
 		SECURITY_ATTRIBUTES sa;
@@ -86,7 +86,7 @@ void ReceiveThread::run()
 				throw ReceiveException(L"Could not create named pipe: " + StringHelper::getSystemErrorString(GetLastError()));
 			SCOPE_EXIT{CloseHandle(pipe);};
 
-			bool connected = ConnectNamedPipe(pipe, NULL);
+			bool connected = ConnectNamedPipe(pipe, nullptr);
 			if (!connected)
 				connected = GetLastError() == ERROR_PIPE_CONNECTED;
 
@@ -96,7 +96,7 @@ void ReceiveThread::run()
 			SCOPE_EXIT{DisconnectNamedPipe(pipe);};
 
 			DWORD bytesRead;
-			bool ok = ReadFile(pipe, buf, sizeof(buf), &bytesRead, NULL);
+			bool ok = ReadFile(pipe, buf, sizeof(buf), &bytesRead, nullptr);
 			if (!ok || bytesRead == 0)
 				throw ReceiveException(L"Could not read from pipe: " + StringHelper::getSystemErrorString(GetLastError()));
 

@@ -104,7 +104,7 @@ double hcTime(void)
 	return (double)t * 0.001;
 #else
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	gettimeofday(&tv, nullptr);
 	return tv.tv_sec + tv.tv_usec * 0.000001;
 #endif
 }
@@ -978,7 +978,7 @@ void hcProcessAddDual(HConvDual* filter, double* in, double* out)
 void hcInitDual(HConvDual* filter, double* h, int hlen, int sflen, int lflen)
 {
 	int size;
-	double* h2 = NULL;
+	double* h2 = nullptr;
 	int h2len = 2 * lflen + 1;
 	auto& storage = dualStorageMap()[filter];
 	storage = HConvDualStorage();
@@ -1117,7 +1117,7 @@ void hcProcessAddTripple(HConvTripple* filter, double* in, double* out)
 void hcInitTripple(HConvTripple* filter, double* h, int hlen, int sflen, int mflen, int lflen)
 {
 	int size;
-	double* h2 = NULL;
+	double* h2 = nullptr;
 	int h2len = mflen + 2 * lflen + 1;
 	auto& storage = trippleStorageMap()[filter];
 	storage = HConvTrippleStorage();

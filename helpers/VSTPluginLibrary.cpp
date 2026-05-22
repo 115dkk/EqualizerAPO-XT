@@ -46,7 +46,7 @@ std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& l
 		ptr = instance.lock();
 	}
 
-	if (ptr == NULL)
+	if (ptr == nullptr)
 	{
 		ptr = make_shared<MakeSharedEnabler>(libPath);
 		instanceMap[libPath] = ptr;
@@ -75,7 +75,7 @@ bool VSTPluginLibrary::loadFunctions()
 {
 	VSTPluginMain = (vstPluginMain)GetProcAddress(module, "VSTPluginMain");
 
-	return VSTPluginMain != NULL;
+	return VSTPluginMain != nullptr;
 }
 
 VSTPluginLibrary::VSTPluginLibrary(const wstring& libPath)

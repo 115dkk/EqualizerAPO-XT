@@ -123,7 +123,7 @@ void ConvolutionFilterGUI::updateFileInfo()
 			{
 				SF_INFO info = {};
 				SNDFILE* file = sf_wchar_open(path.toStdWString().c_str(), SFM_READ, &info);
-				if (file == NULL)
+				if (file == nullptr)
 				{
 					error = tr("Unsupported file format");
 					labelsVisible = false;

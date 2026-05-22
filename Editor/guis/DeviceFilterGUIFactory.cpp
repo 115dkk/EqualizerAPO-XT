@@ -42,7 +42,7 @@ QList<FilterTemplate> DeviceFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* DeviceFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	DeviceFilterGUI* result = NULL;
+	DeviceFilterGUI* result = nullptr;
 
 	if (command == "Device")
 	{

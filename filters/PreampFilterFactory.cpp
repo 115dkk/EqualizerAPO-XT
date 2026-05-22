@@ -28,7 +28,7 @@ using namespace std;
 
 vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	PreampFilter* filter = NULL;
+	PreampFilter* filter = nullptr;
 
 	if (command == L"Preamp")
 	{
@@ -46,7 +46,7 @@ vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, ws
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

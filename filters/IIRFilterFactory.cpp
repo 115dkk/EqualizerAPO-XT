@@ -41,7 +41,7 @@ IIRFilterFactory::IIRFilterFactory()
 
 vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	IIRFilter* filter = NULL;
+	IIRFilter* filter = nullptr;
 
 	if (command.find(L"Filter") == 0)
 	{
@@ -58,7 +58,7 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 				if (found)
 				{
 					wstring orderString = match.str(1);
-					unsigned order = wcstol(orderString.c_str(), NULL, 10);
+					unsigned order = wcstol(orderString.c_str(), nullptr, 10);
 
 					if (order < 1)
 					{
@@ -81,7 +81,7 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 								vector<double> coefficients;
 								for (auto it = coefficientStrings.begin(); it != coefficientStrings.end(); it++)
 								{
-									coefficients.push_back(wcstod(it->c_str(), NULL));
+									coefficients.push_back(wcstod(it->c_str(), nullptr));
 								}
 
 								wstringstream stream;
@@ -103,7 +103,7 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 		}
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

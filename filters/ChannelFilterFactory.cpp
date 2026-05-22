@@ -28,7 +28,7 @@ using namespace std;
 
 vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	ChannelFilter* filter = NULL;
+	ChannelFilter* filter = nullptr;
 
 	if (command == L"Channel")
 	{
@@ -59,7 +59,7 @@ vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, w
 		filter = new(mem) ChannelFilter(words);
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

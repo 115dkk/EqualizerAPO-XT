@@ -57,12 +57,12 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 
 VSTPluginFilterGUI::~VSTPluginFilterGUI()
 {
-	if (effect != NULL)
+	if (effect != nullptr)
 	{
 		if (embedded)
 			on_embedAction_toggled(false);
 		delete effect;
-		effect = NULL;
+		effect = nullptr;
 	}
 
 	delete ui;
@@ -119,7 +119,7 @@ void VSTPluginFilterGUI::on_openPanelButton_clicked()
 {
 	initPlugin();
 
-	if (effect != NULL)
+	if (effect != nullptr)
 	{
 		effect->writeToEffect(chunkData, paramMap);
 
@@ -152,7 +152,7 @@ void VSTPluginFilterGUI::autoApplyToggled(bool checked)
 
 void VSTPluginFilterGUI::initPlugin()
 {
-	if (effect != NULL)
+	if (effect != nullptr)
 		return;
 
 	QColor color;
@@ -204,7 +204,7 @@ void VSTPluginFilterGUI::initPlugin()
 			else
 			{
 				delete effect;
-				effect = NULL;
+				effect = nullptr;
 
 				color = Qt::red;
 				text = tr("Plugin crashed during initialization.");
@@ -224,13 +224,13 @@ void VSTPluginFilterGUI::on_pathLineEdit_editingFinished()
 	if (QString::fromStdWString(library->getLibPath()) != ui->pathLineEdit->text())
 	{
 		int oldId = 0;
-		if (effect != NULL)
+		if (effect != nullptr)
 		{
 			oldId = effect->uniqueID();
 			if (ui->embedAction->isChecked())
 				on_embedAction_toggled(false);
 			delete effect;
-			effect = NULL;
+			effect = nullptr;
 		}
 
 		QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
@@ -240,7 +240,7 @@ void VSTPluginFilterGUI::on_pathLineEdit_editingFinished()
 		library = VSTPluginLibrary::getInstance(path.toStdWString());
 		initPlugin();
 
-		if (effect == NULL || oldId == 0 || effect->uniqueID() != oldId)
+		if (effect == nullptr || oldId == 0 || effect->uniqueID() != oldId)
 		{
 			chunkData = L"";
 			paramMap.clear();
@@ -292,7 +292,7 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 	ui->openPanelButton->setVisible(!checked);
 
 	bool enable = checked;
-	if (effect == NULL)
+	if (effect == nullptr)
 		enable = false;
 
 	if (enable != embedded)
@@ -323,7 +323,7 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 		}
 		else
 		{
-			if (effect != NULL)
+			if (effect != nullptr)
 			{
 				effect->stopEditing();
 				effect->setSizeWindowFunc(nullptr);
@@ -336,7 +336,7 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 
 void VSTPluginFilterGUI::on_idle()
 {
-	if (effect != NULL)
+	if (effect != nullptr)
 	{
 		effect->doIdle();
 
@@ -401,7 +401,7 @@ bool VSTPluginFilterGUI::embedPlugin()
 
 void VSTPluginFilterGUI::updatePermissionWarning()
 {
-	if (effect == NULL)
+	if (effect == nullptr)
 	{
 		ui->warningTextEdit->setVisible(false);
 		return;

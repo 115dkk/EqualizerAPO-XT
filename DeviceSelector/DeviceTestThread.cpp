@@ -60,7 +60,7 @@ void DeviceTestThread::run()
 {
 	SCOPE_EXIT{emit finished(); };
 
-	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	SCOPE_EXIT{CoUninitialize(); };
 	try
 	{

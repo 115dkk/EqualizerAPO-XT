@@ -53,7 +53,7 @@ STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** ppv)
 		return CLASS_E_CLASSNOTAVAILABLE;
 
 	ClassFactory* factory = new ClassFactory();
-	if (factory == NULL)
+	if (factory == nullptr)
 		return E_OUTOFMEMORY;
 
 	HRESULT hr = factory->QueryInterface(iid, ppv);

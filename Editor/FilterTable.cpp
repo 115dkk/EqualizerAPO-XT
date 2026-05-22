@@ -120,7 +120,7 @@ void FilterTable::updateGuis()
 
 	for (Item* item : items)
 	{
-		if (item->gui != NULL)
+		if (item->gui != nullptr)
 		{
 			item->prefs.clear();
 			item->gui->storePreferences(item->prefs);
@@ -134,7 +134,7 @@ void FilterTable::updateGuis()
 		if (object != insertArrow)
 		{
 			QWidget* widget = qobject_cast<QWidget*>(object);
-			if (widget != NULL)
+			if (widget != nullptr)
 				widget->setVisible(false);
 			object->deleteLater();
 		}
@@ -156,7 +156,7 @@ void FilterTable::updateGuis()
 	for (Item* item : items)
 	{
 		QString line = item->text;
-		IFilterGUI* gui = NULL;
+		IFilterGUI* gui = nullptr;
 		int pos = line.indexOf(':');
 		if (pos != -1)
 		{
@@ -172,11 +172,11 @@ void FilterTable::updateGuis()
 			{
 				gui = factory->createFilterGUI(factoryKey, factoryValue);
 
-				if (gui != NULL || factoryKey == "")
+				if (gui != nullptr || factoryKey == "")
 					break;
 			}
 
-			if (gui != NULL)
+			if (gui != nullptr)
 			{
 				for (IFilterGUIFactory* factory : factories)
 				{
@@ -190,7 +190,7 @@ void FilterTable::updateGuis()
 
 		item->gui = gui;
 
-		if (gui != NULL)
+		if (gui != nullptr)
 		{
 			gui->loadPreferences(item->prefs);
 
@@ -234,12 +234,12 @@ void FilterTable::updateGuis()
 void FilterTable::propagateChannels()
 {
 	vector<wstring> channelNames;
-	if (selectedDevice != NULL)
+	if (selectedDevice != nullptr)
 		channelNames = ChannelHelper::getChannelNames(selectedDevice->getChannelCount(), selectedChannelMask);
 
 	for (Item* item : items)
 	{
-		if (item->gui != NULL)
+		if (item->gui != nullptr)
 			item->gui->configureChannels(channelNames);
 	}
 }
@@ -313,8 +313,8 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 	}
 	else
 	{
-		focused = NULL;
-		selectionStart = NULL;
+		focused = nullptr;
+		selectionStart = nullptr;
 	}
 
 	updateGuis();
@@ -324,7 +324,7 @@ FilterTable::Item* FilterTable::addLine(const QString& line, FilterTable::Item* 
 {
 	Item* newItem = new Item(line);
 
-	if (before != NULL)
+	if (before != nullptr)
 	{
 		int index = items.indexOf(before);
 		items.insert(index, newItem);
@@ -357,7 +357,7 @@ QMenu* FilterTable::createAddPopupMenu()
 		for (FilterTemplate t : templates)
 		{
 			QMenu* menu = pathMap.value(t.getPath());
-			if (menu == NULL)
+			if (menu == nullptr)
 			{
 				QMenu* parentMenu = rootMenu;
 				QStringList currentPath;
@@ -365,7 +365,7 @@ QMenu* FilterTable::createAddPopupMenu()
 				{
 					currentPath.append(pathSegment);
 					menu = pathMap.value(currentPath);
-					if (menu == NULL)
+					if (menu == nullptr)
 					{
 						menu = new QMenu(pathSegment);
 						pathMap.insert(currentPath, menu);
@@ -437,12 +437,12 @@ void FilterTable::paste()
 		QStringList textLines = text.split("\n");
 		QList<QVariantMap> prefsList;
 		const FilterTableMimeData* filterTableMimeData = qobject_cast<const FilterTableMimeData*>(mimeData);
-		if (filterTableMimeData != NULL)
+		if (filterTableMimeData != nullptr)
 			prefsList = filterTableMimeData->getPrefsList();
 
 		selected.clear();
-		focused = NULL;
-		selectionStart = NULL;
+		focused = nullptr;
+		selectionStart = nullptr;
 		for (int i = 0; i < textLines.size(); i++)
 		{
 			QString line = textLines[i];
@@ -451,7 +451,7 @@ void FilterTable::paste()
 				item->prefs = prefsList[i];
 			selected.insert(item);
 			items.insert(dropRow++, item);
-			if (focused == NULL)
+			if (focused == nullptr)
 			{
 				focused = item;
 				selectionStart = item;
@@ -471,9 +471,9 @@ void FilterTable::deleteSelectedLines()
 		if (selected.contains(item))
 		{
 			if (item == focused)
-				focused = NULL;
+				focused = nullptr;
 			if (item == selectionStart)
-				selectionStart = NULL;
+				selectionStart = nullptr;
 			delete item;
 		}
 		else
@@ -514,7 +514,7 @@ void FilterTable::addActionTriggered()
 	QPoint p = toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));
 	QAction* action = menu->exec(p);
 	addAction->setChecked(false);
-	if (action != NULL)
+	if (action != nullptr)
 	{
 		FilterTemplate t = action->data().value<FilterTemplate>();
 		QString line = t.getLine();
@@ -530,7 +530,7 @@ void FilterTable::openConfig(QString path)
 
 int FilterTable::getPreferredWidth()
 {
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return width();
 
 	return scrollArea->viewport()->width();
@@ -570,7 +570,7 @@ void FilterTable::savePreferences()
 		{
 			Item* item = items[i];
 
-			if (item->gui != NULL)
+			if (item->gui != nullptr)
 			{
 				item->prefs.clear();
 				item->gui->storePreferences(item->prefs);
@@ -703,7 +703,7 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 					else
 						text += "\n";
 					text += item->text;
-					if (item->gui != NULL)
+					if (item->gui != nullptr)
 						item->gui->storePreferences(item->prefs);
 					prefsList.append(item->prefs);
 
@@ -736,9 +736,9 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 					{
 						items.removeOne(item);
 						if (focused == item)
-							focused = NULL;
+							focused = nullptr;
 						if (selectionStart == item)
-							selectionStart = NULL;
+							selectionStart = nullptr;
 						selected.remove(item);
 						delete item;
 					}
@@ -810,7 +810,7 @@ void FilterTable::dropEvent(QDropEvent* event)
 		QStringList textLines = text.split("\n");
 		QList<QVariantMap> prefsList;
 		const FilterTableMimeData* filterTableMimeData = qobject_cast<const FilterTableMimeData*>(mimeData);
-		if (filterTableMimeData != NULL)
+		if (filterTableMimeData != nullptr)
 			prefsList = filterTableMimeData->getPrefsList();
 
 		int dropRow = rowForPos(event->pos(), true);
@@ -818,8 +818,8 @@ void FilterTable::dropEvent(QDropEvent* event)
 			dropRow = items.size();
 
 		selected.clear();
-		focused = NULL;
-		selectionStart = NULL;
+		focused = nullptr;
+		selectionStart = nullptr;
 		for (int i = 0; i < textLines.size(); i++)
 		{
 			QString line = textLines[i];
@@ -828,7 +828,7 @@ void FilterTable::dropEvent(QDropEvent* event)
 				item->prefs = prefsList[i];
 			selected.insert(item);
 			items.insert(dropRow++, item);
-			if (focused == NULL)
+			if (focused == nullptr)
 			{
 				focused = item;
 				selectionStart = item;
@@ -852,7 +852,7 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 {
 	if (event->key() == Qt::Key_Down || event->key() == Qt::Key_Up)
 	{
-		if (focused != NULL)
+		if (focused != nullptr)
 		{
 			int row = items.indexOf(focused);
 			if (row != -1)
@@ -904,14 +904,14 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 
 	if (event->key() == Qt::Key_F2)
 	{
-		if (focused != NULL)
+		if (focused != nullptr)
 		{
 			int rowIndex = items.indexOf(focused);
 			if (rowIndex != -1)
 			{
 				QLayoutItem* layoutItem = gridLayout->itemAtPosition(rowIndex, 0);
 				FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(layoutItem->widget());
-				if (tableRow != NULL)
+				if (tableRow != nullptr)
 					tableRow->editText();
 			}
 		}
@@ -942,7 +942,7 @@ bool FilterTable::eventFilter(QObject* obj, QEvent* event)
 			scrollStartPoint = wheelEvent->globalPosition();
 
 			QWidget* widget = qobject_cast<QWidget*>(obj);
-			if (widget != NULL)
+			if (widget != nullptr)
 			{
 				if (isAncestorOf(widget))
 				{
@@ -986,7 +986,7 @@ void FilterTable::showEvent(QShowEvent*)
 void FilterTable::ensureRowVisible(int row)
 {
 	QScrollBar* vScrollBar = scrollArea->verticalScrollBar();
-	if (vScrollBar != NULL)
+	if (vScrollBar != nullptr)
 	{
 		QRect rect = rowRect(row).toAlignedRect();
 		if (rect.top() < vScrollBar->value())

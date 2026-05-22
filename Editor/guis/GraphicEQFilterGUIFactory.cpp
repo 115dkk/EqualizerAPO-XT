@@ -47,7 +47,7 @@ void GraphicEQFilterGUIFactory::startOfFile(const QString& configPath)
 
 IFilterGUI* GraphicEQFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	GraphicEQFilterGUI* result = NULL;
+	GraphicEQFilterGUI* result = nullptr;
 
 	if (command == "GraphicEQ")
 	{

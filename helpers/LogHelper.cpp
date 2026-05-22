@@ -30,7 +30,7 @@ using namespace std;
 bool LogHelper::initialized = false;
 wstring LogHelper::logPath;
 bool LogHelper::enableTrace = false;
-FILE* LogHelper::presetFP = NULL;
+FILE* LogHelper::presetFP = nullptr;
 bool LogHelper::compact = false;
 bool LogHelper::useConsoleColors = false;
 
@@ -62,7 +62,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		return;
 
 	FILE* fp;
-	if (presetFP == NULL)
+	if (presetFP == nullptr)
 	{
 		errno_t err = _wfopen_s(&fp, logPath.c_str(), L"at");
 		if (err != 0)
@@ -107,7 +107,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		SetConsoleTextAttribute(con, 7); // Set console color to light grey (default)
 	}
 
-	if (presetFP == NULL)
+	if (presetFP == nullptr)
 		fclose(fp);
 	else
 		fflush(fp);

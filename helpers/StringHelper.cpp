@@ -50,7 +50,7 @@ wstring StringHelper::replaceIllegalCharacters(const wstring& filename)
 
 wstring StringHelper::toWString(const string& s, unsigned codepage)
 {
-	int length = MultiByteToWideChar(codepage, 0, s.c_str(), -1, NULL, 0);
+	int length = MultiByteToWideChar(codepage, 0, s.c_str(), -1, nullptr, 0);
 	if (length == 0)
 		return L"";
 
@@ -63,12 +63,12 @@ wstring StringHelper::toWString(const string& s, unsigned codepage)
 
 string StringHelper::toString(const wstring& s, unsigned codepage)
 {
-	int length = WideCharToMultiByte(codepage, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
+	int length = WideCharToMultiByte(codepage, 0, s.c_str(), -1, nullptr, 0, nullptr, nullptr);
 	if (length == 0)
 		return "";
 
 	vector<char> charBuf(length);
-	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf.data(), length, NULL, NULL);
+	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf.data(), length, nullptr, nullptr);
 	string result = charBuf.data();
 
 	return result;
@@ -169,7 +169,7 @@ wstring StringHelper::getSystemErrorString(long status)
 {
 	wchar_t* buf;
 
-	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, status, 0, (LPTSTR)&buf, 0, NULL) != 0)
+	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, status, 0, (LPTSTR)&buf, 0, nullptr) != 0)
 	{
 		wstring result(buf);
 		LocalFree(buf);

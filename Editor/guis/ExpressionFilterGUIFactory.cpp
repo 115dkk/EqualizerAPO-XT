@@ -25,5 +25,5 @@ IFilterGUI* ExpressionFilterGUIFactory::createFilterGUI(QString& command, QStrin
 	if (parameters.contains('`'))
 		command = "";
 
-	return NULL;
+	return nullptr;
 }

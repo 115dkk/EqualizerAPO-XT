@@ -105,15 +105,15 @@ wstring DeviceAPOInfo::getDefaultDevice(bool input, int role)
 {
 	wstring result;
 
-	IMMDeviceEnumerator* enumerator = NULL;
-	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
+	IMMDeviceEnumerator* enumerator = nullptr;
+	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
 	if (SUCCEEDED(hr))
 	{
-		IMMDevice* endPoint = NULL;
+		IMMDevice* endPoint = nullptr;
 		hr = enumerator->GetDefaultAudioEndpoint(input ? eCapture : eRender, (ERole)role, &endPoint);
 		if (SUCCEEDED(hr))
 		{
-			IPropertyStore* propertyStore = NULL;
+			IPropertyStore* propertyStore = nullptr;
 			hr = endPoint->OpenPropertyStore(STGM_READ, &propertyStore);
 			if (SUCCEEDED(hr))
 			{
@@ -164,11 +164,11 @@ bool DeviceAPOInfo::checkAPORegistration(bool fix)
 		if (fix)
 		{
 			wchar_t path[MAX_PATH];
-			if (GetModuleFileNameW(NULL, path, MAX_PATH) != 0)
+			if (GetModuleFileNameW(nullptr, path, MAX_PATH) != 0)
 			{
 				PathRemoveFileSpecW(path);
 				wstring params = wstring(L"/s \"") + path + L"\\EqualizerAPO.dll\"";
-				ShellExecuteW(NULL, L"open", L"regsvr32.exe", params.c_str(), NULL, SW_SHOWNORMAL);
+				ShellExecuteW(nullptr, L"open", L"regsvr32.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
 			}
 		}
 	}
@@ -744,12 +744,12 @@ wstring DeviceAPOInfo::getPostMixChildGuid()
 
 void DeviceAPOInfo::testAPOInstallation()
 {
-	IMMDeviceEnumerator* enumerator = NULL;
-	IMMDevice* device = NULL;
-	IAudioClient* audioClient = NULL;
-	WAVEFORMATEX* format = NULL;
+	IMMDeviceEnumerator* enumerator = nullptr;
+	IMMDevice* device = nullptr;
+	IAudioClient* audioClient = nullptr;
+	WAVEFORMATEX* format = nullptr;
 
-	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
+	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
 	if (FAILED(hr))
 		fail(L"CoCreateInstance for IMMDeviceEnumerator", hr);
 	SCOPE_EXIT{enumerator->Release(); };
@@ -766,7 +766,7 @@ void DeviceAPOInfo::testAPOInstallation()
 	if (state & DEVICE_STATE_DISABLED || state & DEVICE_STATE_UNPLUGGED)
 		return;
 
-	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&audioClient);
+	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&audioClient);
 	if (FAILED(hr))
 		fail(L"Activate", hr);
 	SCOPE_EXIT{audioClient->Release(); };
@@ -776,7 +776,7 @@ void DeviceAPOInfo::testAPOInstallation()
 		fail(L"GetMixFormat", hr);
 	SCOPE_EXIT{CoTaskMemFree(format); };
 
-	hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 1000000 /*100 ms*/, 0, format, NULL);
+	hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 1000000 /*100 ms*/, 0, format, nullptr);
 	if (FAILED(hr))
 		fail(L"Initialize", hr);
 }

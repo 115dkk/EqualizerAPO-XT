@@ -27,13 +27,13 @@ using namespace std;
 GainIterator::GainIterator(const vector<FilterNode>& nodes)
 {
 	this->nodes = nodes;
-	nodeLeft = NULL;
-	nodeRight = NULL;
+	nodeLeft = nullptr;
+	nodeRight = nullptr;
 }
 
 double GainIterator::gainAt(double freq)
 {
-	if (nodeLeft == NULL && nodeRight == NULL || nodeLeft != NULL && freq < nodeLeft->freq)
+	if (nodeLeft == nullptr && nodeRight == nullptr || nodeLeft != nullptr && freq < nodeLeft->freq)
 	{
 		FilterNode findNode(freq, 0);
 		vector<FilterNode>::iterator it = lower_bound(nodes.begin(), nodes.end(), findNode);
@@ -42,13 +42,13 @@ double GainIterator::gainAt(double freq)
 		if (it != nodes.end())
 			nodeRight = &*it;
 
-		if (nodeLeft != NULL && nodeRight != NULL)
+		if (nodeLeft != nullptr && nodeRight != nullptr)
 		{
 			logLeft = log(nodeLeft->freq);
 			logRightMinusLeft = log(nodeRight->freq) - logLeft;
 		}
 	}
-	else if (nodeRight != NULL && freq > nodeRight->freq)
+	else if (nodeRight != nullptr && freq > nodeRight->freq)
 	{
 		vector<FilterNode>::iterator it = nodes.begin() + (nodeRight - &*nodes.begin());
 		while (it != nodes.end() && freq > it->freq)
@@ -56,14 +56,14 @@ double GainIterator::gainAt(double freq)
 			it++;
 		}
 		if (it == nodes.end())
-			nodeRight = NULL;
+			nodeRight = nullptr;
 		else
 			nodeRight = &*it;
 
 		if (it != nodes.begin())
 			nodeLeft = &*(it - 1);
 
-		if (nodeLeft != NULL && nodeRight != NULL)
+		if (nodeLeft != nullptr && nodeRight != nullptr)
 		{
 			logLeft = log(nodeLeft->freq);
 			logRightMinusLeft = log(nodeRight->freq) - logLeft;
@@ -71,14 +71,14 @@ double GainIterator::gainAt(double freq)
 	}
 
 	double dbGain;
-	if (nodeLeft == NULL)
+	if (nodeLeft == nullptr)
 	{
-		if (nodeRight == NULL)
+		if (nodeRight == nullptr)
 			dbGain = 0.0;
 		else
 			dbGain = nodeRight->dbGain;
 	}
-	else if (nodeRight == NULL)
+	else if (nodeRight == nullptr)
 	{
 		dbGain = nodeLeft->dbGain;
 	}

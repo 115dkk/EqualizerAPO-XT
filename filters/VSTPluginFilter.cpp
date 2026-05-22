@@ -230,7 +230,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		}
 
 		// Apply delay compensation if needed
-		if (delayBuffers != NULL && delayBufferLength > 0)
+		if (delayBuffers != nullptr && delayBufferLength > 0)
 		{
 			for (unsigned i = 0; i < channelCount; i++)
 			{
@@ -304,7 +304,7 @@ std::unordered_map<std::wstring, float> VSTPluginFilter::getParamMap() const
 
 void VSTPluginFilter::cleanup()
 {
-	if (effects != NULL)
+	if (effects != nullptr)
 	{
 		for (unsigned i = 0; i < effectCount; i++)
 		{
@@ -314,59 +314,59 @@ void VSTPluginFilter::cleanup()
 			MemoryHelper::free(effect);
 		}
 		MemoryHelper::free(effects);
-		effects = NULL;
+		effects = nullptr;
 	}
 	effectCount = 0;
 
-	if (emptyChannels != NULL)
+	if (emptyChannels != nullptr)
 	{
 		for (unsigned i = 0; i < emptyChannelCount; i++)
 			MemoryHelper::free(emptyChannels[i]);
 		MemoryHelper::free(emptyChannels);
-		emptyChannels = NULL;
+		emptyChannels = nullptr;
 	}
 	emptyChannelCount = 0;
 
-	if (inputArray != NULL)
+	if (inputArray != nullptr)
 	{
 		MemoryHelper::free(inputArray);
-		inputArray = NULL;
+		inputArray = nullptr;
 	}
 
-	if (outputArray != NULL)
+	if (outputArray != nullptr)
 	{
 		MemoryHelper::free(outputArray);
-		outputArray = NULL;
+		outputArray = nullptr;
 	}
     
-    if (floatInputs != NULL) {
+    if (floatInputs != nullptr) {
 		MemoryHelper::free(floatInputs);
-		floatInputs = NULL;
+		floatInputs = nullptr;
 	}
-	if (_floatInputBuffer != NULL) {
+	if (_floatInputBuffer != nullptr) {
 		MemoryHelper::free(_floatInputBuffer);
-		_floatInputBuffer = NULL;
+		_floatInputBuffer = nullptr;
 	}
-	if (floatOutputs != NULL) {
+	if (floatOutputs != nullptr) {
 		MemoryHelper::free(floatOutputs);
-		floatOutputs = NULL;
+		floatOutputs = nullptr;
 	}
-	if (_floatOutputBuffer != NULL) {
+	if (_floatOutputBuffer != nullptr) {
 		MemoryHelper::free(_floatOutputBuffer);
-		_floatOutputBuffer = NULL;
+		_floatOutputBuffer = nullptr;
 	}
 
-	if (delayBuffers != NULL)
+	if (delayBuffers != nullptr)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
 			MemoryHelper::free(delayBuffers[i]);
 		MemoryHelper::free(delayBuffers);
-		delayBuffers = NULL;
+		delayBuffers = nullptr;
 	}
-	if (delayTempBuffer != NULL)
+	if (delayTempBuffer != nullptr)
 	{
 		MemoryHelper::free(delayTempBuffer);
-		delayTempBuffer = NULL;
+		delayTempBuffer = nullptr;
 	}
 	delayBufferLength = 0;
 	delayBufferOffset = 0;

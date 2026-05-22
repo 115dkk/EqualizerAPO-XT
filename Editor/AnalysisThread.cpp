@@ -37,18 +37,18 @@ AnalysisThread::~AnalysisThread()
 
 	wait();
 
-	if (resultFreqData != NULL)
+	if (resultFreqData != nullptr)
 		fftw_free(resultFreqData);
 
-	if (buf != NULL)
+	if (buf != nullptr)
 		delete[] buf;
-	if (buf2 != NULL)
+	if (buf2 != nullptr)
 		delete[] buf2;
-	if (timeData != NULL)
+	if (timeData != nullptr)
 		fftw_free(timeData);
-	if (freqData != NULL)
+	if (freqData != nullptr)
 		fftw_free(freqData);
-	if (planForward != NULL)
+	if (planForward != nullptr)
 		fftw_destroy_plan(planForward);
 }
 
@@ -168,12 +168,12 @@ void AnalysisThread::run()
 
 		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
 		{
-			if (buf != NULL)
+			if (buf != nullptr)
 				delete[] buf;
 			buf = new double[frameCount * channelCount];
 			memset(buf, 0, frameCount * channelCount * sizeof(double));
 
-			if (buf2 != NULL)
+			if (buf2 != nullptr)
 				delete[] buf2;
 			buf2 = new double[frameCount * channelCount];
 		}
@@ -182,15 +182,15 @@ void AnalysisThread::run()
 
 		if (frameCount != lastFrameCount)
 		{
-			if (timeData != NULL)
+			if (timeData != nullptr)
 				fftw_free(timeData);
 			timeData = fftw_alloc_real(frameCount);
 
-			if (freqData != NULL)
+			if (freqData != nullptr)
 				fftw_free(freqData);
 			freqData = fftw_alloc_complex(frameCount);
 
-			if (planForward != NULL)
+			if (planForward != nullptr)
 				fftw_destroy_plan(planForward);
 			planForward = fftw_plan_dft_r2c_1d(frameCount, timeData, freqData, FFTW_ESTIMATE);
 		}
@@ -278,7 +278,7 @@ void AnalysisThread::run()
 		mutex.lock();
 		if (this->freqDataLength != frameCount)
 		{
-			if (resultFreqData != NULL)
+			if (resultFreqData != nullptr)
 				fftw_free(resultFreqData);
 			resultFreqData = fftw_alloc_complex(frameCount);
 		}

@@ -35,7 +35,7 @@ QList<FilterTemplate> DelayFilterGUIFactory::createFilterTemplates()
 
 IFilterGUI* DelayFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	DelayFilterGUI* result = NULL;
+	DelayFilterGUI* result = nullptr;
 
 	if (command == "Delay")
 	{

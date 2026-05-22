@@ -40,7 +40,7 @@ IFilterGUI* CommentFilterGUIFactory::createFilterGUI(QString& command, QString& 
 	if (lastWasComment)
 		command = command.mid(1).trimmed();
 
-	return NULL;
+	return nullptr;
 }
 
 IFilterGUI* CommentFilterGUIFactory::decorateFilterGUI(IFilterGUI* gui)

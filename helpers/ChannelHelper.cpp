@@ -110,7 +110,7 @@ int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wst
 
 	if (iswdigit(word[0]))
 	{
-		channelIndex = wcstol(word.c_str(), NULL, 10) - 1;
+		channelIndex = wcstol(word.c_str(), nullptr, 10) - 1;
 
 		if (channelIndex < 0 || channelIndex >= (int)channelNames.size())
 		{

@@ -32,7 +32,7 @@ CopyFilter::CopyFilter(const vector<Assignment>& assignments)
 {
 	this->assignments = assignments;
 
-	internalAssignments = NULL;
+	internalAssignments = nullptr;
 	assignmentCount = 0;
 }
 
@@ -151,20 +151,20 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 
 void CopyFilter::cleanup()
 {
-	if (internalAssignments != NULL)
+	if (internalAssignments != nullptr)
 	{
 		for (unsigned i = 0; i < assignmentCount; i++)
 		{
 			InternalAssignment& ia = internalAssignments[i];
-			if (ia.sourceSum != NULL)
+			if (ia.sourceSum != nullptr)
 			{
 				MemoryHelper::free(ia.sourceSum);
-				ia.sourceSum = NULL;
+				ia.sourceSum = nullptr;
 			}
 		}
 
 		MemoryHelper::free(internalAssignments);
-		internalAssignments = NULL;
+		internalAssignments = nullptr;
 	}
 }
 

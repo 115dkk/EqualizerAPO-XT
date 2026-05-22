@@ -75,7 +75,7 @@ void LoudnessCorrectionFilterGUIDialog::on_playButton_clicked()
 	}
 	buffer.close();
 
-	PlaySoundA(buffer.data().data(), NULL, SND_MEMORY | SND_ASYNC | SND_LOOP);
+	PlaySoundA(buffer.data().data(), nullptr, SND_MEMORY | SND_ASYNC | SND_LOOP);
 }
 
 void LoudnessCorrectionFilterGUIDialog::on_stopButton_clicked()
@@ -83,7 +83,7 @@ void LoudnessCorrectionFilterGUIDialog::on_stopButton_clicked()
 	if (buffer.size() == 0)
 		return;
 
-	PlaySoundA(NULL, NULL, 0);
+	PlaySoundA(nullptr, nullptr, 0);
 	buffer.buffer().clear();
 }
 

@@ -29,7 +29,7 @@ using namespace std;
 
 vector<IFilter*> ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	ConvolutionFilter* filter = NULL;
+	ConvolutionFilter* filter = nullptr;
 
 	if (command == L"Convolution")
 	{
@@ -41,7 +41,7 @@ vector<IFilter*> ConvolutionFilterFactory::createFilter(const wstring& configPat
 		filter = new(mem) ConvolutionFilter(absolutePath);
 	}
 
-	if (filter == NULL)
+	if (filter == nullptr)
 		return vector<IFilter*>(0);
 	return vector<IFilter*>(1, filter);
 }

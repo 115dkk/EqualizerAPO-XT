@@ -51,7 +51,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 	labels.append(tr("State"));
 	ui->treeWidget->setHeaderLabels(labels);
 
-	QTreeWidgetItem* lastItem = NULL;
+	QTreeWidgetItem* lastItem = nullptr;
 
 	if (parameters.trimmed() == "all")
 	{
@@ -95,7 +95,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 				else
 					state = tr("APO not installed");
 				VoicemeeterAPOInfo* voicemeeterInfo = dynamic_cast<VoicemeeterAPOInfo*>(apoInfo.get());
-				if (voicemeeterInfo != NULL && !voicemeeterInfo->isVoicemeeterInstalled())
+				if (voicemeeterInfo != nullptr && !voicemeeterInfo->isVoicemeeterInstalled())
 					state += ", " + tr("Voicemeeter was uninstalled");
 				values.append(state);
 				lastItem = new QTreeWidgetItem(ui->treeWidget, values);
@@ -120,7 +120,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 
 	int headerHeight = ui->treeWidget->header()->height();
 	int itemAreaHeight = 0;
-	if (lastItem != NULL)
+	if (lastItem != nullptr)
 		itemAreaHeight = ui->treeWidget->visualItemRect(lastItem).bottom() + 1;
 	ui->treeWidget->setFixedHeight(headerHeight + itemAreaHeight + 3);
 }

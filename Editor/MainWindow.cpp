@@ -54,7 +54,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	outputDevices = toQList(DeviceAPOInfo::loadAllInfos(false));
 	inputDevices = toQList(DeviceAPOInfo::loadAllInfos(true));
 
-	defaultOutputDevice = NULL;
+	defaultOutputDevice = nullptr;
 	for (shared_ptr<AbstractAPOInfo>& apoInfo : outputDevices)
 	{
 		if (apoInfo->isDefaultDevice())
@@ -105,8 +105,8 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	ui->mainToolBar->addWidget(channelConfigurationComboBox);
 
 	QStandardItemModel* model = qobject_cast<QStandardItemModel*>(deviceComboBox->model());
-	if (defaultOutputDevice != NULL)
-		deviceComboBox->addItem(tr("Default") + " (" + QString::fromStdWString(defaultOutputDevice->getConnectionName()) + " - " + QString::fromStdWString(defaultOutputDevice->getDeviceName()) + ")", NULL);
+	if (defaultOutputDevice != nullptr)
+		deviceComboBox->addItem(tr("Default") + " (" + QString::fromStdWString(defaultOutputDevice->getConnectionName()) + " - " + QString::fromStdWString(defaultOutputDevice->getDeviceName()) + ")", nullptr);
 
 	deviceComboBox->addItem(tr("Playback devices:"));
 	QStandardItem* item = model->item(model->rowCount() - 1);
@@ -185,7 +185,7 @@ void MainWindow::doChecks()
 		}
 	}
 
-	if (defaultOutputDevice != NULL && !defaultOutputDevice->isInstalled())
+	if (defaultOutputDevice != nullptr && !defaultOutputDevice->isInstalled())
 	{
 		if (QMessageBox::warning(this, tr("APO not installed to device"), tr("Equalizer APO has not been installed to the selected device.\nDo you want to run the Device Selector application to fix the problem?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
 		{
@@ -194,7 +194,7 @@ void MainWindow::doChecks()
 		}
 	}
 
-	AbstractAPOInfo* disabledApoInfo = NULL;
+	AbstractAPOInfo* disabledApoInfo = nullptr;
 	for (shared_ptr<AbstractAPOInfo>& apoInfo : outputDevices)
 	{
 		if (apoInfo->isInstalled() && apoInfo->isEnhancementsDisabled())
@@ -204,7 +204,7 @@ void MainWindow::doChecks()
 		}
 	}
 
-	if (disabledApoInfo == NULL)
+	if (disabledApoInfo == nullptr)
 	{
 		for (shared_ptr<AbstractAPOInfo>& apoInfo : inputDevices)
 		{
@@ -216,7 +216,7 @@ void MainWindow::doChecks()
 		}
 	}
 
-	if (disabledApoInfo != NULL)
+	if (disabledApoInfo != nullptr)
 	{
 		if (QMessageBox::warning(this, tr("Audio enhancements disabled"), tr("Audio enhancements are not enabled for the device\n%0 %1.\nDo you want to run the Device Selector application to fix the problem?").arg(QString::fromStdWString(disabledApoInfo->getConnectionName())).arg(QString::fromStdWString(disabledApoInfo->getDeviceName())), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
 		{
@@ -230,9 +230,9 @@ void MainWindow::runDeviceSelector()
 {
 	// cannot use QProcess::startDetached because of UAC
 	wstring file = (QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/DeviceSelector.exe")).toStdWString();
-	unsigned long long result = (unsigned long long)ShellExecuteW(NULL, L"open", file.c_str(), NULL, NULL, SW_SHOWNORMAL);
+	unsigned long long result = (unsigned long long)ShellExecuteW(nullptr, L"open", file.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 	if (result == SE_ERR_ACCESSDENIED)
-		ShellExecuteW(NULL, L"runas", file.c_str(), NULL, NULL, SW_SHOWNORMAL);
+		ShellExecuteW(nullptr, L"runas", file.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 void MainWindow::load(QString path)
@@ -257,7 +257,7 @@ void MainWindow::load(QString path)
 	HANDLE hFile = INVALID_HANDLE_VALUE;
 	while (hFile == INVALID_HANDLE_VALUE)
 	{
-		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
 			DWORD error = GetLastError();
@@ -276,7 +276,7 @@ void MainWindow::load(QString path)
 
 	char buf[8192];
 	unsigned long bytesRead = -1;
-	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, NULL) && bytesRead != 0)
+	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr) && bytesRead != 0)
 	{
 		inputStream.write(buf, bytesRead);
 	}
@@ -337,7 +337,7 @@ void MainWindow::save(FilterTable* filterTable, QString path)
 	HANDLE hFile = INVALID_HANDLE_VALUE;
 	while (hFile == INVALID_HANDLE_VALUE)
 	{
-		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
 			DWORD error = GetLastError();
@@ -353,7 +353,7 @@ void MainWindow::save(FilterTable* filterTable, QString path)
 	}
 
 	unsigned long bytesWritten;
-	WriteFile(hFile, byteArray.constData(), byteArray.length(), &bytesWritten, NULL);
+	WriteFile(hFile, byteArray.constData(), byteArray.length(), &bytesWritten, nullptr);
 	if (bytesWritten != byteArray.length())
 	{
 		// should never happen
@@ -405,16 +405,16 @@ void MainWindow::closeEvent(QCloseEvent* event)
 void MainWindow::deviceSelected(int index)
 {
 	shared_ptr<AbstractAPOInfo> apoInfo = deviceComboBox->itemData(index).value<shared_ptr<AbstractAPOInfo>>();
-	if (apoInfo == NULL)
+	if (apoInfo == nullptr)
 		apoInfo = defaultOutputDevice;
 
 	channelConfigurationComboBox->clear();
 
 	const QList<GUIChannelHelper::ChannelConfigurationInfo>& infos = GUIChannelHelper::getInstance()->getChannelConfigurationInfos();
 
-	if (apoInfo != NULL)
+	if (apoInfo != nullptr)
 	{
-		const GUIChannelHelper::ChannelConfigurationInfo* selectedInfo = NULL;
+		const GUIChannelHelper::ChannelConfigurationInfo* selectedInfo = nullptr;
 		for (const GUIChannelHelper::ChannelConfigurationInfo& info : infos)
 		{
 			if (info.channelMask == (int)apoInfo->getChannelMask())
@@ -424,7 +424,7 @@ void MainWindow::deviceSelected(int index)
 			}
 		}
 
-		if (selectedInfo != NULL)
+		if (selectedInfo != nullptr)
 			channelConfigurationComboBox->addItem(tr("From device") + " (" + selectedInfo->name + ")", 0);
 		else if (apoInfo->getChannelCount() != 0)
 			channelConfigurationComboBox->addItem((tr("From device") + " (%1 channels)").arg(apoInfo->getChannelCount()), 0);
@@ -457,7 +457,7 @@ void MainWindow::channelConfigurationSelected(int index)
 
 	ui->analysisChannelComboBox->clear();
 
-	if (selectedDevice != NULL)
+	if (selectedDevice != nullptr)
 	{
 		unsigned channelCount = selectedDevice->getChannelCount();
 		if (channelMask != 0 && channelMask != (int)selectedDevice->getChannelMask())
@@ -523,7 +523,7 @@ bool MainWindow::on_tabWidget_tabCloseRequested(int index)
 	if (askForClose(index))
 	{
 		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(index));
-		if (scrollArea != NULL)
+		if (scrollArea != nullptr)
 		{
 			FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 			QString path = filterTable->getConfigPath();
@@ -543,7 +543,7 @@ void MainWindow::on_actionOpen_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
 	QString path;
-	if (scrollArea != NULL)
+	if (scrollArea != nullptr)
 	{
 		FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 		if (filterTable->getConfigPath().length() > 0)
@@ -569,7 +569,7 @@ void MainWindow::on_actionOpen_triggered()
 void MainWindow::on_actionSave_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return;
 
 	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
@@ -591,7 +591,7 @@ void MainWindow::on_actionSave_triggered()
 void MainWindow::on_actionSaveAs_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return;
 
 	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
@@ -644,7 +644,7 @@ void MainWindow::recentFileSelected()
 void MainWindow::on_actionCut_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return;
 
 	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
@@ -654,7 +654,7 @@ void MainWindow::on_actionCut_triggered()
 void MainWindow::on_actionCopy_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return;
 
 	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
@@ -664,7 +664,7 @@ void MainWindow::on_actionCopy_triggered()
 void MainWindow::on_actionPaste_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return;
 
 	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
@@ -674,7 +674,7 @@ void MainWindow::on_actionPaste_triggered()
 void MainWindow::on_actionDelete_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return;
 
 	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
@@ -684,7 +684,7 @@ void MainWindow::on_actionDelete_triggered()
 void MainWindow::on_actionSelectAll_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == NULL)
+	if (scrollArea == nullptr)
 		return;
 
 	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
@@ -874,11 +874,11 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 void MainWindow::getDeviceAndChannelMask(shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask)
 {
 	*selectedDevice = deviceComboBox->currentData().value<shared_ptr<AbstractAPOInfo>>();
-	if (*selectedDevice == NULL)
+	if (*selectedDevice == nullptr)
 		*selectedDevice = defaultOutputDevice;
 
 	*channelMask = channelConfigurationComboBox->currentData().toInt();
-	if (*channelMask == 0 && selectedDevice->get() != NULL)
+	if (*channelMask == 0 && selectedDevice->get() != nullptr)
 	{
 		*channelMask = (*selectedDevice)->getChannelMask();
 
@@ -924,7 +924,7 @@ bool MainWindow::askForClose(int tabIndex)
 	if (!discarded && !noSaveFilePreferences)
 	{
 		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(tabIndex));
-		if (scrollArea != NULL)
+		if (scrollArea != nullptr)
 		{
 			FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 			filterTable->savePreferences();
@@ -944,14 +944,14 @@ void MainWindow::startAnalysis()
 	int channelMask;
 	getDeviceAndChannelMask(&selectedDevice, &channelMask);
 
-	if (selectedDevice != NULL)
+	if (selectedDevice != nullptr)
 	{
 		QString configPath;
 
 		if (ui->startFromComboBox->currentIndex() == 1)
 		{
 			QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-			if (scrollArea != NULL)
+			if (scrollArea != nullptr)
 			{
 				FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 
@@ -981,7 +981,7 @@ void MainWindow::loadPreferences()
 		for (int i = 0; i < deviceComboBox->count(); i++)
 		{
 			shared_ptr<AbstractAPOInfo> apoInfo = deviceComboBox->itemData(i).value<shared_ptr<AbstractAPOInfo>>();
-			if (apoInfo != NULL)
+			if (apoInfo != nullptr)
 			{
 				if (QString::fromStdWString(apoInfo->getDeviceString()).compare(selectedDevice, Qt::CaseInsensitive) == 0)
 				{
@@ -1060,7 +1060,7 @@ void MainWindow::savePreferences()
 	settings.setValue("windowState", saveState());
 	settings.setValue("instantMode", instantModeCheckBox->isChecked());
 	shared_ptr<AbstractAPOInfo> selectedDevice = deviceComboBox->currentData().value<shared_ptr<AbstractAPOInfo>>();
-	settings.setValue("selectedDevice", selectedDevice != NULL ? QString::fromStdWString(selectedDevice->getDeviceString()) : "");
+	settings.setValue("selectedDevice", selectedDevice != nullptr ? QString::fromStdWString(selectedDevice->getDeviceString()) : "");
 	int channelMask = channelConfigurationComboBox->currentData().toInt();
 	settings.setValue("selectedChannelMask", channelMask);
 
@@ -1080,7 +1080,7 @@ void MainWindow::savePreferences()
 	for (int i = 0; i < ui->tabWidget->count(); i++)
 	{
 		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
-		if (scrollArea == NULL)
+		if (scrollArea == nullptr)
 			continue;
 		FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 		if (filterTable->getConfigPath().length() > 0)

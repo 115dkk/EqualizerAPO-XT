@@ -26,13 +26,13 @@ using namespace std;
 
 AbstractLibrary::~AbstractLibrary()
 {
-	if (module != NULL)
+	if (module != nullptr)
 	{
 		wchar_t path[MAX_PATH];
 		GetModuleFileNameW(module, path, MAX_PATH);
 
 		FreeLibrary(module);
-		module = NULL;
+		module = nullptr;
 
 		TraceF(L"Unloaded library %s", path);
 	}
@@ -40,13 +40,13 @@ AbstractLibrary::~AbstractLibrary()
 
 int AbstractLibrary::initialize()
 {
-	if (module == NULL)
+	if (module == nullptr)
 	{
 		wstring libPath = getLibPath();
 		if (GetFileAttributesW(libPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 			return FILE_NOT_FOUND;
 		module = LoadLibraryW(libPath.c_str());
-		if (module == NULL)
+		if (module == nullptr)
 		{
 			unsigned short arch = getFileArchitecture(libPath);
 #ifdef _WIN64
@@ -64,7 +64,7 @@ int AbstractLibrary::initialize()
 		if (!loadFunctions())
 		{
 			FreeLibrary(module);
-			module = NULL;
+			module = nullptr;
 			return FUNCTIONS_MISSING;
 		}
 
@@ -90,17 +90,17 @@ unsigned short AbstractLibrary::getFileArchitecture(const wstring& filePath)
 {
 	unsigned short result = 0;
 
-	HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (hFile != INVALID_HANDLE_VALUE)
 	{
-		HANDLE hMap = CreateFileMappingW(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-		if (hMap != NULL)
+		HANDLE hMap = CreateFileMappingW(hFile, nullptr, PAGE_READONLY, 0, 0, nullptr);
+		if (hMap != nullptr)
 		{
-			void* mapAddr = MapViewOfFileEx(hMap, FILE_MAP_READ, 0, 0, 0, NULL);
-			if (mapAddr != NULL)
+			void* mapAddr = MapViewOfFileEx(hMap, FILE_MAP_READ, 0, 0, 0, nullptr);
+			if (mapAddr != nullptr)
 			{
 				PIMAGE_NT_HEADERS ntHeaders = ImageNtHeader(mapAddr);
-				if (ntHeaders != NULL)
+				if (ntHeaders != nullptr)
 					result = ntHeaders->FileHeader.Machine;
 				UnmapViewOfFile(mapAddr);
 			}

@@ -265,7 +265,7 @@ void VoicemeeterAPOInfo::uninstall()
 		argString = joinArgs(args);
 
 		wchar_t filename[MAX_PATH];
-		GetModuleFileNameW(NULL, filename, ARRAYSIZE(filename));
+		GetModuleFileNameW(nullptr, filename, ARRAYSIZE(filename));
 		PathRemoveFileSpecW(filename);
 		wstring clientPath = filename;
 		clientPath = clientPath + L"\\" + clientFilename;
@@ -287,7 +287,7 @@ void VoicemeeterAPOInfo::reinstall()
 wstring VoicemeeterAPOInfo::getStartupPath()
 {
 	PWSTR startupPath;
-	SHGetKnownFolderPath(FOLDERID_Startup, KF_FLAG_DONT_UNEXPAND, NULL, &startupPath);
+	SHGetKnownFolderPath(FOLDERID_Startup, KF_FLAG_DONT_UNEXPAND, nullptr, &startupPath);
 	wstring result(startupPath);
 
 	CoTaskMemFree(startupPath);
@@ -298,7 +298,7 @@ wstring VoicemeeterAPOInfo::getStartupPath()
 wstring VoicemeeterAPOInfo::getClientPath()
 {
 	wchar_t filename[MAX_PATH];
-	GetModuleFileNameW(NULL, filename, ARRAYSIZE(filename));
+	GetModuleFileNameW(nullptr, filename, ARRAYSIZE(filename));
 	PathRemoveFileSpecW(filename);
 	wstring clientPath = filename;
 	clientPath = clientPath + L"\\" + clientFilename;
@@ -309,7 +309,7 @@ wstring VoicemeeterAPOInfo::getClientPath()
 void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path, const wstring& args)
 {
 	IShellLink* shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&shellLink);
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&shellLink);
 	if (SUCCEEDED(hr))
 	{
 		shellLink->SetPath(path.c_str());
@@ -331,7 +331,7 @@ wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)
 	wstring result;
 
 	IShellLink* shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&shellLink);
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&shellLink);
 	if (SUCCEEDED(hr))
 	{
 		IPersistFile* persistFile;
@@ -346,9 +346,9 @@ wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)
 				if (SUCCEEDED(hr))
 					result = buf;
 
-				if (path != NULL)
+				if (path != nullptr)
 				{
-					hr = shellLink->GetPath(buf, ARRAYSIZE(buf), NULL, 0);
+					hr = shellLink->GetPath(buf, ARRAYSIZE(buf), nullptr, 0);
 					if (SUCCEEDED(hr))
 						*path = buf;
 				}
@@ -407,7 +407,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 		throw RegistryException(L"Error in OpenProcessToken while taking ownership");
 
 	LUID luid;
-	if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid))
+	if (!LookupPrivilegeValue(nullptr, SE_DEBUG_NAME, &luid))
 		throw RegistryException(L"Error in LookupPrivilegeValue while taking ownership");
 
 	TOKEN_PRIVILEGES tp;
@@ -415,16 +415,16 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	tp.Privileges[0].Luid = luid;
 	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-	if (!AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL))
+	if (!AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
 		throw RegistryException(L"Error in AdjustTokenPrivileges while taking ownership");
 
 	HMODULE module = LoadLibraryW(L"ntdll.dll");
-	if (module == NULL)
+	if (module == nullptr)
 		throw exception("Could not load ntdll.dll");
 	SCOPE_EXIT{FreeLibrary(module); };
 
 	pfnNtQueryInformationProcess NtQueryInformationProcess = (pfnNtQueryInformationProcess)GetProcAddress(module, "NtQueryInformationProcess");
-	if (NtQueryInformationProcess == NULL)
+	if (NtQueryInformationProcess == nullptr)
 		throw exception("Function NtQueryInformationProcess not found in ntdll.dll");
 
 	HANDLE snapshotHandle = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -447,20 +447,20 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 			SCOPE_EXIT{CloseHandle(processHandle); };
 
 			PROCESS_BASIC_INFORMATION basicInformation;
-			NTSTATUS status = NtQueryInformationProcess(processHandle, ProcessBasicInformation, &basicInformation, sizeof(basicInformation), NULL);
+			NTSTATUS status = NtQueryInformationProcess(processHandle, ProcessBasicInformation, &basicInformation, sizeof(basicInformation), nullptr);
 			if (status < 0)
 				throw exception("Could not query process information");
 
 			_PEB peb;
-			if (!ReadProcessMemory(processHandle, basicInformation.PebBaseAddress, &peb, sizeof(peb), NULL))
+			if (!ReadProcessMemory(processHandle, basicInformation.PebBaseAddress, &peb, sizeof(peb), nullptr))
 				throw exception("Could not read peb from process memory");
 
 			RTL_USER_PROCESS_PARAMETERS processParams;
-			if (!ReadProcessMemory(processHandle, peb.ProcessParameters, &processParams, sizeof(processParams), NULL))
+			if (!ReadProcessMemory(processHandle, peb.ProcessParameters, &processParams, sizeof(processParams), nullptr))
 				throw exception("Could not read process parameters from process memory");
 
 			vector<wchar_t> cmdLineBuf(processParams.CommandLine.Length / sizeof(wchar_t));
-			if (!ReadProcessMemory(processHandle, processParams.CommandLine.Buffer, cmdLineBuf.data(), processParams.CommandLine.Length, NULL))
+			if (!ReadProcessMemory(processHandle, processParams.CommandLine.Buffer, cmdLineBuf.data(), processParams.CommandLine.Length, nullptr))
 				throw exception("Could not read command line from process memory");
 			wstring cmdLine(cmdLineBuf.data(), cmdLineBuf.size());
 
@@ -479,7 +479,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 
 	if (!matchingProcessExists && !args.empty())
 	{
-		ShellExecuteW(NULL, NULL, clientPath.c_str(), argString.c_str(), NULL, SW_SHOWDEFAULT);
+		ShellExecuteW(nullptr, nullptr, clientPath.c_str(), argString.c_str(), nullptr, SW_SHOWDEFAULT);
 	}
 }
 
