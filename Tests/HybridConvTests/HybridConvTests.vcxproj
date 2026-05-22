@@ -114,8 +114,8 @@
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\libfftw3.dll" copy /Y "$(FFTW_LIB)\libfftw3.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll" "$(OutDir)"</Command>
+      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
+if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -134,8 +134,8 @@ if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll"
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\libfftw3.dll" copy /Y "$(FFTW_LIB)\libfftw3.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll" "$(OutDir)"</Command>
+      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
+if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -152,8 +152,8 @@ if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll"
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\libfftw3.dll" copy /Y "$(FFTW_LIB)\libfftw3.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll" "$(OutDir)"</Command>
+      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
+if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -178,8 +178,8 @@ if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll"
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\libfftw3.dll" copy /Y "$(FFTW_LIB)\libfftw3.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll" "$(OutDir)"</Command>
+      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
+if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -205,8 +205,8 @@ if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll"
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\libfftw3.dll" copy /Y "$(FFTW_LIB)\libfftw3.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll" "$(OutDir)"</Command>
+      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
+if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -230,8 +230,8 @@ if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll"
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if exist "$(FFTW_LIB)\libfftw3.dll" copy /Y "$(FFTW_LIB)\libfftw3.dll" "$(OutDir)"
-if exist "$(LIBSNDFILE_LIB)\sndfile.dll" copy /Y "$(LIBSNDFILE_LIB)\sndfile.dll" "$(OutDir)"</Command>
+      <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
+if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

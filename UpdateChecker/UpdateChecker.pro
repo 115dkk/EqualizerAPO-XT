@@ -76,6 +76,13 @@ contains(QT_ARCH, arm64) {
 	} else {
 		QMAKE_LIBDIR += "../x64/Release"
 	}
+} else:equals(EAPO_SIMD_BASELINE, 1) {
+	build_pass:CONFIG(debug, debug|release) {
+		QMAKE_LIBDIR += "../x64/Debug"
+
+	} else {
+		QMAKE_LIBDIR += "../x64/Release"
+	}
 } else:contains(QT_ARCH, x86_64) {
 	QMAKE_CXXFLAGS += /arch:AVX2
 	build_pass:CONFIG(debug, debug|release) {

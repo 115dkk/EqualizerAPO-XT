@@ -57,6 +57,9 @@ function Get-ChannelFromAssetName {
   if ($lowerName -match "arm64") {
     return "arm64"
   }
+  if ($lowerName -match "sse2|baseline") {
+    return "x64-sse2"
+  }
   if ($lowerName -match "avx10-1|avx10_1") {
     return "x64-avx10-1"
   }
@@ -65,6 +68,9 @@ function Get-ChannelFromAssetName {
   }
   if ($lowerName -match "avx2") {
     return "x64-avx2"
+  }
+  if ($lowerName -match "(^|[-_])avx($|[-_])") {
+    return "x64-avx"
   }
 
   return "unknown"
@@ -77,6 +83,8 @@ function Get-ChannelSortOrder {
   )
 
   switch ($Channel) {
+    "x64-sse2" { return 5 }
+    "x64-avx" { return 8 }
     "x64-avx2" { return 10 }
     "x64-avx512" { return 20 }
     "x64-avx10-1" { return 30 }
@@ -92,6 +100,8 @@ function Get-DownloadGuidance {
   )
 
   switch ($Channel) {
+    "x64-sse2" { return "Baseline 64-bit Intel/AMD systems. Pick this for older x64 CPUs that do not support AVX." }
+    "x64-avx" { return "64-bit Intel/AMD systems with AVX, but not AVX2." }
     "x64-avx2" { return "Most 64-bit Intel/AMD systems with AVX2. Use this if you are unsure which x64 build to pick." }
     "x64-avx512" { return "64-bit Intel/AMD systems where you specifically want the AVX-512 build." }
     "x64-avx10-1" { return "64-bit Intel/AMD systems with AVX10.1 support." }
@@ -285,7 +295,7 @@ if ($previousRelease -and $compare) {
 [void]$lines.Add("")
 [void]$lines.Add("## Verification")
 [void]$lines.Add("")
-[void]$lines.Add("The linked workflow builds x64 AVX2, x64 AVX-512, x64 AVX10.1, and ARM64 installers. It runs EditorLogicTests on every build variant and runs HybridConvTests where the GitHub-hosted runner can execute the target instruction set.")
+[void]$lines.Add("The linked workflow builds x64 SSE2 baseline, x64 AVX, x64 AVX2, x64 AVX-512, x64 AVX10.1, and ARM64 installers. It runs EditorLogicTests on every build variant and runs HybridConvTests where the GitHub-hosted runner can execute the target instruction set.")
 [void]$lines.Add("")
 [void]$lines.Add("Release page: [$Tag]($releaseUrl)")
 

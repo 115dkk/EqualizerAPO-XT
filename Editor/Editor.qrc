@@ -1,7 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>translations/Editor_de.qm</file>
+        <file>translations/Editor_ko.qm</file>
         <file>translations/qtbase_de.qm</file>
+        <file>translations/qtbase_ko.qm</file>
         <file>icons/document-open.ico</file>
         <file>icons/document-save.ico</file>
         <file>icons/accessories-text-editor.ico</file>

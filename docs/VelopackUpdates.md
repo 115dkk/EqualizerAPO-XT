@@ -14,6 +14,8 @@ The update flow is:
 
 The channel is injected by CI with `EAPO_UPDATE_CHANNEL` during qmake builds. Current CI channels are:
 
+- `x64-sse2`
+- `x64-avx`
 - `x64-avx2`
 - `x64-avx512`
 - `x64-avx10-1`

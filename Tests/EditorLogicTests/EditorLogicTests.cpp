@@ -119,20 +119,28 @@ int main(int argc, char** argv)
 		VelopackUpdateInfo::feedFileName("x64-avx2"),
 		"releases.x64-avx2.json",
 		"Velopack feed file name");
+	expectEqual(
+		VelopackUpdateInfo::feedFileName("x64-sse2"),
+		"releases.x64-sse2.json",
+		"Velopack SSE2 feed file name");
+	expectEqual(
+		VelopackUpdateInfo::feedFileName("x64-avx"),
+		"releases.x64-avx.json",
+		"Velopack AVX feed file name");
 	expectTrue(
-		VelopackUpdateInfo::isNewerVersion("v1.4.3-main.77", "1.4.2"),
+		VelopackUpdateInfo::isNewerVersion("v1.4.4-main.77", "1.4.3"),
 		"Velopack package version was not considered newer");
 	expectTrue(
-		VelopackUpdateInfo::isNewerVersion("1.4.2-main.77", "1.4.2"),
+		VelopackUpdateInfo::isNewerVersion("1.4.3-main.77", "1.4.3"),
 		"CI package version was not considered newer than the base installed version");
 	expectFalse(
-		VelopackUpdateInfo::isNewerVersion("1.4.1", "1.4.2"),
+		VelopackUpdateInfo::isNewerVersion("1.4.0", "1.4.3"),
 		"older package version was considered newer");
 
 	QJsonObject githubRelease;
-	githubRelease["tag_name"] = "v1.4.3-main.77";
-	githubRelease["name"] = "EqualizerAPO-XT 1.4.3-main.77";
-	githubRelease["html_url"] = "https://github.com/115dkk/EqualizerAPO-XT/releases/tag/v1.4.3-main.77";
+	githubRelease["tag_name"] = "v1.4.4-main.77";
+	githubRelease["name"] = "EqualizerAPO-XT 1.4.4-main.77";
+	githubRelease["html_url"] = "https://github.com/115dkk/EqualizerAPO-XT/releases/tag/v1.4.4-main.77";
 	githubRelease["published_at"] = "2026-05-22T00:00:00Z";
 	githubRelease["body"] = "Fix convolution updates\nShip Velopack feeds";
 	QJsonArray releaseAssets;
@@ -141,7 +149,7 @@ int main(int argc, char** argv)
 		{ "browser_download_url", "https://example.invalid/releases.x64-avx2.json" },
 	}));
 	releaseAssets.append(QJsonObject({
-		{ "name", "EqualizerAPO-XT-x64-avx2-1.4.3-main.77-full.nupkg" },
+		{ "name", "EqualizerAPO-XT-x64-avx2-1.4.4-main.77-full.nupkg" },
 		{ "browser_download_url", "https://example.invalid/full.nupkg" },
 	}));
 	releaseAssets.append(QJsonObject({
@@ -159,25 +167,25 @@ int main(int argc, char** argv)
 		"https://example.invalid/releases.x64-avx2.json",
 		"Velopack feed asset URL");
 	expectEqual(
-		VelopackUpdateInfo::fromGitHubRelease(githubReleaseDoc, "x64-avx2", "1.4.2").object().value("download-url").toString(),
+		VelopackUpdateInfo::fromGitHubRelease(githubReleaseDoc, "x64-avx2", "1.4.3").object().value("download-url").toString(),
 		"https://example.invalid/setup.exe",
 		"GitHub release fallback setup URL");
 
 	QJsonArray feedAssets;
 	feedAssets.append(QJsonObject({
 		{ "PackageId", "EqualizerAPO-XT-x64-avx2" },
-		{ "Version", "1.4.3-main.77" },
+		{ "Version", "1.4.4-main.77" },
 		{ "Type", "Full" },
-		{ "FileName", "EqualizerAPO-XT-x64-avx2-1.4.3-main.77-full.nupkg" },
+		{ "FileName", "EqualizerAPO-XT-x64-avx2-1.4.4-main.77-full.nupkg" },
 	}));
 	feedAssets.append(QJsonObject({
 		{ "PackageId", "EqualizerAPO-XT-x64-avx512" },
-		{ "Version", "1.4.4-main.1" },
+		{ "Version", "1.4.5-main.1" },
 		{ "Type", "Full" },
-		{ "FileName", "EqualizerAPO-XT-x64-avx512-1.4.4-main.1-full.nupkg" },
+		{ "FileName", "EqualizerAPO-XT-x64-avx512-1.4.5-main.1-full.nupkg" },
 	}));
 	QJsonDocument feedDoc(QJsonObject({ { "Assets", feedAssets } }));
-	QJsonDocument updateDoc = VelopackUpdateInfo::fromVelopackFeed(feedDoc, githubReleaseDoc, "x64-avx2", "1.4.2");
+	QJsonDocument updateDoc = VelopackUpdateInfo::fromVelopackFeed(feedDoc, githubReleaseDoc, "x64-avx2", "1.4.3");
 	QJsonObject updateObj = updateDoc.object();
 	expectEqual(
 		updateObj.value("download-url").toString(),
@@ -186,7 +194,7 @@ int main(int argc, char** argv)
 	QJsonObject velopackVersion = updateObj.value("versions").toArray().first().toObject();
 	expectEqual(
 		velopackVersion.value("version").toString(),
-		"1.4.3-main.77",
+		"1.4.4-main.77",
 		"Velopack update version");
 	QStringList infoLines;
 	for (const QJsonValue& infoValue : velopackVersion.value("info").toArray())
@@ -195,7 +203,7 @@ int main(int argc, char** argv)
 		infoLines.contains("Velopack channel: x64-avx2") && infoLines.contains("Fix convolution updates"),
 		"Velopack release notes were not preserved");
 	expectTrue(
-		VelopackUpdateInfo::fromVelopackFeed(feedDoc, githubReleaseDoc, "x64-avx2", "1.4.3-main.77").isEmpty(),
+		VelopackUpdateInfo::fromVelopackFeed(feedDoc, githubReleaseDoc, "x64-avx2", "1.4.4-main.77").isEmpty(),
 		"same Velopack version produced an update");
 
 	FilterCardDescriptor preamp = FilterCardModel::describeLine("Preamp: -6 dB");

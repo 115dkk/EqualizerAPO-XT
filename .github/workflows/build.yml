@@ -23,17 +23,35 @@ jobs:
       fail-fast: false
       matrix:
         name: [
+          windows-x64-sse2,
+          windows-x64-avx,
           windows-x64-avx2,
           windows-x64-avx512,
           windows-x64-avx10_1,
           windows-arm64
         ]
         include:
+          - name: windows-x64-sse2
+            os: windows-2025
+            platform: x64
+            simd_variant: sse2
+            arch_flag: NotSet
+            muparserx_asset: muparserx-msvc-release-x64-avx2.zip
+            msvcdevplatform: x64
+          - name: windows-x64-avx
+            os: windows-2025
+            platform: x64
+            simd_variant: avx
+            arch_flag: AdvancedVectorExtensions
+            qt_arch_flag: /arch:AVX
+            muparserx_asset: muparserx-msvc-release-x64-avx2.zip
+            msvcdevplatform: x64
           - name: windows-x64-avx2
             os: windows-2025
             platform: x64
             simd_variant: avx2
             arch_flag: AdvancedVectorExtensions2
+            qt_arch_flag: /arch:AVX2
             fftw_asset: fftw-windows-release-x64-avx2.zip
             muparserx_asset: muparserx-msvc-release-x64-avx2.zip
             libsndfile_asset: libsndfile-x64-avx2.zip
@@ -43,6 +61,7 @@ jobs:
             platform: x64
             simd_variant: avx512
             arch_flag: AdvancedVectorExtensions512
+            qt_arch_flag: /arch:AVX512
             fftw_asset: fftw-windows-release-x64-avx512.zip
             muparserx_asset: muparserx-msvc-release-x64-avx512.zip
             libsndfile_asset: libsndfile-x64-avx512.zip
@@ -52,6 +71,7 @@ jobs:
             platform: x64
             simd_variant: avx10_1
             arch_flag: AdvancedVectorExtensions101
+            qt_arch_flag: /arch:AVX10.1
             fftw_asset: fftw-windows-release-x64-avx10.zip
             muparserx_asset: muparserx-msvc-release-x64-avx10.zip
             libsndfile_asset: libsndfile-x64-avx10.zip
@@ -83,23 +103,31 @@ jobs:
         $downloadRoot = "${{ github.workspace }}\deps\_downloads"
         New-Item -ItemType Directory -Force -Path $downloadRoot | Out-Null
 
+        $usesVcpkgLowerSimd = "${{ matrix.platform }}" -eq "x64" -and
+          ("${{ matrix.simd_variant }}" -eq "sse2" -or "${{ matrix.simd_variant }}" -eq "avx")
+
         $downloads = @(
-          @{
-            Repo = "TheFireKahuna/amd-fftw"
-            Asset = "${{ matrix.fftw_asset }}"
-            Destination = "${{ github.workspace }}\deps\fftw"
-          },
           @{
             Repo = "TheFireKahuna/muparserx"
             Asset = "${{ matrix.muparserx_asset }}"
             Destination = "${{ github.workspace }}\deps\muparserx"
-          },
-          @{
-            Repo = "TheFireKahuna/libsndfile"
-            Asset = "${{ matrix.libsndfile_asset }}"
-            Destination = "${{ github.workspace }}\deps\libsndfile"
           }
         )
+
+        if (-not $usesVcpkgLowerSimd) {
+          $downloads += @(
+            @{
+              Repo = "TheFireKahuna/amd-fftw"
+              Asset = "${{ matrix.fftw_asset }}"
+              Destination = "${{ github.workspace }}\deps\fftw"
+            },
+            @{
+              Repo = "TheFireKahuna/libsndfile"
+              Asset = "${{ matrix.libsndfile_asset }}"
+              Destination = "${{ github.workspace }}\deps\libsndfile"
+            }
+          )
+        }
 
         foreach ($download in $downloads) {
           $url = "https://github.com/$($download.Repo)/releases/latest/download/$($download.Asset)"
@@ -113,6 +141,135 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path $download.Destination | Out-Null
           Expand-Archive -Path $zipPath -DestinationPath $download.Destination -Force
+        }
+
+    - name: Build lower-SIMD dependency binaries
+      if: ${{ matrix.platform == 'x64' && (matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx') }}
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        function Import-VsDevEnvironment {
+          param([string]$Arch)
+
+          $vswherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswherePath)) {
+            throw "vswhere.exe not found at $vswherePath"
+          }
+
+          $vsInstallPath = & $vswherePath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
+          if (-not $vsInstallPath) {
+            $vsInstallPath = & $vswherePath -products * -requires Microsoft.Component.MSBuild -property installationPath -latest
+          }
+          if (-not $vsInstallPath) {
+            throw "Visual Studio installation not found"
+          }
+
+          $devCmdPath = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
+          if (-not (Test-Path $devCmdPath)) {
+            throw "VsDevCmd.bat not found at $devCmdPath"
+          }
+
+          Write-Host "Configuring MSVC environment for $Arch"
+          $environment = cmd /c "`"$devCmdPath`" -arch=$Arch -no_logo >nul && set"
+          if ($LASTEXITCODE -ne 0) {
+            throw "VsDevCmd.bat failed for architecture $Arch"
+          }
+
+          foreach ($line in $environment) {
+            if ($line -match "^(.*?)=(.*)$") {
+              Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
+            }
+          }
+        }
+
+        function Copy-RequiredFile {
+          param(
+            [string]$SourceRoot,
+            [string[]]$Patterns,
+            [scriptblock]$Filter,
+            [string]$Destination
+          )
+
+          foreach ($pattern in $Patterns) {
+            $matches = @(Get-ChildItem -Path $SourceRoot -Recurse -Filter $pattern -File -ErrorAction SilentlyContinue | Where-Object $Filter)
+            if ($matches.Count -gt 0) {
+              New-Item -ItemType Directory -Force -Path (Split-Path $Destination -Parent) | Out-Null
+              Copy-Item -Path $matches[0].FullName -Destination $Destination -Force
+              Write-Host "Copied $($matches[0].FullName) -> $Destination"
+              return
+            }
+          }
+
+          throw "Could not find required file under $SourceRoot matching $($Patterns -join ', ')"
+        }
+
+        Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
+
+        $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
+        if (-not $vcpkgRoot -or -not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
+          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
+          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
+        }
+
+        $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
+        $fftwFeature = if ("${{ matrix.simd_variant }}" -eq "avx") { "fftw3[avx]:x64-windows" } else { "fftw3[sse2]:x64-windows" }
+        & $vcpkgExe install $fftwFeature "libsndfile:x64-windows" --clean-after-build
+        if ($LASTEXITCODE -ne 0) {
+          throw "vcpkg dependency install failed"
+        }
+
+        $installedRoot = Join-Path $vcpkgRoot "installed\x64-windows"
+        $fftwInclude = "${{ github.workspace }}\deps\fftw\include"
+        $fftwRelease = "${{ github.workspace }}\deps\fftw\Release"
+        $sndInclude = "${{ github.workspace }}\deps\libsndfile\include"
+        $sndRelease = "${{ github.workspace }}\deps\libsndfile\build\Release"
+
+        New-Item -ItemType Directory -Force -Path $fftwInclude, $fftwRelease, $sndInclude, $sndRelease | Out-Null
+        Copy-Item -Path (Join-Path $installedRoot "include\fftw3.h") -Destination $fftwInclude -Force
+        Copy-Item -Path (Join-Path $installedRoot "include\sndfile*.h*") -Destination $sndInclude -Force
+
+        $doubleFftwFilter = { $_.Name -notmatch "fftw3f|fftw3l|threads|omp" }
+        Copy-RequiredFile (Join-Path $installedRoot "lib") @("libfftw3.lib", "fftw3.lib", "libfftw3-3.lib") $doubleFftwFilter (Join-Path $fftwRelease "libfftw3.lib")
+        Copy-RequiredFile (Join-Path $installedRoot "lib") @("sndfile.lib") { $true } (Join-Path $sndRelease "sndfile.lib")
+
+        Get-ChildItem -Path (Join-Path $installedRoot "bin") -Filter "*.dll" -File | Copy-Item -Destination $sndRelease -Force
+        $fftwDlls = @(Get-ChildItem -Path (Join-Path $installedRoot "bin") -Filter "*fftw3*.dll" -File | Where-Object $doubleFftwFilter)
+        if ($fftwDlls.Count -eq 0) {
+          throw "Could not find FFTW runtime DLLs in vcpkg output"
+        }
+        $fftwDlls | Copy-Item -Destination $fftwRelease -Force
+        if (-not (Test-Path (Join-Path $fftwRelease "libfftw3.dll"))) {
+          Copy-Item -Path $fftwDlls[0].FullName -Destination (Join-Path $fftwRelease "libfftw3.dll") -Force
+        }
+
+        $parserDir = "${{ github.workspace }}\deps\muparserx\parser"
+        $muparserBuildDir = "${{ github.workspace }}\deps\muparserx\build\Release"
+        $muparserObjDir = "${{ github.workspace }}\deps\muparserx\build\obj-${{ matrix.simd_variant }}"
+        New-Item -ItemType Directory -Force -Path $muparserBuildDir, $muparserObjDir | Out-Null
+
+        $archArg = if ("${{ matrix.simd_variant }}" -eq "avx") { "/arch:AVX" } else { "" }
+        $objects = @()
+        $sources = Get-ChildItem -Path $parserDir -Filter "*.cpp" -File | Where-Object { $_.Name -ne "mpTest.cpp" }
+        foreach ($source in $sources) {
+          $objectPath = Join-Path $muparserObjDir ($source.BaseName + ".obj")
+          $args = @("/nologo", "/c", "/EHsc", "/std:c++17", "/O2", "/MD", "/DNDEBUG", "/DMUP_USE_WIDE_STRING", "/I$parserDir", "/Fo$objectPath")
+          if ($archArg) {
+            $args += $archArg
+          }
+          $args += $source.FullName
+          & cl.exe @args
+          if ($LASTEXITCODE -ne 0) {
+            throw "muParserX compile failed for $($source.Name)"
+          }
+          $objects += $objectPath
+        }
+
+        $muparserLib = Join-Path $muparserBuildDir "muparserx.lib"
+        & lib.exe /nologo "/OUT:$muparserLib" $objects
+        if ($LASTEXITCODE -ne 0) {
+          throw "muParserX library creation failed"
         }
 
     # Clone tclap repository (header-only library)
@@ -354,14 +511,7 @@ jobs:
         $BuildPlatform = "${{ matrix.platform }}"
         # Only add instruction set override if specified (not for ARM64)
         if ($BuildPlatform -eq "x64") {
-          # Set instruction set based on SIMD variant
-          $instructionSet = if ("${{ matrix.simd_variant }}" -eq "avx512") {
-            "AdvancedVectorExtensions512"
-          } elseif ("${{ matrix.simd_variant }}" -eq "avx10_1") {
-            "AdvancedVectorExtensions101"
-          } else {
-            "AdvancedVectorExtensions2"
-          }
+          $instructionSet = "${{ matrix.arch_flag }}"
           Write-Host "Building with instruction set: $instructionSet (variant: ${{ matrix.simd_variant }})"
           $buildParams += "/p:EnableEnhancedInstructionSet=$instructionSet"
         }
@@ -383,6 +533,7 @@ jobs:
         )
 
         $canRunAudioSimdTests = "${{ matrix.platform }}" -ne "x64" -or "${{ matrix.simd_variant }}" -eq "avx2"
+        $canRunAudioSimdTests = $canRunAudioSimdTests -or "${{ matrix.simd_variant }}" -eq "avx" -or "${{ matrix.simd_variant }}" -eq "sse2"
         if ($canRunAudioSimdTests) {
           $testExecutables += "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
         } else {
@@ -497,13 +648,11 @@ jobs:
         Write-Host "Qt update channel: $updateChannel"
         if ($BuildPlatform -eq "x64") {
           # Set compiler flags based on SIMD variant
-          $simdFlags = switch ("${{ matrix.simd_variant }}") {
-            "avx512" { "/arch:AVX512" }
-            "avx10_1" { "/arch:AVX10.1" }
-            "avx2" { "/arch:AVX2" }
-          }
+          $simdFlags = "${{ matrix.qt_arch_flag }}"
           if ($simdFlags) {
             Write-Host "Qt builds using SIMD flags: $simdFlags (variant: ${{ matrix.simd_variant }})"
+          } else {
+            Write-Host "Qt builds using MSVC x64 baseline code generation (variant: ${{ matrix.simd_variant }})"
           }
         }
 
@@ -522,7 +671,11 @@ jobs:
           $qmakeChannelArg = "EAPO_UPDATE_CHANNEL=$updateChannel"
           $qmakeArgs = @("..\$projectPath", "-r", "CONFIG+=release", $qmakeChannelArg)
           if ($BuildPlatform -eq "x64") {
-            $qmakeArgs += "EAPO_SIMD_FLAGS=$simdFlags"
+            if ($simdFlags) {
+              $qmakeArgs += "EAPO_SIMD_FLAGS=$simdFlags"
+            } else {
+              $qmakeArgs += "EAPO_SIMD_BASELINE=1"
+            }
           }
           & $qmakePath @qmakeArgs
           if ($LASTEXITCODE -ne 0) {
@@ -630,8 +783,8 @@ jobs:
             exit 1
           }
         }
-        Copy-Item ${{ github.workspace }}\deps\fftw\Release\libfftw3.dll -Destination $artifactPath -Force
-        Copy-Item ${{ github.workspace }}\deps\libsndfile\build\Release\sndfile.dll -Destination $artifactPath -Force
+        Copy-Item ${{ github.workspace }}\deps\fftw\Release\*.dll -Destination $artifactPath -Force
+        Copy-Item ${{ github.workspace }}\deps\libsndfile\build\Release\*.dll -Destination $artifactPath -Force
 
         # Copy Qt applications built with qmake (Editor, DeviceSelector, UpdateChecker)
         # Include all deployed Qt dependencies (DLLs, plugins, etc.)
@@ -705,6 +858,14 @@ jobs:
     strategy:
       matrix:
         include:
+          - platform: x64
+            simd_variant: sse2
+            setup_file: Setup64
+            installer_name: x64-sse2
+          - platform: x64
+            simd_variant: avx
+            setup_file: Setup64
+            installer_name: x64-avx
           - platform: x64
             simd_variant: avx2
             setup_file: Setup64

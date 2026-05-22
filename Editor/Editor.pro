@@ -365,6 +365,8 @@ contains(QT_ARCH, arm64) {
 } else:!isEmpty(EAPO_SIMD_FLAGS) {
 	QMAKE_CXXFLAGS += $$EAPO_SIMD_FLAGS
 	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
+} else:equals(EAPO_SIMD_BASELINE, 1) {
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
 } else:contains(QT_ARCH, x86_64) {
 	QMAKE_CXXFLAGS += /arch:AVX2
 	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
@@ -402,6 +404,7 @@ RESOURCES += \
 	Editor.qrc
 TRANSLATIONS += translations/Editor_de.ts \
 	translations/Editor_fr.ts \
+	translations/Editor_ko.ts \
 	translations/Editor_zh_CN.ts
 
 RC_FILE = Editor.rc

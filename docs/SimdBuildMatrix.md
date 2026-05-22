@@ -7,6 +7,8 @@ runtime-dispatching one universal x64 binary.
 
 | Matrix name | Platform | SIMD variant | MSBuild instruction set | Qt flag | Dependency release assets | Installer artifact |
 | --- | --- | --- | --- | --- | --- | --- |
+| `windows-x64-sse2` | `x64` | `sse2` | `NotSet` | none | vcpkg `fftw3[sse2]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-sse2` |
+| `windows-x64-avx` | `x64` | `avx` | `AdvancedVectorExtensions` | `/arch:AVX` | vcpkg `fftw3[avx]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-avx` |
 | `windows-x64-avx2` | `x64` | `avx2` | `AdvancedVectorExtensions2` | `/arch:AVX2` | `*-x64-avx2` | `EqualizerAPO_Setup-x64-avx2` |
 | `windows-x64-avx512` | `x64` | `avx512` | `AdvancedVectorExtensions512` | `/arch:AVX512` | `*-x64-avx512` | `EqualizerAPO_Setup-x64-avx512` |
 | `windows-x64-avx10_1` | `x64` | `avx10_1` | `AdvancedVectorExtensions101` | `/arch:AVX10.1` | `*-x64-avx10` | `EqualizerAPO_Setup-x64-avx10_1` |
@@ -16,17 +18,20 @@ runtime-dispatching one universal x64 binary.
 
 - x64 installers are variant-specific. Users need a CPU and Windows build that
   can execute the selected variant.
+- `x64-sse2` uses MSVC's default x64 code generation and does not pass an AVX
+  `/arch` flag to project or Qt builds. It is the compatibility channel for
+  older x64 CPUs.
+- `x64-avx` is for CPUs with AVX but no AVX2.
 - ARM64 builds do not pass x64 AVX flags and use the ARM64 dependency artifacts.
-- Non-AVX x64 systems are not covered by the current release matrix. Add a
-  scalar x64 dependency set and installer variant before claiming support for
-  those machines.
+- `x64-sse2` and `x64-avx` build lower-SIMD third-party binaries in CI instead
+  of reusing the AVX2 dependency DLLs.
 
 ## Test Policy
 
 `EditorLogicTests` runs for every matrix entry because it does not execute SIMD
 audio kernels.
 
-`HybridConvTests` is built for every matrix entry, but CI only runs it for AVX2
-and ARM64. GitHub-hosted x64 runners do not guarantee AVX-512 or AVX10.1 at
-runtime; executing those test binaries on an incompatible runner would fail with
-an illegal instruction before the test can report a useful result.
+`HybridConvTests` is built for every matrix entry. CI runs it for SSE2, AVX,
+AVX2, and ARM64. GitHub-hosted x64 runners do not guarantee AVX-512 or AVX10.1
+at runtime; executing those test binaries on an incompatible runner would fail
+with an illegal instruction before the test can report a useful result.
