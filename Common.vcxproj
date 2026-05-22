@@ -365,8 +365,15 @@
     <ClCompile Include="AbstractAPOInfo.cpp" />
     <ClCompile Include="ConfigurationFileReader.cpp" />
     <ClCompile Include="DeviceAPOInfo.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Install.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Load.cpp" />
+    <ClCompile Include="DeviceAPOInfo.State.cpp" />
+    <ClCompile Include="DeviceAPOInfo.Uninstall.cpp" />
     <ClCompile Include="FilterConfiguration.cpp" />
     <ClCompile Include="FilterEngine.cpp" />
+    <ClCompile Include="FilterEngine.Configuration.cpp" />
+    <ClCompile Include="FilterEngine.Process.cpp" />
+    <ClCompile Include="FilterEngine.Runtime.cpp" />
     <ClCompile Include="filters\BiQuad.cpp" />
     <ClCompile Include="filters\BiQuadFilter.cpp" />
     <ClCompile Include="filters\BiQuadFilterFactory.cpp" />
