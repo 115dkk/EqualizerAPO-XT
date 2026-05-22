@@ -30,6 +30,10 @@ jobs:
           windows-x64-avx10_1,
           windows-arm64
         ]
+        # On a pull request, exclude every variant except AVX2. The full
+        # matrix, cross-variant compare, and release packaging stay on
+        # the push to main.
+        exclude: ${{ fromJson(github.event_name == 'pull_request' && '[{"name":"windows-x64-sse2"},{"name":"windows-x64-avx"},{"name":"windows-x64-avx512"},{"name":"windows-x64-avx10_1"},{"name":"windows-arm64"}]' || '[]') }}
         include:
           - name: windows-x64-sse2
             os: windows-2025
@@ -86,9 +90,6 @@ jobs:
             msvcdevplatform: arm64
 
     runs-on: ${{ matrix.os }}
-    # On a pull request only run the AVX2 variant; the full SIMD/platform
-    # matrix and the release packaging stay on the push to main.
-    if: github.event_name != 'pull_request' || matrix.simd_variant == 'avx2'
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
