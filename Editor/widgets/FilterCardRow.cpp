@@ -22,6 +22,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	cardFrame = new QFrame(this);
 	cardFrame->setObjectName(QStringLiteral("FilterCardRow"));
+	cardFrame->setAttribute(Qt::WA_StyledBackground, true);
 	cardFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 	outerLayout->addWidget(cardFrame);
 
@@ -31,6 +32,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	headerWidget = new QWidget(cardFrame);
 	headerWidget->setObjectName(QStringLiteral("FilterCardHeader"));
+	headerWidget->setAttribute(Qt::WA_StyledBackground, true);
 	headerWidget->setMinimumHeight(SkinManager::instance()->tokens().rowHeight);
 	cardLayout->addWidget(headerWidget);
 
@@ -107,6 +109,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	bodyStack = new QStackedWidget(cardFrame);
 	bodyStack->setObjectName(QStringLiteral("FilterCardBody"));
+	bodyStack->setAttribute(Qt::WA_StyledBackground, true);
 	cardLayout->addWidget(bodyStack);
 
 	lineEdit = new QLineEdit(bodyStack);
@@ -118,6 +121,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	{
 		QWidget* editorContainer = new QWidget(bodyStack);
 		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
 		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
 		editorLayout->setContentsMargins(12, 10, 12, 12);
 		editorLayout->addWidget(gui);

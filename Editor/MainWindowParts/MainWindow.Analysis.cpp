@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QStandardItemModel>
 #include <QStringBuilder>
+#include <QStyle>
 #include <QScrollArea>
 #include <QFileInfo>
 #include <QFileDialog>
@@ -87,17 +88,27 @@ void MainWindow::updateAnalysisPanel()
 	if (eqGraphView != nullptr)
 		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
 
+	auto setSeverity = [](QLabel* label, const char* severity)
+	{
+		if (label->property("severity").toString() == QLatin1String(severity))
+			return;
+		label->setProperty("severity", QString::fromLatin1(severity));
+		label->style()->unpolish(label);
+		label->style()->polish(label);
+		label->update();
+	};
+
 	double peakGain = analysisThread->getPeakGain();
 	ui->peakGainValueLabel->setText(tr("%0 dB").arg(peakGain, 0, 'f', 1));
-	ui->peakGainValueLabel->setForegroundRole(peakGain > 0 ? QPalette::Dark : QPalette::WindowText);
+	setSeverity(ui->peakGainValueLabel, peakGain > 0 ? "critical" : "normal");
 
 	ui->latencyValueLabel->setText(tr("%0 ms (%1 s.)").arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
 
 	ui->initTimeValueLabel->setText(tr("%0 ms").arg(analysisThread->getInitializationTime(), 0, 'f', 1));
 
 	double cpuUsage = analysisThread->getProcessingTime() * 100.0 / (analysisThread->getProcessedFrames() * 1000.0 / sampleRate);
-	ui->cpuUsageValueLabel->setText(tr("%0 % (one core)").arg(cpuUsage, 0, 'f', 1));
-	ui->cpuUsageValueLabel->setForegroundRole(cpuUsage >= 20 ? (cpuUsage >= 50 ? QPalette::Dark : QPalette::Midlight) : QPalette::WindowText);
+	ui->cpuUsageValueLabel->setText(tr("%0 %").arg(cpuUsage, 0, 'f', 1));
+	setSeverity(ui->cpuUsageValueLabel, cpuUsage >= 50 ? "critical" : (cpuUsage >= 20 ? "warning" : "normal"));
 
 	analysisThread->endGetResult();
 }

@@ -37,8 +37,16 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	currentTokens = loadTokens(skinId, darkMode);
 
 	QFile file(qssPath(skinId, darkMode));
-	if (file.open(QFile::ReadOnly))
+	if (!file.open(QFile::ReadOnly))
+	{
+		QFile fallback(qssPath(QStringLiteral("glassy"), darkMode));
+		if (fallback.open(QFile::ReadOnly))
+			qApp->setStyleSheet(QString::fromUtf8(fallback.readAll()));
+	}
+	else
+	{
 		qApp->setStyleSheet(QString::fromUtf8(file.readAll()));
+	}
 
 	emit skinChanged(currentTokens);
 }

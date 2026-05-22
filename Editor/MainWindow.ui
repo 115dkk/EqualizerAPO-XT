@@ -117,64 +117,88 @@
   </widget>
   <widget class="QDockWidget" name="analysisDockWidget">
    <property name="windowTitle">
-    <string>Analysis panel</string>
+    <string>Graph</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QGridLayout" name="gridLayout_2">
+    <layout class="QVBoxLayout" name="analysisDockLayout">
      <property name="leftMargin">
-      <number>1</number>
+      <number>10</number>
      </property>
      <property name="topMargin">
-      <number>0</number>
+      <number>6</number>
      </property>
      <property name="rightMargin">
-      <number>1</number>
+      <number>10</number>
      </property>
      <property name="bottomMargin">
-      <number>1</number>
+      <number>10</number>
      </property>
-     <property name="horizontalSpacing">
-      <number>1</number>
+     <property name="spacing">
+      <number>6</number>
      </property>
-     <property name="verticalSpacing">
-      <number>3</number>
-     </property>
-     <item row="0" column="0">
-      <widget class="QGroupBox" name="groupBox">
-       <property name="title">
-        <string>Settings</string>
+     <item>
+      <widget class="QFrame" name="analysisControlBar">
+       <property name="frameShape">
+        <enum>QFrame::Shape::NoFrame</enum>
        </property>
-       <layout class="QGridLayout" name="gridLayout_3">
+       <layout class="QHBoxLayout" name="analysisControlLayout">
+        <property name="leftMargin">
+         <number>10</number>
+        </property>
         <property name="topMargin">
-         <number>3</number>
+         <number>6</number>
+        </property>
+        <property name="rightMargin">
+         <number>10</number>
         </property>
         <property name="bottomMargin">
-         <number>3</number>
+         <number>6</number>
         </property>
-        <property name="verticalSpacing">
-         <number>1</number>
+        <property name="spacing">
+         <number>8</number>
         </property>
-        <item row="3" column="0">
-         <widget class="QLabel" name="resolutionLabel">
+        <item>
+         <widget class="QLabel" name="startFromLabel">
           <property name="text">
-           <string>Resolution:</string>
+           <string>From</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
+        <item>
+         <widget class="QComboBox" name="startFromComboBox">
+          <item>
+           <property name="text">
+            <string notr="true">config.txt</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Current file</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
          <widget class="QLabel" name="analysisChannelLabel">
           <property name="text">
-           <string>Channel:</string>
+           <string>Channel</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="1">
+        <item>
          <widget class="QComboBox" name="analysisChannelComboBox"/>
         </item>
-        <item row="3" column="1">
+        <item>
+         <widget class="QLabel" name="resolutionLabel">
+          <property name="text">
+           <string>Res</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="ExponentialSpinBox" name="resolutionSpinBox">
           <property name="correctionMode">
            <enum>QAbstractSpinBox::CorrectionMode::CorrectToNearestValue</enum>
@@ -193,314 +217,184 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="startFromLabel">
-          <property name="text">
-           <string>Start from:</string>
+        <item>
+         <spacer name="analysisControlSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>1</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QFrame" name="peakChip">
+          <property name="frameShape">
+           <enum>QFrame::Shape::NoFrame</enum>
+          </property>
+          <layout class="QHBoxLayout" name="peakChipLayout">
+           <property name="leftMargin">
+            <number>10</number>
+           </property>
+           <property name="topMargin">
+            <number>3</number>
+           </property>
+           <property name="rightMargin">
+            <number>10</number>
+           </property>
+           <property name="bottomMargin">
+            <number>3</number>
+           </property>
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="peakGainLabel">
+             <property name="text">
+              <string>Peak</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="peakGainValueLabel">
+             <property name="text">
+              <string notr="true"/>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
-        <item row="1" column="1">
-         <widget class="QComboBox" name="startFromComboBox">
-          <item>
-           <property name="text">
-            <string notr="true">config.txt</string>
+        <item>
+         <widget class="QFrame" name="latencyChip">
+          <property name="frameShape">
+           <enum>QFrame::Shape::NoFrame</enum>
+          </property>
+          <layout class="QHBoxLayout" name="latencyChipLayout">
+           <property name="leftMargin">
+            <number>10</number>
            </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Current file</string>
+           <property name="topMargin">
+            <number>3</number>
            </property>
-          </item>
+           <property name="rightMargin">
+            <number>10</number>
+           </property>
+           <property name="bottomMargin">
+            <number>3</number>
+           </property>
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="latencyLabel">
+             <property name="text">
+              <string>Latency</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="latencyValueLabel">
+             <property name="text">
+              <string notr="true"/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFrame" name="initChip">
+          <property name="frameShape">
+           <enum>QFrame::Shape::NoFrame</enum>
+          </property>
+          <layout class="QHBoxLayout" name="initChipLayout">
+           <property name="leftMargin">
+            <number>10</number>
+           </property>
+           <property name="topMargin">
+            <number>3</number>
+           </property>
+           <property name="rightMargin">
+            <number>10</number>
+           </property>
+           <property name="bottomMargin">
+            <number>3</number>
+           </property>
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="initTimeLabel">
+             <property name="text">
+              <string>Init</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="initTimeValueLabel">
+             <property name="text">
+              <string notr="true"/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFrame" name="cpuChip">
+          <property name="frameShape">
+           <enum>QFrame::Shape::NoFrame</enum>
+          </property>
+          <layout class="QHBoxLayout" name="cpuChipLayout">
+           <property name="leftMargin">
+            <number>10</number>
+           </property>
+           <property name="topMargin">
+            <number>3</number>
+           </property>
+           <property name="rightMargin">
+            <number>10</number>
+           </property>
+           <property name="bottomMargin">
+            <number>3</number>
+           </property>
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="cpuUsageLabel">
+             <property name="text">
+              <string>CPU</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="cpuUsageValueLabel">
+             <property name="text">
+              <string notr="true"/>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>
       </widget>
      </item>
-     <item row="1" column="0">
-      <widget class="QGroupBox" name="groupBox_2">
-       <property name="title">
-        <string>Estimated properties</string>
-       </property>
-       <layout class="QGridLayout" name="gridLayout_4">
-        <property name="topMargin">
-         <number>6</number>
-        </property>
-        <item row="2" column="1">
-         <widget class="QLabel" name="initTimeValueLabel">
-          <property name="text">
-           <string notr="true"/>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="cpuUsageLabel">
-          <property name="text">
-           <string>CPU usage:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="initTimeLabel">
-          <property name="text">
-           <string>Init. time:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
-         <widget class="QLabel" name="cpuUsageValueLabel">
-          <property name="palette">
-           <palette>
-            <active>
-             <colorrole role="Midlight">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>127</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Dark">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Text">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="ButtonText">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-            </active>
-            <inactive>
-             <colorrole role="Midlight">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>127</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Dark">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Text">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="ButtonText">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-            </inactive>
-            <disabled>
-             <colorrole role="Midlight">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>127</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Dark">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Text">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="ButtonText">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-            </disabled>
-           </palette>
-          </property>
-          <property name="text">
-           <string notr="true"/>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLabel" name="latencyValueLabel">
-          <property name="text">
-           <string notr="true"/>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="latencyLabel">
-          <property name="text">
-           <string>Latency: </string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="peakGainlabel">
-          <property name="text">
-           <string>Peak gain:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLabel" name="peakGainValueLabel">
-          <property name="palette">
-           <palette>
-            <active>
-             <colorrole role="Dark">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Text">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="ButtonText">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-            </active>
-            <inactive>
-             <colorrole role="Dark">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Text">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="ButtonText">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-            </inactive>
-            <disabled>
-             <colorrole role="Dark">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="Text">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-             <colorrole role="ButtonText">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </colorrole>
-            </disabled>
-           </palette>
-          </property>
-          <property name="text">
-           <string notr="true"/>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item row="0" column="1" rowspan="2">
+     <item>
       <widget class="AnalysisPlotView" name="graphicsView">
        <property name="mouseTracking">
         <bool>true</bool>
        </property>
        <property name="renderHints">
         <set>QPainter::RenderHint::Antialiasing|QPainter::RenderHint::TextAntialiasing</set>
+       </property>
+       <property name="visible">
+        <bool>false</bool>
        </property>
       </widget>
      </item>

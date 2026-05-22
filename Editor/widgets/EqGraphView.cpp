@@ -67,7 +67,15 @@ void EqGraphView::paintEvent(QPaintEvent*)
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	QRectF graphRect = rect().adjusted(18, 16, -18, -28);
-	painter.fillRect(rect(), QColor(tokens.graph));
+
+	QRectF bgRect = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
+	qreal radius = qMax(0, tokens.borderRadius - 2);
+	QPainterPath bgPath;
+	bgPath.addRoundedRect(bgRect, radius, radius);
+	painter.fillPath(bgPath, QColor(tokens.graph));
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	painter.drawPath(bgPath);
+	painter.setClipPath(bgPath);
 
 	QPen gridPen(QColor(tokens.border), 1);
 	gridPen.setCosmetic(true);
