@@ -44,6 +44,7 @@
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "SkinManager.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -181,6 +182,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 		connect(action, SIGNAL(triggered(bool)), this, SLOT(languageSelected(bool)));
 	}
 
+	setupRedesignActions();
 	loadPreferences();
 }
 

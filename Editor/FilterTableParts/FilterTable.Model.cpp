@@ -37,6 +37,7 @@
 #include "helpers/ChannelHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "FilterTable.h"
+#include "Editor/widgets/FilterCardRow.h"
 
 using std::list;
 using std::max;
@@ -224,8 +225,9 @@ void FilterTable::updateSizeHints()
 {
 	for (int i = 0; i < items.size(); i++)
 	{
-		FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(gridLayout->itemAtPosition(i, 0)->widget());
-		tableRow->updateGeometry();
+		QWidget* rowWidget = gridLayout->itemAtPosition(i, 0)->widget();
+		if (rowWidget != nullptr)
+			rowWidget->updateGeometry();
 	}
 }
 
@@ -242,5 +244,19 @@ void FilterTable::setMinimumHeightHint(int height)
 {
 	minimumHeightHint = height;
 	updateGeometry();
+}
+
+void FilterTable::setRenderMode(RenderMode mode)
+{
+	if (renderMode == mode)
+		return;
+
+	renderMode = mode;
+	updateGuis();
+}
+
+FilterTable::RenderMode FilterTable::getRenderMode() const
+{
+	return renderMode;
 }
 

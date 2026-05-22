@@ -17,6 +17,9 @@
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\UpdateChecker\UpdateInfoFormatter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -26,6 +29,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\UpdateChecker\UpdateInfoFormatter.h">

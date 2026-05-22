@@ -116,11 +116,13 @@
   <ItemGroup>
     <ClCompile Include="EditorLogicTests.cpp" />
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
     <ClCompile Include="..\..\UpdateChecker\UpdateInfoFormatter.cpp" />
     <ClCompile Include="..\..\UpdateChecker\VelopackUpdateInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h" />
+    <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />
     <ClInclude Include="..\..\UpdateChecker\UpdateInfoFormatter.h" />
     <ClInclude Include="..\..\UpdateChecker\VelopackUpdateInfo.h" />
   </ItemGroup>

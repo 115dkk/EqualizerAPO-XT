@@ -8,8 +8,10 @@
 #include <QJsonObject>
 #include <QString>
 #include <QStringList>
+#include <QVector>
 
 #include "Editor/helpers/ConvolutionPathHelper.h"
+#include "Editor/widgets/FilterCardModel.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
@@ -48,6 +50,12 @@ void expectEqual(const QString& actual, const QString& expected, const QString& 
 {
 	if (actual != expected)
 		fail(QString("%1: expected '%2', got '%3'").arg(message, expected, actual));
+}
+
+void expectEqual(int actual, int expected, const QString& message)
+{
+	if (actual != expected)
+		fail(QString("%1: expected %2, got %3").arg(message).arg(expected).arg(actual));
 }
 }
 
@@ -189,6 +197,47 @@ int main(int argc, char** argv)
 	expectTrue(
 		VelopackUpdateInfo::fromVelopackFeed(feedDoc, githubReleaseDoc, "x64-avx2", "1.4.3-main.77").isEmpty(),
 		"same Velopack version produced an update");
+
+	FilterCardDescriptor preamp = FilterCardModel::describeLine("Preamp: -6 dB");
+	expectEqual(preamp.badge, "PRE", "preamp card badge");
+	expectEqual(preamp.title, "Preamp", "preamp card title");
+	expectEqual(preamp.summary, "-6 dB", "preamp card summary");
+	expectTrue(preamp.enabled, "preamp card was marked disabled");
+
+	FilterCardDescriptor disabledFilter = FilterCardModel::describeLine("# Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71");
+	expectFalse(disabledFilter.enabled, "commented filter was marked enabled");
+	expectEqual(disabledFilter.badge, "PK", "disabled biquad badge");
+	expectEqual(disabledFilter.title, "Biquad", "disabled biquad title");
+
+	FilterCardDescriptor graphicEq = FilterCardModel::describeLine("GraphicEQ: 20 -1; 100 0; 1000 2");
+	expectEqual(graphicEq.badge, "GEQ", "graphic eq badge");
+	expectEqual(graphicEq.summary, "3 bands", "graphic eq band count");
+
+	FilterCardDescriptor copy = FilterCardModel::describeLine("Copy: VL=L VR=R L=VL R=VR");
+	expectEqual(copy.badge, "CPY", "copy card badge");
+	expectEqual(copy.summary, "4 steps, 2 virtual", "copy card summary");
+	expectTrue(copy.channelBadges.contains("L") && copy.channelBadges.contains("R"), "copy card did not expose final physical channels");
+
+	FilterCardDescriptor channel = FilterCardModel::describeLine("Channel: L, R");
+	expectEqual(channel.badge, "CH", "channel card badge");
+	expectEqual(channel.summary, "L R", "channel card summary");
+	expectTrue(channel.channelBadges.contains("L") && channel.channelBadges.contains("R"), "channel badges were not parsed");
+
+	QVector<int> depths = FilterCardModel::calculateDepths(QList<QString>({
+		"Channel: L R",
+		"Preamp: -6 dB",
+		"Include: nested.txt",
+		"Delay: 10 ms",
+		"Channel: ALL",
+		"Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71"
+	}));
+	expectEqual(depths.size(), 6, "channel depth count");
+	expectEqual(depths[0], 0, "channel command depth");
+	expectEqual(depths[1], 1, "scoped preamp depth");
+	expectEqual(depths[2], 1, "include depth");
+	expectEqual(depths[3], 0, "include should reset channel depth");
+	expectEqual(depths[4], 0, "channel all depth");
+	expectEqual(depths[5], 0, "post channel-all depth");
 
 	printf("EditorLogicTests passed\n");
 	return 0;

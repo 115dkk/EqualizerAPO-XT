@@ -39,6 +39,12 @@ class FilterTable : public QWidget
 {
 	Q_OBJECT
 public:
+	enum RenderMode
+	{
+		ModernCards,
+		LegacyRows
+	};
+
 	struct Item
 	{
 		Item()
@@ -95,6 +101,8 @@ public:
 	void setScrollOffsets(int x, int y);
 
 	void updateAnalysis();
+	void setRenderMode(RenderMode mode);
+	RenderMode getRenderMode() const;
 
 signals:
 	void linesChanged();
@@ -144,6 +152,7 @@ private:
 	int minimumHeightHint = 0;
 	int presetScrollX = -1;
 	int presetScrollY = -1;
+	RenderMode renderMode = ModernCards;
 };
 
 template<typename T> inline uint qHash(QList<T> list)

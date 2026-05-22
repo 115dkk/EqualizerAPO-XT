@@ -37,6 +37,7 @@
 #include "helpers/ChannelHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "FilterTable.h"
+#include "Editor/widgets/FilterCardRow.h"
 
 using std::list;
 using std::max;
@@ -148,8 +149,18 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 
 					if (!dragPosInside)
 					{
-						FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(gridLayout->itemAtPosition(i, 0)->widget());
-						QRect rect = tableRow->getHeaderRect().translated(tableRow->pos());
+						QWidget* rowWidget = gridLayout->itemAtPosition(i, 0)->widget();
+						QRect headerRect;
+						FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(rowWidget);
+						if (tableRow != nullptr)
+							headerRect = tableRow->getHeaderRect();
+						else
+						{
+							FilterCardRow* cardRow = qobject_cast<FilterCardRow*>(rowWidget);
+							if (cardRow != nullptr)
+								headerRect = cardRow->getHeaderRect();
+						}
+						QRect rect = headerRect.translated(rowWidget->pos());
 						if (rect.contains(dragStartPos))
 							dragPosInside = true;
 					}

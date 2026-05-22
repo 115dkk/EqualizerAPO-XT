@@ -25,6 +25,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
+#include <QActionGroup>
 
 #include "FilterTable.h"
 #include "DeviceAPOInfo.h"
@@ -88,6 +89,11 @@ private slots:
 	void on_actionAnalysisPanel_triggered(bool checked);
 
 	void languageSelected(bool selected);
+	void interfaceModeSelected(QAction* action);
+	void skinSelected(QAction* action);
+	void darkThemeToggled(bool checked);
+	void cycleGraphPosition();
+	void toggleGraphFullscreen();
 	void on_actionResetAllGlobalPreferences_triggered();
 	void on_actionResetAllFileSpecificPreferences_triggered();
 
@@ -98,6 +104,11 @@ private:
 	void loadPreferences();
 	void savePreferences();
 	void updateRecentFiles();
+	void setupRedesignActions();
+	void applyRedesignPreferences();
+	void setCurrentRenderMode(FilterTable::RenderMode mode);
+	FilterTable* filterTableForTab(int tabIndex) const;
+	FilterTable* currentFilterTable() const;
 	template<class T> QList<T> toQList(const std::vector<T>& vector);
 
 	Ui::MainWindow* ui;
@@ -115,6 +126,14 @@ private:
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;
 	QStringList recentFiles;
+	QString skinId = QStringLiteral("glassy");
+	bool skinDark = true;
+	bool graphFullscreen = false;
+	int graphDockPosition = 0;
+	FilterTable::RenderMode currentRenderMode = FilterTable::ModernCards;
+	QActionGroup* interfaceModeActionGroup = nullptr;
+	QActionGroup* skinActionGroup = nullptr;
+	QAction* darkThemeAction = nullptr;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

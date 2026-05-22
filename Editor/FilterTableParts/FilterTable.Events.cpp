@@ -37,6 +37,7 @@
 #include "helpers/ChannelHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "FilterTable.h"
+#include "Editor/widgets/FilterCardRow.h"
 
 using std::list;
 using std::max;
@@ -114,6 +115,12 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 				FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(layoutItem->widget());
 				if (tableRow != nullptr)
 					tableRow->editText();
+				else
+				{
+					FilterCardRow* cardRow = qobject_cast<FilterCardRow*>(layoutItem->widget());
+					if (cardRow != nullptr)
+						cardRow->editText();
+				}
 			}
 		}
 	}

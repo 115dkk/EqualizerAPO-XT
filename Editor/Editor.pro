@@ -156,6 +156,13 @@ SOURCES += main.cpp\
 	../filters/loudnessCorrection/VolumeController.cpp \
 	guis/LoudnessCorrectionFilterGUIDialog.cpp \
 	helpers/QtSndfileHandle.cpp \
+	SkinManager.cpp \
+	widgets/AudioKnob.cpp \
+	widgets/EditableValue.cpp \
+	widgets/ChBadge.cpp \
+	widgets/EqGraphView.cpp \
+	widgets/FilterCardModel.cpp \
+	widgets/FilterCardRow.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	widgets/MiddleClickTabBar.cpp
 
@@ -281,6 +288,14 @@ HEADERS  += \
 	../filters/loudnessCorrection/VolumeController.h \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/QtSndfileHandle.h \
+	SkinTokens.h \
+	SkinManager.h \
+	widgets/AudioKnob.h \
+	widgets/EditableValue.h \
+	widgets/ChBadge.h \
+	widgets/EqGraphView.h \
+	widgets/FilterCardModel.h \
+	widgets/FilterCardRow.h \
 	widgets/MiddleClickTabWidget.h \
 	widgets/MiddleClickTabBar.h
 

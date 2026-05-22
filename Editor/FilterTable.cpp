@@ -56,6 +56,8 @@
 #include "helpers/ChannelHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "FilterTable.h"
+#include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterCardRow.h"
 
 using std::list;
 using std::max;
@@ -160,6 +162,7 @@ void FilterTable::updateGuis()
 	for (IFilterGUIFactory* factory : factories)
 		factory->startOfFile(configPath);
 
+	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
 	int row = 0;
 	for (Item* item : items)
 	{
@@ -193,7 +196,9 @@ void FilterTable::updateGuis()
 			}
 		}
 
-		FilterTableRow* rowWidget = new FilterTableRow(this, row + 1, item, gui);
+		QWidget* rowWidget = renderMode == ModernCards
+			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, row < rowDepths.size() ? rowDepths[row] : 0))
+			: static_cast<QWidget*>(new FilterTableRow(this, row + 1, item, gui));
 		gridLayout->addWidget(rowWidget, row, 0);
 
 		item->gui = gui;

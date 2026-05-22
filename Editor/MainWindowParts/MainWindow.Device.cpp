@@ -136,6 +136,7 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 	getDeviceAndChannelMask(&selectedDevice, &channelMask);
 	filterTable->updateDeviceAndChannelMask(selectedDevice, channelMask);
 	filterTable->initialize(scrollArea, outputDevices, inputDevices);
+	filterTable->setRenderMode(currentRenderMode);
 	filterTable->setLines(configPath, lines);
 
 	int tabIndex = ui->tabWidget->addTab(scrollArea, title);

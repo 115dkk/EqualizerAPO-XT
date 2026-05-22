@@ -1,0 +1,47 @@
+QMainWindow, QWidget {
+    background: #161620;
+    color: #eeeefc;
+    font-family: "Segoe UI";
+}
+QMenuBar, QMenu, QToolBar, QDockWidget, QTabWidget::pane {
+    background: #1e1e2a;
+    color: #eeeefc;
+    border: 1px solid #34344a;
+}
+QScrollArea, QAbstractScrollArea, QLineEdit, QComboBox, QSpinBox {
+    background: #101018;
+    color: #eeeefc;
+    border: 1px solid #34344a;
+    border-radius: 12px;
+}
+QFrame#FilterCardRow {
+    background: #262636;
+    border: 1px solid #34344a;
+    border-radius: 18px;
+}
+QWidget#FilterCardHeader {
+    background: #1e1e2a;
+    border-radius: 18px;
+}
+QWidget#FilterCardBody, QWidget#FilterCardEditor {
+    background: #222232;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+}
+QLabel#FilterTypeBadge {
+    color: white;
+    border-radius: 12px;
+    font-weight: 700;
+    padding: 2px 7px;
+}
+QLabel#FilterCardTitle { color: #eeeefc; font-weight: 600; }
+QLabel#FilterCardSummary, QLabel#FilterCardNumber, QLabel#FilterCardRawText { color: #9090ac; }
+QToolButton#FilterCardIconButton {
+    background: #1e1e2a;
+    color: #eeeefc;
+    border: 1px solid #34344a;
+    border-radius: 8px;
+    min-width: 22px;
+    min-height: 22px;
+}
+QToolButton#FilterCardIconButton:hover { background: #2c2c3e; }

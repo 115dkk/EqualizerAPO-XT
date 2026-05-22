@@ -25,6 +25,7 @@
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "SkinManager.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -58,6 +59,49 @@ void MainWindow::on_actionToolbar_triggered(bool checked)
 void MainWindow::on_actionAnalysisPanel_triggered(bool checked)
 {
 	ui->analysisDockWidget->setVisible(checked);
+}
+
+void MainWindow::interfaceModeSelected(QAction* action)
+{
+	if (action == nullptr)
+		return;
+
+	setCurrentRenderMode(static_cast<FilterTable::RenderMode>(action->data().toInt()));
+}
+
+void MainWindow::skinSelected(QAction* action)
+{
+	if (action == nullptr)
+		return;
+
+	skinId = action->data().toString();
+	SkinManager::instance()->applySkin(skinId, skinDark);
+	for (int i = 0; i < ui->tabWidget->count(); i++)
+	{
+		FilterTable* filterTable = filterTableForTab(i);
+		if (filterTable != nullptr)
+			filterTable->update();
+	}
+}
+
+void MainWindow::darkThemeToggled(bool checked)
+{
+	skinDark = checked;
+	SkinManager::instance()->applySkin(skinId, skinDark);
+}
+
+void MainWindow::cycleGraphPosition()
+{
+	graphDockPosition = (graphDockPosition + 1) % 3;
+	applyRedesignPreferences();
+}
+
+void MainWindow::toggleGraphFullscreen()
+{
+	graphFullscreen = !graphFullscreen;
+	ui->centralWidget->setVisible(!graphFullscreen);
+	ui->mainToolBar->setVisible(!graphFullscreen && ui->actionToolbar->isChecked());
+	ui->analysisDockWidget->setVisible(true);
 }
 
 void MainWindow::languageSelected(bool selected)

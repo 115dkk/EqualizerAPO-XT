@@ -10,7 +10,9 @@
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QMenu>
 #include <QProcess>
+#include <QKeySequence>
 #include <QSettings>
 
 #define WIN32_LEAN_AND_MEAN
@@ -25,6 +27,7 @@
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "SkinManager.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -40,6 +43,12 @@ using std::wstring;
 void MainWindow::loadPreferences()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	skinId = settings.value("interface/skin", "glassy").toString();
+	skinDark = settings.value("interface/dark", GUIHelper::isDarkMode()).toBool();
+	currentRenderMode = settings.value("interface/legacyRows", false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
+	graphDockPosition = settings.value("interface/graphDockPosition", 0).toInt();
+	applyRedesignPreferences();
+
 	QVariant geometryValue = settings.value("geometry");
 	if (geometryValue.isValid())
 		restoreGeometry(geometryValue.toByteArray());
@@ -117,6 +126,7 @@ void MainWindow::loadPreferences()
 	QVariant stateValue = settings.value("windowState");
 	if (stateValue.isValid())
 		restoreState(stateValue.toByteArray());
+	applyRedesignPreferences();
 }
 
 void MainWindow::savePreferences()
@@ -160,6 +170,10 @@ void MainWindow::savePreferences()
 	settings.setValue("openFiles", fileList);
 	settings.setValue("tabIndex", ui->tabWidget->currentIndex());
 	settings.setValue("recentFiles", recentFiles);
+	settings.setValue("interface/skin", skinId);
+	settings.setValue("interface/dark", skinDark);
+	settings.setValue("interface/legacyRows", currentRenderMode == FilterTable::LegacyRows);
+	settings.setValue("interface/graphDockPosition", graphDockPosition);
 
 	settings.sync();
 }
@@ -196,5 +210,116 @@ void MainWindow::updateRecentFiles()
 			ui->menuFile->removeAction(action);
 		}
 	}
+}
+
+void MainWindow::setupRedesignActions()
+{
+	QMenu* interfaceMenu = ui->menuView->addMenu(tr("Interface"));
+
+	interfaceModeActionGroup = new QActionGroup(this);
+	interfaceModeActionGroup->setExclusive(true);
+	QAction* modernAction = interfaceMenu->addAction(tr("Modern cards"));
+	modernAction->setCheckable(true);
+	modernAction->setData(static_cast<int>(FilterTable::ModernCards));
+	interfaceModeActionGroup->addAction(modernAction);
+	QAction* legacyAction = interfaceMenu->addAction(tr("Legacy rows"));
+	legacyAction->setCheckable(true);
+	legacyAction->setData(static_cast<int>(FilterTable::LegacyRows));
+	interfaceModeActionGroup->addAction(legacyAction);
+	connect(interfaceModeActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(interfaceModeSelected(QAction*)));
+
+	interfaceMenu->addSeparator();
+
+	skinActionGroup = new QActionGroup(this);
+	skinActionGroup->setExclusive(true);
+	const QList<QPair<QString, QString>> skins = {
+		{ QStringLiteral("minimal"), tr("Minimal") },
+		{ QStringLiteral("glassy"), tr("Glassy") },
+		{ QStringLiteral("industrial"), tr("Industrial") },
+		{ QStringLiteral("soft"), tr("Soft") }
+	};
+	for (const auto& skin : skins)
+	{
+		QAction* action = interfaceMenu->addAction(skin.second);
+		action->setCheckable(true);
+		action->setData(skin.first);
+		action->setShortcut(QKeySequence(QString::number(skinActionGroup->actions().size() + 1)));
+		skinActionGroup->addAction(action);
+	}
+	connect(skinActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(skinSelected(QAction*)));
+
+	darkThemeAction = interfaceMenu->addAction(tr("Dark theme"));
+	darkThemeAction->setCheckable(true);
+	darkThemeAction->setShortcut(QKeySequence(Qt::Key_D));
+	connect(darkThemeAction, SIGNAL(toggled(bool)), this, SLOT(darkThemeToggled(bool)));
+
+	interfaceMenu->addSeparator();
+	QAction* cycleGraphAction = interfaceMenu->addAction(tr("Cycle graph position"));
+	cycleGraphAction->setShortcut(QKeySequence(Qt::Key_G));
+	connect(cycleGraphAction, SIGNAL(triggered()), this, SLOT(cycleGraphPosition()));
+
+	QAction* fullscreenGraphAction = interfaceMenu->addAction(tr("Fullscreen graph"));
+	fullscreenGraphAction->setShortcut(QKeySequence(Qt::Key_F));
+	connect(fullscreenGraphAction, SIGNAL(triggered()), this, SLOT(toggleGraphFullscreen()));
+}
+
+void MainWindow::applyRedesignPreferences()
+{
+	SkinManager::instance()->applySkin(skinId, skinDark);
+
+	if (interfaceModeActionGroup != nullptr)
+	{
+		for (QAction* action : interfaceModeActionGroup->actions())
+			action->setChecked(action->data().toInt() == static_cast<int>(currentRenderMode));
+	}
+	if (skinActionGroup != nullptr)
+	{
+		for (QAction* action : skinActionGroup->actions())
+			action->setChecked(action->data().toString() == skinId);
+	}
+	if (darkThemeAction != nullptr)
+	{
+		darkThemeAction->blockSignals(true);
+		darkThemeAction->setChecked(skinDark);
+		darkThemeAction->blockSignals(false);
+	}
+
+	ui->analysisDockWidget->setWindowTitle(tr("Graph"));
+	bool graphWasShown = !ui->analysisDockWidget->isHidden();
+	removeDockWidget(ui->analysisDockWidget);
+	Qt::DockWidgetArea area = Qt::TopDockWidgetArea;
+	if (graphDockPosition == 1)
+		area = Qt::BottomDockWidgetArea;
+	else if (graphDockPosition == 2)
+		area = Qt::RightDockWidgetArea;
+	addDockWidget(area, ui->analysisDockWidget);
+	ui->analysisDockWidget->setVisible(graphFullscreen || graphWasShown);
+
+	setCurrentRenderMode(currentRenderMode);
+}
+
+void MainWindow::setCurrentRenderMode(FilterTable::RenderMode mode)
+{
+	currentRenderMode = mode;
+	for (int i = 0; i < ui->tabWidget->count(); i++)
+	{
+		FilterTable* filterTable = filterTableForTab(i);
+		if (filterTable != nullptr)
+			filterTable->setRenderMode(currentRenderMode);
+	}
+}
+
+FilterTable* MainWindow::filterTableForTab(int tabIndex) const
+{
+	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(tabIndex));
+	if (scrollArea == nullptr)
+		return nullptr;
+
+	return qobject_cast<FilterTable*>(scrollArea->widget());
+}
+
+FilterTable* MainWindow::currentFilterTable() const
+{
+	return filterTableForTab(ui->tabWidget->currentIndex());
 }
 
