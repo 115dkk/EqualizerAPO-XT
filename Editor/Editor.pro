@@ -31,11 +31,11 @@ SOURCES += main.cpp\
 	guis/CommentFilterGUIFactory.cpp \
 	guis/CommentFilterGUI.cpp \
 	FilterTable.cpp \
-	FilterTable.Clipboard.cpp \
-	FilterTable.DragDrop.cpp \
-	FilterTable.Events.cpp \
-	FilterTable.Model.cpp \
-	FilterTable.Mouse.cpp \
+	FilterTableParts/FilterTable.Clipboard.cpp \
+	FilterTableParts/FilterTable.DragDrop.cpp \
+	FilterTableParts/FilterTable.Events.cpp \
+	FilterTableParts/FilterTable.Model.cpp \
+	FilterTableParts/FilterTable.Mouse.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
 	../helpers/MemoryHelper.cpp \
@@ -44,10 +44,10 @@ SOURCES += main.cpp\
 	guis/DeviceFilterGUI.cpp \
 	guis/DeviceFilterGUIFactory.cpp \
 	../DeviceAPOInfo.cpp \
-	../DeviceAPOInfo.Install.cpp \
-	../DeviceAPOInfo.Load.cpp \
-	../DeviceAPOInfo.State.cpp \
-	../DeviceAPOInfo.Uninstall.cpp \
+	../devices/DeviceAPOInfo.Install.cpp \
+	../devices/DeviceAPOInfo.Load.cpp \
+	../devices/DeviceAPOInfo.State.cpp \
+	../devices/DeviceAPOInfo.Uninstall.cpp \
 	guis/DeviceFilterGUIDialog.cpp \
 	../filters/DeviceFilterFactory.cpp \
 	guis/ChannelFilterGUIDialog.cpp \
@@ -103,13 +103,13 @@ SOURCES += main.cpp\
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
 	MainWindow.cpp \
-	MainWindow.Analysis.cpp \
-	MainWindow.Device.cpp \
-	MainWindow.Edit.cpp \
-	MainWindow.FileActions.cpp \
-	MainWindow.FileIO.cpp \
-	MainWindow.Preferences.cpp \
-	MainWindow.ViewActions.cpp \
+	MainWindowParts/MainWindow.Analysis.cpp \
+	MainWindowParts/MainWindow.Device.cpp \
+	MainWindowParts/MainWindow.Edit.cpp \
+	MainWindowParts/MainWindow.FileActions.cpp \
+	MainWindowParts/MainWindow.FileIO.cpp \
+	MainWindowParts/MainWindow.Preferences.cpp \
+	MainWindowParts/MainWindow.ViewActions.cpp \
 	guis/StageFilterGUI.cpp \
 	guis/StageFilterGUIFactory.cpp \
 	guis/ExpressionFilterGUIFactory.cpp \
@@ -117,10 +117,10 @@ SOURCES += main.cpp\
 	AnalysisPlotView.cpp \
 	AnalysisPlotScene.cpp \
 	../FilterEngine.cpp \
-	../FilterEngine.Configuration.cpp \
-	../FilterEngine.Process.cpp \
-	../FilterEngine.Runtime.cpp \
-	../FilterFactoryRegistry.cpp \
+	../engine/FilterEngine.Configuration.cpp \
+	../engine/FilterEngine.Process.cpp \
+	../engine/FilterEngine.Runtime.cpp \
+	../filters/FilterFactoryRegistry.cpp \
 	../FilterConfiguration.cpp \
 	../filters/ChannelFilterFactory.cpp \
 	../filters/ExpressionFilterFactory.cpp \

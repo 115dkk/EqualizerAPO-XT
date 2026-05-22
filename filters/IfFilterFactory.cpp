@@ -23,7 +23,7 @@
 #include "parser/RegexFunctions.h"
 #include "parser/RegistryFunctions.h"
 #include "FilterEngine.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "IfFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(1, IfFilterFactory)

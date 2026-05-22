@@ -27,7 +27,7 @@
 #include "parser/StringOperators.h"
 #include "parser/LogicalOperators.h"
 #include "FilterEngine.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "ExpressionFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(2, ExpressionFilterFactory)

@@ -25,7 +25,7 @@
 #ifndef NO_FILTERENGINE
 #include "FilterEngine.h"
 #endif
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "DeviceFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(0, DeviceFilterFactory)

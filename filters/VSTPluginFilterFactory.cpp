@@ -22,7 +22,7 @@
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/LogHelper.h"
 #include "VSTPluginFilter.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(13, VSTPluginFilterFactory)

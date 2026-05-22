@@ -24,7 +24,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "DelayFilter.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "DelayFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(9, DelayFilterFactory)

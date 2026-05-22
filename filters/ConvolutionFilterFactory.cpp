@@ -23,7 +23,7 @@
 #include "helpers/LogHelper.h"
 #include "ConvolutionFilePath.h"
 #include "ConvolutionFilter.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "ConvolutionFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(11, ConvolutionFilterFactory)

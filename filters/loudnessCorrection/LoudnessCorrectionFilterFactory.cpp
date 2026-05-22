@@ -27,7 +27,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "LoudnessCorrectionFilter.h"
-#include "FilterFactoryRegistry.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "LoudnessCorrectionFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(14, LoudnessCorrectionFilterFactory)
