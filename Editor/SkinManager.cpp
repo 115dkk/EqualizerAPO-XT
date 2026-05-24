@@ -32,6 +32,44 @@ bool SkinManager::isDark() const
 	return darkMode;
 }
 
+namespace
+{
+QString substituteTokens(QString qss, const SkinTokens& tokens)
+{
+	// Token sentinels intentionally use the @TOKEN@ form so they survive Qt's
+	// style sheet parser intact (a literal '@' is not meaningful in QSS) and
+	// stand out in the source files. Order does not matter because every
+	// sentinel is unique.
+	struct Substitution { const char* placeholder; QString value; };
+	const Substitution table[] = {
+		{ "@BG@", tokens.background },
+		{ "@SURFACE@", tokens.surface },
+		{ "@SURFACE_RAISED@", tokens.surfaceRaised },
+		{ "@SURFACE_SUNKEN@", tokens.surfaceSunken },
+		{ "@CARD@", tokens.card },
+		{ "@CARD_HOVER@", tokens.cardHover },
+		{ "@CARD_SELECTED@", tokens.cardSelected },
+		{ "@TEXT@", tokens.text },
+		{ "@MUTED@", tokens.mutedText },
+		{ "@BORDER@", tokens.border },
+		{ "@GRAPH@", tokens.graph },
+		{ "@GRID_MAJOR@", tokens.graphGridMajor },
+		{ "@GRID_MINOR@", tokens.graphGridMinor },
+		{ "@ACCENT@", tokens.accent },
+		{ "@ACCENT2@", tokens.accent2 },
+		{ "@SUCCESS@", tokens.success },
+		{ "@WARNING@", tokens.warning },
+		{ "@DANGER@", tokens.danger },
+		{ "@FOCUS@", tokens.focusRing },
+		{ "@FONT@", tokens.fontFamily },
+		{ "@MONO@", tokens.monoFontFamily }
+	};
+	for (const Substitution& s : table)
+		qss.replace(QLatin1String(s.placeholder), s.value);
+	return qss;
+}
+}
+
 void SkinManager::applySkin(const QString& newSkinId, bool dark)
 {
 	QString resolvedSkinId = newSkinId;
@@ -55,19 +93,19 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	darkMode = dark;
 	currentTokens = loadTokens(skinId, darkMode);
 
+	QString styleSheet;
 	QFile file(qssPath(skinId, darkMode));
-	if (!file.open(QFile::ReadOnly))
+	if (file.open(QFile::ReadOnly))
 	{
-		QFile fallback(qssPath(QStringLiteral("glassy"), darkMode));
-		if (fallback.open(QFile::ReadOnly))
-			qApp->setStyleSheet(QString::fromUtf8(fallback.readAll()));
-		else
-			qApp->setStyleSheet(QString());
+		styleSheet = QString::fromUtf8(file.readAll());
 	}
 	else
 	{
-		qApp->setStyleSheet(QString::fromUtf8(file.readAll()));
+		QFile fallback(qssPath(QStringLiteral("studio"), darkMode));
+		if (fallback.open(QFile::ReadOnly))
+			styleSheet = QString::fromUtf8(fallback.readAll());
 	}
+	qApp->setStyleSheet(substituteTokens(styleSheet, currentTokens));
 
 	emit skinChanged(currentTokens);
 	for (QWidget* widget : qApp->allWidgets())
@@ -76,13 +114,18 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 
 QString SkinManager::qssPath(const QString& skinId, bool dark) const
 {
+	const QString variant = dark ? QStringLiteral("dark") : QStringLiteral("light");
 	if (skinId == QStringLiteral("studio"))
-		return QStringLiteral(":/skins/glassy_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		return QStringLiteral(":/skins/studio_%1.qss").arg(variant);
+	if (skinId == QStringLiteral("minimal"))
+		return QStringLiteral(":/skins/precision_%1.qss").arg(variant);
+	if (skinId == QStringLiteral("soft"))
+		return QStringLiteral(":/skins/soft_%1.qss").arg(variant);
 	if (skinId == QStringLiteral("rack"))
-		return QStringLiteral(":/skins/industrial_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		return QStringLiteral(":/skins/rack_%1.qss").arg(variant);
 	if (skinId == QStringLiteral("matrix"))
-		return QStringLiteral(":/skins/industrial_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
-	return QStringLiteral(":/skins/%1_%2.qss").arg(skinId, dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		return QStringLiteral(":/skins/matrix_%1.qss").arg(variant);
+	return QStringLiteral(":/skins/studio_%1.qss").arg(variant);
 }
 
 SkinTokens SkinManager::loadTokens(const QString& skinId, bool dark) const
@@ -235,6 +278,7 @@ SkinTokens SkinManager::loadTokens(const QString& skinId, bool dark) const
 		tokens.channelGroupIndent = 22;
 		tokens.channelGroupStyle = SkinTokens::GradientBar;
 		tokens.badgeStyle = SkinTokens::OutlineOnly;
+		tokens.cardRailWidth = 3;
 		tokens.accent = dark ? QStringLiteral("#22D3EE") : QStringLiteral("#008EAA");
 		tokens.accent2 = dark ? QStringLiteral("#7CFFB2") : QStringLiteral("#0A8F57");
 		if (dark)

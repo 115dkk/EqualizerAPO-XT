@@ -255,7 +255,7 @@ int main(int argc, char* argv[])
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 		{
-			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("glassy")).toString();
+			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString();
 			bool dark = settings.value(QStringLiteral("interface/dark"), GUIHelper::isDarkMode()).toBool();
 			SkinManager::instance()->applySkin(skinId, dark);
 			const SkinTokens& tokens = SkinManager::instance()->tokens();
