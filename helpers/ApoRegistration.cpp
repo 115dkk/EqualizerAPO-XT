@@ -27,6 +27,10 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <shlwapi.h>
+#include <shlobj.h>
+#include <knownfolders.h>
+#include <objbase.h>
+#include <objidl.h>
 
 #include "AbstractAPOInfo.h"
 #include "DeviceAPOInfo.h"
@@ -181,6 +185,14 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 	if (rc != 0)
 		logLine(L"WARN", L"icacls returned %d, continuing", rc);
 
+	// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
+	// DeviceSelector is the elevated companion that performs per-device APO
+	// install/uninstall, so it needs its own Start Menu entry. We create it
+	// here in the install hook because the hook runs elevated and can write
+	// to the Public Programs folder.
+	if (!createStartMenuShortcuts(installDir))
+		logLine(L"WARN", L"Failed to create DeviceSelector start menu shortcut");
+
 	return Result::Success;
 }
 
@@ -241,6 +253,9 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 	{
 		logLine(L"WARN", L"Failed to remove EqualizerAPO registry key: %s", e.getMessage().c_str());
 	}
+
+	if (!removeStartMenuShortcuts())
+		logLine(L"WARN", L"Failed to remove start menu shortcuts");
 
 	if (serviceWasRunning)
 		startAudioService();
@@ -328,6 +343,120 @@ std::wstring ApoRegistration::detectLegacyInstall()
 	{
 		return std::wstring();
 	}
+}
+
+namespace
+{
+constexpr wchar_t kShortcutFolderName[] = L"EqualizerAPO-XT";
+constexpr wchar_t kDeviceSelectorShortcutFile[] = L"Device Selector.lnk";
+
+std::wstring publicProgramsPath()
+{
+	PWSTR raw = nullptr;
+	HRESULT hr = SHGetKnownFolderPath(FOLDERID_CommonPrograms, 0, nullptr, &raw);
+	if (FAILED(hr) || raw == nullptr)
+	{
+		if (raw != nullptr)
+			CoTaskMemFree(raw);
+		return std::wstring();
+	}
+	std::wstring path(raw);
+	CoTaskMemFree(raw);
+	return path;
+}
+
+HRESULT writeShellLink(const std::wstring& target, const std::wstring& workingDir,
+	const std::wstring& description, const std::wstring& iconPath, int iconIndex,
+	const std::wstring& linkPath)
+{
+	IShellLinkW* shellLink = nullptr;
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
+		IID_IShellLinkW, reinterpret_cast<void**>(&shellLink));
+	if (FAILED(hr) || shellLink == nullptr)
+		return hr;
+
+	shellLink->SetPath(target.c_str());
+	if (!workingDir.empty())
+		shellLink->SetWorkingDirectory(workingDir.c_str());
+	if (!description.empty())
+		shellLink->SetDescription(description.c_str());
+	if (!iconPath.empty())
+		shellLink->SetIconLocation(iconPath.c_str(), iconIndex);
+
+	IPersistFile* persistFile = nullptr;
+	hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<void**>(&persistFile));
+	if (SUCCEEDED(hr) && persistFile != nullptr)
+	{
+		hr = persistFile->Save(linkPath.c_str(), TRUE);
+		persistFile->Release();
+	}
+	shellLink->Release();
+	return hr;
+}
+} // namespace
+
+bool ApoRegistration::createStartMenuShortcuts(const std::wstring& installDir)
+{
+	std::wstring deviceSelector = joinPath(installDir, L"DeviceSelector.exe");
+	if (!fileExists(deviceSelector))
+	{
+		logLine(L"WARN", L"DeviceSelector.exe not found at %s", deviceSelector.c_str());
+		return false;
+	}
+
+	std::wstring programsDir = publicProgramsPath();
+	if (programsDir.empty())
+	{
+		logLine(L"ERR", L"SHGetKnownFolderPath(FOLDERID_CommonPrograms) failed");
+		return false;
+	}
+
+	std::wstring shortcutFolder = joinPath(programsDir, kShortcutFolderName);
+	if (!createDirectoryRecursive(shortcutFolder))
+	{
+		logLine(L"ERR", L"Failed to create %s", shortcutFolder.c_str());
+		return false;
+	}
+
+	HRESULT comInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	bool needsUninit = SUCCEEDED(comInit);
+
+	std::wstring linkPath = joinPath(shortcutFolder, kDeviceSelectorShortcutFile);
+	HRESULT hr = writeShellLink(deviceSelector, installDir,
+		L"Configure which audio devices use EqualizerAPO",
+		deviceSelector, 0, linkPath);
+
+	if (needsUninit)
+		CoUninitialize();
+
+	if (FAILED(hr))
+	{
+		logLine(L"ERR", L"Failed to write %s (hr=0x%08lx)", linkPath.c_str(), static_cast<unsigned long>(hr));
+		return false;
+	}
+	logLine(L"INFO", L"Wrote shortcut %s", linkPath.c_str());
+	return true;
+}
+
+bool ApoRegistration::removeStartMenuShortcuts()
+{
+	std::wstring programsDir = publicProgramsPath();
+	if (programsDir.empty())
+		return false;
+
+	std::wstring shortcutFolder = joinPath(programsDir, kShortcutFolderName);
+	std::wstring linkPath = joinPath(shortcutFolder, kDeviceSelectorShortcutFile);
+
+	bool ok = true;
+	if (fileExists(linkPath) && !DeleteFileW(linkPath.c_str()))
+	{
+		logLine(L"WARN", L"DeleteFile failed for %s (gle=%lu)", linkPath.c_str(), GetLastError());
+		ok = false;
+	}
+
+	// Best-effort cleanup of empty folder; ignore failure (other lnks may live there).
+	RemoveDirectoryW(shortcutFolder.c_str());
+	return ok;
 }
 
 bool ApoRegistration::migrateLegacyConfig(const std::wstring& legacyDir, const std::wstring& newDir)

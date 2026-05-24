@@ -63,8 +63,129 @@ bool matchesHook(const char* arg, const char* name)
 	return std::strcmp(arg, name) == 0;
 }
 
+bool isHookArgument(const char* arg)
+{
+	return arg != nullptr && (
+		matchesHook(arg, "--veloapp-install") ||
+		matchesHook(arg, "--veloapp-updated") ||
+		matchesHook(arg, "--veloapp-obsolete") ||
+		matchesHook(arg, "--veloapp-uninstall"));
+}
+
+bool isCurrentProcessElevated()
+{
+	BOOL elevated = FALSE;
+	HANDLE token = nullptr;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+		return false;
+	TOKEN_ELEVATION elevation;
+	DWORD size = sizeof(elevation);
+	if (GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &size))
+		elevated = elevation.TokenIsElevated;
+	CloseHandle(token);
+	return elevated == TRUE;
+}
+
+std::wstring widenArg(const char* arg)
+{
+	if (arg == nullptr)
+		return std::wstring();
+	int needed = MultiByteToWideChar(CP_UTF8, 0, arg, -1, nullptr, 0);
+	if (needed <= 0)
+		return std::wstring();
+	std::wstring out(static_cast<size_t>(needed - 1), L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, arg, -1, out.data(), needed);
+	return out;
+}
+
+std::wstring buildArgumentLine(int argc, char* argv[])
+{
+	std::wstring line;
+	for (int i = 1; i < argc; i++)
+	{
+		std::wstring piece = widenArg(argv[i]);
+		if (i > 1)
+			line.push_back(L' ');
+		bool needsQuote = piece.empty() || piece.find_first_of(L" \t\"") != std::wstring::npos;
+		if (needsQuote)
+		{
+			line.push_back(L'"');
+			for (wchar_t ch : piece)
+			{
+				if (ch == L'"')
+					line.push_back(L'\\');
+				line.push_back(ch);
+			}
+			line.push_back(L'"');
+		}
+		else
+		{
+			line += piece;
+		}
+	}
+	return line;
+}
+
+// Re-launches this exe elevated with the same arguments, waits, and returns
+// the child's exit code. Velopack runs hooks in the user's security context
+// (the installer itself is unelevated for per-user installs), but the hook
+// needs admin to write HKLM and register the APO DLL. We bridge the gap here.
+int relaunchElevatedAndWait(int argc, char* argv[])
+{
+	wchar_t exePathBuffer[MAX_PATH];
+	DWORD length = GetModuleFileNameW(nullptr, exePathBuffer, MAX_PATH);
+	if (length == 0)
+	{
+		fwprintf(stderr, L"GetModuleFileName failed (gle=%lu)\n", GetLastError());
+		return 1;
+	}
+
+	std::wstring parameters = buildArgumentLine(argc, argv);
+
+	SHELLEXECUTEINFOW info;
+	ZeroMemory(&info, sizeof(info));
+	info.cbSize = sizeof(info);
+	info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
+	info.lpVerb = L"runas";
+	info.lpFile = exePathBuffer;
+	info.lpParameters = parameters.c_str();
+	info.nShow = SW_HIDE;
+
+	if (!ShellExecuteExW(&info))
+	{
+		DWORD gle = GetLastError();
+		fwprintf(stderr, L"ShellExecuteEx(runas) failed (gle=%lu)\n", gle);
+		// ERROR_CANCELLED (1223) means the user declined UAC.
+		return gle == ERROR_CANCELLED ? 1223 : 1;
+	}
+
+	if (info.hProcess == nullptr)
+		return 1;
+
+	WaitForSingleObject(info.hProcess, INFINITE);
+	DWORD exitCode = 1;
+	GetExitCodeProcess(info.hProcess, &exitCode);
+	CloseHandle(info.hProcess);
+	return static_cast<int>(exitCode);
+}
+
 int handleVelopackHook(int argc, char* argv[])
 {
+	bool hookSeen = false;
+	for (int i = 1; i < argc; i++)
+	{
+		if (isHookArgument(argv[i]))
+		{
+			hookSeen = true;
+			break;
+		}
+	}
+	if (!hookSeen)
+		return -1;
+
+	if (!isCurrentProcessElevated())
+		return relaunchElevatedAndWait(argc, argv);
+
 	for (int i = 1; i < argc; i++)
 	{
 		const char* arg = argv[i];
