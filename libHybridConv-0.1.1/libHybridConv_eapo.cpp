@@ -25,6 +25,8 @@
 #endif
 #include <algorithm>
 #include <memory>
+#include <mutex>
+#include <string>
 #include <string.h>
 #include <unordered_map>
 #include <vector>
@@ -834,11 +836,32 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 	filter->history_time = storage.historyTime.get();
 	memset(filter->history_time, 0, size);
 
-	// Use FFTW_MEASURE for production for potentially higher performance, at the cost of a longer setup time.
-	// FFTW_ESTIMATE is faster for setup.
-	unsigned fftw_flags = FFTW_ESTIMATE | FFTW_PRESERVE_INPUT;
-	filter->fft = fftw_plan_dft_r2c_1d(2 * flen, filter->dft_time, filter->dft_freq, fftw_flags);
-	filter->ifft = fftw_plan_dft_c2r_1d(2 * flen, filter->dft_freq, filter->dft_time, fftw_flags);
+	// When a cached wisdom file exists we use FFTW_MEASURE — planner returns immediately from the cache,
+	// giving the optimized plan without the multi-second learning cost. Without wisdom we fall back to
+	// FFTW_ESTIMATE so a fresh install does not introduce a multi-second audio glitch at startup.
+	// A separate warmup tool can pre-populate %LOCALAPPDATA%\EqualizerAPO\fftw_wisdom.dat to unlock the
+	// faster MEASURE path on subsequent runs.
+	{
+		static std::mutex plannerMutex;
+		std::lock_guard<std::mutex> lock(plannerMutex);
+		char appData[MAX_PATH];
+		static std::string wisdomPath;
+		static bool wisdomAvailable = false;
+		if (wisdomPath.empty() && GetEnvironmentVariableA("LOCALAPPDATA", appData, MAX_PATH) > 0)
+		{
+			std::string dir = std::string(appData) + "\\EqualizerAPO";
+			CreateDirectoryA(dir.c_str(), nullptr);
+			wisdomPath = dir + "\\fftw_wisdom.dat";
+			static std::once_flag importedFlag;
+			std::call_once(importedFlag, []() {
+				if (!wisdomPath.empty() && GetFileAttributesA(wisdomPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+					wisdomAvailable = (fftw_import_wisdom_from_filename(wisdomPath.c_str()) != 0);
+			});
+		}
+		unsigned fftw_flags = (wisdomAvailable ? FFTW_MEASURE : FFTW_ESTIMATE) | FFTW_PRESERVE_INPUT;
+		filter->fft = fftw_plan_dft_r2c_1d(2 * flen, filter->dft_time, filter->dft_freq, fftw_flags);
+		filter->ifft = fftw_plan_dft_c2r_1d(2 * flen, filter->dft_freq, filter->dft_time, fftw_flags);
+	}
 
 	gain = 0.5 / flen;
 

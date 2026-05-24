@@ -22,6 +22,7 @@
 
 #include "helpers/MemoryHelper.h"
 #include "DelayFilter.h"
+#include "helpers/PerfProfile.h"
 
 using std::vector;
 using std::wstring;
@@ -64,6 +65,7 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 #pragma AVRT_CODE_BEGIN
 void DelayFilter::process(double** output, double** input, unsigned frameCount)
 {
+	PerfScope _ps("DelayFilter::process");
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		double* inputChannel = input[i];

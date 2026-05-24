@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include "helpers/MemoryHelper.h"
 #include "IIRFilter.h"
+#include "helpers/PerfProfile.h"
 
 using std::abs;
 using std::vector;
@@ -75,6 +76,7 @@ vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, 
 #pragma AVRT_CODE_BEGIN
 void IIRFilter::process(double** output, double** input, unsigned frameCount)
 {
+	PerfScope _ps("IIRFilter::process");
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		double* inputChannel = input[i];

@@ -69,6 +69,7 @@ int main(int argc, char** argv)
 		TCLAP::SwitchArg profileArg("", "profile", "Enable per-stage performance instrumentation (FilterEngine + filter breakdown)", cmd);
 		TCLAP::ValueArg<unsigned> repeatArg("", "repeat", "Number of times to repeat the processing loop for averaging (Default: 1)", false, 1, "integer", cmd);
 		TCLAP::ValueArg<string> dumpCsvArg("", "dump-batches", "Path to a CSV file to write per-batch timings to", false, "", "string", cmd);
+		TCLAP::ValueArg<string> configPathArg("", "config-path", "Override config directory; bypasses the registry ConfigPath lookup so the run is portable across machines", false, "", "string", cmd);
 		TCLAP::ValueArg<string> guidArg("", "guid", "Endpoint GUID to use when parsing configuration (Default: <empty>)", false, "", "string", cmd);
 		TCLAP::ValueArg<string> connectionnameArg("", "connectionname", "Connection name to use when parsing configuration (Default: File output)", false, "File output", "string", cmd);
 		TCLAP::ValueArg<string> devicenameArg("", "devicename", "Device name to use when parsing configuration (Default: Benchmark)", false, "Benchmark", "string", cmd);
@@ -180,7 +181,14 @@ int main(int argc, char** argv)
 			wstring connectionName = StringHelper::toWString(connectionnameArg.getValue(), CP_ACP);
 			wstring deviceGuid = StringHelper::toWString(guidArg.getValue(), CP_ACP);
 			engine.setDeviceInfo(false, true, deviceName, connectionName, deviceGuid, deviceName + L" " + connectionName + L" " + deviceGuid);
-			engine.initialize(static_cast<float>(sampleRate), channelCount, channelCount, channelCount, channelMask, batchsize);
+			wstring customConfigPath = StringHelper::toWString(configPathArg.getValue(), CP_ACP);
+			if (!customConfigPath.empty())
+			{
+				DWORD attrs = GetFileAttributesW(customConfigPath.c_str());
+				if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY))
+					customConfigPath += L"\\config.txt";
+			}
+			engine.initialize(static_cast<float>(sampleRate), channelCount, channelCount, channelCount, channelMask, batchsize, customConfigPath);
 
 			double initTime = timer.stop();
 			if (!verbose)
