@@ -88,14 +88,16 @@ void FilterTable::mousePressEvent(QMouseEvent* event)
 			}
 			focused = item;
 			ensureRowVisible(row);
-			update();
+			updateRowWidgets();
 
 			dragStartPos = event->pos();
 		}
 		else
 		{
 			selected.clear();
-			update();
+			focused = nullptr;
+			selectionStart = nullptr;
+			updateRowWidgets();
 		}
 	}
 }
@@ -118,7 +120,7 @@ void FilterTable::mouseReleaseEvent(QMouseEvent* event)
 				}
 			}
 			ensureRowVisible(row);
-			update();
+			updateRowWidgets();
 		}
 	}
 }
@@ -149,7 +151,13 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 
 					if (!dragPosInside)
 					{
-						QWidget* rowWidget = gridLayout->itemAtPosition(i, 0)->widget();
+						QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
+						if (layoutItem == nullptr || layoutItem->widget() == nullptr)
+						{
+							i++;
+							continue;
+						}
+						QWidget* rowWidget = layoutItem->widget();
 						QRect headerRect;
 						FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(rowWidget);
 						if (tableRow != nullptr)

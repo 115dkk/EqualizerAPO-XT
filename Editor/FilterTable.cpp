@@ -100,6 +100,12 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 
 FilterTable::~FilterTable()
 {
+	if (QApplication::instance() != nullptr)
+		QApplication::instance()->removeEventFilter(this);
+
+	qDeleteAll(items);
+	items.clear();
+
 	for (IFilterGUIFactory* factory : factories)
 		delete factory;
 	factories.clear();
@@ -138,17 +144,19 @@ void FilterTable::updateGuis()
 		}
 	}
 
-	delete layout();
-
-	for (QObject* object : children())
+	QLayout* oldLayout = layout();
+	if (oldLayout != nullptr)
 	{
-		if (object != insertArrow)
+		while (QLayoutItem* child = oldLayout->takeAt(0))
 		{
-			QWidget* widget = qobject_cast<QWidget*>(object);
-			if (widget != nullptr)
-				widget->setVisible(false);
-			object->deleteLater();
+			if (QWidget* widget = child->widget())
+			{
+				if (widget != insertArrow)
+					delete widget;
+			}
+			delete child;
 		}
+		delete oldLayout;
 	}
 
 	qDebug("Delete took %d ms", timer.elapsed());
@@ -169,6 +177,7 @@ void FilterTable::updateGuis()
 	{
 		QString line = item->text;
 		IFilterGUI* gui = nullptr;
+		bool usingCardEditor = false;
 		int pos = line.indexOf(':');
 		if (pos != -1)
 		{
@@ -190,7 +199,6 @@ void FilterTable::updateGuis()
 
 			if (gui != nullptr)
 			{
-				bool usingCardEditor = false;
 				if (renderMode == ModernCards)
 				{
 					IFilterGUI* cardGui = FilterCardEditorFactory::create(this, key, value);
@@ -219,7 +227,8 @@ void FilterTable::updateGuis()
 		{
 			gui->loadPreferences(item->prefs);
 
-			connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
+			if (renderMode != ModernCards)
+				connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
 			connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
 		}
 

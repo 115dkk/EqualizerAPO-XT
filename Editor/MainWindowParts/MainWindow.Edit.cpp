@@ -4,8 +4,10 @@
 #include <QLabel>
 #include <QMimeData>
 #include <QPushButton>
+#include <QDebug>
 #include <QStandardItemModel>
 #include <QStringBuilder>
+#include <QStyle>
 #include <QScrollArea>
 #include <QFileInfo>
 #include <QFileDialog>
@@ -25,6 +27,7 @@
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "SkinManager.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -40,6 +43,11 @@ using std::wstring;
 void MainWindow::linesChanged()
 {
 	FilterTable* filterTable = qobject_cast<FilterTable*>(sender());
+	if (filterTable == nullptr)
+	{
+		qWarning() << "linesChanged from unexpected sender" << sender();
+		return;
+	}
 
 	if (instantModeCheckBox->isChecked())
 	{
@@ -47,6 +55,7 @@ void MainWindow::linesChanged()
 		if (configPath.length() > 0)
 		{
 			save(filterTable, configPath);
+			updateDirtyStatus();
 			return;
 		}
 	}
@@ -61,12 +70,34 @@ void MainWindow::linesChanged()
 			break;
 		}
 	}
+	if (tabIndex < 0)
+		return;
 	QString tabText = ui->tabWidget->tabText(tabIndex);
 	if (!tabText.endsWith('*'))
 	{
 		tabText += '*';
 		ui->tabWidget->setTabText(tabIndex, tabText);
 	}
+	updateDirtyStatus();
+}
+
+void MainWindow::updateDirtyStatus()
+{
+	if (dirtyStatusLabel == nullptr)
+		return;
+
+	const int index = ui->tabWidget->currentIndex();
+	const bool dirty = index >= 0 && ui->tabWidget->tabText(index).endsWith('*');
+	dirtyStatusLabel->setText(dirty ? tr("Unsaved changes") : tr("Saved"));
+	dirtyStatusLabel->setProperty("dirty", dirty);
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	dirtyStatusLabel->setStyleSheet(QStringLiteral("QLabel#DirtyStatusBadge { background: %1; color: %2; border: 1px solid %3; border-radius: 10px; padding: 4px 10px; font-weight: 700; }")
+		.arg(dirty ? tokens.warning : tokens.surfaceRaised,
+			dirty ? QStringLiteral("#111111") : tokens.text,
+			dirty ? tokens.warning : tokens.border));
+	dirtyStatusLabel->style()->unpolish(dirtyStatusLabel);
+	dirtyStatusLabel->style()->polish(dirtyStatusLabel);
+	dirtyStatusLabel->update();
 }
 
 bool MainWindow::on_tabWidget_tabCloseRequested(int index)
@@ -85,7 +116,11 @@ bool MainWindow::on_tabWidget_tabCloseRequested(int index)
 			updateRecentFiles();
 		}
 
+		QWidget* page = ui->tabWidget->widget(index);
 		ui->tabWidget->removeTab(index);
+		if (page != nullptr)
+			page->deleteLater();
+		updateDirtyStatus();
 	}
 	return true;
 }

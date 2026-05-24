@@ -113,7 +113,7 @@ void FilterTable::paste()
 		{
 			QString line = textLines[i];
 			Item* item = new Item(line);
-			if (!prefsList.isEmpty())
+			if (i < prefsList.size())
 				item->prefs = prefsList[i];
 			selected.insert(item);
 			items.insert(dropRow++, item);
@@ -158,24 +158,21 @@ void FilterTable::selectAll()
 	selected.clear();
 	for (Item* item : items)
 		selected.insert(item);
-	update();
+	updateRowWidgets();
 }
 
 
 void FilterTable::addActionTriggered()
 {
-	QMenu* menu = createAddPopupMenu();
 	QAction* addAction = qobject_cast<QAction*>(QObject::sender());
 	QToolBar* toolBar = qobject_cast<QToolBar*>(addAction->parentWidget());
 	QRect rect = toolBar->actionGeometry(addAction);
 	QPoint p = toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));
-	QAction* action = menu->exec(p);
 	addAction->setChecked(false);
-	if (action != nullptr)
+	FilterTemplate filterTemplate;
+	if (chooseFilterTemplate(&filterTemplate, p))
 	{
-		FilterTemplate t = action->data().value<FilterTemplate>();
-		QString line = t.getLine();
-		addLine(line);
+		addLine(filterTemplate.getLine());
 		updateGuis();
 	}
 }

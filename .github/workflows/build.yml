@@ -18,7 +18,41 @@ env:
   BUILD_CONFIGURATION: Release
 
 jobs:
+  version-bump:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore(version):')
+    runs-on: windows-2025
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Bump version
+      shell: pwsh
+      run: .\.github\scripts\Bump-Version.ps1
+
+    - name: Commit version bump
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        git diff --quiet -- version.h
+        if ($LASTEXITCODE -eq 1) {
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.h
+          git commit -m "chore(version): bump version [skip version-bump]"
+          git push
+        } elseif ($LASTEXITCODE -eq 0) {
+          Write-Host "No version change to commit."
+        } else {
+          exit $LASTEXITCODE
+        }
+
   build:
+    needs: version-bump
+    if: always() && (github.event_name != 'push' || github.ref != 'refs/heads/main' || startsWith(github.event.head_commit.message, 'chore(version):'))
     strategy:
       fail-fast: false
       matrix:

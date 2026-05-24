@@ -41,6 +41,8 @@ namespace Ui {
 class MainWindow;
 }
 
+class QLabel;
+
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
@@ -110,12 +112,14 @@ private:
 	void setCurrentRenderMode(FilterTable::RenderMode mode);
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
+	void updateDirtyStatus();
 	template<class T> QList<T> toQList(const std::vector<T>& vector);
 
 	Ui::MainWindow* ui;
 
 	QDir configDir;
 	QCheckBox* instantModeCheckBox;
+	QLabel* dirtyStatusLabel = nullptr;
 	QComboBox* deviceComboBox;
 	QComboBox* channelConfigurationComboBox;
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
@@ -128,7 +132,7 @@ private:
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;
 	QStringList recentFiles;
-	QString skinId = QStringLiteral("glassy");
+	QString skinId = QStringLiteral("studio");
 	bool skinDark = true;
 	bool graphFullscreen = false;
 	int graphDockPosition = 0;

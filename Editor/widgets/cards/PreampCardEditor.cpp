@@ -12,8 +12,8 @@
 
 namespace
 {
-constexpr double MinimumGain = -30.0;
-constexpr double MaximumGain = 30.0;
+constexpr double MinimumGain = -100.0;
+constexpr double MaximumGain = 100.0;
 constexpr double GainStep = 0.1;
 
 int gainToKnobValue(double gain)
@@ -82,7 +82,7 @@ double PreampCardEditor::parseGain(const QString& parameters)
 
 	bool ok = false;
 	const double value = QLocale::c().toDouble(match.captured(1), &ok);
-	return ok ? qBound(MinimumGain, value, MaximumGain) : 0.0;
+	return ok ? value : 0.0;
 }
 
 void PreampCardEditor::knobChanged(int value)

@@ -44,7 +44,7 @@ vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, w
 		{
 			wchar_t c = towupper(value[i]);
 
-			if (c == L' ')
+			if (iswspace(c) || c == L',')
 			{
 				if (currentWord.length() > 0)
 				{

@@ -76,6 +76,7 @@ void MainWindow::skinSelected(QAction* action)
 
 	skinId = action->data().toString();
 	SkinManager::instance()->applySkin(skinId, skinDark);
+	skinId = SkinManager::instance()->currentSkinId();
 	for (int i = 0; i < ui->tabWidget->count(); i++)
 	{
 		FilterTable* filterTable = filterTableForTab(i);
@@ -88,6 +89,7 @@ void MainWindow::darkThemeToggled(bool checked)
 {
 	skinDark = checked;
 	SkinManager::instance()->applySkin(skinId, skinDark);
+	skinId = SkinManager::instance()->currentSkinId();
 }
 
 void MainWindow::cycleGraphPosition()

@@ -95,7 +95,7 @@ void IncludeCardEditor::chooseFile()
 	QDir configDir = fileInfo.absoluteDir();
 	QString path = pathEdit->text();
 	if (!path.isEmpty())
-		fileInfo.setFile(configDir, path);
+		fileInfo = currentFileInfo();
 
 	QFileDialog dialog(this, tr("Include file"), fileInfo.absolutePath(), QStringLiteral("*.txt"));
 	dialog.setFileMode(QFileDialog::ExistingFile);
@@ -137,15 +137,21 @@ QFileInfo IncludeCardEditor::currentFileInfo() const
 	if (filterTable == nullptr)
 		return QFileInfo(pathEdit->text());
 
+	QString path = pathEdit->text();
+	QString normalizedPath = QDir::fromNativeSeparators(path);
+	if (QDir::isAbsolutePath(normalizedPath))
+		return QFileInfo(path);
+
 	QFileInfo configInfo(filterTable->getConfigPath());
 	QFileInfo fileInfo;
-	fileInfo.setFile(configInfo.absoluteDir(), pathEdit->text());
+	fileInfo.setFile(configInfo.absoluteDir(), path);
 	return fileInfo;
 }
 
 void IncludeCardEditor::updateFileInfo()
 {
 	QString error;
+	QString warning;
 	bool offerImport = false;
 	QString path = pathEdit->text();
 	if (path.isEmpty())
@@ -162,6 +168,13 @@ void IncludeCardEditor::updateFileInfo()
 		else
 		{
 			path = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
+			if (filterTable != nullptr)
+			{
+				QString normalizedPath = QDir::cleanPath(QDir::fromNativeSeparators(pathEdit->text()));
+				QString configPath = QDir::cleanPath(QFileInfo(filterTable->getConfigPath()).absolutePath());
+				if (QDir::isAbsolutePath(normalizedPath) && !QDir::cleanPath(fileInfo.absolutePath()).startsWith(configPath, Qt::CaseInsensitive))
+					warning = tr("External absolute include path");
+			}
 
 			ACCESS_MASK mask = GENERIC_READ;
 			try
@@ -180,8 +193,11 @@ void IncludeCardEditor::updateFileInfo()
 		}
 	}
 
-	statusLabel->setVisible(!error.isEmpty());
-	statusLabel->setText(error);
+	statusLabel->setVisible(!error.isEmpty() || !warning.isEmpty());
+	statusLabel->setText(error.isEmpty() ? warning : error);
+	statusLabel->setProperty("severity", error.isEmpty() ? QStringLiteral("warning") : QStringLiteral("critical"));
+	statusLabel->style()->unpolish(statusLabel);
+	statusLabel->style()->polish(statusLabel);
 	openButton->setEnabled(error.isEmpty() && !pathEdit->text().isEmpty());
 	importButton->setVisible(offerImport);
 }

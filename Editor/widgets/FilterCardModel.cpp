@@ -3,9 +3,60 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 
+namespace
+{
+bool isKnownConfigCommand(const QString& command)
+{
+	QString normalized = command.trimmed().toLower();
+	if (normalized.startsWith(QStringLiteral("filter")))
+		return true;
+
+	static const QStringList knownCommands = {
+		QStringLiteral("channel"),
+		QStringLiteral("comment"),
+		QStringLiteral("convolution"),
+		QStringLiteral("copy"),
+		QStringLiteral("delay"),
+		QStringLiteral("device"),
+		QStringLiteral("else"),
+		QStringLiteral("elseif"),
+		QStringLiteral("endif"),
+		QStringLiteral("eval"),
+		QStringLiteral("graphiceq"),
+		QStringLiteral("if"),
+		QStringLiteral("include"),
+		QStringLiteral("loudnesscorrection"),
+		QStringLiteral("preamp"),
+		QStringLiteral("stage"),
+		QStringLiteral("vstplugin")
+	};
+	return knownCommands.contains(normalized);
+}
+}
+
 QString FilterCardModel::compactWhitespace(QString text)
 {
 	return text.simplified();
+}
+
+bool FilterCardModel::isDisabledCommandLine(const QString& line)
+{
+	QString trimmed = line.trimmed();
+	if (!trimmed.startsWith('#'))
+		return false;
+
+	trimmed = trimmed.mid(1).trimmed();
+	int colon = trimmed.indexOf(':');
+	if (colon < 0)
+		return false;
+
+	return isKnownConfigCommand(trimmed.left(colon));
+}
+
+bool FilterCardModel::isPureCommentLine(const QString& line)
+{
+	QString trimmed = line.trimmed();
+	return trimmed.startsWith('#') && !isDisabledCommandLine(line);
 }
 
 QString FilterCardModel::commandForLine(const QString& line, QString* parameters)
@@ -14,11 +65,11 @@ QString FilterCardModel::commandForLine(const QString& line, QString* parameters
 	if (trimmed.startsWith('#'))
 	{
 		trimmed = trimmed.mid(1).trimmed();
-		if (trimmed.isEmpty())
+		if (!trimmed.contains(':'))
 		{
 			if (parameters != nullptr)
-				*parameters = line.trimmed();
-			return QStringLiteral("#");
+				*parameters = trimmed;
+			return QString();
 		}
 	}
 
@@ -51,6 +102,19 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	descriptor.depth = depth;
 	descriptor.enabled = !line.trimmed().startsWith('#');
 
+	if (isPureCommentLine(line))
+	{
+		QString trimmed = line.trimmed();
+		descriptor.command = QStringLiteral("#");
+		descriptor.title = QStringLiteral("Comment");
+		descriptor.summary = compactWhitespace(trimmed.mid(1));
+		descriptor.type = QStringLiteral("comment");
+		descriptor.badge = QStringLiteral("#");
+		descriptor.color = QStringLiteral("#94a3b8");
+		descriptor.canToggleEnabled = false;
+		return descriptor;
+	}
+
 	QString parameters;
 	QString command = commandForLine(line, &parameters);
 	QString commandLower = command.toLower();
@@ -63,16 +127,6 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 
 	if (!descriptor.enabled && command != QStringLiteral("#"))
 		descriptor.summary = compactWhitespace(parameters);
-
-	if (command == QStringLiteral("#"))
-	{
-		descriptor.type = QStringLiteral("comment");
-		descriptor.badge = QStringLiteral("#");
-		descriptor.title = QStringLiteral("Comment");
-		descriptor.summary = compactWhitespace(line.trimmed().mid(1));
-		descriptor.color = QStringLiteral("#94a3b8");
-		return descriptor;
-	}
 
 	if (commandLower == QStringLiteral("preamp"))
 	{
@@ -219,9 +273,10 @@ QVector<int> FilterCardModel::calculateDepths(const QList<QString>& lines)
 	int currentDepth = 0;
 	for (const QString& line : lines)
 	{
+		bool enabled = !line.trimmed().startsWith('#');
 		QString parameters;
 		QString command = commandForLine(line, &parameters).toLower();
-		if (command == QStringLiteral("channel"))
+		if (enabled && command == QStringLiteral("channel"))
 		{
 			depths.append(0);
 			QStringList channels = parseChannelList(parameters);
@@ -230,7 +285,6 @@ QVector<int> FilterCardModel::calculateDepths(const QList<QString>& lines)
 		else if (command == QStringLiteral("include"))
 		{
 			depths.append(currentDepth);
-			currentDepth = 0;
 		}
 		else
 		{

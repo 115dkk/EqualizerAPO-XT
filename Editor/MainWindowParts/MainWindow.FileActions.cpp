@@ -83,6 +83,7 @@ void MainWindow::on_actionSave_triggered()
 		QString tabText = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
 		if (tabText.endsWith('*'))
 			ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), tabText.left(tabText.length() - 1));
+		updateDirtyStatus();
 	}
 }
 
@@ -122,6 +123,7 @@ void MainWindow::on_actionSaveAs_triggered()
 		QFileInfo fileInfo(savePath);
 		ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), fileInfo.fileName());
 		ui->tabWidget->setTabToolTip(ui->tabWidget->currentIndex(), QDir::toNativeSeparators(fileInfo.absoluteFilePath()));
+		updateDirtyStatus();
 	}
 }
 
@@ -131,6 +133,7 @@ void MainWindow::on_actionNew_triggered()
 
 	connect(filterTable, SIGNAL(linesChanged()), this, SLOT(linesChanged()));
 	ui->tabWidget->setCurrentIndex(ui->tabWidget->count() - 1);
+	updateDirtyStatus();
 }
 
 void MainWindow::recentFileSelected()

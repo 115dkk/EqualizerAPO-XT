@@ -30,6 +30,7 @@
 
 #include "Editor/helpers/DisableWheelFilter.h"
 #include "DeviceAPOInfo.h"
+#include "FilterTemplate.h"
 #include "IFilterGUI.h"
 #include "IFilterGUIFactory.h"
 
@@ -72,6 +73,7 @@ public:
 	Item* addLine(const QString& line, Item* before = nullptr);
 	void removeItem(Item* item);
 	QMenu* createAddPopupMenu();
+	bool chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos = QPoint());
 	void cut();
 	void copy();
 	void paste();
@@ -130,6 +132,7 @@ private:
 	int rowForPos(QPoint pos, bool insert);
 	QRectF rowRect(int row);
 	void disableWheelForWidgets();
+	void updateRowWidgets();
 
 	MainWindow* mainWindow;
 	QScrollArea* scrollArea;

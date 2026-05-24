@@ -34,6 +34,9 @@ EqGraphView::EqGraphView(QWidget* parent)
 {
 	setMinimumHeight(180);
 	setObjectName(QStringLiteral("EqGraphView"));
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		update();
+	});
 }
 
 void EqGraphView::setNodes(const std::vector<FilterNode>& nodes, unsigned sampleRate, const QString& channel)
@@ -67,6 +70,8 @@ void EqGraphView::paintEvent(QPaintEvent*)
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	QRectF graphRect = rect().adjusted(18, 16, -18, -28);
+	if (graphRect.width() < 2 || graphRect.height() < 2)
+		return;
 
 	QRectF bgRect = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
 	qreal radius = qMax(0, tokens.borderRadius - 2);
@@ -77,7 +82,7 @@ void EqGraphView::paintEvent(QPaintEvent*)
 	painter.drawPath(bgPath);
 	painter.setClipPath(bgPath);
 
-	QPen gridPen(QColor(tokens.border), 1);
+	QPen gridPen(QColor(tokens.graphGridMinor.isEmpty() ? tokens.border : tokens.graphGridMinor), 1);
 	gridPen.setCosmetic(true);
 	painter.setPen(gridPen);
 
@@ -110,7 +115,7 @@ void EqGraphView::paintEvent(QPaintEvent*)
 		painter.drawLine(QPointF(graphRect.left(), y), QPointF(graphRect.right(), y));
 	}
 
-	QPen zeroPen(QColor(tokens.mutedText), 1.4);
+	QPen zeroPen(QColor(tokens.accent), 1.4);
 	zeroPen.setCosmetic(true);
 	painter.setPen(zeroPen);
 	double zeroY = dbToY(graphRect, 0.0, minDb, maxDb);

@@ -91,7 +91,7 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 					}
 
 					ensureRowVisible(newRow);
-					update();
+					updateRowWidgets();
 				}
 			}
 		}
@@ -99,9 +99,12 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 
 	if (event->key() == Qt::Key_Space)
 	{
-		if (!(event->modifiers() & Qt::ControlModifier) || !selected.remove(focused))
-			selected.insert(focused);
-		update();
+		if (focused != nullptr)
+		{
+			if (!(event->modifiers() & Qt::ControlModifier) || !selected.remove(focused))
+				selected.insert(focused);
+			updateRowWidgets();
+		}
 	}
 
 	if (event->key() == Qt::Key_F2)
@@ -112,6 +115,8 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 			if (rowIndex != -1)
 			{
 				QLayoutItem* layoutItem = gridLayout->itemAtPosition(rowIndex, 0);
+				if (layoutItem == nullptr)
+					return;
 				FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(layoutItem->widget());
 				if (tableRow != nullptr)
 					tableRow->editText();
@@ -209,7 +214,10 @@ int FilterTable::rowForPos(QPoint pos, bool insert)
 	int row = -1;
 	for (int i = 0; i < gridLayout->rowCount() - 2; i++)
 	{
-		QRect rect = gridLayout->itemAtPosition(i, 0)->geometry();
+		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
+		if (layoutItem == nullptr)
+			continue;
+		QRect rect = layoutItem->geometry();
 		int y;
 		if (insert)
 			y = rect.center().y();
@@ -228,7 +236,11 @@ int FilterTable::rowForPos(QPoint pos, bool insert)
 
 QRectF FilterTable::rowRect(int row)
 {
-	QRectF rect = gridLayout->itemAtPosition(row, 0)->geometry();
+	QLayoutItem* layoutItem = gridLayout->itemAtPosition(row, 0);
+	if (layoutItem == nullptr)
+		return QRectF();
+
+	QRectF rect = layoutItem->geometry();
 	rect = rect.marginsAdded(QMarginsF(-1.5, -1.5, -1.5, -0.5));
 	return rect;
 }
@@ -240,11 +252,26 @@ void FilterTable::disableWheelForWidgets()
 	{
 		if (qobject_cast<QComboBox*>(widget) || qobject_cast<QAbstractSpinBox*>(widget) || qobject_cast<QDial*>(widget))
 		{
-			widget->installEventFilter(new DisableWheelFilter(this, widget));
+			if (!widget->property("eapoWheelFilterInstalled").toBool())
+			{
+				widget->installEventFilter(new DisableWheelFilter(this, widget));
+				widget->setProperty("eapoWheelFilterInstalled", true);
+			}
 			if (widget->focusPolicy() == Qt::WheelFocus)
 				widget->setFocusPolicy(Qt::StrongFocus);
 		}
 	}
+}
+
+void FilterTable::updateRowWidgets()
+{
+	for (int i = 0; i < items.size(); i++)
+	{
+		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
+		if (layoutItem != nullptr && layoutItem->widget() != nullptr)
+			layoutItem->widget()->update();
+	}
+	update();
 }
 
 QString FilterTable::getConfigPath() const
