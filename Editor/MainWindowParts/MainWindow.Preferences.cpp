@@ -83,9 +83,11 @@ void MainWindow::loadPreferences()
 	ui->startFromComboBox->setCurrentIndex(settings.value("analysis/startFrom").toInt());
 	ui->analysisChannelComboBox->setCurrentText(settings.value("analysis/channel").toString());
 	ui->resolutionSpinBox->setValue(settings.value("analysis/resolution", 65536).toInt());
-	double zoomX = GUIHelper::scaleZoom(settings.value("analysis/zoomX", 1.0).toDouble());
-	double zoomY = GUIHelper::scaleZoom(settings.value("analysis/zoomY", 1.0).toDouble());
-	analysisPlotScene->setZoom(zoomX, zoomY);
+	// The legacy QGraphicsView is hidden and its zoom is no longer user-controlled —
+	// EqGraphView auto-fits its data. Reset the scene zoom to a sane default so its
+	// getNodes() output (still consumed by EqGraphView) is not skewed by an old saved
+	// zoom from previous XT versions.
+	analysisPlotScene->setZoom(1.0, 1.0);
 
 	QVariant openFilesValue = settings.value("openFiles");
 	int tabIndex = settings.value("tabIndex").toInt();
@@ -137,8 +139,10 @@ void MainWindow::savePreferences()
 	settings.setValue("analysis/startFrom", ui->startFromComboBox->currentIndex());
 	settings.setValue("analysis/channel", ui->analysisChannelComboBox->currentText());
 	settings.setValue("analysis/resolution", ui->resolutionSpinBox->value());
-	settings.setValue("analysis/zoomX", GUIHelper::invScaleZoom(analysisPlotScene->getZoomX()));
-	settings.setValue("analysis/zoomY", GUIHelper::invScaleZoom(analysisPlotScene->getZoomY()));
+	// analysis/zoomX/zoomY are intentionally not persisted: the active graph
+	// (EqGraphView) does not expose zoom, and persisting the hidden legacy
+	// view's zoom would only resurrect the bug where reloads applied stale
+	// zoom to the legacy scene.
 
 	QStringList fileList;
 	for (int i = 0; i < ui->tabWidget->count(); i++)

@@ -201,7 +201,11 @@ void FilterTable::updateGuis()
 			{
 				if (renderMode == ModernCards)
 				{
-					IFilterGUI* cardGui = FilterCardEditorFactory::create(this, key, value);
+					// factoryKey is the command after CommentFilterGUIFactory strips a leading '#',
+					// so both "Include: a.txt" and "# Include: a.txt" reach the card factory with
+					// the same key. Without this, only the active line would receive the modern
+					// card editor and the commented line would fall back to the legacy GUI.
+					IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
 					if (cardGui != nullptr)
 					{
 						delete gui;
