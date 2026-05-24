@@ -39,6 +39,7 @@ private:
 	void rebuildSummary();
 	void setEditing(bool editing);
 	void buildChannelBadges(const QStringList& channels);
+	void refreshStateProperties();
 	QString uncommentedLine() const;
 
 	FilterTable* table = nullptr;
@@ -52,6 +53,7 @@ private:
 	QLabel* typeBadge = nullptr;
 	QLabel* titleLabel = nullptr;
 	QLabel* summaryLabel = nullptr;
+	QLabel* rawPreviewLabel = nullptr;
 	QWidget* channelBadgeContainer = nullptr;
 	QHBoxLayout* channelBadgeLayout = nullptr;
 	QCheckBox* enabledCheckBox = nullptr;

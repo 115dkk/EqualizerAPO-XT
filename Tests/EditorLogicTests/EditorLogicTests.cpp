@@ -224,6 +224,16 @@ int main(int argc, char** argv)
 	expectEqual(disabledFilter.badge, "PK", "disabled biquad badge");
 	expectEqual(disabledFilter.title, "Biquad", "disabled biquad title");
 
+	FilterCardDescriptor pureComment = FilterCardModel::describeLine("    # purely explanatory comment");
+	expectFalse(pureComment.enabled, "pure comment was marked enabled");
+	expectFalse(pureComment.canToggleEnabled, "pure comment should not expose enable toggling");
+	expectEqual(pureComment.badge, "#", "pure comment badge");
+	expectEqual(pureComment.title, "Comment", "pure comment title");
+
+	FilterCardDescriptor colonComment = FilterCardModel::describeLine("# TODO: explain headphone preset");
+	expectEqual(colonComment.title, "Comment", "colon comment title");
+	expectFalse(colonComment.canToggleEnabled, "colon comments should not become disabled commands");
+
 	FilterCardDescriptor graphicEq = FilterCardModel::describeLine("GraphicEQ: 20 -1; 100 0; 1000 2");
 	expectEqual(graphicEq.badge, "GEQ", "graphic eq badge");
 	expectEqual(graphicEq.summary, "3 bands", "graphic eq band count");
@@ -243,16 +253,20 @@ int main(int argc, char** argv)
 		"Preamp: -6 dB",
 		"Include: nested.txt",
 		"Delay: 10 ms",
+		"# Channel: R",
+		"Preamp: -4 dB",
 		"Channel: ALL",
 		"Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71"
 	}));
-	expectEqual(depths.size(), 6, "channel depth count");
+	expectEqual(depths.size(), 8, "channel depth count");
 	expectEqual(depths[0], 0, "channel command depth");
 	expectEqual(depths[1], 1, "scoped preamp depth");
 	expectEqual(depths[2], 1, "include depth");
-	expectEqual(depths[3], 0, "include should reset channel depth");
-	expectEqual(depths[4], 0, "channel all depth");
-	expectEqual(depths[5], 0, "post channel-all depth");
+	expectEqual(depths[3], 1, "include should preserve channel depth");
+	expectEqual(depths[4], 1, "commented channel must not reset depth");
+	expectEqual(depths[5], 1, "post-comment channel depth");
+	expectEqual(depths[6], 0, "channel all depth");
+	expectEqual(depths[7], 0, "post channel-all depth");
 
 	{
 		QTemporaryDir tempDir;

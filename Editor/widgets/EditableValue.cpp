@@ -62,7 +62,9 @@ void EditableValue::commitEdit()
 		return;
 
 	bool ok = false;
-	double parsedValue = QLocale::c().toDouble(editField->text(), &ok);
+	double parsedValue = QLocale::system().toDouble(editField->text(), &ok);
+	if (!ok)
+		parsedValue = QLocale::c().toDouble(editField->text(), &ok);
 	if (ok)
 	{
 		currentValue = parsedValue;

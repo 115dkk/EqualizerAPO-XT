@@ -5,14 +5,22 @@
 #include <QLabel>
 #include <QElapsedTimer>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QToolButton>
 #include <QScrollBar>
 #include <QToolBar>
 #include <QComboBox>
 #include <QAbstractSpinBox>
 #include <QDial>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QJsonDocument>
+#include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QRegularExpression>
 #include <QSettings>
+#include <QVBoxLayout>
 
 #include "MainWindow.h"
 #include "FilterTableRow.h"
@@ -93,9 +101,10 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 	for (QString prefLine : prefLines)
 	{
 		int index = prefLine.indexOf(':');
-		int lineNumber;
-		if (index != -1)
-			lineNumber = prefLine.left(index).toInt();
+		int lineNumber = 0;
+		if (index == -1)
+			continue;
+		lineNumber = prefLine.left(index).toInt();
 
 		QString prefCommand;
 		QString prefString;
@@ -160,7 +169,23 @@ FilterTable::Item* FilterTable::addLine(const QString& line, FilterTable::Item* 
 
 void FilterTable::removeItem(FilterTable::Item* item)
 {
-	items.removeOne(item);
+	int index = items.indexOf(item);
+	if (index == -1)
+		return;
+
+	items.removeAt(index);
+	Item* replacement = nullptr;
+	if (!items.isEmpty())
+		replacement = items[qMin(index, items.size() - 1)];
+
+	if (selected.remove(item) > 0 && replacement != nullptr)
+		selected.insert(replacement);
+	if (focused == item)
+		focused = replacement;
+	if (selectionStart == item)
+		selectionStart = replacement;
+
+	delete item;
 	emit linesChanged();
 }
 
@@ -202,6 +227,99 @@ QMenu* FilterTable::createAddPopupMenu()
 	return rootMenu;
 }
 
+bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos)
+{
+	if (selectedTemplate == nullptr)
+		return false;
+
+	struct PaletteEntry
+	{
+		FilterTemplate filterTemplate;
+		QString searchText;
+	};
+
+	QList<PaletteEntry> entries;
+	for (IFilterGUIFactory* factory : factories)
+	{
+		const QList<FilterTemplate> templates = factory->createFilterTemplates();
+		for (const FilterTemplate& filterTemplate : templates)
+		{
+			QString path = filterTemplate.getPath().join(QStringLiteral(" / "));
+			QString label = path.isEmpty() ? filterTemplate.getName() : path + QStringLiteral(" / ") + filterTemplate.getName();
+			entries.append({ filterTemplate, label + QStringLiteral(" ") + filterTemplate.getLine() });
+		}
+	}
+
+	QDialog dialog(this);
+	dialog.setWindowTitle(tr("Add filter"));
+	dialog.setMinimumWidth(520);
+	if (!globalPos.isNull())
+		dialog.move(globalPos);
+
+	QVBoxLayout* layout = new QVBoxLayout(&dialog);
+	QLabel* title = new QLabel(tr("Add filter"), &dialog);
+	title->setObjectName(QStringLiteral("FilterPaletteTitle"));
+	layout->addWidget(title);
+
+	QLineEdit* searchEdit = new QLineEdit(&dialog);
+	searchEdit->setObjectName(QStringLiteral("FilterPaletteSearch"));
+	searchEdit->setPlaceholderText(tr("Search filter or configuration line"));
+	layout->addWidget(searchEdit);
+
+	QListWidget* resultList = new QListWidget(&dialog);
+	resultList->setObjectName(QStringLiteral("FilterPaletteResults"));
+	layout->addWidget(resultList, 1);
+
+	auto refreshResults = [&]() {
+		resultList->clear();
+		QStringList terms = searchEdit->text().split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+		for (int i = 0; i < entries.size(); i++)
+		{
+			bool matches = true;
+			for (const QString& term : terms)
+			{
+				if (!entries[i].searchText.contains(term, Qt::CaseInsensitive))
+				{
+					matches = false;
+					break;
+				}
+			}
+			if (!matches)
+				continue;
+
+			QString path = entries[i].filterTemplate.getPath().join(QStringLiteral(" / "));
+			QString label = path.isEmpty() ? entries[i].filterTemplate.getName() : path + QStringLiteral(" / ") + entries[i].filterTemplate.getName();
+			QListWidgetItem* item = new QListWidgetItem(label + QStringLiteral("\n") + entries[i].filterTemplate.getLine(), resultList);
+			item->setData(Qt::UserRole, i);
+		}
+		if (resultList->count() > 0)
+			resultList->setCurrentRow(0);
+	};
+
+	connect(searchEdit, &QLineEdit::textChanged, &dialog, refreshResults);
+	connect(resultList, &QListWidget::itemDoubleClicked, &dialog, [&](QListWidgetItem*) {
+		dialog.accept();
+	});
+
+	QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+	buttons->button(QDialogButtonBox::Ok)->setText(tr("Insert"));
+	connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+	layout->addWidget(buttons);
+
+	refreshResults();
+	searchEdit->setFocus();
+	if (dialog.exec() != QDialog::Accepted || resultList->currentItem() == nullptr)
+		return false;
+
+	int entryIndex = resultList->currentItem()->data(Qt::UserRole).toInt();
+	if (entryIndex < 0 || entryIndex >= entries.size())
+		return false;
+
+	*selectedTemplate = entries[entryIndex].filterTemplate;
+	return true;
+}
+
 
 void FilterTable::updateModel()
 {
@@ -225,7 +343,10 @@ void FilterTable::updateSizeHints()
 {
 	for (int i = 0; i < items.size(); i++)
 	{
-		QWidget* rowWidget = gridLayout->itemAtPosition(i, 0)->widget();
+		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
+		if (layoutItem == nullptr)
+			continue;
+		QWidget* rowWidget = layoutItem->widget();
 		if (rowWidget != nullptr)
 			rowWidget->updateGeometry();
 	}

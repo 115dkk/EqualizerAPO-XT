@@ -74,7 +74,16 @@ void FilterTable::dragMoveEvent(QDragMoveEvent* event)
 
 		int dropRow = rowForPos(event->pos(), true);
 
-		QRect rect = gridLayout->itemAtPosition(dropRow == -1 ? gridLayout->rowCount() - 2 : dropRow, 0)->geometry();
+		int arrowRow = dropRow == -1 ? gridLayout->rowCount() - 2 : dropRow;
+		QLayoutItem* layoutItem = gridLayout->itemAtPosition(arrowRow, 0);
+		if (layoutItem == nullptr)
+		{
+			insertArrow->hide();
+			event->ignore();
+			return;
+		}
+
+		QRect rect = layoutItem->geometry();
 		insertArrow->move(0, rect.top() - insertArrow->height() / 2 - gridLayout->verticalSpacing() / 2);
 
 		insertArrow->raise();
@@ -117,7 +126,7 @@ void FilterTable::dropEvent(QDropEvent* event)
 		{
 			QString line = textLines[i];
 			Item* item = new Item(line);
-			if (!prefsList.isEmpty())
+			if (i < prefsList.size())
 				item->prefs = prefsList[i];
 			selected.insert(item);
 			items.insert(dropRow++, item);

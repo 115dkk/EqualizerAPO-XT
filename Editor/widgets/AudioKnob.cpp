@@ -13,6 +13,9 @@ AudioKnob::AudioKnob(QWidget* parent)
 	setNotchesVisible(false);
 	setWrapping(false);
 	setCursor(Qt::SizeVerCursor);
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		update();
+	});
 }
 
 void AudioKnob::setValueText(const QString& valueText)
@@ -81,6 +84,12 @@ void AudioKnob::mousePressEvent(QMouseEvent* event)
 
 void AudioKnob::mouseMoveEvent(QMouseEvent* event)
 {
+	if (!(event->buttons() & Qt::LeftButton))
+	{
+		QDial::mouseMoveEvent(event);
+		return;
+	}
+
 	double sensitivity = event->modifiers() & Qt::ShiftModifier ? 0.15 : 1.0;
 	int delta = static_cast<int>((dragStartY - event->globalPos().y()) * sensitivity);
 	setValue(qBound(minimum(), dragStartValue + delta, maximum()));

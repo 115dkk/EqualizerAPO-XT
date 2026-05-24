@@ -43,7 +43,7 @@ using std::wstring;
 void MainWindow::loadPreferences()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	skinId = settings.value("interface/skin", "glassy").toString();
+	skinId = settings.value("interface/skin", "studio").toString();
 	skinDark = settings.value("interface/dark", GUIHelper::isDarkMode()).toBool();
 	currentRenderMode = settings.value("interface/legacyRows", false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
 	graphDockPosition = settings.value("interface/graphDockPosition", 0).toInt();
@@ -86,15 +86,6 @@ void MainWindow::loadPreferences()
 	double zoomX = GUIHelper::scaleZoom(settings.value("analysis/zoomX", 1.0).toDouble());
 	double zoomY = GUIHelper::scaleZoom(settings.value("analysis/zoomY", 1.0).toDouble());
 	analysisPlotScene->setZoom(zoomX, zoomY);
-	bool ok;
-	int scrollX = GUIHelper::scale(settings.value("analysis/scrollX").toDouble(&ok));
-	if (!ok)
-		scrollX = round(analysisPlotScene->hzToX(20));
-	int scrollY = GUIHelper::scale(settings.value("analysis/scrollY").toDouble(&ok));
-	if (!ok)
-		scrollY = round(analysisPlotScene->dbToY(22));
-
-	ui->graphicsView->setScrollOffsets(scrollX, scrollY);
 
 	QVariant openFilesValue = settings.value("openFiles");
 	int tabIndex = settings.value("tabIndex").toInt();
@@ -148,12 +139,6 @@ void MainWindow::savePreferences()
 	settings.setValue("analysis/resolution", ui->resolutionSpinBox->value());
 	settings.setValue("analysis/zoomX", GUIHelper::invScaleZoom(analysisPlotScene->getZoomX()));
 	settings.setValue("analysis/zoomY", GUIHelper::invScaleZoom(analysisPlotScene->getZoomY()));
-	QScrollBar* hScrollBar = ui->graphicsView->horizontalScrollBar();
-	double value = GUIHelper::invScale(hScrollBar->value());
-	settings.setValue("analysis/scrollX", value);
-	QScrollBar* vScrollBar = ui->graphicsView->verticalScrollBar();
-	value = GUIHelper::invScale(vScrollBar->value());
-	settings.setValue("analysis/scrollY", value);
 
 	QStringList fileList;
 	for (int i = 0; i < ui->tabWidget->count(); i++)
@@ -233,39 +218,41 @@ void MainWindow::setupRedesignActions()
 	skinActionGroup = new QActionGroup(this);
 	skinActionGroup->setExclusive(true);
 	const QList<QPair<QString, QString>> skins = {
-		{ QStringLiteral("minimal"), tr("Minimal") },
-		{ QStringLiteral("glassy"), tr("Glassy") },
-		{ QStringLiteral("industrial"), tr("Industrial") },
-		{ QStringLiteral("soft"), tr("Soft") }
+		{ QStringLiteral("studio"), tr("Studio Glass") },
+		{ QStringLiteral("minimal"), tr("Precision Minimal") },
+		{ QStringLiteral("soft"), tr("Soft Lab") },
+		{ QStringLiteral("rack"), tr("Hardware Rack") },
+		{ QStringLiteral("matrix"), tr("Signal Matrix") }
 	};
 	for (const auto& skin : skins)
 	{
 		QAction* action = interfaceMenu->addAction(skin.second);
 		action->setCheckable(true);
 		action->setData(skin.first);
-		action->setShortcut(QKeySequence(QString::number(skinActionGroup->actions().size() + 1)));
+		action->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+%1").arg(skinActionGroup->actions().size() + 1)));
 		skinActionGroup->addAction(action);
 	}
 	connect(skinActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(skinSelected(QAction*)));
 
 	darkThemeAction = interfaceMenu->addAction(tr("Dark theme"));
 	darkThemeAction->setCheckable(true);
-	darkThemeAction->setShortcut(QKeySequence(Qt::Key_D));
+	darkThemeAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+D")));
 	connect(darkThemeAction, SIGNAL(toggled(bool)), this, SLOT(darkThemeToggled(bool)));
 
 	interfaceMenu->addSeparator();
 	QAction* cycleGraphAction = interfaceMenu->addAction(tr("Cycle graph position"));
-	cycleGraphAction->setShortcut(QKeySequence(Qt::Key_G));
+	cycleGraphAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+G")));
 	connect(cycleGraphAction, SIGNAL(triggered()), this, SLOT(cycleGraphPosition()));
 
 	QAction* fullscreenGraphAction = interfaceMenu->addAction(tr("Fullscreen graph"));
-	fullscreenGraphAction->setShortcut(QKeySequence(Qt::Key_F));
+	fullscreenGraphAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+F")));
 	connect(fullscreenGraphAction, SIGNAL(triggered()), this, SLOT(toggleGraphFullscreen()));
 }
 
 void MainWindow::applyRedesignPreferences()
 {
 	SkinManager::instance()->applySkin(skinId, skinDark);
+	skinId = SkinManager::instance()->currentSkinId();
 
 	if (interfaceModeActionGroup != nullptr)
 	{

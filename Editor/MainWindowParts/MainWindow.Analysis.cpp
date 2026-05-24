@@ -56,11 +56,13 @@ void MainWindow::instantModeEnabled(bool enabled)
 					ui->tabWidget->setTabText(i, tabText.left(tabText.length() - 1));
 			}
 		}
+		updateDirtyStatus();
 	}
 }
 
 void MainWindow::on_tabWidget_currentChanged(int index)
 {
+	updateDirtyStatus();
 	startAnalysis();
 }
 
@@ -102,11 +104,22 @@ void MainWindow::updateAnalysisPanel()
 	ui->peakGainValueLabel->setText(tr("%0 dB").arg(peakGain, 0, 'f', 1));
 	setSeverity(ui->peakGainValueLabel, peakGain > 0 ? "critical" : "normal");
 
+	int processedFrames = analysisThread->getProcessedFrames();
+	if (sampleRate <= 0 || processedFrames <= 0)
+	{
+		ui->latencyValueLabel->setText(QString::fromUtf8("\xE2\x80\x94"));
+		ui->cpuUsageValueLabel->setText(QString::fromUtf8("\xE2\x80\x94"));
+		setSeverity(ui->cpuUsageValueLabel, "normal");
+		ui->initTimeValueLabel->setText(tr("%0 ms").arg(analysisThread->getInitializationTime(), 0, 'f', 1));
+		analysisThread->endGetResult();
+		return;
+	}
+
 	ui->latencyValueLabel->setText(tr("%0 ms (%1 s.)").arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
 
 	ui->initTimeValueLabel->setText(tr("%0 ms").arg(analysisThread->getInitializationTime(), 0, 'f', 1));
 
-	double cpuUsage = analysisThread->getProcessingTime() * 100.0 / (analysisThread->getProcessedFrames() * 1000.0 / sampleRate);
+	double cpuUsage = analysisThread->getProcessingTime() * 100.0 / (processedFrames * 1000.0 / sampleRate);
 	ui->cpuUsageValueLabel->setText(tr("%0 %").arg(cpuUsage, 0, 'f', 1));
 	setSeverity(ui->cpuUsageValueLabel, cpuUsage >= 50 ? "critical" : (cpuUsage >= 20 ? "warning" : "normal"));
 

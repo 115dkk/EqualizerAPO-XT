@@ -3,7 +3,9 @@
 #include <QMenu>
 #include <QPainter>
 #include <QPropertyAnimation>
+#include <QRegularExpression>
 #include <QStyle>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "Editor/SkinManager.h"
@@ -107,6 +109,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	connect(editButton, SIGNAL(toggled(bool)), this, SLOT(editTextToggled(bool)));
 	headerLayout->addWidget(editButton);
 
+	rawPreviewLabel = new QLabel(cardFrame);
+	rawPreviewLabel->setObjectName(QStringLiteral("FilterCardRawPreview"));
+	rawPreviewLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	cardLayout->addWidget(rawPreviewLabel);
+
 	bodyStack = new QStackedWidget(cardFrame);
 	bodyStack->setObjectName(QStringLiteral("FilterCardBody"));
 	bodyStack->setAttribute(Qt::WA_StyledBackground, true);
@@ -140,6 +147,10 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	}
 
 	bodyStack->setVisible(expandButton->isChecked());
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		refreshStateProperties();
+		update();
+	});
 	rebuildSummary();
 }
 
@@ -165,6 +176,8 @@ QSize FilterCardRow::sizeHint() const
 
 void FilterCardRow::paintEvent(QPaintEvent*)
 {
+	refreshStateProperties();
+
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	if (descriptor.depth <= 0)
 		return;
@@ -225,10 +238,17 @@ void FilterCardRow::rebuildSummary()
 			outlineBadge ? QStringLiteral("transparent") : descriptor.color));
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);
+	rawPreviewLabel->setText(QStringLiteral("Raw  ") + item->text);
+	rawPreviewLabel->setVisible(SkinManager::instance()->tokens().showRawPreview);
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	rawPreviewLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")
+		.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
 	enabledCheckBox->blockSignals(true);
 	enabledCheckBox->setChecked(descriptor.enabled);
 	enabledCheckBox->blockSignals(false);
+	enabledCheckBox->setVisible(descriptor.canToggleEnabled);
 	buildChannelBadges(descriptor.channelBadges);
+	refreshStateProperties();
 	update();
 }
 
@@ -261,22 +281,25 @@ void FilterCardRow::updateModel()
 
 void FilterCardRow::addBefore()
 {
-	QMenu* menu = table->createAddPopupMenu();
-	QPoint popupPos = addButton->mapToGlobal(QPoint(0, addButton->height()));
-	QAction* action = menu->exec(popupPos);
-	if (action != nullptr)
+	FilterTemplate filterTemplate;
+	if (table->chooseFilterTemplate(&filterTemplate, addButton->mapToGlobal(QPoint(0, addButton->height()))))
 	{
-		FilterTemplate filterTemplate = action->data().value<FilterTemplate>();
 		table->addLine(filterTemplate.getLine(), item);
-		table->updateGuis();
+		FilterTable* targetTable = table;
+		QTimer::singleShot(0, targetTable, [targetTable]() {
+			targetTable->updateGuis();
+		});
 	}
-	delete menu;
 }
 
 void FilterCardRow::removeThis()
 {
-	table->removeItem(item);
-	table->updateGuis();
+	FilterTable* targetTable = table;
+	FilterTable::Item* targetItem = item;
+	QTimer::singleShot(0, targetTable, [targetTable, targetItem]() {
+		targetTable->removeItem(targetItem);
+		targetTable->updateGuis();
+	});
 }
 
 void FilterCardRow::editTextToggled(bool checked)
@@ -314,8 +337,11 @@ void FilterCardRow::lineEditingFinished()
 		{
 			item->text = lineEdit->text();
 			table->updateModel();
-			table->updateGuis();
 			editingDone = false;
+			FilterTable* targetTable = table;
+			QTimer::singleShot(0, targetTable, [targetTable]() {
+				targetTable->updateGuis();
+			});
 			return;
 		}
 		editButton->setChecked(false);
@@ -325,14 +351,18 @@ void FilterCardRow::lineEditingFinished()
 
 QString FilterCardRow::uncommentedLine() const
 {
-	QString trimmed = item->text.trimmed();
-	if (trimmed.startsWith('#'))
-		return trimmed.mid(1).trimmed();
+	QRegularExpression commentPrefix(QStringLiteral("^(\\s*)#\\s?"));
+	QRegularExpressionMatch match = commentPrefix.match(item->text);
+	if (match.hasMatch())
+		return match.captured(1) + item->text.mid(match.capturedEnd(0));
 	return item->text;
 }
 
 void FilterCardRow::enabledToggled(bool checked)
 {
+	if (!descriptor.canToggleEnabled)
+		return;
+
 	QString trimmed = item->text.trimmed();
 	if (checked && trimmed.startsWith('#'))
 		item->text = uncommentedLine();
@@ -340,11 +370,72 @@ void FilterCardRow::enabledToggled(bool checked)
 		item->text = QStringLiteral("# ") + item->text;
 
 	table->updateModel();
-	table->updateGuis();
+	FilterTable* targetTable = table;
+	QTimer::singleShot(0, targetTable, [targetTable]() {
+		targetTable->updateGuis();
+	});
 }
 
 void FilterCardRow::expandedToggled(bool checked)
 {
 	expandButton->setText(checked ? QStringLiteral("v") : QStringLiteral(">"));
 	bodyStack->setVisible(checked);
+}
+
+void FilterCardRow::refreshStateProperties()
+{
+	if (cardFrame == nullptr)
+		return;
+
+	const bool selected = table != nullptr && table->getSelectedItems().contains(item);
+	const bool focused = table != nullptr && table->getFocusedItem() == item;
+
+	const QList<QPair<const char*, QVariant>> properties = {
+		{ "filterKind", descriptor.command.toLower() },
+		{ "enabled", descriptor.enabled },
+		{ "selected", selected },
+		{ "focused", focused },
+		{ "scopeDepth", descriptor.depth }
+	};
+
+	bool changed = false;
+	for (const auto& property : properties)
+	{
+		if (cardFrame->property(property.first) != property.second)
+		{
+			cardFrame->setProperty(property.first, property.second);
+			headerWidget->setProperty(property.first, property.second);
+			changed = true;
+		}
+	}
+
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const QString borderColor = focused ? tokens.focusRing : (selected ? tokens.accent : tokens.border);
+	const QString backgroundColor = selected ? tokens.cardSelected : tokens.card;
+	const QString frameStyle = QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }")
+		.arg(backgroundColor, borderColor)
+		.arg(tokens.borderRadius);
+	const QString headerStyle = QStringLiteral("QWidget#FilterCardHeader { background: %1; border-top-left-radius: %2px; border-top-right-radius: %2px; }")
+		.arg(selected ? tokens.surfaceRaised : tokens.cardHover)
+		.arg(tokens.borderRadius);
+	if (cardFrame->styleSheet() != frameStyle)
+	{
+		cardFrame->setStyleSheet(frameStyle);
+		changed = true;
+	}
+	if (headerWidget->styleSheet() != headerStyle)
+	{
+		headerWidget->setStyleSheet(headerStyle);
+		changed = true;
+	}
+
+	if (!changed)
+		return;
+
+	for (QWidget* widget : { static_cast<QWidget*>(cardFrame), headerWidget })
+	{
+		widget->style()->unpolish(widget);
+		widget->style()->polish(widget);
+		widget->update();
+	}
 }

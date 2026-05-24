@@ -88,7 +88,7 @@ void ImportDialog::buildUi()
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     auto* okButton = buttons->button(QDialogButtonBox::Ok);
     okButton->setText(tr("Import"));
-    okButton->setEnabled(!manifest_.items.isEmpty());
+    okButton->setEnabled(!manifest_.items.isEmpty() && !manifest_.hasErrors);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
     layout->addWidget(buttons);

@@ -16,6 +16,7 @@ struct FilterCardDescriptor
 	QStringList channelBadges;
 	int depth = 0;
 	bool enabled = true;
+	bool canToggleEnabled = true;
 	bool routeType = false;
 };
 
@@ -29,4 +30,6 @@ public:
 private:
 	static QStringList parseChannelList(const QString& text);
 	static QString compactWhitespace(QString text);
+	static bool isDisabledCommandLine(const QString& line);
+	static bool isPureCommentLine(const QString& line);
 };

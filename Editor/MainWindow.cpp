@@ -107,6 +107,11 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	connect(instantModeCheckBox, SIGNAL(toggled(bool)), this, SLOT(instantModeEnabled(bool)));
 	ui->mainToolBar->addWidget(instantModeCheckBox);
 
+	dirtyStatusLabel = new QLabel(tr("Saved"));
+	dirtyStatusLabel->setObjectName(QStringLiteral("DirtyStatusBadge"));
+	dirtyStatusLabel->setToolTip(tr("Current file save state"));
+	ui->mainToolBar->addWidget(dirtyStatusLabel);
+
 	spacer = new QWidget;
 	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
 	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);

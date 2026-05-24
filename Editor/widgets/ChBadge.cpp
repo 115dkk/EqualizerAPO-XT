@@ -9,6 +9,9 @@ ChBadge::ChBadge(QWidget* parent)
 	: QWidget(parent)
 {
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		update();
+	});
 }
 
 ChBadge::ChBadge(const QString& channel, QWidget* parent)

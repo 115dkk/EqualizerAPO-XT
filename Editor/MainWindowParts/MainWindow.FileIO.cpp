@@ -110,6 +110,7 @@ void MainWindow::load(QString path)
 	qDebug("Loading took %.1f ms", timer.nsecsElapsed() / 1e6);
 
 	ui->tabWidget->setCurrentIndex(ui->tabWidget->count() - 1);
+	updateDirtyStatus();
 
 	recentFiles.removeAll(path);
 	recentFiles.prepend(path);
@@ -167,6 +168,7 @@ void MainWindow::save(FilterTable* filterTable, QString path)
 	qDebug("Saving took %.1f ms", timer.nsecsElapsed() / 1e6);
 
 	startAnalysis();
+	updateDirtyStatus();
 }
 
 bool MainWindow::isEmpty()

@@ -26,6 +26,6 @@ private:
 	QString qssPath(const QString& skinId, bool dark) const;
 
 	SkinTokens currentTokens;
-	QString skinId = QStringLiteral("glassy");
+	QString skinId = QStringLiteral("studio");
 	bool darkMode = true;
 };
