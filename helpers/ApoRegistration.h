@@ -45,4 +45,7 @@ public:
 	static bool migrateLegacyConfig(const std::wstring& legacyDir, const std::wstring& newDir);
 
 	static int waitForProcess(const std::wstring& executable, const std::wstring& arguments, unsigned timeoutMs = 30000);
+
+	static bool createStartMenuShortcuts(const std::wstring& installDir);
+	static bool removeStartMenuShortcuts();
 };
