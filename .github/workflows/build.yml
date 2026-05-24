@@ -19,40 +19,89 @@ env:
 
 jobs:
   version-bump:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore(version):')
+    # Run on every main push EXCEPT:
+    #   • pushes the bump job itself made — those carry [skip ci] which already
+    #     stops GitHub from triggering a new workflow, but we guard explicitly
+    #     in case that behaviour ever changes.
+    #   • manual `chore(version):` commits — when a maintainer sets a specific
+    #     version we keep their value and just build/release with it.
+    if: |
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && !contains(github.event.head_commit.message, '[skip ci]')
+      && !startsWith(github.event.head_commit.message, 'chore(version):')
     runs-on: windows-2025
     permissions:
       contents: write
+    outputs:
+      bumped_sha: ${{ steps.commit.outputs.sha }}
+      base_version: ${{ steps.commit.outputs.base_version }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
       with:
         fetch-depth: 0
+        # Persist the credentials so the bump push uses GITHUB_TOKEN as expected.
+        # Note: GITHUB_TOKEN pushes do NOT retrigger workflows, which is why we
+        # do the build/release in the same workflow run (downstream jobs check
+        # out bumped_sha).
+        persist-credentials: true
 
     - name: Bump version
       shell: pwsh
       run: .\.github\scripts\Bump-Version.ps1
 
-    - name: Commit version bump
+    - name: Commit and read version
+      id: commit
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"
+
+        function Get-VersionPart {
+          param([string]$Name)
+          $line = Select-String -Path version.h -Pattern "^\s*#define\s+$Name\s+(\d+)" | Select-Object -First 1
+          if (-not $line) { throw "Could not find version part: $Name" }
+          return $line.Matches[0].Groups[1].Value
+        }
+
         git diff --quiet -- version.h
-        if ($LASTEXITCODE -eq 1) {
+        $diffExit = $LASTEXITCODE
+        $global:LASTEXITCODE = 0
+
+        if ($diffExit -eq 1) {
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add version.h
-          git commit -m "chore(version): bump version [skip version-bump]"
+          # [skip ci] keeps any future GitHub change from triggering a second run on
+          # this commit; the current workflow keeps going regardless.
+          git commit -m "chore(version): bump version [skip ci]"
           git push
-        } elseif ($LASTEXITCODE -eq 0) {
-          Write-Host "No version change to commit."
-        } else {
-          exit $LASTEXITCODE
         }
+
+        $sha = (& git rev-parse HEAD).Trim()
+        $major = Get-VersionPart "MAJOR"
+        $minor = Get-VersionPart "MINOR"
+        $revision = Get-VersionPart "REVISION"
+        $baseVersion = "$major.$minor.$revision"
+
+        Write-Host "Bumped HEAD: $sha"
+        Write-Host "Base version: $baseVersion"
+
+        "sha=$sha" >> $env:GITHUB_OUTPUT
+        "base_version=$baseVersion" >> $env:GITHUB_OUTPUT
 
   build:
     needs: version-bump
-    if: always() && (github.event_name != 'push' || github.ref != 'refs/heads/main' || startsWith(github.event.head_commit.message, 'chore(version):'))
+    # Build for PRs and pushes. On main the bump job must finish first so the
+    # build picks up the bumped version.h; on every other branch the bump job
+    # is skipped (its `if` requires main) which is fine — we still build.
+    if: |
+      always() && (
+        github.event_name != 'push' ||
+        github.ref != 'refs/heads/main' ||
+        needs.version-bump.result == 'success' ||
+        needs.version-bump.result == 'skipped'
+      )
     strategy:
       fail-fast: false
       matrix:
@@ -120,6 +169,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
+      with:
+        # On main, the bump job pushed a new commit using GITHUB_TOKEN which does
+        # not retrigger workflows. Pulling that commit explicitly ensures the
+        # build runs against the bumped version.h instead of the pre-bump SHA
+        # that triggered the workflow.
+        ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v3
@@ -1014,9 +1069,9 @@ jobs:
       run: python3 Tests/AudioRegressionTests/scripts/cross_variant_compare.py
 
   create-release:
-    needs: build
+    needs: [build, version-bump]
     runs-on: windows-2025
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.result == 'success'
     permissions:
       actions: read
       contents: write
@@ -1024,6 +1079,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
+      with:
+        # Pick up the bumped version.h, not the pre-bump SHA that triggered the run.
+        ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
 
     - name: Download build artifacts
       uses: actions/download-artifact@v7

@@ -34,13 +34,21 @@ function Get-BumpKind {
   $messages = @(& Invoke-Git log --format=%B $range)
   $joined = ($messages -join "`n")
 
+  # Conventional Commits → SemVer mapping matching CLAUDE.md policy:
+  #   docs/ci/chore/style/refactor/test/perf/build do not bump
+  #   fix:                                            → patch
+  #   feat:                                           → minor
+  #   BREAKING CHANGE or `<type>!:`                   → major
   if ($joined -match "BREAKING CHANGE" -or $joined -match "(^|\n)\w+(\([^)]+\))?!:") {
     return "major"
   }
   if ($joined -match "(^|\n)feat(\([^)]+\))?:") {
     return "minor"
   }
-  return "patch"
+  if ($joined -match "(^|\n)fix(\([^)]+\))?:") {
+    return "patch"
+  }
+  return "none"
 }
 
 if (-not (Test-Path $VersionHeader)) {
@@ -53,6 +61,17 @@ $minor = Get-VersionPart "MINOR" $lines
 $revision = Get-VersionPart "REVISION" $lines
 
 $bumpKind = Get-BumpKind
+$currentVersion = "$major.$minor.$revision"
+
+if ($bumpKind -eq "none") {
+  if ($Check) {
+    Write-Host "No version-affecting commits since the last release; version stays at $currentVersion"
+    exit 0
+  }
+  Write-Host "No version-affecting commits since the last release; leaving $VersionHeader at $currentVersion"
+  exit 0
+}
+
 switch ($bumpKind) {
   "major" {
     $major += 1
@@ -63,7 +82,7 @@ switch ($bumpKind) {
     $minor += 1
     $revision = 0
   }
-  default {
+  "patch" {
     $revision += 1
   }
 }
