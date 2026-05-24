@@ -169,21 +169,43 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 		return Result::RegistryFailed;
 	}
 
+	// audiodg.exe runs as LOCAL SERVICE (*S-1-5-19) and loads EqualizerAPO.dll
+	// via the COM InprocServer32 path written below. When Velopack installs the
+	// app under %LocalAppData% the default ACL only grants the installing user
+	// and Administrators, so the audio engine fails to map the DLL and Windows
+	// reports the device as access-denied / invalidated from outside (the
+	// symptom users see is GetMixFormat / Initialize returning E_ACCESSDENIED
+	// in DeviceSelector). Widen the ACL on the whole install root for both
+	// LOCAL SERVICE (RX recursive) and Users (RX recursive) before any APO
+	// registration takes effect.
+	std::wstring icacls = joinPath(systemPath(), L"icacls.exe");
+	std::wstring installAclArgs = L"\"" + installDir + L"\" "
+		L"/grant *S-1-5-19:(OI)(CI)RX "
+		L"/grant *S-1-5-32-545:(OI)(CI)RX "
+		L"/T /C /Q";
+	int rc = waitForProcess(icacls, installAclArgs, 30000);
+	if (rc != 0)
+		logLine(L"WARN", L"icacls (install root) returned %d, continuing", rc);
+
 	std::wstring regsvr32 = joinPath(systemPath(), L"regsvr32.exe");
 	std::wstring registerArgs = L"/s \"" + joinPath(installDir, L"EqualizerAPO.dll") + L"\"";
-	int rc = waitForProcess(regsvr32, registerArgs, 30000);
+	rc = waitForProcess(regsvr32, registerArgs, 30000);
 	if (rc != 0)
 	{
 		logLine(L"ERR", L"regsvr32 returned %d", rc);
 		return Result::RegistrationFailed;
 	}
 
+	// Config dir gets Users:F so the user can edit configs, and LOCAL SERVICE
+	// modify (M) so audiodg can read/write trace logs from the APO.
 	std::wstring configDir = joinPath(installDir, L"config");
-	std::wstring icacls = joinPath(systemPath(), L"icacls.exe");
-	std::wstring aclArgs = L"\"" + configDir + L"\" /grant *S-1-5-32-545:(OI)(CI)F /T /C /Q";
-	rc = waitForProcess(icacls, aclArgs, 30000);
+	std::wstring configAclArgs = L"\"" + configDir + L"\" "
+		L"/grant *S-1-5-32-545:(OI)(CI)F "
+		L"/grant *S-1-5-19:(OI)(CI)M "
+		L"/T /C /Q";
+	rc = waitForProcess(icacls, configAclArgs, 30000);
 	if (rc != 0)
-		logLine(L"WARN", L"icacls returned %d, continuing", rc);
+		logLine(L"WARN", L"icacls (config dir) returned %d, continuing", rc);
 
 	// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
 	// DeviceSelector is the elevated companion that performs per-device APO
