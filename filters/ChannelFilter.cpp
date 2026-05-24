@@ -25,6 +25,7 @@
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "ChannelFilter.h"
+#include "helpers/PerfProfile.h"
 
 using std::vector;
 using std::wstringstream;
@@ -87,6 +88,7 @@ vector<wstring> ChannelFilter::initialize(float sampleRate, unsigned maxFrameCou
 #pragma AVRT_CODE_BEGIN
 void ChannelFilter::process(double** output, double** input, unsigned frameCount)
 {
+	PerfScope _ps("ChannelFilter::process");
 	// nothing to do
 }
 #pragma AVRT_CODE_END

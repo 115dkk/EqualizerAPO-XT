@@ -25,6 +25,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "CopyFilter.h"
+#include "helpers/PerfProfile.h"
 
 using std::find;
 using std::pow;
@@ -115,6 +116,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 #pragma AVRT_CODE_BEGIN
 void CopyFilter::process(double** output, double** input, unsigned frameCount)
 {
+	PerfScope _ps("CopyFilter::process");
 	for (unsigned i = 0; i < assignmentCount; i++)
 	{
 		InternalAssignment& ia = internalAssignments[i];

@@ -28,6 +28,7 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "ConvolutionFilter.h"
+#include "helpers/PerfProfile.h"
 
 using std::abs;
 using std::vector;
@@ -64,6 +65,7 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 #pragma AVRT_CODE_BEGIN
 void ConvolutionFilter::process(double** output, double** input, unsigned frameCount)
 {
+	PerfScope _ps("ConvolutionFilter::process");
 	if (filters == nullptr)
 		return;
 	if (frameCount == 0)

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -73,30 +73,31 @@
     <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\fftw\Release</FFTW_LIB>
     <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\include</LIBSNDFILE_INCLUDE>
     <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
+    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
-    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
-    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
-    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
-    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
-    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
-    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -111,7 +112,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -131,7 +132,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -149,7 +150,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -175,7 +176,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -202,7 +204,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -227,7 +230,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"

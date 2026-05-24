@@ -25,6 +25,7 @@
 #endif
 
 #include "PreampFilter.h"
+#include "helpers/PerfProfile.h"
 
 using std::max;
 using std::pow;
@@ -47,6 +48,7 @@ vector<wstring> PreampFilter::initialize(float sampleRate, unsigned maxFrameCoun
 #pragma AVRT_CODE_BEGIN
 void PreampFilter::process(double** output, double** input, unsigned frameCount)
 {
+    PerfScope _ps("PreampFilter::process");
     // The gain factor is constant for all samples, load it once.
     const double gainFactor = this->gain;
 
