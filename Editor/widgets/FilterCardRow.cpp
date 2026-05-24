@@ -412,9 +412,17 @@ void FilterCardRow::refreshStateProperties()
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	const QString borderColor = focused ? tokens.focusRing : (selected ? tokens.accent : tokens.border);
 	const QString backgroundColor = selected ? tokens.cardSelected : tokens.card;
-	const QString frameStyle = QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }")
-		.arg(backgroundColor, borderColor)
-		.arg(tokens.borderRadius);
+	// Signal Matrix uses a coloured rail on the left edge to suggest routing.
+	// All other skins keep a uniform 1px border.
+	const QString frameStyle = tokens.cardRailWidth > 0
+		? QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-left: %3px solid %4; border-radius: %5px; }")
+			.arg(backgroundColor, borderColor)
+			.arg(tokens.cardRailWidth)
+			.arg(tokens.accent)
+			.arg(tokens.borderRadius)
+		: QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }")
+			.arg(backgroundColor, borderColor)
+			.arg(tokens.borderRadius);
 	const QString headerStyle = QStringLiteral("QWidget#FilterCardHeader { background: %1; border-top-left-radius: %2px; border-top-right-radius: %2px; }")
 		.arg(selected ? tokens.surfaceRaised : tokens.cardHover)
 		.arg(tokens.borderRadius);

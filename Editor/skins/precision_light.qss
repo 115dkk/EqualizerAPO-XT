@@ -1,0 +1,268 @@
+﻿/* ====================================================================
+   Skin: Minimal Light
+   Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @BG@
+           text @TEXT@ / mutedText @MUTED@ / border @BORDER@
+           accent @ACCENT@ / borderRadius 0 / row 32 / font Consolas
+   ==================================================================== */
+
+* {
+    outline: 0;
+    selection-background-color: @ACCENT@;
+    selection-color: #ffffff;
+}
+
+QWidget {
+    background: @BG@;
+    color: @TEXT@;
+    font-family: "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
+    font-size: 10pt;
+}
+
+QMainWindow, QDialog { background: @BG@; }
+QMainWindow::separator { background: @BORDER@; width: 1px; height: 1px; }
+
+QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; padding: 4px 8px; }
+
+QMenuBar { background: @SURFACE@; color: @TEXT@; padding: 2px 4px; border: 0; border-bottom: 1px solid @BORDER@; }
+QMenuBar::item { background: transparent; padding: 4px 10px; border-radius: 0; }
+QMenuBar::item:selected, QMenuBar::item:pressed { background: #d0d0d0; color: #000000; }
+
+QMenu { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; padding: 2px; }
+QMenu::item { background: transparent; padding: 4px 22px; border-radius: 0; min-width: 140px; }
+QMenu::item:selected { background: #e0e0e0; color: #000000; }
+QMenu::item:disabled { color: #999999; }
+QMenu::separator { height: 1px; background: @BORDER@; margin: 4px 6px; }
+QMenu::indicator { width: 12px; height: 12px; margin-left: 4px; }
+QMenu::indicator:checked { background: @ACCENT@; }
+
+QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; padding: 2px 4px; spacing: 2px; }
+QToolBar::separator { background: @BORDER@; width: 1px; margin: 4px 6px; }
+QToolButton { background: transparent; color: @TEXT@; border: 1px solid transparent; border-radius: 0; padding: 3px 8px; min-height: 22px; }
+QToolButton:hover { background: #d8d8d8; border: 1px solid @BORDER@; }
+QToolButton:pressed, QToolButton:checked { background: #c4d4f0; border: 1px solid @ACCENT@; }
+QToolButton::menu-indicator { image: none; width: 0; height: 0; }
+
+QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+QPushButton {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 14px; min-height: 22px;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+}
+QPushButton:hover { background: @BG@; border-color: @ACCENT@; }
+QPushButton:pressed { background: #c4d4f0; border-color: @ACCENT@; }
+QPushButton:default { border: 1px solid @ACCENT@; }
+QPushButton:disabled { color: #999999; background: #ececec; border-color: #d8d8d8; }
+
+QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
+    background: #ffffff; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 8px;
+    selection-background-color: @ACCENT@; selection-color: #ffffff;
+}
+QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; }
+QLineEdit:disabled, QAbstractSpinBox:disabled { color: #999999; background: #ececec; }
+
+QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
+    subcontrol-origin: border; background: @SURFACE@;
+    width: 16px; border-left: 1px solid @BORDER@;
+}
+QAbstractSpinBox::up-button { subcontrol-position: top right; }
+QAbstractSpinBox::down-button { subcontrol-position: bottom right; border-top: 1px solid @BORDER@; }
+QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover { background: #d0d0d0; }
+QAbstractSpinBox::up-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 4px solid @MUTED@;
+}
+QAbstractSpinBox::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid @MUTED@;
+}
+
+QComboBox {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 28px 4px 10px; min-height: 22px;
+}
+QComboBox:hover { background: @BG@; border-color: @ACCENT@; }
+QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }
+QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 22px; border: 0; background: transparent; }
+QComboBox::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 5px solid transparent; border-right: 5px solid transparent;
+    border-top: 5px solid @MUTED@; margin-right: 8px;
+}
+QComboBox::down-arrow:on { border-top-color: @ACCENT@; }
+QComboBox QAbstractItemView {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 2px; outline: 0;
+    selection-background-color: #e0e0e0; selection-color: #000000;
+}
+QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 0; min-height: 22px; }
+
+QCheckBox, QRadioButton { color: @TEXT@; background: transparent; spacing: 8px; padding: 2px; }
+QCheckBox:disabled, QRadioButton:disabled { color: #999999; }
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 14px; height: 14px; background: #ffffff; border: 1px solid @BORDER@;
+}
+QCheckBox::indicator { border-radius: 0; }
+QRadioButton::indicator { border-radius: 7px; }
+QCheckBox::indicator:hover, QRadioButton::indicator:hover { border-color: @ACCENT@; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; }
+
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; border: 0; }
+QScrollBar::handle:vertical { background: @BORDER@; min-height: 32px; border-radius: 0; }
+QScrollBar::handle:vertical:hover { background: @ACCENT@; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; border: 0; }
+QScrollBar::handle:horizontal { background: @BORDER@; min-width: 32px; border-radius: 0; }
+QScrollBar::handle:horizontal:hover { background: @ACCENT@; }
+QScrollBar::add-line, QScrollBar::sub-line { background: transparent; border: 0; width: 0; height: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
+QScrollBar::up-arrow, QScrollBar::down-arrow, QScrollBar::left-arrow, QScrollBar::right-arrow { background: transparent; width: 0; height: 0; }
+
+QAbstractScrollArea { background: @BG@; color: @TEXT@; border: 0; }
+QScrollArea { background: @BG@; border: 0; }
+QScrollArea > QWidget > QWidget { background: @BG@; }
+
+QDockWidget { color: @TEXT@; background: @BG@; titlebar-close-icon: none; titlebar-normal-icon: none; }
+QDockWidget::title {
+    background: @SURFACE@; color: @MUTED@;
+    text-align: left; padding: 4px 10px;
+    border: 0; border-bottom: 1px solid @BORDER@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+}
+QDockWidget::close-button, QDockWidget::float-button { background: transparent; border: 0; border-radius: 0; padding: 2px; icon-size: 12px; }
+QDockWidget::close-button:hover, QDockWidget::float-button:hover { background: #d0d0d0; }
+
+QTabWidget::pane { background: @BG@; border: 0; border-top: 1px solid @BORDER@; top: -1px; }
+QTabBar { background: @BG@; border: 0; qproperty-drawBase: 0; }
+QTabBar::tab {
+    background: transparent; color: @MUTED@;
+    padding: 6px 16px; border: 0; border-radius: 0;
+    min-width: 80px; margin: 0;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+}
+QTabBar::tab:hover { color: @TEXT@; background: @SURFACE@; }
+QTabBar::tab:selected { color: #000000; background: @CARD@; border-top: 2px solid @ACCENT@; }
+QTabBar::tab:!selected { border-bottom: 1px solid @BORDER@; }
+QTabBar::close-button { image: none; background: transparent; border-radius: 0; padding: 2px; margin: 2px; subcontrol-position: right; }
+QTabBar::close-button:hover { background: #f4baba; }
+QTabBar QToolButton { background: @CARD@; border: 1px solid @BORDER@; border-radius: 0; margin: 4px 2px; }
+
+QGroupBox {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    margin-top: 14px; padding: 14px 10px 10px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin; subcontrol-position: top left;
+    padding: 0 6px; color: @MUTED@; background: @BG@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+}
+
+QHeaderView { background: @SURFACE@; color: @MUTED@; border: 0; }
+QHeaderView::section {
+    background: @SURFACE@; color: @MUTED@; border: 0;
+    border-right: 1px solid @BORDER@; border-bottom: 1px solid @BORDER@;
+    padding: 4px 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QTreeView, QListView, QTableView {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    alternate-background-color: @BG@;
+    selection-background-color: #e0e0e0; selection-color: #000000;
+    gridline-color: @BORDER@;
+}
+QTreeView::item, QListView::item, QTableView::item { padding: 4px 6px; border-radius: 0; }
+QTreeView::item:hover, QListView::item:hover, QTableView::item:hover { background: #ebebeb; }
+QTreeView::item:selected, QListView::item:selected, QTableView::item:selected { background: #e0e0e0; color: #000000; }
+QTreeView::branch { background: transparent; }
+
+QSlider::groove:horizontal { background: @BORDER@; height: 2px; border-radius: 0; margin: 0 6px; }
+QSlider::sub-page:horizontal { background: @ACCENT@; height: 2px; border-radius: 0; }
+QSlider::handle:horizontal { background: @TEXT@; border: 1px solid @ACCENT@; width: 12px; height: 12px; margin: -6px 0; border-radius: 0; }
+QSlider::groove:vertical { background: @BORDER@; width: 2px; border-radius: 0; margin: 6px 0; }
+QSlider::add-page:vertical { background: @ACCENT@; width: 2px; border-radius: 0; }
+QSlider::sub-page:vertical { background: @BORDER@; width: 2px; border-radius: 0; }
+QSlider::handle:vertical { background: @TEXT@; border: 1px solid @ACCENT@; width: 12px; height: 12px; margin: 0 -6px; border-radius: 0; }
+
+QSplitter::handle { background: @BORDER@; }
+QSplitter::handle:horizontal { width: 1px; }
+QSplitter::handle:vertical { height: 1px; }
+QSplitter::handle:hover { background: @ACCENT@; }
+
+QStatusBar { background: @SURFACE@; color: @MUTED@; border: 0; border-top: 1px solid @BORDER@; }
+QStatusBar::item { border: 0; }
+
+QProgressBar { background: #ffffff; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; text-align: center; }
+QProgressBar::chunk { background: @ACCENT@; border-radius: 0; }
+
+QFrame[frameShape="4"], QFrame[frameShape="5"] { background: @BORDER@; border: 0; }
+
+QFrame#analysisControlBar { background: @CARD@; border: 1px solid @BORDER@; border-radius: 0; }
+QLabel#AnalysisFormLabel {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 0 4px;
+}
+QComboBox#AnalysisFormCombo { min-width: 110px; }
+QFrame#AnalysisStatChip { background: @BG@; border: 1px solid @BORDER@; border-radius: 0; }
+QLabel#AnalysisStatLabel {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; font-size: 9pt;
+    text-transform: uppercase; letter-spacing: 2px;
+}
+QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "Consolas", monospace; }
+QLabel#AnalysisStatValue[severity="warning"] { color: #d97706; }
+QLabel#AnalysisStatValue[severity="critical"] { color: #dc2626; }
+
+QWidget#ModernAnalysisGraph { background: #ffffff; border: 1px solid @BORDER@; border-radius: 0; }
+
+QFrame#FilterCardRow { background: @CARD@; border: 1px solid #d0d0d0; border-radius: 0; }
+QWidget#FilterCardHeader { background: @BG@; border-radius: 0; }
+QWidget#FilterCardBody, QWidget#FilterCardEditor { background: @BG@; border-radius: 0; }
+QLabel#FilterTypeBadge {
+    background: transparent; color: @TEXT@;
+    border: 1px solid @TEXT@; border-radius: 0;
+    font-weight: 700; padding: 1px 6px; min-height: 18px;
+    font-size: 9pt; text-transform: uppercase; letter-spacing: 1px;
+}
+QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
+QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "Consolas", monospace; font-weight: 700; }
+QToolButton#FilterCardIconButton {
+    background: @BG@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
+}
+QToolButton#FilterCardIconButton:hover { background: #e0e0e0; border-color: @ACCENT@; }
+QToolButton#FilterCardIconButton:checked { background: #c4d4f0; border-color: @ACCENT@; }
+QLineEdit#FilterCardRawEditor { background: #ffffff; border: 1px solid @ACCENT@; border-radius: 0; padding: 4px 8px; }
+QCheckBox#FilterCardEnabled { background: transparent; }
+
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
+QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph,
+QLabel#IncludeCardStatus, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QLabel#PreampCardCaption {
+    color: @MUTED@; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 2px; font-size: 9pt;
+}
+QLabel#EditableValue {
+    background: #ffffff; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 8px;
+    font-family: "Consolas", monospace; font-weight: 700;
+}
+QLineEdit#EditableValueEditor {
+    background: #ffffff; border: 1px solid @ACCENT@;
+    border-radius: 0; padding: 4px 8px;
+    font-family: "Consolas", monospace; font-weight: 700;
+}
+QLineEdit#IncludeCardPath { background: #ffffff; border: 1px solid @BORDER@; border-radius: 0; padding: 4px 8px; }
+QLabel#IncludeCardStatus { color: #dc2626; font-size: 9pt; }
+
+/* Toolbar/Tab spacers and labels transparent so parent bg shows through */
+QLabel { background: transparent; }
+QWidget#ToolBarSpacer { background: transparent; }
