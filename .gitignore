@@ -187,7 +187,6 @@ node_modules/
 orleans.codegen.cs
 deps/
 Qt/
-tools/
 build-*/
 DeviceSelector/translations/DeviceSelector_*.qm
 UpdateChecker/translations/UpdateChecker_*.qm
