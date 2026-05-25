@@ -222,7 +222,14 @@ int main(int argc, char** argv)
 	FilterCardDescriptor disabledFilter = FilterCardModel::describeLine("# Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71");
 	expectFalse(disabledFilter.enabled, "commented filter was marked enabled");
 	expectEqual(disabledFilter.badge, "PK", "disabled biquad badge");
-	expectEqual(disabledFilter.title, "Biquad", "disabled biquad title");
+	expectEqual(disabledFilter.title, "Peaking", "disabled biquad title");
+	expectEqual(disabledFilter.summary, "Fc 1000 Hz · Gain -3 dB · Q 0.71", "disabled biquad summary");
+
+	FilterCardDescriptor lowShelfCornerFilter = FilterCardModel::describeLine("Filter: ON LSC 12 dB Fc 200 Hz Gain 3 dB");
+	expectEqual(lowShelfCornerFilter.badge, "LSC", "low-shelf corner badge");
+	expectEqual(lowShelfCornerFilter.title, "Low-shelf", "low-shelf corner title");
+	expectTrue(lowShelfCornerFilter.summary.contains("Corner 200 Hz") && lowShelfCornerFilter.summary.contains("Gain 3 dB") && lowShelfCornerFilter.summary.contains("Slope 12 dB/Oct"),
+		"low-shelf corner summary missing expected fields");
 
 	FilterCardDescriptor pureComment = FilterCardModel::describeLine("    # purely explanatory comment");
 	expectFalse(pureComment.enabled, "pure comment was marked enabled");
