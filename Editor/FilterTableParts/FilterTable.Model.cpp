@@ -336,7 +336,20 @@ int FilterTable::getPreferredWidth()
 	if (scrollArea == nullptr)
 		return width();
 
-	return scrollArea->viewport()->width();
+	// Use the scroll area's own outer width minus the vertical scrollbar - this
+	// is the actual on-screen visible area and is NOT affected by the inner
+	// widget's possibly-inflated size. Both viewport()->width() and
+	// maximumViewportSize() follow the inner widget when it grows past the
+	// window, which creates a feedback loop: a once-inflated card width
+	// permanently inflates the preferred width returned here, which in turn
+	// keeps the cards inflated.
+	int width = scrollArea->width();
+	if (QScrollBar* vBar = scrollArea->verticalScrollBar())
+		if (vBar->isVisible())
+			width -= vBar->sizeHint().width();
+	// Account for QScrollArea's own frame (default 1px each side).
+	width -= 2 * scrollArea->frameWidth();
+	return qMax(0, width);
 }
 
 void FilterTable::updateSizeHints()

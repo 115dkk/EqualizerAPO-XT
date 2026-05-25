@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QPropertyAnimation>
 #include <QRegularExpression>
+#include <QScrollArea>
 #include <QStyle>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -22,6 +23,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	QVBoxLayout* outerLayout = new QVBoxLayout(this);
 	outerLayout->setContentsMargins(8 + descriptor.depth * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
 	outerLayout->setSpacing(0);
+	// Detach the layout's minimumSize from the children's: the body can contain
+	// legacy filter GUIs with huge content-driven sizeHints (DeviceFilterGUI,
+	// VST, Convolution, ...) and SetMinimumSize would propagate that up here
+	// and force every cell in FilterTable's grid to that width.
+	outerLayout->setSizeConstraint(QLayout::SetNoConstraint);
 
 	cardFrame = new QFrame(this);
 	cardFrame->setObjectName(QStringLiteral("FilterCardRow"));
@@ -120,6 +126,18 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	bodyStack = new QStackedWidget(cardFrame);
 	bodyStack->setObjectName(QStringLiteral("FilterCardBody"));
 	bodyStack->setAttribute(Qt::WA_StyledBackground, true);
+	// Stop an overgrown body editor (e.g. the legacy DeviceFilterGUI's
+	// QTreeWidget with sizeAdjustPolicy=AdjustToContents, or any other GUI that
+	// reports a content-driven sizeHint) from propagating its preferred width
+	// up through the card. Otherwise the card grows past the visible viewport
+	// and the right-side header toolbar (enable / + / - / ...) renders
+	// thousands of pixels off screen and becomes invisible.
+	// Ignored sizePolicy alone is not enough: it stops sizeHint propagation
+	// but the layout system still inherits the inner widgets' minimumSize.
+	// Pin the bodyStack's own minimumSize to 0 so the card frame's minimum
+	// width is driven by the header only.
+	bodyStack->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+	bodyStack->setMinimumSize(0, 0);
 	cardLayout->addWidget(bodyStack);
 
 	lineEdit = new QLineEdit(bodyStack);
@@ -132,9 +150,37 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		QWidget* editorContainer = new QWidget(bodyStack);
 		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
 		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
+		// Match bodyStack: stop overgrown filter GUIs from inflating the card width.
+		editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		editorContainer->setMinimumSize(0, 0);
 		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
 		editorLayout->setContentsMargins(12, 10, 12, 12);
-		editorLayout->addWidget(gui);
+		// Wrap the legacy filter GUI in a borderless scroll area. Without this,
+		// any filter GUI that has a content-driven sizeHint (DeviceFilterGUI's
+		// QTreeWidget AdjustToContents, GraphicEQ / Convolution / VSTPlugin's
+		// internal AdjustToContents widgets) propagates a huge minimumSize up
+		// through editorContainer/bodyStack/cardFrame/FilterCardRow and the
+		// QGridLayout in FilterTable then forces every card column to that
+		// width, pushing the right-side header toolbar (enable / + / - / ...)
+		// thousands of pixels off screen.
+		QWidget* guiWidget = qobject_cast<QWidget*>(gui);
+		if (guiWidget != nullptr)
+		{
+			QScrollArea* guiScroll = new QScrollArea(editorContainer);
+			guiScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));
+			guiScroll->setFrameShape(QFrame::NoFrame);
+			guiScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+			guiScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+			guiScroll->setWidgetResizable(true);
+			guiScroll->setMinimumSize(0, 0);
+			guiScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+			guiScroll->setWidget(guiWidget);
+			editorLayout->addWidget(guiScroll);
+		}
+		else
+		{
+			editorLayout->addWidget(gui);
+		}
 		bodyStack->addWidget(editorContainer);
 		bodyStack->setCurrentWidget(editorContainer);
 		connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
@@ -170,11 +216,32 @@ void FilterCardRow::editText()
 
 QSize FilterCardRow::sizeHint() const
 {
-	QSize size = QWidget::sizeHint();
-	int preferredWidth = table->getPreferredWidth();
-	if (size.width() < preferredWidth)
-		size.setWidth(preferredWidth);
-	return size;
+	// Use only the header's preferred width and the viewport - never the body's
+	// content-driven sizeHint. Some legacy filter GUIs (DeviceFilterGUI with
+	// QTreeWidget AdjustToContents, VST / Convolution / Stage editors) report
+	// a sizeHint matching their full content (thousands of pixels), which
+	// would otherwise inflate the entire QGridLayout column in FilterTable and
+	// push the right-side header toolbar far off screen.
+	int height = QWidget::sizeHint().height();
+	int width = headerWidget ? headerWidget->sizeHint().width() : QWidget::sizeHint().width();
+	if (layout() != nullptr)
+		width += layout()->contentsMargins().left() + layout()->contentsMargins().right();
+	int preferredWidth = table != nullptr ? table->getPreferredWidth() : 0;
+	if (width < preferredWidth)
+		width = preferredWidth;
+	return QSize(width, height);
+}
+
+QSize FilterCardRow::minimumSizeHint() const
+{
+	// Cap the cell's minimum width at a small constant so the QGridLayout in
+	// FilterTable does not inherit any content-driven minimum from a card's
+	// body editor. Without this, ONE row with a wide legacy filter GUI forces
+	// EVERY card column wide enough to push the right-side header toolbar far
+	// off screen. Height stays layout-driven so cards still vertically size to
+	// fit their bodies.
+	int height = QWidget::minimumSizeHint().height();
+	return QSize(0, height);
 }
 
 void FilterCardRow::paintEvent(QPaintEvent*)

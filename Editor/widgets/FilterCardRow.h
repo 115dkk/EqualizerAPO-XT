@@ -21,6 +21,7 @@ public:
 	QRect getHeaderRect() const;
 	void editText();
 	QSize sizeHint() const override;
+	QSize minimumSizeHint() const override;
 
 protected:
 	void paintEvent(QPaintEvent*) override;
