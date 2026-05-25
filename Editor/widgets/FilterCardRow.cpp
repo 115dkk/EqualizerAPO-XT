@@ -371,8 +371,12 @@ void FilterCardRow::enabledToggled(bool checked)
 
 	table->updateModel();
 	FilterTable* targetTable = table;
-	QTimer::singleShot(0, targetTable, [targetTable]() {
-		targetTable->updateGuis();
+	FilterTable::Item* targetItem = item;
+	// In-place refresh: only the toggled row's GUI needs to change. Falling
+	// back to a full updateGuis() on a 500+ row config was the dominant
+	// source of toggle latency.
+	QTimer::singleShot(0, targetTable, [targetTable, targetItem]() {
+		targetTable->updateSingleRowGui(targetItem);
 	});
 }
 

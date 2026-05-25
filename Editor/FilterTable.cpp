@@ -268,3 +268,91 @@ void FilterTable::updateGuis()
 	qDebug("Create took %d ms", timer.elapsed());
 	update();
 }
+
+void FilterTable::updateSingleRowGui(Item* item)
+{
+	int rowIndex = items.indexOf(item);
+	if (rowIndex < 0 || gridLayout == nullptr)
+		return;
+
+	// Save GUI preferences before tearing down.
+	if (item->gui != nullptr)
+	{
+		item->prefs.clear();
+		item->gui->storePreferences(item->prefs);
+	}
+
+	QLayoutItem* slot = gridLayout->itemAtPosition(rowIndex, 0);
+	if (slot == nullptr || slot->widget() == nullptr)
+	{
+		// No widget in that slot; fall back to a full refresh so we don't
+		// silently leave the row stale.
+		updateGuis();
+		return;
+	}
+
+	QWidget* oldRow = slot->widget();
+	gridLayout->removeWidget(oldRow);
+	oldRow->deleteLater();
+
+	// Reparse the line and rebuild the GUI exactly the way updateGuis() does,
+	// using the same factory chain. Factory startOfFile/endOfFile is skipped
+	// intentionally: a single in-place edit (enabled toggle) does not change
+	// the surrounding file's structural context, so the include/depth state
+	// the factories track stays valid.
+	QString line = item->text;
+	IFilterGUI* gui = nullptr;
+	bool usingCardEditor = false;
+	int colonPos = line.indexOf(':');
+	if (colonPos != -1)
+	{
+		QString key = line.mid(0, colonPos).trimmed();
+		QString value = line.mid(colonPos + 1);
+
+		QString factoryKey = key;
+		QString factoryValue = value;
+		for (IFilterGUIFactory* factory : factories)
+		{
+			gui = factory->createFilterGUI(factoryKey, factoryValue);
+			if (gui != nullptr || factoryKey == "")
+				break;
+		}
+
+		if (gui != nullptr)
+		{
+			if (renderMode == ModernCards)
+			{
+				IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
+				if (cardGui != nullptr)
+				{
+					delete gui;
+					gui = cardGui;
+					usingCardEditor = true;
+				}
+			}
+			if (!usingCardEditor)
+				for (IFilterGUIFactory* factory : factories)
+					gui = factory->decorateFilterGUI(gui);
+		}
+	}
+
+	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
+	int depth = rowIndex < rowDepths.size() ? rowDepths[rowIndex] : 0;
+	QWidget* rowWidget = renderMode == ModernCards
+		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, depth))
+		: static_cast<QWidget*>(new FilterTableRow(this, rowIndex + 1, item, gui));
+	gridLayout->addWidget(rowWidget, rowIndex, 0);
+
+	item->gui = gui;
+	if (gui != nullptr)
+	{
+		gui->loadPreferences(item->prefs);
+		if (renderMode != ModernCards)
+			connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
+		connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
+	}
+
+	propagateChannels();
+	disableWheelForWidgets();
+	update();
+}
