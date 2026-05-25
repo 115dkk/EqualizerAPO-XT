@@ -32,6 +32,7 @@ public:
 	virtual ~ChannelFilter();
 	bool getAllChannels() override {return true;}
 	bool getSelectChannels() override {return true;}
+	bool producesTailFromSilentInput() const override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
 

@@ -44,5 +44,6 @@ private:
 	std::wstring filename;
 	unsigned maxFrameCount;
 	unsigned filterFrameCount;
+	bool frameCountMismatchLogged;
 };
 #pragma AVRT_VTABLES_END

@@ -49,7 +49,13 @@ vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wst
 
 		if (delay >= 0)
 		{
-			if (StringHelper::toLowerCase(unit) == L"ms")
+			// A 0-length delay is a no-op: skip allocating the filter so the chain
+			// avoids one virtual call and one ring-buffer update per block.
+			if (delay == 0.0)
+			{
+				TraceF(L"Skipping no-op delay (0 %s)", StringHelper::toLowerCase(unit).c_str());
+			}
+			else if (StringHelper::toLowerCase(unit) == L"ms")
 			{
 				TraceF(L"Delaying by %g ms", delay);
 				void* mem = MemoryHelper::alloc(sizeof(DelayFilter));

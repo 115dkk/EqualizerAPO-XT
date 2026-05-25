@@ -69,6 +69,13 @@ public:
 	static const CRegAPOProperties<1> regPostMixProperties;
 	static const CRegAPOProperties<1> regPreMixProperties;
 
+	enum class ApoSampleFormat
+	{
+		Unsupported = 0,
+		Float32 = 1,
+		Float64 = 2
+	};
+
 private:
 	long refCount;
 	IUnknown* pUnkOuter;
@@ -81,4 +88,11 @@ private:
 	IAudioProcessingObject* childAPO;
 	IAudioProcessingObjectRT* childRT;
 	IAudioProcessingObjectConfiguration* childCfg;
+
+	// Resolved during LockForProcess from the connection format. The APO is
+	// registered with APO_FLAG_BITSPERSAMPLE_MUST_MATCH so the two sides always
+	// agree on bit depth in normal operation, but both are stored for clarity
+	// and to keep silent-fast-path math correct.
+	ApoSampleFormat inputSampleFormat;
+	ApoSampleFormat outputSampleFormat;
 };

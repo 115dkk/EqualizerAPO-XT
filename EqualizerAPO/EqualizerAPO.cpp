@@ -21,12 +21,99 @@
 #include <Unknwn.h>
 #define INITGUID
 #include <mmdeviceapi.h>
+#include <mmreg.h>
+#include <ksmedia.h>
 
 #include "../helpers/LogHelper.h"
 #include "../helpers/RegistryHelper.h"
 #include "../helpers/StringHelper.h"
 #include "../DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
+
+namespace
+{
+	EqualizerAPO::ApoSampleFormat detectSampleFormat(const UNCOMPRESSEDAUDIOFORMAT& f)
+	{
+		if (IsEqualGUID(f.guidFormatType, KSDATAFORMAT_SUBTYPE_IEEE_FLOAT))
+		{
+			if (f.dwBytesPerSampleContainer == 4 && f.dwValidBitsPerSample == 32)
+				return EqualizerAPO::ApoSampleFormat::Float32;
+			if (f.dwBytesPerSampleContainer == 8 && f.dwValidBitsPerSample == 64)
+				return EqualizerAPO::ApoSampleFormat::Float64;
+		}
+		return EqualizerAPO::ApoSampleFormat::Unsupported;
+	}
+
+	size_t bytesPerSample(EqualizerAPO::ApoSampleFormat fmt)
+	{
+		switch (fmt)
+		{
+		case EqualizerAPO::ApoSampleFormat::Float32: return sizeof(float);
+		case EqualizerAPO::ApoSampleFormat::Float64: return sizeof(double);
+		default: return 0;
+		}
+	}
+
+	// Shared block processing parameterized on the connection sample type. The
+	// FilterEngine has overloads for both float* and double* so the same body
+	// works for either path. APO_FLAG_BITSPERSAMPLE_MUST_MATCH guarantees the
+	// input and output sides share the same SampleT.
+	template<typename SampleT>
+	inline void processBlock(
+		SampleT* inputFrames, SampleT* outputFrames,
+		unsigned frameCount,
+		unsigned inputChannelCount, unsigned outputChannelCount,
+		bool isSilentInput, bool allowSilentBufferModification,
+		IAudioProcessingObjectRT* childRT, FilterEngine& engine,
+		UINT32 u32NumInputConnections, APO_CONNECTION_PROPERTY** ppInputConnections,
+		UINT32 u32NumOutputConnections, APO_CONNECTION_PROPERTY** ppOutputConnections)
+	{
+		if (isSilentInput)
+			std::fill_n(inputFrames, frameCount * inputChannelCount, static_cast<SampleT>(0));
+
+		if (childRT)
+		{
+			childRT->APOProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections, ppOutputConnections);
+			engine.process(outputFrames, outputFrames, frameCount);
+		}
+		else
+		{
+			engine.process(outputFrames, inputFrames, frameCount);
+		}
+
+		ppOutputConnections[0]->u32ValidFrameCount = frameCount;
+
+		if (isSilentInput)
+		{
+			if (allowSilentBufferModification)
+			{
+				unsigned outputSampleCount = frameCount * outputChannelCount;
+				bool silent = true;
+				const SampleT threshold = static_cast<SampleT>(1e-10);
+				for (unsigned i = 0; i < outputSampleCount; i++)
+				{
+					if (std::abs(outputFrames[i]) > threshold)
+					{
+						silent = false;
+						break;
+					}
+				}
+				// BUFFER_SILENT seems to be important for some sound card drivers,
+				// so only use BUFFER_VALID if there really is audio.
+				ppOutputConnections[0]->u32BufferFlags = silent ? BUFFER_SILENT : BUFFER_VALID;
+			}
+			else
+			{
+				std::fill_n(outputFrames, frameCount * outputChannelCount, static_cast<SampleT>(0));
+				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
+			}
+		}
+		else
+		{
+			ppOutputConnections[0]->u32BufferFlags = BUFFER_VALID;
+		}
+	}
+}
 
 using std::abs;
 using std::string;
@@ -54,6 +141,9 @@ EqualizerAPO::EqualizerAPO(IUnknown* pUnkOuter)
 	childAPO = nullptr;
 	childRT = nullptr;
 	childCfg = nullptr;
+
+	inputSampleFormat = ApoSampleFormat::Unsupported;
+	outputSampleFormat = ApoSampleFormat::Unsupported;
 
 	InterlockedIncrement(&instCount);
 }
@@ -334,12 +424,23 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 		outFormat.guidFormatType.Data1, outFormat.dwSamplesPerFrame, outFormat.dwBytesPerSampleContainer,
 		outFormat.dwValidBitsPerSample, outFormat.fFramesPerSecond, outFormat.dwChannelMask, maxOutputFrameCount);
 
+	inputSampleFormat = detectSampleFormat(inFormat);
+	outputSampleFormat = detectSampleFormat(outFormat);
+	TraceF(L"Resolved APO sample formats: in=%d, out=%d", static_cast<int>(inputSampleFormat), static_cast<int>(outputSampleFormat));
+
 	if (childCfg != nullptr)
 	{
 		hr = childCfg->LockForProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections,
 			ppOutputConnections);
 		if (SUCCEEDED(hr))
+		{
 			TraceF(L"Success in LockForProcess of child apo");
+		}
+		else
+		{
+			LogF(L"Child APO LockForProcess failed (hr=0x%08X); detaching child to avoid invoking an unlocked APO during process", hr);
+			resetChild();
+		}
 	}
 
 	hr = CBaseAudioProcessingObject::LockForProcess(u32NumInputConnections, ppInputConnections,
@@ -455,49 +556,67 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	case BUFFER_VALID:
 	case BUFFER_SILENT:
 	{
-		float* inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
-		float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
+		const unsigned frameCount = ppInputConnections[0]->u32ValidFrameCount;
+		const bool isSilentInput = (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT);
+		const unsigned outputChannelCount = engine.getOutputChannelCount();
+		const unsigned inputChannelCount = engine.getInputChannelCount();
 
-		if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
-			std::fill_n(inputFrames, ppInputConnections[0]->u32ValidFrameCount * engine.getInputChannelCount(), 0.0f);
-
-		if (childRT)
+		// Silent input fast path. When the active configuration has no stateful or
+		// tail-bearing filter, the host does not require us to surface newly-audible
+		// output (allowSilentBufferModification == false), and no child APO could
+		// synthesize audio, the engine can be skipped entirely. Works for any
+		// connection sample format since we only need to zero the output buffer.
+		if (isSilentInput && !allowSilentBufferModification && !childRT && !engine.hasStatefulOrTailFilters())
 		{
-			childRT->APOProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections, ppOutputConnections);
-
-			engine.process(outputFrames, outputFrames, ppInputConnections[0]->u32ValidFrameCount);
-		}
-		else
-			engine.process(outputFrames, inputFrames, ppInputConnections[0]->u32ValidFrameCount);
-
-		ppOutputConnections[0]->u32ValidFrameCount = ppInputConnections[0]->u32ValidFrameCount;
-
-		if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
-		{
-			if (allowSilentBufferModification)
+			const size_t outBytes = bytesPerSample(outputSampleFormat);
+			if (outBytes > 0)
 			{
-				unsigned outputFrameCount = ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount();
-				boolean silent = true;
-				for (unsigned i = 0; i < outputFrameCount; i++)
-				{
-					if (abs(outputFrames[i]) > 1e-10)
-					{
-						silent = false;
-						break;
-					}
-				}
-				// BUFFER_SILENT seems to be important for some sound card drivers, so only use BUFFER_VALID if there really is audio
-				ppOutputConnections[0]->u32BufferFlags = silent ? BUFFER_SILENT : BUFFER_VALID;
-			}
-			else
-			{
-				std::fill_n(outputFrames, ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount(), 0.0f);
+				memset(reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer), 0,
+					static_cast<size_t>(frameCount) * outputChannelCount * outBytes);
+				ppOutputConnections[0]->u32ValidFrameCount = frameCount;
 				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
+				break;
 			}
+			// Fall through to normal processing if format is unknown so we don't
+			// silently mis-handle an unexpected connection.
+		}
+
+		// The APO is registered with APO_FLAG_BITSPERSAMPLE_MUST_MATCH, so input
+		// and output formats agree. Branch on the input format to pick the native
+		// path: legacy float32 (the dominant case on Windows) or true float64.
+		if (inputSampleFormat == ApoSampleFormat::Float64)
+		{
+			double* inputFrames = reinterpret_cast<double*>(ppInputConnections[0]->pBuffer);
+			double* outputFrames = reinterpret_cast<double*>(ppOutputConnections[0]->pBuffer);
+			processBlock<double>(inputFrames, outputFrames, frameCount,
+				inputChannelCount, outputChannelCount,
+				isSilentInput, allowSilentBufferModification,
+				childRT, engine,
+				u32NumInputConnections, ppInputConnections,
+				u32NumOutputConnections, ppOutputConnections);
+		}
+		else if (inputSampleFormat == ApoSampleFormat::Float32)
+		{
+			float* inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
+			float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
+			processBlock<float>(inputFrames, outputFrames, frameCount,
+				inputChannelCount, outputChannelCount,
+				isSilentInput, allowSilentBufferModification,
+				childRT, engine,
+				u32NumInputConnections, ppInputConnections,
+				u32NumOutputConnections, ppOutputConnections);
 		}
 		else
 		{
-			ppOutputConnections[0]->u32BufferFlags = BUFFER_VALID;
+			// Unsupported connection format: emit silent output of the requested
+			// frame count and let the caller detect via BUFFER_SILENT. Writing
+			// garbage by reinterpreting an unknown buffer is worse.
+			const size_t outBytes = bytesPerSample(outputSampleFormat);
+			if (outBytes > 0)
+				memset(reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer), 0,
+					static_cast<size_t>(frameCount) * outputChannelCount * outBytes);
+			ppOutputConnections[0]->u32ValidFrameCount = frameCount;
+			ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
 		}
 
 		break;

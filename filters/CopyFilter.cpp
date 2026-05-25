@@ -51,7 +51,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 	cleanup();
 
 	assignmentCount = (unsigned)assignments.size();
-	internalAssignments = (InternalAssignment*)MemoryHelper::alloc(assignmentCount * sizeof(Assignment));
+	internalAssignments = (InternalAssignment*)MemoryHelper::alloc(assignmentCount * sizeof(InternalAssignment));
 
 	vector<wstring> outChannelNames;
 

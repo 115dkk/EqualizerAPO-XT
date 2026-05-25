@@ -44,6 +44,16 @@ FilterConfiguration::FilterConfiguration(FilterEngine* engine, std::vector<std::
 	currentSamples2.resize(allChannelCount);
 
 	this->filterInfos = std::move(filterInfos);
+
+	allStateless = true;
+	for (const auto& info : this->filterInfos)
+	{
+		if (info && info->filter && info->filter->producesTailFromSilentInput())
+		{
+			allStateless = false;
+			break;
+		}
+	}
 }
 
 FilterConfiguration::~FilterConfiguration()
@@ -91,6 +101,51 @@ void FilterConfiguration::read(double** input, unsigned frameCount)
 		std::copy_n(input[c], frameCount, allSamples[c]);
 }
 
+#define READ_FLOAT_INTERLEAVED_MACRO(ccount)\
+	{\
+		for (size_t c = 0; c < (ccount); c++)\
+		{\
+			double* sampleChannel = allSamples[c];\
+			const float* src = input + c;\
+			for (size_t i = 0; i < frameCount; i++)\
+				sampleChannel[i] = static_cast<double>(src[i * (ccount)]);\
+		}\
+	}
+
+void FilterConfiguration::readFloatInterleaved(const float* input, unsigned frameCount)
+{
+	switch (realChannelCount)
+	{
+	case 1:
+		READ_FLOAT_INTERLEAVED_MACRO(1)
+		break;
+	case 2:
+		READ_FLOAT_INTERLEAVED_MACRO(2)
+		break;
+	case 6:
+		READ_FLOAT_INTERLEAVED_MACRO(6)
+		break;
+	case 8:
+		READ_FLOAT_INTERLEAVED_MACRO(8)
+		break;
+	default:
+		READ_FLOAT_INTERLEAVED_MACRO(realChannelCount)
+	}
+}
+
+#undef READ_FLOAT_INTERLEAVED_MACRO
+
+void FilterConfiguration::readFloatPlanar(const float* const* input, unsigned frameCount)
+{
+	for (unsigned c = 0; c < realChannelCount; c++)
+	{
+		double* sampleChannel = allSamples[c];
+		const float* src = input[c];
+		for (size_t i = 0; i < frameCount; i++)
+			sampleChannel[i] = static_cast<double>(src[i]);
+	}
+}
+
 void FilterConfiguration::process(unsigned frameCount)
 {
 	for (unsigned c = realChannelCount; c < allChannelCount; c++)
@@ -135,16 +190,14 @@ void FilterConfiguration::process(unsigned frameCount)
 	}
 }
 
-unsigned FilterConfiguration::doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength)
+unsigned FilterConfiguration::doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength, const double* factorTable)
 {
 	double** currentSamples = allSamples.data();
 	double** nextSamples = nextConfig->allSamples.data();
 
 	for (unsigned f = 0; f < frameCount; f++)
 	{
-		double factor = 0.5f * (1.0f - cos(transitionCounter * static_cast<double>(M_PI) / transitionLength));
-		if (transitionCounter >= transitionLength)
-			factor = 1.0f;
+		double factor = (transitionCounter < transitionLength) ? factorTable[transitionCounter] : 1.0;
 
 		for (unsigned c = 0; c < outputChannelCount; c++)
 			currentSamples[c][f] = currentSamples[c][f] * (1 - factor) + nextSamples[c][f] * factor;
@@ -191,6 +244,51 @@ void FilterConfiguration::write(double** output, unsigned frameCount)
 {
 	for (unsigned i = 0; i < outputChannelCount; i++)
 		std::copy_n(allSamples[i], frameCount, output[i]);
+}
+
+#define WRITE_FLOAT_INTERLEAVED_MACRO(ccount)\
+	{\
+		for (size_t c = 0; c < (ccount); c++)\
+		{\
+			const double* sampleChannel = allSamples[c];\
+			float* dst = output + c;\
+			for (size_t i = 0; i < frameCount; i++)\
+				dst[i * (ccount)] = static_cast<float>(sampleChannel[i]);\
+		}\
+	}
+
+void FilterConfiguration::writeFloatInterleaved(float* output, unsigned frameCount)
+{
+	switch (outputChannelCount)
+	{
+	case 1:
+		WRITE_FLOAT_INTERLEAVED_MACRO(1)
+		break;
+	case 2:
+		WRITE_FLOAT_INTERLEAVED_MACRO(2)
+		break;
+	case 6:
+		WRITE_FLOAT_INTERLEAVED_MACRO(6)
+		break;
+	case 8:
+		WRITE_FLOAT_INTERLEAVED_MACRO(8)
+		break;
+	default:
+		WRITE_FLOAT_INTERLEAVED_MACRO(outputChannelCount)
+	}
+}
+
+#undef WRITE_FLOAT_INTERLEAVED_MACRO
+
+void FilterConfiguration::writeFloatPlanar(float* const* output, unsigned frameCount)
+{
+	for (unsigned c = 0; c < outputChannelCount; c++)
+	{
+		const double* sampleChannel = allSamples[c];
+		float* dst = output[c];
+		for (size_t i = 0; i < frameCount; i++)
+			dst[i] = static_cast<float>(sampleChannel[i]);
+	}
 }
 #pragma AVRT_CODE_END
 
