@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <cmath>
 #include "helpers/MemoryHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
@@ -43,10 +44,19 @@ vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, ws
 		int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
 		if (matched == 1)
 		{
-			TraceF(L"Adjusting preamp by %g dB", preamp_dB);
+			// A 0 dB preamp is a no-op: skip the allocation so the filter chain
+			// avoids one virtual call and one pointer setup per block.
+			if (std::abs(preamp_dB) < 1e-9)
+			{
+				TraceF(L"Skipping no-op preamp (%g dB)", preamp_dB);
+			}
+			else
+			{
+				TraceF(L"Adjusting preamp by %g dB", preamp_dB);
 
-			void* mem = MemoryHelper::alloc(sizeof(PreampFilter));
-			filter = new(mem) PreampFilter(preamp_dB);
+				void* mem = MemoryHelper::alloc(sizeof(PreampFilter));
+				filter = new(mem) PreampFilter(preamp_dB);
+			}
 		}
 	}
 

@@ -39,6 +39,8 @@ ConvolutionFilter::ConvolutionFilter(wstring filename)
 	this->filename = filename;
 	filters = nullptr;
 	filterFrameCount = 0;
+	maxFrameCount = 0;
+	frameCountMismatchLogged = false;
 }
 
 ConvolutionFilter::~ConvolutionFilter()
@@ -71,13 +73,21 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	if (frameCount == 0)
 		return;
 
+	// libHybridConv는 hcInitSingle 시점의 framelength로 고정 처리한다.
+	// 과거에는 process() 안에서 cleanup() + initializeFilters()를 호출해 audio 콜백 중에 파일 I/O,
+	// FFTW plan, malloc/free가 발생했다. RT 안정성을 위해 재초기화를 금지하고, mismatch가 들어오면
+	// 한 번만 로그를 남긴 뒤 무음으로 빠진다. 정상 stream에서는 LockForProcess가 frameCount를 고정하므로
+	// 이 분기는 거의 들어오지 않는다.
 	if (frameCount != filterFrameCount)
 	{
-		cleanup();
-		initializeFilters(frameCount);
-		if (filters == nullptr)
-			return;
-		filterFrameCount = frameCount;
+		if (!frameCountMismatchLogged)
+		{
+			LogF(L"ConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped)", frameCount, filterFrameCount);
+			frameCountMismatchLogged = true;
+		}
+		for (unsigned i = 0; i < channelCount; i++)
+			memset(output[i], 0, sizeof(double) * frameCount);
+		return;
 	}
 
 	for (unsigned i = 0; i < channelCount; i++)
@@ -104,6 +114,7 @@ void ConvolutionFilter::cleanup()
 		filters = nullptr;
 	}
 	filterFrameCount = 0;
+	frameCountMismatchLogged = false;
 }
 
 void ConvolutionFilter::initializeFilters(unsigned frameCount)

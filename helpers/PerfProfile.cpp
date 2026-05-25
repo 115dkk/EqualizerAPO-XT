@@ -49,17 +49,48 @@ namespace
 		double maxVal = 0.0;
 	};
 
-	std::mutex& mutex_instance()
+	// Key by const char*. PerfScope is always invoked with a string literal,
+	// so identical labels share the same address and hash/eq can be reduced
+	// to pointer comparison. If a separate TU happens to hold the same text
+	// in a different buffer, only the entry is split; correctness is preserved.
+	using EntryMap = std::unordered_map<const char*, Entry>;
+
+	struct ThreadLocalStats;
+
+	std::mutex& registry_mutex()
 	{
 		static std::mutex m;
 		return m;
 	}
 
-	std::unordered_map<std::string, Entry>& entries_instance()
+	std::vector<ThreadLocalStats*>& registry()
 	{
-		static std::unordered_map<std::string, Entry> e;
-		return e;
+		static std::vector<ThreadLocalStats*> v;
+		return v;
 	}
+
+	struct ThreadLocalStats
+	{
+		EntryMap entries;
+
+		ThreadLocalStats()
+		{
+			std::lock_guard<std::mutex> lock(registry_mutex());
+			registry().push_back(this);
+		}
+
+		~ThreadLocalStats()
+		{
+			std::lock_guard<std::mutex> lock(registry_mutex());
+			auto& r = registry();
+			r.erase(std::remove(r.begin(), r.end(), this), r.end());
+		}
+	};
+
+	// Lock-free in the audio thread hot path. The thread takes the registry
+	// lock once in the ctor and once in the dtor; for the entire audio stream
+	// lifetime that is typically all the locking that happens.
+	thread_local ThreadLocalStats tls_stats;
 
 	LARGE_INTEGER qpc_frequency()
 	{
@@ -87,14 +118,14 @@ void disable()
 
 void reset()
 {
-	std::lock_guard<std::mutex> lock(mutex_instance());
-	entries_instance().clear();
+	std::lock_guard<std::mutex> lock(registry_mutex());
+	for (auto* tls : registry())
+		tls->entries.clear();
 }
 
 void record(const char* label, double seconds)
 {
-	std::lock_guard<std::mutex> lock(mutex_instance());
-	auto& entry = entries_instance()[label];
+	Entry& entry = tls_stats.entries[label];
 	if (entry.count == 0)
 	{
 		entry.minVal = seconds;
@@ -111,12 +142,35 @@ void record(const char* label, double seconds)
 
 void report(std::ostream& os)
 {
-	std::vector<std::pair<std::string, Entry>> rows;
+	// Guard reading per-thread accumulators with the registry mutex. Reporting
+	// runs outside the hot path so the lock cost is irrelevant here.
+	std::unordered_map<const char*, Entry> merged;
 	{
-		std::lock_guard<std::mutex> lock(mutex_instance());
-		auto& entries = entries_instance();
-		rows.assign(entries.begin(), entries.end());
+		std::lock_guard<std::mutex> lock(registry_mutex());
+		for (const auto* tls : registry())
+		{
+			for (const auto& kv : tls->entries)
+			{
+				auto& m = merged[kv.first];
+				if (m.count == 0)
+				{
+					m = kv.second;
+				}
+				else
+				{
+					m.count += kv.second.count;
+					m.total += kv.second.total;
+					if (kv.second.minVal < m.minVal) m.minVal = kv.second.minVal;
+					if (kv.second.maxVal > m.maxVal) m.maxVal = kv.second.maxVal;
+				}
+			}
+		}
 	}
+
+	std::vector<std::pair<std::string, Entry>> rows;
+	rows.reserve(merged.size());
+	for (const auto& kv : merged)
+		rows.emplace_back(std::string(kv.first), kv.second);
 
 	std::sort(rows.begin(), rows.end(), [](const std::pair<std::string, Entry>& a, const std::pair<std::string, Entry>& b) {
 		return a.second.total > b.second.total;

@@ -71,6 +71,11 @@ public:
 	float getSampleRate() const {return sampleRate;}
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
 	mup::ParserX* getParser() {return parser.get();}
+	// Returns true if the active configuration (or any transition target) carries
+	// state across blocks or has a tail. Used by the APO to skip processing on
+	// silent input when safe. Conservative: returns true while a config swap is
+	// pending or before initialize() has completed.
+	bool hasStatefulOrTailFilters() const;
 
 private:
 	struct FilterConfigurationDeleter
@@ -85,14 +90,8 @@ private:
 	bool acquireLoadPermit();
 	void releaseLoadPermit();
 	void finishTransitionIfReady();
-	void resizeBuffers(unsigned frameCount);
 
 	std::vector<std::unique_ptr<IFilterFactory>> factories;
-
-	std::vector<std::unique_ptr<double[]>> inputBuf2D, outputBuf2D;
-	std::vector<double*> inputBuf2DPtrs, outputBuf2DPtrs;
-	std::vector<double> inputBuf1D, outputBuf1D;
-	unsigned allocatedFrameCount;
 
 	bool preMix;
 	bool capture;
@@ -126,6 +125,9 @@ private:
 
 	unsigned transitionCounter;
 	unsigned transitionLength;
+	// Precomputed equal-power crossfade factors of length transitionLength.
+	// Recomputed by initialize() whenever transitionLength changes.
+	std::vector<double> transitionFactorTable;
 	std::mutex loadMutex;
 	std::mutex loadPermitMutex;
 	std::condition_variable loadPermitCv;

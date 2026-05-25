@@ -46,6 +46,7 @@ public:
 	virtual ~CopyFilter();
 	bool getAllChannels() override {return true;}
 	bool getInPlace() override {return false;}
+	bool producesTailFromSilentInput() const override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
 

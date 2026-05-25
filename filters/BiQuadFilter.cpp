@@ -122,10 +122,8 @@ std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned ma
 void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("BiQuadFilter::process");
-#if !defined(_M_ARM64)
-    unsigned old_mxcsr = _mm_getcsr();
-    _mm_setcsr(old_mxcsr | 0x8040);
-#endif
+	// FTZ/DAZ is enabled once at the engine boundary by MxcsrFtzDazGuard, so
+	// individual filters no longer touch MXCSR.
 
     unsigned processedChannels = 0;
 
@@ -159,10 +157,6 @@ void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
     if (processedChannels < (unsigned)channelCount) {
         process_scalar(output, input, frameCount, processedChannels);
     }
-
-#if !defined(_M_ARM64)
-    _mm_setcsr(old_mxcsr);
-#endif
 }
 
 

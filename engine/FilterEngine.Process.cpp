@@ -41,6 +41,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "helpers/PerfProfile.h"
+#include "helpers/MxcsrGuard.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
 #include "filters/ExpressionFilterFactory.h"
@@ -155,6 +156,7 @@ void convertDoubleToFloat(float* dest, const double* src, size_t count) {
 void FilterEngine::process(float* output, float* input, unsigned frameCount)
 {
 	PerfScope _eapo_total("FilterEngine::process(float interleaved)");
+	MxcsrFtzDazGuard _mxcsrGuard;
 
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
@@ -165,19 +167,11 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 		return;
 	}
 
-	// Ensure our internal buffers are large enough
-	resizeBuffers(frameCount);
-
-	// Conversion from float to double using SIMD
-	const unsigned inputSampleCount = inputChannelCount * frameCount;
+	// Fused float32 -> double + deinterleave directly into planar storage,
+	// avoiding the extra inputBuf1D pass that the original two-step path used.
 	{
-		PerfScope _ps("FilterEngine::convertFloatToDouble");
-		convertFloatToDouble(inputBuf1D.data(), input, inputSampleCount);
-	}
-
-	{
-		PerfScope _ps("FilterConfiguration::read(interleaved)");
-		currentConfig->read(inputBuf1D.data(), frameCount);
+		PerfScope _ps("FilterConfiguration::readFloatInterleaved(current)");
+		currentConfig->readFloatInterleaved(input, frameCount);
 	}
 	{
 		PerfScope _ps("FilterConfiguration::process(current)");
@@ -187,27 +181,20 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	if (nextConfig)
 	{
 		{
-			PerfScope _ps("FilterConfiguration::read(interleaved)");
-			nextConfig->read(inputBuf1D.data(), frameCount);
+			PerfScope _ps("FilterConfiguration::readFloatInterleaved(next)");
+			nextConfig->readFloatInterleaved(input, frameCount);
 		}
 		{
 			PerfScope _ps("FilterConfiguration::process(next)");
 			nextConfig->process(frameCount);
 		}
 		PerfScope _ps("FilterConfiguration::doTransition");
-		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
 	}
 
 	{
-		PerfScope _ps("FilterConfiguration::write(interleaved)");
-		currentConfig->write(outputBuf1D.data(), frameCount);
-	}
-
-	// Conversion from double back to float using SIMD
-	const unsigned outputSampleCount = outputChannelCount * frameCount;
-	{
-		PerfScope _ps("FilterEngine::convertDoubleToFloat");
-		convertDoubleToFloat(output, outputBuf1D.data(), outputSampleCount);
+		PerfScope _ps("FilterConfiguration::writeFloatInterleaved");
+		currentConfig->writeFloatInterleaved(output, frameCount);
 	}
 
 	finishTransitionIfReady();
@@ -217,6 +204,7 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
 	PerfScope _eapo_total("FilterEngine::process(float planar)");
+	MxcsrFtzDazGuard _mxcsrGuard;
 
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
@@ -228,18 +216,12 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 		return;
 	}
 
-	resizeBuffers(frameCount);
-
+	// Fused float32 -> double directly into planar storage. The previous path
+	// converted into inputBuf2D and then copied that into the configuration; we
+	// skip the intermediate buffer entirely.
 	{
-		PerfScope _ps("FilterEngine::convertFloatToDouble");
-		for (unsigned c = 0; c < inputChannelCount; c++) {
-			convertFloatToDouble(inputBuf2D[c].get(), input[c], frameCount);
-		}
-	}
-
-	{
-		PerfScope _ps("FilterConfiguration::read(planar)");
-		currentConfig->read(inputBuf2DPtrs.data(), frameCount);
+		PerfScope _ps("FilterConfiguration::readFloatPlanar(current)");
+		currentConfig->readFloatPlanar(input, frameCount);
 	}
 	{
 		PerfScope _ps("FilterConfiguration::process(current)");
@@ -249,27 +231,20 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 	if (nextConfig)
 	{
 		{
-			PerfScope _ps("FilterConfiguration::read(planar)");
-			nextConfig->read(inputBuf2DPtrs.data(), frameCount);
+			PerfScope _ps("FilterConfiguration::readFloatPlanar(next)");
+			nextConfig->readFloatPlanar(input, frameCount);
 		}
 		{
 			PerfScope _ps("FilterConfiguration::process(next)");
 			nextConfig->process(frameCount);
 		}
 		PerfScope _ps("FilterConfiguration::doTransition");
-		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
 	}
 
 	{
-		PerfScope _ps("FilterConfiguration::write(planar)");
-		currentConfig->write(outputBuf2DPtrs.data(), frameCount);
-	}
-
-	{
-		PerfScope _ps("FilterEngine::convertDoubleToFloat");
-		for (unsigned c = 0; c < outputChannelCount; c++) {
-			convertDoubleToFloat(output[c], outputBuf2D[c].get(), frameCount);
-		}
+		PerfScope _ps("FilterConfiguration::writeFloatPlanar");
+		currentConfig->writeFloatPlanar(output, frameCount);
 	}
 
 	finishTransitionIfReady();
@@ -279,6 +254,7 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 void FilterEngine::process(double* output, double* input, unsigned frameCount)
 {
 	PerfScope _eapo_total("FilterEngine::process(double interleaved)");
+	MxcsrFtzDazGuard _mxcsrGuard;
 
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
@@ -309,7 +285,7 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 			nextConfig->process(frameCount);
 		}
 		PerfScope _ps("FilterConfiguration::doTransition");
-		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
 	}
 
 	{
@@ -324,6 +300,7 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 void FilterEngine::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _eapo_total("FilterEngine::process(double planar)");
+	MxcsrFtzDazGuard _mxcsrGuard;
 
 	if (currentConfig->isEmpty() && !nextConfig)
 	{
@@ -355,7 +332,7 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 			nextConfig->process(frameCount);
 		}
 		PerfScope _ps("FilterConfiguration::doTransition");
-		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength);
+		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
 	}
 
 	{

@@ -49,12 +49,28 @@ public:
 
 	void read(double* input, unsigned frameCount);
 	void read(double** input, unsigned frameCount);
+	// Fused float32 -> double + deinterleave (or planar copy) directly into the
+	// internal planar storage. Used by the APO when the connection is float32,
+	// avoiding the intermediate inputBuf1D/inputBuf2D pass.
+	void readFloatInterleaved(const float* input, unsigned frameCount);
+	void readFloatPlanar(const float* const* input, unsigned frameCount);
 	void process(unsigned frameCount);
-	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength);
+	// factorTable[i] holds the equal-power crossfade factor for the i-th frame
+	// of the transition, precomputed by the engine; i >= transitionLength implies
+	// the fade is complete (factor = 1.0). Passing the table avoids a per-frame
+	// std::cos call inside the audio hot path.
+	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength, const double* factorTable);
 	void write(double* output, unsigned frameCount);
 	void write(double** output, unsigned frameCount);
+	// Fused double -> float32 + interleave (or planar copy) directly from the
+	// internal planar storage. Mirrors the readFloat variants.
+	void writeFloatInterleaved(float* output, unsigned frameCount);
+	void writeFloatPlanar(float* const* output, unsigned frameCount);
 	double** getOutputSamples() {return allSamples.data();}
 	bool isEmpty();
+	// True if every filter in this configuration guarantees silent output for
+	// silent input (no cross-block state, no tail). Cached at construction.
+	bool isAllStateless() const { return allStateless; }
 
 private:
 	unsigned realChannelCount;
@@ -67,5 +83,6 @@ private:
 	std::vector<double*> currentSamples;
 	std::vector<double*> currentSamples2;
 	std::vector<std::unique_ptr<FilterInfo>> filterInfos;
+	bool allStateless = false;
 };
 #pragma AVRT_VTABLES_END

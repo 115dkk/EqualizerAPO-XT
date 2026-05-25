@@ -40,6 +40,12 @@ public:
 	virtual std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) = 0;
 	virtual void process(double** output, double** input, unsigned frameCount) = 0;
 
+	// Returns true if silent input can still produce non-silent output, either because
+	// the filter carries cross-block state (BiQuad, Delay, IIR) or because it has a
+	// convolution tail (Convolution, GraphicEQ). Conservative default is true so new
+	// filters opt out of the silent fast-path explicitly.
+	virtual bool producesTailFromSilentInput() const { return true; }
+
 protected:
 };
 #pragma AVRT_VTABLES_END

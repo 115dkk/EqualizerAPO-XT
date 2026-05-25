@@ -79,8 +79,7 @@ void FilterEngine::FilterConfigurationDeleter::operator()(FilterConfiguration* c
 }
 
 FilterEngine::FilterEngine()
-	: allocatedFrameCount(0),
-	  preMix(false),
+	: preMix(false),
 	  capture(false),
 	  postMixInstalled(true),
 	  inputChannelCount(0),
@@ -117,41 +116,20 @@ FilterEngine::~FilterEngine()
 	cleanupConfigurations();
 }
 
-void FilterEngine::resizeBuffers(unsigned frameCount) {
-	if (allocatedFrameCount < frameCount || inputBuf2D.size() != inputChannelCount || outputBuf2D.size() != outputChannelCount) {
-
-		TraceF(L"Reallocating internal double-precision buffers for %u frames and %u/%u channels.", frameCount, inputChannelCount, outputChannelCount);
-		allocatedFrameCount = frameCount;
-
-		// Resize 1D buffers (for interleaved audio)
-		try {
-			inputBuf1D.resize(inputChannelCount * frameCount);
-			outputBuf1D.resize(outputChannelCount * frameCount);
-
-			// Resize 2D buffers (for non-interleaved audio)
-			inputBuf2D.resize(inputChannelCount);
-			inputBuf2DPtrs.resize(inputChannelCount);
-			for (unsigned i = 0; i < inputChannelCount; ++i) {
-				inputBuf2D[i] = make_unique<double[]>(frameCount);
-				inputBuf2DPtrs[i] = inputBuf2D[i].get();
-			}
-			outputBuf2D.resize(outputChannelCount);
-			outputBuf2DPtrs.resize(outputChannelCount);
-			for (unsigned i = 0; i < outputChannelCount; ++i) {
-				outputBuf2D[i] = make_unique<double[]>(frameCount);
-				outputBuf2DPtrs[i] = outputBuf2D[i].get();
-			}
-		}
-		catch (const std::bad_alloc& e) {
-			LogF(L"FATAL: Failed to allocate audio buffers. Exception: %S", e.what());
-			allocatedFrameCount = 0;
-		}
-	}
-}
-
 void FilterEngine::setPreMix(bool preMix)
 {
 	this->preMix = preMix;
+}
+
+bool FilterEngine::hasStatefulOrTailFilters() const
+{
+	if (nextConfig)
+		return true;
+	if (!currentConfig)
+		return true;
+	if (currentConfig->isEmpty())
+		return false;
+	return !currentConfig->isAllStateless();
 }
 
 void FilterEngine::setDeviceInfo(bool capture, bool postMixInstalled, const wstring& deviceName, const wstring& connectionName, const wstring& deviceGuid, const wstring& deviceString)
@@ -180,7 +158,10 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 		this->maxFrameCount = maxFrameCount;
 		this->transitionCounter = 0;
 		this->transitionLength = (unsigned)(sampleRate / 100);
-		resizeBuffers(maxFrameCount);
+		transitionFactorTable.resize(transitionLength);
+		const double scale = M_PI / static_cast<double>(transitionLength);
+		for (unsigned i = 0; i < transitionLength; i++)
+			transitionFactorTable[i] = 0.5 * (1.0 - std::cos(i * scale));
 
 		unsigned deviceChannelCount;
 		if (capture)
