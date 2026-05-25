@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QCheckBox>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -56,7 +55,7 @@ private:
 	QLabel* rawPreviewLabel = nullptr;
 	QWidget* channelBadgeContainer = nullptr;
 	QHBoxLayout* channelBadgeLayout = nullptr;
-	QCheckBox* enabledCheckBox = nullptr;
+	QToolButton* enabledButton = nullptr;
 	QToolButton* expandButton = nullptr;
 	QToolButton* addButton = nullptr;
 	QToolButton* removeButton = nullptr;

@@ -32,6 +32,73 @@ bool isKnownConfigCommand(const QString& command)
 	};
 	return knownCommands.contains(normalized);
 }
+
+QString biquadTypeTitle(const QString& code)
+{
+	const QString normalized = code.toUpper();
+	if (normalized == QStringLiteral("PK") || normalized == QStringLiteral("PEQ") || normalized == QStringLiteral("MODAL"))
+		return QStringLiteral("Peaking");
+	if (normalized == QStringLiteral("LP") || normalized == QStringLiteral("LPQ"))
+		return QStringLiteral("Low-pass");
+	if (normalized == QStringLiteral("HP") || normalized == QStringLiteral("HPQ"))
+		return QStringLiteral("High-pass");
+	if (normalized == QStringLiteral("BP"))
+		return QStringLiteral("Band-pass");
+	if (normalized == QStringLiteral("LS") || normalized == QStringLiteral("LSC"))
+		return QStringLiteral("Low-shelf");
+	if (normalized == QStringLiteral("HS") || normalized == QStringLiteral("HSC"))
+		return QStringLiteral("High-shelf");
+	if (normalized == QStringLiteral("NO"))
+		return QStringLiteral("Notch");
+	if (normalized == QStringLiteral("AP"))
+		return QStringLiteral("All-pass");
+	return QStringLiteral("Biquad");
+}
+
+QString firstCapture(const QRegularExpression& expression, const QString& text)
+{
+	const QRegularExpressionMatch match = expression.match(text);
+	return match.hasMatch() ? match.captured(1).trimmed() : QString();
+}
+
+// Reproduces the same labelling the legacy BiQuad GUI shows so the modern card
+// agrees with it for the LSC/HSC/LPQ/HPQ/PEQ/Modal variants that the previous
+// regex did not recognize.
+QString summarizeBiquad(const QString& parameters, const QString& code, const QString& state)
+{
+	QStringList parts;
+	const bool shelf = code == QStringLiteral("LS") || code == QStringLiteral("LSC") || code == QStringLiteral("HS") || code == QStringLiteral("HSC");
+	const bool centerFrequency = code == QStringLiteral("LSC") || code == QStringLiteral("HSC");
+
+	const QString freq = firstCapture(QRegularExpression(QStringLiteral("\\bFc\\s*([-+0-9.,eE\\x{00A0}]+)\\s*H\\s*z"), QRegularExpression::CaseInsensitiveOption), parameters);
+	if (!freq.isEmpty())
+		parts.append(QStringLiteral("%1 %2 Hz").arg(shelf ? (centerFrequency ? QStringLiteral("Center") : QStringLiteral("Corner")) : QStringLiteral("Fc"), freq));
+
+	const QString gain = firstCapture(QRegularExpression(QStringLiteral("\\bGain\\s*([-+0-9.,eE]+)\\s*dB"), QRegularExpression::CaseInsensitiveOption), parameters);
+	if (!gain.isEmpty())
+		parts.append(QStringLiteral("Gain %1 dB").arg(gain));
+
+	if (shelf)
+	{
+		const QRegularExpression slopeExpression(QStringLiteral("^\\s*(?:ON|OFF)\\s+[A-Za-z]+\\s+([-+0-9.,eE]+)\\s*dB"), QRegularExpression::CaseInsensitiveOption);
+		const QString slope = firstCapture(slopeExpression, parameters);
+		if (!slope.isEmpty())
+			parts.append(QStringLiteral("Slope %1 dB/Oct").arg(slope));
+	}
+
+	const QString q = firstCapture(QRegularExpression(QStringLiteral("\\bQ\\s*([-+0-9.,eE]+)"), QRegularExpression::CaseInsensitiveOption), parameters);
+	if (!q.isEmpty())
+		parts.append(QStringLiteral("Q %1").arg(q));
+
+	const QString bandwidth = firstCapture(QRegularExpression(QStringLiteral("\\bBW\\s+Oct\\s*([-+0-9.,eE]+)"), QRegularExpression::CaseInsensitiveOption), parameters);
+	if (!bandwidth.isEmpty())
+		parts.append(QStringLiteral("BW %1 Oct").arg(bandwidth));
+
+	QString summary = parts.isEmpty() ? parameters.simplified() : parts.join(QStringLiteral(" \xC2\xB7 "));
+	if (state == QStringLiteral("OFF"))
+		summary = QStringLiteral("OFF \xC2\xB7 ") + summary;
+	return summary;
+}
 }
 
 QString FilterCardModel::compactWhitespace(QString text)
@@ -149,10 +216,20 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = QStringLiteral("Biquad");
 		descriptor.color = QStringLiteral("#22c55e");
 
-		QRegularExpression typeExpression(QStringLiteral("\\b(PK|LP|HP|LS|HS|NO|AP|BP)\\b"), QRegularExpression::CaseInsensitiveOption);
+		// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
+		// shelf-with-slope, LPQ/HPQ Q-form, PEQ alias and Modal) so the card
+		// title and summary agree with the legacy GUI. The previous regex only
+		// matched PK/LP/HP/LS/HS/NO/AP/BP and silently fell back to "Biquad".
+		QRegularExpression typeExpression(QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"), QRegularExpression::CaseInsensitiveOption);
 		QRegularExpressionMatch match = typeExpression.match(parameters);
 		if (match.hasMatch())
-			descriptor.badge = match.captured(1).toUpper();
+		{
+			const QString state = match.captured(1).toUpper();
+			const QString code = match.captured(2).toUpper();
+			descriptor.badge = code;
+			descriptor.title = biquadTypeTitle(code);
+			descriptor.summary = summarizeBiquad(parameters, code, state);
+		}
 	}
 	else if (commandLower == QStringLiteral("graphiceq"))
 	{
