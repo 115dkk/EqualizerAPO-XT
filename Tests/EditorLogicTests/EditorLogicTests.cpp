@@ -225,11 +225,17 @@ int main(int argc, char** argv)
 	expectEqual(disabledFilter.title, "Peaking", "disabled biquad title");
 	expectEqual(disabledFilter.summary, "Fc 1000 Hz · Gain -3 dB · Q 0.71", "disabled biquad summary");
 
-	FilterCardDescriptor lowShelfCornerFilter = FilterCardModel::describeLine("Filter: ON LSC 12 dB Fc 200 Hz Gain 3 dB");
-	expectEqual(lowShelfCornerFilter.badge, "LSC", "low-shelf corner badge");
+	FilterCardDescriptor lowShelfCenterFilter = FilterCardModel::describeLine("Filter: ON LSC 12 dB Fc 200 Hz Gain 3 dB");
+	expectEqual(lowShelfCenterFilter.badge, "LSC", "low-shelf center badge");
+	expectEqual(lowShelfCenterFilter.title, "Low-shelf", "low-shelf center title");
+	expectTrue(lowShelfCenterFilter.summary.contains("Center 200 Hz") && lowShelfCenterFilter.summary.contains("Gain 3 dB") && lowShelfCenterFilter.summary.contains("Slope 12 dB/Oct"),
+		QStringLiteral("low-shelf center summary missing expected fields: ") + lowShelfCenterFilter.summary);
+
+	FilterCardDescriptor lowShelfCornerFilter = FilterCardModel::describeLine("Filter: ON LS 6 dB Fc 120 Hz Gain -2 dB");
+	expectEqual(lowShelfCornerFilter.badge, "LS", "low-shelf corner badge");
 	expectEqual(lowShelfCornerFilter.title, "Low-shelf", "low-shelf corner title");
-	expectTrue(lowShelfCornerFilter.summary.contains("Corner 200 Hz") && lowShelfCornerFilter.summary.contains("Gain 3 dB") && lowShelfCornerFilter.summary.contains("Slope 12 dB/Oct"),
-		"low-shelf corner summary missing expected fields");
+	expectTrue(lowShelfCornerFilter.summary.contains("Corner 120 Hz") && lowShelfCornerFilter.summary.contains("Gain -2 dB") && lowShelfCornerFilter.summary.contains("Slope 6 dB/Oct"),
+		QStringLiteral("low-shelf corner summary missing expected fields: ") + lowShelfCornerFilter.summary);
 
 	FilterCardDescriptor pureComment = FilterCardModel::describeLine("    # purely explanatory comment");
 	expectFalse(pureComment.enabled, "pure comment was marked enabled");
