@@ -1,5 +1,6 @@
 #include "FilterCardRow.h"
 
+#include <QIcon>
 #include <QMenu>
 #include <QPainter>
 #include <QPropertyAnimation>
@@ -80,12 +81,14 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	channelBadgeLayout->setSpacing(3);
 	headerLayout->addWidget(channelBadgeContainer);
 
-	enabledCheckBox = new QCheckBox(headerWidget);
-	enabledCheckBox->setObjectName(QStringLiteral("FilterCardEnabled"));
-	enabledCheckBox->setToolTip(tr("Enable or comment out this command"));
-	enabledCheckBox->setChecked(descriptor.enabled);
-	connect(enabledCheckBox, SIGNAL(toggled(bool)), this, SLOT(enabledToggled(bool)));
-	headerLayout->addWidget(enabledCheckBox);
+	enabledButton = new QToolButton(headerWidget);
+	enabledButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	enabledButton->setCheckable(true);
+	enabledButton->setToolTip(tr("Enable or comment out this command"));
+	enabledButton->setChecked(descriptor.enabled);
+	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+	connect(enabledButton, SIGNAL(toggled(bool)), this, SLOT(enabledToggled(bool)));
+	headerLayout->addWidget(enabledButton);
 
 	addButton = new QToolButton(headerWidget);
 	addButton->setObjectName(QStringLiteral("FilterCardIconButton"));
@@ -243,10 +246,16 @@ void FilterCardRow::rebuildSummary()
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	rawPreviewLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")
 		.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
-	enabledCheckBox->blockSignals(true);
-	enabledCheckBox->setChecked(descriptor.enabled);
-	enabledCheckBox->blockSignals(false);
-	enabledCheckBox->setVisible(descriptor.canToggleEnabled);
+	enabledButton->blockSignals(true);
+	enabledButton->setChecked(descriptor.enabled);
+	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+	enabledButton->blockSignals(false);
+	enabledButton->setVisible(descriptor.canToggleEnabled);
+	// Disable only the body editor when the line is commented out. This keeps
+	// the card frame (and its header buttons - including the enable toggle and
+	// the raw-edit affordance) interactive so the user can flip the line back on.
+	if (gui != nullptr)
+		gui->setEnabled(descriptor.enabled);
 	buildChannelBadges(descriptor.channelBadges);
 	refreshStateProperties();
 	update();
@@ -363,6 +372,9 @@ void FilterCardRow::enabledToggled(bool checked)
 	if (!descriptor.canToggleEnabled)
 		return;
 
+	if (enabledButton != nullptr)
+		enabledButton->setIcon(QIcon(checked ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+
 	QString trimmed = item->text.trimmed();
 	if (checked && trimmed.startsWith('#'))
 		item->text = uncommentedLine();
@@ -394,9 +406,15 @@ void FilterCardRow::refreshStateProperties()
 	const bool selected = table != nullptr && table->getSelectedItems().contains(item);
 	const bool focused = table != nullptr && table->getFocusedItem() == item;
 
+	// "enabled" is a real QWidget property, so setting it on cardFrame /
+	// headerWidget was equivalent to calling setEnabled(false) on the whole
+	// card whenever the line was commented out. That killed the toggle button,
+	// the raw editor, and every child editor (Include path field, BiQuad
+	// controls...) so a disabled row could not be re-enabled or even inspected.
+	// Use a dedicated dynamic property name for the styling hook instead.
 	const QList<QPair<const char*, QVariant>> properties = {
 		{ "filterKind", descriptor.command.toLower() },
-		{ "enabled", descriptor.enabled },
+		{ "filterEnabled", descriptor.enabled },
 		{ "selected", selected },
 		{ "focused", focused },
 		{ "scopeDepth", descriptor.depth }

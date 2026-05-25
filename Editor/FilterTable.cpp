@@ -214,7 +214,11 @@ void FilterTable::updateGuis()
 					}
 				}
 
-				if (!usingCardEditor)
+				// In Modern Cards we skip the legacy CommentFilterGUI decorator on
+				// purpose: the card row already owns the enable/disable affordance
+				// and a second power toolbar inside the body editor only produces
+				// rules that disagree with the card header.
+				if (!usingCardEditor && renderMode != ModernCards)
 					for (IFilterGUIFactory* factory : factories)
 						gui = factory->decorateFilterGUI(gui);
 			}
@@ -330,7 +334,9 @@ void FilterTable::updateSingleRowGui(Item* item)
 					usingCardEditor = true;
 				}
 			}
-			if (!usingCardEditor)
+			// Same decorator gating as updateGuis(): Modern Cards owns power UI
+			// in the card header, no additional CommentFilterGUI toolbar inside.
+			if (!usingCardEditor && renderMode != ModernCards)
 				for (IFilterGUIFactory* factory : factories)
 					gui = factory->decorateFilterGUI(gui);
 		}
