@@ -32,7 +32,7 @@ struct FilterNode
 		this->dbGain = dbGain;
 	}
 
-	bool operator<(FilterNode other)
+	bool operator<(FilterNode other) const
 	{
 		return freq < other.freq;
 	}
@@ -41,13 +41,19 @@ struct FilterNode
 class GainIterator
 {
 public:
+	// Holds a reference to the caller's node vector. The caller must keep the
+	// vector alive for the lifetime of the iterator. This avoids copying the
+	// (often 100k+ node) vector that would otherwise happen once per paint.
 	GainIterator(const std::vector<FilterNode>& nodes);
 	double gainAt(double freq);
 
+	GainIterator(const GainIterator&) = delete;
+	GainIterator& operator=(const GainIterator&) = delete;
+
 private:
-	std::vector<FilterNode> nodes;
-	FilterNode* nodeLeft;
-	FilterNode* nodeRight;
+	const std::vector<FilterNode>& nodes;
+	const FilterNode* nodeLeft;
+	const FilterNode* nodeRight;
 	double logLeft;
 	double logRightMinusLeft;
 };

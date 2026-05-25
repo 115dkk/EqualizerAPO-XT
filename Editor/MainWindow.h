@@ -26,6 +26,7 @@
 #include <QComboBox>
 #include <QDir>
 #include <QActionGroup>
+#include <QTimer>
 
 #include "FilterTable.h"
 #include "DeviceAPOInfo.h"
@@ -101,6 +102,7 @@ private slots:
 	void on_actionResetAllFileSpecificPreferences_triggered();
 
 private:
+	void executeStartAnalysis();
 	FilterTable* addTab(QString title, QString tooltip, QString configPath, QList<QString> lines);
 	void getDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask);
 	bool askForClose(int tabIndex);
@@ -128,6 +130,7 @@ private:
 	AnalysisPlotScene* analysisPlotScene;
 	EqGraphView* eqGraphView = nullptr;
 	AnalysisThread* analysisThread = nullptr;
+	QTimer* analysisDebounceTimer = nullptr;
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;
