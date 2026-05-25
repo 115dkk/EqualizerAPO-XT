@@ -67,6 +67,10 @@ public:
 	void initialize(QScrollArea* scrollArea, const QList<std::shared_ptr<AbstractAPOInfo>>& outputDevices, const QList<std::shared_ptr<AbstractAPOInfo>>& inputDevices);
 	void updateDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo> selectedDevice, int selectedChannelMask);
 	void updateGuis();
+	// Re-create the GUI widget for a single row in place. Used for cheap
+	// edits like the enabled toggle, which used to trigger a full updateGuis
+	// (delete + rebuild every row in the file).
+	void updateSingleRowGui(Item* item);
 	void propagateChannels();
 	QList<QString> getLines();
 	void setLines(const QString& configPath, const QList<QString>& lines);
