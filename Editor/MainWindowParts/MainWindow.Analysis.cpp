@@ -132,6 +132,27 @@ void MainWindow::startAnalysis()
 	if (!ui->analysisDockWidget->isVisible())
 		return;
 
+	// Debounce: instant-mode saves, slider drags, channel/resolution changes, and
+	// tab switches each call startAnalysis. AnalysisThread::setParameters already
+	// keeps only the most recent parameters via wakeAll, but the actual analysis
+	// run (engine init + up to ten seconds of impulse processing) does not abort
+	// mid-flight. Adding a short coalesce window cuts redundant runs while a
+	// user is still dragging.
+	static constexpr int kAnalysisDebounceMs = 120;
+	if (analysisDebounceTimer == nullptr)
+	{
+		analysisDebounceTimer = new QTimer(this);
+		analysisDebounceTimer->setSingleShot(true);
+		connect(analysisDebounceTimer, &QTimer::timeout, this, &MainWindow::executeStartAnalysis);
+	}
+	analysisDebounceTimer->start(kAnalysisDebounceMs);
+}
+
+void MainWindow::executeStartAnalysis()
+{
+	if (!ui->analysisDockWidget->isVisible())
+		return;
+
 	shared_ptr<AbstractAPOInfo> selectedDevice;
 
 	int channelMask;

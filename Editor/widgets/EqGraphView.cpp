@@ -44,13 +44,21 @@ void EqGraphView::setNodes(const std::vector<FilterNode>& nodes, unsigned sample
 	currentNodes = nodes;
 	currentSampleRate = sampleRate;
 	currentChannel = channel.isEmpty() ? QStringLiteral("All") : channel;
+	curveDirty = true;
 	update();
 }
 
 void EqGraphView::setChannel(const QString& channel)
 {
+	// Only the label changes; the cached curve geometry stays valid.
 	currentChannel = channel;
 	update();
+}
+
+void EqGraphView::resizeEvent(QResizeEvent* event)
+{
+	QWidget::resizeEvent(event);
+	curveDirty = true;
 }
 
 QString EqGraphView::channel() const
@@ -94,21 +102,55 @@ void EqGraphView::paintEvent(QPaintEvent*)
 		painter.drawLine(QPointF(x, graphRect.top()), QPointF(x, graphRect.bottom()));
 	}
 
-	GainIterator gainIterator(currentNodes);
-	QVector<double> sampledDb;
-	sampledDb.reserve(qMax(2, static_cast<int>(graphRect.width())));
-	double maxAbsDb = 0.0;
-	for (int x = static_cast<int>(graphRect.left()); x <= static_cast<int>(graphRect.right()); x++)
+	const bool geometryChanged = (cachedSize != size()) || (cachedGraphRect != graphRect);
+	if (curveDirty || geometryChanged)
 	{
-		const double db = gainIterator.gainAt(xToHz(graphRect, x));
-		const double finiteDb = std::isfinite(db) ? db : -120.0;
-		sampledDb.append(finiteDb);
-		maxAbsDb = std::max(maxAbsDb, std::abs(finiteDb));
+		GainIterator gainIterator(currentNodes);
+		QVector<double> sampledDb;
+		sampledDb.reserve(qMax(2, static_cast<int>(graphRect.width())));
+		double maxAbsDb = 0.0;
+		for (int x = static_cast<int>(graphRect.left()); x <= static_cast<int>(graphRect.right()); x++)
+		{
+			const double db = gainIterator.gainAt(xToHz(graphRect, x));
+			const double finiteDb = std::isfinite(db) ? db : -120.0;
+			sampledDb.append(finiteDb);
+			maxAbsDb = std::max(maxAbsDb, std::abs(finiteDb));
+		}
+
+		const double rangeDb = qBound(12.0, std::ceil(maxAbsDb / 6.0) * 6.0, 60.0);
+		cachedMinDb = -rangeDb;
+		cachedMaxDb = rangeDb;
+		cachedZeroY = dbToY(graphRect, 0.0, cachedMinDb, cachedMaxDb);
+
+		cachedCurve = QPainterPath();
+		bool first = true;
+		for (int i = 0; i < sampledDb.size(); i++)
+		{
+			const double x = graphRect.left() + i;
+			const double y = dbToY(graphRect, sampledDb[i], cachedMinDb, cachedMaxDb);
+			if (first)
+			{
+				cachedCurve.moveTo(x, y);
+				first = false;
+			}
+			else
+			{
+				cachedCurve.lineTo(x, y);
+			}
+		}
+
+		cachedFill = cachedCurve;
+		cachedFill.lineTo(graphRect.right(), cachedZeroY);
+		cachedFill.lineTo(graphRect.left(), cachedZeroY);
+		cachedFill.closeSubpath();
+
+		cachedSize = size();
+		cachedGraphRect = graphRect;
+		curveDirty = false;
 	}
 
-	const double rangeDb = qBound(12.0, std::ceil(maxAbsDb / 6.0) * 6.0, 60.0);
-	const double minDb = -rangeDb;
-	const double maxDb = rangeDb;
+	const double minDb = cachedMinDb;
+	const double maxDb = cachedMaxDb;
 	for (int db = static_cast<int>(minDb); db <= static_cast<int>(maxDb); db += 6)
 	{
 		double y = dbToY(graphRect, db, minDb, maxDb);
@@ -118,38 +160,17 @@ void EqGraphView::paintEvent(QPaintEvent*)
 	QPen zeroPen(QColor(tokens.accent), 1.4);
 	zeroPen.setCosmetic(true);
 	painter.setPen(zeroPen);
-	double zeroY = dbToY(graphRect, 0.0, minDb, maxDb);
+	const double zeroY = cachedZeroY;
 	painter.drawLine(QPointF(graphRect.left(), zeroY), QPointF(graphRect.right(), zeroY));
 
-	QPainterPath curve;
-	bool first = true;
-	for (int i = 0; i < sampledDb.size(); i++)
-	{
-		const double x = graphRect.left() + i;
-		const double y = dbToY(graphRect, sampledDb[i], minDb, maxDb);
-		if (first)
-		{
-			curve.moveTo(x, y);
-			first = false;
-		}
-		else
-		{
-			curve.lineTo(x, y);
-		}
-	}
-
-	QPainterPath fillPath = curve;
-	fillPath.lineTo(graphRect.right(), zeroY);
-	fillPath.lineTo(graphRect.left(), zeroY);
-	fillPath.closeSubpath();
 	QColor fill(tokens.accent);
 	fill.setAlpha(SkinManager::instance()->isDark() ? 30 : 18);
-	painter.fillPath(fillPath, fill);
+	painter.fillPath(cachedFill, fill);
 
 	QPen curvePen(QColor(tokens.accent), 2.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
 	curvePen.setCosmetic(true);
 	painter.setPen(curvePen);
-	painter.drawPath(curve);
+	painter.drawPath(cachedCurve);
 
 	painter.setPen(QColor(tokens.mutedText));
 	QFont labelFont = font();

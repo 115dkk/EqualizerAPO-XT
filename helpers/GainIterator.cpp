@@ -26,10 +26,8 @@ using std::log;
 using std::vector;
 
 GainIterator::GainIterator(const vector<FilterNode>& nodes)
+	: nodes(nodes), nodeLeft(nullptr), nodeRight(nullptr), logLeft(0.0), logRightMinusLeft(0.0)
 {
-	this->nodes = nodes;
-	nodeLeft = nullptr;
-	nodeRight = nullptr;
 }
 
 double GainIterator::gainAt(double freq)
@@ -37,7 +35,7 @@ double GainIterator::gainAt(double freq)
 	if (nodeLeft == nullptr && nodeRight == nullptr || nodeLeft != nullptr && freq < nodeLeft->freq)
 	{
 		FilterNode findNode(freq, 0);
-		vector<FilterNode>::iterator it = lower_bound(nodes.begin(), nodes.end(), findNode);
+		vector<FilterNode>::const_iterator it = lower_bound(nodes.begin(), nodes.end(), findNode);
 		if (it != nodes.begin())
 			nodeLeft = &*(it - 1);
 		if (it != nodes.end())
@@ -51,7 +49,7 @@ double GainIterator::gainAt(double freq)
 	}
 	else if (nodeRight != nullptr && freq > nodeRight->freq)
 	{
-		vector<FilterNode>::iterator it = nodes.begin() + (nodeRight - &*nodes.begin());
+		vector<FilterNode>::const_iterator it = nodes.begin() + (nodeRight - &*nodes.begin());
 		while (it != nodes.end() && freq > it->freq)
 		{
 			it++;

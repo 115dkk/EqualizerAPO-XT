@@ -14,6 +14,7 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
+#include <QTimer>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -54,7 +55,31 @@ void MainWindow::linesChanged()
 		QString configPath = filterTable->getConfigPath();
 		if (configPath.length() > 0)
 		{
-			save(filterTable, configPath);
+			// Debounce instant-mode saves. Dragging a knob or typing in a value
+			// previously triggered a full file write per change; coalesce all
+			// changes within a short window into a single save.
+			static constexpr int kSaveDebounceMs = 200;
+			const QString timerObjectName = QStringLiteral("__instantModeSaveTimer");
+			QTimer* timer = filterTable->findChild<QTimer*>(timerObjectName, Qt::FindDirectChildrenOnly);
+			if (!timer)
+			{
+				timer = new QTimer(filterTable);
+				timer->setObjectName(timerObjectName);
+				timer->setSingleShot(true);
+				// Capturing filterTable is safe: the timer is its child, so the
+				// timer cannot outlive the FilterTable. Re-resolve the path on
+				// fire because the FilterTable's config path can change while
+				// the debounce window is pending.
+				connect(timer, &QTimer::timeout, this, [this, filterTable]() {
+					QString currentPath = filterTable->getConfigPath();
+					if (currentPath.length() > 0)
+					{
+						save(filterTable, currentPath);
+						updateDirtyStatus();
+					}
+				});
+			}
+			timer->start(kSaveDebounceMs);
 			updateDirtyStatus();
 			return;
 		}

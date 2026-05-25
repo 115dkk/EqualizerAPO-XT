@@ -2,6 +2,9 @@
 
 #include <vector>
 
+#include <QPainterPath>
+#include <QRectF>
+#include <QSize>
 #include <QWidget>
 
 #include "helpers/GainIterator.h"
@@ -20,9 +23,22 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent*) override;
+	void resizeEvent(QResizeEvent* event) override;
 
 private:
 	std::vector<FilterNode> currentNodes;
 	QString currentChannel = QStringLiteral("All");
 	unsigned currentSampleRate = 0;
+
+	// Cached curve geometry. Rebuilt only when the node set or the widget
+	// dimensions change; skin or channel-label changes reuse the cached path
+	// (they only affect pen colour and overlay text).
+	bool curveDirty = true;
+	QSize cachedSize;
+	QRectF cachedGraphRect;
+	QPainterPath cachedCurve;
+	QPainterPath cachedFill;
+	double cachedMinDb = 0.0;
+	double cachedMaxDb = 0.0;
+	double cachedZeroY = 0.0;
 };

@@ -29,6 +29,7 @@
 #include <QSettings>
 #include <QStyleFactory>
 #include <QStyleHints>
+#include <QTimer>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -334,7 +335,15 @@ int main(int argc, char* argv[])
 			w.doChecks();
 
 		if (VelopackBootstrap::isVelopackInstall() && !firstRun)
-			VelopackBootstrap::triggerBackgroundUpdate(QStringLiteral("115dkk/EqualizerAPO-XT").toStdWString());
+		{
+			// Defer the background update so it does not race with audio service
+			// work or a Device Selector launch right after the Editor opens.
+			// 60s is long enough that the initial GUI paint, config load, and
+			// device enumeration are all comfortably finished.
+			QTimer::singleShot(60000, qApp, []() {
+				VelopackBootstrap::triggerBackgroundUpdate(QStringLiteral("115dkk/EqualizerAPO-XT").toStdWString());
+			});
+		}
 
 		result = application.exec();
 

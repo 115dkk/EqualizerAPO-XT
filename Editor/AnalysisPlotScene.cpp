@@ -31,8 +31,10 @@ AnalysisPlotScene::AnalysisPlotScene(QObject* parent)
 
 void AnalysisPlotScene::setFreqData(fftw_complex* freqData, int frameCount, unsigned sampleRate)
 {
+	const int count = frameCount / 2;
 	nodes.clear();
-	for (int i = 0; i < frameCount / 2; i++)
+	nodes.reserve(count);
+	for (int i = 0; i < count; i++)
 	{
 		double freq = (i * 1.0 / frameCount) * sampleRate;
 		// GainIterator can't handle 0 Hz node
@@ -40,7 +42,7 @@ void AnalysisPlotScene::setFreqData(fftw_complex* freqData, int frameCount, unsi
 			freq = 0.001;
 		double gain = sqrt(freqData[i][0] * freqData[i][0] + freqData[i][1] * freqData[i][1]);
 		double dbGain = log10(gain) * 20;
-		nodes.push_back(FilterNode(freq, dbGain));
+		nodes.emplace_back(freq, dbGain);
 	}
 
 	update();
