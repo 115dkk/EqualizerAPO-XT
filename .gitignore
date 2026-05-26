@@ -255,3 +255,6 @@ paket-files/
 # Local benchmark configurations
 bench-config/
 bench-config-conv/
+
+# Local Modern Card variant visual-check sample (Task #32)
+_card_variants_demo.txt
