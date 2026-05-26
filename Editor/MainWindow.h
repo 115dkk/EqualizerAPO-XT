@@ -105,6 +105,7 @@ private:
 	void executeStartAnalysis();
 	FilterTable* addTab(QString title, QString tooltip, QString configPath, QList<QString> lines);
 	void getDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask);
+	void updateDeviceFormatBadge(const std::shared_ptr<AbstractAPOInfo>& apoInfo);
 	bool askForClose(int tabIndex);
 	void loadPreferences();
 	void savePreferences();
@@ -123,6 +124,7 @@ private:
 	QCheckBox* instantModeCheckBox;
 	QLabel* dirtyStatusLabel = nullptr;
 	QComboBox* deviceComboBox;
+	QLabel* deviceFormatBadge = nullptr;
 	QComboBox* channelConfigurationComboBox;
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;

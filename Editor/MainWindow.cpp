@@ -40,6 +40,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
+#include "helpers/AudioFormatProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"
@@ -125,6 +126,14 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	deviceComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
 	connect(deviceComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::deviceSelected);
 	ui->mainToolBar->addWidget(deviceComboBox);
+
+	deviceFormatBadge = new QLabel(QString());
+	deviceFormatBadge->setObjectName(QStringLiteral("DeviceFormatBadge"));
+	deviceFormatBadge->setAttribute(Qt::WA_StyledBackground, true);
+	deviceFormatBadge->setProperty("severity", QStringLiteral("normal"));
+	deviceFormatBadge->setVisible(false);
+	deviceFormatBadge->setToolTip(tr("Whether EqualizerAPO is processing this device's stream natively, or forwarding it without applying filters."));
+	ui->mainToolBar->addWidget(deviceFormatBadge);
 
 	spacer = new QWidget;
 	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
@@ -253,6 +262,42 @@ void MainWindow::doChecks()
 		{
 			runDeviceSelector();
 			return;
+		}
+	}
+
+	// Scan every installed endpoint and warn once if any of them currently
+	// uses a stream format we cannot process natively. The APO still passes
+	// audio through in that case, but no filters are applied — without this
+	// warning the user would just see "EQ has no effect" with no explanation.
+	{
+		QStringList passthroughDevices;
+		auto inspect = [&passthroughDevices](const QList<shared_ptr<AbstractAPOInfo>>& list)
+		{
+			for (const shared_ptr<AbstractAPOInfo>& info : list)
+			{
+				if (info == nullptr || !info->isInstalled())
+					continue;
+				AudioFormatProbe::Result r = AudioFormatProbe::probe(info->getDeviceGuid());
+				if (AudioFormatProbe::isPassthrough(r.status))
+				{
+					QString label = QString::fromStdWString(info->getConnectionName())
+						+ " - " + QString::fromStdWString(info->getDeviceName())
+						+ "  (" + QString::fromStdWString(r.subtypeDescription)
+						+ ", " + QString::number(r.containerBytes * 8) + "-bit)";
+					passthroughDevices.append(label);
+				}
+			}
+		};
+		inspect(outputDevices);
+		inspect(inputDevices);
+		if (!passthroughDevices.isEmpty())
+		{
+			QMessageBox::warning(this,
+				tr("EQ inactive on some devices"),
+				tr("EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, "
+				   "so audio passes through them without any filter being applied:\n\n%0\n\nThis is not a crash — sound still reaches the device, but no EQ. "
+				   "Switch the device's default format to a 32-bit IEEE_FLOAT one in Sound Settings if you need filtering on them.")
+				.arg(passthroughDevices.join('\n')));
 		}
 	}
 
