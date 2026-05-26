@@ -169,6 +169,18 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	descriptor.depth = depth;
 	descriptor.enabled = !line.trimmed().startsWith('#');
 
+	// Blank / whitespace-only lines (including the trailing newline that almost
+	// every config file ends with) used to fall through to the generic "TXT
+	// Text" branch and produce a full-height card with an empty title. Mark
+	// them as a dedicated spacer so the row widget can render a thin separator
+	// instead of an empty card.
+	if (line.trimmed().isEmpty())
+	{
+		descriptor.type = QStringLiteral("spacer");
+		descriptor.canToggleEnabled = false;
+		return descriptor;
+	}
+
 	if (isPureCommentLine(line))
 	{
 		QString trimmed = line.trimmed();
@@ -209,8 +221,13 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = QStringLiteral("Delay");
 		descriptor.color = QStringLiteral("#14b8a6");
 	}
-	else if (commandLower == QStringLiteral("filter"))
+	else if (commandLower == QStringLiteral("filter") || commandLower.startsWith(QStringLiteral("filter ")))
 	{
+		// EAPO syntax allows numbered filter lines such as `Filter 1:`, `Filter 99:`
+		// (commonly emitted by REW, Room EQ Wizard, Dirac, and other tools). The
+		// exact-match check that used to live here treated `Filter 1` as a generic
+		// text command, which stripped the type-specific badge/title/summary off
+		// every BiQuad card produced by those tools.
 		descriptor.type = QStringLiteral("biquad");
 		descriptor.badge = QStringLiteral("BQUAD");
 		descriptor.title = QStringLiteral("Biquad");
