@@ -3,6 +3,7 @@
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QMimeData>
+#include <QStyle>
 #include <QPushButton>
 #include <QStandardItemModel>
 #include <QStringBuilder>
@@ -20,6 +21,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
+#include "helpers/AudioFormatProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"
@@ -42,6 +44,8 @@ void MainWindow::deviceSelected(int index)
 	shared_ptr<AbstractAPOInfo> apoInfo = deviceComboBox->itemData(index).value<shared_ptr<AbstractAPOInfo>>();
 	if (apoInfo == nullptr)
 		apoInfo = defaultOutputDevice;
+
+	updateDeviceFormatBadge(apoInfo);
 
 	channelConfigurationComboBox->clear();
 
@@ -143,6 +147,60 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 	ui->tabWidget->setTabToolTip(tabIndex, tooltip);
 
 	return filterTable;
+}
+
+void MainWindow::updateDeviceFormatBadge(const shared_ptr<AbstractAPOInfo>& apoInfo)
+{
+	if (deviceFormatBadge == nullptr)
+		return;
+
+	if (apoInfo == nullptr)
+	{
+		deviceFormatBadge->setVisible(false);
+		deviceFormatBadge->setText(QString());
+		return;
+	}
+
+	AudioFormatProbe::Result r = AudioFormatProbe::probe(apoInfo->getDeviceGuid());
+
+	QString label;
+	QString severity = QStringLiteral("normal");
+	QString tooltip;
+	switch (r.status)
+	{
+	case AudioFormatProbe::Status::ActiveFloat32:
+		label = tr("EQ active · 32-bit float");
+		severity = QStringLiteral("normal");
+		tooltip = tr("EqualizerAPO is processing this stream natively (IEEE_FLOAT 32-bit, %0 Hz, %1 ch).")
+			.arg(r.sampleRate).arg(r.channelCount);
+		break;
+	case AudioFormatProbe::Status::ActiveFloat64:
+		label = tr("EQ active · 64-bit float");
+		severity = QStringLiteral("normal");
+		tooltip = tr("EqualizerAPO is processing this stream natively (IEEE_FLOAT 64-bit, %0 Hz, %1 ch).")
+			.arg(r.sampleRate).arg(r.channelCount);
+		break;
+	case AudioFormatProbe::Status::Passthrough:
+		label = tr("Passthrough · EQ inactive");
+		severity = QStringLiteral("warning");
+		tooltip = tr("This device's stream format is %0 (%1-bit container). EqualizerAPO only processes IEEE_FLOAT 32/64-bit streams natively, "
+			"so audio is forwarded without any filter being applied. Switch the device's default format to a 32-bit IEEE_FLOAT one in "
+			"Sound Settings if you need filtering on this device.")
+			.arg(QString::fromStdWString(r.subtypeDescription)).arg(r.containerBytes * 8);
+		break;
+	case AudioFormatProbe::Status::Unknown:
+	default:
+		deviceFormatBadge->setVisible(false);
+		deviceFormatBadge->setText(QString());
+		return;
+	}
+
+	deviceFormatBadge->setText(label);
+	deviceFormatBadge->setToolTip(tooltip);
+	deviceFormatBadge->setProperty("severity", severity);
+	deviceFormatBadge->style()->unpolish(deviceFormatBadge);
+	deviceFormatBadge->style()->polish(deviceFormatBadge);
+	deviceFormatBadge->setVisible(true);
 }
 
 void MainWindow::getDeviceAndChannelMask(shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask)

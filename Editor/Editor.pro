@@ -25,6 +25,7 @@ SOURCES += main.cpp\
 	../helpers/RegistryHelper.cpp \
 	../helpers/ServiceHelper.cpp \
 	../helpers/ApoRegistration.cpp \
+	../helpers/AudioFormatProbe.cpp \
 	../helpers/VelopackBootstrap.cpp \
 	../parser/LogicalOperators.cpp \
 	IFilterGUIFactory.cpp \
@@ -181,6 +182,7 @@ HEADERS  += \
 	../helpers/RegistryHelper.h \
 	../helpers/ServiceHelper.h \
 	../helpers/ApoRegistration.h \
+	../helpers/AudioFormatProbe.h \
 	../helpers/VelopackBootstrap.h \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
