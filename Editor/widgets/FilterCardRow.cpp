@@ -216,6 +216,14 @@ void FilterCardRow::editText()
 
 QSize FilterCardRow::sizeHint() const
 {
+	// Blank lines collapse to a thin spacer; no header, no body, just a few
+	// pixels of breathing room so visual grouping in the config survives.
+	if (descriptor.type == QStringLiteral("spacer"))
+	{
+		int preferredWidth = table != nullptr ? table->getPreferredWidth() : 0;
+		return QSize(preferredWidth, 10);
+	}
+
 	// Use only the header's preferred width and the viewport - never the body's
 	// content-driven sizeHint. Some legacy filter GUIs (DeviceFilterGUI with
 	// QTreeWidget AdjustToContents, VST / Convolution / Stage editors) report
@@ -234,6 +242,11 @@ QSize FilterCardRow::sizeHint() const
 
 QSize FilterCardRow::minimumSizeHint() const
 {
+	// Spacer rows force a small fixed height so QGridLayout does not promote
+	// them up to the body-driven minimum of neighbouring cards.
+	if (descriptor.type == QStringLiteral("spacer"))
+		return QSize(0, 10);
+
 	// Cap the cell's minimum width at a small constant so the QGridLayout in
 	// FilterTable does not inherit any content-driven minimum from a card's
 	// body editor. Without this, ONE row with a wide legacy filter GUI forces
@@ -300,6 +313,26 @@ void FilterCardRow::paintEvent(QPaintEvent*)
 void FilterCardRow::rebuildSummary()
 {
 	descriptor = FilterCardModel::describeLine(item->text, descriptor.depth);
+
+	// Blank lines render as a thin spacer: no header, no body, no raw preview.
+	// The card frame itself stays visible (so its background fills the gap and
+	// scope-rail painting still works for indented blocks) but is collapsed
+	// to a small fixed height by sizeHint() / minimumSizeHint() below.
+	const bool isSpacer = descriptor.type == QStringLiteral("spacer");
+	if (headerWidget != nullptr)
+		headerWidget->setVisible(!isSpacer);
+	if (bodyStack != nullptr)
+		bodyStack->setVisible(!isSpacer && expandButton != nullptr && expandButton->isChecked());
+	if (isSpacer)
+	{
+		if (rawPreviewLabel != nullptr)
+			rawPreviewLabel->setVisible(false);
+		refreshStateProperties();
+		updateGeometry();
+		update();
+		return;
+	}
+
 	typeBadge->setText(descriptor.badge);
 	bool outlineBadge = SkinManager::instance()->tokens().badgeStyle == SkinTokens::OutlineOnly || SkinManager::instance()->tokens().badgeStyle == SkinTokens::WireframeBorder;
 	typeBadge->setStyleSheet(QStringLiteral("color:%1; border-color:%2; background-color:%3;")
