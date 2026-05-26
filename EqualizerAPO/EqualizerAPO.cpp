@@ -34,11 +34,19 @@ namespace
 {
 	EqualizerAPO::ApoSampleFormat detectSampleFormat(const UNCOMPRESSEDAUDIOFORMAT& f)
 	{
+		// Windows audio engine normally hands system-effect APOs IEEE_FLOAT samples
+		// even when the endpoint runs an integer format underneath. We only need to
+		// match the container size to pick the right reinterpret. Validating the
+		// exact dwValidBitsPerSample value is too strict — some virtual devices
+		// (CABLE Input, loopback adapters, etc.) report non-canonical valid-bit
+		// counts even though the container is plain 32-bit float. Rejecting them
+		// here used to fall through to silent output and made the device sound
+		// dead. See git 309e9e8 regression.
 		if (IsEqualGUID(f.guidFormatType, KSDATAFORMAT_SUBTYPE_IEEE_FLOAT))
 		{
-			if (f.dwBytesPerSampleContainer == 4 && f.dwValidBitsPerSample == 32)
+			if (f.dwBytesPerSampleContainer == 4)
 				return EqualizerAPO::ApoSampleFormat::Float32;
-			if (f.dwBytesPerSampleContainer == 8 && f.dwValidBitsPerSample == 64)
+			if (f.dwBytesPerSampleContainer == 8)
 				return EqualizerAPO::ApoSampleFormat::Float64;
 		}
 		return EqualizerAPO::ApoSampleFormat::Unsupported;
@@ -428,6 +436,18 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 	outputSampleFormat = detectSampleFormat(outFormat);
 	TraceF(L"Resolved APO sample formats: in=%d, out=%d", static_cast<int>(inputSampleFormat), static_cast<int>(outputSampleFormat));
 
+	// Loud warning so the user can see in TraceLog.txt why a device sounds dry:
+	// when the format is something we cannot natively process the engine is
+	// bypassed and the input is forwarded straight to the output without any
+	// filtering. This is still preferable to going silent.
+	if (inputSampleFormat == ApoSampleFormat::Unsupported || outputSampleFormat == ApoSampleFormat::Unsupported)
+	{
+		LogF(L"Connection format is not IEEE_FLOAT 32/64 (in container=%u valid=%u, out container=%u valid=%u). "
+			L"APO will passthrough audio without applying filters for this stream.",
+			inFormat.dwBytesPerSampleContainer, inFormat.dwValidBitsPerSample,
+			outFormat.dwBytesPerSampleContainer, outFormat.dwValidBitsPerSample);
+	}
+
 	if (childCfg != nullptr)
 	{
 		hr = childCfg->LockForProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections,
@@ -582,9 +602,13 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 		}
 
 		// The APO is registered with APO_FLAG_BITSPERSAMPLE_MUST_MATCH, so input
-		// and output formats agree. Branch on the input format to pick the native
-		// path: legacy float32 (the dominant case on Windows) or true float64.
-		if (inputSampleFormat == ApoSampleFormat::Float64)
+		// and output formats should agree on container size. Only take the native
+		// path when both sides resolved to the same supported format — otherwise
+		// fall through to the passthrough branch so we never reinterpret integer
+		// samples as float.
+		const bool nativePathSafe = (inputSampleFormat == outputSampleFormat)
+			&& (inputSampleFormat != ApoSampleFormat::Unsupported);
+		if (nativePathSafe && inputSampleFormat == ApoSampleFormat::Float64)
 		{
 			double* inputFrames = reinterpret_cast<double*>(ppInputConnections[0]->pBuffer);
 			double* outputFrames = reinterpret_cast<double*>(ppOutputConnections[0]->pBuffer);
@@ -595,7 +619,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 				u32NumInputConnections, ppInputConnections,
 				u32NumOutputConnections, ppOutputConnections);
 		}
-		else if (inputSampleFormat == ApoSampleFormat::Float32)
+		else if (nativePathSafe && inputSampleFormat == ApoSampleFormat::Float32)
 		{
 			float* inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
 			float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
@@ -608,15 +632,38 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 		}
 		else
 		{
-			// Unsupported connection format: emit silent output of the requested
-			// frame count and let the caller detect via BUFFER_SILENT. Writing
-			// garbage by reinterpreting an unknown buffer is worse.
-			const size_t outBytes = bytesPerSample(outputSampleFormat);
-			if (outBytes > 0)
-				memset(reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer), 0,
-					static_cast<size_t>(frameCount) * outputChannelCount * outBytes);
+			// Unsupported or mismatched connection format: do NOT process, but
+			// still let audio reach the device. The APO is registered with
+			// APO_FLAG_INPLACE, so a conformant host hands us the same buffer
+			// for input and output — the samples already sit at outBuf untouched
+			// and we just have to mark the buffer valid. Emitting BUFFER_SILENT
+			// here was the cause of the "APO installed → device goes mute"
+			// regression (git 309e9e8).
+			//
+			// If a host does call us with distinct in/out buffers we cannot
+			// safely copy the bytes through because we do not know the exact
+			// input container size when the format is unsupported, and copying
+			// the wrong number of bytes would either truncate the signal or
+			// read past the input buffer. In that rare case we fall back to
+			// silence — it is still better than emitting random memory, and
+			// such a host is non-compliant given APO_FLAG_INPLACE anyway.
+			void* inBuf = reinterpret_cast<void*>(ppInputConnections[0]->pBuffer);
+			void* outBuf = reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer);
 			ppOutputConnections[0]->u32ValidFrameCount = frameCount;
-			ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
+			if (inBuf == outBuf)
+			{
+				ppOutputConnections[0]->u32BufferFlags = isSilentInput ? BUFFER_SILENT : BUFFER_VALID;
+			}
+			else
+			{
+				const size_t outBytes = bytesPerSample(outputSampleFormat);
+				if (outBytes > 0)
+				{
+					memset(outBuf, 0,
+						static_cast<size_t>(frameCount) * outputChannelCount * outBytes);
+				}
+				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
+			}
 		}
 
 		break;
