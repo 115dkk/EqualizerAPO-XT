@@ -11,6 +11,8 @@
 #include "Editor/FilterTable.h"
 #include "Editor/widgets/FilterCardModel.h"
 
+class RoutingView;
+
 class FilterCardRow : public QWidget
 {
 	Q_OBJECT
@@ -34,6 +36,7 @@ private slots:
 	void lineEditingFinished();
 	void enabledToggled(bool checked);
 	void expandedToggled(bool checked);
+	void routingEdited();
 
 private:
 	void rebuildSummary();
@@ -63,5 +66,6 @@ private:
 	QToolButton* editButton = nullptr;
 	QStackedWidget* bodyStack = nullptr;
 	QLineEdit* lineEdit = nullptr;
+	RoutingView* routingView = nullptr;
 	bool editingDone = false;
 };

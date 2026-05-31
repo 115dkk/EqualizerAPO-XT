@@ -12,6 +12,8 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/widgets/ChBadge.h"
+#include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, int depth, QWidget* parent)
 	: QWidget(parent), table(table), item(item), gui(gui)
@@ -145,7 +147,44 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	connect(lineEdit, SIGNAL(editingFinished()), this, SLOT(lineEditingFinished()));
 	bodyStack->addWidget(lineEdit);
 
-	if (gui != nullptr)
+	IRoutingRenderer* routingRenderer = (descriptor.type == QStringLiteral("copy"))
+		? SkinManager::instance()->routingRenderer() : nullptr;
+
+	if (routingRenderer != nullptr)
+	{
+		// Skin-specific Copy routing view (crosspoint matrix, step list, ...)
+		// replaces the legacy CopyFilterGUI in the card body. The view owns its
+		// working routing state; on edit we serialise it back into item->text.
+		QWidget* editorContainer = new QWidget(bodyStack);
+		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
+		editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		editorContainer->setMinimumSize(0, 0);
+		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
+		editorLayout->setContentsMargins(12, 10, 12, 12);
+
+		QString parameters;
+		FilterCardModel::commandForLine(item->text, &parameters);
+		std::vector<Assignment> routingAssignments = CopyRoutingAdapter::parse(parameters);
+		std::vector<std::wstring> channelNames;
+		routingView = routingRenderer->create(routingAssignments, channelNames, editorContainer);
+
+		QScrollArea* routingScroll = new QScrollArea(editorContainer);
+		routingScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));
+		routingScroll->setFrameShape(QFrame::NoFrame);
+		routingScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+		routingScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+		routingScroll->setWidgetResizable(true);
+		routingScroll->setMinimumSize(0, 0);
+		routingScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		routingScroll->setWidget(routingView);
+		editorLayout->addWidget(routingScroll);
+
+		bodyStack->addWidget(editorContainer);
+		bodyStack->setCurrentWidget(editorContainer);
+		connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
+	}
+	else if (gui != nullptr)
 	{
 		QWidget* editorContainer = new QWidget(bodyStack);
 		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
@@ -187,12 +226,38 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	}
 	else
 	{
-		QLabel* rawLabel = new QLabel(item->text, bodyStack);
+		// Unrecognized command line: no dedicated editor. Instead of a bare label
+		// (the "ugly plain text" case), present a styled monospace raw card with
+		// the command token emphasized, so it reads as a deliberate raw row.
+		const SkinTokens& tk = SkinManager::instance()->tokens();
+		QWidget* rawContainer = new QWidget(bodyStack);
+		rawContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+		rawContainer->setAttribute(Qt::WA_StyledBackground, true);
+		rawContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		rawContainer->setMinimumSize(0, 0);
+		QHBoxLayout* rawLayout = new QHBoxLayout(rawContainer);
+		rawLayout->setContentsMargins(12, 10, 12, 12);
+		rawLayout->setSpacing(10);
+
+		QLabel* glyph = new QLabel(QStringLiteral(">_"), rawContainer);
+		glyph->setObjectName(QStringLiteral("FilterCardRawGlyph"));
+		glyph->setStyleSheet(QStringLiteral("color:%1; font-family:\"%2\"; font-weight:700;")
+			.arg(tk.mutedText, tk.monoFontFamily));
+		rawLayout->addWidget(glyph, 0, Qt::AlignTop);
+
+		QLabel* rawLabel = new QLabel(rawContainer);
 		rawLabel->setObjectName(QStringLiteral("FilterCardRawText"));
+		rawLabel->setText(item->text);
 		rawLabel->setWordWrap(true);
 		rawLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-		bodyStack->addWidget(rawLabel);
-		bodyStack->setCurrentWidget(rawLabel);
+		rawLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3; border-radius:%4px; padding:6px 10px; font-family:\"%5\"; }")
+			.arg(tk.surfaceSunken, tk.text, tk.border)
+			.arg(tk.borderRadius / 2)
+			.arg(tk.monoFontFamily));
+		rawLayout->addWidget(rawLabel, 1);
+
+		bodyStack->addWidget(rawContainer);
+		bodyStack->setCurrentWidget(rawContainer);
 	}
 
 	bodyStack->setVisible(expandButton->isChecked());
@@ -384,6 +449,17 @@ void FilterCardRow::updateModel()
 	QString parameters;
 	senderGui->store(command, parameters);
 	item->text = command + QStringLiteral(": ") + parameters;
+	rebuildSummary();
+	table->updateModel();
+}
+
+void FilterCardRow::routingEdited()
+{
+	if (routingView == nullptr)
+		return;
+
+	const QString parameters = CopyRoutingAdapter::serialize(routingView->assignments());
+	item->text = QStringLiteral("Copy: ") + parameters;
 	rebuildSummary();
 	table->updateModel();
 }

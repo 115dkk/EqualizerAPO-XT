@@ -25,6 +25,8 @@
 #include <QApplication>
 #include <QDir>
 #include <QCommandLineParser>
+#include <QFont>
+#include <QFontDatabase>
 #include <QPalette>
 #include <QSettings>
 #include <QStyleFactory>
@@ -35,9 +37,16 @@
 #include <windows.h>
 #include <shellapi.h>
 
+#include <fftw3.h>
+
 #include "CustomStyle.h"
 #include "MainWindow.h"
 #include "SkinManager.h"
+#include "filters/VSTPluginFilter.h"
+#include "filters/VSTPluginFilterFactory.h"
+#include "guis/VSTPluginFilterGUI.h"
+#include "helpers/VSTPluginLibrary.h"
+#include "helpers/MemoryHelper.h"
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/VelopackBootstrap.h"
@@ -46,6 +55,86 @@
 
 namespace
 {
+// Mechanical round-trip check for VST plugin data: parse a VSTPlugin line, feed
+// the parsed (library, chunkData, paramMap) into the real VSTPluginFilterGUI,
+// call its store(), reparse the result and confirm chunkData / paramMap survive.
+// Used to decide empirically whether a modern VST card editor (which would hold
+// the same opaque state and reuse the same store logic) can replace the legacy
+// GUI without losing plugin state. Returns 0 on success, 1 on any loss.
+int runVstRoundTripSelfTest()
+{
+	struct Case { const wchar_t* name; std::wstring params; };
+	const Case cases[] = {
+		{ L"chunkData", L"Library \"fake plugin.dll\" ChunkData \"QUJDREVGR0g=\"" },
+		{ L"paramMap", L"Library fake.dll Gain 0.5 Mix 0.25 Width 1" },
+		{ L"paramMap-quoted-name", L"Library fake.dll \"Dry/Wet\" 0.75 Output 0.5" }
+	};
+
+	int failures = 0;
+	for (const Case& c : cases)
+	{
+		VSTPluginFilterFactory factory;
+		std::wstring command = L"VSTPlugin";
+		std::wstring params = c.params;
+		std::vector<IFilter*> filters = factory.createFilter(L"", command, params);
+		if (filters.empty())
+		{
+			fprintf(stderr, "[VST selftest] %ls: parse produced no filter\n", c.name);
+			failures++;
+			continue;
+		}
+		VSTPluginFilter* f0 = static_cast<VSTPluginFilter*>(filters[0]);
+		std::wstring chunk0 = f0->getChunkData();
+		std::unordered_map<std::wstring, float> map0 = f0->getParamMap();
+
+		// Real editor store() on the parsed state.
+		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0);
+		QString outCommand, outParams;
+		gui.store(outCommand, outParams);
+
+		for (IFilter* f : filters) { f->~IFilter(); MemoryHelper::free(f); }
+
+		// Reparse the stored line.
+		std::wstring command2 = outCommand.toStdWString();
+		std::wstring params2 = outParams.toStdWString();
+		std::vector<IFilter*> filters2 = factory.createFilter(L"", command2, params2);
+		if (filters2.empty())
+		{
+			fprintf(stderr, "[VST selftest] %ls: re-parse produced no filter (params='%ls')\n", c.name, params2.c_str());
+			failures++;
+			continue;
+		}
+		VSTPluginFilter* f1 = static_cast<VSTPluginFilter*>(filters2[0]);
+		std::wstring chunk1 = f1->getChunkData();
+		std::unordered_map<std::wstring, float> map1 = f1->getParamMap();
+		for (IFilter* f : filters2) { f->~IFilter(); MemoryHelper::free(f); }
+
+		bool ok = (chunk0 == chunk1) && (map0 == map1);
+		if (!ok)
+		{
+			failures++;
+			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu\n",
+				c.name, chunk0.c_str(), chunk1.c_str(), map0.size(), map1.size());
+			for (auto& kv : map0)
+			{
+				auto it = map1.find(kv.first);
+				if (it == map1.end())
+					fprintf(stderr, "    dropped param '%ls'=%g\n", kv.first.c_str(), kv.second);
+				else if (it->second != kv.second)
+					fprintf(stderr, "    param '%ls' %g -> %g\n", kv.first.c_str(), kv.second, it->second);
+			}
+		}
+		else
+		{
+			fprintf(stderr, "[VST selftest] %ls: OK (chunk len %zu, %zu params preserved)\n",
+				c.name, chunk0.size(), map0.size());
+		}
+	}
+
+	fprintf(stderr, "[VST selftest] %s (%d failure(s))\n", failures == 0 ? "PASS" : "FAIL", failures);
+	return failures == 0 ? 0 : 1;
+}
+
 std::wstring executableDirectory()
 {
 	wchar_t buffer[MAX_PATH];
@@ -245,6 +334,16 @@ int main(int argc, char* argv[])
 	// _CrtSetBreakAlloc(3318);
 #endif
 
+	// The FFTW planner keeps global mutable state and is NOT thread-safe. The
+	// editor builds FFTW-using filters (Convolution, GraphicEQ) on the GUI
+	// thread while AnalysisThread builds its own FilterEngine (and plans an FFT)
+	// concurrently. Without this, the two planners race and corrupt FFTW's
+	// global state, producing flaky start-up crashes (seen as access violations
+	// in Qt layout code or abort()). This installs an internal lock so every
+	// planner call across all threads is serialised. Must run once, before any
+	// planning and before the analysis thread starts.
+	fftw_make_planner_thread_safe();
+
 	QCoreApplication::addLibraryPath("qt");
 	qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
 
@@ -253,6 +352,32 @@ int main(int argc, char* argv[])
 	{
 		QApplication application(argc, argv);
 		application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
+
+		// Bundle the redesign's typefaces so the skins render identically
+		// regardless of what is installed: DM Sans / DM Mono carry the Latin
+		// look, Pretendard carries Korean. The QSS font-family lists name these
+		// families with a fallback chain (Pretendard -> Noto Sans -> Malgun
+		// Gothic for Korean, Microsoft YaHei for Chinese).
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Regular.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Medium.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/PretendardVariable.ttf"));
+
+		// Fallback chain for painted (non-QSS) text where Qt resolves a single
+		// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
+		// Pretendard -> Noto Sans -> Malgun Gothic (Korean) / Microsoft YaHei
+		// (Chinese).
+		const QStringList cjkChain = {
+			QStringLiteral("Pretendard Variable"), QStringLiteral("Pretendard"),
+			QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans"),
+			QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
+		};
+		QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
+		QFont::insertSubstitutions(QStringLiteral("DM Mono"),
+			QStringList{ QStringLiteral("Consolas") } + cjkChain);
+
+		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
+			return runVstRoundTripSelfTest();
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 		{

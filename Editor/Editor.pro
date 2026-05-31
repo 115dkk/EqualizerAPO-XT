@@ -161,15 +161,23 @@ SOURCES += main.cpp\
 	guis/LoudnessCorrectionFilterGUIDialog.cpp \
 	helpers/QtSndfileHandle.cpp \
 	SkinManager.cpp \
+	skins/Skins.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
+	widgets/cards/VSTCardEditor.cpp \
 	widgets/EditableValue.cpp \
 	widgets/ChBadge.cpp \
 	widgets/EqGraphView.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
+	widgets/routing/CopyRoutingAdapter.cpp \
+	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
+	widgets/routing/StepListRoutingRenderer.cpp \
+	widgets/routing/BlockChipRoutingRenderer.cpp \
+	widgets/routing/CurvedNodeRoutingRenderer.cpp \
+	widgets/routing/HardwarePatchbayRoutingRenderer.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
@@ -304,15 +312,25 @@ HEADERS  += \
 	helpers/QtSndfileHandle.h \
 	SkinTokens.h \
 	SkinManager.h \
+	skins/ISkin.h \
+	skins/Skins.h \
 	widgets/AudioKnob.h \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
+	widgets/cards/VSTCardEditor.h \
 	widgets/EditableValue.h \
 	widgets/ChBadge.h \
 	widgets/EqGraphView.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
+	widgets/routing/CopyRoutingAdapter.h \
+	widgets/routing/IRoutingRenderer.h \
+	widgets/routing/CrosspointMatrixRoutingRenderer.h \
+	widgets/routing/StepListRoutingRenderer.h \
+	widgets/routing/BlockChipRoutingRenderer.h \
+	widgets/routing/CurvedNodeRoutingRenderer.h \
+	widgets/routing/HardwarePatchbayRoutingRenderer.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \

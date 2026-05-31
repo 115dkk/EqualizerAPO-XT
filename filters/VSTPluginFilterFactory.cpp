@@ -75,8 +75,8 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 			{
 				if (!isdigit(value.c_str()[0]))
 				{
-					int x = i + 2;
-					if (x <= parts.size())
+					size_t x = (size_t)i + 2;
+					if (x < parts.size())
 					{
 						float f = wcstof(parts[x].c_str(), nullptr);
 						paramMap[value.c_str()] = f;

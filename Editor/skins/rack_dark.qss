@@ -1,4 +1,4 @@
-﻿/* ====================================================================
+/* ====================================================================
    Skin: Industrial Dark
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
@@ -14,7 +14,7 @@
 QWidget {
     background: @BG@;
     color: @TEXT@;
-    font-family: "Segoe UI", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-family: "@FONT@", "Pretendard Variable", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 9pt;
 }
 
@@ -218,7 +218,7 @@ QLabel#AnalysisStatLabel {
     font-weight: 700; font-size: 8pt;
     text-transform: uppercase; letter-spacing: 2px;
 }
-QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "Consolas", monospace; }
+QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
 QLabel#AnalysisStatValue[severity="warning"] { color: @WARNING@; }
 QLabel#AnalysisStatValue[severity="critical"] { color: @DANGER@; }
 
@@ -235,7 +235,7 @@ QLabel#FilterTypeBadge {
 }
 QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
-QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "Consolas", monospace; font-weight: 700; }
+QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700; }
 QToolButton#FilterCardIconButton {
     background: @BG@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 1px;
@@ -257,12 +257,12 @@ QLabel#EditableValue {
     background: @BG@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 2px;
     padding: 4px 8px;
-    font-family: "Consolas", monospace; font-weight: 700;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 QLineEdit#EditableValueEditor {
     background: #050508; border: 1px solid @ACCENT@;
     border-radius: 2px; padding: 4px 8px;
-    font-family: "Consolas", monospace; font-weight: 700;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 QLineEdit#IncludeCardPath { background: #050508; border: 1px solid @BORDER@; border-radius: 2px; padding: 4px 8px; }
 QLabel#IncludeCardStatus { color: @DANGER@; font-size: 8pt; }
