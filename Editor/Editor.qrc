@@ -46,5 +46,9 @@
         <file>skins/rack_light.qss</file>
         <file>skins/matrix_dark.qss</file>
         <file>skins/matrix_light.qss</file>
+        <file>fonts/PretendardVariable.ttf</file>
+        <file>fonts/DMSans.ttf</file>
+        <file>fonts/DMMono-Regular.ttf</file>
+        <file>fonts/DMMono-Medium.ttf</file>
     </qresource>
 </RCC>

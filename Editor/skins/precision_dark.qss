@@ -1,4 +1,4 @@
-﻿/* ====================================================================
+/* ====================================================================
    Skin: Minimal Dark
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
@@ -14,7 +14,7 @@
 QWidget {
     background: @BG@;
     color: @TEXT@;
-    font-family: "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
+    font-family: "@MONO@", "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
     font-size: 10pt;
 }
 
@@ -257,7 +257,7 @@ QLabel#AnalysisStatLabel {
 }
 QLabel#AnalysisStatValue {
     color: @TEXT@; background: transparent;
-    font-weight: 700; font-family: "Consolas", monospace;
+    font-weight: 700; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
 QLabel#AnalysisStatValue[severity="warning"] { color: @WARNING@; }
 QLabel#AnalysisStatValue[severity="critical"] { color: @DANGER@; }
@@ -284,7 +284,7 @@ QLabel#FilterCardTitle {
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
 QLabel#FilterCardNumber {
     color: @MUTED@; background: transparent;
-    font-family: "Consolas", monospace; font-weight: 700;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 QToolButton#FilterCardIconButton {
     background: #1a1a1a; color: @TEXT@;
@@ -311,12 +311,12 @@ QLabel#EditableValue {
     background: #1a1a1a; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
     padding: 4px 8px;
-    font-family: "Consolas", monospace; font-weight: 700;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 QLineEdit#EditableValueEditor {
     background: #0e0e0e; border: 1px solid @ACCENT@;
     border-radius: 0; padding: 4px 8px;
-    font-family: "Consolas", monospace; font-weight: 700;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 QLineEdit#IncludeCardPath {
     background: #0e0e0e; border: 1px solid @BORDER@;
