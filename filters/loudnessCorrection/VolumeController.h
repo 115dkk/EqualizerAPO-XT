@@ -23,6 +23,8 @@
 #include <windows.h>
 #include <EndpointVolume.h>
 
+#include "helpers/ComPtr.h"
+
 class VolumeController
 {
 public:
@@ -30,7 +32,7 @@ public:
 	HRESULT getVolume(double& currentVolume);
 	HRESULT setVolume(double volume);
 private:
-	IAudioEndpointVolume* _endpointVolume;
-	float _minVol;
-	float _maxVol;
+	winutil::ComPtr<IAudioEndpointVolume> _endpointVolume;
+	float _minVol = 0.0f;
+	float _maxVol = 0.0f;
 };

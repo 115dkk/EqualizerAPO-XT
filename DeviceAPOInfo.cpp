@@ -29,6 +29,7 @@
 
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/ComPtr.h"
 
 using std::make_shared;
 using std::move;
@@ -109,31 +110,24 @@ wstring DeviceAPOInfo::getDefaultDevice(bool input, int role)
 {
 	wstring result;
 
-	IMMDeviceEnumerator* enumerator = nullptr;
+	winutil::ComPtr<IMMDeviceEnumerator> enumerator;
 	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
 	if (SUCCEEDED(hr))
 	{
-		IMMDevice* endPoint = nullptr;
+		winutil::ComPtr<IMMDevice> endPoint;
 		hr = enumerator->GetDefaultAudioEndpoint(input ? eCapture : eRender, (ERole)role, &endPoint);
 		if (SUCCEEDED(hr))
 		{
-			IPropertyStore* propertyStore = nullptr;
+			winutil::ComPtr<IPropertyStore> propertyStore;
 			hr = endPoint->OpenPropertyStore(STGM_READ, &propertyStore);
 			if (SUCCEEDED(hr))
 			{
-				PROPVARIANT variant;
-				PropVariantInit(&variant);
+				winutil::PropVariant variant;
 				hr = propertyStore->GetValue(guidPropertyKey, &variant);
-				if (SUCCEEDED(hr))
-				{
-					result = variant.pwszVal;
-					PropVariantClear(&variant);
-				}
-				propertyStore->Release();
+				if (SUCCEEDED(hr) && variant->vt == VT_LPWSTR && variant->pwszVal != nullptr)
+					result = variant->pwszVal;
 			}
-			endPoint->Release();
 		}
-		enumerator->Release();
 	}
 
 	return result;

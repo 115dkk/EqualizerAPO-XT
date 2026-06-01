@@ -18,19 +18,13 @@
 #include <mmreg.h>
 #include <ksmedia.h>
 
+#include "ComPtr.h"
+
+using winutil::ComPtr;
+using winutil::CoTaskMem;
+
 namespace
 {
-	// Minimal RAII to release COM pointers without pulling in wrl/comptr.
-	template<typename T>
-	struct ComPtr
-	{
-		T* p = nullptr;
-		~ComPtr() { if (p) p->Release(); }
-		T** operator&() { return &p; }
-		T* operator->() const { return p; }
-		operator T*() const { return p; }
-	};
-
 	std::wstring formatSubtypeName(const GUID& sub)
 	{
 		if (IsEqualGUID(sub, KSDATAFORMAT_SUBTYPE_IEEE_FLOAT))
@@ -54,23 +48,23 @@ Result probe(const std::wstring& deviceGuid)
 	ComPtr<IMMDeviceEnumerator> enumerator;
 	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
 		CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&enumerator));
-	if (FAILED(hr) || enumerator.p == nullptr)
+	if (FAILED(hr) || !enumerator)
 		return result;
 
 	ComPtr<IMMDevice> device;
 	hr = enumerator->GetDevice(deviceGuid.c_str(), &device);
-	if (FAILED(hr) || device.p == nullptr)
+	if (FAILED(hr) || !device)
 		return result;
 
 	ComPtr<IAudioClient> client;
 	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr,
 		reinterpret_cast<void**>(&client));
-	if (FAILED(hr) || client.p == nullptr)
+	if (FAILED(hr) || !client)
 		return result;
 
-	WAVEFORMATEX* mixFormat = nullptr;
+	CoTaskMem<WAVEFORMATEX> mixFormat;
 	hr = client->GetMixFormat(&mixFormat);
-	if (FAILED(hr) || mixFormat == nullptr)
+	if (FAILED(hr) || !mixFormat)
 		return result;
 
 	result.containerBytes = mixFormat->wBitsPerSample / 8;
@@ -113,7 +107,6 @@ Result probe(const std::wstring& deviceGuid)
 		result.status = Status::Passthrough;
 	}
 
-	CoTaskMemFree(mixFormat);
 	return result;
 }
 
