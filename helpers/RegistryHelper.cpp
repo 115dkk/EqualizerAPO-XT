@@ -27,6 +27,7 @@
 
 #include "StringHelper.h"
 #include "RegistryHelper.h"
+#include "ScopeGuard.h"
 
 using std::endl;
 using std::find;
@@ -300,11 +301,13 @@ void RegistryHelper::deleteKey(wstring key)
 void RegistryHelper::makeWritable(wstring key)
 {
 	HKEY keyHandle = openKey(key, READ_CONTROL | WRITE_DAC | KEY_WOW64_64KEY);
+	SCOPE_EXIT{ RegCloseKey(keyHandle); };
 
 	DWORD descriptorSize = 0;
 	RegGetKeySecurity(keyHandle, DACL_SECURITY_INFORMATION, nullptr, &descriptorSize);
 
 	PSECURITY_DESCRIPTOR oldSd = (PSECURITY_DESCRIPTOR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, descriptorSize);
+	SCOPE_EXIT{ if (oldSd != nullptr) HeapFree(GetProcessHeap(), 0, oldSd); };
 	LSTATUS status = RegGetKeySecurity(keyHandle, DACL_SECURITY_INFORMATION, oldSd, &descriptorSize);
 	if (status != ERROR_SUCCESS)
 		throw RegistryException(L"Error while getting security information for registry key " + key + L": " + StringHelper::getSystemErrorString(status));
@@ -319,6 +322,7 @@ void RegistryHelper::makeWritable(wstring key)
 	if (!AllocateAndInitializeSid(&authority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
 		0, 0, 0, 0, 0, 0, &sid))
 		throw RegistryException(L"Error in AllocateAndInitializeSid while ensuring writability");
+	SCOPE_EXIT{ if (sid != nullptr) FreeSid(sid); };
 
 	EXPLICIT_ACCESS ea;
 	ea.grfAccessPermissions = KEY_ALL_ACCESS;
@@ -331,10 +335,12 @@ void RegistryHelper::makeWritable(wstring key)
 	PACL acl = nullptr;
 	if (ERROR_SUCCESS != SetEntriesInAcl(1, &ea, oldAcl, &acl))
 		throw RegistryException(L"Error in SetEntriesInAcl while ensuring writability");
+	SCOPE_EXIT{ if (acl != nullptr) LocalFree(acl); };
 
 	PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
 	if (nullptr == sd)
 		throw RegistryException(L"Error in LocalAlloc while ensuring writability");
+	SCOPE_EXIT{ if (sd != nullptr) LocalFree(sd); };
 
 	if (!InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION))
 		throw RegistryException(L"Error in InitializeSecurityDescriptor while ensuring writability");
@@ -345,11 +351,6 @@ void RegistryHelper::makeWritable(wstring key)
 	status = RegSetKeySecurity(keyHandle, DACL_SECURITY_INFORMATION, sd);
 	if (status != ERROR_SUCCESS)
 		throw RegistryException(L"Error while setting security information for registry key " + key + L": " + StringHelper::getSystemErrorString(status));
-
-	FreeSid(sid);
-	LocalFree(acl);
-	HeapFree(GetProcessHeap(), 0, oldSd);
-	LocalFree(sd);
 }
 
 void RegistryHelper::takeOwnership(wstring key)
@@ -357,6 +358,7 @@ void RegistryHelper::takeOwnership(wstring key)
 	HANDLE tokenHandle;
 	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tokenHandle))
 		throw RegistryException(L"Error in OpenProcessToken while taking ownership");
+	SCOPE_EXIT{ if (tokenHandle != nullptr) CloseHandle(tokenHandle); };
 
 	LUID luid;
 	if (!LookupPrivilegeValue(nullptr, SE_TAKE_OWNERSHIP_NAME, &luid))
@@ -371,10 +373,12 @@ void RegistryHelper::takeOwnership(wstring key)
 		throw RegistryException(L"Error in AdjustTokenPrivileges while taking ownership");
 
 	HKEY keyHandle = openKey(key, WRITE_OWNER | KEY_WOW64_64KEY);
+	SCOPE_EXIT{ RegCloseKey(keyHandle); };
 
 	PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
 	if (nullptr == sd)
 		throw RegistryException(L"Error in SetPrivilege while taking ownership");
+	SCOPE_EXIT{ if (sd != nullptr) LocalFree(sd); };
 
 	if (!InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION))
 		throw RegistryException(L"Error in InitializeSecurityDescriptor while taking ownership");
@@ -384,6 +388,7 @@ void RegistryHelper::takeOwnership(wstring key)
 	if (!AllocateAndInitializeSid(&authority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
 		0, 0, 0, 0, 0, 0, &sid))
 		throw RegistryException(L"Error in AllocateAndInitializeSid while taking ownership");
+	SCOPE_EXIT{ if (sid != nullptr) FreeSid(sid); };
 
 	if (!SetSecurityDescriptorOwner(sd, sid, FALSE))
 		throw RegistryException(L"Error in SetSecurityDescriptorOwner while taking ownership");
@@ -396,9 +401,6 @@ void RegistryHelper::takeOwnership(wstring key)
 
 	if (!AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
 		throw RegistryException(L"Error in AdjustTokenPrivileges while taking ownership");
-
-	FreeSid(sid);
-	LocalFree(sd);
 }
 
 ACCESS_MASK RegistryHelper::getFileAccessForUser(std::wstring path, unsigned long rid)

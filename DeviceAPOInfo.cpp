@@ -29,6 +29,7 @@
 
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/ComPtr.h"
 
 using std::make_shared;
 using std::move;
@@ -109,31 +110,24 @@ wstring DeviceAPOInfo::getDefaultDevice(bool input, int role)
 {
 	wstring result;
 
-	IMMDeviceEnumerator* enumerator = nullptr;
+	winutil::ComPtr<IMMDeviceEnumerator> enumerator;
 	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
 	if (SUCCEEDED(hr))
 	{
-		IMMDevice* endPoint = nullptr;
+		winutil::ComPtr<IMMDevice> endPoint;
 		hr = enumerator->GetDefaultAudioEndpoint(input ? eCapture : eRender, (ERole)role, &endPoint);
 		if (SUCCEEDED(hr))
 		{
-			IPropertyStore* propertyStore = nullptr;
+			winutil::ComPtr<IPropertyStore> propertyStore;
 			hr = endPoint->OpenPropertyStore(STGM_READ, &propertyStore);
 			if (SUCCEEDED(hr))
 			{
-				PROPVARIANT variant;
-				PropVariantInit(&variant);
+				winutil::PropVariant variant;
 				hr = propertyStore->GetValue(guidPropertyKey, &variant);
-				if (SUCCEEDED(hr))
-				{
-					result = variant.pwszVal;
-					PropVariantClear(&variant);
-				}
-				propertyStore->Release();
+				if (SUCCEEDED(hr) && variant->vt == VT_LPWSTR && variant->pwszVal != nullptr)
+					result = variant->pwszVal;
 			}
-			endPoint->Release();
 		}
-		enumerator->Release();
 	}
 
 	return result;
@@ -171,8 +165,22 @@ bool DeviceAPOInfo::checkAPORegistration(bool fix)
 			if (GetModuleFileNameW(nullptr, path, MAX_PATH) != 0)
 			{
 				PathRemoveFileSpecW(path);
-				wstring params = wstring(L"/s \"") + path + L"\\EqualizerAPO.dll\"";
-				ShellExecuteW(nullptr, L"open", L"regsvr32.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
+				wstring dllPath = wstring(path) + L"\\EqualizerAPO.dll";
+
+				// Self-register the COM in-proc server by calling its
+				// DllRegisterServer export directly instead of spawning
+				// regsvr32.exe (no extra process, no transient window).
+				// LOAD_WITH_ALTERED_SEARCH_PATH resolves the DLL's own
+				// dependencies relative to its directory.
+				HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+				if (module != nullptr)
+				{
+					using DllServerProc = HRESULT(__stdcall*)();
+					DllServerProc registerProc = reinterpret_cast<DllServerProc>(GetProcAddress(module, "DllRegisterServer"));
+					if (registerProc != nullptr)
+						registerProc();
+					FreeLibrary(module);
+				}
 			}
 		}
 	}

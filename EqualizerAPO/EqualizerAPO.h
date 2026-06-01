@@ -25,6 +25,15 @@
 #include <BaseAudioProcessingObject.h>
 #include "../FilterEngine.h"
 
+// The hand-written reference counting (InterlockedIncrement/Decrement +
+// "delete this") and this INonDelegatingUnknown interface implement COM
+// aggregation: the audio engine can aggregate this APO, in which case the
+// outer IUnknown (pUnkOuter) owns identity/lifetime and the inner object only
+// exposes itself through the non-delegating variants. This is intentional and
+// required, not a leftover. It is deliberately NOT replaced with ATL
+// CComCoClass/CComAggObject: that would rewrite the COM identity of a component
+// that lives inside audiodg.exe, where a subtle aggregation regression breaks
+// APO loading for every user and cannot be covered by automated tests.
 class INonDelegatingUnknown
 {
 	virtual HRESULT __stdcall NonDelegatingQueryInterface(const IID& iid, void** ppv) = 0;
