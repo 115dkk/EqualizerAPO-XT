@@ -58,11 +58,18 @@ using std::vector;
 using std::wstring;
 
 
-void FilterTable::propagateChannels()
+vector<wstring> FilterTable::getChannelNames() const
 {
 	vector<wstring> channelNames;
 	if (selectedDevice != nullptr)
 		channelNames = ChannelHelper::getChannelNames(selectedDevice->getChannelCount(), selectedChannelMask);
+
+	return channelNames;
+}
+
+void FilterTable::propagateChannels()
+{
+	vector<wstring> channelNames = getChannelNames();
 
 	for (Item* item : items)
 	{

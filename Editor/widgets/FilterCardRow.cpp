@@ -166,7 +166,13 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		QString parameters;
 		FilterCardModel::commandForLine(item->text, &parameters);
 		std::vector<Assignment> routingAssignments = CopyRoutingAdapter::parse(parameters);
-		std::vector<std::wstring> channelNames;
+		// Seed the routing editor with the real device channel set (L, R, C, ...),
+		// the same list the legacy CopyFilterGUI receives via configureChannels.
+		// Without it the graph only shows channels already named in the line, so
+		// the user cannot route to/from a channel that has no assignment yet
+		// (e.g. copying L onto R when R is not referenced). That was the studio
+		// (glass) Copy card's "cannot edit" bug.
+		std::vector<std::wstring> channelNames = table->getChannelNames();
 		routingView = routingRenderer->create(routingAssignments, channelNames, editorContainer);
 
 		QScrollArea* routingScroll = new QScrollArea(editorContainer);
