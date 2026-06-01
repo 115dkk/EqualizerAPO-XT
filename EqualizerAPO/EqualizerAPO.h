@@ -25,6 +25,13 @@
 #include <BaseAudioProcessingObject.h>
 #include "../FilterEngine.h"
 
+// Identifies the single, user-configurable processing effect that
+// EqualizerAPO represents. Reported through IAudioSystemEffects2::GetEffectsList
+// so the audio engine and the Windows Settings "audio enhancements" surface can
+// see that an effect is present on the endpoint. It is a stable private
+// identifier for this APO, not one of the well-known AUDIO_EFFECT_TYPE GUIDs.
+const GUID EQUALIZERAPO_EFFECT_GUID = {0x9d2e7b14, 0x6c3a, 0x4f8d, {0xa1, 0x5e, 0x2b, 0x7c, 0x9f, 0x4d, 0x8e, 0x60}};
+
 // The hand-written reference counting (InterlockedIncrement/Decrement +
 // "delete this") and this INonDelegatingUnknown interface implement COM
 // aggregation: the audio engine can aggregate this APO, in which case the
@@ -41,7 +48,7 @@ class INonDelegatingUnknown
 	virtual ULONG __stdcall NonDelegatingRelease() = 0;
 };
 
-class EqualizerAPO : public CBaseAudioProcessingObject, public IAudioSystemEffects, public INonDelegatingUnknown
+class EqualizerAPO : public CBaseAudioProcessingObject, public IAudioSystemEffects2, public INonDelegatingUnknown
 {
 public:
 	EqualizerAPO(IUnknown* pUnkOuter);
@@ -68,6 +75,9 @@ public:
 	virtual void __stdcall APOProcess(UINT32 u32NumInputConnections,
 		APO_CONNECTION_PROPERTY** ppInputConnections, UINT32 u32NumOutputConnections,
 		APO_CONNECTION_PROPERTY** ppOutputConnections);
+
+	// IAudioSystemEffects2 (inherits the marker IAudioSystemEffects)
+	virtual HRESULT __stdcall GetEffectsList(LPGUID* effects, UINT* numEffects, HANDLE event);
 
 	// INonDelegatingUnknown
 	virtual HRESULT __stdcall NonDelegatingQueryInterface(const IID& iid, void** ppv);
