@@ -677,6 +677,30 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 }
 #pragma AVRT_CODE_END
 
+HRESULT EqualizerAPO::GetEffectsList(LPGUID* effects, UINT* numEffects, HANDLE /*event*/)
+{
+	if (effects == nullptr || numEffects == nullptr)
+		return E_POINTER;
+
+	// EqualizerAPO always represents a single, user-configurable processing
+	// effect. Report it so the audio engine (and the Windows Settings audio
+	// enhancements surface) can see that an effect is present on the endpoint.
+	// The reported set never changes at runtime, so the change-notification
+	// event is intentionally not retained or signalled.
+	LPGUID list = static_cast<LPGUID>(CoTaskMemAlloc(sizeof(GUID)));
+	if (list == nullptr)
+	{
+		*effects = nullptr;
+		*numEffects = 0;
+		return E_OUTOFMEMORY;
+	}
+
+	list[0] = EQUALIZERAPO_EFFECT_GUID;
+	*effects = list;
+	*numEffects = 1;
+	return S_OK;
+}
+
 HRESULT EqualizerAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
 {
 	if (iid == __uuidof(IUnknown))
@@ -689,6 +713,8 @@ HRESULT EqualizerAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
 		*ppv = static_cast<IAudioProcessingObjectConfiguration*>(this);
 	else if (iid == __uuidof(IAudioSystemEffects))
 		*ppv = static_cast<IAudioSystemEffects*>(this);
+	else if (iid == __uuidof(IAudioSystemEffects2))
+		*ppv = static_cast<IAudioSystemEffects2*>(this);
 	else
 	{
 		*ppv = nullptr;
