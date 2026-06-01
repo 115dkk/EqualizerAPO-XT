@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <string>
 #include <vector>
+#include <cwctype>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "StringHelper.h"
@@ -79,30 +80,23 @@ string StringHelper::toString(const wstring& s, unsigned codepage)
 
 wstring StringHelper::toLowerCase(const wstring& s)
 {
-	vector<wchar_t> charBuf(s.length() + 1);
-	std::copy_n(s.c_str(), s.length() + 1, charBuf.data());
-	errno_t err = _wcslwr_s(charBuf.data(), charBuf.size());
+	// Standard per-character case folding (current C locale), replacing the
+	// MSVC-only _wcslwr_s. Equivalent for the ASCII text this is used on
+	// (GUID strings, channel names) and free of any extra link dependency.
+	wstring result = s;
+	for (wchar_t& c : result)
+		c = static_cast<wchar_t>(towlower(static_cast<wint_t>(c)));
 
-	wstring result = charBuf.data();
-
-	if (err == 0)
-		return result;
-	else
-		return s;
+	return result;
 }
 
 wstring StringHelper::toUpperCase(const wstring& s)
 {
-	vector<wchar_t> charBuf(s.length() + 1);
-	std::copy_n(s.c_str(), s.length() + 1, charBuf.data());
-	errno_t err = _wcsupr_s(charBuf.data(), charBuf.size());
+	wstring result = s;
+	for (wchar_t& c : result)
+		c = static_cast<wchar_t>(towupper(static_cast<wint_t>(c)));
 
-	wstring result = charBuf.data();
-
-	if (err == 0)
-		return result;
-	else
-		return s;
+	return result;
 }
 
 wstring StringHelper::trim(const wstring& s)

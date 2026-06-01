@@ -138,6 +138,32 @@ int ApoRegistration::waitForProcess(const std::wstring& executable, const std::w
 	return static_cast<int>(exitCode);
 }
 
+int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregister)
+{
+	// LOAD_WITH_ALTERED_SEARCH_PATH resolves EqualizerAPO.dll's own dependencies
+	// (FFTW, libsndfile, ...) relative to the DLL directory, matching how the
+	// audio engine and regsvr32 load it.
+	HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+	if (module == nullptr)
+	{
+		logLine(L"ERR", L"LoadLibrary failed for %s (gle=%lu)", dllPath.c_str(), GetLastError());
+		return -1;
+	}
+
+	using DllServerProc = HRESULT(__stdcall*)();
+	const char* entryName = unregister ? "DllUnregisterServer" : "DllRegisterServer";
+	DllServerProc proc = reinterpret_cast<DllServerProc>(GetProcAddress(module, entryName));
+
+	HRESULT hr = E_FAIL;
+	if (proc != nullptr)
+		hr = proc();
+	else
+		logLine(L"ERR", L"%S not found in %s (gle=%lu)", entryName, dllPath.c_str(), GetLastError());
+
+	FreeLibrary(module);
+	return SUCCEEDED(hr) ? 0 : static_cast<int>(hr);
+}
+
 ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 {
 	std::wstring dllPath = joinPath(installDir, L"EqualizerAPO.dll");
@@ -187,12 +213,10 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 	if (rc != 0)
 		logLine(L"WARN", L"icacls (install root) returned %d, continuing", rc);
 
-	std::wstring regsvr32 = joinPath(systemPath(), L"regsvr32.exe");
-	std::wstring registerArgs = L"/s \"" + joinPath(installDir, L"EqualizerAPO.dll") + L"\"";
-	rc = waitForProcess(regsvr32, registerArgs, 30000);
+	rc = registerComServer(dllPath, false);
 	if (rc != 0)
 	{
-		logLine(L"ERR", L"regsvr32 returned %d", rc);
+		logLine(L"ERR", L"DllRegisterServer returned 0x%08X", rc);
 		return Result::RegistrationFailed;
 	}
 
@@ -249,11 +273,9 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 	std::wstring dllPath = joinPath(installDir, L"EqualizerAPO.dll");
 	if (fileExists(dllPath))
 	{
-		std::wstring regsvr32 = joinPath(systemPath(), L"regsvr32.exe");
-		std::wstring unregisterArgs = L"/u /s \"" + dllPath + L"\"";
-		int rc = waitForProcess(regsvr32, unregisterArgs, 30000);
+		int rc = registerComServer(dllPath, true);
 		if (rc != 0)
-			logLine(L"WARN", L"regsvr32 /u returned %d, continuing", rc);
+			logLine(L"WARN", L"DllUnregisterServer returned 0x%08X, continuing", rc);
 	}
 
 	try

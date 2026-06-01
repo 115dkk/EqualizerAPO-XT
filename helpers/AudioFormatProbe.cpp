@@ -76,7 +76,7 @@ Result probe(const std::wstring& deviceGuid)
 	if (mixFormat->wFormatTag == WAVE_FORMAT_EXTENSIBLE
 		&& mixFormat->cbSize >= sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX))
 	{
-		WAVEFORMATEXTENSIBLE* ext = reinterpret_cast<WAVEFORMATEXTENSIBLE*>(mixFormat);
+		WAVEFORMATEXTENSIBLE* ext = reinterpret_cast<WAVEFORMATEXTENSIBLE*>(mixFormat.get());
 		subFormat = ext->SubFormat;
 		if (ext->Samples.wValidBitsPerSample != 0)
 			result.validBits = ext->Samples.wValidBitsPerSample;

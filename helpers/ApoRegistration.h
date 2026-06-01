@@ -46,6 +46,12 @@ public:
 
 	static int waitForProcess(const std::wstring& executable, const std::wstring& arguments, unsigned timeoutMs = 30000);
 
+	// Registers (or unregisters) the EqualizerAPO COM in-proc server by calling
+	// its DllRegisterServer / DllUnregisterServer export directly, instead of
+	// spawning regsvr32.exe. Avoids the external process and returns the real
+	// HRESULT (0 on success). The DLL is loaded only for the duration of the call.
+	static int registerComServer(const std::wstring& dllPath, bool unregister);
+
 	static bool createStartMenuShortcuts(const std::wstring& installDir);
 	static bool removeStartMenuShortcuts();
 };

@@ -27,6 +27,7 @@
 #include "../helpers/LogHelper.h"
 #include "../helpers/RegistryHelper.h"
 #include "../helpers/StringHelper.h"
+#include "../helpers/ComPtr.h"
 #include "../DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
 
@@ -220,15 +221,19 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	}
 	engine.setPreMix((apoGuid == EQUALIZERAPO_PRE_MIX_GUID) != 0);
 
-	PROPVARIANT var;
-	PropVariantInit(&var);
+	winutil::PropVariant var;
 	HRESULT hr = initStruct->pAPOEndpointProperties->GetValue(PKEY_AudioEndpoint_GUID, &var);
 	if (FAILED(hr))
 	{
 		LogF(L"Can't read endpoint guid");
 		return hr;
 	}
-	wstring deviceGuid = var.pwszVal;
+	if (var->vt != VT_LPWSTR || var->pwszVal == nullptr)
+	{
+		LogF(L"Endpoint guid property has unexpected type");
+		return E_UNEXPECTED;
+	}
+	wstring deviceGuid = var->pwszVal;
 	TraceF(L"Endpoint GUID: %s", deviceGuid.c_str());
 
 	wstring deviceTestPipeName;

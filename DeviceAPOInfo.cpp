@@ -165,8 +165,22 @@ bool DeviceAPOInfo::checkAPORegistration(bool fix)
 			if (GetModuleFileNameW(nullptr, path, MAX_PATH) != 0)
 			{
 				PathRemoveFileSpecW(path);
-				wstring params = wstring(L"/s \"") + path + L"\\EqualizerAPO.dll\"";
-				ShellExecuteW(nullptr, L"open", L"regsvr32.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
+				wstring dllPath = wstring(path) + L"\\EqualizerAPO.dll";
+
+				// Self-register the COM in-proc server by calling its
+				// DllRegisterServer export directly instead of spawning
+				// regsvr32.exe (no extra process, no transient window).
+				// LOAD_WITH_ALTERED_SEARCH_PATH resolves the DLL's own
+				// dependencies relative to its directory.
+				HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+				if (module != nullptr)
+				{
+					using DllServerProc = HRESULT(__stdcall*)();
+					DllServerProc registerProc = reinterpret_cast<DllServerProc>(GetProcAddress(module, "DllRegisterServer"));
+					if (registerProc != nullptr)
+						registerProc();
+					FreeLibrary(module);
+				}
 			}
 		}
 	}
