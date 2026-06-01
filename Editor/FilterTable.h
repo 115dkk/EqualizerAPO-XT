@@ -72,6 +72,10 @@ public:
 	// (delete + rebuild every row in the file).
 	void updateSingleRowGui(Item* item);
 	void propagateChannels();
+	// Channel names for the currently selected device/mask (e.g. L, R, C, ...).
+	// Empty when no device is selected. Used both to configure the legacy filter
+	// GUIs and to seed the modern card routing editors with the real channel set.
+	std::vector<std::wstring> getChannelNames() const;
 	QList<QString> getLines();
 	void setLines(const QString& configPath, const QList<QString>& lines);
 	Item* addLine(const QString& line, Item* before = nullptr);
