@@ -197,6 +197,14 @@ jobs:
             Repo = "TheFireKahuna/muparserx"
             Asset = "${{ matrix.muparserx_asset }}"
             Destination = "${{ github.workspace }}\deps\muparserx"
+          },
+          @{
+            # Velopack C/C++ runtime (Velopack.h + import libs + DLLs). Always fetched;
+            # the Editor links it for auto-update. Keep the version in sync with setup-build.ps1.
+            Repo = "velopack/velopack"
+            Asset = "velopack_libc_1.1.1.zip"
+            Url = "https://github.com/velopack/velopack/releases/download/1.1.1/velopack_libc_1.1.1.zip"
+            Destination = "${{ github.workspace }}\deps\velopack_libc"
           }
         )
 
@@ -216,7 +224,7 @@ jobs:
         }
 
         foreach ($download in $downloads) {
-          $url = "https://github.com/$($download.Repo)/releases/latest/download/$($download.Asset)"
+          $url = if ($download.Url) { $download.Url } else { "https://github.com/$($download.Repo)/releases/latest/download/$($download.Asset)" }
           $zipPath = Join-Path $downloadRoot $download.Asset
 
           Write-Host "Downloading $($download.Repo) release asset $($download.Asset)"
@@ -452,6 +460,10 @@ jobs:
         echo "LIBSNDFILE_INCLUDE=$depsPath\libsndfile\include" >> $env:GITHUB_ENV
         echo "LIBSNDFILE_LIB=$depsPath\libsndfile\build\Release" >> $env:GITHUB_ENV
         echo "TCLAP_ROOT=$depsPath\tclap" >> $env:GITHUB_ENV
+
+        # Velopack runtime paths for the Editor's auto-update link.
+        echo "VELOPACK_INCLUDE=$depsPath\velopack_libc\include" >> $env:GITHUB_ENV
+        echo "VELOPACK_LIB=$depsPath\velopack_libc\lib" >> $env:GITHUB_ENV
 
         Write-Host "`nAll dependency paths configured successfully"
 
@@ -938,6 +950,10 @@ jobs:
         Copy-Item ${{ github.workspace }}\deps\fftw\Release\*.dll -Destination $artifactPath -Force
         Copy-Item ${{ github.workspace }}\deps\libsndfile\build\Release\*.dll -Destination $artifactPath -Force
 
+        # Velopack runtime DLL the Editor links against (per-arch).
+        $velopackArch = if ($platform -eq "ARM64") { "arm64" } else { "x64" }
+        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_${velopackArch}_msvc.dll" -Destination $artifactPath -Force
+
         # Copy Qt applications built with qmake (Editor, DeviceSelector, UpdateChecker)
         # Include all deployed Qt dependencies (DLLs, plugins, etc.)
         $qtApps = @("Editor", "DeviceSelector", "UpdateChecker")
@@ -1092,6 +1108,8 @@ jobs:
     - name: Resolve release version
       id: version
       shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         function Get-VersionPart {
           param([string]$Name)
@@ -1107,18 +1125,33 @@ jobs:
         $minor = Get-VersionPart "MINOR"
         $revision = Get-VersionPart "REVISION"
         $baseVersion = "$major.$minor.$revision"
-        $packVersion = "$baseVersion-main.${{ github.run_number }}"
+        # Clean SemVer release version (no -main.<run> prerelease suffix). version-bump
+        # already advances version.h per main push, so the base version is unique enough,
+        # and GitHub publishes a tag without a prerelease identifier as a full release.
+        $packVersion = $baseVersion
         $tag = "v$packVersion"
+
+        # If this exact version was already published (version.h did not bump on this
+        # push), skip re-releasing so we don't overwrite an existing release/tag.
+        $alreadyReleased = "false"
+        gh release view $tag --repo "${{ github.repository }}" *> $null
+        if ($LASTEXITCODE -eq 0) {
+          $alreadyReleased = "true"
+          Write-Host "Release $tag already exists; release steps will be skipped."
+        }
+        $global:LASTEXITCODE = 0
 
         "base_version=$baseVersion" >> $env:GITHUB_OUTPUT
         "pack_version=$packVersion" >> $env:GITHUB_OUTPUT
         "tag=$tag" >> $env:GITHUB_OUTPUT
+        "already_released=$alreadyReleased" >> $env:GITHUB_OUTPUT
 
         Write-Host "Base version: $baseVersion"
         Write-Host "Release version: $packVersion"
         Write-Host "Release tag: $tag"
 
     - name: Create source archive
+      if: steps.version.outputs.already_released != 'true'
       shell: pwsh
       run: |
         $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
@@ -1133,6 +1166,7 @@ jobs:
         Write-Host "Created source archive: $sourceZip"
 
     - name: Create Velopack release
+      if: steps.version.outputs.already_released != 'true'
       shell: pwsh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1272,6 +1306,7 @@ jobs:
         }
 
     - name: Write release notes
+      if: steps.version.outputs.already_released != 'true'
       shell: pwsh
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1288,9 +1323,13 @@ jobs:
           exit $LASTEXITCODE
         }
 
+        # --prerelease=false: the clean X.Y.Z tag is a full release; make sure vpk's
+        # upload (which may default to prerelease) does not leave it marked as one.
         gh release edit "${{ steps.version.outputs.tag }}" `
           --repo "${{ github.repository }}" `
-          --notes-file $notesPath
+          --notes-file $notesPath `
+          --prerelease=false `
+          --latest
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }

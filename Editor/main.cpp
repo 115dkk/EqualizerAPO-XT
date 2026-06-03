@@ -37,6 +37,9 @@
 #include <windows.h>
 #include <shellapi.h>
 
+// After windows.h so the Velopack C ABI header sees the platform headers in order.
+#include <Velopack.hpp>
+
 #include <fftw3.h>
 
 #include "CustomStyle.h"
@@ -328,6 +331,11 @@ int main(int argc, char* argv[])
 	if (hookResult >= 0)
 		return hookResult;
 
+	// Normal launch (not a Velopack hook; handleVelopackHook already handled and exited
+	// for those). Initialise the Velopack runtime so UpdateManager resolves the correct
+	// install context. Auto-apply-on-startup is off because we apply on exit instead.
+	Velopack::VelopackApp::Build().SetAutoApplyOnStartup(false).Run();
+
 	int result = -1;
 #ifdef _DEBUG
 	// _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -461,12 +469,17 @@ int main(int argc, char* argv[])
 
 		if (VelopackBootstrap::isVelopackInstall() && !firstRun)
 		{
-			// Defer the background update so it does not race with audio service
+			// Defer the background download so it does not race with audio service
 			// work or a Device Selector launch right after the Editor opens.
 			// 60s is long enough that the initial GUI paint, config load, and
-			// device enumeration are all comfortably finished.
+			// device enumeration are all comfortably finished. The download runs on
+			// its own worker thread and just stages the update for apply-on-exit.
 			QTimer::singleShot(60000, qApp, []() {
-				VelopackBootstrap::triggerBackgroundUpdate(QStringLiteral("115dkk/EqualizerAPO-XT").toStdWString());
+				std::string channel;
+#ifdef EAPO_UPDATE_CHANNEL
+				channel = EAPO_UPDATE_CHANNEL;
+#endif
+				VelopackBootstrap::startBackgroundDownload("https://github.com/115dkk/EqualizerAPO-XT", channel);
 			});
 		}
 
@@ -475,6 +488,12 @@ int main(int argc, char* argv[])
 		restart = w.shouldRestart();
 	}
 	while (restart);
+
+	// If the background worker staged an update, apply it now. exec() has returned and
+	// the QApplication is destroyed, so no other thread is writing to the install dir.
+	// The apply is silent and does not restart; the new version comes up next launch.
+	if (VelopackBootstrap::isVelopackInstall() && VelopackBootstrap::hasPendingUpdate())
+		VelopackBootstrap::applyPendingUpdateAndExit();
 
 	return result;
 }

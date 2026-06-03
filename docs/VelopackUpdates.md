@@ -23,7 +23,19 @@ The channel is injected by CI with `EAPO_UPDATE_CHANNEL` during qmake builds. Cu
 
 Local builds without an injected channel default to `x64-avx2` on x64 and `arm64` on ARM64.
 
-The actual APO installation and device registration are still handled by the NSIS installer inside the Velopack package. Until the project embeds a native Velopack client, UpdateChecker uses Velopack feeds for discovery and sends users to the correct channel setup executable.
+APO installation and device registration run through the Velopack hooks the Editor handles (`--veloapp-install`, `--veloapp-updated`, etc.), which call `ApoRegistration`. The NSIS installer has been removed.
+
+## Editor in-app auto-update
+
+The Editor embeds the native Velopack client (`velopack_libc`) and updates itself without sending the user anywhere:
+
+1. On a normal launch the Editor calls `Velopack::VelopackApp::Build().SetAutoApplyOnStartup(false).Run()`. Auto-apply on startup is off because updates are applied on exit instead.
+2. About 60 seconds after start (only for Velopack installs), a background worker checks the GitHub release feed for the build's channel with `UpdateManager::CheckForUpdates()` and, if a newer build exists, downloads it with `DownloadUpdates()` into the Velopack staging area. The download runs off the GUI thread and never blocks shutdown.
+3. When the Editor exits, if an update was staged it calls `WaitExitThenApplyUpdates(info, silent: true, restart: false)` and quits. The updater waits for the process to close, swaps the files silently, and does not relaunch. The new version comes up on the next launch.
+
+This logic lives in `helpers/VelopackBootstrap.cpp` (`startBackgroundDownload`, `hasPendingUpdate`, `applyPendingUpdateAndExit`) and is wired into `Editor/main.cpp`. The channel is injected at build time with `EAPO_UPDATE_CHANNEL`, the same macro UpdateChecker uses.
+
+`UpdateChecker.exe` stays as a separate discovery/notification tool. It still runs at logon via the scheduled task, checks the GitHub release feed, and tells the user when a newer version is available; the Editor performs the actual download and apply.
 
 Tests for feed selection, channel matching, setup URL selection, and version comparison live in `Tests/EditorLogicTests`.
 

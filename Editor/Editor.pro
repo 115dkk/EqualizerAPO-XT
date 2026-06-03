@@ -390,8 +390,31 @@ isEmpty(MUPARSERX_LIB) {
 	MUPARSERX_LIB = $$PWD/../deps/muparserx/build/Release
 }
 
-INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE
-LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib
+VELOPACK_INCLUDE = $$(VELOPACK_INCLUDE)
+isEmpty(VELOPACK_INCLUDE) {
+	VELOPACK_INCLUDE = $$PWD/../deps/velopack_libc/include
+}
+
+VELOPACK_LIB = $$(VELOPACK_LIB)
+isEmpty(VELOPACK_LIB) {
+	VELOPACK_LIB = $$PWD/../deps/velopack_libc/lib
+}
+
+# velopack_libc ships per-arch import libs in one folder; pick the matching one.
+contains(QT_ARCH, arm64) {
+	VELOPACK_IMPORT_LIB = velopack_libc_win_arm64_msvc.dll.lib
+} else {
+	VELOPACK_IMPORT_LIB = velopack_libc_win_x64_msvc.dll.lib
+}
+
+# The Editor's auto-update needs to know which release channel it was built for so
+# UpdateManager fetches the matching feed (mirrors UpdateChecker.pro).
+!isEmpty(EAPO_UPDATE_CHANNEL) {
+	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
+}
+
+INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE
+LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {
 	LIBS += muparserxd.lib
@@ -400,18 +423,18 @@ build_pass:CONFIG(debug, debug|release) {
 }
 
 contains(QT_ARCH, arm64) {
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else:!isEmpty(EAPO_SIMD_FLAGS) {
 	QMAKE_CXXFLAGS += $$EAPO_SIMD_FLAGS
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else:equals(EAPO_SIMD_BASELINE, 1) {
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else:contains(QT_ARCH, x86_64) {
 	QMAKE_CXXFLAGS += /arch:AVX2
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else {
 	QMAKE_CXXFLAGS += /arch:AVX2
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 }
 
 # Include Common.lib

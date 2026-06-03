@@ -37,6 +37,10 @@ param(
 $ErrorActionPreference = "Stop"
 $workspace = $PSScriptRoot
 
+# velopack_libc ships as a single cross-platform zip attached to the velopack/velopack
+# release. Pin the version so the asset name and download URL stay in sync with CI.
+$velopackLibcVersion = "1.1.1"
+
 Write-Host "=== EqualizerAPO-XT Build Setup ===" -ForegroundColor Cyan
 Write-Host "Workspace: $workspace"
 Write-Host "Platform:  $Platform"
@@ -93,6 +97,14 @@ $downloads = @(
         Repo        = "TheFireKahuna/muparserx"
         Asset       = $assets.muparserx
         Destination = Join-Path $depsDir "muparserx"
+    },
+    @{
+        # Velopack C/C++ runtime (Velopack.h + import libs + DLLs for every platform).
+        # Always fetched regardless of SIMD variant; the Editor links it for auto-update.
+        Repo        = "velopack/velopack"
+        Asset       = "velopack_libc_$velopackLibcVersion.zip"
+        Url         = "https://github.com/velopack/velopack/releases/download/$velopackLibcVersion/velopack_libc_$velopackLibcVersion.zip"
+        Destination = Join-Path $depsDir "velopack_libc"
     }
 )
 
@@ -114,7 +126,7 @@ if (-not $usesVcpkg) {
 }
 
 foreach ($dl in $downloads) {
-    $url = "https://github.com/$($dl.Repo)/releases/latest/download/$($dl.Asset)"
+    $url = if ($dl.Url) { $dl.Url } else { "https://github.com/$($dl.Repo)/releases/latest/download/$($dl.Asset)" }
     $zipPath = Join-Path $downloadDir $dl.Asset
 
     if (Test-Path $zipPath) {
@@ -274,6 +286,14 @@ $checks = @(
     @{ Name = "TCLAP header";    Path = "$depsDir\tclap\include\tclap\CmdLine.h" }
 )
 
+# velopack_libc ships per-arch import libs/DLLs in a single zip; check the one we link.
+$velopackArch = if ($Platform -eq "ARM64") { "arm64" } else { "x64" }
+$checks += @(
+    @{ Name = "Velopack header"; Path = "$depsDir\velopack_libc\include\Velopack.hpp" },
+    @{ Name = "Velopack import lib"; Path = "$depsDir\velopack_libc\lib\velopack_libc_win_${velopackArch}_msvc.dll.lib" },
+    @{ Name = "Velopack DLL";    Path = "$depsDir\velopack_libc\lib\velopack_libc_win_${velopackArch}_msvc.dll" }
+)
+
 $allOk = $true
 foreach ($check in $checks) {
     if (Test-Path $check.Path) {
@@ -314,6 +334,8 @@ To build the project, open a VS Developer Command Prompt and run:
   `$env:MUPARSERX_LIB    = "$depsDir\muparserx\build\Release"
   `$env:LIBSNDFILE_INCLUDE = "$depsDir\libsndfile\include"
   `$env:LIBSNDFILE_LIB   = "$depsDir\libsndfile\build\Release"
+  `$env:VELOPACK_INCLUDE = "$depsDir\velopack_libc\include"
+  `$env:VELOPACK_LIB     = "$depsDir\velopack_libc\lib"
   `$env:TCLAP_ROOT       = "$depsDir\tclap"
   `$env:QT_ROOT          = "$qtRoot"
 
