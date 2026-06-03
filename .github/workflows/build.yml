@@ -30,7 +30,7 @@ jobs:
       && github.ref == 'refs/heads/main'
       && !contains(github.event.head_commit.message, '[skip ci]')
       && !startsWith(github.event.head_commit.message, 'chore(version):')
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     permissions:
       contents: write
     outputs:
@@ -112,14 +112,14 @@ jobs:
         name: ${{ fromJson(github.event_name == 'pull_request' && '["windows-x64-avx2"]' || '["windows-x64-sse2","windows-x64-avx","windows-x64-avx2","windows-x64-avx512","windows-x64-avx10_1","windows-arm64"]') }}
         include:
           - name: windows-x64-sse2
-            os: windows-2025
+            os: windows-2025-vs2026
             platform: x64
             simd_variant: sse2
             arch_flag: NotSet
             muparserx_asset: muparserx-msvc-release-x64-avx2.zip
             msvcdevplatform: x64
           - name: windows-x64-avx
-            os: windows-2025
+            os: windows-2025-vs2026
             platform: x64
             simd_variant: avx
             arch_flag: AdvancedVectorExtensions
@@ -127,7 +127,7 @@ jobs:
             muparserx_asset: muparserx-msvc-release-x64-avx2.zip
             msvcdevplatform: x64
           - name: windows-x64-avx2
-            os: windows-2025
+            os: windows-2025-vs2026
             platform: x64
             simd_variant: avx2
             arch_flag: AdvancedVectorExtensions2
@@ -137,7 +137,7 @@ jobs:
             libsndfile_asset: libsndfile-x64-avx2.zip
             msvcdevplatform: x64
           - name: windows-x64-avx512
-            os: windows-2025
+            os: windows-2025-vs2026
             platform: x64
             simd_variant: avx512
             arch_flag: AdvancedVectorExtensions512
@@ -147,7 +147,7 @@ jobs:
             libsndfile_asset: libsndfile-x64-avx512.zip
             msvcdevplatform: x64
           - name: windows-x64-avx10_1
-            os: windows-2025
+            os: windows-2025-vs2026
             platform: x64
             simd_variant: avx10_1
             arch_flag: AdvancedVectorExtensions101
@@ -604,7 +604,7 @@ jobs:
           "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
           "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
           "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
-          "/p:PlatformToolset=v143",  # Override to VS 2022 toolset for CI (project uses v145/VS 2026)
+          "/p:PlatformToolset=v145",  # windows-2025-vs2026 ships VS 2026 (v145); matches the .vcxproj and the qmake VsDevCmd toolset on this image
           "/p:PreferredToolArchitecture=x64"  # 64-bit host cl.exe avoids the 32-bit PCH heap limit on ARM64
         )
 
@@ -1086,7 +1086,7 @@ jobs:
 
   create-release:
     needs: [build, version-bump]
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.result == 'success'
     permissions:
       actions: read
