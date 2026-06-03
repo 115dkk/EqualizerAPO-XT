@@ -345,7 +345,18 @@ int main(int argc, char* argv[])
 	fftw_make_planner_thread_safe();
 
 	QCoreApplication::addLibraryPath("qt");
-	qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
+
+	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio.
+	// The editor used to disable Qt scaling (QT_ENABLE_HIGHDPI_SCALING=0) and
+	// only hand-scale a few widget sizes through GUIHelper::scale, so on a 4K /
+	// high-DPI display everything that went through QSS px/pt or was not scaled
+	// by hand painted at physical pixels and looked tiny. Enable Qt scaling and
+	// pin the logical DPI to 96 (AA_Use96Dpi) so GUIHelper::scale becomes a
+	// no-op — Qt's device pixel ratio is then the single scaling source and we
+	// avoid double scaling. PassThrough keeps fractional factors like 150%
+	// exact instead of rounding them to 100%/200%.
+	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+	QCoreApplication::setAttribute(Qt::AA_Use96Dpi);
 
 	bool restart;
 	do
