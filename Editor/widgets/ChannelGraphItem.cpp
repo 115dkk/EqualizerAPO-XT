@@ -59,13 +59,25 @@ QString ChannelGraphItem::getName() const
 void ChannelGraphItem::paint(QPainter* painter, QColor color)
 {
 	QRectF rect = boundingRect();
+	painter->setRenderHint(QPainter::Antialiasing, true);
+
+	// Modern flat channel badge. The old style washed the top of every badge to
+	// pure white (a hard, dated look) and forced black text; instead use a soft
+	// same-hue sheen and pick the label colour from the badge luminance so the
+	// name stays legible on any channel colour and in either theme. Shared by
+	// the Channel filter selection and the studio Copy node graph.
 	QLinearGradient gradient(rect.topLeft(), rect.bottomLeft());
-	gradient.setColorAt(0, QColor(255, 255, 255));
+	gradient.setColorAt(0, color.lighter(122));
 	gradient.setColorAt(1, color);
 	painter->setBrush(gradient);
-	// make sure that text is visible in dark mode
-	if(painter->pen().color() == Qt::white)
-		painter->setPen(Qt::black);
-	painter->drawRoundedRect(rect, GUIHelper::scale(margin), GUIHelper::scale(margin));
-	painter->drawText(rect.translated(1, -1), Qt::AlignCenter, name);
+	painter->setPen(QPen(color.darker(150), 1));
+	const double radius = GUIHelper::scale(margin) + 1;
+	painter->drawRoundedRect(rect, radius, radius);
+
+	const double luminance = 0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue();
+	painter->setPen(luminance > 145 ? QColor(0x18, 0x20, 0x2c) : QColor(0xf5, 0xf8, 0xfc));
+	QFont labelFont = painter->font();
+	labelFont.setBold(true);
+	painter->setFont(labelFont);
+	painter->drawText(rect, Qt::AlignCenter, name);
 }

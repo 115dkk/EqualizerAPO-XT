@@ -19,6 +19,7 @@
 
 #include <QPainter>
 
+#include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "ChannelFilterGUIScene.h"
 #include "ChannelFilterGUIChannelItem.h"
 
@@ -30,16 +31,21 @@ ChannelFilterGUIChannelItem::ChannelFilterGUIChannelItem(const QString& name)
 
 void ChannelFilterGUIChannelItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-	QColor color;
+	// Give each channel its own colour (shared with the Copy routing views) so
+	// the selection reads at a glance: selected channels are filled with the
+	// vivid channel colour, unselected ones are dimmed and desaturated.
+	QColor channelColor(CopyRoutingAdapter::channelColor(getName()));
 
+	QColor color;
 	if (isSelected())
 	{
-		color = QColor(176, 229, 255);
+		color = channelColor;
 	}
 	else
 	{
-		painter->setPen(QColor(156, 156, 156));
-		color = QColor(204, 204, 204);
+		int h, s, v, a;
+		channelColor.getHsv(&h, &s, &v, &a);
+		color.setHsv(h < 0 ? 0 : h, static_cast<int>(s * 0.35), static_cast<int>(v * 0.5), a);
 	}
 
 	ChannelGraphItem::paint(painter, color);
