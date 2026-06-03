@@ -592,6 +592,12 @@ jobs:
         echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
         Write-Host "QT_ROOT=$qtRoot"
 
+        # x64 variants run on windows-2025-vs2026 (VS 2026 / v145); ARM64 runs on
+        # windows-11-arm, which still ships VS 2022 (v143). Pick the toolset present
+        # on each image so MSBuild does not fail with MSB8020 (toolset not found).
+        $platformToolset = if ("${{ matrix.platform }}" -eq "ARM64") { "v143" } else { "v145" }
+        Write-Host "PlatformToolset=$platformToolset (platform ${{ matrix.platform }})"
+
         $buildParams = @(
           "/m",
           "/p:Configuration=${{ env.BUILD_CONFIGURATION }}",
@@ -604,7 +610,7 @@ jobs:
           "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
           "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
           "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
-          "/p:PlatformToolset=v145",  # windows-2025-vs2026 ships VS 2026 (v145); matches the .vcxproj and the qmake VsDevCmd toolset on this image
+          "/p:PlatformToolset=$platformToolset",  # v145 on the VS 2026 x64 image, v143 on the VS 2022 ARM64 image (see above)
           "/p:PreferredToolArchitecture=x64"  # 64-bit host cl.exe avoids the 32-bit PCH heap limit on ARM64
         )
 
