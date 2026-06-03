@@ -950,9 +950,13 @@ jobs:
         Copy-Item ${{ github.workspace }}\deps\fftw\Release\*.dll -Destination $artifactPath -Force
         Copy-Item ${{ github.workspace }}\deps\libsndfile\build\Release\*.dll -Destination $artifactPath -Force
 
-        # Velopack runtime DLL the Editor links against (per-arch).
+        # Velopack runtime DLL the Editor and UpdateChecker link against (per-arch).
+        # The distributed file carries an arch suffix, but the import lib embeds the
+        # SONAME "velopack_libc.dll", so the loader looks for that exact name at run
+        # time. Deploy it as velopack_libc.dll next to the executables, otherwise the
+        # app fails to start with "velopack_libc.dll is missing".
         $velopackArch = if ($platform -eq "ARM64") { "arm64" } else { "x64" }
-        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_${velopackArch}_msvc.dll" -Destination $artifactPath -Force
+        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_${velopackArch}_msvc.dll" -Destination (Join-Path $artifactPath "velopack_libc.dll") -Force
 
         # Copy Qt applications built with qmake (Editor, DeviceSelector, UpdateChecker)
         # Include all deployed Qt dependencies (DLLs, plugins, etc.)
