@@ -7,6 +7,14 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Serialize runs per ref. On main this queues release pipelines so two quick
+# merges can't both try to create the same release (which raced to a 403 on the
+# GitHub releases API). On pull requests a new push cancels the stale run for
+# faster feedback.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
   actions: write

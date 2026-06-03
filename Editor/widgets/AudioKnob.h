@@ -16,11 +16,11 @@ protected:
 	void paintEvent(QPaintEvent*) override;
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
+	void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
 	QPointF pointOnArc(const QRectF& rect, double degrees) const;
+	void setValueFromAngle(const QPointF& widgetPos);
 
 	QString text;
-	int dragStartY = 0;
-	int dragStartValue = 0;
 };
