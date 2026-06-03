@@ -21,10 +21,18 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <vector>
+#include <atomic>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <thread>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+// Velopack.hpp pulls in the C ABI header; include it after windows.h so the
+// platform headers resolve in the expected order.
+#include <Velopack.hpp>
 
 namespace
 {
@@ -55,6 +63,15 @@ std::wstring envVar(const wchar_t* name)
 		return std::wstring();
 	return std::wstring(buffer, length);
 }
+
+// State for the staged update produced by the background worker. The UpdateManager
+// must outlive the worker thread so applyPendingUpdateAndExit() can drive the apply,
+// hence it is kept here rather than on the worker's stack.
+std::mutex g_updateMutex;
+std::unique_ptr<Velopack::UpdateManager> g_manager;
+std::unique_ptr<Velopack::UpdateInfo> g_pendingUpdate;
+std::atomic<bool> g_downloadStarted{ false };
+std::atomic<bool> g_updateReady{ false };
 }
 
 bool VelopackBootstrap::isFirstRun()
@@ -102,40 +119,77 @@ bool VelopackBootstrap::isVelopackInstall()
 	return !updateExePath().empty();
 }
 
-bool VelopackBootstrap::triggerBackgroundUpdate(const std::wstring& githubRepo)
+void VelopackBootstrap::startBackgroundDownload(const std::string& repoUrl, const std::string& channel)
 {
-	std::wstring updateExe = updateExePath();
-	if (updateExe.empty())
-		return false;
-	if (githubRepo.empty())
-		return false;
+	if (!isVelopackInstall())
+		return;
+	if (repoUrl.empty())
+		return;
 
-	std::wstring repo = githubRepo;
-	if (repo.find(L"://") == std::wstring::npos)
-		repo = L"https://github.com/" + repo;
+	// Run the check + download at most once per session.
+	bool expected = false;
+	if (!g_downloadStarted.compare_exchange_strong(expected, true))
+		return;
 
-	std::wstring commandLine = L"\"" + updateExe + L"\" --silent --update " + repo;
-	std::vector<wchar_t> mutableCommand(commandLine.begin(), commandLine.end());
-	mutableCommand.push_back(L'\0');
-
-	STARTUPINFOW startupInfo;
-	ZeroMemory(&startupInfo, sizeof(startupInfo));
-	startupInfo.cb = sizeof(startupInfo);
-	startupInfo.dwFlags = STARTF_USESHOWWINDOW;
-	startupInfo.wShowWindow = SW_HIDE;
-
-	PROCESS_INFORMATION processInfo;
-	ZeroMemory(&processInfo, sizeof(processInfo));
-
-	if (!CreateProcessW(updateExe.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
-			CREATE_NO_WINDOW | DETACHED_PROCESS, nullptr, nullptr, &startupInfo, &processInfo))
+	std::thread([repoUrl, channel]()
 	{
-		fwprintf(stderr, L"[VelopackBootstrap] CreateProcess for %s failed: %lu\n",
-			updateExe.c_str(), GetLastError());
-		return false;
+		try
+		{
+			Velopack::UpdateOptions options{};
+			options.AllowVersionDowngrade = false;
+			options.MaximumDeltasBeforeFallback = 10;
+			if (!channel.empty())
+				options.ExplicitChannel = channel;
+
+			auto manager = std::make_unique<Velopack::UpdateManager>(
+				std::make_unique<Velopack::GithubSource>(repoUrl, "", false),
+				&options);
+
+			std::optional<Velopack::UpdateInfo> info = manager->CheckForUpdates();
+			if (!info.has_value())
+				return; // already up to date
+
+			manager->DownloadUpdates(*info);
+
+			std::lock_guard<std::mutex> lock(g_updateMutex);
+			g_pendingUpdate = std::make_unique<Velopack::UpdateInfo>(*info);
+			g_manager = std::move(manager);
+			g_updateReady.store(true);
+		}
+		catch (const std::exception& e)
+		{
+			fprintf(stderr, "[VelopackBootstrap] background update failed: %s\n", e.what());
+		}
+		catch (...)
+		{
+			fprintf(stderr, "[VelopackBootstrap] background update failed: unknown error\n");
+		}
+	}).detach();
+}
+
+bool VelopackBootstrap::hasPendingUpdate()
+{
+	return g_updateReady.load();
+}
+
+void VelopackBootstrap::applyPendingUpdateAndExit()
+{
+	std::lock_guard<std::mutex> lock(g_updateMutex);
+	if (!g_updateReady.load() || !g_manager || !g_pendingUpdate)
+		return;
+
+	try
+	{
+		// Apply silently and do not restart: the user closed the app, so we just swap
+		// files in the background and let the new version come up on the next launch.
+		g_manager->WaitExitThenApplyUpdates(*g_pendingUpdate, /*silent*/ true, /*restart*/ false);
+	}
+	catch (const std::exception& e)
+	{
+		fprintf(stderr, "[VelopackBootstrap] apply update failed: %s\n", e.what());
+		return;
 	}
 
-	CloseHandle(processInfo.hProcess);
-	CloseHandle(processInfo.hThread);
-	return true;
+	// The updater is now waiting for this process to exit before swapping files.
+	std::exit(0);
 }

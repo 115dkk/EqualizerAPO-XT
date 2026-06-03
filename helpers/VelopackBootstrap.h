@@ -32,5 +32,19 @@ public:
 	static std::wstring installRoot();
 	static std::wstring currentBinDir();
 
-	static bool triggerBackgroundUpdate(const std::wstring& githubRepo);
+	// Check the GitHub release feed and, if a newer build exists, download it into the
+	// Velopack staging area so it is ready to apply on exit. Runs the network work on a
+	// detached worker thread and returns immediately; repeat calls in the same session
+	// are ignored. `repoUrl` is the full repository URL ("https://github.com/user/repo").
+	// `channel` overrides the build channel; leave empty to use the installed channel.
+	static void startBackgroundDownload(const std::string& repoUrl, const std::string& channel = std::string());
+
+	// True once a downloaded update is staged and waiting to be applied.
+	static bool hasPendingUpdate();
+
+	// Apply the staged update silently without restarting, then exit the process. The
+	// updater waits for this process to close before swapping files, so the new version
+	// appears on the next launch. Does nothing (and returns) if no update is staged;
+	// otherwise it does not return.
+	static void applyPendingUpdateAndExit();
 };
