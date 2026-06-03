@@ -46,9 +46,15 @@
         <file>skins/rack_light.qss</file>
         <file>skins/matrix_dark.qss</file>
         <file>skins/matrix_light.qss</file>
-        <file>fonts/PretendardVariable.ttf</file>
-        <file>fonts/DMSans.ttf</file>
+        <file>fonts/DMSans-Regular.ttf</file>
+        <file>fonts/DMSans-Medium.ttf</file>
+        <file>fonts/DMSans-SemiBold.ttf</file>
+        <file>fonts/DMSans-Bold.ttf</file>
         <file>fonts/DMMono-Regular.ttf</file>
         <file>fonts/DMMono-Medium.ttf</file>
+        <file>fonts/Pretendard-Regular.otf</file>
+        <file>fonts/Pretendard-Medium.otf</file>
+        <file>fonts/Pretendard-SemiBold.otf</file>
+        <file>fonts/Pretendard-Bold.otf</file>
     </qresource>
 </RCC>

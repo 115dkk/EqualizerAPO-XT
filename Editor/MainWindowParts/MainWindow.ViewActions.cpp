@@ -77,11 +77,16 @@ void MainWindow::skinSelected(QAction* action)
 	skinId = action->data().toString();
 	SkinManager::instance()->applySkin(skinId, skinDark);
 	skinId = SkinManager::instance()->currentSkinId();
+	// Each skin supplies its own Copy routing renderer (node graph, crosspoint
+	// matrix, step list, ...) and per-skin card chrome. Those widgets are built
+	// once when the row is created, so the rows must be rebuilt for the new
+	// skin to take effect — a plain repaint only re-colours the old widgets and
+	// left every skin showing the studio node graph for Copy.
 	for (int i = 0; i < ui->tabWidget->count(); i++)
 	{
 		FilterTable* filterTable = filterTableForTab(i);
 		if (filterTable != nullptr)
-			filterTable->update();
+			filterTable->updateGuis();
 	}
 }
 
@@ -90,6 +95,13 @@ void MainWindow::darkThemeToggled(bool checked)
 	skinDark = checked;
 	SkinManager::instance()->applySkin(skinId, skinDark);
 	skinId = SkinManager::instance()->currentSkinId();
+	// Rebuild rows so painted card/routing widgets pick up the new palette.
+	for (int i = 0; i < ui->tabWidget->count(); i++)
+	{
+		FilterTable* filterTable = filterTableForTab(i);
+		if (filterTable != nullptr)
+			filterTable->updateGuis();
+	}
 }
 
 void MainWindow::cycleGraphPosition()

@@ -14,7 +14,7 @@
 QWidget {
     background: @BG@;
     color: @TEXT@;
-    font-family: "@FONT@", "Pretendard Variable", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
     font-size: 10pt;
 }
 

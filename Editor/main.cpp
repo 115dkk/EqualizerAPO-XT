@@ -355,20 +355,28 @@ int main(int argc, char* argv[])
 
 		// Bundle the redesign's typefaces so the skins render identically
 		// regardless of what is installed: DM Sans / DM Mono carry the Latin
-		// look, Pretendard carries Korean. The QSS font-family lists name these
-		// families with a fallback chain (Pretendard -> Noto Sans -> Malgun
-		// Gothic for Korean, Microsoft YaHei for Chinese).
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans.ttf"));
+		// look, Pretendard carries Korean. Static weight instances are used on
+		// purpose — Qt does not reliably select a weight off a variable font's
+		// wght axis, so a variable DM Sans / Pretendard rendered every QSS
+		// font-weight (600/700) at the thin default. Registering Regular/Medium/
+		// SemiBold/Bold per family lets font-weight resolve to a real face.
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Regular.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Medium.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-SemiBold.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Bold.ttf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Regular.ttf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Medium.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/PretendardVariable.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Regular.otf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Medium.otf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-SemiBold.otf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Bold.otf"));
 
 		// Fallback chain for painted (non-QSS) text where Qt resolves a single
 		// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
 		// Pretendard -> Noto Sans -> Malgun Gothic (Korean) / Microsoft YaHei
 		// (Chinese).
 		const QStringList cjkChain = {
-			QStringLiteral("Pretendard Variable"), QStringLiteral("Pretendard"),
+			QStringLiteral("Pretendard"),
 			QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans"),
 			QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
 		};
