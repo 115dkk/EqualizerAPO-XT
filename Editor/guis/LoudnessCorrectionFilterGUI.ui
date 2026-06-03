@@ -130,7 +130,7 @@ Alexander Walch</string>
     </spacer>
    </item>
    <item row="0" column="5" rowspan="2">
-    <widget class="QDial" name="refOffsetDial">
+    <widget class="AudioKnob" name="refOffsetDial">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -191,7 +191,7 @@ Alexander Walch</string>
     </widget>
    </item>
    <item row="0" column="8" rowspan="2">
-    <widget class="QDial" name="attDial">
+    <widget class="AudioKnob" name="attDial">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -271,7 +271,7 @@ Alexander Walch</string>
     </spacer>
    </item>
    <item row="0" column="2" rowspan="2">
-    <widget class="QDial" name="refLevelDial">
+    <widget class="AudioKnob" name="refLevelDial">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -330,6 +330,13 @@ Alexander Walch</string>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>AudioKnob</class>
+   <extends>QDial</extends>
+   <header>Editor/widgets/AudioKnob.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
