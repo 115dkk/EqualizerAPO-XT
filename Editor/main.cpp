@@ -353,7 +353,18 @@ int main(int argc, char* argv[])
 	fftw_make_planner_thread_safe();
 
 	QCoreApplication::addLibraryPath("qt");
-	qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
+
+	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio.
+	// The editor used to disable Qt scaling (QT_ENABLE_HIGHDPI_SCALING=0) and
+	// only hand-scale a few widget sizes through GUIHelper::scale, so on a 4K /
+	// high-DPI display everything that went through QSS px/pt or was not scaled
+	// by hand painted at physical pixels and looked tiny. Enable Qt scaling and
+	// pin the logical DPI to 96 (AA_Use96Dpi) so GUIHelper::scale becomes a
+	// no-op — Qt's device pixel ratio is then the single scaling source and we
+	// avoid double scaling. PassThrough keeps fractional factors like 150%
+	// exact instead of rounding them to 100%/200%.
+	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+	QCoreApplication::setAttribute(Qt::AA_Use96Dpi);
 
 	bool restart;
 	do
@@ -363,20 +374,28 @@ int main(int argc, char* argv[])
 
 		// Bundle the redesign's typefaces so the skins render identically
 		// regardless of what is installed: DM Sans / DM Mono carry the Latin
-		// look, Pretendard carries Korean. The QSS font-family lists name these
-		// families with a fallback chain (Pretendard -> Noto Sans -> Malgun
-		// Gothic for Korean, Microsoft YaHei for Chinese).
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans.ttf"));
+		// look, Pretendard carries Korean. Static weight instances are used on
+		// purpose — Qt does not reliably select a weight off a variable font's
+		// wght axis, so a variable DM Sans / Pretendard rendered every QSS
+		// font-weight (600/700) at the thin default. Registering Regular/Medium/
+		// SemiBold/Bold per family lets font-weight resolve to a real face.
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Regular.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Medium.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-SemiBold.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Bold.ttf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Regular.ttf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Medium.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/PretendardVariable.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Regular.otf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Medium.otf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-SemiBold.otf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Bold.otf"));
 
 		// Fallback chain for painted (non-QSS) text where Qt resolves a single
 		// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
 		// Pretendard -> Noto Sans -> Malgun Gothic (Korean) / Microsoft YaHei
 		// (Chinese).
 		const QStringList cjkChain = {
-			QStringLiteral("Pretendard Variable"), QStringLiteral("Pretendard"),
+			QStringLiteral("Pretendard"),
 			QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans"),
 			QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
 		};

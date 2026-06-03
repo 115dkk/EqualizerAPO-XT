@@ -43,7 +43,11 @@ void AudioKnob::paintEvent(QPaintEvent*)
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	QRectF knobRect = rect().adjusted(9, 9, -9, -9);
+	// Draw inside a centred square so the knob stays circular even when the
+	// hosting widget is not square (promoted legacy dials are 100x66).
+	QRectF inner = rect().adjusted(9, 9, -9, -9);
+	double side = qMin(inner.width(), inner.height());
+	QRectF knobRect(inner.center().x() - side / 2.0, inner.center().y() - side / 2.0, side, side);
 	int spanDegrees = 270;
 	int startDegrees = 135;
 	double ratio = maximum() == minimum() ? 0.0 : (value() - minimum()) / static_cast<double>(maximum() - minimum());
@@ -67,12 +71,19 @@ void AudioKnob::paintEvent(QPaintEvent*)
 	painter.setBrush(QColor(tokens.accent));
 	painter.drawEllipse(dot, 4, 4);
 
-	painter.setPen(QColor(tokens.text));
-	QFont valueFont = font();
-	valueFont.setBold(true);
-	valueFont.setPointSizeF(qMax(7.0, valueFont.pointSizeF() - 1.0));
-	painter.setFont(valueFont);
-	painter.drawText(rect(), Qt::AlignCenter, text.isEmpty() ? QString::number(value()) : text);
+	// Only draw centred text when an explicit value string was supplied (e.g.
+	// the Preamp card). Promoted legacy dials drive a separate spin box for the
+	// real value and map the dial to log-scaled steps, so painting value() here
+	// would show a meaningless step count.
+	if (!text.isEmpty())
+	{
+		painter.setPen(QColor(tokens.text));
+		QFont valueFont = font();
+		valueFont.setBold(true);
+		valueFont.setPointSizeF(qMax(7.0, valueFont.pointSizeF() - 1.0));
+		painter.setFont(valueFont);
+		painter.drawText(rect(), Qt::AlignCenter, text);
+	}
 }
 
 void AudioKnob::mousePressEvent(QMouseEvent* event)
