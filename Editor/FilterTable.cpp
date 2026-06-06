@@ -130,17 +130,18 @@ void FilterTable::updateDeviceAndChannelMask(shared_ptr<AbstractAPOInfo> selecte
 		updateGuis();
 }
 
-void FilterTable::updateGuis()
+void FilterTable::clearRows()
 {
-	QElapsedTimer timer;
-	timer.start();
-
+	// Persist each row's GUI preferences before its widget (and the GUI it owns)
+	// is destroyed, then null the pointer so a following updateGuis() does not
+	// read a dangling gui in its own preference-save pass.
 	for (Item* item : items)
 	{
 		if (item->gui != nullptr)
 		{
 			item->prefs.clear();
 			item->gui->storePreferences(item->prefs);
+			item->gui = nullptr;
 		}
 	}
 
@@ -158,6 +159,15 @@ void FilterTable::updateGuis()
 		}
 		delete oldLayout;
 	}
+	gridLayout = nullptr;
+}
+
+void FilterTable::updateGuis()
+{
+	QElapsedTimer timer;
+	timer.start();
+
+	clearRows();
 
 	qDebug("Delete took %d ms", timer.elapsed());
 	timer.start();
