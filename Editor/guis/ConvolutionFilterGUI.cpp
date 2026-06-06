@@ -22,6 +22,7 @@
 #include <sndfile.h>
 
 #include "Editor/helpers/ConvolutionPathHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "ConvolutionFilterGUI.h"
 #include "ui_ConvolutionFilterGUI.h"
@@ -35,6 +36,11 @@ ConvolutionFilterGUI::ConvolutionFilterGUI(const QString& configPath, unsigned d
 	ui->pathLineEdit->setText(path);
 	ui->labelError->setWordWrap(true);
 	ui->selectFileToolButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+	// Replace the dated Tango "drawer" icon baked into the .ui with the modern
+	// browse glyph, recoloured to the active text colour so it reads on whichever
+	// skin or palette hosts the card.
+	ui->selectFileToolButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"),
+		palette().color(QPalette::WindowText), 18));
 
 	updateFileInfo();
 }

@@ -47,6 +47,12 @@ public:
 	double getFactor() const;
 	bool getIsDecibel() const;
 
+	// Position of the gain label along the connection line, 0 = source end,
+	// 1 = target end. The scene staggers this per target so the coefficient
+	// labels of arrows that converge on the same output channel no longer
+	// stack on top of each other at the shared midpoint.
+	void setLabelPosition(double t);
+
 protected:
 	void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
 	void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
@@ -58,8 +64,11 @@ private slots:
 	void lineEditEditingCanceled();
 
 private:
+	QPointF labelCenter() const;
+
 	CopyFilterGUIChannelItem* source = nullptr;
 	CopyFilterGUIChannelItem* target = nullptr;
 	double factor = 1.0;
 	bool isDecibel = false;
+	double labelT = 0.5;
 };

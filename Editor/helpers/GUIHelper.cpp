@@ -22,6 +22,8 @@
 #include <QApplication>
 #include <QFont>
 #include <QFontMetrics>
+#include <QPainter>
+#include <QPixmap>
 #include <QScreen>
 #include <QStyleHints>
 
@@ -73,4 +75,23 @@ double GUIHelper::invScaleZoom(double zoom)
 bool GUIHelper::isDarkMode()
 {
 	return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+}
+
+QIcon GUIHelper::tintedIcon(const QString& resource, const QColor& color, int size)
+{
+	QIcon base(resource);
+	QPixmap pixmap = base.pixmap(scale(QSize(size, size)));
+	if (pixmap.isNull())
+		return base;
+
+	// Keep the rendered glyph's alpha mask, replace its colour. CompositionMode_SourceIn
+	// paints the fill only where the source already has coverage, so the result is the
+	// same shape in the requested colour. The fill rect is in device-independent units;
+	// any overshoot on a high-DPI pixmap is harmless because untouched pixels stay clear.
+	QPainter painter(&pixmap);
+	painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+	painter.fillRect(QRect(QPoint(0, 0), pixmap.deviceIndependentSize().toSize()), color);
+	painter.end();
+
+	return QIcon(pixmap);
 }

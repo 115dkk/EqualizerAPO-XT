@@ -32,6 +32,11 @@
         <file>icons/reset_response.svg</file>
         <file>icons/dark-mode/toolbar-ext-h.svg</file>
         <file>icons/dark-mode/toolbar-ext-v.svg</file>
+        <file>icons/modern/folder-open.svg</file>
+        <file>icons/modern/pencil.svg</file>
+        <file>icons/modern/import.svg</file>
+        <file>icons/modern/file-include.svg</file>
+        <file>icons/modern/plugin.svg</file>
         <file>translations/Editor_zh_CN.qm</file>
         <file>translations/qtbase_zh_CN.qm</file>
         <file>translations/Editor_fr.qm</file>

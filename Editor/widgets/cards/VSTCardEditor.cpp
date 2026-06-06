@@ -33,6 +33,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/SkinManager.h"
 #include "Editor/MainWindow.h"
 #include "Editor/guis/VSTPluginFilterGUIDialog.h"
 
@@ -55,9 +56,11 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	row->setContentsMargins(0, 0, 0, 0);
 	row->setSpacing(8);
 
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+
 	QLabel* glyph = new QLabel(this);
 	glyph->setObjectName(QStringLiteral("VSTCardGlyph"));
-	glyph->setPixmap(style()->standardIcon(QStyle::SP_ComputerIcon).pixmap(20, 20));
+	glyph->setPixmap(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/plugin.svg"), QColor(tokens.mutedText), 20).pixmap(GUIHelper::scale(QSize(20, 20))));
 	row->addWidget(glyph, 0, Qt::AlignVCenter);
 
 	pathEdit = new QLineEdit(this);
@@ -68,7 +71,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 
 	selectButton = new QToolButton(this);
 	selectButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	selectButton->setIcon(QIcon(QStringLiteral(":/icons/document-open.ico")));
+	selectButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), QColor(tokens.text), 18));
 	selectButton->setToolTip(tr("Select VST plugin"));
 	connect(selectButton, SIGNAL(clicked()), this, SLOT(selectFile()));
 	row->addWidget(selectButton);
