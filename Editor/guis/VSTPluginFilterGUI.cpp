@@ -273,9 +273,9 @@ void VSTPluginFilterGUI::on_selectButton_clicked()
 	if (path.length() > 0)
 		fileInfo.setFile(pluginsDir, path);
 
-	QFileDialog dialog(this, tr("Select VST plugin"), fileInfo.absoluteFilePath(), "*.dll");
+	QFileDialog dialog(this, tr("Select VST plugin"), fileInfo.absoluteFilePath(), "*.dll *.vst3");
 	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setNameFilter(tr("VST plugins (*.dll)"));
+	dialog.setNameFilter(tr("VST plugins (*.dll *.vst3)"));
 	if (path.length() > 0)
 		dialog.selectFile(fileInfo.fileName());
 	if (dialog.exec() == QDialog::Accepted)

@@ -6,7 +6,7 @@
 .DESCRIPTION
     This script:
     1. Downloads FFTW, muparserx, libsndfile from their GitHub release pages
-    2. Clones the TCLAP header-only library
+    2. Clones the TCLAP header-only library and the VST3 SDK pluginterfaces
     3. Installs Qt 6.10.1 via aqtinstall (Python)
 
     All sources match the project's CI workflow (.github/workflows/build.yml).
@@ -239,6 +239,24 @@ if (Test-Path (Join-Path $tclapDir "include")) {
     Write-Host "  -> $tclapDir"
 }
 
+# --- 2b. Clone VST3 SDK (pluginterfaces only) ---
+# VST3 hosting only needs the Steinberg pluginterfaces headers (COM-style interface
+# definitions + the IID instantiation unit). public.sdk / vstgui / samples are not
+# compiled, so we fetch just the pluginterfaces submodule. Pinned to the 3.8.0 tag,
+# which is the first MIT-licensed release (compatible with our GPLv2-or-later code).
+Write-Host "`n=== Step 2b: Clone VST3 SDK (pluginterfaces) ===" -ForegroundColor Yellow
+$vst3Tag = "v3.8.0_build_66"
+$vst3Dir = Join-Path $depsDir "vst3sdk"
+$vst3InterfacesDir = Join-Path $vst3Dir "pluginterfaces"
+if (Test-Path (Join-Path $vst3InterfacesDir "base\funknown.h")) {
+    Write-Host "  [cached] VST3 pluginterfaces already present"
+} else {
+    New-Item -ItemType Directory -Force -Path $vst3Dir | Out-Null
+    git clone --depth 1 --branch $vst3Tag https://github.com/steinbergmedia/vst3_pluginterfaces $vst3InterfacesDir
+    if ($LASTEXITCODE -ne 0) { throw "Failed to clone VST3 pluginterfaces" }
+    Write-Host "  -> $vst3InterfacesDir"
+}
+
 # --- 3. Install Qt ---
 if ($SkipQt) {
     Write-Host "`n=== Step 3: Qt Installation (SKIPPED) ===" -ForegroundColor Yellow
@@ -283,7 +301,8 @@ $checks = @(
     @{ Name = "muparserx header"; Path = "$depsDir\muparserx\parser\mpParser.h" },
     @{ Name = "libsndfile header"; Path = "$depsDir\libsndfile\include\sndfile.h" },
     @{ Name = "libsndfile lib";  Path = "$depsDir\libsndfile\build\Release\sndfile.lib" },
-    @{ Name = "TCLAP header";    Path = "$depsDir\tclap\include\tclap\CmdLine.h" }
+    @{ Name = "TCLAP header";    Path = "$depsDir\tclap\include\tclap\CmdLine.h" },
+    @{ Name = "VST3 pluginterfaces"; Path = "$depsDir\vst3sdk\pluginterfaces\base\funknown.h" }
 )
 
 # velopack_libc ships per-arch import libs/DLLs in a single zip; check the one we link.

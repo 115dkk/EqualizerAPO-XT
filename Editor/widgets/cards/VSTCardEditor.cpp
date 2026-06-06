@@ -65,7 +65,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 
 	pathEdit = new QLineEdit(this);
 	pathEdit->setObjectName(QStringLiteral("VSTCardPath"));
-	pathEdit->setPlaceholderText(tr("VST plugin (.dll)"));
+	pathEdit->setPlaceholderText(tr("VST plugin (.dll, .vst3)"));
 	connect(pathEdit, SIGNAL(editingFinished()), this, SLOT(pathEditingFinished()));
 	row->addWidget(pathEdit, 1);
 
@@ -328,9 +328,9 @@ void VSTCardEditor::selectFile()
 	if (path.length() > 0)
 		fileInfo.setFile(pluginsDir, path);
 
-	QFileDialog dialog(this, tr("Select VST plugin"), fileInfo.absoluteFilePath(), "*.dll");
+	QFileDialog dialog(this, tr("Select VST plugin"), fileInfo.absoluteFilePath(), "*.dll *.vst3");
 	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setNameFilter(tr("VST plugins (*.dll)"));
+	dialog.setNameFilter(tr("VST plugins (*.dll *.vst3)"));
 	if (path.length() > 0)
 		dialog.selectFile(fileInfo.fileName());
 	if (dialog.exec() == QDialog::Accepted)

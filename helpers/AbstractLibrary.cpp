@@ -42,7 +42,7 @@ int AbstractLibrary::initialize()
 {
 	if (module == nullptr)
 	{
-		wstring libPath = getLibPath();
+		wstring libPath = getLoadPath();
 		if (GetFileAttributesW(libPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 			return FILE_NOT_FOUND;
 		module = LoadLibraryW(libPath.c_str());
@@ -84,6 +84,13 @@ int AbstractLibrary::customInitialize()
 {
 	// overwrite if needed
 	return 0;
+}
+
+wstring AbstractLibrary::getLoadPath()
+{
+	// By default the load path equals the library path. Subclasses such as
+	// VSTPluginLibrary override this to resolve the binary inside a .vst3 bundle.
+	return getLibPath();
 }
 
 unsigned short AbstractLibrary::getFileArchitecture(const wstring& filePath)

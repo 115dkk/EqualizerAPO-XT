@@ -256,6 +256,9 @@
     <ClCompile Include="helpers\StringHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
+    <ClCompile Include="helpers\VST3PluginIIDs.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
     <ClCompile Include="helpers\VSTPluginInstance.cpp">
       <Filter>helpers</Filter>
     </ClCompile>

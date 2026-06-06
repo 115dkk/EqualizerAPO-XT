@@ -18,7 +18,8 @@ After that, the project will focus on:
 ## Features
 
 - Double-precision internal audio processing for complex filter chains.
-- Convolution, GraphicEQ, parametric EQ, VST, and standard Equalizer APO filter support.
+- Convolution, GraphicEQ, parametric EQ, VST2/VST3, and standard Equalizer APO filter support.
+- Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it.
 - x64 SIMD builds for AVX2, AVX-512, and AVX10.1 in CI.
 - ARM64 build support with native dependency builds.
 - AOCL-FFTW, libsndfile, muparserx, TCLAP, and Qt-based GUI tools.
