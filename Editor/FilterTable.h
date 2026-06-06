@@ -67,6 +67,12 @@ public:
 	void initialize(QScrollArea* scrollArea, const QList<std::shared_ptr<AbstractAPOInfo>>& outputDevices, const QList<std::shared_ptr<AbstractAPOInfo>>& inputDevices);
 	void updateDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo> selectedDevice, int selectedChannelMask);
 	void updateGuis();
+	// Tear down every row widget (and its filter GUI) without rebuilding. Used
+	// before a global stylesheet swap on skin change: qApp->setStyleSheet
+	// re-polishes every live widget, and a loaded config inflates the tree to
+	// thousands of widgets, so clearing first lets the skin apply against just
+	// the chrome and the rebuilt rows get polished once on creation.
+	void clearRows();
 	// Re-create the GUI widget for a single row in place. Used for cheap
 	// edits like the enabled toggle, which used to trigger a full updateGuis
 	// (delete + rebuild every row in the file).

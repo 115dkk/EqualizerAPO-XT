@@ -75,6 +75,18 @@ void MainWindow::skinSelected(QAction* action)
 		return;
 
 	skinId = action->data().toString();
+	// Tear the rows down BEFORE swapping the global stylesheet. qApp->setStyleSheet
+	// re-polishes every live widget, and a loaded config inflates the tree to
+	// thousands of widgets; re-polishing them only to immediately rebuild them in
+	// updateGuis() below made each skin switch cost seconds. Clearing first lets
+	// the stylesheet apply against just the window chrome, and the rebuilt rows
+	// are polished a single time when they are created.
+	for (int i = 0; i < ui->tabWidget->count(); i++)
+	{
+		FilterTable* filterTable = filterTableForTab(i);
+		if (filterTable != nullptr)
+			filterTable->clearRows();
+	}
 	SkinManager::instance()->applySkin(skinId, skinDark);
 	skinId = SkinManager::instance()->currentSkinId();
 	// Each skin supplies its own Copy routing renderer (node graph, crosspoint
@@ -93,6 +105,14 @@ void MainWindow::skinSelected(QAction* action)
 void MainWindow::darkThemeToggled(bool checked)
 {
 	skinDark = checked;
+	// Clear rows before the global stylesheet swap (see skinSelected) so the
+	// re-polish does not run over thousands of soon-to-be-rebuilt card widgets.
+	for (int i = 0; i < ui->tabWidget->count(); i++)
+	{
+		FilterTable* filterTable = filterTableForTab(i);
+		if (filterTable != nullptr)
+			filterTable->clearRows();
+	}
 	SkinManager::instance()->applySkin(skinId, skinDark);
 	skinId = SkinManager::instance()->currentSkinId();
 	// Rebuild rows so painted card/routing widgets pick up the new palette.
