@@ -33,6 +33,7 @@ public:
 
 	int initialize();
 	virtual std::wstring getLibPath() = 0;
+	virtual std::wstring getLoadPath();
 
 protected:
 	virtual bool loadFunctions() = 0;

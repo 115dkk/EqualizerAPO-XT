@@ -146,6 +146,7 @@ SOURCES += main.cpp\
 	../AbstractAPOInfo.cpp \
 	../VoicemeeterAPOInfo.cpp \
 	../helpers/AbstractLibrary.cpp \
+	../helpers/VST3PluginIIDs.cpp \
 	../helpers/VSTPluginLibrary.cpp \
 	guis/VSTPluginFilterGUI.cpp \
 	guis/VSTPluginFilterGUIFactory.cpp \
@@ -395,6 +396,11 @@ isEmpty(VELOPACK_INCLUDE) {
 	VELOPACK_INCLUDE = $$PWD/../deps/velopack_libc/include
 }
 
+VST3_SDK = $$(VST3_SDK)
+isEmpty(VST3_SDK) {
+	VST3_SDK = $$PWD/../deps/vst3sdk
+}
+
 VELOPACK_LIB = $$(VELOPACK_LIB)
 isEmpty(VELOPACK_LIB) {
 	VELOPACK_LIB = $$PWD/../deps/velopack_libc/lib
@@ -413,7 +419,7 @@ contains(QT_ARCH, arm64) {
 	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
 }
 
-INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE
+INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK
 LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {

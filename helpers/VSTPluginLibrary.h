@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include "AbstractLibrary.h"
 #include "aeffectx.h"
+#include "pluginterfaces/base/ipluginbase.h"
 #include <queue>
 #include "VSTPluginInstance.h"
 
@@ -34,17 +35,28 @@ public:
 	static std::wstring getDefaultPluginPath();
 
 	std::wstring getLibPath() override;
+	std::wstring getLoadPath() override;
+	bool isVST3() const;
 
 	typedef vst_effect_t* (* vstPluginMain)(vst_host_callback_t audioMaster);
 	vstPluginMain VSTPluginMain;
+	typedef Steinberg::IPluginFactory* (PLUGIN_API* getPluginFactoryFunc)();
+	getPluginFactoryFunc GetPluginFactory;
+	Steinberg::IPluginFactory* getFactory() const;
+	const Steinberg::PClassInfo& getVST3ClassInfo() const;
 
 protected:
 	bool loadFunctions() override;
+	int customInitialize() override;
 
 private:
-	struct MakeSharedEnabler;
 	VSTPluginLibrary(const std::wstring& libPath);
+	static std::wstring resolveVST3ModulePath(const std::wstring& libPath);
 	static std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> instanceMap;
 	static std::wstring defaultPluginPath;
 	std::wstring libPath;
+	std::wstring loadPath;
+	bool vst3 = false;
+	Steinberg::IPluginFactory* factory = NULL;
+	Steinberg::PClassInfo vst3ClassInfo;
 };

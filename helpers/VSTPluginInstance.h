@@ -23,6 +23,15 @@
 #include <memory>
 #include <functional>
 #include "aeffectx.h"
+#include "pluginterfaces/base/ibstream.h"
+#include "pluginterfaces/vst/ivstaudioprocessor.h"
+#include "pluginterfaces/vst/ivsteditcontroller.h"
+#include "pluginterfaces/vst/ivstevents.h"
+#include "pluginterfaces/vst/ivsthostapplication.h"
+#include "pluginterfaces/vst/ivstmessage.h"
+#include "pluginterfaces/vst/ivstparameterchanges.h"
+#include "pluginterfaces/vst/ivstprocesscontext.h"
+#include "pluginterfaces/gui/iplugview.h"
 
 class VSTPluginLibrary;
 
@@ -59,7 +68,7 @@ public:
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();
 
-	void startEditing(HWND hWnd, short* width, short* height);
+	bool startEditing(HWND hWnd, short* width, short* height);
 	void doIdle();
 	void stopEditing();
 
@@ -68,10 +77,37 @@ public:
 
 	void setSizeWindowFunc(std::function<void(int, int)> func);
 	void onSizeWindow(int w, int h);
+	bool getEditorSize(int* width, int* height);
 
 private:
+	class VST3HostContext;
+	class VST3MemoryStream;
+
+	bool initializeVST2();
+	bool initializeVST3();
+	void releaseVST3();
+	void configureVST3Buses(int requestedChannelCount);
+	Steinberg::Vst::SpeakerArrangement speakerArrangementForChannelCount(int count) const;
+
 	std::shared_ptr<VSTPluginLibrary> library;
-	vst_effect_t* effect = nullptr;
+	vst_effect_t* effect = NULL;
+	Steinberg::Vst::IComponent* vst3Component = NULL;
+	Steinberg::Vst::IAudioProcessor* vst3Processor = NULL;
+	Steinberg::Vst::IEditController* vst3Controller = NULL;
+	Steinberg::Vst::IConnectionPoint* vst3ComponentConnection = NULL;
+	Steinberg::Vst::IConnectionPoint* vst3ControllerConnection = NULL;
+	Steinberg::IPlugView* vst3View = NULL;
+	HWND vst3EditorHostWindow = NULL;
+	VST3HostContext* vst3HostContext = NULL;
+	int vst3InputBusCount = 0;
+	int vst3OutputBusCount = 0;
+	int vst3InputChannelCount = 0;
+	int vst3OutputChannelCount = 0;
+	bool vst3SupportsDouble = false;
+	bool vst3Active = false;
+	bool vst3Processing = false;
+	Steinberg::Vst::ProcessContext vst3ProcessContext = {};
+	Steinberg::Vst::TSamples vst3SamplePosition = 0;
 	std::function<void()> automateFunc;
 	std::function<void(int, int)> sizeWindowFunc;
 	float sampleRate = 0.0f;

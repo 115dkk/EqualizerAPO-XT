@@ -19,29 +19,218 @@
 
 #include "stdafx.h"
 #include <wincrypt.h>
-#include <vector>
-#include "LogHelper.h"
+#include <inttypes.h>
 #include "StringHelper.h"
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
+#include "pluginterfaces/base/futils.h"
 
-using std::find;
-using std::max;
-using std::string;
-using std::vector;
-using std::wstring;
+using namespace std;
+using namespace Steinberg;
+using namespace Steinberg::Vst;
 
 #define equalizerApoVSTID VST_FOURCC('E', 'A', 'P', 'O');
 
 vst_time_info vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
 
+class VSTPluginInstance::VST3MemoryStream : public IBStream
+{
+public:
+	VST3MemoryStream() {}
+	VST3MemoryStream(const vector<char>& data) : data(data) {}
+
+	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
+	{
+		QUERY_INTERFACE(iid, obj, FUnknown::iid, IBStream)
+		QUERY_INTERFACE(iid, obj, IBStream::iid, IBStream)
+		*obj = NULL;
+		return kNoInterface;
+	}
+
+	uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
+	uint32 PLUGIN_API release() override
+	{
+		uint32 result = InterlockedDecrement(&refCount);
+		if (result == 0)
+			delete this;
+		return result;
+	}
+
+	tresult PLUGIN_API read(void* buffer, int32 numBytes, int32* numBytesRead = nullptr) override
+	{
+		int32 available = (int32)min<size_t>(numBytes, data.size() - min<size_t>(position, data.size()));
+		if (available > 0)
+			memcpy(buffer, data.data() + position, available);
+		position += available;
+		if (numBytesRead != NULL)
+			*numBytesRead = available;
+		return kResultOk;
+	}
+
+	tresult PLUGIN_API write(void* buffer, int32 numBytes, int32* numBytesWritten = nullptr) override
+	{
+		if (numBytes <= 0)
+		{
+			if (numBytesWritten != NULL)
+				*numBytesWritten = 0;
+			return kResultOk;
+		}
+		if (position + numBytes > data.size())
+			data.resize(position + numBytes);
+		memcpy(data.data() + position, buffer, numBytes);
+		position += numBytes;
+		if (numBytesWritten != NULL)
+			*numBytesWritten = numBytes;
+		return kResultOk;
+	}
+
+	tresult PLUGIN_API seek(int64 pos, int32 mode, int64* result = nullptr) override
+	{
+		int64 newPosition = 0;
+		if (mode == kIBSeekSet)
+			newPosition = pos;
+		else if (mode == kIBSeekCur)
+			newPosition = (int64)position + pos;
+		else if (mode == kIBSeekEnd)
+			newPosition = (int64)data.size() + pos;
+		if (newPosition < 0)
+			newPosition = 0;
+		position = (size_t)newPosition;
+		if (position > data.size())
+			data.resize(position);
+		if (result != NULL)
+			*result = (int64)position;
+		return kResultOk;
+	}
+
+	tresult PLUGIN_API tell(int64* pos) override
+	{
+		if (pos == NULL)
+			return kInvalidArgument;
+		*pos = (int64)position;
+		return kResultOk;
+	}
+
+	const vector<char>& getData() const { return data; }
+
+private:
+	volatile LONG refCount = 1;
+	vector<char> data;
+	size_t position = 0;
+};
+
+class EmptyVST3ParameterChanges : public IParameterChanges
+{
+public:
+	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
+	{
+		QUERY_INTERFACE(iid, obj, FUnknown::iid, IParameterChanges)
+		QUERY_INTERFACE(iid, obj, IParameterChanges::iid, IParameterChanges)
+		*obj = NULL;
+		return kNoInterface;
+	}
+
+	uint32 PLUGIN_API addRef() override { return 2; }
+	uint32 PLUGIN_API release() override { return 1; }
+	int32 PLUGIN_API getParameterCount() override { return 0; }
+	IParamValueQueue* PLUGIN_API getParameterData(int32) override { return NULL; }
+	IParamValueQueue* PLUGIN_API addParameterData(const ParamID&, int32& index) override
+	{
+		index = -1;
+		return NULL;
+	}
+};
+
+class EmptyVST3EventList : public IEventList
+{
+public:
+	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
+	{
+		QUERY_INTERFACE(iid, obj, FUnknown::iid, IEventList)
+		QUERY_INTERFACE(iid, obj, IEventList::iid, IEventList)
+		*obj = NULL;
+		return kNoInterface;
+	}
+
+	uint32 PLUGIN_API addRef() override { return 2; }
+	uint32 PLUGIN_API release() override { return 1; }
+	int32 PLUGIN_API getEventCount() override { return 0; }
+	tresult PLUGIN_API getEvent(int32, Event&) override { return kInvalidArgument; }
+	tresult PLUGIN_API addEvent(Event&) override { return kResultFalse; }
+};
+
+static EmptyVST3ParameterChanges emptyVST3ParameterChanges;
+static EmptyVST3EventList emptyVST3EventList;
+
+class VSTPluginInstance::VST3HostContext : public IHostApplication, public IComponentHandler, public IPlugFrame
+{
+public:
+	VST3HostContext(VSTPluginInstance* instance) : instance(instance) {}
+
+	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
+	{
+		QUERY_INTERFACE(iid, obj, FUnknown::iid, IHostApplication)
+		QUERY_INTERFACE(iid, obj, IHostApplication::iid, IHostApplication)
+		QUERY_INTERFACE(iid, obj, IComponentHandler::iid, IComponentHandler)
+		QUERY_INTERFACE(iid, obj, IPlugFrame::iid, IPlugFrame)
+		*obj = NULL;
+		return kNoInterface;
+	}
+
+	uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
+	uint32 PLUGIN_API release() override
+	{
+		uint32 result = InterlockedDecrement(&refCount);
+		if (result == 0)
+			delete this;
+		return result;
+	}
+
+	tresult PLUGIN_API getName(String128 name) override
+	{
+		wcsncpy_s((wchar_t*)name, 128, L"Equalizer APO", _TRUNCATE);
+		return kResultOk;
+	}
+
+	tresult PLUGIN_API createInstance(TUID, TUID, void**) override
+	{
+		return kNoInterface;
+	}
+
+	tresult PLUGIN_API beginEdit(ParamID) override { return kResultOk; }
+	tresult PLUGIN_API performEdit(ParamID, ParamValue) override
+	{
+		if (instance != NULL)
+			instance->onAutomate();
+		return kResultOk;
+	}
+	tresult PLUGIN_API endEdit(ParamID) override { return kResultOk; }
+	tresult PLUGIN_API restartComponent(int32) override { return kResultOk; }
+
+	tresult PLUGIN_API resizeView(IPlugView* view, ViewRect* newSize) override
+	{
+		if (view != NULL && newSize != NULL)
+		{
+			view->onSize(newSize);
+			if (instance != NULL)
+				instance->onSizeWindow(newSize->getWidth(), newSize->getHeight());
+		}
+		return kResultOk;
+	}
+
+private:
+	volatile LONG refCount = 1;
+	VSTPluginInstance* instance;
+};
+
 static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, int64_t value, const char* ptr, float opt)
 {
-	VSTPluginInstance* instance = effect != nullptr ? static_cast<VSTPluginInstance*>(effect->host_internal) : nullptr;
+	VSTPluginInstance* instance = effect != NULL ? (VSTPluginInstance*)effect->host_internal : NULL;
 #ifdef _DEBUG
-	TraceFStatic(L"vst: %p opcode: %d index: %d value: %Id ptr: %p opt: %f host_internal: %p",
-		effect, opcode, index, value, ptr, opt, effect != nullptr ? effect->host_internal : nullptr);
+	printf("vst: %p opcode: %d index: %d value: %" PRIdPTR " ptr: %p opt: %f host_internal: %p\n",
+		effect, opcode, index, value, ptr, opt, effect != NULL ? effect->host_internal : NULL);
+	fflush(stdout);
 #endif
 
 	switch (opcode)
@@ -53,43 +242,43 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return equalizerApoVSTID;
 
 	case VST_EFFECT_OPCODE_PRODUCT_NAME:
-		strcpy_s(const_cast<char*>(ptr), 64, "Equalizer APO");
+		strcpy_s((char*) ptr, 64, "Equalizer APO");
 		return 1;
 
 	case VST_EFFECT_OPCODE_VENDOR_VERSION:
 		return (intptr_t) (MAJOR << 24 | MINOR << 16 | REVISION << 8 | 0);
 
 	case VST_HOST_OPCODE_PIN_CONNECTED:
-		if (instance != nullptr)
+		if (instance != NULL)
 			return index < instance->getUsedChannelCount() ? 0 : 1;
 		else
 			return 0;
 
 	case VST_HOST_OPCODE_IO_NEED_IDLE:
-		return effect != nullptr ? effect->control(effect, VST_HOST_OPCODE_KEEPALIVE_OR_IDLE, 0, 0, nullptr, 0.0f) : 0;
+		return effect != NULL ? effect->control(effect, VST_HOST_OPCODE_KEEPALIVE_OR_IDLE, 0, 0, NULL, 0.0f) : 0;
 
 	case VST_HOST_OPCODE_EDITOR_UPDATE:
-		return effect != nullptr ? effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, nullptr, 0.0f) : 0;
+		return effect != NULL ? effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f) : 0;
 
 	case VST_HOST_OPCODE_GET_TIME:
-		if (instance != nullptr) {
+		if (instance != NULL) {
 			vstTime.sampleRate = instance->getSampleRate();
 			return (intptr_t)&vstTime;
 		}
 		return 0;
 
 	case VST_HOST_OPCODE_GET_SAMPLE_RATE:
-		if (instance != nullptr)
+		if (instance != NULL)
 			return (intptr_t)instance->getSampleRate();
 		return 0;
 
 	case VST_HOST_OPCODE_GET_ACTIVE_THREAD:
-		if (instance != nullptr)
+		if (instance != NULL)
 			return instance->getProcessLevel();
 		return 0;
 
 	case VST_HOST_OPCODE_LANGUAGE:
-		if (instance != nullptr)
+		if (instance != NULL)
 			return instance->getLanguage();
 		return 0;
 
@@ -97,18 +286,19 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return 1;
 
 	case VST_HOST_OPCODE_EDITOR_RESIZE:
-		if (instance != nullptr)
+		if (instance != NULL)
 		{
-			instance->onSizeWindow(static_cast<int>(index), static_cast<int>(value));
+			instance->onSizeWindow((int)index, (int)value);
 			return 0;
 		}
 		return 1;
 
 	case VST_HOST_OPCODE_SUPPORTS:
 		{
-			const char* s = ptr;
+			char* s = (char*)ptr;
 #ifdef _DEBUG
-			TraceFStatic(L"VST canDo: %S", s);
+			printf("VST canDo: %s\n", s);
+			fflush(stdout);
 #endif
 			if (strcmp(s, "startStopProcess") == 0 ||
 				strcmp(s, "sizeWindow") == 0)
@@ -117,7 +307,7 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return 0;
 
 	case VST_HOST_OPCODE_AUTOMATE:
-		if (instance != nullptr)
+		if (instance != NULL)
 			instance->onAutomate();
 		return 0;
 
@@ -131,6 +321,30 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 	return 0;
 }
 
+static BOOL CALLBACK showChildWindow(HWND hWnd, LPARAM)
+{
+	ShowWindow(hWnd, SW_SHOW);
+	return TRUE;
+}
+
+static const wchar_t* vst3EditorHostWindowClass = L"EqualizerAPOVST3EditorHost";
+
+static void registerVST3EditorHostWindowClass()
+{
+	static bool registered = false;
+	if (registered)
+		return;
+
+	WNDCLASSW wc;
+	memset(&wc, 0, sizeof(wc));
+	wc.lpfnWndProc = DefWindowProcW;
+	wc.hInstance = GetModuleHandleW(NULL);
+	wc.lpszClassName = vst3EditorHostWindowClass;
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	RegisterClassW(&wc);
+	registered = true;
+}
+
 VSTPluginInstance::VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
 	: library(library), processLevel(processLevel)
 {
@@ -138,14 +352,24 @@ VSTPluginInstance::VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& li
 
 VSTPluginInstance::~VSTPluginInstance()
 {
-	if (effect != nullptr)
+	automateFunc = nullptr;
+	sizeWindowFunc = nullptr;
+	releaseVST3();
+	if (effect != NULL)
 	{
-		effect->control(effect, VST_EFFECT_OPCODE_DESTROY, 0, 0, nullptr, 0.0f);
-		effect = nullptr;
+		effect->control(effect, VST_EFFECT_OPCODE_DESTROY, 0, 0, NULL, 0.0f);
+		effect = NULL;
 	}
 }
 
 bool VSTPluginInstance::initialize()
+{
+	if (library->isVST3())
+		return initializeVST3();
+	return initializeVST2();
+}
+
+bool VSTPluginInstance::initializeVST2()
 {
 	bool result = true;
 
@@ -155,13 +379,13 @@ bool VSTPluginInstance::initialize()
 		effect->host_internal = this;
 		if (effect->magic_number == VST_MAGICNUMBER)
 		{
-			effect->control(effect, VST_EFFECT_OPCODE_INITIALIZE, 0, 0, nullptr, 0.0f);
+			effect->control(effect, VST_EFFECT_OPCODE_INITIALIZE, 0, 0, NULL, 0.0f);
 
 			usedChannelCount = max(numInputs(), numOutputs());
 		}
 		else
 		{
-			effect = nullptr;
+			effect = NULL;
 		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
@@ -172,9 +396,81 @@ bool VSTPluginInstance::initialize()
 	return result;
 }
 
+bool VSTPluginInstance::initializeVST3()
+{
+	vst3HostContext = new VST3HostContext(this);
+
+	const PClassInfo& classInfo = library->getVST3ClassInfo();
+	FUID componentId(classInfo.cid);
+	TUID componentIid;
+	IComponent::iid.toTUID(componentIid);
+	if (library->getFactory()->createInstance(componentId, componentIid, (void**)&vst3Component) != kResultOk || vst3Component == NULL)
+		return false;
+
+	vst3Component->setIoMode(kSimple);
+	if (vst3Component->initialize(static_cast<IHostApplication*>(vst3HostContext)) != kResultOk)
+		return false;
+
+	TUID processorIid;
+	IAudioProcessor::iid.toTUID(processorIid);
+	if (vst3Component->queryInterface(processorIid, (void**)&vst3Processor) != kResultOk || vst3Processor == NULL)
+		return false;
+
+	TUID controllerClassId;
+	memset(controllerClassId, 0, sizeof(controllerClassId));
+	if (vst3Component->getControllerClassId(controllerClassId) == kResultOk)
+	{
+		TUID controllerIid;
+		IEditController::iid.toTUID(controllerIid);
+		library->getFactory()->createInstance(controllerClassId, controllerIid, (void**)&vst3Controller);
+	}
+	if (vst3Controller == NULL)
+	{
+		TUID controllerIid;
+		IEditController::iid.toTUID(controllerIid);
+		vst3Component->queryInterface(controllerIid, (void**)&vst3Controller);
+	}
+	if (vst3Controller != NULL)
+	{
+		vst3Controller->initialize(static_cast<IHostApplication*>(vst3HostContext));
+		vst3Controller->setComponentHandler(vst3HostContext);
+
+		VST3MemoryStream* stream = new VST3MemoryStream();
+		if (vst3Component->getState(stream) == kResultOk)
+		{
+			stream->seek(0, IBStream::kIBSeekSet);
+			vst3Controller->setComponentState(stream);
+		}
+		stream->release();
+
+		TUID connectionPointIid;
+		Steinberg::Vst::IConnectionPoint::iid.toTUID(connectionPointIid);
+		if (vst3Component->queryInterface(connectionPointIid, (void**)&vst3ComponentConnection) == kResultOk
+			&& vst3Controller->queryInterface(connectionPointIid, (void**)&vst3ControllerConnection) == kResultOk)
+		{
+			vst3ComponentConnection->connect(vst3ControllerConnection);
+			vst3ControllerConnection->connect(vst3ComponentConnection);
+		}
+	}
+
+	vst3InputBusCount = max(0, vst3Component->getBusCount(kAudio, kInput));
+	vst3OutputBusCount = max(0, vst3Component->getBusCount(kAudio, kOutput));
+	configureVST3Buses(2);
+
+	vst3SupportsDouble = vst3Processor->canProcessSampleSize(kSample64) == kResultOk;
+	if (!vst3SupportsDouble && vst3Processor->canProcessSampleSize(kSample32) != kResultOk)
+		return false;
+
+	usedChannelCount = max(numInputs(), numOutputs());
+
+	return true;
+}
+
 int VSTPluginInstance::numInputs() const
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+		return vst3InputChannelCount;
+	if (effect == NULL)
 		return 0;
 
 	return effect->num_inputs;
@@ -182,7 +478,9 @@ int VSTPluginInstance::numInputs() const
 
 int VSTPluginInstance::numOutputs() const
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+		return vst3OutputChannelCount;
+	if (effect == NULL)
 		return 0;
 
 	return effect->num_outputs;
@@ -190,7 +488,9 @@ int VSTPluginInstance::numOutputs() const
 
 bool VSTPluginInstance::canReplacing() const
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+		return true;
+	if (effect == NULL)
 		return true;
 
 	return (effect->flags & VST_EFFECT_FLAG_SUPPORTS_FLOAT) != 0;
@@ -198,7 +498,14 @@ bool VSTPluginInstance::canReplacing() const
 
 int VSTPluginInstance::uniqueID() const
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		const PClassInfo& classInfo = library->getVST3ClassInfo();
+		int result = 0;
+		memcpy(&result, classInfo.cid, sizeof(result));
+		return result;
+	}
+	if (effect == NULL)
 		return 0;
 
 	return effect->unique_id;
@@ -206,10 +513,13 @@ int VSTPluginInstance::uniqueID() const
 
 std::wstring VSTPluginInstance::getName() const
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+		return StringHelper::toWString(library->getVST3ClassInfo().name, CP_UTF8);
+	if (effect == NULL)
 		return L"";
 
-	char buf[256] = {};
+	char buf[256];
+	memset(buf, 0, sizeof(buf));
 	effect->control(effect, VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
 	buf[255] = '\0'; // just to be sure
 
@@ -238,12 +548,16 @@ int VSTPluginInstance::getProcessLevel() const
 
 bool VSTPluginInstance::canDoubleReplacing() const
 {
+	if (library->isVST3())
+		return vst3SupportsDouble;
 	return (effect->flags & VST_EFFECT_FLAG_SUPPORTS_DOUBLE) != 0;
 }
 
 int VSTPluginInstance::getInitialDelay() const
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+		return vst3Processor != NULL ? (int)vst3Processor->getLatencySamples() : 0;
+	if (effect == NULL)
 		return 0;
 
 	return effect->delay;
@@ -266,17 +580,71 @@ void VSTPluginInstance::setLanguage(int value)
 
 void VSTPluginInstance::prepareForProcessing(float sampleRate, int blockSize)
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (vst3Processor == NULL || vst3Component == NULL)
+			return;
+
+		this->sampleRate = sampleRate;
+		configureVST3Buses(usedChannelCount > 0 ? usedChannelCount : max(vst3InputChannelCount, vst3OutputChannelCount));
+		ProcessSetup setup;
+		setup.processMode = kRealtime;
+		setup.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
+		setup.maxSamplesPerBlock = blockSize;
+		setup.sampleRate = sampleRate;
+		vst3Processor->setupProcessing(setup);
+		vst3SamplePosition = 0;
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
 	this->sampleRate = sampleRate;
-	effect->control(effect, VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, nullptr, sampleRate);
-	effect->control(effect, VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, nullptr, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, NULL, sampleRate);
+	effect->control(effect, VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, NULL, 0.0f);
 }
 
 void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap)
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (chunkData != L"")
+		{
+			DWORD bufSize = 0;
+			CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, NULL, &bufSize, NULL, NULL);
+			vector<char> data(bufSize);
+			if (bufSize > 0 && CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, (BYTE*)data.data(), &bufSize, NULL, NULL) == TRUE)
+			{
+				VST3MemoryStream* stream = new VST3MemoryStream(data);
+				if (vst3Component != NULL)
+					vst3Component->setState(stream);
+				stream->seek(0, IBStream::kIBSeekSet);
+				if (vst3Controller != NULL)
+					vst3Controller->setState(stream);
+				stream->release();
+			}
+		}
+		else if (vst3Controller != NULL)
+		{
+			for (auto it : paramMap)
+			{
+				for (int32 i = 0; i < vst3Controller->getParameterCount(); i++)
+				{
+					ParameterInfo info;
+					if (vst3Controller->getParameterInfo(i, info) == kResultOk
+						&& it.first == wstring((wchar_t*)info.title))
+					{
+						vst3Controller->setParamNormalized(info.id, it.second);
+						break;
+					}
+				}
+			}
+		}
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
 	if (effect->flags & VST_EFFECT_FLAG_CHUNKS)
@@ -284,10 +652,11 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 		if (chunkData != L"")
 		{
 			DWORD bufSize = 0;
-			CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, nullptr, &bufSize, nullptr, nullptr);
-			vector<BYTE> buf(bufSize);
-			if (CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, buf.data(), &bufSize, nullptr, nullptr) == TRUE)
-				effect->control(effect, VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, bufSize, buf.data(), 0.0f);
+			CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, NULL, &bufSize, NULL, NULL);
+			BYTE* buf = new BYTE[bufSize];
+			if (CryptStringToBinaryW(chunkData.c_str(), 0, CRYPT_STRING_BASE64, buf, &bufSize, NULL, NULL) == TRUE)
+				effect->control(effect, VST_EFFECT_OPCODE_SET_CHUNK_DATA, 1, bufSize, buf, 0.0f);
+			delete[] buf;
 		}
 	}
 	else
@@ -307,7 +676,39 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 
 void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_map<std::wstring, float>& paramMap) const
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		chunkData = L"";
+		paramMap.clear();
+
+		if (vst3Component != NULL)
+		{
+			VST3MemoryStream* stream = new VST3MemoryStream();
+			if (vst3Component->getState(stream) == kResultOk && !stream->getData().empty())
+			{
+				DWORD stringLength = 0;
+				CryptBinaryToStringW((BYTE*)stream->getData().data(), (DWORD)stream->getData().size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &stringLength);
+				wchar_t* string = new wchar_t[stringLength];
+				if (CryptBinaryToStringW((BYTE*)stream->getData().data(), (DWORD)stream->getData().size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string, &stringLength) == TRUE)
+					chunkData = string;
+				delete[] string;
+			}
+			stream->release();
+		}
+
+		if (chunkData == L"" && vst3Controller != NULL)
+		{
+			for (int32 i = 0; i < vst3Controller->getParameterCount(); i++)
+			{
+				ParameterInfo info;
+				if (vst3Controller->getParameterInfo(i, info) == kResultOk)
+					paramMap[wstring((wchar_t*)info.title)] = (float)vst3Controller->getParamNormalized(info.id);
+			}
+		}
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
 	chunkData = L"";
@@ -315,13 +716,14 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 
 	if (effect->flags & VST_EFFECT_FLAG_CHUNKS)
 	{
-		BYTE* chunk = nullptr;
-		int size = static_cast<int>(effect->control(effect, VST_EFFECT_OPCODE_GET_CHUNK_DATA, 1, 0, &chunk, 0.0f));
+		BYTE* chunk = NULL;
+		int size = (int)effect->control(effect, VST_EFFECT_OPCODE_GET_CHUNK_DATA, 1, 0, &chunk, 0.0f);
 		DWORD stringLength = 0;
-		CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &stringLength);
-		vector<wchar_t> string(stringLength);
-		if (CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string.data(), &stringLength) == TRUE)
-			chunkData = string.data();
+		CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &stringLength);
+		wchar_t* string = new wchar_t[stringLength];
+		if (CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string, &stringLength) == TRUE)
+			chunkData = string;
+		delete[] string;
 	}
 	else
 	{
@@ -338,16 +740,61 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 
 void VSTPluginInstance::startProcessing()
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (vst3Component != NULL && !vst3Active)
+		{
+			vst3Component->setActive(true);
+			vst3Active = true;
+		}
+		if (vst3Processor != NULL && !vst3Processing)
+		{
+			vst3Processor->setProcessing(true);
+			vst3Processing = true;
+		}
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 1, nullptr, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, nullptr, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 1, NULL, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, NULL, 0.0f);
 }
 
 void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray, int frameCount)
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (vst3Processor == NULL)
+			return;
+		AudioBusBuffers inputBuffers;
+		inputBuffers.numChannels = numInputs();
+		inputBuffers.channelBuffers32 = inputArray;
+		AudioBusBuffers outputBuffers;
+		outputBuffers.numChannels = numOutputs();
+		outputBuffers.channelBuffers32 = outputArray;
+		ProcessData data;
+		data.processMode = kRealtime;
+		data.symbolicSampleSize = kSample32;
+		data.numSamples = frameCount;
+		data.numInputs = vst3InputBusCount > 0 ? 1 : 0;
+		data.numOutputs = vst3OutputBusCount > 0 ? 1 : 0;
+		data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
+		data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
+		data.inputParameterChanges = &emptyVST3ParameterChanges;
+		data.inputEvents = &emptyVST3EventList;
+		data.processContext = &vst3ProcessContext;
+		vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
+		vst3ProcessContext.sampleRate = sampleRate;
+		vst3ProcessContext.projectTimeSamples = vst3SamplePosition;
+		vst3ProcessContext.continousTimeSamples = vst3SamplePosition;
+		if (vst3Processor->process(data) == kResultOk)
+			vst3SamplePosition += frameCount;
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
 	effect->process_float(effect, inputArray, outputArray, frameCount);
@@ -355,7 +802,37 @@ void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray
 
 void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** outputArray, int frameCount)
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (vst3Processor == NULL)
+			return;
+		AudioBusBuffers inputBuffers;
+		inputBuffers.numChannels = numInputs();
+		inputBuffers.channelBuffers64 = inputArray;
+		AudioBusBuffers outputBuffers;
+		outputBuffers.numChannels = numOutputs();
+		outputBuffers.channelBuffers64 = outputArray;
+		ProcessData data;
+		data.processMode = kRealtime;
+		data.symbolicSampleSize = kSample64;
+		data.numSamples = frameCount;
+		data.numInputs = vst3InputBusCount > 0 ? 1 : 0;
+		data.numOutputs = vst3OutputBusCount > 0 ? 1 : 0;
+		data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
+		data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
+		data.inputParameterChanges = &emptyVST3ParameterChanges;
+		data.inputEvents = &emptyVST3EventList;
+		data.processContext = &vst3ProcessContext;
+		vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
+		vst3ProcessContext.sampleRate = sampleRate;
+		vst3ProcessContext.projectTimeSamples = vst3SamplePosition;
+		vst3ProcessContext.continousTimeSamples = vst3SamplePosition;
+		if (vst3Processor->process(data) == kResultOk)
+			vst3SamplePosition += frameCount;
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
 	effect->process_double(effect, inputArray, outputArray, frameCount);
@@ -363,7 +840,13 @@ void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** out
 
 void VSTPluginInstance::process(float** inputArray, float** outputArray, int frameCount)
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		processReplacing(inputArray, outputArray, frameCount);
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
 	effect->process(effect, inputArray, outputArray, frameCount);
@@ -371,41 +854,146 @@ void VSTPluginInstance::process(float** inputArray, float** outputArray, int fra
 
 void VSTPluginInstance::stopProcessing()
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (vst3Processor != NULL && vst3Processing)
+		{
+			vst3Processor->setProcessing(false);
+			vst3Processing = false;
+		}
+		if (vst3Component != NULL && vst3Active)
+		{
+			vst3Component->setActive(false);
+			vst3Active = false;
+		}
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_END, 0, 0, nullptr, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 0, nullptr, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_END, 0, 0, NULL, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 0, NULL, 0.0f);
 }
 
-void VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
+bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
 {
-	if (effect == nullptr)
-		return;
+	if (width != NULL)
+		*width = 400;
+	if (height != NULL)
+		*height = 300;
+
+	if (library->isVST3())
+	{
+		if (vst3Controller == NULL)
+			return false;
+		stopEditing();
+		vst3View = vst3Controller->createView(ViewType::kEditor);
+		if (vst3View == NULL)
+			return false;
+		vst3View->setFrame(vst3HostContext);
+		ViewRect rect;
+		if (vst3View->getSize(&rect) == kResultOk)
+		{
+			if (width != NULL)
+				*width = (short)max<int32>(1, rect.getWidth());
+			if (height != NULL)
+				*height = (short)max<int32>(1, rect.getHeight());
+		}
+		tresult platformResult = vst3View->isPlatformTypeSupported(kPlatformTypeHWND);
+		if (platformResult != kResultOk && platformResult != kNotImplemented)
+		{
+			stopEditing();
+			return false;
+		}
+		registerVST3EditorHostWindowClass();
+		vst3EditorHostWindow = CreateWindowExW(0, vst3EditorHostWindowClass, L"",
+			WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
+			0, 0, *width, *height, hWnd, NULL, GetModuleHandleW(NULL), NULL);
+		if (vst3EditorHostWindow == NULL)
+		{
+			stopEditing();
+			return false;
+		}
+		if (vst3View->attached(vst3EditorHostWindow, kPlatformTypeHWND) != kResultOk)
+		{
+			stopEditing();
+			return false;
+		}
+		if (vst3View->getSize(&rect) == kResultOk)
+		{
+			if (width != NULL)
+				*width = (short)max<int32>(1, rect.getWidth());
+			if (height != NULL)
+				*height = (short)max<int32>(1, rect.getHeight());
+			vst3View->onSize(&rect);
+		}
+		SetWindowPos(vst3EditorHostWindow, NULL, 0, 0, *width, *height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		EnumChildWindows(vst3EditorHostWindow, showChildWindow, 0);
+		return true;
+	}
+
+	if (effect == NULL)
+		return false;
 
 	vst_rect_t* rect;
 	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
 	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_OPEN, 0, 0, hWnd, 0.0f);
 	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
 
-	*width = rect->right - rect->left;
-	*height = rect->bottom - rect->top;
+	if (width != NULL)
+		*width = rect->right - rect->left;
+	if (height != NULL)
+		*height = rect->bottom - rect->top;
+	return true;
 }
 
 void VSTPluginInstance::doIdle()
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (vst3EditorHostWindow != NULL)
+		{
+			InvalidateRect(vst3EditorHostWindow, NULL, FALSE);
+			UpdateWindow(vst3EditorHostWindow);
+			EnumChildWindows(vst3EditorHostWindow, [](HWND hWnd, LPARAM) -> BOOL {
+				InvalidateRect(hWnd, NULL, FALSE);
+				UpdateWindow(hWnd);
+				return TRUE;
+			}, 0);
+		}
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, nullptr, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f);
 }
 
 void VSTPluginInstance::stopEditing()
 {
-	if (effect == nullptr)
+	if (library->isVST3())
+	{
+		if (vst3View != NULL)
+		{
+			vst3View->removed();
+			vst3View->setFrame(NULL);
+			vst3View->release();
+			vst3View = NULL;
+		}
+		if (vst3EditorHostWindow != NULL)
+		{
+			DestroyWindow(vst3EditorHostWindow);
+			vst3EditorHostWindow = NULL;
+		}
+		return;
+	}
+
+	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, nullptr, 0.0f);
+	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, NULL, 0.0f);
 }
 
 void VSTPluginInstance::setAutomateFunc(std::function<void()> func)
@@ -424,8 +1012,133 @@ void VSTPluginInstance::setSizeWindowFunc(std::function<void(int, int)> func)
 	sizeWindowFunc = func;
 }
 
+bool VSTPluginInstance::getEditorSize(int* width, int* height)
+{
+	(void)width;
+	(void)height;
+	return false;
+}
+
 void VSTPluginInstance::onSizeWindow(int w, int h)
 {
+	if (vst3EditorHostWindow != NULL)
+		SetWindowPos(vst3EditorHostWindow, NULL, 0, 0, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 	if (sizeWindowFunc)
 		sizeWindowFunc(w, h);
+}
+
+void VSTPluginInstance::releaseVST3()
+{
+	if (!library->isVST3())
+		return;
+
+	automateFunc = nullptr;
+	sizeWindowFunc = nullptr;
+	stopEditing();
+	stopProcessing();
+
+	if (vst3Controller != NULL)
+		vst3Controller->setComponentHandler(NULL);
+
+	if (vst3ComponentConnection != NULL && vst3ControllerConnection != NULL)
+	{
+		vst3ComponentConnection->disconnect(vst3ControllerConnection);
+		vst3ControllerConnection->disconnect(vst3ComponentConnection);
+	}
+	if (vst3ComponentConnection != NULL)
+	{
+		vst3ComponentConnection->release();
+		vst3ComponentConnection = NULL;
+	}
+	if (vst3ControllerConnection != NULL)
+	{
+		vst3ControllerConnection->release();
+		vst3ControllerConnection = NULL;
+	}
+	if (vst3Controller != NULL)
+	{
+		vst3Controller->terminate();
+		vst3Controller->release();
+		vst3Controller = NULL;
+	}
+	if (vst3Processor != NULL)
+	{
+		vst3Processor->release();
+		vst3Processor = NULL;
+	}
+	if (vst3Component != NULL)
+	{
+		vst3Component->terminate();
+		vst3Component->release();
+		vst3Component = NULL;
+	}
+	if (vst3HostContext != NULL)
+	{
+		vst3HostContext->release();
+		vst3HostContext = NULL;
+	}
+}
+
+void VSTPluginInstance::configureVST3Buses(int requestedChannelCount)
+{
+	if (vst3Component == NULL || vst3Processor == NULL)
+		return;
+
+	int channelCount = max(1, requestedChannelCount);
+	SpeakerArrangement inputArrangement = speakerArrangementForChannelCount(channelCount);
+	SpeakerArrangement outputArrangement = speakerArrangementForChannelCount(channelCount);
+
+	if (inputArrangement == SpeakerArr::kEmpty || outputArrangement == SpeakerArr::kEmpty)
+	{
+		BusInfo busInfo;
+		memset(&busInfo, 0, sizeof(busInfo));
+		if (vst3InputBusCount > 0 && vst3Component->getBusInfo(kAudio, kInput, 0, busInfo) == kResultOk && busInfo.channelCount > 0)
+			inputArrangement = speakerArrangementForChannelCount(busInfo.channelCount);
+		if (vst3OutputBusCount > 0 && vst3Component->getBusInfo(kAudio, kOutput, 0, busInfo) == kResultOk && busInfo.channelCount > 0)
+			outputArrangement = speakerArrangementForChannelCount(busInfo.channelCount);
+	}
+
+	for (int i = 0; i < vst3InputBusCount; i++)
+		vst3Component->activateBus(kAudio, kInput, i, i == 0);
+	for (int i = 0; i < vst3OutputBusCount; i++)
+		vst3Component->activateBus(kAudio, kOutput, i, i == 0);
+
+	if (inputArrangement != SpeakerArr::kEmpty || outputArrangement != SpeakerArr::kEmpty)
+	{
+		vst3Processor->setBusArrangements(
+			vst3InputBusCount > 0 && inputArrangement != SpeakerArr::kEmpty ? &inputArrangement : NULL,
+			vst3InputBusCount > 0 && inputArrangement != SpeakerArr::kEmpty ? 1 : 0,
+			vst3OutputBusCount > 0 && outputArrangement != SpeakerArr::kEmpty ? &outputArrangement : NULL,
+			vst3OutputBusCount > 0 && outputArrangement != SpeakerArr::kEmpty ? 1 : 0);
+	}
+
+	BusInfo busInfo;
+	memset(&busInfo, 0, sizeof(busInfo));
+	if (vst3InputBusCount > 0 && vst3Component->getBusInfo(kAudio, kInput, 0, busInfo) == kResultOk)
+		vst3InputChannelCount = max(0, busInfo.channelCount);
+	if (vst3OutputBusCount > 0 && vst3Component->getBusInfo(kAudio, kOutput, 0, busInfo) == kResultOk)
+		vst3OutputChannelCount = max(0, busInfo.channelCount);
+}
+
+SpeakerArrangement VSTPluginInstance::speakerArrangementForChannelCount(int count) const
+{
+	switch (count)
+	{
+	case 1:
+		return SpeakerArr::kMono;
+	case 2:
+		return SpeakerArr::kStereo;
+	case 4:
+		return SpeakerArr::k40Music;
+	case 5:
+		return SpeakerArr::k50;
+	case 6:
+		return SpeakerArr::k51;
+	case 7:
+		return SpeakerArr::k61Cine;
+	case 8:
+		return SpeakerArr::k71Music;
+	default:
+		return SpeakerArr::kEmpty;
+	}
 }

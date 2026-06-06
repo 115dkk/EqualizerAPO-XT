@@ -382,6 +382,17 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         path: deps/tclap
 
+    # Clone the VST3 SDK pluginterfaces (header-only COM interfaces + IID unit).
+    # Only this submodule is needed for VST3 hosting; public.sdk / vstgui are not
+    # compiled. Pinned to the 3.8.0 tag, the first MIT-licensed release.
+    - name: Download VST3 pluginterfaces
+      uses: actions/checkout@v6
+      with:
+        repository: steinbergmedia/vst3_pluginterfaces
+        ref: v3.8.0_build_66
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/vst3sdk/pluginterfaces
+
     # Setup dependency structures
     - name: Setup dependency structures
       shell: pwsh
@@ -468,6 +479,9 @@ jobs:
         echo "LIBSNDFILE_INCLUDE=$depsPath\libsndfile\include" >> $env:GITHUB_ENV
         echo "LIBSNDFILE_LIB=$depsPath\libsndfile\build\Release" >> $env:GITHUB_ENV
         echo "TCLAP_ROOT=$depsPath\tclap" >> $env:GITHUB_ENV
+
+        # VST3 SDK root (contains pluginterfaces/) for VST3 hosting headers.
+        echo "VST3_SDK=$depsPath\vst3sdk" >> $env:GITHUB_ENV
 
         # Velopack runtime paths for the Editor's auto-update link.
         echo "VELOPACK_INCLUDE=$depsPath\velopack_libc\include" >> $env:GITHUB_ENV
@@ -618,6 +632,7 @@ jobs:
           "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
           "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
           "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
+          "/p:VST3_SDK=$env:VST3_SDK",
           "/p:PlatformToolset=$platformToolset",  # v145 on the VS 2026 x64 image, v143 on the VS 2022 ARM64 image (see above)
           "/p:PreferredToolArchitecture=x64"  # 64-bit host cl.exe avoids the 32-bit PCH heap limit on ARM64
         )
