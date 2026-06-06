@@ -8,8 +8,8 @@
 
 원본 Equalizer APO와 달리 XT 포크는 설치 파일이 하나가 아닙니다. CPU 명령어 집합마다 설치 파일을 따로 빌드하며, '''32비트 빌드는 없습니다.''' 64비트 x64와 ARM64만 있습니다.
 
-# [https://github.com/115dkk/EqualizerAPO-XT/releases 릴리스 페이지]에서 CPU에 맞는 <code>EqualizerAPO_Setup-<변형>.exe</code>를 받습니다. 변형은 <code>x64-sse2</code>, <code>x64-avx</code>, <code>x64-avx2</code>, <code>x64-avx512</code>, <code>x64-avx10_1</code>, <code>arm64</code>가 있습니다.
-# 무엇을 받을지 모르겠으면 '''<code>x64-avx2</code>를 받으면 됩니다.''' 대략 2013년 이후 데스크톱 CPU는 거의 다 돌아갑니다. 아주 오래된 x64 CPU라면 호환성이 가장 넓은 <code>x64-sse2</code>를, AVX는 되지만 AVX2가 안 되는 CPU라면 <code>x64-avx</code>를 받습니다. <code>x64-avx512</code>와 <code>x64-avx10_1</code>은 CPU가 실제로 그 확장을 지원할 때만, <code>arm64</code>는 ARM 기반 Windows 기기에서 받습니다. CPU 종류는 '''시작 → 설정 → 시스템 → 정보'''에서 확인할 수 있습니다.
+# [https://github.com/115dkk/EqualizerAPO-XT/releases 릴리스 페이지]에서 CPU에 맞는 <code><nowiki>EqualizerAPO_Setup-<변형>.exe</nowiki></code>를 받습니다. 변형은 <code><nowiki>x64-sse2</nowiki></code>, <code><nowiki>x64-avx</nowiki></code>, <code><nowiki>x64-avx2</nowiki></code>, <code><nowiki>x64-avx512</nowiki></code>, <code><nowiki>x64-avx10_1</nowiki></code>, <code><nowiki>arm64</nowiki></code>가 있습니다.
+# 무엇을 받을지 모르겠으면 '''<code><nowiki>x64-avx2</nowiki></code>를 받으면 됩니다.''' 대략 2013년 이후 데스크톱 CPU는 거의 다 돌아갑니다. 아주 오래된 x64 CPU라면 호환성이 가장 넓은 <code><nowiki>x64-sse2</nowiki></code>를, AVX는 되지만 AVX2가 안 되는 CPU라면 <code><nowiki>x64-avx</nowiki></code>를 받습니다. <code><nowiki>x64-avx512</nowiki></code>와 <code><nowiki>x64-avx10_1</nowiki></code>은 CPU가 실제로 그 확장을 지원할 때만, <code><nowiki>arm64</nowiki></code>는 ARM 기반 Windows 기기에서 받습니다. CPU 종류는 '''시작 → 설정 → 시스템 → 정보'''에서 확인할 수 있습니다.
 # 받은 설치 파일을 실행합니다. Velopack 설치 프로그램이 애플리케이션을 풀고 EqualizerAPO-XT를 등록합니다. 설치 경로를 외울 필요는 없습니다. 위치는 레지스트리에 기록됩니다([[#설치 위치|아래]] 참고).
 # 처음 설치하면 '''장치 선택기(Device Selector)'''가 열립니다. Equalizer APO를 적용할 재생 장치나 녹음 장치를 선택합니다. 잘 모르겠으면 기본 출력 장치를 고르면 됩니다. 어느 것이 기본 장치인지는 '''시작 → 설정 → 시스템 → 소리'''에서 볼 수 있습니다. 나중에 장치를 추가하거나 빼고 싶으면 설치 폴더에서 장치 선택기를 다시 실행하면 됩니다.
 # Windows가 오디오 서비스를 다시 시작하도록 두거나 재부팅합니다. 새로 등록한 APO는 오디오 엔진이 재시작해야 적용됩니다.
@@ -17,12 +17,12 @@
 
 === 설치 위치 ===
 
-EqualizerAPO-XT는 경로를 레지스트리 키 '''<code>HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO</code>'''에 기록합니다.
+EqualizerAPO-XT는 경로를 레지스트리 키 '''<code><nowiki>HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO</nowiki></code>'''에 기록합니다.
 
-* <code>InstallPath</code> — 애플리케이션이 설치된 디렉터리입니다.
-* <code>ConfigPath</code> — 설정 파일이 들어 있는 <code>config</code> 폴더입니다.
+* <code><nowiki>InstallPath</nowiki></code> — 애플리케이션이 설치된 디렉터리입니다.
+* <code><nowiki>ConfigPath</nowiki></code> — 설정 파일이 들어 있는 <code><nowiki>config</nowiki></code> 폴더입니다.
 
-설정 폴더로 가는 가장 쉬운 방법은 '''설정 편집기(Configuration Editor)'''를 여는 것입니다. 편집기가 이 폴더를 바로 가리킵니다. 폴더에는 자동으로 불러오는 기본 파일 <code>config.txt</code>와 함께 바로 쓸 수 있는 예제들이 들어 있습니다. <code>example.txt</code>, <code>demo.txt</code>, <code>convolution.txt</code>, <code>iir_lowpass.txt</code>, <code>multichannel.txt</code>, <code>selective_delay.txt</code>입니다.
+설정 폴더로 가는 가장 쉬운 방법은 '''설정 편집기(Configuration Editor)'''를 여는 것입니다. 편집기가 이 폴더를 바로 가리킵니다. 폴더에는 자동으로 불러오는 기본 파일 <code><nowiki>config.txt</nowiki></code>와 함께 바로 쓸 수 있는 예제들이 들어 있습니다. <code><nowiki>example.txt</nowiki></code>, <code><nowiki>demo.txt</nowiki></code>, <code><nowiki>convolution.txt</nowiki></code>, <code><nowiki>iir_lowpass.txt</nowiki></code>, <code><nowiki>multichannel.txt</nowiki></code>, <code><nowiki>selective_delay.txt</nowiki></code>입니다.
 
 === 자동 업데이트 ===
 
@@ -33,8 +33,8 @@ XT는 [https://velopack.io/ Velopack]으로 설치되므로, 처음부터 다시
 
 == 첫 설정 ==
 
-# 설정 폴더를 엽니다([[#설치 위치|위]] 참고). 기본 파일은 <code>config.txt</code>이고, Equalizer APO가 자동으로 불러오며 저장할 때마다 다시 읽습니다.
-# <code>config.txt</code>를 설정 편집기나 텍스트 편집기로 엽니다. 프리앰프 값을 정한 뒤 <code>example.txt</code>를 포함하도록 되어 있습니다. APO가 도는지 확인하려면 아무 음원이나 재생하면서 소리가 나는 동안 <code>Preamp</code> 값을 바꿔 보세요. 파일을 저장하는 순간 음량이 바뀌어야 합니다.
+# 설정 폴더를 엽니다([[#설치 위치|위]] 참고). 기본 파일은 <code><nowiki>config.txt</nowiki></code>이고, Equalizer APO가 자동으로 불러오며 저장할 때마다 다시 읽습니다.
+# <code><nowiki>config.txt</nowiki></code>를 설정 편집기나 텍스트 편집기로 엽니다. 프리앰프 값을 정한 뒤 <code><nowiki>example.txt</nowiki></code>를 포함하도록 되어 있습니다. APO가 도는지 확인하려면 아무 음원이나 재생하면서 소리가 나는 동안 <code><nowiki>Preamp</nowiki></code> 값을 바꿔 보세요. 파일을 저장하는 순간 음량이 바뀌어야 합니다.
 # 직접 보정을 만들려면 전통적으로 [https://www.roomeqwizard.com/ Room EQ Wizard](REW)로 시스템을 측정한 뒤 필터 텍스트로 내보냅니다. EqualizerAPO-XT에는 필터를 바로 추가하고 조정하는 그래픽 '''설정 편집기'''도 들어 있어, 소소한 조정에는 이쪽이 더 편하다는 사람이 많습니다.
 
 <img src="RoomEQWizard.png" width="600"><br><em>Room EQ Wizard (A–F 표시는 아래 절차에서 언급합니다)</em>
@@ -46,13 +46,13 @@ REW 사용법을 전부 다루는 것은 이 문서의 범위를 벗어나지만
 # '''EQ Filters'''(표시 '''D''')를 누릅니다. ''Control''을 ''Manual''로, ''Type''을 ''PK/PEQ''로 놓고 ''Frequency'', ''Gain'', ''Q''/''Bw Oct''를 조정해 필터를 추가합니다. 그래프가 실시간으로 갱신됩니다. 룸 보정에는 보통 피킹 필터가 알맞지만, 다른 [[Korean-Configuration-reference#Filter|필터 종류]]도 쓸 수 있습니다.
 # '''Save this filter set'''(표시 '''E''')으로 REW 필터 세트를 저장해 두면 나중에 다시 불러올 수 있습니다.
 # Equalizer APO가 읽는 형식으로 내보냅니다. 메인 창에서 '''File'''(표시 '''F''') → '''Export''' → '''Filter Settings as text'''를 골라 설정 폴더에 새 이름으로 저장합니다.
-# <code>config.txt</code>의 <code>Include</code> 줄이 방금 만든 파일을 가리키도록 고칩니다. 변경은 즉시 적용됩니다.
+# <code><nowiki>config.txt</nowiki></code>의 <code><nowiki>Include</nowiki></code> 줄이 방금 만든 파일을 가리키도록 고칩니다. 변경은 즉시 적용됩니다.
 
 이렇게 하면 첫 설정이 완성됩니다. 필터, 채널 라우팅, 딜레이, 컨볼루션, 그래픽 EQ, 표현식 언어 같은 전체 문법은 [[Korean-Configuration-reference|설정 레퍼런스]]에 있습니다. 측정 쪽을 더 깊이 알고 싶으면 REW [https://www.roomeqwizard.com/help/ 도움말]을 보세요.
 
 == 컨볼루션 ==
 
-XT 포크를 쓰는 이유 중 하나가 컨볼루션 지원입니다. [[Korean-Configuration-reference#Convolution|Convolution]] 명령은 사운드 파일(WAV, FLAC, OGG 등 [https://libsndfile.github.io/libsndfile/ libsndfile]이 다루는 형식)에서 임펄스 응답을 불러와 선택한 채널과 합성곱합니다. XT는 원본의 임펄스 응답 길이 제한을 없애고 설정을 단순하게 만들었습니다. 함께 들어 있는 <code>convolution.txt</code>가 출발점입니다. 임펄스 응답의 샘플레이트는 오디오 장치의 샘플레이트와 같아야 하며, 설정 폴더 안의 임펄스 응답 파일이 바뀌면 설정이 자동으로 다시 로드됩니다.
+XT 포크를 쓰는 이유 중 하나가 컨볼루션 지원입니다. [[Korean-Configuration-reference#Convolution|Convolution]] 명령은 사운드 파일(WAV, FLAC, OGG 등 [https://libsndfile.github.io/libsndfile/ libsndfile]이 다루는 형식)에서 임펄스 응답을 불러와 선택한 채널과 합성곱합니다. XT는 원본의 임펄스 응답 길이 제한을 없애고 설정을 단순하게 만들었습니다. 함께 들어 있는 <code><nowiki>convolution.txt</nowiki></code>가 출발점입니다. 임펄스 응답의 샘플레이트는 오디오 장치의 샘플레이트와 같아야 하며, 설정 폴더 안의 임펄스 응답 파일이 바뀌면 설정이 자동으로 다시 로드됩니다.
 
 == 문제 해결 ==
 
@@ -80,13 +80,13 @@ Equalizer APO는 기본적으로 사운드 카드 드라이버에 딸려 온 효
 
 Equalizer APO는 치명적인 문제를 만나면 다음 파일에 한 줄을 기록합니다.
 
-<pre>C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log</pre>
+<pre><nowiki>C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log</nowiki></pre>
 
-정상일 때는 이 파일이 아예 없습니다. 오류가 날 때만 만들어집니다. 더 자세한 정보가 필요하면 추적 출력을 켤 수 있습니다. <code>regedit.exe</code>를 열고 <code>HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO</code>로 가서 '''<code>EnableTrace</code>''' 값을 <code>true</code>로 바꿉니다. 그러면 평소 재생이나 녹음 중에도 <code>(TRACE)</code> 표시가 붙은 줄이 기록되어, 설정 파일이 어떻게 해석되는지 확인할 때 유용합니다. 끝나면 로그가 불필요하게 커지지 않도록 <code>EnableTrace</code>를 다시 <code>false</code>로 되돌리세요.
+정상일 때는 이 파일이 아예 없습니다. 오류가 날 때만 만들어집니다. 더 자세한 정보가 필요하면 추적 출력을 켤 수 있습니다. <code><nowiki>regedit.exe</nowiki></code>를 열고 <code><nowiki>HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO</nowiki></code>로 가서 '''<code><nowiki>EnableTrace</nowiki></code>''' 값을 <code><nowiki>true</nowiki></code>로 바꿉니다. 그러면 평소 재생이나 녹음 중에도 <code><nowiki>(TRACE)</nowiki></code> 표시가 붙은 줄이 기록되어, 설정 파일이 어떻게 해석되는지 확인할 때 유용합니다. 끝나면 로그가 불필요하게 커지지 않도록 <code><nowiki>EnableTrace</nowiki></code>를 다시 <code><nowiki>false</nowiki></code>로 되돌리세요.
 
 === 하드웨어 가속 OpenAL ===
 
-OpenAL을 쓰는 애플리케이션은 대개 APO를 지원하는 DirectSound로 폴백하므로 문제가 없습니다. 다만 일부 제조사는 하드웨어에 직접 접근해 APO를 우회하는 하드웨어 가속 OpenAL 라이브러리를 제공합니다. 하드웨어 가속 OpenAL에 APO 지원을 추가할 방법은 없으므로, 애플리케이션을 다른 출력 백엔드로 바꾸거나 OpenAL을 소프트웨어 모드로 돌리는 수밖에 없습니다. 예를 들어 <code>OpenAL32.dll</code>을 [https://openal-soft.org/ OpenAL Soft] 빌드로 교체하거나, <code>C:\Windows\System32</code> 또는 <code>C:\Windows\SysWOW64</code>에 있는 제조사 하드웨어 OpenAL 라이브러리(흔히 <code>*_oal.dll</code> 형태)의 이름을 바꾸는 방법이 있습니다. 뒤쪽 방법은 사운드 드라이버를 건드리는 것이라 공식적으로 지원되지 않습니다.
+OpenAL을 쓰는 애플리케이션은 대개 APO를 지원하는 DirectSound로 폴백하므로 문제가 없습니다. 다만 일부 제조사는 하드웨어에 직접 접근해 APO를 우회하는 하드웨어 가속 OpenAL 라이브러리를 제공합니다. 하드웨어 가속 OpenAL에 APO 지원을 추가할 방법은 없으므로, 애플리케이션을 다른 출력 백엔드로 바꾸거나 OpenAL을 소프트웨어 모드로 돌리는 수밖에 없습니다. 예를 들어 <code><nowiki>OpenAL32.dll</nowiki></code>을 [https://openal-soft.org/ OpenAL Soft] 빌드로 교체하거나, <code><nowiki>C:\Windows\System32</nowiki></code> 또는 <code><nowiki>C:\Windows\SysWOW64</nowiki></code>에 있는 제조사 하드웨어 OpenAL 라이브러리(흔히 <code><nowiki>*_oal.dll</nowiki></code> 형태)의 이름을 바꾸는 방법이 있습니다. 뒤쪽 방법은 사운드 드라이버를 건드리는 것이라 공식적으로 지원되지 않습니다.
 
 == 함께 보기 ==
 

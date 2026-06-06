@@ -8,13 +8,13 @@ This page describes the configuration file format and the commands EqualizerAPO-
 
 Configuration files are read line by line. Each meaningful line has the form:
 
-<pre>Command: Parameters</pre>
+<pre><nowiki>Command: Parameters</nowiki></pre>
 
-Any line that does not fit this shape is ignored silently, which is how comments work — a line starting with <code>#</code> is simply not a recognised command. Lines naming a command that does not exist are ignored as well.
+Any line that does not fit this shape is ignored silently, which is how comments work — a line starting with <code><nowiki>#</nowiki></code> is simply not a recognised command. Lines naming a command that does not exist are ignored as well.
 
 Example:
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Device: High Definition Audio Device Speakers; Benchmark
 #All lines below will only be applied to the specified device and the benchmark application
 Preamp: -6 db
@@ -37,7 +37,7 @@ Filter  2: ON  LPQ      Fc     10000 Hz  Q  0.400
 Device: Microphone
 #From here, the lines only apply to microphone devices
 Filter: ON  NO       Fc     50 Hz
-</syntaxhighlight>
+</nowiki></pre>
 
 == Filtering commands ==
 
@@ -45,94 +45,94 @@ These commands change the audio on the currently selected channels directly.
 
 === Preamp ===
 
-'''Syntax:''' <code>Preamp: <Negative number> dB</code>
+'''Syntax:''' <code><nowiki>Preamp: <Negative number> dB</nowiki></code>
 
 Sets a preamplification value in decibels. Use it when filters add positive gain, to keep the signal from clipping. When several preamps apply to the same channel, the effective preamp is their sum in dB.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Preamp: -6.5 dB
-</syntaxhighlight>
+</nowiki></pre>
 
 === Filter ===
 
 '''Syntax:'''
-<pre>
+<pre><nowiki>
 Filter <n>: ON <Type> Fc <Frequency> Hz Gain <Gain value> dB Q <Q value>
 Filter <n>: ON <Type> Fc <Frequency> Hz Gain <Gain value> dB BW Oct <Bandwidth value>
-</pre>
+</nowiki></pre>
 
-Adds a filter of the given type, frequency, gain and Q / bandwidth. The first form (with Q) matches Room EQ Wizard's "Generic" equalizer type; the second (with bandwidth) matches "FBQ2496". The filter number <code><n></code> is not interpreted and may be omitted.
+Adds a filter of the given type, frequency, gain and Q / bandwidth. The first form (with Q) matches Room EQ Wizard's "Generic" equalizer type; the second (with bandwidth) matches "FBQ2496". The filter number <code><nowiki><n></nowiki></code> is not interpreted and may be omitted.
 
 The table below lists the supported filter types. In the parameter columns, '''X''' marks a required parameter and '''O''' an optional one. These cover every filter of the "Generic" and "FBQ2496" types; other equalizer types may also work if their text format matches. Note one difference: the band-pass filter here is a true band-pass with no gain (like the low/high-pass filters), unlike the DCX2496's "BP", which is really a peaking filter.
 
 {| class="wikitable"
 ! Type !! Description !! Fc !! Gain !! Q/BW !! Example
 |-
-| PK<br>Modal<br>PEQ || Peaking filter (parametric EQ) || X || X || X || <code>ON PK Fc 50.0 Hz Gain -10.0 dB Q 2.50</code><br><code>ON Modal Fc 100 Hz Gain 3.0 dB Q 5.41 T60 target 100 ms</code><br><code>ON PEQ Fc 100 Hz Gain 1.0 dB BW Oct 0.167</code>
+| PK<br>Modal<br>PEQ || Peaking filter (parametric EQ) || X || X || X || <code><nowiki>ON PK Fc 50.0 Hz Gain -10.0 dB Q 2.50</nowiki></code><br><code><nowiki>ON Modal Fc 100 Hz Gain 3.0 dB Q 5.41 T60 target 100 ms</nowiki></code><br><code><nowiki>ON PEQ Fc 100 Hz Gain 1.0 dB BW Oct 0.167</nowiki></code>
 |-
-| LP<br>LPQ || Low-pass filter || X || || O || <code>ON LP Fc 8000 Hz</code><br><code>ON LPQ Fc 10000 Hz Q 0.400</code>
+| LP<br>LPQ || Low-pass filter || X || || O || <code><nowiki>ON LP Fc 8000 Hz</nowiki></code><br><code><nowiki>ON LPQ Fc 10000 Hz Q 0.400</nowiki></code>
 |-
-| HP<br>HPQ || High-pass filter || X || || O || <code>ON HP Fc 30.0 Hz</code><br><code>ON HPQ Fc 20.0 Hz Q 0.500</code>
+| HP<br>HPQ || High-pass filter || X || || O || <code><nowiki>ON HP Fc 30.0 Hz</nowiki></code><br><code><nowiki>ON HPQ Fc 20.0 Hz Q 0.500</nowiki></code>
 |-
-| BP || Band-pass filter (not from DCX2496) || X || || O || <code>ON BP Fc 1000 Hz Q 0.100</code>
+| BP || Band-pass filter (not from DCX2496) || X || || O || <code><nowiki>ON BP Fc 1000 Hz Q 0.100</nowiki></code>
 |-
-| LS<br>LSC ''x'' dB || Low-shelf filter (with centre freq.; ''x'' dB per octave for LSC) || X || X || O (1.2.1) || <code>ON LS Fc 300 Hz Gain 5.0 dB</code><br><code>ON LSC 10.8 dB Fc 300 Hz Gain 5.0 dB</code><br><code>ON LSC Fc 300 Hz Gain 5.0 dB Q 0.6473</code>
+| LS<br>LSC ''x'' dB || Low-shelf filter (with centre freq.; ''x'' dB per octave for LSC) || X || X || O (1.2.1) || <code><nowiki>ON LS Fc 300 Hz Gain 5.0 dB</nowiki></code><br><code><nowiki>ON LSC 10.8 dB Fc 300 Hz Gain 5.0 dB</nowiki></code><br><code><nowiki>ON LSC Fc 300 Hz Gain 5.0 dB Q 0.6473</nowiki></code>
 |-
-| HS<br>HSC ''x'' dB || High-shelf filter (with centre freq.; ''x'' dB per octave for HSC) || X || X || O (1.2.1) || <code>ON HS Fc 1000 Hz Gain -3.0 dB</code><br><code>ON HSC 6 dB Fc 100 Hz Gain -6.0 dB</code><br><code>ON HSC Fc 100 Hz Gain -6.0 dB Q 0.4272</code>
+| HS<br>HSC ''x'' dB || High-shelf filter (with centre freq.; ''x'' dB per octave for HSC) || X || X || O (1.2.1) || <code><nowiki>ON HS Fc 1000 Hz Gain -3.0 dB</nowiki></code><br><code><nowiki>ON HSC 6 dB Fc 100 Hz Gain -6.0 dB</nowiki></code><br><code><nowiki>ON HSC Fc 100 Hz Gain -6.0 dB Q 0.4272</nowiki></code>
 |-
-| LS 6dB<br>LS 12dB || Low-shelf filter (6 / 12 dB per octave, corner freq.) || X || X || || <code>ON LS 6dB Fc 50.0 Hz Gain 7.2 dB</code><br><code>ON LS 12dB Fc 2000 Hz Gain -5.0 dB</code>
+| LS 6dB<br>LS 12dB || Low-shelf filter (6 / 12 dB per octave, corner freq.) || X || X || || <code><nowiki>ON LS 6dB Fc 50.0 Hz Gain 7.2 dB</nowiki></code><br><code><nowiki>ON LS 12dB Fc 2000 Hz Gain -5.0 dB</nowiki></code>
 |-
-| HS 6dB<br>HS 12dB || High-shelf filter (6 / 12 dB per octave, corner freq.) || X || X || || <code>ON HS 6dB Fc 12000 Hz Gain 10.0 dB</code><br><code>ON HS 12dB Fc 500 Hz Gain 5.0 dB</code>
+| HS 6dB<br>HS 12dB || High-shelf filter (6 / 12 dB per octave, corner freq.) || X || X || || <code><nowiki>ON HS 6dB Fc 12000 Hz Gain 10.0 dB</nowiki></code><br><code><nowiki>ON HS 12dB Fc 500 Hz Gain 5.0 dB</nowiki></code>
 |-
-| NO || Notch filter || X || || O || <code>ON NO Fc 800 Hz</code>
+| NO || Notch filter || X || || O || <code><nowiki>ON NO Fc 800 Hz</nowiki></code>
 |-
-| AP || All-pass filter || X || || X || <code>ON AP Fc 900 Hz Q 0.707</code>
+| AP || All-pass filter || X || || X || <code><nowiki>ON AP Fc 900 Hz Q 0.707</nowiki></code>
 |}
 
 === Filter with custom coefficients ===
 
-'''Syntax:''' <code>Filter <n>: ON IIR Order <m> Coefficients <b0> <b1> ... <bm> <a0> <a1> ... <am></code>
+'''Syntax:''' <code><nowiki>Filter <n>: ON IIR Order <m> Coefficients <b0> <b1> ... <bm> <a0> <a1> ... <am></nowiki></code>
 
-Adds a generic IIR filter of the given order and coefficients. The number of coefficients must be <code>2·(order+1)</code>. The transfer function is shown below.
+Adds a generic IIR filter of the given order and coefficients. The number of coefficients must be <code><nowiki>2·(order+1)</nowiki></code>. The transfer function is shown below.
 
 <img src="Transfer-function.png"><br><em>IIR transfer function</em>
 
 Because the coefficients usually depend on the sample rate, combine this with the [[#If / ElseIf / Else / EndIf|If]] command or [[#Eval and inline expressions|inline expressions]] to supply the right values for the current rate. You ''can'' reproduce the BiQuad filters of the other types this way, but it runs slower, so it is not advisable.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # A lowpass biquad filter with Fc 3000 Hz for the sample rate 48 kHz
 Filter: ON IIR Order 2 Coefficients 0.0380602 0.0761205 0.0380602 1.2706 -1.84776 0.729402
-</syntaxhighlight>
+</nowiki></pre>
 
 === Delay ===
 
 '''Syntax:'''
-<pre>
+<pre><nowiki>
 Delay: <t> ms
 Delay: <n> samples
-</pre>
+</nowiki></pre>
 
-Delays the selected channels by <code>t</code> milliseconds or <code>n</code> samples. Prefer milliseconds — they give the same delay regardless of sample rate.
+Delays the selected channels by <code><nowiki>t</nowiki></code> milliseconds or <code><nowiki>n</nowiki></code> samples. Prefer milliseconds — they give the same delay regardless of sample rate.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # Delays the audio by 50.5 ms independent of sample rate
 Delay: 50.5 ms
 # Delays the audio by 480 samples (10 ms at 48 kHz)
 Delay: 480 samples
-</syntaxhighlight>
+</nowiki></pre>
 
 === Copy ===
 
 '''Syntax:'''
-<pre>
+<pre><nowiki>
 Copy: <Target channel>=<Factor>*<Source channel>+...
 Copy: <Target channel>=<Source channel>+...
 Copy: <Target channel>=<Constant value>+...
-</pre>
+</nowiki></pre>
 
-Replaces the target channel with the sum of the listed source channels, each with an optional factor. To add to the target instead of replacing it, include the target as one of the sources. A factor may be given in dB by appending <code>dB</code>. Several assignments can share one line if separated by spaces, so a single assignment must not contain spaces. A constant value can be used in place of a channel/factor; to keep it distinct from a numeric channel index, the constant must contain a decimal point. See the [[#Channel|Channel]] command for channel identifiers.
+Replaces the target channel with the sum of the listed source channels, each with an optional factor. To add to the target instead of replacing it, include the target as one of the sources. A factor may be given in dB by appending <code><nowiki>dB</nowiki></code>. Several assignments can share one line if separated by spaces, so a single assignment must not contain spaces. A constant value can be used in place of a channel/factor; to keep it distinct from a numeric channel index, the constant must contain a decimal point. See the [[#Channel|Channel]] command for channel identifiers.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # Adds the audio on channel R multiplied by 0.5 to channel L
 Copy: L=L+0.5*R
 # Replaces L by R plus C attenuated by 6 dB
@@ -143,29 +143,29 @@ Copy: 1=R R=0.5
 Copy: L=2
 # Replaces the LFE channel with the left channel while muting the rest of a 5.1 system
 Copy: LFE=L L=0.0 R=0.0 C=0.0 RL=0.0 RR=0.0
-</syntaxhighlight>
+</nowiki></pre>
 
 === GraphicEQ ===
 
-'''Syntax:''' <code>GraphicEQ: <Frequency> <Gain (dB)>; <Frequency> <Gain (dB)>; ...</code>
+'''Syntax:''' <code><nowiki>GraphicEQ: <Frequency> <Gain (dB)>; <Frequency> <Gain (dB)>; ...</nowiki></code>
 
 Adds a graphic equalizer with the given bands and gains. Gains are interpolated linearly across the logarithmic frequency axis (so the curve looks straight in a log view), and the response is flat outside the specified bands.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # A 15-band graphic equalizer with ISO bands
 GraphicEQ: 25 6; 40 4.5; 63 3; 100 1.5; 160 0; 250 0; 400 0; 630 0; 1000 0; 1600 0; 2500 0; 4000 0; 6300 1.5; 10000 3; 16000 3
-</syntaxhighlight>
+</nowiki></pre>
 
 === Convolution ===
 
-'''Syntax:''' <code>Convolution: <File name></code>
+'''Syntax:''' <code><nowiki>Convolution: <File name></nowiki></code>
 
-Adds a convolver that processes the signal with the impulse response in the named file. The file must be one of the formats supported by [https://libsndfile.github.io/libsndfile/ libsndfile] (WAV, FLAC, OGG and others). If it has several channels, they are mapped round-robin onto the selected channels (a stereo file across four channels maps L→1, R→2, L→3, R→4). '''The file's sample rate must match the device's sample rate''' or the convolver cannot be created. Latency and CPU cost depend on the length and phase of the impulse response (linear-phase costs half the file length in latency; minimum-phase is lower but inconsistent). The file name is relative to the configuration file, may be quoted, and may contain environment variables such as <code>%USERPROFILE%</code>. Impulse responses kept inside the config folder (or a subfolder) trigger an automatic reload when changed, so edits apply immediately. EqualizerAPO-XT removes the original length cap on impulse responses.
+Adds a convolver that processes the signal with the impulse response in the named file. The file must be one of the formats supported by [https://libsndfile.github.io/libsndfile/ libsndfile] (WAV, FLAC, OGG and others). If it has several channels, they are mapped round-robin onto the selected channels (a stereo file across four channels maps L→1, R→2, L→3, R→4). '''The file's sample rate must match the device's sample rate''' or the convolver cannot be created. Latency and CPU cost depend on the length and phase of the impulse response (linear-phase costs half the file length in latency; minimum-phase is lower but inconsistent). The file name is relative to the configuration file, may be quoted, and may contain environment variables such as <code><nowiki>%USERPROFILE%</nowiki></code>. Impulse responses kept inside the config folder (or a subfolder) trigger an automatic reload when changed, so edits apply immediately. EqualizerAPO-XT removes the original length cap on impulse responses.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # Convolve with a recorded impulse response for a reverberation effect
 Convolution: church.wav
-</syntaxhighlight>
+</nowiki></pre>
 
 == Control commands ==
 
@@ -173,31 +173,31 @@ These do not change the audio directly; they control which commands run and how 
 
 === Include ===
 
-'''Syntax:''' <code>Include: <File name></code>
+'''Syntax:''' <code><nowiki>Include: <File name></nowiki></code>
 
-Loads the named file as a configuration file. Splitting the actual filter definitions into a separate file (rather than editing <code>config.txt</code> directly) lets you, for example, set a preamp before pulling them in.
+Loads the named file as a configuration file. Splitting the actual filter definitions into a separate file (rather than editing <code><nowiki>config.txt</nowiki></code> directly) lets you, for example, set a preamp before pulling them in.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Include: example.txt
-</syntaxhighlight>
+</nowiki></pre>
 
 === Device ===
 
-'''Syntax:''' <code>Device: <Device pattern 1>; <Device pattern 2>; ...</code>
+'''Syntax:''' <code><nowiki>Device: <Device pattern 1>; <Device pattern 2>; ...</nowiki></code>
 
-Matches the pattern against the connection name, device name and GUID of the current output device. If it does not match, every following command except another <code>Device</code> is ignored. A pattern is a set of space-separated words that must all appear in the string "''Device_name Connection_name GUID''". Separate alternative patterns with <code>;</code>, of which one must match. The special pattern <code>all</code> always matches. The benchmark application reports device name "Benchmark" and connection "File output". The easiest way to produce a correct <code>Device</code> line is the button in the Device Selector.
+Matches the pattern against the connection name, device name and GUID of the current output device. If it does not match, every following command except another <code><nowiki>Device</nowiki></code> is ignored. A pattern is a set of space-separated words that must all appear in the string "''Device_name Connection_name GUID''". Separate alternative patterns with <code><nowiki>;</nowiki></code>, of which one must match. The special pattern <code><nowiki>all</nowiki></code> always matches. The benchmark application reports device name "Benchmark" and connection "File output". The easiest way to produce a correct <code><nowiki>Device</nowiki></code> line is the button in the Device Selector.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # Matches "High Definition Audio Device" with connection "Speakers",
 # and also "Benchmark" used by the benchmark application
 Device: High Definition Audio Device Speakers; Benchmark
-</syntaxhighlight>
+</nowiki></pre>
 
 === Channel ===
 
-'''Syntax:''' <code>Channel: <Channel position 1> <Channel position 2> ...</code>
+'''Syntax:''' <code><nowiki>Channel: <Channel position 1> <Channel position 2> ...</nowiki></code>
 
-Selects the channels that following <code>Filter</code> and <code>Preamp</code> commands apply to. Positions may be given by identifier (a 1–3 letter acronym) or by number (counted from 1). The supported configurations are listed below; for an unsupported configuration, channels can only be selected by number. Separate several channels with spaces. The special position <code>all</code> selects every channel.
+Selects the channels that following <code><nowiki>Filter</nowiki></code> and <code><nowiki>Preamp</nowiki></code> commands apply to. Positions may be given by identifier (a 1–3 letter acronym) or by number (counted from 1). The supported configurations are listed below; for an unsupported configuration, channels can only be selected by number. Separate several channels with spaces. The special position <code><nowiki>all</nowiki></code> selects every channel.
 
 {| class="wikitable"
 ! Configuration !! L !! R !! C !! LFE !! RL !! RR !! RC !! SL !! SR
@@ -219,16 +219,16 @@ Selects the channels that following <code>Filter</code> and <code>Preamp</code> 
 
 '''Attention:''' it is tempting to send low-frequency filters only to the LFE channel, but this often does not work as expected. Many systems apply bass redirection ''after'' Equalizer APO, so LFE-only filters miss the redirected sound; and because crossover filters fade in gradually, low frequencies may play across several speakers, not just the subwoofer. '''Apply low-frequency filters to all channels''' to avoid this.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # Selects the left channel and the rear left channel
 Channel: L RL
 # Selects the first, second and center channel
 Channel: 1 2 C
-</syntaxhighlight>
+</nowiki></pre>
 
 === Stage ===
 
-'''Syntax:''' <code>Stage: <stage 1> <stage 2></code>
+'''Syntax:''' <code><nowiki>Stage: <stage 1> <stage 2></nowiki></code>
 
 Chooses which stage(s) the following filtering commands run on. Output devices have two stages, '''pre-mix''' and '''post-mix'''; input devices have only '''capture'''.
 
@@ -236,7 +236,7 @@ Chooses which stage(s) the following filtering commands run on. Output devices h
 
 The selected stages start as post-mix and capture, so filtering runs exactly once for output and input devices. Post-mix is preferred over pre-mix because pre-mix filtering happens per-application and costs more CPU. Pre-mix is needed for specific tasks such as upmixing, where filtering must depend on the number of input channels.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Stage: pre-mix
 # do upmixing
 If: inputChannelCount == 2
@@ -247,7 +247,7 @@ EndIf:
 Stage: post-mix
 # do room correction
 # ...
-</syntaxhighlight>
+</nowiki></pre>
 
 == Expression commands ==
 
@@ -275,32 +275,32 @@ These commands use expressions to vary the processing at runtime. Expressions ar
 | stage || Current APO stage (pre-mix, post-mix or capture)
 |}
 
-'''Variables:''' user-defined variables, valid while the configuration loads, are created with the assignment operator (<code>=</code>). They are not kept between reloads; they only carry temporary values for use later in the same file.
+'''Variables:''' user-defined variables, valid while the configuration loads, are created with the assignment operator (<code><nowiki>=</nowiki></code>). They are not kept between reloads; they only carry temporary values for use later in the same file.
 
 '''Operators:'''
 
 {| class="wikitable"
 ! Name !! Description
 |-
-| <code>+ - * / ^</code> || Arithmetic operators
+| <code><nowiki>+ - * / ^</nowiki></code> || Arithmetic operators
 |-
-| <code>= += -= *= /=</code> || Assignment operators
+| <code><nowiki>= += -= *= /=</nowiki></code> || Assignment operators
 |-
-| <code>and or xor</code> || Logical operators
+| <code><nowiki>and or xor</nowiki></code> || Logical operators
 |-
-| <code>== != < > <= >=</code> || Comparison operators
+| <code><nowiki>== != < > <= >=</nowiki></code> || Comparison operators
 |-
-| <code>& | << >></code> || Bit-wise / bit-shift operators
+| <code><nowiki>& | << >></nowiki></code> || Bit-wise / bit-shift operators
 |-
-| <code>+</code> || String concatenation (at least one operand must be a string)
+| <code><nowiki>+</nowiki></code> || String concatenation (at least one operand must be a string)
 |-
-| <code>(float) (int)</code> || Type conversion (from a numeric type)
+| <code><nowiki>(float) (int)</nowiki></code> || Type conversion (from a numeric type)
 |-
-| <code>condition ? then : else</code> || Conditional (ternary) operator
+| <code><nowiki>condition ? then : else</nowiki></code> || Conditional (ternary) operator
 |-
-| <code>{1,2}</code> || Array creation
+| <code><nowiki>{1,2}</nowiki></code> || Array creation
 |-
-| <code>array[0]</code> || Array access
+| <code><nowiki>array[0]</nowiki></code> || Array access
 |}
 
 '''Functions:'''
@@ -335,9 +335,9 @@ These commands use expressions to vary the processing at runtime. Expressions ar
 | readRegDWORD || Reads an integer value (second argument) from a registry key (first). Monitors the key and reloads on change.
 |}
 
-The expression types are string, boolean, int, float and matrix/array (abbreviated ''s'', ''b'', ''i'', ''f'', ''m'' in error messages). String constants use double quotes; backslashes and quotes inside them are escaped with a backslash. Booleans are <code>true</code> / <code>false</code>. Numbers use no thousands separator and a point for the decimal. Arrays use the <code>{}</code> operator. Combine several expressions with semicolons; the result is the value of the last one.
+The expression types are string, boolean, int, float and matrix/array (abbreviated ''s'', ''b'', ''i'', ''f'', ''m'' in error messages). String constants use double quotes; backslashes and quotes inside them are escaped with a backslash. Booleans are <code><nowiki>true</nowiki></code> / <code><nowiki>false</nowiki></code>. Numbers use no thousands separator and a point for the decimal. Arrays use the <code><nowiki>{}</nowiki></code> operator. Combine several expressions with semicolons; the result is the value of the last one.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # User-defined variables
 Eval: a=0; b=pi
 # Comparison
@@ -348,21 +348,21 @@ Eval: sin(a)^2 + cos(a)^2 == 1
 Eval: a=regexSearch("High Definition .*", deviceName); sizeof(a) > 0 ? "found" : "not found"
 # Reading the configuration path from the registry
 Eval: readRegString("HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO", "ConfigPath")
-</syntaxhighlight>
+</nowiki></pre>
 
 === If / ElseIf / Else / EndIf ===
 
 '''Syntax:'''
-<pre>
+<pre><nowiki>
 If: <expression>
 ElseIf: <expression>
 Else:
 EndIf:
-</pre>
+</nowiki></pre>
 
-Runs the commands between <code>If</code> and <code>EndIf</code> conditionally, like an if/else statement. <code>If</code> evaluates its expression as a boolean and runs the following commands when it is true. <code>ElseIf</code> after a branch that was already true is skipped; otherwise its expression is evaluated and its block runs when true. <code>Else</code> behaves like an <code>ElseIf</code> that is always true. <code>EndIf</code> ends the block. Conditionals can be nested, and <code>ElseIf</code>/<code>Else</code> always bind to the nearest open <code>If</code>. Lines may be indented for readability. For technical reasons, <code>If</code> cannot be used to run <code>Device</code> commands conditionally, because <code>Device</code> has higher priority.
+Runs the commands between <code><nowiki>If</nowiki></code> and <code><nowiki>EndIf</nowiki></code> conditionally, like an if/else statement. <code><nowiki>If</nowiki></code> evaluates its expression as a boolean and runs the following commands when it is true. <code><nowiki>ElseIf</nowiki></code> after a branch that was already true is skipped; otherwise its expression is evaluated and its block runs when true. <code><nowiki>Else</nowiki></code> behaves like an <code><nowiki>ElseIf</nowiki></code> that is always true. <code><nowiki>EndIf</nowiki></code> ends the block. Conditionals can be nested, and <code><nowiki>ElseIf</nowiki></code>/<code><nowiki>Else</nowiki></code> always bind to the nearest open <code><nowiki>If</nowiki></code>. Lines may be indented for readability. For technical reasons, <code><nowiki>If</nowiki></code> cannot be used to run <code><nowiki>Device</nowiki></code> commands conditionally, because <code><nowiki>Device</nowiki></code> has higher priority.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 If: sampleRate == 44100
 	...
 ElseIf: sampleRate == 48000
@@ -375,23 +375,23 @@ ElseIf: sampleRate == 48000
 Else:
 	...
 EndIf:
-</syntaxhighlight>
+</nowiki></pre>
 
 === Eval and inline expressions ===
 
 '''Syntax:'''
-<pre>
+<pre><nowiki>
 Eval: <expression>
 <Command>: ... `<expression>` ...
-</pre>
+</nowiki></pre>
 
-<code>Eval</code> evaluates an expression and discards the result; it is mainly for defining variables or testing. An '''inline expression''' embeds a result into a command's parameter string: everything from the first backtick to the second (inclusive) is replaced by the expression's value converted to a string. Inline expressions cannot be used in <code>Device</code> or <code>If</code>/<code>ElseIf</code> commands, but they can be used inside <code>Eval</code>.
+<code><nowiki>Eval</nowiki></code> evaluates an expression and discards the result; it is mainly for defining variables or testing. An '''inline expression''' embeds a result into a command's parameter string: everything from the first backtick to the second (inclusive) is replaced by the expression's value converted to a string. Inline expressions cannot be used in <code><nowiki>Device</nowiki></code> or <code><nowiki>If</nowiki></code>/<code><nowiki>ElseIf</nowiki></code> commands, but they can be used inside <code><nowiki>Eval</nowiki></code>.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # Specify gain linearly
 Eval: linGain = 0.5
 Filter: ON PK Fc 1000 Hz Gain `20*log10(linGain)` dB Q 10.0
-</syntaxhighlight>
+</nowiki></pre>
 
 == See also ==
 
