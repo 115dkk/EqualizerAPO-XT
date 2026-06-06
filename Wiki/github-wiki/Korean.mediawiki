@@ -6,13 +6,13 @@ EqualizerAPO-XT는 Jonas Thedering의 [https://sourceforge.net/projects/equalize
 
 == 문서 ==
 
-* '''[[Documentation|사용자 문서]]''' — 설치, 첫 설정, 문제 해결을 다룹니다. 여기서 시작하세요.
-* '''[[Configuration reference|설정 레퍼런스]]''' — 설정 파일 형식과 지원하는 모든 명령입니다. 고급 사용자용입니다.
-* '''[[Developer documentation|개발자 문서]]''' — 소스 빌드, 프로젝트 구조, Windows에 APO를 등록하는 방법입니다.
+* '''[[Korean-Documentation|사용자 문서]]''' — 설치, 첫 설정, 문제 해결을 다룹니다. 여기서 시작하세요.
+* '''[[Korean-Configuration-reference|설정 레퍼런스]]''' — 설정 파일 형식과 지원하는 모든 명령입니다. 고급 사용자용입니다.
+* '''[[Korean-Developer-documentation|개발자 문서]]''' — 소스 빌드, 프로젝트 구조, Windows에 APO를 등록하는 방법입니다.
 
 == 다른 언어 ==
 
-* [[en:Main Page|English (영어)]]
+* [[Home|English (영어)]]
 
 == 라이선스와 출처 ==
 

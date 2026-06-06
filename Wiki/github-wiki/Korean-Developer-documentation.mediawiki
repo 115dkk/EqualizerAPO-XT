@@ -1,10 +1,10 @@
 = 개발자 문서 =
 
-'''EqualizerAPO-XT'''의 개발자 문서입니다. 소스를 살펴보거나 빌드하거나 시험하려는 사람, 또는 직접 APO를 만들려는 사람을 위한 내용입니다. 소프트웨어를 쓰기만 할 거라면 [[Documentation|사용자 문서]]를 보세요.
+'''EqualizerAPO-XT'''의 개발자 문서입니다. 소스를 살펴보거나 빌드하거나 시험하려는 사람, 또는 직접 APO를 만들려는 사람을 위한 내용입니다. 소프트웨어를 쓰기만 할 거라면 [[Korean-Documentation|사용자 문서]]를 보세요.
 
 ''면책: 이 문서는 아는 한 정확하게 작성했습니다. 완전하지도, 오류가 없다고 보장하지도 못합니다.''
 
-__TOC__
+[[_TOC_]]
 
 == EqualizerAPO-XT 빌드 ==
 
@@ -34,7 +34,7 @@ XT는 Windows 프로젝트입니다. C++ 프로젝트는 Visual Studio 2022 / 20
 * '''Tests''' — 단위/회귀 테스트 프로젝트입니다. <code>HybridConvTests</code>, <code>EditorLogicTests</code>, <code>AudioRegressionTests</code>입니다.
 * '''Setup''' — CI 패키징 단계가 Velopack 출력에 넣는 예제 설정 파일(<code>config/</code>)과 문서 <code>.url</code> 바로 가기입니다.
 
-CI는 <code>.github/workflows/build.yml</code>에 있습니다. x64 <code>sse2</code>, <code>avx</code>, <code>avx2</code>, <code>avx512</code>, <code>avx10_1</code> 변형과 ARM64 <code>neon</code>을 빌드한 뒤 <code>vpk pack</code>으로 채널별 설치 파일을 만듭니다([[Documentation#설치|설치]] 절과 저장소의 <code>docs/SimdBuildMatrix.md</code> 참고). 풀 리퀘스트는 AVX2만, <code>main</code> push는 모든 변형을 빌드하고 GitHub 릴리스를 만듭니다. 원본의 NSIS 설치는 제거되었습니다.
+CI는 <code>.github/workflows/build.yml</code>에 있습니다. x64 <code>sse2</code>, <code>avx</code>, <code>avx2</code>, <code>avx512</code>, <code>avx10_1</code> 변형과 ARM64 <code>neon</code>을 빌드한 뒤 <code>vpk pack</code>으로 채널별 설치 파일을 만듭니다([[Korean-Documentation#설치|설치]] 절과 저장소의 <code>docs/SimdBuildMatrix.md</code> 참고). 풀 리퀘스트는 AVX2만, <code>main</code> push는 모든 변형을 빌드하고 GitHub 릴리스를 만듭니다. 원본의 NSIS 설치는 제거되었습니다.
 
 == APO 개발 ==
 
@@ -51,6 +51,6 @@ XT에서는 이 등록과 정리를 <code>helpers/ApoRegistration</code>이 수�
 
 == 함께 보기 ==
 
-* [[Documentation|사용자 문서]] — EqualizerAPO-XT 사용하기.
-* [[Configuration reference|설정 레퍼런스]] — 설정 명령 집합.
-* [[en:Developer documentation|English version of this page]]
+* [[Korean-Documentation|사용자 문서]] — EqualizerAPO-XT 사용하기.
+* [[Korean-Configuration-reference|설정 레퍼런스]] — 설정 명령 집합.
+* [[Developer documentation|English version of this page]]

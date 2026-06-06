@@ -12,7 +12,7 @@ This wiki mirrors the structure of the original Equalizer APO documentation and 
 
 == Other languages ==
 
-* [[ko:Main Page|한국어 (Korean)]]
+* [[Korean|한국어 (Korean)]]
 
 == License and credits ==
 
