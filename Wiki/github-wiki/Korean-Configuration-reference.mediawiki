@@ -8,13 +8,13 @@
 
 설정 파일은 한 줄씩 읽습니다. 의미 있는 줄은 모두 다음 형태입니다.
 
-<pre>Command: Parameters</pre>
+<pre><nowiki>Command: Parameters</nowiki></pre>
 
-이 형태에 맞지 않는 줄은 조용히 무시됩니다. 주석이 이렇게 동작합니다. <code>#</code>로 시작하는 줄은 그냥 인식되는 명령이 아닐 뿐입니다. 존재하지 않는 명령을 적은 줄도 무시됩니다.
+이 형태에 맞지 않는 줄은 조용히 무시됩니다. 주석이 이렇게 동작합니다. <code><nowiki>#</nowiki></code>로 시작하는 줄은 그냥 인식되는 명령이 아닐 뿐입니다. 존재하지 않는 명령을 적은 줄도 무시됩니다.
 
 예시:
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Device: High Definition Audio Device Speakers; Benchmark
 #아래 줄들은 지정한 장치와 benchmark 애플리케이션에만 적용됩니다
 Preamp: -6 db
@@ -37,7 +37,7 @@ Filter  2: ON  LPQ      Fc     10000 Hz  Q  0.400
 Device: Microphone
 #여기부터는 마이크 장치에만 적용됩니다
 Filter: ON  NO       Fc     50 Hz
-</syntaxhighlight>
+</nowiki></pre>
 
 == 필터링 명령 ==
 
@@ -45,94 +45,94 @@ Filter: ON  NO       Fc     50 Hz
 
 === Preamp ===
 
-'''문법:''' <code>Preamp: <음수> dB</code>
+'''문법:''' <code><nowiki>Preamp: <음수> dB</nowiki></code>
 
 프리앰프 값을 데시벨로 정합니다. 양의 게인을 더하는 필터를 쓸 때 클리핑을 막기 위해 씁니다. 같은 채널에 프리앰프가 여러 개 걸리면 dB 단위로 더한 값이 적용됩니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Preamp: -6.5 dB
-</syntaxhighlight>
+</nowiki></pre>
 
 === Filter ===
 
 '''문법:'''
-<pre>
+<pre><nowiki>
 Filter <n>: ON <Type> Fc <주파수> Hz Gain <게인> dB Q <Q 값>
 Filter <n>: ON <Type> Fc <주파수> Hz Gain <게인> dB BW Oct <대역폭>
-</pre>
+</nowiki></pre>
 
-지정한 종류, 주파수, 게인, Q/대역폭의 필터를 추가합니다. 첫 번째 형태(Q)는 Room EQ Wizard의 "Generic" 이퀄라이저 유형과, 두 번째 형태(대역폭)는 "FBQ2496"과 맞습니다. 필터 번호 <code><n></code>은 해석되지 않으며 생략해도 됩니다.
+지정한 종류, 주파수, 게인, Q/대역폭의 필터를 추가합니다. 첫 번째 형태(Q)는 Room EQ Wizard의 "Generic" 이퀄라이저 유형과, 두 번째 형태(대역폭)는 "FBQ2496"과 맞습니다. 필터 번호 <code><nowiki><n></nowiki></code>은 해석되지 않으며 생략해도 됩니다.
 
 아래 표는 지원하는 필터 종류입니다. 매개변수 열에서 '''X'''는 필수, '''O'''는 선택입니다. "Generic"과 "FBQ2496" 유형의 모든 필터를 포함하며, 텍스트 형식이 맞으면 다른 유형도 동작할 수 있습니다. 한 가지 차이가 있습니다. 여기의 밴드패스 필터는 게인이 없는 진짜 밴드패스 필터(로/하이패스처럼)로, 실제로는 피킹 필터인 DCX2496의 "BP"와는 다릅니다.
 
 {| class="wikitable"
 ! 종류 !! 설명 !! Fc !! Gain !! Q/BW !! 예시
 |-
-| PK<br>Modal<br>PEQ || 피킹 필터 (파라메트릭 EQ) || X || X || X || <code>ON PK Fc 50.0 Hz Gain -10.0 dB Q 2.50</code><br><code>ON Modal Fc 100 Hz Gain 3.0 dB Q 5.41 T60 target 100 ms</code><br><code>ON PEQ Fc 100 Hz Gain 1.0 dB BW Oct 0.167</code>
+| PK<br>Modal<br>PEQ || 피킹 필터 (파라메트릭 EQ) || X || X || X || <code><nowiki>ON PK Fc 50.0 Hz Gain -10.0 dB Q 2.50</nowiki></code><br><code><nowiki>ON Modal Fc 100 Hz Gain 3.0 dB Q 5.41 T60 target 100 ms</nowiki></code><br><code><nowiki>ON PEQ Fc 100 Hz Gain 1.0 dB BW Oct 0.167</nowiki></code>
 |-
-| LP<br>LPQ || 로패스 필터 || X || || O || <code>ON LP Fc 8000 Hz</code><br><code>ON LPQ Fc 10000 Hz Q 0.400</code>
+| LP<br>LPQ || 로패스 필터 || X || || O || <code><nowiki>ON LP Fc 8000 Hz</nowiki></code><br><code><nowiki>ON LPQ Fc 10000 Hz Q 0.400</nowiki></code>
 |-
-| HP<br>HPQ || 하이패스 필터 || X || || O || <code>ON HP Fc 30.0 Hz</code><br><code>ON HPQ Fc 20.0 Hz Q 0.500</code>
+| HP<br>HPQ || 하이패스 필터 || X || || O || <code><nowiki>ON HP Fc 30.0 Hz</nowiki></code><br><code><nowiki>ON HPQ Fc 20.0 Hz Q 0.500</nowiki></code>
 |-
-| BP || 밴드패스 필터 (DCX2496 아님) || X || || O || <code>ON BP Fc 1000 Hz Q 0.100</code>
+| BP || 밴드패스 필터 (DCX2496 아님) || X || || O || <code><nowiki>ON BP Fc 1000 Hz Q 0.100</nowiki></code>
 |-
-| LS<br>LSC ''x'' dB || 로셸프 필터 (센터 주파수; LSC는 옥타브당 ''x'' dB) || X || X || O (1.2.1) || <code>ON LS Fc 300 Hz Gain 5.0 dB</code><br><code>ON LSC 10.8 dB Fc 300 Hz Gain 5.0 dB</code><br><code>ON LSC Fc 300 Hz Gain 5.0 dB Q 0.6473</code>
+| LS<br>LSC ''x'' dB || 로셸프 필터 (센터 주파수; LSC는 옥타브당 ''x'' dB) || X || X || O (1.2.1) || <code><nowiki>ON LS Fc 300 Hz Gain 5.0 dB</nowiki></code><br><code><nowiki>ON LSC 10.8 dB Fc 300 Hz Gain 5.0 dB</nowiki></code><br><code><nowiki>ON LSC Fc 300 Hz Gain 5.0 dB Q 0.6473</nowiki></code>
 |-
-| HS<br>HSC ''x'' dB || 하이셸프 필터 (센터 주파수; HSC는 옥타브당 ''x'' dB) || X || X || O (1.2.1) || <code>ON HS Fc 1000 Hz Gain -3.0 dB</code><br><code>ON HSC 6 dB Fc 100 Hz Gain -6.0 dB</code><br><code>ON HSC Fc 100 Hz Gain -6.0 dB Q 0.4272</code>
+| HS<br>HSC ''x'' dB || 하이셸프 필터 (센터 주파수; HSC는 옥타브당 ''x'' dB) || X || X || O (1.2.1) || <code><nowiki>ON HS Fc 1000 Hz Gain -3.0 dB</nowiki></code><br><code><nowiki>ON HSC 6 dB Fc 100 Hz Gain -6.0 dB</nowiki></code><br><code><nowiki>ON HSC Fc 100 Hz Gain -6.0 dB Q 0.4272</nowiki></code>
 |-
-| LS 6dB<br>LS 12dB || 로셸프 필터 (옥타브당 6/12 dB, 코너 주파수) || X || X || || <code>ON LS 6dB Fc 50.0 Hz Gain 7.2 dB</code><br><code>ON LS 12dB Fc 2000 Hz Gain -5.0 dB</code>
+| LS 6dB<br>LS 12dB || 로셸프 필터 (옥타브당 6/12 dB, 코너 주파수) || X || X || || <code><nowiki>ON LS 6dB Fc 50.0 Hz Gain 7.2 dB</nowiki></code><br><code><nowiki>ON LS 12dB Fc 2000 Hz Gain -5.0 dB</nowiki></code>
 |-
-| HS 6dB<br>HS 12dB || 하이셸프 필터 (옥타브당 6/12 dB, 코너 주파수) || X || X || || <code>ON HS 6dB Fc 12000 Hz Gain 10.0 dB</code><br><code>ON HS 12dB Fc 500 Hz Gain 5.0 dB</code>
+| HS 6dB<br>HS 12dB || 하이셸프 필터 (옥타브당 6/12 dB, 코너 주파수) || X || X || || <code><nowiki>ON HS 6dB Fc 12000 Hz Gain 10.0 dB</nowiki></code><br><code><nowiki>ON HS 12dB Fc 500 Hz Gain 5.0 dB</nowiki></code>
 |-
-| NO || 노치 필터 || X || || O || <code>ON NO Fc 800 Hz</code>
+| NO || 노치 필터 || X || || O || <code><nowiki>ON NO Fc 800 Hz</nowiki></code>
 |-
-| AP || 올패스 필터 || X || || X || <code>ON AP Fc 900 Hz Q 0.707</code>
+| AP || 올패스 필터 || X || || X || <code><nowiki>ON AP Fc 900 Hz Q 0.707</nowiki></code>
 |}
 
 === 사용자 계수 필터 ===
 
-'''문법:''' <code>Filter <n>: ON IIR Order <m> Coefficients <b0> <b1> ... <bm> <a0> <a1> ... <am></code>
+'''문법:''' <code><nowiki>Filter <n>: ON IIR Order <m> Coefficients <b0> <b1> ... <bm> <a0> <a1> ... <am></nowiki></code>
 
-지정한 차수와 계수로 일반 IIR 필터를 추가합니다. 계수 개수는 <code>2·(차수+1)</code>이어야 합니다. 전달 함수는 아래와 같습니다.
+지정한 차수와 계수로 일반 IIR 필터를 추가합니다. 계수 개수는 <code><nowiki>2·(차수+1)</nowiki></code>이어야 합니다. 전달 함수는 아래와 같습니다.
 
 <img src="Transfer-function.png"><br><em>IIR 전달 함수</em>
 
 계수는 보통 샘플레이트에 따라 달라지므로, [[#If / ElseIf / Else / EndIf|If]] 명령이나 [[#Eval과 인라인 표현식|인라인 표현식]]과 함께 써서 현재 샘플레이트에 맞는 값을 넣습니다. 이 필터로 다른 종류의 BiQuad 필터를 똑같이 구현할 수도 있지만, 실행이 더 느리므로 권하지 않습니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # 샘플레이트 48 kHz에서 Fc 3000 Hz인 로패스 biquad 필터
 Filter: ON IIR Order 2 Coefficients 0.0380602 0.0761205 0.0380602 1.2706 -1.84776 0.729402
-</syntaxhighlight>
+</nowiki></pre>
 
 === Delay ===
 
 '''문법:'''
-<pre>
+<pre><nowiki>
 Delay: <t> ms
 Delay: <n> samples
-</pre>
+</nowiki></pre>
 
-선택한 채널을 <code>t</code> 밀리초나 <code>n</code> 샘플만큼 지연합니다. 샘플레이트와 무관하게 같은 지연을 주는 밀리초 쪽을 권합니다.
+선택한 채널을 <code><nowiki>t</nowiki></code> 밀리초나 <code><nowiki>n</nowiki></code> 샘플만큼 지연합니다. 샘플레이트와 무관하게 같은 지연을 주는 밀리초 쪽을 권합니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # 샘플레이트와 무관하게 50.5 ms 지연
 Delay: 50.5 ms
 # 480 샘플 지연 (48 kHz에서 10 ms)
 Delay: 480 samples
-</syntaxhighlight>
+</nowiki></pre>
 
 === Copy ===
 
 '''문법:'''
-<pre>
+<pre><nowiki>
 Copy: <대상 채널>=<계수>*<원본 채널>+...
 Copy: <대상 채널>=<원본 채널>+...
 Copy: <대상 채널>=<상수>+...
-</pre>
+</nowiki></pre>
 
-대상 채널을, 나열한 원본 채널들의 합(각각 선택적 계수 포함)으로 바꿉니다. 대상을 바꾸지 않고 더하려면 대상 자신을 원본에 넣으면 됩니다. 계수는 <code>dB</code>를 붙여 데시벨로 줄 수 있습니다. 한 줄에 여러 할당을 공백으로 구분해 넣을 수 있으므로, 할당 하나에는 공백이 없어야 합니다. 채널/계수 자리에 상수를 쓸 수 있는데, 숫자 채널 번호와 구분하기 위해 상수에는 소수점이 있어야 합니다. 채널 식별자는 [[#Channel|Channel]] 명령을 보세요.
+대상 채널을, 나열한 원본 채널들의 합(각각 선택적 계수 포함)으로 바꿉니다. 대상을 바꾸지 않고 더하려면 대상 자신을 원본에 넣으면 됩니다. 계수는 <code><nowiki>dB</nowiki></code>를 붙여 데시벨로 줄 수 있습니다. 한 줄에 여러 할당을 공백으로 구분해 넣을 수 있으므로, 할당 하나에는 공백이 없어야 합니다. 채널/계수 자리에 상수를 쓸 수 있는데, 숫자 채널 번호와 구분하기 위해 상수에는 소수점이 있어야 합니다. 채널 식별자는 [[#Channel|Channel]] 명령을 보세요.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # R 채널을 0.5배해서 L 채널에 더합니다
 Copy: L=L+0.5*R
 # L을 R과, 6 dB 감쇠한 C의 합으로 바꿉니다
@@ -143,29 +143,29 @@ Copy: 1=R R=0.5
 Copy: L=2
 # 5.1 시스템에서 나머지를 음소거하고 LFE를 왼쪽 채널로 바꿉니다
 Copy: LFE=L L=0.0 R=0.0 C=0.0 RL=0.0 RR=0.0
-</syntaxhighlight>
+</nowiki></pre>
 
 === GraphicEQ ===
 
-'''문법:''' <code>GraphicEQ: <주파수> <게인(dB)>; <주파수> <게인(dB)>; ...</code>
+'''문법:''' <code><nowiki>GraphicEQ: <주파수> <게인(dB)>; <주파수> <게인(dB)>; ...</nowiki></code>
 
 지정한 대역과 게인으로 그래픽 이퀄라이저를 추가합니다. 게인은 로그 주파수 축에서 선형으로 보간되며(로그 보기에서 직선으로 보이도록), 지정한 대역 바깥은 평탄합니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # ISO 대역의 15밴드 그래픽 이퀄라이저
 GraphicEQ: 25 6; 40 4.5; 63 3; 100 1.5; 160 0; 250 0; 400 0; 630 0; 1000 0; 1600 0; 2500 0; 4000 0; 6300 1.5; 10000 3; 16000 3
-</syntaxhighlight>
+</nowiki></pre>
 
 === Convolution ===
 
-'''문법:''' <code>Convolution: <파일 이름></code>
+'''문법:''' <code><nowiki>Convolution: <파일 이름></nowiki></code>
 
-지정한 파일의 임펄스 응답으로 신호를 처리하는 컨볼버를 추가합니다. 파일은 [https://libsndfile.github.io/libsndfile/ libsndfile]이 지원하는 형식(WAV, FLAC, OGG 등)이어야 합니다. 채널이 여러 개면 선택한 채널에 라운드로빈으로 배정됩니다(스테레오 파일을 4채널에 걸면 L→1, R→2, L→3, R→4). '''파일의 샘플레이트는 장치의 샘플레이트와 같아야''' 하며, 다르면 컨볼버를 만들 수 없습니다. 지연과 CPU 사용량은 임펄스 응답의 길이와 위상에 따라 달라집니다(선형 위상은 파일 길이의 절반만큼 지연, 최소 위상은 더 낮지만 일정하지 않음). 파일 이름은 설정 파일 기준 상대 경로이고, 큰따옴표로 감쌀 수 있으며, <code>%USERPROFILE%</code> 같은 환경 변수를 넣을 수 있습니다. 설정 폴더(또는 하위 폴더) 안의 임펄스 응답 파일은 바뀌면 자동으로 다시 로드되어 즉시 적용됩니다. EqualizerAPO-XT는 원본의 임펄스 응답 길이 제한을 없앴습니다.
+지정한 파일의 임펄스 응답으로 신호를 처리하는 컨볼버를 추가합니다. 파일은 [https://libsndfile.github.io/libsndfile/ libsndfile]이 지원하는 형식(WAV, FLAC, OGG 등)이어야 합니다. 채널이 여러 개면 선택한 채널에 라운드로빈으로 배정됩니다(스테레오 파일을 4채널에 걸면 L→1, R→2, L→3, R→4). '''파일의 샘플레이트는 장치의 샘플레이트와 같아야''' 하며, 다르면 컨볼버를 만들 수 없습니다. 지연과 CPU 사용량은 임펄스 응답의 길이와 위상에 따라 달라집니다(선형 위상은 파일 길이의 절반만큼 지연, 최소 위상은 더 낮지만 일정하지 않음). 파일 이름은 설정 파일 기준 상대 경로이고, 큰따옴표로 감쌀 수 있으며, <code><nowiki>%USERPROFILE%</nowiki></code> 같은 환경 변수를 넣을 수 있습니다. 설정 폴더(또는 하위 폴더) 안의 임펄스 응답 파일은 바뀌면 자동으로 다시 로드되어 즉시 적용됩니다. EqualizerAPO-XT는 원본의 임펄스 응답 길이 제한을 없앴습니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # 잔향 효과를 위해 녹음한 임펄스 응답과 합성곱
 Convolution: church.wav
-</syntaxhighlight>
+</nowiki></pre>
 
 == 제어 명령 ==
 
@@ -173,31 +173,31 @@ Convolution: church.wav
 
 === Include ===
 
-'''문법:''' <code>Include: <파일 이름></code>
+'''문법:''' <code><nowiki>Include: <파일 이름></nowiki></code>
 
-지정한 파일을 설정 파일로 불러옵니다. <code>config.txt</code>를 직접 고치는 대신 실제 필터 정의를 별도 파일에 두면, 예를 들어 불러오기 전에 프리앰프를 먼저 정할 수 있습니다.
+지정한 파일을 설정 파일로 불러옵니다. <code><nowiki>config.txt</nowiki></code>를 직접 고치는 대신 실제 필터 정의를 별도 파일에 두면, 예를 들어 불러오기 전에 프리앰프를 먼저 정할 수 있습니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Include: example.txt
-</syntaxhighlight>
+</nowiki></pre>
 
 === Device ===
 
-'''문법:''' <code>Device: <장치 패턴 1>; <장치 패턴 2>; ...</code>
+'''문법:''' <code><nowiki>Device: <장치 패턴 1>; <장치 패턴 2>; ...</nowiki></code>
 
-현재 출력 장치의 연결 이름, 장치 이름, GUID에 패턴을 맞춥니다. 맞지 않으면 다른 <code>Device</code>를 제외한 이후 모든 명령이 무시됩니다. 패턴은 공백으로 구분한 단어들이며, 이 단어가 모두 "''장치이름 연결이름 GUID''" 문자열에 있어야 합니다. <code>;</code>로 여러 패턴을 구분하면 그중 하나만 맞으면 됩니다. 특수 패턴 <code>all</code>은 항상 맞습니다. benchmark 애플리케이션은 장치 이름 "Benchmark", 연결 "File output"을 씁니다. <code>Device</code> 줄은 장치 선택기의 버튼으로 만드는 것이 가장 쉽습니다.
+현재 출력 장치의 연결 이름, 장치 이름, GUID에 패턴을 맞춥니다. 맞지 않으면 다른 <code><nowiki>Device</nowiki></code>를 제외한 이후 모든 명령이 무시됩니다. 패턴은 공백으로 구분한 단어들이며, 이 단어가 모두 "''장치이름 연결이름 GUID''" 문자열에 있어야 합니다. <code><nowiki>;</nowiki></code>로 여러 패턴을 구분하면 그중 하나만 맞으면 됩니다. 특수 패턴 <code><nowiki>all</nowiki></code>은 항상 맞습니다. benchmark 애플리케이션은 장치 이름 "Benchmark", 연결 "File output"을 씁니다. <code><nowiki>Device</nowiki></code> 줄은 장치 선택기의 버튼으로 만드는 것이 가장 쉽습니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # "High Definition Audio Device"의 "Speakers" 연결과
 # benchmark 애플리케이션의 "Benchmark"에 맞습니다
 Device: High Definition Audio Device Speakers; Benchmark
-</syntaxhighlight>
+</nowiki></pre>
 
 === Channel ===
 
-'''문법:''' <code>Channel: <채널 위치 1> <채널 위치 2> ...</code>
+'''문법:''' <code><nowiki>Channel: <채널 위치 1> <채널 위치 2> ...</nowiki></code>
 
-이후의 <code>Filter</code>와 <code>Preamp</code> 명령이 적용될 채널을 선택합니다. 위치는 식별자(1~3글자 약어)나 번호(1부터)로 줄 수 있습니다. 지원 구성은 아래와 같으며, 지원하지 않는 구성에서는 번호로만 선택할 수 있습니다. 여러 채널은 공백으로 구분합니다. 특수 위치 <code>all</code>은 모든 채널을 선택합니다.
+이후의 <code><nowiki>Filter</nowiki></code>와 <code><nowiki>Preamp</nowiki></code> 명령이 적용될 채널을 선택합니다. 위치는 식별자(1~3글자 약어)나 번호(1부터)로 줄 수 있습니다. 지원 구성은 아래와 같으며, 지원하지 않는 구성에서는 번호로만 선택할 수 있습니다. 여러 채널은 공백으로 구분합니다. 특수 위치 <code><nowiki>all</nowiki></code>은 모든 채널을 선택합니다.
 
 {| class="wikitable"
 ! 구성 !! L !! R !! C !! LFE !! RL !! RR !! RC !! SL !! SR
@@ -219,16 +219,16 @@ Device: High Definition Audio Device Speakers; Benchmark
 
 '''주의:''' 저역 필터를 LFE 채널에만 거는 것이 솔깃하지만, 기대대로 되지 않을 때가 많습니다. 많은 시스템이 Equalizer APO 처리 ''뒤에'' 베이스 리다이렉션을 적용하므로 LFE에만 건 필터는 리다이렉트된 소리를 놓칩니다. 또 크로스오버 필터가 서서히 페이드인되는 탓에 저역이 서브우퍼만이 아니라 여러 스피커로 나갈 수 있습니다. 이를 피하려면 '''저역 필터는 모든 채널에 적용'''하세요.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # 왼쪽 채널과 후방 왼쪽 채널 선택
 Channel: L RL
 # 첫째, 둘째, 센터 채널 선택
 Channel: 1 2 C
-</syntaxhighlight>
+</nowiki></pre>
 
 === Stage ===
 
-'''문법:''' <code>Stage: <단계 1> <단계 2></code>
+'''문법:''' <code><nowiki>Stage: <단계 1> <단계 2></nowiki></code>
 
 이후 필터링 명령이 실행될 단계를 정합니다. 출력 장치에는 '''pre-mix'''와 '''post-mix''' 두 단계가, 입력 장치에는 '''capture''' 단계만 있습니다.
 
@@ -236,7 +236,7 @@ Channel: 1 2 C
 
 처음 선택된 단계는 post-mix와 capture라, 출력과 입력 장치에서 필터링이 정확히 한 번 실행됩니다. post-mix를 pre-mix보다 선호하는 이유는, pre-mix 필터링이 애플리케이션마다 일어나 CPU를 더 쓰기 때문입니다. 다만 업믹싱처럼 입력 채널 수에 따라 필터링해야 하는 경우에는 pre-mix를 써야 합니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 Stage: pre-mix
 # 업믹싱
 If: inputChannelCount == 2
@@ -247,7 +247,7 @@ EndIf:
 Stage: post-mix
 # 룸 보정
 # ...
-</syntaxhighlight>
+</nowiki></pre>
 
 == 표현식 명령 ==
 
@@ -275,32 +275,32 @@ Stage: post-mix
 | stage || 현재 APO 단계 (pre-mix, post-mix, capture)
 |}
 
-'''변수:''' 설정을 불러오는 동안 유효한 사용자 정의 변수는 할당 연산자(<code>=</code>)로 만듭니다. 다시 로드할 때 유지되지 않으며, 같은 파일 안에서 나중에 쓸 임시 값을 담는 용도입니다.
+'''변수:''' 설정을 불러오는 동안 유효한 사용자 정의 변수는 할당 연산자(<code><nowiki>=</nowiki></code>)로 만듭니다. 다시 로드할 때 유지되지 않으며, 같은 파일 안에서 나중에 쓸 임시 값을 담는 용도입니다.
 
 '''연산자:'''
 
 {| class="wikitable"
 ! 이름 !! 설명
 |-
-| <code>+ - * / ^</code> || 산술 연산자
+| <code><nowiki>+ - * / ^</nowiki></code> || 산술 연산자
 |-
-| <code>= += -= *= /=</code> || 할당 연산자
+| <code><nowiki>= += -= *= /=</nowiki></code> || 할당 연산자
 |-
-| <code>and or xor</code> || 논리 연산자
+| <code><nowiki>and or xor</nowiki></code> || 논리 연산자
 |-
-| <code>== != < > <= >=</code> || 비교 연산자
+| <code><nowiki>== != < > <= >=</nowiki></code> || 비교 연산자
 |-
-| <code>& | << >></code> || 비트/비트 시프트 연산자
+| <code><nowiki>& | << >></nowiki></code> || 비트/비트 시프트 연산자
 |-
-| <code>+</code> || 문자열 연결 (피연산자 중 하나 이상이 문자열)
+| <code><nowiki>+</nowiki></code> || 문자열 연결 (피연산자 중 하나 이상이 문자열)
 |-
-| <code>(float) (int)</code> || 형 변환 (숫자형에서)
+| <code><nowiki>(float) (int)</nowiki></code> || 형 변환 (숫자형에서)
 |-
-| <code>condition ? then : else</code> || 조건(삼항) 연산자
+| <code><nowiki>condition ? then : else</nowiki></code> || 조건(삼항) 연산자
 |-
-| <code>{1,2}</code> || 배열 생성
+| <code><nowiki>{1,2}</nowiki></code> || 배열 생성
 |-
-| <code>array[0]</code> || 배열 접근
+| <code><nowiki>array[0]</nowiki></code> || 배열 접근
 |}
 
 '''함수:'''
@@ -335,9 +335,9 @@ Stage: post-mix
 | readRegDWORD || 레지스트리 키(첫째 인수)에서 정수 값(둘째 인수)을 읽습니다. 키를 감시하다 바뀌면 다시 로드합니다.
 |}
 
-표현식의 자료형은 문자열, 불리언, int, float, 행렬/배열입니다(오류 메시지에서는 ''s'', ''b'', ''i'', ''f'', ''m''으로 줄여 씁니다). 문자열 상수는 큰따옴표로 적고, 그 안의 백슬래시와 큰따옴표는 백슬래시로 이스케이프합니다. 불리언은 <code>true</code> / <code>false</code>입니다. 숫자는 천 단위 구분 없이 적고 소수점은 점을 씁니다. 배열은 <code>{}</code> 연산자로 만듭니다. 여러 표현식을 세미콜론으로 잇면 마지막 값이 결과가 됩니다.
+표현식의 자료형은 문자열, 불리언, int, float, 행렬/배열입니다(오류 메시지에서는 ''s'', ''b'', ''i'', ''f'', ''m''으로 줄여 씁니다). 문자열 상수는 큰따옴표로 적고, 그 안의 백슬래시와 큰따옴표는 백슬래시로 이스케이프합니다. 불리언은 <code><nowiki>true</nowiki></code> / <code><nowiki>false</nowiki></code>입니다. 숫자는 천 단위 구분 없이 적고 소수점은 점을 씁니다. 배열은 <code><nowiki>{}</nowiki></code> 연산자로 만듭니다. 여러 표현식을 세미콜론으로 잇면 마지막 값이 결과가 됩니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # 사용자 정의 변수
 Eval: a=0; b=pi
 # 비교
@@ -348,21 +348,21 @@ Eval: sin(a)^2 + cos(a)^2 == 1
 Eval: a=regexSearch("High Definition .*", deviceName); sizeof(a) > 0 ? "found" : "not found"
 # 레지스트리에서 설정 경로 읽기
 Eval: readRegString("HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO", "ConfigPath")
-</syntaxhighlight>
+</nowiki></pre>
 
 === If / ElseIf / Else / EndIf ===
 
 '''문법:'''
-<pre>
+<pre><nowiki>
 If: <표현식>
 ElseIf: <표현식>
 Else:
 EndIf:
-</pre>
+</nowiki></pre>
 
-<code>If</code>와 <code>EndIf</code> 사이의 명령을 조건에 따라 실행합니다. 대부분의 프로그래밍 언어의 if/else와 같습니다. <code>If</code>는 표현식을 불리언으로 평가해 참이면 이후 명령을 실행합니다. 이미 참인 분기 뒤의 <code>ElseIf</code>는 건너뛰고, 그렇지 않으면 표현식을 평가해 참일 때 그 블록을 실행합니다. <code>Else</code>는 항상 참인 <code>ElseIf</code>처럼 동작합니다. <code>EndIf</code>는 블록을 끝냅니다. 중첩할 수 있으며, <code>ElseIf</code>/<code>Else</code>는 항상 가장 가까운 열린 <code>If</code>에 묶입니다. 가독성을 위해 줄을 들여쓸 수 있습니다. 기술적인 이유로 <code>If</code>로 <code>Device</code>를 조건부 실행할 수는 없습니다. <code>Device</code>의 우선순위가 더 높기 때문입니다.
+<code><nowiki>If</nowiki></code>와 <code><nowiki>EndIf</nowiki></code> 사이의 명령을 조건에 따라 실행합니다. 대부분의 프로그래밍 언어의 if/else와 같습니다. <code><nowiki>If</nowiki></code>는 표현식을 불리언으로 평가해 참이면 이후 명령을 실행합니다. 이미 참인 분기 뒤의 <code><nowiki>ElseIf</nowiki></code>는 건너뛰고, 그렇지 않으면 표현식을 평가해 참일 때 그 블록을 실행합니다. <code><nowiki>Else</nowiki></code>는 항상 참인 <code><nowiki>ElseIf</nowiki></code>처럼 동작합니다. <code><nowiki>EndIf</nowiki></code>는 블록을 끝냅니다. 중첩할 수 있으며, <code><nowiki>ElseIf</nowiki></code>/<code><nowiki>Else</nowiki></code>는 항상 가장 가까운 열린 <code><nowiki>If</nowiki></code>에 묶입니다. 가독성을 위해 줄을 들여쓸 수 있습니다. 기술적인 이유로 <code><nowiki>If</nowiki></code>로 <code><nowiki>Device</nowiki></code>를 조건부 실행할 수는 없습니다. <code><nowiki>Device</nowiki></code>의 우선순위가 더 높기 때문입니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 If: sampleRate == 44100
 	...
 ElseIf: sampleRate == 48000
@@ -375,23 +375,23 @@ ElseIf: sampleRate == 48000
 Else:
 	...
 EndIf:
-</syntaxhighlight>
+</nowiki></pre>
 
 === Eval과 인라인 표현식 ===
 
 '''문법:'''
-<pre>
+<pre><nowiki>
 Eval: <표현식>
 <Command>: ... `<표현식>` ...
-</pre>
+</nowiki></pre>
 
-<code>Eval</code>은 표현식을 평가하고 결과를 버립니다. 주로 변수를 정의하거나 시험할 때 씁니다. '''인라인 표현식'''은 명령의 매개변수 문자열에 결과를 끼워 넣습니다. 첫 백틱부터 둘째 백틱까지(포함)가 표현식 값을 문자열로 바꾼 것으로 치환됩니다. 인라인 표현식은 <code>Device</code>나 <code>If</code>/<code>ElseIf</code>에는 못 쓰지만 <code>Eval</code> 안에서는 쓸 수 있습니다.
+<code><nowiki>Eval</nowiki></code>은 표현식을 평가하고 결과를 버립니다. 주로 변수를 정의하거나 시험할 때 씁니다. '''인라인 표현식'''은 명령의 매개변수 문자열에 결과를 끼워 넣습니다. 첫 백틱부터 둘째 백틱까지(포함)가 표현식 값을 문자열로 바꾼 것으로 치환됩니다. 인라인 표현식은 <code><nowiki>Device</nowiki></code>나 <code><nowiki>If</nowiki></code>/<code><nowiki>ElseIf</nowiki></code>에는 못 쓰지만 <code><nowiki>Eval</nowiki></code> 안에서는 쓸 수 있습니다.
 
-<syntaxhighlight lang="ini">
+<pre><nowiki>
 # 게인을 선형으로 지정
 Eval: linGain = 0.5
 Filter: ON PK Fc 1000 Hz Gain `20*log10(linGain)` dB Q 10.0
-</syntaxhighlight>
+</nowiki></pre>
 
 == 함께 보기 ==
 
