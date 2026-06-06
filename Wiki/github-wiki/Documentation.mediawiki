@@ -2,7 +2,7 @@
 
 This is the user documentation for '''EqualizerAPO-XT'''. If you write your own APO or want to build the project from source, see the [[Developer documentation]] instead. Once you have it installed, the detailed command list lives in the [[Configuration reference]].
 
-__TOC__
+[[_TOC_]]
 
 == Installation ==
 
@@ -37,7 +37,7 @@ XT installs through [https://velopack.io/ Velopack], so updates are delivered pe
 # Open <code>config.txt</code> in the Configuration Editor or any text editor. It defines a preamplification value and then includes <code>example.txt</code>. To confirm the APO is running, start any audio playback and change the <code>Preamp</code> value while sound is playing — the volume should change the moment you save the file.
 # To build your own correction, the classic approach is to measure your system with [https://www.roomeqwizard.com/ Room EQ Wizard] (REW) and export the result as filter text. EqualizerAPO-XT also includes a graphical '''Configuration Editor''' where you can add and tune filters directly, which many users find easier for small adjustments.
 
-[[File:RoomEQWizard.png|thumb|none|600px|Room EQ Wizard (the markers A–F are referenced in the steps below)]]
+<img src="RoomEQWizard.png" width="600"><br><em>Room EQ Wizard (the markers A–F are referenced in the steps below)</em>
 
 A full Room EQ Wizard tutorial is outside the scope of this page, but the basic measurement-to-filters flow is:
 
@@ -62,7 +62,7 @@ This section collects the usual reasons Equalizer APO might not behave as expect
 
 By default Equalizer APO tries to keep the effects that shipped with your sound-card driver (the "original APOs") working alongside it. On some systems this chaining causes glitches. If playback or recording becomes unstable, open the '''Device Selector''', select the affected device, enable the troubleshooting options, and clear both '''Use original APO''' checkboxes.
 
-[[File:UseOriginalAPO.png|thumb|none|500px|Disabling the original APOs in the Device Selector]]
+<img src="UseOriginalAPO.png" width="500"><br><em>Disabling the original APOs in the Device Selector</em>
 
 Doing this loses any effects the driver provided through its own APOs, so you can also try clearing only one box to keep part of that functionality. Some drivers disable their own options when they detect another APO; installing Equalizer APO into only the pre-mix or only the post-mix stage (via the '''Install APO''' checkboxes) can recover some of those driver features for the other stage.
 
@@ -73,8 +73,8 @@ If nothing you change in the configuration file has any audible effect, APOs may
 * if there is an '''Enhancements''' tab, make sure '''Disable all enhancements''' is unchecked — even if you use none of the listed enhancements;
 * if there is no Enhancements tab, open the '''Advanced''' tab and make sure '''Enable audio enhancements''' is checked.
 
-[[File:EnhancementsTab.png|thumb|none|350px|"Enhancements" tab — leave "Disable all enhancements" unchecked]]
-[[File:NoEnhancementsTab.png|thumb|none|350px|"Advanced" tab — keep "Enable audio enhancements" checked]]
+<img src="EnhancementsTab.png" width="350"><br><em>"Enhancements" tab — leave "Disable all enhancements" unchecked</em>
+<img src="NoEnhancementsTab.png" width="350"><br><em>"Advanced" tab — keep "Enable audio enhancements" checked</em>
 
 === Log files ===
 
@@ -92,4 +92,4 @@ Applications that use OpenAL usually pose no problem because they fall back to D
 
 * [[Configuration reference]] — every command and its syntax.
 * [[Developer documentation]] — building XT and writing your own APO.
-* [[ko:Documentation|이 문서의 한국어판 (Korean)]]
+* [[Korean-Documentation|이 문서의 한국어판 (Korean)]]

@@ -4,7 +4,7 @@ This is the developer documentation for '''EqualizerAPO-XT'''. It is for people 
 
 ''Disclaimer: this documentation is written to the best of our knowledge. It is neither complete nor guaranteed to be free of errors.''
 
-__TOC__
+[[_TOC_]]
 
 == Building EqualizerAPO-XT ==
 
@@ -53,4 +53,4 @@ In XT this registration and the matching cleanup are performed by <code>helpers/
 
 * [[Documentation]] — using EqualizerAPO-XT.
 * [[Configuration reference]] — the configuration command set.
-* [[ko:Developer documentation|이 문서의 한국어판 (Korean)]]
+* [[Korean-Developer-documentation|이 문서의 한국어판 (Korean)]]

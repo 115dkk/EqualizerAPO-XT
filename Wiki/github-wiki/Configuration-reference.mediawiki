@@ -2,7 +2,7 @@
 
 This page describes the configuration file format and the commands EqualizerAPO-XT understands. It is meant for advanced users. For an introduction or troubleshooting, see the [[Documentation|user documentation]]. XT keeps the original Equalizer APO syntax, so configurations written for upstream Equalizer APO work unchanged.
 
-__TOC__
+[[_TOC_]]
 
 == Configuration file format ==
 
@@ -95,7 +95,7 @@ The table below lists the supported filter types. In the parameter columns, '''X
 
 Adds a generic IIR filter of the given order and coefficients. The number of coefficients must be <code>2·(order+1)</code>. The transfer function is shown below.
 
-[[File:Transfer function.png|none|frameless|IIR transfer function]]
+<img src="Transfer-function.png"><br><em>IIR transfer function</em>
 
 Because the coefficients usually depend on the sample rate, combine this with the [[#If / ElseIf / Else / EndIf|If]] command or [[#Eval and inline expressions|inline expressions]] to supply the right values for the current rate. You ''can'' reproduce the BiQuad filters of the other types this way, but it runs slower, so it is not advisable.
 
@@ -232,7 +232,7 @@ Channel: 1 2 C
 
 Chooses which stage(s) the following filtering commands run on. Output devices have two stages, '''pre-mix''' and '''post-mix'''; input devices have only '''capture'''.
 
-[[File:Stages.png|none|frameless|500px|Pre-mix and post-mix stages of an output device]]
+<img src="Stages.png" width="500"><br><em>Pre-mix and post-mix stages of an output device</em>
 
 The selected stages start as post-mix and capture, so filtering runs exactly once for output and input devices. Post-mix is preferred over pre-mix because pre-mix filtering happens per-application and costs more CPU. Pre-mix is needed for specific tasks such as upmixing, where filtering must depend on the number of input channels.
 
@@ -397,4 +397,4 @@ Filter: ON PK Fc 1000 Hz Gain `20*log10(linGain)` dB Q 10.0
 
 * [[Documentation]] — installation, first configuration and troubleshooting.
 * [[Developer documentation]] — building XT and writing your own APO.
-* [[ko:Configuration reference|이 문서의 한국어판 (Korean)]]
+* [[Korean-Configuration-reference|이 문서의 한국어판 (Korean)]]

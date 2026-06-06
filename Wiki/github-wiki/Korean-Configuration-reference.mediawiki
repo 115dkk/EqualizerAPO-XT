@@ -1,8 +1,8 @@
 = 설정 레퍼런스 =
 
-이 문서는 EqualizerAPO-XT가 이해하는 설정 파일 형식과 명령을 설명합니다. 고급 사용자를 위한 내용입니다. 입문이나 문제 해결은 [[Documentation|사용자 문서]]를 보세요. XT는 원본 Equalizer APO 문법을 그대로 유지하므로, 원본용으로 작성한 설정도 그대로 동작합니다.
+이 문서는 EqualizerAPO-XT가 이해하는 설정 파일 형식과 명령을 설명합니다. 고급 사용자를 위한 내용입니다. 입문이나 문제 해결은 [[Korean-Documentation|사용자 문서]]를 보세요. XT는 원본 Equalizer APO 문법을 그대로 유지하므로, 원본용으로 작성한 설정도 그대로 동작합니다.
 
-__TOC__
+[[_TOC_]]
 
 == 설정 파일 형식 ==
 
@@ -95,7 +95,7 @@ Filter <n>: ON <Type> Fc <주파수> Hz Gain <게인> dB BW Oct <대역폭>
 
 지정한 차수와 계수로 일반 IIR 필터를 추가합니다. 계수 개수는 <code>2·(차수+1)</code>이어야 합니다. 전달 함수는 아래와 같습니다.
 
-[[File:Transfer function.png|none|frameless|IIR 전달 함수]]
+<img src="Transfer-function.png"><br><em>IIR 전달 함수</em>
 
 계수는 보통 샘플레이트에 따라 달라지므로, [[#If / ElseIf / Else / EndIf|If]] 명령이나 [[#Eval과 인라인 표현식|인라인 표현식]]과 함께 써서 현재 샘플레이트에 맞는 값을 넣습니다. 이 필터로 다른 종류의 BiQuad 필터를 똑같이 구현할 수도 있지만, 실행이 더 느리므로 권하지 않습니다.
 
@@ -232,7 +232,7 @@ Channel: 1 2 C
 
 이후 필터링 명령이 실행될 단계를 정합니다. 출력 장치에는 '''pre-mix'''와 '''post-mix''' 두 단계가, 입력 장치에는 '''capture''' 단계만 있습니다.
 
-[[File:Stages.png|none|frameless|500px|출력 장치의 pre-mix와 post-mix 단계]]
+<img src="Stages.png" width="500"><br><em>출력 장치의 pre-mix와 post-mix 단계</em>
 
 처음 선택된 단계는 post-mix와 capture라, 출력과 입력 장치에서 필터링이 정확히 한 번 실행됩니다. post-mix를 pre-mix보다 선호하는 이유는, pre-mix 필터링이 애플리케이션마다 일어나 CPU를 더 쓰기 때문입니다. 다만 업믹싱처럼 입력 채널 수에 따라 필터링해야 하는 경우에는 pre-mix를 써야 합니다.
 
@@ -395,6 +395,6 @@ Filter: ON PK Fc 1000 Hz Gain `20*log10(linGain)` dB Q 10.0
 
 == 함께 보기 ==
 
-* [[Documentation|사용자 문서]] — 설치, 첫 설정, 문제 해결.
-* [[Developer documentation|개발자 문서]] — XT 빌드와 직접 APO 만들기.
-* [[en:Configuration reference|English version of this page]]
+* [[Korean-Documentation|사용자 문서]] — 설치, 첫 설정, 문제 해결.
+* [[Korean-Developer-documentation|개발자 문서]] — XT 빌드와 직접 APO 만들기.
+* [[Configuration reference|English version of this page]]
