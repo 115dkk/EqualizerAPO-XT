@@ -1,0 +1,39 @@
+= EqualizerAPO-XT wiki sources =
+
+This folder holds the EqualizerAPO-XT documentation as MediaWiki markup, ready to import into a MediaWiki instance. It mirrors the original Equalizer APO SourceForge wiki, with the installation and packaging sections rewritten for the XT builds.
+
+== Layout ==
+
+* <code>en/</code> — English pages
+** <code>en/Main_Page.mediawiki</code>
+** <code>en/Documentation.mediawiki</code>
+** <code>en/Configuration_reference.mediawiki</code>
+** <code>en/Developer_documentation.mediawiki</code>
+* <code>ko/</code> — Korean pages (same four page names)
+
+Internal links use MediaWiki page links such as <code><nowiki>[[Configuration reference]]</nowiki></code> and section anchors such as <code><nowiki>[[Configuration reference#Filter]]</nowiki></code>. Cross-language links use the <code><nowiki>[[en:...]]</nowiki></code> / <code><nowiki>[[ko:...]]</nowiki></code> prefix and assume interwiki/language-link setup; adjust them to your wiki's convention if needed.
+
+== Images ==
+
+The pages reference these images with <code><nowiki>[[File:...]]</nowiki></code>. The source files live one level up, in the <code>Wiki/</code> folder, and must be uploaded to the wiki under the same names:
+
+* <code>RoomEQWizard.png</code>
+* <code>UseOriginalAPO.png</code>
+* <code>EnhancementsTab.png</code>
+* <code>NoEnhancementsTab.png</code>
+* <code>Stages.png</code> (vector source: <code>Stages.svg</code>)
+* <code>Transfer function.png</code>
+
+== Page map ==
+
+{| class="wikitable"
+! Page !! English !! Korean
+|-
+| Landing || <code>en/Main_Page.mediawiki</code> || <code>ko/Main_Page.mediawiki</code>
+|-
+| User guide || <code>en/Documentation.mediawiki</code> || <code>ko/Documentation.mediawiki</code>
+|-
+| Command reference || <code>en/Configuration_reference.mediawiki</code> || <code>ko/Configuration_reference.mediawiki</code>
+|-
+| Developer guide || <code>en/Developer_documentation.mediawiki</code> || <code>ko/Developer_documentation.mediawiki</code>
+|}
