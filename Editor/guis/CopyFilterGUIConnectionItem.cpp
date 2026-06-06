@@ -47,6 +47,19 @@ CopyFilterGUIConnectionItem::CopyFilterGUIConnectionItem(CopyFilterGUIChannelIte
 	setAcceptHoverEvents(true);
 }
 
+void CopyFilterGUIConnectionItem::setLabelPosition(double t)
+{
+	labelT = t;
+	prepareGeometryChange();
+	update();
+}
+
+QPointF CopyFilterGUIConnectionItem::labelCenter() const
+{
+	QLineF l = line();
+	return l.p1() + (l.p2() - l.p1()) * labelT;
+}
+
 QRectF CopyFilterGUIConnectionItem::boundingRect() const
 {
 	QRectF rect = QGraphicsLineItem::boundingRect();
@@ -94,18 +107,18 @@ QPainterPath CopyFilterGUIConnectionItem::shape() const
 		{
 			QFont font;
 			font.setPixelSize(GUIHelper::scale(10));
-			QPointF center = (l.p1() + l.p2()) / 2;
+			QPointF center = labelCenter();
 			QString text = QString("%1").arg(factor);
 			if (isDecibel)
 				text += " dB";
 
 			QFontMetrics fontMetrics(font);
 			QSizeF size = fontMetrics.size(0, text);
-			size += QSizeF(2, 0);
+			size += QSizeF(GUIHelper::scale(8), GUIHelper::scale(4));
 			QRectF rect;
 			rect.setSize(size);
 			rect.moveCenter(center);
-			path.addRoundedRect(rect.adjusted(-0.5, 0.5, 0.5, 0.5), 3, 3);
+			path.addRoundedRect(rect, 4, 4);
 		}
 	}
 
@@ -152,21 +165,25 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 			QFont font = painter->font();
 			font.setPixelSize(GUIHelper::scale(10));
 			painter->setFont(font);
-			QPointF center = (l.p1() + l.p2()) / 2;
+			QPointF center = labelCenter();
 			QString text = QString("%1").arg(factor);
 			if (isDecibel)
 				text += " dB";
 
 			QSizeF size = painter->fontMetrics().size(0, text);
-			size += QSizeF(2, 0);
+			size += QSizeF(GUIHelper::scale(8), GUIHelper::scale(4));
 			QRectF rect;
 			rect.setSize(size);
 			rect.moveCenter(center);
+			painter->setPen(Qt::NoPen);
 			painter->setBrush(Qt::white);
-			painter->drawRoundedRect(rect.adjusted(-0.5, 0.5, 0.5, 0.5), 3, 3);
-			// make sure that text is visible in dark mode
-			if(painter->pen().color() == Qt::white)
-				painter->setPen(Qt::black);
+			painter->drawRoundedRect(rect, 4, 4);
+			// The label box is always white, so the coefficient text must always be
+			// dark. The previous code only swapped to black when the line pen was
+			// exactly white; in the dark skins the pen is a light grey (not pure
+			// white), so the test missed and the text rendered light-on-white and
+			// nearly unreadable.
+			painter->setPen(QColor(0x20, 0x20, 0x28));
 			painter->drawText(rect, Qt::AlignCenter, text);
 		}
 	}
@@ -182,8 +199,7 @@ void CopyFilterGUIConnectionItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent
 	connect(lineEdit, SIGNAL(editingFinished()), this, SLOT(lineEditEditingFinished()));
 	connect(lineEdit, SIGNAL(editingCanceled()), this, SLOT(lineEditEditingCanceled()));
 	QGraphicsProxyWidget* proxyItem = scene()->addWidget(lineEdit);
-	QLineF l = line();
-	QPointF center = (l.p1() + l.p2()) / 2;
+	QPointF center = labelCenter();
 	QRectF rect;
 	rect.setSize(lineEdit->size());
 	rect.moveCenter(center);

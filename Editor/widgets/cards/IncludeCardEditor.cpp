@@ -16,6 +16,8 @@
 #include <windows.h>
 
 #include "Editor/FilterTable.h"
+#include "Editor/SkinManager.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
@@ -31,9 +33,13 @@ IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& pa
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(10);
 
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const QColor glyphColor(tokens.mutedText);
+	const QColor actionColor(tokens.text);
+
 	QLabel* fileGlyph = new QLabel(this);
 	fileGlyph->setObjectName(QStringLiteral("IncludeCardGlyph"));
-	fileGlyph->setPixmap(style()->standardIcon(QStyle::SP_FileIcon).pixmap(20, 20));
+	fileGlyph->setPixmap(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/file-include.svg"), glyphColor, 20).pixmap(GUIHelper::scale(QSize(20, 20))));
 	layout->addWidget(fileGlyph, 0, Qt::AlignVCenter);
 
 	QWidget* pathBlock = new QWidget(this);
@@ -57,21 +63,21 @@ IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& pa
 
 	chooseButton = new QToolButton(this);
 	chooseButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	chooseButton->setIcon(QIcon(QStringLiteral(":/icons/document-open.ico")));
+	chooseButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), actionColor, 18));
 	chooseButton->setToolTip(tr("Choose include file"));
 	connect(chooseButton, SIGNAL(clicked()), this, SLOT(chooseFile()));
 	layout->addWidget(chooseButton, 0, Qt::AlignTop);
 
 	openButton = new QToolButton(this);
 	openButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	openButton->setIcon(QIcon(QStringLiteral(":/icons/accessories-text-editor.ico")));
+	openButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/pencil.svg"), actionColor, 18));
 	openButton->setToolTip(tr("Open include file"));
 	connect(openButton, SIGNAL(clicked()), this, SLOT(openFile()));
 	layout->addWidget(openButton, 0, Qt::AlignTop);
 
 	importButton = new QToolButton(this);
 	importButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	importButton->setIcon(QIcon(QStringLiteral(":/icons/document-save.ico")));
+	importButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/import.svg"), actionColor, 18));
 	importButton->setToolTip(tr("Copy this file and its dependencies into the config directory"));
 	importButton->setVisible(false);
 	connect(importButton, SIGNAL(clicked()), this, SLOT(importToConfig()));

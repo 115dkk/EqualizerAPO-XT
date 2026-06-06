@@ -18,6 +18,9 @@
 */
 
 #include <QSize>
+#include <QString>
+#include <QColor>
+#include <QIcon>
 
 #pragma once
 
@@ -30,4 +33,9 @@ public:
 	static double invScale(int pixel);
 	static double invScaleZoom(double zoom);
     static bool isDarkMode();
+	// Render a monochrome resource icon (SVG silhouette) recoloured to the given
+	// skin colour. The artwork's own colour is ignored: only its alpha mask is
+	// kept, so the same icon adapts to any dark/light skin without per-theme
+	// duplicate files. size is in logical pixels and is DPI-scaled internally.
+	static QIcon tintedIcon(const QString& resource, const QColor& color, int size = 20);
 };
