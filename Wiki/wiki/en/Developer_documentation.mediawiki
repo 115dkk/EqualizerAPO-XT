@@ -1,0 +1,56 @@
+= Developer documentation =
+
+This is the developer documentation for '''EqualizerAPO-XT'''. It is for people who want to review, build or experiment with the source, or write their own APO. If you only want to use the software, see the [[Documentation|user documentation]].
+
+''Disclaimer: this documentation is written to the best of our knowledge. It is neither complete nor guaranteed to be free of errors.''
+
+__TOC__
+
+== Building EqualizerAPO-XT ==
+
+XT is a Windows project. The C++ projects target the Visual Studio 2022 / 2026 toolset with the Windows 10 SDK; the GUI tools are built with Qt. The original Equalizer APO build expected libraries installed under <code>C:\Program Files</code>; XT instead keeps every dependency under a local <code>deps/</code> folder and provides a setup script that fetches them.
+
+=== Prerequisites ===
+
+* '''Visual Studio 2022 Build Tools''' (or 2026), including the components <code>Microsoft.VisualStudio.Component.VC.Tools.x86.x64</code> and <code>Microsoft.VisualStudio.Component.VC.ATL</code>. ATL is required — without it the <code>EqualizerAPO.dll</code> link step cannot find <code>atls.lib</code>. The XT projects build with the VS 2026 toolset <code>v145</code>; on a VS 2022 machine pass <code>/p:PlatformToolset=v143</code>.
+* '''Python 3''' — used to install Qt through <code>aqtinstall</code>.
+* '''Qt 6.10.1 (MSVC 2022 x64)''' — installed under <code>Qt/6.10.1/msvc2022_64/</code>. Needed by the Configuration Editor, the Device Selector and the Update Checker.
+* '''External libraries''' — '''not''' committed to the repository: [https://www.fftw.org/ FFTW], [https://libsndfile.github.io/libsndfile/ libsndfile], [https://github.com/beltoforion/muparserx muParserX], [http://tclap.sourceforge.net/ TCLAP], and the MIT-licensed Steinberg VST3 ''pluginterfaces''. They are placed under <code>deps/</code> at build time.
+* '''Velopack''' (<code>vpk</code> CLI, <code>dotnet tool install -g vpk</code>) — used only by CI to package the binaries into the <code>Setup.exe</code> / <code>.nupkg</code> artifacts. Local development does not need it.
+
+The script '''<code>setup-build.ps1</code>''' downloads the binary dependencies (per SIMD variant), clones the header-only libraries (TCLAP and the VST3 pluginterfaces), and installs Qt. See [https://github.com/115dkk/EqualizerAPO-XT/blob/main/setup-build.ps1 setup-build.ps1] and the in-repo <code>docs/LocalDependencySetup.md</code> for the exact layout and the MSBuild / qmake commands.
+
+=== Source code organization ===
+
+The solution <code>EqualizerAPO.sln</code> groups these projects:
+
+* '''Common''' — a static library with the filter engine (<code>FilterEngine</code>, <code>FilterConfiguration</code>, <code>IFilter</code>), the individual filter implementations under <code>filters/</code>, the muParserX extensions under <code>parser/</code>, and shared helpers under <code>helpers/</code>. The convolution code lives in <code>libHybridConv-0.1.1/</code>. The other projects link against it.
+* '''EqualizerAPO''' — the Audio Processing Object DLL (<code>EqualizerAPO.dll</code>). It contains the COM boilerplate, implements the APO interfaces, and calls into the Common filter engine. Being ATL-based, it needs <code>atls.lib</code>.
+* '''Editor''' — the Qt-based Configuration Editor. <code>Editor.exe</code> is the Velopack package's main executable and handles every Velopack install/update/uninstall hook through <code>helpers/ApoRegistration</code> and <code>helpers/VelopackBootstrap</code>.
+* '''DeviceSelector''' — the Qt utility shown after the first install so the user can pick the audio devices to register the APO for. It replaces the original Configurator.
+* '''UpdateChecker''' — the Qt tool that runs at logon and notifies the user when a newer release for the build channel is available.
+* '''Benchmark''' — a console program for testing the audio processing without installing it on a device. Handy for experimenting with filter types and measuring performance.
+* '''VoicemeeterClient''' — a helper for Voicemeeter integration.
+* '''Tests''' — the unit and regression test projects: <code>HybridConvTests</code>, <code>EditorLogicTests</code> and <code>AudioRegressionTests</code>.
+* '''Setup''' — the sample configuration files (<code>config/</code>) and the documentation <code>.url</code> shortcuts that the CI packaging step bundles into the Velopack output.
+
+CI lives in <code>.github/workflows/build.yml</code>: it builds the x64 <code>sse2</code>, <code>avx</code>, <code>avx2</code>, <code>avx512</code> and <code>avx10_1</code> variants plus ARM64 <code>neon</code>, then calls <code>vpk pack</code> to produce the per-channel installers (see [[Documentation#Installation|the installation section]] and the in-repo <code>docs/SimdBuildMatrix.md</code>). Pull requests build AVX2 only; a push to <code>main</code> builds every variant and creates a GitHub Release. The original NSIS installer has been removed.
+
+== APO development ==
+
+An APO (Audio Processing Object) is a user-space module loaded by the Windows Audio Service to process sample data before it reaches the device driver. APOs are normally shipped with the audio driver and signed so they cannot bypass audio DRM. There are two kinds: '''GFX''' (global effect, applied after the streams are mixed) and '''LFX''' (local effect, applied before mixing). An output device can have one GFX and one LFX APO; an input device can have one LFX APO. An APO is a COM object identified by a GUID under which it is registered. Microsoft's documents [https://learn.microsoft.com/en-us/windows-hardware/drivers/audio/windows-vista-custom-audio-effects Custom Audio Effects] and [https://learn.microsoft.com/en-us/windows-hardware/drivers/audio/reusing-windows-vista-system-effects Reusing System Effects] describe the model and provide samples.
+
+Adding a custom APO means clearing two obstacles: the audio engine must be allowed to load unsigned APOs, and the device's existing APO must be chained to the custom one so it keeps working. The registry changes that make the Windows Audio Service load the DLL are:
+
+# Under <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio</code>, set the DWORD '''<code>DisableProtectedAudioDG</code>''' to <code>1</code>. This turns off the APO signature check so unsigned APOs load. Applications that need a protected audio path may then change behaviour or refuse to output audio.
+# Register the APO COM class under <code>HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\<GUID></code>. Set a class name as the key's default value, create the <code>InprocServer32</code> subkey with the DLL path as its default value, and set <code>ThreadingModel</code> appropriately.
+# Create <code>HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AudioEngine\AudioProcessingObjects\<GUID></code>. This is normally done by the DDK function <code>RegisterAPO</code> (declared in <code>audioenginebaseapo.h</code>); <code>UnregisterAPO</code> removes it.
+# Register the APO for a device under <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\<endpoint GUID>\FxProperties</code> (the <code>Render</code> path is output devices; <code>Capture</code> is input devices). In <code>FxProperties</code>, the value <code>{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1</code> holds an LFX APO's GUID and <code>...,2</code> a GFX APO's. These usually already point at the driver's APOs, so registering the custom APO means replacing one value and saving the original elsewhere (Equalizer APO stores it under <code>HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\Child APOs</code>) — both to restore it on uninstall and to load and call the original APO so it keeps working. Since Windows 8.1 the values ending in <code>,5</code> (LFX) and <code>,6</code> (GFX) are also used, and when an APO is registered through them, one registered through the old <code>,1</code>/<code>,2</code> values is ignored. Also since 8.1 the values <code>{d3993a3f-99c2-4402-b5ec-a92a0367664b},5</code> and <code>,6</code> specify processing modes (type MULTI_SZ); both normally need to be <code>{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}</code>, the default processing mode.
+
+In XT this registration and the matching cleanup are performed by <code>helpers/ApoRegistration</code>, driven from the Velopack hooks the Editor handles.
+
+== See also ==
+
+* [[Documentation]] — using EqualizerAPO-XT.
+* [[Configuration reference]] — the configuration command set.
+* [[ko:Developer documentation|이 문서의 한국어판 (Korean)]]
