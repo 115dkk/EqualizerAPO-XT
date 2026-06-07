@@ -28,6 +28,7 @@ CASES = [
     "copy_crossfeed",
     "delay_512",
     "graphiceq_15band",
+    "convolution_short",
 ]
 
 

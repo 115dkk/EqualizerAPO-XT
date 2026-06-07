@@ -54,6 +54,7 @@ const TestCase kCases[] = {
 	{ "copy_crossfeed",      "copy_crossfeed.txt",      SignalType::ImpulseStereo, 48000, 2, 256   },
 	{ "delay_512",           "delay_512.txt",           SignalType::ImpulseStereo, 48000, 2, 2048  },
 	{ "graphiceq_15band",    "graphiceq_15band.txt",    SignalType::ImpulseStereo, 48000, 2, 8192  },
+	{ "convolution_short",   "convolution_short.txt",   SignalType::ImpulseStereo, 48000, 2, 4096  },
 };
 
 struct Options
