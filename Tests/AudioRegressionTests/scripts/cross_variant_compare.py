@@ -4,7 +4,7 @@ Cross-variant audio regression comparison.
 
 Downloaded audio-regression-output-* artifacts each contain the raw
 float-interleaved outputs of every test case for a single SIMD variant
-under Tests/AudioRegressionTests/output/<variant>/<case>.raw.
+under <variant>/<case>.raw.
 
 This script compares every pair of variants we list in VARIANTS, case by
 case, and fails (non-zero exit) if any pair drifts beyond TOLERANCE_DB.
@@ -47,37 +47,52 @@ def compare(a: np.ndarray, b: np.ndarray):
 
 
 def variant_dir(variant: str) -> str:
-    return os.path.join(ARTIFACT_ROOT, f"audio-regression-output-{variant}", "output", variant)
+    artifact_dir = os.path.join(ARTIFACT_ROOT, f"audio-regression-output-{variant}")
+    candidates = [
+        os.path.join(artifact_dir, variant),
+        os.path.join(artifact_dir, "output", variant),
+    ]
+    for candidate in candidates:
+        if os.path.isdir(candidate):
+            return candidate
+    return candidates[0]
 
 
 def main() -> int:
     pairs = [(VARIANTS[i], VARIANTS[j]) for i in range(len(VARIANTS)) for j in range(i + 1, len(VARIANTS))]
     print(f"Cross-variant compare: tolerance={TOLERANCE_DB} dBFS, variants={VARIANTS}")
 
-    missing = [v for v in VARIANTS if not os.path.isdir(variant_dir(v))]
+    dirs = {v: variant_dir(v) for v in VARIANTS}
+    missing = [v for v in VARIANTS if not os.path.isdir(dirs[v])]
     if missing:
-        print(f"WARNING: missing variant output directories: {missing}")
+        for variant in missing:
+            print(f"ERROR: missing variant output directory for {variant}: {dirs[variant]}")
+        return 1
 
     all_ok = True
+    comparisons = 0
     for a, b in pairs:
-        a_dir = variant_dir(a)
-        b_dir = variant_dir(b)
-        if not (os.path.isdir(a_dir) and os.path.isdir(b_dir)):
-            print(f"  [{a:6s} <-> {b:6s}] SKIP (one or both directories missing)")
-            continue
+        a_dir = dirs[a]
+        b_dir = dirs[b]
         for case in CASES:
             a_file = os.path.join(a_dir, f"{case}.raw")
             b_file = os.path.join(b_dir, f"{case}.raw")
             if not (os.path.isfile(a_file) and os.path.isfile(b_file)):
-                print(f"  [{a:6s} <-> {b:6s}] {case}: SKIP (file missing)")
+                print(f"  [{a:6s} <-> {b:6s}] {case}: FAIL (file missing)")
+                all_ok = False
                 continue
             arr_a = load_raw(a_file)
             arr_b = load_raw(b_file)
             ok, maxerr, idx, rmse = compare(arr_a, arr_b)
+            comparisons += 1
             verdict = "PASS" if ok else "FAIL"
             print(f"  [{a:6s} <-> {b:6s}] {case:24s}: {verdict}  maxAbsError={maxerr:.3e} (at {idx})  rmse={rmse:.3e}")
             if not ok:
                 all_ok = False
+
+    if comparisons == 0:
+        print("ERROR: no cross-variant comparisons were executed")
+        return 1
 
     return 0 if all_ok else 1
 
