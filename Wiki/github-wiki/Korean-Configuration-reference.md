@@ -1,0 +1,332 @@
+# 설정 레퍼런스
+이 문서는 EqualizerAPO-XT가 이해하는 설정 파일 형식과 명령을 설명합니다. 고급 사용자를 위한 내용입니다. 입문이나 문제 해결은 [사용자 문서](Korean-Documentation)를 보세요. XT는 원본 Equalizer APO 문법을 그대로 유지하므로, 원본용으로 작성한 설정도 그대로 동작합니다.
+## 설정 파일 형식
+설정 파일은 한 줄씩 읽습니다. 의미 있는 줄은 모두 다음 형태입니다.
+
+```
+Command: Parameters
+```
+
+이 형태에 맞지 않는 줄은 조용히 무시됩니다. 주석이 이렇게 동작합니다. `#`로 시작하는 줄은 그냥 인식되는 명령이 아닐 뿐입니다. 존재하지 않는 명령을 적은 줄도 무시됩니다.
+
+예시:
+
+```
+Device: High Definition Audio Device Speakers; Benchmark
+#아래 줄들은 지정한 장치와 benchmark 애플리케이션에만 적용됩니다
+Preamp: -6 db
+Include: example.txt
+Filter  1: ON  PK       Fc     50 Hz   Gain  -3.0 dB  Q 10.00
+Filter  2: ON  PEQ      Fc     100 Hz  Gain   1.0 dB  BW Oct 0.167
+
+Channel: L
+#왼쪽 채널에만 추가 프리앰프
+Preamp: -5 dB
+#왼쪽 채널에만 적용할 필터
+Include: demo.txt
+Filter  1: ON  LS       Fc     300 Hz  Gain   5.0 dB
+
+Channel: 2 C
+#두 번째(오른쪽)와 센터 채널용 필터
+Filter  1: ON  HP       Fc     30 Hz
+Filter  2: ON  LPQ      Fc     10000 Hz  Q  0.400
+
+Device: Microphone
+#여기부터는 마이크 장치에만 적용됩니다
+Filter: ON  NO       Fc     50 Hz
+```
+
+## 필터링 명령
+선택한 채널의 오디오를 직접 바꾸는 명령입니다.
+
+### Preamp
+**문법:** `Preamp: <음수> dB`
+
+프리앰프 값을 데시벨로 정합니다. 양의 게인을 더하는 필터를 쓸 때 클리핑을 막기 위해 씁니다. 같은 채널에 프리앰프가 여러 개 걸리면 dB 단위로 더한 값이 적용됩니다.
+
+```
+Preamp: -6.5 dB
+```
+
+### Filter
+**문법:**
+```
+Filter <n>: ON <Type> Fc <주파수> Hz Gain <게인> dB Q <Q 값>
+Filter <n>: ON <Type> Fc <주파수> Hz Gain <게인> dB BW Oct <대역폭>
+```
+
+지정한 종류, 주파수, 게인, Q/대역폭의 필터를 추가합니다. 첫 번째 형태(Q)는 Room EQ Wizard의 "Generic" 이퀄라이저 유형과, 두 번째 형태(대역폭)는 "FBQ2496"과 맞습니다. 필터 번호 `<n>`은 해석되지 않으며 생략해도 됩니다.
+
+아래 표는 지원하는 필터 종류입니다. 매개변수 열에서 **X**는 필수, **O**는 선택입니다. "Generic"과 "FBQ2496" 유형의 모든 필터를 포함하며, 텍스트 형식이 맞으면 다른 유형도 동작할 수 있습니다. 한 가지 차이가 있습니다. 여기의 밴드패스 필터는 게인이 없는 진짜 밴드패스 필터(로/하이패스처럼)로, 실제로는 피킹 필터인 DCX2496의 "BP"와는 다릅니다.
+
+| 종류 | 설명 | Fc | Gain | Q/BW | 예시 |
+| --- | --- | --- | --- | --- | --- |
+| PK<br>Modal<br>PEQ | 피킹 필터 (파라메트릭 EQ) | X | X | X | `ON PK Fc 50.0 Hz Gain -10.0 dB Q 2.50`<br>`ON Modal Fc 100 Hz Gain 3.0 dB Q 5.41 T60 target 100 ms`<br>`ON PEQ Fc 100 Hz Gain 1.0 dB BW Oct 0.167` |
+| LP<br>LPQ | 로패스 필터 | X |  | O | `ON LP Fc 8000 Hz`<br>`ON LPQ Fc 10000 Hz Q 0.400` |
+| HP<br>HPQ | 하이패스 필터 | X |  | O | `ON HP Fc 30.0 Hz`<br>`ON HPQ Fc 20.0 Hz Q 0.500` |
+| BP | 밴드패스 필터 (DCX2496 아님) | X |  | O | `ON BP Fc 1000 Hz Q 0.100` |
+| LS<br>LSC *x* dB | 로셸프 필터 (센터 주파수; LSC는 옥타브당 *x* dB) | X | X | O (1.2.1) | `ON LS Fc 300 Hz Gain 5.0 dB`<br>`ON LSC 10.8 dB Fc 300 Hz Gain 5.0 dB`<br>`ON LSC Fc 300 Hz Gain 5.0 dB Q 0.6473` |
+| HS<br>HSC *x* dB | 하이셸프 필터 (센터 주파수; HSC는 옥타브당 *x* dB) | X | X | O (1.2.1) | `ON HS Fc 1000 Hz Gain -3.0 dB`<br>`ON HSC 6 dB Fc 100 Hz Gain -6.0 dB`<br>`ON HSC Fc 100 Hz Gain -6.0 dB Q 0.4272` |
+| LS 6dB<br>LS 12dB | 로셸프 필터 (옥타브당 6/12 dB, 코너 주파수) | X | X |  | `ON LS 6dB Fc 50.0 Hz Gain 7.2 dB`<br>`ON LS 12dB Fc 2000 Hz Gain -5.0 dB` |
+| HS 6dB<br>HS 12dB | 하이셸프 필터 (옥타브당 6/12 dB, 코너 주파수) | X | X |  | `ON HS 6dB Fc 12000 Hz Gain 10.0 dB`<br>`ON HS 12dB Fc 500 Hz Gain 5.0 dB` |
+| NO | 노치 필터 | X |  | O | `ON NO Fc 800 Hz` |
+| AP | 올패스 필터 | X |  | X | `ON AP Fc 900 Hz Q 0.707` |
+
+
+### 사용자 계수 필터
+**문법:** `Filter <n>: ON IIR Order <m> Coefficients <b0> <b1> ... <bm> <a0> <a1> ... <am>`
+
+지정한 차수와 계수로 일반 IIR 필터를 추가합니다. 계수 개수는 `2·(차수+1)`이어야 합니다. 전달 함수는 아래와 같습니다.
+
+<img src="Transfer-function.png"><br><em>IIR 전달 함수</em>
+
+계수는 보통 샘플레이트에 따라 달라지므로, [If](#if--elseif--else--endif) 명령이나 [인라인 표현식](#eval과-인라인-표현식)과 함께 써서 현재 샘플레이트에 맞는 값을 넣습니다. 이 필터로 다른 종류의 BiQuad 필터를 똑같이 구현할 수도 있지만, 실행이 더 느리므로 권하지 않습니다.
+
+```
+# 샘플레이트 48 kHz에서 Fc 3000 Hz인 로패스 biquad 필터
+Filter: ON IIR Order 2 Coefficients 0.0380602 0.0761205 0.0380602 1.2706 -1.84776 0.729402
+```
+
+### Delay
+**문법:**
+```
+Delay: <t> ms
+Delay: <n> samples
+```
+
+선택한 채널을 `t` 밀리초나 `n` 샘플만큼 지연합니다. 샘플레이트와 무관하게 같은 지연을 주는 밀리초 쪽을 권합니다.
+
+```
+# 샘플레이트와 무관하게 50.5 ms 지연
+Delay: 50.5 ms
+# 480 샘플 지연 (48 kHz에서 10 ms)
+Delay: 480 samples
+```
+
+### Copy
+**문법:**
+```
+Copy: <대상 채널>=<계수>*<원본 채널>+...
+Copy: <대상 채널>=<원본 채널>+...
+Copy: <대상 채널>=<상수>+...
+```
+
+대상 채널을, 나열한 원본 채널들의 합(각각 선택적 계수 포함)으로 바꿉니다. 대상을 바꾸지 않고 더하려면 대상 자신을 원본에 넣으면 됩니다. 계수는 `dB`를 붙여 데시벨로 줄 수 있습니다. 한 줄에 여러 할당을 공백으로 구분해 넣을 수 있으므로, 할당 하나에는 공백이 없어야 합니다. 채널/계수 자리에 상수를 쓸 수 있는데, 숫자 채널 번호와 구분하기 위해 상수에는 소수점이 있어야 합니다. 채널 식별자는 [Channel](#channel) 명령을 보세요.
+
+```
+# R 채널을 0.5배해서 L 채널에 더합니다
+Copy: L=L+0.5*R
+# L을 R과, 6 dB 감쇠한 C의 합으로 바꿉니다
+Copy: L=R+-6dB*C
+# 채널 1을 이전 R의 오디오로 바꾸고, R을 상수 0.5로 설정합니다
+Copy: 1=R R=0.5
+# 주의: L을 채널 2의 오디오로 설정합니다 (소수점이 없으므로 상수 2가 아님)
+Copy: L=2
+# 5.1 시스템에서 나머지를 음소거하고 LFE를 왼쪽 채널로 바꿉니다
+Copy: LFE=L L=0.0 R=0.0 C=0.0 RL=0.0 RR=0.0
+```
+
+### GraphicEQ
+**문법:** `GraphicEQ: <주파수> <게인(dB)>; <주파수> <게인(dB)>; ...`
+
+지정한 대역과 게인으로 그래픽 이퀄라이저를 추가합니다. 게인은 로그 주파수 축에서 선형으로 보간되며(로그 보기에서 직선으로 보이도록), 지정한 대역 바깥은 평탄합니다.
+
+```
+# ISO 대역의 15밴드 그래픽 이퀄라이저
+GraphicEQ: 25 6; 40 4.5; 63 3; 100 1.5; 160 0; 250 0; 400 0; 630 0; 1000 0; 1600 0; 2500 0; 4000 0; 6300 1.5; 10000 3; 16000 3
+```
+
+### Convolution
+**문법:** `Convolution: <파일 이름>`
+
+지정한 파일의 임펄스 응답으로 신호를 처리하는 컨볼버를 추가합니다. 파일은 [libsndfile](https://libsndfile.github.io/libsndfile/)이 지원하는 형식(WAV, FLAC, OGG 등)이어야 합니다. 채널이 여러 개면 선택한 채널에 라운드로빈으로 배정됩니다(스테레오 파일을 4채널에 걸면 L→1, R→2, L→3, R→4). **파일의 샘플레이트는 장치의 샘플레이트와 같아야** 하며, 다르면 컨볼버를 만들 수 없습니다. 지연과 CPU 사용량은 임펄스 응답의 길이와 위상에 따라 달라집니다(선형 위상은 파일 길이의 절반만큼 지연, 최소 위상은 더 낮지만 일정하지 않음). 파일 이름은 설정 파일 기준 상대 경로이고, 큰따옴표로 감쌀 수 있으며, `%USERPROFILE%` 같은 환경 변수를 넣을 수 있습니다. 설정 폴더(또는 하위 폴더) 안의 임펄스 응답 파일은 바뀌면 자동으로 다시 로드되어 즉시 적용됩니다. EqualizerAPO-XT는 원본의 임펄스 응답 길이 제한을 없앴습니다.
+
+```
+# 잔향 효과를 위해 녹음한 임펄스 응답과 합성곱
+Convolution: church.wav
+```
+
+## 제어 명령
+오디오를 직접 바꾸지 않고, 어떤 명령이 실행될지와 어떻게 적용될지를 제어합니다.
+
+### Include
+**문법:** `Include: <파일 이름>`
+
+지정한 파일을 설정 파일로 불러옵니다. `config.txt`를 직접 고치는 대신 실제 필터 정의를 별도 파일에 두면, 예를 들어 불러오기 전에 프리앰프를 먼저 정할 수 있습니다.
+
+```
+Include: example.txt
+```
+
+### Device
+**문법:** `Device: <장치 패턴 1>; <장치 패턴 2>; ...`
+
+현재 출력 장치의 연결 이름, 장치 이름, GUID에 패턴을 맞춥니다. 맞지 않으면 다른 `Device`를 제외한 이후 모든 명령이 무시됩니다. 패턴은 공백으로 구분한 단어들이며, 이 단어가 모두 "*장치이름 연결이름 GUID*" 문자열에 있어야 합니다. `;`로 여러 패턴을 구분하면 그중 하나만 맞으면 됩니다. 특수 패턴 `all`은 항상 맞습니다. benchmark 애플리케이션은 장치 이름 "Benchmark", 연결 "File output"을 씁니다. `Device` 줄은 장치 선택기의 버튼으로 만드는 것이 가장 쉽습니다.
+
+```
+# "High Definition Audio Device"의 "Speakers" 연결과
+# benchmark 애플리케이션의 "Benchmark"에 맞습니다
+Device: High Definition Audio Device Speakers; Benchmark
+```
+
+### Channel
+**문법:** `Channel: <채널 위치 1> <채널 위치 2> ...`
+
+이후의 `Filter`와 `Preamp` 명령이 적용될 채널을 선택합니다. 위치는 식별자(1~3글자 약어)나 번호(1부터)로 줄 수 있습니다. 지원 구성은 아래와 같으며, 지원하지 않는 구성에서는 번호로만 선택할 수 있습니다. 여러 채널은 공백으로 구분합니다. 특수 위치 `all`은 모든 채널을 선택합니다.
+
+| 구성 | L | R | C | LFE | RL | RR | RC | SL | SR |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mono |  |  | 1 |  |  |  |  |  |  |
+| Stereo | 1 | 2 |  |  |  |  |  |  |  |
+| Quadraphonic | 1 | 2 |  |  | 3 | 4 |  |  |  |
+| Surround | 1 | 2 | 3 |  |  |  | 4 |  |  |
+| 5.1 Surround | 1 | 2 | 3 | 4 |  |  |  | 5 | 6 |
+| 5.1 Surround (대체) | 1 | 2 | 3 | 4 | 5 | 6 |  |  |  |
+| 7.1 Surround | 1 | 2 | 3 | 4 | 5 | 6 |  | 7 | 8 |
+
+
+**주의:** 저역 필터를 LFE 채널에만 거는 것이 솔깃하지만, 기대대로 되지 않을 때가 많습니다. 많은 시스템이 Equalizer APO 처리 *뒤에* 베이스 리다이렉션을 적용하므로 LFE에만 건 필터는 리다이렉트된 소리를 놓칩니다. 또 크로스오버 필터가 서서히 페이드인되는 탓에 저역이 서브우퍼만이 아니라 여러 스피커로 나갈 수 있습니다. 이를 피하려면 **저역 필터는 모든 채널에 적용**하세요.
+
+```
+# 왼쪽 채널과 후방 왼쪽 채널 선택
+Channel: L RL
+# 첫째, 둘째, 센터 채널 선택
+Channel: 1 2 C
+```
+
+### Stage
+**문법:** `Stage: <단계 1> <단계 2>`
+
+이후 필터링 명령이 실행될 단계를 정합니다. 출력 장치에는 **pre-mix**와 **post-mix** 두 단계가, 입력 장치에는 **capture** 단계만 있습니다.
+
+<img src="Stages.png" width="500"><br><em>출력 장치의 pre-mix와 post-mix 단계</em>
+
+처음 선택된 단계는 post-mix와 capture라, 출력과 입력 장치에서 필터링이 정확히 한 번 실행됩니다. post-mix를 pre-mix보다 선호하는 이유는, pre-mix 필터링이 애플리케이션마다 일어나 CPU를 더 쓰기 때문입니다. 다만 업믹싱처럼 입력 채널 수에 따라 필터링해야 하는 경우에는 pre-mix를 써야 합니다.
+
+```
+Stage: pre-mix
+# 업믹싱
+If: inputChannelCount == 2
+# 다른 APO가 SL, SR에 이미 오디오를 넣었을 수 있음에 유의
+Copy: SL=SL+L SR=SR+R
+EndIf:
+# ...
+Stage: post-mix
+# 룸 보정
+# ...
+```
+
+## 표현식 명령
+런타임 값에 따라 처리를 바꾸는 명령입니다. 표현식은 설정 파일 언어 안에 들어 있는 작은 언어로, 문법이 스크립트 언어에 가깝습니다. 상수, 변수, 연산자, 함수로 이루어집니다.
+
+**상수:**
+
+| 이름 | 설명 |
+| --- | --- |
+| e, pi | 수학 상수 |
+| inputChannelCount | 현재 APO 단계의 입력 채널 수 |
+| outputChannelCount | 현재 APO 단계의 출력 채널 수 |
+| sampleRate | 처리 중인 오디오의 샘플레이트(Hz) |
+| deviceName | 오디오 장치 이름 |
+| connectionName | 오디오 장치의 연결 이름 |
+| deviceGuid | 오디오 장치 엔드포인트의 GUID |
+| stage | 현재 APO 단계 (pre-mix, post-mix, capture) |
+
+
+**변수:** 설정을 불러오는 동안 유효한 사용자 정의 변수는 할당 연산자(`=`)로 만듭니다. 다시 로드할 때 유지되지 않으며, 같은 파일 안에서 나중에 쓸 임시 값을 담는 용도입니다.
+
+**연산자:**
+
+| 이름 | 설명 |
+| --- | --- |
+| `+ - * / ^` | 산술 연산자 |
+| `= += -= *= /=` | 할당 연산자 |
+| `and or xor` | 논리 연산자 |
+| `== != < > <= >=` | 비교 연산자 |
+| `& \| << >>` | 비트/비트 시프트 연산자 |
+| `+` | 문자열 연결 (피연산자 중 하나 이상이 문자열) |
+| `(float) (int)` | 형 변환 (숫자형에서) |
+| `condition ? then : else` | 조건(삼항) 연산자 |
+| `{1,2}` | 배열 생성 |
+| `array[0]` | 배열 접근 |
+
+
+**함수:**
+
+| 이름 | 설명 |
+| --- | --- |
+| abs | 절댓값 |
+| sin, cos, tan,<br>sinh, cosh, tanh | 삼각 함수 |
+| ln, log, log10, exp | 로그 / 지수 함수 |
+| sqrt | 제곱근 |
+| min, max, sum | 인수의 최소 / 최대 / 합 |
+| str2dbl | 문자열을 float로 |
+| strlen | 문자열 길이 |
+| tolower, toupper | 소문자 / 대문자 변환 |
+| sizeof | 배열 길이 |
+| regexSearch | 문자열(둘째 인수)에서 정규식(첫째 인수)의 첫 일치를 찾습니다. 없으면 비어 있고, 있으면 전체 일치를 첫 값으로, 캡처 그룹을 이어지는 값으로 담은 배열입니다. |
+| regexReplace | 문자열(둘째 인수)에서 정규식(첫째 인수)에 맞는 모든 부분을 문자열(셋째 인수)로 바꿉니다. 결과 문자열을 돌려줍니다. |
+| readRegString | 레지스트리 키(첫째 인수)에서 문자열 값(둘째 인수)을 읽습니다. 키를 감시하다 바뀌면 다시 로드합니다. |
+| readRegDWORD | 레지스트리 키(첫째 인수)에서 정수 값(둘째 인수)을 읽습니다. 키를 감시하다 바뀌면 다시 로드합니다. |
+
+
+표현식의 자료형은 문자열, 불리언, int, float, 행렬/배열입니다(오류 메시지에서는 *s*, *b*, *i*, *f*, *m*으로 줄여 씁니다). 문자열 상수는 큰따옴표로 적고, 그 안의 백슬래시와 큰따옴표는 백슬래시로 이스케이프합니다. 불리언은 `true` / `false`입니다. 숫자는 천 단위 구분 없이 적고 소수점은 점을 씁니다. 배열은 `{}` 연산자로 만듭니다. 여러 표현식을 세미콜론으로 잇면 마지막 값이 결과가 됩니다.
+
+```
+# 사용자 정의 변수
+Eval: a=0; b=pi
+# 비교
+Eval: a > b ? "a is larger" : "b is larger"
+# 삼각 함수와 거듭제곱 연산자
+Eval: sin(a)^2 + cos(a)^2 == 1
+# 정규식으로 장치 이름 맞추기
+Eval: a=regexSearch("High Definition .*", deviceName); sizeof(a) > 0 ? "found" : "not found"
+# 레지스트리에서 설정 경로 읽기
+Eval: readRegString("HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO", "ConfigPath")
+```
+
+### If / ElseIf / Else / EndIf
+**문법:**
+```
+If: <표현식>
+ElseIf: <표현식>
+Else:
+EndIf:
+```
+
+`If`와 `EndIf` 사이의 명령을 조건에 따라 실행합니다. 대부분의 프로그래밍 언어의 if/else와 같습니다. `If`는 표현식을 불리언으로 평가해 참이면 이후 명령을 실행합니다. 이미 참인 분기 뒤의 `ElseIf`는 건너뛰고, 그렇지 않으면 표현식을 평가해 참일 때 그 블록을 실행합니다. `Else`는 항상 참인 `ElseIf`처럼 동작합니다. `EndIf`는 블록을 끝냅니다. 중첩할 수 있으며, `ElseIf`/`Else`는 항상 가장 가까운 열린 `If`에 묶입니다. 가독성을 위해 줄을 들여쓸 수 있습니다. 기술적인 이유로 `If`로 `Device`를 조건부 실행할 수는 없습니다. `Device`의 우선순위가 더 높기 때문입니다.
+
+```
+If: sampleRate == 44100
+	...
+ElseIf: sampleRate == 48000
+	...
+	If: inputChannelCount == 1
+		...
+	ElseIf: inputChannelCount == 2
+		...
+	EndIf:
+Else:
+	...
+EndIf:
+```
+
+### Eval과 인라인 표현식
+**문법:**
+```
+Eval: <표현식>
+<Command>: ... `<표현식>` ...
+```
+
+`Eval`은 표현식을 평가하고 결과를 버립니다. 주로 변수를 정의하거나 시험할 때 씁니다. **인라인 표현식**은 명령의 매개변수 문자열에 결과를 끼워 넣습니다. 첫 백틱부터 둘째 백틱까지(포함)가 표현식 값을 문자열로 바꾼 것으로 치환됩니다. 인라인 표현식은 `Device`나 `If`/`ElseIf`에는 못 쓰지만 `Eval` 안에서는 쓸 수 있습니다.
+
+```
+# 게인을 선형으로 지정
+Eval: linGain = 0.5
+Filter: ON PK Fc 1000 Hz Gain `20*log10(linGain)` dB Q 10.0
+```
+
+## 함께 보기
+* [사용자 문서](Korean-Documentation) — 설치, 첫 설정, 문제 해결.
+* [개발자 문서](Korean-Developer-documentation) — XT 빌드와 직접 APO 만들기.
+* [English version of this page](Configuration-reference)
