@@ -60,6 +60,19 @@
 #include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
 
+// stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
+// macros here. Undefine them before Highway, whose templates use std::min and
+// std::max.
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+#include "hwy/highway.h"
+
+namespace hn = hwy::HWY_NAMESPACE;
+
 using std::exception;
 using std::find;
 using std::lock_guard;
@@ -79,76 +92,32 @@ using namespace mup;
 
 #pragma AVRT_CODE_BEGIN
 void convertFloatToDouble(double* dest, const float* src, size_t count) {
-#if defined(__AVX512F__) && !defined(_M_ARM64) // AVX-512 Path (e.g., Zen 4, some Intel CPUs)
+	// Promote float -> double (exact). One portable Highway loop replaces the
+	// AVX-512/AVX2 cvtps_pd ladder and adds the NEON path for ARM64.
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;  // float tag with dd's lane count
+	const size_t N = hn::Lanes(dd);
 	size_t i = 0;
-	for (; i + 16 <= count; i += 16) {
-		// Load 16 floats
-		__m512 float_vec = _mm512_loadu_ps(src + i);
-		// Convert the lower 8 floats to 8 doubles
-		__m512d double_vec_lo = _mm512_cvtps_pd(_mm512_extractf32x8_ps(float_vec, 0));
-		// Convert the upper 8 floats to 8 doubles
-		__m512d double_vec_hi = _mm512_cvtps_pd(_mm512_extractf32x8_ps(float_vec, 1));
-		// Store the 16 resulting doubles
-		_mm512_storeu_pd(dest + i, double_vec_lo);
-		_mm512_storeu_pd(dest + i + 8, double_vec_hi);
+	for (; i + N <= count; i += N) {
+		const auto f = hn::LoadU(df, src + i);
+		hn::StoreU(hn::PromoteTo(dd, f), dd, dest + i);
 	}
-	// Handle any remaining elements
 	for (; i < count; ++i) dest[i] = static_cast<double>(src[i]);
-#elif defined(__AVX2__) && !defined(_M_ARM64) // AVX2 / AVX Fallback Path (e.g., Zen 2/3)
-	size_t i = 0;
-	for (; i + 8 <= count; i += 8) {
-		// Load 8 floats into a 256-bit register
-		__m256 float_vec = _mm256_loadu_ps(src + i);
-		// Convert the lower 4 floats to 4 doubles
-		__m256d double_vec_lo = _mm256_cvtps_pd(_mm256_extractf128_ps(float_vec, 0));
-		// Convert the upper 4 floats to 4 doubles
-		__m256d double_vec_hi = _mm256_cvtps_pd(_mm256_extractf128_ps(float_vec, 1));
-		// Store the 8 resulting doubles
-		_mm256_storeu_pd(dest + i, double_vec_lo);
-		_mm256_storeu_pd(dest + i + 4, double_vec_hi);
-	}
-	// Handle any remaining elements
-	for (; i < count; ++i) dest[i] = static_cast<double>(src[i]);
-#else // Scalar fallback for non-x86 or very old CPUs
-	for (size_t i = 0; i < count; ++i) dest[i] = static_cast<double>(src[i]);
-#endif
 }
 
 // Converts a block of doubles back to floats.
 void convertDoubleToFloat(float* dest, const double* src, size_t count) {
-#if defined(__AVX512F__) && !defined(_M_ARM64) // AVX-512 Path
+	// Demote double -> float (round to nearest even, same as the old cvtpd_ps
+	// and static_cast<float>). One portable Highway loop, NEON on ARM64.
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
 	size_t i = 0;
-	for (; i + 16 <= count; i += 16) {
-		// Load 16 doubles from memory
-		__m512d double_vec_lo = _mm512_loadu_pd(src + i);
-		__m512d double_vec_hi = _mm512_loadu_pd(src + i + 8);
-		// Convert 8 doubles to 8 floats
-		__m256 float_vec_lo = _mm512_cvtpd_ps(double_vec_lo);
-		// Convert another 8 doubles to 8 floats
-		__m256 float_vec_hi = _mm512_cvtpd_ps(double_vec_hi);
-		// Combine the two 256-bit float vectors into one 512-bit vector
-		__m512 float_vec = _mm512_insertf32x8(_mm512_castps256_ps512(float_vec_lo), float_vec_hi, 1);
-		_mm512_storeu_ps(dest + i, float_vec);
+	for (; i + N <= count; i += N) {
+		const auto v = hn::LoadU(dd, src + i);
+		hn::StoreU(hn::DemoteTo(df, v), df, dest + i);
 	}
 	for (; i < count; ++i) dest[i] = static_cast<float>(src[i]);
-#elif defined(__AVX2__) && !defined(_M_ARM64) // AVX2 / AVX Fallback Path
-	size_t i = 0;
-	for (; i + 8 <= count; i += 8) {
-		// Load 8 doubles from memory
-		__m256d double_vec_lo = _mm256_loadu_pd(src + i);
-		__m256d double_vec_hi = _mm256_loadu_pd(src + i + 4);
-		// Convert 4 doubles to 4 floats
-		__m128 float_vec_lo = _mm256_cvtpd_ps(double_vec_lo);
-		// Convert another 4 doubles to 4 floats
-		__m128 float_vec_hi = _mm256_cvtpd_ps(double_vec_hi);
-		// Combine the two 128-bit float vectors into one 256-bit vector
-		__m256 float_vec = _mm256_insertf128_ps(_mm256_castps128_ps256(float_vec_lo), float_vec_hi, 1);
-		_mm256_storeu_ps(dest + i, float_vec);
-	}
-	for (; i < count; ++i) dest[i] = static_cast<float>(src[i]);
-#else // Scalar fallback
-	for (size_t i = 0; i < count; ++i) dest[i] = static_cast<float>(src[i]);
-#endif
 }
 
 
