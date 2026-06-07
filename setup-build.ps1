@@ -257,6 +257,20 @@ if (Test-Path (Join-Path $vst3InterfacesDir "base\funknown.h")) {
     Write-Host "  -> $vst3InterfacesDir"
 }
 
+# --- 2c. Clone Google Highway (header-only portable SIMD) ---
+# The Common DSP kernels use Highway in static per-target dispatch mode, so only
+# the headers are needed (no libhwy build, no runtime dispatch table).
+Write-Host "`n=== Step 2c: Clone Highway ===" -ForegroundColor Yellow
+$highwayTag = "1.4.0"
+$highwayDir = Join-Path $depsDir "highway"
+if (Test-Path (Join-Path $highwayDir "hwy\highway.h")) {
+    Write-Host "  [cached] Highway already present"
+} else {
+    git clone --depth 1 --branch $highwayTag https://github.com/google/highway $highwayDir
+    if ($LASTEXITCODE -ne 0) { throw "Failed to clone Highway" }
+    Write-Host "  -> $highwayDir"
+}
+
 # --- 3. Install Qt ---
 if ($SkipQt) {
     Write-Host "`n=== Step 3: Qt Installation (SKIPPED) ===" -ForegroundColor Yellow
@@ -302,7 +316,8 @@ $checks = @(
     @{ Name = "libsndfile header"; Path = "$depsDir\libsndfile\include\sndfile.h" },
     @{ Name = "libsndfile lib";  Path = "$depsDir\libsndfile\build\Release\sndfile.lib" },
     @{ Name = "TCLAP header";    Path = "$depsDir\tclap\include\tclap\CmdLine.h" },
-    @{ Name = "VST3 pluginterfaces"; Path = "$depsDir\vst3sdk\pluginterfaces\base\funknown.h" }
+    @{ Name = "VST3 pluginterfaces"; Path = "$depsDir\vst3sdk\pluginterfaces\base\funknown.h" },
+    @{ Name = "Highway header";  Path = "$depsDir\highway\hwy\highway.h" }
 )
 
 # velopack_libc ships per-arch import libs/DLLs in a single zip; check the one we link.
@@ -356,6 +371,7 @@ To build the project, open a VS Developer Command Prompt and run:
   `$env:VELOPACK_INCLUDE = "$depsDir\velopack_libc\include"
   `$env:VELOPACK_LIB     = "$depsDir\velopack_libc\lib"
   `$env:TCLAP_ROOT       = "$depsDir\tclap"
+  `$env:HIGHWAY_INCLUDE  = "$depsDir\highway"
   `$env:QT_ROOT          = "$qtRoot"
 
   # Build core projects with MSBuild
