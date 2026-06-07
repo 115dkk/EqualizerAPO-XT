@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <mutex>
 #include <string>
 
 class AbstractLibrary
@@ -43,4 +44,10 @@ protected:
 
 private:
 	unsigned short getFileArchitecture(const std::wstring& filePath);
+
+	// Serialises the lazy module load. A single VSTPluginLibrary instance is
+	// shared (via getInstance) between the GUI thread and the AnalysisThread,
+	// and both call initialize(); without this guard they would race on the
+	// module handle and the LoadLibrary/loadFunctions sequence.
+	std::mutex initMutex;
 };

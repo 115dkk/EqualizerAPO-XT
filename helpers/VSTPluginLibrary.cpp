@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <mutex>
 #include "RegistryHelper.h"
 #include "LogHelper.h"
 #include "VSTPluginLibrary.h"
@@ -28,8 +29,22 @@ using namespace std;
 std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> VSTPluginLibrary::instanceMap;
 std::wstring VSTPluginLibrary::defaultPluginPath;
 
+// Guards the shared instanceMap. getInstance is called both from the GUI thread
+// (VST card editors, filter GUIs) and from MainWindow's background AnalysisThread,
+// which builds its own FilterEngine and resolves the same plugin libraries. The
+// map is a plain unordered_map, so concurrent find/insert from those two threads
+// corrupted it and crashed the Editor. A single static mutex serialises every
+// lookup/insert.
+static std::mutex& instanceMapMutex()
+{
+	static std::mutex mutex;
+	return mutex;
+}
+
 std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& libPath)
 {
+	lock_guard<mutex> lock(instanceMapMutex());
+
 	shared_ptr<VSTPluginLibrary> ptr;
 
 	auto it = instanceMap.find(libPath);
@@ -50,6 +65,12 @@ std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& l
 
 wstring VSTPluginLibrary::getDefaultPluginPath()
 {
+	// VSTPluginFilterFactory resolves relative library paths through this lazily
+	// initialised static, and the factory runs on both the GUI thread and the
+	// AnalysisThread, so the first-call assignment must be serialised too.
+	static std::mutex defaultPathMutex;
+	lock_guard<mutex> lock(defaultPathMutex);
+
 	if (defaultPluginPath == L"")
 	{
 		wstring installPath = RegistryHelper::readValue(APP_REGPATH, L"InstallPath");

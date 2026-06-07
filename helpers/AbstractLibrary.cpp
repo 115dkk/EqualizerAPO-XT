@@ -40,6 +40,8 @@ AbstractLibrary::~AbstractLibrary()
 
 int AbstractLibrary::initialize()
 {
+	std::lock_guard<std::mutex> lock(initMutex);
+
 	if (module == nullptr)
 	{
 		wstring libPath = getLoadPath();
