@@ -88,7 +88,38 @@ std::wstring exeDirectory()
 
 void ensureDirectory(const std::wstring& path)
 {
-	CreateDirectoryW(path.c_str(), nullptr);
+	if (path.empty())
+		return;
+
+	std::wstring normalized = path;
+	std::replace(normalized.begin(), normalized.end(), L'/', L'\\');
+
+	size_t start = 0;
+	if (normalized.size() >= 3 && normalized[1] == L':' && normalized[2] == L'\\')
+	{
+		start = 3;
+	}
+	else if (normalized.rfind(L"\\\\", 0) == 0)
+	{
+		size_t serverEnd = normalized.find(L'\\', 2);
+		if (serverEnd == std::wstring::npos)
+			return;
+		size_t shareEnd = normalized.find(L'\\', serverEnd + 1);
+		if (shareEnd == std::wstring::npos)
+			return;
+		start = shareEnd + 1;
+	}
+
+	for (size_t pos = start; pos <= normalized.size(); )
+	{
+		size_t next = normalized.find(L'\\', pos);
+		std::wstring part = next == std::wstring::npos ? normalized : normalized.substr(0, next);
+		if (!part.empty())
+			CreateDirectoryW(part.c_str(), nullptr);
+		if (next == std::wstring::npos)
+			break;
+		pos = next + 1;
+	}
 }
 
 Options parseOptions(int argc, char** argv)

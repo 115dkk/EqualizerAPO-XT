@@ -256,5 +256,8 @@ paket-files/
 bench-config/
 bench-config-conv/
 
+# Local audio regression outputs
+Tests/AudioRegressionTests/output/
+
 # Local Modern Card variant visual-check sample (Task #32)
 _card_variants_demo.txt
