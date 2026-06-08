@@ -115,6 +115,7 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.FileIO.cpp \
 	MainWindowParts/MainWindow.Preferences.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
+	ConfigFileCodec.cpp \
 	guis/StageFilterGUI.cpp \
 	guis/StageFilterGUIFactory.cpp \
 	guis/ExpressionFilterGUIFactory.cpp \
@@ -270,6 +271,7 @@ HEADERS  += \
 	../version.h \
 	../stdafx.h \
 	MainWindow.h \
+	ConfigFileCodec.h \
 	guis/StageFilterGUI.h \
 	guis/StageFilterGUIFactory.h \
 	guis/ExpressionFilterGUIFactory.h \
