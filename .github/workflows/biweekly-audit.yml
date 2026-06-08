@@ -1,0 +1,357 @@
+# Biweekly Architecture & Tech Debt Audit
+#
+# Runs /improve-codebase-architecture and /tech-debt-audit in a single
+# Claude Code session. Skips scheduled runs when no relevant code/build files
+# changed since the last audit tag.
+#
+# Requirements:
+#   1. Add CLAUDE_CODE_OAUTH_TOKEN under repository Actions secrets.
+#   2. Set Actions workflow permissions to "Read and write permissions".
+#   3. Keep the two audit skills vendored under .claude/skills.
+
+name: Biweekly Audit
+
+on:
+  schedule:
+    - cron: '0 9 1,15 * *'
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Run even if no relevant code changed'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_audit: ${{ steps.detect.outputs.should_audit }}
+      last_audit_ref: ${{ steps.detect.outputs.last_audit_ref }}
+      changed_files_count: ${{ steps.detect.outputs.changed_files_count }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Detect code changes since last audit
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          code_pathspecs=(
+            "."
+            ":!*.md"
+            ":!*.txt"
+            ":!*.rst"
+            ":!*.adoc"
+            ":!*.ipynb"
+            ":!*.png"
+            ":!*.jpg"
+            ":!*.jpeg"
+            ":!*.gif"
+            ":!*.bmp"
+            ":!*.webp"
+            ":!*.ico"
+            ":!*.svg"
+            ":!*.xcf"
+            ":!*.odg"
+            ":!*.odf"
+            ":!*.ttf"
+            ":!*.otf"
+            ":!*.qm"
+            ":!*.raw"
+            ":!*.flac"
+            ":!*.wav"
+            ":!*.url"
+            ":!*.licenseheader"
+            ":!docs/**"
+            ":!doc/**"
+            ":!Wiki/**"
+            ":!wiki/**"
+            ":!.github/ISSUE_TEMPLATE/**"
+            ":!.vscode/**"
+            ":!**/translations/*.ts"
+            ":!**/translations/*.qm"
+            ":!Tests/AudioRegressionTests/references/**"
+            ":!Tests/AudioRegressionTests/output/**"
+            ":!LICENSE*"
+            ":!License.txt"
+            ":!CHANGELOG*"
+            ":!CHANGES*"
+            ":!SECURITY.md"
+            ":!AGENTS.md"
+            ":!Agent.md"
+            ":!CLAUDE.md"
+            ":!CONTEXT.md"
+            ":!*.mermaid"
+            ":!.gitignore"
+            ":!.gitattributes"
+          )
+
+          if [ "${{ inputs.force_run }}" = "true" ]; then
+            echo "Force run requested."
+            echo "should_audit=true" >> "$GITHUB_OUTPUT"
+            echo "last_audit_ref=HEAD~50" >> "$GITHUB_OUTPUT"
+            echo "changed_files_count=forced" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mapfile -t audit_tags < <(git tag -l 'audit/*' --sort=-creatordate)
+          LAST_AUDIT="${audit_tags[0]:-}"
+
+          if [ -z "$LAST_AUDIT" ]; then
+            echo "Initial audit."
+            echo "should_audit=true" >> "$GITHUB_OUTPUT"
+            echo "last_audit_ref=" >> "$GITHUB_OUTPUT"
+            echo "changed_files_count=initial" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Last audit: $LAST_AUDIT"
+          echo "last_audit_ref=$LAST_AUDIT" >> "$GITHUB_OUTPUT"
+
+          CODE_CHANGES=$(git diff --name-only "$LAST_AUDIT"..HEAD -- "${code_pathspecs[@]}" | wc -l | tr -d ' ')
+
+          echo "Code files changed: $CODE_CHANGES"
+          echo "changed_files_count=$CODE_CHANGES" >> "$GITHUB_OUTPUT"
+
+          if [ "$CODE_CHANGES" -eq 0 ]; then
+            echo "No relevant code changes. Skipping audit."
+            echo "should_audit=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_audit=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  audit:
+    needs: check-changes
+    if: needs.check-changes.outputs.should_audit == 'true'
+    runs-on: ubuntu-latest
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install audit skills
+        run: |
+          install -d "$HOME/.claude/skills"
+          cp -R .claude/skills/improve-codebase-architecture "$HOME/.claude/skills/"
+          cp -R .claude/skills/tech-debt-audit "$HOME/.claude/skills/"
+
+          test -f "$HOME/.claude/skills/improve-codebase-architecture/SKILL.md"
+          test -f "$HOME/.claude/skills/tech-debt-audit/SKILL.md"
+
+          echo "Installed Claude audit skills:"
+          find "$HOME/.claude/skills" -maxdepth 2 -name SKILL.md -print
+
+      - name: Verify Claude subscription credentials
+        run: |
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is not configured."
+            echo "Generate a subscription OAuth token with 'claude setup-token'."
+            echo "Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          if [ -n "${ANTHROPIC_API_KEY:-}" ] || [ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+            echo "::warning::Ignoring ANTHROPIC_* credentials so Claude Code uses CLAUDE_CODE_OAUTH_TOKEN."
+          fi
+
+      - name: Generate change summary
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          code_pathspecs=(
+            "."
+            ":!*.md"
+            ":!*.txt"
+            ":!*.rst"
+            ":!*.adoc"
+            ":!*.ipynb"
+            ":!*.png"
+            ":!*.jpg"
+            ":!*.jpeg"
+            ":!*.gif"
+            ":!*.bmp"
+            ":!*.webp"
+            ":!*.ico"
+            ":!*.svg"
+            ":!*.xcf"
+            ":!*.odg"
+            ":!*.odf"
+            ":!*.ttf"
+            ":!*.otf"
+            ":!*.qm"
+            ":!*.raw"
+            ":!*.flac"
+            ":!*.wav"
+            ":!*.url"
+            ":!*.licenseheader"
+            ":!docs/**"
+            ":!doc/**"
+            ":!Wiki/**"
+            ":!wiki/**"
+            ":!.github/ISSUE_TEMPLATE/**"
+            ":!.vscode/**"
+            ":!**/translations/*.ts"
+            ":!**/translations/*.qm"
+            ":!Tests/AudioRegressionTests/references/**"
+            ":!Tests/AudioRegressionTests/output/**"
+            ":!LICENSE*"
+            ":!License.txt"
+            ":!CHANGELOG*"
+            ":!CHANGES*"
+            ":!SECURITY.md"
+            ":!AGENTS.md"
+            ":!Agent.md"
+            ":!CLAUDE.md"
+            ":!CONTEXT.md"
+            ":!*.mermaid"
+            ":!.gitignore"
+            ":!.gitattributes"
+          )
+
+          LAST_REF="${{ needs.check-changes.outputs.last_audit_ref }}"
+          if [ -n "$LAST_REF" ]; then
+            echo "## Changed files" > change-summary.txt
+            echo "" >> change-summary.txt
+            git diff --stat "$LAST_REF"..HEAD -- "${code_pathspecs[@]}" >> change-summary.txt 2>/dev/null || true
+          else
+            echo "Initial audit run." > change-summary.txt
+          fi
+
+      - name: Run combined audit
+        run: |
+          unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
+
+          set +e
+          claude \
+            --model claude-opus-4-8 \
+            --effort xhigh \
+            --permission-mode auto \
+            --max-turns 50 \
+            -p "
+          You will perform two analyses in sequence within this
+          single session. Output everything to stdout.
+
+          GLOBAL RULES:
+          - Completely ignore all .ipynb files.
+          - Treat docs/, Wiki/, image assets, fonts, compiled translations,
+            and audio reference blobs as out of scope unless they expose a
+            code or build-system issue.
+          - Focus on the C++ audio engine, Qt GUI, tests, build scripts,
+            release automation, and project configuration.
+          - Cite file paths for every finding.
+          - Do not suggest full rewrites.
+          - Do not pad categories with filler findings.
+
+          PART 1: Architecture Analysis
+          Run /improve-codebase-architecture.
+          Identify specific consolidation and deepening opportunities.
+          When done, print a Markdown horizontal rule (---) as a
+          separator, then proceed immediately to Part 2.
+
+          PART 2: Tech Debt Audit
+          Run /tech-debt-audit.
+          Produce the full TECH_DEBT_AUDIT.md content with severity,
+          effort estimates, and the required 'looks bad but is
+          actually fine' section.
+          " > combined-audit-report.md 2>&1
+          CLAUDE_EXIT=$?
+          set -e
+
+          if [ -f TECH_DEBT_AUDIT.md ]; then
+            {
+              echo ""
+              echo "---"
+              echo ""
+              cat TECH_DEBT_AUDIT.md
+            } >> combined-audit-report.md
+          fi
+
+          if [ ! -s combined-audit-report.md ]; then
+            echo "Audit produced no output." > combined-audit-report.md
+            cat combined-audit-report.md
+            exit 1
+          fi
+
+          if [ "$CLAUDE_EXIT" -ne 0 ]; then
+            echo "Claude audit failed with exit code $CLAUDE_EXIT."
+            cat combined-audit-report.md
+            exit "$CLAUDE_EXIT"
+          fi
+
+      - name: Create GitHub Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          COUNT="${{ needs.check-changes.outputs.changed_files_count }}"
+
+          {
+            echo "# Biweekly Audit: ${DATE}"
+            echo ""
+            echo "Changed relevant files: **${COUNT}**"
+            echo "Model: Opus 4.8 - Effort: xhigh - 1M context"
+            echo ""
+            cat change-summary.txt
+            echo ""
+            echo "---"
+            echo ""
+            head -c 60000 combined-audit-report.md
+          } > issue-body.md
+
+          gh label create audit \
+            --repo "${GITHUB_REPOSITORY}" \
+            --color "5319e7" \
+            --description "Architecture and tech debt audit" \
+            >/dev/null 2>&1 || true
+
+          gh label create maintenance \
+            --repo "${GITHUB_REPOSITORY}" \
+            --color "fbca04" \
+            --description "Maintenance work" \
+            >/dev/null 2>&1 || true
+
+          ISSUE_URL=$(gh issue create \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Biweekly Audit: ${DATE}" \
+            --body-file issue-body.md \
+            --label audit \
+            --label maintenance)
+
+          echo "Created issue: ${ISSUE_URL}"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "audit-report-${{ github.run_id }}"
+          path: |
+            combined-audit-report.md
+            change-summary.txt
+            TECH_DEBT_AUDIT.md
+          retention-days: 90
+
+      - name: Tag audit checkpoint
+        run: |
+          AUDIT_TAG="audit/$(date +%Y%m%d-%H%M%S)"
+          git tag "$AUDIT_TAG"
+          git push origin "$AUDIT_TAG"
+          echo "Tagged: $AUDIT_TAG"
