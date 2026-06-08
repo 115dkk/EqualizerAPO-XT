@@ -5,6 +5,9 @@
     <ClInclude Include="filters\BiQuad.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\BiQuadCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\BiQuadFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -161,6 +164,9 @@
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="filters\BiQuad.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\BiQuadCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\BiQuadFilter.cpp">

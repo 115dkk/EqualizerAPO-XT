@@ -59,6 +59,7 @@ SOURCES += main.cpp\
 	guis/ChannelFilterGUIFactory.cpp \
 	guis/BiQuadFilterGUI.cpp \
 	../filters/BiQuad.cpp \
+	../filters/BiQuadCommand.cpp \
 	../filters/BiQuadFilter.cpp \
 	../filters/BiQuadFilterFactory.cpp \
 	guis/BiQuadFilterGUIFactory.cpp \
@@ -218,6 +219,7 @@ HEADERS  += \
 	guis/ChannelFilterGUIFactory.h \
 	guis/BiQuadFilterGUI.h \
 	../filters/BiQuad.h \
+	../filters/BiQuadCommand.h \
 	../filters/BiQuadFilter.h \
 	../filters/BiQuadFilterFactory.h \
 	guis/BiQuadFilterGUIFactory.h \

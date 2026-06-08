@@ -32,7 +32,7 @@ static const double dialQSteps = 1000;
 static const double dialQMin = 0.3333;
 static const double dialQMax = 33.3333;
 
-BiQuadFilterGUI::BiQuadFilterGUI(BiQuadFilter* filter)
+BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 	: ui(new Ui::BiQuadFilterGUI)
 {
 	ui->setupUi(this);
@@ -50,31 +50,31 @@ BiQuadFilterGUI::BiQuadFilterGUI(BiQuadFilter* filter)
 	ui->typeComboBox->addItem(tr("Notch filter"), BiQuad::NOTCH);
 	ui->typeComboBox->addItem(tr("All-pass filter"), BiQuad::ALL_PASS);
 
-	BiQuad::Type type = filter->getType();
+	BiQuad::Type type = command.type;
 	int typeIndex = ui->typeComboBox->findData(type);
 	if (typeIndex != -1)
 		ui->typeComboBox->setCurrentIndex(typeIndex);
 
 	if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
-		ui->freqComboBox->setCurrentIndex(filter->getIsCornerFreq() ? 1 : 0);
+		ui->freqComboBox->setCurrentIndex(command.isCornerFreq ? 1 : 0);
 
-	ui->freqSpinBox->setValue(filter->getFreq());
+	ui->freqSpinBox->setValue(command.freq);
 
 	if (type == BiQuad::PEAKING)
-		ui->qComboBox->setCurrentIndex(filter->getIsBandwidthOrS() ? 1 : 0);
+		ui->qComboBox->setCurrentIndex(command.isBandwidthOrS ? 1 : 0);
 	else if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::BAND_PASS)
-		ui->qComboBox->setCurrentIndex(filter->getBandwidthOrQOrS() == M_SQRT1_2 ? 0 : 1);
+		ui->qComboBox->setCurrentIndex(command.bandwidthOrQOrS == M_SQRT1_2 ? 0 : 1);
 	else if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF))
-		ui->qComboBox->setCurrentIndex(filter->getIsBandwidthOrS() ? (filter->getBandwidthOrQOrS() == 0.9 || filter->getIsCornerFreq() ? 0 : 1) : (filter->getIsCornerFreq() ? 1 : 2));
+		ui->qComboBox->setCurrentIndex(command.isBandwidthOrS ? (command.bandwidthOrQOrS == 0.9 || command.isCornerFreq ? 0 : 1) : (command.isCornerFreq ? 1 : 2));
 	else if (type == BiQuad::NOTCH)
-		ui->qComboBox->setCurrentIndex(filter->getBandwidthOrQOrS() == 30.0 ? 0 : 1);
+		ui->qComboBox->setCurrentIndex(command.bandwidthOrQOrS == 30.0 ? 0 : 1);
 
-	if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF) && filter->getIsBandwidthOrS() && filter->getBandwidthOrQOrS() != 0.9)
-		ui->qSpinBox->setValue(filter->getBandwidthOrQOrS() * 12.0);
+	if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF) && command.isBandwidthOrS && command.bandwidthOrQOrS != 0.9)
+		ui->qSpinBox->setValue(command.bandwidthOrQOrS * 12.0);
 	else
-		ui->qSpinBox->setValue(filter->getBandwidthOrQOrS());
+		ui->qSpinBox->setValue(command.bandwidthOrQOrS);
 
-	ui->gainSpinBox->setValue(filter->getDbGain());
+	ui->gainSpinBox->setValue(command.dbGain);
 }
 
 BiQuadFilterGUI::~BiQuadFilterGUI()

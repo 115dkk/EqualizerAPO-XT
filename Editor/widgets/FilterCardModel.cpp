@@ -5,6 +5,7 @@
 #include <QSet>
 
 #include "filters/FilterFactoryRegistry.h"
+#include "filters/BiQuadCommand.h"
 
 namespace
 {
@@ -33,24 +34,32 @@ bool isKnownConfigCommand(const QString& command)
 
 QString biquadTypeTitle(const QString& code)
 {
+	// Map the (already upper-cased) config keyword to a BiQuad type, then defer to
+	// the engine-side title table (filters/BiQuadCommand.h) so the type -> title
+	// strings live in exactly one place (F042). The keyword vocabulary here mirrors
+	// the typeExpression regex in describeLine; an unknown keyword falls back to
+	// "Biquad", matching biquadTypeTitle(BiQuad::Type)'s own default.
 	const QString normalized = code.toUpper();
+	BiQuad::Type type;
 	if (normalized == QStringLiteral("PK") || normalized == QStringLiteral("PEQ") || normalized == QStringLiteral("MODAL"))
-		return QStringLiteral("Peaking");
-	if (normalized == QStringLiteral("LP") || normalized == QStringLiteral("LPQ"))
-		return QStringLiteral("Low-pass");
-	if (normalized == QStringLiteral("HP") || normalized == QStringLiteral("HPQ"))
-		return QStringLiteral("High-pass");
-	if (normalized == QStringLiteral("BP"))
-		return QStringLiteral("Band-pass");
-	if (normalized == QStringLiteral("LS") || normalized == QStringLiteral("LSC"))
-		return QStringLiteral("Low-shelf");
-	if (normalized == QStringLiteral("HS") || normalized == QStringLiteral("HSC"))
-		return QStringLiteral("High-shelf");
-	if (normalized == QStringLiteral("NO"))
-		return QStringLiteral("Notch");
-	if (normalized == QStringLiteral("AP"))
-		return QStringLiteral("All-pass");
-	return QStringLiteral("Biquad");
+		type = BiQuad::PEAKING;
+	else if (normalized == QStringLiteral("LP") || normalized == QStringLiteral("LPQ"))
+		type = BiQuad::LOW_PASS;
+	else if (normalized == QStringLiteral("HP") || normalized == QStringLiteral("HPQ"))
+		type = BiQuad::HIGH_PASS;
+	else if (normalized == QStringLiteral("BP"))
+		type = BiQuad::BAND_PASS;
+	else if (normalized == QStringLiteral("LS") || normalized == QStringLiteral("LSC"))
+		type = BiQuad::LOW_SHELF;
+	else if (normalized == QStringLiteral("HS") || normalized == QStringLiteral("HSC"))
+		type = BiQuad::HIGH_SHELF;
+	else if (normalized == QStringLiteral("NO"))
+		type = BiQuad::NOTCH;
+	else if (normalized == QStringLiteral("AP"))
+		type = BiQuad::ALL_PASS;
+	else
+		return QStringLiteral("Biquad");
+	return QString::fromWCharArray(::biquadTypeTitle(type));
 }
 
 QString firstCapture(const QRegularExpression& expression, const QString& text)

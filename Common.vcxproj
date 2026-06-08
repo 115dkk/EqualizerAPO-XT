@@ -312,6 +312,7 @@
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="filters\BiQuad.h" />
+    <ClInclude Include="filters\BiQuadCommand.h" />
     <ClInclude Include="filters\BiQuadFilter.h" />
     <ClInclude Include="filters\BiQuadFilterFactory.h" />
     <ClInclude Include="filters\ChannelFilter.h" />
@@ -380,6 +381,7 @@
     <ClCompile Include="engine\FilterEngine.Runtime.cpp" />
     <ClCompile Include="filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="filters\BiQuad.cpp" />
+    <ClCompile Include="filters\BiQuadCommand.cpp" />
     <ClCompile Include="filters\BiQuadFilter.cpp" />
     <ClCompile Include="filters\BiQuadFilterFactory.cpp" />
     <ClCompile Include="filters\ChannelFilter.cpp" />

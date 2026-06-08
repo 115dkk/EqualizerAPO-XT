@@ -20,11 +20,11 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 
 #include "IFilterFactory.h"
 #include "IFilter.h"
 #include "BiQuad.h"
+#include "BiQuadCommand.h"
 
 class BiQuadFilterFactory : public IFilterFactory
 {
@@ -32,9 +32,14 @@ public:
 	BiQuadFilterFactory();
 	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
-private:
-	double getFreq(const std::wstring& freqString);
+	// Parses a "Filter:" config line into a BiQuadCommand. This is the single
+	// owner of the BiQuad config-line grammar: createFilter() uses it to build
+	// the engine filter, and the Editor uses it to populate the BiQuad GUI
+	// without constructing a throwaway filter. Returns true when a valid BiQuad
+	// command was recognized. `parameters` may be altered in place (decimal-mark
+	// normalization), exactly as createFilter() did before.
+	static bool parseCommand(const std::wstring& command, std::wstring& parameters, BiQuadCommand& out);
 
-	std::unordered_map<std::wstring, BiQuad::Type> filterNameToTypeMap;
-	std::unordered_map<BiQuad::Type, std::wstring> filterTypeToDescriptionMap;
+private:
+	static double getFreq(const std::wstring& freqString);
 };

@@ -119,6 +119,7 @@
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
+    <ClCompile Include="..\..\filters\BiQuadCommand.cpp" />
     <ClCompile Include="..\..\filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="..\..\UpdateChecker\UpdateInfoFormatter.cpp" />
     <ClCompile Include="..\..\UpdateChecker\VelopackUpdateInfo.cpp" />
@@ -129,6 +130,8 @@
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />
+    <ClInclude Include="..\..\filters\BiQuad.h" />
+    <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />
     <ClInclude Include="..\..\UpdateChecker\UpdateInfoFormatter.h" />
     <ClInclude Include="..\..\UpdateChecker\VelopackUpdateInfo.h" />
