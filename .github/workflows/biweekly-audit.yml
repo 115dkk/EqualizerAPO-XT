@@ -311,12 +311,71 @@ jobs:
             echo "Changed relevant files: **${COUNT}**"
             echo "Model: Opus 4.8 - Effort: xhigh - 1M context"
             echo ""
-            cat change-summary.txt
+            echo "This issue body corresponds to the generated \`issue-body.md\` artifact."
+            echo "The remaining audit outputs are posted in full as file-specific comments below."
             echo ""
-            echo "---"
-            echo ""
-            head -c 60000 combined-audit-report.md
+            echo "Files readable from this issue:"
+            echo "- \`issue-body.md\` - this issue body"
+            echo "- \`change-summary.txt\` - comments"
+            echo "- \`combined-audit-report.md\` - comments"
+            echo "- \`TECH_DEBT_AUDIT.md\` - comments"
           } > issue-body.md
+
+          post_file_comments() {
+            local issue_number="$1"
+            local file_path="$2"
+            local title="$3"
+
+            if [ ! -s "$file_path" ]; then
+              echo "Skipping empty or missing file: $file_path"
+              return 0
+            fi
+
+            local comment_dir
+            comment_dir=$(mktemp -d)
+            awk -v prefix="$comment_dir/part-" -v limit=18000 '
+              BEGIN {
+                part = 0
+                size = 0
+                file = sprintf("%s%04d", prefix, part)
+              }
+              {
+                line = $0 ORS
+                line_size = length(line)
+                if (size > 0 && size + line_size > limit) {
+                  close(file)
+                  part++
+                  file = sprintf("%s%04d", prefix, part)
+                  size = 0
+                }
+                printf "%s", line >> file
+                size += line_size
+              }
+            ' "$file_path"
+
+            local total
+            total=$(find "$comment_dir" -type f -name 'part-*' | wc -l | tr -d ' ')
+            local index=1
+
+            for part in "$comment_dir"/part-*; do
+              {
+                echo "## ${title} (${index}/${total})"
+                echo ""
+                echo "Source file: \`${file_path}\`"
+                echo ""
+                echo '````markdown'
+                cat "$part"
+                echo ""
+                echo '````'
+              } > "$comment_dir/comment.md"
+
+              gh issue comment "$issue_number" \
+                --repo "${GITHUB_REPOSITORY}" \
+                --body-file "$comment_dir/comment.md"
+
+              index=$((index + 1))
+            done
+          }
 
           gh label create audit \
             --repo "${GITHUB_REPOSITORY}" \
@@ -343,6 +402,11 @@ jobs:
 
           if [ "${ISSUE_EXIT}" -eq 0 ]; then
             echo "Created issue: ${ISSUE_URL}"
+            ISSUE_NUMBER="${ISSUE_URL##*/}"
+
+            post_file_comments "$ISSUE_NUMBER" change-summary.txt "Change summary"
+            post_file_comments "$ISSUE_NUMBER" combined-audit-report.md "Combined audit report"
+            post_file_comments "$ISSUE_NUMBER" TECH_DEBT_AUDIT.md "Tech debt audit"
           else
             echo "::warning::Could not create a GitHub issue. Writing the audit body to the job summary instead."
             cat "${ISSUE_ERROR}"
