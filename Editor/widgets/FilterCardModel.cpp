@@ -2,6 +2,9 @@
 
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QSet>
+
+#include "filters/FilterFactoryRegistry.h"
 
 namespace
 {
@@ -11,25 +14,20 @@ bool isKnownConfigCommand(const QString& command)
 	if (normalized.startsWith(QStringLiteral("filter")))
 		return true;
 
-	static const QStringList knownCommands = {
-		QStringLiteral("channel"),
-		QStringLiteral("comment"),
-		QStringLiteral("convolution"),
-		QStringLiteral("copy"),
-		QStringLiteral("delay"),
-		QStringLiteral("device"),
-		QStringLiteral("else"),
-		QStringLiteral("elseif"),
-		QStringLiteral("endif"),
-		QStringLiteral("eval"),
-		QStringLiteral("graphiceq"),
-		QStringLiteral("if"),
-		QStringLiteral("include"),
-		QStringLiteral("loudnesscorrection"),
-		QStringLiteral("preamp"),
-		QStringLiteral("stage"),
-		QStringLiteral("vstplugin")
-	};
+	// Derive the recognized command vocabulary from the engine's single source
+	// of truth (FilterFactoryRegistry) instead of duplicating it here, so this
+	// stays in sync as factories are added or renamed. Registry keys are
+	// case-sensitive while this comparison is lowercased, so each keyword is
+	// lowered on the way in. "Comment" is not a factory command, so it is added
+	// explicitly. "Filter" is already handled by the startsWith check above, so
+	// its presence in the registry set is harmless.
+	static const QSet<QString> knownCommands = []() {
+		QSet<QString> commands;
+		for (const std::wstring& keyword : FilterFactoryRegistry::knownConfigCommands())
+			commands.insert(QString::fromStdWString(keyword).toLower());
+		commands.insert(QStringLiteral("comment"));
+		return commands;
+	}();
 	return knownCommands.contains(normalized);
 }
 
