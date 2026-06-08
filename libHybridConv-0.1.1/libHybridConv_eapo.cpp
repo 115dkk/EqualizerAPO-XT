@@ -21,7 +21,7 @@
 
 #include "stdafx.h"
 #ifndef _M_ARM64
-#include <immintrin.h>
+#include <immintrin.h>   // only for _mm_prefetch; vector math goes through Highway
 #endif
 #include <algorithm>
 #include <memory>
@@ -40,6 +40,19 @@
 #include "../helpers/LogHelper.h"
 #include "HcAlignedStorage.h"
 #include "libHybridConv_eapo.h"
+
+// stdafx.h includes <windows.h> without NOMINMAX, so min/max are defined as
+// macros here. Undefine them before Highway, whose templates use std::min and
+// std::max.
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+#include "hwy/highway.h"
+
+namespace hn = hwy::HWY_NAMESPACE;
 
 namespace
 {
@@ -174,61 +187,20 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	const size_t freq_len = flen + 1;
 
 	// --- Phase 1: Input Preparation (copy x[0..flen-1], zero-pad [flen..2*flen-1]) ---
+	const hn::ScalableTag<double> d;
+	const size_t N = hn::Lanes(d);
 	size_t n = 0;
 
-#if defined(__AVX512F__) && !defined(_M_ARM64)
 	{
-		const size_t simd_width = 8; // doubles
-		const __m512d zero_vec = _mm512_setzero_pd();
-
-		for (; n + simd_width <= flen; n += simd_width) {
-			__m512d v = _mm512_loadu_pd(x + n);
-			_mm512_storeu_pd(filter->dft_time + n, v);
-		}
-		// Only zero-pad if we've finished copying input
+		const auto zero_vec = hn::Zero(d);
+		for (; n + N <= flen; n += N)
+			hn::StoreU(hn::LoadU(d, x + n), d, filter->dft_time + n);
+		// Only zero-pad once the whole input has been copied.
 		if (n >= flen) {
-			for (; n + simd_width <= dft_len; n += simd_width) {
-				_mm512_storeu_pd(filter->dft_time + n, zero_vec);
-			}
+			for (; n + N <= dft_len; n += N)
+				hn::StoreU(zero_vec, d, filter->dft_time + n);
 		}
 	}
-#endif
-
-#if defined(__AVX2__) && !defined(_M_ARM64)
-	{
-		const size_t simd_width = 4;
-		const __m256d zero_vec = _mm256_setzero_pd();
-
-		for (; n + simd_width <= flen; n += simd_width) {
-			__m256d v = _mm256_loadu_pd(x + n);
-			_mm256_storeu_pd(filter->dft_time + n, v);
-		}
-		// Only zero-pad if we've finished copying input
-		if (n >= flen) {
-			for (; n + simd_width <= dft_len; n += simd_width) {
-				_mm256_storeu_pd(filter->dft_time + n, zero_vec);
-			}
-		}
-	}
-#endif
-
-#if !defined(_M_ARM64)
-	{
-		const size_t simd_width = 2;
-		const __m128d zero_vec = _mm_setzero_pd();
-
-		for (; n + simd_width <= flen; n += simd_width) {
-			__m128d v = _mm_loadu_pd(x + n);
-			_mm_storeu_pd(filter->dft_time + n, v);
-		}
-		// Only zero-pad if we've finished copying input
-		if (n >= flen) {
-			for (; n + simd_width <= dft_len; n += simd_width) {
-				_mm_storeu_pd(filter->dft_time + n, zero_vec);
-			}
-		}
-	}
-#endif
 
 	if (n < flen) {
 		memcpy(filter->dft_time + n, x + n, (flen - n) * sizeof *filter->dft_time);
@@ -244,82 +216,16 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	// --- Phase 3: De-interleave FFTW complex output into planar real/imag ---
 	size_t j = 0;
 	fftw_complex* dft_freq = filter->dft_freq;
-	
-#if defined(__AVX512F__) && !defined(_M_ARM64)
-    {
-        // Process 8 complex numbers per loop (r0 i0 ... r7 i7)
-        const size_t CW = 8;
+	const double* dft_freq_d = (const double*)dft_freq;
 
-        // Indices for _mm512_permutex2var_pd:
-        //   0..7  select from 'a' (first source)
-        //   8..15 select from 'b' (second source)
-        const __m512i idx_real = _mm512_setr_epi64(
-            0, 2, 4, 6,   // r0 r1 r2 r3 from 'a'
-            8 + 0, 8 + 2, 8 + 4, 8 + 6  // r4 r5 r6 r7 from 'b'
-        );
-        const __m512i idx_imag = _mm512_setr_epi64(
-            1, 3, 5, 7,   // i0 i1 i2 i3 from 'a'
-            8 + 1, 8 + 3, 8 + 5, 8 + 7  // i4 i5 i6 i7 from 'b'
-        );
-
-        for (; j + CW <= freq_len; j += CW) {
-            // a = [r0 i0 r1 i1 r2 i2 r3 i3]
-            // b = [r4 i4 r5 i5 r6 i6 r7 i7]
-            __m512d a = _mm512_loadu_pd((const double*)(dft_freq + j));
-            __m512d b = _mm512_loadu_pd((const double*)(dft_freq + j + 4));
-
-            // Directly select real and imag lanes from a|b
-            __m512d r = _mm512_permutex2var_pd(a, idx_real, b); // [r0..r7]
-            __m512d i = _mm512_permutex2var_pd(a, idx_imag, b); // [i0..i7]
-
-            _mm512_storeu_pd(filter->in_freq_real + j, r);
-            _mm512_storeu_pd(filter->in_freq_imag + j, i);
-        }
-    }
-#endif
-
-#if defined(__AVX2__) && !defined(_M_ARM64)
-	{
-		// Process 4 complex numbers (8 doubles) per loop.
-		const size_t complex_width = 4;
-		for (; j + complex_width <= freq_len; j += complex_width) {
-			// c0 = [r0 i0 r1 i1], c1 = [r2 i2 r3 i3]
-			__m256d c0 = _mm256_loadu_pd((const double*)(dft_freq + j));
-			__m256d c1 = _mm256_loadu_pd((const double*)(dft_freq + j + 2));
-
-			// Interleave within pairs across c0/c1.
-			// rtmp = [r0 r2 r1 r3], itmp = [i0 i2 i1 i3]
-			__m256d rtmp = _mm256_shuffle_pd(c0, c1, 0x0);
-			__m256d itmp = _mm256_shuffle_pd(c0, c1, 0xF);
-
-			// Fix the middle-lane order: [r0 r2 r1 r3] -> [r0 r1 r2 r3]
-			// 0xD8 = 11 01 10 00b selects [0,2,1,3].
-			__m256d real_vec = _mm256_permute4x64_pd(rtmp, 0xD8);
-			__m256d imag_vec = _mm256_permute4x64_pd(itmp, 0xD8);
-
-			_mm256_storeu_pd(filter->in_freq_real + j, real_vec);
-			_mm256_storeu_pd(filter->in_freq_imag + j, imag_vec);
-		}
+	// Planar split via one interleaved load: [r0 i0 r1 i1 ...] -> re[], im[].
+	// LoadInterleaved2 is a pure shuffle, so this is bit-identical on every target.
+	for (; j + N <= freq_len; j += N) {
+		hn::Vec<decltype(d)> vr, vi;
+		hn::LoadInterleaved2(d, dft_freq_d + j * 2, vr, vi);
+		hn::StoreU(vr, d, filter->in_freq_real + j);
+		hn::StoreU(vi, d, filter->in_freq_imag + j);
 	}
-#endif
-
-#if !defined(_M_ARM64)
-	{
-		// Process 2 complex numbers per loop (SSE2).
-		const size_t complex_width = 2;
-		for (; j + complex_width <= freq_len; j += complex_width) {
-			// c0 = [r0 i0], c1 = [r1 i1]
-			__m128d c0 = _mm_loadu_pd((const double*)(dft_freq + j));
-			__m128d c1 = _mm_loadu_pd((const double*)(dft_freq + j + 1));
-
-			__m128d real_vec = _mm_shuffle_pd(c0, c1, 0x00); // [r0 r1]
-			__m128d imag_vec = _mm_shuffle_pd(c0, c1, 0x03); // [i0 i1]
-
-			_mm_storeu_pd(filter->in_freq_real + j, real_vec);
-			_mm_storeu_pd(filter->in_freq_imag + j, imag_vec);
-		}
-	}
-#endif
 
 	// Scalar tail (<1 complex for r2c)
 	for (; j < freq_len; ++j) {
@@ -359,79 +265,34 @@ void hcProcessSingle(HConvSingle* filter)
 		}
 #endif
 
+		const hn::ScalableTag<double> d;
+		const size_t N = hn::Lanes(d);
 		size_t n = 0;
 
-#if defined(__AVX512F__) && !defined(_M_ARM64)
-		// AVX-512: 8 doubles at a time.
-		for (; n + 8 <= num_elements; n += 8) {
-			const __m512d xr = _mm512_loadu_pd(x_real + n);
-			const __m512d xi = _mm512_loadu_pd(x_imag + n);
-			const __m512d hr = _mm512_loadu_pd(h_real + n);
-			const __m512d hi = _mm512_loadu_pd(h_imag + n);
+		// Complex multiply-accumulate, one portable loop in place of the old
+		// AVX-512/AVX2/SSE2 copies. MulAdd(a,b,c)=a*b+c and NegMulAdd(a,b,c)=c-a*b
+		// keep the exact op order of the former fmadd/fnmadd sequence, so the
+		// result is bit-identical on x86 and now runs on NEON for ARM64.
+		for (; n + N <= num_elements; n += N) {
+			const auto xr = hn::LoadU(d, x_real + n);
+			const auto xi = hn::LoadU(d, x_imag + n);
+			const auto hr = hn::LoadU(d, h_real + n);
+			const auto hi = hn::LoadU(d, h_imag + n);
 
-			__m512d yr = _mm512_loadu_pd(y_real + n);
-			__m512d yi = _mm512_loadu_pd(y_imag + n);
-
-			// Real: yr += xr*hr - xi*hi
-			yr = _mm512_fmadd_pd(xr, hr, yr);    // yr = xr*hr + yr
-			yr = _mm512_fnmadd_pd(xi, hi, yr);   // yr = -(xi*hi) + yr = yr - xi*hi
-
-			// Imag: yi += xr*hi + xi*hr
-			yi = _mm512_fmadd_pd(xr, hi, yi);    // yi = xr*hi + yi
-			yi = _mm512_fmadd_pd(xi, hr, yi);    // yi = xi*hr + yi
-
-			_mm512_storeu_pd(y_real + n, yr);
-			_mm512_storeu_pd(y_imag + n, yi);
-		}
-#endif
-
-#if defined(__AVX2__) && !defined(_M_ARM64)
-		// AVX2: 4 doubles at a time.
-		for (; n + 4 <= num_elements; n += 4) {
-			const __m256d xr = _mm256_loadu_pd(x_real + n);
-			const __m256d xi = _mm256_loadu_pd(x_imag + n);
-			const __m256d hr = _mm256_loadu_pd(h_real + n);
-			const __m256d hi = _mm256_loadu_pd(h_imag + n);
-
-			__m256d yr = _mm256_loadu_pd(y_real + n);
-			__m256d yi = _mm256_loadu_pd(y_imag + n);
+			auto yr = hn::LoadU(d, y_real + n);
+			auto yi = hn::LoadU(d, y_imag + n);
 
 			// Real: yr += xr*hr - xi*hi
-			yr = _mm256_fmadd_pd(xr, hr, yr);    // yr = xr*hr + yr
-			yr = _mm256_fnmadd_pd(xi, hi, yr);   // yr = -(xi*hi) + yr = yr - xi*hi
+			yr = hn::MulAdd(xr, hr, yr);     // yr = xr*hr + yr
+			yr = hn::NegMulAdd(xi, hi, yr);  // yr = yr - xi*hi
 
 			// Imag: yi += xr*hi + xi*hr
-			yi = _mm256_fmadd_pd(xr, hi, yi);    // yi = xr*hi + yi
-			yi = _mm256_fmadd_pd(xi, hr, yi);    // yi = xi*hr + yi
+			yi = hn::MulAdd(xr, hi, yi);     // yi = xr*hi + yi
+			yi = hn::MulAdd(xi, hr, yi);     // yi = xi*hr + yi
 
-			_mm256_storeu_pd(y_real + n, yr);
-			_mm256_storeu_pd(y_imag + n, yi);
+			hn::StoreU(yr, d, y_real + n);
+			hn::StoreU(yi, d, y_imag + n);
 		}
-#endif
-
-#if !defined(_M_ARM64)
-		// SSE2: 2 doubles at a time.
-		for (; n + 2 <= num_elements; n += 2) {
-			const __m128d xr = _mm_loadu_pd(x_real + n);
-			const __m128d xi = _mm_loadu_pd(x_imag + n);
-			const __m128d hr = _mm_loadu_pd(h_real + n);
-			const __m128d hi = _mm_loadu_pd(h_imag + n);
-
-			__m128d yr = _mm_loadu_pd(y_real + n);
-			__m128d yi = _mm_loadu_pd(y_imag + n);
-
-			// Real: yr += xr*hr - xi*hi
-			yr = _mm_fmadd_pd(xr, hr, yr);       // yr = xr*hr + yr
-			yr = _mm_fnmadd_pd(xi, hi, yr);      // yr = -(xi*hi) + yr = yr - xi*hi
-
-			// Imag: yi += xr*hi + xi*hr
-			yi = _mm_fmadd_pd(xr, hi, yi);       // yi = xr*hi + yi
-			yi = _mm_fmadd_pd(xi, hr, yi);       // yi = xi*hr + yi
-
-			_mm_storeu_pd(y_real + n, yr);
-			_mm_storeu_pd(y_imag + n, yi);
-		}
-#endif
 
 		// Scalar tail (and works for ARM64 too).
 		for (; n < num_elements; ++n) {
@@ -445,35 +306,13 @@ void hcProcessSingle(HConvSingle* filter)
 
 static inline void zero_doubles_simd(double* __restrict p, int len)
 {
-#if defined(__AVX512F__)
-	const int VW = 8; // doubles per 512-bit reg
-	__m512d z = _mm512_setzero_pd();
+	const hn::ScalableTag<double> d;
+	const int N = (int)hn::Lanes(d);
+	const auto z = hn::Zero(d);
 	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		_mm512_storeu_pd(p + i, z);
-	}
+	for (; i + N <= len; i += N)
+		hn::StoreU(z, d, p + i);
 	for (; i < len; ++i) p[i] = 0.0;
-#elif defined(__AVX2__)
-	const int VW = 4; // doubles per 256-bit reg
-	__m256d z = _mm256_setzero_pd();
-	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		_mm256_storeu_pd(p + i, z);
-	}
-	for (; i < len; ++i) p[i] = 0.0;
-#elif defined(__AVX__)
-	const int VW = 4; // AVX1 still has 256-bit double ops
-	__m256d z = _mm256_setzero_pd();
-	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		_mm256_storeu_pd(p + i, z);
-	}
-	for (; i < len; ++i) p[i] = 0.0;
-#else
-	for (int i = 0; i < len; ++i) {
-		p[i] = 0.0;
-	}
-#endif
 }
 
 static inline void add_out_hist_to_y_simd(const double* __restrict out,
@@ -482,97 +321,37 @@ static inline void add_out_hist_to_y_simd(const double* __restrict out,
 	int len,
 	int add_to_existing_y /*0: assign; 1: += */)
 {
-#if defined(__AVX512F__)
-	const int VW = 8;
-	const __mmask8 mask = add_to_existing_y ? 0xFF : 0x00;
+	const hn::ScalableTag<double> d;
+	const int N = (int)hn::Lanes(d);
 	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		__m512d vout = _mm512_loadu_pd(out + i);
-		__m512d vhist = _mm512_loadu_pd(hist + i);
-		__m512d vsum = _mm512_add_pd(vout, vhist);
-		// If add_to_existing_y=0, mask is 0 and vy is not added
-		__m512d vy = _mm512_maskz_loadu_pd(mask, y + i);
-		vsum = _mm512_mask_add_pd(vsum, mask, vsum, vy);
-		_mm512_storeu_pd(y + i, vsum);
-	}
-	for (; i < len; ++i) {
-		double s = out[i] + hist[i];
-		y[i] = add_to_existing_y ? (y[i] + s) : s;
-	}
-#elif defined(__AVX2__)
-	const int VW = 4;
-	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		__m256d vout = _mm256_loadu_pd(out + i);
-		__m256d vhist = _mm256_loadu_pd(hist + i);
-		__m256d vsum = _mm256_add_pd(vout, vhist);
-		if (add_to_existing_y) {
-			__m256d vy = _mm256_loadu_pd(y + i);
-			vsum = _mm256_add_pd(vsum, vy);
+	if (add_to_existing_y) {
+		for (; i + N <= len; i += N) {
+			const auto s = hn::Add(hn::LoadU(d, out + i), hn::LoadU(d, hist + i));
+			hn::StoreU(hn::Add(s, hn::LoadU(d, y + i)), d, y + i);
 		}
-		_mm256_storeu_pd(y + i, vsum);
 	}
-	for (; i < len; ++i) {
-		double s = out[i] + hist[i];
-		y[i] = add_to_existing_y ? (y[i] + s) : s;
-	}
-#elif defined(__AVX__)
-	const int VW = 4;
-	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		__m256d vout = _mm256_loadu_pd(out + i);
-		__m256d vhist = _mm256_loadu_pd(hist + i);
-		__m256d vsum = _mm256_add_pd(vout, vhist);
-		if (add_to_existing_y) {
-			__m256d vy = _mm256_loadu_pd(y + i);
-			vsum = _mm256_add_pd(vsum, vy);
+	else {
+		for (; i + N <= len; i += N) {
+			const auto s = hn::Add(hn::LoadU(d, out + i), hn::LoadU(d, hist + i));
+			hn::StoreU(s, d, y + i);
 		}
-		_mm256_storeu_pd(y + i, vsum);
 	}
 	for (; i < len; ++i) {
 		double s = out[i] + hist[i];
 		y[i] = add_to_existing_y ? (y[i] + s) : s;
 	}
-#else
-	for (int i = 0; i < len; ++i) {
-		double s = out[i] + hist[i];
-		y[i] = add_to_existing_y ? (y[i] + s) : s;
-	}
-#endif
 }
 
 static inline void copy_hist_from_out_tail_simd(double* __restrict hist,
 	const double* __restrict out_tail,
 	int len)
 {
-#if defined(__AVX512F__)
-	const int VW = 8;
+	const hn::ScalableTag<double> d;
+	const int N = (int)hn::Lanes(d);
 	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		__m512d v = _mm512_loadu_pd(out_tail + i);
-		_mm512_storeu_pd(hist + i, v);
-	}
+	for (; i + N <= len; i += N)
+		hn::StoreU(hn::LoadU(d, out_tail + i), d, hist + i);
 	for (; i < len; ++i) hist[i] = out_tail[i];
-#elif defined(__AVX2__)
-	const int VW = 4;
-	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		__m256d v = _mm256_loadu_pd(out_tail + i);
-		_mm256_storeu_pd(hist + i, v);
-	}
-	for (; i < len; ++i) hist[i] = out_tail[i];
-#elif defined(__AVX__)
-	const int VW = 4;
-	int i = 0;
-	for (; i + VW <= len; i += VW) {
-		__m256d v = _mm256_loadu_pd(out_tail + i);
-		_mm256_storeu_pd(hist + i, v);
-	}
-	for (; i < len; ++i) hist[i] = out_tail[i];
-#else
-	for (int i = 0; i < len; ++i)
-		hist[i] = out_tail[i];
-#endif
 }
 
 void hcGetSingle(HConvSingle* filter, double* y)
@@ -649,30 +428,13 @@ static inline void mul_store_gain_double(double* __restrict dst,
 	const double* __restrict src,
 	int n, double gain)
 {
-#if defined(__AVX512F__)
-	const int V = 8;
-	__m512d g = _mm512_set1_pd(gain);
+	const hn::ScalableTag<double> d;
+	const int N = (int)hn::Lanes(d);
+	const auto g = hn::Set(d, gain);
 	int i = 0;
-	for (; i + V <= n; i += V) {
-		__m512d x = _mm512_loadu_pd(src + i);
-		x = _mm512_mul_pd(x, g);
-		_mm512_storeu_pd(dst + i, x);
-	}
+	for (; i + N <= n; i += N)
+		hn::StoreU(hn::Mul(hn::LoadU(d, src + i), g), d, dst + i);
 	for (; i < n; ++i) dst[i] = src[i] * gain;
-#elif defined(__AVX2__) || defined(__AVX__)
-	// For doubles, AVX intrinsics (_mm256_*) are the FP workhorses; AVX2 adds ints.
-	const int V = 4;
-	__m256d g = _mm256_set1_pd(gain);
-	int i = 0;
-	for (; i + V <= n; i += V) {
-		__m256d x = _mm256_loadu_pd(src + i);
-		x = _mm256_mul_pd(x, g);
-		_mm256_storeu_pd(dst + i, x);
-	}
-	for (; i < n; ++i) dst[i] = src[i] * gain;
-#else
-	for (int i = 0; i < n; ++i) dst[i] = src[i] * gain;
-#endif
 }
 
 static inline void copy_split_complex_scalar(const fftw_complex * __restrict src,
@@ -687,69 +449,22 @@ static inline void copy_split_complex_scalar(const fftw_complex * __restrict src
 	}
 }
 
-// Vectorized interleaved (re,im) -> planar (re[] / im[])
+// Interleaved (re,im) -> planar (re[] / im[]) via one Highway interleaved load.
 static inline void copy_split_complex_vec(const fftw_complex* __restrict src,
 	double* __restrict re,
 	double* __restrict im,
 	int n_complex)
 {
 	const double* s = (const double*)src;
+	const hn::ScalableTag<double> d;
+	const int N = (int)hn::Lanes(d);
 	int j = 0;
-
-#if defined(__AVX512F__)
-	// 4 complex per iter: load 8 doubles: [r0,i0,r1,i1,r2,i2,r3,i3]
-	for (; j + 4 <= n_complex; j += 4) {
-		__m512d v = _mm512_loadu_pd(s + (size_t)j * 2);
-
-		// Build index vectors to select even (re) and odd (im) lanes.
-		// We’ll take the lower 256 bits (first 4 lanes) after permute.
-		const __m512i idx_even = _mm512_set_epi64(6, 4, 2, 0, 6, 4, 2, 0);
-		const __m512i idx_odd = _mm512_set_epi64(7, 5, 3, 1, 7, 5, 3, 1);
-
-		__m512d v_re = _mm512_permutexvar_pd(idx_even, v); // [r0,r2,r4?,r6? | dup]
-		__m512d v_im = _mm512_permutexvar_pd(idx_odd, v); // [i0,i2,i4?,i6? | dup]
-
-		// Store lower 256 containing [r0, r1, r2, r3]? Wait—our even/odd
-		// indices were 0,2,4,6 and 1,3,5,7. For 4 complexes:
-		// even -> [r0,r1,r2,r3] map is [0,2,4,6] over [r0,i0,r1,i1,r2,i2,r3,i3] = [0,2,4,6].
-		// odd  -> [i0,i1,i2,i3] map is [1,3,5,7].
-		__m256d re256 = _mm512_castpd512_pd256(v_re);
-		__m256d im256 = _mm512_castpd512_pd256(v_im);
-
-		_mm256_storeu_pd(re + j, re256);
-		_mm256_storeu_pd(im + j, im256);
+	for (; j + N <= n_complex; j += N) {
+		hn::Vec<decltype(d)> vr, vi;
+		hn::LoadInterleaved2(d, s + (size_t)j * 2, vr, vi);
+		hn::StoreU(vr, d, re + j);
+		hn::StoreU(vi, d, im + j);
 	}
-#elif defined(__AVX2__)
-	// 4 complex per iter using 256-bit path:
-	// a = [r0,i0,r1,i1], b = [r2,i2,r3,i3]
-	// re_temp = shuffle_pd(a,b,0x0) -> [r0,r2, r1,r3]
-	// im_temp = shuffle_pd(a,b,0xF) -> [i0,i2, i1,i3]
-	// Then swap lanes 1<->2 with permute4x64 imm=0xD8 to get [r0,r1,r2,r3] and [i0,i1,i2,i3]
-	for (; j + 4 <= n_complex; j += 4) {
-		__m256d a = _mm256_loadu_pd(s + (size_t)j * 2);
-		__m256d b = _mm256_loadu_pd(s + (size_t)j * 2 + 4);
-		__m256d re_tmp = _mm256_shuffle_pd(a, b, 0x0);
-		__m256d im_tmp = _mm256_shuffle_pd(a, b, 0xF);
-		__m256d re_vec = _mm256_permute4x64_pd(re_tmp, 0xD8); // [0,2,1,3] -> [0,1,2,3]
-		__m256d im_vec = _mm256_permute4x64_pd(im_tmp, 0xD8);
-		_mm256_storeu_pd(re + j, re_vec);
-		_mm256_storeu_pd(im + j, im_vec);
-	}
-#elif defined(__AVX__)
-	// 2 complex per iter using 128-bit SSE ops (valid in AVX TU):
-	// a = [r0,i0,r1,i1]
-	// re = shuffle(a, a, 0b1000) -> [r0,r1]
-	// im = shuffle(a, a, 0b1111) with mask picking odds -> [i0,i1]
-	for (; j + 2 <= n_complex; j += 2) {
-		__m128d lo = _mm_loadu_pd(s + (size_t)j * 2);         // [r0,i0]
-		__m128d hi = _mm_loadu_pd(s + (size_t)j * 2 + 2);     // [r1,i1]
-		__m128d a = _mm_shuffle_pd(lo, hi, 0b00);            // [r0,r1]
-		__m128d b = _mm_shuffle_pd(lo, hi, 0b11);            // [i0,i1]
-		_mm_storeu_pd(re + j, a);
-		_mm_storeu_pd(im + j, b);
-	}
-#endif
-
 	// Tail
 	for (; j < n_complex; ++j) {
 		re[j] = s[2 * (size_t)j + 0];

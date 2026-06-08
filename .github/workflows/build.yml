@@ -393,6 +393,17 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         path: deps/vst3sdk/pluginterfaces
 
+    # Clone Google Highway (header-only portable SIMD). The Common DSP kernels
+    # use it in static per-target dispatch mode (one TU compiled per /arch), so
+    # only the headers are needed; libhwy / the runtime dispatch table are not.
+    - name: Download Highway
+      uses: actions/checkout@v6
+      with:
+        repository: google/highway
+        ref: 1.4.0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/highway
+
     # Setup dependency structures
     - name: Setup dependency structures
       shell: pwsh
@@ -482,6 +493,9 @@ jobs:
 
         # VST3 SDK root (contains pluginterfaces/) for VST3 hosting headers.
         echo "VST3_SDK=$depsPath\vst3sdk" >> $env:GITHUB_ENV
+
+        # Highway header root (contains hwy/) for the portable SIMD kernels.
+        echo "HIGHWAY_INCLUDE=$depsPath\highway" >> $env:GITHUB_ENV
 
         # Velopack runtime paths for the Editor's auto-update link.
         echo "VELOPACK_INCLUDE=$depsPath\velopack_libc\include" >> $env:GITHUB_ENV
@@ -633,6 +647,7 @@ jobs:
           "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
           "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
           "/p:VST3_SDK=$env:VST3_SDK",
+          "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE",
           "/p:PlatformToolset=$platformToolset",  # v145 on the VS 2026 x64 image, v143 on the VS 2022 ARM64 image (see above)
           "/p:PreferredToolArchitecture=x64"  # 64-bit host cl.exe avoids the 32-bit PCH heap limit on ARM64
         )

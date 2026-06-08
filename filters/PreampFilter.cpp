@@ -20,12 +20,22 @@
 #include "stdafx.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
-#ifndef _M_ARM64
-#include <immintrin.h>
+
+// stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
+// macros here. Undefine them before Highway, whose templates use std::min and
+// std::max; otherwise the macro expansion breaks the headers.
+#ifdef min
+#undef min
 #endif
+#ifdef max
+#undef max
+#endif
+#include "hwy/highway.h"
 
 #include "PreampFilter.h"
 #include "helpers/PerfProfile.h"
+
+namespace hn = hwy::HWY_NAMESPACE;
 
 using std::max;
 using std::pow;
@@ -52,69 +62,27 @@ void PreampFilter::process(double** output, double** input, unsigned frameCount)
     // The gain factor is constant for all samples, load it once.
     const double gainFactor = this->gain;
 
-    // Process each channel independently
+    const hn::ScalableTag<double> d;
+    const size_t N = hn::Lanes(d);
+    const auto gainVec = hn::Set(d, gainFactor);
+
+    // Process each channel independently. One portable Highway loop replaces the
+    // former AVX-512/AVX2/SSE2 ladder; it compiles to the widest target enabled
+    // for this build (and to NEON on ARM64, which used to fall back to scalar).
     for (size_t c = 0; c < channelCount; ++c)
     {
-        double* inputChannel = input[c];
+        const double* inputChannel = input[c];
         double* outputChannel = output[c];
-        size_t i = 0; // Tracks the number of processed samples for this channel
 
-        // The logic here is to process samples in chunks using the widest available instructions first,
-        // then step down to smaller vector sizes for the remainder.
-
-#if defined(__AVX512F__) && !defined(_M_ARM64)
-    // AVX-512 Path: Process 8 doubles at a time.
+        size_t i = 0;
+        for (; i + N <= frameCount; i += N)
         {
-            const size_t simd_width = 8;
-            if (frameCount >= simd_width) {
-                const __m512d gain_vec = _mm512_set1_pd(gainFactor);
-                for (; i + simd_width <= frameCount; i += simd_width)
-                {
-                    const __m512d samples = _mm512_loadu_pd(inputChannel + i);
-                    const __m512d result = _mm512_mul_pd(samples, gain_vec);
-                    _mm512_storeu_pd(outputChannel + i, result);
-                }
-            }
+            const auto samples = hn::LoadU(d, inputChannel + i);
+            hn::StoreU(hn::Mul(samples, gainVec), d, outputChannel + i);
         }
-#endif
-
-#if defined(__AVX2__) && !defined(_M_ARM64)
-        // AVX2 Path: Process the next 4 doubles at a time.
-        {
-            const size_t simd_width = 4;
-            if (frameCount - i >= simd_width) {
-                const __m256d gain_vec = _mm256_set1_pd(gainFactor);
-                for (; i + simd_width <= frameCount; i += simd_width)
-                {
-                    const __m256d samples = _mm256_loadu_pd(inputChannel + i);
-                    const __m256d result = _mm256_mul_pd(samples, gain_vec);
-                    _mm256_storeu_pd(outputChannel + i, result);
-                }
-            }
-        }
-#endif
-
-#if !defined(_M_ARM64)
-        // SSE Path: Process the next 2 doubles at a time. This is valuable for leftovers.
-        {
-            const size_t simd_width = 2;
-            if (frameCount - i >= simd_width) {
-                const __m128d gain_vec = _mm_set1_pd(gainFactor);
-                for (; i + simd_width <= frameCount; i += simd_width)
-                {
-                    const __m128d samples = _mm_loadu_pd(inputChannel + i);
-                    const __m128d result = _mm_mul_pd(samples, gain_vec);
-                    _mm_storeu_pd(outputChannel + i, result);
-                }
-            }
-        }
-#endif
-
-        // Scalar Fallback: Process any final remaining samples (max 1).
+        // Scalar tail (also covers frameCount < N).
         for (; i < frameCount; ++i)
-        {
             outputChannel[i] = inputChannel[i] * gainFactor;
-        }
     }
 }
 #pragma AVRT_CODE_END

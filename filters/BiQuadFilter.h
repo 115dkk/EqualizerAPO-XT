@@ -23,9 +23,6 @@
 #include "BiQuad.h"
 #include <vector>
 #include <string>
-#ifndef _M_ARM64
-#include <immintrin.h>
-#endif
 
 #pragma AVRT_VTABLES_BEGIN
 class BiQuadFilter : public IFilter
@@ -59,16 +56,10 @@ private:
     std::vector<double> a0, a1, a2, b1, b2; // Coefficients
     std::vector<double> x1, x2, y1, y2;     // State variables
 
-#if defined(__AVX512F__) && !defined(_M_ARM64)
-    void process_avx512(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);
-#endif
-#if (defined(__AVX2__) || defined(__AVX512F__)) && !defined(_M_ARM64) // AVX2 is part of AVX
-    void process_avx256(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);
-#endif
-    // Use AVX for the 128-bit FMA path if available, otherwise plain SSE2
-#if !defined(_M_ARM64)
-    void process_sse128(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);
-#endif
+    // Processes a Highway-vector-width group of channels at a time (NEON on
+    // ARM64, the widest enabled x86 target otherwise). Leftover channels that do
+    // not fill a vector go through process_scalar.
+    void process_simd(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);
     void process_scalar(double** output, double** input, unsigned frameCount, unsigned startChannel);
 };
 #pragma AVRT_VTABLES_END

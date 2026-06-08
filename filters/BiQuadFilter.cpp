@@ -20,9 +20,19 @@
 #include "stdafx.h"
 #include "BiQuadFilter.h"
 #include "helpers/PerfProfile.h"
-#ifndef _M_ARM64
-#include <immintrin.h>
+
+// stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
+// macros here. Undefine them before Highway, whose templates use std::min and
+// std::max.
+#ifdef min
+#undef min
 #endif
+#ifdef max
+#undef max
+#endif
+#include "hwy/highway.h"
+
+namespace hn = hwy::HWY_NAMESPACE;
 
 BiQuadFilter::BiQuadFilter(BiQuad::Type type, double dbGain, double freq, double bandwidthOrQOrS, bool isBandwidthOrS, bool isCornerFreq)
     : type(type), dbGain(dbGain), freq(freq), bandwidthOrQOrS(bandwidthOrQOrS), isBandwidthOrS(isBandwidthOrS), isCornerFreq(isCornerFreq), channelCount(0)
@@ -125,188 +135,76 @@ void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
 	// FTZ/DAZ is enabled once at the engine boundary by MxcsrFtzDazGuard, so
 	// individual filters no longer touch MXCSR.
 
-    unsigned processedChannels = 0;
+    // One Highway-width group of channels at a time. `width` is 8/4/2 on the
+    // x86 targets (matching the former AVX-512/AVX2/SSE2 chunking) and 2 on
+    // ARM64 NEON, which used to run entirely through process_scalar.
+    const hn::ScalableTag<double> d;
+    const unsigned width = (unsigned)hn::Lanes(d);
+    const unsigned simdChannels = ((unsigned)channelCount / width) * width;
 
-#if defined(__AVX512F__) && !defined(_M_ARM64)
-    const unsigned avx512_width = 8;
-    unsigned num_avx512_chunks = ((unsigned)channelCount - processedChannels) / avx512_width;
-    if (num_avx512_chunks > 0) {
-        process_avx512(output, input, frameCount, processedChannels, num_avx512_chunks * avx512_width);
-        processedChannels += num_avx512_chunks * avx512_width;
-    }
-#endif
+    if (simdChannels > 0)
+        process_simd(output, input, frameCount, 0, simdChannels);
 
-#if defined(__AVX2__) && !defined(_M_ARM64)
-    const unsigned avx256_width = 4;
-    unsigned num_avx256_chunks = ((unsigned)channelCount - processedChannels) / avx256_width;
-    if (num_avx256_chunks > 0) {
-        process_avx256(output, input, frameCount, processedChannels, num_avx256_chunks * avx256_width);
-        processedChannels += num_avx256_chunks * avx256_width;
-    }
-#endif
-#if !defined(_M_ARM64)
-
-    const unsigned sse128_width = 2;
-    unsigned num_sse128_chunks = ((unsigned)channelCount - processedChannels) / sse128_width;
-    if (num_sse128_chunks > 0) {
-        process_sse128(output, input, frameCount, processedChannels, num_sse128_chunks * sse128_width);
-        processedChannels += num_sse128_chunks * sse128_width;
-    }
-#endif
-
-    if (processedChannels < (unsigned)channelCount) {
-        process_scalar(output, input, frameCount, processedChannels);
-    }
+    if (simdChannels < (unsigned)channelCount)
+        process_scalar(output, input, frameCount, simdChannels);
 }
 
 
-#if defined(__AVX512F__) && !defined(_M_ARM64)
-// AVX-512 optimized processing for 8 channels at a time
-void BiQuadFilter::process_avx512(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels)
+// Processes Lanes(d) channels at a time. The biquad is stored as SoA across
+// channels, so the per-frame input samples for the active channel group live in
+// separate pointers (input[i+k][j]); Highway has no portable pointer-array
+// gather, so we marshal them through a small stack buffer and likewise scatter
+// the result. The coefficient/state math keeps the exact FMA op order of the
+// former AVX-512/AVX2/SSE2 kernels, so per-target output is unchanged (and the
+// SSE2 build, which has no FMA hardware, gets the same mul+add Highway emits).
+void BiQuadFilter::process_simd(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels)
 {
-    const unsigned simd_width = 8;
-    for (unsigned i = startChannel; i < startChannel + numChannels; i += simd_width)
-    {
-        const __m512d _a0 = _mm512_loadu_pd(&a0[i]);
-        const __m512d _b1 = _mm512_loadu_pd(&b1[i]);
-        const __m512d _b2 = _mm512_loadu_pd(&b2[i]);
-        const __m512d _a1 = _mm512_loadu_pd(&a1[i]);
-        const __m512d _a2 = _mm512_loadu_pd(&a2[i]);
+    const hn::ScalableTag<double> d;
+    const size_t N = hn::Lanes(d);
 
-        __m512d _x1 = _mm512_loadu_pd(&x1[i]);
-        __m512d _x2 = _mm512_loadu_pd(&x2[i]);
-        __m512d _y1 = _mm512_loadu_pd(&y1[i]);
-        __m512d _y2 = _mm512_loadu_pd(&y2[i]);
+    for (unsigned i = startChannel; i < startChannel + numChannels; i += (unsigned)N)
+    {
+        const auto _a0 = hn::LoadU(d, &a0[i]);
+        const auto _b1 = hn::LoadU(d, &b1[i]);
+        const auto _b2 = hn::LoadU(d, &b2[i]);
+        const auto _a1 = hn::LoadU(d, &a1[i]);
+        const auto _a2 = hn::LoadU(d, &a2[i]);
+
+        auto _x1 = hn::LoadU(d, &x1[i]);
+        auto _x2 = hn::LoadU(d, &x2[i]);
+        auto _y1 = hn::LoadU(d, &y1[i]);
+        auto _y2 = hn::LoadU(d, &y2[i]);
+
+        alignas(64) double gather[hn::MaxLanes(d)];
+        alignas(64) double scatter[hn::MaxLanes(d)];
 
         for (unsigned j = 0; j < frameCount; ++j)
         {
-            __m512d _sample = _mm512_set_pd(input[i + 7][j], input[i + 6][j], input[i + 5][j], input[i + 4][j],
-                input[i + 3][j], input[i + 2][j], input[i + 1][j], input[i + 0][j]);
+            for (size_t k = 0; k < N; ++k)
+                gather[k] = input[i + k][j];
+            const auto _sample = hn::LoadU(d, gather);
 
-            __m512d result = _mm512_mul_pd(_a0, _sample);
-            result = _mm512_fmadd_pd(_b1, _x1, result);
-            result = _mm512_fmadd_pd(_b2, _x2, result);
-            result = _mm512_fnmadd_pd(_a1, _y1, result);
-            result = _mm512_fnmadd_pd(_a2, _y2, result);
+            // result = a0*sample + b1*x1 + b2*x2 - a1*y1 - a2*y2
+            auto result = hn::Mul(_a0, _sample);
+            result = hn::MulAdd(_b1, _x1, result);
+            result = hn::MulAdd(_b2, _x2, result);
+            result = hn::NegMulAdd(_a1, _y1, result);
+            result = hn::NegMulAdd(_a2, _y2, result);
 
             _x2 = _x1; _x1 = _sample;
             _y2 = _y1; _y1 = result;
 
-            double result_array[8]; // Use a temporary array for the scatter operation
-            _mm512_storeu_pd(result_array, result);
-            for (int k = 0; k < 8; ++k) output[i + k][j] = result_array[k];
+            hn::StoreU(result, d, scatter);
+            for (size_t k = 0; k < N; ++k)
+                output[i + k][j] = scatter[k];
         }
 
-        _mm512_storeu_pd(&x1[i], _x1);
-        _mm512_storeu_pd(&x2[i], _x2);
-        _mm512_storeu_pd(&y1[i], _y1);
-        _mm512_storeu_pd(&y2[i], _y2);
+        hn::StoreU(_x1, d, &x1[i]);
+        hn::StoreU(_x2, d, &x2[i]);
+        hn::StoreU(_y1, d, &y1[i]);
+        hn::StoreU(_y2, d, &y2[i]);
     }
 }
-#endif
-
-#if defined(__AVX2__) && !defined(_M_ARM64)
-// AVX2 optimized processing for 4 channels at a time
-void BiQuadFilter::process_avx256(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels)
-{
-    const unsigned simd_width = 4;
-    for (unsigned i = startChannel; i < startChannel + numChannels; i += simd_width)
-    {
-        const __m256d _a0 = _mm256_loadu_pd(&a0[i]);
-        const __m256d _b1 = _mm256_loadu_pd(&b1[i]);
-        const __m256d _b2 = _mm256_loadu_pd(&b2[i]);
-        const __m256d _a1 = _mm256_loadu_pd(&a1[i]);
-        const __m256d _a2 = _mm256_loadu_pd(&a2[i]);
-
-        __m256d _x1 = _mm256_loadu_pd(&x1[i]);
-        __m256d _x2 = _mm256_loadu_pd(&x2[i]);
-        __m256d _y1 = _mm256_loadu_pd(&y1[i]);
-        __m256d _y2 = _mm256_loadu_pd(&y2[i]);
-
-        for (unsigned j = 0; j < frameCount; ++j)
-        {
-            __m256d _sample = _mm256_set_pd(input[i + 3][j], input[i + 2][j], input[i + 1][j], input[i + 0][j]);
-
-            __m256d result = _mm256_mul_pd(_a0, _sample);
-            result = _mm256_fmadd_pd(_b1, _x1, result);
-            result = _mm256_fmadd_pd(_b2, _x2, result);
-            result = _mm256_fnmadd_pd(_a1, _y1, result);
-            result = _mm256_fnmadd_pd(_a2, _y2, result);
-
-            _x2 = _x1; _x1 = _sample;
-            _y2 = _y1; _y1 = result;
-
-            double result_array[4];
-            _mm256_storeu_pd(result_array, result);
-            output[i + 0][j] = result_array[0];
-            output[i + 1][j] = result_array[1];
-            output[i + 2][j] = result_array[2];
-            output[i + 3][j] = result_array[3];
-        }
-
-        _mm256_storeu_pd(&x1[i], _x1);
-        _mm256_storeu_pd(&x2[i], _x2);
-        _mm256_storeu_pd(&y1[i], _y1);
-        _mm256_storeu_pd(&y2[i], _y2);
-    }
-}
-#endif
-
-#if !defined(_M_ARM64)
-// SSE optimized processing for 2 channels (stereo) at a time
-void BiQuadFilter::process_sse128(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels)
-{
-    const unsigned simd_width = 2;
-    for (unsigned i = startChannel; i < startChannel + numChannels; i += simd_width)
-    {
-        const __m128d _a0 = _mm_loadu_pd(&a0[i]);
-        const __m128d _b1 = _mm_loadu_pd(&b1[i]);
-        const __m128d _b2 = _mm_loadu_pd(&b2[i]);
-        const __m128d _a1 = _mm_loadu_pd(&a1[i]);
-        const __m128d _a2 = _mm_loadu_pd(&a2[i]);
-
-        __m128d _x1 = _mm_loadu_pd(&x1[i]);
-        __m128d _x2 = _mm_loadu_pd(&x2[i]);
-        __m128d _y1 = _mm_loadu_pd(&y1[i]);
-        __m128d _y2 = _mm_loadu_pd(&y2[i]);
-
-        for (unsigned j = 0; j < frameCount; ++j)
-        {
-            __m128d _sample = _mm_set_pd(input[i + 1][j], input[i + 0][j]);
-
-            // Use FMA if available (AVX+), otherwise it will fallback to mul/add sequence with SSE2
-#if defined(__AVX2__)
-            __m128d result = _mm_mul_pd(_a0, _sample);
-            result = _mm_fmadd_pd(_b1, _x1, result);
-            result = _mm_fmadd_pd(_b2, _x2, result);
-            result = _mm_fnmadd_pd(_a1, _y1, result);
-            result = _mm_fnmadd_pd(_a2, _y2, result);
-#else // Fallback for pure SSE2 CPUs (no FMA)
-            __m128d term1 = _mm_mul_pd(_a0, _sample);
-            __m128d term2 = _mm_mul_pd(_b1, _x1);
-            __m128d term3 = _mm_mul_pd(_b2, _x2);
-            __m128d term4 = _mm_mul_pd(_a1, _y1);
-            __m128d term5 = _mm_mul_pd(_a2, _y2);
-            __m128d result = _mm_add_pd(term1, term2);
-            result = _mm_add_pd(result, term3);
-            result = _mm_sub_pd(result, term4);
-            result = _mm_sub_pd(result, term5);
-#endif
-            _x2 = _x1; _x1 = _sample;
-            _y2 = _y1; _y1 = result;
-
-            double result_array[2];
-            _mm_storeu_pd(result_array, result);
-            output[i + 0][j] = result_array[0];
-            output[i + 1][j] = result_array[1];
-        }
-        _mm_storeu_pd(&x1[i], _x1);
-        _mm_storeu_pd(&x2[i], _x2);
-        _mm_storeu_pd(&y1[i], _y1);
-        _mm_storeu_pd(&y2[i], _y2);
-    }
-}
-#endif
 
 
 // Scalar processing for any final leftover channels (e.g., the 7th channel in a 7.1 setup)
