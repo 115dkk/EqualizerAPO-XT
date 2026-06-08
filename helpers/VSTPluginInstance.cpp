@@ -21,6 +21,7 @@
 #include <wincrypt.h>
 #include <inttypes.h>
 #include "StringHelper.h"
+#include "LogHelper.h"
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
@@ -366,7 +367,16 @@ bool VSTPluginInstance::initialize()
 {
 	if (library->isVST3())
 		return initializeVST3();
-	return initializeVST2();
+
+	// initializeVST2 must stay free of objects requiring stack unwinding because it
+	// uses a __try/__except guard (MSVC C2712), so log its failure reasons here where
+	// constructing the std::wstring temporary from getLibPath is allowed.
+	bool result = initializeVST2();
+	if (!result)
+		LogF(L"Loading VST2 plugin %s failed due to an exception.", library->getLibPath().c_str());
+	else if (effect == NULL)
+		LogF(L"VST2 plugin %s has wrong magic number, not loading it.", library->getLibPath().c_str());
+	return result;
 }
 
 bool VSTPluginInstance::initializeVST2()
@@ -405,16 +415,25 @@ bool VSTPluginInstance::initializeVST3()
 	TUID componentIid;
 	IComponent::iid.toTUID(componentIid);
 	if (library->getFactory()->createInstance(componentId, componentIid, (void**)&vst3Component) != kResultOk || vst3Component == NULL)
+	{
+		LogF(L"Could not create IComponent instance of VST3 plugin %s.", library->getLibPath().c_str());
 		return false;
+	}
 
 	vst3Component->setIoMode(kSimple);
 	if (vst3Component->initialize(static_cast<IHostApplication*>(vst3HostContext)) != kResultOk)
+	{
+		LogF(L"Could not initialize IComponent of VST3 plugin %s.", library->getLibPath().c_str());
 		return false;
+	}
 
 	TUID processorIid;
 	IAudioProcessor::iid.toTUID(processorIid);
 	if (vst3Component->queryInterface(processorIid, (void**)&vst3Processor) != kResultOk || vst3Processor == NULL)
+	{
+		LogF(L"VST3 plugin %s does not provide the IAudioProcessor interface.", library->getLibPath().c_str());
 		return false;
+	}
 
 	TUID controllerClassId;
 	memset(controllerClassId, 0, sizeof(controllerClassId));
@@ -459,7 +478,10 @@ bool VSTPluginInstance::initializeVST3()
 
 	vst3SupportsDouble = vst3Processor->canProcessSampleSize(kSample64) == kResultOk;
 	if (!vst3SupportsDouble && vst3Processor->canProcessSampleSize(kSample32) != kResultOk)
+	{
+		LogF(L"VST3 plugin %s supports neither 32-bit nor 64-bit sample processing.", library->getLibPath().c_str());
 		return false;
+	}
 
 	usedChannelCount = max(numInputs(), numOutputs());
 
