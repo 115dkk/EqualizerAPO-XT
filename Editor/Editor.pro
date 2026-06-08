@@ -401,6 +401,14 @@ isEmpty(VST3_SDK) {
 	VST3_SDK = $$PWD/../deps/vst3sdk
 }
 
+# The Editor compiles the Common DSP sources directly (PreampFilter, BiQuadFilter,
+# libHybridConv, FilterEngine.Process), which now include hwy/highway.h. Mirror
+# Common.vcxproj's HIGHWAY_INCLUDE so qmake finds the Highway headers.
+HIGHWAY_INCLUDE = $$(HIGHWAY_INCLUDE)
+isEmpty(HIGHWAY_INCLUDE) {
+	HIGHWAY_INCLUDE = $$PWD/../deps/highway
+}
+
 VELOPACK_LIB = $$(VELOPACK_LIB)
 isEmpty(VELOPACK_LIB) {
 	VELOPACK_LIB = $$PWD/../deps/velopack_libc/lib
@@ -419,7 +427,7 @@ contains(QT_ARCH, arm64) {
 	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
 }
 
-INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK
+INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
 LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {

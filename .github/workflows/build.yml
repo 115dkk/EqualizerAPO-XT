@@ -944,17 +944,19 @@ jobs:
         $deviceSelectorSuccess = Build-QtProject "DeviceSelector" "DeviceSelector\DeviceSelector.pro"
         $updateCheckerSuccess = Build-QtProject "UpdateChecker" "UpdateChecker\UpdateChecker.pro"
 
-        # Check if any builds failed
-        if (-not $editorSuccess) {
-          Write-Error "Editor build failed"
-          exit 1
-        }
-        if (-not $deviceSelectorSuccess) {
-          Write-Error "DeviceSelector build failed"
-          exit 1
-        }
-        if (-not $updateCheckerSuccess) {
-          Write-Error "UpdateChecker build failed"
+        # Verify the executables exist. We check the files directly rather than the
+        # Build-QtProject return values: PowerShell folds the external tools' stdout
+        # into a function's output, so $...Success ended up a non-empty (always
+        # truthy) array and a failed Editor build slipped through as "success",
+        # only surfacing later as a missing Editor.exe in create-release.
+        $requiredExes = @(
+          "build-Editor-${{ matrix.platform }}\release\Editor.exe",
+          "build-DeviceSelector-${{ matrix.platform }}\release\DeviceSelector.exe",
+          "build-UpdateChecker-${{ matrix.platform }}\release\UpdateChecker.exe"
+        )
+        $missingExes = @($requiredExes | Where-Object { -not (Test-Path $_) })
+        if ($missingExes.Count -gt 0) {
+          Write-Error "Qt build did not produce: $($missingExes -join ', ')"
           exit 1
         }
 
