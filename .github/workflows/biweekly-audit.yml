@@ -298,7 +298,7 @@ jobs:
             exit "$CLAUDE_EXIT"
           fi
 
-      - name: Create GitHub Issue
+      - name: Create GitHub Issue or summary
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -330,14 +330,33 @@ jobs:
             --description "Maintenance work" \
             >/dev/null 2>&1 || true
 
+          set +e
+          ISSUE_ERROR=$(mktemp)
           ISSUE_URL=$(gh issue create \
             --repo "${GITHUB_REPOSITORY}" \
             --title "Biweekly Audit: ${DATE}" \
             --body-file issue-body.md \
             --label audit \
-            --label maintenance)
+            --label maintenance 2>"${ISSUE_ERROR}")
+          ISSUE_EXIT=$?
+          set -e
 
-          echo "Created issue: ${ISSUE_URL}"
+          if [ "${ISSUE_EXIT}" -eq 0 ]; then
+            echo "Created issue: ${ISSUE_URL}"
+          else
+            echo "::warning::Could not create a GitHub issue. Writing the audit body to the job summary instead."
+            cat "${ISSUE_ERROR}"
+            {
+              echo "## Biweekly Audit report"
+              echo ""
+              echo "GitHub issue creation failed:"
+              echo '```'
+              cat "${ISSUE_ERROR}"
+              echo '```'
+              echo ""
+              cat issue-body.md
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
@@ -347,6 +366,7 @@ jobs:
             combined-audit-report.md
             change-summary.txt
             TECH_DEBT_AUDIT.md
+            issue-body.md
           retention-days: 90
 
       - name: Tag audit checkpoint
