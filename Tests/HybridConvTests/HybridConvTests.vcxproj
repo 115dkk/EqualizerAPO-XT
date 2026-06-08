@@ -73,30 +73,31 @@
     <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\fftw\Release</FFTW_LIB>
     <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\include</LIBSNDFILE_INCLUDE>
     <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
+    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\parser</MUPARSERX_INCLUDE>
     <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -240,6 +241,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HybridConvTests.cpp" />
+    <ClCompile Include="CommonLogicTests.cpp" />
+    <ClCompile Include="ParserTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\filters\ConvolutionFilePath.h" />

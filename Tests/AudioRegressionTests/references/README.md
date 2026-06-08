@@ -42,3 +42,42 @@ fmt = struct.pack("<HHIIHH", 3, 1, SR, SR * 4, 4, 32)  # IEEE float, mono, 32-bi
 body = b"fmt " + struct.pack("<I", len(fmt)) + fmt + b"data" + struct.pack("<I", len(data)) + data
 open(r"configs\ir_short.wav", "wb").write(b"RIFF" + struct.pack("<I", 4 + len(body)) + b"WAVE" + body)
 ```
+
+## Processing-filter coverage (audit #48, F021)
+
+Three more cases extend coverage to the remaining processing filters. They are
+generated the same way as the baseline set (run `AudioRegressionTests.exe ...
+--generate-references`, which writes `<case>.raw` into this directory). The new
+reference files are `iir_order2_lowpass.raw`, `channel_left_only.raw`, and
+`loudnesscorrection_bypassed.raw`.
+
+* `iir_order2_lowpass` (`configs/iir_order2_lowpass.txt`): exercises
+  `IIRFilterFactory` / `IIRFilter`. The config is
+  `Filter 1: ON IIR Order 2 Coefficients 0.25 0.5 0.25 1 0 0`, a 3-tap
+  symmetric smoothing response (`b = [0.25, 0.5, 0.25]`, `a = [1, 0, 0]`). With
+  a stereo impulse input the first three output samples per channel reproduce
+  the `b` coefficients, so the reference is human-checkable. Input
+  `ImpulseStereo`, 48000 Hz, 2 channels, 256 frames.
+
+* `channel_left_only` (`configs/channel_left_only.txt`): exercises
+  `ChannelFilterFactory` / `ChannelFilter`. The config scopes a following
+  `Preamp: -6 dB` to the left channel only (`Channel: L`), so with a stereo DC
+  input the left channel is attenuated to 10^(-6/20) ≈ 0.5012 while the right
+  channel stays at 1.0. Input `DCStereo`, 48000 Hz, 2 channels, 256 frames.
+
+* `loudnesscorrection_bypassed` (`configs/loudnesscorrection_bypassed.txt`):
+  exercises `LoudnessCorrectionFilterFactory` and its `FilterParameters`
+  parsing. The config is `LoudnessCorrection: State 0 ReferenceLevel -20
+  ReferenceOffset 0`. `State 0` makes the filter a deterministic pass-through
+  (output equals input). `State 1` is intentionally avoided here: that path
+  reads the live system master volume through `VolumeController` and runs a
+  background parameter-update thread, so its output is not stable enough for a
+  stored baseline across machines/CI runners. Input `ImpulseStereo`, 48000 Hz,
+  2 channels, 256 frames.
+
+### VST (not covered)
+
+The VST processing filter is intentionally not given a regression case. It
+requires an external VST plugin that is not part of the repository, and the
+audit calls for skipping it on CI. Add a case here only once a redistributable,
+deterministic test plugin is available.

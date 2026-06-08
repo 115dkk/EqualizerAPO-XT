@@ -260,6 +260,9 @@ xcopy /Y /I /E "$(ProjectDir)configs" "$(OutDir)configs\"</Command>
     <Text Include="configs\copy_crossfeed.txt" />
     <Text Include="configs\delay_512.txt" />
     <Text Include="configs\graphiceq_15band.txt" />
+    <Text Include="configs\iir_order2_lowpass.txt" />
+    <Text Include="configs\channel_left_only.txt" />
+    <Text Include="configs\loudnesscorrection_bypassed.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

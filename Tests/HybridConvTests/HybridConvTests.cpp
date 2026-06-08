@@ -21,6 +21,12 @@
 #include "filters/ConvolutionFilePath.h"
 #include "helpers/LogHelper.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
+#include "Tests/TestHarness.h"
+
+// Forward declarations for the additional suites that share this binary's
+// main() (defined in CommonLogicTests.cpp and ParserTests.cpp).
+void runCommonLogicTests();
+void runParserTests();
 
 using std::string;
 using std::vector;
@@ -32,6 +38,8 @@ constexpr int frameLength = 480;
 constexpr int sampleRate = 48000;
 constexpr double tolerance = 1.0e-8;
 
+test::Harness harness("HybridConvTests");
+
 struct Tap
 {
 	int sample;
@@ -40,18 +48,14 @@ struct Tap
 
 void fail(const string& message)
 {
-	fprintf(stderr, "HybridConvTests failed: %s\n", message.c_str());
-	exit(1);
+	harness.fail(message);
 }
 
 void expectClose(double actual, double expected, int sample)
 {
-	if (fabs(actual - expected) > tolerance)
-	{
-		char message[256];
-		snprintf(message, sizeof(message), "sample %d expected %.12g, got %.12g", sample, expected, actual);
-		fail(message);
-	}
+	char message[256];
+	snprintf(message, sizeof(message), "sample %d expected %.12g, got %.12g", sample, expected, actual);
+	harness.expectTrue(fabs(actual - expected) <= tolerance, message);
 }
 
 vector<double> renderImpulseResponse(const vector<double>& impulseResponse, int leadingSilentFrames)
@@ -188,14 +192,18 @@ void assertConvolutionPathParsing()
 {
 	_wputenv_s(L"EAPO_XT_TEST_IR_DIR", L"C:\\Impulse Responses");
 
-	if (ConvolutionFilePath::normalizeParameter(L"  \"room with spaces.wav\"  ") != L"room with spaces.wav")
-		fail("quoted convolution path was not normalized");
-	if (ConvolutionFilePath::normalizeParameter(L"%EAPO_XT_TEST_IR_DIR%\\room.wav") != L"C:\\Impulse Responses\\room.wav")
-		fail("convolution path environment variable was not expanded");
-	if (ConvolutionFilePath::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"\"irs\\room.wav\"") != L"C:\\EqualizerAPO\\config\\irs\\room.wav")
-		fail("relative convolution path was not resolved from the config file directory");
-	if (ConvolutionFilePath::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"") != L"")
-		fail("empty convolution path should remain empty");
+	harness.expectTrue(
+		ConvolutionFilePath::normalizeParameter(L"  \"room with spaces.wav\"  ") == L"room with spaces.wav",
+		"quoted convolution path was not normalized");
+	harness.expectTrue(
+		ConvolutionFilePath::normalizeParameter(L"%EAPO_XT_TEST_IR_DIR%\\room.wav") == L"C:\\Impulse Responses\\room.wav",
+		"convolution path environment variable was not expanded");
+	harness.expectTrue(
+		ConvolutionFilePath::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"\"irs\\room.wav\"") == L"C:\\EqualizerAPO\\config\\irs\\room.wav",
+		"relative convolution path was not resolved from the config file directory");
+	harness.expectTrue(
+		ConvolutionFilePath::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"") == L"",
+		"empty convolution path should remain empty");
 }
 }
 
@@ -208,6 +216,11 @@ int main()
 	assertConvolutionFilterRecoversFromInitialShortFrame();
 	assertConvolutionPathParsing();
 
-	printf("HybridConvTests passed\n");
+	// Pure-logic helper and parser-extension coverage that also lives in this
+	// console binary (see CommonLogicTests.cpp and ParserTests.cpp).
+	runCommonLogicTests();
+	runParserTests();
+
+	harness.report();
 	return 0;
 }
