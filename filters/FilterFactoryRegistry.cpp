@@ -2,10 +2,14 @@
 #include "FilterFactoryRegistry.h"
 
 #include <algorithm>
+#include <set>
+#include <string>
 
+using std::set;
 using std::stable_sort;
 using std::unique_ptr;
 using std::vector;
+using std::wstring;
 
 namespace
 {
@@ -41,4 +45,29 @@ vector<unique_ptr<IFilterFactory>> FilterFactoryRegistry::createFactories()
 		factories.push_back(registration.creator());
 
 	return factories;
+}
+
+const set<wstring>& FilterFactoryRegistry::knownConfigCommands()
+{
+	// Derived from the command keywords matched by the registered factories.
+	// "Filter" is the canonical keyword for both IIR and BiQuad filters, which
+	// match any key starting with "Filter" (e.g. "Filter 1"). Keep this list in
+	// sync with the factories' createFilter() command checks.
+	static const set<wstring> commands = {
+		L"Device",            // DeviceFilterFactory
+		L"If", L"ElseIf", L"Else", L"EndIf", // IfFilterFactory
+		L"Eval",              // ExpressionFilterFactory
+		L"Include",           // IncludeFilterFactory
+		L"Stage",             // StageFilterFactory
+		L"Channel",           // ChannelFilterFactory
+		L"Filter",            // IIRFilterFactory / BiQuadFilterFactory
+		L"Preamp",            // PreampFilterFactory
+		L"Delay",             // DelayFilterFactory
+		L"Copy",              // CopyFilterFactory
+		L"Convolution",       // ConvolutionFilterFactory
+		L"GraphicEQ",         // GraphicEQFilterFactory
+		L"VSTPlugin",         // VSTPluginFilterFactory
+		L"LoudnessCorrection" // LoudnessCorrectionFilterFactory
+	};
+	return commands;
 }

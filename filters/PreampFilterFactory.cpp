@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "PreampFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(8, PreampFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Preamp, PreampFilterFactory)
 
 using std::vector;
 using std::wstring;
@@ -54,9 +54,12 @@ vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, ws
 			{
 				TraceF(L"Adjusting preamp by %g dB", preamp_dB);
 
-				void* mem = MemoryHelper::alloc(sizeof(PreampFilter));
-				filter = new(mem) PreampFilter(preamp_dB);
+				filter = MemoryHelper::construct<PreampFilter>(preamp_dB);
 			}
+		}
+		else
+		{
+			LogF(L"Could not parse preamp value \"%s\"; no preamp was applied", StringHelper::trim(parameters).c_str());
 		}
 	}
 

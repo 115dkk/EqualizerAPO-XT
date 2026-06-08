@@ -27,7 +27,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "DelayFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(9, DelayFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory)
 
 using std::vector;
 using std::wstringstream;
@@ -58,14 +58,12 @@ vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wst
 			else if (StringHelper::toLowerCase(unit) == L"ms")
 			{
 				TraceF(L"Delaying by %g ms", delay);
-				void* mem = MemoryHelper::alloc(sizeof(DelayFilter));
-				filter = new(mem) DelayFilter(delay, true);
+				filter = MemoryHelper::construct<DelayFilter>(delay, true);
 			}
 			else if (StringHelper::toLowerCase(unit) == L"samples")
 			{
 				TraceF(L"Delaying by %g samples", delay);
-				void* mem = MemoryHelper::alloc(sizeof(DelayFilter));
-				filter = new(mem) DelayFilter(delay, false);
+				filter = MemoryHelper::construct<DelayFilter>(delay, false);
 			}
 		}
 	}

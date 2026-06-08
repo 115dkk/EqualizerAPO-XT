@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <new>
+#include <utility>
+
 #ifdef USE_WINDDK
 #include <BaseAudioProcessingObject.h>
 #else
@@ -33,4 +36,33 @@ class MemoryHelper
 public:
 	static void* alloc(size_t size);
 	static void free(void* ptr);
+
+	// Typed, checked construction over alloc()/free().
+	//
+	// alloc() returns nullptr on failure by contract (see
+	// docs/ErrorHandlingPolicy.md) and the raw "alloc + placement-new" idiom that
+	// callers used to repeat never checked for that null, so an out-of-memory
+	// condition turned into a null placement-new and a crash. construct() turns
+	// the null into a std::bad_alloc instead: the configuration-loading loop
+	// already catches std::exception and logs it, so OOM now surfaces as a logged
+	// failure rather than a crash. The successful path is identical to the old
+	// idiom (16-byte aligned alloc followed by placement-new).
+	template<class T, class... Args>
+	static T* construct(Args&&... args)
+	{
+		void* mem = alloc(sizeof(T));
+		if (mem == nullptr)
+			throw std::bad_alloc();
+		return new(mem) T(std::forward<Args>(args)...);
+	}
+
+	template<class T>
+	static void destroy(T* ptr)
+	{
+		if (ptr != nullptr)
+		{
+			ptr->~T();
+			free(ptr);
+		}
+	}
 };

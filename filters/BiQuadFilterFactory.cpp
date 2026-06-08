@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "BiQuadFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(7, BiQuadFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::BiQuad, BiQuadFilterFactory)
 
 using std::find;
 using std::regex;
@@ -211,8 +211,7 @@ vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, ws
 				{
 					TraceF(L"%s", stream.str().c_str());
 
-					void* mem = MemoryHelper::alloc(sizeof(BiQuadFilter));
-					filter = new(mem) BiQuadFilter(type, gain, freq, bandwidthOrQOrS, isBandwidthOrS, isCornerFreq);
+					filter = MemoryHelper::construct<BiQuadFilter>(type, gain, freq, bandwidthOrQOrS, isBandwidthOrS, isCornerFreq);
 				}
 			}
 			else if (typeString != L"None")

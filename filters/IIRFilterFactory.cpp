@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "IIRFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(6, IIRFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::IIR, IIRFilterFactory)
 
 using std::find;
 using std::regex;
@@ -102,8 +102,7 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 
 								TraceF(L"%s", stream.str().c_str());
 
-								void* mem = MemoryHelper::alloc(sizeof(IIRFilter));
-								filter = new(mem) IIRFilter(coefficients);
+								filter = MemoryHelper::construct<IIRFilter>(coefficients);
 							}
 						}
 					}

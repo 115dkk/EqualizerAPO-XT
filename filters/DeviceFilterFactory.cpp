@@ -28,7 +28,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "DeviceFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(0, DeviceFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Device, DeviceFilterFactory)
 
 using std::find;
 using std::regex;

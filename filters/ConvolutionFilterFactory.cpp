@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "ConvolutionFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(11, ConvolutionFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, ConvolutionFilterFactory)
 
 using std::vector;
 using std::wstring;
@@ -41,8 +41,7 @@ vector<IFilter*> ConvolutionFilterFactory::createFilter(const wstring& configPat
 		if (absolutePath.empty())
 			return vector<IFilter*>(0);
 
-		void* mem = MemoryHelper::alloc(sizeof(ConvolutionFilter));
-		filter = new(mem) ConvolutionFilter(absolutePath);
+		filter = MemoryHelper::construct<ConvolutionFilter>(absolutePath);
 	}
 
 	if (filter == nullptr)

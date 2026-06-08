@@ -25,7 +25,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(13, VSTPluginFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory)
 
 using std::shared_ptr;
 using std::unordered_map;
@@ -122,8 +122,7 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 
 			if (create)
 			{
-				void* mem = MemoryHelper::alloc(sizeof(VSTPluginFilter));
-				filter = new(mem) VSTPluginFilter(library, chunkData, paramMap);
+				filter = MemoryHelper::construct<VSTPluginFilter>(library, chunkData, paramMap);
 			}
 		}
 	}

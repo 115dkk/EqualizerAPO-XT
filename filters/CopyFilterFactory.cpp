@@ -25,7 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "CopyFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(10, CopyFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Copy, CopyFilterFactory)
 
 using std::find;
 using std::vector;
@@ -92,8 +92,7 @@ vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstr
 				assignments.push_back(assignment);
 		}
 
-		void* mem = MemoryHelper::alloc(sizeof(CopyFilter));
-		filter = new(mem) CopyFilter(assignments);
+		filter = MemoryHelper::construct<CopyFilter>(assignments);
 	}
 
 	if (filter == nullptr)

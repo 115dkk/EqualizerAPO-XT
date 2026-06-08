@@ -27,7 +27,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "GraphicEQFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(12, GraphicEQFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory)
 
 using std::find;
 using std::regex;
@@ -70,8 +70,7 @@ vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath,
 
 		TraceF(L"Graphic equalizer with %d nodes", nodes.size());
 
-		void* mem = MemoryHelper::alloc(sizeof(GraphicEQFilter));
-		filter = new(mem) GraphicEQFilter(nodes, 16384);
+		filter = MemoryHelper::construct<GraphicEQFilter>(nodes, 16384);
 	}
 
 	if (filter == nullptr)
