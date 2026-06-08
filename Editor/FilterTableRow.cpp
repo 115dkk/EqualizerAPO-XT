@@ -17,6 +17,14 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+// FROZEN LEGACY UI.
+// FilterTableRow implements the LegacyRows render mode of FilterTable. It is kept
+// only as a reversible fallback and is NOT actively maintained. The canonical,
+// actively-maintained filter-list UI is the card path (FilterCardRow / ModernCards),
+// which is also the runtime default. Do not add new filter-list behavior here:
+// any new behavior must go into the card path so the same feature is not
+// implemented twice. See docs/FilterListUiPolicy.md for the freeze decision.
+
 #include <QToolBar>
 #include <QLineEdit>
 #include <QPainter>

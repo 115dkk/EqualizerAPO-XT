@@ -40,6 +40,12 @@ class FilterTable : public QWidget
 {
 	Q_OBJECT
 public:
+	// Filter-list render mode. ModernCards (FilterCardRow) is the canonical,
+	// actively-maintained filter-list UI; the runtime default below is ModernCards.
+	// LegacyRows (FilterTableRow) is FROZEN: it is kept only as a reversible
+	// fallback and must NOT be extended. Any new filter-list behavior must be added
+	// to the card path (FilterCardRow), not duplicated into the legacy path.
+	// See docs/FilterListUiPolicy.md for the rationale.
 	enum RenderMode
 	{
 		ModernCards,
