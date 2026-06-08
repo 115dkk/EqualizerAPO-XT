@@ -116,6 +116,9 @@
     <ClInclude Include="helpers\VSTPluginInstance.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\VSTPluginInstanceInternal.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\VSTPluginLibrary.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -260,6 +263,18 @@
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\VSTPluginInstance.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.Editor.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.State.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.VST2.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.VST3.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\VSTPluginLibrary.cpp">

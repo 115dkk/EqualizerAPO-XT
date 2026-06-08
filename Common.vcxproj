@@ -353,6 +353,7 @@
     <ClInclude Include="helpers\StringHelper.h" />
     <ClInclude Include="helpers\UncaughtExceptions.h" />
     <ClInclude Include="helpers\VSTPluginInstance.h" />
+    <ClInclude Include="helpers\VSTPluginInstanceInternal.h" />
     <ClInclude Include="helpers\VSTPluginLibrary.h" />
     <ClInclude Include="IFilter.h" />
     <ClInclude Include="IFilterFactory.h" />
@@ -416,6 +417,10 @@
     <ClCompile Include="helpers\StringHelper.cpp" />
     <ClCompile Include="helpers\VST3PluginIIDs.cpp" />
     <ClCompile Include="helpers\VSTPluginInstance.cpp" />
+    <ClCompile Include="helpers\VSTPluginInstance.Editor.cpp" />
+    <ClCompile Include="helpers\VSTPluginInstance.State.cpp" />
+    <ClCompile Include="helpers\VSTPluginInstance.VST2.cpp" />
+    <ClCompile Include="helpers\VSTPluginInstance.VST3.cpp" />
     <ClCompile Include="helpers\VSTPluginLibrary.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp" />
