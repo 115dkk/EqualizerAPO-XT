@@ -20,7 +20,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Single source of truth for the SIMD/architecture release channels.
+# Release-channel table for the SIMD/architecture builds. The channel KEYS are the
+# single source of truth in .github/simd-variants.psd1 (Variants[].Channel); the
+# Pattern / SortOrder / Guidance columns are release-notes-specific and stay here.
 # Order matters: Get-ChannelFromAssetName matches Pattern values top to bottom,
 # so more specific patterns (e.g. avx10/avx512/avx2) must precede broader ones (avx).
 $ChannelTable = [ordered]@{
@@ -30,6 +32,18 @@ $ChannelTable = [ordered]@{
   "x64-avx512"  = @{ Pattern = "avx512";                     SortOrder = 20;  Guidance = "64-bit Intel/AMD systems where you specifically want the AVX-512 build." }
   "x64-avx2"    = @{ Pattern = "avx2";                       SortOrder = 10;  Guidance = "Most 64-bit Intel/AMD systems with AVX2. Use this if you are unsure which x64 build to pick." }
   "x64-avx"     = @{ Pattern = "(^|[-_.])avx($|[-_.])";      SortOrder = 8;   Guidance = "64-bit Intel/AMD systems with AVX, but not AVX2." }
+}
+
+# Fail loudly if the manifest's channel set drifts from this table, so a new or
+# renamed variant cannot ship with missing download guidance. The manifest sits two
+# levels up from this script (.github/scripts/ -> .github/simd-variants.psd1).
+$manifestPath = Join-Path $PSScriptRoot "..\simd-variants.psd1"
+if (Test-Path $manifestPath) {
+  $manifestChannels = @((Import-PowerShellDataFile -Path $manifestPath).Variants | ForEach-Object { $_.Channel })
+  $missingFromTable = @($manifestChannels | Where-Object { -not $ChannelTable.Contains($_) })
+  if ($missingFromTable.Count -gt 0) {
+    throw "Channels in simd-variants.psd1 have no entry in `$ChannelTable: $($missingFromTable -join ', '). Add them (with Pattern/SortOrder/Guidance) before releasing."
+  }
 }
 
 $UnknownChannelSortOrder = 100
