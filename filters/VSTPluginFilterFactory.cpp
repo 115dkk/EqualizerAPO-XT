@@ -21,6 +21,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/LogHelper.h"
+#include "VSTPluginCommand.h"
 #include "VSTPluginFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
@@ -38,57 +39,15 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 
 	if (command == L"VSTPlugin")
 	{
-		shared_ptr<VSTPluginLibrary> library;
-		wstring chunkData;
-		unordered_map<wstring, float> paramMap;
-		vector<wstring> parts = StringHelper::splitQuoted(parameters, ' ');
-		for (unsigned i = 0; i + 1 < parts.size(); i += 2)
-		{
-			wstring key = parts[i];
-			wstring value = parts[i + 1];
-
-			if (key == L"Library")
-			{
-				wstring libPath;
-				if (PathIsRelativeW(value.c_str()))
-				{
-					wchar_t filePath[MAX_PATH];
-					wstring pluginPath = VSTPluginLibrary::getDefaultPluginPath();
-					pluginPath._Copy_s(filePath, sizeof(filePath) / sizeof(wchar_t), MAX_PATH);
-					if (pluginPath.size() < MAX_PATH)
-						filePath[pluginPath.size()] = L'\0';
-					else
-						filePath[MAX_PATH - 1] = L'\0';
-					PathAppendW(filePath, value.c_str());
-					libPath = filePath;
-				}
-				else
-					libPath = value;
-
-				library = VSTPluginLibrary::getInstance(libPath);
-			}
-			else if (key == L"ChunkData")
-			{
-				chunkData = value;
-			}
-			else
-			{
-				if (!isdigit(value.c_str()[0]))
-				{
-					size_t x = (size_t)i + 2;
-					if (x < parts.size())
-					{
-						float f = wcstof(parts[x].c_str(), nullptr);
-						paramMap[value.c_str()] = f;
-					}
-				}
-				else
-				{
-					float f = wcstof(value.c_str(), nullptr);
-					paramMap[key] = f;
-				}
-			}
-		}
+		// The parameter parse now lives in VSTPluginCommand::parse so the Editor
+		// GUI factory can reuse it without building a throwaway filter. The load
+		// decision and error handling below are unchanged: when configPath is set
+		// the binary is still loaded via library->initialize() with the same
+		// messages and the same create/skip outcome as before.
+		VSTPluginCommand cmd = VSTPluginCommand::parse(configPath, parameters);
+		shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
+		const wstring& chunkData = cmd.chunkData;
+		const unordered_map<wstring, float>& paramMap = cmd.paramMap;
 
 		if (library != nullptr)
 		{

@@ -342,6 +342,7 @@
     <ClInclude Include="filters\PreampFilter.h" />
     <ClInclude Include="filters\PreampFilterFactory.h" />
     <ClInclude Include="filters\StageFilterFactory.h" />
+    <ClInclude Include="filters\VSTPluginCommand.h" />
     <ClInclude Include="filters\VSTPluginFilter.h" />
     <ClInclude Include="filters\VSTPluginFilterFactory.h" />
     <ClInclude Include="helpers\AbstractLibrary.h" />
@@ -413,6 +414,7 @@
     <ClCompile Include="filters\PreampFilter.cpp" />
     <ClCompile Include="filters\PreampFilterFactory.cpp" />
     <ClCompile Include="filters\StageFilterFactory.cpp" />
+    <ClCompile Include="filters\VSTPluginCommand.cpp" />
     <ClCompile Include="filters\VSTPluginFilter.cpp" />
     <ClCompile Include="filters\VSTPluginFilterFactory.cpp" />
     <ClCompile Include="helpers\AbstractLibrary.cpp" />

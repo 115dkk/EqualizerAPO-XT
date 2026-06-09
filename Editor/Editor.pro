@@ -156,6 +156,7 @@ SOURCES += main.cpp\
 	guis/VSTPluginFilterGUI.cpp \
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
+	../filters/VSTPluginCommand.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../helpers/VSTPluginInstance.cpp \
@@ -310,6 +311,7 @@ HEADERS  += \
 	guis/VSTPluginFilterGUI.h \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
+	../filters/VSTPluginCommand.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../helpers/VSTPluginInstance.h \

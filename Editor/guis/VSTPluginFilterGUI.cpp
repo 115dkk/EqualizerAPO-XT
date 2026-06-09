@@ -27,6 +27,7 @@
 #include <windows.h>
 #include "helpers/aeffectx.h"
 #include "helpers/StringHelper.h"
+#include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/MainWindow.h"
 #include "VSTPluginFilterGUIDialog.h"
@@ -87,20 +88,14 @@ void VSTPluginFilterGUI::store(QString& command, QString& parameters)
 		relativePath = "\"" + relativePath + "\"";
 	parameters = "Library " + relativePath;
 
-	if (chunkData != L"")
-	{
-		parameters += " ChunkData \"" + QString::fromStdWString(chunkData) + "\"";
-	}
-	else
-	{
-		for (auto it : paramMap)
-		{
-			QString name = QString::fromStdWString(it.first);
-			if (name.contains(" ") || name.contains("\""))
-				name = "\"" + name.replace("\"", "\"\"") + "\"";
-			parameters += " " + name + " " + QString("%1").arg(it.second);
-		}
-	}
+	// The Library token stays here because its relative/absolute resolution needs
+	// Qt's QDir. The ChunkData-or-param body is produced by the shared serializer
+	// (the same one the round-trip tests exercise), so it stays byte-identical to
+	// what this method emitted before.
+	VSTPluginCommand cmd;
+	cmd.chunkData = chunkData;
+	cmd.paramMap = paramMap;
+	parameters += QString::fromStdWString(VSTPluginCommand::serialize(cmd));
 }
 
 void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)

@@ -75,29 +75,30 @@
     <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
     <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\parser</MUPARSERX_INCLUDE>
     <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
+    <VST3_SDK Condition="'$(VST3_SDK)'==''">$(MSBuildThisFileDirectory)..\..\deps\vst3sdk</VST3_SDK>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -245,6 +246,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="CopyCommandTests.cpp" />
     <ClCompile Include="DelayCommandTests.cpp" />
     <ClCompile Include="GraphicEQCommandTests.cpp" />
+    <ClCompile Include="VSTPluginCommandTests.cpp" />
     <ClCompile Include="ParserPreampTests.cpp" />
     <ClCompile Include="ParserTests.cpp" />
   </ItemGroup>

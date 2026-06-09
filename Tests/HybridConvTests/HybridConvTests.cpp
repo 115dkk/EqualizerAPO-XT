@@ -25,12 +25,13 @@
 
 // Forward declarations for the additional suites that share this binary's
 // main() (defined in CommonLogicTests.cpp, CopyCommandTests.cpp,
-// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, ParserTests.cpp and
-// ParserPreampTests.cpp).
+// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
+// ParserTests.cpp and ParserPreampTests.cpp).
 void runCommonLogicTests();
 void runCopyCommandTests();
 void runDelayCommandTests();
 void runGraphicEQCommandTests();
+void runVSTPluginCommandTests();
 void runParserTests();
 void runParserPreampTests();
 
@@ -224,12 +225,13 @@ int main()
 
 	// Pure-logic helper and parser-extension coverage that also lives in this
 	// console binary (see CommonLogicTests.cpp, CopyCommandTests.cpp,
-	// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, ParserTests.cpp and
-	// ParserPreampTests.cpp).
+	// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
+	// ParserTests.cpp and ParserPreampTests.cpp).
 	runCommonLogicTests();
 	runCopyCommandTests();
 	runDelayCommandTests();
 	runGraphicEQCommandTests();
+	runVSTPluginCommandTests();
 	runParserTests();
 	runParserPreampTests();
 

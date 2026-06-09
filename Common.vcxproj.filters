@@ -83,6 +83,9 @@
     <ClInclude Include="filters\StageFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\VSTPluginCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\VSTPluginFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -251,6 +254,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\StageFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\VSTPluginCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\VSTPluginFilter.cpp">

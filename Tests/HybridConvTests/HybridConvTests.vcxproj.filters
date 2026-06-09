@@ -23,6 +23,9 @@
     <ClCompile Include="GraphicEQCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="VSTPluginCommandTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ParserPreampTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
