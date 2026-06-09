@@ -1174,6 +1174,12 @@ jobs:
         pattern: EqualizerAPO-*
         path: ${{ github.workspace }}\release-input
 
+    # MSBuild for the x86 auto-detect installer built in this job (the matrix
+    # builds the per-variant binaries; this front-door installer is a single
+    # architecture-agnostic binary built once here).
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v3
+
     - name: Resolve release version
       id: version
       shell: pwsh
@@ -1370,6 +1376,37 @@ jobs:
 
         $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
         gh release upload $tag $sourceZip --clobber --repo "${{ github.repository }}"
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+    - name: Build and publish auto-detect installer
+      if: steps.version.outputs.already_released != 'true'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # EqualizerAPO-XT-Setup.exe is the x86 front-door installer: it detects the
+        # CPU (architecture + AVX level) and downloads/runs the matching per-channel
+        # Setup. It has no external dependencies, so it builds standalone here.
+        # See docs/AutoDetectInstaller.md.
+        $tag = "${{ steps.version.outputs.tag }}"
+
+        msbuild Installer\Installer.vcxproj `
+          /p:Configuration=Release `
+          /p:Platform=Win32 `
+          /m /v:minimal /nologo
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+        $setupExe = "${{ github.workspace }}\Installer\Release\EqualizerAPO-XT-Setup.exe"
+        if (-not (Test-Path $setupExe)) {
+          Write-Error "Auto-detect installer was not produced at $setupExe"
+          exit 1
+        }
+
+        gh release upload $tag $setupExe --clobber --repo "${{ github.repository }}"
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }

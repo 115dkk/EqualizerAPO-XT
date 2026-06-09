@@ -49,6 +49,13 @@ if (Test-Path $manifestPath) {
 $UnknownChannelSortOrder = 100
 $UnknownChannelGuidance = "Special-purpose asset. Use one of the setup executables for normal installation."
 
+# The architecture-agnostic front-door installer (docs/AutoDetectInstaller.md).
+# It is not a channel: it detects the CPU at install time and pulls the matching
+# per-channel build. Featured first in the download table.
+$UniversalInstallerName = "EqualizerAPO-XT-Setup.exe"
+$UniversalInstallerSortOrder = -1
+$UniversalInstallerGuidance = "Recommended. Detects your CPU (architecture and AVX level) and installs the matching build automatically. Use this unless you have a reason to pick a specific build below."
+
 function Invoke-GhJson {
   param(
     [Parameter(Mandatory = $true)]
@@ -124,6 +131,10 @@ function Get-AssetPurpose {
     [string]$AssetName
   )
 
+  if ($AssetName -ieq $UniversalInstallerName) {
+    return "Recommended installer. Detects your CPU and installs the matching build automatically."
+  }
+
   $channel = Get-ChannelFromAssetName $AssetName
 
   if ($AssetName -match "-Setup\.exe$") {
@@ -195,7 +206,13 @@ $assets = @($release.assets | Sort-Object name)
 $installerAssets = @(
   $assets |
     Where-Object { $_.name -match "-Setup\.exe$" } |
-    Sort-Object @{ Expression = { Get-ChannelSortOrder (Get-ChannelFromAssetName $_.name) } }, name
+    Sort-Object @{ Expression = {
+        if ($_.name -ieq $UniversalInstallerName) {
+          $UniversalInstallerSortOrder
+        } else {
+          Get-ChannelSortOrder (Get-ChannelFromAssetName $_.name)
+        }
+      } }, name
 )
 $sourceAssets = @($assets | Where-Object { $_.name -match "^EqualizerAPO-XT-source-.*\.zip$" })
 
@@ -242,14 +259,17 @@ $lines = [System.Collections.Generic.List[string]]::new()
 [void]$lines.Add("| --- | --- |")
 
 foreach ($asset in $installerAssets) {
-  $channel = Get-ChannelFromAssetName $asset.name
-  $guidance = Get-DownloadGuidance $channel
+  if ($asset.name -ieq $UniversalInstallerName) {
+    $guidance = $UniversalInstallerGuidance
+  } else {
+    $guidance = Get-DownloadGuidance (Get-ChannelFromAssetName $asset.name)
+  }
   $name = Escape-MarkdownCell $asset.name
   [void]$lines.Add("| [$name]($($asset.browser_download_url)) | $(Escape-MarkdownCell $guidance) |")
 }
 
 [void]$lines.Add("")
-[void]$lines.Add('The setup executables are the normal installer downloads. The `.nupkg` and `releases.*.json` files are for the Velopack/update pipeline.')
+[void]$lines.Add('The recommended download auto-detects your CPU and installs the matching build. The per-channel setup executables are for picking a specific build by hand. The `.nupkg` and `releases.*.json` files are for the Velopack/update pipeline.')
 [void]$lines.Add("")
 [void]$lines.Add("## All files")
 [void]$lines.Add("")
