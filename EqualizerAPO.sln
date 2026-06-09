@@ -41,6 +41,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UpdateChecker", "UpdateChec
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestVst2Plugin", "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj", "{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Installer", "Installer\Installer.vcxproj", "{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -171,6 +173,14 @@ Global
 		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|Win32.Build.0 = Release|Win32
 		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|x64.ActiveCfg = Release|x64
 		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|x64.Build.0 = Release|x64
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Debug|Win32.Build.0 = Debug|Win32
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Debug|x64.ActiveCfg = Debug|Win32
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Release|ARM64.ActiveCfg = Release|Win32
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Release|Win32.ActiveCfg = Release|Win32
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Release|Win32.Build.0 = Release|Win32
+		{3F1A9C2E-7B45-4D8A-9E61-2C7D4B8F0A13}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
