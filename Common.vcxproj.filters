@@ -50,6 +50,9 @@
     <ClInclude Include="filters\ExpressionFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\GraphicEQCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\GraphicEQFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -215,6 +218,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ExpressionFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\GraphicEQCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\GraphicEQFilter.cpp">

@@ -23,6 +23,7 @@
 #include <QTextStream>
 
 #include "helpers/GainIterator.h"
+#include "filters/GraphicEQCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizeCorner.h"
 #include "Editor/FilterTable.h"
@@ -39,7 +40,7 @@ using std::vector;
 
 QRegularExpression GraphicEQFilterGUI::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 
-GraphicEQFilterGUI::GraphicEQFilterGUI(GraphicEQFilter* filter, QString configPath, FilterTable* filterTable)
+GraphicEQFilterGUI::GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, QString configPath, FilterTable* filterTable)
 	: ui(new Ui::GraphicEQFilterGUI), configPath(configPath)
 {
 	ui->setupUi(this);
@@ -81,9 +82,9 @@ GraphicEQFilterGUI::GraphicEQFilterGUI(GraphicEQFilter* filter, QString configPa
 	connect(scene, SIGNAL(nodeSelectionChanged(int,bool)), this, SLOT(selectRow(int,bool)));
 	connect(scene, SIGNAL(updateModel()), this, SIGNAL(updateModel()));
 
-	scene->setNodes(filter->getNodes());
+	scene->setNodes(nodes);
 
-	int bandCount = scene->verifyBands(filter->getNodes());
+	int bandCount = scene->verifyBands(nodes);
 	switch (bandCount)
 	{
 	case 15:
@@ -108,16 +109,13 @@ void GraphicEQFilterGUI::store(QString& command, QString& parameters)
 {
 	command = "GraphicEQ";
 
-	bool first = true;
-	for (FilterNode node : scene->getNodes())
-	{
-		if (first)
-			first = false;
-		else
-			parameters += "; ";
-
-		parameters += QString("%0 %1").arg(node.freq).arg(node.dbGain);
-	}
+	// Serialize through the shared command so the GUI and the parser agree on the
+	// node-list format. The scene already holds the nodes in the same order the
+	// old loop iterated, and serialize() preserves that order (it does not
+	// re-sort), so the emitted "<freq> <gain>; ..." text is unchanged.
+	GraphicEQCommand cmd;
+	cmd.nodes = scene->getNodes();
+	parameters += QString::fromStdWString(cmd.serialize());
 }
 
 void GraphicEQFilterGUI::loadPreferences(const QVariantMap& prefs)

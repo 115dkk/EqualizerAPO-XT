@@ -29,7 +29,7 @@ static const double DEFAULT_HEIGHT = 88;
 using std::vector;
 using std::wstring;
 
-CopyFilterGUI::CopyFilterGUI(CopyFilter* filter, FilterTable* filterTable)
+CopyFilterGUI::CopyFilterGUI(const std::vector<Assignment>& assignments, FilterTable* filterTable)
 	: ui(new Ui::CopyFilterGUI)
 {
 	ui->setupUi(this);
@@ -38,7 +38,7 @@ CopyFilterGUI::CopyFilterGUI(CopyFilter* filter, FilterTable* filterTable)
 	ui->graphicsView->setScene(scene);
 	ui->graphicsView->setBackgroundRole(QPalette::Window);
 
-	ui->form->load(filter->getAssignments());
+	ui->form->load(assignments);
 
 	ResizeCorner* cornerWidget = new ResizeCorner(filterTable,
 			QSize(0, GUIHelper::scale(85)), QSize(0, INT_MAX),
@@ -109,57 +109,20 @@ void CopyFilterGUI::store(QString& command, QString& parameters)
 	else
 		assignments = ui->form->buildAssignments();
 
-	bool firstAssignment = true;
-	for (const Assignment& assignment : assignments)
+	// Serialize through the single shared owner of the Copy parameter format so the
+	// written config line is identical to what the engine parser (parseCopyAssignments)
+	// reads back. The text produced is byte-for-byte the same as the former inline
+	// loop here (same "not yet filled row" skip, same %g factor formatting and ".0"
+	// suffix, same dB handling).
+	parameters += QString::fromStdWString(serializeCopyAssignments(assignments));
+
+	// Keep the two views in sync with the assignments that were just stored, exactly
+	// as before: the inactive tab is reloaded so switching tabs shows the same data.
+	// load() is idempotent in the assignment count, so the former per-assignment
+	// loop is collapsed into one call; it is still guarded on a non-empty list so an
+	// empty store() leaves the views untouched as it did before.
+	if (!assignments.empty())
 	{
-		if (assignment.targetChannel == L"")
-			continue;
-
-		bool firstSummand = true;
-		for (const Assignment::Summand& summand : assignment.sourceSum)
-		{
-			// skip not yet filled row
-			if (summand.channel == L" ")
-				continue;
-
-			if (firstSummand)
-			{
-				firstSummand = false;
-
-				if (firstAssignment)
-					firstAssignment = false;
-				else
-					parameters += " ";
-
-				parameters += QString::fromStdWString(assignment.targetChannel);
-				parameters += "=";
-			}
-			else
-			{
-				parameters += "+";
-			}
-
-			bool hasChannel = summand.channel != L"";
-			bool hasFactor = !hasChannel || summand.factor != 1.0 || summand.isDecibel;
-
-			if (hasFactor)
-			{
-				QString factorString;
-				factorString.setNum(summand.factor);
-				if (factorString != "0" && !factorString.contains('.'))
-					factorString += ".0";
-				parameters += factorString;
-				if (summand.isDecibel)
-					parameters += "dB";
-			}
-
-			if (hasFactor && hasChannel)
-				parameters += "*";
-
-			if (hasChannel)
-				parameters += QString::fromStdWString(summand.channel);
-		}
-
 		if (ui->tabWidget->currentIndex() == 0)
 			ui->form->load(assignments);
 		else

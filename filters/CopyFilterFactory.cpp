@@ -37,60 +37,13 @@ vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstr
 
 	if (command == L"Copy")
 	{
-		vector<Assignment> assignments;
-
-		vector<wstring> assignmentStrings = StringHelper::split(parameters, L' ');
-		for (vector<wstring>::iterator it = assignmentStrings.begin(); it != assignmentStrings.end(); it++)
-		{
-			Assignment assignment;
-
-			vector<wstring> parts = StringHelper::split(*it, L'=');
-			if (parts.size() == 2)
-			{
-				wstring target = parts[0];
-				wstring source = parts[1];
-
-				assignment.targetChannel = target;
-
-				vector<wstring> summands = StringHelper::split(source, '+');
-				for (vector<wstring>::iterator it2 = summands.begin(); it2 != summands.end(); it2++)
-				{
-					vector<wstring> factors = StringHelper::split(*it2, '*');
-					wstring factor;
-					wstring channel;
-					if (factors.size() == 2)
-					{
-						factor = factors[0];
-						channel = factors[1];
-					}
-					else if (factors.size() == 1)
-					{
-						if (factors[0] == L"0" || factors[0].find(L'.') != wstring::npos)
-							factor = factors[0];
-						else
-							channel = factors[0];
-					}
-
-					Assignment::Summand summand;
-					if (factor == L"")
-					{
-						summand.factor = 1.0;
-						summand.isDecibel = false;
-					}
-					else
-					{
-						summand.factor = wcstod(factor.c_str(), nullptr);
-						summand.isDecibel = factor.size() > 2 && StringHelper::toLowerCase(factor.substr(factor.size() - 2)) == L"db";
-					}
-
-					summand.channel = channel;
-					assignment.sourceSum.push_back(summand);
-				}
-			}
-
-			if (assignment.targetChannel != L"" && !assignment.sourceSum.empty())
-				assignments.push_back(assignment);
-		}
+		// Parse the routing into the shared std::vector<Assignment> (the same type
+		// CopyFilter::getAssignments() returns) via the single shared parser. This
+		// reproduces the former inline grammar verbatim, so the resulting filter -
+		// and therefore copy_crossfeed - stays bit-identical; the Editor GUI factory
+		// now parses through the exact same routine instead of building a throwaway
+		// CopyFilter just to read getAssignments() back.
+		vector<Assignment> assignments = parseCopyAssignments(parameters);
 
 		filter = MemoryHelper::construct<CopyFilter>(assignments);
 	}

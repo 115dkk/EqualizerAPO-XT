@@ -21,9 +21,12 @@
 #include <algorithm>
 #include <sstream>
 
+#include <cstdio>
+
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
+#include "helpers/StringHelper.h"
 #include "CopyFilter.h"
 #include "helpers/PerfProfile.h"
 
@@ -177,4 +180,136 @@ void CopyFilter::cleanup()
 std::vector<Assignment> CopyFilter::getAssignments() const
 {
 	return assignments;
+}
+
+std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
+{
+	// Reproduces CopyFilterFactory::createFilter's former inline parse verbatim so
+	// the engine still builds the identical CopyFilter (copy_crossfeed stays
+	// bit-identical) and the Editor GUI factory shares the exact same grammar.
+	vector<Assignment> assignments;
+
+	vector<wstring> assignmentStrings = StringHelper::split(parameters, L' ');
+	for (vector<wstring>::iterator it = assignmentStrings.begin(); it != assignmentStrings.end(); it++)
+	{
+		Assignment assignment;
+
+		vector<wstring> parts = StringHelper::split(*it, L'=');
+		if (parts.size() == 2)
+		{
+			wstring target = parts[0];
+			wstring source = parts[1];
+
+			assignment.targetChannel = target;
+
+			vector<wstring> summands = StringHelper::split(source, '+');
+			for (vector<wstring>::iterator it2 = summands.begin(); it2 != summands.end(); it2++)
+			{
+				vector<wstring> factors = StringHelper::split(*it2, '*');
+				wstring factor;
+				wstring channel;
+				if (factors.size() == 2)
+				{
+					factor = factors[0];
+					channel = factors[1];
+				}
+				else if (factors.size() == 1)
+				{
+					if (factors[0] == L"0" || factors[0].find(L'.') != wstring::npos)
+						factor = factors[0];
+					else
+						channel = factors[0];
+				}
+
+				Assignment::Summand summand;
+				if (factor == L"")
+				{
+					summand.factor = 1.0;
+					summand.isDecibel = false;
+				}
+				else
+				{
+					summand.factor = wcstod(factor.c_str(), nullptr);
+					summand.isDecibel = factor.size() > 2 && StringHelper::toLowerCase(factor.substr(factor.size() - 2)) == L"db";
+				}
+
+				summand.channel = channel;
+				assignment.sourceSum.push_back(summand);
+			}
+		}
+
+		if (assignment.targetChannel != L"" && !assignment.sourceSum.empty())
+			assignments.push_back(assignment);
+	}
+
+	return assignments;
+}
+
+std::wstring serializeCopyAssignments(const vector<Assignment>& assignments)
+{
+	// Mirrors the former CopyFilterGUI::store() text so a parse -> serialize round
+	// trip is lossless and the written config line is unchanged. Each factor is
+	// formatted with the C "%g" default (matching QString::setNum(double)); a bare
+	// integer factor gains a ".0" suffix so it is recognised as a factor (not a
+	// channel) on the next parse, and the dB suffix is appended for decibel
+	// factors. A summand whose channel is a single space is the GUI's "not yet
+	// filled row" sentinel and is skipped here exactly as the GUI did.
+	wstring result;
+	bool firstAssignment = true;
+
+	for (const Assignment& assignment : assignments)
+	{
+		if (assignment.targetChannel == L"")
+			continue;
+
+		bool firstSummand = true;
+		for (const Assignment::Summand& summand : assignment.sourceSum)
+		{
+			if (summand.channel == L" ")
+				continue;
+
+			if (firstSummand)
+			{
+				firstSummand = false;
+
+				if (firstAssignment)
+					firstAssignment = false;
+				else
+					result += L" ";
+
+				result += assignment.targetChannel;
+				result += L"=";
+			}
+			else
+			{
+				result += L"+";
+			}
+
+			bool hasChannel = summand.channel != L"";
+			bool hasFactor = !hasChannel || summand.factor != 1.0 || summand.isDecibel;
+
+			if (hasFactor)
+			{
+				// QString::setNum(double) uses the C "%g" default (six significant
+				// digits, trailing zeros stripped); std::swprintf with "%g" produces
+				// the same text in the C locale.
+				wchar_t buffer[64];
+				swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g", summand.factor);
+				wstring factorString(buffer);
+				if (factorString != L"0" && factorString.find(L'.') == wstring::npos)
+					factorString += L".0";
+				result += factorString;
+				if (summand.isDecibel)
+					result += L"dB";
+			}
+
+			if (hasFactor && hasChannel)
+				result += L"*";
+
+			if (hasChannel)
+				result += summand.channel;
+		}
+	}
+
+	return result;
 }

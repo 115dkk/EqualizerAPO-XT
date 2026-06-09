@@ -24,10 +24,13 @@
 #include "Tests/TestHarness.h"
 
 // Forward declarations for the additional suites that share this binary's
-// main() (defined in CommonLogicTests.cpp, DelayCommandTests.cpp,
-// ParserTests.cpp and ParserPreampTests.cpp).
+// main() (defined in CommonLogicTests.cpp, CopyCommandTests.cpp,
+// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, ParserTests.cpp and
+// ParserPreampTests.cpp).
 void runCommonLogicTests();
+void runCopyCommandTests();
 void runDelayCommandTests();
+void runGraphicEQCommandTests();
 void runParserTests();
 void runParserPreampTests();
 
@@ -220,10 +223,13 @@ int main()
 	assertConvolutionPathParsing();
 
 	// Pure-logic helper and parser-extension coverage that also lives in this
-	// console binary (see CommonLogicTests.cpp, DelayCommandTests.cpp,
-	// ParserTests.cpp and ParserPreampTests.cpp).
+	// console binary (see CommonLogicTests.cpp, CopyCommandTests.cpp,
+	// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, ParserTests.cpp and
+	// ParserPreampTests.cpp).
 	runCommonLogicTests();
+	runCopyCommandTests();
 	runDelayCommandTests();
+	runGraphicEQCommandTests();
 	runParserTests();
 	runParserPreampTests();
 

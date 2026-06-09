@@ -91,6 +91,7 @@ SOURCES += main.cpp\
 	guis/ChannelFilterGUIChannelItem.cpp \
 	guis/GraphicEQFilterGUIFactory.cpp \
 	guis/GraphicEQFilterGUI.cpp \
+	../filters/GraphicEQCommand.cpp \
 	../filters/GraphicEQFilter.cpp \
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
@@ -254,6 +255,7 @@ HEADERS  += \
 	guis/ChannelFilterGUIChannelItem.h \
 	guis/GraphicEQFilterGUIFactory.h \
 	guis/GraphicEQFilterGUI.h \
+	../filters/GraphicEQCommand.h \
 	../filters/GraphicEQFilter.h \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \

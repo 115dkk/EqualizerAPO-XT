@@ -38,6 +38,26 @@ struct Assignment
 	std::vector<Summand> sourceSum;
 };
 
+// Shared, Qt-free parser for a "Copy:" config line. It turns the parameter
+// string into the same std::vector<Assignment> that CopyFilter::getAssignments()
+// returns, reproducing CopyFilterFactory::createFilter's former inline parse
+// verbatim: assignments are split on spaces, each "target=source" is split on
+// '=', the source is split into '+' summands, every summand is split on '*' into
+// an optional factor and a channel, a lone token is treated as a factor only
+// when it is "0" or contains a '.', and the dB suffix sets isDecibel. The
+// resulting assignments build the identical CopyFilter, so copy_crossfeed stays
+// bit-identical. The engine (CopyFilterFactory) and the Editor GUI factory share
+// this one routine instead of each carrying their own copy of the grammar.
+std::vector<Assignment> parseCopyAssignments(const std::wstring& parameters);
+
+// Re-creates the canonical "target=source ..." parameter string for a set of
+// assignments. This is the single owner of the Copy serialization format that
+// the Editor's CopyFilterGUI::store() and CopyRoutingAdapter::serialize() emit,
+// so serializeCopyAssignments(parseCopyAssignments(line)) round-trips. Summands
+// with a single-space channel (the GUI's "not yet filled row" sentinel) and
+// assignments with an empty target are skipped, matching the GUI's behaviour.
+std::wstring serializeCopyAssignments(const std::vector<Assignment>& assignments);
+
 #pragma AVRT_VTABLES_BEGIN
 class CopyFilter : public IFilter
 {

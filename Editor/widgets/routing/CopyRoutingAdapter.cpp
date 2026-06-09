@@ -11,116 +11,20 @@ using std::wstring;
 
 std::vector<Assignment> CopyRoutingAdapter::parse(const QString& parameters)
 {
-	// Mirrors CopyFilterFactory::createFilter so editor and runtime agree.
-	vector<Assignment> assignments;
-
-	const QStringList assignmentStrings = parameters.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-	for (const QString& chunk : assignmentStrings)
-	{
-		const int eq = chunk.indexOf(QLatin1Char('='));
-		if (eq < 0)
-			continue;
-
-		Assignment assignment;
-		assignment.targetChannel = chunk.left(eq).toStdWString();
-		const QString source = chunk.mid(eq + 1);
-
-		const QStringList summands = source.split(QLatin1Char('+'), Qt::SkipEmptyParts);
-		for (const QString& summandStr : summands)
-		{
-			const QStringList factors = summandStr.split(QLatin1Char('*'), Qt::SkipEmptyParts);
-			QString factor;
-			QString channel;
-			if (factors.size() == 2)
-			{
-				factor = factors[0];
-				channel = factors[1];
-			}
-			else if (factors.size() == 1)
-			{
-				if (factors[0] == QLatin1String("0") || factors[0].contains(QLatin1Char('.')))
-					factor = factors[0];
-				else
-					channel = factors[0];
-			}
-
-			Assignment::Summand summand;
-			if (factor.isEmpty())
-			{
-				summand.factor = 1.0;
-				summand.isDecibel = false;
-			}
-			else
-			{
-				summand.factor = factor.toDouble();
-				summand.isDecibel = factor.size() > 2 && factor.right(2).toLower() == QLatin1String("db");
-			}
-			summand.channel = channel.toStdWString();
-			assignment.sourceSum.push_back(summand);
-		}
-
-		if (assignment.targetChannel != L"" && !assignment.sourceSum.empty())
-			assignments.push_back(assignment);
-	}
-
-	return assignments;
+	// Delegate to the single shared owner of the Copy grammar (parseCopyAssignments
+	// in filters/CopyFilter.cpp) so the editor, the runtime factory and the round-trip
+	// tests all parse through one routine. The earlier hand-ported Qt copy of this
+	// grammar is gone; this keeps the editor and engine in lock-step by construction.
+	return parseCopyAssignments(parameters.toStdWString());
 }
 
 QString CopyRoutingAdapter::serialize(const std::vector<Assignment>& assignments)
 {
-	// Mirrors CopyFilterGUI::store so a parse -> serialize round-trip is lossless.
-	QString parameters;
-	bool firstAssignment = true;
-
-	for (const Assignment& assignment : assignments)
-	{
-		if (assignment.targetChannel == L"")
-			continue;
-
-		bool firstSummand = true;
-		for (const Assignment::Summand& summand : assignment.sourceSum)
-		{
-			if (summand.channel == L" ")
-				continue;
-
-			if (firstSummand)
-			{
-				firstSummand = false;
-				if (firstAssignment)
-					firstAssignment = false;
-				else
-					parameters += QLatin1Char(' ');
-				parameters += QString::fromStdWString(assignment.targetChannel);
-				parameters += QLatin1Char('=');
-			}
-			else
-			{
-				parameters += QLatin1Char('+');
-			}
-
-			const bool hasChannel = summand.channel != L"";
-			const bool hasFactor = !hasChannel || summand.factor != 1.0 || summand.isDecibel;
-
-			if (hasFactor)
-			{
-				QString factorString;
-				factorString.setNum(summand.factor);
-				if (factorString != QLatin1String("0") && !factorString.contains(QLatin1Char('.')))
-					factorString += QLatin1String(".0");
-				parameters += factorString;
-				if (summand.isDecibel)
-					parameters += QLatin1String("dB");
-			}
-
-			if (hasFactor && hasChannel)
-				parameters += QLatin1Char('*');
-
-			if (hasChannel)
-				parameters += QString::fromStdWString(summand.channel);
-		}
-	}
-
-	return parameters;
+	// Delegate to the shared serializer so parse(serialize(assignments)) round-trips
+	// against the same grammar the engine uses. The produced text is identical to the
+	// former inline loop (same "not yet filled row" skip, %g factor formatting, ".0"
+	// suffix and dB handling).
+	return QString::fromStdWString(serializeCopyAssignments(assignments));
 }
 
 bool CopyRoutingAdapter::isVirtualChannel(const QString& channel)
