@@ -31,30 +31,54 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Preamp, PreampFilterFactory)
 using std::vector;
 using std::wstring;
 
+bool PreampFilterFactory::parseCommand(const wstring& command, const wstring& parameters, PreampCommand& out)
+{
+	out = PreampCommand();
+
+	if (command != L"Preamp")
+		return false;
+
+	// Conversion to period as decimal mark, if needed
+	wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
+
+	double preamp_dB;
+	int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
+	if (matched == 1)
+	{
+		out.valid = true;
+		out.dbGain = preamp_dB;
+		// A 0 dB preamp is a no-op: createFilter skips the allocation so the
+		// filter chain avoids one virtual call and one pointer setup per block.
+		out.noOp = std::abs(preamp_dB) < 1e-9;
+	}
+	else
+	{
+		// Malformed parameter (F019): leave out.valid == false. The warning is
+		// emitted by createFilter so the engine log output stays unchanged; the
+		// Editor path simply discards the GUI for this line.
+	}
+
+	return true;
+}
+
 vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	PreampFilter* filter = nullptr;
 
-	if (command == L"Preamp")
+	PreampCommand cmd;
+	if (parseCommand(command, parameters, cmd))
 	{
-		// Conversion to period as decimal mark, if needed
-		wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
-
-		double preamp_dB;
-		int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
-		if (matched == 1)
+		if (cmd.valid)
 		{
-			// A 0 dB preamp is a no-op: skip the allocation so the filter chain
-			// avoids one virtual call and one pointer setup per block.
-			if (std::abs(preamp_dB) < 1e-9)
+			if (cmd.noOp)
 			{
-				TraceF(L"Skipping no-op preamp (%g dB)", preamp_dB);
+				TraceF(L"Skipping no-op preamp (%g dB)", cmd.dbGain);
 			}
 			else
 			{
-				TraceF(L"Adjusting preamp by %g dB", preamp_dB);
+				TraceF(L"Adjusting preamp by %g dB", cmd.dbGain);
 
-				filter = MemoryHelper::construct<PreampFilter>(preamp_dB);
+				filter = MemoryHelper::construct<PreampFilter>(cmd.dbGain);
 			}
 		}
 		else

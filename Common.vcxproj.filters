@@ -35,6 +35,9 @@
     <ClInclude Include="filters\CopyFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\DelayCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\DelayFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -63,6 +66,9 @@
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\IncludeFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\PreampCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\PreampFilter.h">
@@ -196,6 +202,9 @@
     <ClCompile Include="filters\CopyFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\DelayCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\DelayFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -224,6 +233,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\IncludeFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\PreampCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\PreampFilter.cpp">

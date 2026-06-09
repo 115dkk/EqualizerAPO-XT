@@ -322,6 +322,7 @@
     <ClInclude Include="filters\ConvolutionFilterFactory.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
+    <ClInclude Include="filters\DelayCommand.h" />
     <ClInclude Include="filters\DelayFilter.h" />
     <ClInclude Include="filters\DelayFilterFactory.h" />
     <ClInclude Include="filters\DeviceFilterFactory.h" />
@@ -336,6 +337,7 @@
     <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilter.h" />
     <ClInclude Include="filters\loudnessCorrection\ParameterArchive.h" />
     <ClInclude Include="filters\loudnessCorrection\VolumeController.h" />
+    <ClInclude Include="filters\PreampCommand.h" />
     <ClInclude Include="filters\PreampFilter.h" />
     <ClInclude Include="filters\PreampFilterFactory.h" />
     <ClInclude Include="filters\StageFilterFactory.h" />
@@ -391,6 +393,7 @@
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
+    <ClCompile Include="filters\DelayCommand.cpp" />
     <ClCompile Include="filters\DelayFilter.cpp" />
     <ClCompile Include="filters\DelayFilterFactory.cpp" />
     <ClCompile Include="filters\DeviceFilterFactory.cpp" />
@@ -404,6 +407,7 @@
     <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.cpp" />
     <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilter.cpp" />
     <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp" />
+    <ClCompile Include="filters\PreampCommand.cpp" />
     <ClCompile Include="filters\PreampFilter.cpp" />
     <ClCompile Include="filters\PreampFilterFactory.cpp" />
     <ClCompile Include="filters\StageFilterFactory.cpp" />

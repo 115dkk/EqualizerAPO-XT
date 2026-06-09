@@ -40,6 +40,7 @@ SOURCES += main.cpp\
 	FilterTableParts/FilterTable.Events.cpp \
 	FilterTableParts/FilterTable.Model.cpp \
 	FilterTableParts/FilterTable.Mouse.cpp \
+	../filters/PreampCommand.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
 	../helpers/MemoryHelper.cpp \
@@ -77,6 +78,7 @@ SOURCES += main.cpp\
 	../helpers/ChannelHelper.cpp \
 	guis/DelayFilterGUI.cpp \
 	guis/DelayFilterGUIFactory.cpp \
+	../filters/DelayCommand.cpp \
 	../filters/DelayFilter.cpp \
 	../filters/DelayFilterFactory.cpp \
 	guis/IncludeFilterGUI.cpp \
@@ -205,6 +207,7 @@ HEADERS  += \
 	guis/CommentFilterGUIFactory.h \
 	guis/CommentFilterGUI.h \
 	FilterTable.h \
+	../filters/PreampCommand.h \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
 	../helpers/MemoryHelper.h \
@@ -239,6 +242,7 @@ HEADERS  += \
 	../helpers/ChannelHelper.h \
 	guis/DelayFilterGUI.h \
 	guis/DelayFilterGUIFactory.h \
+	../filters/DelayCommand.h \
 	../filters/DelayFilter.h \
 	../filters/DelayFilterFactory.h \
 	guis/IncludeFilterGUI.h \

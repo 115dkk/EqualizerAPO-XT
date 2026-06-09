@@ -34,21 +34,19 @@ IFilterGUI* PreampFilterGUIFactory::createFilterGUI(QString& command, QString& p
 
 	if (command == "Preamp")
 	{
-		PreampFilterFactory factory;
+		// Parse the config line through the engine's single owning parse routine
+		// and populate the GUI directly from the resulting command, instead of
+		// constructing a throwaway PreampFilter just to read its dB gain back.
 		std::wstring commandWStr = command.toStdWString();
 		std::wstring paramWStr = parameters.toStdWString();
-		std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
-		if (!filters.empty())
-		{
-			PreampFilter* filter = (PreampFilter*)filters[0];
-			result = new PreampFilterGUI(filter->getDbGain());
-		}
-
-		for (IFilter* f : filters)
-		{
-			f->~IFilter();
-			MemoryHelper::free(f);
-		}
+		PreampCommand cmd;
+		// A 0 dB line parses as valid (just noOp), so the Editor shows the preamp
+		// GUI for it like the canonical card editor does; only a malformed
+		// parameter (cmd.valid == false) yields no GUI. The former throwaway-filter
+		// hack returned null for 0 dB because the engine skips the no-op filter,
+		// which left the legacy path without a preamp editor for that line.
+		if (PreampFilterFactory::parseCommand(commandWStr, paramWStr, cmd) && cmd.valid)
+			result = new PreampFilterGUI(cmd.dbGain);
 	}
 
 	return result;

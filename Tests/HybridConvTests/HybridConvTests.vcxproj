@@ -242,6 +242,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
   <ItemGroup>
     <ClCompile Include="HybridConvTests.cpp" />
     <ClCompile Include="CommonLogicTests.cpp" />
+    <ClCompile Include="DelayCommandTests.cpp" />
+    <ClCompile Include="ParserPreampTests.cpp" />
     <ClCompile Include="ParserTests.cpp" />
   </ItemGroup>
   <ItemGroup>
