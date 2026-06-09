@@ -112,7 +112,7 @@
             Simd      = 'neon'
             ArchFlag  = $null                                   # ARM64 passes no /arch override
             QtArchFlag = $null
-            Channel   = 'arm64'
+            Channel   = 'arm64-neon'                            # matches the published Velopack channel
             Fftw      = 'fftw-windows-release-arm64.zip'
             Muparserx = 'muparserx-msvc-release-ARM64.zip'
             Sndfile   = 'libsndfile-arm64.zip'
