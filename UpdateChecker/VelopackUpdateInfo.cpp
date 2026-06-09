@@ -176,7 +176,7 @@ QString VelopackUpdateInfo::defaultChannel()
 #ifdef EAPO_UPDATE_CHANNEL
 	return QStringLiteral(EAPO_UPDATE_CHANNEL);
 #elif defined(_M_ARM64) || defined(__aarch64__)
-	return QStringLiteral("arm64");
+	return QStringLiteral("arm64-neon");
 #else
 	return QStringLiteral("x64-avx2");
 #endif

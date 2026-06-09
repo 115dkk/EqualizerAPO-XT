@@ -26,7 +26,7 @@ $ErrorActionPreference = "Stop"
 # Order matters: Get-ChannelFromAssetName matches Pattern values top to bottom,
 # so more specific patterns (e.g. avx10/avx512/avx2) must precede broader ones (avx).
 $ChannelTable = [ordered]@{
-  "arm64"       = @{ Pattern = "arm64";                      SortOrder = 40;  Guidance = "Windows on ARM64 devices." }
+  "arm64-neon"  = @{ Pattern = "arm64";                      SortOrder = 40;  Guidance = "Windows on ARM64 devices." }
   "x64-sse2"    = @{ Pattern = "sse2|baseline";              SortOrder = 5;   Guidance = "Baseline 64-bit Intel/AMD systems. Pick this for older x64 CPUs that do not support AVX." }
   "x64-avx10-1" = @{ Pattern = "avx10-1|avx10_1";            SortOrder = 30;  Guidance = "64-bit Intel/AMD systems with AVX10.1 support." }
   "x64-avx512"  = @{ Pattern = "avx512";                     SortOrder = 20;  Guidance = "64-bit Intel/AMD systems where you specifically want the AVX-512 build." }

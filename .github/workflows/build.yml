@@ -866,7 +866,11 @@ jobs:
 
         $BuildPlatform = "${{ matrix.platform }}"
         $updateChannel = if ($BuildPlatform -eq "ARM64") {
-          "arm64"
+          # Must match the channel the create-release job publishes for ARM64
+          # (derived from the artifact name EqualizerAPO-ARM64-neon -> arm64-neon).
+          # The old "arm64" looked for releases.arm64.json, which is never
+          # published, so ARM64 builds never found updates.
+          "arm64-neon"
         } elseif ($BuildPlatform -eq "x64") {
           "x64-" + ("${{ matrix.simd_variant }}" -replace "_", "-")
         } else {

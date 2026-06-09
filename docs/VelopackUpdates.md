@@ -19,9 +19,9 @@ The channel is injected by CI with `EAPO_UPDATE_CHANNEL` during qmake builds. Cu
 - `x64-avx2`
 - `x64-avx512`
 - `x64-avx10-1`
-- `arm64`
+- `arm64-neon`
 
-Local builds without an injected channel default to `x64-avx2` on x64 and `arm64` on ARM64.
+Local builds without an injected channel default to `x64-avx2` on x64 and `arm64-neon` on ARM64.
 
 APO installation and device registration run through the Velopack hooks the Editor handles (`--veloapp-install`, `--veloapp-updated`, etc.), which call `ApoRegistration`. The NSIS installer has been removed.
 
