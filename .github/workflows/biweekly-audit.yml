@@ -243,7 +243,7 @@ jobs:
 
           set +e
           claude \
-            --model claude-opus-4-8 \
+            --model claude-fable-5 \
             --effort xhigh \
             --permission-mode auto \
             --max-turns 50 \
@@ -309,7 +309,7 @@ jobs:
             echo "# Biweekly Audit: ${DATE}"
             echo ""
             echo "Changed relevant files: **${COUNT}**"
-            echo "Model: Opus 4.8 - Effort: xhigh - 1M context"
+            echo "Model: Fable 5 - Effort: xhigh - 1M context"
             echo ""
             echo "This issue body corresponds to the generated \`issue-body.md\` artifact."
             echo "The remaining audit outputs are posted in full as file-specific comments below."
