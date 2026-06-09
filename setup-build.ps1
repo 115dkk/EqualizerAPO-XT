@@ -37,9 +37,16 @@ param(
 $ErrorActionPreference = "Stop"
 $workspace = $PSScriptRoot
 
+# Single source of truth for the SIMD variant set and the pinned dependency
+# tags/versions, shared with build.yml and New-ReleaseNotes.ps1. Import-PowerShellDataFile
+# is the restricted-language loader, so this stays plain data.
+$manifestPath = Join-Path $workspace ".github\simd-variants.psd1"
+$simdManifest = Import-PowerShellDataFile -Path $manifestPath
+
 # velopack_libc ships as a single cross-platform zip attached to the velopack/velopack
-# release. Pin the version so the asset name and download URL stay in sync with CI.
-$velopackLibcVersion = "1.1.1"
+# release. The version is pinned in the manifest so the asset name and download URL
+# stay in sync with CI.
+$velopackLibcVersion = $simdManifest.Shared.VelopackLibcVersion
 
 Write-Host "=== EqualizerAPO-XT Build Setup ===" -ForegroundColor Cyan
 Write-Host "Workspace: $workspace"
@@ -47,41 +54,19 @@ Write-Host "Platform:  $Platform"
 Write-Host "SIMD:      $SimdVariant"
 Write-Host ""
 
-# --- Dependency asset mapping (mirrors build.yml matrix) ---
-$assetMap = @{
-    "x64" = @{
-        "sse2"     = @{ muparserx = "muparserx-msvc-release-x64-avx2.zip" }
-        "avx"      = @{ muparserx = "muparserx-msvc-release-x64-avx2.zip" }
-        "avx2"     = @{
-            fftw      = "fftw-windows-release-x64-avx2.zip"
-            muparserx = "muparserx-msvc-release-x64-avx2.zip"
-            sndfile   = "libsndfile-x64-avx2.zip"
-        }
-        "avx512"   = @{
-            fftw      = "fftw-windows-release-x64-avx512.zip"
-            muparserx = "muparserx-msvc-release-x64-avx512.zip"
-            sndfile   = "libsndfile-x64-avx512.zip"
-        }
-        "avx10_1"  = @{
-            fftw      = "fftw-windows-release-x64-avx10.zip"
-            muparserx = "muparserx-msvc-release-x64-avx10.zip"
-            sndfile   = "libsndfile-x64-avx10.zip"
-        }
-    }
-    "ARM64" = @{
-        "neon" = @{
-            fftw      = "fftw-windows-release-arm64.zip"
-            muparserx = "muparserx-msvc-release-ARM64.zip"
-            sndfile   = "libsndfile-arm64.zip"
-        }
-    }
-}
-
+# --- Dependency asset mapping (driven by .github/simd-variants.psd1) ---
 $variant = if ($Platform -eq "ARM64") { "neon" } else { $SimdVariant }
-$assets = $assetMap[$Platform][$variant]
-if (-not $assets) {
+$variantEntry = $simdManifest.Variants | Where-Object { $_.Platform -eq $Platform -and $_.Simd -eq $variant } | Select-Object -First 1
+if (-not $variantEntry) {
     throw "No asset mapping for Platform=$Platform, Variant=$variant"
 }
+
+# Reshape the manifest entry into the { muparserx; fftw; sndfile } hashtable the
+# download loop below expects. Variants built from vcpkg leave fftw/sndfile $null,
+# which keeps them out of $downloads exactly as before.
+$assets = @{ muparserx = $variantEntry.Muparserx }
+if ($variantEntry.Fftw)    { $assets.fftw = $variantEntry.Fftw }
+if ($variantEntry.Sndfile) { $assets.sndfile = $variantEntry.Sndfile }
 
 $usesVcpkg = $Platform -eq "x64" -and ($SimdVariant -eq "sse2" -or $SimdVariant -eq "avx")
 
@@ -245,7 +230,7 @@ if (Test-Path (Join-Path $tclapDir "include")) {
 # compiled, so we fetch just the pluginterfaces submodule. Pinned to the 3.8.0 tag,
 # which is the first MIT-licensed release (compatible with our GPLv2-or-later code).
 Write-Host "`n=== Step 2b: Clone VST3 SDK (pluginterfaces) ===" -ForegroundColor Yellow
-$vst3Tag = "v3.8.0_build_66"
+$vst3Tag = $simdManifest.Shared.Vst3Tag
 $vst3Dir = Join-Path $depsDir "vst3sdk"
 $vst3InterfacesDir = Join-Path $vst3Dir "pluginterfaces"
 if (Test-Path (Join-Path $vst3InterfacesDir "base\funknown.h")) {
@@ -261,7 +246,7 @@ if (Test-Path (Join-Path $vst3InterfacesDir "base\funknown.h")) {
 # The Common DSP kernels use Highway in static per-target dispatch mode, so only
 # the headers are needed (no libhwy build, no runtime dispatch table).
 Write-Host "`n=== Step 2c: Clone Highway ===" -ForegroundColor Yellow
-$highwayTag = "1.4.0"
+$highwayTag = $simdManifest.Shared.HighwayTag
 $highwayDir = Join-Path $depsDir "highway"
 if (Test-Path (Join-Path $highwayDir "hwy\highway.h")) {
     Write-Host "  [cached] Highway already present"

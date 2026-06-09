@@ -18,7 +18,6 @@
 */
 
 #include "filters/CopyFilter.h"
-#include "filters/CopyFilterFactory.h"
 #include "CopyFilterGUI.h"
 #include "CopyFilterGUIFactory.h"
 
@@ -44,21 +43,12 @@ IFilterGUI* CopyFilterGUIFactory::createFilterGUI(QString& command, QString& par
 
 	if (command == "Copy")
 	{
-		CopyFilterFactory factory;
-		std::wstring commandWStr = command.toStdWString();
-		std::wstring paramWStr = parameters.toStdWString();
-		std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
-		if (!filters.empty())
-		{
-			CopyFilter* filter = (CopyFilter*)filters[0];
-			result = new CopyFilterGUI(filter, filterTable);
-		}
-
-		for (IFilter* f : filters)
-		{
-			f->~IFilter();
-			MemoryHelper::free(f);
-		}
+		// Parse the routing with the same shared parser the engine factory uses,
+		// straight into the Qt-free std::vector<Assignment>. This replaces the former
+		// hack of building a real CopyFilter just to read getAssignments() back and
+		// immediately destroy it.
+		std::vector<Assignment> assignments = parseCopyAssignments(parameters.toStdWString());
+		result = new CopyFilterGUI(assignments, filterTable);
 	}
 
 	return result;

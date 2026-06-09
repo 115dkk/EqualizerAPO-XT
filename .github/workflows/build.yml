@@ -189,6 +189,21 @@ jobs:
       with:
         msbuild-architecture: ${{ matrix.platform }}
 
+    # Pinned dependency tags/versions live in .github/simd-variants.psd1 so they are
+    # defined once and shared with setup-build.ps1. Export them as job env vars for the
+    # checkout/download steps below (a typo'd tag would otherwise diverge silently).
+    - name: Resolve pinned dependency tags
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        "VELOPACK_LIBC_VERSION=$($manifest.Shared.VelopackLibcVersion)" >> $env:GITHUB_ENV
+        "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
+        "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
+        Write-Host "velopack_libc version: $($manifest.Shared.VelopackLibcVersion)"
+        Write-Host "VST3 tag: $($manifest.Shared.Vst3Tag)"
+        Write-Host "Highway tag: $($manifest.Shared.HighwayTag)"
+
     - name: Download dependency release assets
       shell: pwsh
       run: |
@@ -208,10 +223,11 @@ jobs:
           },
           @{
             # Velopack C/C++ runtime (Velopack.h + import libs + DLLs). Always fetched;
-            # the Editor links it for auto-update. Keep the version in sync with setup-build.ps1.
+            # the Editor links it for auto-update. Version comes from
+            # .github/simd-variants.psd1 (Shared.VelopackLibcVersion), shared with setup-build.ps1.
             Repo = "velopack/velopack"
-            Asset = "velopack_libc_1.1.1.zip"
-            Url = "https://github.com/velopack/velopack/releases/download/1.1.1/velopack_libc_1.1.1.zip"
+            Asset = "velopack_libc_${{ env.VELOPACK_LIBC_VERSION }}.zip"
+            Url = "https://github.com/velopack/velopack/releases/download/${{ env.VELOPACK_LIBC_VERSION }}/velopack_libc_${{ env.VELOPACK_LIBC_VERSION }}.zip"
             Destination = "${{ github.workspace }}\deps\velopack_libc"
           }
         )
@@ -384,23 +400,25 @@ jobs:
 
     # Clone the VST3 SDK pluginterfaces (header-only COM interfaces + IID unit).
     # Only this submodule is needed for VST3 hosting; public.sdk / vstgui are not
-    # compiled. Pinned to the 3.8.0 tag, the first MIT-licensed release.
+    # compiled. Pinned to the first MIT-licensed release; the exact tag comes from
+    # .github/simd-variants.psd1 (Shared.Vst3Tag), shared with setup-build.ps1.
     - name: Download VST3 pluginterfaces
       uses: actions/checkout@v6
       with:
         repository: steinbergmedia/vst3_pluginterfaces
-        ref: v3.8.0_build_66
+        ref: ${{ env.VST3_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
         path: deps/vst3sdk/pluginterfaces
 
     # Clone Google Highway (header-only portable SIMD). The Common DSP kernels
     # use it in static per-target dispatch mode (one TU compiled per /arch), so
     # only the headers are needed; libhwy / the runtime dispatch table are not.
+    # The exact tag comes from .github/simd-variants.psd1 (Shared.HighwayTag).
     - name: Download Highway
       uses: actions/checkout@v6
       with:
         repository: google/highway
-        ref: 1.4.0
+        ref: ${{ env.HIGHWAY_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
         path: deps/highway
 
@@ -560,6 +578,7 @@ jobs:
 
         $projects = @(
           "Common.vcxproj",
+          "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
           "Tests\HybridConvTests\HybridConvTests.vcxproj",
           "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
           "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj",

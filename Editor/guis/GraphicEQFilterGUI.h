@@ -19,10 +19,12 @@
 
 #pragma once
 
+#include <vector>
+
 #include <QRegularExpression>
 
 #include "Editor/IFilterGUI.h"
-#include "filters/GraphicEQFilter.h"
+#include "helpers/GainIterator.h"
 #include "GraphicEQFilterGUIScene.h"
 
 class FilterTable;
@@ -36,7 +38,7 @@ class GraphicEQFilterGUI : public IFilterGUI
 	Q_OBJECT
 
 public:
-	explicit GraphicEQFilterGUI(GraphicEQFilter* filter, QString configPath, FilterTable* filterTable);
+	explicit GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, QString configPath, FilterTable* filterTable);
 	~GraphicEQFilterGUI();
 
 	void store(QString& command, QString& parameters) override;

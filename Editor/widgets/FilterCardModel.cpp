@@ -2,6 +2,10 @@
 
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QSet>
+
+#include "filters/FilterFactoryRegistry.h"
+#include "filters/BiQuadCommand.h"
 
 namespace
 {
@@ -11,48 +15,51 @@ bool isKnownConfigCommand(const QString& command)
 	if (normalized.startsWith(QStringLiteral("filter")))
 		return true;
 
-	static const QStringList knownCommands = {
-		QStringLiteral("channel"),
-		QStringLiteral("comment"),
-		QStringLiteral("convolution"),
-		QStringLiteral("copy"),
-		QStringLiteral("delay"),
-		QStringLiteral("device"),
-		QStringLiteral("else"),
-		QStringLiteral("elseif"),
-		QStringLiteral("endif"),
-		QStringLiteral("eval"),
-		QStringLiteral("graphiceq"),
-		QStringLiteral("if"),
-		QStringLiteral("include"),
-		QStringLiteral("loudnesscorrection"),
-		QStringLiteral("preamp"),
-		QStringLiteral("stage"),
-		QStringLiteral("vstplugin")
-	};
+	// Derive the recognized command vocabulary from the engine's single source
+	// of truth (FilterFactoryRegistry) instead of duplicating it here, so this
+	// stays in sync as factories are added or renamed. Registry keys are
+	// case-sensitive while this comparison is lowercased, so each keyword is
+	// lowered on the way in. "Comment" is not a factory command, so it is added
+	// explicitly. "Filter" is already handled by the startsWith check above, so
+	// its presence in the registry set is harmless.
+	static const QSet<QString> knownCommands = []() {
+		QSet<QString> commands;
+		for (const std::wstring& keyword : FilterFactoryRegistry::knownConfigCommands())
+			commands.insert(QString::fromStdWString(keyword).toLower());
+		commands.insert(QStringLiteral("comment"));
+		return commands;
+	}();
 	return knownCommands.contains(normalized);
 }
 
 QString biquadTypeTitle(const QString& code)
 {
+	// Map the (already upper-cased) config keyword to a BiQuad type, then defer to
+	// the engine-side title table (filters/BiQuadCommand.h) so the type -> title
+	// strings live in exactly one place (F042). The keyword vocabulary here mirrors
+	// the typeExpression regex in describeLine; an unknown keyword falls back to
+	// "Biquad", matching biquadTypeTitle(BiQuad::Type)'s own default.
 	const QString normalized = code.toUpper();
+	BiQuad::Type type;
 	if (normalized == QStringLiteral("PK") || normalized == QStringLiteral("PEQ") || normalized == QStringLiteral("MODAL"))
-		return QStringLiteral("Peaking");
-	if (normalized == QStringLiteral("LP") || normalized == QStringLiteral("LPQ"))
-		return QStringLiteral("Low-pass");
-	if (normalized == QStringLiteral("HP") || normalized == QStringLiteral("HPQ"))
-		return QStringLiteral("High-pass");
-	if (normalized == QStringLiteral("BP"))
-		return QStringLiteral("Band-pass");
-	if (normalized == QStringLiteral("LS") || normalized == QStringLiteral("LSC"))
-		return QStringLiteral("Low-shelf");
-	if (normalized == QStringLiteral("HS") || normalized == QStringLiteral("HSC"))
-		return QStringLiteral("High-shelf");
-	if (normalized == QStringLiteral("NO"))
-		return QStringLiteral("Notch");
-	if (normalized == QStringLiteral("AP"))
-		return QStringLiteral("All-pass");
-	return QStringLiteral("Biquad");
+		type = BiQuad::PEAKING;
+	else if (normalized == QStringLiteral("LP") || normalized == QStringLiteral("LPQ"))
+		type = BiQuad::LOW_PASS;
+	else if (normalized == QStringLiteral("HP") || normalized == QStringLiteral("HPQ"))
+		type = BiQuad::HIGH_PASS;
+	else if (normalized == QStringLiteral("BP"))
+		type = BiQuad::BAND_PASS;
+	else if (normalized == QStringLiteral("LS") || normalized == QStringLiteral("LSC"))
+		type = BiQuad::LOW_SHELF;
+	else if (normalized == QStringLiteral("HS") || normalized == QStringLiteral("HSC"))
+		type = BiQuad::HIGH_SHELF;
+	else if (normalized == QStringLiteral("NO"))
+		type = BiQuad::NOTCH;
+	else if (normalized == QStringLiteral("AP"))
+		type = BiQuad::ALL_PASS;
+	else
+		return QStringLiteral("Biquad");
+	return QString::fromWCharArray(::biquadTypeTitle(type));
 }
 
 QString firstCapture(const QRegularExpression& expression, const QString& text)

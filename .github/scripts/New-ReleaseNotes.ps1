@@ -20,6 +20,35 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Release-channel table for the SIMD/architecture builds. The channel KEYS are the
+# single source of truth in .github/simd-variants.psd1 (Variants[].Channel); the
+# Pattern / SortOrder / Guidance columns are release-notes-specific and stay here.
+# Order matters: Get-ChannelFromAssetName matches Pattern values top to bottom,
+# so more specific patterns (e.g. avx10/avx512/avx2) must precede broader ones (avx).
+$ChannelTable = [ordered]@{
+  "arm64"       = @{ Pattern = "arm64";                      SortOrder = 40;  Guidance = "Windows on ARM64 devices." }
+  "x64-sse2"    = @{ Pattern = "sse2|baseline";              SortOrder = 5;   Guidance = "Baseline 64-bit Intel/AMD systems. Pick this for older x64 CPUs that do not support AVX." }
+  "x64-avx10-1" = @{ Pattern = "avx10-1|avx10_1";            SortOrder = 30;  Guidance = "64-bit Intel/AMD systems with AVX10.1 support." }
+  "x64-avx512"  = @{ Pattern = "avx512";                     SortOrder = 20;  Guidance = "64-bit Intel/AMD systems where you specifically want the AVX-512 build." }
+  "x64-avx2"    = @{ Pattern = "avx2";                       SortOrder = 10;  Guidance = "Most 64-bit Intel/AMD systems with AVX2. Use this if you are unsure which x64 build to pick." }
+  "x64-avx"     = @{ Pattern = "(^|[-_.])avx($|[-_.])";      SortOrder = 8;   Guidance = "64-bit Intel/AMD systems with AVX, but not AVX2." }
+}
+
+# Fail loudly if the manifest's channel set drifts from this table, so a new or
+# renamed variant cannot ship with missing download guidance. The manifest sits two
+# levels up from this script (.github/scripts/ -> .github/simd-variants.psd1).
+$manifestPath = Join-Path $PSScriptRoot "..\simd-variants.psd1"
+if (Test-Path $manifestPath) {
+  $manifestChannels = @((Import-PowerShellDataFile -Path $manifestPath).Variants | ForEach-Object { $_.Channel })
+  $missingFromTable = @($manifestChannels | Where-Object { -not $ChannelTable.Contains($_) })
+  if ($missingFromTable.Count -gt 0) {
+    throw "Channels in simd-variants.psd1 have no entry in `$ChannelTable: $($missingFromTable -join ', '). Add them (with Pattern/SortOrder/Guidance) before releasing."
+  }
+}
+
+$UnknownChannelSortOrder = 100
+$UnknownChannelGuidance = "Special-purpose asset. Use one of the setup executables for normal installation."
+
 function Invoke-GhJson {
   param(
     [Parameter(Mandatory = $true)]
@@ -54,23 +83,10 @@ function Get-ChannelFromAssetName {
   )
 
   $lowerName = $AssetName.ToLowerInvariant()
-  if ($lowerName -match "arm64") {
-    return "arm64"
-  }
-  if ($lowerName -match "sse2|baseline") {
-    return "x64-sse2"
-  }
-  if ($lowerName -match "avx10-1|avx10_1") {
-    return "x64-avx10-1"
-  }
-  if ($lowerName -match "avx512") {
-    return "x64-avx512"
-  }
-  if ($lowerName -match "avx2") {
-    return "x64-avx2"
-  }
-  if ($lowerName -match "(^|[-_.])avx($|[-_.])") {
-    return "x64-avx"
+  foreach ($channel in $ChannelTable.Keys) {
+    if ($lowerName -match $ChannelTable[$channel].Pattern) {
+      return $channel
+    }
   }
 
   return "unknown"
@@ -82,15 +98,11 @@ function Get-ChannelSortOrder {
     [string]$Channel
   )
 
-  switch ($Channel) {
-    "x64-sse2" { return 5 }
-    "x64-avx" { return 8 }
-    "x64-avx2" { return 10 }
-    "x64-avx512" { return 20 }
-    "x64-avx10-1" { return 30 }
-    "arm64" { return 40 }
-    default { return 100 }
+  if ($ChannelTable.Contains($Channel)) {
+    return $ChannelTable[$Channel].SortOrder
   }
+
+  return $UnknownChannelSortOrder
 }
 
 function Get-DownloadGuidance {
@@ -99,15 +111,11 @@ function Get-DownloadGuidance {
     [string]$Channel
   )
 
-  switch ($Channel) {
-    "x64-sse2" { return "Baseline 64-bit Intel/AMD systems. Pick this for older x64 CPUs that do not support AVX." }
-    "x64-avx" { return "64-bit Intel/AMD systems with AVX, but not AVX2." }
-    "x64-avx2" { return "Most 64-bit Intel/AMD systems with AVX2. Use this if you are unsure which x64 build to pick." }
-    "x64-avx512" { return "64-bit Intel/AMD systems where you specifically want the AVX-512 build." }
-    "x64-avx10-1" { return "64-bit Intel/AMD systems with AVX10.1 support." }
-    "arm64" { return "Windows on ARM64 devices." }
-    default { return "Special-purpose asset. Use one of the setup executables for normal installation." }
+  if ($ChannelTable.Contains($Channel)) {
+    return $ChannelTable[$Channel].Guidance
   }
+
+  return $UnknownChannelGuidance
 }
 
 function Get-AssetPurpose {

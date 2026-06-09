@@ -24,6 +24,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"
 #include "FilterTable.h"
+#include "ConfigFileCodec.h"
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
@@ -56,51 +57,14 @@ void MainWindow::load(QString path)
 	QElapsedTimer timer;
 	timer.start();
 
-	HANDLE hFile = INVALID_HANDLE_VALUE;
-	while (hFile == INVALID_HANDLE_VALUE)
+	ConfigFileCodec::ReadResult readResult = ConfigFileCodec::readConfig(path);
+	if (!readResult.ok)
 	{
-		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			DWORD error = GetLastError();
-			if (error != ERROR_SHARING_VIOLATION)
-			{
-				QMessageBox::critical(this, tr("Error"), tr("Error while reading configuration file: %0").arg(QString::fromStdWString(StringHelper::getSystemErrorString(error))));
-				return;
-			}
-
-			// file is being written, so wait
-			Sleep(1);
-		}
+		QMessageBox::critical(this, tr("Error"), tr("Error while reading configuration file: %0").arg(readResult.errorMessage));
+		return;
 	}
 
-	stringstream inputStream;
-
-	char buf[8192];
-	unsigned long bytesRead = -1;
-	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr) && bytesRead != 0)
-	{
-		inputStream.write(buf, bytesRead);
-	}
-
-	CloseHandle(hFile);
-
-	inputStream.seekg(0);
-
-	QList<QString> lines;
-	while (inputStream.good())
-	{
-		string encodedLine;
-		getline(inputStream, encodedLine);
-		if (encodedLine.size() > 0 && encodedLine[encodedLine.size() - 1] == '\r')
-			encodedLine.resize(encodedLine.size() - 1);
-
-		wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
-		if (line.find(L'\uFFFD') != wstring::npos)
-			line = StringHelper::toWString(encodedLine, CP_ACP);
-
-		lines.append(QString::fromStdWString(line));
-	}
+	QList<QString> lines = readResult.lines;
 
 	QFileInfo fileInfo(path);
 	FilterTable* filterTable = addTab(fileInfo.fileName(), QDir::toNativeSeparators(fileInfo.absoluteFilePath()), path, lines);
@@ -126,44 +90,17 @@ void MainWindow::save(FilterTable* filterTable, QString path)
 
 	QList<QString> lines = filterTable->getLines();
 
-	bool first = true;
-	QByteArray byteArray;
-	for (QString line : lines)
+	ConfigFileCodec::WriteResult writeResult = ConfigFileCodec::writeConfig(path, lines);
+	if (!writeResult.opened)
 	{
-		if (first)
-			first = false;
-		else
-			byteArray.append("\r\n");
-		byteArray.append(line.toUtf8());
+		QMessageBox::critical(this, tr("Error"), tr("Error while writing configuration file: %0").arg(writeResult.errorMessage));
+		return;
 	}
-
-	HANDLE hFile = INVALID_HANDLE_VALUE;
-	while (hFile == INVALID_HANDLE_VALUE)
-	{
-		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			DWORD error = GetLastError();
-			if (error != ERROR_SHARING_VIOLATION)
-			{
-				QMessageBox::critical(this, tr("Error"), tr("Error while writing configuration file: %0").arg(QString::fromStdWString(StringHelper::getSystemErrorString(error))));
-				return;
-			}
-
-			// file is being written, so wait
-			Sleep(1);
-		}
-	}
-
-	unsigned long bytesWritten;
-	WriteFile(hFile, byteArray.constData(), byteArray.length(), &bytesWritten, nullptr);
-	if (bytesWritten != byteArray.length())
+	if (writeResult.bytesWritten != writeResult.totalBytes)
 	{
 		// should never happen
-		QMessageBox::critical(this, tr("Error"), tr("Only %0/%1 bytes have been written!").arg(bytesWritten).arg(byteArray.length()));
+		QMessageBox::critical(this, tr("Error"), tr("Only %0/%1 bytes have been written!").arg(writeResult.bytesWritten).arg(writeResult.totalBytes));
 	}
-
-	CloseHandle(hFile);
 
 	qDebug("Saving took %.1f ms", timer.nsecsElapsed() / 1e6);
 

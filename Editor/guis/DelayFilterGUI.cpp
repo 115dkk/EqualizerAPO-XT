@@ -18,6 +18,7 @@
 */
 
 #include "Editor/helpers/GUIHelper.h"
+#include "filters/DelayCommand.h"
 #include "DelayFilterGUI.h"
 #include "ui_DelayFilterGUI.h"
 
@@ -42,12 +43,15 @@ DelayFilterGUI::~DelayFilterGUI()
 
 void DelayFilterGUI::store(QString& command, QString& parameters)
 {
+	// Serialize through the shared DelayCommand so the engine parser and the
+	// Editor agree on one "<delay> ms|samples" format. For every reachable
+	// spin-box value this reproduces the previous QString("%0").arg(value) text.
+	DelayCommand cmd;
+	cmd.delay = ui->delaySpinBox->value();
+	cmd.isMs = ui->unitComboBox->currentIndex() == 0;
+
 	command = "Delay";
-	parameters = QString("%0").arg(ui->delaySpinBox->value());
-	if (ui->unitComboBox->currentIndex() == 0)
-		parameters += " ms";
-	else
-		parameters += " samples";
+	parameters = QString::fromStdWString(cmd.serialize());
 }
 
 void DelayFilterGUI::on_unitComboBox_currentIndexChanged(int index)

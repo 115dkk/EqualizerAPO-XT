@@ -19,8 +19,7 @@
 
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/StringHelper.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "filters/VSTPluginFilter.h"
+#include "filters/VSTPluginCommand.h"
 #include "VSTPluginFilterGUI.h"
 #include "VSTPluginFilterGUIFactory.h"
 
@@ -41,25 +40,16 @@ IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString
 
 	if (command == "VSTPlugin")
 	{
-		VSTPluginFilterFactory factory;
-		std::wstring commandWStr = command.toStdWString();
-		std::wstring paramWStr = parameters.toStdWString();
-		std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
-		if (!filters.empty())
-		{
-			VSTPluginFilter* filter = (VSTPluginFilter*)filters[0];
-			result = new VSTPluginFilterGUI(filter->getLibrary(), filter->getChunkData(), filter->getParamMap());
-		}
+		// Parse straight into the shared command struct. This reuses the engine's
+		// exact parameter grammar without building (and immediately destroying) a
+		// real VSTPluginFilter, and never loads a plugin binary: getInstance only
+		// returns the cached library object, the DLL is loaded later by the GUI.
+		VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters.toStdWString());
+		std::shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
+		if (library != nullptr)
+			result = new VSTPluginFilterGUI(library, cmd.chunkData, cmd.paramMap);
 		else
-		{
 			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"", unordered_map<wstring, float>());
-		}
-
-		for (IFilter* f : filters)
-		{
-			f->~IFilter();
-			MemoryHelper::free(f);
-		}
 	}
 
 	return result;

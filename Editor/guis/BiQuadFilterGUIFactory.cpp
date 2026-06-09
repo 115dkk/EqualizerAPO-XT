@@ -47,21 +47,14 @@ IFilterGUI* BiQuadFilterGUIFactory::createFilterGUI(QString& command, QString& p
 
 	if (command.startsWith("Filter"))
 	{
-		BiQuadFilterFactory factory;
+		// Parse the config line through the engine's single owning parse routine
+		// and populate the GUI directly from the resulting command, instead of
+		// constructing a throwaway BiQuadFilter just to read its fields back.
 		std::wstring commandWStr = command.toStdWString();
 		std::wstring paramWStr = parameters.toStdWString();
-		std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
-		if (!filters.empty())
-		{
-			BiQuadFilter* filter = (BiQuadFilter*)filters[0];
-			result = new BiQuadFilterGUI(filter);
-		}
-
-		for (IFilter* f : filters)
-		{
-			f->~IFilter();
-			MemoryHelper::free(f);
-		}
+		BiQuadCommand cmd;
+		if (BiQuadFilterFactory::parseCommand(commandWStr, paramWStr, cmd))
+			result = new BiQuadFilterGUI(cmd);
 	}
 
 	return result;

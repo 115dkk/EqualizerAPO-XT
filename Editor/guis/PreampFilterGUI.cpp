@@ -21,6 +21,7 @@
 
 #include "Editor/helpers/GUIHelper.h"
 #include "PreampFilterGUI.h"
+#include <filters/PreampCommand.h>
 #include "ui_PreampFilterGUI.h"
 
 
@@ -42,7 +43,17 @@ PreampFilterGUI::~PreampFilterGUI()
 void PreampFilterGUI::store(QString& command, QString& parameters)
 {
 	command = "Preamp";
-	parameters = QString("%1 dB").arg(ui->doubleSpinBox->value());
+
+	// Read the widget into the shared command struct, then serialize it back into
+	// the canonical "<dB> dB" parameter string. serializePreampCommand uses %g,
+	// which reproduces the exact text QString("%1 dB").arg(value) emitted before
+	// (C locale, six significant digits, trailing zeros stripped) for the values
+	// this spin box can hold.
+	PreampCommand cmd;
+	cmd.dbGain = ui->doubleSpinBox->value();
+	cmd.valid = true;
+	cmd.noOp = std::abs(cmd.dbGain) < 1e-9;
+	parameters = QString::fromStdWString(serializePreampCommand(cmd));
 }
 
 void PreampFilterGUI::on_dial_valueChanged(int value)

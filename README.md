@@ -20,7 +20,7 @@ After that, the project will focus on:
 - Double-precision internal audio processing for complex filter chains.
 - Convolution, GraphicEQ, parametric EQ, VST2/VST3, and standard Equalizer APO filter support.
 - Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it.
-- x64 SIMD builds for AVX2, AVX-512, and AVX10.1 in CI.
+- x64 builds for the SSE2 and AVX baselines plus AVX2, AVX-512, and AVX10.1 in CI.
 - ARM64 build support with native dependency builds.
 - AOCL-FFTW, libsndfile, muparserx, TCLAP, and Qt-based GUI tools.
 - Shared VC++ runtime DLLs for better Windows compatibility.
@@ -36,7 +36,7 @@ Until then, build locally or use upstream Equalizer APO for normal production us
 
 ## Building
 
-The project uses Visual Studio, Qt, NSIS, and a small set of external libraries.
+The project uses Visual Studio, Qt, Velopack, and a small set of external libraries.
 
 The forked dependency repositories are:
 
@@ -63,6 +63,8 @@ The same environment variables can override those defaults:
 
 CI currently builds these variants:
 
+- `windows-x64-sse2`
+- `windows-x64-avx`
 - `windows-x64-avx2`
 - `windows-x64-avx512`
 - `windows-x64-avx10_1`

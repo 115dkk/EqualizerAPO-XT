@@ -25,7 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "ChannelFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(5, ChannelFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Channel, ChannelFilterFactory)
 
 using std::vector;
 using std::wstring;
@@ -59,8 +59,7 @@ vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, w
 			}
 		}
 
-		void* mem = MemoryHelper::alloc(sizeof(ChannelFilter));
-		filter = new(mem) ChannelFilter(words);
+		filter = MemoryHelper::construct<ChannelFilter>(words);
 	}
 
 	if (filter == nullptr)

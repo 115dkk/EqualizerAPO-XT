@@ -22,8 +22,20 @@
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
+#include "Tests/TestHarness.h"
+
 namespace
 {
+// Generic assertion primitives are shared with the other suites via the
+// header-only harness. The QString helpers below convert at the boundary so
+// EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
+test::Harness harness("EditorLogicTests");
+
+std::string toStd(const QString& s)
+{
+	return s.toUtf8().constData();
+}
+
 QString normalized(QString path)
 {
 	return QDir::cleanPath(QDir::fromNativeSeparators(path)).toLower();
@@ -31,38 +43,38 @@ QString normalized(QString path)
 
 void fail(const QString& message)
 {
-	fprintf(stderr, "EditorLogicTests failed: %s\n", message.toUtf8().constData());
-	exit(1);
+	harness.fail(toStd(message));
 }
 
 void expectPath(const QString& actual, const QString& expected)
 {
-	if (normalized(actual) != normalized(expected))
-		fail(QString("expected '%1', got '%2'").arg(expected, actual));
+	harness.expectTrue(
+		normalized(actual) == normalized(expected),
+		toStd(QString("expected '%1', got '%2'").arg(expected, actual)));
 }
 
 void expectTrue(bool value, const QString& message)
 {
-	if (!value)
-		fail(message);
+	harness.expectTrue(value, toStd(message));
 }
 
 void expectFalse(bool value, const QString& message)
 {
-	if (value)
-		fail(message);
+	harness.expectFalse(value, toStd(message));
 }
 
 void expectEqual(const QString& actual, const QString& expected, const QString& message)
 {
-	if (actual != expected)
-		fail(QString("%1: expected '%2', got '%3'").arg(message, expected, actual));
+	harness.expectTrue(
+		actual == expected,
+		toStd(QString("%1: expected '%2', got '%3'").arg(message, expected, actual)));
 }
 
 void expectEqual(int actual, int expected, const QString& message)
 {
-	if (actual != expected)
-		fail(QString("%1: expected %2, got %3").arg(message).arg(expected).arg(actual));
+	harness.expectTrue(
+		actual == expected,
+		toStd(QString("%1: expected %2, got %3").arg(message).arg(expected).arg(actual)));
 }
 }
 
@@ -350,6 +362,6 @@ int main(int argc, char** argv)
 		expectEqual(exec2.filesCopied, 4, "second execute should still report four copies");
 	}
 
-	printf("EditorLogicTests passed\n");
+	harness.report();
 	return 0;
 }

@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "IfFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(1, IfFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::If, IfFilterFactory)
 
 using std::vector;
 using std::wstring;

@@ -204,6 +204,11 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 	// in DeviceSelector). Widen the ACL on the whole install root for both
 	// LOCAL SERVICE (RX recursive) and Users (RX recursive) before any APO
 	// registration takes effect.
+	// Trust boundary: installDir and the executable paths come from the local
+	// install location, and the principals are built-in well-known SIDs, not from
+	// network or untrusted user input. Spawning system icacls.exe / regsvr32 and
+	// widening these ACLs is therefore safe. Preserve this assumption — if these
+	// inputs ever become caller-supplied, they must be validated/quoted first.
 	std::wstring icacls = joinPath(systemPath(), L"icacls.exe");
 	std::wstring installAclArgs = L"\"" + installDir + L"\" "
 		L"/grant *S-1-5-19:(OI)(CI)RX "

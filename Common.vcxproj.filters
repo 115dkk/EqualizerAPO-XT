@@ -5,6 +5,9 @@
     <ClInclude Include="filters\BiQuad.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\BiQuadCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\BiQuadFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -32,6 +35,9 @@
     <ClInclude Include="filters\CopyFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\DelayCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\DelayFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -42,6 +48,9 @@
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\ExpressionFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\GraphicEQCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\GraphicEQFilter.h">
@@ -62,6 +71,9 @@
     <ClInclude Include="filters\IncludeFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\PreampCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\PreampFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -69,6 +81,9 @@
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\StageFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\VSTPluginCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\VSTPluginFilter.h">
@@ -116,6 +131,9 @@
     <ClInclude Include="helpers\VSTPluginInstance.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\VSTPluginInstanceInternal.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\VSTPluginLibrary.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -160,6 +178,9 @@
     <ClCompile Include="filters\BiQuad.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\BiQuadCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\BiQuadFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -187,6 +208,9 @@
     <ClCompile Include="filters\CopyFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\DelayCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\DelayFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -197,6 +221,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ExpressionFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\GraphicEQCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\GraphicEQFilter.cpp">
@@ -217,6 +244,9 @@
     <ClCompile Include="filters\IncludeFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\PreampCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\PreampFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -224,6 +254,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\StageFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\VSTPluginCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\VSTPluginFilter.cpp">
@@ -260,6 +293,18 @@
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\VSTPluginInstance.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.Editor.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.State.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.VST2.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.VST3.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\VSTPluginLibrary.cpp">

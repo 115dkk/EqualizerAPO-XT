@@ -234,6 +234,9 @@ void FilterTable::updateGuis()
 			}
 		}
 
+		// ModernCards (FilterCardRow) is the canonical filter-list UI; LegacyRows
+		// (FilterTableRow) is a frozen fallback that must not be extended. New
+		// list behavior goes only into the card path. See docs/FilterListUiPolicy.md.
 		QWidget* rowWidget = renderMode == ModernCards
 			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, row < rowDepths.size() ? rowDepths[row] : 0))
 			: static_cast<QWidget*>(new FilterTableRow(this, row + 1, item, gui));
@@ -354,6 +357,8 @@ void FilterTable::updateSingleRowGui(Item* item)
 
 	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
 	int depth = rowIndex < rowDepths.size() ? rowDepths[rowIndex] : 0;
+	// Same render-mode policy as updateGuis(): the card path is canonical and the
+	// legacy row path is a frozen fallback. See docs/FilterListUiPolicy.md.
 	QWidget* rowWidget = renderMode == ModernCards
 		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, depth))
 		: static_cast<QWidget*>(new FilterTableRow(this, rowIndex + 1, item, gui));

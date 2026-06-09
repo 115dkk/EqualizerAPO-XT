@@ -30,7 +30,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "ExpressionFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(2, ExpressionFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Expression, ExpressionFilterFactory)
 
 using std::vector;
 using std::wstring;

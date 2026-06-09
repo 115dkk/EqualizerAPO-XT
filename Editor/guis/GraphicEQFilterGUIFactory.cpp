@@ -17,8 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "filters/GraphicEQFilter.h"
-#include "filters/GraphicEQFilterFactory.h"
+#include "filters/GraphicEQCommand.h"
 #include "GraphicEQFilterGUI.h"
 #include "GraphicEQFilterGUIFactory.h"
 
@@ -51,21 +50,13 @@ IFilterGUI* GraphicEQFilterGUIFactory::createFilterGUI(QString& command, QString
 
 	if (command == "GraphicEQ")
 	{
-		GraphicEQFilterFactory factory;
-		std::wstring commandWStr = command.toStdWString();
-		std::wstring paramWStr = parameters.toStdWString();
-		std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
-		if (!filters.empty())
-		{
-			GraphicEQFilter* filter = (GraphicEQFilter*)filters[0];
-			result = new GraphicEQFilterGUI(filter, configPath, filterTable);
-		}
-
-		for (IFilter* f : filters)
-		{
-			f->~IFilter();
-			MemoryHelper::free(f);
-		}
+		// Parse the node list with the same shared parser the engine factory uses,
+		// straight into the Qt-free struct. This replaces the former hack of
+		// building a real GraphicEQFilter (with its IR/FFT setup) just to read its
+		// nodes back and immediately destroy it.
+		GraphicEQCommand cmd;
+		cmd.parse(parameters.toStdWString());
+		result = new GraphicEQFilterGUI(cmd.nodes, configPath, filterTable);
 	}
 
 	return result;

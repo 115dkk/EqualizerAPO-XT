@@ -25,6 +25,7 @@
 #include "FilterEngine.h"
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
+#include "Tests/TestHarness.h"
 
 namespace
 {
@@ -55,6 +56,14 @@ const TestCase kCases[] = {
 	{ "delay_512",           "delay_512.txt",           SignalType::ImpulseStereo, 48000, 2, 2048  },
 	{ "graphiceq_15band",    "graphiceq_15band.txt",    SignalType::ImpulseStereo, 48000, 2, 8192  },
 	{ "convolution_short",   "convolution_short.txt",   SignalType::ImpulseStereo, 48000, 2, 4096  },
+	{ "iir_order2_lowpass",  "iir_order2_lowpass.txt",  SignalType::ImpulseStereo, 48000, 2, 256   },
+	{ "channel_left_only",   "channel_left_only.txt",   SignalType::DCStereo,      48000, 2, 256   },
+	// LoudnessCorrection with State 0 is a deterministic pass-through. With
+	// State 1 the filter reads the live system master volume (VolumeController)
+	// and runs a background parameter thread, so its output is not stable
+	// enough for a stored reference; State 0 keeps the factory + parameter
+	// parsing covered without that non-determinism.
+	{ "loudnesscorrection_bypassed", "loudnesscorrection_bypassed.txt", SignalType::ImpulseStereo, 48000, 2, 256 },
 };
 
 struct Options
@@ -364,5 +373,12 @@ int main(int argc, char** argv)
 	else
 		printf("\n");
 
-	return anyFailed ? 1 : 0;
+	// Route the final verdict through the shared harness. On failure this
+	// prints to stderr and exits(1); on success it returns 0, preserving the
+	// previous "return anyFailed ? 1 : 0" exit semantics. anyFailed covers both
+	// a tolerance drift in verify mode and a reference-write error in generate
+	// mode.
+	test::Harness harness("AudioRegressionTests");
+	harness.expect(!anyFailed, "one or more regression cases failed (drift beyond tolerance or I/O error)");
+	return 0;
 }

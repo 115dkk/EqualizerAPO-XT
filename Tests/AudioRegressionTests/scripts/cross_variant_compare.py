@@ -29,6 +29,9 @@ CASES = [
     "delay_512",
     "graphiceq_15band",
     "convolution_short",
+    "iir_order2_lowpass",
+    "channel_left_only",
+    "loudnesscorrection_bypassed",
 ]
 
 

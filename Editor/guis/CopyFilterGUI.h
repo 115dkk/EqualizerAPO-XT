@@ -33,7 +33,10 @@ class CopyFilterGUI : public IFilterGUI
 	Q_OBJECT
 
 public:
-	explicit CopyFilterGUI(CopyFilter* filter, FilterTable* filterTable);
+	// Built directly from the parsed routing (the shared std::vector<Assignment>
+	// that parseCopyAssignments returns), so the GUI factory no longer constructs a
+	// throwaway CopyFilter just to read getAssignments() back.
+	explicit CopyFilterGUI(const std::vector<Assignment>& assignments, FilterTable* filterTable);
 	~CopyFilterGUI();
 
 	void configureChannels(std::vector<std::wstring>& channelNames) override;

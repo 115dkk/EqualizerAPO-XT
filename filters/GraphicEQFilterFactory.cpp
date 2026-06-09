@@ -18,27 +18,18 @@
 */
 
 #include "stdafx.h"
-#include <regex>
 
 #include "helpers/MemoryHelper.h"
-#include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "GraphicEQFilter.h"
+#include "GraphicEQCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "GraphicEQFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(12, GraphicEQFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory)
 
-using std::find;
-using std::regex;
-using std::sort;
 using std::vector;
-using std::wregex;
-using std::wsmatch;
-using std::wsregex_iterator;
 using std::wstring;
-
-static wregex regexNumber(L"[-+0-9.eE]+");
 
 vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
@@ -46,32 +37,17 @@ vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath,
 
 	if (command == L"GraphicEQ")
 	{
-		wstring value = parameters;
-		if (value.find(L'.') == wstring::npos)
-			value = StringHelper::replaceCharacters(value, L",", L".");
+		// Parse the node list into the shared, Qt-free struct so the engine and the
+		// Editor build the filter from the exact same parsed values. The struct
+		// reproduces the previous inline parse (comma/period handling, number
+		// regex, freq/gain pairing and frequency sort) verbatim, so the resulting
+		// node list - and therefore the GraphicEQFilter - is unchanged.
+		GraphicEQCommand cmd;
+		cmd.parse(parameters);
 
-		wsregex_iterator begin(value.begin(), value.end(), regexNumber);
-		wsregex_iterator end;
+		TraceF(L"Graphic equalizer with %d nodes", cmd.nodes.size());
 
-		vector<FilterNode> nodes;
-		for (wsregex_iterator it = begin; it != end; it++)
-		{
-			wsmatch freqMatch = *it++;
-			if (it != end)
-			{
-				wsmatch gainMatch = *it;
-				double freq = wcstod(freqMatch.str(0).c_str(), nullptr);
-				double gain = wcstod(gainMatch.str(0).c_str(), nullptr);
-				FilterNode node(freq, gain);
-				nodes.push_back(node);
-			}
-		}
-		sort(nodes.begin(), nodes.end());
-
-		TraceF(L"Graphic equalizer with %d nodes", nodes.size());
-
-		void* mem = MemoryHelper::alloc(sizeof(GraphicEQFilter));
-		filter = new(mem) GraphicEQFilter(nodes, 16384);
+		filter = MemoryHelper::construct<GraphicEQFilter>(cmd.nodes, 16384);
 	}
 
 	if (filter == nullptr)

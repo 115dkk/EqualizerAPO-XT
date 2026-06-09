@@ -20,7 +20,8 @@
 #pragma once
 
 #include "Editor/IFilterGUI.h"
-#include <filters/BiQuadFilter.h>
+#include <filters/BiQuad.h>
+#include <filters/BiQuadCommand.h>
 
 namespace Ui {
 class BiQuadFilterGUI;
@@ -31,7 +32,7 @@ class BiQuadFilterGUI : public IFilterGUI
 	Q_OBJECT
 
 public:
-	BiQuadFilterGUI(BiQuadFilter* filter);
+	BiQuadFilterGUI(const BiQuadCommand& command);
 	~BiQuadFilterGUI();
 	void store(QString& command, QString& parameters) override;
 

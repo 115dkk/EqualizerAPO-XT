@@ -24,6 +24,7 @@
 #include <fstream>
 #include <algorithm>
 #include <exception>
+#include <set>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <Shlwapi.h>
@@ -57,6 +58,7 @@
 #include "filters/GraphicEQFilterFactory.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
+#include "filters/FilterFactoryRegistry.h"
 
 using std::exception;
 using std::find;
@@ -162,6 +164,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			// allow to use indentation
 			key = StringHelper::trim(key);
 
+			bool producedFilter = false;
 			for (auto it = factories.cbegin(); it != factories.cend(); it++)
 			{
 				IFilterFactory* factory = it->get();
@@ -181,8 +184,40 @@ void FilterEngine::loadConfigFile(const wstring& path)
 				if (!newFilters.empty())
 				{
 					addFilters(newFilters);
+					producedFilter = true;
 					break;
 				}
+			}
+
+			// Distinguish "no factory recognized this key" (plain text, comments,
+			// unknown keys) from "a recognized command was matched but produced no
+			// filter" (likely malformed parameters). A consumed control command
+			// leaves key empty, so it is excluded by the !key.empty() check.
+			//
+			// Boundary: some recognized commands legitimately add no filter and are
+			// listed in commandsWithoutFilter below, so they are not flagged:
+			//   - Control-flow commands (Device/If/.../Stage/Eval/Include) steer
+			//     parsing and never add a filter by design.
+			//   - Preamp (0 dB), Delay (0) have valid no-op paths, and BiQuad/IIR
+			//     ("Filter ...", including the "ON None" disable form) plus Preamp
+			//     already emit their own specific parameter diagnostics, so a generic
+			//     warning here would be a false positive or a duplicate.
+			// The remaining processing commands (Convolution, VSTPlugin,
+			// LoudnessCorrection, ...) have no valid no-filter path, so reaching this
+			// point with no filter means the parameters were malformed.
+			if (!producedFilter && !key.empty())
+			{
+				static const std::set<wstring> commandsWithoutFilter = {
+					L"Device", L"If", L"ElseIf", L"Else", L"EndIf", L"Eval", L"Include", L"Stage",
+					L"Preamp", L"Delay", L"Filter"
+				};
+
+				// A key may carry a trailing token (e.g. "Filter 1"); match the first
+				// whitespace-delimited token against the canonical command set.
+				wstring commandKeyword = key.substr(0, key.find_first_of(L" \t"));
+				const std::set<wstring>& knownCommands = FilterFactoryRegistry::knownConfigCommands();
+				if (knownCommands.count(commandKeyword) != 0 && commandsWithoutFilter.count(commandKeyword) == 0)
+					LogF(L"Command \"%s\" was recognized but produced no filter, likely due to malformed parameters", key.c_str());
 			}
 		}
 	}

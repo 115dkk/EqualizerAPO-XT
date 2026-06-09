@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <atomic>
 #include <cmath>
 #include <memory>
 #include <mutex>
@@ -37,14 +38,30 @@ using std::abs;
 using std::vector;
 using std::wstring;
 
+// Decoded impulse-response PCM, shared between ConvolutionFilter instances that
+// reference the same IR. Defined at global scope (not in the anonymous namespace)
+// so ConvolutionFilter can forward-declare it and hold a std::shared_ptr member.
+struct IrCacheEntry
+{
+	unsigned channels = 0;
+	unsigned frames = 0;
+	// Channel-major IR samples; each inner vector has `frames` elements.
+	std::vector<std::vector<double>> buffers;
+};
+
 namespace
 {
 	// Cache of decoded impulse-response PCM, keyed by path + mtime + sample rate.
 	// Lets a config reload (or a second ConvolutionFilter using the same IR) skip
 	// the libsndfile read + interleave-to-planar pass. File I/O and the
 	// per-channel reshuffle dominate ConvolutionFilter initialization for large
-	// IRs; we keep the cache process-wide and unbounded since IRs rarely change
-	// inside a session and each entry is at most the file's PCM size.
+	// IRs.
+	//
+	// The cache holds *weak* references: each live ConvolutionFilter keeps a
+	// shared_ptr to its IrCacheEntry, so the entry survives exactly as long as some
+	// filter still uses it. Once the last filter referencing an IR is destroyed the
+	// entry is freed, which bounds cache memory to the current config's working set
+	// and stops a long-lived process from accumulating every IR it ever loaded.
 	struct IrCacheKey
 	{
 		std::wstring path;
@@ -68,23 +85,15 @@ namespace
 		}
 	};
 
-	struct IrCacheEntry
-	{
-		unsigned channels = 0;
-		unsigned frames = 0;
-		// Channel-major IR samples; each inner vector has `frames` elements.
-		std::vector<std::vector<double>> buffers;
-	};
-
 	std::mutex& irCacheMutex()
 	{
 		static std::mutex m;
 		return m;
 	}
 
-	std::unordered_map<IrCacheKey, std::shared_ptr<const IrCacheEntry>, IrCacheKeyHash>& irCache()
+	std::unordered_map<IrCacheKey, std::weak_ptr<const IrCacheEntry>, IrCacheKeyHash>& irCache()
 	{
-		static std::unordered_map<IrCacheKey, std::shared_ptr<const IrCacheEntry>, IrCacheKeyHash> c;
+		static std::unordered_map<IrCacheKey, std::weak_ptr<const IrCacheEntry>, IrCacheKeyHash> c;
 		return c;
 	}
 
@@ -106,7 +115,13 @@ namespace
 			std::lock_guard<std::mutex> lock(irCacheMutex());
 			auto it = irCache().find(key);
 			if (it != irCache().end())
-				return it->second;
+			{
+				if (auto entry = it->second.lock())
+					return entry;
+				// Weak reference expired (last filter using it was destroyed);
+				// drop the dead slot and fall through to reload.
+				irCache().erase(it);
+			}
 		}
 
 		SF_INFO info{};
@@ -146,13 +161,43 @@ namespace
 
 		{
 			std::lock_guard<std::mutex> lock(irCacheMutex());
-			irCache().emplace(std::move(key), entry);
+			// Prune slots whose entries have been freed so the map does not keep
+			// accumulating dead keys as IRs come and go across config reloads.
+			for (auto it = irCache().begin(); it != irCache().end();)
+			{
+				if (it->second.expired())
+					it = irCache().erase(it);
+				else
+					++it;
+			}
+			// store_or_replace: a concurrent loader may have inserted the same key
+			// (possibly now expired); overwrite with our live weak reference.
+			irCache()[std::move(key)] = entry;
 		}
 		return entry;
+	}
+
+	// Running total of process() calls that took the frameCount-mismatch mute path,
+	// across all ConvolutionFilter instances. The mute is otherwise silent after the
+	// first log, so this makes the condition observable (logged in cleanup()). The
+	// mute path can run on the audio thread, hence atomic.
+	std::atomic<unsigned long long> muteCallCount{ 0 };
+}
+
+void HConvSingleArray::reset()
+{
+	if (ptr != nullptr)
+	{
+		for (unsigned i = 0; i < channelCount; i++)
+			hcCloseSingle(&ptr[i]);
+
+		MemoryHelper::free(ptr);
+		ptr = nullptr;
 	}
 }
 
 ConvolutionFilter::ConvolutionFilter(wstring filename)
+	: filters(channelCount)
 {
 	this->filename = filename;
 	filters = nullptr;
@@ -198,9 +243,10 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	// 이 분기는 거의 들어오지 않는다.
 	if (frameCount != filterFrameCount)
 	{
+		const unsigned long long count = muteCallCount.fetch_add(1, std::memory_order_relaxed) + 1;
 		if (!frameCountMismatchLogged)
 		{
-			LogF(L"ConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped)", frameCount, filterFrameCount);
+			LogF(L"ConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls so far: %llu]", frameCount, filterFrameCount, count);
 			frameCountMismatchLogged = true;
 		}
 		for (unsigned i = 0; i < channelCount; i++)
@@ -223,16 +269,18 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 
 void ConvolutionFilter::cleanup()
 {
-	if (filters != nullptr)
-	{
-		for (unsigned i = 0; i < channelCount; i++)
-			hcCloseSingle(&filters[i]);
-
-		MemoryHelper::free(filters);
-		filters = nullptr;
-	}
+	// HConvSingleArray::reset() runs the exact close-then-free sequence; assigning
+	// nullptr makes the teardown automatic and idempotent.
+	filters = nullptr;
+	// Release this filter's hold on the cached IR. With the cache holding only weak
+	// references, dropping the last shared_ptr frees the entry.
+	irEntry.reset();
 	filterFrameCount = 0;
 	frameCountMismatchLogged = false;
+
+	// Surface how often the mismatch mute fired (silent after the first log).
+	if (muteCallCount.load(std::memory_order_relaxed) != 0)
+		LogF(L"ConvolutionFilter: frameCount-mismatch mute fired %llu time(s) total", muteCallCount.load(std::memory_order_relaxed));
 }
 
 void ConvolutionFilter::initializeFilters(unsigned frameCount)
@@ -240,6 +288,11 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	auto ir = loadIrCached(filename, sampleRate);
 	if (!ir)
 		return;
+
+	// Pin the cached IR for this filter's lifetime. The process-wide cache keeps
+	// only a weak reference, so this member is what keeps the entry resident while
+	// the filter exists; cleanup() releases it.
+	irEntry = ir;
 
 	TraceF(L"Convolving using impulse response file %s (%u channels, %u frames)",
 		filename.c_str(), ir->channels, ir->frames);

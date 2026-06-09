@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "filters/DelayFilter.h"
+#include "filters/DelayCommand.h"
 #include "filters/DelayFilterFactory.h"
 #include "DelayFilterGUI.h"
 #include "DelayFilterGUIFactory.h"
@@ -39,21 +39,14 @@ IFilterGUI* DelayFilterGUIFactory::createFilterGUI(QString& command, QString& pa
 
 	if (command == "Delay")
 	{
-		DelayFilterFactory factory;
+		// Parse the config line through the engine's single owning parse routine
+		// and populate the GUI directly from the resulting command, instead of
+		// constructing a throwaway DelayFilter just to read its fields back.
 		std::wstring commandWStr = command.toStdWString();
 		std::wstring paramWStr = parameters.toStdWString();
-		std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
-		if (!filters.empty())
-		{
-			DelayFilter* filter = (DelayFilter*)filters[0];
-			result = new DelayFilterGUI(filter->getDelay(), filter->getIsMs());
-		}
-
-		for (IFilter* f : filters)
-		{
-			f->~IFilter();
-			MemoryHelper::free(f);
-		}
+		DelayCommand cmd;
+		if (DelayFilterFactory::parseCommand(commandWStr, paramWStr, cmd))
+			result = new DelayFilterGUI(cmd.delay, cmd.isMs);
 	}
 
 	return result;

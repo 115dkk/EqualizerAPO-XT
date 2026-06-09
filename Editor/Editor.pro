@@ -40,6 +40,7 @@ SOURCES += main.cpp\
 	FilterTableParts/FilterTable.Events.cpp \
 	FilterTableParts/FilterTable.Model.cpp \
 	FilterTableParts/FilterTable.Mouse.cpp \
+	../filters/PreampCommand.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
 	../helpers/MemoryHelper.cpp \
@@ -59,6 +60,7 @@ SOURCES += main.cpp\
 	guis/ChannelFilterGUIFactory.cpp \
 	guis/BiQuadFilterGUI.cpp \
 	../filters/BiQuad.cpp \
+	../filters/BiQuadCommand.cpp \
 	../filters/BiQuadFilter.cpp \
 	../filters/BiQuadFilterFactory.cpp \
 	guis/BiQuadFilterGUIFactory.cpp \
@@ -76,6 +78,7 @@ SOURCES += main.cpp\
 	../helpers/ChannelHelper.cpp \
 	guis/DelayFilterGUI.cpp \
 	guis/DelayFilterGUIFactory.cpp \
+	../filters/DelayCommand.cpp \
 	../filters/DelayFilter.cpp \
 	../filters/DelayFilterFactory.cpp \
 	guis/IncludeFilterGUI.cpp \
@@ -88,6 +91,7 @@ SOURCES += main.cpp\
 	guis/ChannelFilterGUIChannelItem.cpp \
 	guis/GraphicEQFilterGUIFactory.cpp \
 	guis/GraphicEQFilterGUI.cpp \
+	../filters/GraphicEQCommand.cpp \
 	../filters/GraphicEQFilter.cpp \
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
@@ -114,6 +118,7 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.FileIO.cpp \
 	MainWindowParts/MainWindow.Preferences.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
+	ConfigFileCodec.cpp \
 	guis/StageFilterGUI.cpp \
 	guis/StageFilterGUIFactory.cpp \
 	guis/ExpressionFilterGUIFactory.cpp \
@@ -151,6 +156,7 @@ SOURCES += main.cpp\
 	guis/VSTPluginFilterGUI.cpp \
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
+	../filters/VSTPluginCommand.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../helpers/VSTPluginInstance.cpp \
@@ -203,6 +209,7 @@ HEADERS  += \
 	guis/CommentFilterGUIFactory.h \
 	guis/CommentFilterGUI.h \
 	FilterTable.h \
+	../filters/PreampCommand.h \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
 	../helpers/MemoryHelper.h \
@@ -218,6 +225,7 @@ HEADERS  += \
 	guis/ChannelFilterGUIFactory.h \
 	guis/BiQuadFilterGUI.h \
 	../filters/BiQuad.h \
+	../filters/BiQuadCommand.h \
 	../filters/BiQuadFilter.h \
 	../filters/BiQuadFilterFactory.h \
 	guis/BiQuadFilterGUIFactory.h \
@@ -236,6 +244,7 @@ HEADERS  += \
 	../helpers/ChannelHelper.h \
 	guis/DelayFilterGUI.h \
 	guis/DelayFilterGUIFactory.h \
+	../filters/DelayCommand.h \
 	../filters/DelayFilter.h \
 	../filters/DelayFilterFactory.h \
 	guis/IncludeFilterGUI.h \
@@ -247,6 +256,7 @@ HEADERS  += \
 	guis/ChannelFilterGUIChannelItem.h \
 	guis/GraphicEQFilterGUIFactory.h \
 	guis/GraphicEQFilterGUI.h \
+	../filters/GraphicEQCommand.h \
 	../filters/GraphicEQFilter.h \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
@@ -268,6 +278,7 @@ HEADERS  += \
 	../version.h \
 	../stdafx.h \
 	MainWindow.h \
+	ConfigFileCodec.h \
 	guis/StageFilterGUI.h \
 	guis/StageFilterGUIFactory.h \
 	guis/ExpressionFilterGUIFactory.h \
@@ -300,6 +311,7 @@ HEADERS  += \
 	guis/VSTPluginFilterGUI.h \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
+	../filters/VSTPluginCommand.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
 	../helpers/VSTPluginInstance.h \
@@ -443,12 +455,13 @@ contains(QT_ARCH, arm64) {
 	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else:equals(EAPO_SIMD_BASELINE, 1) {
 	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
-} else:contains(QT_ARCH, x86_64) {
-	QMAKE_CXXFLAGS += /arch:AVX2
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else {
-	QMAKE_CXXFLAGS += /arch:AVX2
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
+	# A non-ARM64 build that passes no SIMD selection used to fall back to /arch:AVX2
+	# while still labelling the binary with whatever EAPO_UPDATE_CHANNEL it was given.
+	# That silently mislabels a misconfigured local build as AVX2. Fail loudly instead;
+	# the documented local + CI command passes EAPO_SIMD_FLAGS and EAPO_UPDATE_CHANNEL
+	# (e.g. EAPO_SIMD_FLAGS=/arch:AVX2 EAPO_UPDATE_CHANNEL=x64-avx2).
+	error("EAPO_SIMD_FLAGS must be set for x64 builds (e.g. EAPO_SIMD_FLAGS=/arch:AVX2), or pass EAPO_SIMD_BASELINE=1 for the SSE2 baseline. Also set EAPO_UPDATE_CHANNEL to the matching channel (e.g. x64-avx2). See .github/simd-variants.psd1 for the variant/channel map.")
 }
 
 # Include Common.lib

@@ -27,50 +27,62 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "DelayFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(9, DelayFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory)
 
 using std::vector;
 using std::wstringstream;
 using std::wstring;
 
-vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameters, DelayCommand& out)
 {
-	DelayFilter* filter = nullptr;
+	if (command != L"Delay")
+		return false;
 
-	if (command == L"Delay")
+	// Conversion to period as decimal mark, if needed
+	wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
+
+	double delay = -1;
+	wstring unit;
+	wstringstream stream(value);
+	stream >> delay >> unit;
+
+	if (delay < 0)
+		return false;
+
+	// A 0-length delay is a no-op: it produces no filter so the chain avoids one
+	// virtual call and one ring-buffer update per block. Report it like before
+	// and reject the command so no DelayFilter is built.
+	if (delay == 0.0)
 	{
-		// Conversion to period as decimal mark, if needed
-		wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
-
-		double delay = -1;
-		wstring unit;
-		wstringstream stream(value);
-		stream >> delay >> unit;
-
-		if (delay >= 0)
-		{
-			// A 0-length delay is a no-op: skip allocating the filter so the chain
-			// avoids one virtual call and one ring-buffer update per block.
-			if (delay == 0.0)
-			{
-				TraceF(L"Skipping no-op delay (0 %s)", StringHelper::toLowerCase(unit).c_str());
-			}
-			else if (StringHelper::toLowerCase(unit) == L"ms")
-			{
-				TraceF(L"Delaying by %g ms", delay);
-				void* mem = MemoryHelper::alloc(sizeof(DelayFilter));
-				filter = new(mem) DelayFilter(delay, true);
-			}
-			else if (StringHelper::toLowerCase(unit) == L"samples")
-			{
-				TraceF(L"Delaying by %g samples", delay);
-				void* mem = MemoryHelper::alloc(sizeof(DelayFilter));
-				filter = new(mem) DelayFilter(delay, false);
-			}
-		}
+		TraceFStatic(L"Skipping no-op delay (0 %s)", StringHelper::toLowerCase(unit).c_str());
+		return false;
 	}
 
-	if (filter == nullptr)
+	if (StringHelper::toLowerCase(unit) == L"ms")
+	{
+		TraceFStatic(L"Delaying by %g ms", delay);
+		out.delay = delay;
+		out.isMs = true;
+		return true;
+	}
+
+	if (StringHelper::toLowerCase(unit) == L"samples")
+	{
+		TraceFStatic(L"Delaying by %g samples", delay);
+		out.delay = delay;
+		out.isMs = false;
+		return true;
+	}
+
+	return false;
+}
+
+vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+{
+	DelayCommand cmd;
+	if (!parseCommand(command, parameters, cmd))
 		return vector<IFilter*>(0);
+
+	DelayFilter* filter = MemoryHelper::construct<DelayFilter>(cmd.delay, cmd.isMs);
 	return vector<IFilter*>(1, filter);
 }

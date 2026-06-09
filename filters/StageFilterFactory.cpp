@@ -25,7 +25,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "StageFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(4, StageFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Stage, StageFilterFactory)
 
 using std::vector;
 using std::wstring;
