@@ -447,12 +447,13 @@ contains(QT_ARCH, arm64) {
 	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else:equals(EAPO_SIMD_BASELINE, 1) {
 	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
-} else:contains(QT_ARCH, x86_64) {
-	QMAKE_CXXFLAGS += /arch:AVX2
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 } else {
-	QMAKE_CXXFLAGS += /arch:AVX2
-	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
+	# A non-ARM64 build that passes no SIMD selection used to fall back to /arch:AVX2
+	# while still labelling the binary with whatever EAPO_UPDATE_CHANNEL it was given.
+	# That silently mislabels a misconfigured local build as AVX2. Fail loudly instead;
+	# the documented local + CI command passes EAPO_SIMD_FLAGS and EAPO_UPDATE_CHANNEL
+	# (e.g. EAPO_SIMD_FLAGS=/arch:AVX2 EAPO_UPDATE_CHANNEL=x64-avx2).
+	error("EAPO_SIMD_FLAGS must be set for x64 builds (e.g. EAPO_SIMD_FLAGS=/arch:AVX2), or pass EAPO_SIMD_BASELINE=1 for the SSE2 baseline. Also set EAPO_UPDATE_CHANNEL to the matching channel (e.g. x64-avx2). See .github/simd-variants.psd1 for the variant/channel map.")
 }
 
 # Include Common.lib
