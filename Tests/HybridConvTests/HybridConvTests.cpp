@@ -26,12 +26,13 @@
 // Forward declarations for the additional suites that share this binary's
 // main() (defined in CommonLogicTests.cpp, CopyCommandTests.cpp,
 // DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
-// ParserTests.cpp and ParserPreampTests.cpp).
+// VstHostTests.cpp, ParserTests.cpp and ParserPreampTests.cpp).
 void runCommonLogicTests();
 void runCopyCommandTests();
 void runDelayCommandTests();
 void runGraphicEQCommandTests();
 void runVSTPluginCommandTests();
+void runVstHostTests();
 void runParserTests();
 void runParserPreampTests();
 
@@ -226,12 +227,15 @@ int main()
 	// Pure-logic helper and parser-extension coverage that also lives in this
 	// console binary (see CommonLogicTests.cpp, CopyCommandTests.cpp,
 	// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
-	// ParserTests.cpp and ParserPreampTests.cpp).
+	// VstHostTests.cpp, ParserTests.cpp and ParserPreampTests.cpp).
 	runCommonLogicTests();
 	runCopyCommandTests();
 	runDelayCommandTests();
 	runGraphicEQCommandTests();
 	runVSTPluginCommandTests();
+	// Runtime VST2 host load/state/audio test (audit #48 F026). Soft-skips if the
+	// companion TestVst2Plugin.dll is not next to this executable.
+	runVstHostTests();
 	runParserTests();
 	runParserPreampTests();
 

@@ -578,6 +578,7 @@ jobs:
 
         $projects = @(
           "Common.vcxproj",
+          "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
           "Tests\HybridConvTests\HybridConvTests.vcxproj",
           "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
           "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj",

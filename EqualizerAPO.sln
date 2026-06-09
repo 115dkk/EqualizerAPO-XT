@@ -39,6 +39,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceSelector", "DeviceSel
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UpdateChecker", "UpdateChecker\UpdateChecker.vcxproj", "{9BFA1AEF-9DE9-4451-AA50-8F6D475164A3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestVst2Plugin", "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj", "{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -157,6 +159,18 @@ Global
 		{D273C249-AD1C-4072-809C-8E430F982BFE}.Release|Win32.Build.0 = Release|Win32
 		{D273C249-AD1C-4072-809C-8E430F982BFE}.Release|x64.ActiveCfg = Release|x64
 		{D273C249-AD1C-4072-809C-8E430F982BFE}.Release|x64.Build.0 = Release|x64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Debug|ARM64.Build.0 = Debug|ARM64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Debug|Win32.Build.0 = Debug|Win32
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Debug|x64.ActiveCfg = Debug|x64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Debug|x64.Build.0 = Debug|x64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|ARM64.ActiveCfg = Release|ARM64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|ARM64.Build.0 = Release|ARM64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|Win32.ActiveCfg = Release|Win32
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|Win32.Build.0 = Release|Win32
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|x64.ActiveCfg = Release|x64
+		{7E2B1C44-9A3D-4E58-B6F1-2C9D8A7F4E10}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
