@@ -234,7 +234,8 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'==''">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'!=''">$(EnableEnhancedInstructionSet)</EnableEnhancedInstructionSet>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <SDLCheck>true</SDLCheck>
@@ -454,4 +455,15 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <!-- CI always passes /p:EnableEnhancedInstructionSet per SIMD variant. A local
+       msbuild without that property compiles the AVX2 project default, so state
+       the effective x86 instruction set in the build output instead of letting a
+       non-AVX2 machine discover it from a crash. -->
+  <Target Name="ReportEnhancedInstructionSet" BeforeTargets="ClCompile" Condition="'$(Platform)'!='ARM64'">
+    <PropertyGroup>
+      <EffectiveEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'!=''">$(EnableEnhancedInstructionSet)</EffectiveEnhancedInstructionSet>
+      <EffectiveEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'==''">AdvancedVectorExtensions2 (project default; pass /p:EnableEnhancedInstructionSet to override)</EffectiveEnhancedInstructionSet>
+    </PropertyGroup>
+    <Message Importance="high" Text="Common: x86 instruction set = $(EffectiveEnhancedInstructionSet)" />
+  </Target>
 </Project>

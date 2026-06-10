@@ -48,6 +48,10 @@ $simdManifest = Import-PowerShellDataFile -Path $manifestPath
 # stay in sync with CI.
 $velopackLibcVersion = $simdManifest.Shared.VelopackLibcVersion
 
+# Supply-chain pins for the prebuilt binary dependencies: release tag plus SHA-256
+# per asset, shared with build.yml. Downloads are refused on hash mismatch.
+$dependencyPins = $simdManifest.DependencyReleases
+
 Write-Host "=== EqualizerAPO-XT Build Setup ===" -ForegroundColor Cyan
 Write-Host "Workspace: $workspace"
 Write-Host "Platform:  $Platform"
@@ -111,7 +115,14 @@ if (-not $usesVcpkg) {
 }
 
 foreach ($dl in $downloads) {
-    $url = if ($dl.Url) { $dl.Url } else { "https://github.com/$($dl.Repo)/releases/latest/download/$($dl.Asset)" }
+    $pin = $dependencyPins[$dl.Repo]
+    $url = if ($dl.Url) {
+        $dl.Url
+    } elseif ($pin) {
+        "https://github.com/$($dl.Repo)/releases/download/$($pin.Tag)/$($dl.Asset)"
+    } else {
+        throw "No pinned tag or explicit URL for $($dl.Repo) in simd-variants.psd1"
+    }
     $zipPath = Join-Path $downloadDir $dl.Asset
 
     if (Test-Path $zipPath) {
@@ -122,6 +133,19 @@ foreach ($dl in $downloads) {
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to download $url"
         }
+    }
+
+    if ($pin) {
+        $expected = $pin.Sha256[$dl.Asset]
+        if (-not $expected) {
+            throw "No pinned SHA-256 for $($dl.Asset) in simd-variants.psd1"
+        }
+        $actual = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
+        if ($actual -ne $expected) {
+            Remove-Item $zipPath -Force
+            throw "SHA-256 mismatch for $($dl.Asset): expected $expected, got $actual (stale cache removed; rerun to redownload)"
+        }
+        Write-Host "  Verified SHA-256 for $($dl.Asset)"
     }
 
     New-Item -ItemType Directory -Force -Path $dl.Destination | Out-Null
@@ -214,12 +238,25 @@ if ($usesVcpkg) {
 Write-Host "  Dependencies downloaded." -ForegroundColor Green
 
 # --- 2. Clone TCLAP ---
+# Pinned to the manifest's TclapTag, matching the build.yml checkout. Cached
+# clones are re-checked against the tag so a TclapTag bump actually takes
+# effect (the zip downloads above get the same treatment via SHA-256).
 Write-Host "`n=== Step 2: Clone TCLAP ===" -ForegroundColor Yellow
+$tclapTag = $simdManifest.Shared.TclapTag
 $tclapDir = Join-Path $depsDir "tclap"
-if (Test-Path (Join-Path $tclapDir "include")) {
-    Write-Host "  [cached] TCLAP already present"
+$tclapCachedTag = $null
+if ((Test-Path (Join-Path $tclapDir "include")) -and (Test-Path (Join-Path $tclapDir ".git"))) {
+    $tclapCachedTag = (git -C $tclapDir describe --tags --exact-match 2>$null)
+    if ($LASTEXITCODE -ne 0) { $tclapCachedTag = $null; $global:LASTEXITCODE = 0 }
+}
+if ($tclapCachedTag -eq $tclapTag -and $tclapCachedTag) {
+    Write-Host "  [cached] TCLAP already present at $tclapTag"
 } else {
-    git clone --depth 1 https://github.com/TheFireKahuna/tclap $tclapDir
+    if (Test-Path $tclapDir) {
+        Write-Host "  Cached TCLAP is not at $tclapTag; re-cloning..."
+        Remove-Item $tclapDir -Recurse -Force
+    }
+    git clone --depth 1 --branch $tclapTag https://github.com/TheFireKahuna/tclap $tclapDir
     if ($LASTEXITCODE -ne 0) { throw "Failed to clone TCLAP" }
     Write-Host "  -> $tclapDir"
 }

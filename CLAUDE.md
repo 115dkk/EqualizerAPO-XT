@@ -23,7 +23,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 ## 저장소 구조
 
-- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker`, `HybridConvTests`, `EditorLogicTests`, `AudioRegressionTests` 프로젝트를 묶습니다.
+- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker`, `Installer`, `TestVst2Plugin`, `HybridConvTests`, `EditorLogicTests`, `AudioRegressionTests` 프로젝트를 묶습니다.
 - `Common.vcxproj`: 필터 엔진, 필터 구현, 파서 확장, 헬퍼 코드를 포함하는 정적 라이브러리입니다.
 - `EqualizerAPO/`: Windows Audio Processing Object DLL 프로젝트입니다. ATL 기반이므로 `atls.lib`가 필요합니다.
 - `Editor/`: Qt 기반 설정 편집기입니다. `.pro`, `.ui`, 리소스, 번역 파일, 필터별 GUI가 있습니다.
@@ -141,14 +141,14 @@ CI가 만드는 GitHub Release 본문은 `.github/scripts/New-ReleaseNotes.ps1`�
 
 ## 버전 변경 기준
 
-릴리스 기본 버전은 `version.h`의 `MAJOR`, `MINOR`, `REVISION`입니다. CI는 이 기본 버전에 `-main.<run_number>`를 붙여 자동 릴리스 태그를 만듭니다.
+릴리스 기본 버전은 `version.h`의 `MAJOR`, `MINOR`, `REVISION`입니다. `main`에 push되면 CI의 version-bump job(`.github/scripts/Bump-Version.ps1`)이 커밋 메시지의 Conventional Commits 타입을 읽어 `version.h`를 자동으로 올리고, 깨끗한 `vX.Y.Z` 태그로 릴리스를 만듭니다. `version.h`는 손으로 올리지 않습니다.
 
-- 문서 수정, CI 경고 수정, 릴리스 노트 개선, 빌드 안정화처럼 사용자 설치 결과나 공개 API가 바뀌지 않는 작업은 `version.h`를 올리지 않습니다.
-- 버그 수정, 작은 동작 수정, 호환성을 유지하는 설치/업데이트 수정은 `REVISION`을 올립니다.
-- 새 기능, 새 필터, 새 SIMD/아키텍처 릴리스 채널, 사용자에게 보이는 동작 변경은 `MINOR`를 올립니다.
-- 설정 파일 형식, 설치 방식, 업데이트 채널, 공개 동작이 기존 사용자에게 수동 조치를 요구할 만큼 바뀌면 `MAJOR`를 올립니다.
+- 문서 수정, CI 경고 수정, 릴리스 노트 개선, 빌드 안정화처럼 사용자 설치 결과나 공개 API가 바뀌지 않는 작업은 `docs:`, `ci:`, `chore:` 등으로 커밋해 버전을 올리지 않습니다.
+- 버그 수정, 작은 동작 수정, 호환성을 유지하는 설치/업데이트 수정은 `fix:`로 커밋해 `REVISION`을 올립니다.
+- 새 기능, 새 필터, 새 SIMD/아키텍처 릴리스 채널, 사용자에게 보이는 동작 변경은 `feat:`로 커밋해 `MINOR`를 올립니다.
+- 설정 파일 형식, 설치 방식, 업데이트 채널, 공개 동작이 기존 사용자에게 수동 조치를 요구할 만큼 바뀌면 BREAKING CHANGE로 표시해 `MAJOR`를 올립니다.
 
-버전 변경 커밋은 기능 변경과 섞지 않습니다. 변경을 먼저 검증하고, 릴리스 의도가 분명할 때 별도 커밋으로 `version.h`를 올립니다.
+`version.h`가 올라가지 않은 push는 같은 태그의 릴리스가 이미 있으므로 release job이 재패키징을 건너뜁니다.
 
 ## 코드 작업 기준
 

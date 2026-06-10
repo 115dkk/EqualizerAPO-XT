@@ -28,13 +28,11 @@ After that, the project will focus on:
 
 ## Installation
 
-Use the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases) when XT builds are published. A push to `main` builds all supported variants and creates a GitHub Release with Velopack-packaged installers and a source code zip.
+Install from the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases). A push to `main` builds all supported variants and creates a GitHub Release with Velopack-packaged installers and a source code zip.
 
 The recommended download is **EqualizerAPO-XT-Setup.exe**, an auto-detect installer. It detects your CPU (architecture and AVX level) and downloads the matching build automatically, so you do not have to pick a SIMD variant by hand. The per-channel `…-Setup.exe` files stay available for installing a specific build. See [docs/AutoDetectInstaller.md](docs/AutoDetectInstaller.md).
 
 The installed update checker reads the matching Velopack channel feed and opens the correct channel setup asset when a newer release is available. The flow is documented in [docs/VelopackUpdates.md](docs/VelopackUpdates.md).
-
-Until then, build locally or use upstream Equalizer APO for normal production use.
 
 ## Building
 

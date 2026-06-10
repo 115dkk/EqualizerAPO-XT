@@ -98,13 +98,35 @@ jobs:
         "sha=$sha" >> $env:GITHUB_OUTPUT
         "base_version=$baseVersion" >> $env:GITHUB_OUTPUT
 
+  # The variant matrix is authored once in .github/simd-variants.psd1 and expanded
+  # here, so adding or renaming a variant cannot silently diverge between the
+  # manifest, this matrix, the installer, and the release tooling. The same job
+  # lints the channel strings compiled into Installer/AutoInstaller.cpp against
+  # the manifest.
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Lint variant consumers against the manifest
+      shell: pwsh
+      run: ./.github/scripts/Test-VariantSync.ps1
+
+    - name: Generate build matrix from the manifest
+      id: gen
+      shell: pwsh
+      run: ./.github/scripts/New-BuildMatrix.ps1 -EventName "${{ github.event_name }}"
+
   build:
-    needs: version-bump
+    needs: [version-bump, prepare-matrix]
     # Build for PRs and pushes. On main the bump job must finish first so the
     # build picks up the bumped version.h; on every other branch the bump job
     # is skipped (its `if` requires main) which is fine — we still build.
     if: |
-      always() && (
+      always() && needs.prepare-matrix.result == 'success' && (
         github.event_name != 'push' ||
         github.ref != 'refs/heads/main' ||
         needs.version-bump.result == 'success' ||
@@ -112,66 +134,10 @@ jobs:
       )
     strategy:
       fail-fast: false
-      matrix:
-        # On a pull request only the AVX2 variant runs. On push to main the
-        # full six-variant matrix runs. matrix.name is evaluated at workflow
-        # parse time, so we drive it from a fromJson expression rather than
-        # matrix.exclude (which the runner appears to ignore in PR context).
-        name: ${{ fromJson(github.event_name == 'pull_request' && '["windows-x64-avx2"]' || '["windows-x64-sse2","windows-x64-avx","windows-x64-avx2","windows-x64-avx512","windows-x64-avx10_1","windows-arm64"]') }}
-        include:
-          - name: windows-x64-sse2
-            os: windows-2025-vs2026
-            platform: x64
-            simd_variant: sse2
-            arch_flag: NotSet
-            muparserx_asset: muparserx-msvc-release-x64-avx2.zip
-            msvcdevplatform: x64
-          - name: windows-x64-avx
-            os: windows-2025-vs2026
-            platform: x64
-            simd_variant: avx
-            arch_flag: AdvancedVectorExtensions
-            qt_arch_flag: /arch:AVX
-            muparserx_asset: muparserx-msvc-release-x64-avx2.zip
-            msvcdevplatform: x64
-          - name: windows-x64-avx2
-            os: windows-2025-vs2026
-            platform: x64
-            simd_variant: avx2
-            arch_flag: AdvancedVectorExtensions2
-            qt_arch_flag: /arch:AVX2
-            fftw_asset: fftw-windows-release-x64-avx2.zip
-            muparserx_asset: muparserx-msvc-release-x64-avx2.zip
-            libsndfile_asset: libsndfile-x64-avx2.zip
-            msvcdevplatform: x64
-          - name: windows-x64-avx512
-            os: windows-2025-vs2026
-            platform: x64
-            simd_variant: avx512
-            arch_flag: AdvancedVectorExtensions512
-            qt_arch_flag: /arch:AVX512
-            fftw_asset: fftw-windows-release-x64-avx512.zip
-            muparserx_asset: muparserx-msvc-release-x64-avx512.zip
-            libsndfile_asset: libsndfile-x64-avx512.zip
-            msvcdevplatform: x64
-          - name: windows-x64-avx10_1
-            os: windows-2025-vs2026
-            platform: x64
-            simd_variant: avx10_1
-            arch_flag: AdvancedVectorExtensions101
-            qt_arch_flag: /arch:AVX10.1
-            fftw_asset: fftw-windows-release-x64-avx10.zip
-            muparserx_asset: muparserx-msvc-release-x64-avx10.zip
-            libsndfile_asset: libsndfile-x64-avx10.zip
-            msvcdevplatform: x64
-          - name: windows-arm64
-            os: windows-11-arm
-            platform: ARM64
-            simd_variant: neon
-            fftw_asset: fftw-windows-release-arm64.zip
-            muparserx_asset: muparserx-msvc-release-ARM64.zip
-            libsndfile_asset: libsndfile-arm64.zip
-            msvcdevplatform: arm64
+      # Authored in .github/simd-variants.psd1, expanded by
+      # .github/scripts/New-BuildMatrix.ps1. Pull requests build only the
+      # Primary variant (avx2); pushes and manual dispatches build all six.
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -200,9 +166,11 @@ jobs:
         "VELOPACK_LIBC_VERSION=$($manifest.Shared.VelopackLibcVersion)" >> $env:GITHUB_ENV
         "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
         "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
+        "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
         Write-Host "velopack_libc version: $($manifest.Shared.VelopackLibcVersion)"
         Write-Host "VST3 tag: $($manifest.Shared.Vst3Tag)"
         Write-Host "Highway tag: $($manifest.Shared.HighwayTag)"
+        Write-Host "TCLAP tag: $($manifest.Shared.TclapTag)"
 
     - name: Download dependency release assets
       shell: pwsh
@@ -212,8 +180,12 @@ jobs:
         $downloadRoot = "${{ github.workspace }}\deps\_downloads"
         New-Item -ItemType Directory -Force -Path $downloadRoot | Out-Null
 
-        $usesVcpkgLowerSimd = "${{ matrix.platform }}" -eq "x64" -and
-          ("${{ matrix.simd_variant }}" -eq "sse2" -or "${{ matrix.simd_variant }}" -eq "avx")
+        # Supply-chain pins: the three prebuilt binary dependencies are downloaded
+        # from a pinned release tag and verified against the SHA-256 recorded in
+        # .github/simd-variants.psd1, so a new upload to those personal forks
+        # cannot change what CI links without a reviewed manifest diff.
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        $pins = $manifest.DependencyReleases
 
         $downloads = @(
           @{
@@ -232,7 +204,7 @@ jobs:
           }
         )
 
-        if (-not $usesVcpkgLowerSimd) {
+        if ("${{ matrix.uses_vcpkg }}" -ne "true") {
           $downloads += @(
             @{
               Repo = "TheFireKahuna/amd-fftw"
@@ -248,7 +220,14 @@ jobs:
         }
 
         foreach ($download in $downloads) {
-          $url = if ($download.Url) { $download.Url } else { "https://github.com/$($download.Repo)/releases/latest/download/$($download.Asset)" }
+          $pin = $pins[$download.Repo]
+          $url = if ($download.Url) {
+            $download.Url
+          } elseif ($pin) {
+            "https://github.com/$($download.Repo)/releases/download/$($pin.Tag)/$($download.Asset)"
+          } else {
+            throw "No pinned tag or explicit URL for $($download.Repo) in simd-variants.psd1"
+          }
           $zipPath = Join-Path $downloadRoot $download.Asset
 
           Write-Host "Downloading $($download.Repo) release asset $($download.Asset)"
@@ -257,12 +236,24 @@ jobs:
             throw "Failed to download $url"
           }
 
+          if ($pin) {
+            $expected = $pin.Sha256[$download.Asset]
+            if (-not $expected) {
+              throw "No pinned SHA-256 for $($download.Asset) in simd-variants.psd1"
+            }
+            $actual = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
+            if ($actual -ne $expected) {
+              throw "SHA-256 mismatch for $($download.Asset): expected $expected, got $actual"
+            }
+            Write-Host "Verified SHA-256 for $($download.Asset)"
+          }
+
           New-Item -ItemType Directory -Force -Path $download.Destination | Out-Null
           Expand-Archive -Path $zipPath -DestinationPath $download.Destination -Force
         }
 
     - name: Build lower-SIMD dependency binaries
-      if: ${{ matrix.platform == 'x64' && (matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx') }}
+      if: ${{ matrix.uses_vcpkg == true }}
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"
@@ -390,11 +381,13 @@ jobs:
           throw "muParserX library creation failed"
         }
 
-    # Clone tclap repository (header-only library)
+    # Clone tclap repository (header-only library). Pinned like the other source
+    # dependencies; the tag comes from .github/simd-variants.psd1 (Shared.TclapTag).
     - name: Download TCLAP
       uses: actions/checkout@v6
       with:
         repository: TheFireKahuna/tclap
+        ref: ${{ env.TCLAP_TAG }}
         token: ${{ secrets.GITHUB_TOKEN }}
         path: deps/tclap
 
@@ -695,8 +688,9 @@ jobs:
           "${{ github.workspace }}\Tests\EditorLogicTests\${{ matrix.platform }}\Release\EditorLogicTests.exe"
         )
 
-        $canRunAudioSimdTests = "${{ matrix.platform }}" -ne "x64" -or "${{ matrix.simd_variant }}" -eq "avx2"
-        $canRunAudioSimdTests = $canRunAudioSimdTests -or "${{ matrix.simd_variant }}" -eq "avx" -or "${{ matrix.simd_variant }}" -eq "sse2"
+        # Whether the hosted runner can execute this variant's instruction set is
+        # recorded per variant in .github/simd-variants.psd1 (RunnerCanExecute).
+        $canRunAudioSimdTests = "${{ matrix.can_execute }}" -eq "true"
         if ($canRunAudioSimdTests) {
           $testExecutables += "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
         } else {
@@ -721,8 +715,8 @@ jobs:
     - name: Run audio regression tests
       # AVX-512 and AVX10.1 binaries cannot be executed on GitHub-hosted
       # x64 runners; we still build them but skip the runtime test step.
-      # The ARM64 runner natively runs NEON code so it stays included.
-      if: matrix.platform != 'x64' || matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx' || matrix.simd_variant == 'avx2'
+      # The gate is the manifest's per-variant RunnerCanExecute flag.
+      if: matrix.can_execute == true
       shell: pwsh
       run: |
         $variant = "${{ matrix.simd_variant }}"
@@ -737,8 +731,8 @@ jobs:
 
         $repoRefDir = "${{ github.workspace }}\Tests\AudioRegressionTests\references"
         $hasRefs = Test-Path (Join-Path $repoRefDir "preamp_minus6.raw")
-        $primaryVariant = "avx2"
-        $isPrimary = ($variant -eq $primaryVariant)
+        # The primary (reference-seeding) variant is flagged in simd-variants.psd1.
+        $isPrimary = "${{ matrix.primary }}" -eq "true"
 
         Push-Location "${{ github.workspace }}\Tests\AudioRegressionTests"
         try {
@@ -750,7 +744,7 @@ jobs:
               exit $LASTEXITCODE
             }
           } elseif ($isPrimary) {
-            Write-Host "No reference set in tree; primary variant '$primaryVariant' will record fresh references"
+            Write-Host "No reference set in tree; primary variant '$variant' will record fresh references"
             & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
             if ($LASTEXITCODE -ne 0) {
               Write-Error "AudioRegressionTests reference generation failed"
@@ -765,7 +759,7 @@ jobs:
         }
 
     - name: Upload audio regression outputs
-      if: (matrix.platform != 'x64' || matrix.simd_variant == 'sse2' || matrix.simd_variant == 'avx' || matrix.simd_variant == 'avx2')
+      if: matrix.can_execute == true
       uses: actions/upload-artifact@v7
       with:
         name: audio-regression-output-${{ matrix.simd_variant }}
@@ -774,7 +768,7 @@ jobs:
         if-no-files-found: warn
 
     - name: Upload audio regression references (primary variant)
-      if: matrix.simd_variant == 'avx2'
+      if: matrix.primary == true
       uses: actions/upload-artifact@v7
       with:
         name: audio-regression-references

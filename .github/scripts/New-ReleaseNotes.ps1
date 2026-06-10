@@ -28,8 +28,8 @@ $ErrorActionPreference = "Stop"
 $ChannelTable = [ordered]@{
   "arm64-neon"  = @{ Pattern = "arm64";                      SortOrder = 40;  Guidance = "Windows on ARM64 devices." }
   "x64-sse2"    = @{ Pattern = "sse2|baseline";              SortOrder = 5;   Guidance = "Baseline 64-bit Intel/AMD systems. Pick this for older x64 CPUs that do not support AVX." }
-  "x64-avx10-1" = @{ Pattern = "avx10-1|avx10_1";            SortOrder = 30;  Guidance = "64-bit Intel/AMD systems with AVX10.1 support." }
-  "x64-avx512"  = @{ Pattern = "avx512";                     SortOrder = 20;  Guidance = "64-bit Intel/AMD systems where you specifically want the AVX-512 build." }
+  "x64-avx10-1" = @{ Pattern = "avx10-1|avx10_1";            SortOrder = 30;  Guidance = "64-bit Intel/AMD systems with AVX10.1 support. Note: CI compiles but cannot execute this instruction set on its hosted runners, so this build skips the runtime audio tests that the sse2/avx/avx2 builds pass." }
+  "x64-avx512"  = @{ Pattern = "avx512";                     SortOrder = 20;  Guidance = "64-bit Intel/AMD systems where you specifically want the AVX-512 build. Note: CI compiles but cannot execute this instruction set on its hosted runners, so this build skips the runtime audio tests that the sse2/avx/avx2 builds pass." }
   "x64-avx2"    = @{ Pattern = "avx2";                       SortOrder = 10;  Guidance = "Most 64-bit Intel/AMD systems with AVX2. Use this if you are unsure which x64 build to pick." }
   "x64-avx"     = @{ Pattern = "(^|[-_.])avx($|[-_.])";      SortOrder = 8;   Guidance = "64-bit Intel/AMD systems with AVX, but not AVX2." }
 }
