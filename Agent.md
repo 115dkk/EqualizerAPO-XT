@@ -6,7 +6,7 @@
 
 EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 1.4.2를 바탕으로 한 포크입니다. 주요 변경점은 64비트 double 기반 오디오 처리, AVX2/AVX-512/AVX10.1 최적화, ARM64 빌드, Visual Studio 2022/2026과 GitHub Actions를 이용한 자동 빌드입니다.
 
-핵심 출력물은 Windows APO DLL, Qt 기반 GUI 도구, 보조 실행 파일, NSIS 설치 파일입니다. 외부 의존성은 FFTW, libsndfile, muparserx, TCLAP, Qt, NSIS입니다.
+핵심 출력물은 Windows APO DLL, Qt 기반 GUI 도구, 보조 실행 파일, Velopack 설치 파일입니다. 외부 의존성은 FFTW, libsndfile, muparserx, TCLAP, Qt입니다.
 
 ## 작업 우선순위와 TODO
 
@@ -21,9 +21,9 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 ## 저장소 구조
 
-- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker` 프로젝트를 묶습니다.
+- `EqualizerAPO.sln`: Visual Studio 솔루션입니다. `Common`, `EqualizerAPO`, `Benchmark`, `VoicemeeterClient`, `DeviceSelector`, `UpdateChecker`, `Installer`, `TestVst2Plugin`, `HybridConvTests`, `EditorLogicTests`, `AudioRegressionTests` 프로젝트를 묶습니다.
 - `Common.vcxproj`: 필터 엔진, 필터 구현, 파서 확장, 헬퍼 코드를 포함하는 정적 라이브러리입니다.
-- `EqualizerAPO/`: Windows Audio Processing Object DLL 프로젝트입니다.
+- `EqualizerAPO/`: Windows Audio Processing Object DLL 프로젝트입니다. ATL 기반이므로 `atls.lib`가 필요합니다.
 - `Editor/`: Qt 기반 설정 편집기입니다. `.pro`, `.ui`, 리소스, 번역 파일, 필터별 GUI가 있습니다.
 - `DeviceSelector/`: Qt 기반 장치 선택 도구입니다.
 - `UpdateChecker/`: Qt 기반 업데이트 확인 도구입니다.
@@ -33,25 +33,27 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 - `parser/`: muparserx에 붙는 논리 연산자, 문자열 함수, 정규식 함수, 레지스트리 함수입니다.
 - `helpers/`: 레지스트리, 로그, 문자열, 서비스, 작업 스케줄러, VST 로딩 같은 공용 도우미입니다.
 - `libHybridConv-0.1.1/`: convolution 처리에 쓰는 libHybridConv 코드와 Equalizer APO 연결 코드입니다.
-- `Setup/`: NSIS 설치 스크립트와 설치에 들어가는 기본 설정 파일입니다.
+- `Tests/`: `HybridConvTests`, `EditorLogicTests`, `AudioRegressionTests` 등 단위/회귀 테스트 프로젝트가 있습니다.
+- `Setup/`: 설치 시 함께 들어가는 기본 설정 파일입니다.
 - `.github/workflows/build.yml`: CI 빌드와 설치 파일 생성 파이프라인입니다.
+- `.github/simd-variants.psd1`: SIMD 변형 매트릭스와 의존성 핀의 단일 기준 파일입니다.
 - `version.h`: 릴리스 버전의 기준 파일입니다.
-- `build.bat`: 로컬 전체 빌드용 스크립트입니다. Visual Studio, Qt, NSIS가 필요합니다.
+- `setup-build.ps1`: 로컬 빌드 의존성(deps/, Qt) 설치 스크립트입니다.
 - `uncrustify.cfg`, `reformat.bat`: C/C++ 코드 포맷 기준과 실행 스크립트입니다.
 - `Wiki/`: 기존 사용자 문서 자료입니다.
 
 ## 빌드와 검증
 
-- C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을 기준으로 합니다. 현재 로컬 프로젝트는 VS 2026 `v145`에서도 빌드하며, CI는 필요하면 VS 2022 `v143` toolset으로 덮어씁니다.
+- C++ 프로젝트는 Visual Studio 2022/2026 계열 도구와 Windows SDK 10.0을 기준으로 합니다. 현재 로컬 프로젝트는 VS 2026 `v145`에서 빌드하며, VS 2022만 있는 환경에서는 `/p:PlatformToolset=v143`으로 덮어쓰면 됩니다. CI는 x64에서 `v145`, ARM64 runner에서 `v143`을 씁니다.
 - `.vcxproj`는 C++17을 사용합니다. 기존 `UNICODE`, `_UNICODE`, `MUP_USE_WIDE_STRING` 정의를 유지합니다.
 - Qt 도구는 `Editor`, `DeviceSelector`, `UpdateChecker`에서 `.pro` 파일을 중심으로 관리합니다.
-- 로컬 전체 빌드는 `build.bat`를 기준으로 봅니다. 이 스크립트는 Win32, x64, ARM64 MSBuild, Qt qmake/jom, NSIS 설치 파일 생성을 차례로 실행합니다.
-- CI는 x64 `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌드하고 산출물과 설치 파일을 업로드합니다.
-- `main`에 push되면 CI가 모든 변형 빌드와 NSIS 설치 파일 생성을 끝낸 뒤 GitHub Release를 만듭니다. Release에는 Velopack으로 감싼 설치 파일과 `git archive`로 만든 소스 코드 zip을 올립니다.
-- Velopack Release job은 기존 NSIS 설치 파일을 payload로 삼습니다. 이 프로젝트의 실제 APO 설치와 등록은 아직 NSIS 스크립트가 담당하므로, Velopack 단계는 배포용 포장 단계로 봅니다.
+- 로컬 빌드 준비는 `setup-build.ps1`을 기준으로 봅니다. 이 스크립트는 `deps/` 아래 외부 라이브러리와 Qt 6.10.1을 설치합니다. 빌드는 MSBuild(`EqualizerAPO.sln`의 vcxproj들)와 qmake/nmake(Qt 도구)로 나뉩니다.
+- CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌드하고 산출물과 설치 파일을 업로드합니다. 변형 목록과 의존성 핀은 `.github/simd-variants.psd1`이 기준입니다.
+- `main`에 push되면 CI가 모든 변형 빌드를 끝낸 뒤 GitHub Release를 만듭니다. Release에는 Velopack으로 감싼 채널별 설치 파일, CPU 자동 감지 설치기(`EqualizerAPO-XT-Setup.exe`), `git archive`로 만든 소스 코드 zip이 올라갑니다.
+- APO 설치와 등록은 Editor가 처리하는 Velopack 훅(`helpers/ApoRegistration`, `helpers/VelopackBootstrap`, `Editor/main.cpp`)이 담당합니다. NSIS 기반 설치는 제거되었습니다.
 - 외부 라이브러리 경로는 프로젝트 파일의 환경 변수 기본값과 CI의 `deps` 경로를 함께 확인합니다. 주요 변수는 `FFTW_INCLUDE`, `FFTW_LIB`, `LIBSNDFILE_INCLUDE`, `LIBSNDFILE_LIB`, `MUPARSERX_INCLUDE`, `MUPARSERX_LIB`, `TCLAP_ROOT`입니다.
 - 로컬 의존성 설치와 검증 결과는 `docs/LocalDependencySetup.md`와 `docs/OptimizationNotes.md`를 함께 봅니다. GitHub Actions artifact는 만료될 수 있으므로, Release 자산과 qmake 빌드 경로도 확인합니다.
-- 단일 테스트 명령이 따로 정리되어 있지 않습니다. 작은 변경은 관련 프로젝트 빌드로 확인하고, 공용 엔진이나 설치 파일에 영향을 주는 변경은 가능한 경우 CI와 같은 범위의 빌드를 확인합니다.
+- 테스트 실행 파일은 빌드 산출물과 같은 디렉터리에 만들어집니다. `EditorLogicTests.exe`, `HybridConvTests.exe`, `AudioRegressionTests.exe`를 실행할 때는 FFTW와 libsndfile DLL이 `PATH`에 있어야 합니다. 작은 변경은 관련 프로젝트 빌드로 확인하고, 공용 엔진이나 설치 파일에 영향을 주는 변경은 가능한 경우 CI와 같은 범위의 빌드를 확인합니다.
 
 ## CI 감시와 회귀 테스트
 
@@ -64,16 +66,16 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 
 ## 버전 변경 기준
 
-- 릴리스 기본 버전은 `version.h`의 `MAJOR`, `MINOR`, `REVISION`입니다. CI는 이 기본 버전에 `-main.<run_number>`를 붙여 자동 릴리스 태그를 만듭니다.
-- 문서 수정, CI 경고 수정, 릴리스 노트 개선, 빌드 안정화처럼 사용자 설치 결과나 공개 API가 바뀌지 않는 작업은 `version.h`를 올리지 않습니다.
-- 버그 수정, 작은 동작 수정, 호환성을 유지하는 설치/업데이트 수정은 `REVISION`을 올립니다.
-- 새 기능, 새 필터, 새 SIMD/아키텍처 릴리스 채널, 사용자에게 보이는 동작 변경은 `MINOR`를 올립니다.
-- 설정 파일 형식, 설치 방식, 업데이트 채널, 공개 동작이 기존 사용자에게 수동 조치를 요구할 만큼 바뀌면 `MAJOR`를 올립니다.
-- 버전 변경 커밋은 기능 변경과 섞지 않습니다. 변경을 먼저 검증하고, 릴리스 의도가 분명할 때 별도 커밋으로 `version.h`를 올립니다.
+- 릴리스 기본 버전은 `version.h`의 `MAJOR`, `MINOR`, `REVISION`입니다. `main`에 push되면 CI의 version-bump job(`.github/scripts/Bump-Version.ps1`)이 커밋 메시지의 Conventional Commits 타입을 읽어 `version.h`를 자동으로 올리고, 깨끗한 `vX.Y.Z` 태그로 릴리스를 만듭니다.
+- `version.h`는 손으로 올리지 않습니다. 커밋 타입이 버전을 결정합니다.
+- 문서 수정, CI 경고 수정, 릴리스 노트 개선, 빌드 안정화처럼 사용자 설치 결과나 공개 API가 바뀌지 않는 작업은 `docs:`, `ci:`, `chore:` 등으로 커밋해 버전을 올리지 않습니다.
+- 버그 수정, 작은 동작 수정, 호환성을 유지하는 설치/업데이트 수정은 `fix:`로 커밋해 `REVISION`을 올립니다.
+- 새 기능, 새 필터, 새 SIMD/아키텍처 릴리스 채널, 사용자에게 보이는 동작 변경은 `feat:`로 커밋해 `MINOR`를 올립니다.
+- 설정 파일 형식, 설치 방식, 업데이트 채널, 공개 동작이 기존 사용자에게 수동 조치를 요구할 만큼 바뀌면 BREAKING CHANGE로 표시해 `MAJOR`를 올립니다.
 
 ## 코드 작업 기준
 
-- 먼저 관련 `.vcxproj`, `.pro`, `.nsi`, 소스 파일을 읽고 기존 방식에 맞춥니다.
+- 먼저 관련 `.vcxproj`, `.pro`, 소스 파일을 읽고 기존 방식에 맞춥니다.
 - 공용 오디오 처리 변경은 `FilterEngine`, `FilterConfiguration`, `IFilter`, `filters/`, `helpers/`의 영향 범위를 같이 확인합니다.
 - 필터를 추가하거나 바꿀 때는 런타임 구현, factory, 설정 파싱, Editor GUI, 리소스 파일, 프로젝트 파일 포함 여부를 함께 확인합니다.
 - GUI 변경은 Qt `.ui`, `.qrc`, `.pro`, 번역 파일 영향을 확인합니다. 번역 파일은 요청이나 실제 문자열 변경이 있을 때만 건드립니다.
