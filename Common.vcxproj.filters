@@ -101,6 +101,9 @@
     <ClInclude Include="helpers\ChannelHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\FileSharingRetry.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\GainIterator.h">
       <Filter>helpers</Filter>
     </ClInclude>

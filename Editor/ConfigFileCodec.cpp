@@ -22,6 +22,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include "helpers/FileSharingRetry.h"
 #include "helpers/StringHelper.h"
 #include "ConfigFileCodec.h"
 
@@ -76,23 +77,13 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 {
 	ReadResult result;
 
-	HANDLE hFile = INVALID_HANDLE_VALUE;
-	while (hFile == INVALID_HANDLE_VALUE)
+	DWORD error = ERROR_SUCCESS;
+	HANDLE hFile = openFileWithSharingRetry(path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
+	if (hFile == INVALID_HANDLE_VALUE)
 	{
-		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			DWORD error = GetLastError();
-			if (error != ERROR_SHARING_VIOLATION)
-			{
-				result.ok = false;
-				result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
-				return result;
-			}
-
-			// file is being written, so wait
-			Sleep(1);
-		}
+		result.ok = false;
+		result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
+		return result;
 	}
 
 	string buffer;
@@ -118,23 +109,13 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 	QByteArray byteArray = encodeLines(lines);
 	result.totalBytes = byteArray.length();
 
-	HANDLE hFile = INVALID_HANDLE_VALUE;
-	while (hFile == INVALID_HANDLE_VALUE)
+	DWORD error = ERROR_SUCCESS;
+	HANDLE hFile = openFileWithSharingRetry(path.toStdWString().c_str(), GENERIC_WRITE, 0, CREATE_ALWAYS, error);
+	if (hFile == INVALID_HANDLE_VALUE)
 	{
-		hFile = CreateFile(path.toStdWString().c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			DWORD error = GetLastError();
-			if (error != ERROR_SHARING_VIOLATION)
-			{
-				result.opened = false;
-				result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
-				return result;
-			}
-
-			// file is being written, so wait
-			Sleep(1);
-		}
+		result.opened = false;
+		result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
+		return result;
 	}
 
 	unsigned long bytesWritten;

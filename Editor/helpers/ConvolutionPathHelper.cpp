@@ -32,13 +32,16 @@ QString ConvolutionPathHelper::displayPathForSelection(const QString& configPath
 
 	QDir configDir = configDirectory(configPath);
 	QString relativePath = configDir.relativeFilePath(absolutePath);
-	if (relativePathStaysInConfigDirectory(relativePath))
+	if (relativePathLooksContainedLexically(relativePath))
 		return QDir::toNativeSeparators(relativePath);
 
 	return QDir::toNativeSeparators(absolutePath);
 }
 
-bool ConvolutionPathHelper::relativePathStaysInConfigDirectory(const QString& relativePath)
+// Lexical check only (QDir::cleanPath, no canonicalization or symlink resolution).
+// Decides whether a selected path is stored relative in the user's config file.
+// NOT a security boundary; the engine loads whatever path the config contains.
+bool ConvolutionPathHelper::relativePathLooksContainedLexically(const QString& relativePath)
 {
 	QString cleanPath = QDir::cleanPath(QDir::fromNativeSeparators(relativePath));
 	return !cleanPath.isEmpty() && cleanPath != ".." && !cleanPath.startsWith("../") && !QDir::isAbsolutePath(cleanPath);

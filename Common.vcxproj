@@ -349,6 +349,7 @@
     <ClInclude Include="helpers\AbstractLibrary.h" />
     <ClInclude Include="helpers\aeffectx.h" />
     <ClInclude Include="helpers\ChannelHelper.h" />
+    <ClInclude Include="helpers\FileSharingRetry.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\LogHelper.h" />
     <ClInclude Include="helpers\MemoryHelper.h" />

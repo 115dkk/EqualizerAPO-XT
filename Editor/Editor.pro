@@ -192,6 +192,7 @@ SOURCES += main.cpp\
 	widgets/MiddleClickTabBar.cpp
 
 HEADERS  += \
+	../helpers/FileSharingRetry.h \
 	../helpers/LogHelper.h \
 	../helpers/StringHelper.h \
 	../helpers/RegistryHelper.h \

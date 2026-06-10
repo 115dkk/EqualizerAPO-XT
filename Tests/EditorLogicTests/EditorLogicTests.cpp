@@ -102,13 +102,13 @@ int main(int argc, char** argv)
 		"C:/Impulse/room.wav");
 
 	expectTrue(
-		ConvolutionPathHelper::relativePathStaysInConfigDirectory("irs/room.wav"),
+		ConvolutionPathHelper::relativePathLooksContainedLexically("irs/room.wav"),
 		"relative path inside config directory was rejected");
 	expectFalse(
-		ConvolutionPathHelper::relativePathStaysInConfigDirectory("../shared/room.wav"),
+		ConvolutionPathHelper::relativePathLooksContainedLexically("../shared/room.wav"),
 		"parent-directory relative path was accepted");
 	expectFalse(
-		ConvolutionPathHelper::relativePathStaysInConfigDirectory("C:/Impulse/room.wav"),
+		ConvolutionPathHelper::relativePathLooksContainedLexically("C:/Impulse/room.wav"),
 		"absolute path was accepted as relative");
 
 	QJsonObject release;

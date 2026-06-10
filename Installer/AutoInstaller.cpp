@@ -14,6 +14,11 @@
         machine even under emulation, so detection is accurate from x86.
       - It does NOT touch the six per-channel Velopack packages or their
         per-channel auto-update path; it only picks which one to install.
+      - The downloaded Setup.exe is verified against the SHA256SUMS.txt asset
+        that CI publishes to the same release: the SHA-256 of the file must
+        match the asset's line before anything is launched. If the checksums
+        file cannot be downloaded, does not list the asset, or the hash
+        differs, the download is deleted and the process exits with code 4.
 
     The six channel strings below MUST stay in sync with
     .github/simd-variants.psd1, .github/workflows/build.yml and
@@ -26,12 +31,14 @@
 #endif
 #include <windows.h>
 #include <winhttp.h>
+#include <bcrypt.h>      // BCrypt* SHA-256 hashing (CNG)
 #include <shlobj.h>      // IProgressDialog
 #include <shellapi.h>    // CommandLineToArgvW
 #include <intrin.h>      // __cpuid, __cpuidex, _xgetbv
 #include <string>
 
 #pragma comment(lib, "winhttp.lib")
+#pragma comment(lib, "bcrypt.lib")
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "shell32.lib")
 
@@ -43,6 +50,11 @@ const wchar_t* kRepoOwner = L"115dkk";
 const wchar_t* kRepoName = L"EqualizerAPO-XT";
 const wchar_t* kReleasesPage = L"https://github.com/115dkk/EqualizerAPO-XT/releases/latest";
 const wchar_t* kUserAgent = L"EqualizerAPO-XT-Setup";
+
+// Checksums asset that CI publishes to every release, one sha256sum-style
+// "<lowercase-hex-sha256>  <name>" line per asset. The name must match the
+// upload in .github/workflows/build.yml.
+const wchar_t* kChecksumsAssetName = L"SHA256SUMS.txt";
 
 // Channel index used as the process exit code for --detect-only, so a script can
 // read the detected variant without parsing stdout.
@@ -171,10 +183,15 @@ std::wstring assetName(const std::wstring& channel)
 
 // Always-latest download path. GitHub redirects /releases/latest/download/<asset>
 // to the newest release's asset, so this binary never needs rebuilding per release.
-std::wstring assetPath(const std::wstring& channel)
+std::wstring latestAssetPath(const std::wstring& asset)
 {
     return std::wstring(L"/") + kRepoOwner + L"/" + kRepoName +
-        L"/releases/latest/download/" + assetName(channel);
+        L"/releases/latest/download/" + asset;
+}
+
+std::wstring assetPath(const std::wstring& channel)
+{
+    return latestAssetPath(assetName(channel));
 }
 
 std::wstring downloadUrl(const std::wstring& channel)
@@ -297,6 +314,248 @@ cleanup:
     if (!ok && file != INVALID_HANDLE_VALUE)
         DeleteFileW(outFile.c_str());
     return ok;
+}
+
+// Compute the SHA-256 of a file as lowercase hex using CNG. The file is
+// streamed in 64 KiB chunks so the installer never has to fit in memory.
+// CNG returns NTSTATUS where STATUS_SUCCESS is 0, so any nonzero status is
+// treated as a failure.
+bool sha256OfFile(const std::wstring& path, std::wstring& outHexLower, std::wstring& error)
+{
+    bool ok = false;
+    BCRYPT_ALG_HANDLE algorithm = nullptr;
+    BCRYPT_HASH_HANDLE hash = nullptr;
+    HANDLE file = INVALID_HANDLE_VALUE;
+    UCHAR digest[32] = {};
+    std::string buffer;
+    buffer.resize(64 * 1024);
+
+    if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) != 0)
+    {
+        error = L"Could not initialise the SHA-256 provider.";
+        goto cleanup;
+    }
+    if (BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0) != 0)
+    {
+        error = L"Could not create a SHA-256 hash object.";
+        goto cleanup;
+    }
+
+    file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE)
+    {
+        error = L"Could not open the downloaded installer for verification.";
+        goto cleanup;
+    }
+
+    for (;;)
+    {
+        DWORD read = 0;
+        if (!ReadFile(file, &buffer[0], static_cast<DWORD>(buffer.size()), &read, nullptr))
+        {
+            error = L"Could not read the downloaded installer for verification.";
+            goto cleanup;
+        }
+        if (read == 0)
+            break;
+        if (BCryptHashData(hash, reinterpret_cast<PUCHAR>(&buffer[0]), read, 0) != 0)
+        {
+            error = L"Could not hash the downloaded installer.";
+            goto cleanup;
+        }
+    }
+
+    if (BCryptFinishHash(hash, digest, sizeof(digest), 0) != 0)
+    {
+        error = L"Could not finish hashing the downloaded installer.";
+        goto cleanup;
+    }
+
+    {
+        const wchar_t* hexDigits = L"0123456789abcdef";
+        outHexLower.clear();
+        outHexLower.reserve(sizeof(digest) * 2);
+        for (size_t i = 0; i < sizeof(digest); ++i)
+        {
+            outHexLower += hexDigits[digest[i] >> 4];
+            outHexLower += hexDigits[digest[i] & 0xF];
+        }
+    }
+
+    ok = true;
+
+cleanup:
+    if (file != INVALID_HANDLE_VALUE)
+        CloseHandle(file);
+    if (hash != nullptr)
+        BCryptDestroyHash(hash);
+    if (algorithm != nullptr)
+        BCryptCloseAlgorithmProvider(algorithm, 0);
+    return ok;
+}
+
+bool isHexDigit(char c)
+{
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+char toLowerAscii(char c)
+{
+    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+}
+
+// Find fileName in sha256sum-style checksum text and return its digest as
+// lowercase hex. Each line is "<64 hex chars>  <name>"; the binary-mode form
+// "<hash> *<name>" is accepted too, and the name comparison ignores ASCII
+// case. Returns an empty string when no line matches.
+std::wstring expectedHashFromChecksums(const std::string& text, const std::wstring& fileName)
+{
+    std::string narrowName;
+    int needed = WideCharToMultiByte(CP_UTF8, 0, fileName.c_str(), -1, nullptr, 0,
+        nullptr, nullptr);
+    if (needed > 1)
+    {
+        narrowName.resize(needed - 1);
+        WideCharToMultiByte(CP_UTF8, 0, fileName.c_str(), -1, &narrowName[0], needed - 1,
+            nullptr, nullptr);
+    }
+    if (narrowName.empty())
+        return std::wstring();
+
+    // Skip a UTF-8 byte order mark, in case the generator wrote one.
+    size_t lineStart = 0;
+    if (text.size() >= 3 && text.compare(0, 3, "\xEF\xBB\xBF") == 0)
+        lineStart = 3;
+
+    while (lineStart < text.size())
+    {
+        size_t lineEnd = text.find('\n', lineStart);
+        if (lineEnd == std::string::npos)
+            lineEnd = text.size();
+        std::string line = text.substr(lineStart, lineEnd - lineStart);
+        lineStart = lineEnd + 1;
+        while (!line.empty() &&
+            (line.back() == '\r' || line.back() == ' ' || line.back() == '\t'))
+        {
+            line.pop_back();
+        }
+
+        // 64 hex digits, separating whitespace, an optional '*' binary-mode
+        // marker, then the asset name.
+        if (line.size() < 64 + 2)
+            continue;
+        bool hexOk = true;
+        for (size_t i = 0; i < 64; ++i)
+        {
+            if (!isHexDigit(line[i]))
+            {
+                hexOk = false;
+                break;
+            }
+        }
+        if (!hexOk || (line[64] != ' ' && line[64] != '\t'))
+            continue;
+
+        size_t nameStart = 64;
+        while (nameStart < line.size() && (line[nameStart] == ' ' || line[nameStart] == '\t'))
+            ++nameStart;
+        if (nameStart < line.size() && line[nameStart] == '*')
+            ++nameStart;
+        if (nameStart >= line.size())
+            continue;
+
+        const std::string name = line.substr(nameStart);
+        if (name.size() != narrowName.size())
+            continue;
+        bool nameMatches = true;
+        for (size_t i = 0; i < name.size(); ++i)
+        {
+            if (toLowerAscii(name[i]) != toLowerAscii(narrowName[i]))
+            {
+                nameMatches = false;
+                break;
+            }
+        }
+        if (!nameMatches)
+            continue;
+
+        std::wstring hex;
+        hex.reserve(64);
+        for (size_t i = 0; i < 64; ++i)
+            hex += static_cast<wchar_t>(toLowerAscii(line[i]));
+        return hex;
+    }
+    return std::wstring();
+}
+
+// Read a small file fully into memory. The checksums list is at most a few
+// kilobytes; refuse anything over 1 MiB so an unexpected response cannot
+// balloon.
+bool readSmallFile(const std::wstring& path, std::string& outData)
+{
+    bool ok = false;
+    HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE)
+        return false;
+
+    LARGE_INTEGER size = {};
+    if (GetFileSizeEx(file, &size) && size.QuadPart > 0 && size.QuadPart <= 1024 * 1024)
+    {
+        outData.resize(static_cast<size_t>(size.QuadPart));
+        DWORD read = 0;
+        ok = ReadFile(file, &outData[0], static_cast<DWORD>(outData.size()), &read, nullptr) &&
+            read == outData.size();
+    }
+
+    CloseHandle(file);
+    if (!ok)
+        outData.clear();
+    return ok;
+}
+
+// Verify the downloaded installer against the SHA256SUMS.txt asset that CI
+// publishes to the same release. Returns true only when the checksums file
+// downloads, lists the installer, and the SHA-256 matches.
+bool verifySetupChecksum(const std::wstring& setupFile, const std::wstring& setupName,
+    std::wstring& error)
+{
+    const std::wstring sumsFile = tempFilePath(kChecksumsAssetName);
+
+    std::wstring downloadError;
+    if (!downloadToFile(latestAssetPath(kChecksumsAssetName), sumsFile, downloadError))
+    {
+        error = L"The integrity checksums file could not be downloaded from the release page.";
+        return false;
+    }
+
+    std::string text;
+    const bool readOk = readSmallFile(sumsFile, text);
+    DeleteFileW(sumsFile.c_str());
+    if (!readOk)
+    {
+        error = L"The integrity checksums file could not be read.";
+        return false;
+    }
+
+    const std::wstring expected = expectedHashFromChecksums(text, setupName);
+    if (expected.empty())
+    {
+        error = L"The release's checksums file does not list the downloaded installer.";
+        return false;
+    }
+
+    std::wstring actual;
+    if (!sha256OfFile(setupFile, actual, error))
+        return false;
+
+    if (actual != expected)
+    {
+        error = L"The downloaded installer failed its integrity check.";
+        return false;
+    }
+    return true;
 }
 
 // Launch the downloaded per-variant Setup.exe. When silent, forward Velopack's
@@ -448,6 +707,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
     std::wstring error;
     const bool downloaded = downloadToFile(assetPath(channel), outFile, error);
 
+    // Check the download against the release's SHA256SUMS.txt before anything
+    // is executed. A failed or impossible verification discards the download.
+    bool verified = false;
+    if (downloaded)
+    {
+        if (progress != nullptr)
+            progress->SetLine(1, L"Verifying the downloaded installer...", FALSE, nullptr);
+        verified = verifySetupChecksum(outFile, assetName(channel), error);
+    }
+
     if (progress != nullptr)
     {
         progress->StopProgressDialog();
@@ -463,6 +732,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
         MessageBoxW(nullptr, message.c_str(),
             L"EqualizerAPO-XT - install failed", MB_OK | MB_ICONERROR);
         result = 2;
+    }
+    else if (!verified)
+    {
+        DeleteFileW(outFile.c_str());
+        const std::wstring message = error +
+            L"\n\nPlease try again or download a build manually from:\n" + kReleasesPage;
+        MessageBoxW(nullptr, message.c_str(),
+            L"EqualizerAPO-XT - install failed", MB_OK | MB_ICONERROR);
+        result = 4;
     }
     else
     {

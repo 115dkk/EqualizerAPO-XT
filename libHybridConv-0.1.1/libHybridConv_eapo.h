@@ -26,6 +26,16 @@
 #include <fftw3.h>
 
 
+/* Instance-owned buffer storage, defined in libHybridConv_eapo.cpp. Each
+ * hcInit* call allocates one and the matching hcClose* frees it, so buffer
+ * lifetime follows the struct instance. (These used to live in process-global
+ * maps keyed by struct pointer, which was unguarded shared state across APO
+ * instances loading configs concurrently.) */
+struct HConvSingleStorage;
+struct HConvDualStorage;
+struct HConvTrippleStorage;
+
+
 typedef struct str_HConvSingle
 {
 	int step;			// processing step counter
@@ -46,6 +56,7 @@ typedef struct str_HConvSingle
 	double *history_time;		// history buffer (time domain)
 	fftw_plan fft;			// FFT transformation plan
 	fftw_plan ifft;		// IFFT transformation plan
+	struct HConvSingleStorage *storage;	// owned buffers backing the pointers above
 } HConvSingle;
 
 
@@ -59,6 +70,7 @@ typedef struct str_HConvDual
 	double *out_long;	// output buffer (long frame)
 	HConvSingle *f_long;	// convolution filter (long segments)
 	HConvSingle *f_short;	// convolution filter (short segments)
+	struct HConvDualStorage *storage;	// owned buffers backing the pointers above
 } HConvDual;
 
 
@@ -72,6 +84,7 @@ typedef struct str_HConvTripple
 	double *out_medium;	// output buffer (long frame)
 	HConvDual *f_medium;	// convolution filter (long segments)
 	HConvSingle *f_short;	// convolution filter (short segments)
+	struct HConvTrippleStorage *storage;	// owned buffers backing the pointers above
 } HConvTripple;
 
 
