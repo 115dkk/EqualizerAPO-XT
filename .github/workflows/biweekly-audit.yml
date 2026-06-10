@@ -4,6 +4,12 @@
 # Claude Code session. Skips scheduled runs when no relevant code/build files
 # changed since the last audit tag.
 #
+# The audit job runs on the same Windows image as the builds (this is a
+# Windows-MSVC repo) with Git Bash as the step shell, and pre-provisions the
+# build dependencies so the auditing Claude can compile projects and execute
+# the test suites instead of reading blind, which a previous Linux-hosted
+# audit could not do.
+#
 # Requirements:
 #   1. Add CLAUDE_CODE_OAUTH_TOKEN under repository Actions secrets.
 #   2. Set Actions workflow permissions to "Read and write permissions".
@@ -131,7 +137,14 @@ jobs:
   audit:
     needs: check-changes
     if: needs.check-changes.outputs.should_audit == 'true'
-    runs-on: ubuntu-latest
+    # Same image as the build matrix: VS 2026 (v145), MSBuild, Python, Node.
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 240
+    defaults:
+      run:
+        # Git Bash, which is also what Claude Code's own shell tool uses on
+        # Windows. All run steps below stay POSIX-shaped.
+        shell: bash
     env:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
@@ -144,12 +157,27 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
 
+      # Give the auditing session a buildable tree: deps/ (FFTW, muparserx,
+      # libsndfile, TCLAP, VST3, Highway, velopack_libc) and Qt, the same way a
+      # developer would set up locally. Hash-verified per simd-variants.psd1.
+      - name: Provision build dependencies
+        shell: pwsh
+        run: ./setup-build.ps1
+
       - name: Install audit skills
         run: |
-          install -d "$HOME/.claude/skills"
+          mkdir -p "$HOME/.claude/skills"
           cp -R .claude/skills/improve-codebase-architecture "$HOME/.claude/skills/"
           cp -R .claude/skills/tech-debt-audit "$HOME/.claude/skills/"
 
@@ -246,10 +274,25 @@ jobs:
             --model claude-fable-5 \
             --effort xhigh \
             --permission-mode auto \
-            --max-turns 50 \
+            --max-turns 80 \
             -p "
           You will perform two analyses in sequence within this
           single session. Output everything to stdout.
+
+          ENVIRONMENT:
+          - You are on a Windows runner (the same image CI builds on) with
+            Visual Studio 2026 (v145), MSBuild on PATH, and Git Bash as your
+            shell.
+          - Build dependencies are pre-provisioned: deps/ holds FFTW,
+            muparserx, libsndfile, TCLAP, the VST3 pluginterfaces, Highway,
+            and velopack_libc; Qt is at Qt/6.10.1/msvc2022_64. CLAUDE.md
+            documents the exact MSBuild/qmake commands and the PATH setup the
+            test executables need.
+          - You MAY compile projects and run the test suites
+            (EditorLogicTests, HybridConvTests, EngineOrchestrationTests,
+            AudioRegressionTests) to verify findings empirically. Prefer
+            targeted project builds over full-solution builds; do not let
+            build experiments crowd out the analysis itself.
 
           GLOBAL RULES:
           - Completely ignore all .ipynb files.
