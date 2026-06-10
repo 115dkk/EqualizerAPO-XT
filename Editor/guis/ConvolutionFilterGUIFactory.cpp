@@ -19,6 +19,7 @@
 
 #include "DeviceAPOInfo.h"
 #include "Editor/FilterTable.h"
+#include "filters/ConvolutionCommand.h"
 #include "ConvolutionFilterGUI.h"
 #include "ConvolutionFilterGUIFactory.h"
 
@@ -54,9 +55,10 @@ IFilterGUI* ConvolutionFilterGUIFactory::createFilterGUI(QString& command, QStri
 {
 	ConvolutionFilterGUI* result = nullptr;
 
-	if (command == "Convolution")
+	ConvolutionCommand cmd;
+	if (ConvolutionCommand::parse(command.toStdWString(), parameters.toStdWString(), cmd))
 	{
-		result = new ConvolutionFilterGUI(configPath, deviceSampleRate, parameters.trimmed());
+		result = new ConvolutionFilterGUI(configPath, deviceSampleRate, QString::fromStdWString(cmd.path));
 	}
 
 	return result;

@@ -23,6 +23,7 @@
 
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "filters/ConvolutionCommand.h"
 #include "helpers/RegistryHelper.h"
 #include "ConvolutionFilterGUI.h"
 #include "ui_ConvolutionFilterGUI.h"
@@ -53,7 +54,10 @@ ConvolutionFilterGUI::~ConvolutionFilterGUI()
 void ConvolutionFilterGUI::store(QString& command, QString& parameters)
 {
 	command = "Convolution";
-	parameters = ui->pathLineEdit->text();
+
+	ConvolutionCommand cmd;
+	cmd.path = ui->pathLineEdit->text().toStdWString();
+	parameters = QString::fromStdWString(cmd.serialize());
 }
 
 void ConvolutionFilterGUI::on_selectFileToolButton_clicked()

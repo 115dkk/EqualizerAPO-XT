@@ -21,6 +21,14 @@
 
 #include <string>
 
+// The Editor's half of the update story: Velopack hooks plus in-app background
+// download/apply through the Velopack SDK (which does its own feed parsing and
+// package verification). The OTHER half is UpdateChecker.exe, a standalone
+// notify-only tool that parses the GitHub/Velopack feeds itself in
+// UpdateChecker/VelopackUpdateInfo.{h,cpp} (covered by EditorLogicTests). The
+// two deliberately do not share feed code: UpdateChecker never downloads or
+// applies, and this class never decides "is there a newer version" outside the
+// SDK. Both read the channel baked in at build time via EAPO_UPDATE_CHANNEL.
 class VelopackBootstrap
 {
 public:
