@@ -526,7 +526,9 @@ bool verifySetupChecksum(const std::wstring& setupFile, const std::wstring& setu
     std::wstring downloadError;
     if (!downloadToFile(latestAssetPath(kChecksumsAssetName), sumsFile, downloadError))
     {
-        error = L"The integrity checksums file could not be downloaded from the release page.";
+        error = L"The integrity checksums file could not be downloaded from the release page."
+            L" If a release was published only moments ago it may still be uploading;"
+            L" please try again in a few minutes.";
         return false;
     }
 

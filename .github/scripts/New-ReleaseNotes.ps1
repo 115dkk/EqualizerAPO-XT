@@ -149,6 +149,9 @@ function Get-AssetPurpose {
   if ($AssetName -match "-delta\.nupkg$") {
     return "Velopack delta package for the $channel channel. Update clients use it to reduce download size."
   }
+  if ($AssetName -ieq "SHA256SUMS.txt") {
+    return "SHA-256 checksums for the setup executables. The auto-detect installer verifies its download against this file."
+  }
   if ($AssetName -match "^EqualizerAPO-XT-source-.*\.zip$") {
     return "Source snapshot for this exact release commit."
   }

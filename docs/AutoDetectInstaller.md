@@ -121,9 +121,17 @@ Exit codes in normal (non-`--detect-only`) mode:
 | 3 | the verified installer could not be started |
 | 4 | integrity verification failed |
 
+Caveat for scripts: with `--silent`, a successful launch forwards the
+per-variant `Setup.exe`'s own exit code, so a nonzero code can also originate
+from Velopack rather than from the rows above. Treat 0 as success and any
+nonzero code as failure instead of branching on specific values.
+
 Both files are fetched via the `latest` redirect, so a release published
 between the two downloads can cause a one-off mismatch; running the installer
-again resolves it. The check protects the integrity of the download path. It is
+again resolves it. `SHA256SUMS.txt` is the last asset CI uploads, so during
+the final minute of a release publish (or after a half-failed release job) the
+checksums file can be missing and the installer fails with code 4 until the
+release job finishes or is re-run. The check protects the integrity of the download path. It is
 not a substitute for code signing, because the checksums file comes from the
 same release as the installers (see Limitations).
 

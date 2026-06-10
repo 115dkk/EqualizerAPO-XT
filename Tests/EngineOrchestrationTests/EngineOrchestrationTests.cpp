@@ -29,14 +29,29 @@
 namespace
 {
 
+std::vector<std::wstring>& writtenConfigFiles()
+{
+	static std::vector<std::wstring> files;
+	return files;
+}
+
+// Per-process directory so parallel runs on one machine cannot collide.
 std::wstring testDirectory()
 {
 	wchar_t tempPath[MAX_PATH] = {};
 	DWORD len = GetTempPathW(MAX_PATH, tempPath);
-	std::wstring dir = (len > 0 && len < MAX_PATH) ? tempPath : L".";
-	dir += L"EngineOrchestrationTests";
+	std::wstring dir = (len > 0 && len < MAX_PATH) ? tempPath : L".\\";
+	dir += L"EngineOrchestrationTests-" + std::to_wstring(GetCurrentProcessId());
 	CreateDirectoryW(dir.c_str(), nullptr);
 	return dir;
+}
+
+void removeTestDirectory()
+{
+	for (const std::wstring& file : writtenConfigFiles())
+		DeleteFileW(file.c_str());
+	writtenConfigFiles().clear();
+	RemoveDirectoryW(testDirectory().c_str());
 }
 
 std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, const std::string& content)
@@ -47,6 +62,7 @@ std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, c
 	stream.close();
 	if (!stream)
 		harness.fail("could not write temp config file");
+	writtenConfigFiles().push_back(path);
 	return path;
 }
 
@@ -186,6 +202,7 @@ int main()
 	testCopySwapsChannels(harness);
 	testConfigSwapCrossfades(harness);
 
+	removeTestDirectory();
 	harness.report();
 	return 0;
 }
