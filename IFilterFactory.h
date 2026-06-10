@@ -36,7 +36,16 @@ public:
 	virtual void initialize(FilterEngine* engine) {}
 	virtual std::vector<IFilter*> startOfConfiguration() {return std::vector<IFilter*>();}
 	virtual std::vector<IFilter*> startOfFile(const std::wstring& configPath) {return std::vector<IFilter*>();}
-	// command and parameter may be altered by the factory
+	// Contract (see the dispatch loop in engine/FilterEngine.Configuration.cpp):
+	// the engine offers each config line to every factory in priority order.
+	// - Returning one or more filters consumes the line; iteration stops.
+	// - Clearing `command` to L"" also consumes the line without producing a
+	//   filter. Only control-flow factories (Device/If/Else/EndIf/Eval/Include/
+	//   Stage) use this signal; processing factories leave `command` untouched.
+	// - Leaving `command` set and returning no filters passes the line on to
+	//   the next factory.
+	// `parameters` may be normalized in place (e.g. decimal-comma fixes); the
+	// engine does not read it back after the call.
 	virtual std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) = 0;
 	virtual std::vector<IFilter*> endOfFile(const std::wstring& configPath) {return std::vector<IFilter*>();}
 	virtual std::vector<IFilter*> endOfConfiguration() {return std::vector<IFilter*>();}

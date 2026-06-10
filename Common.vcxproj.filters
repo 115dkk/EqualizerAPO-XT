@@ -14,7 +14,13 @@
     <ClInclude Include="filters\BiQuadFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ChannelCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\ChannelFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\ConvolutionCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\ChannelFilterFactory.h">
@@ -188,6 +194,12 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\BiQuadFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ChannelCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ConvolutionCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ChannelFilter.cpp">

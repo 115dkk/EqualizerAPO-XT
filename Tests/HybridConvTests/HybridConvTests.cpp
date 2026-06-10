@@ -27,7 +27,9 @@
 // main() (defined in CommonLogicTests.cpp, CopyCommandTests.cpp,
 // DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
 // VstHostTests.cpp, ParserTests.cpp and ParserPreampTests.cpp).
+void runChannelCommandTests();
 void runCommonLogicTests();
+void runConvolutionCommandTests();
 void runCopyCommandTests();
 void runDelayCommandTests();
 void runGraphicEQCommandTests();
@@ -228,7 +230,9 @@ int main()
 	// console binary (see CommonLogicTests.cpp, CopyCommandTests.cpp,
 	// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
 	// VstHostTests.cpp, ParserTests.cpp and ParserPreampTests.cpp).
+	runChannelCommandTests();
 	runCommonLogicTests();
+	runConvolutionCommandTests();
 	runCopyCommandTests();
 	runDelayCommandTests();
 	runGraphicEQCommandTests();

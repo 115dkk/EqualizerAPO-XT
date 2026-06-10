@@ -21,6 +21,7 @@
 
 #include "helpers/MemoryHelper.h"
 #include "helpers/LogHelper.h"
+#include "ConvolutionCommand.h"
 #include "ConvolutionFilePath.h"
 #include "ConvolutionFilter.h"
 #include "filters/FilterFactoryRegistry.h"
@@ -33,18 +34,14 @@ using std::wstring;
 
 vector<IFilter*> ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	ConvolutionFilter* filter = nullptr;
-
-	if (command == L"Convolution")
-	{
-		wstring absolutePath = ConvolutionFilePath::resolve(configPath, parameters);
-		if (absolutePath.empty())
-			return vector<IFilter*>(0);
-
-		filter = MemoryHelper::construct<ConvolutionFilter>(absolutePath);
-	}
-
-	if (filter == nullptr)
+	ConvolutionCommand cmd;
+	if (!ConvolutionCommand::parse(command, parameters, cmd))
 		return vector<IFilter*>(0);
+
+	wstring absolutePath = ConvolutionFilePath::resolve(configPath, cmd.path);
+	if (absolutePath.empty())
+		return vector<IFilter*>(0);
+
+	ConvolutionFilter* filter = MemoryHelper::construct<ConvolutionFilter>(absolutePath);
 	return vector<IFilter*>(1, filter);
 }

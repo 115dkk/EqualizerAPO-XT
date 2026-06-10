@@ -131,10 +131,12 @@ SOURCES += main.cpp\
 	../engine/FilterEngine.Runtime.cpp \
 	../filters/FilterFactoryRegistry.cpp \
 	../FilterConfiguration.cpp \
+	../filters/ChannelCommand.cpp \
 	../filters/ChannelFilterFactory.cpp \
 	../filters/ExpressionFilterFactory.cpp \
 	../filters/IfFilterFactory.cpp \
 	../filters/StageFilterFactory.cpp \
+	../filters/ConvolutionCommand.cpp \
 	../filters/ConvolutionFilterFactory.cpp \
 	../filters/IIRFilter.cpp \
 	../filters/IIRFilterFactory.cpp \
@@ -296,7 +298,9 @@ HEADERS  += \
 	../filters/IIRFilter.h \
 	../filters/IIRFilterFactory.h \
 	../filters/IncludeFilterFactory.h \
+	../filters/ChannelCommand.h \
 	../filters/ChannelFilter.h \
+	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../parser/RegexFunctions.h \
 	../parser/RegistryFunctions.h \

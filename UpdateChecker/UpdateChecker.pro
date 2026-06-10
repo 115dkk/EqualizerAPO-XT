@@ -14,6 +14,9 @@ TEMPLATE = app
 DEFINES += WIN32
 DEFINES += _UNICODE
 DEFINES += MUP_USE_WIDE_STRING
+# Release channel baked in at build time (mirrors Editor.pro). When unset, a
+# local build falls back to VelopackUpdateInfo::defaultChannel()'s per-arch
+# guess for feed lookups; CI always passes the channel explicitly.
 !isEmpty(EAPO_UPDATE_CHANNEL) {
 	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
 }

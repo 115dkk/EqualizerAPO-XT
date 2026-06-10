@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "helpers/MemoryHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
+#include "ChannelCommand.h"
 #include "ChannelFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "ChannelFilterFactory.h"
@@ -32,37 +33,10 @@ using std::wstring;
 
 vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	ChannelFilter* filter = nullptr;
-
-	if (command == L"Channel")
-	{
-		wstring value = parameters + L" ";
-
-		vector<wstring> words;
-		wstring currentWord;
-		for (unsigned i = 0; i < value.length(); i++)
-		{
-			wchar_t c = towupper(value[i]);
-
-			if (iswspace(c) || c == L',')
-			{
-				if (currentWord.length() > 0)
-				{
-					words.push_back(currentWord);
-
-					currentWord.clear();
-				}
-			}
-			else
-			{
-				currentWord += c;
-			}
-		}
-
-		filter = MemoryHelper::construct<ChannelFilter>(words);
-	}
-
-	if (filter == nullptr)
+	ChannelCommand cmd;
+	if (!ChannelCommand::parse(command, parameters, cmd))
 		return vector<IFilter*>(0);
+
+	ChannelFilter* filter = MemoryHelper::construct<ChannelFilter>(cmd.channels);
 	return vector<IFilter*>(1, filter);
 }

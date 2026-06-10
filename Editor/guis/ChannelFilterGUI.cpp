@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include "filters/ChannelCommand.h"
 #include "ChannelFilterGUI.h"
 #include "ChannelFilterGUIDialog.h"
 #include "ui_ChannelFilterGUI.h"
@@ -38,10 +39,12 @@ ChannelFilterGUI::ChannelFilterGUI(const QString& parameters, int selectedChanne
 
 	selectedChannels.clear();
 
-	QStringList words = parameters.trimmed().split(' ', Qt::SkipEmptyParts);
-	for (QString word : words)
-		if (word.length() > 0)
-			selectedChannels.append(word.toUpper());
+	// Parse through the shared codec so the GUI accepts exactly what the engine
+	// accepts (the previous split(' ') missed comma-separated selectors).
+	ChannelCommand cmd;
+	ChannelCommand::parse(L"Channel", parameters.toStdWString(), cmd);
+	for (const wstring& channel : cmd.channels)
+		selectedChannels.append(QString::fromStdWString(channel));
 }
 
 ChannelFilterGUI::~ChannelFilterGUI()
@@ -61,7 +64,11 @@ void ChannelFilterGUI::store(QString& command, QString& parameters)
 	command = "Channel";
 
 	selectedChannels = scene->getSelectedChannels();
-	parameters = selectedChannels.join(' ');
+
+	ChannelCommand cmd;
+	for (const QString& channel : selectedChannels)
+		cmd.channels.push_back(channel.toStdWString());
+	parameters = QString::fromStdWString(cmd.serialize());
 }
 
 void ChannelFilterGUI::on_pushButton_clicked()
