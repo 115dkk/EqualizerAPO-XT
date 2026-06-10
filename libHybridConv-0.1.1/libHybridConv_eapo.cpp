@@ -54,8 +54,10 @@
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-namespace
-{
+// Definitions of the instance-owned storage declared in libHybridConv_eapo.h.
+// hcInit* allocates one per instance and the matching hcClose* deletes it, so
+// no state is shared between instances; the FFTW planner lock in hcInitSingle
+// stays the only cross-instance synchronization in this file.
 struct HConvSingleStorage
 {
 	HcAlignedPtr<double> dftTime;
@@ -91,25 +93,6 @@ struct HConvTrippleStorage
 	std::unique_ptr<HConvSingle> shortFilter;
 	std::unique_ptr<HConvDual> mediumFilter;
 };
-
-std::unordered_map<HConvSingle*, HConvSingleStorage>& singleStorageMap()
-{
-	static std::unordered_map<HConvSingle*, HConvSingleStorage> storage;
-	return storage;
-}
-
-std::unordered_map<HConvDual*, HConvDualStorage>& dualStorageMap()
-{
-	static std::unordered_map<HConvDual*, HConvDualStorage> storage;
-	return storage;
-}
-
-std::unordered_map<HConvTripple*, HConvTrippleStorage>& trippleStorageMap()
-{
-	static std::unordered_map<HConvTripple*, HConvTrippleStorage> storage;
-	return storage;
-}
-}
 
 
 double hcTime(void)
@@ -475,8 +458,11 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 {
 	int i, j, size, num, pos;
 	double gain;
-	auto& storage = singleStorageMap()[filter];
-	storage = HConvSingleStorage();
+	// The struct may come from uninitialized stack or heap memory, so the old
+	// storage pointer must not be read here. Every init pairs with a
+	// hcCloseSingle, which frees it.
+	filter->storage = new HConvSingleStorage();
+	auto& storage = *filter->storage;
 
 	filter->step = 0;
 	filter->maxstep = steps;
@@ -620,7 +606,7 @@ void hcCloseSingle(HConvSingle* filter)
 {
 	fftw_destroy_plan(filter->ifft);
 	fftw_destroy_plan(filter->fft);
-	singleStorageMap().erase(filter);
+	delete filter->storage;
 	memset(filter, 0, sizeof(HConvSingle));
 }
 
@@ -718,8 +704,8 @@ void hcInitDual(HConvDual* filter, double* h, int hlen, int sflen, int lflen)
 	int size;
 	double* h2 = nullptr;
 	int h2len = 2 * lflen + 1;
-	auto& storage = dualStorageMap()[filter];
-	storage = HConvDualStorage();
+	filter->storage = new HConvDualStorage();
+	auto& storage = *filter->storage;
 
 	if (hlen < h2len) {
 		size = sizeof *h2 * h2len;
@@ -758,7 +744,7 @@ void hcCloseDual(HConvDual* filter)
 {
 	hcCloseSingle(filter->f_short);
 	hcCloseSingle(filter->f_long);
-	dualStorageMap().erase(filter);
+	delete filter->storage;
 	memset(filter, 0, sizeof(HConvDual));
 }
 
@@ -857,8 +843,8 @@ void hcInitTripple(HConvTripple* filter, double* h, int hlen, int sflen, int mfl
 	int size;
 	double* h2 = nullptr;
 	int h2len = mflen + 2 * lflen + 1;
-	auto& storage = trippleStorageMap()[filter];
-	storage = HConvTrippleStorage();
+	filter->storage = new HConvTrippleStorage();
+	auto& storage = *filter->storage;
 
 	if (hlen < h2len) {
 		size = sizeof *h2 * h2len;
@@ -897,6 +883,6 @@ void hcCloseTripple(HConvTripple* filter)
 {
 	hcCloseSingle(filter->f_short);
 	hcCloseDual(filter->f_medium);
-	trippleStorageMap().erase(filter);
+	delete filter->storage;
 	memset(filter, 0, sizeof(HConvTripple));
 }

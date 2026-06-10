@@ -4,26 +4,18 @@
 
 #include <windows.h>
 
+#include "helpers/FileSharingRetry.h"
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
 
 std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& path)
 {
-	HANDLE hFile = INVALID_HANDLE_VALUE;
-	while (hFile == INVALID_HANDLE_VALUE)
+	DWORD error = ERROR_SUCCESS;
+	HANDLE hFile = openFileWithSharingRetry(path.c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
+	if (hFile == INVALID_HANDLE_VALUE)
 	{
-		hFile = CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			DWORD error = GetLastError();
-			if (error != ERROR_SHARING_VIOLATION)
-			{
-				LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
-				return {};
-			}
-
-			Sleep(1);
-		}
+		LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
+		return {};
 	}
 
 	std::stringstream inputStream;

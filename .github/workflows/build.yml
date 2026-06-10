@@ -574,6 +574,7 @@ jobs:
           "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
           "Tests\HybridConvTests\HybridConvTests.vcxproj",
           "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
+          "Tests\EngineOrchestrationTests\EngineOrchestrationTests.vcxproj",
           "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj",
           "EqualizerAPO\EqualizerAPO.vcxproj",
           "Benchmark\Benchmark.vcxproj",
@@ -693,8 +694,9 @@ jobs:
         $canRunAudioSimdTests = "${{ matrix.can_execute }}" -eq "true"
         if ($canRunAudioSimdTests) {
           $testExecutables += "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
+          $testExecutables += "${{ github.workspace }}\Tests\EngineOrchestrationTests\${{ matrix.platform }}\Release\EngineOrchestrationTests.exe"
         } else {
-          Write-Warning "Skipping HybridConvTests for ${{ matrix.simd_variant }} because GitHub-hosted x64 runners do not guarantee that instruction set at runtime. The project is still built for this variant."
+          Write-Warning "Skipping HybridConvTests and EngineOrchestrationTests for ${{ matrix.simd_variant }} because GitHub-hosted x64 runners do not guarantee that instruction set at runtime. The projects are still built for this variant."
         }
 
         foreach ($testExe in $testExecutables) {
@@ -1405,6 +1407,50 @@ jobs:
         }
 
         gh release upload $tag $setupExe --clobber --repo "${{ github.repository }}"
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+    # The auto-detect installer refuses to run a downloaded per-channel Setup.exe
+    # whose SHA-256 does not match this file (Installer/AutoInstaller.cpp), so it
+    # must list every *-Setup.exe asset and be uploaded to the same release. The
+    # assets are re-downloaded from the release rather than hashed from local
+    # build directories so the hashes cover exactly the bytes users will get.
+    - name: Publish release checksums
+      if: steps.version.outputs.already_released != 'true'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        $tag = "${{ steps.version.outputs.tag }}"
+        $repo = "${{ github.repository }}"
+
+        $assetNames = @(gh release view $tag --repo $repo --json assets --jq '.assets[].name' |
+            Where-Object { $_ -match '-Setup\.exe$' })
+        if ($assetNames.Count -eq 0) {
+          throw "No setup executables found on release $tag; nothing to checksum."
+        }
+
+        $downloadDir = Join-Path "${{ github.workspace }}" "checksum-input"
+        New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+
+        $lines = @()
+        foreach ($name in ($assetNames | Sort-Object)) {
+          gh release download $tag --repo $repo --pattern $name --dir $downloadDir --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download release asset $name for checksumming"
+          }
+          $hash = (Get-FileHash -Path (Join-Path $downloadDir $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+          $lines += "$hash  $name"
+          Write-Host "$hash  $name"
+        }
+
+        # sha256sum-compatible format: <lowercase-hex>, two spaces, <name>, LF.
+        $sumsPath = Join-Path "${{ github.workspace }}" "SHA256SUMS.txt"
+        [System.IO.File]::WriteAllText($sumsPath, (($lines -join "`n") + "`n"))
+
+        gh release upload $tag $sumsPath --clobber --repo $repo
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }

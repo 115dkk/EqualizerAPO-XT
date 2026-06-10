@@ -70,7 +70,10 @@ variants are packaged or how each one updates itself.
    be rebuilt per release and always installs the newest build. The per-variant
    asset name is `EqualizerAPO-XT-<channel>-<channel>-Setup.exe` (the channel
    appears twice because each variant's `packId` already contains the channel).
-4. **Run the downloaded `Setup.exe`.** By default Velopack shows its normal
+4. **Verify the download** against the release's `SHA256SUMS.txt` asset before
+   anything is executed. See
+   [Download integrity verification](#download-integrity-verification).
+5. **Run the verified `Setup.exe`.** By default Velopack shows its normal
    install UI for the auto-selected variant. Passing `--silent` to the detector
    forwards `-s/--silent` to that `Setup.exe` for fully unattended installs.
 
@@ -88,6 +91,49 @@ regardless of process bitness, so detection from x86 is accurate.
   `helpers/VelopackBootstrap`.
 - The per-variant `…-Setup.exe` files remain on the release page for users who
   want to pick a specific build by hand.
+
+## Download integrity verification
+
+CI publishes a `SHA256SUMS.txt` asset to every release. It contains one line
+per asset in the standard `sha256sum` format — `<lowercase-hex-sha256>` then
+two spaces then `<filename>` — and covers at least every `…-Setup.exe` asset.
+
+After downloading the per-variant installer, the detector
+
+1. downloads `SHA256SUMS.txt` through the same
+   `…/releases/latest/download/<asset>` redirect,
+2. finds the line whose file name matches the downloaded asset (the name
+   comparison ignores ASCII case, and the `sha256sum -b` binary-mode form
+   `<hash> *<name>` is accepted too), and
+3. computes the file's SHA-256 with Windows CNG (`bcrypt.dll`) and compares it
+   to the listed hash.
+
+If the checksums file cannot be downloaded, does not list the asset, or the
+hash does not match, the downloaded installer is deleted, an error pointing at
+the releases page is shown, and nothing is executed.
+
+Exit codes in normal (non-`--detect-only`) mode:
+
+| Code | Meaning |
+| --- | --- |
+| 0 | success (with `--silent`, the per-variant `Setup.exe` exit code is forwarded instead) |
+| 2 | the installer download failed |
+| 3 | the verified installer could not be started |
+| 4 | integrity verification failed |
+
+Caveat for scripts: with `--silent`, a successful launch forwards the
+per-variant `Setup.exe`'s own exit code, so a nonzero code can also originate
+from Velopack rather than from the rows above. Treat 0 as success and any
+nonzero code as failure instead of branching on specific values.
+
+Both files are fetched via the `latest` redirect, so a release published
+between the two downloads can cause a one-off mismatch; running the installer
+again resolves it. `SHA256SUMS.txt` is the last asset CI uploads, so during
+the final minute of a release publish (or after a half-failed release job) the
+checksums file can be missing and the installer fails with code 4 until the
+release job finishes or is re-run. The check protects the integrity of the download path. It is
+not a substitute for code signing, because the checksums file comes from the
+same release as the installers (see Limitations).
 
 ## ARM64 update-channel convergence
 
@@ -114,8 +160,8 @@ its own table, which is the loudest of these guards.
 ## Build and CI
 
 - `Installer/Installer.vcxproj` builds the detector for `Win32` only. It has no
-  external dependencies (just `winhttp`, `comctl32`, `shell32`), so it builds
-  without FFTW/Qt/etc.
+  external dependencies (just `winhttp`, `bcrypt`, `comctl32`, `shell32`), so it
+  builds without FFTW/Qt/etc.
 - The `create-release` job builds it (`/p:Platform=Win32 /p:Configuration=Release`)
   and uploads it to the release tag as `EqualizerAPO-XT-Setup.exe`, before the
   release notes step so the notes can feature it as the recommended download.
@@ -134,6 +180,8 @@ the detection can be checked from a script.
 ## Limitations
 
 - The detector and the downloaded `Setup.exe` are unsigned, like the existing
-  per-channel installers, so SmartScreen will warn on first run.
+  per-channel installers, so SmartScreen will warn on first run. The SHA-256
+  verification catches corrupted or substituted downloads, but it does not
+  prove publisher identity the way a code signature would.
 - It requires network access at install time. On failure it shows the releases
   page URL so the user can pick a build manually.
