@@ -6,8 +6,20 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
-## 미공개 (Unreleased)
+## v1.17.2 (2026-06-12)
 
+- 쌓여 있던 cppcheck 발견을 전수 분류했습니다. 실제 결함으로는 Include GUI가
+  쓰는 파일 접근 검사에서 예외 경로마다 자원이 새던 문제, ARM64 네이티브 VST
+  라이브러리를 아키텍처가 다르다고 잘못 보고하던 문제, Benchmark가 무음 출력에
+  `log10(0)`을 호출하던 문제를 고쳤습니다. 그 외에는 멤버 기본값, const 참조
+  전달, 명시적 `wstring::npos` 비교 같은 동작 동일한 정리를 트리 전체에
+  적용했고, CI는 이제 버전을 고정한 cppcheck 2.21.0을 베이스라인 0 기준의
+  차단 게이트로 돌립니다. ([#64])
+- 남아 있던 필터 설정 문법(Stage, Include, Device, If/ElseIf/Else/EndIf,
+  Eval과 인라인 백틱 식, IIR, LoudnessCorrection)을 엔진과 Editor가 함께 쓰는
+  공용 명령 코덱으로 옮겨, #57에서 시작한 이전 작업을 마무리했습니다. 코덱마다
+  왕복 테스트가 있으며, 쓰임이 없어진 ParameterArchive 헬퍼는
+  제거했습니다. ([#63])
 - `Channel:`과 `Convolution:` 설정 문법을 엔진과 Editor가 함께 쓰는 공용 명령
   코덱으로 옮기고 왕복(round-trip) 테스트를 붙였습니다. 이 과정에서 Channel
   GUI가 쉼표로 구분한 선택자를 무시하던 문제도 함께 고쳤습니다. `IFilterFactory`의
@@ -20,7 +32,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   건너뜁니다. 전체 매트릭스 빌드는 workflow_dispatch로 언제든 직접 실행할 수
   있습니다. ([#61])
 - README를 현재 상태에 맞게 새로 썼고, 이 변경 이력 문서를 추가했으며, 두 문서의
-  한국어판을 만들었습니다. ([#60])
+  한국어판을 만들었습니다. ([#60], [#62])
 
 ## v1.17.1 (2026-06-11)
 
@@ -262,3 +274,6 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#58]: https://github.com/115dkk/EqualizerAPO-XT/pull/58
 [#60]: https://github.com/115dkk/EqualizerAPO-XT/pull/60
 [#61]: https://github.com/115dkk/EqualizerAPO-XT/pull/61
+[#62]: https://github.com/115dkk/EqualizerAPO-XT/pull/62
+[#63]: https://github.com/115dkk/EqualizerAPO-XT/pull/63
+[#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
