@@ -131,6 +131,8 @@ CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌
 
 CI annotation도 작업 범위입니다. warning이나 notice가 다음 릴리스에서 사용자에게 혼란을 줄 수 있거나 곧 실패로 바뀔 예정이면 방치하지 않습니다.
 
+cppcheck job은 베이스라인 0 기준의 차단 게이트입니다. CI는 cppcheck 2.21.0을 태그 고정으로 소스 빌드해 쓰므로, 로컬에서도 같은 버전으로 build.yml의 cppcheck 호출 플래그를 그대로 사용하면 결과가 재현됩니다. 새 발견은 코드로 고치는 것이 기본이고, 정당한 거짓 양성만 근거 주석과 함께 inline 또는 job 수준 suppress로 처리합니다. 정책적으로 억제한 규칙(cstyleCast, shadow*, useStlAlgorithm, postfixOperator, noExplicitConstructor, LocalAllocCalled)의 근거는 build.yml의 주석에 있습니다.
+
 테스트를 건너뛰는 판단은 명시적인 이유가 있어야 합니다. GitHub-hosted x64 runner가 AVX-512/AVX10.1 실행을 보장하지 않아 `HybridConvTests` 실행을 건너뛰는 경우처럼, 빌드는 유지하되 런타임 실행만 제한합니다.
 
 회귀가 발견되면 먼저 재현 가능한 테스트나 검증 명령을 추가합니다. 오디오 처리 내부처럼 버그를 잡기 어려운 부분은 더 좁은 테스트를 먼저 만들고, 테스트가 가리키는 범위만 수정합니다.
