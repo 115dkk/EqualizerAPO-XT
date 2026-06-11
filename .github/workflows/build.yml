@@ -44,6 +44,11 @@ jobs:
     outputs:
       bumped_sha: ${{ steps.commit.outputs.sha }}
       base_version: ${{ steps.commit.outputs.base_version }}
+      # 'true' when this push raised version.h. When it stays 'false' the push
+      # cannot produce a new release (the tag already exists), so the build
+      # matrix and release jobs are skipped entirely. Use workflow_dispatch to
+      # force a full-matrix build of such a push when needed.
+      bumped: ${{ steps.commit.outputs.bumped }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -84,6 +89,11 @@ jobs:
           # this commit; the current workflow keeps going regardless.
           git commit -m "chore(version): bump version [skip ci]"
           git push
+          "bumped=true" >> $env:GITHUB_OUTPUT
+        }
+        else {
+          "bumped=false" >> $env:GITHUB_OUTPUT
+          Write-Host "::notice::No version bump for this push, so no new release is possible. Skipping the build matrix; use workflow_dispatch to build it anyway."
         }
 
         $sha = (& git rev-parse HEAD).Trim()
@@ -122,15 +132,20 @@ jobs:
 
   build:
     needs: [version-bump, prepare-matrix]
-    # Build for PRs and pushes. On main the bump job must finish first so the
-    # build picks up the bumped version.h; on every other branch the bump job
-    # is skipped (its `if` requires main) which is fine — we still build.
+    # Build for PRs, dispatches, and version-bumping main pushes. On main the
+    # bump job must finish first so the build picks up the bumped version.h;
+    # when it decides nothing bumps (docs/ci/chore/refactor-only pushes) the
+    # push cannot produce a new release, so the whole matrix is skipped. A
+    # skipped bump job on main means a manual `chore(version):` commit — the
+    # maintainer set a version by hand, so build it. On every other event the
+    # bump job is skipped by its own `if` and we always build. Full-matrix
+    # coverage for a no-bump push stays available via workflow_dispatch.
     if: |
       always() && needs.prepare-matrix.result == 'success' && (
         github.event_name != 'push' ||
         github.ref != 'refs/heads/main' ||
-        needs.version-bump.result == 'success' ||
-        needs.version-bump.result == 'skipped'
+        needs.version-bump.result == 'skipped' ||
+        (needs.version-bump.result == 'success' && needs.version-bump.outputs.bumped == 'true')
       )
     strategy:
       fail-fast: false

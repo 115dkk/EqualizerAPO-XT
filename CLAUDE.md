@@ -117,7 +117,7 @@ Tests\HybridConvTests\x64\Release\HybridConvTests.exe
 
 ### CI
 
-CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌드하고 산출물과 설치 파일을 업로드합니다. PR에서는 AVX2만 빌드하고, `main` push에서는 전체 조합을 빌드합니다.
+CI는 x64 `sse2`, `avx`, `avx2`, `avx512`, `avx10_1`, ARM64 `neon` 조합을 빌드하고 산출물과 설치 파일을 업로드합니다. PR에서는 AVX2만 빌드하고, `main` push에서는 버전이 올라갈 때만 전체 조합을 빌드합니다. 버전이 오르지 않는 push(docs/ci/chore/refactor 등)는 새 릴리스를 만들 수 없으므로 빌드 매트릭스 자체를 건너뜁니다. 그런 push에 전체 빌드가 필요하면 `gh workflow run build.yml`(workflow_dispatch)로 직접 실행합니다.
 
 `main`에 push되면 CI가 모든 변형 빌드를 끝낸 뒤 GitHub Release를 만듭니다. Release에는 Velopack으로 감싼 설치 파일과 `git archive`로 만든 소스 코드 zip이 올라갑니다. Velopack Release job은 빌드 산출물을 payload로 삼아 패키징합니다.
 
@@ -148,7 +148,7 @@ CI가 만드는 GitHub Release 본문은 `.github/scripts/New-ReleaseNotes.ps1`�
 - 새 기능, 새 필터, 새 SIMD/아키텍처 릴리스 채널, 사용자에게 보이는 동작 변경은 `feat:`로 커밋해 `MINOR`를 올립니다.
 - 설정 파일 형식, 설치 방식, 업데이트 채널, 공개 동작이 기존 사용자에게 수동 조치를 요구할 만큼 바뀌면 BREAKING CHANGE로 표시해 `MAJOR`를 올립니다.
 
-`version.h`가 올라가지 않은 push는 같은 태그의 릴리스가 이미 있으므로 release job이 재패키징을 건너뜁니다.
+`version.h`가 올라가지 않은 push는 같은 태그의 릴리스가 이미 있으므로 빌드 매트릭스와 release job을 통째로 건너뜁니다. 코드가 바뀌는 no-bump push(refactor 등)에 전체 매트릭스 검증이 필요하면 workflow_dispatch로 빌드를 직접 실행합니다.
 
 ## 코드 작업 기준
 
