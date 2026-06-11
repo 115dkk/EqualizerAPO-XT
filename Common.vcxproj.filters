@@ -77,6 +77,9 @@
     <ClInclude Include="filters\IfFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\IIRCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\IIRFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -181,7 +184,7 @@
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="IFilter.h" />
     <ClInclude Include="IFilterFactory.h" />
-    <ClInclude Include="filters\loudnessCorrection\ParameterArchive.h">
+    <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionCommand.h">
       <Filter>filters\loudnessCorrection</Filter>
     </ClInclude>
     <ClInclude Include="filters\loudnessCorrection\VolumeController.h">
@@ -272,6 +275,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\IfFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IIRCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\IIRFilter.cpp">
@@ -383,6 +389,9 @@
     <ClCompile Include="filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionCommand.cpp">
       <Filter>filters\loudnessCorrection</Filter>
     </ClCompile>
     <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.cpp">

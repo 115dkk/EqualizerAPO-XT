@@ -48,70 +48,60 @@ IIRFilterFactory::IIRFilterFactory()
 {
 }
 
-vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& parameters, IIRCommand& out)
 {
-	IIRFilter* filter = nullptr;
+	if (command.find(L"Filter") != 0)
+		return false;
 
-	if (command.find(L"Filter") == 0)
+	wsmatch match;
+	if (!regex_search(parameters, match, regexType) || match.str(1) != L"IIR")
+		return false;
+
+	if (!regex_search(parameters, match, regexOrder))
+		return false;
+
+	wstring orderString = match.str(1);
+	unsigned order = wcstol(orderString.c_str(), nullptr, 10);
+	if (order < 1)
 	{
-		wsmatch match;
-		wstring typeString;
-
-		bool found = regex_search(parameters, match, regexType);
-		if (found)
-		{
-			typeString = match.str(1);
-			if (typeString == L"IIR")
-			{
-				bool found = regex_search(parameters, match, regexOrder);
-				if (found)
-				{
-					wstring orderString = match.str(1);
-					unsigned order = wcstol(orderString.c_str(), nullptr, 10);
-
-					if (order < 1)
-					{
-						LogF(L"Order %d not supported, must at least be 1", order);
-					}
-					else
-					{
-						found = regex_search(parameters, match, regexCoefficients);
-
-						if (found)
-						{
-							wstring coefficientsString = match.str(1);
-							vector<wstring> coefficientStrings = StringHelper::split(coefficientsString, L' ');
-							if (coefficientStrings.size() != (order + 1) * 2)
-							{
-								LogF(L"Invalid number of coefficients. Expected %d coefficients instead of %d", (order + 1) * 2, coefficientStrings.size());
-							}
-							else
-							{
-								vector<double> coefficients;
-								for (auto it = coefficientStrings.begin(); it != coefficientStrings.end(); it++)
-								{
-									coefficients.push_back(wcstod(it->c_str(), nullptr));
-								}
-
-								wstringstream stream;
-								stream << L"Adding IIR filter of order " << order << " with coefficients";
-								for (unsigned i = 0; i <= order; i++)
-									stream << L" b" << i << L"=" << coefficients[i];
-								for (unsigned i = 0; i <= order; i++)
-									stream << L" a" << i << L"=" << coefficients[i + order + 1];
-
-								TraceF(L"%s", stream.str().c_str());
-
-								filter = MemoryHelper::construct<IIRFilter>(coefficients);
-							}
-						}
-					}
-				}
-			}
-		}
+		LogFStatic(L"Order %d not supported, must at least be 1", order);
+		return false;
 	}
 
-	if (filter == nullptr)
+	if (!regex_search(parameters, match, regexCoefficients))
+		return false;
+
+	wstring coefficientsString = match.str(1);
+	vector<wstring> coefficientStrings = StringHelper::split(coefficientsString, L' ');
+	if (coefficientStrings.size() != (order + 1) * 2)
+	{
+		LogFStatic(L"Invalid number of coefficients. Expected %d coefficients instead of %d", (order + 1) * 2, coefficientStrings.size());
+		return false;
+	}
+
+	out.order = order;
+	out.coefficients.clear();
+	for (const wstring& coefficientString : coefficientStrings)
+		out.coefficients.push_back(wcstod(coefficientString.c_str(), nullptr));
+
+	return true;
+}
+
+vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+{
+	IIRCommand cmd;
+	if (!parseCommand(command, parameters, cmd))
 		return vector<IFilter*>(0);
+
+	wstringstream stream;
+	stream << L"Adding IIR filter of order " << cmd.order << " with coefficients";
+	for (unsigned i = 0; i <= cmd.order; i++)
+		stream << L" b" << i << L"=" << cmd.coefficients[i];
+	for (unsigned i = 0; i <= cmd.order; i++)
+		stream << L" a" << i << L"=" << cmd.coefficients[i + cmd.order + 1];
+
+	TraceF(L"%s", stream.str().c_str());
+
+	IIRFilter* filter = MemoryHelper::construct<IIRFilter>(cmd.coefficients);
 	return vector<IFilter*>(1, filter);
 }

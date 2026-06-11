@@ -36,7 +36,9 @@ void runDeviceCommandTests();
 void runExpressionCommandTests();
 void runGraphicEQCommandTests();
 void runIfCommandTests();
+void runIIRCommandTests();
 void runIncludeCommandTests();
+void runLoudnessCorrectionCommandTests();
 void runStageCommandTests();
 void runVSTPluginCommandTests();
 void runVstHostTests();
@@ -244,7 +246,9 @@ int main()
 	runExpressionCommandTests();
 	runGraphicEQCommandTests();
 	runIfCommandTests();
+	runIIRCommandTests();
 	runIncludeCommandTests();
+	runLoudnessCorrectionCommandTests();
 	runStageCommandTests();
 	runVSTPluginCommandTests();
 	// Runtime VST2 host load/state/audio test (audit #48 F026). Soft-skips if the

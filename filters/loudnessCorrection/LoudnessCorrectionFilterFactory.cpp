@@ -26,6 +26,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
+#include "LoudnessCorrectionCommand.h"
 #include "LoudnessCorrectionFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "LoudnessCorrectionFilterFactory.h"
@@ -44,15 +45,17 @@ vector<IFilter*> LoudnessCorrectionFilterFactory::createFilter(const wstring& co
 {
 	vector<IFilter*> allFilter(0);
 
-	if (command == L"LoudnessCorrection")
+	LoudnessCorrectionCommand cmd;
+	if (LoudnessCorrectionCommand::parse(command, parameters, cmd))
 	{
-		LoudnessCorrectionFilter::FilterParameters filterParameters(parameters);
-		if (filterParameters.isInitialized())
-		{
-			TraceF(L"Adding loudness correction filter");
-			void* mem = MemoryHelper::alloc(sizeof(LoudnessCorrectionFilter));
-			allFilter.push_back(new(mem) LoudnessCorrectionFilter(filterParameters));
-		}
+		TraceF(L"Adding loudness correction filter");
+		LoudnessCorrectionFilter::FilterParameters filterParameters;
+		filterParameters.state = cmd.state;
+		filterParameters.referenceLevel = cmd.referenceLevel;
+		filterParameters.referenceOffset = cmd.referenceOffset;
+		filterParameters.attenuation = cmd.attenuation;
+		void* mem = MemoryHelper::alloc(sizeof(LoudnessCorrectionFilter));
+		allFilter.push_back(new(mem) LoudnessCorrectionFilter(filterParameters));
 	}
 
 	return allFilter;

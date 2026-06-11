@@ -20,20 +20,24 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-#include "IFilterFactory.h"
-#include "IFilter.h"
-#include "IIRCommand.h"
-
-class IIRFilterFactory : public IFilterFactory
+// Plain description of a parsed "Filter:" IIR config line ("ON IIR Order N
+// Coefficients b0 .. bN a0 .. aN"). It holds exactly what
+// IIRFilterFactory::createFilter feeds into the IIRFilter constructor.
+//
+// Like the BiQuad codec, the parse routine lives on the factory
+// (IIRFilterFactory::parseCommand) because it reports grammar errors through
+// the log helpers; this struct owns the data shape and the serialization.
+struct IIRCommand
 {
-public:
-	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	unsigned order = 0;
 
-	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
+	// (order + 1) * 2 values: b0..bN followed by a0..aN, in config-line order.
+	std::vector<double> coefficients;
+
+	// Canonical parameter string: "ON IIR Order <order> Coefficients <...>".
+	// Each coefficient is formatted with the C "%g" default (six significant
+	// digits, trailing zeros stripped), like the GraphicEQ codec.
+	std::wstring serialize() const;
 };

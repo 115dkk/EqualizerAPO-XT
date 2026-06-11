@@ -142,6 +142,7 @@ SOURCES += main.cpp\
 	../filters/StageFilterFactory.cpp \
 	../filters/ConvolutionCommand.cpp \
 	../filters/ConvolutionFilterFactory.cpp \
+	../filters/IIRCommand.cpp \
 	../filters/IIRFilter.cpp \
 	../filters/IIRFilterFactory.cpp \
 	../filters/IncludeCommand.cpp \
@@ -169,6 +170,7 @@ SOURCES += main.cpp\
 	../helpers/VSTPluginInstance.cpp \
 	guis/LoudnessCorrectionFilterGUI.cpp \
 	guis/LoudnessCorrectionFilterGUIFactory.cpp \
+	../filters/loudnessCorrection/LoudnessCorrectionCommand.cpp \
 	../filters/loudnessCorrection/LoudnessCorrectionFilter.cpp \
 	../filters/loudnessCorrection/LoudnessCorrectionFilterFactory.cpp \
 	../filters/loudnessCorrection/VolumeController.cpp \
@@ -304,6 +306,7 @@ HEADERS  += \
 	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \
 	../filters/ConvolutionFilterFactory.h \
+	../filters/IIRCommand.h \
 	../filters/IIRFilter.h \
 	../filters/IIRFilterFactory.h \
 	../filters/IncludeCommand.h \
@@ -332,9 +335,9 @@ HEADERS  += \
 	../helpers/VSTPluginInstance.h \
 	guis/LoudnessCorrectionFilterGUI.h \
 	guis/LoudnessCorrectionFilterGUIFactory.h \
+	../filters/loudnessCorrection/LoudnessCorrectionCommand.h \
 	../filters/loudnessCorrection/LoudnessCorrectionFilter.h \
 	../filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h \
-	../filters/loudnessCorrection/ParameterArchive.h \
 	../filters/loudnessCorrection/VolumeController.h \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/QtSndfileHandle.h \

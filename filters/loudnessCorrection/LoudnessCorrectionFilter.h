@@ -19,14 +19,12 @@
 
 #pragma once
 
-#include "ParameterArchive.h"
 #include <IFilter.h>
 #include <filters/BiQuad.h>
 
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
-#include <regex>
 #include <sstream>
 #include <thread>
 
@@ -34,48 +32,14 @@
 class LoudnessCorrectionFilter : public IFilter
 {
 public:
+	// Runtime parameter set for the filter. Parsing and serialization of the
+	// "LoudnessCorrection:" config line live in LoudnessCorrectionCommand.
 	struct FilterParameters
 	{
-		bool state;
-		float referenceLevel;
-		float referenceOffset;
-		float attenuation;
-		std::vector<char> serialize()
-		{
-			ParameterArchive archive; // possibility to get string from name of variable: std::string name=NAME(on);
-			archive.add(state, L"State");
-			archive.add(referenceLevel, L"ReferenceLevel");
-			archive.add(referenceOffset, L"ReferenceOffset");
-			archive.add(attenuation, L"Attenuation");
-			return archive.getSerializedParameters();
-		}
-		template<typename T> bool deSerialize(const T& parameters)
-		{
-			ParameterArchive archive(parameters);
-			int error(0);
-			error += archive.get(state, std::wregex(L"\\s*State\\s+(0|1)"));
-			error += archive.get(referenceLevel, std::wregex(L"\\s*ReferenceLevel\\s+([-+0-9]+)"));
-			error += archive.get(referenceOffset, std::wregex(L"\\s*ReferenceOffset\\s+([-+0-9]+)"));
-			// attenuation is only an optional parameter
-			int errorAtt = archive.get(attenuation, std::wregex(L"\\s*Attenuation\\s+((1((\\.|,)0+)?)|(0((\\.|,)[0-9]+)?))"));
-			if (errorAtt > 0)
-			{
-				attenuation = 1.0;
-			}
-			return error == 0 ? false : true;
-		}
-		FilterParameters()
-			: _isInitialized(false) {};
-		template<typename T> FilterParameters(T input)
-		{
-			_isInitialized = !deSerialize<T>(input);
-		}
-		bool isInitialized()
-		{
-			return _isInitialized;
-		}
-private:
-		bool _isInitialized;
+		bool state = false;
+		float referenceLevel = 0.0f;
+		float referenceOffset = 0.0f;
+		float attenuation = 1.0f;
 	};
 
 	LoudnessCorrectionFilter(const FilterParameters& fParameters);

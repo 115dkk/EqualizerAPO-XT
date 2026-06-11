@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "filters/loudnessCorrection/LoudnessCorrectionFilter.h"
+#include "filters/loudnessCorrection/LoudnessCorrectionCommand.h"
 #include "LoudnessCorrectionFilterGUI.h"
 #include "LoudnessCorrectionFilterGUIFactory.h"
 
@@ -53,19 +53,18 @@ IFilterGUI* LoudnessCorrectionFilterGUIFactory::createFilterGUI(QString& command
 {
 	LoudnessCorrectionFilterGUI* result = nullptr;
 
-	if (command == "LoudnessCorrection")
+	// Parse through the shared codec so the GUI accepts exactly what the
+	// engine accepts.
+	LoudnessCorrectionCommand cmd;
+	if (LoudnessCorrectionCommand::parse(command.toStdWString(), parameters.toStdWString(), cmd))
 	{
-		LoudnessCorrectionFilter::FilterParameters params;
-		if (!params.deSerialize(parameters.toStdWString()))
-		{
-			result = new LoudnessCorrectionFilterGUI(params.referenceLevel, params.referenceOffset, params.attenuation);
+		result = new LoudnessCorrectionFilterGUI(cmd.referenceLevel, cmd.referenceOffset, cmd.attenuation);
 
-			if (timer == nullptr)
-			{
-				timer = new QTimer(this);
-				connect(timer, SIGNAL(timeout()), this, SLOT(checkVolume()));
-				timer->start(10);
-			}
+		if (timer == nullptr)
+		{
+			timer = new QTimer(this);
+			connect(timer, SIGNAL(timeout()), this, SLOT(checkVolume()));
+			timer->start(10);
 		}
 	}
 
