@@ -50,6 +50,9 @@
     <ClInclude Include="filters\DelayFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\DeviceCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\DeviceFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -236,6 +239,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\DelayFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\DeviceCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\DeviceFilterFactory.cpp">

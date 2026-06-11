@@ -32,6 +32,7 @@ void runCommonLogicTests();
 void runConvolutionCommandTests();
 void runCopyCommandTests();
 void runDelayCommandTests();
+void runDeviceCommandTests();
 void runGraphicEQCommandTests();
 void runIncludeCommandTests();
 void runStageCommandTests();
@@ -237,6 +238,7 @@ int main()
 	runConvolutionCommandTests();
 	runCopyCommandTests();
 	runDelayCommandTests();
+	runDeviceCommandTests();
 	runGraphicEQCommandTests();
 	runIncludeCommandTests();
 	runStageCommandTests();

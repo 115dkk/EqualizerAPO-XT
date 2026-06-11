@@ -18,7 +18,6 @@
 */
 
 #include "stdafx.h"
-#include <regex>
 #include <mpParser.h>
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
@@ -26,17 +25,13 @@
 #include "FilterEngine.h"
 #endif
 #include "filters/FilterFactoryRegistry.h"
+#include "DeviceCommand.h"
 #include "DeviceFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Device, DeviceFilterFactory)
 
-using std::find;
-using std::regex;
 using std::vector;
-using std::wregex;
 using std::wstring;
-
-static wregex regexGuid(L"\\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\}");
 
 #ifndef NO_FILTERENGINE
 void DeviceFilterFactory::initialize(FilterEngine* engine)
@@ -59,9 +54,10 @@ vector<IFilter*> DeviceFilterFactory::startOfConfiguration()
 
 vector<IFilter*> DeviceFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	if (command == L"Device")
+	DeviceCommand cmd;
+	if (DeviceCommand::parse(command, parameters, cmd))
 	{
-		bool matches = matchDevice(deviceString, parameters);
+		bool matches = cmd.matches(deviceString);
 
 		TraceF(L"%satching pattern \"%s\" with device \"%s\"", matches ? L"M" : L"Not m", StringHelper::trim(parameters).c_str(), deviceString.c_str());
 		deviceMatches = matches;
@@ -80,63 +76,4 @@ std::vector<IFilter*> DeviceFilterFactory::endOfFile(const std::wstring& configP
 	deviceMatches = true;
 
 	return vector<IFilter*>();
-}
-
-bool DeviceFilterFactory::matchDevice(const std::wstring& deviceString, const std::wstring& pattern)
-{
-	wstring value = StringHelper::trim(pattern) + L";";
-
-	vector<vector<wstring>> fullList;
-	vector<wstring> currentList;
-	wstring currentWord;
-
-	for (unsigned i = 0; i < value.length(); i++)
-	{
-		wchar_t c = value[i];
-		if (c == L' ' || c == L';')
-		{
-			if (currentWord.length() > 0)
-			{
-				currentList.push_back(currentWord);
-				currentWord.clear();
-			}
-			if (c == L';' && currentList.size() > 0)
-			{
-				fullList.push_back(currentList);
-				currentList.clear();
-			}
-		}
-		else
-		{
-			currentWord += c;
-		}
-	}
-
-	wstring deviceStringNoGuid = regex_replace(deviceString, regexGuid, L"");
-
-	bool matches = false;
-
-	for (unsigned i = 0; i < fullList.size(); i++)
-	{
-		matches = true;
-
-		if (fullList[i].size() == 1 && StringHelper::toLowerCase(fullList[i][0]) == L"all")
-			break;
-
-		for (unsigned j = 0; j < fullList[i].size(); j++)
-		{
-			wstring word = StringHelper::toLowerCase(fullList[i][j]);
-			const wstring& matchString = word.find('{') == wstring::npos ? deviceStringNoGuid : deviceString;
-			if (StringHelper::toLowerCase(matchString).find(word) == wstring::npos)
-			{
-				matches = false;
-				break;
-			}
-		}
-
-		if (matches)
-			break;
-	}
-
-	return matches;
 }

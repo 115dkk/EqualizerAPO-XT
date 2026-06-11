@@ -20,7 +20,7 @@
 #include <string>
 #include "DeviceFilterGUI.h"
 #include "DeviceFilterGUIDialog.h"
-#include <filters/DeviceFilterFactory.h>
+#include <filters/DeviceCommand.h>
 #include <VoicemeeterAPOInfo.h>
 #include "ui_DeviceFilterGUI.h"
 
@@ -65,11 +65,15 @@ void DeviceFilterGUI::load(const QString& parameters)
 	}
 	else
 	{
+		// Match through the shared codec so the GUI shows exactly the devices
+		// the engine would match for this pattern.
+		DeviceCommand cmd = DeviceCommand::fromPattern(pattern.toStdWString());
+
 		const QList<shared_ptr<AbstractAPOInfo>>& devices = factory->getDevices();
 		bool anyInstalled = false;
 		for (const shared_ptr<AbstractAPOInfo>& apoInfo : devices)
 		{
-			if (apoInfo->isInstalled() && DeviceFilterFactory::matchDevice(apoInfo->getDeviceString(), pattern.toStdWString()))
+			if (apoInfo->isInstalled() && cmd.matches(apoInfo->getDeviceString()))
 			{
 				anyInstalled = true;
 				break;
@@ -81,7 +85,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 			if (anyInstalled && !apoInfo->isInstalled())
 				continue;
 
-			if (DeviceFilterFactory::matchDevice(apoInfo->getDeviceString(), pattern.toStdWString()))
+			if (cmd.matches(apoInfo->getDeviceString()))
 			{
 				QStringList values;
 				if (apoInfo->isInput())

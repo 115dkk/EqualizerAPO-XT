@@ -328,6 +328,7 @@
     <ClInclude Include="filters\DelayCommand.h" />
     <ClInclude Include="filters\DelayFilter.h" />
     <ClInclude Include="filters\DelayFilterFactory.h" />
+    <ClInclude Include="filters\DeviceCommand.h" />
     <ClInclude Include="filters\DeviceFilterFactory.h" />
     <ClInclude Include="filters\ExpressionFilterFactory.h" />
     <ClInclude Include="filters\GraphicEQCommand.h" />
@@ -406,6 +407,7 @@
     <ClCompile Include="filters\DelayCommand.cpp" />
     <ClCompile Include="filters\DelayFilter.cpp" />
     <ClCompile Include="filters\DelayFilterFactory.cpp" />
+    <ClCompile Include="filters\DeviceCommand.cpp" />
     <ClCompile Include="filters\DeviceFilterFactory.cpp" />
     <ClCompile Include="filters\ExpressionFilterFactory.cpp" />
     <ClCompile Include="filters\GraphicEQCommand.cpp" />

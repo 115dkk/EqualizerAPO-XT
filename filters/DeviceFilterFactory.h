@@ -34,8 +34,6 @@ public:
 	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 	std::vector<IFilter*> endOfFile(const std::wstring& configPath) override;
 
-	static bool matchDevice(const std::wstring& deviceString, const std::wstring& pattern);
-
 private:
 	bool deviceMatches;
 	std::wstring deviceString;

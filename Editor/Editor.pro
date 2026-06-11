@@ -54,6 +54,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.State.cpp \
 	../devices/DeviceAPOInfo.Uninstall.cpp \
 	guis/DeviceFilterGUIDialog.cpp \
+	../filters/DeviceCommand.cpp \
 	../filters/DeviceFilterFactory.cpp \
 	guis/ChannelFilterGUIDialog.cpp \
 	guis/ChannelFilterGUI.cpp \
@@ -224,6 +225,7 @@ HEADERS  += \
 	guis/DeviceFilterGUIFactory.h \
 	../DeviceAPOInfo.h \
 	guis/DeviceFilterGUIDialog.h \
+	../filters/DeviceCommand.h \
 	../filters/DeviceFilterFactory.h \
 	guis/ChannelFilterGUIDialog.h \
 	guis/ChannelFilterGUI.h \

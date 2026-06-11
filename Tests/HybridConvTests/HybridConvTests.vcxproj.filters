@@ -26,6 +26,9 @@
     <ClCompile Include="DelayCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DeviceCommandTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="GraphicEQCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
