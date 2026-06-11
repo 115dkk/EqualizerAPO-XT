@@ -18,6 +18,7 @@
 */
 
 #include "Editor/helpers/GUIHelper.h"
+#include "filters/loudnessCorrection/LoudnessCorrectionCommand.h"
 #include "LoudnessCorrectionFilterGUIDialog.h"
 #include "LoudnessCorrectionFilterGUI.h"
 #include "ui_LoudnessCorrectionFilterGUI.h"
@@ -48,12 +49,13 @@ LoudnessCorrectionFilterGUI::~LoudnessCorrectionFilterGUI()
 void LoudnessCorrectionFilterGUI::store(QString& command, QString& parameters)
 {
 	command = "LoudnessCorrection";
-	parameters = QString("State %0 ReferenceLevel %1 ReferenceOffset %2 Attenuation ").arg(state ? 1 : 0).arg(ui->refLevelSpinBox->value()).arg(ui->refOffsetSpinBox->value());
-	double att = ui->attSpinBox->value();
-	if (att == 0.0 || att == 1.0)
-		parameters += QString("%0").arg(att, 0, 'f', 1);
-	else
-		parameters += QString("%0").arg(att);
+
+	LoudnessCorrectionCommand cmd;
+	cmd.state = state;
+	cmd.referenceLevel = static_cast<float>(ui->refLevelSpinBox->value());
+	cmd.referenceOffset = static_cast<float>(ui->refOffsetSpinBox->value());
+	cmd.attenuation = static_cast<float>(ui->attSpinBox->value());
+	parameters = QString::fromStdWString(cmd.serialize());
 }
 
 void LoudnessCorrectionFilterGUI::on_refLevelSpinBox_valueChanged(int value)

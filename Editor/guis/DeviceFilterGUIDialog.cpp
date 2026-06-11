@@ -21,7 +21,7 @@
 #include "DeviceFilterGUIDialog.h"
 #include "ui_DeviceFilterGUIDialog.h"
 
-#include <filters/DeviceFilterFactory.h>
+#include <filters/DeviceCommand.h>
 #include <VoicemeeterAPOInfo.h>
 
 using std::shared_ptr;
@@ -35,6 +35,10 @@ DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterG
 
 	bool all = pattern.trimmed() == "all";
 	ui->allDevicesCheckBox->setChecked(all);
+
+	// Match through the shared codec so the dialog pre-checks exactly the
+	// devices the engine would match for this pattern.
+	DeviceCommand cmd = DeviceCommand::fromPattern(pattern.toStdWString());
 
 	QStringList labels;
 	labels.append(tr("Connection"));
@@ -62,7 +66,7 @@ DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterG
 		values.append(state);
 		QTreeWidgetItem* item = new QTreeWidgetItem(apoInfo->isInput() ? inputNode : outputNode, values);
 
-		bool matches = !all && DeviceFilterFactory::matchDevice(apoInfo->getDeviceString(), pattern.toStdWString());
+		bool matches = !all && cmd.matches(apoInfo->getDeviceString());
 		item->setCheckState(0, matches ? Qt::Checked : Qt::Unchecked);
 		item->setData(0, Qt::UserRole, QVariant::fromValue(apoInfo));
 		item->setHidden(!matches && !apoInfo->isInstalled() && ui->showOnlyInstalledCheckBox->isChecked());

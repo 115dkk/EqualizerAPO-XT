@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include "filters/IncludeCommand.h"
 #include "IncludeFilterGUI.h"
 #include "IncludeFilterGUIFactory.h"
 
@@ -40,9 +41,12 @@ IFilterGUI* IncludeFilterGUIFactory::createFilterGUI(QString& command, QString& 
 {
 	IncludeFilterGUI* result = nullptr;
 
-	if (command == "Include")
+	// Parse through the shared codec so the GUI edits the path exactly as the
+	// engine will load it (leading whitespace stripped, the rest verbatim).
+	IncludeCommand cmd;
+	if (IncludeCommand::parse(command.toStdWString(), parameters.toStdWString(), cmd))
 	{
-		result = new IncludeFilterGUI(filterTable, parameters.trimmed());
+		result = new IncludeFilterGUI(filterTable, QString::fromStdWString(cmd.path));
 	}
 
 	return result;

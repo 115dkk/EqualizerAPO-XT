@@ -24,6 +24,7 @@
 #include "parser/RegistryFunctions.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "IfCommand.h"
 #include "IfFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::If, IfFilterFactory)
@@ -63,9 +64,11 @@ std::vector<IFilter*> IfFilterFactory::startOfFile(const std::wstring& configPat
 
 vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	wstring expression = StringHelper::trim(parameters);
+	IfCommand cmd;
+	bool isIfFamily = IfCommand::parse(command, parameters, cmd);
+	const wstring& expression = cmd.expression;
 
-	if (command == L"If")
+	if (isIfFamily && cmd.kind == IfCommand::Kind::If)
 	{
 		if (falseCount == 0)
 		{
@@ -100,7 +103,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 			falseCount++;
 		}
 	}
-	else if (command == L"ElseIf")
+	else if (isIfFamily && cmd.kind == IfCommand::Kind::ElseIf)
 	{
 		if (falseCount == 0)
 		{
@@ -139,7 +142,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 			}
 		}
 	}
-	else if (command == L"Else")
+	else if (isIfFamily && cmd.kind == IfCommand::Kind::Else)
 	{
 		if (falseCount == 0)
 		{
@@ -160,7 +163,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 			executeElse = false;
 		}
 	}
-	else if (command == L"EndIf")
+	else if (isIfFamily && cmd.kind == IfCommand::Kind::EndIf)
 	{
 		if (falseCount == 0)
 		{

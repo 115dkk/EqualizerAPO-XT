@@ -54,6 +54,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.State.cpp \
 	../devices/DeviceAPOInfo.Uninstall.cpp \
 	guis/DeviceFilterGUIDialog.cpp \
+	../filters/DeviceCommand.cpp \
 	../filters/DeviceFilterFactory.cpp \
 	guis/ChannelFilterGUIDialog.cpp \
 	guis/ChannelFilterGUI.cpp \
@@ -133,13 +134,18 @@ SOURCES += main.cpp\
 	../FilterConfiguration.cpp \
 	../filters/ChannelCommand.cpp \
 	../filters/ChannelFilterFactory.cpp \
+	../filters/ExpressionCommand.cpp \
 	../filters/ExpressionFilterFactory.cpp \
+	../filters/IfCommand.cpp \
 	../filters/IfFilterFactory.cpp \
+	../filters/StageCommand.cpp \
 	../filters/StageFilterFactory.cpp \
 	../filters/ConvolutionCommand.cpp \
 	../filters/ConvolutionFilterFactory.cpp \
+	../filters/IIRCommand.cpp \
 	../filters/IIRFilter.cpp \
 	../filters/IIRFilterFactory.cpp \
+	../filters/IncludeCommand.cpp \
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
@@ -164,6 +170,7 @@ SOURCES += main.cpp\
 	../helpers/VSTPluginInstance.cpp \
 	guis/LoudnessCorrectionFilterGUI.cpp \
 	guis/LoudnessCorrectionFilterGUIFactory.cpp \
+	../filters/loudnessCorrection/LoudnessCorrectionCommand.cpp \
 	../filters/loudnessCorrection/LoudnessCorrectionFilter.cpp \
 	../filters/loudnessCorrection/LoudnessCorrectionFilterFactory.cpp \
 	../filters/loudnessCorrection/VolumeController.cpp \
@@ -222,6 +229,7 @@ HEADERS  += \
 	guis/DeviceFilterGUIFactory.h \
 	../DeviceAPOInfo.h \
 	guis/DeviceFilterGUIDialog.h \
+	../filters/DeviceCommand.h \
 	../filters/DeviceFilterFactory.h \
 	guis/ChannelFilterGUIDialog.h \
 	guis/ChannelFilterGUI.h \
@@ -291,12 +299,17 @@ HEADERS  += \
 	../FilterEngine.h \
 	../FilterConfiguration.h \
 	../filters/ChannelFilterFactory.h \
+	../filters/ExpressionCommand.h \
 	../filters/ExpressionFilterFactory.h \
+	../filters/IfCommand.h \
 	../filters/IfFilterFactory.h \
+	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \
 	../filters/ConvolutionFilterFactory.h \
+	../filters/IIRCommand.h \
 	../filters/IIRFilter.h \
 	../filters/IIRFilterFactory.h \
+	../filters/IncludeCommand.h \
 	../filters/IncludeFilterFactory.h \
 	../filters/ChannelCommand.h \
 	../filters/ChannelFilter.h \
@@ -322,9 +335,9 @@ HEADERS  += \
 	../helpers/VSTPluginInstance.h \
 	guis/LoudnessCorrectionFilterGUI.h \
 	guis/LoudnessCorrectionFilterGUIFactory.h \
+	../filters/loudnessCorrection/LoudnessCorrectionCommand.h \
 	../filters/loudnessCorrection/LoudnessCorrectionFilter.h \
 	../filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h \
-	../filters/loudnessCorrection/ParameterArchive.h \
 	../filters/loudnessCorrection/VolumeController.h \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/QtSndfileHandle.h \

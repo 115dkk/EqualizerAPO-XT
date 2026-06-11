@@ -21,19 +21,30 @@
 
 #include <string>
 
-#include "IFilterFactory.h"
-#include "IFilter.h"
-#include "IIRCommand.h"
-
-class IIRFilterFactory : public IFilterFactory
+// Single owner of the If/ElseIf/Else/EndIf config-line family grammar: which
+// commands belong to the family and how the condition expression is extracted.
+// The branch state machine (nesting, false-branch consumption) stays with the
+// engine factory.
+struct IfCommand
 {
-public:
-	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	enum class Kind
+	{
+		If,
+		ElseIf,
+		Else,
+		EndIf,
+	};
 
-	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
+	Kind kind = Kind::If;
+
+	// Trimmed condition expression. Filled for every kind (Else/EndIf lines may
+	// carry text after the colon), but only If/ElseIf evaluate it.
+	std::wstring expression;
+
+	// Canonical parameter string: the expression itself.
+	std::wstring serialize() const;
+
+	// Returns true when command names a line of the If family; kind and
+	// expression are then filled.
+	static bool parse(const std::wstring& command, const std::wstring& parameters, IfCommand& out);
 };

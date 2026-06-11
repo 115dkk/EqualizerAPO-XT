@@ -17,23 +17,30 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#pragma once
+#include "stdafx.h"
 
-#include <string>
+#include "IncludeCommand.h"
 
-#include "IFilterFactory.h"
-#include "IFilter.h"
-#include "IIRCommand.h"
+#include <cwctype>
 
-class IIRFilterFactory : public IFilterFactory
+using std::wstring;
+
+wstring IncludeCommand::serialize() const
 {
-public:
-	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	return path;
+}
 
-	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
-};
+bool IncludeCommand::parse(const wstring& command, const wstring& parameters, IncludeCommand& out)
+{
+	if (command != L"Include")
+		return false;
+
+	// Leading-whitespace strip preserved from the engine factory. Trailing
+	// characters are kept: they belong to the path as written.
+	size_t start = 0;
+	while (start < parameters.length() && iswspace(parameters[start]))
+		start++;
+	out.path = parameters.substr(start);
+
+	return true;
+}

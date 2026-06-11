@@ -17,23 +17,42 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#pragma once
+#include "stdafx.h"
 
-#include <string>
+#include "StageCommand.h"
 
-#include "IFilterFactory.h"
-#include "IFilter.h"
-#include "IIRCommand.h"
+#include "helpers/StringHelper.h"
 
-class IIRFilterFactory : public IFilterFactory
+using std::wstring;
+
+bool StageCommand::contains(const wstring& stage) const
 {
-public:
-	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	for (const wstring& s : stages)
+		if (s == stage)
+			return true;
+	return false;
+}
 
-	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
-};
+wstring StageCommand::serialize() const
+{
+	wstring result;
+	for (const wstring& stage : stages)
+	{
+		if (!result.empty())
+			result += L" ";
+		result += stage;
+	}
+	return result;
+}
+
+bool StageCommand::parse(const wstring& command, const wstring& parameters, StageCommand& out)
+{
+	if (command != L"Stage")
+		return false;
+
+	// Tokenizer preserved from the engine factory: trim, lower-case, split on
+	// single spaces (empty parts are skipped, other whitespace is not split).
+	out.stages = StringHelper::split(StringHelper::toLowerCase(StringHelper::trim(parameters)), L' ');
+
+	return true;
+}

@@ -17,23 +17,33 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#pragma once
+#include "stdafx.h"
 
-#include <string>
+#include "IfCommand.h"
 
-#include "IFilterFactory.h"
-#include "IFilter.h"
-#include "IIRCommand.h"
+#include "helpers/StringHelper.h"
 
-class IIRFilterFactory : public IFilterFactory
+using std::wstring;
+
+wstring IfCommand::serialize() const
 {
-public:
-	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	return expression;
+}
 
-	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
-};
+bool IfCommand::parse(const wstring& command, const wstring& parameters, IfCommand& out)
+{
+	if (command == L"If")
+		out.kind = Kind::If;
+	else if (command == L"ElseIf")
+		out.kind = Kind::ElseIf;
+	else if (command == L"Else")
+		out.kind = Kind::Else;
+	else if (command == L"EndIf")
+		out.kind = Kind::EndIf;
+	else
+		return false;
+
+	out.expression = StringHelper::trim(parameters);
+
+	return true;
+}

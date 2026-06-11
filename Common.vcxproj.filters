@@ -50,7 +50,13 @@
     <ClInclude Include="filters\DelayFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\DeviceCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\DeviceFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\ExpressionCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\ExpressionFilterFactory.h">
@@ -65,13 +71,22 @@
     <ClInclude Include="filters\GraphicEQFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\IfCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\IfFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\IIRCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\IIRFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\IIRFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\IncludeCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\IncludeFilterFactory.h">
@@ -84,6 +99,9 @@
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\PreampFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\StageCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\StageFilterFactory.h">
@@ -166,7 +184,7 @@
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="IFilter.h" />
     <ClInclude Include="IFilterFactory.h" />
-    <ClInclude Include="filters\loudnessCorrection\ParameterArchive.h">
+    <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionCommand.h">
       <Filter>filters\loudnessCorrection</Filter>
     </ClInclude>
     <ClInclude Include="filters\loudnessCorrection\VolumeController.h">
@@ -232,7 +250,13 @@
     <ClCompile Include="filters\DelayFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\DeviceCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\DeviceFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ExpressionCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ExpressionFilterFactory.cpp">
@@ -247,13 +271,22 @@
     <ClCompile Include="filters\GraphicEQFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\IfCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\IfFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IIRCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\IIRFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\IIRFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IncludeCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\IncludeFilterFactory.cpp">
@@ -266,6 +299,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\PreampFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\StageCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\StageFilterFactory.cpp">
@@ -353,6 +389,9 @@
     <ClCompile Include="filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionCommand.cpp">
       <Filter>filters\loudnessCorrection</Filter>
     </ClCompile>
     <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.cpp">

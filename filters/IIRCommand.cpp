@@ -17,23 +17,24 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#pragma once
+#include "stdafx.h"
 
-#include <string>
-
-#include "IFilterFactory.h"
-#include "IFilter.h"
 #include "IIRCommand.h"
 
-class IIRFilterFactory : public IFilterFactory
-{
-public:
-	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+#include <cstdio>
 
-	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
-};
+using std::wstring;
+
+wstring IIRCommand::serialize() const
+{
+	wstring result = L"ON IIR Order " + std::to_wstring(order) + L" Coefficients";
+
+	wchar_t buffer[32];
+	for (double coefficient : coefficients)
+	{
+		swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L" %g", coefficient);
+		result += buffer;
+	}
+
+	return result;
+}

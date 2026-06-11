@@ -21,19 +21,21 @@
 
 #include <string>
 
-#include "IFilterFactory.h"
-#include "IFilter.h"
-#include "IIRCommand.h"
-
-class IIRFilterFactory : public IFilterFactory
+// Single owner of the "Include:" config-line grammar, shared by the engine
+// factory and the Editor GUI.
+struct IncludeCommand
 {
-public:
-	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	// Include path as the author wrote it, with only leading whitespace
+	// stripped. Everything after the first non-blank character is part of the
+	// path (the engine passes it to the file system verbatim); relative paths
+	// are resolved against the including file by the consumers.
+	std::wstring path;
 
-	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
+	// Canonical parameter string: the path itself.
+	std::wstring serialize() const;
+
+	// Returns true when command names an Include line; path is then the
+	// parameter text without leading whitespace and may be empty. Emptiness
+	// policy stays with the caller.
+	static bool parse(const std::wstring& command, const std::wstring& parameters, IncludeCommand& out);
 };
