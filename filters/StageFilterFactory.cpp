@@ -23,6 +23,7 @@
 #include "helpers/StringHelper.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "StageCommand.h"
 #include "StageFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Stage, StageFilterFactory)
@@ -57,17 +58,15 @@ std::vector<IFilter*> StageFilterFactory::startOfFile(const std::wstring& config
 
 vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	if (command == L"Stage")
+	StageCommand cmd;
+	if (StageCommand::parse(command, parameters, cmd))
 	{
 		stageMatches = false;
 
-		wstring stageString = StringHelper::toLowerCase(StringHelper::trim(parameters));
-		vector<wstring> parts = StringHelper::split(stageString, L' ');
 		wstring matchingPart;
-		for (auto it = parts.begin(); it != parts.end(); it++)
+		for (const wstring& part : cmd.stages)
 		{
-			const wstring& part = *it;
-			if (part == L"pre-mix")
+			if (part == StageCommand::preMix)
 			{
 				if (!capture && preMix)
 				{
@@ -75,7 +74,7 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 					matchingPart = part;
 				}
 			}
-			else if (part == L"post-mix")
+			else if (part == StageCommand::postMix)
 			{
 				if (!capture && !preMix)
 				{
@@ -83,7 +82,7 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 					matchingPart = part;
 				}
 			}
-			else if (part == L"capture")
+			else if (part == StageCommand::capture)
 			{
 				if (capture)
 				{
@@ -100,7 +99,7 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 		if (stageMatches)
 			TraceF(L"Matching stage \"%s\"", matchingPart.c_str());
 		else
-			TraceF(L"Not matching stage set \"%s\"", stageString.c_str());
+			TraceF(L"Not matching stage set \"%s\"", cmd.serialize().c_str());
 	}
 
 	if (!stageMatches)

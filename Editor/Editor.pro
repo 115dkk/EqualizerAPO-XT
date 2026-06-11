@@ -135,11 +135,13 @@ SOURCES += main.cpp\
 	../filters/ChannelFilterFactory.cpp \
 	../filters/ExpressionFilterFactory.cpp \
 	../filters/IfFilterFactory.cpp \
+	../filters/StageCommand.cpp \
 	../filters/StageFilterFactory.cpp \
 	../filters/ConvolutionCommand.cpp \
 	../filters/ConvolutionFilterFactory.cpp \
 	../filters/IIRFilter.cpp \
 	../filters/IIRFilterFactory.cpp \
+	../filters/IncludeCommand.cpp \
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
@@ -293,10 +295,12 @@ HEADERS  += \
 	../filters/ChannelFilterFactory.h \
 	../filters/ExpressionFilterFactory.h \
 	../filters/IfFilterFactory.h \
+	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \
 	../filters/ConvolutionFilterFactory.h \
 	../filters/IIRFilter.h \
 	../filters/IIRFilterFactory.h \
+	../filters/IncludeCommand.h \
 	../filters/IncludeFilterFactory.h \
 	../filters/ChannelCommand.h \
 	../filters/ChannelFilter.h \

@@ -336,6 +336,7 @@
     <ClInclude Include="filters\IfFilterFactory.h" />
     <ClInclude Include="filters\IIRFilter.h" />
     <ClInclude Include="filters\IIRFilterFactory.h" />
+    <ClInclude Include="filters\IncludeCommand.h" />
     <ClInclude Include="filters\IncludeFilterFactory.h" />
     <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.h" />
     <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilter.h" />
@@ -344,6 +345,7 @@
     <ClInclude Include="filters\PreampCommand.h" />
     <ClInclude Include="filters\PreampFilter.h" />
     <ClInclude Include="filters\PreampFilterFactory.h" />
+    <ClInclude Include="filters\StageCommand.h" />
     <ClInclude Include="filters\StageFilterFactory.h" />
     <ClInclude Include="filters\VSTPluginCommand.h" />
     <ClInclude Include="filters\VSTPluginFilter.h" />
@@ -412,6 +414,7 @@
     <ClCompile Include="filters\IfFilterFactory.cpp" />
     <ClCompile Include="filters\IIRFilter.cpp" />
     <ClCompile Include="filters\IIRFilterFactory.cpp" />
+    <ClCompile Include="filters\IncludeCommand.cpp" />
     <ClCompile Include="filters\IncludeFilterFactory.cpp" />
     <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.cpp" />
     <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilter.cpp" />
@@ -419,6 +422,7 @@
     <ClCompile Include="filters\PreampCommand.cpp" />
     <ClCompile Include="filters\PreampFilter.cpp" />
     <ClCompile Include="filters\PreampFilterFactory.cpp" />
+    <ClCompile Include="filters\StageCommand.cpp" />
     <ClCompile Include="filters\StageFilterFactory.cpp" />
     <ClCompile Include="filters\VSTPluginCommand.cpp" />
     <ClCompile Include="filters\VSTPluginFilter.cpp" />

@@ -33,6 +33,8 @@ void runConvolutionCommandTests();
 void runCopyCommandTests();
 void runDelayCommandTests();
 void runGraphicEQCommandTests();
+void runIncludeCommandTests();
+void runStageCommandTests();
 void runVSTPluginCommandTests();
 void runVstHostTests();
 void runParserTests();
@@ -236,6 +238,8 @@ int main()
 	runCopyCommandTests();
 	runDelayCommandTests();
 	runGraphicEQCommandTests();
+	runIncludeCommandTests();
+	runStageCommandTests();
 	runVSTPluginCommandTests();
 	// Runtime VST2 host load/state/audio test (audit #48 F026). Soft-skips if the
 	// companion TestVst2Plugin.dll is not next to this executable.

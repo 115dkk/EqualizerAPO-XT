@@ -254,6 +254,8 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="CopyCommandTests.cpp" />
     <ClCompile Include="DelayCommandTests.cpp" />
     <ClCompile Include="GraphicEQCommandTests.cpp" />
+    <ClCompile Include="IncludeCommandTests.cpp" />
+    <ClCompile Include="StageCommandTests.cpp" />
     <ClCompile Include="VSTPluginCommandTests.cpp" />
     <ClCompile Include="VstHostTests.cpp" />
     <ClCompile Include="ParserPreampTests.cpp" />

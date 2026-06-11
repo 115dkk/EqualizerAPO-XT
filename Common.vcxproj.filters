@@ -74,6 +74,9 @@
     <ClInclude Include="filters\IIRFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\IncludeCommand.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\IncludeFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -84,6 +87,9 @@
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\PreampFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\StageCommand.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="filters\StageFilterFactory.h">
@@ -256,6 +262,9 @@
     <ClCompile Include="filters\IIRFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\IncludeCommand.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="filters\IncludeFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -266,6 +275,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\PreampFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\StageCommand.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\StageFilterFactory.cpp">

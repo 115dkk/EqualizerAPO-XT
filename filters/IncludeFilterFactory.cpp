@@ -24,6 +24,7 @@
 #include "helpers/StringHelper.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "IncludeCommand.h"
 #include "IncludeFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Include, IncludeFilterFactory)
@@ -54,11 +55,10 @@ vector<IFilter*> IncludeFilterFactory::startOfFile(const wstring& configPath)
 
 vector<IFilter*> IncludeFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	if (command == L"Include")
+	IncludeCommand cmd;
+	if (IncludeCommand::parse(command, parameters, cmd))
 	{
-		wstring value = parameters;
-		while (value.length() > 0 && iswspace(value[0]))
-			value = value.substr(1);
+		const wstring& value = cmd.path;
 
 		wstring includePath;
 		if (PathIsRelativeW(value.c_str()))
