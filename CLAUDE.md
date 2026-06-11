@@ -182,6 +182,8 @@ README, 릴리스 노트, 사용자 안내 문서는 사용자가 바로 실행�
 
 기존 영어 문서를 고칠 때도 문장을 짧게 쓰고, 과장된 홍보 문구보다 정확한 설명을 우선합니다.
 
+README와 CHANGELOG는 영어판과 한국어판(README.md/README.ko.md, CHANGELOG.md/CHANGELOG.ko.md) 네 파일을 항상 함께 갱신합니다. 사용자에게 보이는 변경이 main에 들어가면 CHANGELOG의 Unreleased 절에 PR 링크와 함께 기록하고, 릴리스가 만들어지면 Unreleased 절을 해당 버전 절로 옮깁니다. README의 '지금 진행 중인 작업' 목록은 작업이 시작되거나 끝날 때 같은 PR 또는 직후의 docs PR로 갱신합니다.
+
 ---
 
 # 글로벌 응답 스타일

@@ -12,7 +12,7 @@ The original fork goals are complete: the convolution tail bug is fixed, the eng
 
 Current work areas:
 
-1. Migrating the remaining filter config parsers to shared command codecs used by both the engine and the Editor.
+1. A five-skin visual overhaul of the Editor, run as a three-phase program (shared groundwork, five isolated skin implementations, judging and integration) — tracked in issues [#66](https://github.com/115dkk/EqualizerAPO-XT/issues/66), [#67](https://github.com/115dkk/EqualizerAPO-XT/issues/67), and [#68](https://github.com/115dkk/EqualizerAPO-XT/issues/68).
 2. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 3. Acting on findings from the biweekly automated code audit.
 

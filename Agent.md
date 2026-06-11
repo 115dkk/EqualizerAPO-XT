@@ -91,6 +91,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 - 지원 아키텍처, SIMD 변형, 필요 도구, 의존성 경로, 설치 파일 이름처럼 빌드와 설치에 영향을 주는 이름은 실제 파일명과 맞춥니다.
 - 추측한 내용은 사실처럼 쓰지 않습니다. 확인하지 못한 부분은 확인하지 못했다고 씁니다.
 - 기존 영어 문서를 고칠 때도 문장을 짧게 쓰고, 과장된 홍보 문구보다 정확한 설명을 우선합니다.
+- README와 CHANGELOG는 영어판과 한국어판(README.md/README.ko.md, CHANGELOG.md/CHANGELOG.ko.md) 네 파일을 항상 함께 갱신합니다. 사용자에게 보이는 변경이 main에 들어가면 CHANGELOG의 Unreleased 절에 PR 링크와 함께 기록하고, 릴리스가 만들어지면 Unreleased 절을 해당 버전 절로 옮깁니다. README의 '지금 진행 중인 작업' 목록은 작업이 시작되거나 끝날 때 같은 PR 또는 직후의 docs PR로 갱신합니다.
 
 ## 한국어 응답과 최종사용자 대상 글 기준
 
