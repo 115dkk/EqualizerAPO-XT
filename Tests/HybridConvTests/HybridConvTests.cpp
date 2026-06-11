@@ -24,9 +24,8 @@
 #include "Tests/TestHarness.h"
 
 // Forward declarations for the additional suites that share this binary's
-// main() (defined in CommonLogicTests.cpp, CopyCommandTests.cpp,
-// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
-// VstHostTests.cpp, ParserTests.cpp and ParserPreampTests.cpp).
+// main(); each runXxxTests() is defined in the correspondingly named
+// XxxTests.cpp next to this file.
 void runChannelCommandTests();
 void runCommonLogicTests();
 void runConvolutionCommandTests();
@@ -233,10 +232,8 @@ int main()
 	assertConvolutionFilterRecoversFromInitialShortFrame();
 	assertConvolutionPathParsing();
 
-	// Pure-logic helper and parser-extension coverage that also lives in this
-	// console binary (see CommonLogicTests.cpp, CopyCommandTests.cpp,
-	// DelayCommandTests.cpp, GraphicEQCommandTests.cpp, VSTPluginCommandTests.cpp,
-	// VstHostTests.cpp, ParserTests.cpp and ParserPreampTests.cpp).
+	// Pure-logic helper, command-codec and parser-extension coverage that also
+	// lives in this console binary (one XxxTests.cpp per suite).
 	runChannelCommandTests();
 	runCommonLogicTests();
 	runConvolutionCommandTests();

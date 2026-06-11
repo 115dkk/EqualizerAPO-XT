@@ -99,7 +99,9 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 		if (stageMatches)
 			TraceF(L"Matching stage \"%s\"", matchingPart.c_str());
 		else
-			TraceF(L"Not matching stage set \"%s\"", cmd.serialize().c_str());
+			// Log the author's text (trimmed, lower-cased) rather than the
+			// canonical serialization, which would collapse repeated spaces.
+			TraceF(L"Not matching stage set \"%s\"", StringHelper::toLowerCase(StringHelper::trim(parameters)).c_str());
 	}
 
 	if (!stageMatches)
