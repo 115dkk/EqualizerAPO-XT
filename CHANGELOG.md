@@ -12,8 +12,22 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
-## Unreleased
+## v1.17.2 — 2026-06-12
 
+- All accumulated cppcheck findings were triaged. Real defects fixed: a
+  resource leak on the throwing paths of the file-access check used by the
+  Include GUI, ARM64-native VST libraries being misreported as having the
+  wrong architecture, and a `log10(0)` call in Benchmark for silent output.
+  The rest of the tree received mechanical hardening (default member
+  initializers, const-reference passing, explicit `wstring::npos` checks),
+  and CI now runs a pinned cppcheck 2.21.0 as a blocking gate at a zero
+  baseline. ([#64])
+- The remaining filter config grammars (Stage, Include, Device,
+  If/ElseIf/Else/EndIf, Eval and inline backtick expressions, IIR,
+  LoudnessCorrection) moved into shared command codecs used by both the
+  engine and the Editor, completing the migration started in #57. Each codec
+  has round-trip tests, and the unused ParameterArchive helper was
+  removed. ([#63])
 - The `Channel:` and `Convolution:` config grammars moved into shared command
   codecs used by both the engine and the Editor, with round-trip tests. This
   fixed the Channel GUI ignoring comma-separated selectors. The
@@ -26,7 +40,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   they now skip the build matrix entirely; a full-matrix build stays available
   via `workflow_dispatch`. ([#61])
 - README refreshed to the current project state, this changelog added, and
-  Korean translations of both provided. ([#60])
+  Korean translations of both provided. ([#60], [#62])
 
 ## v1.17.1 — 2026-06-11
 
@@ -271,3 +285,6 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#58]: https://github.com/115dkk/EqualizerAPO-XT/pull/58
 [#60]: https://github.com/115dkk/EqualizerAPO-XT/pull/60
 [#61]: https://github.com/115dkk/EqualizerAPO-XT/pull/61
+[#62]: https://github.com/115dkk/EqualizerAPO-XT/pull/62
+[#63]: https://github.com/115dkk/EqualizerAPO-XT/pull/63
+[#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
