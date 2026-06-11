@@ -12,7 +12,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 지금 진행 중인 작업은 다음과 같습니다.
 
-1. 남은 필터 설정 파서를 엔진과 Editor가 함께 쓰는 공용 명령 코덱으로 옮깁니다.
+1. Editor의 5개 스킨 전면 개편을 3단계 프로그램(공용 기반 작업, 스킨별 격리 구현 5건, 심사와 통합)으로 진행합니다. 이슈 [#66](https://github.com/115dkk/EqualizerAPO-XT/issues/66), [#67](https://github.com/115dkk/EqualizerAPO-XT/issues/67), [#68](https://github.com/115dkk/EqualizerAPO-XT/issues/68)에서 추적합니다.
 2. 변형별 릴리스 채널을 단일 바이너리 런타임 SIMD dispatch로 대체합니다([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 3. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다.
 
