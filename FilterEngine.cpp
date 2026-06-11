@@ -85,12 +85,12 @@ FilterEngine::FilterEngine()
 	  inputChannelCount(0),
       realChannelCount(0),
       outputChannelCount(0),
+	  parser(make_unique<ParserX>()),
 	  lastInputWasSilent(false),
 	  loadPermitAvailable(true),
 	  shutdownRequested(false),
 	  transitionCounter(0)
 {
-	parser = make_unique<ParserX>();
 	parser->EnableAutoCreateVar(true);
 
 	factories = FilterFactoryRegistry::createFactories();

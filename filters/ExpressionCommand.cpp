@@ -26,7 +26,7 @@
 using std::vector;
 using std::wstring;
 
-wstring EvalCommand::serialize() const
+const wstring& EvalCommand::serialize() const
 {
 	return expression;
 }

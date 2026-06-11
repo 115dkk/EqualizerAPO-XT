@@ -37,5 +37,5 @@ public:
 
 private:
 	QString configPath;
-	FilterTable* filterTable;
+	FilterTable* filterTable = nullptr;
 };

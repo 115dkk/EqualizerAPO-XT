@@ -206,8 +206,8 @@ void FilterTable::savePreferences()
 					command = item->text.left(index).trimmed();
 
 				QByteArray byteArray = QJsonDocument::fromVariant(item->prefs).toJson(QJsonDocument::Compact);
-				QString string = QString("%0:%1:%2").arg(i + 1).arg(command).arg(QString::fromUtf8(byteArray));
-				prefLines.append(string);
+				QString prefLine = QString("%0:%1:%2").arg(i + 1).arg(command).arg(QString::fromUtf8(byteArray));
+				prefLines.append(prefLine);
 			}
 		}
 

@@ -12,7 +12,7 @@ namespace filesystem = std::filesystem;
 
 namespace
 {
-wstring unquote(wstring value)
+wstring unquote(const wstring& value)
 {
 	if (value.length() >= 2 && value.front() == L'"' && value.back() == L'"')
 		return value.substr(1, value.length() - 2);

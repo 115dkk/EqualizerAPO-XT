@@ -28,7 +28,7 @@ public:
 
 	QRectF boundingRect() const override;
 
-	QString getName() const;
+	const QString& getName() const;
 
 protected:
 	virtual void paint(QPainter* painter, QColor color);

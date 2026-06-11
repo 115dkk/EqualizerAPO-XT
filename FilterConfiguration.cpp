@@ -25,7 +25,7 @@
 #include "FilterConfiguration.h"
 #include "helpers/PerfProfile.h"
 
-FilterConfiguration::FilterConfiguration(FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
+FilterConfiguration::FilterConfiguration(const FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
 {
 	this->allChannelCount = allChannelCount;
 	realChannelCount = engine->getRealChannelCount();
@@ -213,7 +213,7 @@ void FilterConfiguration::write(double* output, unsigned frameCount)
 #define INTERLEAVE_MACRO(ccount)\
 	for (size_t c = 0; c < ccount; c++)\
 	{\
-		double* sampleChannel = allSamples[c];\
+		const double* sampleChannel = allSamples[c];\
 		double* o2 = output + c;\
 		for (unsigned i = 0; i < frameCount; i++)\
 		{\

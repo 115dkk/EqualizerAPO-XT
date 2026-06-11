@@ -26,15 +26,15 @@ class FilterTemplate
 {
 public:
 	FilterTemplate() {}
-	FilterTemplate(QString name, QString line, QStringList path);
+	FilterTemplate(QString name, QString line, const QStringList& path);
 
-	QString getName() const;
+	const QString& getName() const;
 	void setName(const QString& value);
 
 	virtual QString getLine() const;
 	void setLine(const QString& value);
 
-	QStringList getPath() const;
+	const QStringList& getPath() const;
 	void setPath(const QStringList& value);
 
 private:

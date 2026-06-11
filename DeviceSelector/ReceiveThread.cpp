@@ -22,7 +22,7 @@
 #include "helpers/StringHelper.h"
 #include "ReceiveThread.h"
 
-ReceiveThread::ReceiveThread(std::wstring pipeName)
+ReceiveThread::ReceiveThread(const std::wstring& pipeName)
 	:pipeName(pipeName)
 {
 	thread = std::thread(&ReceiveThread::run, this);

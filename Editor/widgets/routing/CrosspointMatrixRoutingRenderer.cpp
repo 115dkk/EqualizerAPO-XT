@@ -226,7 +226,6 @@ void CrosspointMatrixView::mouseDoubleClickEvent(QMouseEvent* event)
 	editRow = outRow;
 	editCol = inCol;
 
-	const QString channel = matrix.inputs[inCol];
 	const CopyRoutingAdapter::Cell cell = matrix.cell(outRow, inCol);
 	QString textValue;
 	if (cell.present)

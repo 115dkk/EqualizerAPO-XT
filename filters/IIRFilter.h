@@ -36,7 +36,7 @@ private:
 	double b0;
 	double* a;
 	double* b;
-	unsigned channelCount;
+	unsigned channelCount = 0;
 	double* x;
 	double* y;
 };

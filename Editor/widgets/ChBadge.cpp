@@ -20,7 +20,7 @@ ChBadge::ChBadge(const QString& channel, QWidget* parent)
 	setChannel(channel);
 }
 
-QString ChBadge::channel() const
+const QString& ChBadge::channel() const
 {
 	return currentChannel;
 }

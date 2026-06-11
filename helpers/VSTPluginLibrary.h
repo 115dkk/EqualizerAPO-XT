@@ -39,7 +39,7 @@ public:
 	bool isVST3() const;
 
 	typedef vst_effect_t* (* vstPluginMain)(vst_host_callback_t audioMaster);
-	vstPluginMain VSTPluginMain;
+	vstPluginMain VSTPluginMain = nullptr;
 	typedef Steinberg::IPluginFactory* (PLUGIN_API* getPluginFactoryFunc)();
 	getPluginFactoryFunc GetPluginFactory;
 	Steinberg::IPluginFactory* getFactory() const;

@@ -34,5 +34,5 @@ public:
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;
 
 private:
-	FilterTable* filterTable;
+	FilterTable* filterTable = nullptr;
 };

@@ -45,11 +45,11 @@ void RegexSearchFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int a
 		throw ParserError(ErrorContext(ecTYPE_CONFLICT_FUN, -1, GetIdent(), arg[1]->GetType(), 's', 2));
 
 	wstring regexString = arg[0]->GetString();
-	wstring string = arg[1]->GetString();
+	wstring text = arg[1]->GetString();
 
 	wregex regex(regexString);
 	wsmatch match;
-	bool found = regex_search(string, match, regex);
+	bool found = regex_search(text, match, regex);
 
 	vector<Value> result;
 	if (found)
@@ -87,11 +87,11 @@ void RegexReplaceFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int 
 		throw ParserError(ErrorContext(ecTYPE_CONFLICT_FUN, -1, GetIdent(), arg[2]->GetType(), 's', 3));
 
 	wstring regexString = arg[0]->GetString();
-	wstring string = arg[1]->GetString();
+	wstring text = arg[1]->GetString();
 	wstring replacement = arg[2]->GetString();
 
 	wregex regex(regexString);
-	wstring result = regex_replace(string, regex, replacement);
+	wstring result = regex_replace(text, regex, replacement);
 
 	*ret = result;
 }

@@ -432,9 +432,9 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 	if (chunkData != L"" && chunkData.length() < 100000)
 	{
 		QByteArray bytes = QByteArray::fromBase64(QString::fromStdWString(chunkData).toUtf8());
-		QString string = QString::fromUtf8(bytes.data(), bytes.length());
+		QString chunkText = QString::fromUtf8(bytes.data(), bytes.length());
 		QRegularExpression regexp("[A-Za-z]:(?:\\\\[\\w \\(\\)-]+)+\\.[A-Za-z]{3}");
-		QRegularExpressionMatchIterator it = regexp.globalMatch(string);
+		QRegularExpressionMatchIterator it = regexp.globalMatch(chunkText);
 		while (it.hasNext())
 		{
 			QRegularExpressionMatch m = it.next();

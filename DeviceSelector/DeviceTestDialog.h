@@ -32,7 +32,7 @@ class DeviceTestDialog : public QDialog
 public:
 	DeviceTestDialog(QWidget* parent = nullptr);
 	std::vector<std::shared_ptr<DeviceAPOInfo>> filterDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices);
-	void addDevices(std::vector<std::shared_ptr<DeviceAPOInfo>>& devices, QTreeWidgetItem* parentNode);
+	void addDevices(const std::vector<std::shared_ptr<DeviceAPOInfo>>& devices, QTreeWidgetItem* parentNode);
 
 protected:
 	__override void closeEvent(QCloseEvent* event);

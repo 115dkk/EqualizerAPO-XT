@@ -216,7 +216,7 @@ void BiQuadFilter::process_scalar(double** output, double** input, unsigned fram
         double cur_y1 = y1[i], cur_y2 = y2[i];
         const double c_a0 = a0[i], c_b1 = b1[i], c_b2 = b2[i];
         const double c_a1 = a1[i], c_a2 = a2[i];
-        double* inputChannel = input[i];
+        const double* inputChannel = input[i];
         double* outputChannel = output[i];
         for (unsigned j = 0; j < frameCount; ++j)
         {

@@ -209,7 +209,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 
 	resetChild();
 
-	APOInitSystemEffects* initStruct = (APOInitSystemEffects*)pbyData;
+	APOInitSystemEffects* initStruct = reinterpret_cast<APOInitSystemEffects*>(pbyData);
 	GUID apoGuid = initStruct->APOInit.clsid;
 	try
 	{
@@ -652,7 +652,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 			// read past the input buffer. In that rare case we fall back to
 			// silence — it is still better than emitting random memory, and
 			// such a host is non-compliant given APO_FLAG_INPLACE anyway.
-			void* inBuf = reinterpret_cast<void*>(ppInputConnections[0]->pBuffer);
+			const void* inBuf = reinterpret_cast<const void*>(ppInputConnections[0]->pBuffer);
 			void* outBuf = reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer);
 			ppOutputConnections[0]->u32ValidFrameCount = frameCount;
 			if (inBuf == outBuf)

@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 			if (profileEnabled)
 				PerfProfile::disable();
 
-			double totalAudio = length * repeatCount;
+			double totalAudio = static_cast<double>(length) * repeatCount;
 
 			cout << frameCount * channelCount * repeatCount << " samples processed in " << time << " seconds\n";
 			cout << "This is equivalent to " << 100.0f * time / totalAudio << "% CPU load (one core) when processing in real time\n";
@@ -270,17 +270,20 @@ int main(int argc, char** argv)
 			}
 
 			unsigned clipCount = 0;
-			float max = 0;
+			float maxLevel = 0;
 			for (unsigned i = 0; i < frameCount * channelCount; i++)
 			{
 				float f = fabs(buf2[i]);
-				if (f > max)
-					max = f;
+				if (f > maxLevel)
+					maxLevel = f;
 				if (f > 1.0f)
 					clipCount++;
 			}
 
-			cout << "Max output level: " << max << " (" << log10(max) * 20.0f << " dB)";
+			if (maxLevel > 0.0f)
+				cout << "Max output level: " << maxLevel << " (" << log10(maxLevel) * 20.0f << " dB)";
+			else
+				cout << "Max output level: 0 (silence)";
 			if (clipCount > 0)
 				cout << " (" << clipCount << " samples clipped!)";
 			cout << "\n";

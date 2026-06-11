@@ -30,7 +30,7 @@ class LoudnessCorrectionFilterGUIFactory : public IFilterGUIFactory
 
 public:
 	explicit LoudnessCorrectionFilterGUIFactory();
-	~LoudnessCorrectionFilterGUIFactory();
+	~LoudnessCorrectionFilterGUIFactory() override;
 
 	void initialize(FilterTable* filterTable) override;
 	QList<FilterTemplate> createFilterTemplates() override;
@@ -40,7 +40,7 @@ private slots:
 	void checkVolume();
 
 private:
-	FilterTable* filterTable;
+	FilterTable* filterTable = nullptr;
 	QTimer* timer = nullptr;
 	VolumeController* volumeController = nullptr;
 	double lastVolume = -1;

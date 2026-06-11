@@ -26,7 +26,7 @@ const SkinTokens& SkinManager::tokens() const
 	return currentTokens;
 }
 
-QString SkinManager::currentSkinId() const
+const QString& SkinManager::currentSkinId() const
 {
 	return skinId;
 }
@@ -44,7 +44,7 @@ QString substituteTokens(QString qss, const SkinTokens& tokens)
 	// style sheet parser intact (a literal '@' is not meaningful in QSS) and
 	// stand out in the source files. Order does not matter because every
 	// sentinel is unique.
-	struct Substitution { const char* placeholder; QString value; };
+	struct Substitution { const char* placeholder = nullptr; QString value; };
 	const Substitution table[] = {
 		{ "@BG@", tokens.background },
 		{ "@SURFACE@", tokens.surface },

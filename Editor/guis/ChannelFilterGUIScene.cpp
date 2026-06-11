@@ -28,7 +28,7 @@ ChannelFilterGUIScene::ChannelFilterGUIScene()
 {
 }
 
-void ChannelFilterGUIScene::load(vector<wstring> channelNames, QStringList selectedChannels)
+void ChannelFilterGUIScene::load(vector<wstring> channelNames, const QStringList& selectedChannels)
 {
 	blockSignals(true);
 	clear();

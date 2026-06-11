@@ -60,10 +60,10 @@ public:
 	bool isPreMix() const {return preMix;}
 	bool isCapture() const {return capture;}
 	bool isPostMixInstalled() const {return postMixInstalled;}
-	std::wstring getDeviceName() const {return deviceName;}
-	std::wstring getConnectionName() const {return connectionName;}
-	std::wstring getDeviceGuid() const {return deviceGuid;}
-	std::wstring getDeviceString() const {return deviceString;}
+	const std::wstring& getDeviceName() const {return deviceName;}
+	const std::wstring& getConnectionName() const {return connectionName;}
+	const std::wstring& getDeviceGuid() const {return deviceGuid;}
+	const std::wstring& getDeviceString() const {return deviceString;}
 	unsigned getInputChannelCount() const {return inputChannelCount;}
 	unsigned getRealChannelCount() const {return realChannelCount;}
 	unsigned getOutputChannelCount() const {return outputChannelCount;}
@@ -101,14 +101,14 @@ private:
 	std::wstring deviceGuid;
 	std::wstring deviceString;
 	std::wstring configPath;
-	float sampleRate;
+	float sampleRate = 0.0f;
 	// number of input channels that originally existed before child APO processing
 	unsigned inputChannelCount;
 	// number of input channels in process (including channels coming from child APO output)
 	unsigned realChannelCount;
 	unsigned outputChannelCount;
-	unsigned channelMask;
-	unsigned maxFrameCount;
+	unsigned channelMask = 0;
+	unsigned maxFrameCount = 0;
 
 	// only used during loading
 	std::vector<std::unique_ptr<FilterInfo>> filterInfos;
@@ -116,7 +116,7 @@ private:
 	std::vector<std::wstring> lastChannelNames;
 	std::vector<std::wstring> lastNewChannelNames;
 	std::vector<std::wstring> allChannelNames;
-	bool lastInPlace;
+	bool lastInPlace = false;
 	std::unique_ptr<mup::ParserX> parser;
 
 	FilterConfigurationPtr currentConfig;
@@ -124,7 +124,7 @@ private:
 	FilterConfigurationPtr previousConfig;
 
 	unsigned transitionCounter;
-	unsigned transitionLength;
+	unsigned transitionLength = 0;
 	// Precomputed equal-power crossfade factors of length transitionLength.
 	// Recomputed by initialize() whenever transitionLength changes.
 	std::vector<double> transitionFactorTable;

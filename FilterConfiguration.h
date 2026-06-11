@@ -44,7 +44,7 @@ struct FilterInfo
 class FilterConfiguration
 {
 public:
-	FilterConfiguration(FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount);
+	FilterConfiguration(const FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount);
 	~FilterConfiguration();
 
 	void read(double* input, unsigned frameCount);

@@ -25,7 +25,6 @@
 #include "DeviceTestThread.h"
 
 using std::find;
-using std::log;
 using std::thread;
 
 DeviceTestThread::DeviceTestThread(QObject* parent, const QVector<std::shared_ptr<DeviceAPOInfo>>& devices)
@@ -114,9 +113,9 @@ void DeviceTestThread::run()
 		}
 
 		const auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds{3};
-		std::string message;
 		try
 		{
+			std::string message;
 			while ((message= thread.waitUntil(timeout)) != "")
 			{
 				QJsonParseError error;

@@ -36,7 +36,7 @@ CopyFilterGUIForm::CopyFilterGUIForm(QWidget* parent)
 {
 }
 
-void CopyFilterGUIForm::load(vector<Assignment> assignments)
+void CopyFilterGUIForm::load(const vector<Assignment>& assignments)
 {
 	if (gridLayout != nullptr)
 		delete gridLayout;
@@ -70,7 +70,7 @@ void CopyFilterGUIForm::load(vector<Assignment> assignments)
 
 				QComboBox* targetComboBox = new QComboBox(this);
 				targetComboBox->setEditable(true);
-				for (wstring channelName : inputChannelNames)
+				for (const wstring& channelName : inputChannelNames)
 					targetComboBox->addItem(QString::fromStdWString(channelName));
 				targetComboBox->setEditText(oc);
 				connect(targetComboBox, SIGNAL(editTextChanged(QString)), this, SIGNAL(updateModel()));
@@ -133,7 +133,7 @@ void CopyFilterGUIForm::setChannelNames(const vector<wstring>& channelNames)
 			targetComboBox->blockSignals(true);
 			QString text = targetComboBox->currentText();
 			targetComboBox->clear();
-			for (wstring channelName : channelNames)
+			for (const wstring& channelName : channelNames)
 				targetComboBox->addItem(QString::fromStdWString(channelName));
 			targetComboBox->setEditText(text);
 			targetComboBox->blockSignals(false);
@@ -166,7 +166,7 @@ vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
 		{
 			if (pressedButton != nullptr)
 			{
-				QWidget* removeButton = gridLayout->itemAtPosition(row, 5)->widget();
+				const QWidget* removeButton = gridLayout->itemAtPosition(row, 5)->widget();
 				if (removeButton == pressedButton)
 				{
 					continue;
@@ -179,7 +179,7 @@ vector<Assignment> CopyFilterGUIForm::buildAssignments(QWidget* pressedButton)
 
 			if (pressedButton != nullptr)
 			{
-				QWidget* addSummandButton = gridLayout->itemAtPosition(row, 4)->widget();
+				const QWidget* addSummandButton = gridLayout->itemAtPosition(row, 4)->widget();
 				if (addSummandButton == pressedButton)
 				{
 					Assignment::Summand newSummand;

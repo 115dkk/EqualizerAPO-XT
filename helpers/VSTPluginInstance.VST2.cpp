@@ -51,7 +51,8 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return 1;
 
 	case VST_EFFECT_OPCODE_VENDOR_VERSION:
-		return (intptr_t) (MAJOR << 24 | MINOR << 16 | REVISION << 8 | 0);
+		// The low byte (a fourth version component) is always zero.
+		return (intptr_t) (MAJOR << 24 | MINOR << 16 | REVISION << 8);
 
 	case VST_HOST_OPCODE_PIN_CONNECTED:
 		if (instance != NULL)
@@ -100,7 +101,7 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 
 	case VST_HOST_OPCODE_SUPPORTS:
 		{
-			char* s = (char*)ptr;
+			const char* s = (const char*)ptr;
 #ifdef _DEBUG
 			printf("VST canDo: %s\n", s);
 			fflush(stdout);

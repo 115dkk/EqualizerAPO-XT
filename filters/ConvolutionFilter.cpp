@@ -65,8 +65,8 @@ namespace
 	struct IrCacheKey
 	{
 		std::wstring path;
-		unsigned long long mtime;
-		int sampleRate;
+		unsigned long long mtime = 0;
+		int sampleRate = 0;
 
 		bool operator==(const IrCacheKey& o) const
 		{
@@ -196,11 +196,10 @@ void HConvSingleArray::reset()
 	}
 }
 
-ConvolutionFilter::ConvolutionFilter(wstring filename)
+ConvolutionFilter::ConvolutionFilter(const wstring& filename)
 	: filters(channelCount)
 {
 	this->filename = filename;
-	filters = nullptr;
 	filterFrameCount = 0;
 	maxFrameCount = 0;
 	frameCountMismatchLogged = false;

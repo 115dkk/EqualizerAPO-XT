@@ -40,7 +40,7 @@ using std::vector;
 
 QRegularExpression GraphicEQFilterGUI::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 
-GraphicEQFilterGUI::GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, QString configPath, FilterTable* filterTable)
+GraphicEQFilterGUI::GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, const QString& configPath, FilterTable* filterTable)
 	: ui(new Ui::GraphicEQFilterGUI), configPath(configPath)
 {
 	ui->setupUi(this);

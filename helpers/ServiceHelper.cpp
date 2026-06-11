@@ -45,7 +45,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 	if (mainState == SERVICE_RUNNING)
 	{
 		vector<wstring> dependentServices = mainService->getActiveDependentServices();
-		for (wstring dependentServiceName : dependentServices)
+		for (const wstring& dependentServiceName : dependentServices)
 		{
 			shared_ptr<Service> dependentService = make_shared<Service>(scManager, dependentServiceName.c_str(), false);
 			services.insert(prev(services.end()), dependentService);

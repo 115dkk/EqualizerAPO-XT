@@ -97,12 +97,12 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 		std::vector<unsigned char> format = RegistryHelper::readBinaryValue(keyPath + L"\\Properties", formatValueName);
 		if (format.size() >= sizeof(WAVEFORMATEX) + 8)
 		{
-			WAVEFORMATEX* waveFormat = reinterpret_cast<WAVEFORMATEX*>(&format[8]);
+			const WAVEFORMATEX* waveFormat = reinterpret_cast<const WAVEFORMATEX*>(&format[8]);
 			channelCount = waveFormat->nChannels;
 			sampleRate = waveFormat->nSamplesPerSec;
 			if (waveFormat->wFormatTag == WAVE_FORMAT_EXTENSIBLE)
 			{
-				WAVEFORMATEXTENSIBLE* waveFormatExtensible = reinterpret_cast<WAVEFORMATEXTENSIBLE*>(waveFormat);
+				const WAVEFORMATEXTENSIBLE* waveFormatExtensible = reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(waveFormat);
 				channelMask = waveFormatExtensible->dwChannelMask;
 			}
 		}

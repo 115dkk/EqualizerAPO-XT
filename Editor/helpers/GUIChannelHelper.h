@@ -31,7 +31,7 @@ public:
 
 	struct ChannelConfigurationInfo
 	{
-		int channelMask;
+		int channelMask = 0;
 		QString name;
 	};
 

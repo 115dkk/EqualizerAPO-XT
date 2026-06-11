@@ -24,7 +24,7 @@ using std::abs;
 using std::vector;
 using std::wstring;
 
-CopyFilterGUIRow::CopyFilterGUIRow(Assignment::Summand summand, std::vector<wstring> channelNames, QWidget* parent)
+CopyFilterGUIRow::CopyFilterGUIRow(Assignment::Summand summand, const std::vector<wstring>& channelNames, QWidget* parent)
 	: QWidget(parent),
 	ui(new Ui::CopyFilterGUIRow)
 {
@@ -49,7 +49,7 @@ CopyFilterGUIRow::CopyFilterGUIRow(Assignment::Summand summand, std::vector<wstr
 
 	ui->factorSpinBox->setValue(summand.factor);
 
-	for (wstring channelName : channelNames)
+	for (const wstring& channelName : channelNames)
 		ui->channelComboBox->addItem(QString::fromStdWString(channelName));
 	ui->channelComboBox->setEditText(QString::fromStdWString(summand.channel).trimmed());
 
@@ -69,7 +69,7 @@ void CopyFilterGUIRow::setChannelNames(const vector<wstring>& channelNames)
 	ui->channelComboBox->blockSignals(true);
 	QString text = ui->channelComboBox->currentText();
 	ui->channelComboBox->clear();
-	for (wstring channelName : channelNames)
+	for (const wstring& channelName : channelNames)
 		ui->channelComboBox->addItem(QString::fromStdWString(channelName));
 	ui->channelComboBox->setEditText(text);
 	ui->channelComboBox->blockSignals(false);

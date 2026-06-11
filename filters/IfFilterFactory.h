@@ -35,11 +35,11 @@ public:
 	std::vector<IFilter*> endOfFile(const std::wstring& configPath) override;
 
 private:
-	mup::ParserX* parser;
+	mup::ParserX* parser = nullptr;
 
-	unsigned trueCount;
-	unsigned falseCount;
-	bool executeElse;
+	unsigned trueCount = 0;
+	unsigned falseCount = 0;
+	bool executeElse = false;
 	std::stack<unsigned> trueCountStack;
 
 	bool toBoolean(const mup::Value& value);

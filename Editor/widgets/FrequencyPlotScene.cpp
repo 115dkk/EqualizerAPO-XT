@@ -97,7 +97,7 @@ void FrequencyPlotScene::setZoom(double zoomX, double zoomY)
 
 		for (QGraphicsItem* item : items())
 		{
-			FrequencyPlotItem* plotItem = (FrequencyPlotItem*)item;
+			FrequencyPlotItem* plotItem = static_cast<FrequencyPlotItem*>(item);
 			plotItem->updatePos();
 		}
 	}

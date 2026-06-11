@@ -34,7 +34,7 @@ class VSTPluginFilterGUI : public IFilterGUI
 
 public:
 	explicit VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap);
-	~VSTPluginFilterGUI();
+	~VSTPluginFilterGUI() override;
 
 	void store(QString& command, QString& parameters) override;
 	void loadPreferences(const QVariantMap& prefs) override;

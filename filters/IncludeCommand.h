@@ -32,7 +32,7 @@ struct IncludeCommand
 	std::wstring path;
 
 	// Canonical parameter string: the path itself.
-	std::wstring serialize() const;
+	const std::wstring& serialize() const;
 
 	// Returns true when command names an Include line; path is then the
 	// parameter text without leading whitespace and may be empty. Emptiness

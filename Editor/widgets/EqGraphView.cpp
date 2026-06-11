@@ -61,7 +61,7 @@ void EqGraphView::resizeEvent(QResizeEvent* event)
 	curveDirty = true;
 }
 
-QString EqGraphView::channel() const
+const QString& EqGraphView::channel() const
 {
 	return currentChannel;
 }

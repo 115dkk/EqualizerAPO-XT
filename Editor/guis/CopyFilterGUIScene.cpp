@@ -32,7 +32,7 @@ using std::list;
 using std::vector;
 using std::wstring;
 
-void CopyFilterGUIScene::load(const vector<wstring>& channelNames, vector<Assignment> assignments)
+void CopyFilterGUIScene::load(const vector<wstring>& channelNames, const vector<Assignment>& assignments)
 {
 	clear();
 
@@ -155,7 +155,7 @@ std::vector<Assignment> CopyFilterGUIScene::buildAssignments()
 
 	std::vector<Assignment> assignments;
 	QHash<QString, Assignment*> channelAssignmentMap;
-	for (CopyFilterGUIConnectionItem* connItem : connItems)
+	for (const CopyFilterGUIConnectionItem* connItem : connItems)
 	{
 		QString oc = connItem->getTarget()->getName();
 		Assignment* assignment = channelAssignmentMap.value(oc);

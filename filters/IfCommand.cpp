@@ -25,7 +25,7 @@
 
 using std::wstring;
 
-wstring IfCommand::serialize() const
+const wstring& IfCommand::serialize() const
 {
 	return expression;
 }

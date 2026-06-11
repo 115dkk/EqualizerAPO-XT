@@ -32,7 +32,7 @@
 using std::vector;
 using std::wstring;
 
-ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, QStringList selectedChannels, int selectedChannelMask, const vector<wstring>& channelNames)
+ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, const QStringList& selectedChannels, int selectedChannelMask, const vector<wstring>& channelNames)
 	: QDialog(parent),
 	ui(new Ui::ChannelFilterGUIDialog)
 {
@@ -104,7 +104,7 @@ ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, QStringList sele
 	}
 
 	ui->listWidget->clear();
-	for (wstring channelName : remainingChannelNames)
+	for (const wstring& channelName : remainingChannelNames)
 	{
 		QListWidgetItem* item = new QListWidgetItem(QString::fromStdWString(channelName));
 		item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
@@ -123,7 +123,7 @@ ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, QStringList sele
 		ui->listWidget->addItem(item);
 	}
 
-	ui->stackedWidget->setCurrentIndex(selectedChannelMask & SPEAKER_BACK_CENTER ? 1 : 0);
+	ui->stackedWidget->setCurrentIndex((selectedChannelMask & SPEAKER_BACK_CENTER) ? 1 : 0);
 }
 
 ChannelFilterGUIDialog::~ChannelFilterGUIDialog()

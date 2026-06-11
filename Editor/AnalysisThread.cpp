@@ -57,7 +57,7 @@ AnalysisThread::~AnalysisThread()
 		fftw_destroy_plan(planForward);
 }
 
-void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, QString configPath, int frameCount)
+void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, const QString& configPath, int frameCount)
 {
 	QMutexLocker mutexLocker(&mutex);
 	this->device = device;

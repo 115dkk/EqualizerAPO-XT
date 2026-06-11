@@ -43,7 +43,7 @@ protected:
 	HMODULE module = nullptr;
 
 private:
-	unsigned short getFileArchitecture(const std::wstring& filePath);
+	static unsigned short getFileArchitecture(const std::wstring& filePath);
 
 	// Serialises the lazy module load. A single VSTPluginLibrary instance is
 	// shared (via getInstance) between the GUI thread and the AnalysisThread,

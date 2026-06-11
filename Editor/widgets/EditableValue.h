@@ -14,7 +14,7 @@ public:
 
 	double value() const;
 	void setValue(double value);
-	QString unit() const;
+	const QString& unit() const;
 	void setUnit(const QString& unit);
 
 signals:

@@ -36,25 +36,25 @@ const GUID EQUALIZERAPO_POST_MIX_GUID = {0xec1cc9ce, 0xfaed, 0x4822, {0x82, 0x8a
 class RegistryHelper
 {
 public:
-	static std::wstring readValue(std::wstring key, std::wstring valuename);
-	static unsigned long readDWORDValue(std::wstring key, std::wstring valuename);
-	static std::vector<std::wstring> readMultiValue(std::wstring key, std::wstring valuename);
-	static std::vector<unsigned char> readBinaryValue(std::wstring key, std::wstring valuename);
-	static void writeValue(std::wstring key, std::wstring valuename, std::wstring value);
-	static void writeDWORDValue(std::wstring key, std::wstring valuename, unsigned long value);
-	static void writeMultiValue(std::wstring key, std::wstring valuename, std::wstring value);
-	static void writeMultiValue(std::wstring key, std::wstring valuename, std::vector<std::wstring> values);
-	static void deleteValue(std::wstring key, std::wstring valuename);
-	static void createKey(std::wstring key);
-	static void deleteKey(std::wstring key);
-	static void makeWritable(std::wstring key);
-	static void takeOwnership(std::wstring key);
-	static ACCESS_MASK getFileAccessForUser(std::wstring path, unsigned long rid);
-	static std::vector<std::wstring> enumSubKeys(std::wstring key);
-	static bool keyExists(std::wstring key);
-	static bool valueExists(std::wstring key, std::wstring valuename);
-	static bool keyEmpty(std::wstring key);
-	static void saveToFile(std::wstring key, std::vector<std::wstring> valuenames, std::wstring filepath);
+	static std::wstring readValue(const std::wstring& key, const std::wstring& valuename);
+	static unsigned long readDWORDValue(const std::wstring& key, const std::wstring& valuename);
+	static std::vector<std::wstring> readMultiValue(const std::wstring& key, const std::wstring& valuename);
+	static std::vector<unsigned char> readBinaryValue(const std::wstring& key, const std::wstring& valuename);
+	static void writeValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value);
+	static void writeDWORDValue(const std::wstring& key, const std::wstring& valuename, unsigned long value);
+	static void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value);
+	static void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values);
+	static void deleteValue(const std::wstring& key, const std::wstring& valuename);
+	static void createKey(const std::wstring& key);
+	static void deleteKey(const std::wstring& key);
+	static void makeWritable(const std::wstring& key);
+	static void takeOwnership(const std::wstring& key);
+	static ACCESS_MASK getFileAccessForUser(const std::wstring& path, unsigned long rid);
+	static std::vector<std::wstring> enumSubKeys(const std::wstring& key);
+	static bool keyExists(const std::wstring& key);
+	static bool valueExists(const std::wstring& key, const std::wstring& valuename);
+	static bool keyEmpty(const std::wstring& key);
+	static void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath);
 	static std::wstring getGuidString(GUID guid);
 	static bool isWindowsVersionAtLeast(unsigned major, unsigned minor);
 	static HKEY openKey(const std::wstring& key, REGSAM samDesired);
@@ -71,7 +71,7 @@ public:
 	RegistryException(const std::wstring& message)
 		: message(message) {}
 
-	std::wstring getMessage() const
+	const std::wstring& getMessage() const
 	{
 		return message;
 	}

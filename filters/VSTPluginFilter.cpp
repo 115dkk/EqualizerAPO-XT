@@ -24,10 +24,9 @@
 
 using std::max;
 
-VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, std::unordered_map<std::wstring, float> paramMap)
-	: library(library), chunkData(chunkData), paramMap(paramMap)
+VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap)
+	: library(library), libPath(library->getLibPath()), chunkData(chunkData), paramMap(paramMap)
 {
-	libPath = library->getLibPath();
 }
 
 VSTPluginFilter::~VSTPluginFilter()
@@ -292,12 +291,12 @@ std::shared_ptr<VSTPluginLibrary> VSTPluginFilter::getLibrary() const
 	return library;
 }
 
-std::wstring VSTPluginFilter::getChunkData() const
+const std::wstring& VSTPluginFilter::getChunkData() const
 {
 	return chunkData;
 }
 
-std::unordered_map<std::wstring, float> VSTPluginFilter::getParamMap() const
+const std::unordered_map<std::wstring, float>& VSTPluginFilter::getParamMap() const
 {
 	return paramMap;
 }

@@ -35,6 +35,6 @@ public:
 	std::vector<IFilter*> endOfFile(const std::wstring& configPath) override;
 
 private:
-	bool deviceMatches;
+	bool deviceMatches = false;
 	std::wstring deviceString;
 };

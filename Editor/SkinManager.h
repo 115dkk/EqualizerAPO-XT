@@ -16,7 +16,7 @@ public:
 	static SkinManager* instance();
 
 	const SkinTokens& tokens() const;
-	QString currentSkinId() const;
+	const QString& currentSkinId() const;
 	bool isDark() const;
 	void applySkin(const QString& skinId, bool dark);
 

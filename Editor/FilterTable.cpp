@@ -187,7 +187,6 @@ void FilterTable::updateGuis()
 	{
 		QString line = item->text;
 		IFilterGUI* gui = nullptr;
-		bool usingCardEditor = false;
 		int pos = line.indexOf(':');
 		if (pos != -1)
 		{
@@ -209,6 +208,7 @@ void FilterTable::updateGuis()
 
 			if (gui != nullptr)
 			{
+				bool usingCardEditor = false;
 				if (renderMode == ModernCards)
 				{
 					// factoryKey is the command after CommentFilterGUIFactory strips a leading '#',
@@ -319,7 +319,6 @@ void FilterTable::updateSingleRowGui(Item* item)
 	// the factories track stays valid.
 	QString line = item->text;
 	IFilterGUI* gui = nullptr;
-	bool usingCardEditor = false;
 	int colonPos = line.indexOf(':');
 	if (colonPos != -1)
 	{
@@ -337,6 +336,7 @@ void FilterTable::updateSingleRowGui(Item* item)
 
 		if (gui != nullptr)
 		{
+			bool usingCardEditor = false;
 			if (renderMode == ModernCards)
 			{
 				IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);

@@ -29,7 +29,7 @@ public:
 
 private:
 	static QStringList parseChannelList(const QString& text);
-	static QString compactWhitespace(QString text);
+	static QString compactWhitespace(const QString& text);
 	static bool isDisabledCommandLine(const QString& line);
 	static bool isPureCommentLine(const QString& line);
 };

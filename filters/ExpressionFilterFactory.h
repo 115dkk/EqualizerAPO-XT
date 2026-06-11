@@ -32,5 +32,5 @@ public:
 	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 private:
-	mup::ParserX* parser;
+	mup::ParserX* parser = nullptr;
 };

@@ -81,7 +81,7 @@ private:
 class ConvolutionFilter : public IFilter
 {
 public:
-	ConvolutionFilter(std::wstring filename);
+	ConvolutionFilter(const std::wstring& filename);
 	virtual ~ConvolutionFilter();
 	bool getInPlace() override { return true; }
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
@@ -89,8 +89,8 @@ public:
 
 protected:
 	virtual void initializeFilters(unsigned frameCount);
-	float sampleRate;
-	unsigned channelCount;
+	float sampleRate = 0.0f;
+	unsigned channelCount = 0;
 	// Declared after channelCount: the holder binds a reference to channelCount in
 	// the initializer list, so channelCount must be constructed first.
 	HConvSingleArray filters;

@@ -83,7 +83,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list)
 			outputCount = 1;
 
 		bool defaultDevice = false;
-		list.erase(remove_if(list.begin(), list.end(), [&defaultDevice](shared_ptr<AbstractAPOInfo>& info) {
+		list.erase(remove_if(list.begin(), list.end(), [&defaultDevice](const shared_ptr<AbstractAPOInfo>& info) {
 			if (info->getDeviceName().find(L"VB-Audio VoiceMeeter") != wstring::npos)
 			{
 				if (info->isDefaultDevice())
@@ -109,7 +109,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list)
 		{
 			for (unsigned i = 0; i < outputCount; i++)
 			{
-				shared_ptr<VoicemeeterAPOInfo>& info = (shared_ptr<VoicemeeterAPOInfo>&)list[i];
+				const shared_ptr<VoicemeeterAPOInfo>& info = (const shared_ptr<VoicemeeterAPOInfo>&)list[i];
 				if (!anyInstalled || info->isInstalled())
 				{
 					info->defaultDevice = true;
@@ -128,7 +128,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list)
 		int i = 0;
 		for (wstring arg : args)
 		{
-			shared_ptr<AbstractAPOInfo> info = *list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(arg, false));
+			list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(arg, false));
 			i++;
 		}
 	}
@@ -317,13 +317,13 @@ wstring VoicemeeterAPOInfo::getClientPath()
 void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path, const wstring& args)
 {
 	IShellLink* shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&shellLink);
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
 	if (SUCCEEDED(hr))
 	{
 		shellLink->SetPath(path.c_str());
 		shellLink->SetArguments(args.c_str());
 		IPersistFile* persistFile;
-		hr = shellLink->QueryInterface(IID_IPersistFile, (LPVOID*)&persistFile);
+		hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&persistFile));
 		if (SUCCEEDED(hr))
 		{
 			hr = persistFile->Save(lnkPath.c_str(), TRUE);
@@ -339,11 +339,11 @@ wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)
 	wstring result;
 
 	IShellLink* shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&shellLink);
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
 	if (SUCCEEDED(hr))
 	{
 		IPersistFile* persistFile;
-		hr = shellLink->QueryInterface(IID_IPersistFile, (LPVOID*)&persistFile);
+		hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&persistFile));
 		if (SUCCEEDED(hr))
 		{
 			hr = persistFile->Load(lnkPath.c_str(), STGM_READ);

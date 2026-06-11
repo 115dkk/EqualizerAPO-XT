@@ -19,12 +19,12 @@
 
 #include "FilterTemplate.h"
 
-FilterTemplate::FilterTemplate(QString name, QString line, QStringList path)
+FilterTemplate::FilterTemplate(QString name, QString line, const QStringList& path)
 	: name(name), line(line), path(path)
 {
 }
 
-QString FilterTemplate::getName() const
+const QString& FilterTemplate::getName() const
 {
 	return name;
 }
@@ -44,7 +44,7 @@ void FilterTemplate::setLine(const QString& value)
 	line = value;
 }
 
-QStringList FilterTemplate::getPath() const
+const QStringList& FilterTemplate::getPath() const
 {
 	return path;
 }

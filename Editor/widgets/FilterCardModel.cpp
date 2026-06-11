@@ -108,7 +108,7 @@ QString summarizeBiquad(const QString& parameters, const QString& code, const QS
 }
 }
 
-QString FilterCardModel::compactWhitespace(QString text)
+QString FilterCardModel::compactWhitespace(const QString& text)
 {
 	return text.simplified();
 }
