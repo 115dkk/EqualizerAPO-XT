@@ -1,5 +1,7 @@
 # Changelog
 
+**English** | [한국어](CHANGELOG.ko.md)
+
 All notable changes to EqualizerAPO-XT since it was forked from TheFireKahuna's
 equalizerAPO64 tree (last upstream commit `7156020`, 2025-12-16). Work on this
 fork started on 2026-05-22.
@@ -20,7 +22,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 - The biweekly audit now runs on a Windows runner with Git Bash and a
   pre-provisioned buildable tree, so audits can compile and execute the test
   suites instead of reading the code blind. ([#58])
-- README refreshed to the current project state, and this changelog added.
+- `main` pushes that do not bump the version cannot produce a new release, so
+  they now skip the build matrix entirely; a full-matrix build stays available
+  via `workflow_dispatch`. ([#61])
+- README refreshed to the current project state, this changelog added, and
+  Korean translations of both provided. ([#60])
 
 ## v1.17.1 — 2026-06-11
 
@@ -263,3 +269,5 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#56]: https://github.com/115dkk/EqualizerAPO-XT/pull/56
 [#57]: https://github.com/115dkk/EqualizerAPO-XT/pull/57
 [#58]: https://github.com/115dkk/EqualizerAPO-XT/pull/58
+[#60]: https://github.com/115dkk/EqualizerAPO-XT/pull/60
+[#61]: https://github.com/115dkk/EqualizerAPO-XT/pull/61
