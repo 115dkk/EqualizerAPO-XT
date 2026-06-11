@@ -330,10 +330,12 @@
     <ClInclude Include="filters\DelayFilterFactory.h" />
     <ClInclude Include="filters\DeviceCommand.h" />
     <ClInclude Include="filters\DeviceFilterFactory.h" />
+    <ClInclude Include="filters\ExpressionCommand.h" />
     <ClInclude Include="filters\ExpressionFilterFactory.h" />
     <ClInclude Include="filters\GraphicEQCommand.h" />
     <ClInclude Include="filters\GraphicEQFilter.h" />
     <ClInclude Include="filters\GraphicEQFilterFactory.h" />
+    <ClInclude Include="filters\IfCommand.h" />
     <ClInclude Include="filters\IfFilterFactory.h" />
     <ClInclude Include="filters\IIRFilter.h" />
     <ClInclude Include="filters\IIRFilterFactory.h" />
@@ -409,10 +411,12 @@
     <ClCompile Include="filters\DelayFilterFactory.cpp" />
     <ClCompile Include="filters\DeviceCommand.cpp" />
     <ClCompile Include="filters\DeviceFilterFactory.cpp" />
+    <ClCompile Include="filters\ExpressionCommand.cpp" />
     <ClCompile Include="filters\ExpressionFilterFactory.cpp" />
     <ClCompile Include="filters\GraphicEQCommand.cpp" />
     <ClCompile Include="filters\GraphicEQFilter.cpp" />
     <ClCompile Include="filters\GraphicEQFilterFactory.cpp" />
+    <ClCompile Include="filters\IfCommand.cpp" />
     <ClCompile Include="filters\IfFilterFactory.cpp" />
     <ClCompile Include="filters\IIRFilter.cpp" />
     <ClCompile Include="filters\IIRFilterFactory.cpp" />

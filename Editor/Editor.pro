@@ -134,7 +134,9 @@ SOURCES += main.cpp\
 	../FilterConfiguration.cpp \
 	../filters/ChannelCommand.cpp \
 	../filters/ChannelFilterFactory.cpp \
+	../filters/ExpressionCommand.cpp \
 	../filters/ExpressionFilterFactory.cpp \
+	../filters/IfCommand.cpp \
 	../filters/IfFilterFactory.cpp \
 	../filters/StageCommand.cpp \
 	../filters/StageFilterFactory.cpp \
@@ -295,7 +297,9 @@ HEADERS  += \
 	../FilterEngine.h \
 	../FilterConfiguration.h \
 	../filters/ChannelFilterFactory.h \
+	../filters/ExpressionCommand.h \
 	../filters/ExpressionFilterFactory.h \
+	../filters/IfCommand.h \
 	../filters/IfFilterFactory.h \
 	../filters/StageCommand.h \
 	../filters/StageFilterFactory.h \

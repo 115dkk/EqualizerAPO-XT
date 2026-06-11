@@ -28,6 +28,7 @@
 #include "parser/LogicalOperators.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "ExpressionCommand.h"
 #include "ExpressionFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Expression, ExpressionFilterFactory)
@@ -58,97 +59,54 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 	if (command.length() > 0 && command[0] == L'#')
 		return vector<IFilter*>();
 
-	bool inExpression = false;
-	bool lastWasBackslash = false;
-
+	// Lex through the shared codec, then evaluate the expression segments in
+	// place so the other factories see the substituted parameter text.
 	wstring output;
-	wstring expression;
-	for (unsigned i = 0; i < parameters.size(); i++)
+	for (const InlineExpression::Segment& segment : InlineExpression::split(parameters))
 	{
-		wchar_t c = parameters[i];
-		if (c == L'`')
+		if (!segment.isExpression)
 		{
-			if (!inExpression)
-			{
-				if (lastWasBackslash)
-				{
-					output += c;
-				}
-				else
-				{
-					inExpression = true;
-				}
-			}
-			else
-			{
-				if (lastWasBackslash)
-				{
-					expression += c;
-				}
-				else
-				{
-					inExpression = false;
-					try
-					{
-						parser->SetExpr(expression);
-						Value result = parser->Eval();
-						wstring resultString;
-						if (result.GetType() == L's')
-							resultString = result.GetString();
-						else
-							resultString = result.ToString().c_str();
-						output += resultString;
-						TraceF(L"Inline expression %s evaluated to %s", expression.c_str(), resultString.c_str());
-					}
-					catch (const ParserError& e)
-					{
-						LogF(L"Error while evaluating inline expression %s: %s", expression.c_str(), e.GetMsg().c_str());
-					}
-					expression.clear();
-				}
-			}
-			lastWasBackslash = false;
+			output += segment.text;
+			continue;
 		}
-		else if (c == L'\\')
-		{
-			if (i >= parameters.size() - 1 || parameters[i + 1] != L'`')
-			{
-				if (inExpression)
-					expression += c;
-				else
-					output += c;
-			}
-			lastWasBackslash = true;
-		}
-		else
-		{
-			if (inExpression)
-				expression += c;
-			else
-				output += c;
-			lastWasBackslash = false;
-		}
-	}
 
-	parameters = output;
-
-	if (command == L"Eval")
-	{
 		try
 		{
-			expression = StringHelper::trim(parameters);
-			parser->SetExpr(expression);
+			parser->SetExpr(segment.text);
 			Value result = parser->Eval();
 			wstring resultString;
 			if (result.GetType() == L's')
 				resultString = result.GetString();
 			else
 				resultString = result.ToString().c_str();
-			TraceF(L"Expression %s evaluated to %s", expression.c_str(), resultString.c_str());
+			output += resultString;
+			TraceF(L"Inline expression %s evaluated to %s", segment.text.c_str(), resultString.c_str());
 		}
 		catch (const ParserError& e)
 		{
-			LogF(L"Error while evaluating expression %s: %s", expression.c_str(), e.GetMsg().c_str());
+			LogF(L"Error while evaluating inline expression %s: %s", segment.text.c_str(), e.GetMsg().c_str());
+		}
+	}
+
+	parameters = output;
+
+	EvalCommand evalCmd;
+	if (EvalCommand::parse(command, parameters, evalCmd))
+	{
+		try
+		{
+			parser->SetExpr(evalCmd.expression);
+			Value result = parser->Eval();
+			wstring resultString;
+			if (result.GetType() == L's')
+				resultString = result.GetString();
+			else
+				resultString = result.ToString().c_str();
+			TraceF(L"Expression %s evaluated to %s", evalCmd.expression.c_str(), resultString.c_str());
+		}
+		catch (const ParserError& e)
+		{
+			LogF(L"Error while evaluating expression %s: %s", evalCmd.expression.c_str(), e.GetMsg().c_str());
 		}
 
 		// command has been handled

@@ -29,6 +29,12 @@
     <ClCompile Include="DeviceCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ExpressionCommandTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IfCommandTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="GraphicEQCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
