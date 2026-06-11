@@ -79,7 +79,7 @@ The SIMD variant set is defined once in `.github/simd-variants.psd1`. That manif
 - `windows-x64-avx10_1`
 - `windows-arm64`
 
-Pull requests build only the primary `avx2` variant; pushes to `main` and manual `workflow_dispatch` runs build all six. The SIMD matrix, dependency artifact names, installer artifact names, and test policy are tracked in [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
+Pull requests build only the primary `avx2` variant. Pushes to `main` build all six when the automatic version bump produces a new version; pushes that cannot produce a release (docs, CI, refactor-only changes) skip the build matrix. Manual `workflow_dispatch` runs always build all six. The SIMD matrix, dependency artifact names, installer artifact names, and test policy are tracked in [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
 
 Qt tools are built through qmake in CI and in the documented local setup. A full Visual Studio solution build also needs a working Qt VS Tools/QtMsBuild setup.
 
