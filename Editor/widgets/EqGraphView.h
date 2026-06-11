@@ -18,7 +18,7 @@ public:
 
 	void setNodes(const std::vector<FilterNode>& nodes, unsigned sampleRate, const QString& channel);
 	void setChannel(const QString& channel);
-	QString channel() const;
+	const QString& channel() const;
 	QSize sizeHint() const override;
 
 protected:

@@ -42,7 +42,7 @@ public:
 		return message.empty();
 	}
 
-	std::wstring getMessage() const
+	const std::wstring& getMessage() const
 	{
 		return message;
 	}
@@ -54,7 +54,7 @@ private:
 class ReceiveThread
 {
 public:
-	ReceiveThread(std::wstring pipeName);
+	ReceiveThread(const std::wstring& pipeName);
 	~ReceiveThread();
 	template<class Clock, class Duration> std::string waitUntil(const std::chrono::time_point<Clock, Duration>& time)
 	{

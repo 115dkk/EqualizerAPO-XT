@@ -59,11 +59,6 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 				int res = library->initialize();
 				if (res < 0)
 				{
-#ifdef _WIN64
-					int bitDepth = 64;
-#else
-					int bitDepth = 32;
-#endif
 					if (res == AbstractLibrary::FILE_NOT_FOUND)
 						LogF(L"File %s not found", library->getLibPath());
 					else if (res == AbstractLibrary::LOADING_FAILED)
@@ -71,7 +66,14 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 					else if (res == AbstractLibrary::FUNCTIONS_MISSING)
 						LogF(L"Library %s does not contain needed functions", library->getLibPath());
 					else if (res == AbstractLibrary::WRONG_ARCHITECTURE)
+					{
+#ifdef _WIN64
+						int bitDepth = 64;
+#else
+						int bitDepth = 32;
+#endif
 						LogF(L"Library %s has wrong architecture, must be %d-bit", library->getLibPath(), bitDepth);
+					}
 				}
 				else
 				{

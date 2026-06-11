@@ -46,8 +46,8 @@ namespace
 	struct EqIrCacheKey
 	{
 		std::vector<FilterNode> nodes;
-		int sampleRate;
-		unsigned filterLength;
+		int sampleRate = 0;
+		unsigned filterLength = 0;
 
 		bool operator==(const EqIrCacheKey& o) const
 		{

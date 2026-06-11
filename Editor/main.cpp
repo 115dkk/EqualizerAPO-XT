@@ -66,7 +66,7 @@ namespace
 // GUI without losing plugin state. Returns 0 on success, 1 on any loss.
 int runVstRoundTripSelfTest()
 {
-	struct Case { const wchar_t* name; std::wstring params; };
+	struct Case { const wchar_t* name = nullptr; std::wstring params; };
 	const Case cases[] = {
 		{ L"chunkData", L"Library \"fake plugin.dll\" ChunkData \"QUJDREVGR0g=\"" },
 		{ L"paramMap", L"Library fake.dll Gain 0.5 Mix 0.25 Width 1" },

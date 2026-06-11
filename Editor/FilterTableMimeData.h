@@ -28,7 +28,7 @@ class FilterTableMimeData : public QMimeData
 public:
 	FilterTableMimeData();
 
-	QList<QVariantMap> getPrefsList() const;
+	const QList<QVariantMap>& getPrefsList() const;
 	void setPrefsList(const QList<QVariantMap>& value);
 
 private:

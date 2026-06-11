@@ -61,7 +61,7 @@ QByteArray ConfigFileCodec::encodeLines(const QList<QString>& lines)
 {
 	bool first = true;
 	QByteArray byteArray;
-	for (QString line : lines)
+	for (const QString& line : lines)
 	{
 		if (first)
 			first = false;

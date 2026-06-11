@@ -80,9 +80,9 @@ public:
 	virtual HRESULT __stdcall GetEffectsList(LPGUID* effects, UINT* numEffects, HANDLE event);
 
 	// INonDelegatingUnknown
-	virtual HRESULT __stdcall NonDelegatingQueryInterface(const IID& iid, void** ppv);
-	virtual ULONG __stdcall NonDelegatingAddRef();
-	virtual ULONG __stdcall NonDelegatingRelease();
+	HRESULT __stdcall NonDelegatingQueryInterface(const IID& iid, void** ppv) override;
+	ULONG __stdcall NonDelegatingAddRef() override;
+	ULONG __stdcall NonDelegatingRelease() override;
 
 	static long instCount;
 	static const CRegAPOProperties<1> regPostMixProperties;

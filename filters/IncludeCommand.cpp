@@ -25,7 +25,7 @@
 
 using std::wstring;
 
-wstring IncludeCommand::serialize() const
+const wstring& IncludeCommand::serialize() const
 {
 	return path;
 }

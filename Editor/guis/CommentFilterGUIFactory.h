@@ -34,5 +34,5 @@ public:
 	IFilterGUI* decorateFilterGUI(IFilterGUI* gui) override;
 
 private:
-	bool lastWasComment;
+	bool lastWasComment = false;
 };

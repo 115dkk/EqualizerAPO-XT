@@ -30,7 +30,7 @@ struct EvalCommand
 	std::wstring expression;
 
 	// Canonical parameter string: the expression itself.
-	std::wstring serialize() const;
+	const std::wstring& serialize() const;
 
 	// Returns true when command names an Eval line; expression is then filled.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, EvalCommand& out);

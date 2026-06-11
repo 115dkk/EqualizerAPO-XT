@@ -38,7 +38,7 @@ wstring StringHelper::replaceCharacters(const wstring& s, const wstring& chars, 
 	for (unsigned i = 0; i < s.length(); i++)
 	{
 		wchar_t c = s[i];
-		if (chars.find(c) == -1)
+		if (chars.find(c) == wstring::npos)
 			result += c;
 		else
 			result += replacement;
@@ -164,9 +164,10 @@ wstring StringHelper::join(const vector<wstring>& strings, const wstring& separa
 
 wstring StringHelper::getSystemErrorString(long status)
 {
-	wchar_t* buf;
+	wchar_t* buf = nullptr;
 
-	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, status, 0, (LPTSTR)&buf, 0, nullptr) != 0)
+	// cppcheck-suppress knownConditionTrueFalse ; FormatMessageW allocates into buf through the casted out pointer
+	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, status, 0, (LPTSTR)&buf, 0, nullptr) != 0 && buf != nullptr)
 	{
 		wstring result(buf);
 		LocalFree(buf);

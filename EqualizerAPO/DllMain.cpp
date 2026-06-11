@@ -32,6 +32,7 @@ using std::wstring;
 
 static HINSTANCE hModule;
 
+// cppcheck-suppress constParameterPointer ; the signature is fixed by the Win32 DllMain contract
 BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, void* lpReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)

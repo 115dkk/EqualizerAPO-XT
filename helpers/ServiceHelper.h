@@ -54,7 +54,7 @@ public:
 	{
 	}
 
-	std::wstring getMessage() const
+	const std::wstring& getMessage() const
 	{
 		return message;
 	}

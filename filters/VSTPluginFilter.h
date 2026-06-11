@@ -26,7 +26,7 @@
 class VSTPluginFilter : public IFilter
 {
 public:
-	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, std::unordered_map<std::wstring, float> paramMap);
+	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap);
 	~VSTPluginFilter();
 
 	bool getInPlace() override {return false;}
@@ -35,8 +35,8 @@ public:
 	void process(double** output, double** input, unsigned frameCount) override;
 
 	std::shared_ptr<VSTPluginLibrary> getLibrary() const;
-	std::wstring getChunkData() const;
-	std::unordered_map<std::wstring, float> getParamMap() const;
+	const std::wstring& getChunkData() const;
+	const std::unordered_map<std::wstring, float>& getParamMap() const;
 
 private:
 	void cleanup();
@@ -45,8 +45,8 @@ private:
 	std::wstring libPath;
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
-	size_t channelCount;
-	unsigned effectChannelCount;
+	size_t channelCount = 0;
+	unsigned effectChannelCount = 0;
 	size_t effectCount = 0;
 	VSTPluginInstance** effects = nullptr;
 	size_t emptyChannelCount = 0;

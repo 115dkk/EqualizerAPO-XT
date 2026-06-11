@@ -87,7 +87,7 @@ void VST_FUNCTION_INTERFACE setParameter(vst_effect_t* effect, uint32_t index, f
 
 float VST_FUNCTION_INTERFACE getParameter(vst_effect_t* effect, uint32_t index)
 {
-	PluginState* state = stateOf(effect);
+	const PluginState* state = stateOf(effect);
 	if (state == nullptr || index >= static_cast<uint32_t>(kNumParams))
 		return 0.0f;
 	return state->params[index];
@@ -98,7 +98,7 @@ float VST_FUNCTION_INTERFACE getParameter(vst_effect_t* effect, uint32_t index)
 template<typename Sample>
 void processGeneric(vst_effect_t* effect, const Sample* const* inputs, Sample** outputs, int32_t samples)
 {
-	PluginState* state = stateOf(effect);
+	const PluginState* state = stateOf(effect);
 	const double gain = state != nullptr ? static_cast<double>(state->params[kParamGain]) : 1.0;
 	const bool bypass = state != nullptr && state->params[kParamBypass] >= 0.5f;
 

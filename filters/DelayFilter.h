@@ -39,9 +39,9 @@ private:
 
 	double delay;
 	bool isMs;
-	unsigned bufferLength;
-	unsigned channelCount;
+	unsigned bufferLength = 0;
+	unsigned channelCount = 0;
 	double** buffers;
-	unsigned bufferOffset;
+	unsigned bufferOffset = 0;
 };
 #pragma AVRT_VTABLES_END

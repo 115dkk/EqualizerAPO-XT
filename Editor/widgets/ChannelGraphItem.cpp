@@ -51,7 +51,7 @@ QRectF ChannelGraphItem::boundingRect() const
 	return cachedRect;
 }
 
-QString ChannelGraphItem::getName() const
+const QString& ChannelGraphItem::getName() const
 {
 	return name;
 }

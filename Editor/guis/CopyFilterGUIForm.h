@@ -31,7 +31,7 @@ class CopyFilterGUIForm : public QWidget
 public:
 	explicit CopyFilterGUIForm(QWidget* parent = 0);
 
-	void load(std::vector<Assignment> assignments);
+	void load(const std::vector<Assignment>& assignments);
 	void setChannelNames(const std::vector<std::wstring>& channelNames);
 	std::vector<Assignment> buildAssignments(QWidget* pressedButton = nullptr);
 

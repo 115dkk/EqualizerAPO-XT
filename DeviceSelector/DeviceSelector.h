@@ -29,7 +29,7 @@ class DeviceSelector : public QDialog
 
 public:
 	DeviceSelector(QWidget* parent = nullptr);
-	void addDevices(std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode);
+	void addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode);
 
 private:
 	void onDeviceSelectionChanged();

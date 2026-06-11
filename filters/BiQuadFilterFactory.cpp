@@ -81,7 +81,8 @@ BiQuadFilterFactory::BiQuadFilterFactory()
 
 bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& parameters, BiQuadCommand& out)
 {
-	if (command.find(L"Filter") != 0)
+	// starts-with check (rfind at position 0), the pre-C++20 idiom
+	if (command.rfind(L"Filter", 0) != 0)
 		return false;
 
 	// Conversion to period as decimal mark, if needed

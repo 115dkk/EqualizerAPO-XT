@@ -51,13 +51,14 @@ int AbstractLibrary::initialize()
 		if (module == nullptr)
 		{
 			unsigned short arch = getFileArchitecture(libPath);
-#ifdef _WIN64
-			int bitDepth = 64;
+#if defined(_M_ARM64)
+			const unsigned short expectedArch = IMAGE_FILE_MACHINE_ARM64;
+#elif defined(_WIN64)
+			const unsigned short expectedArch = IMAGE_FILE_MACHINE_AMD64;
 #else
-			int bitDepth = 32;
+			const unsigned short expectedArch = IMAGE_FILE_MACHINE_I386;
 #endif
-			if (arch != 0 && (bitDepth == 64 && arch != IMAGE_FILE_MACHINE_AMD64
-				|| bitDepth == 32 && arch != IMAGE_FILE_MACHINE_I386))
+			if (arch != 0 && arch != expectedArch)
 				return WRONG_ARCHITECTURE;
 
 			return LOADING_FAILED;

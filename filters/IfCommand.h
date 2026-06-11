@@ -42,7 +42,7 @@ struct IfCommand
 	std::wstring expression;
 
 	// Canonical parameter string: the expression itself.
-	std::wstring serialize() const;
+	const std::wstring& serialize() const;
 
 	// Returns true when command names a line of the If family; kind and
 	// expression are then filled.

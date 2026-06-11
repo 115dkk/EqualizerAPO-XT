@@ -33,16 +33,16 @@ using std::wstring;
 
 void StageFilterFactory::initialize(FilterEngine* engine)
 {
-	preMix = engine->isPreMix();
-	capture = engine->isCapture();
-	postMixInstalled = engine->isPostMixInstalled();
+	enginePreMix = engine->isPreMix();
+	engineCapture = engine->isCapture();
+	enginePostMixInstalled = engine->isPostMixInstalled();
 
 	engine->getParser()->DefineConst(L"stage", engine->isCapture() ? L"capture" : engine->isPreMix() ? L"pre-mix" : L"post-mix");
 }
 
 vector<IFilter*> StageFilterFactory::startOfConfiguration()
 {
-	stageMatches = capture || !preMix || !postMixInstalled;
+	stageMatches = engineCapture || !enginePreMix || !enginePostMixInstalled;
 	while (!stageMatchesStack.empty())
 		stageMatchesStack.pop();
 
@@ -68,7 +68,7 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 		{
 			if (part == StageCommand::preMix)
 			{
-				if (!capture && preMix)
+				if (!engineCapture && enginePreMix)
 				{
 					stageMatches = true;
 					matchingPart = part;
@@ -76,7 +76,7 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 			}
 			else if (part == StageCommand::postMix)
 			{
-				if (!capture && !preMix)
+				if (!engineCapture && !enginePreMix)
 				{
 					stageMatches = true;
 					matchingPart = part;
@@ -84,7 +84,7 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 			}
 			else if (part == StageCommand::capture)
 			{
-				if (capture)
+				if (engineCapture)
 				{
 					stageMatches = true;
 					matchingPart = part;

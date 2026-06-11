@@ -21,7 +21,7 @@
 
 sf_count_t getFileLenDevice(void* user_data)
 {
-	QIODevice* device = (QIODevice*)user_data;
+	const QIODevice* device = (QIODevice*)user_data;
 	return device->size();
 }
 

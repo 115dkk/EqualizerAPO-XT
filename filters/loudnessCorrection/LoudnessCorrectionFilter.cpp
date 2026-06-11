@@ -30,8 +30,8 @@
 #include <math.h>
 
 LoudnessCorrectionFilter::LoudnessCorrectionFilter(const FilterParameters& fParameters)
+	: _parameters(fParameters)
 {
-	_parameters = fParameters;
 	if (_parameters.attenuation > 1.0)
 	{
 		_parameters.attenuation = 1.0;
@@ -191,7 +191,6 @@ void LoudnessCorrectionFilter::process(double** output, double** input, unsigned
 				output[i][j] = input[i][j];
 			}
 		}
-		output = input;
 		return;
 	}
 	if (_parameterChanged.exchange(false))

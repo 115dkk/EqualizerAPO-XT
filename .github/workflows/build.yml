@@ -1108,34 +1108,73 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
 
-    - name: Install cppcheck
-      run: sudo apt-get update && sudo apt-get install -y cppcheck
+    # cppcheck is built from a pinned release tag instead of apt because the
+    # apt package version drifts with the runner image and the finding set
+    # changes between cppcheck releases. The gate below must stay reproducible
+    # against the same version developers run locally.
+    - name: Cache cppcheck
+      id: cache-cppcheck
+      uses: actions/cache@v4
+      with:
+        path: ~/cppcheck-install
+        key: cppcheck-2.21.0-${{ runner.os }}
 
+    - name: Build cppcheck 2.21.0
+      if: steps.cache-cppcheck.outputs.cache-hit != 'true'
+      run: |
+        git clone --depth 1 --branch 2.21.0 https://github.com/danmar/cppcheck.git "$HOME/cppcheck-src"
+        cmake -S "$HOME/cppcheck-src" -B "$HOME/cppcheck-build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/cppcheck-install"
+        cmake --build "$HOME/cppcheck-build" -j"$(nproc)"
+        cmake --install "$HOME/cppcheck-build"
+
+    # The baseline is zero findings and the step fails on any new one.
+    # Policy suppressions (kept out of the code on purpose):
+    # - cstyleCast/shadow*: Win32/COM/VST interop casts and the upstream
+    #   naming style (Qt parent/signal names, ctor parameters named like
+    #   members) would mean churn across long-standing upstream code.
+    # - useStlAlgorithm/postfixOperator: raw loops and it++ are the house
+    #   style inherited from upstream; no behavior or measurable perf impact.
+    # - noExplicitConstructor: single-argument constructors (Qt widgets,
+    #   exception types, filters) are intentionally implicit upstream.
+    # - LocalAllocCalled: LocalAlloc/LocalFree pairs are mandated by the
+    #   Win32 security APIs used (SetEntriesInAcl, GetNamedSecurityInfoW).
+    # - unknownMacro on the two VST3 host files: QUERY_INTERFACE comes from
+    #   the VST3 SDK under deps/, which is excluded from analysis.
     - name: Run cppcheck
       run: |
-        cppcheck \
+        "$HOME/cppcheck-install/bin/cppcheck" \
           --enable=warning,style,performance,portability \
           --inline-suppr \
+          --library=qt \
+          --library=windows \
           --suppress=missingIncludeSystem \
           --suppress=unusedFunction \
           --suppress=unmatchedSuppression \
+          --suppress=cstyleCast \
+          --suppress=shadowFunction \
+          --suppress=shadowVariable \
+          --suppress=shadowMember \
+          --suppress=useStlAlgorithm \
+          --suppress=postfixOperator \
+          --suppress=noExplicitConstructor \
+          --suppress=LocalAllocCalled \
+          --suppress=unknownMacro:helpers/VSTPluginInstance.cpp \
+          --suppress=unknownMacro:helpers/VSTPluginInstanceInternal.h \
           --suppress=*:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \
-          --error-exitcode=0 \
+          --error-exitcode=1 \
           --quiet \
           --std=c++17 \
           -i libHybridConv-0.1.1 \
           -i deps \
-          -i build-Editor-Desktop_Qt_6_7_2_MSVC2022_32bit \
-          -i build-Editor-Desktop_Qt_6_7_2_MSVC2022_64bit \
-          -i build-Editor-Desktop_Qt_6_7_2_MSVC2019_ARM64 \
           --output-file=cppcheck-report.txt \
-          .
+          . || failed=1
         echo "--- cppcheck report ---"
         cat cppcheck-report.txt || true
-        if [ -s cppcheck-report.txt ]; then
+        if [ "${failed:-0}" = "1" ]; then
           line_count=$(wc -l < cppcheck-report.txt)
-          echo "::warning::cppcheck reported ${line_count} lines of findings (currently non-blocking; treated as baseline)"
+          echo "::error::cppcheck found new issues (${line_count} lines). Fix them or, for a justified false positive, add an inline or job-level suppression with a rationale."
+          exit 1
         fi
 
     - name: Upload cppcheck report

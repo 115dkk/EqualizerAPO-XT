@@ -35,10 +35,12 @@ public:
 	std::vector<IFilter*> endOfFile(const std::wstring& configPath) override;
 
 private:
-	bool preMix;
-	bool capture;
-	bool postMixInstalled;
+	// Named with an engine prefix so they cannot be confused with the
+	// StageCommand selector constants of the same stage names.
+	bool enginePreMix = false;
+	bool engineCapture = false;
+	bool enginePostMixInstalled = false;
 
-	bool stageMatches;
+	bool stageMatches = false;
 	std::stack<bool> stageMatchesStack;
 };

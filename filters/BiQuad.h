@@ -66,7 +66,7 @@ public:
 	}
 
 	__forceinline
-	void setCoefficients(double ain[], const double& a0in)
+	void setCoefficients(const double ain[], const double& a0in)
 	{
 		for (int i = 0; i < 4; i++)
 			a[i] = ain[i];

@@ -30,8 +30,8 @@ struct Assignment
 
 	struct Summand
 	{
-		double factor;
-		bool isDecibel;
+		double factor = 0.0;
+		bool isDecibel = false;
 		std::wstring channel;
 	};
 
@@ -70,7 +70,7 @@ public:
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
 
-	std::vector<Assignment> getAssignments() const;
+	const std::vector<Assignment>& getAssignments() const;
 
 private:
 	void cleanup();

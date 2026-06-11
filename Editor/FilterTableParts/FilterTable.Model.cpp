@@ -113,15 +113,13 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 			continue;
 		lineNumber = prefLine.left(index).toInt();
 
-		QString prefCommand;
-		QString prefString;
 		if (lineNumber > 0)
 		{
 			int index2 = prefLine.indexOf(':', index + 1);
 			if (index2 != -1)
 			{
-				prefCommand = prefLine.mid(index + 1, index2 - index - 1);
-				prefString = prefLine.mid(index2 + 1);
+				QString prefCommand = prefLine.mid(index + 1, index2 - index - 1);
+				QString prefString = prefLine.mid(index2 + 1);
 
 				if (lineNumber <= items.size())
 				{

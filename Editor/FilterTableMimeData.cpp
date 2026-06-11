@@ -23,7 +23,7 @@ FilterTableMimeData::FilterTableMimeData()
 {
 }
 
-QList<QVariantMap> FilterTableMimeData::getPrefsList() const
+const QList<QVariantMap>& FilterTableMimeData::getPrefsList() const
 {
 	return prefsList;
 }

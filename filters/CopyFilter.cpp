@@ -102,7 +102,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 		stream << L"to channel " << outChannelNames[ia.targetChannel].c_str() << " ";
 		for (unsigned j = 0; j < ia.sourceCount; j++)
 		{
-			InternalAssignment::InternalSummand& is = ia.sourceSum[j];
+			const InternalAssignment::InternalSummand& is = ia.sourceSum[j];
 			if (j > 0)
 				stream << ", ";
 			if (is.channel != -1)
@@ -142,7 +142,7 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 
 		for (unsigned j = 1; j < ia.sourceCount; j++)
 		{
-			InternalAssignment::InternalSummand& is = ia.sourceSum[j];
+			const InternalAssignment::InternalSummand& is = ia.sourceSum[j];
 
 			if (is.channel == -1)
 				for (unsigned f = 0; f < frameCount; f++)
@@ -177,7 +177,7 @@ void CopyFilter::cleanup()
 	}
 }
 
-std::vector<Assignment> CopyFilter::getAssignments() const
+const std::vector<Assignment>& CopyFilter::getAssignments() const
 {
 	return assignments;
 }

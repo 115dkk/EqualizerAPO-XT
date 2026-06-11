@@ -10,7 +10,7 @@ public:
 	explicit ChBadge(QWidget* parent = nullptr);
 	explicit ChBadge(const QString& channel, QWidget* parent = nullptr);
 
-	QString channel() const;
+	const QString& channel() const;
 	void setChannel(const QString& channel);
 	QSize sizeHint() const override;
 

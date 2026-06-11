@@ -32,7 +32,7 @@ struct ConvolutionCommand
 	std::wstring path;
 
 	// Canonical parameter string: the path itself.
-	std::wstring serialize() const;
+	const std::wstring& serialize() const;
 
 	// Returns true when command names a Convolution line; path is then the
 	// trimmed parameter text and may be empty. Emptiness policy stays with the

@@ -30,6 +30,6 @@ class ChannelFilterGUIScene : public ChannelGraphScene
 public:
 	explicit ChannelFilterGUIScene();
 
-	void load(std::vector<std::wstring> channelNames, QStringList selectedChannels);
+	void load(std::vector<std::wstring> channelNames, const QStringList& selectedChannels);
 	QStringList getSelectedChannels();
 };

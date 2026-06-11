@@ -32,7 +32,7 @@ class CopyFilterGUIRow : public QWidget
 	Q_OBJECT
 
 public:
-	explicit CopyFilterGUIRow(Assignment::Summand summand, std::vector<std::wstring> channelNames, QWidget* parent = 0);
+	explicit CopyFilterGUIRow(Assignment::Summand summand, const std::vector<std::wstring>& channelNames, QWidget* parent = 0);
 	~CopyFilterGUIRow();
 
 	void setChannelNames(const std::vector<std::wstring>& channelNames);

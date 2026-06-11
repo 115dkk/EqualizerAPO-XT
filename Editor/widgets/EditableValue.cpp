@@ -36,7 +36,7 @@ void EditableValue::setValue(double value)
 	refreshText();
 }
 
-QString EditableValue::unit() const
+const QString& EditableValue::unit() const
 {
 	return currentUnit;
 }

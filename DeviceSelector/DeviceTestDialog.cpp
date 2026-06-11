@@ -108,7 +108,7 @@ std::vector<std::shared_ptr<DeviceAPOInfo>> DeviceTestDialog::filterDevices(cons
 	return filteredList;
 }
 
-void DeviceTestDialog::addDevices(std::vector<std::shared_ptr<DeviceAPOInfo>>& devices, QTreeWidgetItem* parentNode)
+void DeviceTestDialog::addDevices(const std::vector<std::shared_ptr<DeviceAPOInfo>>& devices, QTreeWidgetItem* parentNode)
 {
 	for (const std::shared_ptr<DeviceAPOInfo>& apoInfo : devices)
 	{

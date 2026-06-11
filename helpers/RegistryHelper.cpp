@@ -38,7 +38,7 @@ using std::wstring;
 
 DWORD RegistryHelper::windowsVersion = 0;
 
-wstring RegistryHelper::readValue(wstring key, wstring valuename)
+wstring RegistryHelper::readValue(const wstring& key, const wstring& valuename)
 {
 	wstring result;
 
@@ -78,7 +78,7 @@ wstring RegistryHelper::readValue(wstring key, wstring valuename)
 	return result;
 }
 
-unsigned long RegistryHelper::readDWORDValue(wstring key, wstring valuename)
+unsigned long RegistryHelper::readDWORDValue(const wstring& key, const wstring& valuename)
 {
 	unsigned long result;
 
@@ -112,7 +112,7 @@ unsigned long RegistryHelper::readDWORDValue(wstring key, wstring valuename)
 	return result;
 }
 
-vector<wstring> RegistryHelper::readMultiValue(wstring key, wstring valuename)
+vector<wstring> RegistryHelper::readMultiValue(const wstring& key, const wstring& valuename)
 {
 	vector<wstring> result;
 
@@ -165,7 +165,7 @@ vector<wstring> RegistryHelper::readMultiValue(wstring key, wstring valuename)
 	return result;
 }
 
-vector<unsigned char> RegistryHelper::readBinaryValue(wstring key, wstring valuename)
+vector<unsigned char> RegistryHelper::readBinaryValue(const wstring& key, const wstring& valuename)
 {
 	HKEY keyHandle = openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY);
 
@@ -198,7 +198,7 @@ vector<unsigned char> RegistryHelper::readBinaryValue(wstring key, wstring value
 	return result;
 }
 
-void RegistryHelper::writeValue(wstring key, wstring valuename, wstring value)
+void RegistryHelper::writeValue(const wstring& key, const wstring& valuename, const wstring& value)
 {
 	HKEY keyHandle = openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY);
 
@@ -210,11 +210,11 @@ void RegistryHelper::writeValue(wstring key, wstring valuename, wstring value)
 		throw RegistryException(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 }
 
-void RegistryHelper::writeDWORDValue(wstring key, wstring valuename, unsigned long value)
+void RegistryHelper::writeDWORDValue(const wstring& key, const wstring& valuename, unsigned long value)
 {
 	HKEY keyHandle = openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY);
 
-	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_DWORD, (const BYTE*)&value, sizeof(unsigned long));
+	LSTATUS status = RegSetValueExW(keyHandle, valuename.c_str(), 0, REG_DWORD, reinterpret_cast<const BYTE*>(&value), sizeof(unsigned long));
 
 	RegCloseKey(keyHandle);
 
@@ -222,7 +222,7 @@ void RegistryHelper::writeDWORDValue(wstring key, wstring valuename, unsigned lo
 		throw RegistryException(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 }
 
-void RegistryHelper::writeMultiValue(wstring key, wstring valuename, wstring value)
+void RegistryHelper::writeMultiValue(const wstring& key, const wstring& valuename, const wstring& value)
 {
 	HKEY keyHandle = openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY);
 
@@ -238,17 +238,17 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, wstring val
 		throw RegistryException(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 }
 
-void RegistryHelper::writeMultiValue(wstring key, wstring valuename, vector<wstring> values)
+void RegistryHelper::writeMultiValue(const wstring& key, const wstring& valuename, const vector<wstring>& values)
 {
 	HKEY keyHandle = openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY);
 
 	size_t size = 1;
-	for (wstring value : values)
+	for (const wstring& value : values)
 		size += value.size() + 1;
 
 	wstring data;
 	data.reserve(size);
-	for (wstring value : values)
+	for (const wstring& value : values)
 	{
 		data.append(value);
 		data.push_back(L'\0');
@@ -263,7 +263,7 @@ void RegistryHelper::writeMultiValue(wstring key, wstring valuename, vector<wstr
 		throw RegistryException(L"Error while writing to registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 }
 
-void RegistryHelper::deleteValue(wstring key, wstring valuename)
+void RegistryHelper::deleteValue(const wstring& key, const wstring& valuename)
 {
 	HKEY keyHandle = openKey(key, KEY_SET_VALUE | KEY_WOW64_64KEY);
 
@@ -275,7 +275,7 @@ void RegistryHelper::deleteValue(wstring key, wstring valuename)
 		throw RegistryException(L"Error while deleting registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 }
 
-void RegistryHelper::createKey(wstring key)
+void RegistryHelper::createKey(const wstring& key)
 {
 	HKEY rootKey;
 	wstring subKey = splitKey(key, &rootKey);
@@ -288,7 +288,7 @@ void RegistryHelper::createKey(wstring key)
 	RegCloseKey(keyHandle);
 }
 
-void RegistryHelper::deleteKey(wstring key)
+void RegistryHelper::deleteKey(const wstring& key)
 {
 	HKEY rootKey;
 	wstring subKey = splitKey(key, &rootKey);
@@ -298,7 +298,7 @@ void RegistryHelper::deleteKey(wstring key)
 		throw RegistryException(L"Error while deleting registry key " + key + L": " + StringHelper::getSystemErrorString(status));
 }
 
-void RegistryHelper::makeWritable(wstring key)
+void RegistryHelper::makeWritable(const wstring& key)
 {
 	HKEY keyHandle = openKey(key, READ_CONTROL | WRITE_DAC | KEY_WOW64_64KEY);
 	SCOPE_EXIT{ RegCloseKey(keyHandle); };
@@ -353,7 +353,7 @@ void RegistryHelper::makeWritable(wstring key)
 		throw RegistryException(L"Error while setting security information for registry key " + key + L": " + StringHelper::getSystemErrorString(status));
 }
 
-void RegistryHelper::takeOwnership(wstring key)
+void RegistryHelper::takeOwnership(const wstring& key)
 {
 	HANDLE tokenHandle;
 	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tokenHandle))
@@ -403,28 +403,34 @@ void RegistryHelper::takeOwnership(wstring key)
 		throw RegistryException(L"Error in AdjustTokenPrivileges while taking ownership");
 }
 
-ACCESS_MASK RegistryHelper::getFileAccessForUser(std::wstring path, unsigned long rid)
+ACCESS_MASK RegistryHelper::getFileAccessForUser(const std::wstring& path, unsigned long rid)
 {
 	ACCESS_MASK result;
 
+	// Cleanup runs through scope guards so the throwing paths cannot leak the
+	// security descriptor, resource manager, SID or context.
 	PSECURITY_DESCRIPTOR sd;
 	if (GetNamedSecurityInfoW(path.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION
 		| GROUP_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr, &sd) != ERROR_SUCCESS)
 		throw RegistryException(L"Error in GetNamedSecurityInfoW while getting file access");
+	SCOPE_EXIT{ LocalFree(sd); };
 
 	AUTHZ_RESOURCE_MANAGER_HANDLE manager;
 	if (!AuthzInitializeResourceManager(AUTHZ_RM_FLAG_NO_AUDIT, nullptr, nullptr, nullptr, nullptr, &manager))
 		throw RegistryException(L"Error in AuthzInitializeResourceManager while getting file access");
+	SCOPE_EXIT{ AuthzFreeResourceManager(manager); };
 
 	PSID sid = nullptr;
 	SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
 	if (!AllocateAndInitializeSid(&authority, 1, rid, 0, 0, 0, 0, 0, 0, 0, &sid))
 		throw RegistryException(L"Error in AllocateAndInitializeSid while getting file access");
+	SCOPE_EXIT{ if (sid != nullptr) FreeSid(sid); };
 
 	LUID unusedId = {0};
 	AUTHZ_CLIENT_CONTEXT_HANDLE context;
 	if (!AuthzInitializeContextFromSid(0, sid, manager, nullptr, unusedId, nullptr, &context))
 		throw RegistryException(L"Error in AuthzInitializeContextFromSid while getting file access");
+	SCOPE_EXIT{ AuthzFreeContext(context); };
 
 	AUTHZ_ACCESS_REQUEST request = {0};
 
@@ -438,23 +444,18 @@ ACCESS_MASK RegistryHelper::getFileAccessForUser(std::wstring path, unsigned lon
 	BYTE buf[1024];
 	RtlZeroMemory(buf, sizeof(buf));
 	reply.ResultListLength = 1;
-	reply.GrantedAccessMask = (ACCESS_MASK*)buf;
-	reply.Error = (DWORD*)(buf + sizeof(ACCESS_MASK));
+	reply.GrantedAccessMask = reinterpret_cast<ACCESS_MASK*>(buf);
+	reply.Error = reinterpret_cast<DWORD*>(buf + sizeof(ACCESS_MASK));
 
 	if (!AuthzAccessCheck(0, context, &request, nullptr, sd, nullptr, 0, &reply, nullptr))
 		throw RegistryException(L"Error in AuthzAccessCheck while getting file access");
 
 	result = *reply.GrantedAccessMask;
 
-	AuthzFreeContext(context);
-	FreeSid(sid);
-	AuthzFreeResourceManager(manager);
-	LocalFree(sd);
-
 	return result;
 }
 
-bool RegistryHelper::keyExists(wstring key)
+bool RegistryHelper::keyExists(const wstring& key)
 {
 	bool result;
 
@@ -470,7 +471,7 @@ bool RegistryHelper::keyExists(wstring key)
 	return result;
 }
 
-bool RegistryHelper::valueExists(wstring key, wstring valuename)
+bool RegistryHelper::valueExists(const wstring& key, const wstring& valuename)
 {
 	HKEY keyHandle = openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY);
 
@@ -481,7 +482,7 @@ bool RegistryHelper::valueExists(wstring key, wstring valuename)
 	return status == ERROR_SUCCESS;
 }
 
-vector<wstring> RegistryHelper::enumSubKeys(wstring key)
+vector<wstring> RegistryHelper::enumSubKeys(const wstring& key)
 {
 	vector<wstring> result;
 
@@ -507,7 +508,7 @@ vector<wstring> RegistryHelper::enumSubKeys(wstring key)
 	return result;
 }
 
-bool RegistryHelper::keyEmpty(wstring key)
+bool RegistryHelper::keyEmpty(const wstring& key)
 {
 	HKEY keyHandle = openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY);
 
@@ -523,7 +524,7 @@ bool RegistryHelper::keyEmpty(wstring key)
 	return keyCount == 0 && valueCount == 0;
 }
 
-void RegistryHelper::saveToFile(wstring key, vector<wstring> valuenames, wstring filepath)
+void RegistryHelper::saveToFile(const wstring& key, const vector<wstring>& valuenames, const wstring& filepath)
 {
 	wofstream stream(filepath);
 	if (!stream.good())
@@ -531,9 +532,9 @@ void RegistryHelper::saveToFile(wstring key, vector<wstring> valuenames, wstring
 
 	stream << L"Windows Registry Editor Version 5.00\n" << endl;
 	stream << L"[HKEY_LOCAL_MACHINE\\" << key << L"]" << endl;
-	for (vector<wstring>::iterator it = valuenames.begin(); it != valuenames.end(); it++)
+	for (vector<wstring>::const_iterator it = valuenames.cbegin(); it != valuenames.cend(); it++)
 	{
-		wstring& valuename = *it;
+		const wstring& valuename = *it;
 		wstring value = readValue(key, valuename);
 
 		stream << L"\"" << valuename << L"\"=\"" << value << L"\"" << endl;
@@ -567,7 +568,7 @@ bool RegistryHelper::isWindowsVersionAtLeast(unsigned major, unsigned minor)
 			{
 				VS_FIXEDFILEINFO* info;
 				UINT len;
-				if (VerQueryValueW(data.data(), L"\\", (LPVOID*)&info, &len))
+				if (VerQueryValueW(data.data(), L"\\", reinterpret_cast<LPVOID*>(&info), &len))
 					windowsVersion = info->dwProductVersionMS;
 			}
 		}

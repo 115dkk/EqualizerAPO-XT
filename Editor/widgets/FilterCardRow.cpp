@@ -16,9 +16,8 @@
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, int depth, QWidget* parent)
-	: QWidget(parent), table(table), item(item), gui(gui)
+	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, depth))
 {
-	descriptor = FilterCardModel::describeLine(item->text, depth);
 	setAttribute(Qt::WA_StyledBackground, false);
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 

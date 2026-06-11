@@ -45,7 +45,7 @@ public:
 	virtual void setBandCount(int value);
 
 	const std::vector<double>& getBands();
-	const std::vector<double>& getBands(int count);
+	static const std::vector<double>& getBands(int count);
 
 protected:
 	static std::vector<double> bands15;

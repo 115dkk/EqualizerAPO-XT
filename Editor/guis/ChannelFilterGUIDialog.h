@@ -31,7 +31,7 @@ class ChannelFilterGUIDialog : public QDialog
 	Q_OBJECT
 
 public:
-	explicit ChannelFilterGUIDialog(QWidget* parent, QStringList selectedChannels, int selectedChannelMask, const std::vector<std::wstring>& channelNames);
+	explicit ChannelFilterGUIDialog(QWidget* parent, const QStringList& selectedChannels, int selectedChannelMask, const std::vector<std::wstring>& channelNames);
 	~ChannelFilterGUIDialog();
 
 	QStringList getSelectedChannels() const;

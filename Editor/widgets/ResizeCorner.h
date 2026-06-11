@@ -38,8 +38,8 @@ protected:
 	void mouseReleaseEvent(QMouseEvent*) override;
 
 private:
-	int offsetX;
-	int offsetY;
+	int offsetX = 0;
+	int offsetY = 0;
 	QSize minimumSize;
 	QSize maximumSize;
 	FilterTable* filterTable;

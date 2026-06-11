@@ -103,13 +103,13 @@ private:
 	std::wstring deviceName;
 	std::wstring connectionName;
 	std::wstring deviceGuid;
-	unsigned channelCount;
-	unsigned sampleRate;
-	unsigned long channelMask;
-	bool defaultDevice;
-	bool enhancementsDisabled;
-	bool disabled;
-	bool unplugged;
+	unsigned channelCount = 0;
+	unsigned sampleRate = 0;
+	unsigned long channelMask = 0;
+	bool defaultDevice = false;
+	bool enhancementsDisabled = false;
+	bool disabled = false;
+	bool unplugged = false;
 
 	// used for creating child APO
 	std::wstring preMixChildGuid;
@@ -118,8 +118,8 @@ private:
 	// used for uninstallation
 	std::wstring originalApoGuids[5];
 
-	bool input;
-	bool installed;
+	bool input = false;
+	bool installed = false;
 	std::wstring version;
 	InstallState currentInstallState;
 	// selection in GUI
@@ -134,7 +134,7 @@ public:
 	{
 	}
 
-	std::wstring getMessage() const
+	const std::wstring& getMessage() const
 	{
 		return message;
 	}

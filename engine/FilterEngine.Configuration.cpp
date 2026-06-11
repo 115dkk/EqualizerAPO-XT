@@ -152,11 +152,11 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			encodedLine.resize(encodedLine.size() - 1);
 
 		wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
-		if (line.find(L'\uFFFD') != -1)
+		if (line.find(L'\uFFFD') != wstring::npos)
 			line = StringHelper::toWString(encodedLine, CP_ACP);
 
 		size_t pos = line.find(L':');
-		if (pos != -1)
+		if (pos != wstring::npos)
 		{
 			wstring key = line.substr(0, pos);
 			wstring value = line.substr(pos + 1);

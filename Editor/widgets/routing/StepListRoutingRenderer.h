@@ -32,7 +32,7 @@ protected:
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
 
 private:
-	struct Hit { int row; int summand; QRect rect; };
+	struct Hit { int row = 0; int summand = 0; QRect rect; };
 
 	void commitEditor();
 

@@ -33,7 +33,7 @@ class AnalysisThread : public QThread
 public:
 	AnalysisThread();
 	~AnalysisThread();
-	void setParameters(std::shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, QString configPath, int frameCount);
+	void setParameters(std::shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, const QString& configPath, int frameCount);
 	void beginGetResult();
 	void endGetResult();
 
@@ -59,20 +59,20 @@ private:
 
 	// input
 	std::shared_ptr<AbstractAPOInfo> device;
-	int channelMask;
-	int channelIndex;
+	int channelMask = 0;
+	int channelIndex = 0;
 	QString configPath;
 	int frameCount = 0;
 
 	// output
 	fftw_complex* resultFreqData = nullptr;
 	int freqDataLength = 0;
-	int freqDataSampleRate;
-	double peakGain;
-	int latency;
-	double initializationTime;
-	double processingTime;
-	int processedFrames;
+	int freqDataSampleRate = 0;
+	double peakGain = 0.0;
+	int latency = 0;
+	double initializationTime = 0.0;
+	double processingTime = 0.0;
+	int processedFrames = 0;
 
 	// internal (not protected by mutex)
 	int lastFrameCount = -1;

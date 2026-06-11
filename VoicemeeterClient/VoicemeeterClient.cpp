@@ -85,7 +85,7 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 
 	size_t index = voicemeeterDirectory.find_last_of(L'\\');
 	if (index != wstring::npos)
-		voicemeeterDirectory = voicemeeterDirectory.substr(0, index);
+		voicemeeterDirectory.resize(index);
 	else
 		throw InitError(L"Voicemeeter is not installed");
 
@@ -328,7 +328,7 @@ bool VoicemeeterClient::isBufferSilent(float** sampleData, long sampleCount)
 
 	for (int j = 0; j < 8; j++)
 	{
-		float* buf = sampleData[j];
+		const float* buf = sampleData[j];
 		for (int k = 0; k < sampleCount; k++)
 		{
 			if (buf[k] != 0.0f)

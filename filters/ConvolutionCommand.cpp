@@ -23,7 +23,7 @@
 
 #include "helpers/StringHelper.h"
 
-std::wstring ConvolutionCommand::serialize() const
+const std::wstring& ConvolutionCommand::serialize() const
 {
 	return path;
 }

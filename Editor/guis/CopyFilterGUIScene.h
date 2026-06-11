@@ -30,7 +30,7 @@ class CopyFilterGUIScene : public ChannelGraphScene
 	Q_OBJECT
 
 public:
-	void load(const std::vector<std::wstring>& channelNames, std::vector<Assignment> assignments);
+	void load(const std::vector<std::wstring>& channelNames, const std::vector<Assignment>& assignments);
 	std::vector<Assignment> buildAssignments();
 
 signals:
@@ -46,6 +46,6 @@ private slots:
 	void lineEditEditingCanceled();
 
 private:
-	QGraphicsItem* lastOutputItem;
-	QGraphicsProxyWidget* addProxyItem;
+	QGraphicsItem* lastOutputItem = nullptr;
+	QGraphicsProxyWidget* addProxyItem = nullptr;
 };

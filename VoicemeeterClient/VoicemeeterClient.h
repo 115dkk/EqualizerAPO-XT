@@ -37,7 +37,7 @@ private:
 	void detectVoicemeeterType();
 	void endSoftware();
 	void handleCommand(WPARAM wparam, LPARAM lparam);
-	bool isBufferSilent(float** sampleData, long sampleCount);
+	static bool isBufferSilent(float** sampleData, long sampleCount);
 
 	std::vector<std::wstring> outputs;
 	unsigned long mainThreadId;
@@ -59,7 +59,7 @@ public:
 	{
 	}
 
-	std::wstring getMessage() const
+	const std::wstring& getMessage() const
 	{
 		return message;
 	}

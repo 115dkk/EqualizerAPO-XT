@@ -88,8 +88,8 @@ private:
 		QVector<DeviceAPOInfo::InstallMode> remainingInstallModes;
 		DeviceAPOInfo::InstallMode bestInstallMode;
 		TestResult bestResult;
-		bool wantsOriginalApoPreMix;
-		bool wantsOriginalApoPostMix;
+		bool wantsOriginalApoPreMix = false;
+		bool wantsOriginalApoPostMix = false;
 	};
 
 	QHash<QString, DeviceTestInfo> infoMap;

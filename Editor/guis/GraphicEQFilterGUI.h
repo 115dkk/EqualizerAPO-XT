@@ -38,7 +38,7 @@ class GraphicEQFilterGUI : public IFilterGUI
 	Q_OBJECT
 
 public:
-	explicit GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, QString configPath, FilterTable* filterTable);
+	explicit GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, const QString& configPath, FilterTable* filterTable);
 	~GraphicEQFilterGUI();
 
 	void store(QString& command, QString& parameters) override;

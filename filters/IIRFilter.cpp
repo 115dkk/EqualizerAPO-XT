@@ -79,7 +79,7 @@ void IIRFilter::process(double** output, double** input, unsigned frameCount)
 	PerfScope _ps("IIRFilter::process");
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		double* inputChannel = input[i];
+		const double* inputChannel = input[i];
 		double* outputChannel = output[i];
 
 		unsigned channelOffset = i * order;

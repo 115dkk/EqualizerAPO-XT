@@ -36,7 +36,7 @@ std::string toStd(const QString& s)
 	return s.toUtf8().constData();
 }
 
-QString normalized(QString path)
+QString normalized(const QString& path)
 {
 	return QDir::cleanPath(QDir::fromNativeSeparators(path)).toLower();
 }

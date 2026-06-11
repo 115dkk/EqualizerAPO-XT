@@ -36,5 +36,5 @@ public:
 
 private:
 	QString configPath;
-	unsigned deviceSampleRate;
+	unsigned deviceSampleRate = 0;
 };

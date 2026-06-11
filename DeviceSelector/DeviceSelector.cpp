@@ -102,7 +102,7 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 	}
 }
 
-void DeviceSelector::addDevices(std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode)
+void DeviceSelector::addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode)
 {
 	for (const std::shared_ptr<AbstractAPOInfo>& apoInfo : devices)
 	{
@@ -162,7 +162,7 @@ void DeviceSelector::onDialogAccepted()
 
 			try
 			{
-				DeviceAPOInfo* deviceInfo = dynamic_cast<DeviceAPOInfo*>(info.get());
+				const DeviceAPOInfo* deviceInfo = dynamic_cast<DeviceAPOInfo*>(info.get());
 				if (checked && !info->isInstalled())
 				{
 					info->install();
@@ -297,7 +297,7 @@ void DeviceSelector::onTroubleShootingOptionChanged()
 		DeviceAPOInfo* deviceInfo = dynamic_cast<DeviceAPOInfo*>(info.get());
 		if (deviceInfo != nullptr)
 		{
-			QObject* sender = QObject::sender();
+			const QObject* sender = QObject::sender();
 			if (sender == ui.installPreMixCheckBox)
 				deviceInfo->getSelectedInstallState().installPreMix = ui.installPreMixCheckBox->isChecked();
 			else if (sender == ui.installPostMixCheckBox)

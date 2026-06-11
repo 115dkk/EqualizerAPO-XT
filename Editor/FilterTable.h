@@ -178,7 +178,7 @@ private:
 	RenderMode renderMode = ModernCards;
 };
 
-template<typename T> inline uint qHash(QList<T> list)
+template<typename T> inline uint qHash(const QList<T>& list)
 {
 	uint hashValue = 0;
 

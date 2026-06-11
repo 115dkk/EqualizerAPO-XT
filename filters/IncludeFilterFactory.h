@@ -35,6 +35,6 @@ public:
 	std::vector<IFilter*> endOfFile(const std::wstring& configPath) override;
 
 private:
-	FilterEngine* engine;
+	FilterEngine* engine = nullptr;
 	int recursionDepth = -1;
 };
