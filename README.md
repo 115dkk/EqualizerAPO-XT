@@ -1,5 +1,7 @@
 # EqualizerAPO-XT
 
+**English** | [한국어](README.ko.md)
+
 EqualizerAPO-XT is an active fork of [Equalizer APO 1.4.2](https://sourceforge.net/p/equalizerapo/) for Windows. It keeps Equalizer APO's system-wide audio processing model while modernizing the audio engine, build pipeline, and GUI tools.
 
 This fork builds on earlier double-precision work from [equalizer-apo-64](https://github.com/chebum/equalizer-apo-64) and later SIMD/build work from TheFireKahuna's Equalizer APO forks.
