@@ -12,6 +12,18 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- The "add filter" picker is no longer one flat list of every template: it is
+  a compact dropdown anchored at the add button, and each skin presents the
+  catalog in its own design language — a frosted-glass panel (Studio Glass),
+  a numbered terminal index with digit-jump (Precision Minimal), a rounded
+  settings menu (Soft Lab), a 1U module preset browser with an LCD search
+  strip (Hardware Rack), and a two-axis crosspoint instrument (Signal
+  Matrix). Skins contribute their picker through the new
+  `ISkin::createFilterPicker` hook; the offscreen gallery captures every
+  picker. ([#81])
+
 ## v1.21.0 — 2026-06-12
 
 - Gain knobs (the Preamp card knob and the biquad gain dial) now turn across
@@ -351,3 +363,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#75]: https://github.com/115dkk/EqualizerAPO-XT/issues/75
 [#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76
 [#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78
+[#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81

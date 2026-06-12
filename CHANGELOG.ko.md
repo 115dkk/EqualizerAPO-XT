@@ -6,6 +6,16 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- 필터 추가 픽커가 모든 템플릿을 한꺼번에 쏟아내는 평면 목록에서, 추가
+  버튼에 붙는 콤팩트한 드롭다운으로 바뀌었습니다. 카탈로그 표현은 스킨마다
+  다릅니다. Studio Glass는 프로스트 글래스 패널, Precision Minimal은 숫자
+  점프가 되는 번호식 터미널 인덱스, Soft Lab은 둥근 설정 메뉴, Hardware
+  Rack은 LCD 검색창이 달린 1U 모듈 프리셋 브라우저, Signal Matrix는 2축
+  크로스포인트 계기판입니다. 스킨은 새 `ISkin::createFilterPicker` 훅으로
+  자기 픽커를 제공하며, 오프스크린 갤러리가 모든 픽커를 캡처합니다. ([#81])
+
 ## v1.21.0 (2026-06-12)
 
 - 게인 노브(Preamp 카드 노브, biquad 게인 다이얼)가 설정 가능한 ±범위를
@@ -334,3 +344,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#75]: https://github.com/115dkk/EqualizerAPO-XT/issues/75
 [#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76
 [#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78
+[#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81
