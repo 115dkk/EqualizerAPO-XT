@@ -10,9 +10,15 @@
 	block, hover is exactly one background-value step.
 
 	Keyboard is the soul: typing letters filters the index, typing digits
-	jumps straight to that entry number (the numbers are stable original
-	indices, so "07" always means the same template even while filtered),
-	Up/Down move, Return inserts. Esc belongs to the popup host.
+	jumps straight to that entry number, Up/Down move, Return inserts. Esc
+	belongs to the popup host.
+
+	Numbering (N3): numbers are page coordinates, assigned once from the
+	resting index's display order (sections coalesced by first appearance),
+	so the full listing counts 01..NN straight down the page. They never
+	change afterwards - filtering hides lines but keeps their printed
+	numbers, so "07" always jumps to the same template. A query that matches
+	nothing answers with a NO MATCH line, the terminal's honest empty state.
 */
 
 #pragma once
@@ -37,7 +43,7 @@ class MinimalPickerIndexList : public QWidget
 public:
 	struct Row
 	{
-		QString number;       // zero-padded 1-based original index; empty for captions
+		QString number;       // zero-padded display-order number (N3); empty for captions
 		QString text;         // entry name, or the uppercase caption text
 		int entryIndex = -1;  // original index into the entries list; -1 = caption
 	};
@@ -51,6 +57,11 @@ public:
 	int selectedEntry() const { return selectedEntryIndex; }
 	int rowOfEntry(int entryIndex) const;
 	QRect rowRect(int row) const;
+
+	// Offscreen gallery staging: hover the first line that is not the
+	// selection block, so one shot shows both vocabularies (the inverted
+	// cursor and the one-step hover) side by side.
+	void hoverFirstEntryForGallery();
 
 	// One click inserts (dropdown semantics, same as the neutral picker).
 	std::function<void(int entryIndex)> onEntryActivated;
@@ -81,6 +92,7 @@ public:
 	explicit MinimalFilterPickerView(QWidget* parent = nullptr);
 
 	void setEntries(const QList<FilterPickerEntry>& entries) override;
+	void galleryShowcase(GalleryShowcase kind) override;
 	QSize sizeHint() const override;
 
 protected:
@@ -88,12 +100,19 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	QString sectionKey(const FilterPickerEntry& entry) const;
+	void rebuildDisplayNumbers();
 	void rebuildIndex();
 	void moveSelection(int delta);
 	void chooseCurrent();
 	void ensureSelectionVisible();
 
 	QList<FilterPickerEntry> allEntries;
+	// N3 page coordinates: entry indices in resting display order, and each
+	// entry's 1-based printed number. Assigned once per setEntries; immutable
+	// while filtering so digit jumps stay stable.
+	QVector<int> displayOrder;
+	QVector<int> displayNumbers;
 	QLineEdit* queryEdit = nullptr;
 	QLabel* countLabel = nullptr;
 	QScrollArea* scrollArea = nullptr;
