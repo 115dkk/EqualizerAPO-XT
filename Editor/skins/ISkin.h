@@ -16,6 +16,7 @@
 
 #include "Editor/SkinTokens.h"
 
+class FilterPickerView;
 class IRoutingRenderer;
 class QPainter;
 class QWidget;
@@ -119,4 +120,13 @@ public:
 	// per-type markers). Runs after the frame's stylesheet background and
 	// before child widgets paint. Default: no-op.
 	virtual void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// The "add filter" picker that matches this skin's philosophy. The caller
+	// (FilterTable::chooseFilterTemplate) hosts the returned view in a
+	// dropdown-style Qt::Popup container anchored at the add button, feeds it
+	// the template entries and waits for entryChosen()/dismissed(). The
+	// default (ISkin.cpp) is the neutral DefaultFilterPickerView: a search
+	// field over one sectioned list. Ownership passes to the caller via the
+	// usual QWidget parent mechanism.
+	virtual FilterPickerView* createFilterPicker(QWidget* parent) const;
 };

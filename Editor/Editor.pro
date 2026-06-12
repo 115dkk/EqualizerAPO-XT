@@ -180,8 +180,13 @@ SOURCES += main.cpp\
 	SkinGallery.cpp \
 	SkinManager.cpp \
 	skins/ISkin.cpp \
+	skins/pickers/MatrixFilterPicker.cpp \
 	skins/RackChrome.cpp \
 	skins/Skins.cpp \
+	skins/pickers/StudioFilterPicker.cpp \
+	skins/pickers/MinimalFilterPicker.cpp \
+	skins/pickers/SoftFilterPicker.cpp \
+	skins/pickers/RackFilterPicker.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/CommandRowFrame.cpp \
 	widgets/SkinComboBox.cpp \
@@ -196,6 +201,7 @@ SOURCES += main.cpp\
 	widgets/EqGraphView.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
+	widgets/FilterPickerView.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
 	widgets/routing/StepListRoutingRenderer.cpp \
@@ -354,8 +360,13 @@ HEADERS  += \
 	SkinTokens.h \
 	SkinManager.h \
 	skins/ISkin.h \
+	skins/pickers/MatrixFilterPicker.h \
 	skins/RackChrome.h \
 	skins/Skins.h \
+	skins/pickers/StudioFilterPicker.h \
+	skins/pickers/MinimalFilterPicker.h \
+	skins/pickers/SoftFilterPicker.h \
+	skins/pickers/RackFilterPicker.h \
 	widgets/AudioKnob.h \
 	widgets/CommandRowFrame.h \
 	widgets/SkinComboBox.h \
@@ -370,6 +381,7 @@ HEADERS  += \
 	widgets/EqGraphView.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
+	widgets/FilterPickerView.h \
 	widgets/routing/CopyRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
 	widgets/routing/CrosspointMatrixRoutingRenderer.h \

@@ -29,6 +29,7 @@
 #include <QJsonObject>
 
 #include "Editor/helpers/DisableWheelFilter.h"
+#include "Editor/widgets/FilterPickerView.h"
 #include "DeviceAPOInfo.h"
 #include "FilterTemplate.h"
 #include "IFilterGUI.h"
@@ -93,6 +94,9 @@ public:
 	Item* addLine(const QString& line, Item* before = nullptr);
 	void removeItem(Item* item);
 	QMenu* createAddPopupMenu();
+	// Every insertable template flattened from the factories, in factory order.
+	// Feeds the skinnable picker and the offscreen skin gallery.
+	QList<FilterPickerEntry> filterPickerEntries() const;
 	bool chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos = QPoint());
 	void cut();
 	void copy();

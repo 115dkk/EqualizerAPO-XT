@@ -11,18 +11,23 @@
 #include <QToolBar>
 #include <QComboBox>
 #include <QAbstractSpinBox>
+#include <QCursor>
 #include <QDial>
-#include <QDialog>
-#include <QDialogButtonBox>
+#include <QEventLoop>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QRegularExpression>
+#include <QScreen>
 #include <QSettings>
 #include <QVBoxLayout>
 
+#include <functional>
+
 #include "MainWindow.h"
+#include "SkinManager.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
 #include "guis/ExpressionFilterGUIFactory.h"
@@ -232,96 +237,94 @@ QMenu* FilterTable::createAddPopupMenu()
 	return rootMenu;
 }
 
+QList<FilterPickerEntry> FilterTable::filterPickerEntries() const
+{
+	QList<FilterPickerEntry> entries;
+	for (IFilterGUIFactory* factory : factories)
+	{
+		const QList<FilterTemplate> templates = factory->createFilterTemplates();
+		for (const FilterTemplate& filterTemplate : templates)
+			entries.append({ filterTemplate.getPath(), filterTemplate.getName(), filterTemplate.getLine() });
+	}
+	return entries;
+}
+
+namespace
+{
+// Dropdown-style host for the skin's picker view: a frameless Qt::Popup that
+// closes on outside clicks and Esc like any combo box popup. hideEvent is the
+// single funnel for "the popup went away", whatever the reason.
+class FilterPickerPopup : public QWidget
+{
+public:
+	explicit FilterPickerPopup(QWidget* parent)
+		: QWidget(parent, Qt::Popup | Qt::FramelessWindowHint)
+	{
+	}
+
+	std::function<void()> onHide;
+
+protected:
+	void hideEvent(QHideEvent* event) override
+	{
+		QWidget::hideEvent(event);
+		if (onHide)
+			onHide();
+	}
+};
+}
+
 bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos)
 {
 	if (selectedTemplate == nullptr)
 		return false;
 
-	struct PaletteEntry
-	{
-		FilterTemplate filterTemplate;
-		QString searchText;
-	};
-
-	QList<PaletteEntry> entries;
+	QList<FilterTemplate> templates;
 	for (IFilterGUIFactory* factory : factories)
-	{
-		const QList<FilterTemplate> templates = factory->createFilterTemplates();
-		for (const FilterTemplate& filterTemplate : templates)
-		{
-			QString path = filterTemplate.getPath().join(QStringLiteral(" / "));
-			QString label = path.isEmpty() ? filterTemplate.getName() : path + QStringLiteral(" / ") + filterTemplate.getName();
-			entries.append({ filterTemplate, label + QStringLiteral(" ") + filterTemplate.getLine() });
-		}
-	}
+		templates.append(factory->createFilterTemplates());
+	if (templates.isEmpty())
+		return false;
 
-	QDialog dialog(this);
-	dialog.setWindowTitle(tr("Add filter"));
-	dialog.setMinimumWidth(520);
-	if (!globalPos.isNull())
-		dialog.move(globalPos);
+	// The picker itself comes from the active skin so the control matches the
+	// skin's design language; this host only provides dropdown behaviour.
+	FilterPickerPopup popup(this);
+	popup.setObjectName(QStringLiteral("FilterPickerPopup"));
+	popup.setAttribute(Qt::WA_StyledBackground, true);
+	QVBoxLayout* layout = new QVBoxLayout(&popup);
+	layout->setContentsMargins(0, 0, 0, 0);
+	FilterPickerView* view = SkinManager::instance()->createFilterPicker(&popup);
+	view->setEntries(filterPickerEntries());
+	layout->addWidget(view);
 
-	QVBoxLayout* layout = new QVBoxLayout(&dialog);
-	QLabel* title = new QLabel(tr("Add filter"), &dialog);
-	title->setObjectName(QStringLiteral("FilterPaletteTitle"));
-	layout->addWidget(title);
-
-	QLineEdit* searchEdit = new QLineEdit(&dialog);
-	searchEdit->setObjectName(QStringLiteral("FilterPaletteSearch"));
-	searchEdit->setPlaceholderText(tr("Search filter or configuration line"));
-	layout->addWidget(searchEdit);
-
-	QListWidget* resultList = new QListWidget(&dialog);
-	resultList->setObjectName(QStringLiteral("FilterPaletteResults"));
-	layout->addWidget(resultList, 1);
-
-	auto refreshResults = [&]() {
-		resultList->clear();
-		QStringList terms = searchEdit->text().split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-		for (int i = 0; i < entries.size(); i++)
-		{
-			bool matches = true;
-			for (const QString& term : terms)
-			{
-				if (!entries[i].searchText.contains(term, Qt::CaseInsensitive))
-				{
-					matches = false;
-					break;
-				}
-			}
-			if (!matches)
-				continue;
-
-			QString path = entries[i].filterTemplate.getPath().join(QStringLiteral(" / "));
-			QString label = path.isEmpty() ? entries[i].filterTemplate.getName() : path + QStringLiteral(" / ") + entries[i].filterTemplate.getName();
-			QListWidgetItem* item = new QListWidgetItem(label + QStringLiteral("\n") + entries[i].filterTemplate.getLine(), resultList);
-			item->setData(Qt::UserRole, i);
-		}
-		if (resultList->count() > 0)
-			resultList->setCurrentRow(0);
+	int chosenIndex = -1;
+	QEventLoop loop;
+	connect(view, &FilterPickerView::entryChosen, &loop, [&](int index) {
+		chosenIndex = index;
+		loop.quit();
+	});
+	connect(view, &FilterPickerView::dismissed, &loop, &QEventLoop::quit);
+	popup.onHide = [&loop]() {
+		loop.quit();
 	};
 
-	connect(searchEdit, &QLineEdit::textChanged, &dialog, refreshResults);
-	connect(resultList, &QListWidget::itemDoubleClicked, &dialog, [&](QListWidgetItem*) {
-		dialog.accept();
-	});
+	popup.adjustSize();
+	QPoint position = globalPos.isNull() ? QCursor::pos() : globalPos;
+	if (QScreen* screen = QGuiApplication::screenAt(position))
+	{
+		const QRect available = screen->availableGeometry();
+		position.setX(qBound(available.left(), position.x(), available.right() - popup.width() + 1));
+		position.setY(qBound(available.top(), position.y(), available.bottom() - popup.height() + 1));
+	}
+	popup.move(position);
+	popup.show();
+	view->setFocus();
+	loop.exec();
+	popup.onHide = nullptr;
 
-	QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
-	buttons->button(QDialogButtonBox::Ok)->setText(tr("Insert"));
-	connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-	layout->addWidget(buttons);
-
-	refreshResults();
-	searchEdit->setFocus();
-	if (dialog.exec() != QDialog::Accepted || resultList->currentItem() == nullptr)
+	if (chosenIndex < 0 || chosenIndex >= templates.size())
 		return false;
 
-	int entryIndex = resultList->currentItem()->data(Qt::UserRole).toInt();
-	if (entryIndex < 0 || entryIndex >= entries.size())
-		return false;
-
-	*selectedTemplate = entries[entryIndex].filterTemplate;
+	*selectedTemplate = templates[chosenIndex];
 	return true;
 }
 

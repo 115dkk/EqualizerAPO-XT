@@ -16,6 +16,11 @@
 #include <QtMath>
 
 #include "Editor/skins/RackChrome.h"
+#include "Editor/skins/pickers/StudioFilterPicker.h"
+#include "Editor/skins/pickers/MinimalFilterPicker.h"
+#include "Editor/skins/pickers/SoftFilterPicker.h"
+#include "Editor/skins/pickers/RackFilterPicker.h"
+#include "Editor/skins/pickers/MatrixFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -95,6 +100,14 @@ public:
 	{
 		static CurvedNodeRoutingRenderer renderer;
 		return &renderer;
+	}
+
+	// The "add filter" picker as a floating frosted-glass panel: painted
+	// stage + glow, a prominent sunken-glass search field and a sectioned
+	// list whose hover pools light under the cursor (StudioFilterPicker.cpp).
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		return new StudioFilterPickerView(parent);
 	}
 
 	// "The arc IS the value": no knob body, only a thin track circle, a
@@ -515,6 +528,12 @@ public:
 		static StepListRoutingRenderer renderer;
 		return &renderer;
 	}
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		// The add-filter dropdown as a numbered terminal index; see
+		// MinimalFilterPicker.h for the design.
+		return new MinimalFilterPickerView(parent);
+	}
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		paintMinimalKnob(painter, rect, state, tokens);
@@ -630,6 +649,15 @@ public:
 		static BlockChipRoutingRenderer renderer;
 		return &renderer;
 	}
+
+	// The picker is this skin's consumer-settings moment: a rounded menu card
+	// with a pill search field, pastel category tiles and stadium row
+	// highlights (skins/pickers/SoftFilterPicker.cpp).
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		return new SoftFilterPickerView(parent);
+	}
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
@@ -915,6 +943,13 @@ public:
 		RackChrome::paintCardChrome(painter, rect, info, tokens);
 	}
 
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		// The module library browser: a brushed 1U faceplate with engraved
+		// section plates, LED-lit slots and an LCD search strip.
+		return new RackFilterPickerView(parent);
+	}
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
@@ -1007,6 +1042,13 @@ public:
 	{
 		static CrosspointMatrixRoutingRenderer renderer;
 		return &renderer;
+	}
+	// The "add filter" picker as a two-axis selection instrument: a bus rail
+	// of categories and a column of coordinate-labelled entry cells, engaged
+	// like a crosspoint (MatrixFilterPicker.cpp).
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		return new MatrixFilterPickerView(parent);
 	}
 	SkinTokens tokens(bool dark) const override
 	{
