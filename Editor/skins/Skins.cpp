@@ -4,6 +4,7 @@
 
 #include "Skins.h"
 
+#include <QEvent>
 #include <QFontMetrics>
 #include <QFontMetricsF>
 #include <QHBoxLayout>
@@ -11,10 +12,12 @@
 #include <QLayout>
 #include <QPainter>
 #include <QPixmap>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
 
+#include "Editor/SkinManager.h"
 #include "Editor/skins/RackChrome.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
@@ -1028,6 +1031,143 @@ QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
 	const double radians = qDegreesToRadians(-(135.0 + 270.0 * fraction));
 	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
 }
+
+// Painted chrome layers for the main toolbar (the board's header strip).
+// QSS cannot draw the 24px column grid or the status lamp, so the matrix
+// toolbar hook parents two transparent, mouse-transparent widgets to the
+// toolbar: UnderCells (lowered below every cell) paints the column grid,
+// the doubled header rule and the sunken fill of the status readout cell;
+// OverCells (raised above the cells) paints the DirtyStatusBadge lamp on
+// top of that readout. Instances are found again by object name on every
+// hook run (this file has no moc, so findChild by class is unavailable),
+// and painting self-suspends while another skin is active because the real
+// MainWindow toolbar keeps its children across runtime skin switches.
+class MatrixToolbarBoard : public QWidget
+{
+public:
+	enum Layer { UnderCells, OverCells };
+
+	MatrixToolbarBoard(QToolBar* toolBar, Layer boardLayer)
+		: QWidget(toolBar), layer(boardLayer)
+	{
+		setObjectName(layer == UnderCells
+			? QStringLiteral("MatrixToolbarBoardUnder")
+			: QStringLiteral("MatrixToolbarBoardOver"));
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		toolBar->installEventFilter(this);
+		if (layer == OverCells)
+		{
+			// The lamp must follow the badge's dirty-state restyles and the
+			// layout moving the cell around.
+			if (QWidget* badge = toolBar->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge")))
+				badge->installEventFilter(this);
+		}
+		setGeometry(toolBar->rect());
+		if (layer == UnderCells)
+			lower();
+		else
+			raise();
+		show();
+	}
+
+	void setBoardTokens(const SkinTokens& tokens)
+	{
+		ruleColor = QColor(tokens.border);
+		sunkenColor = QColor(tokens.surfaceSunken);
+		savedColor = QColor(tokens.success);
+		modifiedColor = QColor(tokens.warning);
+		// The hook carries no mode flag; infer it from the strip's surface
+		// (the studioIsDark pattern). The light border ink needs more alpha
+		// than the dark one to stay visible as graph paper on white.
+		gridAlpha = QColor(tokens.surface).lightness() < 128 ? 55 : 90;
+		update();
+	}
+
+	bool eventFilter(QObject* watched, QEvent* event) override
+	{
+		if (watched == parentWidget())
+		{
+			if (event->type() == QEvent::Resize)
+				setGeometry(parentWidget()->rect());
+		}
+		else if (event->type() == QEvent::Paint || event->type() == QEvent::Move
+			|| event->type() == QEvent::Resize || event->type() == QEvent::Show
+			|| event->type() == QEvent::Hide)
+		{
+			update();
+		}
+		return QWidget::eventFilter(watched, event);
+	}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		// The layers stay parented to the shared toolbar after a runtime
+		// skin switch; they must never leak matrix chrome into another skin.
+		if (SkinManager::instance()->currentSkinId() != QStringLiteral("matrix"))
+			return;
+
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		if (layer == UnderCells)
+			paintBoard(painter);
+		else
+			paintLamp(painter);
+	}
+
+private:
+	// The badge is only board chrome while the skin owns its appearance.
+	// MainWindow::updateDirtyStatus replaces it with an inline-styled pill
+	// at runtime; painting a lamp under that pill would garble its text.
+	QWidget* ownedBadge() const
+	{
+		QWidget* badge = parentWidget()->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge"));
+		if (badge == nullptr || !badge->isVisible() || !badge->styleSheet().isEmpty())
+			return nullptr;
+		return badge;
+	}
+
+	void paintBoard(QPainter& painter)
+	{
+		// The faint 24px column grid: the graph paper the whole board sits
+		// on, same pitch and ink as the card grid texture.
+		QColor grid(ruleColor);
+		grid.setAlpha(gridAlpha);
+		painter.setPen(QPen(grid, 1));
+		for (int x = MatrixMetrics::gridPitch; x < width(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, 0, x, height());
+
+		// Doubled header rule above the QSS bottom border: the strip closes
+		// like a board's title rule, not a plain window edge.
+		painter.setPen(QPen(ruleColor, 1));
+		painter.drawLine(0, height() - 4, width(), height() - 4);
+
+		// Sunken fill behind the status readout cell (the badge's own QSS
+		// background stays transparent so this fill and the lamp show).
+		if (QWidget* badge = ownedBadge())
+			painter.fillRect(badge->geometry().adjusted(1, 1, -1, -1), sunkenColor);
+	}
+
+	void paintLamp(QPainter& painter)
+	{
+		QWidget* badge = ownedBadge();
+		if (badge == nullptr)
+			return;
+		// Solid square lamp in traffic-light semantics: green = saved,
+		// amber = modified. This is exactly what colour rationing reserves
+		// colour for - the one truthful lamp on the header strip.
+		const QRect cell = badge->geometry();
+		const QRect lampRect(cell.left() + 8, cell.center().y() - 4, 8, 8);
+		painter.fillRect(lampRect, badge->property("dirty").toBool() ? modifiedColor : savedColor);
+	}
+
+	Layer layer;
+	QColor ruleColor;
+	QColor sunkenColor;
+	QColor savedColor;
+	QColor modifiedColor;
+	int gridAlpha = 55;
+};
 }
 
 class MatrixSkin : public ISkin
@@ -1369,6 +1509,37 @@ public:
 			painter.setBrush(Qt::NoBrush);
 			painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
 		}
+	}
+
+	// The board's header strip. The neutral stroke icons stay, tinted in
+	// plain ink (the catalog is monochrome - colour belongs to the status
+	// lamp); the QSS dresses every toolbar item as a square 1px cell, and
+	// two painted layers add what QSS cannot express: the 24px column grid
+	// behind the cells and the solid square status lamp inside the
+	// DirtyStatusBadge readout. Runs at startup and on every skin/dark
+	// switch, so the layers are looked up again and re-tinted, never
+	// created twice.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+
+		// Shared modern stroke icons, tinted with the text token.
+		ISkin::styleMainToolbar(toolBar, tokens);
+		toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+		// Painted board layers: created once per toolbar, re-tinted on every
+		// call (dark/light switches reuse the same instances).
+		auto boardLayer = [toolBar](const QString& name, MatrixToolbarBoard::Layer layer)
+		{
+			QWidget* existing = toolBar->findChild<QWidget*>(name, Qt::FindDirectChildrenOnly);
+			MatrixToolbarBoard* board = existing != nullptr
+				? static_cast<MatrixToolbarBoard*>(existing)
+				: new MatrixToolbarBoard(toolBar, layer);
+			return board;
+		};
+		boardLayer(QStringLiteral("MatrixToolbarBoardUnder"), MatrixToolbarBoard::UnderCells)->setBoardTokens(tokens);
+		boardLayer(QStringLiteral("MatrixToolbarBoardOver"), MatrixToolbarBoard::OverCells)->setBoardTokens(tokens);
 	}
 };
 
