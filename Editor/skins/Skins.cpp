@@ -116,6 +116,49 @@ public:
 		return new StudioFilterPickerView(parent);
 	}
 
+	// The title bar is the topmost edge of the window's glass. The QSS keeps
+	// the strip on the deep stage colour; this hook lays the light on it - a
+	// whisper of reflection along the full top edge plus a faint accent-to-
+	// violet arc caught on that edge, echoing the picker panel and the knob
+	// arcs (accent2 stays at the spectrum's end, per the one-light rule).
+	// Both are plain strokes: bloom first, then the core - glow is faked with
+	// layered strokes, never effects.
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
+	{
+		const bool dark = studioIsDark(tokens);
+		painter.save();
+
+		// The 1px lighter top edge of the glass formula, quieter than a
+		// panel's reflection - the bar is the stage's edge, not a card.
+		painter.fillRect(QRectF(rect.left(), rect.top(), rect.width(), 1.0),
+			QColor(255, 255, 255, dark ? 30 : 235));
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		const double span = rect.width() * 0.42;
+		const double x0 = rect.left() + (rect.width() - span) / 2.0;
+		const double y = rect.top() + 0.5;
+		QLinearGradient bloom(x0, y, x0 + span, y);
+		bloom.setColorAt(0.0, studioAlpha(tokens.accent, 0));
+		bloom.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 70 : 55));
+		bloom.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 52 : 42));
+		bloom.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		QPen bloomPen(QBrush(bloom), 4.0);
+		bloomPen.setCapStyle(Qt::RoundCap);
+		painter.setPen(bloomPen);
+		painter.drawLine(QPointF(x0, y), QPointF(x0 + span, y));
+		QLinearGradient core(x0, y, x0 + span, y);
+		core.setColorAt(0.0, studioAlpha(tokens.accent, 0));
+		core.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 215 : 195));
+		core.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 175 : 155));
+		core.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		QPen corePen(QBrush(core), 1.5);
+		corePen.setCapStyle(Qt::RoundCap);
+		painter.setPen(corePen);
+		painter.drawLine(QPointF(x0, y), QPointF(x0 + span, y));
+
+		painter.restore();
+	}
+
 	// The toolbar is the top edge of the window's glass. The QSS sheets own
 	// the strip itself (deep background, a 1px reflection along the bottom
 	// edge, accent light pooling under hovered buttons, the Instant mode
