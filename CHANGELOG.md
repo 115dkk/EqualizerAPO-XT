@@ -7,12 +7,12 @@ equalizerAPO64 tree (last upstream commit `7156020`, 2025-12-16). Work on this
 fork started on 2026-05-22.
 
 Versions are bumped automatically by CI from Conventional Commits message
-types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, and 1.16
-were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
+types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
+1.23, and 1.25 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
-## Unreleased
+## v1.26.0 — 2026-06-12
 
 - The Editor draws its own window chrome: the native Windows caption is
   replaced by a skinnable title bar (dragging, snapping, edge resizing and
