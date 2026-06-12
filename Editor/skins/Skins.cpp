@@ -4,6 +4,12 @@
 
 #include "Skins.h"
 
+#include <QFontMetrics>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPainter>
+#include <QtMath>
+
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -82,6 +88,152 @@ public:
 	}
 };
 
+// ── Minimal ("The bank teller's terminal") helpers ──────────────────────────
+
+// Screen point on a circle around center; degrees follow the shared knob
+// convention (Qt-style angles, counter-clockwise from 3 o'clock, screen Y
+// grows downward so sin is subtracted). Pass the negated clockwise sweep
+// angle, exactly like ISkin.cpp's default renderer does.
+QPointF minimalPointOnArc(const QPointF& center, double radius, double degrees)
+{
+	const double radians = qDegreesToRadians(degrees);
+	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
+}
+
+// ANNEX K minimal: "the number is the control". The always-visible mono
+// numeric is primary; beside it sits a small flat circle with a 1px indicator
+// line and a hairline range arc, monochrome until dragged (accent while
+// active). Bipolar knobs measure the indicator from a centre tick. Promoted
+// legacy dials supply no valueText (their number lives in the adjacent spin
+// box), so they render only the confirmation circle plus a ratio-derived
+// position readout while hovered or dragged.
+void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
+{
+	painter.setRenderHint(QPainter::Antialiasing);
+
+	const QColor hairline(tokens.border);
+	const QColor primary(state.enabled ? tokens.text : tokens.mutedText);
+	const QColor secondary(tokens.mutedText);
+	const QColor active(tokens.accent);
+	const QColor indicatorColor = (state.enabled && state.dragging) ? active : primary;
+
+	const bool hasNumber = !state.valueText.isEmpty();
+	const double circleRadius = hasNumber ? 9.0 : 12.0;
+	const double arcRadius = circleRadius + 4.0;
+
+	QFont numberFont(tokens.monoFontFamily);
+	numberFont.setBold(true);
+	numberFont.setPointSizeF(9.0);
+
+	QPointF circleCenter;
+	QRectF numberRect;
+	if (hasNumber)
+	{
+		// Number left (primary), confirmation circle beside it; the pair is
+		// centred in the widget. Shrink the font instead of clipping when a
+		// long value (e.g. "-100.0") meets a narrow widget.
+		const double gap = 6.0;
+		double available = rect.width() - 2.0 * arcRadius - gap - 4.0;
+		double textWidth = QFontMetricsF(numberFont).horizontalAdvance(state.valueText);
+		while (textWidth > available && numberFont.pointSizeF() > 6.5)
+		{
+			numberFont.setPointSizeF(numberFont.pointSizeF() - 0.5);
+			textWidth = QFontMetricsF(numberFont).horizontalAdvance(state.valueText);
+		}
+		const double pairWidth = textWidth + gap + 2.0 * arcRadius;
+		const double left = rect.left() + (rect.width() - pairWidth) / 2.0;
+		numberRect = QRectF(left, rect.top(), textWidth, rect.height());
+		circleCenter = QPointF(left + textWidth + gap + arcRadius, QRectF(rect).center().y());
+	}
+	else
+	{
+		// Circle only; keep a constant bottom strip free for the hover/drag
+		// readout so the circle does not jump when the readout appears.
+		circleCenter = QPointF(QRectF(rect).center().x(), rect.top() + (rect.height() - 14.0) / 2.0);
+	}
+
+	// Hairline range arc: the full 270-degree value range, 1px.
+	const QRectF arcRect(circleCenter.x() - arcRadius, circleCenter.y() - arcRadius, arcRadius * 2.0, arcRadius * 2.0);
+	painter.setPen(QPen(hairline, 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawArc(arcRect, -135 * 16, -270 * 16);
+
+	if (state.bipolar)
+	{
+		// Centre tick at 12 o'clock (the bipolar neutral) and a 1px deviation
+		// arc measured from it: boost grows clockwise, cut counter-clockwise.
+		// Unipolar knobs draw neither, so the two kinds read differently.
+		painter.setPen(QPen(secondary, 1));
+		painter.drawLine(minimalPointOnArc(circleCenter, arcRadius - 1.5, -270.0),
+			minimalPointOnArc(circleCenter, arcRadius + 2.5, -270.0));
+		const double deviationDegrees = 270.0 * (state.ratio - 0.5);
+		painter.setPen(QPen(indicatorColor, 1));
+		painter.drawArc(arcRect, -270 * 16, -qRound(deviationDegrees * 16.0));
+	}
+
+	// Small flat circle: flat fill, 1px border, hover = one background step.
+	const QString fill = (state.enabled && (state.hovered || state.dragging)) ? tokens.cardHover : tokens.card;
+	painter.setPen(QPen(hairline, 1));
+	painter.setBrush(QColor(fill));
+	painter.drawEllipse(circleCenter, circleRadius, circleRadius);
+
+	// 1px indicator line from the hub to the rim at the value angle.
+	const double valueDegrees = -(135.0 + 270.0 * state.ratio);
+	painter.setPen(QPen(indicatorColor, 1));
+	painter.drawLine(circleCenter, minimalPointOnArc(circleCenter, circleRadius - 1.0, valueDegrees));
+
+	if (hasNumber)
+	{
+		painter.setFont(numberFont);
+		painter.setPen((state.enabled && state.dragging) ? active : primary);
+		painter.drawText(numberRect, Qt::AlignVCenter | Qt::AlignLeft, state.valueText);
+	}
+	else if (state.enabled && (state.hovered || state.dragging))
+	{
+		// No supplied value text: show the dial position derived from ratio.
+		// The real value sits in the adjacent spin box, so a percentage is the
+		// only honest readout for log-scaled legacy dials.
+		QFont readoutFont(tokens.monoFontFamily);
+		readoutFont.setPointSizeF(7.5);
+		painter.setFont(readoutFont);
+		painter.setPen(state.dragging ? active : secondary);
+		const QRectF readoutRect(rect.left(), rect.bottom() - 14.0, rect.width(), 14.0);
+		painter.drawText(readoutRect, Qt::AlignCenter, QStringLiteral("%1%").arg(qRound(state.ratio * 100.0)));
+	}
+
+	// Keyboard focus: a square hairline frame (radius 0 corner language).
+	if (state.focused)
+	{
+		painter.setPen(QPen(QColor(tokens.focusRing), 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5));
+	}
+}
+
+// Leading type glyph for the line head, plain ASCII for the mapped types so
+// every mono fallback font covers it. The glyph is shape information ("which
+// kind of line is this"); the colour tag next to it stays the badge token.
+QString minimalTypeGlyph(const QString& type)
+{
+	if (type == QStringLiteral("biquad"))
+		return QStringLiteral("~");
+	if (type == QStringLiteral("include"))
+		return QStringLiteral(">>");
+	if (type == QStringLiteral("vst"))
+		return QStringLiteral("[]");
+	if (type == QStringLiteral("copy"))
+		return QStringLiteral("->");
+	if (type == QStringLiteral("comment"))
+		return QStringLiteral("#");
+	if (type == QStringLiteral("spacer"))
+		return QString();
+	// Unmapped commands keep the fixed-width column so line heads stay
+	// aligned; the middle dot (U+00B7) deliberately carries no further
+	// meaning. Built from a code point so the source stays pure ASCII (no
+	// /utf-8 flag is set for MSVC).
+	return QString(QChar(0x00B7));
+}
+
 // ── Minimal (Ableton-like terminal, monospace) ──────────────────────────────
 class MinimalSkin : public ISkin
 {
@@ -95,6 +247,58 @@ public:
 	{
 		static StepListRoutingRenderer renderer;
 		return &renderer;
+	}
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
+	{
+		paintMinimalKnob(painter, rect, state, tokens);
+	}
+	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		// One flat line per command: 1px hairline box, square corners, and
+		// state expressed as background-value steps only. Disabled rows fall
+		// one step below the resting card; selection is the accent-value
+		// background step; hover is exactly one step up from rest.
+		const QString background = !info.enabled ? tokens.surface
+			: (info.selected ? tokens.cardSelected : tokens.card);
+		const QString borderColor = info.focused ? tokens.focusRing
+			: (info.selected ? tokens.accent : tokens.border);
+		QString style = QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 0; }")
+			.arg(background, borderColor);
+		if (!info.selected)
+		{
+			style += QStringLiteral(" QFrame#FilterCardRow:hover { background: %1; }")
+				.arg(!info.enabled ? tokens.card : tokens.cardHover);
+		}
+		return style;
+	}
+	QString cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) const override
+	{
+		// No separate header plate: the row reads as a single text line, so
+		// the header inherits the frame's background through transparency.
+		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0; }");
+	}
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	{
+		Q_UNUSED(card);
+		Q_UNUSED(body);
+		// Leading type glyph at the line head. Only modern card rows carry a
+		// header here; the Include/VST body editors and the frozen legacy
+		// rows consult the hook with header == nullptr and stay untouched.
+		if (header == nullptr)
+			return;
+		QHBoxLayout* headerLayout = qobject_cast<QHBoxLayout*>(header->layout());
+		if (headerLayout == nullptr)
+			return;
+		// A commented-out line leads with the comment marker it actually
+		// carries in the config file; the marker is information, not decor.
+		const QString glyph = info.enabled ? minimalTypeGlyph(info.type) : QStringLiteral("#");
+		if (glyph.isEmpty())
+			return;
+		QLabel* glyphLabel = new QLabel(glyph, header);
+		glyphLabel->setObjectName(QStringLiteral("MinimalTypeGlyph"));
+		glyphLabel->setAlignment(Qt::AlignCenter);
+		glyphLabel->setMinimumWidth(18);
+		headerLayout->insertWidget(0, glyphLabel);
 	}
 	SkinTokens tokens(bool dark) const override
 	{
