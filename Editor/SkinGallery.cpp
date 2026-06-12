@@ -4,6 +4,8 @@
 #include <QCheckBox>
 #include <QDir>
 #include <QLabel>
+#include <QMenu>
+#include <QMenuBar>
 #include <QPixmap>
 #include <QScrollArea>
 #include <QString>
@@ -17,6 +19,7 @@
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/SkinComboBox.h"
+#include "Editor/widgets/TitleBar.h"
 
 namespace
 {
@@ -244,6 +247,58 @@ int renderSkin(const QDir& outDir, const QString& skinId, bool dark)
 		QApplication::processEvents();
 		failures += saveGrab(toolBar, outDir, skinId, mode, QStringLiteral("toolbar"), QStringLiteral("normal")) ? 0 : 1;
 		delete toolBar;
+	}
+
+	// Window chrome: the custom title bar over a dummy host. The Korean text
+	// in the title is deliberate - it makes Hangul clipping/shaping defects
+	// (reported from the field as "설정" rendering like "ㅅ정") visible in the
+	// gallery on every machine, including CI.
+	{
+		QWidget host;
+		host.setWindowTitle(QStringLiteral("Equalizer APO Configuration Editor — 설정.txt"));
+		TitleBar* bar = new TitleBar(&host, nullptr);
+		bar->resize(960, bar->sizeHint().height());
+		bar->show();
+		QApplication::processEvents();
+		failures += saveGrab(bar, outDir, skinId, mode, QStringLiteral("titlebar"), QStringLiteral("normal")) ? 0 : 1;
+		delete bar;
+	}
+
+	// Menu bar replica with the real top-level titles plus a Korean sample.
+	{
+		QMenuBar* menuBar = new QMenuBar(nullptr);
+		menuBar->setObjectName(QStringLiteral("GalleryMenuBar"));
+		menuBar->addMenu(QStringLiteral("File"));
+		menuBar->addMenu(QStringLiteral("Edit"));
+		menuBar->addMenu(QStringLiteral("View"));
+		menuBar->addMenu(QStringLiteral("Settings"));
+		menuBar->addMenu(QStringLiteral("설정"));
+		menuBar->resize(960, menuBar->sizeHint().height());
+		menuBar->show();
+		QApplication::processEvents();
+		failures += saveGrab(menuBar, outDir, skinId, mode, QStringLiteral("menubar"), QStringLiteral("normal")) ? 0 : 1;
+		delete menuBar;
+	}
+
+	// An open dropdown menu with representative content: modern tinted icons,
+	// a checkable item, a separator, a disabled item and a Korean label.
+	{
+		const QColor ink(SkinManager::instance()->tokens().text);
+		QMenu* menu = new QMenu();
+		menu->setObjectName(QStringLiteral("GalleryMenu"));
+		menu->addAction(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/cut.svg"), ink, 18), QStringLiteral("Cut"));
+		menu->addAction(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/copy.svg"), ink, 18), QStringLiteral("Copy"));
+		menu->addAction(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/paste.svg"), ink, 18), QStringLiteral("Paste"));
+		menu->addSeparator();
+		QAction* checkable = menu->addAction(QStringLiteral("설정 항목 (Instant mode)"));
+		checkable->setCheckable(true);
+		checkable->setChecked(true);
+		QAction* disabled = menu->addAction(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/trash.svg"), ink, 18), QStringLiteral("Delete"));
+		disabled->setEnabled(false);
+		menu->show();
+		QApplication::processEvents();
+		failures += saveGrab(menu, outDir, skinId, mode, QStringLiteral("menu"), QStringLiteral("normal")) ? 0 : 1;
+		delete menu;
 	}
 	return failures;
 }

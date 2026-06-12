@@ -131,6 +131,12 @@ public:
 	// usual QWidget parent mechanism.
 	virtual FilterPickerView* createFilterPicker(QWidget* parent) const;
 
+	// Painted decoration over the custom title bar's QSS background (screws,
+	// grid texture, glows - whatever the skin's constitution calls for).
+	// Drawn by TitleBar::paintEvent after the stylesheet background and
+	// before child widgets. Default: no-op.
+	virtual void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const;
+
 	// Dress the main toolbar in this skin's language. Called from
 	// applyRedesignPreferences at startup and again on every skin/dark
 	// switch, so implementations must be idempotent. The default replaces the

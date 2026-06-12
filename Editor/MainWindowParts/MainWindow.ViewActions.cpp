@@ -173,6 +173,27 @@ void MainWindow::toggleGraphFullscreen()
 	ui->analysisDockWidget->setVisible(true);
 }
 
+void MainWindow::nativeTitleBarToggled(bool checked)
+{
+	QAction* action = qobject_cast<QAction*>(sender());
+
+	// Frame styles can only change cleanly before the window exists, so this
+	// follows the language flow: persist the choice and offer a restart.
+	if (QMessageBox::question(this, tr("Restart required"), tr("Configuration Editor will be restarted to apply the changed settings. Proceed?")) == QMessageBox::Yes)
+	{
+		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+		settings.setValue("interface/nativeTitleBar", checked);
+		restart = true;
+		close();
+	}
+	else if (action != nullptr)
+	{
+		action->blockSignals(true);
+		action->setChecked(!checked);
+		action->blockSignals(false);
+	}
+}
+
 void MainWindow::languageSelected(bool selected)
 {
 	QAction* action = qobject_cast<QAction*>(sender());

@@ -43,6 +43,7 @@ class MainWindow;
 }
 
 class QLabel;
+class TitleBar;
 
 class MainWindow : public QMainWindow
 {
@@ -61,6 +62,9 @@ public:
 
 protected:
 	void closeEvent(QCloseEvent* event) override;
+	// Custom window chrome: removes the native caption while keeping native
+	// move/snap/resize (see MainWindowParts/MainWindow.Frame.cpp).
+	bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
 
 private slots:
 	void deviceSelected(int index);
@@ -98,6 +102,7 @@ private slots:
 	void darkThemeToggled(bool checked);
 	void knobRangeSelected(QAction* action);
 	void on_graphPositionComboBox_currentIndexChanged(int index);
+	void nativeTitleBarToggled(bool checked);
 	void toggleGraphFullscreen();
 	void on_actionResetAllGlobalPreferences_triggered();
 	void on_actionResetAllFileSpecificPreferences_triggered();
@@ -112,6 +117,7 @@ private:
 	void savePreferences();
 	void updateRecentFiles();
 	void setupRedesignActions();
+	void setupWindowChrome();
 	void applyRedesignPreferences();
 	void syncKnobRangeActions();
 	void setCurrentRenderMode(FilterTable::RenderMode mode);
@@ -149,6 +155,10 @@ private:
 	QActionGroup* skinActionGroup = nullptr;
 	QAction* darkThemeAction = nullptr;
 	QActionGroup* knobRangeActionGroup = nullptr;
+	// Custom window chrome (frameless caption); nullptr when the
+	// interface/nativeTitleBar escape hatch keeps the stock caption.
+	TitleBar* titleBar = nullptr;
+	bool useCustomFrame = true;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

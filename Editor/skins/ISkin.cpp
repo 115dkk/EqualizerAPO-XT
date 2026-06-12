@@ -135,6 +135,11 @@ FilterPickerView* ISkin::createFilterPicker(QWidget* parent) const
 	return new DefaultFilterPickerView(parent);
 }
 
+void ISkin::paintTitleBarChrome(QPainter&, const QRect&, const SkinTokens&) const
+{
+	// Neutral default: the QSS background is the whole story.
+}
+
 void ISkin::styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const
 {
 	if (toolBar == nullptr)

@@ -1002,3 +1002,26 @@ QPlainTextEdit#VSTCardWarning {
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
+
+/* ===== Window chrome (custom title bar) - neutral baseline =====
+   Per-skin differentiation lands on the toolbar/window-chrome branches; this
+   block only keeps the title strip intentional until then. */
+QWidget#AppTitleBar {
+    background: @SURFACE@;
+}
+QLabel#TitleBarText {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 9pt;
+}
+QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
+    background: @CARD_HOVER@;
+}
+QToolButton#TitleBarClose:hover {
+    background: @DANGER@;
+}
