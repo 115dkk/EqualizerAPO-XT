@@ -16,6 +16,7 @@
 #include <QtMath>
 
 #include "Editor/skins/RackChrome.h"
+#include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -95,6 +96,14 @@ public:
 	{
 		static CurvedNodeRoutingRenderer renderer;
 		return &renderer;
+	}
+
+	// The "add filter" picker as a floating frosted-glass panel: painted
+	// stage + glow, a prominent sunken-glass search field and a sectioned
+	// list whose hover pools light under the cursor (StudioFilterPicker.cpp).
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		return new StudioFilterPickerView(parent);
 	}
 
 	// "The arc IS the value": no knob body, only a thin track circle, a
