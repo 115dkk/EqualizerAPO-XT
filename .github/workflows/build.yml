@@ -662,6 +662,14 @@ jobs:
         $platformToolset = if ("${{ matrix.platform }}" -eq "ARM64") { "v143" } else { "v145" }
         Write-Host "PlatformToolset=$platformToolset (platform ${{ matrix.platform }})"
 
+        # Host toolchain: on the ARM64 runner, "x64" resolves to the EMULATED
+        # 32-bit HostX86 cl.exe, whose 4 GB address space exhausts under /MP
+        # PCH builds (flaky C3859/C1076 seen on the v1.23.0 run, twice). The
+        # native 64-bit HostARM64 compiler avoids both the heap limit and the
+        # emulation tax. x64 images keep the 64-bit x64 host.
+        $toolArchitecture = if ("${{ matrix.platform }}" -eq "ARM64") { "ARM64" } else { "x64" }
+        Write-Host "PreferredToolArchitecture=$toolArchitecture"
+
         $buildParams = @(
           "/m",
           "/p:Configuration=${{ env.BUILD_CONFIGURATION }}",
@@ -677,7 +685,7 @@ jobs:
           "/p:VST3_SDK=$env:VST3_SDK",
           "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE",
           "/p:PlatformToolset=$platformToolset",  # v145 on the VS 2026 x64 image, v143 on the VS 2022 ARM64 image (see above)
-          "/p:PreferredToolArchitecture=x64"  # 64-bit host cl.exe avoids the 32-bit PCH heap limit on ARM64
+          "/p:PreferredToolArchitecture=$toolArchitecture"  # 64-bit host cl.exe (native ARM64 on the ARM64 runner; see above)
         )
 
         $BuildPlatform = "${{ matrix.platform }}"
