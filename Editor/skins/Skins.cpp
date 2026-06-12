@@ -752,6 +752,17 @@ public:
 		return new SoftFilterPickerView(parent);
 	}
 
+	// Window chrome: deliberately NO paintTitleBarChrome override. The
+	// constitutional tiebreaker ("when in doubt, remove the element and add
+	// whitespace") answers painted caption decoration directly - the calm app
+	// header is already complete in the QSS sheets: the surface one value
+	// step off the window, a friendly-weight title in full ink, caption
+	// buttons resting as soft rounded squares whose hover lifts one value
+	// step on a stadium highlight, and a close button that warms with the
+	// dirty-badge amber instead of alarming red. Anything painted on top
+	// (screws, glows, grids) belongs to the neighbours' vocabularies and
+	// would only make the header more anxious.
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
