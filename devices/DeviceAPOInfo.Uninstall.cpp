@@ -229,7 +229,27 @@ void DeviceAPOInfo::testAPOInstallation()
 
 	hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 1000000 /*100 ms*/, 0, format, nullptr);
 	if (FAILED(hr))
-		fail(L"Initialize", hr);
+	{
+		// Field machines (PC-bang demo, issue #75) showed endpoints that
+		// reject their own mix format with E_INVALIDARG, especially right
+		// after the AudioSrv restart this test performs - typically virtual
+		// or vendor-effect devices. The stream is never started: Initialize
+		// only runs so the audio engine instantiates the APO chain, so any
+		// accepted format is good enough. Retry once with engine-side
+		// auto-conversion; a failed Initialize leaves the client unusable,
+		// so a fresh one must be activated for the retry.
+		IAudioClient* retryClient = nullptr;
+		HRESULT retryHr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&retryClient);
+		if (SUCCEEDED(retryHr))
+		{
+			SCOPE_EXIT{retryClient->Release(); };
+			retryHr = retryClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
+				AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+				1000000 /*100 ms*/, 0, format, nullptr);
+		}
+		if (FAILED(retryHr))
+			fail(L"Initialize", hr); // report the original failure
+	}
 }
 
 void DeviceAPOInfo::fail(const wstring& functionName, HRESULT hr)

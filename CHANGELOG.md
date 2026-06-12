@@ -12,6 +12,16 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- The Editor now writes a crash minidump and a small text report (version,
+  exception address, the last skin switched to) to
+  `%LOCALAPPDATA%\EqualizerAPO-XT\crashdumps` whenever it dies unexpectedly,
+  instead of disappearing without a trace. This was added to hunt a
+  machine-specific crash when selecting certain skins ([#75]); CI now also
+  keeps debug symbols for every released binary so those dumps can be
+  analyzed. ([#76])
+
 ## v1.19.0 — 2026-06-12
 
 - The five Editor skins are now fully differentiated visual identities
@@ -320,3 +330,5 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
 [#70]: https://github.com/115dkk/EqualizerAPO-XT/pull/70
 [#73]: https://github.com/115dkk/EqualizerAPO-XT/pull/73
+[#75]: https://github.com/115dkk/EqualizerAPO-XT/issues/75
+[#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76

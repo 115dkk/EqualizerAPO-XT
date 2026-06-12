@@ -4,6 +4,8 @@
 #include <QFile>
 #include <QWidget>
 
+#include "helpers/LogHelper.h"
+#include "Editor/helpers/CrashHandler.h"
 #include "skins/ISkin.h"
 #include "skins/Skins.h"
 
@@ -76,6 +78,13 @@ QString substituteTokens(QString qss, const SkinTokens& tokens)
 
 void SkinManager::applySkin(const QString& newSkinId, bool dark)
 {
+	// Breadcrumb + unconditional log line: a skin-switch crash reported from
+	// the field (only two of five skins survived on a PC-bang machine, not
+	// reproducible on the dev machine) must identify the dying skin in the
+	// crash report and in %TEMP%\EqualizerAPO.log.
+	CrashHandler::setBreadcrumb(QStringLiteral("applySkin %1 dark=%2").arg(newSkinId).arg(dark).toStdWString());
+	LogFStatic(L"Applying skin %s (dark=%d)", reinterpret_cast<const wchar_t*>(newSkinId.utf16()), dark ? 1 : 0);
+
 	// Skins::byId applies legacy aliases (glassy->studio, industrial->rack) and
 	// falls back to the studio skin for unknown ids.
 	activeSkin = Skins::byId(newSkinId);
@@ -100,6 +109,8 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	emit skinChanged(currentTokens);
 	for (QWidget* widget : qApp->allWidgets())
 		widget->update();
+
+	LogFStatic(L"Skin %s applied", reinterpret_cast<const wchar_t*>(skinId.utf16()));
 }
 
 IRoutingRenderer* SkinManager::routingRenderer() const
