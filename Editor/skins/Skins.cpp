@@ -459,36 +459,45 @@ QPointF minimalPointOnArc(const QPointF& center, double radius, double degrees)
 	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
 }
 
-// ANNEX K minimal: "the number is the control". The always-visible mono
-// numeric is primary; beside it sits a small flat circle with a 1px indicator
-// line and a hairline range arc, monochrome until dragged (accent while
-// active). Bipolar knobs measure the indicator from a centre tick. Promoted
-// legacy dials supply no valueText (their number lives in the adjacent spin
-// box), so they render only the confirmation circle plus a ratio-derived
-// position readout while hovered or dragged.
+// ANNEX K minimal: "the number is the control; the knob is confirmation"
+// (N2). The figure is the brightest ink in the row - painted here when the
+// widget supplies valueText, living in the adjacent ValueScrubBox (promoted
+// by precision_*.qss) for the row dials, which supply none. The knob itself
+// is a hairline instrument: a 1px 270-degree range arc, a travelled arc in
+// text ink and a radial cursor tick at the value angle - no filled disc, no
+// hub. Unipolar dials measure travel from the range start; bipolar dials
+// measure a deviation arc from a fixed 12 o'clock detent tick (boost
+// clockwise, cut counter-clockwise), so the two kinds part at a glance (X3)
+// and 0 dB reads as "cursor on the detent, no deviation". Monochrome until
+// dragged; dragging turns the travelled ink accent (active-state law).
 void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
 {
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	const QColor hairline(tokens.border);
-	const QColor primary(state.enabled ? tokens.text : tokens.mutedText);
 	const QColor secondary(tokens.mutedText);
 	const QColor active(tokens.accent);
-	const QColor indicatorColor = (state.enabled && state.dragging) ? active : primary;
+	// The promoted figure sits one brightness step above body text: white on
+	// the dark console, full black on the light paper. Mode is read off the
+	// background's value because SkinTokens carries no dark flag.
+	const bool darkMode = QColor(tokens.background).lightness() < 128;
+	const QColor promoted(!state.enabled ? secondary
+		: (darkMode ? QColor(255, 255, 255) : QColor(0, 0, 0)));
+	const QColor travelled = !state.enabled ? secondary
+		: (state.dragging ? active : QColor(tokens.text));
 
 	const bool hasNumber = !state.valueText.isEmpty();
-	const double circleRadius = hasNumber ? 9.0 : 12.0;
-	const double arcRadius = circleRadius + 4.0;
+	const double arcRadius = hasNumber ? 9.0 : 12.0;
 
 	QFont numberFont(tokens.monoFontFamily);
 	numberFont.setBold(true);
 	numberFont.setPointSizeF(9.0);
 
-	QPointF circleCenter;
+	QPointF arcCenter;
 	QRectF numberRect;
 	if (hasNumber)
 	{
-		// Number left (primary), confirmation circle beside it; the pair is
+		// Number left (primary), confirmation arc beside it; the pair is
 		// centred in the widget. Shrink the font instead of clipping when a
 		// long value (e.g. "-100.0") meets a narrow widget.
 		const double gap = 6.0;
@@ -502,56 +511,60 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 		const double pairWidth = textWidth + gap + 2.0 * arcRadius;
 		const double left = rect.left() + (rect.width() - pairWidth) / 2.0;
 		numberRect = QRectF(left, rect.top(), textWidth, rect.height());
-		circleCenter = QPointF(left + textWidth + gap + arcRadius, QRectF(rect).center().y());
+		arcCenter = QPointF(left + textWidth + gap + arcRadius, QRectF(rect).center().y());
 	}
 	else
 	{
-		// Circle only; keep a constant bottom strip free for the hover/drag
-		// readout so the circle does not jump when the readout appears.
-		circleCenter = QPointF(QRectF(rect).center().x(), rect.top() + (rect.height() - 14.0) / 2.0);
+		// Arc only; keep a constant bottom strip free for the hover/drag
+		// readout so the instrument does not jump when the readout appears.
+		arcCenter = QPointF(QRectF(rect).center().x(), rect.top() + (rect.height() - 14.0) / 2.0);
 	}
 
-	// Hairline range arc: the full 270-degree value range, 1px.
-	const QRectF arcRect(circleCenter.x() - arcRadius, circleCenter.y() - arcRadius, arcRadius * 2.0, arcRadius * 2.0);
+	// Hairline range arc: the full 270-degree travel, 1px, open across the
+	// bottom dead zone like every knob in the product.
+	const QRectF arcRect(arcCenter.x() - arcRadius, arcCenter.y() - arcRadius, arcRadius * 2.0, arcRadius * 2.0);
 	painter.setPen(QPen(hairline, 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawArc(arcRect, -135 * 16, -270 * 16);
 
 	if (state.bipolar)
 	{
-		// Centre tick at 12 o'clock (the bipolar neutral) and a 1px deviation
-		// arc measured from it: boost grows clockwise, cut counter-clockwise.
-		// Unipolar knobs draw neither, so the two kinds read differently.
+		// Fixed detent tick at 12 o'clock and a 1px deviation arc measured
+		// from it: boost grows clockwise, cut counter-clockwise. On the
+		// detent the deviation vanishes and only the tick remains - the
+		// honest "0 dB".
 		painter.setPen(QPen(secondary, 1));
-		painter.drawLine(minimalPointOnArc(circleCenter, arcRadius - 1.5, -270.0),
-			minimalPointOnArc(circleCenter, arcRadius + 2.5, -270.0));
+		painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 2.5, -270.0),
+			minimalPointOnArc(arcCenter, arcRadius + 2.5, -270.0));
 		const double deviationDegrees = 270.0 * (state.ratio - 0.5);
-		painter.setPen(QPen(indicatorColor, 1));
+		painter.setPen(QPen(travelled, 1));
 		painter.drawArc(arcRect, -270 * 16, -qRound(deviationDegrees * 16.0));
 	}
+	else
+	{
+		// Unipolar: the travelled range fills from the arc's start. No detent
+		// tick, no centre origin - the two kinds cannot be confused.
+		painter.setPen(QPen(travelled, 1));
+		painter.drawArc(arcRect, -135 * 16, -qRound(270.0 * state.ratio * 16.0));
+	}
 
-	// Small flat circle: flat fill, 1px border, hover = one background step.
-	const QString fill = (state.enabled && (state.hovered || state.dragging)) ? tokens.cardHover : tokens.card;
-	painter.setPen(QPen(hairline, 1));
-	painter.setBrush(QColor(fill));
-	painter.drawEllipse(circleCenter, circleRadius, circleRadius);
-
-	// 1px indicator line from the hub to the rim at the value angle.
+	// Radial cursor tick crossing the range arc at the value angle.
 	const double valueDegrees = -(135.0 + 270.0 * state.ratio);
-	painter.setPen(QPen(indicatorColor, 1));
-	painter.drawLine(circleCenter, minimalPointOnArc(circleCenter, circleRadius - 1.0, valueDegrees));
+	painter.setPen(QPen(travelled, 1));
+	painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 3.0, valueDegrees),
+		minimalPointOnArc(arcCenter, arcRadius + 3.0, valueDegrees));
 
 	if (hasNumber)
 	{
 		painter.setFont(numberFont);
-		painter.setPen((state.enabled && state.dragging) ? active : primary);
+		painter.setPen((state.enabled && state.dragging) ? active : promoted);
 		painter.drawText(numberRect, Qt::AlignVCenter | Qt::AlignLeft, state.valueText);
 	}
 	else if (state.enabled && (state.hovered || state.dragging))
 	{
 		// No supplied value text: show the dial position derived from ratio.
-		// The real value sits in the adjacent spin box, so a percentage is the
-		// only honest readout for log-scaled legacy dials.
+		// The real value sits in the adjacent scrub box, so a percentage is
+		// the only honest readout for log-scaled legacy dials.
 		QFont readoutFont(tokens.monoFontFamily);
 		readoutFont.setPointSizeF(7.5);
 		painter.setFont(readoutFont);
