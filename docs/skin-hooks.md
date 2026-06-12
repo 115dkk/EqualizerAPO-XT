@@ -4,6 +4,12 @@ Phase 0 of the skin program (issue #66) added two structural hooks to `ISkin`
 and an offscreen screenshot gallery. This note is the reference for the Phase 1
 skin agents (issue #67) and the Phase 2 integrator (issue #68).
 
+This file covers the *mechanics* (hook contracts, gallery, proof rules). The
+*design philosophy* of each skin — what it believes, what it forbids, and how a
+new UI element must answer in its language — lives in
+[docs/skins/](skins/README.md), one constitution per skin. Read the relevant
+constitution before styling anything skin-specific.
+
 ## Knob paint hook
 
 `AudioKnob` (`Editor/widgets/AudioKnob.{h,cpp}`, a `QDial`) owns **all input
