@@ -168,7 +168,14 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v3
       with:
-        msbuild-architecture: ${{ matrix.platform }}
+        # setup-msbuild compares this input CASE-SENSITIVELY against 'x64'/'arm64'
+        # and silently falls back to the 32-bit x86 MSBuild on any other value.
+        # matrix.platform is 'ARM64' (uppercase, the MSBuild $(Platform) name), so
+        # passing it here handed the ARM64 leg an x86 MSBuild, which in turn always
+        # selects the emulated 32-bit HostX86 cl.exe — the C3859/C1076 PCH
+        # virtual-memory failures. matrix.msvcdevplatform carries the lowercase
+        # host-architecture spelling ('x64'/'arm64') for exactly this purpose.
+        msbuild-architecture: ${{ matrix.msvcdevplatform }}
 
     # Pinned dependency tags/versions live in .github/simd-variants.psd1 so they are
     # defined once and shared with setup-build.ps1. Export them as job env vars for the
@@ -662,13 +669,26 @@ jobs:
         $platformToolset = if ("${{ matrix.platform }}" -eq "ARM64") { "v143" } else { "v145" }
         Write-Host "PlatformToolset=$platformToolset (platform ${{ matrix.platform }})"
 
-        # Host toolchain: on the ARM64 runner, "x64" resolves to the EMULATED
-        # 32-bit HostX86 cl.exe, whose 4 GB address space exhausts under /MP
-        # PCH builds (flaky C3859/C1076 seen on the v1.23.0 run, twice). The
-        # native 64-bit HostARM64 compiler avoids both the heap limit and the
-        # emulation tax. x64 images keep the 64-bit x64 host.
+        # Host toolchain: the emulated 32-bit HostX86 cl.exe exhausts its 4 GB
+        # address space under /MP PCH builds (flaky C3859/C1076 on the v1.23.0
+        # and v1.25.0 runs). The VC targets pick the host folder from the
+        # ARCHITECTURE OF THE MSBUILD PROCESS, so the real lever is handing
+        # setup-msbuild the lowercase 'arm64' (see "Add MSBuild to PATH");
+        # /p:PreferredToolArchitecture alone provably did not switch the host
+        # (the v1.24.0/v1.25.0 logs ran HostX86\arm64\CL.exe despite it). It is
+        # kept as documentation of intent and as a hint for the x64 images.
         $toolArchitecture = if ("${{ matrix.platform }}" -eq "ARM64") { "ARM64" } else { "x64" }
         Write-Host "PreferredToolArchitecture=$toolArchitecture"
+
+        # Fail loudly if the silent setup-msbuild fallback ever returns: an x86
+        # MSBuild on the ARM64 runner means emulated HostX86 cl.exe and a build
+        # that only fails minutes later with C3859, or worse, passes by luck.
+        $msbuildPath = (Get-Command msbuild).Source
+        Write-Host "msbuild on PATH: $msbuildPath"
+        if ("${{ matrix.platform }}" -eq "ARM64" -and $msbuildPath -notmatch '\\arm64\\') {
+          Write-Error "Expected the native arm64 MSBuild on PATH but got $msbuildPath. setup-msbuild falls back to the 32-bit x86 MSBuild when msbuild-architecture is not exactly 'arm64' (case-sensitive); that MSBuild always drives the emulated HostX86 cl.exe."
+          exit 1
+        }
 
         $buildParams = @(
           "/m",
@@ -1281,8 +1301,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     # The PR pipeline only builds AVX2, so there is nothing to compare
-    # across variants. The full SIMD diff stays on the push to main.
-    if: github.event_name != 'pull_request'
+    # across variants. The always() guard matters on workflow_dispatch runs:
+    # version-bump is skipped there, and GitHub propagates a skip through the
+    # needs chain unless the dependent job's condition overrides it - without
+    # always() the dispatch validation path silently lost this comparison
+    # (first seen on the run validating the arm64 msbuild fix).
+    if: always() && needs.build.result == 'success' && github.event_name != 'pull_request'
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
