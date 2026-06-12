@@ -970,6 +970,27 @@ public:
 // value steps plus a very light 1px border; hierarchy comes from size and
 // whitespace, never from density. Hover lifts a surface exactly one value
 // step. Tiebreaker: when in doubt, remove elements and add whitespace.
+
+// The hooks receive tokens but not the mode flag; like studio, the background
+// luminance is an unambiguous proxy (soft's dark background is deep graphite).
+bool softIsDark(const SkinTokens& tokens)
+{
+	return QColor(tokens.background).lightness() < 128;
+}
+
+// AR1 F2: the picker's pastel multi-hue grammar, normalised for row chrome.
+// The hue comes from an existing colour (the command type's descriptor
+// colour), and only saturation/lightness are re-seated on the pastel shelf -
+// the same "no new palette, derive from what is already there" rule that
+// softMix implements for elevation. Greyish type colours keep their low
+// saturation instead of being inflated into a fake hue.
+QColor softPastelize(const QColor& base, bool dark)
+{
+	const double hue = base.hslHueF() < 0.0 ? 215.0 / 360.0 : base.hslHueF();
+	const double saturation = qMin(base.hslSaturationF(), dark ? 0.50 : 0.55);
+	return QColor::fromHslF(hue, saturation, dark ? 0.62 : 0.60);
+}
+
 class SoftSkin : public ISkin
 {
 public:
@@ -1009,9 +1030,10 @@ public:
 		t.accent = QStringLiteral("#3B82F6");
 		t.fontFamily = QStringLiteral("DM Sans");
 		t.monoFontFamily = QStringLiteral("DM Mono");
-		// Constitution: radius 10-12px, generous line spacing. The tallest row
-		// of the five skins; whitespace is the hierarchy device.
-		t.borderRadius = 12;
+		// Constitution: cards 14px (clearly rounder than studio's 8), generous
+		// line spacing. The tallest row of the five skins; whitespace is the
+		// hierarchy device.
+		t.borderRadius = 14;
 		t.rowHeight = 48;
 		t.channelGroupIndent = 20;
 		t.density = 2;
@@ -1023,15 +1045,20 @@ public:
 		t.showRawPreview = false;
 		if (dark)
 		{
-			t.background = QStringLiteral("#171923");
-			t.surface = QStringLiteral("#202433");
-			t.card = QStringLiteral("#282D3E");
-			t.cardHover = QStringLiteral("#30364A");
-			t.cardSelected = QStringLiteral("#344065");
-			t.text = QStringLiteral("#F2F4FA");
-			t.mutedText = QStringLiteral("#A7AEC2");
-			t.border = QStringLiteral("#3A4056");
-			t.graph = QStringLiteral("#151925");
+			// AR1 F2: warm graphite, not navy. The old #171923..#3A4056 ramp
+			// shared studio's cold blue cast, so soft-dark photographed as a
+			// studio clone; the dark identity now leans warm (hue ~38, low
+			// saturation) while the light mode keeps its cream. Same two-step
+			// elevation ladder, different temperature.
+			t.background = QStringLiteral("#1C1A17");
+			t.surface = QStringLiteral("#262320");
+			t.card = QStringLiteral("#2F2B26");
+			t.cardHover = QStringLiteral("#38332D");
+			t.cardSelected = QStringLiteral("#33415C");
+			t.text = QStringLiteral("#F4F1EA");
+			t.mutedText = QStringLiteral("#B3AB9D");
+			t.border = QStringLiteral("#423D34");
+			t.graph = QStringLiteral("#181613");
 		}
 		else
 		{
@@ -1084,12 +1111,36 @@ public:
 		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 	}
 
+	// AR1 F2: the row's type badge wears the picker's pastel grammar instead
+	// of the shared saturated pill, so the multi-hue "consumer settings"
+	// identity survives into the command list (and into dark mode, where the
+	// old badge was the only colour that separated soft from studio). The ink
+	// is a deep warm neutral on the pastel chip - white text on a pastel is
+	// exactly the kind of low-contrast anxiety this skin removes. A sleeping
+	// (commented-out) row sinks its chip toward the window background.
+	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& t) const override
+	{
+		const bool dark = softIsDark(t);
+		const QColor pastel = softPastelize(QColor(typeColor), dark);
+		if (!info.enabled)
+		{
+			const QColor sleeping = softMix(pastel, QColor(t.background), 0.62);
+			return QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
+				.arg(t.mutedText, sleeping.name());
+		}
+		return QStringLiteral("color:#2B251D; border-color:transparent; background-color:%1;")
+			.arg(pastel.name());
+	}
+
 	// Annex K, soft: "a handle you cannot fumble". The largest knob of the
 	// five skins. Two-step elevation body, rounded dot indicator (no sharp
-	// line), pastel range arc, value in a rounded badge below, centre detent
-	// as a gentle notch. Bipolar knobs grow their arc from the 12 o'clock
-	// detent (boost right in accent, cut left in accent2); unipolar knobs
-	// grow from the minimum, so the two kinds differ at a glance.
+	// line), value in a rounded badge below. AR1 F3/X3: the full travel is an
+	// always-visible pastel track ring (accent mixed far toward the card), and
+	// bipolar knobs differ from unipolar ones at rest, not only when turned -
+	// their track splits at 12 o'clock into an accent2 cut half and an accent
+	// boost half, with a soft detent tick crossing the ring at the 0 dB
+	// centre. The value arc grows from that detent (boost right in accent,
+	// cut left in accent2); unipolar arcs grow from the minimum.
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing);
@@ -1134,26 +1185,52 @@ public:
 			painter.drawEllipse(knobRect.adjusted(-2, -2, 2, 2));
 		}
 
-		// Pastel range track: the full travel is always visible.
-		const QColor trackColor = state.enabled ? softMix(border, windowBg, 0.25) : softAlpha(border, 110);
-		painter.setPen(QPen(trackColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
-		painter.drawArc(arcRect, -startDegrees * 16, -spanDegrees * 16);
+		// Always-visible pastel track ring (F3). Unipolar travel wears one
+		// accent pastel; a bipolar knob splits at the 12 o'clock detent into
+		// an accent2 cut half and an accent boost half, so gain reads as
+		// two-sided even while it rests at 0 dB.
+		const double centerDegrees = startDegrees + spanDegrees / 2.0;
+		if (state.enabled && state.bipolar)
+		{
+			painter.setPen(QPen(softMix(QColor(tokens.accent2), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.drawArc(arcRect, -startDegrees * 16, qRound(-spanDegrees / 2.0 * 16.0));
+			painter.setPen(QPen(softMix(QColor(tokens.accent), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.drawArc(arcRect, qRound(-centerDegrees * 16.0), qRound(-spanDegrees / 2.0 * 16.0));
+		}
+		else
+		{
+			const QColor trackColor = state.enabled ? softMix(QColor(tokens.accent), card, 0.80) : softAlpha(border, 110);
+			painter.setPen(QPen(trackColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.drawArc(arcRect, -startDegrees * 16, -spanDegrees * 16);
+		}
 
 		// Pastel value arc (accent softened one step toward the card colour).
 		if (state.enabled)
 		{
 			const bool cutSide = state.bipolar && ratio < 0.5;
-			const QColor valueColor = softMix(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.30);
+			const QColor valueColor = softMix(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.25);
 			painter.setPen(QPen(valueColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
 			if (state.bipolar)
 			{
-				const double centerDegrees = startDegrees + spanDegrees / 2.0;
 				painter.drawArc(arcRect, qRound(-centerDegrees * 16.0), qRound(-(endDegrees - centerDegrees) * 16.0));
 			}
 			else
 			{
 				painter.drawArc(arcRect, -startDegrees * 16, qRound(-spanDegrees * ratio * 16.0));
 			}
+		}
+
+		// X3: the 0 dB detent is a soft rounded tick crossing the track ring
+		// at 12 o'clock, painted over the value arc so the neutral point stays
+		// marked however far the knob is turned. Only bipolar (gain) knobs
+		// carry it - one more way the two knob kinds differ at a glance.
+		if (state.bipolar)
+		{
+			const QPointF arcCenter = arcRect.center();
+			const double trackRadius = arcRect.width() / 2.0;
+			painter.setPen(QPen(softAlpha(QColor(tokens.text), state.enabled ? 200 : 90), 2.5, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(arcCenter.x(), arcCenter.y() - trackRadius - arcWidth / 2.0 + 0.5),
+				QPointF(arcCenter.x(), arcCenter.y() - trackRadius + arcWidth / 2.0 - 0.5));
 		}
 
 		// Two-step elevation body: a base disc one value step below the face,
@@ -1175,21 +1252,12 @@ public:
 		painter.setBrush(faceColor);
 		painter.drawEllipse(faceRect);
 
-		// Centre detent as a gentle notch: a short rounded tick at 12 o'clock
-		// on the face, only for bipolar (gain) knobs where the centre means
-		// 0 dB.
-		if (state.bipolar)
-		{
-			painter.setPen(QPen(softAlpha(muted, state.enabled ? 170 : 90), 2, Qt::SolidLine, Qt::RoundCap));
-			const QPointF center = faceRect.center();
-			const double notchOuter = faceRect.width() / 2.0 - 2.0;
-			const double notchInner = qMax(0.0, notchOuter - 4.5);
-			painter.drawLine(QPointF(center.x(), center.y() - notchOuter), QPointF(center.x(), center.y() - notchInner));
-		}
-
 		// Rounded dot indicator instead of a sharp line; it grows slightly on
 		// hover and again while dragging, the calmest possible "I am held" cue.
-		double dotRadius = qMax(3.5, side * 0.065);
+		// AR1 F3: the dot is larger than the pre-review 3.5px minimum so the
+		// position reads from across the row, and on a bipolar knob it takes
+		// the colour of the side it sits on (accent boost, accent2 cut).
+		double dotRadius = qMax(4.5, side * 0.085);
 		if (state.dragging)
 			dotRadius += 1.0;
 		else if (state.hovered)
@@ -1199,7 +1267,8 @@ public:
 		const QPointF dotPos(faceRect.center().x() + qCos(radians) * dotTrack,
 			faceRect.center().y() - qSin(radians) * dotTrack);
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(state.enabled ? QColor(tokens.accent) : softAlpha(muted, 120));
+		const QColor dotColor(state.bipolar && ratio < 0.5 ? tokens.accent2 : tokens.accent);
+		painter.setBrush(state.enabled ? dotColor : softAlpha(muted, 120));
 		painter.drawEllipse(dotPos, dotRadius, dotRadius);
 
 		// Value in a rounded badge below the handle.
