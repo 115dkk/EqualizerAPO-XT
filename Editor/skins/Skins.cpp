@@ -4,17 +4,23 @@
 
 #include "Skins.h"
 
+#include <QAction>
+#include <QEvent>
 #include <QFontMetrics>
 #include <QFontMetricsF>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QLayout>
 #include <QPainter>
 #include <QPixmap>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
 
+#include "Editor/SkinManager.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/RackChrome.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
@@ -108,6 +114,36 @@ public:
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		return new StudioFilterPickerView(parent);
+	}
+
+	// The toolbar is the top edge of the window's glass. The QSS sheets own
+	// the strip itself (deep background, a 1px reflection along the bottom
+	// edge, accent light pooling under hovered buttons, the Instant mode
+	// lamp, sunken mono readouts); code only re-inks the file actions as
+	// quiet ink - the muted colour lifted halfway toward the text ink - so
+	// the icons rest behind the data until interaction lights the glass
+	// under them, yet stay legible at menu size. Idempotent: re-tinting and
+	// re-sizing converge on every skin/dark switch.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+
+		const QColor text(tokens.text);
+		const QColor muted(tokens.mutedText);
+		const QColor ink((muted.red() + text.red()) / 2,
+			(muted.green() + text.green()) / 2,
+			(muted.blue() + text.blue()) / 2);
+		toolBar->setIconSize(GUIHelper::scale(QSize(18, 18)));
+		for (QAction* action : toolBar->actions())
+		{
+			if (action->objectName() == QStringLiteral("actionNew"))
+				action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/file-new.svg"), ink, 18));
+			else if (action->objectName() == QStringLiteral("actionOpen"))
+				action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), ink, 18));
+			else if (action->objectName() == QStringLiteral("actionSave"))
+				action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save.svg"), ink, 18));
+		}
 	}
 
 	// "The arc IS the value": no knob body, only a thin track circle, a
@@ -534,6 +570,21 @@ public:
 		// MinimalFilterPicker.h for the design.
 		return new MinimalFilterPickerView(parent);
 	}
+	// The toolbar is the terminal's command line: all type and one hairline.
+	// The neutral default keeps the shared stroke icons on the actions so the
+	// File menu (which shares the QActions) stays modern; the toolbar buttons
+	// themselves drop the pictures and show the command words instead -
+	// precision_*.qss uppercases and letter-spaces them and walks their states
+	// up the value ladder (hover = one background step, pressed = the
+	// inverted block from the picker's cursor grammar). Both calls set
+	// absolute state, so re-running on every skin/dark switch is idempotent.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+		ISkin::styleMainToolbar(toolBar, tokens);
+		toolBar->setToolButtonStyle(Qt::ToolButtonTextOnly);
+	}
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		paintMinimalKnob(painter, rect, state, tokens);
@@ -875,6 +926,67 @@ public:
 			painter.drawText(badgeRect, Qt::AlignCenter, state.valueText);
 		}
 	}
+
+	// The toolbar is this skin's calm header band; the QSS sheets carry the
+	// band, the toggle, the pills and the stadium combos. The hook's share is
+	// the one thing QSS cannot express: the three file actions wear
+	// iOS-Settings-style rounded-square colour tiles - pastels mixed from
+	// existing tokens (accent blue for New, warning amber for the folder,
+	// success green for Save) under the shared stroke glyph, the same tile
+	// recipe as the picker's category tiles. Re-running the hook only calls
+	// setters, so skin/dark switches stay idempotent.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+
+		toolBar->setIconSize(GUIHelper::scale(QSize(22, 22)));
+		const QColor card(tokens.card);
+		for (QAction* action : toolBar->actions())
+		{
+			if (action->objectName() == QStringLiteral("actionNew"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/file-new.svg"), softMix(QColor(tokens.accent), card, 0.15)));
+			else if (action->objectName() == QStringLiteral("actionOpen"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/folder-open.svg"), softMix(QColor(tokens.warning), card, 0.15)));
+			else if (action->objectName() == QStringLiteral("actionSave"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/save.svg"), softMix(QColor(tokens.success), card, 0.15)));
+		}
+	}
+
+private:
+	// One icon, several pre-rendered sizes (16px for the File menu rows up to
+	// the 22px toolbar size and beyond), so Qt never stretches a tile. The
+	// tile matches SoftFilterPicker's category tiles: a rounded square at 32%
+	// corner radius with the glyph inked in the picker's near-white literal.
+	static QIcon softTileIcon(const QString& resource, const QColor& tile)
+	{
+		QIcon icon;
+		// 44/64 keep the tile crisp on 2x displays (22/32 logical at DPR 2).
+		for (const int logical : { 16, 18, 20, 22, 24, 32, 44, 64 })
+		{
+			const int side = GUIHelper::scale(double(logical));
+			QPixmap pixmap(side, side);
+			pixmap.fill(Qt::transparent);
+			QPainter painter(&pixmap);
+			painter.setRenderHint(QPainter::Antialiasing);
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(tile);
+			painter.drawRoundedRect(QRectF(0, 0, side, side), side * 0.32, side * 0.32);
+			const int glyphSide = qMax(10, qRound(logical * 0.66));
+			const QPixmap glyph = GUIHelper::tintedIcon(resource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
+				.pixmap(GUIHelper::scale(QSize(glyphSide, glyphSide)));
+			// Centre by the glyph's LOGICAL size: on high-DPR displays
+			// QIcon::pixmap returns a pixmap whose width() is physical pixels
+			// (dpr baked in), and drawPixmap honors the dpr - centring by
+			// width() shoved the glyph toward the top-left at 200% scale.
+			const QSizeF glyphLogical = glyph.deviceIndependentSize();
+			painter.drawPixmap(QPointF((side - glyphLogical.width()) / 2.0,
+				(side - glyphLogical.height()) / 2.0), glyph);
+			painter.end();
+			icon.addPixmap(pixmap);
+		}
+		return icon;
+	}
 };
 
 // ── Rack ("The amplifier faceplate", skeuomorphic 19" hardware) ─────────────
@@ -948,6 +1060,18 @@ public:
 		// The module library browser: a brushed 1U faceplate with engraved
 		// section plates, LED-lit slots and an LCD search strip.
 		return new RackFilterPickerView(parent);
+	}
+
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		// The shared stroke icons first (tinted with the panel's warm ink),
+		// then the master-rail chrome: RackChrome mounts a painted overlay
+		// (brushed strip, machined edges, end screws, engraved series
+		// marking, instant-mode power LED) under the toolbar's controls. The
+		// QSS dresses the controls themselves as transport buttons and an
+		// LCD save-state well.
+		ISkin::styleMainToolbar(toolBar, tokens);
+		RackChrome::styleMainToolbar(toolBar, tokens);
 	}
 
 	SkinTokens tokens(bool dark) const override
@@ -1028,6 +1152,143 @@ QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
 	const double radians = qDegreesToRadians(-(135.0 + 270.0 * fraction));
 	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
 }
+
+// Painted chrome layers for the main toolbar (the board's header strip).
+// QSS cannot draw the 24px column grid or the status lamp, so the matrix
+// toolbar hook parents two transparent, mouse-transparent widgets to the
+// toolbar: UnderCells (lowered below every cell) paints the column grid,
+// the doubled header rule and the sunken fill of the status readout cell;
+// OverCells (raised above the cells) paints the DirtyStatusBadge lamp on
+// top of that readout. Instances are found again by object name on every
+// hook run (this file has no moc, so findChild by class is unavailable),
+// and painting self-suspends while another skin is active because the real
+// MainWindow toolbar keeps its children across runtime skin switches.
+class MatrixToolbarBoard : public QWidget
+{
+public:
+	enum Layer { UnderCells, OverCells };
+
+	MatrixToolbarBoard(QToolBar* toolBar, Layer boardLayer)
+		: QWidget(toolBar), layer(boardLayer)
+	{
+		setObjectName(layer == UnderCells
+			? QStringLiteral("MatrixToolbarBoardUnder")
+			: QStringLiteral("MatrixToolbarBoardOver"));
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		toolBar->installEventFilter(this);
+		if (layer == OverCells)
+		{
+			// The lamp must follow the badge's dirty-state restyles and the
+			// layout moving the cell around.
+			if (QWidget* badge = toolBar->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge")))
+				badge->installEventFilter(this);
+		}
+		setGeometry(toolBar->rect());
+		if (layer == UnderCells)
+			lower();
+		else
+			raise();
+		show();
+	}
+
+	void setBoardTokens(const SkinTokens& tokens)
+	{
+		ruleColor = QColor(tokens.border);
+		sunkenColor = QColor(tokens.surfaceSunken);
+		savedColor = QColor(tokens.success);
+		modifiedColor = QColor(tokens.warning);
+		// The hook carries no mode flag; infer it from the strip's surface
+		// (the studioIsDark pattern). The light border ink needs more alpha
+		// than the dark one to stay visible as graph paper on white.
+		gridAlpha = QColor(tokens.surface).lightness() < 128 ? 55 : 90;
+		update();
+	}
+
+	bool eventFilter(QObject* watched, QEvent* event) override
+	{
+		if (watched == parentWidget())
+		{
+			if (event->type() == QEvent::Resize)
+				setGeometry(parentWidget()->rect());
+		}
+		else if (event->type() == QEvent::Paint || event->type() == QEvent::Move
+			|| event->type() == QEvent::Resize || event->type() == QEvent::Show
+			|| event->type() == QEvent::Hide)
+		{
+			update();
+		}
+		return QWidget::eventFilter(watched, event);
+	}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		// The layers stay parented to the shared toolbar after a runtime
+		// skin switch; they must never leak matrix chrome into another skin.
+		if (SkinManager::instance()->currentSkinId() != QStringLiteral("matrix"))
+			return;
+
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		if (layer == UnderCells)
+			paintBoard(painter);
+		else
+			paintLamp(painter);
+	}
+
+private:
+	// The badge is only board chrome while the skin owns its appearance.
+	// MainWindow::updateDirtyStatus replaces it with an inline-styled pill
+	// at runtime; painting a lamp under that pill would garble its text.
+	QWidget* ownedBadge() const
+	{
+		QWidget* badge = parentWidget()->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge"));
+		if (badge == nullptr || !badge->isVisible() || !badge->styleSheet().isEmpty())
+			return nullptr;
+		return badge;
+	}
+
+	void paintBoard(QPainter& painter)
+	{
+		// The faint 24px column grid: the graph paper the whole board sits
+		// on, same pitch and ink as the card grid texture.
+		QColor grid(ruleColor);
+		grid.setAlpha(gridAlpha);
+		painter.setPen(QPen(grid, 1));
+		for (int x = MatrixMetrics::gridPitch; x < width(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, 0, x, height());
+
+		// Doubled header rule above the QSS bottom border: the strip closes
+		// like a board's title rule, not a plain window edge.
+		painter.setPen(QPen(ruleColor, 1));
+		painter.drawLine(0, height() - 4, width(), height() - 4);
+
+		// Sunken fill behind the status readout cell (the badge's own QSS
+		// background stays transparent so this fill and the lamp show).
+		if (QWidget* badge = ownedBadge())
+			painter.fillRect(badge->geometry().adjusted(1, 1, -1, -1), sunkenColor);
+	}
+
+	void paintLamp(QPainter& painter)
+	{
+		QWidget* badge = ownedBadge();
+		if (badge == nullptr)
+			return;
+		// Solid square lamp in traffic-light semantics: green = saved,
+		// amber = modified. This is exactly what colour rationing reserves
+		// colour for - the one truthful lamp on the header strip.
+		const QRect cell = badge->geometry();
+		const QRect lampRect(cell.left() + 8, cell.center().y() - 4, 8, 8);
+		painter.fillRect(lampRect, badge->property("dirty").toBool() ? modifiedColor : savedColor);
+	}
+
+	Layer layer;
+	QColor ruleColor;
+	QColor sunkenColor;
+	QColor savedColor;
+	QColor modifiedColor;
+	int gridAlpha = 55;
+};
 }
 
 class MatrixSkin : public ISkin
@@ -1369,6 +1630,37 @@ public:
 			painter.setBrush(Qt::NoBrush);
 			painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
 		}
+	}
+
+	// The board's header strip. The neutral stroke icons stay, tinted in
+	// plain ink (the catalog is monochrome - colour belongs to the status
+	// lamp); the QSS dresses every toolbar item as a square 1px cell, and
+	// two painted layers add what QSS cannot express: the 24px column grid
+	// behind the cells and the solid square status lamp inside the
+	// DirtyStatusBadge readout. Runs at startup and on every skin/dark
+	// switch, so the layers are looked up again and re-tinted, never
+	// created twice.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+
+		// Shared modern stroke icons, tinted with the text token.
+		ISkin::styleMainToolbar(toolBar, tokens);
+		toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+		// Painted board layers: created once per toolbar, re-tinted on every
+		// call (dark/light switches reuse the same instances).
+		auto boardLayer = [toolBar](const QString& name, MatrixToolbarBoard::Layer layer)
+		{
+			QWidget* existing = toolBar->findChild<QWidget*>(name, Qt::FindDirectChildrenOnly);
+			MatrixToolbarBoard* board = existing != nullptr
+				? static_cast<MatrixToolbarBoard*>(existing)
+				: new MatrixToolbarBoard(toolBar, layer);
+			return board;
+		};
+		boardLayer(QStringLiteral("MatrixToolbarBoardUnder"), MatrixToolbarBoard::UnderCells)->setBoardTokens(tokens);
+		boardLayer(QStringLiteral("MatrixToolbarBoardOver"), MatrixToolbarBoard::OverCells)->setBoardTokens(tokens);
 	}
 };
 

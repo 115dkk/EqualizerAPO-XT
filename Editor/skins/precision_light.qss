@@ -47,6 +47,46 @@ QToolButton::menu-indicator { image: none; width: 0; height: 0; }
 
 QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 
+/* Main toolbar: the terminal's command line - all type and one hairline
+   (the strip's bottom rule comes from QToolBar above). MinimalSkin's
+   styleMainToolbar drops the action icons, so the commands are uppercase
+   mono words. State keeps to the value ladder: rest is bare type on the
+   strip, hover is exactly one background step (one step darker on paper),
+   pressed is the inverted block (the printed cursor). */
+QToolBar#MainToolBar QToolButton {
+    background: transparent; color: @TEXT@;
+    border: 0; border-radius: 0;
+    padding: 3px 7px; min-height: 22px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QToolBar#MainToolBar QToolButton:hover { background: @CARD_HOVER@; border: 0; }
+QToolBar#MainToolBar QToolButton:pressed { background: @TEXT@; color: @SURFACE@; border: 0; }
+/* Instant mode is an armed flag: off rests muted, on is full ink (the
+   checked indicator's accent block is the active-state tag). */
+QToolBar#MainToolBar QCheckBox { color: @MUTED@; }
+QToolBar#MainToolBar QCheckBox:checked { color: @TEXT@; }
+/* Save-state readout: a status field, never an alarm. "Saved" rests muted;
+   unsaved changes are simply brighter ink. */
+QToolBar#MainToolBar QLabel#DirtyStatusBadge {
+    color: @MUTED@; background: transparent; border: 0;
+    padding: 0 8px; font-size: 9pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolBar#MainToolBar QLabel#DirtyStatusBadge[dirty="true"] { color: @TEXT@; }
+/* Stream-format readout: the same field grammar; severity is an ink tag
+   (like the analysis chips), never a fill or a box. */
+QToolBar#MainToolBar QLabel#DeviceFormatBadge {
+    color: @MUTED@; background: transparent; border: 0;
+    padding: 0 6px; font-size: 9pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolBar#MainToolBar QLabel#DeviceFormatBadge[severity="warning"] { color: @WARNING@; }
+/* Device/channel fields: hairline boxes on the strip; hover is one value
+   step, the accent border only while the field is active (open/focused). */
+QToolBar#MainToolBar QComboBox { background: @CARD@; border: 1px solid @BORDER@; padding: 2px 22px 2px 8px; min-height: 24px; }
+QToolBar#MainToolBar QComboBox:hover { background: @CARD_HOVER@; border: 1px solid @BORDER@; }
+QToolBar#MainToolBar QComboBox:focus, QToolBar#MainToolBar QComboBox:on { border: 1px solid @ACCENT@; }
+
 QPushButton {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;

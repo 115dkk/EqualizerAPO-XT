@@ -150,6 +150,145 @@ QLabel#ToolBarLabel {
     font-size: 9pt;
 }
 
+/* ===== Main toolbar: the board's header strip =====
+   A row of square 24px-tall cells with 1px rules, sitting on the 24px
+   column grid that MatrixToolbarBoard paints behind them (it also paints
+   the doubled header rule and the status lamp). The rules never change
+   state - only the light inside the cells does. QToolBar's own padding/
+   spacing are style metrics Qt does not read from QSS, so the geometry
+   discipline lives entirely in the cells. */
+QToolBar#MainToolBar {
+    background: @SURFACE@;
+    border: 0;
+    border-bottom: 1px solid @BORDER@;
+}
+/* Function cells: monochrome ink glyphs in transparent cells, so the
+   column grid runs through them. Hover = dim cell pre-light, pressed/
+   checked = engaged crosspoint (accent fill + accent rule). */
+QToolBar#MainToolBar QToolButton {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 13px;
+    min-height: 24px;
+    max-height: 24px;
+}
+QToolBar#MainToolBar QToolButton:hover {
+    background: rgba(34, 211, 238, 0.10);
+}
+QToolBar#MainToolBar QToolButton:pressed,
+QToolBar#MainToolBar QToolButton:checked {
+    background: rgba(34, 211, 238, 0.28);
+    border-color: @ACCENT@;
+}
+QToolBar#MainToolBar QToolButton:disabled {
+    border-style: dashed;
+}
+/* Engage cell: monochrome caption at rest, the square indicator is the
+   crosspoint LED - accent-lit only while engaged. */
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px;
+    spacing: 6px;
+    min-height: 24px;
+    max-height: 24px;
+    font-weight: 600;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator {
+    width: 10px;
+    height: 10px;
+    background: @GRAPH@;
+    border: 1px solid @BORDER@;
+}
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:hover {
+    border-color: @ACCENT@;
+}
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:checked {
+    background: @ACCENT@;
+    border-color: @ACCENT@;
+}
+/* Status readout cell: mono code on the sunken fill painted by the board
+   layer, headed by the solid square lamp (green = saved, amber = modified
+   - the colours rationing reserves for status). */
+QToolBar#MainToolBar QLabel#DirtyStatusBadge {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px 2px 20px;
+    min-height: 24px;
+    max-height: 24px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 500;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QToolBar#MainToolBar QLabel#DirtyStatusBadge[dirty="true"] {
+    color: @WARNING@;
+}
+/* Caption cells: uppercase board captions ahead of their readout. */
+QToolBar#MainToolBar QLabel#ToolBarLabel {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 6px;
+    min-height: 24px;
+    max-height: 24px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 9pt;
+}
+/* Destination readouts: square sunken cells (device names are names, not
+   values, so they keep the board's sans type). */
+QToolBar#MainToolBar QComboBox#ToolBarComboBox {
+    background: @GRAPH@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 6px 2px 8px;
+    min-height: 24px;
+    max-height: 24px;
+    font-size: 9pt;
+}
+QToolBar#MainToolBar QComboBox#ToolBarComboBox:hover {
+    border-color: @ACCENT@;
+}
+QToolBar#MainToolBar QComboBox#ToolBarComboBox:focus,
+QToolBar#MainToolBar QComboBox#ToolBarComboBox:on {
+    border-color: @ACCENT@;
+}
+/* Format readout: a mono value cell; amber ink + rule only when the
+   stream is not processed natively (severity is status, never
+   decoration). */
+QToolBar#MainToolBar QLabel#DeviceFormatBadge {
+    background: @GRAPH@;
+    color: @MUTED@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px;
+    min-height: 24px;
+    max-height: 24px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QToolBar#MainToolBar QLabel#DeviceFormatBadge[severity="warning"] {
+    color: @WARNING@;
+    border-color: @WARNING@;
+}
+QWidget#MatrixToolbarBoardUnder,
+QWidget#MatrixToolbarBoardOver {
+    background: transparent;
+}
+
 /* ===== Push Buttons ===== */
 QPushButton {
     background: @CARD@;

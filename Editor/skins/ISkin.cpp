@@ -9,9 +9,12 @@
 
 #include "ISkin.h"
 
+#include <QAction>
 #include <QPainter>
+#include <QToolBar>
 #include <QtMath>
 
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FilterPickerView.h"
 
 namespace
@@ -130,4 +133,26 @@ FilterPickerView* ISkin::createFilterPicker(QWidget* parent) const
 {
 	// Neutral default: the shared search-over-sections dropdown.
 	return new DefaultFilterPickerView(parent);
+}
+
+void ISkin::styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const
+{
+	if (toolBar == nullptr)
+		return;
+
+	// Neutral default: the shared modern stroke icons, tinted with the text
+	// token so they follow every skin's dark/light ink. This replaces the
+	// legacy .ico set the .ui file still references (kept there so a skin
+	// could deliberately return to it).
+	const QColor ink(tokens.text);
+	toolBar->setIconSize(GUIHelper::scale(QSize(18, 18)));
+	for (QAction* action : toolBar->actions())
+	{
+		if (action->objectName() == QStringLiteral("actionNew"))
+			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/file-new.svg"), ink, 18));
+		else if (action->objectName() == QStringLiteral("actionOpen"))
+			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), ink, 18));
+		else if (action->objectName() == QStringLiteral("actionSave"))
+			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save.svg"), ink, 18));
+	}
 }

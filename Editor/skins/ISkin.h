@@ -19,6 +19,7 @@
 class FilterPickerView;
 class IRoutingRenderer;
 class QPainter;
+class QToolBar;
 class QWidget;
 
 // Identifies a command row for per-command-type chrome decisions.
@@ -129,4 +130,15 @@ public:
 	// field over one sectioned list. Ownership passes to the caller via the
 	// usual QWidget parent mechanism.
 	virtual FilterPickerView* createFilterPicker(QWidget* parent) const;
+
+	// Dress the main toolbar in this skin's language. Called from
+	// applyRedesignPreferences at startup and again on every skin/dark
+	// switch, so implementations must be idempotent. The default replaces the
+	// legacy .ico action icons (the 2005-era document set) with the shared
+	// modern stroke icons tinted by the text token and sets a scaled icon
+	// size; skins override to re-tint, swap the icon language, set dynamic
+	// properties their QSS targets, or attach painted chrome. The file
+	// actions are identified by their .ui object names (actionNew,
+	// actionOpen, actionSave).
+	virtual void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const;
 };

@@ -131,8 +131,103 @@ QToolButton::menu-indicator { image: none; width: 0; height: 0; }
 QLabel#ToolBarLabel {
     color: @MUTED@;
     background: transparent;
-    padding: 0 4px 0 8px;
-    font-weight: 600;
+    padding: 0 6px 0 10px;
+    font-size: 9pt;
+    font-weight: 500;
+}
+
+/* ===== Main toolbar: the top edge of the glass =====
+   Same grammar as the dark sheet: the strip stays the window background,
+   a 1px white reflection marks its bottom edge, hover pools accent light
+   under the unboxed buttons, the Instant mode lamp glows when on and the
+   badges are sunken mono readouts. */
+QToolBar#MainToolBar {
+    background: @BG@;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.95);
+    padding: 6px 10px;
+    spacing: 8px;
+}
+QToolBar#MainToolBar QToolButton {
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    padding: 5px 9px;
+    min-height: 22px;
+}
+QToolBar#MainToolBar QToolButton:hover {
+    background: qradialgradient(cx: 0.5, cy: 1.05, radius: 0.85, fx: 0.5, fy: 1.05,
+        stop: 0 rgba(47, 107, 255, 0.30), stop: 0.4 rgba(47, 107, 255, 0.11), stop: 1 rgba(47, 107, 255, 0));
+}
+QToolBar#MainToolBar QToolButton:pressed {
+    background: qradialgradient(cx: 0.5, cy: 1.05, radius: 0.9, fx: 0.5, fy: 1.05,
+        stop: 0 rgba(47, 107, 255, 0.46), stop: 0.4 rgba(47, 107, 255, 0.20), stop: 1 rgba(47, 107, 255, 0.02));
+}
+
+QCheckBox#InstantModeCheckBox {
+    color: @MUTED@;
+    background: transparent;
+    spacing: 8px;
+    padding: 2px 4px;
+}
+QCheckBox#InstantModeCheckBox:checked {
+    color: @TEXT@;
+}
+QCheckBox#InstantModeCheckBox:disabled {
+    color: #a0a0b4;
+}
+QCheckBox#InstantModeCheckBox::indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background: @CARD_HOVER@;
+    border: 1px solid @BORDER@;
+}
+QCheckBox#InstantModeCheckBox::indicator:hover {
+    border-color: rgba(47, 107, 255, 0.65);
+}
+QCheckBox#InstantModeCheckBox::indicator:checked {
+    background: qradialgradient(cx: 0.5, cy: 0.42, radius: 0.75, fx: 0.5, fy: 0.36,
+        stop: 0 #FFFFFF, stop: 0.35 @ACCENT@, stop: 1 rgba(47, 107, 255, 0.18));
+    border: 1px solid rgba(47, 107, 255, 0.8);
+}
+QCheckBox#InstantModeCheckBox::indicator:checked:disabled {
+    background: @BORDER@;
+    border-color: @BORDER@;
+}
+
+QLabel#DirtyStatusBadge {
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    color: @MUTED@;
+    background: @CARD_HOVER@;
+    border: 1px solid @BORDER@;
+    border-top-color: rgba(0, 0, 0, 0.14);
+    border-radius: 8px;
+    padding: 3px 10px;
+}
+/* Unsaved changes: the amber lamp lights the glass from behind, matching the
+   format-warning grammar below. */
+QLabel#DirtyStatusBadge[dirty="true"] {
+    color: @TEXT@;
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.60);
+}
+
+QLabel#DeviceFormatBadge {
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    color: @MUTED@;
+    background: @CARD_HOVER@;
+    border: 1px solid @BORDER@;
+    border-top-color: rgba(0, 0, 0, 0.14);
+    border-radius: 8px;
+    padding: 3px 10px;
+}
+QLabel#DeviceFormatBadge[severity="warning"] {
+    color: @TEXT@;
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.60);
 }
 
 QPushButton {

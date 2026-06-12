@@ -19,6 +19,7 @@ struct CommandRowInfo;
 struct KnobState;
 struct SkinTokens;
 class QPainter;
+class QToolBar;
 
 namespace RackChrome
 {
@@ -35,4 +36,12 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 
 // Skeuomorphic pointer knob with a panel-printed scale.
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens);
+
+// Mount (or refresh) the master-rail chrome on the main toolbar: a painted
+// overlay widget (brushed strip, machined edges, end screws, engraved series
+// marking and the instant-mode power LED) kept below the toolbar's controls.
+// Idempotent - re-running only refreshes the tokens. The overlay hides
+// itself when another skin's stylesheet takes over, so no chrome leaks
+// across skin switches.
+void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens);
 }

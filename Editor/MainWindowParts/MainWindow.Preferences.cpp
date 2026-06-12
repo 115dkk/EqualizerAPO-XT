@@ -307,6 +307,14 @@ void MainWindow::applyRedesignPreferences()
 	SkinManager::instance()->applySkin(skinId, skinDark);
 	skinId = SkinManager::instance()->currentSkinId();
 
+	// The toolbar is dressed by the active skin (icons + chrome); re-run on
+	// every skin/dark switch so the tinted icons follow the new ink. The
+	// menu-only Save As action gets the matching neutral icon here - it is
+	// not on the toolbar, so the skin hook never sees it.
+	SkinManager::instance()->styleMainToolbar(ui->mainToolBar);
+	ui->actionSaveAs->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save-as.svg"),
+		QColor(SkinManager::instance()->tokens().text), 18));
+
 	if (interfaceModeActionGroup != nullptr)
 	{
 		for (QAction* action : interfaceModeActionGroup->actions())

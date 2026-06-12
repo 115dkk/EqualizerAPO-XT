@@ -114,12 +114,13 @@ void MainWindow::updateDirtyStatus()
 	const int index = ui->tabWidget->currentIndex();
 	const bool dirty = index >= 0 && ui->tabWidget->tabText(index).endsWith('*');
 	dirtyStatusLabel->setText(dirty ? tr("Unsaved changes") : tr("Saved"));
+	// The badge's look is owned by the skins: every sheet styles
+	// QLabel#DirtyStatusBadge and its [dirty="true"] variant in its own
+	// grammar (amber glass lamp, brighter mono ink, warm pill, LCD segments,
+	// status lamp cell). The inline stylesheet that used to be set here
+	// overrode all of that with one hardcoded pill on the first save-state
+	// change; only the dynamic property + repolish remain.
 	dirtyStatusLabel->setProperty("dirty", dirty);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	dirtyStatusLabel->setStyleSheet(QStringLiteral("QLabel#DirtyStatusBadge { background: %1; color: %2; border: 1px solid %3; border-radius: 10px; padding: 4px 10px; font-weight: 700; }")
-		.arg(dirty ? tokens.warning : tokens.surfaceRaised,
-			dirty ? QStringLiteral("#111111") : tokens.text,
-			dirty ? tokens.warning : tokens.border));
 	dirtyStatusLabel->style()->unpolish(dirtyStatusLabel);
 	dirtyStatusLabel->style()->polish(dirtyStatusLabel);
 	dirtyStatusLabel->update();
