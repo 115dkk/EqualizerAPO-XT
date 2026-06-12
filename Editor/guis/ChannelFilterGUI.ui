@@ -70,7 +70,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Selected channels:</string>
+      <string>Selected channels</string>
      </property>
     </widget>
    </item>

@@ -74,7 +74,7 @@
    <item row="0" column="0">
     <widget class="QLabel" name="includeLabel">
      <property name="text">
-      <string>Include:</string>
+      <string>Include</string>
      </property>
     </widget>
    </item>

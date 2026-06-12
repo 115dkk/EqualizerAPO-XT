@@ -54,7 +54,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>VST plugin:</string>
+      <string>VST plugin</string>
      </property>
     </widget>
    </item>

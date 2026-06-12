@@ -203,6 +203,7 @@ SOURCES += main.cpp\
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/FilterPickerView.cpp \
+	widgets/ValueScrubBox.cpp \
 	widgets/TitleBar.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
@@ -384,6 +385,7 @@ HEADERS  += \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
 	widgets/FilterPickerView.h \
+	widgets/ValueScrubBox.h \
 	widgets/TitleBar.h \
 	widgets/routing/CopyRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \

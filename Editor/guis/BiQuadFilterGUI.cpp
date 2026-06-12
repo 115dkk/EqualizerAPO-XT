@@ -40,6 +40,12 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 	ui->freqDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->gainDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->qDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
+	// Shared identity for the skin rounds (X5): these are genuine parameter
+	// mode selectors, not labels, and skins may key their styling off these
+	// properties without touching the legacy .ui.
+	ui->typeComboBox->setProperty("filterSelector", true);
+	ui->freqComboBox->setProperty("paramSelector", true);
+	ui->qComboBox->setProperty("paramSelector", true);
 	// Gain boosts or cuts around 0 dB; frequency and Q are one-directional.
 	// The flag reaches the skin through KnobState so bipolar knobs can read
 	// differently from unipolar ones.

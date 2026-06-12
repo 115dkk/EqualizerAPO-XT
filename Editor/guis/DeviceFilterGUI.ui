@@ -83,7 +83,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>Selected devices:</string>
+        <string>Selected devices</string>
        </property>
       </widget>
      </item>
