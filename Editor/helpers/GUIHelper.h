@@ -43,4 +43,10 @@ public:
 	// palette must follow the skin. Called at startup and by the offscreen
 	// skin gallery whenever it switches skins.
 	static void applySkinPalette();
+	// User-configurable span for dB gain knobs (Preamp card, biquad gain dial):
+	// a knob covers ±knobGainRange() dB, while direct text entry keeps each
+	// command's full range and merely pegs the knob at its end. Stored under
+	// interface/knobGainRange; clamped to [1, 100], default ±20 dB.
+	static double knobGainRange();
+	static void setKnobGainRange(double range);
 };

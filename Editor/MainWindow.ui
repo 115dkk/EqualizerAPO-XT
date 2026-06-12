@@ -218,6 +218,32 @@
          </widget>
         </item>
         <item>
+         <widget class="QLabel" name="graphPositionLabel">
+          <property name="text">
+           <string>Pos</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="graphPositionComboBox">
+          <item>
+           <property name="text">
+            <string>Top</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Bottom</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Right</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
          <spacer name="analysisControlSpacer">
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>

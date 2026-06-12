@@ -12,6 +12,24 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## v1.21.0 — 2026-06-12
+
+- Gain knobs (the Preamp card knob and the biquad gain dial) now turn across
+  a configurable ±range, default ±20 dB, set via View > Interface > Knob gain
+  range. Typed values still accept each command's full range and simply peg
+  the knob; the previous fixed ±100 dB preamp span made small turns jump by
+  tens of dB. ([#78])
+- The analysis panel starts at a more modest height, docks at the bottom by
+  default like the original Equalizer APO, and its position is picked from a
+  Pos dropdown (Top / Bottom / Right) in the panel's control bar instead of
+  the implicit Ctrl+Alt+G cycling. ([#78])
+- A deliberately emptied Copy command can be refilled from the GUI in every
+  skin. The crosspoint grid (Signal Matrix) and patch-bay (Hardware Rack)
+  always offer the full device channel surface; the step list (Precision
+  Minimal) and equation blocks (Soft Lab) seed a row per device channel and
+  gained a per-row [+] menu for adding sources, and clearing a factor removes
+  that source. Seeded empty rows write nothing to the config line. ([#78])
+
 ## v1.20.0 — 2026-06-12
 
 - The Editor now writes a crash minidump and a small text report (version,
@@ -332,3 +350,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#73]: https://github.com/115dkk/EqualizerAPO-XT/pull/73
 [#75]: https://github.com/115dkk/EqualizerAPO-XT/issues/75
 [#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76
+[#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78

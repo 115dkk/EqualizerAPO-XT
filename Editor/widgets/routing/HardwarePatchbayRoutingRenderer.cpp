@@ -13,8 +13,13 @@
 
 using std::vector;
 
-HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments, QWidget* parent)
-	: RoutingView(parent), workingAssignments(assignments)
+HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments,
+	const vector<std::wstring>& channelNames, QWidget* parent)
+	: RoutingView(parent),
+	// Seed every device channel as a row/column so an emptied Copy can be
+	// refilled from the GUI; empty rows are skipped by the serializer.
+	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
+	deviceChannels(channelNames)
 {
 	// Match the stable painted-routing-view size contract (StepList / BlockChip).
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
@@ -24,7 +29,7 @@ HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments
 
 void HardwarePatchbayView::rebuildMatrix()
 {
-	matrix = CopyRoutingAdapter::buildMatrix(workingAssignments);
+	matrix = CopyRoutingAdapter::buildMatrix(workingAssignments, deviceChannels);
 	updateGeometry();
 	update();
 }
@@ -270,7 +275,7 @@ void HardwarePatchbayView::commitEditor()
 }
 
 RoutingView* HardwarePatchbayRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& /*channelNames*/, QWidget* parent)
+	const vector<std::wstring>& channelNames, QWidget* parent)
 {
-	return new HardwarePatchbayView(assignments, parent);
+	return new HardwarePatchbayView(assignments, channelNames, parent);
 }

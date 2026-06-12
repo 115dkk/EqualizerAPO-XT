@@ -6,6 +6,23 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## v1.21.0 (2026-06-12)
+
+- 게인 노브(Preamp 카드 노브, biquad 게인 다이얼)가 설정 가능한 ±범위를
+  돌도록 바뀌었습니다. 기본값은 ±20dB이고 View > Interface > Knob gain
+  range에서 바꿀 수 있습니다. 직접 입력하는 값은 기존 전체 범위를 그대로
+  받고 노브만 끝에 걸립니다. 기존에는 Preamp 노브가 ±100dB 고정이라 조금만
+  돌려도 수십 dB씩 튀었습니다. ([#78])
+- 분석 패널의 기본 높이를 줄였고, 원본 Equalizer APO처럼 아래쪽이 기본
+  위치가 됐으며, 위치는 Ctrl+Alt+G 순환 대신 패널 컨트롤 바의 Pos
+  드롭다운(위/아래/오른쪽)에서 직접 고릅니다. ([#78])
+- Copy 명령을 일부러 비워도 모든 스킨에서 GUI로 다시 채울 수 있습니다.
+  크로스포인트 격자(Signal Matrix)와 패치베이(Hardware Rack)는 장치 채널
+  전체를 항상 표시하고, 스텝 목록(Precision Minimal)과 수식 블록(Soft Lab)은
+  장치 채널마다 행을 만들고 행별 [+] 메뉴로 소스를 추가할 수 있으며, 계수를
+  지우면 해당 소스가 빠집니다. 비어 있는 행은 설정 줄에 아무것도 쓰지
+  않습니다. ([#78])
+
 ## v1.20.0 (2026-06-12)
 
 - Editor가 예기치 않게 죽을 때 흔적 없이 사라지는 대신, 크래시 미니덤프와
@@ -316,3 +333,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#73]: https://github.com/115dkk/EqualizerAPO-XT/pull/73
 [#75]: https://github.com/115dkk/EqualizerAPO-XT/issues/75
 [#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76
+[#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78

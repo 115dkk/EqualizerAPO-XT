@@ -46,7 +46,8 @@ void MainWindow::loadPreferences()
 	skinId = settings.value("interface/skin", "studio").toString();
 	skinDark = settings.value("interface/dark", GUIHelper::isDarkMode()).toBool();
 	currentRenderMode = settings.value("interface/legacyRows", false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
-	graphDockPosition = settings.value("interface/graphDockPosition", 0).toInt();
+	// Default to the bottom, like the original Equalizer APO's analysis panel.
+	graphDockPosition = qBound(0, settings.value("interface/graphDockPosition", 1).toInt(), 2);
 	applyRedesignPreferences();
 
 	QVariant geometryValue = settings.value("geometry");
@@ -244,13 +245,61 @@ void MainWindow::setupRedesignActions()
 	connect(darkThemeAction, SIGNAL(toggled(bool)), this, SLOT(darkThemeToggled(bool)));
 
 	interfaceMenu->addSeparator();
-	QAction* cycleGraphAction = interfaceMenu->addAction(tr("Cycle graph position"));
-	cycleGraphAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+G")));
-	connect(cycleGraphAction, SIGNAL(triggered()), this, SLOT(cycleGraphPosition()));
 
+	// The gain knobs (Preamp card, biquad gain dial) span a configurable ±range;
+	// typed values keep the full command range. Data: the range in dB, 0.0 marks
+	// the "Custom..." entry which asks for a number.
+	QMenu* knobRangeMenu = interfaceMenu->addMenu(tr("Knob gain range"));
+	knobRangeActionGroup = new QActionGroup(this);
+	knobRangeActionGroup->setExclusive(true);
+	for (double range : { 6.0, 12.0, 20.0, 40.0, 100.0 })
+	{
+		QAction* action = knobRangeMenu->addAction(tr("±%1 dB").arg(range));
+		action->setCheckable(true);
+		action->setData(range);
+		knobRangeActionGroup->addAction(action);
+	}
+	QAction* customRangeAction = knobRangeMenu->addAction(tr("Custom..."));
+	customRangeAction->setCheckable(true);
+	customRangeAction->setData(0.0);
+	knobRangeActionGroup->addAction(customRangeAction);
+	connect(knobRangeActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(knobRangeSelected(QAction*)));
+
+	// The graph position is chosen explicitly via the dropdown in the analysis
+	// panel's control bar (graphPositionComboBox); the old implicit
+	// "cycle graph position" action is gone.
 	QAction* fullscreenGraphAction = interfaceMenu->addAction(tr("Fullscreen graph"));
 	fullscreenGraphAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+F")));
 	connect(fullscreenGraphAction, SIGNAL(triggered()), this, SLOT(toggleGraphFullscreen()));
+}
+
+void MainWindow::syncKnobRangeActions()
+{
+	if (knobRangeActionGroup == nullptr)
+		return;
+
+	const double knobRange = GUIHelper::knobGainRange();
+	QAction* customAction = nullptr;
+	bool presetMatched = false;
+	for (QAction* action : knobRangeActionGroup->actions())
+	{
+		const double value = action->data().toDouble();
+		if (value == 0.0)
+		{
+			customAction = action;
+			continue;
+		}
+		const bool matches = value == knobRange;
+		action->setChecked(matches);
+		presetMatched = presetMatched || matches;
+	}
+	if (customAction != nullptr)
+	{
+		customAction->setChecked(!presetMatched);
+		customAction->setText(presetMatched
+			? tr("Custom...")
+			: tr("Custom (±%1 dB)...").arg(knobRange));
+	}
 }
 
 void MainWindow::applyRedesignPreferences()
@@ -274,6 +323,11 @@ void MainWindow::applyRedesignPreferences()
 		darkThemeAction->setChecked(skinDark);
 		darkThemeAction->blockSignals(false);
 	}
+	syncKnobRangeActions();
+
+	ui->graphPositionComboBox->blockSignals(true);
+	ui->graphPositionComboBox->setCurrentIndex(graphDockPosition);
+	ui->graphPositionComboBox->blockSignals(false);
 
 	ui->analysisDockWidget->setWindowTitle(tr("Graph"));
 	bool graphWasShown = !ui->analysisDockWidget->isHidden();

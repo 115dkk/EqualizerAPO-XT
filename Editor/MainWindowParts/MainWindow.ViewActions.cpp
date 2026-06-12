@@ -9,6 +9,7 @@
 #include <QScrollArea>
 #include <QFileInfo>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
@@ -124,10 +125,44 @@ void MainWindow::darkThemeToggled(bool checked)
 	}
 }
 
-void MainWindow::cycleGraphPosition()
+void MainWindow::on_graphPositionComboBox_currentIndexChanged(int index)
 {
-	graphDockPosition = (graphDockPosition + 1) % 3;
+	if (index < 0 || index > 2 || index == graphDockPosition)
+		return;
+
+	graphDockPosition = index;
 	applyRedesignPreferences();
+}
+
+void MainWindow::knobRangeSelected(QAction* action)
+{
+	if (action == nullptr)
+		return;
+
+	double range = action->data().toDouble();
+	if (range == 0.0)
+	{
+		// The "Custom..." entry asks for a number instead of carrying one.
+		bool ok = false;
+		range = QInputDialog::getDouble(this, tr("Knob gain range"),
+			tr("Gain knobs will cover ± this many dB:"),
+			GUIHelper::knobGainRange(), 1.0, 100.0, 1, &ok);
+		if (!ok)
+		{
+			syncKnobRangeActions();
+			return;
+		}
+	}
+
+	GUIHelper::setKnobGainRange(range);
+	syncKnobRangeActions();
+	// Rebuild the open rows so existing Preamp / Filter knobs pick up the new span.
+	for (int i = 0; i < ui->tabWidget->count(); i++)
+	{
+		FilterTable* filterTable = filterTableForTab(i);
+		if (filterTable != nullptr)
+			filterTable->updateGuis();
+	}
 }
 
 void MainWindow::toggleGraphFullscreen()

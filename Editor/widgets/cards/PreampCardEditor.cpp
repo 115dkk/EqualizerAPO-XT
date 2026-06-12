@@ -7,11 +7,15 @@
 #include <QLocale>
 #include <QRegularExpression>
 
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
 
 namespace
 {
+// Bounds for directly typed values; the knob itself only spans the
+// user-configured GUIHelper::knobGainRange() so a small turn stays a small
+// change.
 constexpr double MinimumGain = -100.0;
 constexpr double MaximumGain = 100.0;
 constexpr double GainStep = 0.1;
@@ -40,7 +44,10 @@ PreampCardEditor::PreampCardEditor(double dbGain, QWidget* parent)
 	knob = new AudioKnob(this);
 	knob->setObjectName(QStringLiteral("PreampCardKnob"));
 	knob->setBipolar(true);
-	knob->setRange(gainToKnobValue(MinimumGain), gainToKnobValue(MaximumGain));
+	// A gain outside the knob span (typed directly) pegs the knob at its end
+	// while the editable value keeps showing the real number.
+	const double knobRange = GUIHelper::knobGainRange();
+	knob->setRange(gainToKnobValue(-knobRange), gainToKnobValue(knobRange));
 	knob->setSingleStep(1);
 	knob->setPageStep(10);
 	connect(knob, SIGNAL(valueChanged(int)), this, SLOT(knobChanged(int)));

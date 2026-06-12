@@ -12,8 +12,15 @@
 
 using std::vector;
 
-CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments, QWidget* parent)
-	: RoutingView(parent), workingAssignments(assignments)
+CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments,
+	const vector<std::wstring>& channelNames, QWidget* parent)
+	: RoutingView(parent),
+	// Seeding every device channel as a row/column keeps the grid editable even
+	// when the command references few (or no) channels; without it an emptied
+	// Copy could never be refilled from the GUI. Empty rows are skipped by the
+	// serializer, so the config line is unaffected.
+	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
+	deviceChannels(channelNames)
 {
 	setMouseTracking(true);
 	// Match the stable painted-routing-view size contract (StepList / BlockChip):
@@ -27,7 +34,7 @@ CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments
 
 void CrosspointMatrixView::rebuildMatrix()
 {
-	matrix = CopyRoutingAdapter::buildMatrix(workingAssignments);
+	matrix = CopyRoutingAdapter::buildMatrix(workingAssignments, deviceChannels);
 	updateGeometry();
 	update();
 }
@@ -311,7 +318,7 @@ void CrosspointMatrixView::commitEditor()
 }
 
 RoutingView* CrosspointMatrixRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& /*channelNames*/, QWidget* parent)
+	const vector<std::wstring>& channelNames, QWidget* parent)
 {
-	return new CrosspointMatrixView(assignments, parent);
+	return new CrosspointMatrixView(assignments, channelNames, parent);
 }
