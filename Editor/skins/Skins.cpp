@@ -1053,6 +1053,18 @@ public:
 		return new RackFilterPickerView(parent);
 	}
 
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		// The shared stroke icons first (tinted with the panel's warm ink),
+		// then the master-rail chrome: RackChrome mounts a painted overlay
+		// (brushed strip, machined edges, end screws, engraved series
+		// marking, instant-mode power LED) under the toolbar's controls. The
+		// QSS dresses the controls themselves as transport buttons and an
+		// LCD save-state well.
+		ISkin::styleMainToolbar(toolBar, tokens);
+		RackChrome::styleMainToolbar(toolBar, tokens);
+	}
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;

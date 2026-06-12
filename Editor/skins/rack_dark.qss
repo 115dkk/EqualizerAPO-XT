@@ -57,7 +57,67 @@ QToolButton:pressed, QToolButton:checked {
 }
 QToolButton::menu-indicator { image: none; width: 0; height: 0; }
 
-QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+/* ── Main toolbar: the rack's master rail ────────────────────────────────
+   RackChrome mounts a painted overlay (RackToolbarPlate: brushed strip,
+   machined edges, end screws, engraved series marking, instant-mode power
+   LED); QSS supplies the base rail and dresses the controls as hardware.
+   The rail-ear zones for the screws are reserved as layout margins by
+   RackChrome::styleMainToolbar (QToolBar ignores stylesheet padding). */
+QToolBar#MainToolBar {
+    background: @SURFACE@;
+    border: 0; border-bottom: 1px solid #060809;
+    spacing: 6px;
+}
+/* The painted overlay and the ear spacers stay transparent: the chrome is
+   drawn by RackChrome at their geometry. */
+QWidget#RackToolbarPlate, QWidget#RackToolbarEarSpacer { background: transparent; }
+/* The file actions are transport buttons: raised square caps with a lit top
+   bevel; pressing recesses the cap into the rail. */
+QToolBar#MainToolBar QToolButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+    color: @TEXT@;
+    border: 1px solid #11161A; border-top-color: #3E474F;
+    border-radius: 2px;
+    min-width: 22px; min-height: 22px; padding: 3px 5px; margin: 0 1px;
+}
+QToolBar#MainToolBar QToolButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
+    border-color: @ACCENT@; border-top-color: #3E474F;
+}
+QToolBar#MainToolBar QToolButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #14181C, stop:1 #232A30);
+    border-color: @ACCENT@; border-top-color: #0C1013;
+}
+/* Instant mode is a panel switch read by its lamp: the stock indicator
+   collapses and RackChrome paints a real LED in the padding-reserved well. */
+QCheckBox#InstantModeCheckBox {
+    color: @TEXT@; background: transparent;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 2px 4px 2px 22px; spacing: 0;
+}
+QCheckBox#InstantModeCheckBox::indicator { width: 0; height: 0; background: transparent; border: 0; image: none; }
+/* The save-state readout is a dark LCD well in both modes - displays do not
+   follow the panel finish. Modified state burns amber segments. */
+QLabel#DirtyStatusBadge {
+    background: #0B0F0C; color: #86F2BA;
+    border: 1px solid #050807; border-bottom-color: #39424A;
+    border-radius: 2px; padding: 4px 10px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QLabel#DirtyStatusBadge[dirty="true"] { color: #F2C063; }
+/* Device-format status: engraved wireframe, amber when the unit bypasses. */
+QLabel#DeviceFormatBadge {
+    background: transparent; color: @MUTED@;
+    border: 1px solid @MUTED@; border-radius: 1px;
+    padding: 2px 6px; font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QLabel#DeviceFormatBadge[severity="warning"] { color: @WARNING@; border-color: @WARNING@; }
+
+QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; font-size: 8pt; text-transform: uppercase; letter-spacing: 2px; }
 
 /* Push buttons are raised switch caps: lit top edge, shadowed base; pressing
    inverts the gradient (the cap goes in). */
