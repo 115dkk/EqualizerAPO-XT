@@ -1,0 +1,1 @@
+Phase 2 judging contact sheets for the skin program (issue #68). Each sheet stacks the same row type across all five skins. This branch only hosts images for the integration report and viewer issues - never merge it.
