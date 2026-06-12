@@ -70,6 +70,39 @@ QSize MatrixFilterPickerView::sizeHint() const
 	return computedSize.isValid() ? computedSize : QSize(s(360.0), s(220.0));
 }
 
+void MatrixFilterPickerView::galleryShowcase(GalleryShowcase kind)
+{
+	if (kind == GalleryShowcase::EmptySearch)
+	{
+		// A scan no template answers: every bus count drops to 0, the rail
+		// dims, and the entry column posts the NO SIGNAL board notation
+		// painted by paintEvent.
+		query = QStringLiteral("zzzz");
+		applyQuery();
+		update();
+		return;
+	}
+
+	// HoverFirstEntry: stage the crosspoint pre-light. The cursor already
+	// engages the first cell when the board opens, and an engaged cell shows
+	// no hover band, so the staged hover sits on the first cell the cursor
+	// is not holding - plus the next answering bus, so both pre-light
+	// treatments (entry cell, bus cell) are in the same shot.
+	query.clear();
+	applyQuery();
+	hoverRow = visibleRows(activeBus).size() > 1 ? 1 : 0;
+	hoverBus = -1;
+	for (int b = 0; b < buses.size(); b++)
+	{
+		if (b != activeBus && busHasMatches(b))
+		{
+			hoverBus = b;
+			break;
+		}
+	}
+	update();
+}
+
 void MatrixFilterPickerView::rebuildBuses(const QList<FilterPickerEntry>& entries)
 {
 	buses.clear();
@@ -453,7 +486,9 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		}
 		else if (hovered)
 		{
-			painter.fillRect(cell, withAlpha(accent, 10));
+			// Pre-light calibrated up with the LED round (M1): the band must
+			// read as an addressed bus, not as a rendering artefact.
+			painter.fillRect(cell, withAlpha(accent, 16));
 		}
 		painter.setPen(QPen(border, 1));
 		painter.drawLine(cell.left(), cell.bottom(), cell.right(), cell.bottom());
@@ -506,7 +541,9 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		if (engaged)
 			painter.fillRect(cellRect, withAlpha(accent, 30));
 		else if (hovered)
-			painter.fillRect(cellRect, withAlpha(accent, 12));
+			// Pre-light calibrated up with the LED round (M1), still well
+			// below the engaged fill so hover never reads as engagement.
+			painter.fillRect(cellRect, withAlpha(accent, 18));
 		painter.setPen(QPen(border, 1));
 		painter.drawLine(cellRect.left(), cellRect.bottom(), cellRect.right(), cellRect.bottom());
 		if (engaged)
@@ -532,6 +569,16 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		painter.drawText(QRect(nameX, cellRect.top(), qMax(0, nameAvail), cellRect.height()),
 			Qt::AlignVCenter | Qt::AlignLeft,
 			nameMetrics.elidedText(cell.name, Qt::ElideRight, qMax(0, nameAvail)));
+	}
+
+	// A fruitless scan never blanks the board: the entry column posts the
+	// NO SIGNAL notation where the cells would be, the way a departure board
+	// posts a fault line instead of going dark.
+	if (rows.isEmpty())
+	{
+		painter.setFont(monoFont(8.5, true, 2.0));
+		painter.setPen(dimmed);
+		painter.drawText(entries, Qt::AlignCenter, QStringLiteral("-- NO SIGNAL --"));
 	}
 
 	// Divider rule between rail and entry column.
