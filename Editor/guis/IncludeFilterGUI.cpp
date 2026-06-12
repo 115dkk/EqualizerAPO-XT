@@ -20,6 +20,8 @@
 #include <QFileDialog>
 
 #include "helpers/RegistryHelper.h"
+#include "Editor/SkinManager.h"
+#include "Editor/skins/ISkin.h"
 #include "IncludeFilterGUI.h"
 #include "ui_IncludeFilterGUI.h"
 
@@ -29,6 +31,15 @@ IncludeFilterGUI::IncludeFilterGUI(FilterTable* filterTable, const QString& path
 	ui->setupUi(this);
 
 	ui->pathLineEdit->setText(path);
+
+	// Frozen legacy row: it stays functional under every skin, so it consults
+	// the same chrome hook as the card editors (legacyRow marks it for skins
+	// that want to leave the legacy path untouched).
+	CommandRowInfo rowInfo;
+	rowInfo.type = QStringLiteral("include");
+	rowInfo.command = QStringLiteral("include");
+	rowInfo.legacyRow = true;
+	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
 
 	updateFileInfo();
 }

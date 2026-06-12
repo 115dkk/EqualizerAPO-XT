@@ -73,3 +73,40 @@ void ISkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 		painter.drawText(rect, Qt::AlignCenter, state.valueText);
 	}
 }
+
+// The two style defaults are the strings FilterCardRow::refreshStateProperties
+// computed before the hook existed, moved verbatim, so every skin keeps its
+// previous card chrome until it overrides them.
+QString ISkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
+{
+	const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
+	const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
+	// Signal Matrix uses a coloured rail on the left edge to suggest routing.
+	// All other skins keep a uniform 1px border.
+	return tokens.cardRailWidth > 0
+		? QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-left: %3px solid %4; border-radius: %5px; }")
+		.arg(backgroundColor, borderColor)
+		.arg(tokens.cardRailWidth)
+		.arg(tokens.accent)
+		.arg(tokens.borderRadius)
+		: QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }")
+		.arg(backgroundColor, borderColor)
+		.arg(tokens.borderRadius);
+}
+
+QString ISkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
+{
+	return QStringLiteral("QWidget#FilterCardHeader { background: %1; border-top-left-radius: %2px; border-top-right-radius: %2px; }")
+		.arg(info.selected ? tokens.surfaceRaised : tokens.cardHover)
+		.arg(tokens.borderRadius);
+}
+
+void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget*) const
+{
+	// Neutral default: rows keep their stock construction.
+}
+
+void ISkin::paintCardChrome(QPainter&, const QRect&, const CommandRowInfo&, const SkinTokens&) const
+{
+	// Neutral default: no painted decoration on top of the QSS chrome.
+}

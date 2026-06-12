@@ -30,7 +30,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// and force every cell in FilterTable's grid to that width.
 	outerLayout->setSizeConstraint(QLayout::SetNoConstraint);
 
-	cardFrame = new QFrame(this);
+	cardFrame = new CommandRowFrame(this);
 	cardFrame->setObjectName(QStringLiteral("FilterCardRow"));
 	cardFrame->setAttribute(Qt::WA_StyledBackground, true);
 	cardFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -270,7 +270,23 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		refreshStateProperties();
 		update();
 	});
+	// Per-command-type chrome hook: rows are recreated on every skin switch
+	// (FilterTable::updateGuis), so construction time is the right moment for
+	// the active skin to tag or extend this row.
+	SkinManager::instance()->prepareCommandRow(currentRowInfo(), cardFrame, headerWidget, bodyStack);
 	rebuildSummary();
+}
+
+CommandRowInfo FilterCardRow::currentRowInfo() const
+{
+	CommandRowInfo info;
+	info.type = descriptor.type;
+	info.command = descriptor.command.toLower();
+	info.enabled = descriptor.enabled;
+	info.selected = table != nullptr && table->getSelectedItems().contains(item);
+	info.focused = table != nullptr && table->getFocusedItem() == item;
+	info.depth = descriptor.depth;
+	return info;
 }
 
 QRect FilterCardRow::getHeaderRect() const
@@ -584,8 +600,8 @@ void FilterCardRow::refreshStateProperties()
 	if (cardFrame == nullptr)
 		return;
 
-	const bool selected = table != nullptr && table->getSelectedItems().contains(item);
-	const bool focused = table != nullptr && table->getFocusedItem() == item;
+	const CommandRowInfo info = currentRowInfo();
+	cardFrame->setRowInfo(info);
 
 	// "enabled" is a real QWidget property, so setting it on cardFrame /
 	// headerWidget was equivalent to calling setEnabled(false) on the whole
@@ -594,11 +610,11 @@ void FilterCardRow::refreshStateProperties()
 	// controls...) so a disabled row could not be re-enabled or even inspected.
 	// Use a dedicated dynamic property name for the styling hook instead.
 	const QList<QPair<const char*, QVariant>> properties = {
-		{ "filterKind", descriptor.command.toLower() },
-		{ "filterEnabled", descriptor.enabled },
-		{ "selected", selected },
-		{ "focused", focused },
-		{ "scopeDepth", descriptor.depth }
+		{ "filterKind", info.command },
+		{ "filterEnabled", info.enabled },
+		{ "selected", info.selected },
+		{ "focused", info.focused },
+		{ "scopeDepth", info.depth }
 	};
 
 	bool changed = false;
@@ -612,23 +628,11 @@ void FilterCardRow::refreshStateProperties()
 		}
 	}
 
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const QString borderColor = focused ? tokens.focusRing : (selected ? tokens.accent : tokens.border);
-	const QString backgroundColor = selected ? tokens.cardSelected : tokens.card;
-	// Signal Matrix uses a coloured rail on the left edge to suggest routing.
-	// All other skins keep a uniform 1px border.
-	const QString frameStyle = tokens.cardRailWidth > 0
-		? QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-left: %3px solid %4; border-radius: %5px; }")
-			.arg(backgroundColor, borderColor)
-			.arg(tokens.cardRailWidth)
-			.arg(tokens.accent)
-			.arg(tokens.borderRadius)
-		: QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }")
-			.arg(backgroundColor, borderColor)
-			.arg(tokens.borderRadius);
-	const QString headerStyle = QStringLiteral("QWidget#FilterCardHeader { background: %1; border-top-left-radius: %2px; border-top-right-radius: %2px; }")
-		.arg(selected ? tokens.surfaceRaised : tokens.cardHover)
-		.arg(tokens.borderRadius);
+	// The frame/header chrome is owned by the active skin so each skin can
+	// treat command types differently; the default reproduces the previous
+	// shared token-driven strings (see ISkin::cardFrameStyle).
+	const QString frameStyle = SkinManager::instance()->cardFrameStyle(info);
+	const QString headerStyle = SkinManager::instance()->cardHeaderStyle(info);
 	if (cardFrame->styleSheet() != frameStyle)
 	{
 		cardFrame->setStyleSheet(frameStyle);

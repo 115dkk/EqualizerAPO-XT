@@ -34,6 +34,7 @@
 #include "helpers/RegistryHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/SkinManager.h"
+#include "Editor/skins/ISkin.h"
 #include "Editor/MainWindow.h"
 #include "Editor/guis/VSTPluginFilterGUIDialog.h"
 
@@ -116,6 +117,13 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	if (relativePath.startsWith(QDir::toNativeSeparators("../../")))
 		relativePath = absolutePath;
 	pathEdit->setText(relativePath);
+
+	// Let the active skin decorate this VST body (the row is recreated on
+	// skin switches, so construction is the only moment needed).
+	CommandRowInfo rowInfo;
+	rowInfo.type = QStringLiteral("vst");
+	rowInfo.command = QStringLiteral("vstplugin");
+	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
 
 	updatePermissionWarning();
 }

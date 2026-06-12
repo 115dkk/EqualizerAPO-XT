@@ -30,6 +30,8 @@
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/MainWindow.h"
+#include "Editor/SkinManager.h"
+#include "Editor/skins/ISkin.h"
 #include "VSTPluginFilterGUIDialog.h"
 #include "VSTPluginFilterGUI.h"
 #include "ui_VSTPluginFilterGUI.h"
@@ -59,6 +61,15 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 	QMenu* menu = new QMenu(ui->optionsButton);
 	menu->addAction(ui->embedAction);
 	ui->optionsButton->setMenu(menu);
+
+	// Frozen legacy row: it stays functional under every skin, so it consults
+	// the same chrome hook as the card editors (legacyRow marks it for skins
+	// that want to leave the legacy path untouched).
+	CommandRowInfo rowInfo;
+	rowInfo.type = QStringLiteral("vst");
+	rowInfo.command = QStringLiteral("vstplugin");
+	rowInfo.legacyRow = true;
+	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
 }
 
 VSTPluginFilterGUI::~VSTPluginFilterGUI()
