@@ -12,6 +12,23 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Channel rows on the modern cards now edit their selection in place with
+  checkable chips (device channels, ALL, custom/virtual names, plus a field
+  to add new names) instead of requiring the raw-text editor or the legacy
+  dialog flow. Equivalent selections serialize byte-identically to what the
+  old dialog wrote. ([#70])
+- Dropdowns no longer render undersized: all skins share a readable sizing
+  floor, the toolbar dropdowns follow the system font size, and popup lists
+  widen to their longest entry instead of eliding it. ([#70])
+- Skin program Phase 0 plumbing landed for the five-skin overhaul
+  (issues #66–#68): knob painting and command-row chrome are now delegated
+  through `ISkin` hooks with appearance-preserving defaults (proven
+  pixel-identical), and a headless screenshot gallery
+  (`Editor --skin-gallery`) renders every skin's representative rows; CI
+  uploads the images as the `skin-gallery` artifact. ([#70])
+
 ## v1.17.2 — 2026-06-12
 
 - All accumulated cppcheck findings were triaged. Real defects fixed: a
@@ -288,3 +305,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#62]: https://github.com/115dkk/EqualizerAPO-XT/pull/62
 [#63]: https://github.com/115dkk/EqualizerAPO-XT/pull/63
 [#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
+[#70]: https://github.com/115dkk/EqualizerAPO-XT/pull/70

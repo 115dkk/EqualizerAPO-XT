@@ -6,6 +6,21 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- 모던 카드의 Channel 행에서 채널 선택을 카드 안에서 바로 편집할 수 있습니다.
+  장치 채널 칩, ALL 칩, 커스텀/가상 채널 칩과 이름 추가 입력란이 제공되며,
+  원문 편집기나 레거시 대화 상자를 거칠 필요가 없습니다. 같은 선택은 기존
+  대화 상자가 쓰던 것과 바이트 단위로 동일하게 기록됩니다. ([#70])
+- 드롭다운이 너무 작게 그려지던 문제를 고쳤습니다. 모든 스킨이 공용 크기
+  바닥값을 공유하고, 툴바 드롭다운은 시스템 글꼴 크기를 따라가며, 팝업
+  목록은 가장 긴 항목에 맞춰 넓어집니다. ([#70])
+- 5종 스킨 전면 개편(이슈 #66~#68)을 위한 Phase 0 기반 작업이 들어갔습니다.
+  노브 페인팅과 명령 행 chrome이 `ISkin` 훅으로 위임되며(기본 구현은 픽셀
+  단위로 동일함을 검증), 헤드리스 스크린샷 갤러리(`Editor --skin-gallery`)가
+  스킨별 대표 행을 렌더링합니다. CI는 그 이미지를 `skin-gallery` 아티팩트로
+  올립니다. ([#70])
+
 ## v1.17.2 (2026-06-12)
 
 - 쌓여 있던 cppcheck 발견을 전수 분류했습니다. 실제 결함으로는 Include GUI가
@@ -277,3 +292,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#62]: https://github.com/115dkk/EqualizerAPO-XT/pull/62
 [#63]: https://github.com/115dkk/EqualizerAPO-XT/pull/63
 [#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
+[#70]: https://github.com/115dkk/EqualizerAPO-XT/pull/70
