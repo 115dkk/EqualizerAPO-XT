@@ -37,6 +37,13 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 // Skeuomorphic pointer knob with a panel-printed scale.
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens);
 
+// The custom title bar as the unit's top panel: brushed sheen and brushing
+// lines, machined top/bottom edges, the caption-button block set off by a
+// machined groove (the same ear grammar as the cards and the master rail)
+// and two hand-tightened rail screws. Drawn by TitleBar::paintEvent between
+// the QSS background and the child widgets.
+void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens);
+
 // Mount (or refresh) the master-rail chrome on the main toolbar: a painted
 // overlay widget (brushed strip, machined edges, end screws, engraved series
 // marking and the instant-mode power LED) kept below the toolbar's controls.

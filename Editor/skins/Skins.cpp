@@ -1109,6 +1109,15 @@ public:
 		RackChrome::paintCardChrome(painter, rect, info, tokens);
 	}
 
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
+	{
+		// The caption strip is the unit's top panel: brushed sheen, machined
+		// edges, the caption-ear groove and two rail screws (RackChrome). QSS
+		// prints the model designation and dresses the caption buttons as
+		// machined caps.
+		RackChrome::paintTitleBarChrome(painter, rect, tokens);
+	}
+
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		// The module library browser: a brushed 1U faceplate with engraved
