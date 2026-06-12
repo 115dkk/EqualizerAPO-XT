@@ -158,3 +158,9 @@ FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 		return activeSkin->createFilterPicker(parent);
 	return new DefaultFilterPickerView(parent);
 }
+
+void SkinManager::styleMainToolbar(QToolBar* toolBar) const
+{
+	if (activeSkin != nullptr)
+		activeSkin->styleMainToolbar(toolBar, currentTokens);
+}

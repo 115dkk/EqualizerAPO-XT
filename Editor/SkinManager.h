@@ -10,6 +10,7 @@ class IRoutingRenderer;
 class ISkin;
 class QPainter;
 class QRect;
+class QToolBar;
 class QWidget;
 struct CommandRowInfo;
 struct KnobState;
@@ -47,6 +48,9 @@ public:
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;
+
+	// Main toolbar icons/chrome for the active skin (ISkin::styleMainToolbar).
+	void styleMainToolbar(QToolBar* toolBar) const;
 
 signals:
 	void skinChanged(const SkinTokens& tokens);

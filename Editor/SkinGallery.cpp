@@ -1,10 +1,13 @@
 #include "SkinGallery.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QDir>
+#include <QLabel>
 #include <QPixmap>
 #include <QScrollArea>
 #include <QString>
+#include <QToolBar>
 
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
@@ -13,6 +16,7 @@
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/widgets/SkinComboBox.h"
 
 namespace
 {
@@ -34,6 +38,69 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") }
 	};
+}
+
+// Faithful chrome replica of MainWindow's toolbar: same object names, same
+// widget train, dummy data where the real one reads devices. The gallery
+// judges chrome, not data, and constructing the real toolbar would drag in
+// device enumeration (flaky on machines without audio endpoints).
+QToolBar* buildToolbarReplica(QWidget* parent)
+{
+	QToolBar* toolBar = new QToolBar(parent);
+	toolBar->setObjectName(QStringLiteral("MainToolBar"));
+	toolBar->setMovable(false);
+
+	QAction* actionNew = toolBar->addAction(QStringLiteral("New"));
+	actionNew->setObjectName(QStringLiteral("actionNew"));
+	QAction* actionOpen = toolBar->addAction(QStringLiteral("Open"));
+	actionOpen->setObjectName(QStringLiteral("actionOpen"));
+	QAction* actionSave = toolBar->addAction(QStringLiteral("Save"));
+	actionSave->setObjectName(QStringLiteral("actionSave"));
+
+	QWidget* spacer = new QWidget;
+	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	spacer->setFixedWidth(10);
+	toolBar->addWidget(spacer);
+
+	QCheckBox* instantMode = new QCheckBox(QStringLiteral("Instant mode"));
+	instantMode->setObjectName(QStringLiteral("InstantModeCheckBox"));
+	instantMode->setChecked(true);
+	toolBar->addWidget(instantMode);
+
+	QLabel* dirtyBadge = new QLabel(QStringLiteral("Saved"));
+	dirtyBadge->setObjectName(QStringLiteral("DirtyStatusBadge"));
+	toolBar->addWidget(dirtyBadge);
+
+	spacer = new QWidget;
+	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	toolBar->addWidget(spacer);
+
+	QLabel* deviceLabel = new QLabel(QStringLiteral("Device"));
+	deviceLabel->setObjectName(QStringLiteral("ToolBarLabel"));
+	toolBar->addWidget(deviceLabel);
+
+	SkinComboBox* deviceCombo = new SkinComboBox;
+	deviceCombo->setObjectName(QStringLiteral("ToolBarComboBox"));
+	deviceCombo->addItem(QStringLiteral("Default (Speakers - Example Audio)"));
+	toolBar->addWidget(deviceCombo);
+
+	spacer = new QWidget;
+	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	spacer->setFixedWidth(10);
+	toolBar->addWidget(spacer);
+
+	QLabel* channelLabel = new QLabel(QStringLiteral("Channels"));
+	channelLabel->setObjectName(QStringLiteral("ToolBarLabel"));
+	toolBar->addWidget(channelLabel);
+
+	SkinComboBox* channelCombo = new SkinComboBox;
+	channelCombo->setObjectName(QStringLiteral("ToolBarComboBox"));
+	channelCombo->addItem(QStringLiteral("7.1 surround"));
+	toolBar->addWidget(channelCombo);
+
+	SkinManager::instance()->styleMainToolbar(toolBar);
+	return toolBar;
 }
 
 // QSS :hover matches widgets whose Qt::WA_UnderMouse attribute is set, and
@@ -166,6 +233,17 @@ int renderSkin(const QDir& outDir, const QString& skinId, bool dark)
 		QApplication::processEvents();
 		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("normal")) ? 0 : 1;
 		delete picker;
+	}
+
+	// The skin's main-toolbar chrome on a faithful replica (same object names
+	// and widget train as MainWindow, dummy device data).
+	{
+		QToolBar* toolBar = buildToolbarReplica(nullptr);
+		toolBar->resize(960, toolBar->sizeHint().height());
+		toolBar->show();
+		QApplication::processEvents();
+		failures += saveGrab(toolBar, outDir, skinId, mode, QStringLiteral("toolbar"), QStringLiteral("normal")) ? 0 : 1;
+		delete toolBar;
 	}
 	return failures;
 }
