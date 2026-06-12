@@ -996,6 +996,46 @@ jobs:
 
         Write-Host "`nAll Qt applications built successfully!"
 
+    # Offscreen skin gallery: proves the Editor renders every skin headless and
+    # publishes the judging material for the skin program (issues #66-#68).
+    # Primary avx2 variant only: the gallery is QSS/QPainter output and does
+    # not vary by SIMD variant.
+    - name: Run skin gallery (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      shell: pwsh
+      run: |
+        # The import lib embeds the SONAME velopack_libc.dll (see the Package
+        # binaries step); the gallery runs from the build dir, so the renamed
+        # DLL must sit next to Editor.exe here too.
+        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll" `
+          -Destination "build-Editor-x64\release\velopack_libc.dll" -Force
+
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
+        $env:QT_QPA_PLATFORM = "offscreen"
+        $outDir = "${{ github.workspace }}\skin-gallery"
+        # Editor.exe is a GUI-subsystem binary; Start-Process -Wait is the
+        # reliable way to collect its exit code from PowerShell.
+        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
+          -ArgumentList @("--skin-gallery", $outDir) -PassThru -Wait -NoNewWindow
+        if ($proc.ExitCode -ne 0) {
+          Write-Error "Skin gallery failed (exit code $($proc.ExitCode))"
+          exit 1
+        }
+        $pngs = @(Get-ChildItem $outDir -Filter *.png)
+        Write-Host "Gallery wrote $($pngs.Count) PNGs"
+        # 5 skins x 2 modes x 4 rows x 3 states
+        if ($pngs.Count -ne 120) {
+          Write-Error "Expected 120 gallery PNGs, got $($pngs.Count)"
+          exit 1
+        }
+
+    - name: Upload skin gallery
+      if: matrix.simd_variant == 'avx2'
+      uses: actions/upload-artifact@v7
+      with:
+        name: skin-gallery
+        path: skin-gallery/*.png
+
     # Package artifacts
     - name: Package binaries
       shell: pwsh
