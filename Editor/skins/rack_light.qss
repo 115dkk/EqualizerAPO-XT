@@ -1,14 +1,19 @@
 /* ====================================================================
-   Skin: Industrial Light
+   Skin: Rack Light - "The amplifier faceplate"
+   Skeuomorphic 19-inch rack hardware on cream/aluminium panels: machined
+   plates, switch-like controls (raised gradient caps with a lit top
+   edge), recessed display wells, LED readouts, uppercase faceplate
+   printing. The painted chrome (screws, rack ears, LEDs, jacks,
+   nameplates, pointer knobs) lives in Editor/skins/RackChrome.cpp.
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
-           accent @ACCENT@ / borderRadius 2 / row 30
+           accent @ACCENT@ / accent2 @ACCENT2@ / borderRadius 3 / row 36
    ==================================================================== */
 
 * {
     outline: 0;
     selection-background-color: @ACCENT@;
-    selection-color: #ffffff;
+    selection-color: #FFF8EA;
 }
 
 QWidget {
@@ -25,52 +30,75 @@ QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border
 
 QMenuBar { background: @SURFACE@; color: @TEXT@; padding: 2px 4px; border: 0; border-bottom: 1px solid @BORDER@; }
 QMenuBar::item { background: transparent; padding: 4px 10px; border-radius: 2px; }
-QMenuBar::item:selected, QMenuBar::item:pressed { background: #c0c0d0; color: #000000; }
+QMenuBar::item:selected, QMenuBar::item:pressed { background: #E2D8C2; color: #000000; }
 
 QMenu { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 2px; padding: 2px; }
 QMenu::item { background: transparent; padding: 5px 22px; border-radius: 2px; min-width: 140px; }
-QMenu::item:selected { background: @SURFACE@; color: #000000; }
-QMenu::item:disabled { color: #9090a0; }
+QMenu::item:selected { background: #EFE5CE; color: #000000; }
+QMenu::item:disabled { color: #A99F8E; }
 QMenu::separator { height: 1px; background: @BORDER@; margin: 4px 6px; }
 QMenu::indicator { width: 12px; height: 12px; margin-left: 4px; }
 QMenu::indicator:checked { background: @ACCENT@; }
 
 QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; padding: 2px 4px; spacing: 2px; }
 QToolBar::separator { background: @BORDER@; width: 1px; margin: 4px 6px; }
-QToolButton { background: transparent; color: @TEXT@; border: 1px solid transparent; border-radius: 2px; padding: 3px 8px; min-height: 22px; }
-QToolButton:hover { background: #c8c8d4; border: 1px solid @BORDER@; }
-QToolButton:pressed, QToolButton:checked { background: #c4d4f0; border: 1px solid @ACCENT@; }
+QToolButton {
+    background: transparent; color: @TEXT@;
+    border: 1px solid transparent; border-radius: 3px;
+    padding: 3px 8px; min-height: 22px;
+}
+QToolButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+}
+QToolButton:pressed, QToolButton:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EBCF96, stop:1 #F7E3B8);
+    border: 1px solid @ACCENT@;
+}
 QToolButton::menu-indicator { image: none; width: 0; height: 0; }
 
 QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 
+/* Push buttons are raised switch caps: lit top edge, shadowed base; pressing
+   inverts the gradient (the cap goes in). */
 QPushButton {
-    background: @CARD@; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 2px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 3px;
     padding: 4px 14px; min-height: 22px;
     text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
 }
-QPushButton:hover { background: @CARD_HOVER@; border-color: @ACCENT@; }
-QPushButton:pressed { background: #c4d4f0; border-color: @ACCENT@; }
+QPushButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border-color: @ACCENT@; border-top-color: #FFFFFF;
+}
+QPushButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border-color: @ACCENT@;
+}
 QPushButton:default { border: 1px solid @ACCENT@; }
-QPushButton:disabled { color: #9090a0; background: #dadade; border-color: #c4c4d0; }
+QPushButton:disabled { color: #A99F8E; background: #E2DCCE; border-color: #C9C0AC; }
 
+/* Inputs are recessed wells milled into the plate. */
 QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
-    background: #f2f2f8; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 2px;
+    background: #FCF8EE; color: @TEXT@;
+    border: 1px solid #8F8268; border-bottom-color: #FFFFFF;
+    border-radius: 2px;
     padding: 3px 8px;
-    selection-background-color: @ACCENT@; selection-color: #ffffff;
+    selection-background-color: @ACCENT@; selection-color: #FFF8EA;
 }
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; }
-QLineEdit:disabled, QAbstractSpinBox:disabled { color: #9090a0; background: #d8d8e0; }
+QLineEdit:disabled, QAbstractSpinBox:disabled { color: #A99F8E; background: #E2DCCE; }
 
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
-    subcontrol-origin: border; background: @SURFACE@;
-    width: 16px; border-left: 1px solid @BORDER@;
+    subcontrol-origin: border;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    width: 16px; border-left: 1px solid #8F8268;
 }
 QAbstractSpinBox::up-button { subcontrol-position: top right; }
-QAbstractSpinBox::down-button { subcontrol-position: bottom right; border-top: 1px solid @BORDER@; }
-QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover { background: #c0c0d0; }
+QAbstractSpinBox::down-button { subcontrol-position: bottom right; border-top: 1px solid #8F8268; }
+QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover { background: #F0E8D6; }
 QAbstractSpinBox::up-arrow {
     image: none; width: 0; height: 0;
     border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 4px solid @MUTED@;
@@ -80,12 +108,15 @@ QAbstractSpinBox::down-arrow {
     border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid @MUTED@;
 }
 
+/* Combo boxes are rotary-selector wells with a switch-cap face. */
 QComboBox {
-    background: @CARD@; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 2px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 3px;
     padding: 3px 28px 3px 10px; min-height: 28px;
 }
-QComboBox:hover { background: @CARD_HOVER@; border-color: @ACCENT@; }
+QComboBox:hover { border-color: @ACCENT@; border-top-color: #FFFFFF; }
 QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }
 QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 22px; border: 0; background: transparent; }
 QComboBox::down-arrow {
@@ -98,26 +129,38 @@ QComboBox QAbstractItemView {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 2px;
     padding: 2px; outline: 0;
-    selection-background-color: @SURFACE@; selection-color: #000000;
+    selection-background-color: #EFE5CE; selection-color: #000000;
 }
 QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 2px; min-height: 24px; }
 
+/* Check/radio indicators are little panel switches; checked = lit amber. */
 QCheckBox, QRadioButton { color: @TEXT@; background: transparent; spacing: 8px; padding: 2px; }
-QCheckBox:disabled, QRadioButton:disabled { color: #9090a0; }
+QCheckBox:disabled, QRadioButton:disabled { color: #A99F8E; }
 QCheckBox::indicator, QRadioButton::indicator {
-    width: 14px; height: 14px; background: #f2f2f8; border: 1px solid @BORDER@;
+    width: 15px; height: 15px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #DED6C2);
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
 }
 QCheckBox::indicator { border-radius: 2px; }
-QRadioButton::indicator { border-radius: 7px; }
+QRadioButton::indicator { border-radius: 8px; }
 QCheckBox::indicator:hover, QRadioButton::indicator:hover { border-color: @ACCENT@; }
-QCheckBox::indicator:checked, QRadioButton::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFC96A, stop:1 #D88E1E);
+    border: 1px solid #8A5C12;
+}
 
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; border: 0; }
-QScrollBar::handle:vertical { background: @BORDER@; min-height: 32px; border-radius: 2px; }
-QScrollBar::handle:vertical:hover { background: @ACCENT@; }
+QScrollBar::handle:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFFFFF, stop:1 #D5CCB8);
+    border: 1px solid #AFA288; min-height: 32px; border-radius: 2px;
+}
+QScrollBar::handle:vertical:hover { border-color: @ACCENT@; }
 QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; border: 0; }
-QScrollBar::handle:horizontal { background: @BORDER@; min-width: 32px; border-radius: 2px; }
-QScrollBar::handle:horizontal:hover { background: @ACCENT@; }
+QScrollBar::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #D5CCB8);
+    border: 1px solid #AFA288; min-width: 32px; border-radius: 2px;
+}
+QScrollBar::handle:horizontal:hover { border-color: @ACCENT@; }
 QScrollBar::add-line, QScrollBar::sub-line { background: transparent; border: 0; width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 QScrollBar::up-arrow, QScrollBar::down-arrow, QScrollBar::left-arrow, QScrollBar::right-arrow { background: transparent; width: 0; height: 0; }
@@ -134,26 +177,37 @@ QDockWidget::title {
     font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
 }
 QDockWidget::close-button, QDockWidget::float-button { background: transparent; border: 0; border-radius: 2px; padding: 2px; icon-size: 12px; }
-QDockWidget::close-button:hover, QDockWidget::float-button:hover { background: #c0c0d0; }
+QDockWidget::close-button:hover, QDockWidget::float-button:hover { background: #E2D8C2; }
 
+/* Tabs are a row of channel-select switch caps; the engaged one sits pressed
+   in with a lit amber strip under it. */
 QTabWidget::pane { background: @BG@; border: 0; border-top: 1px solid @BORDER@; top: -1px; }
 QTabBar { background: @BG@; border: 0; qproperty-drawBase: 0; }
 QTabBar::tab {
-    background: transparent; color: @MUTED@;
-    padding: 6px 16px; border: 0; border-radius: 0;
-    min-width: 80px; margin: 0;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @MUTED@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF; border-bottom: 0;
+    border-top-left-radius: 3px; border-top-right-radius: 3px;
+    padding: 5px 14px; min-width: 80px; margin: 2px 2px 0 0;
     text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
 }
-QTabBar::tab:hover { color: @TEXT@; background: @SURFACE@; }
-QTabBar::tab:selected { color: #000000; background: @CARD@; border-top: 2px solid @ACCENT@; }
-QTabBar::tab:!selected { border-bottom: 1px solid @BORDER@; }
+QTabBar::tab:hover { color: @TEXT@; }
+QTabBar::tab:selected {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    color: #000000;
+    border-bottom: 2px solid @ACCENT@;
+}
 QTabBar::close-button { image: none; background: transparent; border-radius: 2px; padding: 2px; margin: 2px; subcontrol-position: right; }
-QTabBar::close-button:hover { background: #f4baba; }
-QTabBar QToolButton { background: @CARD@; border: 1px solid @BORDER@; border-radius: 2px; margin: 4px 2px; }
+QTabBar::close-button:hover { background: #F4BABA; }
+QTabBar QToolButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    border: 1px solid #AFA288; border-top-color: #FFFFFF; border-radius: 2px; margin: 4px 2px;
+}
 
+/* Group boxes are sub-module plates with printed designations. */
 QGroupBox {
     background: @CARD@; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 2px;
+    border: 1px solid @BORDER@; border-radius: 3px;
     margin-top: 14px; padding: 14px 10px 10px;
 }
 QGroupBox::title {
@@ -172,22 +226,34 @@ QHeaderView::section {
 QTreeView, QListView, QTableView {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 2px;
-    alternate-background-color: #e8e8e0;
-    selection-background-color: @SURFACE@; selection-color: #000000;
+    alternate-background-color: #F0EADC;
+    selection-background-color: #EFE5CE; selection-color: #000000;
     gridline-color: @BORDER@;
 }
 QTreeView::item, QListView::item, QTableView::item { padding: 4px 6px; border-radius: 2px; }
-QTreeView::item:hover, QListView::item:hover, QTableView::item:hover { background: #e0e0d8; }
-QTreeView::item:selected, QListView::item:selected, QTableView::item:selected { background: @SURFACE@; color: #000000; }
+QTreeView::item:hover, QListView::item:hover, QTableView::item:hover { background: #F0E8D6; }
+QTreeView::item:selected, QListView::item:selected, QTableView::item:selected { background: #EFE5CE; color: #000000; }
 QTreeView::branch { background: transparent; }
 
-QSlider::groove:horizontal { background: @BORDER@; height: 2px; border-radius: 1px; margin: 0 6px; }
-QSlider::sub-page:horizontal { background: @ACCENT@; height: 2px; border-radius: 1px; }
-QSlider::handle:horizontal { background: @TEXT@; border: 1px solid @ACCENT@; width: 12px; height: 12px; margin: -6px 0; border-radius: 1px; }
-QSlider::groove:vertical { background: @BORDER@; width: 2px; border-radius: 1px; margin: 6px 0; }
-QSlider::add-page:vertical { background: @ACCENT@; width: 2px; border-radius: 1px; }
-QSlider::sub-page:vertical { background: @BORDER@; width: 2px; border-radius: 1px; }
-QSlider::handle:vertical { background: @TEXT@; border: 1px solid @ACCENT@; width: 12px; height: 12px; margin: 0 -6px; border-radius: 1px; }
+/* Sliders are channel faders: a milled slot and a metal cap with a dark
+   index line across it (the gradient stop at 0.5). */
+QSlider::groove:horizontal { background: #D9D2C0; height: 6px; border: 1px solid #8F8268; border-radius: 2px; margin: 0 6px; }
+QSlider::sub-page:horizontal { background: #E0B568; border: 1px solid #8F8268; border-radius: 2px; }
+QSlider::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #FFFFFF, stop:0.45 #E2DAC8, stop:0.5 #4A443A, stop:0.55 #E2DAC8, stop:1 #C9C0AC);
+    border: 1px solid #8F8268; width: 16px; height: 16px; margin: -6px 0; border-radius: 2px;
+}
+QSlider::handle:horizontal:hover { border-color: @ACCENT@; }
+QSlider::groove:vertical { background: #D9D2C0; width: 6px; border: 1px solid #8F8268; border-radius: 2px; margin: 6px 0; }
+QSlider::add-page:vertical { background: #E0B568; border: 1px solid #8F8268; border-radius: 2px; }
+QSlider::sub-page:vertical { background: #D9D2C0; border: 1px solid #8F8268; border-radius: 2px; }
+QSlider::handle:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFFFFF, stop:0.45 #E2DAC8, stop:0.5 #4A443A, stop:0.55 #E2DAC8, stop:1 #C9C0AC);
+    border: 1px solid #8F8268; width: 16px; height: 16px; margin: 0 -6px; border-radius: 2px;
+}
+QSlider::handle:vertical:hover { border-color: @ACCENT@; }
 
 QSplitter::handle { background: @BORDER@; }
 QSplitter::handle:horizontal { width: 1px; }
@@ -197,32 +263,42 @@ QSplitter::handle:hover { background: @ACCENT@; }
 QStatusBar { background: @SURFACE@; color: @MUTED@; border: 0; border-top: 1px solid @BORDER@; }
 QStatusBar::item { border: 0; }
 
-QProgressBar { background: #f2f2f8; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 2px; text-align: center; }
-QProgressBar::chunk { background: @ACCENT@; border-radius: 1px; }
+/* The progress bar is a VU strip sweeping toward amber. */
+QProgressBar { background: #FCF8EE; color: @TEXT@; border: 1px solid #8F8268; border-radius: 2px; text-align: center; }
+QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #D9A647, stop:1 @ACCENT@); border-radius: 1px; }
 
 QFrame[frameShape="4"], QFrame[frameShape="5"] { background: @BORDER@; border: 0; }
 
-QFrame#analysisControlBar { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 2px; }
+QFrame#analysisControlBar { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 3px; }
 QLabel#AnalysisFormLabel {
     color: @MUTED@; background: transparent;
     font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 0 4px;
 }
 QComboBox#AnalysisFormCombo { min-width: 110px; }
-QFrame#AnalysisStatChip { background: #e8e8e0; border: 1px solid @BORDER@; border-radius: 2px; }
+QFrame#AnalysisStatChip { background: #11150F; border: 1px solid #4A4438; border-radius: 2px; }
 QLabel#AnalysisStatLabel {
-    color: @MUTED@; background: transparent;
+    color: #9AA08E; background: transparent;
     font-weight: 700; font-size: 8pt;
     text-transform: uppercase; letter-spacing: 2px;
 }
-QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
-QLabel#AnalysisStatValue[severity="warning"] { color: #d97706; }
-QLabel#AnalysisStatValue[severity="critical"] { color: #dc2626; }
+QLabel#AnalysisStatValue { color: #3ED68E; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
+QLabel#AnalysisStatValue[severity="warning"] { color: #F2B95C; }
+QLabel#AnalysisStatValue[severity="critical"] { color: #FF7A6A; }
 
-QWidget#ModernAnalysisGraph { background: #f2f2f8; border: 1px solid @BORDER@; border-radius: 2px; }
+QWidget#ModernAnalysisGraph { background: #FFF7E6; border: 1px solid #8F8268; border-radius: 2px; }
 
-QFrame#FilterCardRow { background: @CARD@; border: 1px solid @BORDER@; border-radius: 2px; }
-QWidget#FilterCardHeader { background: #d8d8e2; border-radius: 2px; }
-QWidget#FilterCardBody, QWidget#FilterCardEditor { background: #d8d8e2; border-radius: 2px; }
+/* The command row is a rack unit. RackChrome paints the faceplate (brushed
+   metal, ears, screws, LEDs) over the frame's base plate, so the header and
+   body stay transparent: every control sits directly on the metal. */
+QFrame#FilterCardRow { background: @CARD@; border: 1px solid @BORDER@; border-radius: 3px; }
+QWidget#FilterCardHeader { background: transparent; }
+QWidget#FilterCardBody, QWidget#FilterCardEditor { background: transparent; border: 0; }
+QScrollArea#FilterCardEditorScroll,
+QScrollArea#FilterCardEditorScroll > QWidget > QWidget { background: transparent; }
+/* Powered-down unit (commented-out line): the printing fades with the film
+   RackChrome draws over the plate. */
+QFrame#FilterCardRow[filterEnabled="false"] QLabel { color: @MUTED@; }
+
 QLabel#FilterTypeBadge {
     background: transparent; color: @TEXT@;
     border: 1px solid @TEXT@; border-radius: 1px;
@@ -233,13 +309,20 @@ QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 70
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
 QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700; }
 QToolButton#FilterCardIconButton {
-    background: #d8d8e2; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 1px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF; border-radius: 2px;
     min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
 }
-QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color: @ACCENT@; }
-QToolButton#FilterCardIconButton:checked { background: #c4d4f0; border-color: @ACCENT@; }
-QLineEdit#FilterCardRawEditor { background: #f2f2f8; border: 1px solid @ACCENT@; border-radius: 2px; padding: 4px 8px; }
+QToolButton#FilterCardIconButton:hover { border-color: @ACCENT@; border-top-color: #FFFFFF; }
+QToolButton#FilterCardIconButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+}
+QToolButton#FilterCardIconButton:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EBCF96, stop:1 #F7E3B8);
+    border-color: @ACCENT@;
+}
+QLineEdit#FilterCardRawEditor { background: #FCF8EE; border: 1px solid @ACCENT@; border-radius: 2px; padding: 4px 8px; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
 QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
@@ -249,19 +332,21 @@ QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 700;
     text-transform: uppercase; letter-spacing: 2px; font-size: 8pt;
 }
+/* Value readouts are LED display windows set into the plate: dark glass with
+   lit green digits, even on the cream faceplate - as real hardware reads. */
 QLabel#EditableValue {
-    background: #e8e8e0; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 2px;
+    background: #11150F; color: #3ED68E;
+    border: 1px solid #4A4438; border-radius: 2px;
     padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 QLineEdit#EditableValueEditor {
-    background: #f2f2f8; border: 1px solid @ACCENT@;
+    background: #11150F; color: #3ED68E; border: 1px solid @ACCENT@;
     border-radius: 2px; padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
-QLineEdit#IncludeCardPath { background: #f2f2f8; border: 1px solid @BORDER@; border-radius: 2px; padding: 4px 8px; }
-QLabel#IncludeCardStatus { color: #dc2626; font-size: 8pt; }
+QLineEdit#IncludeCardPath { background: #FCF8EE; border: 1px solid #8F8268; border-bottom-color: #FFFFFF; border-radius: 2px; padding: 4px 8px; }
+QLabel#IncludeCardStatus { color: #B3261E; font-size: 8pt; }
 
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
