@@ -6,6 +6,18 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- 메인 툴바가 윈도우 기본 모습과 2005년풍 아이콘에서 벗어났습니다. 새
+  `ISkin::styleMainToolbar` 훅으로 스킨마다 다르게 입습니다. Studio Glass는
+  테두리 없는 버튼 아래 빛이 고이는 유리 윗변, Precision Minimal은
+  NEW/OPEN/SAVE를 모노 텍스트 명령으로 쓰는 터미널 명령줄, Soft Lab은 파스텔
+  타일과 진짜 스타디움 토글의 차분한 헤더 밴드, Hardware Rack은 트랜스포트
+  버튼·나사·LCD 저장 상태 창이 달린 브러시드 마스터 레일, Signal Matrix는
+  상태 램프가 붙은 정사각 기능 셀의 보드 헤더입니다. 저장 상태 배지는 이제
+  하드코딩된 알약 대신 각 스킨이 직접 스타일하며, 오프스크린 갤러리가 모든
+  툴바를 캡처합니다. ([#85])
+
 ## v1.22.0 (2026-06-12)
 
 - 필터 추가 픽커가 모든 템플릿을 한꺼번에 쏟아내는 평면 목록에서, 추가
@@ -345,3 +357,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76
 [#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78
 [#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81
+[#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85

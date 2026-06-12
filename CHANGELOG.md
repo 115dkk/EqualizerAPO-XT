@@ -12,6 +12,19 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- The main toolbar lost its stock Windows look and 2005-era icons. A new
+  `ISkin::styleMainToolbar` hook dresses it per skin: the top edge of the
+  glass with light pooling under unboxed buttons (Studio Glass), a terminal
+  command line with NEW/OPEN/SAVE as mono text commands (Precision Minimal),
+  a calm header band with pastel tiles and a real stadium toggle (Soft Lab),
+  a brushed master rail with transport buttons, screws and an LCD save-state
+  well (Hardware Rack), and a board header of square function cells with a
+  status lamp (Signal Matrix). The save-state badge is now styled by each
+  skin (the old hardcoded pill is gone), and the offscreen gallery captures
+  every toolbar. ([#85])
+
 ## v1.22.0 — 2026-06-12
 
 - The "add filter" picker is no longer one flat list of every template: it is
@@ -364,3 +377,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76
 [#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78
 [#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81
+[#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85
