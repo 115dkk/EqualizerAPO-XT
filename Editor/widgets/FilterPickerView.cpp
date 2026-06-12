@@ -8,6 +8,7 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMouseEvent>
 #include <QRegularExpression>
 #include <QVBoxLayout>
 
@@ -15,6 +16,10 @@
 
 FilterPickerView::FilterPickerView(QWidget* parent)
 	: QWidget(parent)
+{
+}
+
+void FilterPickerView::galleryShowcase(GalleryShowcase)
 {
 }
 
@@ -63,6 +68,36 @@ void DefaultFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries
 	allEntries = entries;
 	rebuildList();
 	searchEdit->setFocus();
+}
+
+void DefaultFilterPickerView::galleryShowcase(GalleryShowcase kind)
+{
+	if (kind == GalleryShowcase::EmptySearch)
+	{
+		// A term that matches no template: the gallery captures what the user
+		// sees after a fruitless search.
+		searchEdit->setText(QStringLiteral("zzzz"));
+		return;
+	}
+
+	searchEdit->clear();
+	for (int row = 0; row < listWidget->count(); row++)
+	{
+		QListWidgetItem* item = listWidget->item(row);
+		if (!(item->flags() & Qt::ItemIsSelectable))
+			continue;
+		// Hover is driven by real mouse events (the view keeps a hover index
+		// updated from MouseMove); feed it a synthetic move over the first
+		// entry so the offscreen render shows the hover styling.
+		listWidget->viewport()->setAttribute(Qt::WA_UnderMouse, true);
+		const QPointF center = listWidget->visualItemRect(item).center();
+		QMouseEvent moveEvent(QEvent::MouseMove, center,
+			listWidget->viewport()->mapToGlobal(center),
+			Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+		QApplication::sendEvent(listWidget->viewport(), &moveEvent);
+		listWidget->viewport()->update();
+		break;
+	}
 }
 
 void DefaultFilterPickerView::rebuildList()

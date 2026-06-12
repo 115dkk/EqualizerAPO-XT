@@ -92,14 +92,21 @@ $env:QT_QPA_PLATFORM = "offscreen"
 .\build-Editor-x64\release\Editor.exe --skin-gallery <outDir> [--skin-gallery-skins studio,rack]
 ```
 
-For every skin × {dark, light} it renders four representative rows — a
+For every skin × {dark, light} it renders six representative rows — a
 parametric filter (`Filter 1: ON PK ...`), a high-shelf with its three knobs,
-an `Include:` row and a `VSTPlugin:` row — in three states: `normal`, `hover`
-(hover-equivalent via `Qt::WA_UnderMouse`), and `disabled` (the line
-commented out, which is the product's real disabled state). Output names are
-stable: `<skin>_<dark|light>_<row>_<state>.png`, 5 × 2 × 4 × 3 = 120 PNGs for
-a full run. Exit code 0 means every PNG was written; unknown skin ids fail
-loudly instead of falling back to studio.
+a peaking filter at 0 dB (bipolar gain at its neutral detent), an `Include:`
+row, a `VSTPlugin:` row and an empty `Copy:` row — in three states: `normal`,
+`hover` (hover-equivalent via `Qt::WA_UnderMouse`), and `disabled` (the line
+commented out, which is the product's real disabled state). The filter picker
+is captured in three states (`normal`, `hover`, `empty`; pickers that do not
+implement `FilterPickerView::galleryShowcase` repeat their normal look), plus
+one shot each for the toolbar, title bar, menu bar and an open menu. Output
+names are stable: `<skin>_<dark|light>_<row>_<state>.png`,
+5 × 2 × (6 × 3 + 3 + 4) = 250 PNGs for a full run. A row shot fails the
+render (non-zero exit) if a visible horizontal scrollbar is found inside the
+row — rows must fit the 960px gallery viewport in every skin. Exit code 0
+means every PNG was written; unknown skin ids fail loudly instead of falling
+back to studio.
 
 CI runs the gallery on the primary x64-avx2 variant and uploads the PNGs as
 the `skin-gallery` artifact, so a PR's visual state can be reviewed without a

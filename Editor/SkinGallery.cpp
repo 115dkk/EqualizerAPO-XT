@@ -31,16 +31,20 @@ struct GalleryRow
 };
 
 // Representative rows: a parametric filter, a shelf filter (three knobs in
-// the legacy BiQuad GUI hosted by the card body), an Include row and a VST
-// row. The VST library is intentionally unresolvable; the card renders its
-// not-loaded state, which is the chrome the gallery is after.
+// the legacy BiQuad GUI hosted by the card body), a peaking filter at 0 dB
+// (the bipolar gain knob at its neutral detent, X3), an Include row, a VST
+// row and an empty Copy row (the routing editor's empty state, X6). The VST
+// library is intentionally unresolvable; the card renders its not-loaded
+// state, which is the chrome the gallery is after.
 QList<GalleryRow> galleryRows()
 {
 	return {
 		{ QStringLiteral("filter"), QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71") },
 		{ QStringLiteral("shelf"), QStringLiteral("Filter 2: ON HSC Fc 8000 Hz Gain -2.5 dB Q 0.71") },
+		{ QStringLiteral("gain0db"), QStringLiteral("Filter 3: ON PK Fc 1000 Hz Gain 0 dB Q 1") },
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
-		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") }
+		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
+		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") }
 	};
 }
 
@@ -261,6 +265,14 @@ int renderSkin(const QDir& outDir, const QString& skinId, bool dark)
 		picker->show();
 		QApplication::processEvents();
 		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("normal")) ? 0 : 1;
+		// X6 showcase states. Pickers that have not implemented a state render
+		// their normal look (base no-op), so the shot count stays fixed.
+		picker->galleryShowcase(FilterPickerView::GalleryShowcase::HoverFirstEntry);
+		QApplication::processEvents();
+		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("hover")) ? 0 : 1;
+		picker->galleryShowcase(FilterPickerView::GalleryShowcase::EmptySearch);
+		QApplication::processEvents();
+		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("empty")) ? 0 : 1;
 		delete picker;
 	}
 
