@@ -567,6 +567,21 @@ public:
 		// MinimalFilterPicker.h for the design.
 		return new MinimalFilterPickerView(parent);
 	}
+	// The toolbar is the terminal's command line: all type and one hairline.
+	// The neutral default keeps the shared stroke icons on the actions so the
+	// File menu (which shares the QActions) stays modern; the toolbar buttons
+	// themselves drop the pictures and show the command words instead -
+	// precision_*.qss uppercases and letter-spaces them and walks their states
+	// up the value ladder (hover = one background step, pressed = the
+	// inverted block from the picker's cursor grammar). Both calls set
+	// absolute state, so re-running on every skin/dark switch is idempotent.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+		ISkin::styleMainToolbar(toolBar, tokens);
+		toolBar->setToolButtonStyle(Qt::ToolButtonTextOnly);
+	}
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		paintMinimalKnob(painter, rect, state, tokens);
