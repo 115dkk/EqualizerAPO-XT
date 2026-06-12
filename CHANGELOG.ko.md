@@ -4,9 +4,9 @@
 
 TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트림 커밋 `7156020`, 2025-12-16) EqualizerAPO-XT에 들어간 주요 변경 사항입니다. 포크 작업은 2026-05-22에 시작됐습니다.
 
-버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
+버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
-## Unreleased
+## v1.26.0 (2026-06-12)
 
 - Editor가 창 chrome을 직접 그립니다. 네이티브 윈도우 제목 표시줄이 스킨별
   타이틀바로 바뀌었고(드래그·스냅·모서리 리사이즈·더블클릭 최대화는 네이티브
