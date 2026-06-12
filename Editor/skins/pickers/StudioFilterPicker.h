@@ -27,6 +27,7 @@ public:
 	explicit StudioFilterPickerView(QWidget* parent = nullptr);
 
 	void setEntries(const QList<FilterPickerEntry>& entries) override;
+	void galleryShowcase(GalleryShowcase kind) override;
 
 protected:
 	bool eventFilter(QObject* watched, QEvent* event) override;
