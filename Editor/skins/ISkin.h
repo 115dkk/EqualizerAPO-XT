@@ -36,7 +36,8 @@ struct CommandRowInfo
 	bool focused = false;
 	// True while the cursor is over the row. Populated at paint time by
 	// CommandRowFrame for ISkin::paintCardChrome; the construction-time hooks
-	// (prepareCommandRow) always see false.
+	// (prepareCommandRow) always see false. Skins that ignore it keep their
+	// exact pre-hover appearance.
 	bool hovered = false;
 	int depth = 0;
 };
