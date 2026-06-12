@@ -51,6 +51,8 @@
         <file>icons/modern/window-max.svg</file>
         <file>icons/modern/window-restore.svg</file>
         <file>icons/modern/window-close.svg</file>
+        <file>icons/modern/matrix-grid-dark.svg</file>
+        <file>icons/modern/matrix-grid-light.svg</file>
         <file>translations/Editor_zh_CN.qm</file>
         <file>translations/qtbase_zh_CN.qm</file>
         <file>translations/Editor_fr.qm</file>
