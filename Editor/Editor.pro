@@ -182,6 +182,7 @@ SOURCES += main.cpp\
 	skins/Skins.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/CommandRowFrame.cpp \
+	widgets/SkinComboBox.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
@@ -351,6 +352,7 @@ HEADERS  += \
 	skins/Skins.h \
 	widgets/AudioKnob.h \
 	widgets/CommandRowFrame.h \
+	widgets/SkinComboBox.h \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \

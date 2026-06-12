@@ -105,7 +105,7 @@ QAbstractSpinBox::down-arrow {
 QComboBox {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 0;
-    padding: 4px 28px 4px 10px; min-height: 22px;
+    padding: 4px 28px 4px 10px; min-height: 28px;
 }
 QComboBox:hover { background: @CARD_HOVER@; border-color: @ACCENT@; }
 QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }
@@ -122,7 +122,7 @@ QComboBox QAbstractItemView {
     padding: 2px; outline: 0;
     selection-background-color: @CARD_HOVER@; selection-color: #ffffff;
 }
-QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 0; min-height: 22px; }
+QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 0; min-height: 24px; }
 
 QCheckBox, QRadioButton { color: @TEXT@; background: transparent; spacing: 8px; padding: 2px; }
 QCheckBox:disabled, QRadioButton:disabled { color: #555555; }
