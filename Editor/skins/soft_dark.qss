@@ -295,6 +295,17 @@ QPushButton#VSTCardPanelButton:disabled { background: @SURFACE@; color: rgba(167
 QFrame#VSTCardEmbedFrame { background: @CARD@; border: 1px solid @BORDER@; border-radius: 12px; }
 QPlainTextEdit#VSTCardWarning { background: rgba(245, 158, 11, 0.10); color: @TEXT@; border: 1px solid rgba(245, 158, 11, 0.40); border-radius: 10px; padding: 6px; }
 
+/* Add-filter picker (SoftFilterPickerView): a rounded menu card. The card
+   frame, its faked drop step and the rows (pastel tiles, stadium highlights,
+   pill section headers) are painted from tokens by the view and its delegate;
+   here live the pill search field and the transparent list body. */
+QLineEdit#SoftPickerSearch {
+    background: @SURFACE_SUNKEN@; border: 1px solid @BORDER@;
+    border-radius: 17px; padding: 8px 16px; min-height: 18px;
+}
+QLineEdit#SoftPickerSearch:focus { border: 1px solid @ACCENT@; background: @SURFACE_SUNKEN@; }
+QListWidget#SoftPickerList { background: transparent; border: 0; }
+
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }

@@ -16,6 +16,7 @@
 #include <QtMath>
 
 #include "Editor/skins/RackChrome.h"
+#include "Editor/skins/pickers/SoftFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -630,6 +631,15 @@ public:
 		static BlockChipRoutingRenderer renderer;
 		return &renderer;
 	}
+
+	// The picker is this skin's consumer-settings moment: a rounded menu card
+	// with a pill search field, pastel category tiles and stadium row
+	// highlights (skins/pickers/SoftFilterPicker.cpp).
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		return new SoftFilterPickerView(parent);
+	}
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
