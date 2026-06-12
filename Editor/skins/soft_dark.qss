@@ -309,3 +309,77 @@ QListWidget#SoftPickerList { background: transparent; border: 0; }
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
+
+/* ====================================================================
+   Main toolbar: the calm header band of a consumer settings app.
+   The band rests one value step above the window with NO hard separator
+   (whitespace does the separating). File actions are invisible at rest;
+   the cursor lifts them one value step on a fully rounded highlight,
+   pressing adds one more. Instant mode is a real stadium toggle, the save
+   state and device format ride in pastel stadium pills, and the combos
+   breathe inside full pills one value step above the band.
+   ==================================================================== */
+QToolBar#MainToolBar { background: @SURFACE@; border: 0; padding: 10px 14px; spacing: 8px; }
+QToolBar#MainToolBar::separator { background: transparent; width: 12px; margin: 0; }
+
+QToolBar#MainToolBar QToolButton {
+    background: transparent; color: @TEXT@;
+    border: 1px solid transparent; border-radius: 17px;
+    padding: 6px; min-width: 22px; min-height: 22px;
+}
+QToolBar#MainToolBar QToolButton:hover { background: @CARD@; border: 1px solid @BORDER@; }
+QToolBar#MainToolBar QToolButton:pressed,
+QToolBar#MainToolBar QToolButton:checked { background: @CARD_HOVER@; border: 1px solid @BORDER@; }
+
+QToolBar#MainToolBar QLabel#ToolBarLabel { color: @MUTED@; padding: 0 6px 0 14px; font-weight: 600; }
+
+/* Instant mode as a friendly toggle: stadium track, knob baked into the
+   state SVGs, calm accent when on. The off track is the muted token at low
+   alpha so the near-white knob reads in both modes. */
+QCheckBox#InstantModeCheckBox { color: @TEXT@; font-weight: 600; spacing: 10px; padding: 4px 6px; }
+QCheckBox#InstantModeCheckBox::indicator {
+    width: 36px; height: 20px; border-radius: 10px; border: 0;
+    background: rgba(167, 174, 194, 0.38);
+    image: url(:/icons/modern/soft-toggle-knob-off.svg);
+}
+QCheckBox#InstantModeCheckBox::indicator:hover { background: rgba(167, 174, 194, 0.50); }
+QCheckBox#InstantModeCheckBox::indicator:checked {
+    background: @ACCENT@;
+    image: url(:/icons/modern/soft-toggle-knob-on.svg);
+}
+QCheckBox#InstantModeCheckBox::indicator:checked:hover { background: rgba(59, 130, 246, 0.85); }
+
+/* The save state is a status pill: "Saved" rests in a muted success
+   pastel; unsaved warms up one tint - warmer, never an alarm. */
+QLabel#DirtyStatusBadge {
+    background: rgba(34, 197, 94, 0.15); color: #8ADDAC;
+    border: 1px solid rgba(34, 197, 94, 0.30);
+    border-radius: 13px; padding: 5px 14px;
+    font-weight: 600; font-size: 9pt;
+}
+QLabel#DirtyStatusBadge[dirty="true"] {
+    background: rgba(245, 158, 11, 0.15); color: #F4C577;
+    border: 1px solid rgba(245, 158, 11, 0.32);
+}
+
+/* Device format pill: calm accent pastel normally, the same warm (not
+   alarmed) tint when the stream is only forwarded. */
+QLabel#DeviceFormatBadge {
+    background: rgba(59, 130, 246, 0.15); color: #8DB5F8;
+    border: 1px solid rgba(59, 130, 246, 0.30);
+    border-radius: 13px; padding: 5px 12px;
+    font-weight: 600; font-size: 9pt;
+}
+QLabel#DeviceFormatBadge[severity="warning"] {
+    background: rgba(245, 158, 11, 0.15); color: #F4C577;
+    border: 1px solid rgba(245, 158, 11, 0.32);
+}
+
+/* The combos breathe in full stadium pills one value step above the band;
+   hover lifts exactly one more step. */
+QComboBox#ToolBarComboBox {
+    background: @CARD@; border: 1px solid @BORDER@;
+    border-radius: 16px; padding: 6px 32px 6px 16px; min-height: 20px;
+}
+QComboBox#ToolBarComboBox:hover { background: @CARD_HOVER@; border-color: @BORDER@; }
+QComboBox#ToolBarComboBox:focus, QComboBox#ToolBarComboBox:on { border: 1px solid @ACCENT@; }

@@ -8,6 +8,7 @@
 #include <QFontMetrics>
 #include <QFontMetricsF>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QLayout>
 #include <QPainter>
@@ -922,6 +923,60 @@ public:
 			painter.setPen(state.enabled ? QColor(tokens.text) : muted);
 			painter.drawText(badgeRect, Qt::AlignCenter, state.valueText);
 		}
+	}
+
+	// The toolbar is this skin's calm header band; the QSS sheets carry the
+	// band, the toggle, the pills and the stadium combos. The hook's share is
+	// the one thing QSS cannot express: the three file actions wear
+	// iOS-Settings-style rounded-square colour tiles - pastels mixed from
+	// existing tokens (accent blue for New, warning amber for the folder,
+	// success green for Save) under the shared stroke glyph, the same tile
+	// recipe as the picker's category tiles. Re-running the hook only calls
+	// setters, so skin/dark switches stay idempotent.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+
+		toolBar->setIconSize(GUIHelper::scale(QSize(22, 22)));
+		const QColor card(tokens.card);
+		for (QAction* action : toolBar->actions())
+		{
+			if (action->objectName() == QStringLiteral("actionNew"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/file-new.svg"), softMix(QColor(tokens.accent), card, 0.15)));
+			else if (action->objectName() == QStringLiteral("actionOpen"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/folder-open.svg"), softMix(QColor(tokens.warning), card, 0.15)));
+			else if (action->objectName() == QStringLiteral("actionSave"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/save.svg"), softMix(QColor(tokens.success), card, 0.15)));
+		}
+	}
+
+private:
+	// One icon, several pre-rendered sizes (16px for the File menu rows up to
+	// the 22px toolbar size and beyond), so Qt never stretches a tile. The
+	// tile matches SoftFilterPicker's category tiles: a rounded square at 32%
+	// corner radius with the glyph inked in the picker's near-white literal.
+	static QIcon softTileIcon(const QString& resource, const QColor& tile)
+	{
+		QIcon icon;
+		for (const int logical : { 16, 18, 20, 22, 24, 32 })
+		{
+			const int side = GUIHelper::scale(double(logical));
+			QPixmap pixmap(side, side);
+			pixmap.fill(Qt::transparent);
+			QPainter painter(&pixmap);
+			painter.setRenderHint(QPainter::Antialiasing);
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(tile);
+			painter.drawRoundedRect(QRectF(0, 0, side, side), side * 0.32, side * 0.32);
+			const int glyphSide = qMax(10, qRound(logical * 0.66));
+			const QPixmap glyph = GUIHelper::tintedIcon(resource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
+				.pixmap(GUIHelper::scale(QSize(glyphSide, glyphSide)));
+			painter.drawPixmap(QPointF((side - glyph.width()) / 2.0, (side - glyph.height()) / 2.0), glyph);
+			painter.end();
+			icon.addPixmap(pixmap);
+		}
+		return icon;
 	}
 };
 
