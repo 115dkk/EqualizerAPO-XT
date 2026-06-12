@@ -1301,8 +1301,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     # The PR pipeline only builds AVX2, so there is nothing to compare
-    # across variants. The full SIMD diff stays on the push to main.
-    if: github.event_name != 'pull_request'
+    # across variants. The always() guard matters on workflow_dispatch runs:
+    # version-bump is skipped there, and GitHub propagates a skip through the
+    # needs chain unless the dependent job's condition overrides it - without
+    # always() the dispatch validation path silently lost this comparison
+    # (first seen on the run validating the arm64 msbuild fix).
+    if: always() && needs.build.result == 'success' && github.event_name != 'pull_request'
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
