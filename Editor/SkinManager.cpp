@@ -106,3 +106,9 @@ IRoutingRenderer* SkinManager::routingRenderer() const
 {
 	return activeSkin != nullptr ? activeSkin->routingRenderer() : nullptr;
 }
+
+void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const
+{
+	if (activeSkin != nullptr)
+		activeSkin->paintKnob(painter, rect, state, currentTokens);
+}

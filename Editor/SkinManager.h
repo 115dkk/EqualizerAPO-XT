@@ -7,6 +7,9 @@
 
 class IRoutingRenderer;
 class ISkin;
+class QPainter;
+class QRect;
+struct KnobState;
 
 class SkinManager : public QObject
 {
@@ -25,6 +28,11 @@ public:
 	// graph, ...). Returns nullptr when the skin has no dedicated renderer yet,
 	// in which case the caller falls back to the legacy CopyFilterGUI.
 	IRoutingRenderer* routingRenderer() const;
+
+	// Paint a knob through the active skin (ISkin::paintKnob) with the current
+	// tokens. Called by AudioKnob::paintEvent; the widget keeps all input
+	// handling and hands only the painting to the skin.
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const;
 
 signals:
 	void skinChanged(const SkinTokens& tokens);

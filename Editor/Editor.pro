@@ -178,6 +178,7 @@ SOURCES += main.cpp\
 	helpers/QtSndfileHandle.cpp \
 	SkinGallery.cpp \
 	SkinManager.cpp \
+	skins/ISkin.cpp \
 	skins/Skins.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \

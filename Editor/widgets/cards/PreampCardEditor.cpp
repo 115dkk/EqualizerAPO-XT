@@ -39,6 +39,7 @@ PreampCardEditor::PreampCardEditor(double dbGain, QWidget* parent)
 
 	knob = new AudioKnob(this);
 	knob->setObjectName(QStringLiteral("PreampCardKnob"));
+	knob->setBipolar(true);
 	knob->setRange(gainToKnobValue(MinimumGain), gainToKnobValue(MaximumGain));
 	knob->setSingleStep(1);
 	knob->setPageStep(10);

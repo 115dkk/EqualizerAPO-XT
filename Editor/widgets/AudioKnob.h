@@ -10,6 +10,10 @@ public:
 	explicit AudioKnob(QWidget* parent = nullptr);
 
 	void setValueText(const QString& text);
+	// Mark this knob as bipolar (gain-style, neutral at the range centre).
+	// Purely descriptive: it is forwarded to the skin through KnobState so
+	// skins can render bipolar and unipolar knobs differently.
+	void setBipolar(bool value);
 	QSize sizeHint() const override;
 
 protected:
@@ -19,8 +23,8 @@ protected:
 	void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
-	QPointF pointOnArc(const QRectF& rect, double degrees) const;
 	void setValueFromAngle(const QPointF& widgetPos);
 
 	QString text;
+	bool bipolar = false;
 };
