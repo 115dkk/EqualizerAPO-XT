@@ -4,6 +4,7 @@
 
 #include "Skins.h"
 
+#include <QAction>
 #include <QFontMetrics>
 #include <QFontMetricsF>
 #include <QHBoxLayout>
@@ -11,10 +12,12 @@
 #include <QLayout>
 #include <QPainter>
 #include <QPixmap>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
 
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/RackChrome.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
@@ -108,6 +111,36 @@ public:
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		return new StudioFilterPickerView(parent);
+	}
+
+	// The toolbar is the top edge of the window's glass. The QSS sheets own
+	// the strip itself (deep background, a 1px reflection along the bottom
+	// edge, accent light pooling under hovered buttons, the Instant mode
+	// lamp, sunken mono readouts); code only re-inks the file actions as
+	// quiet ink - the muted colour lifted halfway toward the text ink - so
+	// the icons rest behind the data until interaction lights the glass
+	// under them, yet stay legible at menu size. Idempotent: re-tinting and
+	// re-sizing converge on every skin/dark switch.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+
+		const QColor text(tokens.text);
+		const QColor muted(tokens.mutedText);
+		const QColor ink((muted.red() + text.red()) / 2,
+			(muted.green() + text.green()) / 2,
+			(muted.blue() + text.blue()) / 2);
+		toolBar->setIconSize(GUIHelper::scale(QSize(18, 18)));
+		for (QAction* action : toolBar->actions())
+		{
+			if (action->objectName() == QStringLiteral("actionNew"))
+				action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/file-new.svg"), ink, 18));
+			else if (action->objectName() == QStringLiteral("actionOpen"))
+				action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), ink, 18));
+			else if (action->objectName() == QStringLiteral("actionSave"))
+				action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save.svg"), ink, 18));
+		}
 	}
 
 	// "The arc IS the value": no knob body, only a thin track circle, a
