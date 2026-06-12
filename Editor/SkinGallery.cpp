@@ -8,6 +8,7 @@
 #include <QMenuBar>
 #include <QPixmap>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QString>
 #include <QToolBar>
 
@@ -118,6 +119,28 @@ void setHoverEquivalent(QWidget* root, bool on)
 	root->update();
 }
 
+// X2 gate: a row must fit its 960px viewport in every skin. A visible
+// horizontal scrollbar inside the row is the overflow defect the adversarial
+// review flagged on soft/minimal; failing the render makes CI keep the
+// broken shot as evidence instead of shipping it silently.
+int assertNoHorizontalScrollBar(QWidget* row, const QString& skinId, const QString& mode,
+	const QString& rowName, const QString& state)
+{
+	for (const QScrollBar* bar : row->findChildren<QScrollBar*>())
+	{
+		if (bar->orientation() == Qt::Horizontal && bar->isVisible())
+		{
+			// For a scroll bar, pageStep is the viewport width and maximum the
+			// hidden remainder, so content = maximum + pageStep.
+			qWarning("SkinGallery: horizontal scrollbar in row %s_%s_%s_%s (content %d overflows viewport %d)",
+				qPrintable(skinId), qPrintable(mode), qPrintable(rowName), qPrintable(state),
+				bar->maximum() + bar->pageStep(), bar->pageStep());
+			return 1;
+		}
+	}
+	return 0;
+}
+
 bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QString& mode,
 	const QString& rowName, const QString& state)
 {
@@ -191,12 +214,15 @@ int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
 		{
 			// A commented-out line is the product's real disabled state: power
 			// toggle off, body editor disabled, muted chrome.
+			failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("disabled"));
 			failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("disabled")) ? 0 : 1;
 			continue;
 		}
 
+		failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("normal"));
 		failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("normal")) ? 0 : 1;
 		setHoverEquivalent(row, true);
+		failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("hover"));
 		failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("hover")) ? 0 : 1;
 		setHoverEquivalent(row, false);
 	}
