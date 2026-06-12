@@ -16,6 +16,7 @@
 #include <QtMath>
 
 #include "Editor/skins/RackChrome.h"
+#include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -514,6 +515,12 @@ public:
 	{
 		static StepListRoutingRenderer renderer;
 		return &renderer;
+	}
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		// The add-filter dropdown as a numbered terminal index; see
+		// MinimalFilterPicker.h for the design.
+		return new MinimalFilterPickerView(parent);
 	}
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{

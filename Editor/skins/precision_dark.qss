@@ -353,6 +353,21 @@ QLineEdit#IncludeCardPath {
 }
 QLabel#IncludeCardStatus { color: @DANGER@; font-size: 9pt; }
 
+/* Add-filter picker: a terminal index (man page / BIOS menu). The frame,
+   the section rules and the inverted selection block are painted by
+   MinimalFilterPickerView; QSS only dresses the query line and the legend. */
+QWidget#MinimalPickerHeader { background: @BG@; border: 0; border-bottom: 1px solid @BORDER@; }
+QLabel#MinimalPickerPrompt { color: @ACCENT@; background: transparent; font-weight: 700; padding: 0; }
+QLineEdit#MinimalPickerQuery, QLineEdit#MinimalPickerQuery:focus {
+    background: transparent; border: 0; border-radius: 0; padding: 0; color: @TEXT@;
+}
+QLabel#MinimalPickerCount { color: @MUTED@; background: transparent; font-size: 8pt; font-weight: 700; }
+QLabel#MinimalPickerLegend {
+    color: @MUTED@; background: @BG@; border: 0; border-top: 1px solid @BORDER@;
+    padding: 4px 10px; font-size: 7pt; font-weight: 700; letter-spacing: 1px;
+}
+QScrollArea#MinimalPickerScroll, QScrollArea#MinimalPickerScroll > QWidget > QWidget { background: @BG@; border: 0; }
+
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
