@@ -12,7 +12,7 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
-## Unreleased
+## v1.19.0 — 2026-06-12
 
 - The five Editor skins are now fully differentiated visual identities
   instead of palette variations. Each answers command-type marking, hover,
