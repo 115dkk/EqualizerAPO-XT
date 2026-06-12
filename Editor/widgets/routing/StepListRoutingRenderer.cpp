@@ -234,7 +234,7 @@ void StepListView::showAddMenu(int row, const QPoint& globalPos)
 	QMenu menu(this);
 	for (const QString& channel : candidates)
 		menu.addAction(channel);
-	QAction* chosen = menu.exec(globalPos);
+	const QAction* chosen = menu.exec(globalPos);
 	if (chosen == nullptr)
 		return;
 
