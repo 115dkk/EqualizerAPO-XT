@@ -1695,6 +1695,29 @@ public:
 		}
 	}
 
+	// The board's masthead: the faint 24px column grid behind the title
+	// readout and a doubled bottom rule (this inner line plus the QSS bottom
+	// border), so the strip closes like a board's title rule, not a plain
+	// window edge - the same construction MatrixToolbarBoard gives the
+	// toolbar strip. The caption cells stay transparent in QSS so the grid
+	// runs through them, exactly like the toolbar's function cells.
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		// The hook carries no mode flag; infer it from the surface lightness
+		// (the studioIsDark pattern). The light border ink needs more alpha
+		// than the dark one to stay visible as graph paper on white.
+		QColor grid(tokens.border);
+		grid.setAlpha(QColor(tokens.surface).lightness() < 128 ? 55 : 90);
+		painter.setPen(QPen(grid, 1));
+		for (int x = rect.left() + MatrixMetrics::gridPitch; x < rect.right(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, rect.top(), x, rect.bottom());
+
+		painter.setPen(QPen(QColor(tokens.border), 1));
+		painter.drawLine(rect.left(), rect.bottom() - 3, rect.right(), rect.bottom() - 3);
+	}
+
 	// The board's header strip. The neutral stroke icons stay, tinted in
 	// plain ink (the catalog is monochrome - colour belongs to the status
 	// lamp); the QSS dresses every toolbar item as a square 1px cell, and
