@@ -180,6 +180,7 @@ SOURCES += main.cpp\
 	SkinGallery.cpp \
 	SkinManager.cpp \
 	skins/ISkin.cpp \
+	skins/pickers/MatrixFilterPicker.cpp \
 	skins/RackChrome.cpp \
 	skins/Skins.cpp \
 	skins/pickers/StudioFilterPicker.cpp \
@@ -359,6 +360,7 @@ HEADERS  += \
 	SkinTokens.h \
 	SkinManager.h \
 	skins/ISkin.h \
+	skins/pickers/MatrixFilterPicker.h \
 	skins/RackChrome.h \
 	skins/Skins.h \
 	skins/pickers/StudioFilterPicker.h \

@@ -20,6 +20,7 @@
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/skins/pickers/SoftFilterPicker.h"
 #include "Editor/skins/pickers/RackFilterPicker.h"
+#include "Editor/skins/pickers/MatrixFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -1041,6 +1042,13 @@ public:
 	{
 		static CrosspointMatrixRoutingRenderer renderer;
 		return &renderer;
+	}
+	// The "add filter" picker as a two-axis selection instrument: a bus rail
+	// of categories and a column of coordinate-labelled entry cells, engaged
+	// like a crosspoint (MatrixFilterPicker.cpp).
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		return new MatrixFilterPickerView(parent);
 	}
 	SkinTokens tokens(bool dark) const override
 	{
