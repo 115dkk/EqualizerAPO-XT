@@ -5,6 +5,7 @@
 
 #include "SkinTokens.h"
 
+class FilterPickerView;
 class IRoutingRenderer;
 class ISkin;
 class QPainter;
@@ -43,6 +44,9 @@ public:
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
+
+	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
+	FilterPickerView* createFilterPicker(QWidget* parent) const;
 
 signals:
 	void skinChanged(const SkinTokens& tokens);

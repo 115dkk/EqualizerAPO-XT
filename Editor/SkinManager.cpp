@@ -6,6 +6,7 @@
 
 #include "helpers/LogHelper.h"
 #include "Editor/helpers/CrashHandler.h"
+#include "Editor/widgets/FilterPickerView.h"
 #include "skins/ISkin.h"
 #include "skins/Skins.h"
 
@@ -149,4 +150,11 @@ void SkinManager::paintCardChrome(QPainter& painter, const QRect& rect, const Co
 {
 	if (activeSkin != nullptr)
 		activeSkin->paintCardChrome(painter, rect, info, currentTokens);
+}
+
+FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
+{
+	if (activeSkin != nullptr)
+		return activeSkin->createFilterPicker(parent);
+	return new DefaultFilterPickerView(parent);
 }

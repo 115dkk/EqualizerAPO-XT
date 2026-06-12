@@ -196,6 +196,7 @@ SOURCES += main.cpp\
 	widgets/EqGraphView.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
+	widgets/FilterPickerView.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
 	widgets/routing/StepListRoutingRenderer.cpp \
@@ -370,6 +371,7 @@ HEADERS  += \
 	widgets/EqGraphView.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
+	widgets/FilterPickerView.h \
 	widgets/routing/CopyRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
 	widgets/routing/CrosspointMatrixRoutingRenderer.h \

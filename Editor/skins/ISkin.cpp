@@ -12,6 +12,8 @@
 #include <QPainter>
 #include <QtMath>
 
+#include "Editor/widgets/FilterPickerView.h"
+
 namespace
 {
 QPointF pointOnArc(const QRectF& rect, double degrees)
@@ -122,4 +124,10 @@ void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget
 void ISkin::paintCardChrome(QPainter&, const QRect&, const CommandRowInfo&, const SkinTokens&) const
 {
 	// Neutral default: no painted decoration on top of the QSS chrome.
+}
+
+FilterPickerView* ISkin::createFilterPicker(QWidget* parent) const
+{
+	// Neutral default: the shared search-over-sections dropdown.
+	return new DefaultFilterPickerView(parent);
 }
