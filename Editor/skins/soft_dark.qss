@@ -28,17 +28,28 @@ QMainWindow::separator { background: @SURFACE@; width: 6px; height: 6px; }
 
 QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 10px; padding: 6px 12px; }
 
-QMenuBar { background: @SURFACE@; color: @TEXT@; padding: 6px 8px; border: 0; border-bottom: 1px solid @BORDER@; }
-QMenuBar::item { background: transparent; padding: 6px 14px; border-radius: 10px; }
-QMenuBar::item:selected, QMenuBar::item:pressed { background: rgba(59, 130, 246, 0.22); color: @TEXT@; }
+/* Menu bar: a roomy strip of the same calm header surface. No hairline
+   below - whitespace is the separator (a dividing line is exactly the kind
+   of element this skin removes). Items are stadium pills: hover lifts one
+   value step, the open menu rests on the pastel accent. */
+QMenuBar { background: @SURFACE@; color: @TEXT@; padding: 7px 10px; border: 0; }
+QMenuBar::item { background: transparent; padding: 6px 16px; border-radius: 14px; }
+QMenuBar::item:selected { background: @CARD_HOVER@; color: @TEXT@; }
+QMenuBar::item:pressed { background: rgba(59, 130, 246, 0.22); color: @TEXT@; }
 
-QMenu { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 12px; padding: 6px; }
-QMenu::item { background: transparent; padding: 8px 22px; border-radius: 10px; min-width: 140px; }
+/* Dropdowns: rounded menu cards straight from a consumer settings app.
+   12px card, one value step up plus the very light 1px border (the
+   constitutional fake shadow), generous item padding so Hangul never feels
+   cramped, stadium highlight, separators as short inset soft rules and the
+   checked state as a calm accent dot. */
+QMenu { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 12px; padding: 8px 6px; }
+QMenu::item { background: transparent; padding: 9px 26px 9px 16px; border-radius: 16px; min-width: 170px; }
 QMenu::item:selected { background: rgba(59, 130, 246, 0.25); color: @TEXT@; }
-QMenu::item:disabled { color: rgba(167, 174, 194, 0.55); }
-QMenu::separator { height: 1px; background: @BORDER@; margin: 6px 8px; }
-QMenu::indicator { width: 14px; height: 14px; margin-left: 4px; }
-QMenu::indicator:checked { background: @ACCENT@; border-radius: 4px; }
+QMenu::item:disabled { color: rgba(167, 174, 194, 0.50); }
+QMenu::separator { height: 2px; background: rgba(58, 64, 86, 0.60); border-radius: 1px; margin: 7px 18px; }
+QMenu::indicator { width: 10px; height: 10px; margin-left: 8px; border-radius: 5px; background: transparent; }
+QMenu::indicator:checked { background: @ACCENT@; }
+QMenu::icon { padding-left: 6px; }
 
 QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; padding: 6px 8px; spacing: 6px; }
 QToolBar::separator { background: @BORDER@; width: 1px; margin: 6px 8px; }
@@ -383,3 +394,54 @@ QComboBox#ToolBarComboBox {
 }
 QComboBox#ToolBarComboBox:hover { background: @CARD_HOVER@; border-color: @BORDER@; }
 QComboBox#ToolBarComboBox:focus, QComboBox#ToolBarComboBox:on { border: 1px solid @ACCENT@; }
+
+/* ===== Window chrome (custom title bar) - Soft Lab: the calm app header =====
+   One value step off the window, no hairline anywhere (whitespace
+   separates it from the content). The title wears a friendly weight in the
+   full ink instead of caption-grey, and the caption buttons rest as soft
+   rounded squares - a card face one step up with the very light 1px border,
+   the constitutional fake shadow. Hover lifts them one more value step on a
+   fully rounded (stadium) highlight. Close never alarms: it warms with the
+   dirty-badge amber pastel, the same "warmer, not alarmed" grammar as the
+   save-state pill; the red X is exactly the kind of anxious element this
+   skin removes. */
+QWidget#AppTitleBar {
+    background: @SURFACE@;
+    border: 0;
+}
+QLabel#TitleBarText {
+    background: transparent;
+    color: @TEXT@;
+    font-size: 10pt;
+    font-weight: 600;
+}
+QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
+    background: @CARD@;
+    border: 1px solid @BORDER@;
+    border-radius: 8px;
+    margin: 3px 2px;
+    /* Neutralize the generic QToolButton padding/min-height: the caption
+       buttons are fixed 40x30 and the inherited box pushed the pill past
+       the bar's bottom edge. */
+    padding: 0;
+    min-height: 0;
+    min-width: 0;
+}
+QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
+    background: @CARD_HOVER@;
+    border-radius: 12px;
+}
+QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
+    background: @CARD_SELECTED@;
+    border-radius: 12px;
+}
+QToolButton#TitleBarClose:hover {
+    background: rgba(245, 158, 11, 0.20);
+    border: 1px solid rgba(245, 158, 11, 0.34);
+    border-radius: 12px;
+}
+QToolButton#TitleBarClose:pressed {
+    background: rgba(245, 158, 11, 0.32);
+    border: 1px solid rgba(245, 158, 11, 0.46);
+    border-radius: 12px;
+}

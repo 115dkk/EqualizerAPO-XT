@@ -95,6 +95,11 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 		version += QString(".%0").arg(REVISION);
 	setWindowTitle(tr("Equalizer APO %0 Configuration Editor").arg(version));
 
+	// Custom window chrome (title bar + menu bar in the menu-widget slot);
+	// must run after the title is set so the TitleBar picks it up, and before
+	// preferences apply skin icons to it.
+	setupWindowChrome();
+
 	ui->mainToolBar->setObjectName(QStringLiteral("MainToolBar"));
 
 	QWidget* spacer = new QWidget;

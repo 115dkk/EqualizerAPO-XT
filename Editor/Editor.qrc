@@ -42,6 +42,17 @@
         <file>icons/modern/save-as.svg</file>
         <file>icons/modern/soft-toggle-knob-off.svg</file>
         <file>icons/modern/soft-toggle-knob-on.svg</file>
+        <file>icons/modern/cut.svg</file>
+        <file>icons/modern/copy.svg</file>
+        <file>icons/modern/paste.svg</file>
+        <file>icons/modern/trash.svg</file>
+        <file>icons/modern/select-all.svg</file>
+        <file>icons/modern/window-min.svg</file>
+        <file>icons/modern/window-max.svg</file>
+        <file>icons/modern/window-restore.svg</file>
+        <file>icons/modern/window-close.svg</file>
+        <file>icons/modern/matrix-grid-dark.svg</file>
+        <file>icons/modern/matrix-grid-light.svg</file>
         <file>translations/Editor_zh_CN.qm</file>
         <file>translations/qtbase_zh_CN.qm</file>
         <file>translations/Editor_fr.qm</file>

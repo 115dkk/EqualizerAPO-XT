@@ -12,6 +12,22 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- The Editor draws its own window chrome: the native Windows caption is
+  replaced by a skinnable title bar (dragging, snapping, edge resizing and
+  double-click maximize stay native), and the menu bar plus every dropdown
+  menu now follow each skin's design language — lit glass with luminous
+  separators (Studio Glass), a terminal title line with icon-free mono menus
+  (Precision Minimal), a calm rounded header and menu cards (Soft Lab), an
+  engraved brushed panel with LED checks (Hardware Rack), and a grid masthead
+  with cell menus (Signal Matrix). The Edit menu's remaining 2005-era icons
+  were replaced with modern stroke icons. A "Native title bar" toggle in the
+  Interface menu restores the stock caption after a restart. The offscreen
+  gallery now captures title bar, menu bar and an open menu per skin with
+  Korean sample text, guarding against the Hangul clipping reported from the
+  field. ([#88])
+
 ## v1.24.0 — 2026-06-12
 
 - The main toolbar lost its stock Windows look and 2005-era icons. A new
@@ -378,3 +394,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78
 [#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81
 [#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85
+[#88]: https://github.com/115dkk/EqualizerAPO-XT/pull/88

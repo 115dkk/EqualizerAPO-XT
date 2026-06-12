@@ -6,6 +6,20 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- Editor가 창 chrome을 직접 그립니다. 네이티브 윈도우 제목 표시줄이 스킨별
+  타이틀바로 바뀌었고(드래그·스냅·모서리 리사이즈·더블클릭 최대화는 네이티브
+  그대로), 메뉴바와 모든 드롭다운 메뉴가 스킨의 디자인 언어를 따릅니다.
+  Studio Glass는 발광 구분선의 유리 패널, Precision Minimal은 아이콘 없는
+  모노 메뉴의 터미널 타이틀 라인, Soft Lab은 차분한 둥근 헤더와 메뉴 카드,
+  Hardware Rack은 LED 체크가 달린 각인 금속 패널, Signal Matrix는 셀 메뉴의
+  모눈 마스트헤드입니다. Edit 메뉴에 남아 있던 2005년풍 아이콘도 모던
+  스트로크 아이콘으로 교체했습니다. Interface 메뉴의 "Native title bar"
+  토글로 재시작 후 순정 캡션으로 돌아갈 수 있습니다. 오프스크린 갤러리가
+  스킨별 타이틀바·메뉴바·열린 메뉴를 한글 샘플과 함께 캡처해, 현장에서
+  보고된 한글 씹힘을 상시 감시합니다. ([#88])
+
 ## v1.24.0 (2026-06-12)
 
 - 메인 툴바가 윈도우 기본 모습과 2005년풍 아이콘에서 벗어났습니다. 새
@@ -358,3 +372,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#78]: https://github.com/115dkk/EqualizerAPO-XT/pull/78
 [#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81
 [#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85
+[#88]: https://github.com/115dkk/EqualizerAPO-XT/pull/88

@@ -42,59 +42,85 @@ QToolTip {
     padding: 6px 10px;
 }
 
-/* ===== Menu Bar / Menus ===== */
+/* ===== Menu Bar - continues the window's glass =====
+   Same deep stage colour as the title bar above it; items are unboxed
+   quiet ink (muted lifted halfway toward the text ink, the toolbar's
+   dialect) that only lights up when light pools under them. Hover/open is
+   a radial accent pool rising from the glass floor - the open menu's
+   parent item stays lit because Qt keeps it :selected while its menu is
+   up. The bottom edge is a hairline that dissolves at both ends instead
+   of a hard seam. */
 QMenuBar {
-    background: @SURFACE@;
-    color: @TEXT@;
-    padding: 4px 6px;
+    background: @BG@;
+    color: #BCC7DA;
+    padding: 4px 8px;
     border: 0;
-    border-bottom: 1px solid @BORDER@;
+    border-bottom: 1px solid qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 rgba(38, 50, 74, 0), stop:0.5 rgba(38, 50, 74, 0.9), stop:1 rgba(38, 50, 74, 0));
 }
 QMenuBar::item {
     background: transparent;
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 6px 13px;
+    border-radius: 0;
 }
-QMenuBar::item:selected,
+QMenuBar::item:selected {
+    background: qradialgradient(cx:0.5, cy:1.0, radius:1.0, fx:0.5, fy:1.0,
+        stop:0 rgba(91, 140, 255, 0.34), stop:0.55 rgba(91, 140, 255, 0.14), stop:1 rgba(91, 140, 255, 0));
+    color: @TEXT@;
+}
 QMenuBar::item:pressed {
-    background: rgba(91, 140, 255, 0.22);
+    background: qradialgradient(cx:0.5, cy:1.0, radius:1.0, fx:0.5, fy:1.0,
+        stop:0 rgba(91, 140, 255, 0.48), stop:0.55 rgba(91, 140, 255, 0.20), stop:1 rgba(91, 140, 255, 0));
     color: @TEXT@;
 }
 
+/* ===== Menus - floating glass panels (the picker's dialect) =====
+   Alpha card fill over the deep stage, an icy 1px reflection on the top
+   border dissolving into accent light toward the bottom (the picker's
+   edge), 8px glass round. The highlighted item glows from within (radial
+   accent pool); separators are luminous accent-to-violet hairlines that
+   dissolve at both ends; the checked indicator is a lit signal lamp.
+   Disabled items are switched off, never warned. */
 QMenu {
-    background: @CARD@;
+    background: rgba(18, 26, 44, 0.97);
     color: @TEXT@;
-    border: 1px solid @BORDER@;
-    border-top-color: rgba(255, 255, 255, 0.10);
+    border: 1px solid qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255, 255, 255, 0.16), stop:0.45 @BORDER@, stop:1 rgba(91, 140, 255, 0.38));
     border-radius: 8px;
-    padding: 6px;
+    padding: 8px 6px;
 }
 QMenu::item {
     background: transparent;
-    padding: 6px 22px 6px 22px;
-    border-radius: 6px;
-    min-width: 140px;
+    padding: 7px 26px 7px 14px;
+    border-radius: 8px;
+    min-width: 150px;
 }
 QMenu::item:selected {
-    background: rgba(91, 140, 255, 0.25);
+    background: qradialgradient(cx:0.5, cy:0.5, radius:0.7, fx:0.5, fy:0.5,
+        stop:0 rgba(91, 140, 255, 0.40), stop:0.7 rgba(91, 140, 255, 0.16), stop:1 rgba(91, 140, 255, 0.06));
     color: @TEXT@;
 }
 QMenu::item:disabled {
-    color: #5a5a72;
+    background: transparent;
+    color: rgba(145, 160, 186, 0.45);
 }
 QMenu::separator {
     height: 1px;
-    background: @BORDER@;
-    margin: 6px 8px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 rgba(91, 140, 255, 0), stop:0.35 rgba(91, 140, 255, 0.45),
+        stop:0.7 rgba(166, 108, 255, 0.30), stop:1 rgba(166, 108, 255, 0));
+    margin: 6px 10px;
 }
 QMenu::indicator {
     width: 14px;
     height: 14px;
     margin-left: 4px;
+    border-radius: 7px;
 }
 QMenu::indicator:checked {
-    background: @ACCENT@;
-    border-radius: 3px;
+    background: qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5,
+        stop:0 @ACCENT@, stop:0.4 rgba(91, 140, 255, 0.9),
+        stop:0.7 rgba(91, 140, 255, 0.3), stop:1 rgba(91, 140, 255, 0));
 }
 QMenu::icon {
     padding-left: 8px;
@@ -1002,3 +1028,42 @@ QPlainTextEdit#VSTCardWarning {
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
+
+/* ===== Window chrome - the topmost edge of the glass =====
+   The strip stays on the deep stage colour (it is the stage's edge, not a
+   panel); StudioSkin::paintTitleBarChrome lays a 1px reflection and a
+   faint accent-to-violet arc on the top edge, echoing the picker. The
+   title is quiet muted ink. Caption buttons are unboxed; hover pools
+   light under the cursor and pressing turns the light up - the close
+   button pools danger-tinted light so it stays recognizably a close
+   button without wearing a box. */
+QWidget#AppTitleBar {
+    background: @BG@;
+}
+QLabel#TitleBarText {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 9pt;
+}
+QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+}
+QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.65, fx:0.5, fy:0.55,
+        stop:0 rgba(91, 140, 255, 0.34), stop:0.6 rgba(91, 140, 255, 0.12), stop:1 rgba(91, 140, 255, 0));
+}
+QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.7, fx:0.5, fy:0.55,
+        stop:0 rgba(91, 140, 255, 0.50), stop:0.6 rgba(91, 140, 255, 0.20), stop:1 rgba(91, 140, 255, 0));
+}
+QToolButton#TitleBarClose:hover {
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.65, fx:0.5, fy:0.55,
+        stop:0 rgba(239, 68, 68, 0.46), stop:0.6 rgba(239, 68, 68, 0.16), stop:1 rgba(239, 68, 68, 0));
+}
+QToolButton#TitleBarClose:pressed {
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.7, fx:0.5, fy:0.55,
+        stop:0 rgba(239, 68, 68, 0.64), stop:0.6 rgba(239, 68, 68, 0.26), stop:1 rgba(239, 68, 68, 0));
+}

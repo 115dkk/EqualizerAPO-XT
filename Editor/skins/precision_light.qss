@@ -26,17 +26,45 @@ QMainWindow::separator { background: @BORDER@; width: 1px; height: 1px; }
 
 QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; padding: 4px 8px; }
 
-QMenuBar { background: @SURFACE@; color: @TEXT@; padding: 2px 4px; border: 0; border-bottom: 1px solid @BORDER@; }
-QMenuBar::item { background: transparent; padding: 4px 10px; border-radius: 0; }
-QMenuBar::item:selected, QMenuBar::item:pressed { background: #d0d0d0; color: #000000; }
+/* Menu bar: the TUI menu line, printed. The entries share the command
+   line's grammar (uppercase mono, 1px tracking, bold); rest is bare type
+   on the strip, hover is exactly one value step down on the paper, and
+   the open entry is the inverted block - the print head's cursor on the
+   menu line. One full-width hairline rules the strip off below. */
+QMenuBar {
+    background: @SURFACE@; color: @TEXT@;
+    padding: 2px 4px; border: 0; border-bottom: 1px solid @BORDER@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QMenuBar::item { background: transparent; padding: 5px 12px; border-radius: 0; }
+QMenuBar::item:selected { background: @CARD_HOVER@; color: @TEXT@; }
+QMenuBar::item:pressed { background: @TEXT@; color: @SURFACE@; }
 
-QMenu { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; padding: 2px; }
-QMenu::item { background: transparent; padding: 4px 22px; border-radius: 0; min-width: 140px; }
-QMenu::item:selected { background: #e0e0e0; color: #000000; }
-QMenu::item:disabled { color: #999999; }
-QMenu::separator { height: 1px; background: @BORDER@; margin: 4px 6px; }
-QMenu::indicator { width: 12px; height: 12px; margin-left: 4px; }
-QMenu::indicator:checked { background: @ACCENT@; }
+/* Dropdown: a square panel of print. 1px hairline frame on the paper
+   ground, zero panel padding so every separator rules the full width.
+   Items are dense plain mono lines; the pictograms vanish (icon-size 0)
+   because they only duplicate their labels - in this skin a glyph must
+   carry information or it does not exist. Selection is the bluntest
+   cursor a text instrument has: the inverted block. Disabled lines drop
+   to secondary ink and refuse the cursor. */
+QMenu {
+    background: @BG@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0; padding: 0;
+    icon-size: 0px;
+}
+QMenu::item { background: transparent; padding: 5px 28px 5px 14px; border-radius: 0; min-width: 150px; }
+QMenu::item:selected { background: @TEXT@; color: @BG@; }
+QMenu::item:disabled { color: @MUTED@; background: transparent; }
+QMenu::item:disabled:selected { color: @MUTED@; background: transparent; }
+QMenu::separator { height: 1px; background: @BORDER@; margin: 0; }
+/* Checked state as a terminal flag: an empty hairline square at rest,
+   the accent block when armed (the active-state tag, as on the toolbar).
+   A checkable line carries the flag inline before its label, like the
+   "[x] option" column of a TUI menu - so only flag lines indent (Qt adds
+   the check column on top of the item padding; that offset is the flag
+   column, not misalignment). */
+QMenu::indicator { width: 12px; height: 12px; margin-left: 6px; background: transparent; border: 1px solid @BORDER@; }
+QMenu::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; }
 
 QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; padding: 2px 4px; spacing: 2px; }
 QToolBar::separator { background: @BORDER@; width: 1px; margin: 4px 6px; }
@@ -350,3 +378,42 @@ QScrollArea#MinimalPickerScroll, QScrollArea#MinimalPickerScroll > QWidget > QWi
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
+
+/* ===== Window chrome: a tiling WM running a terminal (printed) =====
+   The title strip is the terminal's title line: a flat sheet with one
+   full-width hairline rule below, and the window title as quiet tracked
+   mono - chrome is metadata, so it gets secondary ink (importance =
+   brightness, as everywhere in this skin). No painted decoration: the
+   skin's paintTitleBarChrome stays the no-op default on purpose. */
+QWidget#AppTitleBar {
+    background: @SURFACE@;
+    border: 0;
+    border-bottom: 1px solid @BORDER@;
+}
+QLabel#TitleBarText {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 9pt;
+    letter-spacing: 1px;
+}
+/* Caption buttons: square pure glyphs at rest. Hover is exactly one
+   value step down on the paper, pressed lands on the deepest grey step
+   of the ladder (the stroke glyph keeps its ink, so a true fg/bg swap
+   would erase it - the ladder is the honest alternative). Close answers
+   with the inverted danger block; its glyph stays legible on the block. */
+QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+}
+QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
+    background: @CARD_HOVER@;
+}
+QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
+    background: @BORDER@;
+}
+QToolButton#TitleBarClose:hover, QToolButton#TitleBarClose:pressed {
+    background: @DANGER@;
+}

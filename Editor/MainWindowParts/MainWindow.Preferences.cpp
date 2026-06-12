@@ -25,6 +25,7 @@
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"
+#include "Editor/widgets/TitleBar.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
 #include "SkinManager.h"
@@ -271,6 +272,15 @@ void MainWindow::setupRedesignActions()
 	QAction* fullscreenGraphAction = interfaceMenu->addAction(tr("Fullscreen graph"));
 	fullscreenGraphAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+F")));
 	connect(fullscreenGraphAction, SIGNAL(triggered()), this, SLOT(toggleGraphFullscreen()));
+
+	// Escape hatch for the custom window chrome: machines where the
+	// frameless caption misbehaves can restore the stock Windows title bar
+	// (takes effect after a restart, mirroring the language flow).
+	interfaceMenu->addSeparator();
+	QAction* nativeTitleAction = interfaceMenu->addAction(tr("Native title bar"));
+	nativeTitleAction->setCheckable(true);
+	nativeTitleAction->setChecked(!useCustomFrame);
+	connect(nativeTitleAction, SIGNAL(toggled(bool)), this, SLOT(nativeTitleBarToggled(bool)));
 }
 
 void MainWindow::syncKnobRangeActions()
@@ -309,11 +319,22 @@ void MainWindow::applyRedesignPreferences()
 
 	// The toolbar is dressed by the active skin (icons + chrome); re-run on
 	// every skin/dark switch so the tinted icons follow the new ink. The
-	// menu-only Save As action gets the matching neutral icon here - it is
-	// not on the toolbar, so the skin hook never sees it.
+	// menu-only actions (Save As + the Edit menu set) get the matching
+	// neutral stroke icons here - they are not on the toolbar, so the skin
+	// hook never sees them. This retires the last of the 2005-era .ico set
+	// from the dropdowns.
 	SkinManager::instance()->styleMainToolbar(ui->mainToolBar);
-	ui->actionSaveAs->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save-as.svg"),
-		QColor(SkinManager::instance()->tokens().text), 18));
+	const QColor menuInk(SkinManager::instance()->tokens().text);
+	ui->actionSaveAs->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save-as.svg"), menuInk, 18));
+	ui->actionCut->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/cut.svg"), menuInk, 18));
+	ui->actionCopy->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/copy.svg"), menuInk, 18));
+	ui->actionPaste->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/paste.svg"), menuInk, 18));
+	ui->actionDelete->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/trash.svg"), menuInk, 18));
+	ui->actionSelectAll->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/select-all.svg"), menuInk, 18));
+
+	// The custom title bar follows the same ink.
+	if (titleBar != nullptr)
+		titleBar->applySkinIcons();
 
 	if (interfaceModeActionGroup != nullptr)
 	{

@@ -52,6 +52,9 @@ public:
 	// Main toolbar icons/chrome for the active skin (ISkin::styleMainToolbar).
 	void styleMainToolbar(QToolBar* toolBar) const;
 
+	// Painted title-bar decoration for the active skin (ISkin::paintTitleBarChrome).
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect) const;
+
 signals:
 	void skinChanged(const SkinTokens& tokens);
 

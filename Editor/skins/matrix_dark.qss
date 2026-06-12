@@ -41,58 +41,80 @@ QToolTip {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
 
-/* ===== Menu Bar / Menus ===== */
+/* ===== Menu Bar / Menus: the board's header row =====
+   The menu bar is a row of board cells with 1px rules sitting on the same
+   24px column-grid tile the painted board layers draw elsewhere. Hover =
+   dim cell pre-light, open menu = engaged crosspoint (accent fill + accent
+   rule) - the toolbar function cells' grammar. */
 QMenuBar {
-    background: @SURFACE@;
+    background-color: @SURFACE@;
+    background-image: url(:/icons/modern/matrix-grid-dark.svg);
     color: @TEXT@;
-    padding: 2px 4px;
+    padding: 0 0 0 4px;
     border: 0;
     border-bottom: 1px solid @BORDER@;
 }
 QMenuBar::item {
     background: transparent;
-    padding: 6px 12px;
+    border: 1px solid @BORDER@;
     border-radius: 0;
+    padding: 4px 14px;
+    margin: 4px 4px 4px 0;
 }
-QMenuBar::item:selected,
+QMenuBar::item:selected {
+    background: rgba(34, 211, 238, 0.10);
+    color: @TEXT@;
+}
 QMenuBar::item:pressed {
-    background: rgba(34, 211, 238, 0.18);
+    background: rgba(34, 211, 238, 0.28);
+    border-color: @ACCENT@;
     color: @TEXT@;
 }
 
+/* Dropdowns: square panels on the grid texture. Items are cells (generous
+   padding keeps Hangul shaped and unclipped), the selected item is an
+   engaged crosspoint (translucent accent + 1px accent rule), separators are
+   full-width 1px rules, the check indicator is a square LED, and a disabled
+   item is a cancelled departure: dashed outer rule, never hidden. */
 QMenu {
-    background: @SURFACE@;
+    background-color: @SURFACE@;
+    background-image: url(:/icons/modern/matrix-grid-dark.svg);
     color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 0;
-    padding: 2px;
+    padding: 0;
 }
 QMenu::item {
     background: transparent;
-    padding: 6px 22px 6px 22px;
+    border: 1px solid transparent;
     border-radius: 0;
-    min-width: 140px;
+    padding: 7px 26px 7px 12px;
+    min-width: 168px;
 }
 QMenu::item:selected {
-    background: rgba(34, 211, 238, 0.20);
+    background: rgba(34, 211, 238, 0.16);
+    border: 1px solid @ACCENT@;
     color: @TEXT@;
 }
 QMenu::item:disabled {
     color: #4A6470;
+    border: 1px dashed @BORDER@;
 }
 QMenu::separator {
     height: 1px;
     background: @BORDER@;
-    margin: 4px 6px;
+    margin: 5px 0;
 }
 QMenu::indicator {
-    width: 14px;
-    height: 14px;
-    margin-left: 4px;
+    width: 10px;
+    height: 10px;
+    background: @GRAPH@;
+    border: 1px solid @BORDER@;
+    margin-left: 6px;
 }
 QMenu::indicator:checked {
     background: @ACCENT@;
-    border-radius: 0;
+    border-color: @ACCENT@;
 }
 QMenu::icon {
     padding-left: 8px;
@@ -1027,3 +1049,48 @@ QLineEdit#CrosspointEditor {
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
+
+/* ===== Window chrome: the board's masthead =====
+   MatrixSkin::paintTitleBarChrome draws the faint 24px column grid and the
+   inner line of the doubled bottom rule; the QSS bottom border is the outer
+   line. The title is a mono readout line; the caption buttons are function
+   cells in a single-ruled train (min/max drop their right rule so adjacent
+   cells share one 1px line): monochrome at rest, dim accent pre-light on
+   hover, engaged accent fill while pressed. The close cell pre-lights danger
+   on hover - closing is a state change, and status colour is reserved for
+   exactly that. */
+QWidget#AppTitleBar {
+    background: @SURFACE@;
+    border-bottom: 1px solid @BORDER@;
+}
+QLabel#TitleBarText {
+    background: transparent;
+    color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    letter-spacing: 1px;
+}
+QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
+    background: transparent;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    margin: 2px 0 4px 0;
+}
+QToolButton#TitleBarMin, QToolButton#TitleBarMax {
+    border-right: 0;
+}
+QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
+    background: rgba(34, 211, 238, 0.10);
+}
+QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
+    background: rgba(34, 211, 238, 0.28);
+    border-color: @ACCENT@;
+}
+QToolButton#TitleBarClose:hover {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: @DANGER@;
+}
+QToolButton#TitleBarClose:pressed {
+    background: @DANGER@;
+    border-color: @DANGER@;
+}

@@ -159,6 +159,12 @@ FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 	return new DefaultFilterPickerView(parent);
 }
 
+void SkinManager::paintTitleBarChrome(QPainter& painter, const QRect& rect) const
+{
+	if (activeSkin != nullptr)
+		activeSkin->paintTitleBarChrome(painter, rect, currentTokens);
+}
+
 void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 {
 	if (toolBar == nullptr || activeSkin == nullptr)

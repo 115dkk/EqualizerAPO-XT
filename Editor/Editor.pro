@@ -117,6 +117,7 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.Edit.cpp \
 	MainWindowParts/MainWindow.FileActions.cpp \
 	MainWindowParts/MainWindow.FileIO.cpp \
+	MainWindowParts/MainWindow.Frame.cpp \
 	MainWindowParts/MainWindow.Preferences.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
 	ConfigFileCodec.cpp \
@@ -202,6 +203,7 @@ SOURCES += main.cpp\
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/FilterPickerView.cpp \
+	widgets/TitleBar.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
 	widgets/routing/StepListRoutingRenderer.cpp \
@@ -382,6 +384,7 @@ HEADERS  += \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
 	widgets/FilterPickerView.h \
+	widgets/TitleBar.h \
 	widgets/routing/CopyRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
 	widgets/routing/CrosspointMatrixRoutingRenderer.h \

@@ -116,6 +116,49 @@ public:
 		return new StudioFilterPickerView(parent);
 	}
 
+	// The title bar is the topmost edge of the window's glass. The QSS keeps
+	// the strip on the deep stage colour; this hook lays the light on it - a
+	// whisper of reflection along the full top edge plus a faint accent-to-
+	// violet arc caught on that edge, echoing the picker panel and the knob
+	// arcs (accent2 stays at the spectrum's end, per the one-light rule).
+	// Both are plain strokes: bloom first, then the core - glow is faked with
+	// layered strokes, never effects.
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
+	{
+		const bool dark = studioIsDark(tokens);
+		painter.save();
+
+		// The 1px lighter top edge of the glass formula, quieter than a
+		// panel's reflection - the bar is the stage's edge, not a card.
+		painter.fillRect(QRectF(rect.left(), rect.top(), rect.width(), 1.0),
+			QColor(255, 255, 255, dark ? 30 : 235));
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		const double span = rect.width() * 0.42;
+		const double x0 = rect.left() + (rect.width() - span) / 2.0;
+		const double y = rect.top() + 0.5;
+		QLinearGradient bloom(x0, y, x0 + span, y);
+		bloom.setColorAt(0.0, studioAlpha(tokens.accent, 0));
+		bloom.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 70 : 55));
+		bloom.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 52 : 42));
+		bloom.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		QPen bloomPen(QBrush(bloom), 4.0);
+		bloomPen.setCapStyle(Qt::RoundCap);
+		painter.setPen(bloomPen);
+		painter.drawLine(QPointF(x0, y), QPointF(x0 + span, y));
+		QLinearGradient core(x0, y, x0 + span, y);
+		core.setColorAt(0.0, studioAlpha(tokens.accent, 0));
+		core.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 215 : 195));
+		core.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 175 : 155));
+		core.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		QPen corePen(QBrush(core), 1.5);
+		corePen.setCapStyle(Qt::RoundCap);
+		painter.setPen(corePen);
+		painter.drawLine(QPointF(x0, y), QPointF(x0 + span, y));
+
+		painter.restore();
+	}
+
 	// The toolbar is the top edge of the window's glass. The QSS sheets own
 	// the strip itself (deep background, a 1px reflection along the bottom
 	// edge, accent light pooling under hovered buttons, the Instant mode
@@ -709,6 +752,17 @@ public:
 		return new SoftFilterPickerView(parent);
 	}
 
+	// Window chrome: deliberately NO paintTitleBarChrome override. The
+	// constitutional tiebreaker ("when in doubt, remove the element and add
+	// whitespace") answers painted caption decoration directly - the calm app
+	// header is already complete in the QSS sheets: the surface one value
+	// step off the window, a friendly-weight title in full ink, caption
+	// buttons resting as soft rounded squares whose hover lifts one value
+	// step on a stadium highlight, and a close button that warms with the
+	// dirty-badge amber instead of alarming red. Anything painted on top
+	// (screws, glows, grids) belongs to the neighbours' vocabularies and
+	// would only make the header more anxious.
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
@@ -1053,6 +1107,15 @@ public:
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		RackChrome::paintCardChrome(painter, rect, info, tokens);
+	}
+
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
+	{
+		// The caption strip is the unit's top panel: brushed sheen, machined
+		// edges, the caption-ear groove and two rail screws (RackChrome). QSS
+		// prints the model designation and dresses the caption buttons as
+		// machined caps.
+		RackChrome::paintTitleBarChrome(painter, rect, tokens);
 	}
 
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
@@ -1630,6 +1693,29 @@ public:
 			painter.setBrush(Qt::NoBrush);
 			painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
 		}
+	}
+
+	// The board's masthead: the faint 24px column grid behind the title
+	// readout and a doubled bottom rule (this inner line plus the QSS bottom
+	// border), so the strip closes like a board's title rule, not a plain
+	// window edge - the same construction MatrixToolbarBoard gives the
+	// toolbar strip. The caption cells stay transparent in QSS so the grid
+	// runs through them, exactly like the toolbar's function cells.
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		// The hook carries no mode flag; infer it from the surface lightness
+		// (the studioIsDark pattern). The light border ink needs more alpha
+		// than the dark one to stay visible as graph paper on white.
+		QColor grid(tokens.border);
+		grid.setAlpha(QColor(tokens.surface).lightness() < 128 ? 55 : 90);
+		painter.setPen(QPen(grid, 1));
+		for (int x = rect.left() + MatrixMetrics::gridPitch; x < rect.right(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, rect.top(), x, rect.bottom());
+
+		painter.setPen(QPen(QColor(tokens.border), 1));
+		painter.drawLine(rect.left(), rect.bottom() - 3, rect.right(), rect.bottom() - 3);
 	}
 
 	// The board's header strip. The neutral stroke icons stay, tinted in
