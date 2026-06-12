@@ -19,6 +19,7 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
@@ -360,6 +361,64 @@ int main(int argc, char** argv)
 		EqAPO::Import::ExecutionResult exec2 = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
 		expectTrue(exec2.success, "second execute should also succeed");
 		expectEqual(exec2.filesCopied, 4, "second execute should still report four copies");
+	}
+
+	{
+		// ChannelSelectionModel serialization identity: for equivalent
+		// selections the in-place chip editor must write the same bytes the
+		// legacy multi-select dialog produced (standard positions in the
+		// dialog's checkbox order, then non-standard device channels, then
+		// custom names).
+		const std::vector<std::wstring> stereo = { L"L", L"R" };
+		const std::vector<std::wstring> surround51 = { L"L", L"R", L"C", L"LFE", L"RL", L"RR" };
+		const std::vector<std::wstring> surround71 = { L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR" };
+
+		ChannelSelectionModel model;
+		model.load("L R C", surround51);
+		expectEqual(model.serialize(), "C L R", "5.1 selection must serialize in dialog order");
+
+		model.load("R L", stereo);
+		expectEqual(model.serialize(), "L R", "written order canonicalizes like the dialog");
+
+		// Position numbers resolve against the device order (engine
+		// semantics, ChannelHelper::getChannelIndex), and are written back
+		// as names like the dialog did.
+		model.load("2", stereo);
+		expectEqual(model.serialize(), "R", "numeric selector resolves in device order");
+
+		// Historical aliases follow the engine: SUB -> LFE, SL <-> RL.
+		model.load("SUB", surround51);
+		expectEqual(model.serialize(), "LFE", "SUB alias selects the LFE chip");
+		model.load("SL", surround51);
+		expectEqual(model.serialize(), "RL", "SL on a back-channel device selects RL");
+
+		model.load("SR SL LFE", surround71);
+		expectEqual(model.serialize(), "SL SR LFE", "7.1 selection serializes in dialog order");
+
+		// ALL wins over individual selections, exactly like the dialog.
+		model.load("ALL L", surround51);
+		expectTrue(model.allSelected(), "ALL token sets the all-channels state");
+		expectEqual(model.serialize(), "ALL", "ALL serializes alone");
+
+		// Custom/virtual channels keep their written order after the device
+		// chips, matching the dialog's list section.
+		model.load("VSL L VSR", stereo);
+		expectEqual(model.serialize(), "L VSL VSR", "custom names follow device channels");
+		model.toggle("R");
+		expectEqual(model.serialize(), "L R VSL VSR", "toggling keeps canonical order");
+		model.toggle("L");
+		expectEqual(model.serialize(), "R VSL VSR", "deselecting removes the token");
+
+		expectFalse(model.addCustom("  "), "blank custom name is rejected");
+		expectFalse(model.addCustom("A B"), "multi-token custom name is rejected");
+		expectTrue(model.addCustom(" vrr "), "custom name is trimmed and accepted");
+		expectEqual(model.serialize(), "R VSL VSR VRR", "added custom name serializes upper-cased");
+
+		// addCustom resolves aliases against the device set too: SUB selects
+		// the LFE chip instead of duplicating it as a custom name.
+		model.load("", surround51);
+		expectTrue(model.addCustom("sub"), "SUB through addCustom is accepted");
+		expectEqual(model.serialize(), "LFE", "SUB resolves to the device's LFE chip");
 	}
 
 	harness.report();
