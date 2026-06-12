@@ -78,6 +78,11 @@ changes and to produce judging material:
 $env:QT_QPA_PLATFORM = "offscreen"
 # Qt bin + fftw/libsndfile DLL directories must be on PATH; velopack_libc.dll
 # must sit next to Editor.exe (copy deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll).
+# If windeployqt has run on the build dir, the deployed app dir only carries
+# the qwindows platform plugin and the offscreen platform fails to load (the
+# Editor then hangs on a fatal-error dialog). Point the plugin search at the
+# full Qt install in that case:
+#   $env:QT_QPA_PLATFORM_PLUGIN_PATH = "<QT_ROOT>\plugins\platforms"
 .\build-Editor-x64\release\Editor.exe --skin-gallery <outDir> [--skin-gallery-skins studio,rack]
 ```
 
