@@ -34,6 +34,10 @@ struct CommandRowInfo
 	bool enabled = true;
 	bool selected = false;
 	bool focused = false;
+	// True while the cursor is over the row. Populated at paint time by
+	// CommandRowFrame for ISkin::paintCardChrome; the construction-time hooks
+	// (prepareCommandRow) always see false.
+	bool hovered = false;
 	int depth = 0;
 };
 
@@ -93,6 +97,14 @@ public:
 
 	// Inline stylesheet for the card's header strip (QWidget#FilterCardHeader).
 	virtual QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// Inline stylesheet for the header's type badge (QLabel#FilterTypeBadge).
+	// typeColor is the per-command-type colour from FilterCardModel. The
+	// default reproduces the shared OutlineOnly/filled treatment every skin
+	// used before the hook existed; skins override it when their constitution
+	// reserves colour for other semantics (e.g. matrix keeps traffic-light
+	// colours for status only and renders a monochrome type cell).
+	virtual QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const;
 
 	// Called once when a command row or a command body editor is built, so a
 	// skin can tag widgets with dynamic properties or attach extra chrome.

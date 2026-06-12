@@ -8,6 +8,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
+#include <QPixmap>
+#include <QVBoxLayout>
 #include <QtMath>
 
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
@@ -457,7 +459,40 @@ public:
 	}
 };
 
-// ── Matrix (signal matrix / instrument panel) ───────────────────────────────
+// ── Matrix (signal-routing matrix / departure board) ────────────────────────
+//
+// Constitution: an airport departure board / broadcast routing matrix.
+// Everything aligns to a grid; numeric values are monospace; 1px rules; rows
+// behave like cells with coordinates. Traffic-light colours (green/amber/red)
+// are reserved for status and never used decoratively. Hover highlights the
+// row band and the coordinate-column band (crosspoint feel). Disabled rows get
+// a dashed border. Knobs are rotary encoders with a stepped LED ring and a
+// boxed mono numeric cell as the authoritative reading.
+
+namespace MatrixMetrics
+{
+// The grid the whole skin aligns to (card grid pitch, coordinate column).
+constexpr int gridPitch = 24;
+// Width of the coordinate-column band (expand + number + type cells of the
+// header) used by the crosspoint hover highlight.
+constexpr int coordinateBandWidth = 120;
+// Left inset of the card content: 3px status rail (border-left) + 1px gutter.
+constexpr int railInset = 4;
+// Height of the boxed numeric readout cell under a card knob.
+constexpr int knobCellHeight = 16;
+}
+
+namespace
+{
+// Point on the 270-degree value arc; fraction 0 is bottom-left (7:30), 0.5 is
+// 12 o'clock, 1 is bottom-right (4:30). Same sweep as the shared default knob.
+QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
+{
+	const double radians = qDegreesToRadians(-(135.0 + 270.0 * fraction));
+	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
+}
+}
+
 class MatrixSkin : public ISkin
 {
 public:
@@ -476,9 +511,11 @@ public:
 		SkinTokens t;
 		t.fontFamily = QStringLiteral("DM Sans");
 		t.monoFontFamily = QStringLiteral("DM Mono");
-		t.borderRadius = 10;
-		t.rowHeight = 38;
-		t.channelGroupIndent = 22;
+		// Square cells and 1px rules only; 36px rows keep the board dense and
+		// on the 12px grid (gridPitch 24 = two rows of 12).
+		t.borderRadius = 0;
+		t.rowHeight = 36;
+		t.channelGroupIndent = 24;
 		t.channelGroupStyle = SkinTokens::GradientBar;
 		t.badgeStyle = SkinTokens::OutlineOnly;
 		t.cardRailWidth = 3;
@@ -509,9 +546,285 @@ public:
 			t.border = QStringLiteral("#D4E2E8");
 			t.graph = QStringLiteral("#F9FCFD");
 			t.graphGridMinor = QStringLiteral("#D4E2E8");
+			// Traffic-light status colours tuned for contrast on light surfaces.
+			t.success = QStringLiteral("#15803D");
+			t.warning = QStringLiteral("#B45309");
+			t.danger = QStringLiteral("#DC2626");
 		}
 		finishTokens(t);
 		return t;
+	}
+
+	// Rotary encoder with an LED ring: the value reads as discrete lit
+	// segments, the exact value as text in a boxed mono cell. Bipolar knobs
+	// light segments left or right of a centre gap (12 o'clock detent);
+	// unipolar knobs fill clockwise from the minimum.
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
+	{
+		const QColor borderColor(tokens.border);
+		const QColor accentColor(tokens.accent);
+		const QColor cutColor(tokens.accent2);
+		const QColor mutedColor(tokens.mutedText);
+
+		// Reserve the bottom strip for the boxed numeric cell when the widget
+		// supplies an authoritative value text (e.g. the Preamp card). Promoted
+		// legacy dials show their value in the adjacent spin box instead.
+		QRect knobArea = rect;
+		if (!state.valueText.isEmpty())
+			knobArea.adjust(0, 0, 0, -(MatrixMetrics::knobCellHeight + 2));
+
+		QRectF inner = QRectF(knobArea).adjusted(5, 5, -5, -5);
+		const double side = qMin(inner.width(), inner.height());
+		const QRectF ringRect(inner.center().x() - side / 2.0, inner.center().y() - side / 2.0, side, side);
+		const QPointF center = ringRect.center();
+		const double outerRadius = side / 2.0;
+		const double innerRadius = qMax(outerRadius - 6.0, 1.0);
+		const double bodyRadius = qMax(innerRadius - 3.0, 1.0);
+
+		painter.setRenderHint(QPainter::Antialiasing);
+
+		// Segment ring. An even count gives bipolar knobs a natural centre gap
+		// at 12 o'clock; unipolar knobs use an odd count so a segment sits at
+		// every position including the centre.
+		const int segmentCount = state.bipolar ? 14 : 15;
+		const int half = segmentCount / 2;
+		int litFrom = 0;
+		int litCount = 0;
+		bool boost = true;
+		if (state.bipolar)
+		{
+			const double deviation = state.ratio - 0.5;
+			boost = deviation >= 0.0;
+			litCount = qMin(half, qRound(qAbs(deviation) * 2.0 * half));
+			litFrom = boost ? half : half - litCount;
+		}
+		else
+		{
+			litCount = qBound(0, qRound(state.ratio * segmentCount), segmentCount);
+		}
+
+		QColor litColor = state.bipolar && !boost ? cutColor : accentColor;
+		if (state.dragging)
+			litColor = litColor.lighter(130);
+		else if (state.hovered)
+			litColor = litColor.lighter(115);
+		QColor trackColor = borderColor;
+		trackColor.setAlpha(state.enabled ? 170 : 70);
+
+		for (int i = 0; i < segmentCount; i++)
+		{
+			const double fraction = (i + 0.5) / segmentCount;
+			const bool lit = state.enabled && i >= litFrom && i < litFrom + litCount;
+			QPen segmentPen(lit ? litColor : trackColor, 3.0, Qt::SolidLine, Qt::FlatCap);
+			painter.setPen(segmentPen);
+			painter.drawLine(matrixRadialPoint(center, innerRadius, fraction),
+				matrixRadialPoint(center, outerRadius, fraction));
+		}
+
+		// Centre detent tick: marks the 0-position gap of bipolar knobs so the
+		// two knob kinds read differently even at rest.
+		if (state.bipolar)
+		{
+			painter.setPen(QPen(state.enabled ? mutedColor : trackColor, 1.0, Qt::SolidLine, Qt::FlatCap));
+			painter.drawLine(matrixRadialPoint(center, outerRadius + 1.0, 0.5),
+				matrixRadialPoint(center, outerRadius + 4.0, 0.5));
+		}
+
+		// Encoder body and pointer.
+		QColor bodyColor(state.enabled ? tokens.card : tokens.surface);
+		painter.setPen(QPen(borderColor, 1.0, state.enabled ? Qt::SolidLine : Qt::DashLine));
+		painter.setBrush(bodyColor);
+		painter.drawEllipse(center, bodyRadius, bodyRadius);
+		painter.setPen(QPen(state.enabled ? litColor : QColor(mutedColor), 2.0, Qt::SolidLine, Qt::FlatCap));
+		painter.drawLine(matrixRadialPoint(center, bodyRadius * 0.45, state.ratio),
+			matrixRadialPoint(center, bodyRadius - 1.5, state.ratio));
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		// Keyboard focus: a square cell bracket, not a glow - this skin's
+		// corner language is the rectangle.
+		if (state.focused && state.enabled)
+		{
+			painter.setPen(QPen(accentColor, 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(ringRect.toRect().adjusted(-3, -3, 3, 3));
+		}
+
+		// Boxed mono numeric cell: the authoritative reading.
+		if (!state.valueText.isEmpty())
+		{
+			QFont monoFont(tokens.monoFontFamily);
+			monoFont.setPointSizeF(7.5);
+			monoFont.setBold(true);
+			const QFontMetrics metrics(monoFont);
+			const int cellWidth = qMin(rect.width(), metrics.horizontalAdvance(state.valueText) + 12);
+			const QRect cellRect(rect.center().x() - cellWidth / 2,
+				rect.bottom() - MatrixMetrics::knobCellHeight + 1, cellWidth, MatrixMetrics::knobCellHeight - 1);
+			painter.setPen(QPen(state.dragging ? accentColor : borderColor, 1));
+			painter.setBrush(QColor(tokens.surfaceSunken));
+			painter.drawRect(cellRect);
+			painter.setFont(monoFont);
+			if (!state.enabled)
+				painter.setPen(QColor(mutedColor));
+			else if (state.dragging || state.hovered)
+				painter.setPen(accentColor);
+			else
+				painter.setPen(QColor(tokens.text));
+			painter.drawText(cellRect, Qt::AlignCenter, state.valueText);
+		}
+	}
+
+	// Departure-board cell: square corners, 1px rule, and a 3px status rail in
+	// traffic-light semantics (green = active, amber = bypassed). A commented
+	// out row additionally swaps the outer rule for a dashed one.
+	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const QString railColor = info.enabled ? tokens.success : tokens.warning;
+		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
+		const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
+		const QString borderStyle = info.enabled ? QStringLiteral("solid") : QStringLiteral("dashed");
+		QString style = QStringLiteral(
+			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
+			.arg(backgroundColor, borderStyle, borderColor, railColor);
+		// The :hover rule both signals the row crosspoint and makes Qt repaint
+		// the frame on enter/leave, which drives the painted column band.
+		style += QStringLiteral(
+			" QFrame#FilterCardRow:hover { border: 1px %1 %2; border-left: 3px solid %3; }")
+			.arg(borderStyle, tokens.accent, railColor);
+		return style;
+	}
+
+	// The header strip stays transparent: paintCardChrome owns the band fill,
+	// the 1px header rule and the faint column grid behind it.
+	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		Q_UNUSED(info);
+		Q_UNUSED(tokens);
+		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0px; }");
+	}
+
+	// Monochrome type cell: the command type reads from the mono code text
+	// (BQUAD/INC/VST/...), not from a per-type colour. Traffic-light colours
+	// stay reserved for status.
+	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
+	{
+		Q_UNUSED(typeColor);
+		const QString ink = info.enabled ? tokens.text : tokens.mutedText;
+		return QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
+			.arg(ink, tokens.border);
+	}
+
+	// Per-type body treatments. The frozen legacy rows keep their stock
+	// construction; only the modern card editors are decorated.
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	{
+		Q_UNUSED(card);
+		Q_UNUSED(header);
+		if (info.legacyRow || body == nullptr)
+			return;
+
+		if (info.type == QStringLiteral("include"))
+		{
+			// Include row: a single "> source: <path>" board line. The stock
+			// file icon becomes a mono feed marker (QSS #IncludeCardGlyph
+			// styles it); the path field is already the <path> cell. ASCII ">"
+			// instead of U+25B8: DM Mono has no glyph for the triangle and the
+			// offscreen platform renders tofu.
+			QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("IncludeCardGlyph"));
+			if (glyph != nullptr)
+				glyph->setText(QStringLiteral("> source:"));
+		}
+		else if (info.type == QStringLiteral("vst") && body->objectName() == QStringLiteral("VSTCardEditor"))
+		{
+			// VST row: an external-device entry. A port strip with IN/OUT
+			// markings heads the body, so the plugin reads as outboard gear
+			// patched into the signal path.
+			QVBoxLayout* bodyLayout = qobject_cast<QVBoxLayout*>(body->layout());
+			if (bodyLayout == nullptr)
+				return;
+			QWidget* strip = new QWidget(body);
+			strip->setObjectName(QStringLiteral("MatrixVstPortStrip"));
+			QHBoxLayout* stripLayout = new QHBoxLayout(strip);
+			stripLayout->setContentsMargins(0, 0, 0, 0);
+			stripLayout->setSpacing(8);
+			QLabel* inPort = new QLabel(QStringLiteral("> IN"), strip);
+			inPort->setObjectName(QStringLiteral("MatrixVstPortLabel"));
+			stripLayout->addWidget(inPort);
+			stripLayout->addStretch(1);
+			QLabel* device = new QLabel(QStringLiteral("EXTERNAL DEVICE"), strip);
+			device->setObjectName(QStringLiteral("MatrixVstDeviceLabel"));
+			stripLayout->addWidget(device);
+			stripLayout->addStretch(1);
+			QLabel* outPort = new QLabel(QStringLiteral("OUT >"), strip);
+			outPort->setObjectName(QStringLiteral("MatrixVstPortLabel"));
+			stripLayout->addWidget(outPort);
+			bodyLayout->insertWidget(0, strip);
+		}
+	}
+
+	// Painted board chrome: header band, 1px header rule, faint column grid,
+	// status lamp, and the crosspoint hover (row band + coordinate-column
+	// band). Drawn under the transparent header/body so children stay crisp.
+	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		if (info.type == QStringLiteral("spacer"))
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		const QRect content = rect.adjusted(MatrixMetrics::railInset, 1, -1, -1);
+		if (content.width() <= 0 || content.height() <= 0)
+			return;
+		const int headerHeight = qMin(tokens.rowHeight, content.height());
+		const QRect headerBand(content.left(), content.top(), content.width(), headerHeight);
+
+		// Header band fill (the header widget itself is transparent).
+		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
+
+		// Faint column grid: the graph paper the board sits on.
+		QColor gridColor(tokens.border);
+		gridColor.setAlpha(info.enabled ? 60 : 30);
+		painter.setPen(QPen(gridColor, 1));
+		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, content.top(), x, content.bottom());
+
+		// 1px rule between the header cell and the body cell.
+		if (content.height() > headerHeight)
+		{
+			painter.setPen(QPen(QColor(tokens.border), 1));
+			painter.drawLine(content.left(), content.top() + headerHeight, content.right(), content.top() + headerHeight);
+		}
+
+		// Crosspoint hover: the row band and the coordinate-column band light
+		// up; their intersection is the crosspoint.
+		if (info.hovered && info.enabled)
+		{
+			QColor rowBand(tokens.accent);
+			rowBand.setAlpha(22);
+			painter.fillRect(headerBand, rowBand);
+			const QRect columnBand(content.left(), content.top(),
+				qMin(MatrixMetrics::coordinateBandWidth, content.width()), content.height());
+			QColor columnColor(tokens.accent);
+			columnColor.setAlpha(14);
+			painter.fillRect(columnBand, columnColor);
+			QColor crosspoint(tokens.accent);
+			crosspoint.setAlpha(26);
+			painter.fillRect(QRect(columnBand.left(), headerBand.top(), columnBand.width(), headerBand.height()), crosspoint);
+		}
+
+		// Status lamp in the left gutter: solid green = active, hollow amber =
+		// bypassed (traffic-light semantics, never decorative).
+		const QRect lampRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5);
+		if (info.enabled)
+		{
+			painter.fillRect(lampRect, QColor(tokens.success));
+		}
+		else
+		{
+			painter.setPen(QPen(QColor(tokens.warning), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
+		}
 	}
 };
 
