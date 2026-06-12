@@ -12,6 +12,17 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Adversarial design review round 1: the parameter area now belongs to each
+  skin. Native spinbox arrows are gone from command rows (values drag-scrub),
+  gain knobs read as bipolar with a 0 dB detent, and every skin reworked its
+  rows and picker - studio band colors per filter type, minimal value-first
+  hairline knobs with page-ordered picker numbering, soft warm-graphite dark
+  identity, rack engraved captions with LCD value wells, matrix bus
+  coordinates with a spec-echo caption strip. The offscreen gallery grew to
+  250 captures and now fails the render on horizontal row overflow. ([#94])
+
 ## v1.26.0 — 2026-06-12
 
 - The Editor draws its own window chrome: the native Windows caption is
@@ -395,3 +406,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81
 [#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85
 [#88]: https://github.com/115dkk/EqualizerAPO-XT/pull/88
+[#94]: https://github.com/115dkk/EqualizerAPO-XT/pull/94

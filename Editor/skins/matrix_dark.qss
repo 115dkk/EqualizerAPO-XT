@@ -409,6 +409,37 @@ QAbstractSpinBox::down-arrow:hover {
     border-top-color: @TEXT@;
 }
 
+/* Value cells (X1/M4): with the native spin buttons gone, the authoritative
+   readouts are square board cells in the knob-cell grammar - sunken fill,
+   1px rule, bold mono ink; the value is scrubbed, wheeled or typed in
+   place. Hover pre-lights the rule, focus/typing engages it in accent, a
+   dashed rule cancels it - the same engagement grammar as every other cell
+   on the board. */
+QDoubleSpinBox[valueScrub="true"],
+QSpinBox[valueScrub="true"] {
+    background: @GRAPH@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 6px;
+    font-size: 9pt;
+    font-weight: 700;
+}
+QDoubleSpinBox[valueScrub="true"]:hover,
+QSpinBox[valueScrub="true"]:hover {
+    border-color: @ACCENT@;
+}
+QDoubleSpinBox[valueScrub="true"]:focus,
+QSpinBox[valueScrub="true"]:focus {
+    border: 1px solid @ACCENT@;
+    background: #081820;
+}
+QDoubleSpinBox[valueScrub="true"]:disabled,
+QSpinBox[valueScrub="true"]:disabled {
+    color: #4A6470;
+    background: #0A1014;
+    border: 1px dashed #1A2933;
+}
+
 /* ===== Combo Box ===== */
 QComboBox {
     background: @CARD@;
@@ -464,6 +495,50 @@ QComboBox QAbstractItemView::item {
 QComboBox QAbstractItemView::item:selected {
     background: rgba(34, 211, 238, 0.22);
     color: @TEXT@;
+}
+
+/* Parameter-mode selectors (X5): these cells were read as labels - they are
+   genuine selects. Caption ink in a transparent cell keeps the catalog
+   monochrome, while the ruled drop-down zone and its arrow stay, so the
+   select affordance is honest; hover pre-lights the cell and an open list
+   engages it, the crosspoint grammar every select on the board follows. */
+QComboBox[paramSelector="true"] {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+QComboBox[paramSelector="true"]:hover {
+    color: @TEXT@;
+    background: rgba(34, 211, 238, 0.08);
+}
+QComboBox[paramSelector="true"]:on {
+    color: @TEXT@;
+    background: rgba(34, 211, 238, 0.16);
+}
+/* A selector with one mode is disabled by the shared GUI: a choice that is
+   not currently a choice gets the cancelled grammar (dashed rule), never a
+   fake live cell. */
+QComboBox[paramSelector="true"]:disabled {
+    color: #4A6470;
+    border: 1px dashed #1A2933;
+}
+/* The row's template select: the engaged entry readout, a sunken
+   destination cell like the toolbar's device readouts. */
+QComboBox[filterSelector="true"] {
+    background: @GRAPH@;
+    font-weight: 600;
+}
+/* The gain caption is honestly a label - gain has no parameter modes - so
+   it speaks the caption rank (same ink and size as the selector captions)
+   without the selector cell's rule and arrow. */
+QLabel#gainLabel {
+    color: @MUTED@;
+    background: transparent;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 /* ===== Check / Radio ===== */
@@ -889,6 +964,12 @@ QWidget#FilterCardEditor {
     background: transparent;
     border-radius: 0;
 }
+/* Caption strip (M2): painted entirely by MatrixRowCaption (sunken board
+   line, "> spec" echo, coordinate readout); QSS only keeps Qt's generic
+   widget fill out of the way. */
+QWidget#MatrixRowCaption {
+    background: transparent;
+}
 /* Type cell: a square outlined monospace code (BQUAD/INC/VST/...). The
    ink colour is supplied inline by MatrixSkin::typeBadgeStyle - the type
    reads from the code text, never from a decorative colour. */
@@ -922,15 +1003,23 @@ QLabel#FilterCardRawText {
     color: @MUTED@;
     background: transparent;
 }
-/* Row coordinate: a boxed monospace cell, like a board line number. */
+/* Row coordinate: a boxed monospace cell speaking the picker's coordinate
+   grammar (bus letter + line number, e.g. "B3"; MatrixSkin rewrites the
+   text). The ink follows the picker's coordinate cells - muted at rest,
+   accent only while the row is engaged. Colour rationing: a permanently
+   accent-lit cell would spend the engage colour on decoration. */
 QLabel#FilterCardNumber {
-    color: @ACCENT@;
+    color: @MUTED@;
     background: @GRAPH@;
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 1px 4px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
+}
+QWidget#FilterCardHeader[selected="true"] QLabel#FilterCardNumber {
+    color: @ACCENT@;
+    border-color: @ACCENT@;
 }
 QToolButton#FilterCardIconButton {
     background: transparent;

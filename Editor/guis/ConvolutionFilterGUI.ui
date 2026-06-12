@@ -53,7 +53,7 @@
    <item row="0" column="0">
     <widget class="QLabel" name="convolutionLabel">
      <property name="text">
-      <string>Convolution with impulse response:</string>
+      <string>Convolution with impulse response</string>
      </property>
     </widget>
    </item>
@@ -76,7 +76,7 @@
       <item row="0" column="3">
        <widget class="QLabel" name="labelSampleRate">
         <property name="text">
-         <string>Sample rate:</string>
+         <string>Sample rate</string>
         </property>
        </widget>
       </item>
@@ -134,7 +134,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="labelLength">
         <property name="text">
-         <string>Length:</string>
+         <string>Length</string>
         </property>
        </widget>
       </item>

@@ -5,11 +5,14 @@
 #include "SoftFilterPicker.h"
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QRegularExpression>
+#include <QSet>
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
 
@@ -24,12 +27,14 @@ enum SoftPickerRole
 	EntryIndexRole = Qt::UserRole,
 	// Entry name or section label.
 	TitleRole,
-	// The template's config line (entries only).
+	// The friendly caption under the name (entries and the empty state).
 	CaptionRole,
 	// The category pastel (QColor).
 	TintRole,
 	// SoftPickerItemKind.
-	KindRole
+	KindRole,
+	// The per-item tile monogram (entries only).
+	GlyphRole
 };
 
 enum SoftPickerItemKind
@@ -64,6 +69,69 @@ QColor sectionPastel(int sectionIndex, bool dark)
 	return QColor::fromHslF(hue / 360.0, dark ? 0.52 : 0.58, dark ? 0.64 : 0.56);
 }
 
+// AR1 F4: single initials collided across the catalog (Comment, Channel,
+// Copy and Convolution all wore "C"), so every tile now carries a per-item
+// monogram. Multi-word names take their first two word initials ("Low-pass
+// filter" -> "LP"), single-word names their first two letters ("Channel" ->
+// "Ch"), and a catalog-wide uniqueness pass walks the remaining letters of a
+// single-word name whose candidate is taken (Comment keeps "Co", Copy
+// becomes "Cp", Convolution "Cn"). Deterministic in catalog order, the same
+// cosmetic trade the section hues already make; the category pastel stays
+// the second disambiguator.
+QStringList softMonograms(const QList<FilterPickerEntry>& entries)
+{
+	QSet<QString> used;
+	QStringList result;
+	for (const FilterPickerEntry& entry : entries)
+	{
+		// The parenthetical part of a template name is a description, not a
+		// name ("Channel (Select channels)"), so it lends no letters.
+		QString base = entry.name;
+		const int paren = base.indexOf(QLatin1Char('('));
+		if (paren > 0)
+			base = base.left(paren);
+		const QStringList words = base.split(
+			QRegularExpression(QStringLiteral("[^\\p{L}\\p{Nd}]+")), Qt::SkipEmptyParts);
+
+		QString glyph = QStringLiteral("?");
+		if (words.size() >= 2)
+			glyph = QString(words[0].at(0).toUpper()) + words[1].at(0).toUpper();
+		else if (!words.isEmpty() && words[0].size() >= 2)
+			glyph = QString(words[0].at(0).toUpper()) + words[0].at(1).toLower();
+		else if (!words.isEmpty())
+			glyph = words[0].toUpper();
+
+		if (used.contains(glyph) && words.size() == 1)
+		{
+			for (int i = 2; i < words[0].size(); i++)
+			{
+				const QString alternative = QString(words[0].at(0).toUpper()) + words[0].at(i).toLower();
+				if (!used.contains(alternative))
+				{
+					glyph = alternative;
+					break;
+				}
+			}
+		}
+		used.insert(glyph);
+		result.append(glyph);
+	}
+	return result;
+}
+
+// AR1 F5: templates that insert a bare command ("Include:", "Copy: ", "# ")
+// used to print that fragment as the caption, which read as a truncated
+// line. The display layer swaps empty and colon-ended previews for a calm
+// promise; the raw line keeps living in the tooltip and in what the choice
+// actually inserts, so nothing is hidden, only phrased kindly.
+QString softCaption(const QString& line)
+{
+	const QString display = line.trimmed();
+	if (display.isEmpty() || display.endsWith(QLatin1Char(':')) || display == QStringLiteral("#"))
+		return QCoreApplication::translate("SoftFilterPickerView", "Choose the details after adding");
+	return display;
+}
+
 // Paints the menu rows: stadium highlights, rounded-square colour tiles and
 // pill section headers, all from the live skin tokens so both modes stay calm.
 class SoftPickerDelegate : public QStyledItemDelegate
@@ -81,7 +149,8 @@ public:
 			// first carries its breathing room above the pill.
 			return QSize(GUIHelper::scale(100.0), GUIHelper::scale(index.row() == 0 ? 26.0 : 38.0));
 		case EmptyStateItem:
-			return QSize(GUIHelper::scale(100.0), GUIHelper::scale(64.0));
+			// Room for the friendly empty-state card (glyph, title, caption).
+			return QSize(GUIHelper::scale(100.0), GUIHelper::scale(112.0));
 		default:
 			return QSize(GUIHelper::scale(100.0), GUIHelper::scale(48.0));
 		}
@@ -102,8 +171,7 @@ public:
 			paintSection(painter, option, index, t, dark, title);
 			break;
 		case EmptyStateItem:
-			painter->setPen(QColor(t.mutedText));
-			painter->drawText(option.rect, Qt::AlignCenter, title);
+			paintEmptyState(painter, option, index, t, title);
 			break;
 		default:
 			paintEntry(painter, option, index, t, dark, title);
@@ -139,6 +207,56 @@ private:
 		painter->drawText(pill, Qt::AlignCenter, metrics.elidedText(label, Qt::ElideRight, pillWidth - GUIHelper::scale(16.0)));
 	}
 
+	// AR1 X6: the fruitless search is a moment, not a void. A friendly card
+	// one value step above the menu surface holds a pastel circle with a
+	// painted magnifier, the title in full ink and a caption in the muted
+	// face - the same calm grammar as every other soft surface, no warning
+	// colour anywhere.
+	static void paintEmptyState(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
+		const SkinTokens& t, const QString& title)
+	{
+		const QString caption = index.data(CaptionRole).toString();
+
+		QRectF card(option.rect);
+		card.adjust(GUIHelper::scale(14.0), GUIHelper::scale(8.0), -GUIHelper::scale(14.0), -GUIHelper::scale(6.0));
+		painter->setPen(QPen(QColor(t.border), 1));
+		painter->setBrush(QColor(t.cardHover));
+		painter->drawRoundedRect(card, 14.0, 14.0);
+
+		// The magnifier rests in a pastel accent circle: lens ring plus a
+		// short rounded handle, drawn with strokes (no glyph fonts, no icons).
+		const qreal tileSide = GUIHelper::scale(30.0);
+		const QRectF tile(card.center().x() - tileSide / 2.0, card.top() + GUIHelper::scale(12.0), tileSide, tileSide);
+		painter->setPen(Qt::NoPen);
+		painter->setBrush(withAlpha(QColor(t.accent), 38));
+		painter->drawEllipse(tile);
+		const QPointF lensCenter = tile.center() - QPointF(tileSide * 0.07, tileSide * 0.07);
+		const qreal lensRadius = tileSide * 0.20;
+		painter->setPen(QPen(QColor(t.accent), 2, Qt::SolidLine, Qt::RoundCap));
+		painter->setBrush(Qt::NoBrush);
+		painter->drawEllipse(lensCenter, lensRadius, lensRadius);
+		const QPointF handleStart = lensCenter + QPointF(lensRadius * 0.75, lensRadius * 0.75);
+		painter->drawLine(handleStart, handleStart + QPointF(tileSide * 0.16, tileSide * 0.16));
+
+		QFont nameFont = option.font;
+		nameFont.setWeight(QFont::DemiBold);
+		const QFontMetricsF nameMetrics(nameFont);
+		QFont captionFont = option.font;
+		captionFont.setPointSizeF(option.font.pointSizeF() * 0.82);
+		const QFontMetricsF captionMetrics(captionFont);
+
+		const qreal textTop = tile.bottom() + GUIHelper::scale(8.0);
+		painter->setFont(nameFont);
+		painter->setPen(QColor(t.text));
+		painter->drawText(QRectF(card.left(), textTop, card.width(), nameMetrics.height()),
+			Qt::AlignHCenter | Qt::AlignVCenter, title);
+		painter->setFont(captionFont);
+		painter->setPen(QColor(t.mutedText));
+		painter->drawText(QRectF(card.left(), textTop + nameMetrics.height() + GUIHelper::scale(2.0),
+			card.width(), captionMetrics.height()),
+			Qt::AlignHCenter | Qt::AlignVCenter, caption);
+	}
+
 	static void paintEntry(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
 		const SkinTokens& t, bool dark, const QString& title)
 	{
@@ -167,28 +285,32 @@ private:
 		}
 
 		// The category announces itself like an iOS Settings row: a rounded
-		// square colour tile carrying the entry's initial.
+		// square colour tile carrying the entry's monogram (AR1 F4: per-item
+		// two-letter glyphs instead of the colliding single initial).
 		const QColor tint = index.data(TintRole).value<QColor>();
 		const qreal tileSide = GUIHelper::scale(28.0);
 		const QRectF tile(row.left() + GUIHelper::scale(10.0), row.center().y() - tileSide / 2.0, tileSide, tileSide);
 		painter->setPen(Qt::NoPen);
 		painter->setBrush(tint);
 		painter->drawRoundedRect(tile, tileSide * 0.32, tileSide * 0.32);
+		const QString glyph = index.data(GlyphRole).toString();
 		QFont glyphFont = option.font;
-		glyphFont.setWeight(QFont::DemiBold);
-		glyphFont.setPointSizeF(option.font.pointSizeF() * 1.1);
+		glyphFont.setWeight(QFont::Bold);
+		glyphFont.setPointSizeF(option.font.pointSizeF() * (glyph.size() > 1 ? 0.9 : 1.1));
 		painter->setFont(glyphFont);
 		painter->setPen(QColor(QStringLiteral("#FAFAFC")));
-		painter->drawText(tile, Qt::AlignCenter, title.left(1).toUpper());
+		painter->drawText(tile, Qt::AlignCenter, glyph);
 
 		// Name over the config line as a friendly muted caption (regular
 		// face, not monospace: here it is a description, not an editor).
+		// The name is bold (AR1 F4) so it carries the row now that the tile
+		// shares its letters with the whole catalog.
 		const QString caption = index.data(CaptionRole).toString();
 		const qreal textLeft = tile.right() + GUIHelper::scale(12.0);
 		const qreal textWidth = row.right() - GUIHelper::scale(16.0) - textLeft;
 
 		QFont nameFont = option.font;
-		nameFont.setWeight(QFont::DemiBold);
+		nameFont.setWeight(QFont::Bold);
 		const QFontMetricsF nameMetrics(nameFont);
 		QFont captionFont = option.font;
 		captionFont.setPointSizeF(option.font.pointSizeF() * 0.82);
@@ -262,6 +384,7 @@ SoftFilterPickerView::SoftFilterPickerView(QWidget* parent)
 void SoftFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
 {
 	allEntries = entries;
+	entryMonograms = softMonograms(entries);
 	sectionColors.clear();
 	const bool dark = SkinManager::instance()->isDark();
 	for (const FilterPickerEntry& entry : entries)
@@ -272,6 +395,47 @@ void SoftFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
 	}
 	rebuildList();
 	searchEdit->setFocus();
+}
+
+void SoftFilterPickerView::galleryShowcase(GalleryShowcase kind)
+{
+	if (kind == GalleryShowcase::EmptySearch)
+	{
+		// What the user sees after a fruitless search: the friendly
+		// empty-state card under the pill (the delegate's EmptyStateItem).
+		searchEdit->setText(QStringLiteral("zzzz"));
+		return;
+	}
+
+	searchEdit->clear();
+	// The first selectable row is already the preselected stadium highlight;
+	// parking the cursor there would photograph the selected style twice. The
+	// cursor rests on the entry after it instead, so one frame shows both the
+	// stadium selection and the one-value-step hover lift, each readable.
+	QListWidgetItem* target = nullptr;
+	int selectableSeen = 0;
+	for (int row = 0; row < listWidget->count(); row++)
+	{
+		QListWidgetItem* item = listWidget->item(row);
+		if (!(item->flags() & Qt::ItemIsSelectable))
+			continue;
+		target = item;
+		if (++selectableSeen == 2)
+			break;
+	}
+	if (target == nullptr)
+		return;
+
+	// Hover is driven by real mouse events (the view keeps a hover index
+	// updated from MouseMove); feed it a synthetic move over the target so
+	// the offscreen render shows the hover styling.
+	listWidget->viewport()->setAttribute(Qt::WA_UnderMouse, true);
+	const QPointF center = listWidget->visualItemRect(target).center();
+	QMouseEvent moveEvent(QEvent::MouseMove, center,
+		listWidget->viewport()->mapToGlobal(center),
+		Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+	QApplication::sendEvent(listWidget->viewport(), &moveEvent);
+	listWidget->viewport()->update();
 }
 
 void SoftFilterPickerView::rebuildList()
@@ -318,19 +482,23 @@ void SoftFilterPickerView::rebuildList()
 		QListWidgetItem* item = new QListWidgetItem(listWidget);
 		item->setData(EntryIndexRole, i);
 		item->setData(TitleRole, entry.name);
-		item->setData(CaptionRole, entry.line);
+		item->setData(CaptionRole, softCaption(entry.line));
 		item->setData(TintRole, tint);
 		item->setData(KindRole, EntryItem);
+		item->setData(GlyphRole, entryMonograms.value(i, entry.name.left(1).toUpper()));
+		// The tooltip keeps the raw template line even when the caption wears
+		// the friendly phrasing - what gets inserted is never hidden.
 		item->setToolTip(entry.line);
 	}
 
-	// A friendly, quiet empty state instead of a bare void.
+	// A friendly, quiet empty-state card instead of a bare void.
 	if (listWidget->count() == 0)
 	{
 		QListWidgetItem* empty = new QListWidgetItem(listWidget);
 		empty->setFlags(Qt::NoItemFlags);
 		empty->setData(EntryIndexRole, -1);
 		empty->setData(TitleRole, tr("Nothing matches your search"));
+		empty->setData(CaptionRole, tr("Try a shorter or different keyword"));
 		empty->setData(KindRole, EmptyStateItem);
 	}
 
@@ -404,8 +572,9 @@ void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 	painter.fillRect(rect(), QColor(t.background));
 
 	// Faked elevation, per the constitution: one background value step nudged
-	// down under the card; never a real shadow effect.
-	const qreal radius = 12.0;
+	// down under the card; never a real shadow effect. The card rounds at the
+	// constitutional 14px (AR1 F2).
+	const qreal radius = 14.0;
 	QRectF card(rect());
 	card.adjust(0.5, 0.5, -0.5, -2.5);
 	const QColor stepColor = dark

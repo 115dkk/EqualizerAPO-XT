@@ -30,7 +30,7 @@
     <number>0</number>
    </property>
    <item row="1" column="13">
-    <widget class="QDoubleSpinBox" name="volumeSpinBox">
+    <widget class="ValueScrubBox" name="volumeSpinBox">
      <property name="enabled">
       <bool>false</bool>
      </property>
@@ -70,7 +70,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Reference level:</string>
+      <string>Reference level</string>
      </property>
     </widget>
    </item>
@@ -90,7 +90,7 @@
    <item row="0" column="13">
     <widget class="QLabel" name="volumeLabel">
      <property name="text">
-      <string>Master volume:</string>
+      <string>Master volume</string>
      </property>
     </widget>
    </item>
@@ -157,7 +157,7 @@ Alexander Walch</string>
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Attenuation:</string>
+      <string>Attenuation</string>
      </property>
     </widget>
    </item>
@@ -178,7 +178,7 @@ Alexander Walch</string>
     </spacer>
    </item>
    <item row="1" column="3">
-    <widget class="QSpinBox" name="refLevelSpinBox">
+    <widget class="ValueScrubIntBox" name="refLevelSpinBox">
      <property name="suffix">
       <string notr="true"> dB</string>
      </property>
@@ -216,7 +216,7 @@ Alexander Walch</string>
     </widget>
    </item>
    <item row="1" column="9">
-    <widget class="QDoubleSpinBox" name="attSpinBox">
+    <widget class="ValueScrubBox" name="attSpinBox">
      <property name="maximum">
       <double>1.000000000000000</double>
      </property>
@@ -229,7 +229,7 @@ Alexander Walch</string>
     </widget>
    </item>
    <item row="1" column="6">
-    <widget class="QSpinBox" name="refOffsetSpinBox">
+    <widget class="ValueScrubIntBox" name="refOffsetSpinBox">
      <property name="suffix">
       <string notr="true"> dB</string>
      </property>
@@ -250,7 +250,7 @@ Alexander Walch</string>
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Reference offset:</string>
+      <string>Reference offset</string>
      </property>
     </widget>
    </item>
@@ -298,7 +298,7 @@ Alexander Walch</string>
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Loudness correction:</string>
+      <string>Loudness correction</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
@@ -335,6 +335,16 @@ Alexander Walch</string>
    <class>AudioKnob</class>
    <extends>QDial</extends>
    <header>Editor/widgets/AudioKnob.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ValueScrubBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>Editor/widgets/ValueScrubBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ValueScrubIntBox</class>
+   <extends>QSpinBox</extends>
+   <header>Editor/widgets/ValueScrubBox.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

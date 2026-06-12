@@ -43,7 +43,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>Graphic EQ:</string>
+        <string>Graphic EQ</string>
        </property>
       </widget>
      </item>

@@ -6,6 +6,17 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- 적대적 디자인 리뷰 라운드 1: 파라미터 영역이 스킨의 소유가 됐습니다. 명령
+  행의 네이티브 스핀 화살표가 사라지고(값은 드래그 스크럽), gain 노브는
+  0 dB 디텐트의 바이폴라로 읽히며, 다섯 스킨이 행과 픽커를 다시
+  만들었습니다. studio는 필터 타입별 밴드 컬러, minimal은 값-우선 헤어라인
+  노브와 페이지 순 픽커 번호, soft는 웜 그라파이트 다크 정체성, rack은 각인
+  캡션과 LCD 값 창, matrix는 버스 좌표와 스펙 에코 캡션 스트립입니다.
+  오프스크린 갤러리는 250장이 됐고 행 가로 오버플로 시 렌더가
+  실패합니다. ([#94])
+
 ## v1.26.0 (2026-06-12)
 
 - Editor가 창 chrome을 직접 그립니다. 네이티브 윈도우 제목 표시줄이 스킨별
@@ -373,3 +384,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#81]: https://github.com/115dkk/EqualizerAPO-XT/pull/81
 [#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85
 [#88]: https://github.com/115dkk/EqualizerAPO-XT/pull/88
+[#94]: https://github.com/115dkk/EqualizerAPO-XT/pull/94

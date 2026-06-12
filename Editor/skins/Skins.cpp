@@ -5,6 +5,8 @@
 #include "Skins.h"
 
 #include <QAction>
+#include <QComboBox>
+#include <QDial>
 #include <QEvent>
 #include <QFontMetrics>
 #include <QFontMetricsF>
@@ -13,11 +15,16 @@
 #include <QLabel>
 #include <QLayout>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPixmap>
+#include <QStyle>
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
+
+// Studio's S3 band-colour law maps BiQuad filter types onto hue families.
+#include "filters/BiQuad.h"
 
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
@@ -92,6 +99,60 @@ QColor studioAlpha(const QString& hex, int alpha)
 bool studioIsDark(const SkinTokens& tokens)
 {
 	return QColor(tokens.background).lightness() < 128;
+}
+
+// S3 band-colour law (adversarial review round 1): the light a BiQuad row
+// carries - knob arcs, type badge ink, signal lamp, hover/selected border
+// glow - takes the row's band colour, one hue family per filter type. The
+// glass itself stays neutral. Peaking and pure gain stay on the skin's base
+// blue; shelves are mint, pass filters violet, notch/all-pass rose. Rows
+// that carry no "studioBand" tag keep the neutral accent.
+const char* const studioBandFamilies[] = { "peak", "shelf", "pass", "notch" };
+
+QString studioBandHex(const QString& family, bool dark)
+{
+	if (family == QLatin1String("shelf"))
+		return dark ? QStringLiteral("#44D7A4") : QStringLiteral("#0C9E72");
+	if (family == QLatin1String("pass"))
+		return dark ? QStringLiteral("#A66CFF") : QStringLiteral("#8A4DFF");
+	if (family == QLatin1String("notch"))
+		return dark ? QStringLiteral("#FF7FA8") : QStringLiteral("#DB4D7E");
+	return dark ? QStringLiteral("#5B8CFF") : QStringLiteral("#2F6BFF");
+}
+
+QString studioBandFamilyForBiQuadType(int type)
+{
+	switch (type)
+	{
+	case BiQuad::LOW_SHELF:
+	case BiQuad::HIGH_SHELF:
+		return QStringLiteral("shelf");
+	case BiQuad::LOW_PASS:
+	case BiQuad::HIGH_PASS:
+	case BiQuad::BAND_PASS:
+		return QStringLiteral("pass");
+	case BiQuad::NOTCH:
+	case BiQuad::ALL_PASS:
+		return QStringLiteral("notch");
+	default:
+		return QStringLiteral("peak");
+	}
+}
+
+// Resolves the band colour a widget was tagged with (prepareCommandRow).
+// The paint hooks receive no widget pointer, but painting always happens on
+// the widget itself, so the painter's device is the tagged widget; untagged
+// widgets fall back to the neutral accent.
+QColor studioBandPaintColor(const QPainter& painter, const SkinTokens& tokens)
+{
+	QString hex = tokens.accent;
+	if (painter.device() != nullptr && painter.device()->devType() == QInternal::Widget)
+	{
+		const QVariant family = static_cast<const QWidget*>(painter.device())->property("studioBand");
+		if (family.isValid())
+			hex = studioBandHex(family.toString(), studioIsDark(tokens));
+	}
+	return QColor(hex);
 }
 
 class StudioSkin : public ISkin
@@ -190,17 +251,20 @@ public:
 	}
 
 	// "The arc IS the value": no knob body, only a thin track circle, a
-	// glowing accent arc from the reference point to the current value and a
-	// small indicator dot. Bipolar (gain) knobs anchor at 12 o'clock and grow
-	// left or right; unipolar knobs grow from the track start. The numeric
-	// readout fades in while hovering or dragging; glow intensifies during a
-	// drag; disabled knobs drop to reduced opacity with the glow off.
+	// glowing arc from the reference point to the current value and a small
+	// indicator dot. The arc wears the row's band colour (S3). Glow is a
+	// luminance ladder faked with layered strokes: a faint outer stroke even
+	// at rest, a one-step bloom on hover and full light while dragging (S4).
+	// Bipolar (gain) knobs hang from a luminous 0 dB anchor at 12 o'clock and
+	// grow left (cut) or right (boost); unipolar knobs grow from the track
+	// start and carry no anchor (X3). The numeric readout fades in while
+	// hovering or dragging; disabled knobs drop to reduced opacity.
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing);
 
 		// Centred square so the knob stays round in non-square hosts
-		// (promoted legacy dials are 100x66, the card knob is 74x74).
+		// (promoted legacy dials are 84x66, the card knob is 74x74).
 		const QRectF inner = QRectF(rect).adjusted(9, 9, -9, -9);
 		const double side = qMin(inner.width(), inner.height());
 		const QRectF track(inner.center().x() - side / 2.0, inner.center().y() - side / 2.0, side, side);
@@ -212,19 +276,12 @@ public:
 		if (!state.enabled)
 			painter.setOpacity(0.35);
 
+		const QColor accent = studioBandPaintColor(painter, tokens);
+
 		// Track: the full range geometry as a thin circle segment.
 		painter.setBrush(Qt::NoBrush);
 		painter.setPen(QPen(QColor(tokens.border), 2.0, Qt::SolidLine, Qt::RoundCap));
 		painter.drawArc(track, qRound(-start * 16), qRound(-span * 16));
-
-		// Reference tick: bipolar knobs mark 0 dB at 12 o'clock so the anchor
-		// stays visible even with an empty arc; unipolar knobs carry no tick.
-		if (state.bipolar)
-		{
-			const QPointF top(track.center().x(), track.top());
-			painter.setPen(QPen(QColor(tokens.mutedText), 1.5));
-			painter.drawLine(QPointF(top.x(), top.y() - 3.0), QPointF(top.x(), top.y() + 3.0));
-		}
 
 		double arcFrom = start;
 		double sweep = span * ratio;
@@ -234,11 +291,12 @@ public:
 			sweep = span * (ratio - 0.5);  // signed: cut grows left, boost right
 		}
 
-		// Fake glow: the same arc repainted with wider, more transparent
-		// strokes. Hover brightens it, dragging brightens it further.
-		const int halo = state.dragging ? 88 : (state.hovered ? 58 : 32);
-		const QColor accent(tokens.accent);
+		// The luminance ladder (S4): rest keeps a faint outer stroke so the
+		// arc visibly glows even untouched, hover blooms one full step and a
+		// drag turns the light all the way up.
+		const int halo = state.dragging ? 120 : (state.hovered ? 88 : 36);
 		const struct { double width; int alpha; } layers[] = {
+			{ 13.0, qMax(8, halo / 6) },
 			{ 9.0, halo / 3 },
 			{ 5.5, halo },
 			{ 2.5, 255 }
@@ -249,6 +307,24 @@ public:
 			stroke.setAlpha(layer.alpha);
 			painter.setPen(QPen(stroke, layer.width, Qt::SolidLine, Qt::RoundCap));
 			painter.drawArc(track, qRound(-arcFrom * 16), qRound(-sweep * 16));
+		}
+
+		// 0 dB anchor (X3): a luminous tick crossing the track at 12 o'clock,
+		// drawn over the arc so the centre detent stays readable even at
+		// small gains - bloom first, bright core on top (strokes, never
+		// effects). At 0 dB the indicator dot sits right under it: the knob
+		// visibly rests at its detent.
+		if (state.bipolar)
+		{
+			const QPointF top(track.center().x(), track.top());
+			QColor tickBloom = accent;
+			tickBloom.setAlpha(110);
+			painter.setPen(QPen(tickBloom, 3.5, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(top.x(), top.y() - 6.0), QPointF(top.x(), top.y() + 4.0));
+			QColor tickCore(tokens.text);
+			tickCore.setAlpha(235);
+			painter.setPen(QPen(tickCore, 1.4, Qt::SolidLine, Qt::FlatCap));
+			painter.drawLine(QPointF(top.x(), top.y() - 6.0), QPointF(top.x(), top.y() + 4.0));
 		}
 
 		// Indicator dot on the track at the arc end, with its own halo.
@@ -290,11 +366,14 @@ public:
 	}
 
 	// Glass card: solid colour with alpha over the deep background plus a 1px
-	// lighter top edge (the reflection). Command types keep one silhouette but
-	// announce themselves through the border treatment: DSP rows solid,
-	// Include rows dashed (a reference to elsewhere), VST rows a vertical
-	// accent gradient (the module radiates its own light). Hover brightens;
-	// disabled rows lose the reflection and most of their opacity.
+	// lighter top edge (the reflection); paintCardChrome layers the caught
+	// light on top (S1). Command types keep one silhouette but announce
+	// themselves through the border treatment: DSP rows solid, Include rows
+	// dashed (a reference to elsewhere), VST rows a vertical accent gradient
+	// (the module radiates its own light). BiQuad rows hang their hover and
+	// selection glow on the band colour they were tagged with (S3); the glass
+	// itself stays neutral. Hover brightens; disabled rows lose the
+	// reflection and most of their opacity.
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		const bool dark = studioIsDark(tokens);
@@ -331,10 +410,27 @@ public:
 			: (info.selected ? studioRgba(tokens.accent, 0.65) : studioRgba(tokens.border, 0.90));
 		const QString hoverBorderBrush = info.focused ? tokens.focusRing : studioRgba(tokens.accent, 0.45);
 
-		return QStringLiteral(
+		QString style = QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-top-color: %4; border-radius: 8px; }"
 			" QFrame#FilterCardRow:hover { background: %5; border-color: %6; border-top-color: %7; }")
 			.arg(background, borderStyle, borderBrush, topEdge, hoverBackground, hoverBorderBrush, topEdgeHover);
+
+		// S3: a tagged BiQuad row's border light follows its band colour.
+		// Attribute selectors outrank the base rules, and untagged rows can
+		// never match them; keyboard focus keeps the neutral focus ring.
+		if (info.type == QStringLiteral("biquad") && !info.focused)
+		{
+			for (const char* family : studioBandFamilies)
+			{
+				const QString band = studioBandHex(QLatin1String(family), dark);
+				if (info.selected)
+					style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"] { border-color: %2; border-top-color: %3; }")
+						.arg(QLatin1String(family), studioRgba(band, 0.65), topEdge);
+				style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"]:hover { border-color: %2; border-top-color: %3; }")
+					.arg(QLatin1String(family), studioRgba(band, 0.45), topEdgeHover);
+			}
+		}
+		return style;
 	}
 
 	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
@@ -352,54 +448,181 @@ public:
 			.arg(sheen);
 	}
 
-	// Painted decoration on top of the QSS chrome. DSP rows get a short
-	// "signal lamp": a glowing accent segment on the left edge, vertically
-	// centred on the header strip. VST rows get a halo hugging the border so
-	// the module reads as lit from within. Include/comment/raw rows stay
-	// unlit; disabled rows paint nothing (the lamp is off).
+	// Painted decoration on top of the QSS chrome - the layer that makes a
+	// row read as glass instead of a flat dark rectangle (S1). Every enabled
+	// row gets the pane treatment: a frost sheen settling down from the top
+	// edge, a centre-bright reflection caught on that edge (dark mode; white
+	// glass cannot get brighter) and a shade pooling at the bottom as the
+	// pane's thickness. On top of the pane, DSP rows wear the signal lamp in
+	// their band colour (S3) and VST rows a border-hugging halo, with hover
+	// blooming one ladder step (S4). Include/comment/raw rows stay unlit
+	// panes; disabled rows paint nothing - the light is off, the glass dead.
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
-		if (!info.enabled)
-			return;
-		if (info.type == QStringLiteral("spacer") || info.type == QStringLiteral("comment")
-			|| info.type == QStringLiteral("text") || info.type == QStringLiteral("include"))
+		if (!info.enabled || info.type == QStringLiteral("spacer"))
 			return;
 
+		const bool dark = studioIsDark(tokens);
 		painter.save();
 		painter.setRenderHint(QPainter::Antialiasing);
+
+		// The pane: the glass surface treatment stays inside the border.
+		const QRectF pane = QRectF(rect).adjusted(1.0, 1.0, -1.0, -1.0);
+		QPainterPath panePath;
+		panePath.addRoundedRect(pane, 7.0, 7.0);
+		painter.setClipPath(panePath);
+
+		if (dark)
+		{
+			// Frost sheen: room light caught in the upper glass.
+			QLinearGradient sheen(pane.topLeft(), QPointF(pane.left(), pane.top() + pane.height() * 0.45));
+			sheen.setColorAt(0.0, QColor(255, 255, 255, info.hovered ? 24 : 15));
+			sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+			painter.fillPath(panePath, sheen);
+		}
+
+		// The pane's thickness: a shade pooling at the bottom edge. In light
+		// mode this shade carries the whole glass impression.
+		QLinearGradient depthShade(QPointF(pane.left(), pane.bottom() - pane.height() * 0.38), pane.bottomLeft());
+		depthShade.setColorAt(0.0, QColor(0, 0, 0, 0));
+		depthShade.setColorAt(1.0, dark ? QColor(0, 0, 0, 52) : QColor(24, 32, 51, 26));
+		painter.fillPath(panePath, depthShade);
+
+		if (dark)
+		{
+			// Centre-bright reflection just under the border's top edge - the
+			// title bar's whisper of light at card scale.
+			const double y = pane.top() + 0.5;
+			QLinearGradient reflection(pane.left(), y, pane.right(), y);
+			reflection.setColorAt(0.0, QColor(255, 255, 255, 0));
+			reflection.setColorAt(0.5, QColor(255, 255, 255, info.hovered ? 84 : 56));
+			reflection.setColorAt(1.0, QColor(255, 255, 255, 0));
+			painter.setPen(QPen(QBrush(reflection), 1.0));
+			painter.drawLine(QPointF(pane.left() + 6.0, y), QPointF(pane.right() - 6.0, y));
+		}
+
+		painter.setClipping(false);
+
+		if (info.type == QStringLiteral("comment") || info.type == QStringLiteral("text")
+			|| info.type == QStringLiteral("include"))
+		{
+			// Unlit panes: the glass surface only, no lamp. Include points
+			// elsewhere; comments and raw text carry no signal.
+			painter.restore();
+			return;
+		}
 
 		if (info.type == QStringLiteral("vst"))
 		{
 			// Two strokes hugging the border fake an outer glow without
-			// effects; hover turns the light up.
+			// effects; hover turns the light up a full step (S4).
 			const QRectF edge = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
 			painter.setBrush(Qt::NoBrush);
-			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 120 : 80), 1.0));
+			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 150 : 80), 1.0));
 			painter.drawRoundedRect(edge, 8.0, 8.0);
-			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 60 : 36), 3.0));
+			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 80 : 36), 3.0));
 			painter.drawRoundedRect(edge.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
 		}
 		else
 		{
+			// Signal lamp in the row's band colour (S3), blooming on hover.
+			const QColor light = studioBandPaintColor(painter, tokens);
 			const double segment = 18.0;
 			const double y0 = rect.top() + (tokens.rowHeight - segment) / 2.0;
+			QColor mid = light;
+			mid.setAlpha(info.hovered ? 255 : 195);
+			QColor fade = light;
+			fade.setAlpha(0);
 			QLinearGradient lamp(0, y0, 0, y0 + segment);
-			QColor mid = studioAlpha(tokens.accent, info.hovered ? 235 : 185);
-			QColor fade = studioAlpha(tokens.accent, 0);
 			lamp.setColorAt(0.0, fade);
 			lamp.setColorAt(0.5, mid);
 			lamp.setColorAt(1.0, fade);
 			painter.setPen(Qt::NoPen);
 			// Bloom first (wider, fainter), then the lamp core on the edge.
+			QColor bloomMid = light;
+			bloomMid.setAlpha(info.hovered ? 90 : 46);
 			QLinearGradient bloom(0, y0 - 3.0, 0, y0 + segment + 3.0);
 			bloom.setColorAt(0.0, fade);
-			bloom.setColorAt(0.5, studioAlpha(tokens.accent, info.hovered ? 70 : 42));
+			bloom.setColorAt(0.5, bloomMid);
 			bloom.setColorAt(1.0, fade);
 			painter.fillRect(QRectF(rect.left(), y0 - 3.0, 4.0, segment + 6.0), bloom);
 			painter.fillRect(QRectF(rect.left(), y0, 2.0, segment), lamp);
 		}
 
 		painter.restore();
+	}
+
+	// The type badge is a lit glass chip (S3): translucent fill with the ink
+	// and border in the row's light colour. BiQuad rows resolve their family
+	// through the studioBand property the prepareCommandRow hook tagged them
+	// with; other commands keep their model colour as quiet ink, not a second
+	// light source. Disabled rows switch the chip off.
+	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
+	{
+		const bool dark = studioIsDark(tokens);
+		if (!info.enabled)
+		{
+			return QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: transparent; border: 1px solid %2; }")
+				.arg(studioRgba(tokens.mutedText, 0.65), studioRgba(tokens.border, 0.55));
+		}
+
+		const QString baseInk = info.type == QStringLiteral("biquad") ? tokens.accent : typeColor;
+		QString style = QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: %2; border: 1px solid %3; }")
+			.arg(baseInk, studioRgba(baseInk, dark ? 0.15 : 0.10), studioRgba(baseInk, dark ? 0.42 : 0.45));
+		if (info.type == QStringLiteral("biquad"))
+		{
+			for (const char* family : studioBandFamilies)
+			{
+				const QString band = studioBandHex(QLatin1String(family), dark);
+				style += QStringLiteral(" QLabel#FilterTypeBadge[studioBand=\"%1\"] { color: %2; background-color: %3; border: 1px solid %4; }")
+					.arg(QLatin1String(family), band, studioRgba(band, dark ? 0.15 : 0.10), studioRgba(band, dark ? 0.42 : 0.45));
+			}
+		}
+		return style;
+	}
+
+	// Tags BiQuad rows with their band family (S3) so the QSS attribute
+	// selectors (frame hover/selected border, type badge chip) and the paint
+	// hooks (knob arcs, signal lamp) all light the row in one colour. The tag
+	// follows the type selector live; repolishing re-evaluates the same rules
+	// cardFrameStyle/typeBadgeStyle returned at construction.
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	{
+		if (body == nullptr || info.type != QStringLiteral("biquad"))
+			return;
+
+		QComboBox* typeCombo = nullptr;
+		for (QComboBox* combo : body->findChildren<QComboBox*>())
+		{
+			if (combo->property("filterSelector").toBool())
+			{
+				typeCombo = combo;
+				break;
+			}
+		}
+		if (typeCombo == nullptr)
+			return;
+
+		const auto applyBand = [card, header, body, typeCombo]() {
+			const QString family = studioBandFamilyForBiQuadType(typeCombo->currentData().toInt());
+			const auto tag = [&family](QWidget* widget) {
+				if (widget == nullptr || widget->property("studioBand").toString() == family)
+					return;
+				widget->setProperty("studioBand", family);
+				widget->style()->unpolish(widget);
+				widget->style()->polish(widget);
+				widget->update();
+			};
+			tag(card);
+			if (header != nullptr)
+				tag(header->findChild<QLabel*>(QStringLiteral("FilterTypeBadge")));
+			// AudioKnob extends QDial; the knob paint hook reads the tag off
+			// the painter's device.
+			for (QDial* knob : body->findChildren<QDial*>())
+				tag(knob);
+		};
+		applyBand();
+		QObject::connect(typeCombo, &QComboBox::currentIndexChanged, typeCombo, applyBand);
 	}
 
 	SkinTokens tokens(bool dark) const override
@@ -429,14 +652,18 @@ public:
 		}
 		else
 		{
+			// S2 re-derivation: the light tokens keep the accent saturation
+			// but the borders sit two steps deeper than the airy panels, so
+			// knob tracks, toggles and input edges stay legible on white
+			// glass; muted ink deepens one step with them.
 			t.background = QStringLiteral("#EEF2F8");
 			t.surface = QStringLiteral("#F8FAFE");
 			t.card = QStringLiteral("#FFFFFF");
 			t.cardHover = QStringLiteral("#F3F6FC");
 			t.cardSelected = QStringLiteral("#DDE8FF");
 			t.text = QStringLiteral("#182033");
-			t.mutedText = QStringLiteral("#66728A");
-			t.border = QStringLiteral("#D8E0EF");
+			t.mutedText = QStringLiteral("#5D6A84");
+			t.border = QStringLiteral("#BCC8DE");
 			t.graph = QStringLiteral("#F6F7FB");
 			t.graphGridMinor = QStringLiteral("#D8E0EF");
 			t.accent = QStringLiteral("#2F6BFF");
@@ -459,36 +686,45 @@ QPointF minimalPointOnArc(const QPointF& center, double radius, double degrees)
 	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
 }
 
-// ANNEX K minimal: "the number is the control". The always-visible mono
-// numeric is primary; beside it sits a small flat circle with a 1px indicator
-// line and a hairline range arc, monochrome until dragged (accent while
-// active). Bipolar knobs measure the indicator from a centre tick. Promoted
-// legacy dials supply no valueText (their number lives in the adjacent spin
-// box), so they render only the confirmation circle plus a ratio-derived
-// position readout while hovered or dragged.
+// ANNEX K minimal: "the number is the control; the knob is confirmation"
+// (N2). The figure is the brightest ink in the row - painted here when the
+// widget supplies valueText, living in the adjacent ValueScrubBox (promoted
+// by precision_*.qss) for the row dials, which supply none. The knob itself
+// is a hairline instrument: a 1px 270-degree range arc, a travelled arc in
+// text ink and a radial cursor tick at the value angle - no filled disc, no
+// hub. Unipolar dials measure travel from the range start; bipolar dials
+// measure a deviation arc from a fixed 12 o'clock detent tick (boost
+// clockwise, cut counter-clockwise), so the two kinds part at a glance (X3)
+// and 0 dB reads as "cursor on the detent, no deviation". Monochrome until
+// dragged; dragging turns the travelled ink accent (active-state law).
 void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
 {
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	const QColor hairline(tokens.border);
-	const QColor primary(state.enabled ? tokens.text : tokens.mutedText);
 	const QColor secondary(tokens.mutedText);
 	const QColor active(tokens.accent);
-	const QColor indicatorColor = (state.enabled && state.dragging) ? active : primary;
+	// The promoted figure sits one brightness step above body text: white on
+	// the dark console, full black on the light paper. Mode is read off the
+	// background's value because SkinTokens carries no dark flag.
+	const bool darkMode = QColor(tokens.background).lightness() < 128;
+	const QColor promoted(!state.enabled ? secondary
+		: (darkMode ? QColor(255, 255, 255) : QColor(0, 0, 0)));
+	const QColor travelled = !state.enabled ? secondary
+		: (state.dragging ? active : QColor(tokens.text));
 
 	const bool hasNumber = !state.valueText.isEmpty();
-	const double circleRadius = hasNumber ? 9.0 : 12.0;
-	const double arcRadius = circleRadius + 4.0;
+	const double arcRadius = hasNumber ? 9.0 : 12.0;
 
 	QFont numberFont(tokens.monoFontFamily);
 	numberFont.setBold(true);
 	numberFont.setPointSizeF(9.0);
 
-	QPointF circleCenter;
+	QPointF arcCenter;
 	QRectF numberRect;
 	if (hasNumber)
 	{
-		// Number left (primary), confirmation circle beside it; the pair is
+		// Number left (primary), confirmation arc beside it; the pair is
 		// centred in the widget. Shrink the font instead of clipping when a
 		// long value (e.g. "-100.0") meets a narrow widget.
 		const double gap = 6.0;
@@ -502,56 +738,60 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 		const double pairWidth = textWidth + gap + 2.0 * arcRadius;
 		const double left = rect.left() + (rect.width() - pairWidth) / 2.0;
 		numberRect = QRectF(left, rect.top(), textWidth, rect.height());
-		circleCenter = QPointF(left + textWidth + gap + arcRadius, QRectF(rect).center().y());
+		arcCenter = QPointF(left + textWidth + gap + arcRadius, QRectF(rect).center().y());
 	}
 	else
 	{
-		// Circle only; keep a constant bottom strip free for the hover/drag
-		// readout so the circle does not jump when the readout appears.
-		circleCenter = QPointF(QRectF(rect).center().x(), rect.top() + (rect.height() - 14.0) / 2.0);
+		// Arc only; keep a constant bottom strip free for the hover/drag
+		// readout so the instrument does not jump when the readout appears.
+		arcCenter = QPointF(QRectF(rect).center().x(), rect.top() + (rect.height() - 14.0) / 2.0);
 	}
 
-	// Hairline range arc: the full 270-degree value range, 1px.
-	const QRectF arcRect(circleCenter.x() - arcRadius, circleCenter.y() - arcRadius, arcRadius * 2.0, arcRadius * 2.0);
+	// Hairline range arc: the full 270-degree travel, 1px, open across the
+	// bottom dead zone like every knob in the product.
+	const QRectF arcRect(arcCenter.x() - arcRadius, arcCenter.y() - arcRadius, arcRadius * 2.0, arcRadius * 2.0);
 	painter.setPen(QPen(hairline, 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawArc(arcRect, -135 * 16, -270 * 16);
 
 	if (state.bipolar)
 	{
-		// Centre tick at 12 o'clock (the bipolar neutral) and a 1px deviation
-		// arc measured from it: boost grows clockwise, cut counter-clockwise.
-		// Unipolar knobs draw neither, so the two kinds read differently.
+		// Fixed detent tick at 12 o'clock and a 1px deviation arc measured
+		// from it: boost grows clockwise, cut counter-clockwise. On the
+		// detent the deviation vanishes and only the tick remains - the
+		// honest "0 dB".
 		painter.setPen(QPen(secondary, 1));
-		painter.drawLine(minimalPointOnArc(circleCenter, arcRadius - 1.5, -270.0),
-			minimalPointOnArc(circleCenter, arcRadius + 2.5, -270.0));
+		painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 2.5, -270.0),
+			minimalPointOnArc(arcCenter, arcRadius + 2.5, -270.0));
 		const double deviationDegrees = 270.0 * (state.ratio - 0.5);
-		painter.setPen(QPen(indicatorColor, 1));
+		painter.setPen(QPen(travelled, 1));
 		painter.drawArc(arcRect, -270 * 16, -qRound(deviationDegrees * 16.0));
 	}
+	else
+	{
+		// Unipolar: the travelled range fills from the arc's start. No detent
+		// tick, no centre origin - the two kinds cannot be confused.
+		painter.setPen(QPen(travelled, 1));
+		painter.drawArc(arcRect, -135 * 16, -qRound(270.0 * state.ratio * 16.0));
+	}
 
-	// Small flat circle: flat fill, 1px border, hover = one background step.
-	const QString fill = (state.enabled && (state.hovered || state.dragging)) ? tokens.cardHover : tokens.card;
-	painter.setPen(QPen(hairline, 1));
-	painter.setBrush(QColor(fill));
-	painter.drawEllipse(circleCenter, circleRadius, circleRadius);
-
-	// 1px indicator line from the hub to the rim at the value angle.
+	// Radial cursor tick crossing the range arc at the value angle.
 	const double valueDegrees = -(135.0 + 270.0 * state.ratio);
-	painter.setPen(QPen(indicatorColor, 1));
-	painter.drawLine(circleCenter, minimalPointOnArc(circleCenter, circleRadius - 1.0, valueDegrees));
+	painter.setPen(QPen(travelled, 1));
+	painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 3.0, valueDegrees),
+		minimalPointOnArc(arcCenter, arcRadius + 3.0, valueDegrees));
 
 	if (hasNumber)
 	{
 		painter.setFont(numberFont);
-		painter.setPen((state.enabled && state.dragging) ? active : primary);
+		painter.setPen((state.enabled && state.dragging) ? active : promoted);
 		painter.drawText(numberRect, Qt::AlignVCenter | Qt::AlignLeft, state.valueText);
 	}
 	else if (state.enabled && (state.hovered || state.dragging))
 	{
 		// No supplied value text: show the dial position derived from ratio.
-		// The real value sits in the adjacent spin box, so a percentage is the
-		// only honest readout for log-scaled legacy dials.
+		// The real value sits in the adjacent scrub box, so a percentage is
+		// the only honest readout for log-scaled legacy dials.
 		QFont readoutFont(tokens.monoFontFamily);
 		readoutFont.setPointSizeF(7.5);
 		painter.setFont(readoutFont);
@@ -730,6 +970,27 @@ public:
 // value steps plus a very light 1px border; hierarchy comes from size and
 // whitespace, never from density. Hover lifts a surface exactly one value
 // step. Tiebreaker: when in doubt, remove elements and add whitespace.
+
+// The hooks receive tokens but not the mode flag; like studio, the background
+// luminance is an unambiguous proxy (soft's dark background is deep graphite).
+bool softIsDark(const SkinTokens& tokens)
+{
+	return QColor(tokens.background).lightness() < 128;
+}
+
+// AR1 F2: the picker's pastel multi-hue grammar, normalised for row chrome.
+// The hue comes from an existing colour (the command type's descriptor
+// colour), and only saturation/lightness are re-seated on the pastel shelf -
+// the same "no new palette, derive from what is already there" rule that
+// softMix implements for elevation. Greyish type colours keep their low
+// saturation instead of being inflated into a fake hue.
+QColor softPastelize(const QColor& base, bool dark)
+{
+	const double hue = base.hslHueF() < 0.0 ? 215.0 / 360.0 : base.hslHueF();
+	const double saturation = qMin(base.hslSaturationF(), dark ? 0.50 : 0.55);
+	return QColor::fromHslF(hue, saturation, dark ? 0.62 : 0.60);
+}
+
 class SoftSkin : public ISkin
 {
 public:
@@ -769,9 +1030,10 @@ public:
 		t.accent = QStringLiteral("#3B82F6");
 		t.fontFamily = QStringLiteral("DM Sans");
 		t.monoFontFamily = QStringLiteral("DM Mono");
-		// Constitution: radius 10-12px, generous line spacing. The tallest row
-		// of the five skins; whitespace is the hierarchy device.
-		t.borderRadius = 12;
+		// Constitution: cards 14px (clearly rounder than studio's 8), generous
+		// line spacing. The tallest row of the five skins; whitespace is the
+		// hierarchy device.
+		t.borderRadius = 14;
 		t.rowHeight = 48;
 		t.channelGroupIndent = 20;
 		t.density = 2;
@@ -783,15 +1045,20 @@ public:
 		t.showRawPreview = false;
 		if (dark)
 		{
-			t.background = QStringLiteral("#171923");
-			t.surface = QStringLiteral("#202433");
-			t.card = QStringLiteral("#282D3E");
-			t.cardHover = QStringLiteral("#30364A");
-			t.cardSelected = QStringLiteral("#344065");
-			t.text = QStringLiteral("#F2F4FA");
-			t.mutedText = QStringLiteral("#A7AEC2");
-			t.border = QStringLiteral("#3A4056");
-			t.graph = QStringLiteral("#151925");
+			// AR1 F2: warm graphite, not navy. The old #171923..#3A4056 ramp
+			// shared studio's cold blue cast, so soft-dark photographed as a
+			// studio clone; the dark identity now leans warm (hue ~38, low
+			// saturation) while the light mode keeps its cream. Same two-step
+			// elevation ladder, different temperature.
+			t.background = QStringLiteral("#1C1A17");
+			t.surface = QStringLiteral("#262320");
+			t.card = QStringLiteral("#2F2B26");
+			t.cardHover = QStringLiteral("#38332D");
+			t.cardSelected = QStringLiteral("#33415C");
+			t.text = QStringLiteral("#F4F1EA");
+			t.mutedText = QStringLiteral("#B3AB9D");
+			t.border = QStringLiteral("#423D34");
+			t.graph = QStringLiteral("#181613");
 		}
 		else
 		{
@@ -844,12 +1111,36 @@ public:
 		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 	}
 
+	// AR1 F2: the row's type badge wears the picker's pastel grammar instead
+	// of the shared saturated pill, so the multi-hue "consumer settings"
+	// identity survives into the command list (and into dark mode, where the
+	// old badge was the only colour that separated soft from studio). The ink
+	// is a deep warm neutral on the pastel chip - white text on a pastel is
+	// exactly the kind of low-contrast anxiety this skin removes. A sleeping
+	// (commented-out) row sinks its chip toward the window background.
+	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& t) const override
+	{
+		const bool dark = softIsDark(t);
+		const QColor pastel = softPastelize(QColor(typeColor), dark);
+		if (!info.enabled)
+		{
+			const QColor sleeping = softMix(pastel, QColor(t.background), 0.62);
+			return QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
+				.arg(t.mutedText, sleeping.name());
+		}
+		return QStringLiteral("color:#2B251D; border-color:transparent; background-color:%1;")
+			.arg(pastel.name());
+	}
+
 	// Annex K, soft: "a handle you cannot fumble". The largest knob of the
 	// five skins. Two-step elevation body, rounded dot indicator (no sharp
-	// line), pastel range arc, value in a rounded badge below, centre detent
-	// as a gentle notch. Bipolar knobs grow their arc from the 12 o'clock
-	// detent (boost right in accent, cut left in accent2); unipolar knobs
-	// grow from the minimum, so the two kinds differ at a glance.
+	// line), value in a rounded badge below. AR1 F3/X3: the full travel is an
+	// always-visible pastel track ring (accent mixed far toward the card), and
+	// bipolar knobs differ from unipolar ones at rest, not only when turned -
+	// their track splits at 12 o'clock into an accent2 cut half and an accent
+	// boost half, with a soft detent tick crossing the ring at the 0 dB
+	// centre. The value arc grows from that detent (boost right in accent,
+	// cut left in accent2); unipolar arcs grow from the minimum.
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing);
@@ -894,26 +1185,52 @@ public:
 			painter.drawEllipse(knobRect.adjusted(-2, -2, 2, 2));
 		}
 
-		// Pastel range track: the full travel is always visible.
-		const QColor trackColor = state.enabled ? softMix(border, windowBg, 0.25) : softAlpha(border, 110);
-		painter.setPen(QPen(trackColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
-		painter.drawArc(arcRect, -startDegrees * 16, -spanDegrees * 16);
+		// Always-visible pastel track ring (F3). Unipolar travel wears one
+		// accent pastel; a bipolar knob splits at the 12 o'clock detent into
+		// an accent2 cut half and an accent boost half, so gain reads as
+		// two-sided even while it rests at 0 dB.
+		const double centerDegrees = startDegrees + spanDegrees / 2.0;
+		if (state.enabled && state.bipolar)
+		{
+			painter.setPen(QPen(softMix(QColor(tokens.accent2), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.drawArc(arcRect, -startDegrees * 16, qRound(-spanDegrees / 2.0 * 16.0));
+			painter.setPen(QPen(softMix(QColor(tokens.accent), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.drawArc(arcRect, qRound(-centerDegrees * 16.0), qRound(-spanDegrees / 2.0 * 16.0));
+		}
+		else
+		{
+			const QColor trackColor = state.enabled ? softMix(QColor(tokens.accent), card, 0.80) : softAlpha(border, 110);
+			painter.setPen(QPen(trackColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.drawArc(arcRect, -startDegrees * 16, -spanDegrees * 16);
+		}
 
 		// Pastel value arc (accent softened one step toward the card colour).
 		if (state.enabled)
 		{
 			const bool cutSide = state.bipolar && ratio < 0.5;
-			const QColor valueColor = softMix(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.30);
+			const QColor valueColor = softMix(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.25);
 			painter.setPen(QPen(valueColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
 			if (state.bipolar)
 			{
-				const double centerDegrees = startDegrees + spanDegrees / 2.0;
 				painter.drawArc(arcRect, qRound(-centerDegrees * 16.0), qRound(-(endDegrees - centerDegrees) * 16.0));
 			}
 			else
 			{
 				painter.drawArc(arcRect, -startDegrees * 16, qRound(-spanDegrees * ratio * 16.0));
 			}
+		}
+
+		// X3: the 0 dB detent is a soft rounded tick crossing the track ring
+		// at 12 o'clock, painted over the value arc so the neutral point stays
+		// marked however far the knob is turned. Only bipolar (gain) knobs
+		// carry it - one more way the two knob kinds differ at a glance.
+		if (state.bipolar)
+		{
+			const QPointF arcCenter = arcRect.center();
+			const double trackRadius = arcRect.width() / 2.0;
+			painter.setPen(QPen(softAlpha(QColor(tokens.text), state.enabled ? 200 : 90), 2.5, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(arcCenter.x(), arcCenter.y() - trackRadius - arcWidth / 2.0 + 0.5),
+				QPointF(arcCenter.x(), arcCenter.y() - trackRadius + arcWidth / 2.0 - 0.5));
 		}
 
 		// Two-step elevation body: a base disc one value step below the face,
@@ -935,21 +1252,12 @@ public:
 		painter.setBrush(faceColor);
 		painter.drawEllipse(faceRect);
 
-		// Centre detent as a gentle notch: a short rounded tick at 12 o'clock
-		// on the face, only for bipolar (gain) knobs where the centre means
-		// 0 dB.
-		if (state.bipolar)
-		{
-			painter.setPen(QPen(softAlpha(muted, state.enabled ? 170 : 90), 2, Qt::SolidLine, Qt::RoundCap));
-			const QPointF center = faceRect.center();
-			const double notchOuter = faceRect.width() / 2.0 - 2.0;
-			const double notchInner = qMax(0.0, notchOuter - 4.5);
-			painter.drawLine(QPointF(center.x(), center.y() - notchOuter), QPointF(center.x(), center.y() - notchInner));
-		}
-
 		// Rounded dot indicator instead of a sharp line; it grows slightly on
 		// hover and again while dragging, the calmest possible "I am held" cue.
-		double dotRadius = qMax(3.5, side * 0.065);
+		// AR1 F3: the dot is larger than the pre-review 3.5px minimum so the
+		// position reads from across the row, and on a bipolar knob it takes
+		// the colour of the side it sits on (accent boost, accent2 cut).
+		double dotRadius = qMax(4.5, side * 0.085);
 		if (state.dragging)
 			dotRadius += 1.0;
 		else if (state.hovered)
@@ -959,7 +1267,8 @@ public:
 		const QPointF dotPos(faceRect.center().x() + qCos(radians) * dotTrack,
 			faceRect.center().y() - qSin(radians) * dotTrack);
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(state.enabled ? QColor(tokens.accent) : softAlpha(muted, 120));
+		const QColor dotColor(state.bipolar && ratio < 0.5 ? tokens.accent2 : tokens.accent);
+		painter.setBrush(state.enabled ? dotColor : softAlpha(muted, 120));
 		painter.drawEllipse(dotPos, dotRadius, dotRadius);
 
 		// Value in a rounded badge below the handle.
@@ -1068,8 +1377,13 @@ public:
 		// QSS only provides the machined base plate and the hover brightening;
 		// the faceplate texture, ears, screws and LEDs are painted on top by
 		// RackChrome::paintCardChrome (the sheen overlays are translucent, so
-		// the hover state shines through them).
-		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
+		// the hover state shines through them). The resting border is the dark
+		// seam of the rack opening rather than the token border, so stacked
+		// units separate physically (R3); focus and selection keep their
+		// signal colours.
+		const bool dark = QColor(tokens.background).lightness() < 128;
+		const QString seam = dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268");
+		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : seam);
 		const QString background = info.selected ? tokens.cardSelected : tokens.card;
 		return QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
@@ -1215,6 +1529,121 @@ QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
 	const double radians = qDegreesToRadians(-(135.0 + 270.0 * fraction));
 	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
 }
+
+// Bus designation of a command type (M2): the row coordinate speaks the same
+// letter-plus-number grammar as the picker's board coordinates (A1..G8), with
+// the letter mirroring the mono type code the badge cell already shows
+// (BQUAD -> B, INC -> I, VST -> V, ...). The letter is a designation, not an
+// identifier - two types may share one, exactly like two flights share a
+// carrier letter; uniqueness stays with the line number, which never
+// renumbers while the board is scanned.
+QString matrixBusLetter(const QString& type)
+{
+	if (type == QStringLiteral("biquad"))
+		return QStringLiteral("B");
+	if (type == QStringLiteral("preamp"))
+		return QStringLiteral("P");
+	if (type == QStringLiteral("delay") || type == QStringLiteral("device"))
+		return QStringLiteral("D");
+	if (type == QStringLiteral("graphiceq"))
+		return QStringLiteral("G");
+	if (type == QStringLiteral("copy") || type == QStringLiteral("channel") || type == QStringLiteral("convolution"))
+		return QStringLiteral("C");
+	if (type == QStringLiteral("include"))
+		return QStringLiteral("I");
+	if (type == QStringLiteral("vst"))
+		return QStringLiteral("V");
+	if (type == QStringLiteral("stage"))
+		return QStringLiteral("S");
+	if (type == QStringLiteral("loudness"))
+		return QStringLiteral("L");
+	if (type == QStringLiteral("comment"))
+		return QStringLiteral("#");
+	// Unrecognized raw lines: a remark entry on the board.
+	return QStringLiteral("R");
+}
+
+// Per-row caption strip (M2): the picker footer's grammar imported into the
+// card. A sunken board line fixed under the card body echoes the row's raw
+// spec ("> Filter: ON PK ...") next to the row's board coordinate, exactly
+// like the picker footer echoes the line an engaged coordinate would insert.
+// At rest the readout idles in muted ink; while the row crosspoint is hovered
+// the echo lights - marker and coordinate in accent, spec in full ink. The
+// strip needs no event machinery: the frame's :hover QSS rule already forces
+// a frame repaint on enter/leave (the same trigger the painted column band
+// uses), which redraws this child, and the gallery's WA_UnderMouse hover
+// equivalent drives it the same way. It replaces the shared raw-preview
+// strip for this skin (tokens().showRawPreview = false), so the row spends
+// the same vertical budget on a line that follows the board's grammar.
+class MatrixRowCaption : public QWidget
+{
+public:
+	MatrixRowCaption(QWidget* card, QLabel* specSource, QLabel* coordinateSource)
+		: QWidget(card), specSource(specSource), coordinateSource(coordinateSource)
+	{
+		setObjectName(QStringLiteral("MatrixRowCaption"));
+		// The strip is a readout, never a control; clicks fall through.
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		setFixedHeight(18);
+	}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		const SkinTokens& tokens = SkinManager::instance()->tokens();
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		QWidget* card = parentWidget();
+		// The dynamic property is kept current by FilterCardRow's restyles;
+		// before the first restyle it is simply unset, which reads enabled.
+		const QVariant enabledProperty = card != nullptr ? card->property("filterEnabled") : QVariant();
+		const bool enabled = !enabledProperty.isValid() || enabledProperty.toBool();
+		const bool lit = enabled && card != nullptr && card->underMouse();
+
+		// Sunken board line under a 1px top rule - the picker footer's
+		// construction.
+		painter.fillRect(rect(), QColor(tokens.surfaceSunken));
+		painter.setPen(QPen(QColor(tokens.border), 1));
+		painter.drawLine(0, 0, width() - 1, 0);
+
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(7.5);
+		painter.setFont(mono);
+		const QFontMetrics metrics(mono);
+
+		QColor idleInk(tokens.mutedText);
+		if (!enabled)
+			idleInk.setAlpha(120);
+		const QColor accent(tokens.accent);
+		const int pad = 10;
+
+		// Board coordinate readout on the right.
+		const QString coordinate = coordinateSource != nullptr ? coordinateSource->text() : QString();
+		const int coordinateWidth = metrics.horizontalAdvance(coordinate);
+		painter.setPen(lit ? accent : idleInk);
+		painter.drawText(QRect(width() - pad - coordinateWidth, 0, coordinateWidth, height()),
+			Qt::AlignVCenter | Qt::AlignLeft, coordinate);
+
+		// "> <raw line>" spec echo. The raw-preview label keeps its text
+		// current on every model rebuild even while hidden, so it doubles as
+		// the live source of the row's raw spec.
+		QString spec = specSource != nullptr ? specSource->text() : QString();
+		if (spec.startsWith(QStringLiteral("Raw")))
+			spec = spec.mid(3).trimmed();
+		const QString marker = QStringLiteral("> ");
+		painter.drawText(QRect(pad, 0, width(), height()), Qt::AlignVCenter | Qt::AlignLeft, marker);
+		const int specX = pad + metrics.horizontalAdvance(marker);
+		const int specAvail = width() - pad - coordinateWidth - 12 - specX;
+		painter.setPen(lit ? QColor(tokens.text) : idleInk);
+		painter.drawText(QRect(specX, 0, qMax(0, specAvail), height()), Qt::AlignVCenter | Qt::AlignLeft,
+			metrics.elidedText(spec, Qt::ElideRight, qMax(0, specAvail)));
+	}
+
+private:
+	QLabel* specSource;
+	QLabel* coordinateSource;
+};
 
 // Painted chrome layers for the main toolbar (the board's header strip).
 // QSS cannot draw the 24px column grid or the status lamp, so the matrix
@@ -1387,6 +1816,10 @@ public:
 		t.channelGroupStyle = SkinTokens::GradientBar;
 		t.badgeStyle = SkinTokens::OutlineOnly;
 		t.cardRailWidth = 3;
+		// The shared raw-preview strip is replaced by this skin's own caption
+		// strip (MatrixRowCaption): same raw spec, but spoken in the board's
+		// footer grammar and wired into the crosspoint hover echo (M2).
+		t.showRawPreview = false;
 		t.accent = dark ? QStringLiteral("#22D3EE") : QStringLiteral("#008EAA");
 		t.accent2 = dark ? QStringLiteral("#7CFFB2") : QStringLiteral("#0A8F57");
 		if (dark)
@@ -1472,28 +1905,40 @@ public:
 		}
 
 		QColor litColor = state.bipolar && !boost ? cutColor : accentColor;
+		// Lit-segment luminance is calibrated per mode (M1): on the dark board
+		// the LEDs gain headroom toward white so a lit cell clearly outshines
+		// the ghost ring; the light tokens were derived for maximum contrast
+		// on white, where lightening would only desaturate them.
+		if (QColor(tokens.surface).lightness() < 128)
+			litColor = litColor.lighter(112);
 		if (state.dragging)
-			litColor = litColor.lighter(130);
+			litColor = litColor.lighter(125);
 		else if (state.hovered)
-			litColor = litColor.lighter(115);
-		QColor trackColor = borderColor;
-		trackColor.setAlpha(state.enabled ? 170 : 70);
+			litColor = litColor.lighter(112);
+		// The unlit ring stays visible at low alpha (M1): the range geometry -
+		// and the bipolar centre gap - must read even with nothing lit, the
+		// way an unlit LED is still a visible part on the board. Muted ink
+		// instead of border ink, which vanished against the light card.
+		QColor trackColor(mutedColor);
+		trackColor.setAlpha(state.enabled ? 80 : 40);
 
 		for (int i = 0; i < segmentCount; i++)
 		{
 			const double fraction = (i + 0.5) / segmentCount;
 			const bool lit = state.enabled && i >= litFrom && i < litFrom + litCount;
-			QPen segmentPen(lit ? litColor : trackColor, 3.0, Qt::SolidLine, Qt::FlatCap);
+			// A lit cell is wider than a ghost cell: LEDs bloom, rules do not.
+			QPen segmentPen(lit ? litColor : trackColor, lit ? 3.5 : 2.5, Qt::SolidLine, Qt::FlatCap);
 			painter.setPen(segmentPen);
 			painter.drawLine(matrixRadialPoint(center, innerRadius, fraction),
 				matrixRadialPoint(center, outerRadius, fraction));
 		}
 
 		// Centre detent tick: marks the 0-position gap of bipolar knobs so the
-		// two knob kinds read differently even at rest.
+		// two knob kinds read differently even at rest. Full text ink (M1):
+		// at 0 dB the gap plus this tick is the whole detent statement.
 		if (state.bipolar)
 		{
-			painter.setPen(QPen(state.enabled ? mutedColor : trackColor, 1.0, Qt::SolidLine, Qt::FlatCap));
+			painter.setPen(QPen(state.enabled ? QColor(tokens.text) : QColor(trackColor), 1.0, Qt::SolidLine, Qt::FlatCap));
 			painter.drawLine(matrixRadialPoint(center, outerRadius + 1.0, 0.5),
 				matrixRadialPoint(center, outerRadius + 4.0, 0.5));
 		}
@@ -1586,9 +2031,38 @@ public:
 	// construction; only the modern card editors are decorated.
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
-		Q_UNUSED(card);
-		Q_UNUSED(header);
-		if (info.legacyRow || body == nullptr)
+		if (info.legacyRow)
+			return;
+
+		// The picker's coordinate language imported into the row (M2): the
+		// plain line number becomes a board coordinate, the type's bus letter
+		// ahead of the stable line position ("B3" = a BiQuad entry on line 3,
+		// the picker's C1 cell grammar). Spacer rows are blank board lines
+		// and carry no coordinate.
+		QLabel* coordinateCell = nullptr;
+		if (card != nullptr && header != nullptr && info.type != QStringLiteral("spacer"))
+		{
+			coordinateCell = header->findChild<QLabel*>(QStringLiteral("FilterCardNumber"));
+			if (coordinateCell != nullptr)
+			{
+				bool plainNumber = false;
+				const int line = coordinateCell->text().toInt(&plainNumber);
+				if (plainNumber)
+					coordinateCell->setText(matrixBusLetter(info.type) + QString::number(line));
+			}
+
+			// The caption strip docks under the card body and echoes the raw
+			// spec next to that coordinate on hover (the picker footer's
+			// grammar; see MatrixRowCaption).
+			QVBoxLayout* cardLayout = qobject_cast<QVBoxLayout*>(card->layout());
+			if (cardLayout != nullptr)
+			{
+				QLabel* rawSpec = card->findChild<QLabel*>(QStringLiteral("FilterCardRawPreview"));
+				cardLayout->addWidget(new MatrixRowCaption(card, rawSpec, coordinateCell));
+			}
+		}
+
+		if (body == nullptr)
 			return;
 
 		if (info.type == QStringLiteral("include"))
@@ -1649,12 +2123,16 @@ public:
 		// Header band fill (the header widget itself is transparent).
 		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
 
-		// Faint column grid: the graph paper the board sits on.
+		// Faint column grid: the graph paper the board sits on. Clipped to the
+		// header band - maintainer review (issue #93) judged the texture a
+		// distracting afterimage behind parameter widgets, so the row body
+		// stays a calm opaque panel regardless of editor widget opacity.
 		QColor gridColor(tokens.border);
-		gridColor.setAlpha(info.enabled ? 60 : 30);
+		const int gridAlpha = QColor(tokens.surface).lightness() < 128 ? 80 : 90;
+		gridColor.setAlpha(info.enabled ? gridAlpha : gridAlpha / 2);
 		painter.setPen(QPen(gridColor, 1));
 		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
-			painter.drawLine(x, content.top(), x, content.bottom());
+			painter.drawLine(x, headerBand.top(), x, headerBand.bottom());
 
 		// 1px rule between the header cell and the body cell.
 		if (content.height() > headerHeight)

@@ -29,7 +29,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Selected processing stage:</string>
+      <string>Selected processing stage</string>
      </property>
     </widget>
    </item>

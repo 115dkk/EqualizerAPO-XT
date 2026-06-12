@@ -36,9 +36,20 @@ class FilterPickerView : public QWidget
 	Q_OBJECT
 
 public:
+	// Showcase states the offscreen skin gallery asks a picker to present.
+	// Default no-op: a picker that does not implement a state simply renders
+	// its normal look, so the gallery's shot count stays deterministic while
+	// each skin round implements its own staging.
+	enum class GalleryShowcase
+	{
+		HoverFirstEntry,
+		EmptySearch
+	};
+
 	explicit FilterPickerView(QWidget* parent = nullptr);
 
 	virtual void setEntries(const QList<FilterPickerEntry>& entries) = 0;
+	virtual void galleryShowcase(GalleryShowcase kind);
 
 signals:
 	void entryChosen(int index);
@@ -56,6 +67,7 @@ public:
 	explicit DefaultFilterPickerView(QWidget* parent = nullptr);
 
 	void setEntries(const QList<FilterPickerEntry>& entries) override;
+	void galleryShowcase(GalleryShowcase kind) override;
 
 protected:
 	bool eventFilter(QObject* watched, QEvent* event) override;

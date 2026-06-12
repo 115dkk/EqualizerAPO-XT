@@ -39,10 +39,16 @@ QColor mixColor(const QColor& a, const QColor& b, double t)
 
 // Item data roles. EntryIndexRole carries the ORIGINAL index into the
 // entries list handed to setEntries; captions and notes carry -1.
+// SecondaryRole holds the parenthetical description split off the template
+// name (S5); ShowcaseHoverRole stages the gallery's hover shot (X6) - the
+// delegate ORs it into its hover test because the offscreen renderer cannot
+// move a real cursor over a popup.
 constexpr int EntryIndexRole = Qt::UserRole;
 constexpr int CaptionRole = Qt::UserRole + 1;
 constexpr int FirstCaptionRole = Qt::UserRole + 2;
 constexpr int EmptyNoteRole = Qt::UserRole + 3;
+constexpr int SecondaryRole = Qt::UserRole + 4;
+constexpr int ShowcaseHoverRole = Qt::UserRole + 5;
 
 // A small magnifier glyph for the search field, drawn in token colours so
 // both modes stay intentional without shipping an icon asset.
@@ -149,7 +155,8 @@ private:
 	void paintEntry(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 	{
 		const bool selected = option.state.testFlag(QStyle::State_Selected);
-		const bool hovered = option.state.testFlag(QStyle::State_MouseOver);
+		const bool hovered = option.state.testFlag(QStyle::State_MouseOver)
+			|| index.data(ShowcaseHoverRole).toBool();
 		const QRectF rect = QRectF(option.rect).adjusted(2.0, 1.0, -2.0, -1.0);
 		const double radius = 8.0;
 
@@ -210,11 +217,32 @@ private:
 		if (!selected && !hovered)
 			textColor = mixColor(QColor(t.text), QColor(t.mutedText), 0.18);
 		painter->setPen(textColor);
-		painter->drawText(rect.adjusted(GUIHelper::scale(12.0), 0, -GUIHelper::scale(8.0), 0),
-			Qt::AlignLeft | Qt::AlignVCenter,
-			painter->fontMetrics().elidedText(
-				index.data(Qt::DisplayRole).toString(), Qt::ElideRight,
-				qRound(rect.width() - GUIHelper::scale(20.0))));
+		const QRectF textRect = rect.adjusted(GUIHelper::scale(12.0), 0, -GUIHelper::scale(8.0), 0);
+		const QString name = index.data(Qt::DisplayRole).toString();
+		const double nameWidth = QFontMetricsF(font).horizontalAdvance(name);
+		painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
+			painter->fontMetrics().elidedText(name, Qt::ElideRight, qRound(textRect.width())));
+
+		// S5: the parenthetical description becomes a dim caption on the
+		// right - secondary information at secondary luminance instead of a
+		// bracketed clause shouting at name weight. It brightens a touch with
+		// the entry's own light and yields entirely when space runs out.
+		const QString caption = index.data(SecondaryRole).toString();
+		const double captionSpace = textRect.width() - nameWidth - GUIHelper::scale(18.0);
+		if (!caption.isEmpty() && captionSpace > GUIHelper::scale(56.0))
+		{
+			QFont captionFont(t.fontFamily);
+			captionFont.setPointSizeF(8.1);
+			painter->setFont(captionFont);
+			QColor captionColor(t.mutedText);
+			if (selected || hovered)
+				captionColor.setAlpha(dark ? 220 : 240);
+			else
+				captionColor.setAlpha(dark ? 170 : 205);
+			painter->setPen(captionColor);
+			painter->drawText(textRect, Qt::AlignRight | Qt::AlignVCenter,
+				QFontMetricsF(captionFont).elidedText(caption, Qt::ElideRight, qRound(captionSpace)));
+		}
 	}
 
 	SkinTokens t;
@@ -276,21 +304,29 @@ StudioFilterPickerView::StudioFilterPickerView(QWidget* parent)
 	// The scroll bar gap is filled with the global QAbstractScrollArea
 	// background (the deep stage colour), which would cut a hard stripe into
 	// the glass. Restyle it as an intentional sunken-glass channel whose
-	// opaque track sits on the panel's own colour family.
+	// opaque track sits on the panel's own colour family; the handle is a
+	// small glass shard riding the channel (S5) - alpha fill plus a 1px
+	// border whose top edge catches the light, the panel formula in
+	// miniature. Hover floods the shard with accent light.
 	const QColor track = mixColor(QColor(skinTokens.card), QColor(skinTokens.background), dark ? 0.45 : 0.40);
-	const QString handleColor = dark
-		? QStringLiteral("rgba(255, 255, 255, 0.16)") : QStringLiteral("rgba(24, 32, 51, 0.22)");
+	const QString shardFill = dark
+		? QStringLiteral("rgba(255, 255, 255, 0.12)") : QStringLiteral("rgba(255, 255, 255, 0.85)");
+	const QString shardBorder = dark
+		? QStringLiteral("rgba(255, 255, 255, 0.10)") : QStringLiteral("rgba(24, 32, 51, 0.20)");
+	const QString shardTopEdge = dark
+		? QStringLiteral("rgba(255, 255, 255, 0.32)") : QStringLiteral("rgba(255, 255, 255, 0.95)");
 	listWidget->setStyleSheet(QStringLiteral(
 		"QListWidget#StudioPickerList { background: transparent; border: 0; outline: 0; }"
 		"QListWidget#StudioPickerList::item { border: 0; padding: 0; }"
 		"QListWidget#StudioPickerList QScrollBar:vertical {"
-		" background: %1; width: 8px; margin: 0; border: 0; border-radius: 4px; }"
+		" background: %1; width: 9px; margin: 0; border: 0; border-radius: 4px; }"
 		"QListWidget#StudioPickerList QScrollBar::handle:vertical {"
-		" background: %2; min-height: 32px; border-radius: 4px; }"
+		" background: %2; border: 1px solid %3; border-top-color: %4;"
+		" min-height: 32px; border-radius: 4px; }"
 		"QListWidget#StudioPickerList QScrollBar::handle:vertical:hover {"
-		" background: %3; }"
+		" background: %5; border-color: %5; }"
 		"QListWidget#StudioPickerList QScrollBar::handle:vertical:pressed {"
-		" background: %4; }"
+		" background: %6; border-color: %6; }"
 		"QListWidget#StudioPickerList QScrollBar::add-line:vertical,"
 		"QListWidget#StudioPickerList QScrollBar::sub-line:vertical {"
 		" background: transparent; border: 0; width: 0; height: 0; }"
@@ -298,7 +334,7 @@ StudioFilterPickerView::StudioFilterPickerView(QWidget* parent)
 		"QListWidget#StudioPickerList QScrollBar::sub-page:vertical {"
 		" background: transparent; }")
 		.arg(QStringLiteral("rgb(%1, %2, %3)").arg(track.red()).arg(track.green()).arg(track.blue()),
-			handleColor,
+			shardFill, shardBorder, shardTopEdge,
 			QStringLiteral("rgba(%1, %2, %3, 0.55)")
 			.arg(QColor(skinTokens.accent).red()).arg(QColor(skinTokens.accent).green()).arg(QColor(skinTokens.accent).blue()),
 			skinTokens.accent));
@@ -364,8 +400,22 @@ void StudioFilterPickerView::rebuildList()
 			currentSection = section;
 		}
 
-		QListWidgetItem* item = new QListWidgetItem(entry.name, listWidget);
+		// S5: template names like "Include (Include configuration file)"
+		// split into the name and a dim secondary caption; the search above
+		// still matches the full string.
+		static const QRegularExpression namePattern(QStringLiteral("^(.+?)\\s*\\((.+)\\)$"));
+		QString primary = entry.name;
+		QString secondary;
+		const QRegularExpressionMatch nameMatch = namePattern.match(entry.name);
+		if (nameMatch.hasMatch())
+		{
+			primary = nameMatch.captured(1).trimmed();
+			secondary = nameMatch.captured(2).trimmed();
+		}
+
+		QListWidgetItem* item = new QListWidgetItem(primary, listWidget);
 		item->setData(EntryIndexRole, i);
+		item->setData(SecondaryRole, secondary);
 		item->setToolTip(entry.line);
 	}
 
@@ -385,6 +435,34 @@ void StudioFilterPickerView::rebuildList()
 			listWidget->setCurrentRow(row);
 			break;
 		}
+	}
+}
+
+// X6 staging: the offscreen gallery cannot move a real cursor over a popup,
+// so the showcase states are staged with the primitives the live picker
+// already uses. The hover shot tags an entry with a data role the delegate
+// reads as hover; the empty shot types a search string that cannot match.
+void StudioFilterPickerView::galleryShowcase(GalleryShowcase kind)
+{
+	if (kind == GalleryShowcase::HoverFirstEntry)
+	{
+		// Pool the light under the first selectable entry that is not the
+		// preselected one, so the shot shows the selection glow and the
+		// hover pool side by side.
+		for (int row = 0; row < listWidget->count(); row++)
+		{
+			QListWidgetItem* item = listWidget->item(row);
+			if ((item->flags() & Qt::ItemIsSelectable) && row != listWidget->currentRow())
+			{
+				item->setData(ShowcaseHoverRole, true);
+				listWidget->viewport()->update();
+				break;
+			}
+		}
+	}
+	else if (kind == GalleryShowcase::EmptySearch)
+	{
+		searchEdit->setText(QStringLiteral("zzz-no-match"));
 	}
 }
 

@@ -27,6 +27,7 @@ public:
 	explicit MatrixFilterPickerView(QWidget* parent = nullptr);
 
 	void setEntries(const QList<FilterPickerEntry>& entries) override;
+	void galleryShowcase(GalleryShowcase kind) override;
 
 	QSize sizeHint() const override;
 

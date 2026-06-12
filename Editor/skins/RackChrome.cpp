@@ -120,6 +120,25 @@ void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QCol
 	painter.drawEllipse(center - QPointF(radius * 0.35, radius * 0.35), radius * 0.3, radius * 0.3);
 }
 
+// Horizontal brushing grain (R4): fine strokes whose ink varies
+// deterministically per line, so the metal reads as brushed rather than
+// evenly striped, with sparse brighter polish lines where the abrasive bit
+// deeper. Logical coordinates only - the painter's DPI transform scales the
+// grain, no physical-pixel constants.
+void paintBrushing(QPainter& painter, const QRectF& r, bool dark, uint seed)
+{
+	const int baseAlpha = dark ? 4 : 5;
+	QColor ink = dark ? QColor(255, 255, 255) : QColor(96, 84, 64);
+	for (qreal y = r.top() + 2; y < r.bottom() - 1; y += 2)
+	{
+		const uint h = (seed ^ uint(qRound(y * 7.0))) * 2654435761u;
+		const bool polish = (h >> 8) % 11u == 0;
+		ink.setAlpha(baseAlpha + int(h % 7u) + (polish ? 6 : 0));
+		painter.setPen(QPen(ink, 1));
+		painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
+	}
+}
+
 // A 1/4" patchbay insert jack: steel flange around a dark sleeve hole.
 void paintJack(QPainter& painter, const QPointF& center, bool dark)
 {
@@ -212,10 +231,8 @@ void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* tool
 	}
 	painter.fillRect(r, sheen);
 
-	// Horizontal brushing texture.
-	painter.setPen(QPen(dark ? QColor(255, 255, 255, 5) : QColor(96, 84, 64, 8), 1));
-	for (qreal y = r.top() + 3; y < r.bottom() - 2; y += 3)
-		painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
+	// Horizontal brushing grain, same machine as the card faceplates.
+	paintBrushing(painter, r, dark, uint(qHash(QStringLiteral("master-rail-brush"))));
 
 	// Machined edges: lit top chamfer, shadowed groove above the QSS border,
 	// so the strip reads as a milled rail rather than a flat band.
@@ -423,10 +440,9 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 	else if (info.type == QLatin1String("vst"))
 		painter.fillRect(r, dark ? QColor(34, 20, 6, 50) : QColor(74, 50, 14, 18));
 
-	// Horizontal brushing texture.
-	painter.setPen(QPen(dark ? QColor(255, 255, 255, 5) : QColor(96, 84, 64, 8), 1));
-	for (qreal y = r.top() + 3; y < r.bottom() - 1; y += 3)
-		painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
+	// Horizontal brushing grain, seeded per unit so two stacked units never
+	// share the same streak pattern - sheets cut from the same stock.
+	paintBrushing(painter, r, dark, uint(qHash(info.command)));
 
 	// Rack ears, separated from the panel by a machined groove.
 	const QRectF leftEar(r.left(), r.top(), kEarWidth, r.height());
@@ -441,11 +457,22 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 	painter.drawLine(QPointF(leftEar.right() + 1, r.top()), QPointF(leftEar.right() + 1, r.bottom()));
 	painter.drawLine(QPointF(rightEar.left() + 1, r.top()), QPointF(rightEar.left() + 1, r.bottom()));
 
-	// Bezel edges: lit on top, shadowed at the bottom.
+	// Unit seating and bezel (R3): a dark seam runs just inside the QSS
+	// border (the plate sitting in its rack opening), then the chamfer obeys
+	// the one work light - lit along the top and left, falling into shadow
+	// along the bottom and right - so every row reads as its own bolted
+	// unit rather than a list stripe.
+	painter.setBrush(Qt::NoBrush);
+	painter.setPen(QPen(QColor(0, 0, 0, dark ? 90 : 40), 1));
+	painter.drawRoundedRect(r.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
 	painter.setPen(QPen(QColor(255, 255, 255, dark ? 36 : 150), 1));
-	painter.drawLine(QPointF(r.left() + radius, r.top() + 0.5), QPointF(r.right() - radius, r.top() + 0.5));
+	painter.drawLine(QPointF(r.left() + radius, r.top() + 1.5), QPointF(r.right() - radius, r.top() + 1.5));
+	painter.setPen(QPen(QColor(255, 255, 255, dark ? 16 : 80), 1));
+	painter.drawLine(QPointF(r.left() + 1.5, r.top() + radius), QPointF(r.left() + 1.5, r.bottom() - radius));
 	painter.setPen(QPen(QColor(0, 0, 0, dark ? 140 : 70), 1));
-	painter.drawLine(QPointF(r.left() + radius, r.bottom() - 0.5), QPointF(r.right() - radius, r.bottom() - 0.5));
+	painter.drawLine(QPointF(r.left() + radius, r.bottom() - 1.5), QPointF(r.right() - radius, r.bottom() - 1.5));
+	painter.setPen(QPen(QColor(0, 0, 0, dark ? 60 : 30), 1));
+	painter.drawLine(QPointF(r.right() - 1.5, r.top() + radius), QPointF(r.right() - 1.5, r.bottom() - radius));
 
 	// Module groove under the control strip whenever the unit is opened (the
 	// body below it then reads as controls mounted on the same module).
@@ -580,35 +607,49 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 
 	// Scale ticks are printed on the PANEL around the knob, never on the
 	// knob - they do not move and there is no value arc; the pointer alone
-	// carries the value, as on real hardware.
+	// carries the value, as on real hardware. R1: the printing must read at
+	// a glance, so the end stops are majors in full panel ink while the
+	// intermediates stay muted; the bipolar neutral (0 dB at 12 o'clock) is
+	// the boldest mark on the plate - the centre detent, in amber, longer
+	// and heavier than any other tick.
 	const QColor inkBase(tokens.mutedText);
-	const int inkAlpha = state.enabled ? 200 : 90;
+	const QColor inkStrong(tokens.text);
+	const int inkAlpha = state.enabled ? 235 : 90;
+	const int minorAlpha = state.enabled ? 165 : 70;
 	for (int i = 0; i <= 10; i++)
 	{
 		const qreal ratio = i / 10.0;
 		const bool centerTick = state.bipolar && i == 5;
 		const bool major = i == 0 || i == 10 || centerTick;
-		// The bipolar neutral (0 dB at 12 o'clock) is a bold accent tick.
-		QColor ink = centerTick ? QColor(tokens.accent) : inkBase;
-		ink.setAlpha(inkAlpha);
-		painter.setPen(QPen(ink, major ? 2.0 : 1.0, Qt::SolidLine, Qt::FlatCap));
-		painter.drawLine(pointAt(ratio, bodyRadius + 3.5), pointAt(ratio, major ? scaleRadius + 0.5 : scaleRadius - 1.5));
+		QColor ink = centerTick ? QColor(tokens.accent) : (major ? inkStrong : inkBase);
+		ink.setAlpha(major ? inkAlpha : minorAlpha);
+		const qreal innerRadius = centerTick ? bodyRadius + 2.0 : bodyRadius + 3.5;
+		const qreal outerRadius = centerTick ? scaleRadius + 2.0 : (major ? scaleRadius + 0.5 : scaleRadius - 1.5);
+		painter.setPen(QPen(ink, centerTick ? 3.0 : (major ? 2.0 : 1.0), Qt::SolidLine, Qt::FlatCap));
+		painter.drawLine(pointAt(ratio, innerRadius), pointAt(ratio, outerRadius));
 	}
 
 	// Bipolar knobs print the cut/boost glyphs in the dead zone under the
 	// scale ends, like a gain pot's faceplate. Unipolar knobs stay plain, so
-	// the two kinds never look alike.
+	// the two kinds never look alike. R1: the glyphs are engraved (contrast
+	// pass offset one pixel down) in full panel ink, large enough to read at
+	// the gallery's knob size.
 	if (state.bipolar)
 	{
 		QFont glyphFont(tokens.fontFamily);
-		glyphFont.setPixelSize(9);
+		glyphFont.setPixelSize(11);
 		glyphFont.setBold(true);
 		painter.setFont(glyphFont);
-		painter.setPen(withAlpha(inkBase, inkAlpha));
-		const QPointF minusAt = pointAt(-0.07, scaleRadius - 2.0);
-		const QPointF plusAt = pointAt(1.07, scaleRadius - 2.0);
-		painter.drawText(QRectF(minusAt.x() - 6, minusAt.y() - 6, 12, 12), Qt::AlignCenter, QStringLiteral("-"));
-		painter.drawText(QRectF(plusAt.x() - 6, plusAt.y() - 6, 12, 12), Qt::AlignCenter, QStringLiteral("+"));
+		const QPointF minusAt = pointAt(-0.07, scaleRadius - 2.5);
+		const QPointF plusAt = pointAt(1.07, scaleRadius - 2.5);
+		const QRectF minusRect(minusAt.x() - 7, minusAt.y() - 7, 14, 14);
+		const QRectF plusRect(plusAt.x() - 7, plusAt.y() - 7, 14, 14);
+		painter.setPen(dark ? QColor(0, 0, 0, 170) : QColor(255, 255, 255, 200));
+		painter.drawText(minusRect.translated(0, 1), Qt::AlignCenter, QStringLiteral("-"));
+		painter.drawText(plusRect.translated(0, 1), Qt::AlignCenter, QStringLiteral("+"));
+		painter.setPen(withAlpha(inkStrong, inkAlpha));
+		painter.drawText(minusRect, Qt::AlignCenter, QStringLiteral("-"));
+		painter.drawText(plusRect, Qt::AlignCenter, QStringLiteral("+"));
 	}
 
 	// Knob body: bakelite (dark mode) / machined aluminium (light mode) with
@@ -640,7 +681,9 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 	painter.drawArc(QRectF(center.x() - capRadius, center.y() - capRadius, capRadius * 2, capRadius * 2), 60 * 16, 60 * 16);
 
 	// The pointer: a physical painted line. Hover/drag turns it amber (the
-	// hand is on the knob), disabled grays it out.
+	// hand is on the knob), disabled grays it out. R1: a recessed shadow
+	// pass underneath and a tip reaching the knob skirt keep the pointer
+	// readable against the printed scale at any angle.
 	QColor pointerColor;
 	if (!state.enabled)
 		pointerColor = withAlpha(inkBase, 130);
@@ -648,8 +691,12 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 		pointerColor = QColor(tokens.accent);
 	else
 		pointerColor = dark ? QColor(0xF2, 0xEC, 0xDC) : QColor(0x2E, 0x29, 0x22);
+	const QPointF pointerBase = pointAt(state.ratio, bodyRadius * 0.28);
+	const QPointF pointerTip = pointAt(state.ratio, bodyRadius - 1.8);
+	painter.setPen(QPen(QColor(0, 0, 0, state.enabled ? (dark ? 150 : 90) : 50), 3.6, Qt::SolidLine, Qt::RoundCap));
+	painter.drawLine(pointerBase, pointerTip);
 	painter.setPen(QPen(pointerColor, 2.4, Qt::SolidLine, Qt::RoundCap));
-	painter.drawLine(pointAt(state.ratio, bodyRadius * 0.30), pointAt(state.ratio, bodyRadius - 3.0));
+	painter.drawLine(pointerBase, pointerTip);
 
 	// Hover/drag: the knob rim catches the light.
 	if (state.enabled && (state.hovered || state.dragging))
@@ -725,10 +772,8 @@ void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens&
 	}
 	painter.fillRect(r, sheen);
 
-	// Horizontal brushing texture.
-	painter.setPen(QPen(dark ? QColor(255, 255, 255, 5) : QColor(96, 84, 64, 8), 1));
-	for (qreal y = r.top() + 3; y < r.bottom() - 2; y += 3)
-		painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
+	// Horizontal brushing grain, same machine as the card faceplates.
+	paintBrushing(painter, r, dark, uint(qHash(QStringLiteral("top-panel-brush"))));
 
 	// The caption-button block is the panel's right ear: a slightly recessed
 	// zone behind the three machined caps, set off by a machined groove. The

@@ -131,6 +131,19 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 	const int pad = sidePadding();
 	const int numberGap = GUIHelper::scale(8.0);
 
+	if (rowList.isEmpty())
+	{
+		// A query that matches nothing: the index answers with one quiet
+		// status line (the counter above already reads 0/NN). Secondary ink,
+		// no box, no icon - a terminal reports an empty result, it does not
+		// dramatise it.
+		painter.setFont(entryFont);
+		painter.setPen(QColor(t.mutedText));
+		painter.drawText(QRect(pad, GUIHelper::scale(2.0), width() - 2 * pad, entryRowHeight()),
+			Qt::AlignVCenter | Qt::AlignLeft, QStringLiteral("NO MATCH"));
+		return;
+	}
+
 	for (int i = 0; i < rowList.size(); i++)
 	{
 		const Row& row = rowList[i];
@@ -217,6 +230,23 @@ void MinimalPickerIndexList::leaveEvent(QEvent* event)
 	}
 }
 
+void MinimalPickerIndexList::hoverFirstEntryForGallery()
+{
+	// The offscreen gallery cannot move a real cursor, so the hover state is
+	// staged directly. The selection block usually sits on the first line;
+	// hovering it would vanish under the inverted fill, so take the first
+	// line that is not the cursor.
+	for (int i = 0; i < rowList.size(); i++)
+	{
+		if (rowList[i].entryIndex >= 0 && rowList[i].entryIndex != selectedEntryIndex)
+		{
+			hoverRow = i;
+			update();
+			return;
+		}
+	}
+}
+
 // ── MinimalFilterPickerView ──────────────────────────────────────────────────
 
 MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
@@ -270,12 +300,15 @@ MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
 	scrollArea->setWidget(indexList);
 	layout->addWidget(scrollArea, 1);
 
-	// Key legend, the BIOS-menu signature. Plain text, hairline above (QSS);
-	// the arrows are built from code points so the source stays pure ASCII.
+	// Key legend, the BIOS-menu signature (N4: keep and advertise). The full
+	// keyboard grammar in one man-page line - letters filter, digits jump,
+	// arrows move, Return inserts. Plain text, hairline above (QSS); the
+	// arrows are built from code points so the source stays pure ASCII.
 	const QString dot = QStringLiteral(" %1 ").arg(QChar(0x00B7));
 	QLabel* legend = new QLabel(
-		QString(QChar(0x2191)) + QChar(0x2193) + QStringLiteral(" MOVE") + dot
-		+ QStringLiteral("NN JUMP") + dot + QStringLiteral("RET INSERT"), this);
+		QStringLiteral("A-Z FILTER") + dot + QStringLiteral("NN JUMP") + dot
+		+ QString(QChar(0x2191)) + QChar(0x2193) + QStringLiteral(" MOVE") + dot
+		+ QStringLiteral("RET INSERT"), this);
 	legend->setObjectName(QStringLiteral("MinimalPickerLegend"));
 	layout->addWidget(legend);
 
@@ -288,8 +321,59 @@ MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
 void MinimalFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
 {
 	allEntries = entries;
+	rebuildDisplayNumbers();
 	rebuildIndex();
 	queryEdit->setFocus();
+}
+
+void MinimalFilterPickerView::galleryShowcase(GalleryShowcase kind)
+{
+	if (kind == GalleryShowcase::EmptySearch)
+	{
+		// A term no template matches: the index prints its NO MATCH line and
+		// the counter reads 0/NN - the terminal's honest empty state.
+		queryEdit->setText(QStringLiteral("zzzz"));
+		return;
+	}
+	queryEdit->clear();
+	indexList->hoverFirstEntryForGallery();
+}
+
+QString MinimalFilterPickerView::sectionKey(const FilterPickerEntry& entry) const
+{
+	return entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
+}
+
+void MinimalFilterPickerView::rebuildDisplayNumbers()
+{
+	// N3: numbers are page coordinates. Walk the entries exactly the way the
+	// resting index lays them out (sections coalesced by first appearance,
+	// original order within a section) and number that order 1..N, so the
+	// full listing counts straight down the page instead of interleaving
+	// creation-order ids across sections. The assignment never changes
+	// afterwards: filtering hides lines but keeps their printed numbers, and
+	// a digit jump always lands on the number the user read off the page.
+	QStringList sectionOrder;
+	QHash<QString, QList<int>> sectionEntries;
+	for (int i = 0; i < allEntries.size(); i++)
+	{
+		const QString section = sectionKey(allEntries[i]);
+		if (!sectionEntries.contains(section))
+			sectionOrder.append(section);
+		sectionEntries[section].append(i);
+	}
+
+	displayOrder.clear();
+	displayOrder.reserve(allEntries.size());
+	displayNumbers.fill(0, allEntries.size());
+	for (const QString& section : sectionOrder)
+	{
+		for (int i : sectionEntries.value(section))
+		{
+			displayOrder.append(i);
+			displayNumbers[i] = displayOrder.size();
+		}
+	}
 }
 
 QSize MinimalFilterPickerView::sizeHint() const
@@ -321,16 +405,17 @@ void MinimalFilterPickerView::rebuildIndex()
 		? QStringList()
 		: query.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
 
-	// Coalesce by path (first-appearance order): one caption per category,
-	// each entry keeping its stable original number. Factories may revisit a
-	// category, and a repeated caption would read as corruption in an index.
+	// Coalesce by path (first-appearance order): one caption per category.
+	// Factories may revisit a category, and a repeated caption would read as
+	// corruption in an index. This walk revisits the entries in their
+	// original order, so the visible lines come out exactly in the page
+	// order rebuildDisplayNumbers() numbered.
 	QStringList sectionOrder;
 	QHash<QString, QList<int>> sectionEntries;
 	for (int i = 0; i < allEntries.size(); i++)
 	{
 		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = entry.path.isEmpty()
-			? tr("General") : entry.path.join(QStringLiteral(" / "));
+		const QString section = sectionKey(entry);
 
 		bool matches = true;
 		const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
@@ -359,7 +444,8 @@ void MinimalFilterPickerView::rebuildIndex()
 		rows.append({ QString(), section.toUpper(), -1 });
 		for (int i : sectionEntries.value(section))
 		{
-			rows.append({ QStringLiteral("%1").arg(i + 1, digits, 10, QLatin1Char('0')), allEntries[i].name, i });
+			rows.append({ QStringLiteral("%1").arg(displayNumbers.value(i), digits, 10, QLatin1Char('0')),
+				allEntries[i].name, i });
 			if (firstVisible < 0)
 				firstVisible = i;
 			visibleCount++;
@@ -368,11 +454,12 @@ void MinimalFilterPickerView::rebuildIndex()
 	indexList->setRows(rows);
 
 	int target = firstVisible;
-	if (jumpMode && !allEntries.isEmpty())
+	if (jumpMode && !displayOrder.isEmpty())
 	{
-		// 1-based, clamped: "0" stays on the first entry, overshoot stops at
-		// the last. The index is original and stable, never the filtered row.
-		target = qBound(0, query.toInt() - 1, allEntries.size() - 1);
+		// 1-based, clamped: "0" stays on the first line, overshoot stops at
+		// the last. The number is the printed page coordinate (N3), fixed at
+		// setEntries() time - never the filtered row position.
+		target = displayOrder[qBound(0, query.toInt() - 1, displayOrder.size() - 1)];
 	}
 	indexList->setSelectedEntry(target);
 	ensureSelectionVisible();

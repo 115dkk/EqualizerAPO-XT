@@ -383,6 +383,19 @@ QAbstractSpinBox::down-arrow:hover {
     border-top-color: @TEXT@;
 }
 
+/* X1/S6: command-row value boxes lost their native steppers and became
+   value scrubs (drag vertically, wheel, or type). Same sunken glass, but
+   the box answers hover with accent light on its edge so it reads as an
+   adjustable value, not a dead readout. */
+QAbstractSpinBox[valueScrub="true"] {
+    background: rgba(6, 9, 20, 0.62);
+    border-radius: 8px;
+}
+QAbstractSpinBox[valueScrub="true"]:hover {
+    border-color: rgba(91, 140, 255, 0.45);
+    background: #0e0e18;
+}
+
 /* ===== Combo Box ===== */
 QComboBox {
     background: @CARD@;
@@ -440,6 +453,50 @@ QComboBox QAbstractItemView::item {
 QComboBox QAbstractItemView::item:selected {
     background: rgba(91, 140, 255, 0.28);
     color: @TEXT@;
+}
+
+/* X5/S6: the parameter mode boxes above the knobs are genuine selectors.
+   Dress them as quiet glass strips - muted ink, a visible arrow - that
+   light up under the cursor, so they stop posing as labels without
+   shouting like buttons. A switched-off selector (single option) is
+   unlit glass. The name selector keeps the standard raised glass but
+   wears the row title's weight. */
+QComboBox[paramSelector="true"] {
+    background: rgba(255, 255, 255, 0.03);
+    color: @MUTED@;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 1px 14px 1px 8px;
+    min-height: 20px;
+    font-size: 9pt;
+}
+QComboBox[paramSelector="true"]:hover {
+    color: @TEXT@;
+    background: rgba(91, 140, 255, 0.10);
+    border-color: rgba(91, 140, 255, 0.45);
+    border-top-color: rgba(91, 140, 255, 0.45);
+}
+QComboBox[paramSelector="true"]:focus,
+QComboBox[paramSelector="true"]:on {
+    border: 1px solid @ACCENT@;
+}
+QComboBox[paramSelector="true"]:disabled {
+    color: rgba(145, 160, 186, 0.45);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+QComboBox[paramSelector="true"]::drop-down {
+    width: 16px;
+}
+QComboBox[paramSelector="true"]::down-arrow {
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid @MUTED@;
+    margin-right: 4px;
+}
+QComboBox[filterSelector="true"] {
+    font-weight: 600;
 }
 
 /* ===== Check / Radio ===== */

@@ -38,12 +38,12 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Gain:</string>
+      <string>Gain</string>
      </property>
     </widget>
    </item>
    <item row="1" column="4">
-    <widget class="QDoubleSpinBox" name="doubleSpinBox">
+    <widget class="ValueScrubBox" name="doubleSpinBox">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -123,12 +123,19 @@
    <item row="0" column="0" rowspan="2">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Preamplification:</string>
+      <string>Preamplification</string>
      </property>
     </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ValueScrubBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>Editor/widgets/ValueScrubBox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
