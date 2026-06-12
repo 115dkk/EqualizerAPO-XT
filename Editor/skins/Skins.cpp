@@ -19,6 +19,7 @@
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/skins/pickers/SoftFilterPicker.h"
+#include "Editor/skins/pickers/RackFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -939,6 +940,13 @@ public:
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		RackChrome::paintCardChrome(painter, rect, info, tokens);
+	}
+
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		// The module library browser: a brushed 1U faceplate with engraved
+		// section plates, LED-lit slots and an LCD search strip.
+		return new RackFilterPickerView(parent);
 	}
 
 	SkinTokens tokens(bool dark) const override
