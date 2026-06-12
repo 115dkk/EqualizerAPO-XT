@@ -12,7 +12,7 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
-## Unreleased
+## v1.18.0 — 2026-06-12
 
 - Channel rows on the modern cards now edit their selection in place with
   checkable chips (device channels, ALL, custom/virtual names, plus a field
