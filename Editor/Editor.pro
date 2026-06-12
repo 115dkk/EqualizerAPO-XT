@@ -184,6 +184,7 @@ SOURCES += main.cpp\
 	skins/Skins.cpp \
 	skins/pickers/StudioFilterPicker.cpp \
 	skins/pickers/MinimalFilterPicker.cpp \
+	skins/pickers/SoftFilterPicker.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/CommandRowFrame.cpp \
 	widgets/SkinComboBox.cpp \
@@ -361,6 +362,7 @@ HEADERS  += \
 	skins/Skins.h \
 	skins/pickers/StudioFilterPicker.h \
 	skins/pickers/MinimalFilterPicker.h \
+	skins/pickers/SoftFilterPicker.h \
 	widgets/AudioKnob.h \
 	widgets/CommandRowFrame.h \
 	widgets/SkinComboBox.h \
