@@ -1,0 +1,1 @@
+This orphan branch hosts the Phase 1 skin gallery snapshot images only. Each per-skin directory holds the 24 PNG captures used by the viewer issue, embedded through `raw.githubusercontent.com` so they render on phones. This branch is image hosting for review convenience and must never be merged into `main` or any release branch.
