@@ -176,6 +176,7 @@ SOURCES += main.cpp\
 	../filters/loudnessCorrection/VolumeController.cpp \
 	guis/LoudnessCorrectionFilterGUIDialog.cpp \
 	helpers/QtSndfileHandle.cpp \
+	SkinGallery.cpp \
 	SkinManager.cpp \
 	skins/Skins.cpp \
 	widgets/AudioKnob.cpp \
@@ -341,6 +342,7 @@ HEADERS  += \
 	../filters/loudnessCorrection/VolumeController.h \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/QtSndfileHandle.h \
+	SkinGallery.h \
 	SkinTokens.h \
 	SkinManager.h \
 	skins/ISkin.h \
