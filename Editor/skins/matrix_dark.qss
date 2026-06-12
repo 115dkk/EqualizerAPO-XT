@@ -964,15 +964,6 @@ QWidget#FilterCardEditor {
     background: transparent;
     border-radius: 0;
 }
-/* Body grid (M2): the editors sit directly on the board's graph paper. The
-   editor scroll host, its viewport and the hosted editor stay transparent
-   so the column grid painted by paintCardChrome runs through the parameter
-   area instead of being buried under an opaque panel. */
-QScrollArea#FilterCardEditorScroll,
-QScrollArea#FilterCardEditorScroll > QWidget,
-QScrollArea#FilterCardEditorScroll > QWidget > QWidget {
-    background: transparent;
-}
 /* Caption strip (M2): painted entirely by MatrixRowCaption (sunken board
    line, "> spec" echo, coordinate readout); QSS only keeps Qt's generic
    widget fill out of the way. */
@@ -1100,13 +1091,6 @@ QLabel#IncludeCardGlyph {
     color: @ACCENT@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-}
-/* The editor's unnamed layout containers (e.g. the path+status block) must
-   not catch the generic QWidget fill, or they paint opaque slabs over the
-   board's graph paper now that the body is transparent (M2). Grandchildren
-   like the path cell keep their own boxed styling. */
-QWidget#IncludeCardEditor > QWidget {
-    background: transparent;
 }
 QLineEdit#IncludeCardPath {
     background: @GRAPH@;

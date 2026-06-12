@@ -2123,17 +2123,16 @@ public:
 		// Header band fill (the header widget itself is transparent).
 		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
 
-		// Faint column grid: the graph paper the board sits on. With the card
-		// editors transparent (QSS), this texture now runs through the row
-		// body as the constitution writes it, so the ink is calibrated per
-		// mode: the dark card sits much closer to the border ink than the
-		// toolbar surface does and needs more alpha to read as graph paper.
+		// Faint column grid: the graph paper the board sits on. Clipped to the
+		// header band - maintainer review (issue #93) judged the texture a
+		// distracting afterimage behind parameter widgets, so the row body
+		// stays a calm opaque panel regardless of editor widget opacity.
 		QColor gridColor(tokens.border);
 		const int gridAlpha = QColor(tokens.surface).lightness() < 128 ? 80 : 90;
 		gridColor.setAlpha(info.enabled ? gridAlpha : gridAlpha / 2);
 		painter.setPen(QPen(gridColor, 1));
 		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
-			painter.drawLine(x, content.top(), x, content.bottom());
+			painter.drawLine(x, headerBand.top(), x, headerBand.bottom());
 
 		// 1px rule between the header cell and the body cell.
 		if (content.height() > headerHeight)
