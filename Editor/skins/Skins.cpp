@@ -4,6 +4,9 @@
 
 #include "Skins.h"
 
+#include <QPainter>
+#include <QtMath>
+
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -23,7 +26,36 @@ void finishTokens(SkinTokens& t)
 	t.focusRing = t.accent;
 }
 
-// ── Studio (glass, FabFilter-like) ──────────────────────────────────────────
+// ── Studio (glass over the instrument, FabFilter-like) ──────────────────────
+// The UI recedes behind the data: deep solid backgrounds, panels as glass
+// (solid colour with alpha plus a single 1px lighter top edge), one glowing
+// accent. Glow is faked with layered strokes and gradient borders, never
+// effects. Tiebreaker: if an element is not the arc, the label or the value,
+// it gets removed.
+
+// QSS colour with alpha derived from a token hex string.
+QString studioRgba(const QString& hex, double alpha)
+{
+	const QColor color(hex);
+	return QStringLiteral("rgba(%1, %2, %3, %4)")
+		.arg(color.red()).arg(color.green()).arg(color.blue())
+		.arg(alpha, 0, 'f', 2);
+}
+
+QColor studioAlpha(const QString& hex, int alpha)
+{
+	QColor color(hex);
+	color.setAlpha(alpha);
+	return color;
+}
+
+// The hooks receive tokens but not the mode flag; the background luminance is
+// an unambiguous proxy because studio's dark background is near-black.
+bool studioIsDark(const SkinTokens& tokens)
+{
+	return QColor(tokens.background).lightness() < 128;
+}
+
 class StudioSkin : public ISkin
 {
 public:
@@ -37,12 +69,226 @@ public:
 		static CurvedNodeRoutingRenderer renderer;
 		return &renderer;
 	}
+
+	// "The arc IS the value": no knob body, only a thin track circle, a
+	// glowing accent arc from the reference point to the current value and a
+	// small indicator dot. Bipolar (gain) knobs anchor at 12 o'clock and grow
+	// left or right; unipolar knobs grow from the track start. The numeric
+	// readout fades in while hovering or dragging; glow intensifies during a
+	// drag; disabled knobs drop to reduced opacity with the glow off.
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing);
+
+		// Centred square so the knob stays round in non-square hosts
+		// (promoted legacy dials are 100x66, the card knob is 74x74).
+		const QRectF inner = QRectF(rect).adjusted(9, 9, -9, -9);
+		const double side = qMin(inner.width(), inner.height());
+		const QRectF track(inner.center().x() - side / 2.0, inner.center().y() - side / 2.0, side, side);
+
+		const double span = 270.0;
+		const double start = 135.0;     // degrees clockwise from 3 o'clock
+		const double ratio = qBound(0.0, state.ratio, 1.0);
+
+		if (!state.enabled)
+			painter.setOpacity(0.35);
+
+		// Track: the full range geometry as a thin circle segment.
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(QColor(tokens.border), 2.0, Qt::SolidLine, Qt::RoundCap));
+		painter.drawArc(track, qRound(-start * 16), qRound(-span * 16));
+
+		// Reference tick: bipolar knobs mark 0 dB at 12 o'clock so the anchor
+		// stays visible even with an empty arc; unipolar knobs carry no tick.
+		if (state.bipolar)
+		{
+			const QPointF top(track.center().x(), track.top());
+			painter.setPen(QPen(QColor(tokens.mutedText), 1.5));
+			painter.drawLine(QPointF(top.x(), top.y() - 3.0), QPointF(top.x(), top.y() + 3.0));
+		}
+
+		double arcFrom = start;
+		double sweep = span * ratio;
+		if (state.bipolar)
+		{
+			arcFrom = start + span / 2.0;  // 12 o'clock
+			sweep = span * (ratio - 0.5);  // signed: cut grows left, boost right
+		}
+
+		// Fake glow: the same arc repainted with wider, more transparent
+		// strokes. Hover brightens it, dragging brightens it further.
+		const int halo = state.dragging ? 88 : (state.hovered ? 58 : 32);
+		const QColor accent(tokens.accent);
+		const struct { double width; int alpha; } layers[] = {
+			{ 9.0, halo / 3 },
+			{ 5.5, halo },
+			{ 2.5, 255 }
+		};
+		for (const auto& layer : layers)
+		{
+			QColor stroke = accent;
+			stroke.setAlpha(layer.alpha);
+			painter.setPen(QPen(stroke, layer.width, Qt::SolidLine, Qt::RoundCap));
+			painter.drawArc(track, qRound(-arcFrom * 16), qRound(-sweep * 16));
+		}
+
+		// Indicator dot on the track at the arc end, with its own halo.
+		const double endRadians = qDegreesToRadians(-(arcFrom + sweep));
+		const QPointF dot(track.center().x() + qCos(endRadians) * side / 2.0,
+			track.center().y() - qSin(endRadians) * side / 2.0);
+		QColor dotHalo = accent;
+		dotHalo.setAlpha(halo);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(dotHalo);
+		painter.drawEllipse(dot, 6.0, 6.0);
+		painter.setBrush(accent);
+		painter.drawEllipse(dot, 3.0, 3.0);
+
+		// Keyboard focus: a thin ring just outside the track.
+		if (state.focused)
+		{
+			QColor ring = accent;
+			ring.setAlpha(110);
+			painter.setPen(QPen(ring, 1.0));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawEllipse(track.adjusted(-4, -4, 4, 4));
+		}
+
+		// Numeric readout, mono, fading in on hover and solid while dragging.
+		// Only painted when the host supplied a display string (promoted
+		// legacy dials show their value in a separate spin box instead).
+		if (!state.valueText.isEmpty() && state.enabled && (state.hovered || state.dragging))
+		{
+			QColor textColor(tokens.text);
+			textColor.setAlpha(state.dragging ? 255 : 210);
+			painter.setPen(textColor);
+			QFont valueFont(tokens.monoFontFamily);
+			valueFont.setPointSizeF(qMax(7.0, painter.font().pointSizeF() - 1.0));
+			valueFont.setWeight(QFont::DemiBold);
+			painter.setFont(valueFont);
+			painter.drawText(rect, Qt::AlignCenter, state.valueText);
+		}
+	}
+
+	// Glass card: solid colour with alpha over the deep background plus a 1px
+	// lighter top edge (the reflection). Command types keep one silhouette but
+	// announce themselves through the border treatment: DSP rows solid,
+	// Include rows dashed (a reference to elsewhere), VST rows a vertical
+	// accent gradient (the module radiates its own light). Hover brightens;
+	// disabled rows lose the reflection and most of their opacity.
+	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const bool dark = studioIsDark(tokens);
+
+		if (!info.enabled)
+		{
+			return QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 8px; }")
+				.arg(studioRgba(tokens.card, 0.45), studioRgba(tokens.border, 0.55));
+		}
+
+		const QString background = studioRgba(info.selected ? tokens.cardSelected : tokens.card, 0.88);
+		const QString hoverBackground = studioRgba(info.selected ? tokens.cardSelected : tokens.cardHover, 0.94);
+		const QString topEdge = dark ? QStringLiteral("rgba(255, 255, 255, 0.10)") : QStringLiteral("rgba(255, 255, 255, 0.95)");
+		const QString topEdgeHover = dark ? QStringLiteral("rgba(255, 255, 255, 0.17)") : QStringLiteral("#FFFFFF");
+
+		if (info.type == QStringLiteral("vst"))
+		{
+			// The gradient border is the glow; no separate top edge needed.
+			const QString gradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
+				.arg(studioRgba(tokens.accent, info.focused || info.selected ? 0.95 : 0.70),
+					studioRgba(tokens.accent, info.focused || info.selected ? 0.45 : 0.22));
+			const QString hoverGradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
+				.arg(studioRgba(tokens.accent, 0.95), studioRgba(tokens.accent, 0.40));
+			return QStringLiteral(
+				"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 8px; }"
+				" QFrame#FilterCardRow:hover { background: %3; border-color: %4; }")
+				.arg(background, gradient, hoverBackground, hoverGradient);
+		}
+
+		const QString borderStyle = info.type == QStringLiteral("include")
+			? QStringLiteral("dashed") : QStringLiteral("solid");
+		const QString borderBrush = info.focused
+			? tokens.focusRing
+			: (info.selected ? studioRgba(tokens.accent, 0.65) : studioRgba(tokens.border, 0.90));
+		const QString hoverBorderBrush = info.focused ? tokens.focusRing : studioRgba(tokens.accent, 0.45);
+
+		return QStringLiteral(
+			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-top-color: %4; border-radius: 8px; }"
+			" QFrame#FilterCardRow:hover { background: %5; border-color: %6; border-top-color: %7; }")
+			.arg(background, borderStyle, borderBrush, topEdge, hoverBackground, hoverBorderBrush, topEdgeHover);
+	}
+
+	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const bool dark = studioIsDark(tokens);
+		if (!info.enabled)
+		{
+			// Disabled: the sheen is off, the header melts into the glass.
+			return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-top-left-radius: 8px; border-top-right-radius: 8px; }");
+		}
+		const QString sheen = dark
+			? (info.selected ? QStringLiteral("rgba(255, 255, 255, 0.07)") : QStringLiteral("rgba(255, 255, 255, 0.04)"))
+			: (info.selected ? QStringLiteral("rgba(255, 255, 255, 0.75)") : QStringLiteral("rgba(255, 255, 255, 0.55)"));
+		return QStringLiteral("QWidget#FilterCardHeader { background: %1; border-top-left-radius: 8px; border-top-right-radius: 8px; }")
+			.arg(sheen);
+	}
+
+	// Painted decoration on top of the QSS chrome. DSP rows get a short
+	// "signal lamp": a glowing accent segment on the left edge, vertically
+	// centred on the header strip. VST rows get a halo hugging the border so
+	// the module reads as lit from within. Include/comment/raw rows stay
+	// unlit; disabled rows paint nothing (the lamp is off).
+	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		if (!info.enabled)
+			return;
+		if (info.type == QStringLiteral("spacer") || info.type == QStringLiteral("comment")
+			|| info.type == QStringLiteral("text") || info.type == QStringLiteral("include"))
+			return;
+
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing);
+
+		if (info.type == QStringLiteral("vst"))
+		{
+			// Two strokes hugging the border fake an outer glow without
+			// effects; hover turns the light up.
+			const QRectF edge = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+			painter.setBrush(Qt::NoBrush);
+			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 120 : 80), 1.0));
+			painter.drawRoundedRect(edge, 8.0, 8.0);
+			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 60 : 36), 3.0));
+			painter.drawRoundedRect(edge.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
+		}
+		else
+		{
+			const double segment = 18.0;
+			const double y0 = rect.top() + (tokens.rowHeight - segment) / 2.0;
+			QLinearGradient lamp(0, y0, 0, y0 + segment);
+			QColor mid = studioAlpha(tokens.accent, info.hovered ? 235 : 185);
+			QColor fade = studioAlpha(tokens.accent, 0);
+			lamp.setColorAt(0.0, fade);
+			lamp.setColorAt(0.5, mid);
+			lamp.setColorAt(1.0, fade);
+			painter.setPen(Qt::NoPen);
+			// Bloom first (wider, fainter), then the lamp core on the edge.
+			QLinearGradient bloom(0, y0 - 3.0, 0, y0 + segment + 3.0);
+			bloom.setColorAt(0.0, fade);
+			bloom.setColorAt(0.5, studioAlpha(tokens.accent, info.hovered ? 70 : 42));
+			bloom.setColorAt(1.0, fade);
+			painter.fillRect(QRectF(rect.left(), y0 - 3.0, 4.0, segment + 6.0), bloom);
+			painter.fillRect(QRectF(rect.left(), y0, 2.0, segment), lamp);
+		}
+
+		painter.restore();
+	}
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
 		t.fontFamily = QStringLiteral("DM Sans");
 		t.monoFontFamily = QStringLiteral("DM Mono");
-		t.borderRadius = 16;
+		t.borderRadius = 8;
 		t.rowHeight = 40;
 		t.channelGroupIndent = 18;
 		t.channelGroupStyle = SkinTokens::GradientBar;
