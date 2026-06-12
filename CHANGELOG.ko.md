@@ -6,6 +6,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- Editor가 예기치 않게 죽을 때 흔적 없이 사라지는 대신, 크래시 미니덤프와
+  요약 리포트(버전, 예외 주소, 마지막으로 전환한 스킨)를
+  `%LOCALAPPDATA%\EqualizerAPO-XT\crashdumps`에 남깁니다. 특정 머신에서만
+  일부 스킨 선택 시 죽는 문제([#75])를 추적하기 위한 것으로, CI도 릴리스
+  바이너리별 디버그 심벌을 보존해 덤프를 분석할 수 있게 했습니다. ([#76])
+
 ## v1.19.0 (2026-06-12)
 
 - Editor의 5개 스킨이 색만 다른 변형이 아니라 서로 다른 시각 정체성이
@@ -306,3 +314,5 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
 [#70]: https://github.com/115dkk/EqualizerAPO-XT/pull/70
 [#73]: https://github.com/115dkk/EqualizerAPO-XT/pull/73
+[#75]: https://github.com/115dkk/EqualizerAPO-XT/issues/75
+[#76]: https://github.com/115dkk/EqualizerAPO-XT/pull/76
