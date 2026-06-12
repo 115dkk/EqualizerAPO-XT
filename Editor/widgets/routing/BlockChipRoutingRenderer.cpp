@@ -4,6 +4,7 @@
 
 #include "BlockChipRoutingRenderer.h"
 
+#include <QMenu>
 #include <QPainter>
 #include <QPainterPath>
 #include <QMouseEvent>
@@ -14,8 +15,14 @@
 
 using std::vector;
 
-BlockChipView::BlockChipView(const vector<Assignment>& assignments, QWidget* parent)
-	: RoutingView(parent), workingAssignments(assignments)
+BlockChipView::BlockChipView(const vector<Assignment>& assignments,
+	const vector<std::wstring>& channelNames, QWidget* parent)
+	: RoutingView(parent),
+	// Seed every device channel as an equation block so an emptied Copy can be
+	// refilled from the GUI; blocks whose source sum stays empty are skipped by
+	// the serializer and never reach the config line.
+	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
+	deviceChannels(channelNames)
 {
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	setMinimumSize(0, 0);
@@ -39,7 +46,7 @@ QSize BlockChipView::sizeHint() const
 	int maxW = 240;
 	for (const Assignment& a : workingAssignments)
 	{
-		int w = 24 + fm.horizontalAdvance(QString::fromStdWString(a.targetChannel)) + 24 + 24;
+		int w = 24 + fm.horizontalAdvance(QString::fromStdWString(a.targetChannel)) + 24 + 24 + 44; // + add chip
 		for (const Assignment::Summand& s : a.sourceSum)
 			w += fm.horizontalAdvance(QString::fromStdWString(s.channel)) + 90;
 		maxW = qMax(maxW, w);
@@ -66,6 +73,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 	const QColor ok(t.success), warn(t.warning), accent(t.accent);
 
 	hits.clear();
+	addHits.clear();
 
 	for (int r = 0; r < (int)workingAssignments.size(); ++r)
 	{
@@ -168,7 +176,79 @@ void BlockChipView::paintEvent(QPaintEvent*)
 
 			x += chipW + 8;
 		}
+
+		// Soft [+] chip per block: adds a source channel to this equation. This
+		// is what makes an emptied Copy refillable from the GUI.
+		const QRect addChip(x, y + (blockH - 26) / 2, 32, 26);
+		p.setPen(QPen(alpha(accent, 140), 1, Qt::DashLine));
+		p.setBrush(alpha(accent, 24));
+		p.drawRoundedRect(addChip, 13, 13);
+		p.setPen(alpha(accent, 220));
+		p.drawText(addChip, Qt::AlignCenter, QStringLiteral("+"));
+		addHits.append({ r, addChip });
 	}
+}
+
+void BlockChipView::mousePressEvent(QMouseEvent* event)
+{
+	for (const AddHit& h : addHits)
+	{
+		if (h.rect.contains(event->pos()))
+		{
+			showAddMenu(h.row, mapToGlobal(h.rect.bottomLeft()));
+			return;
+		}
+	}
+	RoutingView::mousePressEvent(event);
+}
+
+void BlockChipView::showAddMenu(int row, const QPoint& globalPos)
+{
+	if (row < 0 || row >= (int)workingAssignments.size())
+		return;
+
+	auto inSum = [this, row](const QString& channel) {
+		for (const Assignment::Summand& s : workingAssignments[row].sourceSum)
+			if (QString::fromStdWString(s.channel).compare(channel, Qt::CaseInsensitive) == 0)
+				return true;
+		return false;
+	};
+
+	QStringList candidates;
+	auto addCandidate = [&](const QString& channel) {
+		if (channel.isEmpty() || channel == QLatin1String(" ")
+			|| inSum(channel) || candidates.contains(channel, Qt::CaseInsensitive))
+			return;
+		candidates.append(channel);
+	};
+	for (const std::wstring& name : deviceChannels)
+		addCandidate(QString::fromStdWString(name));
+	// Channels the command references elsewhere (e.g. virtual channels) stay
+	// available even when the device layout is unknown.
+	for (const Assignment& other : workingAssignments)
+	{
+		addCandidate(QString::fromStdWString(other.targetChannel));
+		for (const Assignment::Summand& s : other.sourceSum)
+			addCandidate(QString::fromStdWString(s.channel));
+	}
+	if (candidates.isEmpty())
+		return;
+
+	QMenu menu(this);
+	for (const QString& channel : candidates)
+		menu.addAction(channel);
+	const QAction* chosen = menu.exec(globalPos);
+	if (chosen == nullptr)
+		return;
+
+	Assignment::Summand s;
+	s.factor = 1.0;
+	s.isDecibel = false;
+	s.channel = chosen->text().toStdWString();
+	workingAssignments[row].sourceSum.push_back(s);
+	updateGeometry();
+	update();
+	emit routingChanged();
 }
 
 void BlockChipView::mouseDoubleClickEvent(QMouseEvent* event)
@@ -215,6 +295,18 @@ void BlockChipView::commitEditor()
 	if (row >= (int)workingAssignments.size() || si >= (int)workingAssignments[row].sourceSum.size())
 		return;
 
+	if (raw.isEmpty())
+	{
+		// Clearing the factor removes the source chip, mirroring the
+		// crosspoint / patch-bay grids.
+		Assignment& a = workingAssignments[row];
+		a.sourceSum.erase(a.sourceSum.begin() + si);
+		updateGeometry();
+		update();
+		emit routingChanged();
+		return;
+	}
+
 	Assignment::Summand& s = workingAssignments[row].sourceSum[si];
 	if (raw.compare(QLatin1String("INV"), Qt::CaseInsensitive) == 0)
 	{
@@ -244,7 +336,7 @@ void BlockChipView::commitEditor()
 }
 
 RoutingView* BlockChipRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& /*channelNames*/, QWidget* parent)
+	const vector<std::wstring>& channelNames, QWidget* parent)
 {
-	return new BlockChipView(assignments, parent);
+	return new BlockChipView(assignments, channelNames, parent);
 }

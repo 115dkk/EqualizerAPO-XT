@@ -63,4 +63,25 @@ public:
 	};
 
 	static Matrix buildMatrix(const std::vector<Assignment>& assignments);
+
+	// ── Device channel seeding ─────────────────────────────────────────────
+	// The views derive their rows/columns from the assignments alone, so an
+	// emptied Copy used to leave nothing to click and could never be refilled
+	// from the GUI. These helpers blend the device channel layout in: every
+	// device channel becomes available as an output row / input column even
+	// when the command line does not (yet) reference it. Rows whose source sum
+	// stays empty are skipped by the serializer, so seeding never changes the
+	// written config line.
+
+	// Returns assignments extended with an empty assignment per device channel
+	// that is not already a target (original order preserved, seeds appended).
+	static std::vector<Assignment> seedTargets(const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& channelNames);
+
+	// buildMatrix variant that additionally offers every device channel as an
+	// input column. The extra columns must be known before the cells are keyed
+	// (indexOf depends on the final column count), hence an overload rather
+	// than a post-hoc extension.
+	static Matrix buildMatrix(const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& channelNames);
 };

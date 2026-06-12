@@ -26,8 +26,10 @@
 #include <QPalette>
 #include <QPixmap>
 #include <QScreen>
+#include <QSettings>
 #include <QStyleHints>
 
+#include "Editor/MainWindow.h"
 #include "Editor/SkinManager.h"
 
 QSize GUIHelper::scale(QSize size)
@@ -129,4 +131,17 @@ void GUIHelper::applySkinPalette()
 	palette.setColor(QPalette::Link, accent);
 	palette.setColor(QPalette::LinkVisited, accent.darker(110));
 	qApp->setPalette(palette);
+}
+
+double GUIHelper::knobGainRange()
+{
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	const double range = settings.value("interface/knobGainRange", 20.0).toDouble();
+	return qBound(1.0, range, 100.0);
+}
+
+void GUIHelper::setKnobGainRange(double range)
+{
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	settings.setValue("interface/knobGainRange", qBound(1.0, range, 100.0));
 }

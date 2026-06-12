@@ -44,6 +44,11 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 	// The flag reaches the skin through KnobState so bipolar knobs can read
 	// differently from unipolar ones.
 	ui->gainDial->setBipolar(true);
+	// The dial spans the user-configured comfort range (default ±20 dB) in
+	// 0.1 dB steps; the spin box still accepts the full command range and a
+	// larger typed gain just pegs the dial at its end.
+	const double knobRange = GUIHelper::knobGainRange();
+	ui->gainDial->setRange(qRound(-knobRange * 10.0), qRound(knobRange * 10.0));
 
 	ui->typeComboBox->addItem(tr("Peaking filter"), BiQuad::PEAKING);
 	ui->typeComboBox->addItem(tr("Low-pass filter"), BiQuad::LOW_PASS);

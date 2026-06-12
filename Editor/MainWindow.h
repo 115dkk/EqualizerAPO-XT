@@ -96,7 +96,8 @@ private slots:
 	void interfaceModeSelected(QAction* action);
 	void skinSelected(QAction* action);
 	void darkThemeToggled(bool checked);
-	void cycleGraphPosition();
+	void knobRangeSelected(QAction* action);
+	void on_graphPositionComboBox_currentIndexChanged(int index);
 	void toggleGraphFullscreen();
 	void on_actionResetAllGlobalPreferences_triggered();
 	void on_actionResetAllFileSpecificPreferences_triggered();
@@ -112,6 +113,7 @@ private:
 	void updateRecentFiles();
 	void setupRedesignActions();
 	void applyRedesignPreferences();
+	void syncKnobRangeActions();
 	void setCurrentRenderMode(FilterTable::RenderMode mode);
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
@@ -140,11 +142,13 @@ private:
 	QString skinId = QStringLiteral("studio");
 	bool skinDark = true;
 	bool graphFullscreen = false;
-	int graphDockPosition = 0;
+	// 0 = top, 1 = bottom (default, matching the original Equalizer APO), 2 = right.
+	int graphDockPosition = 1;
 	FilterTable::RenderMode currentRenderMode = FilterTable::ModernCards;
 	QActionGroup* interfaceModeActionGroup = nullptr;
 	QActionGroup* skinActionGroup = nullptr;
 	QAction* darkThemeAction = nullptr;
+	QActionGroup* knobRangeActionGroup = nullptr;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

@@ -32,7 +32,7 @@ double dbToY(const QRectF& graphRect, double db, double minDb, double maxDb)
 EqGraphView::EqGraphView(QWidget* parent)
 	: QWidget(parent)
 {
-	setMinimumHeight(180);
+	setMinimumHeight(130);
 	setObjectName(QStringLiteral("EqGraphView"));
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
 		update();
@@ -68,7 +68,9 @@ const QString& EqGraphView::channel() const
 
 QSize EqGraphView::sizeHint() const
 {
-	return QSize(960, 280);
+	// Keeps the analysis dock's default height modest; the graph auto-fits its
+	// data, so users who want a taller view can simply drag the dock splitter.
+	return QSize(960, 190);
 }
 
 void EqGraphView::paintEvent(QPaintEvent*)
