@@ -27,5 +27,11 @@ void CommandRowFrame::paintEvent(QPaintEvent* event)
 	QFrame::paintEvent(event);
 
 	QPainter painter(this);
-	SkinManager::instance()->paintCardChrome(painter, rect(), info);
+	// The hover flag is paint-time state, not row state, so it is filled here
+	// instead of by the owning row's refreshStateProperties. Repaints on
+	// enter/leave come for free once the active skin's frame stylesheet
+	// contains a :hover rule (the stylesheet style enables hover tracking).
+	CommandRowInfo paintInfo = info;
+	paintInfo.hovered = underMouse();
+	SkinManager::instance()->paintCardChrome(painter, rect(), paintInfo);
 }

@@ -34,6 +34,11 @@ struct CommandRowInfo
 	bool enabled = true;
 	bool selected = false;
 	bool focused = false;
+	// Paint-time only: true while the pointer is over the row frame.
+	// CommandRowFrame fills it right before ISkin::paintCardChrome runs, so a
+	// skin can brighten painted decoration on hover. Skins that ignore it keep
+	// their exact pre-hover appearance.
+	bool hovered = false;
 	int depth = 0;
 };
 
