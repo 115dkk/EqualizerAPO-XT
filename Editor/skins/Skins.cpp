@@ -4,6 +4,10 @@
 
 #include "Skins.h"
 
+#include <QLayout>
+#include <QWidget>
+
+#include "Editor/skins/RackChrome.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -196,7 +200,7 @@ public:
 	}
 };
 
-// ── Rack (skeuomorphic 19" hardware) ────────────────────────────────────────
+// ── Rack ("The amplifier faceplate", skeuomorphic 19" hardware) ─────────────
 class RackSkin : public ISkin
 {
 public:
@@ -210,12 +214,67 @@ public:
 		static HardwarePatchbayRoutingRenderer renderer;
 		return &renderer;
 	}
+
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
+	{
+		RackChrome::paintKnob(painter, rect, state, tokens);
+	}
+
+	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		// QSS only provides the machined base plate and the hover brightening;
+		// the faceplate texture, ears, screws and LEDs are painted on top by
+		// RackChrome::paintCardChrome (the sheen overlays are translucent, so
+		// the hover state shines through them).
+		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
+		const QString background = info.selected ? tokens.cardSelected : tokens.card;
+		return QStringLiteral(
+			"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
+			"QFrame#FilterCardRow:hover { background: %4; }")
+			.arg(background, borderColor)
+			.arg(tokens.borderRadius)
+			.arg(info.selected ? tokens.cardSelected : tokens.cardHover);
+	}
+
+	QString cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) const override
+	{
+		// The header strip is part of the painted faceplate; a transparent
+		// background lets the brushed metal, ears and LEDs show through.
+		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
+	}
+
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	{
+		// Reserve the rack-ear zones along the faceplate edges so the painted
+		// chrome (screws, LEDs, patchbay jacks, the VST nameplate) never
+		// collides with row content. Rows are rebuilt on every skin switch, so
+		// this only ever runs while the rack skin is active.
+		if (header != nullptr && header->layout() != nullptr)
+		{
+			const int right = RackChrome::earWidth() + 6
+				+ (info.type == QStringLiteral("vst") ? RackChrome::nameplateReserve() : 0);
+			header->layout()->setContentsMargins(RackChrome::earWidth() + 6, 4, right, 4);
+		}
+		// Only the modern card's body stack is inset; body-only consultations
+		// (Include/VST editors, legacy rows) already sit inside that stack.
+		if (card != nullptr && body != nullptr)
+			body->setContentsMargins(RackChrome::earWidth() + 4, 0, RackChrome::earWidth() + 4, 6);
+	}
+
+	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		RackChrome::paintCardChrome(painter, rect, info, tokens);
+	}
+
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
 		t.fontFamily = QStringLiteral("DM Sans");
 		t.monoFontFamily = QStringLiteral("DM Mono");
-		t.borderRadius = 6;
+		// Machined plate corners; raw config lines stay off the faceplate (the
+		// "..." raw editor still reaches them) - hardware prints no raw text.
+		t.borderRadius = 3;
+		t.showRawPreview = false;
 		t.rowHeight = 36;
 		t.channelGroupIndent = 16;
 		t.channelGroupStyle = SkinTokens::DottedLine;
