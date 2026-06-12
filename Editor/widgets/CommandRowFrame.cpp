@@ -26,6 +26,13 @@ void CommandRowFrame::paintEvent(QPaintEvent* event)
 	// draws on top (no-op in the neutral default).
 	QFrame::paintEvent(event);
 
+	// The hover flag is sampled at paint time instead of being pushed through
+	// setRowInfo: hover repaints are triggered by the skin's own :hover QSS
+	// rules (or the gallery's WA_UnderMouse equivalent), so the stored info
+	// would always lag one state behind.
+	CommandRowInfo paintInfo = info;
+	paintInfo.hovered = underMouse();
+
 	QPainter painter(this);
-	SkinManager::instance()->paintCardChrome(painter, rect(), info);
+	SkinManager::instance()->paintCardChrome(painter, rect(), paintInfo);
 }

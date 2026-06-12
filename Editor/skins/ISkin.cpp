@@ -101,6 +101,19 @@ QString ISkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tok
 		.arg(tokens.borderRadius);
 }
 
+// The default is the string FilterCardRow::rebuildSummary computed before the
+// hook existed, moved verbatim: outline-style skins ink the badge in the type
+// colour, filled-style skins use the type colour as the pill background.
+QString ISkin::typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const
+{
+	Q_UNUSED(info);
+	const bool outlineBadge = tokens.badgeStyle == SkinTokens::OutlineOnly || tokens.badgeStyle == SkinTokens::WireframeBorder;
+	return QStringLiteral("color:%1; border-color:%2; background-color:%3;")
+		.arg(outlineBadge ? typeColor : QStringLiteral("white"),
+			typeColor,
+			outlineBadge ? QStringLiteral("transparent") : typeColor);
+}
+
 void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget*) const
 {
 	// Neutral default: rows keep their stock construction.
