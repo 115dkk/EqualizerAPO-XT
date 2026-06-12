@@ -11,6 +11,7 @@
 #include <QApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QMouseEvent>
 #include <QListWidget>
 #include <QPainter>
 #include <QRegularExpression>
@@ -90,10 +91,14 @@ void paintScrew(QPainter& painter, const QPointF& center, qreal radius, qreal sl
 }
 
 // A panel LED in a bezel ring; glow scales 0..1 so the hover lamp can sit
-// between fully dark and fully lit.
+// between fully dark and fully lit. Unlit lamps recede one step (R5):
+// thinner bezel ink, a translucent dome and a fainter specular dot, so a
+// column of module slots never reads as bullet spam - only lit or warming
+// lamps claim attention.
 void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QColor& litColor, qreal glow, bool dark)
 {
-	painter.setPen(QPen(dark ? QColor(0, 0, 0, 190) : QColor(70, 62, 50, 190), 1));
+	const bool unlit = glow <= 0.0;
+	painter.setPen(QPen(dark ? QColor(0, 0, 0, unlit ? 110 : 190) : QColor(70, 62, 50, unlit ? 100 : 190), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawEllipse(center, radius + 1.2, radius + 1.2);
 
@@ -116,12 +121,20 @@ void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QCol
 			qRound(a.green() + (b.green() - a.green()) * glow),
 			qRound(a.blue() + (b.blue() - a.blue()) * glow));
 	};
-	dome.setColorAt(0.0, mix(off.lighter(140), hot));
-	dome.setColorAt(1.0, mix(off, litColor.darker(125)));
+	QColor domeTop = mix(off.lighter(140), hot);
+	QColor domeEdge = mix(off, litColor.darker(125));
+	if (unlit)
+	{
+		domeTop.setAlpha(140);
+		domeEdge.setAlpha(140);
+	}
+	dome.setColorAt(0.0, domeTop);
+	dome.setColorAt(1.0, domeEdge);
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(dome);
 	painter.drawEllipse(center, radius, radius);
-	painter.setBrush(QColor(255, 255, 255, int((dark ? 28 : 60) + (170 - (dark ? 28 : 60)) * glow)));
+	painter.setBrush(QColor(255, 255, 255, unlit ? (dark ? 14 : 30)
+		: int((dark ? 28 : 60) + (170 - (dark ? 28 : 60)) * glow)));
 	painter.drawEllipse(center - QPointF(radius * 0.35, radius * 0.35), radius * 0.3, radius * 0.3);
 }
 
@@ -212,7 +225,7 @@ private:
 		else if (hovered)
 		{
 			QLinearGradient lamp(slot.topLeft(), slot.topRight());
-			lamp.setColorAt(0.0, withAlpha(accent, dark ? 26 : 30));
+			lamp.setColorAt(0.0, withAlpha(accent, dark ? 44 : 48));
 			lamp.setColorAt(1.0, withAlpha(accent, 0));
 			painter->setPen(Qt::NoPen);
 			painter->setBrush(lamp);
@@ -220,7 +233,7 @@ private:
 		}
 
 		const QPointF led(slot.left() + 11.0, slot.center().y());
-		paintLed(*painter, led, 2.8, accent, selected ? 1.0 : (hovered ? 0.4 : 0.0), dark);
+		paintLed(*painter, led, 2.8, accent, selected ? 1.0 : (hovered ? 0.55 : 0.0), dark);
 
 		QFont labelFont(tokens.fontFamily);
 		labelFont.setPixelSize(12);
@@ -306,6 +319,42 @@ void RackFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
 	allEntries = entries;
 	rebuildList();
 	searchEdit->setFocus();
+}
+
+void RackFilterPickerView::galleryShowcase(GalleryShowcase kind)
+{
+	if (kind == GalleryShowcase::EmptySearch)
+	{
+		// A query no module matches: the LCD keeps the dead search term and
+		// the faceplate engraves NO SIGNAL (the constitution's empty-result
+		// law) where the slots would be.
+		searchEdit->setText(QStringLiteral("ZZZZ"));
+		return;
+	}
+
+	// HoverFirstEntry: warm a lamp without stealing the selection shot. The
+	// first selectable slot is already selected (lit amber), so the lamp
+	// pre-heat is staged on the next slot - the capture then shows both
+	// states of the light grammar at once. Hover is driven by real mouse
+	// events, so feed the viewport a synthetic move.
+	searchEdit->clear();
+	int selectableSeen = 0;
+	for (int row = 0; row < listWidget->count(); row++)
+	{
+		QListWidgetItem* item = listWidget->item(row);
+		if (!(item->flags() & Qt::ItemIsSelectable))
+			continue;
+		if (++selectableSeen < 2)
+			continue;
+		listWidget->viewport()->setAttribute(Qt::WA_UnderMouse, true);
+		const QPointF center = listWidget->visualItemRect(item).center();
+		QMouseEvent moveEvent(QEvent::MouseMove, center,
+			listWidget->viewport()->mapToGlobal(center),
+			Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+		QApplication::sendEvent(listWidget->viewport(), &moveEvent);
+		listWidget->viewport()->update();
+		break;
+	}
 }
 
 QSize RackFilterPickerView::sizeHint() const
@@ -444,10 +493,22 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	painter.setBrush(sheen);
 	painter.drawRoundedRect(r, radius, radius);
 
-	// Horizontal brushing texture.
-	painter.setPen(QPen(dark ? QColor(255, 255, 255, 7) : QColor(96, 84, 64, 8), 1));
-	for (qreal y = r.top() + 3; y < r.bottom() - 1; y += 3)
-		painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
+	// Horizontal brushing grain (R4 idiom, same construction as the card
+	// faceplates'): per-line ink variation with sparse polish lines, in
+	// logical coordinates so DPI scales the grain.
+	{
+		const uint seed = uint(qHash(QStringLiteral("module-select-brush")));
+		const int baseAlpha = 5;
+		QColor grain = dark ? QColor(255, 255, 255) : QColor(96, 84, 64);
+		for (qreal y = r.top() + 2; y < r.bottom() - 1; y += 2)
+		{
+			const uint h = (seed ^ uint(qRound(y * 7.0))) * 2654435761u;
+			const bool polish = (h >> 8) % 11u == 0;
+			grain.setAlpha(baseAlpha + int(h % 7u) + (polish ? 6 : 0));
+			painter.setPen(QPen(grain, 1));
+			painter.drawLine(QPointF(r.left() + 2, y), QPointF(r.right() - 2, y));
+		}
+	}
 
 	// Machined plate edge: dark outline, lit top bezel, shadowed bottom.
 	painter.setBrush(Qt::NoBrush);

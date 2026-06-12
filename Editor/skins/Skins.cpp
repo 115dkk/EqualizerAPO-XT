@@ -1377,8 +1377,13 @@ public:
 		// QSS only provides the machined base plate and the hover brightening;
 		// the faceplate texture, ears, screws and LEDs are painted on top by
 		// RackChrome::paintCardChrome (the sheen overlays are translucent, so
-		// the hover state shines through them).
-		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
+		// the hover state shines through them). The resting border is the dark
+		// seam of the rack opening rather than the token border, so stacked
+		// units separate physically (R3); focus and selection keep their
+		// signal colours.
+		const bool dark = QColor(tokens.background).lightness() < 128;
+		const QString seam = dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268");
+		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : seam);
 		const QString background = info.selected ? tokens.cardSelected : tokens.card;
 		return QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
