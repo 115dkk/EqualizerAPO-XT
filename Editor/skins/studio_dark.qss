@@ -218,7 +218,8 @@ QCheckBox#InstantModeCheckBox::indicator:checked:disabled {
 }
 
 /* Save-state readout: a value, so it reads like one - sunken glass window,
-   mono face, muted until it matters. */
+   mono face, muted until it matters. Unsaved changes light an amber lamp
+   behind the glass, the same grammar as the format warning below. */
 QLabel#DirtyStatusBadge {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 9pt;
@@ -228,6 +229,11 @@ QLabel#DirtyStatusBadge {
     border-top-color: rgba(0, 0, 0, 0.55);
     border-radius: 8px;
     padding: 3px 10px;
+}
+QLabel#DirtyStatusBadge[dirty="true"] {
+    color: @TEXT@;
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.60);
 }
 
 /* Device format readout: same meter window; a warning is an amber lamp

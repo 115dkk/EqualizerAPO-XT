@@ -206,6 +206,13 @@ QLabel#DirtyStatusBadge {
     border-radius: 8px;
     padding: 3px 10px;
 }
+/* Unsaved changes: the amber lamp lights the glass from behind, matching the
+   format-warning grammar below. */
+QLabel#DirtyStatusBadge[dirty="true"] {
+    color: @TEXT@;
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.60);
+}
 
 QLabel#DeviceFormatBadge {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;

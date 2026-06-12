@@ -161,6 +161,11 @@ FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 
 void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 {
-	if (activeSkin != nullptr)
-		activeSkin->styleMainToolbar(toolBar, currentTokens);
+	if (toolBar == nullptr || activeSkin == nullptr)
+		return;
+	// Reset the shared mutable toolbar state before delegating so one skin's
+	// choices cannot leak across a live skin switch (minimal sets
+	// Qt::ToolButtonTextOnly; everyone else expects icon-only).
+	toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+	activeSkin->styleMainToolbar(toolBar, currentTokens);
 }
