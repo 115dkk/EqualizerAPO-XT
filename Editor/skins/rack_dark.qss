@@ -28,17 +28,66 @@ QMainWindow::separator { background: @BORDER@; width: 1px; height: 1px; }
 
 QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 2px; padding: 4px 8px; }
 
-QMenuBar { background: @SURFACE@; color: @TEXT@; padding: 2px 4px; border: 0; border-bottom: 1px solid @BORDER@; }
-QMenuBar::item { background: transparent; padding: 4px 10px; border-radius: 2px; }
-QMenuBar::item:selected, QMenuBar::item:pressed { background: @CARD_HOVER@; color: #FFFFFF; }
+/* ── Menu bar: the engraved function row ─────────────────────────────────
+   A milled strip under the top panel; the section names are faceplate
+   printing (uppercase, letter-spaced, engraved muted ink). Hovering an item
+   pre-heats its lamp (a faint amber wash rising from the panel edge); the
+   open item is backlit by the lamp at full warmth. */
+QMenuBar {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1B2126, stop:0.18 #171C21, stop:1 #11151A);
+    color: @TEXT@;
+    padding: 3px 8px;
+    border: 0; border-top: 1px solid #262D33; border-bottom: 1px solid #060809;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QMenuBar::item { background: transparent; color: @MUTED@; padding: 5px 12px; border-radius: 2px; }
+QMenuBar::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(244, 184, 96, 0.05), stop:1 rgba(244, 184, 96, 0.18));
+    color: #F2DDB4;
+}
+QMenuBar::item:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(244, 184, 96, 0.12), stop:1 rgba(244, 184, 96, 0.40));
+    color: #FFE9C8;
+}
 
-QMenu { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 2px; padding: 2px; }
-QMenu::item { background: transparent; padding: 5px 22px; border-radius: 2px; min-width: 140px; }
-QMenu::item:selected { background: @CARD_HOVER@; color: #FFFFFF; }
-QMenu::item:disabled { color: #4E4A40; }
-QMenu::separator { height: 1px; background: @BORDER@; margin: 4px 6px; }
-QMenu::indicator { width: 12px; height: 12px; margin-left: 4px; }
-QMenu::indicator:checked { background: @ACCENT@; }
+/* ── Dropdown menus: panels of the same metal ────────────────────────────
+   A machined sub-panel hinged off the function row: lit top chamfer over a
+   dark milled edge, engraved uppercase items, grooved separators (dark cut
+   over a lit lower lip), and a lamp at the left slot edge backlighting the
+   selected item. The check indicator is a bezel-set panel LED: a dark lens
+   at rest, lit amber when engaged - state is a lamp, as everywhere on this
+   machine. */
+QMenu {
+    background: @CARD@;
+    color: @TEXT@;
+    border: 1px solid #060809; border-top-color: #3E474F;
+    border-radius: 3px;
+    padding: 5px 4px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QMenu::item { background: transparent; padding: 6px 26px; border-radius: 2px; min-width: 170px; }
+QMenu::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 rgba(244, 184, 96, 0.55), stop:0.07 rgba(244, 184, 96, 0.26), stop:1 rgba(244, 184, 96, 0.05));
+    color: #FFE9C8;
+}
+QMenu::item:disabled { color: #4E4A40; background: transparent; }
+QMenu::separator {
+    height: 2px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #06080A, stop:1 #39424A);
+    margin: 5px 10px;
+}
+QMenu::icon { margin-left: 6px; }
+QMenu::indicator {
+    width: 12px; height: 12px; border-radius: 6px; margin-left: 6px;
+    border: 1px solid #060809;
+    background: qradialgradient(cx:0.35, cy:0.3, radius:1.2, stop:0 #2A3036, stop:1 #0B0E11);
+}
+QMenu::indicator:checked {
+    border: 1px solid #6B4A10;
+    background: qradialgradient(cx:0.4, cy:0.35, radius:1.0, stop:0 #FFE9C0, stop:0.45 @ACCENT@, stop:1 #8A5C12);
+}
 
 QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; padding: 2px 4px; spacing: 2px; }
 QToolBar::separator { background: @BORDER@; width: 1px; margin: 4px 6px; }
@@ -411,25 +460,45 @@ QLabel#IncludeCardStatus { color: @DANGER@; font-size: 8pt; }
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
 
-/* ===== Window chrome (custom title bar) - neutral baseline =====
-   Per-skin differentiation lands on the toolbar/window-chrome branches; this
-   block only keeps the title strip intentional until then. */
+/* ===== Window chrome: the unit's top panel =====
+   RackChrome::paintTitleBarChrome supplies the metal (brushed sheen,
+   machined edges, the caption-ear groove, two rail screws); QSS prints the
+   model designation and dresses the caption buttons as machined caps -
+   raised at rest, recessed when pressed. The close cap warms into a danger
+   lamp on hover, so it stays unmistakably the close button. */
 QWidget#AppTitleBar {
     background: @SURFACE@;
 }
+/* The title is the printed model designation: uppercase, letter-spaced,
+   engraved muted ink. padding-left clears the left rail screw. */
 QLabel#TitleBarText {
     background: transparent;
     color: @MUTED@;
-    font-size: 9pt;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding-left: 14px;
 }
 QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
-    background: transparent;
-    border: 0;
-    border-radius: 0;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+    border: 1px solid #11161A; border-top-color: #3E474F;
+    border-radius: 2px;
+    margin: 5px 3px;
 }
 QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
-    background: @CARD_HOVER@;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
+    border-color: @ACCENT@; border-top-color: #3E474F;
+}
+QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #14181C, stop:1 #232A30);
+    border-color: @ACCENT@; border-top-color: #0C1013;
 }
 QToolButton#TitleBarClose:hover {
-    background: @DANGER@;
+    background: qradialgradient(cx:0.5, cy:0.45, radius:0.9, fx:0.5, fy:0.4,
+        stop:0 #C2503C, stop:0.6 #872E1F, stop:1 #571B10);
+    border-color: #D96A52; border-top-color: #E8836B;
+}
+QToolButton#TitleBarClose:pressed {
+    background: qradialgradient(cx:0.5, cy:0.5, radius:0.9, fx:0.5, fy:0.5,
+        stop:0 #8A2E1E, stop:1 #4A180D);
+    border-color: @DANGER@; border-top-color: #3A130A;
 }
