@@ -1,8 +1,11 @@
 /* ====================================================================
-   Skin: Minimal Dark
+   Skin: minimal - "The bank teller's terminal" (Dark)
+   Zero decoration; every pixel is information; color carries meaning
+   only. Radius 0, shadows 0, gradients 0; separators are 1px hairlines
+   or a single background-value step.
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
-           accent @ACCENT@ / borderRadius 0 / row 32 / font Consolas
+           accent @ACCENT@ / borderRadius 0 / row 32 / font DM Mono
    ==================================================================== */
 
 * {
@@ -269,19 +272,45 @@ QWidget#ModernAnalysisGraph {
 QFrame#FilterCardRow {
     background: @CARD@; border: 1px solid #2e2e2e; border-radius: 0;
 }
-QWidget#FilterCardHeader { background: @SURFACE@; border-radius: 0; }
-QWidget#FilterCardBody, QWidget#FilterCardEditor { background: @SURFACE@; border-radius: 0; }
+/* No separate header plate: a row is one flat text line on one background. */
+QWidget#FilterCardHeader { background: transparent; border-radius: 0; }
+/* The body is a second strip on the same line, cut off by a 1px hairline.
+   A shelf's three label+number pairs share this one strip and read as one
+   filter unit. */
+QWidget#FilterCardBody { background: @SURFACE@; border: 0; border-top: 1px solid @BORDER@; border-radius: 0; }
+QWidget#FilterCardEditor { background: @SURFACE@; border-radius: 0; }
+/* Type tag: a bare colored mono token, no box. The per-type color comes from
+   the row descriptor (inline); together with the leading glyph it is the only
+   type marker a line gets. */
 QLabel#FilterTypeBadge {
     background: transparent; color: @TEXT@;
-    border: 1px solid @TEXT@; border-radius: 0;
-    font-weight: 700; padding: 1px 6px; min-height: 18px;
+    border: 0; border-radius: 0;
+    font-weight: 700; padding: 1px 2px; min-height: 18px;
     font-size: 9pt; text-transform: uppercase; letter-spacing: 1px;
+}
+/* Leading type glyph (inserted by MinimalSkin::prepareCommandRow). */
+QLabel#MinimalTypeGlyph {
+    background: transparent; color: @MUTED@;
+    font-weight: 700; font-size: 9pt;
 }
 QLabel#FilterCardTitle {
     color: @TEXT@; background: transparent;
-    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 400; text-transform: uppercase; letter-spacing: 1px;
 }
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
+/* Include and VST rows are single text lines whose payload is the file name:
+   the data is bright (primary), the command word drops to grey (secondary).
+   Hierarchy by text value, not by size. */
+QFrame#FilterCardRow[filterKind="include"] QLabel#FilterCardTitle,
+QFrame#FilterCardRow[filterKind="vstplugin"] QLabel#FilterCardTitle { color: @MUTED@; }
+QFrame#FilterCardRow[filterKind="include"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[filterKind="vstplugin"] QLabel#FilterCardSummary { color: @TEXT@; }
+/* A commented-out line: every text value falls to secondary grey (the frame
+   itself drops one background step via MinimalSkin::cardFrameStyle). */
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardTitle,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardNumber,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#MinimalTypeGlyph { color: @MUTED@; }
 QLabel#FilterCardNumber {
     color: @MUTED@; background: transparent;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;

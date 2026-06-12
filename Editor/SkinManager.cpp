@@ -123,6 +123,11 @@ QString SkinManager::cardHeaderStyle(const CommandRowInfo& info) const
 	return activeSkin != nullptr ? activeSkin->cardHeaderStyle(info, currentTokens) : QString();
 }
 
+QString SkinManager::typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const
+{
+	return activeSkin != nullptr ? activeSkin->typeBadgeStyle(info, typeColor, currentTokens) : QString();
+}
+
 void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const
 {
 	if (activeSkin != nullptr)

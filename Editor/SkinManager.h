@@ -40,6 +40,7 @@ public:
 	// current tokens (see the ISkin hooks for semantics).
 	QString cardFrameStyle(const CommandRowInfo& info) const;
 	QString cardHeaderStyle(const CommandRowInfo& info) const;
+	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 

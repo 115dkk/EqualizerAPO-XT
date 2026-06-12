@@ -12,9 +12,8 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 지금 진행 중인 작업은 다음과 같습니다.
 
-1. Editor의 5개 스킨 전면 개편을 3단계 프로그램(공용 기반 작업, 스킨별 격리 구현 5건, 심사와 통합)으로 진행합니다. 이슈 [#66](https://github.com/115dkk/EqualizerAPO-XT/issues/66), [#67](https://github.com/115dkk/EqualizerAPO-XT/issues/67), [#68](https://github.com/115dkk/EqualizerAPO-XT/issues/68)에서 추적합니다.
-2. 변형별 릴리스 채널을 단일 바이너리 런타임 SIMD dispatch로 대체합니다([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
-3. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다.
+1. 변형별 릴리스 채널을 단일 바이너리 런타임 SIMD dispatch로 대체합니다([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
+2. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다.
 
 ## 주요 기능
 
@@ -22,7 +21,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 - Convolution, GraphicEQ, 파라메트릭 EQ, VST2/VST3와 기존 Equalizer APO 필터를 지원합니다.
 - Steinberg VST3 SDK(MIT 라이선스 pluginterfaces)로 VST3를 네이티브 호스팅하며, 플러그인이 지원하면 64비트(double)로 처리합니다.
 - SIMD 커널은 [Google Highway](https://github.com/google/highway)로 한 번만 작성해 변형별로 컴파일합니다. x64는 SSE2, AVX, AVX2, AVX-512, AVX10.1, ARM64는 NEON입니다.
-- Qt Editor를 현대화했습니다. 카드 기반 필터 UI, 스킨별 Copy 라우팅 렌더러를 갖춘 5종 스킨, 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.
+- Qt Editor를 현대화했습니다. 카드 기반 필터 UI와 행 chrome·노브 렌더링·Copy 라우팅 렌더러까지 서로 다른 5종 스킨([docs/skin-integration-report.md](docs/skin-integration-report.md)), 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.
 - Editor가 새 릴리스를 백그라운드에서 내려받아 종료할 때 적용하는 자동 업데이트가 들어 있습니다. 알림만 하는 UpdateChecker 도구도 따로 있습니다.
 - 자동 감지 설치기가 로컬 CPU에 맞는 SIMD 빌드를 골라 내려받고, 실행 전에 릴리스 체크섬으로 검증합니다.
 - 오디오 처리는 AOCL-FFTW, libsndfile, muparserx, TCLAP을 쓰고, GUI 도구는 Qt로 만들었습니다.

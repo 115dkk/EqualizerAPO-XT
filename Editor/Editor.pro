@@ -179,6 +179,7 @@ SOURCES += main.cpp\
 	SkinGallery.cpp \
 	SkinManager.cpp \
 	skins/ISkin.cpp \
+	skins/RackChrome.cpp \
 	skins/Skins.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/CommandRowFrame.cpp \
@@ -351,6 +352,7 @@ HEADERS  += \
 	SkinTokens.h \
 	SkinManager.h \
 	skins/ISkin.h \
+	skins/RackChrome.h \
 	skins/Skins.h \
 	widgets/AudioKnob.h \
 	widgets/CommandRowFrame.h \

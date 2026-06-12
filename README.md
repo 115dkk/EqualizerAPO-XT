@@ -12,9 +12,8 @@ The original fork goals are complete: the convolution tail bug is fixed, the eng
 
 Current work areas:
 
-1. A five-skin visual overhaul of the Editor, run as a three-phase program (shared groundwork, five isolated skin implementations, judging and integration) — tracked in issues [#66](https://github.com/115dkk/EqualizerAPO-XT/issues/66), [#67](https://github.com/115dkk/EqualizerAPO-XT/issues/67), and [#68](https://github.com/115dkk/EqualizerAPO-XT/issues/68).
-2. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
-3. Acting on findings from the biweekly automated code audit.
+1. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
+2. Acting on findings from the biweekly automated code audit.
 
 ## Features
 
@@ -22,7 +21,7 @@ Current work areas:
 - Convolution, GraphicEQ, parametric EQ, VST2/VST3, and standard Equalizer APO filter support.
 - Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it.
 - Portable SIMD kernels written once with [Google Highway](https://github.com/google/highway) and compiled per variant: SSE2, AVX, AVX2, AVX-512, and AVX10.1 on x64, NEON on ARM64.
-- Modernized Qt Editor: card-based filter UI, five visual skins with per-skin Copy routing renderers, embedded fonts, and high-DPI scaling.
+- Modernized Qt Editor: card-based filter UI and five fully differentiated visual skins — each with its own row chrome, knob rendering, and Copy routing renderer ([docs/skin-integration-report.md](docs/skin-integration-report.md)) — plus embedded fonts and high-DPI scaling.
 - Automatic updates: the Editor downloads new releases in the background and applies them on exit. A standalone UpdateChecker tool provides notify-only checks.
 - Auto-detect installer that picks the matching SIMD build for the local CPU and verifies the download against the release checksums before running it.
 - AOCL-FFTW, libsndfile, muparserx, TCLAP, and Qt-based GUI tools.

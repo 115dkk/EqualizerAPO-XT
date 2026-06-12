@@ -420,11 +420,9 @@ void FilterCardRow::rebuildSummary()
 	}
 
 	typeBadge->setText(descriptor.badge);
-	bool outlineBadge = SkinManager::instance()->tokens().badgeStyle == SkinTokens::OutlineOnly || SkinManager::instance()->tokens().badgeStyle == SkinTokens::WireframeBorder;
-	typeBadge->setStyleSheet(QStringLiteral("color:%1; border-color:%2; background-color:%3;")
-		.arg(outlineBadge ? descriptor.color : QStringLiteral("white"),
-			descriptor.color,
-			outlineBadge ? QStringLiteral("transparent") : descriptor.color));
+	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle); the
+	// default reproduces the previous shared outline/filled treatment.
+	typeBadge->setStyleSheet(SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color));
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);
 	rawPreviewLabel->setText(QStringLiteral("Raw  ") + item->text);

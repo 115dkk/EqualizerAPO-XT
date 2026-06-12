@@ -12,6 +12,19 @@ were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- The five Editor skins are now fully differentiated visual identities
+  instead of palette variations. Each answers command-type marking, hover,
+  disabled state, Include/VST presentation, corner language and hierarchy
+  with its own shapes, textures and typography — glass cards with glowing
+  arc knobs (studio), a zero-radius hairline terminal (minimal), a roomy
+  rounded settings look (soft), skeuomorphic rack hardware with painted
+  screws, nameplates and pointer knobs (rack), and a grid instrument panel
+  with LED-ring encoders and crosspoint hover (matrix). Built by five
+  isolated implementation agents and integrated after a differentiation
+  review; the full record is in docs/skin-integration-report.md. ([#73])
+
 ## v1.18.0 — 2026-06-12
 
 - Channel rows on the modern cards now edit their selection in place with
@@ -306,3 +319,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#63]: https://github.com/115dkk/EqualizerAPO-XT/pull/63
 [#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
 [#70]: https://github.com/115dkk/EqualizerAPO-XT/pull/70
+[#73]: https://github.com/115dkk/EqualizerAPO-XT/pull/73

@@ -1,8 +1,12 @@
 /* ====================================================================
-   Skin: Glassy Dark
+   Skin: Studio Dark - "Glass over the instrument"
+   Deep solid backgrounds; panels are glass: solid colour with alpha plus
+   a single 1px lighter top edge. One glowing accent (#5B8CFF), faked with
+   layered alpha, never effects. Corner radius 8px. Hover brightens,
+   disabled drops opacity. Sans for words, mono for numbers.
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
-           accent @ACCENT@ / borderRadius 16 / row 40
+           accent @ACCENT@ / borderRadius 8 / row 40
    ==================================================================== */
 
 * {
@@ -33,7 +37,8 @@ QToolTip {
     background: @CARD@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 8px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 6px;
     padding: 6px 10px;
 }
 
@@ -48,11 +53,11 @@ QMenuBar {
 QMenuBar::item {
     background: transparent;
     padding: 6px 12px;
-    border-radius: 10px;
+    border-radius: 6px;
 }
 QMenuBar::item:selected,
 QMenuBar::item:pressed {
-    background: rgba(59, 130, 246, 0.22);
+    background: rgba(91, 140, 255, 0.22);
     color: @TEXT@;
 }
 
@@ -60,17 +65,18 @@ QMenu {
     background: @CARD@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 12px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
     padding: 6px;
 }
 QMenu::item {
     background: transparent;
     padding: 6px 22px 6px 22px;
-    border-radius: 8px;
+    border-radius: 6px;
     min-width: 140px;
 }
 QMenu::item:selected {
-    background: rgba(59, 130, 246, 0.25);
+    background: rgba(91, 140, 255, 0.25);
     color: @TEXT@;
 }
 QMenu::item:disabled {
@@ -117,18 +123,19 @@ QToolButton {
     background: transparent;
     color: @TEXT@;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 4px 8px;
     min-height: 22px;
 }
 QToolButton:hover {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(255, 255, 255, 0.14);
 }
 QToolButton:pressed,
 QToolButton:checked {
-    background: rgba(59, 130, 246, 0.25);
-    border: 1px solid rgba(59, 130, 246, 0.5);
+    background: rgba(91, 140, 255, 0.25);
+    border: 1px solid rgba(91, 140, 255, 0.5);
 }
 QToolButton::menu-indicator {
     image: none;
@@ -148,16 +155,18 @@ QPushButton {
     background: @CARD@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 10px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
     padding: 6px 14px;
     min-height: 22px;
 }
 QPushButton:hover {
     background: @CARD_HOVER@;
-    border-color: rgba(59, 130, 246, 0.45);
+    border-color: rgba(91, 140, 255, 0.45);
+    border-top-color: rgba(255, 255, 255, 0.16);
 }
 QPushButton:pressed {
-    background: rgba(59, 130, 246, 0.3);
+    background: rgba(91, 140, 255, 0.3);
     border-color: @ACCENT@;
 }
 QPushButton:default {
@@ -170,6 +179,8 @@ QPushButton:disabled {
 }
 
 /* ===== Inputs ===== */
+/* Inputs are sunken glass: the darker top edge reads as an inner shadow,
+   the inverse of the raised panels' light top edge. */
 QLineEdit,
 QPlainTextEdit,
 QTextEdit,
@@ -177,10 +188,15 @@ QAbstractSpinBox {
     background: #08080f;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 10px;
+    border-top-color: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
     padding: 4px 8px;
     selection-background-color: @ACCENT@;
     selection-color: #f8fafc;
+}
+/* Numbers wear the mono face; words stay sans. */
+QAbstractSpinBox {
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
 QLineEdit:focus,
 QPlainTextEdit:focus,
@@ -204,16 +220,16 @@ QAbstractSpinBox::down-button {
 }
 QAbstractSpinBox::up-button {
     subcontrol-position: top right;
-    border-top-right-radius: 9px;
+    border-top-right-radius: 7px;
 }
 QAbstractSpinBox::down-button {
     subcontrol-position: bottom right;
-    border-bottom-right-radius: 9px;
+    border-bottom-right-radius: 7px;
     border-top: 1px solid @BORDER@;
 }
 QAbstractSpinBox::up-button:hover,
 QAbstractSpinBox::down-button:hover {
-    background: rgba(59, 130, 246, 0.22);
+    background: rgba(91, 140, 255, 0.22);
 }
 QAbstractSpinBox::up-arrow {
     image: none;
@@ -242,12 +258,14 @@ QComboBox {
     background: @CARD@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 10px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
     padding: 4px 28px 4px 10px;
     min-height: 28px;
 }
 QComboBox:hover {
-    border-color: rgba(59, 130, 246, 0.45);
+    border-color: rgba(91, 140, 255, 0.45);
+    border-top-color: rgba(255, 255, 255, 0.16);
     background: @CARD_HOVER@;
 }
 QComboBox:focus,
@@ -277,19 +295,20 @@ QComboBox QAbstractItemView {
     background: @CARD@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 12px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
     padding: 4px;
     outline: 0;
-    selection-background-color: rgba(59, 130, 246, 0.28);
+    selection-background-color: rgba(91, 140, 255, 0.28);
     selection-color: @TEXT@;
 }
 QComboBox QAbstractItemView::item {
     padding: 6px 10px;
-    border-radius: 8px;
+    border-radius: 6px;
     min-height: 24px;
 }
 QComboBox QAbstractItemView::item:selected {
-    background: rgba(59, 130, 246, 0.28);
+    background: rgba(91, 140, 255, 0.28);
     color: @TEXT@;
 }
 
@@ -342,7 +361,7 @@ QScrollBar::handle:vertical {
     border-radius: 4px;
 }
 QScrollBar::handle:vertical:hover {
-    background: rgba(59, 130, 246, 0.45);
+    background: rgba(91, 140, 255, 0.45);
 }
 QScrollBar::handle:vertical:pressed {
     background: @ACCENT@;
@@ -359,7 +378,7 @@ QScrollBar::handle:horizontal {
     border-radius: 4px;
 }
 QScrollBar::handle:horizontal:hover {
-    background: rgba(59, 130, 246, 0.45);
+    background: rgba(91, 140, 255, 0.45);
 }
 QScrollBar::handle:horizontal:pressed {
     background: @ACCENT@;
@@ -485,7 +504,8 @@ QGroupBox {
     background: @SURFACE@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 12px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
     margin-top: 14px;
     padding: 14px 12px 10px 12px;
 }
@@ -524,9 +544,9 @@ QTableView {
     background: @BG@;
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 10px;
+    border-radius: 8px;
     alternate-background-color: @SURFACE@;
-    selection-background-color: rgba(59, 130, 246, 0.28);
+    selection-background-color: rgba(91, 140, 255, 0.28);
     selection-color: @TEXT@;
     gridline-color: @BORDER@;
 }
@@ -544,7 +564,7 @@ QTableView::item:hover {
 QTreeView::item:selected,
 QListView::item:selected,
 QTableView::item:selected {
-    background: rgba(59, 130, 246, 0.28);
+    background: rgba(91, 140, 255, 0.28);
     color: @TEXT@;
 }
 QTreeView::branch {
@@ -646,7 +666,8 @@ QFrame[frameShape="5"]  /* VLine */ {
 QFrame#analysisControlBar {
     background: @SURFACE@;
     border: 1px solid @BORDER@;
-    border-radius: 14px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
 }
 QLabel#AnalysisFormLabel {
     color: @MUTED@;
@@ -662,7 +683,8 @@ QComboBox#AnalysisFormCombo {
 QFrame#AnalysisStatChip {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+    border-top-color: rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
 }
 QLabel#AnalysisStatLabel {
     color: @MUTED@;
@@ -684,25 +706,43 @@ QLabel#AnalysisStatValue[severity="critical"] { color: @DANGER@; }
 QWidget#ModernAnalysisGraph {
     background: #08080f;
     border: 1px solid @BORDER@;
-    border-radius: 14px;
+    border-top-color: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
 }
 
-/* ===== Filter Card Components ===== */
+/* ===== Filter Card Components =====
+   The card frame/header chrome is owned by StudioSkin::cardFrameStyle /
+   cardHeaderStyle (glass with a 1px lighter top edge, per-command-type
+   border treatment). These rules are the matching fallback. */
 QFrame#FilterCardRow {
-    background: @CARD@;
+    background: rgba(18, 26, 44, 0.88);
     border: 1px solid @BORDER@;
-    border-radius: 16px;
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
 }
 QWidget#FilterCardHeader {
-    background: rgba(255, 255, 255, 0.03);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
 }
+/* The body is one glass panel: a hairline seam under the header and a
+   near-transparent fill, so a shelf filter's three knobs sit on a single
+   pane and read as one unit. */
 QWidget#FilterCardBody,
 QWidget#FilterCardEditor {
     background: rgba(255, 255, 255, 0.02);
-    border-bottom-left-radius: 16px;
-    border-bottom-right-radius: 16px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+QWidget#FilterCardBody {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+/* Disabled (commented-out) rows: the light is off - text recedes with the
+   glass instead of staying at full brightness. */
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardTitle,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardNumber {
+    color: rgba(145, 160, 186, 0.55);
 }
 QLabel#FilterTypeBadge {
     color: white;
@@ -734,25 +774,27 @@ QToolButton#FilterCardIconButton {
     background: rgba(255, 255, 255, 0.04);
     color: @TEXT@;
     border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 8px;
+    border-top-color: rgba(255, 255, 255, 0.13);
+    border-radius: 6px;
     min-width: 24px;
     min-height: 24px;
     padding: 2px 4px;
     font-weight: 700;
 }
 QToolButton#FilterCardIconButton:hover {
-    background: rgba(59, 130, 246, 0.20);
-    border-color: rgba(59, 130, 246, 0.4);
+    background: rgba(91, 140, 255, 0.20);
+    border-color: rgba(91, 140, 255, 0.4);
 }
 QToolButton#FilterCardIconButton:checked {
-    background: rgba(59, 130, 246, 0.30);
+    background: rgba(91, 140, 255, 0.30);
     border-color: @ACCENT@;
 }
 QLineEdit#FilterCardRawEditor {
     background: #08080f;
     border: 1px solid @ACCENT@;
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 6px 10px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
 QCheckBox#FilterCardEnabled {
     background: transparent;
@@ -779,7 +821,8 @@ QLabel#EditableValue {
     background: rgba(255, 255, 255, 0.04);
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-radius: 8px;
+    border-top-color: rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
     padding: 6px 10px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
@@ -787,20 +830,69 @@ QLabel#EditableValue {
 QLineEdit#EditableValueEditor {
     background: #08080f;
     border: 1px solid @ACCENT@;
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 6px 10px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
+
+/* ===== Include row: a path chip on a glass card ===== */
+/* The chip is the only pill in the skin: sunken glass, mono path text. */
 QLineEdit#IncludeCardPath {
-    background: #08080f;
+    background: rgba(6, 9, 20, 0.65);
     border: 1px solid @BORDER@;
-    border-radius: 8px;
-    padding: 6px 10px;
+    border-top-color: rgba(0, 0, 0, 0.55);
+    border-radius: 13px;
+    padding: 4px 14px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+}
+QLineEdit#IncludeCardPath:hover {
+    border-color: rgba(91, 140, 255, 0.45);
+}
+QLineEdit#IncludeCardPath:focus {
+    border: 1px solid @ACCENT@;
 }
 QLabel#IncludeCardStatus {
     color: @DANGER@;
     font-size: 9pt;
+}
+QLabel#IncludeCardStatus[severity="warning"] { color: @WARNING@; }
+QLabel#IncludeCardStatus[severity="critical"] { color: @DANGER@; }
+
+/* ===== VST row: a softly glowing module card ===== */
+/* The frame's gradient border and painted halo come from StudioSkin; the
+   panel button is the module's one lit control. */
+QPushButton#VSTCardPanelButton {
+    background: rgba(91, 140, 255, 0.16);
+    color: @TEXT@;
+    border: 1px solid rgba(91, 140, 255, 0.55);
+    border-top-color: rgba(91, 140, 255, 0.80);
+    border-radius: 8px;
+    padding: 5px 14px;
+    font-weight: 600;
+}
+QPushButton#VSTCardPanelButton:hover {
+    background: rgba(91, 140, 255, 0.26);
+    border-color: rgba(91, 140, 255, 0.80);
+}
+QPushButton#VSTCardPanelButton:pressed {
+    background: rgba(91, 140, 255, 0.36);
+    border-color: @ACCENT@;
+}
+QLabel#VSTCardStatus {
+    color: @MUTED@;
+    background: transparent;
+}
+QFrame#VSTCardEmbedFrame {
+    background: #08080f;
+    border: 1px solid @BORDER@;
+    border-radius: 8px;
+}
+QPlainTextEdit#VSTCardWarning {
+    background: rgba(245, 158, 11, 0.08);
+    color: @WARNING@;
+    border: 1px solid rgba(245, 158, 11, 0.40);
+    border-radius: 6px;
 }
 
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */

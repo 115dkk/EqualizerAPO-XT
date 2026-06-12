@@ -6,6 +6,18 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16은 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- Editor의 5개 스킨이 색만 다른 변형이 아니라 서로 다른 시각 정체성이
+  됐습니다. 명령 종류 표시, 호버, 비활성 상태, Include/VST 표현, 모서리
+  언어, 위계를 스킨마다 고유한 형태·질감·타이포그래피로 답합니다. 유리
+  카드와 발광 아크 노브(studio), 라운드 0의 헤어라인 터미널(minimal),
+  여백이 넉넉한 둥근 설정 화면(soft), 나사·명판·포인터 노브까지 그려 넣은
+  랙 하드웨어(rack), LED 링 인코더와 크로스포인트 호버를 갖춘 격자
+  계기판(matrix)입니다. 격리된 구현 에이전트 5개가 만들고 차별화 심사를
+  거쳐 통합했으며, 전체 기록은 docs/skin-integration-report.md에
+  있습니다. ([#73])
+
 ## v1.18.0 (2026-06-12)
 
 - 모던 카드의 Channel 행에서 채널 선택을 카드 안에서 바로 편집할 수 있습니다.
@@ -293,3 +305,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#63]: https://github.com/115dkk/EqualizerAPO-XT/pull/63
 [#64]: https://github.com/115dkk/EqualizerAPO-XT/pull/64
 [#70]: https://github.com/115dkk/EqualizerAPO-XT/pull/70
+[#73]: https://github.com/115dkk/EqualizerAPO-XT/pull/73
