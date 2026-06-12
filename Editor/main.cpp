@@ -54,6 +54,7 @@
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/VelopackBootstrap.h"
+#include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
 
 
@@ -328,6 +329,10 @@ void launchDeviceSelector(const std::wstring& exeDir)
 
 int main(int argc, char* argv[])
 {
+	// First thing in the process: field crashes (so far only reproducible on
+	// foreign machines) must leave a minidump + breadcrumb report behind.
+	CrashHandler::install();
+
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
 		return hookResult;
@@ -412,6 +417,17 @@ int main(int argc, char* argv[])
 		// and renders untranslated English strings for deterministic output.
 		if (application.arguments().contains(QStringLiteral("--skin-gallery")))
 			return SkinGallery::run(application.arguments());
+
+		// Diagnostic self-test: crash deliberately so a field machine can verify
+		// that the crash handler leaves a dump + report under
+		// %LOCALAPPDATA%\EqualizerAPO-XT\crashdumps.
+		if (application.arguments().contains(QStringLiteral("--selftest-crash")))
+		{
+			CrashHandler::setBreadcrumb(L"selftest-crash");
+			volatile int* fault = nullptr;
+			// cppcheck-suppress nullPointer ; the dereference is the whole point of the self-test
+			*fault = 1; // intentional access violation
+		}
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 		{

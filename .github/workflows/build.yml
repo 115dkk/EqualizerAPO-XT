@@ -911,7 +911,11 @@ jobs:
 
           & $lreleasePath ..\$projectPath
           $qmakeChannelArg = "EAPO_UPDATE_CHANNEL=$updateChannel"
-          $qmakeArgs = @("..\$projectPath", "-r", "CONFIG+=release", $qmakeChannelArg)
+          # force_debug_info keeps a PDB next to each release executable so
+          # field crash minidumps (CrashHandler) can be symbolized against the
+          # exact shipped binary. The PDBs are pulled out of the release dir
+          # before packaging and uploaded as a separate artifact.
+          $qmakeArgs = @("..\$projectPath", "-r", "CONFIG+=release", "CONFIG+=force_debug_info", $qmakeChannelArg)
           if ($BuildPlatform -eq "x64") {
             if ($simdFlags) {
               $qmakeArgs += "EAPO_SIMD_FLAGS=$simdFlags"
@@ -1046,6 +1050,35 @@ jobs:
       with:
         name: skin-gallery
         path: skin-gallery/*.png
+
+    # Pull the debug symbols out of the release dirs so the installers stay
+    # lean, and keep them as a run artifact: field crash minidumps written by
+    # the Editor's CrashHandler can only be symbolized against the PDB of the
+    # exact shipped binary.
+    - name: Collect debug symbols
+      shell: pwsh
+      run: |
+        $symDir = "${{ github.workspace }}\symbols"
+        New-Item -ItemType Directory -Force -Path $symDir | Out-Null
+        foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
+          $pdb = "build-$app-${{ matrix.platform }}\release\$app.pdb"
+          if (Test-Path $pdb) {
+            Move-Item $pdb (Join-Path $symDir "$app.pdb") -Force
+          } else {
+            Write-Warning "$pdb not found (force_debug_info missing?)"
+          }
+        }
+        $apoPdb = "EqualizerAPO\${{ matrix.platform }}\Release\EqualizerAPO.pdb"
+        if (Test-Path $apoPdb) {
+          Copy-Item $apoPdb (Join-Path $symDir "EqualizerAPO.pdb") -Force
+        }
+        Get-ChildItem $symDir
+
+    - name: Upload debug symbols
+      uses: actions/upload-artifact@v7
+      with:
+        name: symbols-${{ matrix.platform }}-${{ matrix.simd_variant }}
+        path: symbols/*.pdb
 
     # Package artifacts
     - name: Package binaries
