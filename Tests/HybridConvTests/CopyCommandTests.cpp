@@ -174,6 +174,24 @@ void testSerializeRoundTrip()
 	harness.expectTrue(reparsed[0].targetChannel == L"SL", "round-trip target");
 	expectSummand(reparsed, 0, 0, L"L", 0.7, false, "round-trip summand");
 }
+
+void testEmptySumAssignmentsSerializeToNothing()
+{
+	// The Editor's routing views seed one empty assignment per device channel
+	// so an emptied Copy stays editable in the GUI; those seeded rows must
+	// vanish when the line is written back.
+	vector<Assignment> assignments = parseCopyAssignments(L"L=R");
+	Assignment seeded;
+	seeded.targetChannel = L"C";
+	assignments.push_back(seeded);
+	harness.expectTrue(serializeCopyAssignments(assignments) == L"L=R",
+		"an assignment with an empty source sum serializes to nothing");
+
+	vector<Assignment> onlySeeded;
+	onlySeeded.push_back(seeded);
+	harness.expectTrue(serializeCopyAssignments(onlySeeded) == L"",
+		"a lone empty-sum assignment serializes to an empty string");
+}
 }
 
 void runCopyCommandTests()
@@ -185,5 +203,6 @@ void runCopyCommandTests()
 	testConstantValue();
 	testMalformedChunkDropped();
 	testSerializeRoundTrip();
+	testEmptySumAssignmentsSerializeToNothing();
 	harness.report();
 }

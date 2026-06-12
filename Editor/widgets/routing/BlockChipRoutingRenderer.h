@@ -19,7 +19,8 @@ class BlockChipView : public RoutingView
 	Q_OBJECT
 
 public:
-	BlockChipView(const std::vector<Assignment>& assignments, QWidget* parent);
+	BlockChipView(const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& channelNames, QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
 	QSize sizeHint() const override;
@@ -27,14 +28,20 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent*) override;
+	void mousePressEvent(QMouseEvent* event) override;
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
 
 private:
 	struct Hit { int row = 0; int summand = 0; QRect rect; };
+	struct AddHit { int row = 0; QRect rect; };
 	void commitEditor();
+	void showAddMenu(int row, const QPoint& globalPos);
 
 	std::vector<Assignment> workingAssignments;
+	// Device channel layout, offered by the per-block [+] chip menu.
+	std::vector<std::wstring> deviceChannels;
 	QVector<Hit> hits;
+	QVector<AddHit> addHits;
 	QLineEdit* editor = nullptr;
 	int editRow = -1;
 	int editSummand = -1;

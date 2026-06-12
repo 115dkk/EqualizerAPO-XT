@@ -79,6 +79,12 @@ CopyRoutingAdapter::Cell CopyRoutingAdapter::Matrix::cell(int outRow, int inCol)
 
 CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Assignment>& assignments)
 {
+	return buildMatrix(assignments, {});
+}
+
+CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Assignment>& assignments,
+	const std::vector<std::wstring>& channelNames)
+{
 	Matrix matrix;
 
 	// Inputs in first-seen order across all summands.
@@ -102,6 +108,18 @@ CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Ass
 		}
 	}
 
+	// Offer every device channel as an input column, after the channels the
+	// command already references. This must happen before the cells are keyed
+	// because indexOf() depends on the final column count.
+	for (const std::wstring& name : channelNames)
+	{
+		const QString channel = QString::fromStdWString(name);
+		if (channel.isEmpty() || seenInputs.contains(channel))
+			continue;
+		seenInputs.insert(channel);
+		matrix.inputs.append(channel);
+	}
+
 	for (int outRow = 0; outRow < matrix.outputs.size(); ++outRow)
 	{
 		const Assignment& assignment = assignments[outRow];
@@ -120,4 +138,27 @@ CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Ass
 	}
 
 	return matrix;
+}
+
+std::vector<Assignment> CopyRoutingAdapter::seedTargets(const std::vector<Assignment>& assignments,
+	const std::vector<std::wstring>& channelNames)
+{
+	vector<Assignment> seeded = assignments;
+
+	QSet<QString> targets;
+	for (const Assignment& assignment : assignments)
+		targets.insert(QString::fromStdWString(assignment.targetChannel).toUpper());
+
+	for (const wstring& name : channelNames)
+	{
+		const QString channel = QString::fromStdWString(name);
+		if (channel.isEmpty() || targets.contains(channel.toUpper()))
+			continue;
+		targets.insert(channel.toUpper());
+		Assignment assignment;
+		assignment.targetChannel = name;
+		seeded.push_back(assignment);
+	}
+
+	return seeded;
 }

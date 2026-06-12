@@ -20,7 +20,8 @@ class CrosspointMatrixView : public RoutingView
 	Q_OBJECT
 
 public:
-	CrosspointMatrixView(const std::vector<Assignment>& assignments, QWidget* parent);
+	CrosspointMatrixView(const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& channelNames, QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
 	QSize sizeHint() const override;
@@ -39,6 +40,9 @@ private:
 	void commitEditor();
 
 	std::vector<Assignment> workingAssignments;
+	// Device channel layout; keeps the full routing surface clickable even when
+	// the command references few (or no) channels.
+	std::vector<std::wstring> deviceChannels;
 	CopyRoutingAdapter::Matrix matrix;
 
 	QLineEdit* editor = nullptr;

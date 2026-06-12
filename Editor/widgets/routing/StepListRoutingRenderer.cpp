@@ -4,6 +4,7 @@
 
 #include "StepListRoutingRenderer.h"
 
+#include <QMenu>
 #include <QPainter>
 #include <QMouseEvent>
 #include <QFontMetrics>
@@ -13,8 +14,14 @@
 
 using std::vector;
 
-StepListView::StepListView(const vector<Assignment>& assignments, QWidget* parent)
-	: RoutingView(parent), workingAssignments(assignments)
+StepListView::StepListView(const vector<Assignment>& assignments,
+	const vector<std::wstring>& channelNames, QWidget* parent)
+	: RoutingView(parent),
+	// Seed every device channel as a step so an emptied Copy can be refilled
+	// from the GUI; steps whose source sum stays empty are skipped by the
+	// serializer and never reach the config line.
+	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
+	deviceChannels(channelNames)
 {
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	setMinimumSize(0, 0);
@@ -38,7 +45,7 @@ QSize StepListView::sizeHint() const
 	int maxWidth = 220;
 	for (const Assignment& a : workingAssignments)
 	{
-		int w = 36 + 52 + 28; // number + dest + arrow
+		int w = 36 + 52 + 28 + 26; // number + dest + arrow + [+] target
 		for (const Assignment::Summand& s : a.sourceSum)
 		{
 			const QString ch = QString::fromStdWString(s.channel);
@@ -69,6 +76,7 @@ void StepListView::paintEvent(QPaintEvent*)
 	const QColor ok(t.success), warn(t.warning);
 
 	hits.clear();
+	addHits.clear();
 
 	// Header
 	p.setPen(muted);
@@ -134,7 +142,11 @@ void StepListView::paintEvent(QPaintEvent*)
 				x += 14;
 			}
 
-			x += drawChannelPill(ch, x, y, 18) + 4;
+			const int pillW = drawChannelPill(ch, x, y, 18);
+			// The pill itself is an edit target so unity summands (which show no
+			// gain label) can still be edited or removed via the factor editor.
+			hits.append({ r, si, QRect(x, y + (rowH - 18) / 2, pillW, 18) });
+			x += pillW + 4;
 
 			if (showGain)
 			{
@@ -161,7 +173,79 @@ void StepListView::paintEvent(QPaintEvent*)
 				x += 10;
 			}
 		}
+
+		// Bracketed [+] target per step: adds a source channel to this sum. This
+		// is what makes an emptied Copy refillable from the GUI.
+		const QRect addRect(x, y + (rowH - 18) / 2, 18, 18);
+		p.setPen(QPen(withAlpha(border, 160), 1));
+		p.setBrush(withAlpha(border, 26));
+		p.drawRect(addRect);
+		p.setPen(muted);
+		p.drawText(addRect, Qt::AlignCenter, QStringLiteral("+"));
+		addHits.append({ r, addRect });
 	}
+}
+
+void StepListView::mousePressEvent(QMouseEvent* event)
+{
+	for (const AddHit& h : addHits)
+	{
+		if (h.rect.contains(event->pos()))
+		{
+			showAddMenu(h.row, mapToGlobal(h.rect.bottomLeft()));
+			return;
+		}
+	}
+	RoutingView::mousePressEvent(event);
+}
+
+void StepListView::showAddMenu(int row, const QPoint& globalPos)
+{
+	if (row < 0 || row >= (int)workingAssignments.size())
+		return;
+
+	auto inSum = [this, row](const QString& channel) {
+		for (const Assignment::Summand& s : workingAssignments[row].sourceSum)
+			if (QString::fromStdWString(s.channel).compare(channel, Qt::CaseInsensitive) == 0)
+				return true;
+		return false;
+	};
+
+	QStringList candidates;
+	auto addCandidate = [&](const QString& channel) {
+		if (channel.isEmpty() || channel == QLatin1String(" ")
+			|| inSum(channel) || candidates.contains(channel, Qt::CaseInsensitive))
+			return;
+		candidates.append(channel);
+	};
+	for (const std::wstring& name : deviceChannels)
+		addCandidate(QString::fromStdWString(name));
+	// Channels the command references elsewhere (e.g. virtual channels) stay
+	// available even when the device layout is unknown.
+	for (const Assignment& other : workingAssignments)
+	{
+		addCandidate(QString::fromStdWString(other.targetChannel));
+		for (const Assignment::Summand& s : other.sourceSum)
+			addCandidate(QString::fromStdWString(s.channel));
+	}
+	if (candidates.isEmpty())
+		return;
+
+	QMenu menu(this);
+	for (const QString& channel : candidates)
+		menu.addAction(channel);
+	QAction* chosen = menu.exec(globalPos);
+	if (chosen == nullptr)
+		return;
+
+	Assignment::Summand s;
+	s.factor = 1.0;
+	s.isDecibel = false;
+	s.channel = chosen->text().toStdWString();
+	workingAssignments[row].sourceSum.push_back(s);
+	updateGeometry();
+	update();
+	emit routingChanged();
 }
 
 void StepListView::mouseDoubleClickEvent(QMouseEvent* event)
@@ -215,6 +299,18 @@ void StepListView::commitEditor()
 	if (row >= (int)workingAssignments.size() || si >= (int)workingAssignments[row].sourceSum.size())
 		return;
 
+	if (raw.isEmpty())
+	{
+		// Clearing the factor removes the source from the sum, mirroring the
+		// crosspoint / patch-bay grids.
+		Assignment& a = workingAssignments[row];
+		a.sourceSum.erase(a.sourceSum.begin() + si);
+		updateGeometry();
+		update();
+		emit routingChanged();
+		return;
+	}
+
 	Assignment::Summand& s = workingAssignments[row].sourceSum[si];
 	if (raw.compare(QLatin1String("INV"), Qt::CaseInsensitive) == 0)
 	{
@@ -244,7 +340,7 @@ void StepListView::commitEditor()
 }
 
 RoutingView* StepListRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& /*channelNames*/, QWidget* parent)
+	const vector<std::wstring>& channelNames, QWidget* parent)
 {
-	return new StepListView(assignments, parent);
+	return new StepListView(assignments, channelNames, parent);
 }

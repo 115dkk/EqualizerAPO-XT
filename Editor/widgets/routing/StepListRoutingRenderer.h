@@ -21,7 +21,8 @@ class StepListView : public RoutingView
 	Q_OBJECT
 
 public:
-	StepListView(const std::vector<Assignment>& assignments, QWidget* parent);
+	StepListView(const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& channelNames, QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
 	QSize sizeHint() const override;
@@ -29,15 +30,21 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent*) override;
+	void mousePressEvent(QMouseEvent* event) override;
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
 
 private:
 	struct Hit { int row = 0; int summand = 0; QRect rect; };
+	struct AddHit { int row = 0; QRect rect; };
 
 	void commitEditor();
+	void showAddMenu(int row, const QPoint& globalPos);
 
 	std::vector<Assignment> workingAssignments;
-	QVector<Hit> hits;       // factor chip hit-rects, rebuilt each paint
+	// Device channel layout, offered by the per-row [+] source menu.
+	std::vector<std::wstring> deviceChannels;
+	QVector<Hit> hits;       // factor / channel chip hit-rects, rebuilt each paint
+	QVector<AddHit> addHits; // per-row [+] hit-rects, rebuilt each paint
 	QLineEdit* editor = nullptr;
 	int editRow = -1;
 	int editSummand = -1;

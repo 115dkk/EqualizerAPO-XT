@@ -19,7 +19,8 @@ class HardwarePatchbayView : public RoutingView
 	Q_OBJECT
 
 public:
-	HardwarePatchbayView(const std::vector<Assignment>& assignments, QWidget* parent);
+	HardwarePatchbayView(const std::vector<Assignment>& assignments,
+		const std::vector<std::wstring>& channelNames, QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
 	QSize sizeHint() const override;
@@ -38,6 +39,9 @@ private:
 	void commitEditor();
 
 	std::vector<Assignment> workingAssignments;
+	// Device channel layout; keeps the full patch-bay clickable even when the
+	// command references few (or no) channels.
+	std::vector<std::wstring> deviceChannels;
 	CopyRoutingAdapter::Matrix matrix;
 
 	QLineEdit* editor = nullptr;
