@@ -11,11 +11,52 @@
 
 #pragma once
 
+#include <QRect>
 #include <QString>
 
 #include "Editor/SkinTokens.h"
 
 class IRoutingRenderer;
+class QPainter;
+class QWidget;
+
+// Identifies a command row for per-command-type chrome decisions.
+struct CommandRowInfo
+{
+	// FilterCardModel descriptor type ("biquad", "include", "vst", "copy", ...).
+	QString type;
+	// Lower-cased command token ("filter 1", "include", "vstplugin", ...);
+	// matches the "filterKind" dynamic property the card row already sets.
+	QString command;
+	// True when the consulting widget belongs to the frozen legacy row path
+	// (FilterTableRow and the .ui-based filter GUIs it hosts).
+	bool legacyRow = false;
+	bool enabled = true;
+	bool selected = false;
+	bool focused = false;
+	int depth = 0;
+};
+
+// Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
+// all input handling; the skin only paints.
+struct KnobState
+{
+	int value = 0;
+	int minimum = 0;
+	int maximum = 0;
+	// value mapped onto 0..1 (0 when the range is empty).
+	double ratio = 0.0;
+	// Gain-style knob: neutral at the range centre (12 o'clock). Skins should
+	// render bipolar and unipolar knobs distinguishably.
+	bool bipolar = false;
+	// Centred text when non-empty (e.g. "3.2 dB"). Empty for promoted legacy
+	// dials, which show their value in a separate spin box.
+	QString valueText;
+	bool enabled = true;
+	bool hovered = false;
+	bool dragging = false;
+	bool focused = false;
+};
 
 class ISkin
 {
@@ -34,4 +75,35 @@ public:
 	// The Copy routing renderer that matches this skin's philosophy. May be
 	// nullptr, in which case the caller falls back to the legacy CopyFilterGUI.
 	virtual IRoutingRenderer* routingRenderer() const = 0;
+
+	// Paint a knob into rect. AudioKnob keeps all input handling (rotary drag,
+	// wheel, keyboard) and delegates only the painting here. The default
+	// implementation (ISkin.cpp) reproduces the shared arc-knob rendering
+	// pixel-identically; it deliberately ignores the hover/drag/focus state
+	// flags so that adding the hook changed nothing visually. Skins override
+	// this to give knobs their own philosophy.
+	virtual void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const;
+
+	// Inline stylesheet for the modern card's frame (QFrame#FilterCardRow),
+	// re-evaluated whenever the row's state changes. The default reproduces
+	// the shared token-driven chrome (uniform 1px border, plus the accent rail
+	// when tokens.cardRailWidth > 0). Skins override to give command types
+	// their own frame treatment.
+	virtual QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// Inline stylesheet for the card's header strip (QWidget#FilterCardHeader).
+	virtual QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// Called once when a command row or a command body editor is built, so a
+	// skin can tag widgets with dynamic properties or attach extra chrome.
+	// For modern card rows card/header/body are the frame, header strip and
+	// body stack; for body editors that consult the hook themselves (the
+	// Include/VST card editors and the legacy Include/VST rows) only body is
+	// set. Default: no-op.
+	virtual void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
+
+	// Painted decoration over the card frame's QSS background (rails, screws,
+	// per-type markers). Runs after the frame's stylesheet background and
+	// before child widgets paint. Default: no-op.
+	virtual void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const;
 };

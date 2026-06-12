@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Editor/IFilterGUI.h"
+#include "ChannelCardEditor.h"
 #include "IncludeCardEditor.h"
 #include "PreampCardEditor.h"
 #include "VSTCardEditor.h"
@@ -18,6 +19,8 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 	const QString normalizedCommand = command.trimmed().toLower();
 	if (normalizedCommand == QStringLiteral("preamp"))
 		return new PreampCardEditor(PreampCardEditor::parseGain(parameters));
+	if (normalizedCommand == QStringLiteral("channel"))
+		return new ChannelCardEditor(parameters);
 	if (normalizedCommand == QStringLiteral("include"))
 		return new IncludeCardEditor(filterTable, parameters);
 	if (normalizedCommand == QStringLiteral("vstplugin"))

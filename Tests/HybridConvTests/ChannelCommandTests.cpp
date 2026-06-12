@@ -79,6 +79,13 @@ void testRoundTrip()
 		harness.expectTrue(first.channels == second.channels, "serialize/parse round trip is stable");
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
+
+	// Canonical form: single-space separated, upper-cased. This is the exact
+	// text the Editor's in-place channel editor writes back, so it is pinned
+	// here as the serialization-identity contract.
+	ChannelCommand canonical;
+	ChannelCommand::parse(L"Channel", L" c,l  r ", canonical);
+	harness.expectTrue(canonical.serialize() == L"C L R", "canonical serialization is single-spaced and upper-cased");
 }
 }
 

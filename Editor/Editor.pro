@@ -176,9 +176,15 @@ SOURCES += main.cpp\
 	../filters/loudnessCorrection/VolumeController.cpp \
 	guis/LoudnessCorrectionFilterGUIDialog.cpp \
 	helpers/QtSndfileHandle.cpp \
+	SkinGallery.cpp \
 	SkinManager.cpp \
+	skins/ISkin.cpp \
 	skins/Skins.cpp \
 	widgets/AudioKnob.cpp \
+	widgets/CommandRowFrame.cpp \
+	widgets/SkinComboBox.cpp \
+	widgets/cards/ChannelCardEditor.cpp \
+	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
@@ -341,11 +347,16 @@ HEADERS  += \
 	../filters/loudnessCorrection/VolumeController.h \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/QtSndfileHandle.h \
+	SkinGallery.h \
 	SkinTokens.h \
 	SkinManager.h \
 	skins/ISkin.h \
 	skins/Skins.h \
 	widgets/AudioKnob.h \
+	widgets/CommandRowFrame.h \
+	widgets/SkinComboBox.h \
+	widgets/cards/ChannelCardEditor.h \
+	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \

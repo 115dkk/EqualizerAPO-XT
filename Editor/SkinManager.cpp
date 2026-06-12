@@ -106,3 +106,31 @@ IRoutingRenderer* SkinManager::routingRenderer() const
 {
 	return activeSkin != nullptr ? activeSkin->routingRenderer() : nullptr;
 }
+
+void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const
+{
+	if (activeSkin != nullptr)
+		activeSkin->paintKnob(painter, rect, state, currentTokens);
+}
+
+QString SkinManager::cardFrameStyle(const CommandRowInfo& info) const
+{
+	return activeSkin != nullptr ? activeSkin->cardFrameStyle(info, currentTokens) : QString();
+}
+
+QString SkinManager::cardHeaderStyle(const CommandRowInfo& info) const
+{
+	return activeSkin != nullptr ? activeSkin->cardHeaderStyle(info, currentTokens) : QString();
+}
+
+void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const
+{
+	if (activeSkin != nullptr)
+		activeSkin->prepareCommandRow(info, card, header, body);
+}
+
+void SkinManager::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const
+{
+	if (activeSkin != nullptr)
+		activeSkin->paintCardChrome(painter, rect, info, currentTokens);
+}

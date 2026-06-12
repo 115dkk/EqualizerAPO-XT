@@ -244,7 +244,7 @@ QComboBox {
     border: 1px solid @BORDER@;
     border-radius: 10px;
     padding: 4px 28px 4px 10px;
-    min-height: 22px;
+    min-height: 28px;
 }
 QComboBox:hover {
     border-color: rgba(59, 130, 246, 0.45);
@@ -286,7 +286,7 @@ QComboBox QAbstractItemView {
 QComboBox QAbstractItemView::item {
     padding: 6px 10px;
     border-radius: 8px;
-    min-height: 22px;
+    min-height: 24px;
 }
 QComboBox QAbstractItemView::item:selected {
     background: rgba(59, 130, 246, 0.28);

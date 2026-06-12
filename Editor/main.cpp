@@ -44,6 +44,7 @@
 
 #include "CustomStyle.h"
 #include "MainWindow.h"
+#include "SkinGallery.h"
 #include "SkinManager.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
@@ -406,38 +407,18 @@ int main(int argc, char* argv[])
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
 			return runVstRoundTripSelfTest();
 
+		// Headless screenshot gallery (skin program). Runs before the registry
+		// skin/translator setup on purpose: the gallery applies each skin itself
+		// and renders untranslated English strings for deterministic output.
+		if (application.arguments().contains(QStringLiteral("--skin-gallery")))
+			return SkinGallery::run(application.arguments());
+
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 		{
 			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString();
 			bool dark = settings.value(QStringLiteral("interface/dark"), GUIHelper::isDarkMode()).toBool();
 			SkinManager::instance()->applySkin(skinId, dark);
-			const SkinTokens& tokens = SkinManager::instance()->tokens();
-			QPalette palette = application.palette();
-			QColor background(tokens.background);
-			QColor surface(tokens.surface);
-			QColor card(tokens.card);
-			QColor text(tokens.text);
-			QColor accent(tokens.accent);
-			palette.setColor(QPalette::Window, background);
-			palette.setColor(QPalette::WindowText, text);
-			palette.setColor(QPalette::Base, surface);
-			palette.setColor(QPalette::AlternateBase, card);
-			palette.setColor(QPalette::Text, text);
-			palette.setColor(QPalette::Button, card);
-			palette.setColor(QPalette::ButtonText, text);
-			palette.setColor(QPalette::ToolTipBase, card);
-			palette.setColor(QPalette::ToolTipText, text);
-			palette.setColor(QPalette::Highlight, accent);
-			palette.setColor(QPalette::HighlightedText, dark ? QColor(QStringLiteral("#0c0c16")) : QColor(QStringLiteral("#ffffff")));
-			palette.setColor(QPalette::PlaceholderText, QColor(tokens.mutedText));
-			palette.setColor(QPalette::Light, card.lighter(120));
-			palette.setColor(QPalette::Midlight, card.lighter(105));
-			palette.setColor(QPalette::Mid, surface);
-			palette.setColor(QPalette::Dark, background.darker(120));
-			palette.setColor(QPalette::Shadow, background.darker(160));
-			palette.setColor(QPalette::Link, accent);
-			palette.setColor(QPalette::LinkVisited, accent.darker(110));
-			application.setPalette(palette);
+			GUIHelper::applySkinPalette();
 		}
 
 		QVariant languageValue = settings.value("language");

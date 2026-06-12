@@ -9,6 +9,7 @@
 #include <QWidget>
 
 #include "Editor/FilterTable.h"
+#include "Editor/widgets/CommandRowFrame.h"
 #include "Editor/widgets/FilterCardModel.h"
 
 class RoutingView;
@@ -43,6 +44,7 @@ private:
 	void setEditing(bool editing);
 	void buildChannelBadges(const QStringList& channels);
 	void refreshStateProperties();
+	CommandRowInfo currentRowInfo() const;
 	QString uncommentedLine() const;
 
 	FilterTable* table = nullptr;
@@ -50,7 +52,7 @@ private:
 	IFilterGUI* gui = nullptr;
 	FilterCardDescriptor descriptor;
 
-	QFrame* cardFrame = nullptr;
+	CommandRowFrame* cardFrame = nullptr;
 	QWidget* headerWidget = nullptr;
 	QLabel* numberLabel = nullptr;
 	QLabel* typeBadge = nullptr;

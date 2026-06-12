@@ -43,6 +43,7 @@
 #include "helpers/AudioFormatProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/SkinComboBox.h"
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
@@ -122,7 +123,9 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	deviceLabel->setObjectName(QStringLiteral("ToolBarLabel"));
 	ui->mainToolBar->addWidget(deviceLabel);
 
-	deviceComboBox = new QComboBox;
+	// SkinComboBox enforces a font-aware height floor and widens the popup to
+	// its contents; the toolbar dropdowns were the visibly undersized ones.
+	deviceComboBox = new SkinComboBox;
 	deviceComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
 	connect(deviceComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::deviceSelected);
 	ui->mainToolBar->addWidget(deviceComboBox);
@@ -144,7 +147,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	channelLabel->setObjectName(QStringLiteral("ToolBarLabel"));
 	ui->mainToolBar->addWidget(channelLabel);
 
-	channelConfigurationComboBox = new QComboBox;
+	channelConfigurationComboBox = new SkinComboBox;
 	channelConfigurationComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
 	channelConfigurationComboBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 	ui->mainToolBar->addWidget(channelConfigurationComboBox);

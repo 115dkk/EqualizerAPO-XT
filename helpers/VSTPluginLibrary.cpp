@@ -73,8 +73,27 @@ wstring VSTPluginLibrary::getDefaultPluginPath()
 
 	if (defaultPluginPath == L"")
 	{
-		wstring installPath = RegistryHelper::readValue(APP_REGPATH, L"InstallPath");
-		defaultPluginPath = installPath + L"\\VSTPlugins";
+		try
+		{
+			wstring installPath = RegistryHelper::readValue(APP_REGPATH, L"InstallPath");
+			defaultPluginPath = installPath + L"\\VSTPlugins";
+		}
+		catch (const RegistryException& e)
+		{
+			// No installed EqualizerAPO (dev tree, CI runner). The exception
+			// used to escape through callers that never expected it - parsing
+			// any VSTPlugin line with a relative path, or building a VST row
+			// editor, terminated the Editor outright. Fall back to a
+			// VSTPlugins folder beside the executable; installed systems have
+			// the registry value and never take this path.
+			LogFStatic(L"%s - falling back to the executable directory for VST plugins", e.getMessage().c_str());
+			wchar_t modulePath[MAX_PATH];
+			modulePath[0] = L'\0';
+			GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
+			wstring exePath = modulePath;
+			size_t separator = exePath.find_last_of(L'\\');
+			defaultPluginPath = (separator != wstring::npos ? exePath.substr(0, separator) : L".") + L"\\VSTPlugins";
+		}
 	}
 
 	return defaultPluginPath;

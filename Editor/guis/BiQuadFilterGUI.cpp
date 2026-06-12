@@ -40,6 +40,10 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 	ui->freqDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->gainDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->qDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
+	// Gain boosts or cuts around 0 dB; frequency and Q are one-directional.
+	// The flag reaches the skin through KnobState so bipolar knobs can read
+	// differently from unipolar ones.
+	ui->gainDial->setBipolar(true);
 
 	ui->typeComboBox->addItem(tr("Peaking filter"), BiQuad::PEAKING);
 	ui->typeComboBox->addItem(tr("Low-pass filter"), BiQuad::LOW_PASS);

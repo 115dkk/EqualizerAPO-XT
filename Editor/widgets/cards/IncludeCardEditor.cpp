@@ -17,6 +17,7 @@
 
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
+#include "Editor/skins/ISkin.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
@@ -82,6 +83,13 @@ IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& pa
 	importButton->setVisible(false);
 	connect(importButton, SIGNAL(clicked()), this, SLOT(importToConfig()));
 	layout->addWidget(importButton, 0, Qt::AlignTop);
+
+	// Let the active skin decorate this Include body (the row is recreated on
+	// skin switches, so construction is the only moment needed).
+	CommandRowInfo rowInfo;
+	rowInfo.type = QStringLiteral("include");
+	rowInfo.command = QStringLiteral("include");
+	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
 
 	updateFileInfo();
 }

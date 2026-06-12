@@ -5,6 +5,7 @@
 #include <QPainter>
 
 #include "Editor/SkinManager.h"
+#include "Editor/skins/ISkin.h"
 
 AudioKnob::AudioKnob(QWidget* parent)
 	: QDial(parent)
@@ -24,70 +25,38 @@ void AudioKnob::setValueText(const QString& valueText)
 	update();
 }
 
+void AudioKnob::setBipolar(bool value)
+{
+	bipolar = value;
+	update();
+}
+
 QSize AudioKnob::sizeHint() const
 {
 	return QSize(74, 74);
 }
 
-QPointF AudioKnob::pointOnArc(const QRectF& rect, double degrees) const
-{
-	double radians = qDegreesToRadians(degrees);
-	QPointF center = rect.center();
-	double radius = qMin(rect.width(), rect.height()) / 2.0;
-	// Qt measures arc angles counter-clockwise from 3 o'clock, so the matching
-	// screen point subtracts sin for Y (screen Y grows downward). The previous
-	// +sin mirrored the indicator dot vertically, so it never tracked the value
-	// arc and looked like it floated on its own.
-	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
-}
-
 void AudioKnob::paintEvent(QPaintEvent*)
 {
+	// The widget owns all input handling; painting is delegated to the active
+	// skin (ISkin::paintKnob) so each skin can render knobs with its own
+	// philosophy. The default implementation reproduces the previous rendering
+	// exactly.
 	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing);
 
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	// Draw inside a centred square so the knob stays circular even when the
-	// hosting widget is not square (promoted legacy dials are 100x66).
-	QRectF inner = rect().adjusted(9, 9, -9, -9);
-	double side = qMin(inner.width(), inner.height());
-	QRectF knobRect(inner.center().x() - side / 2.0, inner.center().y() - side / 2.0, side, side);
-	int spanDegrees = 270;
-	int startDegrees = 135;
-	double ratio = maximum() == minimum() ? 0.0 : (value() - minimum()) / static_cast<double>(maximum() - minimum());
+	KnobState state;
+	state.value = value();
+	state.minimum = minimum();
+	state.maximum = maximum();
+	state.ratio = maximum() == minimum() ? 0.0 : (value() - minimum()) / static_cast<double>(maximum() - minimum());
+	state.bipolar = bipolar;
+	state.valueText = text;
+	state.enabled = isEnabled();
+	state.hovered = underMouse();
+	state.dragging = isSliderDown();
+	state.focused = hasFocus();
 
-	QPen trackPen(QColor(tokens.border), 6, Qt::SolidLine, Qt::RoundCap);
-	painter.setPen(trackPen);
-	painter.drawArc(knobRect, -startDegrees * 16, -spanDegrees * 16);
-
-	QPen valuePen(QColor(tokens.accent), 6, Qt::SolidLine, Qt::RoundCap);
-	painter.setPen(valuePen);
-	painter.drawArc(knobRect, -startDegrees * 16, -static_cast<int>(spanDegrees * ratio * 16));
-
-	QColor fill(tokens.card);
-	painter.setPen(QPen(QColor(tokens.border), 1));
-	painter.setBrush(fill);
-	painter.drawEllipse(knobRect.adjusted(6, 6, -6, -6));
-
-	double endDegrees = startDegrees + spanDegrees * ratio;
-	QPointF dot = pointOnArc(knobRect.adjusted(3, 3, -3, -3), -endDegrees);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(QColor(tokens.accent));
-	painter.drawEllipse(dot, 4, 4);
-
-	// Only draw centred text when an explicit value string was supplied (e.g.
-	// the Preamp card). Promoted legacy dials drive a separate spin box for the
-	// real value and map the dial to log-scaled steps, so painting value() here
-	// would show a meaningless step count.
-	if (!text.isEmpty())
-	{
-		painter.setPen(QColor(tokens.text));
-		QFont valueFont = font();
-		valueFont.setBold(true);
-		valueFont.setPointSizeF(qMax(7.0, valueFont.pointSizeF() - 1.0));
-		painter.setFont(valueFont);
-		painter.drawText(rect(), Qt::AlignCenter, text);
-	}
+	SkinManager::instance()->paintKnob(painter, rect(), state);
 }
 
 void AudioKnob::setValueFromAngle(const QPointF& widgetPos)

@@ -82,7 +82,7 @@ QAbstractSpinBox::down-arrow {
 QComboBox {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 12px;
-    padding: 6px 30px 6px 14px; min-height: 24px;
+    padding: 6px 30px 6px 14px; min-height: 28px;
 }
 QComboBox:hover { background: @CARD_HOVER@; border-color: rgba(59, 130, 246, 0.55); }
 QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }

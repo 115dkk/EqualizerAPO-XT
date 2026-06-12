@@ -7,6 +7,11 @@
 
 class IRoutingRenderer;
 class ISkin;
+class QPainter;
+class QRect;
+class QWidget;
+struct CommandRowInfo;
+struct KnobState;
 
 class SkinManager : public QObject
 {
@@ -25,6 +30,18 @@ public:
 	// graph, ...). Returns nullptr when the skin has no dedicated renderer yet,
 	// in which case the caller falls back to the legacy CopyFilterGUI.
 	IRoutingRenderer* routingRenderer() const;
+
+	// Paint a knob through the active skin (ISkin::paintKnob) with the current
+	// tokens. Called by AudioKnob::paintEvent; the widget keeps all input
+	// handling and hands only the painting to the skin.
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const;
+
+	// Per-command-type row chrome, delegated to the active skin with the
+	// current tokens (see the ISkin hooks for semantics).
+	QString cardFrameStyle(const CommandRowInfo& info) const;
+	QString cardHeaderStyle(const CommandRowInfo& info) const;
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
+	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 
 signals:
 	void skinChanged(const SkinTokens& tokens);
