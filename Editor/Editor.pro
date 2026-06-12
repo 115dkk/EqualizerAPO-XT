@@ -183,6 +183,7 @@ SOURCES += main.cpp\
 	skins/RackChrome.cpp \
 	skins/Skins.cpp \
 	skins/pickers/StudioFilterPicker.cpp \
+	skins/pickers/MinimalFilterPicker.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/CommandRowFrame.cpp \
 	widgets/SkinComboBox.cpp \
@@ -359,6 +360,7 @@ HEADERS  += \
 	skins/RackChrome.h \
 	skins/Skins.h \
 	skins/pickers/StudioFilterPicker.h \
+	skins/pickers/MinimalFilterPicker.h \
 	widgets/AudioKnob.h \
 	widgets/CommandRowFrame.h \
 	widgets/SkinComboBox.h \
