@@ -12,7 +12,7 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
-## Unreleased
+## v1.27.0 — 2026-06-13
 
 - Adversarial design review round 1: the parameter area now belongs to each
   skin. Native spinbox arrows are gone from command rows (values drag-scrub),
