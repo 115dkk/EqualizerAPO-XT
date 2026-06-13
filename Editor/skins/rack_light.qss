@@ -485,12 +485,29 @@ QToolButton#FilterCardIconButton:checked {
 QLineEdit#FilterCardRawEditor { background: #FCF8EE; border: 1px solid @ACCENT@; border-radius: 2px; padding: 4px 8px; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
-QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
-QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph,
-QLabel#IncludeCardStatus, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor, QWidget#VSTCardEditor,
+QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 700;
     text-transform: uppercase; letter-spacing: 2px; font-size: 8pt;
+}
+
+/* ── AR2 Include/VST reference card: a unit seated in the rack ────────────
+   The shared reference card is dressed as rack hardware in code
+   (RackChrome::dressReferenceCard, called from RackSkin::prepareCommandRow):
+   the recessed display well, the lit name engraving, the LCD-mono directory
+   line, the engraved (never filled) format/ABS/MISSING badges and the Locate
+   re-seat switch cap all carry the panel's grammar there, because the card's
+   own per-widget stylesheet outranks this sheet. QSS only keeps the card
+   hosts transparent so the well reads as machined into the faceplate, and
+   demotes the VST options/panel caps into the action strip. */
+QWidget#IncludeRefCard, QWidget#VstRefCard,
+QWidget#IncludeRefTextBlock, QWidget#VstRefTextBlock { background: transparent; }
+QToolButton#VSTCardOptions { min-width: 24px; }
+QPlainTextEdit#VSTCardWarning {
+    background: #11150F; color: #B3261E;
+    border: 1px solid #8F8268; border-bottom-color: #FFFFFF; border-radius: 2px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-size: 8pt;
 }
 /* Value readouts are LED display windows set into the plate: dark glass with
    lit green digits, even on the cream faceplate - as real hardware reads. */
@@ -505,9 +522,6 @@ QLineEdit#EditableValueEditor {
     border-radius: 2px; padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
-QLineEdit#IncludeCardPath { background: #FCF8EE; border: 1px solid #8F8268; border-bottom-color: #FFFFFF; border-radius: 2px; padding: 4px 8px; }
-QLabel#IncludeCardStatus { color: #B3261E; font-size: 8pt; }
-
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }

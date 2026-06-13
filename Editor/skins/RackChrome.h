@@ -20,6 +20,7 @@ struct KnobState;
 struct SkinTokens;
 class QPainter;
 class QToolBar;
+class QWidget;
 
 namespace RackChrome
 {
@@ -36,6 +37,20 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 
 // Skeuomorphic pointer knob with a panel-printed scale.
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens);
+
+// AR2: dress the shared Include/VST ReferenceCard body as rack hardware. The
+// card carries a neutral, per-widget stylesheet that wins over the app QSS
+// for its labels and badges, so the rack translation is applied in code from
+// RackSkin::prepareCommandRow (rows rebuild on every skin switch, so the one
+// call at construction is enough). Include reads as a patch sheet seated in a
+// recessed display well; a missing VST reads as an empty pulled-module bay;
+// the file/plugin name is the lit engraving, the directory an LCD-mono line,
+// the format/ABS/MISSING badges are engraved wireframe tokens (no fill - this
+// skin's colour lives only in lamps and engraving) and Locate is a switch-cap
+// re-seat affordance. `body` is the IncludeCardEditor / VSTCardEditor widget;
+// `isVst` selects the object-name namespace. No-op when no ReferenceCard is
+// found.
+void dressReferenceCard(QWidget* body, bool isVst, const SkinTokens& tokens);
 
 // The custom title bar as the unit's top panel: brushed sheen and brushing
 // lines, machined top/bottom edges, the caption-button block set off by a

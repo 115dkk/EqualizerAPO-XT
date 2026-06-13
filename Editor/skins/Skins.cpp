@@ -1416,6 +1416,20 @@ public:
 		// (Include/VST editors, legacy rows) already sit inside that stack.
 		if (card != nullptr && body != nullptr)
 			body->setContentsMargins(RackChrome::earWidth() + 4, 0, RackChrome::earWidth() + 4, 6);
+
+		// AR2: translate the shared Include/VST reference card into the rack's
+		// hardware grammar. Include is a patch sheet in a recessed well, a
+		// missing VST is an empty pulled-module bay, status is engraving and
+		// lamps (never a filled chip) and Locate is a module re-seat switch
+		// cap. The card's neutral per-widget stylesheet outranks the app QSS,
+		// so this is applied in code; the row is rebuilt on every skin switch,
+		// so construction is the only moment needed.
+		if (body != nullptr
+			&& (info.type == QStringLiteral("include") || info.type == QStringLiteral("vst")))
+		{
+			RackChrome::dressReferenceCard(body, info.type == QStringLiteral("vst"),
+				SkinManager::instance()->tokens());
+		}
 	}
 
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override

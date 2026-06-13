@@ -125,6 +125,37 @@ QSS 호버가 비쳐 보인다. 헤더 스트립은 투명(브러시드 메탈�
 리벳 명판이 붙은 유닛, 일반 DSP는 표준 페이스플레이트 + 각인 식별자. 색
 배지가 아니라 부품 구성이 타입을 말한다.
 
+### Include·VST 참조 카드 — 함몰 판독창에 안착한 유닛 (AR2)
+
+공유 라운드가 만든 `ReferenceCard`(이름 1차 / 디렉터리 2차 / 미발견=상태
+전환 / Locate=복구 진입점)를 하드웨어 문법으로 번역한다. 정보 위계와 상태
+의미론은 다섯 스킨 공통이고 은유만 다르다. 그리기 코드는
+`RackChrome::dressReferenceCard`에 있고 `RackSkin::prepareCommandRow`가
+include/vst 행에서 한 번 호출한다. 참조 카드는 자기 위젯에 중립 스타일시트를
+직접 입어서 앱 QSS보다 우선하므로, 번역을 코드에서 위젯별로 다시 입힌다(행은
+스킨 전환마다 재생성되므로 생성 시 한 번이면 된다).
+
+- **본문 = 함몰 판독창.** 카드 본문(`*RefDisplay`)을 페이스플레이트를 덮는
+  납작한 슬래브가 아니라 브러시드 패널에 **밀링해 박은 어두운 유리 우물**로
+  만든다(어두운 유리 + 한 방향 작업등 모따기). 표시창 조항대로 두 모드 모두
+  어두운 우물이고, 라이트 모드 크림 패널에도 박힌 LCD는 여전히 LCD다.
+- **Include = 랙에 끼운 패치 시트.** 이름이 점등 각인, 경로가 녹색 세그먼트
+  판독 한 줄, 좌측 이어의 패치베이 잭(`paintCardChrome`)이 유닛 타입을 말한다.
+- **미발견 VST = 모듈이 뽑힌 빈 슬롯.** 우물이 더 어두운 '빈 베이' 마감으로
+  전환되고(`[refMissing="true"]` 속성 규칙 — `setState` 이후의 repolish가
+  집는다), 경고 삼각형이 무신호 램프, 이름이 danger 잉크가 된다.
+- **이름 = 점등 각인.** 참조가 풀려 점프/열기 어포던스일 때 앰버로 점등(램프가
+  각인을 덥힌다), 깨졌으면 danger 잉크, 닿지 않는 해상 이름은 따뜻한 상아.
+  자간 띄운 굵은 각인.
+- **배지 = 각인(채움 금지).** 포맷(VST2/VST3)·ABS·MISSING 모두 와이어프레임
+  각인 토큰이다 — 색은 램프와 각인에만 산다는 규율대로 빨간 알약이 아니라
+  danger 잉크로 스탬프한 경고 각인이다. 포맷은 muted, ABS는 앰버(이식성 위험
+  램프), MISSING은 danger.
+- **Locate = 모듈 재장착 스위치 캡.** 뽑힌 모듈을 다시 끼우는 하드웨어 동작이
+  므로, 평면 텍스트 링크가 아니라 각인 대문자가 인쇄된 솟은 스위치 캡(툴바와
+  같은 트랜스포트 캡 문법)이다. Open panel은 보조 캡으로 강등되고, 미발견
+  상태에서는 비활성(전원 내림)으로 바랜다.
+
 ### Copy 라우팅 — 하드웨어 패치베이 (HardwarePatchbay)
 
 크로스포인트 격자이되 각 교차점이 **물리 로터리 노브**다. 브러시드 패널
@@ -176,7 +207,8 @@ QSS 호버가 비쳐 보인다. 헤더 스트립은 투명(브러시드 메탈�
 
 - 클래스: `RackSkin` — [Skins.cpp](../../Editor/skins/Skins.cpp) (얇은 심)
 - 그리기: `Editor/skins/RackChrome.{h,cpp}` — 페이스플레이트/나사/LED/잭/
-  명판/노브 페인터, `earWidth()`/`nameplateReserve()` 예약 폭
+  명판/노브 페인터, `earWidth()`/`nameplateReserve()` 예약 폭,
+  `dressReferenceCard()`(Include/VST 참조 카드 하드웨어 번역)
 - QSS: `Editor/skins/rack_dark.qss`, `rack_light.qss`
 - 픽커: `Editor/skins/pickers/RackFilterPicker.{h,cpp}`
 - Copy: `Editor/widgets/routing/HardwarePatchbayRoutingRenderer.{h,cpp}`
