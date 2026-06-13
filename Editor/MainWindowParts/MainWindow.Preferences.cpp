@@ -41,6 +41,22 @@ using std::vector;
 using std::wstring;
 
 
+namespace
+{
+// Version tag for QMainWindow::saveState()/restoreState(). restoreState() applies
+// a saved dock/toolbar/menu layout onto the live QMainWindowLayout by matching
+// object names; feeding it a state whose structure no longer matches the running
+// build can dereference a missing layout item and crash inside QMainWindowLayout
+// during the first show() (seen on saved states from before the custom window
+// chrome moved the menu bar into the menu-widget slot — the PC-bang start-up
+// crashes in issues #54/#75). Passing a version makes restoreState() reject any
+// state that was not written with the same number (it returns false and applies
+// nothing, so the window just falls back to the default layout once). BUMP THIS
+// whenever the QMainWindow's toolbars/dock widgets/menu-widget structure changes,
+// so stale layouts from older builds are discarded instead of force-applied.
+const int kWindowStateVersion = 1;
+}
+
 void MainWindow::loadPreferences()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
@@ -120,7 +136,7 @@ void MainWindow::loadPreferences()
 	// load window state after initializing channels as it may trigger on_analysisDockWidget_visibilityChanged when analysis panel is detached
 	QVariant stateValue = settings.value("windowState");
 	if (stateValue.isValid())
-		restoreState(stateValue.toByteArray());
+		restoreState(stateValue.toByteArray(), kWindowStateVersion);
 	applyRedesignPreferences();
 }
 
@@ -131,7 +147,7 @@ void MainWindow::savePreferences()
 
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 	settings.setValue("geometry", saveGeometry());
-	settings.setValue("windowState", saveState());
+	settings.setValue("windowState", saveState(kWindowStateVersion));
 	settings.setValue("instantMode", instantModeCheckBox->isChecked());
 	shared_ptr<AbstractAPOInfo> selectedDevice = deviceComboBox->currentData().value<shared_ptr<AbstractAPOInfo>>();
 	settings.setValue("selectedDevice", selectedDevice != nullptr ? QString::fromStdWString(selectedDevice->getDeviceString()) : "");
