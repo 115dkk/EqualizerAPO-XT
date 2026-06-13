@@ -645,9 +645,8 @@ QLineEdit#FilterCardRawEditor {
 }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
-QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
-QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph,
-QLabel#IncludeCardStatus, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor, QWidget#VSTCardEditor,
+QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 600;
     text-transform: uppercase; letter-spacing: 1px; font-size: 9pt;
@@ -665,21 +664,104 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 
-/* ===== Include row: a path chip on a glass card ===== */
-/* The chip is the only pill in the skin: sunken glass, mono path text. */
-QLineEdit#IncludeCardPath {
+/* ===== Reference cards (Include / VST): instrument readouts behind glass =====
+   AR2 X-1..X-10 replaced the path-input forms with a reference card. Studio
+   reads it as a lit instrument: name = instrument label, directory = sunken
+   mono readout, format = lit glass chip, and a broken reference is an optical
+   state transition (warning-lamp name, danger MISSING chip, dead jump). The
+   card surface is the FilterCardRow chrome StudioSkin paints; these rules
+   dress its contents. On white glass form comes from shade and border depth,
+   so the lit accents carry the colour. */
+QWidget#IncludeRefDisplay, QWidget#VstRefDisplay,
+QWidget#IncludeRefTextBlock, QWidget#VstRefTextBlock { background: transparent; }
+QLabel#IncludeRefIcon, QLabel#VstRefIcon { background: transparent; }
+
+QLabel#IncludeRefName, QLabel#VstRefName {
+    color: @TEXT@; background: transparent;
+    font-weight: 700; font-size: 10pt;
+}
+QLabel#IncludeRefName[clickable="true"], QLabel#VstRefName[clickable="true"] { color: @ACCENT@; }
+QLabel#IncludeRefName[refMissing="true"], QLabel#VstRefName[refMissing="true"] { color: #d97706; }
+
+QLabel#IncludeRefDir, QLabel#VstRefDir {
+    color: @MUTED@; background: transparent;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-size: 8pt;
+}
+
+QLabel#IncludeRefStatus, QLabel#VstRefStatus { color: @MUTED@; background: transparent; font-size: 8pt; }
+QLabel#IncludeRefStatus[severity="warning"], QLabel#VstRefStatus[severity="warning"] { color: #d97706; }
+QLabel#IncludeRefStatus[severity="critical"], QLabel#VstRefStatus[severity="critical"] { color: #dc2626; }
+
+/* Format badge (VST2/VST3) = lit glass chip in the row's accent light. */
+QLabel#VstFormatBadge, QLabel#IncludeFormatBadge {
+    color: @ACCENT@;
+    background: rgba(47, 107, 255, 0.10);
+    border: 1px solid rgba(47, 107, 255, 0.45);
+    border-radius: 3px; padding: 0 5px;
+    font-size: 7pt; font-weight: 700;
+}
+
+/* ABS badge = amber "external reference" chip (X-10): a portability warning,
+   not an error. Deeper amber ink so it reads on white glass. */
+QLabel#IncludeRefAbsBadge, QLabel#VstRefAbsBadge {
+    color: #b45309;
+    background: rgba(217, 119, 6, 0.12);
+    border: 1px solid rgba(217, 119, 6, 0.55);
+    border-radius: 3px; padding: 0 5px;
+    font-size: 7pt; font-weight: 700;
+}
+
+/* MISSING badge = danger-filled alarm chip (X-3); white ink on the fill. */
+QLabel#RefMissingBadge {
+    color: #FFFFFF;
+    background: #dc2626;
+    border-radius: 3px; padding: 0 5px;
+    font-size: 7pt; font-weight: 800; letter-spacing: 1px;
+}
+
+/* Inline path editor = sunken glass, only while editing the path. */
+QLineEdit#IncludeRefPathEdit, QLineEdit#VstRefPathEdit {
     background: rgba(232, 238, 248, 0.75);
-    border: 1px solid @BORDER@;
-    border-top-color: rgba(0, 0, 0, 0.12);
-    border-radius: 13px;
-    padding: 4px 14px;
+    color: @TEXT@;
+    border: 1px solid @BORDER@; border-top-color: rgba(0, 0, 0, 0.12);
+    border-radius: 8px; padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
-QLineEdit#IncludeCardPath:hover { border-color: rgba(47, 107, 255, 0.45); }
-QLineEdit#IncludeCardPath:focus { border: 1px solid @ACCENT@; }
-QLabel#IncludeCardStatus { color: #dc2626; font-size: 9pt; }
-QLabel#IncludeCardStatus[severity="warning"] { color: #d97706; }
-QLabel#IncludeCardStatus[severity="critical"] { color: #dc2626; }
+QLineEdit#IncludeRefPathEdit:focus, QLineEdit#VstRefPathEdit:focus { border: 1px solid @ACCENT@; }
+
+/* Locate = recovery affordance (X-4): accent light pools up from below the
+   control (the picker's light-under-the-cursor), faint at rest so the recovery
+   path already glows, brighter on hover. */
+QToolButton#RefLocateAction {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.85, fx:0.5, fy:1.05,
+        stop:0 rgba(47, 107, 255, 0.14), stop:0.45 rgba(47, 107, 255, 0.05), stop:1 rgba(47, 107, 255, 0));
+    color: @TEXT@;
+    border: 1px solid rgba(47, 107, 255, 0.48);
+    border-top-color: rgba(47, 107, 255, 0.62);
+    border-radius: 8px; padding: 4px 10px; font-weight: 600;
+}
+QToolButton#RefLocateAction:hover {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
+        stop:0 rgba(47, 107, 255, 0.30), stop:0.4 rgba(47, 107, 255, 0.12), stop:1 rgba(47, 107, 255, 0));
+    border-color: rgba(47, 107, 255, 0.72);
+}
+QToolButton#RefLocateAction:pressed {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.95, fx:0.5, fy:1.05,
+        stop:0 rgba(47, 107, 255, 0.42), stop:0.4 rgba(47, 107, 255, 0.18), stop:1 rgba(47, 107, 255, 0.02));
+    border-color: @ACCENT@;
+}
+
+/* Disabled (commented-out) reference card: the studio-owned Locate glow drains
+   and its rim goes muted; the frame/header are dimmed by cardFrameStyle. The
+   missing name and MISSING/ABS chips keep their state colour because
+   ReferenceCard (shared) paints them inline by attribute, which Qt ranks above
+   any application selector - a switched-off broken reference still shows it is
+   broken (constitution: missing is orthogonal to disabled). */
+QToolButton#RefLocateAction:disabled {
+    background: transparent;
+    color: rgba(102, 114, 138, 0.60);
+    border: 1px solid rgba(102, 114, 138, 0.35);
+}
 
 /* ===== VST row: a softly glowing module card ===== */
 /* The frame's gradient border and painted halo come from StudioSkin; the
@@ -701,7 +783,6 @@ QPushButton#VSTCardPanelButton:pressed {
     background: rgba(47, 107, 255, 0.26);
     border-color: @ACCENT@;
 }
-QLabel#VSTCardStatus { color: @MUTED@; background: transparent; }
 QFrame#VSTCardEmbedFrame {
     background: @CARD_HOVER@;
     border: 1px solid @BORDER@;

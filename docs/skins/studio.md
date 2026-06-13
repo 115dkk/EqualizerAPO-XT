@@ -125,6 +125,50 @@ UI는 DM Sans, 수치는 DM Mono. 위계의 주도자는 **명도(luminance)**�
 (`filterSelector=true`)는 표준 raised 유리에 행 제목의 굵기(600)만 입는다.
 라벨인 척하지 않고, 버튼처럼 소리치지도 않는다.
 
+### 참조 카드 — 유리 뒤의 계기 판독 (AR2 X-1~X-10)
+
+Include와 VSTPlugin 행은 더 이상 경로 입력 폼이 아니라 **참조 카드**다(공유
+`ReferenceCard` 위젯). 외부 파일을 가리키는 참조를 '이름 있는 엔티티'로
+표상한다 — 아이콘, 1차 이름, 2차 디렉터리, 포맷·ABS·MISSING 배지, 그리고
+참조가 끊어졌을 때의 복구 어포던스. studio는 이 카드를 **빛이 비치는 유리 뒤의
+계기 판독**으로 읽는다.
+
+- **이름 = 계기 라벨.** 행 제목 굵기(700). 평시엔 텍스트 잉크, 그 이름이 살아
+  있는 점프/패널 열기 어포던스이면 기본 파랑(accent)으로 점등한다 — 빛이 든
+  라벨이 곧 '동작하는 계기'다. 참조가 끊어지면 경고 램프 색(warning)으로
+  내려앉는다.
+- **디렉터리 = 가라앉은 모노 판독.** muted 모노 8pt, 데이터 뒤로 물러난다.
+  중간 생략(X-6)은 공유 위젯이, 전체 경로 툴팁(X-7)도 공유 위젯이 처리한다.
+- **포맷 배지(VST2/VST3) = 점등된 유리 칩.** 타입 배지와 같은 문법(accent
+  잉크 + 반투명 accent 채움 + accent 보더). 참조가 끊어지면 신뢰할 수 없으므로
+  공유 위젯이 배지를 숨긴다.
+- **ABS 배지 = '외부 참조' 황색 칩(X-10).** 절대 경로는 이식성을 깨는
+  주의(warning)이지 오류가 아니므로, dirty/포맷 경고와 같은 황색 램프 문법을
+  칩 크기로 쓴다.
+- **MISSING 배지 = 가장 시끄러운 램프(X-3).** danger 채움의 알람 칩. 흰 잉크로
+  채움 위에서 읽힌다(공유 위젯의 중립 잉크는 거의 검은 배경색이라 빨강 위에서
+  사라졌다). 비활성이 아니라 끊어진 참조 상태이므로, 행은 켜진 채로 알람을
+  보인다.
+- **미발견 = 경고 램프 + 계기 강등(광학적 상태 전환).** 정상 계기(파란 빛
+  클릭 라벨, 점등 포맷 칩)에서 경고 계기(warning 이름, 경고 삼각형 아이콘,
+  danger MISSING 칩, 죽은 점프 어포던스)로 빛이 옮겨간다. 색을 입히는 게 아니라
+  빛의 의미가 바뀐다.
+- **Locate = 빛이 고이는 복구 어포던스(X-4).** 참조가 끊어졌을 때만 나타나며
+  '나가는 길'로 읽혀야 한다. 컨트롤 아래에서 accent 빛이 차오르고(픽커의 '커서
+  아래 빛 고임'), 휴지에도 옅게 고여 복구 경로가 이미 빛난다. 호버에 한 단
+  밝아진다(휘도 사다리). 끊어진 상태가 사용자를 가두지 않고 길을 비춘다.
+
+**missing은 disabled와 직교하는 상태다.** 비활성(주석 처리) 참조 카드에서
+studio가 그리는 빛 — Locate 글로우, 카드 프레임 알파 소등, 헤더 광택 — 은
+모두 꺼진다. 하지만 끊어진 참조 표식(경고 이름, MISSING·ABS 칩)은 켜진 채
+남는다. 이는 광원 규칙(규칙 4)의 '비활성은 소등' 조문과 충돌하지 않는다:
+규칙 4가 끄는 것은 studio가 직접 그리는 글로우·램프·반사광이고, 이 표식은
+공유 `ReferenceCard`가 위젯 인라인 스타일로 `[refMissing]`/`[severity]`
+속성에 칠한다. Qt는 위젯 자신의 인라인 규칙에 어떤 애플리케이션 selector도
+넘지 못하는 specificity 보너스를 주므로, studio QSS로는 이 색을 덮을 수 없다.
+이는 다섯 스킨 공통 제약이며, 동시에 의미상으로도 옳다 — 비활성 행에서도 깨진
+참조는 잊히면 안 된다.
+
 ### Copy 라우팅 — 곡선 노드 그래프 (CurvedNode)
 
 흐르는 곡선의 노드 그래프(`CurvedNodeRoutingRenderer`, CopyFilterGUIScene
@@ -190,6 +234,10 @@ UI는 DM Sans, 수치는 DM Mono. 위계의 주도자는 **명도(luminance)**�
   주석이 클래스 위에 있다)
 - QSS: `Editor/skins/studio_dark.qss`, `studio_light.qss`
 - 픽커: `Editor/skins/pickers/StudioFilterPicker.{h,cpp}`
+- 참조 카드(Include/VST): 공유 위젯 `Editor/widgets/cards/ReferenceCard.{h,cpp}`
+  (소유 아님). studio는 그 객체명/프로퍼티(`IncludeRefName`/`VstRefName`,
+  `IncludeRefDir`, `RefMissingBadge`, `VstFormatBadge`, `RefAbsBadge`,
+  `RefLocateAction`, `[refMissing]`/`[clickable]`/`[severity]`)를 QSS로 입힌다.
 - Copy: `Editor/widgets/routing/CurvedNodeRoutingRenderer.{h,cpp}`
 - 헬퍼: `studioRgba`/`studioAlpha`/`studioIsDark`/`studioBandHex`/
   `studioBandFamilyForBiQuadType`/`studioBandPaintColor` (Skins.cpp 익명
