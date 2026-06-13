@@ -990,9 +990,8 @@ QCheckBox#FilterCardEnabled {
 /* ===== Card Editors ===== */
 QWidget#PreampCardEditor,
 QWidget#IncludeCardEditor,
+QWidget#VSTCardEditor,
 QWidget#PreampCardValueBlock,
-QLabel#IncludeCardGlyph,
-QLabel#IncludeCardStatus,
 QLabel#PreampCardCaption {
     background: transparent;
     border: 0;
@@ -1023,28 +1022,157 @@ QLineEdit#EditableValueEditor {
     font-weight: 700;
 }
 
-/* ===== Include row: a path chip on a glass card ===== */
-/* The chip is the only pill in the skin: sunken glass, mono path text. */
-QLineEdit#IncludeCardPath {
-    background: rgba(6, 9, 20, 0.65);
+/* ===== Reference cards (Include / VST): instrument readouts behind glass =====
+   AR2 X-1..X-10 replaced the Include/VST path-input forms with a reference
+   card (a named entity: icon + primary name + secondary directory + format/
+   ABS/MISSING badges + a recovery action). Studio reads that card as a lit
+   instrument: the name is the instrument label, the directory a sunken mono
+   readout, the format a lit glass chip, and a broken reference is an optical
+   state transition - the label drops to the warning-lamp colour, the MISSING
+   chip lights like an alarm lamp and the dead jump affordance goes dark. The
+   card surface (dashed border for include, accent-gradient halo for vst) is
+   the FilterCardRow chrome StudioSkin already paints; these rules only dress
+   the card's contents. The text/icon blocks ride the glass, so they stay
+   transparent. */
+QWidget#IncludeRefDisplay, QWidget#VstRefDisplay,
+QWidget#IncludeRefTextBlock, QWidget#VstRefTextBlock {
+    background: transparent;
+}
+QLabel#IncludeRefIcon, QLabel#VstRefIcon { background: transparent; }
+
+/* Primary name = the instrument label. Row-title weight; full text ink at
+   rest, accent light when it is the live jump/open affordance (a lit label
+   reads as the active instrument), warning-lamp colour when the reference is
+   broken - the optical state transition the constitution's "missing is a
+   broken-reference state, not a disable" clause governs (X-3). */
+QLabel#IncludeRefName, QLabel#VstRefName {
+    color: @TEXT@;
+    background: transparent;
+    font-weight: 700;
+    font-size: 10pt;
+}
+QLabel#IncludeRefName[clickable="true"], QLabel#VstRefName[clickable="true"] {
+    color: @ACCENT@;
+}
+QLabel#IncludeRefName[refMissing="true"], QLabel#VstRefName[refMissing="true"] {
+    color: @WARNING@;
+}
+
+/* Secondary directory = the sunken mono readout, set behind the data. */
+QLabel#IncludeRefDir, QLabel#VstRefDir {
+    color: @MUTED@;
+    background: transparent;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+}
+
+/* Status line under the name, severity-lit. Quiet by default; the amber and
+   danger lamps only light when the host raises the severity. */
+QLabel#IncludeRefStatus, QLabel#VstRefStatus {
+    color: @MUTED@;
+    background: transparent;
+    font-size: 8pt;
+}
+QLabel#IncludeRefStatus[severity="warning"], QLabel#VstRefStatus[severity="warning"] { color: @WARNING@; }
+QLabel#IncludeRefStatus[severity="critical"], QLabel#VstRefStatus[severity="critical"] { color: @DANGER@; }
+
+/* Format badge (VST2/VST3) = a lit glass chip in the row's accent light, the
+   type-badge dialect: accent ink over a translucent accent fill with an accent
+   border. Include carries no format badge, but the rule is shared so a future
+   one renders consistently. */
+QLabel#VstFormatBadge, QLabel#IncludeFormatBadge {
+    color: @ACCENT@;
+    background: rgba(91, 140, 255, 0.15);
+    border: 1px solid rgba(91, 140, 255, 0.42);
+    border-radius: 3px;
+    padding: 0 5px;
+    font-size: 7pt;
+    font-weight: 700;
+}
+
+/* ABS badge = the "external reference" lamp (X-10): an amber chip, the dirty/
+   format-warning grammar at chip scale - the absolute path is a portability
+   hazard, not an error, so it warns rather than alarms. */
+QLabel#IncludeRefAbsBadge, QLabel#VstRefAbsBadge {
+    color: @WARNING@;
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.60);
+    border-radius: 3px;
+    padding: 0 5px;
+    font-size: 7pt;
+    font-weight: 700;
+}
+
+/* MISSING badge = the loudest lamp: a danger-filled alarm chip (X-3). White
+   ink so it reads on the danger fill (the neutral base used the near-black
+   background colour, which vanished against red). This is a broken-reference
+   state, not a disable; the row stays lit so the alarm is visible. */
+QLabel#RefMissingBadge {
+    color: #FFFFFF;
+    background: @DANGER@;
+    border-radius: 3px;
+    padding: 0 5px;
+    font-size: 7pt;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+/* Inline path editor = sunken glass (the inputs' dialect), shown only while
+   editing the path directly. */
+QLineEdit#IncludeRefPathEdit, QLineEdit#VstRefPathEdit {
+    background: #08080f;
+    color: @TEXT@;
     border: 1px solid @BORDER@;
     border-top-color: rgba(0, 0, 0, 0.55);
-    border-radius: 13px;
-    padding: 4px 14px;
+    border-radius: 8px;
+    padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
-QLineEdit#IncludeCardPath:hover {
-    border-color: rgba(91, 140, 255, 0.45);
-}
-QLineEdit#IncludeCardPath:focus {
+QLineEdit#IncludeRefPathEdit:focus, QLineEdit#VstRefPathEdit:focus {
     border: 1px solid @ACCENT@;
+    background: #0e0e18;
 }
-QLabel#IncludeCardStatus {
-    color: @DANGER@;
-    font-size: 9pt;
+
+/* Locate = the recovery affordance (X-4). It appears only when the reference
+   breaks, so it must read as the way out: accent light pools up from below the
+   control (the picker's "light under the cursor"), faint at rest so the
+   recovery path already glows, brighter on hover (the luminance ladder). The
+   broken state lights the way out rather than trapping. */
+QToolButton#RefLocateAction {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.85, fx:0.5, fy:1.05,
+        stop:0 rgba(91, 140, 255, 0.20), stop:0.45 rgba(91, 140, 255, 0.07), stop:1 rgba(91, 140, 255, 0));
+    color: @TEXT@;
+    border: 1px solid rgba(91, 140, 255, 0.40);
+    border-top-color: rgba(91, 140, 255, 0.58);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-weight: 600;
 }
-QLabel#IncludeCardStatus[severity="warning"] { color: @WARNING@; }
-QLabel#IncludeCardStatus[severity="critical"] { color: @DANGER@; }
+QToolButton#RefLocateAction:hover {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
+        stop:0 rgba(91, 140, 255, 0.46), stop:0.4 rgba(91, 140, 255, 0.18), stop:1 rgba(91, 140, 255, 0));
+    border-color: rgba(91, 140, 255, 0.72);
+}
+QToolButton#RefLocateAction:pressed {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.95, fx:0.5, fy:1.05,
+        stop:0 rgba(91, 140, 255, 0.62), stop:0.4 rgba(91, 140, 255, 0.28), stop:1 rgba(91, 140, 255, 0.02));
+    border-color: @ACCENT@;
+}
+
+/* Disabled (commented-out) reference card: the studio-owned light goes off -
+   the Locate glow drains and its rim goes muted (the host setEnabled(false)s
+   the body, so :disabled matches). The card frame and header are already
+   dimmed by cardFrameStyle/cardHeaderStyle. The missing name and the MISSING/
+   ABS chips keep their state colour: ReferenceCard (shared) paints those inline
+   by [refMissing]/[severity] attribute, and Qt gives a widget's own inline
+   rule a specificity bonus no application selector can outrank - so a switched-
+   off broken reference still shows it is broken. This is recorded in the
+   constitution: missing is a state orthogonal to disabled. */
+QToolButton#RefLocateAction:disabled {
+    background: transparent;
+    color: rgba(145, 160, 186, 0.55);
+    border: 1px solid rgba(145, 160, 186, 0.30);
+}
 
 /* ===== VST row: a softly glowing module card ===== */
 /* The frame's gradient border and painted halo come from StudioSkin; the
@@ -1065,10 +1193,6 @@ QPushButton#VSTCardPanelButton:hover {
 QPushButton#VSTCardPanelButton:pressed {
     background: rgba(91, 140, 255, 0.36);
     border-color: @ACCENT@;
-}
-QLabel#VSTCardStatus {
-    color: @MUTED@;
-    background: transparent;
 }
 QFrame#VSTCardEmbedFrame {
     background: #08080f;
