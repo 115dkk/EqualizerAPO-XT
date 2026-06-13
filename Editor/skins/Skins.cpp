@@ -19,6 +19,7 @@
 #include <QPixmap>
 #include <QStyle>
 #include <QToolBar>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
@@ -809,6 +810,110 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 	}
 }
 
+// AR2 - dress the Include/VST reference card (the shared ReferenceCard widget)
+// in the terminal's grammar. The card carries the same information hierarchy in
+// every skin (name primary, directory secondary, missing = a state transition,
+// Locate = the recovery entry point); minimal translates it without colour.
+// The broken-reference state is the inverted [MISSING] token (the picker's
+// bluntest cursor - the foreground/background swap - borrowed as a status
+// token), the portability hazard is a bracketed [ABS] text token, the format
+// is a 1px OutlineOnly box, and the recovery action is the imperative command
+// word LOCATE. The body editors consult this hook at construction, before their
+// first setState, so the styles and badge text set here survive: setState only
+// flips dynamic properties (clickable / refMissing / severity) and the
+// format-badge text, all of which the selectors here account for. The SVG icon
+// is hidden because an ASCII-glyph skin already leads the line with its >> / []
+// type glyph, so a second pictogram would be redundant decor (rule 5/6).
+//
+// ReferenceCard sets its child labels' stylesheets inline at construction, and
+// an inline stylesheet beats the app sheet, so precision_*.qss cannot reach
+// these labels; re-setting the inline stylesheet here is the honest way to
+// re-dress them.
+void styleMinimalReferenceCard(QWidget* body, const QString& type, const SkinTokens& tokens)
+{
+	if (body == nullptr)
+		return;
+	const bool dark = QColor(tokens.background).lightness() < 128;
+	const QString brightInk = dark ? QStringLiteral("#ffffff") : QStringLiteral("#000000");
+	const QString cap = type == QStringLiteral("vst") ? QStringLiteral("Vst") : QStringLiteral("Include");
+
+	// The SVG icon is foreign here; the line head's glyph already names the type.
+	if (QLabel* icon = body->findChild<QLabel*>(cap + QStringLiteral("RefIcon")))
+		icon->setVisible(false);
+
+	// Primary name: body ink at rest, the brightest ink plus a hyperlink
+	// underline when it is the open/jump affordance (accent is reserved for
+	// active controls, so the clickable cue is the underline, not a colour). A
+	// broken reference keeps the file name in body ink - the [MISSING] token,
+	// not a colour, carries the state.
+	if (QLabel* name = body->findChild<QLabel*>(cap + QStringLiteral("RefName")))
+		name->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; font-weight:700; background:transparent; }"
+			"QLabel[clickable=\"true\"] { color:%2; text-decoration:underline; }"
+			"QLabel[refMissing=\"true\"] { color:%1; }")
+			.arg(tokens.text, brightInk));
+
+	// Secondary directory: muted monospace; hierarchy is brightness, not a new
+	// colour. Middle-elision (X-6) stays, the full path lives in the tooltip.
+	if (QLabel* dir = body->findChild<QLabel*>(cap + QStringLiteral("RefDir")))
+		dir->setStyleSheet(QStringLiteral(
+			"color:%1; background:transparent; font-family:\"%2\"; font-size:9pt;")
+			.arg(tokens.mutedText, tokens.monoFontFamily));
+
+	// Status line: severity is read as ink brightness, never a traffic-light
+	// colour (that grammar belongs to the neighbouring matrix skin). A critical
+	// line climbs to body ink; a warning stays muted.
+	if (QLabel* status = body->findChild<QLabel*>(cap + QStringLiteral("RefStatus")))
+		status->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; background:transparent; font-size:9pt; }"
+			"QLabel[severity=\"warning\"] { color:%1; }"
+			"QLabel[severity=\"critical\"] { color:%2; }")
+			.arg(tokens.mutedText, tokens.text));
+
+	// Format badge (VST2/VST3): the OutlineOnly token - a 1px hairline square
+	// box, no fill, uppercase mono. setState rewrites its text so it cannot wear
+	// brackets; the box is the bracket's graphic equivalent.
+	if (QLabel* fmt = body->findChild<QLabel*>(cap + QStringLiteral("FormatBadge")))
+		fmt->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; background:transparent; border:1px solid %2; border-radius:0;"
+			" padding:0 4px; font-size:8pt; font-weight:700; letter-spacing:1px; }")
+			.arg(tokens.mutedText, tokens.border));
+
+	// Absolute-path hazard: a bracketed text token. Brackets are the ASCII form
+	// of the OutlineOnly badge, so it needs no box and no warning colour - the
+	// [ABS] token itself says "external reference".
+	if (QLabel* abs = body->findChild<QLabel*>(cap + QStringLiteral("RefAbsBadge")))
+	{
+		abs->setText(QStringLiteral("[ABS]"));
+		abs->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; background:transparent; border:0; padding:0 2px;"
+			" font-weight:700; letter-spacing:1px; }")
+			.arg(tokens.mutedText));
+	}
+
+	// Missing badge: the loudest state token. minimal cannot say "missing" in
+	// danger red (colour-as-status is matrix's grammar), so it borrows the
+	// picker's bluntest cursor - the inverted block - and prints [MISSING]
+	// foreground/background swapped. Square, monochrome, unmistakable (X-3).
+	if (QLabel* missing = body->findChild<QLabel*>(QStringLiteral("RefMissingBadge")))
+	{
+		missing->setText(QStringLiteral("[MISSING]"));
+		missing->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; background:%2; border:0; border-radius:0; padding:0 5px;"
+			" font-weight:700; letter-spacing:1px; }")
+			.arg(tokens.background, tokens.text));
+	}
+
+	// Recovery action: the imperative command word, no icon (a text instrument
+	// names its commands - rule 5). precision_*.qss boxes RefLocateAction as a
+	// hairline and walks its states up the value ladder.
+	if (QToolButton* locate = body->findChild<QToolButton*>(QStringLiteral("RefLocateAction")))
+	{
+		locate->setText(QStringLiteral("LOCATE"));
+		locate->setToolButtonStyle(Qt::ToolButtonTextOnly);
+	}
+}
+
 // Leading type glyph for the line head, plain ASCII for the mapped types so
 // every mono fallback font covers it. The glyph is shape information ("which
 // kind of line is this"); the colour tag next to it stays the badge token.
@@ -900,12 +1005,17 @@ public:
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
 		Q_UNUSED(card);
-		Q_UNUSED(body);
 		// Leading type glyph at the line head. Only modern card rows carry a
-		// header here; the Include/VST body editors and the frozen legacy
-		// rows consult the hook with header == nullptr and stay untouched.
+		// header here; the Include/VST body editors consult the hook with
+		// header == nullptr and a live body, where their shared reference card
+		// gets the terminal's grammar; the frozen legacy rows pass body == nullptr
+		// and stay untouched.
 		if (header == nullptr)
+		{
+			if (body != nullptr && (info.type == QStringLiteral("include") || info.type == QStringLiteral("vst")))
+				styleMinimalReferenceCard(body, info.type, SkinManager::instance()->tokens());
 			return;
+		}
 		QHBoxLayout* headerLayout = qobject_cast<QHBoxLayout*>(header->layout());
 		if (headerLayout == nullptr)
 			return;

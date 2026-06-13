@@ -411,6 +411,41 @@ QLineEdit#EditableValueEditor {
 QLineEdit#IncludeCardPath { background: #ffffff; border: 1px solid @BORDER@; border-radius: 0; padding: 4px 8px; }
 QLabel#IncludeCardStatus { color: #dc2626; font-size: 9pt; }
 
+/* AR2 - Include/VST reference card (the shared ReferenceCard) in the terminal's
+   grammar. MinimalSkin::prepareCommandRow re-dresses the inline-styled labels
+   (name/dir/status/badges - an inline sheet beats this app sheet, so QSS cannot
+   reach them) and renames Locate to the imperative LOCATE; QSS owns the card
+   ground and the controls it can reach. The name reads as body ink, brightest
+   and underlined when it links; [MISSING] is the inverted block; format is an
+   OutlineOnly box. */
+QWidget#VSTCardEditor,
+QWidget#includeRefCard, QWidget#vstRefCard,
+QWidget#IncludeRefDisplay, QWidget#VstRefDisplay,
+QWidget#IncludeRefTextBlock, QWidget#VstRefTextBlock { background: transparent; border: 0; }
+QWidget#includeRefCard QLabel, QWidget#vstRefCard QLabel { background: transparent; }
+/* Recovery action: the command word as a hairline box; state walks the value
+   ladder (hover = one step up, pressed = the inverted block, as on the toolbar). */
+QToolButton#RefLocateAction {
+    background: @BG@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 3px 10px; min-height: 24px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QToolButton#RefLocateAction:hover { background: #e0e0e0; border-color: @ACCENT@; }
+QToolButton#RefLocateAction:pressed { background: @TEXT@; color: @SURFACE@; }
+QPushButton#VSTCardPanelButton { padding: 4px 12px; }
+QToolButton#VSTCardOptions {
+    background: @BG@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
+}
+QToolButton#VSTCardOptions:hover { background: #e0e0e0; border-color: @ACCENT@; }
+QFrame#VSTCardEmbedFrame { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 0; }
+QPlainTextEdit#VSTCardWarning {
+    background: #ffffff; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+}
+
 /* Add-filter picker: a terminal index (man page / BIOS menu). The frame,
    the section rules and the inverted selection block are painted by
    MinimalFilterPickerView; QSS only dresses the query line and the legend. */

@@ -137,10 +137,44 @@ BiQuad 행의 파라미터 영역은 세 단계 잉크 사다리로 읽힌다.
 - 알려진 트레이드오프: 숫자만으로는 텍스트 검색이 안 된다(점프 예약).
   문자+숫자 혼합 질의는 정상 필터링된다.
 
-### Include / VST 행
+### Include / VST 행 — 한 줄 요약
 
-특별 취급하지 않는다. 둘 다 같은 한 줄 문법이며, 페이로드(경로/라이브러리)가
-명령 토큰보다 밝다. "정보의 중요도 = 잉크의 밝기"라는 원칙의 적용이다.
+행 요약(modern card row의 머리줄)은 같은 한 줄 문법이며, 페이로드(경로/
+라이브러리)가 명령 토큰보다 밝다. "정보의 중요도 = 잉크의 밝기"라는 원칙의
+적용이다.
+
+### Include / VST 참조 카드 (AR2)
+
+Include와 VST의 본문은 공유 `ReferenceCard` 위젯을 쓴다. 정보 위계(이름 1차/
+경로 2차)와 상태 의미론(미발견=상태 전환, Locate=복구 진입점)은 다섯 스킨
+공통이고, minimal은 그것을 색 없이 터미널 문법으로 번역한다.
+`MinimalSkin::prepareCommandRow`의 body 경로가 카드의 인라인 라벨을 다시
+입힌다 — ReferenceCard가 라벨에 인라인 스타일시트를 직접 걸고, 인라인 시트는
+앱 시트를 이기므로 QSS만으로는 닿지 못하기 때문이다.
+
+- **이름(1차)**: 본문 잉크. 파일을 열 수 있을 때만 가장 밝은 잉크에 헤어라인
+  밑줄(하이퍼링크)을 더해 클릭 어포던스를 준다. 액센트는 쓰지 않는다(규칙 7은
+  액센트를 활성 컨트롤에만 허락한다). 미발견이어도 파일명은 정보이므로 본문
+  잉크를 유지한다 — 상태는 색이 아니라 토큰이 나른다.
+- **경로(2차)**: muted 모노 한 줄, 중간 생략(X-6). 전체 경로는 툴팁에 있다.
+  위계는 밝기로 만든다(규칙 4).
+- **`[MISSING]` — 미발견 상태 토큰(N4 개정).** minimal은 미발견을 danger
+  적색으로 말하지 않는다. 상태색은 이웃 matrix의 문법이므로 그쪽을 침범하지
+  않는다. 대신 픽커의 가장 무딘 커서인 반전 블록을 빌려 `[MISSING]`을 전경/
+  배경 스왑으로 인쇄한다. 직각, 무채색. 이것이 X-3 상태 전환의 minimal
+  번역이다.
+- **`[ABS]` — 이식성 경고 토큰.** 대괄호는 OutlineOnly 배지의 ASCII 형태라
+  박스도 경고색도 필요 없다. `[ABS]` 토큰 자체가 '외부 절대 경로 참조'를
+  말한다(X-10).
+- **포맷 배지(VST2/VST3)**: setState가 텍스트를 매번 다시 쓰므로 대괄호를 두를
+  수 없다. 대신 1px 헤어라인 직각 박스(OutlineOnly, 규칙 5)로 — 박스가 대괄호의
+  그래픽 등가다.
+- **`LOCATE` — 복구 액션.** 명령형 단어, 아이콘 없음. 텍스트 계기는 명령을
+  단어로 이름붙인다(규칙 5). precision_*.qss가 헤어라인 박스로 입히고 상태를
+  명도 사다리로 올린다(호버=한 스텝, 눌림=반전 블록).
+- **본문 SVG 아이콘은 숨긴다.** 행머리의 `>>`/`[]` 글리프가 이미 종류를
+  나르므로 본문의 두 번째 픽토그램은 장식이다(규칙 5/6). 종류는 글리프가,
+  상태는 `[MISSING]` 토큰이 나른다.
 
 ## 하지 말 것
 
@@ -165,7 +199,11 @@ BiQuad 행의 파라미터 영역은 세 단계 잉크 사다리로 읽힌다.
 ## 구현 지도
 
 - 클래스: `MinimalSkin` — [Skins.cpp](../../Editor/skins/Skins.cpp)
-  (`paintMinimalKnob`, `minimalTypeGlyph` 헬퍼 포함)
+  (`paintMinimalKnob`, `minimalTypeGlyph`, `styleMinimalReferenceCard` 헬퍼 포함)
+- 참조 카드: `styleMinimalReferenceCard`가 공유 `ReferenceCard`
+  ([Editor/widgets/cards/ReferenceCard.cpp](../../Editor/widgets/cards/ReferenceCard.cpp))를
+  TUI 문법으로 다시 입힌다. QSS 보조는 `precision_*.qss`의 `RefLocateAction`,
+  `VSTCardPanelButton` 등.
 - QSS: `Editor/skins/precision_dark.qss`, `precision_light.qss` (이름 유지)
 - 픽커: `Editor/skins/pickers/MinimalFilterPicker.{h,cpp}`
 - Copy: `Editor/widgets/routing/StepListRoutingRenderer.{h,cpp}`
