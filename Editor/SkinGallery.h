@@ -3,9 +3,10 @@
 
 	Offscreen screenshot gallery for the skin program. For each requested skin
 	and dark/light mode it renders representative filter card rows (a simple
-	filter, a shelf filter with its three knobs, an Include row, a VST row) in
-	normal, hover-equivalent and disabled states, and writes deterministic
-	PNGs named <skin>_<dark|light>_<row>_<state>.png to a target directory.
+	filter, a shelf filter with its three knobs, a resolved Include reference
+	card, a missing Include reference card, a VST row) in normal,
+	hover-equivalent and disabled states, and writes deterministic PNGs named
+	<skin>_<dark|light>_<row>_<state>.png to a target directory.
 
 	Runs headless: invoke the Editor with QT_QPA_PLATFORM=offscreen and
 	--skin-gallery <outDir> [--skin-gallery-skins id,id,...]. Used by the skin

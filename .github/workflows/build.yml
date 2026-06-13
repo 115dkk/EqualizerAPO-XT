@@ -1052,7 +1052,7 @@ jobs:
         # offscreen plugin then fails to load and Qt parks a fatal-error dialog
         # forever on the headless runner. Point the platform-plugin search at
         # the full Qt install instead (verified: without this the gallery
-        # hangs; with it, all 120 PNGs render).
+        # hangs; with it, all gallery PNGs render).
         $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
         $env:QT_QPA_PLATFORM = "offscreen"
         $outDir = "${{ github.workspace }}\skin-gallery"
@@ -1066,9 +1066,11 @@ jobs:
         }
         $pngs = @(Get-ChildItem $outDir -Filter *.png)
         Write-Host "Gallery wrote $($pngs.Count) PNGs"
-        # 5 skins x 2 modes x (6 rows x 3 states + 3 picker states + toolbar + titlebar + menubar + menu)
-        if ($pngs.Count -ne 250) {
-          Write-Error "Expected 250 gallery PNGs, got $($pngs.Count)"
+        # 5 skins x 2 modes x (7 rows x 3 states + 3 picker states + toolbar + titlebar + menubar + menu)
+        # = 5 x 2 x (21 + 3 + 4) = 280. The 7th row (include_missing) was added
+        # in AR2 to capture the Include reference card's broken-reference state.
+        if ($pngs.Count -ne 280) {
+          Write-Error "Expected 280 gallery PNGs, got $($pngs.Count)"
           exit 1
         }
 

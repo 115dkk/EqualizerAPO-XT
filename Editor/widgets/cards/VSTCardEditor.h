@@ -7,6 +7,12 @@
 	state (chunkData / paramMap) and reproducing it verbatim on store(). A
 	mechanical round-trip self-test (--selftest-vst) confirmed this state
 	survives parse -> store -> parse without loss.
+
+	AR2 X-1/X-2: the plugin is presented as a named device, not a DLL path. The
+	display name (effGetEffectName) is resolved once at card creation and used as
+	the reference card's primary label; the DLL path is demoted to the secondary
+	metadata line. Clicking the name opens the plugin panel (the Open panel
+	button stays as a secondary affordance).
 */
 
 #pragma once
@@ -19,7 +25,7 @@
 #include "Editor/IFilterGUI.h"
 #include "helpers/VSTPluginLibrary.h"
 
-class QLineEdit;
+class ReferenceCard;
 class QLabel;
 class QToolButton;
 class QPushButton;
@@ -44,8 +50,8 @@ private slots:
 	void openPanel();
 	void applyDialog();
 	void autoApplyToggled(bool checked);
-	void pathEditingFinished();
-	void selectFile();
+	void pathChanged(const QString& newPath);
+	void locateFile();
 	void embedToggled(bool checked);
 	void onIdle();
 
@@ -55,6 +61,12 @@ private:
 	void updatePermissionWarning();
 	void onAutomate();
 	void onSizeWindow(int w, int h);
+	// Recompute the reference card from the current library/effect. status, when
+	// non-empty, is an error string shown as the card's critical status line.
+	void refreshCard(const QString& status);
+	// Relative-or-absolute display path for the current library.
+	QString displayPath() const;
+	QString currentName() const;
 
 	std::shared_ptr<VSTPluginLibrary> library;
 	VSTPluginInstance* effect = nullptr;
@@ -62,14 +74,14 @@ private:
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;
 	bool autoApplyDialog = false;
+	bool libraryMissing = false;
 	QElapsedTimer lastReadTimer;
 
-	QLineEdit* pathEdit = nullptr;
-	QToolButton* selectButton = nullptr;
+	ReferenceCard* card = nullptr;
+	QToolButton* locateButton = nullptr;
 	QPushButton* openPanelButton = nullptr;
 	QToolButton* optionsButton = nullptr;
 	QAction* embedAction = nullptr;
-	QLabel* statusLabel = nullptr;
 	QFrame* frame = nullptr;
 	QPlainTextEdit* warningTextEdit = nullptr;
 };

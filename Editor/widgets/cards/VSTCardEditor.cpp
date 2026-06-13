@@ -16,13 +16,11 @@
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QLineEdit>
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSettings>
-#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -37,6 +35,7 @@
 #include "Editor/skins/ISkin.h"
 #include "Editor/MainWindow.h"
 #include "Editor/guis/VSTPluginFilterGUIDialog.h"
+#include "Editor/widgets/cards/ReferenceCard.h"
 
 using std::shared_ptr;
 using std::unordered_map;
@@ -53,37 +52,31 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	root->setContentsMargins(0, 0, 0, 0);
 	root->setSpacing(6);
 
-	QHBoxLayout* row = new QHBoxLayout();
-	row->setContentsMargins(0, 0, 0, 0);
-	row->setSpacing(8);
-
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const QColor actionColor(tokens.text);
 
-	QLabel* glyph = new QLabel(this);
-	glyph->setObjectName(QStringLiteral("VSTCardGlyph"));
-	glyph->setPixmap(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/plugin.svg"), QColor(tokens.mutedText), 20).pixmap(GUIHelper::scale(QSize(20, 20))));
-	row->addWidget(glyph, 0, Qt::AlignVCenter);
+	card = new ReferenceCard(QStringLiteral("vst"), this);
+	connect(card, &ReferenceCard::nameActivated, this, &VSTCardEditor::openPanel);
+	connect(card, &ReferenceCard::editRequested, this, [this]() { card->enterEditMode(); });
+	connect(card, &ReferenceCard::pathEdited, this, &VSTCardEditor::pathChanged);
 
-	pathEdit = new QLineEdit(this);
-	pathEdit->setObjectName(QStringLiteral("VSTCardPath"));
-	pathEdit->setPlaceholderText(tr("VST plugin (.dll, .vst3)"));
-	connect(pathEdit, SIGNAL(editingFinished()), this, SLOT(pathEditingFinished()));
-	row->addWidget(pathEdit, 1);
+	// X-4: recovery entry point when the library is missing. Visible only then.
+	locateButton = card->addActionButton(QStringLiteral("RefLocateAction"));
+	locateButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), actionColor, 18));
+	locateButton->setText(tr("Locate..."));
+	locateButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+	locateButton->setToolTip(tr("Locate the missing plugin library"));
+	locateButton->setVisible(false);
+	connect(locateButton, &QToolButton::clicked, this, &VSTCardEditor::locateFile);
 
-	selectButton = new QToolButton(this);
-	selectButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	selectButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), QColor(tokens.text), 18));
-	selectButton->setToolTip(tr("Select VST plugin"));
-	connect(selectButton, SIGNAL(clicked()), this, SLOT(selectFile()));
-	row->addWidget(selectButton);
-
-	openPanelButton = new QPushButton(tr("Open panel"), this);
+	// X-2: the Open panel button stays, demoted to a secondary affordance next
+	// to the clickable name.
+	openPanelButton = new QPushButton(tr("Open panel"), card);
 	openPanelButton->setObjectName(QStringLiteral("VSTCardPanelButton"));
 	connect(openPanelButton, SIGNAL(clicked()), this, SLOT(openPanel()));
-	row->addWidget(openPanelButton);
+	card->addActionWidget(openPanelButton);
 
-	optionsButton = new QToolButton(this);
-	optionsButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	optionsButton = card->addActionButton(QStringLiteral("VSTCardOptions"));
 	optionsButton->setText(QStringLiteral("..."));
 	optionsButton->setPopupMode(QToolButton::InstantPopup);
 	QMenu* menu = new QMenu(optionsButton);
@@ -91,13 +84,8 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	embedAction->setCheckable(true);
 	connect(embedAction, SIGNAL(toggled(bool)), this, SLOT(embedToggled(bool)));
 	optionsButton->setMenu(menu);
-	row->addWidget(optionsButton);
 
-	root->addLayout(row);
-
-	statusLabel = new QLabel(this);
-	statusLabel->setObjectName(QStringLiteral("VSTCardStatus"));
-	root->addWidget(statusLabel);
+	root->addWidget(card);
 
 	frame = new QFrame(this);
 	frame->setObjectName(QStringLiteral("VSTCardEmbedFrame"));
@@ -111,13 +99,6 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	warningTextEdit->setVisible(false);
 	root->addWidget(warningTextEdit);
 
-	QString absolutePath = QString::fromStdWString(library->getLibPath());
-	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
-	QString relativePath = QDir::toNativeSeparators(pluginsDir.relativeFilePath(absolutePath));
-	if (relativePath.startsWith(QDir::toNativeSeparators("../../")))
-		relativePath = absolutePath;
-	pathEdit->setText(relativePath);
-
 	// Let the active skin decorate this VST body (the row is recreated on
 	// skin switches, so construction is the only moment needed).
 	CommandRowInfo rowInfo;
@@ -125,6 +106,20 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	rowInfo.command = QStringLiteral("vstplugin");
 	SkinManager::instance()->prepareCommandRow(rowInfo, nullptr, nullptr, this);
 
+	// X-1: resolve the display name once at card creation, fail-safe. Only probe
+	// the binary when the library path actually resolves to an existing file;
+	// for a missing reference we never attempt a load (per AR2: no attempt when
+	// not found) and fall back to the file name.
+	QString status;
+	if (library->getLibPath() != L"")
+	{
+		QFileInfo libInfo(QString::fromStdWString(library->getLibPath()));
+		if (libInfo.exists())
+			initPlugin();
+		else
+			libraryMissing = true;
+	}
+	refreshCard(status);
 	updatePermissionWarning();
 }
 
@@ -177,6 +172,7 @@ void VSTCardEditor::loadPreferences(const QVariantMap& prefs)
 		embedAction->setChecked(true);   // will also call initPlugin via embedToggled
 	else
 		initPlugin();
+	refreshCard(QString());
 }
 
 void VSTCardEditor::storePreferences(QVariantMap& prefs)
@@ -225,19 +221,20 @@ void VSTCardEditor::initPlugin()
 	if (effect != nullptr)
 		return;
 
-	QColor color;
+	libraryMissing = false;
 	QString text;
 	if (library->getLibPath() == L"")
 	{
 		text = tr("No file selected.");
-		color = Qt::red;
+		libraryMissing = true;
 	}
 	else
 	{
 		int result = library->initialize();
 		if (result < 0)
 		{
-			color = Qt::red;
+			if (result == AbstractLibrary::FILE_NOT_FOUND)
+				libraryMissing = true;
 			switch (result)
 			{
 			case AbstractLibrary::FILE_NOT_FOUND:
@@ -266,63 +263,141 @@ void VSTCardEditor::initPlugin()
 			{
 				effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
 				effect->setAutomateFunc([this]() { onAutomate(); });
-
-				color = Qt::black;
-				text = QString::fromStdWString(effect->getName());
 			}
 			else
 			{
 				delete effect;
 				effect = nullptr;
-				color = Qt::red;
 				text = tr("Plugin crashed during initialization.");
 			}
 		}
 	}
 
-	QPalette palette = statusLabel->palette();
-	palette.setColor(QPalette::Active, QPalette::WindowText, color);
-	palette.setColor(QPalette::Inactive, QPalette::WindowText, color);
-	statusLabel->setPalette(palette);
-	statusLabel->setText(text);
+	refreshCard(text);
 }
 
-void VSTCardEditor::pathEditingFinished()
+QString VSTCardEditor::displayPath() const
 {
-	if (QString::fromStdWString(library->getLibPath()) != pathEdit->text())
-	{
-		int oldId = 0;
-		if (effect != nullptr)
-		{
-			oldId = effect->uniqueID();
-			if (embedAction->isChecked())
-				embedToggled(false);
-			delete effect;
-			effect = nullptr;
-		}
-
-		QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
-		QString path = pathEdit->text();
-		if (path.length() > 0)
-			path = QDir::toNativeSeparators(QFileInfo(pluginsDir, pathEdit->text()).absoluteFilePath());
-		library = VSTPluginLibrary::getInstance(path.toStdWString());
-		initPlugin();
-
-		if (effect == nullptr || oldId == 0 || effect->uniqueID() != oldId)
-		{
-			chunkData = L"";
-			paramMap.clear();
-		}
-
-		updateModel();
-		updatePermissionWarning();
-
-		if (embedAction->isChecked())
-			embedToggled(true);
-	}
+	QString absolutePath = QString::fromStdWString(library->getLibPath());
+	if (absolutePath.isEmpty())
+		return QString();
+	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
+	QString relativePath = QDir::toNativeSeparators(pluginsDir.relativeFilePath(absolutePath));
+	if (relativePath.startsWith(QDir::toNativeSeparators("../../")))
+		relativePath = absolutePath;
+	return relativePath;
 }
 
-void VSTCardEditor::selectFile()
+QString VSTCardEditor::currentName() const
+{
+	// Prefer the plugin's own display name (X-1); fall back to the file stem.
+	if (effect != nullptr)
+	{
+		QString name = QString::fromStdWString(effect->getName()).trimmed();
+		if (!name.isEmpty())
+			return name;
+	}
+	QString absolutePath = QString::fromStdWString(library->getLibPath());
+	if (absolutePath.isEmpty())
+		return tr("No plugin selected");
+	return QFileInfo(absolutePath).fileName();
+}
+
+void VSTCardEditor::refreshCard(const QString& status)
+{
+	ReferenceCardState state;
+	QString absolutePath = QString::fromStdWString(library->getLibPath());
+	state.name = currentName();
+	state.absolutePath = !absolutePath.isEmpty() && QDir::isAbsolutePath(QDir::fromNativeSeparators(displayPath()));
+
+	if (!absolutePath.isEmpty())
+	{
+		QFileInfo libInfo(absolutePath);
+		state.directory = QDir::toNativeSeparators(libInfo.absolutePath());
+		state.fullPath = QDir::toNativeSeparators(libInfo.absoluteFilePath());
+		state.formatBadge = library->isVST3() ? QStringLiteral("VST3") : QStringLiteral("VST2");
+	}
+	else
+	{
+		state.fullPath.clear();
+	}
+
+	state.missing = libraryMissing || absolutePath.isEmpty();
+	if (state.missing)
+	{
+		state.statusText = absolutePath.isEmpty()
+			? tr("No plugin selected")
+			: tr("File not found - use Locate to reconnect");
+		state.statusSeverity = absolutePath.isEmpty()
+			? ReferenceCardState::Severity::Warning
+			: ReferenceCardState::Severity::Critical;
+		// Hide the format badge for a missing reference: we cannot trust it.
+		state.formatBadge.clear();
+	}
+	else if (!status.isEmpty())
+	{
+		// A load error other than not-found (wrong arch, crashed, ...).
+		state.statusText = status;
+		state.statusSeverity = ReferenceCardState::Severity::Critical;
+	}
+
+	// The name opens the panel only when a plugin is actually loaded (X-1/X-2).
+	state.nameClickable = effect != nullptr;
+
+	card->setState(state);
+	// Invalid actions are demoted when the reference is broken (X-3).
+	const bool resolvable = !state.missing;
+	openPanelButton->setEnabled(resolvable);
+	optionsButton->setEnabled(resolvable);
+	locateButton->setVisible(state.missing && !absolutePath.isEmpty());
+}
+
+void VSTCardEditor::pathChanged(const QString& newPath)
+{
+	if (QString::fromStdWString(library->getLibPath()) == newPath)
+	{
+		refreshCard(QString());
+		return;
+	}
+
+	int oldId = 0;
+	if (effect != nullptr)
+	{
+		oldId = effect->uniqueID();
+		if (embedAction->isChecked())
+			embedToggled(false);
+		delete effect;
+		effect = nullptr;
+	}
+
+	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
+	QString path = newPath;
+	if (path.length() > 0)
+		path = QDir::toNativeSeparators(QFileInfo(pluginsDir, newPath).absoluteFilePath());
+	library = VSTPluginLibrary::getInstance(path.toStdWString());
+
+	// Probe only when the resolved path exists (no attempt when not found).
+	libraryMissing = false;
+	if (library->getLibPath() != L"" && QFileInfo(QString::fromStdWString(library->getLibPath())).exists())
+		initPlugin();
+	else if (library->getLibPath() != L"")
+		libraryMissing = true;
+
+	if (effect == nullptr || oldId == 0 || effect->uniqueID() != oldId)
+	{
+		chunkData = L"";
+		paramMap.clear();
+	}
+
+	refreshCard(QString());
+	updateModel();
+	updatePermissionWarning();
+
+	if (embedAction->isChecked())
+		embedToggled(true);
+}
+
+void VSTCardEditor::locateFile()
 {
 	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
 
@@ -332,7 +407,7 @@ void VSTCardEditor::selectFile()
 		lastDir = pluginsDir.absolutePath();
 
 	QFileInfo fileInfo(lastDir);
-	QString path = pathEdit->text();
+	QString path = displayPath();
 	if (path.length() > 0)
 		fileInfo.setFile(pluginsDir, path);
 
@@ -348,8 +423,8 @@ void VSTCardEditor::selectFile()
 		QString relativePath = pluginsDir.relativeFilePath(absolutePath);
 		if (relativePath.startsWith("../../"))
 			relativePath = absolutePath;
-		pathEdit->setText(QDir::toNativeSeparators(relativePath));
-		pathEditingFinished();
+		card->leaveEditMode();
+		pathChanged(QDir::toNativeSeparators(relativePath));
 	}
 }
 
@@ -367,7 +442,6 @@ void VSTCardEditor::embedToggled(bool checked)
 	{
 		embedded = enable;
 		frame->setVisible(enable);
-		statusLabel->setVisible(!enable);
 
 		if (enable)
 		{
@@ -380,13 +454,7 @@ void VSTCardEditor::embedToggled(bool checked)
 			{
 				embedded = false;
 				frame->setVisible(false);
-				statusLabel->setVisible(true);
-
-				QPalette palette = statusLabel->palette();
-				palette.setColor(QPalette::Active, QPalette::WindowText, Qt::red);
-				palette.setColor(QPalette::Inactive, QPalette::WindowText, Qt::red);
-				statusLabel->setPalette(palette);
-				statusLabel->setText(tr("Plugin crashed when opening panel."));
+				refreshCard(tr("Plugin crashed when opening panel."));
 			}
 		}
 		else

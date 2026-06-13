@@ -196,6 +196,7 @@ SOURCES += main.cpp\
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
+	widgets/cards/ReferenceCard.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	widgets/EditableValue.cpp \
 	widgets/ChBadge.cpp \
@@ -378,6 +379,7 @@ HEADERS  += \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
+	widgets/cards/ReferenceCard.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/EditableValue.h \
 	widgets/ChBadge.h \

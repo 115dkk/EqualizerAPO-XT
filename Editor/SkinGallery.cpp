@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QDir>
+#include <QFile>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
@@ -10,6 +11,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QString>
+#include <QTemporaryDir>
 #include <QToolBar>
 
 #include "Editor/FilterTable.h"
@@ -30,12 +32,23 @@ struct GalleryRow
 	QString line;
 };
 
+// A real config path the FilterTable resolves relative include references
+// against. The harness writes an example.txt next to it so the Include
+// reference card renders its found state (AR2 X-9); missing.txt is deliberately
+// absent so the include_missing row renders the broken-reference state. Set in
+// run() before any row is built.
+QString galleryConfigPath;
+
 // Representative rows: a parametric filter, a shelf filter (three knobs in
 // the legacy BiQuad GUI hosted by the card body), a peaking filter at 0 dB
-// (the bipolar gain knob at its neutral detent, X3), an Include row, a VST
-// row and an empty Copy row (the routing editor's empty state, X6). The VST
-// library is intentionally unresolvable; the card renders its not-loaded
-// state, which is the chrome the gallery is after.
+// (the bipolar gain knob at its neutral detent, X3), a resolved Include
+// reference card (the harness drops a real example.txt next to the synthetic
+// config so the row renders its found state, AR2 X-9), a missing Include
+// reference (missing.txt has no file, so the row renders the broken-reference
+// state with the Locate affordance, AR2 X-3/X-4), a VST row and an empty Copy
+// row (the routing editor's empty state, X6). The VST library is intentionally
+// unresolvable (a valid plugin DLL cannot be synthesised), so the VST card
+// renders its missing state - the chrome the gallery is after.
 QList<GalleryRow> galleryRows()
 {
 	return {
@@ -43,6 +56,7 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("shelf"), QStringLiteral("Filter 2: ON HSC Fc 8000 Hz Gain -2.5 dB Q 0.71") },
 		{ QStringLiteral("gain0db"), QStringLiteral("Filter 3: ON PK Fc 1000 Hz Gain 0 dB Q 1") },
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
+		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") }
 	};
@@ -178,9 +192,11 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QList<QString>& l
 	scrollArea.setWidget(table);
 	table->updateDeviceAndChannelMask(nullptr, 0);
 	table->initialize(&scrollArea, {}, {});
-	// The config path is synthetic: it only namespaces per-file row prefs in
-	// the registry, and this name can never collide with a real file.
-	table->setLines(QStringLiteral(":skin-gallery:"), lines);
+	// Use the real temp config path (see galleryConfigPath) when set so the
+	// Include reference card can resolve "example.txt" relative to it and render
+	// its found state. Falls back to the synthetic name for the picker pass,
+	// where no row resolves a file.
+	table->setLines(galleryConfigPath.isEmpty() ? QStringLiteral(":skin-gallery:") : galleryConfigPath, lines);
 	table->updateGuis();
 	scrollArea.show();
 	// Flush the posted polish/layout events, then force the grid to assign row
@@ -370,6 +386,22 @@ int run(const QStringList& arguments)
 	{
 		for (ISkin* skin : Skins::all())
 			skinIds.append(skin->id());
+	}
+
+	// A throwaway config directory holding a real example.txt, so the Include
+	// reference card resolves "example.txt" (found state) while "missing.txt"
+	// and "example.dll" stay unresolved (missing states). The directory lives
+	// for the whole run and is removed when this scope ends.
+	QTemporaryDir configDir;
+	if (configDir.isValid())
+	{
+		QFile example(QDir(configDir.path()).filePath(QStringLiteral("example.txt")));
+		if (example.open(QIODevice::WriteOnly | QIODevice::Text))
+		{
+			example.write("# Gallery include target\nPreamp: -3 dB\nFilter: ON PK Fc 1000 Hz Gain 2 dB Q 1\n");
+			example.close();
+		}
+		galleryConfigPath = QDir(configDir.path()).filePath(QStringLiteral("config.txt"));
 	}
 
 	int failures = 0;

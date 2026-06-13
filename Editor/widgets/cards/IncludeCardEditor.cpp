@@ -1,16 +1,13 @@
 #include "IncludeCardEditor.h"
 
 #include <QDir>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
-#include <QIcon>
-#include <QLabel>
-#include <QLineEdit>
 #include <QMessageBox>
-#include <QStyle>
+#include <QTextStream>
 #include <QToolButton>
-#include <QVBoxLayout>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -22,67 +19,42 @@
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
+#include "Editor/widgets/cards/ReferenceCard.h"
 #include "helpers/RegistryHelper.h"
 
 IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& path, QWidget* parent)
-	: IFilterGUI(parent), filterTable(filterTable)
+	: IFilterGUI(parent), filterTable(filterTable), includePath(path.trimmed())
 {
 	setObjectName(QStringLiteral("IncludeCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
 
 	QHBoxLayout* layout = new QHBoxLayout(this);
 	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(10);
+	layout->setSpacing(0);
 
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const QColor glyphColor(tokens.mutedText);
-	const QColor actionColor(tokens.text);
+	card = new ReferenceCard(QStringLiteral("include"), this);
+	connect(card, &ReferenceCard::nameActivated, this, &IncludeCardEditor::openFile);
+	connect(card, &ReferenceCard::editRequested, this, [this]() { card->enterEditMode(); });
+	connect(card, &ReferenceCard::pathEdited, this, &IncludeCardEditor::pathChanged);
+	layout->addWidget(card, 1);
 
-	QLabel* fileGlyph = new QLabel(this);
-	fileGlyph->setObjectName(QStringLiteral("IncludeCardGlyph"));
-	fileGlyph->setPixmap(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/file-include.svg"), glyphColor, 20).pixmap(GUIHelper::scale(QSize(20, 20))));
-	layout->addWidget(fileGlyph, 0, Qt::AlignVCenter);
+	const QColor actionColor(SkinManager::instance()->tokens().text);
 
-	QWidget* pathBlock = new QWidget(this);
-	QVBoxLayout* pathLayout = new QVBoxLayout(pathBlock);
-	pathLayout->setContentsMargins(0, 0, 0, 0);
-	pathLayout->setSpacing(5);
+	// X-4: a recovery entry point that replaces the bare "File not found"
+	// caption. Visible only while the reference is broken.
+	locateButton = card->addActionButton(QStringLiteral("RefLocateAction"));
+	locateButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), actionColor, 18));
+	locateButton->setText(tr("Locate..."));
+	locateButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+	locateButton->setToolTip(tr("Locate the missing include file"));
+	locateButton->setVisible(false);
+	connect(locateButton, &QToolButton::clicked, this, &IncludeCardEditor::locateFile);
 
-	pathEdit = new QLineEdit(pathBlock);
-	pathEdit->setObjectName(QStringLiteral("IncludeCardPath"));
-	pathEdit->setText(path.trimmed());
-	pathEdit->setPlaceholderText(tr("Configuration file"));
-	connect(pathEdit, SIGNAL(editingFinished()), this, SLOT(pathEdited()));
-	pathLayout->addWidget(pathEdit);
-
-	statusLabel = new QLabel(pathBlock);
-	statusLabel->setObjectName(QStringLiteral("IncludeCardStatus"));
-	statusLabel->setWordWrap(true);
-	pathLayout->addWidget(statusLabel);
-
-	layout->addWidget(pathBlock, 1);
-
-	chooseButton = new QToolButton(this);
-	chooseButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	chooseButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), actionColor, 18));
-	chooseButton->setToolTip(tr("Choose include file"));
-	connect(chooseButton, SIGNAL(clicked()), this, SLOT(chooseFile()));
-	layout->addWidget(chooseButton, 0, Qt::AlignTop);
-
-	openButton = new QToolButton(this);
-	openButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	openButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/pencil.svg"), actionColor, 18));
-	openButton->setToolTip(tr("Open include file"));
-	connect(openButton, SIGNAL(clicked()), this, SLOT(openFile()));
-	layout->addWidget(openButton, 0, Qt::AlignTop);
-
-	importButton = new QToolButton(this);
-	importButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	importButton = card->addActionButton(QStringLiteral("IncludeRefImport"));
 	importButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/import.svg"), actionColor, 18));
 	importButton->setToolTip(tr("Copy this file and its dependencies into the config directory"));
 	importButton->setVisible(false);
-	connect(importButton, SIGNAL(clicked()), this, SLOT(importToConfig()));
-	layout->addWidget(importButton, 0, Qt::AlignTop);
+	connect(importButton, &QToolButton::clicked, this, &IncludeCardEditor::importToConfig);
 
 	// Let the active skin decorate this Include body (the row is recreated on
 	// skin switches, so construction is the only moment needed).
@@ -97,32 +69,39 @@ IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& pa
 void IncludeCardEditor::store(QString& command, QString& parameters)
 {
 	command = QStringLiteral("Include");
-	parameters = pathEdit->text();
+	parameters = includePath;
 }
 
-void IncludeCardEditor::chooseFile()
+void IncludeCardEditor::locateFile()
 {
 	if (filterTable == nullptr)
 		return;
 
-	QFileInfo fileInfo(filterTable->getConfigPath());
-	QDir configDir = fileInfo.absoluteDir();
-	QString path = pathEdit->text();
-	if (!path.isEmpty())
-		fileInfo = currentFileInfo();
+	QFileInfo configInfo(filterTable->getConfigPath());
+	QDir configDir = configInfo.absoluteDir();
+	// Scope the dialog to the last valid directory, falling back to the config
+	// directory (X-4).
+	QString startDir = configDir.absolutePath();
+	if (!includePath.isEmpty())
+	{
+		QFileInfo current = currentFileInfo();
+		if (!current.absolutePath().isEmpty())
+			startDir = current.absolutePath();
+	}
 
-	QFileDialog dialog(this, tr("Include file"), fileInfo.absolutePath(), QStringLiteral("*.txt"));
+	QFileDialog dialog(this, tr("Include file"), startDir, QStringLiteral("*.txt"));
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter(tr("E-APO configurations (*.txt)"));
-	if (!path.isEmpty())
-		dialog.selectFile(fileInfo.fileName());
+	if (!includePath.isEmpty())
+		dialog.selectFile(currentFileInfo().fileName());
 	if (dialog.exec() == QDialog::Accepted)
 	{
 		QString absolutePath = dialog.selectedFiles().first();
 		QString relativePath = configDir.relativeFilePath(absolutePath);
 		if (relativePath.startsWith(QStringLiteral("../../")))
 			relativePath = absolutePath;
-		pathEdit->setText(QDir::toNativeSeparators(relativePath));
+		includePath = QDir::toNativeSeparators(relativePath);
+		card->leaveEditMode();
 		updateFileInfo();
 		emit updateModel();
 	}
@@ -130,28 +109,37 @@ void IncludeCardEditor::chooseFile()
 
 void IncludeCardEditor::openFile()
 {
-	if (filterTable == nullptr)
+	if (filterTable == nullptr || includePath.isEmpty())
 		return;
-
-	QString path = pathEdit->text();
-	if (path.isEmpty())
+	if (!currentFileInfo().exists())
 		return;
 
 	filterTable->openConfig(currentFileInfo().absoluteFilePath());
 }
 
-void IncludeCardEditor::pathEdited()
+void IncludeCardEditor::pathChanged(const QString& newPath)
 {
+	const QString trimmed = newPath.trimmed();
+	if (trimmed == includePath)
+	{
+		updateFileInfo();
+		return;
+	}
+	includePath = trimmed;
 	updateFileInfo();
 	emit updateModel();
 }
 
 QFileInfo IncludeCardEditor::currentFileInfo() const
 {
-	if (filterTable == nullptr)
-		return QFileInfo(pathEdit->text());
+	return currentFileInfo(includePath);
+}
 
-	QString path = pathEdit->text();
+QFileInfo IncludeCardEditor::currentFileInfo(const QString& path) const
+{
+	if (filterTable == nullptr)
+		return QFileInfo(path);
+
 	QString normalizedPath = QDir::fromNativeSeparators(path);
 	if (QDir::isAbsolutePath(normalizedPath))
 		return QFileInfo(path);
@@ -162,38 +150,77 @@ QFileInfo IncludeCardEditor::currentFileInfo() const
 	return fileInfo;
 }
 
+QString IncludeCardEditor::previewText() const
+{
+	QFileInfo info = currentFileInfo();
+	if (!info.exists())
+		return QString();
+
+	QFile file(info.absoluteFilePath());
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+		return QString();
+
+	QTextStream stream(&file);
+	QStringList lines;
+	for (int i = 0; i < 5 && !stream.atEnd(); i++)
+		lines.append(stream.readLine());
+	if (lines.isEmpty())
+		return QString();
+	return lines.join(QLatin1Char('\n'));
+}
+
 void IncludeCardEditor::updateFileInfo()
 {
-	QString error;
-	QString warning;
+	ReferenceCardState state;
+	const QString normalizedPath = QDir::fromNativeSeparators(includePath);
+	state.absolutePath = QDir::isAbsolutePath(normalizedPath);
+
 	bool offerImport = false;
-	QString path = pathEdit->text();
-	if (path.isEmpty())
+	canOpen = false;
+
+	if (includePath.isEmpty())
 	{
-		error = tr("No file selected");
+		state.name = tr("No file selected");
+		state.directory.clear();
+		state.fullPath.clear();
+		state.missing = true;
+		state.statusText = tr("No include file selected");
+		state.statusSeverity = ReferenceCardState::Severity::Warning;
 	}
 	else
 	{
 		QFileInfo fileInfo = currentFileInfo();
+		state.name = fileInfo.fileName();
+		state.directory = QDir::toNativeSeparators(fileInfo.absolutePath());
+		state.fullPath = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
+
 		if (!fileInfo.exists())
 		{
-			error = tr("File not found");
+			state.missing = true;
+			state.statusText = tr("File not found - use Locate to reconnect");
+			state.statusSeverity = ReferenceCardState::Severity::Critical;
 		}
 		else
 		{
-			path = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
-			if (filterTable != nullptr)
+			QString resolvedPath = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
+			canOpen = true;
+			state.nameClickable = true;
+			state.nameTooltip = previewText();
+
+			if (filterTable != nullptr && state.absolutePath)
 			{
-				QString normalizedPath = QDir::cleanPath(QDir::fromNativeSeparators(pathEdit->text()));
 				QString configPath = QDir::cleanPath(QFileInfo(filterTable->getConfigPath()).absolutePath());
-				if (QDir::isAbsolutePath(normalizedPath) && !QDir::cleanPath(fileInfo.absolutePath()).startsWith(configPath, Qt::CaseInsensitive))
-					warning = tr("External absolute include path");
+				if (!QDir::cleanPath(fileInfo.absolutePath()).startsWith(configPath, Qt::CaseInsensitive))
+				{
+					state.statusText = tr("External absolute include path");
+					state.statusSeverity = ReferenceCardState::Severity::Warning;
+				}
 			}
 
 			ACCESS_MASK mask = GENERIC_READ;
 			try
 			{
-				mask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
+				mask = RegistryHelper::getFileAccessForUser(resolvedPath.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
 			}
 			catch (const RegistryException&)
 			{
@@ -201,18 +228,15 @@ void IncludeCardEditor::updateFileInfo()
 
 			if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
 			{
-				error = tr("The file is not readable for the audio service.\nClick the import button to copy it into the config directory.");
+				state.statusText = tr("Not readable by the audio service - use the import button");
+				state.statusSeverity = ReferenceCardState::Severity::Critical;
 				offerImport = true;
 			}
 		}
 	}
 
-	statusLabel->setVisible(!error.isEmpty() || !warning.isEmpty());
-	statusLabel->setText(error.isEmpty() ? warning : error);
-	statusLabel->setProperty("severity", error.isEmpty() ? QStringLiteral("warning") : QStringLiteral("critical"));
-	statusLabel->style()->unpolish(statusLabel);
-	statusLabel->style()->polish(statusLabel);
-	openButton->setEnabled(error.isEmpty() && !pathEdit->text().isEmpty());
+	card->setState(state);
+	locateButton->setVisible(state.missing);
 	importButton->setVisible(offerImport);
 }
 
@@ -247,7 +271,7 @@ void IncludeCardEditor::importToConfig()
 		return;
 	}
 
-	pathEdit->setText(QDir::toNativeSeparators(manifest.rootDest));
+	includePath = QDir::toNativeSeparators(manifest.rootDest);
 	updateFileInfo();
 	emit updateModel();
 }
