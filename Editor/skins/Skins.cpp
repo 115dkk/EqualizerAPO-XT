@@ -14,6 +14,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QLayout>
+#include <QLineEdit>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
@@ -1645,6 +1646,104 @@ private:
 	QLabel* coordinateSource;
 };
 
+// Translate the shared AR2 reference card (Include/VSTPlugin body) into the
+// board's grammar. The shared ReferenceCard styles its own labels and badges
+// inline with neutral, token-driven rules at construction, and a widget's own
+// stylesheet outranks the app stylesheet, so a QSS rule on these object names
+// would never reach them. prepareCommandRow runs after that construction, so
+// re-setting the inline stylesheets here is the deterministic way to dress the
+// reference node. The information hierarchy stays fixed (name primary, path
+// secondary, missing = a row-state transition, Locate = the recovery cell);
+// only the metaphor changes: square round-0 cells, monochrome catalog ink, and
+// status colour rationed to the one state that earns it.
+//
+// kindCap is "Include" or "Vst" - it namespaces every object name except the
+// shared "RefMissingBadge". cap-derived selectors keep the [clickable] /
+// [severity] / [refMissing] dynamic-property states the host drives through
+// setState() working after the repolish setState() issues.
+void styleMatrixReferenceCard(QWidget* body, const QString& kindCap, const SkinTokens& tokens)
+{
+	auto label = [&](const QString& name) { return body->findChild<QLabel*>(name); };
+
+	// Primary name: a board readout label. Plain text ink at rest - accent is
+	// rationed to engagement, so the clickable name only pre-lights accent on
+	// hover (a crosspoint engage preview), never as a resting decoration. The
+	// missing state leaves the name in text ink; the red MISSING cell and the
+	// danger status line carry the broken-reference colour.
+	if (QLabel* name = label(kindCap + QStringLiteral("RefName")))
+	{
+		name->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; font-family:\"%2\"; font-weight:600; }"
+			"QLabel[clickable=\"true\"] { color:%1; }"
+			"QLabel[clickable=\"true\"]:hover { color:%3; }"
+			"QLabel[refMissing=\"true\"] { color:%1; }")
+			.arg(tokens.text, tokens.fontFamily, tokens.accent));
+	}
+
+	// Secondary directory: a monochrome mono board line under the name.
+	if (QLabel* dir = label(kindCap + QStringLiteral("RefDir")))
+	{
+		dir->setStyleSheet(QStringLiteral("color:%1; font-family:\"%2\"; font-size:8pt;")
+			.arg(tokens.mutedText, tokens.monoFontFamily));
+	}
+
+	// Status readout: mono, status-coloured by severity. Critical (broken
+	// reference) reads danger red; a softer caution reads amber - colour
+	// rationing's status channel, never decorative.
+	if (QLabel* status = label(kindCap + QStringLiteral("RefStatus")))
+	{
+		status->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; font-family:\"%2\"; font-size:8pt; }"
+			"QLabel[severity=\"warning\"] { color:%3; }"
+			"QLabel[severity=\"critical\"] { color:%4; }")
+			.arg(tokens.mutedText, tokens.monoFontFamily, tokens.warning, tokens.danger));
+	}
+
+	// Format badge (VST2/VST3): a monochrome code cell, the same monochrome
+	// type-cell grammar typeBadgeStyle uses - a designation, not a status, so
+	// it carries no colour. Square round-0 corners.
+	if (QLabel* format = label(kindCap + QStringLiteral("FormatBadge")))
+	{
+		format->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; border:1px solid %2; border-radius:0; padding:0 5px;"
+			" font-family:\"%3\"; font-size:7pt; font-weight:700; }")
+			.arg(tokens.text, tokens.border, tokens.monoFontFamily));
+	}
+
+	// Absolute-path badge: amber outline - an absolute path is a portability
+	// hazard, a caution state, which is exactly what amber is reserved for.
+	// Square round-0.
+	if (QLabel* abs = label(kindCap + QStringLiteral("RefAbsBadge")))
+	{
+		abs->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; border:1px solid %1; border-radius:0; padding:0 5px;"
+			" font-family:\"%2\"; font-size:7pt; font-weight:700; }")
+			.arg(tokens.warning, tokens.monoFontFamily));
+	}
+
+	// Missing badge: the red status cell the brief calls for - a danger-filled
+	// square cell (round 0) that lights when the reference breaks. This is the
+	// loudest the board's colour rationing ever gets.
+	if (QLabel* missing = body->findChild<QLabel*>(QStringLiteral("RefMissingBadge")))
+	{
+		missing->setStyleSheet(QStringLiteral(
+			"QLabel { color:%1; background:%2; border-radius:0; padding:0 5px;"
+			" font-family:\"%3\"; font-size:7pt; font-weight:700; }")
+			.arg(tokens.background, tokens.danger, tokens.monoFontFamily));
+	}
+
+	// Inline path editor (edit mode only; not in the gallery): a sunken board
+	// input cell, square, engaged accent on focus.
+	if (QLineEdit* pathEdit = body->findChild<QLineEdit*>(kindCap + QStringLiteral("RefPathEdit")))
+	{
+		pathEdit->setStyleSheet(QStringLiteral(
+			"QLineEdit { background:%1; color:%2; border:1px solid %3; border-radius:0;"
+			" padding:4px 8px; font-family:\"%4\"; }"
+			"QLineEdit:focus { border:1px solid %5; }")
+			.arg(tokens.surfaceSunken, tokens.text, tokens.border, tokens.monoFontFamily, tokens.accent));
+	}
+}
+
 // Painted chrome layers for the main toolbar (the board's header strip).
 // QSS cannot draw the 24px column grid or the status lamp, so the matrix
 // toolbar hook parents two transparent, mouse-transparent widgets to the
@@ -2065,22 +2164,30 @@ public:
 		if (body == nullptr)
 			return;
 
+		// The reference-card restyle reads the active skin tokens (dark/light)
+		// to dress the Include/VST body in the board's grammar.
+		const SkinTokens tokens = SkinManager::instance()->tokens();
+
 		if (info.type == QStringLiteral("include"))
 		{
-			// Include row: a single "> source: <path>" board line. The stock
-			// file icon becomes a mono feed marker (QSS #IncludeCardGlyph
-			// styles it); the path field is already the <path> cell. ASCII ">"
-			// instead of U+25B8: DM Mono has no glyph for the triangle and the
-			// offscreen platform renders tofu.
-			QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("IncludeCardGlyph"));
-			if (glyph != nullptr)
-				glyph->setText(QStringLiteral("> source:"));
+			// Include row: a sub-sheet reference node (AR2). The shared
+			// reference card already separates the file name (primary readout)
+			// from the directory (a mono board line below it); this only dresses
+			// those cells in the board's grammar - square round-0 badges,
+			// monochrome catalog ink, status colour rationed to the broken
+			// state. The caption strip under the card still echoes the row's
+			// "> Include: <file>" feed line next to its coordinate.
+			styleMatrixReferenceCard(body, QStringLiteral("Include"), tokens);
 		}
 		else if (info.type == QStringLiteral("vst") && body->objectName() == QStringLiteral("VSTCardEditor"))
 		{
-			// VST row: an external-device entry. A port strip with IN/OUT
-			// markings heads the body, so the plugin reads as outboard gear
-			// patched into the signal path.
+			// VST row: an external-device insert point (AR2). The plugin's own
+			// display name is the primary readout (a named device, not a DLL
+			// path); the reference card is dressed in the same board grammar as
+			// Include, and a port strip with IN/OUT markings heads the body so
+			// the plugin reads as outboard gear patched into the signal path.
+			styleMatrixReferenceCard(body, QStringLiteral("Vst"), tokens);
+
 			QVBoxLayout* bodyLayout = qobject_cast<QVBoxLayout*>(body->layout());
 			if (bodyLayout == nullptr)
 				return;
