@@ -12,6 +12,18 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Fixed a flaky start-up crash that could hit configs opened from an older
+  version: the editor restored a saved window layout that no longer matched the
+  current window structure (changed when the custom title bar moved the menu
+  bar), and crashed during the first paint. The saved layout is now
+  version-checked and ignored when it does not match, so the window simply opens
+  with the default layout once. Also anchored the Qt plugin search to the
+  executable's folder, so launching the editor from a working directory other
+  than its install folder no longer fails with "no Qt platform plugin could be
+  initialized". ([#98])
+
 ## v1.27.0 — 2026-06-13
 
 - Adversarial design review round 1: the parameter area now belongs to each
@@ -407,3 +419,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85
 [#88]: https://github.com/115dkk/EqualizerAPO-XT/pull/88
 [#94]: https://github.com/115dkk/EqualizerAPO-XT/pull/94
+[#98]: https://github.com/115dkk/EqualizerAPO-XT/pull/98
