@@ -358,7 +358,26 @@ int main(int argc, char* argv[])
 	// planning and before the analysis thread starts.
 	fftw_make_planner_thread_safe();
 
-	QCoreApplication::addLibraryPath("qt");
+	// Qt's plugins (platforms\qwindows.dll, imageformats, styles, tls) ship in a
+	// "qt" subfolder beside the executable. addLibraryPath() resolves a relative
+	// path against the current working directory, not the exe directory, so any
+	// launch whose working directory is not the install folder (a file-type
+	// association, a shortcut with a different "Start in", a debugger) left Qt
+	// unable to locate its platform plugin and aborted with "This application
+	// failed to start because no Qt platform plugin could be initialized".
+	// Anchor the plugin search to the executable's own directory instead.
+	{
+		std::wstring pluginDir = executableDirectory();
+		if (!pluginDir.empty())
+		{
+			pluginDir += L"\\qt";
+			QCoreApplication::addLibraryPath(QString::fromStdWString(pluginDir));
+		}
+		else
+		{
+			QCoreApplication::addLibraryPath(QStringLiteral("qt"));
+		}
+	}
 
 	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio.
 	// The editor used to disable Qt scaling (QT_ENABLE_HIGHDPI_SCALING=0) and
