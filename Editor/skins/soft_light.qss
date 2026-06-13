@@ -322,28 +322,125 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 
-/* Include row: the path rides in a rounded breadcrumb chip (a full pill,
-   one value step above the body tray) behind the file glyph. */
-QLineEdit#IncludeCardPath { background: @CARD@; border: 1px solid @BORDER@; border-radius: 16px; padding: 7px 16px; }
-QLineEdit#IncludeCardPath:focus { background: @CARD_HOVER@; border: 1px solid @ACCENT@; }
-QLabel#IncludeCardStatus { color: #dc2626; font-size: 9pt; padding-left: 6px; }
+/* ====================================================================
+   AR2 reference card (Include / VSTPlugin), Soft Lab grammar.
+   The shared round (X-1..X-10) reworked both rows from a path-input form
+   into one ReferenceCard: an icon, a primary name, the directory as
+   secondary metadata, status as a row-state transition, and a Locate
+   recovery affordance. Soft translates that into its attachment-card
+   vocabulary - a rounded reference card that reads like a file added to a
+   settings list (the constitutional Soft way: round 14px, two-value-step
+   elevation, no shadow, no alarm colour). The information hierarchy and the
+   state semantics stay fixed across all five skins; only the metaphor is
+   soft. The directory caption drops the neutral base's monospace for the
+   body font (the constitution forbids mono raw text in the body and reads
+   the dir as the "faded description caption"), and the missing state warms
+   to amber rather than alarming red - a calm "I couldn't find this", in the
+   same warmer-not-alarmed grammar as the save-state and close-button pills.
+   Light tints follow the cream-mode pill conventions (lower-alpha fills,
+   warm-ink text) used by the dirty/format badges above.
+   ==================================================================== */
 
-/* VST row: an app-store-like card. Rounded-square accent "app icon" tile,
-   the plugin name as the large line, the status line beneath it, and an
-   accent pill action button. */
-QLabel#VSTCardGlyph { background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.30); border-radius: 10px; padding: 8px; }
-QLineEdit#VSTCardPath { background: transparent; border: 1px solid transparent; border-radius: 10px; padding: 6px 8px; font-size: 11pt; font-weight: 600; }
-QLineEdit#VSTCardPath:hover { background: rgba(0, 0, 0, 0.03); }
-QLineEdit#VSTCardPath:focus { background: @CARD@; border: 1px solid @ACCENT@; }
-QLabel#VSTCardStatus { background: transparent; font-size: 9pt; padding-left: 2px; }
+/* The reference card itself: a rounded attachment card resting one value
+   step above the body tray, "shadowed" by that step plus the light 1px
+   border. Hover lifts it one more step (the calm app-list affordance). */
+QWidget#IncludeRefDisplay, QWidget#VstRefDisplay {
+    background: @CARD@; border: 1px solid @BORDER@; border-radius: 14px;
+    padding: 8px 12px; margin: 2px;
+}
+QWidget#IncludeRefDisplay:hover, QWidget#VstRefDisplay:hover { background: @CARD_HOVER@; }
+QWidget#IncludeRefTextBlock, QWidget#VstRefTextBlock { background: transparent; border: 0; }
+
+/* The leading icon rides in a soft rounded-square pastel tile, the same
+   "app icon" the picker category tiles and toolbar actions use. Found rests
+   in a calm accent pastel; missing warms to the amber lamp - a gentle "look
+   here", never a red alarm. */
+QLabel#IncludeRefIcon, QLabel#VstRefIcon {
+    background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.30);
+    border-radius: 11px; padding: 7px; margin-right: 2px;
+}
+QLabel#IncludeRefIcon[refMissing="true"], QLabel#VstRefIcon[refMissing="true"] {
+    background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+/* Primary name: the friendly full-ink label. The found name is a calm
+   click affordance (open the file / open the panel); soft keeps it the body
+   ink rather than underlined accent so the row stays restful, and warms it
+   to amber - not red - when the reference is broken. */
+QLabel#IncludeRefName, QLabel#VstRefName { color: @TEXT@; font-weight: 600; font-size: 11pt; }
+QLabel#IncludeRefName[clickable="true"], QLabel#VstRefName[clickable="true"] { color: @ACCENT@; }
+QLabel#IncludeRefName[refMissing="true"], QLabel#VstRefName[refMissing="true"] { color: #996714; }
+
+/* The directory caption and the status line keep the neutral base's leaf
+   styling (muted dir, severity-coloured status): the shared ReferenceCard
+   sets those two labels with a per-widget inline stylesheet whose attribute
+   selectors Qt prefers over any application rule, so a skin cannot recolour
+   them from QSS without touching shared code. Soft carries its warm "found
+   it missing" state through the parts it does own - the amber icon lamp, the
+   amber primary name and the filled amber MISSING pill - so the one
+   neutral-coloured caption reads as a quiet footnote under an already-soft
+   broken-reference card, not as an alarm. */
+
+/* Format badge (VST2 / VST3): a calm accent pastel stadium chip, the same
+   pill grammar as the device-format badge. */
+QLabel#IncludeFormatBadge, QLabel#VstFormatBadge {
+    background: rgba(59, 130, 246, 0.12); color: #32538B;
+    border: 1px solid rgba(59, 130, 246, 0.32);
+    border-radius: 9px; padding: 2px 9px; font-size: 8pt; font-weight: 700;
+}
+
+/* Absolute-path badge: a soft amber chip flagging the portability hazard -
+   warm, not an alarm (constitution: "ABS is a soft yellow chip"). */
+QLabel#IncludeRefAbsBadge, QLabel#VstRefAbsBadge {
+    background: rgba(245, 158, 11, 0.14); color: #996714;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 9px; padding: 2px 9px; font-size: 8pt; font-weight: 700;
+}
+
+/* Missing badge: the loudest token soft owns - a FILLED amber stadium pill.
+   It still transitions the whole row to a clear "missing" state (X-3) while
+   staying inside soft's no-red-alarm palette. */
+QLabel#RefMissingBadge {
+    background: rgba(217, 119, 6, 0.92); color: #FFFFFF;
+    border: 0; border-radius: 9px; padding: 2px 9px; font-size: 8pt; font-weight: 700;
+}
+
+/* Locate: a friendly accent pill button (constitution: "Locate is a kind
+   button"), the same app-store-action grammar as the VST panel button. */
+QToolButton#RefLocateAction {
+    background: rgba(59, 130, 246, 0.12); color: @ACCENT@;
+    border: 0; border-radius: 14px;
+    padding: 6px 16px; min-height: 22px; font-weight: 700;
+}
+QToolButton#RefLocateAction:hover { background: rgba(59, 130, 246, 0.20); }
+QToolButton#RefLocateAction:pressed { background: rgba(59, 130, 246, 0.30); }
+
+/* Inline path editor (the pencil reveals it): a sunken stadium well with a
+   calm accent focus ring, never an alarm border. */
+QLineEdit#IncludeRefPathEdit, QLineEdit#VstRefPathEdit {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 14px; padding: 7px 16px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+}
+QLineEdit#IncludeRefPathEdit:focus, QLineEdit#VstRefPathEdit:focus { background: @CARD@; border: 1px solid @ACCENT@; }
+
+/* VST secondary affordances. The panel button stays an accent pastel pill
+   next to the clickable name; the options button is a quiet rounded square;
+   the embed frame and permission warning keep their calm surfaces. */
 QPushButton#VSTCardPanelButton {
     background: rgba(59, 130, 246, 0.12); color: @ACCENT@;
-    border: 0; border-radius: 15px;
-    padding: 6px 18px; min-height: 24px; font-weight: 700;
+    border: 0; border-radius: 14px;
+    padding: 6px 16px; min-height: 22px; font-weight: 700;
 }
 QPushButton#VSTCardPanelButton:hover { background: rgba(59, 130, 246, 0.20); }
 QPushButton#VSTCardPanelButton:pressed { background: rgba(59, 130, 246, 0.30); }
 QPushButton#VSTCardPanelButton:disabled { background: @SURFACE@; color: rgba(120, 111, 103, 0.55); }
+QToolButton#VSTCardOptions {
+    background: @SURFACE@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 12px;
+    min-width: 26px; min-height: 26px; padding: 2px 6px; font-weight: 700;
+}
+QToolButton#VSTCardOptions:hover { background: @CARD_HOVER@; border-color: rgba(59, 130, 246, 0.55); }
 QFrame#VSTCardEmbedFrame { background: @CARD@; border: 1px solid @BORDER@; border-radius: 14px; }
 QPlainTextEdit#VSTCardWarning { background: rgba(217, 119, 6, 0.08); color: @TEXT@; border: 1px solid rgba(217, 119, 6, 0.35); border-radius: 10px; padding: 6px; }
 
