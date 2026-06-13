@@ -15,9 +15,14 @@
 #include <QEvent>
 #include <QFontMetricsF>
 #include <QHash>
+#include <QLabel>
+#include <QLineEdit>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPushButton>
 #include <QToolBar>
+#include <QToolButton>
+#include <QWidget>
 #include <QtMath>
 
 #include "Editor/SkinManager.h"
@@ -583,6 +588,166 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 	}
 
 	painter.restore();
+}
+
+namespace
+{
+// Re-evaluate a widget's stylesheet so a freshly set dynamic property takes
+// effect on the next paint (the reference card drives refMissing/severity).
+void rackRepolish(QWidget* widget)
+{
+	if (widget == nullptr)
+		return;
+	widget->style()->unpolish(widget);
+	widget->style()->polish(widget);
+	widget->update();
+}
+
+// The green LCD segment ink used by every readout on this machine; it never
+// follows the panel finish (the display law), so it is the same in both modes.
+QString rackSegmentInk(bool dark)
+{
+	return dark ? QStringLiteral("#86F2BA") : QStringLiteral("#3ED68E");
+}
+
+// The dark glass of a display well, identical in both modes (display law).
+QString rackWellGlass(bool dark)
+{
+	return dark ? QStringLiteral("#0B0F0C") : QStringLiteral("#11150F");
+}
+}
+
+void dressReferenceCard(QWidget* body, bool isVst, const SkinTokens& tokens)
+{
+	if (body == nullptr)
+		return;
+
+	const QString cap = isVst ? QStringLiteral("Vst") : QStringLiteral("Include");
+	const bool dark = isDarkPanel(tokens);
+
+	// The card's own widget-level stylesheet outranks the app QSS for its
+	// labels and badges, so the rack vocabulary is set here per widget. The
+	// fonts come from the skin tokens; mono lines use the readout font.
+	const QString mono = tokens.monoFontFamily;
+	const QString segment = rackSegmentInk(dark);
+	const QString glass = rackWellGlass(dark);
+
+	// --- Display well -----------------------------------------------------
+	// Include is a patch sheet seated in a recessed display well; the VST body
+	// is the module's reading bay. Either way the body becomes a machined inset
+	// (dark glass + one-light chamfer) cut into the brushed faceplate rather
+	// than a flat slab covering it. A missing reference takes the vacant
+	// "module pulled" finish (darker glass), driven by the refMissing property
+	// the card sets through setState() after this runs - so it is expressed as
+	// an attribute rule the later repolish picks up, not read once here.
+	QWidget* well = body->findChild<QWidget*>(cap + QStringLiteral("RefDisplay"));
+	if (well != nullptr)
+	{
+		const QString emptyBay = dark ? QStringLiteral("#070A08") : QStringLiteral("#0C0F0A");
+		const QString lip = dark ? QStringLiteral("#39424A") : QStringLiteral("#4A4438");
+		well->setStyleSheet(QStringLiteral(
+			"QWidget#%1RefDisplay { background: %2; border: 1px solid #050807;"
+			" border-top-color: #000000; border-bottom-color: %3; border-radius: 2px;"
+			" margin: 1px 0; }"
+			"QWidget#%1RefDisplay[refMissing=\"true\"] { background: %4; }")
+			.arg(cap, glass, lip, emptyBay));
+		rackRepolish(well);
+	}
+
+	// --- Primary name: lit engraving --------------------------------------
+	// The file / plugin name is the unit's engraved designation. When the
+	// reference resolves and is the jump/open affordance it is lit amber (the
+	// lamp warming the printing); a broken reference burns danger ink; an
+	// inert resolved name stays warm ivory. Engraved caps, letter-spaced.
+	if (QLabel* name = body->findChild<QLabel*>(cap + QStringLiteral("RefName")))
+	{
+		name->setStyleSheet(QStringLiteral(
+			"QLabel { color: %1; background: transparent; font-weight: 700;"
+			" letter-spacing: 1px; }"
+			"QLabel[clickable=\"true\"] { color: %2; }"
+			"QLabel[refMissing=\"true\"] { color: %3; }")
+			.arg(tokens.text, tokens.accent, tokens.danger));
+		rackRepolish(name);
+	}
+
+	// --- Directory: LCD-mono segment line ---------------------------------
+	// The path tail reads as a panel readout - green segments on the glass,
+	// honouring the display law even on the cream faceplate.
+	if (QLabel* dir = body->findChild<QLabel*>(cap + QStringLiteral("RefDir")))
+	{
+		dir->setStyleSheet(QStringLiteral(
+			"color: %1; background: transparent; font-family: \"%2\";"
+			" font-size: 8pt; letter-spacing: 1px;")
+			.arg(segment, mono));
+	}
+
+	// --- Status line ------------------------------------------------------
+	// Engraved service note under the readout: muted at rest, amber on a
+	// portability warning, danger when the reference is broken.
+	if (QLabel* status = body->findChild<QLabel*>(cap + QStringLiteral("RefStatus")))
+	{
+		status->setStyleSheet(QStringLiteral(
+			"QLabel { color: %1; background: transparent; font-size: 8pt;"
+			" font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }"
+			"QLabel[severity=\"warning\"] { color: %2; }"
+			"QLabel[severity=\"critical\"] { color: %3; }")
+			.arg(tokens.mutedText, tokens.warning, tokens.danger));
+		rackRepolish(status);
+	}
+
+	// --- Badges: engraved wireframe tokens (no fill) ----------------------
+	// This skin prints status as engraving and lamps, never as a filled chip.
+	// The format badge is a muted engraving; ABS is amber (the portability
+	// hazard lamp); MISSING is the danger engraving - a stamped warning, not a
+	// red pill. All wireframe, mono, letter-spaced, like the device badge on
+	// the master rail.
+	const QString engraving = QStringLiteral(
+		"QLabel { background: transparent; color: %1; border: 1px solid %1;"
+		" border-radius: 1px; padding: 0 5px; font-weight: 700; font-size: 7pt;"
+		" text-transform: uppercase; letter-spacing: 1px; }");
+	if (QLabel* format = body->findChild<QLabel*>(cap + QStringLiteral("FormatBadge")))
+		format->setStyleSheet(engraving.arg(tokens.mutedText));
+	if (QLabel* abs = body->findChild<QLabel*>(cap + QStringLiteral("RefAbsBadge")))
+		abs->setStyleSheet(engraving.arg(tokens.warning));
+	if (QLabel* miss = body->findChild<QLabel*>(QStringLiteral("RefMissingBadge")))
+		miss->setStyleSheet(engraving.arg(tokens.danger));
+
+	// --- Inline path editor: a milled display well ------------------------
+	if (QLineEdit* edit = body->findChild<QLineEdit*>(cap + QStringLiteral("RefPathEdit")))
+	{
+		edit->setStyleSheet(QStringLiteral(
+			"QLineEdit { background: %1; color: %2; border: 1px solid #050807;"
+			" border-bottom-color: #39424A; border-radius: 2px; padding: 4px 8px;"
+			" font-family: \"%3\"; }"
+			"QLineEdit:focus { border: 1px solid %4; }")
+			.arg(glass, segment, mono, tokens.accent));
+	}
+
+	// --- Locate: a module re-seat switch cap ------------------------------
+	// Re-seating a pulled module is a hardware action, so Locate is a raised
+	// switch cap with engraved caps printing - the same transport-cap grammar
+	// as the toolbar, not a flat text link.
+	if (QToolButton* locate = body->findChild<QToolButton*>(QStringLiteral("RefLocateAction")))
+	{
+		const QString capFace = dark
+			? QStringLiteral("stop:0 #2C333A, stop:1 #1B2126")
+			: QStringLiteral("stop:0 #FFFFFF, stop:1 #E6DECC");
+		const QString capPressed = dark
+			? QStringLiteral("stop:0 #161B1F, stop:1 #242B31")
+			: QStringLiteral("stop:0 #D8CFBB, stop:1 #EFE8D8");
+		const QString capEdge = dark ? QStringLiteral("#11161A") : QStringLiteral("#AFA288");
+		const QString capLit = dark ? QStringLiteral("#3E474F") : QStringLiteral("#FFFFFF");
+		locate->setStyleSheet(QStringLiteral(
+			"QToolButton#RefLocateAction { color: %1;"
+			" background: qlineargradient(x1:0, y1:0, x2:0, y2:1, %2);"
+			" border: 1px solid %3; border-top-color: %4; border-radius: 2px;"
+			" padding: 3px 10px; font-weight: 700; text-transform: uppercase;"
+			" letter-spacing: 1px; font-size: 8pt; }"
+			"QToolButton#RefLocateAction:hover { border-color: %5; border-top-color: %4; }"
+			"QToolButton#RefLocateAction:pressed {"
+			" background: qlineargradient(x1:0, y1:0, x2:0, y2:1, %6); border-color: %5; }")
+			.arg(tokens.text, capFace, capEdge, capLit, tokens.accent, capPressed));
+	}
 }
 
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
