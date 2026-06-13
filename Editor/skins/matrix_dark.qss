@@ -1055,7 +1055,10 @@ QWidget#PreampCardEditor,
 QWidget#IncludeCardEditor,
 QWidget#VSTCardEditor,
 QWidget#PreampCardValueBlock,
-QLabel#IncludeCardStatus,
+QWidget#includeRefCard,
+QWidget#vstRefCard,
+QWidget#IncludeRefDisplay,
+QWidget#VstRefDisplay,
 QLabel#PreampCardCaption {
     background: transparent;
     border: 0;
@@ -1084,25 +1087,50 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
-/* Include row: a single "> source: <path>" board line. */
-QLabel#IncludeCardGlyph {
+/* Reference cards (AR2): Include = a sub-sheet reference node, VST = an
+   external-device insert point. The shared ReferenceCard styles its name,
+   directory and badges inline, so MatrixSkin::prepareCommandRow re-dresses
+   those in C++ (square round-0 cells, monochrome ink, status colour rationed
+   to the broken state). What stays here is the button chrome the card hosts -
+   those QToolButton/QPushButton have no inline stylesheet, so the app
+   stylesheet reaches them. The Locate cell is the recovery entry point and
+   reads as an engage-style action cell: a square cell that pre-lights accent
+   on hover and engages on press, the crosspoint grammar applied to an action.
+   The Open-panel and options/import cells share the same square-cell train. */
+QToolButton#RefLocateAction,
+QPushButton#VSTCardPanelButton,
+QToolButton#VSTCardOptions,
+QToolButton#IncludeRefImport {
     background: transparent;
-    border: 0;
-    color: @ACCENT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-weight: 700;
-}
-QLineEdit#IncludeCardPath {
-    background: @GRAPH@;
+    color: @TEXT@;
     border: 1px solid @BORDER@;
     border-radius: 0;
-    padding: 6px 10px;
+    padding: 3px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 8pt;
 }
-QLabel#IncludeCardStatus {
-    color: @DANGER@;
-    font-size: 9pt;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+QToolButton#RefLocateAction:hover,
+QPushButton#VSTCardPanelButton:hover,
+QToolButton#VSTCardOptions:hover,
+QToolButton#IncludeRefImport:hover {
+    background: rgba(34, 211, 238, 0.10);
+    border-color: @ACCENT@;
+    color: @ACCENT@;
+}
+QToolButton#RefLocateAction:pressed,
+QPushButton#VSTCardPanelButton:pressed,
+QToolButton#VSTCardOptions:pressed,
+QToolButton#IncludeRefImport:pressed {
+    background: rgba(34, 211, 238, 0.28);
+    border-color: @ACCENT@;
+}
+/* A demoted action on a broken reference: an unselectable cancelled cell. */
+QPushButton#VSTCardPanelButton:disabled,
+QToolButton#VSTCardOptions:disabled {
+    color: @MUTED@;
+    border: 1px dashed @BORDER@;
+    background: transparent;
 }
 /* VST row: an external-device entry with IN/OUT port markings. */
 QWidget#MatrixVstPortStrip {
@@ -1124,9 +1152,6 @@ QLabel#MatrixVstDeviceLabel {
     font-weight: 600;
     font-size: 8pt;
     letter-spacing: 2px;
-}
-QLineEdit#VSTCardPath {
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
 QLineEdit#CrosspointEditor {
     background: @GRAPH@;

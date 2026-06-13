@@ -156,12 +156,48 @@ AR1 M2로 픽커의 좌표 언어가 행에 수입됐다.
 - **템플릿 선택기**(`filterSelector`): 행이 물고 있는 항목의 판독 셀.
   툴바의 목적지 판독 셀과 같은 함몰 배경.
 
-### Include / VST 행
+### Include / VST 행 — 참조 노드 (AR2 개정)
 
-- Include: `> source: <path>` 모노 보드 라인. 화살은 ASCII `>`다 — DM Mono에
-  U+25B8이 없어 오프스크린에서 두부가 되는 함정을 피한 결정.
-- VST: **외부 장비 엔트리**. 본문 머리에 `> IN … EXTERNAL DEVICE … OUT >`
-  포트 스트립이 붙어, 플러그인이 신호 경로에 패치된 아웃보드 장비로 읽힌다.
+AR2 라운드에서 두 행은 공유 `ReferenceCard`로 바뀌었다. 경로 입력 폼이
+아니라 **참조 노드**다: 이름이 1차 판독, 디렉터리가 2차 보드 라인, 미발견은
+캡션이 아니라 행 상태 전환, Locate는 복구 진입점이다. 이 정보 위계는
+다섯 스킨 공통으로 고정이고, matrix는 은유만 입힌다.
+
+공유 카드는 자기 라벨·배지에 중립 인라인 스타일을 건다. 위젯 자신의
+스타일시트가 앱 스타일시트를 누르므로, 객체 이름을 노린 QSS는 그 라벨에
+닿지 못한다. 그래서 보드 문법은 `MatrixSkin::prepareCommandRow`가
+`styleMatrixReferenceCard`로 인라인 스타일을 **다시 써서** 입힌다(생성
+순서상 중립 스타일 → 이 재작성 → setState 순이라 재작성이 이긴다).
+
+- **Include = 서브시트 참조 노드.** 파일 이름이 보드 판독 라벨(DM Sans,
+  본문 잉크)이고, 디렉터리는 그 아래 모노 muted 보드 라인이다. 카드 맨
+  아래 캡션 스트립이 여전히 `> Include: <파일> I<n>` 피드 라인을 좌표와
+  함께 에코한다.
+- **VST = 외부 장비 인서트 포인트.** 본문 머리에 `> IN … EXTERNAL DEVICE …
+  OUT >` 포트 스트립이 붙어 플러그인이 신호 경로에 패치된 아웃보드 장비로
+  읽힌다(`MatrixVstPortStrip`). 1차 라벨은 DLL 경로가 아니라 플러그인 표시
+  이름이다(공유 카드가 effGetEffectName으로 한 번만 해석).
+- **이름의 색은 체결에만.** 클릭 가능한 이름(점프/패널 열기)도 평시엔 본문
+  잉크다. 액센트는 호버할 때만 켜진다 — 크로스포인트 호버 예고와 같은
+  체결 프리라이트이고, 평시 장식이 아니다. 미발견 이름도 본문 잉크로 두고,
+  적색은 MISSING 셀과 상태 라인이 진다.
+- **미발견 = 적색 상태 셀.** MISSING 배지는 danger로 채운 정사각(라운드 0)
+  셀이다 — 보드의 색 배급제가 켜는 가장 큰 램프. 상태 라인은 Critical에서
+  적색, 가벼운 주의에서 앰버다. 끊긴 참조에서 무효가 된 액션(VST의 Open
+  panel·옵션)은 점선 룰의 취소 셀로 강등된다(M4 결항 문법).
+- **ABS 배지 = 앰버 외곽 정사각 셀.** 절대 경로는 설정 이식성을 깨는 주의
+  상태이므로 앰버다(M3 '주의').
+- **포맷 배지(VST2/VST3) = 단색 코드 셀.** 타입 배지와 같은 단색 문법:
+  타입 코드는 색이 아니라 모노 텍스트가 말한다(라운드 0, 외곽선).
+- **Locate = 체결형 액션 셀.** 정사각 모노 셀이 호버에서 액센트 프리라이트,
+  누름에서 액센트 체결로 켜진다 — 크로스포인트 체결 문법을 액션에 적용했다.
+  Open panel·옵션·import 셀도 같은 정사각 셀 열을 공유한다.
+- **모든 배지는 라운드 0.** 공유 카드의 중립 배지는 3px 곡률을 갖는데, 이는
+  matrix의 1조(라운드 0)에 어긋나므로 전부 정사각으로 되돌린다.
+
+(이전 `> source: <path>` 단일 보드 라인 문법은 AR2 이전 단행 카드의 것으로,
+참조 노드 카드로 대체됐다. 화살 `>` 마커는 캡션 스트립과 포트 스트립에
+남아 있다.)
 
 ### Copy 라우팅 — 크로스포인트 격자 (Crosspoint)
 
@@ -215,7 +251,9 @@ matrix의 LED는 보드 셀의 추상 점등이다(스큐어모피즘 금지).
 - 클래스: `MatrixSkin` — [Skins.cpp](../../Editor/skins/Skins.cpp)
   (`MatrixMetrics` 네임스페이스: gridPitch 24, coordinateBandWidth 120,
   railInset 4, knobCellHeight 16; 행 캡션 스트립 `MatrixRowCaption`과
-  버스 문자 표 `matrixBusLetter`도 같은 구역에 있다)
+  버스 문자 표 `matrixBusLetter`도 같은 구역에 있다. Include/VST 참조
+  카드의 보드 문법은 같은 구역의 `styleMatrixReferenceCard`가
+  `prepareCommandRow`에서 인라인 스타일로 입힌다)
 - QSS: `Editor/skins/matrix_dark.qss`, `matrix_light.qss`
 - 픽커: `Editor/skins/pickers/MatrixFilterPicker.{h,cpp}`
   (`galleryShowcase`가 picker_hover/picker_empty 갤러리 상태를 연출한다)
