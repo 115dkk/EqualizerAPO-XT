@@ -848,6 +848,42 @@ jobs:
               -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
 
       # -----------------------------------------------------------------------
+      # PERSISTENT STREAM: hold a continuous WASAPI silence stream OPEN on the
+      # Scream endpoint, in a detached background process, so audiodg is ACTIVELY
+      # loading the EQ APO chain while the uninstall removes it. The headless
+      # 1-second stream-force (step 35) ended long before the uninstall, so run 4
+      # removed the APO with no consumer attached and the endpoint survived. The
+      # user's real machine had audio IN USE across the uninstall - this step
+      # reproduces that condition. The process tolerates device-invalidation
+      # (keeps running) so it spans the whole uninstall window and is killed after
+      # the post-uninstall snapshot.
+      # -----------------------------------------------------------------------
+      - name: Start persistent WASAPI stream on Scream (47)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $screamId = "{0.0.0.00000000}.$env:SCREAM_GUID"
+          $hold = Join-Path $env:GITHUB_WORKSPACE ".github\scripts\Hold-WasapiStream.ps1"
+          $outLog = Join-Path $env:SNAP_DIR "persistent-stream.out.log"
+          $errLog = Join-Path $env:SNAP_DIR "persistent-stream.err.log"
+          Write-Host "Launching persistent silence stream (held across the uninstall) on $screamId"
+          $proc = Start-Process pwsh `
+              -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File",$hold,"-ScreamId",$screamId,"-Seconds","240" `
+              -PassThru -WindowStyle Hidden `
+              -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+          "STREAM_PID=$($proc.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          # Give it a few seconds to open the stream + build the chain, then make
+          # sure it did not die immediately.
+          Start-Sleep -Seconds 6
+          if ($proc.HasExited) {
+              Write-Warning "Persistent stream exited early (code $($proc.ExitCode)); see logs below"
+              if (Test-Path $outLog) { Get-Content $outLog | ForEach-Object { Write-Host "  out: $_" } }
+              if (Test-Path $errLog) { Get-Content $errLog | ForEach-Object { Write-Host "  err: $_" } }
+          } else {
+              Write-Host "Persistent stream running as PID $($proc.Id)"
+          }
+
+      # -----------------------------------------------------------------------
       # STEP 6a: Run the real per-device uninstall via DeviceSelector.exe /u.
       #   load() detects the Scream endpoint as installed (FxProperties names an
       #   EQ GUID), reads originals back from Child APOs\{guid}, and uninstall
@@ -902,11 +938,25 @@ jobs:
           }
 
           # Brief settle so AudioSrv-only restart finishes; then snapshot the
-          # post-uninstall state. NO reboot - this is the whole point.
+          # post-uninstall state. NO reboot - this is the whole point. The
+          # persistent stream is STILL running here (audiodg held the chain across
+          # the removal), which is the faithful "audio in use during uninstall".
           Start-Sleep -Seconds 5
           & $env:SNAP_SCRIPT -Phase "50-after-velo" -SnapshotDir $env:SNAP_DIR `
               -ScreamGuid $env:SCREAM_GUID -MMDevicesRoot $env:MMDEVICES_ROOT `
               -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
+
+          # Report whether the persistent stream survived the uninstall (a stream
+          # that died is itself a sign the endpoint was invalidated), then stop it.
+          if ($env:STREAM_PID) {
+              $sp = Get-Process -Id ([int]$env:STREAM_PID) -ErrorAction SilentlyContinue
+              if ($null -eq $sp) { Write-Host "Persistent stream process already exited before snapshot (endpoint likely invalidated)" }
+              else { Write-Host "Persistent stream still alive (PID $env:STREAM_PID); stopping it"; try { Stop-Process -Id ([int]$env:STREAM_PID) -Force -ErrorAction Stop } catch {} }
+          }
+          $psOut = Join-Path $env:SNAP_DIR "persistent-stream.out.log"
+          if (Test-Path $psOut) { Write-Host "--- persistent-stream.out.log ---"; Get-Content $psOut | ForEach-Object { Write-Host "  $_" } }
+          $psErr = Join-Path $env:SNAP_DIR "persistent-stream.err.log"
+          if ((Test-Path $psErr) -and (Get-Item $psErr).Length -gt 0) { Write-Host "--- persistent-stream.err.log ---"; Get-Content $psErr | ForEach-Object { Write-Host "  $_" } }
 
       # -----------------------------------------------------------------------
       # STEP 7: Validate the fix candidate, still WITHOUT rebooting.
