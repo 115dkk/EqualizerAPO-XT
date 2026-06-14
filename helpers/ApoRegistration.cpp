@@ -42,6 +42,7 @@ namespace
 constexpr wchar_t kRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO";
 constexpr wchar_t kAudioRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio";
 constexpr wchar_t kAudioServiceName[] = L"AudioSrv";
+constexpr wchar_t kAudioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";
 
 std::wstring systemPath()
 {
@@ -307,7 +308,39 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 		logLine(L"WARN", L"Failed to remove start menu shortcuts");
 
 	if (serviceWasRunning)
+	{
+		// Force a LIVE endpoint-graph rebuild, then bring AudioSrv back.
+		//
+		// Restarting only AudioSrv (Windows Audio) is not enough to apply an APO
+		// removal: AudioEndpointBuilder - the service AudioSrv depends on, which
+		// enumerates endpoints and reads FxProperties to build the APO chain -
+		// keeps its stale in-memory graph that still references the just-removed
+		// APO. While audio is in use, the affected endpoint then becomes unusable
+		// and vanishes from Windows until a reboot rebuilds the graph (users hit
+		// this as "all my audio devices disappeared after uninstalling"). This was
+		// reproduced on a live virtual (Scream) endpoint with audio in use: after
+		// an AudioSrv-only uninstall the endpoint went missing, and only an
+		// AudioEndpointBuilder restart - or a reboot - brought it back, even
+		// though the registry was already clean.
+		//
+		// AudioSrv was stopped above, so restart AudioEndpointBuilder FIRST while
+		// AudioSrv is cleanly stopped: AEB rebuilds the graph from the now-clean
+		// registry, and we then start AudioSrv on top of the rebuilt graph. Doing
+		// it in this order avoids a race where starting AudioSrv first leaves it in
+		// START_PENDING and the AEB-restart cascade tries to stop a still-starting
+		// service (which would abort the restart and leave the graph stale). If the
+		// AEB restart fails we still start AudioSrv so audio is not left down; a
+		// reboot would then be needed to fully apply the removal.
+		try
+		{
+			ServiceHelper::restartService(kAudioEndpointBuilderServiceName);
+		}
+		catch (const ServiceException& e)
+		{
+			logLine(L"WARN", L"Failed to restart AudioEndpointBuilder; a reboot may be needed to fully apply the removal: %s", e.getMessage().c_str());
+		}
 		startAudioService();
+	}
 
 	return deviceResult;
 }
