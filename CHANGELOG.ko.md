@@ -6,6 +6,18 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- 제거 시 모든 오디오 장치가 사라져 재부팅해야 복구되던 치명적 버그를
+  고쳤습니다. 제거 과정이 Windows Audio 서비스만 재시작해, Windows Audio
+  Endpoint Builder가 방금 제거된 APO를 가리키는 낡은 엔드포인트 그래프를 그대로
+  들고 있었습니다. 그래서 사용 중이던 장치가 재부팅으로 그래프를 다시 만들기
+  전까지 쓸 수 없었습니다(레지스트리는 이미 깨끗했고, 원래 드라이버 효과가
+  복원돼 있었습니다). 이제 제거 시 Windows Audio Endpoint Builder를 재시작해
+  라이브 그래프를 재구성하므로 오디오 장치가 사라지지 않습니다. dispatch 전용 CI
+  워크플로우가 오디오를 재생 중인 실제 가상 엔드포인트에서 이를 재현하고 수정을
+  검증합니다. ([#105])
+
 ## v1.27.1 (2026-06-13)
 
 - 시작 시 드물게 나던 크래시를 고쳤습니다. 구버전에서 저장한 설정을 열 때,
@@ -395,3 +407,5 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#85]: https://github.com/115dkk/EqualizerAPO-XT/pull/85
 [#88]: https://github.com/115dkk/EqualizerAPO-XT/pull/88
 [#94]: https://github.com/115dkk/EqualizerAPO-XT/pull/94
+[#98]: https://github.com/115dkk/EqualizerAPO-XT/pull/98
+[#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
