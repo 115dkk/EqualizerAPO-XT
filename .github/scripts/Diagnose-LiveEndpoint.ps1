@@ -113,20 +113,27 @@ function Read-Phase {
     return Get-Content -Raw -Path $jsonPath | ConvertFrom-Json
 }
 
-# An endpoint counts as "live/active" when IMMDevice::GetState reports ACTIVE,
-# or (fallback) the MMDevices DeviceState DWORD is exactly 1 (DEVICE_STATE_ACTIVE).
-# When the endpoint no longer enumerates at all, screamEndpointState is "NOTFOUND".
-function Test-EndpointActive {
+# Tri-state activity of the endpoint from a snapshot: 'Active', 'Inactive', or
+# 'Unknown'. The live COM state (IMMDevice::GetState via the snapshot helper) is
+# authoritative: 'ACTIVE' -> Active; 'NOTFOUND'/'DISABLED'/'UNPLUGGED'/
+# 'NOTPRESENT' -> Inactive. 'ENUM_FAILED' means the COM enumerator itself threw
+# even after retries, so we genuinely do not know -> Unknown (NOT a device-loss
+# signal; treating it as Inactive would produce a false "reproduced"). The
+# registry DeviceState DWORD is deliberately NOT used as an active signal,
+# because it stayed 1 (ACTIVE) even when the live endpoint was gone - that
+# registry-vs-live mismatch is the very bug being measured.
+function Get-EndpointActivity {
     param($Snapshot)
-    if ($null -eq $Snapshot) { return $false }
-    if ($Snapshot.screamEndpointState -eq 'ACTIVE') { return $true }
-    if ($Snapshot.screamEndpointState -eq 'NOTFOUND') { return $false }
-    # Fallback to the registry DeviceState only if the COM state was unavailable
-    # (e.g. enumeration threw). 1 == DEVICE_STATE_ACTIVE.
-    if ($null -eq $Snapshot.screamEndpointState -or $Snapshot.screamEndpointState -eq '') {
-        return ([int]$Snapshot.screamDeviceStateMM -eq 1)
+    if ($null -eq $Snapshot) { return 'Unknown' }
+    switch ($Snapshot.screamEndpointState) {
+        'ACTIVE'      { return 'Active' }
+        'NOTFOUND'    { return 'Inactive' }
+        'DISABLED'    { return 'Inactive' }
+        'UNPLUGGED'   { return 'Inactive' }
+        'NOTPRESENT'  { return 'Inactive' }
+        'ENUM_FAILED' { return 'Unknown' }
+        default       { return 'Unknown' }
     }
-    return $false
 }
 
 function Format-Snap {
@@ -169,9 +176,9 @@ if ($null -eq $afterVelo) {
     exit 3
 }
 
-$beforeActive    = Test-EndpointActive $before
-$afterVeloActive = Test-EndpointActive $afterVelo
-$afterAebActive  = if ($null -ne $afterAeb) { Test-EndpointActive $afterAeb } else { $false }
+$beforeState    = Get-EndpointActivity $before
+$afterVeloState = Get-EndpointActivity $afterVelo
+$afterAebState  = Get-EndpointActivity $afterAeb
 
 # The registry being CLEAN after uninstall is what makes the live disappearance
 # the AudioEndpointBuilder/stale-graph bug rather than a registry-delete bug. We
@@ -179,16 +186,35 @@ $afterAebActive  = if ($null -ne $afterAeb) { Test-EndpointActive $afterAeb } el
 # covered by Diagnose-AudioUninstall.ps1 / Diagnose-DanglingOnFailure.ps1).
 $registryClean = [bool]$afterVelo.registryClean
 
+# Whether the EQ APO was actually live before the uninstall. If it was never
+# applied, the bug's precondition (a dangling EQ APO reference after removal)
+# never existed, so a "still active" result is meaningless.
+$eqWasApplied = [bool]$before.screamFxPointsAtEq
+
 $verdicts = New-Object System.Collections.Generic.List[string]
 
-$reproduced = ($beforeActive -and -not $afterVeloActive)
-$fixValidated = ($reproduced -and $afterAebActive)
+# reproduced requires a DEFINITE before=Active -> after=Inactive transition.
+# Any 'Unknown' (ENUM_FAILED) on the gating snapshots makes the run inconclusive
+# rather than a false positive/negative.
+$reproduced   = ($beforeState -eq 'Active' -and $afterVeloState -eq 'Inactive')
+$fixValidated = ($reproduced -and $afterAebState -eq 'Active')
 
-if (-not $beforeActive) {
-    $verdicts.Add('PRECONDITION NOT MET: the Scream endpoint was not Active before the uninstall. The live experiment cannot run (Scream may not have activated on this runner, or the stream-force did not bring it Active). Inspect 30/35 snapshots.')
+$inconclusive = $false
+if (-not $eqWasApplied) {
+    $verdicts.Add('SETUP INVALID: the EQ APO was not actually applied to the Scream endpoint before the uninstall (screamFxPointsAtEq=False at the pre-uninstall snapshot). The bug precondition was never established; inspect step 30. This is a harness problem, not a property of the audio code.')
+    $inconclusive = $true
+}
+elseif ($beforeState -ne 'Active') {
+    $verdicts.Add("PRECONDITION NOT MET: the Scream endpoint was not confirmed Active before the uninstall (state=$beforeState). " +
+        "If 'Unknown', the COM enumerator failed even after retries; if 'Inactive', Scream did not stay active. Inspect 30/35 snapshots.")
+    $inconclusive = $true
+}
+elseif ($afterVeloState -eq 'Unknown') {
+    $verdicts.Add('INCONCLUSIVE: the endpoint state could not be read after the uninstall (COM enumerator failed even after retries). Cannot tell reproduced from not-reproduced; inspect the 50-after-velo snapshot.')
+    $inconclusive = $true
 }
 elseif ($reproduced) {
-    $verdicts.Add('(live) REPRODUCED: the Scream endpoint was ACTIVE before the uninstall and went INACTIVE/missing immediately after the AudioSrv-only uninstall, WITHOUT a reboot.')
+    $verdicts.Add('(live) REPRODUCED: the Scream endpoint was ACTIVE (with the EQ APO live) before the uninstall and went INACTIVE/missing immediately after the AudioSrv-only uninstall, WITHOUT a reboot.')
     if ($registryClean) {
         $verdicts.Add('  Registry is CLEAN after uninstall (original driver APO GUIDs restored, no EQ GUID dangling). The live loss is therefore the stale endpoint-graph bug: ApoRegistration::uninstall cycled only AudioSrv, never AudioEndpointBuilder.')
     }
@@ -197,7 +223,7 @@ elseif ($reproduced) {
     }
 }
 else {
-    $verdicts.Add('(live) NOT REPRODUCED: the Scream endpoint stayed ACTIVE after the AudioSrv-only uninstall (no reboot). Either the bug did not reproduce on this runner or Scream behaves differently here.')
+    $verdicts.Add("(live) NOT REPRODUCED: the Scream endpoint stayed ACTIVE after the AudioSrv-only uninstall (no reboot, after-state=$afterVeloState). Either the bug did not reproduce on this runner or Scream behaves differently here.")
 }
 
 if ($reproduced) {
@@ -207,8 +233,11 @@ if ($reproduced) {
     elseif ($fixValidated) {
         $verdicts.Add('(live) FIX VALIDATED: after Restart-Service -Force AudioEndpointBuilder the Scream endpoint returned to ACTIVE, WITHOUT a reboot. The fix candidate restores the endpoint live.')
     }
+    elseif ($afterAebState -eq 'Unknown') {
+        $verdicts.Add('(live) FIX NOT EVALUATED: the endpoint state could not be read after the AudioEndpointBuilder restart (COM enumerator failed). Inspect the 70-after-aeb snapshot.')
+    }
     else {
-        $verdicts.Add('(live) FIX NOT VALIDATED: the Scream endpoint stayed INACTIVE/missing even after the AudioEndpointBuilder restart. The fix candidate is insufficient on this runner.')
+        $verdicts.Add("(live) FIX NOT VALIDATED: the Scream endpoint stayed INACTIVE/missing even after the AudioEndpointBuilder restart (after-state=$afterAebState). The fix candidate is insufficient on this runner.")
     }
 }
 
@@ -221,8 +250,8 @@ foreach ($v in $verdicts) {
 Write-Host ''
 
 # Exit-code convention (see the .DESCRIPTION header for the full rationale).
-if (-not $beforeActive) {
-    Write-Host 'RESULT: INCONCLUSIVE - endpoint was not Active before uninstall (see exit 1).'
+if ($inconclusive) {
+    Write-Host 'RESULT: INCONCLUSIVE - the live experiment could not be evaluated (exit 1). Inspect the snapshots.'
     exit 1
 }
 if (-not $reproduced) {
