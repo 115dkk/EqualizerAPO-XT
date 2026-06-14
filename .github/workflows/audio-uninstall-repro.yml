@@ -97,6 +97,18 @@ env:
   FX_EFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7"
   # A stable, made-up endpoint GUID for the seed. Distinct from any real device.
   TEST_ENDPOINT_GUID: "{aabbccdd-1122-3344-5566-778899aabbcc}"
+  # Two distinct made-up endpoints for the dangling-on-per-device-failure job:
+  #   A = the CLEAN device (FxProperties pre-existed -> restore branch)
+  #   B = the POISONED device (NOKEY install -> deleteKey branch, made to FAIL)
+  ENDPOINT_A_GUID: "{aaaaaaaa-1111-2222-3333-444444444444}"
+  ENDPOINT_B_GUID: "{bbbbbbbb-1111-2222-3333-444444444444}"
+  # A processing-mode-shaped subkey planted under B\FxProperties so that
+  # RegDeleteKeyExW on B\FxProperties fails (the key still has a subkey). Real
+  # drivers/Windows store processing-mode subkeys here; this is the realistic
+  # cause of the per-device de-register failure. The GUID is the default
+  # processing mode value EqualizerAPO itself writes
+  # (DeviceAPOInfo.Install.cpp:60), used here as a plausible subkey name.
+  FX_PROCESSINGMODE_SUBKEY: "{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}"
   # Plausible non-EQ "original driver" APO GUIDs (these mimic a vendor APO chain
   # so the restore path has real values to put back). They are arbitrary but
   # must NOT equal the EQ GUIDs above.
@@ -593,3 +605,459 @@ jobs:
               -TestEndpointGuid $env:TEST_ENDPOINT_GUID `
               -PreMixGuid $env:EQ_PREMIX_GUID `
               -PostMixGuid $env:EQ_POSTMIX_GUID
+
+  # ===========================================================================
+  # JOB 2: dangling-on-per-device-failure  --  reproduces bug "(b)"
+  # ===========================================================================
+  #
+  # WHAT THIS PROVES (and how it differs from the clean-path job above)
+  #   The job above proves the PROPER uninstall is CLEAN: it restores a single
+  #   device's original driver APO GUIDs. This job proves the SPECIFIC failure
+  #   the maintainer hit: when ONE device's per-device de-register THROWS,
+  #   ApoRegistration::uninstall (helpers/ApoRegistration.cpp:250-313) swallows
+  #   the exception, CONTINUES the loop, and STILL unregisters the COM server
+  #   unconditionally (registerComServer(dllPath, true), line 281). That device
+  #   is left pointing at the EqualizerAPO APO GUID while the COM CLSID is gone
+  #   -> a DANGLING reference (class C) audiodg cannot satisfy.
+  #
+  #   The realistic forced failure is DeviceAPOInfo::uninstall()'s NOKEY branch
+  #   (devices/DeviceAPOInfo.Uninstall.cpp:74-77): when EqualizerAPO created the
+  #   FxProperties key itself, the saved originals are all the "!KEY" sentinel
+  #   (DeviceAPOInfo.h:28), so uninstall DELETES the whole FxProperties key with
+  #   RegistryHelper::deleteKey -> RegDeleteKeyExW (RegistryHelper.cpp:291-299).
+  #   RegDeleteKeyExW cannot delete a key that still has subkeys. Real drivers
+  #   keep processing-mode subkeys under FxProperties, so the delete throws
+  #   RegistryException. uninstall() has NO takeOwnership/makeWritable fallback
+  #   (that only exists in install(), Install.cpp:88-92), so the throw escapes,
+  #   is caught by ApoRegistration::uninstall, and the loop continues to COM
+  #   unregister. The device dangles.
+  #
+  # WHY TWO ENDPOINTS
+  #   A (clean)    : its FxProperties pre-existed with original driver APO GUIDs,
+  #                  so its saved originals in Child APOs\A are real GUIDs and
+  #                  uninstall takes the RESTORE branch (Uninstall.cpp:78-91).
+  #                  It should come back clean -> shows the damage is isolated.
+  #   B (poisoned) : the NOKEY install state (Child APOs\B all "!KEY") PLUS a
+  #                  stray subkey under B\FxProperties so the deleteKey FAILS.
+  #                  It should be left dangling.
+  #
+  # WHY NO DeviceSelector /u FIRST
+  #   We run ONLY the Velopack app uninstall, so ApoRegistration::uninstall faces
+  #   an installed, poisoned device. (DeviceSelector /u would also iterate and
+  #   throw on B, but the bug under test is the unconditional COM unregister in
+  #   the Velopack uninstall hook, so we exercise that path directly.)
+  #
+  # VERDICT CONVENTION (DELIBERATELY INVERTED vs the clean-path job)
+  #   This job exists to PROVE the bug, so a GREEN run means the bug reproduced.
+  #     - Diagnose-DanglingOnFailure.ps1 prints "<b> REPRODUCED" and EXITS 0 when
+  #       B dangles (key+FxProperties present and still naming an EQ APO GUID)
+  #       AND the EQ COM InprocServer32 is gone after uninstall.
+  #     - It prints "<b> NOT REPRODUCED" and EXITS 1 otherwise.
+  #   Do NOT read this job's green like the clean-path job's green. Green here =
+  #   the dangling state was successfully reproduced.
+  #
+  # SAFETY / SCOPE
+  #   Same as job 1: workflow_dispatch ONLY, disposable GitHub runner. It writes
+  #   HKLM and runs the released uninstaller; never run on a developer machine.
+  #
+  # LIMITATION
+  #   No audiodg.exe loads a real APO chain on a headless runner, so this proves
+  #   the registry is LEFT dangling (the necessary precondition), not the live
+  #   kernel disappearance. The full live failure needs real audio hardware.
+  # ===========================================================================
+  dangling-on-per-device-failure:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout (for the diagnosis script)
+        uses: actions/checkout@v4
+
+      - name: Prepare snapshot directory
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "audio-dangling-snapshots"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          "SNAP_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Snapshots will be written to $dir"
+
+      # -----------------------------------------------------------------------
+      # Snapshot helper for THIS job. It captures, per phase, facts for BOTH
+      # seeded endpoints (A and B) plus the EQ COM CLSID InprocServer32 state,
+      # so the diagnosis can prove "B dangles AND COM gone". The clean-path
+      # job's helper only handles a single endpoint and no CLSID; this is a
+      # superset written job-locally so the two jobs stay independent.
+      # -----------------------------------------------------------------------
+      - name: Write snapshot helper (dangling job)
+        shell: pwsh
+        run: |
+          $helper = @'
+          [CmdletBinding()]
+          param(
+              [Parameter(Mandatory=$true)][string]$Phase,
+              [Parameter(Mandatory=$true)][string]$SnapshotDir,
+              [Parameter(Mandatory=$true)][string]$EndpointAGuid,
+              [Parameter(Mandatory=$true)][string]$EndpointBGuid,
+              [Parameter(Mandatory=$true)][string]$MMDevicesRoot,
+              [Parameter(Mandatory=$true)][string]$PreMixGuid,
+              [Parameter(Mandatory=$true)][string]$PostMixGuid
+          )
+          $ErrorActionPreference = "Stop"
+
+          # 1) Full MMDevices\Audio tree as a .reg export (forensic record).
+          $regFile = Join-Path $SnapshotDir "$Phase-mmdevices.reg"
+          reg export $MMDevicesRoot $regFile /y | Out-Null
+
+          $renderPath = "$MMDevicesRoot\Render"
+
+          function Get-EndpointFacts {
+              param([string]$Guid)
+              $epKeyPS = "Registry::$renderPath\$Guid"
+              $fxKeyPS = "$epKeyPS\FxProperties"
+              $keyPresent = Test-Path $epKeyPS
+              $fxPresent  = Test-Path $fxKeyPS
+              $fxValues = [ordered]@{}
+              $fxSubkeyCount = 0
+              if ($fxPresent) {
+                  $item = Get-Item $fxKeyPS
+                  foreach ($name in $item.GetValueNames()) {
+                      if ($name -like '{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},*') {
+                          $fxValues[$name] = [string](Get-ItemProperty -Path $fxKeyPS -Name $name).$name
+                      }
+                  }
+                  $fxSubkeyCount = (Get-ChildItem $fxKeyPS -ErrorAction SilentlyContinue | Measure-Object).Count
+              }
+              return [ordered]@{
+                  guid          = $Guid
+                  keyPresent    = $keyPresent
+                  fxPresent     = $fxPresent
+                  fxValues      = $fxValues
+                  fxSubkeyCount = $fxSubkeyCount
+              }
+          }
+
+          $aFacts = Get-EndpointFacts $EndpointAGuid
+          $bFacts = Get-EndpointFacts $EndpointBGuid
+
+          # Render subkeys that are NEITHER A NOR B (over-deletion detector).
+          $siblingRenderCount = 0
+          if (Test-Path "Registry::$renderPath") {
+              $siblingRenderCount = (Get-ChildItem "Registry::$renderPath" |
+                  Where-Object { $_.PSChildName -ne $EndpointAGuid -and $_.PSChildName -ne $EndpointBGuid } |
+                  Measure-Object).Count
+          }
+
+          # EQ COM CLSID state under HKCR\CLSID. The "COM unregistered" half of
+          # the dangling proof is the InprocServer32 subkey being gone.
+          function Test-Clsid {
+              param([string]$Clsid)
+              $clsidPS = "Registry::HKEY_CLASSES_ROOT\CLSID\$Clsid"
+              $inprocPS = "$clsidPS\InprocServer32"
+              return [ordered]@{
+                  clsidPresent  = (Test-Path $clsidPS)
+                  inprocPresent = (Test-Path $inprocPS)
+              }
+          }
+          $preCom  = Test-Clsid $PreMixGuid
+          $postCom = Test-Clsid $PostMixGuid
+
+          $obj = [ordered]@{
+              phase                 = $Phase
+              endpointA             = $aFacts
+              endpointB             = $bFacts
+              siblingRenderCount    = $siblingRenderCount
+              comPreMixClsidPresent  = $preCom.clsidPresent
+              comPreMixInproc        = $preCom.inprocPresent
+              comPostMixClsidPresent = $postCom.clsidPresent
+              comPostMixInproc       = $postCom.inprocPresent
+              # Value names used by the diagnosis to read A's restored LFX/GFX.
+              lfxValueName = "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1"
+              gfxValueName = "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},2"
+          }
+          $obj | ConvertTo-Json -Depth 6 |
+              Out-File -FilePath (Join-Path $SnapshotDir "$Phase-dangling.json") -Encoding utf8
+          Write-Host "[$Phase] A(key=$($aFacts.keyPresent) fx=$($aFacts.fxPresent)) B(key=$($bFacts.keyPresent) fx=$($bFacts.fxPresent) sub=$($bFacts.fxSubkeyCount)) comInproc(pre=$($preCom.inprocPresent) post=$($postCom.inprocPresent))"
+          '@
+          $path = Join-Path $env:RUNNER_TEMP "snapshot-dangling.ps1"
+          $helper | Out-File -FilePath $path -Encoding utf8
+          "SNAP_SCRIPT=$path" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Snapshot baseline (00)
+        shell: pwsh
+        run: |
+          & $env:SNAP_SCRIPT -Phase "00-baseline" -SnapshotDir $env:SNAP_DIR `
+              -EndpointAGuid $env:ENDPOINT_A_GUID -EndpointBGuid $env:ENDPOINT_B_GUID `
+              -MMDevicesRoot $env:MMDEVICES_ROOT `
+              -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
+
+      # -----------------------------------------------------------------------
+      # STEP 2: Seed TWO render endpoints.
+      #   A (clean)    : Properties + FxProperties WITH original driver APO GUIDs.
+      #   B (poisoned) : Properties only at this stage; the NOKEY installed state
+      #                  (FxProperties created by EqualizerAPO) is applied in
+      #                  step 3, where we also plant the delete-blocking subkey.
+      #
+      #   MMDevices\Audio\Render is owned by SYSTEM; even an elevated admin gets
+      #   "Access is denied" until ownership is taken and Administrators get full
+      #   control (the product does the same takeOwnership/makeWritable dance in
+      #   DeviceAPOInfo.Install.cpp when FxProperties is locked). This preamble is
+      #   REQUIRED for the seed/replicate steps to write under Render. The real
+      #   Velopack uninstall does its own access handling, so this grant does not
+      #   change the product's behaviour under test.
+      # -----------------------------------------------------------------------
+      - name: Seed endpoints A (clean) and B (poisoned shell) (10)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $renderPath = "$env:MMDEVICES_ROOT\Render"
+
+          # --- Take ownership of Render + grant Administrators FullControl -----
+          Add-Type -Namespace Win32Acl -Name Priv -MemberDefinition '[System.Runtime.InteropServices.DllImport("ntdll.dll")] public static extern int RtlAdjustPrivilege(int Privilege, bool Enable, bool CurrentThread, out bool Enabled);'
+          $enabled = $false
+          [Win32Acl.Priv]::RtlAdjustPrivilege(9,  $true, $false, [ref]$enabled) | Out-Null   # SeTakeOwnershipPrivilege
+          [Win32Acl.Priv]::RtlAdjustPrivilege(18, $true, $false, [ref]$enabled) | Out-Null   # SeRestorePrivilege
+          $renderSub = "SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"
+          $admins = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+          $k = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($renderSub, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
+          if ($null -eq $k) { Write-Error "Could not open $renderSub to take ownership"; exit 1 }
+          $ownAcl = $k.GetAccessControl([System.Security.AccessControl.AccessControlSections]::Owner)
+          $ownAcl.SetOwner($admins); $k.SetAccessControl($ownAcl); $k.Close()
+          $k = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($renderSub, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+          $dacl = $k.GetAccessControl([System.Security.AccessControl.AccessControlSections]::Access)
+          $rule = New-Object System.Security.AccessControl.RegistryAccessRule($admins, [System.Security.AccessControl.RegistryRights]::FullControl, ([System.Security.AccessControl.InheritanceFlags]::ContainerInherit), [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)
+          $dacl.AddAccessRule($rule); $k.SetAccessControl($dacl); $k.Close()
+          Write-Host "Took ownership of and granted Administrators FullControl on HKLM\$renderSub"
+
+          # --- Device A: clean endpoint with pre-existing driver FxProperties ---
+          $epA = "$renderPath\$env:ENDPOINT_A_GUID"
+          reg add $epA /v DeviceState /t REG_DWORD /d 1 /f | Out-Null
+          reg add "$epA\Properties" /v "{a45c254e-df1c-4efd-8020-67d146a850e0},2" /t REG_SZ /d "Speakers" /f | Out-Null
+          reg add "$epA\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},6" /t REG_SZ /d "Realtek High Definition Audio" /f | Out-Null
+          $fxA = "$epA\FxProperties"
+          reg add $fxA /v "$env:FX_LFX" /t REG_SZ /d "$env:ORIG_LFX_GUID" /f | Out-Null
+          reg add $fxA /v "$env:FX_GFX" /t REG_SZ /d "$env:ORIG_GFX_GUID" /f | Out-Null
+          reg add $fxA /v "$env:FX_SFX" /t REG_SZ /d "$env:ORIG_SFX_GUID" /f | Out-Null
+          Write-Host "Seeded clean device A ($env:ENDPOINT_A_GUID) with original driver APO GUIDs"
+
+          # --- Device B: Properties + an ACTIVE DeviceState; NO FxProperties yet.
+          # The NOKEY state means EqualizerAPO will be the one that created
+          # FxProperties, so we create it (and the saved !KEY originals) in
+          # step 3, where we also plant the delete-blocking subkey.
+          $epB = "$renderPath\$env:ENDPOINT_B_GUID"
+          reg add $epB /v DeviceState /t REG_DWORD /d 1 /f | Out-Null
+          reg add "$epB\Properties" /v "{a45c254e-df1c-4efd-8020-67d146a850e0},2" /t REG_SZ /d "Speakers" /f | Out-Null
+          reg add "$epB\Properties" /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},6" /t REG_SZ /d "USB Audio Device" /f | Out-Null
+          Write-Host "Seeded poisoned device B ($env:ENDPOINT_B_GUID) shell (FxProperties applied in step 3)"
+
+          & $env:SNAP_SCRIPT -Phase "10-seeded" -SnapshotDir $env:SNAP_DIR `
+              -EndpointAGuid $env:ENDPOINT_A_GUID -EndpointBGuid $env:ENDPOINT_B_GUID `
+              -MMDevicesRoot $env:MMDEVICES_ROOT `
+              -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
+
+      # -----------------------------------------------------------------------
+      # STEP 3: Download + silently install the released x64-avx2 build so the
+      #   real Velopack uninstall + DllUnregisterServer exist on disk. Same logic
+      #   as the clean-path job (the asset name doubles the channel because the
+      #   packId already embeds it; Setup.exe accepts --silent).
+      # -----------------------------------------------------------------------
+      - name: Download + silently install x64-avx2 release (20)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = "${{ github.repository }}"
+          $tag = "${{ github.event.inputs.release_tag }}"
+
+          $asset = "EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe"
+          $dl = Join-Path $env:RUNNER_TEMP "release-dl"
+          New-Item -ItemType Directory -Force -Path $dl | Out-Null
+
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+              gh release download --repo $repo --pattern $asset --dir $dl --clobber
+              gh release download --repo $repo --pattern "SHA256SUMS.txt" --dir $dl --clobber
+          } else {
+              gh release download $tag --repo $repo --pattern $asset --dir $dl --clobber
+              gh release download $tag --repo $repo --pattern "SHA256SUMS.txt" --dir $dl --clobber
+          }
+
+          $setup = Join-Path $dl $asset
+          if (-not (Test-Path $setup)) { Write-Error "Could not download $asset"; exit 1 }
+
+          $sums = Join-Path $dl "SHA256SUMS.txt"
+          if (Test-Path $sums) {
+              $line = Get-Content $sums | Where-Object { $_ -match [regex]::Escape($asset) + '$' } | Select-Object -First 1
+              if ($line) {
+                  $expected = ($line -split '\s+')[0].ToLowerInvariant()
+                  $actual = (Get-FileHash -Path $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+                  if ($expected -ne $actual) { Write-Error "Checksum mismatch for $asset (expected $expected, got $actual)"; exit 1 }
+                  Write-Host "Checksum OK for $asset"
+              } else {
+                  Write-Warning "SHA256SUMS.txt present but does not list $asset; skipping verification"
+              }
+          } else {
+              Write-Warning "No SHA256SUMS.txt asset on the release; skipping verification"
+          }
+
+          Write-Host "Running silent install: $setup --silent"
+          $p = Start-Process -FilePath $setup -ArgumentList "--silent" -PassThru -Wait
+          Write-Host "Setup exited with $($p.ExitCode)"
+
+          $candidates = @(
+              (Join-Path $env:LOCALAPPDATA "EqualizerAPO-XT-x64-avx2"),
+              (Join-Path ${env:ProgramData} "EqualizerAPO-XT-x64-avx2")
+          )
+          $root = $candidates | Where-Object { Test-Path (Join-Path $_ "Update.exe") } | Select-Object -First 1
+          if (-not $root) {
+              $root = Get-ChildItem -Path $env:LOCALAPPDATA -Directory -ErrorAction SilentlyContinue |
+                  Where-Object { $_.Name -like "EqualizerAPO-XT*" -and (Test-Path (Join-Path $_.FullName "Update.exe")) } |
+                  Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $root) { Write-Error "Velopack install root not found after install"; exit 1 }
+          $current = Join-Path $root "current"
+          Write-Host "Install root: $root"
+          Write-Host "Bin dir:      $current"
+          "VELO_ROOT=$root"       | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VELO_CURRENT=$current" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          & $env:SNAP_SCRIPT -Phase "20-installed" -SnapshotDir $env:SNAP_DIR `
+              -EndpointAGuid $env:ENDPOINT_A_GUID -EndpointBGuid $env:ENDPOINT_B_GUID `
+              -MMDevicesRoot $env:MMDEVICES_ROOT `
+              -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
+
+      # -----------------------------------------------------------------------
+      # STEP 4: Replicate DeviceAPOInfo::install faithfully on BOTH endpoints.
+      #
+      #   A (FxProperties pre-existed -> "else" branch, Install.cpp:102-121):
+      #     save the existing originals (or "!VALUE") into Child APOs\A, then
+      #     write EQ pre-mix into LFX (,1), EQ post-mix into GFX (,2), delete
+      #     SFX/MFX/EFX (Install.cpp:144-156).
+      #
+      #   B (NOKEY -> "if" branch, Install.cpp:80-101):
+      #     create FxProperties, write the fx title, store all five Child APOs\B
+      #     value names as the "!KEY" sentinel, PreMixChild/PostMixChild empty,
+      #     then write EQ pre-mix into LFX and EQ post-mix into GFX. FINALLY plant
+      #     a stray processing-mode SUBKEY under B\FxProperties so the uninstall's
+      #     deleteKey(B\FxProperties) -> RegDeleteKeyExW FAILS.
+      # -----------------------------------------------------------------------
+      - name: Replicate per-device APO install on A and B (30)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $renderReg = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"
+
+          # Child APOs root (Install.cpp:71).
+          reg add $env:CHILD_APO_ROOT /f | Out-Null
+
+          # ---- Device A: FxProperties exists -> save originals, apply EQ -------
+          $epA   = "$env:MMDEVICES_ROOT\Render\$env:ENDPOINT_A_GUID"
+          $fxA   = "$epA\FxProperties"
+          $childA = "$env:CHILD_APO_ROOT\$env:ENDPOINT_A_GUID"
+          reg add $childA /f | Out-Null
+          $fxAItem = Get-Item "$renderReg\$env:ENDPOINT_A_GUID\FxProperties"
+          $existingA = $fxAItem.GetValueNames()
+          foreach ($vn in @($env:FX_LFX, $env:FX_GFX, $env:FX_SFX, $env:FX_MFX, $env:FX_EFX)) {
+              if ($existingA -contains $vn) {
+                  $val = [string](Get-ItemProperty -Path "$renderReg\$env:ENDPOINT_A_GUID\FxProperties" -Name $vn).$vn
+              } else {
+                  $val = "!VALUE"   # APOGUID_NOVALUE (DeviceAPOInfo.h:29)
+              }
+              reg add $childA /v "$vn" /t REG_SZ /d "$val" /f | Out-Null
+          }
+          reg add $childA /v "PreMixChild"  /t REG_SZ /d "$env:ORIG_LFX_GUID" /f | Out-Null
+          reg add $childA /v "PostMixChild" /t REG_SZ /d "$env:ORIG_GFX_GUID" /f | Out-Null
+          reg add $childA /v "AllowSilentBufferModification" /t REG_SZ /d "false" /f | Out-Null
+          reg add $childA /v "Version" /t REG_SZ /d "2" /f | Out-Null
+          reg add $fxA /v "$env:FX_LFX" /t REG_SZ /d "$env:EQ_PREMIX_GUID" /f | Out-Null
+          reg add $fxA /v "$env:FX_GFX" /t REG_SZ /d "$env:EQ_POSTMIX_GUID" /f | Out-Null
+          foreach ($vn in @($env:FX_SFX, $env:FX_MFX, $env:FX_EFX)) {
+              reg delete $fxA /v "$vn" /f 2>$null | Out-Null
+          }
+          Write-Host "A: applied EQ (LFX=premix, GFX=postmix); saved real originals under Child APOs\A"
+
+          # ---- Device B: NOKEY install -> create FxProperties, all !KEY saved ---
+          $epB   = "$env:MMDEVICES_ROOT\Render\$env:ENDPOINT_B_GUID"
+          $fxB   = "$epB\FxProperties"
+          $childB = "$env:CHILD_APO_ROOT\$env:ENDPOINT_B_GUID"
+          reg add $childB /f | Out-Null
+          # FxProperties created by EqualizerAPO: fx title + EQ APO GUIDs. The
+          # NOKEY branch (Install.cpp:80-101) writes all five saved values as
+          # "!KEY" and PreMix/PostMixChild empty.
+          reg add $fxB /v "{b725f130-47ef-101a-a5f1-02608c9eebac},10" /t REG_SZ /d "Equalizer APO" /f | Out-Null
+          foreach ($vn in @($env:FX_LFX, $env:FX_GFX, $env:FX_SFX, $env:FX_MFX, $env:FX_EFX)) {
+              reg add $childB /v "$vn" /t REG_SZ /d "!KEY" /f | Out-Null   # APOGUID_NOKEY (DeviceAPOInfo.h:28)
+          }
+          reg add $childB /v "PreMixChild"  /t REG_SZ /d "" /f | Out-Null
+          reg add $childB /v "PostMixChild" /t REG_SZ /d "" /f | Out-Null
+          reg add $childB /v "AllowSilentBufferModification" /t REG_SZ /d "false" /f | Out-Null
+          reg add $childB /v "Version" /t REG_SZ /d "2" /f | Out-Null
+          # INSTALL_LFX_GFX writes EQ pre-mix into LFX and EQ post-mix into GFX.
+          reg add $fxB /v "$env:FX_LFX" /t REG_SZ /d "$env:EQ_PREMIX_GUID" /f | Out-Null
+          reg add $fxB /v "$env:FX_GFX" /t REG_SZ /d "$env:EQ_POSTMIX_GUID" /f | Out-Null
+          # THE POISON: plant a stray processing-mode subkey under B\FxProperties
+          # so RegDeleteKeyExW(B\FxProperties) fails (key has a subkey) at
+          # uninstall time -> RegistryException -> swallowed -> COM unregistered.
+          reg add "$fxB\$env:FX_PROCESSINGMODE_SUBKEY" /f | Out-Null
+          Write-Host "B: applied NOKEY install (Child APOs\B all !KEY); planted delete-blocking subkey $env:FX_PROCESSINGMODE_SUBKEY under B\FxProperties"
+
+          & $env:SNAP_SCRIPT -Phase "30-apo-applied" -SnapshotDir $env:SNAP_DIR `
+              -EndpointAGuid $env:ENDPOINT_A_GUID -EndpointBGuid $env:ENDPOINT_B_GUID `
+              -MMDevicesRoot $env:MMDEVICES_ROOT `
+              -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
+
+      # -----------------------------------------------------------------------
+      # STEP 5: Run ONLY the Velopack app uninstall (no DeviceSelector /u first).
+      #   Update.exe --uninstall runs the --veloapp-uninstall hook, which calls
+      #   ApoRegistration::uninstall (Editor/main.cpp:308-311). That loops all
+      #   devices, throws on B's deleteKey, swallows it, continues, and STILL
+      #   runs DllUnregisterServer (ApoRegistration.cpp:281). Bin-dir CWD +
+      #   bounded wait so a UI/elevation hang on the headless runner cannot stall.
+      # -----------------------------------------------------------------------
+      - name: Run Velopack app uninstall (50)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $update = Join-Path $env:VELO_ROOT "Update.exe"
+          if (-not (Test-Path $update)) {
+              Write-Warning "Update.exe not found at $update; skipping Velopack uninstall"
+          } else {
+              Write-Host "Running $update --uninstall (silent, cwd=$env:VELO_ROOT)"
+              $p = Start-Process -FilePath $update -ArgumentList "--uninstall","--silent" -WorkingDirectory $env:VELO_ROOT -PassThru
+              if (-not $p.WaitForExit(180000)) {
+                  Write-Warning "Update.exe --uninstall did not exit within 180s; killing it"
+                  try { $p.Kill() } catch {}
+              } else {
+                  Write-Host "Update.exe --uninstall exited with $($p.ExitCode)"
+              }
+          }
+
+          & $env:SNAP_SCRIPT -Phase "50-after-velo" -SnapshotDir $env:SNAP_DIR `
+              -EndpointAGuid $env:ENDPOINT_A_GUID -EndpointBGuid $env:ENDPOINT_B_GUID `
+              -MMDevicesRoot $env:MMDEVICES_ROOT `
+              -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
+
+      - name: Upload snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-dangling-snapshots
+          path: ${{ env.SNAP_DIR }}/**
+          if-no-files-found: warn
+
+      # -----------------------------------------------------------------------
+      # STEP 6: Diagnose. INVERTED convention: exit 0 (GREEN) means (b) was
+      #   reproduced (B dangles AND COM unregistered); exit 1 (RED) means it was
+      #   not. See the job banner and Diagnose-DanglingOnFailure.ps1 header.
+      # -----------------------------------------------------------------------
+      - name: Diagnose (b)
+        if: always()
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\.github\scripts\Diagnose-DanglingOnFailure.ps1" `
+              -SnapshotDir $env:SNAP_DIR `
+              -EndpointAGuid $env:ENDPOINT_A_GUID `
+              -EndpointBGuid $env:ENDPOINT_B_GUID `
+              -PreMixGuid $env:EQ_PREMIX_GUID `
+              -PostMixGuid $env:EQ_POSTMIX_GUID `
+              -OrigLfxGuid $env:ORIG_LFX_GUID `
+              -OrigGfxGuid $env:ORIG_GFX_GUID
