@@ -266,10 +266,7 @@ jobs:
           # inheritably so the seed (10) and replicate (30) steps can write under
           # it. The real DeviceSelector /u (40) does its own takeOwnership, so this
           # grant does not change the product's behaviour under test.
-          Add-Type -Namespace Win32Acl -Name Priv -MemberDefinition @"
-[System.Runtime.InteropServices.DllImport("ntdll.dll")]
-public static extern int RtlAdjustPrivilege(int Privilege, bool Enable, bool CurrentThread, out bool Enabled);
-"@
+          Add-Type -Namespace Win32Acl -Name Priv -MemberDefinition '[System.Runtime.InteropServices.DllImport("ntdll.dll")] public static extern int RtlAdjustPrivilege(int Privilege, bool Enable, bool CurrentThread, out bool Enabled);'
           $enabled = $false
           [Win32Acl.Priv]::RtlAdjustPrivilege(9,  $true, $false, [ref]$enabled) | Out-Null   # SeTakeOwnershipPrivilege
           [Win32Acl.Priv]::RtlAdjustPrivilege(18, $true, $false, [ref]$enabled) | Out-Null   # SeRestorePrivilege
