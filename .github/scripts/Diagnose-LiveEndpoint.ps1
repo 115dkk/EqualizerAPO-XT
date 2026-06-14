@@ -146,6 +146,7 @@ function Format-Snap {
 
 $applied   = Read-Phase '30-apo-applied'
 $streamed  = Read-Phase '35-stream-forced'
+$control   = Read-Phase '45-control'
 $afterVelo = Read-Phase '50-after-velo'
 $afterAeb  = Read-Phase '70-after-aeb'
 
@@ -154,21 +155,32 @@ Write-Host ' EqualizerAPO-XT  -  LIVE endpoint device-loss reproduction + fix'
 Write-Host '====================================================================='
 Write-Host "EQ pre-mix  APO GUID : $PreMixGuid"
 Write-Host "EQ post-mix APO GUID : $PostMixGuid"
-$screamGuid = ($streamed, $applied, $afterVelo, $afterAeb | Where-Object { $_ } | Select-Object -First 1).screamGuid
+$screamGuid = ($streamed, $applied, $control, $afterVelo, $afterAeb | Where-Object { $_ } | Select-Object -First 1).screamGuid
 Write-Host "Scream endpoint GUID : $screamGuid"
 Write-Host ''
-Write-Host ("apo applied (30)      : {0}" -f (Format-Snap $applied))
-Write-Host ("stream forced (35)    : {0}" -f (Format-Snap $streamed))
-Write-Host ("after uninstall (50)  : {0}" -f (Format-Snap $afterVelo))
-Write-Host ("after AEB restart (70): {0}" -f (Format-Snap $afterAeb))
+Write-Host ("apo applied (30)        : {0}" -f (Format-Snap $applied))
+Write-Host ("stream forced (35)      : {0}" -f (Format-Snap $streamed))
+Write-Host ("control AudioSrv (45)   : {0}" -f (Format-Snap $control))
+Write-Host ("after uninstall (50)    : {0}" -f (Format-Snap $afterVelo))
+Write-Host ("after AEB restart (70)  : {0}" -f (Format-Snap $afterAeb))
 Write-Host ''
 
-# The "before uninstall" reference is the stream-forced snapshot (the endpoint
-# was actively carrying the EQ APO chain). Fall back to apo-applied if the
-# stream-force phase was skipped (best-effort, per the workflow note).
-$before = if ($null -ne $streamed) { $streamed } else { $applied }
+# The "before uninstall" reference is the LATEST pre-uninstall snapshot that is
+# definitively Active with the EQ APO live. Prefer the control (45, closest to
+# the uninstall and proves the endpoint survived an AudioSrv restart), then the
+# stream-forced (35), then apo-applied (30). This avoids the run-3 false
+# negative where the stream-forced snapshot transiently ENUM_FAILED.
+$before = $null
+foreach ($cand in @($control, $streamed, $applied)) {
+    if ($null -ne $cand -and (Get-EndpointActivity $cand) -eq 'Active' -and $cand.screamFxPointsAtEq) { $before = $cand; break }
+}
 if ($null -eq $before) {
-    Write-Error 'No pre-uninstall snapshot (35-stream-forced / 30-apo-applied) found; cannot diagnose.'
+    # None was definitively Active+EQ-live; keep any non-null pre-uninstall
+    # snapshot so the verdict can explain why the precondition was not met.
+    $before = ($control, $streamed, $applied | Where-Object { $_ } | Select-Object -First 1)
+}
+if ($null -eq $before) {
+    Write-Error 'No pre-uninstall snapshot (45/35/30) found; cannot diagnose.'
     exit 3
 }
 if ($null -eq $afterVelo) {
@@ -177,6 +189,7 @@ if ($null -eq $afterVelo) {
 }
 
 $beforeState    = Get-EndpointActivity $before
+$controlState   = Get-EndpointActivity $control
 $afterVeloState = Get-EndpointActivity $afterVelo
 $afterAebState  = Get-EndpointActivity $afterAeb
 
@@ -199,6 +212,12 @@ $verdicts = New-Object System.Collections.Generic.List[string]
 $reproduced   = ($beforeState -eq 'Active' -and $afterVeloState -eq 'Inactive')
 $fixValidated = ($reproduced -and $afterAebState -eq 'Active')
 
+# CONTROL: an AudioSrv-only restart with the EQ APO STILL installed must leave
+# the endpoint Active. If it goes Inactive, the AudioSrv restart itself disrupts
+# the endpoint and the post-uninstall loss cannot be cleanly attributed to the
+# APO removal -> confounded. ('Unknown' weakens isolation but does not confound.)
+$controlConfounded = ($controlState -eq 'Inactive')
+
 $inconclusive = $false
 if (-not $eqWasApplied) {
     $verdicts.Add('SETUP INVALID: the EQ APO was not actually applied to the Scream endpoint before the uninstall (screamFxPointsAtEq=False at the pre-uninstall snapshot). The bug precondition was never established; inspect step 30. This is a harness problem, not a property of the audio code.')
@@ -206,7 +225,11 @@ if (-not $eqWasApplied) {
 }
 elseif ($beforeState -ne 'Active') {
     $verdicts.Add("PRECONDITION NOT MET: the Scream endpoint was not confirmed Active before the uninstall (state=$beforeState). " +
-        "If 'Unknown', the COM enumerator failed even after retries; if 'Inactive', Scream did not stay active. Inspect 30/35 snapshots.")
+        "If 'Unknown', the COM enumerator failed even after retries; if 'Inactive', Scream did not stay active. Inspect 30/35/45 snapshots.")
+    $inconclusive = $true
+}
+elseif ($controlConfounded) {
+    $verdicts.Add("CONTROL FAILED (confounded): an AudioSrv-only restart with the EQ APO still installed ALSO made the endpoint inactive (control state=$controlState). The AudioSrv restart itself disrupts the Scream endpoint on this runner, so the post-uninstall loss cannot be cleanly attributed to the APO removal. Inspect the 45-control snapshot.")
     $inconclusive = $true
 }
 elseif ($afterVeloState -eq 'Unknown') {
@@ -215,6 +238,12 @@ elseif ($afterVeloState -eq 'Unknown') {
 }
 elseif ($reproduced) {
     $verdicts.Add('(live) REPRODUCED: the Scream endpoint was ACTIVE (with the EQ APO live) before the uninstall and went INACTIVE/missing immediately after the AudioSrv-only uninstall, WITHOUT a reboot.')
+    if ($controlState -eq 'Active') {
+        $verdicts.Add('  CONTROL PASSED: an AudioSrv-only restart with the EQ APO still installed kept the endpoint ACTIVE, so the AudioSrv restart by itself does not remove the endpoint. The loss is isolated to the APO removal leaving a stale endpoint graph.')
+    }
+    elseif ($controlState -eq 'Unknown') {
+        $verdicts.Add('  CONTROL INCONCLUSIVE: the control endpoint state could not be read (enumerator failed), so causal isolation is weaker this run; the registry-clean evidence below still holds.')
+    }
     if ($registryClean) {
         $verdicts.Add('  Registry is CLEAN after uninstall (original driver APO GUIDs restored, no EQ GUID dangling). The live loss is therefore the stale endpoint-graph bug: ApoRegistration::uninstall cycled only AudioSrv, never AudioEndpointBuilder.')
     }

@@ -788,6 +788,12 @@ jobs:
                   if (hr != 0) return "Start failed hr=0x" + hr.ToString("X8");
                   Thread.Sleep(ms);
                   ac.Stop();
+                  // Release the COM objects so the WASAPI session closes promptly;
+                  // a lingering client kept the enumerator unstable for the next
+                  // snapshot in the previous run.
+                  try { Marshal.ReleaseComObject(ac); } catch {}
+                  try { Marshal.ReleaseComObject(dev); } catch {}
+                  try { Marshal.ReleaseComObject(e); } catch {}
                   return "OK (streamed " + ms + "ms)";
               }
           }
@@ -800,8 +806,44 @@ jobs:
               Write-Warning "Stream-force threw (best effort, continuing): $($_.Exception.Message)"
           }
 
+          # Release lingering RCWs and let THIS process end before snapshotting.
+          # In run 3 the snapshot ran in the same process right after the stream
+          # and the enumerator stayed unhealthy for >10s (ENUM_FAILED). The
+          # snapshot now lives in its own step (own process), so the WASAPI
+          # session is fully torn down first.
+          [System.GC]::Collect(); [System.GC]::WaitForPendingFinalizers()
           Start-Sleep -Seconds 2
+
+      # -----------------------------------------------------------------------
+      # Snapshot the "endpoint ACTIVE + EQ APO live" reference in a FRESH process
+      # so the WASAPI session from the stream-force is fully gone and the COM
+      # enumerator is healthy. This is the pre-uninstall reference.
+      # -----------------------------------------------------------------------
+      - name: Snapshot stream-forced (37)
+        shell: pwsh
+        run: |
+          Start-Sleep -Seconds 3
           & $env:SNAP_SCRIPT -Phase "35-stream-forced" -SnapshotDir $env:SNAP_DIR `
+              -ScreamGuid $env:SCREAM_GUID -MMDevicesRoot $env:MMDEVICES_ROOT `
+              -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
+
+      # -----------------------------------------------------------------------
+      # CONTROL: restart AudioSrv ONLY (not AudioEndpointBuilder) while the EQ
+      # APO is STILL installed and the endpoint is active. This isolates cause:
+      # ApoRegistration's AudioSrv-only cycle, on its own, must NOT make the
+      # endpoint disappear. If this snapshot is still ACTIVE, the loss seen after
+      # the real uninstall (step 50) is due to the APO REMOVAL leaving a stale
+      # endpoint graph, not the AudioSrv restart per se. (Restart-Service AudioSrv
+      # cycles AudioSrv + its dependents, never the parent AudioEndpointBuilder.)
+      # -----------------------------------------------------------------------
+      - name: Control - AudioSrv-only restart with EQ installed + snapshot (45)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          Write-Host "CONTROL: Restart-Service AudioSrv -Force (EQ APO still installed; AudioEndpointBuilder NOT cycled)"
+          try { Restart-Service AudioSrv -Force -ErrorAction Stop } catch { Write-Warning "Restart AudioSrv: $($_.Exception.Message)" }
+          Start-Sleep -Seconds 6
+          & $env:SNAP_SCRIPT -Phase "45-control" -SnapshotDir $env:SNAP_DIR `
               -ScreamGuid $env:SCREAM_GUID -MMDevicesRoot $env:MMDEVICES_ROOT `
               -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
 
