@@ -159,44 +159,67 @@ jobs:
           Invoke-WebRequest -Uri $env:SCREAM_URL -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath $work -Force
 
-          $driverDir = Join-Path $work "Scream\Install\driver\x64"
+          # Scream4.0.zip extracts to <work>\Install\... (NOT <work>\Scream\Install).
+          # The x64 catalog is lower-case scream.cat (Scream.inf names it as
+          # CatalogFile=scream.cat). Windows paths are case-insensitive, but we
+          # spell it exactly so the layout assertion is unambiguous.
+          $driverDir = Join-Path $work "Install\driver\x64"
           $inf = Join-Path $driverDir "Scream.inf"
-          $cat = Join-Path $driverDir "Scream.cat"
-          $devcon = Join-Path $work "Scream\Install\helpers\devcon-x64.exe"
+          $cat = Join-Path $driverDir "scream.cat"
+          $devcon = Join-Path $work "Install\helpers\devcon-x64.exe"
           foreach ($f in @($inf, $cat, $devcon)) {
               if (-not (Test-Path $f)) { Log "MISSING expected file: $f"; throw "Scream layout unexpected: $f not found" }
           }
 
-          # --- Self-signed code-signing cert ----------------------------------
-          $pvk = Join-Path $work "ScreamCertificate.pvk"
-          $cer = Join-Path $work "ScreamCertificate.cer"
-          $pfx = Join-Path $work "ScreamCertificate.pfx"
-          Log "Generating self-signed certificate with openssl"
-          & openssl req -batch -x509 -newkey rsa -keyout $pvk -out $cer -nodes -extensions v3_req
-          if ($LASTEXITCODE -ne 0) { throw "openssl req failed ($LASTEXITCODE)" }
-          & openssl pkcs12 -export -nodes -in $cer -inkey $pvk -out $pfx -passout pass:
-          if ($LASTEXITCODE -ne 0) { throw "openssl pkcs12 failed ($LASTEXITCODE)" }
+          # --- Self-signed code-signing cert (PowerShell-native) --------------
+          # New-SelfSignedCertificate -Type CodeSigningCert guarantees the
+          # codeSigning EKU, so the re-signed catalog is a valid driver-package
+          # signature once the cert is trusted. We re-sign the EXISTING catalog:
+          # its embedded hashes for Scream.sys/.inf stay valid (we do not touch
+          # those files); we only add a signature that chains to a root we trust
+          # below. This avoids any openssl.cnf / EKU uncertainty.
+          Log "Creating a self-signed code-signing certificate"
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert `
+              -Subject "CN=EqualizerAPO-XT Scream Test Signing" `
+              -CertStoreLocation Cert:\CurrentUser\My `
+              -KeyUsage DigitalSignature -KeyExportPolicy Exportable
+          $cer = Join-Path $work "ScreamTestSigning.cer"
+          Export-Certificate -Cert $cert -FilePath $cer | Out-Null
 
           # --- Sign the catalog so the INF install trusts the package ----------
-          Log "Signing Scream.cat"
-          & signtool sign /v /fd SHA256 /f $pfx $cat
+          Log "Signing $cat with thumbprint $($cert.Thumbprint)"
+          & signtool sign /v /fd SHA256 /sha1 $cert.Thumbprint $cat
           if ($LASTEXITCODE -ne 0) { throw "signtool sign failed ($LASTEXITCODE)" }
 
-          # --- Trust the cert: root (chain) + TrustedPublisher (silent install)
-          Log "Importing the cert into LocalMachine\root and LocalMachine\TrustedPublisher"
-          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\root | Out-Null
+          # --- Trust the cert: Root (chain) + TrustedPublisher (silent install)
+          Log "Importing the cert into LocalMachine\Root and LocalMachine\TrustedPublisher"
+          Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
           Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null
 
           # --- Install the driver via the bundled devcon ----------------------
-          Log "Installing the driver: devcon install Scream.inf *Scream"
-          & $devcon install $inf "*Scream"
-          $devconRc = $LASTEXITCODE
+          # Mirror Install-x64.bat exactly: cd driver\x64 ; devcon install
+          # Scream.inf *Scream (devcon resolves the catalog relative to the INF).
+          Log "Installing the driver: devcon install Scream.inf *Scream (cwd=$driverDir)"
+          Push-Location $driverDir
+          try {
+              & $devcon install "Scream.inf" "*Scream"
+              $devconRc = $LASTEXITCODE
+          } finally {
+              Pop-Location
+          }
           Log "devcon exited with $devconRc"
 
           # --- Make sure the audio services are up after the device add --------
+          # Start them, then force an AudioEndpointBuilder restart so the freshly
+          # installed Scream device is enumerated into the live endpoint graph
+          # (this is SETUP, not the bug under test - the uninstall is what must
+          # never restart AudioEndpointBuilder).
           Log "Ensuring AudioEndpointBuilder + AudioSrv are running"
           try { Start-Service AudioEndpointBuilder -ErrorAction Stop } catch { Log "Start AudioEndpointBuilder: $($_.Exception.Message)" }
           cmd /c "net start audiosrv" 2>&1 | ForEach-Object { Log $_ }
+          Log "Forcing AudioEndpointBuilder restart to enumerate the new device"
+          try { Restart-Service -Force AudioEndpointBuilder -ErrorAction Stop } catch { Log "Restart AudioEndpointBuilder: $($_.Exception.Message)" }
+          try { Start-Service AudioSrv -ErrorAction Stop } catch { Log "Start AudioSrv: $($_.Exception.Message)" }
 
           # Give the endpoint graph a moment to enumerate the new device.
           $deadline = (Get-Date).AddSeconds(30)
