@@ -471,15 +471,27 @@ jobs:
       - name: Run DeviceSelector.exe /u (40)
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
+          $ErrorActionPreference = "Continue"
           $devsel = Join-Path $env:VELO_CURRENT "DeviceSelector.exe"
           if (-not (Test-Path $devsel)) {
               Write-Error "DeviceSelector.exe not found at $devsel"
               exit 1
           }
-          Write-Host "Running $devsel /u"
-          $p = Start-Process -FilePath $devsel -ArgumentList "/u" -PassThru -Wait
-          Write-Host "DeviceSelector /u exited with $($p.ExitCode)"
+          # Run with the bin dir as the working directory. DeviceSelector (like the
+          # editor before v1.27.1) does QCoreApplication::addLibraryPath("qt"),
+          # which resolves relative to the CWD; with the wrong CWD it cannot find
+          # its Qt platform plugin and pops a modal error dialog that hangs forever
+          # on a headless runner (that is what cancelled this step on the first
+          # full run). The bug also affects DeviceSelector/UpdateChecker in the
+          # shipped build (only Editor's path was fixed) - tracked separately.
+          Write-Host "Running $devsel /u (cwd=$env:VELO_CURRENT)"
+          $p = Start-Process -FilePath $devsel -ArgumentList "/u" -WorkingDirectory $env:VELO_CURRENT -PassThru
+          if (-not $p.WaitForExit(120000)) {
+              Write-Warning "DeviceSelector /u did not exit within 120s; killing it (likely a modal dialog on the headless runner)"
+              try { $p.Kill() } catch {}
+          } else {
+              Write-Host "DeviceSelector /u exited with $($p.ExitCode)"
+          }
 
           & $env:SNAP_SCRIPT -Phase "40-after-devsel" -SnapshotDir $env:SNAP_DIR `
               -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
@@ -508,9 +520,15 @@ jobs:
           } else {
               Write-Host "Running $update --uninstall (silent)"
               # --silent so it does not wait on UI; Velopack exits after running
-              # the --veloapp-uninstall hook and removing files.
-              $p = Start-Process -FilePath $update -ArgumentList "--uninstall","--silent" -PassThru -Wait
-              Write-Host "Update.exe --uninstall exited with $($p.ExitCode)"
+              # the --veloapp-uninstall hook and removing files. Bounded wait so a
+              # UAC/elevation or UI hang on the headless runner cannot stall the job.
+              $p = Start-Process -FilePath $update -ArgumentList "--uninstall","--silent" -WorkingDirectory $env:VELO_ROOT -PassThru
+              if (-not $p.WaitForExit(180000)) {
+                  Write-Warning "Update.exe --uninstall did not exit within 180s; killing it"
+                  try { $p.Kill() } catch {}
+              } else {
+                  Write-Host "Update.exe --uninstall exited with $($p.ExitCode)"
+              }
           }
 
           & $env:SNAP_SCRIPT -Phase "50-after-velo" -SnapshotDir $env:SNAP_DIR `
