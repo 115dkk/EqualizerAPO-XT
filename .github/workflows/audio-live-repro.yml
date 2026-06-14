@@ -454,6 +454,21 @@ jobs:
                   Select-Object Name, Status, StatusInfo
           } catch { }
 
+          # audiodg.exe identity. audiodg (Windows Audio Device Graph Isolation)
+          # is spawned by AudioEndpointBuilder and hosts the APO chain. Its PID is
+          # the cleanest signal for "did this restart actually rebuild the graph":
+          # an AudioSrv-only restart leaves audiodg running (same PID) so APO
+          # FxProperties changes do NOT take effect, whereas an AudioEndpointBuilder
+          # restart recycles audiodg (new PID) so changes apply. (audiodg is a
+          # protected process; .Id is always readable, .StartTime may be denied.)
+          $audiodg = @()
+          foreach ($p in (Get-Process -Name audiodg -ErrorAction SilentlyContinue)) {
+              $st = $null
+              try { $st = $p.StartTime.ToString('o') } catch { }
+              $audiodg += [ordered]@{ id = $p.Id; start = $st }
+          }
+          $audiodgIds = ($audiodg | ForEach-Object { $_.id }) -join ','
+
           $obj = [ordered]@{
               phase                  = $Phase
               screamGuid             = $ScreamGuid
@@ -465,11 +480,13 @@ jobs:
               screamDeviceStateMM    = $mmState
               activeRenderCount      = $activeRenderCount
               screamEndpointState    = $screamEndpointState
+              audiodgProcs           = $audiodg
+              audiodgIds             = $audiodgIds
               win32SoundDeviceStatus = $win32
           }
           $obj | ConvertTo-Json -Depth 6 |
               Out-File -FilePath (Join-Path $SnapshotDir "$Phase-live.json") -Encoding utf8
-          Write-Host "[$Phase] epState=$screamEndpointState mmState=$mmState activeRender=$activeRenderCount fxPointsAtEq=$pointsAtEq registryClean=$registryClean"
+          Write-Host "[$Phase] epState=$screamEndpointState mmState=$mmState activeRender=$activeRenderCount fxPointsAtEq=$pointsAtEq registryClean=$registryClean audiodg=[$audiodgIds]"
           '@
           $path = Join-Path $env:RUNNER_TEMP "snapshot-live.ps1"
           $helper | Out-File -FilePath $path -Encoding utf8
@@ -916,6 +933,18 @@ jobs:
                   Write-Host "DeviceSelector /u exited with $($p.ExitCode)"
               }
           }
+
+          # Snapshot the state IMMEDIATELY after DeviceSelector /u, BEFORE the
+          # Velopack uninstall. DeviceSelector /u (DeviceSelector/main.cpp) removes
+          # the per-device APO but restarts NO audio service and does NOT
+          # unregister the COM server, so this snapshot isolates /u on its own:
+          # the endpoint should stay ACTIVE (the APO is still registered/loadable)
+          # and audiodg should keep the same PID (no restart) - i.e. /u does not
+          # cause device loss, but its removal does not take effect until a reboot.
+          Start-Sleep -Seconds 4
+          & $env:SNAP_SCRIPT -Phase "48-after-devsel" -SnapshotDir $env:SNAP_DIR `
+              -ScreamGuid $env:SCREAM_GUID -MMDevicesRoot $env:MMDEVICES_ROOT `
+              -PreMixGuid $env:EQ_PREMIX_GUID -PostMixGuid $env:EQ_POSTMIX_GUID
 
       # -----------------------------------------------------------------------
       # STEP 6b: Run the full Velopack app uninstall. Update.exe --uninstall runs
