@@ -257,6 +257,31 @@ jobs:
           }
           Write-Host "Existing render subkeys: $($existing.Count)"
 
+          # MMDevices\Audio\Render is owned by SYSTEM; even an elevated admin gets
+          # "Access is denied" from `reg add` until ownership is taken and
+          # Administrators are granted full control (the product installer does
+          # the same takeOwnership/makeWritable dance in DeviceAPOInfo.Install.cpp
+          # when FxProperties is locked). Enable the take-ownership + restore
+          # privileges, take the Render key, and grant Administrators FullControl
+          # inheritably so the seed (10) and replicate (30) steps can write under
+          # it. The real DeviceSelector /u (40) does its own takeOwnership, so this
+          # grant does not change the product's behaviour under test.
+          Add-Type -Namespace Win32Acl -Name Priv -MemberDefinition '[System.Runtime.InteropServices.DllImport("ntdll.dll")] public static extern int RtlAdjustPrivilege(int Privilege, bool Enable, bool CurrentThread, out bool Enabled);'
+          $enabled = $false
+          [Win32Acl.Priv]::RtlAdjustPrivilege(9,  $true, $false, [ref]$enabled) | Out-Null   # SeTakeOwnershipPrivilege
+          [Win32Acl.Priv]::RtlAdjustPrivilege(18, $true, $false, [ref]$enabled) | Out-Null   # SeRestorePrivilege
+          $renderSub = "SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"
+          $admins = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+          $k = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($renderSub, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
+          if ($null -eq $k) { Write-Error "Could not open $renderSub to take ownership"; exit 1 }
+          $ownAcl = $k.GetAccessControl([System.Security.AccessControl.AccessControlSections]::Owner)
+          $ownAcl.SetOwner($admins); $k.SetAccessControl($ownAcl); $k.Close()
+          $k = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($renderSub, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+          $dacl = $k.GetAccessControl([System.Security.AccessControl.AccessControlSections]::Access)
+          $rule = New-Object System.Security.AccessControl.RegistryAccessRule($admins, [System.Security.AccessControl.RegistryRights]::FullControl, ([System.Security.AccessControl.InheritanceFlags]::ContainerInherit), [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)
+          $dacl.AddAccessRule($rule); $k.SetAccessControl($dacl); $k.Close()
+          Write-Host "Took ownership of and granted Administrators FullControl on HKLM\$renderSub"
+
           # Create the endpoint key, Properties (friendly name + active state),
           # and FxProperties with five plausible original-driver APO GUIDs.
           # Mirrors what a real driver leaves and what DeviceAPOInfo::load reads
