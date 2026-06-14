@@ -76,6 +76,14 @@ on:
         description: "Release tag to test (blank = latest)"
         required: false
         default: ""
+      mode:
+        description: "reproduce = prove the bug on an unfixed build; expect-fixed = verify a fixed release keeps the endpoint ACTIVE through the uninstall"
+        required: false
+        type: choice
+        options:
+          - reproduce
+          - expect-fixed
+        default: reproduce
 
 permissions:
   contents: read
@@ -1004,7 +1012,10 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          $mode = "${{ github.event.inputs.mode }}"
+          if ([string]::IsNullOrWhiteSpace($mode)) { $mode = "reproduce" }
           & "$env:GITHUB_WORKSPACE\.github\scripts\Diagnose-LiveEndpoint.ps1" `
               -SnapshotDir $env:SNAP_DIR `
               -PreMixGuid $env:EQ_PREMIX_GUID `
-              -PostMixGuid $env:EQ_POSTMIX_GUID
+              -PostMixGuid $env:EQ_POSTMIX_GUID `
+              -Mode $mode

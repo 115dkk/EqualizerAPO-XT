@@ -99,7 +99,17 @@ param(
     [string]$PreMixGuid,
 
     [Parameter(Mandatory = $true)]
-    [string]$PostMixGuid
+    [string]$PostMixGuid,
+
+    # reproduce    : prove the bug on an UNFIXED build (exit 0 = endpoint went
+    #               INACTIVE after the AudioSrv-only uninstall AND an
+    #               AudioEndpointBuilder restart brought it back).
+    # expect-fixed : verify a FIXED release (exit 0 = endpoint STAYED ACTIVE
+    #               through the real uninstall, so the shipped fix works; exit 2
+    #               = it went inactive, i.e. the fix is absent or ineffective).
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('reproduce', 'expect-fixed')]
+    [string]$Mode = 'reproduce'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -236,6 +246,16 @@ elseif ($afterVeloState -eq 'Unknown') {
     $verdicts.Add('INCONCLUSIVE: the endpoint state could not be read after the uninstall (COM enumerator failed even after retries). Cannot tell reproduced from not-reproduced; inspect the 50-after-velo snapshot.')
     $inconclusive = $true
 }
+elseif ($Mode -eq 'expect-fixed') {
+    # Validating a FIXED release: the endpoint must STAY ACTIVE through the real
+    # uninstall (the shipped ApoRegistration::uninstall restarts AudioEndpointBuilder).
+    if ($afterVeloState -eq 'Active') {
+        $verdicts.Add('(fixed) PASS: the endpoint STAYED ACTIVE through the real uninstall - with audio in use and no reboot. The shipped build restarts AudioEndpointBuilder during uninstall, so removing the APO no longer drops the device.')
+    }
+    else {
+        $verdicts.Add("(fixed) FAIL: the endpoint went INACTIVE/missing after the real uninstall (after-state=$afterVeloState). The AudioEndpointBuilder restart did not take effect during uninstall - the fix is absent or ineffective in this build.")
+    }
+}
 elseif ($reproduced) {
     $verdicts.Add('(live) REPRODUCED: the Scream endpoint was ACTIVE (with the EQ APO live) before the uninstall and went INACTIVE/missing immediately after the AudioSrv-only uninstall, WITHOUT a reboot.')
     if ($controlState -eq 'Active') {
@@ -255,7 +275,7 @@ else {
     $verdicts.Add("(live) NOT REPRODUCED: the Scream endpoint stayed ACTIVE after the AudioSrv-only uninstall (no reboot, after-state=$afterVeloState). Either the bug did not reproduce on this runner or Scream behaves differently here.")
 }
 
-if ($reproduced) {
+if ($Mode -eq 'reproduce' -and $reproduced) {
     if ($null -eq $afterAeb) {
         $verdicts.Add('(live) FIX NOT EVALUATED: no post-AudioEndpointBuilder-restart snapshot (70-after-aeb) found.')
     }
@@ -283,6 +303,15 @@ if ($inconclusive) {
     Write-Host 'RESULT: INCONCLUSIVE - the live experiment could not be evaluated (exit 1). Inspect the snapshots.'
     exit 1
 }
+if ($Mode -eq 'expect-fixed') {
+    if ($afterVeloState -eq 'Active') {
+        Write-Host 'RESULT: (expect-fixed) PASS - the endpoint survived the real uninstall with audio in use; the shipped fix works (exit 0).'
+        exit 0
+    }
+    Write-Host 'RESULT: (expect-fixed) FAIL - the endpoint went inactive after the uninstall; the fix is absent or ineffective in this build (exit 2). Inspect the snapshots.'
+    exit 2
+}
+# reproduce mode
 if (-not $reproduced) {
     Write-Host 'RESULT: INCONCLUSIVE - bug did NOT reproduce on this runner (exit 1). Inspect the snapshots.'
     exit 1
