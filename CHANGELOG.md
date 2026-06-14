@@ -12,6 +12,18 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Fixed a critical bug where uninstalling EqualizerAPO-XT could make all audio
+  devices disappear from Windows until a reboot. The uninstaller restarted only
+  the Windows Audio service, which left Windows Audio Endpoint Builder holding a
+  stale endpoint graph that still referenced the just-removed APO, so an in-use
+  endpoint became unusable until a reboot rebuilt the graph (the registry was
+  already clean - the original driver effects were restored). The uninstaller
+  now restarts Windows Audio Endpoint Builder to rebuild the live graph, so
+  audio devices are no longer lost. A dispatch-only CI workflow reproduces this
+  on a real virtual endpoint with audio in use and validates the fix. ([#105])
+
 ## v1.27.1 — 2026-06-13
 
 - Fixed a flaky start-up crash that could hit configs opened from an older
@@ -420,3 +432,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#88]: https://github.com/115dkk/EqualizerAPO-XT/pull/88
 [#94]: https://github.com/115dkk/EqualizerAPO-XT/pull/94
 [#98]: https://github.com/115dkk/EqualizerAPO-XT/pull/98
+[#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
