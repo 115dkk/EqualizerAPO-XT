@@ -198,13 +198,23 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 {
 	LogHelper::reset();
 
-	TraceF(L"Initialize");
+	TraceF(L"Initialize: cbDataSize=%u (APOInitSystemEffects=%u)", cbDataSize, static_cast<unsigned>(sizeof(APOInitSystemEffects)));
 
 	if ((nullptr == pbyData) && (0 != cbDataSize))
 		return E_INVALIDARG;
 	if ((nullptr != pbyData) && (0 == cbDataSize))
 		return E_POINTER;
-	if (cbDataSize != sizeof(APOInitSystemEffects))
+	// Since 64970cd this APO exposes IAudioSystemEffects2, so the audio engine
+	// hands Initialize the larger APOInitSystemEffects2 struct (and would hand a
+	// future IAudioSystemEffects3 build an APOInitSystemEffects3) rather than the
+	// base APOInitSystemEffects. Demanding the exact v1 size rejected every modern
+	// init with E_INVALIDARG, so the effect never actually loaded - the device
+	// test reported "Initialize failed ... (the parameter is incorrect)" and the
+	// EQ was silently inactive on endpoints whose effect slot does not tolerate a
+	// failing APO. Every APOInitSystemEffects* version shares the same leading
+	// members (APOInit, pAPOEndpointProperties, ...), so accept any struct at
+	// least the base size and keep reading those common fields below.
+	if (cbDataSize < sizeof(APOInitSystemEffects))
 		return E_INVALIDARG;
 
 	resetChild();
