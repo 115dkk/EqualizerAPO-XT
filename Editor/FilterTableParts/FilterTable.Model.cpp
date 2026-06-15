@@ -362,6 +362,15 @@ int FilterTable::getPreferredWidth()
 
 void FilterTable::updateSizeHints()
 {
+	// gridLayout is briefly null between clearRows() and updateGuis(): a skin
+	// switch (MainWindow::skinSelected) and the dark-mode toggle tear every tab's
+	// rows down BEFORE qApp->setStyleSheet for performance, and that stylesheet
+	// swap re-lays-out the window, delivering a scrollArea Resize through this
+	// object's event filter while the layout is gone. Dereferencing it here then
+	// faults (the minimal/soft/rack skin-switch crash, and the intermittent
+	// crash on a plain restyle). Nothing to size while the rows are being rebuilt.
+	if (gridLayout == nullptr)
+		return;
 	for (int i = 0; i < items.size(); i++)
 	{
 		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
