@@ -23,6 +23,23 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   now restarts Windows Audio Endpoint Builder to rebuild the live graph, so
   audio devices are no longer lost. A dispatch-only CI workflow reproduces this
   on a real virtual endpoint with audio in use and validates the fix. ([#105])
+- Fixed the system effect never actually loading on current Windows, which
+  left the EQ silently inactive and made the Device Selector install test fail
+  on some endpoints with `Initialize failed for device "..." (the parameter is
+  incorrect)`. Once the APO began exposing `IAudioSystemEffects2`, the audio
+  engine started passing `Initialize` the larger `APOInitSystemEffects2`
+  struct, but the APO still required the exact size of the base
+  `APOInitSystemEffects` and rejected every init with `E_INVALIDARG`, so it
+  bailed before loading. It now accepts the larger struct (all
+  `APOInitSystemEffects` versions share the same leading fields), so the effect
+  loads and processes audio again and the device test passes. ([#107])
+- Fixed the editor crashing when switching to the minimal, soft, or rack skin,
+  and intermittently on a plain restyle or dark-mode toggle. A skin switch
+  tears the filter rows down before swapping the global stylesheet for speed,
+  and the relayout the stylesheet triggers could re-enter the filter table's
+  size-hint update while its grid layout was momentarily gone, dereferencing a
+  null pointer. The update now does nothing while the rows are being
+  rebuilt. ([#107])
 
 ## v1.27.1 — 2026-06-13
 
@@ -433,3 +450,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#94]: https://github.com/115dkk/EqualizerAPO-XT/pull/94
 [#98]: https://github.com/115dkk/EqualizerAPO-XT/pull/98
 [#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
+[#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107

@@ -17,6 +17,20 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   라이브 그래프를 재구성하므로 오디오 장치가 사라지지 않습니다. dispatch 전용 CI
   워크플로우가 오디오를 재생 중인 실제 가상 엔드포인트에서 이를 재현하고 수정을
   검증합니다. ([#105])
+- 현재 Windows에서 시스템 효과가 실제로는 한 번도 로드되지 않아 EQ가 조용히 꺼져
+  있던 문제와, 일부 장치에서 Device Selector 설치 테스트가 `Initialize failed for
+  device "..." (매개변수가 틀립니다)`로 실패하던 문제를 고쳤습니다. APO가
+  `IAudioSystemEffects2`를 노출하기 시작하면서 오디오 엔진이 `Initialize`에 더 큰
+  `APOInitSystemEffects2` 구조체를 넘기는데, APO는 옛 `APOInitSystemEffects` 크기만
+  정확히 받아들여 모든 초기화를 `E_INVALIDARG`로 거부하고 로드 전에 빠져나왔습니다.
+  이제 더 큰 구조체를 받아들이므로(모든 `APOInitSystemEffects` 버전이 앞부분 필드를
+  공유) 효과가 다시 로드되어 오디오를 처리하고, 장치 테스트도 통과합니다. ([#107])
+- minimal·soft·rack 스킨으로 바꿀 때, 그리고 일반 재적용이나 다크 모드 토글에서
+  간헐적으로 Editor가 죽던 문제를 고쳤습니다. 스킨 전환은 속도를 위해 전역
+  스타일시트를 바꾸기 전에 필터 행을 먼저 철거하는데, 스타일시트가 유발한 재배치가
+  그리드 레이아웃이 잠깐 사라진 사이에 필터 테이블의 크기 힌트 갱신을 다시 호출해 널
+  포인터를 역참조했습니다. 이제 행을 다시 만드는 동안에는 갱신이 아무 일도 하지
+  않습니다. ([#107])
 
 ## v1.27.1 (2026-06-13)
 
@@ -409,3 +423,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#94]: https://github.com/115dkk/EqualizerAPO-XT/pull/94
 [#98]: https://github.com/115dkk/EqualizerAPO-XT/pull/98
 [#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
+[#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
