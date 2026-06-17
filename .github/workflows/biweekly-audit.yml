@@ -271,7 +271,7 @@ jobs:
 
           set +e
           claude \
-            --model claude-opus-4.8 \
+            --model claude-opus-4-8 \
             --effort max \
             --permission-mode auto \
             --max-turns 100 \
