@@ -452,7 +452,7 @@ bool VSTCardEditor::embedPlugin()
 
 		HWND hwnd = (HWND)frame->winId();
 		short width, height;
-		effect->startEditing(hwnd, &width, &height);
+		effect->startEditing(hwnd, &width, &height, frame->devicePixelRatioF());
 		frame->setFixedSize(width, height);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)

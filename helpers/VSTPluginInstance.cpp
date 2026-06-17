@@ -423,7 +423,18 @@ bool VSTPluginInstance::getEditorSize(int* width, int* height)
 void VSTPluginInstance::onSizeWindow(int w, int h)
 {
 	if (vst3EditorHostWindow != NULL)
+	{
+		// w/h arrive in physical pixels from the plugin's resizeView request.
+		// The native host window takes physical px; the Qt frame
+		// (sizeWindowFunc) takes logical px, so divide by the editor scale.
 		SetWindowPos(vst3EditorHostWindow, NULL, 0, 0, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		if (sizeWindowFunc)
+		{
+			double s = editorScaleFactor > 0.0 ? editorScaleFactor : 1.0;
+			sizeWindowFunc(max(1, (int)(w / s + 0.5)), max(1, (int)(h / s + 0.5)));
+		}
+		return;
+	}
 	if (sizeWindowFunc)
 		sizeWindowFunc(w, h);
 }

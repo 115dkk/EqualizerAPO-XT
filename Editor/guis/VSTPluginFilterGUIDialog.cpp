@@ -40,7 +40,10 @@ VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginIns
 
 	short width, height;
 
-	effect->startEditing(hwnd, &width, &height);
+	// Size the plugin for the monitor the dialog opens on. The parent is already
+	// shown, so its device pixel ratio is reliable; the dialog's own is not yet.
+	double scaleFactor = (parent != nullptr) ? parent->devicePixelRatioF() : devicePixelRatioF();
+	effect->startEditing(hwnd, &width, &height, scaleFactor);
 
 	ui->frame->setFixedSize(width, height);
 	effect->setSizeWindowFunc(bind(&VSTPluginFilterGUIDialog::onSizeWindow, this, _1, _2));
