@@ -21,6 +21,7 @@
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTPluginInstanceInternal.h"
+#include "pluginterfaces/gui/iplugviewcontentscalesupport.h"
 
 using namespace std;
 using namespace Steinberg;
@@ -50,12 +51,28 @@ static void registerVST3EditorHostWindowClass()
 	registered = true;
 }
 
-bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
+bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, double scaleFactor)
 {
+	// VST3 ViewRect sizes are in physical pixels, but the Qt frame that hosts the
+	// plugin lives in logical (device-independent) pixels. Keep them apart: the
+	// native host window is sized in physical px, while *width/*height report
+	// logical px so the caller's QWidget geometry is correct on a high-DPI
+	// monitor. scaleFactor is the host frame's device pixel ratio; 1.0 (a 100%
+	// display) makes every conversion below a no-op, so nothing changes there.
+	if (scaleFactor <= 0.0)
+		scaleFactor = 1.0;
+	editorScaleFactor = scaleFactor;
+
+	auto toLogical = [scaleFactor](int physical) -> short {
+		return (short)max(1, (int)(physical / scaleFactor + 0.5));
+	};
+
+	int physWidth = 400;
+	int physHeight = 300;
 	if (width != NULL)
-		*width = 400;
+		*width = toLogical(physWidth);
 	if (height != NULL)
-		*height = 300;
+		*height = toLogical(physHeight);
 
 	if (library->isVST3())
 	{
@@ -66,13 +83,27 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
 		if (vst3View == NULL)
 			return false;
 		vst3View->setFrame(vst3HostContext);
+
+		// Hand DPI-aware plugins (FabFilter Pro-Q, etc.) the host scale before
+		// they lay out, so getSize() returns a rect that matches the real
+		// monitor. Plugins without this interface fall back to reading the DPI
+		// from their parent window, which is per-monitor aware in this process.
+		IPlugViewContentScaleSupport* scaleSupport = NULL;
+		if (vst3View->queryInterface(IPlugViewContentScaleSupport::iid, (void**)&scaleSupport) == kResultOk && scaleSupport != NULL)
+		{
+			scaleSupport->setContentScaleFactor((IPlugViewContentScaleSupport::ScaleFactor)scaleFactor);
+			scaleSupport->release();
+		}
+
 		ViewRect rect;
 		if (vst3View->getSize(&rect) == kResultOk)
 		{
+			physWidth = max<int32>(1, rect.getWidth());
+			physHeight = max<int32>(1, rect.getHeight());
 			if (width != NULL)
-				*width = (short)max<int32>(1, rect.getWidth());
+				*width = toLogical(physWidth);
 			if (height != NULL)
-				*height = (short)max<int32>(1, rect.getHeight());
+				*height = toLogical(physHeight);
 		}
 		tresult platformResult = vst3View->isPlatformTypeSupported(kPlatformTypeHWND);
 		if (platformResult != kResultOk && platformResult != kNotImplemented)
@@ -83,7 +114,7 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
 		registerVST3EditorHostWindowClass();
 		vst3EditorHostWindow = CreateWindowExW(0, vst3EditorHostWindowClass, L"",
 			WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
-			0, 0, *width, *height, hWnd, NULL, GetModuleHandleW(NULL), NULL);
+			0, 0, physWidth, physHeight, hWnd, NULL, GetModuleHandleW(NULL), NULL);
 		if (vst3EditorHostWindow == NULL)
 		{
 			stopEditing();
@@ -96,13 +127,15 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height)
 		}
 		if (vst3View->getSize(&rect) == kResultOk)
 		{
+			physWidth = max<int32>(1, rect.getWidth());
+			physHeight = max<int32>(1, rect.getHeight());
 			if (width != NULL)
-				*width = (short)max<int32>(1, rect.getWidth());
+				*width = toLogical(physWidth);
 			if (height != NULL)
-				*height = (short)max<int32>(1, rect.getHeight());
+				*height = toLogical(physHeight);
 			vst3View->onSize(&rect);
 		}
-		SetWindowPos(vst3EditorHostWindow, NULL, 0, 0, *width, *height, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		SetWindowPos(vst3EditorHostWindow, NULL, 0, 0, physWidth, physHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 		EnumChildWindows(vst3EditorHostWindow, showChildWindow, 0);
 		return true;
 	}

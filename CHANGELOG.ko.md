@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 고DPI(배율) 디스플레이에서 VST3 플러그인 에디터 창 크기가 어긋나던 문제를
+  고쳤습니다. 에디터가 플러그인의 물리 픽셀 크기를 논리(장치 독립) 픽셀 단위로
+  재는 Qt 위젯에 그대로 넘겨, 150%나 200% 모니터에서는 호스트 프레임이 너무 크게
+  잡히고 플러그인(예: FabFilter Pro-Q)이 어긋난 캔버스에 그려졌습니다. 그래서
+  게인 0 dB의 평평한 EQ 곡선이 왜곡돼 보이고 패널에 빈 여백이 생겼습니다. 이제
+  임베드 패널, '패널 열기' 다이얼로그, 카드 임베드 모두 프레임의 device pixel
+  ratio로 플러그인의 물리 크기를 논리 픽셀로 바꾸고, 네이티브 호스트 창은 물리
+  픽셀로 유지하며, DPI를 인식하는 플러그인에는 `IPlugViewContentScaleSupport`로
+  호스트 배율을 알려줍니다. 100%에서는 동작이 그대로입니다. ([#108])
 - 제거 시 모든 오디오 장치가 사라져 재부팅해야 복구되던 치명적 버그를
   고쳤습니다. 제거 과정이 Windows Audio 서비스만 재시작해, Windows Audio
   Endpoint Builder가 방금 제거된 APO를 가리키는 낡은 엔드포인트 그래프를 그대로
@@ -424,3 +433,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#98]: https://github.com/115dkk/EqualizerAPO-XT/pull/98
 [#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
+[#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108

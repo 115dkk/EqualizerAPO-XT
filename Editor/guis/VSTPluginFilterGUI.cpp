@@ -398,7 +398,7 @@ bool VSTPluginFilterGUI::embedPlugin()
 		HWND hwnd = (HWND)ui->frame->winId();
 		short width, height;
 
-		effect->startEditing(hwnd, &width, &height);
+		effect->startEditing(hwnd, &width, &height, ui->frame->devicePixelRatioF());
 
 		ui->frame->setFixedSize(width, height);
 	}

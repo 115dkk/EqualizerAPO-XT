@@ -68,7 +68,7 @@ public:
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();
 
-	bool startEditing(HWND hWnd, short* width, short* height);
+	bool startEditing(HWND hWnd, short* width, short* height, double scaleFactor = 1.0);
 	void doIdle();
 	void stopEditing();
 
@@ -110,6 +110,7 @@ private:
 	Steinberg::Vst::TSamples vst3SamplePosition = 0;
 	std::function<void()> automateFunc;
 	std::function<void(int, int)> sizeWindowFunc;
+	double editorScaleFactor = 1.0;
 	float sampleRate = 0.0f;
 	int usedChannelCount = -1;
 	int processLevel = 0;

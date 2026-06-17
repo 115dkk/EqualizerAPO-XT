@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Fixed VST3 plugin editor windows being mis-sized on high-DPI (scaled)
+  displays. The editor handed the plugin's physical-pixel size straight to a Qt
+  widget that measures in logical (device-independent) pixels, so on a 150% or
+  200% monitor the host frame came out too large and the plugin (for example
+  FabFilter Pro-Q) rendered against a mismatched canvas, so a flat 0 dB EQ
+  curve looked distorted and the panel had empty margins. The embedded panel,
+  the "Open panel" dialog and the card embed now convert the plugin's physical
+  size to logical pixels with the frame's device pixel ratio, keep the native
+  host window in physical pixels, and tell DPI-aware plugins the host scale via
+  `IPlugViewContentScaleSupport`. At 100% nothing changes. ([#108])
 - Fixed a critical bug where uninstalling EqualizerAPO-XT could make all audio
   devices disappear from Windows until a reboot. The uninstaller restarted only
   the Windows Audio service, which left Windows Audio Endpoint Builder holding a
@@ -451,3 +461,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#98]: https://github.com/115dkk/EqualizerAPO-XT/pull/98
 [#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
+[#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
