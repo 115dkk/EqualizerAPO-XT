@@ -90,7 +90,7 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 	return cmd;
 }
 
-std::wstring VSTPluginCommand::serialize(const VSTPluginCommand& command)
+std::wstring VSTPluginCommand::serialize() const
 {
 	// Mirrors the body VSTPluginFilterGUI::store() appends after the "Library
 	// <path>" token. The Library token itself stays in store() because its
@@ -100,15 +100,15 @@ std::wstring VSTPluginCommand::serialize(const VSTPluginCommand& command)
 	// same leading space store() used, so store() can append it directly.
 	wstring result;
 
-	if (command.chunkData != L"")
+	if (chunkData != L"")
 	{
 		result += L" ChunkData \"";
-		result += command.chunkData;
+		result += chunkData;
 		result += L"\"";
 	}
 	else
 	{
-		for (const auto& it : command.paramMap)
+		for (const auto& it : paramMap)
 		{
 			// Quote the name when it contains a space or a quote, doubling any
 			// embedded quote, exactly as store() did with QString. splitQuoted

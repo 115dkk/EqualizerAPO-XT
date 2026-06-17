@@ -86,7 +86,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		return false;
 
 	// Conversion to period as decimal mark, if needed
-	parameters = StringHelper::replaceCharacters(parameters, L",", L".");
+	parameters = StringHelper::normalizeDecimalComma(parameters);
 
 	wsmatch match;
 	wstring typeString;

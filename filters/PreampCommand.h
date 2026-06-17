@@ -36,11 +36,11 @@ struct PreampCommand
 	double dbGain = 0.0;
 	bool valid = false;
 	bool noOp = false;
-};
 
-// Serializes a PreampCommand back into the canonical "<dB> dB" parameter string,
-// the same form PreampFilterGUI::store() emits and that the factory parser
-// accepts. Qt-free so both the Editor GUI and the round-trip tests can share it.
-// The dB value is formatted with %g (six significant digits, trailing zeros
-// stripped), matching what QString::arg(double) produced for these widget values.
-std::wstring serializePreampCommand(const PreampCommand& command);
+	// Serializes this PreampCommand back into the canonical "<dB> dB" parameter
+	// string, the same form PreampFilterGUI::store() emits and that the factory
+	// parser accepts. Qt-free so both the Editor GUI and the round-trip tests can
+	// share it. The dB value is formatted with %g (six significant digits, trailing
+	// zeros stripped), matching what QString::arg(double) produced for these values.
+	std::wstring serialize() const;
+};

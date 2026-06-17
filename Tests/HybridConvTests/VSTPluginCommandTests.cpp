@@ -54,7 +54,7 @@ void testLibraryOnly()
 	harness.expectTrue(cmd.libraryPath == L"C:\\plugins\\reverb.dll", "library-only: lib path");
 	harness.expectTrue(cmd.chunkData == L"", "library-only: no chunk data");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)0, "library-only: no params");
-	harness.expectTrue(VSTPluginCommand::serialize(cmd) == L"", "library-only: empty body");
+	harness.expectTrue(cmd.serialize() == L"", "library-only: empty body");
 }
 
 void testQuotedPath()
@@ -75,7 +75,7 @@ void testChunkData()
 	harness.expectTrue(!cmd.libraryPath.empty(), "chunk: library resolved");
 	harness.expectTrue(cmd.chunkData == L"QUJDRA==", "chunk: chunk data");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)0, "chunk: no params");
-	harness.expectTrue(VSTPluginCommand::serialize(cmd) == L" ChunkData \"QUJDRA==\"", "chunk: serialized body");
+	harness.expectTrue(cmd.serialize() == L" ChunkData \"QUJDRA==\"", "chunk: serialized body");
 }
 
 void testNamedParams()
@@ -129,12 +129,12 @@ void testNonNumericValueBranch()
 void expectBodyRoundTrip(const wstring& parameters, const wstring& expectedBody)
 {
 	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters);
-	wstring body = VSTPluginCommand::serialize(cmd);
+	wstring body = cmd.serialize();
 	harness.expectTrue(body == expectedBody,
 		"serialize(parse(...)) body mismatch for: " + std::string(parameters.begin(), parameters.end()));
 
 	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
-	harness.expectTrue(VSTPluginCommand::serialize(reparsed) == expectedBody,
+	harness.expectTrue(reparsed.serialize() == expectedBody,
 		"second round trip not stable for: " + std::string(parameters.begin(), parameters.end()));
 }
 
@@ -154,7 +154,7 @@ void testSerializeRoundTrip()
 	// A multi-param command is not asserted against a fixed string (map order is
 	// unspecified), but parse -> serialize -> parse must preserve the map.
 	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll Gain 0.5 Mix 0.25");
-	wstring body = VSTPluginCommand::serialize(cmd);
+	wstring body = cmd.serialize();
 	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + body);
 	harness.expectEqual(reparsed.paramMap.size(), (size_t)2, "multi-param round trip: size");
 	harness.expectEqual(paramValue(reparsed.paramMap, L"Gain", "multi-param Gain"), 0.5f, "multi-param round trip: Gain");
@@ -165,7 +165,7 @@ void testSerializeRoundTrip()
 	VSTPluginCommand built;
 	built.libraryPath = L"C:\\plugins\\reverb.dll";
 	built.paramMap[L"Feedback"] = 0.6f;
-	wstring builtBody = VSTPluginCommand::serialize(built);
+	wstring builtBody = built.serialize();
 	harness.expectTrue(builtBody == L" Feedback 0.6", "hand-built body");
 	VSTPluginCommand builtReparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + builtBody);
 	harness.expectEqual(paramValue(builtReparsed.paramMap, L"Feedback", "hand-built Feedback"), 0.6f, "hand-built round trip");

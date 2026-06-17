@@ -52,6 +52,11 @@ wstring StringHelper::replaceIllegalCharacters(const wstring& filename)
 	return replaceCharacters(filename, L"<>:\"/\\|?*", L"_");
 }
 
+wstring StringHelper::normalizeDecimalComma(const wstring& s)
+{
+	return replaceCharacters(s, L",", L".");
+}
+
 wstring StringHelper::toWString(const string& s, unsigned codepage)
 {
 	int length = MultiByteToWideChar(codepage, 0, s.c_str(), -1, nullptr, 0);

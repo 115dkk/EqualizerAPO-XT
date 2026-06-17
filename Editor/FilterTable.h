@@ -37,6 +37,15 @@
 
 class MainWindow;
 
+// FilterTable's implementation is split across several translation units (all
+// listed in Editor.pro SOURCES). When looking for a method, check the matching
+// part file:
+//   FilterTable.cpp                            - ctor/dtor, row build/update
+//   FilterTableParts/FilterTable.Clipboard.cpp - cut/copy/paste, save prefs
+//   FilterTableParts/FilterTable.DragDrop.cpp  - drag-and-drop
+//   FilterTableParts/FilterTable.Events.cpp    - event filters / resize
+//   FilterTableParts/FilterTable.Model.cpp     - config lines <-> rows model
+//   FilterTableParts/FilterTable.Mouse.cpp     - mouse / selection
 class FilterTable : public QWidget
 {
 	Q_OBJECT

@@ -39,7 +39,7 @@ bool PreampFilterFactory::parseCommand(const wstring& command, const wstring& pa
 		return false;
 
 	// Conversion to period as decimal mark, if needed
-	wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
+	wstring value = StringHelper::normalizeDecimalComma(parameters);
 
 	double preamp_dB;
 	int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);

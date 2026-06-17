@@ -50,7 +50,7 @@ void expectRoundTrip(const wstring& parameters, double expectedDb, const wstring
 	PreampCommand cmd = parsePreamp(parameters);
 	harness.expectTrue(cmd.valid, "well-formed preamp parameter should parse as valid");
 	harness.expectTrue(cmd.dbGain == expectedDb, "parsed preamp dB value mismatch");
-	harness.expectTrue(serializePreampCommand(cmd) == expectedSerialized,
+	harness.expectTrue(cmd.serialize() == expectedSerialized,
 		"serialize(parse(line)) should reproduce the canonical parameter string");
 }
 }

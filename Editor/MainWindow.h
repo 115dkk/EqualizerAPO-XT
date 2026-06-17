@@ -45,6 +45,18 @@ class MainWindow;
 class QLabel;
 class TitleBar;
 
+// MainWindow's implementation is split across several translation units (all
+// listed in Editor.pro SOURCES). When looking for a method, check the matching
+// part file:
+//   MainWindow.cpp                             - ctor/dtor, shared setup, doChecks
+//   MainWindowParts/MainWindow.Analysis.cpp    - instant mode + analysis panel
+//   MainWindowParts/MainWindow.Device.cpp      - device/channel selection + tabs
+//   MainWindowParts/MainWindow.Edit.cpp        - cut/copy/paste/undo edit actions
+//   MainWindowParts/MainWindow.FileActions.cpp - open/save/recent menu actions
+//   MainWindowParts/MainWindow.FileIO.cpp      - config load/save
+//   MainWindowParts/MainWindow.Frame.cpp       - custom window chrome / title bar
+//   MainWindowParts/MainWindow.Preferences.cpp - settings load/store
+//   MainWindowParts/MainWindow.ViewActions.cpp - view/skin/reset actions
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
