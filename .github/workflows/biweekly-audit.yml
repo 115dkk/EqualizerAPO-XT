@@ -271,10 +271,10 @@ jobs:
 
           set +e
           claude \
-            --model claude-fable-5 \
-            --effort xhigh \
+            --model claude-opus-4.8 \
+            --effort max \
             --permission-mode auto \
-            --max-turns 80 \
+            --max-turns 100 \
             -p "
           You will perform two analyses in sequence within this
           single session. Output everything to stdout.
