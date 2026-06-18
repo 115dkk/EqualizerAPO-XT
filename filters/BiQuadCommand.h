@@ -44,6 +44,24 @@ struct BiQuadCommand
 	bool enabled = true;
 };
 
+// There is deliberately no BiQuadCommand::serialize() counterpart to the
+// PreampCommand / VSTPluginCommand serializers (biweekly-audit #109 F007). Those
+// round-trip because their parse is symmetric; the BiQuad parse is not. A "Filter:"
+// line cannot be reproduced from this struct alone, because BiQuadFilterFactory's
+// parser is intentionally lossy and normalizing:
+//   - A missing Q / BW / slope token is replaced by a synthesized default
+//     (M_SQRT1_2 for LP/HP/BP, 0.9 for shelves, 30 for notch), so "no token" and
+//     "a token whose value equals the default" collapse to identical fields.
+//   - LP/LPQ, HP/HPQ and LS/LSC all map to one BiQuad::Type; the spelling that
+//     was written is not recorded.
+//   - A shelf slope is stored divided by 12, not as it was typed.
+// The Editor's BiQuadFilterGUI::store() is therefore the single serializer, and it
+// emits from the GUI mode selectors (the Fixed/Q/BW/Slope and centre/corner combo
+// boxes) - state this Qt-free struct does not carry. A shared serializer would have
+// to live in the GUI and read those widgets, so it would relocate store() rather
+// than remove a duplicate: the engine never serializes BiQuad lines, so no second
+// serializer exists to consolidate.
+
 // Maps a config-line type keyword (e.g. L"PK", L"LSC", L"Modal") to a BiQuad
 // type. Returns false for unknown keywords. This is the single owner of the
 // keyword -> type vocabulary used by both the parser and the Editor.
