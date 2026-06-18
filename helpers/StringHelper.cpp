@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <cwctype>
+#include <cstdlib>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "StringHelper.h"
@@ -220,4 +221,11 @@ vector<wstring> StringHelper::splitQuoted(const wstring& s, wchar_t splitChar, w
 		result.push_back(current);
 
 	return result;
+}
+
+double StringHelper::parseDouble(const wstring& s)
+{
+	// Mirrors the previous inline wcstod(str, nullptr) calls verbatim so parsed
+	// values stay bit-identical (the trailing pointer was already ignored).
+	return wcstod(s.c_str(), nullptr);
 }

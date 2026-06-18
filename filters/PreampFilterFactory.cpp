@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "PreampFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Preamp, PreampFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Preamp, PreampFilterFactory, true, L"Preamp")
 
 using std::vector;
 using std::wstring;

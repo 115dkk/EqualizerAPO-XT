@@ -25,7 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "CopyFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Copy, CopyFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Copy, CopyFilterFactory, false, L"Copy")
 
 using std::find;
 using std::vector;

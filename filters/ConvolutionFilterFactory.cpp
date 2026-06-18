@@ -27,7 +27,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "ConvolutionFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, ConvolutionFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, ConvolutionFilterFactory, false, L"Convolution")
 
 using std::vector;
 using std::wstring;

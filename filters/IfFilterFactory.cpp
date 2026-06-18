@@ -27,7 +27,7 @@
 #include "IfCommand.h"
 #include "IfFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::If, IfFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::If, IfFilterFactory, true, L"If", L"ElseIf", L"Else", L"EndIf")
 
 using std::vector;
 using std::wstring;

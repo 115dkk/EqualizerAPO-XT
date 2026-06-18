@@ -63,8 +63,8 @@ void GraphicEQCommand::parse(const wstring& parameters)
 		if (it == end)
 			break;
 		wsmatch gainMatch = *it++;
-		double freq = wcstod(freqMatch.str(0).c_str(), nullptr);
-		double gain = wcstod(gainMatch.str(0).c_str(), nullptr);
+		double freq = StringHelper::parseDouble(freqMatch.str(0));
+		double gain = StringHelper::parseDouble(gainMatch.str(0));
 		FilterNode node(freq, gain);
 		nodes.push_back(node);
 	}

@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "BiQuadFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::BiQuad, BiQuadFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::BiQuad, BiQuadFilterFactory, true, L"Filter")
 
 using std::find;
 using std::regex;
@@ -138,7 +138,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		else
 		{
 			wstring gainString = match.str(1);
-			gain = wcstod(gainString.c_str(), nullptr);
+			gain = StringHelper::parseDouble(gainString);
 			if (type == BiQuad::PEAKING)
 				stream << ", gain " << gain << " dB";
 			else
@@ -155,7 +155,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	if (found)
 	{
 		wstring qString = match.str(1);
-		bandwidthOrQOrS = wcstod(qString.c_str(), nullptr);
+		bandwidthOrQOrS = StringHelper::parseDouble(qString);
 		stream << " and Q " << bandwidthOrQOrS;
 	}
 
@@ -167,7 +167,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		else
 		{
 			wstring bwString = match.str(1);
-			bandwidthOrQOrS = wcstod(bwString.c_str(), nullptr);
+			bandwidthOrQOrS = StringHelper::parseDouble(bwString);
 			isBandwidthOrS = true;
 			stream << " and bandwidth " << bandwidthOrQOrS << " octaves";
 		}
@@ -181,7 +181,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		else
 		{
 			wstring slopeString = match.str(1);
-			bandwidthOrQOrS = wcstod(slopeString.c_str(), nullptr);
+			bandwidthOrQOrS = StringHelper::parseDouble(slopeString);
 			isBandwidthOrS = true;
 			stream << " and slope " << bandwidthOrQOrS << " dB";
 		}
