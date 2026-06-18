@@ -20,7 +20,7 @@
 #include "BiQuadFilterGUI.h"
 #include "BiQuadFilterGUIFactory.h"
 #include <filters/BiQuadFilterFactory.h>
-#include "Editor/FilterGUIFactoryRegistry.h"
+#include "../FilterGUIFactoryRegistry.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::BiQuad, BiQuadFilterGUIFactory)
 

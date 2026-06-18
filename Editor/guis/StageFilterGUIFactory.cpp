@@ -19,7 +19,7 @@
 
 #include "StageFilterGUI.h"
 #include "StageFilterGUIFactory.h"
-#include "Editor/FilterGUIFactoryRegistry.h"
+#include "../FilterGUIFactoryRegistry.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Stage, StageFilterGUIFactory)
 

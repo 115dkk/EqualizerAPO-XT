@@ -20,7 +20,7 @@
 #include "helpers/StringHelper.h"
 #include "CommentFilterGUI.h"
 #include "CommentFilterGUIFactory.h"
-#include "Editor/FilterGUIFactoryRegistry.h"
+#include "../FilterGUIFactoryRegistry.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Comment, CommentFilterGUIFactory)
 

@@ -20,7 +20,7 @@
 #include "Editor/FilterTable.h"
 #include "DeviceFilterGUI.h"
 #include "DeviceFilterGUIFactory.h"
-#include "Editor/FilterGUIFactoryRegistry.h"
+#include "../FilterGUIFactoryRegistry.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Device, DeviceFilterGUIFactory)
 

@@ -22,7 +22,7 @@
 #include "filters/VSTPluginCommand.h"
 #include "VSTPluginFilterGUI.h"
 #include "VSTPluginFilterGUIFactory.h"
-#include "Editor/FilterGUIFactoryRegistry.h"
+#include "../FilterGUIFactoryRegistry.h"
 
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::VSTPlugin, VSTPluginFilterGUIFactory)
 
