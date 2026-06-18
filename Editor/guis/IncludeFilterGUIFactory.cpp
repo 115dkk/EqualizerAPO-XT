@@ -20,6 +20,9 @@
 #include "filters/IncludeCommand.h"
 #include "IncludeFilterGUI.h"
 #include "IncludeFilterGUIFactory.h"
+#include "Editor/FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Include, IncludeFilterGUIFactory)
 
 IncludeFilterGUIFactory::IncludeFilterGUIFactory()
 {

@@ -21,6 +21,9 @@
 #include "filters/DelayFilterFactory.h"
 #include "DelayFilterGUI.h"
 #include "DelayFilterGUIFactory.h"
+#include "Editor/FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Delay, DelayFilterGUIFactory)
 
 DelayFilterGUIFactory::DelayFilterGUIFactory()
 {

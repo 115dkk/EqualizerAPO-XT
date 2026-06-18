@@ -20,6 +20,9 @@
 #include "filters/GraphicEQCommand.h"
 #include "GraphicEQFilterGUI.h"
 #include "GraphicEQFilterGUIFactory.h"
+#include "Editor/FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::GraphicEQ, GraphicEQFilterGUIFactory)
 
 GraphicEQFilterGUIFactory::GraphicEQFilterGUIFactory()
 {

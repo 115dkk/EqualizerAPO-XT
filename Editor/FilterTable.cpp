@@ -36,20 +36,7 @@
 #include "MainWindow.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
-#include "guis/ExpressionFilterGUIFactory.h"
-#include "guis/CommentFilterGUIFactory.h"
-#include "guis/DeviceFilterGUIFactory.h"
-#include "guis/ChannelFilterGUIFactory.h"
-#include "guis/StageFilterGUIFactory.h"
-#include "guis/PreampFilterGUIFactory.h"
-#include "guis/BiQuadFilterGUIFactory.h"
-#include "guis/CopyFilterGUIFactory.h"
-#include "guis/DelayFilterGUIFactory.h"
-#include "guis/IncludeFilterGUIFactory.h"
-#include "guis/GraphicEQFilterGUIFactory.h"
-#include "guis/ConvolutionFilterGUIFactory.h"
-#include "guis/VSTPluginFilterGUIFactory.h"
-#include "guis/LoudnessCorrectionFilterGUIFactory.h"
+#include "FilterGUIFactoryRegistry.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
@@ -80,20 +67,11 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 	insertArrow->setPixmap(icon.pixmap(GUIHelper::scale(QSize(24, 15))));
 	insertArrow->setVisible(false);
 
-	factories.append(new ExpressionFilterGUIFactory);
-	factories.append(new CommentFilterGUIFactory);
-	factories.append(new IncludeFilterGUIFactory);
-	factories.append(new DeviceFilterGUIFactory);
-	factories.append(new ChannelFilterGUIFactory);
-	factories.append(new StageFilterGUIFactory);
-	factories.append(new PreampFilterGUIFactory);
-	factories.append(new BiQuadFilterGUIFactory);
-	factories.append(new DelayFilterGUIFactory);
-	factories.append(new CopyFilterGUIFactory);
-	factories.append(new GraphicEQFilterGUIFactory);
-	factories.append(new ConvolutionFilterGUIFactory);
-	factories.append(new VSTPluginFilterGUIFactory);
-	factories.append(new LoudnessCorrectionFilterGUIFactory);
+	// The roster and its matching order live in the factory translation units
+	// themselves via REGISTER_FILTER_GUI_FACTORY (see FilterGUIFactoryRegistry),
+	// so adding a filter GUI no longer means editing this list. FilterTable owns
+	// the returned instances and deletes them in its destructor.
+	factories = FilterGUIFactoryRegistry::createFactories();
 
 	QApplication::instance()->installEventFilter(this);
 }

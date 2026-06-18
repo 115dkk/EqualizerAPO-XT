@@ -20,6 +20,9 @@
 #include "filters/CopyFilter.h"
 #include "CopyFilterGUI.h"
 #include "CopyFilterGUIFactory.h"
+#include "Editor/FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Copy, CopyFilterGUIFactory)
 
 CopyFilterGUIFactory::CopyFilterGUIFactory()
 {
