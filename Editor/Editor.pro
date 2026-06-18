@@ -184,6 +184,11 @@ SOURCES += main.cpp\
 	skins/pickers/MatrixFilterPicker.cpp \
 	skins/RackChrome.cpp \
 	skins/Skins.cpp \
+	skins/StudioSkin.cpp \
+	skins/MinimalSkin.cpp \
+	skins/SoftSkin.cpp \
+	skins/RackSkin.cpp \
+	skins/MatrixSkin.cpp \
 	skins/pickers/StudioFilterPicker.cpp \
 	skins/pickers/MinimalFilterPicker.cpp \
 	skins/pickers/SoftFilterPicker.cpp \
@@ -366,6 +371,7 @@ HEADERS  += \
 	skins/pickers/MatrixFilterPicker.h \
 	skins/RackChrome.h \
 	skins/Skins.h \
+	skins/SkinSupport.h \
 	skins/pickers/StudioFilterPicker.h \
 	skins/pickers/MinimalFilterPicker.h \
 	skins/pickers/SoftFilterPicker.h \
