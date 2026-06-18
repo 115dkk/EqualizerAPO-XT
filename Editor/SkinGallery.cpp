@@ -1,5 +1,8 @@
 #include "SkinGallery.h"
 
+#include <cstdio>
+#include <cstdlib>
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QDir>
@@ -379,6 +382,15 @@ int run(const QStringList& arguments)
 		failures += renderSkin(outDir, skinId.trimmed(), false);
 	}
 
-	return failures == 0 ? 0 : 1;
+	// --skin-gallery is a headless one-shot: by this point every screenshot has
+	// been rendered and flushed to disk. Returning normally would unwind into the
+	// QApplication / global teardown, which on the offscreen platform never
+	// finishes - a leftover background resource keeps the process alive, so the
+	// renders all succeed but the process hangs on exit and any driving script
+	// has to time out and kill it. Nothing is left to persist, so flush the
+	// diagnostic stream and exit immediately with the failure status instead.
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
 }
 }
