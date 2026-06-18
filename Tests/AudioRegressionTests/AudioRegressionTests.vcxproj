@@ -69,11 +69,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\..\deps\fftw\include</FFTW_INCLUDE>
     <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\fftw\Release</FFTW_LIB>
-    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\include</LIBSNDFILE_INCLUDE>
     <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
-    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\parser</MUPARSERX_INCLUDE>
     <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

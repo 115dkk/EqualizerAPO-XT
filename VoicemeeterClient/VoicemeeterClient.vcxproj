@@ -95,10 +95,6 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\deps\libsndfile\include</LIBSNDFILE_INCLUDE>
-    <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\deps\fftw\include</FFTW_INCLUDE>
-    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">$(MSBuildThisFileDirectory)..\deps\muparserx\parser</MUPARSERX_INCLUDE>
-    <TCLAP_ROOT Condition="'$(TCLAP_ROOT)'==''">$(MSBuildThisFileDirectory)..\deps\tclap</TCLAP_ROOT>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\deps\libsndfile\build\Debug</LIBSNDFILE_LIB>
