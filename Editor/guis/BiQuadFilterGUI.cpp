@@ -101,6 +101,10 @@ BiQuadFilterGUI::~BiQuadFilterGUI()
 	delete ui;
 }
 
+// This is the sole BiQuad serializer; the engine only parses. It emits from the
+// combo-box mode selectors (Fixed/Q/BW/Slope, centre/corner) rather than from a
+// BiQuadCommand, because those modes are not recoverable from the normalized
+// struct - see BiQuadCommand.h for why there is no BiQuadCommand::serialize().
 void BiQuadFilterGUI::store(QString& command, QString& parameters)
 {
 	BiQuad::Type type = (BiQuad::Type)ui->typeComboBox->currentData().toInt();
