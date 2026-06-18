@@ -1297,6 +1297,44 @@ jobs:
         path: cppcheck-report.txt
         retention-days: 30
 
+  pester:
+    # Unit-tests the release keystone Bump-Version.ps1 (the Conventional Commit
+    # -> SemVer mapping that decides every release). Like cppcheck this is an
+    # independent gate with no `if:`, so it runs on pull requests too, where the
+    # version-bump job is skipped. Pester 5 is pinned for reproducibility the
+    # same way the cppcheck version is.
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Install Pester 5
+      shell: pwsh
+      run: |
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        Install-Module Pester -RequiredVersion 5.6.1 -Force -SkipPublisherCheck -Scope CurrentUser
+
+    - name: Run Bump-Version tests
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module Pester -RequiredVersion 5.6.1
+        $config = New-PesterConfiguration
+        $config.Run.Path = ".github/scripts/Tests"
+        $config.Run.Exit = $true
+        $config.Output.Verbosity = "Detailed"
+        $config.TestResult.Enabled = $true
+        $config.TestResult.OutputPath = "pester-results.xml"
+        Invoke-Pester -Configuration $config
+
+    - name: Upload Pester results
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: pester-results
+        path: pester-results.xml
+        retention-days: 30
+
   cross-variant-compare:
     needs: build
     runs-on: ubuntu-latest
