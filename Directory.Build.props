@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared dependency *include* path defaults for every MSBuild (.vcxproj) project
+  in the tree. MSBuild auto-imports the nearest Directory.Build.props from the
+  repo root, so each project no longer repeats these six paths. The Condition
+  guards mean CI's /p:FFTW_INCLUDE=... (and the other dependency overrides) still
+  win, exactly as before.
+
+  The paths are root-relative ($(MSBuildThisFileDirectory) is this file's folder,
+  i.e. the repo root), which resolves to the same <root>\deps\... that each
+  project used via its own deps / ..\deps / ..\..\deps prefix.
+
+  Library (*_LIB) paths are intentionally NOT hoisted here: they diverge per
+  project - the APO/engine/Voicemeeter projects pick Debug vs Release libs per
+  configuration, while the console and test projects pin Release even in Debug -
+  so collapsing them into one block would change effective Debug link paths.
+  They stay in each .vcxproj.
+-->
+<Project>
+  <PropertyGroup>
+    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">$(MSBuildThisFileDirectory)deps\libsndfile\include</LIBSNDFILE_INCLUDE>
+    <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">$(MSBuildThisFileDirectory)deps\fftw\include</FFTW_INCLUDE>
+    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">$(MSBuildThisFileDirectory)deps\muparserx\parser</MUPARSERX_INCLUDE>
+    <TCLAP_ROOT Condition="'$(TCLAP_ROOT)'==''">$(MSBuildThisFileDirectory)deps\tclap</TCLAP_ROOT>
+    <VST3_SDK Condition="'$(VST3_SDK)'==''">$(MSBuildThisFileDirectory)deps\vst3sdk</VST3_SDK>
+    <HIGHWAY_INCLUDE Condition="'$(HIGHWAY_INCLUDE)'==''">$(MSBuildThisFileDirectory)deps\highway</HIGHWAY_INCLUDE>
+  </PropertyGroup>
+</Project>
