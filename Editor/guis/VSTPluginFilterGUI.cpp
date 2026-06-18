@@ -106,7 +106,7 @@ void VSTPluginFilterGUI::store(QString& command, QString& parameters)
 	VSTPluginCommand cmd;
 	cmd.chunkData = chunkData;
 	cmd.paramMap = paramMap;
-	parameters += QString::fromStdWString(VSTPluginCommand::serialize(cmd));
+	parameters += QString::fromStdWString(cmd.serialize());
 }
 
 void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)

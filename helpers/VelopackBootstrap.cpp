@@ -19,6 +19,8 @@
 
 #include "VelopackBootstrap.h"
 
+#include "LogHelper.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <atomic>
@@ -57,11 +59,17 @@ bool fileExists(const std::wstring& path)
 
 std::wstring envVar(const wchar_t* name)
 {
-	wchar_t buffer[256];
-	DWORD length = GetEnvironmentVariableW(name, buffer, 256);
-	if (length == 0 || length >= 256)
+	// Probe the required size (includes the null terminator) so long values are
+	// not silently dropped. Not-found and empty still yield an empty string.
+	DWORD needed = GetEnvironmentVariableW(name, nullptr, 0);
+	if (needed == 0)
 		return std::wstring();
-	return std::wstring(buffer, length);
+	std::wstring value(needed, L'\0');
+	DWORD length = GetEnvironmentVariableW(name, value.data(), needed);
+	if (length == 0 || length >= needed)
+		return std::wstring();
+	value.resize(length);
+	return value;
 }
 
 // State for the staged update produced by the background worker. The UpdateManager
@@ -158,10 +166,12 @@ void VelopackBootstrap::startBackgroundDownload(const std::string& repoUrl, cons
 		}
 		catch (const std::exception& e)
 		{
+			LogFStatic(L"[VelopackBootstrap] background update failed: %S", e.what());
 			fprintf(stderr, "[VelopackBootstrap] background update failed: %s\n", e.what());
 		}
 		catch (...)
 		{
+			LogFStatic(L"[VelopackBootstrap] background update failed: unknown error");
 			fprintf(stderr, "[VelopackBootstrap] background update failed: unknown error\n");
 		}
 	}).detach();
@@ -186,6 +196,7 @@ void VelopackBootstrap::applyPendingUpdateAndExit()
 	}
 	catch (const std::exception& e)
 	{
+		LogFStatic(L"[VelopackBootstrap] apply update failed: %S", e.what());
 		fprintf(stderr, "[VelopackBootstrap] apply update failed: %s\n", e.what());
 		return;
 	}

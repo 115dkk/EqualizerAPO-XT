@@ -23,12 +23,12 @@
 
 #include <cstdio>
 
-std::wstring serializePreampCommand(const PreampCommand& command)
+std::wstring PreampCommand::serialize() const
 {
 	// %g matches QString::arg(double)'s default formatting (C locale, format 'g',
 	// six significant digits with trailing zeros stripped). The "<value> dB" shape
 	// is exactly what the factory parser reads back via swscanf_s(" %lf dB").
 	wchar_t buffer[64];
-	swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g dB", command.dbGain);
+	swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g dB", dbGain);
 	return std::wstring(buffer);
 }

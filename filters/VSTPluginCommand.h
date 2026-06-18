@@ -57,5 +57,5 @@ struct VSTPluginCommand
 	// %g/QString::arg float formatting. The Library token itself stays in store()
 	// because its relative/absolute path resolution depends on Qt's QDir, so this
 	// serializer owns only the chunk/param body.
-	static std::wstring serialize(const VSTPluginCommand& command);
+	std::wstring serialize() const;
 };

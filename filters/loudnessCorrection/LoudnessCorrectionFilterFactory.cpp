@@ -31,7 +31,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "LoudnessCorrectionFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(14, LoudnessCorrectionFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::LoudnessCorrection, LoudnessCorrectionFilterFactory)
 
 using std::regex;
 using std::vector;

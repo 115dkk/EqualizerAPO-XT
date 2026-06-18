@@ -39,7 +39,7 @@ bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameter
 		return false;
 
 	// Conversion to period as decimal mark, if needed
-	wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
+	wstring value = StringHelper::normalizeDecimalComma(parameters);
 
 	double delay = -1;
 	wstring unit;

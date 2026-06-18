@@ -45,7 +45,7 @@ void PreampFilterGUI::store(QString& command, QString& parameters)
 	command = "Preamp";
 
 	// Read the widget into the shared command struct, then serialize it back into
-	// the canonical "<dB> dB" parameter string. serializePreampCommand uses %g,
+	// the canonical "<dB> dB" parameter string. PreampCommand::serialize uses %g,
 	// which reproduces the exact text QString("%1 dB").arg(value) emitted before
 	// (C locale, six significant digits, trailing zeros stripped) for the values
 	// this spin box can hold.
@@ -53,7 +53,7 @@ void PreampFilterGUI::store(QString& command, QString& parameters)
 	cmd.dbGain = ui->doubleSpinBox->value();
 	cmd.valid = true;
 	cmd.noOp = std::abs(cmd.dbGain) < 1e-9;
-	parameters = QString::fromStdWString(serializePreampCommand(cmd));
+	parameters = QString::fromStdWString(cmd.serialize());
 }
 
 void PreampFilterGUI::on_dial_valueChanged(int value)
