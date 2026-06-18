@@ -42,21 +42,9 @@
 #include "helpers/ChannelHelper.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
-#include "filters/ExpressionFilterFactory.h"
-#include "filters/DeviceFilterFactory.h"
-#include "filters/StageFilterFactory.h"
-#include "filters/IfFilterFactory.h"
-#include "filters/ChannelFilterFactory.h"
-#include "filters/BiQuadFilterFactory.h"
-#include "filters/IIRFilterFactory.h"
-#include "filters/PreampFilterFactory.h"
-#include "filters/DelayFilterFactory.h"
-#include "filters/CopyFilterFactory.h"
-#include "filters/IncludeFilterFactory.h"
-#include "filters/ConvolutionFilterFactory.h"
-#include "filters/GraphicEQFilterFactory.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
+// Filter factory headers intentionally omitted: the factories self-register and
+// are pulled into the link via /WHOLEARCHIVE in the consumers; this TU names none
+// of them (see FilterEngine.Configuration.cpp).
 
 using std::exception;
 using std::find;

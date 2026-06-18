@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "IIRFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::IIR, IIRFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::IIR, IIRFilterFactory, true, L"Filter")
 
 using std::find;
 using std::regex;
@@ -83,7 +83,7 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 	out.order = order;
 	out.coefficients.clear();
 	for (const wstring& coefficientString : coefficientStrings)
-		out.coefficients.push_back(wcstod(coefficientString.c_str(), nullptr));
+		out.coefficients.push_back(StringHelper::parseDouble(coefficientString));
 
 	return true;
 }

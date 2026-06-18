@@ -39,4 +39,8 @@ public:
 	static std::wstring join(const std::vector<std::wstring>& strings, const std::wstring& separator);
 	static std::wstring getSystemErrorString(long status);
 	static std::vector<std::wstring> splitQuoted(const std::wstring& s, wchar_t splitChar, wchar_t quoteChar = '"');
+	// Locale-independent double parse matching the historical wcstod(s, nullptr)
+	// semantics (C locale, leading whitespace skipped, 0.0 on no conversion).
+	// Used by the config parsers so numeric reads do not depend on LC_NUMERIC.
+	static double parseDouble(const std::wstring& s);
 };

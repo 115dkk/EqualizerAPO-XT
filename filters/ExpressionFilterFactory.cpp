@@ -31,7 +31,7 @@
 #include "ExpressionCommand.h"
 #include "ExpressionFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Expression, ExpressionFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Expression, ExpressionFilterFactory, true, L"Eval")
 
 using std::vector;
 using std::wstring;

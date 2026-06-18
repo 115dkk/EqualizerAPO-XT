@@ -43,19 +43,36 @@ namespace FilterFactoryPriority
 class FilterFactoryRegistry
 {
 public:
-	static bool registerFactory(int priority, FilterFactoryCreator creator);
+	// commandKeywords: the top-level config keyword(s) this factory matches in
+	// createFilter() (e.g. {L"If", L"ElseIf", L"Else", L"EndIf"}); their union is
+	// knownConfigCommands(). suppressMissingFilterWarning: true when a recognized
+	// line that produces no filter is still legitimate (control-flow commands, or
+	// a valid no-op like Preamp 0 dB / Delay 0 / Filter "ON None") and must not
+	// raise the "recognized but produced no filter" diagnostic.
+	static bool registerFactory(int priority, FilterFactoryCreator creator,
+		std::vector<std::wstring> commandKeywords, bool suppressMissingFilterWarning);
 	static std::vector<std::unique_ptr<IFilterFactory>> createFactories();
 
-	// Canonical set of recognized top-level configuration command keywords.
-	// This is the single list other code consumes to tell a recognized command
-	// apart from plain text / comments / unknown keys. Keys may carry a trailing
-	// token (e.g. "Filter 1"), so callers match the first whitespace-delimited
-	// token of the trimmed key against this set.
+	// Canonical set of recognized top-level configuration command keywords,
+	// derived from the registered factories' commandKeywords. This is the single
+	// list other code consumes to tell a recognized command apart from plain text
+	// / comments / unknown keys. Keys may carry a trailing token (e.g. "Filter 1"),
+	// so callers match the first whitespace-delimited token of the trimmed key.
 	static const std::set<std::wstring>& knownConfigCommands();
+
+	// Subset of knownConfigCommands() whose factories set suppressMissingFilterWarning.
+	// The engine uses it to skip the malformed-parameters warning for commands that
+	// legitimately produce no filter.
+	static const std::set<std::wstring>& commandsWithoutFilter();
 };
 
-#define REGISTER_FILTER_FACTORY(priority, factoryType) \
+// Registers a factory with its priority, whether a recognized-but-no-filter line
+// is legitimate (suppressMissingFilterWarning), and its command keyword(s) as the
+// trailing varargs (at least one). Both knownConfigCommands() and
+// commandsWithoutFilter() are derived from these registrations, so a new filter is
+// declared in exactly one place instead of in two hand-maintained central lists.
+#define REGISTER_FILTER_FACTORY(priority, factoryType, suppressMissingFilterWarning, ...) \
 	namespace \
 	{ \
-		const bool factoryType##Registered = FilterFactoryRegistry::registerFactory(priority, []() -> std::unique_ptr<IFilterFactory> { return std::make_unique<factoryType>(); }); \
+		const bool factoryType##Registered = FilterFactoryRegistry::registerFactory(priority, []() -> std::unique_ptr<IFilterFactory> { return std::make_unique<factoryType>(); }, std::vector<std::wstring>{__VA_ARGS__}, suppressMissingFilterWarning); \
 	}

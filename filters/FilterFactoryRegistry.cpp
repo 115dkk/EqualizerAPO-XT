@@ -15,8 +15,10 @@ namespace
 {
 struct FilterFactoryRegistration
 {
-	int priority;
-	FilterFactoryCreator creator;
+	int priority = 0;
+	FilterFactoryCreator creator = nullptr;
+	vector<wstring> commandKeywords;
+	bool suppressMissingFilterWarning = false;
 };
 
 vector<FilterFactoryRegistration>& registrations()
@@ -26,9 +28,10 @@ vector<FilterFactoryRegistration>& registrations()
 }
 }
 
-bool FilterFactoryRegistry::registerFactory(int priority, FilterFactoryCreator creator)
+bool FilterFactoryRegistry::registerFactory(int priority, FilterFactoryCreator creator,
+	vector<wstring> commandKeywords, bool suppressMissingFilterWarning)
 {
-	registrations().push_back({priority, creator});
+	registrations().push_back({priority, creator, std::move(commandKeywords), suppressMissingFilterWarning});
 	return true;
 }
 
@@ -49,25 +52,29 @@ vector<unique_ptr<IFilterFactory>> FilterFactoryRegistry::createFactories()
 
 const set<wstring>& FilterFactoryRegistry::knownConfigCommands()
 {
-	// Derived from the command keywords matched by the registered factories.
-	// "Filter" is the canonical keyword for both IIR and BiQuad filters, which
-	// match any key starting with "Filter" (e.g. "Filter 1"). Keep this list in
-	// sync with the factories' createFilter() command checks.
-	static const set<wstring> commands = {
-		L"Device",            // DeviceFilterFactory
-		L"If", L"ElseIf", L"Else", L"EndIf", // IfFilterFactory
-		L"Eval",              // ExpressionFilterFactory
-		L"Include",           // IncludeFilterFactory
-		L"Stage",             // StageFilterFactory
-		L"Channel",           // ChannelFilterFactory
-		L"Filter",            // IIRFilterFactory / BiQuadFilterFactory
-		L"Preamp",            // PreampFilterFactory
-		L"Delay",             // DelayFilterFactory
-		L"Copy",              // CopyFilterFactory
-		L"Convolution",       // ConvolutionFilterFactory
-		L"GraphicEQ",         // GraphicEQFilterFactory
-		L"VSTPlugin",         // VSTPluginFilterFactory
-		L"LoudnessCorrection" // LoudnessCorrectionFilterFactory
-	};
+	// Union of every registered factory's command keyword(s). "Filter" is shared
+	// by IIR and BiQuad (both match a key starting with "Filter", e.g. "Filter 1").
+	// Derived once and cached; by first call every REGISTER_FILTER_FACTORY static
+	// initializer has run, and /WHOLEARCHIVE pulls every factory TU into the link.
+	static const set<wstring> commands = []() {
+		set<wstring> result;
+		for (const FilterFactoryRegistration& registration : registrations())
+			for (const wstring& keyword : registration.commandKeywords)
+				result.insert(keyword);
+		return result;
+	}();
+	return commands;
+}
+
+const set<wstring>& FilterFactoryRegistry::commandsWithoutFilter()
+{
+	static const set<wstring> commands = []() {
+		set<wstring> result;
+		for (const FilterFactoryRegistration& registration : registrations())
+			if (registration.suppressMissingFilterWarning)
+				for (const wstring& keyword : registration.commandKeywords)
+					result.insert(keyword);
+		return result;
+	}();
 	return commands;
 }

@@ -26,7 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "ChannelFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Channel, ChannelFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Channel, ChannelFilterFactory, false, L"Channel")
 
 using std::vector;
 using std::wstring;

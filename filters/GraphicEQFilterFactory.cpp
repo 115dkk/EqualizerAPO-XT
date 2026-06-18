@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "GraphicEQFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory)
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory, false, L"GraphicEQ")
 
 using std::vector;
 using std::wstring;

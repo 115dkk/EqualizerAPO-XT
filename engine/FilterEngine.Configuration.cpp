@@ -43,21 +43,10 @@
 #include "helpers/ChannelHelper.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
-#include "filters/ExpressionFilterFactory.h"
-#include "filters/DeviceFilterFactory.h"
-#include "filters/StageFilterFactory.h"
-#include "filters/IfFilterFactory.h"
-#include "filters/ChannelFilterFactory.h"
-#include "filters/BiQuadFilterFactory.h"
-#include "filters/IIRFilterFactory.h"
-#include "filters/PreampFilterFactory.h"
-#include "filters/DelayFilterFactory.h"
-#include "filters/CopyFilterFactory.h"
-#include "filters/IncludeFilterFactory.h"
-#include "filters/ConvolutionFilterFactory.h"
-#include "filters/GraphicEQFilterFactory.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
+// The individual filter factories self-register via REGISTER_FILTER_FACTORY, and
+// every consumer links Common.lib with /WHOLEARCHIVE, which forces each factory
+// translation unit into the link without the engine naming or including it. So
+// only the registry facade is needed here, not the 15 factory headers.
 #include "filters/FilterFactoryRegistry.h"
 
 using std::exception;
@@ -207,15 +196,12 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			// point with no filter means the parameters were malformed.
 			if (!producedFilter && !key.empty())
 			{
-				static const std::set<wstring> commandsWithoutFilter = {
-					L"Device", L"If", L"ElseIf", L"Else", L"EndIf", L"Eval", L"Include", L"Stage",
-					L"Preamp", L"Delay", L"Filter"
-				};
-
 				// A key may carry a trailing token (e.g. "Filter 1"); match the first
-				// whitespace-delimited token against the canonical command set.
+				// whitespace-delimited token against the canonical command set. Both
+				// sets are derived from the registered factories (see FilterFactoryRegistry).
 				wstring commandKeyword = key.substr(0, key.find_first_of(L" \t"));
 				const std::set<wstring>& knownCommands = FilterFactoryRegistry::knownConfigCommands();
+				const std::set<wstring>& commandsWithoutFilter = FilterFactoryRegistry::commandsWithoutFilter();
 				if (knownCommands.count(commandKeyword) != 0 && commandsWithoutFilter.count(commandKeyword) == 0)
 					LogF(L"Command \"%s\" was recognized but produced no filter, likely due to malformed parameters", key.c_str());
 			}

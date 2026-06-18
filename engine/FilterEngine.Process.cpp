@@ -44,21 +44,9 @@
 #include "helpers/MxcsrGuard.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
-#include "filters/ExpressionFilterFactory.h"
-#include "filters/DeviceFilterFactory.h"
-#include "filters/StageFilterFactory.h"
-#include "filters/IfFilterFactory.h"
-#include "filters/ChannelFilterFactory.h"
-#include "filters/BiQuadFilterFactory.h"
-#include "filters/IIRFilterFactory.h"
-#include "filters/PreampFilterFactory.h"
-#include "filters/DelayFilterFactory.h"
-#include "filters/CopyFilterFactory.h"
-#include "filters/IncludeFilterFactory.h"
-#include "filters/ConvolutionFilterFactory.h"
-#include "filters/GraphicEQFilterFactory.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
+// Filter factory headers intentionally omitted: the factories self-register and
+// are pulled into the link via /WHOLEARCHIVE in the consumers; this hot-path TU
+// names none of them (see FilterEngine.Configuration.cpp).
 
 // stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
 // macros here. Undefine them before Highway, whose templates use std::min and
