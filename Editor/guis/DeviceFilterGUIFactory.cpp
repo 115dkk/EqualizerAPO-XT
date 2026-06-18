@@ -20,6 +20,9 @@
 #include "Editor/FilterTable.h"
 #include "DeviceFilterGUI.h"
 #include "DeviceFilterGUIFactory.h"
+#include "../FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Device, DeviceFilterGUIFactory)
 
 using std::list;
 using std::shared_ptr;

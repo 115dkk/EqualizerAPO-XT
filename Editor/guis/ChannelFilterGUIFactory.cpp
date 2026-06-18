@@ -20,6 +20,9 @@
 #include "Editor/FilterTable.h"
 #include "ChannelFilterGUI.h"
 #include "ChannelFilterGUIFactory.h"
+#include "../FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Channel, ChannelFilterGUIFactory)
 
 ChannelFilterGUIFactory::ChannelFilterGUIFactory()
 {

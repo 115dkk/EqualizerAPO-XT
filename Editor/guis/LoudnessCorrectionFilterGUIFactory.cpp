@@ -20,6 +20,9 @@
 #include "filters/loudnessCorrection/LoudnessCorrectionCommand.h"
 #include "LoudnessCorrectionFilterGUI.h"
 #include "LoudnessCorrectionFilterGUIFactory.h"
+#include "../FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::LoudnessCorrection, LoudnessCorrectionFilterGUIFactory)
 
 LoudnessCorrectionFilterGUIFactory::LoudnessCorrectionFilterGUIFactory()
 {

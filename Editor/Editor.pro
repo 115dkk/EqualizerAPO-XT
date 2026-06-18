@@ -29,6 +29,7 @@ SOURCES += main.cpp\
 	../helpers/VelopackBootstrap.cpp \
 	../parser/LogicalOperators.cpp \
 	IFilterGUIFactory.cpp \
+	FilterGUIFactoryRegistry.cpp \
 	IFilterGUI.cpp \
 	guis/PreampFilterGUI.cpp \
 	guis/PreampFilterGUIFactory.cpp \
@@ -228,6 +229,7 @@ HEADERS  += \
 	../helpers/VelopackBootstrap.h \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
+	FilterGUIFactoryRegistry.h \
 	helpers/GUIHelper.h \
 	stable.h \
 	IFilterGUI.h \

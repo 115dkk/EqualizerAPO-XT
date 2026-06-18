@@ -18,6 +18,9 @@
 */
 
 #include "ExpressionFilterGUIFactory.h"
+#include "../FilterGUIFactoryRegistry.h"
+
+REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Expression, ExpressionFilterGUIFactory)
 
 IFilterGUI* ExpressionFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
