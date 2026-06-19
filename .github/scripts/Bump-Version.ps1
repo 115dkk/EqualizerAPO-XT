@@ -39,7 +39,13 @@ function Get-BumpKind {
   #   fix:                                            → patch
   #   feat:                                           → minor
   #   BREAKING CHANGE or `<type>!:`                   → major
-  if ($joined -match "BREAKING CHANGE" -or $joined -match "(^|\n)\w+(\([^)]+\))?!:") {
+  # Match the breaking change as an actual Conventional Commits footer
+  # (uppercase, at the start of a line, with the colon) - or "BREAKING-CHANGE:" -
+  # not as a bare substring. A commit that merely mentions the words in prose
+  # (for example release tooling or a changelog entry that documents this rule)
+  # must not trip a major bump; matching the bare substring is exactly what once
+  # cut a spurious 2.0.0 release from a ci: commit whose body discussed the rule.
+  if ($joined -cmatch "(^|\r?\n)BREAKING[ -]CHANGE:" -or $joined -match "(^|\n)\w+(\([^)]+\))?!:") {
     return "major"
   }
   if ($joined -match "(^|\n)feat(\([^)]+\))?:") {

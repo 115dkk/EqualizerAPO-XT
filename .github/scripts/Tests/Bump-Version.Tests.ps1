@@ -133,6 +133,27 @@ Describe "Bump-Version.ps1" {
             Get-FixtureVersion -Repo $repo | Should -Be "2.0.0"
         }
 
+        It "does not bump major when 'BREAKING CHANGE' only appears in prose, not as a footer" {
+            # Regression: a ci: commit whose body merely discusses the rule (no
+            # real footer, no type-bang marker) once matched the bare substring and
+            # cut a spurious 2.0.0 release. It must stay a no-bump.
+            $repo = New-FixtureRepo
+            Set-FixtureVersion -Repo $repo -Major 1 -Minor 2 -Revision 3
+            Add-FixtureCommit -Repo $repo -Subject "ci: add tests for the version bump rule" -Body "Coverage documents that a type-bang marker or a BREAKING CHANGE footer maps to a major bump."
+            $r = Invoke-Bump -Repo $repo
+            $r.ExitCode | Should -Be 0
+            Get-FixtureVersion -Repo $repo | Should -Be "1.2.3"
+        }
+
+        It "bumps the major for a BREAKING-CHANGE footer (hyphen spelling)" {
+            $repo = New-FixtureRepo
+            Set-FixtureVersion -Repo $repo -Major 1 -Minor 2 -Revision 3
+            Add-FixtureCommit -Repo $repo -Subject "fix: tweak parsing" -Body "BREAKING-CHANGE: the old syntax is gone"
+            $r = Invoke-Bump -Repo $repo
+            $r.ExitCode | Should -Be 0
+            Get-FixtureVersion -Repo $repo | Should -Be "2.0.0"
+        }
+
         It "does not bump for non-release types (chore/docs/refactor)" {
             $repo = New-FixtureRepo
             Set-FixtureVersion -Repo $repo -Major 1 -Minor 2 -Revision 3
