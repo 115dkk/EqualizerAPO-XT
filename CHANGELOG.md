@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Fixed a start-up crash (access violation) where the Editor failed to launch on
+  some saved window layouts. `loadPreferences()` re-homed the analysis dock with
+  `removeDockWidget()` + `addDockWidget()` both before and after
+  `QMainWindow::restoreState()`; removing a dock that `restoreState()` had just
+  laid out freed a layout item the dock area still referenced, and the first
+  window show then dereferenced the dangling item (use-after-free). This was the
+  #54/#75 start-up crash recurring on heavy or stale saved layouts. The analysis
+  dock is now re-homed only when it is not already in the target area, removing
+  the redundant churn without resetting anyone's saved layout. ([#118])
 - Fixed VST3 plugin editor windows being mis-sized on high-DPI (scaled)
   displays. The editor handed the plugin's physical-pixel size straight to a Qt
   widget that measures in logical (device-independent) pixels, so on a 150% or
@@ -462,3 +471,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
+[#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118

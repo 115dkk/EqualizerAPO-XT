@@ -8,6 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 일부 저장된 창 레이아웃에서 Editor가 시작되지 않던 크래시(액세스 위반)를
+  고쳤습니다. `loadPreferences()`가 `QMainWindow::restoreState()` 앞뒤로 분석
+  dock을 `removeDockWidget()` + `addDockWidget()`으로 다시 배치했는데,
+  `restoreState()`가 막 배치한 dock을 제거하면서 dock 영역이 아직 참조하던 레이아웃
+  아이템을 해제했고, 첫 창 표시에서 그 매달린 아이템을 역참조해(use-after-free)
+  창이 뜨지 않았습니다. 무겁거나 오래된 저장 레이아웃에서 #54/#75 시작 크래시가
+  재발한 것입니다. 이제 분석 dock은 목표 위치에 있지 않을 때만 다시 배치하므로,
+  불필요한 재배치가 사라지고 저장된 레이아웃은 초기화되지 않습니다. ([#118])
 - 고DPI(배율) 디스플레이에서 VST3 플러그인 에디터 창 크기가 어긋나던 문제를
   고쳤습니다. 에디터가 플러그인의 물리 픽셀 크기를 논리(장치 독립) 픽셀 단위로
   재는 Qt 위젯에 그대로 넘겨, 150%나 200% 모니터에서는 호스트 프레임이 너무 크게
@@ -434,3 +442,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#105]: https://github.com/115dkk/EqualizerAPO-XT/pull/105
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
+[#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
