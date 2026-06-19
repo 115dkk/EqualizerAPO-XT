@@ -376,13 +376,25 @@ void MainWindow::applyRedesignPreferences()
 
 	ui->analysisDockWidget->setWindowTitle(tr("Graph"));
 	bool graphWasShown = !ui->analysisDockWidget->isHidden();
-	removeDockWidget(ui->analysisDockWidget);
 	Qt::DockWidgetArea area = Qt::TopDockWidgetArea;
 	if (graphDockPosition == 1)
 		area = Qt::BottomDockWidgetArea;
 	else if (graphDockPosition == 2)
 		area = Qt::RightDockWidgetArea;
-	addDockWidget(area, ui->analysisDockWidget);
+	// Re-home the analysis dock only when it is not already in the target area.
+	// loadPreferences() runs this both before and after QMainWindow::restoreState();
+	// removing and re-adding a dock that restoreState has just laid out can free a
+	// QLayoutItem that the dock-area layout still references, and the first show()
+	// then dereferences the dangling item (use-after-free crash on heavy/stale saved
+	// layouts - the #54/#75 start-up crash). Skipping the churn when the dock is
+	// already placed avoids creating that dangling item without changing where the
+	// dock ends up; a genuine position change (the graph-position dropdown) still
+	// re-homes because the current area differs from the target.
+	if (dockWidgetArea(ui->analysisDockWidget) != area)
+	{
+		removeDockWidget(ui->analysisDockWidget);
+		addDockWidget(area, ui->analysisDockWidget);
+	}
 	ui->analysisDockWidget->setVisible(graphFullscreen || graphWasShown);
 
 	setCurrentRenderMode(currentRenderMode);
