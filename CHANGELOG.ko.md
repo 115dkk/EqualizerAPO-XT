@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- Device 필터 행에서 장치를 카드 안에서 바로 고릅니다. `Device:` 줄이 어떤 재생·
+  녹음 장치에 적용될지 정할 때 더는 별도 다이얼로그를 열지 않습니다. 카드 본문에
+  장치마다 체크 가능한 칩과 'All devices' 칩이 나오고, APO가 설치되지 않은 장치는
+  'Show all' 토글 뒤에 숨깁니다. 칩은 네이티브 Windows 장치 트리 대신 카드의 나머지
+  요소처럼 각 스킨 스타일로 그려지며, 기록되는 줄은 기존 변경 버튼 다이얼로그가
+  만들던 것과 바이트 단위로 같습니다(`EditorLogicTests`의 회귀 테스트가 이
+  직렬화를 고정합니다). ([#120])
 - 일부 저장된 창 레이아웃에서 Editor가 시작되지 않던 크래시(액세스 위반)를
   고쳤습니다. `loadPreferences()`가 `QMainWindow::restoreState()` 앞뒤로 분석
   dock을 `removeDockWidget()` + `addDockWidget()`으로 다시 배치했는데,
@@ -443,3 +450,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
+[#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120

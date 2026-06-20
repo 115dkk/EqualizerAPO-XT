@@ -47,6 +47,7 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("gain0db"), QStringLiteral("Filter 3: ON PK Fc 1000 Hz Gain 0 dB Q 1") },
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
+		{ QStringLiteral("device"), QStringLiteral("Device: all") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") }
 	};
 }

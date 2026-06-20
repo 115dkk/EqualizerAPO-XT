@@ -195,10 +195,13 @@ SOURCES += main.cpp\
 	skins/pickers/SoftFilterPicker.cpp \
 	skins/pickers/RackFilterPicker.cpp \
 	widgets/AudioKnob.cpp \
+	widgets/FlowLayout.cpp \
 	widgets/CommandRowFrame.cpp \
 	widgets/SkinComboBox.cpp \
 	widgets/cards/ChannelCardEditor.cpp \
 	widgets/cards/ChannelSelectionModel.cpp \
+	widgets/cards/DeviceCardEditor.cpp \
+	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
@@ -379,10 +382,13 @@ HEADERS  += \
 	skins/pickers/SoftFilterPicker.h \
 	skins/pickers/RackFilterPicker.h \
 	widgets/AudioKnob.h \
+	widgets/FlowLayout.h \
 	widgets/CommandRowFrame.h \
 	widgets/SkinComboBox.h \
 	widgets/cards/ChannelCardEditor.h \
 	widgets/cards/ChannelSelectionModel.h \
+	widgets/cards/DeviceCardEditor.h \
+	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
