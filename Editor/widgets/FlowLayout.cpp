@@ -23,9 +23,12 @@ FlowLayout::FlowLayout(int margin, int hSpacing, int vSpacing)
 
 FlowLayout::~FlowLayout()
 {
-	QLayoutItem* item;
-	while ((item = takeAt(0)) != nullptr)
+	// Delete the owned items directly rather than through the virtual takeAt(),
+	// which must not be dispatched from a destructor. This is the concrete
+	// most-derived layout and owns every item in itemList.
+	for (QLayoutItem* item : itemList)
 		delete item;
+	itemList.clear();
 }
 
 void FlowLayout::addItem(QLayoutItem* item)
@@ -117,10 +120,10 @@ int FlowLayout::doLayout(const QRect& rect, bool testOnly) const
 			continue;
 
 		int spaceX = horizontalSpacing();
-		int spaceY = verticalSpacing();
 		int nextX = x + item->sizeHint().width() + spaceX;
 		if (nextX - spaceX > effectiveRect.right() && lineHeight > 0)
 		{
+			int spaceY = verticalSpacing();
 			x = effectiveRect.x();
 			y = y + lineHeight + spaceY;
 			nextX = x + item->sizeHint().width() + spaceX;
