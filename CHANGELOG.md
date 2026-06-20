@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Device filter rows now pick endpoints inline. Choosing which playback or
+  capture devices a `Device:` line applies to no longer opens a separate
+  dialog: the card body shows one checkable chip per endpoint plus an "All
+  devices" chip, with devices that do not have the APO installed kept behind a
+  "Show all" reveal. The chips are styled by each skin like the rest of the
+  card instead of the native Windows device tree, and the written line stays
+  byte-identical with what the old change-button dialog produced (a regression
+  test in `EditorLogicTests` locks that serialization). ([#120])
 - Fixed a start-up crash (access violation) where the Editor failed to launch on
   some saved window layouts. `loadPreferences()` re-homed the analysis dock with
   `removeDockWidget()` + `addDockWidget()` both before and after
@@ -472,3 +480,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
+[#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120

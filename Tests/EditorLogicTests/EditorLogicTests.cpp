@@ -20,6 +20,7 @@
 #include "Editor/import/ImportManifest.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
+#include "Editor/widgets/cards/DeviceSelectionModel.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
@@ -419,6 +420,76 @@ int main(int argc, char** argv)
 		model.load("", surround51);
 		expectTrue(model.addCustom("sub"), "SUB through addCustom is accepted");
 		expectEqual(model.serialize(), "LFE", "SUB resolves to the device's LFE chip");
+	}
+
+	{
+		// DeviceSelectionModel serialization identity: for equivalent device
+		// selections the in-place chip editor must write the same bytes the
+		// legacy change-button dialog produced - "all", or each selected
+		// device's device string joined with "; " in list order (output
+		// devices first, then input). Matching runs through the shared
+		// DeviceCommand codec, the same one the engine uses, so a chip is
+		// pre-selected exactly when the engine would match that device.
+		auto dev = [](const QString& deviceString, const QString& name, bool installed, bool isInput) {
+			DeviceEntry e;
+			e.deviceString = deviceString;
+			e.name = name;
+			e.installed = installed;
+			e.isInput = isInput;
+			return e;
+		};
+		const QString devSpeakers = "Speakers Realtek HD Audio {0.0.0.00000000}.{aaaaaaaa-1111-2222-3333-444444444444}";
+		const QString devHeadphones = "Headphones Realtek HD Audio {0.0.0.00000000}.{bbbbbbbb-1111-2222-3333-444444444444}";
+		const QString devDigital = "Digital Output Realtek HD Audio {0.0.0.00000000}.{cccccccc-1111-2222-3333-444444444444}";
+		const QString devMic = "Microphone Realtek HD Audio {0.0.1.00000000}.{dddddddd-1111-2222-3333-444444444444}";
+		const QList<DeviceEntry> devices = {
+			dev(devSpeakers, "Speakers", true, false),
+			dev(devHeadphones, "Headphones", true, false),
+			dev(devDigital, "Digital Output", false, false),
+			dev(devMic, "Microphone", true, true),
+		};
+
+		DeviceSelectionModel model;
+
+		// The literal lowercase "all" line is the all-devices state, like the
+		// dialog's "All devices" choice: it round-trips to "all" and marks no
+		// individual chip selected.
+		model.load("all", devices);
+		expectTrue(model.allSelected(), "literal 'all' sets the all-devices state");
+		expectEqual(model.serialize(), "all", "all-devices serializes back as 'all'");
+
+		// An empty parameter is not the all state and selects nothing.
+		model.load("", devices);
+		expectFalse(model.allSelected(), "empty parameter is not the all state");
+		expectEqual(model.serialize(), "", "no selection serializes empty");
+
+		// A full device-string pattern pre-selects exactly that endpoint and
+		// round-trips byte-for-byte, GUID included.
+		model.load(devSpeakers, devices);
+		expectFalse(model.allSelected(), "a specific device is not the all state");
+		expectEqual(model.serialize(), devSpeakers, "single device round-trips verbatim");
+
+		// A bare word matches as a case-insensitive substring (DeviceCommand
+		// semantics) and is rewritten to the matched device's full string.
+		model.load("headphones", devices);
+		expectEqual(model.serialize(), devHeadphones, "word pattern selects and canonicalizes to the device string");
+
+		// Multiple patterns, written input-first, serialize in list order
+		// (output devices first, then input) joined with "; ".
+		model.load(devMic + "; " + devSpeakers, devices);
+		expectEqual(model.serialize(), devSpeakers + "; " + devMic, "multiple devices serialize in list order");
+
+		// toggle() flips one chip and keeps canonical list order.
+		model.load(devSpeakers, devices);
+		model.toggle(devHeadphones);
+		expectEqual(model.serialize(), devSpeakers + "; " + devHeadphones, "toggling on adds a chip in list order");
+		model.toggle(devSpeakers);
+		expectEqual(model.serialize(), devHeadphones, "toggling off removes the token");
+
+		// "All devices" wins over individual selections, like the dialog.
+		model.load(devSpeakers, devices);
+		model.setAllSelected(true);
+		expectEqual(model.serialize(), "all", "All overrides individual selections");
 	}
 
 	harness.report();
