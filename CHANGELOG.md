@@ -14,14 +14,6 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-- Each skin now draws the Device filter card in its own visual grammar, not just
-  recolored chips. The in-card device chips are restyled per skin so the device
-  picker alone tells skins apart: studio glass readout cells, minimal flat
-  terminal blocks, soft rounded capsules, rack engraved latching switches with
-  status lamps (the "All devices" master lights green while individual routes
-  light amber, and capture endpoints read as recessed input wells), and matrix
-  lit board cells. Pure per-skin QSS; device selection behaviour is unchanged.
-  ([#122])
 - Device filter rows now pick endpoints inline. Choosing which playback or
   capture devices a `Device:` line applies to no longer opens a separate
   dialog: the card body shows one checkable chip per endpoint plus an "All
@@ -489,4 +481,3 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
-[#122]: https://github.com/115dkk/EqualizerAPO-XT/pull/122
