@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Hardened several security-audit findings on the Windows-facing surface. The
+  Device Selector and Update Checker now load their Qt plugins from the
+  executable's own folder instead of a path relative to the current working
+  directory, closing a DLL search-order hijack that could run code with the
+  elevated Device Selector's privileges. In the real-time audio engine a
+  malformed config can no longer crash the audio service: an out-of-range
+  `Delay:` value is clamped and its ring buffers are allocation-checked (audio
+  passes through undelayed if allocation fails), and a `Convolution:` impulse
+  response with no frames, no channels, or an implausible length is rejected
+  before processing instead of dereferencing an empty buffer or spinning
+  forever. ([#123])
 - Device filter rows now pick endpoints inline. Choosing which playback or
   capture devices a `Device:` line applies to no longer opens a separate
   dialog: the card body shows one checkable chip per endpoint plus an "All
@@ -480,4 +491,5 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
+[#123]: https://github.com/115dkk/EqualizerAPO-XT/pull/123
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
