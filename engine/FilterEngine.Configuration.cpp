@@ -112,7 +112,12 @@ void FilterEngine::loadConfig(const wstring& customPath)
 	if (!currentConfig)
 		currentConfig = move(config);
 	else
+	{
 		nextConfig = move(config);
+		// Release: publish the fully-constructed FilterConfiguration to the RT
+		// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
+		nextConfigReady.store(true, std::memory_order_release);
+	}
 }
 
 void FilterEngine::loadConfigFile(const wstring& path)

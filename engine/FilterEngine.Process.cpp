@@ -115,7 +115,7 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	PerfScope _eapo_total("FilterEngine::process(float interleaved)");
 	MxcsrFtzDazGuard _mxcsrGuard;
 
-	if (currentConfig->isEmpty() && !nextConfig)
+	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -135,7 +135,7 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 		currentConfig->process(frameCount);
 	}
 
-	if (nextConfig)
+	if (nextConfigReady.load(std::memory_order_acquire))
 	{
 		{
 			PerfScope _ps("FilterConfiguration::readFloatInterleaved(next)");
@@ -163,7 +163,7 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 	PerfScope _eapo_total("FilterEngine::process(float planar)");
 	MxcsrFtzDazGuard _mxcsrGuard;
 
-	if (currentConfig->isEmpty() && !nextConfig)
+	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
 		// Bypass mode
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -185,7 +185,7 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 		currentConfig->process(frameCount);
 	}
 
-	if (nextConfig)
+	if (nextConfigReady.load(std::memory_order_acquire))
 	{
 		{
 			PerfScope _ps("FilterConfiguration::readFloatPlanar(next)");
@@ -213,7 +213,7 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 	PerfScope _eapo_total("FilterEngine::process(double interleaved)");
 	MxcsrFtzDazGuard _mxcsrGuard;
 
-	if (currentConfig->isEmpty() && !nextConfig)
+	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -231,7 +231,7 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 		currentConfig->process(frameCount);
 	}
 
-	if (nextConfig)
+	if (nextConfigReady.load(std::memory_order_acquire))
 	{
 		{
 			PerfScope _ps("FilterConfiguration::read(interleaved)");
@@ -259,7 +259,7 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 	PerfScope _eapo_total("FilterEngine::process(double planar)");
 	MxcsrFtzDazGuard _mxcsrGuard;
 
-	if (currentConfig->isEmpty() && !nextConfig)
+	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
 		// Bypass mode
 		if (realChannelCount == outputChannelCount && input != output) {
@@ -278,7 +278,7 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 		currentConfig->process(frameCount);
 	}
 
-	if (nextConfig)
+	if (nextConfigReady.load(std::memory_order_acquire))
 	{
 		{
 			PerfScope _ps("FilterConfiguration::read(planar)");

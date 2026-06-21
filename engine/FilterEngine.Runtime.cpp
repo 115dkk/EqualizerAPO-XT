@@ -152,6 +152,7 @@ void FilterEngine::cleanupConfigurations()
 {
 	currentConfig.reset();
 	nextConfig.reset();
+	nextConfigReady.store(false, std::memory_order_relaxed);
 	previousConfig.reset();
 }
 
@@ -177,10 +178,15 @@ void FilterEngine::releaseLoadPermit()
 
 void FilterEngine::finishTransitionIfReady()
 {
-	if (nextConfig && transitionCounter >= transitionLength)
+	// Acquire: pairs with the release store in loadConfig so the dereference of
+	// nextConfig below observes the fully-constructed configuration on ARM64.
+	if (nextConfigReady.load(std::memory_order_acquire) && transitionCounter >= transitionLength)
 	{
 		previousConfig = move(currentConfig);
 		currentConfig = move(nextConfig);
+		// Cleared before releaseLoadPermit(); the permit mutex then publishes this
+		// to the worker, which cannot store a new nextConfig until it reacquires.
+		nextConfigReady.store(false, std::memory_order_relaxed);
 		transitionCounter = 0;
 		releaseLoadPermit();
 	}
