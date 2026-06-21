@@ -23,6 +23,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <climits>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
@@ -138,12 +139,30 @@ namespace
 			return nullptr;
 		}
 
+		// Reject impulse responses with no usable audio before they reach the
+		// convolution setup. A 0-frame IR makes hcInitSingle dereference an empty
+		// filter-pointer array (crash); channels == 0 divides by zero in the
+		// channel map; and frames > INT_MAX would wrap negative when cast to int.
+		// All three are reachable from a user-writable config plus a crafted IR.
+		if (info.frames <= 0 || info.channels <= 0 || info.frames > INT_MAX)
+		{
+			LogFStatic(L"Impulse response has no usable audio (frames=%lld, channels=%d); ignoring %s",
+				static_cast<long long>(info.frames), info.channels, filename.c_str());
+			sf_close(in);
+			return nullptr;
+		}
+
 		const unsigned channels = static_cast<unsigned>(info.channels);
 		const unsigned frames = static_cast<unsigned>(info.frames);
 		std::vector<double> interleaved(static_cast<size_t>(frames) * channels);
 		sf_count_t numRead = 0;
 		while (numRead < info.frames)
-			numRead += sf_readf_double(in, interleaved.data() + numRead * channels, info.frames - numRead);
+		{
+			sf_count_t got = sf_readf_double(in, interleaved.data() + numRead * channels, info.frames - numRead);
+			if (got <= 0)
+				break; // truncated or unreadable file: stop instead of spinning forever
+			numRead += got;
+		}
 		sf_close(in);
 
 		auto entry = std::make_shared<IrCacheEntry>();
@@ -297,7 +316,15 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		filename.c_str(), ir->channels, ir->frames);
 
 	fftw_make_planner_thread_safe();
-	filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
+	HConvSingle* allocated = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
+	if (allocated == nullptr)
+	{
+		// alloc returns nullptr on failure; bail to the inert state (filters stays
+		// null from cleanup(), process() then no-ops) rather than dereferencing it.
+		LogF(L"ConvolutionFilter: could not allocate %u filter slots", channelCount);
+		return;
+	}
+	filters = allocated;
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		// hcInitSingle reads the IR samples during planning but does not retain
