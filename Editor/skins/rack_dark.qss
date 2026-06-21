@@ -552,3 +552,151 @@ QToolButton#TitleBarClose:pressed {
         stop:0 #8A2E1E, stop:1 #4A180D);
     border-color: @DANGER@; border-top-color: #3A130A;
 }
+
+
+/* ===== Phase 2: Device card (skin-specific) ===== */
+/* Device card: the OUTPUT ROUTING switch bank. Each chip is a latching
+   faceplate switch cap (machined gradient, lit top bevel, shadowed base,
+   engraved uppercase label). State is a lamp: engaged = warm backlit cap +
+   amber border (invariant 4, the picker's lit-slot grammar). Depth carries
+   type (invariant 3): playback = raised switch, capture = recessed well,
+   unwired endpoint = flat blank. Compact padding so the FlowLayout never
+   overflows horizontally.
+
+   CASCADE NOTE (read before editing): the type attributes
+   [deviceInput="true"] and [deviceInstalled="false"] each score the same Qt
+   specificity (0x111) as the bare state pseudo-classes :hover and :checked.
+   On a tie Qt takes the later rule, so a type rule placed after :checked would
+   MASK the lamp. Every state that must survive on a typed chip is therefore
+   authored as an explicit combined selector (0x121, or 0x131 with two pseudo)
+   so it wins by specificity regardless of source order. Do not collapse these
+   back into the bare pseudo rules. */
+QWidget#DeviceCardEditor { background: transparent; }
+
+/* Base = a raised playback switch cap. */
+QToolButton#DeviceChip {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+    color: @TEXT@;
+    border: 1px solid #11161A; border-top-color: #3E474F;
+    border-radius: 2px;
+    padding: 3px 9px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+/* Hover (bare): the faceplate edge warms amber, gloss rises one step. */
+QToolButton#DeviceChip:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
+    border: 1px solid @ACCENT@; border-top-color: #3E474F;
+    color: #F2DDB4;
+}
+/* Engaged (bare playback switch): the amber routing lamp lights. */
+QToolButton#DeviceChip:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4A3A1C, stop:1 #2E2410);
+    border: 1px solid @ACCENT@; border-top-color: #6E521E;
+    color: #FFE9C8;
+}
+
+/* Capture device = recessed input well: shadowed top, lit lower lip. This is
+   the AT-REST face; its state lamps are restored by the combined rules below. */
+QToolButton#DeviceChip[deviceInput="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1B2126, stop:1 #2A3036);
+    border: 1px solid #11161A; border-top-color: #0C1013; border-bottom-color: #3E474F;
+    color: #BDB7A9;
+}
+/* Unwired endpoint (APO not installed) = flat blank position, recedes (R5). */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    background: #181D21;
+    border: 1px solid #11161A; border-top-color: #11161A;
+    color: #6E685C;
+}
+
+/* Hover on a capture well (0x121): the type base would otherwise mask the bare
+   :hover, so warm the well's amber edge explicitly while keeping the recessed
+   orientation (dark top, lit lower lip). */
+QToolButton#DeviceChip[deviceInput="true"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #20272D, stop:1 #2E363C);
+    border: 1px solid @ACCENT@; border-top-color: #0C1013; border-bottom-color: #3E474F;
+    color: #F2DDB4;
+}
+/* Hover on a blank position (0x121): a blank still warms its amber edge so the
+   bank's hover grammar is uniform; it stays flat (no top bevel). */
+QToolButton#DeviceChip[deviceInstalled="false"]:hover {
+    background: #1E242A;
+    border: 1px solid @ACCENT@; border-top-color: #11161A;
+    color: #8C8678;
+}
+
+/* Engaged capture well (0x121) — THE LAMP FIX. A routed input well lights the
+   SAME amber lamp as a routed playback switch (a routed switch is a routed
+   switch, invariant 4). Identical fill/border to the bare :checked so capture
+   and playback are indistinguishable once engaged; the well's depth read its
+   type only at rest. Beats both :checked and [deviceInput="true"] (0x111). */
+QToolButton#DeviceChip[deviceInput="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4A3A1C, stop:1 #2E2410);
+    border: 1px solid @ACCENT@; border-top-color: #6E521E;
+    color: #FFE9C8;
+}
+/* Routed offline device (0x121): amber lamp on the darker blank metal. */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A2F18, stop:1 #241B0E);
+    border: 1px solid @ACCENT@; border-top-color: #5C440F;
+    color: #F2DDB4;
+}
+/* Master BUS-ENABLE engaged (0x121): the green bus lamp, never amber. */
+QToolButton#DeviceChip[allDevices="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #16352A, stop:1 #0F2A20);
+    border: 1px solid @ACCENT2@; border-top-color: #1E5A44;
+    color: #BFF0D8;
+}
+
+/* Powered down (bank disabled while ALL is on): dark film, lamp off. The
+   powering-down is type-blind - a well and a blank go dark identically,
+   because a powered-down unit shows no part-type colour. */
+QToolButton#DeviceChip:disabled {
+    background: #171B1F;
+    border: 1px solid #22282D; border-top-color: #22282D;
+    color: #4E4A40;
+}
+/* Routed but powered down (0x121): faint warm memory of the lamp, no glow. */
+QToolButton#DeviceChip:checked:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2A2417, stop:1 #211C12);
+    border: 1px solid #6B4A10; border-top-color: #6B4A10;
+    color: #7A6A45;
+}
+/* Capture/blank powered down (0x121): the type base would otherwise mask the
+   bare :disabled and keep the well/blank colour lit, so collapse them to the
+   same dark film. */
+QToolButton#DeviceChip[deviceInput="true"]:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled {
+    background: #171B1F;
+    border: 1px solid #22282D; border-top-color: #22282D;
+    color: #4E4A40;
+}
+/* Routed capture/blank powered down (0x131): same faint warm memory as any
+   routed switch that loses power. Beats [deviceInput]:checked,
+   :checked:disabled and [deviceInput]:disabled (all 0x121). */
+QToolButton#DeviceChip[deviceInput="true"]:checked:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2A2417, stop:1 #211C12);
+    border: 1px solid #6B4A10; border-top-color: #6B4A10;
+    color: #7A6A45;
+}
+
+/* Reveal latch: a subordinate service latch; open (:checked) sits pressed in.
+   It carries no device type properties, so the bare pseudo rules are safe. */
+QToolButton#DeviceChipMore {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #262C32, stop:1 #1A1F23);
+    color: @MUTED@;
+    border: 1px solid #11161A; border-top-color: #333A41;
+    border-radius: 2px;
+    padding: 3px 9px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+QToolButton#DeviceChipMore:hover { border-color: @ACCENT@; border-top-color: #333A41; color: #E0D6BC; }
+QToolButton#DeviceChipMore:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #14181C, stop:1 #20262B);
+    border: 1px solid #11161A; border-top-color: #0C1013;
+    color: @TEXT@;
+}
+QToolButton#DeviceChipMore:disabled { background: #171B1F; border-color: #22282D; color: #4E4A40; }

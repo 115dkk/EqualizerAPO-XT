@@ -756,3 +756,124 @@ QToolButton#TitleBarClose:pressed {
     background: qradialgradient(cx:0.5, cy:0.55, radius:0.7, fx:0.5, fy:0.55,
         stop:0 rgba(239, 68, 68, 0.58), stop:0.6 rgba(239, 68, 68, 0.22), stop:1 rgba(239, 68, 68, 0));
 }
+
+
+/* ===== Phase 2: Device card (skin-specific) ===== */
+/* ===== Device picker - chips are lit glass patches =====
+   Same grammar as the dark sheet: every device chip is a single raised glass
+   patch that lights from within when signal flows to that endpoint. Playback
+   vs capture is NOT carried by the chip (constitution rule 4 reserves
+   luminance/depth for state; the colour semantics keep a command's kind in
+   its border material, not its fill or silhouette) - the tooltip
+   (Playback/Capture) names the direction. A device row already carries a
+   DEFAULT-BLUE signal lamp, so every chip lights with that one blue, never a
+   second hue in the row (rule 1). White glass cannot get brighter, so
+   selection leans on a slightly stronger accent fill + accent border and the
+   depth comes from edge shading (S2). Not-installed = a deader pane, dimmed
+   never warned. Disabled = switched off. Interactive states pinned to
+   :enabled. Compact. */
+QWidget#DeviceCardEditor {
+    background: transparent;
+}
+
+QToolButton#DeviceChip {
+    background: rgba(24, 32, 51, 0.03);
+    color: @MUTED@;
+    border: 1px solid rgba(24, 32, 51, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 9pt;
+}
+
+/* APO not installed: a deader pane - fainter ink, fainter glass. */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    color: rgba(93, 106, 132, 0.55);
+    background: rgba(24, 32, 51, 0.02);
+    border-color: rgba(24, 32, 51, 0.06);
+}
+
+/* Selected = lit from within: accent fill (one notch stronger than dark since
+   white cannot brighten, and one notch above the static type badge's 0.10
+   because this clickable chip carries an S4 hover/selected ladder), accent
+   border, white reflection edge. */
+QToolButton#DeviceChip:checked:enabled {
+    background: rgba(47, 107, 255, 0.16);
+    color: @TEXT@;
+    border: 1px solid rgba(47, 107, 255, 0.55);
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+/* Selected but not-installed: still lit, one step dimmer. */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked:enabled {
+    background: rgba(47, 107, 255, 0.10);
+    color: @TEXT@;
+    border: 1px solid rgba(47, 107, 255, 0.40);
+    border-top-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Hover on an unlit chip pools accent light under the cursor. */
+QToolButton#DeviceChip:!checked:hover:enabled {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
+        stop:0 rgba(47, 107, 255, 0.16), stop:0.45 rgba(47, 107, 255, 0.07), stop:1 rgba(47, 107, 255, 0));
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.50);
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+/* An already-lit chip turns the light up one step (S4 ladder). */
+QToolButton#DeviceChip:checked:hover:enabled {
+    background: rgba(47, 107, 255, 0.24);
+    border-color: rgba(47, 107, 255, 0.75);
+}
+
+/* "All devices" master chip. Lit, it shines a STRONGER blue than a single
+   selected chip - "every endpoint" said with luminance, not a second hue
+   (rule 4). White glass cannot brighten, so the stronger light is a hotter
+   accent fill (0.26 vs the single chip's 0.16) and a deeper accent border. It
+   stays single-colour blue, sharing the row's blue lamp (rule 1). */
+QToolButton#DeviceChip[allDevices="true"]:checked:enabled {
+    background: rgba(47, 107, 255, 0.26);
+    color: @TEXT@;
+    border: 1px solid rgba(47, 107, 255, 0.70);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+QToolButton#DeviceChip[allDevices="true"]:checked:hover:enabled {
+    background: rgba(47, 107, 255, 0.34);
+    border: 1px solid rgba(47, 107, 255, 0.90);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+
+/* Disabled = switched off: no fill, faint ink and border, no warning colour. */
+QToolButton#DeviceChip:disabled {
+    background: rgba(24, 32, 51, 0.02);
+    color: rgba(93, 106, 132, 0.45);
+    border: 1px solid rgba(24, 32, 51, 0.05);
+    border-top-color: rgba(24, 32, 51, 0.05);
+}
+
+/* The reveal toggle is a view control, not a value: the quietest glass strip
+   (the paramSelector idiom), lighting only under the cursor. */
+QToolButton#DeviceChipMore {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid rgba(24, 32, 51, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 9pt;
+}
+QToolButton#DeviceChipMore:hover:enabled {
+    color: @TEXT@;
+    background: rgba(47, 107, 255, 0.08);
+    border-color: rgba(47, 107, 255, 0.50);
+    border-top-color: rgba(47, 107, 255, 0.50);
+}
+QToolButton#DeviceChipMore:checked:enabled {
+    color: @TEXT@;
+    background: rgba(24, 32, 51, 0.04);
+    border-color: rgba(24, 32, 51, 0.14);
+}
+QToolButton#DeviceChipMore:disabled {
+    color: rgba(93, 106, 132, 0.45);
+    border-color: rgba(24, 32, 51, 0.05);
+    border-top-color: rgba(24, 32, 51, 0.05);
+}

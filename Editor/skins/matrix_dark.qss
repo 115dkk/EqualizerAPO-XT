@@ -1183,3 +1183,126 @@ QToolButton#TitleBarClose:pressed {
     background: @DANGER@;
     border-color: @DANGER@;
 }
+
+
+/* ===== Phase 2: Device card (skin-specific) ===== */
+/* ===== Device picker: routing endpoints as crosspoint cells =====
+   The Device card lists every audio endpoint as a sunken board cell - a
+   destination the configuration patches into (the toolbar device-readout and
+   picker entry-cell grammar). Engaging a cell engages a crosspoint: accent
+   fill + 1px accent rule, the picker's engaged-entry treatment. Endpoint
+   direction (playback/capture) is NOT colour-coded: colour stays rationed for
+   state, the way the type badge reads from mono code, not hue (the tooltip
+   already carries Playback/Capture). A device with no APO installed is a
+   cancelled departure - dashed rule + muted ink, never a traffic-light colour,
+   still posted on the board and still clickable. Compact cells (no min-width)
+   so the wrapping row never overflows. */
+QToolButton#DeviceChip {
+    background: @GRAPH@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px;
+    min-height: 20px;
+}
+/* Capture endpoint: an identical board cell to a playback endpoint. Direction
+   is type, and type is never a colour here (rationing). Declared before the
+   :hover/:checked rules so those still win on a capture chip. */
+QToolButton#DeviceChip[deviceInput="true"] {
+    background: @GRAPH@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+}
+/* "All devices" = the master cell that engages every endpoint at once. Same
+   sunken cell and engage grammar, but an uppercase board caption marks it as a
+   command, not a named endpoint. Before :hover/:checked so they pre-light it. */
+QToolButton#DeviceChip[allDevices="true"] {
+    color: @MUTED@;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 9pt;
+}
+/* Hover = crosspoint pre-light: the rule lights accent and a faint accent wash
+   enters the cell, well below the engaged fill (picker entry hover, M1). */
+QToolButton#DeviceChip:hover {
+    color: @TEXT@;
+    border-color: @ACCENT@;
+    background: rgba(34, 211, 238, 0.10);
+}
+/* Checked = engaged crosspoint: accent fill + 1px accent rule lit the cell. */
+QToolButton#DeviceChip:checked {
+    background: rgba(34, 211, 238, 0.26);
+    border: 1px solid @ACCENT@;
+    color: @TEXT@;
+}
+QToolButton#DeviceChip:checked:hover {
+    background: rgba(34, 211, 238, 0.32);
+}
+/* APO-not-installed endpoint = cancelled departure: dashed rule, muted ink,
+   still on the board and still engageable once revealed. */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    color: @MUTED@;
+    border: 1px dashed @BORDER@;
+}
+QToolButton#DeviceChip[deviceInstalled="false"]:hover {
+    color: @TEXT@;
+    border-color: @ACCENT@;
+    background: rgba(34, 211, 238, 0.08);
+}
+/* A revealed, not-installed endpoint that is still engaged: the dashed rule
+   keeps the cancelled mark while accent ink + a faint accent wash show the
+   crosspoint is held. */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked {
+    color: @ACCENT@;
+    border: 1px dashed @ACCENT@;
+    background: rgba(34, 211, 238, 0.16);
+}
+/* The master cell engaged: accent fill + rule, uppercase caption from base. */
+QToolButton#DeviceChip[allDevices="true"]:checked {
+    color: @TEXT@;
+    background: rgba(34, 211, 238, 0.26);
+    border: 1px solid @ACCENT@;
+}
+/* While "All devices" is engaged, every endpoint cell is inert: cancelled
+   grammar (dashed rule + dead muted ink), colour dropped - disabled speaks in
+   form, not colour. Placed last so it overrides the not-installed and engaged
+   rules: when the master wins, the whole catalog reads cancelled. */
+QToolButton#DeviceChip:disabled {
+    color: #4A6470;
+    background: #0A1014;
+    border: 1px dashed #1A2933;
+}
+QToolButton#DeviceChip:checked:disabled {
+    color: #4A6470;
+    background: #0A1014;
+    border: 1px dashed #1A2933;
+}
+/* The reveal control is not an endpoint: a transparent mono caption cell whose
+   hidden-count readout ("+N") sits apart from the sunken endpoint cells. Hover
+   pre-lights; the revealed (checked) state lights its rule accent. */
+QToolButton#DeviceChipMore {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid transparent;
+    border-radius: 0;
+    padding: 2px 8px;
+    min-height: 20px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QToolButton#DeviceChipMore:hover {
+    color: @TEXT@;
+    background: rgba(34, 211, 238, 0.08);
+    border-color: @BORDER@;
+}
+QToolButton#DeviceChipMore:checked {
+    color: @TEXT@;
+    border: 1px solid @ACCENT@;
+}
+QToolButton#DeviceChipMore:disabled {
+    color: #4A6470;
+    border: 1px dashed #1A2933;
+}

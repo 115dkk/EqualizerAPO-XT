@@ -468,3 +468,80 @@ QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
 QToolButton#TitleBarClose:hover, QToolButton#TitleBarClose:pressed {
     background: @DANGER@;
 }
+
+
+/* ===== Phase 2: Device card (skin-specific) ===== */
+/* ====================================================================
+   Device picker (minimal, light): the same endpoint manifest, printed on
+   paper. Identical grammar to the dark sheet - boxed mono tokens, an
+   inverted block (black on white) for the chosen endpoint, dashed/italic
+   for kind, an uppercase mode line for "All devices". The only deliberate
+   divergence: this palette has surface == card == #FFFFFF, so "disabled =
+   one step below rest" cannot land on surface; it drops to @BG@ (#F6F6F3),
+   the nearest darker step on the paper, plus secondary ink. */
+QWidget#DeviceCardEditor { background: transparent; }
+
+/* Resting chip: a bare boxed mono token. */
+QToolButton#DeviceChip {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 2px 8px; min-height: 20px;
+    font-size: 9pt;
+}
+/* Hover: exactly one value step (one step darker on the paper). */
+QToolButton#DeviceChip:hover { background: @CARD_HOVER@; }
+/* Selected: the inverted block - black ink ground, paper-coloured glyphs
+   (the printed cursor; identical to MinimalFilterPicker's selection). */
+QToolButton#DeviceChip:checked {
+    background: @TEXT@; color: @BG@; border: 1px solid @TEXT@;
+}
+/* Selection outranks hover: the block stays inverted under the cursor. */
+QToolButton#DeviceChip:checked:hover { background: @TEXT@; color: @BG@; }
+/* Disabled (every device chip while "All devices" rules): drop to @BG@ (a
+   step below the white card) and fall to secondary ink - a greyed, inert
+   line. */
+QToolButton#DeviceChip:disabled {
+    background: @BG@; color: @MUTED@; border: 1px solid @BORDER@;
+}
+
+/* Not-installed endpoint: no APO on it yet - dashed hairline box and
+   secondary ink (importance = brightness). Still selectable, printed lighter. */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    color: @MUTED@; border: 1px dashed @BORDER@;
+}
+/* Selecting one still inverts; the block reclaims a solid edge so the dashes
+   never read through the cursor. */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked {
+    background: @TEXT@; color: @BG@; border: 1px solid @TEXT@;
+}
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled {
+    background: @BG@; color: @MUTED@; border: 1px dashed @BORDER@;
+}
+
+/* Capture (input) device: the same token leaning italic - a kind tag carried
+   by letter shape, not by a colour the meter skins would use. */
+QToolButton#DeviceChip[deviceInput="true"] { font-style: italic; }
+
+/* "All devices": the uppercase, letter-spaced mode line that switches the
+   whole card. Selecting it inverts like any other line. */
+QToolButton#DeviceChip[allDevices="true"] {
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+    font-style: normal;
+}
+QToolButton#DeviceChip[allDevices="true"]:checked {
+    background: @TEXT@; color: @BG@; border: 1px solid @TEXT@;
+}
+
+/* Reveal toggle: a meta-command line with a (+N) count (the picker's counter
+   grammar). Hover sinks one step on the paper; while it shows everything the
+   ink lifts to body brightness. Accent reserved for active controls, absent. */
+QToolButton#DeviceChipMore {
+    background: transparent; color: @MUTED@;
+    border: 1px solid transparent; border-radius: 0;
+    padding: 2px 8px; min-height: 20px;
+    font-size: 9pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolButton#DeviceChipMore:hover { background: @CARD_HOVER@; color: @TEXT@; }
+QToolButton#DeviceChipMore:checked { background: @CARD@; color: @TEXT@; }
+QToolButton#DeviceChipMore:disabled { background: transparent; color: @MUTED@; }

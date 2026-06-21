@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 이제 각 스킨이 Device 필터 카드를 단순히 색만 바꾼 칩이 아니라 스킨 고유의 문법으로
+  그립니다. 카드 안 장치 칩을 스킨마다 다시 칠해, 장치 선택 화면만 봐도 스킨이 구분됩니다.
+  studio는 유리 계기 셀, minimal은 평면 터미널 블록, soft는 둥근 캡슐, rack은 상태 램프가
+  달린 각인 래칭 스위치('All devices' 마스터는 녹색, 개별 라우트는 앰버로 켜지고 녹음
+  장치는 함몰된 입력 우물로 읽힘), matrix는 점등되는 보드 셀입니다. 순수 스킨별 QSS이고
+  장치 선택 동작은 그대로입니다. ([#122])
 - Device 필터 행에서 장치를 카드 안에서 바로 고릅니다. `Device:` 줄이 어떤 재생·
   녹음 장치에 적용될지 정할 때 더는 별도 다이얼로그를 열지 않습니다. 카드 본문에
   장치마다 체크 가능한 칩과 'All devices' 칩이 나오고, APO가 설치되지 않은 장치는
@@ -451,3 +457,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
+[#122]: https://github.com/115dkk/EqualizerAPO-XT/pull/122
