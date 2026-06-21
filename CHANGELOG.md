@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Fixed a memory-visibility data race on ARM64 where reloading the config during
+  playback could hand the audio thread a partially-constructed filter
+  configuration. The loader now publishes the new configuration to the real-time
+  thread through a release/acquire flag, so the audio thread never reads it
+  before its construction is visible. x86/x64 builds are unaffected (their memory
+  model already ordered this). ([#124])
 - Device filter rows now pick endpoints inline. Choosing which playback or
   capture devices a `Device:` line applies to no longer opens a separate
   dialog: the card body shows one checkable chip per endpoint plus an "All
@@ -480,4 +486,5 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
+[#124]: https://github.com/115dkk/EqualizerAPO-XT/pull/124
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120

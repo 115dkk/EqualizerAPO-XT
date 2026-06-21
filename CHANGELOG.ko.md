@@ -8,6 +8,11 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- ARM64에서 재생 중 설정을 다시 읽을 때 오디오 스레드가 아직 완성되지 않은 필터
+  설정을 받을 수 있던 메모리 가시성 경합을 고쳤습니다. 로더가 새 설정을 실시간
+  스레드에 release/acquire 플래그로 게시하도록 바꿔, 오디오 스레드가 구성이 보이기
+  전에 그것을 읽지 않습니다. x86/x64 빌드는 영향이 없습니다(메모리 모델이 이미 이
+  순서를 보장합니다). ([#124])
 - Device 필터 행에서 장치를 카드 안에서 바로 고릅니다. `Device:` 줄이 어떤 재생·
   녹음 장치에 적용될지 정할 때 더는 별도 다이얼로그를 열지 않습니다. 카드 본문에
   장치마다 체크 가능한 칩과 'All devices' 칩이 나오고, APO가 설치되지 않은 장치는
@@ -450,4 +455,5 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#107]: https://github.com/115dkk/EqualizerAPO-XT/pull/107
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
+[#124]: https://github.com/115dkk/EqualizerAPO-XT/pull/124
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
