@@ -88,7 +88,21 @@ void FilterEngine::addFilters(const vector<IFilter*>& filters)
 			for (vector<wstring>::iterator it2 = currentChannelNames.begin(); it2 != currentChannelNames.end(); it2++)
 			{
 				vector<wstring>::iterator pos = find(allChannelNames.begin(), allChannelNames.end(), *it2);
-				filterInfo->inChannels[c++] = pos - allChannelNames.begin();
+				if (pos == allChannelNames.end())
+				{
+					// Defensive: every currentChannelNames entry should already be in
+					// allChannelNames (seeded from it, or a filter's own subset). If that
+					// invariant is ever broken, append the name instead of storing a
+					// one-past-the-end index that process() would read out of bounds; the
+					// appended channel reads the zero-filled virtual range (silence).
+					// Mirrors the outChannels handling below.
+					filterInfo->inChannels[c++] = allChannelNames.size();
+					allChannelNames.push_back(*it2);
+				}
+				else
+				{
+					filterInfo->inChannels[c++] = pos - allChannelNames.begin();
+				}
 			}
 		}
 

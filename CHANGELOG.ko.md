@@ -13,6 +13,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   스레드에 release/acquire 플래그로 게시하도록 바꿔, 오디오 스레드가 구성이 보이기
   전에 그것을 읽지 않습니다. x86/x64 빌드는 영향이 없습니다(메모리 모델이 이미 이
   순서를 보장합니다). ([#124])
+- Windows 쪽 보안 감사에서 나온 항목 몇 가지를 고쳤습니다. 장치 선택기와 업데이트
+  확인 도구가 Qt 플러그인을 작업 디렉터리 기준이 아니라 실행 파일이 있는 폴더에서
+  불러오도록 바꿔, 권한이 높은 장치 선택기로 코드를 실행시킬 수 있던 DLL 검색 순서
+  하이재킹을 막았습니다. 실시간 오디오 엔진에서는 잘못된 설정으로 오디오 서비스가
+  죽지 않게 했습니다. 범위를 벗어난 `Delay:` 값은 상한을 두고 버퍼 할당 실패를
+  확인하며(실패하면 소리를 지연 없이 그대로 통과), 프레임이 없거나 채널이 없거나
+  길이가 비정상인 `Convolution:` 임펄스 응답은 처리 전에 거부해 빈 버퍼를
+  참조하거나 무한 루프에 빠지지 않게 했습니다. ([#123])
 - Device 필터 행에서 장치를 카드 안에서 바로 고릅니다. `Device:` 줄이 어떤 재생·
   녹음 장치에 적용될지 정할 때 더는 별도 다이얼로그를 열지 않습니다. 카드 본문에
   장치마다 체크 가능한 칩과 'All devices' 칩이 나오고, APO가 설치되지 않은 장치는
@@ -456,4 +464,5 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#108]: https://github.com/115dkk/EqualizerAPO-XT/pull/108
 [#118]: https://github.com/115dkk/EqualizerAPO-XT/pull/118
 [#124]: https://github.com/115dkk/EqualizerAPO-XT/pull/124
+[#123]: https://github.com/115dkk/EqualizerAPO-XT/pull/123
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120

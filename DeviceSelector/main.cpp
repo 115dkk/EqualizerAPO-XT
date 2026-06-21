@@ -27,11 +27,47 @@
 #include "ReceiveThread.h"
 #include "DeviceSelector.h"
 
+namespace
+{
+// addLibraryPath() resolves a relative path against the current working
+// directory, not the executable directory. DeviceSelector runs elevated
+// (requireAdministrator), so a relative "qt" plugin path let a caller that
+// controls the working directory plant a Qt plugin DLL that the QApplication
+// constructor would then load into this elevated process. Anchor the plugin
+// search to the executable's own directory instead (mirrors Editor/main.cpp).
+std::wstring executableDirectory()
+{
+	wchar_t buffer[MAX_PATH];
+	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+	if (length == 0)
+		return std::wstring();
+	std::wstring path(buffer, length);
+	size_t slash = path.find_last_of(L"\\/");
+	if (slash == std::wstring::npos)
+		return path;
+	return path.substr(0, slash);
+}
+
+void addExecutableRelativePluginPath()
+{
+	std::wstring pluginDir = executableDirectory();
+	if (!pluginDir.empty())
+	{
+		pluginDir += L"\\qt";
+		QCoreApplication::addLibraryPath(QString::fromStdWString(pluginDir));
+	}
+	else
+	{
+		QCoreApplication::addLibraryPath(QStringLiteral("qt"));
+	}
+}
+}
+
 int main(int argc, char* argv[])
 {
 	int result = 0;
 
-	QCoreApplication::addLibraryPath("qt");
+	addExecutableRelativePluginPath();
 
 	QApplication app(argc, argv);
 	if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)

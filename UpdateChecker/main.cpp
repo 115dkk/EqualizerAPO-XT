@@ -30,14 +30,55 @@
 #include "VelopackUpdateInfo.h"
 #include "version.h"
 
+#define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
 
 
 QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, bool autoMode, bool* ok, QString* errorMessage);
 void showFailureMessage(QString message, QString title);
 
+namespace
+{
+// addLibraryPath() resolves a relative path against the current working
+// directory, not the executable directory. Anchor the Qt plugin search to the
+// executable's own directory so the loaded platform/style/tls plugin DLLs come
+// from the install folder regardless of the working directory (mirrors
+// Editor/main.cpp; hardens the same relative-"qt" pattern as DeviceSelector).
+std::wstring executableDirectory()
+{
+	wchar_t buffer[MAX_PATH];
+	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+	if (length == 0)
+		return std::wstring();
+	std::wstring path(buffer, length);
+	size_t slash = path.find_last_of(L"\\/");
+	if (slash == std::wstring::npos)
+		return path;
+	return path.substr(0, slash);
+}
+
+void addExecutableRelativePluginPath()
+{
+	std::wstring pluginDir = executableDirectory();
+	if (!pluginDir.empty())
+	{
+		pluginDir += L"\\qt";
+		QCoreApplication::addLibraryPath(QString::fromStdWString(pluginDir));
+	}
+	else
+	{
+		QCoreApplication::addLibraryPath(QStringLiteral("qt"));
+	}
+}
+}
+
 int main(int argc, char* argv[])
 {
-	QCoreApplication::addLibraryPath("qt");
+	addExecutableRelativePluginPath();
 
 	QApplication app(argc, argv);
 	if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)

@@ -21,6 +21,7 @@
 #include <cmath>
 
 #include "helpers/MemoryHelper.h"
+#include "helpers/LogHelper.h"
 #include "DelayFilter.h"
 #include "helpers/PerfProfile.h"
 
@@ -38,22 +39,57 @@ DelayFilter::~DelayFilter()
 	cleanup();
 }
 
+// Upper bound on the per-channel delay ring buffer. A config Delay value is
+// attacker-influenceable (the config directory is user-writable) and otherwise
+// unbounded. Casting a huge or non-finite double to unsigned is undefined
+// behaviour, and an unbounded length asks for a multi-gigabyte allocation that
+// crashes audiodg. 32 Mi doubles per channel (256 MiB, ~700 s at 48 kHz) is far
+// beyond any real delay line, so clamping here never affects legitimate use.
+static const double kMaxDelaySamples = 32.0 * 1024.0 * 1024.0;
+
 vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
 	cleanup();
 
 	channelCount = (unsigned)channelNames.size();
 
-	if (isMs)
-		bufferLength = (unsigned)(sampleRate * delay / 1000.0 + 0.5);
-	else
-		bufferLength = (unsigned)(delay + 0.5);
+	double samples = isMs ? (static_cast<double>(sampleRate) * delay / 1000.0) : delay;
+	samples = std::floor(samples + 0.5);
+	if (!(samples >= 1.0))
+		samples = 1.0;
+	if (samples > kMaxDelaySamples)
+	{
+		LogFStatic(L"Delay length %.0f samples exceeds the %.0f sample cap; clamping", samples, kMaxDelaySamples);
+		samples = kMaxDelaySamples;
+	}
+	bufferLength = static_cast<unsigned>(samples);
 
+	// MemoryHelper::alloc returns nullptr on failure. Check every result: a
+	// failed allocation here used to be dereferenced immediately, turning an
+	// out-of-memory request (reachable from a config Delay value) into a crash.
+	// On failure leave buffers == nullptr; process() then passes audio through
+	// undelayed instead of touching a null ring buffer.
 	buffers = (double**)MemoryHelper::alloc(sizeof(double*) * channelCount);
+	if (buffers == nullptr)
+	{
+		LogFStatic(L"Delay pointer-array allocation failed (%u channels); passing audio through", channelCount);
+		bufferOffset = 0;
+		return channelNames;
+	}
 
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		buffers[i] = static_cast<double*>(MemoryHelper::alloc(sizeof *buffers[i] * bufferLength));
+		if (buffers[i] == nullptr)
+		{
+			LogFStatic(L"Delay buffer allocation failed (%u samples); passing audio through", bufferLength);
+			for (unsigned j = 0; j < i; j++)
+				MemoryHelper::free(buffers[j]);
+			MemoryHelper::free(buffers);
+			buffers = nullptr;
+			bufferOffset = 0;
+			return channelNames;
+		}
 		std::fill_n(buffers[i], bufferLength, 0.0);
 	}
 
@@ -66,6 +102,15 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 void DelayFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("DelayFilter::process");
+	if (buffers == nullptr)
+	{
+		// Allocation failed at initialize(): pass audio through undelayed rather
+		// than dereferencing a null ring buffer.
+		for (unsigned i = 0; i < channelCount; i++)
+			if (output[i] != input[i])
+				std::copy_n(input[i], frameCount, output[i]);
+		return;
+	}
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		double* inputChannel = input[i];
