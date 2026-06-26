@@ -105,7 +105,27 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 		if (fallback.open(QFile::ReadOnly))
 			styleSheet = QString::fromUtf8(fallback.readAll());
 	}
-	qApp->setStyleSheet(substituteTokens(styleSheet, currentTokens));
+	// Combo-box and spin-box arrows: every skin draws these with the CSS-border
+	// triangle trick (image: none on a 0x0 box plus coloured borders). On Qt 6.10
+	// that collapses to a flat dash instead of a triangle, so the dropdown and
+	// up/down arrows render as a "-". The offscreen skin gallery only ever
+	// exercised filter cards, so it never caught this. Override the arrow
+	// sub-controls app-wide with a real chevron SVG (reliable across Qt versions
+	// and DPI). Appended after the skin sheet so it wins on equal specificity; the
+	// chevron is a neutral muted grey that reads on both dark and light skins.
+	static const QString arrowOverride = QStringLiteral(
+		"QComboBox::down-arrow,"
+		"QComboBox[paramSelector=\"true\"]::down-arrow,"
+		"QComboBox[filterSelector=\"true\"]::down-arrow {"
+		" image: url(:/icons/modern/chevron-down.svg); width: 12px; height: 12px;"
+		" border: none; background: transparent; }"
+		"QAbstractSpinBox::up-arrow {"
+		" image: url(:/icons/modern/chevron-up.svg); width: 12px; height: 12px;"
+		" border: none; background: transparent; }"
+		"QAbstractSpinBox::down-arrow {"
+		" image: url(:/icons/modern/chevron-down.svg); width: 12px; height: 12px;"
+		" border: none; background: transparent; }");
+	qApp->setStyleSheet(substituteTokens(styleSheet, currentTokens) + arrowOverride);
 
 	emit skinChanged(currentTokens);
 	for (QWidget* widget : qApp->allWidgets())

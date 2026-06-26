@@ -6,10 +6,12 @@
 
 #include "Editor/IFilterGUI.h"
 #include "ChannelCardEditor.h"
+#include "ConvolutionCardEditor.h"
 #include "DeviceCardEditor.h"
 #include "IncludeCardEditor.h"
 #include "PreampCardEditor.h"
 #include "VSTCardEditor.h"
+#include "filters/ConvolutionCommand.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "helpers/VSTPluginLibrary.h"
@@ -26,6 +28,14 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 		return new DeviceCardEditor(filterTable, parameters);
 	if (normalizedCommand == QStringLiteral("include"))
 		return new IncludeCardEditor(filterTable, parameters);
+	if (normalizedCommand == QStringLiteral("convolution"))
+	{
+		// ConvolutionCommand owns the line grammar; the path it yields preserves
+		// the author's quotes/variables so store() round-trips the config text.
+		ConvolutionCommand cmd;
+		ConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
+		return new ConvolutionCardEditor(filterTable, QString::fromStdWString(cmd.path));
+	}
 	if (normalizedCommand == QStringLiteral("vstplugin"))
 	{
 		// Parse the line into the engine's VST filter (no plugin DLL is loaded

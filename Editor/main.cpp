@@ -414,6 +414,12 @@ int main(int argc, char* argv[])
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Medium.otf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-SemiBold.otf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Bold.otf"));
+		// Sarasa Mono K: a true fixed-width CJK face, subset to Hangul + ASCII.
+		// It is the monospace Korean fallback so Korean in mono contexts keeps the
+		// grid instead of dropping to the proportional Pretendard. Regular + Bold
+		// cover the mono font-weights the skins use.
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
 
 		// Fallback chain for painted (non-QSS) text where Qt resolves a single
 		// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
@@ -425,8 +431,11 @@ int main(int argc, char* argv[])
 			QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
 		};
 		QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
+		// Mono text puts Sarasa Mono K ahead of the proportional CJK chain so
+		// monospace Korean stays fixed-width; Consolas stays first for any Latin
+		// the embedded DM Mono might lack.
 		QFont::insertSubstitutions(QStringLiteral("DM Mono"),
-			QStringList{ QStringLiteral("Consolas") } + cjkChain);
+			QStringList{ QStringLiteral("Consolas"), QStringLiteral("Sarasa Mono K") } + cjkChain);
 
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
 			return runVstRoundTripSelfTest();

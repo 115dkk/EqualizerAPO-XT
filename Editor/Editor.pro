@@ -200,6 +200,7 @@ SOURCES += main.cpp\
 	widgets/SkinComboBox.cpp \
 	widgets/cards/ChannelCardEditor.cpp \
 	widgets/cards/ChannelSelectionModel.cpp \
+	widgets/cards/ConvolutionCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
@@ -387,6 +388,7 @@ HEADERS  += \
 	widgets/SkinComboBox.h \
 	widgets/cards/ChannelCardEditor.h \
 	widgets/cards/ChannelSelectionModel.h \
+	widgets/cards/ConvolutionCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
 	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
