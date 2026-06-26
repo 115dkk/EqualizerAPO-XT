@@ -362,6 +362,24 @@ int main(int argc, char** argv)
 		EqAPO::Import::ExecutionResult exec2 = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
 		expectTrue(exec2.success, "second execute should also succeed");
 		expectEqual(exec2.filesCopied, 4, "second execute should still report four copies");
+
+		// A bare impulse-response file - the path the ConvolutionCardEditor
+		// import button takes - scans to a single-item manifest rooted at the
+		// file itself (no .txt recursion), keeping the source folder name as a
+		// subdirectory so the copy lands at config/<folder>/<file>.
+		QString convConfigDest = tempDir.path() + "/conv-configdir";
+		EqAPO::Import::ImportManifest single = EqAPO::Import::ConfigDependencyScanner::scan(
+			surroundDir + "/ir.wav", convConfigDest);
+		expectFalse(single.hasErrors, "single wav scan should not flag errors");
+		expectEqual(int(single.items.size()), 1, "single wav scan yields exactly one item");
+		expectEqual(single.items[0].kind, "Root", "single wav item is the root");
+		expectEqual(single.items[0].destRelative, "Surround/ir.wav", "single wav keeps its source folder");
+		expectEqual(single.rootDest, "Surround/ir.wav", "single wav rootDest mirrors the item");
+
+		EqAPO::Import::ExecutionResult singleExec = EqAPO::Import::ImportExecutor::execute(single, convConfigDest);
+		expectTrue(singleExec.success, "single wav import should succeed");
+		expectEqual(singleExec.filesCopied, 1, "single wav import copies exactly one file");
+		expectTrue(QFile::exists(convConfigDest + "/Surround/ir.wav"), "ir.wav missing after single-file import");
 	}
 
 	{

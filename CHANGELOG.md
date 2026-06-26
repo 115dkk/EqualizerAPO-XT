@@ -14,6 +14,26 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The Convolution filter row now has a modern card editor, matching the in-place
+  style of the other filter cards instead of the old inline widget. It shows the
+  impulse response's length and sample rate as soon as you pick a file and warns
+  when that sample rate does not match the playback device. It also gains the
+  same "import into the config directory" button the Include row already had:
+  when the chosen impulse response sits outside the config folder - where the
+  audio service has no read access - one click copies it in and repoints the path
+  at the copy, so the convolution loads instead of silently failing on a file the
+  service cannot read. ([#125])
+- Fixed the dropdown and up/down arrows on combo boxes and spin boxes (the
+  analysis bar's channel/position pickers and the resolution box, among others)
+  rendering as a flat "-" instead of a triangle. The skins drew these arrows with
+  a CSS-border triangle that collapses to a dash on Qt 6.10; they now use a
+  chevron icon that renders reliably on every skin. ([#125])
+- Korean text in the skins' monospace contexts now renders in a true fixed-width
+  CJK face. The redesign's mono font (DM Mono) carries no Korean glyphs, so Korean
+  used to fall back to the proportional Pretendard and broke the monospace grid.
+  Sarasa Mono K (subset to Hangul + ASCII, OFL-1.1) is now bundled and sits ahead
+  of Pretendard in the mono fallback chain, so monospace Korean stays on the grid.
+  ([#125])
 - Fixed a memory-visibility data race on ARM64 where reloading the config during
   playback could hand the audio thread a partially-constructed filter
   configuration. The loader now publishes the new configuration to the real-time
@@ -500,3 +520,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#124]: https://github.com/115dkk/EqualizerAPO-XT/pull/124
 [#123]: https://github.com/115dkk/EqualizerAPO-XT/pull/123
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
+[#125]: https://github.com/115dkk/EqualizerAPO-XT/pull/125
