@@ -425,7 +425,7 @@ void FilterCardRow::rebuildSummary()
 	typeBadge->setStyleSheet(SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color));
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);
-	rawPreviewLabel->setText(QStringLiteral("Raw  ") + item->text);
+	rawPreviewLabel->setText(tr("Raw") + QStringLiteral("  ") + item->text);
 	rawPreviewLabel->setVisible(SkinManager::instance()->tokens().showRawPreview);
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	rawPreviewLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")

@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The Editor's translation catalogs now cover the whole interface in all four
+  shipped languages (Korean, German, French, Simplified Chinese). Earlier builds
+  translated only the menu bar and a handful of dialogs, so most of the modern
+  card UI, the filter pickers, the per-filter editors (Channel, Copy, Device,
+  Convolution, Include, VST, Graphic EQ, Loudness), the import dialog and the
+  device/stream-format status messages stayed in English. Those strings are now
+  filled in every catalog, and the filter-card titles and summaries (`Preamp`,
+  `Copy`, `%1 bands`, ...) were made translatable so they localise too. Unit
+  suffixes, numeric formats and the skin brand names are left in English on
+  purpose. ([#126])
 - The Convolution filter row now has a modern card editor, matching the in-place
   style of the other filter cards instead of the old inline widget. It shows the
   impulse response's length and sample rate as soon as you pick a file and warns
@@ -521,3 +531,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#123]: https://github.com/115dkk/EqualizerAPO-XT/pull/123
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
 [#125]: https://github.com/115dkk/EqualizerAPO-XT/pull/125
+[#126]: https://github.com/115dkk/EqualizerAPO-XT/pull/126
