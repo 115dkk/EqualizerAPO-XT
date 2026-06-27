@@ -192,7 +192,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		QString trimmed = line.trimmed();
 		descriptor.command = QStringLiteral("#");
-		descriptor.title = QStringLiteral("Comment");
+		descriptor.title = tr("Comment");
 		descriptor.summary = compactWhitespace(trimmed.mid(1));
 		descriptor.type = QStringLiteral("comment");
 		descriptor.badge = QStringLiteral("#");
@@ -205,7 +205,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	QString command = commandForLine(line, &parameters);
 	QString commandLower = command.toLower();
 	descriptor.command = command;
-	descriptor.title = command.isEmpty() ? QStringLiteral("Text") : command;
+	descriptor.title = command.isEmpty() ? tr("Text") : command;
 	descriptor.summary = compactWhitespace(parameters);
 	descriptor.type = QStringLiteral("text");
 	descriptor.badge = QStringLiteral("TXT");
@@ -218,14 +218,14 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		descriptor.type = QStringLiteral("preamp");
 		descriptor.badge = QStringLiteral("PRE");
-		descriptor.title = QStringLiteral("Preamp");
+		descriptor.title = tr("Preamp");
 		descriptor.color = QStringLiteral("#f59e0b");
 	}
 	else if (commandLower == QStringLiteral("delay"))
 	{
 		descriptor.type = QStringLiteral("delay");
 		descriptor.badge = QStringLiteral("DLY");
-		descriptor.title = QStringLiteral("Delay");
+		descriptor.title = tr("Delay");
 		descriptor.color = QStringLiteral("#14b8a6");
 	}
 	else if (commandLower == QStringLiteral("filter") || commandLower.startsWith(QStringLiteral("filter ")))
@@ -237,7 +237,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		// every BiQuad card produced by those tools.
 		descriptor.type = QStringLiteral("biquad");
 		descriptor.badge = QStringLiteral("BQUAD");
-		descriptor.title = QStringLiteral("Biquad");
+		descriptor.title = tr("Biquad");
 		descriptor.color = QStringLiteral("#22c55e");
 
 		// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
@@ -259,18 +259,18 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		descriptor.type = QStringLiteral("graphiceq");
 		descriptor.badge = QStringLiteral("GEQ");
-		descriptor.title = QStringLiteral("Graphic EQ");
+		descriptor.title = tr("Graphic EQ");
 		descriptor.color = QStringLiteral("#8b5cf6");
 
 		int bandCount = parameters.count(';') + 1;
 		if (!parameters.trimmed().isEmpty())
-			descriptor.summary = QStringLiteral("%1 bands").arg(bandCount);
+			descriptor.summary = tr("%1 bands").arg(bandCount);
 	}
 	else if (commandLower == QStringLiteral("copy"))
 	{
 		descriptor.type = QStringLiteral("copy");
 		descriptor.badge = QStringLiteral("CPY");
-		descriptor.title = QStringLiteral("Copy");
+		descriptor.title = tr("Copy");
 		descriptor.color = QStringLiteral("#06b6d4");
 		descriptor.routeType = true;
 
@@ -292,16 +292,16 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		if (!destinations.isEmpty())
 		{
 			if (virtualCount > 0)
-				descriptor.summary = QStringLiteral("%1 steps, %2 virtual").arg(destinations.size()).arg(virtualCount);
+				descriptor.summary = tr("%1 steps, %2 virtual").arg(destinations.size()).arg(virtualCount);
 			else
-				descriptor.summary = QStringLiteral("%1 steps").arg(destinations.size());
+				descriptor.summary = tr("%1 steps").arg(destinations.size());
 		}
 	}
 	else if (commandLower == QStringLiteral("channel"))
 	{
 		descriptor.type = QStringLiteral("channel");
 		descriptor.badge = QStringLiteral("CH");
-		descriptor.title = QStringLiteral("Channel");
+		descriptor.title = tr("Channel");
 		descriptor.color = QStringLiteral("#3b82f6");
 		descriptor.routeType = true;
 		descriptor.channelBadges = parseChannelList(parameters);
@@ -311,7 +311,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		descriptor.type = QStringLiteral("include");
 		descriptor.badge = QStringLiteral("INC");
-		descriptor.title = QStringLiteral("Include");
+		descriptor.title = tr("Include");
 		descriptor.color = QStringLiteral("#64748b");
 		descriptor.routeType = true;
 		descriptor.summary = QFileInfo(parameters).fileName();
@@ -322,7 +322,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		descriptor.type = QStringLiteral("convolution");
 		descriptor.badge = QStringLiteral("CONV");
-		descriptor.title = QStringLiteral("Convolution");
+		descriptor.title = tr("Convolution");
 		descriptor.color = QStringLiteral("#ec4899");
 		QString fileName = QFileInfo(parameters.section(' ', 0, 0)).fileName();
 		if (!fileName.isEmpty())
@@ -332,7 +332,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		descriptor.type = QStringLiteral("vst");
 		descriptor.badge = QStringLiteral("VST");
-		descriptor.title = QStringLiteral("VST Plugin");
+		descriptor.title = tr("VST Plugin");
 		descriptor.color = QStringLiteral("#a855f7");
 		descriptor.summary = QFileInfo(parameters).fileName();
 		if (descriptor.summary.isEmpty())
@@ -342,21 +342,21 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	{
 		descriptor.type = QStringLiteral("device");
 		descriptor.badge = QStringLiteral("DEV");
-		descriptor.title = QStringLiteral("Device");
+		descriptor.title = tr("Device");
 		descriptor.color = QStringLiteral("#64748b");
 	}
 	else if (commandLower == QStringLiteral("stage"))
 	{
 		descriptor.type = QStringLiteral("stage");
 		descriptor.badge = QStringLiteral("STG");
-		descriptor.title = QStringLiteral("Stage");
+		descriptor.title = tr("Stage");
 		descriptor.color = QStringLiteral("#f97316");
 	}
 	else if (commandLower == QStringLiteral("loudnesscorrection"))
 	{
 		descriptor.type = QStringLiteral("loudness");
 		descriptor.badge = QStringLiteral("LOUD");
-		descriptor.title = QStringLiteral("Loudness");
+		descriptor.title = tr("Loudness");
 		descriptor.color = QStringLiteral("#eab308");
 	}
 
