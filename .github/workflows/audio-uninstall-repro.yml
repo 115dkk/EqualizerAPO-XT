@@ -117,7 +117,7 @@ jobs:
       # Setup: a place to keep the snapshots, and a tiny snapshot helper.
       # -----------------------------------------------------------------------
       - name: Checkout (for the diagnosis script)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Prepare snapshot directory
         shell: pwsh
@@ -574,7 +574,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload snapshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: audio-uninstall-snapshots
           path: ${{ env.SNAP_DIR }}/**

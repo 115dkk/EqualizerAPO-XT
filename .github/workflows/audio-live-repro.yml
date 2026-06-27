@@ -121,7 +121,7 @@ jobs:
       # Checkout (for the diagnosis script) + a snapshot directory.
       # -----------------------------------------------------------------------
       - name: Checkout (for the diagnosis script)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Prepare snapshot directory
         shell: pwsh
@@ -131,11 +131,21 @@ jobs:
           "SNAP_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "Snapshots will be written to $dir"
 
-      # signtool lives in the Windows SDK; ilammy/msvc-dev-cmd puts it on PATH.
-      - name: Add MSVC / SDK tools (signtool) to PATH
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+      # signtool lives in the Windows SDK. Resolve it directly instead of
+      # ilammy/msvc-dev-cmd, whose latest release (v1.13.0) still runs on the
+      # deprecated Node.js 20 runtime. This step is pure PowerShell (no Node
+      # action), so it survives GitHub's Node 20 removal. Only signtool is
+      # needed here (not the full MSVC toolchain), so a direct SDK lookup is
+      # enough; the newest installed SDK build is preferred.
+      - name: Add signtool (Windows SDK) to PATH
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe not found in the Windows SDK" }
+          $dir = Split-Path $signtool.FullName
+          Write-Host "Found signtool at $($signtool.FullName)"
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
 
       # -----------------------------------------------------------------------
       # STEP 1: Install Scream as a REAL active virtual render endpoint.
@@ -1027,7 +1037,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload snapshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: audio-live-snapshots
           path: ${{ env.SNAP_DIR }}/**

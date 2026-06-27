@@ -1226,7 +1226,7 @@ jobs:
     # against the same version developers run locally.
     - name: Cache cppcheck
       id: cache-cppcheck
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/cppcheck-install
         key: cppcheck-2.21.0-${{ runner.os }}
