@@ -291,7 +291,7 @@
     </message>
     <message>
         <source>%1 ms · %2 samples · %3 Hz</source>
-        <translation>%1 ms · %2 个采样 · %3 Hz</translation>
+        <translation>%1 ms · %2 个采样点 · %3 Hz</translation>
     </message>
     <message>
         <source>Sample rate does not match the device (%1 Hz)</source>
@@ -721,7 +721,7 @@ Select a different file or change the device configuration.</source>
     </message>
     <message>
         <source>Source</source>
-        <translation>源</translation>
+        <translation>来源</translation>
     </message>
     <message>
         <source>Size</source>
@@ -772,11 +772,11 @@ Select a different file or change the device configuration.</source>
     </message>
     <message>
         <source>%1 steps, %2 virtual</source>
-        <translation>%1 个步进，%2 个虚拟</translation>
+        <translation>%1 项，%2 个虚拟声道</translation>
     </message>
     <message>
         <source>%1 steps</source>
-        <translation>%1 个步进</translation>
+        <translation>%1 项</translation>
     </message>
     <message>
         <source>Channel</source>
@@ -1510,7 +1510,7 @@ Do you want to run the Configurator application to fix the problem?</source>
     </message>
     <message>
         <source>From device</source>
-        <translation>从设备</translation>
+        <translation>跟随设备</translation>
     </message>
     <message>
         <source>EQ active · 32-bit float</source>
@@ -1566,7 +1566,7 @@ Do you want to run the Configurator application to fix the problem?</source>
     </message>
     <message>
         <source>Gain knobs will cover ± this many dB:</source>
-        <translation>增益旋钮的覆盖范围为 ± 此 dB 数：</translation>
+        <translation>增益旋钮将覆盖 ± 多少 dB：</translation>
     </message>
     <message>
         <source>Restart required</source>

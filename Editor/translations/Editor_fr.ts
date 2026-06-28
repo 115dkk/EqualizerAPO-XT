@@ -350,7 +350,7 @@ OR Longueur: (space)</translatorcomment>
     </message>
     <message>
         <source>File not found</source>
-        <translation>Fichier non trouvé</translation>
+        <translation>Fichier introuvable</translation>
     </message>
     <message>
         <source>The file is not readable for the audio service.
@@ -744,11 +744,11 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     </message>
     <message>
         <source>%1 steps, %2 virtual</source>
-        <translation>%1 étapes, %2 virtuelles</translation>
+        <translation>%1 assignations, %2 virtuelles</translation>
     </message>
     <message>
         <source>%1 steps</source>
-        <translation>%1 étapes</translation>
+        <translation>%1 assignations</translation>
     </message>
     <message>
         <source>Channel</source>
@@ -966,7 +966,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     </message>
     <message>
         <source>Include file</source>
-        <translation>Fichier inclus</translation>
+        <translation>Fichier à inclure</translation>
     </message>
     <message>
         <source>E-APO configurations (*.txt)</source>
@@ -1025,7 +1025,7 @@ Cliquez sur le bouton Importer pour le copier dans le dossier de configuration.<
     </message>
     <message>
         <source>Include file</source>
-        <translation>Inclure un fichier</translation>
+        <translation>Fichier à inclure</translation>
     </message>
     <message>
         <source>E-APO configurations (*.txt)</source>
@@ -1037,7 +1037,7 @@ Cliquez sur le bouton Importer pour le copier dans le dossier de configuration.<
     </message>
     <message>
         <source>File not found</source>
-        <translation>Fichier non trouvé</translation>
+        <translation>Fichier introuvable</translation>
     </message>
     <message>
         <source>The file is not readable for the audio service.
@@ -1881,9 +1881,9 @@ Modifiez les autorisations du fichier ou copiez-le dans le dossier VSTPlugins.</
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
-        <translation>Le plugin semble accéder à ces fichiers non lisibles par le service audio :
+        <translation>Le plugin accède apparemment à ces fichiers non lisibles par le service audio :
 %0
-Modifiez les autorisations des fichiers ou copiez-les dans le dossier de configuration.</translation>
+Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
     </message>
 </context>
 <context>
@@ -1914,7 +1914,7 @@ Modifiez les autorisations des fichiers ou copiez-les dans le dossier de configu
     </message>
     <message>
         <source>File not found.</source>
-        <translation>Fichier non trouvé.</translation>
+        <translation>Fichier introuvable.</translation>
     </message>
     <message>
         <source>Library could not be loaded.</source>
@@ -1958,9 +1958,9 @@ Modifiez les autorisations du fichier ou copiez le fichier dans le répertoire V
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
-        <translation>Le plugin accède apparemment à ces fichiers non lisibles par le service audio:
+        <translation>Le plugin accède apparemment à ces fichiers non lisibles par le service audio :
 %0
-Modifiez les autorisations des fichiers ou copiez les fichiers dans le répertoire de configuration.</translation>
+Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
     </message>
 </context>
 <context>
@@ -1974,7 +1974,7 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le répertoi
     <name>VSTPluginFilterGUIFactory</name>
     <message>
         <source>VST plugin</source>
-        <translation>VST plugin</translation>
+        <translation>Plugin VST</translation>
     </message>
     <message>
         <source>Plugins</source>

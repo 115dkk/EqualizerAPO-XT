@@ -8,6 +8,11 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 2.3.0에 들어간 Editor 번역을 다듬었습니다. 채널 구성의 'From device' 항목이
+  한국어·독일어·중국어에서 장치 설정을 따른다는 뜻으로 자연스러워졌고(전에는 말이
+  잘린 느낌이었습니다), 프랑스어에 영어로 남아 있던 'VST plugin'을 번역했으며,
+  독일어·프랑스어·중국어 용어 몇 개를 일관되게 고쳤습니다(라우드니스와 볼륨 구분,
+  Copy 필터의 할당 개수, 파일 없음 문구). ([#128])
 - 이제 Editor 인터페이스 전체가 출시 4개 언어(한국어·독일어·프랑스어·중국어 간체)로
   번역됩니다. 이전 빌드는 메뉴 막대와 일부 대화상자만 번역돼 있어, 모던 카드 UI
   대부분과 필터 선택기, 필터별 편집기(채널·복사·장치·컨볼루션·포함·VST·그래픽 EQ·
@@ -491,3 +496,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
 [#125]: https://github.com/115dkk/EqualizerAPO-XT/pull/125
 [#126]: https://github.com/115dkk/EqualizerAPO-XT/pull/126
+[#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
