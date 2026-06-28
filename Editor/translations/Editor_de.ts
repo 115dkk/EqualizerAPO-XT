@@ -772,11 +772,11 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
     </message>
     <message>
         <source>%1 steps, %2 virtual</source>
-        <translation>%1 Stufen, %2 virtuell</translation>
+        <translation>%1 Zuweisungen, %2 virtuell</translation>
     </message>
     <message>
         <source>%1 steps</source>
-        <translation>%1 Stufen</translation>
+        <translation>%1 Zuweisungen</translation>
     </message>
     <message>
         <source>Channel</source>
@@ -804,7 +804,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
     </message>
     <message>
         <source>Loudness</source>
-        <translation>Lautstärke</translation>
+        <translation>Lautheit</translation>
     </message>
 </context>
 <context>
@@ -1263,7 +1263,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <source>Res</source>
-        <translation>Auflös.</translation>
+        <translation>Aufl.</translation>
     </message>
     <message>
         <source>Pos</source>
@@ -1511,7 +1511,7 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
     </message>
     <message>
         <source>From device</source>
-        <translation>Von Gerät</translation>
+        <translation>Vom Gerät</translation>
     </message>
     <message>
         <source>EQ active · 32-bit float</source>

@@ -698,11 +698,11 @@ Select a different file or change the device configuration.</source>
     </message>
     <message>
         <source>%1 steps, %2 virtual</source>
-        <translation>%1개 스텝, 가상 %2개</translation>
+        <translation>%1개 할당, 가상 %2개</translation>
     </message>
     <message>
         <source>%1 steps</source>
-        <translation>%1개 스텝</translation>
+        <translation>%1개 할당</translation>
     </message>
     <message>
         <source>Channel</source>
@@ -1473,7 +1473,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <source>From device</source>
-        <translation>장치에서</translation>
+        <translation>장치 설정 따름</translation>
     </message>
     <message>
         <source>EQ active · 32-bit float</source>

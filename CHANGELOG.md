@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Polished the Editor translations that shipped in 2.3.0. The channel
+  configuration's "From device" option now reads as following the device's
+  configuration in Korean, German and Chinese (it previously looked like a
+  clipped fragment), a French string that had stayed in English ("VST plugin")
+  is now translated, and several German/French/Chinese terms were made
+  consistent (loudness vs volume, the Copy filter's assignment count, and the
+  file-not-found wording). ([#128])
 - The Editor's translation catalogs now cover the whole interface in all four
   shipped languages (Korean, German, French, Simplified Chinese). Earlier builds
   translated only the menu bar and a handful of dialogs, so most of the modern
@@ -532,3 +539,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#120]: https://github.com/115dkk/EqualizerAPO-XT/pull/120
 [#125]: https://github.com/115dkk/EqualizerAPO-XT/pull/125
 [#126]: https://github.com/115dkk/EqualizerAPO-XT/pull/126
+[#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
