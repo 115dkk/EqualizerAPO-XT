@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The Editor now renders text with FreeType's grayscale antialiasing instead of
+  Windows ClearType. The bundled Korean font (Pretendard) is a CFF/OpenType face,
+  which ClearType draws with subpixel colour fringing that looks blurry on
+  ordinary-density monitors; high-DPI panels (4K at 150%, say) packed enough
+  pixels to hide it, so the blur only showed on lower-resolution screens.
+  Switching the Editor to Qt's FreeType font engine removes the fringing and
+  keeps text consistent from monitor to monitor. The device selector and update
+  checker are unchanged: they use the system font, which ClearType renders
+  cleanly. To go back to the old ClearType rendering, set the QT_QPA_PLATFORM
+  environment variable to `windows`. ([#129])
 - Polished the Editor translations that shipped in 2.3.0. The channel
   configuration's "From device" option now reads as following the device's
   configuration in Korean, German and Chinese (it previously looked like a
@@ -540,3 +550,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#125]: https://github.com/115dkk/EqualizerAPO-XT/pull/125
 [#126]: https://github.com/115dkk/EqualizerAPO-XT/pull/126
 [#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
+[#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
