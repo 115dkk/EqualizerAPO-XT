@@ -379,6 +379,19 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	// Font rendering: force Qt's FreeType font engine on Windows instead of the
+	// default DirectWrite/GDI ClearType subpixel rasteriser. The bundled
+	// Pretendard ships as CFF/OTF, which ClearType renders with subpixel colour
+	// fringing that reads as blur on low-PPI monitors. High-DPI panels pack
+	// enough pixels to hide it (the UI looks crisp at 4K/150%) but a 1080p
+	// screen shows it plainly. FreeType uses grayscale antialiasing plus its own
+	// CFF hinting, which stays consistent across monitors regardless of DPI.
+	// Only set it when no platform is chosen externally, so the offscreen
+	// gallery / CI (QT_QPA_PLATFORM=offscreen) still win and a user can opt back
+	// into the default ClearType engine with QT_QPA_PLATFORM=windows.
+	if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
+		qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
+
 	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio.
 	// The editor used to disable Qt scaling (QT_ENABLE_HIGHDPI_SCALING=0) and
 	// only hand-scale a few widget sizes through GUIHelper::scale, so on a 4K /

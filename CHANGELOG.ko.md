@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 이제 Editor가 텍스트를 Windows ClearType 대신 FreeType의 그레이스케일
+  안티앨리어싱으로 그립니다. 번들된 한글 폰트(Pretendard)는 CFF/OpenType
+  글꼴이라, ClearType가 서브픽셀 색 번짐을 넣어 보통 밀도의 모니터에서 흐릿하게
+  보였습니다. 고해상도 화면(예: 4K 150%)은 픽셀이 촘촘해 이 번짐을 가렸고,
+  그래서 해상도가 낮은 화면에서만 흐림이 드러났습니다. Editor를 Qt의 FreeType
+  폰트 엔진으로 바꿔 색 번짐을 없애고, 모니터가 달라도 글자가 일관되게 나옵니다.
+  장치 선택기와 업데이트 확인 도구는 그대로입니다. 시스템 폰트를 쓰는데
+  ClearType에서 깔끔하게 나오기 때문입니다. 예전 ClearType 렌더링으로 되돌리려면
+  환경 변수 QT_QPA_PLATFORM을 `windows`로 설정하면 됩니다. ([#129])
 - 2.3.0에 들어간 Editor 번역을 다듬었습니다. 채널 구성의 'From device' 항목이
   한국어·독일어·중국어에서 장치 설정을 따른다는 뜻으로 자연스러워졌고(전에는 말이
   잘린 느낌이었습니다), 프랑스어에 영어로 남아 있던 'VST plugin'을 번역했으며,
@@ -497,3 +506,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#125]: https://github.com/115dkk/EqualizerAPO-XT/pull/125
 [#126]: https://github.com/115dkk/EqualizerAPO-XT/pull/126
 [#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
+[#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
