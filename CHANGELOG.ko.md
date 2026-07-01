@@ -8,6 +8,17 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 2.5.0에 망가진 채로 나간 MultiConvolution 필터의 Editor UI를 고쳤습니다. 삽입
+  메뉴에서 기존 '고급 필터' 그룹에 들어가지 않고 번역이 없는 'Advanced filters'
+  그룹으로 따로 떴습니다. 픽커는 필터를 번역된 카테고리 이름으로 묶는데, 새
+  필터의 카테고리 문자열에 번역이 없어 영어로 남았고, Convolution과 라우드니스
+  보정만 번역된 이름으로 묶였기 때문입니다. 독일어·프랑스어·한국어·중국어 간체
+  카탈로그에 번역을 넣어 이제 셋이 하나의 '고급 필터' 그룹에 들어갑니다. 필터를
+  삽입하면 빈 행이 남기도 했습니다. 갓 삽입한 `MultiConvolution:` 템플릿에는 아직
+  채널과 경로가 없는데, Editor는 레거시 편집기가 그 줄을 맡아야 필터 카드를 만들고,
+  엄격한 파서가 빈 줄을 거부했기 때문입니다. 이제 `Convolution`과 똑같이
+  `MultiConvolution` 줄도 키워드로 알아보고, 카드 헤더도 일반 텍스트 배지 대신
+  MultiConvolution 배지를 보여줍니다. ([#132])
 - BRIR(Binaural Room Impulse Response) 재생을 위한 MultiConvolution 필터를
   추가했습니다. 기존 Convolution 필터는 각 채널을 제자리에서 자신의 임펄스
   응답과만 컨볼루션합니다. 그래서 스테레오 IR을 걸어도 한쪽 입력을 반대쪽
@@ -521,3 +532,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
 [#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
 [#130]: https://github.com/115dkk/EqualizerAPO-XT/pull/130
+[#132]: https://github.com/115dkk/EqualizerAPO-XT/pull/132

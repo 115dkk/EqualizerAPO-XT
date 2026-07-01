@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Fixed the MultiConvolution filter's Editor UI, which shipped broken in 2.5.0.
+  In the Insert menu it appeared under its own untranslated "Advanced filters"
+  group instead of joining the existing one: the picker groups filters by their
+  translated category name, and the new filter's category string had no
+  translation, so it stayed in English while Convolution and Loudness correction
+  showed the localized name. The German, French, Korean and Simplified Chinese
+  catalogues now translate it, so the three share one Advanced filters group.
+  Inserting the filter also produced a blank row, because the freshly dropped
+  `MultiConvolution:` template has no channel or path yet: the Editor builds a
+  filter card only once a legacy editor claims the line, and the strict parser
+  rejected the empty line. The Editor now claims a `MultiConvolution` line by its
+  keyword, the same way it already does for `Convolution`, and the card header
+  shows a MultiConvolution badge instead of a generic text one. ([#132])
 - Added a MultiConvolution filter for BRIR (Binaural Room Impulse Response)
   playback. The existing Convolution filter only convolves each channel with
   its own in-place impulse response, so a stereo IR could not route one input
@@ -566,3 +579,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
 [#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
 [#130]: https://github.com/115dkk/EqualizerAPO-XT/pull/130
+[#132]: https://github.com/115dkk/EqualizerAPO-XT/pull/132

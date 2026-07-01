@@ -44,9 +44,17 @@ void MultiConvolutionFilterGUIFactory::startOfFile(const QString& configPath)
 
 IFilterGUI* MultiConvolutionFilterGUIFactory::createFilterGUI(QString& command, QString& parameters)
 {
-	MultiConvolutionCommand cmd;
-	if (MultiConvolutionCommand::parse(command.toStdWString(), parameters.toStdWString(), cmd))
-		return new MultiConvolutionFilterGUI(configPath, QString::fromStdWString(cmd.outputChannel), QString::fromStdWString(cmd.path));
+	// Claim any "MultiConvolution" line by its keyword, even one that has no
+	// channel and path yet. The Insert menu drops a bare "MultiConvolution:"
+	// template with empty parameters; MultiConvolutionCommand::parse rejects that
+	// (it needs both tokens), but ConvolutionCommand::parse is lenient enough to
+	// accept a bare "Convolution:" for exactly this reason. FilterTable only swaps
+	// in the modern card when a legacy GUI already exists, so returning null here
+	// would leave the freshly inserted row with no editor at all.
+	if (command != QStringLiteral("MultiConvolution"))
+		return nullptr;
 
-	return nullptr;
+	MultiConvolutionCommand cmd;
+	MultiConvolutionCommand::parse(command.toStdWString(), parameters.toStdWString(), cmd);
+	return new MultiConvolutionFilterGUI(configPath, QString::fromStdWString(cmd.outputChannel), QString::fromStdWString(cmd.path));
 }

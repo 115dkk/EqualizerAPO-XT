@@ -380,6 +380,17 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
     </message>
 </context>
 <context>
+    <name>MultiConvolutionFilterGUIFactory</name>
+    <message>
+        <source>MultiConvolution (BRIR / multi-input synthesis convolution)</source>
+        <translation>MultiConvolution (BRIR / Synthesefaltung mit mehreren Eingängen)</translation>
+    </message>
+    <message>
+        <source>Advanced filters</source>
+        <translation>Fortgeschrittene Filter</translation>
+    </message>
+</context>
+<context>
     <name>ConvolutionFilterGUIFactory</name>
     <message>
         <source>Convolution</source>

@@ -38,7 +38,11 @@ struct GalleryRow
 // (the bipolar gain knob at its neutral detent, X3), an Include row, a VST
 // row and an empty Copy row (the routing editor's empty state, X6). The VST
 // library is intentionally unresolvable; the card renders its not-loaded
-// state, which is the chrome the gallery is after.
+// state, which is the chrome the gallery is after. The two MultiConvolution
+// rows cover the summed-convolution card populated and in its freshly inserted
+// empty state; the empty one also guards the Insert path, where a bare
+// "MultiConvolution:" template must still resolve to the card body and not fall
+// back to an empty row.
 QList<GalleryRow> galleryRows()
 {
 	return {
@@ -49,7 +53,8 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
 		{ QStringLiteral("device"), QStringLiteral("Device: all") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
-		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L brir.wav") }
+		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L brir.wav") },
+		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") }
 	};
 }
 

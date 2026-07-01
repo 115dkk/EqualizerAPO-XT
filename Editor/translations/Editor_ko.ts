@@ -352,6 +352,17 @@ Select a different file or change the device configuration.</source>
     </message>
 </context>
 <context>
+    <name>MultiConvolutionFilterGUIFactory</name>
+    <message>
+        <source>MultiConvolution (BRIR / multi-input synthesis convolution)</source>
+        <translation>다중 합성 컨볼루션 (BRIR / 다중 입력 합성 컨볼루션)</translation>
+    </message>
+    <message>
+        <source>Advanced filters</source>
+        <translation>고급 필터</translation>
+    </message>
+</context>
+<context>
     <name>ConvolutionFilterGUIFactory</name>
     <message>
         <source>Convolution (Convolution with impulse response)</source>
