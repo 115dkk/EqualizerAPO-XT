@@ -380,6 +380,17 @@ Select a different file or change the device configuration.</source>
     </message>
 </context>
 <context>
+    <name>MultiConvolutionFilterGUIFactory</name>
+    <message>
+        <source>MultiConvolution (BRIR / multi-input synthesis convolution)</source>
+        <translation>多重卷积 (BRIR / 多输入合成卷积)</translation>
+    </message>
+    <message>
+        <source>Advanced filters</source>
+        <translation>高级过滤器</translation>
+    </message>
+</context>
+<context>
     <name>ConvolutionFilterGUIFactory</name>
     <message>
         <source>Convolution</source>

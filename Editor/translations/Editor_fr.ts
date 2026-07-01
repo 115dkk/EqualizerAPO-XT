@@ -378,6 +378,17 @@ Sélectionnez un autre fichier ou modifiez la configuration du périphérique.</
     </message>
 </context>
 <context>
+    <name>MultiConvolutionFilterGUIFactory</name>
+    <message>
+        <source>MultiConvolution (BRIR / multi-input synthesis convolution)</source>
+        <translation>MultiConvolution (BRIR / convolution de synthèse multi-entrées)</translation>
+    </message>
+    <message>
+        <source>Advanced filters</source>
+        <translation>Filtres avancés</translation>
+    </message>
+</context>
+<context>
     <name>ConvolutionFilterGUIFactory</name>
     <message>
         <source>Convolution (Convolution with impulse response)</source>

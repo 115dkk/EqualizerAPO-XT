@@ -275,6 +275,23 @@ int main(int argc, char** argv)
 	expectEqual(channel.summary, "L R", "channel card summary");
 	expectTrue(channel.channelBadges.contains("L") && channel.channelBadges.contains("R"), "channel badges were not parsed");
 
+	// MultiConvolution must get its own card header rather than falling through to
+	// the generic TXT descriptor. Its grammar is "<output channel> <IR path>", so
+	// the summary leads with the channel and ends with the file name.
+	FilterCardDescriptor multiConv = FilterCardModel::describeLine("MultiConvolution: L brir.wav");
+	expectEqual(multiConv.badge, "MCONV", "multiconvolution card badge");
+	expectEqual(multiConv.title, "MultiConvolution", "multiconvolution card title");
+	expectEqual(multiConv.type, "convolution", "multiconvolution shares the convolution row type");
+	expectTrue(multiConv.summary.startsWith("L") && multiConv.summary.contains("brir.wav"),
+		QStringLiteral("multiconvolution summary should show channel and file: ") + multiConv.summary);
+
+	// A freshly inserted bare "MultiConvolution:" template (no channel/path yet)
+	// still classifies as multiconvolution so the header keeps its badge instead of
+	// rendering as a generic text row.
+	FilterCardDescriptor multiConvBare = FilterCardModel::describeLine("MultiConvolution:");
+	expectEqual(multiConvBare.badge, "MCONV", "bare multiconvolution keeps its badge");
+	expectEqual(multiConvBare.type, "convolution", "bare multiconvolution keeps convolution styling");
+
 	QVector<int> depths = FilterCardModel::calculateDepths(QList<QString>({
 		"Channel: L R",
 		"Preamp: -6 dB",

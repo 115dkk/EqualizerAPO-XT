@@ -328,6 +328,25 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		if (!fileName.isEmpty())
 			descriptor.summary = fileName;
 	}
+	else if (commandLower == QStringLiteral("multiconvolution"))
+	{
+		// Shares the convolution row type so skins style it like the single-input
+		// convolution card. The grammar differs: the first token is the output
+		// channel and the remainder is the impulse-response path, so the header
+		// reads "<channel> · <file>" (e.g. "L · brir.wav").
+		descriptor.type = QStringLiteral("convolution");
+		descriptor.badge = QStringLiteral("MCONV");
+		descriptor.title = tr("MultiConvolution");
+		descriptor.color = QStringLiteral("#ec4899");
+		const QString trimmedParams = parameters.trimmed();
+		const int split = trimmedParams.indexOf(QRegularExpression(QStringLiteral("\\s")));
+		const QString channel = split < 0 ? trimmedParams : trimmedParams.left(split);
+		const QString fileName = split < 0 ? QString() : QFileInfo(trimmedParams.mid(split + 1).trimmed()).fileName();
+		if (!channel.isEmpty() && !fileName.isEmpty())
+			descriptor.summary = QStringLiteral("%1 · %2").arg(channel, fileName);
+		else if (!channel.isEmpty())
+			descriptor.summary = channel;
+	}
 	else if (commandLower == QStringLiteral("vstplugin"))
 	{
 		descriptor.type = QStringLiteral("vst");
