@@ -18,10 +18,12 @@
 
 #include "MultiConvolutionFilterGUI.h"
 
+#include <QComboBox>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QSignalBlocker>
 #include <QToolButton>
 
 #include "filters/MultiConvolutionCommand.h"
@@ -33,11 +35,15 @@ MultiConvolutionFilterGUI::MultiConvolutionFilterGUI(const QString& configPath, 
 	layout->setContentsMargins(0, 0, 0, 0);
 
 	layout->addWidget(new QLabel(tr("Output channel:"), this));
-	channelEdit = new QLineEdit(outputChannel.trimmed(), this);
-	channelEdit->setMaximumWidth(80);
-	channelEdit->setToolTip(tr("Output channel the summed convolution is written to"));
-	connect(channelEdit, SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
-	layout->addWidget(channelEdit);
+	channelCombo = new QComboBox(this);
+	channelCombo->setEditable(true);
+	channelCombo->setInsertPolicy(QComboBox::NoInsert);
+	channelCombo->setMinimumWidth(90);
+	channelCombo->setToolTip(tr("Output channel the summed convolution is written to"));
+	channelCombo->setCurrentText(outputChannel.trimmed());
+	connect(channelCombo, SIGNAL(activated(int)), this, SIGNAL(updateModel()));
+	connect(channelCombo->lineEdit(), SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
+	layout->addWidget(channelCombo);
 
 	layout->addWidget(new QLabel(tr("Impulse response:"), this));
 	pathEdit = new QLineEdit(path.trimmed(), this);
@@ -56,9 +62,21 @@ void MultiConvolutionFilterGUI::store(QString& command, QString& parameters)
 	command = QStringLiteral("MultiConvolution");
 
 	MultiConvolutionCommand cmd;
-	cmd.outputChannel = channelEdit->text().trimmed().toStdWString();
+	cmd.outputChannel = channelCombo->currentText().trimmed().toStdWString();
 	cmd.path = pathEdit->text().toStdWString();
 	parameters = QString::fromStdWString(cmd.serialize());
+}
+
+void MultiConvolutionFilterGUI::configureChannels(std::vector<std::wstring>& channelNames)
+{
+	// Present the channels in scope at this row as the output options, matching
+	// the modern card editor; the combo stays editable for custom channels.
+	const QString current = channelCombo->currentText();
+	const QSignalBlocker blocker(channelCombo);
+	channelCombo->clear();
+	for (const std::wstring& name : channelNames)
+		channelCombo->addItem(QString::fromStdWString(name));
+	channelCombo->setCurrentText(current);
 }
 
 void MultiConvolutionFilterGUI::selectFile()

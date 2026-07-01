@@ -21,6 +21,7 @@
 #include "Editor/IFilterGUI.h"
 
 class FilterTable;
+class QComboBox;
 class QLabel;
 class QLineEdit;
 class QToolButton;
@@ -38,6 +39,9 @@ public:
 	MultiConvolutionCardEditor(FilterTable* filterTable, const QString& outputChannel, const QString& path, QWidget* parent = nullptr);
 
 	void store(QString& command, QString& parameters) override;
+	// Offer the channels that exist at this row as the output options, so the
+	// user picks the target channel instead of typing it.
+	void configureChannels(std::vector<std::wstring>& channelNames) override;
 
 private slots:
 	void chooseFile();
@@ -50,7 +54,7 @@ private:
 	void updateFileInfo();
 
 	FilterTable* filterTable = nullptr;
-	QLineEdit* channelEdit = nullptr;
+	QComboBox* channelCombo = nullptr;
 	QLineEdit* pathEdit = nullptr;
 	QLabel* infoLabel = nullptr;
 	QLabel* statusLabel = nullptr;

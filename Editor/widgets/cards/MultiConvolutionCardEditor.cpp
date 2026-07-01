@@ -21,6 +21,7 @@
 #include <memory>
 
 #include <QColor>
+#include <QComboBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -28,6 +29,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QSignalBlocker>
 #include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -71,16 +73,21 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	fileGlyph->setPixmap(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/waveform.svg"), glyphColor, 20).pixmap(GUIHelper::scale(QSize(20, 20))));
 	layout->addWidget(fileGlyph, 0, Qt::AlignVCenter);
 
-	// Output channel that the summed convolution is written to. Kept narrow: a
-	// channel name is a short token (L, R, or a custom upper-case name).
-	channelEdit = new QLineEdit(this);
-	channelEdit->setObjectName(QStringLiteral("MultiConvolutionCardChannel"));
-	channelEdit->setText(outputChannel.trimmed());
-	channelEdit->setPlaceholderText(tr("Out ch"));
-	channelEdit->setToolTip(tr("Output channel the summed convolution is written to"));
-	channelEdit->setMaximumWidth(GUIHelper::scale(QSize(72, 0)).width());
-	connect(channelEdit, SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
-	layout->addWidget(channelEdit, 0, Qt::AlignTop);
+	// Output channel the summed convolution is written to. An editable combo:
+	// configureChannels() fills it with the channels that exist at this row so
+	// the user picks the target ("which ear") from the real channels instead of
+	// typing one, while a custom/virtual channel name can still be typed in.
+	channelCombo = new QComboBox(this);
+	channelCombo->setObjectName(QStringLiteral("MultiConvolutionCardChannel"));
+	channelCombo->setEditable(true);
+	channelCombo->setInsertPolicy(QComboBox::NoInsert);
+	channelCombo->setToolTip(tr("Output channel the summed convolution is written to"));
+	channelCombo->lineEdit()->setPlaceholderText(tr("Out ch"));
+	channelCombo->setCurrentText(outputChannel.trimmed());
+	channelCombo->setMaximumWidth(GUIHelper::scale(QSize(96, 0)).width());
+	connect(channelCombo, SIGNAL(activated(int)), this, SIGNAL(updateModel()));
+	connect(channelCombo->lineEdit(), SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
+	layout->addWidget(channelCombo, 0, Qt::AlignTop);
 
 	QWidget* pathBlock = new QWidget(this);
 	QVBoxLayout* pathLayout = new QVBoxLayout(pathBlock);
@@ -136,9 +143,22 @@ void MultiConvolutionCardEditor::store(QString& command, QString& parameters)
 	command = QStringLiteral("MultiConvolution");
 
 	MultiConvolutionCommand cmd;
-	cmd.outputChannel = channelEdit->text().trimmed().toStdWString();
+	cmd.outputChannel = channelCombo->currentText().trimmed().toStdWString();
 	cmd.path = pathEdit->text().toStdWString();
 	parameters = QString::fromStdWString(cmd.serialize());
+}
+
+void MultiConvolutionCardEditor::configureChannels(std::vector<std::wstring>& channelNames)
+{
+	// Repopulate the output options with the channels in scope at this row while
+	// keeping whatever is currently entered/selected. The combo stays editable,
+	// so a custom output channel that is not in the list survives as typed text.
+	const QString current = channelCombo->currentText();
+	const QSignalBlocker blocker(channelCombo);
+	channelCombo->clear();
+	for (const std::wstring& name : channelNames)
+		channelCombo->addItem(QString::fromStdWString(name));
+	channelCombo->setCurrentText(current);
 }
 
 void MultiConvolutionCardEditor::chooseFile()
