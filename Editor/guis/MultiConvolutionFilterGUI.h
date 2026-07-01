@@ -20,6 +20,7 @@
 
 #include "Editor/IFilterGUI.h"
 
+class QComboBox;
 class QLineEdit;
 
 // Legacy (frozen-fallback) row GUI for a "MultiConvolution:" line. Deliberately
@@ -35,12 +36,13 @@ public:
 	MultiConvolutionFilterGUI(const QString& configPath, const QString& outputChannel, const QString& path);
 
 	void store(QString& command, QString& parameters) override;
+	void configureChannels(std::vector<std::wstring>& channelNames) override;
 
 private slots:
 	void selectFile();
 
 private:
 	QString configPath;
-	QLineEdit* channelEdit;
+	QComboBox* channelCombo;
 	QLineEdit* pathEdit;
 };

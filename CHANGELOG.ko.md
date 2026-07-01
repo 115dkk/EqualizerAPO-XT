@@ -8,6 +8,11 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- MultiConvolution 카드가 출력 채널을 자유 입력 상자 대신, 그 위치에 존재하는
+  채널의 드롭다운에서 고르게 바뀌었습니다. 이 필터는 여러 입력을 한 채널(BRIR의
+  한쪽 귀)로 합치므로 출력은 거의 항상 이미 쓰이는 실제 채널입니다. 그래서 카드가
+  그 채널들을 제시하고, 가상·커스텀 이름은 여전히 직접 입력할 수 있습니다. 레거시
+  행 편집기도 같은 선택기를 씁니다. ([#136])
 - 2.5.0에 망가진 채로 나간 MultiConvolution 필터의 Editor UI를 고쳤습니다. 삽입
   메뉴에서 기존 '고급 필터' 그룹에 들어가지 않고 번역이 없는 'Advanced filters'
   그룹으로 따로 떴습니다. 픽커는 필터를 번역된 카테고리 이름으로 묶는데, 새
@@ -533,3 +538,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
 [#130]: https://github.com/115dkk/EqualizerAPO-XT/pull/130
 [#132]: https://github.com/115dkk/EqualizerAPO-XT/pull/132
+[#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
