@@ -247,6 +247,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="ChannelCommandTests.cpp" />
     <ClCompile Include="CommonLogicTests.cpp" />
     <ClCompile Include="ConvolutionCommandTests.cpp" />
+    <ClCompile Include="MultiConvolutionTests.cpp" />
     <ClCompile Include="CopyCommandTests.cpp" />
     <ClCompile Include="DelayCommandTests.cpp" />
     <ClCompile Include="DeviceCommandTests.cpp" />

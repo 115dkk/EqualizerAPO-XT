@@ -48,7 +48,8 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
 		{ QStringLiteral("device"), QStringLiteral("Device: all") },
-		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") }
+		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
+		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L brir.wav") }
 	};
 }
 

@@ -1066,9 +1066,9 @@ jobs:
         }
         $pngs = @(Get-ChildItem $outDir -Filter *.png)
         Write-Host "Gallery wrote $($pngs.Count) PNGs"
-        # 5 skins x 2 modes x (7 rows x 3 states + 3 picker states + toolbar + titlebar + menubar + menu)
-        if ($pngs.Count -ne 280) {
-          Write-Error "Expected 280 gallery PNGs, got $($pngs.Count)"
+        # 5 skins x 2 modes x (8 rows x 3 states + 3 picker states + toolbar + titlebar + menubar + menu)
+        if ($pngs.Count -ne 310) {
+          Write-Error "Expected 310 gallery PNGs, got $($pngs.Count)"
           exit 1
         }
 

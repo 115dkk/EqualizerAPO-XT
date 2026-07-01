@@ -14,6 +14,20 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Added a MultiConvolution filter for BRIR (Binaural Room Impulse Response)
+  playback. The existing Convolution filter only convolves each channel with
+  its own in-place impulse response, so a stereo IR could not route one input
+  into the other output channel; that collapses the crossfeed a BRIR needs
+  (sound from one virtual speaker reaching the opposite ear). MultiConvolution
+  convolves several selected input channels against the matching channels of
+  one multichannel IR file and sums the results into a single output channel,
+  so crossfeed survives. Config syntax is `MultiConvolution: <output channel>
+  <multichannel IR path>`, where the first token names the output channel and
+  the rest of the line is the IR path; a full binaural BRIR needs two of these
+  filters plus a Copy to duplicate the input, one MultiConvolution per ear. The
+  Editor gained both a modern card editor (output channel field, IR path field
+  with a file picker, supported by all five skins) and a legacy row widget for
+  this filter. ([#130])
 - The Editor now renders text with FreeType's grayscale antialiasing instead of
   Windows ClearType. The bundled Korean font (Pretendard) is a CFF/OpenType face,
   which ClearType draws with subpixel colour fringing that looks blurry on
@@ -551,3 +565,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#126]: https://github.com/115dkk/EqualizerAPO-XT/pull/126
 [#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
 [#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
+[#130]: https://github.com/115dkk/EqualizerAPO-XT/pull/130

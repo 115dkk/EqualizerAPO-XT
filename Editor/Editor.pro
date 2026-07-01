@@ -109,6 +109,8 @@ SOURCES += main.cpp\
 	widgets/CompactToolBar.cpp \
 	guis/ConvolutionFilterGUIFactory.cpp \
 	guis/ConvolutionFilterGUI.cpp \
+	guis/MultiConvolutionFilterGUIFactory.cpp \
+	guis/MultiConvolutionFilterGUI.cpp \
 	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
@@ -201,6 +203,7 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelCardEditor.cpp \
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
+	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
@@ -311,6 +314,8 @@ HEADERS  += \
 	widgets/CompactToolBar.h \
 	guis/ConvolutionFilterGUIFactory.h \
 	guis/ConvolutionFilterGUI.h \
+	guis/MultiConvolutionFilterGUIFactory.h \
+	guis/MultiConvolutionFilterGUI.h \
 	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
 	widgets/EscapableLineEdit.h \
@@ -389,6 +394,7 @@ HEADERS  += \
 	widgets/cards/ChannelCardEditor.h \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
+	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
 	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \

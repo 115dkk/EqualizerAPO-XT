@@ -43,6 +43,7 @@ void runVSTPluginCommandTests();
 void runVstHostTests();
 void runParserTests();
 void runParserPreampTests();
+void runMultiConvolutionTests();
 
 using std::string;
 using std::vector;
@@ -253,6 +254,7 @@ int main()
 	runVstHostTests();
 	runParserTests();
 	runParserPreampTests();
+	runMultiConvolutionTests();
 
 	harness.report();
 	return 0;
