@@ -8,6 +8,19 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- BRIR(Binaural Room Impulse Response) 재생을 위한 MultiConvolution 필터를
+  추가했습니다. 기존 Convolution 필터는 각 채널을 제자리에서 자신의 임펄스
+  응답과만 컨볼루션합니다. 그래서 스테레오 IR을 걸어도 한쪽 입력을 반대쪽
+  출력 채널로 보낼 수 없었고, BRIR에 필요한 크로스피드(한쪽 가상 스피커의
+  소리가 반대쪽 귀에도 도달하는 성분)가 사라졌습니다. MultiConvolution은
+  선택한 여러 입력 채널을 하나의 다채널 IR 파일에서 대응하는 채널과 각각
+  컨볼루션한 뒤 그 결과를 합산해 하나의 출력 채널로 보내므로, 이 크로스피드가
+  살아 있습니다. config 문법은 `MultiConvolution: <출력 채널> <다채널 IR
+  경로>`이며, 첫 토큰이 출력 채널이고 나머지가 IR 경로입니다. 완전한 양 귀
+  BRIR을 구성하려면 입력을 복제하는 Copy와 함께 이 필터 두 개(귀마다 하나씩)가
+  있어야 합니다. Editor에는 현대적인 카드 에디터(출력 채널 입력란, 파일
+  선택이 붙은 IR 경로 입력란, 5종 스킨 모두 지원)와 레거시 행 위젯을 함께
+  추가했습니다. ([#130])
 - 이제 Editor가 텍스트를 Windows ClearType 대신 FreeType의 그레이스케일
   안티앨리어싱으로 그립니다. 번들된 한글 폰트(Pretendard)는 CFF/OpenType
   글꼴이라, ClearType가 서브픽셀 색 번짐을 넣어 보통 밀도의 모니터에서 흐릿하게
@@ -507,3 +520,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#126]: https://github.com/115dkk/EqualizerAPO-XT/pull/126
 [#128]: https://github.com/115dkk/EqualizerAPO-XT/pull/128
 [#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
+[#130]: https://github.com/115dkk/EqualizerAPO-XT/pull/130

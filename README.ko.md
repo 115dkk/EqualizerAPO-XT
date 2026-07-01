@@ -19,6 +19,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 - 오디오를 내부에서 double 정밀도로 처리해 복잡한 필터 체인에서도 정밀도를 잃지 않습니다.
 - Convolution, GraphicEQ, 파라메트릭 EQ, VST2/VST3와 기존 Equalizer APO 필터를 지원합니다.
+- BRIR(Binaural Room Impulse Response) 재생을 위한 MultiConvolution 필터가 있습니다. 여러 입력 채널을 하나의 다채널 임펄스 응답과 각각 컨볼루션한 뒤 합산해 하나의 출력으로 보내므로, 채널을 제자리에서만 처리하는 기존 Convolution 필터와 달리 BRIR에 필요한 크로스피드가 살아 있습니다.
 - Steinberg VST3 SDK(MIT 라이선스 pluginterfaces)로 VST3를 네이티브 호스팅하며, 플러그인이 지원하면 64비트(double)로 처리합니다.
 - SIMD 커널은 [Google Highway](https://github.com/google/highway)로 한 번만 작성해 변형별로 컴파일합니다. x64는 SSE2, AVX, AVX2, AVX-512, AVX10.1, ARM64는 NEON입니다.
 - Qt Editor를 현대화했습니다. 카드 기반 필터 UI와 행 chrome·노브 렌더링·Copy 라우팅 렌더러까지 서로 다른 5종 스킨([docs/skin-integration-report.md](docs/skin-integration-report.md)), 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.

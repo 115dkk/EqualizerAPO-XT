@@ -315,6 +315,9 @@
     <ClInclude Include="filters\ConvolutionFilter.h" />
     <ClInclude Include="filters\ConvolutionFilePath.h" />
     <ClInclude Include="filters\ConvolutionFilterFactory.h" />
+    <ClInclude Include="filters\MultiConvolutionCommand.h" />
+    <ClInclude Include="filters\MultiConvolutionFilter.h" />
+    <ClInclude Include="filters\MultiConvolutionFilterFactory.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
     <ClInclude Include="filters\DelayCommand.h" />
@@ -397,6 +400,9 @@
     <ClCompile Include="filters\ConvolutionFilter.cpp" />
     <ClCompile Include="filters\ConvolutionFilePath.cpp" />
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp" />
+    <ClCompile Include="filters\MultiConvolutionCommand.cpp" />
+    <ClCompile Include="filters\MultiConvolutionFilter.cpp" />
+    <ClCompile Include="filters\MultiConvolutionFilterFactory.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
     <ClCompile Include="filters\DelayCommand.cpp" />

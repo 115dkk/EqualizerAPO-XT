@@ -19,6 +19,7 @@ Current work areas:
 
 - Double-precision internal audio processing for complex filter chains.
 - Convolution, GraphicEQ, parametric EQ, VST2/VST3, and standard Equalizer APO filter support.
+- MultiConvolution filter for BRIR (Binaural Room Impulse Response) playback: it convolves several input channels against one multichannel impulse response and sums them into a single output, so the crossfeed a BRIR needs survives, unlike the in-place Convolution filter.
 - Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it.
 - Portable SIMD kernels written once with [Google Highway](https://github.com/google/highway) and compiled per variant: SSE2, AVX, AVX2, AVX-512, and AVX10.1 on x64, NEON on ARM64.
 - Modernized Qt Editor: card-based filter UI and five fully differentiated visual skins — each with its own row chrome, knob rendering, and Copy routing renderer ([docs/skin-integration-report.md](docs/skin-integration-report.md)) — plus embedded fonts and high-DPI scaling.

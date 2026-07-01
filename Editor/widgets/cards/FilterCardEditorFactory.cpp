@@ -7,11 +7,13 @@
 #include "Editor/IFilterGUI.h"
 #include "ChannelCardEditor.h"
 #include "ConvolutionCardEditor.h"
+#include "MultiConvolutionCardEditor.h"
 #include "DeviceCardEditor.h"
 #include "IncludeCardEditor.h"
 #include "PreampCardEditor.h"
 #include "VSTCardEditor.h"
 #include "filters/ConvolutionCommand.h"
+#include "filters/MultiConvolutionCommand.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "helpers/VSTPluginLibrary.h"
@@ -35,6 +37,13 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 		ConvolutionCommand cmd;
 		ConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
 		return new ConvolutionCardEditor(filterTable, QString::fromStdWString(cmd.path));
+	}
+	if (normalizedCommand == QStringLiteral("multiconvolution"))
+	{
+		// MultiConvolutionCommand owns the "<output channel> <path>" grammar.
+		MultiConvolutionCommand cmd;
+		MultiConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
+		return new MultiConvolutionCardEditor(filterTable, QString::fromStdWString(cmd.outputChannel), QString::fromStdWString(cmd.path));
 	}
 	if (normalizedCommand == QStringLiteral("vstplugin"))
 	{
