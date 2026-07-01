@@ -12,6 +12,7 @@ class QPainter;
 class QRect;
 class QToolBar;
 class QWidget;
+class ReferenceCardView;
 struct CommandRowInfo;
 struct KnobState;
 
@@ -48,6 +49,10 @@ public:
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;
+
+	// The reference-card body view for the active skin
+	// (ISkin::createReferenceCardView). kind is ReferenceCardState::kind.
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
 
 	// Main toolbar icons/chrome for the active skin (ISkin::styleMainToolbar).
 	void styleMainToolbar(QToolBar* toolBar) const;

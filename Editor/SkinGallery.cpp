@@ -5,7 +5,9 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QDataStream>
 #include <QDir>
+#include <QFile>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
@@ -35,14 +37,20 @@ struct GalleryRow
 
 // Representative rows: a parametric filter, a shelf filter (three knobs in
 // the legacy BiQuad GUI hosted by the card body), a peaking filter at 0 dB
-// (the bipolar gain knob at its neutral detent, X3), an Include row, a VST
-// row and an empty Copy row (the routing editor's empty state, X6). The VST
-// library is intentionally unresolvable; the card renders its not-loaded
-// state, which is the chrome the gallery is after. The two MultiConvolution
-// rows cover the summed-convolution card populated and in its freshly inserted
-// empty state; the empty one also guards the Insert path, where a bare
-// "MultiConvolution:" template must still resolve to the card body and not fall
-// back to an empty row.
+// (the bipolar gain knob at its neutral detent, X3), the reference-card rows
+// and an empty Copy row (the routing editor's empty state, X6).
+//
+// The reference rows (Include / Convolution / MultiConvolution / VST) render
+// against synthetic target files written next to a synthetic config file
+// (buildReferenceFiles), so the resolved cards show their healthy named-entity
+// state with a deterministic impulse-response readout. include_missing keeps
+// the broken-reference transition (MISSING + Locate, AR2 X-3/X-4) in every
+// skin's judged set. The VST library is intentionally unresolvable; the card
+// renders its missing/not-loaded state, which doubles as the recovery-entry
+// showcase. The two MultiConvolution rows cover the summed-convolution card
+// populated and in its freshly inserted empty state; the empty one also guards
+// the Insert path, where a bare "MultiConvolution:" template must still
+// resolve to the card body and not fall back to an empty row.
 QList<GalleryRow> galleryRows()
 {
 	return {
@@ -50,12 +58,68 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("shelf"), QStringLiteral("Filter 2: ON HSC Fc 8000 Hz Gain -2.5 dB Q 0.71") },
 		{ QStringLiteral("gain0db"), QStringLiteral("Filter 3: ON PK Fc 1000 Hz Gain 0 dB Q 1") },
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
+		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
 		{ QStringLiteral("device"), QStringLiteral("Device: all") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
+		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
 		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L brir.wav") },
 		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") }
 	};
+}
+
+// A canonical 16-bit PCM WAV of silence: enough for libsndfile to report the
+// deterministic length / rate / channel readout the convolution cards print.
+bool writeWavFile(const QString& path, quint16 channels, quint32 sampleRate, quint32 frames)
+{
+	QFile file(path);
+	if (!file.open(QIODevice::WriteOnly))
+		return false;
+	QDataStream out(&file);
+	out.setByteOrder(QDataStream::LittleEndian);
+	const quint16 bitsPerSample = 16;
+	const quint16 blockAlign = channels * bitsPerSample / 8;
+	const quint32 dataSize = frames * blockAlign;
+	out.writeRawData("RIFF", 4);
+	out << quint32(36 + dataSize);
+	out.writeRawData("WAVE", 4);
+	out.writeRawData("fmt ", 4);
+	out << quint32(16) << quint16(1) << channels << sampleRate
+		<< quint32(sampleRate * blockAlign) << blockAlign << bitsPerSample;
+	out.writeRawData("data", 4);
+	out << dataSize;
+	const QByteArray silence(dataSize, '\0');
+	return out.writeRawData(silence.constData(), silence.size()) == silence.size();
+}
+
+// Synthetic reference targets for the gallery rows, next to a synthetic
+// config file so relative references resolve: example.txt (Include),
+// example.wav (Convolution, 100 ms mono) and brir.wav (MultiConvolution,
+// 100 ms stereo - the "2 ch" readout). missing.txt is deliberately absent.
+// Returns the config path setLines gets, or an empty string on failure.
+QString buildReferenceFiles(const QDir& outDir)
+{
+	QDir refsDir(outDir.filePath(QStringLiteral("refs")));
+	if (!refsDir.mkpath(QStringLiteral(".")))
+		return QString();
+
+	QFile include(refsDir.filePath(QStringLiteral("example.txt")));
+	if (!include.open(QIODevice::WriteOnly))
+		return QString();
+	include.write("# gallery include target\n");
+	include.close();
+
+	if (!writeWavFile(refsDir.filePath(QStringLiteral("example.wav")), 1, 48000, 4800))
+		return QString();
+	if (!writeWavFile(refsDir.filePath(QStringLiteral("brir.wav")), 2, 48000, 4800))
+		return QString();
+
+	QFile config(refsDir.filePath(QStringLiteral("gallery.txt")));
+	if (!config.open(QIODevice::WriteOnly))
+		return QString();
+	config.write("# gallery config anchor - references resolve relative to this file\n");
+	config.close();
+	return refsDir.filePath(QStringLiteral("gallery.txt"));
 }
 
 // renderSkin() renders, per skin and per mode: every gallery row in
@@ -187,7 +251,7 @@ bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QSt
 // widgets in line order. The table must be built after applySkin so every row
 // is polished once against the active stylesheet, mirroring the real skin
 // switch flow (clearRows + updateGuis).
-QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QList<QString>& lines)
+QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines)
 {
 	// Mirror MainWindow's hosting: widgetResizable makes the scroll area drive
 	// the table's width, which FilterCardRow::sizeHint reads back through
@@ -198,9 +262,10 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QList<QString>& l
 	scrollArea.setWidget(table);
 	table->updateDeviceAndChannelMask(nullptr, 0);
 	table->initialize(&scrollArea, {}, {});
-	// The config path is synthetic: it only namespaces per-file row prefs in
-	// the registry, and this name can never collide with a real file.
-	table->setLines(QStringLiteral(":skin-gallery:"), lines);
+	// The config path anchors relative reference resolution to the synthetic
+	// target files (buildReferenceFiles) and namespaces per-file row prefs in
+	// the registry; the gallery only reads prefs, never saves them.
+	table->setLines(configPath, lines);
 	table->updateGuis();
 	scrollArea.show();
 	// Flush the posted polish/layout events, then force the grid to assign row
@@ -213,7 +278,7 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QList<QString>& l
 }
 
 int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
-	const QList<GalleryRow>& rows, bool commented)
+	const QString& configPath, const QList<GalleryRow>& rows, bool commented)
 {
 	QList<QString> lines;
 	for (const GalleryRow& row : rows)
@@ -221,7 +286,7 @@ int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
 
 	QScrollArea scrollArea;
 	scrollArea.resize(960, 720);
-	QList<FilterCardRow*> rowWidgets = buildRows(scrollArea, lines);
+	QList<FilterCardRow*> rowWidgets = buildRows(scrollArea, configPath, lines);
 	if (rowWidgets.size() != rows.size())
 	{
 		qWarning("SkinGallery: expected %lld rows, got %lld (%s %s)",
@@ -253,7 +318,7 @@ int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
 	return failures;
 }
 
-int renderSkin(const QDir& outDir, const QString& skinId, bool dark)
+int renderSkin(const QDir& outDir, const QString& skinId, const QString& configPath, bool dark)
 {
 	SkinManager::instance()->applySkin(skinId, dark);
 	if (SkinManager::instance()->currentSkinId() != skinId)
@@ -268,8 +333,8 @@ int renderSkin(const QDir& outDir, const QString& skinId, bool dark)
 
 	const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
 	int failures = 0;
-	failures += renderStates(outDir, skinId, mode, galleryRows(), false);
-	failures += renderStates(outDir, skinId, mode, galleryRows(), true);
+	failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), false);
+	failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), true);
 
 	// The skin's "add filter" picker with the real template set, captured the
 	// same way the rows are. A throwaway FilterTable supplies the entries; its
@@ -277,7 +342,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, bool dark)
 	{
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
-		buildRows(scrollArea, { QStringLiteral("Preamp: -6 dB") });
+		buildRows(scrollArea, configPath, { QStringLiteral("Preamp: -6 dB") });
 		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		FilterPickerView* picker = SkinManager::instance()->createFilterPicker(nullptr);
 		picker->setEntries(table != nullptr ? table->filterPickerEntries() : QList<FilterPickerEntry>());
@@ -392,11 +457,22 @@ int run(const QStringList& arguments)
 			skinIds.append(skin->id());
 	}
 
+	// The reference cards probe target files; the gallery provides synthetic
+	// ones and marks itself so the cards skip the audio-service ACL probe,
+	// which has no meaningful answer for freshly written scratch files.
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(outDir);
+	if (configPath.isEmpty())
+	{
+		qWarning("SkinGallery: cannot write reference target files under %s", qPrintable(outDir.absolutePath()));
+		return 2;
+	}
+
 	int failures = 0;
 	for (const QString& skinId : skinIds)
 	{
-		failures += renderSkin(outDir, skinId.trimmed(), true);
-		failures += renderSkin(outDir, skinId.trimmed(), false);
+		failures += renderSkin(outDir, skinId.trimmed(), configPath, true);
+		failures += renderSkin(outDir, skinId.trimmed(), configPath, false);
 	}
 
 	// Self-check the shot count so a silently dropped skin, row or state fails

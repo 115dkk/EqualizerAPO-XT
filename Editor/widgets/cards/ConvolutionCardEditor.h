@@ -3,15 +3,14 @@
 #include "Editor/IFilterGUI.h"
 
 class FilterTable;
-class QLabel;
-class QLineEdit;
 class QToolButton;
+class ReferenceCardView;
 
 // Modern card body for a "Convolution:" line, the card-mode counterpart of the
-// legacy guis/ConvolutionFilterGUI. Mirrors IncludeCardEditor's file-path layout
-// and shares its "import into the config directory" affordance, but keeps the
-// impulse-response readout (length, sample rate, device-rate mismatch) that is
-// specific to convolution.
+// legacy guis/ConvolutionFilterGUI. Presents the impulse response as a named
+// reference through the active skin's ReferenceCardView (AR2, issue #97) and
+// keeps the convolution-specific readout (length, sample rate, device-rate
+// mismatch) plus the "import into the config directory" affordance.
 class ConvolutionCardEditor : public IFilterGUI
 {
 	Q_OBJECT
@@ -23,7 +22,7 @@ public:
 
 private slots:
 	void chooseFile();
-	void pathEdited();
+	void pathCommitted(const QString& text);
 	void importToConfig();
 
 private:
@@ -32,9 +31,10 @@ private:
 	void updateFileInfo();
 
 	FilterTable* filterTable = nullptr;
-	QLineEdit* pathEdit = nullptr;
-	QLabel* infoLabel = nullptr;
-	QLabel* statusLabel = nullptr;
+	// The reference as written in the config line (relative stays relative).
+	QString path;
+	ReferenceCardView* view = nullptr;
 	QToolButton* chooseButton = nullptr;
+	QToolButton* editButton = nullptr;
 	QToolButton* importButton = nullptr;
 };
