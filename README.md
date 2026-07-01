@@ -6,6 +6,8 @@ EqualizerAPO-XT is an active fork of [Equalizer APO 1.4.2](https://sourceforge.n
 
 This fork builds on earlier double-precision work from [equalizer-apo-64](https://github.com/chebum/equalizer-apo-64) and later SIMD/build work from TheFireKahuna's Equalizer APO forks.
 
+Looking to configure it? The [GitHub Wiki](https://github.com/115dkk/EqualizerAPO-XT/wiki) has installation help and a full [configuration reference](https://github.com/115dkk/EqualizerAPO-XT/wiki/Configuration-reference) for every filter command, in English and Korean.
+
 ## Project Status
 
 The original fork goals are complete: the convolution tail bug is fixed, the engine code was refactored and put under regression tests, the Editor UI was rebuilt, SIMD support was consolidated, and releases ship as Velopack packages with automatic updates. The full history since the fork is in [CHANGELOG.md](CHANGELOG.md).

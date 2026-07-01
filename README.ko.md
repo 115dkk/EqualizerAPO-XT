@@ -6,6 +6,8 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 이 포크는 [equalizer-apo-64](https://github.com/chebum/equalizer-apo-64)의 double 정밀도 작업과, 그 뒤를 이은 TheFireKahuna의 Equalizer APO 포크들의 SIMD/빌드 작업을 이어받았습니다.
 
+설정 방법이 궁금하다면 [GitHub Wiki](https://github.com/115dkk/EqualizerAPO-XT/wiki)를 보십시오. 설치 안내와 모든 필터 명령을 다루는 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference)가 영어판과 한국어판으로 있습니다.
+
 ## 프로젝트 현황
 
 포크가 처음 목표로 잡았던 작업은 모두 끝났습니다. 컨볼루션 꼬리가 끊기던 버그를 고쳤고, 엔진 코드를 리팩토링해 회귀 테스트로 보호했으며, Editor UI를 새로 만들었고, SIMD 지원을 정리했습니다. 릴리스는 자동 업데이트가 되는 Velopack 패키지로 나갑니다. 포크 이후의 전체 이력은 [CHANGELOG.ko.md](CHANGELOG.ko.md)에 있습니다.
