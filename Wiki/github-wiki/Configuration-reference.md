@@ -146,6 +146,17 @@ Adds a convolver that processes the signal with the impulse response in the name
 Convolution: church.wav
 ```
 
+### MultiConvolution
+**Syntax:** `MultiConvolution: <output channel> <multichannel impulse response>`
+
+Adds a convolver for BRIR (Binaural Room Impulse Response) and crossfeed setups, where `Convolution`'s in-place 1:1 mapping is not enough. It reads every channel selected by the preceding `Channel:` command, convolves each selected input with the matching channel of the single named multichannel impulse-response file, sums the results, and writes the sum to the one output channel named by the first token on the line (selected input *i* pairs with impulse-response channel *i* modulo the file's channel count, so a mono file applies to every input). The same path and sample-rate rules as `Convolution` apply: the file name is relative to the configuration file, may be quoted, may contain environment variables such as `%USERPROFILE%`, must be in a format supported by libsndfile, and its sample rate must match the device's. A bad path, sample-rate mismatch, or unusable file still creates the output channel, just silent, so later channel selections do not shift. A full two-ear binaural rig needs a `Copy:` to duplicate the input before it is overwritten, plus one `MultiConvolution` per ear.
+
+```
+# Sum a 2-channel BRIR for the left ear onto channel L
+Channel: L R
+MultiConvolution: L brir_left.wav
+```
+
 ## Control commands
 These do not change the audio directly; they control which commands run and how they apply.
 
