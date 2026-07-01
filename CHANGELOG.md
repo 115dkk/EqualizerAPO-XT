@@ -19,7 +19,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   The filter sums several inputs into one channel (one ear of a BRIR), so its
   output is almost always a channel that is already in play; the card presents
   those and still lets you type a custom or virtual channel name. The legacy row
-  editor gets the same picker. ([#135])
+  editor gets the same picker. ([#136])
 - Fixed the MultiConvolution filter's Editor UI, which shipped broken in 2.5.0.
   In the Insert menu it appeared under its own untranslated "Advanced filters"
   group instead of joining the existing one: the picker groups filters by their
@@ -586,4 +586,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#129]: https://github.com/115dkk/EqualizerAPO-XT/pull/129
 [#130]: https://github.com/115dkk/EqualizerAPO-XT/pull/130
 [#132]: https://github.com/115dkk/EqualizerAPO-XT/pull/132
-[#135]: https://github.com/115dkk/EqualizerAPO-XT/pull/135
+[#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
