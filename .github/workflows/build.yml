@@ -1066,9 +1066,13 @@ jobs:
         }
         $pngs = @(Get-ChildItem $outDir -Filter *.png)
         Write-Host "Gallery wrote $($pngs.Count) PNGs"
-        # 5 skins x 2 modes x (8 rows x 3 states + 3 picker states + toolbar + titlebar + menubar + menu)
-        if ($pngs.Count -ne 310) {
-          Write-Error "Expected 310 gallery PNGs, got $($pngs.Count)"
+        # SkinGallery self-checks the shot count (skins x 2 modes x (rows x 3 +
+        # fixed chrome)) and exits non-zero on any mismatch, so the exit-code
+        # check above already catches a missing or extra shot. Adding a gallery
+        # row no longer needs a hard-coded count here; just guard against an
+        # empty run.
+        if ($pngs.Count -lt 1) {
+          Write-Error "Gallery produced no PNGs"
           exit 1
         }
 

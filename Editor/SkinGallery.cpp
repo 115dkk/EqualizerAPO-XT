@@ -53,6 +53,16 @@ QList<GalleryRow> galleryRows()
 	};
 }
 
+// renderSkin() renders, per skin and per mode: every gallery row in
+// kStatesPerRow states (normal + hover from renderStates(commented=false), and
+// disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
+// chrome shots (picker x3, toolbar, titlebar, menubar, menu). run() multiplies
+// these by skins x 2 modes to self-check the output count, so adding a gallery
+// row needs no external count to be updated. Keep both constants in step with
+// renderStates()/renderSkin() if the state set or chrome shots change.
+constexpr int kStatesPerRow = 3;
+constexpr int kExtraShotsPerSkinMode = 7;
+
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
 // judges chrome, not data, and constructing the real toolbar would drag in
@@ -382,6 +392,20 @@ int run(const QStringList& arguments)
 	{
 		failures += renderSkin(outDir, skinId.trimmed(), true);
 		failures += renderSkin(outDir, skinId.trimmed(), false);
+	}
+
+	// Self-check the shot count so a silently dropped skin, row or state fails
+	// the run even when every attempted grab succeeded. galleryRows() drives the
+	// row term, so adding a gallery row updates this expectation automatically
+	// and no external (build.yml) count needs to be touched.
+	const int perSkinMode = static_cast<int>(galleryRows().size()) * kStatesPerRow + kExtraShotsPerSkinMode;
+	const int expected = static_cast<int>(skinIds.size()) * 2 * perSkinMode;
+	const int actual = static_cast<int>(outDir.entryList(QStringList{QStringLiteral("*.png")}, QDir::Files).size());
+	if (actual != expected)
+	{
+		qWarning("SkinGallery: expected %d shots (%d skins x 2 modes x (%d rows x %d + %d extras)), wrote %d",
+			expected, static_cast<int>(skinIds.size()), static_cast<int>(galleryRows().size()), kStatesPerRow, kExtraShotsPerSkinMode, actual);
+		failures++;
 	}
 
 	// --skin-gallery is a headless one-shot: by this point every screenshot has
