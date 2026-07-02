@@ -62,7 +62,7 @@ void MultiConvolutionFilterGUI::store(QString& command, QString& parameters)
 	command = QStringLiteral("MultiConvolution");
 
 	MultiConvolutionCommand cmd;
-	cmd.outputChannel = channelCombo->currentText().trimmed().toStdWString();
+	cmd.mappings.push_back({channelCombo->currentText().trimmed().toStdWString(), {}});
 	cmd.path = pathEdit->text().toStdWString();
 	parameters = QString::fromStdWString(cmd.serialize());
 }

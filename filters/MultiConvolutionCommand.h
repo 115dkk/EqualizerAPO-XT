@@ -19,28 +19,49 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 // Single owner of the "MultiConvolution:" config-line grammar, shared by the
-// engine factory and the Editor GUI. The line names one output channel followed
-// by a single multi-channel impulse response path:
+// engine factory and the Editor GUI. Two forms are accepted:
 //
-//   MultiConvolution: <outputChannel> <impulse response path>
+//   MultiConvolution: <target>=<ir ch>[+<ir ch>...] [<target>=... ...] <path>
+//   MultiConvolution: <target> <path>                        (simple form)
 //
-// The output channel is the first whitespace-delimited token; everything after
-// the first space (trimmed) is the path, so paths may contain inner spaces just
-// like the "Convolution:" grammar. Quotes and environment variables are left in
-// the path for ConvolutionFilePath::resolve to handle.
+// Each mapping names one output channel and the 0-based channels of the single
+// multi-channel impulse-response file that are convolved with that output
+// channel's own (pre-command) signal and summed into it. The simple form means
+// "every channel of the file" and is represented by one mapping with an empty
+// irChannels list; the file's channel count is only known when the file is
+// read, so the expansion happens in the filter.
+//
+// Whitespace around '=' and '+' is accepted ("L = 0 + 1" and "L=0+1" parse
+// identically); serialize() writes the compact form. The path is the raw
+// remainder of the line and keeps its inner spaces: the first word that cannot
+// continue the mapping grammar starts the path, so file names containing '='
+// or '+' still work. Quotes and environment variables are left in the path for
+// ConvolutionFilePath::resolve to handle.
 struct MultiConvolutionCommand
 {
-	std::wstring outputChannel;
+	struct Mapping
+	{
+		std::wstring targetChannel;
+		// 0-based channel indices into the impulse-response file. Empty means
+		// every channel of the file (the simple form).
+		std::vector<unsigned> irChannels;
+	};
+
+	std::vector<Mapping> mappings;
 	std::wstring path;
 
-	// Canonical parameter string: "<outputChannel> <path>".
+	// True when the line was (or will be) written as "<target> <path>".
+	bool isSimpleForm() const;
+
+	// Canonical parameter string: "<target> <path>" for the simple form,
+	// "<t>=<i>+<i> ... <path>" otherwise.
 	const std::wstring& serialize() const;
 
 	// Returns true only when command is "MultiConvolution" and the parameters
-	// carry both an output channel and a non-empty path. A line with just a
-	// channel (no path) is rejected, unlike the single-field Convolution grammar.
+	// carry at least one mapping and a non-empty path.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, MultiConvolutionCommand& out);
 
 private:

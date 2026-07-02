@@ -120,7 +120,7 @@ void MultiConvolutionCardEditor::store(QString& command, QString& parameters)
 	command = QStringLiteral("MultiConvolution");
 
 	MultiConvolutionCommand cmd;
-	cmd.outputChannel = channelCombo->currentText().trimmed().toStdWString();
+	cmd.mappings.push_back({channelCombo->currentText().trimmed().toStdWString(), {}});
 	cmd.path = path.toStdWString();
 	parameters = QString::fromStdWString(cmd.serialize());
 }

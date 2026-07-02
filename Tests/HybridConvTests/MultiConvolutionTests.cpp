@@ -2,8 +2,9 @@
 	This file is part of EqualizerAPO-XT.
 
 	Unit tests for the multi-input synthesis convolution filter
-	(MultiConvolutionFilter): several input channels convolved with a single
-	multi-channel impulse response and summed into one output channel.
+	(MultiConvolutionFilter): each mapping target's own signal convolved with
+	the listed channels of a single multi-channel impulse response and summed
+	back into that target, independent of the Channel command's selection.
 */
 
 #include <cmath>
@@ -66,40 +67,12 @@ wstring createMultiChannelIr(const vector<vector<double>>& channels)
 	return filename;
 }
 
-// First tracer bullet: two selected inputs, each convolved with a delta impulse
-// response (pass-through), must be summed into the single output channel. With
-// L = 0.3 and R = 0.5 the output is 0.8 everywhere. This is exactly the routing
-// the 1:1 ConvolutionFilter cannot do (it would leave the two inputs separate).
-void assertTwoInputsSumIntoOneOutput()
-{
-	vector<double> delta(frameLength, 0.0);
-	delta[0] = 1.0;
-	wstring irFile = createMultiChannelIr({delta, delta});
-
-	MultiConvolutionFilter filter(L"Mixed", irFile);
-	vector<wstring> inChannels = {L"L", L"R"};
-	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, inChannels);
-	DeleteFileW(irFile.c_str());
-
-	harness.expectEqual(outChannels.size(), (size_t)1, "filter should declare exactly one output channel");
-	harness.expectTrue(!outChannels.empty() && outChannels[0] == L"Mixed", "output channel should be named Mixed");
-
-	vector<double> inL(frameLength, 0.3);
-	vector<double> inR(frameLength, 0.5);
-	vector<double> out(frameLength, 0.0);
-	double* input[] = {inL.data(), inR.data()};
-	double* output[] = {out.data()};
-	filter.process(output, input, frameLength);
-
-	for (int f = 0; f < frameLength; f++)
-		harness.expectTrue(fabs(out[f] - 0.8) <= tolerance, "two inputs should be summed into one output");
-}
-
-// Second slice: each input must be convolved with its OWN IR channel. Distinct
-// IR gains (2x on channel 0, 3x on channel 1) with distinct inputs (0.1, 0.2)
-// give 0.1*2 + 0.2*3 = 0.8; a swapped pairing would give 0.7. The delta test
-// above cannot catch a swap because two identical deltas hide it.
-void assertEachInputPairsWithItsOwnIrChannel()
+// First tracer bullet for the mapping semantics: "L=0+1" convolves channel L's
+// OWN pre-command signal with IR channels 0 (2x) and 1 (3x) and sums into L,
+// giving 0.1*(2+3) = 0.5. The other channel (R = 0.7) must not take part; the
+// old selection-based pairing would have produced 0.1*2 + 0.7*3 = 2.3, so this
+// value discriminates the two semantics.
+void assertMappingConvolvesTargetsOwnSignal()
 {
 	vector<double> ir0(frameLength, 0.0);
 	ir0[0] = 2.0;
@@ -107,41 +80,248 @@ void assertEachInputPairsWithItsOwnIrChannel()
 	ir1[0] = 3.0;
 	wstring irFile = createMultiChannelIr({ir0, ir1});
 
-	MultiConvolutionFilter filter(L"Mixed", irFile);
-	vector<wstring> inChannels = {L"L", L"R"};
-	filter.initialize((float)sampleRate, frameLength, inChannels);
+	MultiConvolutionFilter filter({{L"L", {0, 1}}}, irFile);
+	vector<wstring> allChannels = {L"L", L"R"};
+	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 	DeleteFileW(irFile.c_str());
 
+	harness.expectTrue(filter.getAllChannels(), "the filter asks for every channel instead of the selection");
+	harness.expectEqual(outChannels.size(), (size_t)1, "one mapping declares one output channel");
+	harness.expectTrue(!outChannels.empty() && outChannels[0] == L"L", "the mapping target is the output channel");
+
 	vector<double> inL(frameLength, 0.1);
-	vector<double> inR(frameLength, 0.2);
+	vector<double> inR(frameLength, 0.7);
 	vector<double> out(frameLength, 0.0);
 	double* input[] = {inL.data(), inR.data()};
 	double* output[] = {out.data()};
 	filter.process(output, input, frameLength);
 
 	for (int f = 0; f < frameLength; f++)
-		harness.expectTrue(fabs(out[f] - 0.8) <= tolerance, "each input must pair with its own IR channel");
+		harness.expectTrue(fabs(out[f] - 0.5) <= tolerance, "a mapping convolves the target's own signal with its listed IR channels");
 }
 
-// Third slice: the "MultiConvolution:" config line parses into an output channel
-// and an IR path. The channel is the first token; the rest (trimmed) is the path
-// and keeps its inner spaces. A non-matching command or a line without a path is
-// rejected.
+// Two mappings write two independent outputs: "L=0 R=1" gives L = 0.1*2 and
+// R = 0.7*3. Each target reads its own pre-command signal and only its listed
+// IR channel.
+void assertEachMappingWritesItsOwnOutput()
+{
+	vector<double> ir0(frameLength, 0.0);
+	ir0[0] = 2.0;
+	vector<double> ir1(frameLength, 0.0);
+	ir1[0] = 3.0;
+	wstring irFile = createMultiChannelIr({ir0, ir1});
+
+	MultiConvolutionFilter filter({{L"L", {0}}, {L"R", {1}}}, irFile);
+	vector<wstring> allChannels = {L"L", L"R"};
+	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
+	DeleteFileW(irFile.c_str());
+
+	harness.expectEqual(outChannels.size(), (size_t)2, "two mappings declare two output channels");
+	if (outChannels.size() != 2)
+		return;
+
+	vector<double> inL(frameLength, 0.1);
+	vector<double> inR(frameLength, 0.7);
+	vector<double> outL(frameLength, 0.0);
+	vector<double> outR(frameLength, 0.0);
+	double* input[] = {inL.data(), inR.data()};
+	double* output[] = {outL.data(), outR.data()};
+	filter.process(output, input, frameLength);
+
+	for (int f = 0; f < frameLength; f++)
+	{
+		harness.expectTrue(fabs(outL[f] - 0.2) <= tolerance, "the first mapping feeds only its own target");
+		harness.expectTrue(fabs(outR[f] - 2.1) <= tolerance, "the second mapping feeds only its own target");
+	}
+}
+
+// The simple form (empty IR channel list) means every channel of the file:
+// with a 2-channel IR (2x, 3x) the target L = 0.1 becomes 0.1*(2+3) = 0.5,
+// using only L's own signal. This is the released one-liner's meaning without
+// the Channel command.
+void assertSimpleFormUsesEveryIrChannel()
+{
+	vector<double> ir0(frameLength, 0.0);
+	ir0[0] = 2.0;
+	vector<double> ir1(frameLength, 0.0);
+	ir1[0] = 3.0;
+	wstring irFile = createMultiChannelIr({ir0, ir1});
+
+	MultiConvolutionFilter filter({{L"L", {}}}, irFile);
+	vector<wstring> allChannels = {L"L", L"R"};
+	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
+	DeleteFileW(irFile.c_str());
+
+	harness.expectEqual(outChannels.size(), (size_t)1, "simple form declares one output channel");
+
+	vector<double> inL(frameLength, 0.1);
+	vector<double> inR(frameLength, 0.7);
+	vector<double> out(frameLength, 0.0);
+	double* input[] = {inL.data(), inR.data()};
+	double* output[] = {out.data()};
+	filter.process(output, input, frameLength);
+
+	for (int f = 0; f < frameLength; f++)
+		harness.expectTrue(fabs(out[f] - 0.5) <= tolerance, "the simple form sums every IR channel over the target's own signal");
+}
+
+// A target that does not exist yet is declared as a new (virtual) output
+// channel but reads silence, and an IR channel reference beyond the file's
+// channel count contributes silence instead of failing the line. A duplicated
+// target behaves like Copy: the later mapping overwrites the earlier one.
+void assertMissingSourcesAndDuplicatesDegradeGracefully()
+{
+	vector<double> ir0(frameLength, 0.0);
+	ir0[0] = 2.0;
+	vector<double> ir1(frameLength, 0.0);
+	ir1[0] = 3.0;
+
+	{
+		wstring irFile = createMultiChannelIr({ir0, ir1});
+		MultiConvolutionFilter filter({{L"Wet", {0}}}, irFile);
+		vector<wstring> allChannels = {L"L", L"R"};
+		vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
+		DeleteFileW(irFile.c_str());
+
+		harness.expectEqual(outChannels.size(), (size_t)1, "a new target is declared as an output channel");
+		harness.expectTrue(!outChannels.empty() && outChannels[0] == L"Wet", "the virtual output keeps its name");
+
+		vector<double> inL(frameLength, 0.1);
+		vector<double> inR(frameLength, 0.7);
+		vector<double> out(frameLength, 123.0);
+		double* input[] = {inL.data(), inR.data()};
+		double* output[] = {out.data()};
+		filter.process(output, input, frameLength);
+
+		for (int f = 0; f < frameLength; f++)
+			harness.expectTrue(out[f] == 0.0, "a fresh virtual target reads silence but is still written");
+	}
+
+	{
+		wstring irFile = createMultiChannelIr({ir0, ir1});
+		MultiConvolutionFilter filter({{L"L", {0, 7}}}, irFile);
+		vector<wstring> allChannels = {L"L", L"R"};
+		filter.initialize((float)sampleRate, frameLength, allChannels);
+		DeleteFileW(irFile.c_str());
+
+		vector<double> inL(frameLength, 0.1);
+		vector<double> inR(frameLength, 0.7);
+		vector<double> out(frameLength, 0.0);
+		double* input[] = {inL.data(), inR.data()};
+		double* output[] = {out.data()};
+		filter.process(output, input, frameLength);
+
+		for (int f = 0; f < frameLength; f++)
+			harness.expectTrue(fabs(out[f] - 0.2) <= tolerance, "an out-of-range IR channel contributes silence");
+	}
+
+	{
+		wstring irFile = createMultiChannelIr({ir0, ir1});
+		MultiConvolutionFilter filter({{L"L", {0}}, {L"L", {1}}}, irFile);
+		vector<wstring> allChannels = {L"L", L"R"};
+		vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
+		DeleteFileW(irFile.c_str());
+
+		harness.expectEqual(outChannels.size(), (size_t)1, "duplicate targets share one output channel");
+
+		vector<double> inL(frameLength, 0.1);
+		vector<double> inR(frameLength, 0.7);
+		vector<double> out(frameLength, 0.0);
+		double* input[] = {inL.data(), inR.data()};
+		double* output[] = {out.data()};
+		filter.process(output, input, frameLength);
+
+		for (int f = 0; f < frameLength; f++)
+			harness.expectTrue(fabs(out[f] - 0.3) <= tolerance, "the later duplicate mapping overwrites the earlier one");
+	}
+}
+
+// The simple form "<target> <path>" parses into one mapping with an empty IR
+// channel list (= every channel of the file). The channel is the first token;
+// the rest (trimmed) is the path and keeps its inner spaces. A non-matching
+// command or a line without a path is rejected.
 void assertCommandParsesChannelAndPath()
 {
 	MultiConvolutionCommand cmd;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"Mixed room.wav", cmd), "valid MultiConvolution line parses");
-	harness.expectTrue(cmd.outputChannel == L"Mixed", "output channel is the first token");
+	harness.expectEqual(cmd.mappings.size(), (size_t)1, "simple form carries one mapping");
+	harness.expectTrue(!cmd.mappings.empty() && cmd.mappings[0].targetChannel == L"Mixed", "output channel is the first token");
+	harness.expectTrue(!cmd.mappings.empty() && cmd.mappings[0].irChannels.empty(), "simple form means every IR channel");
+	harness.expectTrue(cmd.isSimpleForm(), "simple form is recognized");
 	harness.expectTrue(cmd.path == L"room.wav", "IR path is the remainder");
 
 	MultiConvolutionCommand spaced;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"LeftEar sub dir\\room ir.wav", spaced), "path with inner spaces parses");
-	harness.expectTrue(spaced.outputChannel == L"LeftEar", "channel stops at the first space");
+	harness.expectTrue(!spaced.mappings.empty() && spaced.mappings[0].targetChannel == L"LeftEar", "channel stops at the first space");
 	harness.expectTrue(spaced.path == L"sub dir\\room ir.wav", "path keeps inner spaces");
 
 	MultiConvolutionCommand rejected;
 	harness.expectFalse(MultiConvolutionCommand::parse(L"Convolution", L"Mixed room.wav", rejected), "a non-MultiConvolution command is rejected");
 	harness.expectFalse(MultiConvolutionCommand::parse(L"MultiConvolution", L"OnlyChannel", rejected), "a line without an IR path is rejected");
+}
+
+// The mapping form assigns explicit 0-based IR channels to each output channel:
+// "L=0+1 R=2+3 brir.wav". Whitespace around '=' and '+' must not change the
+// result, and serialize() writes the compact canonical text back.
+void assertMappingGrammarParses()
+{
+	MultiConvolutionCommand compact;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 R=2+3 brir.wav", compact), "compact mapping form parses");
+	harness.expectEqual(compact.mappings.size(), (size_t)2, "two mappings parse");
+	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[0].targetChannel == L"L" && compact.mappings[1].targetChannel == L"R", "targets keep their order");
+	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[0].irChannels == std::vector<unsigned>({0, 1}), "first mapping lists IR channels 0 and 1");
+	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[1].irChannels == std::vector<unsigned>({2, 3}), "second mapping lists IR channels 2 and 3");
+	harness.expectTrue(compact.path == L"brir.wav", "path follows the mappings");
+	harness.expectFalse(compact.isSimpleForm(), "mapping form is not the simple form");
+
+	MultiConvolutionCommand spaced;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L = 0 + 1 R = 2 + 3 brir.wav", spaced), "spaced mapping form parses");
+	harness.expectTrue(spaced.mappings.size() == 2
+		&& spaced.mappings[0].targetChannel == L"L" && spaced.mappings[0].irChannels == std::vector<unsigned>({0, 1})
+		&& spaced.mappings[1].targetChannel == L"R" && spaced.mappings[1].irChannels == std::vector<unsigned>({2, 3})
+		&& spaced.path == L"brir.wav", "spacing around '=' and '+' does not change the parse");
+
+	harness.expectTrue(compact.serialize() == L"L=0+1 R=2+3 brir.wav", "serialization is the compact form");
+	harness.expectTrue(spaced.serialize() == L"L=0+1 R=2+3 brir.wav", "spaced input serializes to the same compact text");
+
+	MultiConvolutionCommand reparsed;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", compact.serialize(), reparsed), "serialized mapping line re-parses");
+	harness.expectTrue(reparsed.mappings.size() == 2
+		&& reparsed.mappings[0].targetChannel == L"L" && reparsed.mappings[0].irChannels == std::vector<unsigned>({0, 1})
+		&& reparsed.mappings[1].targetChannel == L"R" && reparsed.mappings[1].irChannels == std::vector<unsigned>({2, 3})
+		&& reparsed.path == L"brir.wav", "mapping form round-trips");
+}
+
+// The path is the raw remainder after the last complete mapping, so file names
+// containing '=', '+', leading digits or inner spaces survive, and a mapping
+// line without any path is rejected.
+void assertPathBoundaryIsRobust()
+{
+	MultiConvolutionCommand equalsPath;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 a=b.wav", equalsPath), "path containing '=' parses");
+	harness.expectTrue(equalsPath.mappings.size() == 1 && equalsPath.mappings[0].irChannels == std::vector<unsigned>({0, 1}), "mapping before '=' path is kept");
+	harness.expectTrue(equalsPath.path == L"a=b.wav", "word failing the mapping grammar starts the path");
+
+	MultiConvolutionCommand plusPath;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0 mix+mono.wav", plusPath), "path containing '+' parses");
+	harness.expectTrue(plusPath.mappings.size() == 1 && plusPath.mappings[0].irChannels == std::vector<unsigned>({0}), "single IR channel mapping parses");
+	harness.expectTrue(plusPath.path == L"mix+mono.wav", "path with '+' is not cut apart");
+
+	MultiConvolutionCommand digitPath;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"Ear=3 2ch room ir.wav", digitPath), "digit-leading path parses");
+	harness.expectTrue(digitPath.mappings.size() == 1 && digitPath.mappings[0].targetChannel == L"Ear"
+		&& digitPath.mappings[0].irChannels == std::vector<unsigned>({3}), "single mapping with one IR channel parses");
+	harness.expectTrue(digitPath.path == L"2ch room ir.wav", "digit-leading path keeps inner spaces");
+
+	MultiConvolutionCommand simpleEquals;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"Mixed a=b.wav", simpleEquals), "simple form with '=' in the path parses");
+	harness.expectTrue(simpleEquals.mappings.size() == 1 && simpleEquals.mappings[0].targetChannel == L"Mixed"
+		&& simpleEquals.mappings[0].irChannels.empty(), "simple form target is kept");
+	harness.expectTrue(simpleEquals.path == L"a=b.wav", "simple form path keeps the '='");
+
+	MultiConvolutionCommand rejected;
+	harness.expectFalse(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1", rejected), "a mapping line without a path is rejected");
+	harness.expectFalse(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 R=2+3", rejected), "several mappings without a path are rejected");
 }
 
 // serialize -> parse round trip is stable, so the Editor can write the line and
@@ -162,13 +342,14 @@ void assertCommandSerializeRoundTrips()
 	for (const Case& c : cases)
 	{
 		MultiConvolutionCommand first;
-		first.outputChannel = c.channel;
+		first.mappings.push_back({c.channel, {}});
 		first.path = c.path;
 		wstring serialized = first.serialize();
 
 		MultiConvolutionCommand second;
 		harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", serialized, second), "serialized line re-parses");
-		harness.expectTrue(second.outputChannel == first.outputChannel, "channel round-trips");
+		harness.expectTrue(second.mappings.size() == 1 && second.mappings[0].targetChannel == c.channel, "channel round-trips");
+		harness.expectTrue(second.mappings.size() == 1 && second.mappings[0].irChannels.empty(), "simple form round-trips as simple form");
 		harness.expectTrue(second.path == first.path, "path round-trips");
 		harness.expectTrue(second.serialize() == serialized, "second serialization is identical");
 	}
@@ -177,9 +358,13 @@ void assertCommandSerializeRoundTrips()
 
 void runMultiConvolutionTests()
 {
-	assertTwoInputsSumIntoOneOutput();
-	assertEachInputPairsWithItsOwnIrChannel();
+	assertMappingConvolvesTargetsOwnSignal();
+	assertEachMappingWritesItsOwnOutput();
+	assertSimpleFormUsesEveryIrChannel();
+	assertMissingSourcesAndDuplicatesDegradeGracefully();
 	assertCommandParsesChannelAndPath();
+	assertMappingGrammarParses();
+	assertPathBoundaryIsRobust();
 	assertCommandSerializeRoundTrips();
 	harness.report();
 }

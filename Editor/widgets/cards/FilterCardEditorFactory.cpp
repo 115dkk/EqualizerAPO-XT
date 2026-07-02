@@ -40,10 +40,13 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 	}
 	if (normalizedCommand == QStringLiteral("multiconvolution"))
 	{
-		// MultiConvolutionCommand owns the "<output channel> <path>" grammar.
+		// MultiConvolutionCommand owns the line grammar (mapping and simple
+		// forms). The card is being reworked around the mapping form; until it
+		// lands, only the first mapping's target rides in the channel combo.
 		MultiConvolutionCommand cmd;
 		MultiConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
-		return new MultiConvolutionCardEditor(filterTable, QString::fromStdWString(cmd.outputChannel), QString::fromStdWString(cmd.path));
+		const QString target = cmd.mappings.empty() ? QString() : QString::fromStdWString(cmd.mappings[0].targetChannel);
+		return new MultiConvolutionCardEditor(filterTable, target, QString::fromStdWString(cmd.path));
 	}
 	if (normalizedCommand == QStringLiteral("vstplugin"))
 	{
