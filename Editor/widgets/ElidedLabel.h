@@ -26,7 +26,7 @@ public:
 	explicit ElidedLabel(QWidget* parent = nullptr);
 
 	void setFullText(const QString& text);
-	QString fullText() const;
+	const QString& fullText() const;
 
 	void setElideMode(Qt::TextElideMode mode);
 

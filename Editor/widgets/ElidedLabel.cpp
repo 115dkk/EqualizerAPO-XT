@@ -22,7 +22,7 @@ void ElidedLabel::setFullText(const QString& text)
 	setToolTip(text);
 }
 
-QString ElidedLabel::fullText() const
+const QString& ElidedLabel::fullText() const
 {
 	return storedText;
 }
