@@ -56,5 +56,6 @@ IFilterGUI* MultiConvolutionFilterGUIFactory::createFilterGUI(QString& command, 
 
 	MultiConvolutionCommand cmd;
 	MultiConvolutionCommand::parse(command.toStdWString(), parameters.toStdWString(), cmd);
-	return new MultiConvolutionFilterGUI(configPath, QString::fromStdWString(cmd.outputChannel), QString::fromStdWString(cmd.path));
+	return new MultiConvolutionFilterGUI(configPath,
+		QString::fromStdWString(cmd.serializeMappingsOnly()), QString::fromStdWString(cmd.path));
 }

@@ -14,12 +14,14 @@
 using std::vector;
 
 HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+	QWidget* parent)
 	: RoutingView(parent),
 	// Seed every device channel as a row/column so an emptied Copy can be
 	// refilled from the GUI; empty rows are skipped by the serializer.
 	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
-	deviceChannels(channelNames)
+	deviceChannels(channelNames),
+	portModel(portModel)
 {
 	// Match the stable painted-routing-view size contract (StepList / BlockChip).
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
@@ -29,7 +31,9 @@ HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments
 
 void HardwarePatchbayView::rebuildMatrix()
 {
-	matrix = CopyRoutingAdapter::buildMatrix(workingAssignments, deviceChannels);
+	matrix = portModel.fixedSourceMode()
+		? CopyRoutingAdapter::buildMatrix(workingAssignments, portModel.fixedSources)
+		: CopyRoutingAdapter::buildMatrix(workingAssignments, deviceChannels);
 	updateGeometry();
 	update();
 }
@@ -142,16 +146,20 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 				p.setPen(QPen(lit, 2));
 				p.drawLine(center, tip);
 
-				// Value caption under the knob.
-				QString cap;
-				if (cell.factor == -1.0 && !cell.isDecibel)
-					cap = QStringLiteral("INV");
-				else if (cell.factor == 1.0 && !cell.isDecibel)
-					cap = QStringLiteral("0dB");
-				else
-					cap = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QStringLiteral("x%1").arg(cell.factor);
-				p.setPen(text);
-				p.drawText(QRect(cr.left(), cr.bottom() - 12, cr.width(), 12), Qt::AlignCenter, cap);
+				// Value caption under the knob. A factor-less patch point
+				// (MultiConvolution) is just patched or not, so no gain caption.
+				if (portModel.allowFactors)
+				{
+					QString cap;
+					if (cell.factor == -1.0 && !cell.isDecibel)
+						cap = QStringLiteral("INV");
+					else if (cell.factor == 1.0 && !cell.isDecibel)
+						cap = QStringLiteral("0dB");
+					else
+						cap = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QStringLiteral("x%1").arg(cell.factor);
+					p.setPen(text);
+					p.drawText(QRect(cr.left(), cr.bottom() - 12, cr.width(), 12), Qt::AlignCenter, cap);
+				}
 			}
 			else
 			{
@@ -187,6 +195,11 @@ void HardwarePatchbayView::mousePressEvent(QMouseEvent* event)
 
 void HardwarePatchbayView::mouseDoubleClickEvent(QMouseEvent* event)
 {
+	// Without factors there is nothing to edit; the press that preceded this
+	// double-click already toggled the patch point.
+	if (!portModel.allowFactors)
+		return;
+
 	int outRow = -1, inCol = -1;
 	if (!hitTest(event->pos(), outRow, inCol))
 		return;
@@ -275,7 +288,7 @@ void HardwarePatchbayView::commitEditor()
 }
 
 RoutingView* HardwarePatchbayRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
 {
-	return new HardwarePatchbayView(assignments, channelNames, parent);
+	return new HardwarePatchbayView(assignments, channelNames, portModel, parent);
 }

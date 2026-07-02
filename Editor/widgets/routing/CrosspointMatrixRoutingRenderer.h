@@ -21,7 +21,8 @@ class CrosspointMatrixView : public RoutingView
 
 public:
 	CrosspointMatrixView(const std::vector<Assignment>& assignments,
-		const std::vector<std::wstring>& channelNames, QWidget* parent);
+		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+		QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
 	QSize sizeHint() const override;
@@ -43,6 +44,9 @@ private:
 	// Device channel layout; keeps the full routing surface clickable even when
 	// the command references few (or no) channels.
 	std::vector<std::wstring> deviceChannels;
+	// Fixed-source mode (MultiConvolution): input columns come only from
+	// portModel.fixedSources, and factors are locked to unity.
+	RoutingPortModel portModel;
 	CopyRoutingAdapter::Matrix matrix;
 
 	QLineEdit* editor = nullptr;
@@ -60,6 +64,7 @@ class CrosspointMatrixRoutingRenderer : public IRoutingRenderer
 {
 public:
 	RoutingView* create(const std::vector<Assignment>& assignments,
-		const std::vector<std::wstring>& channelNames, QWidget* parent) override;
+		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+		QWidget* parent) override;
 	const char* id() const override { return "crosspoint-matrix"; }
 };

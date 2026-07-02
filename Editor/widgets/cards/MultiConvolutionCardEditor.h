@@ -18,46 +18,73 @@
 
 #pragma once
 
+#include <vector>
+
 #include "Editor/IFilterGUI.h"
+#include "filters/MultiConvolutionCommand.h"
 
 class FilterTable;
-class QComboBox;
+class QLabel;
 class QToolButton;
+class QVBoxLayout;
 class ReferenceCardView;
+class RoutingView;
 
-// Modern card body for a "MultiConvolution:" line. It is the card-mode
-// counterpart of the legacy guis/MultiConvolutionFilterGUI: the same named
-// impulse-response reference as ConvolutionCardEditor (skin view, readout,
-// import affordance) with a small selector for the single output channel that
-// the summed convolution is written to, placed inside the reference grammar
-// ("<channel> <file>").
+// Modern card body for a "MultiConvolution:" line. Two stacked parts: the
+// named impulse-response reference (same skin view, readout and import
+// affordance as ConvolutionCardEditor) and, under it, the channel mapping as
+// the active skin's routing view - the same per-skin presentation Copy gets,
+// but with a fixed source side (the IR file's channels "0".."N-1") and no
+// factors. Output ports are the channels in scope at this row plus any
+// virtual channel the user adds; edits serialize back through
+// MultiConvolutionRoutingAdapter into the "L=0+1 R=2+3 <file>" mapping form.
 class MultiConvolutionCardEditor : public IFilterGUI
 {
 	Q_OBJECT
 
 public:
-	MultiConvolutionCardEditor(FilterTable* filterTable, const QString& outputChannel, const QString& path, QWidget* parent = nullptr);
+	MultiConvolutionCardEditor(FilterTable* filterTable,
+		const std::vector<MultiConvolutionCommand::Mapping>& mappings,
+		const QString& path, QWidget* parent = nullptr);
 
 	void store(QString& command, QString& parameters) override;
-	// Offer the channels that exist at this row as the output options, so the
-	// user picks the target channel instead of typing it.
+	// The channels that exist at this row seed the routing view's output side.
 	void configureChannels(std::vector<std::wstring>& channelNames) override;
 
 private slots:
 	void chooseFile();
 	void pathCommitted(const QString& text);
 	void importToConfig();
+	void routingEdited();
+	void addOutputChannel();
 
 private:
 	QString resolvedAbsolutePath() const;
 	unsigned currentDeviceSampleRate() const;
 	void updateFileInfo();
+	void rebuildRoutingView();
 
 	FilterTable* filterTable = nullptr;
 	// The reference as written in the config line (relative stays relative).
 	QString path;
+	// The mapping state of the line; the routing view edits it. A simple-form
+	// line stays simple until the routing is touched.
+	std::vector<MultiConvolutionCommand::Mapping> mappings;
+	// Channels in scope at this row (configureChannels) and virtual outputs the
+	// user added in this session; both seed the routing view's output side.
+	std::vector<std::wstring> rowChannels;
+	std::vector<std::wstring> extraTargets;
+	// Channel count of the resolved IR file; 0 while missing/unreadable, in
+	// which case the mapping is not editable (an edit could not know what
+	// "every channel" means and would persist a wrong expansion).
+	int fileChannelCount = 0;
+
 	ReferenceCardView* view = nullptr;
-	QComboBox* channelCombo = nullptr;
+	QVBoxLayout* routingLayout = nullptr;
+	QLabel* mappingCaption = nullptr;
+	RoutingView* routingView = nullptr;
+	QLabel* routingHint = nullptr;
+	QToolButton* addChannelButton = nullptr;
 	QToolButton* chooseButton = nullptr;
 	QToolButton* editButton = nullptr;
 	QToolButton* importButton = nullptr;

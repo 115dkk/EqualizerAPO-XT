@@ -84,4 +84,11 @@ public:
 	// than a post-hoc extension.
 	static Matrix buildMatrix(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames);
+
+	// buildMatrix variant for a fixed source-port list (RoutingPortModel):
+	// the input columns are exactly fixedSources, in order, and summands whose
+	// channel is not in the list get no cell. Used by the matrix-shaped views
+	// when they render MultiConvolution's IR-channel sources.
+	static Matrix buildMatrix(const std::vector<Assignment>& assignments,
+		const QStringList& fixedSources);
 };

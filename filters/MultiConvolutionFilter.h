@@ -22,23 +22,29 @@
 #include <vector>
 
 #include "IFilter.h"
+#include "MultiConvolutionCommand.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 
 // Multi-input synthesis convolution ("다중 합성 컨볼루션"). Unlike the 1:1
-// ConvolutionFilter, this filter reads every selected input channel, convolves
-// each with the corresponding channel of a single multi-channel impulse
-// response, sums the results, and writes them to one output channel. It is the
-// building block for BRIR/crossfeed setups where one ear's output is the sum of
-// several speaker signals, each passed through its own impulse response.
+// ConvolutionFilter, this filter convolves each mapping target's own
+// (pre-command) signal with the listed channels of a single multi-channel
+// impulse response and sums the results into that target. It compresses the
+// Copy -> Channel -> Convolution -> Copy fan-out/sum pattern that true-stereo
+// and BRIR processing needs into one line, and it is independent of the
+// Channel command: getAllChannels() asks the engine for every channel, and the
+// participating impulse-response channels come from the command line and the
+// file itself.
 //
-// getInPlace() is false because the output channel differs from the inputs, so
-// the engine hands us separate input/output buffers.
+// getInPlace() is false so the engine hands us separate output buffers; every
+// mapping therefore reads the pre-command state of its target while writing
+// the new one, exactly like Copy.
 #pragma AVRT_VTABLES_BEGIN
 class MultiConvolutionFilter : public IFilter
 {
 public:
-	MultiConvolutionFilter(const std::wstring& outputChannel, const std::wstring& filename);
+	MultiConvolutionFilter(const std::vector<MultiConvolutionCommand::Mapping>& mappings, const std::wstring& filename);
 	virtual ~MultiConvolutionFilter();
+	bool getAllChannels() override {return true;}
 	bool getInPlace() override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
@@ -46,17 +52,31 @@ public:
 private:
 	void cleanup();
 
-	std::wstring outputChannel;
+	std::vector<MultiConvolutionCommand::Mapping> mappings;
 	std::wstring filename;
 	float sampleRate;
-	unsigned inputChannelCount;
 	unsigned filterFrameCount;
-	// One convolution state per input channel; filters[i] convolves input i with
-	// impulse-response channel (i modulo IR channel count).
+
+	// Where one mapping reads and writes: units [firstUnit, firstUnit+unitCount)
+	// of the flat convolution-state array feed output[outputSlot] from
+	// input[inputChannel]. inputChannel is -1 when the target does not exist yet
+	// (a fresh virtual channel), which reads as silence.
+	struct MappingPlan
+	{
+		unsigned outputSlot;
+		int inputChannel;
+		unsigned firstUnit;
+		unsigned unitCount;
+	};
+	std::vector<MappingPlan> plans;
+
+	// One convolution state per (mapping, impulse-response channel) pair, laid
+	// out mapping by mapping; plans[] holds the per-mapping ranges.
 	HConvSingle* filters;
-	// Per-input scratch buffer for one channel's convolution result before it is
-	// summed into the single output. Sized in initialize() so process() never
-	// allocates on the audio thread.
-	std::vector<std::vector<double>> tempBuffers;
+	unsigned unitCount;
+	// Scratch buffer for one unit's convolution result before it is summed into
+	// the mapping's output. Sized in initialize() so process() never allocates
+	// on the audio thread.
+	std::vector<double> tempBuffer;
 };
 #pragma AVRT_VTABLES_END

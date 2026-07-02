@@ -42,6 +42,6 @@ vector<IFilter*> MultiConvolutionFilterFactory::createFilter(const wstring& conf
 	if (absolutePath.empty())
 		return vector<IFilter*>(0);
 
-	MultiConvolutionFilter* filter = MemoryHelper::construct<MultiConvolutionFilter>(cmd.outputChannel, absolutePath);
+	MultiConvolutionFilter* filter = MemoryHelper::construct<MultiConvolutionFilter>(cmd.mappings, absolutePath);
 	return vector<IFilter*>(1, filter);
 }

@@ -487,3 +487,14 @@ QToolButton#TitleBarClose:pressed {
     border: 1px solid rgba(245, 158, 11, 0.50);
     border-radius: 12px;
 }
+
+/* MultiConvolution's channel-mapping strip: a friendly section caption over
+   the equation blocks, and a plain-language hint when no file is set. */
+QLabel#MultiConvolutionMappingCaption {
+    color: @MUTED@;
+    font-size: 9pt; font-weight: 600;
+}
+QLabel#MultiConvolutionMappingHint {
+    color: @MUTED@;
+    font-size: 9pt;
+}

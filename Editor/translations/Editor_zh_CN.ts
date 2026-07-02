@@ -1055,7 +1055,7 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="428"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
         <source>Raw</source>
         <translation>原始</translation>
     </message>
@@ -2265,101 +2265,129 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="79"/>
         <source>Output channel the summed convolution is written to</source>
-        <translation>写入求和卷积的输出声道</translation>
+        <translation type="vanished">写入求和卷积的输出声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="80"/>
         <source>Out ch</source>
-        <translation>输出声道</translation>
+        <translation type="vanished">输出声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="96"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="82"/>
         <source>Copy this file into the config directory</source>
         <translation>将此文件复制到配置目录</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="90"/>
         <source>Edit the path as text</source>
         <translation>以文本方式编辑路径</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="150"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <source>Channel mapping</source>
+        <translation>声道映射</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
+        <source>Add an output channel (a new name creates a virtual channel)</source>
+        <translation>添加输出声道（新名称会创建虚拟声道）</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
+        <source>Add output channel</source>
+        <translation>添加输出声道</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <source>Channel name (an unknown name creates a virtual channel):</source>
+        <translation>声道名称（未知名称会创建虚拟声道）：</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="212"/>
+        <source>Select a readable impulse response file to edit the channel mapping.</source>
+        <translation>请选择可读取的脉冲响应文件以编辑声道映射。</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="249"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
         <source>Select impulse response file</source>
         <translation>选择脉冲响应文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="152"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="251"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>脉冲响应 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="185"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="196"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
         <source>Import</source>
         <translation>导入</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="185"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
         <source>Nothing to import: %1</source>
         <translation>无可导入内容：%1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="197"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="296"/>
         <source>Some files could not be copied:
 %1</source>
         <translation>部分文件无法复制：
 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="233"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="333"/>
         <source>No file selected</source>
         <translation>未选择文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="262"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="362"/>
         <source>Unsupported file format</source>
         <translation>不支持的文件格式</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="271"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="272"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="372"/>
         <source>%1 samples</source>
         <translation>%1 采样</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="273"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="274"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
         <source>%1 ch</source>
         <translation>%1 声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="280"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="381"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>采样率与设备不匹配（%1 Hz）</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="399"/>
+        <source>Mapping references channel %1, but the file has %2 channels</source>
+        <translation>映射引用了声道 %1，但文件只有 %2 个声道</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="421"/>
         <source>Not readable by the audio service</source>
         <translation>音频服务无法读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="317"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="437"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
         <source>Locate the missing file</source>
         <translation>定位缺失的文件</translation>
     </message>
@@ -2367,28 +2395,28 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionFilterGUI</name>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="37"/>
-        <source>Output channel:</source>
-        <translation type="unfinished"></translation>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="35"/>
+        <source>Mappings:</source>
+        <translation>映射：</translation>
+    </message>
+    <message>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="38"/>
+        <source>Output mappings, e.g. &quot;L=0+1 R=2+3&quot; (file channels are 0-based) or just &quot;L&quot; for every file channel</source>
+        <translation>输出映射，如 &quot;L=0+1 R=2+3&quot;（文件声道从 0 开始），只写 &quot;L&quot; 则使用文件的全部声道</translation>
     </message>
     <message>
         <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="42"/>
-        <source>Output channel the summed convolution is written to</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="48"/>
         <source>Impulse response:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="55"/>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="84"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="49"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="74"/>
         <source>Select impulse response file</source>
         <translation type="unfinished">选择脉冲响应文件</translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="85"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="75"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation type="unfinished">脉冲响应 (*.wav *.flac *.ogg)</translation>
     </message>
@@ -2559,28 +2587,28 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="131"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="192"/>
         <source>Choose the details after adding</source>
         <translation>添加后再设置详细信息</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="353"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="427"/>
         <source>Search filters</source>
         <translation>搜索滤波器</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="392"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="453"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="466"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="527"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="500"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="575"/>
         <source>Nothing matches your search</source>
         <translation>没有匹配你搜索的内容</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="501"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="576"/>
         <source>Try a shorter or different keyword</source>
         <translation>请尝试更短或不同的关键词</translation>
     </message>

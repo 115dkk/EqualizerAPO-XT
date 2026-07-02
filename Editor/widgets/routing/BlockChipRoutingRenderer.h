@@ -20,7 +20,8 @@ class BlockChipView : public RoutingView
 
 public:
 	BlockChipView(const std::vector<Assignment>& assignments,
-		const std::vector<std::wstring>& channelNames, QWidget* parent);
+		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+		QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
 	QSize sizeHint() const override;
@@ -40,6 +41,10 @@ private:
 	std::vector<Assignment> workingAssignments;
 	// Device channel layout, offered by the per-block [+] chip menu.
 	std::vector<std::wstring> deviceChannels;
+	// Fixed-source mode (MultiConvolution): the [+] menu offers only
+	// portModel.fixedSources, and factors are locked to unity (a double-click
+	// removes the chip instead of editing a gain).
+	RoutingPortModel portModel;
 	QVector<Hit> hits;
 	QVector<AddHit> addHits;
 	QLineEdit* editor = nullptr;
@@ -54,6 +59,7 @@ class BlockChipRoutingRenderer : public IRoutingRenderer
 {
 public:
 	RoutingView* create(const std::vector<Assignment>& assignments,
-		const std::vector<std::wstring>& channelNames, QWidget* parent) override;
+		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+		QWidget* parent) override;
 	const char* id() const override { return "block-chip"; }
 };

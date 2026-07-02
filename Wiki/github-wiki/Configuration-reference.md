@@ -147,14 +147,25 @@ Convolution: church.wav
 ```
 
 ### MultiConvolution
-**Syntax:** `MultiConvolution: <output channel> <multichannel impulse response>`
+**Syntax:** `MultiConvolution: <channel>=<file channel>[+<file channel>...] [<channel>=... ...] <multichannel impulse response>`
+**Syntax:** `MultiConvolution: <channel> <multichannel impulse response>`
 
-Adds a convolver for BRIR (Binaural Room Impulse Response) and crossfeed setups, where `Convolution`'s in-place 1:1 mapping is not enough. It reads every channel selected by the preceding `Channel:` command, convolves each selected input with the matching channel of the single named multichannel impulse-response file, sums the results, and writes the sum to the one output channel named by the first token on the line (selected input *i* pairs with impulse-response channel *i* modulo the file's channel count, so a mono file applies to every input). The same path and sample-rate rules as `Convolution` apply: the file name is relative to the configuration file, may be quoted, may contain environment variables such as `%USERPROFILE%`, must be in a format supported by libsndfile, and its sample rate must match the device's. A bad path, sample-rate mismatch, or unusable file still creates the output channel, just silent, so later channel selections do not shift. A full two-ear binaural rig needs a `Copy:` to duplicate the input before it is overwritten, plus one `MultiConvolution` per ear.
+Adds a convolver for true-stereo, BRIR (Binaural Room Impulse Response) and crossfeed setups, where `Convolution`'s in-place 1:1 mapping is not enough. Each mapping convolves the named channel's own signal with the listed channels of the single multichannel impulse-response file (0-based) and sums the results back into that channel. It compresses the Copy → Channel → Convolution → Copy fan-out/sum pattern into one line and is independent of the `Channel:` command: the channel selection neither feeds it nor is changed by it. All mappings read the signal as it was before the line, like `Copy:`, so `L=0+1 R=2+3` processes each ear with its own pair of impulse responses. The one-token form means "every channel of the file": with a 2-channel file, `MultiConvolution: L brir.wav` equals `MultiConvolution: L=0+1 brir.wav`. Whitespace around `=` and `+` is accepted.
+
+A mapping target may name a channel that does not exist yet; it is created as a virtual channel (silent unless an earlier line wrote to it). A file-channel index beyond the file's channel count contributes silence and leaves a note in the log. The same path and sample-rate rules as `Convolution` apply: the file name is relative to the configuration file, may be quoted, may contain environment variables such as `%USERPROFILE%`, must be in a format supported by libsndfile, and its sample rate must match the device's. A bad path, sample-rate mismatch, or unusable file still creates the mapped channels, just silent, so later channel selections do not shift. In the Editor, the card shows the file next to a channel-mapping view in every skin: the sources are the file's channels, the outputs are the config's channels plus any virtual channel you add.
 
 ```
-# Sum a 2-channel BRIR for the left ear onto channel L
-Channel: L R
-MultiConvolution: L brir_left.wav
+# A 4-channel BRIR: each ear gets its own pair of impulse responses
+MultiConvolution: L=0+1 R=2+3 brir.wav
+```
+
+When an ear also needs the other speaker's signal (a full crossfeed matrix), copy it into a helper channel first; the helper's own signal is then the right input:
+
+```
+# Full crossfeed: XL/XR carry the opposite speaker's signal
+Copy: XL=R XR=L
+MultiConvolution: L=0 XL=1 XR=2 R=3 brir.wav
+Copy: L=L+XL R=R+XR
 ```
 
 ## Control commands

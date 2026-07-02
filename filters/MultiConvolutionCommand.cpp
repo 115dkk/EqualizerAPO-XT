@@ -18,13 +18,90 @@
 
 #include "stdafx.h"
 
+#include <cwctype>
+
 #include "MultiConvolutionCommand.h"
 
 #include "helpers/StringHelper.h"
 
+namespace
+{
+// A word ends at whitespace, '=' or '+', so "L=0+1" and "L = 0 + 1" tokenize
+// identically. Words that turn out not to fit the mapping grammar are handed
+// back by position (the raw remainder becomes the path), so a path containing
+// '=' or '+' is never cut apart.
+std::wstring readWord(const std::wstring& text, size_t& pos)
+{
+	const size_t start = pos;
+	while (pos < text.size() && !iswspace(text[pos]) && text[pos] != L'=' && text[pos] != L'+')
+		pos++;
+	return text.substr(start, pos - start);
+}
+
+void skipSpace(const std::wstring& text, size_t& pos)
+{
+	while (pos < text.size() && iswspace(text[pos]))
+		pos++;
+}
+
+// An IR channel reference is a plain 0-based decimal number. Four digits bound
+// the value well above libsndfile's channel limit while keeping wcstoul safe.
+bool parseIrChannel(const std::wstring& word, unsigned& value)
+{
+	if (word.empty() || word.size() > 4)
+		return false;
+	for (wchar_t c : word)
+		if (c < L'0' || c > L'9')
+			return false;
+	value = (unsigned)wcstoul(word.c_str(), nullptr, 10);
+	return true;
+}
+}
+
+bool MultiConvolutionCommand::isSimpleForm() const
+{
+	return mappings.size() == 1 && mappings[0].irChannels.empty();
+}
+
+std::wstring MultiConvolutionCommand::serializeMappingsOnly() const
+{
+	// The simple form keeps its bare "<target>" spelling. In the mapping form
+	// a mapping whose sum is empty is not representable (re-parsing would read
+	// the bare target as the path start), so such placeholder rows are skipped,
+	// matching the Copy serializer's handling of empty assignments.
+	const bool simple = isSimpleForm();
+	std::wstring result;
+	for (const Mapping& mapping : mappings)
+	{
+		if (mapping.targetChannel.empty())
+			continue;
+		if (!simple && mapping.irChannels.empty())
+			continue;
+		if (!result.empty())
+			result += L" ";
+		result += mapping.targetChannel;
+		if (!mapping.irChannels.empty())
+		{
+			result += L"=";
+			bool firstChannel = true;
+			for (unsigned irChannel : mapping.irChannels)
+			{
+				if (!firstChannel)
+					result += L"+";
+				firstChannel = false;
+				result += std::to_wstring(irChannel);
+			}
+		}
+	}
+	return result;
+}
+
 const std::wstring& MultiConvolutionCommand::serialize() const
 {
-	serialized = outputChannel + L" " + path;
+	serialized = serializeMappingsOnly();
+	if (!serialized.empty())
+		serialized += L" ";
+	serialized += path;
 	return serialized;
 }
 
@@ -33,18 +110,91 @@ bool MultiConvolutionCommand::parse(const std::wstring& command, const std::wstr
 	if (command != L"MultiConvolution")
 		return false;
 
-	// The output channel is the first whitespace-delimited token; the remainder
-	// (trimmed) is the IR path. A line with no space separates nothing, so there
-	// is no path and the line is rejected.
-	std::wstring trimmed = StringHelper::trim(parameters);
-	size_t space = trimmed.find_first_of(L" \t");
-	if (space == std::wstring::npos)
-		return false;
+	const std::wstring trimmed = StringHelper::trim(parameters);
 
-	out.outputChannel = trimmed.substr(0, space);
-	out.path = StringHelper::trim(trimmed.substr(space + 1));
-	if (out.outputChannel.empty() || out.path.empty())
-		return false;
+	std::vector<Mapping> mappings;
+	size_t pos = 0;
+	size_t pathStart = std::wstring::npos;
 
+	while (true)
+	{
+		skipSpace(trimmed, pos);
+		const size_t wordStart = pos;
+		const std::wstring word = readWord(trimmed, pos);
+		if (word.empty())
+			break;
+
+		size_t afterWord = pos;
+		skipSpace(trimmed, afterWord);
+		if (afterWord >= trimmed.size() || trimmed[afterWord] != L'=')
+		{
+			// Not a mapping: this word starts the path.
+			pathStart = wordStart;
+			break;
+		}
+
+		// "<word> =": parse the IR channel sum. If it breaks off mid-way, the
+		// word was not a target after all (e.g. a file name like "a=b.wav"), so
+		// rewind and let the whole word start the path instead.
+		pos = afterWord + 1;
+		Mapping mapping;
+		mapping.targetChannel = word;
+		bool valid = true;
+		while (true)
+		{
+			skipSpace(trimmed, pos);
+			const std::wstring number = readWord(trimmed, pos);
+			unsigned irChannel = 0;
+			if (!parseIrChannel(number, irChannel))
+			{
+				valid = false;
+				break;
+			}
+			mapping.irChannels.push_back(irChannel);
+
+			size_t next = pos;
+			skipSpace(trimmed, next);
+			if (next < trimmed.size() && trimmed[next] == L'+')
+			{
+				pos = next + 1;
+				continue;
+			}
+			break;
+		}
+		if (!valid)
+		{
+			pathStart = wordStart;
+			break;
+		}
+		mappings.push_back(mapping);
+	}
+
+	std::wstring path;
+	if (mappings.empty())
+	{
+		// No leading mapping parsed: fall back to the simple "<target> <path>"
+		// form, exactly as the original single-channel grammar read it.
+		const size_t space = trimmed.find_first_of(L" \t");
+		if (space == std::wstring::npos)
+			return false;
+
+		std::wstring target = trimmed.substr(0, space);
+		path = StringHelper::trim(trimmed.substr(space + 1));
+		if (target.empty() || path.empty())
+			return false;
+
+		mappings.push_back({std::move(target), {}});
+	}
+	else
+	{
+		if (pathStart == std::wstring::npos || pathStart >= trimmed.size())
+			return false;
+		path = StringHelper::trim(trimmed.substr(pathStart));
+		if (path.empty())
+			return false;
+	}
+
+	out.mappings = std::move(mappings);
+	out.path = std::move(path);
 	return true;
 }

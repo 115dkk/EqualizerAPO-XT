@@ -757,31 +757,19 @@ QToolButton#FilterCardIconButton[studioLocate="true"]:hover {
     background: rgba(47, 107, 255, 0.18);
     border-color: rgba(47, 107, 255, 0.75);
 }
-/* MultiConvolution's output-channel selector: a quiet glass strip in the
-   paramSelector grammar - mono data ink, border deepens under the cursor. */
-QComboBox#MultiConvolutionCardChannel {
-    background: rgba(255, 255, 255, 0.65);
-    color: @TEXT@;
-    border: 1px solid rgba(24, 32, 51, 0.16);
-    border-top-color: rgba(255, 255, 255, 0.90);
-    border-radius: 8px;
-    padding: 1px 22px 1px 8px;
-    min-height: 22px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
-}
-QComboBox#MultiConvolutionCardChannel:hover { border-color: rgba(47, 107, 255, 0.50); }
-QComboBox#MultiConvolutionCardChannel:focus,
-QComboBox#MultiConvolutionCardChannel:on { border: 1px solid @ACCENT@; }
-QComboBox#MultiConvolutionCardChannel:disabled {
+/* MultiConvolution's channel-mapping strip: the caption is quiet mono ink
+   over the glass, the hint reads as an instruction, and the routing graph
+   itself is the shared CopyRoutingGraphView. */
+QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
-    background: transparent;
-    border-color: rgba(188, 200, 222, 0.55);
-}
-QComboBox#MultiConvolutionCardChannel QLineEdit {
-    background: transparent; border: 0; color: @TEXT@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+    letter-spacing: 1px;
+}
+QLabel#MultiConvolutionMappingHint {
+    color: @MUTED@;
     font-size: 9pt;
+    font-style: italic;
 }
 
 /* ===== VST row: a softly glowing module card ===== */

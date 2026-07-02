@@ -538,30 +538,17 @@ QToolButton#FilterCardIconButton[rackLocate="true"] {
     color: @TEXT@; border-color: @ACCENT@; border-top-color: #3E474F;
     font-size: 7pt; letter-spacing: 2px; padding: 2px 8px;
 }
-/* MultiConvolution's output selector is an engraved channel selector on the
-   plate (the R2 selector grammar): flat printing over a milled groove, a
-   small printed triangle, amber warmth on hover/focus; the editable text
-   sits directly on the metal instead of in a well. */
-QComboBox#MultiConvolutionCardChannel {
-    background: transparent; color: @TEXT@;
-    border: 0; border-bottom: 1px solid #060809;
-    border-radius: 0;
-    padding: 1px 14px 1px 2px; min-height: 20px;
-    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+/* MultiConvolution's channel-mapping strip: the caption is engraved plate
+   printing (uppercase tracking like the other rack captions), the hint is
+   quieter service text; the patch grid below paints itself. */
+QLabel#MultiConvolutionMappingCaption {
+    color: @MUTED@;
+    font-size: 7pt; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase;
 }
-QComboBox#MultiConvolutionCardChannel:hover,
-QComboBox#MultiConvolutionCardChannel:focus,
-QComboBox#MultiConvolutionCardChannel:on { border-bottom-color: @ACCENT@; }
-QComboBox#MultiConvolutionCardChannel:disabled { color: #4E4A40; background: transparent; }
-QComboBox#MultiConvolutionCardChannel::drop-down { width: 14px; }
-QComboBox#MultiConvolutionCardChannel::down-arrow {
-    image: none; width: 0; height: 0;
-    border-left: 4px solid transparent; border-right: 4px solid transparent;
-    border-top: 5px solid @MUTED@; margin-right: 2px;
-}
-QComboBox#MultiConvolutionCardChannel QLineEdit {
-    background: transparent; color: @TEXT@; border: 0; padding: 0;
-    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+QLabel#MultiConvolutionMappingHint {
+    color: #4E4A40;
+    font-size: 8pt; letter-spacing: 1px;
 }
 
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */

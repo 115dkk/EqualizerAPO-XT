@@ -981,7 +981,7 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="428"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
         <source>Raw</source>
         <translation>원본</translation>
     </message>
@@ -1969,101 +1969,129 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="79"/>
         <source>Output channel the summed convolution is written to</source>
-        <translation>합산된 컨볼루션이 기록될 출력 채널</translation>
+        <translation type="vanished">합산된 컨볼루션이 기록될 출력 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="80"/>
         <source>Out ch</source>
-        <translation>출력 채널</translation>
+        <translation type="vanished">출력 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="96"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="82"/>
         <source>Copy this file into the config directory</source>
         <translation>이 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="90"/>
         <source>Edit the path as text</source>
         <translation>경로를 텍스트로 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="150"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <source>Channel mapping</source>
+        <translation>채널 매핑</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
+        <source>Add an output channel (a new name creates a virtual channel)</source>
+        <translation>출력 채널 추가 (새 이름은 가상 채널을 만듭니다)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
+        <source>Add output channel</source>
+        <translation>출력 채널 추가</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <source>Channel name (an unknown name creates a virtual channel):</source>
+        <translation>채널 이름 (알 수 없는 이름은 가상 채널을 만듭니다):</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="212"/>
+        <source>Select a readable impulse response file to edit the channel mapping.</source>
+        <translation>채널 매핑을 편집하려면 읽을 수 있는 임펄스 응답 파일을 선택하세요.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="249"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="152"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="251"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="185"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="196"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
         <source>Import</source>
         <translation>가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="185"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
         <source>Nothing to import: %1</source>
         <translation>가져올 항목 없음: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="197"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="296"/>
         <source>Some files could not be copied:
 %1</source>
         <translation>일부 파일을 복사하지 못했습니다:
 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="233"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="333"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="262"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="362"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="271"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="272"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="372"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="273"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="274"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
         <source>%1 ch</source>
         <translation>%1 ch</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="280"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="381"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="399"/>
+        <source>Mapping references channel %1, but the file has %2 channels</source>
+        <translation>매핑이 채널 %1을(를) 참조하지만 파일에는 채널이 %2개뿐입니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="421"/>
         <source>Not readable by the audio service</source>
         <translation>오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="317"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="437"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
@@ -2071,28 +2099,28 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionFilterGUI</name>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="37"/>
-        <source>Output channel:</source>
-        <translation type="unfinished"></translation>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="35"/>
+        <source>Mappings:</source>
+        <translation>매핑:</translation>
+    </message>
+    <message>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="38"/>
+        <source>Output mappings, e.g. &quot;L=0+1 R=2+3&quot; (file channels are 0-based) or just &quot;L&quot; for every file channel</source>
+        <translation>출력 매핑. 예: &quot;L=0+1 R=2+3&quot; (파일 채널은 0부터). &quot;L&quot;만 쓰면 파일의 모든 채널을 씁니다</translation>
     </message>
     <message>
         <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="42"/>
-        <source>Output channel the summed convolution is written to</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="48"/>
         <source>Impulse response:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="55"/>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="84"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="49"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="74"/>
         <source>Select impulse response file</source>
         <translation type="unfinished">임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="85"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="75"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation type="unfinished">임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
@@ -2243,28 +2271,28 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="131"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="192"/>
         <source>Choose the details after adding</source>
         <translation>추가한 뒤 세부 정보를 설정하세요</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="353"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="427"/>
         <source>Search filters</source>
         <translation>필터 검색</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="392"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="453"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="466"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="527"/>
         <source>General</source>
         <translation>일반</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="500"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="575"/>
         <source>Nothing matches your search</source>
         <translation>검색 결과가 없습니다</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="501"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="576"/>
         <source>Try a shorter or different keyword</source>
         <translation>더 짧거나 다른 키워드로 검색해 보세요</translation>
     </message>

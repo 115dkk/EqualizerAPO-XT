@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
     This program is free software; you can redistribute it and/or modify
@@ -17,6 +17,7 @@
 */
 
 #include "stdafx.h"
+#include <algorithm>
 #include <cmath>
 #include <climits>
 #include <cstring>
@@ -26,22 +27,24 @@
 #include <sndfile.h>
 #include <fftw3.h>
 
+#include "helpers/ChannelHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "MultiConvolutionFilter.h"
 
 using std::abs;
+using std::find;
 using std::vector;
 using std::wstring;
 
-MultiConvolutionFilter::MultiConvolutionFilter(const wstring& outputChannel, const wstring& filename)
+MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionCommand::Mapping>& mappings, const wstring& filename)
 {
-	this->outputChannel = outputChannel;
+	this->mappings = mappings;
 	this->filename = filename;
 	sampleRate = 0.0f;
-	inputChannelCount = 0;
 	filterFrameCount = 0;
 	filters = nullptr;
+	unitCount = 0;
 }
 
 MultiConvolutionFilter::~MultiConvolutionFilter()
@@ -54,16 +57,32 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	cleanup();
 
 	this->sampleRate = sampleRate;
-	inputChannelCount = (unsigned)channelNames.size();
 	filterFrameCount = 0;
 
-	// The output channel is declared regardless of whether the IR loads, so a
-	// bad path degrades to a silent output channel instead of vanishing (which
-	// would shift every following channel selection).
-	vector<wstring> outChannelNames = {outputChannel};
+	// Resolve every mapping's output slot and input channel first: the targets
+	// are declared regardless of whether the IR loads, so a bad path degrades to
+	// silent output channels instead of vanishing (which would shift every
+	// following channel selection). Targets resolve like Copy's (name, alias or
+	// 1-based number, or a new virtual channel); duplicate targets share one
+	// slot and the later mapping overwrites the earlier one in process().
+	vector<wstring> outChannelNames;
+	plans.assign(mappings.size(), MappingPlan{0, -1, 0, 0});
+	for (size_t i = 0; i < mappings.size(); i++)
+	{
+		wstring channelName = mappings[i].targetChannel;
+		int channelIndex = ChannelHelper::getChannelIndex(channelName, channelNames, true);
+		if (channelIndex != -1)
+			channelName = channelNames[channelIndex];
 
-	if (inputChannelCount == 0)
-		return outChannelNames;
+		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
+		plans[i].outputSlot = (unsigned)(it - outChannelNames.begin());
+		if (it == outChannelNames.end())
+			outChannelNames.push_back(channelName);
+
+		// The mapping convolves its target's own pre-command signal; a target
+		// that does not exist yet reads silence.
+		plans[i].inputChannel = channelIndex;
+	}
 
 	SF_INFO info{};
 	SNDFILE* in = sf_wchar_open(filename.c_str(), SFM_READ, &info);
@@ -106,23 +125,59 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		for (unsigned f = 0; f < irFrames; f++)
 			irBuffers[c][f] = interleaved[(size_t)f * irChannels + c];
 
+	// Expand each mapping to its participating IR channels. The simple form
+	// (empty list) means every channel of the file; explicit references beyond
+	// the file's channel count are dropped with a log line, so a wrong index
+	// contributes silence instead of failing the whole line.
+	vector<vector<unsigned>> perMapping(mappings.size());
+	unsigned totalUnits = 0;
+	for (size_t i = 0; i < mappings.size(); i++)
+	{
+		if (mappings[i].irChannels.empty())
+		{
+			perMapping[i].resize(irChannels);
+			for (unsigned c = 0; c < irChannels; c++)
+				perMapping[i][c] = c;
+		}
+		else
+		{
+			for (unsigned c : mappings[i].irChannels)
+			{
+				if (c >= irChannels)
+				{
+					LogFStatic(L"Impulse response channel %u out of range (file has %u channels): %s", c, irChannels, filename.c_str());
+					continue;
+				}
+				perMapping[i].push_back(c);
+			}
+		}
+		totalUnits += (unsigned)perMapping[i].size();
+	}
+
+	if (totalUnits == 0)
+		return outChannelNames;
+
 	fftw_make_planner_thread_safe();
-	filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * inputChannelCount);
+	filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * totalUnits);
 	if (filters == nullptr)
 	{
-		LogF(L"MultiConvolutionFilter: could not allocate %u filter slots", inputChannelCount);
+		LogF(L"MultiConvolutionFilter: could not allocate %u convolution units", totalUnits);
 		return outChannelNames;
 	}
 
-	tempBuffers.assign(inputChannelCount, vector<double>(maxFrameCount, 0.0));
-	for (unsigned i = 0; i < inputChannelCount; i++)
+	tempBuffer.assign(maxFrameCount, 0.0);
+	unsigned next = 0;
+	for (size_t i = 0; i < mappings.size(); i++)
 	{
-		// Input i pairs with IR channel (i mod irChannels): an exact match when
-		// the IR channel count equals the selected input count, and a sensible
-		// wrap (e.g. a mono IR applied to every input) otherwise.
-		vector<double>& src = irBuffers[i % irChannels];
-		hcInitSingle(&filters[i], src.data(), (int)irFrames, (int)maxFrameCount, 1);
+		plans[i].firstUnit = next;
+		for (unsigned c : perMapping[i])
+		{
+			hcInitSingle(&filters[next], irBuffers[c].data(), (int)irFrames, (int)maxFrameCount, 1);
+			next++;
+		}
+		plans[i].unitCount = next - plans[i].firstUnit;
 	}
+	unitCount = next;
 	filterFrameCount = maxFrameCount;
 
 	return outChannelNames;
@@ -134,33 +189,30 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 	if (frameCount == 0)
 		return;
 
-	// No usable IR (bad path / sample-rate mismatch): emit silence on the output
-	// channel rather than leaving it uninitialized.
-	if (filters == nullptr)
-	{
-		memset(output[0], 0, sizeof(double) * frameCount);
-		return;
-	}
+	// libHybridConv fixes its block length at hcInitSingle time, so a block of
+	// any other size cannot be fed to the convolver; without a usable IR there
+	// is nothing to feed at all. Either way every mapping target still gets
+	// written (silence), never left uninitialized.
+	const bool usable = filters != nullptr && frameCount == filterFrameCount;
 
-	// libHybridConv fixes its block length at hcInitSingle time. A frameCount that
-	// differs from the initialized value cannot be fed to hcProcessSingle, so mute
-	// this block instead (matches ConvolutionFilter's real-time-safe behaviour).
-	if (frameCount != filterFrameCount)
+	for (const MappingPlan& plan : plans)
 	{
-		memset(output[0], 0, sizeof(double) * frameCount);
-		return;
-	}
+		double* out = output[plan.outputSlot];
+		// Zeroing per mapping (in order) makes a duplicate target behave like
+		// Copy: the later mapping overwrites the earlier one.
+		memset(out, 0, sizeof(double) * frameCount);
+		if (!usable || plan.inputChannel < 0 || plan.unitCount == 0)
+			continue;
 
-	// Convolve each selected input with its paired IR channel and sum the results
-	// into the single output channel.
-	memset(output[0], 0, sizeof(double) * frameCount);
-	for (unsigned i = 0; i < inputChannelCount; i++)
-	{
-		hcPutSingle(&filters[i], input[i]);
-		hcProcessSingle(&filters[i]);
-		hcGetSingle(&filters[i], tempBuffers[i].data());
-		for (unsigned f = 0; f < frameCount; f++)
-			output[0][f] += tempBuffers[i][f];
+		double* in = input[plan.inputChannel];
+		for (unsigned u = plan.firstUnit; u < plan.firstUnit + plan.unitCount; u++)
+		{
+			hcPutSingle(&filters[u], in);
+			hcProcessSingle(&filters[u]);
+			hcGetSingle(&filters[u], tempBuffer.data());
+			for (unsigned f = 0; f < frameCount; f++)
+				out[f] += tempBuffer[f];
+		}
 	}
 }
 #pragma AVRT_CODE_END
@@ -169,11 +221,13 @@ void MultiConvolutionFilter::cleanup()
 {
 	if (filters != nullptr)
 	{
-		for (unsigned i = 0; i < inputChannelCount; i++)
-			hcCloseSingle(&filters[i]);
+		for (unsigned u = 0; u < unitCount; u++)
+			hcCloseSingle(&filters[u]);
 		MemoryHelper::free(filters);
 		filters = nullptr;
 	}
-	tempBuffers.clear();
+	unitCount = 0;
+	plans.clear();
+	tempBuffer.clear();
 	filterFrameCount = 0;
 }

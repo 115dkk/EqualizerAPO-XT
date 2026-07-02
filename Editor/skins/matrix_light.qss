@@ -1324,3 +1324,17 @@ QToolButton#TitleBarClose:pressed {
     background: @DANGER@;
     border-color: @DANGER@;
 }
+
+/* MultiConvolution's channel-mapping strip: board-feed data ink over the
+   crosspoint grid; the hint stays in the same mono register. */
+QLabel#MultiConvolutionMappingCaption {
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", monospace;
+    font-size: 8pt; letter-spacing: 2px;
+    text-transform: uppercase;
+}
+QLabel#MultiConvolutionMappingHint {
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", monospace;
+    font-size: 8pt;
+}

@@ -191,6 +191,12 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 
 void CopyFilterGUIConnectionItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
+	// A fixed-source scene (MultiConvolution) locks factors to unity; there is
+	// nothing to edit on the connection, only connect/disconnect.
+	const CopyFilterGUIScene* graphScene = qobject_cast<CopyFilterGUIScene*>(scene());
+	if (graphScene != nullptr && !graphScene->factorsEditable())
+		return;
+
 	QString text = QString("%1").arg(factor);
 	if (isDecibel)
 		text += " dB";

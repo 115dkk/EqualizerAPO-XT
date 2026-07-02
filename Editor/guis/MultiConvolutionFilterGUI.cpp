@@ -18,32 +18,26 @@
 
 #include "MultiConvolutionFilterGUI.h"
 
-#include <QComboBox>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QSignalBlocker>
 #include <QToolButton>
 
 #include "filters/MultiConvolutionCommand.h"
 
-MultiConvolutionFilterGUI::MultiConvolutionFilterGUI(const QString& configPath, const QString& outputChannel, const QString& path)
+MultiConvolutionFilterGUI::MultiConvolutionFilterGUI(const QString& configPath, const QString& mappingsText, const QString& path)
 	: configPath(configPath)
 {
 	QHBoxLayout* layout = new QHBoxLayout(this);
 	layout->setContentsMargins(0, 0, 0, 0);
 
-	layout->addWidget(new QLabel(tr("Output channel:"), this));
-	channelCombo = new QComboBox(this);
-	channelCombo->setEditable(true);
-	channelCombo->setInsertPolicy(QComboBox::NoInsert);
-	channelCombo->setMinimumWidth(90);
-	channelCombo->setToolTip(tr("Output channel the summed convolution is written to"));
-	channelCombo->setCurrentText(outputChannel.trimmed());
-	connect(channelCombo, SIGNAL(activated(int)), this, SIGNAL(updateModel()));
-	connect(channelCombo->lineEdit(), SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
-	layout->addWidget(channelCombo);
+	layout->addWidget(new QLabel(tr("Mappings:"), this));
+	mappingsEdit = new QLineEdit(mappingsText.trimmed(), this);
+	mappingsEdit->setMinimumWidth(120);
+	mappingsEdit->setToolTip(tr("Output mappings, e.g. \"L=0+1 R=2+3\" (file channels are 0-based) or just \"L\" for every file channel"));
+	connect(mappingsEdit, SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
+	layout->addWidget(mappingsEdit);
 
 	layout->addWidget(new QLabel(tr("Impulse response:"), this));
 	pathEdit = new QLineEdit(path.trimmed(), this);
@@ -61,22 +55,18 @@ void MultiConvolutionFilterGUI::store(QString& command, QString& parameters)
 {
 	command = QStringLiteral("MultiConvolution");
 
-	MultiConvolutionCommand cmd;
-	cmd.outputChannel = channelCombo->currentText().trimmed().toStdWString();
-	cmd.path = pathEdit->text().toStdWString();
-	parameters = QString::fromStdWString(cmd.serialize());
-}
+	// Recombine the two fields and run them through the shared grammar so the
+	// written line is canonical; if the mapping text does not parse (a typo in
+	// progress), keep the raw text instead of destroying it.
+	const QString prefix = mappingsEdit->text().trimmed();
+	const QString path = pathEdit->text().trimmed();
+	const QString combined = prefix.isEmpty() ? path : prefix + QStringLiteral(" ") + path;
 
-void MultiConvolutionFilterGUI::configureChannels(std::vector<std::wstring>& channelNames)
-{
-	// Present the channels in scope at this row as the output options, matching
-	// the modern card editor; the combo stays editable for custom channels.
-	const QString current = channelCombo->currentText();
-	const QSignalBlocker blocker(channelCombo);
-	channelCombo->clear();
-	for (const std::wstring& name : channelNames)
-		channelCombo->addItem(QString::fromStdWString(name));
-	channelCombo->setCurrentText(current);
+	MultiConvolutionCommand cmd;
+	if (MultiConvolutionCommand::parse(L"MultiConvolution", combined.toStdWString(), cmd))
+		parameters = QString::fromStdWString(cmd.serialize());
+	else
+		parameters = combined;
 }
 
 void MultiConvolutionFilterGUI::selectFile()

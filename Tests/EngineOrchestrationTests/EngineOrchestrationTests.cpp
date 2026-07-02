@@ -171,19 +171,20 @@ void testCopySwapsChannels(test::Harness& harness)
 	harness.expect(std::fabs(right - 0.75f) < 1e-6f, "Copy did not route L into R");
 }
 
-// MultiConvolution must convolve every selected input with its own channel of a
-// single multi-channel IR and SUM them into one output channel. With a stereo
-// delta IR (pass-through) and inputs L=0.3, R=0.5, the "L" output becomes their
-// sum 0.8, while R (not a filter output) passes through unchanged. This is the
-// end-to-end check that both inputs are folded in, not just one.
-void testMultiConvolutionSumsSelectedInputs(test::Harness& harness)
+// MultiConvolution must convolve the mapping target's OWN signal with its
+// listed IR channels, independent of the Channel selection. The config selects
+// only R before the line; under the old selection-based semantics that would
+// change the result, under the mapping semantics it must not. With a stereo
+// delta IR (pass-through) and L = 0.3, "L=0+1" folds L's own signal in twice
+// (0.6), while R (not a mapping target) passes through unchanged.
+void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness)
 {
 	std::wstring irPath = writeStereoDeltaIr(harness, L"mc_delta.wav");
 	std::string irNarrow = toNarrow(irPath);
 
 	std::wstring config = writeConfig(harness, L"multiconv.txt",
-			"Channel: L R\n"
-			"MultiConvolution: L \"" + irNarrow + "\"\n");
+			"Channel: R\n"
+			"MultiConvolution: L=0+1 \"" + irNarrow + "\"\n");
 
 	FilterEngine engine;
 	initializeEngine(engine, 48000, 2, 480, config);
@@ -191,8 +192,8 @@ void testMultiConvolutionSumsSelectedInputs(test::Harness& harness)
 	std::vector<float> output = processDcBlock(engine, 0.3f, 0.5f, 480);
 	float left = output[(size_t)478 * 2 + 0];
 	float right = output[(size_t)478 * 2 + 1];
-	harness.expect(std::fabs(left - 0.8f) < 1e-3f, "L must be the summed convolution of both selected inputs");
-	harness.expect(std::fabs(right - 0.5f) < 1e-3f, "R must pass through unchanged (it is not the filter's output)");
+	harness.expect(std::fabs(left - 0.6f) < 1e-3f, "L must be its own signal convolved with both mapped IR channels");
+	harness.expect(std::fabs(right - 0.5f) < 1e-3f, "R must pass through unchanged (it is not a mapping target)");
 }
 
 // Reads a stereo IR file into two channel-major buffers. Fails the harness if
@@ -313,17 +314,15 @@ void testRealBrirCrossfeed(test::Harness& harness)
 	const unsigned frames = 480;
 	const unsigned blocks = 80; // 38400 samples > IR length
 
-	// Config A: full BRIR via two MultiConvolution filters.
-	// Custom channel names must be upper-case: the "Channel:" command upper-cases
-	// its selectors (ChannelCommand::parse), while "Copy:" keeps the target case
-	// as written, so a mixed-case name would never match. SO/SE are private
-	// scratch channels holding the original L/R before the ears overwrite L/R.
+	// Config A: full BRIR via the mapping form. Each mapping convolves its
+	// target's own signal, so the speaker feeds are first copied into scratch
+	// channels (SO/SE for the left ear, TO/TE for the right), convolved in
+	// place against their ear IR channel, then summed into the real ears.
 	std::string cfgA =
-			"Copy: SO=L SE=R\n"
-			"Channel: SO SE\n"
-			"MultiConvolution: L \"" + toNarrow(lear) + "\"\n"
-			"Channel: SO SE\n"
-			"MultiConvolution: R \"" + toNarrow(rear) + "\"\n";
+			"Copy: SO=L SE=R TO=L TE=R\n"
+			"MultiConvolution: SO=0 SE=1 \"" + toNarrow(lear) + "\"\n"
+			"MultiConvolution: TO=0 TE=1 \"" + toNarrow(rear) + "\"\n"
+			"Copy: L=SO+SE R=TO+TE\n";
 	std::wstring cfgAPath = writeConfig(harness, L"brir_multi.txt", cfgA);
 
 	FilterEngine engineA;
@@ -437,7 +436,7 @@ int main()
 
 	testChannelSelectorRouting(harness);
 	testCopySwapsChannels(harness);
-	testMultiConvolutionSumsSelectedInputs(harness);
+	testMultiConvolutionIgnoresChannelSelection(harness);
 	testConfigSwapCrossfades(harness);
 	testRealBrirCrossfeed(harness);
 

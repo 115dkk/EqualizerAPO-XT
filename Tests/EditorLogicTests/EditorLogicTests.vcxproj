@@ -121,6 +121,8 @@
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\routing\MultiConvolutionRoutingAdapter.cpp" />
+    <ClCompile Include="..\..\filters\MultiConvolutionCommand.cpp" />
     <ClCompile Include="..\..\filters\BiQuadCommand.cpp" />
     <ClCompile Include="..\..\filters\DeviceCommand.cpp" />
     <ClCompile Include="..\..\helpers\StringHelper.cpp" />

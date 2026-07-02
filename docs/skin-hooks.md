@@ -107,6 +107,36 @@ reference is missing. The default is the neutral
 `Editor/skins/cards/<Skin>ReferenceCardView.{h,cpp}`. Paths elide at paint
 time (`Editor/widgets/ElidedLabel.h`), never at set time.
 
+## Routing renderer hook
+
+Copy's per-skin routing view generalizes to any command whose body is a
+source→target mapping:
+
+```cpp
+// ISkin (Editor/skins/ISkin.h) -> IRoutingRenderer (Editor/widgets/routing/IRoutingRenderer.h)
+virtual IRoutingRenderer* routingRenderer() const;
+RoutingView* IRoutingRenderer::create(assignments, channelNames, portModel, parent);
+```
+
+`RoutingPortModel` selects between the two shapes. The default reproduces
+Copy: both sides grow from the assignments plus every device channel, and
+every connection carries an editable factor. A non-empty
+`portModel.fixedSources` puts the view in fixed-source mode: the source side
+is exactly that list (MultiConvolution passes the IR file's channels,
+`"0".."N-1"`), no other source is offered, sources keep the solid port
+styling (they are ports, not virtual channels), and `allowFactors == false`
+reduces interaction to connect/disconnect (no gain labels, captions or
+editors; a double-click on a chip/pill removes it where the grid views
+toggle by click). The MultiConvolution card
+(`Editor/widgets/cards/MultiConvolutionCardEditor`) hosts the view under its
+reference card with a `Channel mapping` caption strip
+(`#MultiConvolutionMappingCaption` / `#MultiConvolutionMappingHint` in every
+skin's QSS) and a `+` entry that adds output channels (a new name becomes a
+virtual channel, like Copy). Data rides
+`Editor/widgets/routing/MultiConvolutionRoutingAdapter` both ways; without a
+readable IR file the card shows the hint instead of a view, because the
+simple form ("every file channel") has no known expansion to edit.
+
 ## Screenshot gallery
 
 The Editor has a headless gallery mode used to prove appearance-preserving

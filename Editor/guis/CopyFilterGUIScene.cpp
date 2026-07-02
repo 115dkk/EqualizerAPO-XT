@@ -34,6 +34,15 @@ using std::wstring;
 
 void CopyFilterGUIScene::load(const vector<wstring>& channelNames, const vector<Assignment>& assignments)
 {
+	load(channelNames, assignments, QStringList(), true);
+}
+
+void CopyFilterGUIScene::load(const vector<wstring>& channelNames, const vector<Assignment>& assignments,
+	const QStringList& fixedSources, bool factorsEditable)
+{
+	factorsEditableFlag = factorsEditable;
+	const bool fixedMode = !fixedSources.isEmpty();
+
 	clear();
 
 	QHash<QString, CopyFilterGUIChannelItem*> inputChannelMap;
@@ -42,19 +51,38 @@ void CopyFilterGUIScene::load(const vector<wstring>& channelNames, const vector<
 	QGraphicsItem* lastInputItem = nullptr;
 	lastOutputItem = nullptr;
 
+	// Fixed-source mode: the input column is exactly the given port list (the
+	// IR file's channel numbers). No numeric position aliases (the labels ARE
+	// numbers) and no LFE/SUB alias apply on that side.
+	if (fixedMode)
+	{
+		for (const QString& port : fixedSources)
+		{
+			CopyFilterGUIChannelItem* inputItem = new CopyFilterGUIChannelItem(port, false);
+			inputItem->setPos(getNextChannelPoint(lastInputItem, false));
+			addItem(inputItem);
+
+			inputChannelMap.insert(port, inputItem);
+			lastInputItem = inputItem;
+		}
+	}
+
 	for (unsigned i = 0; i < channelNames.size(); i++)
 	{
 		QString c = QString::fromStdWString(channelNames[i]);
 
-		CopyFilterGUIChannelItem* inputItem = new CopyFilterGUIChannelItem(c, false);
-		inputItem->setPos(getNextChannelPoint(lastInputItem, false));
-		addItem(inputItem);
+		if (!fixedMode)
+		{
+			CopyFilterGUIChannelItem* inputItem = new CopyFilterGUIChannelItem(c, false);
+			inputItem->setPos(getNextChannelPoint(lastInputItem, false));
+			addItem(inputItem);
 
-		inputChannelMap.insert(c, inputItem);
-		if (c == "LFE")
-			inputChannelMap.insert("SUB", inputItem);
-		inputChannelMap.insert(QString().setNum(i + 1), inputItem);
-		lastInputItem = inputItem;
+			inputChannelMap.insert(c, inputItem);
+			if (c == "LFE")
+				inputChannelMap.insert("SUB", inputItem);
+			inputChannelMap.insert(QString().setNum(i + 1), inputItem);
+			lastInputItem = inputItem;
+		}
 
 		CopyFilterGUIChannelItem* outputItem = new CopyFilterGUIChannelItem(c, true);
 		outputItem->setPos(getNextChannelPoint(lastOutputItem, true));
@@ -67,10 +95,15 @@ void CopyFilterGUIScene::load(const vector<wstring>& channelNames, const vector<
 		lastOutputItem = outputItem;
 	}
 
-	CopyFilterGUIChannelItem* noChannelItem = new CopyFilterGUIChannelItem("", false);
-	noChannelItem->setPos(getNextChannelPoint(lastInputItem, false));
-	addItem(noChannelItem);
-	inputChannelMap.insert("", noChannelItem);
+	if (!fixedMode)
+	{
+		// The empty input feeds constant-value summands (e.g. "L=0.0"); a
+		// fixed-source command has no such concept.
+		CopyFilterGUIChannelItem* noChannelItem = new CopyFilterGUIChannelItem("", false);
+		noChannelItem->setPos(getNextChannelPoint(lastInputItem, false));
+		addItem(noChannelItem);
+		inputChannelMap.insert("", noChannelItem);
+	}
 
 	for (Assignment assignment : assignments)
 	{
