@@ -125,6 +125,20 @@ UI는 DM Sans, 수치는 DM Mono. 위계의 주도자는 **명도(luminance)**�
 (`filterSelector=true`)는 표준 raised 유리에 행 제목의 굵기(600)만 입는다.
 라벨인 척하지 않고, 버튼처럼 소리치지도 않는다.
 
+### 참조 카드 — 빛 속의 정체성, 유리 뒤의 사실 (AR2)
+
+Include/Convolution/MultiConvolution/VST 행의 본문은 경로 입력 폼이 아니라
+참조 카드다(`StudioReferenceCardView`). 정체성 라인에는 이름이 판 위에서
+가장 밝은 잉크로 서고, 그 뒤로 점등 유리 칩(타입 배지 문법)이 데이터로
+따른다 — VST2/VST3 칩, warning 잉크의 소등 ABS 칩, danger 점등 MISSING 칩.
+위치와 IR 판독값은 **가라앉은 유리 데이터 창** 안의 DM Mono muted 잉크다
+(데이터가 없으면 창도 없다). 상태는 severity 색 램프 점 하나와 조용한 한
+줄이 말한다. 결손은 붉은 벽이 아니라 소등+경고등이다: 이름이 muted로
+어두워지고 MISSING 칩 하나만 danger로 점등하며, Browse가 "Locate..."
+텍스트를 입고 액센트 보더 유리가 된다. 빈 참조는 결손이 아니라 미설정 —
+칩 없이 muted 이름만 남는다(알람이 아니라 소등). 아이콘은 없다(호도
+라벨도 값도 아니므로, 타이브레이커).
+
 ### Copy 라우팅 — 곡선 노드 그래프 (CurvedNode)
 
 흐르는 곡선의 노드 그래프(`CurvedNodeRoutingRenderer`, CopyFilterGUIScene
@@ -190,6 +204,7 @@ UI는 DM Sans, 수치는 DM Mono. 위계의 주도자는 **명도(luminance)**�
   주석이 클래스 위에 있다)
 - QSS: `Editor/skins/studio_dark.qss`, `studio_light.qss`
 - 픽커: `Editor/skins/pickers/StudioFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/cards/StudioReferenceCardView.{h,cpp}`
 - Copy: `Editor/widgets/routing/CurvedNodeRoutingRenderer.{h,cpp}`
 - 헬퍼: `studioRgba`/`studioAlpha`/`studioIsDark`/`studioBandHex`/
   `studioBandFamilyForBiQuadType`/`studioBandPaintColor` (Skins.cpp 익명

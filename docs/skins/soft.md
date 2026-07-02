@@ -104,6 +104,20 @@ DM Sans. 다섯 스킨 중 유일하게 **두 줄 행이 헌법에 부합**한�
 그대로 보인다. 값 박스(스핀 버튼 제거, 값 스크럽)는 가라앉은 스타디움
 우물이고, 포커스는 경보가 아니라 차분한 액센트 링이다.
 
+### 참조 카드 — 다정한 참조 행 (AR2)
+
+Include/Convolution/MultiConvolution/VST 행의 본문은 iOS 설정 행 문법의
+참조 카드다(`SoftReferenceCardView`). 픽커의 모노그램 타일 문법을 카드로
+승격한 34px 둥근 사각 파스텔 타일(In/Cn/MC/VS, softPastelize)이 행을
+이끌고, 이 스킨만 허락되는 두 줄 정체성(이름 + 본문 서체의 흐린 위치
+캡션 — 모노 금지 준수)이 따른다. IR 판독값은 개별 **파스텔 스타디움
+칩**이다. 결손은 경보가 아니라 개체의 상태 전이: 타일이 파스텔
+danger(빈 참조는 한 단 더 누그러진 warning)로 바뀌고 모노그램 대신
+스트로크 느낌표가 들어가며, 캡션이 as-written 참조를 보여 주고,
+"Locate..." 액센트 파스텔 필이 주인공이 된다. MISSING 대문자 배지도
+빨간 텍스트 벽도 없다. ABS 배지는 타이브레이커로 생략했다(절대 경로는
+캡션의 드라이브 문자가 이미 말한다). 액션은 스타디움 아이콘 필이다.
+
 ### Copy 라우팅 — 수식 블록 (BlockChip)
 
 각 출력이 하나의 둥근 "수식 블록"이다: `VSL = 0.86·L − 0.5·R`을 친근한 채널
@@ -159,6 +173,7 @@ vs 큰 몸통 손잡이 + 파스텔 트랙), raw 미리보기(유지 vs 제거).
   Soft 구역 머리에 있다)
 - QSS: `Editor/skins/soft_dark.qss`, `soft_light.qss`
 - 픽커: `Editor/skins/pickers/SoftFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/cards/SoftReferenceCardView.{h,cpp}`
 - Copy: `Editor/widgets/routing/BlockChipRoutingRenderer.{h,cpp}`
 
 ## 새 요소를 이 스킨답게 만드는 법

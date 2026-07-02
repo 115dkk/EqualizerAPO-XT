@@ -75,6 +75,33 @@ QSS can already target rows per command type without code: the card frame and
 header carry dynamic properties `filterKind` (lower-cased command),
 `filterEnabled`, `selected`, `focused`, `scopeDepth`.
 
+## Reference-card view hook
+
+Rows whose subject is an external file (Include, Convolution,
+MultiConvolution, VSTPlugin) render their body through a per-skin view,
+following the Copy routing-renderer precedent:
+
+```cpp
+// ISkin (Editor/skins/ISkin.h)
+virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
+```
+
+The host editors (`Editor/widgets/cards/{Include,Convolution,MultiConvolution,VST}CardEditor`)
+own all behavior - path resolution, file dialogs, plugin lifecycle, dependency
+import - and describe themselves through `ReferenceCardState`
+(`Editor/widgets/cards/ReferenceCardView.h`): primary name, as-written
+location, missing flag, absolute-path flag, VST2/VST3 format badge, the
+impulse-response readout list and one status line. Views own structure and
+presentation only; the base class owns the shared inline path-edit mode and
+the name-activation plumbing (clicking the name opens the target / plugin
+panel). Hosts hand action buttons over with semantic roles
+(`addActionButton`) and never lose control of their behavior or visibility;
+the Browse button doubles as the "Locate..." recovery entry while the
+reference is missing. The default is the neutral
+`DefaultReferenceCardView`; the five shipped skins override it in
+`Editor/skins/cards/<Skin>ReferenceCardView.{h,cpp}`. Paths elide at paint
+time (`Editor/widgets/ElidedLabel.h`), never at set time.
+
 ## Screenshot gallery
 
 The Editor has a headless gallery mode used to prove appearance-preserving
@@ -92,21 +119,31 @@ $env:QT_QPA_PLATFORM = "offscreen"
 .\build-Editor-x64\release\Editor.exe --skin-gallery <outDir> [--skin-gallery-skins studio,rack]
 ```
 
-For every skin × {dark, light} it renders six representative rows — a
+For every skin × {dark, light} it renders twelve representative rows — a
 parametric filter (`Filter 1: ON PK ...`), a high-shelf with its three knobs,
 a peaking filter at 0 dB (bipolar gain at its neutral detent), an `Include:`
-row, a `VSTPlugin:` row and an empty `Copy:` row — in three states: `normal`,
-`hover` (hover-equivalent via `Qt::WA_UnderMouse`), and `disabled` (the line
-commented out, which is the product's real disabled state). The filter picker
-is captured in three states (`normal`, `hover`, `empty`; pickers that do not
-implement `FilterPickerView::galleryShowcase` repeat their normal look), plus
-one shot each for the toolbar, title bar, menu bar and an open menu. Output
-names are stable: `<skin>_<dark|light>_<row>_<state>.png`,
-5 × 2 × (6 × 3 + 3 + 4) = 250 PNGs for a full run. A row shot fails the
-render (non-zero exit) if a visible horizontal scrollbar is found inside the
-row — rows must fit the 960px gallery viewport in every skin. Exit code 0
-means every PNG was written; unknown skin ids fail loudly instead of falling
-back to studio.
+row (resolved), a nested `Include: Surround\...` row (the location line), a
+missing `Include:` row (the broken-reference transition with the Locate
+entry), a `VSTPlugin:` row (unresolvable library - the missing/named-device
+state), a `Device:` row, an empty `Copy:` row, a `Convolution:` row and two
+`MultiConvolution:` rows (populated and freshly inserted empty) — in three
+states: `normal`, `hover` (hover-equivalent via `Qt::WA_UnderMouse`), and
+`disabled` (the line commented out, which is the product's real disabled
+state). The reference rows resolve against synthetic target files the gallery
+writes under `<outDir>/refs/` (`example.txt`, a 100 ms mono `example.wav`, a
+100 ms stereo `brir.wav`), so the healthy cards render deterministic readouts;
+the gallery also sets `EAPO_SKIN_GALLERY=1`, which the card editors honour by
+skipping the audio-service ACL probe (scratch files have no meaningful ACL
+story). The filter picker is captured in three states (`normal`, `hover`,
+`empty`; pickers that do not implement `FilterPickerView::galleryShowcase`
+repeat their normal look), plus one shot each for the toolbar, title bar,
+menu bar and an open menu. Output names are stable:
+`<skin>_<dark|light>_<row>_<state>.png`, 5 × 2 × (12 × 3 + 3 + 4) = 430 PNGs
+for a full run; the run self-checks the count, so adding a gallery row needs
+no external count update. A row shot fails the render (non-zero exit) if a
+visible horizontal scrollbar is found inside the row — rows must fit the
+960px gallery viewport in every skin. Exit code 0 means every PNG was
+written; unknown skin ids fail loudly instead of falling back to studio.
 
 CI runs the gallery on the primary x64-avx2 variant and uploads the PNGs as
 the `skin-gallery` artifact, so a PR's visual state can be reviewed without a

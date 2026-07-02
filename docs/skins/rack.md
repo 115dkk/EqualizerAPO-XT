@@ -125,6 +125,22 @@ QSS 호버가 비쳐 보인다. 헤더 스트립은 투명(브러시드 메탈�
 리벳 명판이 붙은 유닛, 일반 DSP는 표준 페이스플레이트 + 각인 식별자. 색
 배지가 아니라 부품 구성이 타입을 말한다.
 
+### 참조 카드 — 서비스 컨디션의 유닛 (AR2)
+
+Include/Convolution/MultiConvolution/VST 행의 본문은
+`RackReferenceCardView`가 그리는 물리 부품 구성이다: 왼쪽 베젤 상태 램프
+(RackChrome::paintLed 문법) → (멀티컨볼루션이면 R2 각인 선택기 문법의
+출력 채널 콤보) → 각인 라벨 스트립(자간 띄운 캡션 `PATCH`/`IR PROGRAM`/
+`MODULE` + 와이어프레임 스탬프 `VST2`/`VST3`/`ABS` + 혼합대소문자 이름
+각인 + muted 위치 서브 각인) → **함몰 LCD 판독창**(IR 판독값, 두 모드
+모두 어두운 유리 + 녹색 세그먼트 — 표시창 조항) → 기계 버튼 열. 결손은
+서비스 컨디션이다: 램프가 적색으로 점등하고 이름 각인이 물러나며 앰버
+`NOT FOUND` 각인(미번역) 하나와 `LOCATE` 각인 캡이 붙는다 — 패널 전면의
+빨간 대문자 문장은 구조적으로 불가능하다. 빈 참조는 뽑힌 모듈의 빈
+슬롯(램프 소등 + muted `EMPTY SLOT` 각인)이고, 비활성은 전원 내린
+유닛(램프 강제 소등, 각인·세그먼트 감광, 하드웨어는 남는다)이다. 공유
+`RefPathEdit`는 프로그래밍 LCD로 입힌다.
+
 ### Copy 라우팅 — 하드웨어 패치베이 (HardwarePatchbay)
 
 크로스포인트 격자이되 각 교차점이 **물리 로터리 노브**다. 브러시드 패널
@@ -179,6 +195,9 @@ QSS 호버가 비쳐 보인다. 헤더 스트립은 투명(브러시드 메탈�
   명판/노브 페인터, `earWidth()`/`nameplateReserve()` 예약 폭
 - QSS: `Editor/skins/rack_dark.qss`, `rack_light.qss`
 - 픽커: `Editor/skins/pickers/RackFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/cards/RackReferenceCardView.{h,cpp}` (RackChrome의
+  램프·각인·LCD 문법을 파일 지역 헬퍼로 재현; RackChrome 자체는 프레임
+  전용으로 유지)
 - Copy: `Editor/widgets/routing/HardwarePatchbayRoutingRenderer.{h,cpp}`
 
 ## 새 요소를 이 스킨답게 만드는 법

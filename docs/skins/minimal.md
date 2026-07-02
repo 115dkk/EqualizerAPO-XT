@@ -137,10 +137,18 @@ BiQuad 행의 파라미터 영역은 세 단계 잉크 사다리로 읽힌다.
 - 알려진 트레이드오프: 숫자만으로는 텍스트 검색이 안 된다(점프 예약).
   문자+숫자 혼합 질의는 정상 필터링된다.
 
-### Include / VST 행
+### 참조 카드 — 터미널 한 줄 (AR2)
 
-특별 취급하지 않는다. 둘 다 같은 한 줄 문법이며, 페이로드(경로/라이브러리)가
-명령 토큰보다 밝다. "정보의 중요도 = 잉크의 밝기"라는 원칙의 적용이다.
+Include/Convolution/MultiConvolution/VST 행의 본문은 문자 그대로 **한 줄**이다
+(`MinimalReferenceCardView`). 페이로드(파일/플러그인 이름)가 가장 밝은
+잉크이고, 위치·IR 판독값(`100.0 ms  4800 samples  48000 Hz`)이 보조 잉크로
+같은 줄에 이어지며, 상태조차 `!`(warning)/`!!`(critical) 잉크 태그로 줄에
+접힌다. 결손은 전경/배경을 맞바꾼 반전 블록 `MISSING` — 텍스트 계기의 가장
+무딘 커서다. 액션은 줄 끝의 대문자 모노 텍스트 명령(`BROWSE`/`LOCATE`/
+`EDIT`/`IMPORT`/`PANEL`/`OPT`, 미번역 각인 문법)이고, 아이콘·필·둥근 배지는
+없다. VST2/VST3와 ABS는 맨몸 모노 토큰이다. 멀티컨볼루션의 출력 채널
+콤보는 줄머리에서 '캐럿을 단 캡션'(X5 선택기 문법)으로 앉는다.
+"정보의 중요도 = 잉크의 밝기" 원칙의 행 단위 적용이다.
 
 ## 하지 말 것
 
@@ -168,6 +176,7 @@ BiQuad 행의 파라미터 영역은 세 단계 잉크 사다리로 읽힌다.
   (`paintMinimalKnob`, `minimalTypeGlyph` 헬퍼 포함)
 - QSS: `Editor/skins/precision_dark.qss`, `precision_light.qss` (이름 유지)
 - 픽커: `Editor/skins/pickers/MinimalFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/cards/MinimalReferenceCardView.{h,cpp}`
 - Copy: `Editor/widgets/routing/StepListRoutingRenderer.{h,cpp}`
 
 ## 새 요소를 이 스킨답게 만드는 법
