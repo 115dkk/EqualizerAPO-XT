@@ -1027,7 +1027,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="428"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
         <source>Raw</source>
         <translation>Brut</translation>
     </message>
@@ -2058,101 +2058,129 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="79"/>
         <source>Output channel the summed convolution is written to</source>
-        <translation>Canal de sortie dans lequel la convolution sommée est écrite</translation>
+        <translation type="vanished">Canal de sortie dans lequel la convolution sommée est écrite</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="80"/>
         <source>Out ch</source>
-        <translation>Canal sortie</translation>
+        <translation type="vanished">Canal sortie</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="96"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="82"/>
         <source>Copy this file into the config directory</source>
         <translation>Copier ce fichier dans le dossier de configuration</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="90"/>
         <source>Edit the path as text</source>
         <translation>Modifier le chemin en tant que texte</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="150"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <source>Channel mapping</source>
+        <translation>Mappage des canaux</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
+        <source>Add an output channel (a new name creates a virtual channel)</source>
+        <translation>Ajouter un canal de sortie (un nouveau nom crée un canal virtuel)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
+        <source>Add output channel</source>
+        <translation>Ajouter un canal de sortie</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <source>Channel name (an unknown name creates a virtual channel):</source>
+        <translation>Nom du canal (un nom inconnu crée un canal virtuel) :</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="212"/>
+        <source>Select a readable impulse response file to edit the channel mapping.</source>
+        <translation>Sélectionnez un fichier de réponse impulsionnelle lisible pour modifier le mappage des canaux.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="249"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
         <source>Select impulse response file</source>
         <translation>Sélectionner le fichier de réponse impulsionnelle</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="152"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="251"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="185"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="196"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
         <source>Import</source>
         <translation>Importer</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="185"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
         <source>Nothing to import: %1</source>
         <translation>Rien à importer : %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="197"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="296"/>
         <source>Some files could not be copied:
 %1</source>
         <translation>Certains fichiers n&apos;ont pas pu être copiés :
 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="233"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="333"/>
         <source>No file selected</source>
         <translation>Aucun fichier sélectionné</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="262"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="362"/>
         <source>Unsupported file format</source>
         <translation>Format de fichier non pris en charge</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="271"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="272"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="372"/>
         <source>%1 samples</source>
         <translation>%1 éch.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="273"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="274"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
         <source>%1 ch</source>
         <translation>%1 can.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="280"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="381"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>La fréquence d&apos;échantillonnage ne correspond pas au périphérique (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="399"/>
+        <source>Mapping references channel %1, but the file has %2 channels</source>
+        <translation>Le mappage référence le canal %1, mais le fichier ne compte que %2 canaux</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="421"/>
         <source>Not readable by the audio service</source>
         <translation>Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="317"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="437"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -2160,28 +2188,28 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MultiConvolutionFilterGUI</name>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="37"/>
-        <source>Output channel:</source>
-        <translation type="unfinished"></translation>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="35"/>
+        <source>Mappings:</source>
+        <translation>Mappages :</translation>
+    </message>
+    <message>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="38"/>
+        <source>Output mappings, e.g. &quot;L=0+1 R=2+3&quot; (file channels are 0-based) or just &quot;L&quot; for every file channel</source>
+        <translation>Mappages de sortie, p. ex. « L=0+1 R=2+3 » (canaux du fichier à partir de 0) ou simplement « L » pour tous les canaux</translation>
     </message>
     <message>
         <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="42"/>
-        <source>Output channel the summed convolution is written to</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="48"/>
         <source>Impulse response:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="55"/>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="84"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="49"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="74"/>
         <source>Select impulse response file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="85"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="75"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation type="unfinished">Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
@@ -2340,28 +2368,28 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="131"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="192"/>
         <source>Choose the details after adding</source>
         <translation>Choisissez les détails après l&apos;ajout</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="353"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="427"/>
         <source>Search filters</source>
         <translation>Rechercher des filtres</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="392"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="453"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="466"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="527"/>
         <source>General</source>
         <translation>Général</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="500"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="575"/>
         <source>Nothing matches your search</source>
         <translation>Aucun résultat pour votre recherche</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="501"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="576"/>
         <source>Try a shorter or different keyword</source>
         <translation>Essayez un mot-clé plus court ou différent</translation>
     </message>

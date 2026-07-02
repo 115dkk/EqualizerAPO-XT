@@ -12,7 +12,8 @@
 using std::vector;
 
 CurvedNodeView::CurvedNodeView(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+	QWidget* parent)
 	: RoutingView(parent)
 {
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
@@ -30,7 +31,7 @@ CurvedNodeView::CurvedNodeView(const vector<Assignment>& assignments,
 	view->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	layout->addWidget(view);
 
-	scene->load(channelNames, assignments);
+	scene->load(channelNames, assignments, portModel.fixedSources, portModel.allowFactors);
 
 	connect(scene, SIGNAL(updateModel()), this, SIGNAL(routingChanged()));
 }
@@ -41,7 +42,7 @@ std::vector<Assignment> CurvedNodeView::assignments() const
 }
 
 RoutingView* CurvedNodeRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
 {
-	return new CurvedNodeView(assignments, channelNames, parent);
+	return new CurvedNodeView(assignments, channelNames, portModel, parent);
 }

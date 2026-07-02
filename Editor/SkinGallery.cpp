@@ -49,10 +49,11 @@ struct GalleryRow
 // the broken-reference transition (MISSING + Locate, AR2 X-3/X-4) in every
 // skin's judged set. The VST library is intentionally unresolvable; the card
 // renders its missing/not-loaded state, which doubles as the recovery-entry
-// showcase. The two MultiConvolution rows cover the summed-convolution card
-// populated and in its freshly inserted empty state; the empty one also guards
-// the Insert path, where a bare "MultiConvolution:" template must still
-// resolve to the card body and not fall back to an empty row.
+// showcase. The two MultiConvolution rows cover the mapping-form card (the
+// per-skin routing view over a 4-channel BRIR, both ears mapped) and the
+// freshly inserted empty state; the empty one also guards the Insert path,
+// where a bare "MultiConvolution:" template must still resolve to the card
+// body and not fall back to an empty row.
 QList<GalleryRow> galleryRows()
 {
 	return {
@@ -67,7 +68,7 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("device"), QStringLiteral("Device: all") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
 		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
-		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L brir.wav") },
+		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
 		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") }
 	};
 }
@@ -99,8 +100,9 @@ bool writeWavFile(const QString& path, quint16 channels, quint32 sampleRate, qui
 // Synthetic reference targets for the gallery rows, next to a synthetic
 // config file so relative references resolve: example.txt (Include),
 // example.wav (Convolution, 100 ms mono) and brir.wav (MultiConvolution,
-// 100 ms stereo - the "2 ch" readout). missing.txt is deliberately absent.
-// Returns the config path setLines gets, or an empty string on failure.
+// 100 ms 4-channel - the "4 ch" readout and the L=0+1 R=2+3 routing view).
+// missing.txt is deliberately absent. Returns the config path setLines gets,
+// or an empty string on failure.
 QString buildReferenceFiles(const QDir& outDir)
 {
 	QDir refsDir(outDir.filePath(QStringLiteral("refs")));
@@ -125,7 +127,7 @@ QString buildReferenceFiles(const QDir& outDir)
 
 	if (!writeWavFile(refsDir.filePath(QStringLiteral("example.wav")), 1, 48000, 4800))
 		return QString();
-	if (!writeWavFile(refsDir.filePath(QStringLiteral("brir.wav")), 2, 48000, 4800))
+	if (!writeWavFile(refsDir.filePath(QStringLiteral("brir.wav")), 4, 48000, 4800))
 		return QString();
 
 	QFile config(refsDir.filePath(QStringLiteral("gallery.txt")));

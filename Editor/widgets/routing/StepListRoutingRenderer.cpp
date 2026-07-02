@@ -15,13 +15,15 @@
 using std::vector;
 
 StepListView::StepListView(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+	QWidget* parent)
 	: RoutingView(parent),
 	// Seed every device channel as a step so an emptied Copy can be refilled
 	// from the GUI; steps whose source sum stays empty are skipped by the
 	// serializer and never reach the config line.
 	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
-	deviceChannels(channelNames)
+	deviceChannels(channelNames),
+	portModel(portModel)
 {
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	setMinimumSize(0, 0);
@@ -86,9 +88,11 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(QPen(withAlpha(border, 160), 1));
 	p.drawLine(0, headerH, width(), headerH);
 
-	auto drawChannelPill = [&](const QString& ch, int x, int y, int h) -> int {
+	auto drawChannelPill = [&](const QString& ch, int x, int y, int h, bool sourceSide) -> int {
 		const QColor col(CopyRoutingAdapter::channelColor(ch));
-		const bool virt = CopyRoutingAdapter::isVirtualChannel(ch);
+		// Fixed sources (IR file channels) are ports, not virtual channels, so
+		// they keep the solid pill styling.
+		const bool virt = (sourceSide && portModel.fixedSourceMode()) ? false : CopyRoutingAdapter::isVirtualChannel(ch);
 		const int w = fm.horizontalAdvance(ch) + 12;
 		const QRect pill(x, y + (rowH - h) / 2, w, h);
 		if (virt)
@@ -120,7 +124,7 @@ void StepListView::paintEvent(QPaintEvent*)
 
 		// Destination
 		int x = 40;
-		x += drawChannelPill(QString::fromStdWString(a.targetChannel), x, y, 20) + 8;
+		x += drawChannelPill(QString::fromStdWString(a.targetChannel), x, y, 20, false) + 8;
 
 		// Arrow
 		p.setPen(muted);
@@ -142,13 +146,13 @@ void StepListView::paintEvent(QPaintEvent*)
 				x += 14;
 			}
 
-			const int pillW = drawChannelPill(ch, x, y, 18);
+			const int pillW = drawChannelPill(ch, x, y, 18, true);
 			// The pill itself is an edit target so unity summands (which show no
 			// gain label) can still be edited or removed via the factor editor.
 			hits.append({ r, si, QRect(x, y + (rowH - 18) / 2, pillW, 18) });
 			x += pillW + 4;
 
-			if (showGain)
+			if (showGain && portModel.allowFactors)
 			{
 				QString label;
 				if (s.factor == -1.0 && !s.isDecibel)
@@ -218,15 +222,24 @@ void StepListView::showAddMenu(int row, const QPoint& globalPos)
 			return;
 		candidates.append(channel);
 	};
-	for (const std::wstring& name : deviceChannels)
-		addCandidate(QString::fromStdWString(name));
-	// Channels the command references elsewhere (e.g. virtual channels) stay
-	// available even when the device layout is unknown.
-	for (const Assignment& other : workingAssignments)
+	if (portModel.fixedSourceMode())
 	{
-		addCandidate(QString::fromStdWString(other.targetChannel));
-		for (const Assignment::Summand& s : other.sourceSum)
-			addCandidate(QString::fromStdWString(s.channel));
+		// Fixed sources (IR file channels): the port list is the whole menu.
+		for (const QString& port : portModel.fixedSources)
+			addCandidate(port);
+	}
+	else
+	{
+		for (const std::wstring& name : deviceChannels)
+			addCandidate(QString::fromStdWString(name));
+		// Channels the command references elsewhere (e.g. virtual channels) stay
+		// available even when the device layout is unknown.
+		for (const Assignment& other : workingAssignments)
+		{
+			addCandidate(QString::fromStdWString(other.targetChannel));
+			for (const Assignment::Summand& s : other.sourceSum)
+				addCandidate(QString::fromStdWString(s.channel));
+		}
 	}
 	if (candidates.isEmpty())
 		return;
@@ -262,6 +275,20 @@ void StepListView::mouseDoubleClickEvent(QMouseEvent* event)
 	}
 	if (row < 0)
 		return;
+
+	if (!portModel.allowFactors)
+	{
+		// Without factors the only source edit is removal.
+		Assignment& a = workingAssignments[row];
+		if (summand >= 0 && summand < (int)a.sourceSum.size())
+		{
+			a.sourceSum.erase(a.sourceSum.begin() + summand);
+			updateGeometry();
+			update();
+			emit routingChanged();
+		}
+		return;
+	}
 
 	commitEditor();
 	editRow = row;
@@ -340,7 +367,7 @@ void StepListView::commitEditor()
 }
 
 RoutingView* StepListRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
 {
-	return new StepListView(assignments, channelNames, parent);
+	return new StepListView(assignments, channelNames, portModel, parent);
 }

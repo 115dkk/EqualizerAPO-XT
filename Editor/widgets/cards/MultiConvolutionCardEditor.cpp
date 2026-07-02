@@ -18,17 +18,18 @@
 
 #include "MultiConvolutionCardEditor.h"
 
+#include <algorithm>
 #include <memory>
 
-#include <QComboBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
-#include <QLineEdit>
+#include <QInputDialog>
+#include <QLabel>
 #include <QMessageBox>
-#include <QSignalBlocker>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -45,19 +46,22 @@
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
+#include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "ReferenceCardView.h"
-#include "filters/MultiConvolutionCommand.h"
 #include "helpers/RegistryHelper.h"
 
-MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable, const QString& outputChannel, const QString& path, QWidget* parent)
-	: IFilterGUI(parent), filterTable(filterTable), path(path.trimmed())
+MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
+	const std::vector<MultiConvolutionCommand::Mapping>& mappings,
+	const QString& path, QWidget* parent)
+	: IFilterGUI(parent), filterTable(filterTable), path(path.trimmed()), mappings(mappings)
 {
 	setObjectName(QStringLiteral("MultiConvolutionCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
 
-	QHBoxLayout* layout = new QHBoxLayout(this);
+	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(0);
+	layout->setSpacing(6);
 
 	view = SkinManager::instance()->createReferenceCardView(QStringLiteral("multiconvolution"), this);
 	connect(view, SIGNAL(pathCommitted(QString)), this, SLOT(pathCommitted(QString)));
@@ -65,24 +69,6 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	const QColor actionColor(tokens.text);
-
-	// Output channel the summed convolution is written to. An editable combo:
-	// configureChannels() fills it with the channels that exist at this row so
-	// the user picks the target ("which ear") from the real channels instead of
-	// typing one, while a custom/virtual channel name can still be typed in.
-	// It is part of the reference grammar ("<channel> <file>"), so it rides
-	// inside the skin view as the leading widget.
-	channelCombo = new QComboBox(view);
-	channelCombo->setObjectName(QStringLiteral("MultiConvolutionCardChannel"));
-	channelCombo->setEditable(true);
-	channelCombo->setInsertPolicy(QComboBox::NoInsert);
-	channelCombo->setToolTip(tr("Output channel the summed convolution is written to"));
-	channelCombo->lineEdit()->setPlaceholderText(tr("Out ch"));
-	channelCombo->setCurrentText(outputChannel.trimmed());
-	channelCombo->setMaximumWidth(GUIHelper::scale(QSize(96, 0)).width());
-	connect(channelCombo, SIGNAL(activated(int)), this, SIGNAL(updateModel()));
-	connect(channelCombo->lineEdit(), SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
-	view->addLeadingWidget(channelCombo);
 
 	chooseButton = new QToolButton(view);
 	chooseButton->setObjectName(QStringLiteral("FilterCardIconButton"));
@@ -105,6 +91,34 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	connect(editButton, &QToolButton::clicked, view, &ReferenceCardView::enterEditMode);
 	view->addActionButton(ReferenceCardView::ActionRole::EditPath, editButton);
 
+	// The channel mapping rides under the file reference: a caption row with
+	// the virtual-output entry point, then the active skin's routing view.
+	QWidget* mappingArea = new QWidget(this);
+	mappingArea->setObjectName(QStringLiteral("MultiConvolutionMappingArea"));
+	QVBoxLayout* mappingLayout = new QVBoxLayout(mappingArea);
+	mappingLayout->setContentsMargins(4, 0, 4, 2);
+	mappingLayout->setSpacing(4);
+
+	QHBoxLayout* captionRow = new QHBoxLayout();
+	captionRow->setContentsMargins(0, 0, 0, 0);
+	mappingCaption = new QLabel(tr("Channel mapping"), mappingArea);
+	mappingCaption->setObjectName(QStringLiteral("MultiConvolutionMappingCaption"));
+	captionRow->addWidget(mappingCaption);
+	captionRow->addStretch(1);
+
+	addChannelButton = new QToolButton(mappingArea);
+	addChannelButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	addChannelButton->setText(QStringLiteral("+"));
+	addChannelButton->setToolTip(tr("Add an output channel (a new name creates a virtual channel)"));
+	connect(addChannelButton, SIGNAL(clicked()), this, SLOT(addOutputChannel()));
+	captionRow->addWidget(addChannelButton);
+	mappingLayout->addLayout(captionRow);
+
+	routingLayout = new QVBoxLayout();
+	routingLayout->setContentsMargins(0, 0, 0, 0);
+	mappingLayout->addLayout(routingLayout);
+	layout->addWidget(mappingArea);
+
 	// Let the active skin decorate this body. It shares the convolution row type
 	// so a skin that styles convolution cards covers this one too.
 	CommandRowInfo rowInfo;
@@ -120,22 +134,107 @@ void MultiConvolutionCardEditor::store(QString& command, QString& parameters)
 	command = QStringLiteral("MultiConvolution");
 
 	MultiConvolutionCommand cmd;
-	cmd.mappings.push_back({channelCombo->currentText().trimmed().toStdWString(), {}});
+	cmd.mappings = mappings;
 	cmd.path = path.toStdWString();
 	parameters = QString::fromStdWString(cmd.serialize());
 }
 
 void MultiConvolutionCardEditor::configureChannels(std::vector<std::wstring>& channelNames)
 {
-	// Repopulate the output options with the channels in scope at this row while
-	// keeping whatever is currently entered/selected. The combo stays editable,
-	// so a custom output channel that is not in the list survives as typed text.
-	const QString current = channelCombo->currentText();
-	const QSignalBlocker blocker(channelCombo);
-	channelCombo->clear();
-	for (const std::wstring& name : channelNames)
-		channelCombo->addItem(QString::fromStdWString(name));
-	channelCombo->setCurrentText(current);
+	rowChannels = channelNames;
+	rebuildRoutingView();
+}
+
+void MultiConvolutionCardEditor::routingEdited()
+{
+	if (routingView == nullptr)
+		return;
+
+	std::vector<MultiConvolutionCommand::Mapping> edited = MultiConvolutionRoutingAdapter::toMappings(routingView->assignments());
+	if (edited.empty())
+	{
+		// Removing the last connection would leave a line the grammar cannot
+		// round-trip (a bare path). Keep the previous mapping and rebuild the
+		// view from it instead of persisting the empty state.
+		rebuildRoutingView();
+		return;
+	}
+
+	mappings = std::move(edited);
+	emit updateModel();
+}
+
+void MultiConvolutionCardEditor::addOutputChannel()
+{
+	bool accepted = false;
+	const QString name = QInputDialog::getText(this, tr("Add output channel"),
+			tr("Channel name (an unknown name creates a virtual channel):"),
+			QLineEdit::Normal, QString(), &accepted).trimmed();
+	if (!accepted || name.isEmpty() || name.contains(QLatin1Char(' ')))
+		return;
+
+	const std::wstring channel = name.toStdWString();
+	auto alreadyThere = [&channel](const std::vector<std::wstring>& list) {
+		return std::find(list.begin(), list.end(), channel) != list.end();
+	};
+	if (!alreadyThere(rowChannels) && !alreadyThere(extraTargets))
+		extraTargets.push_back(channel);
+	rebuildRoutingView();
+}
+
+void MultiConvolutionCardEditor::rebuildRoutingView()
+{
+	// The old widgets may be the signal sender that led here (routingEdited),
+	// so they cannot be deleted synchronously; detaching and hiding them keeps
+	// them out of layout and paint until deleteLater lands.
+	if (routingView != nullptr)
+	{
+		routingLayout->removeWidget(routingView);
+		routingView->hide();
+		routingView->deleteLater();
+		routingView = nullptr;
+	}
+	if (routingHint != nullptr)
+	{
+		routingLayout->removeWidget(routingHint);
+		routingHint->hide();
+		routingHint->deleteLater();
+		routingHint = nullptr;
+	}
+
+	IRoutingRenderer* renderer = SkinManager::instance()->routingRenderer();
+
+	// Without a readable file the mapping cannot be edited: the view could not
+	// know what the simple form ("every channel") expands to, and an edit
+	// would persist a wrong expansion. Show why instead.
+	if (renderer == nullptr || fileChannelCount <= 0)
+	{
+		routingHint = new QLabel(tr("Select a readable impulse response file to edit the channel mapping."), this);
+		routingHint->setObjectName(QStringLiteral("MultiConvolutionMappingHint"));
+		routingHint->setWordWrap(true);
+		routingLayout->addWidget(routingHint);
+		addChannelButton->setEnabled(false);
+		return;
+	}
+	addChannelButton->setEnabled(true);
+
+	std::vector<Assignment> assignments = MultiConvolutionRoutingAdapter::toAssignments(mappings, fileChannelCount);
+
+	// The output side: channels in scope at this row plus the virtual outputs
+	// added in this session (the seeded rows with empty sums never reach the
+	// config line).
+	std::vector<std::wstring> targets = rowChannels;
+	for (const std::wstring& extra : extraTargets)
+		if (std::find(targets.begin(), targets.end(), extra) == targets.end())
+			targets.push_back(extra);
+
+	RoutingPortModel portModel;
+	portModel.fixedSources = MultiConvolutionRoutingAdapter::sourcePorts(fileChannelCount, mappings);
+	portModel.allowFactors = false;
+
+	routingView = renderer->create(assignments, targets, portModel, this);
+	routingLayout->addWidget(routingView);
+	connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
 }
 
 void MultiConvolutionCardEditor::chooseFile()
@@ -226,6 +325,7 @@ void MultiConvolutionCardEditor::updateFileInfo()
 	state.kind = QStringLiteral("multiconvolution");
 	state.editText = path;
 
+	fileChannelCount = 0;
 	bool offerImport = false;
 	if (path.isEmpty())
 	{
@@ -266,12 +366,13 @@ void MultiConvolutionCardEditor::updateFileInfo()
 			{
 				const int sampleRate = sfInfo.samplerate;
 				const double lengthMs = sampleRate > 0 ? sfInfo.frames * 1000.0 / sampleRate : 0.0;
-				// The channel count matters here because it must match the number
-				// of selected input channels.
+				// The channel count doubles as the routing view's source-port
+				// list: every file channel becomes a mappable input.
 				state.readout << tr("%1 ms").arg(QString::number(lengthMs, 'f', 1))
 					<< tr("%1 samples").arg(static_cast<qlonglong>(sfInfo.frames))
 					<< tr("%1 Hz").arg(sampleRate)
 					<< tr("%1 ch").arg(sfInfo.channels);
+				fileChannelCount = sfInfo.channels;
 				sf_close(file);
 
 				const unsigned deviceRate = currentDeviceSampleRate();
@@ -279,6 +380,25 @@ void MultiConvolutionCardEditor::updateFileInfo()
 				{
 					state.statusText = tr("Sample rate does not match the device (%1 Hz)").arg(deviceRate);
 					state.statusSeverity = ReferenceCardState::Severity::Warning;
+				}
+				else
+				{
+					// A mapping that references a channel the file does not have
+					// contributes silence; surface it before the user wonders why
+					// an ear stays quiet.
+					unsigned highest = 0;
+					bool any = false;
+					for (const MultiConvolutionCommand::Mapping& mapping : mappings)
+						for (unsigned c : mapping.irChannels)
+						{
+							highest = std::max(highest, c);
+							any = true;
+						}
+					if (any && (int)highest >= fileChannelCount)
+					{
+						state.statusText = tr("Mapping references channel %1, but the file has %2 channels").arg(highest).arg(fileChannelCount);
+						state.statusSeverity = ReferenceCardState::Severity::Warning;
+					}
 				}
 			}
 
@@ -319,4 +439,5 @@ void MultiConvolutionCardEditor::updateFileInfo()
 
 	view->setState(state);
 	importButton->setVisible(offerImport);
+	rebuildRoutingView();
 }

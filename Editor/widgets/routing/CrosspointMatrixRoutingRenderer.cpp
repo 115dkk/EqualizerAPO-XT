@@ -13,14 +13,16 @@
 using std::vector;
 
 CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+	QWidget* parent)
 	: RoutingView(parent),
 	// Seeding every device channel as a row/column keeps the grid editable even
 	// when the command references few (or no) channels; without it an emptied
 	// Copy could never be refilled from the GUI. Empty rows are skipped by the
 	// serializer, so the config line is unaffected.
 	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
-	deviceChannels(channelNames)
+	deviceChannels(channelNames),
+	portModel(portModel)
 {
 	setMouseTracking(true);
 	// Match the stable painted-routing-view size contract (StepList / BlockChip):
@@ -34,7 +36,9 @@ CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments
 
 void CrosspointMatrixView::rebuildMatrix()
 {
-	matrix = CopyRoutingAdapter::buildMatrix(workingAssignments, deviceChannels);
+	matrix = portModel.fixedSourceMode()
+		? CopyRoutingAdapter::buildMatrix(workingAssignments, portModel.fixedSources)
+		: CopyRoutingAdapter::buildMatrix(workingAssignments, deviceChannels);
 	updateGeometry();
 	update();
 }
@@ -109,13 +113,15 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 	monoFont.setPixelSize(11);
 	p.setFont(monoFont);
 
-	// Column headers (input channels).
+	// Column headers (input channels; in fixed-source mode these are the IR
+	// file's channel numbers, which are ports rather than virtual channels, so
+	// they get the solid pill instead of the dashed virtual styling).
 	for (int c = 0; c < matrix.inputs.size(); ++c)
 	{
 		const QString ch = matrix.inputs[c];
 		const QColor col(CopyRoutingAdapter::channelColor(ch));
 		const QRect hr(rowHeaderWidth + c * cellW, 0, cellW, colHeaderHeight);
-		const bool virt = CopyRoutingAdapter::isVirtualChannel(ch);
+		const bool virt = !portModel.fixedSourceMode() && CopyRoutingAdapter::isVirtualChannel(ch);
 		QRect pill = hr.adjusted(6, 6, -6, -8);
 		if (virt)
 		{
@@ -171,7 +177,14 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 			QColor fill;
 			QString label;
 			const bool unity = cell.factor == 1.0 && !cell.isDecibel;
-			if (cell.factor < 0)
+			if (!portModel.allowFactors)
+			{
+				// Factor-less routing (MultiConvolution): a crosspoint is either
+				// patched or not, so the cell shows a connection dot, not a gain.
+				fill = ok;
+				label = QStringLiteral("●");
+			}
+			else if (cell.factor < 0)
 			{
 				fill = danger;
 				label = cell.factor == -1.0 && !cell.isDecibel ? QStringLiteral("INV") : QString::number(cell.factor);
@@ -225,6 +238,11 @@ void CrosspointMatrixView::mousePressEvent(QMouseEvent* event)
 
 void CrosspointMatrixView::mouseDoubleClickEvent(QMouseEvent* event)
 {
+	// Without factors there is nothing to edit; the press that preceded this
+	// double-click already toggled the crosspoint.
+	if (!portModel.allowFactors)
+		return;
+
 	int outRow = -1, inCol = -1;
 	if (!hitTest(event->pos(), outRow, inCol))
 		return;
@@ -318,7 +336,7 @@ void CrosspointMatrixView::commitEditor()
 }
 
 RoutingView* CrosspointMatrixRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
 {
-	return new CrosspointMatrixView(assignments, channelNames, parent);
+	return new CrosspointMatrixView(assignments, channelNames, portModel, parent);
 }

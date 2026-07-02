@@ -16,13 +16,15 @@
 using std::vector;
 
 BlockChipView::BlockChipView(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+	QWidget* parent)
 	: RoutingView(parent),
 	// Seed every device channel as an equation block so an emptied Copy can be
 	// refilled from the GUI; blocks whose source sum stays empty are skipped by
 	// the serializer and never reach the config line.
 	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
-	deviceChannels(channelNames)
+	deviceChannels(channelNames),
+	portModel(portModel)
 {
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	setMinimumSize(0, 0);
@@ -131,7 +133,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 			}
 
 			QString factorText;
-			if (showGain)
+			if (showGain && portModel.allowFactors)
 			{
 				if (s.factor == -1.0 && !s.isDecibel)
 					factorText = QStringLiteral("INV·");
@@ -142,9 +144,11 @@ void BlockChipView::paintEvent(QPaintEvent*)
 				}
 			}
 
-			// Soft chip: factor·channel inside one rounded pill.
+			// Soft chip: factor·channel inside one rounded pill. Fixed sources
+			// (IR file channels) are ports, not virtual channels, so they keep
+			// the solid chip styling.
 			const QColor col(CopyRoutingAdapter::channelColor(ch));
-			const bool virt = CopyRoutingAdapter::isVirtualChannel(ch);
+			const bool virt = !portModel.fixedSourceMode() && CopyRoutingAdapter::isVirtualChannel(ch);
 			const int fw = fm.horizontalAdvance(factorText);
 			const int cw = fm.horizontalAdvance(ch);
 			const int chipW = fw + cw + 18;
@@ -221,15 +225,24 @@ void BlockChipView::showAddMenu(int row, const QPoint& globalPos)
 			return;
 		candidates.append(channel);
 	};
-	for (const std::wstring& name : deviceChannels)
-		addCandidate(QString::fromStdWString(name));
-	// Channels the command references elsewhere (e.g. virtual channels) stay
-	// available even when the device layout is unknown.
-	for (const Assignment& other : workingAssignments)
+	if (portModel.fixedSourceMode())
 	{
-		addCandidate(QString::fromStdWString(other.targetChannel));
-		for (const Assignment::Summand& s : other.sourceSum)
-			addCandidate(QString::fromStdWString(s.channel));
+		// Fixed sources (IR file channels): the port list is the whole menu.
+		for (const QString& port : portModel.fixedSources)
+			addCandidate(port);
+	}
+	else
+	{
+		for (const std::wstring& name : deviceChannels)
+			addCandidate(QString::fromStdWString(name));
+		// Channels the command references elsewhere (e.g. virtual channels) stay
+		// available even when the device layout is unknown.
+		for (const Assignment& other : workingAssignments)
+		{
+			addCandidate(QString::fromStdWString(other.targetChannel));
+			for (const Assignment::Summand& s : other.sourceSum)
+				addCandidate(QString::fromStdWString(s.channel));
+		}
 	}
 	if (candidates.isEmpty())
 		return;
@@ -258,6 +271,20 @@ void BlockChipView::mouseDoubleClickEvent(QMouseEvent* event)
 		if (h.rect.contains(event->pos())) { row = h.row; summand = h.summand; break; }
 	if (row < 0)
 		return;
+
+	if (!portModel.allowFactors)
+	{
+		// Without factors the only chip edit is removal.
+		Assignment& a = workingAssignments[row];
+		if (summand >= 0 && summand < (int)a.sourceSum.size())
+		{
+			a.sourceSum.erase(a.sourceSum.begin() + summand);
+			updateGeometry();
+			update();
+			emit routingChanged();
+		}
+		return;
+	}
 
 	commitEditor();
 	editRow = row;
@@ -336,7 +363,7 @@ void BlockChipView::commitEditor()
 }
 
 RoutingView* BlockChipRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
 {
-	return new BlockChipView(assignments, channelNames, parent);
+	return new BlockChipView(assignments, channelNames, portModel, parent);
 }

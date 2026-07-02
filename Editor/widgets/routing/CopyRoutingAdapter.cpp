@@ -79,7 +79,7 @@ CopyRoutingAdapter::Cell CopyRoutingAdapter::Matrix::cell(int outRow, int inCol)
 
 CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Assignment>& assignments)
 {
-	return buildMatrix(assignments, {});
+	return buildMatrix(assignments, std::vector<std::wstring>());
 }
 
 CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Assignment>& assignments,
@@ -118,6 +118,40 @@ CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Ass
 			continue;
 		seenInputs.insert(channel);
 		matrix.inputs.append(channel);
+	}
+
+	for (int outRow = 0; outRow < matrix.outputs.size(); ++outRow)
+	{
+		const Assignment& assignment = assignments[outRow];
+		for (const Assignment::Summand& summand : assignment.sourceSum)
+		{
+			const QString channel = QString::fromStdWString(summand.channel);
+			const int inCol = matrix.inputs.indexOf(channel);
+			if (inCol < 0)
+				continue;
+			Cell cell;
+			cell.factor = summand.factor;
+			cell.isDecibel = summand.isDecibel;
+			cell.present = true;
+			matrix.cells.insert(matrix.indexOf(outRow, inCol), cell);
+		}
+	}
+
+	return matrix;
+}
+
+CopyRoutingAdapter::Matrix CopyRoutingAdapter::buildMatrix(const std::vector<Assignment>& assignments,
+	const QStringList& fixedSources)
+{
+	Matrix matrix;
+	matrix.inputs = fixedSources;
+
+	for (const Assignment& assignment : assignments)
+	{
+		const QString target = QString::fromStdWString(assignment.targetChannel);
+		if (target.isEmpty())
+			continue;
+		matrix.outputs.append(target);
 	}
 
 	for (int outRow = 0; outRow < matrix.outputs.size(); ++outRow)

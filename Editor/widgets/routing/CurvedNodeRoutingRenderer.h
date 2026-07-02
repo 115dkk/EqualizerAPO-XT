@@ -22,7 +22,8 @@ class CurvedNodeView : public RoutingView
 
 public:
 	CurvedNodeView(const std::vector<Assignment>& assignments,
-		const std::vector<std::wstring>& channelNames, QWidget* parent);
+		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+		QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
 
@@ -35,6 +36,7 @@ class CurvedNodeRoutingRenderer : public IRoutingRenderer
 {
 public:
 	RoutingView* create(const std::vector<Assignment>& assignments,
-		const std::vector<std::wstring>& channelNames, QWidget* parent) override;
+		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
+		QWidget* parent) override;
 	const char* id() const override { return "curved-node"; }
 };

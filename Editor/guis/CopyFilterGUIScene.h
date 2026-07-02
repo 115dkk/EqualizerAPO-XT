@@ -31,7 +31,19 @@ class CopyFilterGUIScene : public ChannelGraphScene
 
 public:
 	void load(const std::vector<std::wstring>& channelNames, const std::vector<Assignment>& assignments);
+
+	// Fixed-source variant (MultiConvolution): the input column shows exactly
+	// fixedSources (the IR file's channel numbers) with no numeric/alias
+	// mapping and no constant-value input, and factorsEditable == false turns
+	// the connections' double-click gain editor off (everything is unity).
+	// channelNames still populates the output column.
+	void load(const std::vector<std::wstring>& channelNames, const std::vector<Assignment>& assignments,
+		const QStringList& fixedSources, bool factorsEditable);
+
 	std::vector<Assignment> buildAssignments();
+
+	// Consulted by CopyFilterGUIConnectionItem before opening its gain editor.
+	bool factorsEditable() const { return factorsEditableFlag; }
 
 signals:
 	void updateModel();
@@ -48,4 +60,5 @@ private slots:
 private:
 	QGraphicsItem* lastOutputItem = nullptr;
 	QGraphicsProxyWidget* addProxyItem = nullptr;
+	bool factorsEditableFlag = true;
 };

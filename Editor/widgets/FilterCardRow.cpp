@@ -172,7 +172,9 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		// (e.g. copying L onto R when R is not referenced). That was the studio
 		// (glass) Copy card's "cannot edit" bug.
 		std::vector<std::wstring> channelNames = table->getChannelNames();
-		routingView = routingRenderer->create(routingAssignments, channelNames, editorContainer);
+		// Copy uses the default port model: symmetric sources/targets seeded
+		// from the device channels, with editable factors.
+		routingView = routingRenderer->create(routingAssignments, channelNames, RoutingPortModel(), editorContainer);
 
 		QScrollArea* routingScroll = new QScrollArea(editorContainer);
 		routingScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));

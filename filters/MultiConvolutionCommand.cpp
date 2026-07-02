@@ -63,36 +63,42 @@ bool MultiConvolutionCommand::isSimpleForm() const
 	return mappings.size() == 1 && mappings[0].irChannels.empty();
 }
 
-const std::wstring& MultiConvolutionCommand::serialize() const
+std::wstring MultiConvolutionCommand::serializeMappingsOnly() const
 {
-	// The simple form keeps its "<target> <path>" spelling. In the mapping form
+	// The simple form keeps its bare "<target>" spelling. In the mapping form
 	// a mapping whose sum is empty is not representable (re-parsing would read
 	// the bare target as the path start), so such placeholder rows are skipped,
 	// matching the Copy serializer's handling of empty assignments.
 	const bool simple = isSimpleForm();
-	serialized.clear();
+	std::wstring result;
 	for (const Mapping& mapping : mappings)
 	{
 		if (mapping.targetChannel.empty())
 			continue;
 		if (!simple && mapping.irChannels.empty())
 			continue;
-		if (!serialized.empty())
-			serialized += L" ";
-		serialized += mapping.targetChannel;
+		if (!result.empty())
+			result += L" ";
+		result += mapping.targetChannel;
 		if (!mapping.irChannels.empty())
 		{
-			serialized += L"=";
+			result += L"=";
 			bool firstChannel = true;
 			for (unsigned irChannel : mapping.irChannels)
 			{
 				if (!firstChannel)
-					serialized += L"+";
+					result += L"+";
 				firstChannel = false;
-				serialized += std::to_wstring(irChannel);
+				result += std::to_wstring(irChannel);
 			}
 		}
 	}
+	return result;
+}
+
+const std::wstring& MultiConvolutionCommand::serialize() const
+{
+	serialized = serializeMappingsOnly();
 	if (!serialized.empty())
 		serialized += L" ";
 	serialized += path;

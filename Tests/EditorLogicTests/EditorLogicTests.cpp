@@ -21,6 +21,7 @@
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
+#include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
@@ -525,6 +526,61 @@ int main(int argc, char** argv)
 		model.load(devSpeakers, devices);
 		model.setAllSelected(true);
 		expectEqual(model.serialize(), "all", "All overrides individual selections");
+	}
+
+	{
+		// MultiConvolutionRoutingAdapter: mappings <-> the routing views'
+		// Assignment type must round-trip, because the card serializes the
+		// edited view back into the config line. IR channels ride as decimal
+		// summand channels at unity factor.
+		using Mapping = MultiConvolutionCommand::Mapping;
+
+		const std::vector<Mapping> brir = {{L"L", {0, 1}}, {L"R", {2, 3}}};
+		std::vector<Assignment> assignments = MultiConvolutionRoutingAdapter::toAssignments(brir, 4);
+		expectEqual((int)assignments.size(), 2, "two mappings become two assignments");
+		expectTrue(assignments.size() == 2
+			&& assignments[0].targetChannel == L"L" && assignments[0].sourceSum.size() == 2
+			&& assignments[0].sourceSum[0].channel == L"0" && assignments[0].sourceSum[1].channel == L"1"
+			&& assignments[0].sourceSum[0].factor == 1.0 && !assignments[0].sourceSum[0].isDecibel,
+			"IR channels become decimal summands at unity factor");
+
+		std::vector<Mapping> roundTrip = MultiConvolutionRoutingAdapter::toMappings(assignments);
+		expectTrue(roundTrip.size() == 2
+			&& roundTrip[0].targetChannel == L"L" && roundTrip[0].irChannels == std::vector<unsigned>({0, 1})
+			&& roundTrip[1].targetChannel == L"R" && roundTrip[1].irChannels == std::vector<unsigned>({2, 3}),
+			"assignments convert back to the same mappings");
+
+		// The simple form expands to every file channel for display, and to
+		// nothing when the channel count is unknown (callers must not offer
+		// editing then).
+		std::vector<Assignment> expanded = MultiConvolutionRoutingAdapter::toAssignments({{L"Wet", {}}}, 3);
+		expectTrue(expanded.size() == 1 && expanded[0].sourceSum.size() == 3
+			&& expanded[0].sourceSum[2].channel == L"2",
+			"the simple form expands to every file channel");
+		std::vector<Assignment> unknown = MultiConvolutionRoutingAdapter::toAssignments({{L"Wet", {}}}, 0);
+		expectTrue(unknown.size() == 1 && unknown[0].sourceSum.empty(),
+			"an unknown channel count expands to nothing");
+
+		// Seeded placeholder rows (empty sums) and non-numeric summands are
+		// dropped on the way back, like Copy's serializer skips empty rows.
+		std::vector<Assignment> edited = assignments;
+		Assignment seeded;
+		seeded.targetChannel = L"C";
+		edited.push_back(seeded);
+		Assignment::Summand bogus;
+		bogus.factor = 1.0;
+		bogus.channel = L"VSL";
+		edited[0].sourceSum.push_back(bogus);
+		std::vector<Mapping> cleaned = MultiConvolutionRoutingAdapter::toMappings(edited);
+		expectTrue(cleaned.size() == 2 && cleaned[0].irChannels == std::vector<unsigned>({0, 1}),
+			"placeholder rows and non-numeric summands are dropped");
+
+		// Source ports: "0".."N-1" from the file, then any referenced index
+		// beyond the file so stale connections stay visible and removable.
+		QStringList ports = MultiConvolutionRoutingAdapter::sourcePorts(2, {{L"L", {0, 7}}});
+		expectEqual(ports.join(','), QString("0,1,7"), "ports are the file channels plus stale references");
+		QStringList portsNoFile = MultiConvolutionRoutingAdapter::sourcePorts(0, {{L"L", {2, 1}}});
+		expectEqual(portsNoFile.join(','), QString("1,2"), "without a file only referenced indices appear, sorted");
 	}
 
 	harness.report();

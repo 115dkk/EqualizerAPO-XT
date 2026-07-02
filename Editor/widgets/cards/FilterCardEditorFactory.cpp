@@ -41,12 +41,10 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 	if (normalizedCommand == QStringLiteral("multiconvolution"))
 	{
 		// MultiConvolutionCommand owns the line grammar (mapping and simple
-		// forms). The card is being reworked around the mapping form; until it
-		// lands, only the first mapping's target rides in the channel combo.
+		// forms); the card hosts the mapping in the skin's routing view.
 		MultiConvolutionCommand cmd;
 		MultiConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
-		const QString target = cmd.mappings.empty() ? QString() : QString::fromStdWString(cmd.mappings[0].targetChannel);
-		return new MultiConvolutionCardEditor(filterTable, target, QString::fromStdWString(cmd.path));
+		return new MultiConvolutionCardEditor(filterTable, cmd.mappings, QString::fromStdWString(cmd.path));
 	}
 	if (normalizedCommand == QStringLiteral("vstplugin"))
 	{

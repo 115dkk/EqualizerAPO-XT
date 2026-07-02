@@ -60,6 +60,11 @@ struct MultiConvolutionCommand
 	// "<t>=<i>+<i> ... <path>" otherwise.
 	const std::wstring& serialize() const;
 
+	// The canonical mapping prefix without the path: "L=0+1 R=2+3", or "L" for
+	// the simple form. Empty when no mapping is serializable. The legacy row
+	// GUI edits this text next to the path field.
+	std::wstring serializeMappingsOnly() const;
+
 	// Returns true only when command is "MultiConvolution" and the parameters
 	// carry at least one mapping and a non-empty path.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, MultiConvolutionCommand& out);

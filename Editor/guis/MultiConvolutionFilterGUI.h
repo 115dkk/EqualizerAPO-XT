@@ -20,29 +20,29 @@
 
 #include "Editor/IFilterGUI.h"
 
-class QComboBox;
 class QLineEdit;
 
 // Legacy (frozen-fallback) row GUI for a "MultiConvolution:" line. Deliberately
-// minimal, built in code rather than from a .ui: an output-channel field and an
-// impulse-response path field with a file picker. The modern card editor
-// (widgets/cards/MultiConvolutionCardEditor) is the canonical UI; this exists so
-// the LegacyRows render mode still edits the line.
+// minimal, built in code rather than from a .ui: the mapping prefix as plain
+// text ("L=0+1 R=2+3", or just "L" for the simple form) and an impulse-response
+// path field with a file picker. The modern card editor
+// (widgets/cards/MultiConvolutionCardEditor) is the canonical UI with the
+// per-skin routing view; this exists so the LegacyRows render mode still edits
+// the line without destroying it.
 class MultiConvolutionFilterGUI : public IFilterGUI
 {
 	Q_OBJECT
 
 public:
-	MultiConvolutionFilterGUI(const QString& configPath, const QString& outputChannel, const QString& path);
+	MultiConvolutionFilterGUI(const QString& configPath, const QString& mappingsText, const QString& path);
 
 	void store(QString& command, QString& parameters) override;
-	void configureChannels(std::vector<std::wstring>& channelNames) override;
 
 private slots:
 	void selectFile();
 
 private:
 	QString configPath;
-	QComboBox* channelCombo;
+	QLineEdit* mappingsEdit;
 	QLineEdit* pathEdit;
 };
