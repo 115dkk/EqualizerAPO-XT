@@ -33,8 +33,11 @@ enum SoftPickerRole
 	TintRole,
 	// SoftPickerItemKind.
 	KindRole,
-	// The per-item tile monogram (entries only).
-	GlyphRole
+	// The per-item tile monogram (entries only; the fallback glyph).
+	GlyphRole,
+	// The per-item tile pictogram resource (entries only; empty falls back
+	// to the monogram).
+	IconRole
 };
 
 enum SoftPickerItemKind
@@ -117,6 +120,59 @@ QStringList softMonograms(const QList<FilterPickerEntry>& entries)
 		result.append(glyph);
 	}
 	return result;
+}
+
+// The tile pictogram for a catalog entry, keyed off the template line the
+// entry inserts (names are translated and lend no stable key; command words
+// are not). Biquad templates split further by their type token, so every EQ
+// shape carries its own response-curve glyph. Pictures read friendlier than
+// the two-letter monograms (user direction, AR2 rework round); an unmapped
+// template returns empty and the tile falls back to its AR1 F4 monogram, so
+// future catalog entries degrade gracefully instead of going blank.
+QString softEntryIcon(const FilterPickerEntry& entry)
+{
+	const QString line = entry.line.trimmed();
+	if (line.startsWith(QLatin1Char('#')))
+		return QStringLiteral(":/icons/modern/comment-bubble.svg");
+
+	const int colon = line.indexOf(QLatin1Char(':'));
+	const QString command = colon > 0 ? line.left(colon).trimmed() : QString();
+	if (command == QLatin1String("Filter"))
+	{
+		static const struct { const char* token; const char* icon; } curves[] = {
+			{ " PK ", "eq-peaking" },
+			{ " LP ", "eq-lowpass" },
+			{ " HP ", "eq-highpass" },
+			{ " BP ", "eq-bandpass" },
+			{ " LS ", "eq-lowshelf" },
+			{ " HS ", "eq-highshelf" },
+			{ " NO ", "eq-notch" },
+			{ " AP ", "eq-allpass" }
+		};
+		for (const auto& curve : curves)
+			if (line.contains(QLatin1String(curve.token)))
+				return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(curve.icon));
+		return QStringLiteral(":/icons/modern/eq-peaking.svg");
+	}
+
+	static const struct { const char* command; const char* icon; } commands[] = {
+		{ "Include", "file-include" },
+		{ "Convolution", "waveform" },
+		{ "MultiConvolution", "multi-convolution" },
+		{ "VSTPlugin", "plugin" },
+		{ "GraphicEQ", "graphic-eq" },
+		{ "Preamp", "preamp-knob" },
+		{ "Delay", "delay-clock" },
+		{ "Device", "device-speaker" },
+		{ "Channel", "channel-split" },
+		{ "Stage", "stage-chain" },
+		{ "Copy", "route-channels" },
+		{ "LoudnessCorrection", "loudness" }
+	};
+	for (const auto& mapping : commands)
+		if (command == QLatin1String(mapping.command))
+			return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(mapping.icon));
+	return QString();
 }
 
 // AR1 F5: templates that insert a bare command ("Include:", "Copy: ", "# ")
@@ -285,21 +341,34 @@ private:
 		}
 
 		// The category announces itself like an iOS Settings row: a rounded
-		// square colour tile carrying the entry's monogram (AR1 F4: per-item
-		// two-letter glyphs instead of the colliding single initial).
+		// square colour tile carrying the entry's pictogram (pictures over
+		// monograms - user direction, AR2 rework round; the AR1 F4 monogram
+		// stays as the fallback for unmapped templates).
 		const QColor tint = index.data(TintRole).value<QColor>();
 		const qreal tileSide = GUIHelper::scale(28.0);
 		const QRectF tile(row.left() + GUIHelper::scale(10.0), row.center().y() - tileSide / 2.0, tileSide, tileSide);
 		painter->setPen(Qt::NoPen);
 		painter->setBrush(tint);
 		painter->drawRoundedRect(tile, tileSide * 0.32, tileSide * 0.32);
-		const QString glyph = index.data(GlyphRole).toString();
-		QFont glyphFont = option.font;
-		glyphFont.setWeight(QFont::Bold);
-		glyphFont.setPointSizeF(option.font.pointSizeF() * (glyph.size() > 1 ? 0.9 : 1.1));
-		painter->setFont(glyphFont);
-		painter->setPen(QColor(QStringLiteral("#FAFAFC")));
-		painter->drawText(tile, Qt::AlignCenter, glyph);
+		const QString iconResource = index.data(IconRole).toString();
+		if (!iconResource.isEmpty())
+		{
+			const int glyphSide = qMax(1, qRound(tileSide * 0.6));
+			const QRect glyphRect(qRound(tile.center().x() - glyphSide / 2.0),
+				qRound(tile.center().y() - glyphSide / 2.0), glyphSide, glyphSide);
+			GUIHelper::tintedIcon(iconResource, QColor(QStringLiteral("#FAFAFC")), glyphSide)
+				.paint(painter, glyphRect);
+		}
+		else
+		{
+			const QString glyph = index.data(GlyphRole).toString();
+			QFont glyphFont = option.font;
+			glyphFont.setWeight(QFont::Bold);
+			glyphFont.setPointSizeF(option.font.pointSizeF() * (glyph.size() > 1 ? 0.9 : 1.1));
+			painter->setFont(glyphFont);
+			painter->setPen(QColor(QStringLiteral("#FAFAFC")));
+			painter->drawText(tile, Qt::AlignCenter, glyph);
+		}
 
 		// Name over the config line as a friendly muted caption (regular
 		// face, not monospace: here it is a description, not an editor).
@@ -486,6 +555,7 @@ void SoftFilterPickerView::rebuildList()
 		item->setData(TintRole, tint);
 		item->setData(KindRole, EntryItem);
 		item->setData(GlyphRole, entryMonograms.value(i, entry.name.left(1).toUpper()));
+		item->setData(IconRole, softEntryIcon(entry));
 		// The tooltip keeps the raw template line even when the caption wears
 		// the friendly phrasing - what gets inserted is never hidden.
 		item->setToolTip(entry.line);

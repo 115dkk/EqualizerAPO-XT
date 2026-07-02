@@ -42,6 +42,24 @@
         <file>icons/modern/chevron-up.svg</file>
         <file>icons/modern/plugin.svg</file>
         <file>icons/modern/file-new.svg</file>
+        <file>icons/modern/eq-peaking.svg</file>
+        <file>icons/modern/eq-lowpass.svg</file>
+        <file>icons/modern/eq-highpass.svg</file>
+        <file>icons/modern/eq-bandpass.svg</file>
+        <file>icons/modern/eq-lowshelf.svg</file>
+        <file>icons/modern/eq-highshelf.svg</file>
+        <file>icons/modern/eq-notch.svg</file>
+        <file>icons/modern/eq-allpass.svg</file>
+        <file>icons/modern/multi-convolution.svg</file>
+        <file>icons/modern/channel-split.svg</file>
+        <file>icons/modern/comment-bubble.svg</file>
+        <file>icons/modern/delay-clock.svg</file>
+        <file>icons/modern/device-speaker.svg</file>
+        <file>icons/modern/graphic-eq.svg</file>
+        <file>icons/modern/loudness.svg</file>
+        <file>icons/modern/preamp-knob.svg</file>
+        <file>icons/modern/stage-chain.svg</file>
+        <file>icons/modern/route-channels.svg</file>
         <file>icons/modern/save.svg</file>
         <file>icons/modern/save-as.svg</file>
         <file>icons/modern/soft-toggle-knob-off.svg</file>

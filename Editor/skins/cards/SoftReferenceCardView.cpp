@@ -70,11 +70,11 @@ QColor kindTilePastel(const QString& kind, const SkinTokens& t, bool dark)
 	return softPastelize(QColor(t.accent), dark);
 }
 
-// The pictogram each kind wore on its pre-rework card (the shared modern
-// icon set): a picture reads friendlier than a Latin monogram in this skin
-// (user direction, AR2 rework round), so the tile shows the familiar glyph -
-// the document sheet for Include, the plug for VST, the waveform for both
-// convolution siblings (their pastels keep them apart). The missing-state
+// The pictogram each kind wears (the shared modern icon set): a picture
+// reads friendlier than a Latin monogram in this skin (user direction, AR2
+// rework round) - the document sheet for Include, the plug for VST, the
+// waveform for Convolution and the layered stack for MultiConvolution (its
+// own mark: many impulse responses summed into one card). The missing-state
 // stroke exclamation stays: the transition lives in the tile either way.
 QString kindIconResource(const QString& kind)
 {
@@ -82,6 +82,8 @@ QString kindIconResource(const QString& kind)
 		return QStringLiteral(":/icons/modern/plugin.svg");
 	if (kind == QStringLiteral("include"))
 		return QStringLiteral(":/icons/modern/file-include.svg");
+	if (kind == QStringLiteral("multiconvolution"))
+		return QStringLiteral(":/icons/modern/multi-convolution.svg");
 	return QStringLiteral(":/icons/modern/waveform.svg");
 }
 }
