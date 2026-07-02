@@ -1,0 +1,1697 @@
+name: Build EqualizerAPO
+
+on:
+  push:
+    branches: [ main, SIMD_CI ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Serialize runs per ref. On main this queues release pipelines so two quick
+# merges can't both try to create the same release (which raced to a 403 on the
+# GitHub releases API). On pull requests a new push cancels the stale run for
+# faster feedback.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  actions: write
+  packages: write
+  artifact-metadata: write
+
+env:
+  SOLUTION_FILE: EqualizerAPO.sln
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  version-bump:
+    # Run on every main push EXCEPT:
+    #   • pushes the bump job itself made — those carry [skip ci] which already
+    #     stops GitHub from triggering a new workflow, but we guard explicitly
+    #     in case that behaviour ever changes.
+    #   • manual `chore(version):` commits — when a maintainer sets a specific
+    #     version we keep their value and just build/release with it.
+    if: |
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && !contains(github.event.head_commit.message, '[skip ci]')
+      && !startsWith(github.event.head_commit.message, 'chore(version):')
+    runs-on: windows-2025-vs2026
+    permissions:
+      contents: write
+    outputs:
+      bumped_sha: ${{ steps.commit.outputs.sha }}
+      base_version: ${{ steps.commit.outputs.base_version }}
+      # 'true' when this push raised version.h. When it stays 'false' the push
+      # cannot produce a new release (the tag already exists), so the build
+      # matrix and release jobs are skipped entirely. Use workflow_dispatch to
+      # force a full-matrix build of such a push when needed.
+      bumped: ${{ steps.commit.outputs.bumped }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        # Persist the credentials so the bump push uses GITHUB_TOKEN as expected.
+        # Note: GITHUB_TOKEN pushes do NOT retrigger workflows, which is why we
+        # do the build/release in the same workflow run (downstream jobs check
+        # out bumped_sha).
+        persist-credentials: true
+
+    - name: Bump version
+      shell: pwsh
+      run: .\.github\scripts\Bump-Version.ps1
+
+    - name: Commit and read version
+      id: commit
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        function Get-VersionPart {
+          param([string]$Name)
+          $line = Select-String -Path version.h -Pattern "^\s*#define\s+$Name\s+(\d+)" | Select-Object -First 1
+          if (-not $line) { throw "Could not find version part: $Name" }
+          return $line.Matches[0].Groups[1].Value
+        }
+
+        git diff --quiet -- version.h
+        $diffExit = $LASTEXITCODE
+        $global:LASTEXITCODE = 0
+
+        if ($diffExit -eq 1) {
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.h
+          # [skip ci] keeps any future GitHub change from triggering a second run on
+          # this commit; the current workflow keeps going regardless.
+          git commit -m "chore(version): bump version [skip ci]"
+          git push
+          "bumped=true" >> $env:GITHUB_OUTPUT
+        }
+        else {
+          "bumped=false" >> $env:GITHUB_OUTPUT
+          Write-Host "::notice::No version bump for this push, so no new release is possible. Skipping the build matrix; use workflow_dispatch to build it anyway."
+        }
+
+        $sha = (& git rev-parse HEAD).Trim()
+        $major = Get-VersionPart "MAJOR"
+        $minor = Get-VersionPart "MINOR"
+        $revision = Get-VersionPart "REVISION"
+        $baseVersion = "$major.$minor.$revision"
+
+        Write-Host "Bumped HEAD: $sha"
+        Write-Host "Base version: $baseVersion"
+
+        "sha=$sha" >> $env:GITHUB_OUTPUT
+        "base_version=$baseVersion" >> $env:GITHUB_OUTPUT
+
+  # The variant matrix is authored once in .github/simd-variants.psd1 and expanded
+  # here, so adding or renaming a variant cannot silently diverge between the
+  # manifest, this matrix, the installer, and the release tooling. The same job
+  # lints the channel strings compiled into Installer/AutoInstaller.cpp against
+  # the manifest.
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Lint variant consumers against the manifest
+      shell: pwsh
+      run: ./.github/scripts/Test-VariantSync.ps1
+
+    - name: Generate build matrix from the manifest
+      id: gen
+      shell: pwsh
+      run: ./.github/scripts/New-BuildMatrix.ps1 -EventName "${{ github.event_name }}"
+
+  build:
+    needs: [version-bump, prepare-matrix]
+    # Build for PRs, dispatches, and version-bumping main pushes. On main the
+    # bump job must finish first so the build picks up the bumped version.h;
+    # when it decides nothing bumps (docs/ci/chore/refactor-only pushes) the
+    # push cannot produce a new release, so the whole matrix is skipped. A
+    # skipped bump job on main means a manual `chore(version):` commit — the
+    # maintainer set a version by hand, so build it. On every other event the
+    # bump job is skipped by its own `if` and we always build. Full-matrix
+    # coverage for a no-bump push stays available via workflow_dispatch.
+    if: |
+      always() && needs.prepare-matrix.result == 'success' && (
+        github.event_name != 'push' ||
+        github.ref != 'refs/heads/main' ||
+        needs.version-bump.result == 'skipped' ||
+        (needs.version-bump.result == 'success' && needs.version-bump.outputs.bumped == 'true')
+      )
+    strategy:
+      fail-fast: false
+      # Authored in .github/simd-variants.psd1, expanded by
+      # .github/scripts/New-BuildMatrix.ps1. Pull requests build only the
+      # Primary variant (avx2); pushes and manual dispatches build all six.
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        # On main, the bump job pushed a new commit using GITHUB_TOKEN which does
+        # not retrigger workflows. Pulling that commit explicitly ensures the
+        # build runs against the bumped version.h instead of the pre-bump SHA
+        # that triggered the workflow.
+        ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v3
+      with:
+        # setup-msbuild compares this input CASE-SENSITIVELY against 'x64'/'arm64'
+        # and silently falls back to the 32-bit x86 MSBuild on any other value.
+        # matrix.platform is 'ARM64' (uppercase, the MSBuild $(Platform) name), so
+        # passing it here handed the ARM64 leg an x86 MSBuild, which in turn always
+        # selects the emulated 32-bit HostX86 cl.exe — the C3859/C1076 PCH
+        # virtual-memory failures. matrix.msvcdevplatform carries the lowercase
+        # host-architecture spelling ('x64'/'arm64') for exactly this purpose.
+        msbuild-architecture: ${{ matrix.msvcdevplatform }}
+
+    # Pinned dependency tags/versions live in .github/simd-variants.psd1 so they are
+    # defined once and shared with setup-build.ps1. Export them as job env vars for the
+    # checkout/download steps below (a typo'd tag would otherwise diverge silently).
+    - name: Resolve pinned dependency tags
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        "VELOPACK_LIBC_VERSION=$($manifest.Shared.VelopackLibcVersion)" >> $env:GITHUB_ENV
+        "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
+        "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
+        "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
+        Write-Host "velopack_libc version: $($manifest.Shared.VelopackLibcVersion)"
+        Write-Host "VST3 tag: $($manifest.Shared.Vst3Tag)"
+        Write-Host "Highway tag: $($manifest.Shared.HighwayTag)"
+        Write-Host "TCLAP tag: $($manifest.Shared.TclapTag)"
+
+    - name: Download dependency release assets
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        $downloadRoot = "${{ github.workspace }}\deps\_downloads"
+        New-Item -ItemType Directory -Force -Path $downloadRoot | Out-Null
+
+        # Supply-chain pins: the three prebuilt binary dependencies are downloaded
+        # from a pinned release tag and verified against the SHA-256 recorded in
+        # .github/simd-variants.psd1, so a new upload to those personal forks
+        # cannot change what CI links without a reviewed manifest diff.
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        $pins = $manifest.DependencyReleases
+
+        $downloads = @(
+          @{
+            Repo = "TheFireKahuna/muparserx"
+            Asset = "${{ matrix.muparserx_asset }}"
+            Destination = "${{ github.workspace }}\deps\muparserx"
+          },
+          @{
+            # Velopack C/C++ runtime (Velopack.h + import libs + DLLs). Always fetched;
+            # the Editor links it for auto-update. Version comes from
+            # .github/simd-variants.psd1 (Shared.VelopackLibcVersion), shared with setup-build.ps1.
+            Repo = "velopack/velopack"
+            Asset = "velopack_libc_${{ env.VELOPACK_LIBC_VERSION }}.zip"
+            Url = "https://github.com/velopack/velopack/releases/download/${{ env.VELOPACK_LIBC_VERSION }}/velopack_libc_${{ env.VELOPACK_LIBC_VERSION }}.zip"
+            Destination = "${{ github.workspace }}\deps\velopack_libc"
+          }
+        )
+
+        if ("${{ matrix.uses_vcpkg }}" -ne "true") {
+          $downloads += @(
+            @{
+              Repo = "TheFireKahuna/amd-fftw"
+              Asset = "${{ matrix.fftw_asset }}"
+              Destination = "${{ github.workspace }}\deps\fftw"
+            },
+            @{
+              Repo = "TheFireKahuna/libsndfile"
+              Asset = "${{ matrix.libsndfile_asset }}"
+              Destination = "${{ github.workspace }}\deps\libsndfile"
+            }
+          )
+        }
+
+        foreach ($download in $downloads) {
+          $pin = $pins[$download.Repo]
+          $url = if ($download.Url) {
+            $download.Url
+          } elseif ($pin) {
+            "https://github.com/$($download.Repo)/releases/download/$($pin.Tag)/$($download.Asset)"
+          } else {
+            throw "No pinned tag or explicit URL for $($download.Repo) in simd-variants.psd1"
+          }
+          $zipPath = Join-Path $downloadRoot $download.Asset
+
+          Write-Host "Downloading $($download.Repo) release asset $($download.Asset)"
+          curl.exe --fail --location --retry 5 --retry-delay 5 --output $zipPath $url
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download $url"
+          }
+
+          if ($pin) {
+            $expected = $pin.Sha256[$download.Asset]
+            if (-not $expected) {
+              throw "No pinned SHA-256 for $($download.Asset) in simd-variants.psd1"
+            }
+            $actual = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
+            if ($actual -ne $expected) {
+              throw "SHA-256 mismatch for $($download.Asset): expected $expected, got $actual"
+            }
+            Write-Host "Verified SHA-256 for $($download.Asset)"
+          }
+
+          New-Item -ItemType Directory -Force -Path $download.Destination | Out-Null
+          Expand-Archive -Path $zipPath -DestinationPath $download.Destination -Force
+        }
+
+    - name: Build lower-SIMD dependency binaries
+      if: ${{ matrix.uses_vcpkg == true }}
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        function Import-VsDevEnvironment {
+          param([string]$Arch)
+
+          $vswherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswherePath)) {
+            throw "vswhere.exe not found at $vswherePath"
+          }
+
+          $vsInstallPath = & $vswherePath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
+          if (-not $vsInstallPath) {
+            $vsInstallPath = & $vswherePath -products * -requires Microsoft.Component.MSBuild -property installationPath -latest
+          }
+          if (-not $vsInstallPath) {
+            throw "Visual Studio installation not found"
+          }
+
+          $devCmdPath = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
+          if (-not (Test-Path $devCmdPath)) {
+            throw "VsDevCmd.bat not found at $devCmdPath"
+          }
+
+          Write-Host "Configuring MSVC environment for $Arch"
+          $environment = cmd /c "`"$devCmdPath`" -arch=$Arch -no_logo >nul && set"
+          if ($LASTEXITCODE -ne 0) {
+            throw "VsDevCmd.bat failed for architecture $Arch"
+          }
+
+          foreach ($line in $environment) {
+            if ($line -match "^(.*?)=(.*)$") {
+              Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
+            }
+          }
+        }
+
+        function Copy-RequiredFile {
+          param(
+            [string]$SourceRoot,
+            [string[]]$Patterns,
+            [scriptblock]$Filter,
+            [string]$Destination
+          )
+
+          foreach ($pattern in $Patterns) {
+            $matches = @(Get-ChildItem -Path $SourceRoot -Recurse -Filter $pattern -File -ErrorAction SilentlyContinue | Where-Object $Filter)
+            if ($matches.Count -gt 0) {
+              New-Item -ItemType Directory -Force -Path (Split-Path $Destination -Parent) | Out-Null
+              Copy-Item -Path $matches[0].FullName -Destination $Destination -Force
+              Write-Host "Copied $($matches[0].FullName) -> $Destination"
+              return
+            }
+          }
+
+          throw "Could not find required file under $SourceRoot matching $($Patterns -join ', ')"
+        }
+
+        Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
+
+        $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
+        if (-not $vcpkgRoot -or -not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
+          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
+          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
+        }
+
+        $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
+        $fftwFeature = if ("${{ matrix.simd_variant }}" -eq "avx") { "fftw3[avx,threads]:x64-windows" } else { "fftw3[sse2,threads]:x64-windows" }
+        & $vcpkgExe install $fftwFeature "libsndfile:x64-windows" --clean-after-build
+        if ($LASTEXITCODE -ne 0) {
+          throw "vcpkg dependency install failed"
+        }
+
+        $installedRoot = Join-Path $vcpkgRoot "installed\x64-windows"
+        $fftwInclude = "${{ github.workspace }}\deps\fftw\include"
+        $fftwRelease = "${{ github.workspace }}\deps\fftw\Release"
+        $sndInclude = "${{ github.workspace }}\deps\libsndfile\include"
+        $sndRelease = "${{ github.workspace }}\deps\libsndfile\build\Release"
+
+        New-Item -ItemType Directory -Force -Path $fftwInclude, $fftwRelease, $sndInclude, $sndRelease | Out-Null
+        Copy-Item -Path (Join-Path $installedRoot "include\fftw3.h") -Destination $fftwInclude -Force
+        Copy-Item -Path (Join-Path $installedRoot "include\sndfile*.h*") -Destination $sndInclude -Force
+
+        $doubleFftwFilter = { $_.Name -notmatch "fftw3f|fftw3l|threads|omp" }
+        Copy-RequiredFile (Join-Path $installedRoot "lib") @("libfftw3.lib", "fftw3.lib", "libfftw3-3.lib") $doubleFftwFilter (Join-Path $fftwRelease "libfftw3.lib")
+        Copy-RequiredFile (Join-Path $installedRoot "lib") @("sndfile.lib") { $true } (Join-Path $sndRelease "sndfile.lib")
+
+        Get-ChildItem -Path (Join-Path $installedRoot "bin") -Filter "*.dll" -File | Copy-Item -Destination $sndRelease -Force
+        $fftwDlls = @(Get-ChildItem -Path (Join-Path $installedRoot "bin") -Filter "*fftw3*.dll" -File | Where-Object $doubleFftwFilter)
+        if ($fftwDlls.Count -eq 0) {
+          throw "Could not find FFTW runtime DLLs in vcpkg output"
+        }
+        $fftwDlls | Copy-Item -Destination $fftwRelease -Force
+        if (-not (Test-Path (Join-Path $fftwRelease "libfftw3.dll"))) {
+          Copy-Item -Path $fftwDlls[0].FullName -Destination (Join-Path $fftwRelease "libfftw3.dll") -Force
+        }
+
+        $parserDir = "${{ github.workspace }}\deps\muparserx\parser"
+        $muparserBuildDir = "${{ github.workspace }}\deps\muparserx\build\Release"
+        $muparserObjDir = "${{ github.workspace }}\deps\muparserx\build\obj-${{ matrix.simd_variant }}"
+        New-Item -ItemType Directory -Force -Path $muparserBuildDir, $muparserObjDir | Out-Null
+
+        $archArg = if ("${{ matrix.simd_variant }}" -eq "avx") { "/arch:AVX" } else { "" }
+        $objects = @()
+        $sources = Get-ChildItem -Path $parserDir -Filter "*.cpp" -File | Where-Object { $_.Name -ne "mpTest.cpp" }
+        foreach ($source in $sources) {
+          $objectPath = Join-Path $muparserObjDir ($source.BaseName + ".obj")
+          $args = @("/nologo", "/c", "/EHsc", "/std:c++17", "/O2", "/MD", "/DNDEBUG", "/DMUP_USE_WIDE_STRING", "/I$parserDir", "/Fo$objectPath")
+          if ($archArg) {
+            $args += $archArg
+          }
+          $args += $source.FullName
+          & cl.exe @args
+          if ($LASTEXITCODE -ne 0) {
+            throw "muParserX compile failed for $($source.Name)"
+          }
+          $objects += $objectPath
+        }
+
+        $muparserLib = Join-Path $muparserBuildDir "muparserx.lib"
+        & lib.exe /nologo "/OUT:$muparserLib" $objects
+        if ($LASTEXITCODE -ne 0) {
+          throw "muParserX library creation failed"
+        }
+
+    # Clone tclap repository (header-only library). Pinned like the other source
+    # dependencies; the tag comes from .github/simd-variants.psd1 (Shared.TclapTag).
+    - name: Download TCLAP
+      uses: actions/checkout@v6
+      with:
+        repository: TheFireKahuna/tclap
+        ref: ${{ env.TCLAP_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/tclap
+
+    # Clone the VST3 SDK pluginterfaces (header-only COM interfaces + IID unit).
+    # Only this submodule is needed for VST3 hosting; public.sdk / vstgui are not
+    # compiled. Pinned to the first MIT-licensed release; the exact tag comes from
+    # .github/simd-variants.psd1 (Shared.Vst3Tag), shared with setup-build.ps1.
+    - name: Download VST3 pluginterfaces
+      uses: actions/checkout@v6
+      with:
+        repository: steinbergmedia/vst3_pluginterfaces
+        ref: ${{ env.VST3_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/vst3sdk/pluginterfaces
+
+    # Clone Google Highway (header-only portable SIMD). The Common DSP kernels
+    # use it in static per-target dispatch mode (one TU compiled per /arch), so
+    # only the headers are needed; libhwy / the runtime dispatch table are not.
+    # The exact tag comes from .github/simd-variants.psd1 (Shared.HighwayTag).
+    - name: Download Highway
+      uses: actions/checkout@v6
+      with:
+        repository: google/highway
+        ref: ${{ env.HIGHWAY_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/highway
+
+    # Setup dependency structures
+    - name: Setup dependency structures
+      shell: pwsh
+      run: |
+        $depsPath = "${{ github.workspace }}\deps"
+        Write-Host "=== Creating Dependency Structures ==="
+
+        # Check FFTW structure
+        Write-Host "`nFFTW structure:"
+        if (Test-Path "$depsPath\fftw") {
+          Get-ChildItem "$depsPath\fftw" -Recurse | Select-Object FullName
+        } else {
+          Write-Warning "FFTW directory not found"
+        }
+
+        # Check muParserX structure
+        Write-Host "`nmuParserX structure:"
+        if (Test-Path "$depsPath\muparserx") {
+          Get-ChildItem "$depsPath\muparserx" -Recurse | Select-Object FullName
+        } else {
+          Write-Warning "muParserX directory not found"
+        }
+
+        # Check libsndfile structure
+        Write-Host "`nlibsndfile structure:"
+        if (Test-Path "$depsPath\libsndfile") {
+          Get-ChildItem "$depsPath\libsndfile" -Recurse | Select-Object FullName
+        } else {
+          Write-Warning "libsndfile directory not found"
+        }
+
+        # Check TCLAP structure
+        Write-Host "`nTCLAP structure:"
+        if (Test-Path "$depsPath\tclap") {
+          Get-ChildItem "$depsPath\tclap" -Recurse -Depth 1 | Select-Object FullName
+        } else {
+          Write-Warning "TCLAP directory not found"
+        }
+
+        Write-Host "=== Locating dependency files ==="
+
+        # Find actual locations of critical files
+        $fftwHeader = Get-ChildItem -Path "$depsPath\fftw\Include" -Recurse -Filter "fftw3.h" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $fftwLib = Get-ChildItem -Path "$depsPath\fftw\Release" -Recurse -Filter "libfftw3.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $mpxLib = Get-ChildItem -Path "$depsPath\muparserx\build\Release" -Recurse -Filter "muparserx.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+        # Set environment variables pointing to actual locations
+        if ($fftwHeader) {
+          $fftwInclude = $fftwHeader.Directory.FullName
+          echo "FFTW_INCLUDE=$fftwInclude" >> $env:GITHUB_ENV
+          Write-Host "FFTW_INCLUDE=$fftwInclude"
+        } else {
+          Write-Error "fftw3.h not found"
+          exit 1
+        }
+
+        if ($fftwLib) {
+          $fftwLibPath = $fftwLib.Directory.FullName
+          echo "FFTW_LIB=$fftwLibPath" >> $env:GITHUB_ENV
+          Write-Host "FFTW_LIB=$fftwLibPath"
+        } else {
+          Write-Error "libfftw3.lib not found"
+          exit 1
+        }
+
+        if (Test-Path  "$depsPath\muparserx") {
+          echo "MUPARSERX_INCLUDE=$depsPath\muparserx\parser" >> $env:GITHUB_ENV
+          Write-Host "MUPARSERX_INCLUDE=$depsPath\muparserx\parser"
+        } else {
+          Write-Error "muparserx folder not found"
+          exit 1
+        }
+
+        if ($mpxLib) {
+          $mpxLibPath = $mpxLib.Directory.FullName
+          echo "MUPARSERX_LIB=$mpxLibPath" >> $env:GITHUB_ENV
+          Write-Host "MUPARSERX_LIB=$mpxLibPath"
+        } else {
+          Write-Error "muparserx.lib not found"
+          exit 1
+        }
+
+        # Set root paths for libsndfile and tclap (still used by projects)
+        echo "LIBSNDFILE_INCLUDE=$depsPath\libsndfile\include" >> $env:GITHUB_ENV
+        echo "LIBSNDFILE_LIB=$depsPath\libsndfile\build\Release" >> $env:GITHUB_ENV
+        echo "TCLAP_ROOT=$depsPath\tclap" >> $env:GITHUB_ENV
+
+        # VST3 SDK root (contains pluginterfaces/) for VST3 hosting headers.
+        echo "VST3_SDK=$depsPath\vst3sdk" >> $env:GITHUB_ENV
+
+        # Highway header root (contains hwy/) for the portable SIMD kernels.
+        echo "HIGHWAY_INCLUDE=$depsPath\highway" >> $env:GITHUB_ENV
+
+        # Velopack runtime paths for the Editor's auto-update link.
+        echo "VELOPACK_INCLUDE=$depsPath\velopack_libc\include" >> $env:GITHUB_ENV
+        echo "VELOPACK_LIB=$depsPath\velopack_libc\lib" >> $env:GITHUB_ENV
+
+        Write-Host "`nAll dependency paths configured successfully"
+
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    # Install Qt for Editor, DeviceSelector, and UpdateChecker.
+    # Keep aqt concurrency at 1 to avoid intermittent archive extraction races.
+    - name: Install Qt
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        $configPath = "${{ github.workspace }}\aqt-settings.ini"
+        Set-Content -Path $configPath -Encoding ASCII -Value @(
+          "[aqt]",
+          "concurrency: 1"
+        )
+
+        python -m pip install --upgrade "setuptools>=70.1.0" "py7zr==1.0.*" "aqtinstall==3.2.*"
+
+        $qtHost = if ("${{ matrix.platform }}" -eq "ARM64") { "windows_arm64" } else { "windows" }
+        $qtArch = if ("${{ matrix.platform }}" -eq "ARM64") { "win64_msvc2022_arm64" } else { "win64_msvc2022_64" }
+        $qtArchDir = if ("${{ matrix.platform }}" -eq "ARM64") { "msvc2022_arm64" } else { "msvc2022_64" }
+        $qtOutput = "${{ github.workspace }}\Qt"
+
+        python -m aqt -c $configPath install-qt $qtHost desktop 6.10.1 $qtArch `
+          --autodesktop `
+          --outputdir $qtOutput `
+          --archives qtbase qttools qtsvg qttranslations `
+          --external 7z
+
+        $qtRoot = Join-Path $qtOutput "6.10.1\$qtArchDir"
+        if (-not (Test-Path (Join-Path $qtRoot "bin\qmake.exe"))) {
+          Write-Error "qmake.exe not found under $qtRoot"
+          exit 1
+        }
+        if (-not (Test-Path (Join-Path $qtRoot "include\QtCore\QCoreApplication"))) {
+          Write-Error "QtCore headers not found under $qtRoot"
+          exit 1
+        }
+
+        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+        echo "Qt6_DIR=$qtRoot" >> $env:GITHUB_ENV
+        echo "$qtRoot\bin" >> $env:GITHUB_PATH
+        Write-Host "QT_ROOT=$qtRoot"
+
+    # Build the solution (excluding Qt VS Tools projects which will be built separately)
+    - name: Build solution
+      shell: pwsh
+      run: |
+        # Build main projects (excluding DeviceSelector and UpdateChecker which use Qt VS Tools)
+        # Qt VS Tools projects need special handling for CI environments
+
+        Write-Host "Building Common, EqualizerAPO, Benchmark, VoicemeeterClient..."
+
+        $projects = @(
+          "Common.vcxproj",
+          "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
+          "Tests\HybridConvTests\HybridConvTests.vcxproj",
+          "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
+          "Tests\EngineOrchestrationTests\EngineOrchestrationTests.vcxproj",
+          "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj",
+          "EqualizerAPO\EqualizerAPO.vcxproj",
+          "Benchmark\Benchmark.vcxproj",
+          "VoicemeeterClient\VoicemeeterClient.vcxproj"
+        )
+
+        # Set LIB environment variable so linker can find our libraries
+        # The linker searches directories in the LIB environment variable
+        $libPaths = @(
+          "$env:LIBSNDFILE_LIB",
+          "$env:MUPARSERX_LIB",
+          "$env:FFTW_LIB"
+        )
+        if ($env:LIB) {
+          $env:LIB = ($libPaths + $env:LIB) -join ";"
+        } else {
+          $env:LIB = $libPaths -join ";"
+        }
+        Write-Host "  LIB (linker search path): $env:LIB"
+        Write-Host ""
+
+        function Resolve-QtRoot {
+          $candidates = @()
+
+          if ($env:QT_ROOT) {
+            $candidates += $env:QT_ROOT
+          }
+          if ($env:Qt6_DIR) {
+            $candidates += $env:Qt6_DIR
+            $candidates += (Join-Path $env:Qt6_DIR "..\..\..")
+          }
+
+          $qmakeCommand = Get-Command qmake -ErrorAction SilentlyContinue
+          if ($qmakeCommand) {
+            $candidates += (Split-Path (Split-Path $qmakeCommand.Source -Parent) -Parent)
+          }
+
+          $workspaceQt = "${{ github.workspace }}\Qt"
+          $candidates += $workspaceQt
+
+          $workspaceQmake = Get-ChildItem -Path $workspaceQt -Recurse -Filter qmake.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($workspaceQmake) {
+            $candidates += (Split-Path (Split-Path $workspaceQmake.FullName -Parent) -Parent)
+          }
+
+          foreach ($candidate in $candidates) {
+            if ([string]::IsNullOrWhiteSpace($candidate)) {
+              continue
+            }
+
+            $resolved = [System.IO.Path]::GetFullPath($candidate)
+            if ((Test-Path (Join-Path $resolved "include\QtCore\QCoreApplication")) -and
+                (Test-Path (Join-Path $resolved "lib\Qt6Core.lib")) -and
+                (Test-Path (Join-Path $resolved "bin\Qt6Core.dll"))) {
+              return $resolved
+            }
+          }
+
+          Write-Error "Could not locate a Qt root containing include, lib, and bin directories"
+          exit 1
+        }
+
+        $qtRoot = Resolve-QtRoot
+        echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
+        Write-Host "QT_ROOT=$qtRoot"
+
+        # x64 variants run on windows-2025-vs2026 (VS 2026 / v145); ARM64 runs on
+        # windows-11-arm, which still ships VS 2022 (v143). Pick the toolset present
+        # on each image so MSBuild does not fail with MSB8020 (toolset not found).
+        $platformToolset = if ("${{ matrix.platform }}" -eq "ARM64") { "v143" } else { "v145" }
+        Write-Host "PlatformToolset=$platformToolset (platform ${{ matrix.platform }})"
+
+        # Host toolchain: the emulated 32-bit HostX86 cl.exe exhausts its 4 GB
+        # address space under /MP PCH builds (flaky C3859/C1076 on the v1.23.0
+        # and v1.25.0 runs). The VC targets pick the host folder from the
+        # ARCHITECTURE OF THE MSBUILD PROCESS, so the real lever is handing
+        # setup-msbuild the lowercase 'arm64' (see "Add MSBuild to PATH");
+        # /p:PreferredToolArchitecture alone provably did not switch the host
+        # (the v1.24.0/v1.25.0 logs ran HostX86\arm64\CL.exe despite it). It is
+        # kept as documentation of intent and as a hint for the x64 images.
+        $toolArchitecture = if ("${{ matrix.platform }}" -eq "ARM64") { "ARM64" } else { "x64" }
+        Write-Host "PreferredToolArchitecture=$toolArchitecture"
+
+        # Fail loudly if the silent setup-msbuild fallback ever returns: an x86
+        # MSBuild on the ARM64 runner means emulated HostX86 cl.exe and a build
+        # that only fails minutes later with C3859, or worse, passes by luck.
+        $msbuildPath = (Get-Command msbuild).Source
+        Write-Host "msbuild on PATH: $msbuildPath"
+        if ("${{ matrix.platform }}" -eq "ARM64" -and $msbuildPath -notmatch '\\arm64\\') {
+          Write-Error "Expected the native arm64 MSBuild on PATH but got $msbuildPath. setup-msbuild falls back to the 32-bit x86 MSBuild when msbuild-architecture is not exactly 'arm64' (case-sensitive); that MSBuild always drives the emulated HostX86 cl.exe."
+          exit 1
+        }
+
+        $buildParams = @(
+          "/m",
+          "/p:Configuration=${{ env.BUILD_CONFIGURATION }}",
+          "/p:Platform=${{ matrix.platform }}",
+          "/t:rebuild",
+          "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE",
+          "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
+          "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE",
+          "/p:FFTW_LIB=$env:FFTW_LIB",
+          "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
+          "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
+          "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
+          "/p:VST3_SDK=$env:VST3_SDK",
+          "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE",
+          "/p:PlatformToolset=$platformToolset",  # v145 on the VS 2026 x64 image, v143 on the VS 2022 ARM64 image (see above)
+          "/p:PreferredToolArchitecture=$toolArchitecture"  # 64-bit host cl.exe (native ARM64 on the ARM64 runner; see above)
+        )
+
+        $BuildPlatform = "${{ matrix.platform }}"
+        # Only add instruction set override if specified (not for ARM64)
+        if ($BuildPlatform -eq "x64") {
+          $instructionSet = "${{ matrix.arch_flag }}"
+          Write-Host "Building with instruction set: $instructionSet (variant: ${{ matrix.simd_variant }})"
+          $buildParams += "/p:EnableEnhancedInstructionSet=$instructionSet"
+        }
+        $buildParams += "/p:QT_ROOT=$qtRoot"
+
+        foreach ($project in $projects) {
+          Write-Host "`n=== Building $project ==="
+          Write-Host "MSBuild command: msbuild $project $($buildParams -join ' ')"
+          msbuild $project @buildParams
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Build failed for $project"
+            exit $LASTEXITCODE
+          }
+        }
+
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$qtRoot\bin;$env:PATH"
+        $testExecutables = @(
+          "${{ github.workspace }}\Tests\EditorLogicTests\${{ matrix.platform }}\Release\EditorLogicTests.exe"
+        )
+
+        # Whether the hosted runner can execute this variant's instruction set is
+        # recorded per variant in .github/simd-variants.psd1 (RunnerCanExecute).
+        $canRunAudioSimdTests = "${{ matrix.can_execute }}" -eq "true"
+        if ($canRunAudioSimdTests) {
+          $testExecutables += "${{ github.workspace }}\Tests\HybridConvTests\${{ matrix.platform }}\Release\HybridConvTests.exe"
+          $testExecutables += "${{ github.workspace }}\Tests\EngineOrchestrationTests\${{ matrix.platform }}\Release\EngineOrchestrationTests.exe"
+        } else {
+          Write-Warning "Skipping HybridConvTests and EngineOrchestrationTests for ${{ matrix.simd_variant }} because GitHub-hosted x64 runners do not guarantee that instruction set at runtime. The projects are still built for this variant."
+        }
+
+        foreach ($testExe in $testExecutables) {
+          if (-not (Test-Path $testExe)) {
+            Write-Error "Test executable not found: $testExe"
+            exit 1
+          }
+
+          Write-Host "`n=== Running $(Split-Path $testExe -Leaf) ==="
+          & $testExe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "$(Split-Path $testExe -Leaf) failed"
+            exit $LASTEXITCODE
+          }
+        }
+
+
+    - name: Run audio regression tests
+      # AVX-512 and AVX10.1 binaries cannot be executed on GitHub-hosted
+      # x64 runners; we still build them but skip the runtime test step.
+      # The gate is the manifest's per-variant RunnerCanExecute flag.
+      if: matrix.can_execute == true
+      shell: pwsh
+      run: |
+        $variant = "${{ matrix.simd_variant }}"
+        $platform = "${{ matrix.platform }}"
+        $exe = "${{ github.workspace }}\Tests\AudioRegressionTests\$platform\Release\AudioRegressionTests.exe"
+        if (-not (Test-Path $exe)) {
+          Write-Error "AudioRegressionTests executable not found at $exe"
+          exit 1
+        }
+
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
+
+        $repoRefDir = "${{ github.workspace }}\Tests\AudioRegressionTests\references"
+        $hasRefs = Test-Path (Join-Path $repoRefDir "preamp_minus6.raw")
+        # The primary (reference-seeding) variant is flagged in simd-variants.psd1.
+        $isPrimary = "${{ matrix.primary }}" -eq "true"
+
+        Push-Location "${{ github.workspace }}\Tests\AudioRegressionTests"
+        try {
+          if ($hasRefs) {
+            Write-Host "Reference set present in tree; running verify mode for variant '$variant'"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "AudioRegressionTests verify failed for variant '$variant'"
+              exit $LASTEXITCODE
+            }
+          } elseif ($isPrimary) {
+            Write-Host "No reference set in tree; primary variant '$variant' will record fresh references"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "AudioRegressionTests reference generation failed"
+              exit $LASTEXITCODE
+            }
+          } else {
+            Write-Host "No reference set in tree; recording variant output only (non-primary variant)"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+          }
+        } finally {
+          Pop-Location
+        }
+
+    - name: Upload audio regression outputs
+      if: matrix.can_execute == true
+      uses: actions/upload-artifact@v7
+      with:
+        name: audio-regression-output-${{ matrix.simd_variant }}
+        path: Tests/AudioRegressionTests/output
+        retention-days: 14
+        if-no-files-found: warn
+
+    - name: Upload audio regression references (primary variant)
+      if: matrix.primary == true
+      uses: actions/upload-artifact@v7
+      with:
+        name: audio-regression-references
+        path: Tests/AudioRegressionTests/references
+        retention-days: 30
+        if-no-files-found: warn
+
+    # Build Qt projects with qmake (Editor, DeviceSelector, UpdateChecker)
+    - name: Build Qt Applications
+      shell: pwsh
+      run: |
+        function Import-VsDevEnvironment {
+          param([string]$Arch)
+
+          $vswherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswherePath)) {
+            Write-Error "vswhere.exe not found at $vswherePath"
+            exit 1
+          }
+
+          $vsInstallPath = & $vswherePath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
+          if (-not $vsInstallPath) {
+            $vsInstallPath = & $vswherePath -products * -requires Microsoft.Component.MSBuild -property installationPath -latest
+          }
+          if (-not $vsInstallPath) {
+            Write-Error "Visual Studio installation not found"
+            exit 1
+          }
+
+          $devCmdPath = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
+          if (-not (Test-Path $devCmdPath)) {
+            Write-Error "VsDevCmd.bat not found at $devCmdPath"
+            exit 1
+          }
+
+          Write-Host "Configuring MSVC environment for $Arch"
+          $environment = cmd /c "`"$devCmdPath`" -arch=$Arch -no_logo >nul && set"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "VsDevCmd.bat failed for architecture $Arch"
+            exit $LASTEXITCODE
+          }
+
+          foreach ($line in $environment) {
+            if ($line -match "^(.*?)=(.*)$") {
+              Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
+            }
+          }
+
+          Write-Host "Configured MSVC target: $env:VSCMD_ARG_TGT_ARCH"
+        }
+
+        Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
+
+        # Find qmake from Qt installation
+        $qmakeCommand = Get-Command qmake -ErrorAction SilentlyContinue
+        $qmakePath = if ($qmakeCommand) { $qmakeCommand.Source } else { "" }
+        if (-not $qmakePath) {
+          $qmakePath = "$env:QT_ROOT\bin\qmake.exe"
+        }
+        if (-not (Test-Path $qmakePath)) {
+          $qmakePath = "$env:Qt6_DIR\bin\qmake.exe"
+        }
+        Write-Host "Using qmake: $qmakePath"
+
+        $lreleaseCommand = Get-Command lrelease -ErrorAction SilentlyContinue
+        $lreleasePath = if ($lreleaseCommand) { $lreleaseCommand.Source } else { "" }
+        if (-not $lreleasePath) {
+          $lreleasePath = "$env:QT_ROOT\bin\lrelease.exe"
+        }
+        if (-not (Test-Path $lreleasePath)) {
+          $lreleasePath = "$env:Qt6_DIR\bin\lrelease.exe"
+        }
+        Write-Host "Using lrelease: $lreleasePath"
+
+        $windeployqtCommand = Get-Command windeployqt -ErrorAction SilentlyContinue
+        $windeployqtPath = if ($windeployqtCommand) { $windeployqtCommand.Source } else { "" }
+        if (-not $windeployqtPath) {
+          $windeployqtPath = "$env:QT_ROOT\bin\windeployqt.exe"
+        }
+        if (-not (Test-Path $windeployqtPath)) {
+          $windeployqtPath = "$env:Qt6_DIR\bin\windeployqt.exe"
+        }
+        Write-Host "Using windeployqt: $windeployqtPath"
+
+        # Find build tool (jom or nmake)
+        $jomPath = Get-Command jom -ErrorAction SilentlyContinue
+        $buildTool = if ($jomPath) { "jom" } else { "nmake" }
+        Write-Host "Using build tool: $buildTool"
+
+        $BuildPlatform = "${{ matrix.platform }}"
+        $updateChannel = if ($BuildPlatform -eq "ARM64") {
+          # Must match the channel the create-release job publishes for ARM64
+          # (derived from the artifact name EqualizerAPO-ARM64-neon -> arm64-neon).
+          # The old "arm64" looked for releases.arm64.json, which is never
+          # published, so ARM64 builds never found updates.
+          "arm64-neon"
+        } elseif ($BuildPlatform -eq "x64") {
+          "x64-" + ("${{ matrix.simd_variant }}" -replace "_", "-")
+        } else {
+          $BuildPlatform.ToLowerInvariant()
+        }
+        Write-Host "Qt update channel: $updateChannel"
+        if ($BuildPlatform -eq "x64") {
+          # Set compiler flags based on SIMD variant
+          $simdFlags = "${{ matrix.qt_arch_flag }}"
+          if ($simdFlags) {
+            Write-Host "Qt builds using SIMD flags: $simdFlags (variant: ${{ matrix.simd_variant }})"
+          } else {
+            Write-Host "Qt builds using MSVC x64 baseline code generation (variant: ${{ matrix.simd_variant }})"
+          }
+        }
+
+        # Helper function to build a Qt project
+        function Build-QtProject {
+          param($projectName, $projectPath)
+
+          Write-Host "`n=== Building $projectName ==="
+          $buildDir = "build-$projectName-${{ matrix.platform }}"
+
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+          Set-Location $buildDir
+
+
+          & $lreleasePath ..\$projectPath
+          $qmakeChannelArg = "EAPO_UPDATE_CHANNEL=$updateChannel"
+          # force_debug_info keeps a PDB next to each release executable so
+          # field crash minidumps (CrashHandler) can be symbolized against the
+          # exact shipped binary. The PDBs are pulled out of the release dir
+          # before packaging and uploaded as a separate artifact.
+          $qmakeArgs = @("..\$projectPath", "-r", "CONFIG+=release", "CONFIG+=force_debug_info", $qmakeChannelArg)
+          if ($BuildPlatform -eq "x64") {
+            if ($simdFlags) {
+              $qmakeArgs += "EAPO_SIMD_FLAGS=$simdFlags"
+            } else {
+              $qmakeArgs += "EAPO_SIMD_BASELINE=1"
+            }
+          }
+          & $qmakePath @qmakeArgs
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "$projectName qmake failed"
+            Set-Location ..
+            return $false
+          }
+
+          & $buildTool
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "$projectName build failed"
+            Set-Location ..
+            return $false
+          }
+
+          # Deploy Qt dependencies (DLLs, plugins, etc.)
+          Write-Host "Deploying Qt dependencies for $projectName..."
+          $exePath = "release\$projectName.exe"
+          if (Test-Path $exePath) {
+            Write-Host "Running: $windeployqtPath $exePath --release --no-opengl-sw"
+            & $windeployqtPath $exePath --release --no-opengl-sw
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "windeployqt failed for $projectName (exit code: $LASTEXITCODE)"
+              Set-Location ..
+              return $false
+            }
+
+            # Verify critical Qt files were deployed
+            $requiredFiles = @("platforms\qwindows.dll")
+            $missingFiles = @()
+            foreach ($file in $requiredFiles) {
+              $filePath = "release\$file"
+              if (-not (Test-Path $filePath)) {
+                $missingFiles += $file
+              }
+            }
+
+            if ($missingFiles.Count -gt 0) {
+              Write-Error "Critical Qt files missing after windeployqt: $($missingFiles -join ', ')"
+              Set-Location ..
+              return $false
+            }
+
+            Write-Host "Qt dependencies deployed successfully for $projectName"
+          } else {
+            Write-Error "Executable not found at $exePath"
+            Set-Location ..
+            return $false
+          }
+
+          Set-Location ..
+          Write-Host "$projectName built successfully"
+          return $true
+        }
+
+        # Build all Qt projects
+        $editorSuccess = Build-QtProject "Editor" "Editor\Editor.pro"
+        $deviceSelectorSuccess = Build-QtProject "DeviceSelector" "DeviceSelector\DeviceSelector.pro"
+        $updateCheckerSuccess = Build-QtProject "UpdateChecker" "UpdateChecker\UpdateChecker.pro"
+
+        # Verify the executables exist. We check the files directly rather than the
+        # Build-QtProject return values: PowerShell folds the external tools' stdout
+        # into a function's output, so $...Success ended up a non-empty (always
+        # truthy) array and a failed Editor build slipped through as "success",
+        # only surfacing later as a missing Editor.exe in create-release.
+        $requiredExes = @(
+          "build-Editor-${{ matrix.platform }}\release\Editor.exe",
+          "build-DeviceSelector-${{ matrix.platform }}\release\DeviceSelector.exe",
+          "build-UpdateChecker-${{ matrix.platform }}\release\UpdateChecker.exe"
+        )
+        $missingExes = @($requiredExes | Where-Object { -not (Test-Path $_) })
+        if ($missingExes.Count -gt 0) {
+          Write-Error "Qt build did not produce: $($missingExes -join ', ')"
+          exit 1
+        }
+
+        Write-Host "`nAll Qt applications built successfully!"
+
+    # Offscreen skin gallery: proves the Editor renders every skin headless and
+    # publishes the judging material for the skin program (issues #66-#68).
+    # Primary avx2 variant only: the gallery is QSS/QPainter output and does
+    # not vary by SIMD variant.
+    - name: Run skin gallery (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      # A hard step timeout: if the Editor ever blocks on a fatal-error dialog
+      # again, the job must fail in minutes instead of hanging for hours.
+      timeout-minutes: 10
+      shell: pwsh
+      run: |
+        # The import lib embeds the SONAME velopack_libc.dll (see the Package
+        # binaries step); the gallery runs from the build dir, so the renamed
+        # DLL must sit next to Editor.exe here too.
+        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll" `
+          -Destination "build-Editor-x64\release\velopack_libc.dll" -Force
+
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
+        # windeployqt deployed only the qwindows platform plugin next to
+        # Editor.exe, and the deployed Qt6Core.dll in the app dir wins the DLL
+        # search, which limits plugin resolution to the deployed set - the
+        # offscreen plugin then fails to load and Qt parks a fatal-error dialog
+        # forever on the headless runner. Point the platform-plugin search at
+        # the full Qt install instead (verified: without this the gallery
+        # hangs; with it, all 120 PNGs render).
+        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
+        $env:QT_QPA_PLATFORM = "offscreen"
+        $outDir = "${{ github.workspace }}\skin-gallery"
+        # Editor.exe is a GUI-subsystem binary; Start-Process -Wait is the
+        # reliable way to collect its exit code from PowerShell.
+        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
+          -ArgumentList @("--skin-gallery", $outDir) -PassThru -Wait -NoNewWindow
+        if ($proc.ExitCode -ne 0) {
+          Write-Error "Skin gallery failed (exit code $($proc.ExitCode))"
+          exit 1
+        }
+        $pngs = @(Get-ChildItem $outDir -Filter *.png)
+        Write-Host "Gallery wrote $($pngs.Count) PNGs"
+        # SkinGallery self-checks the shot count (skins x 2 modes x (rows x 3 +
+        # fixed chrome)) and exits non-zero on any mismatch, so the exit-code
+        # check above already catches a missing or extra shot. Adding a gallery
+        # row no longer needs a hard-coded count here; just guard against an
+        # empty run.
+        if ($pngs.Count -lt 1) {
+          Write-Error "Gallery produced no PNGs"
+          exit 1
+        }
+
+    - name: Upload skin gallery
+      if: matrix.simd_variant == 'avx2'
+      uses: actions/upload-artifact@v7
+      with:
+        name: skin-gallery
+        path: skin-gallery/*.png
+
+    # Pull the debug symbols out of the release dirs so the installers stay
+    # lean, and keep them as a run artifact: field crash minidumps written by
+    # the Editor's CrashHandler can only be symbolized against the PDB of the
+    # exact shipped binary.
+    - name: Collect debug symbols
+      shell: pwsh
+      run: |
+        $symDir = "${{ github.workspace }}\symbols"
+        New-Item -ItemType Directory -Force -Path $symDir | Out-Null
+        foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
+          $pdb = "build-$app-${{ matrix.platform }}\release\$app.pdb"
+          if (Test-Path $pdb) {
+            Move-Item $pdb (Join-Path $symDir "$app.pdb") -Force
+          } else {
+            Write-Warning "$pdb not found (force_debug_info missing?)"
+          }
+        }
+        $apoPdb = "EqualizerAPO\${{ matrix.platform }}\Release\EqualizerAPO.pdb"
+        if (Test-Path $apoPdb) {
+          Copy-Item $apoPdb (Join-Path $symDir "EqualizerAPO.pdb") -Force
+        }
+        Get-ChildItem $symDir
+
+    - name: Upload debug symbols
+      uses: actions/upload-artifact@v7
+      with:
+        name: symbols-${{ matrix.platform }}-${{ matrix.simd_variant }}
+        path: symbols/*.pdb
+
+    # Package artifacts
+    - name: Package binaries
+      shell: pwsh
+      run: |
+        $platform = "${{ matrix.platform }}"
+        $simdVariant = "${{ matrix.simd_variant }}"
+        $artifactName = "EqualizerAPO-$platform-$simdVariant"
+        $artifactPath = "${{ github.workspace }}\artifacts\$artifactName"
+
+        New-Item -ItemType Directory -Force -Path $artifactPath | Out-Null
+
+        # Determine output directory (all platforms use {Platform}/Release)
+        $outDir = "$platform\Release"
+
+        # Copy main binaries (required files)
+        $requiredFiles = @(
+          "EqualizerAPO\${{ matrix.platform }}\Release\EqualizerAPO.dll",
+          "Benchmark\${{ matrix.platform }}\Release\Benchmark.exe",
+          "VoicemeeterClient\${{ matrix.platform }}\Release\VoicemeeterClient.exe"
+        )
+
+        foreach ($file in $requiredFiles) {
+          $sourcePath = "${{ github.workspace }}\$file"
+          if (Test-Path $sourcePath) {
+            Copy-Item $sourcePath -Destination $artifactPath
+            Write-Host "Copied: $file"
+          } else {
+            Write-Error "Required file not found: $file"
+            exit 1
+          }
+        }
+        Copy-Item ${{ github.workspace }}\deps\fftw\Release\*.dll -Destination $artifactPath -Force
+        Copy-Item ${{ github.workspace }}\deps\libsndfile\build\Release\*.dll -Destination $artifactPath -Force
+
+        # Velopack runtime DLL the Editor and UpdateChecker link against (per-arch).
+        # The distributed file carries an arch suffix, but the import lib embeds the
+        # SONAME "velopack_libc.dll", so the loader looks for that exact name at run
+        # time. Deploy it as velopack_libc.dll next to the executables, otherwise the
+        # app fails to start with "velopack_libc.dll is missing".
+        $velopackArch = if ($platform -eq "ARM64") { "arm64" } else { "x64" }
+        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_${velopackArch}_msvc.dll" -Destination (Join-Path $artifactPath "velopack_libc.dll") -Force
+
+        # Copy Qt applications built with qmake (Editor, DeviceSelector, UpdateChecker)
+        # Include all deployed Qt dependencies (DLLs, plugins, etc.)
+        $qtApps = @("Editor", "DeviceSelector", "UpdateChecker")
+
+        foreach ($appName in $qtApps) {
+            $buildDir = "${{ github.workspace }}\build-$appName-$platform\release"
+            $exePath = "$buildDir\$appName.exe"
+
+            if (Test-Path $exePath) {
+              # Copy the entire release directory to preserve Qt deployment structure
+              # This includes the .exe, Qt DLLs, platforms/, styles/, etc.
+              # BUT exclude build artifacts (.obj, .res, .log, etc.)
+              Write-Host "Copying $appName with Qt dependencies..."
+
+              # Get all items in the release directory, excluding build artifacts
+              $excludeExtensions = @('.obj', '.res', '.log', '.tlog', '.iobj', '.ipdb', '.ilk', '.pdb')
+              $items = Get-ChildItem -Path $buildDir -Recurse | Where-Object {
+                # Exclude files with build artifact extensions
+                if (-not $_.PSIsContainer) {
+                  $extension = $_.Extension.ToLower()
+                  return -not ($excludeExtensions -contains $extension)
+                }
+                return $true  # Include all directories
+              }
+
+              foreach ($item in $items) {
+                $relativePath = $item.FullName.Substring($buildDir.Length + 1)
+                $targetPath = Join-Path $artifactPath $relativePath
+
+                if ($item.PSIsContainer) {
+                  # Create directory
+                  New-Item -ItemType Directory -Force -Path $targetPath | Out-Null
+                } else {
+                  # Copy file
+                  $targetDir = Split-Path $targetPath -Parent
+                  if (-not (Test-Path $targetDir)) {
+                    New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+                  }
+                  Copy-Item -Path $item.FullName -Destination $targetPath -Force
+                }
+              }
+
+              Write-Host "Copied: $appName with Qt dependencies (DLLs, plugins, excluding .obj files)"
+            } else {
+              Write-Host "$appName.exe not built (build may have failed)"
+            }
+        }
+
+    # Upload artifacts
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}
+        path: |
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/*.dll
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/*.exe
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/iconengines/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/imageformats/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/platforms/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/styles/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/tls/
+        if-no-files-found: error
+        retention-days: 90
+
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    # cppcheck is built from a pinned release tag instead of apt because the
+    # apt package version drifts with the runner image and the finding set
+    # changes between cppcheck releases. The gate below must stay reproducible
+    # against the same version developers run locally.
+    - name: Cache cppcheck
+      id: cache-cppcheck
+      uses: actions/cache@v6
+      with:
+        path: ~/cppcheck-install
+        key: cppcheck-2.21.0-${{ runner.os }}
+
+    - name: Build cppcheck 2.21.0
+      if: steps.cache-cppcheck.outputs.cache-hit != 'true'
+      run: |
+        git clone --depth 1 --branch 2.21.0 https://github.com/danmar/cppcheck.git "$HOME/cppcheck-src"
+        cmake -S "$HOME/cppcheck-src" -B "$HOME/cppcheck-build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/cppcheck-install"
+        cmake --build "$HOME/cppcheck-build" -j"$(nproc)"
+        cmake --install "$HOME/cppcheck-build"
+
+    # The baseline is zero findings and the step fails on any new one.
+    # Policy suppressions (kept out of the code on purpose):
+    # - cstyleCast/shadow*: Win32/COM/VST interop casts and the upstream
+    #   naming style (Qt parent/signal names, ctor parameters named like
+    #   members) would mean churn across long-standing upstream code.
+    # - useStlAlgorithm/postfixOperator: raw loops and it++ are the house
+    #   style inherited from upstream; no behavior or measurable perf impact.
+    # - noExplicitConstructor: single-argument constructors (Qt widgets,
+    #   exception types, filters) are intentionally implicit upstream.
+    # - LocalAllocCalled: LocalAlloc/LocalFree pairs are mandated by the
+    #   Win32 security APIs used (SetEntriesInAcl, GetNamedSecurityInfoW).
+    # - unknownMacro on the two VST3 host files: QUERY_INTERFACE comes from
+    #   the VST3 SDK under deps/, which is excluded from analysis.
+    - name: Run cppcheck
+      run: |
+        "$HOME/cppcheck-install/bin/cppcheck" \
+          --enable=warning,style,performance,portability \
+          --inline-suppr \
+          --library=qt \
+          --library=windows \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          --suppress=unmatchedSuppression \
+          --suppress=cstyleCast \
+          --suppress=shadowFunction \
+          --suppress=shadowVariable \
+          --suppress=shadowMember \
+          --suppress=useStlAlgorithm \
+          --suppress=postfixOperator \
+          --suppress=noExplicitConstructor \
+          --suppress=LocalAllocCalled \
+          --suppress=unknownMacro:helpers/VSTPluginInstance.cpp \
+          --suppress=unknownMacro:helpers/VSTPluginInstanceInternal.h \
+          --suppress=*:libHybridConv-0.1.1/* \
+          --suppress=*:deps/* \
+          --error-exitcode=1 \
+          --quiet \
+          --std=c++17 \
+          -i libHybridConv-0.1.1 \
+          -i deps \
+          --output-file=cppcheck-report.txt \
+          . || failed=1
+        echo "--- cppcheck report ---"
+        cat cppcheck-report.txt || true
+        if [ "${failed:-0}" = "1" ]; then
+          line_count=$(wc -l < cppcheck-report.txt)
+          echo "::error::cppcheck found new issues (${line_count} lines). Fix them or, for a justified false positive, add an inline or job-level suppression with a rationale."
+          exit 1
+        fi
+
+    - name: Upload cppcheck report
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: cppcheck-report
+        path: cppcheck-report.txt
+        retention-days: 30
+
+  pester:
+    # Unit-tests the release keystone Bump-Version.ps1 (the Conventional Commit
+    # -> SemVer mapping that decides every release). Like cppcheck this is an
+    # independent gate with no `if:`, so it runs on pull requests too, where the
+    # version-bump job is skipped. Pester 5 is pinned for reproducibility the
+    # same way the cppcheck version is.
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Install Pester 5
+      shell: pwsh
+      run: |
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        Install-Module Pester -RequiredVersion 5.6.1 -Force -SkipPublisherCheck -Scope CurrentUser
+
+    - name: Run Bump-Version tests
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module Pester -RequiredVersion 5.6.1
+        $config = New-PesterConfiguration
+        $config.Run.Path = ".github/scripts/Tests"
+        $config.Run.Exit = $true
+        $config.Output.Verbosity = "Detailed"
+        $config.TestResult.Enabled = $true
+        $config.TestResult.OutputPath = "pester-results.xml"
+        Invoke-Pester -Configuration $config
+
+    - name: Upload Pester results
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: pester-results
+        path: pester-results.xml
+        retention-days: 30
+
+  cross-variant-compare:
+    needs: build
+    runs-on: ubuntu-latest
+    # The PR pipeline only builds AVX2, so there is nothing to compare
+    # across variants. The always() guard matters on workflow_dispatch runs:
+    # version-bump is skipped there, and GitHub propagates a skip through the
+    # needs chain unless the dependent job's condition overrides it - without
+    # always() the dispatch validation path silently lost this comparison
+    # (first seen on the run validating the arm64 msbuild fix).
+    if: always() && needs.build.result == 'success' && github.event_name != 'pull_request'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Download per-variant audio outputs
+      uses: actions/download-artifact@v7
+      with:
+        pattern: audio-regression-output-*
+        path: artifacts
+
+    - name: Install numpy
+      run: python3 -m pip install --quiet numpy
+
+    - name: Compare SIMD variants
+      run: python3 Tests/AudioRegressionTests/scripts/cross_variant_compare.py
+
+  create-release:
+    needs: [build, version-bump]
+    runs-on: windows-2025-vs2026
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.result == 'success'
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        # Pick up the bumped version.h, not the pre-bump SHA that triggered the run.
+        ref: ${{ needs.version-bump.outputs.bumped_sha || github.sha }}
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v7
+      with:
+        pattern: EqualizerAPO-*
+        path: ${{ github.workspace }}\release-input
+
+    # MSBuild for the x86 auto-detect installer built in this job (the matrix
+    # builds the per-variant binaries; this front-door installer is a single
+    # architecture-agnostic binary built once here).
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v3
+
+    - name: Resolve release version
+      id: version
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        function Get-VersionPart {
+          param([string]$Name)
+
+          $line = Select-String -Path version.h -Pattern "^\s*#define\s+$Name\s+(\d+)" | Select-Object -First 1
+          if (-not $line) {
+            throw "Could not find version part: $Name"
+          }
+          return $line.Matches[0].Groups[1].Value
+        }
+
+        $major = Get-VersionPart "MAJOR"
+        $minor = Get-VersionPart "MINOR"
+        $revision = Get-VersionPart "REVISION"
+        $baseVersion = "$major.$minor.$revision"
+        # Clean SemVer release version (no -main.<run> prerelease suffix). version-bump
+        # already advances version.h per main push, so the base version is unique enough,
+        # and GitHub publishes a tag without a prerelease identifier as a full release.
+        $packVersion = $baseVersion
+        $tag = "v$packVersion"
+
+        # If this exact version was already published (version.h did not bump on this
+        # push), skip re-releasing so we don't overwrite an existing release/tag.
+        $alreadyReleased = "false"
+        gh release view $tag --repo "${{ github.repository }}" *> $null
+        if ($LASTEXITCODE -eq 0) {
+          $alreadyReleased = "true"
+          Write-Host "Release $tag already exists; release steps will be skipped."
+        }
+        $global:LASTEXITCODE = 0
+
+        "base_version=$baseVersion" >> $env:GITHUB_OUTPUT
+        "pack_version=$packVersion" >> $env:GITHUB_OUTPUT
+        "tag=$tag" >> $env:GITHUB_OUTPUT
+        "already_released=$alreadyReleased" >> $env:GITHUB_OUTPUT
+
+        Write-Host "Base version: $baseVersion"
+        Write-Host "Release version: $packVersion"
+        Write-Host "Release tag: $tag"
+
+    - name: Create source archive
+      if: steps.version.outputs.already_released != 'true'
+      shell: pwsh
+      run: |
+        $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
+        git archive --format=zip --output="$sourceZip" HEAD
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+        if (-not (Test-Path $sourceZip)) {
+          Write-Error "Source archive was not created"
+          exit 1
+        }
+        Write-Host "Created source archive: $sourceZip"
+
+    - name: Create Velopack release
+      if: steps.version.outputs.already_released != 'true'
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        dotnet tool install -g vpk
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+        $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+
+        $repoUrl = "https://github.com/${{ github.repository }}"
+        $releaseName = "EqualizerAPO-XT ${{ steps.version.outputs.pack_version }}"
+        $tag = "${{ steps.version.outputs.tag }}"
+        $targetCommit = "${{ github.sha }}"
+        $inputRoot = "${{ github.workspace }}\release-input"
+        $licensePath = "${{ github.workspace }}\License.txt"
+        $iconPath = "${{ github.workspace }}\Editor\icons\applications-graphics-rotated.ico"
+        $configSource = "${{ github.workspace }}\Setup\config"
+        $extrasSource = @(
+          "${{ github.workspace }}\Setup\Configuration tutorial (online).url",
+          "${{ github.workspace }}\Setup\Configuration reference (online).url"
+        )
+        $qtPluginFolders = @('iconengines', 'imageformats', 'platforms', 'styles', 'tls')
+        $buildArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO-*")
+
+        if ($buildArtifacts.Count -eq 0) {
+          Write-Error "No build artifacts were found in $inputRoot"
+          exit 1
+        }
+
+        foreach ($artifact in $buildArtifacts) {
+          $variant = $artifact.Name.Substring("EqualizerAPO-".Length)
+          $channel = ($variant -replace "_", "-").ToLowerInvariant()
+          $packId = "EqualizerAPO-XT-$channel"
+          $packTitle = "EqualizerAPO-XT $variant"
+          $outputDir = "${{ github.workspace }}\velopack-output\$channel"
+          $packDir = "${{ github.workspace }}\velopack-input\$channel"
+          $mainExe = "Editor.exe"
+          $framework = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist143-arm64" } else { "vcredist143-x64" }
+
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          if (Test-Path $packDir) {
+            Remove-Item -Path $packDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
+
+          Write-Host "`n=== Preparing Velopack pack dir for $variant ==="
+          # Copy everything from the build artifact (binaries + Qt deps at top level)
+          Copy-Item -Path (Join-Path $artifact.FullName "*") -Destination $packDir -Recurse -Force
+
+          # Editor.exe calls addLibraryPath("qt"), so Qt plugin folders must live under qt\
+          $qtTarget = Join-Path $packDir "qt"
+          New-Item -ItemType Directory -Force -Path $qtTarget | Out-Null
+          foreach ($folder in $qtPluginFolders) {
+            $source = Join-Path $packDir $folder
+            if (Test-Path $source) {
+              $dest = Join-Path $qtTarget $folder
+              if (Test-Path $dest) {
+                Remove-Item -Path $dest -Recurse -Force
+              }
+              Move-Item -Path $source -Destination $dest -Force
+              Write-Host "Relocated $folder -> qt\$folder"
+            }
+          }
+
+          # Bundle the sample configs and shortcuts
+          if (Test-Path $configSource) {
+            $configTarget = Join-Path $packDir "config"
+            New-Item -ItemType Directory -Force -Path $configTarget | Out-Null
+            Copy-Item -Path (Join-Path $configSource "*") -Destination $configTarget -Recurse -Force
+          }
+          foreach ($extra in $extrasSource) {
+            if (Test-Path $extra) {
+              Copy-Item -Path $extra -Destination $packDir -Force
+            }
+          }
+
+          if (-not (Test-Path (Join-Path $packDir $mainExe))) {
+            Write-Error "$mainExe not found in $packDir"
+            exit 1
+          }
+
+          vpk download github `
+            --repoUrl $repoUrl `
+            --token $env:GITHUB_TOKEN `
+            --outputDir $outputDir `
+            --channel $channel
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "No previous Velopack release was downloaded for channel $channel. Continuing with a full package."
+            $global:LASTEXITCODE = 0
+          }
+
+          $packArgs = @(
+            'pack',
+            '--packId', $packId,
+            '--packVersion', '${{ steps.version.outputs.pack_version }}',
+            '--packDir', $packDir,
+            '--mainExe', $mainExe,
+            '--packTitle', $packTitle,
+            '--packAuthors', 'EqualizerAPO-XT contributors',
+            '--outputDir', $outputDir,
+            '--channel', $channel,
+            '--framework', $framework,
+            '--noPortable',
+            '--skipVeloAppCheck'
+          )
+          if (Test-Path $iconPath) {
+            $packArgs += @('--icon', $iconPath)
+          }
+
+          Write-Host "vpk $($packArgs -join ' ')"
+          vpk @packArgs
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          vpk upload github `
+            --repoUrl $repoUrl `
+            --token $env:GITHUB_TOKEN `
+            --outputDir $outputDir `
+            --channel $channel `
+            --publish `
+            --merge `
+            --releaseName $releaseName `
+            --tag $tag `
+            --targetCommitish $targetCommit
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+        }
+
+        $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
+        gh release upload $tag $sourceZip --clobber --repo "${{ github.repository }}"
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+    - name: Build and publish auto-detect installer
+      if: steps.version.outputs.already_released != 'true'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # EqualizerAPO-XT-Setup.exe is the x86 front-door installer: it detects the
+        # CPU (architecture + AVX level) and downloads/runs the matching per-channel
+        # Setup. It has no external dependencies, so it builds standalone here.
+        # See docs/AutoDetectInstaller.md.
+        $tag = "${{ steps.version.outputs.tag }}"
+
+        msbuild Installer\Installer.vcxproj `
+          /p:Configuration=Release `
+          /p:Platform=Win32 `
+          /m /v:minimal /nologo
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+        $setupExe = "${{ github.workspace }}\Installer\Release\EqualizerAPO-XT-Setup.exe"
+        if (-not (Test-Path $setupExe)) {
+          Write-Error "Auto-detect installer was not produced at $setupExe"
+          exit 1
+        }
+
+        gh release upload $tag $setupExe --clobber --repo "${{ github.repository }}"
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+    # The auto-detect installer refuses to run a downloaded per-channel Setup.exe
+    # whose SHA-256 does not match this file (Installer/AutoInstaller.cpp), so it
+    # must list every *-Setup.exe asset and be uploaded to the same release. The
+    # assets are re-downloaded from the release rather than hashed from local
+    # build directories so the hashes cover exactly the bytes users will get.
+    - name: Publish release checksums
+      if: steps.version.outputs.already_released != 'true'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        $tag = "${{ steps.version.outputs.tag }}"
+        $repo = "${{ github.repository }}"
+
+        $assetNames = @(gh release view $tag --repo $repo --json assets --jq '.assets[].name' |
+            Where-Object { $_ -match '-Setup\.exe$' })
+        if ($assetNames.Count -eq 0) {
+          throw "No setup executables found on release $tag; nothing to checksum."
+        }
+
+        $downloadDir = Join-Path "${{ github.workspace }}" "checksum-input"
+        New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+
+        $lines = @()
+        foreach ($name in ($assetNames | Sort-Object)) {
+          gh release download $tag --repo $repo --pattern $name --dir $downloadDir --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download release asset $name for checksumming"
+          }
+          $hash = (Get-FileHash -Path (Join-Path $downloadDir $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+          $lines += "$hash  $name"
+          Write-Host "$hash  $name"
+        }
+
+        # sha256sum-compatible format: <lowercase-hex>, two spaces, <name>, LF.
+        $sumsPath = Join-Path "${{ github.workspace }}" "SHA256SUMS.txt"
+        [System.IO.File]::WriteAllText($sumsPath, (($lines -join "`n") + "`n"))
+
+        gh release upload $tag $sumsPath --clobber --repo $repo
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+    - name: Write release notes
+      if: steps.version.outputs.already_released != 'true'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $notesPath = "${{ github.workspace }}\release-notes.md"
+        .\.github\scripts\New-ReleaseNotes.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "${{ steps.version.outputs.tag }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -WorkflowRunId "${{ github.run_id }}" `
+          -TargetCommit "${{ github.sha }}" `
+          -OutputPath $notesPath
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+
+        # --prerelease=false: the clean X.Y.Z tag is a full release; make sure vpk's
+        # upload (which may default to prerelease) does not leave it marked as one.
+        gh release edit "${{ steps.version.outputs.tag }}" `
+          --repo "${{ github.repository }}" `
+          --notes-file $notesPath `
+          --prerelease=false `
+          --latest
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }

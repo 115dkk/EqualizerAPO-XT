@@ -1,0 +1,1 @@
+Filter 1: ON IIR Order 2 Coefficients 0.25 0.5 0.25 1 0 0

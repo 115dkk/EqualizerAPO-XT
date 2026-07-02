@@ -1,0 +1,489 @@
+/* ====================================================================
+   Skin: Soft Light — "The iPhone settings screen"
+   (macOS System Settings: round, roomy, impossible to fear)
+   AR1 F2: cards round at 14px, clearly fuller than studio's 8px glass.
+   Corner language: cards/containers/menus 14px, controls 10-12px, chips
+   and value badges full pills, icon buttons circular. Elevation is faked
+   with two background value steps plus a very light 1px border; hover
+   lifts a surface exactly one value step. Hierarchy by size and
+   whitespace.
+   Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
+           text @TEXT@ / mutedText @MUTED@ / border @BORDER@
+           accent @ACCENT@ / borderRadius 14 / row 48
+   ==================================================================== */
+
+* {
+    outline: 0;
+    selection-background-color: @ACCENT@;
+    selection-color: @CARD@;
+}
+
+QWidget {
+    background: @BG@;
+    color: @TEXT@;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 10pt;
+}
+
+QMainWindow, QDialog { background: @BG@; }
+QMainWindow::separator { background: @SURFACE@; width: 6px; height: 6px; }
+
+QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 10px; padding: 6px 12px; }
+
+/* Menu bar: a roomy strip of the same calm header surface. No hairline
+   below - whitespace is the separator (a dividing line is exactly the kind
+   of element this skin removes). Items are stadium pills: hover lifts one
+   value step (the warm cream, not a grey), the open menu rests on the
+   pastel accent. */
+QMenuBar { background: @SURFACE@; color: @TEXT@; padding: 7px 10px; border: 0; }
+QMenuBar::item { background: transparent; padding: 6px 16px; border-radius: 14px; }
+QMenuBar::item:selected { background: @CARD_HOVER@; color: @TEXT@; }
+QMenuBar::item:pressed { background: rgba(59, 130, 246, 0.16); color: @TEXT@; }
+
+/* Dropdowns: rounded menu cards straight from a consumer settings app.
+   14px card, one value step up plus the very light 1px border (the
+   constitutional fake shadow), generous item padding so Hangul never feels
+   cramped, stadium highlight, separators as short inset soft rules and the
+   checked state as a calm accent dot. */
+QMenu { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 14px; padding: 8px 6px; }
+QMenu::item { background: transparent; padding: 9px 26px 9px 16px; border-radius: 16px; min-width: 170px; }
+QMenu::item:selected { background: rgba(59, 130, 246, 0.16); color: @TEXT@; }
+QMenu::item:disabled { color: rgba(120, 111, 103, 0.50); }
+QMenu::separator { height: 2px; background: rgba(233, 222, 209, 0.85); border-radius: 1px; margin: 7px 18px; }
+QMenu::indicator { width: 10px; height: 10px; margin-left: 8px; border-radius: 5px; background: transparent; }
+QMenu::indicator:checked { background: @ACCENT@; }
+QMenu::icon { padding-left: 6px; }
+
+QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; padding: 6px 8px; spacing: 6px; }
+QToolBar::separator { background: @BORDER@; width: 1px; margin: 6px 8px; }
+QToolButton { background: transparent; color: @TEXT@; border: 1px solid transparent; border-radius: 10px; padding: 5px 12px; min-height: 26px; }
+QToolButton:hover { background: rgba(0, 0, 0, 0.04); border: 1px solid rgba(0, 0, 0, 0.06); }
+QToolButton:pressed, QToolButton:checked { background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.55); }
+QToolButton::menu-indicator { image: none; width: 0; height: 0; }
+
+QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 10px; font-weight: 600; }
+
+QPushButton {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 10px;
+    padding: 8px 18px; min-height: 24px;
+}
+QPushButton:hover { background: @CARD_HOVER@; border-color: rgba(59, 130, 246, 0.55); }
+QPushButton:pressed { background: rgba(59, 130, 246, 0.16); border-color: @ACCENT@; }
+QPushButton:default { border: 1px solid @ACCENT@; }
+QPushButton:disabled { color: rgba(120, 111, 103, 0.55); background: @SURFACE@; border-color: @BORDER@; }
+
+QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 10px;
+    padding: 6px 12px;
+    selection-background-color: @ACCENT@; selection-color: @CARD@;
+}
+QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; background: @CARD@; }
+QLineEdit:disabled, QAbstractSpinBox:disabled { color: rgba(120, 111, 103, 0.55); background: @SURFACE@; }
+
+QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
+    subcontrol-origin: border; background: @SURFACE@;
+    width: 22px; border-left: 1px solid @BORDER@;
+}
+QAbstractSpinBox::up-button { subcontrol-position: top right; border-top-right-radius: 9px; }
+QAbstractSpinBox::down-button { subcontrol-position: bottom right; border-bottom-right-radius: 9px; border-top: 1px solid @BORDER@; }
+QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover { background: rgba(59, 130, 246, 0.16); }
+QAbstractSpinBox::up-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid @MUTED@;
+}
+QAbstractSpinBox::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid @MUTED@;
+}
+
+QComboBox {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 10px;
+    padding: 6px 30px 6px 14px; min-height: 28px;
+}
+QComboBox:hover { background: @CARD_HOVER@; border-color: rgba(59, 130, 246, 0.55); }
+QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }
+QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 26px; border: 0; background: transparent; }
+QComboBox::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 5px solid transparent; border-right: 5px solid transparent;
+    border-top: 5px solid @MUTED@; margin-right: 10px;
+}
+QComboBox::down-arrow:on { border-top-color: @ACCENT@; }
+QComboBox QAbstractItemView {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 12px;
+    padding: 6px; outline: 0;
+    selection-background-color: rgba(59, 130, 246, 0.18); selection-color: @TEXT@;
+}
+QComboBox QAbstractItemView::item { padding: 8px 12px; border-radius: 10px; min-height: 26px; }
+
+QCheckBox, QRadioButton { color: @TEXT@; background: transparent; spacing: 10px; padding: 4px; }
+QCheckBox:disabled, QRadioButton:disabled { color: rgba(120, 111, 103, 0.55); }
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 18px; height: 18px; background: @CARD@; border: 1px solid @BORDER@;
+}
+QCheckBox::indicator { border-radius: 6px; }
+QRadioButton::indicator { border-radius: 9px; }
+QCheckBox::indicator:hover, QRadioButton::indicator:hover { border-color: @ACCENT@; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; }
+
+QScrollBar:vertical { background: transparent; width: 14px; margin: 6px 2px; border: 0; }
+QScrollBar::handle:vertical { background: rgba(0, 0, 0, 0.10); min-height: 36px; border-radius: 5px; }
+QScrollBar::handle:vertical:hover { background: rgba(59, 130, 246, 0.45); }
+QScrollBar::handle:vertical:pressed { background: @ACCENT@; }
+QScrollBar:horizontal { background: transparent; height: 14px; margin: 2px 6px; border: 0; }
+QScrollBar::handle:horizontal { background: rgba(0, 0, 0, 0.10); min-width: 36px; border-radius: 5px; }
+QScrollBar::handle:horizontal:hover { background: rgba(59, 130, 246, 0.45); }
+QScrollBar::handle:horizontal:pressed { background: @ACCENT@; }
+QScrollBar::add-line, QScrollBar::sub-line { background: transparent; border: 0; width: 0; height: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
+QScrollBar::up-arrow, QScrollBar::down-arrow, QScrollBar::left-arrow, QScrollBar::right-arrow { background: transparent; width: 0; height: 0; }
+
+QAbstractScrollArea { background: @BG@; color: @TEXT@; border: 0; }
+QScrollArea { background: @BG@; border: 0; }
+QScrollArea > QWidget > QWidget { background: @BG@; }
+
+QDockWidget { color: @TEXT@; background: @BG@; titlebar-close-icon: none; titlebar-normal-icon: none; }
+QDockWidget::title {
+    background: @SURFACE@; color: @MUTED@;
+    text-align: left; padding: 8px 14px;
+    border: 0; border-bottom: 1px solid @BORDER@;
+    font-weight: 600; letter-spacing: 1px;
+}
+QDockWidget::close-button, QDockWidget::float-button { background: transparent; border: 0; border-radius: 8px; padding: 2px; icon-size: 12px; }
+QDockWidget::close-button:hover, QDockWidget::float-button:hover { background: rgba(0, 0, 0, 0.06); }
+
+QTabWidget::pane { background: @BG@; border: 0; border-top: 1px solid @BORDER@; top: -1px; }
+QTabBar { background: @BG@; border: 0; qproperty-drawBase: 0; }
+QTabBar::tab {
+    background: transparent; color: @MUTED@;
+    padding: 10px 22px; border: 0;
+    border-top-left-radius: 10px; border-top-right-radius: 10px;
+    min-width: 80px; margin: 0;
+}
+QTabBar::tab:hover { color: @TEXT@; background: rgba(0, 0, 0, 0.04); }
+QTabBar::tab:selected { color: @TEXT@; background: @CARD@; border-top: 3px solid @ACCENT@; }
+QTabBar::tab:!selected { border-bottom: 1px solid @BORDER@; }
+QTabBar::close-button { image: none; background: transparent; border-radius: 8px; padding: 2px; margin: 4px; subcontrol-position: right; }
+QTabBar::close-button:hover { background: rgba(239, 68, 68, 0.25); }
+QTabBar QToolButton { background: @CARD@; border: 1px solid @BORDER@; border-radius: 8px; margin: 6px 2px; }
+
+QGroupBox {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 14px;
+    margin-top: 16px; padding: 16px 14px 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin; subcontrol-position: top left;
+    padding: 0 8px; color: @MUTED@; background: @BG@;
+    font-weight: 600; letter-spacing: 1px;
+}
+
+QHeaderView { background: @SURFACE@; color: @MUTED@; border: 0; }
+QHeaderView::section {
+    background: @SURFACE@; color: @MUTED@; border: 0;
+    border-right: 1px solid @BORDER@; border-bottom: 1px solid @BORDER@;
+    padding: 8px 12px; font-weight: 600;
+}
+QTreeView, QListView, QTableView {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 14px;
+    alternate-background-color: @CARD_HOVER@;
+    selection-background-color: rgba(59, 130, 246, 0.18); selection-color: @TEXT@;
+    gridline-color: @BORDER@;
+}
+QTreeView::item, QListView::item, QTableView::item { padding: 6px 8px; border-radius: 8px; }
+QTreeView::item:hover, QListView::item:hover, QTableView::item:hover { background: rgba(0, 0, 0, 0.04); }
+QTreeView::item:selected, QListView::item:selected, QTableView::item:selected { background: rgba(59, 130, 246, 0.18); color: @TEXT@; }
+QTreeView::branch { background: transparent; }
+
+QSlider::groove:horizontal { background: @BORDER@; height: 6px; border-radius: 3px; margin: 0 8px; }
+QSlider::sub-page:horizontal { background: @ACCENT@; height: 6px; border-radius: 3px; }
+QSlider::handle:horizontal { background: @CARD@; border: 2px solid @ACCENT@; width: 16px; height: 16px; margin: -6px 0; border-radius: 10px; }
+QSlider::groove:vertical { background: @BORDER@; width: 6px; border-radius: 3px; margin: 8px 0; }
+QSlider::add-page:vertical { background: @ACCENT@; width: 6px; border-radius: 3px; }
+QSlider::sub-page:vertical { background: @BORDER@; width: 6px; border-radius: 3px; }
+QSlider::handle:vertical { background: @CARD@; border: 2px solid @ACCENT@; width: 16px; height: 16px; margin: 0 -6px; border-radius: 10px; }
+
+QSplitter::handle { background: @BORDER@; }
+QSplitter::handle:horizontal { width: 1px; }
+QSplitter::handle:vertical { height: 1px; }
+QSplitter::handle:hover { background: @ACCENT@; }
+
+QStatusBar { background: @SURFACE@; color: @MUTED@; border: 0; border-top: 1px solid @BORDER@; }
+QStatusBar::item { border: 0; }
+
+QProgressBar { background: @SURFACE_SUNKEN@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 10px; text-align: center; }
+QProgressBar::chunk { background: @ACCENT@; border-radius: 8px; }
+
+QFrame[frameShape="4"], QFrame[frameShape="5"] { background: @BORDER@; border: 0; }
+
+QFrame#analysisControlBar { background: @CARD@; border: 1px solid @BORDER@; border-radius: 14px; }
+QLabel#AnalysisFormLabel { color: @MUTED@; background: transparent; font-weight: 600; padding: 0 6px; }
+QComboBox#AnalysisFormCombo { min-width: 110px; }
+QFrame#AnalysisStatChip { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 14px; }
+QLabel#AnalysisStatLabel { color: @MUTED@; background: transparent; font-weight: 600; font-size: 9pt; letter-spacing: 1px; }
+QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace; }
+QLabel#AnalysisStatValue[severity="warning"] { color: #d97706; }
+QLabel#AnalysisStatValue[severity="critical"] { color: #dc2626; }
+
+QWidget#ModernAnalysisGraph { background: @SURFACE_SUNKEN@; border: 1px solid @BORDER@; border-radius: 14px; }
+
+/* Command rows: one calm 14px card per row, one value step above the
+   window, "shadowed" by that step plus the light 1px border. The header
+   shares the card surface (no banded strip); the expanded body is an inset
+   tray one value step below the card. */
+QFrame#FilterCardRow { background: @CARD@; border: 1px solid @BORDER@; border-radius: 14px; }
+QWidget#FilterCardHeader { background: transparent; }
+QWidget#FilterCardBody, QWidget#FilterCardEditor { background: @BG@; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+
+/* The command type announces itself like an iOS Settings row: a stadium
+   pastel chip leading the row (AR1 F2: colours come inline from the skin's
+   typeBadgeStyle, which pastelises the descriptor colour with the picker's
+   recipe and inks the text in a deep warm neutral; the chip shape and caps
+   typography live here). */
+QLabel#FilterTypeBadge {
+    border-radius: 11px;
+    font-weight: 700; padding: 4px 10px; min-height: 22px;
+    font-size: 9pt; letter-spacing: 1px;
+}
+QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 600; font-size: 11pt; }
+QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
+QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 600; }
+
+/* A commented-out row sleeps: the frame sinks into the window background
+   with a dashed outline (set by the skin's cardFrameStyle) and its header
+   text relaxes to the muted weight. */
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardTitle { color: @MUTED@; font-weight: 500; }
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardSummary { color: rgba(120, 111, 103, 0.7); }
+
+QToolButton#FilterCardIconButton {
+    background: @SURFACE@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 14px;
+    min-width: 28px; min-height: 28px; padding: 2px 4px; font-weight: 700;
+}
+QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color: rgba(59, 130, 246, 0.55); }
+QToolButton#FilterCardIconButton:checked { background: rgba(59, 130, 246, 0.22); border-color: @ACCENT@; }
+QLineEdit#FilterCardRawEditor { background: @CARD@; border: 1px solid @ACCENT@; border-radius: 10px; padding: 8px 12px; }
+QCheckBox#FilterCardEnabled { background: transparent; }
+
+/* AR1 X5: the parameter area in the rounded-card grammar. The mode boxes
+   beside the knobs are genuine selectors, so they stay honest combos -
+   stadium pills one value step above the body tray, with the muted arrow
+   kept visible. The value boxes (spin buttons purged, value scrub) are
+   sunken stadium wells; focus is a calm accent ring, never an alarm. The
+   horizontal paddings stay tight so the row keeps clearing the 960px
+   gallery viewport (X2). */
+QComboBox[paramSelector="true"], QComboBox[filterSelector="true"] {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 14px;
+    padding: 3px 22px 3px 12px; min-height: 20px;
+}
+QComboBox[filterSelector="true"] { font-weight: 600; }
+QComboBox[paramSelector="true"] { color: @MUTED@; font-size: 9pt; }
+QComboBox[paramSelector="true"]:hover, QComboBox[filterSelector="true"]:hover {
+    background: @CARD_HOVER@; border-color: rgba(59, 130, 246, 0.40);
+}
+QComboBox[paramSelector="true"]:focus, QComboBox[paramSelector="true"]:on,
+QComboBox[filterSelector="true"]:focus, QComboBox[filterSelector="true"]:on {
+    border: 1px solid rgba(59, 130, 246, 0.55);
+}
+QDoubleSpinBox[valueScrub="true"], QSpinBox[valueScrub="true"] {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 13px;
+    padding: 4px 10px; min-height: 18px; font-weight: 600;
+}
+QDoubleSpinBox[valueScrub="true"]:hover, QSpinBox[valueScrub="true"]:hover {
+    background: @CARD@; border-color: rgba(59, 130, 246, 0.35);
+}
+QDoubleSpinBox[valueScrub="true"]:focus, QSpinBox[valueScrub="true"]:focus {
+    background: @CARD@; border: 1px solid rgba(59, 130, 246, 0.55);
+}
+QDoubleSpinBox[valueScrub="true"]:disabled, QSpinBox[valueScrub="true"]:disabled {
+    color: rgba(120, 111, 103, 0.55); background: @SURFACE@;
+}
+
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
+QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 9pt; }
+QLabel#EditableValue {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 16px;
+    padding: 8px 14px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
+}
+QLineEdit#EditableValueEditor {
+    background: @CARD@; border: 1px solid @ACCENT@;
+    border-radius: 16px; padding: 8px 14px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
+}
+
+/* Reference cards (Include / Convolution / MultiConvolution / VST bodies,
+   AR2 #97): the entity presentation - the pastel monogram tile, the
+   two-line identity, the fact chips and the calm Locate pill - is
+   assembled from tokens in SoftReferenceCardView. Here the seam and the
+   host bodies stay fully transparent over the card tray (an opaque band
+   behind the name is exactly the anxious artifact this skin removes), and
+   the shared inline path editor becomes a sunken stadium well whose focus
+   is a quiet accent ring, never an alarm. */
+QWidget#ReferenceCardView, QWidget#RefCardContent,
+QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
+QWidget#VSTCardEditor { background: transparent; border: 0; }
+QLineEdit#RefPathEdit { background: @SURFACE_SUNKEN@; border: 1px solid @BORDER@; border-radius: 16px; padding: 7px 16px; }
+QLineEdit#RefPathEdit:focus { background: @CARD@; border: 1px solid @ACCENT@; }
+
+/* VST row extras owned by the host: the plugin's own panel opens from an
+   accent pill; the embedded editor rests in a rounded card frame. */
+QPushButton#VSTCardPanelButton {
+    background: rgba(59, 130, 246, 0.12); color: @ACCENT@;
+    border: 0; border-radius: 15px;
+    padding: 6px 18px; min-height: 24px; font-weight: 700;
+}
+QPushButton#VSTCardPanelButton:hover { background: rgba(59, 130, 246, 0.20); }
+QPushButton#VSTCardPanelButton:pressed { background: rgba(59, 130, 246, 0.30); }
+QPushButton#VSTCardPanelButton:disabled { background: @SURFACE@; color: rgba(120, 111, 103, 0.55); }
+QFrame#VSTCardEmbedFrame { background: @CARD@; border: 1px solid @BORDER@; border-radius: 14px; }
+QPlainTextEdit#VSTCardWarning { background: rgba(217, 119, 6, 0.08); color: @TEXT@; border: 1px solid rgba(217, 119, 6, 0.35); border-radius: 10px; padding: 6px; }
+
+/* Add-filter picker (SoftFilterPickerView): a rounded menu card. The card
+   frame, its faked drop step and the rows (pastel tiles, stadium highlights,
+   pill section headers) are painted from tokens by the view and its delegate;
+   here live the pill search field and the transparent list body. */
+QLineEdit#SoftPickerSearch {
+    background: @SURFACE_SUNKEN@; border: 1px solid @BORDER@;
+    border-radius: 17px; padding: 8px 16px; min-height: 18px;
+}
+QLineEdit#SoftPickerSearch:focus { border: 1px solid @ACCENT@; background: @SURFACE_SUNKEN@; }
+QListWidget#SoftPickerList { background: transparent; border: 0; }
+
+/* Toolbar/Tab spacers and labels transparent so parent bg shows through */
+QLabel { background: transparent; }
+QWidget#ToolBarSpacer { background: transparent; }
+
+/* ====================================================================
+   Main toolbar: the calm header band of a consumer settings app.
+   The band rests one value step above the window with NO hard separator
+   (whitespace does the separating). File actions are invisible at rest;
+   the cursor lifts them one value step on a fully rounded highlight,
+   pressing adds one more. Instant mode is a real stadium toggle, the save
+   state and device format ride in pastel stadium pills, and the combos
+   breathe inside full pills one value step above the band.
+   ==================================================================== */
+QToolBar#MainToolBar { background: @SURFACE@; border: 0; padding: 10px 14px; spacing: 8px; }
+QToolBar#MainToolBar::separator { background: transparent; width: 12px; margin: 0; }
+
+QToolBar#MainToolBar QToolButton {
+    background: transparent; color: @TEXT@;
+    border: 1px solid transparent; border-radius: 17px;
+    padding: 6px; min-width: 22px; min-height: 22px;
+}
+QToolBar#MainToolBar QToolButton:hover { background: @CARD@; border: 1px solid @BORDER@; }
+QToolBar#MainToolBar QToolButton:pressed,
+QToolBar#MainToolBar QToolButton:checked { background: @CARD_HOVER@; border: 1px solid @BORDER@; }
+
+QToolBar#MainToolBar QLabel#ToolBarLabel { color: @MUTED@; padding: 0 6px 0 14px; font-weight: 600; }
+
+/* Instant mode as a friendly toggle: stadium track, knob baked into the
+   state SVGs, calm accent when on. The off track is the muted token at low
+   alpha so the near-white knob reads in both modes. */
+QCheckBox#InstantModeCheckBox { color: @TEXT@; font-weight: 600; spacing: 10px; padding: 4px 6px; }
+QCheckBox#InstantModeCheckBox::indicator {
+    width: 36px; height: 20px; border-radius: 10px; border: 0;
+    background: rgba(120, 111, 103, 0.35);
+    image: url(:/icons/modern/soft-toggle-knob-off.svg);
+}
+QCheckBox#InstantModeCheckBox::indicator:hover { background: rgba(120, 111, 103, 0.45); }
+QCheckBox#InstantModeCheckBox::indicator:checked {
+    background: @ACCENT@;
+    image: url(:/icons/modern/soft-toggle-knob-on.svg);
+}
+QCheckBox#InstantModeCheckBox::indicator:checked:hover { background: rgba(59, 130, 246, 0.85); }
+
+/* The save state is a status pill: "Saved" rests in a muted success
+   pastel; unsaved warms up one tint - warmer, never an alarm. */
+QLabel#DirtyStatusBadge {
+    background: rgba(34, 197, 94, 0.13); color: #257C42;
+    border: 1px solid rgba(34, 197, 94, 0.30);
+    border-radius: 13px; padding: 5px 14px;
+    font-weight: 600; font-size: 9pt;
+}
+QLabel#DirtyStatusBadge[dirty="true"] {
+    background: rgba(245, 158, 11, 0.14); color: #996714;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+/* Device format pill: calm accent pastel normally, the same warm (not
+   alarmed) tint when the stream is only forwarded. */
+QLabel#DeviceFormatBadge {
+    background: rgba(59, 130, 246, 0.12); color: #32538B;
+    border: 1px solid rgba(59, 130, 246, 0.32);
+    border-radius: 13px; padding: 5px 12px;
+    font-weight: 600; font-size: 9pt;
+}
+QLabel#DeviceFormatBadge[severity="warning"] {
+    background: rgba(245, 158, 11, 0.14); color: #996714;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+/* The combos breathe in full stadium pills one value step above the band;
+   hover lifts exactly one more step. */
+QComboBox#ToolBarComboBox {
+    background: @CARD@; border: 1px solid @BORDER@;
+    border-radius: 16px; padding: 6px 32px 6px 16px; min-height: 20px;
+}
+QComboBox#ToolBarComboBox:hover { background: @CARD_HOVER@; border-color: @BORDER@; }
+QComboBox#ToolBarComboBox:focus, QComboBox#ToolBarComboBox:on { border: 1px solid @ACCENT@; }
+
+/* ===== Window chrome (custom title bar) - Soft Lab: the calm app header =====
+   One value step off the window, no hairline anywhere (whitespace
+   separates it from the content). The title wears a friendly weight in the
+   full ink instead of caption-grey, and the caption buttons rest as soft
+   rounded squares - a card face one step up with the very light 1px border,
+   the constitutional fake shadow. Hover lifts them one more value step on a
+   fully rounded (stadium) highlight. Close never alarms: it warms with the
+   dirty-badge amber pastel, the same "warmer, not alarmed" grammar as the
+   save-state pill; the red X is exactly the kind of anxious element this
+   skin removes. */
+QWidget#AppTitleBar {
+    background: @SURFACE@;
+    border: 0;
+}
+QLabel#TitleBarText {
+    background: transparent;
+    color: @TEXT@;
+    font-size: 10pt;
+    font-weight: 600;
+}
+QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
+    background: @CARD@;
+    border: 1px solid @BORDER@;
+    border-radius: 8px;
+    margin: 3px 2px;
+    /* Neutralize the generic QToolButton padding/min-height: the caption
+       buttons are fixed 40x30 and the inherited box pushed the pill past
+       the bar's bottom edge. */
+    padding: 0;
+    min-height: 0;
+    min-width: 0;
+}
+QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
+    background: @CARD_HOVER@;
+    border-radius: 12px;
+}
+QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
+    background: @CARD_SELECTED@;
+    border-radius: 12px;
+}
+QToolButton#TitleBarClose:hover {
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.38);
+    border-radius: 12px;
+}
+QToolButton#TitleBarClose:pressed {
+    background: rgba(245, 158, 11, 0.28);
+    border: 1px solid rgba(245, 158, 11, 0.50);
+    border-radius: 12px;
+}

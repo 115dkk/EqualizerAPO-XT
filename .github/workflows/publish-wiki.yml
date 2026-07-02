@@ -1,0 +1,70 @@
+name: Publish Wiki
+
+# Publishes Wiki/github-wiki/ to the repository's GitHub Wiki (the separate
+# <repo>.wiki.git repository). The Wiki tab reads from that repo, not from
+# files in the main repository, so the documentation under Wiki/github-wiki/
+# has to be pushed there for it to appear.
+#
+# One-time setup before this can succeed:
+#   1. Enable the wiki (Settings -> Features -> Wikis) and create the first
+#      page once in the web UI so the .wiki.git repository exists.
+#   2. Either rely on the default GITHUB_TOKEN (works when Actions has write
+#      access and the wiki is initialized) or, if pushing fails with a
+#      permission error, add a Personal Access Token with repo scope as the
+#      secret WIKI_TOKEN.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Wiki/github-wiki/**'
+      - '.github/workflows/publish-wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Sync Wiki/github-wiki to the GitHub Wiki
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+          DEFAULT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          token="${WIKI_TOKEN:-$DEFAULT_TOKEN}"
+          repo="${{ github.repository }}"
+          source_dir="Wiki/github-wiki"
+          wiki_dir="$(mktemp -d)"
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git clone "https://x-access-token:${token}@github.com/${repo}.wiki.git" "$wiki_dir"; then
+            echo "::error::Could not clone ${repo}.wiki.git. Enable the wiki and create the first page once in the GitHub UI to initialize it, then re-run this workflow."
+            exit 1
+          fi
+
+          # Replace the wiki contents with the source folder, keeping its .git.
+          find "$wiki_dir" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -R "$source_dir"/. "$wiki_dir"/
+
+          cd "$wiki_dir"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date; nothing to publish."
+            exit 0
+          fi
+          git commit -m "Publish wiki from ${{ github.repository }}@${{ github.sha }}"
+          git push
+          echo "Wiki published."

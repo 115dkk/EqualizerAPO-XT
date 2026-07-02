@@ -1,0 +1,595 @@
+# =============================================================================
+# Audio device-loss reproduction harness
+# =============================================================================
+#
+# WHY THIS EXISTS
+#   A user reported that uninstalling EqualizerAPO-XT wiped every audio device
+#   on their machine (Realtek/Topping/VB-Cable all gone; Windows showed "no
+#   audio devices"). This workflow reproduces and DIAGNOSES that failure on a
+#   GitHub-hosted windows-latest runner, exercising the REAL product uninstall
+#   code (DeviceSelector.exe /u and the Velopack --veloapp-uninstall hook).
+#
+# WHAT IT DOES (high level)
+#   1. Snapshot the runner's MMDevices\Audio registry tree (baseline).
+#   2. Seed a fake render endpoint that mimics a real driver's APO chain,
+#      because headless CI runners have no real kernel audio driver and one
+#      cannot be installed unattended (see the long note on the "Seed" step).
+#   3. Download + silently install the latest released x64-avx2 build.
+#   4. Replicate DeviceAPOInfo::install EXACTLY on the seeded endpoint, so the
+#      real uninstall's restore path has something to restore.
+#   5. Run the REAL uninstall: DeviceSelector.exe /u, then the full Velopack
+#      app uninstall (Update.exe --uninstall -> --veloapp-uninstall hook ->
+#      ApoRegistration::uninstall + DllUnregisterServer).
+#   6. Reinstall silently and check whether the endpoint + restored FxProperties
+#      survived and whether the COM registration is consistent.
+#   7. Diagnose: classify the outcome and FAIL the job if the bug reproduces.
+#
+# SAFETY / SCOPE
+#   - on: workflow_dispatch ONLY. This MUST NEVER auto-run on push/schedule:
+#     it installs software, writes HKLM, and runs an uninstaller. It is a
+#     deliberate, manually-triggered diagnostic.
+#   - It runs on a disposable GitHub runner, never on a developer machine.
+#
+# DIAGNOSIS CLASSES (implemented in .github/scripts/Diagnose-AudioUninstall.ps1)
+#   (A) endpoint KEY deleted        -> device gone (the reported bug)     FAIL
+#   (B) FxProperties deleted, key ok -> effects gone, device survives     warn
+#   (C) original APO GUIDs not restored / left pointing at EQ APO while
+#       COM is unregistered (dangling ref -> audiodg can't load endpoint) FAIL
+#   (D) folder over-deletion (unrelated endpoints removed)               FAIL
+#   (E) clean (originals restored, endpoint intact)                      PASS
+#
+# REGISTRY FOOTPRINT THIS HARNESS MIRRORS (from the recon, file:line):
+#   - EQ pre-mix  APO CLSID  {EACD2258-FCAC-4FF4-B36D-419E924A6D79}
+#       helpers/RegistryHelper.h:29
+#   - EQ post-mix APO CLSID  {EC1CC9CE-FAED-4822-828A-82A81A6F018F}
+#       helpers/RegistryHelper.h:31
+#   - Per-endpoint FxProperties APO value names (LFX/GFX/SFX/MFX/EFX), all under
+#     the {d04e05a6-594b-4fb6-a80d-01af5eed7d1d} fmtid:
+#       ,1 ,2 ,5 ,6 ,7  -> devices/DeviceAPOInfo.Install.cpp:38-47
+#   - Default install mode INSTALL_LFX_GFX with installPreMix=true and
+#     installPostMix=true for a render device -> DeviceAPOInfo.h:51-60 +
+#     DeviceAPOInfo.Load.cpp:127-134 (currentInstallState defaults).
+#       => install writes LFX=,1 = pre-mix GUID and GFX=,2 = post-mix GUID,
+#          and deletes SFX/MFX/EFX (Install.cpp:144-156).
+#   - Saved originals for restore live under
+#       HKLM\SOFTWARE\EqualizerAPO\Child APOs\{deviceGuid}
+#     as the same ,1/,2/,5/,6/,7 value names (Install.cpp:97-116), plus
+#     PreMixChild/PostMixChild/Version/AllowSilentBufferModification.
+#       When FxProperties did NOT exist before install, all five saved values are
+#       the sentinel "!KEY" (APOGUID_NOKEY, DeviceAPOInfo.h:28); uninstall then
+#       DELETES the whole FxProperties key (Uninstall.cpp:74-77).
+#       When FxProperties DID exist, each saved value is the original GUID or the
+#       "!VALUE" sentinel (APOGUID_NOVALUE, DeviceAPOInfo.h:29); uninstall
+#       restores/deletes per value (Uninstall.cpp:78-91).
+#   - load() repopulates originalApoGuids from Child APOs\{guid} at uninstall
+#     time (DeviceAPOInfo.Load.cpp:199-203). THIS is the restore source.
+#   - Install/uninstall only edit FxProperties + Child APOs; nothing disables or
+#     deletes the endpoint KEY itself. deleteKey() uses RegDeleteKeyExW
+#     (RegistryHelper.cpp:291-299) which only removes a leaf key with no
+#     subkeys, so the FxProperties-delete branch cannot reach class (A).
+# =============================================================================
+
+name: Audio uninstall reproduction
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to test (blank = latest)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  # EqualizerAPO APO CLSIDs (helpers/RegistryHelper.h:29,31). Upper-case here so
+  # they match StringFromCLSID output (RegistryHelper::getGuidString), which is
+  # what install writes into FxProperties.
+  EQ_PREMIX_GUID: "{EACD2258-FCAC-4FF4-B36D-419E924A6D79}"
+  EQ_POSTMIX_GUID: "{EC1CC9CE-FAED-4822-828A-82A81A6F018F}"
+  # The APO value-name fmtid + indices written under FxProperties
+  # (DeviceAPOInfo.Install.cpp:38-47).
+  FX_LFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1"
+  FX_GFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},2"
+  FX_SFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5"
+  FX_MFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},6"
+  FX_EFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7"
+  # A stable, made-up endpoint GUID for the seed. Distinct from any real device.
+  TEST_ENDPOINT_GUID: "{aabbccdd-1122-3344-5566-778899aabbcc}"
+  # Plausible non-EQ "original driver" APO GUIDs (these mimic a vendor APO chain
+  # so the restore path has real values to put back). They are arbitrary but
+  # must NOT equal the EQ GUIDs above.
+  ORIG_LFX_GUID: "{11111111-2222-3333-4444-555555555501}"
+  ORIG_GFX_GUID: "{11111111-2222-3333-4444-555555555502}"
+  ORIG_SFX_GUID: "{11111111-2222-3333-4444-555555555505}"
+  # Registry roots (mirrors the #define paths in DeviceAPOInfo.*.cpp:24-27).
+  MMDEVICES_ROOT: "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\MMDevices\\Audio"
+  CHILD_APO_ROOT: "HKLM\\SOFTWARE\\EqualizerAPO\\Child APOs"
+
+jobs:
+  reproduce:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      # -----------------------------------------------------------------------
+      # Setup: a place to keep the snapshots, and a tiny snapshot helper.
+      # -----------------------------------------------------------------------
+      - name: Checkout (for the diagnosis script)
+        uses: actions/checkout@v6
+
+      - name: Prepare snapshot directory
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "audio-snapshots"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          "SNAP_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Snapshots will be written to $dir"
+
+      # -----------------------------------------------------------------------
+      # STEP 1: Baseline snapshot.
+      #   We capture, at every phase:
+      #     - the whole MMDevices\Audio tree to a .reg file, and
+      #     - structured facts about the seeded endpoint (key/FxProperties
+      #       presence, the five APO GUID values, sibling Render count, and a
+      #       best-effort Get-PnpDevice -Class AudioEndpoint enumeration).
+      #   The snapshot logic is written once to a reusable helper script so all
+      #   phases stay in lockstep and there is no drift between them.
+      # -----------------------------------------------------------------------
+      - name: Write snapshot helper
+        shell: pwsh
+        run: |
+          $helper = @'
+          [CmdletBinding()]
+          param(
+              [Parameter(Mandatory=$true)][string]$Phase,
+              [Parameter(Mandatory=$true)][string]$SnapshotDir,
+              [Parameter(Mandatory=$true)][string]$TestEndpointGuid,
+              [Parameter(Mandatory=$true)][string]$MMDevicesRoot
+          )
+          $ErrorActionPreference = "Stop"
+
+          # 1) Full MMDevices\Audio tree as a .reg export (forensic record).
+          $regFile = Join-Path $SnapshotDir "$Phase-mmdevices.reg"
+          reg export $MMDevicesRoot $regFile /y | Out-Null
+
+          # 2) Structured facts about the seeded endpoint + sibling counts.
+          $renderPath = "$MMDevicesRoot\Render"
+          $epKeyPS  = "Registry::$renderPath\$TestEndpointGuid"
+          $fxKeyPS  = "$epKeyPS\FxProperties"
+
+          $endpointKeyPresent  = Test-Path $epKeyPS
+          $fxPropertiesPresent = Test-Path $fxKeyPS
+
+          $fxValues = [ordered]@{}
+          if ($fxPropertiesPresent) {
+              $item = Get-Item $fxKeyPS
+              foreach ($name in $item.GetValueNames()) {
+                  # Only capture the five APO GUID value names we care about.
+                  if ($name -like '{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},*') {
+                      $fxValues[$name] = [string](Get-ItemProperty -Path $fxKeyPS -Name $name).$name
+                  }
+              }
+          }
+
+          # Count Render subkeys OTHER than the seed (over-deletion detector).
+          $siblingRenderCount = 0
+          if (Test-Path "Registry::$renderPath") {
+              $siblingRenderCount = (Get-ChildItem "Registry::$renderPath" |
+                  Where-Object { $_.PSChildName -ne $TestEndpointGuid } | Measure-Object).Count
+          }
+
+          # Whether the EqualizerAPO Child APOs saved-state for the seed exists.
+          $childApoPresent = Test-Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\Child APOs\$TestEndpointGuid"
+
+          # PnP endpoint enumeration (best effort; empty on headless runners).
+          $pnp = @()
+          try {
+              $pnp = Get-PnpDevice -Class AudioEndpoint -ErrorAction Stop |
+                  Select-Object Status, FriendlyName, InstanceId
+          } catch { }
+
+          $obj = [ordered]@{
+              phase                = $Phase
+              endpointKeyPresent   = $endpointKeyPresent
+              fxPropertiesPresent  = $fxPropertiesPresent
+              fxValues             = $fxValues
+              siblingRenderCount   = $siblingRenderCount
+              childApoPresent      = $childApoPresent
+              pnpAudioEndpoints    = $pnp
+          }
+          $obj | ConvertTo-Json -Depth 6 |
+              Out-File -FilePath (Join-Path $SnapshotDir "$Phase-endpoint.json") -Encoding utf8
+          Write-Host "[$Phase] keyPresent=$endpointKeyPresent fxPresent=$fxPropertiesPresent siblings=$siblingRenderCount childApo=$childApoPresent"
+          '@
+          $path = Join-Path $env:RUNNER_TEMP "snapshot.ps1"
+          $helper | Out-File -FilePath $path -Encoding utf8
+          "SNAP_SCRIPT=$path" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Snapshot baseline (00) [real]
+        shell: pwsh
+        run: |
+          & $env:SNAP_SCRIPT -Phase "00-baseline" -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
+
+      # -----------------------------------------------------------------------
+      # STEP 2: Ensure a representative render endpoint exists; seed one if not.
+      #
+      # WHY A SEED, AND WHAT IT CAN / CANNOT CATCH
+      #   GitHub-hosted windows-latest runners are headless and have no real
+      #   kernel audio driver, and one cannot be installed unattended. So we
+      #   seed a registry-level stand-in for "a real audio driver": a
+      #   Render\{guid} key with a Properties subkey (friendly name + active
+      #   DeviceState) and a FxProperties subkey pre-populated with five
+      #   plausible non-EQ "original driver" APO GUIDs.
+      #
+      #   This stand-in faithfully reproduces the REGISTRY-LEVEL outcomes:
+      #     - whether uninstall deletes the endpoint key (class A),
+      #     - whether it deletes FxProperties (class B),
+      #     - whether it restores the original driver GUIDs or leaves an EQ GUID
+      #       dangling (class C),
+      #     - whether it over-deletes neighbouring keys (class D).
+      #   Because the product's install/uninstall logic is pure registry editing
+      #   (DeviceAPOInfo.Install.cpp / .Uninstall.cpp), the seed exercises the
+      #   exact branches that decide device survival.
+      #
+      #   The seed CANNOT reproduce the live kernel behaviour: there is no
+      #   audiodg.exe loading the APO chain for this fake endpoint, so it cannot
+      #   prove that a class (C) dangling reference makes a REAL endpoint vanish
+      #   from the audio UI at runtime. It can only show that the registry is
+      #   LEFT in the dangling state. That registry state is the necessary
+      #   precondition for the reported symptom; confirming the full live failure
+      #   needs hardware with a real driver. This limitation is called out in the
+      #   final report and the diagnosis verdict.
+      # -----------------------------------------------------------------------
+      - name: Seed a representative render endpoint (10)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $renderPath = "$env:MMDEVICES_ROOT\Render"
+          $epPath = "$renderPath\$env:TEST_ENDPOINT_GUID"
+
+          # Only seed if the runner has no usable render endpoint of its own.
+          $existing = @()
+          if (Test-Path "Registry::$renderPath") {
+              $existing = Get-ChildItem "Registry::$renderPath" -ErrorAction SilentlyContinue
+          }
+          Write-Host "Existing render subkeys: $($existing.Count)"
+
+          # MMDevices\Audio\Render is owned by SYSTEM; even an elevated admin gets
+          # "Access is denied" from `reg add` until ownership is taken and
+          # Administrators are granted full control (the product installer does
+          # the same takeOwnership/makeWritable dance in DeviceAPOInfo.Install.cpp
+          # when FxProperties is locked). Enable the take-ownership + restore
+          # privileges, take the Render key, and grant Administrators FullControl
+          # inheritably so the seed (10) and replicate (30) steps can write under
+          # it. The real DeviceSelector /u (40) does its own takeOwnership, so this
+          # grant does not change the product's behaviour under test.
+          Add-Type -Namespace Win32Acl -Name Priv -MemberDefinition '[System.Runtime.InteropServices.DllImport("ntdll.dll")] public static extern int RtlAdjustPrivilege(int Privilege, bool Enable, bool CurrentThread, out bool Enabled);'
+          $enabled = $false
+          [Win32Acl.Priv]::RtlAdjustPrivilege(9,  $true, $false, [ref]$enabled) | Out-Null   # SeTakeOwnershipPrivilege
+          [Win32Acl.Priv]::RtlAdjustPrivilege(18, $true, $false, [ref]$enabled) | Out-Null   # SeRestorePrivilege
+          $renderSub = "SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"
+          $admins = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+          $k = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($renderSub, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
+          if ($null -eq $k) { Write-Error "Could not open $renderSub to take ownership"; exit 1 }
+          $ownAcl = $k.GetAccessControl([System.Security.AccessControl.AccessControlSections]::Owner)
+          $ownAcl.SetOwner($admins); $k.SetAccessControl($ownAcl); $k.Close()
+          $k = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($renderSub, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+          $dacl = $k.GetAccessControl([System.Security.AccessControl.AccessControlSections]::Access)
+          $rule = New-Object System.Security.AccessControl.RegistryAccessRule($admins, [System.Security.AccessControl.RegistryRights]::FullControl, ([System.Security.AccessControl.InheritanceFlags]::ContainerInherit), [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)
+          $dacl.AddAccessRule($rule); $k.SetAccessControl($dacl); $k.Close()
+          Write-Host "Took ownership of and granted Administrators FullControl on HKLM\$renderSub"
+
+          # Create the endpoint key, Properties (friendly name + active state),
+          # and FxProperties with five plausible original-driver APO GUIDs.
+          # Mirrors what a real driver leaves and what DeviceAPOInfo::load reads
+          # (Properties\{a45c254e...},2 = connection, {b3f8fa53...},6 = device,
+          # DeviceState DWORD; FxProperties APO values).
+          reg add $epPath /v DeviceState /t REG_DWORD /d 1 /f | Out-Null
+
+          $propPath = "$epPath\Properties"
+          reg add $propPath /v "{a45c254e-df1c-4efd-8020-67d146a850e0},2" /t REG_SZ /d "Speakers" /f | Out-Null
+          reg add $propPath /v "{b3f8fa53-0004-438e-9003-51a46e139bfc},6" /t REG_SZ /d "Realtek High Definition Audio" /f | Out-Null
+
+          $fxPath = "$epPath\FxProperties"
+          reg add $fxPath /v "$env:FX_LFX" /t REG_SZ /d "$env:ORIG_LFX_GUID" /f | Out-Null
+          reg add $fxPath /v "$env:FX_GFX" /t REG_SZ /d "$env:ORIG_GFX_GUID" /f | Out-Null
+          reg add $fxPath /v "$env:FX_SFX" /t REG_SZ /d "$env:ORIG_SFX_GUID" /f | Out-Null
+          # Leave MFX/EFX absent, like many real LFX/GFX-only drivers.
+
+          Write-Host "Seeded $epPath with original driver APO GUIDs:"
+          Write-Host "  LFX=$env:ORIG_LFX_GUID  GFX=$env:ORIG_GFX_GUID  SFX=$env:ORIG_SFX_GUID"
+
+          & $env:SNAP_SCRIPT -Phase "10-seeded" -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
+
+      # -----------------------------------------------------------------------
+      # STEP 3: Download + silently install the latest released x64-avx2 build.
+      #
+      #   The per-channel Velopack Setup asset name doubles the channel because
+      #   the packId already embeds it (Installer/AutoInstaller.cpp:179-182,
+      #   build.yml:1448-1449,1510):
+      #       EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe
+      #   Velopack's Setup.exe accepts --silent (Installer/AutoInstaller.cpp:569,
+      #   launchSetup forwards it).
+      #   We verify against SHA256SUMS.txt if present (build.yml:1589-1626).
+      # -----------------------------------------------------------------------
+      - name: Download + silently install x64-avx2 release (20)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = "${{ github.repository }}"
+          $tag = "${{ github.event.inputs.release_tag }}"
+
+          $asset = "EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe"
+          $dl = Join-Path $env:RUNNER_TEMP "release-dl"
+          New-Item -ItemType Directory -Force -Path $dl | Out-Null
+
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+              Write-Host "Downloading $asset from the latest release"
+              gh release download --repo $repo --pattern $asset --dir $dl --clobber
+              gh release download --repo $repo --pattern "SHA256SUMS.txt" --dir $dl --clobber
+          } else {
+              Write-Host "Downloading $asset from release $tag"
+              gh release download $tag --repo $repo --pattern $asset --dir $dl --clobber
+              gh release download $tag --repo $repo --pattern "SHA256SUMS.txt" --dir $dl --clobber
+          }
+
+          $setup = Join-Path $dl $asset
+          if (-not (Test-Path $setup)) {
+              Write-Error "Could not download $asset"
+              exit 1
+          }
+
+          # Optional integrity check against SHA256SUMS.txt.
+          $sums = Join-Path $dl "SHA256SUMS.txt"
+          if (Test-Path $sums) {
+              $line = Get-Content $sums | Where-Object { $_ -match [regex]::Escape($asset) + '$' } | Select-Object -First 1
+              if ($line) {
+                  $expected = ($line -split '\s+')[0].ToLowerInvariant()
+                  $actual = (Get-FileHash -Path $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+                  if ($expected -ne $actual) {
+                      Write-Error "Checksum mismatch for $asset (expected $expected, got $actual)"
+                      exit 1
+                  }
+                  Write-Host "Checksum OK for $asset"
+              } else {
+                  Write-Warning "SHA256SUMS.txt present but does not list $asset; skipping verification"
+              }
+          } else {
+              Write-Warning "No SHA256SUMS.txt asset on the release; skipping verification"
+          }
+
+          Write-Host "Running silent install: $setup --silent"
+          $p = Start-Process -FilePath $setup -ArgumentList "--silent" -PassThru -Wait
+          Write-Host "Setup exited with $($p.ExitCode)"
+
+          # Resolve the install root. Velopack installs per-machine/per-user under
+          # %LocalAppData%\<packId> with a 'current' bin dir and Update.exe at the
+          # root (helpers/VelopackBootstrap.cpp:92-115).
+          $candidates = @(
+              (Join-Path $env:LOCALAPPDATA "EqualizerAPO-XT-x64-avx2"),
+              (Join-Path ${env:ProgramData} "EqualizerAPO-XT-x64-avx2")
+          )
+          $root = $candidates | Where-Object { Test-Path (Join-Path $_ "Update.exe") } | Select-Object -First 1
+          if (-not $root) {
+              Write-Warning "Could not locate the Velopack install root by Update.exe; searching LOCALAPPDATA"
+              $root = Get-ChildItem -Path $env:LOCALAPPDATA -Directory -ErrorAction SilentlyContinue |
+                  Where-Object { $_.Name -like "EqualizerAPO-XT*" -and (Test-Path (Join-Path $_.FullName "Update.exe")) } |
+                  Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $root) {
+              Write-Error "Velopack install root not found after install"
+              exit 1
+          }
+          $current = Join-Path $root "current"
+          Write-Host "Install root: $root"
+          Write-Host "Bin dir:      $current"
+          "VELO_ROOT=$root"      | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VELO_CURRENT=$current" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          & $env:SNAP_SCRIPT -Phase "20-installed" -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
+
+      # -----------------------------------------------------------------------
+      # STEP 4: Replicate DeviceAPOInfo::install on the seeded endpoint EXACTLY.
+      #
+      #   The released DeviceSelector has /u (uninstall-all) but NO install-all
+      #   CLI, and its GUI install needs a real device + interaction. So we apply
+      #   the same registry writes the GUI install would, for the default state
+      #   on a render device: INSTALL_LFX_GFX, installPreMix=true,
+      #   installPostMix=true (DeviceAPOInfo.h:51-60, Load.cpp:127-134).
+      #
+      #   Because the seed's FxProperties ALREADY existed, install takes the
+      #   "else" branch (Install.cpp:102-121): for each of the 5 APO value names
+      #   it copies the existing value (or the "!VALUE" sentinel) into
+      #   Child APOs\{guid}, then backs them up to a .reg file. Then it writes the
+      #   EQ pre-mix GUID into LFX (,1), the EQ post-mix GUID into GFX (,2), and
+      #   deletes SFX/MFX/EFX (Install.cpp:144-156). This is exactly what the real
+      #   uninstall's load() will read back to restore.
+      # -----------------------------------------------------------------------
+      - name: Replicate per-device APO install on the seed (30)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $epPath  = "$env:MMDEVICES_ROOT\Render\$env:TEST_ENDPOINT_GUID"
+          $fxPath  = "$epPath\FxProperties"
+          $childGuidPath = "$env:CHILD_APO_ROOT\$env:TEST_ENDPOINT_GUID"
+
+          # Child APOs root + per-device key (Install.cpp:71-72).
+          reg add $env:CHILD_APO_ROOT /f | Out-Null
+          reg add $childGuidPath /f | Out-Null
+
+          # FxProperties exists, so SAVE the originals into Child APOs\{guid}
+          # using the same APO value names (Install.cpp:104-116). Read each
+          # FxProperties APO value; if absent, store the "!VALUE" sentinel.
+          $fxItem = Get-Item "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\$env:TEST_ENDPOINT_GUID\FxProperties"
+          $existingNames = $fxItem.GetValueNames()
+          foreach ($vn in @($env:FX_LFX, $env:FX_GFX, $env:FX_SFX, $env:FX_MFX, $env:FX_EFX)) {
+              if ($existingNames -contains $vn) {
+                  $val = [string](Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\$env:TEST_ENDPOINT_GUID\FxProperties" -Name $vn).$vn
+              } else {
+                  $val = "!VALUE"   # APOGUID_NOVALUE (DeviceAPOInfo.h:29)
+              }
+              reg add $childGuidPath /v "$vn" /t REG_SZ /d "$val" /f | Out-Null
+          }
+
+          # Bookkeeping values install writes (Install.cpp:129-142). PreMixChild /
+          # PostMixChild get the original GUIDs (useOriginalAPO* default true).
+          reg add $childGuidPath /v "PreMixChild"  /t REG_SZ /d "$env:ORIG_LFX_GUID" /f | Out-Null
+          reg add $childGuidPath /v "PostMixChild" /t REG_SZ /d "$env:ORIG_GFX_GUID" /f | Out-Null
+          reg add $childGuidPath /v "AllowSilentBufferModification" /t REG_SZ /d "false" /f | Out-Null
+          reg add $childGuidPath /v "Version" /t REG_SZ /d "2" /f | Out-Null
+
+          # Now write the EQ APO GUIDs into FxProperties (INSTALL_LFX_GFX path,
+          # Install.cpp:144-156): LFX = pre-mix, GFX = post-mix, delete SFX/MFX/EFX.
+          reg add $fxPath /v "$env:FX_LFX" /t REG_SZ /d "$env:EQ_PREMIX_GUID" /f | Out-Null
+          reg add $fxPath /v "$env:FX_GFX" /t REG_SZ /d "$env:EQ_POSTMIX_GUID" /f | Out-Null
+          foreach ($vn in @($env:FX_SFX, $env:FX_MFX, $env:FX_EFX)) {
+              reg delete $fxPath /v "$vn" /f 2>$null | Out-Null
+          }
+
+          Write-Host "Applied EQ APO to seed: LFX=$env:EQ_PREMIX_GUID GFX=$env:EQ_POSTMIX_GUID; saved originals under Child APOs"
+
+          & $env:SNAP_SCRIPT -Phase "30-apo-applied" -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
+
+      # -----------------------------------------------------------------------
+      # STEP 5a: Run the REAL per-device uninstall via DeviceSelector.exe /u.
+      #
+      #   This loads every device, and for installed ones calls
+      #   DeviceAPOInfo::uninstall (DeviceSelector/main.cpp:51-77). load()
+      #   detects the seed as installed (FxProperties names an EQ GUID,
+      #   Load.cpp:160-184), reads originals back from Child APOs\{guid}
+      #   (Load.cpp:199-203), and uninstall restores them into FxProperties
+      #   (Uninstall.cpp:78-91), then removes Child APOs\{guid}.
+      # -----------------------------------------------------------------------
+      - name: Run DeviceSelector.exe /u (40)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $devsel = Join-Path $env:VELO_CURRENT "DeviceSelector.exe"
+          if (-not (Test-Path $devsel)) {
+              Write-Error "DeviceSelector.exe not found at $devsel"
+              exit 1
+          }
+          # Run with the bin dir as the working directory. DeviceSelector (like the
+          # editor before v1.27.1) does QCoreApplication::addLibraryPath("qt"),
+          # which resolves relative to the CWD; with the wrong CWD it cannot find
+          # its Qt platform plugin and pops a modal error dialog that hangs forever
+          # on a headless runner (that is what cancelled this step on the first
+          # full run). The bug also affects DeviceSelector/UpdateChecker in the
+          # shipped build (only Editor's path was fixed) - tracked separately.
+          Write-Host "Running $devsel /u (cwd=$env:VELO_CURRENT)"
+          $p = Start-Process -FilePath $devsel -ArgumentList "/u" -WorkingDirectory $env:VELO_CURRENT -PassThru
+          if (-not $p.WaitForExit(120000)) {
+              Write-Warning "DeviceSelector /u did not exit within 120s; killing it (likely a modal dialog on the headless runner)"
+              try { $p.Kill() } catch {}
+          } else {
+              Write-Host "DeviceSelector /u exited with $($p.ExitCode)"
+          }
+
+          & $env:SNAP_SCRIPT -Phase "40-after-devsel" -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
+
+      # -----------------------------------------------------------------------
+      # STEP 5b: Run the full Velopack app uninstall.
+      #
+      #   Velopack's uninstall is Update.exe --uninstall. It runs the app's
+      #   --veloapp-uninstall hook, which calls ApoRegistration::uninstall
+      #   (Editor/main.cpp:308-312): it loops all devices calling uninstall()
+      #   for installed ones, then DllUnregisterServer's the COM server and
+      #   cleans HKLM\SOFTWARE\EqualizerAPO (ApoRegistration.cpp:250-313).
+      #
+      #   By this point DeviceSelector /u already restored the seed, so this run
+      #   mainly exercises the COM unregister + EqualizerAPO key cleanup. The
+      #   snapshot after it shows whether the COM-unregistered state coincides
+      #   with any remaining dangling APO reference (class C precondition).
+      # -----------------------------------------------------------------------
+      - name: Run Velopack app uninstall (50)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $update = Join-Path $env:VELO_ROOT "Update.exe"
+          if (-not (Test-Path $update)) {
+              Write-Warning "Update.exe not found at $update; skipping Velopack uninstall"
+          } else {
+              Write-Host "Running $update --uninstall (silent)"
+              # --silent so it does not wait on UI; Velopack exits after running
+              # the --veloapp-uninstall hook and removing files. Bounded wait so a
+              # UAC/elevation or UI hang on the headless runner cannot stall the job.
+              $p = Start-Process -FilePath $update -ArgumentList "--uninstall","--silent" -WorkingDirectory $env:VELO_ROOT -PassThru
+              if (-not $p.WaitForExit(180000)) {
+                  Write-Warning "Update.exe --uninstall did not exit within 180s; killing it"
+                  try { $p.Kill() } catch {}
+              } else {
+                  Write-Host "Update.exe --uninstall exited with $($p.ExitCode)"
+              }
+          }
+
+          & $env:SNAP_SCRIPT -Phase "50-after-velo" -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
+
+      # -----------------------------------------------------------------------
+      # STEP 6: Reinstall silently and snapshot, to check the endpoint + restored
+      #   FxProperties survived a full install -> uninstall -> install cycle and
+      #   that COM re-registration is consistent.
+      # -----------------------------------------------------------------------
+      - name: Reinstall silently (60)
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          $repo = "${{ github.repository }}"
+          $tag = "${{ github.event.inputs.release_tag }}"
+          $asset = "EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe"
+          $dl = Join-Path $env:RUNNER_TEMP "release-dl"
+          $setup = Join-Path $dl $asset
+          if (-not (Test-Path $setup)) {
+              if ([string]::IsNullOrWhiteSpace($tag)) {
+                  gh release download --repo $repo --pattern $asset --dir $dl --clobber
+              } else {
+                  gh release download $tag --repo $repo --pattern $asset --dir $dl --clobber
+              }
+          }
+          if (Test-Path $setup) {
+              Write-Host "Re-running silent install"
+              $p = Start-Process -FilePath $setup -ArgumentList "--silent" -PassThru -Wait
+              Write-Host "Reinstall exited with $($p.ExitCode)"
+          } else {
+              Write-Warning "Setup not available for reinstall; snapshot reflects post-uninstall state"
+          }
+
+          & $env:SNAP_SCRIPT -Phase "60-reinstalled" -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID -MMDevicesRoot $env:MMDEVICES_ROOT
+
+      # -----------------------------------------------------------------------
+      # Always upload every snapshot so a failed run is still inspectable.
+      # -----------------------------------------------------------------------
+      - name: Upload snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: audio-uninstall-snapshots
+          path: ${{ env.SNAP_DIR }}/**
+          if-no-files-found: warn
+
+      # -----------------------------------------------------------------------
+      # STEP 7: Diagnose. The script classifies the outcome and exits non-zero
+      #   for failing classes (A)/(C)/(D), which fails the job.
+      # -----------------------------------------------------------------------
+      - name: Diagnose
+        if: always()
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\.github\scripts\Diagnose-AudioUninstall.ps1" `
+              -SnapshotDir $env:SNAP_DIR `
+              -TestEndpointGuid $env:TEST_ENDPOINT_GUID `
+              -PreMixGuid $env:EQ_PREMIX_GUID `
+              -PostMixGuid $env:EQ_POSTMIX_GUID

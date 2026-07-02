@@ -1,0 +1,7 @@
+<!-- Signal Matrix: 24px column-grid tile for QSS background-image (dark).
+     One 1px vertical rule at the tile's right edge; tiled, it reproduces the
+     gridPitch-24 graph paper the painted board layers draw elsewhere. Ink is
+     the dark border token #233443 at the painted grid's alpha (55/255). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <line x1="23.5" y1="0" x2="23.5" y2="24" stroke="#233443" stroke-opacity="0.22" stroke-width="1"/>
+</svg>

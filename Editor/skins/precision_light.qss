@@ -1,0 +1,574 @@
+/* ====================================================================
+   Skin: minimal - "The bank teller's terminal" (Light)
+   Zero decoration; every pixel is information; color carries meaning
+   only. Radius 0, shadows 0, gradients 0; separators are 1px hairlines
+   or a single background-value step.
+   Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @BG@
+           text @TEXT@ / mutedText @MUTED@ / border @BORDER@
+           accent @ACCENT@ / borderRadius 0 / row 32 / font DM Mono
+   ==================================================================== */
+
+* {
+    outline: 0;
+    selection-background-color: @ACCENT@;
+    selection-color: #ffffff;
+}
+
+QWidget {
+    background: @BG@;
+    color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
+    font-size: 10pt;
+}
+
+QMainWindow, QDialog { background: @BG@; }
+QMainWindow::separator { background: @BORDER@; width: 1px; height: 1px; }
+
+QToolTip { background: @CARD@; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; padding: 4px 8px; }
+
+/* Menu bar: the TUI menu line, printed. The entries share the command
+   line's grammar (uppercase mono, 1px tracking, bold); rest is bare type
+   on the strip, hover is exactly one value step down on the paper, and
+   the open entry is the inverted block - the print head's cursor on the
+   menu line. One full-width hairline rules the strip off below. */
+QMenuBar {
+    background: @SURFACE@; color: @TEXT@;
+    padding: 2px 4px; border: 0; border-bottom: 1px solid @BORDER@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QMenuBar::item { background: transparent; padding: 5px 12px; border-radius: 0; }
+QMenuBar::item:selected { background: @CARD_HOVER@; color: @TEXT@; }
+QMenuBar::item:pressed { background: @TEXT@; color: @SURFACE@; }
+
+/* Dropdown: a square panel of print. 1px hairline frame on the paper
+   ground, zero panel padding so every separator rules the full width.
+   Items are dense plain mono lines; the pictograms vanish (icon-size 0)
+   because they only duplicate their labels - in this skin a glyph must
+   carry information or it does not exist. Selection is the bluntest
+   cursor a text instrument has: the inverted block. Disabled lines drop
+   to secondary ink and refuse the cursor. */
+QMenu {
+    background: @BG@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0; padding: 0;
+    icon-size: 0px;
+}
+QMenu::item { background: transparent; padding: 5px 28px 5px 14px; border-radius: 0; min-width: 150px; }
+QMenu::item:selected { background: @TEXT@; color: @BG@; }
+QMenu::item:disabled { color: @MUTED@; background: transparent; }
+QMenu::item:disabled:selected { color: @MUTED@; background: transparent; }
+QMenu::separator { height: 1px; background: @BORDER@; margin: 0; }
+/* Checked state as a terminal flag: an empty hairline square at rest,
+   the accent block when armed (the active-state tag, as on the toolbar).
+   A checkable line carries the flag inline before its label, like the
+   "[x] option" column of a TUI menu - so only flag lines indent (Qt adds
+   the check column on top of the item padding; that offset is the flag
+   column, not misalignment). */
+QMenu::indicator { width: 12px; height: 12px; margin-left: 6px; background: transparent; border: 1px solid @BORDER@; }
+QMenu::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; }
+
+QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; padding: 2px 4px; spacing: 2px; }
+QToolBar::separator { background: @BORDER@; width: 1px; margin: 4px 6px; }
+QToolButton { background: transparent; color: @TEXT@; border: 1px solid transparent; border-radius: 0; padding: 3px 8px; min-height: 22px; }
+QToolButton:hover { background: #d8d8d8; border: 1px solid @BORDER@; }
+QToolButton:pressed, QToolButton:checked { background: #c4d4f0; border: 1px solid @ACCENT@; }
+QToolButton::menu-indicator { image: none; width: 0; height: 0; }
+
+QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Main toolbar: the terminal's command line - all type and one hairline
+   (the strip's bottom rule comes from QToolBar above). MinimalSkin's
+   styleMainToolbar drops the action icons, so the commands are uppercase
+   mono words. State keeps to the value ladder: rest is bare type on the
+   strip, hover is exactly one background step (one step darker on paper),
+   pressed is the inverted block (the printed cursor). */
+QToolBar#MainToolBar QToolButton {
+    background: transparent; color: @TEXT@;
+    border: 0; border-radius: 0;
+    padding: 3px 7px; min-height: 22px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QToolBar#MainToolBar QToolButton:hover { background: @CARD_HOVER@; border: 0; }
+QToolBar#MainToolBar QToolButton:pressed { background: @TEXT@; color: @SURFACE@; border: 0; }
+/* Instant mode is an armed flag: off rests muted, on is full ink (the
+   checked indicator's accent block is the active-state tag). */
+QToolBar#MainToolBar QCheckBox { color: @MUTED@; }
+QToolBar#MainToolBar QCheckBox:checked { color: @TEXT@; }
+/* Save-state readout: a status field, never an alarm. "Saved" rests muted;
+   unsaved changes are simply brighter ink. */
+QToolBar#MainToolBar QLabel#DirtyStatusBadge {
+    color: @MUTED@; background: transparent; border: 0;
+    padding: 0 8px; font-size: 9pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolBar#MainToolBar QLabel#DirtyStatusBadge[dirty="true"] { color: @TEXT@; }
+/* Stream-format readout: the same field grammar; severity is an ink tag
+   (like the analysis chips), never a fill or a box. */
+QToolBar#MainToolBar QLabel#DeviceFormatBadge {
+    color: @MUTED@; background: transparent; border: 0;
+    padding: 0 6px; font-size: 9pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolBar#MainToolBar QLabel#DeviceFormatBadge[severity="warning"] { color: @WARNING@; }
+/* Device/channel fields: hairline boxes on the strip; hover is one value
+   step, the accent border only while the field is active (open/focused). */
+QToolBar#MainToolBar QComboBox { background: @CARD@; border: 1px solid @BORDER@; padding: 2px 22px 2px 8px; min-height: 24px; }
+QToolBar#MainToolBar QComboBox:hover { background: @CARD_HOVER@; border: 1px solid @BORDER@; }
+QToolBar#MainToolBar QComboBox:focus, QToolBar#MainToolBar QComboBox:on { border: 1px solid @ACCENT@; }
+
+QPushButton {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 14px; min-height: 22px;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+}
+QPushButton:hover { background: @BG@; border-color: @ACCENT@; }
+QPushButton:pressed { background: #c4d4f0; border-color: @ACCENT@; }
+QPushButton:default { border: 1px solid @ACCENT@; }
+QPushButton:disabled { color: #999999; background: #ececec; border-color: #d8d8d8; }
+
+QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
+    background: #ffffff; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 8px;
+    selection-background-color: @ACCENT@; selection-color: #ffffff;
+}
+QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; }
+QLineEdit:disabled, QAbstractSpinBox:disabled { color: #999999; background: #ececec; }
+
+QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
+    subcontrol-origin: border; background: @SURFACE@;
+    width: 16px; border-left: 1px solid @BORDER@;
+}
+QAbstractSpinBox::up-button { subcontrol-position: top right; }
+QAbstractSpinBox::down-button { subcontrol-position: bottom right; border-top: 1px solid @BORDER@; }
+QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover { background: #d0d0d0; }
+QAbstractSpinBox::up-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 4px solid @MUTED@;
+}
+QAbstractSpinBox::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid @MUTED@;
+}
+
+/* N2 - the number is the control. A parameter's editable figure is the
+   row's blackest ink (one value step above body text), printed straight
+   on the paper with no input-box chrome at rest; the knob beside it
+   shrank to a hairline confirmation arc (Skins.cpp). Hover sinks the
+   figure one value step on the paper because it scrubs; editing arms the
+   accent hairline over the white ground - accent only while active. */
+QAbstractSpinBox[valueScrub="true"] {
+    background: transparent; color: #000000;
+    border: 1px solid transparent; border-radius: 0;
+    padding: 4px 2px; font-weight: 700;
+}
+QAbstractSpinBox[valueScrub="true"]:hover { background: @CARD_HOVER@; border-color: @BORDER@; }
+QAbstractSpinBox[valueScrub="true"]:focus { background: #ffffff; border-color: @ACCENT@; }
+QAbstractSpinBox[valueScrub="true"]:disabled { background: transparent; color: @MUTED@; }
+
+QComboBox {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 28px 4px 10px; min-height: 28px;
+}
+QComboBox:hover { background: @BG@; border-color: @ACCENT@; }
+QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }
+QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 22px; border: 0; background: transparent; }
+QComboBox::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 5px solid transparent; border-right: 5px solid transparent;
+    border-top: 5px solid @MUTED@; margin-right: 8px;
+}
+QComboBox::down-arrow:on { border-top-color: @ACCENT@; }
+QComboBox QAbstractItemView {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 2px; outline: 0;
+    selection-background-color: #e0e0e0; selection-color: #000000;
+}
+QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 0; min-height: 24px; }
+
+/* X5 - the parameter combos are mode selectors, not labels. A selector
+   field on this paper is a caption wearing a caret: transparent on the
+   strip, a single hairline underline as the field mark, and a full-ink
+   caret as the always-visible affordance. The name combo (filterSelector)
+   is the line's command word and keeps primary ink; the parameter combos
+   (paramSelector) sit on the caption layer in secondary ink, one value
+   step under the figures they describe. Hover sinks exactly one value
+   step on the paper; the accent appears only while the field is open or
+   focused (active-state law). */
+QComboBox[paramSelector="true"], QComboBox[filterSelector="true"] {
+    background: transparent;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+    border-radius: 0; padding: 2px 16px 2px 4px; min-height: 22px;
+}
+QComboBox[paramSelector="true"] { color: @MUTED@; }
+QComboBox[filterSelector="true"] { color: @TEXT@; }
+QComboBox[paramSelector="true"]:hover, QComboBox[filterSelector="true"]:hover {
+    background: @CARD_HOVER@;
+}
+QComboBox[paramSelector="true"]:focus, QComboBox[filterSelector="true"]:focus,
+QComboBox[paramSelector="true"]:on, QComboBox[filterSelector="true"]:on {
+    border-bottom-color: @ACCENT@; color: @TEXT@;
+}
+QComboBox[paramSelector="true"]::drop-down, QComboBox[filterSelector="true"]::drop-down { width: 14px; }
+QComboBox[paramSelector="true"]::down-arrow, QComboBox[filterSelector="true"]::down-arrow {
+    border-left: 3px solid transparent; border-right: 3px solid transparent;
+    border-top: 5px solid @TEXT@; margin-right: 4px;
+}
+QComboBox[paramSelector="true"]::down-arrow:on, QComboBox[filterSelector="true"]::down-arrow:on {
+    border-top-color: @ACCENT@;
+}
+
+QCheckBox, QRadioButton { color: @TEXT@; background: transparent; spacing: 8px; padding: 2px; }
+QCheckBox:disabled, QRadioButton:disabled { color: #999999; }
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 14px; height: 14px; background: #ffffff; border: 1px solid @BORDER@;
+}
+QCheckBox::indicator { border-radius: 0; }
+QRadioButton::indicator { border-radius: 7px; }
+QCheckBox::indicator:hover, QRadioButton::indicator:hover { border-color: @ACCENT@; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked { background: @ACCENT@; border-color: @ACCENT@; }
+
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; border: 0; }
+QScrollBar::handle:vertical { background: @BORDER@; min-height: 32px; border-radius: 0; }
+QScrollBar::handle:vertical:hover { background: @ACCENT@; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; border: 0; }
+QScrollBar::handle:horizontal { background: @BORDER@; min-width: 32px; border-radius: 0; }
+QScrollBar::handle:horizontal:hover { background: @ACCENT@; }
+QScrollBar::add-line, QScrollBar::sub-line { background: transparent; border: 0; width: 0; height: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
+QScrollBar::up-arrow, QScrollBar::down-arrow, QScrollBar::left-arrow, QScrollBar::right-arrow { background: transparent; width: 0; height: 0; }
+
+QAbstractScrollArea { background: @BG@; color: @TEXT@; border: 0; }
+QScrollArea { background: @BG@; border: 0; }
+QScrollArea > QWidget > QWidget { background: @BG@; }
+
+QDockWidget { color: @TEXT@; background: @BG@; titlebar-close-icon: none; titlebar-normal-icon: none; }
+QDockWidget::title {
+    background: @SURFACE@; color: @MUTED@;
+    text-align: left; padding: 4px 10px;
+    border: 0; border-bottom: 1px solid @BORDER@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+}
+QDockWidget::close-button, QDockWidget::float-button { background: transparent; border: 0; border-radius: 0; padding: 2px; icon-size: 12px; }
+QDockWidget::close-button:hover, QDockWidget::float-button:hover { background: #d0d0d0; }
+
+QTabWidget::pane { background: @BG@; border: 0; border-top: 1px solid @BORDER@; top: -1px; }
+QTabBar { background: @BG@; border: 0; qproperty-drawBase: 0; }
+QTabBar::tab {
+    background: transparent; color: @MUTED@;
+    padding: 6px 16px; border: 0; border-radius: 0;
+    min-width: 80px; margin: 0;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+}
+QTabBar::tab:hover { color: @TEXT@; background: @SURFACE@; }
+QTabBar::tab:selected { color: #000000; background: @CARD@; border-top: 2px solid @ACCENT@; }
+QTabBar::tab:!selected { border-bottom: 1px solid @BORDER@; }
+QTabBar::close-button { image: none; background: transparent; border-radius: 0; padding: 2px; margin: 2px; subcontrol-position: right; }
+QTabBar::close-button:hover { background: #f4baba; }
+QTabBar QToolButton { background: @CARD@; border: 1px solid @BORDER@; border-radius: 0; margin: 4px 2px; }
+
+QGroupBox {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    margin-top: 14px; padding: 14px 10px 10px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin; subcontrol-position: top left;
+    padding: 0 6px; color: @MUTED@; background: @BG@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+}
+
+QHeaderView { background: @SURFACE@; color: @MUTED@; border: 0; }
+QHeaderView::section {
+    background: @SURFACE@; color: @MUTED@; border: 0;
+    border-right: 1px solid @BORDER@; border-bottom: 1px solid @BORDER@;
+    padding: 4px 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QTreeView, QListView, QTableView {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    alternate-background-color: @BG@;
+    selection-background-color: #e0e0e0; selection-color: #000000;
+    gridline-color: @BORDER@;
+}
+QTreeView::item, QListView::item, QTableView::item { padding: 4px 6px; border-radius: 0; }
+QTreeView::item:hover, QListView::item:hover, QTableView::item:hover { background: #ebebeb; }
+QTreeView::item:selected, QListView::item:selected, QTableView::item:selected { background: #e0e0e0; color: #000000; }
+QTreeView::branch { background: transparent; }
+
+QSlider::groove:horizontal { background: @BORDER@; height: 2px; border-radius: 0; margin: 0 6px; }
+QSlider::sub-page:horizontal { background: @ACCENT@; height: 2px; border-radius: 0; }
+QSlider::handle:horizontal { background: @TEXT@; border: 1px solid @ACCENT@; width: 12px; height: 12px; margin: -6px 0; border-radius: 0; }
+QSlider::groove:vertical { background: @BORDER@; width: 2px; border-radius: 0; margin: 6px 0; }
+QSlider::add-page:vertical { background: @ACCENT@; width: 2px; border-radius: 0; }
+QSlider::sub-page:vertical { background: @BORDER@; width: 2px; border-radius: 0; }
+QSlider::handle:vertical { background: @TEXT@; border: 1px solid @ACCENT@; width: 12px; height: 12px; margin: 0 -6px; border-radius: 0; }
+
+QSplitter::handle { background: @BORDER@; }
+QSplitter::handle:horizontal { width: 1px; }
+QSplitter::handle:vertical { height: 1px; }
+QSplitter::handle:hover { background: @ACCENT@; }
+
+QStatusBar { background: @SURFACE@; color: @MUTED@; border: 0; border-top: 1px solid @BORDER@; }
+QStatusBar::item { border: 0; }
+
+QProgressBar { background: #ffffff; color: @TEXT@; border: 1px solid @BORDER@; border-radius: 0; text-align: center; }
+QProgressBar::chunk { background: @ACCENT@; border-radius: 0; }
+
+QFrame[frameShape="4"], QFrame[frameShape="5"] { background: @BORDER@; border: 0; }
+
+QFrame#analysisControlBar { background: @CARD@; border: 1px solid @BORDER@; border-radius: 0; }
+QLabel#AnalysisFormLabel {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 0 4px;
+}
+QComboBox#AnalysisFormCombo { min-width: 110px; }
+QFrame#AnalysisStatChip { background: @BG@; border: 1px solid @BORDER@; border-radius: 0; }
+QLabel#AnalysisStatLabel {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; font-size: 9pt;
+    text-transform: uppercase; letter-spacing: 2px;
+}
+QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
+QLabel#AnalysisStatValue[severity="warning"] { color: #d97706; }
+QLabel#AnalysisStatValue[severity="critical"] { color: #dc2626; }
+
+QWidget#ModernAnalysisGraph { background: #ffffff; border: 1px solid @BORDER@; border-radius: 0; }
+
+QFrame#FilterCardRow { background: @CARD@; border: 1px solid #d0d0d0; border-radius: 0; }
+/* No separate header plate: a row is one flat text line on one background. */
+QWidget#FilterCardHeader { background: transparent; border-radius: 0; }
+/* The body is a second strip on the same line, cut off by a 1px hairline.
+   A shelf's three label+number pairs share this one strip and read as one
+   filter unit. */
+QWidget#FilterCardBody { background: @BG@; border: 0; border-top: 1px solid @BORDER@; border-radius: 0; }
+QWidget#FilterCardEditor { background: @BG@; border-radius: 0; }
+/* Type tag: a bare colored mono token, no box. The per-type color comes from
+   the row descriptor (inline); together with the leading glyph it is the only
+   type marker a line gets. */
+QLabel#FilterTypeBadge {
+    background: transparent; color: @TEXT@;
+    border: 0; border-radius: 0;
+    font-weight: 700; padding: 1px 2px; min-height: 18px;
+    font-size: 9pt; text-transform: uppercase; letter-spacing: 1px;
+}
+/* Leading type glyph (inserted by MinimalSkin::prepareCommandRow). */
+QLabel#MinimalTypeGlyph {
+    background: transparent; color: @MUTED@;
+    font-weight: 700; font-size: 9pt;
+}
+/* The BiQuad strip's plain captions (e.g. "Gain") share the selectors'
+   caption layer: secondary ink, so the black figures below carry the
+   line (N2 hierarchy - importance = brightness). */
+QWidget#BiQuadFilterGUI QLabel { background: transparent; color: @MUTED@; }
+QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
+/* Include and VST rows are single text lines whose payload is the file name:
+   the data is dark (primary), the command word drops to grey (secondary).
+   Hierarchy by text value, not by size. */
+QFrame#FilterCardRow[filterKind="include"] QLabel#FilterCardTitle,
+QFrame#FilterCardRow[filterKind="vstplugin"] QLabel#FilterCardTitle { color: @MUTED@; }
+QFrame#FilterCardRow[filterKind="include"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[filterKind="vstplugin"] QLabel#FilterCardSummary { color: @TEXT@; }
+/* A commented-out line: every text value falls to secondary grey (the frame
+   itself drops one background step via MinimalSkin::cardFrameStyle). */
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardTitle,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardNumber,
+QFrame#FilterCardRow[filterEnabled="false"] QLabel#MinimalTypeGlyph { color: @MUTED@; }
+QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700; }
+QToolButton#FilterCardIconButton {
+    background: @BG@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
+}
+QToolButton#FilterCardIconButton:hover { background: #e0e0e0; border-color: @ACCENT@; }
+QToolButton#FilterCardIconButton:checked { background: #c4d4f0; border-color: @ACCENT@; }
+QLineEdit#FilterCardRawEditor { background: #ffffff; border: 1px solid @ACCENT@; border-radius: 0; padding: 4px 8px; }
+QCheckBox#FilterCardEnabled { background: transparent; }
+
+QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
+QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
+QWidget#VSTCardEditor, QWidget#PreampCardValueBlock,
+QLabel#PreampCardCaption { background: transparent; border: 0; }
+QLabel#PreampCardCaption {
+    color: @MUTED@; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 2px; font-size: 9pt;
+}
+QLabel#EditableValue {
+    background: #ffffff; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 4px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
+}
+QLineEdit#EditableValueEditor {
+    background: #ffffff; border: 1px solid @ACCENT@;
+    border-radius: 0; padding: 4px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
+}
+/* ===== Reference line (Include / Convolution / MultiConvolution / VST
+   bodies - MinimalReferenceCardView) =====
+   One line of print: [channel] payload MISSING/VST3/ABS location readout
+   "!" status, then the engraved commands (BROWSE/IMPORT/EDIT/PANEL/OPT)
+   at the line's end. Importance = brightness: the payload is the
+   blackest ink, tokens and measurements are grey print, and the broken
+   reference is the inverted MISSING block - state is ink, never
+   decoration. */
+QWidget#ReferenceCardView, QWidget#RefCardContent { background: transparent; border: 0; }
+/* Payload: the line's data, one brightness step above body text (the
+   figures' promoted ink). While the reference is broken the information
+   is not there, so the ink drops to secondary and the MISSING block
+   carries the emphasis; a commented-out line drops it too. */
+QLabel#MinimalRefName { color: #000000; background: transparent; font-weight: 700; }
+QLabel#MinimalRefName[refMissing="true"] { color: @MUTED@; }
+QLabel#MinimalRefName:disabled { color: @MUTED@; }
+/* Bare mono tokens: the format (VST2/VST3) and the ABS portability
+   marker. No boxes, no fills - a token is print, not a pill. */
+QLabel#MinimalRefFormat, QLabel#MinimalRefAbs {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; letter-spacing: 1px;
+}
+/* The broken reference: the inverted block - the bluntest cursor a text
+   instrument has - printed on the line as text. Foreground/background
+   swap only; no new colour, no rounding. */
+QLabel#MinimalRefMissing {
+    color: @SURFACE@; background: @TEXT@;
+    border: 0; border-radius: 0; padding: 0 6px;
+    font-weight: 700; letter-spacing: 1px;
+}
+QLabel#MinimalRefMissing:disabled { background: @MUTED@; }
+/* Location and measured facts: grey print after the payload. */
+QLabel#MinimalRefDir, QLabel#MinimalRefReadout { color: @MUTED@; background: transparent; }
+/* Status folded into the line: "!" warns, "!!" is critical; severity is
+   an ink tag (the sheet's chip inks), never a fill. Disabled rules sit
+   last so a commented-out line always reads muted. */
+QLabel#MinimalRefStatus { color: @MUTED@; background: transparent; }
+QLabel#MinimalRefStatus[severity="warning"] { color: #d97706; }
+QLabel#MinimalRefStatus[severity="critical"] { color: #dc2626; }
+QLabel#MinimalRefStatus:disabled { color: @MUTED@; }
+/* Commands engraved at the line's end: uppercase mono words with a 1px
+   underline affordance. Rest is secondary ink, hover sinks exactly one
+   value step on the paper, keyboard focus is the square hairline frame,
+   pressed is the inverted block (the printed cursor). */
+QToolButton#FilterCardIconButton[minimalRefCommand="true"],
+QPushButton[minimalRefCommand="true"] {
+    background: transparent; color: @MUTED@;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+    border-radius: 0; min-width: 0; min-height: 20px;
+    padding: 2px 6px; font-weight: 700; letter-spacing: 1px;
+}
+QToolButton#FilterCardIconButton[minimalRefCommand="true"]:hover,
+QPushButton[minimalRefCommand="true"]:hover {
+    background: @CARD_HOVER@; color: @MUTED@;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+}
+QToolButton#FilterCardIconButton[minimalRefCommand="true"]:focus,
+QPushButton[minimalRefCommand="true"]:focus { border: 1px solid @ACCENT@; }
+QToolButton#FilterCardIconButton[minimalRefCommand="true"]:pressed,
+QPushButton[minimalRefCommand="true"]:pressed {
+    background: @TEXT@; color: @SURFACE@;
+    border: 1px solid transparent; border-bottom: 1px solid @TEXT@;
+}
+QToolButton#FilterCardIconButton[minimalRefCommand="true"]:disabled,
+QPushButton[minimalRefCommand="true"]:disabled {
+    background: transparent; color: #999999; border-bottom-color: #d8d8d8;
+}
+/* MultiConvolution's output channel rides the line head as part of the
+   reference grammar ("<channel> <file>"): a caption wearing a caret -
+   transparent on the strip, 1px underline, full-ink caret. Hover is one
+   value step down on the paper; the accent underline only while
+   open/focused. */
+QComboBox[minimalRefSelector="true"] {
+    background: transparent; color: @TEXT@;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+    border-radius: 0; padding: 2px 14px 2px 4px; min-height: 22px;
+    font-weight: 700;
+}
+QComboBox[minimalRefSelector="true"]:hover {
+    background: @CARD_HOVER@;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+}
+QComboBox[minimalRefSelector="true"]:focus, QComboBox[minimalRefSelector="true"]:on {
+    border: 1px solid transparent; border-bottom: 1px solid @ACCENT@;
+}
+QComboBox[minimalRefSelector="true"]:disabled { color: @MUTED@; }
+QComboBox[minimalRefSelector="true"]::drop-down { width: 14px; border: 0; background: transparent; }
+QComboBox[minimalRefSelector="true"]::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 3px solid transparent; border-right: 3px solid transparent;
+    border-top: 5px solid @TEXT@; margin-right: 4px;
+}
+QComboBox[minimalRefSelector="true"]::down-arrow:on { border-top-color: @ACCENT@; }
+QComboBox[minimalRefSelector="true"] QLineEdit {
+    background: transparent; border: 0; border-radius: 0; padding: 0;
+    color: @TEXT@; font-weight: 700;
+}
+QComboBox[minimalRefSelector="true"] QLineEdit:disabled { background: transparent; color: @MUTED@; }
+/* The shared inline path editor: the line in insert mode. White ground
+   plus the accent hairline - legitimate because edit mode IS the active
+   interaction. */
+QLineEdit#RefPathEdit {
+    background: #ffffff; color: @TEXT@;
+    border: 1px solid @ACCENT@; border-radius: 0; padding: 3px 8px;
+}
+
+/* Add-filter picker: a terminal index (man page / BIOS menu). The frame,
+   the section rules and the inverted selection block are painted by
+   MinimalFilterPickerView; QSS only dresses the query line and the legend. */
+QWidget#MinimalPickerHeader { background: @BG@; border: 0; border-bottom: 1px solid @BORDER@; }
+QLabel#MinimalPickerPrompt { color: @ACCENT@; background: transparent; font-weight: 700; padding: 0; }
+QLineEdit#MinimalPickerQuery, QLineEdit#MinimalPickerQuery:focus {
+    background: transparent; border: 0; border-radius: 0; padding: 0; color: @TEXT@;
+}
+QLabel#MinimalPickerCount { color: @MUTED@; background: transparent; font-size: 8pt; font-weight: 700; }
+QLabel#MinimalPickerLegend {
+    color: @MUTED@; background: @BG@; border: 0; border-top: 1px solid @BORDER@;
+    padding: 4px 10px; font-size: 7pt; font-weight: 700; letter-spacing: 1px;
+}
+QScrollArea#MinimalPickerScroll, QScrollArea#MinimalPickerScroll > QWidget > QWidget { background: @BG@; border: 0; }
+
+/* Toolbar/Tab spacers and labels transparent so parent bg shows through */
+QLabel { background: transparent; }
+QWidget#ToolBarSpacer { background: transparent; }
+
+/* ===== Window chrome: a tiling WM running a terminal (printed) =====
+   The title strip is the terminal's title line: a flat sheet with one
+   full-width hairline rule below, and the window title as quiet tracked
+   mono - chrome is metadata, so it gets secondary ink (importance =
+   brightness, as everywhere in this skin). No painted decoration: the
+   skin's paintTitleBarChrome stays the no-op default on purpose. */
+QWidget#AppTitleBar {
+    background: @SURFACE@;
+    border: 0;
+    border-bottom: 1px solid @BORDER@;
+}
+QLabel#TitleBarText {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 9pt;
+    letter-spacing: 1px;
+}
+/* Caption buttons: square pure glyphs at rest. Hover is exactly one
+   value step down on the paper, pressed lands on the deepest grey step
+   of the ladder (the stroke glyph keeps its ink, so a true fg/bg swap
+   would erase it - the ladder is the honest alternative). Close answers
+   with the inverted danger block; its glyph stays legible on the block. */
+QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+}
+QToolButton#TitleBarMin:hover, QToolButton#TitleBarMax:hover {
+    background: @CARD_HOVER@;
+}
+QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
+    background: @BORDER@;
+}
+QToolButton#TitleBarClose:hover, QToolButton#TitleBarClose:pressed {
+    background: @DANGER@;
+}

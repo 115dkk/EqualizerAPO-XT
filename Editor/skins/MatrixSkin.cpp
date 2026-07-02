@@ -1,0 +1,763 @@
+/*
+	This file is part of EqualizerAPO-XT, a system-wide equalizer.
+*/
+
+// Matrix skin, split out of Skins.cpp (audit #109 F005). This is a verbatim
+// move of the helpers and the class; behaviour is unchanged. The file-scope
+// instance is exposed through matrixSkin() so Skins::all() can assemble the
+// roster without a central definition list.
+
+#include "Skins.h"
+
+#include <QAction>
+#include <QComboBox>
+#include <QDial>
+#include <QEvent>
+#include <QFontMetrics>
+#include <QFontMetricsF>
+#include <QIcon>
+#include <QLabel>
+#include <QLayout>
+#include <QPainter>
+#include <QPainterPath>
+#include <QPixmap>
+#include <QStyle>
+#include <QToolBar>
+#include <QVBoxLayout>
+#include <QWidget>
+#include <QtMath>
+
+// Studio's S3 band-colour law maps BiQuad filter types onto hue families.
+#include "filters/BiQuad.h"
+
+#include "Editor/SkinManager.h"
+#include "Editor/helpers/GUIHelper.h"
+#include "Editor/skins/RackChrome.h"
+#include "Editor/skins/cards/MatrixReferenceCardView.h"
+#include "Editor/skins/pickers/StudioFilterPicker.h"
+#include "Editor/skins/pickers/MinimalFilterPicker.h"
+#include "Editor/skins/pickers/SoftFilterPicker.h"
+#include "Editor/skins/pickers/RackFilterPicker.h"
+#include "Editor/skins/pickers/MatrixFilterPicker.h"
+#include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
+#include "Editor/widgets/routing/StepListRoutingRenderer.h"
+#include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
+#include "Editor/widgets/routing/CurvedNodeRoutingRenderer.h"
+#include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinSupport.h"
+
+namespace
+{
+// ── Matrix (signal-routing matrix / departure board) ────────────────────────
+//
+// Constitution: an airport departure board / broadcast routing matrix.
+// Everything aligns to a grid; numeric values are monospace; 1px rules; rows
+// behave like cells with coordinates. Traffic-light colours (green/amber/red)
+// are reserved for status and never used decoratively. Hover highlights the
+// row band and the coordinate-column band (crosspoint feel). Disabled rows get
+// a dashed border. Knobs are rotary encoders with a stepped LED ring and a
+// boxed mono numeric cell as the authoritative reading.
+
+namespace MatrixMetrics
+{
+// The grid the whole skin aligns to (card grid pitch, coordinate column).
+constexpr int gridPitch = 24;
+// Width of the coordinate-column band (expand + number + type cells of the
+// header) used by the crosspoint hover highlight.
+constexpr int coordinateBandWidth = 120;
+// Left inset of the card content: 3px status rail (border-left) + 1px gutter.
+constexpr int railInset = 4;
+// Height of the boxed numeric readout cell under a card knob.
+constexpr int knobCellHeight = 16;
+}
+
+namespace
+{
+// Point on the 270-degree value arc; fraction 0 is bottom-left (7:30), 0.5 is
+// 12 o'clock, 1 is bottom-right (4:30). Same sweep as the shared default knob.
+QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
+{
+	const double radians = qDegreesToRadians(-(135.0 + 270.0 * fraction));
+	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
+}
+
+// Bus designation of a command type (M2): the row coordinate speaks the same
+// letter-plus-number grammar as the picker's board coordinates (A1..G8), with
+// the letter mirroring the mono type code the badge cell already shows
+// (BQUAD -> B, INC -> I, VST -> V, ...). The letter is a designation, not an
+// identifier - two types may share one, exactly like two flights share a
+// carrier letter; uniqueness stays with the line number, which never
+// renumbers while the board is scanned.
+QString matrixBusLetter(const QString& type)
+{
+	if (type == QStringLiteral("biquad"))
+		return QStringLiteral("B");
+	if (type == QStringLiteral("preamp"))
+		return QStringLiteral("P");
+	if (type == QStringLiteral("delay") || type == QStringLiteral("device"))
+		return QStringLiteral("D");
+	if (type == QStringLiteral("graphiceq"))
+		return QStringLiteral("G");
+	if (type == QStringLiteral("copy") || type == QStringLiteral("channel") || type == QStringLiteral("convolution"))
+		return QStringLiteral("C");
+	if (type == QStringLiteral("include"))
+		return QStringLiteral("I");
+	if (type == QStringLiteral("vst"))
+		return QStringLiteral("V");
+	if (type == QStringLiteral("stage"))
+		return QStringLiteral("S");
+	if (type == QStringLiteral("loudness"))
+		return QStringLiteral("L");
+	if (type == QStringLiteral("comment"))
+		return QStringLiteral("#");
+	// Unrecognized raw lines: a remark entry on the board.
+	return QStringLiteral("R");
+}
+
+// Per-row caption strip (M2): the picker footer's grammar imported into the
+// card. A sunken board line fixed under the card body echoes the row's raw
+// spec ("> Filter: ON PK ...") next to the row's board coordinate, exactly
+// like the picker footer echoes the line an engaged coordinate would insert.
+// At rest the readout idles in muted ink; while the row crosspoint is hovered
+// the echo lights - marker and coordinate in accent, spec in full ink. The
+// strip needs no event machinery: the frame's :hover QSS rule already forces
+// a frame repaint on enter/leave (the same trigger the painted column band
+// uses), which redraws this child, and the gallery's WA_UnderMouse hover
+// equivalent drives it the same way. It replaces the shared raw-preview
+// strip for this skin (tokens().showRawPreview = false), so the row spends
+// the same vertical budget on a line that follows the board's grammar.
+class MatrixRowCaption : public QWidget
+{
+public:
+	MatrixRowCaption(QWidget* card, QLabel* specSource, QLabel* coordinateSource)
+		: QWidget(card), specSource(specSource), coordinateSource(coordinateSource)
+	{
+		setObjectName(QStringLiteral("MatrixRowCaption"));
+		// The strip is a readout, never a control; clicks fall through.
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		setFixedHeight(18);
+	}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		const SkinTokens& tokens = SkinManager::instance()->tokens();
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		QWidget* card = parentWidget();
+		// The dynamic property is kept current by FilterCardRow's restyles;
+		// before the first restyle it is simply unset, which reads enabled.
+		const QVariant enabledProperty = card != nullptr ? card->property("filterEnabled") : QVariant();
+		const bool enabled = !enabledProperty.isValid() || enabledProperty.toBool();
+		const bool lit = enabled && card != nullptr && card->underMouse();
+
+		// Sunken board line under a 1px top rule - the picker footer's
+		// construction.
+		painter.fillRect(rect(), QColor(tokens.surfaceSunken));
+		painter.setPen(QPen(QColor(tokens.border), 1));
+		painter.drawLine(0, 0, width() - 1, 0);
+
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(7.5);
+		painter.setFont(mono);
+		const QFontMetrics metrics(mono);
+
+		QColor idleInk(tokens.mutedText);
+		if (!enabled)
+			idleInk.setAlpha(120);
+		const QColor accent(tokens.accent);
+		const int pad = 10;
+
+		// Board coordinate readout on the right.
+		const QString coordinate = coordinateSource != nullptr ? coordinateSource->text() : QString();
+		const int coordinateWidth = metrics.horizontalAdvance(coordinate);
+		painter.setPen(lit ? accent : idleInk);
+		painter.drawText(QRect(width() - pad - coordinateWidth, 0, coordinateWidth, height()),
+			Qt::AlignVCenter | Qt::AlignLeft, coordinate);
+
+		// "> <raw line>" spec echo. The raw-preview label keeps its text
+		// current on every model rebuild even while hidden, so it doubles as
+		// the live source of the row's raw spec.
+		QString spec = specSource != nullptr ? specSource->text() : QString();
+		if (spec.startsWith(QStringLiteral("Raw")))
+			spec = spec.mid(3).trimmed();
+		const QString marker = QStringLiteral("> ");
+		painter.drawText(QRect(pad, 0, width(), height()), Qt::AlignVCenter | Qt::AlignLeft, marker);
+		const int specX = pad + metrics.horizontalAdvance(marker);
+		const int specAvail = width() - pad - coordinateWidth - 12 - specX;
+		painter.setPen(lit ? QColor(tokens.text) : idleInk);
+		painter.drawText(QRect(specX, 0, qMax(0, specAvail), height()), Qt::AlignVCenter | Qt::AlignLeft,
+			metrics.elidedText(spec, Qt::ElideRight, qMax(0, specAvail)));
+	}
+
+private:
+	QLabel* specSource;
+	QLabel* coordinateSource;
+};
+
+// Painted chrome layers for the main toolbar (the board's header strip).
+// QSS cannot draw the 24px column grid or the status lamp, so the matrix
+// toolbar hook parents two transparent, mouse-transparent widgets to the
+// toolbar: UnderCells (lowered below every cell) paints the column grid,
+// the doubled header rule and the sunken fill of the status readout cell;
+// OverCells (raised above the cells) paints the DirtyStatusBadge lamp on
+// top of that readout. Instances are found again by object name on every
+// hook run (this file has no moc, so findChild by class is unavailable),
+// and painting self-suspends while another skin is active because the real
+// MainWindow toolbar keeps its children across runtime skin switches.
+class MatrixToolbarBoard : public QWidget
+{
+public:
+	enum Layer { UnderCells, OverCells };
+
+	MatrixToolbarBoard(QToolBar* toolBar, Layer boardLayer)
+		: QWidget(toolBar), layer(boardLayer)
+	{
+		setObjectName(layer == UnderCells
+			? QStringLiteral("MatrixToolbarBoardUnder")
+			: QStringLiteral("MatrixToolbarBoardOver"));
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		toolBar->installEventFilter(this);
+		if (layer == OverCells)
+		{
+			// The lamp must follow the badge's dirty-state restyles and the
+			// layout moving the cell around.
+			if (QWidget* badge = toolBar->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge")))
+				badge->installEventFilter(this);
+		}
+		setGeometry(toolBar->rect());
+		if (layer == UnderCells)
+			lower();
+		else
+			raise();
+		show();
+	}
+
+	void setBoardTokens(const SkinTokens& tokens)
+	{
+		ruleColor = QColor(tokens.border);
+		sunkenColor = QColor(tokens.surfaceSunken);
+		savedColor = QColor(tokens.success);
+		modifiedColor = QColor(tokens.warning);
+		// The hook carries no mode flag; infer it from the strip's surface
+		// (the studioIsDark pattern). The light border ink needs more alpha
+		// than the dark one to stay visible as graph paper on white.
+		gridAlpha = QColor(tokens.surface).lightness() < 128 ? 55 : 90;
+		update();
+	}
+
+	bool eventFilter(QObject* watched, QEvent* event) override
+	{
+		if (watched == parentWidget())
+		{
+			if (event->type() == QEvent::Resize)
+				setGeometry(parentWidget()->rect());
+		}
+		else if (event->type() == QEvent::Paint || event->type() == QEvent::Move
+			|| event->type() == QEvent::Resize || event->type() == QEvent::Show
+			|| event->type() == QEvent::Hide)
+		{
+			update();
+		}
+		return QWidget::eventFilter(watched, event);
+	}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		// The layers stay parented to the shared toolbar after a runtime
+		// skin switch; they must never leak matrix chrome into another skin.
+		if (SkinManager::instance()->currentSkinId() != QStringLiteral("matrix"))
+			return;
+
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		if (layer == UnderCells)
+			paintBoard(painter);
+		else
+			paintLamp(painter);
+	}
+
+private:
+	// The badge is only board chrome while the skin owns its appearance.
+	// MainWindow::updateDirtyStatus replaces it with an inline-styled pill
+	// at runtime; painting a lamp under that pill would garble its text.
+	QWidget* ownedBadge() const
+	{
+		QWidget* badge = parentWidget()->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge"));
+		if (badge == nullptr || !badge->isVisible() || !badge->styleSheet().isEmpty())
+			return nullptr;
+		return badge;
+	}
+
+	void paintBoard(QPainter& painter)
+	{
+		// The faint 24px column grid: the graph paper the whole board sits
+		// on, same pitch and ink as the card grid texture.
+		QColor grid(ruleColor);
+		grid.setAlpha(gridAlpha);
+		painter.setPen(QPen(grid, 1));
+		for (int x = MatrixMetrics::gridPitch; x < width(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, 0, x, height());
+
+		// Doubled header rule above the QSS bottom border: the strip closes
+		// like a board's title rule, not a plain window edge.
+		painter.setPen(QPen(ruleColor, 1));
+		painter.drawLine(0, height() - 4, width(), height() - 4);
+
+		// Sunken fill behind the status readout cell (the badge's own QSS
+		// background stays transparent so this fill and the lamp show).
+		if (QWidget* badge = ownedBadge())
+			painter.fillRect(badge->geometry().adjusted(1, 1, -1, -1), sunkenColor);
+	}
+
+	void paintLamp(QPainter& painter)
+	{
+		QWidget* badge = ownedBadge();
+		if (badge == nullptr)
+			return;
+		// Solid square lamp in traffic-light semantics: green = saved,
+		// amber = modified. This is exactly what colour rationing reserves
+		// colour for - the one truthful lamp on the header strip.
+		const QRect cell = badge->geometry();
+		const QRect lampRect(cell.left() + 8, cell.center().y() - 4, 8, 8);
+		painter.fillRect(lampRect, badge->property("dirty").toBool() ? modifiedColor : savedColor);
+	}
+
+	Layer layer;
+	QColor ruleColor;
+	QColor sunkenColor;
+	QColor savedColor;
+	QColor modifiedColor;
+	int gridAlpha = 55;
+};
+}
+
+class MatrixSkin : public ISkin
+{
+public:
+	QString id() const override { return QStringLiteral("matrix"); }
+	QString qssResource(bool dark) const override
+	{
+		return QStringLiteral(":/skins/matrix_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+	}
+	IRoutingRenderer* routingRenderer() const override
+	{
+		static CrosspointMatrixRoutingRenderer renderer;
+		return &renderer;
+	}
+	// The "add filter" picker as a two-axis selection instrument: a bus rail
+	// of categories and a column of coordinate-labelled entry cells, engaged
+	// like a crosspoint (MatrixFilterPicker.cpp).
+	FilterPickerView* createFilterPicker(QWidget* parent) const override
+	{
+		return new MatrixFilterPickerView(parent);
+	}
+	// Reference rows (Include / Convolution / MultiConvolution / VST) as
+	// board feed lines: a mono marker cell designates the feed and turns
+	// danger while the reference is broken, measured facts sit in boxed
+	// sunken mono cells, and the VST body carries the "> IN ... EXTERNAL
+	// DEVICE ... OUT >" port strip (MatrixReferenceCardView.cpp).
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
+	{
+		return new MatrixReferenceCardView(kind, parent);
+	}
+	SkinTokens tokens(bool dark) const override
+	{
+		SkinTokens t;
+		t.fontFamily = QStringLiteral("DM Sans");
+		t.monoFontFamily = QStringLiteral("DM Mono");
+		// Square cells and 1px rules only; 36px rows keep the board dense and
+		// on the 12px grid (gridPitch 24 = two rows of 12).
+		t.borderRadius = 0;
+		t.rowHeight = 36;
+		t.channelGroupIndent = 24;
+		t.channelGroupStyle = SkinTokens::GradientBar;
+		t.badgeStyle = SkinTokens::OutlineOnly;
+		t.cardRailWidth = 3;
+		// The shared raw-preview strip is replaced by this skin's own caption
+		// strip (MatrixRowCaption): same raw spec, but spoken in the board's
+		// footer grammar and wired into the crosspoint hover echo (M2).
+		t.showRawPreview = false;
+		t.accent = dark ? QStringLiteral("#22D3EE") : QStringLiteral("#008EAA");
+		t.accent2 = dark ? QStringLiteral("#7CFFB2") : QStringLiteral("#0A8F57");
+		if (dark)
+		{
+			t.background = QStringLiteral("#060B10");
+			t.surface = QStringLiteral("#0B141C");
+			t.card = QStringLiteral("#101B25");
+			t.cardHover = QStringLiteral("#142432");
+			t.cardSelected = QStringLiteral("#082B34");
+			t.text = QStringLiteral("#DFF5FF");
+			t.mutedText = QStringLiteral("#7FA0AE");
+			t.border = QStringLiteral("#233443");
+			t.graph = QStringLiteral("#041018");
+			t.graphGridMinor = QStringLiteral("#183443");
+		}
+		else
+		{
+			t.background = QStringLiteral("#F0F6F8");
+			t.surface = QStringLiteral("#FFFFFF");
+			t.card = QStringLiteral("#F9FCFD");
+			t.cardHover = QStringLiteral("#EDF7FA");
+			t.cardSelected = QStringLiteral("#D7F8FF");
+			t.text = QStringLiteral("#10242F");
+			t.mutedText = QStringLiteral("#5F7782");
+			t.border = QStringLiteral("#D4E2E8");
+			t.graph = QStringLiteral("#F9FCFD");
+			t.graphGridMinor = QStringLiteral("#D4E2E8");
+			// Traffic-light status colours tuned for contrast on light surfaces.
+			t.success = QStringLiteral("#15803D");
+			t.warning = QStringLiteral("#B45309");
+			t.danger = QStringLiteral("#DC2626");
+		}
+		finishTokens(t);
+		return t;
+	}
+
+	// Rotary encoder with an LED ring: the value reads as discrete lit
+	// segments, the exact value as text in a boxed mono cell. Bipolar knobs
+	// light segments left or right of a centre gap (12 o'clock detent);
+	// unipolar knobs fill clockwise from the minimum.
+	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
+	{
+		const QColor borderColor(tokens.border);
+		const QColor accentColor(tokens.accent);
+		const QColor cutColor(tokens.accent2);
+		const QColor mutedColor(tokens.mutedText);
+
+		// Reserve the bottom strip for the boxed numeric cell when the widget
+		// supplies an authoritative value text (e.g. the Preamp card). Promoted
+		// legacy dials show their value in the adjacent spin box instead.
+		QRect knobArea = rect;
+		if (!state.valueText.isEmpty())
+			knobArea.adjust(0, 0, 0, -(MatrixMetrics::knobCellHeight + 2));
+
+		QRectF inner = QRectF(knobArea).adjusted(5, 5, -5, -5);
+		const double side = qMin(inner.width(), inner.height());
+		const QRectF ringRect(inner.center().x() - side / 2.0, inner.center().y() - side / 2.0, side, side);
+		const QPointF center = ringRect.center();
+		const double outerRadius = side / 2.0;
+		const double innerRadius = qMax(outerRadius - 6.0, 1.0);
+		const double bodyRadius = qMax(innerRadius - 3.0, 1.0);
+
+		painter.setRenderHint(QPainter::Antialiasing);
+
+		// Segment ring. An even count gives bipolar knobs a natural centre gap
+		// at 12 o'clock; unipolar knobs use an odd count so a segment sits at
+		// every position including the centre.
+		const int segmentCount = state.bipolar ? 14 : 15;
+		const int half = segmentCount / 2;
+		int litFrom = 0;
+		int litCount = 0;
+		bool boost = true;
+		if (state.bipolar)
+		{
+			const double deviation = state.ratio - 0.5;
+			boost = deviation >= 0.0;
+			litCount = qMin(half, qRound(qAbs(deviation) * 2.0 * half));
+			litFrom = boost ? half : half - litCount;
+		}
+		else
+		{
+			litCount = qBound(0, qRound(state.ratio * segmentCount), segmentCount);
+		}
+
+		QColor litColor = state.bipolar && !boost ? cutColor : accentColor;
+		// Lit-segment luminance is calibrated per mode (M1): on the dark board
+		// the LEDs gain headroom toward white so a lit cell clearly outshines
+		// the ghost ring; the light tokens were derived for maximum contrast
+		// on white, where lightening would only desaturate them.
+		if (QColor(tokens.surface).lightness() < 128)
+			litColor = litColor.lighter(112);
+		if (state.dragging)
+			litColor = litColor.lighter(125);
+		else if (state.hovered)
+			litColor = litColor.lighter(112);
+		// The unlit ring stays visible at low alpha (M1): the range geometry -
+		// and the bipolar centre gap - must read even with nothing lit, the
+		// way an unlit LED is still a visible part on the board. Muted ink
+		// instead of border ink, which vanished against the light card.
+		QColor trackColor(mutedColor);
+		trackColor.setAlpha(state.enabled ? 80 : 40);
+
+		for (int i = 0; i < segmentCount; i++)
+		{
+			const double fraction = (i + 0.5) / segmentCount;
+			const bool lit = state.enabled && i >= litFrom && i < litFrom + litCount;
+			// A lit cell is wider than a ghost cell: LEDs bloom, rules do not.
+			QPen segmentPen(lit ? litColor : trackColor, lit ? 3.5 : 2.5, Qt::SolidLine, Qt::FlatCap);
+			painter.setPen(segmentPen);
+			painter.drawLine(matrixRadialPoint(center, innerRadius, fraction),
+				matrixRadialPoint(center, outerRadius, fraction));
+		}
+
+		// Centre detent tick: marks the 0-position gap of bipolar knobs so the
+		// two knob kinds read differently even at rest. Full text ink (M1):
+		// at 0 dB the gap plus this tick is the whole detent statement.
+		if (state.bipolar)
+		{
+			painter.setPen(QPen(state.enabled ? QColor(tokens.text) : QColor(trackColor), 1.0, Qt::SolidLine, Qt::FlatCap));
+			painter.drawLine(matrixRadialPoint(center, outerRadius + 1.0, 0.5),
+				matrixRadialPoint(center, outerRadius + 4.0, 0.5));
+		}
+
+		// Encoder body and pointer.
+		QColor bodyColor(state.enabled ? tokens.card : tokens.surface);
+		painter.setPen(QPen(borderColor, 1.0, state.enabled ? Qt::SolidLine : Qt::DashLine));
+		painter.setBrush(bodyColor);
+		painter.drawEllipse(center, bodyRadius, bodyRadius);
+		painter.setPen(QPen(state.enabled ? litColor : QColor(mutedColor), 2.0, Qt::SolidLine, Qt::FlatCap));
+		painter.drawLine(matrixRadialPoint(center, bodyRadius * 0.45, state.ratio),
+			matrixRadialPoint(center, bodyRadius - 1.5, state.ratio));
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		// Keyboard focus: a square cell bracket, not a glow - this skin's
+		// corner language is the rectangle.
+		if (state.focused && state.enabled)
+		{
+			painter.setPen(QPen(accentColor, 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(ringRect.toRect().adjusted(-3, -3, 3, 3));
+		}
+
+		// Boxed mono numeric cell: the authoritative reading.
+		if (!state.valueText.isEmpty())
+		{
+			QFont monoFont(tokens.monoFontFamily);
+			monoFont.setPointSizeF(7.5);
+			monoFont.setBold(true);
+			const QFontMetrics metrics(monoFont);
+			const int cellWidth = qMin(rect.width(), metrics.horizontalAdvance(state.valueText) + 12);
+			const QRect cellRect(rect.center().x() - cellWidth / 2,
+				rect.bottom() - MatrixMetrics::knobCellHeight + 1, cellWidth, MatrixMetrics::knobCellHeight - 1);
+			painter.setPen(QPen(state.dragging ? accentColor : borderColor, 1));
+			painter.setBrush(QColor(tokens.surfaceSunken));
+			painter.drawRect(cellRect);
+			painter.setFont(monoFont);
+			if (!state.enabled)
+				painter.setPen(QColor(mutedColor));
+			else if (state.dragging || state.hovered)
+				painter.setPen(accentColor);
+			else
+				painter.setPen(QColor(tokens.text));
+			painter.drawText(cellRect, Qt::AlignCenter, state.valueText);
+		}
+	}
+
+	// Departure-board cell: square corners, 1px rule, and a 3px status rail in
+	// traffic-light semantics (green = active, amber = bypassed). A commented
+	// out row additionally swaps the outer rule for a dashed one.
+	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const QString railColor = info.enabled ? tokens.success : tokens.warning;
+		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
+		const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
+		const QString borderStyle = info.enabled ? QStringLiteral("solid") : QStringLiteral("dashed");
+		QString style = QStringLiteral(
+			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
+			.arg(backgroundColor, borderStyle, borderColor, railColor);
+		// The :hover rule both signals the row crosspoint and makes Qt repaint
+		// the frame on enter/leave, which drives the painted column band.
+		style += QStringLiteral(
+			" QFrame#FilterCardRow:hover { border: 1px %1 %2; border-left: 3px solid %3; }")
+			.arg(borderStyle, tokens.accent, railColor);
+		return style;
+	}
+
+	// The header strip stays transparent: paintCardChrome owns the band fill,
+	// the 1px header rule and the faint column grid behind it.
+	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		Q_UNUSED(info);
+		Q_UNUSED(tokens);
+		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0px; }");
+	}
+
+	// Monochrome type cell: the command type reads from the mono code text
+	// (BQUAD/INC/VST/...), not from a per-type colour. Traffic-light colours
+	// stay reserved for status.
+	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
+	{
+		Q_UNUSED(typeColor);
+		const QString ink = info.enabled ? tokens.text : tokens.mutedText;
+		return QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
+			.arg(ink, tokens.border);
+	}
+
+	// Row chrome shared by every command type: the coordinate cell and the
+	// caption strip. The frozen legacy rows keep their stock construction,
+	// and the reference bodies (Include / Convolution / MultiConvolution /
+	// VST) speak their board grammar through MatrixReferenceCardView instead
+	// of being decorated here.
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	{
+		if (info.legacyRow)
+			return;
+
+		// The picker's coordinate language imported into the row (M2): the
+		// plain line number becomes a board coordinate, the type's bus letter
+		// ahead of the stable line position ("B3" = a BiQuad entry on line 3,
+		// the picker's C1 cell grammar). Spacer rows are blank board lines
+		// and carry no coordinate.
+		QLabel* coordinateCell = nullptr;
+		if (card != nullptr && header != nullptr && info.type != QStringLiteral("spacer"))
+		{
+			coordinateCell = header->findChild<QLabel*>(QStringLiteral("FilterCardNumber"));
+			if (coordinateCell != nullptr)
+			{
+				bool plainNumber = false;
+				const int line = coordinateCell->text().toInt(&plainNumber);
+				if (plainNumber)
+					coordinateCell->setText(matrixBusLetter(info.type) + QString::number(line));
+			}
+
+			// The caption strip docks under the card body and echoes the raw
+			// spec next to that coordinate on hover (the picker footer's
+			// grammar; see MatrixRowCaption).
+			QVBoxLayout* cardLayout = qobject_cast<QVBoxLayout*>(card->layout());
+			if (cardLayout != nullptr)
+			{
+				QLabel* rawSpec = card->findChild<QLabel*>(QStringLiteral("FilterCardRawPreview"));
+				cardLayout->addWidget(new MatrixRowCaption(card, rawSpec, coordinateCell));
+			}
+		}
+
+		// No per-type body decoration remains: the reference bodies build
+		// their own board grammar in MatrixReferenceCardView (which also
+		// owns the VST port strip that used to be injected from here).
+		Q_UNUSED(body);
+	}
+
+	// Painted board chrome: header band, 1px header rule, faint column grid,
+	// status lamp, and the crosspoint hover (row band + coordinate-column
+	// band). Drawn under the transparent header/body so children stay crisp.
+	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		if (info.type == QStringLiteral("spacer"))
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		const QRect content = rect.adjusted(MatrixMetrics::railInset, 1, -1, -1);
+		if (content.width() <= 0 || content.height() <= 0)
+			return;
+		const int headerHeight = qMin(tokens.rowHeight, content.height());
+		const QRect headerBand(content.left(), content.top(), content.width(), headerHeight);
+
+		// Header band fill (the header widget itself is transparent).
+		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
+
+		// Faint column grid: the graph paper the board sits on. Clipped to the
+		// header band - maintainer review (issue #93) judged the texture a
+		// distracting afterimage behind parameter widgets, so the row body
+		// stays a calm opaque panel regardless of editor widget opacity.
+		QColor gridColor(tokens.border);
+		const int gridAlpha = QColor(tokens.surface).lightness() < 128 ? 80 : 90;
+		gridColor.setAlpha(info.enabled ? gridAlpha : gridAlpha / 2);
+		painter.setPen(QPen(gridColor, 1));
+		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, headerBand.top(), x, headerBand.bottom());
+
+		// 1px rule between the header cell and the body cell.
+		if (content.height() > headerHeight)
+		{
+			painter.setPen(QPen(QColor(tokens.border), 1));
+			painter.drawLine(content.left(), content.top() + headerHeight, content.right(), content.top() + headerHeight);
+		}
+
+		// Crosspoint hover: the row band and the coordinate-column band light
+		// up; their intersection is the crosspoint.
+		if (info.hovered && info.enabled)
+		{
+			QColor rowBand(tokens.accent);
+			rowBand.setAlpha(22);
+			painter.fillRect(headerBand, rowBand);
+			const QRect columnBand(content.left(), content.top(),
+				qMin(MatrixMetrics::coordinateBandWidth, content.width()), content.height());
+			QColor columnColor(tokens.accent);
+			columnColor.setAlpha(14);
+			painter.fillRect(columnBand, columnColor);
+			QColor crosspoint(tokens.accent);
+			crosspoint.setAlpha(26);
+			painter.fillRect(QRect(columnBand.left(), headerBand.top(), columnBand.width(), headerBand.height()), crosspoint);
+		}
+
+		// Status lamp in the left gutter: solid green = active, hollow amber =
+		// bypassed (traffic-light semantics, never decorative).
+		const QRect lampRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5);
+		if (info.enabled)
+		{
+			painter.fillRect(lampRect, QColor(tokens.success));
+		}
+		else
+		{
+			painter.setPen(QPen(QColor(tokens.warning), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
+		}
+	}
+
+	// The board's masthead: the faint 24px column grid behind the title
+	// readout and a doubled bottom rule (this inner line plus the QSS bottom
+	// border), so the strip closes like a board's title rule, not a plain
+	// window edge - the same construction MatrixToolbarBoard gives the
+	// toolbar strip. The caption cells stay transparent in QSS so the grid
+	// runs through them, exactly like the toolbar's function cells.
+	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		// The hook carries no mode flag; infer it from the surface lightness
+		// (the studioIsDark pattern). The light border ink needs more alpha
+		// than the dark one to stay visible as graph paper on white.
+		QColor grid(tokens.border);
+		grid.setAlpha(QColor(tokens.surface).lightness() < 128 ? 55 : 90);
+		painter.setPen(QPen(grid, 1));
+		for (int x = rect.left() + MatrixMetrics::gridPitch; x < rect.right(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, rect.top(), x, rect.bottom());
+
+		painter.setPen(QPen(QColor(tokens.border), 1));
+		painter.drawLine(rect.left(), rect.bottom() - 3, rect.right(), rect.bottom() - 3);
+	}
+
+	// The board's header strip. The neutral stroke icons stay, tinted in
+	// plain ink (the catalog is monochrome - colour belongs to the status
+	// lamp); the QSS dresses every toolbar item as a square 1px cell, and
+	// two painted layers add what QSS cannot express: the 24px column grid
+	// behind the cells and the solid square status lamp inside the
+	// DirtyStatusBadge readout. Runs at startup and on every skin/dark
+	// switch, so the layers are looked up again and re-tinted, never
+	// created twice.
+	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
+	{
+		if (toolBar == nullptr)
+			return;
+
+		// Shared modern stroke icons, tinted with the text token.
+		ISkin::styleMainToolbar(toolBar, tokens);
+		toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+		// Painted board layers: created once per toolbar, re-tinted on every
+		// call (dark/light switches reuse the same instances).
+		auto boardLayer = [toolBar](const QString& name, MatrixToolbarBoard::Layer layer)
+		{
+			QWidget* existing = toolBar->findChild<QWidget*>(name, Qt::FindDirectChildrenOnly);
+			MatrixToolbarBoard* board = existing != nullptr
+				? static_cast<MatrixToolbarBoard*>(existing)
+				: new MatrixToolbarBoard(toolBar, layer);
+			return board;
+		};
+		boardLayer(QStringLiteral("MatrixToolbarBoardUnder"), MatrixToolbarBoard::UnderCells)->setBoardTokens(tokens);
+		boardLayer(QStringLiteral("MatrixToolbarBoardOver"), MatrixToolbarBoard::OverCells)->setBoardTokens(tokens);
+	}
+};
+}
+
+ISkin* matrixSkin()
+{
+	static MatrixSkin instance;
+	return &instance;
+}

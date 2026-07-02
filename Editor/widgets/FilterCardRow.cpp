@@ -1,0 +1,654 @@
+#include "FilterCardRow.h"
+
+#include <QIcon>
+#include <QMenu>
+#include <QPainter>
+#include <QPropertyAnimation>
+#include <QRegularExpression>
+#include <QScrollArea>
+#include <QStyle>
+#include <QTimer>
+#include <QVBoxLayout>
+
+#include "Editor/SkinManager.h"
+#include "Editor/widgets/ChBadge.h"
+#include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/routing/CopyRoutingAdapter.h"
+
+FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, int depth, QWidget* parent)
+	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, depth))
+{
+	setAttribute(Qt::WA_StyledBackground, false);
+	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+	QVBoxLayout* outerLayout = new QVBoxLayout(this);
+	outerLayout->setContentsMargins(8 + descriptor.depth * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
+	outerLayout->setSpacing(0);
+	// Detach the layout's minimumSize from the children's: the body can contain
+	// legacy filter GUIs with huge content-driven sizeHints (DeviceFilterGUI,
+	// VST, Convolution, ...) and SetMinimumSize would propagate that up here
+	// and force every cell in FilterTable's grid to that width.
+	outerLayout->setSizeConstraint(QLayout::SetNoConstraint);
+
+	cardFrame = new CommandRowFrame(this);
+	cardFrame->setObjectName(QStringLiteral("FilterCardRow"));
+	cardFrame->setAttribute(Qt::WA_StyledBackground, true);
+	cardFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+	outerLayout->addWidget(cardFrame);
+
+	QVBoxLayout* cardLayout = new QVBoxLayout(cardFrame);
+	cardLayout->setContentsMargins(0, 0, 0, 0);
+	cardLayout->setSpacing(0);
+
+	headerWidget = new QWidget(cardFrame);
+	headerWidget->setObjectName(QStringLiteral("FilterCardHeader"));
+	headerWidget->setAttribute(Qt::WA_StyledBackground, true);
+	headerWidget->setMinimumHeight(SkinManager::instance()->tokens().rowHeight);
+	cardLayout->addWidget(headerWidget);
+
+	QHBoxLayout* headerLayout = new QHBoxLayout(headerWidget);
+	headerLayout->setContentsMargins(8, 4, 8, 4);
+	headerLayout->setSpacing(8);
+
+	expandButton = new QToolButton(headerWidget);
+	expandButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	expandButton->setCheckable(true);
+	expandButton->setChecked(gui != nullptr);
+	expandButton->setText(expandButton->isChecked() ? QStringLiteral("v") : QStringLiteral(">"));
+	expandButton->setToolTip(tr("Expand filter card"));
+	connect(expandButton, SIGNAL(toggled(bool)), this, SLOT(expandedToggled(bool)));
+	headerLayout->addWidget(expandButton);
+
+	numberLabel = new QLabel(QString::number(number), headerWidget);
+	numberLabel->setObjectName(QStringLiteral("FilterCardNumber"));
+	numberLabel->setAlignment(Qt::AlignCenter);
+	numberLabel->setMinimumWidth(28);
+	headerLayout->addWidget(numberLabel);
+
+	typeBadge = new QLabel(headerWidget);
+	typeBadge->setObjectName(QStringLiteral("FilterTypeBadge"));
+	typeBadge->setAlignment(Qt::AlignCenter);
+	typeBadge->setMinimumWidth(46);
+	headerLayout->addWidget(typeBadge);
+
+	titleLabel = new QLabel(headerWidget);
+	titleLabel->setObjectName(QStringLiteral("FilterCardTitle"));
+	titleLabel->setMinimumWidth(92);
+	headerLayout->addWidget(titleLabel);
+
+	summaryLabel = new QLabel(headerWidget);
+	summaryLabel->setObjectName(QStringLiteral("FilterCardSummary"));
+	summaryLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	summaryLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+	headerLayout->addWidget(summaryLabel, 1);
+
+	channelBadgeContainer = new QWidget(headerWidget);
+	channelBadgeLayout = new QHBoxLayout(channelBadgeContainer);
+	channelBadgeLayout->setContentsMargins(0, 0, 0, 0);
+	channelBadgeLayout->setSpacing(3);
+	headerLayout->addWidget(channelBadgeContainer);
+
+	enabledButton = new QToolButton(headerWidget);
+	enabledButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	enabledButton->setCheckable(true);
+	enabledButton->setToolTip(tr("Enable or comment out this command"));
+	enabledButton->setChecked(descriptor.enabled);
+	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+	connect(enabledButton, SIGNAL(toggled(bool)), this, SLOT(enabledToggled(bool)));
+	headerLayout->addWidget(enabledButton);
+
+	addButton = new QToolButton(headerWidget);
+	addButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	addButton->setText(QStringLiteral("+"));
+	addButton->setToolTip(tr("Add filter before this card"));
+	connect(addButton, SIGNAL(clicked()), this, SLOT(addBefore()));
+	headerLayout->addWidget(addButton);
+
+	removeButton = new QToolButton(headerWidget);
+	removeButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	removeButton->setText(QStringLiteral("-"));
+	removeButton->setToolTip(tr("Remove filter"));
+	connect(removeButton, SIGNAL(clicked()), this, SLOT(removeThis()));
+	headerLayout->addWidget(removeButton);
+
+	editButton = new QToolButton(headerWidget);
+	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	editButton->setCheckable(true);
+	editButton->setText(QStringLiteral("..."));
+	editButton->setToolTip(tr("Edit raw command"));
+	connect(editButton, SIGNAL(toggled(bool)), this, SLOT(editTextToggled(bool)));
+	headerLayout->addWidget(editButton);
+
+	rawPreviewLabel = new QLabel(cardFrame);
+	rawPreviewLabel->setObjectName(QStringLiteral("FilterCardRawPreview"));
+	rawPreviewLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	cardLayout->addWidget(rawPreviewLabel);
+
+	bodyStack = new QStackedWidget(cardFrame);
+	bodyStack->setObjectName(QStringLiteral("FilterCardBody"));
+	bodyStack->setAttribute(Qt::WA_StyledBackground, true);
+	// Stop an overgrown body editor (e.g. the legacy DeviceFilterGUI's
+	// QTreeWidget with sizeAdjustPolicy=AdjustToContents, or any other GUI that
+	// reports a content-driven sizeHint) from propagating its preferred width
+	// up through the card. Otherwise the card grows past the visible viewport
+	// and the right-side header toolbar (enable / + / - / ...) renders
+	// thousands of pixels off screen and becomes invisible.
+	// Ignored sizePolicy alone is not enough: it stops sizeHint propagation
+	// but the layout system still inherits the inner widgets' minimumSize.
+	// Pin the bodyStack's own minimumSize to 0 so the card frame's minimum
+	// width is driven by the header only.
+	bodyStack->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+	bodyStack->setMinimumSize(0, 0);
+	cardLayout->addWidget(bodyStack);
+
+	lineEdit = new QLineEdit(bodyStack);
+	lineEdit->setObjectName(QStringLiteral("FilterCardRawEditor"));
+	connect(lineEdit, SIGNAL(editingFinished()), this, SLOT(lineEditingFinished()));
+	bodyStack->addWidget(lineEdit);
+
+	IRoutingRenderer* routingRenderer = (descriptor.type == QStringLiteral("copy"))
+		? SkinManager::instance()->routingRenderer() : nullptr;
+
+	if (routingRenderer != nullptr)
+	{
+		// Skin-specific Copy routing view (crosspoint matrix, step list, ...)
+		// replaces the legacy CopyFilterGUI in the card body. The view owns its
+		// working routing state; on edit we serialise it back into item->text.
+		QWidget* editorContainer = new QWidget(bodyStack);
+		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
+		editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		editorContainer->setMinimumSize(0, 0);
+		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
+		editorLayout->setContentsMargins(12, 10, 12, 12);
+
+		QString parameters;
+		FilterCardModel::commandForLine(item->text, &parameters);
+		std::vector<Assignment> routingAssignments = CopyRoutingAdapter::parse(parameters);
+		// Seed the routing editor with the real device channel set (L, R, C, ...),
+		// the same list the legacy CopyFilterGUI receives via configureChannels.
+		// Without it the graph only shows channels already named in the line, so
+		// the user cannot route to/from a channel that has no assignment yet
+		// (e.g. copying L onto R when R is not referenced). That was the studio
+		// (glass) Copy card's "cannot edit" bug.
+		std::vector<std::wstring> channelNames = table->getChannelNames();
+		routingView = routingRenderer->create(routingAssignments, channelNames, editorContainer);
+
+		QScrollArea* routingScroll = new QScrollArea(editorContainer);
+		routingScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));
+		routingScroll->setFrameShape(QFrame::NoFrame);
+		routingScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+		routingScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+		routingScroll->setWidgetResizable(true);
+		routingScroll->setMinimumSize(0, 0);
+		routingScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		routingScroll->setWidget(routingView);
+		editorLayout->addWidget(routingScroll);
+
+		bodyStack->addWidget(editorContainer);
+		bodyStack->setCurrentWidget(editorContainer);
+		connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
+	}
+	else if (gui != nullptr)
+	{
+		QWidget* editorContainer = new QWidget(bodyStack);
+		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
+		// Match bodyStack: stop overgrown filter GUIs from inflating the card width.
+		editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		editorContainer->setMinimumSize(0, 0);
+		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
+		editorLayout->setContentsMargins(12, 10, 12, 12);
+		// Wrap the legacy filter GUI in a borderless scroll area. Without this,
+		// any filter GUI that has a content-driven sizeHint (DeviceFilterGUI's
+		// QTreeWidget AdjustToContents, GraphicEQ / Convolution / VSTPlugin's
+		// internal AdjustToContents widgets) propagates a huge minimumSize up
+		// through editorContainer/bodyStack/cardFrame/FilterCardRow and the
+		// QGridLayout in FilterTable then forces every card column to that
+		// width, pushing the right-side header toolbar (enable / + / - / ...)
+		// thousands of pixels off screen.
+		QWidget* guiWidget = qobject_cast<QWidget*>(gui);
+		if (guiWidget != nullptr)
+		{
+			QScrollArea* guiScroll = new QScrollArea(editorContainer);
+			guiScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));
+			guiScroll->setFrameShape(QFrame::NoFrame);
+			guiScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+			guiScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+			guiScroll->setWidgetResizable(true);
+			guiScroll->setMinimumSize(0, 0);
+			guiScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+			guiScroll->setWidget(guiWidget);
+			editorLayout->addWidget(guiScroll);
+		}
+		else
+		{
+			editorLayout->addWidget(gui);
+		}
+		bodyStack->addWidget(editorContainer);
+		bodyStack->setCurrentWidget(editorContainer);
+		connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
+	}
+	else
+	{
+		// Unrecognized command line: no dedicated editor. Instead of a bare label
+		// (the "ugly plain text" case), present a styled monospace raw card with
+		// the command token emphasized, so it reads as a deliberate raw row.
+		const SkinTokens& tk = SkinManager::instance()->tokens();
+		QWidget* rawContainer = new QWidget(bodyStack);
+		rawContainer->setObjectName(QStringLiteral("FilterCardEditor"));
+		rawContainer->setAttribute(Qt::WA_StyledBackground, true);
+		rawContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+		rawContainer->setMinimumSize(0, 0);
+		QHBoxLayout* rawLayout = new QHBoxLayout(rawContainer);
+		rawLayout->setContentsMargins(12, 10, 12, 12);
+		rawLayout->setSpacing(10);
+
+		QLabel* glyph = new QLabel(QStringLiteral(">_"), rawContainer);
+		glyph->setObjectName(QStringLiteral("FilterCardRawGlyph"));
+		glyph->setStyleSheet(QStringLiteral("color:%1; font-family:\"%2\"; font-weight:700;")
+			.arg(tk.mutedText, tk.monoFontFamily));
+		rawLayout->addWidget(glyph, 0, Qt::AlignTop);
+
+		QLabel* rawLabel = new QLabel(rawContainer);
+		rawLabel->setObjectName(QStringLiteral("FilterCardRawText"));
+		rawLabel->setText(item->text);
+		rawLabel->setWordWrap(true);
+		rawLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+		rawLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3; border-radius:%4px; padding:6px 10px; font-family:\"%5\"; }")
+			.arg(tk.surfaceSunken, tk.text, tk.border)
+			.arg(tk.borderRadius / 2)
+			.arg(tk.monoFontFamily));
+		rawLayout->addWidget(rawLabel, 1);
+
+		bodyStack->addWidget(rawContainer);
+		bodyStack->setCurrentWidget(rawContainer);
+	}
+
+	bodyStack->setVisible(expandButton->isChecked());
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		refreshStateProperties();
+		update();
+	});
+	// Per-command-type chrome hook: rows are recreated on every skin switch
+	// (FilterTable::updateGuis), so construction time is the right moment for
+	// the active skin to tag or extend this row.
+	SkinManager::instance()->prepareCommandRow(currentRowInfo(), cardFrame, headerWidget, bodyStack);
+	rebuildSummary();
+}
+
+CommandRowInfo FilterCardRow::currentRowInfo() const
+{
+	CommandRowInfo info;
+	info.type = descriptor.type;
+	info.command = descriptor.command.toLower();
+	info.enabled = descriptor.enabled;
+	info.selected = table != nullptr && table->getSelectedItems().contains(item);
+	info.focused = table != nullptr && table->getFocusedItem() == item;
+	info.depth = descriptor.depth;
+	return info;
+}
+
+QRect FilterCardRow::getHeaderRect() const
+{
+	return QRect(headerWidget->pos(), headerWidget->size());
+}
+
+void FilterCardRow::editText()
+{
+	if (!editButton->isChecked())
+		editButton->setChecked(true);
+}
+
+QSize FilterCardRow::sizeHint() const
+{
+	// Blank lines collapse to a thin spacer; no header, no body, just a few
+	// pixels of breathing room so visual grouping in the config survives.
+	if (descriptor.type == QStringLiteral("spacer"))
+	{
+		int preferredWidth = table != nullptr ? table->getPreferredWidth() : 0;
+		return QSize(preferredWidth, 10);
+	}
+
+	// Use only the header's preferred width and the viewport - never the body's
+	// content-driven sizeHint. Some legacy filter GUIs (DeviceFilterGUI with
+	// QTreeWidget AdjustToContents, VST / Convolution / Stage editors) report
+	// a sizeHint matching their full content (thousands of pixels), which
+	// would otherwise inflate the entire QGridLayout column in FilterTable and
+	// push the right-side header toolbar far off screen.
+	int height = QWidget::sizeHint().height();
+	int width = headerWidget ? headerWidget->sizeHint().width() : QWidget::sizeHint().width();
+	if (layout() != nullptr)
+		width += layout()->contentsMargins().left() + layout()->contentsMargins().right();
+	int preferredWidth = table != nullptr ? table->getPreferredWidth() : 0;
+	if (width < preferredWidth)
+		width = preferredWidth;
+	return QSize(width, height);
+}
+
+QSize FilterCardRow::minimumSizeHint() const
+{
+	// Spacer rows force a small fixed height so QGridLayout does not promote
+	// them up to the body-driven minimum of neighbouring cards.
+	if (descriptor.type == QStringLiteral("spacer"))
+		return QSize(0, 10);
+
+	// Cap the cell's minimum width at a small constant so the QGridLayout in
+	// FilterTable does not inherit any content-driven minimum from a card's
+	// body editor. Without this, ONE row with a wide legacy filter GUI forces
+	// EVERY card column wide enough to push the right-side header toolbar far
+	// off screen. Height stays layout-driven so cards still vertically size to
+	// fit their bodies.
+	int height = QWidget::minimumSizeHint().height();
+	return QSize(0, height);
+}
+
+void FilterCardRow::paintEvent(QPaintEvent*)
+{
+	refreshStateProperties();
+
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	if (descriptor.depth <= 0)
+		return;
+
+	QPainter painter(this);
+	painter.setRenderHint(QPainter::Antialiasing);
+	QColor color(descriptor.color);
+	int indent = 8 + (descriptor.depth - 1) * tokens.channelGroupIndent;
+	QRect lineRect(indent, 0, tokens.channelGroupIndent, height());
+
+	switch (tokens.channelGroupStyle)
+	{
+	case SkinTokens::TreeLines:
+		painter.setPen(QPen(QColor(tokens.border), 1));
+		painter.drawLine(lineRect.left() + 7, 0, lineRect.left() + 7, height());
+		painter.drawText(QRect(lineRect.left() + 1, 0, 16, tokens.rowHeight), Qt::AlignCenter, QStringLiteral("|"));
+		break;
+	case SkinTokens::DottedLine:
+		painter.setPen(QPen(color, 1, Qt::DotLine));
+		painter.drawLine(lineRect.left() + 5, 0, lineRect.left() + 5, height());
+		break;
+	case SkinTokens::SoftShadow:
+	{
+		QLinearGradient shadow(lineRect.left(), 0, lineRect.right(), 0);
+		QColor start = color;
+		start.setAlpha(38);
+		QColor end = color;
+		end.setAlpha(0);
+		shadow.setColorAt(0, start);
+		shadow.setColorAt(1, end);
+		painter.fillRect(lineRect, shadow);
+		break;
+	}
+	case SkinTokens::GradientBar:
+	default:
+	{
+		QLinearGradient gradient(lineRect.left(), 0, lineRect.left(), height());
+		QColor start = color;
+		start.setAlpha(55);
+		QColor end = color;
+		end.setAlpha(12);
+		gradient.setColorAt(0, start);
+		gradient.setColorAt(1, end);
+		painter.fillRect(QRect(lineRect.left() + 7, 0, 3, height()), gradient);
+		break;
+	}
+	}
+}
+
+void FilterCardRow::rebuildSummary()
+{
+	descriptor = FilterCardModel::describeLine(item->text, descriptor.depth);
+
+	// Blank lines render as a thin spacer: no header, no body, no raw preview.
+	// The card frame itself stays visible (so its background fills the gap and
+	// scope-rail painting still works for indented blocks) but is collapsed
+	// to a small fixed height by sizeHint() / minimumSizeHint() below.
+	const bool isSpacer = descriptor.type == QStringLiteral("spacer");
+	if (headerWidget != nullptr)
+		headerWidget->setVisible(!isSpacer);
+	if (bodyStack != nullptr)
+		bodyStack->setVisible(!isSpacer && expandButton != nullptr && expandButton->isChecked());
+	if (isSpacer)
+	{
+		if (rawPreviewLabel != nullptr)
+			rawPreviewLabel->setVisible(false);
+		refreshStateProperties();
+		updateGeometry();
+		update();
+		return;
+	}
+
+	typeBadge->setText(descriptor.badge);
+	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle); the
+	// default reproduces the previous shared outline/filled treatment.
+	typeBadge->setStyleSheet(SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color));
+	titleLabel->setText(descriptor.title);
+	summaryLabel->setText(descriptor.summary);
+	rawPreviewLabel->setText(tr("Raw") + QStringLiteral("  ") + item->text);
+	rawPreviewLabel->setVisible(SkinManager::instance()->tokens().showRawPreview);
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	rawPreviewLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")
+		.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
+	enabledButton->blockSignals(true);
+	enabledButton->setChecked(descriptor.enabled);
+	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+	enabledButton->blockSignals(false);
+	enabledButton->setVisible(descriptor.canToggleEnabled);
+	// Disable only the body editor when the line is commented out. This keeps
+	// the card frame (and its header buttons - including the enable toggle and
+	// the raw-edit affordance) interactive so the user can flip the line back on.
+	if (gui != nullptr)
+		gui->setEnabled(descriptor.enabled);
+	buildChannelBadges(descriptor.channelBadges);
+	refreshStateProperties();
+	update();
+}
+
+void FilterCardRow::buildChannelBadges(const QStringList& channels)
+{
+	while (QLayoutItem* child = channelBadgeLayout->takeAt(0))
+	{
+		delete child->widget();
+		delete child;
+	}
+
+	for (const QString& channel : channels.mid(0, 8))
+		channelBadgeLayout->addWidget(new ChBadge(channel, channelBadgeContainer));
+	channelBadgeContainer->setVisible(!channels.isEmpty());
+}
+
+void FilterCardRow::updateModel()
+{
+	IFilterGUI* senderGui = qobject_cast<IFilterGUI*>(QObject::sender());
+	if (senderGui == nullptr)
+		return;
+
+	QString command;
+	QString parameters;
+	senderGui->store(command, parameters);
+	item->text = command + QStringLiteral(": ") + parameters;
+	rebuildSummary();
+	table->updateModel();
+}
+
+void FilterCardRow::routingEdited()
+{
+	if (routingView == nullptr)
+		return;
+
+	const QString parameters = CopyRoutingAdapter::serialize(routingView->assignments());
+	item->text = QStringLiteral("Copy: ") + parameters;
+	rebuildSummary();
+	table->updateModel();
+}
+
+void FilterCardRow::addBefore()
+{
+	FilterTemplate filterTemplate;
+	if (table->chooseFilterTemplate(&filterTemplate, addButton->mapToGlobal(QPoint(0, addButton->height()))))
+	{
+		table->addLine(filterTemplate.getLine(), item);
+		FilterTable* targetTable = table;
+		QTimer::singleShot(0, targetTable, [targetTable]() {
+			targetTable->updateGuis();
+		});
+	}
+}
+
+void FilterCardRow::removeThis()
+{
+	FilterTable* targetTable = table;
+	FilterTable::Item* targetItem = item;
+	QTimer::singleShot(0, targetTable, [targetTable, targetItem]() {
+		targetTable->removeItem(targetItem);
+		targetTable->updateGuis();
+	});
+}
+
+void FilterCardRow::editTextToggled(bool checked)
+{
+	setEditing(checked);
+}
+
+void FilterCardRow::setEditing(bool editing)
+{
+	if (editing)
+	{
+		lineEdit->setText(item->text);
+		bodyStack->setCurrentWidget(lineEdit);
+		bodyStack->setVisible(true);
+		expandButton->setChecked(true);
+		lineEdit->setFocus();
+		lineEdit->selectAll();
+	}
+	else if (gui != nullptr)
+	{
+		bodyStack->setCurrentIndex(1);
+	}
+	else if (bodyStack->count() > 1)
+	{
+		bodyStack->setCurrentIndex(1);
+	}
+}
+
+void FilterCardRow::lineEditingFinished()
+{
+	if (bodyStack->currentWidget() == lineEdit && !editingDone)
+	{
+		editingDone = true;
+		if (lineEdit->text() != item->text)
+		{
+			item->text = lineEdit->text();
+			table->updateModel();
+			editingDone = false;
+			FilterTable* targetTable = table;
+			QTimer::singleShot(0, targetTable, [targetTable]() {
+				targetTable->updateGuis();
+			});
+			return;
+		}
+		editButton->setChecked(false);
+		editingDone = false;
+	}
+}
+
+QString FilterCardRow::uncommentedLine() const
+{
+	QRegularExpression commentPrefix(QStringLiteral("^(\\s*)#\\s?"));
+	QRegularExpressionMatch match = commentPrefix.match(item->text);
+	if (match.hasMatch())
+		return match.captured(1) + item->text.mid(match.capturedEnd(0));
+	return item->text;
+}
+
+void FilterCardRow::enabledToggled(bool checked)
+{
+	if (!descriptor.canToggleEnabled)
+		return;
+
+	if (enabledButton != nullptr)
+		enabledButton->setIcon(QIcon(checked ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));
+
+	QString trimmed = item->text.trimmed();
+	if (checked && trimmed.startsWith('#'))
+		item->text = uncommentedLine();
+	else if (!checked && !trimmed.startsWith('#'))
+		item->text = QStringLiteral("# ") + item->text;
+
+	table->updateModel();
+	FilterTable* targetTable = table;
+	FilterTable::Item* targetItem = item;
+	// In-place refresh: only the toggled row's GUI needs to change. Falling
+	// back to a full updateGuis() on a 500+ row config was the dominant
+	// source of toggle latency.
+	QTimer::singleShot(0, targetTable, [targetTable, targetItem]() {
+		targetTable->updateSingleRowGui(targetItem);
+	});
+}
+
+void FilterCardRow::expandedToggled(bool checked)
+{
+	expandButton->setText(checked ? QStringLiteral("v") : QStringLiteral(">"));
+	bodyStack->setVisible(checked);
+}
+
+void FilterCardRow::refreshStateProperties()
+{
+	if (cardFrame == nullptr)
+		return;
+
+	const CommandRowInfo info = currentRowInfo();
+	cardFrame->setRowInfo(info);
+
+	// "enabled" is a real QWidget property, so setting it on cardFrame /
+	// headerWidget was equivalent to calling setEnabled(false) on the whole
+	// card whenever the line was commented out. That killed the toggle button,
+	// the raw editor, and every child editor (Include path field, BiQuad
+	// controls...) so a disabled row could not be re-enabled or even inspected.
+	// Use a dedicated dynamic property name for the styling hook instead.
+	const QList<QPair<const char*, QVariant>> properties = {
+		{ "filterKind", info.command },
+		{ "filterEnabled", info.enabled },
+		{ "selected", info.selected },
+		{ "focused", info.focused },
+		{ "scopeDepth", info.depth }
+	};
+
+	bool changed = false;
+	for (const auto& property : properties)
+	{
+		if (cardFrame->property(property.first) != property.second)
+		{
+			cardFrame->setProperty(property.first, property.second);
+			headerWidget->setProperty(property.first, property.second);
+			changed = true;
+		}
+	}
+
+	// The frame/header chrome is owned by the active skin so each skin can
+	// treat command types differently; the default reproduces the previous
+	// shared token-driven strings (see ISkin::cardFrameStyle).
+	const QString frameStyle = SkinManager::instance()->cardFrameStyle(info);
+	const QString headerStyle = SkinManager::instance()->cardHeaderStyle(info);
+	if (cardFrame->styleSheet() != frameStyle)
+	{
+		cardFrame->setStyleSheet(frameStyle);
+		changed = true;
+	}
+	if (headerWidget->styleSheet() != headerStyle)
+	{
+		headerWidget->setStyleSheet(headerStyle);
+		changed = true;
+	}
+
+	if (!changed)
+		return;
+
+	for (QWidget* widget : { static_cast<QWidget*>(cardFrame), headerWidget })
+	{
+		widget->style()->unpolish(widget);
+		widget->style()->polish(widget);
+		widget->update();
+	}
+}
