@@ -7,6 +7,7 @@
 #include "helpers/LogHelper.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/widgets/cards/DefaultReferenceCardView.h"
 #include "skins/ISkin.h"
 #include "skins/Skins.h"
 
@@ -177,6 +178,13 @@ FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 	if (activeSkin != nullptr)
 		return activeSkin->createFilterPicker(parent);
 	return new DefaultFilterPickerView(parent);
+}
+
+ReferenceCardView* SkinManager::createReferenceCardView(const QString& kind, QWidget* parent) const
+{
+	if (activeSkin != nullptr)
+		return activeSkin->createReferenceCardView(kind, parent);
+	return new DefaultReferenceCardView(parent);
 }
 
 void SkinManager::paintTitleBarChrome(QPainter& painter, const QRect& rect) const

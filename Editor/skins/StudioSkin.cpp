@@ -34,6 +34,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/RackChrome.h"
+#include "Editor/skins/cards/StudioReferenceCardView.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/skins/pickers/SoftFilterPicker.h"
@@ -152,6 +153,16 @@ public:
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		return new StudioFilterPickerView(parent);
+	}
+
+	// Reference rows (Include / Convolution / MultiConvolution / VST) as
+	// "the identity in the light, the facts behind glass": a luminance-first
+	// name line with lit glass chips, a sunken mono data window for location
+	// and readout, and a severity lamp beside one quiet status line
+	// (StudioReferenceCardView.cpp; the studio sheets carry the styling).
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
+	{
+		return new StudioReferenceCardView(kind, parent);
 	}
 
 	// The title bar is the topmost edge of the window's glass. The QSS keeps

@@ -125,6 +125,29 @@ UI는 DM Sans, 수치는 DM Mono. 위계의 주도자는 **명도(luminance)**�
 (`filterSelector=true`)는 표준 raised 유리에 행 제목의 굵기(600)만 입는다.
 라벨인 척하지 않고, 버튼처럼 소리치지도 않는다.
 
+### 참조 카드 — 빛 속의 정체성, 유리 뒤의 사실 (AR2)
+
+Include/Convolution/MultiConvolution/VST 행의 본문은 경로 입력 폼이 아니라
+참조 카드다(`StudioReferenceCardView`). 정체성 라인에는 이름이 판 위에서
+가장 밝은 잉크로 서되, 크기는 본문 10pt다(12pt·11pt 모두 부담 판정 —
+사용자 최종 지시). 판의 존재감은 활자 크기가 아니라 **왼쪽 한 칸
+들여쓰기**(카드 가장자리에 붙은 활자는 갑갑하게 읽힌다)와 상시 데이터
+창이 만든다. 그 뒤로
+점등 유리 칩(타입 배지 문법)이 데이터로 따른다 — VST2/VST3 칩, warning
+잉크의 소등 ABS 칩, danger 점등 MISSING 칩. **가라앉은 유리 데이터 창**은
+카드의 데이터 앵커다: 위치 사실과 IR 판독값이 DM Mono muted 잉크로 담기고,
+활자는 창의 왼쪽 가장자리에서 한 칸 들여 시작한다(책 끝자락에서 활자가
+시작하지 않는다 — 재작업 라운드). 위치는 언제나 컨테이너로 쓴다 — as-written 접두(`Surround\`, 후행 구분자가
+폴더임을 말한다)이고, bare 참조면 해석된 소재 디렉터리다. 결손 시 창은
+고칠 데이텀을 담는다: 이름과 다른 as-written 참조, 그마저 이름과 같으면
+대상을 기대했던 해석 경로. 창이 비는 것은 미설정 카드뿐이다. 예전의 ↳
+글리프는 폴더를 파일의 자식처럼 읽히게 해(포함 관계 반전) 폐기했다.
+상태는 severity 색 램프 점 하나와 조용한 한 줄이 말한다. 결손은 붉은 벽이
+아니라 소등+경고등이다: 이름이 muted로 어두워지고 MISSING 칩 하나만
+danger로 점등하며, Browse가 "Locate..." 텍스트를 입고 액센트 보더 유리가
+된다. 빈 참조는 결손이 아니라 미설정 — 칩 없이 muted 이름만 남는다(알람이
+아니라 소등). 아이콘은 없다(호도 라벨도 값도 아니므로, 타이브레이커).
+
 ### Copy 라우팅 — 곡선 노드 그래프 (CurvedNode)
 
 흐르는 곡선의 노드 그래프(`CurvedNodeRoutingRenderer`, CopyFilterGUIScene
@@ -190,6 +213,7 @@ UI는 DM Sans, 수치는 DM Mono. 위계의 주도자는 **명도(luminance)**�
   주석이 클래스 위에 있다)
 - QSS: `Editor/skins/studio_dark.qss`, `studio_light.qss`
 - 픽커: `Editor/skins/pickers/StudioFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/cards/StudioReferenceCardView.{h,cpp}`
 - Copy: `Editor/widgets/routing/CurvedNodeRoutingRenderer.{h,cpp}`
 - 헬퍼: `studioRgba`/`studioAlpha`/`studioIsDark`/`studioBandHex`/
   `studioBandFamilyForBiQuadType`/`studioBandPaintColor` (Skins.cpp 익명

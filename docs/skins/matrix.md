@@ -156,12 +156,22 @@ AR1 M2로 픽커의 좌표 언어가 행에 수입됐다.
 - **템플릿 선택기**(`filterSelector`): 행이 물고 있는 항목의 판독 셀.
   툴바의 목적지 판독 셀과 같은 함몰 배경.
 
-### Include / VST 행
+### 참조 카드 — 보드의 피드 라인 (AR2)
 
-- Include: `> source: <path>` 모노 보드 라인. 화살은 ASCII `>`다 — DM Mono에
-  U+25B8이 없어 오프스크린에서 두부가 되는 함정을 피한 결정.
-- VST: **외부 장비 엔트리**. 본문 머리에 `> IN … EXTERNAL DEVICE … OUT >`
-  포트 스트립이 붙어, 플러그인이 신호 경로에 패치된 아웃보드 장비로 읽힌다.
+Include/Convolution/MultiConvolution/VST 행의 본문은 `MatrixReferenceCardView`가
+세우는 피드 라인이다: 함몰 모노 **마커 셀**(`> SRC`/`> IR`/`> IR+`, kind에
+묶인 불변 약호) + `<dir>@` 위치 판독(muted, 페이로드 앞 — 읽는 순서대로
+장소가 먼저 오고, at 기호가 버스 주소처럼 장소를 닫는다; 재작업 라운드) +
+페이로드 이름(가장 밝은 모노 잉크). IR 판독값은 **박스 함몰 모노 셀**(불변 규칙 5 — `100.0 ms`
+`4800 samples` `48000 Hz` `2 ch` 각각 한 셀)이고, 멀티컨볼루션의 출력 채널
+콤보도 함몰 좌표 셀로 어순(`<channel> <file>`)에 끼어든다. VST는 본문
+머리의 `> IN … EXTERNAL DEVICE … OUT >` 포트 스트립(muted 단색 가구) +
+단색 `VST2`/`VST3` 코드 셀. 결손은 배급표의 명문대로 danger다: 마커 셀이
+속 빈 danger `MISSING`(빈 참조는 `NO FEED`)으로 전환하고, `LOCATE` 모노
+캡스 셀이 복구 진입점이 된다(평시 단색, 호버에만 액센트 예고). ABS는 속
+빈 앰버 토큰(주의 고지), 상태줄은 `! ` 마커의 모노 보드 리마크 한 줄이다.
+화살은 전부 ASCII `>` — DM Mono에 U+25B8이 없어 오프스크린에서 두부가
+되는 함정을 피한 결정.
 
 ### Copy 라우팅 — 크로스포인트 격자 (Crosspoint)
 
@@ -219,6 +229,8 @@ matrix의 LED는 보드 셀의 추상 점등이다(스큐어모피즘 금지).
 - QSS: `Editor/skins/matrix_dark.qss`, `matrix_light.qss`
 - 픽커: `Editor/skins/pickers/MatrixFilterPicker.{h,cpp}`
   (`galleryShowcase`가 picker_hover/picker_empty 갤러리 상태를 연출한다)
+- 참조 카드: `Editor/skins/cards/MatrixReferenceCardView.{h,cpp}` (VST 포트
+  스트립은 prepareCommandRow 주입에서 이 뷰의 vst 표현으로 이관됐다)
 - Copy: `Editor/widgets/routing/CrosspointMatrixRoutingRenderer.{h,cpp}`
   (+ 공유 행렬 변환은 `CopyRoutingAdapter::buildMatrix`)
 

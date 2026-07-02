@@ -22,15 +22,15 @@
 
 class FilterTable;
 class QComboBox;
-class QLabel;
-class QLineEdit;
 class QToolButton;
+class ReferenceCardView;
 
 // Modern card body for a "MultiConvolution:" line. It is the card-mode
-// counterpart of the legacy guis/MultiConvolutionFilterGUI and reuses
-// ConvolutionCardEditor's impulse-response path block (file picker, length/rate
-// readout, import affordance), adding a small field for the single output
-// channel that the summed convolution is written to.
+// counterpart of the legacy guis/MultiConvolutionFilterGUI: the same named
+// impulse-response reference as ConvolutionCardEditor (skin view, readout,
+// import affordance) with a small selector for the single output channel that
+// the summed convolution is written to, placed inside the reference grammar
+// ("<channel> <file>").
 class MultiConvolutionCardEditor : public IFilterGUI
 {
 	Q_OBJECT
@@ -45,7 +45,7 @@ public:
 
 private slots:
 	void chooseFile();
-	void pathEdited();
+	void pathCommitted(const QString& text);
 	void importToConfig();
 
 private:
@@ -54,10 +54,11 @@ private:
 	void updateFileInfo();
 
 	FilterTable* filterTable = nullptr;
+	// The reference as written in the config line (relative stays relative).
+	QString path;
+	ReferenceCardView* view = nullptr;
 	QComboBox* channelCombo = nullptr;
-	QLineEdit* pathEdit = nullptr;
-	QLabel* infoLabel = nullptr;
-	QLabel* statusLabel = nullptr;
 	QToolButton* chooseButton = nullptr;
+	QToolButton* editButton = nullptr;
 	QToolButton* importButton = nullptr;
 };

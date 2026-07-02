@@ -3,10 +3,17 @@
 
 	Modern card body for VSTPlugin rows. It ports the proven plugin-lifecycle
 	logic from the legacy VSTPluginFilterGUI (initialise, open panel, embed,
-	store) into a code-built, card-native layout, holding the opaque plugin
-	state (chunkData / paramMap) and reproducing it verbatim on store(). A
-	mechanical round-trip self-test (--selftest-vst) confirmed this state
-	survives parse -> store -> parse without loss.
+	store) into a card-native layout, holding the opaque plugin state
+	(chunkData / paramMap) and reproducing it verbatim on store(). A mechanical
+	round-trip self-test (--selftest-vst) confirmed this state survives
+	parse -> store -> parse without loss.
+
+	Presentation follows the AR2 review (issue #97): the plugin is a named
+	device, not a file with a path. The card renders through the active skin's
+	ReferenceCardView - plugin display name first (effGetEffectName), the DLL
+	location as secondary metadata, a VST2/VST3 format badge, the broken
+	library as a missing-state transition with a Locate recovery entry, and
+	the name itself as the open-panel affordance (DAW slot grammar).
 */
 
 #pragma once
@@ -19,13 +26,12 @@
 #include "Editor/IFilterGUI.h"
 #include "helpers/VSTPluginLibrary.h"
 
-class QLineEdit;
-class QLabel;
 class QToolButton;
 class QPushButton;
 class QFrame;
 class QPlainTextEdit;
 class QAction;
+class ReferenceCardView;
 
 class VSTCardEditor : public IFilterGUI
 {
@@ -44,7 +50,7 @@ private slots:
 	void openPanel();
 	void applyDialog();
 	void autoApplyToggled(bool checked);
-	void pathEditingFinished();
+	void pathCommitted(const QString& text);
 	void selectFile();
 	void embedToggled(bool checked);
 	void onIdle();
@@ -52,6 +58,7 @@ private slots:
 private:
 	void initPlugin();
 	bool embedPlugin();
+	void updateReferenceState();
 	void updatePermissionWarning();
 	void onAutomate();
 	void onSizeWindow(int w, int h);
@@ -64,12 +71,19 @@ private:
 	bool autoApplyDialog = false;
 	QElapsedTimer lastReadTimer;
 
-	QLineEdit* pathEdit = nullptr;
+	// The library reference as displayed/edited (relative to the VSTPlugins
+	// directory when possible), plus the last initPlugin outcome feeding the
+	// reference-card state.
+	QString displayPath;
+	QString initErrorText;
+	bool libraryMissing = false;
+
+	ReferenceCardView* view = nullptr;
 	QToolButton* selectButton = nullptr;
+	QToolButton* editButton = nullptr;
 	QPushButton* openPanelButton = nullptr;
 	QToolButton* optionsButton = nullptr;
 	QAction* embedAction = nullptr;
-	QLabel* statusLabel = nullptr;
 	QFrame* frame = nullptr;
 	QPlainTextEdit* warningTextEdit = nullptr;
 };

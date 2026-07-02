@@ -16,6 +16,7 @@
 
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/widgets/cards/DefaultReferenceCardView.h"
 
 namespace
 {
@@ -133,6 +134,15 @@ FilterPickerView* ISkin::createFilterPicker(QWidget* parent) const
 {
 	// Neutral default: the shared search-over-sections dropdown.
 	return new DefaultFilterPickerView(parent);
+}
+
+ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* parent) const
+{
+	// Neutral default: the plain token-styled information hierarchy. kind is
+	// unused here because the neutral view derives everything from the state;
+	// skins that split their answer per kind branch on it.
+	Q_UNUSED(kind);
+	return new DefaultReferenceCardView(parent);
 }
 
 void ISkin::paintTitleBarChrome(QPainter&, const QRect&, const SkinTokens&) const

@@ -307,8 +307,7 @@ QDoubleSpinBox[valueScrub="true"]:disabled, QSpinBox[valueScrub="true"]:disabled
 }
 
 QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
-QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph,
-QLabel#IncludeCardStatus, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 9pt; }
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
@@ -322,20 +321,22 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 
-/* Include row: the path rides in a rounded breadcrumb chip (a full pill,
-   one value step above the body tray) behind the file glyph. */
-QLineEdit#IncludeCardPath { background: @CARD@; border: 1px solid @BORDER@; border-radius: 16px; padding: 7px 16px; }
-QLineEdit#IncludeCardPath:focus { background: @CARD_HOVER@; border: 1px solid @ACCENT@; }
-QLabel#IncludeCardStatus { color: #dc2626; font-size: 9pt; padding-left: 6px; }
+/* Reference cards (Include / Convolution / MultiConvolution / VST bodies,
+   AR2 #97): the entity presentation - the pastel monogram tile, the
+   two-line identity, the fact chips and the calm Locate pill - is
+   assembled from tokens in SoftReferenceCardView. Here the seam and the
+   host bodies stay fully transparent over the card tray (an opaque band
+   behind the name is exactly the anxious artifact this skin removes), and
+   the shared inline path editor becomes a sunken stadium well whose focus
+   is a quiet accent ring, never an alarm. */
+QWidget#ReferenceCardView, QWidget#RefCardContent,
+QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
+QWidget#VSTCardEditor { background: transparent; border: 0; }
+QLineEdit#RefPathEdit { background: @SURFACE_SUNKEN@; border: 1px solid @BORDER@; border-radius: 16px; padding: 7px 16px; }
+QLineEdit#RefPathEdit:focus { background: @CARD@; border: 1px solid @ACCENT@; }
 
-/* VST row: an app-store-like card. Rounded-square accent "app icon" tile,
-   the plugin name as the large line, the status line beneath it, and an
-   accent pill action button. */
-QLabel#VSTCardGlyph { background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.30); border-radius: 10px; padding: 8px; }
-QLineEdit#VSTCardPath { background: transparent; border: 1px solid transparent; border-radius: 10px; padding: 6px 8px; font-size: 11pt; font-weight: 600; }
-QLineEdit#VSTCardPath:hover { background: rgba(0, 0, 0, 0.03); }
-QLineEdit#VSTCardPath:focus { background: @CARD@; border: 1px solid @ACCENT@; }
-QLabel#VSTCardStatus { background: transparent; font-size: 9pt; padding-left: 2px; }
+/* VST row extras owned by the host: the plugin's own panel opens from an
+   accent pill; the embedded editor rests in a rounded card frame. */
 QPushButton#VSTCardPanelButton {
     background: rgba(59, 130, 246, 0.12); color: @ACCENT@;
     border: 0; border-radius: 15px;

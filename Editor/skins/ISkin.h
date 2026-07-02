@@ -21,6 +21,7 @@ class IRoutingRenderer;
 class QPainter;
 class QToolBar;
 class QWidget;
+class ReferenceCardView;
 
 // Identifies a command row for per-command-type chrome decisions.
 struct CommandRowInfo
@@ -130,6 +131,16 @@ public:
 	// field over one sectioned list. Ownership passes to the caller via the
 	// usual QWidget parent mechanism.
 	virtual FilterPickerView* createFilterPicker(QWidget* parent) const;
+
+	// The reference-card body view for rows that point at an external file
+	// (kind: "include", "convolution", "multiconvolution", "vst"). The host
+	// editor owns all behavior and drives the view through
+	// ReferenceCardView::setState; the view owns structure and presentation,
+	// so each skin can answer the same reference with its own grammar instead
+	// of a palette swap. The default (ISkin.cpp) is the neutral
+	// DefaultReferenceCardView. Ownership passes to the caller via the usual
+	// QWidget parent mechanism.
+	virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
 
 	// Painted decoration over the custom title bar's QSS background (screws,
 	// grid texture, glows - whatever the skin's constitution calls for).

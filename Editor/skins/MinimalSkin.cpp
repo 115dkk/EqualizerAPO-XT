@@ -39,6 +39,7 @@
 #include "Editor/skins/pickers/SoftFilterPicker.h"
 #include "Editor/skins/pickers/RackFilterPicker.h"
 #include "Editor/skins/pickers/MatrixFilterPicker.h"
+#include "Editor/skins/cards/MinimalReferenceCardView.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -226,6 +227,14 @@ public:
 		// The add-filter dropdown as a numbered terminal index; see
 		// MinimalFilterPicker.h for the design.
 		return new MinimalFilterPickerView(parent);
+	}
+	// The reference bodies (Include / Convolution / MultiConvolution / VST) as
+	// one line of type: payload in the brightest ink, location and readout as
+	// muted print, the broken reference as an inverted MISSING block and the
+	// actions as engraved command words; see MinimalReferenceCardView.h.
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
+	{
+		return new MinimalReferenceCardView(kind, parent);
 	}
 	// The toolbar is the terminal's command line: all type and one hairline.
 	// The neutral default keeps the shared stroke icons on the actions so the

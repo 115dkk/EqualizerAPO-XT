@@ -209,7 +209,15 @@ SOURCES += main.cpp\
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
+	widgets/cards/ReferenceCardView.cpp \
+	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
+	skins/cards/StudioReferenceCardView.cpp \
+	skins/cards/MinimalReferenceCardView.cpp \
+	skins/cards/SoftReferenceCardView.cpp \
+	skins/cards/RackReferenceCardView.cpp \
+	skins/cards/MatrixReferenceCardView.cpp \
+	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
 	widgets/ChBadge.cpp \
 	widgets/EqGraphView.cpp \
@@ -400,7 +408,15 @@ HEADERS  += \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
+	widgets/cards/ReferenceCardView.h \
+	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTCardEditor.h \
+	skins/cards/StudioReferenceCardView.h \
+	skins/cards/MinimalReferenceCardView.h \
+	skins/cards/SoftReferenceCardView.h \
+	skins/cards/RackReferenceCardView.h \
+	skins/cards/MatrixReferenceCardView.h \
+	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
 	widgets/ChBadge.h \
 	widgets/EqGraphView.h \

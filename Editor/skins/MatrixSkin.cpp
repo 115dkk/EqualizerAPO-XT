@@ -15,7 +15,6 @@
 #include <QEvent>
 #include <QFontMetrics>
 #include <QFontMetricsF>
-#include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
 #include <QLayout>
@@ -34,6 +33,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/RackChrome.h"
+#include "Editor/skins/cards/MatrixReferenceCardView.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/skins/pickers/SoftFilterPicker.h"
@@ -354,6 +354,15 @@ public:
 	{
 		return new MatrixFilterPickerView(parent);
 	}
+	// Reference rows (Include / Convolution / MultiConvolution / VST) as
+	// board feed lines: a mono marker cell designates the feed and turns
+	// danger while the reference is broken, measured facts sit in boxed
+	// sunken mono cells, and the VST body carries the "> IN ... EXTERNAL
+	// DEVICE ... OUT >" port strip (MatrixReferenceCardView.cpp).
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
+	{
+		return new MatrixReferenceCardView(kind, parent);
+	}
 	SkinTokens tokens(bool dark) const override
 	{
 		SkinTokens t;
@@ -578,8 +587,11 @@ public:
 			.arg(ink, tokens.border);
 	}
 
-	// Per-type body treatments. The frozen legacy rows keep their stock
-	// construction; only the modern card editors are decorated.
+	// Row chrome shared by every command type: the coordinate cell and the
+	// caption strip. The frozen legacy rows keep their stock construction,
+	// and the reference bodies (Include / Convolution / MultiConvolution /
+	// VST) speak their board grammar through MatrixReferenceCardView instead
+	// of being decorated here.
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
 		if (info.legacyRow)
@@ -613,46 +625,10 @@ public:
 			}
 		}
 
-		if (body == nullptr)
-			return;
-
-		if (info.type == QStringLiteral("include"))
-		{
-			// Include row: a single "> source: <path>" board line. The stock
-			// file icon becomes a mono feed marker (QSS #IncludeCardGlyph
-			// styles it); the path field is already the <path> cell. ASCII ">"
-			// instead of U+25B8: DM Mono has no glyph for the triangle and the
-			// offscreen platform renders tofu.
-			QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("IncludeCardGlyph"));
-			if (glyph != nullptr)
-				glyph->setText(QStringLiteral("> source:"));
-		}
-		else if (info.type == QStringLiteral("vst") && body->objectName() == QStringLiteral("VSTCardEditor"))
-		{
-			// VST row: an external-device entry. A port strip with IN/OUT
-			// markings heads the body, so the plugin reads as outboard gear
-			// patched into the signal path.
-			QVBoxLayout* bodyLayout = qobject_cast<QVBoxLayout*>(body->layout());
-			if (bodyLayout == nullptr)
-				return;
-			QWidget* strip = new QWidget(body);
-			strip->setObjectName(QStringLiteral("MatrixVstPortStrip"));
-			QHBoxLayout* stripLayout = new QHBoxLayout(strip);
-			stripLayout->setContentsMargins(0, 0, 0, 0);
-			stripLayout->setSpacing(8);
-			QLabel* inPort = new QLabel(QStringLiteral("> IN"), strip);
-			inPort->setObjectName(QStringLiteral("MatrixVstPortLabel"));
-			stripLayout->addWidget(inPort);
-			stripLayout->addStretch(1);
-			QLabel* device = new QLabel(QStringLiteral("EXTERNAL DEVICE"), strip);
-			device->setObjectName(QStringLiteral("MatrixVstDeviceLabel"));
-			stripLayout->addWidget(device);
-			stripLayout->addStretch(1);
-			QLabel* outPort = new QLabel(QStringLiteral("OUT >"), strip);
-			outPort->setObjectName(QStringLiteral("MatrixVstPortLabel"));
-			stripLayout->addWidget(outPort);
-			bodyLayout->insertWidget(0, strip);
-		}
+		// No per-type body decoration remains: the reference bodies build
+		// their own board grammar in MatrixReferenceCardView (which also
+		// owns the VST port strip that used to be injected from here).
+		Q_UNUSED(body);
 	}
 
 	// Painted board chrome: header band, 1px header rule, faint column grid,

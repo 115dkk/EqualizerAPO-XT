@@ -5,9 +5,8 @@
 #include "Editor/IFilterGUI.h"
 
 class FilterTable;
-class QLabel;
-class QLineEdit;
 class QToolButton;
+class ReferenceCardView;
 
 class IncludeCardEditor : public IFilterGUI
 {
@@ -21,7 +20,7 @@ public:
 private slots:
 	void chooseFile();
 	void openFile();
-	void pathEdited();
+	void pathCommitted(const QString& text);
 	void importToConfig();
 
 private:
@@ -29,9 +28,10 @@ private:
 	void updateFileInfo();
 
 	FilterTable* filterTable = nullptr;
-	QLineEdit* pathEdit = nullptr;
-	QLabel* statusLabel = nullptr;
+	// The reference as written in the config line (relative stays relative).
+	QString path;
+	ReferenceCardView* view = nullptr;
 	QToolButton* chooseButton = nullptr;
-	QToolButton* openButton = nullptr;
+	QToolButton* editButton = nullptr;
 	QToolButton* importButton = nullptr;
 };
