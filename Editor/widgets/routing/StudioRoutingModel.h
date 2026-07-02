@@ -46,8 +46,8 @@ public:
 
 	// Display names. In Copy mode the last input port may be the constant
 	// port (empty name, drawn as "const"); constInput() tells it apart.
-	QStringList inputPorts() const;
-	QStringList outputPorts() const;
+	const QStringList& inputPorts() const;
+	const QStringList& outputPorts() const;
 	bool constInput(int index) const;
 
 	const QVector<Trace>& traces() const;

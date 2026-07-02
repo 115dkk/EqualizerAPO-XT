@@ -104,12 +104,12 @@ void StudioRoutingModel::load(const std::vector<Assignment>& assignments,
 	}
 }
 
-QStringList StudioRoutingModel::inputPorts() const
+const QStringList& StudioRoutingModel::inputPorts() const
 {
 	return inputs;
 }
 
-QStringList StudioRoutingModel::outputPorts() const
+const QStringList& StudioRoutingModel::outputPorts() const
 {
 	return outputs;
 }

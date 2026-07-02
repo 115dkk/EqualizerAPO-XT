@@ -49,7 +49,7 @@ void StageSelectionModel::setSelected(const QString& stage, bool on)
 		capture = on;
 }
 
-QStringList StageSelectionModel::unknownTokens() const
+const QStringList& StageSelectionModel::unknownTokens() const
 {
 	return unknown;
 }

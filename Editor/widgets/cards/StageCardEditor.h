@@ -48,7 +48,7 @@ private:
 
 	struct StageChip
 	{
-		QToolButton* button;
+		QToolButton* button = nullptr;
 		QString token;
 	};
 	std::vector<StageChip> chips;

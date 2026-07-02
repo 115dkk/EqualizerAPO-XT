@@ -27,7 +27,7 @@ public:
 
 	// Tokens on the line that are not in the vocabulary (the engine reports
 	// them as unknown; they select no stage). Preserved verbatim.
-	QStringList unknownTokens() const;
+	const QStringList& unknownTokens() const;
 
 	// Canonical parameter text: selected known stages in vocabulary order,
 	// then the unknown tokens in their written order. Empty when nothing is
