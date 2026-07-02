@@ -1,6 +1,8 @@
 #include "StudioReferenceCardView.h"
 
 #include <QAbstractButton>
+#include <QDir>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QStyle>
@@ -89,11 +91,10 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 	windowLayout->setContentsMargins(10, 3, 10, 3);
 	windowLayout->setSpacing(10);
 
-	// U+21B3: the "points elsewhere" glyph opening the location segment.
-	locationGlyph = new QLabel(QString(QChar(0x21B3)), windowPane);
-	locationGlyph->setObjectName(QStringLiteral("StudioRefGlyph"));
-	windowLayout->addWidget(locationGlyph, 0, Qt::AlignVCenter);
-
+	// The location prints as the containing prefix ("Surround\"): the folder
+	// holds the file, so it must read as a path prefix, never as a sub-item
+	// hanging off the name (the ↳ glyph this window used to open with said
+	// exactly that inverted relation).
 	locationLabel = new ElidedLabel(windowPane);
 	locationLabel->setObjectName(QStringLiteral("StudioRefLocation"));
 	windowLayout->addWidget(locationLabel, 1, Qt::AlignVCenter);
@@ -167,14 +168,38 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	// selected" identity says it all, no alarm lamp (deletion first).
 	missingChip->setVisible(state.missing && !state.editText.isEmpty());
 
-	const bool hasLocation = !state.directory.isEmpty();
-	locationGlyph->setVisible(hasLocation);
-	locationLabel->setVisible(hasLocation);
-	locationLabel->setFullText(state.directory);
+	// The window is the card's data anchor. Every configured reference has a
+	// location fact - the as-written containing prefix, or, for a bare
+	// reference, the resolved directory it sits in - and a broken one has the
+	// datum to fix: the reference as written when it says more than the name,
+	// otherwise the resolved path where the target was expected. Only the
+	// unconfigured card keeps a bare pane (nothing is set, so nothing sits
+	// behind the glass). A lone small name floating on the dark pane read as
+	// abandoned, not quiet (AR2 rework round).
+	QString windowText;
+	if (state.missing)
+	{
+		const QString asWritten = state.editText.trimmed();
+		if (!asWritten.isEmpty())
+			windowText = asWritten != state.name ? asWritten : state.fullPath;
+	}
+	else if (!state.directory.isEmpty())
+	{
+		windowText = state.locationPrefix();
+	}
+	else if (!state.fullPath.isEmpty())
+	{
+		QString resolvedDir = QDir::toNativeSeparators(QFileInfo(state.fullPath).absolutePath());
+		if (!resolvedDir.endsWith(QLatin1Char('\\')) && !resolvedDir.endsWith(QLatin1Char('/')))
+			resolvedDir += QDir::separator();
+		windowText = resolvedDir;
+	}
+	locationLabel->setVisible(!windowText.isEmpty());
+	locationLabel->setFullText(windowText);
 	const bool hasFacts = !state.readout.isEmpty();
 	factsLabel->setVisible(hasFacts);
 	factsLabel->setText(state.readout.join(QStringLiteral(" %1 ").arg(QChar(0x00B7))));
-	windowPane->setVisible(hasLocation || hasFacts);
+	windowPane->setVisible(!windowText.isEmpty() || hasFacts);
 
 	statusRow->setVisible(!state.statusText.isEmpty());
 	statusLabel->setText(state.statusText);

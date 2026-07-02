@@ -1037,7 +1037,9 @@ QLabel#StudioRefName {
     color: @TEXT@;
     background: transparent;
     border: 0;
-    font-size: 10pt;
+    /* Console-strip scale: the identity owns the pane instead of floating on
+       it as a small lonely label (AR2 rework round). */
+    font-size: 12pt;
     font-weight: 600;
 }
 QLabel#StudioRefName[refClickable="true"]:hover:enabled { color: #FFFFFF; }
@@ -1086,7 +1088,6 @@ QWidget#StudioRefWindow:disabled {
     border-color: rgba(38, 50, 74, 0.55);
     border-top-color: rgba(0, 0, 0, 0.30);
 }
-QLabel#StudioRefGlyph,
 QLabel#StudioRefLocation,
 QLabel#StudioRefFacts {
     color: @MUTED@;

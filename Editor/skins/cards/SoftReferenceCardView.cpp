@@ -70,28 +70,29 @@ QColor kindTilePastel(const QString& kind, const SkinTokens& t, bool dark)
 	return softPastelize(QColor(t.accent), dark);
 }
 
-// Per-kind monograms following the picker's derivation rules (AR1 F4):
-// multi-word names take their word initials ("Multi Convolution" -> "MC"),
-// single-word names their first two letters ("Include" -> "In", "VSTPlugin"
-// -> "VS"), and Convolution keeps the catalog's dedup form "Cn".
-QString kindMonogram(const QString& kind)
+// The pictogram each kind wore on its pre-rework card (the shared modern
+// icon set): a picture reads friendlier than a Latin monogram in this skin
+// (user direction, AR2 rework round), so the tile shows the familiar glyph -
+// the document sheet for Include, the plug for VST, the waveform for both
+// convolution siblings (their pastels keep them apart). The missing-state
+// stroke exclamation stays: the transition lives in the tile either way.
+QString kindIconResource(const QString& kind)
 {
 	if (kind == QStringLiteral("vst"))
-		return QStringLiteral("VS");
-	if (kind == QStringLiteral("convolution"))
-		return QStringLiteral("Cn");
-	if (kind == QStringLiteral("multiconvolution"))
-		return QStringLiteral("MC");
-	return QStringLiteral("In");
+		return QStringLiteral(":/icons/modern/plugin.svg");
+	if (kind == QStringLiteral("include"))
+		return QStringLiteral(":/icons/modern/file-include.svg");
+	return QStringLiteral(":/icons/modern/waveform.svg");
 }
 }
 
 // The iOS-Settings-style rounded-square colour tile that leads the row: the
-// picker's monogram tile grammar promoted onto the reference card. While the
-// reference is broken the tile itself changes colour and swaps the monogram
-// for a stroke-drawn alert mark - the state transition lives in the entity,
-// not in a shouting badge. Disabled, the pastel sinks toward the window
-// background like every sleeping Soft chip.
+// picker's tile grammar promoted onto the reference card, carrying the
+// kind's familiar pictogram. While the reference is broken the tile itself
+// changes colour and swaps the pictogram for a stroke-drawn alert mark - the
+// state transition lives in the entity, not in a shouting badge. Disabled,
+// the pastel sinks toward the window background like every sleeping Soft
+// chip.
 class SoftReferenceTile : public QWidget
 {
 public:
@@ -101,10 +102,10 @@ public:
 		setFixedSize(GUIHelper::scale(QSize(34, 34)));
 	}
 
-	void setAppearance(const QColor& pastel, const QString& monogram, bool alert)
+	void setAppearance(const QColor& pastel, const QString& newIconResource, bool alert)
 	{
 		tilePastel = pastel;
-		glyphText = monogram;
+		iconResource = newIconResource;
 		showAlert = alert;
 		update();
 	}
@@ -150,20 +151,20 @@ protected:
 			const qreal dotRadius = side * 0.055;
 			painter.drawEllipse(QPointF(center.x(), tileRect.top() + side * 0.74), dotRadius, dotRadius);
 		}
-		else
+		else if (!iconResource.isEmpty())
 		{
-			QFont glyphFont = font();
-			glyphFont.setWeight(QFont::Bold);
-			glyphFont.setPointSizeF(qMax(7.0, font().pointSizeF() * 0.95));
-			painter.setFont(glyphFont);
-			painter.setPen(ink);
-			painter.drawText(tileRect, Qt::AlignCenter, glyphText);
+			// The pictogram in the tile ink, centred at the picker glyphs'
+			// optical share of the tile.
+			const int glyphSide = qMax(1, qRound(side * 0.56));
+			const QRect glyphRect(qRound(tileRect.center().x() - glyphSide / 2.0),
+				qRound(tileRect.center().y() - glyphSide / 2.0), glyphSide, glyphSide);
+			GUIHelper::tintedIcon(iconResource, ink, glyphSide).paint(&painter, glyphRect);
 		}
 	}
 
 private:
 	QColor tilePastel;
-	QString glyphText;
+	QString iconResource;
 	bool showAlert = false;
 };
 
@@ -345,7 +346,7 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	QColor pastel = kindTilePastel(kind, t, dark);
 	if (state.missing)
 		pastel = softPastelize(QColor(state.editText.trimmed().isEmpty() ? t.warning : t.danger), dark);
-	tile->setAppearance(pastel, kindMonogram(kind), state.missing);
+	tile->setAppearance(pastel, kindIconResource(kind), state.missing);
 
 	nameLabel->setFullText(state.name);
 	if (!state.fullPath.isEmpty())
@@ -354,13 +355,15 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	formatChip->setVisible(!state.formatBadge.isEmpty());
 	formatChip->setText(state.formatBadge);
 
-	// The caption is the friendly second line: the location when the state
-	// carries one; while the reference dangles it shows the reference as
-	// written, so the row itself explains what needs relinking. No ABS badge
-	// in this skin - the constitutional tiebreaker removes the element, and
-	// an absolute reference already announces itself through the drive
-	// letter this caption starts with.
-	QString caption = state.directory;
+	// The caption is the friendly second line: the containing location as a
+	// prefix ("Surround\" - the folder holds the file, so it prints as what
+	// the name hangs under, never as the name's sub-item); while the
+	// reference dangles it shows the reference as written, so the row itself
+	// explains what needs relinking. No ABS badge in this skin - the
+	// constitutional tiebreaker removes the element, and an absolute
+	// reference already announces itself through the drive letter this
+	// caption starts with.
+	QString caption = state.locationPrefix();
 	if (caption.isEmpty() && state.missing)
 		caption = state.editText;
 	// A bare relative reference repeats the name - drop the echo, keep the air.

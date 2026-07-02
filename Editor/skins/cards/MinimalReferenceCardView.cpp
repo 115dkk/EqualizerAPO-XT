@@ -60,6 +60,23 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 	lineLayout->setContentsMargins(0, 0, 0, 0);
 	lineLayout->setSpacing(10);
 
+	// The path prints container-first, the way a terminal prints one: the
+	// as-written location prefix ("Surround\") in muted ink, then the payload
+	// as the line's brightest ink, adjacent - one path, two inks. A folder
+	// printed after (or under) the file would invert the containment.
+	QHBoxLayout* pathLayout = new QHBoxLayout();
+	pathLayout->setContentsMargins(0, 0, 0, 0);
+	pathLayout->setSpacing(0);
+
+	// Location prefix: the least defended column on the line - it shrinks
+	// (and paint-time elides) first because its full text survives in the
+	// tooltip.
+	dirLabel = new ElidedLabel(page);
+	dirLabel->setObjectName(QStringLiteral("MinimalRefDir"));
+	dirLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+	dirLabel->setVisible(false);
+	pathLayout->addWidget(dirLabel, 0, Qt::AlignVCenter);
+
 	// Payload: the line's data and its brightest ink. Maximum size policy
 	// packs it at its natural width and lets the layout compress it when the
 	// line runs out of columns; ElidedLabel then middle-elides at paint time
@@ -68,7 +85,9 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 	nameLabel->setObjectName(QStringLiteral("MinimalRefName"));
 	nameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 	installNameActivation(nameLabel);
-	lineLayout->addWidget(nameLabel, 0, Qt::AlignVCenter);
+	pathLayout->addWidget(nameLabel, 0, Qt::AlignVCenter);
+
+	lineLayout->addLayout(pathLayout);
 
 	// The broken-reference marker: an inverted block token (fg/bg swap),
 	// text on the line rather than a coloured badge.
@@ -89,15 +108,6 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 	absToken->setObjectName(QStringLiteral("MinimalRefAbs"));
 	absToken->setVisible(false);
 	lineLayout->addWidget(absToken, 0, Qt::AlignVCenter);
-
-	// Location in muted ink after the payload; the least defended column on
-	// the line - it shrinks (and paint-time elides) first because its full
-	// text survives in the tooltip.
-	dirLabel = new ElidedLabel(page);
-	dirLabel->setObjectName(QStringLiteral("MinimalRefDir"));
-	dirLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-	dirLabel->setVisible(false);
-	lineLayout->addWidget(dirLabel, 0, Qt::AlignVCenter);
 
 	// Measured facts in muted mono. Numbers never elide: a truncated figure
 	// is misinformation, so this stays a plain label with its natural width.
@@ -171,7 +181,7 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	absToken->setVisible(state.absolutePath && !state.missing);
 
 	dirLabel->setVisible(!state.directory.isEmpty());
-	dirLabel->setFullText(state.directory);
+	dirLabel->setFullText(state.locationPrefix());
 
 	readoutLabel->setVisible(!state.readout.isEmpty());
 	// Two-space runs are the terminal's column separator; the middle dot is

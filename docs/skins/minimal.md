@@ -140,9 +140,12 @@ BiQuad 행의 파라미터 영역은 세 단계 잉크 사다리로 읽힌다.
 ### 참조 카드 — 터미널 한 줄 (AR2)
 
 Include/Convolution/MultiConvolution/VST 행의 본문은 문자 그대로 **한 줄**이다
-(`MinimalReferenceCardView`). 페이로드(파일/플러그인 이름)가 가장 밝은
-잉크이고, 위치·IR 판독값(`100.0 ms  4800 samples  48000 Hz`)이 보조 잉크로
-같은 줄에 이어지며, 상태조차 `!`(warning)/`!!`(critical) 잉크 태그로 줄에
+(`MinimalReferenceCardView`). 경로는 터미널이 찍는 어순 그대로 컨테이너가
+먼저다: as-written 위치 접두(`Surround\`)가 보조 잉크로 줄을 열고, 그대로
+붙여 페이로드(파일/플러그인 이름)가 가장 밝은 잉크로 이어진다 — 폴더를
+파일 뒤에 찍으면 포함 관계가 뒤집혀 보인다(재작업 라운드). IR
+판독값(`100.0 ms  4800 samples  48000 Hz`)이 보조 잉크로 같은 줄에
+이어지며, 상태조차 `!`(warning)/`!!`(critical) 잉크 태그로 줄에
 접힌다. 결손은 전경/배경을 맞바꾼 반전 블록 `MISSING` — 텍스트 계기의 가장
 무딘 커서다. 액션은 줄 끝의 대문자 모노 텍스트 명령(`BROWSE`/`LOCATE`/
 `EDIT`/`IMPORT`/`PANEL`/`OPT`, 미번역 각인 문법)이고, 아이콘·필·둥근 배지는

@@ -74,6 +74,13 @@ struct ReferenceCardState
 		Critical
 	};
 	Severity statusSeverity = Severity::None;
+
+	// The location as the containing prefix: the directory closed by its
+	// trailing separator ("Surround\"). Views print this instead of the bare
+	// folder name so the depiction keeps the real containment direction - the
+	// folder holds the file; a bare name hanging off the file read as if the
+	// folder were the file's child. Empty while directory is empty.
+	QString locationPrefix() const;
 };
 
 class ReferenceCardView : public QWidget

@@ -455,6 +455,14 @@ QWidget#FilterCardHeader { background: transparent; }
 QWidget#FilterCardBody, QWidget#FilterCardEditor { background: transparent; border: 0; }
 QScrollArea#FilterCardEditorScroll,
 QScrollArea#FilterCardEditorScroll > QWidget > QWidget { background: transparent; }
+/* Custom widgets machined into the faceplate (knobs, value scrubs, channel
+   badges, routing beds, lamps, engravings, LCD wells) paint themselves; the
+   global QWidget base coat must never slip an app-background patch under
+   their rects - the brushed metal shows through around everything they
+   draw. Without this, every such widget sits on its own off-color plate
+   rectangle (worst on the Preamp knob and the engraved reference labels). */
+AudioKnob, EditableValue, ChBadge, RoutingView,
+RackEngravedLabel, RackStatusLamp, RackLcdWindow { background: transparent; }
 /* Powered-down unit (commented-out line): the printing fades with the film
    RackChrome draws over the plate. */
 QFrame#FilterCardRow[filterEnabled="false"] QLabel { color: @MUTED@; }

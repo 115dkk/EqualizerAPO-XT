@@ -1,5 +1,6 @@
 #include "ReferenceCardView.h"
 
+#include <QDir>
 #include <QEvent>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -18,6 +19,16 @@ void repolish(QWidget* widget)
 	widget->style()->polish(widget);
 	widget->update();
 }
+}
+
+QString ReferenceCardState::locationPrefix() const
+{
+	if (directory.isEmpty())
+		return QString();
+	// Drive roots ("C:\") already end in their separator.
+	if (directory.endsWith(QLatin1Char('\\')) || directory.endsWith(QLatin1Char('/')))
+		return directory;
+	return directory + QDir::separator();
 }
 
 ReferenceCardView::ReferenceCardView(QWidget* parent)

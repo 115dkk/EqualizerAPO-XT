@@ -37,6 +37,11 @@ class QHBoxLayout;
 // for the clickable identity - never a button lift).
 class RackEngravedLabel : public QWidget
 {
+	// Q_OBJECT so the class name reaches QSS: the rack sheets select these
+	// faceplate widgets by class to keep the global QWidget base coat from
+	// patching their rects.
+	Q_OBJECT
+
 public:
 	enum class Ink
 	{
@@ -90,6 +95,8 @@ private:
 // (disabled row) always shows the dome gone dark.
 class RackStatusLamp : public QWidget
 {
+	Q_OBJECT
+
 public:
 	explicit RackStatusLamp(QWidget* parent = nullptr);
 
@@ -110,6 +117,8 @@ private:
 // time; the full readout lives in the tooltip.
 class RackLcdWindow : public QWidget
 {
+	Q_OBJECT
+
 public:
 	explicit RackLcdWindow(QWidget* parent = nullptr);
 

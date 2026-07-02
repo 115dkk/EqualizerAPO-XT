@@ -675,7 +675,9 @@ QLineEdit#EditableValueEditor {
    light. */
 QLabel#StudioRefName {
     color: @TEXT@; background: transparent; border: 0;
-    font-size: 10pt; font-weight: 600;
+    /* Console-strip scale: the identity owns the pane instead of floating on
+       it as a small lonely label (AR2 rework round). */
+    font-size: 12pt; font-weight: 600;
 }
 QLabel#StudioRefName[refClickable="true"]:hover:enabled { color: #0A101F; }
 QLabel#StudioRefName[refMissing="true"] { color: @MUTED@; }
@@ -721,7 +723,7 @@ QWidget#StudioRefWindow:disabled {
     border-color: rgba(188, 200, 222, 0.55);
     border-top-color: rgba(0, 0, 0, 0.06);
 }
-QLabel#StudioRefGlyph, QLabel#StudioRefLocation, QLabel#StudioRefFacts {
+QLabel#StudioRefLocation, QLabel#StudioRefFacts {
     color: @MUTED@; background: transparent; border: 0;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 8pt;

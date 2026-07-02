@@ -37,8 +37,10 @@ struct GalleryRow
 
 // Representative rows: a parametric filter, a shelf filter (three knobs in
 // the legacy BiQuad GUI hosted by the card body), a peaking filter at 0 dB
-// (the bipolar gain knob at its neutral detent, X3), the reference-card rows
-// and an empty Copy row (the routing editor's empty state, X6).
+// (the bipolar gain knob at its neutral detent, X3), the preamp card (the
+// bare knob + value scrub pair - the row that shows whether a skin seats
+// custom widgets directly on its surface), the reference-card rows and an
+// empty Copy row (the routing editor's empty state, X6).
 //
 // The reference rows (Include / Convolution / MultiConvolution / VST) render
 // against synthetic target files written next to a synthetic config file
@@ -57,6 +59,7 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("filter"), QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71") },
 		{ QStringLiteral("shelf"), QStringLiteral("Filter 2: ON HSC Fc 8000 Hz Gain -2.5 dB Q 0.71") },
 		{ QStringLiteral("gain0db"), QStringLiteral("Filter 3: ON PK Fc 1000 Hz Gain 0 dB Q 1") },
+		{ QStringLiteral("preamp"), QStringLiteral("Preamp: -6 dB") },
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
 		{ QStringLiteral("include_nested"), QStringLiteral("Include: Surround\\example.txt") },
 		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },

@@ -153,7 +153,7 @@ void DefaultReferenceCardView::applyState(const ReferenceCardState& state)
 	missingBadge->setVisible(state.missing);
 
 	dirLabel->setVisible(!state.directory.isEmpty());
-	dirLabel->setFullText(state.directory);
+	dirLabel->setFullText(state.locationPrefix());
 
 	readoutLabel->setVisible(!state.readout.isEmpty());
 	readoutLabel->setText(state.readout.join(QStringLiteral(" %1 ").arg(QChar(0x00B7))));

@@ -539,7 +539,10 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 	}
 	serviceTag->setVisible(state.missing);
 
-	dirLabel->setText(state.directory);
+	// Sub-printed as the containing prefix ("Surround\"): the folder holds
+	// the unit's program, so it engraves as a path prefix, not as a sub-item
+	// of the name above.
+	dirLabel->setText(state.locationPrefix());
 	dirLabel->setToolTip(state.directory);
 	dirLabel->setVisible(!state.directory.isEmpty());
 

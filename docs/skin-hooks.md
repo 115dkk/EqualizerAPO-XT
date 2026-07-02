@@ -91,7 +91,12 @@ own all behavior - path resolution, file dialogs, plugin lifecycle, dependency
 import - and describe themselves through `ReferenceCardState`
 (`Editor/widgets/cards/ReferenceCardView.h`): primary name, as-written
 location, missing flag, absolute-path flag, VST2/VST3 format badge, the
-impulse-response readout list and one status line. Views own structure and
+impulse-response readout list and one status line. Views print the location
+through `ReferenceCardState::locationPrefix()` - the directory closed by its
+trailing separator (`Surround\`) - so the folder always reads as what
+contains the file; a bare folder name hanging off the name depicted the
+containment upside down (matrix's `@ <dir>` marker already states the
+location and stays as is). Views own structure and
 presentation only; the base class owns the shared inline path-edit mode and
 the name-activation plumbing (clicking the name opens the target / plugin
 panel). Hosts hand action buttons over with semantic roles
@@ -119,9 +124,11 @@ $env:QT_QPA_PLATFORM = "offscreen"
 .\build-Editor-x64\release\Editor.exe --skin-gallery <outDir> [--skin-gallery-skins studio,rack]
 ```
 
-For every skin × {dark, light} it renders twelve representative rows — a
+For every skin × {dark, light} it renders thirteen representative rows — a
 parametric filter (`Filter 1: ON PK ...`), a high-shelf with its three knobs,
-a peaking filter at 0 dB (bipolar gain at its neutral detent), an `Include:`
+a peaking filter at 0 dB (bipolar gain at its neutral detent), a `Preamp:`
+row (the bare knob + value scrub pair — the row that shows whether a skin
+seats custom widgets directly on its surface), an `Include:`
 row (resolved), a nested `Include: Surround\...` row (the location line), a
 missing `Include:` row (the broken-reference transition with the Locate
 entry), a `VSTPlugin:` row (unresolvable library - the missing/named-device
@@ -138,7 +145,7 @@ story). The filter picker is captured in three states (`normal`, `hover`,
 `empty`; pickers that do not implement `FilterPickerView::galleryShowcase`
 repeat their normal look), plus one shot each for the toolbar, title bar,
 menu bar and an open menu. Output names are stable:
-`<skin>_<dark|light>_<row>_<state>.png`, 5 × 2 × (12 × 3 + 3 + 4) = 430 PNGs
+`<skin>_<dark|light>_<row>_<state>.png`, 5 × 2 × (13 × 3 + 3 + 4) = 460 PNGs
 for a full run; the run self-checks the count, so adding a gallery row needs
 no external count update. A row shot fails the render (non-zero exit) if a
 visible horizontal scrollbar is found inside the row — rows must fit the
