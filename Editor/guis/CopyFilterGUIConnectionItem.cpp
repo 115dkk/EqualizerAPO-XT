@@ -193,7 +193,7 @@ void CopyFilterGUIConnectionItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent
 {
 	// A fixed-source scene (MultiConvolution) locks factors to unity; there is
 	// nothing to edit on the connection, only connect/disconnect.
-	CopyFilterGUIScene* graphScene = qobject_cast<CopyFilterGUIScene*>(scene());
+	const CopyFilterGUIScene* graphScene = qobject_cast<CopyFilterGUIScene*>(scene());
 	if (graphScene != nullptr && !graphScene->factorsEditable())
 		return;
 
