@@ -204,7 +204,10 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
+	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
+	widgets/cards/StageCardEditor.cpp \
+	widgets/cards/StageSelectionModel.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
@@ -404,7 +407,10 @@ HEADERS  += \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
+	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
+	widgets/cards/StageCardEditor.h \
+	widgets/cards/StageSelectionModel.h \
 	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \

@@ -21,6 +21,7 @@
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
+#include "Editor/widgets/cards/StageSelectionModel.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
@@ -581,6 +582,35 @@ int main(int argc, char** argv)
 		expectEqual(ports.join(','), QString("0,1,7"), "ports are the file channels plus stale references");
 		QStringList portsNoFile = MultiConvolutionRoutingAdapter::sourcePorts(0, {{L"L", {2, 1}}});
 		expectEqual(portsNoFile.join(','), QString("1,2"), "without a file only referenced indices appear, sorted");
+	}
+
+	{
+		// StageSelectionModel serialization identity: known stages come back in
+		// the legacy checkbox GUI's canonical order (pre-mix, post-mix,
+		// capture), case-insensitively parsed through the shared StageCommand
+		// codec; unlike the legacy GUI, tokens outside the vocabulary survive
+		// an edit in their written order.
+		StageSelectionModel model;
+
+		model.load("post-mix pre-mix");
+		expectTrue(model.isSelected("pre-mix") && model.isSelected("post-mix"), "both written stages are selected");
+		expectFalse(model.isSelected("capture"), "capture stays unselected");
+		expectEqual(model.serialize(), "pre-mix post-mix", "known stages serialize in canonical order");
+
+		model.load("Pre-Mix CAPTURE");
+		expectEqual(model.serialize(), "pre-mix capture", "selectors are case-insensitive and lower-cased");
+
+		model.load("pre-mix render foo");
+		expectEqual(model.unknownTokens().join(' '), "render foo", "unknown tokens are reported");
+		expectEqual(model.serialize(), "pre-mix render foo", "unknown tokens survive after the known stages");
+		model.setSelected("pre-mix", false);
+		model.setSelected("capture", true);
+		expectEqual(model.serialize(), "capture render foo", "toggles keep the unknown tokens");
+
+		model.load("");
+		expectEqual(model.serialize(), "", "an empty selection serializes empty (matches no stage)");
+		model.setSelected("capture", true);
+		expectEqual(model.serialize(), "capture", "a single selection writes just its token");
 	}
 
 	harness.report();

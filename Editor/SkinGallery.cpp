@@ -53,7 +53,9 @@ struct GalleryRow
 // per-skin routing view over a 4-channel BRIR, both ears mapped) and the
 // freshly inserted empty state; the empty one also guards the Insert path,
 // where a bare "MultiConvolution:" template must still resolve to the card
-// body and not fall back to an empty row.
+// body and not fall back to an empty row. The comment and stage rows judge
+// the Phase 1 cards that replaced the raw-container fallback: an in-place
+// note editor and the stage chip strip.
 QList<GalleryRow> galleryRows()
 {
 	return {
@@ -66,6 +68,8 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
 		{ QStringLiteral("device"), QStringLiteral("Device: all") },
+		{ QStringLiteral("comment"), QStringLiteral("# Living room preset - tuned by ear") },
+		{ QStringLiteral("stage"), QStringLiteral("Stage: pre-mix post-mix") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
 		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
 		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },

@@ -469,7 +469,12 @@ void FilterCardRow::updateModel()
 	QString command;
 	QString parameters;
 	senderGui->store(command, parameters);
-	item->text = command + QStringLiteral(": ") + parameters;
+	// "#" is the comment card's sentinel: a pure comment line has no colon, so
+	// it is reassembled as "# <text>" (a bare "#" when the note is empty).
+	if (command == QStringLiteral("#"))
+		item->text = parameters.isEmpty() ? QStringLiteral("#") : QStringLiteral("# ") + parameters;
+	else
+		item->text = command + QStringLiteral(": ") + parameters;
 	rebuildSummary();
 	table->updateModel();
 }

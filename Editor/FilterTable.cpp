@@ -45,6 +45,7 @@
 #include "FilterTable.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterCardRow.h"
+#include "Editor/widgets/cards/CommentCardEditor.h"
 #include "Editor/widgets/cards/FilterCardEditorFactory.h"
 
 using std::list;
@@ -166,7 +167,14 @@ void FilterTable::updateGuis()
 		QString line = item->text;
 		IFilterGUI* gui = nullptr;
 		int pos = line.indexOf(':');
-		if (pos != -1)
+		// A pure comment has no "command: parameters" shape (with or without an
+		// inner colon), so it never reaches the factories below. In card mode it
+		// still gets a real editor; the legacy path stays frozen (raw row).
+		if (renderMode == ModernCards && FilterCardModel::isPureCommentLine(line))
+		{
+			gui = new CommentCardEditor(line);
+		}
+		else if (pos != -1)
 		{
 			QString key = line.mid(0, pos);
 			QString value = line.mid(pos + 1);
