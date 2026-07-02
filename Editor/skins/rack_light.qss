@@ -486,8 +486,7 @@ QLineEdit#FilterCardRawEditor { background: #FCF8EE; border: 1px solid @ACCENT@;
 QCheckBox#FilterCardEnabled { background: transparent; }
 
 QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
-QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph,
-QLabel#IncludeCardStatus, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 700;
     text-transform: uppercase; letter-spacing: 2px; font-size: 8pt;
@@ -505,8 +504,59 @@ QLineEdit#EditableValueEditor {
     border-radius: 2px; padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
-QLineEdit#IncludeCardPath { background: #FCF8EE; border: 1px solid #8F8268; border-bottom-color: #FFFFFF; border-radius: 2px; padding: 4px 8px; }
-QLabel#IncludeCardStatus { color: #B3261E; font-size: 8pt; }
+/* ── Reference units (Include / Convolution / MultiConvolution / VST) ────
+   The card body is a service face painted by RackReferenceCardView directly
+   on the cream plate (bezel status lamp, engraved identity printing,
+   stamped wireframe tags, LCD readout well); every container stays
+   transparent so the metal shows through. */
+QWidget#ReferenceCardView, QWidget#RefCardContent,
+QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
+QWidget#VSTCardEditor, QWidget#RackRefLabelArea,
+QWidget#RackRefCaptionRow { background: transparent; border: 0; }
+/* The inline path editor is the unit's programming LCD: dark glass with lit
+   green segments even on the cream faceplate - displays never follow the
+   panel finish. Focus lights the amber service edge. */
+QLineEdit#RefPathEdit {
+    background: #11150F; color: #3ED68E;
+    border: 1px solid #4A4438; border-bottom-color: #6B6354;
+    border-radius: 2px; padding: 4px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700; font-size: 8pt;
+    selection-background-color: #3ED68E; selection-color: #11150F;
+}
+QLineEdit#RefPathEdit:focus { border: 1px solid @ACCENT@; }
+/* While the reference is broken, the Browse cap becomes the LOCATE service
+   button: engraved machine lettering on the raised cap and an amber-warmed
+   border, so the recovery entry sits lit beside the label area. */
+QToolButton#FilterCardIconButton[rackLocate="true"] {
+    color: @TEXT@; border-color: @ACCENT@; border-top-color: #FFFFFF;
+    font-size: 7pt; letter-spacing: 2px; padding: 2px 8px;
+}
+/* MultiConvolution's output selector is an engraved channel selector on the
+   plate (the R2 selector grammar): flat printing over a milled groove, a
+   small printed triangle, amber warmth on hover/focus; the editable text
+   sits directly on the metal instead of in a well. */
+QComboBox#MultiConvolutionCardChannel {
+    background: transparent; color: @TEXT@;
+    border: 0; border-bottom: 1px solid #B4A890;
+    border-radius: 0;
+    padding: 1px 14px 1px 2px; min-height: 20px;
+    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+}
+QComboBox#MultiConvolutionCardChannel:hover,
+QComboBox#MultiConvolutionCardChannel:focus,
+QComboBox#MultiConvolutionCardChannel:on { border-bottom-color: @ACCENT@; }
+QComboBox#MultiConvolutionCardChannel:disabled { color: #A99F8E; background: transparent; }
+QComboBox#MultiConvolutionCardChannel::drop-down { width: 14px; }
+QComboBox#MultiConvolutionCardChannel::down-arrow {
+    image: none; width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid @MUTED@; margin-right: 2px;
+}
+QComboBox#MultiConvolutionCardChannel QLineEdit {
+    background: transparent; color: @TEXT@; border: 0; padding: 0;
+    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+}
 
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }

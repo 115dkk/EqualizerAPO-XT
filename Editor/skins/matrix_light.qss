@@ -1051,7 +1051,6 @@ QWidget#PreampCardEditor,
 QWidget#IncludeCardEditor,
 QWidget#VSTCardEditor,
 QWidget#PreampCardValueBlock,
-QLabel#IncludeCardStatus,
 QLabel#PreampCardCaption {
     background: transparent;
     border: 0;
@@ -1080,49 +1079,195 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
-/* Include row: a single "> source: <path>" board line. */
-QLabel#IncludeCardGlyph {
+/* ===== Reference cards: board feed lines (AR2) =====
+   Include / Convolution / MultiConvolution / VST bodies are feed lines on
+   the board (MatrixReferenceCardView): a mono marker cell designates the
+   feed (> SRC / > IR / > IR+ / > DEV) and turns into a danger readout while
+   the reference is broken; the payload name is the darkest mono ink; the
+   location is a muted mono readout; measured facts sit in boxed sunken mono
+   cells; the VST body is headed by the monochrome > IN ... EXTERNAL DEVICE
+   ... OUT > port strip. Colour rationing: danger = broken feed readout,
+   amber = ABS portability caution, accent only on hover/engage. */
+QWidget#ReferenceCardView,
+QWidget#RefCardContent,
+QWidget#MatrixRefFeedLine,
+QWidget#MatrixRefReadoutStrip,
+QWidget#ConvolutionCardEditor,
+QWidget#MultiConvolutionCardEditor {
     background: transparent;
     border: 0;
-    color: @ACCENT@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-weight: 700;
 }
-QLineEdit#IncludeCardPath {
-    background: #FFFFFF;
+/* Feed designation cell: a sunken mono board token in the coordinate cell's
+   grammar - muted at rest, like every resting coordinate on the board. */
+QLabel#MatrixRefMarker {
+    background: @GRAPH@;
+    color: @MUTED@;
     border: 1px solid @BORDER@;
     border-radius: 0;
-    padding: 6px 10px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-}
-QLabel#IncludeCardStatus {
-    color: @DANGER@;
-    font-size: 9pt;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-}
-/* VST row: an external-device entry with IN/OUT port markings. */
-QWidget#MatrixVstPortStrip {
-    background: transparent;
-    border: 0;
-    border-bottom: 1px solid @BORDER@;
-}
-QLabel#MatrixVstPortLabel {
-    color: @ACCENT@;
-    background: transparent;
+    padding: 2px 6px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
     font-size: 9pt;
     letter-spacing: 1px;
 }
-QLabel#MatrixVstDeviceLabel {
-    color: @MUTED@;
+/* Broken feed: the marker becomes the danger readout (NO FEED / MISSING).
+   Hollow - filled cells are the lamps' engage grammar; a broken feed is a
+   posted deficiency, not an engaged crosspoint. */
+QLabel#MatrixRefMarker[feedState="missing"] {
     background: transparent;
+    color: @DANGER@;
+    border-color: @DANGER@;
+}
+QLabel#MatrixRefMarker:disabled {
+    border-style: dashed;
+}
+/* Payload name: data in the darkest mono ink - never coloured. Accent is
+   only the hover pre-light of the click affordance (open target / panel). */
+QLabel#MatrixRefName {
+    background: transparent;
+    color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 10pt;
+}
+QLabel#MatrixRefName[nameClickable="true"]:hover {
+    color: @ACCENT@;
+}
+QLabel#MatrixRefName:disabled {
+    color: @MUTED@;
+}
+QLabel#MatrixRefLocation {
+    background: transparent;
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+}
+/* ABS: a hollow amber token. An absolute path is a portability hazard, and
+   amber is the rationed caution ink; hollow keeps it a notice, not a lamp. */
+QLabel#MatrixRefAbsCell {
+    background: transparent;
+    color: @WARNING@;
+    border: 1px solid @WARNING@;
+    border-radius: 0;
+    padding: 1px 5px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 7pt;
+    letter-spacing: 1px;
+}
+/* Format code (VST2/VST3): type identity is never coloured - a monochrome
+   code cell, the typeBadgeStyle precedent. */
+QLabel#MatrixRefFormatCell {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 1px 5px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 7pt;
+    letter-spacing: 1px;
+}
+/* Boxed readout cells: authoritative numbers live in boxed sunken mono
+   cells (rule 5) - the knob value cell's grammar for the IR readout. */
+QLabel#MatrixRefReadoutCell {
+    background: @GRAPH@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 9pt;
+}
+QLabel#MatrixRefReadoutCell:disabled {
+    color: @MUTED@;
+    border-style: dashed;
+}
+/* Status: one mono board remark line; severity speaks through ink alone. */
+QLabel#MatrixRefStatusLine {
+    background: transparent;
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QLabel#MatrixRefStatusLine[severity="warning"] { color: @WARNING@; }
+QLabel#MatrixRefStatusLine[severity="critical"] { color: @DANGER@; }
+/* VST port strip: monochrome furniture. The ports are muted ink - accent is
+   reserved for engage/select/hover, and a resting strip engages nothing. */
+QWidget#MatrixRefPortStrip {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid @BORDER@;
+}
+QLabel#MatrixRefPortLabel {
+    background: transparent;
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 1px;
+}
+QLabel#MatrixRefDeviceLabel {
+    background: transparent;
+    color: @MUTED@;
     font-weight: 600;
     font-size: 8pt;
     letter-spacing: 2px;
 }
-QLineEdit#VSTCardPath {
+/* Output bus cell (MultiConvolution): the destination designation as a
+   sunken mono coordinate cell in the feed line. */
+QComboBox[matrixBusCell="true"] {
+    background: @GRAPH@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 1px 22px 1px 6px;
+    min-height: 22px;
+    max-height: 22px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 600;
+    font-size: 9pt;
+}
+QComboBox[matrixBusCell="true"]:hover,
+QComboBox[matrixBusCell="true"]:focus,
+QComboBox[matrixBusCell="true"]:on {
+    border-color: @ACCENT@;
+}
+QComboBox[matrixBusCell="true"] QLineEdit {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+}
+/* Panel cell (VST): the open-panel button joins the action cell train's
+   metrics instead of standing as a tall dialog button. */
+QPushButton#VSTCardPanelButton {
+    padding: 2px 10px;
+    min-height: 22px;
+    max-height: 22px;
+    font-size: 9pt;
+}
+/* LOCATE: the recovery crosspoint. An untranslated mono-caps board token,
+   monochrome at rest; the shared icon-button hover supplies the accent
+   engage pre-light. */
+QToolButton#FilterCardIconButton[matrixLocate="true"] {
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    letter-spacing: 1px;
+}
+/* Inline path editor: the scan readout strip (the picker's search grammar) -
+   a sunken mono line whose rule engages in accent while scanning. */
+QLineEdit#RefPathEdit {
+    background: @GRAPH@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 4px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+}
+QLineEdit#RefPathEdit:focus {
+    border-color: @ACCENT@;
+    background: #FFFFFF;
 }
 QLineEdit#CrosspointEditor {
     background: #FFFFFF;

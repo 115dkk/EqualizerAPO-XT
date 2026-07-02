@@ -34,6 +34,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/RackChrome.h"
+#include "Editor/skins/cards/RackReferenceCardView.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/skins/pickers/SoftFilterPicker.h"
@@ -132,6 +133,14 @@ public:
 		// The module library browser: a brushed 1U faceplate with engraved
 		// section plates, LED-lit slots and an LCD search strip.
 		return new RackFilterPickerView(parent);
+	}
+
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
+	{
+		// The reference row's service face: a bezel status lamp, engraved
+		// identity printing with stamped tags and a dark LCD readout well,
+		// painted in RackChrome's grammar (see RackReferenceCardView).
+		return new RackReferenceCardView(kind, parent);
 	}
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override

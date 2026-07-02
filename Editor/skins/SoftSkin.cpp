@@ -39,6 +39,7 @@
 #include "Editor/skins/pickers/SoftFilterPicker.h"
 #include "Editor/skins/pickers/RackFilterPicker.h"
 #include "Editor/skins/pickers/MatrixFilterPicker.h"
+#include "Editor/skins/cards/SoftReferenceCardView.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
@@ -111,6 +112,15 @@ public:
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		return new SoftFilterPickerView(parent);
+	}
+
+	// AR2 (#97): the reference rows answer in the consumer-settings grammar -
+	// a pastel monogram tile leading a two-line identity (name + friendly
+	// caption), IR facts as pastel stadium chips, and a calm accent Locate
+	// pill as the recovery entry (skins/cards/SoftReferenceCardView.cpp).
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
+	{
+		return new SoftReferenceCardView(kind, parent);
 	}
 
 	// Window chrome: deliberately NO paintTitleBarChrome override. The

@@ -646,8 +646,9 @@ QLineEdit#FilterCardRawEditor {
 QCheckBox#FilterCardEnabled { background: transparent; }
 
 QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
-QWidget#PreampCardValueBlock, QLabel#IncludeCardGlyph,
-QLabel#IncludeCardStatus, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
+QWidget#VSTCardEditor, QWidget#ReferenceCardView, QWidget#RefCardContent,
+QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 600;
     text-transform: uppercase; letter-spacing: 1px; font-size: 9pt;
@@ -665,21 +666,120 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 
-/* ===== Include row: a path chip on a glass card ===== */
-/* The chip is the only pill in the skin: sunken glass, mono path text. */
-QLineEdit#IncludeCardPath {
+/* ===== Reference cards (Include / Conv / MultiConv / VST bodies) ===== */
+/* The identity in the light, the facts behind glass. White glass cannot get
+   brighter, so hierarchy comes from ink depth and border depth: the name is
+   the deepest ink, chips are lit glass chips (type badge grammar), location
+   and readout sit in a shaded sunken window. A broken reference fades the
+   name to muted ink and lights a small danger chip; disabled drops every
+   light. */
+QLabel#StudioRefName {
+    color: @TEXT@; background: transparent; border: 0;
+    font-size: 10pt; font-weight: 600;
+}
+QLabel#StudioRefName[refClickable="true"]:hover:enabled { color: #0A101F; }
+QLabel#StudioRefName[refMissing="true"] { color: @MUTED@; }
+QLabel#StudioRefName:disabled { color: rgba(93, 106, 132, 0.60); }
+QLabel#StudioRefChip {
+    color: @MUTED@;
+    background: transparent;
+    border: 1px solid rgba(188, 200, 222, 0.90);
+    border-radius: 8px;
+    padding: 1px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 7pt; font-weight: 700; letter-spacing: 1px;
+}
+QLabel#StudioRefChip[chipRole="format"][chipLit="true"] {
+    color: @ACCENT@;
+    background: rgba(47, 107, 255, 0.10);
+    border-color: rgba(47, 107, 255, 0.45);
+}
+QLabel#StudioRefChip[chipRole="abs"] {
+    color: #b45309;
+    border-color: rgba(217, 119, 6, 0.45);
+}
+QLabel#StudioRefChip[chipRole="missing"] {
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.10);
+    border-color: rgba(220, 38, 38, 0.45);
+}
+QLabel#StudioRefChip[chipRole="format"]:disabled,
+QLabel#StudioRefChip[chipRole="abs"]:disabled,
+QLabel#StudioRefChip[chipRole="missing"]:disabled {
+    color: rgba(93, 106, 132, 0.60);
+    background: transparent;
+    border-color: rgba(188, 200, 222, 0.55);
+}
+QWidget#StudioRefWindow {
     background: rgba(232, 238, 248, 0.75);
     border: 1px solid @BORDER@;
     border-top-color: rgba(0, 0, 0, 0.12);
-    border-radius: 13px;
-    padding: 4px 14px;
+    border-radius: 8px;
+}
+QWidget#StudioRefWindow:disabled {
+    background: rgba(232, 238, 248, 0.40);
+    border-color: rgba(188, 200, 222, 0.55);
+    border-top-color: rgba(0, 0, 0, 0.06);
+}
+QLabel#StudioRefGlyph, QLabel#StudioRefLocation, QLabel#StudioRefFacts {
+    color: @MUTED@; background: transparent; border: 0;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+}
+QWidget#StudioRefStatusRow { background: transparent; border: 0; }
+QLabel#StudioRefLamp { color: @MUTED@; background: transparent; border: 0; font-size: 7pt; }
+QLabel#StudioRefLamp[lampSeverity="warning"] { color: #d97706; }
+QLabel#StudioRefLamp[lampSeverity="critical"] { color: #dc2626; }
+QLabel#StudioRefLamp[lampSeverity="warning"]:disabled,
+QLabel#StudioRefLamp[lampSeverity="critical"]:disabled { color: rgba(93, 106, 132, 0.60); }
+QLabel#StudioRefStatus { color: @MUTED@; background: transparent; border: 0; font-size: 8pt; }
+/* The shared inline path editor: sunken glass under an accent edge. */
+QLineEdit#RefPathEdit {
+    background: @CARD_HOVER@;
+    color: @TEXT@;
+    border: 1px solid @ACCENT@;
+    border-radius: 8px;
+    padding: 4px 10px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
 }
-QLineEdit#IncludeCardPath:hover { border-color: rgba(47, 107, 255, 0.45); }
-QLineEdit#IncludeCardPath:focus { border: 1px solid @ACCENT@; }
-QLabel#IncludeCardStatus { color: #dc2626; font-size: 9pt; }
-QLabel#IncludeCardStatus[severity="warning"] { color: #d97706; }
-QLabel#IncludeCardStatus[severity="critical"] { color: #dc2626; }
+/* Browse as the Locate recovery entry: accent border depth on the glass
+   button while the reference is broken, one step deeper on hover. */
+QToolButton#FilterCardIconButton[studioLocate="true"] {
+    color: @TEXT@;
+    background: rgba(47, 107, 255, 0.10);
+    border-color: rgba(47, 107, 255, 0.50);
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+QToolButton#FilterCardIconButton[studioLocate="true"]:hover {
+    background: rgba(47, 107, 255, 0.18);
+    border-color: rgba(47, 107, 255, 0.75);
+}
+/* MultiConvolution's output-channel selector: a quiet glass strip in the
+   paramSelector grammar - mono data ink, border deepens under the cursor. */
+QComboBox#MultiConvolutionCardChannel {
+    background: rgba(255, 255, 255, 0.65);
+    color: @TEXT@;
+    border: 1px solid rgba(24, 32, 51, 0.16);
+    border-top-color: rgba(255, 255, 255, 0.90);
+    border-radius: 8px;
+    padding: 1px 22px 1px 8px;
+    min-height: 22px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QComboBox#MultiConvolutionCardChannel:hover { border-color: rgba(47, 107, 255, 0.50); }
+QComboBox#MultiConvolutionCardChannel:focus,
+QComboBox#MultiConvolutionCardChannel:on { border: 1px solid @ACCENT@; }
+QComboBox#MultiConvolutionCardChannel:disabled {
+    color: @MUTED@;
+    background: transparent;
+    border-color: rgba(188, 200, 222, 0.55);
+}
+QComboBox#MultiConvolutionCardChannel QLineEdit {
+    background: transparent; border: 0; color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
 
 /* ===== VST row: a softly glowing module card ===== */
 /* The frame's gradient border and painted halo come from StudioSkin; the
@@ -701,7 +801,11 @@ QPushButton#VSTCardPanelButton:pressed {
     background: rgba(47, 107, 255, 0.26);
     border-color: @ACCENT@;
 }
-QLabel#VSTCardStatus { color: @MUTED@; background: transparent; }
+QPushButton#VSTCardPanelButton:disabled {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid rgba(188, 200, 222, 0.55);
+}
 QFrame#VSTCardEmbedFrame {
     background: @CARD_HOVER@;
     border: 1px solid @BORDER@;

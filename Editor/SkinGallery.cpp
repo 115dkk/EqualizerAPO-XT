@@ -58,6 +58,7 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("shelf"), QStringLiteral("Filter 2: ON HSC Fc 8000 Hz Gain -2.5 dB Q 0.71") },
 		{ QStringLiteral("gain0db"), QStringLiteral("Filter 3: ON PK Fc 1000 Hz Gain 0 dB Q 1") },
 		{ QStringLiteral("include"), QStringLiteral("Include: example.txt") },
+		{ QStringLiteral("include_nested"), QStringLiteral("Include: Surround\\example.txt") },
 		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
 		{ QStringLiteral("device"), QStringLiteral("Device: all") },
@@ -108,6 +109,16 @@ QString buildReferenceFiles(const QDir& outDir)
 		return QString();
 	include.write("# gallery include target\n");
 	include.close();
+
+	// A nested target so the location line (secondary metadata under the
+	// name) and its per-skin treatment appear in the judged set.
+	if (!refsDir.mkpath(QStringLiteral("Surround")))
+		return QString();
+	QFile nested(refsDir.filePath(QStringLiteral("Surround/example.txt")));
+	if (!nested.open(QIODevice::WriteOnly))
+		return QString();
+	nested.write("# gallery nested include target\n");
+	nested.close();
 
 	if (!writeWavFile(refsDir.filePath(QStringLiteral("example.wav")), 1, 48000, 4800))
 		return QString();
