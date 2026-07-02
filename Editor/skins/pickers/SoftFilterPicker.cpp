@@ -161,10 +161,15 @@ QString softEntryIcon(const FilterPickerEntry& entry)
 		{ "MultiConvolution", "multi-convolution" },
 		{ "VSTPlugin", "plugin" },
 		{ "GraphicEQ", "graphic-eq" },
-		{ "Preamp", "preamp-knob" },
+		// The volume ramp, not a knob: Soft's audience reads consumer
+		// volume glyphs, and the knob face read as a clock (user direction).
+		{ "Preamp", "preamp-gain" },
 		{ "Delay", "delay-clock" },
 		{ "Device", "device-speaker" },
-		{ "Channel", "channel-split" },
+		// A channel list with a check: the command SELECTS the channels the
+		// following filters apply to - a fork glyph read as splitting the
+		// signal (user direction).
+		{ "Channel", "channel-select" },
 		{ "Stage", "stage-chain" },
 		{ "Copy", "route-channels" },
 		{ "LoudnessCorrection", "loudness" }

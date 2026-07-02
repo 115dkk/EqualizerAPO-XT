@@ -143,9 +143,11 @@ danger(빈 참조는 한 단 더 누그러진 warning)로 바뀌고 픽토그램
   이름이 아니라 템플릿 줄의 명령어이고, biquad는 타입 토큰까지 갈라 EQ
   8형이 각자의 응답 곡선 글리프(eq-*.svg)를 단다. 기능 아이콘은 modern
   세트의 스트로크 문법으로 새로 그렸다: 문서(Include)·파형(Convolution)·
-  겹층(MultiConvolution)·플러그(VST)·세로 슬라이더(GraphicEQ)·노브(Preamp)·
-  시계(Delay)·스피커(Device)·분기 화살(Channel)·직렬 체인(Stage)·교차
-  화살(Copy)·확성 파형(Loudness)·말풍선(Comment). 매핑되지 않은 미래
+  겹층(MultiConvolution)·플러그(VST)·세로 슬라이더(GraphicEQ)·볼륨
+  램프(Preamp — 노브 그림은 시계로 오독되어 교체)·시계(Delay)·
+  스피커(Device)·채널 목록+체크(Channel — 이 명령은 채널 **선택**이다;
+  분기 화살은 신호 분할로 오독되어 교체)·직렬 체인(Stage)·교차
+  화살(Copy — 채널 간 라우팅)·확성 파형(Loudness)·말풍선(Comment). 매핑되지 않은 미래
   템플릿은 AR1 F4 모노그램(여러 단어=이니셜 둘, 한 단어=앞 두 글자,
   충돌 시 카탈로그 순서로 유일화)으로 물러난다. 섹션 파스텔이 둘째
   구분자다.
