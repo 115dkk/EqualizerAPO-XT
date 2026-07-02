@@ -160,8 +160,9 @@ AR1 M2로 픽커의 좌표 언어가 행에 수입됐다.
 
 Include/Convolution/MultiConvolution/VST 행의 본문은 `MatrixReferenceCardView`가
 세우는 피드 라인이다: 함몰 모노 **마커 셀**(`> SRC`/`> IR`/`> IR+`, kind에
-묶인 불변 약호) + 페이로드 이름(가장 밝은 모노 잉크) + `@ <dir>` 위치
-판독(muted). IR 판독값은 **박스 함몰 모노 셀**(불변 규칙 5 — `100.0 ms`
+묶인 불변 약호) + `<dir>@` 위치 판독(muted, 페이로드 앞 — 읽는 순서대로
+장소가 먼저 오고, at 기호가 버스 주소처럼 장소를 닫는다; 재작업 라운드) +
+페이로드 이름(가장 밝은 모노 잉크). IR 판독값은 **박스 함몰 모노 셀**(불변 규칙 5 — `100.0 ms`
 `4800 samples` `48000 Hz` `2 ch` 각각 한 셀)이고, 멀티컨볼루션의 출력 채널
 콤보도 함몰 좌표 셀로 어순(`<channel> <file>`)에 끼어든다. VST는 본문
 머리의 `> IN … EXTERNAL DEVICE … OUT >` 포트 스트립(muted 단색 가구) +

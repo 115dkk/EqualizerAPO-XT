@@ -3,9 +3,10 @@
 
 	See RackReferenceCardView.h. The painting helpers here imitate
 	RackChrome's grammar (engraveText's contrast pass, paintLed's
-	bezel/halo/dome/specular formula, paintKnob's LED-window glass and
-	segment inks) so the card body reads as cut from the same machine;
-	RackChrome itself is shared with the frame chrome and stays untouched.
+	bezel/halo/dome/specular formula, the display-window glass and segment
+	inks of the rack value displays) so the card body reads as cut from the
+	same machine; RackChrome itself is shared with the frame chrome and
+	stays untouched.
 */
 
 #include "RackReferenceCardView.h"
@@ -367,8 +368,8 @@ void RackLcdWindow::paintEvent(QPaintEvent*)
 	const bool dark = isDarkPanel(tokens);
 
 	// The display-window clause: an LCD set into the plate keeps its dark
-	// glass in BOTH modes. Same glass and segment inks as the knob's LED
-	// window in RackChrome::paintKnob.
+	// glass in BOTH modes. Same glass and segment inks as the card's
+	// EditableValue display (rack sheets).
 	const QRectF well = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
 	painter.setPen(QPen(QColor(0, 0, 0, 220), 1));
 	painter.setBrush(QColor(10, 14, 11));

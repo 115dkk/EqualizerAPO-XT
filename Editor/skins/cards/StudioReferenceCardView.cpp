@@ -88,7 +88,10 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 	windowPane->setAttribute(Qt::WA_StyledBackground, true);
 	windowPane->setVisible(false);
 	QHBoxLayout* windowLayout = new QHBoxLayout(windowPane);
-	windowLayout->setContentsMargins(10, 3, 10, 3);
+	// The left margin indents the data one character from the pane's edge -
+	// print does not start at the very edge of the page (user direction, AR2
+	// rework round).
+	windowLayout->setContentsMargins(18, 3, 10, 3);
 	windowLayout->setSpacing(10);
 
 	// The location prints as the containing prefix ("Surround\"): the folder

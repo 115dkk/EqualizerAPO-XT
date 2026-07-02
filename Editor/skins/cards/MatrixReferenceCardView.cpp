@@ -71,8 +71,12 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 		root->addWidget(portStrip);
 	}
 
-	// The feed line: marker cell + [output bus cell] + payload name + type
-	// tokens + location readout, with the action cells on the right.
+	// The feed line: marker cell + [output bus cell] + location readout +
+	// payload name + type tokens, with the action cells on the right. The
+	// location leads the payload in reading order - "Surround@ example.txt" -
+	// so the board states the bus's place before what is patched there (the
+	// containment direction; a location after the name read as the name's
+	// appendix).
 	QWidget* feedLine = new QWidget(page);
 	feedLine->setObjectName(QStringLiteral("MatrixRefFeedLine"));
 	feedLayout = new QHBoxLayout(feedLine);
@@ -83,6 +87,12 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	markerCell->setObjectName(QStringLiteral("MatrixRefMarker"));
 	markerCell->setAttribute(Qt::WA_StyledBackground, true);
 	feedLayout->addWidget(markerCell, 0, Qt::AlignVCenter);
+
+	locationCell = new ElidedLabel(feedLine);
+	locationCell->setObjectName(QStringLiteral("MatrixRefLocation"));
+	locationCell->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+	locationCell->setVisible(false);
+	feedLayout->addWidget(locationCell, 0, Qt::AlignVCenter);
 
 	nameCell = new ElidedLabel(feedLine);
 	nameCell->setObjectName(QStringLiteral("MatrixRefName"));
@@ -101,13 +111,7 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	formatCell->setVisible(false);
 	feedLayout->addWidget(formatCell, 0, Qt::AlignVCenter);
 
-	locationCell = new ElidedLabel(feedLine);
-	locationCell->setObjectName(QStringLiteral("MatrixRefLocation"));
-	locationCell->setVisible(false);
-	feedLayout->addWidget(locationCell, 1, Qt::AlignVCenter);
-
-	// Keeps the action cells pinned right while the location readout is
-	// hidden (an empty location collapses its stretch).
+	// Keeps the action cells pinned right.
 	feedLayout->addStretch(1);
 
 	actionLayout = new QHBoxLayout();
@@ -191,11 +195,13 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 	formatCell->setVisible(!state.formatBadge.isEmpty());
 	formatCell->setText(state.formatBadge);
 
-	// Location readout: muted mono, elided at paint time.
+	// Location readout: muted mono ahead of the payload, "Surround@" - the
+	// at-sign closes the place the way a bus address reads on the board
+	// (user direction, AR2 rework round). Elided at paint time.
 	locationCell->setVisible(!state.directory.isEmpty());
 	if (!state.directory.isEmpty())
 	{
-		locationCell->setFullText(QStringLiteral("@ ") + state.directory);
+		locationCell->setFullText(state.directory + QStringLiteral("@"));
 		locationCell->setToolTip(state.directory);
 	}
 

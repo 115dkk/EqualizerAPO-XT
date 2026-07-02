@@ -722,30 +722,11 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 		painter.drawEllipse(center, bodyRadius, bodyRadius);
 	}
 
-	// LED display window set into the knob cap; it brightens while the knob
-	// is touched (hover/drag/focus). Promoted legacy dials pass an empty
-	// valueText (their value lives in a spin box) - then no window is shown.
-	if (!state.valueText.isEmpty())
-	{
-		QFont ledFont(tokens.monoFontFamily);
-		ledFont.setPixelSize(9);
-		ledFont.setBold(true);
-		const QFontMetricsF metrics(ledFont);
-		const qreal w = qMin(side - 4.0, metrics.horizontalAdvance(state.valueText) + 10.0);
-		const QRectF window(center.x() - w / 2.0, center.y() - 7.0, w, 14.0);
-		painter.setPen(QPen(QColor(0, 0, 0, 220), 1));
-		painter.setBrush(QColor(10, 14, 11, 235));
-		painter.drawRoundedRect(window, 2, 2);
-
-		QColor ledInk = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
-		if (!state.enabled)
-			ledInk = withAlpha(ledInk, 70);
-		else if (!(state.hovered || state.dragging || state.focused))
-			ledInk = withAlpha(ledInk, 175);
-		painter.setFont(ledFont);
-		painter.setPen(ledInk);
-		painter.drawText(window, Qt::AlignCenter, state.valueText);
-	}
+	// No value window on the knob itself: a display pane across the cap is
+	// not buildable hardware and it cut the pointer line in half (user
+	// direction, AR2 rework round). The value lives in the card's own LED
+	// display (EditableValue) beside the knob; state.valueText is
+	// deliberately unused here.
 }
 
 void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens)

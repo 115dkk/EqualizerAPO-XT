@@ -1038,8 +1038,9 @@ QLabel#StudioRefName {
     background: transparent;
     border: 0;
     /* Console-strip scale: the identity owns the pane instead of floating on
-       it as a small lonely label (AR2 rework round). */
-    font-size: 12pt;
+       it as a small lonely label, without crowding it (AR2 rework round;
+       12pt read as heavy). */
+    font-size: 11pt;
     font-weight: 600;
 }
 QLabel#StudioRefName[refClickable="true"]:hover:enabled { color: #FFFFFF; }
