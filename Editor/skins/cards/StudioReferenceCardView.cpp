@@ -47,7 +47,10 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 
 	QWidget* page = contentWidget();
 	QVBoxLayout* root = new QVBoxLayout(page);
-	root->setContentsMargins(0, 0, 0, 0);
+	// The left inset gives the identity type its margin - print pressed
+	// against the card's edge read as cramped, not calm (user direction,
+	// AR2 rework round).
+	root->setContentsMargins(8, 0, 0, 0);
 	root->setSpacing(5);
 
 	// Identity line: the name carries the luminance hierarchy (brightest ink
