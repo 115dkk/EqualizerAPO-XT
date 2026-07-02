@@ -6,6 +6,29 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- 주석과 Stage 행이 진짜 카드가 되었습니다. 메모 줄은 카드 안에서 바로
+  편집하고(주석 행이 정의상 비활성이라 어느 스킨에서도 본문이 잠겨 있던
+  결함도 함께 고쳤습니다), Stage 행은 Device·Channel 카드와 같은 칩 문법으로
+  처리 단계(pre-mix, post-mix, capture)를 고릅니다. 기록되는 줄은 예전
+  체크박스 편집기와 같은 바이트이고, 엔진이 모르는 선택자는 버리지 않고
+  비활성 칩으로 보존합니다. ([#141])
+- Device·Channel·주석·Stage 카드가 중립적인 1단계 모습 대신 스킨마다 자기
+  문법을 입었습니다. studio는 유리 칩을 안에서부터 점등하고, minimal은 모노
+  토큰을 헤어라인 셀에 앉히고, soft는 켜짐/꺼짐/잠듦을 스타디움 알약으로
+  읽고, rack은 한 기계를 스위치 캡·어사인 키·인서트 주얼·메모용 다이모
+  테이프로 나누고, matrix는 보드의 셀을 재질과 활자로 계급 짓습니다. matrix
+  의 주석 행은 이제 앰버 '바이패스' 결항 편이 아니라 리마크입니다. ([#141])
+- studio 스킨의 Copy 라우팅을 라이트 트레이스로 다시 그렸습니다. 2015년식
+  노드 그래프(불투명 캔디 알약, 검정 배선)가 물러나고, 점등 유리 칩 사이를
+  스킨의 단일 액센트 빛이 흐르는 발광 곡선이 잇습니다. 계수는 가라앉은 유리
+  판독창이고 가상 출력은 그려 넣은 고스트 +로 추가합니다. 위아래 채널을
+  선으로 잇는 뼈대는 그대로, 나머지는 전부 새것입니다. MultiConvolution
+  카드도 같은 모습을 자동으로 받습니다. ([#141])
+- 스킨 갤러리의 심사 세트가 580장으로 늘었습니다. Channel·주석·Stage와 값
+  있는 Copy 장면이 모든 스킨의 두 모드에서 렌더됩니다. ([#141])
+
 ## v2.7.0 (2026-07-03)
 
 - MultiConvolution이 Channel 명령에서 독립했습니다. 새 매핑 문법
@@ -617,3 +640,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
 [#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139
+[#141]: https://github.com/115dkk/EqualizerAPO-XT/pull/141

@@ -12,6 +12,32 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Comment and Stage rows became real cards. A note line gets an in-place
+  editor (and stays editable even though a comment row counts as disabled -
+  a defect that had locked the body in every skin), and Stage rows pick
+  their processing stages (pre-mix, post-mix, capture) with the same chip
+  grammar the Device and Channel cards use, writing the same bytes the old
+  checkbox editor did; selectors the engine does not know survive as an
+  inert chip instead of being dropped. ([#141])
+- The Device, Channel, Comment and Stage cards now wear each skin's own
+  grammar instead of the neutral Phase 1 look: studio lights glass chips
+  from within, minimal boxes mono tokens in hairline cells, soft reads
+  on/off/sleeping as stadium pills, rack splits one machine into switch
+  caps, assign keys, insert-point jewels and a Dymo tape for notes, and
+  matrix ranks the board's cells by material and type - its comment rows
+  are remarks now, not amber "bypassed" flights. ([#141])
+- The studio skin's Copy routing was redrawn as Light Trace: the 2015-era
+  node graph (opaque candy pills, black wiring) gave way to lit glass chips
+  joined by glowing curves of the skin's one accent light, with sunken
+  factor readouts and a drawn ghost + for virtual outputs. Channels-to-
+  channels lines stay; everything else is new. The MultiConvolution card
+  inherits the look automatically. ([#141])
+- The skin gallery's judged set grew to 580 shots: Channel, comment, Stage
+  and a populated Copy scene now render for every skin in both modes.
+  ([#141])
+
 ## v2.7.0 — 2026-07-03
 
 - MultiConvolution no longer depends on the Channel command. The new mapping
@@ -671,3 +697,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
 [#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139
+[#141]: https://github.com/115dkk/EqualizerAPO-XT/pull/141
