@@ -68,6 +68,7 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
 		{ QStringLiteral("device"), QStringLiteral("Device: all") },
+		{ QStringLiteral("channel"), QStringLiteral("Channel: L R") },
 		{ QStringLiteral("comment"), QStringLiteral("# Living room preset - tuned by ear") },
 		{ QStringLiteral("stage"), QStringLiteral("Stage: pre-mix post-mix") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
