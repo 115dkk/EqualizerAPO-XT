@@ -14,12 +14,44 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Reworked the file-reference rows (Include, Convolution, MultiConvolution,
+  VST plugin) as per-skin reference cards. Every skin now presents the same
+  facts - the target's name first, the location as a containing prefix
+  (`Surround\`), a broken reference as a state transition with a Locate
+  recovery entry, and an impulse-response readout - through its own
+  construction: studio sets the identity over a sunken glass data window,
+  minimal prints one terminal line, soft leads the row with a pictogram tile,
+  rack builds a service-condition unit (status lamp, engraved captions, LCD
+  readout window), and matrix runs a board feed line with an in-view port
+  strip for VST. ([#137])
+- Added a pictogram set (18 icons in the shared stroke grammar) covering the
+  filter catalog: the eight biquad response curves, a distinct layered mark
+  for MultiConvolution, and feature glyphs for Channel, Comment, Copy, Delay,
+  Device, GraphicEQ, Loudness, Preamp and Stage. The Soft skin's filter
+  picker and reference tiles now show these pictures instead of two-letter
+  English monograms. ([#137])
+- Fixed the rack skin painting an app-background rectangle under every custom
+  faceplate widget (knobs, lamps, engraved labels, LCD wells), which made
+  them look like stickers instead of parts of the brushed plate - worst
+  around the Preamp knob. Also removed the value window that sat across the
+  rack knob cap and cut the pointer line; the value already lives in the LED
+  display beside the knob. The patch defect predates this rework and was
+  visible in released rack builds. ([#137])
+- The skin gallery's judged set grew to 460 shots: a Preamp row, nested and
+  missing Include scenes and a resolvable Convolution scene now render for
+  every skin in both modes. ([#137])
+
+## v2.5.2 — 2026-07-01
+
 - The MultiConvolution card now picks the output channel from a dropdown of the
   channels that exist at that point in the config, instead of a free-text box.
   The filter sums several inputs into one channel (one ear of a BRIR), so its
   output is almost always a channel that is already in play; the card presents
   those and still lets you type a custom or virtual channel name. The legacy row
   editor gets the same picker. ([#136])
+
+## v2.5.1 — 2026-07-01
+
 - Fixed the MultiConvolution filter's Editor UI, which shipped broken in 2.5.0.
   In the Insert menu it appeared under its own untranslated "Advanced filters"
   group instead of joining the existing one: the picker groups filters by their
@@ -33,6 +65,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   rejected the empty line. The Editor now claims a `MultiConvolution` line by its
   keyword, the same way it already does for `Convolution`, and the card header
   shows a MultiConvolution badge instead of a generic text one. ([#132])
+
+## v2.5.0 — 2026-07-01
+
 - Added a MultiConvolution filter for BRIR (Binaural Room Impulse Response)
   playback. The existing Convolution filter only convolves each channel with
   its own in-place impulse response, so a stereo IR could not route one input
@@ -47,6 +82,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Editor gained both a modern card editor (output channel field, IR path field
   with a file picker, supported by all five skins) and a legacy row widget for
   this filter. ([#130])
+
+## v2.4.2 — 2026-06-30
+
 - The Editor now renders text with FreeType's grayscale antialiasing instead of
   Windows ClearType. The bundled Korean font (Pretendard) is a CFF/OpenType face,
   which ClearType draws with subpixel colour fringing that looks blurry on
@@ -57,6 +95,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   checker are unchanged: they use the system font, which ClearType renders
   cleanly. To go back to the old ClearType rendering, set the QT_QPA_PLATFORM
   environment variable to `windows`. ([#129])
+
+## v2.4.1 — 2026-06-28
+
 - Polished the Editor translations that shipped in 2.3.0. The channel
   configuration's "From device" option now reads as following the device's
   configuration in Korean, German and Chinese (it previously looked like a
@@ -64,6 +105,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   is now translated, and several German/French/Chinese terms were made
   consistent (loudness vs volume, the Copy filter's assignment count, and the
   file-not-found wording). ([#128])
+
+## v2.4.0 — 2026-06-27
+
 - The Editor's translation catalogs now cover the whole interface in all four
   shipped languages (Korean, German, French, Simplified Chinese). Earlier builds
   translated only the menu bar and a handful of dialogs, so most of the modern
@@ -74,6 +118,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   `Copy`, `%1 bands`, ...) were made translatable so they localise too. Unit
   suffixes, numeric formats and the skin brand names are left in English on
   purpose. ([#126])
+
+## v2.3.0 — 2026-06-26
+
 - The Convolution filter row now has a modern card editor, matching the in-place
   style of the other filter cards instead of the old inline widget. It shows the
   impulse response's length and sample rate as soon as you pick a file and warns
@@ -94,12 +141,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Sarasa Mono K (subset to Hangul + ASCII, OFL-1.1) is now bundled and sits ahead
   of Pretendard in the mono fallback chain, so monospace Korean stays on the grid.
   ([#125])
+
+## v2.2.1 — 2026-06-21
+
 - Fixed a memory-visibility data race on ARM64 where reloading the config during
   playback could hand the audio thread a partially-constructed filter
   configuration. The loader now publishes the new configuration to the real-time
   thread through a release/acquire flag, so the audio thread never reads it
   before its construction is visible. x86/x64 builds are unaffected (their memory
   model already ordered this). ([#124])
+
+## v2.2.0 — 2026-06-21
+
 - Hardened several security-audit findings on the Windows-facing surface. The
   Device Selector and Update Checker now load their Qt plugins from the
   executable's own folder instead of a path relative to the current working
@@ -111,6 +164,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   response with no frames, no channels, or an implausible length is rejected
   before processing instead of dereferencing an empty buffer or spinning
   forever. ([#123])
+
+## v2.1.0 — 2026-06-20
+
 - Device filter rows now pick endpoints inline. Choosing which playback or
   capture devices a `Device:` line applies to no longer opens a separate
   dialog: the card body shows one checkable chip per endpoint plus an "All
@@ -119,6 +175,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   card instead of the native Windows device tree, and the written line stays
   byte-identical with what the old change-button dialog produced (a regression
   test in `EditorLogicTests` locks that serialization). ([#120])
+
+## v2.0.1 — 2026-06-19
+
 - Fixed a start-up crash (access violation) where the Editor failed to launch on
   some saved window layouts. `loadPreferences()` re-homed the analysis dock with
   `removeDockWidget()` + `addDockWidget()` both before and after
@@ -128,6 +187,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   #54/#75 start-up crash recurring on heavy or stale saved layouts. The analysis
   dock is now re-homed only when it is not already in the target area, removing
   the redundant churn without resetting anyone's saved layout. ([#118])
+
+## v2.0.0 — 2026-06-18
+
 - Fixed VST3 plugin editor windows being mis-sized on high-DPI (scaled)
   displays. The editor handed the plugin's physical-pixel size straight to a Qt
   widget that measures in logical (device-independent) pixels, so on a 150% or
@@ -587,3 +649,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#130]: https://github.com/115dkk/EqualizerAPO-XT/pull/130
 [#132]: https://github.com/115dkk/EqualizerAPO-XT/pull/132
 [#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
+[#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
