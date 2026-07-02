@@ -12,6 +12,26 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- MultiConvolution no longer depends on the Channel command. The new mapping
+  form `MultiConvolution: L=0+1 R=2+3 brir.wav` convolves each target
+  channel's own signal with the listed 0-based channels of the impulse
+  response file and sums back into that target, with several outputs and
+  Copy-style virtual targets in one line; the one-token form
+  (`MultiConvolution: L brir.wav`) stays valid and now means "every channel
+  of the file", gated by the file itself. Behavior change from
+  v2.5.0-v2.6.0, which read the channels selected by a preceding `Channel:`
+  line - that pattern is still expressible with `Copy:` helpers, and the
+  rewritten configuration reference shows the crossfeed recipe. ([#139])
+- The MultiConvolution card edits the mapping in the same per-skin routing
+  views Copy gets - studio's node graph, minimal's step list, soft's
+  equation blocks, rack's patch-bay knobs, matrix's crosspoint grid - with
+  the file's channels as fixed source ports and no gain factors (a patch
+  point is either connected or not). Output ports are the channels in scope
+  plus virtual channels added from the card; without a readable file the
+  card explains itself instead of offering an edit. ([#139])
+
 ## v2.6.0 — 2026-07-02
 
 - Reworked the file-reference rows (Include, Convolution, MultiConvolution,
@@ -650,3 +670,4 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#132]: https://github.com/115dkk/EqualizerAPO-XT/pull/132
 [#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
+[#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139

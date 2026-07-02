@@ -6,6 +6,24 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- MultiConvolution이 Channel 명령에서 독립했습니다. 새 매핑 문법
+  `MultiConvolution: L=0+1 R=2+3 brir.wav`는 각 대상 채널 자신의 신호를
+  임펄스 응답 파일에서 나열한 채널(0부터 셈)과 컨볼루션해 그 채널에 다시
+  합산하며, 여러 출력과 Copy식 가상 채널 대상을 한 줄로 처리합니다. 채널
+  하나만 쓰는 기존 단순형(`MultiConvolution: L brir.wav`)은 그대로 유효하되
+  이제 파일의 모든 채널을 뜻하고, 참여 범위는 파일 스스로가 정합니다.
+  v2.5.0~v2.6.0의 동작이 바뀐 것입니다. 이전에는 앞선 `Channel:` 줄이 고른
+  채널을 읽었는데, 그 패턴은 `Copy:` 보조 채널로 여전히 표현할 수 있으며
+  새로 쓴 설정 레퍼런스에 크로스피드 레시피가 있습니다. ([#139])
+- MultiConvolution 카드가 Copy와 같은 스킨별 라우팅 화면(studio 노드 그래프,
+  minimal 스텝 리스트, soft 수식 블록, rack 패치베이 노브, matrix 크로스포인트
+  격자)으로 매핑을 편집합니다. 입력 포트는 파일의 채널로 고정되고 게인
+  팩터가 없어 패치 포인트는 연결 여부만 가집니다. 출력 포트는 그 행에서
+  쓸 수 있는 채널과 카드에서 추가한 가상 채널이고, 읽을 수 있는 파일이
+  없으면 편집 대신 이유를 보여줍니다. ([#139])
+
 ## v2.6.0 (2026-07-02)
 
 - 파일 참조 행(Include·Convolution·MultiConvolution·VST 플러그인)을 스킨별
@@ -598,3 +616,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#132]: https://github.com/115dkk/EqualizerAPO-XT/pull/132
 [#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
+[#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139
