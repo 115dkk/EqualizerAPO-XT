@@ -72,6 +72,7 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("comment"), QStringLiteral("# Living room preset - tuned by ear") },
 		{ QStringLiteral("stage"), QStringLiteral("Stage: pre-mix post-mix") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
+		{ QStringLiteral("copy"), QStringLiteral("Copy: VC=0.5*L+0.5*R R=L") },
 		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
 		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
 		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") }

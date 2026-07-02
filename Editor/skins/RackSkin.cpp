@@ -43,7 +43,6 @@
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
-#include "Editor/widgets/routing/CurvedNodeRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
 

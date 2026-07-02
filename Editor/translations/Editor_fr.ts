@@ -161,12 +161,12 @@
         <translation>Sélectionner tous les canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="32"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="35"/>
         <source>Add channel</source>
         <translation>Ajouter un canal</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="33"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="36"/>
         <source>Add a custom or virtual channel name (e.g. VSL)</source>
         <translation>Ajouter un nom de canal personnalisé ou virtuel (p. ex. VSL)</translation>
     </message>
@@ -277,6 +277,14 @@
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
         <source>Control</source>
         <translation>Contrôle</translation>
+    </message>
+</context>
+<context>
+    <name>CommentCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/CommentCardEditor.cpp" line="49"/>
+        <source>Write a note</source>
+        <translation>Écrire une note</translation>
     </message>
 </context>
 <context>
@@ -1035,7 +1043,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="249"/>
+        <location filename="../FilterTable.cpp" line="257"/>
         <source>Add filter</source>
         <translation>Ajouter un filtre</translation>
     </message>
@@ -2395,6 +2403,44 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     </message>
 </context>
 <context>
+    <name>StageCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="45"/>
+        <source>Pre-mix</source>
+        <translation>Pre-mix</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="46"/>
+        <source>Apply in each program&apos;s stream, before Windows mixes them</source>
+        <translation>S&apos;applique au flux de chaque programme, avant que Windows ne les mixe</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="47"/>
+        <source>Post-mix</source>
+        <translation>Post-mix</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="48"/>
+        <source>Apply to the device&apos;s mixed output (the default stage)</source>
+        <translation>S’applique à la sortie mixée de l’appareil (l’étage par défaut)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="49"/>
+        <source>Capture</source>
+        <translation>Capture</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="50"/>
+        <source>Apply to recording devices</source>
+        <translation>S&apos;applique aux périphériques d&apos;enregistrement</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
+        <source>Selectors the engine does not recognize; they are kept as written</source>
+        <translation>Sélecteurs inconnus du moteur ; ils sont conservés tels quels</translation>
+    </message>
+</context>
+<context>
     <name>StageFilterGUI</name>
     <message>
         <source>Selected processing stage:</source>
@@ -2456,6 +2502,14 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <location filename="../skins/pickers/StudioFilterPicker.cpp" line="424"/>
         <source>No matching filters</source>
         <translation>Aucun filtre correspondant</translation>
+    </message>
+</context>
+<context>
+    <name>StudioRoutingView</name>
+    <message>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="434"/>
+        <source>Drag between channels to route - click + to add an output</source>
+        <translation>Glissez entre les canaux pour router - cliquez sur + pour ajouter une sortie</translation>
     </message>
 </context>
 <context>

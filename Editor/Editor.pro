@@ -234,7 +234,8 @@ SOURCES += main.cpp\
 	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
 	widgets/routing/StepListRoutingRenderer.cpp \
 	widgets/routing/BlockChipRoutingRenderer.cpp \
-	widgets/routing/CurvedNodeRoutingRenderer.cpp \
+	widgets/routing/LightTraceRoutingRenderer.cpp \
+	widgets/routing/StudioRoutingModel.cpp \
 	widgets/routing/HardwarePatchbayRoutingRenderer.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
@@ -438,7 +439,8 @@ HEADERS  += \
 	widgets/routing/CrosspointMatrixRoutingRenderer.h \
 	widgets/routing/StepListRoutingRenderer.h \
 	widgets/routing/BlockChipRoutingRenderer.h \
-	widgets/routing/CurvedNodeRoutingRenderer.h \
+	widgets/routing/LightTraceRoutingRenderer.h \
+	widgets/routing/StudioRoutingModel.h \
 	widgets/routing/HardwarePatchbayRoutingRenderer.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \

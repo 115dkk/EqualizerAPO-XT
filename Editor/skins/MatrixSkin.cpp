@@ -42,7 +42,6 @@
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
-#include "Editor/widgets/routing/CurvedNodeRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
 
@@ -549,13 +548,17 @@ public:
 
 	// Departure-board cell: square corners, 1px rule, and a 3px status rail in
 	// traffic-light semantics (green = active, amber = bypassed). A commented
-	// out row additionally swaps the outer rule for a dashed one.
+	// out row additionally swaps the outer rule for a dashed one. A remark row
+	// (a pure comment) has no signal state at all: amber would claim it is a
+	// bypassed command (colour semantics M3), so its rail is quiet border ink
+	// and its rule stays solid - a remark is not a cancelled flight.
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
-		const QString railColor = info.enabled ? tokens.success : tokens.warning;
+		const bool remark = info.type == QStringLiteral("comment");
+		const QString railColor = remark ? tokens.border : (info.enabled ? tokens.success : tokens.warning);
 		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
 		const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
-		const QString borderStyle = info.enabled ? QStringLiteral("solid") : QStringLiteral("dashed");
+		const QString borderStyle = (info.enabled || remark) ? QStringLiteral("solid") : QStringLiteral("dashed");
 		QString style = QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
 			.arg(backgroundColor, borderStyle, borderColor, railColor);
@@ -650,13 +653,19 @@ public:
 		// Header band fill (the header widget itself is transparent).
 		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
 
+		// A remark row (pure comment) is addressable but carries no signal
+		// state: full grid ink and hover pre-light like an enabled row, but no
+		// status lamp at all (neither green "running" nor amber "bypassed" is
+		// true of a note).
+		const bool remark = info.type == QStringLiteral("comment");
+
 		// Faint column grid: the graph paper the board sits on. Clipped to the
 		// header band - maintainer review (issue #93) judged the texture a
 		// distracting afterimage behind parameter widgets, so the row body
 		// stays a calm opaque panel regardless of editor widget opacity.
 		QColor gridColor(tokens.border);
 		const int gridAlpha = QColor(tokens.surface).lightness() < 128 ? 80 : 90;
-		gridColor.setAlpha(info.enabled ? gridAlpha : gridAlpha / 2);
+		gridColor.setAlpha((info.enabled || remark) ? gridAlpha : gridAlpha / 2);
 		painter.setPen(QPen(gridColor, 1));
 		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
 			painter.drawLine(x, headerBand.top(), x, headerBand.bottom());
@@ -670,7 +679,7 @@ public:
 
 		// Crosspoint hover: the row band and the coordinate-column band light
 		// up; their intersection is the crosspoint.
-		if (info.hovered && info.enabled)
+		if (info.hovered && (info.enabled || remark))
 		{
 			QColor rowBand(tokens.accent);
 			rowBand.setAlpha(22);
@@ -686,17 +695,21 @@ public:
 		}
 
 		// Status lamp in the left gutter: solid green = active, hollow amber =
-		// bypassed (traffic-light semantics, never decorative).
-		const QRect lampRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5);
-		if (info.enabled)
+		// bypassed (traffic-light semantics, never decorative). A remark has no
+		// signal state, so it gets no lamp.
+		if (!remark)
 		{
-			painter.fillRect(lampRect, QColor(tokens.success));
-		}
-		else
-		{
-			painter.setPen(QPen(QColor(tokens.warning), 1));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
+			const QRect lampRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5);
+			if (info.enabled)
+			{
+				painter.fillRect(lampRect, QColor(tokens.success));
+			}
+			else
+			{
+				painter.setPen(QPen(QColor(tokens.warning), 1));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
+			}
 		}
 	}
 

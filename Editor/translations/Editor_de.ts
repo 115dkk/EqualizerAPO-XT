@@ -157,12 +157,12 @@
         <translation>Alle Kanäle auswählen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="32"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="35"/>
         <source>Add channel</source>
         <translation>Kanal hinzufügen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="33"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="36"/>
         <source>Add a custom or virtual channel name (e.g. VSL)</source>
         <translation>Eigenen oder virtuellen Kanalnamen hinzufügen (z. B. VSL)</translation>
     </message>
@@ -281,6 +281,14 @@
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
         <source>Channel (Select channels)</source>
         <translation>Channel (Kanäle auswählen)</translation>
+    </message>
+</context>
+<context>
+    <name>CommentCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/CommentCardEditor.cpp" line="49"/>
+        <source>Write a note</source>
+        <translation>Notiz schreiben</translation>
     </message>
 </context>
 <context>
@@ -1063,7 +1071,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="249"/>
+        <location filename="../FilterTable.cpp" line="257"/>
         <source>Add filter</source>
         <translation>Filter hinzufügen</translation>
     </message>
@@ -2615,6 +2623,44 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
     </message>
 </context>
 <context>
+    <name>StageCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="45"/>
+        <source>Pre-mix</source>
+        <translation>Pre-mix</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="46"/>
+        <source>Apply in each program&apos;s stream, before Windows mixes them</source>
+        <translation>In jedem Programm-Stream anwenden, bevor Windows sie mischt</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="47"/>
+        <source>Post-mix</source>
+        <translation>Post-mix</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="48"/>
+        <source>Apply to the device&apos;s mixed output (the default stage)</source>
+        <translation>Auf die gemischte Ausgabe des Geräts anwenden (die Standardstufe)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="49"/>
+        <source>Capture</source>
+        <translation>Aufnahme</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="50"/>
+        <source>Apply to recording devices</source>
+        <translation>Auf Aufnahmegeräte anwenden</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
+        <source>Selectors the engine does not recognize; they are kept as written</source>
+        <translation>Selektoren, die die Engine nicht kennt; sie bleiben wie geschrieben erhalten</translation>
+    </message>
+</context>
+<context>
     <name>StageFilterGUI</name>
     <message>
         <source>Select processing stage:</source>
@@ -2680,6 +2726,14 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <location filename="../skins/pickers/StudioFilterPicker.cpp" line="424"/>
         <source>No matching filters</source>
         <translation>Keine passenden Filter</translation>
+    </message>
+</context>
+<context>
+    <name>StudioRoutingView</name>
+    <message>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="434"/>
+        <source>Drag between channels to route - click + to add an output</source>
+        <translation>Zum Routen zwischen Kanälen ziehen - + fügt einen Ausgang hinzu</translation>
     </message>
 </context>
 <context>

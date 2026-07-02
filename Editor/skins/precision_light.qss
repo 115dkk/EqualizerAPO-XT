@@ -585,3 +585,180 @@ QLabel#MultiConvolutionMappingHint {
     font-family: "@MONO@", "Consolas", monospace;
     font-size: 8pt;
 }
+/* ====================================================================
+   Scope and note cards (Device / Channel / Stage / Comment) - Phase 2,
+   printed. Identical grammar to the dark console: boxed mono tokens on
+   the paper, SELECTION as the accent-family value step cardSelected
+   #E8F1FF (tokens.cardSelected, MinimalSkin.cpp) plus the accent
+   hairline - the selected row's own treatment - and a dashed hairline
+   for "no verified substance". Registers stay inside the typography
+   law (uppercase + tracking, weight, brightness; no italic - the
+   bundled DM Mono has no italic face). One palette divergence: this
+   sheet has surface == card == #FFFFFF, so "inert = one step below
+   rest" lands on @BG@, the strip's own paper. Accent only while
+   active (focus, the press instant, insert mode); the only inversion
+   is DeviceChipMore's transient :pressed cursor.
+
+   CASCADE NOTE - do not reorder. Kind rules are declared BEFORE the
+   state rules: at equal specificity the later rule wins, so the states
+   must follow the kind blocks or focus/press dies on dashed chips.
+   [kind]:disabled re-asserts the dash for inert chips, and
+   :checked:disabled sits last so a stored selection under ALL reads
+   selected first. */
+
+/* The card editors sit on the body strip; kill the global QWidget
+   ground so no stray patch is stamped under the chips. */
+QWidget#DeviceCardEditor, QWidget#ChannelCardEditor,
+QWidget#StageCardEditor, QWidget#CommentCardEditor {
+    background: transparent; border: 0;
+}
+
+/* -- Shared chip token: boxed mono type, lifted off the paper. ------ */
+QToolButton#DeviceChip, QToolButton#ChannelChip, QToolButton#StageChip {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    padding: 2px 8px; min-height: 20px;
+}
+/* Channel register: bold code columns (L, R, VSL...); min-width keeps
+   one-letter seats from collapsing into slivers. */
+QToolButton#ChannelChip { font-weight: 700; min-width: 14px; }
+/* Stage register: uppercase tracked command words. No per-stage hue -
+   the word itself says which stage. */
+QToolButton#StageChip {
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* -- Kind, before state (cascade note above). -----------------------
+   Endpoint without the APO installed: dashed hairline box, secondary
+   ink (importance = brightness). Capture endpoints carry no letterform
+   tag - no italic face exists and the legal registers are spoken for;
+   the kind lives in the tooltip. */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    color: @MUTED@; border: 1px dashed @BORDER@;
+}
+/* "All devices" is a mode, not a device name: the mode-word register. */
+QToolButton#DeviceChip[allDevices="true"] {
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+/* Custom / virtual seat: dashed hairline but full ink - the user
+   authored this payload, so it stays dark. */
+QToolButton#ChannelChip[customChannel="true"] { border: 1px dashed @BORDER@; }
+/* The ALL seat is a mode word (property from ChannelCardEditor - see
+   widget note; inert until it lands). */
+QToolButton#ChannelChip[allChannels="true"] { letter-spacing: 1px; }
+
+/* -- State, after kind: the later rule wins the specificity tie. ---- */
+/* Hover: exactly one value step (one step darker on the paper). */
+QToolButton#DeviceChip:hover, QToolButton#ChannelChip:hover,
+QToolButton#StageChip:hover {
+    background: @CARD_HOVER@;
+}
+/* Selection: the accent-family value step (rule 3, cardSelected
+   #E8F1FF = tokens.cardSelected) + the accent hairline; the press
+   instant previews it (the sheet's QToolButton:pressed/:checked
+   pairing). A solid edge always sits under the cursor. */
+QToolButton#DeviceChip:pressed, QToolButton#ChannelChip:pressed,
+QToolButton#StageChip:pressed,
+QToolButton#DeviceChip:checked, QToolButton#ChannelChip:checked,
+QToolButton#StageChip:checked {
+    background: #E8F1FF; color: @TEXT@; border: 1px solid @ACCENT@;
+}
+/* Keyboard focus: the accent hairline frame; after the kind blocks so
+   it fires on dashed chips too. */
+QToolButton#DeviceChip:focus, QToolButton#ChannelChip:focus,
+QToolButton#StageChip:focus {
+    border: 1px solid @ACCENT@;
+}
+/* Inert (ALL rules the card, or the line is commented out): the box
+   melts into the strip's paper, secondary ink. */
+QToolButton#DeviceChip:disabled, QToolButton#ChannelChip:disabled,
+QToolButton#StageChip:disabled {
+    background: @BG@; color: @MUTED@; border: 1px solid @BORDER@;
+}
+/* Inert kind: the dash survives while ALL holds the card. */
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
+QToolButton#ChannelChip[customChannel="true"]:disabled {
+    border: 1px dashed @BORDER@;
+}
+/* Selected but inert: the cardSelected ground survives as the record;
+   ink and border retire with the activity. Last on purpose (wins the
+   121-tie against the dashed inert-kind rule). */
+QToolButton#DeviceChip:checked:disabled, QToolButton#ChannelChip:checked:disabled,
+QToolButton#StageChip:checked:disabled {
+    background: #E8F1FF; color: @MUTED@; border: 1px solid @BORDER@;
+}
+
+/* -- Device reveal toggle: the engraved command grammar (BROWSE/
+   LOCATE) - secondary type on a 1px underline, hover one value step
+   down on the paper (the minimalRefCommand step), pressed the
+   transient printed cursor @TEXT@/@SURFACE@. "Show fewer" lifts the
+   ink to body brightness; the (+N) count rides the label. */
+QToolButton#DeviceChipMore {
+    background: transparent; color: @MUTED@;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+    border-radius: 0; padding: 2px 8px; min-height: 20px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QToolButton#DeviceChipMore:hover {
+    background: @CARD_HOVER@; color: @MUTED@;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+}
+QToolButton#DeviceChipMore:checked { background: transparent; color: @TEXT@; }
+QToolButton#DeviceChipMore:checked:hover { background: @CARD_HOVER@; color: @TEXT@; }
+QToolButton#DeviceChipMore:focus { border: 1px solid @ACCENT@; }
+QToolButton#DeviceChipMore:pressed {
+    background: @TEXT@; color: @SURFACE@;
+    border: 1px solid transparent; border-bottom: 1px solid @TEXT@;
+}
+/* The press cursor must also land while checked (:checked:hover at 121
+   would outrank :pressed at 111): restated at equal specificity, later. */
+QToolButton#DeviceChipMore:checked:pressed {
+    background: @TEXT@; color: @SURFACE@;
+    border: 1px solid transparent; border-bottom: 1px solid @TEXT@;
+}
+QToolButton#DeviceChipMore:disabled {
+    background: transparent; color: #999999; border-bottom-color: #d8d8d8;
+}
+
+/* -- Add-a-seat entry: a quiet prompt slot on a 1px underline at rest;
+   focus is the insert line - accent hairline + white ground, the
+   RefPathEdit grammar. */
+QLineEdit#ChannelChipAdd {
+    background: transparent; color: @TEXT@;
+    border: 1px solid transparent; border-bottom: 1px solid @BORDER@;
+    border-radius: 0; padding: 2px 6px; min-height: 20px;
+}
+QLineEdit#ChannelChipAdd:hover { background: @CARD_HOVER@; }
+QLineEdit#ChannelChipAdd:focus { background: #ffffff; border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:disabled {
+    background: transparent; color: @MUTED@; border-bottom-color: #d8d8d8;
+}
+
+/* -- Stage tokens the engine does not recognize, kept as written. The
+   chip is born disabled, so it sits on the one inert ground the ladder
+   defines (the strip's paper, @BG@ - the same ground every disabled
+   chip melts into) behind a dashed hairline. Never uppercased: the
+   token's exact bytes are the information. */
+QToolButton#StageChipUnknown {
+    background: @BG@; color: @MUTED@;
+    border: 1px dashed @BORDER@; border-radius: 0;
+    padding: 2px 8px; min-height: 20px;
+}
+
+/* -- Comment: the config file's own comment line, printed. The '#'
+   marker is the kind tag (rule 5: the glyph is the information) in
+   secondary ink; the note is the payload in body ink (importance =
+   brightness; no italic - the face does not exist). At rest no input
+   chrome; hover sinks one value step on the paper because it edits;
+   focus is insert mode - accent hairline + white ground. */
+QLabel#CommentCardGlyph {
+    background: transparent; color: @MUTED@; font-weight: 700;
+}
+QLineEdit#CommentCardText {
+    background: transparent; color: @TEXT@;
+    border: 1px solid transparent; border-radius: 0;
+    padding: 3px 6px;
+}
+QLineEdit#CommentCardText:hover { background: @CARD_HOVER@; }
+QLineEdit#CommentCardText:focus { background: #ffffff; border: 1px solid @ACCENT@; }
+QLineEdit#CommentCardText:disabled { background: transparent; color: @MUTED@; }

@@ -19,6 +19,9 @@ ChannelCardEditor::ChannelCardEditor(const QString& parameters, QWidget* parent)
 	allChip->setText(QStringLiteral("ALL"));
 	allChip->setCheckable(true);
 	allChip->setToolTip(tr("Select every channel"));
+	// Stable QSS handle for the master chip, parallel to the Device card's
+	// "allDevices" property; skins style ALL differently from a single seat.
+	allChip->setProperty("allChannels", true);
 	connect(allChip, SIGNAL(toggled(bool)), this, SLOT(allToggled(bool)));
 	layout->addWidget(allChip);
 

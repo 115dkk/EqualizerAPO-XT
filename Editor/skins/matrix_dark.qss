@@ -1342,3 +1342,344 @@ QLabel#MultiConvolutionMappingHint {
     font-family: "@MONO@", "Consolas", monospace;
     font-size: 8pt;
 }
+/* ====================================================================
+   Config cards (Phase 2): Device / Channel / Stage / Comment
+   Four registers of one board language. Device chips are destination
+   cells (sunken fill + sans ink: endpoint names are names, not values
+   - the toolbar device-readout precedent). Channel chips are
+   coordinate cells (sunken fill + bold mono code: the seat grammar of
+   the Copy crosspoint grid and the row coordinate cell). Stage chips
+   are function cells (transparent, 1px rule, uppercase caption - the
+   toolbar engage-cell grammar: a stage is a mode you engage, not
+   data). A comment is the board's remark line: a "#" mono marker and
+   a note posted flat on the panel. Engage everywhere = accent fill +
+   1px accent rule; hover = pre-light; disabled = cancelled departure
+   (dashed rule + dead ink - form, never colour). The only status
+   colour below is the amber of the Stage card's unknown-token notice
+   (the ABS-cell precedent: a posted caution, hollow, never a lamp).
+   ==================================================================== */
+
+/* The four bodies sit directly on the row panel like every other card
+   editor (the reference-card precedent): without this the global
+   QWidget rule stamps a @BG@ patch under the chips. */
+QWidget#DeviceCardEditor,
+QWidget#ChannelCardEditor,
+QWidget#StageCardEditor,
+QWidget#CommentCardEditor {
+    background: transparent;
+    border: 0;
+}
+
+/* ----- Device: endpoints as destination cells -----
+   Each endpoint is a sunken board cell the configuration can patch
+   into; checking one engages the crosspoint. Direction (playback vs
+   capture) is type, and type is never a hue here - the tooltip
+   carries it. 24px cell height sits the chips on the board grid. */
+QToolButton#DeviceChip {
+    background: @GRAPH@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px;
+    min-height: 24px;
+    font-size: 9pt;
+}
+/* Capture endpoint: an identical cell by law (colour rationing). Kept
+   explicit, and ahead of :hover/:checked so those still win. */
+QToolButton#DeviceChip[deviceInput="true"] {
+    background: @GRAPH@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+}
+/* "All devices": the master cell - a command, not a named endpoint,
+   so it speaks the uppercase caption register. Before :hover/:checked
+   so the engage grammar still wins on it. */
+QToolButton#DeviceChip[allDevices="true"] {
+    color: @MUTED@;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+/* Hover = crosspoint pre-light: accent rule + a wash well below the
+   engaged fill (the picker entry hover, M1). */
+QToolButton#DeviceChip:hover {
+    color: @TEXT@;
+    border-color: @ACCENT@;
+    background: rgba(34, 211, 238, 0.10);
+}
+/* Checked = engaged crosspoint: accent fill + 1px accent rule. */
+QToolButton#DeviceChip:checked {
+    background: rgba(34, 211, 238, 0.26);
+    border: 1px solid @ACCENT@;
+    color: @TEXT@;
+}
+QToolButton#DeviceChip:checked:hover {
+    background: rgba(34, 211, 238, 0.32);
+}
+/* APO-not-installed endpoint = cancelled departure: dashed rule +
+   muted ink, never a traffic-light colour; still posted on the board
+   and still engageable once revealed. */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    color: @MUTED@;
+    background: @GRAPH@;
+    border: 1px dashed @BORDER@;
+}
+QToolButton#DeviceChip[deviceInstalled="false"]:hover {
+    color: @TEXT@;
+    border: 1px dashed @ACCENT@;
+    background: rgba(34, 211, 238, 0.08);
+}
+/* Engaged while not installed: the dashed rule keeps the cancelled
+   mark; accent ink + a fainter wash show the held crosspoint. */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked {
+    color: @ACCENT@;
+    border: 1px dashed @ACCENT@;
+    background: rgba(34, 211, 238, 0.16);
+}
+/* The master cell engaged: same engage grammar, caption stays. */
+QToolButton#DeviceChip[allDevices="true"]:checked {
+    color: @TEXT@;
+    background: rgba(34, 211, 238, 0.26);
+    border: 1px solid @ACCENT@;
+}
+/* Inert endpoints ("All devices" engaged, or the row bypassed): the
+   cancelled grammar - dashed rule + dead ink, any engaged fill
+   surrendered. Every state combination is listed at full specificity;
+   a bare :disabled would LOSE the cascade to the attribute+pseudo
+   rules above regardless of source order. Do not trim this list. */
+QToolButton#DeviceChip:disabled,
+QToolButton#DeviceChip:checked:disabled,
+QToolButton#DeviceChip[allDevices="true"]:disabled,
+QToolButton#DeviceChip[allDevices="true"]:checked:disabled,
+QToolButton#DeviceChip[deviceInput="true"]:disabled,
+QToolButton#DeviceChip[deviceInput="true"]:checked:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
+    color: #4A6470;
+    background: #0A1014;
+    border: 1px dashed #1A2933;
+}
+/* The reveal toggle is not an endpoint: a transparent mono caption
+   cell whose hidden-count readout ("+N") stands apart from the sunken
+   destination cells. Hover pre-lights; revealing lights its rule. */
+QToolButton#DeviceChipMore {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid transparent;
+    border-radius: 0;
+    padding: 2px 8px;
+    min-height: 24px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QToolButton#DeviceChipMore:hover {
+    color: @TEXT@;
+    background: rgba(34, 211, 238, 0.08);
+    border-color: @BORDER@;
+}
+QToolButton#DeviceChipMore:checked {
+    color: @TEXT@;
+    border: 1px solid @ACCENT@;
+}
+QToolButton#DeviceChipMore:disabled,
+QToolButton#DeviceChipMore:checked:disabled {
+    color: #4A6470;
+    background: transparent;
+    border: 1px dashed #1A2933;
+}
+
+/* ----- Channel: seats on the bus as coordinate cells -----
+   A channel is a coordinate on the board (the Copy grid's seat, the
+   row cell's "B3" grammar), so its chip is a boxed bold mono code
+   cell - where a Device chip stays sans (names), a Channel chip is
+   mono (coordinates). min-width/min-height 24 square the single
+   letter cells (L, R) on the grid pitch. */
+QToolButton#ChannelChip {
+    background: @GRAPH@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px;
+    min-width: 24px;
+    min-height: 24px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 1px;
+}
+/* ALL: the master seat command in the caption register (needs the
+   allChannels dynamic property on the Channel card's ALL chip). */
+QToolButton#ChannelChip[allChannels="true"] {
+    color: @MUTED@;
+    font-weight: 600;
+}
+QToolButton#ChannelChip:hover {
+    color: @TEXT@;
+    border-color: @ACCENT@;
+    background: rgba(34, 211, 238, 0.10);
+}
+/* Engaged seat: the coordinate lights like the picker's engaged
+   coordinate cell - accent fill + 1px accent rule. */
+QToolButton#ChannelChip:checked {
+    background: rgba(34, 211, 238, 0.26);
+    border: 1px solid @ACCENT@;
+    color: @TEXT@;
+}
+QToolButton#ChannelChip:checked:hover {
+    background: rgba(34, 211, 238, 0.32);
+}
+/* Custom/virtual channel: the Copy grid's dashed virtual-channel
+   grammar - posted on the board, but not a physical seat. */
+QToolButton#ChannelChip[customChannel="true"] {
+    color: @MUTED@;
+    background: @GRAPH@;
+    border: 1px dashed @BORDER@;
+}
+QToolButton#ChannelChip[customChannel="true"]:hover {
+    color: @TEXT@;
+    border: 1px dashed @ACCENT@;
+    background: rgba(34, 211, 238, 0.08);
+}
+QToolButton#ChannelChip[customChannel="true"]:checked {
+    color: @ACCENT@;
+    border: 1px dashed @ACCENT@;
+    background: rgba(34, 211, 238, 0.16);
+}
+/* Inert seats (ALL engaged, or the row bypassed): cancelled grammar,
+   full-specificity list - same cascade reasoning as DeviceChip. */
+QToolButton#ChannelChip:disabled,
+QToolButton#ChannelChip:checked:disabled,
+QToolButton#ChannelChip[allChannels="true"]:disabled,
+QToolButton#ChannelChip[allChannels="true"]:checked:disabled,
+QToolButton#ChannelChip[customChannel="true"]:disabled,
+QToolButton#ChannelChip[customChannel="true"]:checked:disabled {
+    color: #4A6470;
+    background: #0A1014;
+    border: 1px dashed #1A2933;
+}
+/* The add-a-channel entry: a coordinate cell not yet posted - dashed
+   rule around an empty well; typing engages the scan grammar (accent
+   rule + sunken fill, the picker's search strip). */
+QLineEdit#ChannelChipAdd {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px dashed @BORDER@;
+    border-radius: 0;
+    padding: 2px 8px;
+    min-height: 24px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QLineEdit#ChannelChipAdd:hover {
+    border-color: @ACCENT@;
+}
+QLineEdit#ChannelChipAdd:focus {
+    border: 1px solid @ACCENT@;
+    background: #081820;
+}
+QLineEdit#ChannelChipAdd:disabled {
+    color: #4A6470;
+    background: transparent;
+    border: 1px dashed #1A2933;
+}
+
+/* ----- Stage: path sections as function cells -----
+   Pre-mix / post-mix / capture are positions in the signal path -
+   modes you engage, not data - so the chips speak the toolbar
+   function-cell grammar: transparent cell, 1px rule, uppercase
+   caption; checked = engaged crosspoint. The transparent cell keeps
+   them apart from the sunken data cells of Device (sans names) and
+   Channel (mono coordinates). No per-stage colour: rationing. */
+QToolButton#StageChip {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px 12px;
+    min-height: 24px;
+    font-size: 9pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QToolButton#StageChip:hover {
+    background: rgba(34, 211, 238, 0.10);
+}
+QToolButton#StageChip:checked {
+    background: rgba(34, 211, 238, 0.28);
+    border-color: @ACCENT@;
+}
+QToolButton#StageChip:checked:hover {
+    background: rgba(34, 211, 238, 0.34);
+}
+QToolButton#StageChip:disabled,
+QToolButton#StageChip:checked:disabled {
+    color: #4A6470;
+    background: transparent;
+    border: 1px dashed #1A2933;
+}
+/* Unknown selector tokens: a posted caution, not a live cell - hollow
+   amber in the ABS-cell grammar (the engine reports these as unknown,
+   so amber is rationed status here, not decoration), dashed because
+   the cell is inert. Mono: the token is verbatim config text, so no
+   uppercase transform. */
+QToolButton#StageChipUnknown,
+QToolButton#StageChipUnknown:disabled {
+    background: transparent;
+    color: @WARNING@;
+    border: 1px dashed @WARNING@;
+    border-radius: 0;
+    padding: 2px 10px;
+    min-height: 24px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    letter-spacing: 1px;
+}
+
+/* ----- Comment: the board's remark line -----
+   A comment is not a cancelled departure - it is a remark posted on
+   the board (the MatrixRefStatusLine register). The "#" marker is the
+   line's mono designation; the note is flat mono ink on the panel.
+   Hover previews the cell rule, focus engages it (accent rule +
+   sunken fill, the scan-strip grammar). The base rule carries its
+   :disabled twin because the shared row currently disables a comment
+   body (descriptor.enabled == false for "#" lines) - the remark must
+   read identically either way. */
+QLabel#CommentCardGlyph {
+    background: transparent;
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    font-size: 10pt;
+}
+QLineEdit#CommentCardText,
+QLineEdit#CommentCardText:disabled {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px solid transparent;
+    border-radius: 0;
+    padding: 2px 6px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QLineEdit#CommentCardText:hover {
+    border: 1px solid @BORDER@;
+}
+QLineEdit#CommentCardText:focus {
+    border: 1px solid @ACCENT@;
+    background: #081820;
+}
+/* Un-strike the comment header: strikethrough is the cancelled
+   command mark, and a remark has no live counterpart to be cancelled
+   from. Title and note echo keep the muted remark ink. Ties the
+   [filterEnabled="false"] rules above on specificity, so appended
+   order wins. */
+QWidget#FilterCardHeader[filterKind="#"] QLabel#FilterCardTitle {
+    color: @MUTED@;
+    text-decoration: none;
+}
+QWidget#FilterCardHeader[filterKind="#"] QLabel#FilterCardSummary {
+    color: @MUTED@;
+}

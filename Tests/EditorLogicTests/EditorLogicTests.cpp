@@ -23,6 +23,7 @@
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
 #include "Editor/widgets/cards/StageSelectionModel.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
+#include "Editor/widgets/routing/StudioRoutingModel.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
@@ -611,6 +612,104 @@ int main(int argc, char** argv)
 		expectEqual(model.serialize(), "", "an empty selection serializes empty (matches no stage)");
 		model.setSelected("capture", true);
 		expectEqual(model.serialize(), "capture", "a single selection writes just its token");
+	}
+
+	{
+		// StudioRoutingModel: the Light Trace view's working model must seed
+		// and resolve exactly like the legacy CopyFilterGUIScene (channel rows,
+		// LFE/SUB alias, 1-based numeric positions, the constant input port)
+		// while preserving load order, so an edit-free round trip emits the
+		// assignments in the order they were written.
+		auto formatted = [](const std::vector<Assignment>& list) {
+			QString out;
+			for (const Assignment& a : list)
+			{
+				if (!out.isEmpty())
+					out += ' ';
+				out += QString::fromStdWString(a.targetChannel) + '=';
+				bool first = true;
+				for (const Assignment::Summand& s : a.sourceSum)
+				{
+					if (!first)
+						out += '+';
+					first = false;
+					out += QString::number(s.factor) + (s.isDecibel ? "db" : "") + '*'
+						+ (s.channel.empty() ? QStringLiteral("<const>") : QString::fromStdWString(s.channel));
+				}
+			}
+			return out;
+		};
+		auto summand = [](double factor, const wchar_t* channel, bool isDecibel = false) {
+			Assignment::Summand s;
+			s.factor = factor;
+			s.isDecibel = isDecibel;
+			s.channel = channel;
+			return s;
+		};
+
+		const std::vector<std::wstring> surround = { L"L", L"R", L"C", L"LFE" };
+		StudioRoutingModel::PortConfig copyMode;
+
+		// Written order survives, SUB canonicalizes to the LFE chip, the
+		// unknown target VC becomes a new output chip.
+		std::vector<Assignment> loaded(2);
+		loaded[0].targetChannel = L"VC";
+		loaded[0].sourceSum = { summand(0.5, L"L"), summand(0.5, L"R") };
+		loaded[1].targetChannel = L"C";
+		loaded[1].sourceSum = { summand(1.0, L"SUB") };
+
+		StudioRoutingModel model;
+		model.load(loaded, surround, copyMode);
+		expectEqual(model.inputPorts().join(','), "L,R,C,LFE,", "inputs are the channels plus the constant port");
+		expectTrue(model.constInput(model.inputPorts().size() - 1), "the last input is the constant port");
+		expectEqual(model.outputPorts().join(','), "L,R,C,LFE,VC", "the unknown target joins the output row");
+		expectEqual(formatted(model.assignments()), "VC=0.5*L+0.5*R C=1*LFE",
+			"round trip keeps written order and canonicalizes SUB to LFE");
+
+		// 1-based numeric positions resolve like the engine.
+		std::vector<Assignment> numeric(1);
+		numeric[0].targetChannel = L"3";
+		numeric[0].sourceSum = { summand(1.0, L"1") };
+		model.load(numeric, { L"L", L"R", L"C" }, copyMode);
+		expectEqual(formatted(model.assignments()), "C=1*L", "numeric positions canonicalize to channel names");
+
+		// Edit operations: virtual output, unity trace, factor grammar
+		// (',' reads as '.', "db" suffix any case, empty removes).
+		model.load({}, { L"L", L"R" }, copyMode);
+		expectEqual(formatted(model.assignments()), "", "seeded chips without traces emit nothing");
+		const int vx = model.addOutput("VX");
+		expectTrue(vx >= 0 && model.outputPorts().last() == "VX", "a new output chip is appended");
+		expectEqual(model.addOutput("L"), 0, "an existing name reuses its chip");
+		model.addTrace(0, vx);
+		expectEqual(formatted(model.assignments()), "VX=1*L", "a drag connects at unity gain");
+		model.setFactorText(0, "0,5");
+		expectEqual(formatted(model.assignments()), "VX=0.5*L", "a comma factor reads as a decimal point");
+		model.setFactorText(0, "-6 dB");
+		expectEqual(formatted(model.assignments()), "VX=-6db*L", "a db suffix sets decibel mode");
+		model.setFactorText(0, "garbage");
+		expectEqual(formatted(model.assignments()), "VX=-6db*L", "unparsable text leaves the trace unchanged");
+		model.setFactorText(0, "");
+		expectEqual(formatted(model.assignments()), "", "an empty commit removes the trace");
+
+		// The constant port connects at factor 0.0 with no channel.
+		model.load({}, { L"L", L"R" }, copyMode);
+		model.addTrace(2, 0);
+		expectEqual(formatted(model.assignments()), "L=0*<const>", "the constant port writes a value summand");
+
+		// Fixed-source mode (MultiConvolution): the top row is exactly the
+		// given port list, no constant port, factors locked to unity.
+		StudioRoutingModel::PortConfig fixedMode;
+		fixedMode.fixedSources = QStringList() << "0" << "1" << "2" << "3";
+		fixedMode.allowFactors = false;
+		std::vector<Assignment> mapped(1);
+		mapped[0].targetChannel = L"L";
+		mapped[0].sourceSum = { summand(1.0, L"0"), summand(1.0, L"1") };
+		model.load(mapped, { L"L", L"R" }, fixedMode);
+		expectEqual(model.inputPorts().join(','), "0,1,2,3", "fixed sources are the whole top row");
+		expectFalse(model.constInput(model.inputPorts().size() - 1), "no constant port in fixed mode");
+		model.setFactorText(0, "0.5");
+		model.addTrace(2, 1);
+		expectEqual(formatted(model.assignments()), "L=1*0+1*1 R=1*2", "fixed mode keeps every factor at unity");
 	}
 
 	harness.report();

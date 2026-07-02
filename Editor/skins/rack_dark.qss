@@ -597,3 +597,401 @@ QToolButton#TitleBarClose:pressed {
         stop:0 #8A2E1E, stop:1 #4A180D);
     border-color: @DANGER@; border-top-color: #3A130A;
 }
+
+/* =====================================================================
+   Phase 2 - command cards (Device / Channel / Comment / Stage)
+   One machine, four parts, one lamp law:
+   - Device  = the OUTPUT ROUTING switch bank; a routed endpoint
+               backlights its whole cap amber.
+   - Channel = the CHANNEL ASSIGN key row; a taken seat latches down and
+               lights the lamp window UNDER the cap.
+   - Stage   = the INSERT POINT switches; an engaged path lights the
+               jewel lamp along the cap's TOP edge.
+   - Comment = embossed label tape stuck to the plate; not a control, so
+               it carries no lamp - only the amber service edge while the
+               strip is being re-punched (edited).
+   Masters (All devices / ALL) light the machine's only green (accent2):
+   green = bus-wide, amber = a single engaged position, everywhere.
+   ===================================================================== */
+
+/* The four card editors sit directly on the brushed plate. The global
+   QWidget base coat must not slip an app-background patch under their
+   rects (the direct-painting law) - keep them transparent like the
+   Preamp/Include/reference editors above. */
+QWidget#DeviceCardEditor, QWidget#ChannelCardEditor,
+QWidget#StageCardEditor, QWidget#CommentCardEditor { background: transparent; border: 0; }
+
+/* ── Device card: the OUTPUT ROUTING switch bank ─────────────────────────
+   Each chip is a latching faceplate switch cap (machined gradient, lit
+   top bevel, shadowed base, engraved uppercase label). State is a lamp:
+   engaged = warm backlit cap + amber border. Depth carries type:
+   playback = raised switch, capture = recessed input well, endpoint
+   without the APO = flat blank position. Compact padding so the
+   FlowLayout wraps instead of overflowing the 960px gallery viewport.
+
+   CASCADE NOTE (read before editing): the type attributes
+   [deviceInput="true"] and [deviceInstalled="false"] score the same Qt
+   specificity (0x111) as the bare pseudo-states :hover and :checked. On
+   a tie Qt takes the later rule, so a type rule placed after :checked
+   would MASK the lamp. Every state that must survive on a typed chip is
+   therefore authored as an explicit combined selector (0x121, or 0x131
+   with two pseudo-states) so it wins by specificity regardless of source
+   order. Do not collapse these back into the bare pseudo rules. */
+QToolButton#DeviceChip {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+    color: @TEXT@;
+    border: 1px solid #11161A; border-top-color: #3E474F;
+    border-radius: 2px;
+    padding: 3px 9px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+/* Hover (bare): the faceplate edge warms amber, gloss rises one step. */
+QToolButton#DeviceChip:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
+    border: 1px solid @ACCENT@; border-top-color: #3E474F;
+    color: #F2DDB4;
+}
+/* Engaged (bare playback switch): the amber routing lamp lights. */
+QToolButton#DeviceChip:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4A3A1C, stop:1 #2E2410);
+    border: 1px solid @ACCENT@; border-top-color: #6E521E;
+    color: #FFE9C8;
+}
+
+/* Capture device = recessed input well: shadowed top, lit lower lip.
+   This is the AT-REST face; its state lamps are restored by the combined
+   rules below. */
+QToolButton#DeviceChip[deviceInput="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1B2126, stop:1 #2A3036);
+    border: 1px solid #11161A; border-top-color: #0C1013; border-bottom-color: #3E474F;
+    color: #BDB7A9;
+}
+/* Unwired endpoint (APO not installed) = flat blank position, recedes
+   one step (the picker's lamp-dimming law R5). */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    background: #181D21;
+    border: 1px solid #11161A; border-top-color: #11161A;
+    color: #6E685C;
+}
+
+/* Hover on a capture well (0x121): keep the recessed orientation (dark
+   top, lit lower lip) while the amber edge warms. */
+QToolButton#DeviceChip[deviceInput="true"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #20272D, stop:1 #2E363C);
+    border: 1px solid @ACCENT@; border-top-color: #0C1013; border-bottom-color: #3E474F;
+    color: #F2DDB4;
+}
+/* Hover on a blank position (0x121): the hover grammar stays uniform;
+   the blank stays flat (no top bevel). */
+QToolButton#DeviceChip[deviceInstalled="false"]:hover {
+    background: #1E242A;
+    border: 1px solid @ACCENT@; border-top-color: #11161A;
+    color: #8C8678;
+}
+
+/* Engaged capture well (0x121) - THE LAMP RULE: a routed input well
+   lights the SAME amber lamp as a routed playback switch (a routed
+   switch is a routed switch). The well's depth reads its type only at
+   rest. Beats both :checked and [deviceInput="true"] (0x111). */
+QToolButton#DeviceChip[deviceInput="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4A3A1C, stop:1 #2E2410);
+    border: 1px solid @ACCENT@; border-top-color: #6E521E;
+    color: #FFE9C8;
+}
+/* Routed offline endpoint (0x121): amber lamp over the blank metal. */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A2F18, stop:1 #241B0E);
+    border: 1px solid @ACCENT@; border-top-color: #5C440F;
+    color: #F2DDB4;
+}
+/* Master BUS-ENABLE engaged (0x121): the green bus lamp, never amber. */
+QToolButton#DeviceChip[allDevices="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #16352A, stop:1 #0F2A20);
+    border: 1px solid @ACCENT2@; border-top-color: #1E5A44;
+    color: #BFF0D8;
+}
+/* Powered-down master (0x131): a dim GREEN memory - without this rule
+   the :checked:disabled tie would hand the master an amber memory and
+   break the green-means-bus contract while the unit is off. */
+QToolButton#DeviceChip[allDevices="true"]:checked:disabled {
+    background: #14201A;
+    border: 1px solid #1E5A44; border-top-color: #1E5A44;
+    color: #4F7A66;
+}
+
+/* Powered down (ALL engaged, or the whole unit switched off): dark film,
+   lamp off. Type-blind - a well and a blank go dark identically, because
+   a powered-down unit shows no part-type colour. */
+QToolButton#DeviceChip:disabled {
+    background: #171B1F;
+    border: 1px solid #22282D; border-top-color: #22282D;
+    color: #4E4A40;
+}
+/* Routed but powered down (0x121): faint warm memory of the lamp. */
+QToolButton#DeviceChip:checked:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2A2417, stop:1 #211C12);
+    border: 1px solid #6B4A10; border-top-color: #6B4A10;
+    color: #7A6A45;
+}
+/* Capture/blank powered down (0x121): collapse to the same dark film so
+   the type bases cannot keep their colour lit on a powered-down unit. */
+QToolButton#DeviceChip[deviceInput="true"]:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled {
+    background: #171B1F;
+    border: 1px solid #22282D; border-top-color: #22282D;
+    color: #4E4A40;
+}
+/* Routed capture/blank powered down (0x131): the same faint warm memory
+   as any routed switch that loses power. */
+QToolButton#DeviceChip[deviceInput="true"]:checked:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2A2417, stop:1 #211C12);
+    border: 1px solid #6B4A10; border-top-color: #6B4A10;
+    color: #7A6A45;
+}
+
+/* Reveal latch: a subordinate service latch; open (:checked) sits
+   pressed in. It carries no device-type properties, so the bare pseudo
+   rules are safe. */
+QToolButton#DeviceChipMore {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #262C32, stop:1 #1A1F23);
+    color: @MUTED@;
+    border: 1px solid #11161A; border-top-color: #333A41;
+    border-radius: 2px;
+    padding: 3px 9px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+QToolButton#DeviceChipMore:hover { border-color: @ACCENT@; border-top-color: #333A41; color: #E0D6BC; }
+QToolButton#DeviceChipMore:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #14181C, stop:1 #20262B);
+    border: 1px solid #11161A; border-top-color: #0C1013;
+    color: @TEXT@;
+}
+QToolButton#DeviceChipMore:disabled { background: #171B1F; border-color: #22282D; color: #4E4A40; }
+
+/* ── Channel card: the CHANNEL ASSIGN key row ────────────────────────────
+   Channels are the signal's seats, not physical endpoints, so the chips
+   are the console's compact assign keys rather than the Device bank's
+   wide routing switches. A taken seat latches DOWN (the pressed cap of
+   this sheet's engaged-tab grammar) and lights the lamp window UNDER the
+   cap; the Device switch backlights its whole cap - two parts, one lamp
+   law. ALL is the bus master and lights the machine's only green.
+   Custom/virtual channels are seats PRINTED on the panel (wireframe,
+   dashed - drawn, not machined); the printed seat only gains a real lamp
+   once the signal actually sits there. Same cascade discipline as the
+   Device bank ([customChannel]/[allChannels] rules are combined). */
+QToolButton#ChannelChip {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+    color: @TEXT@;
+    border: 1px solid #11161A; border-top-color: #3E474F;
+    border-radius: 2px;
+    padding: 3px 8px; min-width: 18px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolButton#ChannelChip:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
+    border: 1px solid @ACCENT@; border-top-color: #3E474F;
+    color: #F2DDB4;
+}
+/* A taken seat: the key latches down (pressed gradient, dark top) and
+   the lamp window under the cap lights amber. */
+QToolButton#ChannelChip:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #161B1F, stop:1 #242B31);
+    border: 1px solid #11161A; border-top-color: #0C1013;
+    border-bottom: 2px solid @ACCENT@;
+    color: #FFE9C8;
+}
+/* Powered down (ALL engaged, or the unit switched off): dark film. */
+QToolButton#ChannelChip:disabled {
+    background: #171B1F;
+    border: 1px solid #22282D; border-top-color: #22282D;
+    color: #4E4A40;
+}
+/* A taken seat that loses power keeps the latched cap and a faint warm
+   memory of its lamp window. */
+QToolButton#ChannelChip:checked:disabled {
+    background: #14181C;
+    border: 1px solid #22282D; border-top-color: #101418;
+    border-bottom: 2px solid #6B4A10;
+    color: #7A6A45;
+}
+/* Master ALL engaged (0x121): the green bus lamp under the cap, never
+   amber - the same master contract as the Device bank. */
+QToolButton#ChannelChip[allChannels="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #121A17, stop:1 #1B2822);
+    border: 1px solid #11161A; border-top-color: #0C1013;
+    border-bottom: 2px solid @ACCENT2@;
+    color: #BFF0D8;
+}
+/* Powered-down master (0x131): dim green memory, never amber. */
+QToolButton#ChannelChip[allChannels="true"]:checked:disabled {
+    background: #14181C;
+    border: 1px solid #22282D; border-top-color: #101418;
+    border-bottom: 2px solid #1E5A44;
+    color: #4F7A66;
+}
+/* Custom/virtual channel = a seat printed on the panel: a dashed
+   wireframe with no fill (printed outlines are not machined hardware). */
+QToolButton#ChannelChip[customChannel="true"] {
+    background: transparent;
+    border: 1px dashed #4E565E;
+    color: @MUTED@;
+}
+QToolButton#ChannelChip[customChannel="true"]:hover {
+    background: transparent;
+    border: 1px dashed @ACCENT@;
+    color: #F2DDB4;
+}
+/* A taken printed seat (0x121): the outline stays printed (dashed
+   sides), but the lamp under it is real - the signal genuinely sits in
+   this seat. */
+QToolButton#ChannelChip[customChannel="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(244, 184, 96, 0.04), stop:1 rgba(244, 184, 96, 0.14));
+    border: 1px dashed #6E521E;
+    border-bottom: 2px solid @ACCENT@;
+    color: #FFE9C8;
+}
+QToolButton#ChannelChip[customChannel="true"]:disabled {
+    background: transparent;
+    border: 1px dashed #2E343A;
+    color: #4E4A40;
+}
+QToolButton#ChannelChip[customChannel="true"]:checked:disabled {
+    background: transparent;
+    border: 1px dashed #3A3226;
+    border-bottom: 2px solid #6B4A10;
+    color: #7A6A45;
+}
+/* The add-a-seat entry is a small labeling well milled beside the keys -
+   a genuine input, so it keeps the recessed input grammar and its
+   translated placeholder. */
+QLineEdit#ChannelChipAdd {
+    background: #0A0D0F; color: @TEXT@;
+    border: 1px solid #060809; border-bottom-color: #39424A;
+    border-radius: 2px; padding: 3px 8px;
+    min-height: 18px; font-size: 8pt; letter-spacing: 1px;
+}
+QLineEdit#ChannelChipAdd:focus { border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:disabled { color: #4E4A40; background: @BG@; }
+
+/* ── Comment card: embossed label tape ───────────────────────────────────
+   A note on this machine is a strip of embossed label tape stuck to the
+   faceplate: glossy black plastic with raised warm-ivory lettering. The
+   factory engraves designations; the user sticks tape - which is why the
+   note is not engraved printing. The tape stays black in BOTH finishes
+   (tape is tape - the same physical honesty as the display law, for a
+   different physical reason), and it is told apart from the LCD wells by
+   its ink: warm ivory sans lettering, never green mono segments. No
+   uppercase transform - the note is the user's own data. Editing
+   re-punches the strip: focus lights the amber service edge. */
+QLabel#CommentCardGlyph {
+    background: transparent; color: @MUTED@;
+    font-weight: 700; font-size: 10pt;
+    padding: 0 2px;
+}
+QLineEdit#CommentCardText {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #332E28, stop:0.14 #1D1916, stop:1 #100E0C);
+    color: #F1E9D8;
+    border: 1px solid #060809; border-top-color: #4A443C;
+    border-radius: 2px;
+    padding: 4px 10px;
+    font-weight: 700; letter-spacing: 1px;
+    selection-background-color: @ACCENT@; selection-color: #1A1208;
+}
+QLineEdit#CommentCardText:focus { border: 1px solid @ACCENT@; border-top-color: @ACCENT@; }
+/* Powered down: the tape goes matte and its lettering fades with the
+   film RackChrome draws over the plate. */
+QLineEdit#CommentCardText:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #26221E, stop:0.14 #181512, stop:1 #100E0C);
+    color: #7A745F;
+    border: 1px solid #101214; border-top-color: #2E2A24;
+}
+
+/* ── Stage card: the INSERT POINT switches ───────────────────────────────
+   Three latching switches choose where the unit sits in the signal path;
+   the legends are engraved path printing. Engaged is a jewel lamp along
+   the cap's TOP edge - the third lamp position on this machine, so a
+   routed endpoint (backlit cap), a taken seat (under-cap lamp) and an
+   engaged insert point (top jewel) never read alike. Capture is the
+   input-side insert and rests as a recessed well, the same input grammar
+   as the Device bank's capture endpoints; once engaged it lights the
+   same jewel (a routed switch is a routed switch - typed combined rules,
+   as on the Device bank). Unknown selectors survive as a wireframe
+   service tag printed in warning ink, kept as written (data, not
+   engraving). */
+QToolButton#StageChip {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+    color: @TEXT@;
+    border: 1px solid #11161A; border-top-color: #3E474F;
+    border-radius: 2px;
+    padding: 3px 12px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolButton#StageChip:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
+    border: 1px solid @ACCENT@; border-top-color: #3E474F;
+    color: #F2DDB4;
+}
+/* Engaged: warm panel fill + the amber jewel lamp along the top edge. */
+QToolButton#StageChip:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3F3118, stop:1 #281F0F);
+    border: 1px solid @ACCENT@; border-top: 2px solid @ACCENT@;
+    color: #FFE9C8;
+}
+QToolButton#StageChip:disabled {
+    background: #171B1F;
+    border: 1px solid #22282D; border-top-color: #22282D;
+    color: #4E4A40;
+}
+/* Engaged but powered down: the jewel dims to a warm memory. */
+QToolButton#StageChip:checked:disabled {
+    background: #211C12;
+    border: 1px solid #4A3A20; border-top: 2px solid #6B4A10;
+    color: #7A6A45;
+}
+/* Capture inserts on the input side: a recessed well at rest (dark top,
+   lit lower lip), exactly like a capture endpoint on the Device bank. */
+QToolButton#StageChip[stage="capture"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1B2126, stop:1 #2A3036);
+    border: 1px solid #11161A; border-top-color: #0C1013; border-bottom-color: #3E474F;
+    color: #BDB7A9;
+}
+QToolButton#StageChip[stage="capture"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #20272D, stop:1 #2E363C);
+    border: 1px solid @ACCENT@; border-top-color: #0C1013; border-bottom-color: #3E474F;
+    color: #F2DDB4;
+}
+/* Engaged capture (0x121) - the lamp rule: identical jewel to pre/post;
+   the well reads its type only at rest. */
+QToolButton#StageChip[stage="capture"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3F3118, stop:1 #281F0F);
+    border: 1px solid @ACCENT@; border-top: 2px solid @ACCENT@;
+    color: #FFE9C8;
+}
+QToolButton#StageChip[stage="capture"]:disabled {
+    background: #171B1F;
+    border: 1px solid #22282D; border-top-color: #22282D;
+    color: #4E4A40;
+}
+QToolButton#StageChip[stage="capture"]:checked:disabled {
+    background: #211C12;
+    border: 1px solid #4A3A20; border-top: 2px solid #6B4A10;
+    color: #7A6A45;
+}
+/* Unknown selectors: not a machinable part, so a service tag printed on
+   the panel in warning ink - wireframe, permanently inert, text kept as
+   written. */
+QToolButton#StageChipUnknown {
+    background: transparent;
+    color: @WARNING@;
+    border: 1px dashed #6E5524;
+    border-radius: 2px;
+    padding: 3px 10px; min-height: 20px;
+    font-size: 8pt; letter-spacing: 1px;
+}

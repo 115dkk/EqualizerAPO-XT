@@ -440,8 +440,10 @@ void FilterCardRow::rebuildSummary()
 	// Disable only the body editor when the line is commented out. This keeps
 	// the card frame (and its header buttons - including the enable toggle and
 	// the raw-edit affordance) interactive so the user can flip the line back on.
+	// A pure comment row is "disabled" by definition (the line starts with '#'),
+	// but its body IS the note editor - keep it editable.
 	if (gui != nullptr)
-		gui->setEnabled(descriptor.enabled);
+		gui->setEnabled(descriptor.enabled || descriptor.type == QStringLiteral("comment"));
 	buildChannelBadges(descriptor.channelBadges);
 	refreshStateProperties();
 	update();
