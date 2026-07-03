@@ -76,7 +76,7 @@ void FilterTable::propagateChannels()
 {
 	vector<wstring> channelNames = getChannelNames();
 
-	for (Item* item : items)
+	for (Item* item : model.items())
 	{
 		if (item->gui != nullptr)
 			item->gui->configureChannels(channelNames);
@@ -85,24 +85,17 @@ void FilterTable::propagateChannels()
 
 QList<QString> FilterTable::getLines()
 {
-	QList<QString> result;
-	for (Item* item : items)
-		result.append(item->text);
-
-	return result;
+	return model.lines();
 }
 
 void FilterTable::setLines(const QString& configPath, const QList<QString>& lines)
 {
 	this->configPath = configPath;
 
-	qDeleteAll(items);
-	items.clear();
-
-	for (QString line : lines)
-	{
-		items.append(new Item(line));
-	}
+	// The document reset (including moving focus/anchor to the first line)
+	// lives in the model; the per-file GUI preference restore below stays
+	// here because it reads the registry. (audit #146 TD032)
+	model.setLines(lines);
 
 	QSettings settings(QString::fromWCharArray(EDITOR_PER_FILE_REGPATH), QSettings::NativeFormat);
 	settings.beginGroup(QString(configPath).replace('\\', '|'));
@@ -126,9 +119,9 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 				QString prefCommand = prefLine.mid(index + 1, index2 - index - 1);
 				QString prefString = prefLine.mid(index2 + 1);
 
-				if (lineNumber <= items.size())
+				if (lineNumber <= model.items().size())
 				{
-					Item* item = items[lineNumber - 1];
+					Item* item = model.items()[lineNumber - 1];
 
 					QString command;
 					int index = item->text.indexOf(':');
@@ -144,33 +137,12 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 	setScrollOffsets(settings.value("scrollX", 0).toInt(), settings.value("scrollY", 0).toInt());
 	settings.endGroup();
 
-	if (!items.isEmpty())
-	{
-		focused = items[0];
-		selectionStart = items[0];
-	}
-	else
-	{
-		focused = nullptr;
-		selectionStart = nullptr;
-	}
-
 	updateGuis();
 }
 
 FilterTable::Item* FilterTable::addLine(const QString& line, FilterTable::Item* before)
 {
-	Item* newItem = new Item(line);
-
-	if (before != nullptr)
-	{
-		int index = items.indexOf(before);
-		items.insert(index, newItem);
-	}
-	else
-	{
-		items.append(newItem);
-	}
+	Item* newItem = model.addLine(line, before);
 
 	emit linesChanged();
 
@@ -179,23 +151,11 @@ FilterTable::Item* FilterTable::addLine(const QString& line, FilterTable::Item* 
 
 void FilterTable::removeItem(FilterTable::Item* item)
 {
-	int index = items.indexOf(item);
-	if (index == -1)
+	// The removal and the selection/focus repair live in the model; the signal
+	// stays a widget concern. (audit #146 TD032)
+	if (!model.removeItem(item))
 		return;
 
-	items.removeAt(index);
-	Item* replacement = nullptr;
-	if (!items.isEmpty())
-		replacement = items[qMin(index, items.size() - 1)];
-
-	if (selected.remove(item) > 0 && replacement != nullptr)
-		selected.insert(replacement);
-	if (focused == item)
-		focused = replacement;
-	if (selectionStart == item)
-		selectionStart = replacement;
-
-	delete item;
 	emit linesChanged();
 }
 
@@ -371,7 +331,7 @@ void FilterTable::updateSizeHints()
 	// crash on a plain restyle). Nothing to size while the rows are being rebuilt.
 	if (gridLayout == nullptr)
 		return;
-	for (int i = 0; i < items.size(); i++)
+	for (int i = 0; i < model.items().size(); i++)
 	{
 		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
 		if (layoutItem == nullptr)

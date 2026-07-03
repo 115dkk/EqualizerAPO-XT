@@ -110,15 +110,21 @@ void FilterTable::dropEvent(QDropEvent* event)
 
 		int dropRow = rowForPos(event->pos(), true);
 		if (dropRow == -1)
-			dropRow = items.size();
+			dropRow = model.items().size();
 
-		insertLinesFromMimeData(mimeData, dropRow);
+		int insertedCount = insertLinesFromMimeData(mimeData, dropRow);
 		event->accept();
 
 		if (!internalDrag)
 		{
 			emit linesChanged();
-			updateGuis();
+			// A single dropped line splices into the card grid; internal drags
+			// keep the full rebuild in mouseMoveEvent after the originals are
+			// removed. (audit #146 TD040)
+			if (insertedCount == 1 && renderMode == ModernCards)
+				insertRowAt(dropRow);
+			else
+				updateGuis();
 		}
 	}
 

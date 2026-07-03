@@ -20,6 +20,7 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
 #include "Editor/widgets/cards/StageSelectionModel.h"
@@ -35,7 +36,10 @@ namespace
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
 // EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
-test::Harness harness("EditorLogicTests");
+// The suite runs under FailurePolicy::Collect so one broken feature block no
+// longer hides the findings of every block after it (audit #146 TD035); the
+// require* wrappers keep the gating checks aborting like before.
+test::Harness harness("EditorLogicTests", test::FailurePolicy::Collect);
 
 std::string toStd(const QString& s)
 {
@@ -82,12 +86,130 @@ void expectEqual(int actual, int expected, const QString& message)
 		actual == expected,
 		toStd(QString("%1: expected %2, got %3").arg(message).arg(expected).arg(actual)));
 }
+
+// require counterparts of the wrappers above: same message format, but they
+// abort on failure regardless of the Collect policy. Use them for checks
+// whose failure would make the following lines unsafe (size checks before
+// indexing, fixture-creation checks).
+void requireTrue(bool value, const QString& message)
+{
+	harness.require(value, toStd(message));
 }
 
-int main(int argc, char** argv)
+// FilterListModel: the widget-free document/selection model extracted from
+// FilterTable so its mutation and selection logic is testable without a
+// QWidget. (audit #146 TD032)
+static void testFilterListModel()
 {
-	QCoreApplication app(argc, argv);
+	FilterListModel model;
 
+	// setLines resets the document, focuses/anchors the first line and starts
+	// with an empty selection.
+	model.setLines(QList<QString>() << "Preamp: -6 dB" << "Include: a.txt" << "Delay: 10 ms");
+	expectEqual((int)model.items().size(), 3, "setLines creates one item per line");
+	expectEqual(model.lines().join('\n'), "Preamp: -6 dB\nInclude: a.txt\nDelay: 10 ms", "lines() round-trips setLines");
+	expectTrue(model.focused() == model.items()[0], "setLines focuses the first line");
+	expectTrue(model.selectionStart() == model.items()[0], "setLines anchors the selection on the first line");
+	expectTrue(model.selected().isEmpty(), "setLines starts with an empty selection");
+
+	// addLine inserts before an anchor item, or appends without one.
+	FilterListItem* added = model.addLine("Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71", model.items()[1]);
+	expectEqual((int)model.items().indexOf(added), 1, "addLine inserts before the anchor");
+	FilterListItem* appended = model.addLine("GraphicEQ: 20 -1; 1000 2");
+	expectEqual((int)model.items().indexOf(appended), (int)model.items().size() - 1, "addLine without anchor appends");
+
+	// Range selection math (the Shift-click/Shift-arrow logic): anchor..target
+	// in either direction; a missing anchor leaves the selection untouched.
+	model.setSelectionStart(model.items()[1]);
+	model.selectRangeFromAnchor(model.items()[3]);
+	expectEqual((int)model.selected().size(), 3, "range selection spans anchor..target");
+	expectTrue(model.selected().contains(model.items()[1]) && model.selected().contains(model.items()[2])
+		&& model.selected().contains(model.items()[3]),
+		"range selection selects exactly the rows between anchor and target");
+	model.selectRangeFromAnchor(model.items()[0]);
+	expectEqual((int)model.selected().size(), 2, "a reversed range selects target..anchor");
+	expectTrue(model.selected().contains(model.items()[0]) && model.selected().contains(model.items()[1]),
+		"the reversed range selects rows 0..1");
+	model.setSelectionStart(nullptr);
+	model.selectRangeFromAnchor(model.items()[2]);
+	expectEqual((int)model.selected().size(), 2, "a missing anchor leaves the selection unchanged");
+
+	// Copy payload: selected lines in document order joined with \n, one prefs
+	// map per line, regardless of the selection's insertion order.
+	model.items()[0]->prefs.insert("expanded", true);
+	model.items()[1]->prefs.insert("expanded", false);
+	model.clearSelection();
+	model.select(model.items()[1]);
+	model.select(model.items()[0]);
+	FilterListModel::CopyPayload payload = model.copyPayload();
+	expectEqual(payload.text, model.items()[0]->text + '\n' + model.items()[1]->text,
+		"copy payload joins selected lines in document order");
+	expectEqual((int)payload.prefsList.size(), 2, "copy payload carries one prefs map per line");
+	expectTrue(payload.prefsList[0].value("expanded").toBool() && !payload.prefsList[1].value("expanded").toBool(),
+		"copy payload prefs align with their lines");
+	expectEqual(model.firstSelectedIndex(), 0, "firstSelectedIndex finds the topmost selected row");
+
+	// insertLines at a position replaces the selection with the inserted items
+	// and focuses/anchors the first inserted line (the paste semantics).
+	QList<FilterListItem*> inserted = model.insertLines(
+		QStringList() << "Channel: L R" << "Preamp: -2 dB",
+		QList<QVariantMap>() << QVariantMap({ { "expanded", true } }), 2);
+	expectEqual((int)inserted.size(), 2, "insertLines returns the inserted items");
+	expectEqual((int)model.items().indexOf(inserted[0]), 2, "insertLines inserts at the drop row");
+	expectEqual((int)model.items().indexOf(inserted[1]), 3, "insertLines keeps the pasted order");
+	expectEqual((int)model.selected().size(), 2, "insertLines replaces the selection with the inserted lines");
+	expectTrue(model.selected().contains(inserted[0]) && model.selected().contains(inserted[1]),
+		"insertLines selects exactly the inserted lines");
+	expectTrue(model.focused() == inserted[0], "insertLines focuses the first inserted line");
+	expectTrue(model.selectionStart() == inserted[0], "insertLines anchors on the first inserted line");
+	expectTrue(inserted[0]->prefs.value("expanded").toBool() && inserted[1]->prefs.isEmpty(),
+		"insertLines aligns prefs by index and leaves extra lines without prefs");
+
+	// deleteSelected removes exactly the selection, clears it and drops the
+	// focus/anchor when they pointed at deleted rows.
+	const int countBefore = (int)model.items().size();
+	QList<QString> expectedRemaining;
+	for (FilterListItem* item : model.items())
+	{
+		if (!model.selected().contains(item))
+			expectedRemaining.append(item->text);
+	}
+	model.deleteSelected();
+	expectEqual((int)model.items().size(), countBefore - 2, "deleteSelected removes exactly the selected rows");
+	expectEqual(model.lines().join('\n'), expectedRemaining.join('\n'), "deleteSelected keeps the other rows in order");
+	expectTrue(model.selected().isEmpty(), "deleteSelected clears the selection");
+	expectTrue(model.focused() == nullptr && model.selectionStart() == nullptr,
+		"deleteSelected drops focus/anchor pointing at deleted rows");
+
+	// selectAll selects every row.
+	model.selectAll();
+	expectEqual((int)model.selected().size(), (int)model.items().size(), "selectAll selects every row");
+
+	// removeItem moves the selection, focus and anchor onto the neighbouring
+	// row (the item now at the removed index).
+	model.clearSelection();
+	FilterListItem* victim = model.items()[1];
+	model.select(victim);
+	model.setFocused(victim);
+	model.setSelectionStart(victim);
+	expectTrue(model.removeItem(victim), "removeItem removes a known item");
+	FilterListItem* replacement = model.items()[1];
+	expectTrue(model.selected().contains(replacement), "removeItem re-selects the neighbouring row");
+	expectTrue(model.focused() == replacement && model.selectionStart() == replacement,
+		"removeItem moves focus and anchor to the neighbouring row");
+	expectFalse(model.removeItem(nullptr), "removeItem rejects items outside the document");
+}
+
+
+void requireEqual(int actual, int expected, const QString& message)
+{
+	harness.require(
+		actual == expected,
+		toStd(QString("%1: expected %2, got %3").arg(message).arg(expected).arg(actual)));
+}
+
+void testConvolutionPathHelper()
+{
 	const QString configPath = "C:/EqualizerAPO/config/config.txt";
 
 	expectPath(
@@ -116,7 +238,10 @@ int main(int argc, char** argv)
 	expectFalse(
 		ConvolutionPathHelper::relativePathLooksContainedLexically("C:/Impulse/room.wav"),
 		"absolute path was accepted as relative");
+}
 
+void testUpdateInfoFormatter()
+{
 	QJsonObject release;
 	release["download-url"] = "https://example.invalid";
 	QJsonArray versions;
@@ -135,7 +260,10 @@ int main(int argc, char** argv)
 		fail("release notes were not HTML-escaped");
 	if (!html.contains("&lt;script&gt;alert(1)&lt;/script&gt;") || !html.contains("Fix &amp; verify"))
 		fail("escaped release notes are missing");
+}
 
+void testVelopackUpdateInfo()
+{
 	expectEqual(
 		VelopackUpdateInfo::githubLatestReleaseUrl("https://github.com/115dkk/EqualizerAPO-XT/"),
 		"https://api.github.com/repos/115dkk/EqualizerAPO-XT/releases/latest",
@@ -161,7 +289,13 @@ int main(int argc, char** argv)
 	expectFalse(
 		VelopackUpdateInfo::isNewerVersion("1.4.0", "1.4.3"),
 		"older package version was considered newer");
+}
 
+// Builds the GitHub release fixture shared by testVelopackGitHubRelease() and
+// testVelopackFeeds(): the feed conversion takes the release document as its
+// fallback source, so both blocks work on the identical document.
+QJsonDocument makeGitHubReleaseDoc()
+{
 	QJsonObject githubRelease;
 	githubRelease["tag_name"] = "v1.4.4-main.77";
 	githubRelease["name"] = "EqualizerAPO-XT 1.4.4-main.77";
@@ -182,7 +316,12 @@ int main(int argc, char** argv)
 		{ "browser_download_url", "https://example.invalid/setup.exe" },
 	}));
 	githubRelease["assets"] = releaseAssets;
-	QJsonDocument githubReleaseDoc(githubRelease);
+	return QJsonDocument(githubRelease);
+}
+
+void testVelopackGitHubRelease()
+{
+	QJsonDocument githubReleaseDoc = makeGitHubReleaseDoc();
 
 	expectTrue(
 		VelopackUpdateInfo::isGitHubRelease(githubReleaseDoc),
@@ -195,6 +334,11 @@ int main(int argc, char** argv)
 		VelopackUpdateInfo::fromGitHubRelease(githubReleaseDoc, "x64-avx2", "1.4.3").object().value("download-url").toString(),
 		"https://example.invalid/setup.exe",
 		"GitHub release fallback setup URL");
+}
+
+void testVelopackFeeds()
+{
+	QJsonDocument githubReleaseDoc = makeGitHubReleaseDoc();
 
 	QJsonArray feedAssets;
 	feedAssets.append(QJsonObject({
@@ -230,7 +374,10 @@ int main(int argc, char** argv)
 	expectTrue(
 		VelopackUpdateInfo::fromVelopackFeed(feedDoc, githubReleaseDoc, "x64-avx2", "1.4.4-main.77").isEmpty(),
 		"same Velopack version produced an update");
+}
 
+void testFilterCardDescriptors()
+{
 	FilterCardDescriptor preamp = FilterCardModel::describeLine("Preamp: -6 dB");
 	expectEqual(preamp.badge, "PRE", "preamp card badge");
 	expectEqual(preamp.title, "Preamp", "preamp card title");
@@ -295,7 +442,10 @@ int main(int argc, char** argv)
 	FilterCardDescriptor multiConvBare = FilterCardModel::describeLine("MultiConvolution:");
 	expectEqual(multiConvBare.badge, "MCONV", "bare multiconvolution keeps its badge");
 	expectEqual(multiConvBare.type, "convolution", "bare multiconvolution keeps convolution styling");
+}
 
+void testFilterCardDepths()
+{
 	QVector<int> depths = FilterCardModel::calculateDepths(QList<QString>({
 		"Channel: L R",
 		"Preamp: -6 dB",
@@ -306,7 +456,7 @@ int main(int argc, char** argv)
 		"Channel: ALL",
 		"Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71"
 	}));
-	expectEqual(depths.size(), 8, "channel depth count");
+	requireEqual(depths.size(), 8, "channel depth count");
 	expectEqual(depths[0], 0, "channel command depth");
 	expectEqual(depths[1], 1, "scoped preamp depth");
 	expectEqual(depths[2], 1, "include depth");
@@ -315,429 +465,460 @@ int main(int argc, char** argv)
 	expectEqual(depths[5], 1, "post-comment channel depth");
 	expectEqual(depths[6], 0, "channel all depth");
 	expectEqual(depths[7], 0, "post channel-all depth");
+}
 
-	{
-		QTemporaryDir tempDir;
-		expectTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+void testConfigImport()
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
 
-		QString surroundDir = tempDir.path() + "/Surround";
-		expectTrue(QDir().mkpath(surroundDir), "failed to create Surround dir");
+	QString surroundDir = tempDir.path() + "/Surround";
+	expectTrue(QDir().mkpath(surroundDir), "failed to create Surround dir");
 
-		auto writeText = [](const QString& path, const QString& body) {
-			QFile f(path);
-			expectTrue(f.open(QIODevice::WriteOnly | QIODevice::Text), QString("could not open %1 for write").arg(path));
-			QTextStream ts(&f);
-			ts << body;
-		};
-		auto writeBlob = [](const QString& path, int bytes) {
-			QFile f(path);
-			expectTrue(f.open(QIODevice::WriteOnly), QString("could not open %1 for write").arg(path));
-			f.write(QByteArray(bytes, '\0'));
-		};
+	auto writeText = [](const QString& path, const QString& body) {
+		QFile f(path);
+		expectTrue(f.open(QIODevice::WriteOnly | QIODevice::Text), QString("could not open %1 for write").arg(path));
+		QTextStream ts(&f);
+		ts << body;
+	};
+	auto writeBlob = [](const QString& path, int bytes) {
+		QFile f(path);
+		expectTrue(f.open(QIODevice::WriteOnly), QString("could not open %1 for write").arg(path));
+		f.write(QByteArray(bytes, '\0'));
+	};
 
-		writeText(surroundDir + "/main.txt",
-			"# main\n"
-			"Preamp: -3 dB\n"
-			"Include: child.txt\n"
-			"Convolution: ir.wav\n");
-		writeText(surroundDir + "/child.txt",
-			"Convolution: nested.wav\n");
-		writeBlob(surroundDir + "/ir.wav", 128);
-		writeBlob(surroundDir + "/nested.wav", 64);
+	writeText(surroundDir + "/main.txt",
+		"# main\n"
+		"Preamp: -3 dB\n"
+		"Include: child.txt\n"
+		"Convolution: ir.wav\n");
+	writeText(surroundDir + "/child.txt",
+		"Convolution: nested.wav\n");
+	writeBlob(surroundDir + "/ir.wav", 128);
+	writeBlob(surroundDir + "/nested.wav", 64);
 
-		EqAPO::Import::ImportManifest manifest = EqAPO::Import::ConfigDependencyScanner::scan(
-			surroundDir + "/main.txt", tempDir.path() + "/configdir");
+	EqAPO::Import::ImportManifest manifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		surroundDir + "/main.txt", tempDir.path() + "/configdir");
 
-		expectFalse(manifest.hasErrors, "scan should not flag any errors for this tree");
-		expectEqual(int(manifest.items.size()), 4, "expected root + child + ir + nested");
+	expectFalse(manifest.hasErrors, "scan should not flag any errors for this tree");
+	requireEqual(int(manifest.items.size()), 4, "expected root + child + ir + nested");
 
-		expectEqual(manifest.items[0].kind, "Root", "first item must be the root config");
-		expectEqual(manifest.items[0].destRelative, "Surround/main.txt", "root dest path");
-		expectTrue(manifest.totalBytes > 0, "totalBytes should be positive");
+	expectEqual(manifest.items[0].kind, "Root", "first item must be the root config");
+	expectEqual(manifest.items[0].destRelative, "Surround/main.txt", "root dest path");
+	expectTrue(manifest.totalBytes > 0, "totalBytes should be positive");
 
-		QStringList destRels;
-		for (const auto& item : manifest.items)
-			destRels.append(item.destRelative);
-		expectTrue(destRels.contains("Surround/main.txt"), "root present in items");
-		expectTrue(destRels.contains("Surround/child.txt"), "include child present");
-		expectTrue(destRels.contains("Surround/ir.wav"), "ir wav present");
-		expectTrue(destRels.contains("Surround/nested.wav"), "nested wav present");
+	QStringList destRels;
+	for (const auto& item : manifest.items)
+		destRels.append(item.destRelative);
+	expectTrue(destRels.contains("Surround/main.txt"), "root present in items");
+	expectTrue(destRels.contains("Surround/child.txt"), "include child present");
+	expectTrue(destRels.contains("Surround/ir.wav"), "ir wav present");
+	expectTrue(destRels.contains("Surround/nested.wav"), "nested wav present");
 
-		// Missing reference should surface as a non-fatal warning + hasErrors.
-		writeText(surroundDir + "/broken.txt", "Convolution: does_not_exist.wav\n");
-		auto broken = EqAPO::Import::ConfigDependencyScanner::scan(surroundDir + "/broken.txt", tempDir.path() + "/configdir");
-		expectTrue(broken.hasErrors, "missing dependency must flag hasErrors");
-		expectTrue(!broken.warnings.isEmpty(), "missing dependency must produce a warning");
+	// Missing reference should surface as a non-fatal warning + hasErrors.
+	writeText(surroundDir + "/broken.txt", "Convolution: does_not_exist.wav\n");
+	auto broken = EqAPO::Import::ConfigDependencyScanner::scan(surroundDir + "/broken.txt", tempDir.path() + "/configdir");
+	expectTrue(broken.hasErrors, "missing dependency must flag hasErrors");
+	expectTrue(!broken.warnings.isEmpty(), "missing dependency must produce a warning");
 
-		QString configDest = tempDir.path() + "/configdir";
-		EqAPO::Import::ExecutionResult exec = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
-		expectTrue(exec.success, "executor should succeed on clean manifest");
-		expectEqual(exec.filesCopied, 4, "executor must copy four files");
+	QString configDest = tempDir.path() + "/configdir";
+	EqAPO::Import::ExecutionResult exec = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
+	expectTrue(exec.success, "executor should succeed on clean manifest");
+	expectEqual(exec.filesCopied, 4, "executor must copy four files");
 
-		expectTrue(QFile::exists(configDest + "/Surround/main.txt"), "main.txt missing after import");
-		expectTrue(QFile::exists(configDest + "/Surround/child.txt"), "child.txt missing after import");
-		expectTrue(QFile::exists(configDest + "/Surround/ir.wav"), "ir.wav missing after import");
-		expectTrue(QFile::exists(configDest + "/Surround/nested.wav"), "nested.wav missing after import");
+	expectTrue(QFile::exists(configDest + "/Surround/main.txt"), "main.txt missing after import");
+	expectTrue(QFile::exists(configDest + "/Surround/child.txt"), "child.txt missing after import");
+	expectTrue(QFile::exists(configDest + "/Surround/ir.wav"), "ir.wav missing after import");
+	expectTrue(QFile::exists(configDest + "/Surround/nested.wav"), "nested.wav missing after import");
 
-		// Re-executing should be idempotent (overwrites are allowed).
-		EqAPO::Import::ExecutionResult exec2 = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
-		expectTrue(exec2.success, "second execute should also succeed");
-		expectEqual(exec2.filesCopied, 4, "second execute should still report four copies");
+	// Re-executing should be idempotent (overwrites are allowed).
+	EqAPO::Import::ExecutionResult exec2 = EqAPO::Import::ImportExecutor::execute(manifest, configDest);
+	expectTrue(exec2.success, "second execute should also succeed");
+	expectEqual(exec2.filesCopied, 4, "second execute should still report four copies");
 
-		// A bare impulse-response file - the path the ConvolutionCardEditor
-		// import button takes - scans to a single-item manifest rooted at the
-		// file itself (no .txt recursion), keeping the source folder name as a
-		// subdirectory so the copy lands at config/<folder>/<file>.
-		QString convConfigDest = tempDir.path() + "/conv-configdir";
-		EqAPO::Import::ImportManifest single = EqAPO::Import::ConfigDependencyScanner::scan(
-			surroundDir + "/ir.wav", convConfigDest);
-		expectFalse(single.hasErrors, "single wav scan should not flag errors");
-		expectEqual(int(single.items.size()), 1, "single wav scan yields exactly one item");
-		expectEqual(single.items[0].kind, "Root", "single wav item is the root");
-		expectEqual(single.items[0].destRelative, "Surround/ir.wav", "single wav keeps its source folder");
-		expectEqual(single.rootDest, "Surround/ir.wav", "single wav rootDest mirrors the item");
+	// A bare impulse-response file - the path the ConvolutionCardEditor
+	// import button takes - scans to a single-item manifest rooted at the
+	// file itself (no .txt recursion), keeping the source folder name as a
+	// subdirectory so the copy lands at config/<folder>/<file>.
+	QString convConfigDest = tempDir.path() + "/conv-configdir";
+	EqAPO::Import::ImportManifest single = EqAPO::Import::ConfigDependencyScanner::scan(
+		surroundDir + "/ir.wav", convConfigDest);
+	expectFalse(single.hasErrors, "single wav scan should not flag errors");
+	requireEqual(int(single.items.size()), 1, "single wav scan yields exactly one item");
+	expectEqual(single.items[0].kind, "Root", "single wav item is the root");
+	expectEqual(single.items[0].destRelative, "Surround/ir.wav", "single wav keeps its source folder");
+	expectEqual(single.rootDest, "Surround/ir.wav", "single wav rootDest mirrors the item");
 
-		EqAPO::Import::ExecutionResult singleExec = EqAPO::Import::ImportExecutor::execute(single, convConfigDest);
-		expectTrue(singleExec.success, "single wav import should succeed");
-		expectEqual(singleExec.filesCopied, 1, "single wav import copies exactly one file");
-		expectTrue(QFile::exists(convConfigDest + "/Surround/ir.wav"), "ir.wav missing after single-file import");
-	}
+	EqAPO::Import::ExecutionResult singleExec = EqAPO::Import::ImportExecutor::execute(single, convConfigDest);
+	expectTrue(singleExec.success, "single wav import should succeed");
+	expectEqual(singleExec.filesCopied, 1, "single wav import copies exactly one file");
+	expectTrue(QFile::exists(convConfigDest + "/Surround/ir.wav"), "ir.wav missing after single-file import");
+}
 
-	{
-		// ChannelSelectionModel serialization identity: for equivalent
-		// selections the in-place chip editor must write the same bytes the
-		// legacy multi-select dialog produced (standard positions in the
-		// dialog's checkbox order, then non-standard device channels, then
-		// custom names).
-		const std::vector<std::wstring> stereo = { L"L", L"R" };
-		const std::vector<std::wstring> surround51 = { L"L", L"R", L"C", L"LFE", L"RL", L"RR" };
-		const std::vector<std::wstring> surround71 = { L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR" };
+void testChannelSelectionModel()
+{
+	// ChannelSelectionModel serialization identity: for equivalent
+	// selections the in-place chip editor must write the same bytes the
+	// legacy multi-select dialog produced (standard positions in the
+	// dialog's checkbox order, then non-standard device channels, then
+	// custom names).
+	const std::vector<std::wstring> stereo = { L"L", L"R" };
+	const std::vector<std::wstring> surround51 = { L"L", L"R", L"C", L"LFE", L"RL", L"RR" };
+	const std::vector<std::wstring> surround71 = { L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR" };
 
-		ChannelSelectionModel model;
-		model.load("L R C", surround51);
-		expectEqual(model.serialize(), "C L R", "5.1 selection must serialize in dialog order");
+	ChannelSelectionModel model;
+	model.load("L R C", surround51);
+	expectEqual(model.serialize(), "C L R", "5.1 selection must serialize in dialog order");
 
-		model.load("R L", stereo);
-		expectEqual(model.serialize(), "L R", "written order canonicalizes like the dialog");
+	model.load("R L", stereo);
+	expectEqual(model.serialize(), "L R", "written order canonicalizes like the dialog");
 
-		// Position numbers resolve against the device order (engine
-		// semantics, ChannelHelper::getChannelIndex), and are written back
-		// as names like the dialog did.
-		model.load("2", stereo);
-		expectEqual(model.serialize(), "R", "numeric selector resolves in device order");
+	// Position numbers resolve against the device order (engine
+	// semantics, ChannelHelper::getChannelIndex), and are written back
+	// as names like the dialog did.
+	model.load("2", stereo);
+	expectEqual(model.serialize(), "R", "numeric selector resolves in device order");
 
-		// Historical aliases follow the engine: SUB -> LFE, SL <-> RL.
-		model.load("SUB", surround51);
-		expectEqual(model.serialize(), "LFE", "SUB alias selects the LFE chip");
-		model.load("SL", surround51);
-		expectEqual(model.serialize(), "RL", "SL on a back-channel device selects RL");
+	// Historical aliases follow the engine: SUB -> LFE, SL <-> RL.
+	model.load("SUB", surround51);
+	expectEqual(model.serialize(), "LFE", "SUB alias selects the LFE chip");
+	model.load("SL", surround51);
+	expectEqual(model.serialize(), "RL", "SL on a back-channel device selects RL");
 
-		model.load("SR SL LFE", surround71);
-		expectEqual(model.serialize(), "SL SR LFE", "7.1 selection serializes in dialog order");
+	model.load("SR SL LFE", surround71);
+	expectEqual(model.serialize(), "SL SR LFE", "7.1 selection serializes in dialog order");
 
-		// ALL wins over individual selections, exactly like the dialog.
-		model.load("ALL L", surround51);
-		expectTrue(model.allSelected(), "ALL token sets the all-channels state");
-		expectEqual(model.serialize(), "ALL", "ALL serializes alone");
+	// ALL wins over individual selections, exactly like the dialog.
+	model.load("ALL L", surround51);
+	expectTrue(model.allSelected(), "ALL token sets the all-channels state");
+	expectEqual(model.serialize(), "ALL", "ALL serializes alone");
 
-		// Custom/virtual channels keep their written order after the device
-		// chips, matching the dialog's list section.
-		model.load("VSL L VSR", stereo);
-		expectEqual(model.serialize(), "L VSL VSR", "custom names follow device channels");
-		model.toggle("R");
-		expectEqual(model.serialize(), "L R VSL VSR", "toggling keeps canonical order");
-		model.toggle("L");
-		expectEqual(model.serialize(), "R VSL VSR", "deselecting removes the token");
+	// Custom/virtual channels keep their written order after the device
+	// chips, matching the dialog's list section.
+	model.load("VSL L VSR", stereo);
+	expectEqual(model.serialize(), "L VSL VSR", "custom names follow device channels");
+	model.toggle("R");
+	expectEqual(model.serialize(), "L R VSL VSR", "toggling keeps canonical order");
+	model.toggle("L");
+	expectEqual(model.serialize(), "R VSL VSR", "deselecting removes the token");
 
-		expectFalse(model.addCustom("  "), "blank custom name is rejected");
-		expectFalse(model.addCustom("A B"), "multi-token custom name is rejected");
-		expectTrue(model.addCustom(" vrr "), "custom name is trimmed and accepted");
-		expectEqual(model.serialize(), "R VSL VSR VRR", "added custom name serializes upper-cased");
+	expectFalse(model.addCustom("  "), "blank custom name is rejected");
+	expectFalse(model.addCustom("A B"), "multi-token custom name is rejected");
+	expectTrue(model.addCustom(" vrr "), "custom name is trimmed and accepted");
+	expectEqual(model.serialize(), "R VSL VSR VRR", "added custom name serializes upper-cased");
 
-		// addCustom resolves aliases against the device set too: SUB selects
-		// the LFE chip instead of duplicating it as a custom name.
-		model.load("", surround51);
-		expectTrue(model.addCustom("sub"), "SUB through addCustom is accepted");
-		expectEqual(model.serialize(), "LFE", "SUB resolves to the device's LFE chip");
-	}
+	// addCustom resolves aliases against the device set too: SUB selects
+	// the LFE chip instead of duplicating it as a custom name.
+	model.load("", surround51);
+	expectTrue(model.addCustom("sub"), "SUB through addCustom is accepted");
+	expectEqual(model.serialize(), "LFE", "SUB resolves to the device's LFE chip");
+}
 
-	{
-		// DeviceSelectionModel serialization identity: for equivalent device
-		// selections the in-place chip editor must write the same bytes the
-		// legacy change-button dialog produced - "all", or each selected
-		// device's device string joined with "; " in list order (output
-		// devices first, then input). Matching runs through the shared
-		// DeviceCommand codec, the same one the engine uses, so a chip is
-		// pre-selected exactly when the engine would match that device.
-		auto dev = [](const QString& deviceString, const QString& name, bool installed, bool isInput) {
-			DeviceEntry e;
-			e.deviceString = deviceString;
-			e.name = name;
-			e.installed = installed;
-			e.isInput = isInput;
-			return e;
-		};
-		const QString devSpeakers = "Speakers Realtek HD Audio {0.0.0.00000000}.{aaaaaaaa-1111-2222-3333-444444444444}";
-		const QString devHeadphones = "Headphones Realtek HD Audio {0.0.0.00000000}.{bbbbbbbb-1111-2222-3333-444444444444}";
-		const QString devDigital = "Digital Output Realtek HD Audio {0.0.0.00000000}.{cccccccc-1111-2222-3333-444444444444}";
-		const QString devMic = "Microphone Realtek HD Audio {0.0.1.00000000}.{dddddddd-1111-2222-3333-444444444444}";
-		const QList<DeviceEntry> devices = {
-			dev(devSpeakers, "Speakers", true, false),
-			dev(devHeadphones, "Headphones", true, false),
-			dev(devDigital, "Digital Output", false, false),
-			dev(devMic, "Microphone", true, true),
-		};
+void testDeviceSelectionModel()
+{
+	// DeviceSelectionModel serialization identity: for equivalent device
+	// selections the in-place chip editor must write the same bytes the
+	// legacy change-button dialog produced - "all", or each selected
+	// device's device string joined with "; " in list order (output
+	// devices first, then input). Matching runs through the shared
+	// DeviceCommand codec, the same one the engine uses, so a chip is
+	// pre-selected exactly when the engine would match that device.
+	auto dev = [](const QString& deviceString, const QString& name, bool installed, bool isInput) {
+		DeviceEntry e;
+		e.deviceString = deviceString;
+		e.name = name;
+		e.installed = installed;
+		e.isInput = isInput;
+		return e;
+	};
+	const QString devSpeakers = "Speakers Realtek HD Audio {0.0.0.00000000}.{aaaaaaaa-1111-2222-3333-444444444444}";
+	const QString devHeadphones = "Headphones Realtek HD Audio {0.0.0.00000000}.{bbbbbbbb-1111-2222-3333-444444444444}";
+	const QString devDigital = "Digital Output Realtek HD Audio {0.0.0.00000000}.{cccccccc-1111-2222-3333-444444444444}";
+	const QString devMic = "Microphone Realtek HD Audio {0.0.1.00000000}.{dddddddd-1111-2222-3333-444444444444}";
+	const QList<DeviceEntry> devices = {
+		dev(devSpeakers, "Speakers", true, false),
+		dev(devHeadphones, "Headphones", true, false),
+		dev(devDigital, "Digital Output", false, false),
+		dev(devMic, "Microphone", true, true),
+	};
 
-		DeviceSelectionModel model;
+	DeviceSelectionModel model;
 
-		// The literal lowercase "all" line is the all-devices state, like the
-		// dialog's "All devices" choice: it round-trips to "all" and marks no
-		// individual chip selected.
-		model.load("all", devices);
-		expectTrue(model.allSelected(), "literal 'all' sets the all-devices state");
-		expectEqual(model.serialize(), "all", "all-devices serializes back as 'all'");
+	// The literal lowercase "all" line is the all-devices state, like the
+	// dialog's "All devices" choice: it round-trips to "all" and marks no
+	// individual chip selected.
+	model.load("all", devices);
+	expectTrue(model.allSelected(), "literal 'all' sets the all-devices state");
+	expectEqual(model.serialize(), "all", "all-devices serializes back as 'all'");
 
-		// An empty parameter is not the all state and selects nothing.
-		model.load("", devices);
-		expectFalse(model.allSelected(), "empty parameter is not the all state");
-		expectEqual(model.serialize(), "", "no selection serializes empty");
+	// An empty parameter is not the all state and selects nothing.
+	model.load("", devices);
+	expectFalse(model.allSelected(), "empty parameter is not the all state");
+	expectEqual(model.serialize(), "", "no selection serializes empty");
 
-		// A full device-string pattern pre-selects exactly that endpoint and
-		// round-trips byte-for-byte, GUID included.
-		model.load(devSpeakers, devices);
-		expectFalse(model.allSelected(), "a specific device is not the all state");
-		expectEqual(model.serialize(), devSpeakers, "single device round-trips verbatim");
+	// A full device-string pattern pre-selects exactly that endpoint and
+	// round-trips byte-for-byte, GUID included.
+	model.load(devSpeakers, devices);
+	expectFalse(model.allSelected(), "a specific device is not the all state");
+	expectEqual(model.serialize(), devSpeakers, "single device round-trips verbatim");
 
-		// A bare word matches as a case-insensitive substring (DeviceCommand
-		// semantics) and is rewritten to the matched device's full string.
-		model.load("headphones", devices);
-		expectEqual(model.serialize(), devHeadphones, "word pattern selects and canonicalizes to the device string");
+	// A bare word matches as a case-insensitive substring (DeviceCommand
+	// semantics) and is rewritten to the matched device's full string.
+	model.load("headphones", devices);
+	expectEqual(model.serialize(), devHeadphones, "word pattern selects and canonicalizes to the device string");
 
-		// Multiple patterns, written input-first, serialize in list order
-		// (output devices first, then input) joined with "; ".
-		model.load(devMic + "; " + devSpeakers, devices);
-		expectEqual(model.serialize(), devSpeakers + "; " + devMic, "multiple devices serialize in list order");
+	// Multiple patterns, written input-first, serialize in list order
+	// (output devices first, then input) joined with "; ".
+	model.load(devMic + "; " + devSpeakers, devices);
+	expectEqual(model.serialize(), devSpeakers + "; " + devMic, "multiple devices serialize in list order");
 
-		// toggle() flips one chip and keeps canonical list order.
-		model.load(devSpeakers, devices);
-		model.toggle(devHeadphones);
-		expectEqual(model.serialize(), devSpeakers + "; " + devHeadphones, "toggling on adds a chip in list order");
-		model.toggle(devSpeakers);
-		expectEqual(model.serialize(), devHeadphones, "toggling off removes the token");
+	// toggle() flips one chip and keeps canonical list order.
+	model.load(devSpeakers, devices);
+	model.toggle(devHeadphones);
+	expectEqual(model.serialize(), devSpeakers + "; " + devHeadphones, "toggling on adds a chip in list order");
+	model.toggle(devSpeakers);
+	expectEqual(model.serialize(), devHeadphones, "toggling off removes the token");
 
-		// "All devices" wins over individual selections, like the dialog.
-		model.load(devSpeakers, devices);
-		model.setAllSelected(true);
-		expectEqual(model.serialize(), "all", "All overrides individual selections");
-	}
+	// "All devices" wins over individual selections, like the dialog.
+	model.load(devSpeakers, devices);
+	model.setAllSelected(true);
+	expectEqual(model.serialize(), "all", "All overrides individual selections");
+}
 
-	{
-		// MultiConvolutionRoutingAdapter: mappings <-> the routing views'
-		// Assignment type must round-trip, because the card serializes the
-		// edited view back into the config line. IR channels ride as decimal
-		// summand channels at unity factor.
-		using Mapping = MultiConvolutionCommand::Mapping;
+void testMultiConvolutionRoutingAdapter()
+{
+	// MultiConvolutionRoutingAdapter: mappings <-> the routing views'
+	// Assignment type must round-trip, because the card serializes the
+	// edited view back into the config line. IR channels ride as decimal
+	// summand channels at unity factor.
+	using Mapping = MultiConvolutionCommand::Mapping;
 
-		const std::vector<Mapping> brir = {{L"L", {0, 1}}, {L"R", {2, 3}}};
-		std::vector<Assignment> assignments = MultiConvolutionRoutingAdapter::toAssignments(brir, 4);
-		expectEqual((int)assignments.size(), 2, "two mappings become two assignments");
-		expectTrue(assignments.size() == 2
-			&& assignments[0].targetChannel == L"L" && assignments[0].sourceSum.size() == 2
-			&& assignments[0].sourceSum[0].channel == L"0" && assignments[0].sourceSum[1].channel == L"1"
-			&& assignments[0].sourceSum[0].factor == 1.0 && !assignments[0].sourceSum[0].isDecibel,
-			"IR channels become decimal summands at unity factor");
+	const std::vector<Mapping> brir = {{L"L", {0, 1}}, {L"R", {2, 3}}};
+	std::vector<Assignment> assignments = MultiConvolutionRoutingAdapter::toAssignments(brir, 4);
+	requireEqual((int)assignments.size(), 2, "two mappings become two assignments");
+	expectTrue(assignments.size() == 2
+		&& assignments[0].targetChannel == L"L" && assignments[0].sourceSum.size() == 2
+		&& assignments[0].sourceSum[0].channel == L"0" && assignments[0].sourceSum[1].channel == L"1"
+		&& assignments[0].sourceSum[0].factor == 1.0 && !assignments[0].sourceSum[0].isDecibel,
+		"IR channels become decimal summands at unity factor");
 
-		std::vector<Mapping> roundTrip = MultiConvolutionRoutingAdapter::toMappings(assignments);
-		expectTrue(roundTrip.size() == 2
-			&& roundTrip[0].targetChannel == L"L" && roundTrip[0].irChannels == std::vector<unsigned>({0, 1})
-			&& roundTrip[1].targetChannel == L"R" && roundTrip[1].irChannels == std::vector<unsigned>({2, 3}),
-			"assignments convert back to the same mappings");
+	std::vector<Mapping> roundTrip = MultiConvolutionRoutingAdapter::toMappings(assignments);
+	expectTrue(roundTrip.size() == 2
+		&& roundTrip[0].targetChannel == L"L" && roundTrip[0].irChannels == std::vector<unsigned>({0, 1})
+		&& roundTrip[1].targetChannel == L"R" && roundTrip[1].irChannels == std::vector<unsigned>({2, 3}),
+		"assignments convert back to the same mappings");
 
-		// The simple form expands to every file channel for display, and to
-		// nothing when the channel count is unknown (callers must not offer
-		// editing then).
-		std::vector<Assignment> expanded = MultiConvolutionRoutingAdapter::toAssignments({{L"Wet", {}}}, 3);
-		expectTrue(expanded.size() == 1 && expanded[0].sourceSum.size() == 3
-			&& expanded[0].sourceSum[2].channel == L"2",
-			"the simple form expands to every file channel");
-		std::vector<Assignment> unknown = MultiConvolutionRoutingAdapter::toAssignments({{L"Wet", {}}}, 0);
-		expectTrue(unknown.size() == 1 && unknown[0].sourceSum.empty(),
-			"an unknown channel count expands to nothing");
+	// The simple form expands to every file channel for display, and to
+	// nothing when the channel count is unknown (callers must not offer
+	// editing then).
+	std::vector<Assignment> expanded = MultiConvolutionRoutingAdapter::toAssignments({{L"Wet", {}}}, 3);
+	expectTrue(expanded.size() == 1 && expanded[0].sourceSum.size() == 3
+		&& expanded[0].sourceSum[2].channel == L"2",
+		"the simple form expands to every file channel");
+	std::vector<Assignment> unknown = MultiConvolutionRoutingAdapter::toAssignments({{L"Wet", {}}}, 0);
+	expectTrue(unknown.size() == 1 && unknown[0].sourceSum.empty(),
+		"an unknown channel count expands to nothing");
 
-		// Seeded placeholder rows (empty sums) and non-numeric summands are
-		// dropped on the way back, like Copy's serializer skips empty rows.
-		std::vector<Assignment> edited = assignments;
-		Assignment seeded;
-		seeded.targetChannel = L"C";
-		edited.push_back(seeded);
-		Assignment::Summand bogus;
-		bogus.factor = 1.0;
-		bogus.channel = L"VSL";
-		edited[0].sourceSum.push_back(bogus);
-		std::vector<Mapping> cleaned = MultiConvolutionRoutingAdapter::toMappings(edited);
-		expectTrue(cleaned.size() == 2 && cleaned[0].irChannels == std::vector<unsigned>({0, 1}),
-			"placeholder rows and non-numeric summands are dropped");
+	// Seeded placeholder rows (empty sums) and non-numeric summands are
+	// dropped on the way back, like Copy's serializer skips empty rows.
+	std::vector<Assignment> edited = assignments;
+	Assignment seeded;
+	seeded.targetChannel = L"C";
+	edited.push_back(seeded);
+	Assignment::Summand bogus;
+	bogus.factor = 1.0;
+	bogus.channel = L"VSL";
+	edited[0].sourceSum.push_back(bogus);
+	std::vector<Mapping> cleaned = MultiConvolutionRoutingAdapter::toMappings(edited);
+	expectTrue(cleaned.size() == 2 && cleaned[0].irChannels == std::vector<unsigned>({0, 1}),
+		"placeholder rows and non-numeric summands are dropped");
 
-		// Source ports: "0".."N-1" from the file, then any referenced index
-		// beyond the file so stale connections stay visible and removable.
-		QStringList ports = MultiConvolutionRoutingAdapter::sourcePorts(2, {{L"L", {0, 7}}});
-		expectEqual(ports.join(','), QString("0,1,7"), "ports are the file channels plus stale references");
-		QStringList portsNoFile = MultiConvolutionRoutingAdapter::sourcePorts(0, {{L"L", {2, 1}}});
-		expectEqual(portsNoFile.join(','), QString("1,2"), "without a file only referenced indices appear, sorted");
-	}
+	// Source ports: "0".."N-1" from the file, then any referenced index
+	// beyond the file so stale connections stay visible and removable.
+	QStringList ports = MultiConvolutionRoutingAdapter::sourcePorts(2, {{L"L", {0, 7}}});
+	expectEqual(ports.join(','), QString("0,1,7"), "ports are the file channels plus stale references");
+	QStringList portsNoFile = MultiConvolutionRoutingAdapter::sourcePorts(0, {{L"L", {2, 1}}});
+	expectEqual(portsNoFile.join(','), QString("1,2"), "without a file only referenced indices appear, sorted");
+}
 
-	{
-		// StageSelectionModel serialization identity: known stages come back in
-		// the legacy checkbox GUI's canonical order (pre-mix, post-mix,
-		// capture), case-insensitively parsed through the shared StageCommand
-		// codec; unlike the legacy GUI, tokens outside the vocabulary survive
-		// an edit in their written order.
-		StageSelectionModel model;
+void testStageSelectionModel()
+{
+	// StageSelectionModel serialization identity: known stages come back in
+	// the legacy checkbox GUI's canonical order (pre-mix, post-mix,
+	// capture), case-insensitively parsed through the shared StageCommand
+	// codec; unlike the legacy GUI, tokens outside the vocabulary survive
+	// an edit in their written order.
+	StageSelectionModel model;
 
-		model.load("post-mix pre-mix");
-		expectTrue(model.isSelected("pre-mix") && model.isSelected("post-mix"), "both written stages are selected");
-		expectFalse(model.isSelected("capture"), "capture stays unselected");
-		expectEqual(model.serialize(), "pre-mix post-mix", "known stages serialize in canonical order");
+	model.load("post-mix pre-mix");
+	expectTrue(model.isSelected("pre-mix") && model.isSelected("post-mix"), "both written stages are selected");
+	expectFalse(model.isSelected("capture"), "capture stays unselected");
+	expectEqual(model.serialize(), "pre-mix post-mix", "known stages serialize in canonical order");
 
-		model.load("Pre-Mix CAPTURE");
-		expectEqual(model.serialize(), "pre-mix capture", "selectors are case-insensitive and lower-cased");
+	model.load("Pre-Mix CAPTURE");
+	expectEqual(model.serialize(), "pre-mix capture", "selectors are case-insensitive and lower-cased");
 
-		model.load("pre-mix render foo");
-		expectEqual(model.unknownTokens().join(' '), "render foo", "unknown tokens are reported");
-		expectEqual(model.serialize(), "pre-mix render foo", "unknown tokens survive after the known stages");
-		model.setSelected("pre-mix", false);
-		model.setSelected("capture", true);
-		expectEqual(model.serialize(), "capture render foo", "toggles keep the unknown tokens");
+	model.load("pre-mix render foo");
+	expectEqual(model.unknownTokens().join(' '), "render foo", "unknown tokens are reported");
+	expectEqual(model.serialize(), "pre-mix render foo", "unknown tokens survive after the known stages");
+	model.setSelected("pre-mix", false);
+	model.setSelected("capture", true);
+	expectEqual(model.serialize(), "capture render foo", "toggles keep the unknown tokens");
 
-		model.load("");
-		expectEqual(model.serialize(), "", "an empty selection serializes empty (matches no stage)");
-		model.setSelected("capture", true);
-		expectEqual(model.serialize(), "capture", "a single selection writes just its token");
-	}
+	model.load("");
+	expectEqual(model.serialize(), "", "an empty selection serializes empty (matches no stage)");
+	model.setSelected("capture", true);
+	expectEqual(model.serialize(), "capture", "a single selection writes just its token");
+}
 
-	{
-		// StudioRoutingModel: the Light Trace view's working model must seed
-		// and resolve exactly like the legacy CopyFilterGUIScene (channel rows,
-		// LFE/SUB alias, 1-based numeric positions, the constant input port)
-		// while preserving load order, so an edit-free round trip emits the
-		// assignments in the order they were written.
-		auto formatted = [](const std::vector<Assignment>& list) {
-			QString out;
-			for (const Assignment& a : list)
+void testStudioRoutingModel()
+{
+	// StudioRoutingModel: the Light Trace view's working model must seed
+	// and resolve exactly like the legacy CopyFilterGUIScene (channel rows,
+	// LFE/SUB alias, 1-based numeric positions, the constant input port)
+	// while preserving load order, so an edit-free round trip emits the
+	// assignments in the order they were written.
+	auto formatted = [](const std::vector<Assignment>& list) {
+		QString out;
+		for (const Assignment& a : list)
+		{
+			if (!out.isEmpty())
+				out += ' ';
+			out += QString::fromStdWString(a.targetChannel) + '=';
+			bool first = true;
+			for (const Assignment::Summand& s : a.sourceSum)
 			{
-				if (!out.isEmpty())
-					out += ' ';
-				out += QString::fromStdWString(a.targetChannel) + '=';
-				bool first = true;
-				for (const Assignment::Summand& s : a.sourceSum)
-				{
-					if (!first)
-						out += '+';
-					first = false;
-					out += QString::number(s.factor) + (s.isDecibel ? "db" : "") + '*'
-						+ (s.channel.empty() ? QStringLiteral("<const>") : QString::fromStdWString(s.channel));
-				}
+				if (!first)
+					out += '+';
+				first = false;
+				out += QString::number(s.factor) + (s.isDecibel ? "db" : "") + '*'
+					+ (s.channel.empty() ? QStringLiteral("<const>") : QString::fromStdWString(s.channel));
 			}
-			return out;
-		};
-		auto summand = [](double factor, const wchar_t* channel, bool isDecibel = false) {
-			Assignment::Summand s;
-			s.factor = factor;
-			s.isDecibel = isDecibel;
-			s.channel = channel;
-			return s;
-		};
+		}
+		return out;
+	};
+	auto summand = [](double factor, const wchar_t* channel, bool isDecibel = false) {
+		Assignment::Summand s;
+		s.factor = factor;
+		s.isDecibel = isDecibel;
+		s.channel = channel;
+		return s;
+	};
 
-		const std::vector<std::wstring> surround = { L"L", L"R", L"C", L"LFE" };
-		StudioRoutingModel::PortConfig copyMode;
+	const std::vector<std::wstring> surround = { L"L", L"R", L"C", L"LFE" };
+	StudioRoutingModel::PortConfig copyMode;
 
-		// Written order survives, SUB canonicalizes to the LFE chip, the
-		// unknown target VC becomes a new output chip.
-		std::vector<Assignment> loaded(2);
-		loaded[0].targetChannel = L"VC";
-		loaded[0].sourceSum = { summand(0.5, L"L"), summand(0.5, L"R") };
-		loaded[1].targetChannel = L"C";
-		loaded[1].sourceSum = { summand(1.0, L"SUB") };
+	// Written order survives, SUB canonicalizes to the LFE chip, the
+	// unknown target VC becomes a new output chip.
+	std::vector<Assignment> loaded(2);
+	loaded[0].targetChannel = L"VC";
+	loaded[0].sourceSum = { summand(0.5, L"L"), summand(0.5, L"R") };
+	loaded[1].targetChannel = L"C";
+	loaded[1].sourceSum = { summand(1.0, L"SUB") };
 
-		StudioRoutingModel model;
-		model.load(loaded, surround, copyMode);
-		expectEqual(model.inputPorts().join(','), "L,R,C,LFE,", "inputs are the channels plus the constant port");
-		expectTrue(model.constInput(model.inputPorts().size() - 1), "the last input is the constant port");
-		expectEqual(model.outputPorts().join(','), "L,R,C,LFE,VC", "the unknown target joins the output row");
-		expectEqual(formatted(model.assignments()), "VC=0.5*L+0.5*R C=1*LFE",
-			"round trip keeps written order and canonicalizes SUB to LFE");
+	StudioRoutingModel model;
+	model.load(loaded, surround, copyMode);
+	expectEqual(model.inputPorts().join(','), "L,R,C,LFE,", "inputs are the channels plus the constant port");
+	expectTrue(model.constInput(model.inputPorts().size() - 1), "the last input is the constant port");
+	expectEqual(model.outputPorts().join(','), "L,R,C,LFE,VC", "the unknown target joins the output row");
+	expectEqual(formatted(model.assignments()), "VC=0.5*L+0.5*R C=1*LFE",
+		"round trip keeps written order and canonicalizes SUB to LFE");
 
-		// 1-based numeric positions resolve like the engine.
-		std::vector<Assignment> numeric(1);
-		numeric[0].targetChannel = L"3";
-		numeric[0].sourceSum = { summand(1.0, L"1") };
-		model.load(numeric, { L"L", L"R", L"C" }, copyMode);
-		expectEqual(formatted(model.assignments()), "C=1*L", "numeric positions canonicalize to channel names");
+	// 1-based numeric positions resolve like the engine.
+	std::vector<Assignment> numeric(1);
+	numeric[0].targetChannel = L"3";
+	numeric[0].sourceSum = { summand(1.0, L"1") };
+	model.load(numeric, { L"L", L"R", L"C" }, copyMode);
+	expectEqual(formatted(model.assignments()), "C=1*L", "numeric positions canonicalize to channel names");
 
-		// Edit operations: virtual output, unity trace, factor grammar
-		// (',' reads as '.', "db" suffix any case, empty removes).
-		model.load({}, { L"L", L"R" }, copyMode);
-		expectEqual(formatted(model.assignments()), "", "seeded chips without traces emit nothing");
-		const int vx = model.addOutput("VX");
-		expectTrue(vx >= 0 && model.outputPorts().last() == "VX", "a new output chip is appended");
-		expectEqual(model.addOutput("L"), 0, "an existing name reuses its chip");
-		model.addTrace(0, vx);
-		expectEqual(formatted(model.assignments()), "VX=1*L", "a drag connects at unity gain");
-		model.setFactorText(0, "0,5");
-		expectEqual(formatted(model.assignments()), "VX=0.5*L", "a comma factor reads as a decimal point");
-		model.setFactorText(0, "-6 dB");
-		expectEqual(formatted(model.assignments()), "VX=-6db*L", "a db suffix sets decibel mode");
-		model.setFactorText(0, "garbage");
-		expectEqual(formatted(model.assignments()), "VX=-6db*L", "unparsable text leaves the trace unchanged");
-		model.setFactorText(0, "");
-		expectEqual(formatted(model.assignments()), "", "an empty commit removes the trace");
+	// Edit operations: virtual output, unity trace, factor grammar
+	// (',' reads as '.', "db" suffix any case, empty removes).
+	model.load({}, { L"L", L"R" }, copyMode);
+	expectEqual(formatted(model.assignments()), "", "seeded chips without traces emit nothing");
+	const int vx = model.addOutput("VX");
+	expectTrue(vx >= 0 && model.outputPorts().last() == "VX", "a new output chip is appended");
+	expectEqual(model.addOutput("L"), 0, "an existing name reuses its chip");
+	model.addTrace(0, vx);
+	expectEqual(formatted(model.assignments()), "VX=1*L", "a drag connects at unity gain");
+	model.setFactorText(0, "0,5");
+	expectEqual(formatted(model.assignments()), "VX=0.5*L", "a comma factor reads as a decimal point");
+	model.setFactorText(0, "-6 dB");
+	expectEqual(formatted(model.assignments()), "VX=-6db*L", "a db suffix sets decibel mode");
+	model.setFactorText(0, "garbage");
+	expectEqual(formatted(model.assignments()), "VX=-6db*L", "unparsable text leaves the trace unchanged");
+	model.setFactorText(0, "");
+	expectEqual(formatted(model.assignments()), "", "an empty commit removes the trace");
 
-		// The constant port connects at factor 0.0 with no channel.
-		model.load({}, { L"L", L"R" }, copyMode);
-		model.addTrace(2, 0);
-		expectEqual(formatted(model.assignments()), "L=0*<const>", "the constant port writes a value summand");
+	// The constant port connects at factor 0.0 with no channel.
+	model.load({}, { L"L", L"R" }, copyMode);
+	model.addTrace(2, 0);
+	expectEqual(formatted(model.assignments()), "L=0*<const>", "the constant port writes a value summand");
 
-		// Fixed-source mode (MultiConvolution): the top row is exactly the
-		// given port list, no constant port, factors locked to unity.
-		StudioRoutingModel::PortConfig fixedMode;
-		fixedMode.fixedSources = QStringList() << "0" << "1" << "2" << "3";
-		fixedMode.allowFactors = false;
-		std::vector<Assignment> mapped(1);
-		mapped[0].targetChannel = L"L";
-		mapped[0].sourceSum = { summand(1.0, L"0"), summand(1.0, L"1") };
-		model.load(mapped, { L"L", L"R" }, fixedMode);
-		expectEqual(model.inputPorts().join(','), "0,1,2,3", "fixed sources are the whole top row");
-		expectFalse(model.constInput(model.inputPorts().size() - 1), "no constant port in fixed mode");
-		model.setFactorText(0, "0.5");
-		model.addTrace(2, 1);
-		expectEqual(formatted(model.assignments()), "L=1*0+1*1 R=1*2", "fixed mode keeps every factor at unity");
-	}
+	// Fixed-source mode (MultiConvolution): the top row is exactly the
+	// given port list, no constant port, factors locked to unity.
+	StudioRoutingModel::PortConfig fixedMode;
+	fixedMode.fixedSources = QStringList() << "0" << "1" << "2" << "3";
+	fixedMode.allowFactors = false;
+	std::vector<Assignment> mapped(1);
+	mapped[0].targetChannel = L"L";
+	mapped[0].sourceSum = { summand(1.0, L"0"), summand(1.0, L"1") };
+	model.load(mapped, { L"L", L"R" }, fixedMode);
+	expectEqual(model.inputPorts().join(','), "0,1,2,3", "fixed sources are the whole top row");
+	expectFalse(model.constInput(model.inputPorts().size() - 1), "no constant port in fixed mode");
+	model.setFactorText(0, "0.5");
+	model.addTrace(2, 1);
+	expectEqual(formatted(model.assignments()), "L=1*0+1*1 R=1*2", "fixed mode keeps every factor at unity");
+}
 
-	{
-		// ConfigFileCodec::decodeLines/encodeLines were extracted expressly as
-		// an independently testable seam but had no tests. (audit #146 TD031)
-		QList<QString> mixed = ConfigFileCodec::decodeLines(std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));
-		expectEqual((int)mixed.size(), 3, "decodeLines splits CRLF and LF terminated lines");
-		expectEqual(mixed[0], "Preamp: -6 dB", "decodeLines strips the trailing CR");
-		expectEqual(mixed[2], "last", "decodeLines keeps the final unterminated line");
+void testConfigFileCodec()
+{
+	// ConfigFileCodec::decodeLines/encodeLines were extracted expressly as
+	// an independently testable seam but had no tests. (audit #146 TD031)
+	QList<QString> mixed = ConfigFileCodec::decodeLines(std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));
+	requireEqual((int)mixed.size(), 3, "decodeLines splits CRLF and LF terminated lines");
+	expectEqual(mixed[0], "Preamp: -6 dB", "decodeLines strips the trailing CR");
+	expectEqual(mixed[2], "last", "decodeLines keeps the final unterminated line");
 
-		QList<QString> unicode = ConfigFileCodec::decodeLines(std::string("# caf\xC3\xA9"));
-		expectEqual(unicode[0], QString::fromUtf8("# caf\xC3\xA9"), "decodeLines decodes valid UTF-8");
+	QList<QString> unicode = ConfigFileCodec::decodeLines(std::string("# caf\xC3\xA9"));
+	expectEqual(unicode[0], QString::fromUtf8("# caf\xC3\xA9"), "decodeLines decodes valid UTF-8");
 
-		// 0xE9 alone is invalid UTF-8, so the system-ANSI fallback must engage.
-		// The decoded glyph depends on the machine's CP_ACP (e.g. CP1252 vs
-		// CP949), so only the line structure is asserted, not the character.
-		QList<QString> fallback = ConfigFileCodec::decodeLines(std::string("caf\xE9\r\nnext"));
-		expectEqual((int)fallback.size(), 2, "ANSI fallback still yields one entry per line");
-		expectEqual(fallback[1], "next", "ANSI fallback preserves the following line");
+	// 0xE9 alone is invalid UTF-8, so the system-ANSI fallback must engage.
+	// The decoded glyph depends on the machine's CP_ACP (e.g. CP1252 vs
+	// CP949), so only the line structure is asserted, not the character.
+	QList<QString> fallback = ConfigFileCodec::decodeLines(std::string("caf\xE9\r\nnext"));
+	requireEqual((int)fallback.size(), 2, "ANSI fallback still yields one entry per line");
+	expectEqual(fallback[1], "next", "ANSI fallback preserves the following line");
 
-		QByteArray encoded = ConfigFileCodec::encodeLines(QList<QString>() << "a" << QString::fromUtf8("caf\xC3\xA9"));
-		expectEqual(QString::fromUtf8(encoded), QString::fromUtf8("a\r\ncaf\xC3\xA9"), "encodeLines joins with CRLF, UTF-8, no trailing newline");
+	QByteArray encoded = ConfigFileCodec::encodeLines(QList<QString>() << "a" << QString::fromUtf8("caf\xC3\xA9"));
+	expectEqual(QString::fromUtf8(encoded), QString::fromUtf8("a\r\ncaf\xC3\xA9"), "encodeLines joins with CRLF, UTF-8, no trailing newline");
 
-		QList<QString> roundTrip = ConfigFileCodec::decodeLines(std::string(encoded.constData(), (size_t)encoded.size()));
-		expectEqual((int)roundTrip.size(), 2, "encodeLines output decodes back to the same line count");
-		expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
-	}
+	QList<QString> roundTrip = ConfigFileCodec::decodeLines(std::string(encoded.constData(), (size_t)encoded.size()));
+	requireEqual((int)roundTrip.size(), 2, "encodeLines output decodes back to the same line count");
+	expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
+}
+}
+
+int main(int argc, char** argv)
+{
+	QCoreApplication app(argc, argv);
+
+	testConvolutionPathHelper();
+	testUpdateInfoFormatter();
+	testVelopackUpdateInfo();
+	testVelopackGitHubRelease();
+	testVelopackFeeds();
+	testFilterCardDescriptors();
+	testFilterCardDepths();
+	testConfigImport();
+	testChannelSelectionModel();
+	testDeviceSelectionModel();
+	testMultiConvolutionRoutingAdapter();
+	testStageSelectionModel();
+	testStudioRoutingModel();
+	testConfigFileCodec();
+	testFilterListModel();
+
+	testFilterListModel();
 
 	harness.report();
 	return 0;
