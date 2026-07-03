@@ -53,7 +53,8 @@ RESOURCES += \
 
 TRANSLATIONS += \
 	translations/UpdateChecker_de.ts \
-	translations/UpdateChecker_fr.ts \n	translations/UpdateChecker_ko.ts \
+	translations/UpdateChecker_fr.ts \
+	translations/UpdateChecker_ko.ts \
 	translations/UpdateChecker_zh_CN.ts
 
 # Include parent directory for shared headers

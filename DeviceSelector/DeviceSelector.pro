@@ -50,7 +50,8 @@ RESOURCES += \
 TRANSLATIONS += \
 	translations/DeviceSelector_de.ts \
 	translations/DeviceSelector_en.ts \
-	translations/DeviceSelector_fr.ts \n	translations/DeviceSelector_ko.ts \
+	translations/DeviceSelector_fr.ts \
+	translations/DeviceSelector_ko.ts \
 	translations/DeviceSelector_zh_CN.ts
 
 # Include parent directory for shared headers
