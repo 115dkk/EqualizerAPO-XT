@@ -29,6 +29,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 - 스킨 갤러리의 심사 세트가 580장으로 늘었습니다. Channel·주석·Stage와 값
   있는 Copy 장면이 모든 스킨의 두 모드에서 렌더됩니다. ([#141])
 
+## v2.7.1 (2026-07-03)
+
+- Signal Matrix 필터 픽커가 마우스 아래의 항목·카테고리를 하이라이트하지
+  않던 문제를 고쳤습니다. 호버 예고광이 보드 위에서 약 3.5% 밝기 차로
+  그려져 눈으로는 구분할 수 없었고, 그래서 이 스킨의 픽커만 커서를
+  무시하는 것처럼 보였습니다. 이제 예고광은 한눈에 주소 지정된 셀로
+  읽히고, 체결(채움 + 액센트 룰·밴드·패치 트레이스)은 그보다 확실히
+  위에 있습니다. ([#142])
+
 ## v2.7.0 (2026-07-03)
 
 - MultiConvolution이 Channel 명령에서 독립했습니다. 새 매핑 문법
@@ -641,3 +650,5 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
 [#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139
 [#141]: https://github.com/115dkk/EqualizerAPO-XT/pull/141
+
+[#142]: https://github.com/115dkk/EqualizerAPO-XT/pull/142

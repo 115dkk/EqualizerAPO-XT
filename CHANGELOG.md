@@ -38,6 +38,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   and a populated Copy scene now render for every skin in both modes.
   ([#141])
 
+## v2.7.1 — 2026-07-03
+
+- Fixed the Signal Matrix filter picker not highlighting the entry or
+  category under the mouse. The hover pre-light was painted at roughly 3.5%
+  brightness over the board - below what an eye can see - so only this
+  skin's picker appeared to ignore the cursor. The pre-light now reads as
+  an addressed cell at a glance while engagement (fill plus accent rule,
+  band and patch trace) stays clearly above it. ([#142])
+
 ## v2.7.0 — 2026-07-03
 
 - MultiConvolution no longer depends on the Channel command. The new mapping
@@ -698,3 +707,5 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
 [#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139
 [#141]: https://github.com/115dkk/EqualizerAPO-XT/pull/141
+
+[#142]: https://github.com/115dkk/EqualizerAPO-XT/pull/142
