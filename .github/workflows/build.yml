@@ -70,12 +70,8 @@ jobs:
       run: |
         $ErrorActionPreference = "Stop"
 
-        function Get-VersionPart {
-          param([string]$Name)
-          $line = Select-String -Path version.h -Pattern "^\s*#define\s+$Name\s+(\d+)" | Select-Object -First 1
-          if (-not $line) { throw "Could not find version part: $Name" }
-          return $line.Matches[0].Groups[1].Value
-        }
+        # Canonical version.h reader, shared with the create-release job.
+        . .\.github\scripts\Get-VersionPart.ps1
 
         git diff --quiet -- version.h
         $diffExit = $LASTEXITCODE
@@ -117,6 +113,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.gen.outputs.matrix }}
+      # JSON array of the x64 variants hosted runners can execute at runtime
+      # (Platform x64 + RunnerCanExecute in the manifest). Consumed by the
+      # cross-variant-compare job so its gating list cannot drift from the
+      # manifest.
+      runner_executable_variants: ${{ steps.gen.outputs.runner_executable_variants }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
@@ -280,39 +281,9 @@ jobs:
       run: |
         $ErrorActionPreference = "Stop"
 
-        function Import-VsDevEnvironment {
-          param([string]$Arch)
-
-          $vswherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-          if (-not (Test-Path $vswherePath)) {
-            throw "vswhere.exe not found at $vswherePath"
-          }
-
-          $vsInstallPath = & $vswherePath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
-          if (-not $vsInstallPath) {
-            $vsInstallPath = & $vswherePath -products * -requires Microsoft.Component.MSBuild -property installationPath -latest
-          }
-          if (-not $vsInstallPath) {
-            throw "Visual Studio installation not found"
-          }
-
-          $devCmdPath = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
-          if (-not (Test-Path $devCmdPath)) {
-            throw "VsDevCmd.bat not found at $devCmdPath"
-          }
-
-          Write-Host "Configuring MSVC environment for $Arch"
-          $environment = cmd /c "`"$devCmdPath`" -arch=$Arch -no_logo >nul && set"
-          if ($LASTEXITCODE -ne 0) {
-            throw "VsDevCmd.bat failed for architecture $Arch"
-          }
-
-          foreach ($line in $environment) {
-            if ($line -match "^(.*?)=(.*)$") {
-              Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
-            }
-          }
-        }
+        # Canonical vswhere/VsDevCmd import, shared with the Qt build step below
+        # and setup-build.ps1.
+        . .\.github\scripts\Import-VsDevEnvironment.ps1
 
         function Copy-RequiredFile {
           param(
@@ -825,45 +796,9 @@ jobs:
     - name: Build Qt Applications
       shell: pwsh
       run: |
-        function Import-VsDevEnvironment {
-          param([string]$Arch)
-
-          $vswherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-          if (-not (Test-Path $vswherePath)) {
-            Write-Error "vswhere.exe not found at $vswherePath"
-            exit 1
-          }
-
-          $vsInstallPath = & $vswherePath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
-          if (-not $vsInstallPath) {
-            $vsInstallPath = & $vswherePath -products * -requires Microsoft.Component.MSBuild -property installationPath -latest
-          }
-          if (-not $vsInstallPath) {
-            Write-Error "Visual Studio installation not found"
-            exit 1
-          }
-
-          $devCmdPath = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
-          if (-not (Test-Path $devCmdPath)) {
-            Write-Error "VsDevCmd.bat not found at $devCmdPath"
-            exit 1
-          }
-
-          Write-Host "Configuring MSVC environment for $Arch"
-          $environment = cmd /c "`"$devCmdPath`" -arch=$Arch -no_logo >nul && set"
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "VsDevCmd.bat failed for architecture $Arch"
-            exit $LASTEXITCODE
-          }
-
-          foreach ($line in $environment) {
-            if ($line -match "^(.*?)=(.*)$") {
-              Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
-            }
-          }
-
-          Write-Host "Configured MSVC target: $env:VSCMD_ARG_TGT_ARCH"
-        }
+        # Canonical vswhere/VsDevCmd import, shared with the vcpkg dependency
+        # build step above and setup-build.ps1.
+        . .\.github\scripts\Import-VsDevEnvironment.ps1
 
         Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
 
@@ -1340,7 +1275,7 @@ jobs:
         retention-days: 30
 
   cross-variant-compare:
-    needs: build
+    needs: [build, prepare-matrix]
     runs-on: ubuntu-latest
     # The PR pipeline only builds AVX2, so there is nothing to compare
     # across variants. The always() guard matters on workflow_dispatch runs:
@@ -1363,6 +1298,11 @@ jobs:
       run: python3 -m pip install --quiet numpy
 
     - name: Compare SIMD variants
+      env:
+        # Gating variant list derived from .github/simd-variants.psd1 by
+        # New-BuildMatrix.ps1; the script falls back to its hard-coded list
+        # (with a warning) only when this variable is absent.
+        RUNNER_EXECUTABLE_VARIANTS: ${{ needs.prepare-matrix.outputs.runner_executable_variants }}
       run: python3 Tests/AudioRegressionTests/scripts/cross_variant_compare.py
 
   create-release:
@@ -1398,15 +1338,8 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        function Get-VersionPart {
-          param([string]$Name)
-
-          $line = Select-String -Path version.h -Pattern "^\s*#define\s+$Name\s+(\d+)" | Select-Object -First 1
-          if (-not $line) {
-            throw "Could not find version part: $Name"
-          }
-          return $line.Matches[0].Groups[1].Value
-        }
+        # Canonical version.h reader, shared with the version-bump job.
+        . .\.github\scripts\Get-VersionPart.ps1
 
         $major = Get-VersionPart "MAJOR"
         $minor = Get-VersionPart "MINOR"

@@ -22,10 +22,8 @@
 
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
-#include "parser/RegexFunctions.h"
+#include "parser/ParserExtensions.h"
 #include "parser/RegistryFunctions.h"
-#include "parser/StringOperators.h"
-#include "parser/LogicalOperators.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "ExpressionCommand.h"
@@ -46,12 +44,10 @@ void ExpressionFilterFactory::initialize(FilterEngine* engine)
 
 	parser->DefineFun(new ReadRegStringFunction(engine));
 	parser->DefineFun(new ReadRegDWORDFunction(engine));
-	parser->DefineFun(new RegexSearchFunction());
-	parser->DefineFun(new RegexReplaceFunction());
 
-	parser->RemoveOprt(L"+");
-	parser->DefineOprt(new AddOperator());
-	parser->DefineInfixOprt(new NotOperator());
+	// Engine-free extensions (regex functions, '+', '!') live in one shared
+	// roster so the parser tests register exactly the same set. (audit #146 TD021)
+	registerEngineFreeParserExtensions(*parser);
 }
 
 vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)

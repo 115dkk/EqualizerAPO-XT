@@ -14,6 +14,7 @@
 #include <QTemporaryDir>
 #include <QTextStream>
 
+#include "Editor/ConfigFileCodec.h"
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportExecutor.h"
@@ -710,6 +711,32 @@ int main(int argc, char** argv)
 		model.setFactorText(0, "0.5");
 		model.addTrace(2, 1);
 		expectEqual(formatted(model.assignments()), "L=1*0+1*1 R=1*2", "fixed mode keeps every factor at unity");
+	}
+
+	{
+		// ConfigFileCodec::decodeLines/encodeLines were extracted expressly as
+		// an independently testable seam but had no tests. (audit #146 TD031)
+		QList<QString> mixed = ConfigFileCodec::decodeLines(std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));
+		expectEqual((int)mixed.size(), 3, "decodeLines splits CRLF and LF terminated lines");
+		expectEqual(mixed[0], "Preamp: -6 dB", "decodeLines strips the trailing CR");
+		expectEqual(mixed[2], "last", "decodeLines keeps the final unterminated line");
+
+		QList<QString> unicode = ConfigFileCodec::decodeLines(std::string("# caf\xC3\xA9"));
+		expectEqual(unicode[0], QString::fromUtf8("# caf\xC3\xA9"), "decodeLines decodes valid UTF-8");
+
+		// 0xE9 alone is invalid UTF-8, so the system-ANSI fallback must engage.
+		// The decoded glyph depends on the machine's CP_ACP (e.g. CP1252 vs
+		// CP949), so only the line structure is asserted, not the character.
+		QList<QString> fallback = ConfigFileCodec::decodeLines(std::string("caf\xE9\r\nnext"));
+		expectEqual((int)fallback.size(), 2, "ANSI fallback still yields one entry per line");
+		expectEqual(fallback[1], "next", "ANSI fallback preserves the following line");
+
+		QByteArray encoded = ConfigFileCodec::encodeLines(QList<QString>() << "a" << QString::fromUtf8("caf\xC3\xA9"));
+		expectEqual(QString::fromUtf8(encoded), QString::fromUtf8("a\r\ncaf\xC3\xA9"), "encodeLines joins with CRLF, UTF-8, no trailing newline");
+
+		QList<QString> roundTrip = ConfigFileCodec::decodeLines(std::string(encoded.constData(), (size_t)encoded.size()));
+		expectEqual((int)roundTrip.size(), 2, "encodeLines output decodes back to the same line count");
+		expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
 	}
 
 	harness.report();
