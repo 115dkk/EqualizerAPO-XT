@@ -35,7 +35,6 @@
 #include "Editor/widgets/EqGraphView.h"
 #include "helpers/RegistryHelper.h"
 
-#define EDITOR_REGPATH USER_REGPATH L"\\Configuration Editor"
 #define EDITOR_PER_FILE_REGPATH EDITOR_REGPATH L"\\file-specific"
 
 namespace Ui {

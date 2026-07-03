@@ -86,6 +86,7 @@ SOURCES += main.cpp\
 	guis/IncludeFilterGUI.cpp \
 	guis/IncludeFilterGUIFactory.cpp \
 	helpers/GUIHelper.cpp \
+	helpers/QtAppBootstrap.cpp \
 	widgets/ResizingLineEdit.cpp \
 	widgets/ChannelGraphScene.cpp \
 	widgets/ChannelGraphItem.cpp \
@@ -260,6 +261,7 @@ HEADERS  += \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \
 	helpers/GUIHelper.h \
+	helpers/QtAppBootstrap.h \
 	stable.h \
 	IFilterGUI.h \
 	guis/PreampFilterGUI.h \

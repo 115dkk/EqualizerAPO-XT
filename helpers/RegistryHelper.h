@@ -32,6 +32,10 @@ const GUID EQUALIZERAPO_POST_MIX_GUID = {0xec1cc9ce, 0xfaed, 0x4822, {0x82, 0x8a
 
 #define APP_REGPATH L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO"
 #define USER_REGPATH L"HKEY_CURRENT_USER\\SOFTWARE\\EqualizerAPO"
+// The Editor's preference tree (language, skin, window state). Defined here
+// beside its parent path because the shared Qt app bootstrap reads the
+// language preference for all three Qt apps. (audit #146 TD011)
+#define EDITOR_REGPATH USER_REGPATH L"\\Configuration Editor"
 
 class RegistryHelper
 {

@@ -19,6 +19,7 @@ QMAKE_CXXFLAGS_RELEASE += /O2
 PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
+	../Editor/helpers/QtAppBootstrap.cpp \
 	main.cpp \
 	DeviceSelector.cpp \
 	DeviceTestDialog.cpp \
@@ -29,6 +30,7 @@ SOURCES += \
 	stdafx.cpp
 
 HEADERS += \
+	../Editor/helpers/QtAppBootstrap.h \
 	DeviceSelector.h \
 	DeviceTestDialog.h \
 	DeviceTestThread.h \
@@ -49,6 +51,7 @@ TRANSLATIONS += \
 	translations/DeviceSelector_de.ts \
 	translations/DeviceSelector_en.ts \
 	translations/DeviceSelector_fr.ts \
+	translations/DeviceSelector_ko.ts \
 	translations/DeviceSelector_zh_CN.ts
 
 # Include parent directory for shared headers
