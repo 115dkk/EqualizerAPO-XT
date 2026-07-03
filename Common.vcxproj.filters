@@ -173,6 +173,9 @@
     <ClInclude Include="parser\RegistryFunctions.h">
       <Filter>parser</Filter>
     </ClInclude>
+    <ClInclude Include="parser\ParserExtensions.h">
+      <Filter>parser</Filter>
+    </ClInclude>
     <ClInclude Include="parser\StringOperators.h">
       <Filter>parser</Filter>
     </ClInclude>
@@ -363,6 +366,9 @@
     </ClCompile>
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp">
       <Filter>libHybridConv-0.1.1</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\ParserExtensions.cpp">
+      <Filter>parser</Filter>
     </ClCompile>
     <ClCompile Include="parser\RegexFunctions.cpp">
       <Filter>parser</Filter>
