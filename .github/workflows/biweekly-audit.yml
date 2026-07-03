@@ -286,7 +286,11 @@ jobs:
             --max-turns 100 \
             -p "
           You will perform two analyses in sequence within this
-          single session. Output everything to stdout.
+          single session. Each part writes its deliverable to its own
+          Markdown file in the repository root (do not commit them).
+          Print only a short completion summary to stdout: in this
+          non-interactive session only the final message reaches
+          stdout, so anything not written to a file is lost.
 
           ENVIRONMENT:
           - You are on a Windows runner (the same image CI builds on) with
@@ -317,26 +321,23 @@ jobs:
           PART 1: Architecture Analysis
           Run /improve-codebase-architecture.
           Identify specific consolidation and deepening opportunities.
-          When done, print a Markdown horizontal rule (---) as a
-          separator, then proceed immediately to Part 2.
+          Instead of the skill's HTML report, write the full
+          deliverable as Markdown to ARCHITECTURE_AUDIT.md in the
+          repository root: every candidate with files, problem,
+          solution, benefits, and recommendation strength, plus the
+          closing top recommendation. Do not write to the OS temp
+          directory and do not open a browser. When the file is
+          complete, proceed immediately to Part 2.
 
           PART 2: Tech Debt Audit
           Run /tech-debt-audit.
-          Produce the full TECH_DEBT_AUDIT.md content with severity,
+          Write the deliverable to TECH_DEBT_AUDIT.md in the
+          repository root as the skill specifies, with severity,
           effort estimates, and the required 'looks bad but is
           actually fine' section.
           " > combined-audit-report.md 2>&1
           CLAUDE_EXIT=$?
           set -e
-
-          if [ -f TECH_DEBT_AUDIT.md ]; then
-            {
-              echo ""
-              echo "---"
-              echo ""
-              cat TECH_DEBT_AUDIT.md
-            } >> combined-audit-report.md
-          fi
 
           if [ ! -s combined-audit-report.md ]; then
             echo "Audit produced no output." > combined-audit-report.md
@@ -349,6 +350,18 @@ jobs:
             cat combined-audit-report.md
             exit "$CLAUDE_EXIT"
           fi
+
+          # -p prints only the session's final message, so any part not
+          # written to its own file never reaches the issue (the 2026-07-03
+          # run lost Part 1 this way). Both deliverables are therefore
+          # files, and a missing one is a hard failure, not a quiet gap.
+          for deliverable in ARCHITECTURE_AUDIT.md TECH_DEBT_AUDIT.md; do
+            if [ ! -s "$deliverable" ]; then
+              echo "::error::The audit session did not produce ${deliverable}."
+              cat combined-audit-report.md
+              exit 1
+            fi
+          done
 
       - name: Create GitHub Issue or summary
         env:
@@ -369,8 +382,9 @@ jobs:
             echo "Files readable from this issue:"
             echo "- \`issue-body.md\` - this issue body"
             echo "- \`change-summary.txt\` - comments"
-            echo "- \`combined-audit-report.md\` - comments"
-            echo "- \`TECH_DEBT_AUDIT.md\` - comments"
+            echo "- \`ARCHITECTURE_AUDIT.md\` - comments (Part 1)"
+            echo "- \`TECH_DEBT_AUDIT.md\` - comments (Part 2)"
+            echo "- \`combined-audit-report.md\` - comments (session log)"
           } > issue-body.md
 
           post_file_comments() {
@@ -457,8 +471,9 @@ jobs:
             ISSUE_NUMBER="${ISSUE_URL##*/}"
 
             post_file_comments "$ISSUE_NUMBER" change-summary.txt "Change summary"
-            post_file_comments "$ISSUE_NUMBER" combined-audit-report.md "Combined audit report"
+            post_file_comments "$ISSUE_NUMBER" ARCHITECTURE_AUDIT.md "Architecture audit"
             post_file_comments "$ISSUE_NUMBER" TECH_DEBT_AUDIT.md "Tech debt audit"
+            post_file_comments "$ISSUE_NUMBER" combined-audit-report.md "Audit session log"
           else
             echo "::warning::Could not create a GitHub issue. Writing the audit body to the job summary instead."
             cat "${ISSUE_ERROR}"
@@ -481,6 +496,7 @@ jobs:
           path: |
             combined-audit-report.md
             change-summary.txt
+            ARCHITECTURE_AUDIT.md
             TECH_DEBT_AUDIT.md
             issue-body.md
           retention-days: 90
