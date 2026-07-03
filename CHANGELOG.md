@@ -12,7 +12,7 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
-## Unreleased
+## v2.7.1 — 2026-07-03
 
 - Fixed the Signal Matrix filter picker not highlighting the entry or
   category under the mouse. The hover pre-light was painted at roughly 3.5%
