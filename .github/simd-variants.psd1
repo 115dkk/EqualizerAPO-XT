@@ -44,19 +44,22 @@
 #                 downloaded (x64 sse2 / avx only).
 #     RunnerCanExecute  $true when GitHub-hosted runners can execute this variant's
 #                 binaries at runtime. avx512/avx10_1 stay $false: CI builds and
-#                 ships them but skips their runtime test steps. (The gating list in
-#                 Tests/AudioRegressionTests/scripts/cross_variant_compare.py is
-#                 hardcoded separately and currently matches the executable x64
-#                 variants; it does not read this flag.)
+#                 ships them but skips their runtime test steps. The cross-variant
+#                 audio gating list (x64 variants with this flag) is derived from
+#                 here by New-BuildMatrix.ps1 and handed to
+#                 Tests/AudioRegressionTests/scripts/cross_variant_compare.py via
+#                 the RUNNER_EXECUTABLE_VARIANTS env var in build.yml.
 #     Primary     $true on exactly one variant. The primary variant is the only one
 #                 pull requests build, and it seeds the audio regression reference
 #                 set when Tests/AudioRegressionTests/references is empty.
 #
 #   Shared = pinned tags/versions that are NOT per-variant:
 #     VelopackLibcVersion  velopack/velopack release tag for velopack_libc_<v>.zip.
+#     VelopackLibcSha256   SHA-256 of that zip; bumped together with the version.
 #     Vst3Tag              steinbergmedia/vst3_pluginterfaces git tag/ref.
 #     HighwayTag           google/highway git tag/ref.
 #     TclapTag             TheFireKahuna/tclap git tag/ref.
+#     VcpkgCommit          microsoft/vcpkg commit for the sse2/avx vcpkg builds.
 #
 #   DependencyReleases = supply-chain pins for the prebuilt binary dependencies.
 #     Keyed by GitHub repository. CI and setup-build.ps1 download from
@@ -159,12 +162,19 @@
         # velopack_libc ships as a single cross-platform zip attached to the
         # velopack/velopack release. The asset name is velopack_libc_<version>.zip.
         VelopackLibcVersion = '1.1.1'
+        # SHA-256 of velopack_libc_<VelopackLibcVersion>.zip, verified like the
+        # DependencyReleases assets below. Bump together with VelopackLibcVersion.
+        VelopackLibcSha256  = '7b77d378226e4c5b110565dbe1c718cc91eadbf0c4be8b8e6af9ed8ea6202cb1'
         # steinbergmedia/vst3_pluginterfaces — pinned to the first MIT-licensed tag.
         Vst3Tag             = 'v3.8.0_build_66'
         # google/highway — header-only portable SIMD.
         HighwayTag          = '1.4.0'
         # TheFireKahuna/tclap — header-only CLI parser (tag 1.2.5 = fork HEAD).
         TclapTag            = '1.2.5'
+        # microsoft/vcpkg — commit the sse2/avx dependency builds (FFTW,
+        # libsndfile) check out. Pinned so a moving vcpkg HEAD cannot silently
+        # change the portfiles those builds compile from; bump deliberately.
+        VcpkgCommit         = 'd87340acc46bdeda386037b38aca30136e667e47'
     }
 
     DependencyReleases = @{

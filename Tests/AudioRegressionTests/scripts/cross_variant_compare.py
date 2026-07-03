@@ -6,21 +6,30 @@ Downloaded audio-regression-output-* artifacts each contain the raw
 float-interleaved outputs of every test case for a single SIMD variant
 under <variant>/<case>.raw.
 
-This script compares every pair of variants we list in VARIANTS, case by
-case, and fails (non-zero exit) if any pair drifts beyond TOLERANCE_DB.
+This script compares every pair of gating variants, case by case, and
+fails (non-zero exit) if any pair drifts beyond TOLERANCE_DB.
 We intentionally limit comparisons to variants that GitHub-hosted x64
 runners are guaranteed to execute correctly. ARM64 and AVX-512/AVX10.1
 output is captured for inspection but is not part of the gating diff
 because the hosted runner may not actually execute those code paths.
+
+The gating variant list is derived from .github/simd-variants.psd1 (the
+x64 variants with RunnerCanExecute) by .github/scripts/New-BuildMatrix.ps1
+and passed in through the RUNNER_EXECUTABLE_VARIANTS environment variable
+(a JSON array; see the cross-variant-compare job in build.yml). When the
+variable is absent (e.g. a local run), the script falls back to
+FALLBACK_VARIANTS with a warning.
 """
 
+import json
 import os
 import sys
 
 import numpy as np
 
 ARTIFACT_ROOT = "artifacts"
-VARIANTS = ["sse2", "avx", "avx2"]
+# Fallback only; the authoritative list comes from RUNNER_EXECUTABLE_VARIANTS.
+FALLBACK_VARIANTS = ["sse2", "avx", "avx2"]
 TOLERANCE_DB = -120.0
 CASES = [
     "preamp_minus6",
@@ -50,6 +59,28 @@ def compare(a: np.ndarray, b: np.ndarray):
     return max_err <= tol, max_err, int(diff.argmax()), rmse
 
 
+def resolve_variants() -> list:
+    raw = os.environ.get("RUNNER_EXECUTABLE_VARIANTS", "").strip()
+    if not raw:
+        print(
+            "WARNING: RUNNER_EXECUTABLE_VARIANTS is not set; falling back to the "
+            f"hard-coded variant list {FALLBACK_VARIANTS}. In CI this list is "
+            "derived from .github/simd-variants.psd1 by New-BuildMatrix.ps1."
+        )
+        return FALLBACK_VARIANTS
+    variants = json.loads(raw)
+    if (
+        not isinstance(variants, list)
+        or not variants
+        or not all(isinstance(v, str) and v for v in variants)
+    ):
+        raise ValueError(
+            "RUNNER_EXECUTABLE_VARIANTS must be a non-empty JSON array of "
+            f"variant names, got: {raw!r}"
+        )
+    return variants
+
+
 def variant_dir(variant: str) -> str:
     artifact_dir = os.path.join(ARTIFACT_ROOT, f"audio-regression-output-{variant}")
     candidates = [
@@ -63,11 +94,12 @@ def variant_dir(variant: str) -> str:
 
 
 def main() -> int:
-    pairs = [(VARIANTS[i], VARIANTS[j]) for i in range(len(VARIANTS)) for j in range(i + 1, len(VARIANTS))]
-    print(f"Cross-variant compare: tolerance={TOLERANCE_DB} dBFS, variants={VARIANTS}")
+    variants = resolve_variants()
+    pairs = [(variants[i], variants[j]) for i in range(len(variants)) for j in range(i + 1, len(variants))]
+    print(f"Cross-variant compare: tolerance={TOLERANCE_DB} dBFS, variants={variants}")
 
-    dirs = {v: variant_dir(v) for v in VARIANTS}
-    missing = [v for v in VARIANTS if not os.path.isdir(dirs[v])]
+    dirs = {v: variant_dir(v) for v in variants}
+    missing = [v for v in variants if not os.path.isdir(dirs[v])]
     if missing:
         for variant in missing:
             print(f"ERROR: missing variant output directory for {variant}: {dirs[variant]}")
