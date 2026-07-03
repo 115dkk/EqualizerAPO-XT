@@ -201,24 +201,27 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			p.setPen(QPen(bevelBottom, 1));
 			p.drawLine(cap.left() + 2, cap.bottom() - 1, cap.right() - 2, cap.bottom() - 1);
 
-			if (portModel.allowFactors)
+			// A unity routing carries no legend: the lit latch already says
+			// "passed through as-is", and any printed value on it (x1, 0dB)
+			// invites a volume/mute misreading. The legend appears only when
+			// the coefficient deviates - INV for a plain polarity flip, the
+			// bare coefficient otherwise, dB kept as authored.
+			const bool unity = cell.factor == 1.0 && !cell.isDecibel;
+			if (portModel.allowFactors && !unity)
 			{
-				// The gain is the button legend, lit by the lamp under the cap.
 				QString capText;
 				if (cell.factor == -1.0 && !cell.isDecibel)
 					capText = QStringLiteral("INV");
-				else if (cell.factor == 1.0 && !cell.isDecibel)
-					capText = QStringLiteral("0dB");
 				else
-					capText = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QStringLiteral("x%1").arg(cell.factor);
+					capText = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QString::number(cell.factor);
 				p.setFont(legend);
 				p.setPen(ink);
 				p.drawText(cap, Qt::AlignCenter, capText);
 			}
 			else
 			{
-				// A factor-less patch point (MultiConvolution) is just patched
-				// or not: a blank cap with the lamp window glowing in it.
+				// Unity Copy point, or a factor-less MultiConvolution patch
+				// point: a blank cap with the lamp window glowing in it.
 				p.setBrush(a8(ink, 230));
 				p.setPen(Qt::NoPen);
 				p.drawRoundedRect(QRect(cap.center().x() - 6, cap.center().y() - 2, 12, 4), 2, 2);
