@@ -1,10 +1,15 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Rack skin's Copy renderer: a skeuomorphic hardware patch-bay. The same
-	crosspoint grid as the Signal Matrix, but each crosspoint is a physical
-	rotary knob on a brushed panel - lit when the routing is active, its pointer
-	indicating the gain. Evokes a hardware routing matrix / console.
+	Rack skin's Copy renderer: a hardware ROUTING MATRIX button field. The
+	same crosspoint grid as the Signal Matrix, but each crosspoint is a small
+	square illuminated latching button mounted in a recessed sub-panel - the
+	control real routing matrices use for crosspoints, deliberately NOT a
+	miniature of the filter cards' rotary dials. At rest a crosspoint is a
+	raised blank cap; a routed crosspoint sits latched down with the amber
+	lamp lit under it and the gain engraved on the cap as the button legend
+	(negative gain takes the danger lamp). Same latch-down grammar as the
+	Device/Channel switch caps.
 */
 
 #pragma once

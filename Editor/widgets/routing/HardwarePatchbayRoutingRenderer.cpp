@@ -5,9 +5,7 @@
 #include "HardwarePatchbayRoutingRenderer.h"
 
 #include <QPainter>
-#include <QPainterPath>
 #include <QMouseEvent>
-#include <QtMath>
 
 #include "Editor/SkinManager.h"
 
@@ -84,11 +82,9 @@ static QColor a8(const QColor& c, int a) { QColor r = c; r.setAlpha(a); return r
 void HardwarePatchbayView::paintEvent(QPaintEvent*)
 {
 	const SkinTokens& t = SkinManager::instance()->tokens();
+	const bool dark = SkinManager::instance()->isDark();
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
-
-	const QColor text(t.text), muted(t.mutedText), border(t.border);
-	const QColor accent(t.accent), card(t.card);
 
 	// Brushed metal panel background.
 	QLinearGradient panel(0, 0, 0, height());
@@ -96,8 +92,27 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	panel.setColorAt(1, QColor(t.surface).darker(108));
 	p.fillRect(rect(), panel);
 
+	// The button field: a recessed sub-panel the switch bank is mounted in
+	// (shadowed top edge, lit lower lip - the sheet's recessed grammar, the
+	// capture well's orientation).
+	if (!matrix.outputs.isEmpty() && !matrix.inputs.isEmpty())
+	{
+		const QRect field(rowHeaderWidth - 5, colHeaderHeight - 5,
+			matrix.inputs.size() * cellW + 10, matrix.outputs.size() * cellH + 10);
+		p.setPen(Qt::NoPen);
+		p.setBrush(dark ? QColor(t.surface).darker(122) : QColor(t.surface).darker(106));
+		p.drawRoundedRect(field, 3, 3);
+		p.setPen(QPen(dark ? QColor(0x0C, 0x10, 0x13) : QColor(0xB8, 0xAC, 0x92), 1));
+		p.drawLine(field.left() + 2, field.top(), field.right() - 2, field.top());
+		p.setPen(QPen(dark ? QColor(0x3E, 0x47, 0x4F) : QColor(0xFF, 0xFF, 0xFF), 1));
+		p.drawLine(field.left() + 2, field.bottom(), field.right() - 2, field.bottom());
+	}
+
+	// Engraved header labels: the faceplate's tracked lettering; channel
+	// colour stays the cross-skin data ink.
 	QFont label(t.monoFontFamily);
 	label.setPixelSize(11);
+	label.setLetterSpacing(QFont::AbsoluteSpacing, 1);
 	p.setFont(label);
 
 	// Column (input) engraved labels.
@@ -106,65 +121,107 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		const QString ch = matrix.inputs[c];
 		const QColor col(CopyRoutingAdapter::channelColor(ch));
 		p.setPen(col);
-		p.drawText(QRect(rowHeaderWidth + c * cellW, 0, cellW, colHeaderHeight), Qt::AlignCenter, ch);
+		p.drawText(QRect(rowHeaderWidth + c * cellW, 0, cellW, colHeaderHeight - 5), Qt::AlignCenter, ch);
 	}
+
+	// The button legend is printed type on the cap, not tracked engraving.
+	QFont legend(t.monoFontFamily);
+	legend.setPixelSize(10);
+	legend.setBold(true);
 
 	for (int r = 0; r < matrix.outputs.size(); ++r)
 	{
 		const QString out = matrix.outputs[r];
 		const QColor col(CopyRoutingAdapter::channelColor(out));
+		p.setFont(label);
 		p.setPen(col);
-		p.drawText(QRect(0, colHeaderHeight + r * cellH, rowHeaderWidth - 6, cellH), Qt::AlignVCenter | Qt::AlignRight, out);
+		p.drawText(QRect(0, colHeaderHeight + r * cellH, rowHeaderWidth - 11, cellH), Qt::AlignVCenter | Qt::AlignRight, out);
 
 		for (int c = 0; c < matrix.inputs.size(); ++c)
 		{
 			const QRect cr = cellRect(r, c);
 			const CopyRoutingAdapter::Cell cell = matrix.cell(r, c);
-			const QPointF center = cr.center();
-			const int radius = 15;
 
-			// Knob base.
-			QRadialGradient knob(center, radius);
-			knob.setColorAt(0, QColor(card).lighter(cell.present ? 130 : 105));
-			knob.setColorAt(1, QColor(card).darker(140));
-			p.setBrush(knob);
-			p.setPen(QPen(a8(border, 200), 1));
-			p.drawEllipse(center, radius, radius);
+			// The crosspoint button cap. Colour values mirror the Device
+			// switch bank in rack_dark.qss / rack_light.qss - one machine,
+			// one latch law.
+			const int capW = qMin(cellW - 10, 46);
+			const int capH = 30;
+			QRect cap(cr.center().x() - capW / 2, cr.center().y() - capH / 2, capW, capH);
 
-			if (cell.present)
+			if (!cell.present)
 			{
-				// Lit ring + pointer indicating gain.
-				const QColor lit = cell.factor < 0 ? QColor(t.danger) : accent;
-				p.setPen(QPen(lit, 2));
-				p.setBrush(Qt::NoBrush);
-				p.drawEllipse(center, radius - 2, radius - 2);
+				// At rest: a raised blank cap (lit top bevel), with a small
+				// engraved actuator dimple so the empty position still reads
+				// as a press target.
+				QLinearGradient face(cap.topLeft(), cap.bottomLeft());
+				face.setColorAt(0, dark ? QColor(0x2C, 0x33, 0x3A) : QColor(0xFF, 0xFF, 0xFF));
+				face.setColorAt(1, dark ? QColor(0x1B, 0x21, 0x26) : QColor(0xE6, 0xDE, 0xCC));
+				p.setBrush(face);
+				p.setPen(QPen(dark ? QColor(0x11, 0x16, 0x1A) : QColor(0xAF, 0xA2, 0x88), 1));
+				p.drawRoundedRect(cap, 2, 2);
+				p.setPen(QPen(dark ? QColor(0x3E, 0x47, 0x4F) : QColor(0xFF, 0xFF, 0xFF), 1));
+				p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
+				p.setBrush(dark ? QColor(0x11, 0x16, 0x1A) : QColor(0xB8, 0xAC, 0x92));
+				p.setPen(Qt::NoPen);
+				p.drawEllipse(cap.center() + QPoint(1, 1), 2, 2);
+				continue;
+			}
 
-				// Pointer angle: map factor (-1..+1.5 -> -135..+135 deg).
-				double norm = qBound(-1.0, cell.factor, 1.5) / 1.5;
-				double angle = (-90.0 - norm * 135.0) * M_PI / 180.0;
-				QPointF tip(center.x() + qCos(angle) * (radius - 4), center.y() - qSin(angle) * (radius - 4));
-				p.setPen(QPen(lit, 2));
-				p.drawLine(center, tip);
-
-				// Value caption under the knob. A factor-less patch point
-				// (MultiConvolution) is just patched or not, so no gain caption.
-				if (portModel.allowFactors)
-				{
-					QString cap;
-					if (cell.factor == -1.0 && !cell.isDecibel)
-						cap = QStringLiteral("INV");
-					else if (cell.factor == 1.0 && !cell.isDecibel)
-						cap = QStringLiteral("0dB");
-					else
-						cap = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QStringLiteral("x%1").arg(cell.factor);
-					p.setPen(text);
-					p.drawText(QRect(cr.left(), cr.bottom() - 12, cr.width(), 12), Qt::AlignCenter, cap);
-				}
+			// Routed: the cap sits latched down (shadowed top edge, lit lower
+			// lip, face dropped 1px) with the lamp lit under it - amber for a
+			// routing, the danger lamp for a polarity/negative gain.
+			const bool negative = cell.factor < 0;
+			cap.translate(0, 1);
+			QLinearGradient face(cap.topLeft(), cap.bottomLeft());
+			QColor edge, bevelTop, bevelBottom, ink;
+			if (negative)
+			{
+				face.setColorAt(0, dark ? QColor(0x2A, 0x0E, 0x0C) : QColor(0xE8, 0xA6, 0x9E));
+				face.setColorAt(1, dark ? QColor(0x4A, 0x1D, 0x1C) : QColor(0xF8, 0xD7, 0xD0));
+				edge = QColor(t.danger);
+				bevelTop = dark ? QColor(0x26, 0x08, 0x08) : QColor(0xA3, 0x40, 0x38);
+				bevelBottom = dark ? QColor(0x7A, 0x2E, 0x2A) : QColor(0xFF, 0xE4, 0xDE);
+				ink = dark ? QColor(0xFF, 0xD2, 0xCC) : QColor(0x5C, 0x12, 0x0C);
 			}
 			else
 			{
-				p.setPen(a8(muted, 120));
-				p.drawText(cr, Qt::AlignCenter, QStringLiteral("·"));
+				face.setColorAt(0, dark ? QColor(0x24, 0x1B, 0x0C) : QColor(0xE8, 0xC8, 0x87));
+				face.setColorAt(1, dark ? QColor(0x4A, 0x3A, 0x1C) : QColor(0xFB, 0xE9, 0xC2));
+				edge = QColor(t.accent);
+				bevelTop = dark ? QColor(0x2A, 0x20, 0x08) : QColor(0xB9, 0x8F, 0x3E);
+				bevelBottom = dark ? QColor(0x6E, 0x52, 0x1E) : QColor(0xFF, 0xF3, 0xD8);
+				ink = dark ? QColor(0xFF, 0xE9, 0xC8) : QColor(0x4A, 0x2E, 0x00);
+			}
+			p.setBrush(face);
+			p.setPen(QPen(edge, 1));
+			p.drawRoundedRect(cap, 2, 2);
+			p.setPen(QPen(bevelTop, 1));
+			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
+			p.setPen(QPen(bevelBottom, 1));
+			p.drawLine(cap.left() + 2, cap.bottom() - 1, cap.right() - 2, cap.bottom() - 1);
+
+			if (portModel.allowFactors)
+			{
+				// The gain is the button legend, lit by the lamp under the cap.
+				QString capText;
+				if (cell.factor == -1.0 && !cell.isDecibel)
+					capText = QStringLiteral("INV");
+				else if (cell.factor == 1.0 && !cell.isDecibel)
+					capText = QStringLiteral("0dB");
+				else
+					capText = cell.isDecibel ? QStringLiteral("%1dB").arg(cell.factor) : QStringLiteral("x%1").arg(cell.factor);
+				p.setFont(legend);
+				p.setPen(ink);
+				p.drawText(cap, Qt::AlignCenter, capText);
+			}
+			else
+			{
+				// A factor-less patch point (MultiConvolution) is just patched
+				// or not: a blank cap with the lamp window glowing in it.
+				p.setBrush(a8(ink, 230));
+				p.setPen(Qt::NoPen);
+				p.drawRoundedRect(QRect(cap.center().x() - 6, cap.center().y() - 2, 12, 4), 2, 2);
 			}
 		}
 	}

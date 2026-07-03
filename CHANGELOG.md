@@ -38,6 +38,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   factor readouts and a drawn ghost + for virtual outputs. Channels-to-
   channels lines stay; everything else is new. The MultiConvolution card
   inherits the look automatically. ([#141])
+- The rack skin's Copy routing became a hardware routing-matrix button
+  field: each crosspoint is a small square illuminated latching button in
+  a recessed sub-panel - a routed point sits latched down with its gain
+  printed as the lit button legend (the danger lamp for negative gain),
+  deliberately a different control from the filter cards' rotary dials.
+  MultiConvolution's factor-less patch points light a lamp window instead
+  of a legend. ([#141])
 - The skin gallery's judged set grew to 610 shots: Channel, comment, Stage,
   a populated Copy scene and two Device scenes over synthetic endpoints
   (a named selection and the all-devices master) now render for every skin
