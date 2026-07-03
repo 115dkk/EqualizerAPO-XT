@@ -221,10 +221,16 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			else
 			{
 				// Unity Copy point, or a factor-less MultiConvolution patch
-				// point: a blank cap with the lamp window glowing in it.
-				p.setBrush(a8(ink, 230));
+				// point: a blank cap with a ROUND lamp window glowing in it -
+				// the console ON-button LED. A filled dot with a halo: a
+				// horizontal slit would read as a minus sign and an outline
+				// ring as the letter O.
+				const QPointF lampCenter(cap.center().x() + 0.5, cap.center().y() + 0.5);
 				p.setPen(Qt::NoPen);
-				p.drawRoundedRect(QRect(cap.center().x() - 6, cap.center().y() - 2, 12, 4), 2, 2);
+				p.setBrush(a8(ink, 70));
+				p.drawEllipse(lampCenter, 5.5, 5.5);
+				p.setBrush(a8(ink, 235));
+				p.drawEllipse(lampCenter, 3.0, 3.0);
 			}
 		}
 	}

@@ -43,10 +43,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   a recessed sub-panel - a routed point sits latched down, and only a
   non-unity gain is printed as the lit button legend (INV for a polarity
   flip, the bare coefficient otherwise, the danger lamp for negative
-  gain); a unity routing lights a lamp window with no legend, so nothing
-  on the panel can be misread as a mute. Deliberately a different control
-  from the filter cards' rotary dials. MultiConvolution's factor-less
-  patch points use the same lamp window. ([#141])
+  gain); a unity routing lights a round LED lamp window with no legend,
+  so nothing on the panel can be misread as a mute or a minus sign.
+  Deliberately a different control from the filter cards' rotary dials.
+  MultiConvolution's factor-less patch points use the same lamp window.
+  ([#141])
 - The minimal skin's Copy step list is staged as a console session
   instead of a bare table: zero-padded line numbers behind a gutter
   hairline, and a prompt with a steady block cursor closing the listing.
