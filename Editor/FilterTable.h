@@ -177,7 +177,7 @@ private:
 	void insertLinesFromMimeData(const QMimeData* mimeData, int dropRow);
 
 	MainWindow* mainWindow;
-	QScrollArea* scrollArea;
+	QScrollArea* scrollArea = nullptr;
 	QGridLayout* gridLayout;
 	QLabel* insertArrow;
 	QPoint dragStartPos;
@@ -188,11 +188,14 @@ private:
 	Item* selectionStart = nullptr;
 	QList<IFilterGUIFactory*> factories;
 	bool scrollingNow = false;
+	// True while the app-global wheel-redirect filter is installed; see
+	// wheelEvent()/eventFilter(). (audit #146 TD041)
+	bool appWheelFilterInstalled = false;
 	QPointF scrollStartPoint;
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> selectedDevice;
-	int selectedChannelMask;
+	int selectedChannelMask = 0;
 	QString configPath;
 	int minimumHeightHint = 0;
 	int presetScrollX = -1;

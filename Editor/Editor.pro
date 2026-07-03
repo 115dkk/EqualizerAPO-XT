@@ -212,6 +212,7 @@ SOURCES += main.cpp\
 	widgets/cards/StageSelectionModel.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
+	widgets/cards/FilterCardEditorRegistry.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ReferenceCardView.cpp \
@@ -418,6 +419,7 @@ HEADERS  += \
 	widgets/cards/StageSelectionModel.h \
 	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
+	widgets/cards/FilterCardEditorRegistry.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
 	widgets/cards/ReferenceCardView.h \

@@ -272,3 +272,14 @@ void ConvolutionCardEditor::updateFileInfo()
 	view->setState(state);
 	importButton->setVisible(offerImport);
 }
+
+#include "FilterCardEditorRegistry.h"
+#include "filters/ConvolutionCommand.h"
+
+REGISTER_FILTER_CARD_EDITOR(convolution, [](FilterTable* filterTable, const QString& command, const QString& parameters) -> IFilterGUI* {
+	// ConvolutionCommand owns the line grammar; the path it yields preserves
+	// the author's quotes/variables so store() round-trips the config text.
+	ConvolutionCommand cmd;
+	ConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
+	return new ConvolutionCardEditor(filterTable, QString::fromStdWString(cmd.path));
+})

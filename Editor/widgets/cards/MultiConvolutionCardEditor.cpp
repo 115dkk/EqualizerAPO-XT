@@ -441,3 +441,13 @@ void MultiConvolutionCardEditor::updateFileInfo()
 	importButton->setVisible(offerImport);
 	rebuildRoutingView();
 }
+
+#include "FilterCardEditorRegistry.h"
+
+REGISTER_FILTER_CARD_EDITOR(multiconvolution, [](FilterTable* filterTable, const QString& command, const QString& parameters) -> IFilterGUI* {
+	// MultiConvolutionCommand owns the line grammar (mapping and simple
+	// forms); the card hosts the mapping in the skin's routing view.
+	MultiConvolutionCommand cmd;
+	MultiConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
+	return new MultiConvolutionCardEditor(filterTable, cmd.mappings, QString::fromStdWString(cmd.path));
+})

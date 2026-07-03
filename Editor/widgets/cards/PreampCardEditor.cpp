@@ -129,3 +129,9 @@ QString PreampCardEditor::gainText() const
 {
 	return QLocale::c().toString(currentGain, 'f', 1);
 }
+
+#include "FilterCardEditorRegistry.h"
+
+REGISTER_FILTER_CARD_EDITOR(preamp, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+	return new PreampCardEditor(PreampCardEditor::parseGain(parameters));
+})
