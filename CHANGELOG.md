@@ -12,6 +12,51 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Comment and Stage rows became real cards. A note line gets an in-place
+  editor (and stays editable even though a comment row counts as disabled -
+  a defect that had locked the body in every skin), and Stage rows pick
+  their stages in two captioned pipeline lanes - Playback holds pre-mix →
+  post-mix in signal order, Recording holds capture - writing the same
+  bytes the old checkbox editor did; selectors the engine does not know
+  survive as an inert chip instead of being dropped. Card bodies now hug
+  their editor's height instead of padding compact cards with dead space.
+  ([#141])
+- The Device, Channel, Comment and Stage cards now wear each skin's own
+  grammar instead of the neutral Phase 1 look: studio lights glass chips
+  from within, minimal boxes mono tokens in hairline cells and inverts an
+  engaged device seat like a console selection, soft reads on/off/sleeping
+  as stadium pills, rack splits one machine into switch caps that press in
+  and latch down, assign keys, insert-point jewels and a Dymo tape for
+  notes, and matrix ranks the board's cells by material and type - its
+  comment rows are remarks posted in sunken board cells, not amber
+  "bypassed" flights. ([#141])
+- The studio skin's Copy routing was redrawn as Light Trace: the 2015-era
+  node graph (opaque candy pills, black wiring) gave way to lit glass chips
+  joined by glowing curves of the skin's one accent light, with sunken
+  factor readouts and a drawn ghost + for virtual outputs. Channels-to-
+  channels lines stay; everything else is new. The MultiConvolution card
+  inherits the look automatically. ([#141])
+- The rack skin's Copy routing became a hardware routing-matrix button
+  field: each crosspoint is a small square illuminated latching button in
+  a recessed sub-panel - a routed point sits latched down, and only a
+  non-unity gain is printed as the lit button legend (INV for a polarity
+  flip, the bare coefficient otherwise, the danger lamp for negative
+  gain); a unity routing lights a round LED lamp window with no legend,
+  so nothing on the panel can be misread as a mute or a minus sign.
+  Deliberately a different control from the filter cards' rotary dials.
+  MultiConvolution's factor-less patch points use the same lamp window.
+  ([#141])
+- The minimal skin's Copy step list is staged as a console session
+  instead of a bare table: zero-padded line numbers behind a gutter
+  hairline, and a prompt with a steady block cursor closing the listing.
+  ([#141])
+- The skin gallery's judged set grew to 610 shots: Channel, comment, Stage,
+  a populated Copy scene and two Device scenes over synthetic endpoints
+  (a named selection and the all-devices master) now render for every skin
+  in both modes. ([#141])
+
 ## v2.7.1 — 2026-07-03
 
 - Fixed the Signal Matrix filter picker not highlighting the entry or
@@ -680,4 +725,6 @@ Fork bootstrap on top of TheFireKahuna's tree.
 [#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
 [#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139
+[#141]: https://github.com/115dkk/EqualizerAPO-XT/pull/141
+
 [#142]: https://github.com/115dkk/EqualizerAPO-XT/pull/142

@@ -32,10 +32,12 @@ public:
 	static FilterCardDescriptor describeLine(const QString& line, int depth = 0);
 	static QVector<int> calculateDepths(const QList<QString>& lines);
 	static QString commandForLine(const QString& line, QString* parameters);
+	// A line that is a note, not a disabled command; such a line has no
+	// "command: parameters" shape, so FilterTable routes it to the comment card.
+	static bool isPureCommentLine(const QString& line);
 
 private:
 	static QStringList parseChannelList(const QString& text);
 	static QString compactWhitespace(const QString& text);
 	static bool isDisabledCommandLine(const QString& line);
-	static bool isPureCommentLine(const QString& line);
 };

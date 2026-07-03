@@ -157,12 +157,12 @@
         <translation>选择全部声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="32"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="35"/>
         <source>Add channel</source>
         <translation>添加声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="33"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="36"/>
         <source>Add a custom or virtual channel name (e.g. VSL)</source>
         <translation>添加自定义或虚拟声道名称（例如 VSL）</translation>
     </message>
@@ -281,6 +281,14 @@
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
         <source>Channel (Select channels)</source>
         <translation>声道（选择声道）</translation>
+    </message>
+</context>
+<context>
+    <name>CommentCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/CommentCardEditor.cpp" line="49"/>
+        <source>Write a note</source>
+        <translation>写个备注</translation>
     </message>
 </context>
 <context>
@@ -1055,7 +1063,7 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="436"/>
         <source>Raw</source>
         <translation>原始</translation>
     </message>
@@ -1063,7 +1071,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="249"/>
+        <location filename="../FilterTable.cpp" line="257"/>
         <source>Add filter</source>
         <translation>添加过滤器</translation>
     </message>
@@ -2614,6 +2622,59 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
 </context>
 <context>
+    <name>StageCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="64"/>
+        <source>Playback</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="68"/>
+        <source>Pre-mix</source>
+        <translation>预混合</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="69"/>
+        <source>Apply in each program&apos;s stream, before Windows mixes them</source>
+        <translation>在 Windows 混音之前，应用到每个程序的音频流</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="72"/>
+        <source>Signal order: pre-mix runs before the streams are mixed, post-mix after</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="74"/>
+        <source>Post-mix</source>
+        <translation>混合后</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
+        <source>Apply to the device&apos;s mixed output (the default stage)</source>
+        <translation>应用到设备的混音输出（默认阶段）</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="79"/>
+        <source>Recording</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="83"/>
+        <source>Capture</source>
+        <translation>录制</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="84"/>
+        <source>Apply to recording devices</source>
+        <translation>应用到录音设备</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="94"/>
+        <source>Selectors the engine does not recognize; they are kept as written</source>
+        <translation>引擎无法识别的选择器；将按原样保留</translation>
+    </message>
+</context>
+<context>
     <name>StageFilterGUI</name>
     <message>
         <source>Select processing stage:</source>
@@ -2679,6 +2740,14 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <location filename="../skins/pickers/StudioFilterPicker.cpp" line="424"/>
         <source>No matching filters</source>
         <translation>没有匹配的滤波器</translation>
+    </message>
+</context>
+<context>
+    <name>StudioRoutingView</name>
+    <message>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="434"/>
+        <source>Drag between channels to route - click + to add an output</source>
+        <translation>在声道之间拖动即可路由——点击 + 添加输出</translation>
     </message>
 </context>
 <context>

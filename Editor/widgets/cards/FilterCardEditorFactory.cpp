@@ -11,6 +11,7 @@
 #include "DeviceCardEditor.h"
 #include "IncludeCardEditor.h"
 #include "PreampCardEditor.h"
+#include "StageCardEditor.h"
 #include "VSTCardEditor.h"
 #include "filters/ConvolutionCommand.h"
 #include "filters/MultiConvolutionCommand.h"
@@ -28,6 +29,8 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 		return new ChannelCardEditor(parameters);
 	if (normalizedCommand == QStringLiteral("device"))
 		return new DeviceCardEditor(filterTable, parameters);
+	if (normalizedCommand == QStringLiteral("stage"))
+		return new StageCardEditor(parameters);
 	if (normalizedCommand == QStringLiteral("include"))
 		return new IncludeCardEditor(filterTable, parameters);
 	if (normalizedCommand == QStringLiteral("convolution"))

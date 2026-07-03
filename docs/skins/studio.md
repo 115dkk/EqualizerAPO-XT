@@ -148,17 +148,52 @@ danger로 점등하며, Browse가 "Locate..." 텍스트를 입고 액센트 보�
 된다. 빈 참조는 결손이 아니라 미설정 — 칩 없이 muted 이름만 남는다(알람이
 아니라 소등). 아이콘은 없다(호도 라벨도 값도 아니므로, 타이브레이커).
 
-### Copy 라우팅 — 곡선 노드 그래프 (CurvedNode)
+### Copy 라우팅 — 라이트 트레이스 (LightTrace)
 
-흐르는 곡선의 노드 그래프(`CurvedNodeRoutingRenderer`, CopyFilterGUIScene
-재사용)가 채널 사이의 신호 흐름을 그린다. 유리 위에 떠 있는 빛의 회로라는
-인상이 목적이며, 다섯 렌더러 중 유일하게 곡선을 쓴다.
+유리 위에 식각된 빛의 회로. 위 열의 입력 채널과 아래 열의 출력 채널은
+점등 유리 칩(타입 배지 문법의 인터랙티브 확장)이고, 둘 사이를 수직 접선의
+**cubic 곡선 트레이스**가 잇는다. 다섯 렌더러 중 유일하게 곡선을 쓴다는
+조문은 이 트레이스가 이행한다. 트레이스의 색은 액센트 하나뿐이고(규칙 1 —
+채널 색은 칩의 잉크로만), 글로우는 겹친 스트로크 3~4겹으로 위조한다(규칙
+3). 상태는 광량 사다리다: 휴지 < 호버 < 선택(최대 광량), 비활성은 소등.
+화살촉은 없다. 위→아래 흐름은 고정이고 도착 쪽 포트 점이 더 밝게 점등해
+종착을 말한다. 계수는 트레이스 위에 앉은 가라앉은 유리 판독창(DM Mono,
+유니티는 무표기)이며 더블클릭으로 편집한다. 가상 채널 칩은 점선 보더,
+상수 입력은 점선의 muted `const` 칩, 가상 출력 추가는 점선 고스트 `+` 칩
+(그려 넣은 글리프 — 래스터 아이콘 금지)이다. 빈 상태는 알람이 아니라 소등
+톤의 안내 한 줄이다. 구현은 QGraphicsScene이 아니라 이웃 렌더러와 같은
+QWidget+QPainter 단일 페인트이고, 순수 상태는 `StudioRoutingModel`
+(위젯 무관, EditorLogicTests가 별칭 해석·로드 순서 왕복을 고정)에 산다.
 
-MultiConvolution 카드가 같은 그래프를 고정 소스 모드(RoutingPortModel)로
-재사용한다: 위 열이 IR 파일의 채널 번호 노드로 고정되고(별칭·숫자 위치
-매핑·상수 입력 노드는 꺼진다), 팩터가 없어 연결 더블클릭 게인 편집이
-비활성화된다. 드래그 연결과 Delete 제거, 초록 `+` 버튼의 가상 출력 추가는
-Copy와 같다.
+MultiConvolution 카드가 같은 뷰를 고정 소스 모드(RoutingPortModel)로
+재사용한다: 위 열이 IR 파일의 채널 번호로 고정되어 중립 유리 + 계기 숫자
+(DM Mono)로 그려지고(색 알약이 아니라 판독값), 별칭·숫자 위치 매핑·상수
+칩이 꺼지며, 팩터 판독창과 더블클릭 편집이 비활성화된다. 드래그 연결과
+Delete 제거, 고스트 `+`의 가상 출력 추가는 Copy와 같다.
+
+### 장치·채널·주석·스테이지 카드 (Phase 2)
+
+사용자가 켜고 끄는 항목은 전부 **점등 유리 칩**(타입 배지 문법의
+인터랙티브 확장)이다. 미선택 = 불 꺼진 유리(알파 채움 + 윗변 1px 반사광),
+선택 = 안에서부터 빛나는 반투명 액센트 채움, 호버·눌림 = 광량 사다리의 한
+단·최대 단(마우스 눌림은 항상 :hover와 겹치므로 눌림 규칙은 4-pseudo로
+호버를 specificity에서 이긴다), 비활성 = 소등. 비활성이 된 체결 칩은
+액센트를 한 픽셀도 남기지 않고 **중립 알파 한 단**의 명도 차로만 선택
+기록을 남긴다(InstantMode 램프·체크 인디케이터의 checked:disabled 판례).
+행이 비-BiQuad이므로 점등은 기본 파랑 한 색뿐이다(규칙 1). 재생/캡처는 칩
+형태의 축이 아니고(광량·유리 깊이는 상태 전용, 규칙 4) 툴팁이 방향을
+알린다. 미설치 엔드포인트는 경고색 없는 '더 죽은 판'이며, 마스터 칩
+(All devices/ALL, `allDevices`/`allChannels` 프로퍼티)은 한 단 뜨거운
+광량으로만 서열을 만든다. 채널 이름은 데이터이므로 mono + 자간 1px, 커스텀
+채널은 점선 보더다. Stage 칩은 왼쪽 3px 고정 보더의 미니 램프(미체결 =
+어두운 소켓, 체결 = 행의 파랑)이고 `[stage]` 프로퍼티를 색 축으로 쓰지
+않는다. 두 레인 캡션(PLAYBACK/RECORDING)과 체인 화살표는 컨트롤이 아닌
+길찾기이므로 섹션 라벨 방언(작은 트래킹 캡스, 뮤트 잉크)이다. 미지
+셀렉터는 점선 소등 슬롯 + mono 원문이다. Comment는 헌법
+그대로 '불 꺼진 유리, 장식 없음': 휴지의 노트는 잉크만(투명 QLineEdit),
+호버에 유리가 침강하고 편집에서 가라앉은 유리 + 액센트 보더(RefPathEdit
+관용구)로 점등한다. 네 에디터와 FilterCardEditorScroll 뷰포트는 투명
+(유리 위 @BG@ 패치 금지, rack과 같은 계열의 법).
 
 ### 필터 픽커 — 떠 있는 프로스트 글래스 패널
 
@@ -220,7 +255,8 @@ Copy와 같다.
 - QSS: `Editor/skins/studio_dark.qss`, `studio_light.qss`
 - 픽커: `Editor/skins/pickers/StudioFilterPicker.{h,cpp}`
 - 참조 카드: `Editor/skins/cards/StudioReferenceCardView.{h,cpp}`
-- Copy: `Editor/widgets/routing/CurvedNodeRoutingRenderer.{h,cpp}`
+- Copy: `Editor/widgets/routing/LightTraceRoutingRenderer.{h,cpp}` +
+  `StudioRoutingModel.{h,cpp}`
 - 헬퍼: `studioRgba`/`studioAlpha`/`studioIsDark`/`studioBandHex`/
   `studioBandFamilyForBiQuadType`/`studioBandPaintColor` (Skins.cpp 익명
   네임스페이스). 밴드 태그는 `prepareCommandRow`가 BiQuad 행의 카드 프레임,

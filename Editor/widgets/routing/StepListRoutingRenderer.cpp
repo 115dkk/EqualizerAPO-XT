@@ -55,7 +55,8 @@ QSize StepListView::sizeHint() const
 		}
 		maxWidth = qMax(maxWidth, w);
 	}
-	return QSize(maxWidth + 16, headerH + (int)workingAssignments.size() * rowH + 8);
+	// One extra row for the prompt/cursor line that closes the listing.
+	return QSize(maxWidth + 16, headerH + ((int)workingAssignments.size() + 1) * rowH + 8);
 }
 
 QSize StepListView::minimumSizeHint() const
@@ -88,6 +89,13 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(QPen(withAlpha(border, 160), 1));
 	p.drawLine(0, headerH, width(), headerH);
 
+	// Line-number gutter: the number column is set off by a hairline, like a
+	// terminal listing's gutter. Runs through the prompt line so the closing
+	// cursor sits inside the same frame.
+	const int listingBottom = headerH + ((int)workingAssignments.size() + 1) * rowH;
+	p.setPen(QPen(withAlpha(border, 120), 1));
+	p.drawLine(36, headerH, 36, listingBottom);
+
 	auto drawChannelPill = [&](const QString& ch, int x, int y, int h, bool sourceSide) -> int {
 		const QColor col(CopyRoutingAdapter::channelColor(ch));
 		// Fixed sources (IR file channels) are ports, not virtual channels, so
@@ -118,9 +126,11 @@ void StepListView::paintEvent(QPaintEvent*)
 		if (r % 2 == 1)
 			p.fillRect(QRect(0, y, width(), rowH), withAlpha(border, 22));
 
-		// Step number
+		// Step number: a zero-padded page coordinate, the picker's console
+		// numbering law applied to the listing.
 		p.setPen(muted);
-		p.drawText(QRect(0, y, 36, rowH), Qt::AlignCenter, QString::number(r + 1));
+		p.drawText(QRect(0, y, 36, rowH), Qt::AlignCenter,
+			QStringLiteral("%1").arg(r + 1, 2, 10, QLatin1Char('0')));
 
 		// Destination
 		int x = 40;
@@ -188,6 +198,15 @@ void StepListView::paintEvent(QPaintEvent*)
 		p.drawText(addRect, Qt::AlignCenter, QStringLiteral("+"));
 		addHits.append({ r, addRect });
 	}
+
+	// The session line: a prompt and a steady block cursor after the last
+	// step. Staging, not an input - the [+] targets on the steps do the
+	// editing - but it is what makes the listing read as a live console
+	// rather than a printed table.
+	const int py = headerH + (int)workingAssignments.size() * rowH;
+	p.setPen(muted);
+	p.drawText(QRect(0, py, 36, rowH), Qt::AlignCenter, QStringLiteral(">"));
+	p.fillRect(QRect(44, py + (rowH - 15) / 2, 8, 15), withAlpha(QColor(t.accent), 210));
 }
 
 void StepListView::mousePressEvent(QMouseEvent* event)

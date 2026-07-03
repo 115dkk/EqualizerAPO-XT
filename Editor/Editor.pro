@@ -204,7 +204,10 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
+	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
+	widgets/cards/StageCardEditor.cpp \
+	widgets/cards/StageSelectionModel.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
@@ -231,7 +234,8 @@ SOURCES += main.cpp\
 	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
 	widgets/routing/StepListRoutingRenderer.cpp \
 	widgets/routing/BlockChipRoutingRenderer.cpp \
-	widgets/routing/CurvedNodeRoutingRenderer.cpp \
+	widgets/routing/LightTraceRoutingRenderer.cpp \
+	widgets/routing/StudioRoutingModel.cpp \
 	widgets/routing/HardwarePatchbayRoutingRenderer.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
@@ -404,7 +408,10 @@ HEADERS  += \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
+	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
+	widgets/cards/StageCardEditor.h \
+	widgets/cards/StageSelectionModel.h \
 	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/IncludeCardEditor.h \
@@ -432,7 +439,8 @@ HEADERS  += \
 	widgets/routing/CrosspointMatrixRoutingRenderer.h \
 	widgets/routing/StepListRoutingRenderer.h \
 	widgets/routing/BlockChipRoutingRenderer.h \
-	widgets/routing/CurvedNodeRoutingRenderer.h \
+	widgets/routing/LightTraceRoutingRenderer.h \
+	widgets/routing/StudioRoutingModel.h \
 	widgets/routing/HardwarePatchbayRoutingRenderer.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \

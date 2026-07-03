@@ -12,6 +12,7 @@
 #include "Editor/widgets/CommandRowFrame.h"
 #include "Editor/widgets/FilterCardModel.h"
 
+class QScrollArea;
 class RoutingView;
 
 class FilterCardRow : public QWidget
@@ -28,6 +29,7 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent*) override;
+	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
 	void updateModel();
@@ -40,6 +42,8 @@ private slots:
 	void routingEdited();
 
 private:
+	void watchEditorScroll(QScrollArea* scroll);
+	void syncEditorScrollHeight(QScrollArea* scroll);
 	void rebuildSummary();
 	void setEditing(bool editing);
 	void buildChannelBadges(const QStringList& channels);

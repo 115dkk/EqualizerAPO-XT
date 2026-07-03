@@ -153,12 +153,12 @@
         <translation>모든 채널 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="32"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="35"/>
         <source>Add channel</source>
         <translation>채널 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="33"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="36"/>
         <source>Add a custom or virtual channel name (e.g. VSL)</source>
         <translation>사용자 지정 또는 가상 채널 이름 추가 (예: VSL)</translation>
     </message>
@@ -265,6 +265,14 @@
         <location filename="../guis/ChannelFilterGUIFactory.cpp" line="39"/>
         <source>Control</source>
         <translation>컨트롤</translation>
+    </message>
+</context>
+<context>
+    <name>CommentCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/CommentCardEditor.cpp" line="49"/>
+        <source>Write a note</source>
+        <translation>메모를 적어 두세요</translation>
     </message>
 </context>
 <context>
@@ -981,7 +989,7 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="436"/>
         <source>Raw</source>
         <translation>원본</translation>
     </message>
@@ -989,7 +997,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="249"/>
+        <location filename="../FilterTable.cpp" line="257"/>
         <source>Add filter</source>
         <translation>필터 추가</translation>
     </message>
@@ -2298,6 +2306,59 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
 </context>
 <context>
+    <name>StageCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="64"/>
+        <source>Playback</source>
+        <translation>재생</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="68"/>
+        <source>Pre-mix</source>
+        <translation>믹스 전</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="69"/>
+        <source>Apply in each program&apos;s stream, before Windows mixes them</source>
+        <translation>각 프로그램의 스트림에, Windows가 섞기 전에 적용합니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="72"/>
+        <source>Signal order: pre-mix runs before the streams are mixed, post-mix after</source>
+        <translation>신호 순서입니다. 믹스 전은 스트림이 섞이기 전에, 믹스 후는 섞인 뒤에 실행됩니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="74"/>
+        <source>Post-mix</source>
+        <translation>믹스 후</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
+        <source>Apply to the device&apos;s mixed output (the default stage)</source>
+        <translation>장치의 최종 믹스 출력에 적용합니다(기본 단계)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="79"/>
+        <source>Recording</source>
+        <translation>녹음</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="83"/>
+        <source>Capture</source>
+        <translation>캡처</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="84"/>
+        <source>Apply to recording devices</source>
+        <translation>녹음 장치에 적용합니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="94"/>
+        <source>Selectors the engine does not recognize; they are kept as written</source>
+        <translation>엔진이 모르는 선택자입니다. 쓰인 그대로 보존됩니다</translation>
+    </message>
+</context>
+<context>
     <name>StageFilterGUI</name>
     <message>
         <location filename="../guis/StageFilterGUI.ui" line="32"/>
@@ -2355,6 +2416,14 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <location filename="../skins/pickers/StudioFilterPicker.cpp" line="424"/>
         <source>No matching filters</source>
         <translation>일치하는 필터 없음</translation>
+    </message>
+</context>
+<context>
+    <name>StudioRoutingView</name>
+    <message>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="434"/>
+        <source>Drag between channels to route - click + to add an output</source>
+        <translation>채널 사이를 드래그해 라우팅하세요. +를 누르면 출력이 추가됩니다</translation>
     </message>
 </context>
 <context>

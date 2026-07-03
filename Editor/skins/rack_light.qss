@@ -599,3 +599,409 @@ QToolButton#TitleBarClose:pressed {
         stop:0 #A83A26, stop:1 #7A2415);
     border-color: #6B1D10; border-top-color: #581808;
 }
+
+/* =====================================================================
+   Phase 2 - command cards (Device / Channel / Comment / Stage)
+   The same four parts on the cream/aluminium faceplate. One lamp law:
+   Device = whole-cap backlight, Channel = lamp window under the latched
+   key, Stage = jewel lamp along the cap's top edge, Comment = embossed
+   label tape (no lamp - tape is not a control). Masters light the
+   machine's only green (accent2): green = bus-wide, amber = one engaged
+   position. The tape stays black on the cream plate (tape is tape). */
+
+/* The four card editors sit directly on the cream plate; the global
+   QWidget base coat must not slip an app-background patch under their
+   rects (the direct-painting law). */
+QWidget#DeviceCardEditor, QWidget#ChannelCardEditor,
+QWidget#StageCardEditor, QWidget#CommentCardEditor { background: transparent; border: 0; }
+
+/* ── Device card: the OUTPUT ROUTING switch bank ─────────────────────────
+   Raised machined caps with a white top bevel and engraved uppercase
+   labels. The cap is a real mechanism: a press (:pressed) sinks it below
+   the plate, and an engaged switch (:checked) stays LATCHED DOWN with
+   the amber lamp lit under it - inverted bevel (shadowed top edge, lit
+   lower lip), inverted gradient, label dropped 1px by the padding shift;
+   same latch-down grammar as the Channel assign keys. Green master bus,
+   recessed capture wells, flat blank positions, powered-down film.
+
+   CASCADE NOTE (read before editing): [deviceInput="true"] and
+   [deviceInstalled="false"] score the same Qt specificity (0x111) as the
+   bare :hover, :checked and :pressed. On a tie Qt takes the later rule,
+   so a type rule after :checked would MASK the lamp. Every state that
+   must survive on a typed chip is authored as an explicit combined
+   selector (0x121 / 0x131) so it wins regardless of source order; within
+   a tier the momentary press is authored LAST so a finger on the cap
+   always shows the cap down. Do not collapse these back into the bare
+   pseudo rules. */
+QToolButton#DeviceChip {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 2px;
+    padding: 3px 9px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+QToolButton#DeviceChip:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border: 1px solid @ACCENT@; border-top-color: #FFFFFF;
+    color: #7A4A05;
+}
+/* Engaged (bare playback switch): the cap latches down and the amber
+   lamp lights under it - inverted gradient, shadowed top edge, lit
+   lower lip, label dropped 1px. */
+QToolButton#DeviceChip:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E8C887, stop:1 #FBE9C2);
+    border: 1px solid @ACCENT@; border-top-color: #B98F3E; border-bottom-color: #FFF3D8;
+    color: #4A2E00;
+    padding: 4px 9px 2px 9px;
+}
+/* Momentary press (bare, authored after :checked so the tie hands a
+   finger on the cap the pressed face in both directions): the cap sinks
+   into neutral shadowed metal; the lamp only settles once released. */
+QToolButton#DeviceChip:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border: 1px solid @ACCENT@; border-top-color: #B8AC92; border-bottom-color: #FFFFFF;
+    color: #5C3A00;
+    padding: 4px 9px 2px 9px;
+}
+
+/* Capture device = recessed input well: shadowed top, lit lower lip. */
+QToolButton#DeviceChip[deviceInput="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6DECC, stop:1 #FFFFFF);
+    border: 1px solid #AFA288; border-top-color: #B8AC92; border-bottom-color: #FFFFFF;
+    color: #3A352C;
+}
+/* Unwired endpoint (APO not installed) = flat blank position, recedes. */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    background: #EFEADD;
+    border: 1px solid #C4BBA6; border-top-color: #C4BBA6;
+    color: #9A917F;
+}
+
+/* Hover on a capture well (0x121): keep the recessed orientation while
+   the amber edge warms. */
+QToolButton#DeviceChip[deviceInput="true"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0E8D6, stop:1 #FFFFFF);
+    border: 1px solid @ACCENT@; border-top-color: #B8AC92; border-bottom-color: #FFFFFF;
+    color: #7A4A05;
+}
+/* Hover on a blank position (0x121): uniform hover grammar, stays flat. */
+QToolButton#DeviceChip[deviceInstalled="false"]:hover {
+    background: #F4EFE2;
+    border: 1px solid @ACCENT@; border-top-color: #C4BBA6;
+    color: #7E7565;
+}
+
+/* Engaged capture well (0x121) - THE LAMP RULE: latches down into the
+   same amber lamp as a routed playback switch; depth reads type only at
+   rest. */
+QToolButton#DeviceChip[deviceInput="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E8C887, stop:1 #FBE9C2);
+    border: 1px solid @ACCENT@; border-top-color: #B98F3E; border-bottom-color: #FFF3D8;
+    color: #4A2E00;
+    padding: 4px 9px 2px 9px;
+}
+/* Routed offline endpoint (0x121): a dimmer amber latch over the blank
+   base. */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E8CE92, stop:1 #F2DEAE);
+    border: 1px solid @ACCENT@; border-top-color: #B98F3E; border-bottom-color: #FBEBC4;
+    color: #5C3A00;
+    padding: 4px 9px 2px 9px;
+}
+/* Master BUS-ENABLE engaged (0x121): latches down on the green bus
+   lamp, never amber. */
+QToolButton#DeviceChip[allDevices="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B6E0C8, stop:1 #CDEBDD);
+    border: 1px solid @ACCENT2@; border-top-color: #6FA98A; border-bottom-color: #DFF3E8;
+    color: #0C3A28;
+    padding: 4px 9px 2px 9px;
+}
+/* Momentary press on typed caps (0x121, authored after the typed checked
+   rules so the same-tier tie always shows the cap down under a finger):
+   the well sinks deeper, the blank and the master sink into neutral
+   shadowed metal. */
+QToolButton#DeviceChip[deviceInput="true"]:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #CFC6B2, stop:1 #E8E1D0);
+    border: 1px solid @ACCENT@; border-top-color: #B8AC92; border-bottom-color: #FFFFFF;
+    color: #5C3A00;
+    padding: 4px 9px 2px 9px;
+}
+QToolButton#DeviceChip[deviceInstalled="false"]:pressed,
+QToolButton#DeviceChip[allDevices="true"]:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border: 1px solid @ACCENT@; border-top-color: #B8AC92; border-bottom-color: #FFFFFF;
+    color: #5C3A00;
+    padding: 4px 9px 2px 9px;
+}
+/* Powered-down master (0x131): a dim GREEN memory - keeps the
+   green-means-bus contract while the unit is off. Latched position
+   kept. */
+QToolButton#DeviceChip[allDevices="true"]:checked:disabled {
+    background: #DFEAE2;
+    border: 1px solid #9FC4B0; border-top-color: #9FC4B0;
+    color: #5F8A75;
+    padding: 4px 9px 2px 9px;
+}
+
+/* Powered down: dim film, lamp off. Type-blind. */
+QToolButton#DeviceChip:disabled {
+    background: #E2DCCE;
+    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    color: #A99F8E;
+}
+/* Routed but powered down (0x121): faint warm memory of the lamp, still
+   sitting in the latched position. */
+QToolButton#DeviceChip:checked:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6D6B2, stop:1 #EFE3C6);
+    border: 1px solid #C49A4A; border-top-color: #AA853E;
+    color: #9A7A3A;
+    padding: 4px 9px 2px 9px;
+}
+/* Capture/blank powered down (0x121): the same dim film. */
+QToolButton#DeviceChip[deviceInput="true"]:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled {
+    background: #E2DCCE;
+    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    color: #A99F8E;
+}
+/* Routed capture/blank powered down (0x131): warm memory, latched
+   position kept. */
+QToolButton#DeviceChip[deviceInput="true"]:checked:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6D6B2, stop:1 #EFE3C6);
+    border: 1px solid #C49A4A; border-top-color: #AA853E;
+    color: #9A7A3A;
+    padding: 4px 9px 2px 9px;
+}
+
+/* Reveal latch: a subordinate service latch; open sits pressed in. */
+QToolButton#DeviceChipMore {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F6F1E6, stop:1 #E6DECC);
+    color: @MUTED@;
+    border: 1px solid #C4BBA6; border-top-color: #FFFFFF;
+    border-radius: 2px;
+    padding: 3px 9px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+QToolButton#DeviceChipMore:hover { border-color: @ACCENT@; border-top-color: #FFFFFF; color: #5C3A00; }
+QToolButton#DeviceChipMore:checked,
+QToolButton#DeviceChipMore:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border: 1px solid #AFA288; border-top-color: #B8AC92;
+    color: @TEXT@;
+    padding: 4px 9px 2px 9px;
+}
+QToolButton#DeviceChipMore:disabled { background: #E2DCCE; border-color: #C9C0AC; color: #A99F8E; }
+
+/* ── Channel card: the CHANNEL ASSIGN key row ────────────────────────────
+   Compact machined assign keys for the signal's seats. A taken seat
+   latches DOWN (the engaged-tab pressed grammar) and lights the lamp
+   window UNDER the cap; ALL is the green bus master; custom/virtual
+   channels are dashed printed seats that only gain a real lamp when
+   taken. Same cascade discipline as the Device bank. */
+QToolButton#ChannelChip {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 2px;
+    padding: 3px 8px; min-width: 18px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolButton#ChannelChip:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border: 1px solid @ACCENT@; border-top-color: #FFFFFF;
+    color: #7A4A05;
+}
+/* A taken seat: the key latches down and the under-cap lamp lights. */
+QToolButton#ChannelChip:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border: 1px solid #AFA288; border-top-color: #B8AC92;
+    border-bottom: 2px solid @ACCENT@;
+    color: #4A2E00;
+}
+QToolButton#ChannelChip:disabled {
+    background: #E2DCCE;
+    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    color: #A99F8E;
+}
+/* A taken seat that loses power: latched cap, dim amber memory. */
+QToolButton#ChannelChip:checked:disabled {
+    background: #DED6C6;
+    border: 1px solid #C9C0AC; border-top-color: #BFB5A0;
+    border-bottom: 2px solid #C49A4A;
+    color: #9A7A3A;
+}
+/* Master ALL engaged (0x121): the green bus lamp under the cap. */
+QToolButton#ChannelChip[allChannels="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #CFE4D8, stop:1 #E4F0E8);
+    border: 1px solid #AFA288; border-top-color: #B8AC92;
+    border-bottom: 2px solid @ACCENT2@;
+    color: #0C3A28;
+}
+/* Powered-down master (0x131): dim green memory, never amber. */
+QToolButton#ChannelChip[allChannels="true"]:checked:disabled {
+    background: #DED6C6;
+    border: 1px solid #C9C0AC; border-top-color: #BFB5A0;
+    border-bottom: 2px solid #7FA98E;
+    color: #5F8A75;
+}
+/* Custom/virtual channel = a seat printed on the panel: dashed
+   wireframe, no fill. */
+QToolButton#ChannelChip[customChannel="true"] {
+    background: transparent;
+    border: 1px dashed #B4A890;
+    color: @MUTED@;
+}
+QToolButton#ChannelChip[customChannel="true"]:hover {
+    background: transparent;
+    border: 1px dashed @ACCENT@;
+    color: #7A4A05;
+}
+/* A taken printed seat (0x121): dashed sides stay printed, the lamp
+   under them is real. */
+QToolButton#ChannelChip[customChannel="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(182, 106, 0, 0.05), stop:1 rgba(182, 106, 0, 0.14));
+    border: 1px dashed #C49A4A;
+    border-bottom: 2px solid @ACCENT@;
+    color: #4A2E00;
+}
+QToolButton#ChannelChip[customChannel="true"]:disabled {
+    background: transparent;
+    border: 1px dashed #D2C9B6;
+    color: #A99F8E;
+}
+QToolButton#ChannelChip[customChannel="true"]:checked:disabled {
+    background: transparent;
+    border: 1px dashed #CBA96A;
+    border-bottom: 2px solid #C49A4A;
+    color: #9A7A3A;
+}
+/* The add-a-seat entry: a small labeling well, genuine input grammar. */
+QLineEdit#ChannelChipAdd {
+    background: #FCF8EE; color: @TEXT@;
+    border: 1px solid #8F8268; border-bottom-color: #FFFFFF;
+    border-radius: 2px; padding: 3px 8px;
+    min-height: 18px; font-size: 8pt; letter-spacing: 1px;
+}
+QLineEdit#ChannelChipAdd:focus { border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:disabled { color: #A99F8E; background: #E2DCCE; }
+
+/* ── Comment card: embossed label tape ───────────────────────────────────
+   The note is a black embossed tape strip stuck to the cream plate -
+   tape is physically black whatever the panel finish (the same honesty
+   as the display law, for tape's own reason). Warm ivory raised
+   lettering, never green segments, so it cannot be mistaken for an LCD
+   well; no uppercase transform - the note is the user's own data. Focus
+   lights the amber service edge. */
+QLabel#CommentCardGlyph {
+    background: transparent; color: @MUTED@;
+    font-weight: 700; font-size: 10pt;
+    padding: 0 2px;
+}
+QLineEdit#CommentCardText {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #46403A, stop:0.14 #262220, stop:1 #131110);
+    color: #F5EFE2;
+    border: 1px solid #2E2A24; border-top-color: #6B655A;
+    border-radius: 2px;
+    padding: 4px 10px;
+    font-weight: 700; letter-spacing: 1px;
+    selection-background-color: @ACCENT@; selection-color: #FFF8EA;
+}
+QLineEdit#CommentCardText:focus { border: 1px solid @ACCENT@; border-top-color: @ACCENT@; }
+/* Powered down: the tape goes matte, lettering fades. */
+QLineEdit#CommentCardText:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #3A352F, stop:0.14 #23201C, stop:1 #131110);
+    color: #8A8272;
+    border: 1px solid #3A352C; border-top-color: #4E483E;
+}
+
+/* ── Stage card: the INSERT POINT switches ───────────────────────────────
+   Three latching caps with engraved path legends. Engaged = warm panel
+   fill + amber jewel lamp along the TOP edge (the third lamp position on
+   this machine). Capture rests as a recessed input-side well - the same
+   input grammar as the Device bank - and lights the identical jewel once
+   engaged. Unknown selectors are a wireframe service tag in warning ink,
+   kept as written. */
+QToolButton#StageChip {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 2px;
+    padding: 3px 12px; min-height: 20px;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QToolButton#StageChip:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border: 1px solid @ACCENT@; border-top-color: #FFFFFF;
+    color: #7A4A05;
+}
+/* Engaged: warm panel + the amber jewel lamp along the top edge. */
+QToolButton#StageChip:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FDF0D2, stop:1 #F0D9A2);
+    border: 1px solid @ACCENT@; border-top: 2px solid @ACCENT@;
+    color: #4A2E00;
+}
+QToolButton#StageChip:disabled {
+    background: #E2DCCE;
+    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    color: #A99F8E;
+}
+/* Engaged but powered down: the jewel dims to a warm memory. */
+QToolButton#StageChip:checked:disabled {
+    background: #EDE2C8;
+    border: 1px solid #C9B896; border-top: 2px solid #C49A4A;
+    color: #9A7A3A;
+}
+/* Capture inserts on the input side: a recessed well at rest. */
+QToolButton#StageChip[stage="capture"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6DECC, stop:1 #FFFFFF);
+    border: 1px solid #AFA288; border-top-color: #B8AC92; border-bottom-color: #FFFFFF;
+    color: #3A352C;
+}
+QToolButton#StageChip[stage="capture"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0E8D6, stop:1 #FFFFFF);
+    border: 1px solid @ACCENT@; border-top-color: #B8AC92; border-bottom-color: #FFFFFF;
+    color: #7A4A05;
+}
+/* Engaged capture (0x121): the identical jewel to pre/post. */
+QToolButton#StageChip[stage="capture"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FDF0D2, stop:1 #F0D9A2);
+    border: 1px solid @ACCENT@; border-top: 2px solid @ACCENT@;
+    color: #4A2E00;
+}
+QToolButton#StageChip[stage="capture"]:disabled {
+    background: #E2DCCE;
+    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    color: #A99F8E;
+}
+QToolButton#StageChip[stage="capture"]:checked:disabled {
+    background: #EDE2C8;
+    border: 1px solid #C9B896; border-top: 2px solid #C49A4A;
+    color: #9A7A3A;
+}
+/* Unknown selectors: a printed service tag in warning ink - wireframe,
+   permanently inert, text kept as written. */
+QToolButton#StageChipUnknown {
+    background: transparent;
+    color: @WARNING@;
+    border: 1px dashed #C2A36A;
+    border-radius: 2px;
+    padding: 3px 10px; min-height: 20px;
+    font-size: 8pt; letter-spacing: 1px;
+}
+/* Lane legends and the chain arrow: printed faceplate lettering
+   (PLAYBACK / RECORDING) - muted tracked caps; the arrow is the
+   printed signal-flow marker between the two playback switches. */
+QLabel#StageLaneCaption {
+    background: transparent; color: @MUTED@;
+    font-size: 7pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+QLabel#StageChainArrow { background: transparent; color: @MUTED@; font-weight: 700; }

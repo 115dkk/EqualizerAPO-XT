@@ -498,3 +498,269 @@ QLabel#MultiConvolutionMappingHint {
     color: @MUTED@;
     font-size: 9pt;
 }
+/* ====================================================================
+   Phase 2 - the plumbing cards (Device / Channel / Comment / Stage) in
+   Soft Lab grammar. One shared consumer-settings language: every choice
+   is a calm stadium pill that is ON (accent pastel fill), OFF (a quiet
+   sunken pill - never bare text), or ASLEEP (dashed, sunk into the
+   window background: an empty slot, not an alarm). Elevation is faked
+   the constitutional way - sunken at rest, exactly one value step up on
+   hover (@SURFACE_SUNKEN@ -> @SURFACE@, the value scrub well's step),
+   no shadow anywhere - and colour stays the single @ACCENT@, meaning
+   only "on". A dashed edge alone (kept at full ink and chip elevation)
+   marks a working thing the hardware does not vouch for - the same
+   derivation as Copy's dashed [+] chip; sleep proper is only the triple
+   of dash + sunk-to-@BG@ + muted ink. The four cards differ by
+   geometry, soft's honest hierarchy tool: Device pills are content-wide
+   endpoint names, Channel pills are compact roomy seats for short
+   codes, Stage pills are an equal-width bank of three switches, and
+   Comment is the one card with no pills at all - a warm memo. The
+   editor bodies stay transparent so chips rest directly on the body
+   tray (WA_StyledBackground would otherwise stamp a @BG@ patch under
+   them).
+
+   Cascade law of every chip family below: awake rules first (base,
+   hover, checked, then the attribute variants - installed / custom /
+   master), and the sleep family LAST, widened over every attribute
+   variant. FilterCardRow disables the whole editor body on a
+   commented-out row, so even the master pills reach :disabled; the
+   sleep family must win every collision - by specificity where it can,
+   by document order where the tiers tie. Do not reorder these blocks. */
+QWidget#DeviceCardEditor, QWidget#ChannelCardEditor,
+QWidget#StageCardEditor, QWidget#CommentCardEditor { background: transparent; }
+
+/* --- Device: the multi-select toggle group of a consumer settings
+   app. OFF rests one value step below the body tray behind the very
+   light 1px border (the constitutional fake shadow); hover lifts that
+   one step back up. Capture and playback fill identically - colour
+   means only "on"; the Capture/Playback and APO-installed facts ride
+   in the tooltip instead of a second hue. --- */
+QToolButton#DeviceChip {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 16px;
+    padding: 4px 12px; min-height: 22px; font-weight: 500;
+}
+QToolButton#DeviceChip:hover {
+    background: @SURFACE@; border: 1px solid rgba(59, 130, 246, 0.40);
+}
+/* ON: the accent pastel of a switched-on toggle, warm ink kept on it. */
+QToolButton#DeviceChip:checked {
+    background: rgba(59, 130, 246, 0.28); color: @TEXT@;
+    border: 1px solid @ACCENT@; font-weight: 600;
+}
+QToolButton#DeviceChip:checked:hover { background: rgba(59, 130, 246, 0.36); }
+/* Not installed: the sleeping-slot look, but awake - dashed, sunk into
+   the window background, muted ink, still clickable, so hover wakes it
+   one value step (the dash stays: no APO vouches for this endpoint). */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    background: @BG@; color: @MUTED@;
+    border: 1px dashed @BORDER@;
+}
+QToolButton#DeviceChip[deviceInstalled="false"]:hover {
+    background: @SURFACE@; color: @TEXT@;
+    border: 1px dashed rgba(59, 130, 246, 0.45);
+}
+/* Named by the config while uninstalled: a faint accent wash keeps the
+   choice legible; the dash keeps saying "no APO here". */
+QToolButton#DeviceChip[deviceInstalled="false"]:checked {
+    background: rgba(59, 130, 246, 0.14); color: @TEXT@;
+    border: 1px dashed rgba(59, 130, 246, 0.55);
+}
+/* "All devices", the master toggle: SAME elevation as the members -
+   hierarchy comes from weight and a deeper ON pastel, never from an
+   extra value step. Awake rules only; its sleep is supplied by the
+   sleep family below, which must stay after this block. */
+QToolButton#DeviceChip[allDevices="true"] {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; font-weight: 600;
+}
+QToolButton#DeviceChip[allDevices="true"]:hover {
+    background: @SURFACE@; border: 1px solid rgba(59, 130, 246, 0.40);
+}
+QToolButton#DeviceChip[allDevices="true"]:checked {
+    background: rgba(59, 130, 246, 0.32); color: @TEXT@;
+    border: 1px solid @ACCENT@;
+}
+QToolButton#DeviceChip[allDevices="true"]:checked:hover { background: rgba(59, 130, 246, 0.40); }
+/* The sleep family - LAST, and widened over every attribute variant,
+   so a commented-out row puts every pill to sleep, master included.
+   Ties resolve by document order ((1,1,1)/(1,2,1) pairs), and the
+   deepest awake combo [allDevices]:checked:hover (1,3,1) is beaten by
+   [allDevices]:disabled:checked (1,3,1) sitting later. The widening
+   also covers hover reported on disabled chips (WA_UnderMouse is set
+   regardless of the enabled state). */
+QToolButton#DeviceChip:disabled,
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
+QToolButton#DeviceChip[allDevices="true"]:disabled {
+    background: @BG@; color: rgba(179, 171, 157, 0.45);
+    border: 1px dashed @BORDER@;
+}
+QToolButton#DeviceChip:disabled:checked,
+QToolButton#DeviceChip[deviceInstalled="false"]:disabled:checked,
+QToolButton#DeviceChip[allDevices="true"]:disabled:checked {
+    background: rgba(59, 130, 246, 0.12); color: rgba(179, 171, 157, 0.65);
+    border: 1px dashed rgba(59, 130, 246, 0.40);
+}
+/* Reveal toggle ("Show all (+N)" / "Show fewer"): a quiet secondary
+   control in the muted face, never competing with the endpoints. Its
+   :disabled sits last in its own group for the same reason. */
+QToolButton#DeviceChipMore {
+    background: transparent; color: @MUTED@;
+    border: 1px dashed @BORDER@; border-radius: 16px;
+    padding: 4px 12px; min-height: 22px; font-weight: 500;
+}
+QToolButton#DeviceChipMore:hover {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px dashed rgba(59, 130, 246, 0.45);
+}
+QToolButton#DeviceChipMore:checked {
+    background: rgba(59, 130, 246, 0.14); color: @TEXT@;
+    border: 1px solid rgba(59, 130, 246, 0.45);
+}
+QToolButton#DeviceChipMore:disabled {
+    background: transparent; color: rgba(179, 171, 157, 0.40);
+    border: 1px dashed @BORDER@;
+}
+
+/* --- Channel: the seats of the signal. Device's toggle grammar,
+   compacted: short channel codes sit centred in roomy min-width seats,
+   one weight up so the codes read as keycaps. A virtual/custom channel
+   is a real, working seat the hardware merely does not vouch for: full
+   ink and chip elevation, dashed edge (only the sleeping slot sinks to
+   @BG@ with muted ink). Same cascade law: sleep family last. --- */
+QToolButton#ChannelChip {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 16px;
+    padding: 4px 12px; min-height: 22px; min-width: 24px;
+    font-weight: 600;
+}
+QToolButton#ChannelChip:hover {
+    background: @SURFACE@; border: 1px solid rgba(59, 130, 246, 0.40);
+}
+QToolButton#ChannelChip:checked {
+    background: rgba(59, 130, 246, 0.28); color: @TEXT@;
+    border: 1px solid @ACCENT@;
+}
+QToolButton#ChannelChip:checked:hover { background: rgba(59, 130, 246, 0.36); }
+QToolButton#ChannelChip[customChannel="true"] {
+    background: @SURFACE_SUNKEN@; border: 1px dashed @BORDER@;
+}
+QToolButton#ChannelChip[customChannel="true"]:hover {
+    background: @SURFACE@; border: 1px dashed rgba(59, 130, 246, 0.45);
+}
+QToolButton#ChannelChip[customChannel="true"]:checked {
+    background: rgba(59, 130, 246, 0.28); border: 1px dashed @ACCENT@;
+}
+/* ALL, the master toggle: one weight up and a deeper ON pastel, same
+   elevation (needs the one-line allChannels property on the ALL chip;
+   without it the chip simply stays a member seat). Awake rules only -
+   its sleep comes from the family below. */
+QToolButton#ChannelChip[allChannels="true"] { font-weight: 700; }
+QToolButton#ChannelChip[allChannels="true"]:checked { background: rgba(59, 130, 246, 0.32); }
+QToolButton#ChannelChip[allChannels="true"]:checked:hover { background: rgba(59, 130, 246, 0.40); }
+/* The sleep family - LAST, widened over both attribute variants, so a
+   commented-out "Channel: all" row sleeps whole: the checked ALL seat
+   keeps only the faint 0.12 trace, muted ink, dashed - never the deep
+   ON pastel. */
+QToolButton#ChannelChip:disabled,
+QToolButton#ChannelChip[customChannel="true"]:disabled,
+QToolButton#ChannelChip[allChannels="true"]:disabled {
+    background: @BG@; color: rgba(179, 171, 157, 0.45);
+    border: 1px dashed @BORDER@;
+}
+QToolButton#ChannelChip:disabled:checked,
+QToolButton#ChannelChip[customChannel="true"]:disabled:checked,
+QToolButton#ChannelChip[allChannels="true"]:disabled:checked {
+    background: rgba(59, 130, 246, 0.12); color: rgba(179, 171, 157, 0.65);
+    border: 1px dashed rgba(59, 130, 246, 0.40);
+}
+/* The add field: an empty dashed seat waiting for a name. Focus seats
+   it (the sunken well) behind the calm accent ring, never an alarm.
+   The explicit :focus/:disabled rules matter - the id selector would
+   otherwise outweigh the generic QLineEdit state rules. */
+QLineEdit#ChannelChipAdd {
+    background: transparent; color: @TEXT@;
+    border: 1px dashed @BORDER@; border-radius: 16px;
+    padding: 4px 12px; min-height: 22px;
+}
+QLineEdit#ChannelChipAdd:hover { border: 1px dashed rgba(59, 130, 246, 0.45); }
+QLineEdit#ChannelChipAdd:focus { background: @SURFACE_SUNKEN@; border: 1px solid @ACCENT@; }
+QLineEdit#ChannelChipAdd:disabled {
+    background: transparent; color: rgba(179, 171, 157, 0.45);
+    border: 1px dashed @BORDER@;
+}
+
+/* --- Stage: the three-switch bank of the pipeline. The vocabulary is
+   fixed (pre-mix / post-mix / capture), so the pills take one equal
+   generous width and read as a matched set - a segmented control that
+   honestly allows multi-select. Same fill-for-on grammar; no per-stage
+   hue, because colour means only "on" in this skin. No attribute
+   variants here, so the plain :disabled pair closing the block is the
+   whole sleep family. --- */
+QToolButton#StageChip {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 16px;
+    padding: 4px 14px; min-height: 22px; min-width: 64px;
+    font-weight: 600;
+}
+QToolButton#StageChip:hover {
+    background: @SURFACE@; border: 1px solid rgba(59, 130, 246, 0.40);
+}
+QToolButton#StageChip:checked {
+    background: rgba(59, 130, 246, 0.28); color: @TEXT@;
+    border: 1px solid @ACCENT@;
+}
+QToolButton#StageChip:checked:hover { background: rgba(59, 130, 246, 0.36); }
+QToolButton#StageChip:disabled {
+    background: @BG@; color: rgba(179, 171, 157, 0.45);
+    border: 1px dashed @BORDER@;
+}
+QToolButton#StageChip:disabled:checked {
+    background: rgba(59, 130, 246, 0.12); color: rgba(179, 171, 157, 0.65);
+    border: 1px dashed rgba(59, 130, 246, 0.40);
+}
+/* Unknown selectors, kept as written: a sleeping slot beside the bank -
+   dashed, sunk, muted (the widget is constructed disabled). The tooltip
+   explains; nothing alarms. */
+QToolButton#StageChipUnknown {
+    background: @BG@; color: @MUTED@;
+    border: 1px dashed @BORDER@; border-radius: 16px;
+    padding: 4px 12px; min-height: 22px;
+}
+/* Lane captions ("Playback"/"Recording") and the chain arrow: quiet
+   guides beside the pill bank, in the sheet's secondary ink. */
+QLabel#StageLaneCaption {
+    background: transparent; color: @MUTED@;
+    font-size: 8pt; font-weight: 600;
+}
+QLabel#StageChainArrow { background: transparent; color: @MUTED@; }
+
+/* --- Comment: the memo. The one card whose content is the user's own
+   words, so it wears the sheet's established warm pastel (the dirty
+   badge's amber family: "warmer, never an alarm") as the note's paper -
+   no new palette. The '#' marker is dressed as the memo's little
+   sticker instead of raw config syntax. Focus stays the skin-wide calm
+   accent ring. --- */
+QLabel#CommentCardGlyph {
+    background: rgba(245, 158, 11, 0.16); color: #F4C577;
+    border: 1px solid rgba(245, 158, 11, 0.30);
+    border-radius: 12px; padding: 3px 10px;
+    font-weight: 700;
+}
+QLabel#CommentCardGlyph:disabled {
+    background: transparent; color: rgba(179, 171, 157, 0.55);
+    border: 1px dashed @BORDER@;
+}
+QLineEdit#CommentCardText {
+    background: rgba(245, 158, 11, 0.09); color: @TEXT@;
+    border: 1px solid rgba(245, 158, 11, 0.24); border-radius: 16px;
+    padding: 7px 16px;
+}
+QLineEdit#CommentCardText:hover { border: 1px solid rgba(245, 158, 11, 0.38); }
+QLineEdit#CommentCardText:focus {
+    background: rgba(245, 158, 11, 0.09); border: 1px solid @ACCENT@;
+}
+QLineEdit#CommentCardText:disabled {
+    background: @BG@; color: rgba(179, 171, 157, 0.55);
+    border: 1px dashed @BORDER@;
+}

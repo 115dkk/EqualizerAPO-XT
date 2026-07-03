@@ -43,7 +43,7 @@
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
-#include "Editor/widgets/routing/CurvedNodeRoutingRenderer.h"
+#include "Editor/widgets/routing/LightTraceRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
 
@@ -143,7 +143,7 @@ public:
 	}
 	IRoutingRenderer* routingRenderer() const override
 	{
-		static CurvedNodeRoutingRenderer renderer;
+		static LightTraceRoutingRenderer renderer;
 		return &renderer;
 	}
 

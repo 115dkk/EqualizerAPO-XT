@@ -759,7 +759,7 @@ QToolButton#FilterCardIconButton[studioLocate="true"]:hover {
 }
 /* MultiConvolution's channel-mapping strip: the caption is quiet mono ink
    over the glass, the hint reads as an instruction, and the routing graph
-   itself is the shared CopyRoutingGraphView. */
+   itself is the Light Trace view (LightTraceRoutingRenderer). */
 QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
@@ -850,4 +850,406 @@ QToolButton#TitleBarClose:hover {
 QToolButton#TitleBarClose:pressed {
     background: qradialgradient(cx:0.5, cy:0.55, radius:0.7, fx:0.5, fy:0.55,
         stop:0 rgba(239, 68, 68, 0.58), stop:0.6 rgba(239, 68, 68, 0.22), stop:1 rgba(239, 68, 68, 0));
+}
+
+/* ====================================================================
+   Phase 2 - Device / Channel / Comment / Stage card bodies
+   Same grammar as the dark sheet: toggles are lit glass chips, the
+   row's one blue light, hover pools light, pressed is maximum light,
+   disabled is switched off with every accent photon dead (a checked
+   inert chip keeps only a neutral one-step shade - the sheet's own
+   checked:disabled precedent falls back to neutral @BORDER@). White
+   glass cannot get brighter (S2), so unlit form comes from border
+   depth and a shaded fill, and selection leans on the accent fill +
+   accent border while the top edge stays the white reflection.
+   Specificity discipline mirrors the dark sheet: interactive states
+   pinned to :enabled; pressed rules carry :hover at four pseudo-
+   classes after the hover rules (a mouse press always hovers, so
+   plain :pressed:enabled would lose to the three-pseudo hover rules);
+   master pressed rules add the attribute on top; :disabled rules stay
+   last in each family (they tie with attribute rules, order wins).
+   ==================================================================== */
+
+/* The four editors sit ON the card's glass; transparent so the global
+   QWidget stamp cannot lay a patch under the chips. */
+QWidget#DeviceCardEditor,
+QWidget#ChannelCardEditor,
+QWidget#StageCardEditor,
+QWidget#CommentCardEditor {
+    background: transparent;
+    border: 0;
+}
+/* The editors are hosted inside QScrollArea#FilterCardEditorScroll;
+   the global QScrollArea/@BG@ stamp would repaint its viewport and
+   slide a @BG@ patch between the card glass and the transparent
+   editors. ID-scoped transparency outranks the type-scoped stamp -
+   the same rule rack ships for the same reason. */
+QScrollArea#FilterCardEditorScroll,
+QScrollArea#FilterCardEditorScroll > QWidget > QWidget {
+    background: transparent;
+}
+
+/* ----- Device picker - endpoints as lit glass patches ----- */
+QToolButton#DeviceChip {
+    background: rgba(24, 32, 51, 0.04);
+    color: @MUTED@;
+    border: 1px solid rgba(24, 32, 51, 0.14);
+    border-top-color: rgba(255, 255, 255, 0.90);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 9pt;
+}
+/* APO not installed: a deader pane - fainter ink, fainter glass. */
+QToolButton#DeviceChip[deviceInstalled="false"] {
+    color: rgba(93, 106, 132, 0.55);
+    background: rgba(24, 32, 51, 0.02);
+    border-color: rgba(24, 32, 51, 0.08);
+    border-top-color: rgba(255, 255, 255, 0.70);
+}
+/* Selected = lit from within (one notch stronger than dark - white
+   cannot brighten - and one above the static badge's 0.10). */
+QToolButton#DeviceChip:checked:enabled {
+    background: rgba(47, 107, 255, 0.16);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.55);
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+QToolButton#DeviceChip[deviceInstalled="false"]:checked:enabled {
+    background: rgba(47, 107, 255, 0.10);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.40);
+    border-top-color: rgba(255, 255, 255, 0.85);
+}
+/* "All devices": hotter accent fill and deeper border - more light,
+   never a second hue. */
+QToolButton#DeviceChip[allDevices="true"]:checked:enabled {
+    background: rgba(47, 107, 255, 0.26);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.70);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+QToolButton#DeviceChip:!checked:hover:enabled {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
+        stop:0 rgba(47, 107, 255, 0.16), stop:0.45 rgba(47, 107, 255, 0.07), stop:1 rgba(47, 107, 255, 0));
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.50);
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+QToolButton#DeviceChip:checked:hover:enabled {
+    background: rgba(47, 107, 255, 0.24);
+    border-color: rgba(47, 107, 255, 0.75);
+}
+QToolButton#DeviceChip[allDevices="true"]:checked:hover:enabled {
+    background: rgba(47, 107, 255, 0.34);
+    border-color: rgba(47, 107, 255, 0.90);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+/* Pressed = maximum light; four pseudos, after the hover rules (see
+   the sheet header note). */
+QToolButton#DeviceChip:!checked:pressed:hover:enabled,
+QToolButton#DeviceChip:checked:pressed:hover:enabled {
+    background: rgba(47, 107, 255, 0.30);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.85);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+/* The master chip presses one step past its own hover (0.34 < 0.38). */
+QToolButton#DeviceChip[allDevices="true"]:checked:pressed:hover:enabled {
+    background: rgba(47, 107, 255, 0.38);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.95);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+QToolButton#DeviceChip:disabled {
+    background: rgba(24, 32, 51, 0.02);
+    color: rgba(93, 106, 132, 0.45);
+    border-color: rgba(24, 32, 51, 0.06);
+    border-top-color: rgba(24, 32, 51, 0.06);
+}
+/* Checked but inert: extinguished - neutral one-step shade, zero
+   accent (rule 4; this sheet's checked:disabled precedent). */
+QToolButton#DeviceChip:checked:disabled {
+    background: rgba(24, 32, 51, 0.05);
+    color: rgba(93, 106, 132, 0.60);
+    border-color: rgba(24, 32, 51, 0.10);
+    border-top-color: rgba(24, 32, 51, 0.10);
+}
+
+/* The reveal toggle: quietest glass strip (paramSelector idiom). */
+QToolButton#DeviceChipMore {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid rgba(24, 32, 51, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 9pt;
+}
+QToolButton#DeviceChipMore:hover:enabled {
+    color: @TEXT@;
+    background: rgba(47, 107, 255, 0.08);
+    border-color: rgba(47, 107, 255, 0.50);
+    border-top-color: rgba(47, 107, 255, 0.50);
+}
+QToolButton#DeviceChipMore:checked:enabled {
+    color: @TEXT@;
+    background: rgba(24, 32, 51, 0.04);
+    border-color: rgba(24, 32, 51, 0.14);
+}
+/* A latched reveal toggle still answers the cursor. */
+QToolButton#DeviceChipMore:checked:hover:enabled {
+    color: @TEXT@;
+    background: rgba(47, 107, 255, 0.08);
+    border-color: rgba(47, 107, 255, 0.50);
+    border-top-color: rgba(47, 107, 255, 0.50);
+}
+QToolButton#DeviceChipMore:disabled {
+    color: rgba(93, 106, 132, 0.45);
+    border-color: rgba(24, 32, 51, 0.06);
+    border-top-color: rgba(24, 32, 51, 0.06);
+}
+
+/* ----- Channel picker - seats of the signal (mono seat tags) ----- */
+QToolButton#ChannelChip {
+    background: rgba(24, 32, 51, 0.04);
+    color: @MUTED@;
+    border: 1px solid rgba(24, 32, 51, 0.14);
+    border-top-color: rgba(255, 255, 255, 0.90);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+/* Virtual seat: dashed, uniform edge (no white reflection on a dashed
+   line - it would read as broken). Depth carries the outline. */
+QToolButton#ChannelChip[customChannel="true"] {
+    border-style: dashed;
+    border-color: rgba(24, 32, 51, 0.22);
+    border-top-color: rgba(24, 32, 51, 0.22);
+}
+QToolButton#ChannelChip:checked:enabled {
+    background: rgba(47, 107, 255, 0.16);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.55);
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+QToolButton#ChannelChip[customChannel="true"]:checked:enabled {
+    border-top-color: rgba(47, 107, 255, 0.55);
+}
+QToolButton#ChannelChip[allChannels="true"]:checked:enabled {
+    background: rgba(47, 107, 255, 0.26);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.70);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+QToolButton#ChannelChip:!checked:hover:enabled {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
+        stop:0 rgba(47, 107, 255, 0.16), stop:0.45 rgba(47, 107, 255, 0.07), stop:1 rgba(47, 107, 255, 0));
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.50);
+}
+QToolButton#ChannelChip:checked:hover:enabled {
+    background: rgba(47, 107, 255, 0.24);
+    border-color: rgba(47, 107, 255, 0.75);
+}
+QToolButton#ChannelChip[allChannels="true"]:checked:hover:enabled {
+    background: rgba(47, 107, 255, 0.34);
+    border-color: rgba(47, 107, 255, 0.90);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+/* Pressed = maximum light; four pseudos, after the hover rules. */
+QToolButton#ChannelChip:!checked:pressed:hover:enabled,
+QToolButton#ChannelChip:checked:pressed:hover:enabled {
+    background: rgba(47, 107, 255, 0.30);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.85);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+QToolButton#ChannelChip[allChannels="true"]:checked:pressed:hover:enabled {
+    background: rgba(47, 107, 255, 0.38);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.95);
+    border-top-color: rgba(255, 255, 255, 1.0);
+}
+QToolButton#ChannelChip:disabled {
+    background: rgba(24, 32, 51, 0.02);
+    color: rgba(93, 106, 132, 0.45);
+    border-color: rgba(24, 32, 51, 0.06);
+    border-top-color: rgba(24, 32, 51, 0.06);
+}
+/* Checked but inert: extinguished - neutral shade only, zero accent. */
+QToolButton#ChannelChip:checked:disabled {
+    background: rgba(24, 32, 51, 0.05);
+    color: rgba(93, 106, 132, 0.60);
+    border-color: rgba(24, 32, 51, 0.10);
+    border-top-color: rgba(24, 32, 51, 0.10);
+}
+
+/* The add-a-channel field: an empty dashed slot at rest, sinking under
+   an accent edge while typing (RefPathEdit idiom). :focus after
+   :hover - equal specificity, later wins while both apply. */
+QLineEdit#ChannelChipAdd {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px dashed rgba(24, 32, 51, 0.18);
+    border-radius: 8px;
+    padding: 3px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QLineEdit#ChannelChipAdd:hover:enabled {
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.45);
+}
+QLineEdit#ChannelChipAdd:focus:enabled {
+    background: @CARD_HOVER@;
+    color: @TEXT@;
+    border: 1px solid @ACCENT@;
+}
+QLineEdit#ChannelChipAdd:disabled {
+    background: transparent;
+    color: rgba(93, 106, 132, 0.45);
+    border-color: rgba(24, 32, 51, 0.08);
+}
+
+/* ----- Stage picker - path segments with their own lamps -----
+   3px left lamp edge in every state; dark socket out of the path, the
+   row's one blue when engaged. No per-stage hue (rule 1). Inside each
+   rule the border-color shorthand comes first and the left/top edge
+   overrides follow - order sensitive. */
+QToolButton#StageChip {
+    background: rgba(24, 32, 51, 0.04);
+    color: @MUTED@;
+    border: 1px solid rgba(24, 32, 51, 0.14);
+    border-top-color: rgba(255, 255, 255, 0.90);
+    border-left: 3px solid rgba(24, 32, 51, 0.22);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 9pt;
+    font-weight: 600;
+}
+QToolButton#StageChip:checked:enabled {
+    background: rgba(47, 107, 255, 0.16);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.55);
+    border-top-color: rgba(255, 255, 255, 0.95);
+    border-left-color: rgba(47, 107, 255, 0.95);
+}
+QToolButton#StageChip:!checked:hover:enabled {
+    background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
+        stop:0 rgba(47, 107, 255, 0.16), stop:0.45 rgba(47, 107, 255, 0.07), stop:1 rgba(47, 107, 255, 0));
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.50);
+    border-left-color: rgba(47, 107, 255, 0.50);
+}
+QToolButton#StageChip:checked:hover:enabled {
+    background: rgba(47, 107, 255, 0.24);
+    border-color: rgba(47, 107, 255, 0.75);
+    border-left-color: rgba(47, 107, 255, 1.0);
+}
+/* Pressed = maximum light; four pseudos, after the hover rules. */
+QToolButton#StageChip:!checked:pressed:hover:enabled,
+QToolButton#StageChip:checked:pressed:hover:enabled {
+    background: rgba(47, 107, 255, 0.30);
+    color: @TEXT@;
+    border-color: rgba(47, 107, 255, 0.85);
+    border-top-color: rgba(255, 255, 255, 1.0);
+    border-left-color: rgba(47, 107, 255, 1.0);
+}
+QToolButton#StageChip:disabled {
+    background: rgba(24, 32, 51, 0.02);
+    color: rgba(93, 106, 132, 0.45);
+    border-color: rgba(24, 32, 51, 0.06);
+    border-top-color: rgba(24, 32, 51, 0.06);
+    border-left-color: rgba(24, 32, 51, 0.08);
+}
+/* Checked but inert: extinguished lamp - neutral socket one step
+   above the unchecked socket, zero accent. */
+QToolButton#StageChip:checked:disabled {
+    background: rgba(24, 32, 51, 0.05);
+    color: rgba(93, 106, 132, 0.60);
+    border-color: rgba(24, 32, 51, 0.10);
+    border-top-color: rgba(24, 32, 51, 0.10);
+    border-left-color: rgba(24, 32, 51, 0.14);
+}
+/* Unknown selectors: verbatim data (mono) in a dashed, switched-off
+   slot. Never a warning colour. Always disabled. */
+QToolButton#StageChipUnknown {
+    background: transparent;
+    color: rgba(93, 106, 132, 0.55);
+    border: 1px dashed rgba(24, 32, 51, 0.18);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+/* Lane captions and the chain arrow: wayfinding, not controls - the
+   section-label dialect; the arrow keeps the same quiet ink. */
+QLabel#StageLaneCaption {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QLabel#StageChainArrow {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 10pt;
+}
+
+/* ----- Comment - quiet ink on the unlit pane -----
+   Rest: invisible field, lifted ink on the glass, mono '#' engraving.
+   Hover: the glass dips (shaded fill - white cannot brighten). Edit:
+   sunken glass under an accent edge (RefPathEdit idiom). :focus after
+   :hover - equal specificity, later wins while both apply. */
+QLabel#CommentCardGlyph {
+    color: rgba(93, 106, 132, 0.85);
+    background: transparent;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+}
+QLineEdit#CommentCardText {
+    background: transparent;
+    color: #3F495E;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 4px 8px;
+}
+QLineEdit#CommentCardText:hover:enabled {
+    background: rgba(232, 238, 248, 0.55);
+    border-color: rgba(24, 32, 51, 0.10);
+    border-top-color: rgba(24, 32, 51, 0.14);
+}
+QLineEdit#CommentCardText:focus:enabled {
+    background: @CARD_HOVER@;
+    color: @TEXT@;
+    border: 1px solid @ACCENT@;
+}
+QLineEdit#CommentCardText:disabled {
+    background: transparent;
+    color: rgba(93, 106, 132, 0.50);
+    border-color: transparent;
+}
+QLabel#CommentCardGlyph:disabled {
+    color: rgba(93, 106, 132, 0.50);
+}
+/* Light Trace routing overlays: sunken glass entries with the accent on the
+   focused border (the RefPathEdit idiom); mono ink for data. */
+QLineEdit#StudioRoutingFactorEditor,
+QLineEdit#StudioRoutingChannelEditor {
+    background: rgba(255, 255, 255, 0.92);
+    color: @TEXT@;
+    border: 1px solid rgba(47, 107, 255, 0.50);
+    border-radius: 6px;
+    padding: 1px 6px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QLineEdit#StudioRoutingFactorEditor:focus,
+QLineEdit#StudioRoutingChannelEditor:focus {
+    border: 1px solid @ACCENT@;
 }

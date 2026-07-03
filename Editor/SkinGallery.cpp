@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 
 #include <QApplication>
 #include <QCheckBox>
@@ -53,7 +54,14 @@ struct GalleryRow
 // per-skin routing view over a 4-channel BRIR, both ears mapped) and the
 // freshly inserted empty state; the empty one also guards the Insert path,
 // where a bare "MultiConvolution:" template must still resolve to the card
-// body and not fall back to an empty row.
+// body and not fall back to an empty row. The comment and stage rows judge
+// the Phase 1 cards that replaced the raw-container fallback: an in-place
+// note editor and the two-lane stage card. The two device rows split the
+// card's grammar over the synthetic endpoints (galleryDevices): "device"
+// shows an engaged playback switch and an engaged capture well next to an
+// idle endpoint (the routed/at-rest contrast every skin styles), while
+// "device_all" shows the all-devices master engaged over powered-down
+// endpoint chips.
 QList<GalleryRow> galleryRows()
 {
 	return {
@@ -65,12 +73,142 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("include_nested"), QStringLiteral("Include: Surround\\example.txt") },
 		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
-		{ QStringLiteral("device"), QStringLiteral("Device: all") },
+		{ QStringLiteral("device"), QStringLiteral("Device: Speakers Example Audio; Microphone Example Audio") },
+		{ QStringLiteral("device_all"), QStringLiteral("Device: all") },
+		{ QStringLiteral("channel"), QStringLiteral("Channel: L R") },
+		{ QStringLiteral("comment"), QStringLiteral("# Living room preset - tuned by ear") },
+		{ QStringLiteral("stage"), QStringLiteral("Stage: pre-mix post-mix") },
 		{ QStringLiteral("copy_empty"), QStringLiteral("Copy:") },
+		{ QStringLiteral("copy"), QStringLiteral("Copy: VC=0.5*L+0.5*R R=L") },
 		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
 		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
 		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") }
 	};
+}
+
+// Synthetic audio endpoints for the Device rows. Offscreen runners have no
+// audio devices and the Device card only grows chips for enumerated
+// endpoints, so without these the card renders as a lone master chip and the
+// per-skin switch grammar is never judged. Three playback endpoints (one
+// engaged, one idle, one without the APO - the blank hidden behind the
+// reveal toggle) and one engaged capture endpoint cover the state family.
+class GalleryAPOInfo : public AbstractAPOInfo
+{
+public:
+	GalleryAPOInfo(const std::wstring& connection, const std::wstring& name, bool input, bool installed)
+		: connection(connection), name(name), input(input), installed(installed)
+	{
+	}
+
+	std::wstring getConnectionName() const override
+	{
+		return connection;
+	}
+
+	std::wstring getDeviceName() const override
+	{
+		return name;
+	}
+
+	std::wstring getDeviceGuid() const override
+	{
+		return L"";
+	}
+
+	// The card pre-selects a chip when the row's pattern matches this string
+	// (DeviceCommand::matches) and serializes selections back as these exact
+	// strings joined with "; " - keep them plain words so the gallery line
+	// round-trips byte-identically.
+	std::wstring getDeviceString() const override
+	{
+		return connection + L" " + name;
+	}
+
+	unsigned getChannelCount() const override
+	{
+		return 2;
+	}
+
+	unsigned getSampleRate() const override
+	{
+		return 48000;
+	}
+
+	unsigned long getChannelMask() const override
+	{
+		return 0x3;
+	}
+
+	bool isInput() const override
+	{
+		return input;
+	}
+
+	bool isInstalled() const override
+	{
+		return installed;
+	}
+
+	bool canBeUpgraded() const override
+	{
+		return false;
+	}
+
+	bool hasChanges() const override
+	{
+		return false;
+	}
+
+	bool isExperimental() const override
+	{
+		return false;
+	}
+
+	bool isEnhancementsDisabled() const override
+	{
+		return false;
+	}
+
+	bool isDefaultDevice() const override
+	{
+		return false;
+	}
+
+	bool isDisabled() const override
+	{
+		return false;
+	}
+
+	bool isUnplugged() const override
+	{
+		return false;
+	}
+
+	void install() override
+	{
+	}
+
+	void uninstall() override
+	{
+	}
+
+	void reinstall() override
+	{
+	}
+
+private:
+	std::wstring connection;
+	std::wstring name;
+	bool input;
+	bool installed;
+};
+
+void galleryDevices(QList<std::shared_ptr<AbstractAPOInfo>>& outputs, QList<std::shared_ptr<AbstractAPOInfo>>& inputs)
+{
+	outputs.append(std::make_shared<GalleryAPOInfo>(L"Speakers", L"Example Audio", false, true));
+	outputs.append(std::make_shared<GalleryAPOInfo>(L"Headphones", L"Example Audio", false, true));
+	outputs.append(std::make_shared<GalleryAPOInfo>(L"Digital Output", L"Example Audio", false, false));
+	inputs.append(std::make_shared<GalleryAPOInfo>(L"Microphone", L"Example Audio", true, true));
 }
 
 // A canonical 16-bit PCM WAV of silence: enough for libsndfile to report the
@@ -277,7 +415,9 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	FilterTable* table = new FilterTable(nullptr);
 	scrollArea.setWidget(table);
 	table->updateDeviceAndChannelMask(nullptr, 0);
-	table->initialize(&scrollArea, {}, {});
+	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices, inputDevices;
+	galleryDevices(outputDevices, inputDevices);
+	table->initialize(&scrollArea, outputDevices, inputDevices);
 	// The config path anchors relative reference resolution to the synthetic
 	// target files (buildReferenceFiles) and namespaces per-file row prefs in
 	// the registry; the gallery only reads prefs, never saves them.
