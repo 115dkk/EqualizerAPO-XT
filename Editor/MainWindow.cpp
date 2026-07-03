@@ -215,13 +215,29 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	analysisThread->start();
 	connect(analysisThread, SIGNAL(analysisFinished()), this, SLOT(updateAnalysisPanel()));
 
-	QLocale autoLocale = QLocale::system();
-	if (autoLocale.language() != QLocale::German && autoLocale.language() != QLocale::Chinese && autoLocale.language() != QLocale::French && autoLocale.language() != QLocale::Korean)
-		autoLocale = QLocale("en");
-	QLocale::Language languages[] = {QLocale::AnyLanguage, QLocale::English, QLocale::German, QLocale::Chinese, QLocale::French, QLocale::Korean};
-	for (size_t i = 0; i < sizeof(languages) / sizeof(QLocale::Language); i++)
+	// Derive the language roster from the catalogs that actually shipped
+	// (:/translations/Editor_<code>.qm) instead of a hand-maintained list, so
+	// adding a translation cannot miss this menu (and a removed one cannot
+	// linger). English is the source language and always present.
+	// (audit #146 TD018)
+	QList<QLocale::Language> languages;
+	languages << QLocale::AnyLanguage << QLocale::English;
+	const QStringList catalogs = QDir(QStringLiteral(":/translations")).entryList(
+		QStringList() << QStringLiteral("Editor_*.qm"), QDir::Files, QDir::Name);
+	for (const QString& catalog : catalogs)
 	{
-		QLocale::Language language = languages[i];
+		QString code = catalog.mid(7); // after "Editor_"
+		code.chop(3); // before ".qm"
+		QLocale::Language language = QLocale(code).language();
+		if (language != QLocale::English && language != QLocale::AnyLanguage && !languages.contains(language))
+			languages.append(language);
+	}
+
+	QLocale autoLocale = QLocale::system();
+	if (autoLocale.language() != QLocale::English && !languages.contains(autoLocale.language()))
+		autoLocale = QLocale("en");
+	for (QLocale::Language language : languages)
+	{
 		QString languageName;
 		if (language == QLocale::AnyLanguage)
 			languageName = autoLocale.nativeLanguageName();

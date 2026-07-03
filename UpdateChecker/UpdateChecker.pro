@@ -25,6 +25,7 @@ QMAKE_CXXFLAGS_RELEASE += /O2
 PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
+	../Editor/helpers/QtAppBootstrap.cpp \
 	main.cpp \
 	UpdateChecker.cpp \
 	UpdateInfoFormatter.cpp \
@@ -34,6 +35,7 @@ SOURCES += \
 	stdafx.cpp
 
 HEADERS += \
+	../Editor/helpers/QtAppBootstrap.h \
 	UpdateChecker.h \
 	UpdateInfoFormatter.h \
 	VelopackUpdateInfo.h \
@@ -51,7 +53,7 @@ RESOURCES += \
 
 TRANSLATIONS += \
 	translations/UpdateChecker_de.ts \
-	translations/UpdateChecker_fr.ts \
+	translations/UpdateChecker_fr.ts \n	translations/UpdateChecker_ko.ts \
 	translations/UpdateChecker_zh_CN.ts
 
 # Include parent directory for shared headers

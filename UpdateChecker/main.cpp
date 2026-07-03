@@ -29,6 +29,7 @@
 #include "UpdateInfoFormatter.h"
 #include "VelopackUpdateInfo.h"
 #include "version.h"
+#include "Editor/helpers/QtAppBootstrap.h"
 
 #define WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
@@ -41,59 +42,21 @@
 QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, bool autoMode, bool* ok, QString* errorMessage);
 void showFailureMessage(QString message, QString title);
 
-namespace
-{
-// addLibraryPath() resolves a relative path against the current working
-// directory, not the executable directory. Anchor the Qt plugin search to the
-// executable's own directory so the loaded platform/style/tls plugin DLLs come
-// from the install folder regardless of the working directory (mirrors
-// Editor/main.cpp; hardens the same relative-"qt" pattern as DeviceSelector).
-std::wstring executableDirectory()
-{
-	wchar_t buffer[MAX_PATH];
-	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
-	if (length == 0)
-		return std::wstring();
-	std::wstring path(buffer, length);
-	size_t slash = path.find_last_of(L"\\/");
-	if (slash == std::wstring::npos)
-		return path;
-	return path.substr(0, slash);
-}
-
-void addExecutableRelativePluginPath()
-{
-	std::wstring pluginDir = executableDirectory();
-	if (!pluginDir.empty())
-	{
-		pluginDir += L"\\qt";
-		QCoreApplication::addLibraryPath(QString::fromStdWString(pluginDir));
-	}
-	else
-	{
-		QCoreApplication::addLibraryPath(QStringLiteral("qt"));
-	}
-}
-}
-
 int main(int argc, char* argv[])
 {
-	addExecutableRelativePluginPath();
+	// Shared bootstrap: plugin-path anchoring plus the Editor's language
+	// preference. (audit #146 TD011)
+	QtAppBootstrap::addExecutableRelativePluginPath();
 
 	QApplication app(argc, argv);
 	if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
 		app.setStyle("fusion");
 
-	QLocale::setDefault(QLocale::system());
+	QtAppBootstrap::applyUserLocale();
 
 	QTranslator qtTranslator;
-	if (qtTranslator.load(QLocale(), ":/translations/qtbase", "_"))
-		app.installTranslator(&qtTranslator);
-
 	QTranslator updateCheckerTranslator;
-	if (updateCheckerTranslator.load(
-		QLocale(), ":/translations/UpdateChecker", "_"))
-		app.installTranslator(&updateCheckerTranslator);
+	QtAppBootstrap::installTranslators(app, QStringLiteral("UpdateChecker"), qtTranslator, updateCheckerTranslator);
 
 	QCommandLineParser parser;
 	QCommandLineOption autoOption("a", "Automatic mode (no dialog if no new version, respect skip version, only check every 24 hours)");

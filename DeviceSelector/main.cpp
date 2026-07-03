@@ -26,63 +26,26 @@
 #include <winsock2.h>
 #include "ReceiveThread.h"
 #include "DeviceSelector.h"
-
-namespace
-{
-// addLibraryPath() resolves a relative path against the current working
-// directory, not the executable directory. DeviceSelector runs elevated
-// (requireAdministrator), so a relative "qt" plugin path let a caller that
-// controls the working directory plant a Qt plugin DLL that the QApplication
-// constructor would then load into this elevated process. Anchor the plugin
-// search to the executable's own directory instead (mirrors Editor/main.cpp).
-std::wstring executableDirectory()
-{
-	wchar_t buffer[MAX_PATH];
-	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
-	if (length == 0)
-		return std::wstring();
-	std::wstring path(buffer, length);
-	size_t slash = path.find_last_of(L"\\/");
-	if (slash == std::wstring::npos)
-		return path;
-	return path.substr(0, slash);
-}
-
-void addExecutableRelativePluginPath()
-{
-	std::wstring pluginDir = executableDirectory();
-	if (!pluginDir.empty())
-	{
-		pluginDir += L"\\qt";
-		QCoreApplication::addLibraryPath(QString::fromStdWString(pluginDir));
-	}
-	else
-	{
-		QCoreApplication::addLibraryPath(QStringLiteral("qt"));
-	}
-}
-}
+#include "Editor/helpers/QtAppBootstrap.h"
 
 int main(int argc, char* argv[])
 {
 	int result = 0;
 
-	addExecutableRelativePluginPath();
+	// Shared bootstrap: anchors the plugin path (a security concern for this
+	// elevated process) and, below, applies the language the user picked in
+	// the Editor. (audit #146 TD011)
+	QtAppBootstrap::addExecutableRelativePluginPath();
 
 	QApplication app(argc, argv);
 	if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
 		app.setStyle("fusion");
 
-	QLocale::setDefault(QLocale::system());
+	QtAppBootstrap::applyUserLocale();
 
 	QTranslator qtTranslator;
-	if (qtTranslator.load(QLocale(), ":/translations/qtbase", "_"))
-		app.installTranslator(&qtTranslator);
-
 	QTranslator deviceSelectorTranslator;
-	if (deviceSelectorTranslator.load(
-		QLocale(), ":/translations/DeviceSelector", "_"))
-		app.installTranslator(&deviceSelectorTranslator);
+	QtAppBootstrap::installTranslators(app, QStringLiteral("DeviceSelector"), qtTranslator, deviceSelectorTranslator);
 
 	if (app.arguments().contains("/u"))
 	{
