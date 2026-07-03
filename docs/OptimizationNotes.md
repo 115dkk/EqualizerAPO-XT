@@ -6,7 +6,7 @@
 
 - C/C++ 소스와 헤더 285개, 약 3만 줄을 확인했습니다.
 - 주요 대상은 오디오 처리 경로, 필터 구현, VST 처리, 설정 파싱, Qt 도구, 빌드 파일입니다.
-- 빌드 파일은 `EqualizerAPO.sln`, 각 `.vcxproj`, Qt `.pro`, NSIS `.nsi`, GitHub Actions 파일을 기준으로 확인했습니다.
+- 빌드 파일은 `EqualizerAPO.sln`, 각 `.vcxproj`, Qt `.pro`, GitHub Actions 파일을 기준으로 확인했습니다.
 
 ## 완료한 작업
 

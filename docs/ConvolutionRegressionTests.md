@@ -25,8 +25,11 @@ Build the common library, build the test executable, then run it:
 Expected output:
 
 ```text
-HybridConvTests passed
+HybridConvTests passed (<N> checks)
 ```
+
+`<N>` is the number of assertions that passed (`Tests/TestHarness.h`). It
+grows whenever a suite adds checks, so do not match it exactly.
 
 The test project copies `libfftw3.dll` and `sndfile.dll` from the configured
 dependency folders into its output directory.
@@ -34,4 +37,8 @@ dependency folders into its output directory.
 ## CI
 
 GitHub Actions builds `Tests\HybridConvTests\HybridConvTests.vcxproj` for each
-SIMD matrix entry and runs the executable after the non-Qt projects finish.
+SIMD matrix entry. It runs the executable after the non-Qt projects finish,
+but only for variants whose `RunnerCanExecute` flag is true in
+`.github/simd-variants.psd1`. GitHub-hosted x64 runners do not guarantee
+AVX-512 or AVX10.1 at runtime, so the `avx512` and `avx10_1` binaries are
+built but not executed in CI.
