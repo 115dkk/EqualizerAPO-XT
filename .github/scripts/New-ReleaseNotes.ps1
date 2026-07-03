@@ -37,6 +37,9 @@ $ChannelTable = [ordered]@{
 # Fail loudly if the manifest's channel set drifts from this table, so a new or
 # renamed variant cannot ship with missing download guidance. The manifest sits two
 # levels up from this script (.github/scripts/ -> .github/simd-variants.psd1).
+# $manifestChannels is reused below to author the Verification variant list from
+# the manifest instead of hard-coding it here.
+$manifestChannels = @()
 $manifestPath = Join-Path $PSScriptRoot "..\simd-variants.psd1"
 if (Test-Path $manifestPath) {
   $manifestChannels = @((Import-PowerShellDataFile -Path $manifestPath).Variants | ForEach-Object { $_.Channel })
@@ -326,7 +329,21 @@ if ($previousRelease -and $compare) {
 [void]$lines.Add("")
 [void]$lines.Add("## Verification")
 [void]$lines.Add("")
-[void]$lines.Add("The linked workflow builds x64 SSE2 baseline, x64 AVX, x64 AVX2, x64 AVX-512, x64 AVX10.1, and ARM64 installers. It runs EditorLogicTests on every build variant and runs HybridConvTests where the GitHub-hosted runner can execute the target instruction set.")
+
+# The variant list comes from simd-variants.psd1 so this sentence cannot drift
+# from what CI actually builds; the test-suite list mirrors the build.yml steps.
+$builtVariantsPhrase = if ($manifestChannels.Count -gt 0) {
+  $channelNames = @($manifestChannels | ForEach-Object { "``$_``" })
+  $channelList = if ($channelNames.Count -gt 1) {
+    (($channelNames | Select-Object -SkipLast 1) -join ", ") + ", and " + $channelNames[-1]
+  } else {
+    $channelNames[0]
+  }
+  "installers for the $channelList channels"
+} else {
+  "installers for every SIMD/architecture channel"
+}
+[void]$lines.Add("The linked workflow builds $builtVariantsPhrase. It runs EditorLogicTests on every build variant, and runs HybridConvTests, EngineOrchestrationTests, and AudioRegressionTests (plus a cross-variant output comparison) where the GitHub-hosted runner can execute the target instruction set.")
 [void]$lines.Add("")
 [void]$lines.Add("Release page: [$Tag]($releaseUrl)")
 

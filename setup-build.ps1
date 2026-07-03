@@ -90,9 +90,12 @@ $downloads = @(
     @{
         # Velopack C/C++ runtime (Velopack.h + import libs + DLLs for every platform).
         # Always fetched regardless of SIMD variant; the Editor links it for auto-update.
+        # Not covered by DependencyReleases (the URL is release-tag based already), so
+        # its SHA-256 pin rides on the download entry itself.
         Repo        = "velopack/velopack"
         Asset       = "velopack_libc_$velopackLibcVersion.zip"
         Url         = "https://github.com/velopack/velopack/releases/download/$velopackLibcVersion/velopack_libc_$velopackLibcVersion.zip"
+        Sha256      = $simdManifest.Shared.VelopackLibcSha256
         Destination = Join-Path $depsDir "velopack_libc"
     }
 )
@@ -135,8 +138,10 @@ foreach ($dl in $downloads) {
         }
     }
 
-    if ($pin) {
-        $expected = $pin.Sha256[$dl.Asset]
+    if ($pin -or $dl.Sha256) {
+        # DependencyReleases pins are per-asset; velopack_libc carries its pin on
+        # the download entry (Shared.VelopackLibcSha256 in simd-variants.psd1).
+        $expected = if ($dl.Sha256) { $dl.Sha256 } else { $pin.Sha256[$dl.Asset] }
         if (-not $expected) {
             throw "No pinned SHA-256 for $($dl.Asset) in simd-variants.psd1"
         }
@@ -157,25 +162,25 @@ foreach ($dl in $downloads) {
 if ($usesVcpkg) {
     Write-Host "`n  Building lower-SIMD dependencies via vcpkg..."
 
-    # Import VS dev environment
-    $vswherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-    $vsInstallPath = & $vswherePath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
-    if (-not $vsInstallPath) {
-        $vsInstallPath = & $vswherePath -products * -requires Microsoft.Component.MSBuild -property installationPath -latest
-    }
-    $devCmdPath = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
-    $environment = cmd /c "`"$devCmdPath`" -arch=x64 -no_logo >nul && set"
-    foreach ($line in $environment) {
-        if ($line -match "^(.*?)=(.*)$") {
-            Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
-        }
-    }
+    # Import VS dev environment (canonical helper shared with build.yml)
+    . (Join-Path $workspace ".github\scripts\Import-VsDevEnvironment.ps1")
+    Import-VsDevEnvironment "x64"
 
     $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
     if (-not $vcpkgRoot -or -not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
         $vcpkgRoot = Join-Path $workspace "vcpkg"
         if (-not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
+            # Pin vcpkg to the manifest commit: cloning a moving HEAD would let the
+            # portfiles (and thus the FFTW/libsndfile binaries built here) change
+            # without a reviewed diff in simd-variants.psd1. --depth 1 keeps the
+            # clone small; the pinned commit is fetched by SHA and checked out.
+            $vcpkgCommit = $simdManifest.Shared.VcpkgCommit
             git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+            if ($LASTEXITCODE -ne 0) { throw "Failed to clone vcpkg" }
+            git -C $vcpkgRoot fetch --depth 1 origin $vcpkgCommit
+            if ($LASTEXITCODE -ne 0) { throw "Failed to fetch pinned vcpkg commit $vcpkgCommit" }
+            git -C $vcpkgRoot checkout --detach $vcpkgCommit
+            if ($LASTEXITCODE -ne 0) { throw "Failed to check out pinned vcpkg commit $vcpkgCommit" }
             & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
         }
     }
@@ -379,6 +384,21 @@ if (-not $SkipQt) {
 
 if ($allOk) {
     Write-Host "`n=== Setup Complete ===" -ForegroundColor Green
+
+    # The .pro files fail with error() when an x64 build passes neither
+    # EAPO_SIMD_FLAGS nor EAPO_SIMD_BASELINE, so the printed qmake line must
+    # carry the same variant arguments CI passes (build.yml "Build Qt
+    # Applications"): the update channel plus the variant's /arch flag, or the
+    # explicit baseline marker for sse2. ARM64 passes no SIMD argument.
+    $qmakeVariantArgs = "`"EAPO_UPDATE_CHANNEL=$($variantEntry.Channel)`""
+    if ($Platform -eq "x64") {
+        if ($variantEntry.QtArchFlag) {
+            $qmakeVariantArgs += " `"EAPO_SIMD_FLAGS=$($variantEntry.QtArchFlag)`""
+        } else {
+            $qmakeVariantArgs += " `"EAPO_SIMD_BASELINE=1`""
+        }
+    }
+
     Write-Host @"
 
 To build the project, open a VS Developer Command Prompt and run:
@@ -397,12 +417,15 @@ To build the project, open a VS Developer Command Prompt and run:
   `$env:QT_ROOT          = "$qtRoot"
 
   # Build core projects with MSBuild
-  msbuild EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64
+  msbuild EqualizerAPO.sln /p:Configuration=Release /p:Platform=$Platform
 
-  # Build Qt apps with qmake
-  cd build-Editor
-  qmake ..\Editor\Editor.pro -r CONFIG+=release
+  # Build Qt apps with qmake (run lrelease first: nmake stalls without the .qm files)
+  mkdir build-Editor-$Platform; cd build-Editor-$Platform
+  lrelease ..\Editor\Editor.pro
+  qmake ..\Editor\Editor.pro -r "CONFIG+=release" $qmakeVariantArgs
   nmake
+
+  # DeviceSelector and UpdateChecker build the same way from their .pro files.
 "@
 } else {
     Write-Host "`n=== Setup Incomplete ===" -ForegroundColor Red
