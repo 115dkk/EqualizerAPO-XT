@@ -57,30 +57,18 @@ void FilterTable::cut()
 
 void FilterTable::copy()
 {
-	QString text;
-	QList<QVariantMap> prefsList;
-	bool first = true;
-	for (Item* item : items)
-	{
-		if (selected.contains(item))
-		{
-			if (first)
-				first = false;
-			else
-				text += "\n";
-			text += item->text;
-			prefsList.append(item->prefs);
-		}
-	}
+	// The payload (selected lines in document order + aligned prefs) is pure
+	// model state; only the clipboard hand-off stays here. (audit #146 TD032)
+	if (model.selected().isEmpty())
+		return;
 
-	if (selected.size() > 0)
-	{
-		FilterTableMimeData* mimeData = new FilterTableMimeData;
-		mimeData->setText(text);
-		mimeData->setPrefsList(prefsList);
-		QClipboard* clipboard = QApplication::clipboard();
-		clipboard->setMimeData(mimeData);
-	}
+	FilterListModel::CopyPayload payload = model.copyPayload();
+
+	FilterTableMimeData* mimeData = new FilterTableMimeData;
+	mimeData->setText(payload.text);
+	mimeData->setPrefsList(payload.prefsList);
+	QClipboard* clipboard = QApplication::clipboard();
+	clipboard->setMimeData(mimeData);
 }
 
 void FilterTable::paste()
@@ -89,25 +77,26 @@ void FilterTable::paste()
 	const QMimeData* mimeData = clipboard->mimeData();
 	if (mimeData->hasText())
 	{
-		int dropRow = items.size();
-		for (int i = 0; i < items.size(); i++)
-		{
-			if (selected.contains(items[i]))
-			{
-				dropRow = i;
-				break;
-			}
-		}
+		int dropRow = model.firstSelectedIndex();
+		if (dropRow == -1)
+			dropRow = model.items().size();
 
-		insertLinesFromMimeData(mimeData, dropRow);
+		int insertedCount = insertLinesFromMimeData(mimeData, dropRow);
 
 		emit linesChanged();
-		updateGuis();
+		// A single pasted line is the common case: splice just that row into
+		// the card grid instead of rebuilding every row. (audit #146 TD040)
+		if (insertedCount == 1 && renderMode == ModernCards)
+			insertRowAt(dropRow);
+		else
+			updateGuis();
 	}
 }
 
-void FilterTable::insertLinesFromMimeData(const QMimeData* mimeData, int dropRow)
+int FilterTable::insertLinesFromMimeData(const QMimeData* mimeData, int dropRow)
 {
+	// The QMimeData unpacking stays here; the insertion and the selection
+	// replacement are model state. (audit #146 TD032)
 	QString text = mimeData->text();
 	QStringList textLines = text.split("\n");
 	QList<QVariantMap> prefsList;
@@ -115,54 +104,29 @@ void FilterTable::insertLinesFromMimeData(const QMimeData* mimeData, int dropRow
 	if (filterTableMimeData != nullptr)
 		prefsList = filterTableMimeData->getPrefsList();
 
-	selected.clear();
-	focused = nullptr;
-	selectionStart = nullptr;
-	for (int i = 0; i < textLines.size(); i++)
-	{
-		QString line = textLines[i];
-		Item* item = new Item(line);
-		if (i < prefsList.size())
-			item->prefs = prefsList[i];
-		selected.insert(item);
-		items.insert(dropRow++, item);
-		if (focused == nullptr)
-		{
-			focused = item;
-			selectionStart = item;
-		}
-	}
+	return int(model.insertLines(textLines, prefsList, dropRow).count());
 }
 
 void FilterTable::deleteSelectedLines()
 {
-	QList<Item*> newItems;
-	for (Item* item : items)
-	{
-		if (selected.contains(item))
-		{
-			if (item == focused)
-				focused = nullptr;
-			if (item == selectionStart)
-				selectionStart = nullptr;
-			delete item;
-		}
-		else
-		{
-			newItems.append(item);
-		}
-	}
-	selected.clear();
-	items = newItems;
+	// A single-row deletion keeps every other row widget alive and splices
+	// just one out of the grid. Multi-row deletions (and the frozen legacy
+	// path) keep the full rebuild. (audit #146 TD040)
+	int removedIndex = -1;
+	if (renderMode == ModernCards && model.selected().size() == 1)
+		removedIndex = int(model.items().indexOf(*model.selected().cbegin()));
+
+	model.deleteSelected();
 	emit linesChanged();
-	updateGuis();
+	if (removedIndex >= 0)
+		removeRowAt(removedIndex);
+	else
+		updateGuis();
 }
 
 void FilterTable::selectAll()
 {
-	selected.clear();
-	for (Item* item : items)
-		selected.insert(item);
+	model.selectAll();
 	updateRowWidgets();
 }
 
@@ -178,7 +142,12 @@ void FilterTable::addActionTriggered()
 	if (chooseFilterTemplate(&filterTemplate, p))
 	{
 		addLine(filterTemplate.getLine());
-		updateGuis();
+		// The toolbar add appends exactly one line; splice just that row into
+		// the card grid. (audit #146 TD040)
+		if (renderMode == ModernCards)
+			insertRowAt(int(model.items().count()) - 1);
+		else
+			updateGuis();
 	}
 }
 
@@ -193,9 +162,9 @@ void FilterTable::savePreferences()
 	{
 		QStringList prefLines;
 
-		for (int i = 0; i < items.size(); i++)
+		for (int i = 0; i < model.items().size(); i++)
 		{
-			Item* item = items[i];
+			Item* item = model.items()[i];
 
 			if (item->gui != nullptr)
 			{

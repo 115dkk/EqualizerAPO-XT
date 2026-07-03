@@ -305,6 +305,42 @@ void FilterCardRow::editText()
 		editButton->setChecked(true);
 }
 
+void FilterCardRow::updateRowPosition(int rowNumber, int depth)
+{
+	// (audit #146 TD040) The constructor puts the number into numberLabel and
+	// the depth into the outer layout's left margin, the descriptor (scope
+	// rail painting) and the skin styling hooks. Refresh those in place.
+	if (numberLabel != nullptr)
+	{
+		// A skin's prepareCommandRow may have rewritten the plain number into
+		// its own coordinate grammar at construction (MatrixSkin: "3" -> "B3",
+		// bus letter + line). The prefix only depends on the command type,
+		// which does not change for a shifted row, so keep any non-digit
+		// prefix and replace just the trailing line number - the same text a
+		// full rebuild would produce.
+		const QString text = numberLabel->text();
+		int digitStart = int(text.size());
+		while (digitStart > 0 && text.at(digitStart - 1).isDigit())
+			digitStart--;
+		numberLabel->setText(text.left(digitStart) + QString::number(rowNumber));
+	}
+
+	if (descriptor.depth != depth)
+	{
+		descriptor.depth = depth;
+		if (layout() != nullptr)
+			layout()->setContentsMargins(8 + depth * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
+		// Re-derives the descriptor at the new depth and refreshes the badge,
+		// the scopeDepth style property and the frame/header stylesheets
+		// (refreshStateProperties), then repaints.
+		rebuildSummary();
+	}
+	else
+	{
+		update();
+	}
+}
+
 QSize FilterCardRow::sizeHint() const
 {
 	// Blank lines collapse to a thin spacer; no header, no body, just a few

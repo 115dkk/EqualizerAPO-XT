@@ -54,39 +54,32 @@ void FilterTable::mousePressEvent(QMouseEvent* event)
 {
 	if (event->buttons() & Qt::LeftButton)
 	{
+		// Pixel-to-row hit testing stays here; the selection state math lives
+		// in FilterListModel. (audit #146 TD032)
 		int row = rowForPos(event->pos(), false);
 		if (row != -1)
 		{
-			Item* item = items[row];
+			Item* item = model.items()[row];
 
 			if (event->modifiers() & Qt::ControlModifier)
 			{
-				if (!selected.remove(item))
-					selected.insert(item);
-				selectionStart = item;
+				if (!model.deselect(item))
+					model.select(item);
+				model.setSelectionStart(item);
 			}
 			else if (event->modifiers() & Qt::ShiftModifier)
 			{
-				int startRow = items.indexOf(selectionStart);
-				if (startRow != -1)
-				{
-					selected.clear();
-					for (int i = min(startRow, row); i <= max(startRow, row); i++)
-					{
-						selected.insert(items[i]);
-					}
-				}
+				model.selectRangeFromAnchor(item);
 			}
 			else
 			{
-				if (!selected.contains(item))
-				{
-					selected.clear();
-					selected.insert(item);
-				}
-				selectionStart = item;
+				// Clicking an already-selected row keeps the multi-selection
+				// intact so it can be dragged as a group.
+				if (!model.isSelected(item))
+					model.selectOnly(item);
+				model.setSelectionStart(item);
 			}
-			focused = item;
+			model.setFocused(item);
 			ensureRowVisible(row);
 			updateRowWidgets();
 
@@ -94,9 +87,9 @@ void FilterTable::mousePressEvent(QMouseEvent* event)
 		}
 		else
 		{
-			selected.clear();
-			focused = nullptr;
-			selectionStart = nullptr;
+			model.clearSelection();
+			model.setFocused(nullptr);
+			model.setSelectionStart(nullptr);
 			updateRowWidgets();
 		}
 	}
@@ -109,15 +102,14 @@ void FilterTable::mouseReleaseEvent(QMouseEvent* event)
 		int row = rowForPos(event->pos(), false);
 		if (row != -1)
 		{
-			Item* item = items[row];
+			Item* item = model.items()[row];
 
 			if (!(event->modifiers() & Qt::ControlModifier) && !(event->modifiers() & Qt::ShiftModifier))
 			{
-				if (selected.contains(item) && selectionStart == item)
-				{
-					selected.clear();
-					selected.insert(item);
-				}
+				// A plain click that did not turn into a drag collapses the
+				// multi-selection down to the clicked row.
+				if (model.isSelected(item) && model.selectionStart() == item)
+					model.selectOnly(item);
 			}
 			ensureRowVisible(row);
 			updateRowWidgets();
@@ -131,23 +123,18 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 	{
 		if ((event->pos() - dragStartPos).manhattanLength() >= QApplication::startDragDistance())
 		{
-			QString text;
-			QList<QVariantMap> prefsList;
-			bool first = true;
+			// Widget-side pass: persist each selected row's GUI preferences
+			// (the drag payload must carry the latest edits) and hit-test the
+			// drag start against the row headers. The payload itself is the
+			// model's copy payload. (audit #146 TD032)
 			int i = 0;
 			bool dragPosInside = false;
-			for (Item* item : items)
+			for (Item* item : model.items())
 			{
-				if (selected.contains(item))
+				if (model.selected().contains(item))
 				{
-					if (first)
-						first = false;
-					else
-						text += "\n";
-					text += item->text;
 					if (item->gui != nullptr)
 						item->gui->storePreferences(item->prefs);
-					prefsList.append(item->prefs);
 
 					if (!dragPosInside)
 					{
@@ -176,30 +163,24 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 				i++;
 			}
 
-			if (selected.size() > 0 && dragPosInside)
+			if (!model.selected().isEmpty() && dragPosInside)
 			{
+				FilterListModel::CopyPayload payload = model.copyPayload();
 				FilterTableMimeData* mimeData = new FilterTableMimeData;
-				mimeData->setText(text);
-				mimeData->setPrefsList(prefsList);
+				mimeData->setText(payload.text);
+				mimeData->setPrefsList(payload.prefsList);
 
 				QDrag* drag = new QDrag(this);
 				drag->setMimeData(mimeData);
-				QSet<Item*> selectedBefore = selected;
+				QSet<Item*> selectedBefore = model.selected();
 				internalDrag = true;
 				Qt::DropAction action = drag->exec(Qt::MoveAction | Qt::CopyAction);
 				internalDrag = false;
 				if (action == Qt::MoveAction)
 				{
-					for (Item* item : selectedBefore)
-					{
-						items.removeOne(item);
-						if (focused == item)
-							focused = nullptr;
-						if (selectionStart == item)
-							selectionStart = nullptr;
-						selected.remove(item);
-						delete item;
-					}
+					// An internal move already re-selected the dropped copies
+					// (insertLinesFromMimeData); remove the originals.
+					model.removeItems(selectedBefore);
 				}
 
 				if (action != Qt::IgnoreAction)

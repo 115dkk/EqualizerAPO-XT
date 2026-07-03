@@ -229,6 +229,7 @@ SOURCES += main.cpp\
 	widgets/EqGraphView.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
+	widgets/FilterListModel.cpp \
 	widgets/FilterPickerView.cpp \
 	widgets/ValueScrubBox.cpp \
 	widgets/TitleBar.cpp \
@@ -436,6 +437,7 @@ HEADERS  += \
 	widgets/EqGraphView.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
+	widgets/FilterListModel.h \
 	widgets/FilterPickerView.h \
 	widgets/ValueScrubBox.h \
 	widgets/TitleBar.h \

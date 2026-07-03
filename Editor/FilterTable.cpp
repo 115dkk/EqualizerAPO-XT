@@ -82,8 +82,8 @@ FilterTable::~FilterTable()
 	if (QApplication::instance() != nullptr)
 		QApplication::instance()->removeEventFilter(this);
 
-	qDeleteAll(items);
-	items.clear();
+	// The items themselves are owned and deleted by the FilterListModel member.
+	// (audit #146 TD032)
 
 	for (IFilterGUIFactory* factory : factories)
 		delete factory;
@@ -112,7 +112,7 @@ void FilterTable::updateDeviceAndChannelMask(shared_ptr<AbstractAPOInfo> selecte
 	this->selectedDevice = selectedDevice;
 	this->selectedChannelMask = channelMask;
 
-	if (!items.empty())
+	if (!model.items().isEmpty())
 		updateGuis();
 }
 
@@ -121,7 +121,7 @@ void FilterTable::clearRows()
 	// Persist each row's GUI preferences before its widget (and the GUI it owns)
 	// is destroyed, then null the pointer so a following updateGuis() does not
 	// read a dangling gui in its own preference-save pass.
-	for (Item* item : items)
+	for (Item* item : model.items())
 	{
 		if (item->gui != nullptr)
 		{
@@ -169,7 +169,7 @@ void FilterTable::updateGuis()
 
 	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
 	int row = 0;
-	for (Item* item : items)
+	for (Item* item : model.items())
 	{
 		IFilterGUI* gui = createRowGui(item->text);
 
@@ -295,7 +295,7 @@ IFilterGUI* FilterTable::createRowGui(const QString& line)
 
 void FilterTable::updateSingleRowGui(Item* item)
 {
-	int rowIndex = items.indexOf(item);
+	int rowIndex = model.items().indexOf(item);
 	if (rowIndex < 0 || gridLayout == nullptr)
 		return;
 
@@ -346,5 +346,178 @@ void FilterTable::updateSingleRowGui(Item* item)
 
 	propagateChannels();
 	disableWheelForWidgets();
+	update();
+}
+
+namespace
+{
+// Moves the layout cell at (fromRow, 0) to (toRow, 0), preserving the cell's
+// alignment. QGridLayout has no native row insertion, so the incremental
+// paths re-address the reused cells one by one; the widgets themselves are
+// not recreated, which is what makes those paths cheap. Returns false when
+// the source cell is unexpectedly empty. (audit #146 TD040)
+bool moveGridCell(QGridLayout* gridLayout, int fromRow, int toRow)
+{
+	QLayoutItem* cell = gridLayout->itemAtPosition(fromRow, 0);
+	if (cell == nullptr)
+		return false;
+
+	if (QWidget* widget = cell->widget())
+	{
+		const Qt::Alignment alignment = cell->alignment();
+		// removeWidget deletes the old QWidgetItem, so read the alignment first.
+		gridLayout->removeWidget(widget);
+		gridLayout->addWidget(widget, toRow, 0, alignment);
+	}
+	else
+	{
+		// The stretch spacer is a plain QLayoutItem; removeItem leaves it alive.
+		gridLayout->removeItem(cell);
+		gridLayout->addItem(cell, toRow, 0);
+	}
+	return true;
+}
+}
+
+bool FilterTable::renumberRowsBelow(int firstRow, const QVector<int>& rowDepths)
+{
+	for (int i = firstRow; i < model.items().count(); i++)
+	{
+		QLayoutItem* cell = gridLayout->itemAtPosition(i, 0);
+		FilterCardRow* cardRow = cell != nullptr ? qobject_cast<FilterCardRow*>(cell->widget()) : nullptr;
+		if (cardRow == nullptr)
+			return false;
+		cardRow->updateRowPosition(i + 1, i < rowDepths.size() ? rowDepths[i] : 0);
+	}
+	return true;
+}
+
+void FilterTable::insertRowAt(int index)
+{
+	// (audit #146 TD040) Card-path incremental insert. The model already
+	// contains the new item at index; create only that row widget and shift
+	// the rows/toolbar/spacer below one grid row down. Any inconsistency falls
+	// back to the full rebuild, which is always correct.
+	const int itemCount = int(model.items().count());
+	if (renderMode != ModernCards || gridLayout == nullptr || index < 0 || index >= itemCount)
+	{
+		updateGuis();
+		return;
+	}
+
+	QElapsedTimer timer;
+	timer.start();
+
+	// Before the splice the grid still holds the OLD layout: itemCount - 1 row
+	// widgets at rows 0..itemCount-2, the toolbar at itemCount-1 and the
+	// stretch spacer at itemCount. Shift bottom-up so no two cells collide.
+	const int oldSpacerRow = itemCount;
+	for (int gridRow = oldSpacerRow; gridRow >= index; gridRow--)
+	{
+		if (!moveGridCell(gridLayout, gridRow, gridRow + 1))
+		{
+			updateGuis();
+			return;
+		}
+	}
+	gridLayout->setRowStretch(oldSpacerRow, 0);
+	gridLayout->setRowStretch(oldSpacerRow + 1, 1);
+
+	// Build the new row through the same selection policy as updateGuis(). The
+	// factory startOfFile/endOfFile bracket is skipped like updateSingleRowGui:
+	// the stateful factories (Convolution/GraphicEQ/MultiConvolution) only
+	// cache the config path there, which an edit inside the loaded file does
+	// not change.
+	Item* item = model.items().at(index);
+	IFilterGUI* gui = createRowGui(item->text);
+
+	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
+	int depth = index < rowDepths.size() ? rowDepths[index] : 0;
+	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, depth);
+	gridLayout->addWidget(rowWidget, index, 0);
+
+	item->gui = gui;
+	if (gui != nullptr)
+	{
+		gui->loadPreferences(item->prefs);
+		// Card mode never connects updateModel here, matching updateGuis().
+		connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
+	}
+
+	// Rows below the insertion point keep their widgets, but their 1-based
+	// number and possibly their include/channel scope depth changed.
+	if (!renumberRowsBelow(index + 1, rowDepths))
+	{
+		updateGuis();
+		return;
+	}
+
+	propagateChannels();
+	disableWheelForWidgets();
+	// The insertion replaced the selection and the row widgets read selection
+	// state on paint; repaint them all like a full rebuild would have.
+	updateRowWidgets();
+
+	qDebug("Incremental insert took %d ms", int(timer.elapsed()));
+	update();
+}
+
+void FilterTable::removeRowAt(int index)
+{
+	// (audit #146 TD040) Card-path incremental remove. The model no longer
+	// contains the item; delete only its row widget and shift the cells below
+	// one grid row up. Any inconsistency falls back to the full rebuild.
+	const int itemCount = int(model.items().count());
+	if (renderMode != ModernCards || gridLayout == nullptr || index < 0 || index > itemCount)
+	{
+		updateGuis();
+		return;
+	}
+
+	QElapsedTimer timer;
+	timer.start();
+
+	QLayoutItem* cell = gridLayout->itemAtPosition(index, 0);
+	QWidget* oldRow = cell != nullptr ? cell->widget() : nullptr;
+	if (oldRow == nullptr)
+	{
+		updateGuis();
+		return;
+	}
+	gridLayout->removeWidget(oldRow);
+	// Delete synchronously (the clearRows() precedent), not via deleteLater():
+	// the model already freed the Item this row points at, and a deferred
+	// deletion would leave a window where a queued GUI signal (e.g. a VST
+	// editor timer emitting updateModel) dereferences the dangling item.
+	// deleteSelectedLines is only reached from FilterTable's own key handler
+	// and the MainWindow edit actions, never from inside the row widget, so
+	// the widget is not on the current event dispatch path.
+	delete oldRow;
+
+	// Old grid layout: row widgets at 0..itemCount (one more than the model
+	// now has), the toolbar at itemCount+1 and the spacer at itemCount+2.
+	const int oldSpacerRow = itemCount + 2;
+	for (int gridRow = index + 1; gridRow <= oldSpacerRow; gridRow++)
+	{
+		if (!moveGridCell(gridLayout, gridRow, gridRow - 1))
+		{
+			updateGuis();
+			return;
+		}
+	}
+	gridLayout->setRowStretch(oldSpacerRow, 0);
+	gridLayout->setRowStretch(oldSpacerRow - 1, 1);
+
+	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
+	if (!renumberRowsBelow(index, rowDepths))
+	{
+		updateGuis();
+		return;
+	}
+
+	propagateChannels();
+	updateRowWidgets();
+
+	qDebug("Incremental remove took %d ms", int(timer.elapsed()));
 	update();
 }

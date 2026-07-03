@@ -27,8 +27,10 @@
 #include <QScrollArea>
 #include <QMenu>
 #include <QJsonObject>
+#include <QVector>
 
 #include "Editor/helpers/DisableWheelFilter.h"
+#include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "DeviceAPOInfo.h"
 #include "FilterTemplate.h"
@@ -63,21 +65,12 @@ public:
 		LegacyRows
 	};
 
-	struct Item
-	{
-		Item()
-		{
-		}
-
-		Item(const QString& text)
-		{
-			this->text = text;
-		}
-
-		QString text;
-		QVariantMap prefs;
-		IFilterGUI* gui = nullptr;
-	};
+	// The document/selection state was extracted into the widget-free
+	// FilterListModel (Editor/widgets/FilterListModel.h) so it is unit-testable
+	// in EditorLogicTests. Item stays as an alias so the FilterTable::Item
+	// spelling used by FilterCardRow, FilterTableRow and the metatype below
+	// keeps compiling unchanged. (audit #146 TD032)
+	using Item = FilterListItem;
 
 	explicit FilterTable(MainWindow* mainWindow, QWidget* parent = 0);
 	~FilterTable();
@@ -173,8 +166,20 @@ private:
 	// policy edits happen once. (audit #146 TD005)
 	IFilterGUI* createRowGui(const QString& line);
 	// Inserts the mime data's lines at dropRow and makes them the selection.
-	// Shared by paste() and dropEvent(). (audit #146 TD006)
-	void insertLinesFromMimeData(const QMimeData* mimeData, int dropRow);
+	// Shared by paste() and dropEvent(). Returns the number of inserted lines
+	// so the callers can take the incremental single-row path. (audit #146 TD006)
+	int insertLinesFromMimeData(const QMimeData* mimeData, int dropRow);
+	// Incremental structural updates for the card path only: splice one row
+	// widget into/out of the grid and re-address the rows below, instead of
+	// tearing down and rebuilding every row widget. Both fall back to
+	// updateGuis() on any inconsistency, and LegacyRows always takes the full
+	// rebuild (frozen fallback, docs/FilterListUiPolicy.md). (audit #146 TD040)
+	void insertRowAt(int index);
+	void removeRowAt(int index);
+	// Refreshes number/depth of the card rows at document index >= firstRow in
+	// place after an incremental splice. Returns false when a row widget is
+	// not a FilterCardRow (caller falls back to updateGuis). (audit #146 TD040)
+	bool renumberRowsBelow(int firstRow, const QVector<int>& rowDepths);
 
 	MainWindow* mainWindow;
 	QScrollArea* scrollArea = nullptr;
@@ -182,10 +187,9 @@ private:
 	QLabel* insertArrow;
 	QPoint dragStartPos;
 	bool internalDrag = false;
-	QList<Item*> items;
-	QSet<Item*> selected;
-	Item* focused = nullptr;
-	Item* selectionStart = nullptr;
+	// Owns the config lines and the selection state; see FilterListModel for
+	// the item ownership rules. (audit #146 TD032)
+	FilterListModel model;
 	QList<IFilterGUIFactory*> factories;
 	bool scrollingNow = false;
 	// True while the app-global wheel-redirect filter is installed; see

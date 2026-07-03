@@ -54,40 +54,32 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 {
 	if (event->key() == Qt::Key_Down || event->key() == Qt::Key_Up)
 	{
-		if (focused != nullptr)
+		if (model.focused() != nullptr)
 		{
-			int row = items.indexOf(focused);
+			int row = model.items().indexOf(model.focused());
 			if (row != -1)
 			{
 				int newRow = row;
-				if (event->key() == Qt::Key_Down && row + 1 < items.size())
+				if (event->key() == Qt::Key_Down && row + 1 < model.items().size())
 					newRow = row + 1;
 				else if (event->key() == Qt::Key_Up && row - 1 >= 0)
 					newRow = row - 1;
 
 				if (newRow != row)
 				{
-					focused = items[newRow];
+					Item* newFocused = model.items()[newRow];
+					model.setFocused(newFocused);
 					if (event->modifiers() & Qt::ControlModifier)
 					{
 					}
 					else if (event->modifiers() & Qt::ShiftModifier)
 					{
-						int startRow = items.indexOf(selectionStart);
-						if (startRow != -1)
-						{
-							selected.clear();
-							for (int i = min(startRow, newRow); i <= max(startRow, newRow); i++)
-							{
-								selected.insert(items[i]);
-							}
-						}
+						model.selectRangeFromAnchor(newFocused);
 					}
 					else
 					{
-						selected.clear();
-						selected.insert(focused);
-						selectionStart = focused;
+						model.selectOnly(newFocused);
+						model.setSelectionStart(newFocused);
 					}
 
 					ensureRowVisible(newRow);
@@ -99,19 +91,20 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 
 	if (event->key() == Qt::Key_Space)
 	{
-		if (focused != nullptr)
+		if (model.focused() != nullptr)
 		{
-			if (!(event->modifiers() & Qt::ControlModifier) || !selected.remove(focused))
-				selected.insert(focused);
+			// Plain Space selects; Ctrl+Space toggles.
+			if (!(event->modifiers() & Qt::ControlModifier) || !model.deselect(model.focused()))
+				model.select(model.focused());
 			updateRowWidgets();
 		}
 	}
 
 	if (event->key() == Qt::Key_F2)
 	{
-		if (focused != nullptr)
+		if (model.focused() != nullptr)
 		{
-			int rowIndex = items.indexOf(focused);
+			int rowIndex = model.items().indexOf(model.focused());
 			if (rowIndex != -1)
 			{
 				QLayoutItem* layoutItem = gridLayout->itemAtPosition(rowIndex, 0);
@@ -281,7 +274,7 @@ void FilterTable::disableWheelForWidgets()
 
 void FilterTable::updateRowWidgets()
 {
-	for (int i = 0; i < items.size(); i++)
+	for (int i = 0; i < model.items().size(); i++)
 	{
 		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
 		if (layoutItem != nullptr && layoutItem->widget() != nullptr)
@@ -302,12 +295,12 @@ void FilterTable::setConfigPath(const QString& value)
 
 FilterTable::Item* FilterTable::getFocusedItem() const
 {
-	return focused;
+	return model.focused();
 }
 
 const QSet<FilterTable::Item*>& FilterTable::getSelectedItems() const
 {
-	return selected;
+	return model.selected();
 }
 
 const QList<shared_ptr<AbstractAPOInfo>>& FilterTable::getOutputDevices() const
