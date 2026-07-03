@@ -5,14 +5,22 @@ runtime-dispatching one universal x64 binary.
 
 ## CI Variants
 
-| Matrix name | Platform | SIMD variant | MSBuild instruction set | Qt flag | Dependency release assets | Installer artifact |
+| Matrix name | Platform | SIMD variant | MSBuild instruction set | Qt flag | Dependency release assets | Update channel |
 | --- | --- | --- | --- | --- | --- | --- |
-| `windows-x64-sse2` | `x64` | `sse2` | `NotSet` | none | vcpkg `fftw3[sse2,threads]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-sse2` |
-| `windows-x64-avx` | `x64` | `avx` | `AdvancedVectorExtensions` | `/arch:AVX` | vcpkg `fftw3[avx,threads]`, vcpkg `libsndfile`, rebuilt `muparserx` | `EqualizerAPO_Setup-x64-avx` |
-| `windows-x64-avx2` | `x64` | `avx2` | `AdvancedVectorExtensions2` | `/arch:AVX2` | `*-x64-avx2` | `EqualizerAPO_Setup-x64-avx2` |
-| `windows-x64-avx512` | `x64` | `avx512` | `AdvancedVectorExtensions512` | `/arch:AVX512` | `*-x64-avx512` | `EqualizerAPO_Setup-x64-avx512` |
-| `windows-x64-avx10_1` | `x64` | `avx10_1` | `AdvancedVectorExtensions101` | `/arch:AVX10.1` | `*-x64-avx10` | `EqualizerAPO_Setup-x64-avx10_1` |
-| `windows-arm64` | `ARM64` | `neon` | none | none | `*-arm64` | `EqualizerAPO_Setup-arm64` |
+| `windows-x64-sse2` | `x64` | `sse2` | `NotSet` | none | vcpkg `fftw3[sse2,threads]`, vcpkg `libsndfile`, rebuilt `muparserx` | `x64-sse2` |
+| `windows-x64-avx` | `x64` | `avx` | `AdvancedVectorExtensions` | `/arch:AVX` | vcpkg `fftw3[avx,threads]`, vcpkg `libsndfile`, rebuilt `muparserx` | `x64-avx` |
+| `windows-x64-avx2` | `x64` | `avx2` | `AdvancedVectorExtensions2` | `/arch:AVX2` | `*-x64-avx2` | `x64-avx2` |
+| `windows-x64-avx512` | `x64` | `avx512` | `AdvancedVectorExtensions512` | `/arch:AVX512` | `*-x64-avx512` | `x64-avx512` |
+| `windows-x64-avx10_1` | `x64` | `avx10_1` | `AdvancedVectorExtensions101` | `/arch:AVX10.1` | `*-x64-avx10` | `x64-avx10-1` |
+| `windows-arm64` | `ARM64` | `neon` | none | none | `*-arm64` | `arm64-neon` |
+
+The per-variant facts above are defined once in `.github/simd-variants.psd1`.
+Each variant ships as a Velopack package whose `packId` is
+`EqualizerAPO-XT-<channel>`. Velopack appends `-<channel>-Setup.exe`, so the
+release Setup asset is named `EqualizerAPO-XT-<channel>-<channel>-Setup.exe`
+(for example `EqualizerAPO-XT-arm64-neon-arm64-neon-Setup.exe`). The
+channel-less `EqualizerAPO-XT-Setup.exe` on the same release is the
+auto-detect installer described in `docs/AutoDetectInstaller.md`.
 
 ## Runtime Compatibility
 

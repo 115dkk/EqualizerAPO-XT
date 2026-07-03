@@ -62,11 +62,11 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\
 mkdir build-Editor-x64
 cd build-Editor-x64
 ..\Qt\bin\lrelease.exe ..\Editor\Editor.pro
-..\Qt\bin\qmake.exe ..\Editor\Editor.pro -r "CONFIG+=release" "QMAKE_CXXFLAGS-=/arch:AVX2" "QMAKE_CXXFLAGS+=/arch:AVX2"
+..\Qt\bin\qmake.exe ..\Editor\Editor.pro -r "CONFIG+=release" "EAPO_UPDATE_CHANNEL=x64-avx2" "EAPO_SIMD_FLAGS=/arch:AVX2"
 nmake /NOLOGO
 ```
 
-`DeviceSelector`와 `UpdateChecker`도 같은 방식으로 빌드합니다. 빌드 뒤에는 다음처럼 Qt 런타임을 배치합니다.
+`DeviceSelector`와 `UpdateChecker`도 같은 방식으로 빌드합니다. 세 `.pro` 파일 모두 x64 빌드에서 `EAPO_SIMD_FLAGS`(또는 SSE2 기준선의 `EAPO_SIMD_BASELINE=1`)가 없으면 qmake가 `error()`로 실패합니다. 변형별 플래그와 채널 값은 `.github/simd-variants.psd1`을 기준으로 합니다. 빌드 뒤에는 다음처럼 Qt 런타임을 배치합니다.
 
 ```powershell
 & .\Qt\bin\windeployqt.exe .\build-Editor-x64\release\Editor.exe --release --no-opengl-sw
