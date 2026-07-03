@@ -43,14 +43,10 @@ $workspace = $PSScriptRoot
 $manifestPath = Join-Path $workspace ".github\simd-variants.psd1"
 $simdManifest = Import-PowerShellDataFile -Path $manifestPath
 
-# velopack_libc ships as a single cross-platform zip attached to the velopack/velopack
-# release. The version is pinned in the manifest so the asset name and download URL
-# stay in sync with CI.
-$velopackLibcVersion = $simdManifest.Shared.VelopackLibcVersion
-
-# Supply-chain pins for the prebuilt binary dependencies: release tag plus SHA-256
-# per asset, shared with build.yml. Downloads are refused on hash mismatch.
-$dependencyPins = $simdManifest.DependencyReleases
+# Shared provisioning implementation (download+verify, vcpkg build, Qt install),
+# consumed by both this script and .github/workflows/build.yml so the two can
+# no longer drift (audit finding TD015).
+Import-Module (Join-Path $workspace ".github\scripts\Provisioning.psm1") -Force
 
 Write-Host "=== EqualizerAPO-XT Build Setup ===" -ForegroundColor Cyan
 Write-Host "Workspace: $workspace"
@@ -60,103 +56,21 @@ Write-Host ""
 
 # --- Dependency asset mapping (driven by .github/simd-variants.psd1) ---
 $variant = if ($Platform -eq "ARM64") { "neon" } else { $SimdVariant }
-$variantEntry = $simdManifest.Variants | Where-Object { $_.Platform -eq $Platform -and $_.Simd -eq $variant } | Select-Object -First 1
-if (-not $variantEntry) {
-    throw "No asset mapping for Platform=$Platform, Variant=$variant"
-}
-
-# Reshape the manifest entry into the { muparserx; fftw; sndfile } hashtable the
-# download loop below expects. Variants built from vcpkg leave fftw/sndfile $null,
-# which keeps them out of $downloads exactly as before.
-$assets = @{ muparserx = $variantEntry.Muparserx }
-if ($variantEntry.Fftw)    { $assets.fftw = $variantEntry.Fftw }
-if ($variantEntry.Sndfile) { $assets.sndfile = $variantEntry.Sndfile }
-
-$usesVcpkg = $Platform -eq "x64" -and ($SimdVariant -eq "sse2" -or $SimdVariant -eq "avx")
+$variantEntry = Get-SimdVariantEntry -Manifest $simdManifest -Platform $Platform -Simd $variant
+$usesVcpkg = [bool]$variantEntry.UsesVcpkg
 
 # --- 1. Download binary dependencies ---
 Write-Host "`n=== Step 1: Download Dependencies ===" -ForegroundColor Yellow
 
 $depsDir = Join-Path $workspace "deps"
 $downloadDir = Join-Path $depsDir "_downloads"
-New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
 
-$downloads = @(
-    @{
-        Repo        = "TheFireKahuna/muparserx"
-        Asset       = $assets.muparserx
-        Destination = Join-Path $depsDir "muparserx"
-    },
-    @{
-        # Velopack C/C++ runtime (Velopack.h + import libs + DLLs for every platform).
-        # Always fetched regardless of SIMD variant; the Editor links it for auto-update.
-        # Not covered by DependencyReleases (the URL is release-tag based already), so
-        # its SHA-256 pin rides on the download entry itself.
-        Repo        = "velopack/velopack"
-        Asset       = "velopack_libc_$velopackLibcVersion.zip"
-        Url         = "https://github.com/velopack/velopack/releases/download/$velopackLibcVersion/velopack_libc_$velopackLibcVersion.zip"
-        Sha256      = $simdManifest.Shared.VelopackLibcSha256
-        Destination = Join-Path $depsDir "velopack_libc"
-    }
-)
-
-if (-not $usesVcpkg) {
-    if ($assets.fftw) {
-        $downloads += @{
-            Repo        = "TheFireKahuna/amd-fftw"
-            Asset       = $assets.fftw
-            Destination = Join-Path $depsDir "fftw"
-        }
-    }
-    if ($assets.sndfile) {
-        $downloads += @{
-            Repo        = "TheFireKahuna/libsndfile"
-            Asset       = $assets.sndfile
-            Destination = Join-Path $depsDir "libsndfile"
-        }
-    }
-}
-
-foreach ($dl in $downloads) {
-    $pin = $dependencyPins[$dl.Repo]
-    $url = if ($dl.Url) {
-        $dl.Url
-    } elseif ($pin) {
-        "https://github.com/$($dl.Repo)/releases/download/$($pin.Tag)/$($dl.Asset)"
-    } else {
-        throw "No pinned tag or explicit URL for $($dl.Repo) in simd-variants.psd1"
-    }
-    $zipPath = Join-Path $downloadDir $dl.Asset
-
-    if (Test-Path $zipPath) {
-        Write-Host "  [cached] $($dl.Asset)"
-    } else {
-        Write-Host "  Downloading $($dl.Asset) from $($dl.Repo)..."
-        curl.exe --fail --location --retry 5 --retry-delay 5 --output $zipPath $url
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to download $url"
-        }
-    }
-
-    if ($pin -or $dl.Sha256) {
-        # DependencyReleases pins are per-asset; velopack_libc carries its pin on
-        # the download entry (Shared.VelopackLibcSha256 in simd-variants.psd1).
-        $expected = if ($dl.Sha256) { $dl.Sha256 } else { $pin.Sha256[$dl.Asset] }
-        if (-not $expected) {
-            throw "No pinned SHA-256 for $($dl.Asset) in simd-variants.psd1"
-        }
-        $actual = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
-        if ($actual -ne $expected) {
-            Remove-Item $zipPath -Force
-            throw "SHA-256 mismatch for $($dl.Asset): expected $expected, got $actual (stale cache removed; rerun to redownload)"
-        }
-        Write-Host "  Verified SHA-256 for $($dl.Asset)"
-    }
-
-    New-Item -ItemType Directory -Force -Path $dl.Destination | Out-Null
-    Expand-Archive -Path $zipPath -DestinationPath $dl.Destination -Force
-    Write-Host "  -> $($dl.Destination)"
-}
+# muparserx and velopack_libc always; FFTW and libsndfile only for the variants
+# that do not build them from vcpkg. URLs and SHA-256 pins come from the
+# manifest; a cached zip in deps\_downloads is reused, and a mismatching one is
+# deleted so the next run redownloads it.
+$downloads = Get-DependencyDownloadSpec -Manifest $simdManifest -DepsRoot $depsDir -Platform $Platform -Simd $variant
+Invoke-DependencyDownload -Downloads $downloads -DownloadRoot $downloadDir -ReuseCachedDownloads
 
 # For SSE2/AVX variants, build FFTW and libsndfile from vcpkg
 if ($usesVcpkg) {
@@ -166,78 +80,10 @@ if ($usesVcpkg) {
     . (Join-Path $workspace ".github\scripts\Import-VsDevEnvironment.ps1")
     Import-VsDevEnvironment "x64"
 
-    $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
-    if (-not $vcpkgRoot -or -not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
-        $vcpkgRoot = Join-Path $workspace "vcpkg"
-        if (-not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
-            # Pin vcpkg to the manifest commit: cloning a moving HEAD would let the
-            # portfiles (and thus the FFTW/libsndfile binaries built here) change
-            # without a reviewed diff in simd-variants.psd1. --depth 1 keeps the
-            # clone small; the pinned commit is fetched by SHA and checked out.
-            $vcpkgCommit = $simdManifest.Shared.VcpkgCommit
-            git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
-            if ($LASTEXITCODE -ne 0) { throw "Failed to clone vcpkg" }
-            git -C $vcpkgRoot fetch --depth 1 origin $vcpkgCommit
-            if ($LASTEXITCODE -ne 0) { throw "Failed to fetch pinned vcpkg commit $vcpkgCommit" }
-            git -C $vcpkgRoot checkout --detach $vcpkgCommit
-            if ($LASTEXITCODE -ne 0) { throw "Failed to check out pinned vcpkg commit $vcpkgCommit" }
-            & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
-        }
-    }
-
-    $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
-    $fftwFeature = if ($SimdVariant -eq "avx") { "fftw3[avx,threads]:x64-windows" } else { "fftw3[sse2,threads]:x64-windows" }
-    & $vcpkgExe install $fftwFeature "libsndfile:x64-windows" --clean-after-build
-    if ($LASTEXITCODE -ne 0) { throw "vcpkg install failed" }
-
-    $installedRoot = Join-Path $vcpkgRoot "installed\x64-windows"
-
-    # Copy FFTW
-    $fftwInclude = Join-Path $depsDir "fftw\include"
-    $fftwRelease = Join-Path $depsDir "fftw\Release"
-    New-Item -ItemType Directory -Force -Path $fftwInclude, $fftwRelease | Out-Null
-    Copy-Item (Join-Path $installedRoot "include\fftw3.h") $fftwInclude -Force
-
-    $doubleFftwFilter = { $_.Name -notmatch "fftw3f|fftw3l|threads|omp" }
-    $fftwLibFiles = @(Get-ChildItem (Join-Path $installedRoot "lib") -Recurse -Filter "*fftw3*" -File | Where-Object $doubleFftwFilter | Where-Object { $_.Extension -eq ".lib" })
-    if ($fftwLibFiles.Count -gt 0) {
-        Copy-Item $fftwLibFiles[0].FullName (Join-Path $fftwRelease "libfftw3.lib") -Force
-    }
-    $fftwDlls = @(Get-ChildItem (Join-Path $installedRoot "bin") -Filter "*fftw3*.dll" -File | Where-Object $doubleFftwFilter)
-    $fftwDlls | Copy-Item -Destination $fftwRelease -Force
-    if (-not (Test-Path (Join-Path $fftwRelease "libfftw3.dll")) -and $fftwDlls.Count -gt 0) {
-        Copy-Item $fftwDlls[0].FullName (Join-Path $fftwRelease "libfftw3.dll") -Force
-    }
-
-    # Copy libsndfile
-    $sndInclude = Join-Path $depsDir "libsndfile\include"
-    $sndRelease = Join-Path $depsDir "libsndfile\build\Release"
-    New-Item -ItemType Directory -Force -Path $sndInclude, $sndRelease | Out-Null
-    Copy-Item (Join-Path $installedRoot "include\sndfile*.h*") $sndInclude -Force
-    $sndLibs = Get-ChildItem (Join-Path $installedRoot "lib") -Filter "sndfile.lib" -File
-    if ($sndLibs) { Copy-Item $sndLibs[0].FullName (Join-Path $sndRelease "sndfile.lib") -Force }
-    Get-ChildItem (Join-Path $installedRoot "bin") -Filter "*.dll" -File | Copy-Item -Destination $sndRelease -Force
-
-    # Rebuild muparserx with correct arch flags
-    $parserDir = Join-Path $depsDir "muparserx\parser"
-    $muparserBuildDir = Join-Path $depsDir "muparserx\build\Release"
-    $muparserObjDir = Join-Path $depsDir "muparserx\build\obj-$SimdVariant"
-    New-Item -ItemType Directory -Force -Path $muparserBuildDir, $muparserObjDir | Out-Null
-
-    $archArg = if ($SimdVariant -eq "avx") { "/arch:AVX" } else { "" }
-    $objects = @()
-    $sources = Get-ChildItem $parserDir -Filter "*.cpp" -File | Where-Object { $_.Name -ne "mpTest.cpp" }
-    foreach ($source in $sources) {
-        $objectPath = Join-Path $muparserObjDir ($source.BaseName + ".obj")
-        $clArgs = @("/nologo", "/c", "/EHsc", "/std:c++17", "/O2", "/MD", "/DNDEBUG", "/DMUP_USE_WIDE_STRING", "/I$parserDir", "/Fo$objectPath")
-        if ($archArg) { $clArgs += $archArg }
-        $clArgs += $source.FullName
-        & cl.exe @clArgs
-        if ($LASTEXITCODE -ne 0) { throw "muParserX compile failed for $($source.Name)" }
-        $objects += $objectPath
-    }
-    & lib.exe /nologo "/OUT:$(Join-Path $muparserBuildDir 'muparserx.lib')" $objects
-    if ($LASTEXITCODE -ne 0) { throw "muParserX lib creation failed" }
+    Build-VcpkgDependencies -DepsRoot $depsDir `
+        -VcpkgFallbackRoot (Join-Path $workspace "vcpkg") `
+        -SimdVariant $SimdVariant `
+        -VcpkgCommit $simdManifest.Shared.VcpkgCommit
 }
 
 Write-Host "  Dependencies downloaded." -ForegroundColor Green
@@ -299,35 +145,15 @@ if (Test-Path (Join-Path $highwayDir "hwy\highway.h")) {
 }
 
 # --- 3. Install Qt ---
+# $qtArchDir is also needed by the verification section below when Qt was
+# installed on an earlier run and this one passes -SkipQt.
+$qtArchDir = if ($Platform -eq "ARM64") { "msvc2022_arm64" } else { "msvc2022_64" }
 if ($SkipQt) {
     Write-Host "`n=== Step 3: Qt Installation (SKIPPED) ===" -ForegroundColor Yellow
 } else {
     Write-Host "`n=== Step 3: Install Qt $QtVersion ===" -ForegroundColor Yellow
 
-    python -m pip install --upgrade "setuptools>=70.1.0" "py7zr==1.0.*" "aqtinstall==3.2.*" --quiet
-    if ($LASTEXITCODE -ne 0) { throw "Failed to install aqtinstall" }
-
-    $qtHost = if ($Platform -eq "ARM64") { "windows_arm64" } else { "windows" }
-    $qtArch = if ($Platform -eq "ARM64") { "win64_msvc2022_arm64" } else { "win64_msvc2022_64" }
-    $qtArchDir = if ($Platform -eq "ARM64") { "msvc2022_arm64" } else { "msvc2022_64" }
-    $qtOutput = Join-Path $workspace "Qt"
-
-    # Write aqt config to limit concurrency
-    $aqtConfig = Join-Path $workspace "aqt-settings.ini"
-    Set-Content -Path $aqtConfig -Encoding ASCII -Value @("[aqt]", "concurrency: 1")
-
-    python -m aqt -c $aqtConfig install-qt $qtHost desktop $QtVersion $qtArch `
-        --autodesktop `
-        --outputdir $qtOutput `
-        --archives qtbase qttools qtsvg qttranslations `
-        --external 7z
-
-    if ($LASTEXITCODE -ne 0) { throw "Qt installation failed" }
-
-    $qtRoot = Join-Path $qtOutput "$QtVersion\$qtArchDir"
-    if (-not (Test-Path (Join-Path $qtRoot "bin\qmake.exe"))) {
-        throw "qmake.exe not found after Qt installation"
-    }
+    $qtRoot = Install-QtSdk -WorkspaceRoot $workspace -Platform $Platform -QtVersion $QtVersion
 
     Write-Host "  Qt installed at: $qtRoot" -ForegroundColor Green
 }

@@ -186,95 +186,35 @@ jobs:
       run: |
         $ErrorActionPreference = "Stop"
         $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        "VELOPACK_LIBC_VERSION=$($manifest.Shared.VelopackLibcVersion)" >> $env:GITHUB_ENV
         "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
         "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
         "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
-        Write-Host "velopack_libc version: $($manifest.Shared.VelopackLibcVersion)"
         Write-Host "VST3 tag: $($manifest.Shared.Vst3Tag)"
         Write-Host "Highway tag: $($manifest.Shared.HighwayTag)"
         Write-Host "TCLAP tag: $($manifest.Shared.TclapTag)"
 
+    # Supply-chain pins: the prebuilt binary dependencies (and velopack_libc)
+    # are downloaded from a pinned release tag and verified against the SHA-256
+    # recorded in .github/simd-variants.psd1, so a new upload to those personal
+    # forks cannot change what CI links without a reviewed manifest diff. The
+    # download+verify loop lives in .github/scripts/Provisioning.psm1, shared
+    # with setup-build.ps1 (TD015).
     - name: Download dependency release assets
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
 
-        $downloadRoot = "${{ github.workspace }}\deps\_downloads"
-        New-Item -ItemType Directory -Force -Path $downloadRoot | Out-Null
-
-        # Supply-chain pins: the three prebuilt binary dependencies are downloaded
-        # from a pinned release tag and verified against the SHA-256 recorded in
-        # .github/simd-variants.psd1, so a new upload to those personal forks
-        # cannot change what CI links without a reviewed manifest diff.
         $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
-        $pins = $manifest.DependencyReleases
+        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
+          -DepsRoot "${{ github.workspace }}\deps" `
+          -Platform "${{ matrix.platform }}" `
+          -Simd "${{ matrix.simd_variant }}"
+        Invoke-DependencyDownload -Downloads $downloads `
+          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
 
-        $downloads = @(
-          @{
-            Repo = "TheFireKahuna/muparserx"
-            Asset = "${{ matrix.muparserx_asset }}"
-            Destination = "${{ github.workspace }}\deps\muparserx"
-          },
-          @{
-            # Velopack C/C++ runtime (Velopack.h + import libs + DLLs). Always fetched;
-            # the Editor links it for auto-update. Version comes from
-            # .github/simd-variants.psd1 (Shared.VelopackLibcVersion), shared with setup-build.ps1.
-            Repo = "velopack/velopack"
-            Asset = "velopack_libc_${{ env.VELOPACK_LIBC_VERSION }}.zip"
-            Url = "https://github.com/velopack/velopack/releases/download/${{ env.VELOPACK_LIBC_VERSION }}/velopack_libc_${{ env.VELOPACK_LIBC_VERSION }}.zip"
-            Destination = "${{ github.workspace }}\deps\velopack_libc"
-          }
-        )
-
-        if ("${{ matrix.uses_vcpkg }}" -ne "true") {
-          $downloads += @(
-            @{
-              Repo = "TheFireKahuna/amd-fftw"
-              Asset = "${{ matrix.fftw_asset }}"
-              Destination = "${{ github.workspace }}\deps\fftw"
-            },
-            @{
-              Repo = "TheFireKahuna/libsndfile"
-              Asset = "${{ matrix.libsndfile_asset }}"
-              Destination = "${{ github.workspace }}\deps\libsndfile"
-            }
-          )
-        }
-
-        foreach ($download in $downloads) {
-          $pin = $pins[$download.Repo]
-          $url = if ($download.Url) {
-            $download.Url
-          } elseif ($pin) {
-            "https://github.com/$($download.Repo)/releases/download/$($pin.Tag)/$($download.Asset)"
-          } else {
-            throw "No pinned tag or explicit URL for $($download.Repo) in simd-variants.psd1"
-          }
-          $zipPath = Join-Path $downloadRoot $download.Asset
-
-          Write-Host "Downloading $($download.Repo) release asset $($download.Asset)"
-          curl.exe --fail --location --retry 5 --retry-delay 5 --output $zipPath $url
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to download $url"
-          }
-
-          if ($pin) {
-            $expected = $pin.Sha256[$download.Asset]
-            if (-not $expected) {
-              throw "No pinned SHA-256 for $($download.Asset) in simd-variants.psd1"
-            }
-            $actual = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
-            if ($actual -ne $expected) {
-              throw "SHA-256 mismatch for $($download.Asset): expected $expected, got $actual"
-            }
-            Write-Host "Verified SHA-256 for $($download.Asset)"
-          }
-
-          New-Item -ItemType Directory -Force -Path $download.Destination | Out-Null
-          Expand-Archive -Path $zipPath -DestinationPath $download.Destination -Force
-        }
-
+    # The vcpkg FFTW/libsndfile build and the muparserx /arch rebuild live in
+    # .github/scripts/Provisioning.psm1, shared with setup-build.ps1 (TD015).
     - name: Build lower-SIMD dependency binaries
       if: ${{ matrix.uses_vcpkg == true }}
       shell: pwsh
@@ -284,95 +224,15 @@ jobs:
         # Canonical vswhere/VsDevCmd import, shared with the Qt build step below
         # and setup-build.ps1.
         . .\.github\scripts\Import-VsDevEnvironment.ps1
-
-        function Copy-RequiredFile {
-          param(
-            [string]$SourceRoot,
-            [string[]]$Patterns,
-            [scriptblock]$Filter,
-            [string]$Destination
-          )
-
-          foreach ($pattern in $Patterns) {
-            $matches = @(Get-ChildItem -Path $SourceRoot -Recurse -Filter $pattern -File -ErrorAction SilentlyContinue | Where-Object $Filter)
-            if ($matches.Count -gt 0) {
-              New-Item -ItemType Directory -Force -Path (Split-Path $Destination -Parent) | Out-Null
-              Copy-Item -Path $matches[0].FullName -Destination $Destination -Force
-              Write-Host "Copied $($matches[0].FullName) -> $Destination"
-              return
-            }
-          }
-
-          throw "Could not find required file under $SourceRoot matching $($Patterns -join ', ')"
-        }
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
 
         Import-VsDevEnvironment "${{ matrix.msvcdevplatform }}"
 
-        $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
-        if (-not $vcpkgRoot -or -not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
-          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
-          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
-          & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
-        }
-
-        $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
-        $fftwFeature = if ("${{ matrix.simd_variant }}" -eq "avx") { "fftw3[avx,threads]:x64-windows" } else { "fftw3[sse2,threads]:x64-windows" }
-        & $vcpkgExe install $fftwFeature "libsndfile:x64-windows" --clean-after-build
-        if ($LASTEXITCODE -ne 0) {
-          throw "vcpkg dependency install failed"
-        }
-
-        $installedRoot = Join-Path $vcpkgRoot "installed\x64-windows"
-        $fftwInclude = "${{ github.workspace }}\deps\fftw\include"
-        $fftwRelease = "${{ github.workspace }}\deps\fftw\Release"
-        $sndInclude = "${{ github.workspace }}\deps\libsndfile\include"
-        $sndRelease = "${{ github.workspace }}\deps\libsndfile\build\Release"
-
-        New-Item -ItemType Directory -Force -Path $fftwInclude, $fftwRelease, $sndInclude, $sndRelease | Out-Null
-        Copy-Item -Path (Join-Path $installedRoot "include\fftw3.h") -Destination $fftwInclude -Force
-        Copy-Item -Path (Join-Path $installedRoot "include\sndfile*.h*") -Destination $sndInclude -Force
-
-        $doubleFftwFilter = { $_.Name -notmatch "fftw3f|fftw3l|threads|omp" }
-        Copy-RequiredFile (Join-Path $installedRoot "lib") @("libfftw3.lib", "fftw3.lib", "libfftw3-3.lib") $doubleFftwFilter (Join-Path $fftwRelease "libfftw3.lib")
-        Copy-RequiredFile (Join-Path $installedRoot "lib") @("sndfile.lib") { $true } (Join-Path $sndRelease "sndfile.lib")
-
-        Get-ChildItem -Path (Join-Path $installedRoot "bin") -Filter "*.dll" -File | Copy-Item -Destination $sndRelease -Force
-        $fftwDlls = @(Get-ChildItem -Path (Join-Path $installedRoot "bin") -Filter "*fftw3*.dll" -File | Where-Object $doubleFftwFilter)
-        if ($fftwDlls.Count -eq 0) {
-          throw "Could not find FFTW runtime DLLs in vcpkg output"
-        }
-        $fftwDlls | Copy-Item -Destination $fftwRelease -Force
-        if (-not (Test-Path (Join-Path $fftwRelease "libfftw3.dll"))) {
-          Copy-Item -Path $fftwDlls[0].FullName -Destination (Join-Path $fftwRelease "libfftw3.dll") -Force
-        }
-
-        $parserDir = "${{ github.workspace }}\deps\muparserx\parser"
-        $muparserBuildDir = "${{ github.workspace }}\deps\muparserx\build\Release"
-        $muparserObjDir = "${{ github.workspace }}\deps\muparserx\build\obj-${{ matrix.simd_variant }}"
-        New-Item -ItemType Directory -Force -Path $muparserBuildDir, $muparserObjDir | Out-Null
-
-        $archArg = if ("${{ matrix.simd_variant }}" -eq "avx") { "/arch:AVX" } else { "" }
-        $objects = @()
-        $sources = Get-ChildItem -Path $parserDir -Filter "*.cpp" -File | Where-Object { $_.Name -ne "mpTest.cpp" }
-        foreach ($source in $sources) {
-          $objectPath = Join-Path $muparserObjDir ($source.BaseName + ".obj")
-          $args = @("/nologo", "/c", "/EHsc", "/std:c++17", "/O2", "/MD", "/DNDEBUG", "/DMUP_USE_WIDE_STRING", "/I$parserDir", "/Fo$objectPath")
-          if ($archArg) {
-            $args += $archArg
-          }
-          $args += $source.FullName
-          & cl.exe @args
-          if ($LASTEXITCODE -ne 0) {
-            throw "muParserX compile failed for $($source.Name)"
-          }
-          $objects += $objectPath
-        }
-
-        $muparserLib = Join-Path $muparserBuildDir "muparserx.lib"
-        & lib.exe /nologo "/OUT:$muparserLib" $objects
-        if ($LASTEXITCODE -ne 0) {
-          throw "muParserX library creation failed"
-        }
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        Build-VcpkgDependencies -DepsRoot "${{ github.workspace }}\deps" `
+          -VcpkgFallbackRoot "${{ github.workspace }}\vcpkg" `
+          -SimdVariant "${{ matrix.simd_variant }}" `
+          -VcpkgCommit $manifest.Shared.VcpkgCommit
 
     # Clone tclap repository (header-only library). Pinned like the other source
     # dependencies; the tag comes from .github/simd-variants.psd1 (Shared.TclapTag).
@@ -512,41 +372,16 @@ jobs:
       with:
         python-version: '3.12'
 
-    # Install Qt for Editor, DeviceSelector, and UpdateChecker.
-    # Keep aqt concurrency at 1 to avoid intermittent archive extraction races.
+    # Install Qt for Editor, DeviceSelector, and UpdateChecker. The aqt install
+    # (concurrency 1: parallel extraction raced intermittently) lives in
+    # .github/scripts/Provisioning.psm1, shared with setup-build.ps1 (TD015).
     - name: Install Qt
       shell: pwsh
       run: |
         $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
 
-        $configPath = "${{ github.workspace }}\aqt-settings.ini"
-        Set-Content -Path $configPath -Encoding ASCII -Value @(
-          "[aqt]",
-          "concurrency: 1"
-        )
-
-        python -m pip install --upgrade "setuptools>=70.1.0" "py7zr==1.0.*" "aqtinstall==3.2.*"
-
-        $qtHost = if ("${{ matrix.platform }}" -eq "ARM64") { "windows_arm64" } else { "windows" }
-        $qtArch = if ("${{ matrix.platform }}" -eq "ARM64") { "win64_msvc2022_arm64" } else { "win64_msvc2022_64" }
-        $qtArchDir = if ("${{ matrix.platform }}" -eq "ARM64") { "msvc2022_arm64" } else { "msvc2022_64" }
-        $qtOutput = "${{ github.workspace }}\Qt"
-
-        python -m aqt -c $configPath install-qt $qtHost desktop 6.10.1 $qtArch `
-          --autodesktop `
-          --outputdir $qtOutput `
-          --archives qtbase qttools qtsvg qttranslations `
-          --external 7z
-
-        $qtRoot = Join-Path $qtOutput "6.10.1\$qtArchDir"
-        if (-not (Test-Path (Join-Path $qtRoot "bin\qmake.exe"))) {
-          Write-Error "qmake.exe not found under $qtRoot"
-          exit 1
-        }
-        if (-not (Test-Path (Join-Path $qtRoot "include\QtCore\QCoreApplication"))) {
-          Write-Error "QtCore headers not found under $qtRoot"
-          exit 1
-        }
+        $qtRoot = Install-QtSdk -WorkspaceRoot "${{ github.workspace }}" -Platform "${{ matrix.platform }}"
 
         echo "QT_ROOT=$qtRoot" >> $env:GITHUB_ENV
         echo "Qt6_DIR=$qtRoot" >> $env:GITHUB_ENV

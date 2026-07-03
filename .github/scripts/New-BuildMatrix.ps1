@@ -34,12 +34,14 @@ foreach ($variant in $manifest.Variants) {
   # Keys mirror what build.yml's hand-written matrix.include block used to define.
   # windows-2025-vs2026 ships VS 2026 (v145); windows-11-arm still ships VS 2022
   # (v143) — the build step picks the platform toolset from matrix.platform.
+  # The per-variant asset zip names are NOT expanded into the matrix: the
+  # download step resolves them from the manifest by platform+simd via
+  # .github/scripts/Provisioning.psm1 (Get-DependencyDownloadSpec).
   $entry = [ordered]@{
     name            = $variant.Name
     os              = if ($isArm) { 'windows-11-arm' } else { 'windows-2025-vs2026' }
     platform        = $variant.Platform
     simd_variant    = $variant.Simd
-    muparserx_asset = $variant.Muparserx
     msvcdevplatform = if ($isArm) { 'arm64' } else { 'x64' }
     uses_vcpkg      = [bool]$variant.UsesVcpkg
     can_execute     = [bool]$variant.RunnerCanExecute
@@ -53,12 +55,6 @@ foreach ($variant in $manifest.Variants) {
   }
   if ($variant.QtArchFlag) {
     $entry.qt_arch_flag = $variant.QtArchFlag
-  }
-  if ($variant.Fftw) {
-    $entry.fftw_asset = $variant.Fftw
-  }
-  if ($variant.Sndfile) {
-    $entry.libsndfile_asset = $variant.Sndfile
   }
 
   $include += [pscustomobject]$entry
