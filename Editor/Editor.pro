@@ -153,6 +153,7 @@ SOURCES += main.cpp\
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
+	../parser/ParserExtensions.cpp \
 	../parser/RegexFunctions.cpp \
 	../parser/RegistryFunctions.cpp \
 	../parser/StringOperators.cpp \
@@ -363,6 +364,7 @@ HEADERS  += \
 	../filters/ConvolutionFilter.h \
 	../parser/RegexFunctions.h \
 	../parser/RegistryFunctions.h \
+	../parser/ParserExtensions.h \
 	../parser/StringOperators.h \
 	AnalysisThread.h \
 	widgets/ExponentialSpinBox.h \

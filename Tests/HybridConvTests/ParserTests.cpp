@@ -23,9 +23,7 @@
 #include <mpPackageStr.h>
 #include <mpPackageMatrix.h>
 
-#include "parser/RegexFunctions.h"
-#include "parser/StringOperators.h"
-#include "parser/LogicalOperators.h"
+#include "parser/ParserExtensions.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -56,12 +54,10 @@ void configureParser(ParserX& parser)
 	parser.AddPackage(PackageStr::Instance());
 	parser.AddPackage(PackageMatrix::Instance());
 
-	parser.DefineFun(new RegexSearchFunction());
-	parser.DefineFun(new RegexReplaceFunction());
-
-	parser.RemoveOprt(L"+");
-	parser.DefineOprt(new AddOperator());
-	parser.DefineInfixOprt(new NotOperator());
+	// Same engine-free roster as ExpressionFilterFactory::initialize; the
+	// engine-bound registrations (readRegString etc.) stay engine-only.
+	// (audit #146 TD021)
+	registerEngineFreeParserExtensions(parser);
 }
 
 double evalFloat(ParserX& parser, const wstring& expr)
