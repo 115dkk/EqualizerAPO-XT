@@ -26,9 +26,6 @@
 #include <exception>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <Shlwapi.h>
-#include <Ks.h>
-#include <KsMedia.h>
 #include <mpParser.h>
 #include <mpPackageCommon.h>
 #include <mpPackageNonCmplx.h>

@@ -95,6 +95,12 @@ private:
 	bool acquireLoadPermit();
 	void releaseLoadPermit();
 	void finishTransitionIfReady();
+	// The single choreography behind the four public process() overloads;
+	// IoTraits carries the per-layout bypass copy and configuration read/write.
+	// Defined and instantiated only in engine/FilterEngine.Process.cpp.
+	// (audit #146 TD007)
+	template <typename IoTraits, typename SampleType>
+	void processImpl(SampleType output, SampleType input, unsigned frameCount);
 
 	std::vector<std::unique_ptr<IFilterFactory>> factories;
 

@@ -18,35 +18,16 @@
 */
 
 #include "stdafx.h"
-#define _USE_MATH_DEFINES
-#include <cmath>
-#include <sstream>
-#include <fstream>
 #include <algorithm>
-#include <exception>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <Shlwapi.h>
-#include <Ks.h>
-#include <KsMedia.h>
-#include <mpParser.h>
-#include <mpPackageCommon.h>
-#include <mpPackageNonCmplx.h>
-#include <mpPackageStr.h>
-#include <mpPackageMatrix.h>
 
-#include "helpers/RegistryHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/ChannelHelper.h"
 #include "helpers/PerfProfile.h"
 #include "helpers/MxcsrGuard.h"
-#include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
 // Filter factory headers intentionally omitted: the factories self-register and
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this hot-path TU
-// names none of them (see FilterEngine.Configuration.cpp).
+// names none of them (see FilterEngine.Configuration.cpp). The muparserx and
+// registry/file helpers are omitted too: this TU never touches the parser or
+// configuration loading. (audit #146 TD008)
 
 // stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
 // macros here. Undefine them before Highway, whose templates use std::min and
@@ -60,23 +41,6 @@
 #include "hwy/highway.h"
 
 namespace hn = hwy::HWY_NAMESPACE;
-
-using std::exception;
-using std::find;
-using std::lock_guard;
-using std::make_unique;
-using std::max;
-using std::move;
-using std::mutex;
-using std::string;
-using std::stringstream;
-using std::swap;
-using std::thread;
-using std::unique_lock;
-using std::vector;
-using std::wstring;
-using namespace mup;
-
 
 #pragma AVRT_CODE_BEGIN
 void convertFloatToDouble(double* dest, const float* src, size_t count) {
@@ -108,11 +72,116 @@ void convertDoubleToFloat(float* dest, const double* src, size_t count) {
 	for (; i < count; ++i) dest[i] = static_cast<float>(src[i]);
 }
 
-
-// Process interleaved audio (float*)
-void FilterEngine::process(float* output, float* input, unsigned frameCount)
+namespace
 {
-	PerfScope _eapo_total("FilterEngine::process(float interleaved)");
+	// Per-layout I/O policy for FilterEngine::processImpl below. The four public
+	// process() overloads used to be ~45-line structural quadruplicates whose
+	// hot-swap/transition choreography existed four times; only the bypass copy
+	// and the configuration read/write entry points actually differ, so those
+	// live here and the choreography lives once in processImpl. The PerfScope
+	// labels are carried per trait so profiling output stays identical (the
+	// double paths historically used the same read label for the current and
+	// the next configuration). (audit #146 TD007)
+	struct FloatInterleavedIo
+	{
+		static constexpr const char* totalLabel = "FilterEngine::process(float interleaved)";
+		// Fused float32 -> double + deinterleave directly into planar storage,
+		// avoiding the extra inputBuf1D pass that the original two-step path used.
+		static constexpr const char* readCurrentLabel = "FilterConfiguration::readFloatInterleaved(current)";
+		static constexpr const char* readNextLabel = "FilterConfiguration::readFloatInterleaved(next)";
+		static constexpr const char* writeLabel = "FilterConfiguration::writeFloatInterleaved";
+
+		static void bypassCopy(float* output, float* input, unsigned outputChannelCount, unsigned, unsigned frameCount)
+		{
+			std::copy_n(input, outputChannelCount * frameCount, output);
+		}
+		static void read(FilterConfiguration& config, float* input, unsigned frameCount)
+		{
+			config.readFloatInterleaved(input, frameCount);
+		}
+		static void write(FilterConfiguration& config, float* output, unsigned frameCount)
+		{
+			config.writeFloatInterleaved(output, frameCount);
+		}
+	};
+
+	struct FloatPlanarIo
+	{
+		static constexpr const char* totalLabel = "FilterEngine::process(float planar)";
+		// Fused float32 -> double directly into planar storage; no intermediate
+		// inputBuf2D copy.
+		static constexpr const char* readCurrentLabel = "FilterConfiguration::readFloatPlanar(current)";
+		static constexpr const char* readNextLabel = "FilterConfiguration::readFloatPlanar(next)";
+		static constexpr const char* writeLabel = "FilterConfiguration::writeFloatPlanar";
+
+		static void bypassCopy(float** output, float** input, unsigned, unsigned realChannelCount, unsigned frameCount)
+		{
+			for (unsigned c = 0; c < realChannelCount; c++)
+				std::copy_n(input[c], frameCount, output[c]);
+		}
+		static void read(FilterConfiguration& config, float** input, unsigned frameCount)
+		{
+			config.readFloatPlanar(input, frameCount);
+		}
+		static void write(FilterConfiguration& config, float** output, unsigned frameCount)
+		{
+			config.writeFloatPlanar(output, frameCount);
+		}
+	};
+
+	struct DoubleInterleavedIo
+	{
+		static constexpr const char* totalLabel = "FilterEngine::process(double interleaved)";
+		static constexpr const char* readCurrentLabel = "FilterConfiguration::read(interleaved)";
+		static constexpr const char* readNextLabel = "FilterConfiguration::read(interleaved)";
+		static constexpr const char* writeLabel = "FilterConfiguration::write(interleaved)";
+
+		static void bypassCopy(double* output, double* input, unsigned outputChannelCount, unsigned, unsigned frameCount)
+		{
+			std::copy_n(input, outputChannelCount * frameCount, output);
+		}
+		static void read(FilterConfiguration& config, double* input, unsigned frameCount)
+		{
+			config.read(input, frameCount);
+		}
+		static void write(FilterConfiguration& config, double* output, unsigned frameCount)
+		{
+			config.write(output, frameCount);
+		}
+	};
+
+	struct DoublePlanarIo
+	{
+		static constexpr const char* totalLabel = "FilterEngine::process(double planar)";
+		static constexpr const char* readCurrentLabel = "FilterConfiguration::read(planar)";
+		static constexpr const char* readNextLabel = "FilterConfiguration::read(planar)";
+		static constexpr const char* writeLabel = "FilterConfiguration::write(planar)";
+
+		static void bypassCopy(double** output, double** input, unsigned, unsigned realChannelCount, unsigned frameCount)
+		{
+			for (unsigned c = 0; c < realChannelCount; c++)
+				std::copy_n(input[c], frameCount, output[c]);
+		}
+		static void read(FilterConfiguration& config, double** input, unsigned frameCount)
+		{
+			config.read(input, frameCount);
+		}
+		static void write(FilterConfiguration& config, double** output, unsigned frameCount)
+		{
+			config.write(output, frameCount);
+		}
+	};
+}
+
+// The single hot-path choreography behind all four public overloads: null and
+// empty-config bypass, current-config pass, crossfade into a pending next
+// configuration, write-back, transition bookkeeping. Validated against the
+// audio regression references and EngineOrchestrationTests, which pin the
+// crossfade behavior sample-by-sample.
+template <typename IoTraits, typename SampleType>
+void FilterEngine::processImpl(SampleType output, SampleType input, unsigned frameCount)
+{
+	PerfScope _eapo_total(IoTraits::totalLabel);
 	MxcsrFtzDazGuard _mxcsrGuard;
 
 	if (currentConfig == nullptr)
@@ -121,26 +190,22 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 		// ConfigPath with no custom path, or an empty path value), and the APO
 		// can call process() before initialize(). Treat both like the
 		// empty-config bypass below instead of dereferencing null. (audit #146 TD026)
-		if (realChannelCount == outputChannelCount && input != output) {
-			std::copy_n(input, outputChannelCount * frameCount, output);
-		}
+		if (realChannelCount == outputChannelCount && input != output)
+			IoTraits::bypassCopy(output, input, outputChannelCount, realChannelCount, frameCount);
 		return;
 	}
 
 	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
-		if (realChannelCount == outputChannelCount && input != output) {
-			std::copy_n(input, outputChannelCount * frameCount, output);
-		}
+		if (realChannelCount == outputChannelCount && input != output)
+			IoTraits::bypassCopy(output, input, outputChannelCount, realChannelCount, frameCount);
 		return;
 	}
 
-	// Fused float32 -> double + deinterleave directly into planar storage,
-	// avoiding the extra inputBuf1D pass that the original two-step path used.
 	{
-		PerfScope _ps("FilterConfiguration::readFloatInterleaved(current)");
-		currentConfig->readFloatInterleaved(input, frameCount);
+		PerfScope _ps(IoTraits::readCurrentLabel);
+		IoTraits::read(*currentConfig, input, frameCount);
 	}
 	{
 		PerfScope _ps("FilterConfiguration::process(current)");
@@ -150,8 +215,8 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	if (nextConfigReady.load(std::memory_order_acquire))
 	{
 		{
-			PerfScope _ps("FilterConfiguration::readFloatInterleaved(next)");
-			nextConfig->readFloatInterleaved(input, frameCount);
+			PerfScope _ps(IoTraits::readNextLabel);
+			IoTraits::read(*nextConfig, input, frameCount);
 		}
 		{
 			PerfScope _ps("FilterConfiguration::process(next)");
@@ -162,182 +227,34 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	}
 
 	{
-		PerfScope _ps("FilterConfiguration::writeFloatInterleaved");
-		currentConfig->writeFloatInterleaved(output, frameCount);
+		PerfScope _ps(IoTraits::writeLabel);
+		IoTraits::write(*currentConfig, output, frameCount);
 	}
 
 	finishTransitionIfReady();
+}
+
+// Process interleaved audio (float*)
+void FilterEngine::process(float* output, float* input, unsigned frameCount)
+{
+	processImpl<FloatInterleavedIo>(output, input, frameCount);
 }
 
 // Process non-interleaved audio (float**)
 void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
-	PerfScope _eapo_total("FilterEngine::process(float planar)");
-	MxcsrFtzDazGuard _mxcsrGuard;
-
-	if (currentConfig == nullptr)
-	{
-		// Null configuration: see the float-interleaved overload. (audit #146 TD026)
-		if (realChannelCount == outputChannelCount && input != output) {
-			for (unsigned c = 0; c < realChannelCount; c++)
-				std::copy_n(input[c], frameCount, output[c]);
-		}
-		return;
-	}
-
-	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
-	{
-		// Bypass mode
-		if (realChannelCount == outputChannelCount && input != output) {
-			for (unsigned c = 0; c < realChannelCount; c++)
-				std::copy_n(input[c], frameCount, output[c]);
-		}
-		return;
-	}
-
-	// Fused float32 -> double directly into planar storage. The previous path
-	// converted into inputBuf2D and then copied that into the configuration; we
-	// skip the intermediate buffer entirely.
-	{
-		PerfScope _ps("FilterConfiguration::readFloatPlanar(current)");
-		currentConfig->readFloatPlanar(input, frameCount);
-	}
-	{
-		PerfScope _ps("FilterConfiguration::process(current)");
-		currentConfig->process(frameCount);
-	}
-
-	if (nextConfigReady.load(std::memory_order_acquire))
-	{
-		{
-			PerfScope _ps("FilterConfiguration::readFloatPlanar(next)");
-			nextConfig->readFloatPlanar(input, frameCount);
-		}
-		{
-			PerfScope _ps("FilterConfiguration::process(next)");
-			nextConfig->process(frameCount);
-		}
-		PerfScope _ps("FilterConfiguration::doTransition");
-		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
-	}
-
-	{
-		PerfScope _ps("FilterConfiguration::writeFloatPlanar");
-		currentConfig->writeFloatPlanar(output, frameCount);
-	}
-
-	finishTransitionIfReady();
+	processImpl<FloatPlanarIo>(output, input, frameCount);
 }
 
 // Process interleaved audio (double*) - native double precision without conversion
 void FilterEngine::process(double* output, double* input, unsigned frameCount)
 {
-	PerfScope _eapo_total("FilterEngine::process(double interleaved)");
-	MxcsrFtzDazGuard _mxcsrGuard;
-
-	if (currentConfig == nullptr)
-	{
-		// Null configuration: see the float-interleaved overload. (audit #146 TD026)
-		if (realChannelCount == outputChannelCount && input != output) {
-			std::copy_n(input, outputChannelCount * frameCount, output);
-		}
-		return;
-	}
-
-	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
-	{
-		// Bypass mode: if no filters are active, just copy input to output if necessary.
-		if (realChannelCount == outputChannelCount && input != output) {
-			std::copy_n(input, outputChannelCount * frameCount, output);
-		}
-		return;
-	}
-
-	{
-		PerfScope _ps("FilterConfiguration::read(interleaved)");
-		currentConfig->read(input, frameCount);
-	}
-	{
-		PerfScope _ps("FilterConfiguration::process(current)");
-		currentConfig->process(frameCount);
-	}
-
-	if (nextConfigReady.load(std::memory_order_acquire))
-	{
-		{
-			PerfScope _ps("FilterConfiguration::read(interleaved)");
-			nextConfig->read(input, frameCount);
-		}
-		{
-			PerfScope _ps("FilterConfiguration::process(next)");
-			nextConfig->process(frameCount);
-		}
-		PerfScope _ps("FilterConfiguration::doTransition");
-		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
-	}
-
-	{
-		PerfScope _ps("FilterConfiguration::write(interleaved)");
-		currentConfig->write(output, frameCount);
-	}
-
-	finishTransitionIfReady();
+	processImpl<DoubleInterleavedIo>(output, input, frameCount);
 }
 
 // Process non-interleaved audio (double**) - native double precision without conversion
 void FilterEngine::process(double** output, double** input, unsigned frameCount)
 {
-	PerfScope _eapo_total("FilterEngine::process(double planar)");
-	MxcsrFtzDazGuard _mxcsrGuard;
-
-	if (currentConfig == nullptr)
-	{
-		// Null configuration: see the float-interleaved overload. (audit #146 TD026)
-		if (realChannelCount == outputChannelCount && input != output) {
-			for (unsigned c = 0; c < realChannelCount; c++)
-				std::copy_n(input[c], frameCount, output[c]);
-		}
-		return;
-	}
-
-	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
-	{
-		// Bypass mode
-		if (realChannelCount == outputChannelCount && input != output) {
-			for (unsigned c = 0; c < realChannelCount; c++)
-				std::copy_n(input[c], frameCount, output[c]);
-		}
-		return;
-	}
-
-	{
-		PerfScope _ps("FilterConfiguration::read(planar)");
-		currentConfig->read(input, frameCount);
-	}
-	{
-		PerfScope _ps("FilterConfiguration::process(current)");
-		currentConfig->process(frameCount);
-	}
-
-	if (nextConfigReady.load(std::memory_order_acquire))
-	{
-		{
-			PerfScope _ps("FilterConfiguration::read(planar)");
-			nextConfig->read(input, frameCount);
-		}
-		{
-			PerfScope _ps("FilterConfiguration::process(next)");
-			nextConfig->process(frameCount);
-		}
-		PerfScope _ps("FilterConfiguration::doTransition");
-		transitionCounter = currentConfig->doTransition(nextConfig.get(), frameCount, transitionCounter, transitionLength, transitionFactorTable.data());
-	}
-
-	{
-		PerfScope _ps("FilterConfiguration::write(planar)");
-		currentConfig->write(output, frameCount);
-	}
-
-	finishTransitionIfReady();
+	processImpl<DoublePlanarIo>(output, input, frameCount);
 }
 #pragma AVRT_CODE_END

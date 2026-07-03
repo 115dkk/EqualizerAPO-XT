@@ -1191,6 +1191,10 @@ jobs:
     #   Win32 security APIs used (SetEntriesInAcl, GetNamedSecurityInfoW).
     # - unknownMacro on the two VST3 host files: QUERY_INTERFACE comes from
     #   the VST3 SDK under deps/, which is excluded from analysis.
+    # - unusedStructMember on FilterEngine.Process.cpp: the IoTraits label and
+    #   I/O members are consumed inside the processImpl member template;
+    #   cppcheck does not analyze template instantiations, so it reports every
+    #   trait member as unused (false positive).
     - name: Run cppcheck
       run: |
         "$HOME/cppcheck-install/bin/cppcheck" \
@@ -1211,6 +1215,7 @@ jobs:
           --suppress=LocalAllocCalled \
           --suppress=unknownMacro:helpers/VSTPluginInstance.cpp \
           --suppress=unknownMacro:helpers/VSTPluginInstanceInternal.h \
+          --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
           --suppress=*:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \
           --error-exitcode=1 \
