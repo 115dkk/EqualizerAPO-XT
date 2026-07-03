@@ -73,12 +73,12 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 	// so adding a filter GUI no longer means editing this list. FilterTable owns
 	// the returned instances and deletes them in its destructor.
 	factories = FilterGUIFactoryRegistry::createFactories();
-
-	QApplication::instance()->installEventFilter(this);
 }
 
 FilterTable::~FilterTable()
 {
+	// Only installed while a wheel-scroll gesture is active (see wheelEvent);
+	// removing an uninstalled filter is a documented no-op.
 	if (QApplication::instance() != nullptr)
 		QApplication::instance()->removeEventFilter(this);
 
@@ -95,6 +95,13 @@ void FilterTable::initialize(QScrollArea* scrollArea, const QList<shared_ptr<Abs
 	this->scrollArea = scrollArea;
 	this->outputDevices = outputDevices;
 	this->inputDevices = inputDevices;
+
+	// The resize hook only cares about the scroll area itself, so filter that
+	// one object instead of every event in the application. The app-global
+	// filter that redirects wheel events away from child widgets is installed
+	// per scroll gesture in wheelEvent(). Every open tab used to keep an
+	// always-on application filter each. (audit #146 TD041)
+	scrollArea->installEventFilter(this);
 
 	for (IFilterGUIFactory* factory : factories)
 		factory->initialize(this);

@@ -112,3 +112,9 @@ void StageCardEditor::chipToggled()
 		model.setSelected(chip.token, chip.button->isChecked());
 	emit updateModel();
 }
+
+#include "FilterCardEditorRegistry.h"
+
+REGISTER_FILTER_CARD_EDITOR(stage, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+	return new StageCardEditor(parameters);
+})

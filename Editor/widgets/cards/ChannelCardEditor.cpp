@@ -133,3 +133,9 @@ void ChannelCardEditor::commitSelection()
 	parameters = model.serialize();
 	emit updateModel();
 }
+
+#include "FilterCardEditorRegistry.h"
+
+REGISTER_FILTER_CARD_EDITOR(channel, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+	return new ChannelCardEditor(parameters);
+})

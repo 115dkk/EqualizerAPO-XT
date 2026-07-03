@@ -71,6 +71,14 @@ QString firstCapture(const QRegularExpression& expression, const QString& text)
 // Reproduces the same labelling the legacy BiQuad GUI shows so the modern card
 // agrees with it for the LSC/HSC/LPQ/HPQ/PEQ/Modal variants that the previous
 // regex did not recognize.
+//
+// Deliberately NOT routed through BiQuadCommand::parse (audit #146 TD019,
+// skipped): the engine parser is intentionally lossy - missing tokens are
+// synthesized as defaults and variants are merged (see BiQuadCommand.h, audit
+// #109 F007) - while this badge must echo only what the author wrote, in the
+// author's own spelling. The structural pieces already come from shared
+// sources: the command vocabulary from FilterFactoryRegistry and the type
+// titles from BiQuadCommand's table (above).
 QString summarizeBiquad(const QString& parameters, const QString& code, const QString& state)
 {
 	QStringList parts;

@@ -138,6 +138,15 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 
 void FilterTable::wheelEvent(QWheelEvent* event)
 {
+	// While the gesture lasts, wheel events over child widgets must reach the
+	// list instead of the widget under the cursor; only an application-wide
+	// filter sees events targeted at descendants. Installed here and removed
+	// when the gesture ends so idle tables filter nothing. (audit #146 TD041)
+	if (!appWheelFilterInstalled)
+	{
+		QApplication::instance()->installEventFilter(this);
+		appWheelFilterInstalled = true;
+	}
 	scrollingNow = true;
 	scrollStartPoint = event->globalPosition();
 
@@ -169,7 +178,14 @@ bool FilterTable::eventFilter(QObject* obj, QEvent* event)
 			QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 
 			if ((mouseEvent->globalPos() - scrollStartPoint).manhattanLength() > GUIHelper::scale(30))
+			{
 				scrollingNow = false;
+				if (appWheelFilterInstalled)
+				{
+					QApplication::instance()->removeEventFilter(this);
+					appWheelFilterInstalled = false;
+				}
+			}
 		}
 	}
 

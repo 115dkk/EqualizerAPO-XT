@@ -252,3 +252,9 @@ void IncludeCardEditor::importToConfig()
 	updateFileInfo();
 	emit updateModel();
 }
+
+#include "FilterCardEditorRegistry.h"
+
+REGISTER_FILTER_CARD_EDITOR(include, [](FilterTable* filterTable, const QString&, const QString& parameters) -> IFilterGUI* {
+	return new IncludeCardEditor(filterTable, parameters);
+})
