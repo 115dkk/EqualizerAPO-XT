@@ -12,6 +12,22 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Fixed a crash path inside the Windows audio engine: if EqualizerAPO could
+  not load any configuration (for example an unreadable `ConfigPath` registry
+  value), processing dereferenced a null configuration inside audiodg.exe and
+  killed system audio. Audio now passes through unchanged instead.
+  ([#150](https://github.com/115dkk/EqualizerAPO-XT/pull/150))
+- `MultiConvolution` now shares the impulse-response cache with `Convolution`:
+  a configuration reload reuses the decoded IR instead of re-reading every
+  BRIR file from disk.
+  ([#150](https://github.com/115dkk/EqualizerAPO-XT/pull/150))
+- VST plugin setup survives out-of-memory conditions: a failed buffer
+  allocation now degrades to passing audio through instead of crashing the
+  audio service.
+  ([#150](https://github.com/115dkk/EqualizerAPO-XT/pull/150))
+
 ## v2.8.0 — 2026-07-03
 
 - Comment and Stage rows became real cards. A note line gets an in-place

@@ -204,8 +204,18 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 	HANDLE handles[3] = {engine->shutdownEvent->get(), notificationHandle, registryEvent.get()};
 	while (true)
 	{
+		// watchRegistryKeys is cleared and refilled under loadMutex whenever a
+		// configuration loads (loadConfig can run on the APO thread for a device
+		// format change while this thread is between waits). Snapshot it under
+		// the same mutex instead of iterating the live set. (audit #146 TD027)
+		vector<wstring> watchedKeys;
+		{
+			lock_guard<mutex> lock(engine->loadMutex);
+			watchedKeys.assign(engine->watchRegistryKeys.begin(), engine->watchRegistryKeys.end());
+		}
+
 		vector<HKEY> keyHandles;
-		for (auto it = engine->watchRegistryKeys.begin(); it != engine->watchRegistryKeys.end(); it++)
+		for (auto it = watchedKeys.begin(); it != watchedKeys.end(); it++)
 		{
 			try
 			{

@@ -173,7 +173,15 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	}
 
 	fftw_make_planner_thread_safe();
-	filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
+	HConvSingle* allocated = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
+	if (allocated == nullptr)
+	{
+		// alloc returns nullptr on failure; stay inert (filters is null from
+		// cleanup(), process() then no-ops) instead of dereferencing it.
+		LogF(L"GraphicEQFilter: could not allocate %u filter slots", channelCount);
+		return;
+	}
+	filters.adopt(allocated, channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		hcInitSingle(&filters[i], const_cast<double*>(cached->ir.data()), static_cast<int>(filterLength), static_cast<int>(frameCount), 1);

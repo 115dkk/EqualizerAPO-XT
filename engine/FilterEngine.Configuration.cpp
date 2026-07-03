@@ -166,6 +166,12 @@ void FilterEngine::loadConfigFile(const wstring& path)
 				vector<IFilter*> newFilters;
 				try
 				{
+					// A factory that throws after constructing some filters leaks
+					// those IFilter*s: partial results live inside the factory and
+					// cannot be reclaimed here. The leak is bounded by config-reload
+					// frequency and accepted; factories that allocate more than
+					// trivially should own partials via a scope guard before
+					// returning. (audit #146 TD030)
 					newFilters = factory->createFilter(path, key, value);
 				}
 				catch (const exception& e)

@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include <cstdarg>
+#include <mutex>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -28,34 +29,47 @@
 using std::log;
 using std::wstring;
 
-bool LogHelper::initialized = false;
+std::atomic<bool> LogHelper::initialized{false};
 wstring LogHelper::logPath;
-bool LogHelper::enableTrace = false;
+std::atomic<bool> LogHelper::enableTrace{false};
 FILE* LogHelper::presetFP = nullptr;
 bool LogHelper::compact = false;
 bool LogHelper::useConsoleColors = false;
 
 void LogHelper::log(const char* file, int line, const void* caller, bool trace, const wchar_t* format, ...)
 {
-	if (!initialized)
+	// Two first-loggers used to race on writing logPath (a std::wstring) while
+	// the other read it. Double-checked init under a mutex; the release store
+	// pairs with the acquire load so later loggers see logPath. (audit #146 TD028)
+	if (!initialized.load(std::memory_order_acquire))
 	{
-		// Do not try to initialize again, even in case of error
-		initialized = true;
-
-		wchar_t temp[255];
-		GetTempPathW(sizeof(temp) / sizeof(wchar_t), temp);
-
-		logPath = temp;
-		logPath += L"EqualizerAPO.log";
-
-		try
+		static std::mutex initMutex;
+		std::lock_guard<std::mutex> lock(initMutex);
+		if (!initialized.load(std::memory_order_relaxed))
 		{
-			if (RegistryHelper::readValue(APP_REGPATH, L"EnableTrace") != L"false")
-				enableTrace = true;
-		}
-		catch (const RegistryException& e)
-		{
-			LogFStatic(L"%s", e.getMessage());
+			wchar_t temp[255];
+			GetTempPathW(sizeof(temp) / sizeof(wchar_t), temp);
+
+			logPath = temp;
+			logPath += L"EqualizerAPO.log";
+
+			// Publish before the registry probe, and do not try to initialize
+			// again even in case of error: the catch below logs through
+			// LogFStatic, which re-enters log() on this thread and must take
+			// the fast path (logPath is set) instead of deadlocking here.
+			initialized.store(true, std::memory_order_release);
+
+			try
+			{
+				if (RegistryHelper::readValue(APP_REGPATH, L"EnableTrace") != L"false")
+					enableTrace = true;
+			}
+			catch (const RegistryException& e)
+			{
+				// getMessage() returns a std::wstring; passing it through
+				// varargs is undefined behavior. (audit #146 TD024)
+				LogFStatic(L"%s", e.getMessage().c_str());
+			}
 		}
 	}
 

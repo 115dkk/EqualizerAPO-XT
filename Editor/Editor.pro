@@ -153,6 +153,7 @@ SOURCES += main.cpp\
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
+	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \
 	../parser/RegexFunctions.cpp \
 	../parser/RegistryFunctions.cpp \
@@ -362,6 +363,7 @@ HEADERS  += \
 	../filters/ChannelFilter.h \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
+	../filters/IrCache.h \
 	../parser/RegexFunctions.h \
 	../parser/RegistryFunctions.h \
 	../parser/ParserExtensions.h \

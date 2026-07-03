@@ -413,13 +413,6 @@ void VSTPluginInstance::setSizeWindowFunc(std::function<void(int, int)> func)
 	sizeWindowFunc = func;
 }
 
-bool VSTPluginInstance::getEditorSize(int* width, int* height)
-{
-	(void)width;
-	(void)height;
-	return false;
-}
-
 void VSTPluginInstance::onSizeWindow(int w, int h)
 {
 	if (vst3EditorHostWindow != NULL)

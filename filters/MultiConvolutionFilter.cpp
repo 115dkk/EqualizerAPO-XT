@@ -18,13 +18,9 @@
 
 #include "stdafx.h"
 #include <algorithm>
-#include <cmath>
-#include <climits>
 #include <cstring>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
-#include <sndfile.h>
 #include <fftw3.h>
 
 #include "helpers/ChannelHelper.h"
@@ -32,7 +28,6 @@
 #include "helpers/MemoryHelper.h"
 #include "MultiConvolutionFilter.h"
 
-using std::abs;
 using std::find;
 using std::vector;
 using std::wstring;
@@ -43,7 +38,6 @@ MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionComm
 	this->filename = filename;
 	sampleRate = 0.0f;
 	filterFrameCount = 0;
-	filters = nullptr;
 	unitCount = 0;
 }
 
@@ -84,46 +78,16 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		plans[i].inputChannel = channelIndex;
 	}
 
-	SF_INFO info{};
-	SNDFILE* in = sf_wchar_open(filename.c_str(), SFM_READ, &info);
-	if (in == nullptr)
-	{
-		LogFStatic(L"Error while reading impulse response file: %S", sf_strerror(in));
+	// Shared IR intake + cache (IrCache.cpp): validates the file, deinterleaves
+	// to channel-major buffers, and lets a config reload (or another filter on
+	// the same IR) skip the disk read entirely. (audit #146 TD001)
+	auto ir = loadIrCached(filename, sampleRate);
+	if (!ir)
 		return outChannelNames;
-	}
-	if (abs(sampleRate - info.samplerate) > 1.0)
-	{
-		LogFStatic(L"Impulse response sample rate (%d Hz) does not match device sample rate (%f Hz)", info.samplerate, sampleRate);
-		sf_close(in);
-		return outChannelNames;
-	}
-	if (info.frames <= 0 || info.channels <= 0 || info.frames > INT_MAX)
-	{
-		LogFStatic(L"Impulse response has no usable audio (frames=%lld, channels=%d); ignoring %s",
-			static_cast<long long>(info.frames), info.channels, filename.c_str());
-		sf_close(in);
-		return outChannelNames;
-	}
+	irEntry = ir;
 
-	const unsigned irChannels = (unsigned)info.channels;
-	const unsigned irFrames = (unsigned)info.frames;
-	vector<double> interleaved((size_t)irFrames * irChannels);
-	sf_count_t numRead = 0;
-	while (numRead < info.frames)
-	{
-		sf_count_t got = sf_readf_double(in, interleaved.data() + numRead * irChannels, info.frames - numRead);
-		if (got <= 0)
-			break;
-		numRead += got;
-	}
-	sf_close(in);
-
-	// Deinterleave into channel-major IR buffers so each convolution reads a
-	// contiguous per-channel impulse response.
-	vector<vector<double>> irBuffers(irChannels, vector<double>(irFrames));
-	for (unsigned c = 0; c < irChannels; c++)
-		for (unsigned f = 0; f < irFrames; f++)
-			irBuffers[c][f] = interleaved[(size_t)f * irChannels + c];
+	const unsigned irChannels = ir->channels;
+	const unsigned irFrames = ir->frames;
 
 	// Expand each mapping to its participating IR channels. The simple form
 	// (empty list) means every channel of the file; explicit references beyond
@@ -158,8 +122,8 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		return outChannelNames;
 
 	fftw_make_planner_thread_safe();
-	filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * totalUnits);
-	if (filters == nullptr)
+	HConvSingle* allocated = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * totalUnits);
+	if (allocated == nullptr)
 	{
 		LogF(L"MultiConvolutionFilter: could not allocate %u convolution units", totalUnits);
 		return outChannelNames;
@@ -172,11 +136,14 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		plans[i].firstUnit = next;
 		for (unsigned c : perMapping[i])
 		{
-			hcInitSingle(&filters[next], irBuffers[c].data(), (int)irFrames, (int)maxFrameCount, 1);
+			// hcInitSingle reads the IR samples during planning but does not
+			// retain the pointer, so the shared cache buffer is safe to feed.
+			hcInitSingle(&allocated[next], const_cast<double*>(ir->buffers[c].data()), (int)irFrames, (int)maxFrameCount, 1);
 			next++;
 		}
 		plans[i].unitCount = next - plans[i].firstUnit;
 	}
+	filters.adopt(allocated, next);
 	unitCount = next;
 	filterFrameCount = maxFrameCount;
 
@@ -219,13 +186,12 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 
 void MultiConvolutionFilter::cleanup()
 {
-	if (filters != nullptr)
-	{
-		for (unsigned u = 0; u < unitCount; u++)
-			hcCloseSingle(&filters[u]);
-		MemoryHelper::free(filters);
-		filters = nullptr;
-	}
+	// HConvSingleArray::reset() runs the close-then-free sequence that used to
+	// be spelled out here. (audit #146 TD002)
+	filters = nullptr;
+	// Release this filter's hold on the cached IR; the weak-ptr cache frees the
+	// entry once the last user drops it.
+	irEntry.reset();
 	unitCount = 0;
 	plans.clear();
 	tempBuffer.clear();

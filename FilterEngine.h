@@ -71,6 +71,10 @@ public:
 	unsigned getChannelMask() const {return channelMask;}
 	float getSampleRate() const {return sampleRate;}
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
+	// Crossfade length in samples for a configuration swap, set by initialize().
+	// Exposed so tests exercise the real value instead of re-deriving the
+	// sampleRate / 100 formula. (audit #146 TD033)
+	unsigned getTransitionLength() const {return transitionLength;}
 	mup::ParserX* getParser() {return parser.get();}
 	// Returns true if the active configuration (or any transition target) carries
 	// state across blocks or has a tail. Used by the APO to skip processing on
