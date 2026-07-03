@@ -51,7 +51,7 @@ class TitleBar;
 //   MainWindow.cpp                             - ctor/dtor, shared setup, doChecks
 //   MainWindowParts/MainWindow.Analysis.cpp    - instant mode + analysis panel
 //   MainWindowParts/MainWindow.Device.cpp      - device/channel selection + tabs
-//   MainWindowParts/MainWindow.Edit.cpp        - cut/copy/paste/undo edit actions
+//   MainWindowParts/MainWindow.Edit.cpp        - cut/copy/paste edit actions
 //   MainWindowParts/MainWindow.FileActions.cpp - open/save/recent menu actions
 //   MainWindowParts/MainWindow.FileIO.cpp      - config load/save
 //   MainWindowParts/MainWindow.Frame.cpp       - custom window chrome / title bar

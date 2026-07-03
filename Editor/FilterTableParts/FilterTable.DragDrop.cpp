@@ -108,34 +108,11 @@ void FilterTable::dropEvent(QDropEvent* event)
 		else
 			event->setDropAction(Qt::MoveAction);
 
-		QString text = mimeData->text();
-		QStringList textLines = text.split("\n");
-		QList<QVariantMap> prefsList;
-		const FilterTableMimeData* filterTableMimeData = qobject_cast<const FilterTableMimeData*>(mimeData);
-		if (filterTableMimeData != nullptr)
-			prefsList = filterTableMimeData->getPrefsList();
-
 		int dropRow = rowForPos(event->pos(), true);
 		if (dropRow == -1)
 			dropRow = items.size();
 
-		selected.clear();
-		focused = nullptr;
-		selectionStart = nullptr;
-		for (int i = 0; i < textLines.size(); i++)
-		{
-			QString line = textLines[i];
-			Item* item = new Item(line);
-			if (i < prefsList.size())
-				item->prefs = prefsList[i];
-			selected.insert(item);
-			items.insert(dropRow++, item);
-			if (focused == nullptr)
-			{
-				focused = item;
-				selectionStart = item;
-			}
-		}
+		insertLinesFromMimeData(mimeData, dropRow);
 		event->accept();
 
 		if (!internalDrag)
