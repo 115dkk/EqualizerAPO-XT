@@ -6,6 +6,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- Signal Matrix 필터 픽커가 마우스 아래의 항목·카테고리를 하이라이트하지
+  않던 문제를 고쳤습니다. 호버 예고광이 보드 위에서 약 3.5% 밝기 차로
+  그려져 눈으로는 구분할 수 없었고, 그래서 이 스킨의 픽커만 커서를
+  무시하는 것처럼 보였습니다. 이제 예고광은 한눈에 주소 지정된 셀로
+  읽히고, 체결(채움 + 액센트 룰·밴드·패치 트레이스)은 그보다 확실히
+  위에 있습니다. ([#142])
+
 ## v2.7.0 (2026-07-03)
 
 - MultiConvolution이 Channel 명령에서 독립했습니다. 새 매핑 문법
@@ -617,3 +626,4 @@ TheFireKahuna 트리 위에서 포크를 시작한 버전입니다.
 [#136]: https://github.com/115dkk/EqualizerAPO-XT/pull/136
 [#137]: https://github.com/115dkk/EqualizerAPO-XT/pull/137
 [#139]: https://github.com/115dkk/EqualizerAPO-XT/pull/139
+[#142]: https://github.com/115dkk/EqualizerAPO-XT/pull/142

@@ -481,14 +481,17 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 
 		if (active)
 		{
-			painter.fillRect(cell, withAlpha(accent, 26));
+			painter.fillRect(cell, withAlpha(accent, 48));
 			painter.fillRect(QRect(cell.left(), cell.top(), s(3.0), cell.height()), accent);
 		}
 		else if (hovered)
 		{
-			// Pre-light calibrated up with the LED round (M1): the band must
-			// read as an addressed bus, not as a rendering artefact.
-			painter.fillRect(cell, withAlpha(accent, 16));
+			// Pre-light recalibrated (M2): the M1 value (16) measured ~3.5%
+			// brightness delta on the rendered board - below the perceptual
+			// threshold, so the mouse appeared to highlight nothing. The band
+			// must read as an addressed bus at a glance; engagement stays
+			// clearly above it (fill + 3px band).
+			painter.fillRect(cell, withAlpha(accent, 40));
 		}
 		painter.setPen(QPen(border, 1));
 		painter.drawLine(cell.left(), cell.bottom(), cell.right(), cell.bottom());
@@ -539,11 +542,14 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		const bool hovered = r == hoverRow && !engaged;
 
 		if (engaged)
-			painter.fillRect(cellRect, withAlpha(accent, 30));
+			painter.fillRect(cellRect, withAlpha(accent, 56));
 		else if (hovered)
-			// Pre-light calibrated up with the LED round (M1), still well
-			// below the engaged fill so hover never reads as engagement.
-			painter.fillRect(cellRect, withAlpha(accent, 18));
+			// Pre-light recalibrated (M2): the M1 value (18) measured ~3.5%
+			// brightness delta - invisible in practice, which read as "hover
+			// does not highlight" on this skin only. Still below the engaged
+			// fill (56 + accent rule + patch trace) so pre-light never reads
+			// as engagement.
+			painter.fillRect(cellRect, withAlpha(accent, 40));
 		painter.setPen(QPen(border, 1));
 		painter.drawLine(cellRect.left(), cellRect.bottom(), cellRect.right(), cellRect.bottom());
 		if (engaged)
