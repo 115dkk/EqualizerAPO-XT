@@ -269,10 +269,19 @@ jobs:
         run: |
           unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
 
+          # Fable 5's safety classifiers can silently re-run a flagged
+          # request on Opus 4.8 and keep the session there. Restricting
+          # availableModels to Fable 5 blocks that fallback target, so a
+          # flagged request ends with an explicit refusal error instead of
+          # a quiet model switch (and no Opus tokens are spent). See
+          # code.claude.com/docs/en/model-config, "Automatic model
+          # fallback" and "Restrict model selection". Availability-based
+          # fallback is opt-in (--fallback-model) and stays unset.
           set +e
           claude \
-            --model claude-opus-4-8 \
-            --effort max \
+            --model claude-fable-5 \
+            --effort xhigh \
+            --settings '{"availableModels": ["claude-fable-5"]}' \
             --permission-mode auto \
             --max-turns 100 \
             -p "
