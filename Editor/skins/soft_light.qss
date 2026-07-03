@@ -703,6 +703,13 @@ QToolButton#StageChipUnknown {
     border: 1px dashed @BORDER@; border-radius: 16px;
     padding: 4px 12px; min-height: 22px;
 }
+/* Lane captions ("Playback"/"Recording") and the chain arrow: quiet
+   guides beside the pill bank, in the sheet's secondary ink. */
+QLabel#StageLaneCaption {
+    background: transparent; color: @MUTED@;
+    font-size: 8pt; font-weight: 600;
+}
+QLabel#StageChainArrow { background: transparent; color: @MUTED@; }
 
 /* --- Comment: the memo. The user's own words on the sheet's
    established warm amber pastel ("warmer, never an alarm" - the dirty

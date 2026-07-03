@@ -90,6 +90,15 @@ void FlowLayout::setGeometry(const QRect& rect)
 
 QSize FlowLayout::sizeHint() const
 {
+	// Once a real width has been assigned, report the height the flow
+	// actually needs at that width. QWidget::sizeHint computes the
+	// height-for-width at the hint's own width, and minimumSize() is only
+	// one item wide - every further item would then be counted as its own
+	// wrap line, inflating the hint to a stacked-column height and padding
+	// the hosting card body with dead space.
+	const QRect g = geometry();
+	if (g.isValid())
+		return QSize(g.width(), heightForWidth(g.width()));
 	return minimumSize();
 }
 

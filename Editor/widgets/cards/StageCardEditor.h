@@ -26,11 +26,12 @@
 class QToolButton;
 
 // Modern card body for a "Stage:" line (Phase 1, the neutral base shared by
-// every skin): one checkable chip per engine stage (pre-mix, post-mix,
-// capture), in the same chip grammar as the Device and Channel cards. The
-// written line matches what the legacy checkbox GUI produced for the same
-// selection, except that tokens outside the vocabulary survive as a muted
-// inert chip instead of being dropped.
+// every skin): checkable chips in the same grammar as the Device and Channel
+// cards, arranged in two captioned lanes that mirror the engine's pipelines —
+// Playback holds pre-mix and post-mix in signal order behind a chain arrow,
+// Recording holds capture. The written line matches what the legacy checkbox
+// GUI produced for the same selection, except that tokens outside the
+// vocabulary survive as a muted inert chip instead of being dropped.
 class StageCardEditor : public IFilterGUI
 {
 	Q_OBJECT

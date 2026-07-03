@@ -1617,6 +1617,22 @@ QToolButton#StageChipUnknown {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 9pt;
 }
+/* Lane captions and the chain arrow: wayfinding, not controls - the
+   section-label dialect (small tracked caps in muted ink); the arrow
+   is the same quiet ink between the two playback sockets. */
+QLabel#StageLaneCaption {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QLabel#StageChainArrow {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 10pt;
+}
 
 /* ----- Comment - quiet ink on the unlit pane -----
    A comment row is an unlit pane by constitution (no lamp, no chrome),

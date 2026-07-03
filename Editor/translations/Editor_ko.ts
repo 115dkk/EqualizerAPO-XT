@@ -989,7 +989,7 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="436"/>
         <source>Raw</source>
         <translation>원본</translation>
     </message>
@@ -2308,37 +2308,52 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StageCardEditor</name>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="45"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="64"/>
+        <source>Playback</source>
+        <translation>재생</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="68"/>
         <source>Pre-mix</source>
         <translation>믹스 전</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="46"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="69"/>
         <source>Apply in each program&apos;s stream, before Windows mixes them</source>
         <translation>각 프로그램의 스트림에, Windows가 섞기 전에 적용합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="47"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="72"/>
+        <source>Signal order: pre-mix runs before the streams are mixed, post-mix after</source>
+        <translation>신호 순서입니다. 믹스 전은 스트림이 섞이기 전에, 믹스 후는 섞인 뒤에 실행됩니다</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="74"/>
         <source>Post-mix</source>
         <translation>믹스 후</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="48"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
         <source>Apply to the device&apos;s mixed output (the default stage)</source>
         <translation>장치의 최종 믹스 출력에 적용합니다(기본 단계)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="49"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="79"/>
+        <source>Recording</source>
+        <translation>녹음</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="83"/>
         <source>Capture</source>
         <translation>캡처</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="50"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="84"/>
         <source>Apply to recording devices</source>
         <translation>녹음 장치에 적용합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="94"/>
         <source>Selectors the engine does not recognize; they are kept as written</source>
         <translation>엔진이 모르는 선택자입니다. 쓰인 그대로 보존됩니다</translation>
     </message>

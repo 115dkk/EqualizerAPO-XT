@@ -1063,7 +1063,7 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="436"/>
         <source>Raw</source>
         <translation>原始</translation>
     </message>
@@ -2624,37 +2624,52 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StageCardEditor</name>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="45"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="64"/>
+        <source>Playback</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="68"/>
         <source>Pre-mix</source>
         <translation>预混合</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="46"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="69"/>
         <source>Apply in each program&apos;s stream, before Windows mixes them</source>
         <translation>在 Windows 混音之前，应用到每个程序的音频流</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="47"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="72"/>
+        <source>Signal order: pre-mix runs before the streams are mixed, post-mix after</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="74"/>
         <source>Post-mix</source>
         <translation>混合后</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="48"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
         <source>Apply to the device&apos;s mixed output (the default stage)</source>
         <translation>应用到设备的混音输出（默认阶段）</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="49"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="79"/>
+        <source>Recording</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="83"/>
         <source>Capture</source>
         <translation>录制</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="50"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="84"/>
         <source>Apply to recording devices</source>
         <translation>应用到录音设备</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="94"/>
         <source>Selectors the engine does not recognize; they are kept as written</source>
         <translation>引擎无法识别的选择器；将按原样保留</translation>
     </message>

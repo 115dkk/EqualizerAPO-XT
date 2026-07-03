@@ -154,7 +154,7 @@ $env:QT_QPA_PLATFORM = "offscreen"
 .\build-Editor-x64\release\Editor.exe --skin-gallery <outDir> [--skin-gallery-skins studio,rack]
 ```
 
-For every skin × {dark, light} it renders seventeen representative rows — a
+For every skin × {dark, light} it renders eighteen representative rows — a
 parametric filter (`Filter 1: ON PK ...`), a high-shelf with its three knobs,
 a peaking filter at 0 dB (bipolar gain at its neutral detent), a `Preamp:`
 row (the bare knob + value scrub pair — the row that shows whether a skin
@@ -162,8 +162,13 @@ seats custom widgets directly on its surface), an `Include:`
 row (resolved), a nested `Include: Surround\...` row (the location line), a
 missing `Include:` row (the broken-reference transition with the Locate
 entry), a `VSTPlugin:` row (unresolvable library - the missing/named-device
-state), a `Device:` row, a `Channel:` row, a comment row (`# ...`, the note
-card), a `Stage:` row (the stage chip strip), an empty `Copy:` row, a
+state), two `Device:` rows over four synthetic endpoints (a named selection —
+engaged playback switch + engaged capture well beside an idle endpoint, with
+the APO-less endpoint behind the reveal toggle — and the `all` master over
+powered-down chips), a `Channel:` row, a comment row (`# ...`, the note
+card), a `Stage:` row (the two-lane stage card: a captioned Playback lane
+with the pre-mix → post-mix chain, and a Recording lane holding capture), an
+empty `Copy:` row, a
 populated `Copy:` row (mixed factors and a virtual target — the routing
 views' judged scene), a `Convolution:` row and two `MultiConvolution:` rows
 (populated and freshly inserted empty) — in three
@@ -179,7 +184,7 @@ meaningful ACL story). The filter picker is captured in three states
 `FilterPickerView::galleryShowcase` repeat their normal look), plus one shot
 each for the toolbar, title bar, menu bar and an open menu. Output names are
 stable: `<skin>_<dark|light>_<row>_<state>.png`,
-5 × 2 × (17 × 3 + 3 + 4) = 580 PNGs
+5 × 2 × (18 × 3 + 3 + 4) = 610 PNGs
 for a full run; the run self-checks the count, so adding a gallery row needs
 no external count update. A row shot fails the render (non-zero exit) if a
 visible horizontal scrollbar is found inside the row — rows must fit the

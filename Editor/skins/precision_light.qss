@@ -653,15 +653,21 @@ QToolButton#DeviceChip:hover, QToolButton#ChannelChip:hover,
 QToolButton#StageChip:hover {
     background: @CARD_HOVER@;
 }
-/* Selection: the accent-family value step (rule 3, cardSelected
-   #E8F1FF = tokens.cardSelected) + the accent hairline; the press
-   instant previews it (the sheet's QToolButton:pressed/:checked
-   pairing). A solid edge always sits under the cursor. */
-QToolButton#DeviceChip:pressed, QToolButton#ChannelChip:pressed,
-QToolButton#StageChip:pressed,
-QToolButton#DeviceChip:checked, QToolButton#ChannelChip:checked,
-QToolButton#StageChip:checked {
+/* Selection (Channel/Stage): the accent-family value step (rule 3,
+   cardSelected #E8F1FF = tokens.cardSelected) + the accent hairline;
+   the press instant previews it (the sheet's QToolButton:pressed/
+   :checked pairing). A solid edge always sits under the cursor. */
+QToolButton#ChannelChip:pressed, QToolButton#StageChip:pressed,
+QToolButton#ChannelChip:checked, QToolButton#StageChip:checked {
     background: #E8F1FF; color: @TEXT@; border: 1px solid @ACCENT@;
+}
+/* Selection (Device): a routed endpoint is the console's current
+   selection, so it takes the printed reverse video - the
+   DeviceChipMore press canon held down, not a third accent value.
+   Declared before :focus so the accent focus hairline still lands on
+   an engaged chip. */
+QToolButton#DeviceChip:pressed, QToolButton#DeviceChip:checked {
+    background: @TEXT@; color: @SURFACE@; border: 1px solid @TEXT@;
 }
 /* Keyboard focus: the accent hairline frame; after the kind blocks so
    it fires on dashed chips too. */
@@ -683,9 +689,13 @@ QToolButton#ChannelChip[customChannel="true"]:disabled {
 /* Selected but inert: the cardSelected ground survives as the record;
    ink and border retire with the activity. Last on purpose (wins the
    121-tie against the dashed inert-kind rule). */
-QToolButton#DeviceChip:checked:disabled, QToolButton#ChannelChip:checked:disabled,
-QToolButton#StageChip:checked:disabled {
+QToolButton#ChannelChip:checked:disabled, QToolButton#StageChip:checked:disabled {
     background: #E8F1FF; color: @MUTED@; border: 1px solid @BORDER@;
+}
+/* Device stored selection while inert: the reverse video dims to a
+   muted block - still inverted, no longer the live cursor. */
+QToolButton#DeviceChip:checked:disabled {
+    background: @MUTED@; color: @SURFACE@; border: 1px solid @MUTED@;
 }
 
 /* -- Device reveal toggle: the engraved command grammar (BROWSE/
@@ -744,21 +754,33 @@ QToolButton#StageChipUnknown {
     border: 1px dashed @BORDER@; border-radius: 0;
     padding: 2px 8px; min-height: 20px;
 }
+/* Lane captions: secondary command words (the engraved-command
+   register) naming the pipeline each chip taps; the chain arrow keeps
+   the same secondary ink between the two playback taps. */
+QLabel#StageLaneCaption {
+    background: transparent; color: @MUTED@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QLabel#StageChainArrow { background: transparent; color: @MUTED@; }
 
-/* -- Comment: the config file's own comment line, printed. The '#'
-   marker is the kind tag (rule 5: the glyph is the information) in
-   secondary ink; the note is the payload in body ink (importance =
-   brightness; no italic - the face does not exist). At rest no input
-   chrome; hover sinks one value step on the paper because it edits;
-   focus is insert mode - accent hairline + white ground. */
+/* -- Comment: a source-code comment, in the source's own register.
+   Everything after the '#' is dead code to the engine, so the WHOLE
+   line - marker and note alike - rests in secondary ink with no box
+   and no input chrome (importance = brightness). Hover lifts the ink
+   back to body brightness because the line edits; focus is insert
+   mode on the sheet's underline grammar - the ChannelChipAdd 1px
+   accent baseline, not studio's boxed white ground. */
 QLabel#CommentCardGlyph {
     background: transparent; color: @MUTED@; font-weight: 700;
 }
 QLineEdit#CommentCardText {
-    background: transparent; color: @TEXT@;
+    background: transparent; color: @MUTED@;
     border: 1px solid transparent; border-radius: 0;
     padding: 3px 6px;
 }
-QLineEdit#CommentCardText:hover { background: @CARD_HOVER@; }
-QLineEdit#CommentCardText:focus { background: #ffffff; border: 1px solid @ACCENT@; }
+QLineEdit#CommentCardText:hover { color: @TEXT@; }
+QLineEdit#CommentCardText:focus {
+    color: @TEXT@;
+    border: 1px solid transparent; border-bottom: 1px solid @ACCENT@;
+}
 QLineEdit#CommentCardText:disabled { background: transparent; color: @MUTED@; }

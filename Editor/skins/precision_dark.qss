@@ -721,17 +721,25 @@ QToolButton#DeviceChip:hover, QToolButton#ChannelChip:hover,
 QToolButton#StageChip:hover {
     background: @CARD_HOVER@;
 }
-/* Selection: the accent-family value step (rule 3, cardSelected
-   #1f3554 = tokens.cardSelected, hardcoded the way this sheet already
-   hardcodes its accent-family steps) + the accent hairline. The press
-   instant previews the selection it is about to commit - the sheet's
-   own QToolButton:pressed/:checked pairing. A solid edge always sits
-   under the cursor, so dashes never read through it. */
-QToolButton#DeviceChip:pressed, QToolButton#ChannelChip:pressed,
-QToolButton#StageChip:pressed,
-QToolButton#DeviceChip:checked, QToolButton#ChannelChip:checked,
-QToolButton#StageChip:checked {
+/* Selection (Channel/Stage): the accent-family value step (rule 3,
+   cardSelected #1f3554 = tokens.cardSelected, hardcoded the way this
+   sheet already hardcodes its accent-family steps) + the accent
+   hairline. The press instant previews the selection it is about to
+   commit - the sheet's own QToolButton:pressed/:checked pairing. A
+   solid edge always sits under the cursor, so dashes never read
+   through it. */
+QToolButton#ChannelChip:pressed, QToolButton#StageChip:pressed,
+QToolButton#ChannelChip:checked, QToolButton#StageChip:checked {
     background: #1f3554; color: @TEXT@; border: 1px solid @ACCENT@;
+}
+/* Selection (Device): a routed endpoint is the console's current
+   selection, so it takes the terminal's reverse video - the
+   DeviceChipMore press canon held down, not a third accent value.
+   Ink and ground swap outright; the dashed uninstalled hairline is
+   overprinted while the selection holds. Declared before :focus so
+   the accent focus hairline still lands on an engaged chip. */
+QToolButton#DeviceChip:pressed, QToolButton#DeviceChip:checked {
+    background: @TEXT@; color: @SURFACE@; border: 1px solid @TEXT@;
 }
 /* Keyboard focus: the accent hairline frame while the cursor sits here
    (the engraved commands' focus grammar). Declared after the kind
@@ -757,9 +765,14 @@ QToolButton#ChannelChip[customChannel="true"]:disabled {
    with the activity (accent only while active). Last on purpose: it
    wins the 121-tie against the dashed inert-kind rule, so a stored
    selection reads selected first. */
-QToolButton#DeviceChip:checked:disabled, QToolButton#ChannelChip:checked:disabled,
-QToolButton#StageChip:checked:disabled {
+QToolButton#ChannelChip:checked:disabled, QToolButton#StageChip:checked:disabled {
     background: #1f3554; color: @MUTED@; border: 1px solid @BORDER@;
+}
+/* Device stored selection while inert: the reverse video dims to a
+   muted block - still unmistakably inverted, no longer the live
+   cursor. */
+QToolButton#DeviceChip:checked:disabled {
+    background: @MUTED@; color: @SURFACE@; border: 1px solid @MUTED@;
 }
 
 /* -- Device reveal toggle: a meta-command in the engraved command
@@ -822,23 +835,34 @@ QToolButton#StageChipUnknown {
     border: 1px dashed @BORDER@; border-radius: 0;
     padding: 2px 8px; min-height: 20px;
 }
+/* Lane captions: secondary command words (the engraved-command
+   register) naming the pipeline each chip taps; the chain arrow keeps
+   the same secondary ink between the two playback taps. */
+QLabel#StageLaneCaption {
+    background: transparent; color: @MUTED@;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+QLabel#StageChainArrow { background: transparent; color: @MUTED@; }
 
-/* -- Comment: the config file's own comment line, printed. The '#'
-   marker is the kind tag (rule 5: the glyph is the information - the
-   same marker a disabled row leads with) in secondary ink; the note is
-   the line's payload, so it keeps body ink (importance = brightness;
-   no italic - the face does not exist). At rest the note has no input
-   chrome (a printed line: the valueScrub grammar applied to prose);
-   hover lifts one value step because it edits; focus is insert mode -
-   accent hairline + input ground. */
+/* -- Comment: a source-code comment, in the source's own register.
+   Everything after the '#' is dead code to the engine, so the WHOLE
+   line - marker and note alike - rests in secondary ink with no box
+   and no input chrome (importance = brightness; a comment is the one
+   line whose payload is less important than a command's). Hover lifts
+   the ink back to body brightness because the line edits; focus is
+   insert mode on the sheet's underline grammar - the ChannelChipAdd
+   1px accent baseline, not studio's boxed input ground. */
 QLabel#CommentCardGlyph {
     background: transparent; color: @MUTED@; font-weight: 700;
 }
 QLineEdit#CommentCardText {
-    background: transparent; color: @TEXT@;
+    background: transparent; color: @MUTED@;
     border: 1px solid transparent; border-radius: 0;
     padding: 3px 6px;
 }
-QLineEdit#CommentCardText:hover { background: @CARD@; }
-QLineEdit#CommentCardText:focus { background: #0a0a0a; border: 1px solid @ACCENT@; }
+QLineEdit#CommentCardText:hover { color: @TEXT@; }
+QLineEdit#CommentCardText:focus {
+    color: @TEXT@;
+    border: 1px solid transparent; border-bottom: 1px solid @ACCENT@;
+}
 QLineEdit#CommentCardText:disabled { background: transparent; color: @MUTED@; }

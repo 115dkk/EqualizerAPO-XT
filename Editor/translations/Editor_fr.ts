@@ -1035,7 +1035,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="430"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="436"/>
         <source>Raw</source>
         <translation>Brut</translation>
     </message>
@@ -2405,37 +2405,52 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>StageCardEditor</name>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="45"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="64"/>
+        <source>Playback</source>
+        <translation type="unfinished">Lecture</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="68"/>
         <source>Pre-mix</source>
         <translation>Pre-mix</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="46"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="69"/>
         <source>Apply in each program&apos;s stream, before Windows mixes them</source>
         <translation>S&apos;applique au flux de chaque programme, avant que Windows ne les mixe</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="47"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="72"/>
+        <source>Signal order: pre-mix runs before the streams are mixed, post-mix after</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="74"/>
         <source>Post-mix</source>
         <translation>Post-mix</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="48"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
         <source>Apply to the device&apos;s mixed output (the default stage)</source>
         <translation>S’applique à la sortie mixée de l’appareil (l’étage par défaut)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="49"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="79"/>
+        <source>Recording</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="83"/>
         <source>Capture</source>
         <translation>Capture</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="50"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="84"/>
         <source>Apply to recording devices</source>
         <translation>S&apos;applique aux périphériques d&apos;enregistrement</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/StageCardEditor.cpp" line="75"/>
+        <location filename="../widgets/cards/StageCardEditor.cpp" line="94"/>
         <source>Selectors the engine does not recognize; they are kept as written</source>
         <translation>Sélecteurs inconnus du moteur ; ils sont conservés tels quels</translation>
     </message>

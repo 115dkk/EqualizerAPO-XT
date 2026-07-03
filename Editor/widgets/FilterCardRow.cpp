@@ -1,5 +1,6 @@
 #include "FilterCardRow.h"
 
+#include <QEvent>
 #include <QIcon>
 #include <QMenu>
 #include <QPainter>
@@ -185,6 +186,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		routingScroll->setMinimumSize(0, 0);
 		routingScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 		routingScroll->setWidget(routingView);
+		watchEditorScroll(routingScroll);
 		editorLayout->addWidget(routingScroll);
 
 		bodyStack->addWidget(editorContainer);
@@ -221,6 +223,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 			guiScroll->setMinimumSize(0, 0);
 			guiScroll->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 			guiScroll->setWidget(guiWidget);
+			watchEditorScroll(guiScroll);
 			editorLayout->addWidget(guiScroll);
 		}
 		else
@@ -343,6 +346,64 @@ QSize FilterCardRow::minimumSizeHint() const
 	// fit their bodies.
 	int height = QWidget::minimumSizeHint().height();
 	return QSize(0, height);
+}
+
+// The editor scroll wrapper pins the body's WIDTH (Ignored policy), but its
+// height cannot come from Qt's own hint plumbing: QScrollArea samples the
+// editor's sizeHint before the editor ever has a real width, and for a
+// wrapping layout (the Device card's FlowLayout) that early hint is one item
+// wide - its height-for-width answer is a stacked column, and the stale
+// answer never gets re-queried once the real width arrives. So the row
+// follows the content explicitly: whenever the scroll or its content resizes
+// or relayouts, the scroll's height is fixed to what the content needs at
+// the width it actually has.
+void FilterCardRow::watchEditorScroll(QScrollArea* scroll)
+{
+	scroll->installEventFilter(this);
+	if (scroll->widget() != nullptr)
+		scroll->widget()->installEventFilter(this);
+	syncEditorScrollHeight(scroll);
+}
+
+void FilterCardRow::syncEditorScrollHeight(QScrollArea* scroll)
+{
+	QWidget* content = scroll->widget();
+	if (content == nullptr)
+		return;
+
+	const int width = scroll->viewport()->width();
+	int desired = content->hasHeightForWidth() && width > 0
+		? content->heightForWidth(width)
+		: content->sizeHint().height();
+	// Generous cap: legacy filter GUIs can report content heights of
+	// thousands of pixels (the same hints the width clamp exists for); a
+	// runaway body must not swallow the whole table.
+	desired = qBound(24, desired, 600);
+	if (scroll->minimumHeight() != desired || scroll->maximumHeight() != desired)
+		scroll->setFixedHeight(desired);
+}
+
+bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
+{
+	switch (event->type())
+	{
+	case QEvent::Resize:
+	case QEvent::Show:
+	case QEvent::LayoutRequest:
+	{
+		// Watched objects are the editor scroll itself and its content widget
+		// (whose parent chain is content -> viewport -> scroll).
+		QScrollArea* scroll = qobject_cast<QScrollArea*>(watched);
+		if (scroll == nullptr && watched->parent() != nullptr)
+			scroll = qobject_cast<QScrollArea*>(watched->parent()->parent());
+		if (scroll != nullptr)
+			syncEditorScrollHeight(scroll);
+		break;
+	}
+	default:
+		break;
+	}
+	return QWidget::eventFilter(watched, event);
 }
 
 void FilterCardRow::paintEvent(QPaintEvent*)

@@ -18,9 +18,10 @@
 
 #include "StageCardEditor.h"
 
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QToolButton>
-
-#include "Editor/widgets/FlowLayout.h"
 
 StageCardEditor::StageCardEditor(const QString& parameters, QWidget* parent)
 	: IFilterGUI(parent)
@@ -30,39 +31,57 @@ StageCardEditor::StageCardEditor(const QString& parameters, QWidget* parent)
 
 	model.load(parameters);
 
-	FlowLayout* flow = new FlowLayout(this, 0, 6, 6);
-
 	// One chip per engine stage. The property carries a stable QSS handle so a
 	// skin can give each stage its own look without parsing the label text.
-	struct StageInfo
-	{
-		QString token;
-		QString label;
-		QString property;
-		QString tip;
-	};
-	const StageInfo stages[] = {
-		{ QStringLiteral("pre-mix"), tr("Pre-mix"), QStringLiteral("pre"),
-		  tr("Apply in each program's stream, before Windows mixes them") },
-		{ QStringLiteral("post-mix"), tr("Post-mix"), QStringLiteral("post"),
-		  tr("Apply to the device's mixed output (the default stage)") },
-		{ QStringLiteral("capture"), tr("Capture"), QStringLiteral("capture"),
-		  tr("Apply to recording devices") },
-	};
-
-	for (const StageInfo& info : stages)
-	{
+	auto makeChip = [this](const QString& token, const QString& label,
+	                       const QString& property, const QString& tip) {
 		QToolButton* chip = new QToolButton(this);
 		chip->setObjectName(QStringLiteral("StageChip"));
-		chip->setText(info.label);
+		chip->setText(label);
 		chip->setCheckable(true);
-		chip->setChecked(model.isSelected(info.token));
-		chip->setProperty("stage", info.property);
-		chip->setToolTip(info.tip);
+		chip->setChecked(model.isSelected(token));
+		chip->setProperty("stage", property);
+		chip->setToolTip(tip);
 		connect(chip, SIGNAL(toggled(bool)), this, SLOT(chipToggled()));
-		flow->addWidget(chip);
-		chips.push_back({chip, info.token});
-	}
+		chips.push_back({chip, token});
+		return chip;
+	};
+	auto makeLaneCaption = [this](const QString& text) {
+		QLabel* caption = new QLabel(text, this);
+		caption->setObjectName(QStringLiteral("StageLaneCaption"));
+		return caption;
+	};
+
+	// The three stages are not flat peers: pre-mix and post-mix are the two
+	// taps of the playback pipeline, in signal order, while capture belongs
+	// to the recording pipeline. Two captioned lanes state that hierarchy,
+	// and the chain arrow keeps the playback taps in processing order.
+	QGridLayout* grid = new QGridLayout(this);
+	grid->setContentsMargins(4, 2, 4, 2);
+	grid->setHorizontalSpacing(10);
+	grid->setVerticalSpacing(6);
+
+	grid->addWidget(makeLaneCaption(tr("Playback")), 0, 0, Qt::AlignRight | Qt::AlignVCenter);
+	QHBoxLayout* playbackLane = new QHBoxLayout();
+	playbackLane->setContentsMargins(0, 0, 0, 0);
+	playbackLane->setSpacing(6);
+	playbackLane->addWidget(makeChip(QStringLiteral("pre-mix"), tr("Pre-mix"), QStringLiteral("pre"),
+		tr("Apply in each program's stream, before Windows mixes them")));
+	QLabel* chainArrow = new QLabel(QStringLiteral("→"), this);
+	chainArrow->setObjectName(QStringLiteral("StageChainArrow"));
+	chainArrow->setToolTip(tr("Signal order: pre-mix runs before the streams are mixed, post-mix after"));
+	playbackLane->addWidget(chainArrow);
+	playbackLane->addWidget(makeChip(QStringLiteral("post-mix"), tr("Post-mix"), QStringLiteral("post"),
+		tr("Apply to the device's mixed output (the default stage)")));
+	playbackLane->addStretch(1);
+	grid->addLayout(playbackLane, 0, 1);
+
+	grid->addWidget(makeLaneCaption(tr("Recording")), 1, 0, Qt::AlignRight | Qt::AlignVCenter);
+	QHBoxLayout* recordingLane = new QHBoxLayout();
+	recordingLane->setContentsMargins(0, 0, 0, 0);
+	recordingLane->setSpacing(6);
+	recordingLane->addWidget(makeChip(QStringLiteral("capture"), tr("Capture"), QStringLiteral("capture"),
+		tr("Apply to recording devices")));
 
 	// Tokens outside the vocabulary select no stage but are kept as written;
 	// an inert chip shows them so the user sees why the line may do nothing.
@@ -73,8 +92,12 @@ StageCardEditor::StageCardEditor(const QString& parameters, QWidget* parent)
 		unknownChip->setText(model.unknownTokens().join(QLatin1Char(' ')));
 		unknownChip->setEnabled(false);
 		unknownChip->setToolTip(tr("Selectors the engine does not recognize; they are kept as written"));
-		flow->addWidget(unknownChip);
+		recordingLane->addWidget(unknownChip);
 	}
+	recordingLane->addStretch(1);
+	grid->addLayout(recordingLane, 1, 1);
+
+	grid->setColumnStretch(1, 1);
 }
 
 void StageCardEditor::store(QString& command, QString& parameters)
