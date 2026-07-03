@@ -373,7 +373,6 @@ void testRealBrirCrossfeed(test::Harness& harness)
 void testConfigSwapCrossfades(test::Harness& harness)
 {
 	const unsigned sampleRate = 48000;
-	const unsigned transitionLength = sampleRate / 100; // matches FilterEngine::initialize
 	const unsigned blockFrames = 120;
 
 	std::wstring configA = writeConfig(harness, L"transition_a.txt", "Preamp: -6.0206 dB\n");
@@ -381,6 +380,10 @@ void testConfigSwapCrossfades(test::Harness& harness)
 
 	FilterEngine engine;
 	initializeEngine(engine, sampleRate, 2, 480, configA);
+
+	// The engine's real crossfade length; do not re-derive its formula here.
+	const unsigned transitionLength = engine.getTransitionLength();
+	harness.expect(transitionLength > 0, "engine reported no transition length after initialize");
 
 	// Settle on config A.
 	std::vector<float> settled = processDcBlock(engine, 1.0f, 1.0f, 480);
@@ -426,6 +429,42 @@ void testConfigSwapCrossfades(test::Harness& harness)
 	harness.expect(std::fabs(finalRight - target) < 1e-4f, "right channel did not converge to the new config gain");
 }
 
+// process() can arrive before initialize(), and initialize() can finish
+// without loading any configuration (unreadable ConfigPath and no custom
+// path). Both leave currentConfig null; every overload must pass audio
+// through instead of dereferencing it inside audiodg.exe. (audit #146 TD026)
+void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
+{
+	FilterEngine engine;
+
+	const unsigned frames = 16;
+	std::vector<float> inputF((size_t)2 * frames, 0.25f);
+	std::vector<float> outputF((size_t)2 * frames, -1.0f);
+	engine.process(outputF.data(), inputF.data(), frames);
+
+	std::vector<double> inputD((size_t)2 * frames, 0.25);
+	std::vector<double> outputD((size_t)2 * frames, -1.0);
+	engine.process(outputD.data(), inputD.data(), frames);
+
+	std::vector<float> planarFIn((size_t)2 * frames, 0.25f);
+	std::vector<float> planarFOut((size_t)2 * frames, -1.0f);
+	float* inF[2] = {planarFIn.data(), planarFIn.data() + frames};
+	float* outF[2] = {planarFOut.data(), planarFOut.data() + frames};
+	engine.process(outF, inF, frames);
+
+	std::vector<double> planarDIn((size_t)2 * frames, 0.25);
+	std::vector<double> planarDOut((size_t)2 * frames, -1.0);
+	double* inD[2] = {planarDIn.data(), planarDIn.data() + frames};
+	double* outD[2] = {planarDOut.data(), planarDOut.data() + frames};
+	engine.process(outD, inD, frames);
+
+	// Reaching this line is the point: no null dereference. Before
+	// initialize() the channel counts are zero, so the bypass copies nothing
+	// and the output buffers stay untouched.
+	harness.expect(outputF[0] == -1.0f && outputD[0] == -1.0 && planarFOut[0] == -1.0f && planarDOut[0] == -1.0,
+		"process() without a configuration wrote output despite zero channel counts");
+}
+
 } // namespace
 
 int main()
@@ -434,6 +473,7 @@ int main()
 
 	test::Harness harness("EngineOrchestrationTests");
 
+	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testChannelSelectorRouting(harness);
 	testCopySwapsChannels(harness);
 	testMultiConvolutionIgnoresChannelSelection(harness);

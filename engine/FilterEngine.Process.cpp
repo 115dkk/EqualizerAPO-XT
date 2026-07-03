@@ -115,6 +115,18 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	PerfScope _eapo_total("FilterEngine::process(float interleaved)");
 	MxcsrFtzDazGuard _mxcsrGuard;
 
+	if (currentConfig == nullptr)
+	{
+		// initialize() can finish without loading any configuration (unreadable
+		// ConfigPath with no custom path, or an empty path value), and the APO
+		// can call process() before initialize(). Treat both like the
+		// empty-config bypass below instead of dereferencing null. (audit #146 TD026)
+		if (realChannelCount == outputChannelCount && input != output) {
+			std::copy_n(input, outputChannelCount * frameCount, output);
+		}
+		return;
+	}
+
 	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
@@ -162,6 +174,16 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
 	PerfScope _eapo_total("FilterEngine::process(float planar)");
 	MxcsrFtzDazGuard _mxcsrGuard;
+
+	if (currentConfig == nullptr)
+	{
+		// Null configuration: see the float-interleaved overload. (audit #146 TD026)
+		if (realChannelCount == outputChannelCount && input != output) {
+			for (unsigned c = 0; c < realChannelCount; c++)
+				std::copy_n(input[c], frameCount, output[c]);
+		}
+		return;
+	}
 
 	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
@@ -213,6 +235,15 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 	PerfScope _eapo_total("FilterEngine::process(double interleaved)");
 	MxcsrFtzDazGuard _mxcsrGuard;
 
+	if (currentConfig == nullptr)
+	{
+		// Null configuration: see the float-interleaved overload. (audit #146 TD026)
+		if (realChannelCount == outputChannelCount && input != output) {
+			std::copy_n(input, outputChannelCount * frameCount, output);
+		}
+		return;
+	}
+
 	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
 		// Bypass mode: if no filters are active, just copy input to output if necessary.
@@ -258,6 +289,16 @@ void FilterEngine::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _eapo_total("FilterEngine::process(double planar)");
 	MxcsrFtzDazGuard _mxcsrGuard;
+
+	if (currentConfig == nullptr)
+	{
+		// Null configuration: see the float-interleaved overload. (audit #146 TD026)
+		if (realChannelCount == outputChannelCount && input != output) {
+			for (unsigned c = 0; c < realChannelCount; c++)
+				std::copy_n(input[c], frameCount, output[c]);
+		}
+		return;
+	}
 
 	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{

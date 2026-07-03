@@ -35,6 +35,9 @@
     <ClInclude Include="filters\ConvolutionFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\IrCache.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\CopyFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -233,6 +236,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\ConvolutionFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IrCache.cpp">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="filters\CopyFilter.cpp">

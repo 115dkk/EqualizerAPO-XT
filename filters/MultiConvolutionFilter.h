@@ -18,12 +18,13 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "IFilter.h"
+#include "IrCache.h"
 #include "MultiConvolutionCommand.h"
-#include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 
 // Multi-input synthesis convolution ("다중 합성 컨볼루션"). Unlike the 1:1
 // ConvolutionFilter, this filter convolves each mapping target's own
@@ -71,9 +72,14 @@ private:
 	std::vector<MappingPlan> plans;
 
 	// One convolution state per (mapping, impulse-response channel) pair, laid
-	// out mapping by mapping; plans[] holds the per-mapping ranges.
-	HConvSingle* filters;
+	// out mapping by mapping; plans[] holds the per-mapping ranges. The holder
+	// runs the close-then-free teardown that cleanup() used to spell out by
+	// hand. (audit #146 TD002)
+	HConvSingleArray filters;
 	unsigned unitCount;
+	// Pins the cached impulse response for this filter's lifetime; the
+	// process-wide cache holds only weak references. (audit #146 TD001)
+	std::shared_ptr<const IrCacheEntry> irEntry;
 	// Scratch buffer for one unit's convolution result before it is summed into
 	// the mapping's output. Sized in initialize() so process() never allocates
 	// on the audio thread.

@@ -77,7 +77,6 @@ public:
 
 	void setSizeWindowFunc(std::function<void(int, int)> func);
 	void onSizeWindow(int w, int h);
-	bool getEditorSize(int* width, int* height);
 
 private:
 	class VST3HostContext;
