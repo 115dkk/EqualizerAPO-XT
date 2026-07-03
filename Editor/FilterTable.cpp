@@ -164,61 +164,7 @@ void FilterTable::updateGuis()
 	int row = 0;
 	for (Item* item : items)
 	{
-		QString line = item->text;
-		IFilterGUI* gui = nullptr;
-		int pos = line.indexOf(':');
-		// A pure comment has no "command: parameters" shape (with or without an
-		// inner colon), so it never reaches the factories below. In card mode it
-		// still gets a real editor; the legacy path stays frozen (raw row).
-		if (renderMode == ModernCards && FilterCardModel::isPureCommentLine(line))
-		{
-			gui = new CommentCardEditor(line);
-		}
-		else if (pos != -1)
-		{
-			QString key = line.mid(0, pos);
-			QString value = line.mid(pos + 1);
-
-			// allow to use indentation
-			key = key.trimmed();
-			QString factoryKey = key;
-			QString factoryValue = value;
-
-			for (IFilterGUIFactory* factory : factories)
-			{
-				gui = factory->createFilterGUI(factoryKey, factoryValue);
-
-				if (gui != nullptr || factoryKey == "")
-					break;
-			}
-
-			if (gui != nullptr)
-			{
-				bool usingCardEditor = false;
-				if (renderMode == ModernCards)
-				{
-					// factoryKey is the command after CommentFilterGUIFactory strips a leading '#',
-					// so both "Include: a.txt" and "# Include: a.txt" reach the card factory with
-					// the same key. Without this, only the active line would receive the modern
-					// card editor and the commented line would fall back to the legacy GUI.
-					IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
-					if (cardGui != nullptr)
-					{
-						delete gui;
-						gui = cardGui;
-						usingCardEditor = true;
-					}
-				}
-
-				// In Modern Cards we skip the legacy CommentFilterGUI decorator on
-				// purpose: the card row already owns the enable/disable affordance
-				// and a second power toolbar inside the body editor only produces
-				// rules that disagree with the card header.
-				if (!usingCardEditor && renderMode != ModernCards)
-					for (IFilterGUIFactory* factory : factories)
-						gui = factory->decorateFilterGUI(gui);
-			}
-		}
+		IFilterGUI* gui = createRowGui(item->text);
 
 		// ModernCards (FilterCardRow) is the canonical filter-list UI; LegacyRows
 		// (FilterTableRow) is a frozen fallback that must not be extended. New
@@ -272,6 +218,74 @@ void FilterTable::updateGuis()
 	update();
 }
 
+IFilterGUI* FilterTable::createRowGui(const QString& line)
+{
+	// A pure comment has no "command: parameters" shape (with or without an
+	// inner colon), so it never reaches the factories below. In card mode it
+	// still gets a real editor; the legacy path stays frozen (raw row).
+	if (renderMode == ModernCards && FilterCardModel::isPureCommentLine(line))
+		return new CommentCardEditor(line);
+
+	int pos = line.indexOf(':');
+	if (pos == -1)
+		return nullptr;
+
+	// allow to use indentation
+	QString factoryKey = line.mid(0, pos).trimmed();
+	QString factoryValue = line.mid(pos + 1);
+
+	if (renderMode == ModernCards)
+	{
+		// Card editors take precedence, so ask them before running the legacy
+		// chain: constructing a legacy GUI only to replace and delete it parsed
+		// VSTPlugin state twice per rebuild. Safe to short-circuit because the
+		// card-covered factories keep no per-row state in createFilterGUI (their
+		// state is set in initialize()/startOfFile()). Commented lines ("# ...")
+		// do not match here and fall through to the chain, where
+		// CommentFilterGUIFactory strips the '#'; the post-chain lookup below
+		// then gives them the same card editor as their active form.
+		// (audit #146 TD004)
+		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
+		if (cardGui != nullptr)
+			return cardGui;
+	}
+
+	IFilterGUI* gui = nullptr;
+	for (IFilterGUIFactory* factory : factories)
+	{
+		gui = factory->createFilterGUI(factoryKey, factoryValue);
+		if (gui != nullptr || factoryKey == "")
+			break;
+	}
+
+	if (gui == nullptr)
+		return nullptr;
+
+	if (renderMode == ModernCards)
+	{
+		// factoryKey is the command after CommentFilterGUIFactory strips a
+		// leading '#', so "# Include: a.txt" reaches the card factory with the
+		// same key as "Include: a.txt". Without this, only the active line
+		// would receive the modern card editor and the commented line would
+		// fall back to the legacy GUI.
+		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
+		if (cardGui != nullptr)
+		{
+			delete gui;
+			return cardGui;
+		}
+		// In Modern Cards we skip the legacy CommentFilterGUI decorator on
+		// purpose: the card row already owns the enable/disable affordance
+		// and a second power toolbar inside the body editor only produces
+		// rules that disagree with the card header.
+		return gui;
+	}
+
+	for (IFilterGUIFactory* factory : factories)
+		gui = factory->decorateFilterGUI(gui);
+	return gui;
+}
+
 void FilterTable::updateSingleRowGui(Item* item)
 {
 	int rowIndex = items.indexOf(item);
@@ -298,48 +312,12 @@ void FilterTable::updateSingleRowGui(Item* item)
 	gridLayout->removeWidget(oldRow);
 	oldRow->deleteLater();
 
-	// Reparse the line and rebuild the GUI exactly the way updateGuis() does,
-	// using the same factory chain. Factory startOfFile/endOfFile is skipped
-	// intentionally: a single in-place edit (enabled toggle) does not change
-	// the surrounding file's structural context, so the include/depth state
-	// the factories track stays valid.
-	QString line = item->text;
-	IFilterGUI* gui = nullptr;
-	int colonPos = line.indexOf(':');
-	if (colonPos != -1)
-	{
-		QString key = line.mid(0, colonPos).trimmed();
-		QString value = line.mid(colonPos + 1);
-
-		QString factoryKey = key;
-		QString factoryValue = value;
-		for (IFilterGUIFactory* factory : factories)
-		{
-			gui = factory->createFilterGUI(factoryKey, factoryValue);
-			if (gui != nullptr || factoryKey == "")
-				break;
-		}
-
-		if (gui != nullptr)
-		{
-			bool usingCardEditor = false;
-			if (renderMode == ModernCards)
-			{
-				IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
-				if (cardGui != nullptr)
-				{
-					delete gui;
-					gui = cardGui;
-					usingCardEditor = true;
-				}
-			}
-			// Same decorator gating as updateGuis(): Modern Cards owns power UI
-			// in the card header, no additional CommentFilterGUI toolbar inside.
-			if (!usingCardEditor && renderMode != ModernCards)
-				for (IFilterGUIFactory* factory : factories)
-					gui = factory->decorateFilterGUI(gui);
-		}
-	}
+	// Rebuild the GUI through the same selection policy as updateGuis().
+	// Factory startOfFile/endOfFile is skipped intentionally: a single
+	// in-place edit (enabled toggle) does not change the surrounding file's
+	// structural context, so the include/depth state the factories track
+	// stays valid.
+	IFilterGUI* gui = createRowGui(item->text);
 
 	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
 	int depth = rowIndex < rowDepths.size() ? rowDepths[rowIndex] : 0;

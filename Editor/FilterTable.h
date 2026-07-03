@@ -36,6 +36,7 @@
 #include "IFilterGUIFactory.h"
 
 class MainWindow;
+class QMimeData;
 
 // FilterTable's implementation is split across several translation units (all
 // listed in Editor.pro SOURCES). When looking for a method, check the matching
@@ -166,6 +167,14 @@ private:
 	QRectF rowRect(int row);
 	void disableWheelForWidgets();
 	void updateRowWidgets();
+	// The single row-GUI selection policy (pure-comment card, card-first
+	// lookup, legacy factory chain, card override for commented lines,
+	// decorator gating). Shared by updateGuis() and updateSingleRowGui() so
+	// policy edits happen once. (audit #146 TD005)
+	IFilterGUI* createRowGui(const QString& line);
+	// Inserts the mime data's lines at dropRow and makes them the selection.
+	// Shared by paste() and dropEvent(). (audit #146 TD006)
+	void insertLinesFromMimeData(const QMimeData* mimeData, int dropRow);
 
 	MainWindow* mainWindow;
 	QScrollArea* scrollArea;

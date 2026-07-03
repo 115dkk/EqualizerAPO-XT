@@ -54,6 +54,7 @@
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/VelopackBootstrap.h"
+#include "version.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
 
@@ -536,7 +537,7 @@ int main(int argc, char* argv[])
 #ifdef EAPO_UPDATE_CHANNEL
 				channel = EAPO_UPDATE_CHANNEL;
 #endif
-				VelopackBootstrap::startBackgroundDownload("https://github.com/115dkk/EqualizerAPO-XT", channel);
+				VelopackBootstrap::startBackgroundDownload(EAPO_REPO_URL, channel);
 			});
 		}
 

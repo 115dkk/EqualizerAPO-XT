@@ -37,6 +37,8 @@
 #include <intrin.h>      // __cpuid, __cpuidex, _xgetbv
 #include <string>
 
+#include "../version.h"
+
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "bcrypt.lib")
 #pragma comment(lib, "ole32.lib")
@@ -48,7 +50,7 @@ namespace
 // the in-app updater (Editor/main.cpp).
 const wchar_t* kRepoOwner = L"115dkk";
 const wchar_t* kRepoName = L"EqualizerAPO-XT";
-const wchar_t* kReleasesPage = L"https://github.com/115dkk/EqualizerAPO-XT/releases/latest";
+const wchar_t* kReleasesPage = EAPO_REPO_URL_W L"/releases/latest";
 const wchar_t* kUserAgent = L"EqualizerAPO-XT-Setup";
 
 // Checksums asset that CI publishes to every release, one sha256sum-style

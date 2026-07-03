@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 		version += QString(".%0").arg(REVISION);
 
 	QString channel = VelopackUpdateInfo::defaultChannel();
-	QString url = VelopackUpdateInfo::githubLatestReleaseUrl("115dkk/EqualizerAPO-XT");
+	QString url = VelopackUpdateInfo::githubLatestReleaseUrl(EAPO_REPO_SLUG);
 	QString skipVersion;
 	if (autoMode)
 	{
