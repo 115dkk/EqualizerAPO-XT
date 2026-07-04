@@ -1537,12 +1537,12 @@ Alexander Walch</translation>
     <message>
         <location filename="../MainWindow.ui" line="500"/>
         <source>Undo</source>
-        <translation>실행 취소</translation>
+        <translation>수정 취소</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="508"/>
         <source>Redo</source>
-        <translation>다시 실행</translation>
+        <translation>다시 수정</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="520"/>

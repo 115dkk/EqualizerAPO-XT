@@ -12,6 +12,13 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Renamed the Korean Edit-menu labels for undo/redo from 실행 취소/다시 실행
+  to 수정 취소/다시 수정: the stock Windows wording can read as if it were
+  about launching a program, the new labels say what happens to the edits.
+  ([#168](https://github.com/115dkk/EqualizerAPO-XT/pull/168))
+
 ## v2.10.0 — 2026-07-04
 
 - The Editor's filter list supports undo and redo (Edit menu, Ctrl+Z /
