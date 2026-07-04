@@ -364,19 +364,6 @@ int main(int argc, char* argv[])
 	// DeviceSelector and UpdateChecker. (audit #146 TD011)
 	QtAppBootstrap::addExecutableRelativePluginPath();
 
-	// Font rendering: force Qt's FreeType font engine on Windows instead of the
-	// default DirectWrite/GDI ClearType subpixel rasteriser. The bundled
-	// Pretendard ships as CFF/OTF, which ClearType renders with subpixel colour
-	// fringing that reads as blur on low-PPI monitors. High-DPI panels pack
-	// enough pixels to hide it (the UI looks crisp at 4K/150%) but a 1080p
-	// screen shows it plainly. FreeType uses grayscale antialiasing plus its own
-	// CFF hinting, which stays consistent across monitors regardless of DPI.
-	// Only set it when no platform is chosen externally, so the offscreen
-	// gallery / CI (QT_QPA_PLATFORM=offscreen) still win and a user can opt back
-	// into the default ClearType engine with QT_QPA_PLATFORM=windows.
-	if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
-		qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
-
 	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio.
 	// The editor used to disable Qt scaling (QT_ENABLE_HIGHDPI_SCALING=0) and
 	// only hand-scale a few widget sizes through GUIHelper::scale, so on a 4K /
@@ -392,48 +379,86 @@ int main(int argc, char* argv[])
 	bool restart;
 	do
 	{
+		// LegacyRows is a whole presentation, not just a row widget: the
+		// heritage editor runs with the platform's native widget style, the
+		// stock ClearType font engine, and system fonts, exactly like the
+		// pre-skin editor. The skinned mode keeps the redesign stack below.
+		// Read the mode before QApplication so the font-engine choice follows
+		// an in-process restart. (maintainer decision 2026-07-05)
+		bool legacyRowsMode;
+		{
+			QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+			legacyRowsMode = settings.value(QStringLiteral("interface/legacyRows"), false).toBool();
+		}
+
+		// Font rendering (skinned mode): force Qt's FreeType font engine on
+		// Windows instead of the default DirectWrite/GDI ClearType subpixel
+		// rasteriser. The bundled Pretendard ships as CFF/OTF, which ClearType
+		// renders with subpixel colour fringing that reads as blur on low-PPI
+		// monitors. FreeType uses grayscale antialiasing plus its own CFF
+		// hinting, which stays consistent across monitors regardless of DPI.
+		// Only set it when no platform is chosen externally (offscreen gallery
+		// / CI must win) or when we set it ourselves on a previous loop pass.
+		static bool platformEnvSetByUs = false;
+		if (!legacyRowsMode && (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") || platformEnvSetByUs))
+		{
+			qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
+			platformEnvSetByUs = true;
+		}
+		else if (legacyRowsMode && platformEnvSetByUs)
+		{
+			// Restarted from the skinned mode: hand the platform back to the
+			// stock ClearType engine for the heritage look.
+			qputenv("QT_QPA_PLATFORM", "windows");
+		}
+
 		QApplication application(argc, argv);
-		application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
+		// Heritage keeps the native widget style and the system UI fonts,
+		// like the pre-skin editor; the redesign stack below is skinned-only.
+		if (!legacyRowsMode)
+		{
+			application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
 
-		// Bundle the redesign's typefaces so the skins render identically
-		// regardless of what is installed: DM Sans / DM Mono carry the Latin
-		// look, Pretendard carries Korean. Static weight instances are used on
-		// purpose — Qt does not reliably select a weight off a variable font's
-		// wght axis, so a variable DM Sans / Pretendard rendered every QSS
-		// font-weight (600/700) at the thin default. Registering Regular/Medium/
-		// SemiBold/Bold per family lets font-weight resolve to a real face.
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Regular.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Medium.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-SemiBold.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Bold.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Regular.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Medium.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Regular.otf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Medium.otf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-SemiBold.otf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Bold.otf"));
-		// Sarasa Mono K: a true fixed-width CJK face, subset to Hangul + ASCII.
-		// It is the monospace Korean fallback so Korean in mono contexts keeps the
-		// grid instead of dropping to the proportional Pretendard. Regular + Bold
-		// cover the mono font-weights the skins use.
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
-		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
+			// Bundle the redesign's typefaces so the skins render identically
+			// regardless of what is installed: DM Sans / DM Mono carry the Latin
+			// look, Pretendard carries Korean. Static weight instances are used on
+			// purpose — Qt does not reliably select a weight off a variable font's
+			// wght axis, so a variable DM Sans / Pretendard rendered every QSS
+			// font-weight (600/700) at the thin default. Registering Regular/Medium/
+			// SemiBold/Bold per family lets font-weight resolve to a real face.
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Regular.ttf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Medium.ttf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-SemiBold.ttf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Bold.ttf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Regular.ttf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Medium.ttf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Regular.otf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Medium.otf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-SemiBold.otf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Bold.otf"));
+			// Sarasa Mono K: a true fixed-width CJK face, subset to Hangul + ASCII.
+			// It is the monospace Korean fallback so Korean in mono contexts keeps the
+			// grid instead of dropping to the proportional Pretendard. Regular + Bold
+			// cover the mono font-weights the skins use.
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
+			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
 
-		// Fallback chain for painted (non-QSS) text where Qt resolves a single
-		// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
-		// Pretendard -> Noto Sans -> Malgun Gothic (Korean) / Microsoft YaHei
-		// (Chinese).
-		const QStringList cjkChain = {
-			QStringLiteral("Pretendard"),
-			QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans"),
-			QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
-		};
-		QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
-		// Mono text puts Sarasa Mono K ahead of the proportional CJK chain so
-		// monospace Korean stays fixed-width; Consolas stays first for any Latin
-		// the embedded DM Mono might lack.
-		QFont::insertSubstitutions(QStringLiteral("DM Mono"),
-			QStringList{ QStringLiteral("Consolas"), QStringLiteral("Sarasa Mono K") } + cjkChain);
+			// Fallback chain for painted (non-QSS) text where Qt resolves a single
+			// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
+			// Pretendard -> Noto Sans -> Malgun Gothic (Korean) / Microsoft YaHei
+			// (Chinese).
+			const QStringList cjkChain = {
+				QStringLiteral("Pretendard"),
+				QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans"),
+				QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
+			};
+			QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
+			// Mono text puts Sarasa Mono K ahead of the proportional CJK chain so
+			// monospace Korean stays fixed-width; Consolas stays first for any Latin
+			// the embedded DM Mono might lack.
+			QFont::insertSubstitutions(QStringLiteral("DM Mono"),
+				QStringList{ QStringLiteral("Consolas"), QStringLiteral("Sarasa Mono K") } + cjkChain);
+		}
 
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
 			return runVstRoundTripSelfTest();
@@ -456,6 +481,11 @@ int main(int argc, char* argv[])
 		}
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+		if (legacyRowsMode)
+		{
+			SkinManager::instance()->applyHeritage();
+		}
+		else
 		{
 			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString();
 			bool dark = settings.value(QStringLiteral("interface/dark"), GUIHelper::isDarkMode()).toBool();

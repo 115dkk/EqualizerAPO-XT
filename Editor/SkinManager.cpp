@@ -40,6 +40,55 @@ bool SkinManager::isDark() const
 	return darkMode;
 }
 
+bool SkinManager::isHeritage() const
+{
+	return heritageMode;
+}
+
+void SkinManager::applyHeritage()
+{
+	CrashHandler::setBreadcrumb(L"applyHeritage (legacy rows)");
+	LogFStatic(L"Applying heritage presentation (legacy rows)");
+
+	heritageMode = true;
+	// Token donor and the base-class knob painter; nothing of the skin's own
+	// look survives below.
+	activeSkin = Skins::byId(QStringLiteral("studio"));
+	skinId = QStringLiteral("heritage");
+	darkMode = false;
+
+	// Classic light values for the custom painters that consume tokens. The
+	// widget chrome itself comes from the native style, untouched by QSS.
+	SkinTokens tokens = activeSkin->tokens(false);
+	tokens.background = QStringLiteral("#f0f0f0");
+	tokens.surface = QStringLiteral("#ffffff");
+	tokens.surfaceRaised = QStringLiteral("#f5f5f5");
+	tokens.surfaceSunken = QStringLiteral("#e8e8e8");
+	tokens.card = QStringLiteral("#ffffff");
+	tokens.cardHover = QStringLiteral("#f0f6fc");
+	tokens.text = QStringLiteral("#000000");
+	tokens.mutedText = QStringLiteral("#606060");
+	tokens.border = QStringLiteral("#adadad");
+	tokens.graph = QStringLiteral("#ffffff");
+	tokens.graphGridMajor = QStringLiteral("#c8c8c8");
+	tokens.graphGridMinor = QStringLiteral("#e4e4e4");
+	tokens.accent = QStringLiteral("#0078d7");
+	tokens.accent2 = QStringLiteral("#2b88d8");
+	tokens.focusRing = QStringLiteral("#0078d7");
+	tokens.fontFamily = QStringLiteral("Segoe UI");
+	tokens.monoFontFamily = QStringLiteral("Consolas");
+	currentTokens = tokens;
+
+	qApp->setStyleSheet(QString());
+	qApp->setPalette(qApp->style()->standardPalette());
+
+	emit skinChanged(currentTokens);
+	for (QWidget* widget : qApp->allWidgets())
+		widget->update();
+
+	LogFStatic(L"Heritage presentation applied");
+}
+
 namespace
 {
 QString substituteTokens(QString qss, const SkinTokens& tokens)
@@ -80,6 +129,7 @@ QString substituteTokens(QString qss, const SkinTokens& tokens)
 
 void SkinManager::applySkin(const QString& newSkinId, bool dark)
 {
+	heritageMode = false;
 	// Breadcrumb + unconditional log line: a skin-switch crash reported from
 	// the field (only two of five skins survived on a PC-bang machine, not
 	// reproducible on the dev machine) must identify the dying skin in the
@@ -137,11 +187,21 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 
 IRoutingRenderer* SkinManager::routingRenderer() const
 {
+	if (heritageMode)
+		return nullptr;
 	return activeSkin != nullptr ? activeSkin->routingRenderer() : nullptr;
 }
 
 void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const
 {
+	if (heritageMode)
+	{
+		// The ISkin base implementation is the pre-skin AudioKnob painter,
+		// moved verbatim when the skins were introduced - exactly the
+		// heritage knob.
+		activeSkin->ISkin::paintKnob(painter, rect, state, currentTokens);
+		return;
+	}
 	if (activeSkin != nullptr)
 		activeSkin->paintKnob(painter, rect, state, currentTokens);
 }
@@ -195,6 +255,8 @@ void SkinManager::paintTitleBarChrome(QPainter& painter, const QRect& rect) cons
 
 void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 {
+	if (heritageMode)
+		return; // native toolbar: the .ui's classic icons stay in place
 	if (toolBar == nullptr || activeSkin == nullptr)
 		return;
 	// Reset the shared mutable toolbar state before delegating so one skin's

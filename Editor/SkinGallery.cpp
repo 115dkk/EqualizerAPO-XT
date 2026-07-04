@@ -413,10 +413,19 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	// every row collapses to a few pixels.
 	scrollArea.setWidgetResizable(true);
 	FilterTable* table = new FilterTable(nullptr);
+	if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY"))
+		table->setRenderMode(FilterTable::LegacyRows);
 	scrollArea.setWidget(table);
-	table->updateDeviceAndChannelMask(nullptr, 0);
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices, inputDevices;
 	galleryDevices(outputDevices, inputDevices);
+	// The card path renders deviceless on purpose (its editors derive their
+	// ports from the command text). The heritage dump selects a synthetic
+	// device instead: the legacy CopyFilterGUI scene only populates through
+	// configureChannels(), which is empty without one.
+	if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY") && !outputDevices.isEmpty())
+		table->updateDeviceAndChannelMask(outputDevices.first(), 0);
+	else
+		table->updateDeviceAndChannelMask(nullptr, 0);
 	table->initialize(&scrollArea, outputDevices, inputDevices);
 	// The config path anchors relative reference resolution to the synthetic
 	// target files (buildReferenceFiles) and namespaces per-file row prefs in
@@ -585,6 +594,39 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 
 namespace SkinGallery
 {
+// Heritage (legacy rows) verification: the mode is a single unskinned
+// presentation, so instead of the per-skin per-row matrix it renders two
+// whole-table dumps (active and commented rows) for eyeball regression checks.
+// Triggered by EAPO_GALLERY_LEGACY=1, used by the local runner scripts.
+int renderHeritage(const QDir& outDir, const QString& configPath)
+{
+	SkinManager::instance()->applyHeritage();
+
+	int failures = 0;
+	for (int commented = 0; commented <= 1; commented++)
+	{
+		QList<QString> lines;
+		for (const GalleryRow& row : galleryRows())
+			lines.append(commented ? QStringLiteral("# ") + row.line : row.line);
+
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		buildRows(scrollArea, configPath, lines);
+		scrollArea.show();
+		QCoreApplication::processEvents();
+
+		QPixmap dump = scrollArea.widget()->grab();
+		const QString fileName = outDir.filePath(QStringLiteral("heritage_%1.png")
+				.arg(commented ? QStringLiteral("disabled") : QStringLiteral("normal")));
+		if (dump.isNull() || !dump.save(fileName))
+		{
+			qWarning("SkinGallery: could not write %s", qPrintable(fileName));
+			failures++;
+		}
+	}
+	return failures;
+}
+
 int run(const QStringList& arguments)
 {
 	const int flagIndex = arguments.indexOf(QStringLiteral("--skin-gallery"));
@@ -625,6 +667,15 @@ int run(const QStringList& arguments)
 	}
 
 	int failures = 0;
+	if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY"))
+	{
+		// Heritage mode is skin-independent; render its two dumps and exit
+		// through the same no-teardown path below.
+		failures += renderHeritage(outDir, configPath);
+		const int status = failures == 0 ? 0 : 1;
+		std::fflush(nullptr);
+		std::_Exit(status);
+	}
 	for (const QString& skinId : skinIds)
 	{
 		failures += renderSkin(outDir, skinId.trimmed(), configPath, true);

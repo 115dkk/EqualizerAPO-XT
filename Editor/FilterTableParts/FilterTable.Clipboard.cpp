@@ -138,6 +138,21 @@ void FilterTable::addActionTriggered()
 	QRect rect = toolBar->actionGeometry(addAction);
 	QPoint p = toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));
 	addAction->setChecked(false);
+	if (renderMode == LegacyRows)
+	{
+		// Heritage add flow: the classic cascading QMenu, the same one the
+		// legacy rows' own + button uses (FilterTableRow::on_actionAdd_triggered).
+		QMenu* menu = createAddPopupMenu();
+		QAction* chosen = menu->exec(p);
+		if (chosen != nullptr)
+		{
+			FilterTemplate t = chosen->data().value<FilterTemplate>();
+			addLine(t.getLine());
+			updateGuis();
+		}
+		menu->deleteLater();
+		return;
+	}
 	FilterTemplate filterTemplate;
 	if (chooseFilterTemplate(&filterTemplate, p))
 	{

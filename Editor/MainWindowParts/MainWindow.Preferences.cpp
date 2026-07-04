@@ -261,6 +261,14 @@ void MainWindow::setupRedesignActions()
 	darkThemeAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+D")));
 	connect(darkThemeAction, SIGNAL(toggled(bool)), this, SLOT(darkThemeToggled(bool)));
 
+	if (SkinManager::instance()->isHeritage())
+	{
+		// Heritage is unskinned by definition; the choices come back with the
+		// modern presentation.
+		skinActionGroup->setEnabled(false);
+		darkThemeAction->setEnabled(false);
+	}
+
 	interfaceMenu->addSeparator();
 
 	// The gain knobs (Preamp card, biquad gain dial) span a configurable ±range;

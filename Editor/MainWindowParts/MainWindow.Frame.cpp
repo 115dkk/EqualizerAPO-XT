@@ -28,7 +28,10 @@
 void MainWindow::setupWindowChrome()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	useCustomFrame = !settings.value("interface/nativeTitleBar", false).toBool();
+	// Heritage (legacy rows) keeps the stock Windows caption: the custom
+	// title strip is part of the modern presentation.
+	useCustomFrame = !settings.value("interface/nativeTitleBar", false).toBool()
+		&& !settings.value(QStringLiteral("interface/legacyRows"), false).toBool();
 	if (!useCustomFrame)
 		return;
 
