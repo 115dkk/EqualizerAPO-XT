@@ -64,7 +64,7 @@ BeforeAll {
         $muparserxHashLine = if ($OmitMuparserxHash) { "'unrelated.zip' = 'ee55'" } else { "'mup.zip' = '$MuparserxSha'" }
         $fftwPinBlock = if ($OmitFftwPin) { '' } else {
 @"
-        'TheFireKahuna/amd-fftw' = @{
+        '115dkk/amd-fftw' = @{
             Tag    = '5.9'
             Sha256 = @{ 'fftw.zip' = '$FftwSha' }
         }
@@ -98,12 +98,12 @@ BeforeAll {
         VelopackLibcSha256  = '$VelopackSha'
     }
     DependencyReleases = @{
-        'TheFireKahuna/muparserx' = @{
+        '115dkk/muparserx' = @{
             Tag    = '4.0.99'
             Sha256 = @{ $muparserxHashLine }
         }
 $fftwPinBlock
-        'TheFireKahuna/libsndfile' = @{
+        '115dkk/libsndfile' = @{
             Tag    = '1.9.9'
             Sha256 = @{ 'snd.zip' = '$SndfileSha' }
         }
@@ -158,20 +158,20 @@ Describe "Provisioning.psm1" {
             $downloads = Get-DependencyDownloadSpec -Manifest $script:RepoManifest -DepsRoot $script:DepsRoot -Platform 'x64' -Simd 'avx2'
             $downloads.Count | Should -Be 4
 
-            $mupTag = $script:RepoManifest.DependencyReleases['TheFireKahuna/muparserx'].Tag
-            $fftwTag = $script:RepoManifest.DependencyReleases['TheFireKahuna/amd-fftw'].Tag
-            $sndTag = $script:RepoManifest.DependencyReleases['TheFireKahuna/libsndfile'].Tag
+            $mupTag = $script:RepoManifest.DependencyReleases['115dkk/muparserx'].Tag
+            $fftwTag = $script:RepoManifest.DependencyReleases['115dkk/amd-fftw'].Tag
+            $sndTag = $script:RepoManifest.DependencyReleases['115dkk/libsndfile'].Tag
             $veloVer = $script:RepoManifest.Shared.VelopackLibcVersion
 
             $byRepo = @{}
             foreach ($d in $downloads) { $byRepo[$d.Repo] = $d }
 
-            $byRepo['TheFireKahuna/muparserx'].Url |
-                Should -Be "https://github.com/TheFireKahuna/muparserx/releases/download/$mupTag/muparserx-msvc-release-x64-avx2.zip"
-            $byRepo['TheFireKahuna/amd-fftw'].Url |
-                Should -Be "https://github.com/TheFireKahuna/amd-fftw/releases/download/$fftwTag/fftw-windows-release-x64-avx2.zip"
-            $byRepo['TheFireKahuna/libsndfile'].Url |
-                Should -Be "https://github.com/TheFireKahuna/libsndfile/releases/download/$sndTag/libsndfile-x64-avx2.zip"
+            $byRepo['115dkk/muparserx'].Url |
+                Should -Be "https://github.com/115dkk/muparserx/releases/download/$mupTag/muparserx-msvc-release-x64-avx2.zip"
+            $byRepo['115dkk/amd-fftw'].Url |
+                Should -Be "https://github.com/115dkk/amd-fftw/releases/download/$fftwTag/fftw-windows-release-x64-avx2.zip"
+            $byRepo['115dkk/libsndfile'].Url |
+                Should -Be "https://github.com/115dkk/libsndfile/releases/download/$sndTag/libsndfile-x64-avx2.zip"
             $byRepo['velopack/velopack'].Url |
                 Should -Be "https://github.com/velopack/velopack/releases/download/$veloVer/velopack_libc_$veloVer.zip"
         }
@@ -181,10 +181,10 @@ Describe "Provisioning.psm1" {
             $byRepo = @{}
             foreach ($d in $downloads) { $byRepo[$d.Repo] = $d }
 
-            $byRepo['TheFireKahuna/muparserx'].Destination | Should -Be (Join-Path $script:DepsRoot 'muparserx')
+            $byRepo['115dkk/muparserx'].Destination | Should -Be (Join-Path $script:DepsRoot 'muparserx')
             $byRepo['velopack/velopack'].Destination | Should -Be (Join-Path $script:DepsRoot 'velopack_libc')
-            $byRepo['TheFireKahuna/amd-fftw'].Destination | Should -Be (Join-Path $script:DepsRoot 'fftw')
-            $byRepo['TheFireKahuna/libsndfile'].Destination | Should -Be (Join-Path $script:DepsRoot 'libsndfile')
+            $byRepo['115dkk/amd-fftw'].Destination | Should -Be (Join-Path $script:DepsRoot 'fftw')
+            $byRepo['115dkk/libsndfile'].Destination | Should -Be (Join-Path $script:DepsRoot 'libsndfile')
         }
 
         It "resolves the pinned SHA-256 for every avx2 asset" {
@@ -192,22 +192,22 @@ Describe "Provisioning.psm1" {
             foreach ($d in $downloads) {
                 $d.Sha256 | Should -Match '^[0-9a-fA-F]{64}$' -Because "$($d.Asset) must carry a pinned hash"
             }
-            ($downloads | Where-Object { $_.Repo -eq 'TheFireKahuna/amd-fftw' }).Sha256 |
-                Should -Be $script:RepoManifest.DependencyReleases['TheFireKahuna/amd-fftw'].Sha256['fftw-windows-release-x64-avx2.zip']
+            ($downloads | Where-Object { $_.Repo -eq '115dkk/amd-fftw' }).Sha256 |
+                Should -Be $script:RepoManifest.DependencyReleases['115dkk/amd-fftw'].Sha256['fftw-windows-release-x64-avx2.zip']
         }
 
         It "leaves FFTW and libsndfile to vcpkg for the sse2 variant" {
             $downloads = Get-DependencyDownloadSpec -Manifest $script:RepoManifest -DepsRoot $script:DepsRoot -Platform 'x64' -Simd 'sse2'
             @($downloads).Count | Should -Be 2
             @($downloads | ForEach-Object { $_.Repo }) | Sort-Object |
-                Should -Be @('TheFireKahuna/muparserx', 'velopack/velopack')
+                Should -Be @('115dkk/muparserx', 'velopack/velopack')
         }
 
         It "selects the ARM64 assets for the neon variant" {
             $downloads = Get-DependencyDownloadSpec -Manifest $script:RepoManifest -DepsRoot $script:DepsRoot -Platform 'ARM64' -Simd 'neon'
-            @($downloads | Where-Object { $_.Repo -eq 'TheFireKahuna/amd-fftw' }).Asset | Should -Be 'fftw-windows-release-arm64.zip'
-            @($downloads | Where-Object { $_.Repo -eq 'TheFireKahuna/muparserx' }).Asset | Should -Be 'muparserx-msvc-release-ARM64.zip'
-            @($downloads | Where-Object { $_.Repo -eq 'TheFireKahuna/libsndfile' }).Asset | Should -Be 'libsndfile-arm64.zip'
+            @($downloads | Where-Object { $_.Repo -eq '115dkk/amd-fftw' }).Asset | Should -Be 'fftw-windows-release-arm64.zip'
+            @($downloads | Where-Object { $_.Repo -eq '115dkk/muparserx' }).Asset | Should -Be 'muparserx-msvc-release-ARM64.zip'
+            @($downloads | Where-Object { $_.Repo -eq '115dkk/libsndfile' }).Asset | Should -Be 'libsndfile-arm64.zip'
         }
 
         It "resolves every variant in the repo manifest without error (drift guard)" {
@@ -229,8 +229,8 @@ Describe "Provisioning.psm1" {
         It "builds URLs from the fixture's pinned tags" {
             $manifest = New-FixtureManifest
             $downloads = Get-DependencyDownloadSpec -Manifest $manifest -DepsRoot $script:FixtureDepsRoot -Platform 'x64' -Simd 'testy'
-            @($downloads | Where-Object { $_.Repo -eq 'TheFireKahuna/muparserx' }).Url |
-                Should -Be 'https://github.com/TheFireKahuna/muparserx/releases/download/4.0.99/mup.zip'
+            @($downloads | Where-Object { $_.Repo -eq '115dkk/muparserx' }).Url |
+                Should -Be 'https://github.com/115dkk/muparserx/releases/download/4.0.99/mup.zip'
             @($downloads | Where-Object { $_.Repo -eq 'velopack/velopack' }).Url |
                 Should -Be 'https://github.com/velopack/velopack/releases/download/9.9.9/velopack_libc_9.9.9.zip'
         }
@@ -238,7 +238,7 @@ Describe "Provisioning.psm1" {
         It "throws when a referenced repo has no DependencyReleases pin" {
             $manifest = New-FixtureManifest -OmitFftwPin
             { Get-DependencyDownloadSpec -Manifest $manifest -DepsRoot $script:FixtureDepsRoot -Platform 'x64' -Simd 'testy' } |
-                Should -Throw "No pinned tag or explicit URL for TheFireKahuna/amd-fftw in simd-variants.psd1"
+                Should -Throw "No pinned tag or explicit URL for 115dkk/amd-fftw in simd-variants.psd1"
         }
 
         It "throws when the asset has no pinned SHA-256" {

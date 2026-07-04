@@ -107,7 +107,7 @@ if ($tclapCachedTag -eq $tclapTag -and $tclapCachedTag) {
         Write-Host "  Cached TCLAP is not at $tclapTag; re-cloning..."
         Remove-Item $tclapDir -Recurse -Force
     }
-    git clone --depth 1 --branch $tclapTag https://github.com/TheFireKahuna/tclap $tclapDir
+    git clone --depth 1 --branch $tclapTag https://github.com/115dkk/tclap $tclapDir
     if ($LASTEXITCODE -ne 0) { throw "Failed to clone TCLAP" }
     Write-Host "  -> $tclapDir"
 }

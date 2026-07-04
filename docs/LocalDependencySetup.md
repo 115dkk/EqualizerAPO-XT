@@ -33,7 +33,7 @@ GitHub Actions artifact를 직접 받는 방법은 CI 설정과 방향이 맞습
 - AOCL-FFTW 5.1: `fftw-windows-release-x64-avx2.zip`
 - muparserx 4.0.13: `muparserx-msvc-release-x64-avx2.zip`
 - libsndfile 1.2.2: `libsndfile-x64-avx2.zip`
-- TCLAP 1.2.5: `TheFireKahuna/tclap` tag `1.2.5`
+- TCLAP 1.2.5: `115dkk/tclap` tag `1.2.5`
 - Qt 6.10.1 `win64_msvc2022_64`: `qtbase`, `qttools`, `qtsvg`, `qttranslations`
 - 7-Zip `7zr.exe`: Qt 7z 패키지 압축 해제용
 - Visual Studio Build Tools 2026 ATL: `Microsoft.VisualStudio.Component.VC.14.51.ATL`

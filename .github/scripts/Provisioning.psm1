@@ -99,7 +99,7 @@ function Get-DependencyDownloadSpec {
 
     $velopackVersion = $Manifest.Shared.VelopackLibcVersion
     $downloads = @(
-        (Resolve-PinnedDownload -Repo 'TheFireKahuna/muparserx' -Asset $variant.Muparserx -DestinationLeaf 'muparserx'),
+        (Resolve-PinnedDownload -Repo '115dkk/muparserx' -Asset $variant.Muparserx -DestinationLeaf 'muparserx'),
         @{
             # Velopack C/C++ runtime (Velopack.h + import libs + DLLs for every
             # platform). Always fetched regardless of SIMD variant; the Editor
@@ -115,8 +115,8 @@ function Get-DependencyDownloadSpec {
     )
 
     if (-not $variant.UsesVcpkg) {
-        $downloads += (Resolve-PinnedDownload -Repo 'TheFireKahuna/amd-fftw' -Asset $variant.Fftw -DestinationLeaf 'fftw')
-        $downloads += (Resolve-PinnedDownload -Repo 'TheFireKahuna/libsndfile' -Asset $variant.Sndfile -DestinationLeaf 'libsndfile')
+        $downloads += (Resolve-PinnedDownload -Repo '115dkk/amd-fftw' -Asset $variant.Fftw -DestinationLeaf 'fftw')
+        $downloads += (Resolve-PinnedDownload -Repo '115dkk/libsndfile' -Asset $variant.Sndfile -DestinationLeaf 'libsndfile')
     }
 
     return $downloads
