@@ -239,6 +239,7 @@ SOURCES += main.cpp\
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/FilterListModel.cpp \
+	widgets/FilterListUndo.cpp \
 	widgets/FilterPickerView.cpp \
 	widgets/ValueScrubBox.cpp \
 	widgets/TitleBar.cpp \
@@ -448,6 +449,7 @@ HEADERS  += \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
 	widgets/FilterListModel.h \
+	widgets/FilterListUndo.h \
 	widgets/FilterPickerView.h \
 	widgets/ValueScrubBox.h \
 	widgets/TitleBar.h \

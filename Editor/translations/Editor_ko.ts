@@ -871,92 +871,92 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardModel</name>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="195"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="203"/>
         <source>Comment</source>
         <translation>주석</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="208"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="216"/>
         <source>Text</source>
         <translation>텍스트</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="221"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="229"/>
         <source>Preamp</source>
         <translation>프리앰프</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="228"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="236"/>
         <source>Delay</source>
         <translation>지연</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="240"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="248"/>
         <source>Biquad</source>
         <translation>바이쿼드</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="262"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="270"/>
         <source>Graphic EQ</source>
         <translation>그래픽 EQ</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="267"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="275"/>
         <source>%1 bands</source>
         <translation>%1개 밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="273"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="281"/>
         <source>Copy</source>
         <translation>복사</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="295"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="303"/>
         <source>%1 steps, %2 virtual</source>
         <translation>%1개 할당, 가상 %2개</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="297"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="305"/>
         <source>%1 steps</source>
         <translation>%1개 할당</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="304"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="312"/>
         <source>Channel</source>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="314"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="322"/>
         <source>Include</source>
         <translation>포함</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="325"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="333"/>
         <source>Convolution</source>
         <translation>컨볼루션</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="339"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="347"/>
         <source>MultiConvolution</source>
         <translation>멀티 컨볼루션</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="354"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
         <source>VST Plugin</source>
         <translation>VST 플러그인</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="364"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="372"/>
         <source>Device</source>
         <translation>장치</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="371"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="379"/>
         <source>Stage</source>
         <translation>스테이지</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="378"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="386"/>
         <source>Loudness</source>
         <translation>라우드니스</translation>
     </message>
@@ -964,32 +964,32 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="58"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="59"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="94"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="95"/>
         <source>Enable or comment out this command</source>
         <translation>이 명령을 활성화하거나 주석 처리합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="103"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="104"/>
         <source>Add filter before this card</source>
         <translation>이 카드 앞에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="110"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="111"/>
         <source>Remove filter</source>
         <translation>필터 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="118"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="119"/>
         <source>Edit raw command</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="436"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="527"/>
         <source>Raw</source>
         <translation>원본</translation>
     </message>
@@ -997,7 +997,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="257"/>
+        <location filename="../FilterTable.cpp" line="217"/>
         <source>Add filter</source>
         <translation>필터 추가</translation>
     </message>
@@ -1442,90 +1442,90 @@ Alexander Walch</translation>
         <translation>파일</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="166"/>
+        <location filename="../MainWindow.ui" line="169"/>
         <source>From</source>
         <translation>소스</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="179"/>
+        <location filename="../MainWindow.ui" line="182"/>
         <source>Current file</source>
         <translation>현재 파일</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="187"/>
+        <location filename="../MainWindow.ui" line="190"/>
         <source>Channel</source>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="197"/>
+        <location filename="../MainWindow.ui" line="200"/>
         <source>Res</source>
         <translation>해상도</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="223"/>
+        <location filename="../MainWindow.ui" line="226"/>
         <source>Pos</source>
         <translation>위치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="231"/>
+        <location filename="../MainWindow.ui" line="234"/>
         <source>Top</source>
         <translation>위</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="236"/>
+        <location filename="../MainWindow.ui" line="239"/>
         <source>Bottom</source>
         <translation>아래</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="241"/>
+        <location filename="../MainWindow.ui" line="244"/>
         <source>Right</source>
         <translation>오른쪽</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="283"/>
+        <location filename="../MainWindow.ui" line="286"/>
         <source>Peak</source>
         <translation>피크</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="321"/>
+        <location filename="../MainWindow.ui" line="324"/>
         <source>Latency</source>
         <translation>지연 시간</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="359"/>
+        <location filename="../MainWindow.ui" line="362"/>
         <source>Init</source>
         <translation>초기화</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="397"/>
+        <location filename="../MainWindow.ui" line="400"/>
         <source>CPU</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="436"/>
+        <location filename="../MainWindow.ui" line="439"/>
         <source>New</source>
         <translation>새로 만들기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="448"/>
         <location filename="../MainWindow.ui" line="451"/>
+        <location filename="../MainWindow.ui" line="454"/>
         <source>Open</source>
         <translation>열기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="463"/>
         <location filename="../MainWindow.ui" line="466"/>
+        <location filename="../MainWindow.ui" line="469"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="478"/>
         <location filename="../MainWindow.ui" line="481"/>
+        <location filename="../MainWindow.ui" line="484"/>
         <source>Save as...</source>
         <translation>다른 이름으로 저장...</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="489"/>
+        <location filename="../MainWindow.ui" line="492"/>
         <source>Exit</source>
         <translation>종료</translation>
     </message>
@@ -1535,63 +1535,73 @@ Alexander Walch</translation>
         <translation>편집</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="501"/>
+        <location filename="../MainWindow.ui" line="500"/>
+        <source>Undo</source>
+        <translation>실행 취소</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="508"/>
+        <source>Redo</source>
+        <translation>다시 실행</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="520"/>
         <source>Cut</source>
         <translation>잘라내기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="513"/>
+        <location filename="../MainWindow.ui" line="532"/>
         <source>Copy</source>
         <translation>복사</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="525"/>
+        <location filename="../MainWindow.ui" line="544"/>
         <source>Paste</source>
         <translation>붙여넣기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="537"/>
+        <location filename="../MainWindow.ui" line="556"/>
         <source>Delete</source>
         <translation>삭제</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="561"/>
+        <location filename="../MainWindow.ui" line="580"/>
         <source>Reset all global preferences</source>
         <translation>모든 전역 설정 초기화</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="566"/>
+        <location filename="../MainWindow.ui" line="585"/>
         <source>Reset all file-specific preferences</source>
         <translation>모든 파일별 설정 초기화</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="575"/>
+        <location filename="../MainWindow.ui" line="594"/>
         <source>Select all</source>
         <translation>모두 선택</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="79"/>
+        <location filename="../MainWindow.ui" line="82"/>
         <source>View</source>
         <translation>보기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="106"/>
-        <location filename="../MainWindow.ui" line="548"/>
+        <location filename="../MainWindow.ui" line="109"/>
+        <location filename="../MainWindow.ui" line="567"/>
         <source>Toolbar</source>
         <translation>도구 모음</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="556"/>
+        <location filename="../MainWindow.ui" line="575"/>
         <source>Analysis panel</source>
         <translation>분석 패널</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="90"/>
+        <location filename="../MainWindow.ui" line="93"/>
         <source>Language</source>
         <translation>언어</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="86"/>
+        <location filename="../MainWindow.ui" line="89"/>
         <source>Settings</source>
         <translation>설정</translation>
     </message>
@@ -1632,41 +1642,41 @@ Alexander Walch</translation>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="234"/>
+        <location filename="../MainWindow.cpp" line="250"/>
         <source>Automatic (%0)</source>
         <translation>자동 (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="260"/>
+        <location filename="../MainWindow.cpp" line="276"/>
         <source>Registry problem</source>
         <translation>레지스트리 문제</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="260"/>
+        <location filename="../MainWindow.cpp" line="276"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO 작동에 필요한 레지스트리 값이 올바르게 설정되지 않았습니다.
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="269"/>
+        <location filename="../MainWindow.cpp" line="285"/>
         <source>APO not installed to device</source>
         <translation>장치에 APO 미설치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="269"/>
+        <location filename="../MainWindow.cpp" line="285"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>선택한 장치에 Equalizer APO가 설치되지 않았습니다.
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="304"/>
+        <location filename="../MainWindow.cpp" line="320"/>
         <source>EQ inactive on some devices</source>
         <translation>일부 장치에서 EQ 비활성</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="321"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -1679,12 +1689,12 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 충돌은 아닙니다. 소리는 장치로 전달되지만 EQ는 적용되지 않습니다. 이 장치에 필터링이 필요하면 소리 설정에서 장치 기본 형식을 32비트 IEEE_FLOAT로 바꾸세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="336"/>
+        <location filename="../MainWindow.cpp" line="352"/>
         <source>Audio enhancements disabled</source>
         <translation>오디오 향상 사용 안 함</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="336"/>
+        <location filename="../MainWindow.cpp" line="352"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -1716,7 +1726,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>기본값</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="120"/>
+        <location filename="../MainWindow.ui" line="123"/>
         <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="377"/>
         <source>Graph</source>
         <translation>그래프</translation>

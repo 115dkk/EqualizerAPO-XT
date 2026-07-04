@@ -73,6 +73,13 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 	// so adding a filter GUI no longer means editing this list. FilterTable owns
 	// the returned instances and deletes them in its destructor.
 	factories = FilterGUIFactoryRegistry::createFactories();
+
+	// Every mutation - structural (add/delete/paste/drop) or in-row (knob
+	// drag, text edit, enable toggle) - already announces itself through
+	// linesChanged, so this one self-connection is the whole undo capture.
+	// Established before MainWindow's linesChanged connection, so the history
+	// is current by the time the instant-mode save reads the document. (TD049)
+	connect(this, &FilterTable::linesChanged, this, &FilterTable::commitToHistory);
 }
 
 FilterTable::~FilterTable()

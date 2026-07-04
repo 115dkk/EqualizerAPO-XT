@@ -137,7 +137,60 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 	setScrollOffsets(settings.value("scrollX", 0).toInt(), settings.value("scrollY", 0).toInt());
 	settings.endGroup();
 
+	// A document load/replace starts a fresh history: undo must never step
+	// back into the previously opened file's contents. (TD049)
+	undoHistory.reset(model.lines());
+
 	updateGuis();
+}
+
+void FilterTable::commitToHistory()
+{
+	if (restoringHistory)
+		return;
+
+	undoHistory.commit(model.lines());
+}
+
+bool FilterTable::canUndo() const
+{
+	return undoHistory.canUndo();
+}
+
+bool FilterTable::canRedo() const
+{
+	return undoHistory.canRedo();
+}
+
+void FilterTable::undo()
+{
+	if (!undoHistory.canUndo())
+		return;
+
+	applyHistoryState(undoHistory.undo());
+}
+
+void FilterTable::redo()
+{
+	if (!undoHistory.canRedo())
+		return;
+
+	applyHistoryState(undoHistory.redo());
+}
+
+void FilterTable::applyHistoryState(const QList<QString>& lines)
+{
+	// Full-document replacement, like a paste over everything: per-row GUI
+	// prefs (expanded state etc.) reset with the rebuilt rows. linesChanged
+	// still fires so the tab dirty flag and the instant-mode save see the
+	// restored document, but restoringHistory keeps commitToHistory from
+	// recording the replay as a new step.
+	model.setLines(lines);
+	updateGuis();
+
+	restoringHistory = true;
+	emit linesChanged();
+	restoringHistory = false;
 }
 
 FilterTable::Item* FilterTable::addLine(const QString& line, FilterTable::Item* before)

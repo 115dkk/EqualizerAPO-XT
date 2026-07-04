@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- Editor의 필터 목록이 실행 취소와 다시 실행을 지원합니다(Edit 메뉴,
+  Ctrl+Z / Ctrl+Y). 행 추가·삭제·붙여넣기·드래그 이동, 노브 드래그, 텍스트
+  수정, 켜기/끄기 토글까지 모든 편집이 대상이고, Modern cards와 Legacy rows
+  두 모드에서 모두 동작합니다. 노브를 돌리는 동안의 연속 변화는 한 단계로
+  묶여 되돌려지고, 입력란에 포커스가 있을 때는 입력란 자체의 실행 취소가
+  우선합니다.
+  ([#166](https://github.com/115dkk/EqualizerAPO-XT/pull/166))
 - Legacy rows 모드를 진짜 유산 편집기로 복원했습니다. 그동안 옛 행들이 현대
   스킨 크롬 안에 끼워져 렌더됐는데, 이제 네이티브 Windows 스타일, 기본 제목
   표시줄, 시스템 글꼴, 클래식 노브, 원래의 Copy 노드 그래프로 시작하고 이

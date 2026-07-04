@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The Editor's filter list supports undo and redo (Edit menu, Ctrl+Z /
+  Ctrl+Y). Every edit counts: adding, deleting, pasting and dragging rows,
+  knob drags, text edits and enable toggles, in both the Modern cards and
+  Legacy rows modes. A knob drag or a typing run undoes as one step, and
+  text fields keep their own in-field undo while focused.
+  ([#166](https://github.com/115dkk/EqualizerAPO-XT/pull/166))
 - Restored the Legacy rows mode to the true heritage editor. It used to render
   the old rows inside the modern skinned chrome; it now starts with the native
   Windows style, standard title bar, system fonts, classic knobs and the
