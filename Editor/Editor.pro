@@ -154,6 +154,9 @@ SOURCES += main.cpp\
 	../filters/IncludeFilterFactory.cpp \
 	../filters/ChannelFilter.cpp \
 	../filters/ConvolutionFilter.cpp \
+	../filters/ConvolutionFilePath.cpp \
+	../filters/MultiConvolutionCommand.cpp \
+	../ConfigurationFileReader.cpp \
 	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \
 	../parser/RegexFunctions.cpp \
@@ -175,6 +178,11 @@ SOURCES += main.cpp\
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
 	../helpers/VSTPluginInstance.cpp \
+	../helpers/VSTPluginInstance.Editor.cpp \
+	../helpers/VSTPluginInstance.State.cpp \
+	../helpers/VSTPluginInstance.VST2.cpp \
+	../helpers/VSTPluginInstance.VST3.cpp \
+	../helpers/PerfProfile.cpp \
 	guis/LoudnessCorrectionFilterGUI.cpp \
 	guis/LoudnessCorrectionFilterGUIFactory.cpp \
 	../filters/loudnessCorrection/LoudnessCorrectionCommand.cpp \
@@ -559,30 +567,14 @@ build_pass:CONFIG(debug, debug|release) {
 include($$PWD/../common.pri)
 QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 
-# Include Common.lib
-LIBS += Common.lib
-contains(QT_ARCH, arm64) {
-	build_pass:CONFIG(debug, debug|release) {
-		QMAKE_LIBDIR += "../ARM64/Debug"
-
-	} else {
-		QMAKE_LIBDIR += "../ARM64/Release"
-	}
-} else:contains(QT_ARCH, x86_64) {
-	build_pass:CONFIG(debug, debug|release) {
-		QMAKE_LIBDIR += "../x64/Debug"
-
-	} else {
-		QMAKE_LIBDIR += "../x64/Release"
-	}
-} else {
-	build_pass:CONFIG(debug, debug|release) {
-		QMAKE_LIBDIR += "../x32/Debug"
-
-	} else {
-		QMAKE_LIBDIR += "../x32/Release"
-	}
-}
+# The Editor deliberately does NOT link Common.lib: every engine source it
+# needs is compiled directly (SOURCES above) under the Editor's own SIMD
+# flags, so the analysis panel's FilterEngine runs with the variant's /arch.
+# Linking the MSBuild lib on top used to silently decide symbol ownership by
+# link order and let a missing SOURCES entry be papered over by a copy built
+# with different flags. A missing engine file now fails the link loudly -
+# add it here AND to Common.vcxproj. (audit #146 TD013, maintainer decision
+# 2026-07-04)
 
 RESOURCES += \
 	Editor.qrc
