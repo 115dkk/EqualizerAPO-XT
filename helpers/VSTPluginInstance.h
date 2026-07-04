@@ -77,6 +77,11 @@ public:
 
 	void setSizeWindowFunc(std::function<void(int, int)> func);
 	void onSizeWindow(int w, int h);
+	// Backing store for VST_HOST_OPCODE_GET_TIME, refreshed and returned per
+	// call. Per instance: plugins in different audio streams process
+	// concurrently, and a shared global here let them race on one struct.
+	// (audit #146 TD029)
+	vst_time_info* hostTimeInfo();
 
 private:
 	class VST3HostContext;
@@ -114,4 +119,5 @@ private:
 	int usedChannelCount = -1;
 	int processLevel = 0;
 	int language = 1;
+	vst_time_info vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
 };

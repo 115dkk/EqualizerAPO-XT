@@ -6,6 +6,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- VST2 호스트의 데이터 경쟁을 고쳤습니다. 서로 다른 오디오 스트림에서 도는
+  플러그인들이 시간 정보 구조체 하나를 공유해, 한 플러그인이 시간을 묻는
+  동안 다른 스트림이 그 값을 덮어쓸 수 있었습니다. 이제 플러그인
+  인스턴스마다 자기 것을 갖습니다.
+  ([#163](https://github.com/115dkk/EqualizerAPO-XT/pull/163))
+
 ## v2.9.0 (2026-07-04)
 
 - Device Selector와 Update Checker가 한국어를 지원합니다(Qt 자체 대화 상자
