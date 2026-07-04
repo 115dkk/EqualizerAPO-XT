@@ -27,7 +27,11 @@ using namespace std;
 
 #define equalizerApoVSTID VST_FOURCC('E', 'A', 'P', 'O');
 
-vst_time_info vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
+vst_time_info* VSTPluginInstance::hostTimeInfo()
+{
+	vstTime.sampleRate = getSampleRate();
+	return &vstTime;
+}
 
 static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t index, int64_t value, const char* ptr, float opt)
 {
@@ -67,10 +71,8 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 		return effect != NULL ? effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f) : 0;
 
 	case VST_HOST_OPCODE_GET_TIME:
-		if (instance != NULL) {
-			vstTime.sampleRate = instance->getSampleRate();
-			return (intptr_t)&vstTime;
-		}
+		if (instance != NULL)
+			return (intptr_t)instance->hostTimeInfo();
 		return 0;
 
 	case VST_HOST_OPCODE_GET_SAMPLE_RATE:

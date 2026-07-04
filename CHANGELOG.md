@@ -12,6 +12,14 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Fixed a data race in the VST2 host: plugins running in different audio
+  streams shared one global time-info structure, so a plugin asking for the
+  current time could read a value another stream was writing. Each plugin
+  instance now has its own.
+  ([#162](https://github.com/115dkk/EqualizerAPO-XT/pull/162))
+
 ## v2.9.0 — 2026-07-04
 
 - Device Selector and Update Checker now speak Korean (complete catalogs,
