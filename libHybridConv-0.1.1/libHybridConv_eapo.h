@@ -32,8 +32,6 @@
  * maps keyed by struct pointer, which was unguarded shared state across APO
  * instances loading configs concurrently.) */
 struct HConvSingleStorage;
-struct HConvDualStorage;
-struct HConvTrippleStorage;
 
 
 typedef struct str_HConvSingle
@@ -60,33 +58,6 @@ typedef struct str_HConvSingle
 } HConvSingle;
 
 
-typedef struct str_HConvDual
-{
-	int step;		// processing step counter
-	int maxstep;		// number of processing steps per long audio frame
-	int flen_long;		// number of samples per long audio frame
-	int flen_short;		// number of samples per short audio frame
-	double *in_long;		// input buffer (long frame)
-	double *out_long;	// output buffer (long frame)
-	HConvSingle *f_long;	// convolution filter (long segments)
-	HConvSingle *f_short;	// convolution filter (short segments)
-	struct HConvDualStorage *storage;	// owned buffers backing the pointers above
-} HConvDual;
-
-
-typedef struct str_HConvTripple
-{
-	int step;		// processing step counter
-	int maxstep;		// number of processing steps per long audio frame
-	int flen_medium;	// number of samples per long audio frame
-	int flen_short;		// number of samples per short audio frame
-	double *in_medium;	// input buffer (long frame)
-	double *out_medium;	// output buffer (long frame)
-	HConvDual *f_medium;	// convolution filter (long segments)
-	HConvSingle *f_short;	// convolution filter (short segments)
-	struct HConvTrippleStorage *storage;	// owned buffers backing the pointers above
-} HConvTripple;
-
 
 /* single filter functions */
 double hcTime(void);
@@ -98,19 +69,8 @@ void hcGetAddSingle(HConvSingle *filter, double*y);
 void hcInitSingle(HConvSingle *filter, double*h, int hlen, int flen, int steps);
 void hcCloseSingle(HConvSingle *filter);
 
-/* dual filter functions */
-void hcBenchmarkDual(int sflen, int lflen);
-void hcProcessDual(HConvDual *filter, double*in, double*out);
-void hcProcessAddDual(HConvDual *filter, double*in, double*out);
-void hcInitDual(HConvDual *filter, double*h, int hlen, int sflen, int lflen);
-void hcCloseDual(HConvDual *filter);
-
-/* tripple filter functions */
-void hcBenchmarkTripple(int sflen, int mflen, int lflen);
-void hcProcessTripple(HConvTripple *filter, double*in, double*out);
-void hcProcessAddTripple(HConvTripple *filter, double*in, double*out);
-void hcInitTripple(HConvTripple *filter, double*h, int hlen, int sflen, int mflen, int lflen);
-void hcCloseTripple(HConvTripple *filter);
+/* The dual/tripple (low-latency) API is parked in
+   libHybridConv_eapo_dormant.h; no project compiles it. (audit #146 TD009) */
 
 
 #endif // __LIBHYBRIDCONV_H__
