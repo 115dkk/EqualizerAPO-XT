@@ -30,11 +30,25 @@ where the current behavior lives and where the maintained code is.
 
 ## Why legacy is frozen rather than deleted
 
-`LegacyRows` (`FilterTableRow`) is the original Qt-table-style row UI. It is kept
-as a reversible fallback: if a regression turns up in the card UI, switching the
-render mode back to `LegacyRows` restores a known-good list view without a
-revert. Deleting it now would remove that safety net for no immediate benefit.
-The cost of keeping it is small as long as it stays frozen.
+`LegacyRows` (`FilterTableRow`) is the original Qt-table-style row UI, kept
+permanently by maintainer decision (2026-07-05): it is the heritage editor,
+preserved as the unmodernized original design, not a deprecation candidate.
+
+## The heritage presentation
+
+Legacy rows are a whole presentation, not just a different row widget. When
+`interface/legacyRows` is set the Editor starts with the platform's native
+widget style (no Fusion/CustomStyle), no skin stylesheet or palette
+(`SkinManager::applyHeritage`), the stock ClearType font engine and system
+fonts (no bundled DM Sans/Pretendard), the native Windows caption (no custom
+TitleBar), the classic cascading add menu, and the classic `CopyFilterGUI`
+node scene (no skin routing renderer). Skin and dark-theme menu items are
+disabled while it is active. Switching between the modes restarts the Editor:
+none of those pieces can swap cleanly in a live process, and a partial swap is
+exactly the modern-chrome-around-legacy-rows mixture this mode must not show.
+
+The offscreen gallery renders the heritage presentation with
+`EAPO_GALLERY_LEGACY=1` (two whole-table dumps) for eyeball regression checks.
 
 ## The rule for contributors
 

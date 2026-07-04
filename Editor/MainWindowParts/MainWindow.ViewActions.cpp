@@ -67,7 +67,28 @@ void MainWindow::interfaceModeSelected(QAction* action)
 	if (action == nullptr)
 		return;
 
-	setCurrentRenderMode(static_cast<FilterTable::RenderMode>(action->data().toInt()));
+	FilterTable::RenderMode mode = static_cast<FilterTable::RenderMode>(action->data().toInt());
+	if (mode == currentRenderMode)
+		return;
+
+	// The two modes are whole presentations, not just row widgets: heritage
+	// (legacy rows) runs unskinned on the native style, frame, font engine and
+	// system fonts. None of that can swap cleanly inside a live process, and a
+	// partial swap is exactly the modern-chrome-around-legacy-rows mixture this
+	// mode used to show. Restart into the chosen presentation instead.
+	if (QMessageBox::question(this, tr("Restart required"), tr("Configuration Editor will be restarted to apply the changed settings. Proceed?")) == QMessageBox::Yes)
+	{
+		// savePreferences() persists interface/legacyRows from this member on
+		// close, so setting it is what makes the restart come back changed.
+		currentRenderMode = mode;
+		restart = true;
+		close();
+	}
+	else
+	{
+		for (QAction* other : interfaceModeActionGroup->actions())
+			other->setChecked(static_cast<FilterTable::RenderMode>(other->data().toInt()) == currentRenderMode);
+	}
 }
 
 void MainWindow::skinSelected(QAction* action)

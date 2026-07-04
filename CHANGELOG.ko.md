@@ -6,6 +6,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- Legacy rows 모드를 진짜 유산 편집기로 복원했습니다. 그동안 옛 행들이 현대
+  스킨 크롬 안에 끼워져 렌더됐는데, 이제 네이티브 Windows 스타일, 기본 제목
+  표시줄, 시스템 글꼴, 클래식 노브, 원래의 Copy 노드 그래프로 시작하고 이
+  모드에서는 스킨 선택이 비활성화됩니다. Modern cards와 Legacy rows 전환은
+  이제 전체 모습을 적용하기 위해 편집기를 재시작합니다.
+  ([#165](https://github.com/115dkk/EqualizerAPO-XT/pull/165))
+
 ## v2.9.1 (2026-07-04)
 
 - VST2 호스트의 데이터 경쟁을 고쳤습니다. 서로 다른 오디오 스트림에서 도는

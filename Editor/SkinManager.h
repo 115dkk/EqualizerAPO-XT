@@ -28,10 +28,20 @@ public:
 	bool isDark() const;
 	void applySkin(const QString& skinId, bool dark);
 
+	// The heritage presentation behind the LegacyRows mode: no stylesheet, the
+	// platform's standard palette, and classic light token values for the few
+	// custom painters (analysis graph, knobs). The legacy rows are meant to be
+	// the unmodernized original editor, not skinned widgets inside modern
+	// chrome. (maintainer decision 2026-07-05)
+	void applyHeritage();
+	bool isHeritage() const;
+
 	// The Copy routing renderer for the active skin. Each skin draws channel
 	// routing in a completely different way (crosspoint matrix, step list, node
 	// graph, ...). Returns nullptr when the skin has no dedicated renderer yet,
 	// in which case the caller falls back to the legacy CopyFilterGUI.
+	// Always nullptr in heritage mode so Copy falls back to the classic
+	// CopyFilterGUI graphics scene.
 	IRoutingRenderer* routingRenderer() const;
 
 	// Paint a knob through the active skin (ISkin::paintKnob) with the current
@@ -70,4 +80,5 @@ private:
 	SkinTokens currentTokens;
 	QString skinId = QStringLiteral("studio");
 	bool darkMode = true;
+	bool heritageMode = false;
 };

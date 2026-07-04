@@ -12,6 +12,16 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Restored the Legacy rows mode to the true heritage editor. It used to render
+  the old rows inside the modern skinned chrome; it now starts with the native
+  Windows style, standard title bar, system fonts, classic knobs and the
+  original Copy node graph, with skins disabled while active. Switching between
+  Modern cards and Legacy rows now restarts the editor to apply the whole
+  presentation.
+  ([#165](https://github.com/115dkk/EqualizerAPO-XT/pull/165))
+
 ## v2.9.1 — 2026-07-04
 
 - Fixed a data race in the VST2 host: plugins running in different audio
