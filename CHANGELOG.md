@@ -18,7 +18,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   streams shared one global time-info structure, so a plugin asking for the
   current time could read a value another stream was writing. Each plugin
   instance now has its own.
-  ([#162](https://github.com/115dkk/EqualizerAPO-XT/pull/162))
+  ([#163](https://github.com/115dkk/EqualizerAPO-XT/pull/163))
 
 ## v2.9.0 — 2026-07-04
 

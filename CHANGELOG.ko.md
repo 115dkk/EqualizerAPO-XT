@@ -12,7 +12,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   플러그인들이 시간 정보 구조체 하나를 공유해, 한 플러그인이 시간을 묻는
   동안 다른 스트림이 그 값을 덮어쓸 수 있었습니다. 이제 플러그인
   인스턴스마다 자기 것을 갖습니다.
-  ([#162](https://github.com/115dkk/EqualizerAPO-XT/pull/162))
+  ([#163](https://github.com/115dkk/EqualizerAPO-XT/pull/163))
 
 ## v2.9.0 (2026-07-04)
 
