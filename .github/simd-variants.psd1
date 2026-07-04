@@ -63,7 +63,7 @@
 #     VelopackLibcSha256   SHA-256 of that zip; bumped together with the version.
 #     Vst3Tag              steinbergmedia/vst3_pluginterfaces git tag/ref.
 #     HighwayTag           google/highway git tag/ref.
-#     TclapTag             TheFireKahuna/tclap git tag/ref.
+#     TclapTag             115dkk/tclap git tag/ref.
 #     VcpkgCommit          microsoft/vcpkg commit for the sse2/avx vcpkg builds.
 #
 #   DependencyReleases = supply-chain pins for the prebuilt binary dependencies.
@@ -174,7 +174,7 @@
         Vst3Tag             = 'v3.8.0_build_66'
         # google/highway — header-only portable SIMD.
         HighwayTag          = '1.4.0'
-        # TheFireKahuna/tclap — header-only CLI parser (tag 1.2.5 = fork HEAD).
+        # 115dkk/tclap — header-only CLI parser (tag 1.2.5 = fork HEAD).
         TclapTag            = '1.2.5'
         # microsoft/vcpkg — commit the sse2/avx dependency builds (FFTW,
         # libsndfile) check out. Pinned so a moving vcpkg HEAD cannot silently
@@ -182,8 +182,12 @@
         VcpkgCommit         = 'd87340acc46bdeda386037b38aca30136e667e47'
     }
 
+    # The prebuilt binaries are served from 115dkk-owned forks (audit #146
+    # TD036): the originals lived on a third-party account, so availability
+    # depended on it. The forks carry byte-identical assets (hashes below are
+    # unchanged) mirrored from TheFireKahuna releases of the same tags.
     DependencyReleases = @{
-        'TheFireKahuna/amd-fftw' = @{
+        '115dkk/amd-fftw' = @{
             Tag    = '5.1'
             Sha256 = @{
                 'fftw-windows-release-x64-avx2.zip'   = '5b2a56aededb8503b064e4e70dfdf9cf5c23f7b5220eaa47abfd6d3362344d0e'
@@ -192,7 +196,7 @@
                 'fftw-windows-release-arm64.zip'      = '26ef7e10fe47426e601f45e9767f468f407d85c4f4011985185f7d8926464529'
             }
         }
-        'TheFireKahuna/muparserx' = @{
+        '115dkk/muparserx' = @{
             Tag    = '4.0.13'
             Sha256 = @{
                 'muparserx-msvc-release-x64-avx2.zip'   = '5639167ce626c85a28f5c71f5f716533097d09895d388717177be9191d1f4b0e'
@@ -201,7 +205,7 @@
                 'muparserx-msvc-release-ARM64.zip'      = 'e4e3391e557a4bd61686efed886f49c469c9e274a3a1a3ba2cbeaf58b51d0c42'
             }
         }
-        'TheFireKahuna/libsndfile' = @{
+        '115dkk/libsndfile' = @{
             Tag    = '1.2.2'
             Sha256 = @{
                 'libsndfile-x64-avx2.zip'   = '7613683be2e9a826c36d9aa5ec5afdad1907b6e80e877e36501e6610fefa7df0'
