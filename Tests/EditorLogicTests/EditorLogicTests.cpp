@@ -21,6 +21,7 @@
 #include "Editor/import/ImportManifest.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
+#include "Editor/widgets/FilterListUndo.h"
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
 #include "Editor/widgets/cards/StageSelectionModel.h"
@@ -198,6 +199,88 @@ static void testFilterListModel()
 	expectTrue(model.focused() == replacement && model.selectionStart() == replacement,
 		"removeItem moves focus and anchor to the neighbouring row");
 	expectFalse(model.removeItem(nullptr), "removeItem rejects items outside the document");
+}
+
+// FilterListUndo: the widget-free undo/redo history FilterTable commits to on
+// every linesChanged tick. (audit #146 TD049)
+static void testFilterListUndo()
+{
+	FilterListUndo history;
+	QList<QString> doc = QList<QString>() << "Preamp: -6 dB" << "Include: a.txt";
+
+	// A fresh history has nothing to step to, and stepping anyway returns the
+	// current state unchanged.
+	history.reset(doc);
+	expectFalse(history.canUndo(), "reset starts without undo steps");
+	expectFalse(history.canRedo(), "reset starts without redo steps");
+	expectEqual(history.undo().join('\n'), doc.join('\n'), "undo without steps returns the current state");
+	expectEqual(history.redo().join('\n'), doc.join('\n'), "redo without steps returns the current state");
+
+	// A structural change records one step; undo returns the prior state and
+	// redo returns to the mutated state.
+	QList<QString> withDelay = doc;
+	withDelay.append("Delay: 10 ms");
+	history.commit(withDelay);
+	expectTrue(history.canUndo(), "a commit records an undo step");
+	expectEqual(history.undo().join('\n'), doc.join('\n'), "undo returns the state before the commit");
+	expectTrue(history.canRedo(), "undo arms redo");
+	expectEqual(history.redo().join('\n'), withDelay.join('\n'), "redo returns the undone state");
+
+	// Committing an unchanged document records nothing.
+	history.commit(withDelay);
+	expectTrue(history.canUndo() && !history.canRedo(), "a no-op commit records nothing but keeps history");
+
+	// A fresh commit after undo discards the redo branch (the standard linear
+	// history rule).
+	history.undo();
+	QList<QString> withPreamp2 = doc;
+	withPreamp2.append("Preamp: -2 dB");
+	history.commit(withPreamp2);
+	expectFalse(history.canRedo(), "a commit after undo discards the redo branch");
+	expectEqual(history.undo().join('\n'), doc.join('\n'), "the new branch undoes to the shared ancestor");
+	history.redo();
+
+	// Single-line edit runs (knob drag / typing against one row) coalesce
+	// into one step per row, and a different mutation breaks the run.
+	history.reset(doc);
+	QList<QString> drag = doc;
+	drag[0] = "Preamp: -5 dB";
+	history.commit(drag);
+	drag[0] = "Preamp: -4 dB";
+	history.commit(drag);
+	drag[0] = "Preamp: -3 dB";
+	history.commit(drag);
+	expectEqual(history.undo().join('\n'), doc.join('\n'), "an edit run against one line undoes as a single step");
+	expectFalse(history.canUndo(), "the coalesced run is exactly one step");
+	history.redo();
+	QList<QString> secondRow = drag;
+	secondRow[1] = "Include: b.txt";
+	history.commit(secondRow);
+	QList<QString> firstRowAgain = secondRow;
+	firstRowAgain[0] = "Preamp: -1 dB";
+	history.commit(firstRowAgain);
+	expectEqual(history.undo().join('\n'), secondRow.join('\n'), "an edit of a different line starts a new step");
+
+	// An edit run that lands back on its starting state cancels the step
+	// instead of recording a no-op.
+	history.reset(doc);
+	QList<QString> toggled = doc;
+	toggled[0] = "# Preamp: -6 dB";
+	history.commit(toggled);
+	history.commit(doc);
+	expectFalse(history.canUndo(), "an edit run returning to the start cancels its step");
+
+	// After an undo the same line starts a fresh step, so redo history and
+	// the restored state are not silently folded together.
+	history.reset(doc);
+	QList<QString> editA = doc;
+	editA[0] = "Preamp: -5 dB";
+	history.commit(editA);
+	history.undo();
+	QList<QString> editB = doc;
+	editB[0] = "Preamp: -4 dB";
+	history.commit(editB);
+	expectEqual(history.undo().join('\n'), doc.join('\n'), "an edit after undo is a fresh step, not a fold-in");
 }
 
 
@@ -917,8 +1000,7 @@ int main(int argc, char** argv)
 	testStudioRoutingModel();
 	testConfigFileCodec();
 	testFilterListModel();
-
-	testFilterListModel();
+	testFilterListUndo();
 
 	harness.report();
 	return 0;

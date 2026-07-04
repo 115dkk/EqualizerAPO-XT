@@ -62,3 +62,8 @@ every list behavior risks being implemented twice. The rule is therefore:
 - Do not change the runtime default or remove either branch as part of unrelated
   work. The freeze is a hold, not a deprecation schedule; any decision to delete
   the legacy path is a separate, explicit change.
+- Document-level features that live on `FilterTable` itself (above the row
+  widgets) are not an extension of the legacy path and apply to both modes.
+  Undo/redo is the existing example: `FilterListUndo` snapshots the config
+  lines on every `linesChanged` and replays them through the same full-rebuild
+  path as a document load, so it needs nothing row-specific.

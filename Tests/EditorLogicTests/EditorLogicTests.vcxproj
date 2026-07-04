@@ -121,6 +121,7 @@
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListModel.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\FilterListUndo.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\StageSelectionModel.cpp" />
@@ -143,6 +144,7 @@
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />
+    <ClInclude Include="..\..\Editor\widgets\FilterListUndo.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
     <ClInclude Include="..\..\filters\BiQuad.h" />

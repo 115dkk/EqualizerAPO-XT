@@ -31,6 +31,7 @@
 
 #include "Editor/helpers/DisableWheelFilter.h"
 #include "Editor/widgets/FilterListModel.h"
+#include "Editor/widgets/FilterListUndo.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "DeviceAPOInfo.h"
 #include "FilterTemplate.h"
@@ -106,6 +107,13 @@ public:
 	void paste();
 	void deleteSelectedLines();
 	void selectAll();
+	// Document-level undo/redo over the config lines; see FilterListUndo for
+	// the history semantics. Both re-apply a full snapshot through the same
+	// rebuild path as setLines, so they work in either render mode. (TD049)
+	bool canUndo() const;
+	bool canRedo() const;
+	void undo();
+	void redo();
 
 	const QList<std::shared_ptr<AbstractAPOInfo>>& getOutputDevices() const;
 	const QList<std::shared_ptr<AbstractAPOInfo>>& getInputDevices() const;
@@ -180,6 +188,12 @@ private:
 	// place after an incremental splice. Returns false when a row widget is
 	// not a FilterCardRow (caller falls back to updateGuis). (audit #146 TD040)
 	bool renumberRowsBelow(int firstRow, const QVector<int>& rowDepths);
+	// Records the post-mutation document into undoHistory; connected to this
+	// table's own linesChanged in the constructor. (TD049)
+	void commitToHistory();
+	// Replaces the document with an undo/redo snapshot and rebuilds the rows,
+	// without recording the replacement as a new undo step.
+	void applyHistoryState(const QList<QString>& lines);
 
 	MainWindow* mainWindow;
 	QScrollArea* scrollArea = nullptr;
@@ -190,6 +204,12 @@ private:
 	// Owns the config lines and the selection state; see FilterListModel for
 	// the item ownership rules. (audit #146 TD032)
 	FilterListModel model;
+	// Snapshot history behind undo()/redo(); reset on every setLines (a
+	// document load must not undo into the previous file). (TD049)
+	FilterListUndo undoHistory;
+	// True while applyHistoryState replays a snapshot, so the resulting
+	// linesChanged marks the tab dirty without re-recording the step.
+	bool restoringHistory = false;
 	QList<IFilterGUIFactory*> factories;
 	bool scrollingNow = false;
 	// True while the app-global wheel-redirect filter is installed; see

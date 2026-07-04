@@ -917,92 +917,92 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardModel</name>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="195"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="203"/>
         <source>Comment</source>
         <translation>Commentaire</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="208"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="216"/>
         <source>Text</source>
         <translation>Texte</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="221"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="229"/>
         <source>Preamp</source>
         <translation>Préampli</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="228"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="236"/>
         <source>Delay</source>
         <translation>Délai</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="240"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="248"/>
         <source>Biquad</source>
         <translation>Biquad</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="262"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="270"/>
         <source>Graphic EQ</source>
         <translation>Égaliseur graphique</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="267"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="275"/>
         <source>%1 bands</source>
         <translation>%1 bandes</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="273"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="281"/>
         <source>Copy</source>
         <translation>Copier</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="295"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="303"/>
         <source>%1 steps, %2 virtual</source>
         <translation>%1 assignations, %2 virtuelles</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="297"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="305"/>
         <source>%1 steps</source>
         <translation>%1 assignations</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="304"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="312"/>
         <source>Channel</source>
         <translation>Canal</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="314"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="322"/>
         <source>Include</source>
         <translation>Inclure</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="325"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="333"/>
         <source>Convolution</source>
         <translation>Convolution</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="339"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="347"/>
         <source>MultiConvolution</source>
         <translation>Multi-convolution</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="354"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
         <source>VST Plugin</source>
         <translation>Plugin VST</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="364"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="372"/>
         <source>Device</source>
         <translation>Périphérique</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="371"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="379"/>
         <source>Stage</source>
         <translation>Étape</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="378"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="386"/>
         <source>Loudness</source>
         <translation>Loudness</translation>
     </message>
@@ -1010,32 +1010,32 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="58"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="59"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="94"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="95"/>
         <source>Enable or comment out this command</source>
         <translation>Activer ou commenter cette commande</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="103"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="104"/>
         <source>Add filter before this card</source>
         <translation>Ajouter un filtre avant cette carte</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="110"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="111"/>
         <source>Remove filter</source>
         <translation>Supprimer le filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="118"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="119"/>
         <source>Edit raw command</source>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="436"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="527"/>
         <source>Raw</source>
         <translation>Brut</translation>
     </message>
@@ -1043,7 +1043,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="257"/>
+        <location filename="../FilterTable.cpp" line="217"/>
         <source>Add filter</source>
         <translation>Ajouter un filtre</translation>
     </message>
@@ -1515,89 +1515,99 @@ Alexander Walch</translation>
         <translation>Modifier</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="79"/>
+        <location filename="../MainWindow.ui" line="82"/>
         <source>View</source>
         <translation>Vue</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="86"/>
+        <location filename="../MainWindow.ui" line="89"/>
         <source>Settings</source>
         <translation>Paramètres</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="90"/>
+        <location filename="../MainWindow.ui" line="93"/>
         <source>Language</source>
         <translation>Langue</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="106"/>
-        <location filename="../MainWindow.ui" line="548"/>
+        <location filename="../MainWindow.ui" line="109"/>
+        <location filename="../MainWindow.ui" line="567"/>
         <source>Toolbar</source>
         <translation>Barre d&apos;outils</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="120"/>
+        <location filename="../MainWindow.ui" line="123"/>
         <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="377"/>
         <source>Graph</source>
         <translation>Graphique</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="166"/>
+        <location filename="../MainWindow.ui" line="169"/>
         <source>From</source>
         <translation>De</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="187"/>
+        <location filename="../MainWindow.ui" line="190"/>
         <source>Channel</source>
         <translation>Canal</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="197"/>
+        <location filename="../MainWindow.ui" line="200"/>
         <source>Res</source>
         <translation>Rés</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="223"/>
+        <location filename="../MainWindow.ui" line="226"/>
         <source>Pos</source>
         <translation>Pos</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="231"/>
+        <location filename="../MainWindow.ui" line="234"/>
         <source>Top</source>
         <translation>Haut</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="236"/>
+        <location filename="../MainWindow.ui" line="239"/>
         <source>Bottom</source>
         <translation>Bas</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="241"/>
+        <location filename="../MainWindow.ui" line="244"/>
         <source>Right</source>
         <translation>Droite</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="283"/>
+        <location filename="../MainWindow.ui" line="286"/>
         <source>Peak</source>
         <translation>Crête</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="321"/>
+        <location filename="../MainWindow.ui" line="324"/>
         <source>Latency</source>
         <translation>Latence</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="359"/>
+        <location filename="../MainWindow.ui" line="362"/>
         <source>Init</source>
         <translation>Init</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="397"/>
+        <location filename="../MainWindow.ui" line="400"/>
         <source>CPU</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="556"/>
+        <location filename="../MainWindow.ui" line="500"/>
+        <source>Undo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="508"/>
+        <source>Redo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="575"/>
         <source>Analysis panel</source>
         <translation>Panneau d&apos;analyse</translation>
     </message>
@@ -1614,7 +1624,7 @@ Alexander Walch</translation>
         <translation type="vanished">Commencer à:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="179"/>
+        <location filename="../MainWindow.ui" line="182"/>
         <source>Current file</source>
         <translation>Fichier actuel</translation>
     </message>
@@ -1639,65 +1649,65 @@ Alexander Walch</translation>
         <translation type="vanished">Gain maximal:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="436"/>
+        <location filename="../MainWindow.ui" line="439"/>
         <source>New</source>
         <translation>Nouveau</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="448"/>
         <location filename="../MainWindow.ui" line="451"/>
+        <location filename="../MainWindow.ui" line="454"/>
         <source>Open</source>
         <translation>Ouvrir</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="463"/>
         <location filename="../MainWindow.ui" line="466"/>
+        <location filename="../MainWindow.ui" line="469"/>
         <source>Save</source>
         <translation>Sauvegarder</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="478"/>
         <location filename="../MainWindow.ui" line="481"/>
+        <location filename="../MainWindow.ui" line="484"/>
         <source>Save as...</source>
         <translation>Sauvegarder sous...</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="489"/>
+        <location filename="../MainWindow.ui" line="492"/>
         <source>Exit</source>
         <translation>Sortie</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="501"/>
+        <location filename="../MainWindow.ui" line="520"/>
         <source>Cut</source>
         <translation>Couper</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="513"/>
+        <location filename="../MainWindow.ui" line="532"/>
         <source>Copy</source>
         <translation>Copier</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="525"/>
+        <location filename="../MainWindow.ui" line="544"/>
         <source>Paste</source>
         <translation>Coller</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="537"/>
+        <location filename="../MainWindow.ui" line="556"/>
         <source>Delete</source>
         <translation>Supprimer</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="561"/>
+        <location filename="../MainWindow.ui" line="580"/>
         <source>Reset all global preferences</source>
         <translation>Réinitialiser toutes les préférences globales</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="566"/>
+        <location filename="../MainWindow.ui" line="585"/>
         <source>Reset all file-specific preferences</source>
         <translation>Réinitialiser toutes les préférences spécifiques du fichier</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="575"/>
+        <location filename="../MainWindow.ui" line="594"/>
         <source>Select all</source>
         <translation>Tout sélectionner</translation>
     </message>
@@ -1766,41 +1776,41 @@ Alexander Walch</translation>
         <translation>Périphériques de capture:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="234"/>
+        <location filename="../MainWindow.cpp" line="250"/>
         <source>Automatic (%0)</source>
         <translation>Automatique (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="260"/>
+        <location filename="../MainWindow.cpp" line="276"/>
         <source>Registry problem</source>
         <translation>Problème de registre</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="260"/>
+        <location filename="../MainWindow.cpp" line="276"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Une valeur de registre requise pour le fonctionnement d’Equalizer APO n’est pas définie correctement.
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="269"/>
+        <location filename="../MainWindow.cpp" line="285"/>
         <source>APO not installed to device</source>
         <translation>APO non installé sur le périphérique</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="269"/>
+        <location filename="../MainWindow.cpp" line="285"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO n’a pas été installé sur le périphérique sélectionné.
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="304"/>
+        <location filename="../MainWindow.cpp" line="320"/>
         <source>EQ inactive on some devices</source>
         <translation>EQ inactif sur certains périphériques</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="321"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -1813,12 +1823,12 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 Il ne s&apos;agit pas d&apos;un plantage : le son atteint toujours le périphérique, mais sans EQ. Si vous avez besoin de filtrage, réglez le format par défaut du périphérique sur un format IEEE_FLOAT 32 bits dans les Paramètres de son.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="336"/>
+        <location filename="../MainWindow.cpp" line="352"/>
         <source>Audio enhancements disabled</source>
         <translation>Améliorations audio désactivées</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="336"/>
+        <location filename="../MainWindow.cpp" line="352"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>

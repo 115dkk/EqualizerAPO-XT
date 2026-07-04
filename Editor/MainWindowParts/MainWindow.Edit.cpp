@@ -152,6 +152,29 @@ bool MainWindow::on_tabWidget_tabCloseRequested(int index)
 }
 
 
+// Document-level undo/redo for the active tab. While a text field has focus,
+// its own edit shortcuts win (QLineEdit and friends accept the ShortcutOverride
+// for Ctrl+Z/Ctrl+Y), so these actions only fire against the filter list
+// itself. An empty history is a silent no-op, matching the other edit actions'
+// tolerance for inapplicable states. (TD049)
+void MainWindow::on_actionUndo_triggered()
+{
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
+		return;
+
+	filterTable->undo();
+}
+
+void MainWindow::on_actionRedo_triggered()
+{
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
+		return;
+
+	filterTable->redo();
+}
+
 void MainWindow::on_actionCut_triggered()
 {
 	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
