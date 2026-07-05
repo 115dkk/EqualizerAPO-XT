@@ -403,6 +403,12 @@ void MainWindow::applyRedesignPreferences()
 		removeDockWidget(ui->analysisDockWidget);
 		addDockWidget(area, ui->analysisDockWidget);
 	}
+	// The analysis controls live in a compact settings cell beside the graph
+	// (the original panel's shape - feedback round, DC #1289929) instead of a
+	// full-width strip above it. A top/bottom dock lays the cell to the left
+	// of the graph; the narrow right dock stacks it above the graph instead.
+	ui->analysisDockLayout->setDirection(area == Qt::RightDockWidgetArea
+		? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight);
 	ui->analysisDockWidget->setVisible(graphFullscreen || graphWasShown);
 
 	setCurrentRenderMode(currentRenderMode);

@@ -642,7 +642,7 @@ QLabel#MultiConvolutionMappingHint {
    token in a 1px hairline box (radius 0). State keeps to the value
    ladder (rule 3): rest = card, hover = exactly one step up, inert =
    melted one step down into the strip, and SELECTION is the accent-
-   family value step cardSelected #1f3554 (tokens.cardSelected,
+   family value step cardSelected #2A4878 (tokens.cardSelected,
    MinimalSkin.cpp) plus the accent hairline - the same treatment
    cardFrameStyle gives a selected row. The inverted block stays where
    the constitution keeps it (pickers, transient cursors); the only
@@ -722,7 +722,7 @@ QToolButton#StageChip:hover {
     background: @CARD_HOVER@;
 }
 /* Selection (Channel/Stage): the accent-family value step (rule 3,
-   cardSelected #1f3554 = tokens.cardSelected, hardcoded the way this
+   cardSelected #2A4878 = tokens.cardSelected, hardcoded the way this
    sheet already hardcodes its accent-family steps) + the accent
    hairline. The press instant previews the selection it is about to
    commit - the sheet's own QToolButton:pressed/:checked pairing. A
@@ -730,7 +730,7 @@ QToolButton#StageChip:hover {
    through it. */
 QToolButton#ChannelChip:pressed, QToolButton#StageChip:pressed,
 QToolButton#ChannelChip:checked, QToolButton#StageChip:checked {
-    background: #1f3554; color: @TEXT@; border: 1px solid @ACCENT@;
+    background: #2A4878; color: @TEXT@; border: 1px solid @ACCENT@;
 }
 /* Selection (Device): a routed endpoint is the console's current
    selection, so it takes the terminal's reverse video - the
@@ -766,7 +766,7 @@ QToolButton#ChannelChip[customChannel="true"]:disabled {
    wins the 121-tie against the dashed inert-kind rule, so a stored
    selection reads selected first. */
 QToolButton#ChannelChip:checked:disabled, QToolButton#StageChip:checked:disabled {
-    background: #1f3554; color: @MUTED@; border: 1px solid @BORDER@;
+    background: #2A4878; color: @MUTED@; border: 1px solid @BORDER@;
 }
 /* Device stored selection while inert: the reverse video dims to a
    muted block - still unmistakably inverted, no longer the live
