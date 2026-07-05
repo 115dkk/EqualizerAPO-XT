@@ -221,6 +221,11 @@ QString SkinManager::typeBadgeStyle(const CommandRowInfo& info, const QString& t
 	return activeSkin != nullptr ? activeSkin->typeBadgeStyle(info, typeColor, currentTokens) : QString();
 }
 
+QColor SkinManager::typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const
+{
+	return activeSkin != nullptr ? activeSkin->typeBadgeInk(info, typeColor, badgeToken, currentTokens) : QColor(typeColor);
+}
+
 void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const
 {
 	if (activeSkin != nullptr)

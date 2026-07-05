@@ -117,6 +117,20 @@ QString studioBandFamilyForBiQuadType(int type)
 	}
 }
 
+// The same S3 band law keyed off the descriptor's type code (LS/LSC ride the
+// shelf family, LP/HP/BP and their Q forms the pass family) - the badge
+// pictogram's ink resolves from the config line before any type combo exists.
+QString studioBandFamilyForBadgeToken(const QString& token)
+{
+	if (token.startsWith(QLatin1String("LS")) || token.startsWith(QLatin1String("HS")))
+		return QStringLiteral("shelf");
+	if (token.startsWith(QLatin1String("LP")) || token.startsWith(QLatin1String("HP")) || token.startsWith(QLatin1String("BP")))
+		return QStringLiteral("pass");
+	if (token.startsWith(QLatin1String("NO")) || token.startsWith(QLatin1String("AP")))
+		return QStringLiteral("notch");
+	return QStringLiteral("peak");
+}
+
 // Resolves the band colour a widget was tagged with (prepareCommandRow).
 // The paint hooks receive no widget pointer, but painting always happens on
 // the widget itself, so the painter's device is the tagged widget; untagged
@@ -567,6 +581,23 @@ public:
 			}
 		}
 		return style;
+	}
+
+	// The badge pictogram's ink (feedback round 2): the same light the badge
+	// text wore - a sleeping row's dimmed muted ink, a biquad's band colour
+	// (from the type code, agreeing with the studioBand tag the QSS variants
+	// follow), every other command its type colour.
+	QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken, const SkinTokens& tokens) const override
+	{
+		if (!info.enabled)
+		{
+			QColor sleeping(tokens.mutedText);
+			sleeping.setAlphaF(0.65);
+			return sleeping;
+		}
+		if (info.type == QStringLiteral("biquad"))
+			return QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), studioIsDark(tokens)));
+		return QColor(typeColor);
 	}
 
 	// Tags BiQuad rows with their band family (S3) so the QSS attribute

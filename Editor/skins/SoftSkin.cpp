@@ -258,6 +258,14 @@ public:
 			.arg(pastel.name());
 	}
 
+	// The badge pictogram's ink (feedback round 2): the deep warm ink on the
+	// pastel chip - white strokes on a pastel are exactly the low-contrast
+	// anxiety this skin removes. A sleeping chip relaxes to the muted ink.
+	QColor typeBadgeInk(const CommandRowInfo& info, const QString&, const QString&, const SkinTokens& t) const override
+	{
+		return info.enabled ? QColor(QStringLiteral("#2B251D")) : QColor(t.mutedText);
+	}
+
 	// Annex K, soft: "a handle you cannot fumble". The largest knob of the
 	// five skins. Two-step elevation body, rounded dot indicator (no sharp
 	// line), value in a rounded badge below. AR1 F3/X3: the full travel is an

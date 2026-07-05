@@ -70,6 +70,16 @@ appearance-preserving defaults:
   by `CommandRowFrame` (`Editor/widgets/CommandRowFrame.{h,cpp}`) after the
   QSS background/border and before child widgets. Use for rails, screws,
   per-type markers that QSS cannot express.
+- `typeBadgeStyle(info, typeColor, tokens)` /
+  `typeBadgeInk(info, typeColor, badgeToken, tokens)` — the badge pair. The
+  style string dresses `QLabel#FilterTypeBadge`; since feedback round 2 the
+  badge content is the catalog pictogram
+  (`FilterCardModel::badgeIconResource`, English monograms survive only as
+  the fallback for unmapped lines), and because a tinted pixmap cannot follow
+  the QSS `color` rule, the ink hook restates the same colour the style
+  writes for text. Override both together or the glyph and the chip drift
+  apart. `badgeToken` is the descriptor monogram (the biquad type code),
+  which studio folds onto its band families.
 
 QSS can already target rows per command type without code: the card frame and
 header carry dynamic properties `filterKind` (lower-cased command),

@@ -21,6 +21,10 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   그래프 옆의 작은 설정 칸으로 옮겼습니다. 독을 오른쪽에 두면 칸이 그래프
   위로 올라갑니다.
   ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- 필터 카드의 타입 배지가 PK, DEV 같은 영어 약자 대신 픽커와 같은
+  픽토그램을 담습니다(EQ는 응답 곡선 글리프). 잉크는 스킨별 배지 색을
+  그대로 쓰고, 인식하지 못한 줄만 문자 폴백으로 남습니다.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
 
 ## v2.10.1 (2026-07-04)
 

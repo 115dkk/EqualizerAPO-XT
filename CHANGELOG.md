@@ -28,6 +28,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   into a compact settings cell beside it, the original Equalizer APO panel's
   shape; a right-side dock stacks the cell above the graph instead.
   ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- The filter cards' type badges now carry the picker's pictograms (EQ shapes
+  get their response-curve glyphs) instead of English letter chunks like PK
+  or DEV, inked in each skin's own badge colour; the letters survive only as
+  the fallback for unrecognised lines.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
 
 ## v2.10.1 — 2026-07-04
 

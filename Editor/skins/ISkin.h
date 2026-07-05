@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <QColor>
 #include <QRect>
 #include <QString>
 
@@ -109,6 +110,15 @@ public:
 	// reserves colour for other semantics (e.g. matrix keeps traffic-light
 	// colours for status only and renders a monochrome type cell).
 	virtual QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const;
+
+	// Ink for the pictogram the card header places inside the type badge
+	// (feedback round 2: pictures replace the English monograms, matching the
+	// picker tiles). A tinted pixmap cannot follow the QSS 'color' rule the
+	// badge style writes, so each skin restates its badge ink here and the
+	// two must stay in step. badgeToken is the descriptor's monogram (the
+	// biquad type code for Filter rows), which studio folds onto its band
+	// families. The default mirrors the default typeBadgeStyle ink.
+	virtual QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken, const SkinTokens& tokens) const;
 
 	// Called once when a command row or a command body editor is built, so a
 	// skin can tag widgets with dynamic properties or attach extra chrome.

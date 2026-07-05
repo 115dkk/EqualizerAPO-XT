@@ -54,6 +54,7 @@ public:
 	QString cardFrameStyle(const CommandRowInfo& info) const;
 	QString cardHeaderStyle(const CommandRowInfo& info) const;
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const;
+	QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 

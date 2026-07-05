@@ -393,6 +393,55 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	return descriptor;
 }
 
+QString FilterCardModel::badgeIconResource(const QString& type, const QString& badge)
+{
+	if (type == QStringLiteral("biquad"))
+	{
+		// Prefix matching folds the factory's long vocabulary onto the eight
+		// response-curve glyphs (LPQ rides with LP, LSC with LS, PEQ/MODAL
+		// with PK); an unparsed biquad ("BQUAD") shows the generic peaking
+		// curve rather than a letter chunk, mirroring the picker's fallback.
+		static const struct { const char* prefix; const char* icon; } curves[] = {
+			{ "LP", "eq-lowpass" },
+			{ "HP", "eq-highpass" },
+			{ "BP", "eq-bandpass" },
+			{ "LS", "eq-lowshelf" },
+			{ "HS", "eq-highshelf" },
+			{ "NO", "eq-notch" },
+			{ "AP", "eq-allpass" }
+		};
+		for (const auto& curve : curves)
+			if (badge.startsWith(QLatin1String(curve.prefix)))
+				return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(curve.icon));
+		return QStringLiteral(":/icons/modern/eq-peaking.svg");
+	}
+	if (type == QStringLiteral("convolution"))
+	{
+		// The badge splits the siblings: one shared type, two pictograms.
+		return badge == QStringLiteral("MCONV")
+			? QStringLiteral(":/icons/modern/multi-convolution.svg")
+			: QStringLiteral(":/icons/modern/waveform.svg");
+	}
+
+	static const struct { const char* type; const char* icon; } commands[] = {
+		{ "comment", "comment-bubble" },
+		{ "preamp", "preamp-gain" },
+		{ "delay", "delay-clock" },
+		{ "graphiceq", "graphic-eq" },
+		{ "copy", "route-channels" },
+		{ "channel", "channel-select" },
+		{ "include", "file-include" },
+		{ "vst", "plugin" },
+		{ "device", "device-speaker" },
+		{ "stage", "stage-chain" },
+		{ "loudness", "loudness" }
+	};
+	for (const auto& mapping : commands)
+		if (type == QLatin1String(mapping.type))
+			return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(mapping.icon));
+	return QString();
+}
+
 QVector<int> FilterCardModel::calculateDepths(const QList<QString>& lines)
 {
 	QVector<int> depths;
