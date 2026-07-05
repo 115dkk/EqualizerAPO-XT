@@ -16,6 +16,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 1. 변형별 릴리스 채널을 단일 바이너리 런타임 SIMD dispatch로 대체합니다([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 2. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다.
+3. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다(1차: Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸 배치).
 
 ## 주요 기능
 
