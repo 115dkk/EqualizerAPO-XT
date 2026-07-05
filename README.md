@@ -16,6 +16,7 @@ Current work areas:
 
 1. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 2. Acting on findings from the biweekly automated code audit.
+3. Refining the Editor skins from community feedback rounds (round 1: the Soft pastel rework, dark-mode state contrast, and the compact analysis panel).
 
 ## Features
 

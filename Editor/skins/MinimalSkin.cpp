@@ -320,7 +320,7 @@ public:
 			t.surface = QStringLiteral("#1f1f1f");
 			t.card = QStringLiteral("#262626");
 			t.cardHover = QStringLiteral("#2c2c2c");
-			t.cardSelected = QStringLiteral("#1f3554");
+			t.cardSelected = QStringLiteral("#2A4878");
 			t.text = QStringLiteral("#cccccc");
 			t.mutedText = QStringLiteral("#777777");
 			t.border = QStringLiteral("#3c3c3c");

@@ -120,6 +120,16 @@ QString ISkin::typeBadgeStyle(const CommandRowInfo& info, const QString& typeCol
 			outlineBadge ? QStringLiteral("transparent") : typeColor);
 }
 
+// Mirrors the default typeBadgeStyle ink: outline badges draw the pictogram
+// in the type colour, filled pills draw it white on the coloured ground.
+QColor ISkin::typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken, const SkinTokens& tokens) const
+{
+	Q_UNUSED(info);
+	Q_UNUSED(badgeToken);
+	const bool outlineBadge = tokens.badgeStyle == SkinTokens::OutlineOnly || tokens.badgeStyle == SkinTokens::WireframeBorder;
+	return outlineBadge ? QColor(typeColor) : QColor(Qt::white);
+}
+
 void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget*) const
 {
 	// Neutral default: rows keep their stock construction.

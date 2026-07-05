@@ -4,6 +4,7 @@
 #include <QIcon>
 #include <QMenu>
 #include <QPainter>
+#include <QPixmap>
 #include <QPropertyAnimation>
 #include <QRegularExpression>
 #include <QScrollArea>
@@ -495,6 +496,24 @@ void FilterCardRow::paintEvent(QPaintEvent*)
 	}
 }
 
+// Renders the badge pictogram at the label's device pixel ratio in the
+// skin-resolved ink (feedback round 2). The toolbar's GUIHelper::tintedIcon
+// bakes a DPR-1 pixmap for QIcon consumers; a QLabel needs an explicit
+// DPR-aware pixmap or the glyph blurs on scaled displays. Overshooting the
+// fill past the device-independent size is harmless - untouched pixels have
+// no coverage for CompositionMode_SourceIn to paint on.
+static QPixmap badgePictogram(const QString& resource, const QColor& ink, int size, qreal devicePixelRatio)
+{
+	QPixmap pixmap = QIcon(resource).pixmap(QSize(size, size), devicePixelRatio);
+	if (pixmap.isNull())
+		return pixmap;
+	QPainter painter(&pixmap);
+	painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+	painter.fillRect(pixmap.rect(), ink);
+	painter.end();
+	return pixmap;
+}
+
 void FilterCardRow::rebuildSummary()
 {
 	descriptor = FilterCardModel::describeLine(item->text, descriptor.depth);
@@ -518,10 +537,25 @@ void FilterCardRow::rebuildSummary()
 		return;
 	}
 
-	typeBadge->setText(descriptor.badge);
 	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle); the
 	// default reproduces the previous shared outline/filled treatment.
 	typeBadge->setStyleSheet(SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color));
+	// Feedback round 2 (DC #1289929): the badge carries the picker's pictogram
+	// instead of the English monogram, inked by the skin (ISkin::typeBadgeInk).
+	// The monogram survives only for lines the icon catalog does not map (raw
+	// text), so unknown commands keep reading instead of going blank.
+	const QString badgeIcon = FilterCardModel::badgeIconResource(descriptor.type, descriptor.badge);
+	if (badgeIcon.isEmpty())
+	{
+		typeBadge->setPixmap(QPixmap());
+		typeBadge->setText(descriptor.badge);
+	}
+	else
+	{
+		const QColor ink = SkinManager::instance()->typeBadgeInk(currentRowInfo(), descriptor.color, descriptor.badge);
+		typeBadge->setText(QString());
+		typeBadge->setPixmap(badgePictogram(badgeIcon, ink, 16, devicePixelRatioF()));
+	}
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);
 	rawPreviewLabel->setText(tr("Raw") + QStringLiteral("  ") + item->text);

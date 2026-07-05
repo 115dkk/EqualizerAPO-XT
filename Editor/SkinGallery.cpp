@@ -6,16 +6,22 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDataStream>
 #include <QDir>
 #include <QFile>
+#include <QFrame>
+#include <QGridLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPixmap>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSpinBox>
 #include <QString>
+#include <QStringList>
 #include <QToolBar>
 
 #include "Editor/FilterTable.h"
@@ -23,6 +29,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
+#include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/SkinComboBox.h"
@@ -279,12 +286,12 @@ QString buildReferenceFiles(const QDir& outDir)
 // renderSkin() renders, per skin and per mode: every gallery row in
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
-// chrome shots (picker x3, toolbar, titlebar, menubar, menu). run() multiplies
-// these by skins x 2 modes to self-check the output count, so adding a gallery
-// row needs no external count to be updated. Keep both constants in step with
-// renderStates()/renderSkin() if the state set or chrome shots change.
+// chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis). run()
+// multiplies these by skins x 2 modes to self-check the output count, so adding
+// a gallery row needs no external count to be updated. Keep both constants in
+// step with renderStates()/renderSkin() if the state set or chrome shots change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 7;
+constexpr int kExtraShotsPerSkinMode = 8;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -347,6 +354,86 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 
 	SkinManager::instance()->styleMainToolbar(toolBar);
 	return toolBar;
+}
+
+// Faithful replica of the analysis dock's contents: the compact settings cell
+// beside the graph (feedback round, DC #1289929) with dummy readouts. Same
+// object names as MainWindow so every sheet's #analysisControlBar /
+// #AnalysisStatChip rules are judged; the graph is a real EqGraphView left
+// empty (background and frame only, no curve data needed).
+QWidget* buildAnalysisPanelReplica(QWidget* parent)
+{
+	QWidget* panel = new QWidget(parent);
+	QHBoxLayout* dockLayout = new QHBoxLayout(panel);
+	dockLayout->setContentsMargins(10, 6, 10, 10);
+	dockLayout->setSpacing(8);
+
+	QFrame* bar = new QFrame;
+	bar->setObjectName(QStringLiteral("analysisControlBar"));
+	bar->setAttribute(Qt::WA_StyledBackground, true);
+	bar->setMaximumWidth(250);
+	QGridLayout* grid = new QGridLayout(bar);
+	grid->setContentsMargins(10, 8, 10, 8);
+	grid->setHorizontalSpacing(8);
+	grid->setVerticalSpacing(6);
+
+	const QStringList formLabels = { QStringLiteral("From"), QStringLiteral("Channel"),
+		QStringLiteral("Res"), QStringLiteral("Pos") };
+	const QStringList formValues = { QStringLiteral("config.txt"), QStringLiteral("L"),
+		QString(), QStringLiteral("Bottom") };
+	for (int row = 0; row < formLabels.size(); row++)
+	{
+		QLabel* label = new QLabel(formLabels[row]);
+		label->setObjectName(QStringLiteral("AnalysisFormLabel"));
+		grid->addWidget(label, row, 0);
+		if (formValues[row].isEmpty())
+		{
+			// The resolution field: MainWindow's ExponentialSpinBox paints as a
+			// plain QSpinBox (only the stepping differs), so the replica keeps
+			// the lighter widget under the same object name.
+			QSpinBox* spin = new QSpinBox;
+			spin->setObjectName(QStringLiteral("AnalysisFormSpin"));
+			spin->setRange(128, 8388608);
+			spin->setValue(65536);
+			grid->addWidget(spin, row, 1);
+		}
+		else
+		{
+			QComboBox* combo = new QComboBox;
+			combo->setObjectName(QStringLiteral("AnalysisFormCombo"));
+			combo->addItem(formValues[row]);
+			grid->addWidget(combo, row, 1);
+		}
+	}
+
+	const QStringList statLabels = { QStringLiteral("Peak"), QStringLiteral("Latency"),
+		QStringLiteral("Init"), QStringLiteral("CPU") };
+	const QStringList statValues = { QStringLiteral("-6.0 dB"), QStringLiteral("0.0 ms (0 s.)"),
+		QStringLiteral("0.4 ms"), QStringLiteral("0.1 %") };
+	for (int i = 0; i < statLabels.size(); i++)
+	{
+		QFrame* chipFrame = new QFrame;
+		chipFrame->setObjectName(QStringLiteral("AnalysisStatChip"));
+		chipFrame->setAttribute(Qt::WA_StyledBackground, true);
+		QHBoxLayout* chipLayout = new QHBoxLayout(chipFrame);
+		chipLayout->setContentsMargins(10, 3, 10, 3);
+		chipLayout->setSpacing(6);
+		QLabel* label = new QLabel(statLabels[i]);
+		label->setObjectName(QStringLiteral("AnalysisStatLabel"));
+		chipLayout->addWidget(label);
+		QLabel* value = new QLabel(statValues[i]);
+		value->setObjectName(QStringLiteral("AnalysisStatValue"));
+		value->setProperty("severity", QStringLiteral("normal"));
+		chipLayout->addWidget(value);
+		grid->addWidget(chipFrame, 4 + i, 0, 1, 2);
+	}
+	grid->setRowStretch(8, 1);
+
+	EqGraphView* graph = new EqGraphView(panel);
+	graph->setObjectName(QStringLiteral("ModernAnalysisGraph"));
+	dockLayout->addWidget(bar);
+	dockLayout->addWidget(graph, 1);
+	return panel;
 }
 
 // QSS :hover matches widgets whose Qt::WA_UnderMouse attribute is set, and
@@ -535,6 +622,18 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QApplication::processEvents();
 		failures += saveGrab(toolBar, outDir, skinId, mode, QStringLiteral("toolbar"), QStringLiteral("normal")) ? 0 : 1;
 		delete toolBar;
+	}
+
+	// The analysis dock's settings cell beside the graph (feedback round):
+	// the one piece of shared chrome the strip redesign moved, judged per
+	// skin like the toolbar.
+	{
+		QWidget* panel = buildAnalysisPanelReplica(nullptr);
+		panel->resize(960, 300);
+		panel->show();
+		QApplication::processEvents();
+		failures += saveGrab(panel, outDir, skinId, mode, QStringLiteral("analysis"), QStringLiteral("normal")) ? 0 : 1;
+		delete panel;
 	}
 
 	// Window chrome: the custom title bar over a dummy host. The Korean text

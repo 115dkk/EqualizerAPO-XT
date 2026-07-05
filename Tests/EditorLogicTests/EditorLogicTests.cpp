@@ -525,6 +525,22 @@ void testFilterCardDescriptors()
 	FilterCardDescriptor multiConvBare = FilterCardModel::describeLine("MultiConvolution:");
 	expectEqual(multiConvBare.badge, "MCONV", "bare multiconvolution keeps its badge");
 	expectEqual(multiConvBare.type, "convolution", "bare multiconvolution keeps convolution styling");
+
+	// Feedback round 2: the card badges carry the picker's pictograms instead
+	// of English monograms. Pin the descriptor-keyed catalog: the biquad
+	// prefix folding (LSC rides the low-shelf glyph, HPQ the high-pass one,
+	// an unparsed BQUAD falls back to the generic peaking curve), the badge
+	// split of the convolution siblings, and the empty fallback that keeps
+	// unmapped raw text lines on their monogram.
+	expectEqual(FilterCardModel::badgeIconResource("biquad", "PK"), ":/icons/modern/eq-peaking.svg", "peaking badge pictogram");
+	expectEqual(FilterCardModel::badgeIconResource("biquad", "LSC"), ":/icons/modern/eq-lowshelf.svg", "LSC badge pictogram folds onto low-shelf");
+	expectEqual(FilterCardModel::badgeIconResource("biquad", "HPQ"), ":/icons/modern/eq-highpass.svg", "HPQ badge pictogram folds onto high-pass");
+	expectEqual(FilterCardModel::badgeIconResource("biquad", "BQUAD"), ":/icons/modern/eq-peaking.svg", "unparsed biquad falls back to the peaking curve");
+	expectEqual(FilterCardModel::badgeIconResource("convolution", "CONV"), ":/icons/modern/waveform.svg", "convolution badge pictogram");
+	expectEqual(FilterCardModel::badgeIconResource("convolution", "MCONV"), ":/icons/modern/multi-convolution.svg", "multiconvolution badge pictogram");
+	expectEqual(FilterCardModel::badgeIconResource("device", "DEV"), ":/icons/modern/device-speaker.svg", "device badge pictogram");
+	expectEqual(FilterCardModel::badgeIconResource("comment", "#"), ":/icons/modern/comment-bubble.svg", "comment badge pictogram");
+	expectTrue(FilterCardModel::badgeIconResource("text", "TXT").isEmpty(), "raw text lines keep their monogram fallback");
 }
 
 void testFilterCardDepths()

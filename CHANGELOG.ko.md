@@ -6,6 +6,26 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 버전은 CI가 커밋 메시지의 Conventional Commits 타입을 읽어 자동으로 올리므로, 일부 번호는 건너뛰었습니다(1.7, 1.9, 1.12.1, 1.14, 1.16, 1.23, 1.25는 릴리스된 적이 없습니다). v1.10.1까지는 태그에 `-main.<run>` 접미사가 붙었고, v1.11.0부터는 깨끗한 `vX.Y.Z` 이름을 씁니다. 각 버전의 설치 파일은 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에 있습니다.
 
+## Unreleased
+
+- 커뮤니티 피드백("코너 R값 말고는 정체성이 애매하다")을 반영해 Soft 스킨을
+  파스텔 문법 중심으로 재작업했습니다. 액센트와 의미 색이 파스텔 그 자체가
+  되고, 켜짐/선택 상태는 반투명 파란 워시 대신 불투명 파스텔 채움 + 짙은
+  웜 잉크로 그려집니다(다크/라이트 공통).
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- 같은 피드백이 지적한 다크 모드의 상태 대비를 올렸습니다. Studio의 점등
+  칩(Device/Channel/Stage)은 밝기 사다리를 한 단씩 오르고, Minimal의 선택
+  바탕은 #1f3554에서 #2A4878로 밝아집니다. Rack과 Matrix는 그대로입니다.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- 분석 패널의 컨트롤을 그래프 위 전폭 한 줄에서 원본 Equalizer APO처럼
+  그래프 옆의 작은 설정 칸으로 옮겼습니다. 독을 오른쪽에 두면 칸이 그래프
+  위로 올라갑니다.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- 필터 카드의 타입 배지가 PK, DEV 같은 영어 약자 대신 픽커와 같은
+  픽토그램을 담습니다(EQ는 응답 곡선 글리프). 잉크는 스킨별 배지 색을
+  그대로 쓰고, 인식하지 못한 줄만 문자 폴백으로 남습니다.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+
 ## v2.10.1 (2026-07-04)
 
 - Edit 메뉴의 undo/redo 한국어 이름을 실행 취소/다시 실행에서 수정

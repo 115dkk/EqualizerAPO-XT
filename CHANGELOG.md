@@ -12,6 +12,28 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Reworked the Soft skin around its pastel grammar, following community
+  feedback ("apart from the corner radius its identity is vague"): the accent
+  and semantic colours are now pastel themselves, and every on/selected state
+  is an opaque pastel fill carrying the deep warm ink instead of a translucent
+  blue wash, in both dark and light modes.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- Raised the dark-mode state contrast the same feedback called out: Studio's
+  lit Device/Channel/Stage chips climb one brightness step, and Minimal's
+  selection ground rises from #1f3554 to #2A4878. Rack and Matrix are
+  unchanged. ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- Moved the analysis-panel controls from a full-width strip above the graph
+  into a compact settings cell beside it, the original Equalizer APO panel's
+  shape; a right-side dock stacks the cell above the graph instead.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+- The filter cards' type badges now carry the picker's pictograms (EQ shapes
+  get their response-curve glyphs) instead of English letter chunks like PK
+  or DEV, inked in each skin's own badge colour; the letters survive only as
+  the fallback for unrecognised lines.
+  ([#170](https://github.com/115dkk/EqualizerAPO-XT/pull/170))
+
 ## v2.10.1 — 2026-07-04
 
 - Renamed the Korean Edit-menu labels for undo/redo from 실행 취소/다시 실행

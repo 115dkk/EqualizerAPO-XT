@@ -579,15 +579,21 @@ public:
 		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0px; }");
 	}
 
-	// Monochrome type cell: the command type reads from the mono code text
-	// (BQUAD/INC/VST/...), not from a per-type colour. Traffic-light colours
-	// stay reserved for status.
+	// Monochrome type cell: the command type reads from the mono glyph (the
+	// pictogram since feedback round 2, the code text before), not from a
+	// per-type colour. Traffic-light colours stay reserved for status.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
 	{
 		Q_UNUSED(typeColor);
 		const QString ink = info.enabled ? tokens.text : tokens.mutedText;
 		return QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
 			.arg(ink, tokens.border);
+	}
+
+	// The pictogram keeps the cell monochrome: board ink awake, muted asleep.
+	QColor typeBadgeInk(const CommandRowInfo& info, const QString&, const QString&, const SkinTokens& tokens) const override
+	{
+		return QColor(info.enabled ? tokens.text : tokens.mutedText);
 	}
 
 	// Row chrome shared by every command type: the coordinate cell and the

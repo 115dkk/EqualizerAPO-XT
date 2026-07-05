@@ -30,6 +30,16 @@ class FilterCardModel
 
 public:
 	static FilterCardDescriptor describeLine(const QString& line, int depth = 0);
+	// The modern stroke pictogram for a card's type badge, keyed by the
+	// descriptor (feedback round 2: pictures replace the English monograms on
+	// the cards, matching the picker tiles). Biquad rows split by their type
+	// code so every EQ shape carries its response-curve glyph; an unmapped
+	// descriptor (raw text lines) returns empty and the badge falls back to
+	// its monogram, so future commands degrade gracefully instead of going
+	// blank. The picker keeps its own template-line-keyed copy of this table
+	// (SoftFilterPicker's softEntryIcon) because catalog entries have no
+	// descriptor - keep the two in step when adding commands.
+	static QString badgeIconResource(const QString& type, const QString& badge);
 	static QVector<int> calculateDepths(const QList<QString>& lines);
 	static QString commandForLine(const QString& line, QString* parameters);
 	// A line that is a note, not a disabled command; such a line has no
