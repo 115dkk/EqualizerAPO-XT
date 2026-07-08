@@ -85,6 +85,55 @@ QSS can already target rows per command type without code: the card frame and
 header carry dynamic properties `filterKind` (lower-cased command),
 `filterEnabled`, `selected`, `focused`, `scopeDepth`.
 
+## List-chrome hooks (add row, insertion seam)
+
+Legacy-cleanup round 3 replaced the green-icon `QToolBar` at the end of the
+card list with two skinnable widgets. Both own all input handling (click,
+Space/Return, focus, tooltips) and delegate every pixel:
+
+```cpp
+// ISkin (Editor/skins/ISkin.h)
+virtual void paintAddRow(QPainter&, const QRect&, const ListChromeState&, const SkinTokens&) const;
+virtual void paintInsertSeam(QPainter&, const QRect&, const ListChromeState&, const SkinTokens&) const;
+```
+
+`AddCardRow` (`Editor/widgets/AddCardRow.{h,cpp}`) is the persistent "add
+card" row after the last card; the rect handed to the hook already carries
+the cards' 8px column inset. `FilterInsertSeam`
+(`Editor/widgets/FilterInsertSeam.{h,cpp}`) floats over the first card's top
+margin and only paints while hovered — at rest it must stay invisible, which
+is also why adding the hook changed no gallery shot. `ListChromeState`
+carries `hovered/pressed/focused` and the widget's translated `label`. The
+semantics (header `+` inserts BELOW its card, the seam is the only
+front-insertion entry, no per-gap `+` chrome) are the shared insertion
+contract in [docs/skins/README.md](skins/README.md); LegacyRows keeps the
+frozen toolbar flow.
+
+## Token-driven frequency plot (GraphicEQ card)
+
+The modern GraphicEQ card (`Editor/widgets/cards/GraphicEQCardEditor.{h,cpp}`)
+reuses the legacy plot stack but colours it through
+`FrequencyPlotColors` (`Editor/widgets/FrequencyPlotScene.h`): an opt-in
+struct (`tokenDriven=false` by default) consumed by the plot view, curve
+view, node items and both rulers. The frozen legacy GraphicEQ GUI never sets
+it and keeps its hardcoded palette. The card derives the colours from
+`SkinTokens` on every skin change; skins that need different plot inks adjust
+their tokens, not the plot code. Card chrome styles via object names:
+`GraphicEQModeCombo` (already wears the `paramSelector` grammar),
+`GraphicEQBandTable`, `GraphicEQActionButton`, `GraphicEQCardPlot`.
+
+## Skin theme data for satellite executables
+
+`Editor/skins/SkinThemeData.{h,cpp}` holds the behaviour-free half of the
+skin system: id aliases (`resolveId`), the five token tables, QSS resource
+paths, the `@TOKEN@` substitution, the token → `QPalette` mapping and the
+Qt 6.10 combo-arrow override. The `ISkin` classes delegate their
+`tokens()`/`qssResource()` here, so the tables cannot drift. DeviceSelector
+compiles this one unit plus the aliased `.qss`/font resources
+(`DeviceSelector/DeviceSelectorSkins.qrc`) and wears the Editor's stored
+skin (`interface/skin`, default studio; heritage mode keeps the native
+look).
+
 ## Reference-card view hook
 
 Rows whose subject is an external file (Include, Convolution,
@@ -180,8 +229,10 @@ card), a `Stage:` row (the two-lane stage card: a captioned Playback lane
 with the pre-mix → post-mix chain, and a Recording lane holding capture), an
 empty `Copy:` row, a
 populated `Copy:` row (mixed factors and a virtual target — the routing
-views' judged scene), a `Convolution:` row and two `MultiConvolution:` rows
-(populated and freshly inserted empty) — in three
+views' judged scene), a `Convolution:` row, two `MultiConvolution:` rows
+(populated and freshly inserted empty), a `GraphicEQ:` row (the modern
+GraphicEQ card — the clean-install first impression) and two raw-text rows
+(a bare note line and an `If:` command, the TXT presentation) — in three
 states: `normal`, `hover` (hover-equivalent via `Qt::WA_UnderMouse`), and
 `disabled` (the line commented out, which is the product's real disabled
 state). The reference rows resolve against synthetic target files the gallery
@@ -192,9 +243,11 @@ honour by skipping the audio-service ACL probe (scratch files have no
 meaningful ACL story). The filter picker is captured in three states
 (`normal`, `hover`, `empty`; pickers that do not implement
 `FilterPickerView::galleryShowcase` repeat their normal look), plus one shot
-each for the toolbar, title bar, menu bar and an open menu. Output names are
+each for the toolbar, title bar, menu bar and an open menu, two for the
+add-card row (`addrow` normal/hover), one for the insertion seam's hover
+reveal (`seam`) and one for the update toast (`toast`). Output names are
 stable: `<skin>_<dark|light>_<row>_<state>.png`,
-5 × 2 × (18 × 3 + 3 + 4) = 610 PNGs
+5 × 2 × (21 × 3 + 12) = 750 PNGs
 for a full run; the run self-checks the count, so adding a gallery row needs
 no external count update. A row shot fails the render (non-zero exit) if a
 visible horizontal scrollbar is found inside the row — rows must fit the
