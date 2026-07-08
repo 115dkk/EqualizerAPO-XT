@@ -50,6 +50,10 @@ public:
 	// True once a downloaded update is staged and waiting to be applied.
 	static bool hasPendingUpdate();
 
+	// Version string of the staged update (e.g. L"2.12.0"); empty while no
+	// update is staged. Feeds the Editor's in-app "update ready" notice.
+	static std::wstring pendingUpdateVersion();
+
 	// Apply the staged update silently without restarting, then exit the process. The
 	// updater waits for this process to close before swapping files, so the new version
 	// appears on the next launch. Does nothing (and returns) if no update is staged;

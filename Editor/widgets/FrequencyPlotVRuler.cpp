@@ -51,8 +51,9 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 	double fromDb = floor(s->yToDb(topLeft.y()) / dbStep) * dbStep;
 	double toDb = ceil(s->yToDb(bottomRight.y()) / dbStep) * dbStep;
 
+	const FrequencyPlotColors& colors = s->plotColors();
 	bool dark = GUIHelper::isDarkMode();
-	painter.setPen(dark ? QColor(200, 200, 200) : QColor(50, 50, 50));
+	painter.setPen(colors.tokenDriven ? colors.rulerInk : (dark ? QColor(200, 200, 200) : QColor(50, 50, 50)));
 	for (double db = toDb; db <= fromDb; db += dbStep)
 	{
 		if (abs(db) < 1e-6)
@@ -84,10 +85,10 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 			rightTriangle.lineTo(QPoint(rect.right() + 4, center + 1));
 			path = path.united(rightTriangle);
 
-			painter.setPen(dark ? QColor(200,200,200) : Qt::black);
-			painter.setBrush(dark ? Qt::black : Qt::white);
+			painter.setPen(colors.tokenDriven ? colors.rulerCursorFrame : (dark ? QColor(200, 200, 200) : QColor(Qt::black)));
+			painter.setBrush(colors.tokenDriven ? colors.rulerCursorBox : (dark ? QColor(Qt::black) : QColor(Qt::white)));
 			painter.drawPath(path);
-			painter.setPen(dark ? QColor(147,161,229) : Qt::blue);
+			painter.setPen(colors.tokenDriven ? colors.rulerCursorInk : (dark ? QColor(147, 161, 229) : QColor(Qt::blue)));
 			painter.drawText(0, center, width() - 2, 0, Qt::TextDontClip | Qt::AlignCenter, text);
 		}
 	}

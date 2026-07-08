@@ -43,8 +43,9 @@ void FrequencyPlotHRuler::paintEvent(QPaintEvent*)
 	FrequencyPlotView* view = qobject_cast<FrequencyPlotView*>(parentWidget());
 	FrequencyPlotScene* s = view->scene();
 	QFontMetrics metrics = painter.fontMetrics();
+	const FrequencyPlotColors& colors = s->plotColors();
 	bool dark = GUIHelper::isDarkMode();
-	painter.setPen(dark ? QColor(200, 200, 200) : QColor(50, 50, 50));
+	painter.setPen(colors.tokenDriven ? colors.rulerInk : (dark ? QColor(200, 200, 200) : QColor(50, 50, 50)));
 
 	QPointF topLeft = view->mapToScene(0, 0);
 	QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height());
@@ -119,10 +120,10 @@ void FrequencyPlotHRuler::paintEvent(QPaintEvent*)
 			topTriangle.lineTo(QPoint(center, rect.top() - 3));
 			path = path.united(topTriangle);
 
-			painter.setPen(dark ? QColor(200,200,200) : Qt::black);
-			painter.setBrush(dark ? Qt::black : Qt::white);
+			painter.setPen(colors.tokenDriven ? colors.rulerCursorFrame : (dark ? QColor(200, 200, 200) : QColor(Qt::black)));
+			painter.setBrush(colors.tokenDriven ? colors.rulerCursorBox : (dark ? QColor(Qt::black) : QColor(Qt::white)));
 			painter.drawPath(path);
-			painter.setPen(dark ? QColor(147,161,229) : Qt::blue);
+			painter.setPen(colors.tokenDriven ? colors.rulerCursorInk : (dark ? QColor(147, 161, 229) : QColor(Qt::blue)));
 			painter.drawText(center, 0, 0, height(), Qt::TextDontClip | Qt::AlignCenter, text);
 		}
 	}

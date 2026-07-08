@@ -41,6 +41,8 @@
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "helpers/AudioFormatProbe.h"
+#include "helpers/VelopackBootstrap.h"
+#include "Editor/widgets/UpdateToast.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/SkinComboBox.h"
@@ -260,6 +262,33 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 
 	setupRedesignActions();
 	loadPreferences();
+	watchForPendingUpdate();
+}
+
+void MainWindow::watchForPendingUpdate()
+{
+	// The background download (main.cpp) starts 60s after launch and stages
+	// silently; this poll is the only place the user learns about it. 20s is
+	// far below the human noticing threshold for "eventually told me" and far
+	// above any cost concern for an atomic-bool read.
+	if (!VelopackBootstrap::isVelopackInstall())
+		return;
+
+	updateNoticeTimer = new QTimer(this);
+	updateNoticeTimer->setInterval(20000);
+	connect(updateNoticeTimer, &QTimer::timeout, this, [this]() {
+		if (!VelopackBootstrap::hasPendingUpdate())
+			return;
+		updateNoticeTimer->stop();
+
+		const QString version = QString::fromStdWString(VelopackBootstrap::pendingUpdateVersion());
+		if (updateToast == nullptr)
+			updateToast = new UpdateToast(centralWidget());
+		updateToast->showMessage(version.isEmpty()
+			? tr("An update has been downloaded and will be applied when you close the editor.")
+			: tr("Update %0 has been downloaded and will be applied when you close the editor.").arg(version));
+	});
+	updateNoticeTimer->start();
 }
 
 MainWindow::~MainWindow()

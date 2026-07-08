@@ -6,15 +6,19 @@
 
 #include "helpers/LogHelper.h"
 #include "Editor/helpers/CrashHandler.h"
-#include "Editor/widgets/FilterPickerView.h"
-#include "Editor/widgets/cards/DefaultReferenceCardView.h"
 #include "skins/ISkin.h"
 #include "skins/Skins.h"
+#include "skins/SkinThemeData.h"
 
 SkinManager::SkinManager(QObject* parent)
 	: QObject(parent)
 {
+	// Establishes the class invariant every forwarder below relies on:
+	// activeSkin is NEVER null. Skins::byId falls back to studio for unknown
+	// ids, and applySkin/applyHeritage only ever reassign through it, so the
+	// hook forwarders delegate without a null check.
 	activeSkin = Skins::byId(skinId);
+	Q_ASSERT(activeSkin != nullptr);
 	skinId = activeSkin->id();
 	currentTokens = activeSkin->tokens(darkMode);
 }
@@ -89,43 +93,8 @@ void SkinManager::applyHeritage()
 	LogFStatic(L"Heritage presentation applied");
 }
 
-namespace
-{
-QString substituteTokens(QString qss, const SkinTokens& tokens)
-{
-	// Token sentinels intentionally use the @TOKEN@ form so they survive Qt's
-	// style sheet parser intact (a literal '@' is not meaningful in QSS) and
-	// stand out in the source files. Order does not matter because every
-	// sentinel is unique.
-	struct Substitution { const char* placeholder = nullptr; QString value; };
-	const Substitution table[] = {
-		{ "@BG@", tokens.background },
-		{ "@SURFACE@", tokens.surface },
-		{ "@SURFACE_RAISED@", tokens.surfaceRaised },
-		{ "@SURFACE_SUNKEN@", tokens.surfaceSunken },
-		{ "@CARD@", tokens.card },
-		{ "@CARD_HOVER@", tokens.cardHover },
-		{ "@CARD_SELECTED@", tokens.cardSelected },
-		{ "@TEXT@", tokens.text },
-		{ "@MUTED@", tokens.mutedText },
-		{ "@BORDER@", tokens.border },
-		{ "@GRAPH@", tokens.graph },
-		{ "@GRID_MAJOR@", tokens.graphGridMajor },
-		{ "@GRID_MINOR@", tokens.graphGridMinor },
-		{ "@ACCENT@", tokens.accent },
-		{ "@ACCENT2@", tokens.accent2 },
-		{ "@SUCCESS@", tokens.success },
-		{ "@WARNING@", tokens.warning },
-		{ "@DANGER@", tokens.danger },
-		{ "@FOCUS@", tokens.focusRing },
-		{ "@FONT@", tokens.fontFamily },
-		{ "@MONO@", tokens.monoFontFamily }
-	};
-	for (const Substitution& s : table)
-		qss.replace(QLatin1String(s.placeholder), s.value);
-	return qss;
-}
-}
+// The @TOKEN@ substitution moved to SkinThemeData::substituteTokens so
+// satellite tools (DeviceSelector) dress the same sheets identically.
 
 void SkinManager::applySkin(const QString& newSkinId, bool dark)
 {
@@ -159,24 +128,10 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	// Combo-box and spin-box arrows: every skin draws these with the CSS-border
 	// triangle trick (image: none on a 0x0 box plus coloured borders). On Qt 6.10
 	// that collapses to a flat dash instead of a triangle, so the dropdown and
-	// up/down arrows render as a "-". The offscreen skin gallery only ever
-	// exercised filter cards, so it never caught this. Override the arrow
-	// sub-controls app-wide with a real chevron SVG (reliable across Qt versions
-	// and DPI). Appended after the skin sheet so it wins on equal specificity; the
-	// chevron is a neutral muted grey that reads on both dark and light skins.
-	static const QString arrowOverride = QStringLiteral(
-		"QComboBox::down-arrow,"
-		"QComboBox[paramSelector=\"true\"]::down-arrow,"
-		"QComboBox[filterSelector=\"true\"]::down-arrow {"
-		" image: url(:/icons/modern/chevron-down.svg); width: 12px; height: 12px;"
-		" border: none; background: transparent; }"
-		"QAbstractSpinBox::up-arrow {"
-		" image: url(:/icons/modern/chevron-up.svg); width: 12px; height: 12px;"
-		" border: none; background: transparent; }"
-		"QAbstractSpinBox::down-arrow {"
-		" image: url(:/icons/modern/chevron-down.svg); width: 12px; height: 12px;"
-		" border: none; background: transparent; }");
-	qApp->setStyleSheet(substituteTokens(styleSheet, currentTokens) + arrowOverride);
+	// up/down arrows render as a "-". The override (SkinThemeData) replaces the
+	// arrow sub-controls app-wide with a real chevron SVG, appended after the
+	// skin sheet so it wins on equal specificity.
+	qApp->setStyleSheet(SkinThemeData::substituteTokens(styleSheet, currentTokens) + SkinThemeData::comboArrowOverride());
 
 	emit skinChanged(currentTokens);
 	for (QWidget* widget : qApp->allWidgets())
@@ -185,11 +140,15 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	LogFStatic(L"Skin %s applied", reinterpret_cast<const wchar_t*>(skinId.utf16()));
 }
 
+// The forwarders below delegate without a null check on purpose: activeSkin
+// is a class invariant (never null, see the constructor). Only genuinely
+// different behavior - the heritage branches - earns a conditional.
+
 IRoutingRenderer* SkinManager::routingRenderer() const
 {
 	if (heritageMode)
 		return nullptr;
-	return activeSkin != nullptr ? activeSkin->routingRenderer() : nullptr;
+	return activeSkin->routingRenderer();
 }
 
 void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const
@@ -202,67 +161,69 @@ void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobStat
 		activeSkin->ISkin::paintKnob(painter, rect, state, currentTokens);
 		return;
 	}
-	if (activeSkin != nullptr)
-		activeSkin->paintKnob(painter, rect, state, currentTokens);
+	activeSkin->paintKnob(painter, rect, state, currentTokens);
 }
 
 QString SkinManager::cardFrameStyle(const CommandRowInfo& info) const
 {
-	return activeSkin != nullptr ? activeSkin->cardFrameStyle(info, currentTokens) : QString();
+	return activeSkin->cardFrameStyle(info, currentTokens);
 }
 
 QString SkinManager::cardHeaderStyle(const CommandRowInfo& info) const
 {
-	return activeSkin != nullptr ? activeSkin->cardHeaderStyle(info, currentTokens) : QString();
+	return activeSkin->cardHeaderStyle(info, currentTokens);
 }
 
 QString SkinManager::typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const
 {
-	return activeSkin != nullptr ? activeSkin->typeBadgeStyle(info, typeColor, currentTokens) : QString();
+	return activeSkin->typeBadgeStyle(info, typeColor, currentTokens);
 }
 
 QColor SkinManager::typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const
 {
-	return activeSkin != nullptr ? activeSkin->typeBadgeInk(info, typeColor, badgeToken, currentTokens) : QColor(typeColor);
+	return activeSkin->typeBadgeInk(info, typeColor, badgeToken, currentTokens);
 }
 
 void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const
 {
-	if (activeSkin != nullptr)
-		activeSkin->prepareCommandRow(info, card, header, body);
+	activeSkin->prepareCommandRow(info, card, header, body);
 }
 
 void SkinManager::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const
 {
-	if (activeSkin != nullptr)
-		activeSkin->paintCardChrome(painter, rect, info, currentTokens);
+	activeSkin->paintCardChrome(painter, rect, info, currentTokens);
+}
+
+void SkinManager::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state) const
+{
+	activeSkin->paintAddRow(painter, rect, state, currentTokens);
+}
+
+void SkinManager::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state) const
+{
+	activeSkin->paintInsertSeam(painter, rect, state, currentTokens);
 }
 
 FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 {
-	if (activeSkin != nullptr)
-		return activeSkin->createFilterPicker(parent);
-	return new DefaultFilterPickerView(parent);
+	return activeSkin->createFilterPicker(parent);
 }
 
 ReferenceCardView* SkinManager::createReferenceCardView(const QString& kind, QWidget* parent) const
 {
-	if (activeSkin != nullptr)
-		return activeSkin->createReferenceCardView(kind, parent);
-	return new DefaultReferenceCardView(parent);
+	return activeSkin->createReferenceCardView(kind, parent);
 }
 
 void SkinManager::paintTitleBarChrome(QPainter& painter, const QRect& rect) const
 {
-	if (activeSkin != nullptr)
-		activeSkin->paintTitleBarChrome(painter, rect, currentTokens);
+	activeSkin->paintTitleBarChrome(painter, rect, currentTokens);
 }
 
 void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 {
 	if (heritageMode)
 		return; // native toolbar: the .ui's classic icons stay in place
-	if (toolBar == nullptr || activeSkin == nullptr)
+	if (toolBar == nullptr)
 		return;
 	// Reset the shared mutable toolbar state before delegating so one skin's
 	// choices cannot leak across a live skin switch (minimal sets

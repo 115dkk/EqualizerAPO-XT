@@ -43,6 +43,7 @@ class MainWindow;
 
 class QLabel;
 class TitleBar;
+class UpdateToast;
 
 // MainWindow's implementation is split across several translation units (all
 // listed in Editor.pro SOURCES). When looking for a method, check the matching
@@ -134,6 +135,9 @@ private:
 	void applyRedesignPreferences();
 	void syncKnobRangeActions();
 	void setCurrentRenderMode(FilterTable::RenderMode mode);
+	// Polls VelopackBootstrap for a staged background update and raises the
+	// bottom toast once when one appears (the download itself stays silent).
+	void watchForPendingUpdate();
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
 	void updateDirtyStatus();
@@ -172,6 +176,9 @@ private:
 	// interface/nativeTitleBar escape hatch keeps the stock caption.
 	TitleBar* titleBar = nullptr;
 	bool useCustomFrame = true;
+	// Bottom-centre notice for the staged auto-update (created on demand).
+	UpdateToast* updateToast = nullptr;
+	QTimer* updateNoticeTimer = nullptr;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

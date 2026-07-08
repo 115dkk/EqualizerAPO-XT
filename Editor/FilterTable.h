@@ -38,6 +38,8 @@
 #include "IFilterGUI.h"
 #include "IFilterGUIFactory.h"
 
+class AddCardRow;
+class FilterInsertSeam;
 class MainWindow;
 class QMimeData;
 
@@ -96,6 +98,10 @@ public:
 	QList<QString> getLines();
 	void setLines(const QString& configPath, const QList<QString>& lines);
 	Item* addLine(const QString& line, Item* before = nullptr);
+	// The document item following the given one, or nullptr when the item is
+	// last (or not in the document). Lets the card rows insert AFTER
+	// themselves through addLine's insert-before contract.
+	Item* itemAfter(Item* item) const;
 	void removeItem(Item* item);
 	QMenu* createAddPopupMenu();
 	// Every insertable template flattened from the factories, in factory order.
@@ -150,6 +156,7 @@ public slots:
 	void addActionTriggered();
 
 protected:
+	void resizeEvent(QResizeEvent* event) override;
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
@@ -188,6 +195,16 @@ private:
 	// place after an incremental splice. Returns false when a row widget is
 	// not a FilterCardRow (caller falls back to updateGuis). (audit #146 TD040)
 	bool renumberRowsBelow(int firstRow, const QVector<int>& rowDepths);
+	// Card-path list chrome (shared insertion contract, docs/skins/README.md):
+	// the trailing AddCardRow lives in the grid and is rebuilt by updateGuis;
+	// the hover-only FilterInsertSeam floats over the first card's top margin
+	// and is created once. Both are ModernCards-only; LegacyRows keeps the
+	// frozen toolbar flow.
+	void addRowActivated(AddCardRow* addCardRow);
+	void insertSeamActivated();
+	// Repositions the seam over the first boundary and syncs its visibility
+	// (hidden in LegacyRows and for an empty document).
+	void syncListChrome();
 	// Records the post-mutation document into undoHistory; connected to this
 	// table's own linesChanged in the constructor. (TD049)
 	void commitToHistory();
@@ -199,6 +216,7 @@ private:
 	QScrollArea* scrollArea = nullptr;
 	QGridLayout* gridLayout;
 	QLabel* insertArrow;
+	FilterInsertSeam* insertSeam = nullptr;
 	QPoint dragStartPos;
 	bool internalDrag = false;
 	// Owns the config lines and the selection state; see FilterListModel for

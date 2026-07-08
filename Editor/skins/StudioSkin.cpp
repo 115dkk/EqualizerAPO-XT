@@ -46,6 +46,7 @@
 #include "Editor/widgets/routing/LightTraceRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
+#include "SkinThemeData.h"
 
 namespace
 {
@@ -153,7 +154,7 @@ public:
 	QString id() const override { return QStringLiteral("studio"); }
 	QString qssResource(bool dark) const override
 	{
-		return QStringLiteral(":/skins/studio_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		return SkinThemeData::qssResource(id(), dark);
 	}
 	IRoutingRenderer* routingRenderer() const override
 	{
@@ -644,52 +645,11 @@ public:
 		QObject::connect(typeCombo, &QComboBox::currentIndexChanged, typeCombo, applyBand);
 	}
 
+	// The token table lives in SkinThemeData (shared with satellite tools);
+	// this class keeps only behaviour.
 	SkinTokens tokens(bool dark) const override
 	{
-		SkinTokens t;
-		t.fontFamily = QStringLiteral("DM Sans");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		t.borderRadius = 8;
-		t.rowHeight = 40;
-		t.channelGroupIndent = 18;
-		t.channelGroupStyle = SkinTokens::GradientBar;
-		t.badgeStyle = SkinTokens::ColorPill;
-		if (dark)
-		{
-			t.background = QStringLiteral("#070A12");
-			t.surface = QStringLiteral("#0D1322");
-			t.card = QStringLiteral("#121A2C");
-			t.cardHover = QStringLiteral("#182238");
-			t.cardSelected = QStringLiteral("#1E3158");
-			t.text = QStringLiteral("#E8EEFB");
-			t.mutedText = QStringLiteral("#91A0BA");
-			t.border = QStringLiteral("#26324A");
-			t.graph = QStringLiteral("#060914");
-			t.graphGridMinor = QStringLiteral("#26324A");
-			t.accent = QStringLiteral("#5B8CFF");
-			t.accent2 = QStringLiteral("#A66CFF");
-		}
-		else
-		{
-			// S2 re-derivation: the light tokens keep the accent saturation
-			// but the borders sit two steps deeper than the airy panels, so
-			// knob tracks, toggles and input edges stay legible on white
-			// glass; muted ink deepens one step with them.
-			t.background = QStringLiteral("#EEF2F8");
-			t.surface = QStringLiteral("#F8FAFE");
-			t.card = QStringLiteral("#FFFFFF");
-			t.cardHover = QStringLiteral("#F3F6FC");
-			t.cardSelected = QStringLiteral("#DDE8FF");
-			t.text = QStringLiteral("#182033");
-			t.mutedText = QStringLiteral("#5D6A84");
-			t.border = QStringLiteral("#BCC8DE");
-			t.graph = QStringLiteral("#F6F7FB");
-			t.graphGridMinor = QStringLiteral("#D8E0EF");
-			t.accent = QStringLiteral("#2F6BFF");
-			t.accent2 = QStringLiteral("#8A4DFF");
-		}
-		finishTokens(t);
-		return t;
+		return SkinThemeData::tokens(id(), dark);
 	}
 };
 }

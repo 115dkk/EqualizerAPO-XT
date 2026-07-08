@@ -47,15 +47,26 @@ QPainterPath GraphicEQFilterGUIItem::shape() const
 
 void GraphicEQFilterGUIItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-    bool dark = GUIHelper::isDarkMode();
-    painter->setBrush(dark ? Qt::black : Qt::white);
-	if (isSelected())
-		painter->setBrush(QColor(38, 147, 255));
+	const FrequencyPlotColors& colors = qobject_cast<FrequencyPlotScene*>(scene())->plotColors();
+	bool dark = GUIHelper::isDarkMode();
+	if (colors.tokenDriven)
+	{
+		painter->setPen(QPen(colors.nodeInk, 1));
+		painter->setBrush(isSelected() ? colors.nodeSelected : colors.node);
+	}
+	else
+	{
+		painter->setBrush(dark ? Qt::black : Qt::white);
+		if (isSelected())
+			painter->setBrush(QColor(38, 147, 255));
+	}
 	painter->drawPath(shape());
 	if (index < 99)
 	{
-		if (isSelected())
-            painter->setPen(Qt::white);
+		if (colors.tokenDriven)
+			painter->setPen(isSelected() ? colors.nodeSelectedInk : colors.nodeInk);
+		else if (isSelected())
+			painter->setPen(Qt::white);
 
 		QFont font;
 		font.setPixelSize(GUIHelper::scale(9));

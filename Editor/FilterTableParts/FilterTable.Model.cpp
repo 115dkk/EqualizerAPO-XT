@@ -202,6 +202,14 @@ FilterTable::Item* FilterTable::addLine(const QString& line, FilterTable::Item* 
 	return newItem;
 }
 
+FilterTable::Item* FilterTable::itemAfter(FilterTable::Item* item) const
+{
+	const qsizetype index = model.items().indexOf(item);
+	if (index < 0 || index + 1 >= model.items().count())
+		return nullptr;
+	return model.items().at(index + 1);
+}
+
 void FilterTable::removeItem(FilterTable::Item* item)
 {
 	// The removal and the selection/focus repair live in the model; the signal

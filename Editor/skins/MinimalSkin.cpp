@@ -45,6 +45,7 @@
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
+#include "SkinThemeData.h"
 
 namespace
 {
@@ -214,7 +215,8 @@ public:
 	QString id() const override { return QStringLiteral("minimal"); }
 	QString qssResource(bool dark) const override
 	{
-		return QStringLiteral(":/skins/precision_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		// SkinThemeData keeps the historical precision_* file names.
+		return SkinThemeData::qssResource(id(), dark);
 	}
 	IRoutingRenderer* routingRenderer() const override
 	{
@@ -302,48 +304,11 @@ public:
 		glyphLabel->setMinimumWidth(18);
 		headerLayout->insertWidget(0, glyphLabel);
 	}
+	// The token table lives in SkinThemeData (shared with satellite tools);
+	// this class keeps only behaviour.
 	SkinTokens tokens(bool dark) const override
 	{
-		SkinTokens t;
-		t.accent = QStringLiteral("#3B82F6");
-		t.fontFamily = QStringLiteral("DM Mono");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		t.borderRadius = 0;
-		t.rowHeight = 32;
-		t.channelGroupIndent = 16;
-		t.channelGroupStyle = SkinTokens::TreeLines;
-		t.badgeStyle = SkinTokens::OutlineOnly;
-		t.zebraStripe = true;
-		if (dark)
-		{
-			t.background = QStringLiteral("#191919");
-			t.surface = QStringLiteral("#1f1f1f");
-			t.card = QStringLiteral("#262626");
-			t.cardHover = QStringLiteral("#2c2c2c");
-			t.cardSelected = QStringLiteral("#2A4878");
-			t.text = QStringLiteral("#cccccc");
-			t.mutedText = QStringLiteral("#777777");
-			t.border = QStringLiteral("#3c3c3c");
-			t.graph = QStringLiteral("#0e0e0e");
-			t.graphGridMajor = QStringLiteral("#383838");
-			t.graphGridMinor = QStringLiteral("#2c2c2c");
-		}
-		else
-		{
-			t.background = QStringLiteral("#F6F6F3");
-			t.surface = QStringLiteral("#FFFFFF");
-			t.card = QStringLiteral("#FFFFFF");
-			t.cardHover = QStringLiteral("#F0F0EC");
-			t.cardSelected = QStringLiteral("#E8F1FF");
-			t.text = QStringLiteral("#202020");
-			t.mutedText = QStringLiteral("#666660");
-			t.border = QStringLiteral("#D2D2CC");
-			t.graph = QStringLiteral("#FFFFFF");
-			t.graphGridMajor = QStringLiteral("#D2D2CC");
-			t.graphGridMinor = QStringLiteral("#E6E6E0");
-		}
-		finishTokens(t);
-		return t;
+		return SkinThemeData::tokens(id(), dark);
 	}
 };
 }

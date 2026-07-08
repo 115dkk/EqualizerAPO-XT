@@ -20,15 +20,40 @@
 #pragma once
 
 #include <vector>
+#include <QColor>
 #include <QGraphicsScene>
 
 #include "FrequencyPlotItem.h"
+
+// Optional token-driven colour set for the frequency plot stack (view
+// background grid, response curve, node handles, rulers). tokenDriven stays
+// false by default, in which case every consumer keeps its original
+// hardcoded dark/light colours - the frozen legacy GraphicEQ GUI never sets
+// this, so the heritage presentation is untouched. The modern GraphicEQ card
+// editor fills it from SkinTokens on every skin change.
+struct FrequencyPlotColors
+{
+	bool tokenDriven = false;
+	QColor grid;
+	QColor curve;
+	QColor node;
+	QColor nodeInk;
+	QColor nodeSelected;
+	QColor nodeSelectedInk;
+	QColor rulerInk;
+	QColor rulerCursorInk;
+	QColor rulerCursorBox;
+	QColor rulerCursorFrame;
+};
 
 class FrequencyPlotScene : public QGraphicsScene
 {
 	Q_OBJECT
 public:
 	explicit FrequencyPlotScene(QObject* parent = 0);
+
+	const FrequencyPlotColors& plotColors() const;
+	void setPlotColors(const FrequencyPlotColors& value);
 
 	void addItem(FrequencyPlotItem* item);
 
@@ -58,4 +83,5 @@ private:
 	double zoomX;
 	double zoomY;
 	int bandCount = -1;
+	FrequencyPlotColors colors;
 };

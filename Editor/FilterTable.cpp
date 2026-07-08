@@ -43,6 +43,8 @@
 #include "helpers/ChannelHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "FilterTable.h"
+#include "Editor/widgets/AddCardRow.h"
+#include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/cards/CommentCardEditor.h"
@@ -207,29 +209,105 @@ void FilterTable::updateGuis()
 
 	propagateChannels();
 
-	QToolBar* toolBar = new QToolBar;
-	toolBar->setIconSize(GUIHelper::scale(QSize(16, 16)));
+	if (renderMode == ModernCards)
+	{
+		// The skinned "add card" row replaces the legacy green-icon toolbar in
+		// the card path (shared insertion contract, docs/skins/README.md). It
+		// occupies the same single grid slot, so the incremental splice paths
+		// keep their row arithmetic.
+		AddCardRow* addCardRow = new AddCardRow(this);
+		connect(addCardRow, &AddCardRow::activated, this, [this, addCardRow]() {
+			addRowActivated(addCardRow);
+		});
+		gridLayout->addWidget(addCardRow, row++, 0);
+	}
+	else
+	{
+		// Frozen heritage flow: the classic toolbar action and cascading menu.
+		QToolBar* toolBar = new QToolBar;
+		toolBar->setIconSize(GUIHelper::scale(QSize(16, 16)));
 
-	QWidget* spacer = new QWidget;
-	spacer->setFixedWidth(GUIHelper::scale(25));
-	toolBar->addWidget(spacer);
+		QWidget* spacer = new QWidget;
+		spacer->setFixedWidth(GUIHelper::scale(25));
+		toolBar->addWidget(spacer);
 
-	QAction* addAction = new QAction(QIcon(":/icons/list-add-green.ico"), tr("Add filter"), toolBar);
-	addAction->setCheckable(true);
-	connect(addAction, SIGNAL(triggered()), this, SLOT(addActionTriggered()));
-	toolBar->addAction(addAction);
+		QAction* addAction = new QAction(QIcon(":/icons/list-add-green.ico"), tr("Add filter"), toolBar);
+		addAction->setCheckable(true);
+		connect(addAction, SIGNAL(triggered()), this, SLOT(addActionTriggered()));
+		toolBar->addAction(addAction);
 
-	gridLayout->addWidget(toolBar, row++, 0, 1, 1, Qt::AlignLeft | Qt::AlignTop);
+		gridLayout->addWidget(toolBar, row++, 0, 1, 1, Qt::AlignLeft | Qt::AlignTop);
+	}
 
 	QSpacerItem* spacerItem = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
 	gridLayout->addItem(spacerItem, row, 0);
 
 	gridLayout->setRowStretch(row, 1);
 
+	syncListChrome();
+
 	disableWheelForWidgets();
 
 	qDebug("Create took %d ms", timer.elapsed());
 	update();
+}
+
+void FilterTable::addRowActivated(AddCardRow* addCardRow)
+{
+	// Mirror the old toolbar action's ModernCards branch: picker under the
+	// row, append, splice one widget into the grid. (audit #146 TD040)
+	FilterTemplate filterTemplate;
+	const QPoint anchor = addCardRow->mapToGlobal(QPoint(8, addCardRow->height() - 4));
+	if (chooseFilterTemplate(&filterTemplate, anchor))
+	{
+		addLine(filterTemplate.getLine());
+		insertRowAt(int(model.items().count()) - 1);
+	}
+}
+
+void FilterTable::insertSeamActivated()
+{
+	if (insertSeam == nullptr)
+		return;
+
+	FilterTemplate filterTemplate;
+	const QPoint anchor = insertSeam->mapToGlobal(QPoint(8, insertSeam->height()));
+	if (chooseFilterTemplate(&filterTemplate, anchor))
+	{
+		Item* first = model.items().isEmpty() ? nullptr : model.items().first();
+		addLine(filterTemplate.getLine(), first);
+		insertRowAt(0);
+	}
+}
+
+void FilterTable::syncListChrome()
+{
+	if (renderMode != ModernCards)
+	{
+		if (insertSeam != nullptr)
+			insertSeam->setVisible(false);
+		return;
+	}
+
+	if (insertSeam == nullptr)
+	{
+		insertSeam = new FilterInsertSeam(this);
+		connect(insertSeam, &FilterInsertSeam::activated, this, &FilterTable::insertSeamActivated);
+	}
+
+	// The seam floats over the first card's 4px top margin plus a slice of
+	// its frame edge - enough to hit with the mouse, small enough not to
+	// shadow the header controls.
+	insertSeam->setGeometry(0, 0, width(), 10);
+	insertSeam->setVisible(!model.items().isEmpty());
+	insertSeam->raise();
+}
+
+void FilterTable::resizeEvent(QResizeEvent* event)
+{
+	QWidget::resizeEvent(event);
+	if (insertSeam != nullptr)
+		insertSeam->setGeometry(0, 0, width(), 10);
 }
 
 IFilterGUI* FilterTable::createRowGui(const QString& line)
@@ -461,6 +539,7 @@ void FilterTable::insertRowAt(int index)
 
 	propagateChannels();
 	disableWheelForWidgets();
+	syncListChrome();
 	// The insertion replaced the selection and the row widgets read selection
 	// state on paint; repaint them all like a full rebuild would have.
 	updateRowWidgets();
@@ -523,6 +602,7 @@ void FilterTable::removeRowAt(int index)
 	}
 
 	propagateChannels();
+	syncListChrome();
 	updateRowWidgets();
 
 	qDebug("Incremental remove took %d ms", int(timer.elapsed()));

@@ -15,6 +15,7 @@ class QWidget;
 class ReferenceCardView;
 struct CommandRowInfo;
 struct KnobState;
+struct ListChromeState;
 
 class SkinManager : public QObject
 {
@@ -58,6 +59,13 @@ public:
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 
+	// List-level insertion chrome, delegated to the active skin (see
+	// ISkin::paintAddRow / ISkin::paintInsertSeam). In heritage mode the
+	// AddCardRow/FilterInsertSeam widgets are never created, so these are only
+	// reached with an active skin.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state) const;
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state) const;
+
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;
 
@@ -77,6 +85,9 @@ signals:
 private:
 	explicit SkinManager(QObject* parent = nullptr);
 
+	// Class invariant: never null. Seeded in the constructor and only ever
+	// reassigned through Skins::byId (which falls back to studio), so the
+	// hook forwarders in the .cpp delegate without a null check.
 	ISkin* activeSkin = nullptr;
 	SkinTokens currentTokens;
 	QString skinId = QStringLiteral("studio");

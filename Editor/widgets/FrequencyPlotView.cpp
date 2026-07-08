@@ -81,8 +81,9 @@ void FrequencyPlotView::drawBackground(QPainter* painter, const QRectF& drawRect
 	double fromDb = floor(s->yToDb(rect.top() + rect.height()) / dbStep) * dbStep;
 	double toDb = ceil(s->yToDb(rect.top()) / dbStep) * dbStep;
 
+	const FrequencyPlotColors& colors = s->plotColors();
 	bool dark = GUIHelper::isDarkMode();
-	painter->setPen(dark ? QColor(90, 90, 90) : QColor(200, 200, 200));
+	painter->setPen(colors.tokenDriven ? colors.grid : (dark ? QColor(90, 90, 90) : QColor(200, 200, 200)));
 	for (double db = fromDb; db <= toDb; db += dbStep)
 	{
 		double y = floor(s->dbToY(db)) + 0.5;

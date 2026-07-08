@@ -45,6 +45,7 @@
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
+#include "SkinThemeData.h"
 
 namespace
 {
@@ -97,7 +98,7 @@ public:
 	QString id() const override { return QStringLiteral("soft"); }
 	QString qssResource(bool dark) const override
 	{
-		return QStringLiteral(":/skins/soft_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		return SkinThemeData::qssResource(id(), dark);
 	}
 	IRoutingRenderer* routingRenderer() const override
 	{
@@ -133,73 +134,12 @@ public:
 	// (screws, glows, grids) belongs to the neighbours' vocabularies and
 	// would only make the header more anxious.
 
+	// The token table lives in SkinThemeData (shared with satellite tools);
+	// this class keeps only behaviour. The pastel-shelf rationale moved with
+	// the values.
 	SkinTokens tokens(bool dark) const override
 	{
-		SkinTokens t;
-		t.fontFamily = QStringLiteral("DM Sans");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		// Constitution: cards 14px (clearly rounder than studio's 8), generous
-		// line spacing. The tallest row of the five skins; whitespace is the
-		// hierarchy device.
-		t.borderRadius = 14;
-		t.rowHeight = 48;
-		t.channelGroupIndent = 20;
-		t.density = 2;
-		t.channelGroupStyle = SkinTokens::SoftShadow;
-		t.badgeStyle = SkinTokens::SoftPill;
-		// Tiebreaker rule applied: the raw monospace preview strip under every
-		// card is exactly the kind of element that makes a screen feel anxious,
-		// so this skin removes it and keeps the whitespace.
-		t.showRawPreview = false;
-		// Feedback round (DC #1289929): "soft was only round corners". The
-		// accent and the semantic colours now live on the pastel shelf
-		// themselves (the softPastelize recipe applied to the old saturated
-		// values), so every consumer - knob arcs, focus rings, toggles, ON
-		// pills, severity inks - is pastel without knowing it. The saturated
-		// #3B82F6 family is retired from this skin.
-		if (dark)
-		{
-			// AR1 F2: warm graphite, not navy. The old #171923..#3A4056 ramp
-			// shared studio's cold blue cast, so soft-dark photographed as a
-			// studio clone; the dark identity now leans warm (hue ~38, low
-			// saturation) while the light mode keeps its cream. Same two-step
-			// elevation ladder, different temperature.
-			t.background = QStringLiteral("#1C1A17");
-			t.surface = QStringLiteral("#262320");
-			t.card = QStringLiteral("#2F2B26");
-			t.cardHover = QStringLiteral("#38332D");
-			// The selected card face follows the pastel accent mixed deep
-			// into the card (softMix 0.75) instead of the old navy remnant.
-			t.cardSelected = QStringLiteral("#3F4650");
-			t.text = QStringLiteral("#F4F1EA");
-			t.mutedText = QStringLiteral("#B3AB9D");
-			t.border = QStringLiteral("#423D34");
-			t.graph = QStringLiteral("#181613");
-			t.accent = QStringLiteral("#6E96CF");
-			t.accent2 = QStringLiteral("#8B6ECF");
-			t.success = QStringLiteral("#6ECF91");
-			t.warning = QStringLiteral("#CFAB6E");
-			t.danger = QStringLiteral("#CF6E6E");
-		}
-		else
-		{
-			t.background = QStringLiteral("#F7F4EF");
-			t.surface = QStringLiteral("#FFFDF9");
-			t.card = QStringLiteral("#FFFFFF");
-			t.cardHover = QStringLiteral("#FFF7EC");
-			t.cardSelected = QStringLiteral("#EEF2FF");
-			t.text = QStringLiteral("#28231F");
-			t.mutedText = QStringLiteral("#786F67");
-			t.border = QStringLiteral("#E9DED1");
-			t.graph = QStringLiteral("#FFFAF3");
-			t.accent = QStringLiteral("#6190D1");
-			t.accent2 = QStringLiteral("#8361D1");
-			t.success = QStringLiteral("#61D18A");
-			t.warning = QStringLiteral("#D1A861");
-			t.danger = QStringLiteral("#D16161");
-		}
-		finishTokens(t);
-		return t;
+		return SkinThemeData::tokens(id(), dark);
 	}
 
 	// One calm silhouette for every command type: a 12px rounded card one

@@ -140,6 +140,65 @@ void ISkin::paintCardChrome(QPainter&, const QRect&, const CommandRowInfo&, cons
 	// Neutral default: no painted decoration on top of the QSS chrome.
 }
 
+void ISkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
+{
+	// Neutral default: a token-driven ghost row. A dashed 1px outline says
+	// "slot, not card"; hover lifts the fill one step and inks the caption
+	// with the accent so the affordance reads without a permanent icon.
+	painter.setRenderHint(QPainter::Antialiasing);
+	QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+	if (state.hovered || state.pressed)
+	{
+		QColor fill(tokens.card);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(fill);
+		painter.drawRoundedRect(frame, tokens.borderRadius, tokens.borderRadius);
+	}
+
+	QPen outline(QColor(state.hovered || state.focused ? tokens.accent : tokens.border), 1, Qt::DashLine);
+	painter.setPen(outline);
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRoundedRect(frame, tokens.borderRadius, tokens.borderRadius);
+
+	painter.setPen(QColor(state.hovered || state.pressed ? tokens.accent : tokens.mutedText));
+	QFont font(tokens.fontFamily);
+	font.setPointSizeF(9.5);
+	font.setWeight(QFont::DemiBold);
+	painter.setFont(font);
+	painter.drawText(rect, Qt::AlignCenter, QStringLiteral("+  ") + state.label);
+}
+
+void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
+{
+	// Neutral default: an accent hairline across the boundary with a small
+	// "+" disc at the left edge. The hosting widget only shows itself while
+	// hovered, so at rest nothing is painted anywhere.
+	if (!state.hovered && !state.pressed)
+		return;
+
+	painter.setRenderHint(QPainter::Antialiasing);
+	const QColor accent(tokens.accent);
+	const int centerY = rect.center().y();
+	const int discRadius = qMin(8, rect.height() / 2);
+	const int discCenterX = rect.left() + discRadius + 4;
+
+	painter.setPen(QPen(accent, 2));
+	painter.drawLine(discCenterX + discRadius + 4, centerY, rect.right() - 4, centerY);
+
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(accent);
+	painter.drawEllipse(QPoint(discCenterX, centerY), discRadius, discRadius);
+
+	painter.setPen(QColor(tokens.background));
+	QFont font(tokens.fontFamily);
+	font.setPixelSize(discRadius * 2 - 3);
+	font.setWeight(QFont::Bold);
+	painter.setFont(font);
+	painter.drawText(QRect(discCenterX - discRadius, centerY - discRadius, discRadius * 2, discRadius * 2),
+		Qt::AlignCenter, QStringLiteral("+"));
+}
+
 FilterPickerView* ISkin::createFilterPicker(QWidget* parent) const
 {
 	// Neutral default: the shared search-over-sections dropdown.

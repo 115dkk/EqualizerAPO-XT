@@ -44,6 +44,7 @@
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
+#include "SkinThemeData.h"
 
 namespace
 {
@@ -339,7 +340,7 @@ public:
 	QString id() const override { return QStringLiteral("matrix"); }
 	QString qssResource(bool dark) const override
 	{
-		return QStringLiteral(":/skins/matrix_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		return SkinThemeData::qssResource(id(), dark);
 	}
 	IRoutingRenderer* routingRenderer() const override
 	{
@@ -362,57 +363,11 @@ public:
 	{
 		return new MatrixReferenceCardView(kind, parent);
 	}
+	// The token table lives in SkinThemeData (shared with satellite tools);
+	// this class keeps only behaviour.
 	SkinTokens tokens(bool dark) const override
 	{
-		SkinTokens t;
-		t.fontFamily = QStringLiteral("DM Sans");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		// Square cells and 1px rules only; 36px rows keep the board dense and
-		// on the 12px grid (gridPitch 24 = two rows of 12).
-		t.borderRadius = 0;
-		t.rowHeight = 36;
-		t.channelGroupIndent = 24;
-		t.channelGroupStyle = SkinTokens::GradientBar;
-		t.badgeStyle = SkinTokens::OutlineOnly;
-		t.cardRailWidth = 3;
-		// The shared raw-preview strip is replaced by this skin's own caption
-		// strip (MatrixRowCaption): same raw spec, but spoken in the board's
-		// footer grammar and wired into the crosspoint hover echo (M2).
-		t.showRawPreview = false;
-		t.accent = dark ? QStringLiteral("#22D3EE") : QStringLiteral("#008EAA");
-		t.accent2 = dark ? QStringLiteral("#7CFFB2") : QStringLiteral("#0A8F57");
-		if (dark)
-		{
-			t.background = QStringLiteral("#060B10");
-			t.surface = QStringLiteral("#0B141C");
-			t.card = QStringLiteral("#101B25");
-			t.cardHover = QStringLiteral("#142432");
-			t.cardSelected = QStringLiteral("#082B34");
-			t.text = QStringLiteral("#DFF5FF");
-			t.mutedText = QStringLiteral("#7FA0AE");
-			t.border = QStringLiteral("#233443");
-			t.graph = QStringLiteral("#041018");
-			t.graphGridMinor = QStringLiteral("#183443");
-		}
-		else
-		{
-			t.background = QStringLiteral("#F0F6F8");
-			t.surface = QStringLiteral("#FFFFFF");
-			t.card = QStringLiteral("#F9FCFD");
-			t.cardHover = QStringLiteral("#EDF7FA");
-			t.cardSelected = QStringLiteral("#D7F8FF");
-			t.text = QStringLiteral("#10242F");
-			t.mutedText = QStringLiteral("#5F7782");
-			t.border = QStringLiteral("#D4E2E8");
-			t.graph = QStringLiteral("#F9FCFD");
-			t.graphGridMinor = QStringLiteral("#D4E2E8");
-			// Traffic-light status colours tuned for contrast on light surfaces.
-			t.success = QStringLiteral("#15803D");
-			t.warning = QStringLiteral("#B45309");
-			t.danger = QStringLiteral("#DC2626");
-		}
-		finishTokens(t);
-		return t;
+		return SkinThemeData::tokens(id(), dark);
 	}
 
 	// Rotary encoder with an LED ring: the value reads as discrete lit

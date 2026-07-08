@@ -541,6 +541,26 @@ void testFilterCardDescriptors()
 	expectEqual(FilterCardModel::badgeIconResource("device", "DEV"), ":/icons/modern/device-speaker.svg", "device badge pictogram");
 	expectEqual(FilterCardModel::badgeIconResource("comment", "#"), ":/icons/modern/comment-bubble.svg", "comment badge pictogram");
 	expectTrue(FilterCardModel::badgeIconResource("text", "TXT").isEmpty(), "raw text lines keep their monogram fallback");
+
+	// Legacy-cleanup round 3: the programmatic vocabulary (If/EndIf/Eval)
+	// stays painted as TXT for now (a dedicated editor is future work), but
+	// the descriptor must be honest about it - the condition is the summary,
+	// and a parameterless line does not echo itself twice ("ENDIF  EndIf:").
+	// A bare note line keeps the whole line as its summary.
+	FilterCardDescriptor ifLine = FilterCardModel::describeLine("If: inputChannelCount == 2");
+	expectEqual(ifLine.type, "text", "If line stays a raw-text row");
+	expectEqual(ifLine.badge, "TXT", "If line keeps the TXT badge");
+	expectEqual(ifLine.title, "If", "If line titles itself with the command");
+	expectEqual(ifLine.summary, "inputChannelCount == 2", "If line summary carries the condition");
+
+	FilterCardDescriptor endIfLine = FilterCardModel::describeLine("EndIf:");
+	expectEqual(endIfLine.title, "EndIf", "EndIf line titles itself with the command");
+	expectTrue(endIfLine.summary.isEmpty(),
+		QStringLiteral("parameterless text command must not echo the raw line as summary: ") + endIfLine.summary);
+
+	FilterCardDescriptor bareText = FilterCardModel::describeLine("plain note line without a command");
+	expectEqual(bareText.title, "Text", "bare text line title");
+	expectEqual(bareText.summary, "plain note line without a command", "bare text line keeps its content as summary");
 }
 
 void testFilterCardDepths()

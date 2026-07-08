@@ -417,8 +417,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <QtRcc Include="DeviceSelector.qrc" />
+    <QtRcc Include="DeviceSelectorSkins.qrc" />
     <QtUic Include="DeviceSelector.ui" />
     <QtMoc Include="DeviceSelector.h" />
+    <ClCompile Include="..\Editor\skins\SkinThemeData.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClInclude Include="..\Editor\skins\SkinThemeData.h" />
     <ClCompile Include="..\helpers\ServiceHelper.cpp" />
     <ClCompile Include="DeviceSelector.cpp" />
     <ClInclude Include="..\helpers\ServiceHelper.h" />

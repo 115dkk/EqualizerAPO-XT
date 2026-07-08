@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QDataStream>
 #include <QDir>
+#include <QEnterEvent>
 #include <QFile>
 #include <QFrame>
 #include <QGridLayout>
@@ -29,11 +30,14 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
+#include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/FilterCardRow.h"
+#include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/TitleBar.h"
+#include "Editor/widgets/UpdateToast.h"
 
 namespace
 {
@@ -89,7 +93,14 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("copy"), QStringLiteral("Copy: VC=0.5*L+0.5*R R=L") },
 		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
 		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
-		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") }
+		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") },
+		// The clean-install first impression (legacy-cleanup round 3): the
+		// graphic EQ card is the first thing a fresh install shows, and the two
+		// raw-text shapes (a bare note line and a programmatic If command) are
+		// the rows that historically rendered as nothing at all.
+		{ QStringLiteral("graphiceq"), QStringLiteral("GraphicEQ: 25 -4.5; 100 -2; 1000 0; 8000 3.5; 16000 1") },
+		{ QStringLiteral("text"), QStringLiteral("plain note line without a command") },
+		{ QStringLiteral("iftext"), QStringLiteral("If: inputChannelCount == 2") }
 	};
 }
 
@@ -286,12 +297,13 @@ QString buildReferenceFiles(const QDir& outDir)
 // renderSkin() renders, per skin and per mode: every gallery row in
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
-// chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis). run()
-// multiplies these by skins x 2 modes to self-check the output count, so adding
-// a gallery row needs no external count to be updated. Keep both constants in
-// step with renderStates()/renderSkin() if the state set or chrome shots change.
+// chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
+// addrow x2, seam, toast). run() multiplies these by skins x 2 modes to
+// self-check the output count, so adding a gallery row needs no external
+// count to be updated. Keep both constants in step with
+// renderStates()/renderSkin() if the state set or chrome shots change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 8;
+constexpr int kExtraShotsPerSkinMode = 12;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -686,6 +698,45 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QApplication::processEvents();
 		failures += saveGrab(menu, outDir, skinId, mode, QStringLiteral("menu"), QStringLiteral("normal")) ? 0 : 1;
 		delete menu;
+	}
+
+	// List-level insertion chrome (shared insertion contract,
+	// docs/skins/README.md), judged per skin like the toolbar: the trailing
+	// add row at rest and under the cursor, and the first-boundary seam in
+	// its hover reveal (at rest it deliberately paints nothing, so a rest
+	// shot would only ever be a blank strip).
+	{
+		AddCardRow addRow;
+		addRow.resize(960, addRow.sizeHint().height());
+		addRow.show();
+		QApplication::processEvents();
+		failures += saveGrab(&addRow, outDir, skinId, mode, QStringLiteral("addrow"), QStringLiteral("normal")) ? 0 : 1;
+		QEnterEvent addRowEnter(QPointF(480, 10), QPointF(480, 10), QPointF(480, 10));
+		QApplication::sendEvent(&addRow, &addRowEnter);
+		QApplication::processEvents();
+		failures += saveGrab(&addRow, outDir, skinId, mode, QStringLiteral("addrow"), QStringLiteral("hover")) ? 0 : 1;
+	}
+	{
+		FilterInsertSeam seam;
+		seam.resize(960, 10);
+		seam.show();
+		QEnterEvent seamEnter(QPointF(20, 5), QPointF(20, 5), QPointF(20, 5));
+		QApplication::sendEvent(&seam, &seamEnter);
+		QApplication::processEvents();
+		failures += saveGrab(&seam, outDir, skinId, mode, QStringLiteral("seam"), QStringLiteral("hover")) ? 0 : 1;
+	}
+
+	// The auto-update toast over a plain palette host, with the real message
+	// template so per-skin QSS is judged against representative text.
+	{
+		QWidget host;
+		host.resize(960, 90);
+		host.setAutoFillBackground(true);
+		UpdateToast* toast = new UpdateToast(&host);
+		host.show();
+		toast->showMessage(QStringLiteral("Update 2.99.0 has been downloaded and will be applied when you close the editor."), 0);
+		QApplication::processEvents();
+		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("toast"), QStringLiteral("normal")) ? 0 : 1;
 	}
 	return failures;
 }

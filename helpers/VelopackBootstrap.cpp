@@ -182,6 +182,17 @@ bool VelopackBootstrap::hasPendingUpdate()
 	return g_updateReady.load();
 }
 
+std::wstring VelopackBootstrap::pendingUpdateVersion()
+{
+	std::lock_guard<std::mutex> lock(g_updateMutex);
+	if (!g_updateReady.load() || !g_pendingUpdate)
+		return std::wstring();
+	// Velopack version strings are plain ASCII semver, so the widening is a
+	// straight code-unit copy.
+	const std::string& version = g_pendingUpdate->TargetFullRelease.Version;
+	return std::wstring(version.begin(), version.end());
+}
+
 void VelopackBootstrap::applyPendingUpdateAndExit()
 {
 	std::lock_guard<std::mutex> lock(g_updateMutex);

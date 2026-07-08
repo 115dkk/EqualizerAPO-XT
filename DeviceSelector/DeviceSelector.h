@@ -23,6 +23,8 @@
 #include <QtWidgets/QDialog>
 #include "ui_DeviceSelector.h"
 
+class QPropertyAnimation;
+
 class DeviceSelector : public QDialog
 {
 	Q_OBJECT
@@ -50,6 +52,9 @@ private:
 
 	Ui::DeviceSelectorClass ui;
 	bool askForReboot = false;
+	// Slide animation behind the troubleshooting disclosure (lazily created
+	// in onTroubleShootingToggled).
+	QPropertyAnimation* troubleshootingSlide = nullptr;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

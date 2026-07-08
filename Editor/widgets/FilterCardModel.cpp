@@ -387,7 +387,12 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.color = QStringLiteral("#eab308");
 	}
 
-	if (descriptor.summary.isEmpty())
+	// Raw-text rows with a real command token (If:, EndIf:, Eval: ... - the
+	// programmatic vocabulary the editor does not model yet) would otherwise
+	// fall through to the whole-line fallback and print the command twice
+	// ("ENDIF  EndIf:"). An empty summary is the honest reading there: the
+	// title already carries everything the line says.
+	if (descriptor.summary.isEmpty() && !(descriptor.type == QStringLiteral("text") && !command.isEmpty()))
 		descriptor.summary = compactWhitespace(line);
 
 	return descriptor;

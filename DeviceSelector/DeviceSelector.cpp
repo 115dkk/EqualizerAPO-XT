@@ -21,6 +21,7 @@
 #include <DeviceAPOInfo.h>
 #include <helpers/RegistryHelper.h>
 #include <helpers/ServiceHelper.h>
+#include <QPropertyAnimation>
 #include <VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
 #include "../version.h"
@@ -282,7 +283,38 @@ void DeviceSelector::onTroubleShootingToggled(bool on)
 	else
 		ui.troubleshootingGroupBox->setStyleSheet("#" + ui.troubleshootingGroupBox->objectName() + " {border:0;}");
 
-	ui.stackedWidget->setVisible(on);
+	// Disclosure slide instead of the old visibility snap: the panel's
+	// maximumHeight sweeps between 0 and its natural height. 160ms OutCubic
+	// reads as a fold without ever feeling like waiting; the indicator is
+	// restyled as a fold chevron in main.cpp's theme sheet.
+	if (troubleshootingSlide == nullptr)
+	{
+		troubleshootingSlide = new QPropertyAnimation(ui.stackedWidget, "maximumHeight", this);
+		troubleshootingSlide->setDuration(160);
+		troubleshootingSlide->setEasingCurve(QEasingCurve::OutCubic);
+		connect(troubleshootingSlide, &QPropertyAnimation::finished, this, [this]() {
+			if (!ui.troubleshootingGroupBox->isChecked())
+				ui.stackedWidget->setVisible(false);
+			// Release the clamp so future layout changes (translations, DPI)
+			// keep sizing the open panel naturally.
+			ui.stackedWidget->setMaximumHeight(QWIDGETSIZE_MAX);
+		});
+	}
+
+	troubleshootingSlide->stop();
+	if (on)
+	{
+		ui.stackedWidget->setMaximumHeight(0);
+		ui.stackedWidget->setVisible(true);
+		troubleshootingSlide->setStartValue(0);
+		troubleshootingSlide->setEndValue(ui.stackedWidget->sizeHint().height());
+	}
+	else
+	{
+		troubleshootingSlide->setStartValue(ui.stackedWidget->height());
+		troubleshootingSlide->setEndValue(0);
+	}
+	troubleshootingSlide->start();
 }
 
 void DeviceSelector::onTroubleShootingOptionChanged()

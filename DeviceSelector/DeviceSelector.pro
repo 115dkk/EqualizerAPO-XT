@@ -20,6 +20,7 @@ PRECOMPILED_HEADER = stdafx.h
 
 SOURCES += \
 	../Editor/helpers/QtAppBootstrap.cpp \
+	../Editor/skins/SkinThemeData.cpp \
 	main.cpp \
 	DeviceSelector.cpp \
 	DeviceTestDialog.cpp \
@@ -31,6 +32,7 @@ SOURCES += \
 
 HEADERS += \
 	../Editor/helpers/QtAppBootstrap.h \
+	../Editor/skins/SkinThemeData.h \
 	DeviceSelector.h \
 	DeviceTestDialog.h \
 	DeviceTestThread.h \
@@ -45,7 +47,8 @@ FORMS += \
 	DeviceTestDialog.ui
 
 RESOURCES += \
-	DeviceSelector.qrc
+	DeviceSelector.qrc \
+	DeviceSelectorSkins.qrc
 
 TRANSLATIONS += \
 	translations/DeviceSelector_de.ts \

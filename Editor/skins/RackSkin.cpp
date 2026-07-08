@@ -45,6 +45,7 @@
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinSupport.h"
+#include "SkinThemeData.h"
 
 namespace
 {
@@ -54,7 +55,7 @@ public:
 	QString id() const override { return QStringLiteral("rack"); }
 	QString qssResource(bool dark) const override
 	{
-		return QStringLiteral(":/skins/rack_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+		return SkinThemeData::qssResource(id(), dark);
 	}
 	IRoutingRenderer* routingRenderer() const override
 	{
@@ -154,49 +155,11 @@ public:
 		RackChrome::styleMainToolbar(toolBar, tokens);
 	}
 
+	// The token table lives in SkinThemeData (shared with satellite tools);
+	// this class keeps only behaviour.
 	SkinTokens tokens(bool dark) const override
 	{
-		SkinTokens t;
-		t.fontFamily = QStringLiteral("DM Sans");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		// Machined plate corners; raw config lines stay off the faceplate (the
-		// "..." raw editor still reaches them) - hardware prints no raw text.
-		t.borderRadius = 3;
-		t.showRawPreview = false;
-		t.rowHeight = 36;
-		t.channelGroupIndent = 16;
-		t.channelGroupStyle = SkinTokens::DottedLine;
-		t.badgeStyle = SkinTokens::WireframeBorder;
-		t.accent = dark ? QStringLiteral("#F4B860") : QStringLiteral("#B66A00");
-		t.accent2 = dark ? QStringLiteral("#5ED0A0") : QStringLiteral("#177A55");
-		if (dark)
-		{
-			t.background = QStringLiteral("#0B0D0F");
-			t.surface = QStringLiteral("#14181C");
-			t.card = QStringLiteral("#1D2328");
-			t.cardHover = QStringLiteral("#252B2F");
-			t.cardSelected = QStringLiteral("#332718");
-			t.text = QStringLiteral("#E6E0D4");
-			t.mutedText = QStringLiteral("#9A9488");
-			t.border = QStringLiteral("#3A4248");
-			t.graph = QStringLiteral("#060807");
-			t.graphGridMinor = QStringLiteral("#1F3A31");
-		}
-		else
-		{
-			t.background = QStringLiteral("#E7E2D8");
-			t.surface = QStringLiteral("#F4EFE5");
-			t.card = QStringLiteral("#FFFAEF");
-			t.cardHover = QStringLiteral("#F7EEDC");
-			t.cardSelected = QStringLiteral("#FCE8BD");
-			t.text = QStringLiteral("#2B2721");
-			t.mutedText = QStringLiteral("#746A5D");
-			t.border = QStringLiteral("#C9BFAE");
-			t.graph = QStringLiteral("#FFF7E6");
-			t.graphGridMinor = QStringLiteral("#D6C4A6");
-		}
-		finishTokens(t);
-		return t;
+		return SkinThemeData::tokens(id(), dark);
 	}
 };
 }

@@ -46,6 +46,19 @@ struct CommandRowInfo
 	int depth = 0;
 };
 
+// Interactive state for the list-level add/insert chrome: the trailing
+// "add card" row (AddCardRow) and the first-boundary insertion seam
+// (FilterInsertSeam). The widgets own all input handling; the skin only
+// paints. label carries the widget's translated caption ("Add filter"); a
+// skin may draw it in its own register or replace it with its own grammar.
+struct ListChromeState
+{
+	bool hovered = false;
+	bool pressed = false;
+	bool focused = false;
+	QString label;
+};
+
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
 // all input handling; the skin only paints.
 struct KnobState
@@ -132,6 +145,21 @@ public:
 	// per-type markers). Runs after the frame's stylesheet background and
 	// before child widgets paint. Default: no-op.
 	virtual void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// The persistent "add card" row at the end of the filter list (shared
+	// insertion contract, docs/skins/README.md). The AddCardRow widget owns
+	// input (click / Enter opens the filter picker anchored under the row) and
+	// delegates all painting here. The default is a neutral token-driven ghost
+	// row: dashed border, muted "+ <label>" caption, accent on hover. Skins
+	// override to answer with their own philosophy.
+	virtual void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
+
+	// The hover-only insertion seam above the FIRST card (the one place a new
+	// card can be inserted in front of everything, since the header "+" adds
+	// below its card). The widget is invisible at rest and only paints while
+	// hovered, so this hook never changes a skin's at-rest gallery. The default
+	// is a thin accent line with a small "+" disc at the left edge.
+	virtual void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

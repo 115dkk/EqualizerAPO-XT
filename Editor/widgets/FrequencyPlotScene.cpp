@@ -46,6 +46,17 @@ FrequencyPlotScene::FrequencyPlotScene(QObject* parent)
 	updateSceneRect();
 }
 
+const FrequencyPlotColors& FrequencyPlotScene::plotColors() const
+{
+	return colors;
+}
+
+void FrequencyPlotScene::setPlotColors(const FrequencyPlotColors& value)
+{
+	colors = value;
+	update();
+}
+
 void FrequencyPlotScene::addItem(FrequencyPlotItem* item)
 {
 	QGraphicsScene::addItem(item);

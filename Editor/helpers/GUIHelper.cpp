@@ -31,6 +31,7 @@
 
 #include "Editor/MainWindow.h"
 #include "Editor/SkinManager.h"
+#include "Editor/skins/SkinThemeData.h"
 
 QSize GUIHelper::scale(QSize size)
 {
@@ -103,34 +104,9 @@ QIcon GUIHelper::tintedIcon(const QString& resource, const QColor& color, int si
 
 void GUIHelper::applySkinPalette()
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = SkinManager::instance()->isDark();
-	QPalette palette = qApp->palette();
-	QColor background(tokens.background);
-	QColor surface(tokens.surface);
-	QColor card(tokens.card);
-	QColor text(tokens.text);
-	QColor accent(tokens.accent);
-	palette.setColor(QPalette::Window, background);
-	palette.setColor(QPalette::WindowText, text);
-	palette.setColor(QPalette::Base, surface);
-	palette.setColor(QPalette::AlternateBase, card);
-	palette.setColor(QPalette::Text, text);
-	palette.setColor(QPalette::Button, card);
-	palette.setColor(QPalette::ButtonText, text);
-	palette.setColor(QPalette::ToolTipBase, card);
-	palette.setColor(QPalette::ToolTipText, text);
-	palette.setColor(QPalette::Highlight, accent);
-	palette.setColor(QPalette::HighlightedText, dark ? QColor(QStringLiteral("#0c0c16")) : QColor(QStringLiteral("#ffffff")));
-	palette.setColor(QPalette::PlaceholderText, QColor(tokens.mutedText));
-	palette.setColor(QPalette::Light, card.lighter(120));
-	palette.setColor(QPalette::Midlight, card.lighter(105));
-	palette.setColor(QPalette::Mid, surface);
-	palette.setColor(QPalette::Dark, background.darker(120));
-	palette.setColor(QPalette::Shadow, background.darker(160));
-	palette.setColor(QPalette::Link, accent);
-	palette.setColor(QPalette::LinkVisited, accent.darker(110));
-	qApp->setPalette(palette);
+	// The token -> QPalette mapping lives in SkinThemeData so DeviceSelector
+	// derives the identical palette from the same tokens.
+	qApp->setPalette(SkinThemeData::palette(SkinManager::instance()->tokens(), SkinManager::instance()->isDark()));
 }
 
 double GUIHelper::knobGainRange()
