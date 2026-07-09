@@ -652,4 +652,3 @@ void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 	painter.setBrush(QColor(t.card));
 	painter.drawRoundedRect(card, radius, radius);
 }
-
