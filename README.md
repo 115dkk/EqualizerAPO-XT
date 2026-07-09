@@ -16,7 +16,8 @@ Current work areas:
 
 1. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 2. Acting on findings from the biweekly automated code audit.
-3. Refining the Editor skins from community feedback rounds (round 1: the Soft pastel rework, dark-mode state contrast, and the compact analysis panel).
+3. Refining the Editor skins from community feedback rounds (round 1: the Soft pastel rework, dark-mode state contrast, and the compact analysis panel; round 3: the modern GraphicEQ card, the insertion contract and the skinned Device Selector, [#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
+4. A dedicated editor for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`). They currently render as deliberate raw-text rows; modelling them properly in the card UI is planned, not started.
 
 ## Features
 

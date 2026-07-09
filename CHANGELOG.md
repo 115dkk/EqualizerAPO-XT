@@ -12,6 +12,39 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- The GraphicEQ filter — the first thing a clean install shows — got a modern
+  card editor: the plot always fits the card at the full 20 Hz–20 kHz range
+  (no more horizontal scrollbar into a blank +100 dB corner), frames itself
+  around the response, and every colour comes from the active skin. Each skin
+  dresses the band table and actions in its own grammar (Studio's sunken glass
+  data window, Minimal's striped document, Soft's rounded well, Rack's
+  green-segment LCD, Matrix's board data cells). The Legacy rows mode keeps
+  the original GUI untouched.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The card header's `+` now inserts the new filter BELOW its card (it used to
+  insert above, which read backwards), and inserting at the very top has its
+  own entry: a slim insertion seam that appears when you hover just above the
+  first card. The green legacy toolbar at the end of the list became a real
+  skin-drawn "add card" row — a ghost glass slot, a terminal prompt line, a
+  friendly pill slot, an empty rack bay or a vacant board cell depending on
+  the skin. ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Raw text lines (bare notes and programmatic commands like `If:`/`EndIf:`)
+  stopped echoing a parameterless command twice, and each skin now presents
+  them deliberately (Rack burns the line into a programming LCD, Matrix posts
+  it as a board remark). A dedicated editor for the programmatic commands is
+  planned separately.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The automatic update finally announces itself: when a new release has been
+  downloaded in the background, a small notice appears at the bottom of the
+  editor saying it will be applied on exit.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Device Selector now wears the Editor's skin (Studio by default) instead of
+  the stock Windows dialog, and its troubleshooting options open with a
+  chevron disclosure and a short slide instead of a checkbox.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+
 ## v2.11.0 — 2026-07-05
 
 - Reworked the Soft skin around its pastel grammar, following community
