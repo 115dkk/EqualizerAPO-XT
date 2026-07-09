@@ -14,14 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-- The GraphicEQ filter — the first thing a clean install shows — got a modern
-  card editor: the plot always fits the card at the full 20 Hz–20 kHz range
-  (no more horizontal scrollbar into a blank +100 dB corner), frames itself
-  around the response, and every colour comes from the active skin. Each skin
-  dresses the band table and actions in its own grammar (Studio's sunken glass
-  data window, Minimal's striped document, Soft's rounded well, Rack's
-  green-segment LCD, Matrix's board data cells). The Legacy rows mode keeps
-  the original GUI untouched.
+- The GraphicEQ filter — the first thing a clean install shows — was rebuilt
+  as a modern card. The response is a skin-painted instrument now, not a
+  tinted stock plot: Studio draws a glowing glass analyzer, Minimal a 1px
+  ink record on paper, Soft a rounded pastel well with boost/cut colours,
+  Rack a genuine oscilloscope window (dark phosphor glass in both finishes),
+  Matrix a cyan trace on the board's crisp grid. The full 20 Hz–20 kHz range
+  always fits the card, the view frames itself around the response, and the
+  old side table gave way to a selected-band readout strip (drag nodes on
+  the plot, type exact values below). The Legacy rows mode keeps the
+  original GUI untouched.
   ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
 - The card header's `+` now inserts the new filter BELOW its card (it used to
   insert above, which read backwards), and inserting at the very top has its
