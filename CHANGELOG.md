@@ -12,7 +12,7 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
-## Unreleased
+## v2.12.0 — 2026-07-09
 
 - The GraphicEQ filter — the first thing a clean install shows — was rebuilt
   as a modern card. The response is a skin-painted instrument now, not a
