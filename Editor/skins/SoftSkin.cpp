@@ -536,6 +536,243 @@ public:
 		}
 	}
 
+	// The analysis dock's response graph: "the friendly response landscape".
+	// EqGraphView owns the sampling, the axis fit and the cursor; every pixel
+	// here is the GraphicEQ instrument's family answer, adapted from an
+	// editable plot to a wide always-on monitoring readout. The ground is the
+	// same rounded sunken well with the major-only grid, and the 0 dB line
+	// stays the soft notch - read here as the calm ground line of a
+	// landscape. The response itself is TERRAIN rather than the plot's airy
+	// wash: opaque pastel masses in the ON-fill grammar (the toggle pills'
+	// opaque pastel + deep warm ink law). Cut valleys below the ground line
+	// wear the accent pastel; a boost hill above it wears the success pastel
+	// while it stays inside headroom, and the moment the config can clip
+	// (state.clipping) the overshoot terrain warms to the warning pastel -
+	// the dirty-badge amber, noticeable but never an alarm - named by a small
+	// "Over 0 dB" chip in the same grammar. The curve is the ON law's warm
+	// ink mixed into each side's pastel, a soft rounded stroke riding the
+	// terrain edge, so a flat 0 dB response still draws as a calm deep-accent
+	// line resting on the ground - alive, not empty. Axis figures speak in
+	// the friendly muted body ink (mono stays reserved for value chips), and
+	// the cursor is a rounded lens dot on the response under a soft vertical
+	// notch guide, with the readout as an ON-pastel stadium pill that floats
+	// in on the hover progress.
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
+	{
+		const QColor accent(tokens.accent);
+		const QColor muted(tokens.mutedText);
+		const QColor border(tokens.border);
+		const QColor well(tokens.surfaceSunken);
+		const QColor warmInk(QStringLiteral("#2B251D"));
+
+		QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		const qreal wellRound = 14.0;
+		QPainterPath wellPath;
+		wellPath.addRoundedRect(frame, wellRound, wellRound);
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		painter.setRenderHint(QPainter::TextAntialiasing);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(well);
+		painter.drawPath(wellPath);
+
+		painter.save();
+		painter.setClipPath(wellPath);
+
+		// Axis captions ride the body face in faded ink, exactly like the
+		// GraphicEQ plot (the constitution reserves mono for value chips).
+		QFont labelFont(tokens.fontFamily);
+		labelFont.setPointSizeF(7.5);
+		labelFont.setWeight(QFont::DemiBold);
+		painter.setFont(labelFont);
+		const QColor labelInk = withAlpha(muted, 210);
+
+		// Major-only grid, the border sunk most of the way into the well;
+		// straight lines stay crisp with antialiasing off. The horizontal
+		// majors' only member is the 0 dB row, which the soft notch draws
+		// itself, so only the frequency decades remain - whitespace does the
+		// rest (tiebreaker).
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.setPen(QPen(mixColor(border, well, 0.25), 1));
+		for (const AnalysisGraphState::GridLine& line : state.vertical)
+		{
+			if (line.major)
+				painter.drawLine(qRound(line.pos), int(state.plotRect.top()), qRound(line.pos), int(state.plotRect.bottom()));
+		}
+		painter.setRenderHint(QPainter::Antialiasing, true);
+
+		// The response terrain: opaque pastel masses split at the ground line
+		// by clip rects, so the semantic colour change lands exactly on the
+		// zero crossing (the GraphicEQ instrument's seam trick). Each pass
+		// lays the mass, then its warm-ink stroke on the terrain edge.
+		if (state.curve.size() >= 2)
+		{
+			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+			QPolygonF terrain = state.curve;
+			terrain.append(QPointF(state.curve.last().x(), base));
+			terrain.prepend(QPointF(state.curve.first().x(), base));
+
+			const QColor overFill(state.clipping ? tokens.warning : tokens.success);
+			const qreal splitY = qBound(frame.top(), qreal(state.zeroY), frame.bottom());
+			const QRectF aboveZero(frame.left() - 2.0, frame.top() - 2.0, frame.width() + 4.0, splitY - frame.top() + 2.0);
+			const QRectF belowZero(frame.left() - 2.0, splitY, frame.width() + 4.0, frame.bottom() - splitY + 2.0);
+			for (int pass = 0; pass < 2; pass++)
+			{
+				const bool overshootPass = pass == 0;
+				const QColor side = overshootPass ? overFill : accent;
+				painter.save();
+				painter.setClipRect(overshootPass ? aboveZero : belowZero, Qt::IntersectClip);
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(side);
+				painter.drawPolygon(terrain);
+				painter.setPen(QPen(mixColor(side, warmInk, 0.40), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawPolyline(state.curve);
+				painter.restore();
+			}
+		}
+
+		// The calm ground line: the soft 0 dB notch, rounded ends floating
+		// clear of the well walls, laid over the masses so the ground level
+		// reads through the hills.
+		if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
+		{
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), 110), 2, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(state.plotRect.left() + 6.0, state.zeroY),
+				QPointF(state.plotRect.right() - 6.0, state.zeroY));
+		}
+
+		// The frequency axis speaks: the decade figures plus the 20/20k
+		// endpoints anchoring the range; the in-between ticks stay
+		// whitespace. Edge captions tuck inside the rounding.
+		painter.setPen(labelInk);
+		for (int i = 0; i < state.vertical.size(); i++)
+		{
+			const AnalysisGraphState::GridLine& line = state.vertical.at(i);
+			if (line.label.isEmpty() || (!line.major && i != 0 && i != state.vertical.size() - 1))
+				continue;
+			QRect labelRect(qRound(line.pos) - 24, int(state.plotRect.bottom()) + 2, 48, 12);
+			int align = Qt::AlignHCenter;
+			if (labelRect.right() > state.rect.right() - 8)
+			{
+				labelRect.setRight(state.rect.right() - 8);
+				align = Qt::AlignRight;
+			}
+			if (labelRect.left() < state.rect.left() + 8)
+			{
+				labelRect.setLeft(state.rect.left() + 8);
+				align = Qt::AlignLeft;
+			}
+			painter.drawText(labelRect, align | Qt::AlignTop, line.label);
+		}
+
+		// The dB figures rest just above their (unpainted) rows along the
+		// left edge, thinned to a calm cadence when the fitted range packs
+		// the rows tighter than a caption, anchored at the 0 dB ground so
+		// the kept figures stay symmetric around it.
+		int groundIndex = 0;
+		for (int i = 0; i < state.horizontal.size(); i++)
+		{
+			if (state.horizontal.at(i).major)
+			{
+				groundIndex = i;
+				break;
+			}
+		}
+		qreal rowGap = 0.0;
+		if (state.horizontal.size() >= 2)
+			rowGap = qAbs(state.horizontal.at(1).pos - state.horizontal.at(0).pos);
+		const int labelStride = rowGap > 0.5 ? qMax(1, qCeil(16.0 / rowGap)) : 1;
+		for (int i = 0; i < state.horizontal.size(); i++)
+		{
+			const AnalysisGraphState::GridLine& line = state.horizontal.at(i);
+			if (line.label.isEmpty() || qAbs(i - groundIndex) % labelStride != 0)
+				continue;
+			painter.drawText(QRectF(state.plotRect.left() + 6.0, line.pos - 15.0, 48.0, 12.0),
+				Qt::AlignLeft | Qt::AlignVCenter, line.label);
+		}
+
+		// The footer caption stays a caption: channel and sample rate in the
+		// same friendly ink, centred under the axis row. Localized data,
+		// drawn as-is.
+		if (!state.channelText.isEmpty())
+		{
+			const QFontMetrics footerMetrics(labelFont);
+			painter.drawText(QRectF(state.plotRect.left(), state.rect.bottom() - 14.0, state.plotRect.width(), 13.0),
+				Qt::AlignHCenter | Qt::AlignVCenter,
+				footerMetrics.elidedText(state.channelText, Qt::ElideRight, int(state.plotRect.width())));
+		}
+
+		// The clipping notice: the overshoot terrain has already warmed to
+		// the warning pastel; a small stadium chip in the ON grammar names
+		// it. Warm amber and lowercase-calm - a note, not an alarm.
+		if (state.clipping)
+		{
+			const QString clipText = QStringLiteral("Over 0 dB");
+			const QFontMetrics chipMetrics(labelFont);
+			const qreal chipH = 18.0;
+			const qreal chipW = chipMetrics.horizontalAdvance(clipText) + 16.0;
+			const QRectF chip(state.plotRect.left() + 8.0, state.plotRect.top() + 6.0, chipW, chipH);
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(QColor(tokens.warning));
+			painter.drawRoundedRect(chip, chipH / 2.0, chipH / 2.0);
+			painter.setPen(warmInk);
+			painter.drawText(chip, Qt::AlignCenter, clipText);
+		}
+
+		// The cursor: a soft vertical notch guide (the detent grammar stood
+		// upright), a rounded lens dot sitting on the response in its side's
+		// pastel, and the readout as an ON-pastel stadium pill in the well's
+		// top-right corner. The hover progress floats the whole group in,
+		// the pill drifting down to its resting spot.
+		const double entry = qBound(0.0, state.hover, 1.0);
+		if (state.cursorValid && entry > 0.01)
+		{
+			painter.save();
+			painter.setOpacity(entry);
+
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), 70), 2, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(state.cursor.x(), state.plotRect.top() + 6.0),
+				QPointF(state.cursor.x(), state.plotRect.bottom() - 6.0));
+
+			// The lens: an elevated card face wearing its side's warm-ink
+			// ring under a quiet text-ink halo, so it reads both on a
+			// terrain mass of the same pastel and on the bare well.
+			const bool overshoot = state.curveYAtCursor < state.zeroY - 0.5;
+			const QColor lensSide = overshoot ? QColor(state.clipping ? tokens.warning : tokens.success) : accent;
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), 70), 3));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 7.5, 7.5);
+			painter.setPen(QPen(mixColor(lensSide, warmInk, 0.40), 2));
+			painter.setBrush(QColor(tokens.card));
+			painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 5.0, 5.0);
+
+			if (!state.cursorText.isEmpty())
+			{
+				const QFontMetrics pillMetrics(labelFont);
+				const qreal pillH = 18.0;
+				const qreal pillW = qMin<qreal>(pillMetrics.horizontalAdvance(state.cursorText) + 16.0,
+						state.plotRect.width() - 12.0);
+				const QRectF pill(state.plotRect.right() - pillW - 6.0,
+					state.plotRect.top() + 6.0 - (1.0 - entry) * 8.0, pillW, pillH);
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(accent);
+				painter.drawRoundedRect(pill, pillH / 2.0, pillH / 2.0);
+				painter.setPen(warmInk);
+				painter.drawText(pill, Qt::AlignCenter,
+					pillMetrics.elidedText(state.cursorText, Qt::ElideRight, int(pillW - 12.0)));
+			}
+			painter.restore();
+		}
+
+		painter.restore();
+
+		// The well edge: the very light 1px line of the two-step elevation.
+		painter.setPen(QPen(border, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPath(wellPath);
+	}
+
 	// Round 3, the plain-text rows (bare note lines and programmatic
 	// commands such as If/EndIf/Eval). The raw line IS the row's content
 	// here, so it stays readable - but the terminal prompt glyph (">_") is
