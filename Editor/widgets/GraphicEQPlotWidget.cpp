@@ -88,7 +88,7 @@ int GraphicEQPlotWidget::focusedNode() const
 	return focused;
 }
 
-QSet<int> GraphicEQPlotWidget::selectedNodes() const
+const QSet<int>& GraphicEQPlotWidget::selectedNodes() const
 {
 	return selection;
 }
@@ -524,8 +524,7 @@ void GraphicEQPlotWidget::keyPressEvent(QKeyEvent* event)
 void GraphicEQPlotWidget::leaveEvent(QEvent*)
 {
 	cursorInside = false;
-	if (hovered != -1)
-		hovered = -1;
+	hovered = -1;
 	update();
 }
 

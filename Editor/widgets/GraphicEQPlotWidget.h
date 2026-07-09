@@ -32,7 +32,7 @@ public:
 	// The node keyboard/readout edits address; -1 while the list is empty.
 	int focusedNode() const;
 	// Current selection as node indices (empty when nothing is selected).
-	QSet<int> selectedNodes() const;
+	const QSet<int>& selectedNodes() const;
 	// Model edit used by the readout strip; clamps, keeps the list sorted and
 	// emits nodesEdited + focusedNodeChanged (the index can move on reorder).
 	void setNodeValues(int index, double hz, double db);
