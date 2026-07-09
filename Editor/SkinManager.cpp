@@ -214,6 +214,18 @@ void SkinManager::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState
 	activeSkin->paintGraphicEqPlot(painter, state, currentTokens);
 }
 
+void SkinManager::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state) const
+{
+	if (heritageMode)
+	{
+		// The neutral base rendering with the heritage tokens is the classic
+		// white analysis graph; no skin instrument leaks into legacy rows.
+		activeSkin->ISkin::paintAnalysisGraph(painter, state, currentTokens);
+		return;
+	}
+	activeSkin->paintAnalysisGraph(painter, state, currentTokens);
+}
+
 FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 {
 	return activeSkin->createFilterPicker(parent);

@@ -289,6 +289,86 @@ void ISkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& stat
 	painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
 }
 
+void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const
+{
+	// Neutral default, kept close to the pre-hook EqGraphView rendering: a
+	// rounded token ground, the token grid, an accent zero line and an
+	// accent response trace over a translucent fill. Also the heritage look.
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QColor accent(tokens.accent);
+	const QColor muted(tokens.mutedText);
+	const bool dark = QColor(tokens.background).lightness() < 128;
+
+	QRectF bgRect = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+	const qreal radius = qMax(0, tokens.borderRadius - 2);
+	QPainterPath bgPath;
+	bgPath.addRoundedRect(bgRect, radius, radius);
+	painter.fillPath(bgPath, QColor(tokens.graph));
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	painter.drawPath(bgPath);
+	painter.setClipPath(bgPath);
+
+	QPen gridPen(QColor(tokens.graphGridMinor.isEmpty() ? tokens.border : tokens.graphGridMinor), 1);
+	gridPen.setCosmetic(true);
+	painter.setPen(gridPen);
+	for (const AnalysisGraphState::GridLine& line : state.vertical)
+		painter.drawLine(QPointF(line.pos, state.plotRect.top()), QPointF(line.pos, state.plotRect.bottom()));
+	for (const AnalysisGraphState::GridLine& line : state.horizontal)
+		painter.drawLine(QPointF(state.plotRect.left(), line.pos), QPointF(state.plotRect.right(), line.pos));
+
+	QPen zeroPen(accent, 1.4);
+	zeroPen.setCosmetic(true);
+	painter.setPen(zeroPen);
+	painter.drawLine(QPointF(state.plotRect.left(), state.zeroY), QPointF(state.plotRect.right(), state.zeroY));
+
+	if (state.curve.size() >= 2)
+	{
+		QPainterPath curvePath;
+		curvePath.addPolygon(state.curve);
+		QPainterPath fillPath = curvePath;
+		fillPath.lineTo(state.plotRect.right(), state.zeroY);
+		fillPath.lineTo(state.plotRect.left(), state.zeroY);
+		fillPath.closeSubpath();
+		painter.fillPath(fillPath, withAlpha(accent, dark ? 30 : 18));
+
+		QPen curvePen(accent, 2.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+		curvePen.setCosmetic(true);
+		painter.setPen(curvePen);
+		painter.drawPath(curvePath);
+	}
+
+	QFont labelFont = painter.font();
+	labelFont.setPointSizeF(qMax(7.0, labelFont.pointSizeF() - 1.0));
+	painter.setFont(labelFont);
+	painter.setPen(muted);
+	const QRectF footer(state.plotRect.left(), state.plotRect.bottom() + 3, state.plotRect.width(), 18);
+	painter.drawText(footer, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("20 Hz"));
+	painter.drawText(footer, Qt::AlignCenter, state.channelText);
+	painter.drawText(footer, Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("20 kHz"));
+	painter.drawText(QRectF(state.plotRect.left() + 4, state.plotRect.top() + 3, 70, 18),
+		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("+%1 dB").arg(state.maxDb, 0, 'f', 0));
+	painter.drawText(QRectF(state.plotRect.left() + 4, state.plotRect.bottom() - 21, 70, 18),
+		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("%1 dB").arg(state.minDb, 0, 'f', 0));
+
+	if (state.cursorValid)
+	{
+		QPen cursorPen(withAlpha(muted, 160), 1, Qt::DashLine);
+		cursorPen.setCosmetic(true);
+		painter.setPen(cursorPen);
+		painter.drawLine(QPointF(state.cursor.x(), state.plotRect.top()), QPointF(state.cursor.x(), state.plotRect.bottom()));
+		painter.setPen(QPen(accent, 1.4));
+		painter.setBrush(QColor(tokens.card));
+		painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 3.5, 3.5);
+		if (!state.cursorText.isEmpty())
+		{
+			painter.setPen(QColor(tokens.text));
+			painter.drawText(QRectF(state.plotRect.adjusted(0, 2, -6, 0)), Qt::AlignRight | Qt::AlignTop, state.cursorText);
+		}
+	}
+}
+
 void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: an accent hairline across the boundary with a small

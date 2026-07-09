@@ -13,6 +13,7 @@ class QRect;
 class QToolBar;
 class QWidget;
 class ReferenceCardView;
+struct AnalysisGraphState;
 struct CommandRowInfo;
 struct GraphicEQPlotState;
 struct KnobState;
@@ -69,6 +70,10 @@ public:
 
 	// The GraphicEQ card's response plot (ISkin::paintGraphicEqPlot).
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state) const;
+
+	// The analysis dock's response graph (ISkin::paintAnalysisGraph). In
+	// heritage mode the neutral base rendering answers with the classic look.
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state) const;
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;

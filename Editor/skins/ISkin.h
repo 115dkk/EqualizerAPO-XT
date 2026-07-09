@@ -101,6 +101,46 @@ struct GraphicEQPlotState
 	QString cursorText;
 };
 
+// Snapshot of the analysis dock's response graph handed to
+// ISkin::paintAnalysisGraph. EqGraphView owns the sampling, the axis fit and
+// the cursor tracking; the skin owns every pixel. All positions are
+// widget-local pixels, already mapped.
+struct AnalysisGraphState
+{
+	// Full widget rect and the inner data area (labels live in the margins).
+	QRect rect;
+	QRectF plotRect;
+	// The whole config's response sampled per px across plotRect, and the y
+	// of 0 dB. The dB range is fitted symmetrically around 0.
+	QPolygonF curve;
+	double zeroY = 0;
+	double minDb = 0;
+	double maxDb = 0;
+	// Any sample rises above 0 dB - the response can clip. Universal danger
+	// semantics; skins should make the overshoot readable.
+	bool clipping = false;
+	// Grid with prepared labels ("100", "1k", "+6"); minor lines carry none.
+	struct GridLine
+	{
+		double pos = 0;
+		QString label;
+		bool major = false;
+	};
+	QVector<GridLine> vertical;
+	QVector<GridLine> horizontal;
+	// Footer caption, already formatted ("All - 48000 Hz"; channel only
+	// while no analysis ran yet).
+	QString channelText;
+	// Pointer-driven readout: cursor position inside plotRect, the y of the
+	// response under it, and the prepared "1.2 kHz  -3.4 dB" text.
+	bool cursorValid = false;
+	QPointF cursor;
+	double curveYAtCursor = 0;
+	QString cursorText;
+	// Widget hover progress, 0..1, animated (150ms in / 110ms out).
+	double hover = 0.0;
+};
+
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
 // all input handling; the skin only paints.
 struct KnobState
@@ -214,6 +254,15 @@ public:
 	// token-driven rendering; each shipped skin answers with its own
 	// instrument (form decided in paint code, not QSS).
 	virtual void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const;
+
+	// The analysis dock's response graph (EqGraphView): the whole config's
+	// measured response. The widget owns sampling, axis fitting and cursor
+	// tracking; the skin paints everything - ground, grid, labels, the
+	// response trace, the clip emphasis above 0 dB and the cursor readout.
+	// The default is a neutral token-driven rendering (also the heritage
+	// look); each shipped skin answers with the same instrument family it
+	// chose for the GraphicEQ plot.
+	virtual void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

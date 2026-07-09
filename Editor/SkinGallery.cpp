@@ -302,12 +302,12 @@ QString buildReferenceFiles(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast). run() multiplies these by skins x 2 modes to
-// self-check the output count, so adding a gallery row needs no external
-// count to be updated. Keep both constants in step with
+// addrow x2, seam, toast, graph x2). run() multiplies these by skins x 2
+// modes to self-check the output count, so adding a gallery row needs no
+// external count to be updated. Keep both constants in step with
 // renderStates()/renderSkin() if the state set or chrome shots change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 12;
+constexpr int kExtraShotsPerSkinMode = 14;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -749,6 +749,26 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		toast->showMessage(QStringLiteral("Update 2.99.0 has been downloaded and will be applied when you close the editor."), 0);
 		QApplication::processEvents();
 		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("toast"), QStringLiteral("normal")) ? 0 : 1;
+	}
+
+	// The analysis dock's response graph with a deterministic synthetic
+	// response (boosts, cuts and a clipping shelf so the over-0dB emphasis
+	// shows), at rest and with the pinned cursor readout.
+	{
+		EqGraphView graph;
+		graph.resize(940, 220);
+		const std::vector<FilterNode> response = {
+			FilterNode(20.0, 0.0), FilterNode(45.0, 5.5), FilterNode(120.0, 2.0),
+			FilterNode(300.0, -4.5), FilterNode(900.0, 1.0), FilterNode(2500.0, -7.5),
+			FilterNode(6000.0, 3.0), FilterNode(11000.0, 6.5), FilterNode(20000.0, -2.0)
+		};
+		graph.setNodes(response, 48000, QStringLiteral("All"));
+		graph.show();
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("normal")) ? 0 : 1;
+		graph.setPreviewCursor(0.62);
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("cursor")) ? 0 : 1;
 	}
 	return failures;
 }
