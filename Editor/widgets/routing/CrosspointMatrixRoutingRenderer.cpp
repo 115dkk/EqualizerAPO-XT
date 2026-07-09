@@ -280,9 +280,13 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		}
 	}
 
-	// Footer strip: the board's expansion controls as demoted transparent
-	// mono caption cells (the Device card's reveal-toggle grammar). +N CH
-	// reveals the folded device channels, +BUS patches a new virtual bus.
+	// Footer strip: the board's expansion controls as mono caption KEYS. At
+	// rest they wear the exact resting treatment of an empty crosspoint cell
+	// (1px border rule + faint fill) - the pressable-cell form the grid above
+	// has already taught - because a bare transparent caption did not read as
+	// a button at all (gate #176 finding). Hover is the accent prelight.
+	// +N CH reveals the folded device channels, +BUS patches a new virtual
+	// bus onto the board.
 	revealRect = QRect();
 	addRect = QRect();
 	if (foldable())
@@ -294,12 +298,18 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		auto captionCell = [&](const QString& caption, bool hovered) {
 			const int w = fm.horizontalAdvance(caption) + 16;
 			const QRect cr(x, footer.top(), w, footer.height());
+			const QRect cell = cr.adjusted(0, 1, -1, -2);
 			if (hovered)
 			{
 				p.setPen(QPen(mix(accent, 200), 1));
 				p.setBrush(mix(accent, 24));
-				p.drawRect(cr.adjusted(0, 1, -1, -2));
 			}
+			else
+			{
+				p.setPen(QPen(border, 1));
+				p.setBrush(mix(border, 18));
+			}
+			p.drawRect(cell);
 			p.setPen(hovered ? text : muted);
 			p.drawText(cr, Qt::AlignCenter, caption);
 			x += w + 8;
