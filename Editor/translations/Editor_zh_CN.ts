@@ -1077,7 +1077,7 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="561"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="581"/>
         <source>Raw</source>
         <translation>原始</translation>
     </message>
@@ -1698,7 +1698,7 @@ Alexander Walch</source>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="123"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="385"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="393"/>
         <source>Graph</source>
         <translation>图表</translation>
     </message>
@@ -1910,12 +1910,12 @@ Alexander Walch</source>
         <translation>Equalizer APO %0 配置编辑器</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="112"/>
+        <location filename="../MainWindow.cpp" line="119"/>
         <source>Instant mode</source>
         <translation>即时模式</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="115"/>
+        <location filename="../MainWindow.cpp" line="122"/>
         <source>Changes are saved immediately</source>
         <translation>更改将立即保存</translation>
     </message>
@@ -1928,7 +1928,7 @@ Alexander Walch</source>
         <translation type="vanished">声道配置：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="164"/>
+        <location filename="../MainWindow.cpp" line="171"/>
         <source>Default</source>
         <translation>默认</translation>
     </message>
@@ -1941,17 +1941,17 @@ Alexander Walch</source>
         <translation type="vanished">输入设备：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="166"/>
+        <location filename="../MainWindow.cpp" line="173"/>
         <source>Playback devices:</source>
         <translation>播放设备：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="177"/>
+        <location filename="../MainWindow.cpp" line="184"/>
         <source>Capture devices:</source>
         <translation>捕获设备：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="312"/>
         <source>Registry problem</source>
         <translation>注册表问题</translation>
     </message>
@@ -1966,7 +1966,7 @@ Do you want to run the Configurator application to fix the problem?</source>
 是否要运行配置器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="314"/>
+        <location filename="../MainWindow.cpp" line="321"/>
         <source>APO not installed to device</source>
         <translation>未将 APO 安装到设备</translation>
     </message>
@@ -1977,7 +1977,7 @@ Do you want to run the Configurator application to fix the problem?</source>
 是否要运行配置器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="381"/>
+        <location filename="../MainWindow.cpp" line="388"/>
         <source>Audio enhancements disabled</source>
         <translation>音频增强功能已禁用</translation>
     </message>
@@ -2127,67 +2127,67 @@ Do you want to run the Configurator application to fix the problem?</source>
         <translation>打开文件</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="119"/>
+        <location filename="../MainWindow.cpp" line="126"/>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="116"/>
         <source>Saved</source>
         <translation>已保存</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="121"/>
+        <location filename="../MainWindow.cpp" line="128"/>
         <source>Current file save state</source>
         <translation>当前文件保存状态</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="129"/>
+        <location filename="../MainWindow.cpp" line="136"/>
         <source>Device</source>
         <translation>设备</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="145"/>
+        <location filename="../MainWindow.cpp" line="152"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>EqualizerAPO 是原生处理此设备的音频流，还是不应用滤波器直接转发。</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="153"/>
+        <location filename="../MainWindow.cpp" line="160"/>
         <source>Channels</source>
         <translation>声道</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="252"/>
+        <location filename="../MainWindow.cpp" line="259"/>
         <source>Automatic (%0)</source>
         <translation>自动 (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="288"/>
+        <location filename="../MainWindow.cpp" line="295"/>
         <source>An update has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="289"/>
+        <location filename="../MainWindow.cpp" line="296"/>
         <source>Update %0 has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="312"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO 操作所需的注册表值设置不正确。
 是否要运行设备选择器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="314"/>
+        <location filename="../MainWindow.cpp" line="321"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO 尚未安装到所选设备。
 是否要运行设备选择器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="349"/>
+        <location filename="../MainWindow.cpp" line="356"/>
         <source>EQ inactive on some devices</source>
         <translation>部分设备上均衡器未启用</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="350"/>
+        <location filename="../MainWindow.cpp" line="357"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -2200,7 +2200,7 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 这并非崩溃，声音仍会到达设备，只是没有均衡处理。如果你需要对这些设备进行滤波处理，请在声音设置中将其默认格式切换为 32 位 IEEE_FLOAT。</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="381"/>
+        <location filename="../MainWindow.cpp" line="388"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -2392,7 +2392,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MatrixFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="121"/>
+        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="118"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
@@ -2717,12 +2717,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>RackFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/RackFilterPicker.cpp" line="267"/>
+        <location filename="../skins/pickers/RackFilterPicker.cpp" line="258"/>
         <source>SEARCH</source>
         <translation>搜索</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/RackFilterPicker.cpp" line="384"/>
+        <location filename="../skins/pickers/RackFilterPicker.cpp" line="375"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
@@ -2730,30 +2730,38 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="192"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="179"/>
         <source>Choose the details after adding</source>
         <translation>添加后再设置详细信息</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="427"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="414"/>
         <source>Search filters</source>
         <translation>搜索滤波器</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="466"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="527"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="453"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="514"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="575"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="562"/>
         <source>Nothing matches your search</source>
         <translation>没有匹配你搜索的内容</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="576"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="563"/>
         <source>Try a shorter or different keyword</source>
         <translation>请尝试更短或不同的关键词</translation>
+    </message>
+</context>
+<context>
+    <name>SoftSkin</name>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="725"/>
+        <source>Sound may distort - keep it below 0 dB</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2862,17 +2870,17 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StudioFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="272"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="260"/>
         <source>Search filters</source>
         <translation>搜索滤波器</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="377"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="365"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="424"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="412"/>
         <source>No matching filters</source>
         <translation>没有匹配的滤波器</translation>
     </message>
@@ -2880,7 +2888,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="434"/>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="426"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>在声道之间拖动即可路由——点击 + 添加输出</translation>
     </message>
@@ -2888,12 +2896,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="98"/>
+        <location filename="../widgets/TitleBar.cpp" line="106"/>
         <source>Restore</source>
         <translation>还原</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="98"/>
+        <location filename="../widgets/TitleBar.cpp" line="106"/>
         <source>Maximize</source>
         <translation>最大化</translation>
     </message>

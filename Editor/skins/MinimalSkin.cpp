@@ -340,7 +340,6 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	const QColor gridMajor(tokens.graphGridMajor);
 	const QColor secondary(tokens.mutedText);
 	const QColor bodyInk(tokens.text);
-	const QColor warningInk(tokens.warning);
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
@@ -411,25 +410,24 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		lastFigureY = y;
 	}
 
-	// The clipping flag: the region between the trace and the 0 dB rule is
-	// hatched with flat diagonal warning-ink lines, like a flagged region
-	// stamped on a chart print. The rule and the trace print over it.
-	if (state.clipping && state.curve.size() >= 2 && state.zeroY > plotTop + 1.0)
+	// The clipping flag: terminal error semantics. The region between the
+	// trace and the 0 dB rule fills SOLID with danger ink - reverse video,
+	// the way a terminal marks a line that is wrong - and the trace prints
+	// through it in the sheet's ground colour (the inverted glyph). Amber
+	// caution read like an annotation; an overdriven response is an error.
+	QPainterPath overshoot;
+	const bool overshootValid = state.clipping && state.curve.size() >= 2 && state.zeroY > plotTop + 1.0;
+	if (overshootValid)
 	{
 		QPolygonF closed = state.curve;
 		closed.append(QPointF(state.curve.last().x(), state.zeroY));
 		closed.append(QPointF(state.curve.first().x(), state.zeroY));
-		QPainterPath overshoot;
 		overshoot.addPolygon(closed);
 		overshoot.closeSubpath();
 
 		painter.save();
 		painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
-		painter.setClipPath(overshoot, Qt::IntersectClip);
-		painter.setPen(QPen(warningInk, 1));
-		const double rise = state.zeroY - plotTop;
-		for (double x = plotLeft - rise; x <= plotRight; x += 4.0)
-			painter.drawLine(QPointF(x, state.zeroY), QPointF(x + rise, plotTop));
+		painter.fillPath(overshoot, QColor(tokens.danger));
 		painter.restore();
 	}
 
@@ -442,12 +440,22 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	}
 
 	// The response: a single 1px body-ink trace. No fill, no echo - the
-	// trace is data and the brightest line on the sheet.
+	// trace is data and the brightest line on the sheet. Inside the error
+	// block it inverts to ground ink (reverse video keeps the glyph).
 	if (state.curve.size() >= 2)
 	{
 		painter.setPen(QPen(bodyInk, 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawPolyline(state.curve);
+		if (overshootValid)
+		{
+			painter.save();
+			painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
+			painter.setClipPath(overshoot, Qt::IntersectClip);
+			painter.setPen(QPen(ground, 1));
+			painter.drawPolyline(state.curve);
+			painter.restore();
+		}
 	}
 
 	// The plotter crosshair: a full-height vertical hairline with a short
@@ -477,10 +485,12 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	painter.drawText(topBand, Qt::AlignLeft | Qt::AlignVCenter, heading);
 	if (state.clipping)
 	{
+		// Error register, not annotation: the tag prints in danger ink like
+		// the reverse-video block it labels.
 		const double headingWidth = QFontMetricsF(captionFont).horizontalAdvance(heading);
-		painter.setPen(warningInk);
+		painter.setPen(QColor(tokens.danger));
 		painter.drawText(topBand.adjusted(headingWidth + 12.0, 0.0, 0.0, 0.0),
-			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("!! CLIP"));
+			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("!! OVER 0 DB"));
 	}
 	if (state.cursorValid && !state.cursorText.isEmpty())
 	{

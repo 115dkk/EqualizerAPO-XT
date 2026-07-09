@@ -70,13 +70,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 - The analysis panel's response graph - the panel's last palette swap - became
   five instruments. Studio Glass monitors through a glowing glass pane whose
   over-0dB region warms with danger; Precision Minimal prints a plotter sheet
-  (1px ink line, hatched overshoot, crosshair annotation); Soft Lab shows a
-  friendly pastel landscape (boost hills, cut valleys, a named "Over 0 dB"
-  chip); Hardware Rack seats a SPECTRUM MONITOR scope (green phosphor trace
-  that burns amber above zero, an OVER lamp); Signal Matrix reads board
-  telemetry (cyan trace, hazard zone, an OVER tag at the peak). The graph
-  also gained a pointer readout: hover it to read the exact frequency and dB
-  under the cursor, in each skin's own voice.
+  (1px ink line, the overshoot marked as a terminal's reverse-video error
+  block, crosshair annotation); Soft Lab shows a friendly pastel landscape
+  (boost hills, cut valleys, and a plain-language warning that the sound may
+  distort above 0 dB - no jargon); Hardware Rack seats a SPECTRUM MONITOR
+  scope (green phosphor trace that burns danger-red above zero, a red PEAK
+  lamp); Signal Matrix reads board telemetry (cyan trace, a hazard zone that
+  densifies exactly where the response exceeds the bus, an OVER tag at the
+  peak). The graph also gained a pointer readout: hover it to read the exact
+  frequency and dB under the cursor, in each skin's own voice.
   ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
 - Fixed the title bar's minimize/maximize/close buttons going near-invisible
   after switching between light and dark: the switch never re-tinted the

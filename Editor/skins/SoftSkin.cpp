@@ -17,6 +17,7 @@
 #include <QFontMetricsF>
 #include <QHBoxLayout>
 #include <QIcon>
+#include <QCoreApplication>
 #include <QLabel>
 #include <QLayout>
 #include <QPainter>
@@ -704,8 +705,10 @@ public:
 		}
 
 		// The clipping notice: the overshoot terrain has already warmed to
-		// the warning pastel; a small stadium chip in the ON grammar names
-		// it. Warm amber and lowercase-calm - a note, not an alarm.
+		// the warning pastel; a stadium chip names it and - because Soft's
+		// audience may not know that exceeding 0 dB audibly damages the
+		// sound - a plain-language warning sentence follows the chip. No
+		// jargon (never "clipping"), localized, and bold enough to matter.
 		if (state.clipping)
 		{
 			const QString clipText = QStringLiteral("Over 0 dB");
@@ -718,6 +721,22 @@ public:
 			painter.drawRoundedRect(chip, chipH / 2.0, chipH / 2.0);
 			painter.setPen(warmInk);
 			painter.drawText(chip, Qt::AlignCenter, clipText);
+
+			const QString advice = QCoreApplication::translate("SoftSkin",
+				"Sound may distort - keep it below 0 dB");
+			QFont adviceFont(labelFont);
+			adviceFont.setWeight(QFont::DemiBold);
+			const QFontMetrics adviceMetrics(adviceFont);
+			const QRectF adviceRect(chip.right() + 8.0, chip.top(),
+				qMax(0.0, state.plotRect.right() - chip.right() - 16.0), chipH);
+			if (adviceRect.width() >= 60.0)
+			{
+				painter.setFont(adviceFont);
+				painter.setPen(mixColor(QColor(tokens.warning), warmInk, 0.55));
+				painter.drawText(adviceRect, Qt::AlignLeft | Qt::AlignVCenter,
+					adviceMetrics.elidedText(advice, Qt::ElideRight, int(adviceRect.width())));
+				painter.setFont(labelFont);
+			}
 		}
 
 		// The cursor: a soft vertical notch guide (the detent grammar stood

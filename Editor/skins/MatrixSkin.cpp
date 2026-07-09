@@ -1113,6 +1113,26 @@ public:
 			// rows of 12): thin rules that read individually, not a texture.
 			for (int x = zone.left() - zone.height(); x <= zone.right(); x += 12)
 				painter.drawLine(x, zone.bottom(), x + zone.height(), zone.top());
+
+			// Where the trace actually exceeds the bus, the hazard densifies:
+			// half-pitch diagonals at full caution ink, clipped to the area
+			// between the trace and the 0 dB rule. The band says "this side
+			// can clip"; the dense region says WHERE and BY HOW MUCH.
+			if (state.curve.size() >= 2)
+			{
+				QPolygonF closed = state.curve;
+				closed.append(QPointF(state.curve.last().x(), state.zeroY));
+				closed.append(QPointF(state.curve.first().x(), state.zeroY));
+				QPainterPath overshoot;
+				overshoot.addPolygon(closed);
+				overshoot.closeSubpath();
+				painter.setClipPath(overshoot, Qt::IntersectClip);
+				QColor dense(hazardInk);
+				dense.setAlpha(darkBoard ? 165 : 190);
+				painter.setPen(QPen(dense, 1));
+				for (int x = zone.left() - zone.height(); x <= zone.right(); x += 5)
+					painter.drawLine(x, zone.bottom(), x + zone.height(), zone.top());
+			}
 			painter.restore();
 		}
 

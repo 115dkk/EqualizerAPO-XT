@@ -1077,7 +1077,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Rohbefehl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="561"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="581"/>
         <source>Raw</source>
         <translation>Roh</translation>
     </message>
@@ -1699,7 +1699,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="123"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="385"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="393"/>
         <source>Graph</source>
         <translation>Diagramm</translation>
     </message>
@@ -1911,12 +1911,12 @@ Alexander Walch</translation>
         <translation>Equalizer APO %0 Konfigurationseditor</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="112"/>
+        <location filename="../MainWindow.cpp" line="119"/>
         <source>Instant mode</source>
         <translation>Sofort-Modus</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="115"/>
+        <location filename="../MainWindow.cpp" line="122"/>
         <source>Changes are saved immediately</source>
         <translation>Änderungen werden sofort gespeichert</translation>
     </message>
@@ -1929,7 +1929,7 @@ Alexander Walch</translation>
         <translation type="vanished">Kanalkonfiguration: </translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="164"/>
+        <location filename="../MainWindow.cpp" line="171"/>
         <source>Default</source>
         <translation>Standard</translation>
     </message>
@@ -1942,17 +1942,17 @@ Alexander Walch</translation>
         <translation type="vanished">Eingabegeräte:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="166"/>
+        <location filename="../MainWindow.cpp" line="173"/>
         <source>Playback devices:</source>
         <translation>Wiedergabegeräte:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="177"/>
+        <location filename="../MainWindow.cpp" line="184"/>
         <source>Capture devices:</source>
         <translation>Aufnahmegeräte:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="312"/>
         <source>Registry problem</source>
         <translation>Registry-Problem</translation>
     </message>
@@ -1967,7 +1967,7 @@ Do you want to run the Configurator application to fix the problem?</source>
 Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="314"/>
+        <location filename="../MainWindow.cpp" line="321"/>
         <source>APO not installed to device</source>
         <translation>APO nicht für das Gerät installiert</translation>
     </message>
@@ -1978,7 +1978,7 @@ Do you want to run the Configurator application to fix the problem?</source>
 Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="381"/>
+        <location filename="../MainWindow.cpp" line="388"/>
         <source>Audio enhancements disabled</source>
         <translation>Signalverbesserungen deaktiviert</translation>
     </message>
@@ -2128,66 +2128,66 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
         <translation>Datei öffnen</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="119"/>
+        <location filename="../MainWindow.cpp" line="126"/>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="116"/>
         <source>Saved</source>
         <translation>Gespeichert</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="121"/>
+        <location filename="../MainWindow.cpp" line="128"/>
         <source>Current file save state</source>
         <translation>Aktueller Speicherstatus der Datei</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="129"/>
+        <location filename="../MainWindow.cpp" line="136"/>
         <source>Device</source>
         <translation>Gerät</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="145"/>
+        <location filename="../MainWindow.cpp" line="152"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>Ob EqualizerAPO den Stream dieses Geräts nativ verarbeitet oder ihn ohne Filterung weiterleitet.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="153"/>
+        <location filename="../MainWindow.cpp" line="160"/>
         <source>Channels</source>
         <translation>Kanäle</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="252"/>
+        <location filename="../MainWindow.cpp" line="259"/>
         <source>Automatic (%0)</source>
         <translation>Automatisch (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="288"/>
+        <location filename="../MainWindow.cpp" line="295"/>
         <source>An update has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="289"/>
+        <location filename="../MainWindow.cpp" line="296"/>
         <source>Update %0 has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="312"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, ist nicht korrekt gesetzt. Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="314"/>
+        <location filename="../MainWindow.cpp" line="321"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO wurde nicht für das gewählte Gerät installiert.
 Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="349"/>
+        <location filename="../MainWindow.cpp" line="356"/>
         <source>EQ inactive on some devices</source>
         <translation>EQ auf einigen Geräten inaktiv</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="350"/>
+        <location filename="../MainWindow.cpp" line="357"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -2200,7 +2200,7 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 Dies ist kein Absturz: Der Ton erreicht das Gerät weiterhin, jedoch ohne EQ. Stellen Sie in den Sound-Einstellungen das Standardformat des Geräts auf ein 32-Bit-IEEE_FLOAT-Format um, wenn Sie dafür eine Filterung benötigen.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="381"/>
+        <location filename="../MainWindow.cpp" line="388"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -2393,7 +2393,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>MatrixFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="121"/>
+        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="118"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
@@ -2718,12 +2718,12 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>RackFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/RackFilterPicker.cpp" line="267"/>
+        <location filename="../skins/pickers/RackFilterPicker.cpp" line="258"/>
         <source>SEARCH</source>
         <translation>SUCHE</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/RackFilterPicker.cpp" line="384"/>
+        <location filename="../skins/pickers/RackFilterPicker.cpp" line="375"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
@@ -2731,30 +2731,38 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="192"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="179"/>
         <source>Choose the details after adding</source>
         <translation>Details nach dem Hinzufügen festlegen</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="427"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="414"/>
         <source>Search filters</source>
         <translation>Filter suchen</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="466"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="527"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="453"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="514"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="575"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="562"/>
         <source>Nothing matches your search</source>
         <translation>Keine Treffer für Ihre Suche</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="576"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="563"/>
         <source>Try a shorter or different keyword</source>
         <translation>Versuchen Sie ein kürzeres oder anderes Stichwort</translation>
+    </message>
+</context>
+<context>
+    <name>SoftSkin</name>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="725"/>
+        <source>Sound may distort - keep it below 0 dB</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2863,17 +2871,17 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>StudioFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="272"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="260"/>
         <source>Search filters</source>
         <translation>Filter suchen</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="377"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="365"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="424"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="412"/>
         <source>No matching filters</source>
         <translation>Keine passenden Filter</translation>
     </message>
@@ -2881,7 +2889,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="434"/>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="426"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>Zum Routen zwischen Kanälen ziehen - + fügt einen Ausgang hinzu</translation>
     </message>
@@ -2889,12 +2897,12 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="98"/>
+        <location filename="../widgets/TitleBar.cpp" line="106"/>
         <source>Restore</source>
         <translation>Wiederherstellen</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="98"/>
+        <location filename="../widgets/TitleBar.cpp" line="106"/>
         <source>Maximize</source>
         <translation>Maximieren</translation>
     </message>

@@ -106,7 +106,7 @@ void monitorLamp(QPainter& painter, const QPointF& center, qreal radius, const Q
 // display law) seated in a machined bezel over a faceplate strip that
 // carries the engraved unit printing. The response is a green phosphor
 // trace with stroke-faked glow; the region above 0 dB is the OVER zone
-// (amber warning graticule, the beam burns amber, the plate's OVER lamp
+// (danger-red warning graticule, the beam burns red, the plate's OVER lamp
 // lights). The pointer drops a scope measurement cursor with a segment
 // readout in the glass corner, and state.hover pre-heats the phosphor on
 // entry. Nothing here is a widget or a timer - a stateless painter.
@@ -121,8 +121,8 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	// glass is dark in both finishes, the graticule lives in the scope-grid
 	// family (the cream table's grid token is panel paint, so it never
 	// reaches the glass), the phosphor is the machine's LED green lifted to
-	// emission strength on the cream finish, and the warning amber is the
-	// panel accent lifted the same way.
+	// emission strength on the cream finish, and the OVER voice is the
+	// danger red lifted the same way.
 	const QColor glassTop = dark ? QColor(0x04, 0x06, 0x05) : QColor(0x0A, 0x0E, 0x0B);
 	const QColor glassBottom = dark ? QColor(0x0A, 0x0F, 0x0C) : QColor(0x11, 0x16, 0x10);
 	const QColor bezelInk = dark ? QColor(0x05, 0x08, 0x07) : QColor(0x4A, 0x44, 0x38);
@@ -132,7 +132,13 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	const QColor phosphor = dark ? QColor(tokens.accent2) : QColor(tokens.accent2).lighter(195);
 	const QColor segmentBright = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
 	const QColor segmentDim = dark ? QColor(0x4C, 0x9E, 0x74) : QColor(0x2F, 0x8A, 0x61);
-	const QColor amber = dark ? QColor(tokens.accent) : QColor(tokens.accent).lighter(170);
+	// The OVER voice is the danger red of a hardware PEAK lamp, not the
+	// panel's amber accent: overdrive is damage, and the review judged the
+	// amber "too soft for something genuinely dangerous". Lifted on the
+	// cream finish the same way the phosphor is.
+	// Barely lifted on the cream finish: the glass is dark in BOTH finishes,
+	// so a strong lift only washes the red toward pink.
+	const QColor overInk = dark ? QColor(tokens.danger) : QColor(tokens.danger).lighter(115);
 
 	const QRectF full(state.rect);
 	const qreal plateHeight = 16.0;
@@ -171,7 +177,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		const QRectF legendRect(plateText.left(), plateText.top(),
 			plateText.width() - reservedRight, plateText.height());
 		monitorEngrave(painter, legendRect, Qt::AlignRight | Qt::AlignVCenter, overLegend,
-			state.clipping ? withAlpha(QColor(tokens.accent), 235) : withAlpha(QColor(tokens.mutedText), dark ? 140 : 180), dark);
+			state.clipping ? withAlpha(overInk, 245) : withAlpha(QColor(tokens.mutedText), dark ? 140 : 180), dark);
 		reservedRight += plateMetrics.horizontalAdvance(overLegend) + 8.0;
 	}
 
@@ -203,7 +209,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	}
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
-	monitorLamp(painter, lampCenter, lampRadius, QColor(tokens.accent), state.clipping, dark);
+	monitorLamp(painter, lampCenter, lampRadius, overInk, state.clipping, dark);
 
 	// ── The glass window ──
 	QPainterPath glassPath;
@@ -225,21 +231,22 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	painter.drawRect(state.plotRect);
 
 	// The OVER zone: while the response can clip, the band above the 0 dB
-	// axis carries a faint amber warning wash under the graticule.
+	// axis glows danger-red under the graticule - hot at the top of the
+	// glass, dying at the axis, the way an overdriven tube warns.
 	const qreal zeroY = state.zeroY;
 	const bool overZone = state.clipping && zeroY > state.plotRect.top() + 1.0;
 	if (overZone)
 	{
 		QLinearGradient warn(QPointF(0.0, state.plotRect.top()), QPointF(0.0, zeroY));
-		warn.setColorAt(0.0, withAlpha(amber, 26));
-		warn.setColorAt(1.0, withAlpha(amber, 6));
+		warn.setColorAt(0.0, withAlpha(overInk, 56));
+		warn.setColorAt(1.0, withAlpha(overInk, 10));
 		painter.fillRect(QRectF(state.plotRect.left(), state.plotRect.top(),
 			state.plotRect.width(), zeroY - state.plotRect.top()), warn);
 	}
 
 	// Graticule: crisp 1px rules - straight lines carry no antialiasing (the
 	// scope law shared with the GEQ display). Inside the OVER zone the rules
-	// turn to the amber warning graticule.
+	// turn to the danger-red warning graticule.
 	painter.setRenderHint(QPainter::Antialiasing, false);
 	const int plotTop = int(state.plotRect.top());
 	const int plotBottom = int(state.plotRect.bottom());
@@ -251,7 +258,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		const int x = int(line.pos);
 		if (overZone)
 		{
-			painter.setPen(QPen(withAlpha(amber, line.major ? 84 : 54), 1));
+			painter.setPen(QPen(withAlpha(overInk, line.major ? 120 : 78), 1));
 			painter.drawLine(x, plotTop, x, zeroRow - 1);
 			painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
 			painter.drawLine(x, zeroRow, x, plotBottom);
@@ -266,7 +273,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	{
 		const int y = int(line.pos);
 		if (overZone && y < zeroRow)
-			painter.setPen(QPen(withAlpha(amber, line.major ? 84 : 54), 1));
+			painter.setPen(QPen(withAlpha(overInk, line.major ? 120 : 78), 1));
 		else
 			painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
 		painter.drawLine(plotLeft, y, plotRight, y);
@@ -297,7 +304,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		if (line.label.isEmpty() || line.label.toInt() % labelStep != 0)
 			continue;
 		const bool overFigure = overZone && line.pos < zeroY - 1.0;
-		painter.setPen(withAlpha(overFigure ? amber : segmentDim, line.major ? 235 : 150));
+		painter.setPen(withAlpha(overFigure ? overInk : segmentDim, line.major ? 235 : 150));
 		painter.drawText(QRect(plotLeft + 4, int(line.pos) - 8, 34, 16),
 			Qt::AlignLeft | Qt::AlignVCenter, line.label);
 	}
@@ -337,22 +344,25 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		painter.setPen(QPen(phosphor, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 		painter.drawPolyline(state.curve);
 
-		// Above the axis the beam burns amber: the same passes redrawn
-		// inside the OVER band only, so the overshoot reads as danger.
+		// Above the axis the beam burns danger-red: the same passes redrawn
+		// inside the OVER band only, hotter than the phosphor ever gets, plus
+		// a white-hot core - an overdriven beam, not an annotation.
 		if (overZone)
 		{
 			painter.save();
 			painter.setClipRect(QRectF(state.plotRect.left() - 1.0, state.plotRect.top() - 1.0,
 				state.plotRect.width() + 2.0, zeroY - state.plotRect.top() + 1.0), Qt::IntersectClip);
 			painter.setPen(Qt::NoPen);
-			painter.setBrush(withAlpha(amber, qRound(24.0 + 8.0 * hover)));
+			painter.setBrush(withAlpha(overInk, qRound(38.0 + 10.0 * hover)));
 			painter.drawPolygon(afterglow);
 			painter.setBrush(Qt::NoBrush);
-			painter.setPen(QPen(withAlpha(amber, qRound(26.0 + 12.0 * hover)), 6.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			painter.setPen(QPen(withAlpha(overInk, qRound(44.0 + 14.0 * hover)), 7.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			painter.drawPolyline(state.curve);
-			painter.setPen(QPen(withAlpha(amber, qRound(70.0 + 22.0 * hover)), 3.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			painter.setPen(QPen(withAlpha(overInk, qRound(105.0 + 26.0 * hover)), 3.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			painter.drawPolyline(state.curve);
-			painter.setPen(QPen(amber, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			painter.setPen(QPen(overInk, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+			painter.drawPolyline(state.curve);
+			painter.setPen(QPen(withAlpha(mixColor(overInk, QColor(255, 255, 255), 0.55), 215), 0.9, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			painter.drawPolyline(state.curve);
 			painter.restore();
 		}
@@ -374,7 +384,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 
 		painter.setRenderHint(QPainter::Antialiasing, true);
 		const bool overPoint = state.curveYAtCursor < zeroY - 0.5;
-		const QColor mark = overPoint ? amber : phosphor;
+		const QColor mark = overPoint ? overInk : phosphor;
 		const QPointF measured(state.cursor.x(), state.curveYAtCursor);
 		QRadialGradient halo(measured, 8.0);
 		halo.setColorAt(0.0, withAlpha(mark, 90));
@@ -466,9 +476,9 @@ public:
 	{
 		// The SPECTRUM MONITOR unit: the GEQ scope's oscilloscope law widened
 		// into an always-on monitoring readout - phosphor glass in a machined
-		// bezel over an engraved faceplate strip, an amber OVER zone (warning
-		// graticule + amber-burning beam + plate lamp) while the response can
-		// clip, and a scope measurement cursor with a segment readout.
+		// bezel over an engraved faceplate strip, a danger-red OVER zone
+		// (warning graticule + red-burning beam + plate PEAK lamp) while the
+		// response can clip, and a scope measurement cursor with a readout.
 		paintAnalysisMonitor(painter, state, tokens);
 	}
 
