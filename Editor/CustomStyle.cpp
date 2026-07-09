@@ -18,6 +18,7 @@
 */
 #include "CustomStyle.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "SkinManager.h"
 
 CustomStyle::CustomStyle(QStyle* style)
 	: QProxyStyle(style)
@@ -40,7 +41,9 @@ int CustomStyle::pixelMetric(QStyle::PixelMetric metric, const QStyleOption* opt
 
 QIcon CustomStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *option, const QWidget *widget) const
 {
-	if(GUIHelper::isDarkMode())
+	// Keyed on the skin's dark flag (CustomStyle only runs in the modern
+	// presentation), not the OS scheme the icons used to follow.
+	if(SkinManager::instance()->isDark())
 	{
 		switch (standardIcon)
 		{

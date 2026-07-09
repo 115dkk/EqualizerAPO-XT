@@ -3,6 +3,7 @@
 */
 
 #include "LightTraceRoutingRenderer.h"
+#include "Editor/skins/SkinPaint.h"
 
 #include <algorithm>
 #include <functional>
@@ -23,16 +24,7 @@ namespace
 {
 int sc(int px) { return GUIHelper::scale(px); }
 
-bool darkMode(const SkinTokens& t)
-{
-	return QColor(t.background).lightness() < 128;
-}
-
-QColor withAlphaF(QColor c, double a)
-{
-	c.setAlphaF(a);
-	return c;
-}
+// is-dark / withAlphaF live in the shared SkinPaint.h.
 }
 
 StudioRoutingView::StudioRoutingView(const vector<Assignment>& assignments,
@@ -203,7 +195,7 @@ QSize StudioRoutingView::minimumSizeHint() const
 void StudioRoutingView::paintEvent(QPaintEvent*)
 {
 	const SkinTokens& t = SkinManager::instance()->tokens();
-	const bool dark = darkMode(t);
+	const bool dark = skinIsDark(t);
 	const bool lit = isEnabled();
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);

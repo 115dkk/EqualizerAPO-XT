@@ -846,6 +846,33 @@ jobs:
           exit 1
         }
 
+    # Live skin-switch robustness gate: replays MainWindow::skinSelected's
+    # exact sequence (clearRows -> applySkin -> palette -> updateGuis) over a
+    # 100+ row synthetic config, 3 rounds x 5 skins x 2 modes. Fails on a
+    # crash, a wrong resulting skin id, or a switch slower than the in-test
+    # ceiling - both regression classes (switch crashes, seconds-per-switch
+    # repolish storms) have shipped before. avx2 only, like the gallery: the
+    # switch path does not vary by SIMD variant.
+    - name: Run skin switch test (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      timeout-minutes: 10
+      shell: pwsh
+      run: |
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
+        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
+        $env:QT_QPA_PLATFORM = "offscreen"
+        # GUI-subsystem exe: qWarning only reaches redirected stderr with this set
+        $env:QT_FORCE_STDERR_LOGGING = "1"
+        $log = "${{ github.workspace }}\skin-switch-test.log"
+        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
+          -ArgumentList @("--skin-switch-test") -PassThru -Wait -NoNewWindow `
+          -RedirectStandardError $log
+        if (Test-Path $log) { Get-Content $log | Write-Host }
+        if ($proc.ExitCode -ne 0) {
+          Write-Error "Skin switch test failed (exit code $($proc.ExitCode))"
+          exit 1
+        }
+
     - name: Upload skin gallery
       if: matrix.simd_variant == 'avx2'
       uses: actions/upload-artifact@v7
@@ -1090,6 +1117,12 @@ jobs:
     - name: Install Pester 5
       shell: pwsh
       run: |
+        # Some runner images come up without PSGallery registered (seen
+        # 2026-07-09: "No repository with the name 'PSGallery' was found");
+        # re-register the defaults before trusting it.
+        if ($null -eq (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+          Register-PSRepository -Default
+        }
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
         Install-Module Pester -RequiredVersion 5.6.1 -Force -SkipPublisherCheck -Scope CurrentUser
 

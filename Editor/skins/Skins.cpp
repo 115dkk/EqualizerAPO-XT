@@ -4,6 +4,7 @@
 
 #include "Skins.h"
 #include "SkinSupport.h"
+#include "SkinThemeData.h"
 
 namespace Skins
 {
@@ -14,12 +15,9 @@ QList<ISkin*> all()
 
 ISkin* byId(const QString& id)
 {
-	QString resolved = id;
-	if (resolved == QStringLiteral("glassy"))
-		resolved = QStringLiteral("studio");
-	else if (resolved == QStringLiteral("industrial"))
-		resolved = QStringLiteral("rack");
-
+	// Alias resolution and the studio fallback live in SkinThemeData so
+	// satellite tools resolve stored ids exactly like the Editor.
+	const QString resolved = SkinThemeData::resolveId(id);
 	for (ISkin* skin : all())
 		if (skin->id() == resolved)
 			return skin;

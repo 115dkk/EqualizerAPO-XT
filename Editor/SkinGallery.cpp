@@ -9,19 +9,24 @@
 #include <QComboBox>
 #include <QDataStream>
 #include <QDir>
+#include <QElapsedTimer>
+#include <QEnterEvent>
 #include <QFile>
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QImage>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPixmap>
+#include <QToolButton>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSpinBox>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QToolBar>
 
 #include "Editor/FilterTable.h"
@@ -29,11 +34,14 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
+#include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/FilterCardRow.h"
+#include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/TitleBar.h"
+#include "Editor/widgets/UpdateToast.h"
 
 namespace
 {
@@ -89,7 +97,14 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("copy"), QStringLiteral("Copy: VC=0.5*L+0.5*R R=L") },
 		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
 		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
-		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") }
+		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") },
+		// The clean-install first impression (legacy-cleanup round 3): the
+		// graphic EQ card is the first thing a fresh install shows, and the two
+		// raw-text shapes (a bare note line and a programmatic If command) are
+		// the rows that historically rendered as nothing at all.
+		{ QStringLiteral("graphiceq"), QStringLiteral("GraphicEQ: 25 -4.5; 100 -2; 1000 0; 8000 3.5; 16000 1") },
+		{ QStringLiteral("text"), QStringLiteral("plain note line without a command") },
+		{ QStringLiteral("iftext"), QStringLiteral("If: inputChannelCount == 2") }
 	};
 }
 
@@ -286,12 +301,13 @@ QString buildReferenceFiles(const QDir& outDir)
 // renderSkin() renders, per skin and per mode: every gallery row in
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
-// chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis). run()
-// multiplies these by skins x 2 modes to self-check the output count, so adding
-// a gallery row needs no external count to be updated. Keep both constants in
-// step with renderStates()/renderSkin() if the state set or chrome shots change.
+// chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
+// addrow x2, seam, toast, graph x2). run() multiplies these by skins x 2
+// modes to self-check the output count, so adding a gallery row needs no
+// external count to be updated. Keep both constants in step with
+// renderStates()/renderSkin() if the state set or chrome shots change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 8;
+constexpr int kExtraShotsPerSkinMode = 14;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -581,7 +597,6 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		qWarning("SkinGallery: unknown skin id '%s'", qPrintable(skinId));
 		return 1;
 	}
-	GUIHelper::applySkinPalette();
 
 	const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
 	int failures = 0;
@@ -687,6 +702,74 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		failures += saveGrab(menu, outDir, skinId, mode, QStringLiteral("menu"), QStringLiteral("normal")) ? 0 : 1;
 		delete menu;
 	}
+
+	// List-level insertion chrome (shared insertion contract,
+	// docs/skins/README.md), judged per skin like the toolbar: the trailing
+	// add row at rest and under the cursor, and the first-boundary seam in
+	// its hover reveal (at rest it deliberately paints nothing, so a rest
+	// shot would only ever be a blank strip).
+	{
+		AddCardRow addRow;
+		addRow.resize(960, addRow.sizeHint().height());
+		addRow.show();
+		QApplication::processEvents();
+		// The offscreen platform parks the cursor at (0,0), which lands inside
+		// this window and delivers a synthetic Enter on show, and window
+		// activation hands the row keyboard focus - both dressed the "normal"
+		// shot as hover+focus (found independently by every skin agent in the
+		// round-3 program). Clear both so the at-rest state is what gets judged.
+		QEvent addRowLeave(QEvent::Leave);
+		QApplication::sendEvent(&addRow, &addRowLeave);
+		addRow.clearFocus();
+		QApplication::processEvents();
+		failures += saveGrab(&addRow, outDir, skinId, mode, QStringLiteral("addrow"), QStringLiteral("normal")) ? 0 : 1;
+		QEnterEvent addRowEnter(QPointF(480, 10), QPointF(480, 10), QPointF(480, 10));
+		QApplication::sendEvent(&addRow, &addRowEnter);
+		QApplication::processEvents();
+		failures += saveGrab(&addRow, outDir, skinId, mode, QStringLiteral("addrow"), QStringLiteral("hover")) ? 0 : 1;
+	}
+	{
+		FilterInsertSeam seam;
+		seam.resize(960, 10);
+		seam.show();
+		QEnterEvent seamEnter(QPointF(20, 5), QPointF(20, 5), QPointF(20, 5));
+		QApplication::sendEvent(&seam, &seamEnter);
+		QApplication::processEvents();
+		failures += saveGrab(&seam, outDir, skinId, mode, QStringLiteral("seam"), QStringLiteral("hover")) ? 0 : 1;
+	}
+
+	// The auto-update toast over a plain palette host, with the real message
+	// template so per-skin QSS is judged against representative text.
+	{
+		QWidget host;
+		host.resize(960, 90);
+		host.setAutoFillBackground(true);
+		UpdateToast* toast = new UpdateToast(&host);
+		host.show();
+		toast->showMessage(QStringLiteral("Update 2.99.0 has been downloaded and will be applied when you close the editor."), 0);
+		QApplication::processEvents();
+		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("toast"), QStringLiteral("normal")) ? 0 : 1;
+	}
+
+	// The analysis dock's response graph with a deterministic synthetic
+	// response (boosts, cuts and a clipping shelf so the over-0dB emphasis
+	// shows), at rest and with the pinned cursor readout.
+	{
+		EqGraphView graph;
+		graph.resize(940, 220);
+		const std::vector<FilterNode> response = {
+			FilterNode(20.0, 0.0), FilterNode(45.0, 5.5), FilterNode(120.0, 2.0),
+			FilterNode(300.0, -4.5), FilterNode(900.0, 1.0), FilterNode(2500.0, -7.5),
+			FilterNode(6000.0, 3.0), FilterNode(11000.0, 6.5), FilterNode(20000.0, -2.0)
+		};
+		graph.setNodes(response, 48000, QStringLiteral("All"));
+		graph.show();
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("normal")) ? 0 : 1;
+		graph.setPreviewCursor(0.62);
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("cursor")) ? 0 : 1;
+	}
 	return failures;
 }
 }
@@ -724,6 +807,195 @@ int renderHeritage(const QDir& outDir, const QString& configPath)
 		}
 	}
 	return failures;
+}
+
+int runSwitchTest(const QStringList& arguments)
+{
+	Q_UNUSED(arguments);
+
+	qWarning("SkinSwitchTest: starting");
+
+	// Scratch reference targets so the reference cards resolve like the
+	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+	{
+		qWarning("SkinSwitchTest: cannot create a scratch directory");
+		return 2;
+	}
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+	{
+		qWarning("SkinSwitchTest: cannot write reference target files");
+		return 2;
+	}
+
+	// A config heavy enough for the historical failure mode: the field crash
+	// and the seconds-per-switch regression both needed a loaded document,
+	// not the empty tree the gallery switches under. Six copies of the
+	// representative rows exercise every card type at over a hundred rows.
+	QList<QString> lines;
+	for (int repeat = 0; repeat < 6; repeat++)
+		for (const GalleryRow& row : galleryRows())
+			lines.append(row.line);
+
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	buildRows(scrollArea, configPath, lines);
+	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+	if (table == nullptr)
+	{
+		qWarning("SkinSwitchTest: table construction failed");
+		return 1;
+	}
+
+	// A live TitleBar rides along: its caption glyphs are tinted icons, not
+	// QSS, so a switch path that forgets to re-dress them leaves them in the
+	// previous skin's ink (the field report: black glyphs on the dark strip
+	// after a light->dark toggle). Dark/light alternate every switch below,
+	// so a stale icon is guaranteed to mismatch the active ink.
+	QWidget titleHost;
+	TitleBar titleBar(&titleHost);
+	QToolButton* captionButton = titleBar.findChild<QToolButton*>(QStringLiteral("TitleBarMin"));
+	if (captionButton == nullptr)
+	{
+		qWarning("SkinSwitchTest: TitleBarMin caption button not found");
+		return 1;
+	}
+
+	// Generous ceiling: a healthy switch is well under a second offscreen,
+	// the regression class this guards against cost multiple seconds per
+	// switch, and CI runners are slow and variable. Overridable for local
+	// tuning.
+	bool limitOk = false;
+	int limitMs = qEnvironmentVariableIntValue("EAPO_SWITCH_LIMIT_MS", &limitOk);
+	if (!limitOk || limitMs <= 0)
+		limitMs = 8000;
+
+	int failures = 0;
+	qint64 worstMs = 0;
+	QString worstName;
+	const int rounds = 3;
+	for (int round = 1; round <= rounds; round++)
+	{
+		for (ISkin* skin : Skins::all())
+		{
+			for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+			{
+				const bool dark = darkIndex == 0;
+				const QString name = QStringLiteral("%1/%2").arg(skin->id(), dark ? QStringLiteral("dark") : QStringLiteral("light"));
+
+				QElapsedTimer timer;
+				timer.start();
+				// MainWindow::skinSelected's exact live sequence: tear the
+				// rows down BEFORE the global stylesheet swap (which also
+				// re-derives the palette), rebuild after.
+				table->clearRows();
+				const qint64 clearMs = timer.restart();
+				SkinManager::instance()->applySkin(skin->id(), dark);
+				const qint64 applyMs = timer.restart();
+				table->updateGuis();
+				QApplication::processEvents();
+				// The live editor returns to the event loop between switches,
+				// which is when deleteLater victims (combo popup containers,
+				// editor internals) actually die; a bare processEvents() does
+				// not deliver DeferredDelete, and without this the harness
+				// accumulates a dead generation per switch that the real app
+				// never keeps.
+				QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+				QApplication::processEvents();
+				const qint64 rebuildMs = timer.elapsed();
+				const qint64 elapsed = clearMs + applyMs + rebuildMs;
+
+				if (SkinManager::instance()->currentSkinId() != skin->id())
+				{
+					qWarning("SkinSwitchTest: switch to %s resolved to %s",
+						qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
+					failures++;
+				}
+				{
+					// Caption ink check. tintedIcon paints every covered pixel
+					// in the ink colour, so the strongest-coverage pixel must
+					// sit on the active skin's text colour. Tolerance, not
+					// equality: the thin minimize stroke has no fully opaque
+					// pixel at 14 px and unpremultiply rounding shifts channels
+					// by a few counts - a stale light/dark ink is off by ~100+.
+					const QColor ink(SkinManager::instance()->tokens().text);
+					const QImage glyph = captionButton->icon()
+						.pixmap(QSize(14, 14)).toImage().convertToFormat(QImage::Format_ARGB32);
+					int bestAlpha = 0;
+					QColor bestPixel;
+					for (int y = 0; y < glyph.height(); y++)
+						for (int x = 0; x < glyph.width(); x++)
+						{
+							const QColor pixel = glyph.pixelColor(x, y);
+							if (pixel.alpha() > bestAlpha)
+							{
+								bestAlpha = pixel.alpha();
+								bestPixel = pixel;
+							}
+						}
+					const bool inkMatched = bestAlpha > 0
+						&& qAbs(bestPixel.red() - ink.red()) <= 8
+						&& qAbs(bestPixel.green() - ink.green()) <= 8
+						&& qAbs(bestPixel.blue() - ink.blue()) <= 8;
+					if (!inkMatched)
+					{
+						qWarning("SkinSwitchTest: caption icon did not follow the switch to %s (ink %s, glyph %s a%d)",
+							qPrintable(name), qPrintable(ink.name()), qPrintable(bestPixel.name()), bestAlpha);
+						failures++;
+					}
+				}
+				if (elapsed > limitMs)
+				{
+					qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
+						qPrintable(name), static_cast<long long>(elapsed), limitMs);
+					failures++;
+				}
+				if (elapsed > worstMs)
+				{
+					worstMs = elapsed;
+					worstName = name;
+				}
+				qWarning("SkinSwitchTest: round %d %s: %lld ms (clear %lld, apply %lld, rebuild %lld, widgets %lld)",
+					round, qPrintable(name), static_cast<long long>(elapsed),
+					static_cast<long long>(clearMs), static_cast<long long>(applyMs), static_cast<long long>(rebuildMs),
+					static_cast<long long>(QApplication::allWidgets().size()));
+			}
+		}
+	}
+
+	{
+		// Diagnostic: class histogram of the surviving widgets, top entries.
+		QHash<QByteArray, int> histogram;
+		for (QWidget* widget : QApplication::allWidgets())
+			histogram[widget->metaObject()->className()]++;
+		QList<QPair<int, QByteArray>> ranked;
+		for (auto it = histogram.constBegin(); it != histogram.constEnd(); ++it)
+			ranked.append({ it.value(), it.key() });
+		std::sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+		for (int i = 0; i < qMin(10, int(ranked.size())); i++)
+			qWarning("SkinSwitchTest: widget census %s x%d", ranked[i].second.constData(), ranked[i].first);
+
+		// Top-level population: a growing count here is how the leaked
+		// parentless CopyFilterGUI generation was originally spotted.
+		int windows = 0;
+		for (QWidget* widget : QApplication::allWidgets())
+			if (widget->isWindow())
+				windows++;
+		qWarning("SkinSwitchTest: %d top-level widgets", windows);
+	}
+
+	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), limit %d ms, failures %d",
+		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
+		qPrintable(worstName), limitMs, failures);
+
+	// Same no-teardown exit as run(): everything is flushed, and unwinding
+	// the offscreen QApplication can hang the process on a leftover resource.
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
 }
 
 int run(const QStringList& arguments)

@@ -10,6 +10,7 @@
 */
 
 #include "RackReferenceCardView.h"
+#include "Editor/skins/SkinPaint.h"
 
 #include <QAbstractButton>
 #include <QEnterEvent>
@@ -25,17 +26,7 @@
 
 namespace
 {
-bool isDarkPanel(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
-
-QColor withAlpha(const QColor& color, int alpha)
-{
-	QColor result = color;
-	result.setAlpha(alpha);
-	return result;
-}
+// is-dark / withAlpha live in the shared SkinPaint.h.
 
 // Engraved function caption over the label strip, per reference kind.
 // Hardware printing, never translated (rack.md: engravings are not UI
@@ -171,7 +162,7 @@ void RackEngravedLabel::paintEvent(QPaintEvent*)
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 
 	QColor bodyInk;
 	switch (ink)
@@ -272,7 +263,7 @@ void RackStatusLamp::paintEvent(QPaintEvent*)
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	const QPointF center = QRectF(rect()).center();
 	const qreal radius = qMin(width(), height()) / 2.0 - 4.5;
 	// Disabled row = powered-down unit: the lamp is off, the hardware stays.
@@ -365,7 +356,7 @@ void RackLcdWindow::paintEvent(QPaintEvent*)
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 
 	// The display-window clause: an LCD set into the plate keeps its dark
 	// glass in BOTH modes. Same glass and segment inks as the card's

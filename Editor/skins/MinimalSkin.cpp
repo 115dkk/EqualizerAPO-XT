@@ -44,21 +44,13 @@
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
 
 namespace
 {
 // ── Minimal ("The bank teller's terminal") helpers ──────────────────────────
-
-// Screen point on a circle around center; degrees follow the shared knob
-// convention (Qt-style angles, counter-clockwise from 3 o'clock, screen Y
-// grows downward so sin is subtracted). Pass the negated clockwise sweep
-// angle, exactly like ISkin.cpp's default renderer does.
-QPointF minimalPointOnArc(const QPointF& center, double radius, double degrees)
-{
-	const double radians = qDegreesToRadians(degrees);
-	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
-}
+// The arc trig lives in the shared SkinPaint.h (skinArcPoint).
 
 // ANNEX K minimal: "the number is the control; the knob is confirmation"
 // (N2). The figure is the brightest ink in the row - painted here when the
@@ -81,7 +73,7 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 	// The promoted figure sits one brightness step above body text: white on
 	// the dark console, full black on the light paper. Mode is read off the
 	// background's value because SkinTokens carries no dark flag.
-	const bool darkMode = QColor(tokens.background).lightness() < 128;
+	const bool darkMode = skinIsDark(tokens);
 	const QColor promoted(!state.enabled ? secondary
 		: (darkMode ? QColor(255, 255, 255) : QColor(0, 0, 0)));
 	const QColor travelled = !state.enabled ? secondary
@@ -135,8 +127,8 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 		// detent the deviation vanishes and only the tick remains - the
 		// honest "0 dB".
 		painter.setPen(QPen(secondary, 1));
-		painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 2.5, -270.0),
-			minimalPointOnArc(arcCenter, arcRadius + 2.5, -270.0));
+		painter.drawLine(skinArcPoint(arcCenter, arcRadius - 2.5, -270.0),
+			skinArcPoint(arcCenter, arcRadius + 2.5, -270.0));
 		const double deviationDegrees = 270.0 * (state.ratio - 0.5);
 		painter.setPen(QPen(travelled, 1));
 		painter.drawArc(arcRect, -270 * 16, -qRound(deviationDegrees * 16.0));
@@ -152,8 +144,8 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 	// Radial cursor tick crossing the range arc at the value angle.
 	const double valueDegrees = -(135.0 + 270.0 * state.ratio);
 	painter.setPen(QPen(travelled, 1));
-	painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 3.0, valueDegrees),
-		minimalPointOnArc(arcCenter, arcRadius + 3.0, valueDegrees));
+	painter.drawLine(skinArcPoint(arcCenter, arcRadius - 3.0, valueDegrees),
+		skinArcPoint(arcCenter, arcRadius + 3.0, valueDegrees));
 
 	if (hasNumber)
 	{
@@ -181,6 +173,362 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5));
 	}
+}
+
+// The GraphicEQ response plot as this skin's instrument: a measurement
+// record on the console (dark) or the printed sheet (light). Ground is the
+// graph token, the grid is the faintest 1px hairlines, and every straight
+// line is drawn crisp with antialiasing off; only the response curve keeps
+// its antialiasing, because the curve is data. The curve itself is a 1px
+// body-ink hairline with no fill and no accent (accent only while active).
+// Nodes are square hairline ticks walking the value ladder: rest is a
+// ground-punched hairline square, hover fills the square one background
+// value step (cardHover), selection is the inverted block - the picker's
+// bluntest cursor - and only the selected node under the pointer (the one
+// being dragged) wears the accent block. The keyboard cursor gets the
+// square accent hairline frame while the widget holds focus. Band-locked
+// layouts (15/31) hang 1px hairline stems from the 0 dB rule - no bar
+// fills, ink spent on decoration is waste. Disabled drops the data inks
+// (curve, nodes, 0 dB) one brightness step to secondary; no strikeout, no
+// warning colour.
+void paintMinimalGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens)
+{
+	const QColor ground(tokens.graph);
+	const QColor gridMinor(tokens.graphGridMinor);
+	const QColor gridMajor(tokens.graphGridMajor);
+	const QColor secondary(tokens.mutedText);
+	const QColor bodyInk(state.enabled ? QColor(tokens.text) : QColor(tokens.mutedText));
+	const QColor accent(tokens.accent);
+
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.fillRect(state.rect, ground);
+
+	// Axis labels: secondary-ink mono print in the margins.
+	QFont labelFont(tokens.monoFontFamily);
+	labelFont.setPointSizeF(7.5);
+	painter.setFont(labelFont);
+
+	const int plotLeft = int(state.plotRect.left());
+	const int plotRight = int(state.plotRect.right());
+	const int plotTop = int(state.plotRect.top());
+	const int plotBottom = int(state.plotRect.bottom());
+
+	for (const GraphicEQPlotState::GridLine& line : state.vertical)
+	{
+		const int x = qRound(line.pos);
+		painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+		painter.drawLine(x, plotTop, x, plotBottom);
+		if (!line.label.isEmpty())
+		{
+			painter.setPen(secondary);
+			painter.drawText(QRect(x - 24, plotBottom + 2, 48, state.rect.bottom() - plotBottom - 2),
+				Qt::AlignHCenter | Qt::AlignTop, line.label);
+		}
+	}
+	for (const GraphicEQPlotState::GridLine& line : state.horizontal)
+	{
+		const int y = qRound(line.pos);
+		painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+		painter.drawLine(plotLeft, y, plotRight, y);
+		if (!line.label.isEmpty())
+		{
+			painter.setPen(secondary);
+			painter.drawText(QRect(state.rect.left(), y - 8, plotLeft - state.rect.left() - 4, 16),
+				Qt::AlignRight | Qt::AlignVCenter, line.label);
+		}
+	}
+
+	// The 0 dB rule: the one full-strength straight line, body ink 1px.
+	if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
+	{
+		painter.setPen(QPen(bodyInk, 1));
+		painter.drawLine(plotLeft, qRound(state.zeroY), plotRight, qRound(state.zeroY));
+	}
+
+	// Band-locked stems: 1px hairline verticals from the 0 dB rule to each
+	// band level, in secondary ink so the response stays the brightest line.
+	if (state.bandLocked)
+	{
+		painter.setPen(QPen(secondary, 1));
+		const int base = qRound(qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom()));
+		for (const QPointF& node : state.nodePositions)
+			painter.drawLine(qRound(node.x()), base, qRound(node.x()), qRound(node.y()));
+	}
+
+	// The response: data, so it keeps its antialiasing. 1px, no fill.
+	if (state.curve.size() >= 2)
+	{
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		painter.setPen(QPen(bodyInk, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPolyline(state.curve);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+	}
+
+	for (int i = 0; i < state.nodePositions.size(); i++)
+	{
+		const int x = qRound(state.nodePositions.at(i).x());
+		const int y = qRound(state.nodePositions.at(i).y());
+		const bool selected = state.selectedNodes.contains(i);
+		const bool hovered = state.hoveredNode == i;
+		if (selected)
+		{
+			// The inverted block. While a drag is live the dragged node is the
+			// selected one under the pointer, and only it turns accent (the
+			// active-state law); a disabled row's stored selection dims to the
+			// secondary block - still inverted, no longer a live cursor.
+			const QColor block = !state.enabled ? secondary : (hovered ? accent : bodyInk);
+			painter.fillRect(QRect(x - 3, y - 3, 7, 7), block);
+		}
+		else
+		{
+			// A square hairline tick punched into the ground; hover fills it
+			// exactly one background value step.
+			painter.setPen(QPen(bodyInk, 1));
+			painter.setBrush(hovered ? QColor(tokens.cardHover) : ground);
+			painter.drawRect(x - 3, y - 3, 6, 6);
+		}
+		if (state.focused && state.focusedNode == i)
+		{
+			// The keyboard cursor: the square accent hairline frame.
+			painter.setPen(QPen(QColor(tokens.focusRing), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(x - 5, y - 5, 10, 10);
+		}
+	}
+
+	// Cursor readout: one secondary-ink mono line, top right.
+	if (state.cursorValid && !state.cursorText.isEmpty())
+	{
+		painter.setPen(secondary);
+		painter.setFont(labelFont);
+		painter.drawText(QRectF(state.plotRect).adjusted(0, 2, -4, 0), Qt::AlignRight | Qt::AlignTop, state.cursorText);
+	}
+
+	// The frame: one square 1px hairline, exactly like the analysis graph;
+	// keyboard focus swaps it for the accent hairline (focus grammar).
+	painter.setPen(QPen(state.focused ? QColor(tokens.focusRing) : QColor(tokens.border), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
+}
+
+// The analysis dock's response graph as this skin's plotter sheet: the
+// measurement-record grammar of the GraphicEQ plot stretched into a wide
+// always-on lab chart. Same display language - graph-token ground, faintest
+// 1px hairline grid, secondary-ink mono axis figures in the margins (dB on
+// both sides of the wide sheet, frequency under the plot; the 0 dB figure
+// alone prints in body ink because it is the reference), the 0 dB rule as
+// the one full-strength straight line and the response as a single crisp
+// 1px body-ink trace with no fill and no glow - ink weight is the
+// hierarchy. Straight lines land on half-pixel centres so they stay crisp
+// with antialiasing on. The sheet prints its own header caption top-left
+// (RESPONSE, the engraved uppercase caption register), so an empty config's
+// flat trace still reads as a deliberate record. Clipping is a flagged
+// region on the chart print: the area between the trace and the 0 dB rule
+// is hatched with flat diagonal warning-ink lines and the header grows a
+// "!! CLIP" tag (the reference card's !!-ink-tag grammar). The cursor is a
+// plotter crosshair - a full-height vertical hairline with a short
+// horizontal tick at the reading - whose ink rises from the secondary
+// half-tone to body ink with the hover progress, and the prepared readout
+// is printed in the top margin like an annotation in the same rising ink.
+// The footer channel/sample-rate caption is sheet metadata on the bottom
+// edge, printed as-is (localized data) and elided, never overflowed.
+void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens)
+{
+	const QColor ground(tokens.graph);
+	const QColor gridMinor(tokens.graphGridMinor);
+	const QColor gridMajor(tokens.graphGridMajor);
+	const QColor secondary(tokens.mutedText);
+	const QColor bodyInk(tokens.text);
+
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+	painter.fillRect(state.rect, ground);
+
+	const double plotLeft = state.plotRect.left();
+	const double plotRight = state.plotRect.right();
+	const double plotTop = state.plotRect.top();
+	const double plotBottom = state.plotRect.bottom();
+
+	QFont labelFont(tokens.monoFontFamily);
+	labelFont.setPointSizeF(7.5);
+
+	// Vertical grid and the frequency figures under the plot. A figure that
+	// would run into the previous print is skipped (majors always print) -
+	// the sheet stays legible at any dock width.
+	painter.setFont(labelFont);
+	const QFontMetricsF labelMetrics(labelFont);
+	double lastFigureRight = -1.0e9;
+	for (const AnalysisGraphState::GridLine& line : state.vertical)
+	{
+		const double x = qFloor(line.pos) + 0.5;
+		painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+		painter.drawLine(QPointF(x, plotTop), QPointF(x, plotBottom));
+		if (line.label.isEmpty())
+			continue;
+		const double halfWidth = labelMetrics.horizontalAdvance(line.label) / 2.0;
+		if (!line.major && x - halfWidth < lastFigureRight + 4.0)
+			continue;
+		painter.setPen(secondary);
+		painter.drawText(QRectF(x - 24.0, plotBottom + 3.0, 48.0, 11.0),
+			Qt::AlignHCenter | Qt::AlignTop, line.label);
+		lastFigureRight = x + halfWidth;
+	}
+
+	// The dB figures live in the side margins. The margins are narrow, so
+	// the axis font follows the knob precedent: shrink to fit, never clip.
+	QFont axisFont(labelFont);
+	{
+		const double marginWidth = plotLeft - state.rect.left();
+		double widest = 0.0;
+		for (const AnalysisGraphState::GridLine& line : state.horizontal)
+			widest = qMax(widest, QFontMetricsF(axisFont).horizontalAdvance(line.label));
+		while (widest > marginWidth - 2.0 && axisFont.pointSizeF() > 6.0)
+		{
+			axisFont.setPointSizeF(axisFont.pointSizeF() - 0.5);
+			widest = 0.0;
+			for (const AnalysisGraphState::GridLine& line : state.horizontal)
+				widest = qMax(widest, QFontMetricsF(axisFont).horizontalAdvance(line.label));
+		}
+	}
+	painter.setFont(axisFont);
+	double lastFigureY = 1.0e9;
+	for (const AnalysisGraphState::GridLine& line : state.horizontal)
+	{
+		const double y = qFloor(line.pos) + 0.5;
+		painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+		painter.drawLine(QPointF(plotLeft, y), QPointF(plotRight, y));
+		if (line.label.isEmpty())
+			continue;
+		if (!line.major && lastFigureY - y < 11.0)
+			continue;
+		painter.setPen(line.major ? bodyInk : secondary);
+		painter.drawText(QRectF(state.rect.left(), y - 6.0, plotLeft - state.rect.left() - 2.0, 12.0),
+			Qt::AlignRight | Qt::AlignVCenter, line.label);
+		painter.drawText(QRectF(plotRight + 2.0, y - 6.0, state.rect.right() - plotRight - 2.0, 12.0),
+			Qt::AlignLeft | Qt::AlignVCenter, line.label);
+		lastFigureY = y;
+	}
+
+	// The clipping flag: terminal error semantics. The region between the
+	// trace and the 0 dB rule fills SOLID - reverse video, the way a
+	// terminal marks a line that is wrong - and the trace prints through it
+	// in the sheet's ground colour (the inverted glyph). The block's ink is
+	// danger SUNK into the sheet's register (hue kept, saturation and value
+	// derived down): a raw semantic red at area strength hurt the eyes in
+	// both finishes - a terminal's error field is dim red, not neon.
+	QPainterPath overshoot;
+	const bool overshootValid = state.clipping && state.curve.size() >= 2 && state.zeroY > plotTop + 1.0;
+	const bool darkSheet = ground.lightness() < 128;
+	if (overshootValid)
+	{
+		QPolygonF closed = state.curve;
+		closed.append(QPointF(state.curve.last().x(), state.zeroY));
+		closed.append(QPointF(state.curve.first().x(), state.zeroY));
+		overshoot.addPolygon(closed);
+		overshoot.closeSubpath();
+
+		// Dark sheet: a dim red field (phosphor's error register). Light
+		// sheet: a black-red block - on an ink-on-paper terminal the error
+		// field is HEAVY ink, so the block goes near-ink dark with the red
+		// hue kept, and the paper-coloured trace inverts through it white
+		// against black (review direction: "white vs black").
+		const QColor dangerBase(tokens.danger);
+		const QColor errorBlock = QColor::fromHsvF(
+			dangerBase.hsvHueF(),
+			dangerBase.hsvSaturationF() * (darkSheet ? 0.70 : 0.84),
+			dangerBase.valueF() * (darkSheet ? 0.56 : 0.55));
+
+		painter.save();
+		painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
+		painter.fillPath(overshoot, errorBlock);
+		painter.restore();
+	}
+
+	// The 0 dB rule: the one full-strength straight line, body ink 1px.
+	if (state.zeroY >= plotTop && state.zeroY <= plotBottom)
+	{
+		const double zeroY = qFloor(state.zeroY) + 0.5;
+		painter.setPen(QPen(bodyInk, 1));
+		painter.drawLine(QPointF(plotLeft, zeroY), QPointF(plotRight, zeroY));
+	}
+
+	// The response: a single 1px body-ink trace. No fill, no echo - the
+	// trace is data and the brightest line on the sheet. Inside the error
+	// block it inverts to ground ink (reverse video keeps the glyph).
+	if (state.curve.size() >= 2)
+	{
+		painter.setPen(QPen(bodyInk, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPolyline(state.curve);
+		if (overshootValid)
+		{
+			painter.save();
+			painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
+			painter.setClipPath(overshoot, Qt::IntersectClip);
+			painter.setPen(QPen(ground, 1));
+			painter.drawPolyline(state.curve);
+			painter.restore();
+		}
+	}
+
+	// The plotter crosshair: a full-height vertical hairline with a short
+	// horizontal tick at the reading. Its ink rises from the secondary
+	// half-tone to body ink with the hover progress (entry motion).
+	const QColor crosshairInk = mixColor(secondary, bodyInk, qBound(0.0, state.hover, 1.0));
+	if (state.cursorValid)
+	{
+		const double cursorX = qFloor(state.cursor.x()) + 0.5;
+		const double readingY = qFloor(state.curveYAtCursor) + 0.5;
+		painter.setPen(QPen(crosshairInk, 1));
+		painter.drawLine(QPointF(cursorX, plotTop), QPointF(cursorX, plotBottom));
+		painter.drawLine(QPointF(cursorX - 6.0, readingY), QPointF(cursorX + 6.0, readingY));
+	}
+
+	// Top-margin annotations: the engraved sheet header (plus the clip tag
+	// when the sheet is flagged) and the cursor reading, printed like a
+	// plotter's margin note in the crosshair's rising ink.
+	const QRectF topBand(plotLeft, state.rect.top() + 2.0, plotRight - plotLeft, 12.0);
+	QFont captionFont(tokens.monoFontFamily);
+	captionFont.setPointSizeF(7.5);
+	captionFont.setBold(true);
+	captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+	painter.setFont(captionFont);
+	painter.setPen(secondary);
+	const QString heading = QStringLiteral("RESPONSE");
+	painter.drawText(topBand, Qt::AlignLeft | Qt::AlignVCenter, heading);
+	if (state.clipping)
+	{
+		// Error register, not annotation: the tag prints in danger ink like
+		// the reverse-video block it labels.
+		const double headingWidth = QFontMetricsF(captionFont).horizontalAdvance(heading);
+		painter.setPen(QColor(tokens.danger));
+		painter.drawText(topBand.adjusted(headingWidth + 12.0, 0.0, 0.0, 0.0),
+			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("!! OVER 0 DB"));
+	}
+	if (state.cursorValid && !state.cursorText.isEmpty())
+	{
+		painter.setFont(labelFont);
+		painter.setPen(crosshairInk);
+		painter.drawText(topBand, Qt::AlignRight | Qt::AlignVCenter, state.cursorText);
+	}
+
+	// Sheet metadata on the bottom edge: the channel/sample-rate caption,
+	// localized data printed as-is in secondary ink, elided to the sheet.
+	if (!state.channelText.isEmpty())
+	{
+		painter.setFont(labelFont);
+		painter.setPen(secondary);
+		const QRectF footer(plotLeft, state.rect.bottom() - 14.0, plotRight - plotLeft, 12.0);
+		painter.drawText(footer, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetrics(labelFont).elidedText(state.channelText, Qt::ElideRight, int(footer.width())));
+	}
+
+	// The frame: one square 1px hairline, the same frame the GraphicEQ
+	// plot wears (half-pixel so it stays crisp under antialiasing).
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5));
 }
 
 // Leading type glyph for the line head, plain ASCII for the mapped types so
@@ -212,10 +560,6 @@ class MinimalSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("minimal"); }
-	QString qssResource(bool dark) const override
-	{
-		return QStringLiteral(":/skins/precision_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static StepListRoutingRenderer renderer;
@@ -254,6 +598,19 @@ public:
 	{
 		paintMinimalKnob(painter, rect, state, tokens);
 	}
+	// The GraphicEQ response plot as a measurement record on the console/
+	// paper; see paintMinimalGraphicEqPlot above for the full grammar.
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
+	{
+		paintMinimalGraphicEqPlot(painter, state, tokens);
+	}
+	// The analysis dock's response graph as the plotter sheet - the same
+	// instrument family as the GraphicEQ plot, adapted to a wide always-on
+	// monitoring readout; see paintMinimalAnalysisGraph above.
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
+	{
+		paintMinimalAnalysisGraph(painter, state, tokens);
+	}
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		// One flat line per command: 1px hairline box, square corners, and
@@ -282,7 +639,26 @@ public:
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
 		Q_UNUSED(card);
-		Q_UNUSED(body);
+		// A raw line (a bare note, or a programmatic command like If/EndIf
+		// the editor does not model) is source text, and this skin is the
+		// source's native register: print it bare on the body strip. The
+		// shared raw card's inline chrome (sunken input ground in a hairline
+		// box) says "foreign object"; here the honest presentation is plain
+		// ink - no box, no input ground (the comment card's law, but in body
+		// ink because the line is live source, not dead code). A
+		// commented-out line drops to secondary ink with the rest of the
+		// row. The '>_' marker keeps its shared muted-mono inline style as
+		// the raw-mode tag. Rows are rebuilt on skin/theme switches, so
+		// construction-time token values stay current.
+		if (info.type == QStringLiteral("text") && body != nullptr)
+		{
+			const SkinTokens& tk = SkinManager::instance()->tokens();
+			if (QLabel* rawText = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+			{
+				rawText->setStyleSheet(QStringLiteral("QLabel#FilterCardRawText { background: transparent; color: %1; border: 0; border-radius: 0; padding: 2px 0; font-family: \"%2\"; }")
+					.arg(info.enabled ? tk.text : tk.mutedText, tk.monoFontFamily));
+			}
+		}
 		// Leading type glyph at the line head. Only modern card rows carry a
 		// header here; the Include/VST body editors and the frozen legacy
 		// rows consult the hook with header == nullptr and stay untouched.
@@ -302,49 +678,75 @@ public:
 		glyphLabel->setMinimumWidth(18);
 		headerLayout->insertWidget(0, glyphLabel);
 	}
-	SkinTokens tokens(bool dark) const override
+	// The trailing add row is the terminal's input prompt line: "+ ADD
+	// FILTER" as an uppercase tracked mono caption inside a 1px hairline
+	// slot - the engraved-command grammar (BROWSE/LOCATE) at line scale.
+	// State keeps to the value ladder: rest is the bare hairline box on the
+	// list ground, hover lifts the ground exactly one value step, keyboard
+	// focus is the square accent hairline frame and the press instant is
+	// the inverted block (the command canon's cursor). No dashes: a dashed
+	// hairline means "no verified substance" in this skin's chip grammar,
+	// and this slot is a real command.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
-		SkinTokens t;
-		t.accent = QStringLiteral("#3B82F6");
-		t.fontFamily = QStringLiteral("DM Mono");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		t.borderRadius = 0;
-		t.rowHeight = 32;
-		t.channelGroupIndent = 16;
-		t.channelGroupStyle = SkinTokens::TreeLines;
-		t.badgeStyle = SkinTokens::OutlineOnly;
-		t.zebraStripe = true;
-		if (dark)
+		QColor ink(tokens.mutedText);
+		QColor edge(tokens.border);
+		if (state.pressed)
 		{
-			t.background = QStringLiteral("#191919");
-			t.surface = QStringLiteral("#1f1f1f");
-			t.card = QStringLiteral("#262626");
-			t.cardHover = QStringLiteral("#2c2c2c");
-			t.cardSelected = QStringLiteral("#2A4878");
-			t.text = QStringLiteral("#cccccc");
-			t.mutedText = QStringLiteral("#777777");
-			t.border = QStringLiteral("#3c3c3c");
-			t.graph = QStringLiteral("#0e0e0e");
-			t.graphGridMajor = QStringLiteral("#383838");
-			t.graphGridMinor = QStringLiteral("#2c2c2c");
+			painter.fillRect(rect, QColor(tokens.text));
+			ink = QColor(tokens.surface);
+			edge = QColor(tokens.text);
 		}
-		else
+		else if (state.hovered)
 		{
-			t.background = QStringLiteral("#F6F6F3");
-			t.surface = QStringLiteral("#FFFFFF");
-			t.card = QStringLiteral("#FFFFFF");
-			t.cardHover = QStringLiteral("#F0F0EC");
-			t.cardSelected = QStringLiteral("#E8F1FF");
-			t.text = QStringLiteral("#202020");
-			t.mutedText = QStringLiteral("#666660");
-			t.border = QStringLiteral("#D2D2CC");
-			t.graph = QStringLiteral("#FFFFFF");
-			t.graphGridMajor = QStringLiteral("#D2D2CC");
-			t.graphGridMinor = QStringLiteral("#E6E6E0");
+			// One ground step plus the comment card's hover law: the caption
+			// ink lifts to body brightness because the line acts on click.
+			painter.fillRect(rect, QColor(tokens.surface));
+			ink = QColor(tokens.text);
 		}
-		finishTokens(t);
-		return t;
+		if (state.focused && !state.pressed)
+			edge = QColor(tokens.focusRing);
+		painter.setPen(QPen(edge, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(rect.adjusted(0, 0, -1, -1));
+
+		QFont font(tokens.monoFontFamily);
+		font.setPointSizeF(9.0);
+		font.setWeight(QFont::Bold);
+		font.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+		painter.setFont(font);
+		painter.setPen(ink);
+		painter.drawText(rect.adjusted(12, 0, -12, 0), Qt::AlignVCenter | Qt::AlignLeft,
+			QStringLiteral("+ ") + state.label.toUpper());
 	}
+	// The first-boundary seam: a text editor's insert line. One 1px accent
+	// hairline rules the boundary and an ASCII '+' in a square hairline
+	// cell sits at the line head; the press instant fills the cell with
+	// the accent block (the armed-flag grammar of the menu and checkbox
+	// indicators). No curvature, no glow, no disc. The widget only shows
+	// itself while hovered, so at rest nothing is painted anywhere.
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+		const QColor accent(tokens.accent);
+		const int centerY = rect.center().y();
+		const int side = qMin(rect.height(), 12);
+		const QRect cell(rect.left(), centerY - side / 2, side, side);
+
+		painter.setPen(QPen(accent, 1));
+		painter.setBrush(state.pressed ? QBrush(accent) : Qt::NoBrush);
+		painter.drawRect(cell.adjusted(0, 0, -1, -1));
+		painter.drawLine(cell.right() + 5, centerY, rect.right(), centerY);
+
+		QFont font(tokens.monoFontFamily);
+		font.setPixelSize(qMax(7, side - 3));
+		font.setWeight(QFont::Bold);
+		painter.setFont(font);
+		painter.setPen(state.pressed ? QColor(tokens.background) : accent);
+		painter.drawText(cell, Qt::AlignCenter, QStringLiteral("+"));
+	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 };
 }
 

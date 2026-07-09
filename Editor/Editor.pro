@@ -198,6 +198,7 @@ SOURCES += main.cpp\
 	skins/pickers/MatrixFilterPicker.cpp \
 	skins/RackChrome.cpp \
 	skins/Skins.cpp \
+	skins/SkinThemeData.cpp \
 	skins/StudioSkin.cpp \
 	skins/MinimalSkin.cpp \
 	skins/SoftSkin.cpp \
@@ -207,7 +208,10 @@ SOURCES += main.cpp\
 	skins/pickers/MinimalFilterPicker.cpp \
 	skins/pickers/SoftFilterPicker.cpp \
 	skins/pickers/RackFilterPicker.cpp \
+	widgets/AddCardRow.cpp \
 	widgets/AudioKnob.cpp \
+	widgets/FilterInsertSeam.cpp \
+	widgets/GraphicEQPlotWidget.cpp \
 	widgets/FlowLayout.cpp \
 	widgets/CommandRowFrame.cpp \
 	widgets/SkinComboBox.cpp \
@@ -222,6 +226,7 @@ SOURCES += main.cpp\
 	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/FilterCardEditorRegistry.cpp \
+	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ReferenceCardView.cpp \
@@ -241,6 +246,7 @@ SOURCES += main.cpp\
 	widgets/FilterListModel.cpp \
 	widgets/FilterListUndo.cpp \
 	widgets/FilterPickerView.cpp \
+	widgets/UpdateToast.cpp \
 	widgets/ValueScrubBox.cpp \
 	widgets/TitleBar.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
@@ -412,12 +418,17 @@ HEADERS  += \
 	skins/pickers/MatrixFilterPicker.h \
 	skins/RackChrome.h \
 	skins/Skins.h \
+	skins/SkinPaint.h \
 	skins/SkinSupport.h \
+	skins/SkinThemeData.h \
 	skins/pickers/StudioFilterPicker.h \
 	skins/pickers/MinimalFilterPicker.h \
 	skins/pickers/SoftFilterPicker.h \
 	skins/pickers/RackFilterPicker.h \
+	widgets/AddCardRow.h \
 	widgets/AudioKnob.h \
+	widgets/FilterInsertSeam.h \
+	widgets/GraphicEQPlotWidget.h \
 	widgets/FlowLayout.h \
 	widgets/CommandRowFrame.h \
 	widgets/SkinComboBox.h \
@@ -432,6 +443,7 @@ HEADERS  += \
 	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/FilterCardEditorRegistry.h \
+	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
 	widgets/cards/ReferenceCardView.h \
@@ -451,6 +463,7 @@ HEADERS  += \
 	widgets/FilterListModel.h \
 	widgets/FilterListUndo.h \
 	widgets/FilterPickerView.h \
+	widgets/UpdateToast.h \
 	widgets/ValueScrubBox.h \
 	widgets/TitleBar.h \
 	widgets/routing/CopyRoutingAdapter.h \

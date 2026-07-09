@@ -4,35 +4,42 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+43"/>
+        <location filename="../DeviceSelector.cpp" line="+40"/>
+        <location line="+40"/>
         <source>Playback devices</source>
         <translation>Wiedergabegeräte</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="-35"/>
+        <location line="+39"/>
         <source>Capture devices</source>
         <translation>Aufnahmegeräte</translation>
     </message>
     <message>
-        <location line="+7"/>
-        <location line="+132"/>
-        <location filename="../main.cpp" line="+68"/>
+        <location line="-31"/>
+        <location line="+229"/>
+        <location filename="../main.cpp" line="+214"/>
         <source>Error while accessing the registry</source>
         <translation>Fehler beim Zugriff auf die Registry</translation>
     </message>
     <message>
-        <location line="-88"/>
-        <location line="+123"/>
+        <location line="-214"/>
+        <location line="+249"/>
         <source>Info</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location line="-123"/>
+        <location line="-249"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, war nicht korrekt gesetzt. Dies könnte durch eine Treiberinstallation oder -deinstallation ausgelöst worden sein. Der Wert ist nun korrigiert. Ein Neustart kann erforderlich sein, damit die Änderungen wirksam werden.</translation>
     </message>
     <message>
-        <location line="+384"/>
+        <location line="+52"/>
+        <source>OK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+477"/>
         <source>APO will be uninstalled</source>
         <translation>APO wird deinstalliert</translation>
     </message>
@@ -87,7 +94,7 @@
         <translation>Nicht angeschlossen</translation>
     </message>
     <message>
-        <location line="-305"/>
+        <location line="-324"/>
         <source>Upgrades available</source>
         <translation>Aktualisierungen verfügbar</translation>
     </message>
@@ -107,22 +114,23 @@
         <translation>Um die Änderungen anzuwenden, sollte Windows neugestartet werden. Jetzt neustarten?</translation>
     </message>
     <message>
-        <location line="+253"/>
+        <location line="+272"/>
         <source>APO will be installed</source>
         <translation>APO wird installiert</translation>
     </message>
     <message>
-        <location line="-138"/>
+        <location line="-474"/>
+        <location line="+338"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+5"/>
         <source>Close</source>
         <translation>Schließen</translation>
     </message>
     <message>
-        <location line="-128"/>
+        <location line="-147"/>
         <source>This dialog can be reopened anytime by launching Device Selector from the start menu.</source>
         <translation>Dieser Dialog kann jederzeit erneut geöffnet werden, indem Device Selector aus dem Startmenü gestartet wird.</translation>
     </message>
@@ -130,27 +138,24 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <location filename="../DeviceSelector.ui" line="+209"/>
         <source>Connector</source>
-        <translation>Anschluss</translation>
+        <translation type="vanished">Anschluss</translation>
     </message>
     <message>
-        <location line="+5"/>
         <source>Device</source>
-        <translation>Gerät</translation>
+        <translation type="vanished">Gerät</translation>
     </message>
     <message>
-        <location line="+5"/>
         <source>Status</source>
-        <translation>Status</translation>
+        <translation type="vanished">Status</translation>
     </message>
     <message>
-        <location line="-192"/>
+        <location line="-193"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Problemlösungsoptionen (nur im Fall von Problemen verwenden)</translation>
     </message>
     <message>
-        <location line="+52"/>
+        <location filename="../DeviceSelector.ui" line="+63"/>
         <location line="+81"/>
         <source>Use original APO</source>
         <translation>Original-APO verwenden</translation>
@@ -211,7 +216,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Erlaube Modifikation stiller Puffer</translation>
     </message>
     <message>
-        <location line="+59"/>
+        <location line="+47"/>
         <source>Copy Device command to clipboard</source>
         <translation>Kopiere Device-Befehl in die Zwischenablage</translation>
     </message>
@@ -221,7 +226,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
         <translation>Bitte die Geräte auswählen, für die Equalizer APO installiert werden soll:</translation>
     </message>
     <message>
-        <location line="-176"/>
+        <location line="-164"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>Bitte genau ein aktiviertes Gerät durch Klick auf den Namen wählen</translation>
     </message>
@@ -296,7 +301,7 @@ ACHTUNG: Einige Soundkartentreiber erzeugen unerwünschte Geräusche, wenn diese
 <context>
     <name>DeviceTestThread</name>
     <message>
-        <location filename="../DeviceTestThread.cpp" line="+67"/>
+        <location filename="../DeviceTestThread.cpp" line="+69"/>
         <location line="+161"/>
         <source>Restarting audio service...</source>
         <translation>Starte Audio-Dienst neu...</translation>

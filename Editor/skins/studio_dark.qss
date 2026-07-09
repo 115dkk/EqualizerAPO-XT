@@ -1187,6 +1187,95 @@ QPlainTextEdit#VSTCardWarning {
     border-radius: 6px;
 }
 
+/* ===== GraphicEQ card - the response is the light behind glass =====
+   Every pixel of the plot is painted by StudioSkin::paintGraphicEqPlot
+   (a sunken glass window holding the glowing response curve); the sheet
+   only keeps the widget transparent so no opaque patch cuts the card's
+   pane. Around it, the five action buttons are unlit glass chips that
+   light under the cursor (the FilterCardIconButton grammar) and the mode
+   combo speaks paramSelector. The readout strip under the plot is quiet
+   ink on the card's glass: the band caption is mono data, the Freq/Gain
+   labels are section captions, and the value boxes ride the X1
+   value-scrub grammar. */
+QWidget#GraphicEQPlot {
+    background: transparent;
+    border: 0;
+}
+QWidget#GraphicEQReadout {
+    background: transparent;
+    border: 0;
+}
+QLabel#GraphicEQBandCaption {
+    color: @MUTED@;
+    background: transparent;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+    letter-spacing: 1px;
+}
+QLabel#GraphicEQReadoutLabel {
+    color: @MUTED@;
+    background: transparent;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 4px;
+}
+QToolButton#GraphicEQActionButton {
+    background: rgba(255, 255, 255, 0.04);
+    color: @TEXT@;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.13);
+    border-radius: 6px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 3px;
+}
+QToolButton#GraphicEQActionButton:hover {
+    background: rgba(91, 140, 255, 0.20);
+    border-color: rgba(91, 140, 255, 0.40);
+    border-top-color: rgba(123, 162, 255, 0.55);
+}
+QToolButton#GraphicEQActionButton:pressed {
+    background: rgba(91, 140, 255, 0.30);
+    border-color: @ACCENT@;
+}
+QToolButton#GraphicEQActionButton:disabled {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+    border-top-color: rgba(255, 255, 255, 0.05);
+}
+/* ===== Update toast - a lit chip resting on the stage glass =====
+   The widget paints the pane itself (raised surface, hairline border and
+   the accent keel as the "news" lamp); the sheet only sets the message
+   ink's register and gives dismiss the caption-button grammar: unboxed
+   quiet ink with accent light pooling under the cursor. */
+QLabel#UpdateToastLabel {
+    background: transparent;
+    font-size: 9.5pt;
+    font-weight: 500;
+}
+QToolButton#UpdateToastClose {
+    background: transparent;
+    color: @MUTED@;
+    border: 0;
+    border-radius: 6px;
+    padding: 0 5px;
+    min-height: 18px;
+    font-size: 10pt;
+    font-weight: 600;
+}
+QToolButton#UpdateToastClose:hover {
+    color: @TEXT@;
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.75, fx:0.5, fy:0.55,
+        stop:0 rgba(91, 140, 255, 0.34), stop:0.6 rgba(91, 140, 255, 0.12), stop:1 rgba(91, 140, 255, 0));
+}
+QToolButton#UpdateToastClose:pressed {
+    color: @TEXT@;
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.8, fx:0.5, fy:0.55,
+        stop:0 rgba(91, 140, 255, 0.50), stop:0.6 rgba(91, 140, 255, 0.20), stop:1 rgba(91, 140, 255, 0));
+}
+
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }

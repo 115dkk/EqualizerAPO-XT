@@ -469,6 +469,11 @@ int main(int argc, char* argv[])
 		if (application.arguments().contains(QStringLiteral("--skin-gallery")))
 			return SkinGallery::run(application.arguments());
 
+		// Headless live skin-switch robustness gate (crash + slowness), same
+		// offscreen contract as the gallery.
+		if (application.arguments().contains(QStringLiteral("--skin-switch-test")))
+			return SkinGallery::runSwitchTest(application.arguments());
+
 		// Diagnostic self-test: crash deliberately so a field machine can verify
 		// that the crash handler leaves a dump + report under
 		// %LOCALAPPDATA%\EqualizerAPO-XT\crashdumps.
@@ -489,8 +494,8 @@ int main(int argc, char* argv[])
 		{
 			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString();
 			bool dark = settings.value(QStringLiteral("interface/dark"), GUIHelper::isDarkMode()).toBool();
+			// applySkin also derives the application palette from the tokens.
 			SkinManager::instance()->applySkin(skinId, dark);
-			GUIHelper::applySkinPalette();
 		}
 
 		QtAppBootstrap::applyUserLocale();

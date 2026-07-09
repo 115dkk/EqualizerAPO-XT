@@ -38,7 +38,7 @@ protected:
 
 private slots:
 	void updateModel();
-	void addBefore();
+	void addAfter();
 	void removeThis();
 	void editTextToggled(bool checked);
 	void lineEditingFinished();

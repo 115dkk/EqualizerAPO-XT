@@ -1,39 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
-    <extra-header>Copyright (C) 2024  Chenx221, 大眼仔~旭 (Wang Chenxu)</extra-header>
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+37"/>
+        <location filename="../DeviceSelector.cpp" line="+40"/>
+        <location line="+40"/>
         <source>Playback devices</source>
         <translation>播放设备</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="-35"/>
+        <location line="+39"/>
         <source>Capture devices</source>
         <translation>捕获设备</translation>
     </message>
     <message>
-        <location line="+7"/>
-        <location line="+128"/>
-        <location filename="../main.cpp" line="+66"/>
+        <location line="-31"/>
+        <location line="+229"/>
+        <location filename="../main.cpp" line="+214"/>
         <source>Error while accessing the registry</source>
         <translation>访问注册表时出错</translation>
     </message>
     <message>
-        <location line="-88"/>
-        <location line="+123"/>
+        <location line="-214"/>
+        <location line="+249"/>
         <source>Info</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location line="-123"/>
+        <location line="-249"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>未正确设置 Equalizer APO 操作所需的注册表值。这可能是由驱动程序安装或卸载引起的。该值已更正。可能需要重新启动才能使更改生效。</translation>
     </message>
     <message>
-        <location line="+384"/>
+        <location line="+52"/>
+        <source>OK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+477"/>
         <source>APO will be uninstalled</source>
         <translation>APO 将被卸载</translation>
     </message>
@@ -88,7 +94,7 @@
         <translation>未连接</translation>
     </message>
     <message>
-        <location line="-305"/>
+        <location line="-324"/>
         <source>Upgrades available</source>
         <translation>更新可用</translation>
     </message>
@@ -108,22 +114,23 @@
         <translation>要应用更改，应重新启动 Windows。立即重新启动？</translation>
     </message>
     <message>
-        <location line="+253"/>
+        <location line="+272"/>
         <source>APO will be installed</source>
         <translation>将安装 APO</translation>
     </message>
     <message>
-        <location line="-138"/>
+        <location line="-474"/>
+        <location line="+338"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+5"/>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location line="-128"/>
+        <location line="-147"/>
         <source>This dialog can be reopened anytime by launching Device Selector from the start menu.</source>
         <translation>可以通过从开始菜单启动设备选择器随时重新打开此对话框。</translation>
     </message>
@@ -131,27 +138,24 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <location filename="../DeviceSelector.ui" line="+209"/>
         <source>Connector</source>
-        <translation>连接器</translation>
+        <translation type="vanished">连接器</translation>
     </message>
     <message>
-        <location line="+5"/>
         <source>Device</source>
-        <translation>设备</translation>
+        <translation type="vanished">设备</translation>
     </message>
     <message>
-        <location line="+5"/>
         <source>Status</source>
-        <translation>状态</translation>
+        <translation type="vanished">状态</translation>
     </message>
     <message>
-        <location line="-192"/>
+        <location line="-193"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>故障排除选项（仅在出现问题时使用）</translation>
     </message>
     <message>
-        <location line="+52"/>
+        <location filename="../DeviceSelector.ui" line="+63"/>
         <location line="+81"/>
         <source>Use original APO</source>
         <translation>使用原始 APO</translation>
@@ -212,7 +216,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>允许静默缓冲区修改</translation>
     </message>
     <message>
-        <location line="+59"/>
+        <location line="+47"/>
         <source>Copy Device command to clipboard</source>
         <translation>复制设备命令到剪贴板</translation>
     </message>
@@ -222,7 +226,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>请选择要安装 Equalizer APO 的设备：</translation>
     </message>
     <message>
-        <location line="-176"/>
+        <location line="-164"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>请点击名称选择一个已激活的设备</translation>
     </message>
@@ -230,7 +234,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestDialog</name>
     <message>
-        <location filename="../DeviceTestDialog.cpp" line="+23"/>
+        <location filename="../DeviceTestDialog.cpp" line="+42"/>
         <source>Playback devices</source>
         <translation>播放设备</translation>
     </message>
@@ -245,7 +249,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
         <translation>访问注册表时出错</translation>
     </message>
     <message>
-        <location line="+61"/>
+        <location line="+65"/>
         <source>Cannot test APO installation as device is disabled</source>
         <translation>由于设备已被禁用，无法测试 APO 安装</translation>
     </message>
@@ -297,7 +301,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 <context>
     <name>DeviceTestThread</name>
     <message>
-        <location filename="../DeviceTestThread.cpp" line="+48"/>
+        <location filename="../DeviceTestThread.cpp" line="+69"/>
         <location line="+161"/>
         <source>Restarting audio service...</source>
         <translation>正在重新启动音频服务...</translation>

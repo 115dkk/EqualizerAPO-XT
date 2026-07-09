@@ -10,50 +10,16 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/skins/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
 
 namespace
 {
-// Local copies of the Soft skin's constitutional colour helpers (they are
-// file-static in Editor/skins/SoftSkin.cpp): every pastel and every
-// elevation step is mixed from tokens that already exist, never from a new
-// palette entry, so both modes stay equally calm.
-QColor softMix(const QColor& a, const QColor& b, double t)
-{
-	return QColor(
-		qRound(a.red() + (b.red() - a.red()) * t),
-		qRound(a.green() + (b.green() - a.green()) * t),
-		qRound(a.blue() + (b.blue() - a.blue()) * t));
-}
-
-QColor softAlpha(QColor color, int alpha)
-{
-	color.setAlpha(alpha);
-	return color;
-}
-
-// The hooks receive tokens but no mode flag; the background luminance is the
-// unambiguous proxy (soft's dark background is deep warm graphite).
-bool softIsDark(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
-
-// The picker's pastel recipe: keep the hue of an existing colour and re-seat
-// saturation/lightness on the pastel shelf.
-QColor softPastelize(const QColor& base, bool dark)
-{
-	const double hue = base.hslHueF() < 0.0 ? 215.0 / 360.0 : base.hslHueF();
-	const double saturation = qMin(base.hslSaturationF(), dark ? 0.50 : 0.55);
-	return QColor::fromHslF(hue, saturation, dark ? 0.62 : 0.60);
-}
-
-// #AARRGGBB / #RRGGBB form QSS understands, for inline rules built from
-// mixed token colours.
-QString cssColor(const QColor& color)
-{
-	return color.name(color.alpha() < 255 ? QColor::HexArgb : QColor::HexRgb);
-}
+// Every pastel and every elevation step is mixed from tokens that already
+// exist, never from a new palette entry, so both modes stay equally calm.
+// The mix/alpha/is-dark/cssColor helpers and Soft's pastel recipe
+// (softPastelize) come from the shared SkinPaint.h - this file used to keep
+// verbatim copies of all five.
 
 // Which token seeds each kind's tile pastel. The hues stay inside the token
 // family: Include leans on the accent blue, VST on the accent2 violet,
@@ -66,7 +32,7 @@ QColor kindTilePastel(const QString& kind, const SkinTokens& t, bool dark)
 	if (kind == QStringLiteral("convolution"))
 		return softPastelize(QColor(t.success), dark);
 	if (kind == QStringLiteral("multiconvolution"))
-		return softPastelize(softMix(QColor(t.success), QColor(t.accent), 0.45), dark);
+		return softPastelize(mixColor(QColor(t.success), QColor(t.accent), 0.45), dark);
 	return softPastelize(QColor(t.accent), dark);
 }
 
@@ -130,7 +96,7 @@ protected:
 		QColor ink(QStringLiteral("#FAFAFC"));
 		if (!isEnabled())
 		{
-			fill = softMix(tilePastel, QColor(t.background), 0.62);
+			fill = mixColor(tilePastel, QColor(t.background), 0.62);
 			ink = QColor(t.mutedText);
 		}
 
@@ -174,7 +140,7 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, QWidget* paren
 	: ReferenceCardView(parent), cardKind(kind)
 {
 	const SkinTokens& t = SkinManager::instance()->tokens();
-	const bool dark = softIsDark(t);
+	const bool dark = skinIsDark(t);
 
 	QWidget* page = contentWidget();
 	rootLayout = new QHBoxLayout(page);
@@ -250,20 +216,20 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, QWidget* paren
 	captionLabel->setStyleSheet(QStringLiteral(
 		"QLabel { color: %1; font-size: 9pt; background: transparent; }"
 		"QLabel:disabled { color: %2; }")
-		.arg(t.mutedText, cssColor(softAlpha(QColor(t.mutedText), 150))));
+		.arg(t.mutedText, cssColor(withAlpha(QColor(t.mutedText), 150))));
 
 	// Fact chips: one quiet blue-grey pastel (the accent pulled toward the
 	// muted ink before pastelizing - facts inform, they do not announce)
 	// under the skin's deep warm chip ink (AR1 F2: white on a pastel is
 	// low-contrast anxiety). Sleeping chips sink toward the window like the
 	// type chip does.
-	const QColor chipPastel = softPastelize(softMix(QColor(t.accent), QColor(t.mutedText), 0.55), dark);
+	const QColor chipPastel = softPastelize(mixColor(QColor(t.accent), QColor(t.mutedText), 0.55), dark);
 	chipStyle = QStringLiteral(
 		"QLabel { background: %1; color: %2; border-radius: 9px; padding: 2px 10px;"
 		" font-size: 8pt; font-weight: 600; }"
 		"QLabel:disabled { background: %3; color: %4; }")
 		.arg(chipPastel.name(), QStringLiteral("#2B251D"),
-			cssColor(softMix(chipPastel, QColor(t.background), 0.62)), t.mutedText);
+			cssColor(mixColor(chipPastel, QColor(t.background), 0.62)), t.mutedText);
 	formatChip->setStyleSheet(chipStyle);
 
 	// Status stays a caption, not an alarm: severity inks are the warning /
@@ -275,25 +241,25 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, QWidget* paren
 		"QLabel[severity=\"critical\"] { color: %3; }"
 		"QLabel:disabled { color: %1; }")
 		.arg(t.mutedText,
-			cssColor(softMix(QColor(t.warning), QColor(t.text), dark ? 0.40 : 0.35)),
-			cssColor(softMix(QColor(t.danger), QColor(t.text), dark ? 0.40 : 0.35))));
+			cssColor(mixColor(QColor(t.warning), QColor(t.text), dark ? 0.40 : 0.35)),
+			cssColor(mixColor(QColor(t.danger), QColor(t.text), dark ? 0.40 : 0.35))));
 
 	// The guided-recovery entry: while the host relabels Browse to a
 	// translated "Locate...", the button becomes the row's protagonist - an
 	// accent-pastel stadium pill (this skin's friendly primary), never a red
 	// alarm. Disabled it sleeps on the tray surface.
 	const QColor accent(t.accent);
-	const QColor locateInk = softMix(accent, QColor(t.text), dark ? 0.45 : 0.25);
+	const QColor locateInk = mixColor(accent, QColor(t.text), dark ? 0.45 : 0.25);
 	locatePillStyle = QStringLiteral(
 		"QToolButton { background: %1; color: %2; border: 1px solid %3; border-radius: 15px;"
 		" padding: 4px 14px; min-height: 22px; font-weight: 700; }"
 		"QToolButton:hover { background: %4; }")
-		.arg(cssColor(softAlpha(accent, dark ? 46 : 36)), cssColor(locateInk),
-			cssColor(softAlpha(accent, dark ? 90 : 76)), cssColor(softAlpha(accent, dark ? 66 : 52)))
+		.arg(cssColor(withAlpha(accent, dark ? 46 : 36)), cssColor(locateInk),
+			cssColor(withAlpha(accent, dark ? 90 : 76)), cssColor(withAlpha(accent, dark ? 66 : 52)))
 		+ QStringLiteral(
 		"QToolButton:pressed { background: %1; }"
 		"QToolButton:disabled { background: %2; color: %3; border-color: %4; }")
-		.arg(cssColor(softAlpha(accent, dark ? 84 : 66)), t.surface, t.mutedText, t.border);
+		.arg(cssColor(withAlpha(accent, dark ? 84 : 66)), t.surface, t.mutedText, t.border);
 }
 
 void SoftReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
@@ -338,7 +304,7 @@ void SoftReferenceCardView::addLeadingWidget(QWidget* widget)
 void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 {
 	const SkinTokens& t = SkinManager::instance()->tokens();
-	const bool dark = softIsDark(t);
+	const bool dark = skinIsDark(t);
 	const QString kind = state.kind.isEmpty() ? cardKind : state.kind;
 
 	// The broken-state transition (AR2 X-3) lives in the tile, still on the

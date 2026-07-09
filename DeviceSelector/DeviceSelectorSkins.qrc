@@ -1,0 +1,32 @@
+<RCC>
+    <qresource prefix="/">
+        <!-- The Editor's skin sheets and the theme assets they reference,
+             aliased onto the same resource paths so SkinThemeData resolves
+             them identically in both executables. The fonts are the subset
+             the sheets name (DM Sans/DM Mono + Pretendard for Hangul); the
+             Sarasa mono-Korean fallback is Editor-only, this dialog has no
+             monospace Korean surface worth its 9 MB. -->
+        <file alias="skins/studio_dark.qss">../Editor/skins/studio_dark.qss</file>
+        <file alias="skins/studio_light.qss">../Editor/skins/studio_light.qss</file>
+        <file alias="skins/precision_dark.qss">../Editor/skins/precision_dark.qss</file>
+        <file alias="skins/precision_light.qss">../Editor/skins/precision_light.qss</file>
+        <file alias="skins/soft_dark.qss">../Editor/skins/soft_dark.qss</file>
+        <file alias="skins/soft_light.qss">../Editor/skins/soft_light.qss</file>
+        <file alias="skins/rack_dark.qss">../Editor/skins/rack_dark.qss</file>
+        <file alias="skins/rack_light.qss">../Editor/skins/rack_light.qss</file>
+        <file alias="skins/matrix_dark.qss">../Editor/skins/matrix_dark.qss</file>
+        <file alias="skins/matrix_light.qss">../Editor/skins/matrix_light.qss</file>
+        <file alias="icons/modern/chevron-down.svg">../Editor/icons/modern/chevron-down.svg</file>
+        <file alias="icons/modern/chevron-right.svg">../Editor/icons/modern/chevron-right.svg</file>
+        <file alias="icons/modern/chevron-up.svg">../Editor/icons/modern/chevron-up.svg</file>
+        <file alias="fonts/DMSans-Regular.ttf">../Editor/fonts/DMSans-Regular.ttf</file>
+        <file alias="fonts/DMSans-Medium.ttf">../Editor/fonts/DMSans-Medium.ttf</file>
+        <file alias="fonts/DMSans-SemiBold.ttf">../Editor/fonts/DMSans-SemiBold.ttf</file>
+        <file alias="fonts/DMSans-Bold.ttf">../Editor/fonts/DMSans-Bold.ttf</file>
+        <file alias="fonts/DMMono-Regular.ttf">../Editor/fonts/DMMono-Regular.ttf</file>
+        <file alias="fonts/DMMono-Medium.ttf">../Editor/fonts/DMMono-Medium.ttf</file>
+        <file alias="fonts/Pretendard-Regular.otf">../Editor/fonts/Pretendard-Regular.otf</file>
+        <file alias="fonts/Pretendard-SemiBold.otf">../Editor/fonts/Pretendard-SemiBold.otf</file>
+        <file alias="fonts/Pretendard-Bold.otf">../Editor/fonts/Pretendard-Bold.otf</file>
+    </qresource>
+</RCC>

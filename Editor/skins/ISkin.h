@@ -12,8 +12,11 @@
 #pragma once
 
 #include <QColor>
+#include <QPolygonF>
 #include <QRect>
+#include <QSet>
 #include <QString>
+#include <QVector>
 
 #include "Editor/SkinTokens.h"
 
@@ -46,6 +49,98 @@ struct CommandRowInfo
 	int depth = 0;
 };
 
+// Interactive state for the list-level add/insert chrome: the trailing
+// "add card" row (AddCardRow) and the first-boundary insertion seam
+// (FilterInsertSeam). The widgets own all input handling; the skin only
+// paints. label carries the widget's translated caption ("Add filter"); a
+// skin may draw it in its own register or replace it with its own grammar.
+struct ListChromeState
+{
+	bool hovered = false;
+	bool pressed = false;
+	bool focused = false;
+	QString label;
+};
+
+// Snapshot of the GraphicEQ card's response plot handed to
+// ISkin::paintGraphicEqPlot. GraphicEQPlotWidget owns the model and every
+// input gesture (node drag, add/remove, selection, dB zoom/pan, keyboard);
+// the skin owns every pixel. All positions are widget-local pixels, already
+// mapped from Hz/dB, so a skin renders geometry without redoing the math.
+struct GraphicEQPlotState
+{
+	// Full widget rect and the inner data area (labels live in the margins).
+	QRect rect;
+	QRectF plotRect;
+	bool enabled = true;
+	bool focused = false;
+	// True in the 15/31-band layouts: node frequencies are fixed, and the
+	// response reads as levels on fixed bands (skins may draw stems/bars).
+	bool bandLocked = false;
+	// The response curve sampled across plotRect, and the y of 0 dB (may lie
+	// outside plotRect when the frame is panned away from it).
+	QPolygonF curve;
+	double zeroY = 0;
+	// Node handles in px, in node order; selection/hover index into this.
+	QVector<QPointF> nodePositions;
+	QSet<int> selectedNodes;
+	int hoveredNode = -1;
+	int focusedNode = -1;
+	// Grid with prepared labels ("1k", "+6"); minor lines carry no label.
+	struct GridLine
+	{
+		double pos = 0;
+		QString label;
+		bool major = false;
+	};
+	QVector<GridLine> vertical;
+	QVector<GridLine> horizontal;
+	// Cursor readout while the pointer is inside plotRect.
+	bool cursorValid = false;
+	QPointF cursor;
+	QString cursorText;
+};
+
+// Snapshot of the analysis dock's response graph handed to
+// ISkin::paintAnalysisGraph. EqGraphView owns the sampling, the axis fit and
+// the cursor tracking; the skin owns every pixel. All positions are
+// widget-local pixels, already mapped.
+struct AnalysisGraphState
+{
+	// Full widget rect and the inner data area (labels live in the margins).
+	QRect rect;
+	QRectF plotRect;
+	// The whole config's response sampled per px across plotRect, and the y
+	// of 0 dB. The dB range is fitted symmetrically around 0.
+	QPolygonF curve;
+	double zeroY = 0;
+	double minDb = 0;
+	double maxDb = 0;
+	// Any sample rises above 0 dB - the response can clip. Universal danger
+	// semantics; skins should make the overshoot readable.
+	bool clipping = false;
+	// Grid with prepared labels ("100", "1k", "+6"); minor lines carry none.
+	struct GridLine
+	{
+		double pos = 0;
+		QString label;
+		bool major = false;
+	};
+	QVector<GridLine> vertical;
+	QVector<GridLine> horizontal;
+	// Footer caption, already formatted ("All - 48000 Hz"; channel only
+	// while no analysis ran yet).
+	QString channelText;
+	// Pointer-driven readout: cursor position inside plotRect, the y of the
+	// response under it, and the prepared "1.2 kHz  -3.4 dB" text.
+	bool cursorValid = false;
+	QPointF cursor;
+	double curveYAtCursor = 0;
+	QString cursorText;
+	// Widget hover progress, 0..1, animated (150ms in / 110ms out).
+	double hover = 0.0;
+};
+
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
 // all input handling; the skin only paints.
 struct KnobState
@@ -75,11 +170,15 @@ public:
 	// Stable identifier persisted in settings (e.g. "studio", "matrix").
 	virtual QString id() const = 0;
 
-	// Colour + metric tokens for the requested mode.
-	virtual SkinTokens tokens(bool dark) const = 0;
+	// Colour + metric tokens for the requested mode. The default resolves the
+	// table SkinThemeData keeps for id(); the five shipped skins live there,
+	// so they do not override this.
+	virtual SkinTokens tokens(bool dark) const;
 
-	// Resource path of the QSS sheet for the requested mode.
-	virtual QString qssResource(bool dark) const = 0;
+	// Resource path of the QSS sheet for the requested mode. Default:
+	// SkinThemeData::qssResource(id(), dark), which also carries the minimal
+	// skin's historical precision_* file names.
+	virtual QString qssResource(bool dark) const;
 
 	// The Copy routing renderer that matches this skin's philosophy. May be
 	// nullptr, in which case the caller falls back to the legacy CopyFilterGUI.
@@ -132,6 +231,38 @@ public:
 	// per-type markers). Runs after the frame's stylesheet background and
 	// before child widgets paint. Default: no-op.
 	virtual void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// The persistent "add card" row at the end of the filter list (shared
+	// insertion contract, docs/skins/README.md). The AddCardRow widget owns
+	// input (click / Enter opens the filter picker anchored under the row) and
+	// delegates all painting here. The default is a neutral token-driven ghost
+	// row: dashed border, muted "+ <label>" caption, accent on hover. Skins
+	// override to answer with their own philosophy.
+	virtual void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
+
+	// The hover-only insertion seam above the FIRST card (the one place a new
+	// card can be inserted in front of everything, since the header "+" adds
+	// below its card). The widget is invisible at rest and only paints while
+	// hovered, so this hook never changes a skin's at-rest gallery. The default
+	// is a thin accent line with a small "+" disc at the left edge.
+	virtual void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
+
+	// The GraphicEQ card's response plot (GraphicEQPlotWidget) - the clean
+	// install's first impression. The widget owns the model and all input;
+	// the skin paints everything: ground, grid, labels, the response curve,
+	// the node handles and the cursor readout. The default is a neutral
+	// token-driven rendering; each shipped skin answers with its own
+	// instrument (form decided in paint code, not QSS).
+	virtual void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const;
+
+	// The analysis dock's response graph (EqGraphView): the whole config's
+	// measured response. The widget owns sampling, axis fitting and cursor
+	// tracking; the skin paints everything - ground, grid, labels, the
+	// response trace, the clip emphasis above 0 dB and the cursor readout.
+	// The default is a neutral token-driven rendering (also the heritage
+	// look); each shipped skin answers with the same instrument family it
+	// chose for the GraphicEQ plot.
+	virtual void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

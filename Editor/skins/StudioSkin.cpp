@@ -45,6 +45,7 @@
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/LightTraceRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
 
 namespace
@@ -56,28 +57,8 @@ namespace
 // effects. Tiebreaker: if an element is not the arc, the label or the value,
 // it gets removed.
 
-// QSS colour with alpha derived from a token hex string.
-QString studioRgba(const QString& hex, double alpha)
-{
-	const QColor color(hex);
-	return QStringLiteral("rgba(%1, %2, %3, %4)")
-		.arg(color.red()).arg(color.green()).arg(color.blue())
-		.arg(alpha, 0, 'f', 2);
-}
-
-QColor studioAlpha(const QString& hex, int alpha)
-{
-	QColor color(hex);
-	color.setAlpha(alpha);
-	return color;
-}
-
-// The hooks receive tokens but not the mode flag; the background luminance is
-// an unambiguous proxy because studio's dark background is near-black.
-bool studioIsDark(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
+// The alpha/rgba/is-dark vocabulary moved to the shared SkinPaint.h
+// (cssRgba/withAlpha/skinIsDark) - mechanical helpers, no studio grammar.
 
 // S3 band-colour law (adversarial review round 1): the light a BiQuad row
 // carries - knob arcs, type badge ink, signal lamp, hover/selected border
@@ -142,7 +123,7 @@ QColor studioBandPaintColor(const QPainter& painter, const SkinTokens& tokens)
 	{
 		const QVariant family = static_cast<const QWidget*>(painter.device())->property("studioBand");
 		if (family.isValid())
-			hex = studioBandHex(family.toString(), studioIsDark(tokens));
+			hex = studioBandHex(family.toString(), skinIsDark(tokens));
 	}
 	return QColor(hex);
 }
@@ -151,10 +132,6 @@ class StudioSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("studio"); }
-	QString qssResource(bool dark) const override
-	{
-		return QStringLiteral(":/skins/studio_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static LightTraceRoutingRenderer renderer;
@@ -188,7 +165,7 @@ public:
 	// layered strokes, never effects.
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		painter.save();
 
 		// The 1px lighter top edge of the glass formula, quieter than a
@@ -201,19 +178,19 @@ public:
 		const double x0 = rect.left() + (rect.width() - span) / 2.0;
 		const double y = rect.top() + 0.5;
 		QLinearGradient bloom(x0, y, x0 + span, y);
-		bloom.setColorAt(0.0, studioAlpha(tokens.accent, 0));
-		bloom.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 70 : 55));
-		bloom.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 52 : 42));
-		bloom.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		bloom.setColorAt(0.0, withAlpha(tokens.accent, 0));
+		bloom.setColorAt(0.35, withAlpha(tokens.accent, dark ? 70 : 55));
+		bloom.setColorAt(0.7, withAlpha(tokens.accent2, dark ? 52 : 42));
+		bloom.setColorAt(1.0, withAlpha(tokens.accent2, 0));
 		QPen bloomPen(QBrush(bloom), 4.0);
 		bloomPen.setCapStyle(Qt::RoundCap);
 		painter.setPen(bloomPen);
 		painter.drawLine(QPointF(x0, y), QPointF(x0 + span, y));
 		QLinearGradient core(x0, y, x0 + span, y);
-		core.setColorAt(0.0, studioAlpha(tokens.accent, 0));
-		core.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 215 : 195));
-		core.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 175 : 155));
-		core.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		core.setColorAt(0.0, withAlpha(tokens.accent, 0));
+		core.setColorAt(0.35, withAlpha(tokens.accent, dark ? 215 : 195));
+		core.setColorAt(0.7, withAlpha(tokens.accent2, dark ? 175 : 155));
+		core.setColorAt(1.0, withAlpha(tokens.accent2, 0));
 		QPen corePen(QBrush(core), 1.5);
 		corePen.setCapStyle(Qt::RoundCap);
 		painter.setPen(corePen);
@@ -378,16 +355,16 @@ public:
 	// reflection and most of their opacity.
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 
 		if (!info.enabled)
 		{
 			return QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 8px; }")
-				.arg(studioRgba(tokens.card, 0.45), studioRgba(tokens.border, 0.55));
+				.arg(cssRgba(tokens.card, 0.45), cssRgba(tokens.border, 0.55));
 		}
 
-		const QString background = studioRgba(info.selected ? tokens.cardSelected : tokens.card, 0.88);
-		const QString hoverBackground = studioRgba(info.selected ? tokens.cardSelected : tokens.cardHover, 0.94);
+		const QString background = cssRgba(info.selected ? tokens.cardSelected : tokens.card, 0.88);
+		const QString hoverBackground = cssRgba(info.selected ? tokens.cardSelected : tokens.cardHover, 0.94);
 		const QString topEdge = dark ? QStringLiteral("rgba(255, 255, 255, 0.10)") : QStringLiteral("rgba(255, 255, 255, 0.95)");
 		const QString topEdgeHover = dark ? QStringLiteral("rgba(255, 255, 255, 0.17)") : QStringLiteral("#FFFFFF");
 
@@ -395,10 +372,10 @@ public:
 		{
 			// The gradient border is the glow; no separate top edge needed.
 			const QString gradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
-				.arg(studioRgba(tokens.accent, info.focused || info.selected ? 0.95 : 0.70),
-					studioRgba(tokens.accent, info.focused || info.selected ? 0.45 : 0.22));
+				.arg(cssRgba(tokens.accent, info.focused || info.selected ? 0.95 : 0.70),
+					cssRgba(tokens.accent, info.focused || info.selected ? 0.45 : 0.22));
 			const QString hoverGradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
-				.arg(studioRgba(tokens.accent, 0.95), studioRgba(tokens.accent, 0.40));
+				.arg(cssRgba(tokens.accent, 0.95), cssRgba(tokens.accent, 0.40));
 			return QStringLiteral(
 				"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 8px; }"
 				" QFrame#FilterCardRow:hover { background: %3; border-color: %4; }")
@@ -409,8 +386,8 @@ public:
 			? QStringLiteral("dashed") : QStringLiteral("solid");
 		const QString borderBrush = info.focused
 			? tokens.focusRing
-			: (info.selected ? studioRgba(tokens.accent, 0.65) : studioRgba(tokens.border, 0.90));
-		const QString hoverBorderBrush = info.focused ? tokens.focusRing : studioRgba(tokens.accent, 0.45);
+			: (info.selected ? cssRgba(tokens.accent, 0.65) : cssRgba(tokens.border, 0.90));
+		const QString hoverBorderBrush = info.focused ? tokens.focusRing : cssRgba(tokens.accent, 0.45);
 
 		QString style = QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-top-color: %4; border-radius: 8px; }"
@@ -427,9 +404,9 @@ public:
 				const QString band = studioBandHex(QLatin1String(family), dark);
 				if (info.selected)
 					style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"] { border-color: %2; border-top-color: %3; }")
-						.arg(QLatin1String(family), studioRgba(band, 0.65), topEdge);
+						.arg(QLatin1String(family), cssRgba(band, 0.65), topEdge);
 				style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"]:hover { border-color: %2; border-top-color: %3; }")
-					.arg(QLatin1String(family), studioRgba(band, 0.45), topEdgeHover);
+					.arg(QLatin1String(family), cssRgba(band, 0.45), topEdgeHover);
 			}
 		}
 		return style;
@@ -437,7 +414,7 @@ public:
 
 	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		if (!info.enabled)
 		{
 			// Disabled: the sheen is off, the header melts into the glass.
@@ -464,7 +441,7 @@ public:
 		if (!info.enabled || info.type == QStringLiteral("spacer"))
 			return;
 
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		painter.save();
 		painter.setRenderHint(QPainter::Antialiasing);
 
@@ -520,9 +497,9 @@ public:
 			// effects; hover turns the light up a full step (S4).
 			const QRectF edge = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
 			painter.setBrush(Qt::NoBrush);
-			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 150 : 80), 1.0));
+			painter.setPen(QPen(withAlpha(tokens.accent, info.hovered ? 150 : 80), 1.0));
 			painter.drawRoundedRect(edge, 8.0, 8.0);
-			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 80 : 36), 3.0));
+			painter.setPen(QPen(withAlpha(tokens.accent, info.hovered ? 80 : 36), 3.0));
 			painter.drawRoundedRect(edge.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
 		}
 		else
@@ -554,6 +531,690 @@ public:
 		painter.restore();
 	}
 
+	// The trailing add row is a glass slot not yet fitted with a pane
+	// (round 3). At rest it is switched-off glass - a low-alpha fill under a
+	// faint SOLID hairline (dashed is Include's material, a reference to
+	// elsewhere; this slot is a place, so its outline stays solid) with no
+	// reflection: the dead-pane grammar the disabled cards already speak.
+	// Hover fits the pane: the fill rises toward a live card, the centre-
+	// bright reflection lights on the top edge (dark mode; white glass
+	// cannot brighten, so light mode pools the pane's thickness shade at the
+	// bottom instead) and two strokes hugging the border fake an accent halo
+	// - glow is layered strokes, never effects. Pressing turns the light one
+	// step further up (rest < hover < press). The caption is a drawn plus
+	// glyph and the widget's translated label: muted ink on the dead pane,
+	// text ink with an accent-blooming plus once the slot lights.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		const bool dark = skinIsDark(tokens);
+		const bool lit = state.hovered || state.pressed;
+		painter.setRenderHint(QPainter::Antialiasing);
+		const QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+		// Fill ladder: the disabled cards' dead-pane alpha at rest, rising
+		// toward (but never reaching) the live cards' 0.88 when lit - the
+		// slot stays a slot until a real card fills it.
+		const double fillAlpha = state.pressed ? 0.80 : (state.hovered ? 0.66 : 0.42);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlpha(tokens.card, qRound(fillAlpha * 255)));
+		painter.drawRoundedRect(frame, 8.0, 8.0);
+
+		if (lit && !dark)
+		{
+			// S2: the lit white slot borrows the pane's thickness - a shade
+			// pooling at the bottom edge carries the glass impression.
+			QPainterPath panePath;
+			panePath.addRoundedRect(frame.adjusted(1.0, 1.0, -1.0, -1.0), 7.0, 7.0);
+			QLinearGradient depthShade(QPointF(frame.left(), frame.bottom() - frame.height() * 0.5), frame.bottomLeft());
+			depthShade.setColorAt(0.0, QColor(24, 32, 51, 0));
+			depthShade.setColorAt(1.0, QColor(24, 32, 51, state.pressed ? 34 : 26));
+			painter.fillPath(panePath, depthShade);
+		}
+
+		// Base outline: a faint neutral hairline; keyboard focus wears the
+		// neutral focus ring (the accent halo below stays a pointer answer).
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(state.focused ? QColor(tokens.focusRing) : withAlpha(tokens.border, lit ? 230 : 140), 1.0));
+		painter.drawRoundedRect(frame, 8.0, 8.0);
+
+		if (lit)
+		{
+			// Two border-hugging strokes fake the halo (the VST edge grammar
+			// at slot scale); press is one ladder step up.
+			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 170 : 120), 1.0));
+			painter.drawRoundedRect(frame, 8.0, 8.0);
+			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 80 : 48), 3.0));
+			painter.drawRoundedRect(frame.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
+
+			if (dark)
+			{
+				// The centre-bright reflection lights on the fitted pane
+				// (the card chrome's S1 line, one step calmer).
+				const double y = frame.top() + 1.5;
+				QLinearGradient reflection(frame.left(), y, frame.right(), y);
+				reflection.setColorAt(0.0, QColor(255, 255, 255, 0));
+				reflection.setColorAt(0.5, QColor(255, 255, 255, state.pressed ? 96 : 72));
+				reflection.setColorAt(1.0, QColor(255, 255, 255, 0));
+				painter.setPen(QPen(QBrush(reflection), 1.0));
+				painter.drawLine(QPointF(frame.left() + 7.0, y), QPointF(frame.right() - 7.0, y));
+			}
+		}
+
+		// Caption: drawn plus + translated label, centred as one unit.
+		QFont captionFont(tokens.fontFamily);
+		captionFont.setPointSizeF(9.5);
+		captionFont.setWeight(QFont::DemiBold);
+		const QFontMetricsF metrics(captionFont);
+		const double plusRadius = 4.0;
+		const double gap = 8.0;
+		const double textWidth = metrics.horizontalAdvance(state.label);
+		const double totalWidth = plusRadius * 2.0 + gap + textWidth;
+		const double left = frame.center().x() - totalWidth / 2.0;
+		const QPointF plusCenter(left + plusRadius, frame.center().y());
+
+		if (lit)
+		{
+			// The plus lights in the accent: bloom stroke first, core on top.
+			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 96 : 70), 4.5, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(plusCenter.x() - plusRadius, plusCenter.y()), QPointF(plusCenter.x() + plusRadius, plusCenter.y()));
+			painter.drawLine(QPointF(plusCenter.x(), plusCenter.y() - plusRadius), QPointF(plusCenter.x(), plusCenter.y() + plusRadius));
+			painter.setPen(QPen(QColor(tokens.accent), 1.6, Qt::SolidLine, Qt::RoundCap));
+		}
+		else
+		{
+			painter.setPen(QPen(withAlpha(tokens.mutedText, 200), 1.6, Qt::SolidLine, Qt::RoundCap));
+		}
+		painter.drawLine(QPointF(plusCenter.x() - plusRadius, plusCenter.y()), QPointF(plusCenter.x() + plusRadius, plusCenter.y()));
+		painter.drawLine(QPointF(plusCenter.x(), plusCenter.y() - plusRadius), QPointF(plusCenter.x(), plusCenter.y() + plusRadius));
+
+		painter.setFont(captionFont);
+		painter.setPen(lit ? QColor(tokens.text) : QColor(tokens.mutedText));
+		painter.drawText(QRectF(left + plusRadius * 2.0 + gap, frame.top(), textWidth + 4.0, frame.height()),
+			Qt::AlignLeft | Qt::AlignVCenter, state.label);
+	}
+
+	// The first-boundary seam is light seeping between panes. At rest the
+	// hosting widget paints nothing (shared contract); under the cursor a
+	// horizontal light ray crosses the boundary - a wide translucent stroke
+	// under a narrow bright core (glow faked with layered strokes), fading
+	// out at both ends like the menu separators, with the violet end of the
+	// spectrum reserved for the far side (accent2 stays the light's end,
+	// rule 1). The knob's indicator-dot grammar marks the insertion point at
+	// the centre; pressing turns the whole ray one step up.
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		const double y = rect.center().y() + 0.5;
+		const double x0 = rect.left() + 2.0;
+		const double x1 = rect.right() - 2.0;
+		const bool pressed = state.pressed;
+
+		const auto ray = [&](int accentAlpha, int violetAlpha) {
+			QLinearGradient gradient(x0, y, x1, y);
+			gradient.setColorAt(0.0, withAlpha(tokens.accent, 0));
+			gradient.setColorAt(0.28, withAlpha(tokens.accent, accentAlpha));
+			gradient.setColorAt(0.74, withAlpha(tokens.accent2, violetAlpha));
+			gradient.setColorAt(1.0, withAlpha(tokens.accent2, 0));
+			return gradient;
+		};
+
+		// Bloom, mid, core: the knob arc's stroke ladder laid flat.
+		QPen bloomPen(QBrush(ray(pressed ? 96 : 64, pressed ? 74 : 48)), 5.0);
+		bloomPen.setCapStyle(Qt::RoundCap);
+		painter.setPen(bloomPen);
+		painter.drawLine(QPointF(x0, y), QPointF(x1, y));
+		QPen midPen(QBrush(ray(pressed ? 205 : 150, pressed ? 165 : 118)), 2.4);
+		midPen.setCapStyle(Qt::RoundCap);
+		painter.setPen(midPen);
+		painter.drawLine(QPointF(x0, y), QPointF(x1, y));
+		QPen corePen(QBrush(ray(255, 235)), 1.0);
+		corePen.setCapStyle(Qt::RoundCap);
+		painter.setPen(corePen);
+		painter.drawLine(QPointF(x0, y), QPointF(x1, y));
+
+		// Insertion point: the indicator dot (halo + core) on the ray's
+		// accent stretch.
+		const QPointF dot(rect.center().x(), y);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlpha(tokens.accent, pressed ? 130 : 100));
+		painter.drawEllipse(dot, 4.4, 4.4);
+		painter.setBrush(QColor(tokens.accent));
+		painter.drawEllipse(dot, 2.2, 2.2);
+	}
+
+	// The GraphicEQ card's response plot: "the light's response gauge"
+	// (round 3 rework, form-first). The widget owns the model and every
+	// gesture; this hook owns every pixel. The pane is a sunken glass
+	// window - the deep graph ground clipped to the one 8px round under a
+	// darker inner top edge - and the grid recedes as faint crisp lines
+	// (AA off on straight lines; the curve is data and keeps AA). The
+	// 0 dB line is the knob's luminous anchor laid flat: an accent bloom
+	// under a text-ink core. The response curve is the card's one light -
+	// the knob arc's four layered strokes (rule 3) - and an accent fill
+	// sinks from the curve toward the 0 dB line, dying as it lands. Nodes
+	// speak the indicator-dot grammar (halo + core) on the luminance
+	// ladder rest < hover < selected; keyboard focus is a thin ring
+	// outside the dot, and the focused frame swaps its border for the
+	// focus ring. Band-locked layouts (15/31) grow light stems from the
+	// baseline, keeping the classic graphic-EQ silhouette. The cursor
+	// readout is dim mono on the glass, alive only under the pointer.
+	// Disabled is lights-out: glow, fill and blooms die, the data stays
+	// as one thin quiet stroke (soft, never a warning). This row is not a
+	// BiQuad, so the light is the skin's base blue only (rule 1).
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
+	{
+		const bool dark = skinIsDark(tokens);
+		const bool lit = state.enabled;
+		const QRectF plot = state.plotRect;
+
+		painter.save();
+		if (!lit)
+			painter.setOpacity(0.45);
+
+		// Sunken pane: deep ground behind the one 8px round.
+		const QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		QPainterPath pane;
+		pane.addRoundedRect(frame, 8.0, 8.0);
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		painter.fillPath(pane, QColor(tokens.graph));
+		painter.setClipPath(pane);
+
+		// Grid: crisp 1px lines held far behind the data.
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		const QColor gridMinor = withAlpha(tokens.graphGridMinor, dark ? 84 : 150);
+		const QColor gridMajor = withAlpha(tokens.graphGridMajor, dark ? 118 : 165);
+		for (const GraphicEQPlotState::GridLine& line : state.vertical)
+		{
+			const int x = int(line.pos);
+			painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+			painter.drawLine(x, int(plot.top()), x, int(plot.bottom()));
+		}
+		for (const GraphicEQPlotState::GridLine& line : state.horizontal)
+		{
+			const int y = int(line.pos);
+			painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+			painter.drawLine(int(plot.left()), y, int(plot.right()), y);
+		}
+
+		// Margins: DM Mono engravings; the in-between ticks' labels recede
+		// one step further than the majors.
+		QFont labelFont(tokens.monoFontFamily);
+		labelFont.setPointSizeF(7.5);
+		painter.setFont(labelFont);
+		for (const GraphicEQPlotState::GridLine& line : state.vertical)
+		{
+			if (line.label.isEmpty())
+				continue;
+			painter.setPen(withAlpha(tokens.mutedText, line.major ? 215 : 140));
+			painter.drawText(QRect(int(line.pos) - 24, int(plot.bottom()) + 2, 48,
+				state.rect.bottom() - int(plot.bottom()) - 2),
+				Qt::AlignHCenter | Qt::AlignTop, line.label);
+		}
+		for (const GraphicEQPlotState::GridLine& line : state.horizontal)
+		{
+			if (line.label.isEmpty())
+				continue;
+			painter.setPen(withAlpha(tokens.mutedText, line.major ? 215 : 140));
+			painter.drawText(QRect(state.rect.left(), int(line.pos) - 8,
+				int(plot.left()) - state.rect.left() - 5, 16),
+				Qt::AlignRight | Qt::AlignVCenter, line.label);
+		}
+
+		// 0 dB: the knob's luminous anchor stretched horizontal - accent
+		// bloom first, text-ink core on top (strokes, never effects). When
+		// the light is off the anchor drops to a quiet muted line.
+		if (state.zeroY >= plot.top() && state.zeroY <= plot.bottom())
+		{
+			const int y = int(state.zeroY);
+			if (lit)
+			{
+				painter.setPen(QPen(withAlpha(tokens.accent, 52), 3));
+				painter.drawLine(int(plot.left()), y, int(plot.right()), y);
+				painter.setPen(QPen(withAlpha(tokens.text, 200), 1));
+			}
+			else
+			{
+				painter.setPen(QPen(withAlpha(tokens.mutedText, 170), 1));
+			}
+			painter.drawLine(int(plot.left()), y, int(plot.right()), y);
+		}
+
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		const double base = qBound(plot.top(), state.zeroY, plot.bottom());
+
+		if (state.curve.size() >= 2)
+		{
+			if (lit)
+			{
+				// The fill sinks from the curve toward the 0 dB line and
+				// dies as it lands: a vertical gradient whose alpha peaks
+				// away from the baseline on both sides.
+				QPolygonF fill = state.curve;
+				fill.append(QPointF(state.curve.last().x(), base));
+				fill.prepend(QPointF(state.curve.first().x(), base));
+				const double zeroRatio = qBound(0.02, (base - plot.top()) / qMax(1.0, plot.height()), 0.98);
+				QLinearGradient sink(0, plot.top(), 0, plot.bottom());
+				sink.setColorAt(0.0, withAlpha(tokens.accent, 52));
+				sink.setColorAt(zeroRatio, withAlpha(tokens.accent, 7));
+				sink.setColorAt(1.0, withAlpha(tokens.accent, 44));
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(sink);
+				painter.drawPolygon(fill);
+			}
+
+			// The curve is the card's light: four layered strokes, wide
+			// and faint to narrow and full (rule 3). Lights-out keeps one
+			// thin stroke - the data survives, the glow does not.
+			painter.setBrush(Qt::NoBrush);
+			const struct { double width; int alpha; } layers[] = {
+				{ 9.0, 22 },
+				{ 5.5, 48 },
+				{ 3.0, 110 },
+				{ 1.6, 255 }
+			};
+			for (const auto& layer : layers)
+			{
+				if (!lit && layer.width > 1.6)
+					continue;
+				QPen glow(withAlpha(tokens.accent, lit ? layer.alpha : 150), layer.width);
+				glow.setCapStyle(Qt::RoundCap);
+				glow.setJoinStyle(Qt::RoundJoin);
+				painter.setPen(glow);
+				painter.drawPolyline(state.curve);
+			}
+		}
+
+		// Band-locked layouts: light stems rising from the baseline to each
+		// band level - bloom under core, the anchor grammar turned vertical.
+		if (state.bandLocked)
+		{
+			for (const QPointF& node : state.nodePositions)
+			{
+				if (lit)
+				{
+					painter.setPen(QPen(withAlpha(tokens.accent, 36), 4.0));
+					painter.drawLine(QPointF(node.x(), base), node);
+					painter.setPen(QPen(withAlpha(tokens.accent, 150), 1.6));
+				}
+				else
+				{
+					painter.setPen(QPen(withAlpha(tokens.accent, 90), 1.2));
+				}
+				painter.drawLine(QPointF(node.x(), base), node);
+			}
+		}
+
+		// Nodes: the indicator-dot grammar (halo + core) on the luminance
+		// ladder; selection adds an outer bloom, keyboard focus a thin ring.
+		for (int i = 0; i < state.nodePositions.size(); i++)
+		{
+			const QPointF& center = state.nodePositions.at(i);
+			const bool selected = state.selectedNodes.contains(i);
+			const bool hovered = state.hoveredNode == i;
+			if (lit)
+			{
+				painter.setPen(Qt::NoPen);
+				if (selected)
+				{
+					painter.setBrush(withAlpha(tokens.accent, 40));
+					painter.drawEllipse(center, 9.0, 9.0);
+				}
+				painter.setBrush(withAlpha(tokens.accent, selected ? 120 : (hovered ? 88 : 36)));
+				painter.drawEllipse(center, 6.0, 6.0);
+				painter.setBrush(QColor(tokens.accent));
+				painter.drawEllipse(center, 3.0, 3.0);
+			}
+			else
+			{
+				painter.setPen(QPen(withAlpha(tokens.border, 220), 1.0));
+				painter.setBrush(QColor(tokens.card));
+				painter.drawEllipse(center, 2.8, 2.8);
+			}
+			if (lit && state.focused && state.focusedNode == i)
+			{
+				painter.setPen(QPen(withAlpha(tokens.accent, 110), 1.0));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawEllipse(center, 8.5, 8.5);
+			}
+		}
+
+		// Cursor readout: dim mono on the glass, alive only under the
+		// pointer (the knob's fading readout at plot scale).
+		if (lit && state.cursorValid && !state.cursorText.isEmpty())
+		{
+			painter.setFont(labelFont);
+			painter.setPen(withAlpha(tokens.mutedText, 220));
+			painter.drawText(QRectF(plot.adjusted(0, 3, -8, 0)), Qt::AlignRight | Qt::AlignTop, state.cursorText);
+		}
+
+		// The pane's edge: a hairline border (the focus ring when the
+		// keyboard holds the plot) over a darker inner top edge - the
+		// sunken-window material the reference cards already wear.
+		painter.setClipping(false);
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(state.focused && lit ? QColor(tokens.focusRing) : withAlpha(tokens.border, lit ? 255 : 150), 1.0));
+		painter.drawRoundedRect(frame, 8.0, 8.0);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.fillRect(QRectF(frame.left() + 7.0, frame.top() + 1.0, frame.width() - 14.0, 1.0),
+			dark ? QColor(0, 0, 0, lit ? 140 : 80) : QColor(0, 0, 0, lit ? 30 : 16));
+
+		painter.restore();
+	}
+
+	// The analysis dock's response graph: the monitoring pane of the glass
+	// console (analysis-graph round) - the GraphicEQ card's response gauge
+	// widened into an always-on monitor. The pane is the same sunken glass
+	// window (deep graph ground behind the one 8px round, darker inner top
+	// edge), with the pane's own inner light answering hover: a frost sheen
+	// rising in dark mode, the thickness shade deepening in light (white
+	// glass cannot brighten, S2). The grid recedes as crisp 1px lines (AA
+	// off on straight lines, the GEQ plot's documented exception) and the
+	// prepared axis figures are DM Mono engravings - frequency figures under
+	// every tick, dB figures etched inside the left edge, minors one step
+	// dimmer than majors. The 0 dB line is the knob's luminous anchor laid
+	// flat. The response trace is the pane's one light (rule 3's four-stroke
+	// glow, lifted a breath by hover) over an under-fill that splits at
+	// 0 dB: the boost side glows a step warmer than the cut side, both
+	// dying as they land on the anchor. Clipping is danger data (universal
+	// semantics, hook contract): the glass above 0 dB warms with a danger
+	// wash, the overshoot segment of the trace ignites in danger strokes,
+	// and a lit danger chip flags CLIP at the top right. The cursor is a
+	// vertical light seam pooling at the reading point, the indicator dot
+	// on the trace and a lit glass reading chip in DM Mono; the whole group
+	// fades in on state.hover (entry motion). The footer keeps the tick
+	// figures and centres the channel/sample-rate caption (localized data,
+	// drawn as-is) beneath them. A flat 0 dB response still reads alive:
+	// the glowing trace rests on its anchor inside the lit pane. This pane
+	// is not a BiQuad row, so the light is the skin's base blue (rule 1).
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
+	{
+		const bool dark = skinIsDark(tokens);
+		const QRectF plot = state.plotRect;
+		const double hover = qBound(0.0, state.hover, 1.0);
+
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+		// Sunken pane: the deep graph ground behind the one 8px round.
+		const QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		QPainterPath pane;
+		pane.addRoundedRect(frame, 8.0, 8.0);
+		painter.fillPath(pane, QColor(tokens.graph));
+		painter.setClipPath(pane);
+
+		// The pane's inner light answers hover (rule 4: state is light
+		// intensity). Dark: a frost sheen settling from the top. Light: the
+		// thickness shade pooling at the bottom deepens instead (S2).
+		if (dark)
+		{
+			QLinearGradient sheen(frame.topLeft(), QPointF(frame.left(), frame.top() + frame.height() * 0.45));
+			sheen.setColorAt(0.0, QColor(255, 255, 255, qRound(6.0 + 12.0 * hover)));
+			sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+			painter.fillPath(pane, sheen);
+		}
+		else
+		{
+			QLinearGradient depthShade(QPointF(frame.left(), frame.bottom() - frame.height() * 0.38), frame.bottomLeft());
+			depthShade.setColorAt(0.0, QColor(24, 32, 51, 0));
+			depthShade.setColorAt(1.0, QColor(24, 32, 51, qRound(18.0 + 8.0 * hover)));
+			painter.fillPath(pane, depthShade);
+		}
+
+		// Grid: crisp 1px lines held far behind the data.
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		const QColor gridMinor = withAlpha(tokens.graphGridMinor, dark ? 84 : 150);
+		const QColor gridMajor = withAlpha(tokens.graphGridMajor, dark ? 118 : 165);
+		for (const AnalysisGraphState::GridLine& line : state.vertical)
+		{
+			painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+			painter.drawLine(int(line.pos), int(plot.top()), int(line.pos), int(plot.bottom()));
+		}
+		for (const AnalysisGraphState::GridLine& line : state.horizontal)
+		{
+			painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+			painter.drawLine(int(plot.left()), int(line.pos), int(plot.right()), int(line.pos));
+		}
+
+		// Axis figures: DM Mono engravings, minors one step dimmer. The
+		// frequency figures sit under their ticks in the footer margin; the
+		// dB figures are etched inside the pane's left edge, riding just
+		// above their lines. Tight fits shed minor labels first.
+		QFont labelFont(tokens.monoFontFamily);
+		labelFont.setPointSizeF(7.5);
+		painter.setFont(labelFont);
+		const int vCount = state.vertical.size();
+		const double vSpacing = vCount > 1 ? plot.width() / (vCount - 1) : plot.width();
+		for (const AnalysisGraphState::GridLine& line : state.vertical)
+		{
+			if (line.label.isEmpty() || (!line.major && vSpacing < 30.0))
+				continue;
+			painter.setPen(withAlpha(tokens.mutedText, line.major ? 215 : 140));
+			painter.drawText(QRect(int(line.pos) - 24, int(plot.bottom()) + 2, 48, 11),
+				Qt::AlignHCenter | Qt::AlignTop, line.label);
+		}
+		const int hCount = state.horizontal.size();
+		const double hSpacing = hCount > 1 ? plot.height() / (hCount - 1) : plot.height();
+		const int hLabelStep = hSpacing >= 13.0 ? 1 : (hSpacing >= 6.5 ? 2 : 4);
+		for (int i = 0; i < hCount; i++)
+		{
+			const AnalysisGraphState::GridLine& line = state.horizontal.at(i);
+			if (line.label.isEmpty() || (!line.major && (i % hLabelStep) != 0))
+				continue;
+			painter.setPen(withAlpha(tokens.mutedText, line.major ? 200 : 130));
+			const double labelY = qBound(plot.top() + 2.0, line.pos - 11.0, plot.bottom() - 12.0);
+			painter.drawText(QRectF(plot.left() + 5.0, labelY, 44.0, 10.0),
+				Qt::AlignLeft | Qt::AlignVCenter, line.label);
+		}
+
+		// Footer caption: the channel/sample-rate readout (localized data,
+		// drawn as-is) centred under the tick figures.
+		if (!state.channelText.isEmpty())
+		{
+			const QFontMetricsF captionMetrics(labelFont);
+			painter.setPen(withAlpha(tokens.mutedText, 190));
+			painter.drawText(QRectF(plot.left(), plot.bottom() + 14.0, plot.width(),
+				qMax(0.0, frame.bottom() - plot.bottom() - 14.0)),
+				Qt::AlignHCenter | Qt::AlignTop,
+				captionMetrics.elidedText(state.channelText, Qt::ElideRight, plot.width()));
+		}
+
+		// 0 dB: the knob's luminous anchor laid flat - accent bloom under a
+		// text-ink core (strokes, never effects).
+		if (state.zeroY >= plot.top() && state.zeroY <= plot.bottom())
+		{
+			const int zy = int(state.zeroY);
+			painter.setPen(QPen(withAlpha(tokens.accent, 52), 3));
+			painter.drawLine(int(plot.left()), zy, int(plot.right()), zy);
+			painter.setPen(QPen(withAlpha(tokens.text, 200), 1));
+			painter.drawLine(int(plot.left()), zy, int(plot.right()), zy);
+		}
+
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		const double zeroClamped = qBound(plot.top(), state.zeroY, plot.bottom());
+
+		// Clipping warms the glass above 0 dB: a danger wash dying as it
+		// lands on the anchor (danger is data here, not decoration).
+		if (state.clipping && zeroClamped > plot.top() + 1.0)
+		{
+			QLinearGradient warmth(0, plot.top(), 0, zeroClamped);
+			warmth.setColorAt(0.0, withAlpha(tokens.danger, dark ? 34 : 26));
+			warmth.setColorAt(1.0, withAlpha(tokens.danger, 0));
+			painter.fillRect(QRectF(plot.left(), plot.top(), plot.width(), zeroClamped - plot.top()), warmth);
+		}
+
+		if (state.curve.size() >= 2)
+		{
+			// The under-fill splits at 0 dB: boost glows a step warmer than
+			// cut, both dying as they land on the anchor.
+			QPolygonF fill = state.curve;
+			fill.append(QPointF(state.curve.last().x(), zeroClamped));
+			fill.prepend(QPointF(state.curve.first().x(), zeroClamped));
+			const double zeroRatio = qBound(0.02, (zeroClamped - plot.top()) / qMax(1.0, plot.height()), 0.98);
+			QLinearGradient split(0, plot.top(), 0, plot.bottom());
+			split.setColorAt(0.0, withAlpha(tokens.accent, 62));
+			split.setColorAt(zeroRatio, withAlpha(tokens.accent, 8));
+			split.setColorAt(1.0, withAlpha(tokens.accent, 34));
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(split);
+			painter.drawPolygon(fill);
+
+			// The trace is the pane's light: four layered strokes (rule 3),
+			// the glow lifted a breath while the pointer holds the pane.
+			painter.setBrush(Qt::NoBrush);
+			const struct { double width; int alpha; int lift; } layers[] = {
+				{ 9.0, 22, 10 },
+				{ 5.5, 48, 14 },
+				{ 3.0, 110, 20 },
+				{ 1.6, 255, 0 }
+			};
+			for (const auto& layer : layers)
+			{
+				QPen glow(withAlpha(tokens.accent, qMin(255, layer.alpha + qRound(layer.lift * hover))), layer.width);
+				glow.setCapStyle(Qt::RoundCap);
+				glow.setJoinStyle(Qt::RoundJoin);
+				painter.setPen(glow);
+				painter.drawPolyline(state.curve);
+			}
+
+			// The overshoot segment ignites: the same stroke ladder re-drawn
+			// in danger, clipped to the glass above the anchor.
+			if (state.clipping && zeroClamped > plot.top())
+			{
+				painter.save();
+				painter.setClipRect(QRectF(plot.left(), plot.top(), plot.width(), zeroClamped - plot.top()),
+					Qt::IntersectClip);
+				const struct { double width; int alpha; } flames[] = {
+					{ 6.5, 44 },
+					{ 3.2, 130 },
+					{ 1.6, 255 }
+				};
+				for (const auto& flame : flames)
+				{
+					QPen firePen(withAlpha(tokens.danger, flame.alpha), flame.width);
+					firePen.setCapStyle(Qt::RoundCap);
+					firePen.setJoinStyle(Qt::RoundJoin);
+					painter.setPen(firePen);
+					painter.drawPolyline(state.curve);
+				}
+				painter.restore();
+			}
+		}
+
+		// The CLIP flag: a lit danger glass chip (type-badge grammar) at the
+		// pane's top right - bloom stroke first, hairline and ink on top.
+		if (state.clipping)
+		{
+			QFont chipFont(tokens.monoFontFamily);
+			chipFont.setPointSizeF(7.0);
+			chipFont.setWeight(QFont::DemiBold);
+			chipFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+			const QFontMetricsF chipMetrics(chipFont);
+			const QString clipText = QStringLiteral("CLIP");
+			const QRectF chip(plot.right() - chipMetrics.horizontalAdvance(clipText) - 20.0, plot.top() + 6.0,
+				chipMetrics.horizontalAdvance(clipText) + 14.0, 16.0);
+			painter.setPen(QPen(withAlpha(tokens.danger, 44), 3.0));
+			painter.setBrush(withAlpha(tokens.danger, dark ? 38 : 26));
+			painter.drawRoundedRect(chip, 8.0, 8.0);
+			painter.setPen(QPen(withAlpha(tokens.danger, 150), 1.0));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRoundedRect(chip, 8.0, 8.0);
+			painter.setFont(chipFont);
+			painter.setPen(QColor(tokens.danger));
+			painter.drawText(chip, Qt::AlignCenter, clipText);
+		}
+
+		// Cursor: a vertical light seam pooling at the reading point, the
+		// indicator dot on the trace and a lit glass reading chip. The whole
+		// group rides state.hover for its entry motion.
+		if (state.cursorValid && hover > 0.01)
+		{
+			painter.save();
+			painter.setOpacity(painter.opacity() * hover);
+
+			const double cx = state.cursor.x();
+			const double curveY = qBound(plot.top(), state.curveYAtCursor, plot.bottom());
+			const double poolAt = qBound(0.05, (curveY - plot.top()) / qMax(1.0, plot.height()), 0.95);
+			const auto seam = [&](int alpha) {
+				QLinearGradient gradient(cx, plot.top(), cx, plot.bottom());
+				gradient.setColorAt(0.0, withAlpha(tokens.accent, 0));
+				gradient.setColorAt(poolAt, withAlpha(tokens.accent, alpha));
+				gradient.setColorAt(1.0, withAlpha(tokens.accent, 0));
+				return gradient;
+			};
+			// Bloom, mid, core: the insert seam's stroke ladder set upright.
+			QPen seamBloom(QBrush(seam(56)), 5.0);
+			seamBloom.setCapStyle(Qt::RoundCap);
+			painter.setPen(seamBloom);
+			painter.drawLine(QPointF(cx, plot.top()), QPointF(cx, plot.bottom()));
+			QPen seamMid(QBrush(seam(140)), 2.4);
+			seamMid.setCapStyle(Qt::RoundCap);
+			painter.setPen(seamMid);
+			painter.drawLine(QPointF(cx, plot.top()), QPointF(cx, plot.bottom()));
+			QPen seamCore(QBrush(seam(235)), 1.0);
+			seamCore.setCapStyle(Qt::RoundCap);
+			painter.setPen(seamCore);
+			painter.drawLine(QPointF(cx, plot.top()), QPointF(cx, plot.bottom()));
+
+			// The reading point: the indicator dot (halo + core) on the trace.
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(withAlpha(tokens.accent, 110));
+			painter.drawEllipse(QPointF(cx, curveY), 6.0, 6.0);
+			painter.setBrush(QColor(tokens.accent));
+			painter.drawEllipse(QPointF(cx, curveY), 3.0, 3.0);
+
+			// The reading chip: sunken glass over the pane, accent-lit edge,
+			// DM Mono value ink. It follows the dot and flips or clamps to
+			// stay on the glass.
+			if (!state.cursorText.isEmpty())
+			{
+				QFont readoutFont(tokens.monoFontFamily);
+				readoutFont.setPointSizeF(7.5);
+				readoutFont.setWeight(QFont::DemiBold);
+				const QFontMetricsF readoutMetrics(readoutFont);
+				const QString readout = readoutMetrics.elidedText(state.cursorText, Qt::ElideRight,
+					qMax(20.0, plot.width() - 24.0));
+				const double chipWidth = readoutMetrics.horizontalAdvance(readout) + 16.0;
+				const double chipHeight = 18.0;
+				double chipX = cx + 10.0;
+				if (chipX + chipWidth > plot.right() - 4.0)
+					chipX = cx - 10.0 - chipWidth;
+				chipX = qBound(plot.left() + 4.0, chipX, qMax(plot.left() + 4.0, plot.right() - chipWidth - 4.0));
+				double chipY = curveY - chipHeight - 8.0;
+				if (chipY < plot.top() + 4.0)
+					chipY = curveY + 8.0;
+				chipY = qBound(plot.top() + 4.0, chipY, qMax(plot.top() + 4.0, plot.bottom() - chipHeight - 4.0));
+				const QRectF chip(chipX, chipY, chipWidth, chipHeight);
+
+				painter.setPen(QPen(withAlpha(tokens.accent, 44), 3.0));
+				painter.setBrush(withAlpha(tokens.graph, dark ? 222 : 240));
+				painter.drawRoundedRect(chip, 8.0, 8.0);
+				painter.setPen(QPen(withAlpha(tokens.accent, 130), 1.0));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawRoundedRect(chip, 8.0, 8.0);
+				painter.setFont(readoutFont);
+				painter.setPen(QColor(tokens.text));
+				painter.drawText(chip, Qt::AlignCenter, readout);
+			}
+			painter.restore();
+		}
+
+		// The pane's edge: a hairline border over a darker inner top edge -
+		// the sunken-window material the GEQ plot already wears.
+		painter.setClipping(false);
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(QColor(tokens.border), 1.0));
+		painter.drawRoundedRect(frame, 8.0, 8.0);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.fillRect(QRectF(frame.left() + 7.0, frame.top() + 1.0, frame.width() - 14.0, 1.0),
+			dark ? QColor(0, 0, 0, 140) : QColor(0, 0, 0, 30));
+
+		painter.restore();
+	}
+
 	// The type badge is a lit glass chip (S3): translucent fill with the ink
 	// and border in the row's light colour. BiQuad rows resolve their family
 	// through the studioBand property the prepareCommandRow hook tagged them
@@ -561,23 +1222,23 @@ public:
 	// light source. Disabled rows switch the chip off.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		if (!info.enabled)
 		{
 			return QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: transparent; border: 1px solid %2; }")
-				.arg(studioRgba(tokens.mutedText, 0.65), studioRgba(tokens.border, 0.55));
+				.arg(cssRgba(tokens.mutedText, 0.65), cssRgba(tokens.border, 0.55));
 		}
 
 		const QString baseInk = info.type == QStringLiteral("biquad") ? tokens.accent : typeColor;
 		QString style = QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: %2; border: 1px solid %3; }")
-			.arg(baseInk, studioRgba(baseInk, dark ? 0.15 : 0.10), studioRgba(baseInk, dark ? 0.42 : 0.45));
+			.arg(baseInk, cssRgba(baseInk, dark ? 0.15 : 0.10), cssRgba(baseInk, dark ? 0.42 : 0.45));
 		if (info.type == QStringLiteral("biquad"))
 		{
 			for (const char* family : studioBandFamilies)
 			{
 				const QString band = studioBandHex(QLatin1String(family), dark);
 				style += QStringLiteral(" QLabel#FilterTypeBadge[studioBand=\"%1\"] { color: %2; background-color: %3; border: 1px solid %4; }")
-					.arg(QLatin1String(family), band, studioRgba(band, dark ? 0.15 : 0.10), studioRgba(band, dark ? 0.42 : 0.45));
+					.arg(QLatin1String(family), band, cssRgba(band, dark ? 0.15 : 0.10), cssRgba(band, dark ? 0.42 : 0.45));
 			}
 		}
 		return style;
@@ -596,7 +1257,7 @@ public:
 			return sleeping;
 		}
 		if (info.type == QStringLiteral("biquad"))
-			return QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), studioIsDark(tokens)));
+			return QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), skinIsDark(tokens)));
 		return QColor(typeColor);
 	}
 
@@ -607,7 +1268,46 @@ public:
 	// cardFrameStyle/typeBadgeStyle returned at construction.
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
-		if (body == nullptr || info.type != QStringLiteral("biquad"))
+		if (body == nullptr)
+			return;
+
+		if (info.type == QStringLiteral("text"))
+		{
+			// Raw text (bare note lines, If/EndIf and the rest of the
+			// unmodelled programmatic vocabulary) is data behind glass.
+			// FilterCardRow lays a shared inline style on the preview label
+			// (inline outranks any sheet rule), and that default speaks a
+			// half-radius 4px - illegal under the one-8px-round law - so
+			// this hook rewrites it into the sunken data window the
+			// reference cards already use: alpha fill, darker top edge (the
+			// inner shadow), the one 8px round, mono ink. A disabled row
+			// switches the window off with the pane (dimmed ink, faded
+			// fill - soft, never a warning). The '>_' engraving already
+			// sits in muted mono and stays untouched.
+			QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText"));
+			if (raw == nullptr)
+				return;
+			const SkinTokens tokens = SkinManager::instance()->tokens();
+			const bool dark = skinIsDark(tokens);
+			const QString fill = dark
+				? (info.enabled ? QStringLiteral("rgba(6, 9, 20, 0.55)") : QStringLiteral("rgba(6, 9, 20, 0.30)"))
+				: (info.enabled ? QStringLiteral("rgba(232, 238, 248, 0.75)") : QStringLiteral("rgba(232, 238, 248, 0.40)"));
+			const QString topEdge = dark
+				? (info.enabled ? QStringLiteral("rgba(0, 0, 0, 0.55)") : QStringLiteral("rgba(0, 0, 0, 0.30)"))
+				: (info.enabled ? QStringLiteral("rgba(0, 0, 0, 0.12)") : QStringLiteral("rgba(0, 0, 0, 0.06)"));
+			raw->setStyleSheet(QStringLiteral(
+				"QLabel#FilterCardRawText { background: %1; color: %2; border: 1px solid %3;"
+				" border-top-color: %4; border-radius: 8px; padding: 6px 10px;"
+				" font-family: \"%5\", \"Consolas\", \"Malgun Gothic\", monospace; font-size: 9pt; }")
+				.arg(fill,
+					info.enabled ? tokens.text : cssRgba(tokens.mutedText, 0.60),
+					cssRgba(tokens.border, info.enabled ? 0.90 : 0.55),
+					topEdge,
+					tokens.monoFontFamily));
+			return;
+		}
+
+		if (info.type != QStringLiteral("biquad"))
 			return;
 
 		QComboBox* typeCombo = nullptr;
@@ -644,53 +1344,7 @@ public:
 		QObject::connect(typeCombo, &QComboBox::currentIndexChanged, typeCombo, applyBand);
 	}
 
-	SkinTokens tokens(bool dark) const override
-	{
-		SkinTokens t;
-		t.fontFamily = QStringLiteral("DM Sans");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		t.borderRadius = 8;
-		t.rowHeight = 40;
-		t.channelGroupIndent = 18;
-		t.channelGroupStyle = SkinTokens::GradientBar;
-		t.badgeStyle = SkinTokens::ColorPill;
-		if (dark)
-		{
-			t.background = QStringLiteral("#070A12");
-			t.surface = QStringLiteral("#0D1322");
-			t.card = QStringLiteral("#121A2C");
-			t.cardHover = QStringLiteral("#182238");
-			t.cardSelected = QStringLiteral("#1E3158");
-			t.text = QStringLiteral("#E8EEFB");
-			t.mutedText = QStringLiteral("#91A0BA");
-			t.border = QStringLiteral("#26324A");
-			t.graph = QStringLiteral("#060914");
-			t.graphGridMinor = QStringLiteral("#26324A");
-			t.accent = QStringLiteral("#5B8CFF");
-			t.accent2 = QStringLiteral("#A66CFF");
-		}
-		else
-		{
-			// S2 re-derivation: the light tokens keep the accent saturation
-			// but the borders sit two steps deeper than the airy panels, so
-			// knob tracks, toggles and input edges stay legible on white
-			// glass; muted ink deepens one step with them.
-			t.background = QStringLiteral("#EEF2F8");
-			t.surface = QStringLiteral("#F8FAFE");
-			t.card = QStringLiteral("#FFFFFF");
-			t.cardHover = QStringLiteral("#F3F6FC");
-			t.cardSelected = QStringLiteral("#DDE8FF");
-			t.text = QStringLiteral("#182033");
-			t.mutedText = QStringLiteral("#5D6A84");
-			t.border = QStringLiteral("#BCC8DE");
-			t.graph = QStringLiteral("#F6F7FB");
-			t.graphGridMinor = QStringLiteral("#D8E0EF");
-			t.accent = QStringLiteral("#2F6BFF");
-			t.accent2 = QStringLiteral("#8A4DFF");
-		}
-		finishTokens(t);
-		return t;
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 };
 }
 

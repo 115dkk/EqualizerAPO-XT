@@ -67,6 +67,14 @@ TitleBar::TitleBar(QWidget* window, QWidget* parent)
 
 	// Track maximize/restore from any source (snap, double-click, keyboard).
 	hostWindow->installEventFilter(this);
+
+	// Re-tint on every live skin/dark switch. The switch slots (skinSelected,
+	// darkThemeToggled) never ran MainWindow::applyRedesignPreferences, so a
+	// light->dark toggle used to leave the caption glyphs in the light skin's
+	// near-black ink - invisible on the now-dark strip.
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		applySkinIcons();
+	});
 	applySkinIcons();
 }
 

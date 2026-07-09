@@ -17,6 +17,7 @@
 #include <QFontMetricsF>
 #include <QHBoxLayout>
 #include <QIcon>
+#include <QCoreApplication>
 #include <QLabel>
 #include <QLayout>
 #include <QPainter>
@@ -44,61 +45,25 @@
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
 
 namespace
 {
-// Linear blend between two token colours; t = 0 returns a, t = 1 returns b.
-// The Soft skin fakes its elevation steps and pastel arcs by mixing token
-// colours instead of introducing extra palette entries, so both modes stay
-// consistent with their two-value-step "shadow" rule.
-QColor softMix(const QColor& a, const QColor& b, double t)
-{
-	return QColor(
-		qRound(a.red() + (b.red() - a.red()) * t),
-		qRound(a.green() + (b.green() - a.green()) * t),
-		qRound(a.blue() + (b.blue() - a.blue()) * t));
-}
-
-QColor softAlpha(QColor color, int alpha)
-{
-	color.setAlpha(alpha);
-	return color;
-}
 // ── Soft ("The iPhone settings screen": macOS System Settings calm) ─────────
 // Round, roomy, impossible to fear. Shadows are faked with two background
 // value steps plus a very light 1px border; hierarchy comes from size and
 // whitespace, never from density. Hover lifts a surface exactly one value
 // step. Tiebreaker: when in doubt, remove elements and add whitespace.
-
-// The hooks receive tokens but not the mode flag; like studio, the background
-// luminance is an unambiguous proxy (soft's dark background is deep graphite).
-bool softIsDark(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
-
-// AR1 F2: the picker's pastel multi-hue grammar, normalised for row chrome.
-// The hue comes from an existing colour (the command type's descriptor
-// colour), and only saturation/lightness are re-seated on the pastel shelf -
-// the same "no new palette, derive from what is already there" rule that
-// softMix implements for elevation. Greyish type colours keep their low
-// saturation instead of being inflated into a fake hue.
-QColor softPastelize(const QColor& base, bool dark)
-{
-	const double hue = base.hslHueF() < 0.0 ? 215.0 / 360.0 : base.hslHueF();
-	const double saturation = qMin(base.hslSaturationF(), dark ? 0.50 : 0.55);
-	return QColor::fromHslF(hue, saturation, dark ? 0.62 : 0.60);
-}
+//
+// The mix/alpha/is-dark vocabulary and the constitution-cited pastel recipe
+// (softPastelize) live in the shared SkinPaint.h; the recipe stays Soft-only
+// by decree there (differentiation gate).
 
 class SoftSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("soft"); }
-	QString qssResource(bool dark) const override
-	{
-		return QStringLiteral(":/skins/soft_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static BlockChipRoutingRenderer renderer;
@@ -133,74 +98,7 @@ public:
 	// (screws, glows, grids) belongs to the neighbours' vocabularies and
 	// would only make the header more anxious.
 
-	SkinTokens tokens(bool dark) const override
-	{
-		SkinTokens t;
-		t.fontFamily = QStringLiteral("DM Sans");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		// Constitution: cards 14px (clearly rounder than studio's 8), generous
-		// line spacing. The tallest row of the five skins; whitespace is the
-		// hierarchy device.
-		t.borderRadius = 14;
-		t.rowHeight = 48;
-		t.channelGroupIndent = 20;
-		t.density = 2;
-		t.channelGroupStyle = SkinTokens::SoftShadow;
-		t.badgeStyle = SkinTokens::SoftPill;
-		// Tiebreaker rule applied: the raw monospace preview strip under every
-		// card is exactly the kind of element that makes a screen feel anxious,
-		// so this skin removes it and keeps the whitespace.
-		t.showRawPreview = false;
-		// Feedback round (DC #1289929): "soft was only round corners". The
-		// accent and the semantic colours now live on the pastel shelf
-		// themselves (the softPastelize recipe applied to the old saturated
-		// values), so every consumer - knob arcs, focus rings, toggles, ON
-		// pills, severity inks - is pastel without knowing it. The saturated
-		// #3B82F6 family is retired from this skin.
-		if (dark)
-		{
-			// AR1 F2: warm graphite, not navy. The old #171923..#3A4056 ramp
-			// shared studio's cold blue cast, so soft-dark photographed as a
-			// studio clone; the dark identity now leans warm (hue ~38, low
-			// saturation) while the light mode keeps its cream. Same two-step
-			// elevation ladder, different temperature.
-			t.background = QStringLiteral("#1C1A17");
-			t.surface = QStringLiteral("#262320");
-			t.card = QStringLiteral("#2F2B26");
-			t.cardHover = QStringLiteral("#38332D");
-			// The selected card face follows the pastel accent mixed deep
-			// into the card (softMix 0.75) instead of the old navy remnant.
-			t.cardSelected = QStringLiteral("#3F4650");
-			t.text = QStringLiteral("#F4F1EA");
-			t.mutedText = QStringLiteral("#B3AB9D");
-			t.border = QStringLiteral("#423D34");
-			t.graph = QStringLiteral("#181613");
-			t.accent = QStringLiteral("#6E96CF");
-			t.accent2 = QStringLiteral("#8B6ECF");
-			t.success = QStringLiteral("#6ECF91");
-			t.warning = QStringLiteral("#CFAB6E");
-			t.danger = QStringLiteral("#CF6E6E");
-		}
-		else
-		{
-			t.background = QStringLiteral("#F7F4EF");
-			t.surface = QStringLiteral("#FFFDF9");
-			t.card = QStringLiteral("#FFFFFF");
-			t.cardHover = QStringLiteral("#FFF7EC");
-			t.cardSelected = QStringLiteral("#EEF2FF");
-			t.text = QStringLiteral("#28231F");
-			t.mutedText = QStringLiteral("#786F67");
-			t.border = QStringLiteral("#E9DED1");
-			t.graph = QStringLiteral("#FFFAF3");
-			t.accent = QStringLiteral("#6190D1");
-			t.accent2 = QStringLiteral("#8361D1");
-			t.success = QStringLiteral("#61D18A");
-			t.warning = QStringLiteral("#D1A861");
-			t.danger = QStringLiteral("#D16161");
-		}
-		finishTokens(t);
-		return t;
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 
 	// One calm silhouette for every command type: a 12px rounded card one
 	// value step above the window, "shadowed" only by that step and a very
@@ -246,11 +144,11 @@ public:
 	// (commented-out) row sinks its chip toward the window background.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& t) const override
 	{
-		const bool dark = softIsDark(t);
+		const bool dark = skinIsDark(t);
 		const QColor pastel = softPastelize(QColor(typeColor), dark);
 		if (!info.enabled)
 		{
-			const QColor sleeping = softMix(pastel, QColor(t.background), 0.62);
+			const QColor sleeping = mixColor(pastel, QColor(t.background), 0.62);
 			return QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
 				.arg(t.mutedText, sleeping.name());
 		}
@@ -264,6 +162,664 @@ public:
 	QColor typeBadgeInk(const CommandRowInfo& info, const QString&, const QString&, const SkinTokens& t) const override
 	{
 		return info.enabled ? QColor(QStringLiteral("#2B251D")) : QColor(t.mutedText);
+	}
+
+	// Round 3, the trailing add row (shared insertion contract,
+	// docs/skins/README.md): "the place where the next card will arrive",
+	// answered kindly. The slot is a full-height dashed STADIUM - the skin's
+	// established "nothing vouches for this yet" edge (Copy's dashed [+]
+	// chip, the virtual channel seats), not a sleeping slot: it stays at the
+	// window elevation with a quiet sunken "+" disc waiting at the centre.
+	// Hover lifts the whole slot exactly one value step and flips the disc
+	// ON in the skin's state grammar (opaque accent pastel + deep warm ink,
+	// the toggle-switches-on moment); pressing deepens the pastel one step,
+	// the same ladder the ON pills climb. Focus is the constitutional quiet
+	// halo, never a hard ring. Whitespace is not economised: one disc, one
+	// caption, nothing else.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing);
+
+		const QColor accent(tokens.accent);
+		const QColor warmInk(QStringLiteral("#2B251D"));
+		const bool lifted = state.hovered || state.pressed;
+
+		QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		const qreal radius = frame.height() / 2.0;
+
+		// Hover: the slot rises one value step above the window (no shadow -
+		// the two-step elevation rule fakes it with the fill + light border).
+		if (lifted)
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(QColor(tokens.surface));
+			painter.drawRoundedRect(frame, radius, radius);
+		}
+
+		// Keyboard focus: the quiet halo (alpha 90, 3px), not a hard ring.
+		if (state.focused)
+		{
+			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRoundedRect(frame, radius, radius);
+		}
+
+		QPen outline(lifted ? withAlpha(accent, state.pressed ? 210 : 150) : QColor(tokens.border), 1, Qt::DashLine);
+		outline.setCapStyle(Qt::RoundCap);
+		painter.setPen(outline);
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRoundedRect(frame, radius, radius);
+
+		// Centred friendly composition: the "+" disc and the caption.
+		QFont font(tokens.fontFamily);
+		font.setPointSizeF(10.0);
+		font.setWeight(QFont::DemiBold);
+		const QFontMetricsF metrics(font);
+		const qreal discD = 24.0;
+		const qreal gap = 10.0;
+		const QString caption = metrics.elidedText(state.label, Qt::ElideRight,
+			int(qMax<qreal>(40.0, frame.width() - discD - gap - 48.0)));
+		const qreal textW = metrics.horizontalAdvance(caption);
+		const qreal left = frame.center().x() - (discD + gap + textW) / 2.0;
+		QRectF discRect(left, frame.center().y() - discD / 2.0, discD, discD);
+
+		if (state.pressed)
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(mixColor(accent, warmInk, 0.18));
+		}
+		else if (state.hovered)
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(accent);
+		}
+		else
+		{
+			painter.setPen(QPen(QColor(tokens.border), 1));
+			painter.setBrush(QColor(tokens.surfaceSunken));
+		}
+		painter.drawEllipse(discRect);
+
+		QPen plusPen(lifted ? warmInk : QColor(tokens.mutedText), 2.4, Qt::SolidLine, Qt::RoundCap);
+		painter.setPen(plusPen);
+		const QPointF discCenter = discRect.center();
+		const qreal arm = discD * 0.21;
+		painter.drawLine(QPointF(discCenter.x() - arm, discCenter.y()), QPointF(discCenter.x() + arm, discCenter.y()));
+		painter.drawLine(QPointF(discCenter.x(), discCenter.y() - arm), QPointF(discCenter.x(), discCenter.y() + arm));
+
+		painter.setFont(font);
+		painter.setPen(lifted ? QColor(tokens.text) : QColor(tokens.mutedText));
+		painter.drawText(QRectF(left + discD + gap, frame.top(), textW + 4.0, frame.height()),
+			Qt::AlignVCenter | Qt::AlignLeft, caption);
+	}
+
+	// Round 3, the first-boundary insertion seam: a pastel pill line led by
+	// a round "+" disc. The line is the value-arc pastel (accent mixed one
+	// step toward the card), a stadium bar rather than a hairline - soft has
+	// no hairline vocabulary - and the disc wears the ON grammar (opaque
+	// accent pastel, deep warm ink strokes); pressing deepens the pastel one
+	// step. At rest the widget paints nothing (shared contract).
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		const QColor accent(tokens.accent);
+		const QColor warmInk(QStringLiteral("#2B251D"));
+		QRectF r(rect);
+		const qreal cy = r.center().y();
+		const qreal discR = qMin<qreal>(9.0, r.height() / 2.0);
+		const qreal discCx = r.left() + discR + 4.0;
+
+		const qreal lineH = qBound<qreal>(3.0, r.height() * 0.5, 5.0);
+		QRectF bar(discCx + discR + 6.0, cy - lineH / 2.0,
+			r.right() - 4.0 - (discCx + discR + 6.0), lineH);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(mixColor(accent, QColor(tokens.card), 0.25));
+		painter.drawRoundedRect(bar, lineH / 2.0, lineH / 2.0);
+
+		painter.setBrush(state.pressed ? mixColor(accent, warmInk, 0.18) : accent);
+		painter.drawEllipse(QPointF(discCx, cy), discR, discR);
+
+		QPen plusPen(warmInk, qMax<qreal>(1.6, discR * 0.36), Qt::SolidLine, Qt::RoundCap);
+		painter.setPen(plusPen);
+		const qreal arm = discR * 0.45;
+		painter.drawLine(QPointF(discCx - arm, cy), QPointF(discCx + arm, cy));
+		painter.drawLine(QPointF(discCx, cy - arm), QPointF(discCx, cy + arm));
+	}
+
+	// Round 3 rework, the GraphicEQ response plot: "the response curve you
+	// cannot fear". GraphicEQPlotWidget owns the model and every gesture;
+	// every pixel here is this skin's own instrument. The ground is the
+	// established rounded sunken well (14px round, surfaceSunken face, very
+	// light 1px border - elevation faked by the two value steps, never a
+	// shadow). The grid keeps only the MAJOR lines, very faint: minor
+	// hairlines are exactly the anxious element the tiebreaker removes, and
+	// whitespace does their job. The 0 dB line is a soft notch - rounded
+	// ends, floating clear of the well walls, the knob's 12-o'clock detent
+	// grammar laid flat. The curve imports the bipolar knob's track law:
+	// boost above 0 dB strokes the accent pastel, cut below strokes accent2
+	// (both softened one step toward the card, the value-arc mix 0.25
+	// recipe) over a light pastel wash down to the notch; clipping splits
+	// the passes exactly at the zero crossing. Nodes are big round dots
+	// (rest 5px) that grow half a pixel on hover and flip ON when selected
+	// (opaque pastel fill + the light ring); the keyboard's node wears the
+	// quiet halo. Focus on the surface is the constitutional quiet halo
+	// hugging the well; a disabled plot is the sleeping slot triple (dashed
+	// outline + sunk to the window + muted-ink ghost curve), never an alarm.
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
+	{
+		const QColor card(tokens.card);
+		const QColor accent(tokens.accent);
+		const QColor accent2(tokens.accent2);
+		const QColor muted(tokens.mutedText);
+		const QColor border(tokens.border);
+		const QColor well = state.enabled ? QColor(tokens.surfaceSunken) : QColor(tokens.background);
+
+		QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		const qreal wellRound = 14.0;
+		QPainterPath wellPath;
+		wellPath.addRoundedRect(frame, wellRound, wellRound);
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(well);
+		painter.drawPath(wellPath);
+
+		painter.save();
+		painter.setClipPath(wellPath);
+
+		// Axis captions ride the body face in faded ink - the constitution
+		// reserves mono for value chips, and these are captions.
+		QFont labelFont(tokens.fontFamily);
+		labelFont.setPointSizeF(7.5);
+		labelFont.setWeight(QFont::DemiBold);
+		painter.setFont(labelFont);
+		const QColor labelInk = withAlpha(muted, state.enabled ? 210 : 120);
+
+		// Major-only grid, the border sunk most of the way into the well.
+		// Straight axis lines stay crisp: antialiasing off. The sleeping slot
+		// drops the lines entirely and keeps only the captions - whitespace.
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		const QColor gridInk = mixColor(border, well, 0.25);
+		for (const GraphicEQPlotState::GridLine& line : state.vertical)
+		{
+			if (!line.major)
+				continue;
+			const int x = qRound(line.pos);
+			if (state.enabled)
+			{
+				painter.setPen(QPen(gridInk, 1));
+				painter.drawLine(x, int(state.plotRect.top()), x, int(state.plotRect.bottom()));
+			}
+			if (!line.label.isEmpty())
+			{
+				painter.setPen(labelInk);
+				// The window-edge caption (20k) tucks inside the rounding
+				// instead of getting sliced by the clip.
+				QRect labelRect(x - 24, int(state.plotRect.bottom()) + 3, 48,
+					state.rect.bottom() - int(state.plotRect.bottom()) - 3);
+				int align = Qt::AlignHCenter;
+				if (labelRect.right() > state.rect.right() - 6)
+				{
+					labelRect.setRight(state.rect.right() - 6);
+					align = Qt::AlignRight;
+				}
+				painter.drawText(labelRect, align | Qt::AlignTop, line.label);
+			}
+		}
+		for (const GraphicEQPlotState::GridLine& line : state.horizontal)
+		{
+			if (!line.major)
+				continue;
+			const int y = qRound(line.pos);
+			// The 0 dB row is the soft notch drawn below; skip its grid twin.
+			if (state.enabled && qAbs(line.pos - state.zeroY) > 1.0)
+			{
+				painter.setPen(QPen(gridInk, 1));
+				painter.drawLine(int(state.plotRect.left()), y, int(state.plotRect.right()), y);
+			}
+			if (!line.label.isEmpty())
+			{
+				painter.setPen(labelInk);
+				painter.drawText(QRect(state.rect.left() + 2, y - 8,
+					int(state.plotRect.left()) - state.rect.left() - 8, 16),
+					Qt::AlignRight | Qt::AlignVCenter, line.label);
+			}
+		}
+		painter.setRenderHint(QPainter::Antialiasing, true);
+
+		// The soft 0 dB notch line.
+		if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
+		{
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), state.enabled ? 110 : 55), 2,
+				Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(state.plotRect.left() + 6.0, state.zeroY),
+				QPointF(state.plotRect.right() - 6.0, state.zeroY));
+		}
+
+		const QColor boost = mixColor(accent, card, 0.25);
+		const QColor cut = mixColor(accent2, card, 0.25);
+		if (state.curve.size() >= 2)
+		{
+			if (!state.enabled)
+			{
+				// Sleeping: the ghost of the response in muted ink, no pastel.
+				painter.setPen(QPen(withAlpha(muted, 120), 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawPolyline(state.curve);
+			}
+			else
+			{
+				const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+				QPolygonF fillPoly = state.curve;
+				fillPoly.append(QPointF(state.curve.last().x(), base));
+				fillPoly.prepend(QPointF(state.curve.first().x(), base));
+
+				// Two passes split at the 0 dB seam by clip rects, so the
+				// boost/cut colour change lands exactly on the zero crossing
+				// (and a frame panned fully past 0 dB gets one whole side).
+				const qreal splitY = qBound(frame.top(), qreal(state.zeroY), frame.bottom());
+				const QRectF aboveZero(frame.left() - 2.0, frame.top() - 2.0, frame.width() + 4.0, splitY - frame.top() + 2.0);
+				const QRectF belowZero(frame.left() - 2.0, splitY, frame.width() + 4.0, frame.bottom() - splitY + 2.0);
+				for (int pass = 0; pass < 2; pass++)
+				{
+					const bool boostPass = pass == 0;
+					painter.save();
+					painter.setClipRect(boostPass ? aboveZero : belowZero, Qt::IntersectClip);
+					painter.setPen(Qt::NoPen);
+					painter.setBrush(withAlpha(boostPass ? accent : accent2, 40));
+					painter.drawPolygon(fillPoly);
+					painter.setPen(QPen(boostPass ? boost : cut, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+					painter.setBrush(Qt::NoBrush);
+					painter.drawPolyline(state.curve);
+					painter.restore();
+				}
+			}
+		}
+
+		// 15/31-band layouts read as levels on fixed bands: rounded pastel
+		// stems grow from the notch, the console silhouette without bar walls.
+		if (state.bandLocked && state.enabled)
+		{
+			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+			for (const QPointF& node : state.nodePositions)
+			{
+				painter.setPen(QPen(withAlpha(node.y() > state.zeroY ? accent2 : accent, 90), 4,
+					Qt::SolidLine, Qt::RoundCap));
+				painter.drawLine(QPointF(node.x(), base), node);
+			}
+		}
+
+		for (int i = 0; i < state.nodePositions.size(); i++)
+		{
+			const QPointF& center = state.nodePositions.at(i);
+			const bool selected = state.selectedNodes.contains(i);
+			const bool hovered = state.hoveredNode == i;
+			const QColor side = center.y() > state.zeroY ? accent2 : accent;
+
+			if (!state.enabled)
+			{
+				painter.setPen(QPen(withAlpha(muted, 120), 1.5));
+				painter.setBrush(well);
+				painter.drawEllipse(center, 4.0, 4.0);
+				continue;
+			}
+
+			// Rest 5px, half a pixel more on hover - the calmest "you can
+			// grab me" cue; precision lives in the readout strip anyway.
+			const double radius = hovered ? 5.5 : 5.0;
+			if (selected)
+			{
+				// ON grammar: opaque pastel fill plus the light ring.
+				painter.setPen(QPen(withAlpha(side, 90), 3));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawEllipse(center, radius + 2.5, radius + 2.5);
+				painter.setPen(QPen(well, 1.5));
+				painter.setBrush(side);
+			}
+			else
+			{
+				// OFF: the quiet elevated face with the side's pastel edge;
+				// hover lifts the face exactly one value step.
+				painter.setPen(QPen(mixColor(side, card, 0.25), 2));
+				painter.setBrush(hovered ? QColor(tokens.cardHover) : card);
+			}
+			painter.drawEllipse(center, radius, radius);
+
+			// The keyboard's current node announces itself with the quiet
+			// halo (selection's own ring already covers a selected one).
+			if (state.focusedNode == i && state.focused && !selected)
+			{
+				painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawEllipse(center, radius + 4.0, radius + 4.0);
+			}
+		}
+
+		// Cursor readout: the knob value badge's grammar, a small stadium
+		// chip resting in the well's top-right corner.
+		if (state.enabled && state.cursorValid && !state.cursorText.isEmpty())
+		{
+			QFont pillFont(tokens.fontFamily);
+			pillFont.setPointSizeF(7.5);
+			pillFont.setWeight(QFont::DemiBold);
+			const QFontMetricsF pillMetrics(pillFont);
+			const qreal pillH = 18.0;
+			const qreal pillW = pillMetrics.horizontalAdvance(state.cursorText) + 16.0;
+			QRectF pill(state.plotRect.right() - pillW - 6.0, state.plotRect.top() + 6.0, pillW, pillH);
+			painter.setPen(QPen(border, 1));
+			painter.setBrush(card);
+			painter.drawRoundedRect(pill, pillH / 2.0, pillH / 2.0);
+			painter.setFont(pillFont);
+			painter.setPen(QColor(tokens.text));
+			painter.drawText(pill, Qt::AlignCenter, state.cursorText);
+		}
+
+		painter.restore();
+
+		// The well edge: a very light 1px line awake; asleep it becomes the
+		// dashed outline of the sleeping-slot triple.
+		QPen edge(border, 1);
+		if (!state.enabled)
+			edge.setStyle(Qt::DashLine);
+		painter.setPen(edge);
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPath(wellPath);
+
+		// Keyboard focus on the surface itself: the quiet halo hugging the
+		// inside of the well, never a hard ring.
+		if (state.focused && state.enabled)
+		{
+			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.drawRoundedRect(frame.adjusted(2.0, 2.0, -2.0, -2.0), 12.0, 12.0);
+		}
+	}
+
+	// The analysis dock's response graph: "the friendly response landscape".
+	// EqGraphView owns the sampling, the axis fit and the cursor; every pixel
+	// here is the GraphicEQ instrument's family answer, adapted from an
+	// editable plot to a wide always-on monitoring readout. The ground is the
+	// same rounded sunken well with the major-only grid, and the 0 dB line
+	// stays the soft notch - read here as the calm ground line of a
+	// landscape. The response itself is TERRAIN rather than the plot's airy
+	// wash: opaque pastel masses in the ON-fill grammar (the toggle pills'
+	// opaque pastel + deep warm ink law). Cut valleys below the ground line
+	// wear the accent pastel; a boost hill above it wears the success pastel
+	// while it stays inside headroom, and the moment the config can clip
+	// (state.clipping) the overshoot terrain warms to the warning pastel -
+	// the dirty-badge amber, noticeable but never an alarm - named by a small
+	// "Over 0 dB" chip in the same grammar. The curve is the ON law's warm
+	// ink mixed into each side's pastel, a soft rounded stroke riding the
+	// terrain edge, so a flat 0 dB response still draws as a calm deep-accent
+	// line resting on the ground - alive, not empty. Axis figures speak in
+	// the friendly muted body ink (mono stays reserved for value chips), and
+	// the cursor is a rounded lens dot on the response under a soft vertical
+	// notch guide, with the readout as an ON-pastel stadium pill that floats
+	// in on the hover progress.
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
+	{
+		const QColor accent(tokens.accent);
+		const QColor muted(tokens.mutedText);
+		const QColor border(tokens.border);
+		const QColor well(tokens.surfaceSunken);
+		const QColor warmInk(QStringLiteral("#2B251D"));
+
+		QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		const qreal wellRound = 14.0;
+		QPainterPath wellPath;
+		wellPath.addRoundedRect(frame, wellRound, wellRound);
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		painter.setRenderHint(QPainter::TextAntialiasing);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(well);
+		painter.drawPath(wellPath);
+
+		painter.save();
+		painter.setClipPath(wellPath);
+
+		// Axis captions ride the body face in faded ink, exactly like the
+		// GraphicEQ plot (the constitution reserves mono for value chips).
+		QFont labelFont(tokens.fontFamily);
+		labelFont.setPointSizeF(7.5);
+		labelFont.setWeight(QFont::DemiBold);
+		painter.setFont(labelFont);
+		const QColor labelInk = withAlpha(muted, 210);
+
+		// Major-only grid, the border sunk most of the way into the well;
+		// straight lines stay crisp with antialiasing off. The horizontal
+		// majors' only member is the 0 dB row, which the soft notch draws
+		// itself, so only the frequency decades remain - whitespace does the
+		// rest (tiebreaker).
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.setPen(QPen(mixColor(border, well, 0.25), 1));
+		for (const AnalysisGraphState::GridLine& line : state.vertical)
+		{
+			if (line.major)
+				painter.drawLine(qRound(line.pos), int(state.plotRect.top()), qRound(line.pos), int(state.plotRect.bottom()));
+		}
+		painter.setRenderHint(QPainter::Antialiasing, true);
+
+		// The response terrain: opaque pastel masses split at the ground line
+		// by clip rects, so the semantic colour change lands exactly on the
+		// zero crossing (the GraphicEQ instrument's seam trick). Each pass
+		// lays the mass, then its warm-ink stroke on the terrain edge.
+		if (state.curve.size() >= 2)
+		{
+			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+			QPolygonF terrain = state.curve;
+			terrain.append(QPointF(state.curve.last().x(), base));
+			terrain.prepend(QPointF(state.curve.first().x(), base));
+
+			const QColor overFill(state.clipping ? tokens.warning : tokens.success);
+			const qreal splitY = qBound(frame.top(), qreal(state.zeroY), frame.bottom());
+			const QRectF aboveZero(frame.left() - 2.0, frame.top() - 2.0, frame.width() + 4.0, splitY - frame.top() + 2.0);
+			const QRectF belowZero(frame.left() - 2.0, splitY, frame.width() + 4.0, frame.bottom() - splitY + 2.0);
+			for (int pass = 0; pass < 2; pass++)
+			{
+				const bool overshootPass = pass == 0;
+				const QColor side = overshootPass ? overFill : accent;
+				painter.save();
+				painter.setClipRect(overshootPass ? aboveZero : belowZero, Qt::IntersectClip);
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(side);
+				painter.drawPolygon(terrain);
+				painter.setPen(QPen(mixColor(side, warmInk, 0.40), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawPolyline(state.curve);
+				painter.restore();
+			}
+		}
+
+		// The calm ground line: the soft 0 dB notch, rounded ends floating
+		// clear of the well walls, laid over the masses so the ground level
+		// reads through the hills.
+		if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
+		{
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), 110), 2, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(state.plotRect.left() + 6.0, state.zeroY),
+				QPointF(state.plotRect.right() - 6.0, state.zeroY));
+		}
+
+		// The frequency axis speaks: the decade figures plus the 20/20k
+		// endpoints anchoring the range; the in-between ticks stay
+		// whitespace. Edge captions tuck inside the rounding.
+		painter.setPen(labelInk);
+		for (int i = 0; i < state.vertical.size(); i++)
+		{
+			const AnalysisGraphState::GridLine& line = state.vertical.at(i);
+			if (line.label.isEmpty() || (!line.major && i != 0 && i != state.vertical.size() - 1))
+				continue;
+			QRect labelRect(qRound(line.pos) - 24, int(state.plotRect.bottom()) + 2, 48, 12);
+			int align = Qt::AlignHCenter;
+			if (labelRect.right() > state.rect.right() - 8)
+			{
+				labelRect.setRight(state.rect.right() - 8);
+				align = Qt::AlignRight;
+			}
+			if (labelRect.left() < state.rect.left() + 8)
+			{
+				labelRect.setLeft(state.rect.left() + 8);
+				align = Qt::AlignLeft;
+			}
+			painter.drawText(labelRect, align | Qt::AlignTop, line.label);
+		}
+
+		// The dB figures rest just above their (unpainted) rows along the
+		// left edge, thinned to a calm cadence when the fitted range packs
+		// the rows tighter than a caption, anchored at the 0 dB ground so
+		// the kept figures stay symmetric around it.
+		int groundIndex = 0;
+		for (int i = 0; i < state.horizontal.size(); i++)
+		{
+			if (state.horizontal.at(i).major)
+			{
+				groundIndex = i;
+				break;
+			}
+		}
+		qreal rowGap = 0.0;
+		if (state.horizontal.size() >= 2)
+			rowGap = qAbs(state.horizontal.at(1).pos - state.horizontal.at(0).pos);
+		const int labelStride = rowGap > 0.5 ? qMax(1, qCeil(16.0 / rowGap)) : 1;
+		for (int i = 0; i < state.horizontal.size(); i++)
+		{
+			const AnalysisGraphState::GridLine& line = state.horizontal.at(i);
+			if (line.label.isEmpty() || qAbs(i - groundIndex) % labelStride != 0)
+				continue;
+			painter.drawText(QRectF(state.plotRect.left() + 6.0, line.pos - 15.0, 48.0, 12.0),
+				Qt::AlignLeft | Qt::AlignVCenter, line.label);
+		}
+
+		// The footer caption stays a caption: channel and sample rate in the
+		// same friendly ink, centred under the axis row. Localized data,
+		// drawn as-is.
+		if (!state.channelText.isEmpty())
+		{
+			const QFontMetrics footerMetrics(labelFont);
+			painter.drawText(QRectF(state.plotRect.left(), state.rect.bottom() - 14.0, state.plotRect.width(), 13.0),
+				Qt::AlignHCenter | Qt::AlignVCenter,
+				footerMetrics.elidedText(state.channelText, Qt::ElideRight, int(state.plotRect.width())));
+		}
+
+		// The clipping notice: the overshoot terrain has already warmed to
+		// the warning pastel; a stadium chip names it and - because Soft's
+		// audience may not know that exceeding 0 dB audibly damages the
+		// sound - a plain-language warning sentence follows the chip. No
+		// jargon (never "clipping"), localized, and bold enough to matter.
+		if (state.clipping)
+		{
+			const QString clipText = QStringLiteral("Over 0 dB");
+			const QFontMetrics chipMetrics(labelFont);
+			const qreal chipH = 18.0;
+			const qreal chipW = chipMetrics.horizontalAdvance(clipText) + 16.0;
+			const QRectF chip(state.plotRect.left() + 8.0, state.plotRect.top() + 6.0, chipW, chipH);
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(QColor(tokens.warning));
+			painter.drawRoundedRect(chip, chipH / 2.0, chipH / 2.0);
+			painter.setPen(warmInk);
+			painter.drawText(chip, Qt::AlignCenter, clipText);
+
+			const QString advice = QCoreApplication::translate("SoftSkin",
+				"Sound may distort - keep it below 0 dB");
+			QFont adviceFont(labelFont);
+			adviceFont.setWeight(QFont::DemiBold);
+			const QFontMetrics adviceMetrics(adviceFont);
+			const QRectF adviceRect(chip.right() + 8.0, chip.top(),
+				qMax(0.0, state.plotRect.right() - chip.right() - 16.0), chipH);
+			if (adviceRect.width() >= 60.0)
+			{
+				painter.setFont(adviceFont);
+				painter.setPen(mixColor(QColor(tokens.warning), warmInk, 0.55));
+				painter.drawText(adviceRect, Qt::AlignLeft | Qt::AlignVCenter,
+					adviceMetrics.elidedText(advice, Qt::ElideRight, int(adviceRect.width())));
+				painter.setFont(labelFont);
+			}
+		}
+
+		// The cursor: a soft vertical notch guide (the detent grammar stood
+		// upright), a rounded lens dot sitting on the response in its side's
+		// pastel, and the readout as an ON-pastel stadium pill in the well's
+		// top-right corner. The hover progress floats the whole group in,
+		// the pill drifting down to its resting spot.
+		const double entry = qBound(0.0, state.hover, 1.0);
+		if (state.cursorValid && entry > 0.01)
+		{
+			painter.save();
+			painter.setOpacity(entry);
+
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), 70), 2, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(state.cursor.x(), state.plotRect.top() + 6.0),
+				QPointF(state.cursor.x(), state.plotRect.bottom() - 6.0));
+
+			// The lens: an elevated card face wearing its side's warm-ink
+			// ring under a quiet text-ink halo, so it reads both on a
+			// terrain mass of the same pastel and on the bare well.
+			const bool overshoot = state.curveYAtCursor < state.zeroY - 0.5;
+			const QColor lensSide = overshoot ? QColor(state.clipping ? tokens.warning : tokens.success) : accent;
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), 70), 3));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 7.5, 7.5);
+			painter.setPen(QPen(mixColor(lensSide, warmInk, 0.40), 2));
+			painter.setBrush(QColor(tokens.card));
+			painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 5.0, 5.0);
+
+			if (!state.cursorText.isEmpty())
+			{
+				const QFontMetrics pillMetrics(labelFont);
+				const qreal pillH = 18.0;
+				const qreal pillW = qMin<qreal>(pillMetrics.horizontalAdvance(state.cursorText) + 16.0,
+						state.plotRect.width() - 12.0);
+				const QRectF pill(state.plotRect.right() - pillW - 6.0,
+					state.plotRect.top() + 6.0 - (1.0 - entry) * 8.0, pillW, pillH);
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(accent);
+				painter.drawRoundedRect(pill, pillH / 2.0, pillH / 2.0);
+				painter.setPen(warmInk);
+				painter.drawText(pill, Qt::AlignCenter,
+					pillMetrics.elidedText(state.cursorText, Qt::ElideRight, int(pillW - 12.0)));
+			}
+			painter.restore();
+		}
+
+		painter.restore();
+
+		// The well edge: the very light 1px line of the two-step elevation.
+		painter.setPen(QPen(border, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPath(wellPath);
+	}
+
+	// Round 3, the plain-text rows (bare note lines and programmatic
+	// commands such as If/EndIf/Eval). The raw line IS the row's content
+	// here, so it stays readable - but the terminal prompt glyph (">_") is
+	// exactly the anxious tech artifact this skin removes (tiebreaker:
+	// remove the element, keep the whitespace). The line itself sits in a
+	// sunken stadium well with a DASHED edge at full ink - the established
+	// "the engine holds this as written, nothing vouches for it" grammar
+	// (Copy's [+] chip, the virtual channel seats) - a note, not an alarm.
+	// A commented-out row relaxes the well to the sleeping triple (dash +
+	// sunk-to-window + muted ink). FilterCardRow laid these styles inline,
+	// so QSS cannot reach them; construction time is the hook's moment.
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	{
+		Q_UNUSED(card);
+		Q_UNUSED(header);
+		if (info.legacyRow || body == nullptr || info.type != QStringLiteral("text"))
+			return;
+
+		const SkinTokens t = SkinManager::instance()->tokens();
+		if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
+			glyph->setVisible(false);
+		if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+		{
+			raw->setStyleSheet(QStringLiteral(
+				"QLabel#FilterCardRawText { background:%1; color:%2; border:1px dashed %3; border-radius:16px; padding:8px 14px; font-family:\"%4\"; }"
+				"QLabel#FilterCardRawText:disabled { background:%5; color:%6; }")
+				.arg(t.surfaceSunken, t.text, t.border, t.monoFontFamily, t.background, t.mutedText));
+		}
 	}
 
 	// Annex K, soft: "a handle you cannot fumble". The largest knob of the
@@ -314,7 +870,7 @@ public:
 		// Keyboard focus: a quiet halo around the whole handle, not a hard ring.
 		if (state.focused && state.enabled)
 		{
-			painter.setPen(QPen(softAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
 			painter.setBrush(Qt::NoBrush);
 			painter.drawEllipse(knobRect.adjusted(-2, -2, 2, 2));
 		}
@@ -326,14 +882,14 @@ public:
 		const double centerDegrees = startDegrees + spanDegrees / 2.0;
 		if (state.enabled && state.bipolar)
 		{
-			painter.setPen(QPen(softMix(QColor(tokens.accent2), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(mixColor(QColor(tokens.accent2), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
 			painter.drawArc(arcRect, -startDegrees * 16, qRound(-spanDegrees / 2.0 * 16.0));
-			painter.setPen(QPen(softMix(QColor(tokens.accent), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(mixColor(QColor(tokens.accent), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
 			painter.drawArc(arcRect, qRound(-centerDegrees * 16.0), qRound(-spanDegrees / 2.0 * 16.0));
 		}
 		else
 		{
-			const QColor trackColor = state.enabled ? softMix(QColor(tokens.accent), card, 0.80) : softAlpha(border, 110);
+			const QColor trackColor = state.enabled ? mixColor(QColor(tokens.accent), card, 0.80) : withAlpha(border, 110);
 			painter.setPen(QPen(trackColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
 			painter.drawArc(arcRect, -startDegrees * 16, -spanDegrees * 16);
 		}
@@ -342,7 +898,7 @@ public:
 		if (state.enabled)
 		{
 			const bool cutSide = state.bipolar && ratio < 0.5;
-			const QColor valueColor = softMix(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.25);
+			const QColor valueColor = mixColor(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.25);
 			painter.setPen(QPen(valueColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
 			if (state.bipolar)
 			{
@@ -362,7 +918,7 @@ public:
 		{
 			const QPointF arcCenter = arcRect.center();
 			const double trackRadius = arcRect.width() / 2.0;
-			painter.setPen(QPen(softAlpha(QColor(tokens.text), state.enabled ? 200 : 90), 2.5, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), state.enabled ? 200 : 90), 2.5, Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(arcCenter.x(), arcCenter.y() - trackRadius - arcWidth / 2.0 + 0.5),
 				QPointF(arcCenter.x(), arcCenter.y() - trackRadius + arcWidth / 2.0 - 0.5));
 		}
@@ -373,12 +929,12 @@ public:
 		const double faceInset = arcWidth + 2.5;
 		QRectF baseRect = knobRect.adjusted(faceInset, faceInset, -faceInset, -faceInset);
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(softMix(card, windowBg, 0.55));
+		painter.setBrush(mixColor(card, windowBg, 0.55));
 		painter.drawEllipse(baseRect);
 
 		QColor faceColor = card;
 		if (!state.enabled)
-			faceColor = softMix(card, windowBg, 0.5);
+			faceColor = mixColor(card, windowBg, 0.5);
 		else if (state.hovered || state.dragging)
 			faceColor = QColor(tokens.cardHover);
 		QRectF faceRect = baseRect.adjusted(2.5, 2.5, -2.5, -2.5);
@@ -402,7 +958,7 @@ public:
 			faceRect.center().y() - qSin(radians) * dotTrack);
 		painter.setPen(Qt::NoPen);
 		const QColor dotColor(state.bipolar && ratio < 0.5 ? tokens.accent2 : tokens.accent);
-		painter.setBrush(state.enabled ? dotColor : softAlpha(muted, 120));
+		painter.setBrush(state.enabled ? dotColor : withAlpha(muted, 120));
 		painter.drawEllipse(dotPos, dotRadius, dotRadius);
 
 		// Value in a rounded badge below the handle.
@@ -417,7 +973,7 @@ public:
 			QRectF badgeRect(QRectF(rect).center().x() - badgeWidth / 2.0,
 				QRectF(rect).bottom() - badgeHeight - 0.5, badgeWidth, badgeHeight);
 			painter.setPen(QPen(border, 1));
-			painter.setBrush(state.enabled ? QColor(tokens.surfaceRaised) : softMix(card, windowBg, 0.5));
+			painter.setBrush(state.enabled ? QColor(tokens.surfaceRaised) : mixColor(card, windowBg, 0.5));
 			painter.drawRoundedRect(badgeRect, badgeHeight / 2.0, badgeHeight / 2.0);
 			painter.setPen(state.enabled ? QColor(tokens.text) : muted);
 			painter.drawText(badgeRect, Qt::AlignCenter, state.valueText);
@@ -442,11 +998,11 @@ public:
 		for (QAction* action : toolBar->actions())
 		{
 			if (action->objectName() == QStringLiteral("actionNew"))
-				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/file-new.svg"), softMix(QColor(tokens.accent), card, 0.15)));
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/file-new.svg"), mixColor(QColor(tokens.accent), card, 0.15)));
 			else if (action->objectName() == QStringLiteral("actionOpen"))
-				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/folder-open.svg"), softMix(QColor(tokens.warning), card, 0.15)));
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/folder-open.svg"), mixColor(QColor(tokens.warning), card, 0.15)));
 			else if (action->objectName() == QStringLiteral("actionSave"))
-				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/save.svg"), softMix(QColor(tokens.success), card, 0.15)));
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/save.svg"), mixColor(QColor(tokens.success), card, 0.15)));
 		}
 	}
 

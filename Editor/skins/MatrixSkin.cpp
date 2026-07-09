@@ -43,6 +43,7 @@
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
 
 namespace
@@ -73,11 +74,11 @@ constexpr int knobCellHeight = 16;
 namespace
 {
 // Point on the 270-degree value arc; fraction 0 is bottom-left (7:30), 0.5 is
-// 12 o'clock, 1 is bottom-right (4:30). Same sweep as the shared default knob.
+// 12 o'clock, 1 is bottom-right (4:30). Same sweep as the shared default
+// knob; the trig itself lives in SkinPaint.h.
 QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
 {
-	const double radians = qDegreesToRadians(-(135.0 + 270.0 * fraction));
-	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
+	return skinArcPoint(center, radius, -(135.0 + 270.0 * fraction));
 }
 
 // Bus designation of a command type (M2): the row coordinate speaks the same
@@ -242,7 +243,7 @@ public:
 		// The hook carries no mode flag; infer it from the strip's surface
 		// (the studioIsDark pattern). The light border ink needs more alpha
 		// than the dark one to stay visible as graph paper on white.
-		gridAlpha = QColor(tokens.surface).lightness() < 128 ? 55 : 90;
+		gridAlpha = skinColorIsDark(QColor(tokens.surface)) ? 55 : 90;
 		update();
 	}
 
@@ -337,10 +338,6 @@ class MatrixSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("matrix"); }
-	QString qssResource(bool dark) const override
-	{
-		return QStringLiteral(":/skins/matrix_%1.qss").arg(dark ? QStringLiteral("dark") : QStringLiteral("light"));
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static CrosspointMatrixRoutingRenderer renderer;
@@ -362,58 +359,7 @@ public:
 	{
 		return new MatrixReferenceCardView(kind, parent);
 	}
-	SkinTokens tokens(bool dark) const override
-	{
-		SkinTokens t;
-		t.fontFamily = QStringLiteral("DM Sans");
-		t.monoFontFamily = QStringLiteral("DM Mono");
-		// Square cells and 1px rules only; 36px rows keep the board dense and
-		// on the 12px grid (gridPitch 24 = two rows of 12).
-		t.borderRadius = 0;
-		t.rowHeight = 36;
-		t.channelGroupIndent = 24;
-		t.channelGroupStyle = SkinTokens::GradientBar;
-		t.badgeStyle = SkinTokens::OutlineOnly;
-		t.cardRailWidth = 3;
-		// The shared raw-preview strip is replaced by this skin's own caption
-		// strip (MatrixRowCaption): same raw spec, but spoken in the board's
-		// footer grammar and wired into the crosspoint hover echo (M2).
-		t.showRawPreview = false;
-		t.accent = dark ? QStringLiteral("#22D3EE") : QStringLiteral("#008EAA");
-		t.accent2 = dark ? QStringLiteral("#7CFFB2") : QStringLiteral("#0A8F57");
-		if (dark)
-		{
-			t.background = QStringLiteral("#060B10");
-			t.surface = QStringLiteral("#0B141C");
-			t.card = QStringLiteral("#101B25");
-			t.cardHover = QStringLiteral("#142432");
-			t.cardSelected = QStringLiteral("#082B34");
-			t.text = QStringLiteral("#DFF5FF");
-			t.mutedText = QStringLiteral("#7FA0AE");
-			t.border = QStringLiteral("#233443");
-			t.graph = QStringLiteral("#041018");
-			t.graphGridMinor = QStringLiteral("#183443");
-		}
-		else
-		{
-			t.background = QStringLiteral("#F0F6F8");
-			t.surface = QStringLiteral("#FFFFFF");
-			t.card = QStringLiteral("#F9FCFD");
-			t.cardHover = QStringLiteral("#EDF7FA");
-			t.cardSelected = QStringLiteral("#D7F8FF");
-			t.text = QStringLiteral("#10242F");
-			t.mutedText = QStringLiteral("#5F7782");
-			t.border = QStringLiteral("#D4E2E8");
-			t.graph = QStringLiteral("#F9FCFD");
-			t.graphGridMinor = QStringLiteral("#D4E2E8");
-			// Traffic-light status colours tuned for contrast on light surfaces.
-			t.success = QStringLiteral("#15803D");
-			t.warning = QStringLiteral("#B45309");
-			t.danger = QStringLiteral("#DC2626");
-		}
-		finishTokens(t);
-		return t;
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 
 	// Rotary encoder with an LED ring: the value reads as discrete lit
 	// segments, the exact value as text in a boxed mono cell. Bipolar knobs
@@ -468,7 +414,7 @@ public:
 		// the LEDs gain headroom toward white so a lit cell clearly outshines
 		// the ghost ring; the light tokens were derived for maximum contrast
 		// on white, where lightening would only desaturate them.
-		if (QColor(tokens.surface).lightness() < 128)
+		if (skinColorIsDark(QColor(tokens.surface)))
 			litColor = litColor.lighter(112);
 		if (state.dragging)
 			litColor = litColor.lighter(125);
@@ -634,6 +580,32 @@ public:
 			}
 		}
 
+		// A bare or unmodelled line (TXT, and the programmatic If/EndIf/Eval
+		// vocabulary) is a remark posting, and on this board everything
+		// posted lives in a cell (the Comment card's doctrine). The shared
+		// raw card lays inline styles on its two labels, so the board answer
+		// must be inline too: the ">_" scan glyph becomes a sunken mono
+		// designation cell (the "#" marker cell's construction) and the raw
+		// line a sunken mono line cell - 1px rules, radius 0, verbatim text.
+		if (info.type == QStringLiteral("text") && body != nullptr)
+		{
+			const SkinTokens& tokens = SkinManager::instance()->tokens();
+			if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
+			{
+				glyph->setStyleSheet(QStringLiteral(
+					"QLabel#FilterCardRawGlyph { background:%1; color:%2; border:1px solid %3;"
+					" border-radius:0; padding:2px 7px; font-family:\"%4\"; font-weight:700; font-size:9pt; }")
+					.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
+			}
+			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+			{
+				raw->setStyleSheet(QStringLiteral(
+					"QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3;"
+					" border-radius:0; padding:4px 8px; font-family:\"%4\"; font-size:9pt; }")
+					.arg(tokens.surfaceSunken, tokens.text, tokens.border, tokens.monoFontFamily));
+			}
+		}
+
 		// No per-type body decoration remains: the reference bodies build
 		// their own board grammar in MatrixReferenceCardView (which also
 		// owns the VST port strip that used to be injected from here).
@@ -670,7 +642,7 @@ public:
 		// distracting afterimage behind parameter widgets, so the row body
 		// stays a calm opaque panel regardless of editor widget opacity.
 		QColor gridColor(tokens.border);
-		const int gridAlpha = QColor(tokens.surface).lightness() < 128 ? 80 : 90;
+		const int gridAlpha = skinColorIsDark(QColor(tokens.surface)) ? 80 : 90;
 		gridColor.setAlpha((info.enabled || remark) ? gridAlpha : gridAlpha / 2);
 		painter.setPen(QPen(gridColor, 1));
 		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
@@ -719,6 +691,683 @@ public:
 		}
 	}
 
+	// The trailing add row is a vacant board cell: a slot the board has not
+	// posted yet (shared insertion contract, docs/skins/README.md). The dashed
+	// 1px rule says "no live signal here" - the cancelled-departure dash,
+	// form not colour - around the board's own graph paper, and the slot's
+	// designation cell holds "+" instead of a bus letter because the letter
+	// is only assigned when the picker posts an entry. The caption is a mono
+	// board caption. Hover is the crosspoint pre-light (row band + coordinate
+	// column band, the card chrome's alphas) with the designation lighting
+	// accent like a hovered coordinate readout; pressing engages the slot:
+	// solid accent rule + LED-filled designation cell. Crisp throughout.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		const QRect cell = rect.adjusted(0, 0, -1, -1);
+		if (cell.width() <= 0 || cell.height() <= 0)
+			return;
+
+		// The vacant slot exposes the board surface's graph paper (the same
+		// faint 24px column grid the masthead and toolbar sit on).
+		QColor grid(tokens.border);
+		grid.setAlpha(skinColorIsDark(QColor(tokens.surface)) ? 55 : 90);
+		painter.setPen(QPen(grid, 1));
+		for (int x = cell.left() + MatrixMetrics::gridPitch; x < cell.right(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, cell.top() + 1, x, cell.bottom() - 1);
+
+		// Crosspoint pre-light: row band + coordinate-column band; their
+		// overlap in the coordinate band is the crosspoint.
+		if (state.hovered || state.pressed)
+		{
+			QColor rowBand(tokens.accent);
+			rowBand.setAlpha(state.pressed ? 28 : 22);
+			painter.fillRect(cell, rowBand);
+			QColor columnColor(tokens.accent);
+			columnColor.setAlpha(14);
+			painter.fillRect(QRect(cell.left(), cell.top(),
+				qMin(MatrixMetrics::coordinateBandWidth, cell.width()), cell.height()), columnColor);
+		}
+
+		// Outer rule: dashed while the slot is vacant, solid accent while
+		// being engaged (pressed = the picker is about to post here). Hover
+		// pre-lights the dash in accent; keyboard focus is NOT a pre-light -
+		// it gets the square cell bracket below (the knob focus grammar), so
+		// a merely focused slot still reads at rest.
+		const bool preLit = state.hovered;
+		painter.setPen(QPen(QColor(state.pressed || preLit ? tokens.accent : tokens.border), 1,
+			state.pressed ? Qt::SolidLine : Qt::DashLine));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(cell);
+
+		// Designation cell awaiting its bus letter: a sunken coordinate cell
+		// holding "+". Muted at rest like every resting coordinate, accent
+		// pre-light on hover, LED fill while engaged.
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(9.0);
+		mono.setBold(true);
+		const QFontMetrics monoMetrics(mono);
+		const int designationWidth = monoMetrics.horizontalAdvance(QStringLiteral("+")) + 12;
+		const QRect designationRect(cell.left() + 10, cell.center().y() - 9, designationWidth, 18);
+		painter.setPen(QPen(QColor(state.pressed || preLit ? tokens.accent : tokens.border), 1));
+		painter.setBrush(state.pressed ? QColor(tokens.accent) : QColor(tokens.surfaceSunken));
+		painter.drawRect(designationRect.adjusted(0, 0, -1, -1));
+		painter.setFont(mono);
+		painter.setPen(state.pressed ? QColor(tokens.background)
+			: (preLit ? QColor(tokens.accent) : QColor(tokens.mutedText)));
+		painter.drawText(designationRect, Qt::AlignCenter, QStringLiteral("+"));
+
+		// Keyboard focus: a square cell bracket around the designation cell
+		// (glow-free - this skin's corner language is the rectangle).
+		if (state.focused && !state.pressed)
+		{
+			painter.setPen(QPen(QColor(tokens.accent), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(designationRect.adjusted(-3, -3, 2, 2));
+		}
+
+		// Mono board caption; body ink while the crosspoint is lit.
+		QFont caption(tokens.monoFontFamily);
+		caption.setPointSizeF(8.0);
+		caption.setWeight(QFont::DemiBold);
+		caption.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+		painter.setFont(caption);
+		painter.setPen(QColor(state.hovered || state.pressed ? tokens.text : tokens.mutedText));
+		painter.drawText(QRect(designationRect.right() + 11, cell.top(), qMax(0, cell.right() - designationRect.right() - 12), cell.height()),
+			Qt::AlignVCenter | Qt::AlignLeft, state.label.toUpper());
+	}
+
+	// The first-boundary seam: a 1px accent rule with a square insertion
+	// cell at its head - the crosspoint about to be patched ahead of line 1.
+	// No disc (this skin's corner language is the rectangle), no glow, AA
+	// off. The hosting widget paints nothing at rest, so the board stays
+	// clean until the cursor crosses the boundary.
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		const QColor accent(tokens.accent);
+		const int centerY = rect.center().y();
+		const int side = qMin(rect.height(), 14);
+		if (side <= 2 || rect.width() <= side)
+			return;
+
+		// Square insertion cell: sunken well + accent rule while pre-lit,
+		// LED fill while pressed (the engage grammar of every cell).
+		const QRect cellRect(rect.left(), centerY - side / 2, side, side);
+		painter.setPen(QPen(accent, 1));
+		painter.setBrush(state.pressed ? accent : QColor(tokens.surfaceSunken));
+		painter.drawRect(cellRect.adjusted(0, 0, -1, -1));
+
+		QFont mono(tokens.monoFontFamily);
+		mono.setPixelSize(qMax(6, side - 3));
+		mono.setBold(true);
+		painter.setFont(mono);
+		painter.setPen(state.pressed ? QColor(tokens.background) : accent);
+		painter.drawText(cellRect.adjusted(0, 0, -1, -1), Qt::AlignCenter, QStringLiteral("+"));
+
+		// The 1px insertion rule across the boundary.
+		painter.setPen(QPen(accent, 1));
+		painter.drawLine(cellRect.right() + 5, centerY, rect.right() - 1, centerY);
+	}
+
+	// The GraphicEQ response plot as a signal trace on the board: a sunken
+	// data ground under a crisp 1px grid, the response as an accent patch
+	// trace (routed signal data is the one place accent is legal at rest -
+	// the Copy patch-trace / coefficient-cell precedent), nodes as square
+	// crosspoint cells (rest = empty 1px-ruled cell, hover = crosspoint
+	// pre-light with row/column hairlines through the plot, selected =
+	// engaged LED fill), the 0 dB bus as a body-ink rule one rank above the
+	// grid, and the cursor probe in a boxed sunken mono cell (rule 5). In
+	// the band-locked layouts stems rise off the 0 dB bus in the knob ring's
+	// bipolar grammar (boost = accent, cut = accent2) - never danger; a
+	// negative gain is not a hazard (colour rationing, article 1). AA stays
+	// off for every straight line; only the curve - data, not chrome - is
+	// antialiased. Disabled is the cancelled departure: low-alpha content
+	// behind a dashed outer rule, never hidden.
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
+	{
+		const QColor ground(tokens.graph);
+		const QColor borderInk(tokens.border);
+		const QColor mutedInk(tokens.mutedText);
+		const QColor textInk(tokens.text);
+		const QColor accent(tokens.accent);
+		const QColor cutInk(tokens.accent2);
+		const QRect plot = state.plotRect.toRect();
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		// Cancelled-departure treatment: the instrument stays posted at low
+		// alpha; the dashed outer rule below is drawn at full strength.
+		if (!state.enabled)
+			painter.setOpacity(0.45);
+
+		painter.fillRect(state.rect, ground);
+
+		QFont labelFont(tokens.monoFontFamily);
+		labelFont.setPointSizeF(7.5);
+		painter.setFont(labelFont);
+		const QFontMetrics labelMetrics(labelFont);
+
+		// Crisp 1px grid. The tokens' minor ink is the graph mesh; the major
+		// rank is derived from muted ink at low alpha because the shared
+		// major token equals the border ink, which the light board cannot
+		// tell from the minor mesh. Labels speak DM Mono in muted ink,
+		// minors one step quieter.
+		QColor majorInk(mutedInk);
+		majorInk.setAlpha(90);
+		const QColor minorInk(tokens.graphGridMinor);
+		QColor minorLabelInk(mutedInk);
+		minorLabelInk.setAlpha(150);
+		for (const GraphicEQPlotState::GridLine& line : state.vertical)
+		{
+			const int x = int(line.pos);
+			painter.setPen(QPen(line.major ? majorInk : minorInk, 1));
+			painter.drawLine(x, plot.top(), x, plot.bottom());
+			if (!line.label.isEmpty())
+			{
+				painter.setPen(line.major ? mutedInk : minorLabelInk);
+				painter.drawText(QRect(x - 24, plot.bottom() + 2, 48, state.rect.bottom() - plot.bottom() - 2),
+					Qt::AlignHCenter | Qt::AlignTop, line.label);
+			}
+		}
+		for (const GraphicEQPlotState::GridLine& line : state.horizontal)
+		{
+			const int y = int(line.pos);
+			painter.setPen(QPen(line.major ? majorInk : minorInk, 1));
+			painter.drawLine(plot.left(), y, plot.right(), y);
+			if (!line.label.isEmpty())
+			{
+				painter.setPen(line.major ? mutedInk : minorLabelInk);
+				painter.drawText(QRect(state.rect.left(), y - 8, plot.left() - state.rect.left() - 4, 16),
+					Qt::AlignRight | Qt::AlignVCenter, line.label);
+			}
+		}
+
+		// The 0 dB bus: a body-ink 1px rule, one rank of authority above the
+		// grid (the trace departs from and returns to this line).
+		const bool zeroVisible = state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom();
+		if (zeroVisible)
+		{
+			QColor zeroInk(textInk);
+			zeroInk.setAlpha(180);
+			painter.setPen(QPen(zeroInk, 1));
+			painter.drawLine(plot.left(), int(state.zeroY), plot.right(), int(state.zeroY));
+		}
+
+		// Band-locked layouts: level stems off the 0 dB bus, in the LED
+		// ring's bipolar grammar - boost lights accent, cut lights accent2.
+		const double stemBase = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+		if (state.bandLocked)
+		{
+			for (const QPointF& node : state.nodePositions)
+			{
+				if (qAbs(node.y() - stemBase) < 1.0)
+					continue;
+				QColor stem(node.y() < stemBase ? accent : cutInk);
+				stem.setAlpha(110);
+				painter.setPen(QPen(stem, 2, Qt::SolidLine, Qt::FlatCap));
+				painter.drawLine(QPointF(node.x(), stemBase), node);
+			}
+		}
+
+		// The response trace: 2px accent, antialiased (the curve is data).
+		// The fill stays ascetic - a bare wash in the variable layout only,
+		// where no stems carry the level reading.
+		if (state.curve.size() >= 2)
+		{
+			painter.setRenderHint(QPainter::Antialiasing, true);
+			if (!state.bandLocked)
+			{
+				QPolygonF wash = state.curve;
+				wash.append(QPointF(state.curve.last().x(), stemBase));
+				wash.prepend(QPointF(state.curve.first().x(), stemBase));
+				QColor washColor(accent);
+				washColor.setAlpha(14);
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(washColor);
+				painter.drawPolygon(wash);
+			}
+			painter.setPen(QPen(accent, 2));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawPolyline(state.curve);
+			painter.setRenderHint(QPainter::Antialiasing, false);
+		}
+
+		// Crosspoint pre-light under the hovered node: a row and a column
+		// hairline through the plot whose intersection is the node - hover
+		// reads as an addressed crosspoint, not a point.
+		if (state.enabled && state.hoveredNode >= 0 && state.hoveredNode < state.nodePositions.size())
+		{
+			const QPointF& hoverNode = state.nodePositions.at(state.hoveredNode);
+			QColor hairline(accent);
+			hairline.setAlpha(80);
+			painter.setPen(QPen(hairline, 1));
+			painter.drawLine(int(hoverNode.x()), plot.top(), int(hoverNode.x()), plot.bottom());
+			painter.drawLine(plot.left(), int(hoverNode.y()), plot.right(), int(hoverNode.y()));
+		}
+
+		// Node cells: square crosspoints. Rest = an empty cell (opaque
+		// ground punch + 1px muted rule, the resting-coordinate ink),
+		// hover = accent rule + pre-light wash, selected = engaged (LED
+		// fill + accent rule). The state ladder rest < hover < engaged.
+		for (int i = 0; i < state.nodePositions.size(); i++)
+		{
+			const QPointF& center = state.nodePositions.at(i);
+			const QRect cell(qRound(center.x()) - 3, qRound(center.y()) - 3, 7, 7);
+			const bool selected = state.selectedNodes.contains(i);
+			const bool nodeHovered = state.hoveredNode == i;
+			if (selected)
+			{
+				painter.setPen(QPen(accent, 1));
+				painter.setBrush(accent);
+			}
+			else if (nodeHovered)
+			{
+				QColor wash(accent);
+				wash.setAlpha(48);
+				painter.setPen(QPen(accent, 1));
+				painter.setBrush(wash);
+			}
+			else
+			{
+				painter.setPen(QPen(mutedInk, 1));
+				painter.setBrush(ground);
+			}
+			painter.drawRect(cell.adjusted(0, 0, -1, -1));
+		}
+
+		// The band the readout strip is addressing wears its coordinate tag
+		// (mono, muted at rest, accent while engaged - the board coordinate
+		// ink), and keyboard focus brackets its cell square (the knob focus
+		// grammar; the corner language is the rectangle).
+		if (state.focusedNode >= 0 && state.focusedNode < state.nodePositions.size())
+		{
+			const QPointF& focusNode = state.nodePositions.at(state.focusedNode);
+			const QRect cell(qRound(focusNode.x()) - 3, qRound(focusNode.y()) - 3, 7, 7);
+			const bool engaged = state.selectedNodes.contains(state.focusedNode);
+
+			QFont tagFont(tokens.monoFontFamily);
+			tagFont.setPointSizeF(7.0);
+			tagFont.setBold(true);
+			const QFontMetrics tagMetrics(tagFont);
+			const QString tag = QString::number(state.focusedNode + 1);
+			const int tagWidth = tagMetrics.horizontalAdvance(tag);
+			int tagX = cell.right() + 5;
+			if (tagX + tagWidth > plot.right() - 2)
+				tagX = cell.left() - 5 - tagWidth;
+			int tagY = cell.top() - 4;
+			if (tagY - tagMetrics.ascent() < plot.top() + 2)
+				tagY = cell.bottom() + 5 + tagMetrics.ascent();
+			painter.setFont(tagFont);
+			painter.setPen(engaged ? accent : mutedInk);
+			painter.drawText(QPoint(tagX, tagY), tag);
+			painter.setFont(labelFont);
+
+			if (state.focused && state.enabled)
+			{
+				painter.setPen(QPen(accent, 1));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawRect(cell.adjusted(-3, -3, 2, 2));
+			}
+		}
+
+		// Cursor probe: the authoritative reading lives in a boxed sunken
+		// mono cell (rule 5), posted in the plot's top-right corner.
+		if (state.cursorValid && !state.cursorText.isEmpty())
+		{
+			QFont probeFont(tokens.monoFontFamily);
+			probeFont.setPointSizeF(7.5);
+			probeFont.setBold(true);
+			const QFontMetrics probeMetrics(probeFont);
+			const int cellWidth = probeMetrics.horizontalAdvance(state.cursorText) + 12;
+			const QRect probeRect(plot.right() - 6 - cellWidth, plot.top() + 6, cellWidth, MatrixMetrics::knobCellHeight);
+			painter.setPen(QPen(borderInk, 1));
+			painter.setBrush(QColor(tokens.surfaceSunken));
+			painter.drawRect(probeRect.adjusted(0, 0, -1, -1));
+			painter.setFont(probeFont);
+			painter.setPen(textInk);
+			painter.drawText(probeRect, Qt::AlignCenter, state.cursorText);
+			painter.setFont(labelFont);
+		}
+
+		// Outer rule: the data cell's 1px rule; keyboard focus engages it in
+		// accent, a bypassed row cancels it with the departure dash at full
+		// ink (the row frame's grammar - the dash itself is never dimmed).
+		painter.setOpacity(1.0);
+		painter.setPen(QPen(state.enabled ? QColor(state.focused ? accent : borderInk) : borderInk, 1,
+			state.enabled ? Qt::SolidLine : Qt::DashLine));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
+	}
+
+	// The analysis dock's response graph as the board's telemetry monitor:
+	// the same signal-trace instrument as the GraphicEQ plot, adapted to a
+	// wide always-on readout. A sunken data cell under a crisp integer 1px
+	// grid (AA off, invariant rule 7), mono axis figures posted as tag cells
+	// punched out of the grid (the instrument speaks its own axis language,
+	// not corner notes), the 0 dB bus as the body-ink reference rule, and
+	// the response as the energized accent trace: 1px core over one wider
+	// low-alpha echo stroke - no soft glow, no fill; the echo is the whole
+	// energy statement. A response that can clip posts a hazard zone: thin
+	// amber diagonals across the over-bus band plus an OVER tag cell pinned
+	// to the peak (warning = caution per the rationing table; the trace
+	// itself stays accent - signal data is never recoloured). The cursor is
+	// target acquisition: a vertical scan rule energized from dim to full by
+	// state.hover, a square corner-bracket reticle where it crosses the
+	// trace (the knob focus grammar - the corner language is the rectangle,
+	// so no disc), and the authoritative reading in a boxed sunken mono cell
+	// sliding with the pointer (rule 5). The footer is the picker footer's
+	// board line: sunken strip under a 1px rule, "> " marker, the prepared
+	// channel caption drawn as-is (localized data) and a terse span readout.
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
+	{
+		const QColor ground(tokens.graph);
+		const QColor borderInk(tokens.border);
+		const QColor mutedInk(tokens.mutedText);
+		const QColor textInk(tokens.text);
+		const QColor accent(tokens.accent);
+		const bool darkBoard = skinColorIsDark(QColor(tokens.surface));
+		// Caution ink: full amber only on the dark board. On the light board
+		// the raw orange read as crayon against the ice palette (review
+		// verdict), so it sinks to a printed ochre - hue kept, saturation and
+		// value derived down, like hazard markings silkscreened on a board.
+		const QColor warnBase(tokens.warning);
+		const QColor hazardInk = darkBoard ? warnBase
+			: QColor::fromHsvF(warnBase.hsvHueF(), warnBase.hsvSaturationF() * 0.82, warnBase.valueF() * 0.62);
+		const QRect plot = state.plotRect.toRect();
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.fillRect(state.rect, ground);
+
+		// Crisp 1px grid, integer-aligned. Same rank derivation as the
+		// GraphicEQ plot: minors from the token mesh, the major rank from
+		// muted ink at low alpha (the shared major token equals the border
+		// ink, which the light board cannot tell from the minor mesh).
+		QColor majorInk(mutedInk);
+		majorInk.setAlpha(90);
+		const QColor minorInk(tokens.graphGridMinor);
+		for (const AnalysisGraphState::GridLine& line : state.vertical)
+		{
+			const int x = int(line.pos);
+			painter.setPen(QPen(line.major ? majorInk : minorInk, 1));
+			painter.drawLine(x, plot.top(), x, plot.bottom());
+		}
+		for (const AnalysisGraphState::GridLine& line : state.horizontal)
+		{
+			const int y = int(line.pos);
+			painter.setPen(QPen(line.major ? majorInk : minorInk, 1));
+			painter.drawLine(plot.left(), y, plot.right(), y);
+		}
+
+		// Hazard zone: the response can clip, so the whole over-bus band
+		// posts thin amber diagonals (AA off - the pixel staircase is board
+		// grammar, not a defect). Caution is the zone's message.
+		const int zeroYpx = int(state.zeroY);
+		if (state.clipping && zeroYpx > plot.top())
+		{
+			const QRect zone(plot.left(), plot.top(), plot.width(), zeroYpx - plot.top());
+			QColor hatch(hazardInk);
+			hatch.setAlpha(darkBoard ? 60 : 70);
+			painter.save();
+			painter.setClipRect(zone);
+			painter.setPen(QPen(hatch, 1));
+			// Diagonals on the board's 12px half-pitch (gridPitch 24 = two
+			// rows of 12): thin rules that read individually, not a texture.
+			for (int x = zone.left() - zone.height(); x <= zone.right(); x += 12)
+				painter.drawLine(x, zone.bottom(), x + zone.height(), zone.top());
+
+			// Where the trace actually exceeds the bus, the hazard densifies:
+			// half-pitch diagonals at full caution ink, clipped to the area
+			// between the trace and the 0 dB rule. The band says "this side
+			// can clip"; the dense region says WHERE and BY HOW MUCH.
+			if (state.curve.size() >= 2)
+			{
+				QPolygonF closed = state.curve;
+				closed.append(QPointF(state.curve.last().x(), state.zeroY));
+				closed.append(QPointF(state.curve.first().x(), state.zeroY));
+				QPainterPath overshoot;
+				overshoot.addPolygon(closed);
+				overshoot.closeSubpath();
+				painter.setClipPath(overshoot, Qt::IntersectClip);
+				QColor dense(hazardInk);
+				dense.setAlpha(darkBoard ? 165 : 190);
+				painter.setPen(QPen(dense, 1));
+				for (int x = zone.left() - zone.height(); x <= zone.right(); x += 5)
+					painter.drawLine(x, zone.bottom(), x + zone.height(), zone.top());
+			}
+			painter.restore();
+		}
+
+		// The 0 dB bus: the board's reference rule, one rank of authority
+		// above the grid (the GraphicEQ plot's construction).
+		QColor zeroInk(textInk);
+		zeroInk.setAlpha(180);
+		painter.setPen(QPen(zeroInk, 1));
+		painter.drawLine(plot.left(), zeroYpx, plot.right(), zeroYpx);
+
+		// Mono axis figures in tag cells: each prepared label sits in a small
+		// cell punched out of the grid (ground fill under the figure), so the
+		// figures read as tags applied to the board rather than margin notes.
+		// Majors speak muted ink, minors one step quieter (the GraphicEQ
+		// plot's label ranks). Frequency tags ride the bottom edge; a tag
+		// that would collide with its neighbour is skipped, never squeezed.
+		QFont tagFont(tokens.monoFontFamily);
+		tagFont.setPointSizeF(7.0);
+		const QFontMetrics tagMetrics(tagFont);
+		const int tagHeight = tagMetrics.height();
+		QColor minorLabelInk(mutedInk);
+		minorLabelInk.setAlpha(150);
+		painter.setFont(tagFont);
+		int lastTagRight = state.rect.left() - 100;
+		for (const AnalysisGraphState::GridLine& line : state.vertical)
+		{
+			if (line.label.isEmpty())
+				continue;
+			const int tagWidth = tagMetrics.horizontalAdvance(line.label) + 6;
+			int tagX = int(line.pos) - tagWidth / 2;
+			tagX = qBound(state.rect.left() + 1, tagX, state.rect.right() - tagWidth - 1);
+			if (tagX <= lastTagRight + 4)
+				continue;
+			const QRect tagRect(tagX, plot.bottom() - tagHeight - 1, tagWidth, tagHeight);
+			painter.fillRect(tagRect, ground);
+			painter.setPen(line.major ? mutedInk : minorLabelInk);
+			painter.drawText(tagRect, Qt::AlignCenter, line.label);
+			lastTagRight = tagRect.right();
+		}
+
+		// dB tags ride the left edge. When the fitted range packs the 6 dB
+		// rules tighter than a figure, thin the tags anchored on the 0 dB bus
+		// so the bus always keeps its figure. A tag that cannot centre on its
+		// rule inside the plot (the range extremes at the plot edges) is
+		// dropped, not squeezed - the footer's span readout posts those two
+		// figures, and a tag off its rule would lie about its coordinate.
+		int labelStep = 1;
+		if (state.horizontal.size() >= 2)
+		{
+			const double spacing = qAbs(state.horizontal.at(1).pos - state.horizontal.at(0).pos);
+			if (spacing > 0.5)
+				labelStep = qMax(1, qCeil((tagHeight + 3) / spacing));
+		}
+		int zeroIndex = 0;
+		for (int i = 0; i < state.horizontal.size(); i++)
+		{
+			if (state.horizontal.at(i).major)
+			{
+				zeroIndex = i;
+				break;
+			}
+		}
+		for (int i = 0; i < state.horizontal.size(); i++)
+		{
+			const AnalysisGraphState::GridLine& line = state.horizontal.at(i);
+			if (line.label.isEmpty() || (i - zeroIndex) % labelStep != 0)
+				continue;
+			const int tagWidth = tagMetrics.horizontalAdvance(line.label) + 6;
+			const int tagY = int(line.pos) - tagHeight / 2;
+			if (tagY < plot.top() + 1 || tagY + tagHeight > plot.bottom() - 1)
+				continue;
+			const QRect tagRect(plot.left() + 4, tagY, tagWidth, tagHeight);
+			painter.fillRect(tagRect, ground);
+			painter.setPen(line.major ? mutedInk : minorLabelInk);
+			painter.drawText(tagRect, Qt::AlignCenter, line.label);
+		}
+
+		// The response trace: the energized accent core over a single wider
+		// low-alpha echo stroke. The curve is data, so it alone is
+		// antialiased (invariant rule 7 governs chrome, not signal).
+		if (state.curve.size() >= 2)
+		{
+			painter.setRenderHint(QPainter::Antialiasing, true);
+			QColor echo(accent);
+			echo.setAlpha(70);
+			painter.setPen(QPen(echo, 3));
+			painter.drawPolyline(state.curve);
+			painter.setPen(QPen(accent, 1));
+			painter.drawPolyline(state.curve);
+			painter.setRenderHint(QPainter::Antialiasing, false);
+		}
+
+		// The clip peak wears its OVER tag: a boxed cell in caution amber
+		// pinned to the highest point of the trace, tied down by a 1px tick.
+		if (state.clipping && state.curve.size() >= 2)
+		{
+			QPointF peak = state.curve.first();
+			for (const QPointF& point : state.curve)
+			{
+				if (point.y() < peak.y())
+					peak = point;
+			}
+			if (peak.y() < state.zeroY)
+			{
+				QFont overFont(tokens.monoFontFamily);
+				overFont.setPointSizeF(7.0);
+				overFont.setBold(true);
+				const QFontMetrics overMetrics(overFont);
+				const QString overText = QStringLiteral("OVER");
+				const int overWidth = overMetrics.horizontalAdvance(overText) + 8;
+				const int overHeight = overMetrics.height() + 2;
+				int overX = qRound(peak.x()) - overWidth / 2;
+				overX = qBound(plot.left() + 2, overX, plot.right() - overWidth - 2);
+				int overY = qRound(peak.y()) - 5 - overHeight;
+				bool above = true;
+				if (overY < plot.top() + 2)
+				{
+					overY = qRound(peak.y()) + 5;
+					above = false;
+				}
+				const QRect overRect(overX, overY, overWidth, overHeight);
+				painter.setPen(QPen(hazardInk, 1));
+				painter.setBrush(QColor(tokens.surfaceSunken));
+				painter.drawRect(overRect.adjusted(0, 0, -1, -1));
+				painter.setBrush(Qt::NoBrush);
+				painter.setFont(overFont);
+				painter.drawText(overRect, Qt::AlignCenter, overText);
+				const int tickX = qBound(overRect.left() + 1, qRound(peak.x()), overRect.right() - 1);
+				if (above)
+					painter.drawLine(tickX, overRect.bottom() + 1, tickX, qRound(peak.y()) - 2);
+				else
+					painter.drawLine(tickX, overRect.top() - 1, tickX, qRound(peak.y()) + 2);
+			}
+		}
+
+		// Target acquisition. The scan rule energizes from dim to full with
+		// the widget's hover progress; a square corner-bracket reticle marks
+		// where it crosses the trace, and the authoritative reading slides
+		// with the pointer in a boxed sunken mono cell.
+		if (state.cursorValid)
+		{
+			const int scanX = qBound(plot.left(), qRound(state.cursor.x()), plot.right());
+			QColor scanInk(accent);
+			scanInk.setAlpha(90 + qRound(state.hover * 165.0));
+			painter.setPen(QPen(scanInk, 1));
+			painter.drawLine(scanX, plot.top(), scanX, plot.bottom());
+
+			const int crossY = qRound(state.curveYAtCursor);
+			const int bracketLeft = scanX - 5;
+			const int bracketRight = scanX + 5;
+			const int bracketTop = crossY - 5;
+			const int bracketBottom = crossY + 5;
+			const int leg = 3;
+			QColor reticleInk(accent);
+			reticleInk.setAlpha(140 + qRound(state.hover * 115.0));
+			painter.setPen(QPen(reticleInk, 1));
+			painter.drawLine(bracketLeft, bracketTop, bracketLeft + leg, bracketTop);
+			painter.drawLine(bracketLeft, bracketTop, bracketLeft, bracketTop + leg);
+			painter.drawLine(bracketRight - leg, bracketTop, bracketRight, bracketTop);
+			painter.drawLine(bracketRight, bracketTop, bracketRight, bracketTop + leg);
+			painter.drawLine(bracketLeft, bracketBottom - leg, bracketLeft, bracketBottom);
+			painter.drawLine(bracketLeft, bracketBottom, bracketLeft + leg, bracketBottom);
+			painter.drawLine(bracketRight, bracketBottom - leg, bracketRight, bracketBottom);
+			painter.drawLine(bracketRight - leg, bracketBottom, bracketRight, bracketBottom);
+
+			if (!state.cursorText.isEmpty())
+			{
+				QFont probeFont(tokens.monoFontFamily);
+				probeFont.setPointSizeF(7.5);
+				probeFont.setBold(true);
+				const QFontMetrics probeMetrics(probeFont);
+				const int probeWidth = probeMetrics.horizontalAdvance(state.cursorText) + 12;
+				int probeX = scanX - probeWidth / 2;
+				probeX = qBound(plot.left() + 2, probeX, plot.right() - probeWidth - 2);
+				const QRect probeRect(probeX, plot.top() + 4, probeWidth, MatrixMetrics::knobCellHeight);
+				painter.setPen(QPen(mixColor(borderInk, accent, state.hover), 1));
+				painter.setBrush(QColor(tokens.surfaceSunken));
+				painter.drawRect(probeRect.adjusted(0, 0, -1, -1));
+				painter.setBrush(Qt::NoBrush);
+				painter.setFont(probeFont);
+				painter.setPen(textInk);
+				painter.drawText(probeRect, Qt::AlignCenter, state.cursorText);
+			}
+		}
+
+		// Terse board caption in the masthead margin (a painted stylistic
+		// caption in the toolbar caption grammar, not user data).
+		QFont captionFont(tokens.monoFontFamily);
+		captionFont.setPointSizeF(7.0);
+		captionFont.setWeight(QFont::DemiBold);
+		captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+		painter.setFont(captionFont);
+		painter.setPen(mutedInk);
+		painter.drawText(QRect(plot.left(), state.rect.top() + 2, qMax(0, plot.width()), 12),
+			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("RESPONSE"));
+
+		// The footer is the picker footer's board line: a sunken strip under
+		// a 1px rule. "> " marker, then the prepared channel/sample-rate
+		// caption exactly as handed over (localized data, elided when tight),
+		// lit from muted to body ink by hover; the fitted span reads on the
+		// right as terse telemetry.
+		const int footerTop = state.rect.bottom() - 17;
+		painter.fillRect(QRect(state.rect.left() + 1, footerTop + 1, state.rect.width() - 2, 16), QColor(tokens.surfaceSunken));
+		painter.setPen(QPen(borderInk, 1));
+		painter.drawLine(state.rect.left() + 1, footerTop, state.rect.right() - 1, footerTop);
+
+		QFont footerFont(tokens.monoFontFamily);
+		footerFont.setPointSizeF(7.5);
+		painter.setFont(footerFont);
+		const QFontMetrics footerMetrics(footerFont);
+		const QRect footerRect(state.rect.left() + 10, footerTop + 1, state.rect.width() - 20, 16);
+		const QString spanText = QStringLiteral("+%1 / %2 DB").arg(state.maxDb, 0, 'f', 0).arg(state.minDb, 0, 'f', 0);
+		painter.setPen(mutedInk);
+		painter.drawText(footerRect, Qt::AlignRight | Qt::AlignVCenter, spanText);
+		const QString marker = QStringLiteral("> ");
+		painter.drawText(footerRect, Qt::AlignLeft | Qt::AlignVCenter, marker);
+		const int channelX = footerRect.left() + footerMetrics.horizontalAdvance(marker);
+		const int channelAvail = footerRect.right() - footerMetrics.horizontalAdvance(spanText) - 12 - channelX;
+		painter.setPen(mixColor(mutedInk, textInk, state.hover));
+		painter.drawText(QRect(channelX, footerRect.top(), qMax(0, channelAvail), footerRect.height()),
+			Qt::AlignLeft | Qt::AlignVCenter,
+			footerMetrics.elidedText(state.channelText, Qt::ElideRight, qMax(0, channelAvail)));
+
+		// The data cell's outer 1px rule.
+		painter.setPen(QPen(borderInk, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
+	}
+
 	// The board's masthead: the faint 24px column grid behind the title
 	// readout and a doubled bottom rule (this inner line plus the QSS bottom
 	// border), so the strip closes like a board's title rule, not a plain
@@ -733,7 +1382,7 @@ public:
 		// (the studioIsDark pattern). The light border ink needs more alpha
 		// than the dark one to stay visible as graph paper on white.
 		QColor grid(tokens.border);
-		grid.setAlpha(QColor(tokens.surface).lightness() < 128 ? 55 : 90);
+		grid.setAlpha(skinColorIsDark(QColor(tokens.surface)) ? 55 : 90);
 		painter.setPen(QPen(grid, 1));
 		for (int x = rect.left() + MatrixMetrics::gridPitch; x < rect.right(); x += MatrixMetrics::gridPitch)
 			painter.drawLine(x, rect.top(), x, rect.bottom());

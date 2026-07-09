@@ -22,173 +22,156 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="2" column="0">
-    <widget class="QGroupBox" name="troubleshootingGroupBox">
-     <property name="title">
-      <string>Troubleshooting options (only use in case of problems)</string>
+    <layout class="QVBoxLayout" name="troubleshootingLayout">
+     <property name="spacing">
+      <number>0</number>
      </property>
-     <property name="checkable">
-      <bool>true</bool>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-     <layout class="QGridLayout" name="troubleshootingGridLayout">
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item row="0" column="0" colspan="3">
-       <widget class="QStackedWidget" name="stackedWidget">
-        <property name="currentIndex">
-         <number>1</number>
-        </property>
-        <widget class="QWidget" name="page">
-         <layout class="QGridLayout" name="gridLayout_2">
-          <item row="0" column="0">
-           <widget class="QLabel" name="label">
+     <item>
+      <widget class="DisclosureHeader" name="troubleshootingHeader"/>
+     </item>
+     <item>
+      <widget class="QStackedWidget" name="stackedWidget">
+       <property name="currentIndex">
+        <number>1</number>
+       </property>
+       <widget class="QWidget" name="page">
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Please select exactly one activated device by clicking on its name</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page_2">
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="1" column="1">
+          <widget class="QCheckBox" name="installPostMixCheckBox">
+           <property name="text">
+            <string>Install APO</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QCheckBox" name="useOriginalAPOPreMixCheckBox">
+           <property name="text">
+            <string>Use original APO</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="preMixLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Pre-mix:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QCheckBox" name="installPreMixCheckBox">
+           <property name="text">
+            <string>Install APO</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="5" rowspan="2">
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Expanding</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="postMixLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Post-mix:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="4">
+          <widget class="QComboBox" name="installModeComboBox">
+           <item>
             <property name="text">
-             <string>Please select exactly one activated device by clicking on its name</string>
+             <string>Install as LFX/GFX</string>
             </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="page_2">
-         <layout class="QGridLayout" name="gridLayout_3">
-          <item row="1" column="1">
-           <widget class="QCheckBox" name="installPostMixCheckBox">
+           </item>
+           <item>
             <property name="text">
-             <string>Install APO</string>
+             <string>Install as SFX/MFX</string>
             </property>
-           </widget>
-          </item>
-          <item row="0" column="2">
-           <widget class="QCheckBox" name="useOriginalAPOPreMixCheckBox">
+           </item>
+           <item>
             <property name="text">
-             <string>Use original APO</string>
+             <string>Install as SFX/EFX</string>
             </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="preMixLabel">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Pre-mix:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QCheckBox" name="installPreMixCheckBox">
-            <property name="text">
-             <string>Install APO</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="5" rowspan="2">
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Expanding</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="postMixLabel">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Post-mix:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="4">
-           <widget class="QComboBox" name="installModeComboBox">
-            <item>
-             <property name="text">
-              <string>Install as LFX/GFX</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Install as SFX/MFX</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Install as SFX/EFX</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item row="1" column="2">
-           <widget class="QCheckBox" name="useOriginalAPOPostMixCheckBox">
-            <property name="text">
-             <string>Use original APO</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QCheckBox" name="autoCheckBox">
-            <property name="toolTip">
-             <string>Automatically adjust install mode if problems with current mode are detected</string>
-            </property>
-            <property name="text">
-             <string>Auto:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3" colspan="2">
-           <widget class="QCheckBox" name="allowSilentBufferCheckBox">
-            <property name="toolTip">
-             <string>Allows to change silent input buffers to audible output buffers, so that delayed audio can be played.
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QCheckBox" name="useOriginalAPOPostMixCheckBox">
+           <property name="text">
+            <string>Use original APO</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QCheckBox" name="autoCheckBox">
+           <property name="toolTip">
+            <string>Automatically adjust install mode if problems with current mode are detected</string>
+           </property>
+           <property name="text">
+            <string>Auto:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3" colspan="2">
+          <widget class="QCheckBox" name="allowSilentBufferCheckBox">
+           <property name="toolTip">
+            <string>Allows to change silent input buffers to audible output buffers, so that delayed audio can be played.
 
 CAUTION: Some sound card drivers can produce unwanted sounds when this is enabled.</string>
-            </property>
-            <property name="text">
-             <string>Allow silent buffer modification</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
+           </property>
+           <property name="text">
+            <string>Allow silent buffer modification</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
-      </item>
-     </layout>
-    </widget>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item row="1" column="0">
     <widget class="QTreeWidget" name="deviceTreeWidget">
@@ -204,29 +187,18 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
      <property name="selectionMode">
       <enum>QAbstractItemView::ExtendedSelection</enum>
      </property>
+     <property name="headerHidden">
+      <bool>true</bool>
+     </property>
      <column>
       <property name="text">
-       <string>Connector</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Device</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Status</string>
+       <string notr="true">Device</string>
       </property>
      </column>
     </widget>
    </item>
    <item row="3" column="0">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
+    <widget class="QDialogButtonBox" name="buttonBox"/>
    </item>
    <item row="0" column="0">
     <widget class="QLabel" name="requestLabel">
@@ -243,6 +215,13 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>DisclosureHeader</class>
+   <extends>QWidget</extends>
+   <header>DisclosureHeader.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="DeviceSelector.qrc"/>
  </resources>

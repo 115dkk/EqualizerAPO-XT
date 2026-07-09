@@ -43,6 +43,7 @@ class MainWindow;
 
 class QLabel;
 class TitleBar;
+class UpdateToast;
 
 // MainWindow's implementation is split across several translation units (all
 // listed in Editor.pro SOURCES). When looking for a method, check the matching
@@ -132,8 +133,15 @@ private:
 	void setupRedesignActions();
 	void setupWindowChrome();
 	void applyRedesignPreferences();
+	// Re-tint the toolbar and menu action icons from the active skin's
+	// tokens; wired to SkinManager::skinChanged in the constructor so every
+	// switch path (menu, shortcut, preferences) re-dresses the chrome.
+	void dressSkinChrome();
 	void syncKnobRangeActions();
 	void setCurrentRenderMode(FilterTable::RenderMode mode);
+	// Polls VelopackBootstrap for a staged background update and raises the
+	// bottom toast once when one appears (the download itself stays silent).
+	void watchForPendingUpdate();
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
 	void updateDirtyStatus();
@@ -172,6 +180,9 @@ private:
 	// interface/nativeTitleBar escape hatch keeps the stock caption.
 	TitleBar* titleBar = nullptr;
 	bool useCustomFrame = true;
+	// Bottom-centre notice for the staged auto-update (created on demand).
+	UpdateToast* updateToast = nullptr;
+	QTimer* updateNoticeTimer = nullptr;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

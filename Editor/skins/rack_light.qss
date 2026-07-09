@@ -553,6 +553,95 @@ QLabel#MultiConvolutionMappingHint {
     font-size: 8pt; letter-spacing: 1px;
 }
 
+/* ── GraphicEQ unit: the oscilloscope display, its readout strip, machine
+   keys ───────────────────────────────────────────────────────────────────
+   The graphic EQ is the rack's spectrum shaper. The response plot is the
+   unit's OSCILLOSCOPE DISPLAY, painted whole by
+   RackChrome::paintGraphicEqPlot - a dark phosphor-glass well even on
+   the cream faceplate (the display law), recessed bezel, scope
+   graticule, green phosphor trace, glowing adjustment dots; the widget
+   covers every pixel itself, so QSS only keeps the base coat off its
+   rect (the direct-painting law). Precise entry rides the readout strip
+   under the glass: the captions are engraved faceplate printing, and
+   the Freq/Gain boxes are the X1 LCD readout windows every value box on
+   this machine already wears. The action buttons are the unit's machine
+   keys (the raised-cap grammar of every rack button), and the
+   band-layout caption is the engraved mode selector (paramSelector,
+   X5). */
+QWidget#GraphicEQPlot { background: transparent; }
+QWidget#GraphicEQReadout { background: transparent; border: 0; }
+QLabel#GraphicEQBandCaption {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 2px;
+}
+QLabel#GraphicEQReadoutLabel {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+    text-transform: uppercase;
+}
+QToolButton#GraphicEQActionButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF; border-radius: 2px;
+    min-width: 24px; min-height: 24px; padding: 2px 4px;
+}
+QToolButton#GraphicEQActionButton:hover { border-color: @ACCENT@; border-top-color: #FFFFFF; }
+QToolButton#GraphicEQActionButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border-color: @ACCENT@; border-top-color: #B8AC92;
+    padding: 3px 4px 1px 4px;
+}
+QToolButton#GraphicEQActionButton:disabled { background: #E2DCCE; border-color: #C9C0AC; }
+
+/* ── Update toast: the service notice shelf ──────────────────────────────
+   The widget paints its own token card (raised surface, hairline border,
+   amber news keel); QSS dresses the message in the panel's warm ink (a
+   translated sentence is UI data, never engraving - no uppercase, no
+   tracking) and the dismiss cap as a small machined button that warms
+   amber under the cursor. */
+QWidget#UpdateToast { background: transparent; }
+QLabel#UpdateToastLabel { background: transparent; color: @TEXT@; font-weight: 600; }
+QToolButton#UpdateToastClose {
+    background: transparent; color: @MUTED@;
+    border: 1px solid transparent; border-radius: 2px;
+    padding: 0 5px; min-width: 16px; min-height: 18px;
+    font-weight: 700;
+}
+QToolButton#UpdateToastClose:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border: 1px solid @ACCENT@; border-top-color: #FFFFFF;
+    color: #7A4A05;
+}
+QToolButton#UpdateToastClose:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border: 1px solid @ACCENT@; border-top-color: #B8AC92;
+    color: #5C3A00;
+}
+
+/* Item-view check indicators (the DeviceSelector's device tree wears this
+   sheet too): little panel switches like the standalone checkboxes -
+   raised cream metal, lit amber when engaged, matte film when powered
+   down. The disclosure chevron images are attached by the app; only
+   geometry-free state rules live here. */
+QTreeView::indicator, QListView::indicator, QTableView::indicator {
+    width: 14px; height: 14px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #DED6C2);
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 2px;
+}
+QTreeView::indicator:hover, QListView::indicator:hover, QTableView::indicator:hover { border-color: @ACCENT@; }
+QTreeView::indicator:checked, QListView::indicator:checked, QTableView::indicator:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFC96A, stop:1 #D88E1E);
+    border: 1px solid #8A5C12;
+}
+QTreeView::indicator:disabled, QListView::indicator:disabled, QTableView::indicator:disabled {
+    background: #E2DCCE; border-color: #C9C0AC;
+}
+QTreeView::indicator:checked:disabled, QListView::indicator:checked:disabled, QTableView::indicator:checked:disabled {
+    background: #E6D6B2; border-color: #C49A4A;
+}
+
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }

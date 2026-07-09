@@ -417,22 +417,62 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <QtRcc Include="DeviceSelector.qrc" />
+    <QtRcc Include="DeviceSelectorSkins.qrc" />
     <QtUic Include="DeviceSelector.ui" />
     <QtMoc Include="DeviceSelector.h" />
+    <ClCompile Include="..\Editor\skins\SkinThemeData.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClInclude Include="..\Editor\skins\SkinThemeData.h" />
     <ClCompile Include="..\helpers\ServiceHelper.cpp" />
     <ClCompile Include="DeviceSelector.cpp" />
     <ClInclude Include="..\helpers\ServiceHelper.h" />
     <QtMoc Include="DeviceTestDialog.h" />
     <QtMoc Include="DeviceTestThread.h" />
+    <QtMoc Include="DeviceListDelegate.h" />
+    <QtMoc Include="DisclosureHeader.h" />
+    <QtMoc Include="SkinButton.h" />
     <ClInclude Include="OpacityIconEngine.h" />
+    <ClInclude Include="PreviewDevices.h" />
     <ClInclude Include="ReceiveThread.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="skins\DeviceSkinPainter.h" />
+    <ClCompile Include="DeviceListDelegate.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="DeviceTestDialog.cpp" />
     <ClCompile Include="DeviceTestThread.cpp" />
+    <ClCompile Include="DisclosureHeader.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OpacityIconEngine.cpp" />
+    <ClCompile Include="PreviewDevices.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="ReceiveThread.cpp" />
+    <ClCompile Include="SkinButton.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="skins\DeviceSkinPainter.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="skins\StudioDeviceSkin.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="skins\MinimalDeviceSkin.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="skins\SoftDeviceSkin.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="skins\RackDeviceSkin.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="skins\MatrixDeviceSkin.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM64'">Create</PrecompiledHeader>

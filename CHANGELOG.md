@@ -12,6 +12,90 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- The GraphicEQ filter — the first thing a clean install shows — was rebuilt
+  as a modern card. The response is a skin-painted instrument now, not a
+  tinted stock plot: Studio draws a glowing glass analyzer, Minimal a 1px
+  ink record on paper, Soft a rounded pastel well with boost/cut colours,
+  Rack a genuine oscilloscope window (dark phosphor glass in both finishes),
+  Matrix a cyan trace on the board's crisp grid. The full 20 Hz–20 kHz range
+  always fits the card, the view frames itself around the response, and the
+  old side table gave way to a selected-band readout strip (drag nodes on
+  the plot, type exact values below). The Legacy rows mode keeps the
+  original GUI untouched.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The card header's `+` now inserts the new filter BELOW its card (it used to
+  insert above, which read backwards), and inserting at the very top has its
+  own entry: a slim insertion seam that appears when you hover just above the
+  first card. The green legacy toolbar at the end of the list became a real
+  skin-drawn "add card" row — a ghost glass slot, a terminal prompt line, a
+  friendly pill slot, an empty rack bay or a vacant board cell depending on
+  the skin. ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Raw text lines (bare notes and programmatic commands like `If:`/`EndIf:`)
+  stopped echoing a parameterless command twice, and each skin now presents
+  them deliberately (Rack burns the line into a programming LCD, Matrix posts
+  it as a board remark). A dedicated editor for the programmatic commands is
+  planned separately.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The automatic update finally announces itself: when a new release has been
+  downloaded in the background, a small notice appears at the bottom of the
+  editor saying it will be applied on exit.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Device Selector now wears the Editor's skin (Studio by default) instead of
+  the stock Windows dialog, and its troubleshooting options open with a
+  chevron disclosure and a short slide instead of a checkbox.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The Device Selector then went a step further: instead of a tinted stock
+  list, every skin presents its own device-selection instrument, painted
+  form-first with live hover on the rows, the dialog buttons and the
+  disclosure. Hardware Rack is a literal patch bay (checking a device seats
+  a plug in its 1/4" jack and patches a cable to the APO bus rail; hovering
+  pre-heats the jack), Precision Minimal is a terminal device menu whose
+  reverse-video cursor sweeps the hovered line, Signal Matrix is a
+  target-acquisition board (corner brackets close in on the hovered node,
+  checked ports energize their trace), Soft Lab is fear-free cards whose
+  hover previews the exact outcome of a press, and Studio Glass is a glowing
+  glass console. A `--skin-shots` harness renders all of it offscreen from
+  canned devices for review and regression.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Fixed skin switches getting slower and slower on configs with Copy lines:
+  every rebuild leaked an invisible legacy Copy editor per Copy row, and
+  every later switch restyled the growing pile. Thirty switches over a
+  126-row config used to climb from 1.3 s to 18 s per switch; they now stay
+  flat. CI gained a skin-switch stress gate that replays the live switch
+  sequence and fails on a crash or a slow switch, so neither regression
+  class can ship again.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The analysis panel's response graph - the panel's last palette swap - became
+  five instruments. Studio Glass monitors through a glowing glass pane whose
+  over-0dB region warms with danger; Precision Minimal prints a plotter sheet
+  (1px ink line, the overshoot marked as a terminal's reverse-video error
+  block, crosshair annotation); Soft Lab shows a friendly pastel landscape
+  (boost hills, cut valleys, and a plain-language warning that the sound may
+  distort above 0 dB - no jargon); Hardware Rack seats a SPECTRUM MONITOR
+  scope (green phosphor trace that burns danger-red above zero, a red PEAK
+  lamp); Signal Matrix reads board telemetry (cyan trace, a hazard zone that
+  densifies exactly where the response exceeds the bus, an OVER tag at the
+  peak). The graph also gained a pointer readout: hover it to read the exact
+  frequency and dB under the cursor, in each skin's own voice.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Fixed the title bar's minimize/maximize/close buttons going near-invisible
+  after switching between light and dark: the switch never re-tinted the
+  caption glyphs (or the toolbar and Edit-menu icons), so a light-to-dark
+  switch left dark glyphs on the dark strip. Every chrome icon now follows
+  the switch, the application palette follows it too (menus and popups used
+  to keep the startup palette), the analysis graph's response curve and the
+  toolbar overflow arrow now follow the skin's dark flag instead of the OS
+  theme, and the CI switch gate verifies the caption ink on every switch.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Fixed the Legacy rows mode coming up dressed in the last skin's stylesheet
+  on startup: the preference loader re-applied the saved skin over the
+  freshly applied heritage presentation, which is exactly the
+  modern-chrome-around-legacy-rows mixture v2.9.2 removed. A heritage
+  session also no longer overwrites the saved skin choice.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+
 ## v2.11.0 — 2026-07-05
 
 - Reworked the Soft skin around its pastel grammar, following community

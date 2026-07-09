@@ -336,17 +336,15 @@ void MainWindow::syncKnobRangeActions()
 	}
 }
 
-void MainWindow::applyRedesignPreferences()
+void MainWindow::dressSkinChrome()
 {
-	SkinManager::instance()->applySkin(skinId, skinDark);
-	skinId = SkinManager::instance()->currentSkinId();
-
 	// The toolbar is dressed by the active skin (icons + chrome); re-run on
 	// every skin/dark switch so the tinted icons follow the new ink. The
 	// menu-only actions (Save As + the Edit menu set) get the matching
 	// neutral stroke icons here - they are not on the toolbar, so the skin
 	// hook never sees them. This retires the last of the 2005-era .ico set
-	// from the dropdowns.
+	// from the dropdowns. (The custom title bar re-tints itself; it listens
+	// to the same signal.)
 	SkinManager::instance()->styleMainToolbar(ui->mainToolBar);
 	const QColor menuInk(SkinManager::instance()->tokens().text);
 	ui->actionSaveAs->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save-as.svg"), menuInk, 18));
@@ -355,10 +353,20 @@ void MainWindow::applyRedesignPreferences()
 	ui->actionPaste->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/paste.svg"), menuInk, 18));
 	ui->actionDelete->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/trash.svg"), menuInk, 18));
 	ui->actionSelectAll->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/select-all.svg"), menuInk, 18));
+}
 
-	// The custom title bar follows the same ink.
-	if (titleBar != nullptr)
-		titleBar->applySkinIcons();
+void MainWindow::applyRedesignPreferences()
+{
+	// Heritage is a whole presentation, not a skin: re-applying a skin here
+	// would stomp applyHeritage's empty stylesheet and native palette with
+	// the registry's last skin - exactly the modern-chrome-around-legacy-rows
+	// mixture #165 removed. Keeping skinId untouched also keeps the saved
+	// interface/skin from being clobbered by a heritage session.
+	if (!SkinManager::instance()->isHeritage())
+	{
+		SkinManager::instance()->applySkin(skinId, skinDark);
+		skinId = SkinManager::instance()->currentSkinId();
+	}
 
 	if (interfaceModeActionGroup != nullptr)
 	{

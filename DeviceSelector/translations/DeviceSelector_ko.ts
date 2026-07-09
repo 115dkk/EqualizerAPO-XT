@@ -4,125 +4,133 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="43"/>
+        <location filename="../DeviceSelector.cpp" line="40"/>
+        <location filename="../DeviceSelector.cpp" line="80"/>
         <source>Playback devices</source>
         <translation>재생 장치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="48"/>
+        <location filename="../DeviceSelector.cpp" line="45"/>
+        <location filename="../DeviceSelector.cpp" line="84"/>
         <source>Capture devices</source>
         <translation>녹음 장치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="55"/>
-        <location filename="../DeviceSelector.cpp" line="187"/>
-        <location filename="../main.cpp" line="67"/>
+        <location filename="../DeviceSelector.cpp" line="53"/>
+        <location filename="../DeviceSelector.cpp" line="282"/>
+        <location filename="../main.cpp" line="214"/>
         <source>Error while accessing the registry</source>
         <translation>레지스트리에 접근하는 중 오류가 발생했습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="99"/>
-        <location filename="../DeviceSelector.cpp" line="222"/>
+        <location filename="../DeviceSelector.cpp" line="68"/>
+        <location filename="../DeviceSelector.cpp" line="317"/>
         <source>Info</source>
         <translation>알림</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="99"/>
+        <location filename="../DeviceSelector.cpp" line="68"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Equalizer APO 동작에 필요한 레지스트리 값이 올바르게 설정되어 있지 않았습니다. 드라이버 설치나 제거 때문일 수 있습니다. 값을 바로잡았으며, 변경 사항을 적용하려면 재부팅이 필요할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="201"/>
+        <location filename="../DeviceSelector.cpp" line="296"/>
         <source>Upgrades available</source>
         <translation>업그레이드 가능</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="201"/>
+        <location filename="../DeviceSelector.cpp" line="296"/>
         <source>The APO installation of some devices should be upgraded. Do you really want to cancel?</source>
         <translation>일부 장치의 APO 설치를 업그레이드해야 합니다. 정말 취소하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="222"/>
+        <location filename="../DeviceSelector.cpp" line="317"/>
         <source>This dialog can be reopened anytime by launching Device Selector from the start menu.</source>
         <translation>이 창은 시작 메뉴에서 Device Selector를 실행해 언제든지 다시 열 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="228"/>
+        <location filename="../DeviceSelector.cpp" line="323"/>
         <source>Reboot</source>
         <translation>재부팅</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="228"/>
+        <location filename="../DeviceSelector.cpp" line="323"/>
         <source>To apply the changes, Windows should be rebooted. Reboot now?</source>
         <translation>변경 사항을 적용하려면 Windows를 재부팅해야 합니다. 지금 재부팅하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="343"/>
+        <location filename="../DeviceSelector.cpp" line="121"/>
+        <location filename="../DeviceSelector.cpp" line="459"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="350"/>
+        <location filename="../DeviceSelector.cpp" line="120"/>
+        <source>OK</source>
+        <translation>확인</translation>
+    </message>
+    <message>
+        <location filename="../DeviceSelector.cpp" line="464"/>
         <source>Close</source>
         <translation>닫기</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="481"/>
+        <location filename="../DeviceSelector.cpp" line="595"/>
         <source>APO will be installed</source>
         <translation>APO를 설치합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="483"/>
+        <location filename="../DeviceSelector.cpp" line="597"/>
         <source>APO will be uninstalled</source>
         <translation>APO를 제거합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="485"/>
+        <location filename="../DeviceSelector.cpp" line="599"/>
         <source>APO will be upgraded</source>
         <translation>APO를 업그레이드합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="487"/>
+        <location filename="../DeviceSelector.cpp" line="601"/>
         <source>APO installation will be changed</source>
         <translation>APO 설치를 변경합니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="489"/>
+        <location filename="../DeviceSelector.cpp" line="603"/>
         <source>Audio enhancements will be enabled</source>
         <translation>오디오 향상 기능을 켭니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="491"/>
+        <location filename="../DeviceSelector.cpp" line="605"/>
         <source>APO is already installed</source>
         <translation>APO가 이미 설치되어 있습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="493"/>
+        <location filename="../DeviceSelector.cpp" line="607"/>
         <source>APO can be installed (experimental)</source>
         <translation>APO를 설치할 수 있습니다 (실험적)</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="495"/>
+        <location filename="../DeviceSelector.cpp" line="609"/>
         <source>APO can be installed</source>
         <translation>APO를 설치할 수 있습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="499"/>
+        <location filename="../DeviceSelector.cpp" line="613"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter가 제거되었습니다</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="501"/>
+        <location filename="../DeviceSelector.cpp" line="615"/>
         <source>Default device</source>
         <translation>기본 장치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="504"/>
+        <location filename="../DeviceSelector.cpp" line="618"/>
         <source>Disabled</source>
         <translation>사용 안 함</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.cpp" line="506"/>
+        <location filename="../DeviceSelector.cpp" line="620"/>
         <source>Unplugged</source>
         <translation>연결 끊김</translation>
     </message>
@@ -130,64 +138,64 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <location filename="../DeviceSelector.ui" line="27"/>
+        <location filename="../DeviceSelector.cpp" line="124"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>문제 해결 옵션 (문제가 있을 때만 사용)</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="58"/>
+        <location filename="../DeviceSelector.ui" line="42"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>이름을 클릭해 활성화된 장치를 하나만 선택하십시오</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="72"/>
-        <location filename="../DeviceSelector.ui" line="102"/>
+        <location filename="../DeviceSelector.ui" line="56"/>
+        <location filename="../DeviceSelector.ui" line="86"/>
         <source>Install APO</source>
         <translation>APO 설치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="79"/>
-        <location filename="../DeviceSelector.ui" line="160"/>
+        <location filename="../DeviceSelector.ui" line="63"/>
+        <location filename="../DeviceSelector.ui" line="144"/>
         <source>Use original APO</source>
         <translation>원본 APO 사용</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="92"/>
+        <location filename="../DeviceSelector.ui" line="76"/>
         <source>Pre-mix:</source>
         <translation>믹스 전:</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="131"/>
+        <location filename="../DeviceSelector.ui" line="115"/>
         <source>Post-mix:</source>
         <translation>믹스 후:</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="142"/>
+        <location filename="../DeviceSelector.ui" line="126"/>
         <source>Install as LFX/GFX</source>
         <translation>LFX/GFX로 설치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="147"/>
+        <location filename="../DeviceSelector.ui" line="131"/>
         <source>Install as SFX/MFX</source>
         <translation>SFX/MFX로 설치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="152"/>
+        <location filename="../DeviceSelector.ui" line="136"/>
         <source>Install as SFX/EFX</source>
         <translation>SFX/EFX로 설치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="167"/>
+        <location filename="../DeviceSelector.ui" line="151"/>
         <source>Automatically adjust install mode if problems with current mode are detected</source>
         <translation>현재 모드에 문제가 감지되면 설치 모드를 자동으로 조정</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="170"/>
+        <location filename="../DeviceSelector.ui" line="154"/>
         <source>Auto:</source>
         <translation>자동:</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="177"/>
+        <location filename="../DeviceSelector.ui" line="161"/>
         <source>Allows to change silent input buffers to audible output buffers, so that delayed audio can be played.
 
 CAUTION: Some sound card drivers can produce unwanted sounds when this is enabled.</source>
@@ -196,32 +204,29 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
 주의: 일부 사운드 카드 드라이버에서는 이 옵션을 켜면 원치 않는 소리가 날 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="182"/>
+        <location filename="../DeviceSelector.ui" line="166"/>
         <source>Allow silent buffer modification</source>
         <translation>무음 버퍼 수정 허용</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="209"/>
         <source>Connector</source>
-        <translation>커넥터</translation>
+        <translation type="vanished">커넥터</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="214"/>
         <source>Device</source>
-        <translation>장치</translation>
+        <translation type="vanished">장치</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="219"/>
         <source>Status</source>
-        <translation>상태</translation>
+        <translation type="vanished">상태</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="234"/>
+        <location filename="../DeviceSelector.ui" line="206"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation>Equalizer APO를 설치할 장치를 선택하십시오:</translation>
     </message>
     <message>
-        <location filename="../DeviceSelector.ui" line="241"/>
+        <location filename="../DeviceSelector.ui" line="213"/>
         <source>Copy Device command to clipboard</source>
         <translation>Device 명령을 클립보드에 복사</translation>
     </message>
@@ -262,7 +267,7 @@ CAUTION: Some sound card drivers can produce unwanted sounds when this is enable
     <message>
         <location filename="../DeviceTestDialog.cpp" line="187"/>
         <source>Equalizer APO works but original APO could not be initialized. Maybe unset &quot;Use original APO&quot; in troubleshooting options.</source>
-        <translation>Equalizer APO는 동작하지만 원본 APO를 초기화하지 못했습니다. 문제 해결 옵션에서 "원본 APO 사용"을 해제해 보십시오.</translation>
+        <translation>Equalizer APO는 동작하지만 원본 APO를 초기화하지 못했습니다. 문제 해결 옵션에서 &quot;원본 APO 사용&quot;을 해제해 보십시오.</translation>
     </message>
 </context>
 <context>

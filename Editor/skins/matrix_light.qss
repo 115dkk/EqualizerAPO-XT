@@ -1079,6 +1079,93 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
+/* ===== GraphicEQ card: the board's signal trace =====
+   The clean-install first screen. The response plot is painted whole by
+   MatrixSkin::paintGraphicEqPlot - a sunken data ground under a crisp 1px
+   grid, the response as an accent patch trace, square crosspoint node
+   cells, the 0 dB bus in body ink and the cursor probe in a boxed sunken
+   mono cell - so the sheet only owns the strip around it. The action
+   buttons are transparent function cells in the toolbar train's grammar
+   (hover pre-light, pressed engage, dashed when inert). The selected-band
+   readout strip is the precise entry surface: a mono board caption, the
+   caption-rank Freq/Gain labels, and value cells riding the X1 value-scrub
+   grammar above. */
+QToolButton#GraphicEQActionButton {
+    background: transparent;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 2px;
+    min-width: 24px;
+    min-height: 22px;
+    max-height: 22px;
+}
+QToolButton#GraphicEQActionButton:hover {
+    background: rgba(0, 142, 170, 0.08);
+    border: 1px solid @BORDER@;
+}
+QToolButton#GraphicEQActionButton:pressed {
+    background: rgba(0, 142, 170, 0.16);
+    border: 1px solid @ACCENT@;
+}
+QToolButton#GraphicEQActionButton:disabled {
+    border: 1px dashed #D4E2E8;
+}
+/* Selected-band readout strip: the plot's precise entry line. The strip
+   itself is transparent board surface; the band caption is a mono board
+   caption (the coordinate the strip is addressing), the Freq/Gain labels
+   speak the caption rank (the gainLabel precedent), and the value cells
+   are dressed by the shared [valueScrub="true"] grammar. */
+QWidget#GraphicEQReadout {
+    background: transparent;
+    border: 0;
+}
+QLabel#GraphicEQBandCaption {
+    background: transparent;
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QLabel#GraphicEQReadoutLabel {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* ===== Update toast: a remark posted at the board's foot =====
+   The widget paints the posting's cell itself (surface + 1px rule + accent
+   keel); the sheet supplies the remark register - a mono readout line and
+   a close cell whose pre-light is danger, the one rationed colour a
+   dismissal is allowed (the title bar close cell's precedent). */
+QLabel#UpdateToastLabel {
+    background: transparent;
+    color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QToolButton#UpdateToastClose {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid transparent;
+    border-radius: 0;
+    padding: 0 5px;
+    font-weight: 700;
+}
+QToolButton#UpdateToastClose:hover {
+    color: @TEXT@;
+    background: rgba(220, 38, 38, 0.12);
+    border: 1px solid @DANGER@;
+}
+QToolButton#UpdateToastClose:pressed {
+    color: #FFFFFF;
+    background: @DANGER@;
+    border: 1px solid @DANGER@;
+}
+
 /* ===== Reference cards: board feed lines (AR2) =====
    Include / Convolution / MultiConvolution / VST bodies are feed lines on
    the board (MatrixReferenceCardView): a mono marker cell designates the

@@ -3,6 +3,7 @@
 */
 
 #include "MatrixFilterPicker.h"
+#include "Editor/skins/SkinPaint.h"
 
 #include <QFontMetrics>
 #include <QHash>
@@ -39,11 +40,7 @@ int s(double pixel)
 	return GUIHelper::scale(pixel);
 }
 
-QColor withAlpha(QColor color, int alpha)
-{
-	color.setAlpha(alpha);
-	return color;
-}
+// withAlpha lives in the shared SkinPaint.h.
 }
 
 MatrixFilterPickerView::MatrixFilterPickerView(QWidget* parent)

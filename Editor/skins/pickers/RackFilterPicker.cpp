@@ -7,6 +7,7 @@
 */
 
 #include "RackFilterPicker.h"
+#include "Editor/skins/SkinPaint.h"
 
 #include <QApplication>
 #include <QKeyEvent>
@@ -38,17 +39,7 @@ enum RowKind
 	SectionRow = 1
 };
 
-bool isDarkPanel(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
-
-QColor withAlpha(const QColor& color, int alpha)
-{
-	QColor result = color;
-	result.setAlpha(alpha);
-	return result;
-}
+// is-dark / withAlpha live in the shared SkinPaint.h.
 
 // Engraved faceplate printing: a contrast pass offset one pixel down (the
 // recess edge catching the light), then the body color on top.
@@ -158,7 +149,7 @@ public:
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
 		const SkinTokens& tokens = SkinManager::instance()->tokens();
-		const bool dark = isDarkPanel(tokens);
+		const bool dark = skinIsDark(tokens);
 
 		painter->save();
 		painter->setRenderHint(QPainter::Antialiasing);
@@ -253,7 +244,7 @@ RackFilterPickerView::RackFilterPickerView(QWidget* parent)
 	setObjectName(QStringLiteral("RackFilterPicker"));
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->setContentsMargins(GUIHelper::scale(12.0), GUIHelper::scale(38.0), GUIHelper::scale(12.0), GUIHelper::scale(20.0));
@@ -464,7 +455,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	Q_UNUSED(event);
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
