@@ -46,6 +46,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the stock Windows dialog, and its troubleshooting options open with a
   chevron disclosure and a short slide instead of a checkbox.
   ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The Device Selector then went a step further: instead of a tinted stock
+  list, every skin presents its own device-selection instrument, painted
+  form-first with live hover on the rows, the dialog buttons and the
+  disclosure. Hardware Rack is a literal patch bay (checking a device seats
+  a plug in its 1/4" jack and patches a cable to the APO bus rail; hovering
+  pre-heats the jack), Precision Minimal is a terminal device menu whose
+  reverse-video cursor sweeps the hovered line, Signal Matrix is a
+  target-acquisition board (corner brackets close in on the hovered node,
+  checked ports energize their trace), Soft Lab is fear-free cards whose
+  hover previews the exact outcome of a press, and Studio Glass is a glowing
+  glass console. A `--skin-shots` harness renders all of it offscreen from
+  canned devices for review and regression.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
 - Fixed skin switches getting slower and slower on configs with Copy lines:
   every rebuild leaked an invisible legacy Copy editor per Copy row, and
   every later switch restyled the growing pile. Thirty switches over a

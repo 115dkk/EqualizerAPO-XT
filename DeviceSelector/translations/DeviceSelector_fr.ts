@@ -4,35 +4,37 @@
 <context>
     <name>DeviceSelector</name>
     <message>
-        <location filename="../DeviceSelector.cpp" line="+43"/>
+        <location filename="../DeviceSelector.cpp" line="+40"/>
+        <location line="+40"/>
         <source>Playback devices</source>
         <translation>Périphériques de lecture</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="-35"/>
+        <location line="+39"/>
         <source>Capture devices</source>
         <translation>Périphériques de capture</translation>
     </message>
     <message>
-        <location line="+7"/>
-        <location line="+132"/>
-        <location filename="../main.cpp" line="+68"/>
+        <location line="-31"/>
+        <location line="+229"/>
+        <location filename="../main.cpp" line="+214"/>
         <source>Error while accessing the registry</source>
         <translation>Erreur durant l&apos;accès au registre</translation>
     </message>
     <message>
-        <location line="-88"/>
-        <location line="+123"/>
+        <location line="-214"/>
+        <location line="+249"/>
         <source>Info</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location line="-123"/>
+        <location line="-249"/>
         <source>A registry value that is required for the operation of Equalizer APO was not set correctly. This might have been caused by a driver installation or uninstallation. The value has been corrected. A reboot may be required so that the changes can take effect.</source>
         <translation>Une valeur de registre requise pour le fonctionnement d’Equalizer APO n’a pas été définie correctement. Cela peut être dû à l&apos;installation ou à la désinstallation d&apos;un pilote. La valeur a été corrigée. Un redémarrage peut être nécessaire pour que les modifications puissent prendre effet.</translation>
     </message>
     <message>
-        <location line="+102"/>
+        <location line="+228"/>
         <source>Upgrades available</source>
         <translation>Mise à niveau disponibles</translation>
     </message>
@@ -57,12 +59,18 @@
         <translation>Pour appliquer les modifications, Windows doit être redémarré. Redémarrer maintenant?</translation>
     </message>
     <message>
-        <location line="+115"/>
+        <location line="-202"/>
+        <location line="+338"/>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="-339"/>
+        <source>OK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+344"/>
         <source>Close</source>
         <translation>Fermer</translation>
     </message>
@@ -130,12 +138,12 @@
 <context>
     <name>DeviceSelectorClass</name>
     <message>
-        <location filename="../DeviceSelector.ui" line="+27"/>
+        <location line="-496"/>
         <source>Troubleshooting options (only use in case of problems)</source>
         <translation>Options de dépannage (à utiliser uniquement en cas de problèmes)</translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location filename="../DeviceSelector.ui" line="+42"/>
         <source>Please select exactly one activated device by clicking on its name</source>
         <translation>Veuillez sélectionner exactement un périphérique activé en cliquant sur son nom</translation>
     </message>
@@ -201,22 +209,19 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
         <translation>Autoriser la modification silencieuse du tampon</translation>
     </message>
     <message>
-        <location line="+27"/>
         <source>Connector</source>
-        <translation>Connecteur</translation>
+        <translation type="vanished">Connecteur</translation>
     </message>
     <message>
-        <location line="+5"/>
         <source>Device</source>
-        <translation>Périphérique</translation>
+        <translation type="vanished">Périphérique</translation>
     </message>
     <message>
-        <location line="+5"/>
         <source>Status</source>
-        <translation>Statut</translation>
+        <translation type="vanished">Statut</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+40"/>
         <source>Please select the devices for which Equalizer APO is to be installed:</source>
         <translation>Veuillez sélectionner les appareils pour lesquels Equalizer APO doit être installé:</translation>
     </message>
@@ -296,7 +301,7 @@ ATTENTION: Certains pilotes de carte son peuvent produire des sons indésirables
 <context>
     <name>DeviceTestThread</name>
     <message>
-        <location filename="../DeviceTestThread.cpp" line="+67"/>
+        <location filename="../DeviceTestThread.cpp" line="+69"/>
         <location line="+161"/>
         <source>Restarting audio service...</source>
         <translation>Redémarrage du service audio...</translation>
