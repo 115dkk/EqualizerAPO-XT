@@ -1083,57 +1083,17 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
-/* ===== GraphicEQ card: the board's response data block =====
-   The clean-install first screen. The band table is a sunken data cell
-   (@GRAPH@ ground + 1px rules) whose numerals are mono - rule 5: numbers
-   live in boxed mono cells; its row numbers keep the coordinate register
-   (mono, muted, ruled). A selected band is an engaged crosspoint (accent
-   wash + accent selection), never a colour of its own. The action buttons
-   are transparent function cells in the toolbar train's grammar (hover
-   pre-light, pressed engage, dashed when inert), and the curve view is a
-   data cell behind a plain 1px rule - the curve inks come from SkinTokens,
-   so the sheet only owns the chrome. */
-QTableWidget#GraphicEQBandTable {
-    background: @GRAPH@;
-    color: @TEXT@;
-    border: 1px solid @BORDER@;
-    border-radius: 0;
-    gridline-color: @BORDER@;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
-    selection-background-color: rgba(34, 211, 238, 0.22);
-    selection-color: @TEXT@;
-}
-QTableWidget#GraphicEQBandTable::item {
-    padding: 1px 6px;
-    border-radius: 0;
-}
-QTableWidget#GraphicEQBandTable::item:hover {
-    background: rgba(34, 211, 238, 0.07);
-}
-QTableWidget#GraphicEQBandTable::item:selected {
-    background: rgba(34, 211, 238, 0.22);
-    color: @TEXT@;
-}
-QTableWidget#GraphicEQBandTable QHeaderView::section {
-    background: @GRAPH@;
-    color: @MUTED@;
-    border: 0;
-    border-right: 1px solid @BORDER@;
-    border-bottom: 1px solid @BORDER@;
-    padding: 0 6px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-weight: 700;
-    font-size: 8pt;
-    letter-spacing: 0px;
-    text-transform: none;
-}
-QTableWidget#GraphicEQBandTable QTableCornerButton::section {
-    background: @GRAPH@;
-    border: 0;
-    border-right: 1px solid @BORDER@;
-    border-bottom: 1px solid @BORDER@;
-}
+/* ===== GraphicEQ card: the board's signal trace =====
+   The clean-install first screen. The response plot is painted whole by
+   MatrixSkin::paintGraphicEqPlot - a sunken data ground under a crisp 1px
+   grid, the response as an accent patch trace, square crosspoint node
+   cells, the 0 dB bus in body ink and the cursor probe in a boxed sunken
+   mono cell - so the sheet only owns the strip around it. The action
+   buttons are transparent function cells in the toolbar train's grammar
+   (hover pre-light, pressed engage, dashed when inert). The selected-band
+   readout strip is the precise entry surface: a mono board caption, the
+   caption-rank Freq/Gain labels, and value cells riding the X1 value-scrub
+   grammar above. */
 QToolButton#GraphicEQActionButton {
     background: transparent;
     border: 1px solid @BORDER@;
@@ -1154,10 +1114,30 @@ QToolButton#GraphicEQActionButton:pressed {
 QToolButton#GraphicEQActionButton:disabled {
     border: 1px dashed #1A2933;
 }
-QGraphicsView#GraphicEQCardPlot {
-    background: @GRAPH@;
-    border: 1px solid @BORDER@;
-    border-radius: 0;
+/* Selected-band readout strip: the plot's precise entry line. The strip
+   itself is transparent board surface; the band caption is a mono board
+   caption (the coordinate the strip is addressing), the Freq/Gain labels
+   speak the caption rank (the gainLabel precedent), and the value cells
+   are dressed by the shared [valueScrub="true"] grammar. */
+QWidget#GraphicEQReadout {
+    background: transparent;
+    border: 0;
+}
+QLabel#GraphicEQBandCaption {
+    background: transparent;
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QLabel#GraphicEQReadoutLabel {
+    background: transparent;
+    color: @MUTED@;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 /* ===== Update toast: a remark posted at the board's foot =====
