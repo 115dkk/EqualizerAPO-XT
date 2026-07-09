@@ -436,8 +436,8 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		const QColor dangerBase(tokens.danger);
 		const QColor errorBlock = QColor::fromHsvF(
 			dangerBase.hsvHueF(),
-			dangerBase.hsvSaturationF() * (darkSheet ? 0.70 : 0.86),
-			dangerBase.valueF() * (darkSheet ? 0.56 : 0.46));
+			dangerBase.hsvSaturationF() * (darkSheet ? 0.70 : 0.84),
+			dangerBase.valueF() * (darkSheet ? 0.56 : 0.55));
 
 		painter.save();
 		painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
