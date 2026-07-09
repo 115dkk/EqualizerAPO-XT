@@ -165,10 +165,10 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 
 	const struct
 	{
-		QToolButton** member;
-		const char* icon;
+		QToolButton** member = nullptr;
+		const char* icon = nullptr;
 		QString toolTip;
-		const char* slot;
+		const char* slot = nullptr;
 	} actions[] = {
 		{ &importButton, ":/icons/modern/folder-open.svg", tr("Import"), SLOT(importTriggered()) },
 		{ &exportButton, ":/icons/modern/save.svg", tr("Export"), SLOT(exportTriggered()) },
