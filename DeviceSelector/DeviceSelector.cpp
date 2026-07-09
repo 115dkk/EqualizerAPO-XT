@@ -105,7 +105,14 @@ void DeviceSelector::setupChrome()
 	// painted rows carry the whole presentation.
 	ui.deviceTreeWidget->setItemDelegate(new DeviceListDelegate(ui.deviceTreeWidget));
 	ui.deviceTreeWidget->setRootIsDecorated(false);
-	ui.deviceTreeWidget->setIndentation(10);
+	// No indentation: every skin draws its own left-edge structure (bus
+	// rails, gutters, port lanes), and a branch strip would sit outside the
+	// delegate rect where the view fills palette Highlight on selection -
+	// the detached selection bar all five skin passes reported.
+	ui.deviceTreeWidget->setIndentation(0);
+	QPalette listPalette = ui.deviceTreeWidget->palette();
+	listPalette.setBrush(QPalette::Highlight, Qt::transparent);
+	ui.deviceTreeWidget->setPalette(listPalette);
 	ui.deviceTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	// Skin-painted dialog buttons; the box only supplies the roles. The
