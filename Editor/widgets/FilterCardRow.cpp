@@ -193,6 +193,26 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		bodyStack->addWidget(editorContainer);
 		bodyStack->setCurrentWidget(editorContainer);
 		connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
+
+		// The legacy CopyFilterGUI never appears in this card (the routing
+		// view is the editor), but it still owns Copy's channel-propagation
+		// behaviour: FilterTable::propagateChannels walks the row GUIs, and
+		// this one is what hands the Copy line's virtual channels to every
+		// row below. It must keep existing - but parentless it was a
+		// top-level zombie: clearRows() only nulls item->gui, so every
+		// rebuild (skin switch, paste, drag) leaked a complete CopyFilterGUI
+		// per Copy row, and each later applySkin repolished the growing
+		// zombie population, which is exactly the "skin switches keep
+		// getting slower" field complaint (SkinGallery::runSwitchTest
+		// guards this). Adopt it as a hidden child so it dies with the row.
+		if (QWidget* legacyCopyGui = qobject_cast<QWidget*>(gui))
+		{
+			legacyCopyGui->setParent(this);
+			legacyCopyGui->hide();
+		}
+		// The expand default above keys off the gui the body shows; routing
+		// rows are their own editor and start open.
+		expandButton->setChecked(true);
 	}
 	else if (gui != nullptr)
 	{
