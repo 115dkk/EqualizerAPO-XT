@@ -773,34 +773,16 @@ QLineEdit#CommentCardText:disabled {
    pastel pill line); here live the QSS shares.
    ==================================================================== */
 
-/* GraphicEQ card: the band table is a rounded sunken well - no hairline
-   grid (that is minimal/matrix vocabulary), the bands separate by
-   whitespace alone; the row numbers rest in quiet muted ink and a
-   selected band is the ON state (accent pastel fill, deep warm ink).
-   The action buttons are stadium icon pills one value step above the
-   body tray. The plot keeps its token-driven scene colours; QSS only
-   seats it in the same rounded well (the 6px padding keeps the square
-   viewport clear of the rounded corners). A commented-out row puts the
-   well and the pills to sleep: dash + sunk-to-window + muted ink. */
-QTableWidget#GraphicEQBandTable {
-    background: @SURFACE_SUNKEN@; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 14px;
-    gridline-color: @SURFACE_SUNKEN@;
-    font-size: 9pt;
-}
-QTableWidget#GraphicEQBandTable::item { padding: 2px 8px; border-radius: 9px; }
-QTableWidget#GraphicEQBandTable::item:selected { background: @ACCENT@; color: #2B251D; }
-QTableWidget#GraphicEQBandTable QHeaderView,
-QTableWidget#GraphicEQBandTable QHeaderView::section {
-    background: transparent; color: @MUTED@;
-    border: 0; padding: 0 6px; font-size: 8pt; font-weight: 600;
-}
-QTableWidget#GraphicEQBandTable QTableCornerButton::section { background: transparent; border: 0; }
-QTableWidget#GraphicEQBandTable:disabled {
-    background: @BG@; color: rgba(179, 171, 157, 0.55);
-    border: 1px dashed @BORDER@;
-    gridline-color: @BG@;
-}
+/* GraphicEQ card (round 3 rework): the response plot is painted whole
+   by SoftSkin::paintGraphicEqPlot - the rounded sunken well, the
+   majors-only faint grid, the bipolar pastel curve and the big round
+   nodes all live in paint code, not here. QSS keeps the calm furniture
+   around it: the action buttons stay stadium icon pills one value step
+   above the body tray, the mode box rides the paramSelector pill
+   grammar, and the readout strip under the plot is transparent chrome -
+   a friendly body-face caption in secondary ink beside the valueScrub
+   wells this sheet already dresses. A commented-out row puts the pills
+   to sleep: dash + sunk-to-window + muted ink. */
 QToolButton#GraphicEQActionButton {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 16px;
@@ -812,12 +794,17 @@ QToolButton#GraphicEQActionButton:disabled {
     background: @BG@; color: rgba(179, 171, 157, 0.45);
     border: 1px dashed @BORDER@;
 }
-QGraphicsView#GraphicEQCardPlot {
-    background: @SURFACE_SUNKEN@;
-    border: 1px solid @BORDER@; border-radius: 14px;
-    padding: 6px;
+QWidget#GraphicEQReadout { background: transparent; }
+QLabel#GraphicEQBandCaption {
+    background: transparent; color: @MUTED@;
+    font-weight: 600; font-size: 9pt; padding: 0 2px;
 }
-QGraphicsView#GraphicEQCardPlot:disabled { border: 1px dashed @BORDER@; }
+QLabel#GraphicEQBandCaption:disabled { color: rgba(179, 171, 157, 0.55); }
+QLabel#GraphicEQReadoutLabel {
+    background: transparent; color: @MUTED@;
+    font-size: 9pt; padding: 0 2px;
+}
+QLabel#GraphicEQReadoutLabel:disabled { color: rgba(179, 171, 157, 0.45); }
 
 /* The update toast: news, not an alarm. The widget paints the token
    card itself (raised face + light 1px border + the accent pastel keel,
