@@ -24,6 +24,7 @@
 #include "ui_DeviceSelector.h"
 
 class QPropertyAnimation;
+class SkinButton;
 
 class DeviceSelector : public QDialog
 {
@@ -31,9 +32,21 @@ class DeviceSelector : public QDialog
 
 public:
 	DeviceSelector(QWidget* parent = nullptr);
+	// Preview construction for the skin shot harness: canned device lists,
+	// no registry access, no repair prompts.
+	DeviceSelector(const std::vector<std::shared_ptr<AbstractAPOInfo>>& playback,
+		const std::vector<std::shared_ptr<AbstractAPOInfo>>& capture, QWidget* parent = nullptr);
 	void addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode);
 
+	// Skin shot harness hooks (offscreen states without a real pointer).
+	void previewHoverDevice(int sectionRow, int deviceRow);
+	void previewSelectDevice(int sectionRow, int deviceRow);
+	void previewCheckDevice(int sectionRow, int deviceRow);
+	void previewOpenTroubleshooting();
+
 private:
+	void setupChrome();
+	void finishSetup();
 	void onDeviceSelectionChanged();
 	void onDeviceToggled(QTreeWidgetItem* item);
 	void onDeviceContextMenuRequested(const QPoint& pos);
@@ -52,6 +65,10 @@ private:
 
 	Ui::DeviceSelectorClass ui;
 	bool askForReboot = false;
+	// The dialog buttons are skin-painted (see SkinButton); QDialogButtonBox
+	// only supplies the roles, so button() lookups by standard id are gone.
+	SkinButton* okButton = nullptr;
+	SkinButton* cancelButton = nullptr;
 	// Slide animation behind the troubleshooting disclosure (lazily created
 	// in onTroubleShootingToggled).
 	QPropertyAnimation* troubleshootingSlide = nullptr;

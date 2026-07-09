@@ -22,22 +22,37 @@ SOURCES += \
 	../Editor/helpers/QtAppBootstrap.cpp \
 	../Editor/skins/SkinThemeData.cpp \
 	main.cpp \
+	DeviceListDelegate.cpp \
 	DeviceSelector.cpp \
 	DeviceTestDialog.cpp \
 	DeviceTestThread.cpp \
+	DisclosureHeader.cpp \
 	OpacityIconEngine.cpp \
+	PreviewDevices.cpp \
 	ReceiveThread.cpp \
+	SkinButton.cpp \
+	skins/DeviceSkinPainter.cpp \
+	skins/StudioDeviceSkin.cpp \
+	skins/MinimalDeviceSkin.cpp \
+	skins/SoftDeviceSkin.cpp \
+	skins/RackDeviceSkin.cpp \
+	skins/MatrixDeviceSkin.cpp \
 	../helpers/ServiceHelper.cpp \
 	stdafx.cpp
 
 HEADERS += \
 	../Editor/helpers/QtAppBootstrap.h \
 	../Editor/skins/SkinThemeData.h \
+	DeviceListDelegate.h \
 	DeviceSelector.h \
 	DeviceTestDialog.h \
 	DeviceTestThread.h \
+	DisclosureHeader.h \
 	OpacityIconEngine.h \
+	PreviewDevices.h \
 	ReceiveThread.h \
+	SkinButton.h \
+	skins/DeviceSkinPainter.h \
 	../helpers/ServiceHelper.h \
 	resource.h \
 	stdafx.h

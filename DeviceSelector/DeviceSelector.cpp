@@ -25,19 +25,15 @@
 #include <VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
 #include "../version.h"
+#include "DeviceListDelegate.h"
+#include "DisclosureHeader.h"
+#include "SkinButton.h"
 #include "DeviceSelector.h"
 
 DeviceSelector::DeviceSelector(QWidget* parent)
 	: QDialog(parent)
 {
-	ui.setupUi(this);
-
-	setWindowFlags(windowFlags().setFlag(Qt::WindowContextHelpButtonHint, false));
-
-	QString version = QString("%0.%1").arg(MAJOR).arg(MINOR);
-	if (REVISION != 0)
-		version += QString(".%0").arg(REVISION);
-	setWindowTitle(QString("Equalizer APO %0 Device Selector").arg(version));
+	setupChrome();
 
 	try
 	{
@@ -48,6 +44,7 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 
 		QTreeWidgetItem* inputNode = new QTreeWidgetItem(ui.deviceTreeWidget, QStringList(tr("Capture devices")));
 		inputNode->setExpanded(true);
+		inputNode->setData(0, DeviceListDelegate::InputSideRole, true);
 		std::vector<std::shared_ptr<AbstractAPOInfo>> inputDevices = DeviceAPOInfo::loadAllInfos(true);
 		addDevices(inputDevices, inputNode);
 	}
@@ -56,42 +53,13 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 		QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 	}
 
-	for (int i = 0; i < ui.deviceTreeWidget->columnCount(); i++)
-		ui.deviceTreeWidget->resizeColumnToContents(i);
-
-	ui.deviceTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-
 	if (!RegistryHelper::isWindowsVersionAtLeast(6, 3)) // Windows 8.1
 	{
 		ui.installModeComboBox->removeItem(2);
 		ui.installModeComboBox->removeItem(1);
 	}
 
-	updateButtons();
-
-	connect(ui.deviceTreeWidget, &QTreeWidget::itemChanged, this, &DeviceSelector::onDeviceToggled);
-	connect(ui.deviceTreeWidget, &QTreeWidget::itemSelectionChanged, this, &DeviceSelector::onDeviceSelectionChanged);
-	connect(ui.deviceTreeWidget, &QTreeWidget::customContextMenuRequested, this, &DeviceSelector::onDeviceContextMenuRequested);
-	connect(ui.buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-	connect(ui.buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-	connect(this, &QDialog::accepted, this, &DeviceSelector::onDialogAccepted);
-	connect(this, &QDialog::rejected, this, &DeviceSelector::onDialogRejected);
-	connect(ui.copyDeviceCommandAction, &QAction::triggered, this, &DeviceSelector::onCopyDeviceCommandClicked);
-	connect(ui.troubleshootingGroupBox, &QGroupBox::toggled, this, &DeviceSelector::onTroubleShootingToggled);
-	connect(ui.installPreMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
-	connect(ui.installPostMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
-	connect(ui.useOriginalAPOPreMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
-	connect(ui.useOriginalAPOPostMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
-	connect(ui.installModeComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
-	connect(ui.allowSilentBufferCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
-	connect(ui.autoCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
-
-	ui.troubleshootingGroupBox->setChecked(false);
-	adjustSize();
-
-	// workaround for Qt 6 to not initially have scrollbars despite correct dialog size
-	ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	QTimer::singleShot(0, [&] {ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded); });
+	finishSetup();
 
 	bool fixedAudioDG = !DeviceAPOInfo::checkProtectedAudioDG(true);
 	bool fixedRegistration = !DeviceAPOInfo::checkAPORegistration(true);
@@ -103,14 +71,91 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 	}
 }
 
+DeviceSelector::DeviceSelector(const std::vector<std::shared_ptr<AbstractAPOInfo>>& playback,
+	const std::vector<std::shared_ptr<AbstractAPOInfo>>& capture, QWidget* parent)
+	: QDialog(parent)
+{
+	setupChrome();
+
+	QTreeWidgetItem* outputNode = new QTreeWidgetItem(ui.deviceTreeWidget, QStringList(tr("Playback devices")));
+	outputNode->setExpanded(true);
+	addDevices(playback, outputNode);
+
+	QTreeWidgetItem* inputNode = new QTreeWidgetItem(ui.deviceTreeWidget, QStringList(tr("Capture devices")));
+	inputNode->setExpanded(true);
+	inputNode->setData(0, DeviceListDelegate::InputSideRole, true);
+	addDevices(capture, inputNode);
+
+	finishSetup();
+}
+
+void DeviceSelector::setupChrome()
+{
+	ui.setupUi(this);
+
+	setWindowFlags(windowFlags().setFlag(Qt::WindowContextHelpButtonHint, false));
+
+	QString version = QString("%0.%1").arg(MAJOR).arg(MINOR);
+	if (REVISION != 0)
+		version += QString(".%0").arg(REVISION);
+	setWindowTitle(QString("Equalizer APO %0 Device Selector").arg(version));
+
+	// The device list renders through the active skin's painter; the tree
+	// keeps the data and behaviour. No native decorations or header - the
+	// painted rows carry the whole presentation.
+	ui.deviceTreeWidget->setItemDelegate(new DeviceListDelegate(ui.deviceTreeWidget));
+	ui.deviceTreeWidget->setRootIsDecorated(false);
+	ui.deviceTreeWidget->setIndentation(10);
+	ui.deviceTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+
+	// Skin-painted dialog buttons; the box only supplies the roles. The
+	// title string reuses the .ui's original translation context.
+	okButton = new SkinButton(tr("OK"), true, this);
+	cancelButton = new SkinButton(tr("Cancel"), false, this);
+	ui.buttonBox->addButton(okButton, QDialogButtonBox::AcceptRole);
+	ui.buttonBox->addButton(cancelButton, QDialogButtonBox::RejectRole);
+	ui.troubleshootingHeader->setTitle(QCoreApplication::translate("DeviceSelectorClass",
+		"Troubleshooting options (only use in case of problems)"));
+}
+
+void DeviceSelector::finishSetup()
+{
+	// Connected only after the devices are in place: itemChanged fires for
+	// every setData during population, and updateList would dereference the
+	// not-yet-stored device info.
+	connect(ui.deviceTreeWidget, &QTreeWidget::itemChanged, this, &DeviceSelector::onDeviceToggled);
+	connect(ui.deviceTreeWidget, &QTreeWidget::itemSelectionChanged, this, &DeviceSelector::onDeviceSelectionChanged);
+	connect(ui.deviceTreeWidget, &QTreeWidget::customContextMenuRequested, this, &DeviceSelector::onDeviceContextMenuRequested);
+	connect(ui.buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+	connect(ui.buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+	connect(this, &QDialog::accepted, this, &DeviceSelector::onDialogAccepted);
+	connect(this, &QDialog::rejected, this, &DeviceSelector::onDialogRejected);
+	connect(ui.copyDeviceCommandAction, &QAction::triggered, this, &DeviceSelector::onCopyDeviceCommandClicked);
+	connect(ui.troubleshootingHeader, &DisclosureHeader::toggled, this, &DeviceSelector::onTroubleShootingToggled);
+	connect(ui.installPreMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.installPostMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.useOriginalAPOPreMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.useOriginalAPOPostMixCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.installModeComboBox, QOverload<int>::of(&QComboBox::activated), this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.allowSilentBufferCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+	connect(ui.autoCheckBox, &QCheckBox::clicked, this, &DeviceSelector::onTroubleShootingOptionChanged);
+
+	updateButtons();
+
+	// The disclosure starts folded; the header never fired a signal yet, so
+	// hide the panel directly instead of replaying the slide.
+	ui.stackedWidget->setVisible(false);
+	adjustSize();
+
+	// workaround for Qt 6 to not initially have scrollbars despite correct dialog size
+	ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	QTimer::singleShot(0, [&] {ui.deviceTreeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded); });
+}
+
 void DeviceSelector::addDevices(const std::vector<std::shared_ptr<AbstractAPOInfo>>& devices, QTreeWidgetItem* parentNode)
 {
 	for (const std::shared_ptr<AbstractAPOInfo>& apoInfo : devices)
 	{
-		QStringList values;
-		values.append(QString::fromStdWString(apoInfo->getConnectionName()));
-		values.append(QString::fromStdWString(apoInfo->getDeviceName()));
-
 		VoicemeeterAPOInfo* voicemeeterInfo = dynamic_cast<VoicemeeterAPOInfo*>(apoInfo.get());
 		bool checked = false;
 		if (apoInfo->isInstalled())
@@ -120,14 +165,56 @@ void DeviceSelector::addDevices(const std::vector<std::shared_ptr<AbstractAPOInf
 			else
 				checked = true;
 		}
-		QString state = getStateText(apoInfo, checked);
 
-		values.append(state);
-		QTreeWidgetItem* item = new QTreeWidgetItem(parentNode, values);
+		QTreeWidgetItem* item = new QTreeWidgetItem(parentNode,
+			QStringList(QString::fromStdWString(apoInfo->getConnectionName())));
+		// The info pointer first: everything downstream of itemChanged reads it.
+		item->setData(0, Qt::UserRole, QVariant::fromValue(apoInfo));
+		item->setData(0, DeviceListDelegate::DeviceNameRole, QString::fromStdWString(apoInfo->getDeviceName()));
+		item->setData(0, DeviceListDelegate::StateTextRole, getStateText(apoInfo, checked));
+		item->setData(0, DeviceListDelegate::InstalledRole, apoInfo->isInstalled());
+		item->setData(0, DeviceListDelegate::ExperimentalRole, apoInfo->isExperimental());
+		item->setData(0, DeviceListDelegate::DefaultDeviceRole, apoInfo->isDefaultDevice());
+		item->setData(0, DeviceListDelegate::UnavailableRole, apoInfo->isDisabled() || apoInfo->isUnplugged());
+		item->setData(0, DeviceListDelegate::InputSideRole, apoInfo->isInput());
 
 		item->setCheckState(0, checked ? Qt::Checked : Qt::Unchecked);
-		item->setData(0, Qt::UserRole, QVariant::fromValue(apoInfo));
 	}
+}
+
+void DeviceSelector::previewHoverDevice(int sectionRow, int deviceRow)
+{
+	QTreeWidgetItem* section = ui.deviceTreeWidget->topLevelItem(sectionRow);
+	DeviceListDelegate* delegate = qobject_cast<DeviceListDelegate*>(ui.deviceTreeWidget->itemDelegate());
+	if (section == nullptr || delegate == nullptr || deviceRow >= section->childCount())
+		return;
+	delegate->setForcedHover(ui.deviceTreeWidget->indexFromItem(section->child(deviceRow)));
+}
+
+void DeviceSelector::previewSelectDevice(int sectionRow, int deviceRow)
+{
+	QTreeWidgetItem* section = ui.deviceTreeWidget->topLevelItem(sectionRow);
+	if (section == nullptr || deviceRow >= section->childCount())
+		return;
+	ui.deviceTreeWidget->setCurrentItem(section->child(deviceRow));
+}
+
+void DeviceSelector::previewCheckDevice(int sectionRow, int deviceRow)
+{
+	QTreeWidgetItem* section = ui.deviceTreeWidget->topLevelItem(sectionRow);
+	if (section == nullptr || deviceRow >= section->childCount())
+		return;
+	section->child(deviceRow)->setCheckState(0, Qt::Checked);
+}
+
+void DeviceSelector::previewOpenTroubleshooting()
+{
+	ui.troubleshootingHeader->setChecked(true);
+	// Skip the slide for deterministic shots: pin the panel at full height.
+	if (troubleshootingSlide != nullptr)
+		troubleshootingSlide->stop();
+	ui.stackedWidget->setVisible(true);
+	ui.stackedWidget->setMaximumHeight(QWIDGETSIZE_MAX);
 }
 
 void DeviceSelector::onDeviceSelectionChanged()
@@ -278,11 +365,6 @@ void DeviceSelector::onCopyDeviceCommandClicked()
 
 void DeviceSelector::onTroubleShootingToggled(bool on)
 {
-	if (on)
-		ui.troubleshootingGroupBox->setStyleSheet("");
-	else
-		ui.troubleshootingGroupBox->setStyleSheet("#" + ui.troubleshootingGroupBox->objectName() + " {border:0;}");
-
 	// Disclosure slide instead of the old visibility snap: the panel's
 	// maximumHeight sweeps between 0 and its natural height. 160ms OutCubic
 	// reads as a fold without ever feeling like waiting; the indicator is
@@ -293,7 +375,7 @@ void DeviceSelector::onTroubleShootingToggled(bool on)
 		troubleshootingSlide->setDuration(160);
 		troubleshootingSlide->setEasingCurve(QEasingCurve::OutCubic);
 		connect(troubleshootingSlide, &QPropertyAnimation::finished, this, [this]() {
-			if (!ui.troubleshootingGroupBox->isChecked())
+			if (!ui.troubleshootingHeader->isChecked())
 				ui.stackedWidget->setVisible(false);
 			// Release the clamp so future layout changes (translations, DPI)
 			// keep sizing the open panel naturally.
@@ -357,10 +439,7 @@ void DeviceSelector::updateList(QTreeWidgetItem* item)
 	std::shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<std::shared_ptr<AbstractAPOInfo>>();
 	bool checked = item->checkState(0) == Qt::Checked;
 
-	QString state = getStateText(apoInfo, checked);
-	item->setText(2, state);
-
-	ui.deviceTreeWidget->resizeColumnToContents(2);
+	item->setData(0, DeviceListDelegate::StateTextRole, getStateText(apoInfo, checked));
 }
 
 void DeviceSelector::updateButtons()
@@ -368,17 +447,13 @@ void DeviceSelector::updateButtons()
 	bool changed = isChanged();
 	if (changed || !isAnySelected())
 	{
-		QPushButton* okButton = ui.buttonBox->button(QDialogButtonBox::Ok);
 		okButton->setVisible(true);
 		okButton->setEnabled(changed);
-		QPushButton* cancelButton = ui.buttonBox->button(QDialogButtonBox::Cancel);
 		cancelButton->setText(tr("Cancel"));
 	}
 	else
 	{
-		QPushButton* okButton = ui.buttonBox->button(QDialogButtonBox::Ok);
 		okButton->setVisible(false);
-		QPushButton* cancelButton = ui.buttonBox->button(QDialogButtonBox::Cancel);
 		cancelButton->setText(tr("Close"));
 	}
 
