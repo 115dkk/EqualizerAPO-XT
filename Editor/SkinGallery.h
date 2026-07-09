@@ -23,4 +23,13 @@ namespace SkinGallery
 // application arguments. Returns a process exit code: 0 when every PNG was
 // written, 1 when rendering failed, 2 on bad usage.
 int run(const QStringList& arguments);
+
+// Entry point behind --skin-switch-test: the live skin-switch robustness
+// gate. Replays MainWindow::skinSelected's exact sequence (clearRows ->
+// applySkin -> applySkinPalette -> updateGuis) over a large synthetic config
+// for every skin x dark/light, several rounds, and fails on a crash, a wrong
+// resulting skin id, or a pathologically slow switch. Field history: skin
+// switches have crashed machines and cost seconds per switch before the
+// clear-first fix; this keeps both regression classes out of CI-green.
+int runSwitchTest(const QStringList& arguments);
 }

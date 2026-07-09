@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QDataStream>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QEnterEvent>
 #include <QFile>
 #include <QFrame>
@@ -23,6 +24,7 @@
 #include <QSpinBox>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QToolBar>
 
 #include "Editor/FilterTable.h"
@@ -784,6 +786,148 @@ int renderHeritage(const QDir& outDir, const QString& configPath)
 		}
 	}
 	return failures;
+}
+
+int runSwitchTest(const QStringList& arguments)
+{
+	Q_UNUSED(arguments);
+
+	qWarning("SkinSwitchTest: starting");
+
+	// Scratch reference targets so the reference cards resolve like the
+	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+	{
+		qWarning("SkinSwitchTest: cannot create a scratch directory");
+		return 2;
+	}
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+	{
+		qWarning("SkinSwitchTest: cannot write reference target files");
+		return 2;
+	}
+
+	// A config heavy enough for the historical failure mode: the field crash
+	// and the seconds-per-switch regression both needed a loaded document,
+	// not the empty tree the gallery switches under. Six copies of the
+	// representative rows exercise every card type at over a hundred rows.
+	QList<QString> lines;
+	for (int repeat = 0; repeat < 6; repeat++)
+		for (const GalleryRow& row : galleryRows())
+			lines.append(row.line);
+
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	buildRows(scrollArea, configPath, lines);
+	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+	if (table == nullptr)
+	{
+		qWarning("SkinSwitchTest: table construction failed");
+		return 1;
+	}
+
+	// Generous ceiling: a healthy switch is well under a second offscreen,
+	// the regression class this guards against cost multiple seconds per
+	// switch, and CI runners are slow and variable. Overridable for local
+	// tuning.
+	bool limitOk = false;
+	int limitMs = qEnvironmentVariableIntValue("EAPO_SWITCH_LIMIT_MS", &limitOk);
+	if (!limitOk || limitMs <= 0)
+		limitMs = 8000;
+
+	int failures = 0;
+	qint64 worstMs = 0;
+	QString worstName;
+	const int rounds = 3;
+	for (int round = 1; round <= rounds; round++)
+	{
+		for (ISkin* skin : Skins::all())
+		{
+			for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+			{
+				const bool dark = darkIndex == 0;
+				const QString name = QStringLiteral("%1/%2").arg(skin->id(), dark ? QStringLiteral("dark") : QStringLiteral("light"));
+
+				QElapsedTimer timer;
+				timer.start();
+				// MainWindow::skinSelected's exact live sequence: tear the
+				// rows down BEFORE the global stylesheet swap, rebuild after.
+				table->clearRows();
+				const qint64 clearMs = timer.restart();
+				SkinManager::instance()->applySkin(skin->id(), dark);
+				GUIHelper::applySkinPalette();
+				const qint64 applyMs = timer.restart();
+				table->updateGuis();
+				QApplication::processEvents();
+				// The live editor returns to the event loop between switches,
+				// which is when deleteLater victims (combo popup containers,
+				// editor internals) actually die; a bare processEvents() does
+				// not deliver DeferredDelete, and without this the harness
+				// accumulates a dead generation per switch that the real app
+				// never keeps.
+				QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+				QApplication::processEvents();
+				const qint64 rebuildMs = timer.elapsed();
+				const qint64 elapsed = clearMs + applyMs + rebuildMs;
+
+				if (SkinManager::instance()->currentSkinId() != skin->id())
+				{
+					qWarning("SkinSwitchTest: switch to %s resolved to %s",
+						qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
+					failures++;
+				}
+				if (elapsed > limitMs)
+				{
+					qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
+						qPrintable(name), static_cast<long long>(elapsed), limitMs);
+					failures++;
+				}
+				if (elapsed > worstMs)
+				{
+					worstMs = elapsed;
+					worstName = name;
+				}
+				qWarning("SkinSwitchTest: round %d %s: %lld ms (clear %lld, apply %lld, rebuild %lld, widgets %lld)",
+					round, qPrintable(name), static_cast<long long>(elapsed),
+					static_cast<long long>(clearMs), static_cast<long long>(applyMs), static_cast<long long>(rebuildMs),
+					static_cast<long long>(QApplication::allWidgets().size()));
+			}
+		}
+	}
+
+	{
+		// Diagnostic: class histogram of the surviving widgets, top entries.
+		QHash<QByteArray, int> histogram;
+		for (QWidget* widget : QApplication::allWidgets())
+			histogram[widget->metaObject()->className()]++;
+		QList<QPair<int, QByteArray>> ranked;
+		for (auto it = histogram.constBegin(); it != histogram.constEnd(); ++it)
+			ranked.append({ it.value(), it.key() });
+		std::sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+		for (int i = 0; i < qMin(10, int(ranked.size())); i++)
+			qWarning("SkinSwitchTest: widget census %s x%d", ranked[i].second.constData(), ranked[i].first);
+
+		// Top-level population: a growing count here is how the leaked
+		// parentless CopyFilterGUI generation was originally spotted.
+		int windows = 0;
+		for (QWidget* widget : QApplication::allWidgets())
+			if (widget->isWindow())
+				windows++;
+		qWarning("SkinSwitchTest: %d top-level widgets", windows);
+	}
+
+	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), limit %d ms, failures %d",
+		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
+		qPrintable(worstName), limitMs, failures);
+
+	// Same no-teardown exit as run(): everything is flushed, and unwinding
+	// the offscreen QApplication can hang the process on a leftover resource.
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
 }
 
 int run(const QStringList& arguments)

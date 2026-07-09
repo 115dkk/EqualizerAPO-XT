@@ -46,6 +46,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   the stock Windows dialog, and its troubleshooting options open with a
   chevron disclosure and a short slide instead of a checkbox.
   ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Fixed skin switches getting slower and slower on configs with Copy lines:
+  every rebuild leaked an invisible legacy Copy editor per Copy row, and
+  every later switch restyled the growing pile. Thirty switches over a
+  126-row config used to climb from 1.3 s to 18 s per switch; they now stay
+  flat. CI gained a skin-switch stress gate that replays the live switch
+  sequence and fails on a crash or a slow switch, so neither regression
+  class can ship again.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
 
 ## v2.11.0 — 2026-07-05
 
