@@ -67,6 +67,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   sequence and fails on a crash or a slow switch, so neither regression
   class can ship again.
   ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- The analysis panel's response graph - the panel's last palette swap - became
+  five instruments. Studio Glass monitors through a glowing glass pane whose
+  over-0dB region warms with danger; Precision Minimal prints a plotter sheet
+  (1px ink line, hatched overshoot, crosshair annotation); Soft Lab shows a
+  friendly pastel landscape (boost hills, cut valleys, a named "Over 0 dB"
+  chip); Hardware Rack seats a SPECTRUM MONITOR scope (green phosphor trace
+  that burns amber above zero, an OVER lamp); Signal Matrix reads board
+  telemetry (cyan trace, hazard zone, an OVER tag at the peak). The graph
+  also gained a pointer readout: hover it to read the exact frequency and dB
+  under the cursor, in each skin's own voice.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
 - Fixed the title bar's minimize/maximize/close buttons going near-invisible
   after switching between light and dark: the switch never re-tinted the
   caption glyphs (or the toolbar and Edit-menu icons), so a light-to-dark
