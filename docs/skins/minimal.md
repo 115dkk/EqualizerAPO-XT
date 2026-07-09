@@ -213,17 +213,32 @@ Include/Convolution/MultiConvolution/VST 행의 본문은 문자 그대로 **한
   헤어라인이 경계를 긋고, 줄머리에 ASCII `+`의 정사각 헤어라인 칸이 앉는다.
   눌림은 칸을 액센트 블록으로 채운다(메뉴·체크박스 인디케이터의 armed 플래그
   문법). 원반·글로우·곡률 없음. 휴지에는 아무것도 그리지 않는다(공유 계약).
-- **GraphicEQ 카드.** 밴드 테이블은 이 스킨의 본진이다: 그래프
-  그라운드(@GRAPH@) 위에 줄무늬(zebra)와 미세 격자 헤어라인(@GRID_MINOR@)으로
-  읽는 모노 표. 세로 헤더는 픽커의 번호 법을 잇는 번호 거터(보조 잉크,
-  헤어라인 구획)다. 선택은 cardSelected 명도 스텝(불변 규칙 3의 문면 — 반전
-  블록은 픽커와 과도 커서 예약)이다. 응답 플롯은 분석 그래프와 같은 1px
-  정사각 헤어라인 프레임이고, 곡선·격자 잉크는 SkinTokens에서 온다(QSS는
-  chrome만 다룬다). 액션 버튼(가져오기/내보내기/반전/정규화/리셋)은 공유
-  코드가 그리는 스트로크 글리프이므로 캡션 버튼 캐논을 따른다: 휴지는 맨
-  글리프, 호버는 한 스텝 + 헤어라인 박스, 눌림은 사다리의 가장 깊은 회색
-  스텝(글리프가 잉크를 유지해야 하므로 반전 금지), 포커스는 액센트
-  헤어라인. 모드 콤보는 X5 선택기 문법을 그대로 탄다.
+- **GraphicEQ 카드 — "종이 위의 계측 기록".** 응답 플롯은 form-first
+  계기다: GraphicEQPlotWidget이 모델과 입력 전부를 갖고 픽셀 전부를
+  `paintGraphicEqPlot`에 위임하며, 이 스킨은 그것을 콘솔(다크)/인쇄지
+  (라이트)에 남은 계측 기록으로 그린다. 그라운드는 그래프 토큰, 격자는
+  극도로 옅은 1px 헤어라인이고, 모든 직선은 AA를 끈 크리스프 1px이다
+  (곡선은 데이터이므로 AA를 유지한다). 응답 곡선은 본문 잉크 1px
+  헤어라인에 채움 없음 — 액센트 금지, 액센트는 활성 중에만. 0dB는 유일한
+  본문 잉크 직선 룰이고, 축 라벨은 보조 잉크 DM Mono, 커서 판독은 우상단
+  보조 잉크 모노 한 줄이다. 노드는 정사각 헤어라인 틱으로 명도 스텝
+  사다리를 탄다: 휴지=그라운드로 뚫린 헤어라인 정사각, 호버=배경 한
+  스텝(cardHover)으로 채운 정사각, 선택=반전 블록(전경/배경 스왑 —
+  픽커의 무딘 커서 문법), 드래그 중인 노드(선택된 채 포인터 아래에 있는
+  노드)만 액센트 블록이다. 키보드 커서(focusedNode)는 위젯이 포커스를 쥔
+  동안 정사각 액센트 헤어라인 외곽 프레임을 두르고, 플롯 전체 프레임도
+  분석 그래프와 같은 1px 정사각 헤어라인(포커스 시 액센트)이다.
+  bandLocked(15/31 모드)는 0dB 룰에서 각 노드까지 1px 헤어라인 수직
+  스템을 내린다 — 막대 채움 금지, 잉크 낭비는 장식이다. 비활성은 데이터
+  잉크(곡선·노드·0dB)가 보조 잉크로 한 스텝 가라앉는 것이 전부다
+  (취소선·경고색 금지). 정밀 입력은 플롯 아래 판독 스트립이 맡는다: 밴드
+  캡션은 대문자·자간의 보조 잉크 캡션(분석 칩의 캡션 레지스터),
+  Freq./Gain 캡션은 BiQuad 캡션 레이어(보조 잉크), 수치는 valueScrub
+  문법(N2 — 숫자가 곧 컨트롤), 모드 콤보는 X5 선택기 문법을 그대로 탄다.
+  액션 버튼(가져오기/내보내기/반전/정규화/리셋)은 공유 코드가 그리는
+  스트로크 글리프이므로 캡션 버튼 캐논을 따른다: 휴지는 맨 글리프, 호버는
+  한 스텝 + 헤어라인 박스, 눌림은 사다리의 가장 깊은 회색 스텝(글리프가
+  잉크를 유지해야 하므로 반전 금지), 포커스는 액센트 헤어라인.
 - **맨텍스트(raw) 행.** 소스의 네이티브 레지스터. 공유 raw 카드의 침몰 입력
   박스를 벗기고(투명 그라운드, 보더 0) 줄을 본문 잉크로 맨몸 인쇄한다.
   prepareCommandRow가 info.type이 "text"일 때 인라인 스타일을 직접 덮는다 —
@@ -258,8 +273,9 @@ Include/Convolution/MultiConvolution/VST 행의 본문은 문자 그대로 **한
 
 ## 구현 지도
 
-- 클래스: `MinimalSkin` — [Skins.cpp](../../Editor/skins/Skins.cpp)
-  (`paintMinimalKnob`, `minimalTypeGlyph` 헬퍼 포함)
+- 클래스: `MinimalSkin` — [MinimalSkin.cpp](../../Editor/skins/MinimalSkin.cpp)
+  (`paintMinimalKnob`, `paintMinimalGraphicEqPlot`, `minimalTypeGlyph` 헬퍼
+  포함; 로스터 조립은 [Skins.cpp](../../Editor/skins/Skins.cpp))
 - QSS: `Editor/skins/precision_dark.qss`, `precision_light.qss` (이름 유지)
 - 픽커: `Editor/skins/pickers/MinimalFilterPicker.{h,cpp}`
 - 참조 카드: `Editor/skins/cards/MinimalReferenceCardView.{h,cpp}`

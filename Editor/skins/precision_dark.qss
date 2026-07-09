@@ -447,36 +447,23 @@ QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
 QWidget#VSTCardEditor, QWidget#PreampCardValueBlock,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 
-/* ===== Graphic EQ card (legacy-cleanup round 3) =====
-   The band table is this skin's home ground: a mono table on the graph's
-   console ground, read by zebra stripes and the minor-grid hairline - no
-   new colour, no chrome. Selection is the accent-family value step
-   cardSelected (rule 3's letter; the inverted block stays reserved for
-   pickers and transient cursors). The vertical header is the number
-   gutter - the picker's page-coordinate column, muted and ruled off by a
-   hairline. */
-QTableWidget#GraphicEQBandTable {
-    background: @GRAPH@; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 0;
-    alternate-background-color: #161616;
-    gridline-color: @GRID_MINOR@;
-    font-size: 9pt;
-    qproperty-alternatingRowColors: 1;
-    selection-background-color: @CARD_SELECTED@; selection-color: @TEXT@;
+/* ===== Graphic EQ card (round 3, rebuilt form-first) =====
+   The response plot is a skin-painted instrument now - MinimalSkin::
+   paintGraphicEqPlot owns every pixel (console ground, hairline grid,
+   1px body-ink response, square tick nodes on the value ladder); QSS
+   only dresses the type around it. The readout strip under the plot is
+   one parameter line: the band caption is a tracked secondary caption
+   (the analysis chips' register), "Freq."/"Gain" sit on the BiQuad
+   caption layer, and the figures ride the valueScrub grammar (N2 - the
+   number is the control). The mode combo takes the X5 selector grammar
+   through its paramSelector property. */
+QWidget#GraphicEQReadout { background: transparent; border: 0; }
+QLabel#GraphicEQBandCaption {
+    background: transparent; color: @MUTED@;
+    font-weight: 700; font-size: 9pt;
+    text-transform: uppercase; letter-spacing: 1px;
 }
-QTableWidget#GraphicEQBandTable::item { padding: 0 6px; border-radius: 0; }
-QTableWidget#GraphicEQBandTable::item:selected { background: @CARD_SELECTED@; color: @TEXT@; }
-QTableWidget#GraphicEQBandTable QHeaderView::section {
-    background: @SURFACE@; color: @MUTED@;
-    border: 0; border-right: 1px solid @BORDER@; border-bottom: 1px solid @BORDER@;
-    padding: 0 6px; font-weight: 700; font-size: 8pt;
-}
-/* The response plot: a framed instrument window on the graph ground (its
-   curve/grid inks come from SkinTokens via the card, not QSS). One square
-   hairline, exactly like the analysis graph. */
-QGraphicsView#GraphicEQCardPlot {
-    background: @GRAPH@; border: 1px solid @BORDER@; border-radius: 0;
-}
+QLabel#GraphicEQReadoutLabel { background: transparent; color: @MUTED@; }
 /* The action commands: bare stroke glyphs on the strip (shared code draws
    and tints the pictures, so the caption-button canon applies - the glyph
    keeps its ink, a fg/bg swap would erase it). Rest is the naked glyph,
