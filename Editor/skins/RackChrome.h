@@ -17,6 +17,7 @@
 
 struct CommandRowInfo;
 struct KnobState;
+struct ListChromeState;
 struct SkinTokens;
 class QPainter;
 class QToolBar;
@@ -36,6 +37,18 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 
 // Skeuomorphic pointer knob with a panel-printed scale.
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens);
+
+// The trailing "add card" row as an EMPTY RACK BAY: the blank panel is
+// missing, so the opening shows the rack's dark interior, the mounting
+// rails with their empty bolt holes, and a stencilled EMPTY BAY marking.
+// Hover pre-heats the opening amber and the stencil answers INSTALL
+// MODULE. Drawn for AddCardRow via ISkin::paintAddRow.
+void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens);
+
+// The first-boundary insertion seam as a service slot's amber heat line:
+// strokes only (groove shadow + amber line + slot ticks), painted only
+// while hovered/pressed - at rest the seam does not exist.
+void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens);
 
 // The custom title bar as the unit's top panel: brushed sheen and brushing
 // lines, machined top/bottom edges, the caption-button block set off by a

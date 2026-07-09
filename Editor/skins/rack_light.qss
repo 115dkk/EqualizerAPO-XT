@@ -553,6 +553,117 @@ QLabel#MultiConvolutionMappingHint {
     font-size: 8pt; letter-spacing: 1px;
 }
 
+/* ── GraphicEQ unit: scope glass, LCD band readout, machine keys ─────────
+   The graphic EQ is the rack's spectrum shaper. The response plot is the
+   oscilloscope glass (its colors come from the graph tokens in code; QSS
+   only supplies the machined display bezel). The band table beside it is
+   a recessed LCD readout well - dark glass and green segments even on the
+   cream faceplate, per the display law - whose scrollbar and headers stay
+   inside the glass (dim green service marks, never panel metal).
+   Selection is inverse video, as character LCDs actually highlight; the
+   locked frequency column of the 15/31-band layouts shows
+   factory-programmed values in dimmer segments. The action buttons are
+   the unit's machine keys (the raised-cap grammar of every rack button),
+   and the band-layout caption is the engraved mode selector
+   (paramSelector, X5). */
+QGraphicsView#GraphicEQCardPlot {
+    background: transparent;
+    border: 1px solid #8F8268; border-bottom-color: #FFFFFF;
+    border-radius: 2px;
+}
+QTableWidget#GraphicEQBandTable {
+    background: #11150F; color: #3ED68E;
+    border: 1px solid #4A4438; border-bottom-color: #6B6354;
+    border-radius: 2px;
+    gridline-color: #202A20;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700; font-size: 8pt;
+    selection-background-color: #3ED68E; selection-color: #11150F;
+    alternate-background-color: #11150F;
+}
+QTableWidget#GraphicEQBandTable::item { padding: 2px 6px; border-radius: 0; }
+QTableWidget#GraphicEQBandTable::item:hover { background: #18211A; }
+QTableWidget#GraphicEQBandTable::item:selected { background: #3ED68E; color: #11150F; }
+QTableWidget#GraphicEQBandTable::item:disabled { color: #2F8A61; }
+QTableWidget#GraphicEQBandTable:disabled { color: #2F6B4D; background: #14170F; }
+QTableWidget#GraphicEQBandTable QHeaderView { background: #0E120D; }
+QTableWidget#GraphicEQBandTable QHeaderView::section {
+    background: #0E120D; color: #2F8A61; border: 0;
+    border-right: 1px solid #202A20; border-bottom: 1px solid #202A20;
+    padding: 2px 4px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700; font-size: 7pt; letter-spacing: 0;
+}
+QTableWidget#GraphicEQBandTable QTableCornerButton::section { background: #0E120D; border: 0; }
+QTableWidget#GraphicEQBandTable QScrollBar:vertical {
+    background: #0E120D; width: 8px; margin: 1px; border: 0;
+}
+QTableWidget#GraphicEQBandTable QScrollBar::handle:vertical {
+    background: #2A3A2C; border: 1px solid #0B0E0A; min-height: 24px; border-radius: 2px;
+}
+QTableWidget#GraphicEQBandTable QScrollBar::handle:vertical:hover { border-color: #2F8A61; }
+QToolButton#GraphicEQActionButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    color: @TEXT@;
+    border: 1px solid #AFA288; border-top-color: #FFFFFF; border-radius: 2px;
+    min-width: 24px; min-height: 24px; padding: 2px 4px;
+}
+QToolButton#GraphicEQActionButton:hover { border-color: @ACCENT@; border-top-color: #FFFFFF; }
+QToolButton#GraphicEQActionButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border-color: @ACCENT@; border-top-color: #B8AC92;
+    padding: 3px 4px 1px 4px;
+}
+QToolButton#GraphicEQActionButton:disabled { background: #E2DCCE; border-color: #C9C0AC; }
+
+/* ── Update toast: the service notice shelf ──────────────────────────────
+   The widget paints its own token card (raised surface, hairline border,
+   amber news keel); QSS dresses the message in the panel's warm ink (a
+   translated sentence is UI data, never engraving - no uppercase, no
+   tracking) and the dismiss cap as a small machined button that warms
+   amber under the cursor. */
+QWidget#UpdateToast { background: transparent; }
+QLabel#UpdateToastLabel { background: transparent; color: @TEXT@; font-weight: 600; }
+QToolButton#UpdateToastClose {
+    background: transparent; color: @MUTED@;
+    border: 1px solid transparent; border-radius: 2px;
+    padding: 0 5px; min-width: 16px; min-height: 18px;
+    font-weight: 700;
+}
+QToolButton#UpdateToastClose:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border: 1px solid @ACCENT@; border-top-color: #FFFFFF;
+    color: #7A4A05;
+}
+QToolButton#UpdateToastClose:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border: 1px solid @ACCENT@; border-top-color: #B8AC92;
+    color: #5C3A00;
+}
+
+/* Item-view check indicators (the DeviceSelector's device tree wears this
+   sheet too): little panel switches like the standalone checkboxes -
+   raised cream metal, lit amber when engaged, matte film when powered
+   down. The disclosure chevron images are attached by the app; only
+   geometry-free state rules live here. */
+QTreeView::indicator, QListView::indicator, QTableView::indicator {
+    width: 14px; height: 14px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #DED6C2);
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 2px;
+}
+QTreeView::indicator:hover, QListView::indicator:hover, QTableView::indicator:hover { border-color: @ACCENT@; }
+QTreeView::indicator:checked, QListView::indicator:checked, QTableView::indicator:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFC96A, stop:1 #D88E1E);
+    border: 1px solid #8A5C12;
+}
+QTreeView::indicator:disabled, QListView::indicator:disabled, QTableView::indicator:disabled {
+    background: #E2DCCE; border-color: #C9C0AC;
+}
+QTreeView::indicator:checked:disabled, QListView::indicator:checked:disabled, QTableView::indicator:checked:disabled {
+    background: #E6D6B2; border-color: #C49A4A;
+}
+
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }

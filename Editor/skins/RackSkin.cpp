@@ -68,6 +68,23 @@ public:
 		RackChrome::paintKnob(painter, rect, state, tokens);
 	}
 
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		// The empty rack bay: the opening's dark interior, the mounting
+		// rails' empty bolt holes and a stencilled EMPTY BAY marking; hover
+		// pre-heats the bezel amber (RackChrome). state.label is a UI string,
+		// not hardware printing, so the stencil ignores it - the widget's
+		// tooltip keeps the translated caption reachable.
+		RackChrome::paintAddRow(painter, rect, state, tokens);
+	}
+
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		// The service slot's amber heat line above the first unit - strokes
+		// only, nothing at rest (RackChrome).
+		RackChrome::paintInsertSeam(painter, rect, state, tokens);
+	}
+
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		// QSS only provides the machined base plate and the hover brightening;
@@ -112,6 +129,33 @@ public:
 		// (Include/VST editors, legacy rows) already sit inside that stack.
 		if (card != nullptr && body != nullptr)
 			body->setContentsMargins(RackChrome::earWidth() + 4, 0, RackChrome::earWidth() + 4, 6);
+
+		// Unparsed lines (bare text, programmatic commands like If) are the
+		// AUX unit's programming LCD: the as-written line burns in green
+		// segments in a dark recessed well, in both finishes - displays never
+		// follow the panel finish. The row widget seeds this label with an
+		// inline token style QSS cannot beat, so the display law is applied
+		// here, and a powered-down unit dims its segments at the same time
+		// (rows are rebuilt whenever the line's state changes).
+		if (info.type == QStringLiteral("text") && body != nullptr)
+		{
+			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+			{
+				const SkinTokens tk = SkinManager::instance()->tokens();
+				const bool dark = QColor(tk.background).lightness() < 128;
+				const QString glass = dark ? QStringLiteral("#0B0F0C") : QStringLiteral("#11150F");
+				const QString segments = !info.enabled
+					? (dark ? QStringLiteral("#3A6B51") : QStringLiteral("#2F6B4D"))
+					: (dark ? QStringLiteral("#86F2BA") : QStringLiteral("#3ED68E"));
+				const QString bezel = dark ? QStringLiteral("#050807") : QStringLiteral("#4A4438");
+				const QString lowerLip = dark ? QStringLiteral("#39424A") : QStringLiteral("#6B6354");
+				raw->setStyleSheet(QStringLiteral(
+					"QLabel#FilterCardRawText { background:%1; color:%2;"
+					" border:1px solid %3; border-bottom-color:%4; border-radius:2px;"
+					" padding:6px 10px; font-family:\"%5\"; font-weight:700; }")
+					.arg(glass, segments, bezel, lowerLip, tk.monoFontFamily));
+			}
+		}
 	}
 
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
