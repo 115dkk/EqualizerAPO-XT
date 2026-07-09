@@ -15,10 +15,12 @@
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QImage>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPixmap>
+#include <QToolButton>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSpinBox>
@@ -595,7 +597,6 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		qWarning("SkinGallery: unknown skin id '%s'", qPrintable(skinId));
 		return 1;
 	}
-	GUIHelper::applySkinPalette();
 
 	const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
 	int failures = 0;
@@ -829,6 +830,20 @@ int runSwitchTest(const QStringList& arguments)
 		return 1;
 	}
 
+	// A live TitleBar rides along: its caption glyphs are tinted icons, not
+	// QSS, so a switch path that forgets to re-dress them leaves them in the
+	// previous skin's ink (the field report: black glyphs on the dark strip
+	// after a light->dark toggle). Dark/light alternate every switch below,
+	// so a stale icon is guaranteed to mismatch the active ink.
+	QWidget titleHost;
+	TitleBar titleBar(&titleHost);
+	QToolButton* captionButton = titleBar.findChild<QToolButton*>(QStringLiteral("TitleBarMin"));
+	if (captionButton == nullptr)
+	{
+		qWarning("SkinSwitchTest: TitleBarMin caption button not found");
+		return 1;
+	}
+
 	// Generous ceiling: a healthy switch is well under a second offscreen,
 	// the regression class this guards against cost multiple seconds per
 	// switch, and CI runners are slow and variable. Overridable for local
@@ -854,11 +869,11 @@ int runSwitchTest(const QStringList& arguments)
 				QElapsedTimer timer;
 				timer.start();
 				// MainWindow::skinSelected's exact live sequence: tear the
-				// rows down BEFORE the global stylesheet swap, rebuild after.
+				// rows down BEFORE the global stylesheet swap (which also
+				// re-derives the palette), rebuild after.
 				table->clearRows();
 				const qint64 clearMs = timer.restart();
 				SkinManager::instance()->applySkin(skin->id(), dark);
-				GUIHelper::applySkinPalette();
 				const qint64 applyMs = timer.restart();
 				table->updateGuis();
 				QApplication::processEvents();
@@ -878,6 +893,39 @@ int runSwitchTest(const QStringList& arguments)
 					qWarning("SkinSwitchTest: switch to %s resolved to %s",
 						qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
 					failures++;
+				}
+				{
+					// Caption ink check. tintedIcon paints every covered pixel
+					// in the ink colour, so the strongest-coverage pixel must
+					// sit on the active skin's text colour. Tolerance, not
+					// equality: the thin minimize stroke has no fully opaque
+					// pixel at 14 px and unpremultiply rounding shifts channels
+					// by a few counts - a stale light/dark ink is off by ~100+.
+					const QColor ink(SkinManager::instance()->tokens().text);
+					const QImage glyph = captionButton->icon()
+						.pixmap(QSize(14, 14)).toImage().convertToFormat(QImage::Format_ARGB32);
+					int bestAlpha = 0;
+					QColor bestPixel;
+					for (int y = 0; y < glyph.height(); y++)
+						for (int x = 0; x < glyph.width(); x++)
+						{
+							const QColor pixel = glyph.pixelColor(x, y);
+							if (pixel.alpha() > bestAlpha)
+							{
+								bestAlpha = pixel.alpha();
+								bestPixel = pixel;
+							}
+						}
+					const bool inkMatched = bestAlpha > 0
+						&& qAbs(bestPixel.red() - ink.red()) <= 8
+						&& qAbs(bestPixel.green() - ink.green()) <= 8
+						&& qAbs(bestPixel.blue() - ink.blue()) <= 8;
+					if (!inkMatched)
+					{
+						qWarning("SkinSwitchTest: caption icon did not follow the switch to %s (ink %s, glyph %s a%d)",
+							qPrintable(name), qPrintable(ink.name()), qPrintable(bestPixel.name()), bestAlpha);
+						failures++;
+					}
 				}
 				if (elapsed > limitMs)
 				{

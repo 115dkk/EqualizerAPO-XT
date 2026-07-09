@@ -274,8 +274,8 @@ the `skin-gallery` artifact, so a PR's visual state can be reviewed without a
 local build.
 
 Determinism notes: the gallery runs before translators load (English strings),
-applies each skin itself (stylesheet + palette via
-`GUIHelper::applySkinPalette`), and renders at device pixel ratio 1 on the
+applies each skin itself (`SkinManager::applySkin` swaps the stylesheet and
+derives the palette), and renders at device pixel ratio 1 on the
 offscreen platform. PNGs from the same machine and build are byte-stable, so
 `Get-FileHash` comparisons prove pixel identity; PNGs from different machines
 may differ slightly in font rasterization.

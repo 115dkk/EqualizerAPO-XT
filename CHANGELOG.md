@@ -54,6 +54,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   sequence and fails on a crash or a slow switch, so neither regression
   class can ship again.
   ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Fixed the title bar's minimize/maximize/close buttons going near-invisible
+  after switching between light and dark: the switch never re-tinted the
+  caption glyphs (or the toolbar and Edit-menu icons), so a light-to-dark
+  switch left dark glyphs on the dark strip. Every chrome icon now follows
+  the switch, the application palette follows it too (menus and popups used
+  to keep the startup palette), the analysis graph's response curve and the
+  toolbar overflow arrow now follow the skin's dark flag instead of the OS
+  theme, and the CI switch gate verifies the caption ink on every switch.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
+- Fixed the Legacy rows mode coming up dressed in the last skin's stylesheet
+  on startup: the preference loader re-applied the saved skin over the
+  freshly applied heritage presentation, which is exactly the
+  modern-chrome-around-legacy-rows mixture v2.9.2 removed. A heritage
+  session also no longer overwrites the saved skin choice.
+  ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172))
 
 ## v2.11.0 — 2026-07-05
 

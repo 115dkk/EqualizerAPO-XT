@@ -29,9 +29,7 @@
 #include <QSettings>
 #include <QStyleHints>
 
-#include "Editor/MainWindow.h"
-#include "Editor/SkinManager.h"
-#include "Editor/skins/SkinThemeData.h"
+#include "helpers/RegistryHelper.h"
 
 QSize GUIHelper::scale(QSize size)
 {
@@ -100,13 +98,6 @@ QIcon GUIHelper::tintedIcon(const QString& resource, const QColor& color, int si
 	painter.end();
 
 	return QIcon(pixmap);
-}
-
-void GUIHelper::applySkinPalette()
-{
-	// The token -> QPalette mapping lives in SkinThemeData so DeviceSelector
-	// derives the identical palette from the same tokens.
-	qApp->setPalette(SkinThemeData::palette(SkinManager::instance()->tokens(), SkinManager::instance()->isDark()));
 }
 
 double GUIHelper::knobGainRange()

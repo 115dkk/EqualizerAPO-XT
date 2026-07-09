@@ -23,6 +23,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "AnalysisPlotScene.h"
 #include "AnalysisPlotView.h"
+#include "SkinManager.h"
 
 using std::abs;
 using std::floor;
@@ -86,7 +87,10 @@ void AnalysisPlotView::drawBackground(QPainter* painter, const QRectF& rect)
 		painter->setBrush(Qt::NoBrush);
 	}
 
-    bool dark = GUIHelper::isDarkMode();
-    painter->setPen(dark ? Qt::white : Qt::black);
+	// The skin's dark flag, not the OS scheme: a dark skin on a light system
+	// used to draw the response curve black on the dark graph background.
+	// (Heritage reports light, matching its classic white graph.)
+	bool dark = SkinManager::instance()->isDark();
+	painter->setPen(dark ? Qt::white : Qt::black);
 	painter->drawPath(path);
 }

@@ -132,6 +132,11 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	// arrow sub-controls app-wide with a real chevron SVG, appended after the
 	// skin sheet so it wins on equal specificity.
 	qApp->setStyleSheet(SkinThemeData::substituteTokens(styleSheet, currentTokens) + SkinThemeData::comboArrowOverride());
+	// The palette is part of the skin: painted (non-QSS) widgets and native
+	// popups read these roles. Deriving it here keeps every switch path (menu,
+	// shortcut, startup, gallery) in step - the light->dark toggle used to
+	// leave the startup palette behind because only main() applied it.
+	qApp->setPalette(SkinThemeData::palette(currentTokens, darkMode));
 
 	emit skinChanged(currentTokens);
 	for (QWidget* widget : qApp->allWidgets())

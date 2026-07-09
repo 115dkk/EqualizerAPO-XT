@@ -133,6 +133,10 @@ private:
 	void setupRedesignActions();
 	void setupWindowChrome();
 	void applyRedesignPreferences();
+	// Re-tint the toolbar and menu action icons from the active skin's
+	// tokens; wired to SkinManager::skinChanged in the constructor so every
+	// switch path (menu, shortcut, preferences) re-dresses the chrome.
+	void dressSkinChrome();
 	void syncKnobRangeActions();
 	void setCurrentRenderMode(FilterTable::RenderMode mode);
 	// Polls VelopackBootstrap for a staged background update and raises the

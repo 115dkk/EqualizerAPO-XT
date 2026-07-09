@@ -102,6 +102,13 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	// preferences apply skin icons to it.
 	setupWindowChrome();
 
+	// Every live skin/dark switch re-dresses the tinted chrome icons. The
+	// switch slots apply the skin directly (they tear the rows down first),
+	// so the redress must ride the signal, not applyRedesignPreferences.
+	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		dressSkinChrome();
+	});
+
 	ui->mainToolBar->setObjectName(QStringLiteral("MainToolBar"));
 
 	QWidget* spacer = new QWidget;

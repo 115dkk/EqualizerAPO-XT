@@ -38,11 +38,6 @@ public:
 	// kept, so the same icon adapts to any dark/light skin without per-theme
 	// duplicate files. size is in logical pixels and is DPI-scaled internally.
 	static QIcon tintedIcon(const QString& resource, const QColor& color, int size = 20);
-	// Derive the application palette from the active skin's tokens and apply
-	// it. Painted (non-QSS) widgets and native popups read these roles, so the
-	// palette must follow the skin. Called at startup and by the offscreen
-	// skin gallery whenever it switches skins.
-	static void applySkinPalette();
 	// User-configurable span for dB gain knobs (Preamp card, biquad gain dial):
 	// a knob covers ±knobGainRange() dB, while direct text entry keeps each
 	// command's full range and merely pegs the knob at its end. Stored under

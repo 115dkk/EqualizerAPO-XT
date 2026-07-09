@@ -36,8 +36,8 @@ QString qssResource(const QString& id, bool dark);
 QString substituteTokens(QString qss, const SkinTokens& tokens);
 
 // Token-derived QPalette for the widgets QSS does not cover (item views,
-// native popups). The same mapping GUIHelper::applySkinPalette applies in
-// the Editor.
+// native popups). The same mapping SkinManager::applySkin applies in the
+// Editor on every skin/dark switch.
 QPalette palette(const SkinTokens& tokens, bool dark);
 
 // App-wide combo/spin arrow override appended AFTER a skin sheet: the CSS

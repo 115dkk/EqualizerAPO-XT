@@ -26,10 +26,6 @@ class TitleBar : public QWidget
 public:
 	explicit TitleBar(QWidget* window, QWidget* parent = nullptr);
 
-	// Re-tint the caption button icons from the active skin's tokens. Called
-	// by MainWindow::applyRedesignPreferences on every skin/dark switch.
-	void applySkinIcons();
-
 	// True when the given point (in this widget's coordinates) sits on the
 	// draggable caption area (i.e. not on one of the buttons). Used by the
 	// host's WM_NCHITTEST handler.
@@ -43,6 +39,10 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	// Re-tint the caption button icons from the active skin's tokens; wired
+	// to SkinManager::skinChanged in the constructor so every switch path
+	// (menu, shortcut, preferences) keeps the glyphs on the skin's ink.
+	void applySkinIcons();
 	void updateMaximizeButton();
 
 	QWidget* hostWindow = nullptr;

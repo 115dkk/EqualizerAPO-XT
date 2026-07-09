@@ -494,8 +494,8 @@ int main(int argc, char* argv[])
 		{
 			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString();
 			bool dark = settings.value(QStringLiteral("interface/dark"), GUIHelper::isDarkMode()).toBool();
+			// applySkin also derives the application palette from the tokens.
 			SkinManager::instance()->applySkin(skinId, dark);
-			GUIHelper::applySkinPalette();
 		}
 
 		QtAppBootstrap::applyUserLocale();
