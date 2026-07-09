@@ -428,11 +428,16 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		overshoot.addPolygon(closed);
 		overshoot.closeSubpath();
 
+		// Dark sheet: a dim red field (phosphor's error register). Light
+		// sheet: a black-red block - on an ink-on-paper terminal the error
+		// field is HEAVY ink, so the block goes near-ink dark with the red
+		// hue kept, and the paper-coloured trace inverts through it white
+		// against black (review direction: "white vs black").
 		const QColor dangerBase(tokens.danger);
 		const QColor errorBlock = QColor::fromHsvF(
 			dangerBase.hsvHueF(),
-			dangerBase.hsvSaturationF() * (darkSheet ? 0.70 : 0.58),
-			dangerBase.valueF() * (darkSheet ? 0.56 : 0.84));
+			dangerBase.hsvSaturationF() * (darkSheet ? 0.70 : 0.86),
+			dangerBase.valueF() * (darkSheet ? 0.56 : 0.46));
 
 		painter.save();
 		painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
