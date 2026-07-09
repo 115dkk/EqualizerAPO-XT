@@ -1088,79 +1088,89 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>GraphicEQCardEditor</name>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="157"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="65"/>
         <source>15-band</source>
         <translation>15밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="158"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="66"/>
         <source>31-band</source>
         <translation>31밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="159"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="67"/>
         <source>variable</source>
         <translation>가변</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="160"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="68"/>
         <source>Band layout</source>
         <translation>밴드 구성</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="173"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="81"/>
         <source>Import</source>
         <translation>가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="174"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="82"/>
         <source>Export</source>
         <translation>내보내기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="175"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="83"/>
         <source>Invert response</source>
         <translation>응답 반전</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="176"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="84"/>
         <source>Normalize response</source>
         <translation>응답 정규화</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="177"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="85"/>
         <source>Reset response</source>
         <translation>응답 초기화</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="207"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="125"/>
         <source>Freq.</source>
         <translation>주파수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="207"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="137"/>
         <source>Gain</source>
         <translation>게인</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="462"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="247"/>
+        <source>Band %0 / %1</source>
+        <translation>밴드 %0 / %1</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="253"/>
+        <source>No bands</source>
+        <translation>밴드 없음</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="305"/>
         <source>Import frequency response</source>
         <translation>주파수 응답 가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="465"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="523"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="308"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="364"/>
         <source>Frequency response (*.csv)</source>
         <translation>주파수 응답 (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="466"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="524"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="309"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="365"/>
         <source>All files (*.*)</source>
         <translation>모든 파일 (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="519"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="360"/>
         <source>Export frequency response</source>
         <translation>주파수 응답 내보내기</translation>
     </message>

@@ -1130,79 +1130,89 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>GraphicEQCardEditor</name>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="157"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="65"/>
         <source>15-band</source>
         <translation type="unfinished">15 bandes</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="158"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="66"/>
         <source>31-band</source>
         <translation type="unfinished">31 bandes</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="159"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="67"/>
         <source>variable</source>
         <translation type="unfinished">variable</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="160"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="68"/>
         <source>Band layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="173"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="81"/>
         <source>Import</source>
         <translation type="unfinished">Importer</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="174"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="82"/>
         <source>Export</source>
         <translation type="unfinished">Exporter</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="175"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="83"/>
         <source>Invert response</source>
         <translation type="unfinished">Inverser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="176"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="84"/>
         <source>Normalize response</source>
         <translation type="unfinished">Normaliser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="177"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="85"/>
         <source>Reset response</source>
         <translation type="unfinished">Réinitialiser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="207"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="125"/>
         <source>Freq.</source>
         <translation type="unfinished">Fréq.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="207"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="137"/>
         <source>Gain</source>
         <translation type="unfinished">Gain</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="462"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="247"/>
+        <source>Band %0 / %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="253"/>
+        <source>No bands</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="305"/>
         <source>Import frequency response</source>
         <translation type="unfinished">Importer une réponse en fréquence</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="465"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="523"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="308"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="364"/>
         <source>Frequency response (*.csv)</source>
         <translation type="unfinished">Réponse en fréquence (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="466"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="524"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="309"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="365"/>
         <source>All files (*.*)</source>
         <translation type="unfinished">Tous les fichiers (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="519"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="360"/>
         <source>Export frequency response</source>
         <translation type="unfinished">Exporter une réponse en fréquence</translation>
     </message>
