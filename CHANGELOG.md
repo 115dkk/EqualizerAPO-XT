@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`)
+  are cards now instead of anonymous raw-text rows: each line carries a badge
+  for its branch kind (IF/ELIF/ELSE/ENDIF/EVAL) with the condition or
+  expression as the card summary, and the rows inside an `If` block are
+  indented like a channel group, nesting included. The per-skin presentations
+  decided in the concept round (gate beam, watch readout, bracket rule and
+  friends) come next; until they land the line body keeps the familiar raw
+  editor. ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178))
+
+## v2.13.0 — 2026-07-09
+
 - Copy cards stopped growing with the device. Every routing view used to lay
   the whole channel layout out flat, so on a 7.1 endpoint two lines of actual
   routing sat on an 8-row grid of empty cells. The views now fold: only the
