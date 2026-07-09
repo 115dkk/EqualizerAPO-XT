@@ -394,6 +394,73 @@ QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
 QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
 QWidget#VSTCardEditor, QWidget#PreampCardValueBlock,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
+
+/* ===== Graphic EQ card (legacy-cleanup round 3) =====
+   The band table is this skin's home ground: a mono table printed on the
+   graph's paper, read by zebra stripes and the minor-grid hairline - no
+   new colour, no chrome. Selection is the accent-family value step
+   cardSelected (rule 3's letter; the inverted block stays reserved for
+   pickers and transient cursors). The vertical header is the number
+   gutter - the picker's page-coordinate column, muted and ruled off by a
+   hairline. */
+QTableWidget#GraphicEQBandTable {
+    background: @GRAPH@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 0;
+    alternate-background-color: @BG@;
+    gridline-color: @GRID_MINOR@;
+    font-size: 9pt;
+    qproperty-alternatingRowColors: 1;
+    selection-background-color: @CARD_SELECTED@; selection-color: @TEXT@;
+}
+QTableWidget#GraphicEQBandTable::item { padding: 0 6px; border-radius: 0; }
+QTableWidget#GraphicEQBandTable::item:selected { background: @CARD_SELECTED@; color: @TEXT@; }
+QTableWidget#GraphicEQBandTable QHeaderView::section {
+    background: @SURFACE@; color: @MUTED@;
+    border: 0; border-right: 1px solid @BORDER@; border-bottom: 1px solid @BORDER@;
+    padding: 0 6px; font-weight: 700; font-size: 8pt;
+}
+/* The response plot: a framed instrument window on the graph's paper (its
+   curve/grid inks come from SkinTokens via the card, not QSS). One square
+   hairline, exactly like the analysis graph. */
+QGraphicsView#GraphicEQCardPlot {
+    background: @GRAPH@; border: 1px solid @BORDER@; border-radius: 0;
+}
+/* The action commands: bare stroke glyphs on the strip (shared code draws
+   and tints the pictures, so the caption-button canon applies - the glyph
+   keeps its ink, a fg/bg swap would erase it). Rest is the naked glyph,
+   hover sinks one value step on the paper in a hairline box, pressed
+   lands on the ladder's deepest grey step, keyboard focus is the accent
+   hairline. */
+QToolButton#GraphicEQActionButton {
+    background: transparent; color: @TEXT@;
+    border: 1px solid transparent; border-radius: 0;
+    padding: 2px; min-width: 22px; min-height: 22px;
+}
+QToolButton#GraphicEQActionButton:hover { background: @CARD_HOVER@; border: 1px solid @BORDER@; }
+QToolButton#GraphicEQActionButton:pressed { background: @BORDER@; border: 1px solid @BORDER@; }
+QToolButton#GraphicEQActionButton:focus { border: 1px solid @ACCENT@; }
+QToolButton#GraphicEQActionButton:disabled { color: #999999; }
+
+/* ===== Update toast: a status line from the system =====
+   The card face (surface, hairline, keel) is shared widget chrome; this
+   sheet only sets the type on it. The message is body ink; the dismiss
+   cross is an engraved command glyph - secondary at rest, hover one value
+   step down on the paper (the border grey, since the toast ground already
+   sits on cardHover), pressed the inverted block (the printed cursor -
+   legal here because the glyph is type, not a stroke icon). */
+QLabel#UpdateToastLabel { background: transparent; color: @TEXT@; }
+QToolButton#UpdateToastClose {
+    background: transparent; color: @MUTED@;
+    border: 1px solid transparent; border-radius: 0;
+    min-width: 18px; min-height: 18px; padding: 0 4px; font-weight: 700;
+}
+QToolButton#UpdateToastClose:hover {
+    background: @BORDER@; color: @TEXT@; border: 1px solid transparent;
+}
+QToolButton#UpdateToastClose:pressed {
+    background: @TEXT@; color: @SURFACE@; border: 1px solid transparent;
+}
+QToolButton#UpdateToastClose:focus { border: 1px solid @ACCENT@; }
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 700;
     text-transform: uppercase; letter-spacing: 2px; font-size: 9pt;

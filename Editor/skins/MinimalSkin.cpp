@@ -284,7 +284,26 @@ public:
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
 		Q_UNUSED(card);
-		Q_UNUSED(body);
+		// A raw line (a bare note, or a programmatic command like If/EndIf
+		// the editor does not model) is source text, and this skin is the
+		// source's native register: print it bare on the body strip. The
+		// shared raw card's inline chrome (sunken input ground in a hairline
+		// box) says "foreign object"; here the honest presentation is plain
+		// ink - no box, no input ground (the comment card's law, but in body
+		// ink because the line is live source, not dead code). A
+		// commented-out line drops to secondary ink with the rest of the
+		// row. The '>_' marker keeps its shared muted-mono inline style as
+		// the raw-mode tag. Rows are rebuilt on skin/theme switches, so
+		// construction-time token values stay current.
+		if (info.type == QStringLiteral("text") && body != nullptr)
+		{
+			const SkinTokens& tk = SkinManager::instance()->tokens();
+			if (QLabel* rawText = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+			{
+				rawText->setStyleSheet(QStringLiteral("QLabel#FilterCardRawText { background: transparent; color: %1; border: 0; border-radius: 0; padding: 2px 0; font-family: \"%2\"; }")
+					.arg(info.enabled ? tk.text : tk.mutedText, tk.monoFontFamily));
+			}
+		}
 		// Leading type glyph at the line head. Only modern card rows carry a
 		// header here; the Include/VST body editors and the frozen legacy
 		// rows consult the hook with header == nullptr and stay untouched.
@@ -303,6 +322,74 @@ public:
 		glyphLabel->setAlignment(Qt::AlignCenter);
 		glyphLabel->setMinimumWidth(18);
 		headerLayout->insertWidget(0, glyphLabel);
+	}
+	// The trailing add row is the terminal's input prompt line: "+ ADD
+	// FILTER" as an uppercase tracked mono caption inside a 1px hairline
+	// slot - the engraved-command grammar (BROWSE/LOCATE) at line scale.
+	// State keeps to the value ladder: rest is the bare hairline box on the
+	// list ground, hover lifts the ground exactly one value step, keyboard
+	// focus is the square accent hairline frame and the press instant is
+	// the inverted block (the command canon's cursor). No dashes: a dashed
+	// hairline means "no verified substance" in this skin's chip grammar,
+	// and this slot is a real command.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		QColor ink(tokens.mutedText);
+		QColor edge(tokens.border);
+		if (state.pressed)
+		{
+			painter.fillRect(rect, QColor(tokens.text));
+			ink = QColor(tokens.surface);
+			edge = QColor(tokens.text);
+		}
+		else if (state.hovered)
+		{
+			// One ground step plus the comment card's hover law: the caption
+			// ink lifts to body brightness because the line acts on click.
+			painter.fillRect(rect, QColor(tokens.surface));
+			ink = QColor(tokens.text);
+		}
+		if (state.focused && !state.pressed)
+			edge = QColor(tokens.focusRing);
+		painter.setPen(QPen(edge, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(rect.adjusted(0, 0, -1, -1));
+
+		QFont font(tokens.monoFontFamily);
+		font.setPointSizeF(9.0);
+		font.setWeight(QFont::Bold);
+		font.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+		painter.setFont(font);
+		painter.setPen(ink);
+		painter.drawText(rect.adjusted(12, 0, -12, 0), Qt::AlignVCenter | Qt::AlignLeft,
+			QStringLiteral("+ ") + state.label.toUpper());
+	}
+	// The first-boundary seam: a text editor's insert line. One 1px accent
+	// hairline rules the boundary and an ASCII '+' in a square hairline
+	// cell sits at the line head; the press instant fills the cell with
+	// the accent block (the armed-flag grammar of the menu and checkbox
+	// indicators). No curvature, no glow, no disc. The widget only shows
+	// itself while hovered, so at rest nothing is painted anywhere.
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+		const QColor accent(tokens.accent);
+		const int centerY = rect.center().y();
+		const int side = qMin(rect.height(), 12);
+		const QRect cell(rect.left(), centerY - side / 2, side, side);
+
+		painter.setPen(QPen(accent, 1));
+		painter.setBrush(state.pressed ? QBrush(accent) : Qt::NoBrush);
+		painter.drawRect(cell.adjusted(0, 0, -1, -1));
+		painter.drawLine(cell.right() + 5, centerY, rect.right(), centerY);
+
+		QFont font(tokens.monoFontFamily);
+		font.setPixelSize(qMax(7, side - 3));
+		font.setWeight(QFont::Bold);
+		painter.setFont(font);
+		painter.setPen(state.pressed ? QColor(tokens.background) : accent);
+		painter.drawText(cell, Qt::AlignCenter, QStringLiteral("+"));
 	}
 	// The token table lives in SkinThemeData (shared with satellite tools);
 	// this class keeps only behaviour.
