@@ -176,7 +176,7 @@ void FilterTable::updateGuis()
 	for (IFilterGUIFactory* factory : factories)
 		factory->startOfFile(configPath);
 
-	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
+	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
 	int row = 0;
 	for (Item* item : model.items())
 	{
@@ -186,7 +186,7 @@ void FilterTable::updateGuis()
 		// (FilterTableRow) is a frozen fallback that must not be extended. New
 		// list behavior goes only into the card path. See docs/FilterListUiPolicy.md.
 		QWidget* rowWidget = renderMode == ModernCards
-			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, row < rowDepths.size() ? rowDepths[row] : 0))
+			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, row < rowScopes.size() ? rowScopes[row] : FilterCardRowScope()))
 			: static_cast<QWidget*>(new FilterTableRow(this, row + 1, item, gui));
 		gridLayout->addWidget(rowWidget, row, 0);
 
@@ -411,12 +411,12 @@ void FilterTable::updateSingleRowGui(Item* item)
 	// stays valid.
 	IFilterGUI* gui = createRowGui(item->text);
 
-	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
-	int depth = rowIndex < rowDepths.size() ? rowDepths[rowIndex] : 0;
+	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
+	FilterCardRowScope scope = rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope();
 	// Same render-mode policy as updateGuis(): the card path is canonical and the
 	// legacy row path is a frozen fallback. See docs/FilterListUiPolicy.md.
 	QWidget* rowWidget = renderMode == ModernCards
-		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, depth))
+		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, scope))
 		: static_cast<QWidget*>(new FilterTableRow(this, rowIndex + 1, item, gui));
 	gridLayout->addWidget(rowWidget, rowIndex, 0);
 
@@ -464,7 +464,7 @@ bool moveGridCell(QGridLayout* gridLayout, int fromRow, int toRow)
 }
 }
 
-bool FilterTable::renumberRowsBelow(int firstRow, const QVector<int>& rowDepths)
+bool FilterTable::renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes)
 {
 	for (int i = firstRow; i < model.items().count(); i++)
 	{
@@ -472,7 +472,7 @@ bool FilterTable::renumberRowsBelow(int firstRow, const QVector<int>& rowDepths)
 		FilterCardRow* cardRow = cell != nullptr ? qobject_cast<FilterCardRow*>(cell->widget()) : nullptr;
 		if (cardRow == nullptr)
 			return false;
-		cardRow->updateRowPosition(i + 1, i < rowDepths.size() ? rowDepths[i] : 0);
+		cardRow->updateRowPosition(i + 1, i < rowScopes.size() ? rowScopes[i] : FilterCardRowScope());
 	}
 	return true;
 }
@@ -516,9 +516,9 @@ void FilterTable::insertRowAt(int index)
 	Item* item = model.items().at(index);
 	IFilterGUI* gui = createRowGui(item->text);
 
-	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
-	int depth = index < rowDepths.size() ? rowDepths[index] : 0;
-	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, depth);
+	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
+	FilterCardRowScope scope = index < rowScopes.size() ? rowScopes[index] : FilterCardRowScope();
+	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, scope);
 	gridLayout->addWidget(rowWidget, index, 0);
 
 	item->gui = gui;
@@ -530,8 +530,8 @@ void FilterTable::insertRowAt(int index)
 	}
 
 	// Rows below the insertion point keep their widgets, but their 1-based
-	// number and possibly their include/channel scope depth changed.
-	if (!renumberRowsBelow(index + 1, rowDepths))
+	// number and possibly their channel/If scope changed.
+	if (!renumberRowsBelow(index + 1, rowScopes))
 	{
 		updateGuis();
 		return;
@@ -594,8 +594,8 @@ void FilterTable::removeRowAt(int index)
 	gridLayout->setRowStretch(oldSpacerRow, 0);
 	gridLayout->setRowStretch(oldSpacerRow - 1, 1);
 
-	QVector<int> rowDepths = FilterCardModel::calculateDepths(getLines());
-	if (!renumberRowsBelow(index, rowDepths))
+	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
+	if (!renumberRowsBelow(index, rowScopes))
 	{
 		updateGuis();
 		return;

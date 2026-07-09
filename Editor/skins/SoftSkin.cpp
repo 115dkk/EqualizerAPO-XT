@@ -807,7 +807,9 @@ public:
 	{
 		Q_UNUSED(card);
 		Q_UNUSED(header);
-		if (info.legacyRow || body == nullptr || info.type != QStringLiteral("text"))
+		const bool rawBodyRow = info.type == QStringLiteral("text")
+			|| info.type == QStringLiteral("if") || info.type == QStringLiteral("eval");
+		if (info.legacyRow || body == nullptr || !rawBodyRow)
 			return;
 
 		const SkinTokens t = SkinManager::instance()->tokens();

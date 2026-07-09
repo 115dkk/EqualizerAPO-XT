@@ -543,21 +543,43 @@ void testFilterCardDescriptors()
 	expectEqual(FilterCardModel::badgeIconResource("comment", "#"), ":/icons/modern/comment-bubble.svg", "comment badge pictogram");
 	expectTrue(FilterCardModel::badgeIconResource("text", "TXT").isEmpty(), "raw text lines keep their monogram fallback");
 
-	// Legacy-cleanup round 3: the programmatic vocabulary (If/EndIf/Eval)
-	// stays painted as TXT for now (a dedicated editor is future work), but
-	// the descriptor must be honest about it - the condition is the summary,
-	// and a parameterless line does not echo itself twice ("ENDIF  EndIf:").
-	// A bare note line keeps the whole line as its summary.
+	// Dynamic-commands campaign: the programmatic vocabulary is modelled. The
+	// If family shares one card type with per-branch badges, Eval gets its own
+	// type, the condition/expression is the summary, and a parameterless line
+	// does not echo itself twice ("ENDIF  EndIf:"). A bare note line keeps the
+	// whole line as its summary.
 	FilterCardDescriptor ifLine = FilterCardModel::describeLine("If: inputChannelCount == 2");
-	expectEqual(ifLine.type, "text", "If line stays a raw-text row");
-	expectEqual(ifLine.badge, "TXT", "If line keeps the TXT badge");
-	expectEqual(ifLine.title, "If", "If line titles itself with the command");
+	expectEqual(ifLine.type, "if", "If line carries the if card type");
+	expectEqual(ifLine.badge, "IF", "If line badge");
+	expectEqual(ifLine.title, "If", "If line title");
 	expectEqual(ifLine.summary, "inputChannelCount == 2", "If line summary carries the condition");
 
+	FilterCardDescriptor elseIfLine = FilterCardModel::describeLine("ElseIf: sampleRate > 96000");
+	expectEqual(elseIfLine.type, "if", "ElseIf shares the if card type");
+	expectEqual(elseIfLine.badge, "ELIF", "ElseIf badge tells the branch kind");
+	expectEqual(elseIfLine.summary, "sampleRate > 96000", "ElseIf summary carries the condition");
+
+	FilterCardDescriptor elseLine = FilterCardModel::describeLine("Else:");
+	expectEqual(elseLine.type, "if", "Else shares the if card type");
+	expectEqual(elseLine.badge, "ELSE", "Else badge");
+	expectTrue(elseLine.summary.isEmpty(),
+		QStringLiteral("parameterless Else must not echo the raw line as summary: ") + elseLine.summary);
+
 	FilterCardDescriptor endIfLine = FilterCardModel::describeLine("EndIf:");
-	expectEqual(endIfLine.title, "EndIf", "EndIf line titles itself with the command");
+	expectEqual(endIfLine.type, "if", "EndIf shares the if card type");
+	expectEqual(endIfLine.badge, "ENDIF", "EndIf badge");
+	expectEqual(endIfLine.title, "End if", "EndIf line title");
 	expectTrue(endIfLine.summary.isEmpty(),
-		QStringLiteral("parameterless text command must not echo the raw line as summary: ") + endIfLine.summary);
+		QStringLiteral("parameterless EndIf must not echo the raw line as summary: ") + endIfLine.summary);
+
+	FilterCardDescriptor evalLine = FilterCardModel::describeLine("Eval: gain = -3 + 1.5");
+	expectEqual(evalLine.type, "eval", "Eval line carries the eval card type");
+	expectEqual(evalLine.badge, "EVAL", "Eval badge");
+	expectEqual(evalLine.summary, "gain = -3 + 1.5", "Eval summary carries the expression");
+
+	// If/Eval have no pictogram yet; the badge monogram is the fallback.
+	expectTrue(FilterCardModel::badgeIconResource("if", "IF").isEmpty(), "if badge keeps its monogram fallback");
+	expectTrue(FilterCardModel::badgeIconResource("eval", "EVAL").isEmpty(), "eval badge keeps its monogram fallback");
 
 	FilterCardDescriptor bareText = FilterCardModel::describeLine("plain note line without a command");
 	expectEqual(bareText.title, "Text", "bare text line title");
@@ -585,6 +607,71 @@ void testFilterCardDepths()
 	expectEqual(depths[5], 1, "post-comment channel depth");
 	expectEqual(depths[6], 0, "channel all depth");
 	expectEqual(depths[7], 0, "post channel-all depth");
+
+	// Dynamic-commands campaign: If opens a nestable scope that EndIf closes.
+	// The indent axis puts members one level in while ElseIf/Else/EndIf sit at
+	// their block head's level; the logic axis counts the scope a row lives in,
+	// where branch/tail rows count their own scope so a painted rail can pass
+	// through them and terminate on EndIf. Commented-out If lines are comments
+	// to the engine and must not move either axis; a stray EndIf clamps at 0.
+	QVector<FilterCardRowScope> scopes = FilterCardModel::calculateScopes(QList<QString>({
+		"If: inputChannelCount == 2",             // 0: head, indent 0, logic 0
+		"Preamp: -6 dB",                          // 1: member, indent 1, logic 1
+		"If: sampleRate > 96000",                 // 2: nested head, indent 1, logic 1
+		"Delay: 10 ms",                           // 3: nested member, indent 2, logic 2
+		"ElseIf: sampleRate > 48000",             // 4: branch at head level, indent 1, logic 2
+		"Else:",                                  // 5: branch at head level, indent 1, logic 2
+		"# If: never == 1",                       // 6: commented If moves nothing, indent 2, logic 2
+		"EndIf:",                                 // 7: closes nested scope, indent 1, logic 2
+		"Eval: gain = -3",                        // 8: back in outer scope, indent 1, logic 1
+		"EndIf:",                                 // 9: closes outer scope, indent 0, logic 1
+		"Preamp: 0 dB",                           // 10: outside, indent 0, logic 0
+		"EndIf:"                                  // 11: stray EndIf clamps, indent 0, logic 0
+	}));
+	requireEqual(scopes.size(), 12, "if scope count");
+	expectEqual(scopes[0].indent, 0, "if head indent");
+	expectEqual(scopes[0].logic, 0, "if head logic depth counts only outer scopes");
+	expectEqual(scopes[1].indent, 1, "member indent");
+	expectEqual(scopes[1].logic, 1, "member logic depth");
+	expectEqual(scopes[2].indent, 1, "nested head indent");
+	expectEqual(scopes[2].logic, 1, "nested head logic depth");
+	expectEqual(scopes[3].indent, 2, "nested member indent");
+	expectEqual(scopes[3].logic, 2, "nested member logic depth");
+	expectEqual(scopes[4].indent, 1, "elseif sits at its head's indent");
+	expectEqual(scopes[4].logic, 2, "elseif counts its own scope");
+	expectEqual(scopes[5].indent, 1, "else sits at its head's indent");
+	expectEqual(scopes[5].logic, 2, "else counts its own scope");
+	expectEqual(scopes[6].indent, 2, "commented if is an ordinary member");
+	expectEqual(scopes[6].logic, 2, "commented if moves no scope");
+	expectEqual(scopes[7].indent, 1, "endif sits at its head's indent");
+	expectEqual(scopes[7].logic, 2, "endif counts the scope it closes");
+	expectEqual(scopes[8].indent, 1, "outer member indent after nested block");
+	expectEqual(scopes[8].logic, 1, "outer member logic depth after nested block");
+	expectEqual(scopes[9].indent, 0, "outer endif indent");
+	expectEqual(scopes[9].logic, 1, "outer endif counts the scope it closes");
+	expectEqual(scopes[10].indent, 0, "post-block indent");
+	expectEqual(scopes[10].logic, 0, "post-block logic depth");
+	expectEqual(scopes[11].indent, 0, "stray endif clamps indent at zero");
+	expectEqual(scopes[11].logic, 0, "stray endif clamps logic depth at zero");
+
+	// Channel grouping and If nesting are independent axes that add up on the
+	// indent; a Channel row inside an If block indents with the block and
+	// resets only the channel axis.
+	QVector<FilterCardRowScope> mixed = FilterCardModel::calculateScopes(QList<QString>({
+		"Channel: L R",                           // 0: indent 0
+		"If: sampleRate == 48000",                // 1: indent 1 (channel scope), logic 0
+		"Preamp: -2 dB",                          // 2: indent 2, logic 1
+		"Channel: ALL",                           // 3: channel reset inside block, indent 1, logic 1
+		"Preamp: -1 dB",                          // 4: indent 1, logic 1
+		"EndIf:"                                  // 5: indent 0? (channel now 0) logic 1
+	}));
+	requireEqual(mixed.size(), 6, "mixed scope count");
+	expectEqual(mixed[1].indent, 1, "if head inherits channel indent");
+	expectEqual(mixed[2].indent, 2, "member stacks channel and if indent");
+	expectEqual(mixed[3].indent, 1, "channel row indents with the enclosing block");
+	expectEqual(mixed[3].logic, 1, "channel row logic depth inside block");
+	expectEqual(mixed[4].indent, 1, "post channel-all member keeps if indent");
+	expectEqual(mixed[5].logic, 1, "endif closes the scope in mixed nesting");
 }
 
 void testConfigImport()

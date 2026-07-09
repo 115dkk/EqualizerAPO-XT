@@ -47,6 +47,12 @@ struct CommandRowInfo
 	// exact pre-hover appearance.
 	bool hovered = false;
 	int depth = 0;
+	// Number of If scopes the row lives inside (FilterCardRowScope::logic):
+	// ElseIf/Else/EndIf rows count the scope they branch/close, the If head
+	// counts only the scopes above its own. Lets a skin draw If-block rails
+	// through branch rows and terminate them on the EndIf row, independent of
+	// the channel-group indent that depth carries.
+	int logicDepth = 0;
 };
 
 // Interactive state for the list-level add/insert chrome: the trailing
