@@ -206,6 +206,161 @@ public:
 		return info.enabled ? QColor(QStringLiteral("#2B251D")) : QColor(t.mutedText);
 	}
 
+	// Round 3, the trailing add row (shared insertion contract,
+	// docs/skins/README.md): "the place where the next card will arrive",
+	// answered kindly. The slot is a full-height dashed STADIUM - the skin's
+	// established "nothing vouches for this yet" edge (Copy's dashed [+]
+	// chip, the virtual channel seats), not a sleeping slot: it stays at the
+	// window elevation with a quiet sunken "+" disc waiting at the centre.
+	// Hover lifts the whole slot exactly one value step and flips the disc
+	// ON in the skin's state grammar (opaque accent pastel + deep warm ink,
+	// the toggle-switches-on moment); pressing deepens the pastel one step,
+	// the same ladder the ON pills climb. Focus is the constitutional quiet
+	// halo, never a hard ring. Whitespace is not economised: one disc, one
+	// caption, nothing else.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing);
+
+		const QColor accent(tokens.accent);
+		const QColor warmInk(QStringLiteral("#2B251D"));
+		const bool lifted = state.hovered || state.pressed;
+
+		QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		const qreal radius = frame.height() / 2.0;
+
+		// Hover: the slot rises one value step above the window (no shadow -
+		// the two-step elevation rule fakes it with the fill + light border).
+		if (lifted)
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(QColor(tokens.surface));
+			painter.drawRoundedRect(frame, radius, radius);
+		}
+
+		// Keyboard focus: the quiet halo (alpha 90, 3px), not a hard ring.
+		if (state.focused)
+		{
+			painter.setPen(QPen(softAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRoundedRect(frame, radius, radius);
+		}
+
+		QPen outline(lifted ? softAlpha(accent, state.pressed ? 210 : 150) : QColor(tokens.border), 1, Qt::DashLine);
+		outline.setCapStyle(Qt::RoundCap);
+		painter.setPen(outline);
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRoundedRect(frame, radius, radius);
+
+		// Centred friendly composition: the "+" disc and the caption.
+		QFont font(tokens.fontFamily);
+		font.setPointSizeF(10.0);
+		font.setWeight(QFont::DemiBold);
+		const QFontMetricsF metrics(font);
+		const qreal discD = 24.0;
+		const qreal gap = 10.0;
+		const QString caption = metrics.elidedText(state.label, Qt::ElideRight,
+			int(qMax<qreal>(40.0, frame.width() - discD - gap - 48.0)));
+		const qreal textW = metrics.horizontalAdvance(caption);
+		const qreal left = frame.center().x() - (discD + gap + textW) / 2.0;
+		QRectF discRect(left, frame.center().y() - discD / 2.0, discD, discD);
+
+		if (state.pressed)
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(softMix(accent, warmInk, 0.18));
+		}
+		else if (state.hovered)
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(accent);
+		}
+		else
+		{
+			painter.setPen(QPen(QColor(tokens.border), 1));
+			painter.setBrush(QColor(tokens.surfaceSunken));
+		}
+		painter.drawEllipse(discRect);
+
+		QPen plusPen(lifted ? warmInk : QColor(tokens.mutedText), 2.4, Qt::SolidLine, Qt::RoundCap);
+		painter.setPen(plusPen);
+		const QPointF discCenter = discRect.center();
+		const qreal arm = discD * 0.21;
+		painter.drawLine(QPointF(discCenter.x() - arm, discCenter.y()), QPointF(discCenter.x() + arm, discCenter.y()));
+		painter.drawLine(QPointF(discCenter.x(), discCenter.y() - arm), QPointF(discCenter.x(), discCenter.y() + arm));
+
+		painter.setFont(font);
+		painter.setPen(lifted ? QColor(tokens.text) : QColor(tokens.mutedText));
+		painter.drawText(QRectF(left + discD + gap, frame.top(), textW + 4.0, frame.height()),
+			Qt::AlignVCenter | Qt::AlignLeft, caption);
+	}
+
+	// Round 3, the first-boundary insertion seam: a pastel pill line led by
+	// a round "+" disc. The line is the value-arc pastel (accent mixed one
+	// step toward the card), a stadium bar rather than a hairline - soft has
+	// no hairline vocabulary - and the disc wears the ON grammar (opaque
+	// accent pastel, deep warm ink strokes); pressing deepens the pastel one
+	// step. At rest the widget paints nothing (shared contract).
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		const QColor accent(tokens.accent);
+		const QColor warmInk(QStringLiteral("#2B251D"));
+		QRectF r(rect);
+		const qreal cy = r.center().y();
+		const qreal discR = qMin<qreal>(9.0, r.height() / 2.0);
+		const qreal discCx = r.left() + discR + 4.0;
+
+		const qreal lineH = qBound<qreal>(3.0, r.height() * 0.5, 5.0);
+		QRectF bar(discCx + discR + 6.0, cy - lineH / 2.0,
+			r.right() - 4.0 - (discCx + discR + 6.0), lineH);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(softMix(accent, QColor(tokens.card), 0.25));
+		painter.drawRoundedRect(bar, lineH / 2.0, lineH / 2.0);
+
+		painter.setBrush(state.pressed ? softMix(accent, warmInk, 0.18) : accent);
+		painter.drawEllipse(QPointF(discCx, cy), discR, discR);
+
+		QPen plusPen(warmInk, qMax<qreal>(1.6, discR * 0.36), Qt::SolidLine, Qt::RoundCap);
+		painter.setPen(plusPen);
+		const qreal arm = discR * 0.45;
+		painter.drawLine(QPointF(discCx - arm, cy), QPointF(discCx + arm, cy));
+		painter.drawLine(QPointF(discCx, cy - arm), QPointF(discCx, cy + arm));
+	}
+
+	// Round 3, the plain-text rows (bare note lines and programmatic
+	// commands such as If/EndIf/Eval). The raw line IS the row's content
+	// here, so it stays readable - but the terminal prompt glyph (">_") is
+	// exactly the anxious tech artifact this skin removes (tiebreaker:
+	// remove the element, keep the whitespace). The line itself sits in a
+	// sunken stadium well with a DASHED edge at full ink - the established
+	// "the engine holds this as written, nothing vouches for it" grammar
+	// (Copy's [+] chip, the virtual channel seats) - a note, not an alarm.
+	// A commented-out row relaxes the well to the sleeping triple (dash +
+	// sunk-to-window + muted ink). FilterCardRow laid these styles inline,
+	// so QSS cannot reach them; construction time is the hook's moment.
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	{
+		Q_UNUSED(card);
+		Q_UNUSED(header);
+		if (info.legacyRow || body == nullptr || info.type != QStringLiteral("text"))
+			return;
+
+		const SkinTokens t = SkinManager::instance()->tokens();
+		if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
+			glyph->setVisible(false);
+		if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+		{
+			raw->setStyleSheet(QStringLiteral(
+				"QLabel#FilterCardRawText { background:%1; color:%2; border:1px dashed %3; border-radius:16px; padding:8px 14px; font-family:\"%4\"; }"
+				"QLabel#FilterCardRawText:disabled { background:%5; color:%6; }")
+				.arg(t.surfaceSunken, t.text, t.border, t.monoFontFamily, t.background, t.mutedText));
+		}
+	}
+
 	// Annex K, soft: "a handle you cannot fumble". The largest knob of the
 	// five skins. Two-step elevation body, rounded dot indicator (no sharp
 	// line), value in a rounded badge below. AR1 F3/X3: the full travel is an

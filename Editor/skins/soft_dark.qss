@@ -765,3 +765,83 @@ QLineEdit#CommentCardText:disabled {
     background: @BG@; color: rgba(179, 171, 157, 0.55);
     border: 1px dashed @BORDER@;
 }
+
+/* ====================================================================
+   Round 3 - the GraphicEQ card, the update toast and DeviceSelector.
+   The trailing add row and the first-boundary seam are painted from
+   tokens by SoftSkin::paintAddRow/paintInsertSeam (dashed stadium slot,
+   pastel pill line); here live the QSS shares.
+   ==================================================================== */
+
+/* GraphicEQ card: the band table is a rounded sunken well - no hairline
+   grid (that is minimal/matrix vocabulary), the bands separate by
+   whitespace alone; the row numbers rest in quiet muted ink and a
+   selected band is the ON state (accent pastel fill, deep warm ink).
+   The action buttons are stadium icon pills one value step above the
+   body tray. The plot keeps its token-driven scene colours; QSS only
+   seats it in the same rounded well (the 6px padding keeps the square
+   viewport clear of the rounded corners). A commented-out row puts the
+   well and the pills to sleep: dash + sunk-to-window + muted ink. */
+QTableWidget#GraphicEQBandTable {
+    background: @SURFACE_SUNKEN@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 14px;
+    gridline-color: @SURFACE_SUNKEN@;
+    font-size: 9pt;
+}
+QTableWidget#GraphicEQBandTable::item { padding: 2px 8px; border-radius: 9px; }
+QTableWidget#GraphicEQBandTable::item:selected { background: @ACCENT@; color: #2B251D; }
+QTableWidget#GraphicEQBandTable QHeaderView,
+QTableWidget#GraphicEQBandTable QHeaderView::section {
+    background: transparent; color: @MUTED@;
+    border: 0; padding: 0 6px; font-size: 8pt; font-weight: 600;
+}
+QTableWidget#GraphicEQBandTable QTableCornerButton::section { background: transparent; border: 0; }
+QTableWidget#GraphicEQBandTable:disabled {
+    background: @BG@; color: rgba(179, 171, 157, 0.55);
+    border: 1px dashed @BORDER@;
+    gridline-color: @BG@;
+}
+QToolButton#GraphicEQActionButton {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER@; border-radius: 16px;
+    padding: 6px; min-width: 18px; min-height: 18px;
+}
+QToolButton#GraphicEQActionButton:hover { background: @CARD_HOVER@; border: 1px solid rgba(110, 150, 207, 0.65); }
+QToolButton#GraphicEQActionButton:pressed { background: rgba(110, 150, 207, 0.30); border: 1px solid @ACCENT@; }
+QToolButton#GraphicEQActionButton:disabled {
+    background: @BG@; color: rgba(179, 171, 157, 0.45);
+    border: 1px dashed @BORDER@;
+}
+QGraphicsView#GraphicEQCardPlot {
+    background: @SURFACE_SUNKEN@;
+    border: 1px solid @BORDER@; border-radius: 14px;
+    padding: 6px;
+}
+QGraphicsView#GraphicEQCardPlot:disabled { border: 1px dashed @BORDER@; }
+
+/* The update toast: news, not an alarm. The widget paints the token
+   card itself (raised face + light 1px border + the accent pastel keel,
+   already pastel through this skin's tokens); here the message rides in
+   the full ink and the dismiss button follows the title-bar close
+   grammar - a quiet round face that warms with the amber pastel on
+   hover, never a red X. */
+QWidget#UpdateToast { background: transparent; }
+QLabel#UpdateToastLabel { background: transparent; color: @TEXT@; font-weight: 500; padding: 2px 4px; }
+QToolButton#UpdateToastClose {
+    background: transparent; color: @MUTED@;
+    border: 0; border-radius: 11px;
+    padding: 0; min-width: 22px; min-height: 22px;
+    max-width: 22px; max-height: 22px;
+    font-weight: 600;
+}
+QToolButton#UpdateToastClose:hover { background: rgba(207, 171, 110, 0.30); color: @TEXT@; }
+QToolButton#UpdateToastClose:pressed { background: rgba(207, 171, 110, 0.44); color: @TEXT@; }
+
+/* DeviceSelector wears this same sheet (round 3). Its device tree, the
+   header, the dialog buttons and the checkable troubleshooting group
+   all resolve through the generic rules above; the one gap was the
+   disclosure panel: QStackedWidget derives from QFrame, so the generic
+   QWidget background stamped a window-coloured patch inside the group
+   card. The stack and its pages stay transparent (id-selected
+   consumers such as #FilterCardBody outrank these by specificity). */
+QStackedWidget, QStackedWidget > QWidget { background: transparent; }
