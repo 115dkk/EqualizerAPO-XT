@@ -337,7 +337,7 @@ public:
 private:
 	// Section masthead: a fold cell, the localized bus title and the BUS
 	// designation readout, closed by the board's masthead rule.
-	void paintSectionRow(QPainter& painter, const QRect& rect, const DeviceRowState& state, const SkinTokens& tokens) const
+	static void paintSectionRow(QPainter& painter, const QRect& rect, const DeviceRowState& state, const SkinTokens& tokens)
 	{
 		const QColor accent(tokens.accent);
 		const QColor textInk(tokens.text);
@@ -395,7 +395,7 @@ private:
 
 	// One device row: bus trace + port node toggle in the port lane, two
 	// telemetry lines, tag cells, and the acquisition brackets on top.
-	void paintDeviceRow(QPainter& painter, const QRect& rect, const DeviceRowState& state, const SkinTokens& tokens) const
+	static void paintDeviceRow(QPainter& painter, const QRect& rect, const DeviceRowState& state, const SkinTokens& tokens)
 	{
 		const QColor accent(tokens.accent);
 		const QColor textInk(tokens.text);

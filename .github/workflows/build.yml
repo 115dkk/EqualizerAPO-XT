@@ -1117,6 +1117,12 @@ jobs:
     - name: Install Pester 5
       shell: pwsh
       run: |
+        # Some runner images come up without PSGallery registered (seen
+        # 2026-07-09: "No repository with the name 'PSGallery' was found");
+        # re-register the defaults before trusting it.
+        if ($null -eq (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+          Register-PSRepository -Default
+        }
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
         Install-Module Pester -RequiredVersion 5.6.1 -Force -SkipPublisherCheck -Scope CurrentUser
 
