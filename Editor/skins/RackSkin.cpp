@@ -85,6 +85,16 @@ public:
 		RackChrome::paintInsertSeam(painter, rect, state, tokens);
 	}
 
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
+	{
+		// The unit's oscilloscope display: a dark phosphor-glass well in both
+		// finishes (the display law) behind a recessed bezel, scope graticule,
+		// a green phosphor trace with stroke-faked glow and glowing adjustment
+		// dots; band-locked layouts read as segmented level ladders
+		// (RackChrome).
+		RackChrome::paintGraphicEqPlot(painter, state, tokens);
+	}
+
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		// QSS only provides the machined base plate and the hover brightening;

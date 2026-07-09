@@ -551,54 +551,32 @@ QLabel#MultiConvolutionMappingHint {
     font-size: 8pt; letter-spacing: 1px;
 }
 
-/* ── GraphicEQ unit: scope glass, LCD band readout, machine keys ─────────
+/* ── GraphicEQ unit: the oscilloscope display, its readout strip, machine
+   keys ───────────────────────────────────────────────────────────────────
    The graphic EQ is the rack's spectrum shaper. The response plot is the
-   oscilloscope glass (its colors come from the graph tokens in code; QSS
-   only supplies the machined display bezel). The band table beside it is
-   a recessed LCD readout well - dark glass and green segments in BOTH
-   finishes, per the display law - whose scrollbar and headers stay inside
-   the glass (dim green service marks, never panel metal). Selection is
-   inverse video, as character LCDs actually highlight; the locked
-   frequency column of the 15/31-band layouts shows factory-programmed
-   values in dimmer segments. The action buttons are the unit's machine
-   keys (the raised-cap grammar of every rack button), and the band-layout
-   caption is the engraved mode selector (paramSelector, X5). */
-QGraphicsView#GraphicEQCardPlot {
-    background: transparent;
-    border: 1px solid #060809; border-bottom-color: #39424A;
-    border-radius: 2px;
-}
-QTableWidget#GraphicEQBandTable {
-    background: #0B0F0C; color: #86F2BA;
-    border: 1px solid #050807; border-bottom-color: #39424A;
-    border-radius: 2px;
-    gridline-color: #17251E;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+   unit's OSCILLOSCOPE DISPLAY, painted whole by
+   RackChrome::paintGraphicEqPlot (dark phosphor glass in both finishes
+   per the display law, recessed bezel, scope graticule, green phosphor
+   trace, glowing adjustment dots); the widget covers every pixel itself,
+   so QSS only keeps the base coat off its rect (the direct-painting
+   law). Precise entry rides the readout strip under the glass: the
+   captions are engraved faceplate printing, and the Freq/Gain boxes are
+   the X1 LCD readout windows every value box on this machine already
+   wears. The action buttons are the unit's machine keys (the raised-cap
+   grammar of every rack button), and the band-layout caption is the
+   engraved mode selector (paramSelector, X5). */
+QWidget#GraphicEQPlot { background: transparent; }
+QWidget#GraphicEQReadout { background: transparent; border: 0; }
+QLabel#GraphicEQBandCaption {
+    color: @MUTED@; background: transparent;
     font-weight: 700; font-size: 8pt;
-    selection-background-color: #86F2BA; selection-color: #0B0F0C;
-    alternate-background-color: #0B0F0C;
+    text-transform: uppercase; letter-spacing: 2px;
 }
-QTableWidget#GraphicEQBandTable::item { padding: 2px 6px; border-radius: 0; }
-QTableWidget#GraphicEQBandTable::item:hover { background: #121B15; }
-QTableWidget#GraphicEQBandTable::item:selected { background: #86F2BA; color: #0B0F0C; }
-QTableWidget#GraphicEQBandTable::item:disabled { color: #4C9E74; }
-QTableWidget#GraphicEQBandTable:disabled { color: #3A6B51; background: #0A0C0B; }
-QTableWidget#GraphicEQBandTable QHeaderView { background: #0A0D0B; }
-QTableWidget#GraphicEQBandTable QHeaderView::section {
-    background: #0A0D0B; color: #4C9E74; border: 0;
-    border-right: 1px solid #17251E; border-bottom: 1px solid #17251E;
-    padding: 2px 4px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-weight: 700; font-size: 7pt; letter-spacing: 0;
+QLabel#GraphicEQReadoutLabel {
+    color: @MUTED@; background: transparent;
+    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+    text-transform: uppercase;
 }
-QTableWidget#GraphicEQBandTable QTableCornerButton::section { background: #0A0D0B; border: 0; }
-QTableWidget#GraphicEQBandTable QScrollBar:vertical {
-    background: #0A0D0B; width: 8px; margin: 1px; border: 0;
-}
-QTableWidget#GraphicEQBandTable QScrollBar::handle:vertical {
-    background: #1F3A31; border: 1px solid #050807; min-height: 24px; border-radius: 2px;
-}
-QTableWidget#GraphicEQBandTable QScrollBar::handle:vertical:hover { border-color: #2E6B4F; }
 QToolButton#GraphicEQActionButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
     color: @TEXT@;

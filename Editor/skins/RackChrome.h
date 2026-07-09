@@ -16,6 +16,7 @@
 #include <QRect>
 
 struct CommandRowInfo;
+struct GraphicEQPlotState;
 struct KnobState;
 struct ListChromeState;
 struct SkinTokens;
@@ -49,6 +50,19 @@ void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& st
 // strokes only (groove shadow + amber line + slot ticks), painted only
 // while hovered/pressed - at rest the seam does not exist.
 void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens);
+
+// The GraphicEQ card's response plot as the unit's OSCILLOSCOPE DISPLAY: a
+// dark phosphor-glass well in BOTH finishes (the display law), seated in a
+// recessed bezel (shadowed top edge, lit lower lip). The graticule sits in
+// the scope-grid family, axis figures are etched in dim segment ink, the
+// response trace is green phosphor whose glow is faked by stroke
+// overpainting (no graphics effects), and the nodes are glowing adjustment
+// dots (rest dome < hover pre-heat < selected lit + collar ring; the
+// keyboard target wears the amber service ring). Band-locked layouts read
+// as segmented level ladders. A powered-down unit dims the segments but
+// keeps the glass. Drawn for GraphicEQPlotWidget via
+// ISkin::paintGraphicEqPlot.
+void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens);
 
 // The custom title bar as the unit's top panel: brushed sheen and brushing
 // lines, machined top/bottom edges, the caption-button block set off by a
