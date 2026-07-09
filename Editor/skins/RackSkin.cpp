@@ -44,8 +44,8 @@
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
-#include "SkinThemeData.h"
 
 namespace
 {
@@ -53,10 +53,6 @@ class RackSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("rack"); }
-	QString qssResource(bool dark) const override
-	{
-		return SkinThemeData::qssResource(id(), dark);
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static HardwarePatchbayRoutingRenderer renderer;
@@ -104,7 +100,7 @@ public:
 		// seam of the rack opening rather than the token border, so stacked
 		// units separate physically (R3); focus and selection keep their
 		// signal colours.
-		const bool dark = QColor(tokens.background).lightness() < 128;
+		const bool dark = skinIsDark(tokens);
 		const QString seam = dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268");
 		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : seam);
 		const QString background = info.selected ? tokens.cardSelected : tokens.card;
@@ -152,7 +148,7 @@ public:
 			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
 			{
 				const SkinTokens tk = SkinManager::instance()->tokens();
-				const bool dark = QColor(tk.background).lightness() < 128;
+				const bool dark = skinIsDark(tk);
 				const QString glass = dark ? QStringLiteral("#0B0F0C") : QStringLiteral("#11150F");
 				const QString segments = !info.enabled
 					? (dark ? QStringLiteral("#3A6B51") : QStringLiteral("#2F6B4D"))
@@ -209,12 +205,7 @@ public:
 		RackChrome::styleMainToolbar(toolBar, tokens);
 	}
 
-	// The token table lives in SkinThemeData (shared with satellite tools);
-	// this class keeps only behaviour.
-	SkinTokens tokens(bool dark) const override
-	{
-		return SkinThemeData::tokens(id(), dark);
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 };
 }
 

@@ -45,8 +45,8 @@
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/LightTraceRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
-#include "SkinThemeData.h"
 
 namespace
 {
@@ -57,28 +57,8 @@ namespace
 // effects. Tiebreaker: if an element is not the arc, the label or the value,
 // it gets removed.
 
-// QSS colour with alpha derived from a token hex string.
-QString studioRgba(const QString& hex, double alpha)
-{
-	const QColor color(hex);
-	return QStringLiteral("rgba(%1, %2, %3, %4)")
-		.arg(color.red()).arg(color.green()).arg(color.blue())
-		.arg(alpha, 0, 'f', 2);
-}
-
-QColor studioAlpha(const QString& hex, int alpha)
-{
-	QColor color(hex);
-	color.setAlpha(alpha);
-	return color;
-}
-
-// The hooks receive tokens but not the mode flag; the background luminance is
-// an unambiguous proxy because studio's dark background is near-black.
-bool studioIsDark(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
+// The alpha/rgba/is-dark vocabulary moved to the shared SkinPaint.h
+// (cssRgba/withAlpha/skinIsDark) - mechanical helpers, no studio grammar.
 
 // S3 band-colour law (adversarial review round 1): the light a BiQuad row
 // carries - knob arcs, type badge ink, signal lamp, hover/selected border
@@ -143,7 +123,7 @@ QColor studioBandPaintColor(const QPainter& painter, const SkinTokens& tokens)
 	{
 		const QVariant family = static_cast<const QWidget*>(painter.device())->property("studioBand");
 		if (family.isValid())
-			hex = studioBandHex(family.toString(), studioIsDark(tokens));
+			hex = studioBandHex(family.toString(), skinIsDark(tokens));
 	}
 	return QColor(hex);
 }
@@ -152,10 +132,6 @@ class StudioSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("studio"); }
-	QString qssResource(bool dark) const override
-	{
-		return SkinThemeData::qssResource(id(), dark);
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static LightTraceRoutingRenderer renderer;
@@ -189,7 +165,7 @@ public:
 	// layered strokes, never effects.
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		painter.save();
 
 		// The 1px lighter top edge of the glass formula, quieter than a
@@ -202,19 +178,19 @@ public:
 		const double x0 = rect.left() + (rect.width() - span) / 2.0;
 		const double y = rect.top() + 0.5;
 		QLinearGradient bloom(x0, y, x0 + span, y);
-		bloom.setColorAt(0.0, studioAlpha(tokens.accent, 0));
-		bloom.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 70 : 55));
-		bloom.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 52 : 42));
-		bloom.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		bloom.setColorAt(0.0, withAlpha(tokens.accent, 0));
+		bloom.setColorAt(0.35, withAlpha(tokens.accent, dark ? 70 : 55));
+		bloom.setColorAt(0.7, withAlpha(tokens.accent2, dark ? 52 : 42));
+		bloom.setColorAt(1.0, withAlpha(tokens.accent2, 0));
 		QPen bloomPen(QBrush(bloom), 4.0);
 		bloomPen.setCapStyle(Qt::RoundCap);
 		painter.setPen(bloomPen);
 		painter.drawLine(QPointF(x0, y), QPointF(x0 + span, y));
 		QLinearGradient core(x0, y, x0 + span, y);
-		core.setColorAt(0.0, studioAlpha(tokens.accent, 0));
-		core.setColorAt(0.35, studioAlpha(tokens.accent, dark ? 215 : 195));
-		core.setColorAt(0.7, studioAlpha(tokens.accent2, dark ? 175 : 155));
-		core.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+		core.setColorAt(0.0, withAlpha(tokens.accent, 0));
+		core.setColorAt(0.35, withAlpha(tokens.accent, dark ? 215 : 195));
+		core.setColorAt(0.7, withAlpha(tokens.accent2, dark ? 175 : 155));
+		core.setColorAt(1.0, withAlpha(tokens.accent2, 0));
 		QPen corePen(QBrush(core), 1.5);
 		corePen.setCapStyle(Qt::RoundCap);
 		painter.setPen(corePen);
@@ -379,16 +355,16 @@ public:
 	// reflection and most of their opacity.
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 
 		if (!info.enabled)
 		{
 			return QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 8px; }")
-				.arg(studioRgba(tokens.card, 0.45), studioRgba(tokens.border, 0.55));
+				.arg(cssRgba(tokens.card, 0.45), cssRgba(tokens.border, 0.55));
 		}
 
-		const QString background = studioRgba(info.selected ? tokens.cardSelected : tokens.card, 0.88);
-		const QString hoverBackground = studioRgba(info.selected ? tokens.cardSelected : tokens.cardHover, 0.94);
+		const QString background = cssRgba(info.selected ? tokens.cardSelected : tokens.card, 0.88);
+		const QString hoverBackground = cssRgba(info.selected ? tokens.cardSelected : tokens.cardHover, 0.94);
 		const QString topEdge = dark ? QStringLiteral("rgba(255, 255, 255, 0.10)") : QStringLiteral("rgba(255, 255, 255, 0.95)");
 		const QString topEdgeHover = dark ? QStringLiteral("rgba(255, 255, 255, 0.17)") : QStringLiteral("#FFFFFF");
 
@@ -396,10 +372,10 @@ public:
 		{
 			// The gradient border is the glow; no separate top edge needed.
 			const QString gradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
-				.arg(studioRgba(tokens.accent, info.focused || info.selected ? 0.95 : 0.70),
-					studioRgba(tokens.accent, info.focused || info.selected ? 0.45 : 0.22));
+				.arg(cssRgba(tokens.accent, info.focused || info.selected ? 0.95 : 0.70),
+					cssRgba(tokens.accent, info.focused || info.selected ? 0.45 : 0.22));
 			const QString hoverGradient = QStringLiteral("qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 %1, stop:1 %2)")
-				.arg(studioRgba(tokens.accent, 0.95), studioRgba(tokens.accent, 0.40));
+				.arg(cssRgba(tokens.accent, 0.95), cssRgba(tokens.accent, 0.40));
 			return QStringLiteral(
 				"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 8px; }"
 				" QFrame#FilterCardRow:hover { background: %3; border-color: %4; }")
@@ -410,8 +386,8 @@ public:
 			? QStringLiteral("dashed") : QStringLiteral("solid");
 		const QString borderBrush = info.focused
 			? tokens.focusRing
-			: (info.selected ? studioRgba(tokens.accent, 0.65) : studioRgba(tokens.border, 0.90));
-		const QString hoverBorderBrush = info.focused ? tokens.focusRing : studioRgba(tokens.accent, 0.45);
+			: (info.selected ? cssRgba(tokens.accent, 0.65) : cssRgba(tokens.border, 0.90));
+		const QString hoverBorderBrush = info.focused ? tokens.focusRing : cssRgba(tokens.accent, 0.45);
 
 		QString style = QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-top-color: %4; border-radius: 8px; }"
@@ -428,9 +404,9 @@ public:
 				const QString band = studioBandHex(QLatin1String(family), dark);
 				if (info.selected)
 					style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"] { border-color: %2; border-top-color: %3; }")
-						.arg(QLatin1String(family), studioRgba(band, 0.65), topEdge);
+						.arg(QLatin1String(family), cssRgba(band, 0.65), topEdge);
 				style += QStringLiteral(" QFrame#FilterCardRow[studioBand=\"%1\"]:hover { border-color: %2; border-top-color: %3; }")
-					.arg(QLatin1String(family), studioRgba(band, 0.45), topEdgeHover);
+					.arg(QLatin1String(family), cssRgba(band, 0.45), topEdgeHover);
 			}
 		}
 		return style;
@@ -438,7 +414,7 @@ public:
 
 	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		if (!info.enabled)
 		{
 			// Disabled: the sheen is off, the header melts into the glass.
@@ -465,7 +441,7 @@ public:
 		if (!info.enabled || info.type == QStringLiteral("spacer"))
 			return;
 
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		painter.save();
 		painter.setRenderHint(QPainter::Antialiasing);
 
@@ -521,9 +497,9 @@ public:
 			// effects; hover turns the light up a full step (S4).
 			const QRectF edge = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
 			painter.setBrush(Qt::NoBrush);
-			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 150 : 80), 1.0));
+			painter.setPen(QPen(withAlpha(tokens.accent, info.hovered ? 150 : 80), 1.0));
 			painter.drawRoundedRect(edge, 8.0, 8.0);
-			painter.setPen(QPen(studioAlpha(tokens.accent, info.hovered ? 80 : 36), 3.0));
+			painter.setPen(QPen(withAlpha(tokens.accent, info.hovered ? 80 : 36), 3.0));
 			painter.drawRoundedRect(edge.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
 		}
 		else
@@ -570,7 +546,7 @@ public:
 	// text ink with an accent-blooming plus once the slot lights.
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		const bool lit = state.hovered || state.pressed;
 		painter.setRenderHint(QPainter::Antialiasing);
 		const QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
@@ -580,7 +556,7 @@ public:
 		// slot stays a slot until a real card fills it.
 		const double fillAlpha = state.pressed ? 0.80 : (state.hovered ? 0.66 : 0.42);
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(studioAlpha(tokens.card, qRound(fillAlpha * 255)));
+		painter.setBrush(withAlpha(tokens.card, qRound(fillAlpha * 255)));
 		painter.drawRoundedRect(frame, 8.0, 8.0);
 
 		if (lit && !dark)
@@ -598,16 +574,16 @@ public:
 		// Base outline: a faint neutral hairline; keyboard focus wears the
 		// neutral focus ring (the accent halo below stays a pointer answer).
 		painter.setBrush(Qt::NoBrush);
-		painter.setPen(QPen(state.focused ? QColor(tokens.focusRing) : studioAlpha(tokens.border, lit ? 230 : 140), 1.0));
+		painter.setPen(QPen(state.focused ? QColor(tokens.focusRing) : withAlpha(tokens.border, lit ? 230 : 140), 1.0));
 		painter.drawRoundedRect(frame, 8.0, 8.0);
 
 		if (lit)
 		{
 			// Two border-hugging strokes fake the halo (the VST edge grammar
 			// at slot scale); press is one ladder step up.
-			painter.setPen(QPen(studioAlpha(tokens.accent, state.pressed ? 170 : 120), 1.0));
+			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 170 : 120), 1.0));
 			painter.drawRoundedRect(frame, 8.0, 8.0);
-			painter.setPen(QPen(studioAlpha(tokens.accent, state.pressed ? 80 : 48), 3.0));
+			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 80 : 48), 3.0));
 			painter.drawRoundedRect(frame.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
 
 			if (dark)
@@ -639,14 +615,14 @@ public:
 		if (lit)
 		{
 			// The plus lights in the accent: bloom stroke first, core on top.
-			painter.setPen(QPen(studioAlpha(tokens.accent, state.pressed ? 96 : 70), 4.5, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 96 : 70), 4.5, Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(plusCenter.x() - plusRadius, plusCenter.y()), QPointF(plusCenter.x() + plusRadius, plusCenter.y()));
 			painter.drawLine(QPointF(plusCenter.x(), plusCenter.y() - plusRadius), QPointF(plusCenter.x(), plusCenter.y() + plusRadius));
 			painter.setPen(QPen(QColor(tokens.accent), 1.6, Qt::SolidLine, Qt::RoundCap));
 		}
 		else
 		{
-			painter.setPen(QPen(studioAlpha(tokens.mutedText, 200), 1.6, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(withAlpha(tokens.mutedText, 200), 1.6, Qt::SolidLine, Qt::RoundCap));
 		}
 		painter.drawLine(QPointF(plusCenter.x() - plusRadius, plusCenter.y()), QPointF(plusCenter.x() + plusRadius, plusCenter.y()));
 		painter.drawLine(QPointF(plusCenter.x(), plusCenter.y() - plusRadius), QPointF(plusCenter.x(), plusCenter.y() + plusRadius));
@@ -678,10 +654,10 @@ public:
 
 		const auto ray = [&](int accentAlpha, int violetAlpha) {
 			QLinearGradient gradient(x0, y, x1, y);
-			gradient.setColorAt(0.0, studioAlpha(tokens.accent, 0));
-			gradient.setColorAt(0.28, studioAlpha(tokens.accent, accentAlpha));
-			gradient.setColorAt(0.74, studioAlpha(tokens.accent2, violetAlpha));
-			gradient.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+			gradient.setColorAt(0.0, withAlpha(tokens.accent, 0));
+			gradient.setColorAt(0.28, withAlpha(tokens.accent, accentAlpha));
+			gradient.setColorAt(0.74, withAlpha(tokens.accent2, violetAlpha));
+			gradient.setColorAt(1.0, withAlpha(tokens.accent2, 0));
 			return gradient;
 		};
 
@@ -703,7 +679,7 @@ public:
 		// accent stretch.
 		const QPointF dot(rect.center().x(), y);
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(studioAlpha(tokens.accent, pressed ? 130 : 100));
+		painter.setBrush(withAlpha(tokens.accent, pressed ? 130 : 100));
 		painter.drawEllipse(dot, 4.4, 4.4);
 		painter.setBrush(QColor(tokens.accent));
 		painter.drawEllipse(dot, 2.2, 2.2);
@@ -730,7 +706,7 @@ public:
 	// BiQuad, so the light is the skin's base blue only (rule 1).
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		const bool lit = state.enabled;
 		const QRectF plot = state.plotRect;
 
@@ -748,8 +724,8 @@ public:
 
 		// Grid: crisp 1px lines held far behind the data.
 		painter.setRenderHint(QPainter::Antialiasing, false);
-		const QColor gridMinor = studioAlpha(tokens.graphGridMinor, dark ? 84 : 150);
-		const QColor gridMajor = studioAlpha(tokens.graphGridMajor, dark ? 118 : 165);
+		const QColor gridMinor = withAlpha(tokens.graphGridMinor, dark ? 84 : 150);
+		const QColor gridMajor = withAlpha(tokens.graphGridMajor, dark ? 118 : 165);
 		for (const GraphicEQPlotState::GridLine& line : state.vertical)
 		{
 			const int x = int(line.pos);
@@ -772,7 +748,7 @@ public:
 		{
 			if (line.label.isEmpty())
 				continue;
-			painter.setPen(studioAlpha(tokens.mutedText, line.major ? 215 : 140));
+			painter.setPen(withAlpha(tokens.mutedText, line.major ? 215 : 140));
 			painter.drawText(QRect(int(line.pos) - 24, int(plot.bottom()) + 2, 48,
 				state.rect.bottom() - int(plot.bottom()) - 2),
 				Qt::AlignHCenter | Qt::AlignTop, line.label);
@@ -781,7 +757,7 @@ public:
 		{
 			if (line.label.isEmpty())
 				continue;
-			painter.setPen(studioAlpha(tokens.mutedText, line.major ? 215 : 140));
+			painter.setPen(withAlpha(tokens.mutedText, line.major ? 215 : 140));
 			painter.drawText(QRect(state.rect.left(), int(line.pos) - 8,
 				int(plot.left()) - state.rect.left() - 5, 16),
 				Qt::AlignRight | Qt::AlignVCenter, line.label);
@@ -795,13 +771,13 @@ public:
 			const int y = int(state.zeroY);
 			if (lit)
 			{
-				painter.setPen(QPen(studioAlpha(tokens.accent, 52), 3));
+				painter.setPen(QPen(withAlpha(tokens.accent, 52), 3));
 				painter.drawLine(int(plot.left()), y, int(plot.right()), y);
-				painter.setPen(QPen(studioAlpha(tokens.text, 200), 1));
+				painter.setPen(QPen(withAlpha(tokens.text, 200), 1));
 			}
 			else
 			{
-				painter.setPen(QPen(studioAlpha(tokens.mutedText, 170), 1));
+				painter.setPen(QPen(withAlpha(tokens.mutedText, 170), 1));
 			}
 			painter.drawLine(int(plot.left()), y, int(plot.right()), y);
 		}
@@ -821,9 +797,9 @@ public:
 				fill.prepend(QPointF(state.curve.first().x(), base));
 				const double zeroRatio = qBound(0.02, (base - plot.top()) / qMax(1.0, plot.height()), 0.98);
 				QLinearGradient sink(0, plot.top(), 0, plot.bottom());
-				sink.setColorAt(0.0, studioAlpha(tokens.accent, 52));
-				sink.setColorAt(zeroRatio, studioAlpha(tokens.accent, 7));
-				sink.setColorAt(1.0, studioAlpha(tokens.accent, 44));
+				sink.setColorAt(0.0, withAlpha(tokens.accent, 52));
+				sink.setColorAt(zeroRatio, withAlpha(tokens.accent, 7));
+				sink.setColorAt(1.0, withAlpha(tokens.accent, 44));
 				painter.setPen(Qt::NoPen);
 				painter.setBrush(sink);
 				painter.drawPolygon(fill);
@@ -843,7 +819,7 @@ public:
 			{
 				if (!lit && layer.width > 1.6)
 					continue;
-				QPen glow(studioAlpha(tokens.accent, lit ? layer.alpha : 150), layer.width);
+				QPen glow(withAlpha(tokens.accent, lit ? layer.alpha : 150), layer.width);
 				glow.setCapStyle(Qt::RoundCap);
 				glow.setJoinStyle(Qt::RoundJoin);
 				painter.setPen(glow);
@@ -859,13 +835,13 @@ public:
 			{
 				if (lit)
 				{
-					painter.setPen(QPen(studioAlpha(tokens.accent, 36), 4.0));
+					painter.setPen(QPen(withAlpha(tokens.accent, 36), 4.0));
 					painter.drawLine(QPointF(node.x(), base), node);
-					painter.setPen(QPen(studioAlpha(tokens.accent, 150), 1.6));
+					painter.setPen(QPen(withAlpha(tokens.accent, 150), 1.6));
 				}
 				else
 				{
-					painter.setPen(QPen(studioAlpha(tokens.accent, 90), 1.2));
+					painter.setPen(QPen(withAlpha(tokens.accent, 90), 1.2));
 				}
 				painter.drawLine(QPointF(node.x(), base), node);
 			}
@@ -883,23 +859,23 @@ public:
 				painter.setPen(Qt::NoPen);
 				if (selected)
 				{
-					painter.setBrush(studioAlpha(tokens.accent, 40));
+					painter.setBrush(withAlpha(tokens.accent, 40));
 					painter.drawEllipse(center, 9.0, 9.0);
 				}
-				painter.setBrush(studioAlpha(tokens.accent, selected ? 120 : (hovered ? 88 : 36)));
+				painter.setBrush(withAlpha(tokens.accent, selected ? 120 : (hovered ? 88 : 36)));
 				painter.drawEllipse(center, 6.0, 6.0);
 				painter.setBrush(QColor(tokens.accent));
 				painter.drawEllipse(center, 3.0, 3.0);
 			}
 			else
 			{
-				painter.setPen(QPen(studioAlpha(tokens.border, 220), 1.0));
+				painter.setPen(QPen(withAlpha(tokens.border, 220), 1.0));
 				painter.setBrush(QColor(tokens.card));
 				painter.drawEllipse(center, 2.8, 2.8);
 			}
 			if (lit && state.focused && state.focusedNode == i)
 			{
-				painter.setPen(QPen(studioAlpha(tokens.accent, 110), 1.0));
+				painter.setPen(QPen(withAlpha(tokens.accent, 110), 1.0));
 				painter.setBrush(Qt::NoBrush);
 				painter.drawEllipse(center, 8.5, 8.5);
 			}
@@ -910,7 +886,7 @@ public:
 		if (lit && state.cursorValid && !state.cursorText.isEmpty())
 		{
 			painter.setFont(labelFont);
-			painter.setPen(studioAlpha(tokens.mutedText, 220));
+			painter.setPen(withAlpha(tokens.mutedText, 220));
 			painter.drawText(QRectF(plot.adjusted(0, 3, -8, 0)), Qt::AlignRight | Qt::AlignTop, state.cursorText);
 		}
 
@@ -919,7 +895,7 @@ public:
 		// sunken-window material the reference cards already wear.
 		painter.setClipping(false);
 		painter.setBrush(Qt::NoBrush);
-		painter.setPen(QPen(state.focused && lit ? QColor(tokens.focusRing) : studioAlpha(tokens.border, lit ? 255 : 150), 1.0));
+		painter.setPen(QPen(state.focused && lit ? QColor(tokens.focusRing) : withAlpha(tokens.border, lit ? 255 : 150), 1.0));
 		painter.drawRoundedRect(frame, 8.0, 8.0);
 		painter.setRenderHint(QPainter::Antialiasing, false);
 		painter.fillRect(QRectF(frame.left() + 7.0, frame.top() + 1.0, frame.width() - 14.0, 1.0),
@@ -935,23 +911,23 @@ public:
 	// light source. Disabled rows switch the chip off.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
 	{
-		const bool dark = studioIsDark(tokens);
+		const bool dark = skinIsDark(tokens);
 		if (!info.enabled)
 		{
 			return QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: transparent; border: 1px solid %2; }")
-				.arg(studioRgba(tokens.mutedText, 0.65), studioRgba(tokens.border, 0.55));
+				.arg(cssRgba(tokens.mutedText, 0.65), cssRgba(tokens.border, 0.55));
 		}
 
 		const QString baseInk = info.type == QStringLiteral("biquad") ? tokens.accent : typeColor;
 		QString style = QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: %2; border: 1px solid %3; }")
-			.arg(baseInk, studioRgba(baseInk, dark ? 0.15 : 0.10), studioRgba(baseInk, dark ? 0.42 : 0.45));
+			.arg(baseInk, cssRgba(baseInk, dark ? 0.15 : 0.10), cssRgba(baseInk, dark ? 0.42 : 0.45));
 		if (info.type == QStringLiteral("biquad"))
 		{
 			for (const char* family : studioBandFamilies)
 			{
 				const QString band = studioBandHex(QLatin1String(family), dark);
 				style += QStringLiteral(" QLabel#FilterTypeBadge[studioBand=\"%1\"] { color: %2; background-color: %3; border: 1px solid %4; }")
-					.arg(QLatin1String(family), band, studioRgba(band, dark ? 0.15 : 0.10), studioRgba(band, dark ? 0.42 : 0.45));
+					.arg(QLatin1String(family), band, cssRgba(band, dark ? 0.15 : 0.10), cssRgba(band, dark ? 0.42 : 0.45));
 			}
 		}
 		return style;
@@ -970,7 +946,7 @@ public:
 			return sleeping;
 		}
 		if (info.type == QStringLiteral("biquad"))
-			return QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), studioIsDark(tokens)));
+			return QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), skinIsDark(tokens)));
 		return QColor(typeColor);
 	}
 
@@ -1001,7 +977,7 @@ public:
 			if (raw == nullptr)
 				return;
 			const SkinTokens tokens = SkinManager::instance()->tokens();
-			const bool dark = studioIsDark(tokens);
+			const bool dark = skinIsDark(tokens);
 			const QString fill = dark
 				? (info.enabled ? QStringLiteral("rgba(6, 9, 20, 0.55)") : QStringLiteral("rgba(6, 9, 20, 0.30)"))
 				: (info.enabled ? QStringLiteral("rgba(232, 238, 248, 0.75)") : QStringLiteral("rgba(232, 238, 248, 0.40)"));
@@ -1013,8 +989,8 @@ public:
 				" border-top-color: %4; border-radius: 8px; padding: 6px 10px;"
 				" font-family: \"%5\", \"Consolas\", \"Malgun Gothic\", monospace; font-size: 9pt; }")
 				.arg(fill,
-					info.enabled ? tokens.text : studioRgba(tokens.mutedText, 0.60),
-					studioRgba(tokens.border, info.enabled ? 0.90 : 0.55),
+					info.enabled ? tokens.text : cssRgba(tokens.mutedText, 0.60),
+					cssRgba(tokens.border, info.enabled ? 0.90 : 0.55),
 					topEdge,
 					tokens.monoFontFamily));
 			return;
@@ -1057,12 +1033,7 @@ public:
 		QObject::connect(typeCombo, &QComboBox::currentIndexChanged, typeCombo, applyBand);
 	}
 
-	// The token table lives in SkinThemeData (shared with satellite tools);
-	// this class keeps only behaviour.
-	SkinTokens tokens(bool dark) const override
-	{
-		return SkinThemeData::tokens(id(), dark);
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 };
 }
 

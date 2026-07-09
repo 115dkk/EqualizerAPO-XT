@@ -418,6 +418,7 @@ HEADERS  += \
 	skins/pickers/MatrixFilterPicker.h \
 	skins/RackChrome.h \
 	skins/Skins.h \
+	skins/SkinPaint.h \
 	skins/SkinSupport.h \
 	skins/SkinThemeData.h \
 	skins/pickers/StudioFilterPicker.h \

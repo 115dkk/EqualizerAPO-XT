@@ -44,22 +44,13 @@
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
-#include "SkinThemeData.h"
 
 namespace
 {
 // ── Minimal ("The bank teller's terminal") helpers ──────────────────────────
-
-// Screen point on a circle around center; degrees follow the shared knob
-// convention (Qt-style angles, counter-clockwise from 3 o'clock, screen Y
-// grows downward so sin is subtracted). Pass the negated clockwise sweep
-// angle, exactly like ISkin.cpp's default renderer does.
-QPointF minimalPointOnArc(const QPointF& center, double radius, double degrees)
-{
-	const double radians = qDegreesToRadians(degrees);
-	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
-}
+// The arc trig lives in the shared SkinPaint.h (skinArcPoint).
 
 // ANNEX K minimal: "the number is the control; the knob is confirmation"
 // (N2). The figure is the brightest ink in the row - painted here when the
@@ -82,7 +73,7 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 	// The promoted figure sits one brightness step above body text: white on
 	// the dark console, full black on the light paper. Mode is read off the
 	// background's value because SkinTokens carries no dark flag.
-	const bool darkMode = QColor(tokens.background).lightness() < 128;
+	const bool darkMode = skinIsDark(tokens);
 	const QColor promoted(!state.enabled ? secondary
 		: (darkMode ? QColor(255, 255, 255) : QColor(0, 0, 0)));
 	const QColor travelled = !state.enabled ? secondary
@@ -136,8 +127,8 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 		// detent the deviation vanishes and only the tick remains - the
 		// honest "0 dB".
 		painter.setPen(QPen(secondary, 1));
-		painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 2.5, -270.0),
-			minimalPointOnArc(arcCenter, arcRadius + 2.5, -270.0));
+		painter.drawLine(skinArcPoint(arcCenter, arcRadius - 2.5, -270.0),
+			skinArcPoint(arcCenter, arcRadius + 2.5, -270.0));
 		const double deviationDegrees = 270.0 * (state.ratio - 0.5);
 		painter.setPen(QPen(travelled, 1));
 		painter.drawArc(arcRect, -270 * 16, -qRound(deviationDegrees * 16.0));
@@ -153,8 +144,8 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 	// Radial cursor tick crossing the range arc at the value angle.
 	const double valueDegrees = -(135.0 + 270.0 * state.ratio);
 	painter.setPen(QPen(travelled, 1));
-	painter.drawLine(minimalPointOnArc(arcCenter, arcRadius - 3.0, valueDegrees),
-		minimalPointOnArc(arcCenter, arcRadius + 3.0, valueDegrees));
+	painter.drawLine(skinArcPoint(arcCenter, arcRadius - 3.0, valueDegrees),
+		skinArcPoint(arcCenter, arcRadius + 3.0, valueDegrees));
 
 	if (hasNumber)
 	{
@@ -350,11 +341,6 @@ class MinimalSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("minimal"); }
-	QString qssResource(bool dark) const override
-	{
-		// SkinThemeData keeps the historical precision_* file names.
-		return SkinThemeData::qssResource(id(), dark);
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static StepListRoutingRenderer renderer;
@@ -534,12 +520,7 @@ public:
 		painter.setPen(state.pressed ? QColor(tokens.background) : accent);
 		painter.drawText(cell, Qt::AlignCenter, QStringLiteral("+"));
 	}
-	// The token table lives in SkinThemeData (shared with satellite tools);
-	// this class keeps only behaviour.
-	SkinTokens tokens(bool dark) const override
-	{
-		return SkinThemeData::tokens(id(), dark);
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 };
 }
 

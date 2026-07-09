@@ -337,9 +337,10 @@ paramSelector 유리 스트립을 탄다. 다섯 액션 버튼은 불 꺼진 유
 - 참조 카드: `Editor/skins/cards/StudioReferenceCardView.{h,cpp}`
 - Copy: `Editor/widgets/routing/LightTraceRoutingRenderer.{h,cpp}` +
   `StudioRoutingModel.{h,cpp}`
-- 헬퍼: `studioRgba`/`studioAlpha`/`studioIsDark`/`studioBandHex`/
-  `studioBandFamilyForBiQuadType`/`studioBandPaintColor` (Skins.cpp 익명
-  네임스페이스). 밴드 태그는 `prepareCommandRow`가 BiQuad 행의 카드 프레임,
+- 헬퍼: 기계적 색 헬퍼(`cssRgba`/`withAlpha`/`skinIsDark`)는 공유
+  `Editor/skins/SkinPaint.h`에 있고, 스킨 고유 헬퍼 `studioBandHex`/
+  `studioBandFamilyForBiQuadType`/`studioBandPaintColor`는 StudioSkin.cpp 익명
+  네임스페이스에 남는다. 밴드 태그는 `prepareCommandRow`가 BiQuad 행의 카드 프레임,
   타입 배지, 노브에 `studioBand` 동적 프로퍼티로 단다. 타입 선택기가 바뀌면
   같은 훅이 건 연결이 태그를 따라 옮기고 다시 폴리시한다. 페인트 훅은 위젯
   포인터를 받지 않으므로 `painter.device()`(= 그려지는 위젯)에서 태그를
@@ -355,5 +356,6 @@ paramSelector 유리 스트립을 탄다. 다섯 액션 버튼은 불 꺼진 유
    (`studioBand` 태그를 따른다).
 4. 글로우가 필요하면 스트로크 겹침으로 위조한다. 이펙트 금지.
 5. 비활성 상태를 "소등"으로 정의했는가? (반사광·램프·글로우가 꺼지는가)
-6. 다크/라이트 모두 토큰에서 유도했는가? 모드 분기가 필요하면 `studioIsDark`.
-   라이트에서는 밝기 대신 음영·보더 깊이로 형태를 만든다.
+6. 다크/라이트 모두 토큰에서 유도했는가? 모드 분기가 필요하면 공유
+   `skinIsDark`(SkinPaint.h). 라이트에서는 밝기 대신 음영·보더 깊이로 형태를
+   만든다.

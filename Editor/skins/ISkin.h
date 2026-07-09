@@ -130,11 +130,15 @@ public:
 	// Stable identifier persisted in settings (e.g. "studio", "matrix").
 	virtual QString id() const = 0;
 
-	// Colour + metric tokens for the requested mode.
-	virtual SkinTokens tokens(bool dark) const = 0;
+	// Colour + metric tokens for the requested mode. The default resolves the
+	// table SkinThemeData keeps for id(); the five shipped skins live there,
+	// so they do not override this.
+	virtual SkinTokens tokens(bool dark) const;
 
-	// Resource path of the QSS sheet for the requested mode.
-	virtual QString qssResource(bool dark) const = 0;
+	// Resource path of the QSS sheet for the requested mode. Default:
+	// SkinThemeData::qssResource(id(), dark), which also carries the minimal
+	// skin's historical precision_* file names.
+	virtual QString qssResource(bool dark) const;
 
 	// The Copy routing renderer that matches this skin's philosophy. May be
 	// nullptr, in which case the caller falls back to the legacy CopyFilterGUI.

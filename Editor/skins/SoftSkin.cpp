@@ -44,62 +44,25 @@
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
-#include "SkinThemeData.h"
 
 namespace
 {
-// Linear blend between two token colours; t = 0 returns a, t = 1 returns b.
-// The Soft skin fakes its elevation steps and pastel arcs by mixing token
-// colours instead of introducing extra palette entries, so both modes stay
-// consistent with their two-value-step "shadow" rule.
-QColor softMix(const QColor& a, const QColor& b, double t)
-{
-	return QColor(
-		qRound(a.red() + (b.red() - a.red()) * t),
-		qRound(a.green() + (b.green() - a.green()) * t),
-		qRound(a.blue() + (b.blue() - a.blue()) * t));
-}
-
-QColor softAlpha(QColor color, int alpha)
-{
-	color.setAlpha(alpha);
-	return color;
-}
 // ── Soft ("The iPhone settings screen": macOS System Settings calm) ─────────
 // Round, roomy, impossible to fear. Shadows are faked with two background
 // value steps plus a very light 1px border; hierarchy comes from size and
 // whitespace, never from density. Hover lifts a surface exactly one value
 // step. Tiebreaker: when in doubt, remove elements and add whitespace.
-
-// The hooks receive tokens but not the mode flag; like studio, the background
-// luminance is an unambiguous proxy (soft's dark background is deep graphite).
-bool softIsDark(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
-
-// AR1 F2: the picker's pastel multi-hue grammar, normalised for row chrome.
-// The hue comes from an existing colour (the command type's descriptor
-// colour), and only saturation/lightness are re-seated on the pastel shelf -
-// the same "no new palette, derive from what is already there" rule that
-// softMix implements for elevation. Greyish type colours keep their low
-// saturation instead of being inflated into a fake hue.
-QColor softPastelize(const QColor& base, bool dark)
-{
-	const double hue = base.hslHueF() < 0.0 ? 215.0 / 360.0 : base.hslHueF();
-	const double saturation = qMin(base.hslSaturationF(), dark ? 0.50 : 0.55);
-	return QColor::fromHslF(hue, saturation, dark ? 0.62 : 0.60);
-}
+//
+// The mix/alpha/is-dark vocabulary and the constitution-cited pastel recipe
+// (softPastelize) live in the shared SkinPaint.h; the recipe stays Soft-only
+// by decree there (differentiation gate).
 
 class SoftSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("soft"); }
-	QString qssResource(bool dark) const override
-	{
-		return SkinThemeData::qssResource(id(), dark);
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static BlockChipRoutingRenderer renderer;
@@ -134,13 +97,7 @@ public:
 	// (screws, glows, grids) belongs to the neighbours' vocabularies and
 	// would only make the header more anxious.
 
-	// The token table lives in SkinThemeData (shared with satellite tools);
-	// this class keeps only behaviour. The pastel-shelf rationale moved with
-	// the values.
-	SkinTokens tokens(bool dark) const override
-	{
-		return SkinThemeData::tokens(id(), dark);
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 
 	// One calm silhouette for every command type: a 12px rounded card one
 	// value step above the window, "shadowed" only by that step and a very
@@ -186,11 +143,11 @@ public:
 	// (commented-out) row sinks its chip toward the window background.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& t) const override
 	{
-		const bool dark = softIsDark(t);
+		const bool dark = skinIsDark(t);
 		const QColor pastel = softPastelize(QColor(typeColor), dark);
 		if (!info.enabled)
 		{
-			const QColor sleeping = softMix(pastel, QColor(t.background), 0.62);
+			const QColor sleeping = mixColor(pastel, QColor(t.background), 0.62);
 			return QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
 				.arg(t.mutedText, sleeping.name());
 		}
@@ -241,12 +198,12 @@ public:
 		// Keyboard focus: the quiet halo (alpha 90, 3px), not a hard ring.
 		if (state.focused)
 		{
-			painter.setPen(QPen(softAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
 			painter.setBrush(Qt::NoBrush);
 			painter.drawRoundedRect(frame, radius, radius);
 		}
 
-		QPen outline(lifted ? softAlpha(accent, state.pressed ? 210 : 150) : QColor(tokens.border), 1, Qt::DashLine);
+		QPen outline(lifted ? withAlpha(accent, state.pressed ? 210 : 150) : QColor(tokens.border), 1, Qt::DashLine);
 		outline.setCapStyle(Qt::RoundCap);
 		painter.setPen(outline);
 		painter.setBrush(Qt::NoBrush);
@@ -268,7 +225,7 @@ public:
 		if (state.pressed)
 		{
 			painter.setPen(Qt::NoPen);
-			painter.setBrush(softMix(accent, warmInk, 0.18));
+			painter.setBrush(mixColor(accent, warmInk, 0.18));
 		}
 		else if (state.hovered)
 		{
@@ -318,10 +275,10 @@ public:
 		QRectF bar(discCx + discR + 6.0, cy - lineH / 2.0,
 			r.right() - 4.0 - (discCx + discR + 6.0), lineH);
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(softMix(accent, QColor(tokens.card), 0.25));
+		painter.setBrush(mixColor(accent, QColor(tokens.card), 0.25));
 		painter.drawRoundedRect(bar, lineH / 2.0, lineH / 2.0);
 
-		painter.setBrush(state.pressed ? softMix(accent, warmInk, 0.18) : accent);
+		painter.setBrush(state.pressed ? mixColor(accent, warmInk, 0.18) : accent);
 		painter.drawEllipse(QPointF(discCx, cy), discR, discR);
 
 		QPen plusPen(warmInk, qMax<qreal>(1.6, discR * 0.36), Qt::SolidLine, Qt::RoundCap);
@@ -342,7 +299,7 @@ public:
 	// ends, floating clear of the well walls, the knob's 12-o'clock detent
 	// grammar laid flat. The curve imports the bipolar knob's track law:
 	// boost above 0 dB strokes the accent pastel, cut below strokes accent2
-	// (both softened one step toward the card, the value-arc softMix 0.25
+	// (both softened one step toward the card, the value-arc mix 0.25
 	// recipe) over a light pastel wash down to the notch; clipping splits
 	// the passes exactly at the zero crossing. Nodes are big round dots
 	// (rest 5px) that grow half a pixel on hover and flip ON when selected
@@ -378,13 +335,13 @@ public:
 		labelFont.setPointSizeF(7.5);
 		labelFont.setWeight(QFont::DemiBold);
 		painter.setFont(labelFont);
-		const QColor labelInk = softAlpha(muted, state.enabled ? 210 : 120);
+		const QColor labelInk = withAlpha(muted, state.enabled ? 210 : 120);
 
 		// Major-only grid, the border sunk most of the way into the well.
 		// Straight axis lines stay crisp: antialiasing off. The sleeping slot
 		// drops the lines entirely and keeps only the captions - whitespace.
 		painter.setRenderHint(QPainter::Antialiasing, false);
-		const QColor gridInk = softMix(border, well, 0.25);
+		const QColor gridInk = mixColor(border, well, 0.25);
 		for (const GraphicEQPlotState::GridLine& line : state.vertical)
 		{
 			if (!line.major)
@@ -435,20 +392,20 @@ public:
 		// The soft 0 dB notch line.
 		if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
 		{
-			painter.setPen(QPen(softAlpha(QColor(tokens.text), state.enabled ? 110 : 55), 2,
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), state.enabled ? 110 : 55), 2,
 				Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(state.plotRect.left() + 6.0, state.zeroY),
 				QPointF(state.plotRect.right() - 6.0, state.zeroY));
 		}
 
-		const QColor boost = softMix(accent, card, 0.25);
-		const QColor cut = softMix(accent2, card, 0.25);
+		const QColor boost = mixColor(accent, card, 0.25);
+		const QColor cut = mixColor(accent2, card, 0.25);
 		if (state.curve.size() >= 2)
 		{
 			if (!state.enabled)
 			{
 				// Sleeping: the ghost of the response in muted ink, no pastel.
-				painter.setPen(QPen(softAlpha(muted, 120), 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+				painter.setPen(QPen(withAlpha(muted, 120), 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 				painter.setBrush(Qt::NoBrush);
 				painter.drawPolyline(state.curve);
 			}
@@ -471,7 +428,7 @@ public:
 					painter.save();
 					painter.setClipRect(boostPass ? aboveZero : belowZero, Qt::IntersectClip);
 					painter.setPen(Qt::NoPen);
-					painter.setBrush(softAlpha(boostPass ? accent : accent2, 40));
+					painter.setBrush(withAlpha(boostPass ? accent : accent2, 40));
 					painter.drawPolygon(fillPoly);
 					painter.setPen(QPen(boostPass ? boost : cut, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 					painter.setBrush(Qt::NoBrush);
@@ -488,7 +445,7 @@ public:
 			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
 			for (const QPointF& node : state.nodePositions)
 			{
-				painter.setPen(QPen(softAlpha(node.y() > state.zeroY ? accent2 : accent, 90), 4,
+				painter.setPen(QPen(withAlpha(node.y() > state.zeroY ? accent2 : accent, 90), 4,
 					Qt::SolidLine, Qt::RoundCap));
 				painter.drawLine(QPointF(node.x(), base), node);
 			}
@@ -503,7 +460,7 @@ public:
 
 			if (!state.enabled)
 			{
-				painter.setPen(QPen(softAlpha(muted, 120), 1.5));
+				painter.setPen(QPen(withAlpha(muted, 120), 1.5));
 				painter.setBrush(well);
 				painter.drawEllipse(center, 4.0, 4.0);
 				continue;
@@ -515,7 +472,7 @@ public:
 			if (selected)
 			{
 				// ON grammar: opaque pastel fill plus the light ring.
-				painter.setPen(QPen(softAlpha(side, 90), 3));
+				painter.setPen(QPen(withAlpha(side, 90), 3));
 				painter.setBrush(Qt::NoBrush);
 				painter.drawEllipse(center, radius + 2.5, radius + 2.5);
 				painter.setPen(QPen(well, 1.5));
@@ -525,7 +482,7 @@ public:
 			{
 				// OFF: the quiet elevated face with the side's pastel edge;
 				// hover lifts the face exactly one value step.
-				painter.setPen(QPen(softMix(side, card, 0.25), 2));
+				painter.setPen(QPen(mixColor(side, card, 0.25), 2));
 				painter.setBrush(hovered ? QColor(tokens.cardHover) : card);
 			}
 			painter.drawEllipse(center, radius, radius);
@@ -534,7 +491,7 @@ public:
 			// halo (selection's own ring already covers a selected one).
 			if (state.focusedNode == i && state.focused && !selected)
 			{
-				painter.setPen(QPen(softAlpha(QColor(tokens.focusRing), 90), 3));
+				painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
 				painter.setBrush(Qt::NoBrush);
 				painter.drawEllipse(center, radius + 4.0, radius + 4.0);
 			}
@@ -574,7 +531,7 @@ public:
 		// inside of the well, never a hard ring.
 		if (state.focused && state.enabled)
 		{
-			painter.setPen(QPen(softAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
 			painter.drawRoundedRect(frame.adjusted(2.0, 2.0, -2.0, -2.0), 12.0, 12.0);
 		}
 	}
@@ -657,7 +614,7 @@ public:
 		// Keyboard focus: a quiet halo around the whole handle, not a hard ring.
 		if (state.focused && state.enabled)
 		{
-			painter.setPen(QPen(softAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
 			painter.setBrush(Qt::NoBrush);
 			painter.drawEllipse(knobRect.adjusted(-2, -2, 2, 2));
 		}
@@ -669,14 +626,14 @@ public:
 		const double centerDegrees = startDegrees + spanDegrees / 2.0;
 		if (state.enabled && state.bipolar)
 		{
-			painter.setPen(QPen(softMix(QColor(tokens.accent2), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(mixColor(QColor(tokens.accent2), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
 			painter.drawArc(arcRect, -startDegrees * 16, qRound(-spanDegrees / 2.0 * 16.0));
-			painter.setPen(QPen(softMix(QColor(tokens.accent), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(mixColor(QColor(tokens.accent), card, 0.78), arcWidth, Qt::SolidLine, Qt::RoundCap));
 			painter.drawArc(arcRect, qRound(-centerDegrees * 16.0), qRound(-spanDegrees / 2.0 * 16.0));
 		}
 		else
 		{
-			const QColor trackColor = state.enabled ? softMix(QColor(tokens.accent), card, 0.80) : softAlpha(border, 110);
+			const QColor trackColor = state.enabled ? mixColor(QColor(tokens.accent), card, 0.80) : withAlpha(border, 110);
 			painter.setPen(QPen(trackColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
 			painter.drawArc(arcRect, -startDegrees * 16, -spanDegrees * 16);
 		}
@@ -685,7 +642,7 @@ public:
 		if (state.enabled)
 		{
 			const bool cutSide = state.bipolar && ratio < 0.5;
-			const QColor valueColor = softMix(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.25);
+			const QColor valueColor = mixColor(QColor(cutSide ? tokens.accent2 : tokens.accent), card, 0.25);
 			painter.setPen(QPen(valueColor, arcWidth, Qt::SolidLine, Qt::RoundCap));
 			if (state.bipolar)
 			{
@@ -705,7 +662,7 @@ public:
 		{
 			const QPointF arcCenter = arcRect.center();
 			const double trackRadius = arcRect.width() / 2.0;
-			painter.setPen(QPen(softAlpha(QColor(tokens.text), state.enabled ? 200 : 90), 2.5, Qt::SolidLine, Qt::RoundCap));
+			painter.setPen(QPen(withAlpha(QColor(tokens.text), state.enabled ? 200 : 90), 2.5, Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(arcCenter.x(), arcCenter.y() - trackRadius - arcWidth / 2.0 + 0.5),
 				QPointF(arcCenter.x(), arcCenter.y() - trackRadius + arcWidth / 2.0 - 0.5));
 		}
@@ -716,12 +673,12 @@ public:
 		const double faceInset = arcWidth + 2.5;
 		QRectF baseRect = knobRect.adjusted(faceInset, faceInset, -faceInset, -faceInset);
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(softMix(card, windowBg, 0.55));
+		painter.setBrush(mixColor(card, windowBg, 0.55));
 		painter.drawEllipse(baseRect);
 
 		QColor faceColor = card;
 		if (!state.enabled)
-			faceColor = softMix(card, windowBg, 0.5);
+			faceColor = mixColor(card, windowBg, 0.5);
 		else if (state.hovered || state.dragging)
 			faceColor = QColor(tokens.cardHover);
 		QRectF faceRect = baseRect.adjusted(2.5, 2.5, -2.5, -2.5);
@@ -745,7 +702,7 @@ public:
 			faceRect.center().y() - qSin(radians) * dotTrack);
 		painter.setPen(Qt::NoPen);
 		const QColor dotColor(state.bipolar && ratio < 0.5 ? tokens.accent2 : tokens.accent);
-		painter.setBrush(state.enabled ? dotColor : softAlpha(muted, 120));
+		painter.setBrush(state.enabled ? dotColor : withAlpha(muted, 120));
 		painter.drawEllipse(dotPos, dotRadius, dotRadius);
 
 		// Value in a rounded badge below the handle.
@@ -760,7 +717,7 @@ public:
 			QRectF badgeRect(QRectF(rect).center().x() - badgeWidth / 2.0,
 				QRectF(rect).bottom() - badgeHeight - 0.5, badgeWidth, badgeHeight);
 			painter.setPen(QPen(border, 1));
-			painter.setBrush(state.enabled ? QColor(tokens.surfaceRaised) : softMix(card, windowBg, 0.5));
+			painter.setBrush(state.enabled ? QColor(tokens.surfaceRaised) : mixColor(card, windowBg, 0.5));
 			painter.drawRoundedRect(badgeRect, badgeHeight / 2.0, badgeHeight / 2.0);
 			painter.setPen(state.enabled ? QColor(tokens.text) : muted);
 			painter.drawText(badgeRect, Qt::AlignCenter, state.valueText);
@@ -785,11 +742,11 @@ public:
 		for (QAction* action : toolBar->actions())
 		{
 			if (action->objectName() == QStringLiteral("actionNew"))
-				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/file-new.svg"), softMix(QColor(tokens.accent), card, 0.15)));
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/file-new.svg"), mixColor(QColor(tokens.accent), card, 0.15)));
 			else if (action->objectName() == QStringLiteral("actionOpen"))
-				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/folder-open.svg"), softMix(QColor(tokens.warning), card, 0.15)));
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/folder-open.svg"), mixColor(QColor(tokens.warning), card, 0.15)));
 			else if (action->objectName() == QStringLiteral("actionSave"))
-				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/save.svg"), softMix(QColor(tokens.success), card, 0.15)));
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/save.svg"), mixColor(QColor(tokens.success), card, 0.15)));
 		}
 	}
 

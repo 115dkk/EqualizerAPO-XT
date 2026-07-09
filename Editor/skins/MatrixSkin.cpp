@@ -43,8 +43,8 @@
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
+#include "SkinPaint.h"
 #include "SkinSupport.h"
-#include "SkinThemeData.h"
 
 namespace
 {
@@ -74,11 +74,11 @@ constexpr int knobCellHeight = 16;
 namespace
 {
 // Point on the 270-degree value arc; fraction 0 is bottom-left (7:30), 0.5 is
-// 12 o'clock, 1 is bottom-right (4:30). Same sweep as the shared default knob.
+// 12 o'clock, 1 is bottom-right (4:30). Same sweep as the shared default
+// knob; the trig itself lives in SkinPaint.h.
 QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
 {
-	const double radians = qDegreesToRadians(-(135.0 + 270.0 * fraction));
-	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
+	return skinArcPoint(center, radius, -(135.0 + 270.0 * fraction));
 }
 
 // Bus designation of a command type (M2): the row coordinate speaks the same
@@ -243,7 +243,7 @@ public:
 		// The hook carries no mode flag; infer it from the strip's surface
 		// (the studioIsDark pattern). The light border ink needs more alpha
 		// than the dark one to stay visible as graph paper on white.
-		gridAlpha = QColor(tokens.surface).lightness() < 128 ? 55 : 90;
+		gridAlpha = skinColorIsDark(QColor(tokens.surface)) ? 55 : 90;
 		update();
 	}
 
@@ -338,10 +338,6 @@ class MatrixSkin : public ISkin
 {
 public:
 	QString id() const override { return QStringLiteral("matrix"); }
-	QString qssResource(bool dark) const override
-	{
-		return SkinThemeData::qssResource(id(), dark);
-	}
 	IRoutingRenderer* routingRenderer() const override
 	{
 		static CrosspointMatrixRoutingRenderer renderer;
@@ -363,12 +359,7 @@ public:
 	{
 		return new MatrixReferenceCardView(kind, parent);
 	}
-	// The token table lives in SkinThemeData (shared with satellite tools);
-	// this class keeps only behaviour.
-	SkinTokens tokens(bool dark) const override
-	{
-		return SkinThemeData::tokens(id(), dark);
-	}
+	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 
 	// Rotary encoder with an LED ring: the value reads as discrete lit
 	// segments, the exact value as text in a boxed mono cell. Bipolar knobs
@@ -423,7 +414,7 @@ public:
 		// the LEDs gain headroom toward white so a lit cell clearly outshines
 		// the ghost ring; the light tokens were derived for maximum contrast
 		// on white, where lightening would only desaturate them.
-		if (QColor(tokens.surface).lightness() < 128)
+		if (skinColorIsDark(QColor(tokens.surface)))
 			litColor = litColor.lighter(112);
 		if (state.dragging)
 			litColor = litColor.lighter(125);
@@ -651,7 +642,7 @@ public:
 		// distracting afterimage behind parameter widgets, so the row body
 		// stays a calm opaque panel regardless of editor widget opacity.
 		QColor gridColor(tokens.border);
-		const int gridAlpha = QColor(tokens.surface).lightness() < 128 ? 80 : 90;
+		const int gridAlpha = skinColorIsDark(QColor(tokens.surface)) ? 80 : 90;
 		gridColor.setAlpha((info.enabled || remark) ? gridAlpha : gridAlpha / 2);
 		painter.setPen(QPen(gridColor, 1));
 		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
@@ -721,7 +712,7 @@ public:
 		// The vacant slot exposes the board surface's graph paper (the same
 		// faint 24px column grid the masthead and toolbar sit on).
 		QColor grid(tokens.border);
-		grid.setAlpha(QColor(tokens.surface).lightness() < 128 ? 55 : 90);
+		grid.setAlpha(skinColorIsDark(QColor(tokens.surface)) ? 55 : 90);
 		painter.setPen(QPen(grid, 1));
 		for (int x = cell.left() + MatrixMetrics::gridPitch; x < cell.right(); x += MatrixMetrics::gridPitch)
 			painter.drawLine(x, cell.top() + 1, x, cell.bottom() - 1);
@@ -1067,7 +1058,7 @@ public:
 		// (the studioIsDark pattern). The light border ink needs more alpha
 		// than the dark one to stay visible as graph paper on white.
 		QColor grid(tokens.border);
-		grid.setAlpha(QColor(tokens.surface).lightness() < 128 ? 55 : 90);
+		grid.setAlpha(skinColorIsDark(QColor(tokens.surface)) ? 55 : 90);
 		painter.setPen(QPen(grid, 1));
 		for (int x = rect.left() + MatrixMetrics::gridPitch; x < rect.right(); x += MatrixMetrics::gridPitch)
 			painter.drawLine(x, rect.top(), x, rect.bottom());

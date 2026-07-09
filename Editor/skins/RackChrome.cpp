@@ -23,6 +23,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "ISkin.h"
+#include "SkinPaint.h"
 
 namespace
 {
@@ -30,17 +31,7 @@ const int kEarWidth = 20;
 const qreal kNameplateWidth = 78.0;
 const qreal kNameplateHeight = 22.0;
 
-bool isDarkPanel(const SkinTokens& tokens)
-{
-	return QColor(tokens.background).lightness() < 128;
-}
-
-QColor withAlpha(const QColor& color, int alpha)
-{
-	QColor result = color;
-	result.setAlpha(alpha);
-	return result;
-}
+// is-dark / withAlpha live in the shared SkinPaint.h.
 
 // Engraved faceplate printing: a contrast pass offset one pixel down (the
 // recess edge catching the light), then the body color on top.
@@ -210,7 +201,7 @@ const int kRailEarWidth = 24;
 // the card chrome so the rail reads as the rack's master section.
 void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* toolBar, const SkinTokens& tokens)
 {
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	painter.setRenderHint(QPainter::Antialiasing);
 	const QRectF r(rect);
 
@@ -404,7 +395,7 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 	if (info.type == QLatin1String("spacer"))
 		return;
 
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	painter.save();
 	painter.setRenderHint(QPainter::Antialiasing);
 
@@ -587,7 +578,7 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
 {
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	// Work inside a centred square (promoted legacy dials are 100x66).
@@ -731,7 +722,7 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 
 void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens)
 {
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	painter.save();
 	painter.setRenderHint(QPainter::Antialiasing);
 
@@ -847,7 +838,7 @@ void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState
 	if (!state.hovered && !state.pressed)
 		return;
 
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	painter.save();
 	painter.setRenderHint(QPainter::Antialiasing);
 
@@ -879,7 +870,7 @@ void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState
 
 void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens)
 {
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	const bool powered = state.enabled;
 	painter.save();
 
@@ -1126,7 +1117,7 @@ void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, cons
 
 void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens)
 {
-	const bool dark = isDarkPanel(tokens);
+	const bool dark = skinIsDark(tokens);
 	painter.setRenderHint(QPainter::Antialiasing);
 	const QRectF r(rect);
 

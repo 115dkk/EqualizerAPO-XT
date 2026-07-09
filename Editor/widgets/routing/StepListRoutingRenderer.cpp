@@ -3,6 +3,7 @@
 */
 
 #include "StepListRoutingRenderer.h"
+#include "Editor/skins/SkinPaint.h"
 
 #include <QMenu>
 #include <QPainter>
@@ -64,7 +65,7 @@ QSize StepListView::minimumSizeHint() const
 	return sizeHint();
 }
 
-static QColor withAlpha(const QColor& c, int a) { QColor r = c; r.setAlpha(a); return r; }
+// withAlpha lives in the shared SkinPaint.h.
 
 void StepListView::paintEvent(QPaintEvent*)
 {

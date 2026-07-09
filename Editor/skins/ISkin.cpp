@@ -17,20 +17,27 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/cards/DefaultReferenceCardView.h"
+#include "SkinPaint.h"
+#include "SkinThemeData.h"
 
 namespace
 {
+// Point on the largest circle inscribed in rect; the shared skinArcPoint owns
+// the screen-Y trig (Qt angles run counter-clockwise from 3 o'clock).
 QPointF pointOnArc(const QRectF& rect, double degrees)
 {
-	double radians = qDegreesToRadians(degrees);
-	QPointF center = rect.center();
-	double radius = qMin(rect.width(), rect.height()) / 2.0;
-	// Qt measures arc angles counter-clockwise from 3 o'clock, so the matching
-	// screen point subtracts sin for Y (screen Y grows downward). The previous
-	// +sin mirrored the indicator dot vertically, so it never tracked the value
-	// arc and looked like it floated on its own.
-	return QPointF(center.x() + qCos(radians) * radius, center.y() - qSin(radians) * radius);
+	return skinArcPoint(rect.center(), qMin(rect.width(), rect.height()) / 2.0, degrees);
 }
+}
+
+SkinTokens ISkin::tokens(bool dark) const
+{
+	return SkinThemeData::tokens(id(), dark);
+}
+
+QString ISkin::qssResource(bool dark) const
+{
+	return SkinThemeData::qssResource(id(), dark);
 }
 
 void ISkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const

@@ -3,6 +3,7 @@
 */
 
 #include "SoftFilterPicker.h"
+#include "Editor/skins/SkinPaint.h"
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -47,21 +48,7 @@ enum SoftPickerItemKind
 	EmptyStateItem
 };
 
-// Linear blend between two colours, the skin's stand-in for shadows and tints
-// (Soft fakes all elevation by mixing token colours; see Skins.cpp).
-QColor mixColor(const QColor& a, const QColor& b, double t)
-{
-	return QColor(
-		qRound(a.red() + (b.red() - a.red()) * t),
-		qRound(a.green() + (b.green() - a.green()) * t),
-		qRound(a.blue() + (b.blue() - a.blue()) * t));
-}
-
-QColor withAlpha(QColor color, int alpha)
-{
-	color.setAlpha(alpha);
-	return color;
-}
+// withAlpha lives in the shared SkinPaint.h.
 
 // Friendly pastel hues handed out to categories in catalog order, the way a
 // consumer settings app gives every group its own icon colour.
@@ -665,3 +652,4 @@ void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 	painter.setBrush(QColor(t.card));
 	painter.drawRoundedRect(card, radius, radius);
 }
+

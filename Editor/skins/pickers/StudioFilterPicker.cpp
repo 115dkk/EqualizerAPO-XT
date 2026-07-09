@@ -3,6 +3,7 @@
 */
 
 #include "StudioFilterPicker.h"
+#include "Editor/skins/SkinPaint.h"
 
 #include <QApplication>
 #include <QKeyEvent>
@@ -22,20 +23,7 @@ namespace
 // Studio's glow rule: light is faked with layered strokes and gradients,
 // never effects. These helpers mirror the alpha/mix vocabulary Skins.cpp
 // uses for the card chrome so the picker speaks the exact same dialect.
-QColor withAlpha(const QString& hex, int alpha)
-{
-	QColor color(hex);
-	color.setAlpha(alpha);
-	return color;
-}
-
-QColor mixColor(const QColor& a, const QColor& b, double t)
-{
-	return QColor(
-		qRound(a.red() + (b.red() - a.red()) * t),
-		qRound(a.green() + (b.green() - a.green()) * t),
-		qRound(a.blue() + (b.blue() - a.blue()) * t));
-}
+// withAlpha / mixColor live in the shared SkinPaint.h.
 
 // Item data roles. EntryIndexRole carries the ORIGINAL index into the
 // entries list handed to setEntries; captions and notes carry -1.
@@ -257,7 +245,7 @@ StudioFilterPickerView::StudioFilterPickerView(QWidget* parent)
 	skinTokens = SkinManager::instance()->tokens();
 	// The hooks convention: studio's dark background is near-black, so
 	// luminance is an unambiguous mode proxy (see Skins.cpp).
-	dark = QColor(skinTokens.background).lightness() < 128;
+	dark = skinIsDark(skinTokens);
 
 	const int glow = GUIHelper::scale(13.0);
 	const int pad = GUIHelper::scale(12.0);
