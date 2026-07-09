@@ -1187,6 +1187,138 @@ QPlainTextEdit#VSTCardWarning {
     border-radius: 6px;
 }
 
+/* ===== GraphicEQ card - the curve is the light, the numbers behind glass =====
+   The plot already carries the row's one accent light (the token-driven
+   curve), so the chrome around it stays neutral glass. The band table is
+   a sunken data window (the StudioRefWindow grammar): alpha fill under a
+   darker top edge, mono ink, and only the selection lights - in the one
+   accent. The row-number rail is a quiet mono engraving that takes the
+   same light when its row is selected. The five action buttons are unlit
+   glass chips that light under the cursor (the FilterCardIconButton
+   grammar); the mode combo already speaks paramSelector. */
+QTableWidget#GraphicEQBandTable {
+    background: rgba(6, 9, 20, 0.55);
+    color: @MUTED@;
+    border: 1px solid @BORDER@;
+    border-top-color: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+    gridline-color: rgba(38, 50, 74, 0.55);
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    selection-background-color: rgba(91, 140, 255, 0.26);
+    selection-color: @TEXT@;
+}
+QTableWidget#GraphicEQBandTable::item {
+    background: transparent;
+    padding: 2px 6px;
+    border: 0;
+    border-radius: 0;
+}
+QTableWidget#GraphicEQBandTable::item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+QTableWidget#GraphicEQBandTable::item:selected {
+    background: rgba(91, 140, 255, 0.26);
+    color: @TEXT@;
+}
+QTableWidget#GraphicEQBandTable QHeaderView {
+    background: transparent;
+    border: 0;
+}
+QTableWidget#GraphicEQBandTable QHeaderView::section {
+    background: transparent;
+    color: rgba(145, 160, 186, 0.70);
+    border: 0;
+    border-right: 1px solid rgba(38, 50, 74, 0.55);
+    padding: 0 6px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+    font-weight: 600;
+}
+QTableWidget#GraphicEQBandTable QHeaderView::section:checked {
+    background: rgba(91, 140, 255, 0.12);
+    color: @ACCENT@;
+}
+QTableWidget#GraphicEQBandTable QTableCornerButton::section {
+    background: transparent;
+    border: 0;
+}
+/* In-cell editing: the sunken editor under an accent edge (the
+   RefPathEdit idiom at cell scale). */
+QTableWidget#GraphicEQBandTable QLineEdit {
+    background: #08080f;
+    color: @TEXT@;
+    border: 1px solid @ACCENT@;
+    border-radius: 6px;
+    padding: 0 4px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9pt;
+}
+QToolButton#GraphicEQActionButton {
+    background: rgba(255, 255, 255, 0.04);
+    color: @TEXT@;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.13);
+    border-radius: 6px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 3px;
+}
+QToolButton#GraphicEQActionButton:hover {
+    background: rgba(91, 140, 255, 0.20);
+    border-color: rgba(91, 140, 255, 0.40);
+    border-top-color: rgba(123, 162, 255, 0.55);
+}
+QToolButton#GraphicEQActionButton:pressed {
+    background: rgba(91, 140, 255, 0.30);
+    border-color: @ACCENT@;
+}
+QToolButton#GraphicEQActionButton:disabled {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+    border-top-color: rgba(255, 255, 255, 0.05);
+}
+/* The plot frame: the same sunken window, holding the light. The scene
+   background comes from the tokens in code; the sheet only cuts the
+   glass edge. */
+QGraphicsView#GraphicEQCardPlot {
+    background: transparent;
+    border: 1px solid @BORDER@;
+    border-top-color: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+}
+
+/* ===== Update toast - a lit chip resting on the stage glass =====
+   The widget paints the pane itself (raised surface, hairline border and
+   the accent keel as the "news" lamp); the sheet only sets the message
+   ink's register and gives dismiss the caption-button grammar: unboxed
+   quiet ink with accent light pooling under the cursor. */
+QLabel#UpdateToastLabel {
+    background: transparent;
+    font-size: 9.5pt;
+    font-weight: 500;
+}
+QToolButton#UpdateToastClose {
+    background: transparent;
+    color: @MUTED@;
+    border: 0;
+    border-radius: 6px;
+    padding: 0 5px;
+    min-height: 18px;
+    font-size: 10pt;
+    font-weight: 600;
+}
+QToolButton#UpdateToastClose:hover {
+    color: @TEXT@;
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.75, fx:0.5, fy:0.55,
+        stop:0 rgba(91, 140, 255, 0.34), stop:0.6 rgba(91, 140, 255, 0.12), stop:1 rgba(91, 140, 255, 0));
+}
+QToolButton#UpdateToastClose:pressed {
+    color: @TEXT@;
+    background: qradialgradient(cx:0.5, cy:0.55, radius:0.8, fx:0.5, fy:0.55,
+        stop:0 rgba(91, 140, 255, 0.50), stop:0.6 rgba(91, 140, 255, 0.20), stop:1 rgba(91, 140, 255, 0));
+}
+
 /* Toolbar/Tab spacers and labels transparent so parent bg shows through */
 QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }

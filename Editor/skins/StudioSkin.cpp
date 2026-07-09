@@ -555,6 +555,160 @@ public:
 		painter.restore();
 	}
 
+	// The trailing add row is a glass slot not yet fitted with a pane
+	// (round 3). At rest it is switched-off glass - a low-alpha fill under a
+	// faint SOLID hairline (dashed is Include's material, a reference to
+	// elsewhere; this slot is a place, so its outline stays solid) with no
+	// reflection: the dead-pane grammar the disabled cards already speak.
+	// Hover fits the pane: the fill rises toward a live card, the centre-
+	// bright reflection lights on the top edge (dark mode; white glass
+	// cannot brighten, so light mode pools the pane's thickness shade at the
+	// bottom instead) and two strokes hugging the border fake an accent halo
+	// - glow is layered strokes, never effects. Pressing turns the light one
+	// step further up (rest < hover < press). The caption is a drawn plus
+	// glyph and the widget's translated label: muted ink on the dead pane,
+	// text ink with an accent-blooming plus once the slot lights.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		const bool dark = studioIsDark(tokens);
+		const bool lit = state.hovered || state.pressed;
+		painter.setRenderHint(QPainter::Antialiasing);
+		const QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+		// Fill ladder: the disabled cards' dead-pane alpha at rest, rising
+		// toward (but never reaching) the live cards' 0.88 when lit - the
+		// slot stays a slot until a real card fills it.
+		const double fillAlpha = state.pressed ? 0.80 : (state.hovered ? 0.66 : 0.42);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(studioAlpha(tokens.card, qRound(fillAlpha * 255)));
+		painter.drawRoundedRect(frame, 8.0, 8.0);
+
+		if (lit && !dark)
+		{
+			// S2: the lit white slot borrows the pane's thickness - a shade
+			// pooling at the bottom edge carries the glass impression.
+			QPainterPath panePath;
+			panePath.addRoundedRect(frame.adjusted(1.0, 1.0, -1.0, -1.0), 7.0, 7.0);
+			QLinearGradient depthShade(QPointF(frame.left(), frame.bottom() - frame.height() * 0.5), frame.bottomLeft());
+			depthShade.setColorAt(0.0, QColor(24, 32, 51, 0));
+			depthShade.setColorAt(1.0, QColor(24, 32, 51, state.pressed ? 34 : 26));
+			painter.fillPath(panePath, depthShade);
+		}
+
+		// Base outline: a faint neutral hairline; keyboard focus wears the
+		// neutral focus ring (the accent halo below stays a pointer answer).
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(state.focused ? QColor(tokens.focusRing) : studioAlpha(tokens.border, lit ? 230 : 140), 1.0));
+		painter.drawRoundedRect(frame, 8.0, 8.0);
+
+		if (lit)
+		{
+			// Two border-hugging strokes fake the halo (the VST edge grammar
+			// at slot scale); press is one ladder step up.
+			painter.setPen(QPen(studioAlpha(tokens.accent, state.pressed ? 170 : 120), 1.0));
+			painter.drawRoundedRect(frame, 8.0, 8.0);
+			painter.setPen(QPen(studioAlpha(tokens.accent, state.pressed ? 80 : 48), 3.0));
+			painter.drawRoundedRect(frame.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
+
+			if (dark)
+			{
+				// The centre-bright reflection lights on the fitted pane
+				// (the card chrome's S1 line, one step calmer).
+				const double y = frame.top() + 1.5;
+				QLinearGradient reflection(frame.left(), y, frame.right(), y);
+				reflection.setColorAt(0.0, QColor(255, 255, 255, 0));
+				reflection.setColorAt(0.5, QColor(255, 255, 255, state.pressed ? 96 : 72));
+				reflection.setColorAt(1.0, QColor(255, 255, 255, 0));
+				painter.setPen(QPen(QBrush(reflection), 1.0));
+				painter.drawLine(QPointF(frame.left() + 7.0, y), QPointF(frame.right() - 7.0, y));
+			}
+		}
+
+		// Caption: drawn plus + translated label, centred as one unit.
+		QFont captionFont(tokens.fontFamily);
+		captionFont.setPointSizeF(9.5);
+		captionFont.setWeight(QFont::DemiBold);
+		const QFontMetricsF metrics(captionFont);
+		const double plusRadius = 4.0;
+		const double gap = 8.0;
+		const double textWidth = metrics.horizontalAdvance(state.label);
+		const double totalWidth = plusRadius * 2.0 + gap + textWidth;
+		const double left = frame.center().x() - totalWidth / 2.0;
+		const QPointF plusCenter(left + plusRadius, frame.center().y());
+
+		if (lit)
+		{
+			// The plus lights in the accent: bloom stroke first, core on top.
+			painter.setPen(QPen(studioAlpha(tokens.accent, state.pressed ? 96 : 70), 4.5, Qt::SolidLine, Qt::RoundCap));
+			painter.drawLine(QPointF(plusCenter.x() - plusRadius, plusCenter.y()), QPointF(plusCenter.x() + plusRadius, plusCenter.y()));
+			painter.drawLine(QPointF(plusCenter.x(), plusCenter.y() - plusRadius), QPointF(plusCenter.x(), plusCenter.y() + plusRadius));
+			painter.setPen(QPen(QColor(tokens.accent), 1.6, Qt::SolidLine, Qt::RoundCap));
+		}
+		else
+		{
+			painter.setPen(QPen(studioAlpha(tokens.mutedText, 200), 1.6, Qt::SolidLine, Qt::RoundCap));
+		}
+		painter.drawLine(QPointF(plusCenter.x() - plusRadius, plusCenter.y()), QPointF(plusCenter.x() + plusRadius, plusCenter.y()));
+		painter.drawLine(QPointF(plusCenter.x(), plusCenter.y() - plusRadius), QPointF(plusCenter.x(), plusCenter.y() + plusRadius));
+
+		painter.setFont(captionFont);
+		painter.setPen(lit ? QColor(tokens.text) : QColor(tokens.mutedText));
+		painter.drawText(QRectF(left + plusRadius * 2.0 + gap, frame.top(), textWidth + 4.0, frame.height()),
+			Qt::AlignLeft | Qt::AlignVCenter, state.label);
+	}
+
+	// The first-boundary seam is light seeping between panes. At rest the
+	// hosting widget paints nothing (shared contract); under the cursor a
+	// horizontal light ray crosses the boundary - a wide translucent stroke
+	// under a narrow bright core (glow faked with layered strokes), fading
+	// out at both ends like the menu separators, with the violet end of the
+	// spectrum reserved for the far side (accent2 stays the light's end,
+	// rule 1). The knob's indicator-dot grammar marks the insertion point at
+	// the centre; pressing turns the whole ray one step up.
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		const double y = rect.center().y() + 0.5;
+		const double x0 = rect.left() + 2.0;
+		const double x1 = rect.right() - 2.0;
+		const bool pressed = state.pressed;
+
+		const auto ray = [&](int accentAlpha, int violetAlpha) {
+			QLinearGradient gradient(x0, y, x1, y);
+			gradient.setColorAt(0.0, studioAlpha(tokens.accent, 0));
+			gradient.setColorAt(0.28, studioAlpha(tokens.accent, accentAlpha));
+			gradient.setColorAt(0.74, studioAlpha(tokens.accent2, violetAlpha));
+			gradient.setColorAt(1.0, studioAlpha(tokens.accent2, 0));
+			return gradient;
+		};
+
+		// Bloom, mid, core: the knob arc's stroke ladder laid flat.
+		QPen bloomPen(QBrush(ray(pressed ? 96 : 64, pressed ? 74 : 48)), 5.0);
+		bloomPen.setCapStyle(Qt::RoundCap);
+		painter.setPen(bloomPen);
+		painter.drawLine(QPointF(x0, y), QPointF(x1, y));
+		QPen midPen(QBrush(ray(pressed ? 205 : 150, pressed ? 165 : 118)), 2.4);
+		midPen.setCapStyle(Qt::RoundCap);
+		painter.setPen(midPen);
+		painter.drawLine(QPointF(x0, y), QPointF(x1, y));
+		QPen corePen(QBrush(ray(255, 235)), 1.0);
+		corePen.setCapStyle(Qt::RoundCap);
+		painter.setPen(corePen);
+		painter.drawLine(QPointF(x0, y), QPointF(x1, y));
+
+		// Insertion point: the indicator dot (halo + core) on the ray's
+		// accent stretch.
+		const QPointF dot(rect.center().x(), y);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(studioAlpha(tokens.accent, pressed ? 130 : 100));
+		painter.drawEllipse(dot, 4.4, 4.4);
+		painter.setBrush(QColor(tokens.accent));
+		painter.drawEllipse(dot, 2.2, 2.2);
+	}
+
 	// The type badge is a lit glass chip (S3): translucent fill with the ink
 	// and border in the row's light colour. BiQuad rows resolve their family
 	// through the studioBand property the prepareCommandRow hook tagged them
@@ -608,7 +762,46 @@ public:
 	// cardFrameStyle/typeBadgeStyle returned at construction.
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
-		if (body == nullptr || info.type != QStringLiteral("biquad"))
+		if (body == nullptr)
+			return;
+
+		if (info.type == QStringLiteral("text"))
+		{
+			// Raw text (bare note lines, If/EndIf and the rest of the
+			// unmodelled programmatic vocabulary) is data behind glass.
+			// FilterCardRow lays a shared inline style on the preview label
+			// (inline outranks any sheet rule), and that default speaks a
+			// half-radius 4px - illegal under the one-8px-round law - so
+			// this hook rewrites it into the sunken data window the
+			// reference cards already use: alpha fill, darker top edge (the
+			// inner shadow), the one 8px round, mono ink. A disabled row
+			// switches the window off with the pane (dimmed ink, faded
+			// fill - soft, never a warning). The '>_' engraving already
+			// sits in muted mono and stays untouched.
+			QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText"));
+			if (raw == nullptr)
+				return;
+			const SkinTokens tokens = SkinManager::instance()->tokens();
+			const bool dark = studioIsDark(tokens);
+			const QString fill = dark
+				? (info.enabled ? QStringLiteral("rgba(6, 9, 20, 0.55)") : QStringLiteral("rgba(6, 9, 20, 0.30)"))
+				: (info.enabled ? QStringLiteral("rgba(232, 238, 248, 0.75)") : QStringLiteral("rgba(232, 238, 248, 0.40)"));
+			const QString topEdge = dark
+				? (info.enabled ? QStringLiteral("rgba(0, 0, 0, 0.55)") : QStringLiteral("rgba(0, 0, 0, 0.30)"))
+				: (info.enabled ? QStringLiteral("rgba(0, 0, 0, 0.12)") : QStringLiteral("rgba(0, 0, 0, 0.06)"));
+			raw->setStyleSheet(QStringLiteral(
+				"QLabel#FilterCardRawText { background: %1; color: %2; border: 1px solid %3;"
+				" border-top-color: %4; border-radius: 8px; padding: 6px 10px;"
+				" font-family: \"%5\", \"Consolas\", \"Malgun Gothic\", monospace; font-size: 9pt; }")
+				.arg(fill,
+					info.enabled ? tokens.text : studioRgba(tokens.mutedText, 0.60),
+					studioRgba(tokens.border, info.enabled ? 0.90 : 0.55),
+					topEdge,
+					tokens.monoFontFamily));
+			return;
+		}
+
+		if (info.type != QStringLiteral("biquad"))
 			return;
 
 		QComboBox* typeCombo = nullptr;
