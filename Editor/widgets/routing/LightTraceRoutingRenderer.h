@@ -18,9 +18,11 @@
 #include <QLineEdit>
 #include <QPainterPath>
 #include <QSet>
+#include <QStringList>
 #include <QVector>
 
 #include "IRoutingRenderer.h"
+#include "RoutingFold.h"
 #include "StudioRoutingModel.h"
 
 class StudioRoutingView : public RoutingView
@@ -33,6 +35,7 @@ public:
 		QWidget* parent);
 
 	std::vector<Assignment> assignments() const override;
+	void galleryShowcase(const QString& state) override;
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
 
@@ -66,22 +69,37 @@ private:
 	int chipAt(const QPoint& pos, bool* inputRow) const;
 	int traceAt(const QPoint& pos) const;
 	QString chipLabel(bool inputRow, int index) const;
+	bool foldable() const;
 	void openFactorEditor(int trace);
 	void openChannelEditor();
 
 	StudioRoutingModel model;
 	RoutingPortModel portModel;
 
+	// Channel fold: hidden ports keep their index but get a null rect, so the
+	// trace/port bookkeeping stays index-stable while the glass shows only the
+	// channels the command involves. Pinned channels stay lit-out (visible)
+	// while unconnected.
+	bool channelsExpanded = false;
+	QStringList pinnedChannels;
+	QVector<bool> inputVisible;
+	QVector<bool> outputVisible;
+	int hiddenOutputs = 0;
+
 	QVector<QRect> inputRects;
 	QVector<QRect> outputRects;
 	QVector<TraceShape> traceShapes;
 	QRect ghostRect;   // the virtual-output entry point; null in no-add states
+	QRect revealRect;  // the fold's +N / fold ghost chip on the input row
+	QRect removeRect;  // hovered virtual output chip's x target
+	int removeChip = -1;
 
 	QSet<int> selectedTraces;
 	int hoveredTrace = -1;
 	int hoveredChip = -1;
 	bool hoveredChipIsInput = false;
 	bool ghostHovered = false;
+	bool revealHovered = false;
 
 	// Drag-to-connect state.
 	int dragChip = -1;

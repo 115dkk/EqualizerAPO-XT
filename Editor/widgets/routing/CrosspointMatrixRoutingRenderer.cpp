@@ -16,13 +16,17 @@ CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 	QWidget* parent)
 	: RoutingView(parent),
-	// Seeding every device channel as a row/column keeps the grid editable even
-	// when the command references few (or no) channels; without it an emptied
-	// Copy could never be refilled from the GUI. Empty rows are skipped by the
-	// serializer, so the config line is unaffected.
+	// Seeding every device channel as a row keeps the grid editable even when
+	// the command references few (or no) channels; without it an emptied Copy
+	// could never be refilled from the GUI. Empty rows are skipped by the
+	// serializer, so the config line is unaffected. The fold below decides
+	// which seeded rows actually reach the board.
 	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
 	deviceChannels(channelNames),
-	portModel(portModel)
+	portModel(portModel),
+	// Targets the command referenced stay on the board for the whole session,
+	// even if their last source is toggled away.
+	pinnedChannels(RoutingFold::referencedTargets(assignments))
 {
 	setMouseTracking(true);
 	// Match the stable painted-routing-view size contract (StepList / BlockChip):
@@ -34,12 +38,34 @@ CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments
 	rebuildMatrix();
 }
 
+bool CrosspointMatrixView::foldable() const
+{
+	// Fixed-source mode (MultiConvolution) lays out exactly the mapped
+	// targets; there is nothing to fold and the card owns virtual outputs.
+	return !portModel.fixedSourceMode();
+}
+
 void CrosspointMatrixView::rebuildMatrix()
 {
-	matrix = portModel.fixedSourceMode()
-		? CopyRoutingAdapter::buildMatrix(workingAssignments, portModel.fixedSources)
-		: CopyRoutingAdapter::buildMatrix(workingAssignments, deviceChannels);
-	updateGeometry();
+	if (foldable())
+	{
+		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels, channelsExpanded);
+		rowMap = fold.visibleRows;
+		vector<Assignment> visible;
+		visible.reserve(rowMap.size());
+		for (int row : rowMap)
+			visible.push_back(workingAssignments[row]);
+		matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
+	}
+	else
+	{
+		fold = RoutingFold::Fold();
+		matrix = CopyRoutingAdapter::buildMatrix(workingAssignments, portModel.fixedSources);
+		rowMap.clear();
+		for (int i = 0; i < matrix.outputs.size(); ++i)
+			rowMap.append(i);
+	}
+	syncSizeToHint();
 	update();
 }
 
@@ -48,11 +74,31 @@ std::vector<Assignment> CrosspointMatrixView::assignments() const
 	return workingAssignments;
 }
 
+void CrosspointMatrixView::galleryShowcase(const QString& state)
+{
+	if (state == QLatin1String("expanded"))
+	{
+		channelsExpanded = true;
+		rebuildMatrix();
+	}
+	else if (state == QLatin1String("addChannel"))
+	{
+		openChannelEditor();
+		if (channelEditor != nullptr)
+			channelEditor->setText(QStringLiteral("VS"));
+	}
+}
+
+Assignment& CrosspointMatrixView::rowAssignment(int outRow)
+{
+	return workingAssignments[rowMap[outRow]];
+}
+
 int CrosspointMatrixView::summandIndex(int outRow, const QString& channel) const
 {
-	if (outRow < 0 || outRow >= (int)workingAssignments.size())
+	if (outRow < 0 || outRow >= rowMap.size())
 		return -1;
-	const Assignment& a = workingAssignments[outRow];
+	const Assignment& a = workingAssignments[rowMap[outRow]];
 	for (int i = 0; i < (int)a.sourceSum.size(); ++i)
 		if (QString::fromStdWString(a.sourceSum[i].channel) == channel)
 			return i;
@@ -62,6 +108,11 @@ int CrosspointMatrixView::summandIndex(int outRow, const QString& channel) const
 QRect CrosspointMatrixView::cellRect(int outRow, int inCol) const
 {
 	return QRect(rowHeaderWidth + inCol * cellW, colHeaderHeight + outRow * cellH, cellW, cellH);
+}
+
+QRect CrosspointMatrixView::footerRect() const
+{
+	return QRect(0, colHeaderHeight + matrix.outputs.size() * cellH + 4, width(), footerH);
 }
 
 bool CrosspointMatrixView::hitTest(const QPoint& pos, int& outRow, int& inCol) const
@@ -75,8 +126,15 @@ bool CrosspointMatrixView::hitTest(const QPoint& pos, int& outRow, int& inCol) c
 
 QSize CrosspointMatrixView::sizeHint() const
 {
-	const int w = rowHeaderWidth + matrix.inputs.size() * cellW + 2;
-	const int h = colHeaderHeight + matrix.outputs.size() * cellH + 2;
+	int w = rowHeaderWidth + matrix.inputs.size() * cellW + 2;
+	int h = colHeaderHeight + matrix.outputs.size() * cellH + 2;
+	if (foldable())
+	{
+		// The footer's caption cells need their own width when the grid above
+		// is narrow (an emptied deviceless Copy has no columns at all).
+		h += 4 + footerH;
+		w = qMax(w, 220);
+	}
 	return QSize(w, h);
 }
 
@@ -112,6 +170,9 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 	QFont monoFont(t.monoFontFamily);
 	monoFont.setPixelSize(11);
 	p.setFont(monoFont);
+
+	removeRects.clear();
+	removeRects.resize(matrix.outputs.size());
 
 	// Column headers (input channels; in fixed-source mode these are the IR
 	// file's channel numbers, which are ports rather than virtual channels, so
@@ -160,6 +221,17 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		p.setPen(virt ? col : QColor(Qt::white));
 		p.drawText(pill, Qt::AlignCenter, out);
 
+		// A virtual bus can leave the board: hovering its row exposes an x
+		// target on the header pill (physical channels fold instead of
+		// leaving, so they never get one).
+		if (foldable() && virt && hoveredRow == r)
+		{
+			const QRect xr(pill.right() - 14, pill.top(), 14, pill.height());
+			p.setPen(mix(col, 220));
+			p.drawText(xr, Qt::AlignCenter, QStringLiteral("x"));
+			removeRects[r] = xr;
+		}
+
 		// Cells.
 		for (int c = 0; c < matrix.inputs.size(); ++c)
 		{
@@ -207,17 +279,83 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 			p.drawText(cr, Qt::AlignCenter, label);
 		}
 	}
+
+	// Footer strip: the board's expansion controls as demoted transparent
+	// mono caption cells (the Device card's reveal-toggle grammar). +N CH
+	// reveals the folded device channels, +BUS patches a new virtual bus.
+	revealRect = QRect();
+	addRect = QRect();
+	if (foldable())
+	{
+		const QRect footer = footerRect();
+		QFontMetrics fm(monoFont);
+		int x = 4;
+
+		auto captionCell = [&](const QString& caption, bool hovered) {
+			const int w = fm.horizontalAdvance(caption) + 16;
+			const QRect cr(x, footer.top(), w, footer.height());
+			if (hovered)
+			{
+				p.setPen(QPen(mix(accent, 200), 1));
+				p.setBrush(mix(accent, 24));
+				p.drawRect(cr.adjusted(0, 1, -1, -2));
+			}
+			p.setPen(hovered ? text : muted);
+			p.drawText(cr, Qt::AlignCenter, caption);
+			x += w + 8;
+			return cr;
+		};
+
+		if (fold.hiddenChannels > 0 || channelsExpanded)
+		{
+			const QString caption = channelsExpanded
+				? QStringLiteral("FOLD")
+				: QStringLiteral("+%1 CH").arg(fold.hiddenChannels);
+			revealRect = captionCell(caption, hoveredControl == 1);
+		}
+		addRect = captionCell(QStringLiteral("+BUS"), hoveredControl == 2);
+	}
 }
 
 void CrosspointMatrixView::mousePressEvent(QMouseEvent* event)
 {
+	if (foldable())
+	{
+		for (int r = 0; r < removeRects.size(); ++r)
+		{
+			if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
+			{
+				const QString channel = matrix.outputs[r];
+				for (int i = pinnedChannels.size() - 1; i >= 0; i--)
+					if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
+						pinnedChannels.removeAt(i);
+				const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
+				rebuildMatrix();
+				if (changed)
+					emit routingChanged();
+				return;
+			}
+		}
+		if (!revealRect.isNull() && revealRect.contains(event->pos()))
+		{
+			channelsExpanded = !channelsExpanded;
+			rebuildMatrix();
+			return;
+		}
+		if (!addRect.isNull() && addRect.contains(event->pos()))
+		{
+			openChannelEditor();
+			return;
+		}
+	}
+
 	int outRow = -1, inCol = -1;
 	if (!hitTest(event->pos(), outRow, inCol))
 		return;
 
 	const QString channel = matrix.inputs[inCol];
 	const int idx = summandIndex(outRow, channel);
-	Assignment& a = workingAssignments[outRow];
+	Assignment& a = rowAssignment(outRow);
 	if (idx >= 0)
 	{
 		// Toggle off.
@@ -234,6 +372,47 @@ void CrosspointMatrixView::mousePressEvent(QMouseEvent* event)
 	}
 	rebuildMatrix();
 	emit routingChanged();
+}
+
+void CrosspointMatrixView::mouseMoveEvent(QMouseEvent* event)
+{
+	int control = 0;
+	if (!revealRect.isNull() && revealRect.contains(event->pos()))
+		control = 1;
+	else if (!addRect.isNull() && addRect.contains(event->pos()))
+		control = 2;
+
+	int row = -1;
+	if (event->pos().x() < rowHeaderWidth && event->pos().y() >= colHeaderHeight)
+	{
+		const int r = (event->pos().y() - colHeaderHeight) / cellH;
+		if (r >= 0 && r < matrix.outputs.size())
+			row = r;
+	}
+
+	if (control != hoveredControl || row != hoveredRow)
+	{
+		hoveredControl = control;
+		hoveredRow = row;
+		bool removable = false;
+		if (row >= 0 && !removeRects.value(row).isNull()
+			&& removeRects[row].contains(event->pos()))
+			removable = true;
+		setCursor(control != 0 || removable ? Qt::PointingHandCursor : Qt::ArrowCursor);
+		update();
+	}
+	RoutingView::mouseMoveEvent(event);
+}
+
+void CrosspointMatrixView::leaveEvent(QEvent* event)
+{
+	if (hoveredControl != 0 || hoveredRow >= 0)
+	{
+		hoveredControl = 0;
+		hoveredRow = -1;
+		update();
+	}
+	RoutingView::leaveEvent(event);
 }
 
 void CrosspointMatrixView::mouseDoubleClickEvent(QMouseEvent* event)
@@ -283,10 +462,10 @@ void CrosspointMatrixView::commitEditor()
 	QString raw = editor->text().trimmed();
 	editor->hide();
 
-	if (channel.isEmpty())
+	if (channel.isEmpty() || outRow >= rowMap.size())
 		return;
 
-	Assignment& a = workingAssignments[outRow];
+	Assignment& a = rowAssignment(outRow);
 	const int idx = summandIndex(outRow, channel);
 
 	if (raw.isEmpty())
@@ -333,6 +512,54 @@ void CrosspointMatrixView::commitEditor()
 	}
 	rebuildMatrix();
 	emit routingChanged();
+}
+
+void CrosspointMatrixView::openChannelEditor()
+{
+	if (channelEditor == nullptr)
+	{
+		channelEditor = new QLineEdit(this);
+		channelEditor->setObjectName(QStringLiteral("CrosspointChannelEditor"));
+		channelEditor->setAlignment(Qt::AlignCenter);
+		connect(channelEditor, &QLineEdit::editingFinished, this, &CrosspointMatrixView::commitChannelEditor);
+	}
+	channelEditor->setGeometry(addRect.isNull()
+		? QRect(4, footerRect().top(), 96, footerH)
+		: addRect.adjusted(0, 0, 64, 0));
+	channelEditor->setText(QString());
+	channelEditor->show();
+	channelEditor->setFocus();
+}
+
+void CrosspointMatrixView::commitChannelEditor()
+{
+	if (channelEditor == nullptr || !channelEditor->isVisible())
+		return;
+
+	const QString name = channelEditor->text().trimmed();
+	channelEditor->hide();
+	if (!RoutingFold::isValidChannelName(name))
+		return;
+
+	// An existing channel just gets pinned onto the board; a new name becomes
+	// a virtual bus row. No routingChanged: a fresh target has no sum yet and
+	// the serializer skips empty targets.
+	bool exists = false;
+	for (const Assignment& a : workingAssignments)
+		if (QString::fromStdWString(a.targetChannel).compare(name, Qt::CaseInsensitive) == 0)
+		{
+			exists = true;
+			break;
+		}
+	if (!exists)
+	{
+		Assignment assignment;
+		assignment.targetChannel = name.toStdWString();
+		workingAssignments.push_back(assignment);
+	}
+	if (!pinnedChannels.contains(name, Qt::CaseInsensitive))
+		pinnedChannels.append(name);
+	rebuildMatrix();
 }
 
 RoutingView* CrosspointMatrixRoutingRenderer::create(const vector<Assignment>& assignments,

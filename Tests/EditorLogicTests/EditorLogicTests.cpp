@@ -26,6 +26,7 @@
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
 #include "Editor/widgets/cards/StageSelectionModel.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
+#include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/StudioRoutingModel.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
@@ -987,6 +988,124 @@ void testStudioRoutingModel()
 	model.setFactorText(0, "0.5");
 	model.addTrace(2, 1);
 	expectEqual(formatted(model.assignments()), "L=1*0+1*1 R=1*2", "fixed mode keeps every factor at unity");
+
+	// removeChannel: the named channel leaves both rows with every touching
+	// trace, and the surviving trace indices stay consistent.
+	std::vector<Assignment> removable(2);
+	removable[0].targetChannel = L"VC";
+	removable[0].sourceSum = { summand(0.5, L"L"), summand(0.5, L"R") };
+	removable[1].targetChannel = L"R";
+	removable[1].sourceSum = { summand(1.0, L"VC"), summand(1.0, L"L") };
+	model.load(removable, { L"L", L"R" }, copyMode);
+	expectTrue(model.removeChannel("vc"), "removing a connected channel reports a change (case-insensitive)");
+	expectEqual(formatted(model.assignments()), "R=1*L", "the channel's own traces and its summand uses are gone");
+	expectFalse(model.outputPorts().contains("VC"), "the output chip is gone");
+	expectFalse(model.inputPorts().contains("VC"), "the input chip is gone");
+	expectTrue(model.constInput(model.inputPorts().size() - 1), "the constant port survives the index shift");
+	expectFalse(model.removeChannel("XX"), "removing an unknown channel reports no change");
+}
+
+void testRoutingFold()
+{
+	// RoutingFold: the Copy views' channel fold. A collapsed view lists only
+	// the channels the command involves; the seeded rest waits behind the
+	// reveal control. (README task: Copy GUI area growth on multi-channel
+	// devices.)
+	auto summand = [](double factor, const wchar_t* channel) {
+		Assignment::Summand s;
+		s.factor = factor;
+		s.isDecibel = false;
+		s.channel = channel;
+		return s;
+	};
+	const std::vector<std::wstring> surround =
+	{ L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR" };
+
+	// "Copy: VC=0.5*L+0.5*R R=L" over 7.1: two listed rows, six folded.
+	std::vector<Assignment> parsed(2);
+	parsed[0].targetChannel = L"VC";
+	parsed[0].sourceSum = { summand(0.5, L"L"), summand(0.5, L"R") };
+	parsed[1].targetChannel = L"R";
+	parsed[1].sourceSum = { summand(1.0, L"L") };
+	std::vector<Assignment> seeded = parsed;
+	for (const wchar_t* name : { L"L", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR" })
+	{
+		Assignment a;
+		a.targetChannel = name;
+		seeded.push_back(a);
+	}
+
+	RoutingFold::Fold collapsed = RoutingFold::fold(seeded, surround,
+		RoutingFold::referencedTargets(parsed), false);
+	expectEqual(collapsed.visibleRows.size(), 2, "collapsed: only the referenced targets are listed");
+	expectTrue(collapsed.visibleRows.contains(0) && collapsed.visibleRows.contains(1),
+		"collapsed: the listed rows are the parsed ones");
+	expectEqual(collapsed.hiddenChannels, 7, "collapsed: the seeded rest is counted as hidden");
+	expectEqual(collapsed.inputs.join(','), "L,R,VC", "collapsed: inputs are the referenced sums plus pins");
+
+	RoutingFold::Fold expanded = RoutingFold::fold(seeded, surround,
+		RoutingFold::referencedTargets(parsed), true);
+	expectEqual(expanded.visibleRows.size(), (int)seeded.size(), "expanded: every seeded row is listed");
+	expectEqual(expanded.hiddenChannels, 0, "expanded: nothing is hidden");
+	expectEqual(expanded.inputs.join(','), "L,R,VC,C,LFE,RL,RR,SL,SR",
+		"expanded: referenced inputs first, then the device layout");
+
+	// An empty Copy shows the first two device channels as representatives.
+	std::vector<Assignment> emptySeeded;
+	for (const std::wstring& name : surround)
+	{
+		Assignment a;
+		a.targetChannel = name;
+		emptySeeded.push_back(a);
+	}
+	RoutingFold::Fold reps = RoutingFold::fold(emptySeeded, surround, QStringList(), false);
+	expectEqual(reps.visibleRows.size(), 2, "empty: two representative rows");
+	expectTrue(reps.visibleRows.contains(0) && reps.visibleRows.contains(1),
+		"empty: the representatives are the first two device channels");
+	expectEqual(reps.hiddenChannels, 6, "empty: the rest is hidden");
+	expectEqual(reps.inputs.join(','), "L,R", "empty: representative input columns");
+
+	// A pinned (user-added) virtual channel stays listed with an empty sum
+	// and is offered as an input column - and it must not chase the
+	// representatives away, or there would be nothing to route it from.
+	std::vector<Assignment> pinnedSeeded = emptySeeded;
+	Assignment vs;
+	vs.targetChannel = L"VS";
+	pinnedSeeded.push_back(vs);
+	RoutingFold::Fold pinned = RoutingFold::fold(pinnedSeeded, surround,
+		QStringList() << "VS", false);
+	expectEqual(pinned.visibleRows.size(), 3, "pinned: the added channel joins the representatives");
+	expectTrue(pinned.visibleRows.contains((int)pinnedSeeded.size() - 1),
+		"pinned: the appended row is listed");
+	expectEqual(pinned.inputs.join(','), "VS,L,R",
+		"pinned: the added channel and the representatives are routable from");
+
+	// Name validation: the Copy grammar's operators and pure numbers are
+	// rejected, plain alphanumeric names pass.
+	expectTrue(RoutingFold::isValidChannelName("VS"), "a plain name is valid");
+	expectTrue(RoutingFold::isValidChannelName("XL2"), "letters and digits are valid");
+	expectFalse(RoutingFold::isValidChannelName(""), "empty is rejected");
+	expectFalse(RoutingFold::isValidChannelName("a b"), "whitespace is rejected");
+	expectFalse(RoutingFold::isValidChannelName("a=b"), "the assignment operator is rejected");
+	expectFalse(RoutingFold::isValidChannelName("a+b"), "the summand operator is rejected");
+	expectFalse(RoutingFold::isValidChannelName("0.5"), "a factor-shaped token is rejected");
+	expectFalse(RoutingFold::isValidChannelName("2"), "a positional number is rejected");
+	expectFalse(RoutingFold::isValidChannelName("ABCDEFGHIJKLMNOPQ"), "over-long names are rejected");
+
+	// removeChannel: the channel leaves as a target and as a summand; the
+	// return value says whether the serialized line changed.
+	std::vector<Assignment> removable = seeded;
+	expectTrue(RoutingFold::removeChannel(removable, "vc"),
+		"removing a referenced channel reports a change (case-insensitive)");
+	expectEqual((int)removable.size(), (int)seeded.size() - 1, "the target row is gone");
+	for (const Assignment& a : removable)
+		for (const Assignment::Summand& s : a.sourceSum)
+			expectTrue(QString::fromStdWString(s.channel).compare("VC", Qt::CaseInsensitive) != 0,
+				"no summand references the removed channel");
+	std::vector<Assignment> seedOnly = emptySeeded;
+	expectFalse(RoutingFold::removeChannel(seedOnly, "SR"),
+		"folding away a pure seed row is not a serialized change");
+	expectEqual((int)seedOnly.size(), (int)emptySeeded.size() - 1, "the seed row itself is still removed");
 }
 
 void testConfigFileCodec()
@@ -1034,6 +1153,7 @@ int main(int argc, char** argv)
 	testMultiConvolutionRoutingAdapter();
 	testStageSelectionModel();
 	testStudioRoutingModel();
+	testRoutingFold();
 	testConfigFileCodec();
 	testFilterListModel();
 	testFilterListUndo();

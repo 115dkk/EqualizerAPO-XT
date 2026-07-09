@@ -42,6 +42,7 @@
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/TitleBar.h"
 #include "Editor/widgets/UpdateToast.h"
+#include "Editor/widgets/routing/IRoutingRenderer.h"
 
 namespace
 {
@@ -117,8 +118,10 @@ QList<GalleryRow> galleryRows()
 class GalleryAPOInfo : public AbstractAPOInfo
 {
 public:
-	GalleryAPOInfo(const std::wstring& connection, const std::wstring& name, bool input, bool installed)
-		: connection(connection), name(name), input(input), installed(installed)
+	GalleryAPOInfo(const std::wstring& connection, const std::wstring& name, bool input, bool installed,
+		unsigned channelCount = 2, unsigned long channelMask = 0x3)
+		: connection(connection), name(name), input(input), installed(installed),
+		channelCount(channelCount), channelMask(channelMask)
 	{
 	}
 
@@ -148,7 +151,7 @@ public:
 
 	unsigned getChannelCount() const override
 	{
-		return 2;
+		return channelCount;
 	}
 
 	unsigned getSampleRate() const override
@@ -158,7 +161,7 @@ public:
 
 	unsigned long getChannelMask() const override
 	{
-		return 0x3;
+		return channelMask;
 	}
 
 	bool isInput() const override
@@ -223,6 +226,8 @@ private:
 	std::wstring name;
 	bool input;
 	bool installed;
+	unsigned channelCount;
+	unsigned long channelMask;
 };
 
 void galleryDevices(QList<std::shared_ptr<AbstractAPOInfo>>& outputs, QList<std::shared_ptr<AbstractAPOInfo>>& inputs)
@@ -302,12 +307,12 @@ QString buildReferenceFiles(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, graph x2). run() multiplies these by skins x 2
-// modes to self-check the output count, so adding a gallery row needs no
-// external count to be updated. Keep both constants in step with
+// addrow x2, seam, toast, graph x2, copyfold x4). run() multiplies these by
+// skins x 2 modes to self-check the output count, so adding a gallery row
+// needs no external count to be updated. Keep both constants in step with
 // renderStates()/renderSkin() if the state set or chrome shots change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 14;
+constexpr int kExtraShotsPerSkinMode = 18;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -508,7 +513,8 @@ bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QSt
 // widgets in line order. The table must be built after applySkin so every row
 // is polished once against the active stylesheet, mirroring the real skin
 // switch flow (clearRows + updateGuis).
-QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines)
+QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
+	std::shared_ptr<AbstractAPOInfo> device = nullptr, unsigned long channelMask = 0)
 {
 	// Mirror MainWindow's hosting: widgetResizable makes the scroll area drive
 	// the table's width, which FilterCardRow::sizeHint reads back through
@@ -521,11 +527,15 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	scrollArea.setWidget(table);
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices, inputDevices;
 	galleryDevices(outputDevices, inputDevices);
-	// The card path renders deviceless on purpose (its editors derive their
-	// ports from the command text). The heritage dump selects a synthetic
-	// device instead: the legacy CopyFilterGUI scene only populates through
-	// configureChannels(), which is empty without one.
-	if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY") && !outputDevices.isEmpty())
+	// The card path renders deviceless by default (its editors derive their
+	// ports from the command text); a caller that judges device-channel
+	// seeding (the Copy fold scenes) passes its own synthetic endpoint. The
+	// heritage dump selects a synthetic device likewise: the legacy
+	// CopyFilterGUI scene only populates through configureChannels(), which
+	// is empty without one.
+	if (device != nullptr)
+		table->updateDeviceAndChannelMask(device, channelMask);
+	else if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY") && !outputDevices.isEmpty())
 		table->updateDeviceAndChannelMask(outputDevices.first(), 0);
 	else
 		table->updateDeviceAndChannelMask(nullptr, 0);
@@ -769,6 +779,59 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		graph.setPreviewCursor(0.62);
 		QApplication::processEvents();
 		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("cursor")) ? 0 : 1;
+	}
+
+	// The Copy channel fold over a synthetic 7.1 endpoint. The row matrix's
+	// card path is deliberately deviceless, so the device-channel seeding
+	// (and therefore the fold: collapsed rows, the reveal control, the
+	// add-channel entry) never shows there. Four states: the routed line
+	// collapsed to its two involved channels, the same line fully expanded,
+	// the add-channel editor open with a name typed, and an empty Copy
+	// showing its two representative channels.
+	{
+		auto surround = std::make_shared<GalleryAPOInfo>(
+			L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("Copy: VC=0.5*L+0.5*R R=L"), QStringLiteral("Copy:") },
+			surround, 0x63F);
+		if (rows.size() != 2)
+		{
+			qWarning("SkinGallery: copy fold scene expected 2 rows, got %lld (%s %s)",
+				static_cast<long long>(rows.size()), qPrintable(skinId), qPrintable(mode));
+			failures += 4;
+		}
+		else
+		{
+			FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+			auto settle = [&]() {
+				QApplication::processEvents();
+				if (table != nullptr && table->layout() != nullptr)
+					table->layout()->activate();
+				QApplication::processEvents();
+			};
+			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("normal"));
+			failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("normal")) ? 0 : 1;
+			failures += saveGrab(rows[1], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("empty")) ? 0 : 1;
+			RoutingView* view = rows[0]->findChild<RoutingView*>();
+			if (view == nullptr)
+			{
+				qWarning("SkinGallery: copy fold scene has no routing view (%s %s)",
+					qPrintable(skinId), qPrintable(mode));
+				failures += 2;
+			}
+			else
+			{
+				view->galleryShowcase(QStringLiteral("expanded"));
+				settle();
+				failures += assertNoHorizontalScrollBar(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded"));
+				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded")) ? 0 : 1;
+				view->galleryShowcase(QStringLiteral("addChannel"));
+				settle();
+				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("editor")) ? 0 : 1;
+			}
+		}
 	}
 	return failures;
 }

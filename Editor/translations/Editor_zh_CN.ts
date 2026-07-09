@@ -160,6 +160,26 @@
     </message>
 </context>
 <context>
+    <name>BlockChipView</name>
+    <message>
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="277"/>
+        <source>Show fewer channels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="278"/>
+        <source>Show %n more channel(s)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="291"/>
+        <source>Add channel</source>
+        <translation type="unfinished">添加声道</translation>
+    </message>
+</context>
+<context>
     <name>ChannelCardEditor</name>
     <message>
         <location filename="../widgets/cards/ChannelCardEditor.cpp" line="21"/>
@@ -1077,7 +1097,7 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="581"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="596"/>
         <source>Raw</source>
         <translation>原始</translation>
     </message>
@@ -2888,7 +2908,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="426"/>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="585"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>在声道之间拖动即可路由——点击 + 添加输出</translation>
     </message>

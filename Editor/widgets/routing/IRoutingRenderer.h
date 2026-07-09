@@ -33,6 +33,26 @@ public:
 	// working state so a serialise round-trip reproduces the edits.
 	virtual std::vector<Assignment> assignments() const = 0;
 
+	// Offscreen gallery hook (SkinGallery): drive a state the renderer cannot
+	// reach without a real pointer. Supported states: "expanded" reveals the
+	// folded channels, "addChannel" opens the add-channel editor with a sample
+	// name typed in. Default no-op (fixed-source views have no fold).
+	virtual void galleryShowcase(const QString& state) { Q_UNUSED(state); }
+
+protected:
+	// The Copy card hosts this view in a height-pinning scroll wrapper that
+	// follows the content by watching its Resize events
+	// (FilterCardRow::watchEditorScroll). A pure size-hint change never
+	// reaches that wrapper - the viewport chain has no layout to carry the
+	// LayoutRequest - so edits that change the content size (the channel
+	// fold above all) must resize to the new hint explicitly; the wrapper
+	// then re-pins its height.
+	void syncSizeToHint()
+	{
+		updateGeometry();
+		resize(sizeHint());
+	}
+
 signals:
 	// Emitted whenever the user changes the routing inside the view.
 	void routingChanged();

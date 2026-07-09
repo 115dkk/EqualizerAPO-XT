@@ -57,6 +57,17 @@ public:
 	// rejected with -1. New names become virtual output chips.
 	int addOutput(const QString& name);
 
+	// How many ports were seeded from the device channel layout; ports beyond
+	// these counts came from the config line or the user (virtual channels).
+	// The view's channel fold keys off this split.
+	int seededInputCount() const;
+	int seededOutputCount() const;
+
+	// Removes the named channel entirely: its output port, its input port and
+	// every trace touching either (case-insensitive). Returns true when a
+	// trace was removed, i.e. the serialized line changes.
+	bool removeChannel(const QString& name);
+
 	// Connects input -> output at unity gain (0.0 from the constant port,
 	// matching the legacy scene's constant-summand behaviour).
 	void addTrace(int input, int output);

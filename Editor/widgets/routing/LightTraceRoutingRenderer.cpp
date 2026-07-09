@@ -30,7 +30,10 @@ int sc(int px) { return GUIHelper::scale(px); }
 StudioRoutingView::StudioRoutingView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 	QWidget* parent)
-	: RoutingView(parent), portModel(portModel)
+	: RoutingView(parent), portModel(portModel),
+	// Targets the command referenced stay on the glass for the whole session,
+	// even if their last trace is deleted.
+	pinnedChannels(RoutingFold::referencedTargets(assignments))
 {
 	StudioRoutingModel::PortConfig config;
 	config.fixedSources = portModel.fixedSources;
@@ -49,6 +52,28 @@ StudioRoutingView::StudioRoutingView(const vector<Assignment>& assignments,
 std::vector<Assignment> StudioRoutingView::assignments() const
 {
 	return model.assignments();
+}
+
+bool StudioRoutingView::foldable() const
+{
+	// Fixed-source mode (MultiConvolution) lays out exactly the mapped
+	// targets; there is nothing to fold.
+	return !portModel.fixedSourceMode();
+}
+
+void StudioRoutingView::galleryShowcase(const QString& state)
+{
+	if (state == QLatin1String("expanded"))
+	{
+		channelsExpanded = true;
+		relayout();
+	}
+	else if (state == QLatin1String("addChannel"))
+	{
+		openChannelEditor();
+		if (channelEditor != nullptr)
+			channelEditor->setText(QStringLiteral("VS"));
+	}
 }
 
 QString StudioRoutingView::chipLabel(bool inputRow, int index) const
@@ -79,11 +104,68 @@ void StudioRoutingView::relayout()
 	const QFontMetrics sansFm(sans);
 	const QFontMetrics monoFm(mono);
 
+	// The channel fold: a collapsed view lights out (hides) every seeded port
+	// the command does not involve. Hidden ports keep their model index and
+	// get a null rect, so trace indices stay stable; every trace endpoint is
+	// lit and therefore always visible.
+	const QStringList& inputPorts = model.inputPorts();
+	const QStringList& outputPorts = model.outputPorts();
+	inputVisible = QVector<bool>(inputPorts.size(), true);
+	outputVisible = QVector<bool>(outputPorts.size(), true);
+	hiddenOutputs = 0;
+	if (foldable())
+	{
+		QVector<bool> inputLit(inputPorts.size(), false);
+		QVector<bool> outputLit(outputPorts.size(), false);
+		for (const StudioRoutingModel::Trace& trace : model.traces())
+		{
+			if (trace.input >= 0 && trace.input < inputLit.size())
+				inputLit[trace.input] = true;
+			if (trace.output >= 0 && trace.output < outputLit.size())
+				outputLit[trace.output] = true;
+		}
+		QSet<QString> pinnedUpper;
+		for (const QString& name : pinnedChannels)
+			pinnedUpper.insert(name.toUpper());
+
+		for (int j = 0; j < outputPorts.size(); j++)
+			outputVisible[j] = channelsExpanded || outputLit[j]
+				|| pinnedUpper.contains(outputPorts[j].toUpper())
+				|| j >= model.seededOutputCount();
+		for (int i = 0; i < inputPorts.size(); i++)
+		{
+			const bool isConst = model.constInput(i);
+			inputVisible[i] = channelsExpanded || inputLit[i]
+				|| (!isConst && (pinnedUpper.contains(inputPorts[i].toUpper())
+					|| i >= model.seededInputCount()));
+		}
+		// Representative fallback: while nothing is routed, the first two
+		// device channels stand in on both rows. Keyed on traces, not pins,
+		// so a freshly added virtual chip keeps its counterparts to connect
+		// to.
+		if (!channelsExpanded && model.traces().isEmpty())
+		{
+			for (int j = 0; j < outputPorts.size() && j < qMin(2, model.seededOutputCount()); j++)
+				outputVisible[j] = true;
+			for (int i = 0; i < inputPorts.size() && i < qMin(2, model.seededInputCount()); i++)
+				inputVisible[i] = true;
+		}
+		for (bool v : outputVisible)
+			if (!v)
+				hiddenOutputs++;
+	}
+
 	auto rowRects = [&](const QStringList& labels, bool inputRow, int y) {
 		QVector<QRect> rects;
+		const QVector<bool>& visible = inputRow ? inputVisible : outputVisible;
 		int x = marginX;
 		for (int i = 0; i < labels.size(); i++)
 		{
+			if (!visible.value(i, true))
+			{
+				rects.append(QRect());
+				continue;
+			}
 			const QString label = chipLabel(inputRow, i);
 			const bool monoChip = (inputRow && portModel.fixedSourceMode())
 				|| (inputRow && model.constInput(i));
@@ -99,9 +181,28 @@ void StudioRoutingView::relayout()
 	const int outputY = marginY + chipH + traceZone;
 	outputRects = rowRects(model.outputPorts(), false, outputY);
 
+	// The fold's reveal chip trails the input row: a ghost readout ("+N" of
+	// lights currently off, "fold" once everything burns) in the same dashed
+	// ghost-glass grammar as the add chip below.
+	revealRect = QRect();
+	if (foldable() && isEnabled() && (hiddenOutputs > 0 || channelsExpanded))
+	{
+		int revealX = marginX;
+		for (const QRect& rect : inputRects)
+			if (!rect.isNull())
+				revealX = qMax(revealX, rect.right() + gap);
+		const QString caption = channelsExpanded
+			? QStringLiteral("fold")
+			: QStringLiteral("+%1").arg(hiddenOutputs);
+		revealRect = QRect(revealX, marginY, qMax(sc(30), monoFm.horizontalAdvance(caption) + sc(16)), chipH);
+	}
+
 	// The virtual-output entry point trails the output row (both modes: the
 	// mapping grammar also takes new virtual targets).
-	const int ghostX = outputRects.isEmpty() ? marginX : outputRects.last().right() + gap;
+	int ghostX = marginX;
+	for (const QRect& rect : outputRects)
+		if (!rect.isNull())
+			ghostX = qMax(ghostX, rect.right() + gap);
 	ghostRect = isEnabled() ? QRect(ghostX, outputY, sc(30), chipH) : QRect();
 
 	// Trace curves with vertical tangents; factor readouts fan out along
@@ -151,6 +252,11 @@ void StudioRoutingView::relayout()
 		traceShapes.append(shape);
 	}
 
+	// No syncSizeToHint here: relayout() runs from resizeEvent, where an
+	// explicit resize would ping-pong with the host scroll area's own widget
+	// resizing into unbounded recursion (observed as a 0xC00000FD gallery
+	// crash). This view's hint HEIGHT is constant anyway - two chip rows and
+	// the trace zone - so the height-pinning wrapper never needs a nudge.
 	updateGeometry();
 	update();
 }
@@ -176,12 +282,16 @@ QSize StudioRoutingView::sizeHint() const
 	const int chipH = sc(22);
 	const int height = sc(8) * 2 + chipH * 2 + sc(72);
 	int width = sc(24);
-	if (!inputRects.isEmpty())
-		width = qMax(width, inputRects.last().right() + sc(12));
-	if (!outputRects.isEmpty())
-		width = qMax(width, outputRects.last().right() + sc(12));
+	for (const QRect& rect : inputRects)
+		if (!rect.isNull())
+			width = qMax(width, rect.right() + sc(12));
+	for (const QRect& rect : outputRects)
+		if (!rect.isNull())
+			width = qMax(width, rect.right() + sc(12));
 	if (!ghostRect.isNull())
 		width = qMax(width, ghostRect.right() + sc(12));
+	if (!revealRect.isNull())
+		width = qMax(width, revealRect.right() + sc(12));
 	return QSize(width, height);
 }
 
@@ -272,9 +382,11 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		p.drawEllipse(center, sc(2), sc(2));
 	};
 	for (int i = 0; i < inputRects.size(); i++)
-		drawPort(portPoint(true, i), inputLit[i], false);
+		if (!inputRects[i].isNull())
+			drawPort(portPoint(true, i), inputLit[i], false);
 	for (int i = 0; i < outputRects.size(); i++)
-		drawPort(portPoint(false, i), outputLit[i], true);
+		if (!outputRects[i].isNull())
+			drawPort(portPoint(false, i), outputLit[i], true);
 
 	// Chips: the lit-glass-chip grammar. Ink is the channel's data colour
 	// (neutral instrument digits in fixed-source mode); the glass follows the
@@ -340,10 +452,37 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		p.setPen(lit ? ink : withAlphaF(ink, 0.5));
 		p.drawText(rect, Qt::AlignCenter, label);
 	};
+	removeRect = QRect();
+	removeChip = -1;
 	for (int i = 0; i < inputRects.size(); i++)
-		drawChip(inputRects[i], true, i);
+		if (!inputRects[i].isNull())
+			drawChip(inputRects[i], true, i);
 	for (int i = 0; i < outputRects.size(); i++)
+	{
+		if (outputRects[i].isNull())
+			continue;
 		drawChip(outputRects[i], false, i);
+
+		// A virtual output can leave the glass: hovering its chip lights a
+		// small x pane at the chip's shoulder (device channels fold instead
+		// of leaving, so they never get one).
+		const QString label = chipLabel(false, i);
+		if (foldable() && lit && hoveredChip == i && !hoveredChipIsInput
+			&& CopyRoutingAdapter::isVirtualChannel(label))
+		{
+			const QRect chip = outputRects[i];
+			const QRect xr(chip.right() - sc(7), chip.top() - sc(7), sc(14), sc(14));
+			p.setPen(QPen(withAlphaF(QColor(t.mutedText), 0.65), sc(1)));
+			p.setBrush(withAlphaF(QColor(t.graph), 0.92));
+			p.drawEllipse(xr);
+			p.setPen(QPen(withAlphaF(QColor(t.text), 0.85), sc(1) * 1.2, Qt::SolidLine, Qt::RoundCap));
+			const QPointF c = QRectF(xr).center();
+			p.drawLine(QPointF(c.x() - sc(3), c.y() - sc(3)), QPointF(c.x() + sc(3), c.y() + sc(3)));
+			p.drawLine(QPointF(c.x() - sc(3), c.y() + sc(3)), QPointF(c.x() + sc(3), c.y() - sc(3)));
+			removeRect = xr;
+			removeChip = i;
+		}
+	}
 
 	// Factor readouts: sunken glass windows on the trace (Copy mode only).
 	if (model.allowFactors())
@@ -381,6 +520,26 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		const QPointF c = QRectF(ghostRect).center();
 		p.drawLine(QPointF(c.x() - sc(5), c.y()), QPointF(c.x() + sc(5), c.y()));
 		p.drawLine(QPointF(c.x(), c.y() - sc(5)), QPointF(c.x(), c.y() + sc(5)));
+	}
+
+	// The fold's reveal chip: the same dashed ghost glass, its label a mono
+	// readout of the channels currently lit out ("+6"), or "fold" once the
+	// whole device layout burns.
+	if (!revealRect.isNull())
+	{
+		const double borderA = revealHovered ? 0.80 : 0.40;
+		const double fillA = revealHovered ? 0.16 : 0.08;
+		p.setPen(QPen(withAlphaF(accent, borderA), sc(1), Qt::DashLine));
+		p.setBrush(withAlphaF(accent, fillA));
+		p.drawRoundedRect(revealRect, sc(8), sc(8));
+		QFont revealFont(t.monoFontFamily);
+		revealFont.setPixelSize(sc(11));
+		p.setFont(revealFont);
+		QColor ink = accent;
+		ink.setAlpha(revealHovered ? 255 : 200);
+		p.setPen(ink);
+		p.drawText(revealRect, Qt::AlignCenter, channelsExpanded
+			? QStringLiteral("fold") : QStringLiteral("+%1").arg(hiddenOutputs));
 	}
 
 	// Drag-to-connect: a dashed provisional circuit; it solidifies over a
@@ -462,6 +621,29 @@ void StudioRoutingView::mousePressEvent(QMouseEvent* event)
 	if (!isEnabled())
 		return;
 
+	if (!revealRect.isNull() && revealRect.contains(event->pos()))
+	{
+		channelsExpanded = !channelsExpanded;
+		relayout();
+		return;
+	}
+
+	if (!removeRect.isNull() && removeRect.contains(event->pos()) && removeChip >= 0)
+	{
+		const QString channel = model.outputPorts().value(removeChip);
+		for (int i = pinnedChannels.size() - 1; i >= 0; i--)
+			if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
+				pinnedChannels.removeAt(i);
+		const bool changed = model.removeChannel(channel);
+		selectedTraces.clear();
+		hoveredTrace = -1;
+		hoveredChip = -1;
+		relayout();
+		if (changed)
+			emit routingChanged();
+		return;
+	}
+
 	if (!ghostRect.isNull() && ghostRect.contains(event->pos()))
 	{
 		openChannelEditor();
@@ -520,17 +702,28 @@ void StudioRoutingView::mouseMoveEvent(QMouseEvent* event)
 	}
 
 	bool inputRow = false;
-	const int chip = chipAt(event->pos(), &inputRow);
+	int chip = chipAt(event->pos(), &inputRow);
+	// The x pane sits on the chip's shoulder, outside the chip rect; while
+	// the pointer is over it the chip must stay hovered or the pane would
+	// vanish before it can be clicked.
+	if (chip < 0 && !removeRect.isNull() && removeRect.contains(event->pos()))
+	{
+		chip = removeChip;
+		inputRow = false;
+	}
 	const int trace = chip >= 0 ? -1 : traceAt(event->pos());
 	if (chip != hoveredChip || (chip >= 0 && inputRow != hoveredChipIsInput)
 		|| trace != hoveredTrace
-		|| (!ghostRect.isNull() && ghostRect.contains(event->pos())) != ghostHovered)
+		|| (!ghostRect.isNull() && ghostRect.contains(event->pos())) != ghostHovered
+		|| (!revealRect.isNull() && revealRect.contains(event->pos())) != revealHovered)
 	{
 		hoveredChip = chip;
 		hoveredChipIsInput = inputRow;
 		hoveredTrace = trace;
 		ghostHovered = !ghostRect.isNull() && ghostRect.contains(event->pos());
-		setCursor(chip >= 0 || trace >= 0 || ghostHovered ? Qt::PointingHandCursor : Qt::ArrowCursor);
+		revealHovered = !revealRect.isNull() && revealRect.contains(event->pos());
+		setCursor(chip >= 0 || trace >= 0 || ghostHovered || revealHovered
+			? Qt::PointingHandCursor : Qt::ArrowCursor);
 		update();
 	}
 }
@@ -609,6 +802,7 @@ void StudioRoutingView::leaveEvent(QEvent*)
 	hoveredChip = -1;
 	hoveredTrace = -1;
 	ghostHovered = false;
+	revealHovered = false;
 	update();
 }
 
@@ -688,12 +882,15 @@ void StudioRoutingView::commitChannelEditor()
 
 	const QString name = channelEditor->text().trimmed();
 	channelEditor->hide();
-	if (name.isEmpty() || name.contains(QLatin1Char(' ')))
+	if (!RoutingFold::isValidChannelName(name))
 		return;
 
 	// No routingChanged: a fresh output has no sum yet, and the serializer
-	// skips empty targets (same as the legacy scene's add button).
+	// skips empty targets (same as the legacy scene's add button). Pinning
+	// keeps the new chip lit while it has no trace yet.
 	model.addOutput(name);
+	if (!pinnedChannels.contains(name, Qt::CaseInsensitive))
+		pinnedChannels.append(name);
 	relayout();
 }
 

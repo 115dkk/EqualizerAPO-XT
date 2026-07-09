@@ -156,6 +156,26 @@
     </message>
 </context>
 <context>
+    <name>BlockChipView</name>
+    <message>
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="277"/>
+        <source>Show fewer channels</source>
+        <translation>채널 접기</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="278"/>
+        <source>Show %n more channel(s)</source>
+        <translation>
+            <numerusform>채널 %n개 더 보기</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="291"/>
+        <source>Add channel</source>
+        <translation>채널 추가</translation>
+    </message>
+</context>
+<context>
     <name>ChannelCardEditor</name>
     <message>
         <location filename="../widgets/cards/ChannelCardEditor.cpp" line="21"/>
@@ -1003,7 +1023,7 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="581"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="596"/>
         <source>Raw</source>
         <translation>원본</translation>
     </message>
@@ -2564,7 +2584,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="426"/>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="585"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>채널 사이를 드래그해 라우팅하세요. +를 누르면 출력이 추가됩니다</translation>
     </message>

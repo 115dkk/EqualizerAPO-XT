@@ -250,6 +250,7 @@ SOURCES += main.cpp\
 	widgets/ValueScrubBox.cpp \
 	widgets/TitleBar.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
+	widgets/routing/RoutingFold.cpp \
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
 	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
 	widgets/routing/StepListRoutingRenderer.cpp \
@@ -467,6 +468,7 @@ HEADERS  += \
 	widgets/ValueScrubBox.h \
 	widgets/TitleBar.h \
 	widgets/routing/CopyRoutingAdapter.h \
+	widgets/routing/RoutingFold.h \
 	widgets/routing/MultiConvolutionRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
 	widgets/routing/CrosspointMatrixRoutingRenderer.h \
