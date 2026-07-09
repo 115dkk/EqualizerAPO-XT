@@ -1070,8 +1070,14 @@ public:
 		const QColor mutedInk(tokens.mutedText);
 		const QColor textInk(tokens.text);
 		const QColor accent(tokens.accent);
-		const QColor hazardInk(tokens.warning);
 		const bool darkBoard = skinColorIsDark(QColor(tokens.surface));
+		// Caution ink: full amber only on the dark board. On the light board
+		// the raw orange read as crayon against the ice palette (review
+		// verdict), so it sinks to a printed ochre - hue kept, saturation and
+		// value derived down, like hazard markings silkscreened on a board.
+		const QColor warnBase(tokens.warning);
+		const QColor hazardInk = darkBoard ? warnBase
+			: QColor::fromHsvF(warnBase.hsvHueF(), warnBase.hsvSaturationF() * 0.82, warnBase.valueF() * 0.62);
 		const QRect plot = state.plotRect.toRect();
 
 		painter.setRenderHint(QPainter::Antialiasing, false);

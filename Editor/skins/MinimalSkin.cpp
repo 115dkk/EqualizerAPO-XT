@@ -411,12 +411,15 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	}
 
 	// The clipping flag: terminal error semantics. The region between the
-	// trace and the 0 dB rule fills SOLID with danger ink - reverse video,
-	// the way a terminal marks a line that is wrong - and the trace prints
-	// through it in the sheet's ground colour (the inverted glyph). Amber
-	// caution read like an annotation; an overdriven response is an error.
+	// trace and the 0 dB rule fills SOLID - reverse video, the way a
+	// terminal marks a line that is wrong - and the trace prints through it
+	// in the sheet's ground colour (the inverted glyph). The block's ink is
+	// danger SUNK into the sheet's register (hue kept, saturation and value
+	// derived down): a raw semantic red at area strength hurt the eyes in
+	// both finishes - a terminal's error field is dim red, not neon.
 	QPainterPath overshoot;
 	const bool overshootValid = state.clipping && state.curve.size() >= 2 && state.zeroY > plotTop + 1.0;
+	const bool darkSheet = ground.lightness() < 128;
 	if (overshootValid)
 	{
 		QPolygonF closed = state.curve;
@@ -425,9 +428,15 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		overshoot.addPolygon(closed);
 		overshoot.closeSubpath();
 
+		const QColor dangerBase(tokens.danger);
+		const QColor errorBlock = QColor::fromHsvF(
+			dangerBase.hsvHueF(),
+			dangerBase.hsvSaturationF() * (darkSheet ? 0.70 : 0.58),
+			dangerBase.valueF() * (darkSheet ? 0.56 : 0.84));
+
 		painter.save();
 		painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
-		painter.fillPath(overshoot, QColor(tokens.danger));
+		painter.fillPath(overshoot, errorBlock);
 		painter.restore();
 	}
 
