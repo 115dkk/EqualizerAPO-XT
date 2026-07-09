@@ -1187,72 +1187,39 @@ QPlainTextEdit#VSTCardWarning {
     border-radius: 6px;
 }
 
-/* ===== GraphicEQ card - the curve is the light, the numbers behind glass =====
-   The plot already carries the row's one accent light (the token-driven
-   curve), so the chrome around it stays neutral glass. The band table is
-   a sunken data window (the StudioRefWindow grammar): alpha fill under a
-   darker top edge, mono ink, and only the selection lights - in the one
-   accent. The row-number rail is a quiet mono engraving that takes the
-   same light when its row is selected. The five action buttons are unlit
-   glass chips that light under the cursor (the FilterCardIconButton
-   grammar); the mode combo already speaks paramSelector. */
-QTableWidget#GraphicEQBandTable {
-    background: rgba(6, 9, 20, 0.55);
+/* ===== GraphicEQ card - the response is the light behind glass =====
+   Every pixel of the plot is painted by StudioSkin::paintGraphicEqPlot
+   (a sunken glass window holding the glowing response curve); the sheet
+   only keeps the widget transparent so no opaque patch cuts the card's
+   pane. Around it, the five action buttons are unlit glass chips that
+   light under the cursor (the FilterCardIconButton grammar) and the mode
+   combo speaks paramSelector. The readout strip under the plot is quiet
+   ink on the card's glass: the band caption is mono data, the Freq/Gain
+   labels are section captions, and the value boxes ride the X1
+   value-scrub grammar. */
+QWidget#GraphicEQPlot {
+    background: transparent;
+    border: 0;
+}
+QWidget#GraphicEQReadout {
+    background: transparent;
+    border: 0;
+}
+QLabel#GraphicEQBandCaption {
     color: @MUTED@;
-    border: 1px solid @BORDER@;
-    border-top-color: rgba(0, 0, 0, 0.55);
-    border-radius: 8px;
-    gridline-color: rgba(38, 50, 74, 0.55);
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
-    selection-background-color: rgba(91, 140, 255, 0.26);
-    selection-color: @TEXT@;
-}
-QTableWidget#GraphicEQBandTable::item {
     background: transparent;
-    padding: 2px 6px;
-    border: 0;
-    border-radius: 0;
-}
-QTableWidget#GraphicEQBandTable::item:hover {
-    background: rgba(255, 255, 255, 0.04);
-}
-QTableWidget#GraphicEQBandTable::item:selected {
-    background: rgba(91, 140, 255, 0.26);
-    color: @TEXT@;
-}
-QTableWidget#GraphicEQBandTable QHeaderView {
-    background: transparent;
-    border: 0;
-}
-QTableWidget#GraphicEQBandTable QHeaderView::section {
-    background: transparent;
-    color: rgba(145, 160, 186, 0.70);
-    border: 0;
-    border-right: 1px solid rgba(38, 50, 74, 0.55);
-    padding: 0 6px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 8pt;
-    font-weight: 600;
+    letter-spacing: 1px;
 }
-QTableWidget#GraphicEQBandTable QHeaderView::section:checked {
-    background: rgba(91, 140, 255, 0.12);
-    color: @ACCENT@;
-}
-QTableWidget#GraphicEQBandTable QTableCornerButton::section {
+QLabel#GraphicEQReadoutLabel {
+    color: @MUTED@;
     background: transparent;
-    border: 0;
-}
-/* In-cell editing: the sunken editor under an accent edge (the
-   RefPathEdit idiom at cell scale). */
-QTableWidget#GraphicEQBandTable QLineEdit {
-    background: #08080f;
-    color: @TEXT@;
-    border: 1px solid @ACCENT@;
-    border-radius: 6px;
-    padding: 0 4px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 4px;
 }
 QToolButton#GraphicEQActionButton {
     background: rgba(255, 255, 255, 0.04);
@@ -1278,16 +1245,6 @@ QToolButton#GraphicEQActionButton:disabled {
     border-color: rgba(255, 255, 255, 0.05);
     border-top-color: rgba(255, 255, 255, 0.05);
 }
-/* The plot frame: the same sunken window, holding the light. The scene
-   background comes from the tokens in code; the sheet only cuts the
-   glass edge. */
-QGraphicsView#GraphicEQCardPlot {
-    background: transparent;
-    border: 1px solid @BORDER@;
-    border-top-color: rgba(0, 0, 0, 0.55);
-    border-radius: 8px;
-}
-
 /* ===== Update toast - a lit chip resting on the stage glass =====
    The widget paints the pane itself (raised surface, hairline border and
    the accent keel as the "news" lamp); the sheet only sets the message

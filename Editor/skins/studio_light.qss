@@ -809,70 +809,38 @@ QPlainTextEdit#VSTCardWarning {
     border-radius: 6px;
 }
 
-/* ===== GraphicEQ card - the curve is the light, the numbers behind glass =====
-   Same grammar as the dark sheet: the band table is a sunken data window
-   (StudioRefWindow), mono ink, only the selection lights in the accent;
-   the row-number rail is a quiet mono engraving; the action buttons are
-   unlit glass chips (FilterCardIconButton grammar). White glass cannot
-   brighten, so the window's depth comes from the shaded fill and the
-   darker top edge. */
-QTableWidget#GraphicEQBandTable {
-    background: rgba(232, 238, 248, 0.75);
+/* ===== GraphicEQ card - the response is the light behind glass =====
+   Every pixel of the plot is painted by StudioSkin::paintGraphicEqPlot
+   (a sunken glass window holding the glowing response curve; on white
+   glass its depth comes from the shaded ground and the darker inner top
+   edge). The sheet only keeps the widget transparent so no opaque patch
+   cuts the card's pane. The action buttons are unlit glass chips
+   (FilterCardIconButton grammar), the mode combo speaks paramSelector,
+   and the readout strip under the plot is quiet ink on the glass: mono
+   band caption, section-caption Freq/Gain labels, X1 value-scrub boxes. */
+QWidget#GraphicEQPlot {
+    background: transparent;
+    border: 0;
+}
+QWidget#GraphicEQReadout {
+    background: transparent;
+    border: 0;
+}
+QLabel#GraphicEQBandCaption {
     color: @MUTED@;
-    border: 1px solid @BORDER@;
-    border-top-color: rgba(0, 0, 0, 0.12);
-    border-radius: 8px;
-    gridline-color: rgba(188, 200, 222, 0.60);
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
-    selection-background-color: rgba(47, 107, 255, 0.16);
-    selection-color: @TEXT@;
-}
-QTableWidget#GraphicEQBandTable::item {
     background: transparent;
-    padding: 2px 6px;
-    border: 0;
-    border-radius: 0;
-}
-QTableWidget#GraphicEQBandTable::item:hover {
-    background: rgba(24, 32, 51, 0.04);
-}
-QTableWidget#GraphicEQBandTable::item:selected {
-    background: rgba(47, 107, 255, 0.16);
-    color: @TEXT@;
-}
-QTableWidget#GraphicEQBandTable QHeaderView {
-    background: transparent;
-    border: 0;
-}
-QTableWidget#GraphicEQBandTable QHeaderView::section {
-    background: transparent;
-    color: rgba(93, 106, 132, 0.75);
-    border: 0;
-    border-right: 1px solid rgba(188, 200, 222, 0.60);
-    padding: 0 6px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 8pt;
-    font-weight: 600;
+    letter-spacing: 1px;
 }
-QTableWidget#GraphicEQBandTable QHeaderView::section:checked {
-    background: rgba(47, 107, 255, 0.10);
-    color: @ACCENT@;
-}
-QTableWidget#GraphicEQBandTable QTableCornerButton::section {
+QLabel#GraphicEQReadoutLabel {
+    color: @MUTED@;
     background: transparent;
-    border: 0;
-}
-/* In-cell editing: the sunken editor under an accent edge (the
-   RefPathEdit idiom at cell scale). */
-QTableWidget#GraphicEQBandTable QLineEdit {
-    background: @CARD_HOVER@;
-    color: @TEXT@;
-    border: 1px solid @ACCENT@;
-    border-radius: 6px;
-    padding: 0 4px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 4px;
 }
 QToolButton#GraphicEQActionButton {
     background: rgba(255, 255, 255, 0.65);
@@ -898,14 +866,6 @@ QToolButton#GraphicEQActionButton:disabled {
     border-color: rgba(188, 200, 222, 0.55);
     border-top-color: rgba(188, 200, 222, 0.55);
 }
-/* The plot frame: the same sunken window, holding the light. */
-QGraphicsView#GraphicEQCardPlot {
-    background: transparent;
-    border: 1px solid @BORDER@;
-    border-top-color: rgba(0, 0, 0, 0.12);
-    border-radius: 8px;
-}
-
 /* ===== Update toast - a lit chip resting on the stage glass =====
    The widget paints the pane (raised surface, hairline border, accent
    keel); the sheet inks the message and gives dismiss the caption-button
