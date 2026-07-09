@@ -12,8 +12,11 @@
 #pragma once
 
 #include <QColor>
+#include <QPolygonF>
 #include <QRect>
+#include <QSet>
 #include <QString>
+#include <QVector>
 
 #include "Editor/SkinTokens.h"
 
@@ -57,6 +60,45 @@ struct ListChromeState
 	bool pressed = false;
 	bool focused = false;
 	QString label;
+};
+
+// Snapshot of the GraphicEQ card's response plot handed to
+// ISkin::paintGraphicEqPlot. GraphicEQPlotWidget owns the model and every
+// input gesture (node drag, add/remove, selection, dB zoom/pan, keyboard);
+// the skin owns every pixel. All positions are widget-local pixels, already
+// mapped from Hz/dB, so a skin renders geometry without redoing the math.
+struct GraphicEQPlotState
+{
+	// Full widget rect and the inner data area (labels live in the margins).
+	QRect rect;
+	QRectF plotRect;
+	bool enabled = true;
+	bool focused = false;
+	// True in the 15/31-band layouts: node frequencies are fixed, and the
+	// response reads as levels on fixed bands (skins may draw stems/bars).
+	bool bandLocked = false;
+	// The response curve sampled across plotRect, and the y of 0 dB (may lie
+	// outside plotRect when the frame is panned away from it).
+	QPolygonF curve;
+	double zeroY = 0;
+	// Node handles in px, in node order; selection/hover index into this.
+	QVector<QPointF> nodePositions;
+	QSet<int> selectedNodes;
+	int hoveredNode = -1;
+	int focusedNode = -1;
+	// Grid with prepared labels ("1k", "+6"); minor lines carry no label.
+	struct GridLine
+	{
+		double pos = 0;
+		QString label;
+		bool major = false;
+	};
+	QVector<GridLine> vertical;
+	QVector<GridLine> horizontal;
+	// Cursor readout while the pointer is inside plotRect.
+	bool cursorValid = false;
+	QPointF cursor;
+	QString cursorText;
 };
 
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
@@ -160,6 +202,14 @@ public:
 	// hovered, so this hook never changes a skin's at-rest gallery. The default
 	// is a thin accent line with a small "+" disc at the left edge.
 	virtual void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
+
+	// The GraphicEQ card's response plot (GraphicEQPlotWidget) - the clean
+	// install's first impression. The widget owns the model and all input;
+	// the skin paints everything: ground, grid, labels, the response curve,
+	// the node handles and the cursor readout. The default is a neutral
+	// token-driven rendering; each shipped skin answers with its own
+	// instrument (form decided in paint code, not QSS).
+	virtual void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

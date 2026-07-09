@@ -1,21 +1,23 @@
 #include "GraphicEQCardEditor.h"
 
+#include <algorithm>
 #include <cfloat>
+#include <cmath>
+
 #include <QComboBox>
 #include <QFileDialog>
 #include <QHBoxLayout>
-#include <QHeaderView>
-#include <QScrollBar>
-#include <QTableWidget>
+#include <QLabel>
 #include <QTextStream>
 #include <QToolButton>
 #include <QVBoxLayout>
-#include <QWheelEvent>
 
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
-#include "Editor/guis/GraphicEQFilterGUIScene.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/FrequencyPlotScene.h"
+#include "Editor/widgets/GraphicEQPlotWidget.h"
+#include "Editor/widgets/ValueScrubBox.h"
 #include "FilterCardEditorRegistry.h"
 #include "filters/GraphicEQCommand.h"
 
@@ -26,11 +28,6 @@ QRegularExpression GraphicEQCardEditor::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][
 
 namespace
 {
-// The dB span the card frames by default (the legacy GUI showed whatever
-// scroll region the fixed 1000x500 scene happened to land on - usually the
-// +60..+100 dB corner, which read as an empty grid).
-const double defaultVisibleDbSpan = 42.0;
-
 IFilterGUI* createGraphicEQCardEditor(FilterTable* filterTable, const QString& command, const QString& parameters)
 {
 	// Exact-case contract, matching the legacy GUI factory and the engine
@@ -46,95 +43,6 @@ IFilterGUI* createGraphicEQCardEditor(FilterTable* filterTable, const QString& c
 }
 
 REGISTER_FILTER_CARD_EDITOR(graphiceq, createGraphicEQCardEditor)
-
-GraphicEQCardPlotView::GraphicEQCardPlotView(QWidget* parent)
-	: GraphicEQFilterGUIView(parent)
-{
-	setMouseTracking(true);
-	setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-	setDragMode(QGraphicsView::RubberBandDrag);
-	setFrameShape(QFrame::NoFrame);
-	// The horizontal axis always fits the viewport (fitWidth), so a
-	// horizontal scrollbar would only ever flag a bug - and the 960px skin
-	// gallery gate treats one as a failure.
-	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	setAlignment(Qt::AlignLeft | Qt::AlignTop);
-}
-
-void GraphicEQCardPlotView::setVerticalFrame(double topDb)
-{
-	frameTopDb = topDb;
-	applyFrame();
-}
-
-double GraphicEQCardPlotView::verticalFrameTopDb() const
-{
-	return frameTopDb;
-}
-
-void GraphicEQCardPlotView::resizeEvent(QResizeEvent* event)
-{
-	GraphicEQFilterGUIView::resizeEvent(event);
-	fitWidth();
-}
-
-void GraphicEQCardPlotView::wheelEvent(QWheelEvent* event)
-{
-	// The dB axis is the only zoomable one on the card; the frequency axis is
-	// pinned to the audible window.
-	event->accept();
-	zoom(0, event->angleDelta().y(), event->position().x(), event->position().y());
-}
-
-void GraphicEQCardPlotView::scrollContentsBy(int dx, int dy)
-{
-	GraphicEQFilterGUIView::scrollContentsBy(dx, dy);
-	// Track where the user put the vertical frame (right-drag pan, wheel
-	// zoom anchor shifts) so the next width refit restores their view, not
-	// the construction-time default.
-	if (!applyingFrame && scene() != nullptr)
-		frameTopDb = scene()->yToDb(mapToScene(0, 0).y());
-}
-
-void GraphicEQCardPlotView::applyFrame()
-{
-	FrequencyPlotScene* s = scene();
-	if (s == nullptr)
-		return;
-	applyingFrame = true;
-	// setZoom rebuilt the scene rect, which resets the view onto the scene's
-	// top-left (1 Hz, +100 dB) corner; pin the window back to 20 Hz and the
-	// remembered top dB line.
-	horizontalScrollBar()->setValue(int(round(s->hzToX(20.0))));
-	const double y = s->dbToY(frameTopDb);
-	if (y >= 0)
-		verticalScrollBar()->setValue(int(round(y)));
-	applyingFrame = false;
-}
-
-void GraphicEQCardPlotView::fitWidth()
-{
-	FrequencyPlotScene* s = scene();
-	if (s == nullptr)
-		return;
-	const double viewportWidth = viewport()->width();
-	if (viewportWidth <= 0)
-		return;
-	// Fit the 20 Hz - 20 kHz window (the range the band layouts and the
-	// legacy default scroll actually use) instead of the full 1 Hz - 30 kHz
-	// scene, whose sub-audible left margin only wastes card width.
-	const double windowSpan = (s->hzToX(20000.0) - s->hzToX(20.0)) / s->getZoomX();
-	if (windowSpan <= 0)
-		return;
-	const double newZoomX = qMax(0.05, viewportWidth / windowSpan);
-	if (qAbs(newZoomX - s->getZoomX()) > 1e-9)
-		s->setZoom(newZoomX, s->getZoomY());
-	applyFrame();
-	resetCachedContent();
-	viewport()->update();
-	updateHRuler();
-}
 
 GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const QString& configPath, FilterTable* filterTable, QWidget* parent)
 	: IFilterGUI(parent), configPath(configPath)
@@ -191,70 +99,63 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 
 	mainLayout->addLayout(controlsLayout);
 
-	QHBoxLayout* plotLayout = new QHBoxLayout();
-	plotLayout->setContentsMargins(0, 0, 0, 0);
-	plotLayout->setSpacing(8);
+	plot = new GraphicEQPlotWidget(this);
+	plot->setFixedHeight(GUIHelper::scale(210));
+	connect(plot, &GraphicEQPlotWidget::nodesEdited, this, [this]() {
+		syncReadout();
+		emit updateModel();
+	});
+	connect(plot, &GraphicEQPlotWidget::focusedNodeChanged, this, &GraphicEQCardEditor::focusedNodeChanged);
+	mainLayout->addWidget(plot);
 
-	plotView = new GraphicEQCardPlotView(this);
-	plotView->setObjectName(QStringLiteral("GraphicEQCardPlot"));
-	plotView->setFixedHeight(GUIHelper::scale(200));
-	plotView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-	plotLayout->addWidget(plotView, 1);
+	// Selected-band readout strip: the precise entry surface that replaces
+	// the legacy side table. Freq/Gain ride the X1 value-scrub grammar every
+	// skin already dresses; the caption is a quiet secondary-ink label.
+	QWidget* readout = new QWidget(this);
+	readout->setObjectName(QStringLiteral("GraphicEQReadout"));
+	QHBoxLayout* readoutLayout = new QHBoxLayout(readout);
+	readoutLayout->setContentsMargins(0, 0, 0, 0);
+	readoutLayout->setSpacing(8);
 
-	bandTable = new QTableWidget(this);
-	bandTable->setObjectName(QStringLiteral("GraphicEQBandTable"));
-	bandTable->setColumnCount(2);
-	bandTable->setHorizontalHeaderLabels({ tr("Freq."), tr("Gain") });
-	bandTable->horizontalHeader()->setVisible(false);
-	bandTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-	bandTable->horizontalHeader()->setMinimumSectionSize(GUIHelper::scale(10));
-	bandTable->verticalHeader()->setMinimumSectionSize(GUIHelper::scale(23));
-	bandTable->verticalHeader()->setDefaultSectionSize(GUIHelper::scale(23));
-	bandTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-	bandTable->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
-	bandTable->setWordWrap(false);
-	bandTable->setFixedWidth(GUIHelper::scale(150));
-	bandTable->setFixedHeight(GUIHelper::scale(200));
-	connect(bandTable, SIGNAL(cellChanged(int,int)), this, SLOT(tableCellChanged(int,int)));
-	connect(bandTable, SIGNAL(itemSelectionChanged()), this, SLOT(tableSelectionChanged()));
-	plotLayout->addWidget(bandTable);
+	bandCaption = new QLabel(readout);
+	bandCaption->setObjectName(QStringLiteral("GraphicEQBandCaption"));
+	readoutLayout->addWidget(bandCaption);
+	readoutLayout->addStretch(1);
 
-	mainLayout->addLayout(plotLayout);
+	QLabel* freqLabel = new QLabel(tr("Freq."), readout);
+	freqLabel->setObjectName(QStringLiteral("GraphicEQReadoutLabel"));
+	readoutLayout->addWidget(freqLabel);
+	freqBox = new ValueScrubBox(readout);
+	freqBox->setObjectName(QStringLiteral("GraphicEQFreqBox"));
+	freqBox->setDecimals(1);
+	freqBox->setRange(20.0, 20000.0);
+	freqBox->setSuffix(QStringLiteral(" Hz"));
+	freqBox->setKeyboardTracking(false);
+	connect(freqBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &GraphicEQCardEditor::readoutFreqChanged);
+	readoutLayout->addWidget(freqBox);
 
-	scene = new GraphicEQFilterGUIScene(plotView);
-	plotView->setScene(scene);
+	QLabel* gainLabel = new QLabel(tr("Gain"), readout);
+	gainLabel->setObjectName(QStringLiteral("GraphicEQReadoutLabel"));
+	readoutLayout->addWidget(gainLabel);
+	gainBox = new ValueScrubBox(readout);
+	gainBox->setObjectName(QStringLiteral("GraphicEQGainBox"));
+	gainBox->setDecimals(1);
+	gainBox->setRange(-100.0, 100.0);
+	gainBox->setSingleStep(0.5);
+	gainBox->setSuffix(QStringLiteral(" dB"));
+	gainBox->setKeyboardTracking(false);
+	connect(gainBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &GraphicEQCardEditor::readoutGainChanged);
+	readoutLayout->addWidget(gainBox);
 
-	connect(scene, SIGNAL(nodeInserted(int,double,double)), this, SLOT(insertRow(int,double,double)));
-	connect(scene, &GraphicEQFilterGUIScene::nodeRemoved, this, &GraphicEQCardEditor::removeRow);
-	connect(scene, SIGNAL(nodeUpdated(int,double,double)), this, SLOT(updateRow(int,double,double)));
-	connect(scene, SIGNAL(nodeMoved(int,int)), this, SLOT(moveRow(int,int)));
-	connect(scene, SIGNAL(nodeSelectionChanged(int,bool)), this, SLOT(selectRow(int,bool)));
-	connect(scene, SIGNAL(updateModel()), this, SIGNAL(updateModel()));
+	mainLayout->addWidget(readout);
 
-	scene->setNodes(nodes);
-	syncModeCombo(scene->verifyBands(nodes));
+	plot->setNodes(nodes);
+	syncModeCombo(verifyBands(nodes));
+	plot->frameToResponse();
+	syncReadout();
 
-	// Default framing: with the width pinned, frame the dB axis around the
-	// response instead of the +60..+100 dB corner the legacy scene woke up
-	// in. loadPreferences overrides this when the row was framed before.
-	double minGain = 0.0;
-	double maxGain = 0.0;
-	for (const FilterNode& node : nodes)
-	{
-		minGain = qMin(minGain, node.dbGain);
-		maxGain = qMax(maxGain, node.dbGain);
-	}
-	const int viewportHeight = qMax(1, GUIHelper::scale(200) - GUIHelper::scale(20));
-	// visible span = viewport / (500 * zoomY) * 200 dB; solve for zoomY.
-	const double span = qMax(defaultVisibleDbSpan, maxGain - minGain + 12.0);
-	const double zoomY = viewportHeight * 200.0 / (500.0 * span);
-	scene->setZoom(scene->getZoomX(), zoomY);
-	plotView->setVerticalFrame((minGain + maxGain) / 2.0 + span / 2.0);
-
-	applySkinToPlot();
 	retintActions();
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
-		applySkinToPlot();
 		retintActions();
 	});
 }
@@ -263,140 +164,61 @@ void GraphicEQCardEditor::store(QString& command, QString& parameters)
 {
 	command = QStringLiteral("GraphicEQ");
 	GraphicEQCommand cmd;
-	cmd.nodes = scene->getNodes();
+	cmd.nodes = plot->nodes();
 	parameters += QString::fromStdWString(cmd.serialize());
 }
 
 void GraphicEQCardEditor::loadPreferences(const QVariantMap& prefs)
 {
-	bool ok = false;
-	const double zoomY = prefs.value(QStringLiteral("cardZoomY")).toDouble(&ok);
-	if (ok && zoomY > 0)
-		scene->setZoom(scene->getZoomX(), zoomY);
-	// The frame is stored in dB (device- and zoom-independent), not as a
-	// scrollbar offset like the legacy GUI's prefs.
-	const double topDb = prefs.value(QStringLiteral("cardFrameTopDb")).toDouble(&ok);
-	if (ok)
-		plotView->setVerticalFrame(topDb);
+	// The frame is stored in dB (device- and layout-independent).
+	bool okTop = false;
+	bool okSpan = false;
+	const double storedTop = prefs.value(QStringLiteral("cardDbTop")).toDouble(&okTop);
+	const double storedSpan = prefs.value(QStringLiteral("cardDbSpan")).toDouble(&okSpan);
+	if (okTop && okSpan)
+		plot->setFrame(storedTop, storedSpan);
 }
 
 void GraphicEQCardEditor::storePreferences(QVariantMap& prefs)
 {
-	prefs.insert(QStringLiteral("cardZoomY"), scene->getZoomY());
-	prefs.insert(QStringLiteral("cardFrameTopDb"), plotView->verticalFrameTopDb());
-}
-
-void GraphicEQCardEditor::insertRow(int index, double hz, double db)
-{
-	bandTable->blockSignals(true);
-	bandTable->insertRow(index);
-	bandTable->setItem(index, 0, new QTableWidgetItem(QStringLiteral("%0").arg(hz)));
-	bandTable->setItem(index, 1, new QTableWidgetItem(QStringLiteral("%0").arg(db)));
-	// New rows must follow the active mode's frequency-lock rule.
-	if (scene->getBandCount() != -1)
-	{
-		QTableWidgetItem* freqItem = bandTable->item(index, 0);
-		freqItem->setFlags(freqItem->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsEnabled));
-	}
-	bandTable->blockSignals(false);
-}
-
-void GraphicEQCardEditor::removeRow(int index)
-{
-	bandTable->blockSignals(true);
-	bandTable->removeRow(index);
-	bandTable->blockSignals(false);
-}
-
-void GraphicEQCardEditor::updateRow(int index, double hz, double db)
-{
-	bandTable->blockSignals(true);
-	bandTable->item(index, 0)->setText(QStringLiteral("%0").arg(hz));
-	bandTable->item(index, 1)->setText(QStringLiteral("%0").arg(db));
-	bandTable->blockSignals(false);
-}
-
-void GraphicEQCardEditor::moveRow(int fromIndex, int toIndex)
-{
-	bandTable->blockSignals(true);
-	QTableWidgetItem* freqItem = bandTable->takeItem(fromIndex, 0);
-	QTableWidgetItem* gainItem = bandTable->takeItem(fromIndex, 1);
-	const bool selected = bandTable->selectionModel()->isRowSelected(fromIndex, bandTable->rootIndex());
-	bandTable->removeRow(fromIndex);
-	bandTable->insertRow(toIndex);
-	bandTable->setItem(toIndex, 0, freqItem);
-	bandTable->setItem(toIndex, 1, gainItem);
-	if (selected)
-	{
-		QModelIndex modelIndex = bandTable->model()->index(toIndex, 0);
-		bandTable->selectionModel()->select(modelIndex, QItemSelectionModel::Rows | QItemSelectionModel::Select);
-		bandTable->scrollTo(modelIndex);
-	}
-	bandTable->blockSignals(false);
-}
-
-void GraphicEQCardEditor::selectRow(int index, bool select)
-{
-	bandTable->blockSignals(true);
-	QItemSelectionModel::SelectionFlags command = QItemSelectionModel::Rows;
-	command |= select ? QItemSelectionModel::Select : QItemSelectionModel::Deselect;
-	QModelIndex modelIndex = bandTable->model()->index(index, 0);
-	bandTable->selectionModel()->select(modelIndex, command);
-	bandTable->scrollTo(modelIndex);
-	bandTable->blockSignals(false);
-}
-
-void GraphicEQCardEditor::tableCellChanged(int row, int column)
-{
-	if (column == 0)
-	{
-		QTableWidgetItem* freqItem = bandTable->item(row, 0);
-		bool ok;
-		double freq = freqItem->text().toDouble(&ok);
-		if (ok)
-		{
-			scene->setNode(row, freq, scene->getNodes()[row].dbGain);
-		}
-		else
-		{
-			freq = scene->getNodes()[row].freq;
-			freqItem->setText(QStringLiteral("%0").arg(freq));
-		}
-	}
-	else if (column == 1)
-	{
-		QTableWidgetItem* gainItem = bandTable->item(row, 1);
-		bool ok;
-		double gain = gainItem->text().toDouble(&ok);
-		if (ok)
-		{
-			scene->setNode(row, scene->getNodes()[row].freq, gain);
-		}
-		else
-		{
-			gain = scene->getNodes()[row].dbGain;
-			gainItem->setText(QStringLiteral("%0").arg(gain));
-		}
-	}
-}
-
-void GraphicEQCardEditor::tableSelectionChanged()
-{
-	QSet<int> selectedRows;
-	for (QTableWidgetItem* item : bandTable->selectedItems())
-		selectedRows.insert(item->row());
-	scene->setSelectedNodes(selectedRows);
+	prefs.insert(QStringLiteral("cardDbTop"), plot->frameTopDb());
+	prefs.insert(QStringLiteral("cardDbSpan"), plot->frameSpanDb());
 }
 
 void GraphicEQCardEditor::modeSelected(int comboIndex)
 {
-	applyBandCount(comboIndex == 0 ? 15 : (comboIndex == 1 ? 31 : -1));
+	const int bandCount = comboIndex == 0 ? 15 : (comboIndex == 1 ? 31 : -1);
+	applyBandCount(bandCount);
 }
 
 void GraphicEQCardEditor::applyBandCount(int bandCount)
 {
-	scene->setBandCount(bandCount);
-	setFreqEditable(bandCount == -1);
+	if (bandCount == plot->bandCount())
+		return;
+
+	if (bandCount != -1)
+	{
+		// Resample the current response onto the fixed band layout through
+		// the shared engine-side interpolator (the legacy scene's rule).
+		const vector<double>& bands = FrequencyPlotScene::getBands(bandCount);
+		vector<FilterNode> resampled;
+		vector<FilterNode> current = plot->nodes();
+		GainIterator gainIterator(current);
+		resampled.reserve(bands.size());
+		for (double band : bands)
+			resampled.push_back(FilterNode(band, std::round(gainIterator.gainAt(band) * 100.0) / 100.0));
+		plot->setBandCount(bandCount);
+		plot->setNodes(resampled);
+		syncReadout();
+		emit updateModel();
+	}
+	else
+	{
+		plot->setBandCount(bandCount);
+		syncReadout();
+	}
+
+	freqBox->setEnabled(bandCount == -1 && plot->focusedNode() >= 0);
 }
 
 void GraphicEQCardEditor::syncModeCombo(int bandCount)
@@ -405,44 +227,52 @@ void GraphicEQCardEditor::syncModeCombo(int bandCount)
 	modeCombo->blockSignals(true);
 	modeCombo->setCurrentIndex(comboIndex);
 	modeCombo->blockSignals(false);
-	applyBandCount(bandCount);
+	plot->setBandCount(bandCount);
+	freqBox->setEnabled(bandCount == -1 && plot->focusedNode() >= 0);
 }
 
-void GraphicEQCardEditor::setFreqEditable(bool editable)
+void GraphicEQCardEditor::focusedNodeChanged(int)
 {
-	bandTable->blockSignals(true);
-	for (int i = 0; i < bandTable->rowCount(); i++)
+	syncReadout();
+}
+
+void GraphicEQCardEditor::syncReadout()
+{
+	syncingReadout = true;
+	const int index = plot->focusedNode();
+	const vector<FilterNode>& nodes = plot->nodes();
+	const bool valid = index >= 0 && index < int(nodes.size());
+	if (valid)
 	{
-		QTableWidgetItem* item = bandTable->item(i, 0);
-		if (editable)
-			item->setFlags(item->flags() | Qt::ItemIsEditable | Qt::ItemIsEnabled);
-		else
-			item->setFlags(item->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsEnabled));
+		bandCaption->setText(tr("Band %0 / %1").arg(index + 1).arg(nodes.size()));
+		freqBox->setValue(nodes[size_t(index)].freq);
+		gainBox->setValue(nodes[size_t(index)].dbGain);
 	}
-	bandTable->blockSignals(false);
+	else
+	{
+		bandCaption->setText(tr("No bands"));
+		freqBox->setValue(1000.0);
+		gainBox->setValue(0.0);
+	}
+	freqBox->setEnabled(valid && plot->bandCount() == -1);
+	gainBox->setEnabled(valid);
+	syncingReadout = false;
 }
 
-void GraphicEQCardEditor::applySkinToPlot()
+void GraphicEQCardEditor::readoutFreqChanged(double value)
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	FrequencyPlotColors colors;
-	colors.tokenDriven = true;
-	colors.grid = QColor(tokens.graphGridMajor);
-	colors.curve = QColor(tokens.accent);
-	colors.node = QColor(tokens.surfaceRaised);
-	colors.nodeInk = QColor(tokens.text);
-	colors.nodeSelected = QColor(tokens.accent);
-	// Readable numeral on the accent disc in both modes: pick by luminance.
-	const QColor accent(tokens.accent);
-	colors.nodeSelectedInk = accent.lightness() < 140 ? QColor(Qt::white) : QColor(Qt::black);
-	colors.rulerInk = QColor(tokens.mutedText);
-	colors.rulerCursorInk = QColor(tokens.accent);
-	colors.rulerCursorBox = QColor(tokens.graph);
-	colors.rulerCursorFrame = QColor(tokens.border);
-	scene->setPlotColors(colors);
-	plotView->setBackgroundBrush(QColor(tokens.graph));
-	plotView->resetCachedContent();
-	plotView->viewport()->update();
+	if (syncingReadout || plot->focusedNode() < 0)
+		return;
+	const vector<FilterNode>& nodes = plot->nodes();
+	plot->setNodeValues(plot->focusedNode(), value, nodes[size_t(plot->focusedNode())].dbGain);
+}
+
+void GraphicEQCardEditor::readoutGainChanged(double value)
+{
+	if (syncingReadout || plot->focusedNode() < 0)
+		return;
+	const vector<FilterNode>& nodes = plot->nodes();
+	plot->setNodeValues(plot->focusedNode(), nodes[size_t(plot->focusedNode())].freq, value);
 }
 
 void GraphicEQCardEditor::retintActions()
@@ -454,6 +284,19 @@ void GraphicEQCardEditor::retintActions()
 			continue;
 		button->setIcon(GUIHelper::tintedIcon(button->property("modernIcon").toString(), ink, 16));
 	}
+}
+
+int GraphicEQCardEditor::verifyBands(const vector<FilterNode>& nodes)
+{
+	const vector<double>& bands = FrequencyPlotScene::getBands(int(nodes.size()));
+	if (bands.empty())
+		return -1;
+	for (size_t i = 0; i < nodes.size(); i++)
+	{
+		if (std::abs(nodes[i].freq - bands[i]) > 0.1)
+			return -1;
+	}
+	return int(nodes.size());
 }
 
 void GraphicEQCardEditor::importTriggered()
@@ -502,15 +345,13 @@ void GraphicEQCardEditor::importTriggered()
 	}
 	sort(newNodes.begin(), newNodes.end());
 
-	scene->setNodes(newNodes);
-
-	// A band-layout switch persists through setBandCount's own updateModel;
-	// only the unchanged-layout import needs the explicit nudge.
-	const int bandCount = scene->verifyBands(newNodes);
-	if (bandCount != scene->getBandCount())
-		syncModeCombo(bandCount);
-	else
-		emit updateModel();
+	const int bandCount = verifyBands(newNodes);
+	plot->setBandCount(bandCount);
+	plot->setNodes(newNodes);
+	syncModeCombo(bandCount);
+	plot->frameToResponse();
+	syncReadout();
+	emit updateModel();
 }
 
 void GraphicEQCardEditor::exportTriggered()
@@ -531,7 +372,7 @@ void GraphicEQCardEditor::exportTriggered()
 	if (file.open(QFile::WriteOnly | QFile::Truncate))
 	{
 		QTextStream stream(&file);
-		for (const FilterNode& node : scene->getNodes())
+		for (const FilterNode& node : plot->nodes())
 			stream << node.freq << '\t' << node.dbGain << '\n';
 		stream.flush();
 	}
@@ -539,17 +380,18 @@ void GraphicEQCardEditor::exportTriggered()
 
 void GraphicEQCardEditor::invertTriggered()
 {
-	vector<FilterNode> newNodes = scene->getNodes();
+	vector<FilterNode> newNodes = plot->nodes();
 	for (FilterNode& node : newNodes)
 		node.dbGain = -node.dbGain;
 
-	scene->setNodes(newNodes);
+	plot->setNodes(newNodes);
+	syncReadout();
 	emit updateModel();
 }
 
 void GraphicEQCardEditor::normalizeTriggered()
 {
-	vector<FilterNode> newNodes = scene->getNodes();
+	vector<FilterNode> newNodes = plot->nodes();
 
 	double maxGain = -DBL_MAX;
 	for (const FilterNode& node : newNodes)
@@ -560,25 +402,28 @@ void GraphicEQCardEditor::normalizeTriggered()
 		for (FilterNode& node : newNodes)
 			node.dbGain -= maxGain;
 
-		scene->setNodes(newNodes);
+		plot->setNodes(newNodes);
+		syncReadout();
 		emit updateModel();
 	}
 }
 
 void GraphicEQCardEditor::resetTriggered()
 {
-	vector<FilterNode> newNodes = scene->getNodes();
-	QSet<int> selectedIndices = scene->getSelectedIndices();
+	// The legacy rule: an active selection resets only those bands,
+	// otherwise the whole response flattens.
+	vector<FilterNode> newNodes = plot->nodes();
+	const QSet<int> selected = plot->selectedNodes();
 
 	int index = 0;
 	for (FilterNode& node : newNodes)
 	{
-		if (selectedIndices.isEmpty() || selectedIndices.contains(index))
+		if (selected.isEmpty() || selected.contains(index))
 			node.dbGain = 0.0;
 		index++;
 	}
 
-	scene->setNodes(newNodes);
-	scene->setSelectedNodes(selectedIndices);
+	plot->setNodes(newNodes);
+	syncReadout();
 	emit updateModel();
 }

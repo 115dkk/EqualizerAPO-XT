@@ -204,6 +204,11 @@ void SkinManager::paintInsertSeam(QPainter& painter, const QRect& rect, const Li
 	activeSkin->paintInsertSeam(painter, rect, state, currentTokens);
 }
 
+void SkinManager::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state) const
+{
+	activeSkin->paintGraphicEqPlot(painter, state, currentTokens);
+}
+
 FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 {
 	return activeSkin->createFilterPicker(parent);

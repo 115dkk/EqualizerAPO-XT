@@ -211,6 +211,7 @@ SOURCES += main.cpp\
 	widgets/AddCardRow.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/FilterInsertSeam.cpp \
+	widgets/GraphicEQPlotWidget.cpp \
 	widgets/FlowLayout.cpp \
 	widgets/CommandRowFrame.cpp \
 	widgets/SkinComboBox.cpp \
@@ -426,6 +427,7 @@ HEADERS  += \
 	widgets/AddCardRow.h \
 	widgets/AudioKnob.h \
 	widgets/FilterInsertSeam.h \
+	widgets/GraphicEQPlotWidget.h \
 	widgets/FlowLayout.h \
 	widgets/CommandRowFrame.h \
 	widgets/SkinComboBox.h \

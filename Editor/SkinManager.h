@@ -14,6 +14,7 @@ class QToolBar;
 class QWidget;
 class ReferenceCardView;
 struct CommandRowInfo;
+struct GraphicEQPlotState;
 struct KnobState;
 struct ListChromeState;
 
@@ -65,6 +66,9 @@ public:
 	// reached with an active skin.
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state) const;
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state) const;
+
+	// The GraphicEQ card's response plot (ISkin::paintGraphicEqPlot).
+	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state) const;
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;

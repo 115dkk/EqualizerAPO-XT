@@ -109,18 +109,33 @@ front-insertion entry, no per-gap `+` chrome) are the shared insertion
 contract in [docs/skins/README.md](skins/README.md); LegacyRows keeps the
 frozen toolbar flow.
 
-## Token-driven frequency plot (GraphicEQ card)
+## GraphicEQ plot hook
 
 The modern GraphicEQ card (`Editor/widgets/cards/GraphicEQCardEditor.{h,cpp}`)
-reuses the legacy plot stack but colours it through
-`FrequencyPlotColors` (`Editor/widgets/FrequencyPlotScene.h`): an opt-in
-struct (`tokenDriven=false` by default) consumed by the plot view, curve
-view, node items and both rulers. The frozen legacy GraphicEQ GUI never sets
-it and keeps its hardcoded palette. The card derives the colours from
-`SkinTokens` on every skin change; skins that need different plot inks adjust
-their tokens, not the plot code. Card chrome styles via object names:
-`GraphicEQModeCombo` (already wears the `paramSelector` grammar),
-`GraphicEQBandTable`, `GraphicEQActionButton`, `GraphicEQCardPlot`.
+does not reuse the legacy QGraphicsView stack at all. Its response lives in
+`GraphicEQPlotWidget` (`Editor/widgets/GraphicEQPlotWidget.{h,cpp}`), which
+follows the knob precedent: the widget owns the node model and every input
+gesture (drag, double-click insert, Delete, selection, arrow nudges, wheel
+dB zoom, right-drag pan; the frequency axis is pinned to 20 Hz – 20 kHz) and
+delegates every pixel:
+
+```cpp
+// ISkin (Editor/skins/ISkin.h)
+virtual void paintGraphicEqPlot(QPainter&, const GraphicEQPlotState&, const SkinTokens&) const;
+```
+
+`GraphicEQPlotState` hands the skin pre-mapped pixel geometry: the widget
+rect and inner `plotRect`, the sampled response `curve`, `zeroY`,
+`nodePositions` with selection/hover/focus indices, labelled grid lines,
+`bandLocked` (15/31 layouts, where stems/bars are a legitimate reading) and
+the cursor readout text. The default implementation is a quiet token-driven
+instrument; each shipped skin overrides it wholesale (form in paint code,
+QSS only tints the stock controls around it). Precise entry rides the
+selected-band readout strip under the plot — `GraphicEQReadout`,
+`GraphicEQBandCaption`, `GraphicEQReadoutLabel`, `GraphicEQFreqBox`/
+`GraphicEQGainBox` (X1 value-scrub grammar) — plus `GraphicEQModeCombo`
+(X5 paramSelector) and the `GraphicEQActionButton` row above. The frozen
+LegacyRows GraphicEQ GUI keeps the original QGraphicsView stack untouched.
 
 ## Skin theme data for satellite executables
 

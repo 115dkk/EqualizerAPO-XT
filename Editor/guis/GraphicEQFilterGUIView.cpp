@@ -55,17 +55,7 @@ void GraphicEQFilterGUIView::drawBackground(QPainter* painter, const QRectF& rec
 			path.lineTo(x, y);
 		}
 	}
-	const FrequencyPlotColors& colors = s->plotColors();
-	if (colors.tokenDriven)
-	{
-		// Token-driven mode (modern GraphicEQ card): the response curve is the
-		// value on this plot, so it carries the accent and a touch of weight.
-		painter->setPen(QPen(colors.curve, 1.6));
-	}
-	else
-	{
-		bool dark = GUIHelper::isDarkMode();
-		painter->setPen(dark ? Qt::white : Qt::black);
-	}
+    bool dark = GUIHelper::isDarkMode();
+    painter->setPen(dark ? Qt::white : Qt::black);
 	painter->drawPath(path);
 }
