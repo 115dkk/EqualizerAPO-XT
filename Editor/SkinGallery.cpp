@@ -710,6 +710,15 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		addRow.resize(960, addRow.sizeHint().height());
 		addRow.show();
 		QApplication::processEvents();
+		// The offscreen platform parks the cursor at (0,0), which lands inside
+		// this window and delivers a synthetic Enter on show, and window
+		// activation hands the row keyboard focus - both dressed the "normal"
+		// shot as hover+focus (found independently by every skin agent in the
+		// round-3 program). Clear both so the at-rest state is what gets judged.
+		QEvent addRowLeave(QEvent::Leave);
+		QApplication::sendEvent(&addRow, &addRowLeave);
+		addRow.clearFocus();
+		QApplication::processEvents();
 		failures += saveGrab(&addRow, outDir, skinId, mode, QStringLiteral("addrow"), QStringLiteral("normal")) ? 0 : 1;
 		QEnterEvent addRowEnter(QPointF(480, 10), QPointF(480, 10), QPointF(480, 10));
 		QApplication::sendEvent(&addRow, &addRowEnter);
