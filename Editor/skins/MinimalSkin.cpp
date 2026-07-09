@@ -312,6 +312,201 @@ void paintMinimalGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& stat
 	painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
 }
 
+// The analysis dock's response graph as this skin's plotter sheet: the
+// measurement-record grammar of the GraphicEQ plot stretched into a wide
+// always-on lab chart. Same display language - graph-token ground, faintest
+// 1px hairline grid, secondary-ink mono axis figures in the margins (dB on
+// both sides of the wide sheet, frequency under the plot; the 0 dB figure
+// alone prints in body ink because it is the reference), the 0 dB rule as
+// the one full-strength straight line and the response as a single crisp
+// 1px body-ink trace with no fill and no glow - ink weight is the
+// hierarchy. Straight lines land on half-pixel centres so they stay crisp
+// with antialiasing on. The sheet prints its own header caption top-left
+// (RESPONSE, the engraved uppercase caption register), so an empty config's
+// flat trace still reads as a deliberate record. Clipping is a flagged
+// region on the chart print: the area between the trace and the 0 dB rule
+// is hatched with flat diagonal warning-ink lines and the header grows a
+// "!! CLIP" tag (the reference card's !!-ink-tag grammar). The cursor is a
+// plotter crosshair - a full-height vertical hairline with a short
+// horizontal tick at the reading - whose ink rises from the secondary
+// half-tone to body ink with the hover progress, and the prepared readout
+// is printed in the top margin like an annotation in the same rising ink.
+// The footer channel/sample-rate caption is sheet metadata on the bottom
+// edge, printed as-is (localized data) and elided, never overflowed.
+void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens)
+{
+	const QColor ground(tokens.graph);
+	const QColor gridMinor(tokens.graphGridMinor);
+	const QColor gridMajor(tokens.graphGridMajor);
+	const QColor secondary(tokens.mutedText);
+	const QColor bodyInk(tokens.text);
+	const QColor warningInk(tokens.warning);
+
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+	painter.fillRect(state.rect, ground);
+
+	const double plotLeft = state.plotRect.left();
+	const double plotRight = state.plotRect.right();
+	const double plotTop = state.plotRect.top();
+	const double plotBottom = state.plotRect.bottom();
+
+	QFont labelFont(tokens.monoFontFamily);
+	labelFont.setPointSizeF(7.5);
+
+	// Vertical grid and the frequency figures under the plot. A figure that
+	// would run into the previous print is skipped (majors always print) -
+	// the sheet stays legible at any dock width.
+	painter.setFont(labelFont);
+	const QFontMetricsF labelMetrics(labelFont);
+	double lastFigureRight = -1.0e9;
+	for (const AnalysisGraphState::GridLine& line : state.vertical)
+	{
+		const double x = qFloor(line.pos) + 0.5;
+		painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+		painter.drawLine(QPointF(x, plotTop), QPointF(x, plotBottom));
+		if (line.label.isEmpty())
+			continue;
+		const double halfWidth = labelMetrics.horizontalAdvance(line.label) / 2.0;
+		if (!line.major && x - halfWidth < lastFigureRight + 4.0)
+			continue;
+		painter.setPen(secondary);
+		painter.drawText(QRectF(x - 24.0, plotBottom + 3.0, 48.0, 11.0),
+			Qt::AlignHCenter | Qt::AlignTop, line.label);
+		lastFigureRight = x + halfWidth;
+	}
+
+	// The dB figures live in the side margins. The margins are narrow, so
+	// the axis font follows the knob precedent: shrink to fit, never clip.
+	QFont axisFont(labelFont);
+	{
+		const double marginWidth = plotLeft - state.rect.left();
+		double widest = 0.0;
+		for (const AnalysisGraphState::GridLine& line : state.horizontal)
+			widest = qMax(widest, QFontMetricsF(axisFont).horizontalAdvance(line.label));
+		while (widest > marginWidth - 2.0 && axisFont.pointSizeF() > 6.0)
+		{
+			axisFont.setPointSizeF(axisFont.pointSizeF() - 0.5);
+			widest = 0.0;
+			for (const AnalysisGraphState::GridLine& line : state.horizontal)
+				widest = qMax(widest, QFontMetricsF(axisFont).horizontalAdvance(line.label));
+		}
+	}
+	painter.setFont(axisFont);
+	double lastFigureY = 1.0e9;
+	for (const AnalysisGraphState::GridLine& line : state.horizontal)
+	{
+		const double y = qFloor(line.pos) + 0.5;
+		painter.setPen(QPen(line.major ? gridMajor : gridMinor, 1));
+		painter.drawLine(QPointF(plotLeft, y), QPointF(plotRight, y));
+		if (line.label.isEmpty())
+			continue;
+		if (!line.major && lastFigureY - y < 11.0)
+			continue;
+		painter.setPen(line.major ? bodyInk : secondary);
+		painter.drawText(QRectF(state.rect.left(), y - 6.0, plotLeft - state.rect.left() - 2.0, 12.0),
+			Qt::AlignRight | Qt::AlignVCenter, line.label);
+		painter.drawText(QRectF(plotRight + 2.0, y - 6.0, state.rect.right() - plotRight - 2.0, 12.0),
+			Qt::AlignLeft | Qt::AlignVCenter, line.label);
+		lastFigureY = y;
+	}
+
+	// The clipping flag: the region between the trace and the 0 dB rule is
+	// hatched with flat diagonal warning-ink lines, like a flagged region
+	// stamped on a chart print. The rule and the trace print over it.
+	if (state.clipping && state.curve.size() >= 2 && state.zeroY > plotTop + 1.0)
+	{
+		QPolygonF closed = state.curve;
+		closed.append(QPointF(state.curve.last().x(), state.zeroY));
+		closed.append(QPointF(state.curve.first().x(), state.zeroY));
+		QPainterPath overshoot;
+		overshoot.addPolygon(closed);
+		overshoot.closeSubpath();
+
+		painter.save();
+		painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
+		painter.setClipPath(overshoot, Qt::IntersectClip);
+		painter.setPen(QPen(warningInk, 1));
+		const double rise = state.zeroY - plotTop;
+		for (double x = plotLeft - rise; x <= plotRight; x += 4.0)
+			painter.drawLine(QPointF(x, state.zeroY), QPointF(x + rise, plotTop));
+		painter.restore();
+	}
+
+	// The 0 dB rule: the one full-strength straight line, body ink 1px.
+	if (state.zeroY >= plotTop && state.zeroY <= plotBottom)
+	{
+		const double zeroY = qFloor(state.zeroY) + 0.5;
+		painter.setPen(QPen(bodyInk, 1));
+		painter.drawLine(QPointF(plotLeft, zeroY), QPointF(plotRight, zeroY));
+	}
+
+	// The response: a single 1px body-ink trace. No fill, no echo - the
+	// trace is data and the brightest line on the sheet.
+	if (state.curve.size() >= 2)
+	{
+		painter.setPen(QPen(bodyInk, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPolyline(state.curve);
+	}
+
+	// The plotter crosshair: a full-height vertical hairline with a short
+	// horizontal tick at the reading. Its ink rises from the secondary
+	// half-tone to body ink with the hover progress (entry motion).
+	const QColor crosshairInk = mixColor(secondary, bodyInk, qBound(0.0, state.hover, 1.0));
+	if (state.cursorValid)
+	{
+		const double cursorX = qFloor(state.cursor.x()) + 0.5;
+		const double readingY = qFloor(state.curveYAtCursor) + 0.5;
+		painter.setPen(QPen(crosshairInk, 1));
+		painter.drawLine(QPointF(cursorX, plotTop), QPointF(cursorX, plotBottom));
+		painter.drawLine(QPointF(cursorX - 6.0, readingY), QPointF(cursorX + 6.0, readingY));
+	}
+
+	// Top-margin annotations: the engraved sheet header (plus the clip tag
+	// when the sheet is flagged) and the cursor reading, printed like a
+	// plotter's margin note in the crosshair's rising ink.
+	const QRectF topBand(plotLeft, state.rect.top() + 2.0, plotRight - plotLeft, 12.0);
+	QFont captionFont(tokens.monoFontFamily);
+	captionFont.setPointSizeF(7.5);
+	captionFont.setBold(true);
+	captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+	painter.setFont(captionFont);
+	painter.setPen(secondary);
+	const QString heading = QStringLiteral("RESPONSE");
+	painter.drawText(topBand, Qt::AlignLeft | Qt::AlignVCenter, heading);
+	if (state.clipping)
+	{
+		const double headingWidth = QFontMetricsF(captionFont).horizontalAdvance(heading);
+		painter.setPen(warningInk);
+		painter.drawText(topBand.adjusted(headingWidth + 12.0, 0.0, 0.0, 0.0),
+			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("!! CLIP"));
+	}
+	if (state.cursorValid && !state.cursorText.isEmpty())
+	{
+		painter.setFont(labelFont);
+		painter.setPen(crosshairInk);
+		painter.drawText(topBand, Qt::AlignRight | Qt::AlignVCenter, state.cursorText);
+	}
+
+	// Sheet metadata on the bottom edge: the channel/sample-rate caption,
+	// localized data printed as-is in secondary ink, elided to the sheet.
+	if (!state.channelText.isEmpty())
+	{
+		painter.setFont(labelFont);
+		painter.setPen(secondary);
+		const QRectF footer(plotLeft, state.rect.bottom() - 14.0, plotRight - plotLeft, 12.0);
+		painter.drawText(footer, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetrics(labelFont).elidedText(state.channelText, Qt::ElideRight, int(footer.width())));
+	}
+
+	// The frame: one square 1px hairline, the same frame the GraphicEQ
+	// plot wears (half-pixel so it stays crisp under antialiasing).
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5));
+}
+
 // Leading type glyph for the line head, plain ASCII for the mapped types so
 // every mono fallback font covers it. The glyph is shape information ("which
 // kind of line is this"); the colour tag next to it stays the badge token.
@@ -384,6 +579,13 @@ public:
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
 	{
 		paintMinimalGraphicEqPlot(painter, state, tokens);
+	}
+	// The analysis dock's response graph as the plotter sheet - the same
+	// instrument family as the GraphicEQ plot, adapted to a wide always-on
+	// monitoring readout; see paintMinimalAnalysisGraph above.
+	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
+	{
+		paintMinimalAnalysisGraph(painter, state, tokens);
 	}
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
