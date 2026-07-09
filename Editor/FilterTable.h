@@ -30,6 +30,7 @@
 #include <QVector>
 
 #include "Editor/helpers/DisableWheelFilter.h"
+#include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/FilterListUndo.h"
 #include "Editor/widgets/FilterPickerView.h"
@@ -191,10 +192,10 @@ private:
 	// rebuild (frozen fallback, docs/FilterListUiPolicy.md). (audit #146 TD040)
 	void insertRowAt(int index);
 	void removeRowAt(int index);
-	// Refreshes number/depth of the card rows at document index >= firstRow in
+	// Refreshes number/scope of the card rows at document index >= firstRow in
 	// place after an incremental splice. Returns false when a row widget is
 	// not a FilterCardRow (caller falls back to updateGuis). (audit #146 TD040)
-	bool renumberRowsBelow(int firstRow, const QVector<int>& rowDepths);
+	bool renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes);
 	// Card-path list chrome (shared insertion contract, docs/skins/README.md):
 	// the trailing AddCardRow lives in the grid and is rebuilt by updateGuis;
 	// the hover-only FilterInsertSeam floats over the first card's top margin

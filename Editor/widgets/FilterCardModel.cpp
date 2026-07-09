@@ -386,13 +386,54 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = tr("Loudness");
 		descriptor.color = QStringLiteral("#eab308");
 	}
+	else if (commandLower == QStringLiteral("if") || commandLower == QStringLiteral("elseif")
+		|| commandLower == QStringLiteral("else") || commandLower == QStringLiteral("endif"))
+	{
+		// The whole If family shares one card type; the badge tells the branch
+		// kind apart. The summary is the condition expression as written - for
+		// Else/EndIf the engine ignores any text after the colon, and an empty
+		// summary is the honest reading (the title already says everything).
+		descriptor.type = QStringLiteral("if");
+		descriptor.color = QStringLiteral("#f43f5e");
+		if (commandLower == QStringLiteral("if"))
+		{
+			descriptor.badge = QStringLiteral("IF");
+			descriptor.title = tr("If");
+		}
+		else if (commandLower == QStringLiteral("elseif"))
+		{
+			descriptor.badge = QStringLiteral("ELIF");
+			descriptor.title = tr("Else if");
+		}
+		else if (commandLower == QStringLiteral("else"))
+		{
+			descriptor.badge = QStringLiteral("ELSE");
+			descriptor.title = tr("Else");
+		}
+		else
+		{
+			descriptor.badge = QStringLiteral("ENDIF");
+			descriptor.title = tr("End if");
+		}
+	}
+	else if (commandLower == QStringLiteral("eval"))
+	{
+		descriptor.type = QStringLiteral("eval");
+		descriptor.badge = QStringLiteral("EVAL");
+		descriptor.title = tr("Eval");
+		descriptor.color = QStringLiteral("#0ea5e9");
+	}
 
-	// Raw-text rows with a real command token (If:, EndIf:, Eval: ... - the
-	// programmatic vocabulary the editor does not model yet) would otherwise
-	// fall through to the whole-line fallback and print the command twice
-	// ("ENDIF  EndIf:"). An empty summary is the honest reading there: the
-	// title already carries everything the line says.
-	if (descriptor.summary.isEmpty() && !(descriptor.type == QStringLiteral("text") && !command.isEmpty()))
+	// Rows whose summary is the parameter text as written (raw text lines and
+	// the programmatic If/Eval vocabulary) would otherwise fall through to the
+	// whole-line fallback and print the command twice ("ENDIF  EndIf:"). An
+	// empty summary is the honest reading there: the title already carries
+	// everything the line says.
+	const bool commandOnlyRow = !command.isEmpty()
+		&& (descriptor.type == QStringLiteral("text")
+		|| descriptor.type == QStringLiteral("if")
+		|| descriptor.type == QStringLiteral("eval"));
+	if (descriptor.summary.isEmpty() && !commandOnlyRow)
 		descriptor.summary = compactWhitespace(line);
 
 	return descriptor;
@@ -447,32 +488,67 @@ QString FilterCardModel::badgeIconResource(const QString& type, const QString& b
 	return QString();
 }
 
-QVector<int> FilterCardModel::calculateDepths(const QList<QString>& lines)
+QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString>& lines)
 {
-	QVector<int> depths;
-	depths.reserve(lines.size());
+	QVector<FilterCardRowScope> scopes;
+	scopes.reserve(lines.size());
 
-	int currentDepth = 0;
+	// The two depth axes are independent: Channel opens a flat 0/1 grouping for
+	// everything after it, If opens a nestable scope that EndIf closes. Only
+	// enabled lines move either axis - a commented-out If/EndIf is a comment to
+	// the engine too. An unbalanced EndIf clamps at zero instead of going
+	// negative, mirroring how the engine just ignores the stray line.
+	int channelDepth = 0;
+	int ifDepth = 0;
 	for (const QString& line : lines)
 	{
 		bool enabled = !line.trimmed().startsWith('#');
 		QString parameters;
 		QString command = commandForLine(line, &parameters).toLower();
+		FilterCardRowScope scope;
 		if (enabled && command == QStringLiteral("channel"))
 		{
-			depths.append(0);
+			// The Channel row itself sits outside the group it opens but stays
+			// inside any enclosing If block.
+			scope.indent = ifDepth;
+			scope.logic = ifDepth;
 			QStringList channels = parseChannelList(parameters);
-			currentDepth = (channels.isEmpty() || channels.contains(QStringLiteral("ALL"))) ? 0 : 1;
+			channelDepth = (channels.isEmpty() || channels.contains(QStringLiteral("ALL"))) ? 0 : 1;
 		}
-		else if (command == QStringLiteral("include"))
+		else if (enabled && command == QStringLiteral("if"))
 		{
-			depths.append(currentDepth);
+			scope.indent = channelDepth + ifDepth;
+			scope.logic = ifDepth;
+			ifDepth++;
+		}
+		else if (enabled && (command == QStringLiteral("elseif") || command == QStringLiteral("else")))
+		{
+			scope.indent = channelDepth + qMax(0, ifDepth - 1);
+			scope.logic = ifDepth;
+		}
+		else if (enabled && command == QStringLiteral("endif"))
+		{
+			scope.indent = channelDepth + qMax(0, ifDepth - 1);
+			scope.logic = ifDepth;
+			ifDepth = qMax(0, ifDepth - 1);
 		}
 		else
 		{
-			depths.append(currentDepth);
+			scope.indent = channelDepth + ifDepth;
+			scope.logic = ifDepth;
 		}
+		scopes.append(scope);
 	}
 
+	return scopes;
+}
+
+QVector<int> FilterCardModel::calculateDepths(const QList<QString>& lines)
+{
+	const QVector<FilterCardRowScope> scopes = calculateScopes(lines);
+	QVector<int> depths;
+	depths.reserve(scopes.size());
+	for (const FilterCardRowScope& scope : scopes)
+		depths.append(scope.indent);
 	return depths;
 }

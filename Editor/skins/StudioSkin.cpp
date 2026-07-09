@@ -483,10 +483,14 @@ public:
 		painter.setClipping(false);
 
 		if (info.type == QStringLiteral("comment") || info.type == QStringLiteral("text")
-			|| info.type == QStringLiteral("include"))
+			|| info.type == QStringLiteral("include")
+			|| info.type == QStringLiteral("if") || info.type == QStringLiteral("eval"))
 		{
 			// Unlit panes: the glass surface only, no lamp. Include points
-			// elsewhere; comments and raw text carry no signal.
+			// elsewhere; comments and raw text carry no signal, and the If/Eval
+			// logic rows gate signal rather than process it (their gate-beam
+			// presentation is a separate campaign step - until it lands they
+			// stay unlit like the raw rows they used to be).
 			painter.restore();
 			return;
 		}
@@ -1271,10 +1275,11 @@ public:
 		if (body == nullptr)
 			return;
 
-		if (info.type == QStringLiteral("text"))
+		if (info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
+			|| info.type == QStringLiteral("eval"))
 		{
-			// Raw text (bare note lines, If/EndIf and the rest of the
-			// unmodelled programmatic vocabulary) is data behind glass.
+			// Raw text (bare note lines) and the If/Eval logic rows, whose
+			// bodies still host the shared raw editor, are data behind glass.
 			// FilterCardRow lays a shared inline style on the preview label
 			// (inline outranks any sheet rule), and that default speaks a
 			// half-radius 4px - illegal under the one-8px-round law - so

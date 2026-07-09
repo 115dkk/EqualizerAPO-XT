@@ -16,9 +16,26 @@ struct FilterCardDescriptor
 	QString color;
 	QStringList channelBadges;
 	int depth = 0;
+	// Number of If scopes the row lives inside (the logic axis of depth; see
+	// FilterCardRowScope::logic). Not derivable from the line alone, so the row
+	// widget assigns it from calculateScopes() and preserves it across
+	// describeLine() re-derivations.
+	int logicDepth = 0;
 	bool enabled = true;
 	bool canToggleEnabled = true;
 	bool routeType = false;
+};
+
+// Per-row scope answer of calculateScopes(): the indent that drives the left
+// margin plus the If-nesting count that skins use to draw block rails. The two
+// differ on the If family's own lines: ElseIf/Else/EndIf indent at their block
+// head's level (indent = outer scopes) while still belonging to the scope they
+// branch/close (logic = outer scopes + 1), so a painted rail can pass through
+// branch rows and terminate on the EndIf row.
+struct FilterCardRowScope
+{
+	int indent = 0;
+	int logic = 0;
 };
 
 class FilterCardModel
@@ -40,6 +57,12 @@ public:
 	// (SoftFilterPicker's softEntryIcon) because catalog entries have no
 	// descriptor - keep the two in step when adding commands.
 	static QString badgeIconResource(const QString& type, const QString& badge);
+	// Full per-row scope description: indent depth (channel group + If nesting)
+	// and the If-nesting count. Commented-out lines never open or close scopes,
+	// matching the engine (a '#' line is a comment to the parser too).
+	static QVector<FilterCardRowScope> calculateScopes(const QList<QString>& lines);
+	// Indent-only projection of calculateScopes(), kept for callers and tests
+	// that only need the margin depth.
 	static QVector<int> calculateDepths(const QList<QString>& lines);
 	static QString commandForLine(const QString& line, QString* parameters);
 	// A line that is a note, not a disabled command; such a line has no

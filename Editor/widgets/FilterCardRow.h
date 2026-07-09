@@ -20,15 +20,15 @@ class FilterCardRow : public QWidget
 	Q_OBJECT
 
 public:
-	FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, int depth, QWidget* parent = nullptr);
+	FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, FilterCardRowScope scope, QWidget* parent = nullptr);
 
 	QRect getHeaderRect() const;
 	void editText();
-	// In-place refresh of the 1-based row number and the include/channel scope
-	// depth after an incremental row insert/remove above this row, so shifted
-	// rows do not need to be rebuilt. Updates exactly what the constructor
-	// derived from its number/depth arguments. (audit #146 TD040)
-	void updateRowPosition(int rowNumber, int depth);
+	// In-place refresh of the 1-based row number and the channel/If scope after
+	// an incremental row insert/remove above this row, so shifted rows do not
+	// need to be rebuilt. Updates exactly what the constructor derived from its
+	// number/scope arguments. (audit #146 TD040)
+	void updateRowPosition(int rowNumber, FilterCardRowScope scope);
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
 

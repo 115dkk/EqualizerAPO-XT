@@ -587,7 +587,8 @@ public:
 		// must be inline too: the ">_" scan glyph becomes a sunken mono
 		// designation cell (the "#" marker cell's construction) and the raw
 		// line a sunken mono line cell - 1px rules, radius 0, verbatim text.
-		if (info.type == QStringLiteral("text") && body != nullptr)
+		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
+			|| info.type == QStringLiteral("eval")) && body != nullptr)
 		{
 			const SkinTokens& tokens = SkinManager::instance()->tokens();
 			if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))

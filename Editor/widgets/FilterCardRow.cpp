@@ -17,9 +17,10 @@
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
-FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, int depth, QWidget* parent)
-	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, depth))
+FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, FilterCardRowScope scope, QWidget* parent)
+	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, scope.indent))
 {
+	descriptor.logicDepth = scope.logic;
 	setAttribute(Qt::WA_StyledBackground, false);
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -312,6 +313,7 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	info.selected = table != nullptr && table->getSelectedItems().contains(item);
 	info.focused = table != nullptr && table->getFocusedItem() == item;
 	info.depth = descriptor.depth;
+	info.logicDepth = descriptor.logicDepth;
 	return info;
 }
 
@@ -326,10 +328,10 @@ void FilterCardRow::editText()
 		editButton->setChecked(true);
 }
 
-void FilterCardRow::updateRowPosition(int rowNumber, int depth)
+void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 {
 	// (audit #146 TD040) The constructor puts the number into numberLabel and
-	// the depth into the outer layout's left margin, the descriptor (scope
+	// the scope into the outer layout's left margin, the descriptor (scope
 	// rail painting) and the skin styling hooks. Refresh those in place.
 	if (numberLabel != nullptr)
 	{
@@ -346,14 +348,15 @@ void FilterCardRow::updateRowPosition(int rowNumber, int depth)
 		numberLabel->setText(text.left(digitStart) + QString::number(rowNumber));
 	}
 
-	if (descriptor.depth != depth)
+	if (descriptor.depth != scope.indent || descriptor.logicDepth != scope.logic)
 	{
-		descriptor.depth = depth;
+		descriptor.depth = scope.indent;
+		descriptor.logicDepth = scope.logic;
 		if (layout() != nullptr)
-			layout()->setContentsMargins(8 + depth * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
+			layout()->setContentsMargins(8 + scope.indent * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
 		// Re-derives the descriptor at the new depth and refreshes the badge,
-		// the scopeDepth style property and the frame/header stylesheets
-		// (refreshStateProperties), then repaints.
+		// the scopeDepth/logicDepth style properties and the frame/header
+		// stylesheets (refreshStateProperties), then repaints.
 		rebuildSummary();
 	}
 	else
@@ -551,7 +554,12 @@ static QPixmap badgePictogram(const QString& resource, const QColor& ink, int si
 
 void FilterCardRow::rebuildSummary()
 {
+	// describeLine() cannot see neighbouring lines, so the If-scope count is
+	// carried over from the previous descriptor (assigned by the constructor /
+	// updateRowPosition from calculateScopes).
+	const int logicDepth = descriptor.logicDepth;
 	descriptor = FilterCardModel::describeLine(item->text, descriptor.depth);
+	descriptor.logicDepth = logicDepth;
 
 	// Blank lines render as a thin spacer: no header, no body, no raw preview.
 	// The card frame itself stays visible (so its background fills the gap and
@@ -791,7 +799,8 @@ void FilterCardRow::refreshStateProperties()
 		{ "filterEnabled", info.enabled },
 		{ "selected", info.selected },
 		{ "focused", info.focused },
-		{ "scopeDepth", info.depth }
+		{ "scopeDepth", info.depth },
+		{ "logicDepth", info.logicDepth }
 	};
 
 	bool changed = false;
