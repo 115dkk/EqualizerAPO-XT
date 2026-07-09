@@ -110,7 +110,9 @@ void applyEditorTheme(QApplication& app)
 // --skin-shots <outDir>: renders the dialog with canned devices for every
 // skin x dark/light in three states (rest, hovered row, troubleshooting
 // open) on the offscreen platform. The review gate's capture source and the
-// skin work's regression harness - no registry, no COM, byte-stable.
+// skin work's regression harness - no registry writes, no COM. Renders in
+// the user's language (translators install before the harness runs), so
+// byte-comparison only holds for a fixed language setting.
 int runSkinShots(QApplication& app)
 {
 	const QStringList args = app.arguments();
@@ -183,16 +185,19 @@ int main(int argc, char* argv[])
 
 	QApplication app(argc, argv);
 
+	// Language first, exactly like the live dialog: the Editor's language
+	// choice from the registry, or the system locale when none was made. The
+	// shot harness renders through the same translators, so the review
+	// captures read in the user's language.
+	QtAppBootstrap::applyUserLocale();
+	QTranslator qtTranslator;
+	QTranslator deviceSelectorTranslator;
+	QtAppBootstrap::installTranslators(app, QStringLiteral("DeviceSelector"), qtTranslator, deviceSelectorTranslator);
+
 	if (app.arguments().contains(QStringLiteral("--skin-shots")))
 		return runSkinShots(app);
 
 	applyEditorTheme(app);
-
-	QtAppBootstrap::applyUserLocale();
-
-	QTranslator qtTranslator;
-	QTranslator deviceSelectorTranslator;
-	QtAppBootstrap::installTranslators(app, QStringLiteral("DeviceSelector"), qtTranslator, deviceSelectorTranslator);
 
 	if (app.arguments().contains("/u"))
 	{
