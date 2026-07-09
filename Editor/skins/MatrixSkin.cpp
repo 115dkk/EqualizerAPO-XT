@@ -589,6 +589,32 @@ public:
 			}
 		}
 
+		// A bare or unmodelled line (TXT, and the programmatic If/EndIf/Eval
+		// vocabulary) is a remark posting, and on this board everything
+		// posted lives in a cell (the Comment card's doctrine). The shared
+		// raw card lays inline styles on its two labels, so the board answer
+		// must be inline too: the ">_" scan glyph becomes a sunken mono
+		// designation cell (the "#" marker cell's construction) and the raw
+		// line a sunken mono line cell - 1px rules, radius 0, verbatim text.
+		if (info.type == QStringLiteral("text") && body != nullptr)
+		{
+			const SkinTokens& tokens = SkinManager::instance()->tokens();
+			if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
+			{
+				glyph->setStyleSheet(QStringLiteral(
+					"QLabel#FilterCardRawGlyph { background:%1; color:%2; border:1px solid %3;"
+					" border-radius:0; padding:2px 7px; font-family:\"%4\"; font-weight:700; font-size:9pt; }")
+					.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
+			}
+			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
+			{
+				raw->setStyleSheet(QStringLiteral(
+					"QLabel#FilterCardRawText { background:%1; color:%2; border:1px solid %3;"
+					" border-radius:0; padding:4px 8px; font-family:\"%4\"; font-size:9pt; }")
+					.arg(tokens.surfaceSunken, tokens.text, tokens.border, tokens.monoFontFamily));
+			}
+		}
+
 		// No per-type body decoration remains: the reference bodies build
 		// their own board grammar in MatrixReferenceCardView (which also
 		// owns the VST port strip that used to be injected from here).
@@ -672,6 +698,129 @@ public:
 				painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
 			}
 		}
+	}
+
+	// The trailing add row is a vacant board cell: a slot the board has not
+	// posted yet (shared insertion contract, docs/skins/README.md). The dashed
+	// 1px rule says "no live signal here" - the cancelled-departure dash,
+	// form not colour - around the board's own graph paper, and the slot's
+	// designation cell holds "+" instead of a bus letter because the letter
+	// is only assigned when the picker posts an entry. The caption is a mono
+	// board caption. Hover is the crosspoint pre-light (row band + coordinate
+	// column band, the card chrome's alphas) with the designation lighting
+	// accent like a hovered coordinate readout; pressing engages the slot:
+	// solid accent rule + LED-filled designation cell. Crisp throughout.
+	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		const QRect cell = rect.adjusted(0, 0, -1, -1);
+		if (cell.width() <= 0 || cell.height() <= 0)
+			return;
+
+		// The vacant slot exposes the board surface's graph paper (the same
+		// faint 24px column grid the masthead and toolbar sit on).
+		QColor grid(tokens.border);
+		grid.setAlpha(QColor(tokens.surface).lightness() < 128 ? 55 : 90);
+		painter.setPen(QPen(grid, 1));
+		for (int x = cell.left() + MatrixMetrics::gridPitch; x < cell.right(); x += MatrixMetrics::gridPitch)
+			painter.drawLine(x, cell.top() + 1, x, cell.bottom() - 1);
+
+		// Crosspoint pre-light: row band + coordinate-column band; their
+		// overlap in the coordinate band is the crosspoint.
+		if (state.hovered || state.pressed)
+		{
+			QColor rowBand(tokens.accent);
+			rowBand.setAlpha(state.pressed ? 28 : 22);
+			painter.fillRect(cell, rowBand);
+			QColor columnColor(tokens.accent);
+			columnColor.setAlpha(14);
+			painter.fillRect(QRect(cell.left(), cell.top(),
+				qMin(MatrixMetrics::coordinateBandWidth, cell.width()), cell.height()), columnColor);
+		}
+
+		// Outer rule: dashed while the slot is vacant, solid accent while
+		// being engaged (pressed = the picker is about to post here). Hover
+		// pre-lights the dash in accent; keyboard focus is NOT a pre-light -
+		// it gets the square cell bracket below (the knob focus grammar), so
+		// a merely focused slot still reads at rest.
+		const bool preLit = state.hovered;
+		painter.setPen(QPen(QColor(state.pressed || preLit ? tokens.accent : tokens.border), 1,
+			state.pressed ? Qt::SolidLine : Qt::DashLine));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(cell);
+
+		// Designation cell awaiting its bus letter: a sunken coordinate cell
+		// holding "+". Muted at rest like every resting coordinate, accent
+		// pre-light on hover, LED fill while engaged.
+		QFont mono(tokens.monoFontFamily);
+		mono.setPointSizeF(9.0);
+		mono.setBold(true);
+		const QFontMetrics monoMetrics(mono);
+		const int designationWidth = monoMetrics.horizontalAdvance(QStringLiteral("+")) + 12;
+		const QRect designationRect(cell.left() + 10, cell.center().y() - 9, designationWidth, 18);
+		painter.setPen(QPen(QColor(state.pressed || preLit ? tokens.accent : tokens.border), 1));
+		painter.setBrush(state.pressed ? QColor(tokens.accent) : QColor(tokens.surfaceSunken));
+		painter.drawRect(designationRect.adjusted(0, 0, -1, -1));
+		painter.setFont(mono);
+		painter.setPen(state.pressed ? QColor(tokens.background)
+			: (preLit ? QColor(tokens.accent) : QColor(tokens.mutedText)));
+		painter.drawText(designationRect, Qt::AlignCenter, QStringLiteral("+"));
+
+		// Keyboard focus: a square cell bracket around the designation cell
+		// (glow-free - this skin's corner language is the rectangle).
+		if (state.focused && !state.pressed)
+		{
+			painter.setPen(QPen(QColor(tokens.accent), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(designationRect.adjusted(-3, -3, 2, 2));
+		}
+
+		// Mono board caption; body ink while the crosspoint is lit.
+		QFont caption(tokens.monoFontFamily);
+		caption.setPointSizeF(8.0);
+		caption.setWeight(QFont::DemiBold);
+		caption.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+		painter.setFont(caption);
+		painter.setPen(QColor(state.hovered || state.pressed ? tokens.text : tokens.mutedText));
+		painter.drawText(QRect(designationRect.right() + 11, cell.top(), qMax(0, cell.right() - designationRect.right() - 12), cell.height()),
+			Qt::AlignVCenter | Qt::AlignLeft, state.label.toUpper());
+	}
+
+	// The first-boundary seam: a 1px accent rule with a square insertion
+	// cell at its head - the crosspoint about to be patched ahead of line 1.
+	// No disc (this skin's corner language is the rectangle), no glow, AA
+	// off. The hosting widget paints nothing at rest, so the board stays
+	// clean until the cursor crosses the boundary.
+	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
+	{
+		if (!state.hovered && !state.pressed)
+			return;
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		const QColor accent(tokens.accent);
+		const int centerY = rect.center().y();
+		const int side = qMin(rect.height(), 14);
+		if (side <= 2 || rect.width() <= side)
+			return;
+
+		// Square insertion cell: sunken well + accent rule while pre-lit,
+		// LED fill while pressed (the engage grammar of every cell).
+		const QRect cellRect(rect.left(), centerY - side / 2, side, side);
+		painter.setPen(QPen(accent, 1));
+		painter.setBrush(state.pressed ? accent : QColor(tokens.surfaceSunken));
+		painter.drawRect(cellRect.adjusted(0, 0, -1, -1));
+
+		QFont mono(tokens.monoFontFamily);
+		mono.setPixelSize(qMax(6, side - 3));
+		mono.setBold(true);
+		painter.setFont(mono);
+		painter.setPen(state.pressed ? QColor(tokens.background) : accent);
+		painter.drawText(cellRect.adjusted(0, 0, -1, -1), Qt::AlignCenter, QStringLiteral("+"));
+
+		// The 1px insertion rule across the boundary.
+		painter.setPen(QPen(accent, 1));
+		painter.drawLine(cellRect.right() + 5, centerY, rect.right() - 1, centerY);
 	}
 
 	// The board's masthead: the faint 24px column grid behind the title

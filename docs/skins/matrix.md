@@ -230,6 +230,48 @@ MultiConvolution 카드가 같은 격자를 고정 소스 모드(RoutingPortMode
   `-- NO SIGNAL --` 보드 표기를 게시하고 푸터는 `> NO MATCH`를 판독한다.
   출발 안내판은 꺼지는 대신 결손을 게시한다.
 
+### 리스트 크롬 — 미게시 슬롯과 첫 경계 삽입선 (라운드 3)
+
+카드 추가·삽입의 공유 계약(README)에 대한 이 보드의 답은 둘 다 **셀**이다.
+
+- **맨 끝 add row = 아직 게시되지 않은 보드 슬롯.** 점선 1px 룰(결항 대시의
+  문법 — 신호 없음은 형태로 말한다)이 보드 모눈(24px 칼럼 그리드)을 두르고,
+  왼쪽 지정 셀은 버스 문자 대신 `+`를 담는다 — 문자는 픽커가 항목을 게시할
+  때에야 배정되기 때문이다. 캡션은 모노 보드 캡션. 호버는 크로스포인트
+  프리라이트(행 밴드 + 좌표 칼럼 밴드, 카드 크롬과 같은 α)이고 지정 셀
+  잉크가 액센트로 켜지며, 누르면 체결이다: 실선 액센트 룰 + LED 채움 지정
+  셀. 전부 크리스프.
+- **첫 경계 삽입선 = 1px 액센트 룰 + 정사각 삽입 셀.** 원판(디스크)은 이
+  스킨의 모서리 언어가 아니다. 함몰 정사각 셀에 모노 `+`, 프리라이트는
+  액센트 룰, 누름은 LED 채움. 휴지 시에는 아무것도 그리지 않는다(위젯
+  계약).
+
+### GraphicEQ 카드 — 응답 데이터 블록
+
+클린 설치의 첫 화면이므로 보드 문법이 그대로 서야 한다. 밴드 테이블은 함몰
+데이터 셀(@GRAPH@ 그라운드 + 1px 룰 + 모노 수치 — 불변 규칙 5)이고, 행 번호
+헤더는 좌표 계급(모노, muted, 룰)이다. 선택된 밴드는 체결 크로스포인트(액센트
+워시)이지 고유색이 아니다. 액션 버튼 5개는 툴바 열차의 투명 기능 셀(호버
+프리라이트, 누름 체결, 비활성 점선)이고, 곡선 뷰는 1px 룰 뒤의 데이터
+셀이다 — 곡선 잉크는 SkinTokens가 공급하므로 시트는 chrome만 소유한다. 모드
+콤보는 기존 `paramSelector` 문법을 그대로 탄다.
+
+### 맨텍스트 행 — 리마크 게시물 (TXT/If)
+
+엔진이 모델링하지 않는 줄(TXT, If/EndIf/Eval 등 프로그래밍 어휘)은 리마크
+게시물이고, 이 보드에서 게시물은 반드시 셀에 산다(Comment 카드 조항).
+공용 raw 카드가 두 라벨에 인라인 스타일을 깔므로 답도 인라인이다:
+`>_` 스캔 글리프는 함몰 모노 지정 셀(`#` 마커 셀의 구조)로, 원문 줄은 함몰
+모노 라인 셀(1px 룰, 라운드 0, 원문 그대로)로 승격한다. 행 번호는
+버스 문자 R(리마크 항목)를 받고, 캡션 스트립이 원문을 에코한다.
+
+### 업데이트 토스트 — 보드 발치의 리마크
+
+게시 셀 자체(면 + 1px 룰 + 좌측 액센트 킬)는 공용 위젯이 그린다. 시트는
+리마크 계급만 공급한다: 본문은 모노 판독 라인, 닫기 셀은 danger
+프리라이트(타이틀바 닫기 셀 선례 — 배급표에서 dismissal에 허락된 유일한
+색)다.
+
 ## 하지 말 것
 
 - 신호등 색·액센트를 장식이나 타입 식별에 쓰기. 색 배급제가 1조다.
@@ -251,10 +293,11 @@ matrix의 LED는 보드 셀의 추상 점등이다(스큐어모피즘 금지).
 
 ## 구현 지도
 
-- 클래스: `MatrixSkin` — [Skins.cpp](../../Editor/skins/Skins.cpp)
-  (`MatrixMetrics` 네임스페이스: gridPitch 24, coordinateBandWidth 120,
-  railInset 4, knobCellHeight 16; 행 캡션 스트립 `MatrixRowCaption`과
-  버스 문자 표 `matrixBusLetter`도 같은 구역에 있다)
+- 클래스: `MatrixSkin` — [MatrixSkin.cpp](../../Editor/skins/MatrixSkin.cpp)
+  (감사 #109 F005로 Skins.cpp에서 분리. `MatrixMetrics` 네임스페이스:
+  gridPitch 24, coordinateBandWidth 120, railInset 4, knobCellHeight 16;
+  행 캡션 스트립 `MatrixRowCaption`과 버스 문자 표 `matrixBusLetter`,
+  add row/삽입선 훅도 같은 파일에 있다)
 - QSS: `Editor/skins/matrix_dark.qss`, `matrix_light.qss`
 - 픽커: `Editor/skins/pickers/MatrixFilterPicker.{h,cpp}`
   (`galleryShowcase`가 picker_hover/picker_empty 갤러리 상태를 연출한다)
