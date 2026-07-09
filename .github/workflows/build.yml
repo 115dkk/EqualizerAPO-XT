@@ -861,6 +861,8 @@ jobs:
         $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
         $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
         $env:QT_QPA_PLATFORM = "offscreen"
+        # GUI-subsystem exe: qWarning only reaches redirected stderr with this set
+        $env:QT_FORCE_STDERR_LOGGING = "1"
         $log = "${{ github.workspace }}\skin-switch-test.log"
         $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
           -ArgumentList @("--skin-switch-test") -PassThru -Wait -NoNewWindow `
