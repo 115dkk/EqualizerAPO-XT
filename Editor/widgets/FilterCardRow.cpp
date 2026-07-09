@@ -437,7 +437,22 @@ void FilterCardRow::syncEditorScrollHeight(QScrollArea* scroll)
 	// runaway body must not swallow the whole table.
 	desired = qBound(24, desired, 600);
 	if (scroll->minimumHeight() != desired || scroll->maximumHeight() != desired)
+	{
 		scroll->setFixedHeight(desired);
+		// The new height must reach the FilterTable grid, but the layout
+		// chain above the scroll (editor container -> body stack -> card
+		// frame -> row) re-validates lazily hop by hop and the cascade can
+		// stall with a stale cached minimum mid-chain - observed as "the
+		// card never grows" when the routing views' channel fold expands.
+		// Invalidate the whole chain explicitly so the next grid pass
+		// re-queries a fresh row minimum.
+		for (QWidget* w = scroll->parentWidget(); w != nullptr && w != this; w = w->parentWidget())
+			if (w->layout() != nullptr)
+				w->layout()->invalidate();
+		if (layout() != nullptr)
+			layout()->invalidate();
+		updateGeometry();
+	}
 }
 
 bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)

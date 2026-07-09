@@ -160,6 +160,27 @@
     </message>
 </context>
 <context>
+    <name>BlockChipView</name>
+    <message>
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="277"/>
+        <source>Show fewer channels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="278"/>
+        <source>Show %n more channel(s)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/BlockChipRoutingRenderer.cpp" line="291"/>
+        <source>Add channel</source>
+        <translation type="unfinished">Kanal hinzufügen</translation>
+    </message>
+</context>
+<context>
     <name>ChannelCardEditor</name>
     <message>
         <location filename="../widgets/cards/ChannelCardEditor.cpp" line="21"/>
@@ -1077,7 +1098,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Rohbefehl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="581"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="596"/>
         <source>Raw</source>
         <translation>Roh</translation>
     </message>
@@ -2889,7 +2910,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="426"/>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="585"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>Zum Routen zwischen Kanälen ziehen - + fügt einen Ausgang hinzu</translation>
     </message>

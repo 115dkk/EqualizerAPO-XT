@@ -126,6 +126,7 @@
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\StageSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\MultiConvolutionRoutingAdapter.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\routing\RoutingFold.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\StudioRoutingModel.cpp" />
     <ClCompile Include="..\..\filters\MultiConvolutionCommand.cpp" />
     <ClCompile Include="..\..\filters\StageCommand.cpp" />

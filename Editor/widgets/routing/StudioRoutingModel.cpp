@@ -141,6 +141,81 @@ int StudioRoutingModel::addOutput(const QString& name)
 	return outputs.size() - 1;
 }
 
+int StudioRoutingModel::seededInputCount() const
+{
+	return seededInputs;
+}
+
+int StudioRoutingModel::seededOutputCount() const
+{
+	return seededOutputs;
+}
+
+bool StudioRoutingModel::removeChannel(const QString& name)
+{
+	bool changed = false;
+
+	// Output side: drop the port, its traces and its emit-order slot, then
+	// close the index gap every stored reference straddles.
+	int output = -1;
+	for (int i = 0; i < outputs.size(); i++)
+		if (outputs[i].compare(name, Qt::CaseInsensitive) == 0)
+		{
+			output = i;
+			break;
+		}
+	if (output >= 0)
+	{
+		for (int i = traceList.size() - 1; i >= 0; i--)
+		{
+			if (traceList[i].output != output)
+				continue;
+			traceList.removeAt(i);
+			changed = true;
+		}
+		for (Trace& trace : traceList)
+			if (trace.output > output)
+				trace.output--;
+		emitOrder.removeAll(output);
+		for (int& order : emitOrder)
+			if (order > output)
+				order--;
+		outputs.removeAt(output);
+		if (output < seededOutputs)
+			seededOutputs--;
+	}
+
+	// Input side: same closure for the source port (the constant port is
+	// nameless and never matches).
+	int input = -1;
+	for (int i = 0; i < inputs.size(); i++)
+		if (i != constInputIndex && inputs[i].compare(name, Qt::CaseInsensitive) == 0)
+		{
+			input = i;
+			break;
+		}
+	if (input >= 0)
+	{
+		for (int i = traceList.size() - 1; i >= 0; i--)
+		{
+			if (traceList[i].input != input)
+				continue;
+			traceList.removeAt(i);
+			changed = true;
+		}
+		for (Trace& trace : traceList)
+			if (trace.input > input)
+				trace.input--;
+		if (constInputIndex > input)
+			constInputIndex--;
+		inputs.removeAt(input);
+		if (input < seededInputs)
+			seededInputs--;
+	}
+
+	return changed;
+}
+
 void StudioRoutingModel::addTrace(int input, int output)
 {
 	if (input < 0 || input >= inputs.size() || output < 0 || output >= outputs.size())

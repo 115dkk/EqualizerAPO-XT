@@ -12,6 +12,29 @@ types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
+## Unreleased
+
+- Copy cards stopped growing with the device. Every routing view used to lay
+  the whole channel layout out flat, so on a 7.1 endpoint two lines of actual
+  routing sat on an 8-row grid of empty cells. The views now fold: only the
+  channels the command involves are shown (an empty Copy shows L/R as
+  representatives), and the rest of the layout waits behind a reveal control
+  in each skin's own grammar — a `+N CH` caption cell on the Matrix board, an
+  expansion latch on the Rack faceplate, a pager fold line in the Minimal
+  listing, a quiet "show more" pill in Soft, a ghost `+N` chip on the Studio
+  glass. ([#175](https://github.com/115dkk/EqualizerAPO-XT/pull/175))
+- Virtual channels can now be created and removed from every skin's Copy
+  card, not just Studio's: each view gained an add-channel entry (Matrix
+  `+BUS`, Rack `ADD`, Soft "Add channel", and Minimal's console prompt now
+  actually takes input — click it and type the name), and hovering a virtual
+  channel reveals a small remove target. Device channels never get one; they
+  fold instead of leaving.
+  ([#175](https://github.com/115dkk/EqualizerAPO-XT/pull/175))
+- Fixed a card never growing when its body content grew: the editor's
+  height-pinning wrapper updated itself but the row above it kept a stale
+  minimum, which left the expanded routing view clipped.
+  ([#175](https://github.com/115dkk/EqualizerAPO-XT/pull/175))
+
 ## v2.12.0 — 2026-07-09
 
 - The GraphicEQ filter — the first thing a clean install shows — was rebuilt

@@ -21,18 +21,62 @@ StepListView::StepListView(const vector<Assignment>& assignments,
 	: RoutingView(parent),
 	// Seed every device channel as a step so an emptied Copy can be refilled
 	// from the GUI; steps whose source sum stays empty are skipped by the
-	// serializer and never reach the config line.
+	// serializer and never reach the config line. The fold decides which
+	// seeded steps are actually listed.
 	workingAssignments(CopyRoutingAdapter::seedTargets(assignments, channelNames)),
 	deviceChannels(channelNames),
-	portModel(portModel)
+	portModel(portModel),
+	// Targets the command referenced stay listed for the whole session, even
+	// if their last source is removed.
+	pinnedChannels(RoutingFold::referencedTargets(assignments))
 {
+	setMouseTracking(true);
 	setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	setMinimumSize(0, 0);
+	refold();
 }
 
 std::vector<Assignment> StepListView::assignments() const
 {
 	return workingAssignments;
+}
+
+bool StepListView::foldable() const
+{
+	// Fixed-source mode (MultiConvolution) lists exactly the mapped targets;
+	// there is nothing to fold and the card owns virtual outputs.
+	return !portModel.fixedSourceMode();
+}
+
+void StepListView::refold()
+{
+	if (foldable())
+	{
+		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels, channelsExpanded);
+	}
+	else
+	{
+		fold = RoutingFold::Fold();
+		for (int i = 0; i < (int)workingAssignments.size(); i++)
+			fold.visibleRows.append(i);
+	}
+	syncSizeToHint();
+	update();
+}
+
+void StepListView::galleryShowcase(const QString& state)
+{
+	if (state == QLatin1String("expanded"))
+	{
+		channelsExpanded = true;
+		refold();
+	}
+	else if (state == QLatin1String("addChannel"))
+	{
+		openChannelEditor();
+		if (channelEditor != nullptr)
+			channelEditor->setText(QStringLiteral("VS"));
+	}
 }
 
 static QFont monoFont()
@@ -46,9 +90,10 @@ QSize StepListView::sizeHint() const
 {
 	QFontMetrics fm(monoFont());
 	int maxWidth = 220;
-	for (const Assignment& a : workingAssignments)
+	for (int row : fold.visibleRows)
 	{
-		int w = 36 + 52 + 28 + 26; // number + dest + arrow + [+] target
+		const Assignment& a = workingAssignments[row];
+		int w = 36 + 52 + 28 + 26 + 26; // number + dest + arrow + [+] target + [x] target
 		for (const Assignment::Summand& s : a.sourceSum)
 		{
 			const QString ch = QString::fromStdWString(s.channel);
@@ -56,8 +101,12 @@ QSize StepListView::sizeHint() const
 		}
 		maxWidth = qMax(maxWidth, w);
 	}
-	// One extra row for the prompt/cursor line that closes the listing.
-	return QSize(maxWidth + 16, headerH + ((int)workingAssignments.size() + 1) * rowH + 8);
+	// The fold line (when channels are folded away) and the prompt/cursor
+	// line that closes the listing.
+	int extraLines = 1;
+	if (foldable() && (fold.hiddenChannels > 0 || channelsExpanded))
+		extraLines++;
+	return QSize(maxWidth + 16, headerH + (fold.visibleRows.size() + extraLines) * rowH + 8);
 }
 
 QSize StepListView::minimumSizeHint() const
@@ -81,6 +130,9 @@ void StepListView::paintEvent(QPaintEvent*)
 
 	hits.clear();
 	addHits.clear();
+	removeHits.clear();
+	foldRect = QRect();
+	promptRect = QRect();
 
 	// Header
 	p.setPen(muted);
@@ -90,10 +142,13 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(QPen(withAlpha(border, 160), 1));
 	p.drawLine(0, headerH, width(), headerH);
 
+	const bool foldLine = foldable() && (fold.hiddenChannels > 0 || channelsExpanded);
+	const int listedRows = fold.visibleRows.size() + (foldLine ? 1 : 0);
+
 	// Line-number gutter: the number column is set off by a hairline, like a
 	// terminal listing's gutter. Runs through the prompt line so the closing
 	// cursor sits inside the same frame.
-	const int listingBottom = headerH + ((int)workingAssignments.size() + 1) * rowH;
+	const int listingBottom = headerH + (listedRows + 1) * rowH;
 	p.setPen(QPen(withAlpha(border, 120), 1));
 	p.drawLine(36, headerH, 36, listingBottom);
 
@@ -120,22 +175,34 @@ void StepListView::paintEvent(QPaintEvent*)
 		return w;
 	};
 
-	for (int r = 0; r < (int)workingAssignments.size(); ++r)
+	// A bracket target in the [+] grammar: 1px hairline box, muted glyph,
+	// hover = exactly one background step.
+	auto drawBracketTarget = [&](const QRect& rect, const QString& glyph, bool hovered) {
+		p.setPen(QPen(withAlpha(border, 160), 1));
+		p.setBrush(withAlpha(border, hovered ? 52 : 26));
+		p.drawRect(rect);
+		p.setPen(hovered ? text : muted);
+		p.drawText(rect, Qt::AlignCenter, glyph);
+	};
+
+	for (int dr = 0; dr < fold.visibleRows.size(); ++dr)
 	{
+		const int r = fold.visibleRows[dr];
 		const Assignment& a = workingAssignments[r];
-		const int y = headerH + r * rowH;
-		if (r % 2 == 1)
+		const int y = headerH + dr * rowH;
+		if (dr % 2 == 1)
 			p.fillRect(QRect(0, y, width(), rowH), withAlpha(border, 22));
 
 		// Step number: a zero-padded page coordinate, the picker's console
 		// numbering law applied to the listing.
 		p.setPen(muted);
 		p.drawText(QRect(0, y, 36, rowH), Qt::AlignCenter,
-			QStringLiteral("%1").arg(r + 1, 2, 10, QLatin1Char('0')));
+			QStringLiteral("%1").arg(dr + 1, 2, 10, QLatin1Char('0')));
 
 		// Destination
 		int x = 40;
-		x += drawChannelPill(QString::fromStdWString(a.targetChannel), x, y, 20, false) + 8;
+		const QString dest = QString::fromStdWString(a.targetChannel);
+		x += drawChannelPill(dest, x, y, 20, false) + 8;
 
 		// Arrow
 		p.setPen(muted);
@@ -192,26 +259,76 @@ void StepListView::paintEvent(QPaintEvent*)
 		// Bracketed [+] target per step: adds a source channel to this sum. This
 		// is what makes an emptied Copy refillable from the GUI.
 		const QRect addRect(x, y + (rowH - 18) / 2, 18, 18);
-		p.setPen(QPen(withAlpha(border, 160), 1));
-		p.setBrush(withAlpha(border, 26));
-		p.drawRect(addRect);
-		p.setPen(muted);
-		p.drawText(addRect, Qt::AlignCenter, QStringLiteral("+"));
+		drawBracketTarget(addRect, QStringLiteral("+"), false);
 		addHits.append({ r, addRect });
+		x += 22;
+
+		// A virtual channel can leave the listing: hovering its step exposes
+		// an [x] bracket target (device channels fold instead of leaving).
+		if (foldable() && CopyRoutingAdapter::isVirtualChannel(dest) && hoveredRow == r)
+		{
+			const QRect xRect(x, y + (rowH - 18) / 2, 18, 18);
+			drawBracketTarget(xRect, QStringLiteral("x"), false);
+			removeHits.append({ r, xRect });
+		}
+	}
+
+	// The fold line: the pager's ellipsis row. The bracket target reveals the
+	// folded device channels ([+N CH]) or folds the listing back ([FOLD]).
+	int py = headerH + fold.visibleRows.size() * rowH;
+	if (foldLine)
+	{
+		p.setPen(muted);
+		p.drawText(QRect(0, py, 36, rowH), Qt::AlignCenter, QStringLiteral("··"));
+		const QString caption = channelsExpanded
+			? QStringLiteral("[FOLD]")
+			: QStringLiteral("[+%1 CH]").arg(fold.hiddenChannels);
+		const int w = fm.horizontalAdvance(caption) + 8;
+		foldRect = QRect(44, py + (rowH - 18) / 2, w, 18);
+		p.setPen(QPen(withAlpha(border, 160), 1));
+		p.setBrush(withAlpha(border, hoveredControl == 1 ? 52 : 26));
+		p.drawRect(foldRect);
+		p.setPen(hoveredControl == 1 ? text : muted);
+		p.drawText(foldRect, Qt::AlignCenter, caption);
+		py += rowH;
 	}
 
 	// The session line: a prompt and a steady block cursor after the last
-	// step. Staging, not an input - the [+] targets on the steps do the
-	// editing - but it is what makes the listing read as a live console
-	// rather than a printed table.
-	const int py = headerH + (int)workingAssignments.size() * rowH;
+	// step. In Copy mode the prompt is the add-channel entry - click it and
+	// type a new (virtual) channel name; in fixed-source mode it stays pure
+	// staging.
 	p.setPen(muted);
 	p.drawText(QRect(0, py, 36, rowH), Qt::AlignCenter, QStringLiteral(">"));
 	p.fillRect(QRect(44, py + (rowH - 15) / 2, 8, 15), withAlpha(QColor(t.accent), 210));
+	if (foldable())
+	{
+		promptRect = QRect(0, py, width(), rowH);
+		if (hoveredControl == 2 && (channelEditor == nullptr || !channelEditor->isVisible()))
+		{
+			p.setPen(withAlpha(muted, 190));
+			p.drawText(QRect(58, py, 220, rowH), Qt::AlignLeft | Qt::AlignVCenter,
+				QStringLiteral("add channel"));
+		}
+	}
 }
 
 void StepListView::mousePressEvent(QMouseEvent* event)
 {
+	for (const AddHit& h : removeHits)
+	{
+		if (h.rect.contains(event->pos()))
+		{
+			const QString channel = QString::fromStdWString(workingAssignments[h.row].targetChannel);
+			for (int i = pinnedChannels.size() - 1; i >= 0; i--)
+				if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
+					pinnedChannels.removeAt(i);
+			const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
+			refold();
+			if (changed)
+				emit routingChanged();
+			return;
+		}
+	}
 	for (const AddHit& h : addHits)
 	{
 		if (h.rect.contains(event->pos()))
@@ -220,7 +337,52 @@ void StepListView::mousePressEvent(QMouseEvent* event)
 			return;
 		}
 	}
+	if (!foldRect.isNull() && foldRect.contains(event->pos()))
+	{
+		channelsExpanded = !channelsExpanded;
+		refold();
+		return;
+	}
+	if (!promptRect.isNull() && promptRect.contains(event->pos()))
+	{
+		openChannelEditor();
+		return;
+	}
 	RoutingView::mousePressEvent(event);
+}
+
+void StepListView::mouseMoveEvent(QMouseEvent* event)
+{
+	int control = 0;
+	if (!foldRect.isNull() && foldRect.contains(event->pos()))
+		control = 1;
+	else if (!promptRect.isNull() && promptRect.contains(event->pos()))
+		control = 2;
+
+	int row = -1;
+	const int dr = (event->pos().y() - headerH) / rowH;
+	if (event->pos().y() >= headerH && dr >= 0 && dr < fold.visibleRows.size())
+		row = fold.visibleRows[dr];
+
+	if (control != hoveredControl || row != hoveredRow)
+	{
+		hoveredControl = control;
+		hoveredRow = row;
+		setCursor(control != 0 ? Qt::PointingHandCursor : Qt::ArrowCursor);
+		update();
+	}
+	RoutingView::mouseMoveEvent(event);
+}
+
+void StepListView::leaveEvent(QEvent* event)
+{
+	if (hoveredControl != 0 || hoveredRow >= 0)
+	{
+		hoveredControl = 0;
+		hoveredRow = -1;
+		update();
+	}
+	RoutingView::leaveEvent(event);
 }
 
 void StepListView::showAddMenu(int row, const QPoint& globalPos)
@@ -276,8 +438,7 @@ void StepListView::showAddMenu(int row, const QPoint& globalPos)
 	s.isDecibel = false;
 	s.channel = chosen->text().toStdWString();
 	workingAssignments[row].sourceSum.push_back(s);
-	updateGeometry();
-	update();
+	refold();
 	emit routingChanged();
 }
 
@@ -303,8 +464,7 @@ void StepListView::mouseDoubleClickEvent(QMouseEvent* event)
 		if (summand >= 0 && summand < (int)a.sourceSum.size())
 		{
 			a.sourceSum.erase(a.sourceSum.begin() + summand);
-			updateGeometry();
-			update();
+			refold();
 			emit routingChanged();
 		}
 		return;
@@ -352,8 +512,7 @@ void StepListView::commitEditor()
 		// crosspoint / patch-bay grids.
 		Assignment& a = workingAssignments[row];
 		a.sourceSum.erase(a.sourceSum.begin() + si);
-		updateGeometry();
-		update();
+		refold();
 		emit routingChanged();
 		return;
 	}
@@ -381,9 +540,56 @@ void StepListView::commitEditor()
 			s.isDecibel = isDb;
 		}
 	}
-	updateGeometry();
-	update();
+	refold();
 	emit routingChanged();
+}
+
+void StepListView::openChannelEditor()
+{
+	if (channelEditor == nullptr)
+	{
+		channelEditor = new QLineEdit(this);
+		channelEditor->setObjectName(QStringLiteral("StepChannelEditor"));
+		connect(channelEditor, &QLineEdit::editingFinished, this, &StepListView::commitChannelEditor);
+	}
+	const int py = promptRect.isNull()
+		? headerH + fold.visibleRows.size() * rowH
+		: promptRect.top();
+	channelEditor->setGeometry(QRect(44, py + 3, 140, rowH - 6));
+	channelEditor->setText(QString());
+	channelEditor->show();
+	channelEditor->setFocus();
+}
+
+void StepListView::commitChannelEditor()
+{
+	if (channelEditor == nullptr || !channelEditor->isVisible())
+		return;
+
+	const QString name = channelEditor->text().trimmed();
+	channelEditor->hide();
+	if (!RoutingFold::isValidChannelName(name))
+		return;
+
+	// An existing channel just gets pinned back into the listing; a new name
+	// becomes a virtual step. No routingChanged: a fresh target has no sum
+	// yet and the serializer skips empty targets.
+	bool exists = false;
+	for (const Assignment& a : workingAssignments)
+		if (QString::fromStdWString(a.targetChannel).compare(name, Qt::CaseInsensitive) == 0)
+		{
+			exists = true;
+			break;
+		}
+	if (!exists)
+	{
+		Assignment assignment;
+		assignment.targetChannel = name.toStdWString();
+		workingAssignments.push_back(assignment);
+	}
+	if (!pinnedChannels.contains(name, Qt::CaseInsensitive))
+		pinnedChannels.append(name);
+	refold();
 }
 
 RoutingView* StepListRoutingRenderer::create(const vector<Assignment>& assignments,
