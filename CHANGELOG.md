@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- `MultiConvolution` mappings now take a per-file-channel factor with
+  `Copy:`'s grammar: `L=0.5*0+1` halves file channel 0's convolution
+  result before the sum, `-1` inverts the phase, `-0.5` does both, and dB
+  values (`-6dB*0`) work. The Editor card opens the routing views' factor
+  editing for these mappings, and an equivalence battery in
+  AudioRegressionTests proves the one-liner bit-identical (SHA-256) to
+  the manual Copy → Channel → Convolution → Copy fan-out it compresses,
+  factors and stacked lines included - verified against real Impulcifer
+  hrir.wav captures via `--equiv-ir`.
+  ([#187](https://github.com/115dkk/EqualizerAPO-XT/pull/187))
 - Lines whose parameters hold an inline `` `expression` `` keep their card
   now. The Preamp and Delay cards open in a dynamic mode - the knob powers
   down and the value position shows the expression as written, with the
