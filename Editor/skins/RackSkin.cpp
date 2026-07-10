@@ -561,6 +561,20 @@ public:
 		RackChrome::paintCardChrome(painter, rect, info, tokens);
 	}
 
+	// The If-block scope is a relay-switched power bus in the gutter (gate
+	// issue #179, maintainer-picked variant A; the drawing lives in
+	// RackChrome per constitution rule 7). Branch/tail rows mount at member
+	// depth so the lane passes them instead of dying behind their faceplates.
+	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		return RackChrome::paintScopeGutter(painter, size, info, tokens);
+	}
+
+	bool logicSiblingsIndentAsMembers() const override
+	{
+		return true;
+	}
+
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
 	{
 		// The caption strip is the unit's top panel: brushed sheen, machined

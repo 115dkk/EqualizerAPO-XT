@@ -25,7 +25,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
 	QVBoxLayout* outerLayout = new QVBoxLayout(this);
-	outerLayout->setContentsMargins(8 + descriptor.depth * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
+	outerLayout->setContentsMargins(8 + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
 	outerLayout->setSpacing(0);
 	// Detach the layout's minimumSize from the children's: the body can contain
 	// legacy filter GUIs with huge content-driven sizeHints (DeviceFilterGUI,
@@ -393,7 +393,7 @@ void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 		descriptor.depth = scope.indent;
 		descriptor.logicDepth = scope.logic;
 		if (layout() != nullptr)
-			layout()->setContentsMargins(8 + scope.indent * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
+			layout()->setContentsMargins(8 + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
 		// Re-derives the descriptor at the new depth and refreshes the badge,
 		// the scopeDepth/logicDepth style properties and the frame/header
 		// stylesheets (refreshStateProperties), then repaints.
@@ -521,9 +521,29 @@ bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
 	return QWidget::eventFilter(watched, event);
 }
 
+int FilterCardRow::rowIndentUnits() const
+{
+	// Member level is one unit past the branch/tail row's own semantic level
+	// (depth already carries any enclosing channel group, so +1 keeps mixed
+	// Channel x If nesting aligned with the block members).
+	if (descriptor.type == QStringLiteral("if") && descriptor.badge != QStringLiteral("IF")
+		&& SkinManager::instance()->logicSiblingsIndentAsMembers())
+		return descriptor.depth + 1;
+	return descriptor.depth;
+}
+
 void FilterCardRow::paintEvent(QPaintEvent*)
 {
 	refreshStateProperties();
+
+	// The active skin may own the whole scope gutter (the If-block lanes of
+	// the dynamic-commands campaign); the shared channel rail below stays the
+	// default for skins that do not answer.
+	{
+		QPainter gutterPainter(this);
+		if (SkinManager::instance()->paintScopeGutter(gutterPainter, size(), currentRowInfo()))
+			return;
+	}
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	if (descriptor.depth <= 0)

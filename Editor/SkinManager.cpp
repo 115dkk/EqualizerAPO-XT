@@ -199,6 +199,16 @@ void SkinManager::paintCardChrome(QPainter& painter, const QRect& rect, const Co
 	activeSkin->paintCardChrome(painter, rect, info, currentTokens);
 }
 
+bool SkinManager::paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info) const
+{
+	return activeSkin->paintScopeGutter(painter, size, info, currentTokens);
+}
+
+bool SkinManager::logicSiblingsIndentAsMembers() const
+{
+	return activeSkin->logicSiblingsIndentAsMembers();
+}
+
 void SkinManager::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state) const
 {
 	activeSkin->paintAddRow(painter, rect, state, currentTokens);

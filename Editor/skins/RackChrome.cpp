@@ -1208,4 +1208,132 @@ void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens)
 	plate->show();
 	plate->update();
 }
+
+bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens)
+{
+	const bool ifFamily = info.type == QStringLiteral("if");
+	const bool headRow = ifFamily && info.command == QStringLiteral("if");
+	const bool branchRow = ifFamily && (info.command == QStringLiteral("elseif") || info.command == QStringLiteral("else"));
+	const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
+	const int logic = info.logicDepth;
+	if (!headRow && logic <= 0)
+		return false;
+
+	const bool dark = skinIsDark(tokens);
+	const int unit = tokens.channelGroupIndent;
+	const int h = size.height();
+	const int junctionY = 4 + tokens.rowHeight / 2;
+	// Branch/tail rows are indented with the members (one unit past their
+	// semantic level; logicSiblingsIndentAsMembers). The card edge follows
+	// the same rule.
+	const int indentUnits = (ifFamily && !headRow) ? info.depth + 1 : info.depth;
+	const int cardLeft = 8 + indentUnits * unit;
+
+	// The gutter is machined hardware: the bus casing is the rack opening's
+	// dark seam, the core is the amber accent, contact blocks and caps are
+	// faceplate metal, and the lamps follow the LED palette (green = engaged,
+	// danger = evaluation fault). A de-energized run (a swallowed line, a
+	// powered-down unit) dims the core instead of raising an alarm.
+	const QColor seam(dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268"));
+	const QColor amber(tokens.accent);
+	const QColor amberDim = mixColor(amber, QColor(tokens.card), 0.55);
+	const QColor lampGreen(tokens.accent2);
+	const QColor lampDanger(tokens.danger);
+	const QColor metal = dark ? QColor(tokens.card).lighter(125) : mixColor(QColor(tokens.card), QColor(tokens.border), 0.35);
+	const QColor metalLight = dark ? QColor(tokens.card).lighter(175) : QColor(Qt::white);
+
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setPen(Qt::NoPen);
+
+	const bool live = info.enabled && !info.lineSkipped;
+	const auto bandCenter = [&](int level) { return 8 + level * unit + unit / 2; };
+	const auto busSegment = [&](int level, int y0, int y1, bool segmentLive) {
+		const int cx = bandCenter(level);
+		painter.fillRect(QRect(cx - 3, y0, 7, y1 - y0), seam);
+		painter.fillRect(QRect(cx - 2, y0, 5, y1 - y0), segmentLive ? amber : amberDim);
+		painter.fillRect(QRect(cx - 2, y0, 1, y1 - y0), mixColor(segmentLive ? amber : amberDim, QColor(Qt::white), 0.35));
+	};
+	const auto tapStub = [&](int level, bool stubLive) {
+		const int cx = bandCenter(level);
+		painter.fillRect(QRect(cx + 3, junctionY - 2, cardLeft - cx - 3, 4), seam);
+		painter.fillRect(QRect(cx + 3, junctionY - 1, cardLeft - cx - 3, 2), stubLive ? amber : amberDim);
+	};
+	const auto contactBlock = [&](const QRect& block) {
+		painter.fillRect(block.adjusted(-1, -1, 1, 1), seam);
+		painter.fillRect(block, metal);
+		painter.fillRect(QRect(block.left(), block.top(), block.width(), 1), metalLight);
+	};
+	// The relay/pilot lamp, lit from the analysis facts (CommandRowInfo
+	// branchState codes; -1/2 stay unlit - the hardware makes no claim).
+	const auto lamp = [&](int cx, int cy, int state) {
+		QColor fill = mixColor(QColor(tokens.mutedText), QColor(tokens.card), 0.6);
+		if (state == 1)
+			fill = lampGreen;
+		else if (state == 3)
+			fill = lampDanger;
+		else if (state == 0)
+			fill = seam;
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		painter.setBrush(fill);
+		painter.drawEllipse(QPointF(cx + 0.5, cy + 0.5), 2.1, 2.1);
+		painter.setBrush(Qt::NoBrush);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+	};
+	// Outer channel-group levels (levels below the If lanes) keep a quiet
+	// dotted rail so a block inside a Channel scope still shows the group.
+	const auto channelRail = [&](int level) {
+		painter.setPen(QPen(QColor(tokens.border), 1, Qt::DotLine));
+		painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+		painter.setPen(Qt::NoPen);
+	};
+
+	const int ifLevels = headRow ? logic : (branchRow || tailRow) ? logic - 1 : logic;
+	const int channelLevels = qMax(0, indentUnits - ifLevels - ((branchRow || tailRow) ? 1 : 0));
+	for (int level = 0; level < channelLevels; level++)
+		channelRail(level);
+
+	if (headRow)
+	{
+		// The relay unit feeds the lane below; the bus only peeks out of the
+		// bottom margin, and the lamp on the stub reports the condition.
+		for (int level = channelLevels; level < channelLevels + logic; level++)
+			busSegment(level, 0, h, true);
+		const int own = channelLevels + logic;
+		busSegment(own, h - 4, h, info.branchState != 0);
+		lamp(bandCenter(own), h - 3, info.branchState);
+	}
+	else if (branchRow)
+	{
+		for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+			busSegment(level, 0, h, true);
+		const int own = channelLevels + logic - 1;
+		busSegment(own, 0, h, true);
+		tapStub(own, info.branchState == 1);
+		const int cx = bandCenter(own);
+		contactBlock(QRect(cx - 3, junctionY - 4, 7, 9));
+		lamp(cx, junctionY + 7, info.branchState);
+	}
+	else if (tailRow)
+	{
+		for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+			busSegment(level, 0, h, true);
+		const int own = channelLevels + logic - 1;
+		busSegment(own, 0, junctionY, true);
+		tapStub(own, false);
+		const int cx = bandCenter(own);
+		contactBlock(QRect(cx - 3, junctionY - 1, 7, 5));
+	}
+	else
+	{
+		// A powered unit: tap stub off the innermost bus with a pilot lamp.
+		// A swallowed line de-energizes only its own run; the outer lanes
+		// stay live for the rows below.
+		for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+			busSegment(level, 0, h, true);
+		busSegment(channelLevels + logic - 1, 0, h, live);
+		tapStub(channelLevels + logic - 1, live);
+		lamp(cardLeft - 6, junctionY, info.lineSkipped ? 0 : (info.enabled ? 1 : -1));
+	}
+	return true;
+}
 }

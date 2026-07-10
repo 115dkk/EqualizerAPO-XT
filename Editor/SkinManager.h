@@ -60,6 +60,8 @@ public:
 	QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
+	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info) const;
+	bool logicSiblingsIndentAsMembers() const;
 
 	// List-level insertion chrome, delegated to the active skin (see
 	// ISkin::paintAddRow / ISkin::paintInsertSeam). In heritage mode the

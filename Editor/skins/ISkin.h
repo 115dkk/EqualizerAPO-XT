@@ -251,6 +251,23 @@ public:
 	// before child widgets paint. Default: no-op.
 	virtual void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const;
 
+	// The row's left scope gutter: the indent margin left of the card frame,
+	// which carries the channel-group rail and the If-block scope lane
+	// (dynamic-commands campaign). Return true to replace the shared default
+	// (FilterCardRow's channelGroupStyle rail) for this row; the neutral
+	// default paints nothing and returns false, so every skin stays
+	// pixel-identical until it answers. size is the row widget's full size;
+	// the card frame starts at x = 8 + indent * channelGroupIndent.
+	virtual bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):
+	// true indents them with the block members (logicDepth) instead of at
+	// their head's level, so a painted scope lane in the gutter passes them
+	// visibly instead of dying behind their full-width faces (the finding of
+	// the rack A/B mock-up round, issue #179). Default: false - semantic
+	// indentation, branch rows align with their If head.
+	virtual bool logicSiblingsIndentAsMembers() const;
+
 	// The persistent "add card" row at the end of the filter list (shared
 	// insertion contract, docs/skins/README.md). The AddCardRow widget owns
 	// input (click / Enter opens the filter picker anchored under the row) and

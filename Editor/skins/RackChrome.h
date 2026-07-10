@@ -39,6 +39,19 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 // Skeuomorphic pointer knob with a panel-printed scale.
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens);
 
+// The If-block scope as a RELAY-SWITCHED POWER BUS running down the gutter
+// (gate issue #179, variant A): an amber bus bar per scope level, the relay
+// feeding the lane from the If unit's bottom edge, changeover contact blocks
+// on ElseIf/Else, a terminator cap on EndIf, and tap stubs with pilot lamps
+// into every powered unit. The analysis load facts drive the lamps - branch
+// taken = green, false/dead branch = dark, evaluation error = danger, no
+// analysis yet = unlit dome - and a line a false branch swallowed dims its
+// innermost bus segment (a de-energized run, not an alarm). Outer
+// channel-group levels keep a muted dotted rail. Returns false for rows
+// outside any If scope so the shared channel rail stays in charge there.
+// Drawn for FilterCardRow via ISkin::paintScopeGutter.
+bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens);
+
 // The trailing "add card" row as an EMPTY RACK BAY: the blank panel is
 // missing, so the opening shows the rack's dark interior, the mounting
 // rails with their empty bolt holes, and a stencilled EMPTY BAY marking.
