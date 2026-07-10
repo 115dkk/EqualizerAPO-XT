@@ -687,6 +687,25 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
     </message>
 </context>
 <context>
+    <name>DelayCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="70"/>
+        <source>Time</source>
+        <translation type="unfinished">Zeit</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="71"/>
+        <source>Samples</source>
+        <translation type="unfinished">Samples</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="78"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="117"/>
+        <source>samples</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DelayFilterGUI</name>
     <message>
         <location filename="../guis/DelayFilterGUI.ui" line="32"/>
@@ -974,6 +993,39 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
     </message>
 </context>
 <context>
+    <name>ExpressionFilterGUIFactory</name>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="31"/>
+        <source>Control</source>
+        <translation type="unfinished">Steuerung</translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="33"/>
+        <source>If (Begin conditional section)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="34"/>
+        <source>ElseIf (Alternative condition)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
+        <source>Else (Fallback section)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
+        <source>EndIf (End conditional section)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="37"/>
+        <source>Eval (Evaluate expression)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>FilterCardModel</name>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="203"/>
@@ -1001,80 +1053,120 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Biquad</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="270"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="261"/>
+        <source>IIR filter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="266"/>
+        <source>Order %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="269"/>
+        <source>%1 coefficients</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="299"/>
         <source>Graphic EQ</source>
         <translation>Grafischer EQ</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="275"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="304"/>
         <source>%1 bands</source>
         <translation>%1 Bänder</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="281"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="310"/>
         <source>Copy</source>
         <translation>Kopieren</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="303"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="332"/>
         <source>%1 steps, %2 virtual</source>
         <translation>%1 Zuweisungen, %2 virtuell</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="305"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="334"/>
         <source>%1 steps</source>
         <translation>%1 Zuweisungen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="312"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="341"/>
         <source>Channel</source>
         <translation>Kanal</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="322"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="351"/>
         <source>Include</source>
         <translation>Einbinden</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="333"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
         <source>Convolution</source>
         <translation>Faltung</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="347"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="376"/>
         <source>MultiConvolution</source>
         <translation>Multi-Faltung</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="391"/>
         <source>VST Plugin</source>
         <translation>VST-Plugin</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="372"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="401"/>
         <source>Device</source>
         <translation>Gerät</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="379"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="408"/>
         <source>Stage</source>
         <translation>Stufe</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="386"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="415"/>
         <source>Loudness</source>
         <translation>Lautheit</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="430"/>
+        <source>If</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="435"/>
+        <source>Else if</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="440"/>
+        <source>Else</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="445"/>
+        <source>End if</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="452"/>
+        <source>Eval</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="60"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="61"/>
         <source>Expand filter card</source>
         <translation>Filterkarte aufklappen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="96"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="97"/>
         <source>Enable or comment out this command</source>
         <translation>Diesen Befehl aktivieren oder auskommentieren</translation>
     </message>
@@ -1083,22 +1175,22 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation type="vanished">Filter vor dieser Karte einfügen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="105"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="106"/>
         <source>Add filter after this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="112"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="113"/>
         <source>Remove filter</source>
         <translation>Filter entfernen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="120"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="121"/>
         <source>Edit raw command</source>
         <translation>Rohbefehl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="596"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="664"/>
         <source>Raw</source>
         <translation>Roh</translation>
     </message>
@@ -1381,6 +1473,24 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="41"/>
         <source>Graphic equalizer with variable bands</source>
         <translation>Grafischer Equalizer mit variablen Bändern</translation>
+    </message>
+</context>
+<context>
+    <name>IIRCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="57"/>
+        <source>Order</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="76"/>
+        <source>Feedforward (b)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="83"/>
+        <source>Feedback (a)</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2072,12 +2182,12 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
         <translation>Das Stream-Format dieses Geräts ist %0 (%1-Bit-Container). EqualizerAPO verarbeitet nur IEEE_FLOAT-Streams mit 32/64 Bit nativ, daher wird das Audio ohne Filterung weitergeleitet. Stellen Sie in den Sound-Einstellungen das Standardformat des Geräts auf ein 32-Bit-IEEE_FLOAT-Format um, wenn Sie für dieses Gerät eine Filterung benötigen.</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="104"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="129"/>
         <source>%0 dB</source>
         <translation>%0 dB</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="123"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="148"/>
         <source>%0 %</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2086,7 +2196,7 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
         <translation type="vanished">%0 ms (%1 Samp.)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="118"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="143"/>
         <source>%0 ms (%1 s.)</source>
         <translation>%0 ms (%1 S.)</translation>
     </message>
@@ -2095,8 +2205,8 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
         <translation type="vanished">%0 ms (%1 Samples)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="113"/>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="120"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="138"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="145"/>
         <source>%0 ms</source>
         <translation>%0 ms</translation>
     </message>
@@ -2752,28 +2862,33 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="179"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="193"/>
+        <source>Complete as it is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="195"/>
         <source>Choose the details after adding</source>
         <translation>Details nach dem Hinzufügen festlegen</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="414"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="430"/>
         <source>Search filters</source>
         <translation>Filter suchen</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="453"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="514"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="469"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="530"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="562"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="578"/>
         <source>Nothing matches your search</source>
         <translation>Keine Treffer für Ihre Suche</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="563"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="579"/>
         <source>Try a shorter or different keyword</source>
         <translation>Versuchen Sie ein kürzeres oder anderes Stichwort</translation>
     </message>
@@ -2781,7 +2896,82 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>SoftSkin</name>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="725"/>
+        <location filename="../skins/SoftSkin.cpp" line="100"/>
+        <source>Otherwise</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="102"/>
+        <source>End of the rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="113"/>
+        <source>Set %1 to %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="134"/>
+        <source>If %1 is %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="136"/>
+        <source>If %1 is not %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="138"/>
+        <source>If %1 is at least %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="140"/>
+        <source>If %1 is more than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="142"/>
+        <source>If %1 is at most %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="144"/>
+        <source>If %1 is less than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="149"/>
+        <source>Otherwise, if %1 is %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="151"/>
+        <source>Otherwise, if %1 is not %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="153"/>
+        <source>Otherwise, if %1 is at least %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="155"/>
+        <source>Otherwise, if %1 is more than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="157"/>
+        <source>Otherwise, if %1 is at most %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="159"/>
+        <source>Otherwise, if %1 is less than %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="826"/>
         <source>Sound may distort - keep it below 0 dB</source>
         <translation type="unfinished"></translation>
     </message>

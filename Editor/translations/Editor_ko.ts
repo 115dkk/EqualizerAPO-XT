@@ -632,6 +632,25 @@ Select a different file or change the device configuration.</source>
     </message>
 </context>
 <context>
+    <name>DelayCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="70"/>
+        <source>Time</source>
+        <translation>시간</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="71"/>
+        <source>Samples</source>
+        <translation>샘플</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="78"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="117"/>
+        <source>samples</source>
+        <translation>샘플</translation>
+    </message>
+</context>
+<context>
     <name>DelayFilterGUI</name>
     <message>
         <location filename="../guis/DelayFilterGUI.ui" line="32"/>
@@ -899,6 +918,39 @@ Select a different file or change the device configuration.</source>
     </message>
 </context>
 <context>
+    <name>ExpressionFilterGUIFactory</name>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="31"/>
+        <source>Control</source>
+        <translation>컨트롤</translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="33"/>
+        <source>If (Begin conditional section)</source>
+        <translation>If (조건 구간 시작)</translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="34"/>
+        <source>ElseIf (Alternative condition)</source>
+        <translation>ElseIf (그 외 조건)</translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
+        <source>Else (Fallback section)</source>
+        <translation>Else (나머지 경우)</translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
+        <source>EndIf (End conditional section)</source>
+        <translation>EndIf (조건 구간 끝)</translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="37"/>
+        <source>Eval (Evaluate expression)</source>
+        <translation>Eval (식 계산)</translation>
+    </message>
+</context>
+<context>
     <name>FilterCardModel</name>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="203"/>
@@ -926,80 +978,120 @@ Select a different file or change the device configuration.</source>
         <translation>바이쿼드</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="270"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="261"/>
+        <source>IIR filter</source>
+        <translation>IIR 필터</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="266"/>
+        <source>Order %1</source>
+        <translation>차수 %1</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="269"/>
+        <source>%1 coefficients</source>
+        <translation>계수 %1개</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="299"/>
         <source>Graphic EQ</source>
         <translation>그래픽 EQ</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="275"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="304"/>
         <source>%1 bands</source>
         <translation>%1개 밴드</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="281"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="310"/>
         <source>Copy</source>
         <translation>복사</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="303"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="332"/>
         <source>%1 steps, %2 virtual</source>
         <translation>%1개 할당, 가상 %2개</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="305"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="334"/>
         <source>%1 steps</source>
         <translation>%1개 할당</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="312"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="341"/>
         <source>Channel</source>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="322"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="351"/>
         <source>Include</source>
         <translation>포함</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="333"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
         <source>Convolution</source>
         <translation>컨볼루션</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="347"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="376"/>
         <source>MultiConvolution</source>
         <translation>멀티 컨볼루션</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="391"/>
         <source>VST Plugin</source>
         <translation>VST 플러그인</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="372"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="401"/>
         <source>Device</source>
         <translation>장치</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="379"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="408"/>
         <source>Stage</source>
         <translation>스테이지</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="386"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="415"/>
         <source>Loudness</source>
         <translation>라우드니스</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="430"/>
+        <source>If</source>
+        <translation>조건</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="435"/>
+        <source>Else if</source>
+        <translation>그 외 조건</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="440"/>
+        <source>Else</source>
+        <translation>나머지 경우</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="445"/>
+        <source>End if</source>
+        <translation>조건 끝</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="452"/>
+        <source>Eval</source>
+        <translation>식 계산</translation>
     </message>
 </context>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="60"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="61"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="96"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="97"/>
         <source>Enable or comment out this command</source>
         <translation>이 명령을 활성화하거나 주석 처리합니다</translation>
     </message>
@@ -1008,22 +1100,22 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">이 카드 앞에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="105"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="106"/>
         <source>Add filter after this card</source>
         <translation>이 카드 아래에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="112"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="113"/>
         <source>Remove filter</source>
         <translation>필터 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="120"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="121"/>
         <source>Edit raw command</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="596"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="664"/>
         <source>Raw</source>
         <translation>원본</translation>
     </message>
@@ -1298,6 +1390,24 @@ Select a different file or change the device configuration.</source>
         <location filename="../guis/GraphicEQFilterGUIFactory.cpp" line="41"/>
         <source>Graphic equalizer with variable bands</source>
         <translation>가변 밴드 그래픽 이퀄라이저</translation>
+    </message>
+</context>
+<context>
+    <name>IIRCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="57"/>
+        <source>Order</source>
+        <translation>차수</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="76"/>
+        <source>Feedforward (b)</source>
+        <translation>피드포워드 (b)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/IIRCardEditor.cpp" line="83"/>
+        <source>Feedback (a)</source>
+        <translation>피드백 (a)</translation>
     </message>
 </context>
 <context>
@@ -2032,23 +2142,23 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>파일을 닫기 전에 변경 사항을 저장하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="104"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="129"/>
         <source>%0 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="113"/>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="120"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="138"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="145"/>
         <source>%0 ms</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="118"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="143"/>
         <source>%0 ms (%1 s.)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="123"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="148"/>
         <source>%0 %</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2434,28 +2544,33 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="179"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="193"/>
+        <source>Complete as it is</source>
+        <translation>이대로 완성됩니다</translation>
+    </message>
+    <message>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="195"/>
         <source>Choose the details after adding</source>
         <translation>추가한 뒤 세부 정보를 설정하세요</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="414"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="430"/>
         <source>Search filters</source>
         <translation>필터 검색</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="453"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="514"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="469"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="530"/>
         <source>General</source>
         <translation>일반</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="562"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="578"/>
         <source>Nothing matches your search</source>
         <translation>검색 결과가 없습니다</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="563"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="579"/>
         <source>Try a shorter or different keyword</source>
         <translation>더 짧거나 다른 키워드로 검색해 보세요</translation>
     </message>
@@ -2463,7 +2578,82 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>SoftSkin</name>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="725"/>
+        <location filename="../skins/SoftSkin.cpp" line="100"/>
+        <source>Otherwise</source>
+        <translation>그렇지 않으면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="102"/>
+        <source>End of the rule</source>
+        <translation>규칙 끝</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="113"/>
+        <source>Set %1 to %2</source>
+        <translation>%1을(를) %2(으)로 설정</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="134"/>
+        <source>If %1 is %2</source>
+        <translation>%1이(가) %2이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="136"/>
+        <source>If %1 is not %2</source>
+        <translation>%1이(가) %2이(가) 아니면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="138"/>
+        <source>If %1 is at least %2</source>
+        <translation>%1이(가) %2 이상이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="140"/>
+        <source>If %1 is more than %2</source>
+        <translation>%1이(가) %2보다 크면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="142"/>
+        <source>If %1 is at most %2</source>
+        <translation>%1이(가) %2 이하이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="144"/>
+        <source>If %1 is less than %2</source>
+        <translation>%1이(가) %2보다 작으면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="149"/>
+        <source>Otherwise, if %1 is %2</source>
+        <translation>그렇지 않고 %1이(가) %2이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="151"/>
+        <source>Otherwise, if %1 is not %2</source>
+        <translation>그렇지 않고 %1이(가) %2이(가) 아니면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="153"/>
+        <source>Otherwise, if %1 is at least %2</source>
+        <translation>그렇지 않고 %1이(가) %2 이상이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="155"/>
+        <source>Otherwise, if %1 is more than %2</source>
+        <translation>그렇지 않고 %1이(가) %2보다 크면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="157"/>
+        <source>Otherwise, if %1 is at most %2</source>
+        <translation>그렇지 않고 %1이(가) %2 이하이면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="159"/>
+        <source>Otherwise, if %1 is less than %2</source>
+        <translation>그렇지 않고 %1이(가) %2보다 작으면</translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="826"/>
         <source>Sound may distort - keep it below 0 dB</source>
         <translation>소리가 일그러질 수 있어요. 0 dB 아래로 낮춰 주세요</translation>
     </message>

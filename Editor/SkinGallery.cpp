@@ -105,7 +105,12 @@ QList<GalleryRow> galleryRows()
 		// the rows that historically rendered as nothing at all.
 		{ QStringLiteral("graphiceq"), QStringLiteral("GraphicEQ: 25 -4.5; 100 -2; 1000 0; 8000 3.5; 16000 1") },
 		{ QStringLiteral("text"), QStringLiteral("plain note line without a command") },
-		{ QStringLiteral("iftext"), QStringLiteral("If: inputChannelCount == 2") }
+		{ QStringLiteral("iftext"), QStringLiteral("If: inputChannelCount == 2") },
+		// The custom-coefficient escape hatch (dynamic-commands finishing pass):
+		// the IIR card states the order and both coefficient rows (a 2nd-order
+		// Butterworth low-pass at fs/4, a0 = 1). Appended last so the row
+		// numbers of every earlier scene stay stable against the shot baseline.
+		{ QStringLiteral("iir"), QStringLiteral("Filter: ON IIR Order 2 Coefficients 0.2929 0.5858 0.2929 1.0 -0.0 0.1716") }
 	};
 }
 

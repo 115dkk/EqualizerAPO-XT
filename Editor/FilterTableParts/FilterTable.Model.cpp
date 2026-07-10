@@ -24,6 +24,7 @@
 #include <QSettings>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <functional>
 
 #include "MainWindow.h"
@@ -258,15 +259,36 @@ QMenu* FilterTable::createAddPopupMenu()
 	return rootMenu;
 }
 
+QList<FilterTemplate> FilterTable::pickerFilterTemplates() const
+{
+	QList<FilterTemplate> templates;
+	for (IFilterGUIFactory* factory : factories)
+		templates.append(factory->createFilterTemplates());
+
+	// Several factories share one category name (the Expression factory's
+	// If/Eval templates and the Include/Device/Channel/Stage factories all
+	// file under "Control"), so the flat factory order interleaves sections.
+	// Pickers that print a header per contiguous run would show the same
+	// section twice; group the templates by category in first-seen order, the
+	// same merge the QMenu path map performs in createAddPopupMenu. The
+	// stable sort keeps the factory order within each category.
+	QList<QStringList> sectionOrder;
+	for (const FilterTemplate& filterTemplate : templates)
+		if (!sectionOrder.contains(filterTemplate.getPath()))
+			sectionOrder.append(filterTemplate.getPath());
+	std::stable_sort(templates.begin(), templates.end(),
+		[&sectionOrder](const FilterTemplate& a, const FilterTemplate& b) {
+		return sectionOrder.indexOf(a.getPath()) < sectionOrder.indexOf(b.getPath());
+	});
+	return templates;
+}
+
 QList<FilterPickerEntry> FilterTable::filterPickerEntries() const
 {
 	QList<FilterPickerEntry> entries;
-	for (IFilterGUIFactory* factory : factories)
-	{
-		const QList<FilterTemplate> templates = factory->createFilterTemplates();
-		for (const FilterTemplate& filterTemplate : templates)
-			entries.append({ filterTemplate.getPath(), filterTemplate.getName(), filterTemplate.getLine() });
-	}
+	const QList<FilterTemplate> templates = pickerFilterTemplates();
+	for (const FilterTemplate& filterTemplate : templates)
+		entries.append({ filterTemplate.getPath(), filterTemplate.getName(), filterTemplate.getLine() });
 	return entries;
 }
 
@@ -300,9 +322,9 @@ bool FilterTable::chooseFilterTemplate(FilterTemplate* selectedTemplate, const Q
 	if (selectedTemplate == nullptr)
 		return false;
 
-	QList<FilterTemplate> templates;
-	for (IFilterGUIFactory* factory : factories)
-		templates.append(factory->createFilterTemplates());
+	// The same grouped ordering the picker view displays - entryChosen hands
+	// back an index into this list.
+	QList<FilterTemplate> templates = pickerFilterTemplates();
 	if (templates.isEmpty())
 		return false;
 

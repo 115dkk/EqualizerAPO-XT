@@ -159,7 +159,18 @@ QString softEntryIcon(const FilterPickerEntry& entry)
 		{ "Channel", "channel-select" },
 		{ "Stage", "stage-chain" },
 		{ "Copy", "route-channels" },
-		{ "LoudnessCorrection", "loudness" }
+		{ "LoudnessCorrection", "loudness" },
+		// The flowchart decision diamond: a condition choosing between paths.
+		// Deliberately not a fork arrow - a fork reads as the signal being
+		// split, the same objection that retired the old Channel fork glyph.
+		// All four block keywords wear it; they are one construct.
+		{ "If", "logic-if" },
+		{ "ElseIf", "logic-if" },
+		{ "Else", "logic-if" },
+		{ "EndIf", "logic-if" },
+		// The spreadsheet formula mark: Eval computes and assigns a value, so
+		// it wears "fx" rather than anything shaped like a response curve.
+		{ "Eval", "logic-eval" }
 	};
 	for (const auto& mapping : commands)
 		if (command == QLatin1String(mapping.command))
@@ -175,6 +186,11 @@ QString softEntryIcon(const FilterPickerEntry& entry)
 QString softCaption(const QString& line)
 {
 	const QString display = line.trimmed();
+	// Else:/EndIf: are complete lines rather than fragments awaiting details;
+	// promising details to choose would be a small lie, so the block closers
+	// carry their own calm note.
+	if (display == QStringLiteral("Else:") || display == QStringLiteral("EndIf:"))
+		return QCoreApplication::translate("SoftFilterPickerView", "Complete as it is");
 	if (display.isEmpty() || display.endsWith(QLatin1Char(':')) || display == QStringLiteral("#"))
 		return QCoreApplication::translate("SoftFilterPickerView", "Choose the details after adding");
 	return display;

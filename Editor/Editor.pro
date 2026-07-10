@@ -228,6 +228,7 @@ SOURCES += main.cpp\
 	widgets/cards/DelayCardEditor.cpp \
 	widgets/cards/FilterCardEditorRegistry.cpp \
 	widgets/cards/GraphicEQCardEditor.cpp \
+	widgets/cards/IIRCardEditor.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ReferenceCardView.cpp \
@@ -447,6 +448,7 @@ HEADERS  += \
 	widgets/cards/DelayCardEditor.h \
 	widgets/cards/FilterCardEditorRegistry.h \
 	widgets/cards/GraphicEQCardEditor.h \
+	widgets/cards/IIRCardEditor.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
 	widgets/cards/ReferenceCardView.h \
