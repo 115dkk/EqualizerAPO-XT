@@ -45,10 +45,8 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	root->setContentsMargins(0, 0, 0, 0);
 	root->setSpacing(4);
 
-	// VST = an external-device entry: the port strip heads the body so the
-	// plugin reads as outboard gear patched into the signal path. Monochrome
-	// furniture under the colour rationing - the ports are muted ink, never
-	// accent (accent is reserved for engage/select/hover).
+	// VST: the port strip heads the body. Monochrome furniture under the
+	// colour rationing - the ports are muted ink, never accent.
 	if (cardKind == QStringLiteral("vst"))
 	{
 		QWidget* portStrip = new QWidget(page);
@@ -73,10 +71,8 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 
 	// The feed line: marker cell + [output bus cell] + location readout +
 	// payload name + type tokens, with the action cells on the right. The
-	// location leads the payload in reading order - "Surround@ example.txt" -
-	// so the board states the bus's place before what is patched there (the
-	// containment direction; a location after the name read as the name's
-	// appendix).
+	// location leads the payload in reading order ("Surround@ example.txt") -
+	// a location after the name would read as the name's appendix.
 	QWidget* feedLine = new QWidget(page);
 	feedLine->setObjectName(QStringLiteral("MatrixRefFeedLine"));
 	feedLayout = new QHBoxLayout(feedLine);
@@ -111,7 +107,6 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	formatCell->setVisible(false);
 	feedLayout->addWidget(formatCell, 0, Qt::AlignVCenter);
 
-	// Keeps the action cells pinned right.
 	feedLayout->addStretch(1);
 
 	actionLayout = new QHBoxLayout();
@@ -122,8 +117,7 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	root->addWidget(feedLine);
 
 	// Readout strip: every measured fact in its own boxed sunken mono cell
-	// (rule 5: authoritative numbers live in boxed cells) - the knob value
-	// cell's grammar, applied to the impulse-response readout.
+	// (matrix.md rule 5: authoritative numbers live in boxed cells).
 	readoutStrip = new QWidget(page);
 	readoutStrip->setObjectName(QStringLiteral("MatrixRefReadoutStrip"));
 	readoutLayout = new QHBoxLayout(readoutStrip);
@@ -165,10 +159,9 @@ void MatrixReferenceCardView::addLeadingWidget(QWidget* widget)
 void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 {
 	// Feed marker: the board designation while the feed resolves; the danger
-	// readout while it does not (danger is the documented ink for a broken
-	// include readout - colour rationing, M3). An empty reference has no
-	// feed patched (NO FEED); a written one that fails to resolve is a lost
-	// feed (MISSING).
+	// readout while it does not. An empty reference has no feed patched
+	// (NO FEED); a written one that fails to resolve is a lost feed
+	// (MISSING).
 	if (state.missing)
 		markerCell->setText(state.editText.trimmed().isEmpty()
 			? QStringLiteral("NO FEED") : QStringLiteral("MISSING"));
@@ -196,8 +189,7 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 	formatCell->setText(state.formatBadge);
 
 	// Location readout: muted mono ahead of the payload, "Surround@" - the
-	// at-sign closes the place the way a bus address reads on the board
-	// (user direction, AR2 rework round). Elided at paint time.
+	// at-sign closes the place. Elided at paint time.
 	locationCell->setVisible(!state.directory.isEmpty());
 	if (!state.directory.isEmpty())
 	{
@@ -230,11 +222,10 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 		: QStringLiteral("none"));
 	repolishCell(statusLine);
 
-	// Browse doubles as the recovery entry while the reference is broken
-	// (AR2 X-4). The host's translated "Locate..." text is re-spoken as the
-	// board's untranslated LOCATE token (mono caps); the host's translated
-	// tooltip stays. The cell is monochrome at rest - accent arrives only on
-	// hover, the engage pre-light of a recovery crosspoint.
+	// Browse doubles as the recovery entry while the reference is broken.
+	// The host's translated "Locate..." text is re-spoken as the board's
+	// untranslated LOCATE token (mono caps); the host's translated tooltip
+	// stays. The cell is monochrome at rest - accent arrives only on hover.
 	if (browseButton != nullptr)
 	{
 		const bool locate = state.missing && !state.editText.trimmed().isEmpty();

@@ -6,8 +6,7 @@
 // double-precision rewrite but has no callers: every filter in the engine
 // uses the Single API. It is kept - explicitly parked, not forgotten debt -
 // because a low-latency mode for heavy convolution stacks (and a possible
-// multicore split) is planned future work (maintainer decision 2026-07-04,
-// audit #146 TD009). To revive: add this .cpp to Common.vcxproj and
+// multicore split) is planned future work. To revive: add this .cpp to Common.vcxproj and
 // Editor/Editor.pro next to libHybridConv_eapo.cpp, include the _dormant.h
 // where needed, and rerun hcBenchmarkDual/Tripple before first use.
 

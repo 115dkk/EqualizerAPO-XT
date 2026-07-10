@@ -1,8 +1,8 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Spin boxes for command-row editors with the native up/down buttons removed
-	(adversarial design review round 1, X1). The value is changed by dragging
+	Spin boxes for command-row editors with the native up/down buttons removed.
+	The value is changed by dragging
 	vertically on the text ("value scrub"), by the mouse wheel, or by typing;
 	skins can restyle the boxes through the valueScrub dynamic property and
 	later contribute their own stepper chrome.

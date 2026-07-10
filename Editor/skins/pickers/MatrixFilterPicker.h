@@ -1,16 +1,10 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Signal Matrix "add filter" picker: a two-axis selection instrument, not a
-	menu. The left rail is a column of bus-select cells (one per template
-	category); the right column shows that bus's templates as rectangular
-	grid cells with stable mono coordinates (A1..G8). Selecting an entry
-	reads as engaging a crosspoint: the active bus is lit, a patch trace runs
-	from the bus cell to the cursor cell, and the footer readout shows the
-	config line that the engaged coordinate would insert. Typing scans the
-	board through a status readout in the panel header (no rounded search
-	box). The catalog itself stays monochrome; the accent is reserved for the
-	engaged/selected state, traffic-light colours are not used at all.
+	Signal Matrix "add filter" picker: a two-axis selection instrument - a
+	bus rail of categories on the left, that bus's templates as coordinate
+	cells on the right.
+	Constitution: docs/skins/matrix.md ("필터 픽커" section).
 */
 
 #pragma once

@@ -1,13 +1,9 @@
 /* ====================================================================
    Skin: Soft Dark — "The iPhone settings screen"
    (macOS System Settings: round, roomy, impossible to fear)
-   AR1 F2: the dark surfaces are warm graphite (not studio's cold navy)
-   and the cards round at 14px, clearly fuller than studio's 8px glass.
+   Constitution: docs/skins/soft.md
    Corner language: cards/containers/menus 14px, controls 10-12px, chips
-   and value badges full pills, icon buttons circular. Elevation is faked
-   with two background value steps plus a very light 1px border; hover
-   lifts a surface exactly one value step. Hierarchy by size and
-   whitespace.
+   and value badges full pills, icon buttons circular.
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
            accent @ACCENT@ / borderRadius 14 / row 48
@@ -241,7 +237,7 @@ QWidget#FilterCardHeader { background: transparent; }
 QWidget#FilterCardBody, QWidget#FilterCardEditor { background: @SURFACE@; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
 
 /* The command type announces itself like an iOS Settings row: a stadium
-   pastel chip leading the row (AR1 F2: colours come inline from the skin's
+   pastel chip leading the row (colours come inline from the skin's
    typeBadgeStyle, which pastelises the descriptor colour with the picker's
    recipe and inks the text in a deep warm neutral; the chip shape and caps
    typography live here). */
@@ -282,13 +278,13 @@ QToolButton#FilterCardIconButton:checked { background: @ACCENT@; color: #2B251D;
 QLineEdit#FilterCardRawEditor { background: @SURFACE_SUNKEN@; border: 1px solid @ACCENT@; border-radius: 10px; padding: 8px 12px; }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
-/* AR1 X5: the parameter area in the rounded-card grammar. The mode boxes
+/* The parameter area in the rounded-card grammar. The mode boxes
    beside the knobs are genuine selectors, so they stay honest combos -
    stadium pills one value step above the body tray, with the muted arrow
    kept visible. The value boxes (spin buttons purged, value scrub) are
    sunken stadium wells; focus is a calm accent ring, never an alarm. The
    horizontal paddings stay tight so the row keeps clearing the 960px
-   gallery viewport (X2). */
+   gallery viewport. */
 QComboBox[paramSelector="true"], QComboBox[filterSelector="true"] {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 14px;
@@ -336,8 +332,8 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 
-/* Reference cards (Include / Convolution / MultiConvolution / VST bodies,
-   AR2 #97): the entity presentation - the pastel monogram tile, the
+/* Reference cards (Include / Convolution / MultiConvolution / VST
+   bodies): the entity presentation - the pastel monogram tile, the
    two-line identity, the fact chips and the calm Locate pill - is
    assembled from tokens in SoftReferenceCardView. Here the seam and the
    host bodies stay fully transparent over the card tray (an opaque band
@@ -418,8 +414,8 @@ QCheckBox#InstantModeCheckBox::indicator:checked {
 QCheckBox#InstantModeCheckBox::indicator:checked:hover { background: #7FA3D5; }
 
 /* The save state is a status pill: a solid pastel chip carrying the
-   deep warm ink (the type chip's grammar promoted to chrome - feedback
-   round 1). Unsaved swaps green for the warm amber - never an alarm. */
+   deep warm ink (the type chip's grammar promoted to chrome). Unsaved
+   swaps green for the warm amber - never an alarm. */
 QLabel#DirtyStatusBadge {
     background: @SUCCESS@; color: #2B251D;
     border: 1px solid @SUCCESS@;
@@ -515,7 +511,7 @@ QLabel#MultiConvolutionMappingHint {
     font-size: 9pt;
 }
 /* ====================================================================
-   Phase 2 - the plumbing cards (Device / Channel / Comment / Stage) in
+   The plumbing cards (Device / Channel / Comment / Stage) in
    Soft Lab grammar. One shared consumer-settings language: every choice
    is a calm stadium pill that is ON (accent pastel fill), OFF (a quiet
    sunken pill - never bare text), or ASLEEP (dashed, sunk into the
@@ -782,13 +778,13 @@ QLineEdit#CommentCardText:disabled {
 }
 
 /* ====================================================================
-   Round 3 - the GraphicEQ card, the update toast and DeviceSelector.
+   The GraphicEQ card, the update toast and DeviceSelector.
    The trailing add row and the first-boundary seam are painted from
    tokens by SoftSkin::paintAddRow/paintInsertSeam (dashed stadium slot,
    pastel pill line); here live the QSS shares.
    ==================================================================== */
 
-/* GraphicEQ card (round 3 rework): the response plot is painted whole
+/* GraphicEQ card: the response plot is painted whole
    by SoftSkin::paintGraphicEqPlot - the rounded sunken well, the
    majors-only faint grid, the bipolar pastel curve and the big round
    nodes all live in paint code, not here. QSS keeps the calm furniture
@@ -839,7 +835,7 @@ QToolButton#UpdateToastClose {
 QToolButton#UpdateToastClose:hover { background: rgba(207, 171, 110, 0.30); color: @TEXT@; }
 QToolButton#UpdateToastClose:pressed { background: rgba(207, 171, 110, 0.44); color: @TEXT@; }
 
-/* DeviceSelector wears this same sheet (round 3). Its device tree, the
+/* DeviceSelector wears this same sheet. Its device tree, the
    header, the dialog buttons and the checkable troubleshooting group
    all resolve through the generic rules above; the one gap was the
    disclosure panel: QStackedWidget derives from QFrame, so the generic

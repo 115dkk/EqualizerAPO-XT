@@ -2,10 +2,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 */
 
-// Minimal skin, split out of Skins.cpp (audit #109 F005). This is a verbatim
-// move of the helpers and the class; behaviour is unchanged. The file-scope
-// instance is exposed through minimalSkin() so Skins::all() can assemble the
-// roster without a central definition list.
+// Minimal skin. Constitution: docs/skins/minimal.md. The file-scope
+// instance is exposed through minimalSkin() so Skins::all() can assemble
+// the roster without a central definition list.
 
 #include "Skins.h"
 
@@ -28,7 +27,6 @@
 #include <QWidget>
 #include <QtMath>
 
-// Studio's S3 band-colour law maps BiQuad filter types onto hue families.
 #include "filters/BiQuad.h"
 
 #include "Editor/SkinManager.h"
@@ -52,17 +50,14 @@ namespace
 // ── Minimal ("The bank teller's terminal") helpers ──────────────────────────
 // The arc trig lives in the shared SkinPaint.h (skinArcPoint).
 
-// ANNEX K minimal: "the number is the control; the knob is confirmation"
-// (N2). The figure is the brightest ink in the row - painted here when the
-// widget supplies valueText, living in the adjacent ValueScrubBox (promoted
-// by precision_*.qss) for the row dials, which supply none. The knob itself
+// "The number is the control; the knob is confirmation." The figure is the
+// brightest ink in the row - painted here when the widget supplies
+// valueText, living in the adjacent ValueScrubBox (promoted by
+// precision_*.qss) for the row dials, which supply none. The knob itself
 // is a hairline instrument: a 1px 270-degree range arc, a travelled arc in
-// text ink and a radial cursor tick at the value angle - no filled disc, no
-// hub. Unipolar dials measure travel from the range start; bipolar dials
-// measure a deviation arc from a fixed 12 o'clock detent tick (boost
-// clockwise, cut counter-clockwise), so the two kinds part at a glance (X3)
-// and 0 dB reads as "cursor on the detent, no deviation". Monochrome until
-// dragged; dragging turns the travelled ink accent (active-state law).
+// text ink and a radial cursor tick at the value angle - no filled disc,
+// no hub. Monochrome until dragged; dragging turns the travelled ink
+// accent (active-state law).
 void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
 {
 	painter.setRenderHint(QPainter::Antialiasing);
@@ -176,21 +171,9 @@ void paintMinimalKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 }
 
 // The GraphicEQ response plot as this skin's instrument: a measurement
-// record on the console (dark) or the printed sheet (light). Ground is the
-// graph token, the grid is the faintest 1px hairlines, and every straight
-// line is drawn crisp with antialiasing off; only the response curve keeps
-// its antialiasing, because the curve is data. The curve itself is a 1px
-// body-ink hairline with no fill and no accent (accent only while active).
-// Nodes are square hairline ticks walking the value ladder: rest is a
-// ground-punched hairline square, hover fills the square one background
-// value step (cardHover), selection is the inverted block - the picker's
-// bluntest cursor - and only the selected node under the pointer (the one
-// being dragged) wears the accent block. The keyboard cursor gets the
-// square accent hairline frame while the widget holds focus. Band-locked
-// layouts (15/31) hang 1px hairline stems from the 0 dB rule - no bar
-// fills, ink spent on decoration is waste. Disabled drops the data inks
-// (curve, nodes, 0 dB) one brightness step to secondary; no strikeout, no
-// warning colour.
+// record on the console (dark) or the printed sheet (light). Every
+// straight line is drawn crisp with antialiasing off; only the response
+// curve keeps its antialiasing, because the curve is data.
 void paintMinimalGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens)
 {
 	const QColor ground(tokens.graph);
@@ -314,25 +297,11 @@ void paintMinimalGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& stat
 
 // The analysis dock's response graph as this skin's plotter sheet: the
 // measurement-record grammar of the GraphicEQ plot stretched into a wide
-// always-on lab chart. Same display language - graph-token ground, faintest
-// 1px hairline grid, secondary-ink mono axis figures in the margins (dB on
-// both sides of the wide sheet, frequency under the plot; the 0 dB figure
-// alone prints in body ink because it is the reference), the 0 dB rule as
-// the one full-strength straight line and the response as a single crisp
-// 1px body-ink trace with no fill and no glow - ink weight is the
-// hierarchy. Straight lines land on half-pixel centres so they stay crisp
-// with antialiasing on. The sheet prints its own header caption top-left
-// (RESPONSE, the engraved uppercase caption register), so an empty config's
-// flat trace still reads as a deliberate record. Clipping is a flagged
-// region on the chart print: the area between the trace and the 0 dB rule
-// is hatched with flat diagonal warning-ink lines and the header grows a
-// "!! CLIP" tag (the reference card's !!-ink-tag grammar). The cursor is a
-// plotter crosshair - a full-height vertical hairline with a short
-// horizontal tick at the reading - whose ink rises from the secondary
-// half-tone to body ink with the hover progress, and the prepared readout
-// is printed in the top margin like an annotation in the same rising ink.
-// The footer channel/sample-rate caption is sheet metadata on the bottom
-// edge, printed as-is (localized data) and elided, never overflowed.
+// always-on lab chart. Straight lines land on half-pixel centres so they
+// stay crisp with antialiasing on. The sheet prints its own RESPONSE
+// header top-left, so an empty config's flat trace still reads as a
+// deliberate record; the footer channel/sample-rate caption is sheet
+// metadata, printed as-is (localized data) and elided, never overflowed.
 void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens)
 {
 	const QColor ground(tokens.graph);
@@ -432,7 +401,7 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		// sheet: a black-red block - on an ink-on-paper terminal the error
 		// field is HEAVY ink, so the block goes near-ink dark with the red
 		// hue kept, and the paper-coloured trace inverts through it white
-		// against black (review direction: "white vs black").
+		// against black.
 		const QColor dangerBase(tokens.danger);
 		const QColor errorBlock = QColor::fromHsvF(
 			dangerBase.hsvHueF(),
@@ -571,22 +540,17 @@ public:
 		// MinimalFilterPicker.h for the design.
 		return new MinimalFilterPickerView(parent);
 	}
-	// The reference bodies (Include / Convolution / MultiConvolution / VST) as
-	// one line of type: payload in the brightest ink, location and readout as
-	// muted print, the broken reference as an inverted MISSING block and the
-	// actions as engraved command words; see MinimalReferenceCardView.h.
+	// The reference bodies as one line of type; see
+	// MinimalReferenceCardView.h.
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new MinimalReferenceCardView(kind, parent);
 	}
-	// The toolbar is the terminal's command line: all type and one hairline.
 	// The neutral default keeps the shared stroke icons on the actions so the
 	// File menu (which shares the QActions) stays modern; the toolbar buttons
-	// themselves drop the pictures and show the command words instead -
-	// precision_*.qss uppercases and letter-spaces them and walks their states
-	// up the value ladder (hover = one background step, pressed = the
-	// inverted block from the picker's cursor grammar). Both calls set
-	// absolute state, so re-running on every skin/dark switch is idempotent.
+	// themselves drop the pictures and show the command words instead
+	// (precision_*.qss dresses them). Both calls set absolute state, so
+	// re-running on every skin/dark switch is idempotent.
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
 	{
 		if (toolBar == nullptr)
@@ -598,15 +562,10 @@ public:
 	{
 		paintMinimalKnob(painter, rect, state, tokens);
 	}
-	// The GraphicEQ response plot as a measurement record on the console/
-	// paper; see paintMinimalGraphicEqPlot above for the full grammar.
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
 	{
 		paintMinimalGraphicEqPlot(painter, state, tokens);
 	}
-	// The analysis dock's response graph as the plotter sheet - the same
-	// instrument family as the GraphicEQ plot, adapted to a wide always-on
-	// monitoring readout; see paintMinimalAnalysisGraph above.
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
 	{
 		paintMinimalAnalysisGraph(painter, state, tokens);
@@ -616,11 +575,8 @@ public:
 		// One flat line per command: 1px hairline box, square corners, and
 		// state expressed as background-value steps only. Disabled rows fall
 		// one step below the resting card; a line a false If branch swallowed
-		// takes the same step down (to the engine both are dead code, and the
-		// value ladder IS this skin's state channel - maintainer round-1
-		// verdict); selection is the accent-value background step; hover is
-		// exactly one step up from rest. The '#' glyph and the readout column
-		// keep skipped and commented apart.
+		// takes the same step down (to the engine both are dead code). The
+		// '#' glyph and the readout column keep skipped and commented apart.
 		const bool sunken = !info.enabled || info.lineSkipped;
 		const QString background = sunken ? tokens.surface
 			: (info.selected ? tokens.cardSelected : tokens.card);
@@ -645,16 +601,11 @@ public:
 	{
 		Q_UNUSED(card);
 		// A raw line (a bare note, or a programmatic command like If/EndIf
-		// the editor does not model) is source text, and this skin is the
-		// source's native register: print it bare on the body strip. The
-		// shared raw card's inline chrome (sunken input ground in a hairline
-		// box) says "foreign object"; here the honest presentation is plain
-		// ink - no box, no input ground (the comment card's law, but in body
-		// ink because the line is live source, not dead code). A
-		// commented-out line drops to secondary ink with the rest of the
-		// row. The '>_' marker keeps its shared muted-mono inline style as
-		// the raw-mode tag. Rows are rebuilt on skin/theme switches, so
-		// construction-time token values stay current.
+		// the editor does not model) is printed bare on the body strip: no
+		// box, no input ground. The shared raw card lays its chrome inline,
+		// so QSS cannot reach it and the override happens here. Rows are
+		// rebuilt on skin/theme switches, so construction-time token values
+		// stay current.
 		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
 			|| info.type == QStringLiteral("eval") || info.dynamicLine) && body != nullptr)
 		{
@@ -684,17 +635,10 @@ public:
 		glyphLabel->setMinimumWidth(18);
 		headerLayout->insertWidget(0, glyphLabel);
 	}
-	// The watch readout register (dynamic commands): the document stays a
-	// document, and the analysis fact for a line is printed as a right-
-	// aligned DM Mono readout column in the header. If/ElseIf/Else rows
-	// print the branch verdict, Eval and inline-value rows print "= " plus
-	// the computed text; EndIf closes a block and has nothing to report.
-	// The ladder is brightness, never a status colour: TRUE is body ink,
-	// FALSE is secondary ink, "no data yet / not evaluated" is an em dash
-	// one step below secondary (no data makes no claim), and ERR is bold
-	// body ink - the loudest thing monochrome type can do. Painted here
-	// rather than as a construction-time label because the facts refresh
-	// with every analysis run and only paint time is guaranteed to see the
+	// The watch readout column: the analysis fact for a line is printed as
+	// a right-aligned DM Mono column in the header. Painted here rather
+	// than as a construction-time label because the facts refresh with
+	// every analysis run and only paint time is guaranteed to see the
 	// fresh values (prepareCommandRow would freeze the first, stale ones).
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
@@ -769,15 +713,11 @@ public:
 		painter.drawText(column, Qt::AlignRight | Qt::AlignVCenter,
 			QFontMetrics(font).elidedText(figure, Qt::ElideRight, column.width()));
 	}
-	// The If-block scope in the gutter is a code editor's indent guide
-	// (dynamic-commands campaign): one crisp 1px border-ink hairline per
-	// scope level, antialiasing off, and nothing else - no lamps, no colour,
-	// no second stroke weight. The channel-group level is drawn by the same
-	// rule, because to a document a hairline is a hairline; state lives in
-	// the readout column and the sunken inks, never in the gutter. Branch
-	// rows keep their semantic indentation (logicSiblingsIndentAsMembers
-	// stays false): ElseIf/Else/EndIf align with their If exactly as source
-	// code would, so the innermost guide pauses on their line the way an
+	// The If-block scope in the gutter is a code editor's indent guide:
+	// one crisp 1px border-ink hairline per scope level, antialiasing off.
+	// The channel-group level is drawn by the same rule. Branch rows keep
+	// their semantic indentation (logicSiblingsIndentAsMembers stays
+	// false), so the innermost guide pauses on their line the way an
 	// editor's guides do.
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
@@ -787,9 +727,8 @@ public:
 		painter.setRenderHint(QPainter::Antialiasing, false);
 		// The guides go dashed where they pass a swallowed line: the dash
 		// grammar ("no verified substance") extended to a stretch the engine
-		// is not running, so the structure column itself posts the branch
-		// outcome (maintainer round-1 verdict, paired with the frame's
-		// background step in cardFrameStyle).
+		// is not running (paired with the frame's background step in
+		// cardFrameStyle).
 		painter.setPen(QPen(QColor(tokens.border), 1, info.lineSkipped ? Qt::DotLine : Qt::SolidLine));
 		const int unit = tokens.channelGroupIndent;
 		for (int level = 0; level < info.depth; level++)
@@ -803,13 +742,8 @@ public:
 	}
 	// The trailing add row is the terminal's input prompt line: "+ ADD
 	// FILTER" as an uppercase tracked mono caption inside a 1px hairline
-	// slot - the engraved-command grammar (BROWSE/LOCATE) at line scale.
-	// State keeps to the value ladder: rest is the bare hairline box on the
-	// list ground, hover lifts the ground exactly one value step, keyboard
-	// focus is the square accent hairline frame and the press instant is
-	// the inverted block (the command canon's cursor). No dashes: a dashed
-	// hairline means "no verified substance" in this skin's chip grammar,
-	// and this slot is a real command.
+	// slot. No dashes: a dashed hairline means "no verified substance" in
+	// this skin's chip grammar, and this slot is a real command.
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		QColor ink(tokens.mutedText);
@@ -842,12 +776,8 @@ public:
 		painter.drawText(rect.adjusted(12, 0, -12, 0), Qt::AlignVCenter | Qt::AlignLeft,
 			QStringLiteral("+ ") + state.label.toUpper());
 	}
-	// The first-boundary seam: a text editor's insert line. One 1px accent
-	// hairline rules the boundary and an ASCII '+' in a square hairline
-	// cell sits at the line head; the press instant fills the cell with
-	// the accent block (the armed-flag grammar of the menu and checkbox
-	// indicators). No curvature, no glow, no disc. The widget only shows
-	// itself while hovered, so at rest nothing is painted anywhere.
+	// The first-boundary seam: a text editor's insert line. The widget only
+	// shows itself while hovered, so at rest nothing is painted anywhere.
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		if (!state.hovered && !state.pressed)

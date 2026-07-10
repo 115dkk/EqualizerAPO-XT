@@ -29,10 +29,10 @@ using FilterCardEditorCreator = IFilterGUI* (*)(FilterTable* filterTable, const 
 // Self-registration for the modern card editors, mirroring the engine's
 // REGISTER_FILTER_FACTORY and the Editor's REGISTER_FILTER_GUI_FACTORY: each
 // card editor's .cpp is the single place it joins the roster, so adding a card
-// no longer means editing a hand-maintained if-chain in
+// does not mean editing a hand-maintained if-chain in
 // FilterCardEditorFactory. Commands are keyed lowercase; unlike the two
 // factory registries there is no ordering, because card commands are exact
-// keyword matches. (audit #146 TD003)
+// keyword matches.
 class FilterCardEditorRegistry
 {
 public:

@@ -198,7 +198,7 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 		// watchRegistryKeys is cleared and refilled under loadMutex whenever a
 		// configuration loads (loadConfig can run on the APO thread for a device
 		// format change while this thread is between waits). Snapshot it under
-		// the same mutex instead of iterating the live set. (audit #146 TD027)
+		// the same mutex instead of iterating the live set.
 		vector<wstring> watchedKeys;
 		{
 			lock_guard<mutex> lock(engine->loadMutex);

@@ -55,7 +55,7 @@ void FilterTable::mousePressEvent(QMouseEvent* event)
 	if (event->buttons() & Qt::LeftButton)
 	{
 		// Pixel-to-row hit testing stays here; the selection state math lives
-		// in FilterListModel. (audit #146 TD032)
+		// in FilterListModel.
 		int row = rowForPos(event->pos(), false);
 		if (row != -1)
 		{
@@ -126,7 +126,7 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 			// Widget-side pass: persist each selected row's GUI preferences
 			// (the drag payload must carry the latest edits) and hit-test the
 			// drag start against the row headers. The payload itself is the
-			// model's copy payload. (audit #146 TD032)
+			// model's copy payload.
 			int i = 0;
 			bool dragPosInside = false;
 			for (Item* item : model.items())

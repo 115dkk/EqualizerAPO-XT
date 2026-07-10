@@ -1,18 +1,9 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Soft Lab's "add filter" picker: a rounded menu card in the language of a
-	consumer settings app. A pill search field sits over comfortable two-line
-	rows (template name plus a friendly caption - the config line, or a calm
-	promise when the template inserts a bare command), each led by an
-	iOS-Settings-style rounded-square colour tile in its category's pastel
-	carrying a per-item monogram (AR1 F4: single initials collided, e.g.
-	Comment/Channel/Copy all "C"); category headers are tinted pills of the
-	same hue. The hovered row lifts one value step and the current row gets a
-	fully rounded stadium highlight, echoing the skin's chip grammar. A
-	fruitless search shows a friendly empty-state card instead of a bare
-	void. Elevation is faked with one background value step under the card
-	plus the usual very light 1px border.
+	Soft Lab's "add filter" picker: a rounded settings-menu card - a pill
+	search field over two-line rows led by pastel colour tiles.
+	Constitution: docs/skins/soft.md ("필터 픽커" section).
 */
 
 #pragma once

@@ -249,7 +249,7 @@ int main()
 	runLoudnessCorrectionCommandTests();
 	runStageCommandTests();
 	runVSTPluginCommandTests();
-	// Runtime VST2 host load/state/audio test (audit #48 F026). Soft-skips if the
+	// Runtime VST2 host load/state/audio test. Soft-skips if the
 	// companion TestVst2Plugin.dll is not next to this executable.
 	runVstHostTests();
 	runParserTests();

@@ -70,7 +70,7 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 	bool isIfFamily = IfCommand::parse(command, parameters, cmd);
 	const wstring& expression = cmd.expression;
 
-	// Load-trace reporting (dynamic-commands campaign): the Editor echoes
+	// Load-trace reporting: the Editor echoes
 	// branch decisions next to the config rows. Every reported line sets
 	// traced so the generic skipped-line report below does not double-count
 	// the line that made the branch false.

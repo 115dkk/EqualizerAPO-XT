@@ -2,10 +2,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 */
 
-// Studio skin, split out of Skins.cpp (audit #109 F005). This is a verbatim
-// move of the helpers and the class; behaviour is unchanged. The file-scope
-// instance is exposed through studioSkin() so Skins::all() can assemble the
-// roster without a central definition list.
+// Constitution: docs/skins/studio.md
+// The file-scope instance is exposed through studioSkin() so Skins::all()
+// can assemble the roster without a central definition list.
 
 #include "Skins.h"
 
@@ -51,21 +50,12 @@
 namespace
 {
 // ── Studio (glass over the instrument, FabFilter-like) ──────────────────────
-// The UI recedes behind the data: deep solid backgrounds, panels as glass
-// (solid colour with alpha plus a single 1px lighter top edge), one glowing
-// accent. Glow is faked with layered strokes and gradient borders, never
-// effects. Tiebreaker: if an element is not the arc, the label or the value,
-// it gets removed.
+// Constitution: docs/skins/studio.md
 
-// The alpha/rgba/is-dark vocabulary moved to the shared SkinPaint.h
-// (cssRgba/withAlpha/skinIsDark) - mechanical helpers, no studio grammar.
-
-// S3 band-colour law (adversarial review round 1): the light a BiQuad row
-// carries - knob arcs, type badge ink, signal lamp, hover/selected border
-// glow - takes the row's band colour, one hue family per filter type. The
-// glass itself stays neutral. Peaking and pure gain stay on the skin's base
-// blue; shelves are mint, pass filters violet, notch/all-pass rose. Rows
-// that carry no "studioBand" tag keep the neutral accent.
+// Band-colour law: the light a BiQuad row carries - knob arcs, type badge
+// ink, signal lamp, hover/selected border glow - takes the row's band
+// colour, one hue family per filter type. The glass itself stays neutral;
+// rows that carry no "studioBand" tag keep the neutral accent.
 const char* const studioBandFamilies[] = { "peak", "shelf", "pass", "notch" };
 
 QString studioBandHex(const QString& family, bool dark)
@@ -98,7 +88,7 @@ QString studioBandFamilyForBiQuadType(int type)
 	}
 }
 
-// The same S3 band law keyed off the descriptor's type code (LS/LSC ride the
+// The same band law keyed off the descriptor's type code (LS/LSC ride the
 // shelf family, LP/HP/BP and their Q forms the pass family) - the badge
 // pictogram's ink resolves from the config line before any type combo exists.
 QString studioBandFamilyForBadgeToken(const QString& token)
@@ -138,38 +128,30 @@ public:
 		return &renderer;
 	}
 
-	// The "add filter" picker as a floating frosted-glass panel: painted
-	// stage + glow, a prominent sunken-glass search field and a sectioned
-	// list whose hover pools light under the cursor (StudioFilterPicker.cpp).
+	// The "add filter" picker as a floating frosted-glass panel
+	// (StudioFilterPicker.cpp).
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		return new StudioFilterPickerView(parent);
 	}
 
-	// Reference rows (Include / Convolution / MultiConvolution / VST) as
-	// "the identity in the light, the facts behind glass": a luminance-first
-	// name line with lit glass chips, a sunken mono data window for location
-	// and readout, and a severity lamp beside one quiet status line
+	// Reference rows (Include / Convolution / MultiConvolution / VST)
 	// (StudioReferenceCardView.cpp; the studio sheets carry the styling).
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new StudioReferenceCardView(kind, parent);
 	}
 
-	// The title bar is the topmost edge of the window's glass. The QSS keeps
-	// the strip on the deep stage colour; this hook lays the light on it - a
-	// whisper of reflection along the full top edge plus a faint accent-to-
-	// violet arc caught on that edge, echoing the picker panel and the knob
-	// arcs (accent2 stays at the spectrum's end, per the one-light rule).
-	// Both are plain strokes: bloom first, then the core - glow is faked with
-	// layered strokes, never effects.
+	// The title bar: the QSS keeps the strip on the deep stage colour; this
+	// hook lays a whisper of reflection along the top edge plus a faint
+	// accent-to-violet arc caught on it. Both are plain strokes: bloom
+	// first, then the core.
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
 		painter.save();
 
-		// The 1px lighter top edge of the glass formula, quieter than a
-		// panel's reflection - the bar is the stage's edge, not a card.
+		// The 1px lighter top edge, quieter than a panel's reflection.
 		painter.fillRect(QRectF(rect.left(), rect.top(), rect.width(), 1.0),
 			QColor(255, 255, 255, dark ? 30 : 235));
 
@@ -199,14 +181,10 @@ public:
 		painter.restore();
 	}
 
-	// The toolbar is the top edge of the window's glass. The QSS sheets own
-	// the strip itself (deep background, a 1px reflection along the bottom
-	// edge, accent light pooling under hovered buttons, the Instant mode
-	// lamp, sunken mono readouts); code only re-inks the file actions as
-	// quiet ink - the muted colour lifted halfway toward the text ink - so
-	// the icons rest behind the data until interaction lights the glass
-	// under them, yet stay legible at menu size. Idempotent: re-tinting and
-	// re-sizing converge on every skin/dark switch.
+	// The QSS sheets own the toolbar strip itself; code only re-inks the
+	// file actions as quiet ink - the muted colour lifted halfway toward
+	// the text ink - so the icons stay legible at menu size. Idempotent:
+	// re-tinting and re-sizing converge on every skin/dark switch.
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
 	{
 		if (toolBar == nullptr)
@@ -230,14 +208,9 @@ public:
 	}
 
 	// "The arc IS the value": no knob body, only a thin track circle, a
-	// glowing arc from the reference point to the current value and a small
-	// indicator dot. The arc wears the row's band colour (S3). Glow is a
-	// luminance ladder faked with layered strokes: a faint outer stroke even
-	// at rest, a one-step bloom on hover and full light while dragging (S4).
-	// Bipolar (gain) knobs hang from a luminous 0 dB anchor at 12 o'clock and
-	// grow left (cut) or right (boost); unipolar knobs grow from the track
-	// start and carry no anchor (X3). The numeric readout fades in while
-	// hovering or dragging; disabled knobs drop to reduced opacity.
+	// glowing arc in the row's band colour and a small indicator dot. The
+	// numeric readout fades in while hovering or dragging; disabled knobs
+	// drop to reduced opacity.
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing);
@@ -270,9 +243,9 @@ public:
 			sweep = span * (ratio - 0.5);  // signed: cut grows left, boost right
 		}
 
-		// The luminance ladder (S4): rest keeps a faint outer stroke so the
-		// arc visibly glows even untouched, hover blooms one full step and a
-		// drag turns the light all the way up.
+		// Luminance ladder: rest keeps a faint outer stroke so the arc glows
+		// even untouched, hover blooms one full step and a drag turns the
+		// light all the way up.
 		const int halo = state.dragging ? 120 : (state.hovered ? 88 : 36);
 		const struct { double width; int alpha; } layers[] = {
 			{ 13.0, qMax(8, halo / 6) },
@@ -288,11 +261,10 @@ public:
 			painter.drawArc(track, qRound(-arcFrom * 16), qRound(-sweep * 16));
 		}
 
-		// 0 dB anchor (X3): a luminous tick crossing the track at 12 o'clock,
+		// 0 dB anchor: a luminous tick crossing the track at 12 o'clock,
 		// drawn over the arc so the centre detent stays readable even at
-		// small gains - bloom first, bright core on top (strokes, never
-		// effects). At 0 dB the indicator dot sits right under it: the knob
-		// visibly rests at its detent.
+		// small gains - bloom first, bright core on top. At 0 dB the
+		// indicator dot sits right under it.
 		if (state.bipolar)
 		{
 			const QPointF top(track.center().x(), track.top());
@@ -344,15 +316,11 @@ public:
 		}
 	}
 
-	// Glass card: solid colour with alpha over the deep background plus a 1px
-	// lighter top edge (the reflection); paintCardChrome layers the caught
-	// light on top (S1). Command types keep one silhouette but announce
-	// themselves through the border treatment: DSP rows solid, Include rows
-	// dashed (a reference to elsewhere), VST rows a vertical accent gradient
-	// (the module radiates its own light). BiQuad rows hang their hover and
-	// selection glow on the band colour they were tagged with (S3); the glass
-	// itself stays neutral. Hover brightens; disabled rows lose the
-	// reflection and most of their opacity.
+	// Glass card: alpha fill + 1px lighter top edge; paintCardChrome layers
+	// the caught light on top. Command types announce themselves through
+	// the border treatment (DSP solid, Include dashed, VST a vertical
+	// accent gradient), and tagged BiQuad rows hang their hover/selection
+	// glow on their band colour.
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
@@ -394,7 +362,7 @@ public:
 			" QFrame#FilterCardRow:hover { background: %5; border-color: %6; border-top-color: %7; }")
 			.arg(background, borderStyle, borderBrush, topEdge, hoverBackground, hoverBorderBrush, topEdgeHover);
 
-		// S3: a tagged BiQuad row's border light follows its band colour.
+		// A tagged BiQuad row's border light follows its band colour.
 		// Attribute selectors outrank the base rules, and untagged rows can
 		// never match them; keyboard focus keeps the neutral focus ring.
 		if (info.type == QStringLiteral("biquad") && !info.focused)
@@ -427,18 +395,10 @@ public:
 			.arg(sheen);
 	}
 
-	// Painted decoration on top of the QSS chrome - the layer that makes a
-	// row read as glass instead of a flat dark rectangle (S1). Every enabled
-	// row gets the pane treatment: a frost sheen settling down from the top
-	// edge, a centre-bright reflection caught on that edge (dark mode; white
-	// glass cannot get brighter) and a shade pooling at the bottom as the
-	// pane's thickness. On top of the pane, DSP rows wear the signal lamp in
-	// their band colour (S3) and VST rows a border-hugging halo, with hover
-	// blooming one ladder step (S4). Include/comment/raw rows and the If/Eval
-	// logic rows stay unlit panes - the gate beam in the gutter carries the
-	// logic state, and a resolved Eval adds only a quiet mono readout at the
-	// header's right; disabled rows paint nothing - the light is off, the
-	// glass dead.
+	// Painted decoration on top of the QSS chrome: the pane treatment
+	// (frost sheen, centre-bright reflection, bottom shade), the signal
+	// lamp on DSP rows and the VST halo. Include/comment/raw and If/Eval
+	// rows stay unlit panes; disabled rows paint nothing.
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		if (!info.enabled || info.type == QStringLiteral("spacer"))
@@ -456,15 +416,15 @@ public:
 
 		if (dark)
 		{
-			// Frost sheen: room light caught in the upper glass.
+			// Frost sheen in the upper glass.
 			QLinearGradient sheen(pane.topLeft(), QPointF(pane.left(), pane.top() + pane.height() * 0.45));
 			sheen.setColorAt(0.0, QColor(255, 255, 255, info.hovered ? 24 : 15));
 			sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
 			painter.fillPath(panePath, sheen);
 		}
 
-		// The pane's thickness: a shade pooling at the bottom edge. In light
-		// mode this shade carries the whole glass impression.
+		// Shade pooling at the bottom edge; in light mode this shade carries
+		// the whole glass impression.
 		QLinearGradient depthShade(QPointF(pane.left(), pane.bottom() - pane.height() * 0.38), pane.bottomLeft());
 		depthShade.setColorAt(0.0, QColor(0, 0, 0, 0));
 		depthShade.setColorAt(1.0, dark ? QColor(0, 0, 0, 52) : QColor(24, 32, 51, 26));
@@ -472,8 +432,7 @@ public:
 
 		if (dark)
 		{
-			// Centre-bright reflection just under the border's top edge - the
-			// title bar's whisper of light at card scale.
+			// Centre-bright reflection just under the border's top edge.
 			const double y = pane.top() + 0.5;
 			QLinearGradient reflection(pane.left(), y, pane.right(), y);
 			reflection.setColorAt(0.0, QColor(255, 255, 255, 0));
@@ -489,20 +448,16 @@ public:
 			|| info.type == QStringLiteral("include")
 			|| info.type == QStringLiteral("if") || info.type == QStringLiteral("eval"))
 		{
-			// Unlit panes: the glass surface only, no lamp. Include points
-			// elsewhere; comments and raw text carry no signal, and the If/Eval
-			// logic rows gate signal rather than process it - their state lives
-			// in the gutter's gate beam (paintScopeGutter), never as a tint on
-			// the glass or the ink.
+			// Unlit panes: the glass surface only, no lamp. The If/Eval state
+			// lives in the gutter's gate beam (paintScopeGutter), never as a
+			// tint on the glass or the ink.
 			//
-			// An Eval row the last analysis run resolved shows its value as a
-			// quiet mono readout at the header's right: the hover-value grammar
-			// (muted ink, present when known) - data, not a lamp. It is painted
-			// here rather than tagged in prepareCommandRow because the fact
-			// refreshes with every analysis run and only paint time sees fresh
-			// values. An unresolved or errored Eval simply stays quiet; studio
-			// never alarms. The summary label bounds the readout, so a long
-			// expression keeps the right of way and the value yields.
+			// An Eval row the last analysis run resolved shows "= value" at
+			// the header's right. It is painted here rather than tagged in
+			// prepareCommandRow because the fact refreshes with every
+			// analysis run and only paint time sees fresh values. The summary
+			// label bounds the readout, so a long expression keeps the right
+			// of way and the value yields.
 			if (info.type == QStringLiteral("eval") && !info.evalText.isEmpty() && !info.valueError
 				&& painter.device() != nullptr && painter.device()->devType() == QInternal::Widget)
 			{
@@ -535,8 +490,8 @@ public:
 
 		if (info.type == QStringLiteral("vst"))
 		{
-			// Two strokes hugging the border fake an outer glow without
-			// effects; hover turns the light up a full step (S4).
+			// Two strokes hugging the border fake an outer glow; hover turns
+			// the light up a full step.
 			const QRectF edge = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
 			painter.setBrush(Qt::NoBrush);
 			painter.setPen(QPen(withAlpha(tokens.accent, info.hovered ? 150 : 80), 1.0));
@@ -546,7 +501,7 @@ public:
 		}
 		else
 		{
-			// Signal lamp in the row's band colour (S3), blooming on hover.
+			// Signal lamp in the row's band colour, blooming on hover.
 			const QColor light = studioBandPaintColor(painter, tokens);
 			const double segment = 18.0;
 			const double y0 = rect.top() + (tokens.rowHeight - segment) / 2.0;
@@ -573,27 +528,14 @@ public:
 		painter.restore();
 	}
 
-	// The If-block scope is a GATE BEAM: a vertical light flowing down the
-	// gutter along the block's member cards (dynamic-commands campaign,
-	// maintainer-confirmed concept). The beam is the knob arc's stroke ladder
-	// turned vertical - wide translucent passes under a narrow bright core
-	// (rule 3, no effects) - in the row's default blue accent: logic rows are
-	// non-BiQuad, so they carry the base light and one light only (rule 1);
-	// the glass and the ink never take the beam colour. State is light
-	// intensity (rule 4): a live run is lit, a run whose line a false branch
-	// swallowed is a de-energized residual trace (a switched-off light, not
-	// an alarm), and the If/ElseIf/Else stations answer with the indicator-
-	// dot grammar (halo + core) - lit while the branch was taken, dark for
-	// false, short-circuited, errored and not-yet-analyzed alike (a light is
-	// on or off; studio never alarms). The beam is born as a short feed
-	// peeking out of the head row's bottom margin and dies on the EndIf row
-	// with a fade-out, the insert seam's ray dying at its end. Outer channel
-	// groups keep a quiet neutral gradient bar so mixed Channel x If nesting
-	// stays readable. The level math mirrors the rack gutter (the worked
-	// example of issue #179): for members the if-lanes are the innermost
-	// logicDepth bands after the depth - logicDepth outer channel bands, and
-	// branch/tail rows mount at member depth (logicSiblingsIndentAsMembers)
-	// so the beam passes their faces instead of dying behind them.
+	// The If-block scope is a gate beam: the knob arc's stroke ladder turned
+	// vertical, flowing down the gutter in the base accent only. State is
+	// light intensity; the If/ElseIf/Else stations answer with the
+	// indicator-dot grammar. Level math: for members the if-lanes are the
+	// innermost logicDepth bands after the depth - logicDepth outer channel
+	// bands, and branch/tail rows mount at member depth
+	// (logicSiblingsIndentAsMembers) so the beam passes their faces instead
+	// of dying behind them.
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		const bool ifFamily = info.type == QStringLiteral("if");
@@ -618,11 +560,10 @@ public:
 
 		const auto bandCenter = [unit](int level) { return 8.0 + level * unit + unit / 2.0; };
 
-		// One run of the beam: the arc's glow ladder turned vertical. A lit
-		// run carries the full ladder, a de-energized run only a faint
-		// residual core. A fading run (the EndIf termination) holds its light
-		// for half the drop and dies before the end - strokes with gradient
-		// brushes, never effects.
+		// One run of the beam: a lit run carries the full ladder, a
+		// de-energized run only a faint residual core. A fading run (the
+		// EndIf termination) holds its light for half the drop and dies
+		// before the end.
 		const auto beamRun = [&](int level, double y0, double y1, bool runLive, bool fadeOut) {
 			struct Stroke { double width; int alpha; };
 			static const Stroke litLadder[] = { { 7.0, 24 }, { 3.4, 64 }, { 1.4, 210 } };
@@ -652,9 +593,8 @@ public:
 			painter.setPen(Qt::NoPen);
 		};
 
-		// The station's answer: the indicator-dot grammar (halo + core). The
-		// unlit dot is the GEQ plot's lights-out node - a glass core under a
-		// neutral hairline, a socket the light never reached.
+		// The station's answer: the indicator-dot grammar (halo + core); the
+		// unlit dot is a glass core under a neutral hairline.
 		const auto anchor = [&](double cx, double cy, bool litDot, double coreRadius) {
 			if (litDot)
 			{
@@ -673,9 +613,8 @@ public:
 			}
 		};
 
-		// Outer channel-group levels keep studio's quiet gradient bar (the
-		// shared default's geometry) in neutral ink: the channel group is
-		// context, and the gutter's one light belongs to the beam.
+		// Outer channel-group levels keep the quiet gradient bar (the shared
+		// default's geometry) in neutral ink.
 		const auto channelRail = [&](int level) {
 			QLinearGradient bar(0, 0, 0, h);
 			bar.setColorAt(0.0, withAlpha(tokens.border, 70));
@@ -691,8 +630,7 @@ public:
 		if (headRow)
 		{
 			// The head sits at its semantic depth, so its block's beam only
-			// peeks out of the bottom margin: a short feed whose light already
-			// answers the condition, under the station's anchor dot.
+			// peeks out of the bottom margin, under the station's anchor dot.
 			for (int level = channelLevels; level < channelLevels + logic; level++)
 				beamRun(level, 0.0, h, true, false);
 			const int own = channelLevels + logic;
@@ -713,7 +651,7 @@ public:
 		else if (tailRow)
 		{
 			// The beam terminates on the EndIf row: it fades out above the
-			// header line and simply is not there below - no cap, no anchor.
+			// header line - no cap, no anchor.
 			for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
 				beamRun(level, 0.0, h, true, false);
 			beamRun(channelLevels + logic - 1, 0.0, junctionY + 4.0, live, true);
@@ -732,27 +670,18 @@ public:
 		return true;
 	}
 
-	// Branch/tail rows mount one indent unit past their semantic level so the
-	// gate beam passes them instead of dying behind their full-width faces
-	// (the finding of the rack A/B mock-up round, issue #179).
+	// Branch/tail rows mount one indent unit past their semantic level so
+	// the gate beam passes them instead of dying behind their full-width
+	// faces.
 	bool logicSiblingsIndentAsMembers() const override
 	{
 		return true;
 	}
 
-	// The trailing add row is a glass slot not yet fitted with a pane
-	// (round 3). At rest it is switched-off glass - a low-alpha fill under a
-	// faint SOLID hairline (dashed is Include's material, a reference to
-	// elsewhere; this slot is a place, so its outline stays solid) with no
-	// reflection: the dead-pane grammar the disabled cards already speak.
-	// Hover fits the pane: the fill rises toward a live card, the centre-
-	// bright reflection lights on the top edge (dark mode; white glass
-	// cannot brighten, so light mode pools the pane's thickness shade at the
-	// bottom instead) and two strokes hugging the border fake an accent halo
-	// - glow is layered strokes, never effects. Pressing turns the light one
-	// step further up (rest < hover < press). The caption is a drawn plus
-	// glyph and the widget's translated label: muted ink on the dead pane,
-	// text ink with an accent-blooming plus once the slot lights.
+	// The trailing add row: a glass slot not yet fitted with a pane. Rest is
+	// switched-off glass under a faint SOLID hairline (dashed is Include's
+	// material; this slot is a place, not a reference); hover fits the
+	// pane, pressing turns the light one step further up.
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
@@ -761,8 +690,7 @@ public:
 		const QRectF frame = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
 
 		// Fill ladder: the disabled cards' dead-pane alpha at rest, rising
-		// toward (but never reaching) the live cards' 0.88 when lit - the
-		// slot stays a slot until a real card fills it.
+		// toward (but never reaching) the live cards' 0.88 when lit.
 		const double fillAlpha = state.pressed ? 0.80 : (state.hovered ? 0.66 : 0.42);
 		painter.setPen(Qt::NoPen);
 		painter.setBrush(withAlpha(tokens.card, qRound(fillAlpha * 255)));
@@ -770,8 +698,8 @@ public:
 
 		if (lit && !dark)
 		{
-			// S2: the lit white slot borrows the pane's thickness - a shade
-			// pooling at the bottom edge carries the glass impression.
+			// The lit white slot cannot brighten, so a shade pooling at the
+			// bottom edge carries the glass impression.
 			QPainterPath panePath;
 			panePath.addRoundedRect(frame.adjusted(1.0, 1.0, -1.0, -1.0), 7.0, 7.0);
 			QLinearGradient depthShade(QPointF(frame.left(), frame.bottom() - frame.height() * 0.5), frame.bottomLeft());
@@ -788,8 +716,8 @@ public:
 
 		if (lit)
 		{
-			// Two border-hugging strokes fake the halo (the VST edge grammar
-			// at slot scale); press is one ladder step up.
+			// Two border-hugging strokes fake the halo; press is one ladder
+			// step up.
 			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 170 : 120), 1.0));
 			painter.drawRoundedRect(frame, 8.0, 8.0);
 			painter.setPen(QPen(withAlpha(tokens.accent, state.pressed ? 80 : 48), 3.0));
@@ -798,7 +726,7 @@ public:
 			if (dark)
 			{
 				// The centre-bright reflection lights on the fitted pane
-				// (the card chrome's S1 line, one step calmer).
+				// (the card chrome's line, one step calmer).
 				const double y = frame.top() + 1.5;
 				QLinearGradient reflection(frame.left(), y, frame.right(), y);
 				reflection.setColorAt(0.0, QColor(255, 255, 255, 0));
@@ -842,14 +770,10 @@ public:
 			Qt::AlignLeft | Qt::AlignVCenter, state.label);
 	}
 
-	// The first-boundary seam is light seeping between panes. At rest the
-	// hosting widget paints nothing (shared contract); under the cursor a
-	// horizontal light ray crosses the boundary - a wide translucent stroke
-	// under a narrow bright core (glow faked with layered strokes), fading
-	// out at both ends like the menu separators, with the violet end of the
-	// spectrum reserved for the far side (accent2 stays the light's end,
-	// rule 1). The knob's indicator-dot grammar marks the insertion point at
-	// the centre; pressing turns the whole ray one step up.
+	// The first-boundary seam: light seeping between panes. The hosting
+	// widget paints nothing at rest (shared contract); under the cursor a
+	// horizontal ray crosses the boundary, with accent2 reserved for the
+	// far end and the indicator dot marking the insertion point.
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		if (!state.hovered && !state.pressed)
@@ -894,25 +818,9 @@ public:
 		painter.drawEllipse(dot, 2.2, 2.2);
 	}
 
-	// The GraphicEQ card's response plot: "the light's response gauge"
-	// (round 3 rework, form-first). The widget owns the model and every
-	// gesture; this hook owns every pixel. The pane is a sunken glass
-	// window - the deep graph ground clipped to the one 8px round under a
-	// darker inner top edge - and the grid recedes as faint crisp lines
-	// (AA off on straight lines; the curve is data and keeps AA). The
-	// 0 dB line is the knob's luminous anchor laid flat: an accent bloom
-	// under a text-ink core. The response curve is the card's one light -
-	// the knob arc's four layered strokes (rule 3) - and an accent fill
-	// sinks from the curve toward the 0 dB line, dying as it lands. Nodes
-	// speak the indicator-dot grammar (halo + core) on the luminance
-	// ladder rest < hover < selected; keyboard focus is a thin ring
-	// outside the dot, and the focused frame swaps its border for the
-	// focus ring. Band-locked layouts (15/31) grow light stems from the
-	// baseline, keeping the classic graphic-EQ silhouette. The cursor
-	// readout is dim mono on the glass, alive only under the pointer.
-	// Disabled is lights-out: glow, fill and blooms die, the data stays
-	// as one thin quiet stroke (soft, never a warning). This row is not a
-	// BiQuad, so the light is the skin's base blue only (rule 1).
+	// The GraphicEQ card's response plot: the widget owns the model and
+	// every gesture; this hook owns every pixel. AA off on straight lines;
+	// the curve is data and keeps AA.
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
@@ -948,8 +856,8 @@ public:
 			painter.drawLine(int(plot.left()), y, int(plot.right()), y);
 		}
 
-		// Margins: DM Mono engravings; the in-between ticks' labels recede
-		// one step further than the majors.
+		// Margin labels: the in-between ticks' labels recede one step
+		// further than the majors.
 		QFont labelFont(tokens.monoFontFamily);
 		labelFont.setPointSizeF(7.5);
 		painter.setFont(labelFont);
@@ -972,9 +880,9 @@ public:
 				Qt::AlignRight | Qt::AlignVCenter, line.label);
 		}
 
-		// 0 dB: the knob's luminous anchor stretched horizontal - accent
-		// bloom first, text-ink core on top (strokes, never effects). When
-		// the light is off the anchor drops to a quiet muted line.
+		// 0 dB: the knob's luminous anchor laid flat - accent bloom first,
+		// text-ink core on top. When the light is off the anchor drops to a
+		// quiet muted line.
 		if (state.zeroY >= plot.top() && state.zeroY <= plot.bottom())
 		{
 			const int y = int(state.zeroY);
@@ -1014,9 +922,9 @@ public:
 				painter.drawPolygon(fill);
 			}
 
-			// The curve is the card's light: four layered strokes, wide
-			// and faint to narrow and full (rule 3). Lights-out keeps one
-			// thin stroke - the data survives, the glow does not.
+			// The curve: four layered strokes, wide and faint to narrow and
+			// full. Lights-out keeps one thin stroke - the data survives,
+			// the glow does not.
 			painter.setBrush(Qt::NoBrush);
 			const struct { double width; int alpha; } layers[] = {
 				{ 9.0, 22 },
@@ -1037,7 +945,7 @@ public:
 		}
 
 		// Band-locked layouts: light stems rising from the baseline to each
-		// band level - bloom under core, the anchor grammar turned vertical.
+		// band level - bloom under core.
 		if (state.bandLocked)
 		{
 			for (const QPointF& node : state.nodePositions)
@@ -1056,8 +964,8 @@ public:
 			}
 		}
 
-		// Nodes: the indicator-dot grammar (halo + core) on the luminance
-		// ladder; selection adds an outer bloom, keyboard focus a thin ring.
+		// Nodes: indicator dots on the luminance ladder; selection adds an
+		// outer bloom, keyboard focus a thin ring.
 		for (int i = 0; i < state.nodePositions.size(); i++)
 		{
 			const QPointF& center = state.nodePositions.at(i);
@@ -1091,7 +999,7 @@ public:
 		}
 
 		// Cursor readout: dim mono on the glass, alive only under the
-		// pointer (the knob's fading readout at plot scale).
+		// pointer.
 		if (lit && state.cursorValid && !state.cursorText.isEmpty())
 		{
 			painter.setFont(labelFont);
@@ -1100,8 +1008,7 @@ public:
 		}
 
 		// The pane's edge: a hairline border (the focus ring when the
-		// keyboard holds the plot) over a darker inner top edge - the
-		// sunken-window material the reference cards already wear.
+		// keyboard holds the plot) over a darker inner top edge.
 		painter.setClipping(false);
 		painter.setBrush(Qt::NoBrush);
 		painter.setPen(QPen(state.focused && lit ? QColor(tokens.focusRing) : withAlpha(tokens.border, lit ? 255 : 150), 1.0));
@@ -1113,31 +1020,10 @@ public:
 		painter.restore();
 	}
 
-	// The analysis dock's response graph: the monitoring pane of the glass
-	// console (analysis-graph round) - the GraphicEQ card's response gauge
-	// widened into an always-on monitor. The pane is the same sunken glass
-	// window (deep graph ground behind the one 8px round, darker inner top
-	// edge), with the pane's own inner light answering hover: a frost sheen
-	// rising in dark mode, the thickness shade deepening in light (white
-	// glass cannot brighten, S2). The grid recedes as crisp 1px lines (AA
-	// off on straight lines, the GEQ plot's documented exception) and the
-	// prepared axis figures are DM Mono engravings - frequency figures under
-	// every tick, dB figures etched inside the left edge, minors one step
-	// dimmer than majors. The 0 dB line is the knob's luminous anchor laid
-	// flat. The response trace is the pane's one light (rule 3's four-stroke
-	// glow, lifted a breath by hover) over an under-fill that splits at
-	// 0 dB: the boost side glows a step warmer than the cut side, both
-	// dying as they land on the anchor. Clipping is danger data (universal
-	// semantics, hook contract): the glass above 0 dB warms with a danger
-	// wash, the overshoot segment of the trace ignites in danger strokes,
-	// and a lit danger chip flags CLIP at the top right. The cursor is a
-	// vertical light seam pooling at the reading point, the indicator dot
-	// on the trace and a lit glass reading chip in DM Mono; the whole group
-	// fades in on state.hover (entry motion). The footer keeps the tick
-	// figures and centres the channel/sample-rate caption (localized data,
-	// drawn as-is) beneath them. A flat 0 dB response still reads alive:
-	// the glowing trace rests on its anchor inside the lit pane. This pane
-	// is not a BiQuad row, so the light is the skin's base blue (rule 1).
+	// The analysis dock's response graph: the GraphicEQ gauge widened into
+	// an always-on monitor (sunken pane, crisp grid, 0 dB anchor,
+	// four-stroke trace over a split under-fill, danger clip treatment,
+	// light-seam cursor). The cursor group fades in on state.hover.
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
@@ -1155,9 +1041,9 @@ public:
 		painter.fillPath(pane, QColor(tokens.graph));
 		painter.setClipPath(pane);
 
-		// The pane's inner light answers hover (rule 4: state is light
-		// intensity). Dark: a frost sheen settling from the top. Light: the
-		// thickness shade pooling at the bottom deepens instead (S2).
+		// The pane's inner light answers hover. Dark: a frost sheen settling
+		// from the top. Light: the thickness shade pooling at the bottom
+		// deepens instead (white glass cannot brighten).
 		if (dark)
 		{
 			QLinearGradient sheen(frame.topLeft(), QPointF(frame.left(), frame.top() + frame.height() * 0.45));
@@ -1188,10 +1074,9 @@ public:
 			painter.drawLine(int(plot.left()), int(line.pos), int(plot.right()), int(line.pos));
 		}
 
-		// Axis figures: DM Mono engravings, minors one step dimmer. The
-		// frequency figures sit under their ticks in the footer margin; the
-		// dB figures are etched inside the pane's left edge, riding just
-		// above their lines. Tight fits shed minor labels first.
+		// Axis figures: minors one step dimmer; frequency figures under
+		// their ticks, dB figures inside the pane's left edge. Tight fits
+		// shed minor labels first.
 		QFont labelFont(tokens.monoFontFamily);
 		labelFont.setPointSizeF(7.5);
 		painter.setFont(labelFont);
@@ -1232,7 +1117,7 @@ public:
 		}
 
 		// 0 dB: the knob's luminous anchor laid flat - accent bloom under a
-		// text-ink core (strokes, never effects).
+		// text-ink core.
 		if (state.zeroY >= plot.top() && state.zeroY <= plot.bottom())
 		{
 			const int zy = int(state.zeroY);
@@ -1246,7 +1131,7 @@ public:
 		const double zeroClamped = qBound(plot.top(), state.zeroY, plot.bottom());
 
 		// Clipping warms the glass above 0 dB: a danger wash dying as it
-		// lands on the anchor (danger is data here, not decoration).
+		// lands on the anchor.
 		if (state.clipping && zeroClamped > plot.top() + 1.0)
 		{
 			QLinearGradient warmth(0, plot.top(), 0, zeroClamped);
@@ -1271,8 +1156,8 @@ public:
 			painter.setBrush(split);
 			painter.drawPolygon(fill);
 
-			// The trace is the pane's light: four layered strokes (rule 3),
-			// the glow lifted a breath while the pointer holds the pane.
+			// The trace: four layered strokes, the glow lifted a breath
+			// while the pointer holds the pane.
 			painter.setBrush(Qt::NoBrush);
 			const struct { double width; int alpha; int lift; } layers[] = {
 				{ 9.0, 22, 10 },
@@ -1411,8 +1296,7 @@ public:
 			painter.restore();
 		}
 
-		// The pane's edge: a hairline border over a darker inner top edge -
-		// the sunken-window material the GEQ plot already wears.
+		// The pane's edge: a hairline border over a darker inner top edge.
 		painter.setClipping(false);
 		painter.setBrush(Qt::NoBrush);
 		painter.setPen(QPen(QColor(tokens.border), 1.0));
@@ -1424,11 +1308,11 @@ public:
 		painter.restore();
 	}
 
-	// The type badge is a lit glass chip (S3): translucent fill with the ink
-	// and border in the row's light colour. BiQuad rows resolve their family
-	// through the studioBand property the prepareCommandRow hook tagged them
-	// with; other commands keep their model colour as quiet ink, not a second
-	// light source. Disabled rows switch the chip off.
+	// The type badge is a lit glass chip: translucent fill with the ink and
+	// border in the row's light colour. BiQuad rows resolve their family
+	// through the studioBand property the prepareCommandRow hook tagged
+	// them with; other commands keep their model colour as quiet ink.
+	// Disabled rows switch the chip off.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
@@ -1453,10 +1337,10 @@ public:
 		return style;
 	}
 
-	// The badge pictogram's ink (feedback round 2): the same light the badge
-	// text wore - a sleeping row's dimmed muted ink, a biquad's band colour
-	// (from the type code, agreeing with the studioBand tag the QSS variants
-	// follow), every other command its type colour.
+	// The badge pictogram's ink: a sleeping row's dimmed muted ink, a
+	// biquad's band colour (from the type code, agreeing with the
+	// studioBand tag the QSS variants follow), every other command its type
+	// colour.
 	QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken, const SkinTokens& tokens) const override
 	{
 		if (!info.enabled)
@@ -1470,7 +1354,7 @@ public:
 		return QColor(typeColor);
 	}
 
-	// Tags BiQuad rows with their band family (S3) so the QSS attribute
+	// Tags BiQuad rows with their band family so the QSS attribute
 	// selectors (frame hover/selected border, type badge chip) and the paint
 	// hooks (knob arcs, signal lamp) all light the row in one colour. The tag
 	// follows the type selector live; repolishing re-evaluates the same rules
@@ -1484,17 +1368,13 @@ public:
 			|| info.type == QStringLiteral("eval") || info.dynamicLine)
 		{
 			// Raw text (bare note lines), the If/Eval logic rows and dynamic
-			// lines without a dynamic-capable editor, whose bodies host the
-			// shared raw editor, are data behind glass.
-			// FilterCardRow lays a shared inline style on the preview label
-			// (inline outranks any sheet rule), and that default speaks a
-			// half-radius 4px - illegal under the one-8px-round law - so
-			// this hook rewrites it into the sunken data window the
-			// reference cards already use: alpha fill, darker top edge (the
-			// inner shadow), the one 8px round, mono ink. A disabled row
-			// switches the window off with the pane (dimmed ink, faded
-			// fill - soft, never a warning). The '>_' engraving already
-			// sits in muted mono and stays untouched.
+			// lines without a dynamic-capable editor host the shared raw
+			// editor. FilterCardRow lays a shared inline style on the
+			// preview label (inline outranks any sheet rule), and that
+			// default speaks a half-radius 4px - illegal under the
+			// one-8px-round law - so this hook rewrites it into the sunken
+			// data window the reference cards already use. The '>_'
+			// engraving already sits in muted mono and stays untouched.
 			QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText"));
 			if (raw == nullptr)
 				return;

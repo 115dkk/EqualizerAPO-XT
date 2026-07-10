@@ -38,9 +38,9 @@ bool LogHelper::useConsoleColors = false;
 
 void LogHelper::log(const char* file, int line, const void* caller, bool trace, const wchar_t* format, ...)
 {
-	// Two first-loggers used to race on writing logPath (a std::wstring) while
-	// the other read it. Double-checked init under a mutex; the release store
-	// pairs with the acquire load so later loggers see logPath. (audit #146 TD028)
+	// Two concurrent first-loggers would race on logPath (a std::wstring).
+	// Double-checked init under a mutex; the release store pairs with the
+	// acquire load so later loggers see logPath.
 	if (!initialized.load(std::memory_order_acquire))
 	{
 		static std::mutex initMutex;
@@ -67,7 +67,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 			catch (const RegistryException& e)
 			{
 				// getMessage() returns a std::wstring; passing it through
-				// varargs is undefined behavior. (audit #146 TD024)
+				// varargs is undefined behavior, hence .c_str().
 				LogFStatic(L"%s", e.getMessage().c_str());
 			}
 		}

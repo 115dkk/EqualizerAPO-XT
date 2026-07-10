@@ -28,8 +28,7 @@
 // engine filter without going through a throwaway DelayFilter instance.
 //
 // The engine (DelayFilterFactory) and the Editor GUI share one parse routine
-// that fills this struct, eliminating the former "build a real filter just to
-// read its fields back" hack in the Editor.
+// that fills this struct.
 struct DelayCommand
 {
 	double delay = 0.0;

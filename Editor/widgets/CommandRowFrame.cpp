@@ -21,9 +21,8 @@ const CommandRowInfo& CommandRowFrame::rowInfo() const
 
 void CommandRowFrame::paintEvent(QPaintEvent* event)
 {
-	// QFrame::paintEvent renders the stylesheet background/border exactly as
-	// the plain QFrame did before this subclass existed; the skin hook then
-	// draws on top (no-op in the neutral default).
+	// QFrame::paintEvent renders the stylesheet background/border; the skin
+	// hook then draws on top (no-op in the neutral default).
 	QFrame::paintEvent(event);
 
 	// The hover flag is sampled at paint time instead of being pushed through

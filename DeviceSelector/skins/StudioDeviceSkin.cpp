@@ -2,21 +2,17 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Studio Glass device selector: the device list as a glowing glass
-	monitoring console. Every endpoint is a glass channel strip (alpha slab,
-	centre-bright top reflection, thickness shade pooling at the bottom -
-	the Editor cards' S1/S2 pane formula at list scale) and the install
-	toggle is a lit console pushbutton: a raised glass cap over an LED that
-	sits dark in its socket until checked, then glows the accent from
-	within (stacked alpha strokes, never effects). Hover is the glass
-	catching light - a specular band sweeps across the strip with the hover
-	progress while the reflection and the fill climb one luminance step.
-	Sections are etched captions under a luminous hairline whose violet end
-	dies at the far side (rule 1); the selected strip - the troubleshooting
-	target - wears the accent border glow and the left-edge signal lamp the
-	Editor's DSP rows already speak. Unavailable strips are smoked glass:
-	the light is off, never a warning. Buttons are glass keycaps (the
-	primary glowing accent from within) and the disclosure is a glass tab
-	whose fold light answers hover with a ray running out of the fold.
+	monitoring console. Constitution (pane formula, hairline rule, glow
+	discipline): docs/skins/studio.md. Element mapping: an endpoint is a
+	glass channel strip (the Editor cards' pane formula at list scale); the
+	install toggle is a lit console pushbutton - a glass cap over an LED,
+	dark in its socket until checked, then glowing the accent from within
+	(stacked alpha strokes, never effects). Sections are etched captions
+	under a luminous hairline; the selected strip - the troubleshooting
+	target - wears the accent border glow and the left-edge signal lamp;
+	unavailable strips are smoked glass (the light is off, never a
+	warning). Buttons are glass keycaps; the disclosure is a glass tab
+	whose fold light answers hover.
 */
 
 #include "DeviceSkinPainter.h"

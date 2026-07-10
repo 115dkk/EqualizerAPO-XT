@@ -42,7 +42,7 @@ IIRCardEditor::IIRCardEditor(unsigned order, const std::vector<double>& coeffici
 	mainLayout->setSpacing(8);
 
 	// The order rides the Preamp value-block grammar (caption over value); the
-	// value itself is an X1 scrub field because a whole-number order has no
+	// value itself is a scrub field because a whole-number order has no
 	// musically useful knob sweep.
 	QHBoxLayout* orderLayout = new QHBoxLayout();
 	orderLayout->setContentsMargins(0, 0, 0, 0);

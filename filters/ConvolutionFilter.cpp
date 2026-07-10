@@ -34,7 +34,7 @@ using std::vector;
 using std::wstring;
 
 // The IR intake (libsndfile read, hardening, deinterleave) and the weak-ptr
-// cache live in IrCache.cpp, shared with MultiConvolutionFilter. (audit #146 TD001)
+// cache live in IrCache.cpp, shared with MultiConvolutionFilter.
 
 namespace
 {
@@ -84,10 +84,9 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 		return;
 
 	// libHybridConv는 hcInitSingle 시점의 framelength로 고정 처리한다.
-	// 과거에는 process() 안에서 cleanup() + initializeFilters()를 호출해 audio 콜백 중에 파일 I/O,
-	// FFTW plan, malloc/free가 발생했다. RT 안정성을 위해 재초기화를 금지하고, mismatch가 들어오면
-	// 한 번만 로그를 남긴 뒤 무음으로 빠진다. 정상 stream에서는 LockForProcess가 frameCount를 고정하므로
-	// 이 분기는 거의 들어오지 않는다.
+	// audio 콜백 중 재초기화는 파일 I/O, FFTW plan, malloc/free를 일으키므로 금지한다.
+	// mismatch가 들어오면 한 번만 로그를 남긴 뒤 무음으로 빠진다. 정상 stream에서는
+	// LockForProcess가 frameCount를 고정하므로 이 분기는 거의 들어오지 않는다.
 	if (frameCount != filterFrameCount)
 	{
 		const unsigned long long count = muteCallCount.fetch_add(1, std::memory_order_relaxed) + 1;

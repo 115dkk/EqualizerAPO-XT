@@ -8,8 +8,8 @@
 	the caption area; WM_NCHITTEST hands back HTCAPTION over the title strip
 	and the resize-border codes along the edges, so moving, snapping and
 	resizing remain native. interface/nativeTitleBar (registry) is the escape
-	hatch: machines where custom chrome misbehaves (see the PC-bang reports in
-	issue #75) can restore the stock caption with one toggle + restart.
+	hatch: machines where custom chrome misbehaves can restore the stock
+	caption with one toggle + restart.
 */
 
 #include <QLayout>

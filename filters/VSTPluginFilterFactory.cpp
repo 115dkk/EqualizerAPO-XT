@@ -39,11 +39,9 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 
 	if (command == L"VSTPlugin")
 	{
-		// The parameter parse now lives in VSTPluginCommand::parse so the Editor
-		// GUI factory can reuse it without building a throwaway filter. The load
-		// decision and error handling below are unchanged: when configPath is set
-		// the binary is still loaded via library->initialize() with the same
-		// messages and the same create/skip outcome as before.
+		// The parameter parse lives in VSTPluginCommand::parse so the Editor
+		// GUI factory can reuse it. The load decision stays here: only when
+		// configPath is set is the binary loaded via library->initialize().
 		VSTPluginCommand cmd = VSTPluginCommand::parse(configPath, parameters);
 		shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
 		const wstring& chunkData = cmd.chunkData;

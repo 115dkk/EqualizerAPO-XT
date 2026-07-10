@@ -60,14 +60,14 @@ public:
 	static bool registerFactory(int order, FilterGUIFactoryCreator creator);
 
 	// Fresh factory instances in ascending order. The caller (FilterTable) takes
-	// ownership and deletes them, matching the historical hand-built list.
+	// ownership and deletes them.
 	static QList<IFilterGUIFactory*> createFactories();
 };
 
 // Registers a GUI factory with its matching order. The factory's .cpp is compiled
 // straight into the Editor executable (not an archive), so its static initializer
 // always runs and no /WHOLEARCHIVE is needed. Each REGISTER line is the single
-// place a filter GUI joins the roster - FilterTable no longer hand-maintains it.
+// place a filter GUI joins the roster.
 #define REGISTER_FILTER_GUI_FACTORY(order, factoryType) \
 	namespace \
 	{ \

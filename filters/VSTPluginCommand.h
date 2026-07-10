@@ -26,8 +26,7 @@
 // three things VSTPluginFilterFactory::createFilter extracts from the parameter
 // string before building a VSTPluginFilter: the resolved library PATH (already
 // expanded relative-to-getDefaultPluginPath()), the optional base64 ChunkData,
-// and the parameter map. With this struct the Editor GUI factory no longer has
-// to build a throwaway VSTPluginFilter just to read these fields back.
+// and the parameter map.
 //
 // The struct stays free of the VST host headers on purpose (it carries only the
 // parsed path string), so it can be parse/serialize round-trip tested without
@@ -41,13 +40,12 @@ struct VSTPluginCommand
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 
-	// Qt-free parser for a "VSTPlugin:" parameter string. It reproduces
-	// VSTPluginFilterFactory::createFilter's former inline parse verbatim:
-	// splitQuoted on spaces into key/value pairs, "Library" resolved through the
-	// same relative-to-getDefaultPluginPath() logic and VSTPluginLibrary::getInstance(),
+	// Qt-free parser for a "VSTPlugin:" parameter string: splitQuoted on spaces
+	// into key/value pairs, "Library" resolved through the
+	// relative-to-getDefaultPluginPath() logic and VSTPluginLibrary::getInstance(),
 	// "ChunkData" stored as-is, and any other pair handled by the isdigit()
 	// id-vs-name branch. configPath is accepted to match the factory's signature
-	// but is unused here: the original parse is configPath-independent (configPath
+	// but is unused here: the parse is configPath-independent (configPath
 	// only gates the binary load, which stays in the factory).
 	static VSTPluginCommand parse(const std::wstring& configPath, const std::wstring& parameters);
 

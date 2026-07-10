@@ -21,16 +21,14 @@
 namespace
 {
 // Studio's glow rule: light is faked with layered strokes and gradients,
-// never effects. These helpers mirror the alpha/mix vocabulary Skins.cpp
-// uses for the card chrome so the picker speaks the exact same dialect.
-// withAlpha / mixColor live in the shared SkinPaint.h.
+// never effects (docs/skins/studio.md).
 
 // Item data roles. EntryIndexRole carries the ORIGINAL index into the
 // entries list handed to setEntries; captions and notes carry -1.
 // SecondaryRole holds the parenthetical description split off the template
-// name (S5); ShowcaseHoverRole stages the gallery's hover shot (X6) - the
-// delegate ORs it into its hover test because the offscreen renderer cannot
-// move a real cursor over a popup.
+// name; ShowcaseHoverRole stages the gallery's hover shot - the delegate
+// ORs it into its hover test because the offscreen renderer cannot move a
+// real cursor over a popup.
 constexpr int EntryIndexRole = Qt::UserRole;
 constexpr int CaptionRole = Qt::UserRole + 1;
 constexpr int FirstCaptionRole = Qt::UserRole + 2;
@@ -211,10 +209,9 @@ private:
 		painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
 			painter->fontMetrics().elidedText(name, Qt::ElideRight, qRound(textRect.width())));
 
-		// S5: the parenthetical description becomes a dim caption on the
-		// right - secondary information at secondary luminance instead of a
-		// bracketed clause shouting at name weight. It brightens a touch with
-		// the entry's own light and yields entirely when space runs out.
+		// The parenthetical description becomes a dim caption on the right -
+		// secondary information at secondary luminance. It brightens a touch
+		// with the entry's own light and yields entirely when space runs out.
 		const QString caption = index.data(SecondaryRole).toString();
 		const double captionSpace = textRect.width() - nameWidth - GUIHelper::scale(18.0);
 		if (!caption.isEmpty() && captionSpace > GUIHelper::scale(56.0))
@@ -291,11 +288,10 @@ StudioFilterPickerView::StudioFilterPickerView(QWidget* parent)
 	listWidget->setItemDelegate(new StudioPickerDelegate(skinTokens, dark, listWidget));
 	// The scroll bar gap is filled with the global QAbstractScrollArea
 	// background (the deep stage colour), which would cut a hard stripe into
-	// the glass. Restyle it as an intentional sunken-glass channel whose
-	// opaque track sits on the panel's own colour family; the handle is a
-	// small glass shard riding the channel (S5) - alpha fill plus a 1px
-	// border whose top edge catches the light, the panel formula in
-	// miniature. Hover floods the shard with accent light.
+	// the glass. Restyle it as a sunken-glass channel whose opaque track sits
+	// on the panel's own colour family; the handle is a small glass shard -
+	// alpha fill plus a 1px border whose top edge catches the light. Hover
+	// floods the shard with accent light.
 	const QColor track = mixColor(QColor(skinTokens.card), QColor(skinTokens.background), dark ? 0.45 : 0.40);
 	const QString shardFill = dark
 		? QStringLiteral("rgba(255, 255, 255, 0.12)") : QStringLiteral("rgba(255, 255, 255, 0.85)");
@@ -388,9 +384,9 @@ void StudioFilterPickerView::rebuildList()
 			currentSection = section;
 		}
 
-		// S5: template names like "Include (Include configuration file)"
-		// split into the name and a dim secondary caption; the search above
-		// still matches the full string.
+		// Template names like "Include (Include configuration file)" split
+		// into the name and a dim secondary caption; the search above still
+		// matches the full string.
 		static const QRegularExpression namePattern(QStringLiteral("^(.+?)\\s*\\((.+)\\)$"));
 		QString primary = entry.name;
 		QString secondary;
@@ -426,10 +422,11 @@ void StudioFilterPickerView::rebuildList()
 	}
 }
 
-// X6 staging: the offscreen gallery cannot move a real cursor over a popup,
-// so the showcase states are staged with the primitives the live picker
-// already uses. The hover shot tags an entry with a data role the delegate
-// reads as hover; the empty shot types a search string that cannot match.
+// Gallery staging: the offscreen gallery cannot move a real cursor over a
+// popup, so the showcase states are staged with the primitives the live
+// picker already uses. The hover shot tags an entry with a data role the
+// delegate reads as hover; the empty shot types a search string that cannot
+// match.
 void StudioFilterPickerView::galleryShowcase(GalleryShowcase kind)
 {
 	if (kind == GalleryShowcase::HoverFirstEntry)

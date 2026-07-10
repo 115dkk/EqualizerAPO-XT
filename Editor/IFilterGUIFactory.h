@@ -44,8 +44,7 @@ public:
 	// decides (Control before Branching). The Expression factory uses it so
 	// the programmatic vocabulary does not lead the catalog just because its
 	// factory order (0, load-bearing for the backtick suppression) runs
-	// first - processing filters come first, structure last (maintainer
-	// verdict, PR #183 review).
+	// first - processing filters come first, structure last.
 	virtual bool templatesSortLast() const
 	{
 		return false;

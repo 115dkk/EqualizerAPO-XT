@@ -27,5 +27,4 @@ class ParserX;
 // functions, the string-aware '+' AddOperator, and the '!' NotOperator.
 // ExpressionFilterFactory::initialize and the parser tests share this roster
 // so a new engine-free extension cannot silently miss one of them.
-// (audit #146 TD021)
 void registerEngineFreeParserExtensions(mup::ParserX& parser);

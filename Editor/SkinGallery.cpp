@@ -54,16 +54,16 @@ struct GalleryRow
 
 // Representative rows: a parametric filter, a shelf filter (three knobs in
 // the legacy BiQuad GUI hosted by the card body), a peaking filter at 0 dB
-// (the bipolar gain knob at its neutral detent, X3), the preamp card (the
+// (the bipolar gain knob at its neutral detent), the preamp card (the
 // bare knob + value scrub pair - the row that shows whether a skin seats
 // custom widgets directly on its surface), the reference-card rows and an
-// empty Copy row (the routing editor's empty state, X6).
+// empty Copy row (the routing editor's empty state).
 //
 // The reference rows (Include / Convolution / MultiConvolution / VST) render
 // against synthetic target files written next to a synthetic config file
 // (buildReferenceFiles), so the resolved cards show their healthy named-entity
 // state with a deterministic impulse-response readout. include_missing keeps
-// the broken-reference transition (MISSING + Locate, AR2 X-3/X-4) in every
+// the broken-reference transition (MISSING + Locate) in every
 // skin's judged set. The VST library is intentionally unresolvable; the card
 // renders its missing/not-loaded state, which doubles as the recovery-entry
 // showcase. The two MultiConvolution rows cover the mapping-form card (the
@@ -71,11 +71,10 @@ struct GalleryRow
 // freshly inserted empty state; the empty one also guards the Insert path,
 // where a bare "MultiConvolution:" template must still resolve to the card
 // body and not fall back to an empty row. The comment and stage rows judge
-// the Phase 1 cards that replaced the raw-container fallback: an in-place
-// note editor and the two-lane stage card. The two device rows split the
-// card's grammar over the synthetic endpoints (galleryDevices): "device"
-// shows an engaged playback switch and an engaged capture well next to an
-// idle endpoint (the routed/at-rest contrast every skin styles), while
+// the in-place note editor and the two-lane stage card. The two device rows
+// split the card's grammar over the synthetic endpoints (galleryDevices):
+// "device" shows an engaged playback switch and an engaged capture well next
+// to an idle endpoint (the routed/at-rest contrast every skin styles), while
 // "device_all" shows the all-devices master engaged over powered-down
 // endpoint chips.
 QList<GalleryRow> galleryRows()
@@ -99,23 +98,23 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("convolution"), QStringLiteral("Convolution: example.wav") },
 		{ QStringLiteral("multiconvolution"), QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
 		{ QStringLiteral("multiconvolution_empty"), QStringLiteral("MultiConvolution:") },
-		// The clean-install first impression (legacy-cleanup round 3): the
-		// graphic EQ card is the first thing a fresh install shows, and the two
-		// raw-text shapes (a bare note line and a programmatic If command) are
-		// the rows that historically rendered as nothing at all.
+		// The clean-install first impression: the graphic EQ card is the first
+		// thing a fresh install shows, and the two raw-text shapes (a bare
+		// note line and a programmatic If command) are the rows that once
+		// rendered as nothing at all.
 		{ QStringLiteral("graphiceq"), QStringLiteral("GraphicEQ: 25 -4.5; 100 -2; 1000 0; 8000 3.5; 16000 1") },
 		{ QStringLiteral("text"), QStringLiteral("plain note line without a command") },
 		{ QStringLiteral("iftext"), QStringLiteral("If: inputChannelCount == 2") },
-		// The custom-coefficient escape hatch (dynamic-commands finishing pass):
-		// the IIR card states the order and both coefficient rows (a 2nd-order
-		// Butterworth low-pass at fs/4, a0 = 1). Appended last so the row
-		// numbers of every earlier scene stay stable against the shot baseline.
+		// The custom-coefficient escape hatch: the IIR card states the order
+		// and both coefficient rows (a 2nd-order Butterworth low-pass at fs/4,
+		// a0 = 1). Appended last so the row numbers of every earlier scene
+		// stay stable against the shot baseline.
 		{ QStringLiteral("iir"), QStringLiteral("Filter: ON IIR Order 2 Coefficients 0.2929 0.5858 0.2929 1.0 -0.0 0.1716") },
 		// A dynamic line (inline `expression` gain): the Preamp card opens in
 		// dynamic mode - powered-down knob, the expression as a token in the
 		// value position - instead of parsing the text as 0.0 and destroying
-		// the expression on the first knob turn. Appended last (the iir
-		// lesson: mid-list insertion renumbers every following scene).
+		// the expression on the first knob turn. Appended last (mid-list
+		// insertion renumbers every following scene).
 		{ QStringLiteral("dynpreamp"), QStringLiteral("Preamp: `bass + 3` dB") }
 	};
 }
@@ -390,10 +389,10 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 }
 
 // Faithful replica of the analysis dock's contents: the compact settings cell
-// beside the graph (feedback round, DC #1289929) with dummy readouts. Same
-// object names as MainWindow so every sheet's #analysisControlBar /
-// #AnalysisStatChip rules are judged; the graph is a real EqGraphView left
-// empty (background and frame only, no curve data needed).
+// beside the graph with dummy readouts. Same object names as MainWindow so
+// every sheet's #analysisControlBar / #AnalysisStatChip rules are judged; the
+// graph is a real EqGraphView left empty (background and frame only, no curve
+// data needed).
 QWidget* buildAnalysisPanelReplica(QWidget* parent)
 {
 	QWidget* panel = new QWidget(parent);
@@ -481,10 +480,10 @@ void setHoverEquivalent(QWidget* root, bool on)
 	root->update();
 }
 
-// X2 gate: a row must fit its 960px viewport in every skin. A visible
-// horizontal scrollbar inside the row is the overflow defect the adversarial
-// review flagged on soft/minimal; failing the render makes CI keep the
-// broken shot as evidence instead of shipping it silently.
+// Overflow gate: a row must fit its 960px viewport in every skin. A visible
+// horizontal scrollbar inside the row is the overflow defect this guards;
+// failing the render makes CI keep the broken shot as evidence instead of
+// shipping it silently.
 int assertNoHorizontalScrollBar(QWidget* row, const QString& skinId, const QString& mode,
 	const QString& rowName, const QString& state)
 {
@@ -639,7 +638,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		picker->show();
 		QApplication::processEvents();
 		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("normal")) ? 0 : 1;
-		// X6 showcase states. Pickers that have not implemented a state render
+		// Showcase states. Pickers that have not implemented a state render
 		// their normal look (base no-op), so the shot count stays fixed.
 		picker->galleryShowcase(FilterPickerView::GalleryShowcase::HoverFirstEntry);
 		QApplication::processEvents();
@@ -661,9 +660,8 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		delete toolBar;
 	}
 
-	// The analysis dock's settings cell beside the graph (feedback round):
-	// the one piece of shared chrome the strip redesign moved, judged per
-	// skin like the toolbar.
+	// The analysis dock's settings cell beside the graph, judged per skin
+	// like the toolbar.
 	{
 		QWidget* panel = buildAnalysisPanelReplica(nullptr);
 		panel->resize(960, 300);
@@ -737,9 +735,9 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QApplication::processEvents();
 		// The offscreen platform parks the cursor at (0,0), which lands inside
 		// this window and delivers a synthetic Enter on show, and window
-		// activation hands the row keyboard focus - both dressed the "normal"
-		// shot as hover+focus (found independently by every skin agent in the
-		// round-3 program). Clear both so the at-rest state is what gets judged.
+		// activation hands the row keyboard focus - both dress the "normal"
+		// shot as hover+focus. Clear both so the at-rest state is what gets
+		// judged.
 		QEvent addRowLeave(QEvent::Leave);
 		QApplication::sendEvent(&addRow, &addRowLeave);
 		addRow.clearFocus();

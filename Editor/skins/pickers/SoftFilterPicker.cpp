@@ -48,10 +48,7 @@ enum SoftPickerItemKind
 	EmptyStateItem
 };
 
-// withAlpha lives in the shared SkinPaint.h.
-
-// Friendly pastel hues handed out to categories in catalog order, the way a
-// consumer settings app gives every group its own icon colour.
+// Pastel hues handed out to categories in catalog order.
 QColor sectionPastel(int sectionIndex, bool dark)
 {
 	static const int hues[] = { 216, 150, 26, 268, 336, 190, 48, 0, 286, 120 };
@@ -59,15 +56,13 @@ QColor sectionPastel(int sectionIndex, bool dark)
 	return QColor::fromHslF(hue / 360.0, dark ? 0.52 : 0.58, dark ? 0.64 : 0.56);
 }
 
-// AR1 F4: single initials collided across the catalog (Comment, Channel,
-// Copy and Convolution all wore "C"), so every tile now carries a per-item
-// monogram. Multi-word names take their first two word initials ("Low-pass
-// filter" -> "LP"), single-word names their first two letters ("Channel" ->
-// "Ch"), and a catalog-wide uniqueness pass walks the remaining letters of a
-// single-word name whose candidate is taken (Comment keeps "Co", Copy
-// becomes "Cp", Convolution "Cn"). Deterministic in catalog order, the same
-// cosmetic trade the section hues already make; the category pastel stays
-// the second disambiguator.
+// Per-item tile monograms (single initials collide: Comment, Channel, Copy
+// and Convolution would all wear "C"). Multi-word names take their first two
+// word initials ("Low-pass filter" -> "LP"), single-word names their first
+// two letters ("Channel" -> "Ch"), and a catalog-wide uniqueness pass walks
+// the remaining letters of a single-word name whose candidate is taken
+// (Comment keeps "Co", Copy becomes "Cp", Convolution "Cn"). Deterministic
+// in catalog order; the category pastel stays the second disambiguator.
 QStringList softMonograms(const QList<FilterPickerEntry>& entries)
 {
 	QSet<QString> used;
@@ -112,10 +107,9 @@ QStringList softMonograms(const QList<FilterPickerEntry>& entries)
 // The tile pictogram for a catalog entry, keyed off the template line the
 // entry inserts (names are translated and lend no stable key; command words
 // are not). Biquad templates split further by their type token, so every EQ
-// shape carries its own response-curve glyph. Pictures read friendlier than
-// the two-letter monograms (user direction, AR2 rework round); an unmapped
-// template returns empty and the tile falls back to its AR1 F4 monogram, so
-// future catalog entries degrade gracefully instead of going blank.
+// shape carries its own response-curve glyph. An unmapped template returns
+// empty and the tile falls back to its monogram, so future catalog entries
+// degrade gracefully instead of going blank.
 QString softEntryIcon(const FilterPickerEntry& entry)
 {
 	const QString line = entry.line.trimmed();
@@ -149,13 +143,13 @@ QString softEntryIcon(const FilterPickerEntry& entry)
 		{ "VSTPlugin", "plugin" },
 		{ "GraphicEQ", "graphic-eq" },
 		// The volume ramp, not a knob: Soft's audience reads consumer
-		// volume glyphs, and the knob face read as a clock (user direction).
+		// volume glyphs, and the knob face read as a clock.
 		{ "Preamp", "preamp-gain" },
 		{ "Delay", "delay-clock" },
 		{ "Device", "device-speaker" },
 		// A channel list with a check: the command SELECTS the channels the
 		// following filters apply to - a fork glyph read as splitting the
-		// signal (user direction).
+		// signal.
 		{ "Channel", "channel-select" },
 		{ "Stage", "stage-chain" },
 		{ "Copy", "route-channels" },
@@ -178,11 +172,11 @@ QString softEntryIcon(const FilterPickerEntry& entry)
 	return QString();
 }
 
-// AR1 F5: templates that insert a bare command ("Include:", "Copy: ", "# ")
-// used to print that fragment as the caption, which read as a truncated
-// line. The display layer swaps empty and colon-ended previews for a calm
-// promise; the raw line keeps living in the tooltip and in what the choice
-// actually inserts, so nothing is hidden, only phrased kindly.
+// Templates that insert a bare command ("Include:", "Copy: ", "# ") would
+// print that fragment as the caption, which reads as a truncated line. The
+// display layer swaps empty and colon-ended previews for a calm promise; the
+// raw line keeps living in the tooltip and in what the choice actually
+// inserts, so nothing is hidden, only phrased kindly.
 QString softCaption(const QString& line)
 {
 	const QString display = line.trimmed();
@@ -271,11 +265,9 @@ private:
 		painter->drawText(pill, Qt::AlignCenter, metrics.elidedText(label, Qt::ElideRight, pillWidth - GUIHelper::scale(16.0)));
 	}
 
-	// AR1 X6: the fruitless search is a moment, not a void. A friendly card
-	// one value step above the menu surface holds a pastel circle with a
-	// painted magnifier, the title in full ink and a caption in the muted
-	// face - the same calm grammar as every other soft surface, no warning
-	// colour anywhere.
+	// The fruitless search: a friendly card one value step above the menu
+	// surface - a pastel circle with a painted magnifier, the title in full
+	// ink, a muted caption, no warning colour anywhere.
 	static void paintEmptyState(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index,
 		const SkinTokens& t, const QString& title)
 	{
@@ -348,10 +340,8 @@ private:
 			painter->drawRoundedRect(row.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius);
 		}
 
-		// The category announces itself like an iOS Settings row: a rounded
-		// square colour tile carrying the entry's pictogram (pictures over
-		// monograms - user direction, AR2 rework round; the AR1 F4 monogram
-		// stays as the fallback for unmapped templates).
+		// A rounded-square colour tile carrying the entry's pictogram; the
+		// monogram stays as the fallback for unmapped templates.
 		const QColor tint = index.data(TintRole).value<QColor>();
 		const qreal tileSide = GUIHelper::scale(28.0);
 		const QRectF tile(row.left() + GUIHelper::scale(10.0), row.center().y() - tileSide / 2.0, tileSide, tileSide);
@@ -380,8 +370,7 @@ private:
 
 		// Name over the config line as a friendly muted caption (regular
 		// face, not monospace: here it is a description, not an editor).
-		// The name is bold (AR1 F4) so it carries the row now that the tile
-		// shares its letters with the whole catalog.
+		// The name is bold so it carries the row.
 		const QString caption = index.data(CaptionRole).toString();
 		const qreal textLeft = tile.right() + GUIHelper::scale(12.0);
 		const qreal textWidth = row.right() - GUIHelper::scale(16.0) - textLeft;
@@ -651,7 +640,7 @@ void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 
 	// Faked elevation, per the constitution: one background value step nudged
 	// down under the card; never a real shadow effect. The card rounds at the
-	// constitutional 14px (AR1 F2).
+	// constitutional 14px.
 	const qreal radius = 14.0;
 	QRectF card(rect());
 	card.adjust(0.5, 0.5, -0.5, -2.5);

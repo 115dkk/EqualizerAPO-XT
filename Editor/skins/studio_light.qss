@@ -1,9 +1,6 @@
 /* ====================================================================
    Skin: Studio Light - "Glass over the instrument"
-   Calm airy backgrounds; panels are glass: solid colour with alpha plus
-   a single 1px lighter (white) top edge. One glowing accent (#2F6BFF),
-   faked with layered alpha, never effects. Corner radius 8px. Hover
-   brightens, disabled drops opacity. Sans for words, mono for numbers.
+   Constitution: docs/skins/studio.md
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
            accent @ACCENT@ / borderRadius 8 / row 40
@@ -43,12 +40,8 @@ QToolTip {
 }
 
 /* ===== Menu Bar - continues the window's glass =====
-   Same airy stage colour as the title bar above it; items are unboxed
-   quiet ink (muted lifted halfway toward the text ink) that only lights
-   up when light pools under them. Hover/open is a radial accent pool
-   rising from the glass floor - the open menu's parent item stays lit
-   because Qt keeps it :selected while its menu is up. The bottom edge is
-   a hairline that dissolves at both ends instead of a hard seam. */
+   The open menu's parent item stays lit because Qt keeps it :selected
+   while its menu is up. */
 QMenuBar {
     background: @BG@;
     color: #3F495E;
@@ -73,13 +66,7 @@ QMenuBar::item:pressed {
     color: @TEXT@;
 }
 
-/* ===== Menus - floating glass panels (the picker's dialect) =====
-   Alpha card fill over the airy stage, an icy 1px reflection on the top
-   border dissolving into accent light toward the bottom (the picker's
-   edge), 8px glass round. The highlighted item glows from within (radial
-   accent pool); separators are luminous accent-to-violet hairlines that
-   dissolve at both ends; the checked indicator is a lit signal lamp.
-   Disabled items are switched off, never warned. */
+/* ===== Menus - floating glass panels ===== */
 QMenu {
     background: rgba(255, 255, 255, 0.97);
     color: @TEXT@;
@@ -163,10 +150,7 @@ QLabel#ToolBarLabel {
 }
 
 /* ===== Main toolbar: the top edge of the glass =====
-   Same grammar as the dark sheet: the strip stays the window background,
-   a 1px white reflection marks its bottom edge, hover pools accent light
-   under the unboxed buttons, the Instant mode lamp glows when on and the
-   badges are sunken mono readouts. */
+   Same grammar as the dark sheet. */
 QToolBar#MainToolBar {
     background: @BG@;
     border: 0;
@@ -322,10 +306,9 @@ QAbstractSpinBox::down-arrow {
     border-top: 5px solid @MUTED@;
 }
 
-/* X1/S6: command-row value boxes lost their native steppers and became
-   value scrubs (drag vertically, wheel, or type). Same sunken glass, but
-   the box answers hover with accent light on its edge so it reads as an
-   adjustable value, not a dead readout. */
+/* Command-row value boxes: native steppers gone (drag vertically, wheel,
+   or type); the box answers hover with accent light on its edge so it
+   reads as an adjustable value, not a dead readout. */
 QAbstractSpinBox[valueScrub="true"] {
     background: rgba(232, 238, 248, 0.70);
     border-radius: 8px;
@@ -369,12 +352,10 @@ QComboBox QAbstractItemView {
 QComboBox QAbstractItemView::item { padding: 6px 10px; border-radius: 6px; min-height: 24px; }
 QComboBox QAbstractItemView::item:selected { background: rgba(47, 107, 255, 0.18); color: @TEXT@; }
 
-/* X5/S6: the parameter mode boxes above the knobs are genuine selectors.
-   Dress them as quiet glass strips - muted ink, a visible arrow - that
-   light up under the cursor, so they stop posing as labels without
-   shouting like buttons. A switched-off selector (single option) is
-   unlit glass. The name selector keeps the standard raised glass but
-   wears the row title's weight. */
+/* Parameter mode boxes are genuine selectors: quiet glass strips - muted
+   ink, a visible arrow - that light up under the cursor. A single-option
+   selector is unlit glass. The name selector keeps the standard raised
+   glass with the row title's weight. */
 QComboBox[paramSelector="true"] {
     background: rgba(24, 32, 51, 0.03);
     color: @MUTED@;
@@ -669,18 +650,14 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
 
-/* ===== Reference cards (Include / Conv / MultiConv / VST bodies) ===== */
-/* The identity in the light, the facts behind glass. White glass cannot get
-   brighter, so hierarchy comes from ink depth and border depth: the name is
-   the deepest ink, chips are lit glass chips (type badge grammar), location
-   and readout sit in a shaded sunken window. A broken reference fades the
-   name to muted ink and lights a small danger chip; disabled drops every
-   light. */
+/* ===== Reference cards (Include / Conv / MultiConv / VST bodies) =====
+   Built by StudioReferenceCardView; white glass cannot get brighter, so
+   hierarchy comes from ink depth and border depth. */
 QLabel#StudioRefName {
     color: @TEXT@; background: transparent; border: 0;
-    /* Body scale by the user's final call (12pt and 11pt both read as
-       heavy); the pane's presence comes from the left inset and the
-       always-there data window, not from type size (AR2 rework round). */
+    /* Body scale: 12pt and 11pt both read as heavy (user's final call);
+       the pane's presence comes from the left inset and the always-there
+       data window, not from type size. */
     font-size: 10pt; font-weight: 600;
 }
 QLabel#StudioRefName[refClickable="true"]:hover:enabled { color: #0A101F; }
@@ -812,15 +789,10 @@ QPlainTextEdit#VSTCardWarning {
     border-radius: 6px;
 }
 
-/* ===== GraphicEQ card - the response is the light behind glass =====
-   Every pixel of the plot is painted by StudioSkin::paintGraphicEqPlot
-   (a sunken glass window holding the glowing response curve; on white
-   glass its depth comes from the shaded ground and the darker inner top
-   edge). The sheet only keeps the widget transparent so no opaque patch
-   cuts the card's pane. The action buttons are unlit glass chips
-   (FilterCardIconButton grammar), the mode combo speaks paramSelector,
-   and the readout strip under the plot is quiet ink on the glass: mono
-   band caption, section-caption Freq/Gain labels, X1 value-scrub boxes. */
+/* ===== GraphicEQ card =====
+   Every pixel of the plot is painted by StudioSkin::paintGraphicEqPlot;
+   the sheet only keeps the widget transparent so no opaque patch cuts
+   the card's pane. */
 QWidget#GraphicEQPlot {
     background: transparent;
     border: 0;
@@ -869,10 +841,10 @@ QToolButton#GraphicEQActionButton:disabled {
     border-color: rgba(188, 200, 222, 0.55);
     border-top-color: rgba(188, 200, 222, 0.55);
 }
-/* ===== Update toast - a lit chip resting on the stage glass =====
+/* ===== Update toast =====
    The widget paints the pane (raised surface, hairline border, accent
    keel); the sheet inks the message and gives dismiss the caption-button
-   grammar: unboxed quiet ink, accent light pooling under the cursor. */
+   grammar. */
 QLabel#UpdateToastLabel {
     background: transparent;
     font-size: 9.5pt;
@@ -904,13 +876,9 @@ QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
 
 /* ===== Window chrome - the topmost edge of the glass =====
-   The strip stays on the airy stage colour (it is the stage's edge, not a
-   panel); StudioSkin::paintTitleBarChrome lays a 1px reflection and a
-   faint accent-to-violet arc on the top edge, echoing the picker. The
-   title is quiet muted ink. Caption buttons are unboxed; hover pools
-   light under the cursor and pressing turns the light up - the close
-   button pools danger-tinted light so it stays recognizably a close
-   button without wearing a box. */
+   The strip stays on the airy stage colour; StudioSkin::
+   paintTitleBarChrome lays the 1px reflection and the accent-to-violet
+   arc on the top edge. */
 QWidget#AppTitleBar {
     background: @BG@;
 }
@@ -944,14 +912,8 @@ QToolButton#TitleBarClose:pressed {
 
 /* ====================================================================
    Phase 2 - Device / Channel / Comment / Stage card bodies
-   Same grammar as the dark sheet: toggles are lit glass chips, the
-   row's one blue light, hover pools light, pressed is maximum light,
-   disabled is switched off with every accent photon dead (a checked
-   inert chip keeps only a neutral one-step shade - the sheet's own
-   checked:disabled precedent falls back to neutral @BORDER@). White
-   glass cannot get brighter (S2), so unlit form comes from border
-   depth and a shaded fill, and selection leans on the accent fill +
-   accent border while the top edge stays the white reflection.
+   Same grammar as the dark sheet; white glass cannot get brighter, so
+   unlit form comes from border depth and a shaded fill.
    Specificity discipline mirrors the dark sheet: interactive states
    pinned to :enabled; pressed rules carry :hover at four pseudo-
    classes after the hover rules (a mouse press always hovers, so
@@ -1057,7 +1019,7 @@ QToolButton#DeviceChip:disabled {
     border-top-color: rgba(24, 32, 51, 0.06);
 }
 /* Checked but inert: extinguished - neutral one-step shade, zero
-   accent (rule 4; this sheet's checked:disabled precedent). */
+   accent. */
 QToolButton#DeviceChip:checked:disabled {
     background: rgba(24, 32, 51, 0.05);
     color: rgba(93, 106, 132, 0.60);

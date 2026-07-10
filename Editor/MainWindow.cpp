@@ -138,7 +138,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	ui->mainToolBar->addWidget(deviceLabel);
 
 	// SkinComboBox enforces a font-aware height floor and widens the popup to
-	// its contents; the toolbar dropdowns were the visibly undersized ones.
+	// its contents.
 	deviceComboBox = new SkinComboBox;
 	deviceComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
 	connect(deviceComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::deviceSelected);
@@ -228,7 +228,6 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	// (:/translations/Editor_<code>.qm) instead of a hand-maintained list, so
 	// adding a translation cannot miss this menu (and a removed one cannot
 	// linger). English is the source language and always present.
-	// (audit #146 TD018)
 	QList<QLocale::Language> languages;
 	languages << QLocale::AnyLanguage << QLocale::English;
 	const QStringList catalogs = QDir(QStringLiteral(":/translations")).entryList(

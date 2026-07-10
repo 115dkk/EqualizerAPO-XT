@@ -179,10 +179,9 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 			painter->setBrush(Qt::white);
 			painter->drawRoundedRect(rect, 4, 4);
 			// The label box is always white, so the coefficient text must always be
-			// dark. The previous code only swapped to black when the line pen was
-			// exactly white; in the dark skins the pen is a light grey (not pure
-			// white), so the test missed and the text rendered light-on-white and
-			// nearly unreadable.
+			// dark. Do not key it on the line pen: in the dark skins the pen is a
+			// light grey (not pure white), and reusing it renders the text
+			// light-on-white and nearly unreadable.
 			painter->setPen(QColor(0x20, 0x20, 0x28));
 			painter->drawText(rect, Qt::AlignCenter, text);
 		}

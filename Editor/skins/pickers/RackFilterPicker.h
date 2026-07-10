@@ -1,13 +1,9 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	The "add filter" picker of the rack skin: a hardware module's preset
-	browser. A brushed 1U faceplate with corner screws and an engraved
-	MODULE SELECT header, a recessed LCD character display as the search
-	strip, categories as engraved section plates and every insertable
-	template as a labeled slot with its own panel LED (lit = selected,
-	faint lamp glow = hovered). All painting follows RackChrome's
-	tiebreaker: only what a hardware faceplate would carry.
+	The "add filter" picker of the rack skin: a 1U module preset browser
+	painted as a brushed faceplate with an LCD search strip and LED slots.
+	Constitution: docs/skins/rack.md ("필터 픽커" section).
 */
 
 #pragma once

@@ -76,7 +76,7 @@ public:
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
 	// Crossfade length in samples for a configuration swap, set by initialize().
 	// Exposed so tests exercise the real value instead of re-deriving the
-	// sampleRate / 100 formula. (audit #146 TD033)
+	// sampleRate / 100 formula.
 	unsigned getTransitionLength() const {return transitionLength;}
 	mup::ParserX* getParser() {return parser.get();}
 	// Attach before initialize()/loadConfig(); entries describe every load
@@ -109,7 +109,6 @@ private:
 	// The single choreography behind the four public process() overloads;
 	// IoTraits carries the per-layout bypass copy and configuration read/write.
 	// Defined and instantiated only in engine/FilterEngine.Process.cpp.
-	// (audit #146 TD007)
 	template <typename IoTraits, typename SampleType>
 	void processImpl(SampleType output, SampleType input, unsigned frameCount);
 

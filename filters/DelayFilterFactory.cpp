@@ -50,7 +50,7 @@ bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameter
 		return false;
 
 	// A 0-length delay is a no-op: it produces no filter so the chain avoids one
-	// virtual call and one ring-buffer update per block. Report it like before
+	// virtual call and one ring-buffer update per block. Report it in the trace
 	// and reject the command so no DelayFilter is built.
 	if (delay == 0.0)
 	{

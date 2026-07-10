@@ -4,7 +4,7 @@
 	A minimal, self-contained VST 2.4 plugin built only against the project's
 	vendored VST2 ABI header (helpers/aeffectx.h). It exists so VstHostTests
 	(in Tests/HybridConvTests) can drive the engine's VST host classes
-	(VSTPluginLibrary / VSTPluginInstance, the F005 host split) against a real
+	(VSTPluginLibrary / VSTPluginInstance) against a real
 	binary at runtime. Because it is compiled from our own source for each
 	target, it always matches the host architecture - the load/state test runs
 	on x64 and ARM64 without an architecture skip.

@@ -2,22 +2,10 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Hardware Rack's reference card (Include / Convolution / MultiConvolution /
-	VSTPlugin row bodies). See docs/skins/rack.md for the constitution this
-	answers to.
-
-	The reference is presented as the unit's service face, painted straight on
-	the brushed plate: a bezel-set status lamp (state = lamps), the target's
-	name as engraved faceplate printing under a letter-spaced function caption
-	with stamped wireframe tags (VST2/VST3, ABS), the location as small
-	engraved sub-printing, and the impulse-response readout as a recessed LCD
-	window whose glass stays dark in both modes (the display-window clause).
-	A broken reference is a service condition, not an alarm wall: the lamp
-	turns red, the name engraving recedes, a small engraved NOT FOUND caption
-	appears and the Browse cap becomes the LOCATE service button. All painting
-	imitates RackChrome's grammar (engraved double-pass printing, bezel LED
-	domes, the knob window's dark glass and segment inks) as helpers local to
-	this file pair, so the body stays visually continuous with the faceplate
-	chrome without touching the shared RackChrome.
+	VSTPlugin row bodies): the unit's service face - status lamp, engraved
+	label strip, recessed LCD readout. RackChrome's grammar is imitated by
+	helpers local to this file pair; the shared RackChrome stays untouched.
+	Constitution: docs/skins/rack.md ("참조 카드" section).
 */
 
 #pragma once

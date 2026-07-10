@@ -80,7 +80,7 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 
 	// Shared IR intake + cache (IrCache.cpp): validates the file, deinterleaves
 	// to channel-major buffers, and lets a config reload (or another filter on
-	// the same IR) skip the disk read entirely. (audit #146 TD001)
+	// the same IR) skip the disk read entirely.
 	auto ir = loadIrCached(filename, sampleRate);
 	if (!ir)
 		return outChannelNames;
@@ -186,8 +186,7 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 
 void MultiConvolutionFilter::cleanup()
 {
-	// HConvSingleArray::reset() runs the close-then-free sequence that used to
-	// be spelled out here. (audit #146 TD002)
+	// HConvSingleArray::reset() runs the close-then-free sequence.
 	filters = nullptr;
 	// Release this filter's hold on the cached IR; the weak-ptr cache frees the
 	// entry once the last user drops it.

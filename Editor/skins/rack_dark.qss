@@ -1,10 +1,8 @@
 /* ====================================================================
    Skin: Rack Dark - "The amplifier faceplate"
-   Skeuomorphic 19-inch rack hardware: machined plates, switch-like
-   controls (raised gradient caps with a lit top edge), recessed display
-   wells, LED readouts, uppercase faceplate printing. The painted chrome
-   (screws, rack ears, LEDs, jacks, nameplates, pointer knobs) lives in
-   Editor/skins/RackChrome.cpp.
+   Constitution: docs/skins/rack.md
+   The painted chrome (screws, rack ears, LEDs, jacks, nameplates,
+   pointer knobs) lives in Editor/skins/RackChrome.cpp.
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
            accent @ACCENT@ / accent2 @ACCENT2@ / borderRadius 3 / row 36
@@ -217,7 +215,7 @@ QAbstractSpinBox::down-arrow {
     border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid @MUTED@;
 }
 
-/* X1 value boxes are LCD readout windows set into the plate (drag the
+/* Value boxes are LCD readout windows set into the plate (drag the
    digits vertically to scrub): dark glass, lit green segments, the same
    display law as every readout on this machine - displays never follow the
    panel finish. Focus lights the amber service edge. */
@@ -257,7 +255,7 @@ QComboBox QAbstractItemView {
 }
 QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 2px; min-height: 24px; }
 
-/* R2/X5: the freq/Q parameter captions are genuine mode selectors. They are
+/* The freq/Q parameter captions are genuine mode selectors. They are
    engraved into the faceplate instead of riding raised switch caps: flat
    muted printing over a milled caption groove, with a small printed
    triangle keeping the control honestly a selector. Hover, focus and the
@@ -447,7 +445,7 @@ QWidget#ModernAnalysisGraph { background: #060807; border: 1px solid #060809; bo
 /* The command row is a rack unit. RackChrome paints the faceplate (brushed
    metal, ears, screws, LEDs) over the frame's base plate, so the header and
    body stay transparent: every control sits directly on the metal. The
-   resting border is the dark seam of the rack opening (R3, mirrored by
+   resting border is the dark seam of the rack opening (mirrored by
    RackSkin::cardFrameStyle) so stacked units separate physically. */
 QFrame#FilterCardRow { background: @CARD@; border: 1px solid #060809; border-radius: 3px; }
 QWidget#FilterCardHeader { background: transparent; }
@@ -564,10 +562,10 @@ QLabel#MultiConvolutionMappingHint {
    so QSS only keeps the base coat off its rect (the direct-painting
    law). Precise entry rides the readout strip under the glass: the
    captions are engraved faceplate printing, and the Freq/Gain boxes are
-   the X1 LCD readout windows every value box on this machine already
+   the LCD readout windows every value box on this machine already
    wears. The action buttons are the unit's machine keys (the raised-cap
    grammar of every rack button), and the band-layout caption is the
-   engraved mode selector (paramSelector, X5). */
+   engraved mode selector (paramSelector). */
 QWidget#GraphicEQPlot { background: transparent; }
 QWidget#GraphicEQReadout { background: transparent; border: 0; }
 QLabel#GraphicEQBandCaption {
@@ -690,7 +688,7 @@ QToolButton#TitleBarClose:pressed {
 }
 
 /* =====================================================================
-   Phase 2 - command cards (Device / Channel / Comment / Stage)
+   Command cards (Device / Channel / Comment / Stage)
    One machine, four parts, one lamp law:
    - Device  = the OUTPUT ROUTING switch bank; a routed endpoint
                backlights its whole cap amber.
@@ -778,7 +776,7 @@ QToolButton#DeviceChip[deviceInput="true"] {
     color: #BDB7A9;
 }
 /* Unwired endpoint (APO not installed) = flat blank position, recedes
-   one step (the picker's lamp-dimming law R5). */
+   one step (the picker's lamp-dimming law). */
 QToolButton#DeviceChip[deviceInstalled="false"] {
     background: #181D21;
     border: 1px solid #11161A; border-top-color: #11161A;

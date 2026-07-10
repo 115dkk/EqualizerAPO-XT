@@ -101,8 +101,7 @@ void VSTPluginFilterGUI::store(QString& command, QString& parameters)
 
 	// The Library token stays here because its relative/absolute resolution needs
 	// Qt's QDir. The ChunkData-or-param body is produced by the shared serializer
-	// (the same one the round-trip tests exercise), so it stays byte-identical to
-	// what this method emitted before.
+	// (the same one the round-trip tests exercise).
 	VSTPluginCommand cmd;
 	cmd.chunkData = chunkData;
 	cmd.paramMap = paramMap;

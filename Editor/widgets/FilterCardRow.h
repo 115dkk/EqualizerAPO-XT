@@ -27,7 +27,7 @@ public:
 	// In-place refresh of the 1-based row number and the channel/If scope after
 	// an incremental row insert/remove above this row, so shifted rows do not
 	// need to be rebuilt. Updates exactly what the constructor derived from its
-	// number/scope arguments. (audit #146 TD040)
+	// number/scope arguments.
 	void updateRowPosition(int rowNumber, FilterCardRowScope scope);
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
@@ -57,8 +57,8 @@ private:
 	QString uncommentedLine() const;
 	// Indent units for the outer margin. Branch/tail rows of the If family
 	// (ElseIf/Else/EndIf) follow the active skin's layout policy
-	// (ISkin::logicSiblingsIndentAsMembers, the #179 mock-up finding): a skin
-	// that runs a scope lane down the gutter indents them with the members.
+	// (ISkin::logicSiblingsIndentAsMembers): a skin that runs a scope lane
+	// down the gutter indents them with the members.
 	int rowIndentUnits() const;
 
 	FilterTable* table = nullptr;

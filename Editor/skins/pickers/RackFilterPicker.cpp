@@ -39,8 +39,6 @@ enum RowKind
 	SectionRow = 1
 };
 
-// is-dark / withAlpha live in the shared SkinPaint.h.
-
 // Engraved faceplate printing: a contrast pass offset one pixel down (the
 // recess edge catching the light), then the body color on top.
 void engraveText(QPainter& painter, const QRectF& rect, int flags, const QString& text, const QColor& body, bool dark)
@@ -82,10 +80,9 @@ void paintScrew(QPainter& painter, const QPointF& center, qreal radius, qreal sl
 }
 
 // A panel LED in a bezel ring; glow scales 0..1 so the hover lamp can sit
-// between fully dark and fully lit. Unlit lamps recede one step (R5):
-// thinner bezel ink, a translucent dome and a fainter specular dot, so a
-// column of module slots never reads as bullet spam - only lit or warming
-// lamps claim attention.
+// between fully dark and fully lit. Unlit lamps recede one step (thinner
+// bezel ink, translucent dome, fainter specular dot) so a column of module
+// slots never reads as bullet spam.
 void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QColor& litColor, qreal glow, bool dark)
 {
 	const bool unlit = glow <= 0.0;
@@ -484,9 +481,9 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	painter.setBrush(sheen);
 	painter.drawRoundedRect(r, radius, radius);
 
-	// Horizontal brushing grain (R4 idiom, same construction as the card
-	// faceplates'): per-line ink variation with sparse polish lines, in
-	// logical coordinates so DPI scales the grain.
+	// Horizontal brushing grain (same construction as the card faceplates'):
+	// per-line ink variation with sparse polish lines, in logical coordinates
+	// so DPI scales the grain.
 	{
 		const uint seed = uint(qHash(QStringLiteral("module-select-brush")));
 		const int baseAlpha = 5;
@@ -535,8 +532,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 	painter.setPen(QPen(QColor(255, 255, 255, dark ? 26 : 130), 1));
 	painter.drawLine(QPointF(r.left() + 8, grooveY + 1), QPointF(r.right() - 8, grooveY + 1));
 
-	// A filtered-out catalog leaves dead slots: the panel says so the way
-	// hardware would.
+	// A filtered-out catalog: engrave NO SIGNAL where the slots would be.
 	if (listWidget != nullptr && listWidget->count() == 0)
 	{
 		QFont emptyFont(tokens.fontFamily);

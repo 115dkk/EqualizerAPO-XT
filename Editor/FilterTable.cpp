@@ -71,16 +71,15 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 	insertArrow->setVisible(false);
 
 	// The roster and its matching order live in the factory translation units
-	// themselves via REGISTER_FILTER_GUI_FACTORY (see FilterGUIFactoryRegistry),
-	// so adding a filter GUI no longer means editing this list. FilterTable owns
-	// the returned instances and deletes them in its destructor.
+	// themselves via REGISTER_FILTER_GUI_FACTORY (see FilterGUIFactoryRegistry).
+	// FilterTable owns the returned instances and deletes them in its destructor.
 	factories = FilterGUIFactoryRegistry::createFactories();
 
 	// Every mutation - structural (add/delete/paste/drop) or in-row (knob
 	// drag, text edit, enable toggle) - already announces itself through
 	// linesChanged, so this one self-connection is the whole undo capture.
 	// Established before MainWindow's linesChanged connection, so the history
-	// is current by the time the instant-mode save reads the document. (TD049)
+	// is current by the time the instant-mode save reads the document.
 	connect(this, &FilterTable::linesChanged, this, &FilterTable::commitToHistory);
 }
 
@@ -92,7 +91,6 @@ FilterTable::~FilterTable()
 		QApplication::instance()->removeEventFilter(this);
 
 	// The items themselves are owned and deleted by the FilterListModel member.
-	// (audit #146 TD032)
 
 	for (IFilterGUIFactory* factory : factories)
 		delete factory;
@@ -108,8 +106,7 @@ void FilterTable::initialize(QScrollArea* scrollArea, const QList<shared_ptr<Abs
 	// The resize hook only cares about the scroll area itself, so filter that
 	// one object instead of every event in the application. The app-global
 	// filter that redirects wheel events away from child widgets is installed
-	// per scroll gesture in wheelEvent(). Every open tab used to keep an
-	// always-on application filter each. (audit #146 TD041)
+	// per scroll gesture in wheelEvent().
 	scrollArea->installEventFilter(this);
 
 	for (IFilterGUIFactory* factory : factories)
@@ -182,9 +179,8 @@ void FilterTable::updateGuis()
 	{
 		IFilterGUI* gui = createRowGui(item->text);
 
-		// ModernCards (FilterCardRow) is the canonical filter-list UI; LegacyRows
-		// (FilterTableRow) is a frozen fallback that must not be extended. New
-		// list behavior goes only into the card path. See docs/FilterListUiPolicy.md.
+		// LegacyRows is a frozen fallback that must not be extended; see the
+		// RenderMode enum and docs/FilterListUiPolicy.md.
 		QWidget* rowWidget = renderMode == ModernCards
 			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, row < rowScopes.size() ? rowScopes[row] : FilterCardRowScope()))
 			: static_cast<QWidget*>(new FilterTableRow(this, row + 1, item, gui));
@@ -254,8 +250,7 @@ void FilterTable::updateGuis()
 
 void FilterTable::addRowActivated(AddCardRow* addCardRow)
 {
-	// Mirror the old toolbar action's ModernCards branch: picker under the
-	// row, append, splice one widget into the grid. (audit #146 TD040)
+	// Picker under the row, append, splice one widget into the grid.
 	FilterTemplate filterTemplate;
 	const QPoint anchor = addCardRow->mapToGlobal(QPoint(8, addCardRow->height() - 4));
 	if (chooseFilterTemplate(&filterTemplate, anchor))
@@ -329,14 +324,13 @@ IFilterGUI* FilterTable::createRowGui(const QString& line)
 	if (renderMode == ModernCards)
 	{
 		// Card editors take precedence, so ask them before running the legacy
-		// chain: constructing a legacy GUI only to replace and delete it parsed
-		// VSTPlugin state twice per rebuild. Safe to short-circuit because the
-		// card-covered factories keep no per-row state in createFilterGUI (their
-		// state is set in initialize()/startOfFile()). Commented lines ("# ...")
-		// do not match here and fall through to the chain, where
+		// chain: constructing a legacy GUI only to replace and delete it would
+		// parse VSTPlugin state twice per rebuild. Safe to short-circuit because
+		// the card-covered factories keep no per-row state in createFilterGUI
+		// (their state is set in initialize()/startOfFile()). Commented lines
+		// ("# ...") do not match here and fall through to the chain, where
 		// CommentFilterGUIFactory strips the '#'; the post-chain lookup below
 		// then gives them the same card editor as their active form.
-		// (audit #146 TD004)
 		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
 		if (cardGui != nullptr)
 			return cardGui;
@@ -413,8 +407,7 @@ void FilterTable::updateSingleRowGui(Item* item)
 
 	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
 	FilterCardRowScope scope = rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope();
-	// Same render-mode policy as updateGuis(): the card path is canonical and the
-	// legacy row path is a frozen fallback. See docs/FilterListUiPolicy.md.
+	// Same render-mode policy as updateGuis().
 	QWidget* rowWidget = renderMode == ModernCards
 		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, scope))
 		: static_cast<QWidget*>(new FilterTableRow(this, rowIndex + 1, item, gui));
@@ -440,7 +433,7 @@ namespace
 // alignment. QGridLayout has no native row insertion, so the incremental
 // paths re-address the reused cells one by one; the widgets themselves are
 // not recreated, which is what makes those paths cheap. Returns false when
-// the source cell is unexpectedly empty. (audit #146 TD040)
+// the source cell is unexpectedly empty.
 bool moveGridCell(QGridLayout* gridLayout, int fromRow, int toRow)
 {
 	QLayoutItem* cell = gridLayout->itemAtPosition(fromRow, 0);
@@ -479,7 +472,7 @@ bool FilterTable::renumberRowsBelow(int firstRow, const QVector<FilterCardRowSco
 
 void FilterTable::insertRowAt(int index)
 {
-	// (audit #146 TD040) Card-path incremental insert. The model already
+	// Card-path incremental insert. The model already
 	// contains the new item at index; create only that row widget and shift
 	// the rows/toolbar/spacer below one grid row down. Any inconsistency falls
 	// back to the full rebuild, which is always correct.
@@ -550,7 +543,7 @@ void FilterTable::insertRowAt(int index)
 
 void FilterTable::removeRowAt(int index)
 {
-	// (audit #146 TD040) Card-path incremental remove. The model no longer
+	// Card-path incremental remove. The model no longer
 	// contains the item; delete only its row widget and shift the cells below
 	// one grid row up. Any inconsistency falls back to the full rebuild.
 	const int itemCount = int(model.items().count());

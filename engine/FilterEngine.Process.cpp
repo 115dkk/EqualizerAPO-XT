@@ -27,7 +27,7 @@
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this hot-path TU
 // names none of them (see FilterEngine.Configuration.cpp). The muparserx and
 // registry/file helpers are omitted too: this TU never touches the parser or
-// configuration loading. (audit #146 TD008)
+// configuration loading.
 
 // stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
 // macros here. Undefine them before Highway, whose templates use std::min and
@@ -44,8 +44,7 @@ namespace hn = hwy::HWY_NAMESPACE;
 
 #pragma AVRT_CODE_BEGIN
 void convertFloatToDouble(double* dest, const float* src, size_t count) {
-	// Promote float -> double (exact). One portable Highway loop replaces the
-	// AVX-512/AVX2 cvtps_pd ladder and adds the NEON path for ARM64.
+	// Promote float -> double (exact). One portable Highway loop; NEON on ARM64.
 	const hn::ScalableTag<double> dd;
 	const hn::Rebind<float, decltype(dd)> df;  // float tag with dd's lane count
 	const size_t N = hn::Lanes(dd);
@@ -59,8 +58,8 @@ void convertFloatToDouble(double* dest, const float* src, size_t count) {
 
 // Converts a block of doubles back to floats.
 void convertDoubleToFloat(float* dest, const double* src, size_t count) {
-	// Demote double -> float (round to nearest even, same as the old cvtpd_ps
-	// and static_cast<float>). One portable Highway loop, NEON on ARM64.
+	// Demote double -> float (round to nearest even, same as
+	// static_cast<float>). One portable Highway loop, NEON on ARM64.
 	const hn::ScalableTag<double> dd;
 	const hn::Rebind<float, decltype(dd)> df;
 	const size_t N = hn::Lanes(dd);
@@ -74,19 +73,15 @@ void convertDoubleToFloat(float* dest, const double* src, size_t count) {
 
 namespace
 {
-	// Per-layout I/O policy for FilterEngine::processImpl below. The four public
-	// process() overloads used to be ~45-line structural quadruplicates whose
-	// hot-swap/transition choreography existed four times; only the bypass copy
-	// and the configuration read/write entry points actually differ, so those
-	// live here and the choreography lives once in processImpl. The PerfScope
-	// labels are carried per trait so profiling output stays identical (the
-	// double paths historically used the same read label for the current and
-	// the next configuration). (audit #146 TD007)
+	// Per-layout I/O policy for FilterEngine::processImpl below. Only the bypass
+	// copy and the configuration read/write entry points differ per layout;
+	// the hot-swap/transition choreography lives once in processImpl. The
+	// PerfScope labels are carried per trait (the double paths deliberately
+	// use the same read label for the current and the next configuration).
 	struct FloatInterleavedIo
 	{
 		static constexpr const char* totalLabel = "FilterEngine::process(float interleaved)";
-		// Fused float32 -> double + deinterleave directly into planar storage,
-		// avoiding the extra inputBuf1D pass that the original two-step path used.
+		// Fused float32 -> double + deinterleave directly into planar storage.
 		static constexpr const char* readCurrentLabel = "FilterConfiguration::readFloatInterleaved(current)";
 		static constexpr const char* readNextLabel = "FilterConfiguration::readFloatInterleaved(next)";
 		static constexpr const char* writeLabel = "FilterConfiguration::writeFloatInterleaved";
@@ -109,7 +104,7 @@ namespace
 	{
 		static constexpr const char* totalLabel = "FilterEngine::process(float planar)";
 		// Fused float32 -> double directly into planar storage; no intermediate
-		// inputBuf2D copy.
+		// copy.
 		static constexpr const char* readCurrentLabel = "FilterConfiguration::readFloatPlanar(current)";
 		static constexpr const char* readNextLabel = "FilterConfiguration::readFloatPlanar(next)";
 		static constexpr const char* writeLabel = "FilterConfiguration::writeFloatPlanar";
@@ -189,7 +184,7 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 		// initialize() can finish without loading any configuration (unreadable
 		// ConfigPath with no custom path, or an empty path value), and the APO
 		// can call process() before initialize(). Treat both like the
-		// empty-config bypass below instead of dereferencing null. (audit #146 TD026)
+		// empty-config bypass below instead of dereferencing null.
 		if (realChannelCount == outputChannelCount && input != output)
 			IoTraits::bypassCopy(output, input, outputChannelCount, realChannelCount, frameCount);
 		return;

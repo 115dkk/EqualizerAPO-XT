@@ -70,11 +70,11 @@ public:
 		LegacyRows
 	};
 
-	// The document/selection state was extracted into the widget-free
-	// FilterListModel (Editor/widgets/FilterListModel.h) so it is unit-testable
-	// in EditorLogicTests. Item stays as an alias so the FilterTable::Item
+	// The document/selection state lives in the widget-free FilterListModel
+	// (Editor/widgets/FilterListModel.h) so it is unit-testable in
+	// EditorLogicTests. Item stays as an alias so the FilterTable::Item
 	// spelling used by FilterCardRow, FilterTableRow and the metatype below
-	// keeps compiling unchanged. (audit #146 TD032)
+	// keeps compiling unchanged.
 	using Item = FilterListItem;
 
 	explicit FilterTable(MainWindow* mainWindow, QWidget* parent = 0);
@@ -89,8 +89,8 @@ public:
 	// the chrome and the rebuilt rows get polished once on creation.
 	void clearRows();
 	// Re-create the GUI widget for a single row in place. Used for cheap
-	// edits like the enabled toggle, which used to trigger a full updateGuis
-	// (delete + rebuild every row in the file).
+	// edits like the enabled toggle, avoiding a full updateGuis (delete +
+	// rebuild every row in the file).
 	void updateSingleRowGui(Item* item);
 	void propagateChannels();
 	// Channel names for the currently selected device/mask (e.g. L, R, C, ...).
@@ -122,7 +122,7 @@ public:
 	void selectAll();
 	// Document-level undo/redo over the config lines; see FilterListUndo for
 	// the history semantics. Both re-apply a full snapshot through the same
-	// rebuild path as setLines, so they work in either render mode. (TD049)
+	// rebuild path as setLines, so they work in either render mode.
 	bool canUndo() const;
 	bool canRedo() const;
 	void undo();
@@ -155,7 +155,7 @@ public:
 	RenderMode getRenderMode() const;
 
 	// Facts from the analysis engine's most recent configuration load,
-	// filtered by the caller to this table's file (dynamic-commands campaign).
+	// filtered by the caller to this table's file.
 	// Entry line numbers are 1-based; lookup is by 0-based row index. Facts
 	// go stale between a structural edit and the next analysis run - readers
 	// treat them as advisory, never as the document.
@@ -193,22 +193,22 @@ private:
 	// The single row-GUI selection policy (pure-comment card, card-first
 	// lookup, legacy factory chain, card override for commented lines,
 	// decorator gating). Shared by updateGuis() and updateSingleRowGui() so
-	// policy edits happen once. (audit #146 TD005)
+	// policy edits happen once.
 	IFilterGUI* createRowGui(const QString& line);
 	// Inserts the mime data's lines at dropRow and makes them the selection.
 	// Shared by paste() and dropEvent(). Returns the number of inserted lines
-	// so the callers can take the incremental single-row path. (audit #146 TD006)
+	// so the callers can take the incremental single-row path.
 	int insertLinesFromMimeData(const QMimeData* mimeData, int dropRow);
 	// Incremental structural updates for the card path only: splice one row
 	// widget into/out of the grid and re-address the rows below, instead of
 	// tearing down and rebuilding every row widget. Both fall back to
 	// updateGuis() on any inconsistency, and LegacyRows always takes the full
-	// rebuild (frozen fallback, docs/FilterListUiPolicy.md). (audit #146 TD040)
+	// rebuild (frozen fallback, docs/FilterListUiPolicy.md).
 	void insertRowAt(int index);
 	void removeRowAt(int index);
 	// Refreshes number/scope of the card rows at document index >= firstRow in
 	// place after an incremental splice. Returns false when a row widget is
-	// not a FilterCardRow (caller falls back to updateGuis). (audit #146 TD040)
+	// not a FilterCardRow (caller falls back to updateGuis).
 	bool renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes);
 	// Card-path list chrome (shared insertion contract, docs/skins/README.md):
 	// the trailing AddCardRow lives in the grid and is rebuilt by updateGuis;
@@ -221,7 +221,7 @@ private:
 	// (hidden in LegacyRows and for an empty document).
 	void syncListChrome();
 	// Records the post-mutation document into undoHistory; connected to this
-	// table's own linesChanged in the constructor. (TD049)
+	// table's own linesChanged in the constructor.
 	void commitToHistory();
 	// Replaces the document with an undo/redo snapshot and rebuilds the rows,
 	// without recording the replacement as a new undo step.
@@ -235,10 +235,10 @@ private:
 	QPoint dragStartPos;
 	bool internalDrag = false;
 	// Owns the config lines and the selection state; see FilterListModel for
-	// the item ownership rules. (audit #146 TD032)
+	// the item ownership rules.
 	FilterListModel model;
 	// Snapshot history behind undo()/redo(); reset on every setLines (a
-	// document load must not undo into the previous file). (TD049)
+	// document load must not undo into the previous file).
 	FilterListUndo undoHistory;
 	// True while applyHistoryState replays a snapshot, so the resulting
 	// linesChanged marks the tab dirty without re-recording the step.
@@ -246,7 +246,7 @@ private:
 	QList<IFilterGUIFactory*> factories;
 	bool scrollingNow = false;
 	// True while the app-global wheel-redirect filter is installed; see
-	// wheelEvent()/eventFilter(). (audit #146 TD041)
+	// wheelEvent()/eventFilter().
 	bool appWheelFilterInstalled = false;
 	QPointF scrollStartPoint;
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;

@@ -58,7 +58,7 @@ void FilterTable::cut()
 void FilterTable::copy()
 {
 	// The payload (selected lines in document order + aligned prefs) is pure
-	// model state; only the clipboard hand-off stays here. (audit #146 TD032)
+	// model state; only the clipboard hand-off stays here.
 	if (model.selected().isEmpty())
 		return;
 
@@ -85,7 +85,7 @@ void FilterTable::paste()
 
 		emit linesChanged();
 		// A single pasted line is the common case: splice just that row into
-		// the card grid instead of rebuilding every row. (audit #146 TD040)
+		// the card grid instead of rebuilding every row.
 		if (insertedCount == 1 && renderMode == ModernCards)
 			insertRowAt(dropRow);
 		else
@@ -96,7 +96,7 @@ void FilterTable::paste()
 int FilterTable::insertLinesFromMimeData(const QMimeData* mimeData, int dropRow)
 {
 	// The QMimeData unpacking stays here; the insertion and the selection
-	// replacement are model state. (audit #146 TD032)
+	// replacement are model state.
 	QString text = mimeData->text();
 	QStringList textLines = text.split("\n");
 	QList<QVariantMap> prefsList;
@@ -111,7 +111,7 @@ void FilterTable::deleteSelectedLines()
 {
 	// A single-row deletion keeps every other row widget alive and splices
 	// just one out of the grid. Multi-row deletions (and the frozen legacy
-	// path) keep the full rebuild. (audit #146 TD040)
+	// path) keep the full rebuild.
 	int removedIndex = -1;
 	if (renderMode == ModernCards && model.selected().size() == 1)
 		removedIndex = int(model.items().indexOf(*model.selected().cbegin()));
@@ -158,7 +158,7 @@ void FilterTable::addActionTriggered()
 	{
 		addLine(filterTemplate.getLine());
 		// The toolbar add appends exactly one line; splice just that row into
-		// the card grid. (audit #146 TD040)
+		// the card grid.
 		if (renderMode == ModernCards)
 			insertRowAt(int(model.items().count()) - 1);
 		else

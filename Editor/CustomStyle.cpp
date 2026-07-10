@@ -42,7 +42,7 @@ int CustomStyle::pixelMetric(QStyle::PixelMetric metric, const QStyleOption* opt
 QIcon CustomStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *option, const QWidget *widget) const
 {
 	// Keyed on the skin's dark flag (CustomStyle only runs in the modern
-	// presentation), not the OS scheme the icons used to follow.
+	// presentation), not the OS scheme.
 	if(SkinManager::instance()->isDark())
 	{
 		switch (standardIcon)

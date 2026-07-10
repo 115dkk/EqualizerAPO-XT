@@ -95,7 +95,7 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 
 	// The document reset (including moving focus/anchor to the first line)
 	// lives in the model; the per-file GUI preference restore below stays
-	// here because it reads the registry. (audit #146 TD032)
+	// here because it reads the registry.
 	model.setLines(lines);
 
 	QSettings settings(QString::fromWCharArray(EDITOR_PER_FILE_REGPATH), QSettings::NativeFormat);
@@ -139,7 +139,7 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 	settings.endGroup();
 
 	// A document load/replace starts a fresh history: undo must never step
-	// back into the previously opened file's contents. (TD049)
+	// back into the previously opened file's contents.
 	undoHistory.reset(model.lines());
 
 	updateGuis();
@@ -214,7 +214,7 @@ FilterTable::Item* FilterTable::itemAfter(FilterTable::Item* item) const
 void FilterTable::removeItem(FilterTable::Item* item)
 {
 	// The removal and the selection/focus repair live in the model; the signal
-	// stays a widget concern. (audit #146 TD032)
+	// stays a widget concern.
 	if (!model.removeItem(item))
 		return;
 

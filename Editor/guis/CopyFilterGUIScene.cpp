@@ -145,7 +145,7 @@ void CopyFilterGUIScene::load(const vector<wstring>& channelNames, const vector<
 		// Spread the coefficient labels of every arrow feeding this output along
 		// their own lines. A single source keeps the midpoint; multiple sources
 		// (a mix such as VC = 0.7071*L + 0.7071*R) fan the labels between 28% and
-		// 72% of each line so the boxes no longer overlap at the shared midpoint.
+		// 72% of each line so the boxes do not overlap at the shared midpoint.
 		const int connectionCount = static_cast<int>(targetConnections.size());
 		for (int k = 0; k < connectionCount; k++)
 		{

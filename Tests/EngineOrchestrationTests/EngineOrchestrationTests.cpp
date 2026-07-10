@@ -433,7 +433,7 @@ void testConfigSwapCrossfades(test::Harness& harness)
 // process() can arrive before initialize(), and initialize() can finish
 // without loading any configuration (unreadable ConfigPath and no custom
 // path). Both leave currentConfig null; every overload must pass audio
-// through instead of dereferencing it inside audiodg.exe. (audit #146 TD026)
+// through instead of dereferencing it inside audiodg.exe.
 void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 {
 	FilterEngine engine;
@@ -466,7 +466,7 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
-// Dynamic-commands campaign: the engine reports per-line facts while loading
+// The engine reports per-line facts while loading
 // (branch decisions, Eval values, swallowed lines) through an attached
 // ConfigLoadTraceSink so the Editor can echo them next to the config rows.
 // This pins the whole grammar over one representative config: an Eval, a

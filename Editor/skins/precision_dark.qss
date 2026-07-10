@@ -1,8 +1,6 @@
 /* ====================================================================
    Skin: minimal - "The bank teller's terminal" (Dark)
-   Zero decoration; every pixel is information; color carries meaning
-   only. Radius 0, shadows 0, gradients 0; separators are 1px hairlines
-   or a single background-value step.
+   Constitution: docs/skins/minimal.md
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
            accent @ACCENT@ / borderRadius 0 / row 32 / font DM Mono
@@ -167,7 +165,7 @@ QAbstractSpinBox::down-arrow {
     border-top: 4px solid @MUTED@;
 }
 
-/* N2 - the number is the control. A parameter's editable figure is the
+/* The number is the control. A parameter's editable figure is the
    row's brightest ink (one value step above body text), printed straight
    on the strip with no input-box chrome at rest; the knob beside it shrank
    to a hairline confirmation arc (Skins.cpp). Hover lifts the figure one
@@ -204,7 +202,7 @@ QComboBox QAbstractItemView {
 }
 QComboBox QAbstractItemView::item { padding: 4px 10px; border-radius: 0; min-height: 24px; }
 
-/* X5 - the parameter combos are mode selectors, not labels. A selector
+/* The parameter combos are mode selectors, not labels. A selector
    field in this terminal is a caption wearing a caret: transparent on the
    strip, a single hairline underline as the field mark, and a full-ink
    caret as the always-visible affordance. The name combo (filterSelector)
@@ -404,7 +402,7 @@ QLabel#MinimalTypeGlyph {
 }
 /* The BiQuad strip's plain captions (e.g. "Gain") share the selectors'
    caption layer: secondary ink, so the bright figures below carry the
-   line (N2 hierarchy - importance = brightness). */
+   line (importance = brightness). */
 QWidget#BiQuadFilterGUI QLabel { background: transparent; color: @MUTED@; }
 QLabel#FilterCardTitle {
     color: @TEXT@; background: transparent;
@@ -459,15 +457,15 @@ QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBloc
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 
-/* ===== Graphic EQ card (round 3, rebuilt form-first) =====
-   The response plot is a skin-painted instrument now - MinimalSkin::
+/* ===== Graphic EQ card =====
+   The response plot is a skin-painted instrument - MinimalSkin::
    paintGraphicEqPlot owns every pixel (console ground, hairline grid,
    1px body-ink response, square tick nodes on the value ladder); QSS
    only dresses the type around it. The readout strip under the plot is
    one parameter line: the band caption is a tracked secondary caption
    (the analysis chips' register), "Freq."/"Gain" sit on the BiQuad
-   caption layer, and the figures ride the valueScrub grammar (N2 - the
-   number is the control). The mode combo takes the X5 selector grammar
+   caption layer, and the figures ride the valueScrub grammar (the
+   number is the control). The mode combo takes the selector grammar
    through its paramSelector property. */
 QWidget#GraphicEQReadout { background: transparent; border: 0; }
 QLabel#GraphicEQBandCaption {
@@ -702,7 +700,7 @@ QLabel#MultiConvolutionMappingHint {
     font-size: 8pt;
 }
 /* ====================================================================
-   Scope and note cards (Device / Channel / Stage / Comment) - Phase 2.
+   Scope and note cards (Device / Channel / Stage / Comment).
    One chip grammar, three legal registers of type. A chip is a DM Mono
    token in a 1px hairline box (radius 0). State keeps to the value
    ladder (rule 3): rest = card, hover = exactly one step up, inert =

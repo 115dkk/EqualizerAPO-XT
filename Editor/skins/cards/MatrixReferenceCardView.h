@@ -2,16 +2,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Signal Matrix's reference card (Include / Convolution / MultiConvolution /
-	VSTPlugin row bodies): the reference is a feed line on the board. A mono
-	marker cell designates the feed ("> SRC" / "> IR" / "> IR+" / "> DEV") and
-	turns into a danger readout while the reference is broken (danger is the
-	documented ink for a broken include readout); the payload name is the
-	brightest mono ink on the line; the location is a muted mono readout;
-	measured facts sit in boxed sunken mono cells (rule 5: authoritative
-	numbers live in boxed cells); the VST body is headed by the monochrome
-	"> IN ... EXTERNAL DEVICE ... OUT >" port strip so the plugin reads as
-	outboard gear patched into the signal path. See docs/skins/matrix.md for
-	the constitution this answers to.
+	VSTPlugin row bodies): the reference as a feed line of board cells -
+	marker cell, location readout, payload name, boxed fact cells.
+	Constitution: docs/skins/matrix.md ("참조 카드" section).
 */
 
 #pragma once

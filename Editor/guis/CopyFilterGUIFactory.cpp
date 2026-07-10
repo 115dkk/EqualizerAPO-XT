@@ -47,9 +47,8 @@ IFilterGUI* CopyFilterGUIFactory::createFilterGUI(QString& command, QString& par
 	if (command == "Copy")
 	{
 		// Parse the routing with the same shared parser the engine factory uses,
-		// straight into the Qt-free std::vector<Assignment>. This replaces the former
-		// hack of building a real CopyFilter just to read getAssignments() back and
-		// immediately destroy it.
+		// straight into the Qt-free std::vector<Assignment>, instead of building
+		// a throwaway CopyFilter just to read getAssignments() back.
 		std::vector<Assignment> assignments = parseCopyAssignments(parameters.toStdWString());
 		result = new CopyFilterGUI(assignments, filterTable);
 	}

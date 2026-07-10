@@ -110,9 +110,8 @@ void GraphicEQFilterGUI::store(QString& command, QString& parameters)
 	command = "GraphicEQ";
 
 	// Serialize through the shared command so the GUI and the parser agree on the
-	// node-list format. The scene already holds the nodes in the same order the
-	// old loop iterated, and serialize() preserves that order (it does not
-	// re-sort), so the emitted "<freq> <gain>; ..." text is unchanged.
+	// node-list format; serialize() preserves the scene's node order (it does not
+	// re-sort).
 	GraphicEQCommand cmd;
 	cmd.nodes = scene->getNodes();
 	parameters += QString::fromStdWString(cmd.serialize());

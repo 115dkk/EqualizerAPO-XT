@@ -49,7 +49,7 @@ public:
 
 	// Position of the gain label along the connection line, 0 = source end,
 	// 1 = target end. The scene staggers this per target so the coefficient
-	// labels of arrows that converge on the same output channel no longer
+	// labels of arrows that converge on the same output channel do not
 	// stack on top of each other at the shared midpoint.
 	void setLabelPosition(double t);
 

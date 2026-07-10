@@ -123,7 +123,7 @@ ValueScrubBox::ValueScrubBox(QWidget* parent)
 	: QDoubleSpinBox(parent)
 {
 	setButtonSymbols(QAbstractSpinBox::NoButtons);
-	// Hook for the skin rounds: skins may key QSS or paint code off this.
+	// Hook for skins: they may key QSS or paint code off this.
 	setProperty("valueScrub", true);
 	new ValueScrubController(this);
 }

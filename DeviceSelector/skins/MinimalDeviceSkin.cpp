@@ -1,23 +1,21 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Precision Minimal device selector: a terminal's device-selection menu
-	that stays juicy under the mouse. Every glyph is the mono face; a device
-	is a printed two-line entry - a drawn [x]/[ ] toggle box, a 0-padded
-	unit number, the connection as the line's command word and a dim
-	":: status" second line. Hover sweeps a reverse-video block across the
-	line one character cell at a time (the constitution's bluntest cursor,
-	animated) while a '>' prompt caret appears in the gutter; selection
-	holds the full inverse block behind a square accent hairline so the
-	troubleshooting target outlives the pointer. A pending install or
-	uninstall is the terminal's unsaved-buffer '*' in armed accent ink, an
-	unavailable endpoint is a commented-out line ('#' gutter, sunken ink).
-	Sections are "== CAPTION ==" divider rules with a [-]/[+] fold mark,
-	the dialog buttons are bracketed commands ("[ OK ]") that invert under
-	the same sweep, and the troubleshooting disclosure is a prompt line
-	wearing the fold mark. Light mode is ink on paper, dark is the phosphor
-	console; reverse video is a strict ground/glyph swap (tokens.text <->
-	tokens.surface), never a third colour. 1px hairlines, radius 0.
+	Precision Minimal device selector: a terminal's device-selection menu.
+	Constitution (reverse-video cursor, type ladder): docs/skins/minimal.md.
+	Element mapping: a device is a printed two-line entry - a drawn [x]/[ ]
+	toggle box, a 0-padded unit number, the connection as the line's command
+	word and a dim ":: status" second line. Hover sweeps a reverse-video
+	block across the line one character cell at a time while a '>' prompt
+	caret appears in the gutter; selection holds the full inverse block
+	behind a square accent hairline. A pending install/uninstall is the
+	unsaved-buffer '*' in armed accent ink; an unavailable endpoint is a
+	commented-out line ('#' gutter, sunken ink). Sections are "== CAPTION =="
+	divider rules with a [-]/[+] fold mark, the dialog buttons are bracketed
+	commands ("[ OK ]") that invert under the same sweep, and the disclosure
+	is a prompt line wearing the fold mark. Reverse video is a strict
+	ground/glyph swap (tokens.text <-> tokens.surface), never a third
+	colour. 1px hairlines, radius 0.
 */
 
 #include "DeviceSkinPainter.h"

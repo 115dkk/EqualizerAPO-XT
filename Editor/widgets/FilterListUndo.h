@@ -35,7 +35,7 @@
 // the coalescing run.
 //
 // QtCore-only on purpose, mirroring FilterListModel: the class is
-// unit-testable in EditorLogicTests without a QWidget. (audit #146 TD049)
+// unit-testable in EditorLogicTests without a QWidget.
 class FilterListUndo
 {
 public:

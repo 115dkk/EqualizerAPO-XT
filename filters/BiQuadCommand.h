@@ -29,8 +29,7 @@
 // the engine filter without going through a throwaway BiQuadFilter instance.
 //
 // The engine (BiQuadFilterFactory) and the Editor GUI share one parse routine
-// that fills this struct, eliminating the former "build a real filter just to
-// read its fields back" hack in the Editor.
+// that fills this struct.
 struct BiQuadCommand
 {
 	BiQuad::Type type = BiQuad::PEAKING;
@@ -45,7 +44,7 @@ struct BiQuadCommand
 };
 
 // There is deliberately no BiQuadCommand::serialize() counterpart to the
-// PreampCommand / VSTPluginCommand serializers (biweekly-audit #109 F007). Those
+// PreampCommand / VSTPluginCommand serializers. Those
 // round-trip because their parse is symmetric; the BiQuad parse is not. A "Filter:"
 // line cannot be reproduced from this struct alone, because BiQuadFilterFactory's
 // parser is intentionally lossy and normalizing:
@@ -69,6 +68,6 @@ bool biquadTypeFromName(const std::wstring& name, BiQuad::Type& outType);
 
 // Human-readable title for a BiQuad type, e.g. L"Peaking", L"Low-shelf". This is
 // the single owner of the type -> title mapping shared by the engine-side parse
-// log and the Editor's filter card model (F042 dedup). The returned pointer is
+// log and the Editor's filter card model. The returned pointer is
 // to a static literal and stays valid for the lifetime of the process.
 const wchar_t* biquadTypeTitle(BiQuad::Type type);

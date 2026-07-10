@@ -47,9 +47,7 @@ namespace
 // a saved dock/toolbar/menu layout onto the live QMainWindowLayout by matching
 // object names; feeding it a state whose structure no longer matches the running
 // build can dereference a missing layout item and crash inside QMainWindowLayout
-// during the first show() (seen on saved states from before the custom window
-// chrome moved the menu bar into the menu-widget slot — the PC-bang start-up
-// crashes in issues #54/#75). Passing a version makes restoreState() reject any
+// during the first show(). Passing a version makes restoreState() reject any
 // state that was not written with the same number (it returns false and applies
 // nothing, so the window just falls back to the default layout once). BUMP THIS
 // whenever the QMainWindow's toolbars/dock widgets/menu-widget structure changes,
@@ -291,8 +289,7 @@ void MainWindow::setupRedesignActions()
 	connect(knobRangeActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(knobRangeSelected(QAction*)));
 
 	// The graph position is chosen explicitly via the dropdown in the analysis
-	// panel's control bar (graphPositionComboBox); the old implicit
-	// "cycle graph position" action is gone.
+	// panel's control bar (graphPositionComboBox), so no position action here.
 	QAction* fullscreenGraphAction = interfaceMenu->addAction(tr("Fullscreen graph"));
 	fullscreenGraphAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+F")));
 	connect(fullscreenGraphAction, SIGNAL(triggered()), this, SLOT(toggleGraphFullscreen()));
@@ -342,8 +339,7 @@ void MainWindow::dressSkinChrome()
 	// every skin/dark switch so the tinted icons follow the new ink. The
 	// menu-only actions (Save As + the Edit menu set) get the matching
 	// neutral stroke icons here - they are not on the toolbar, so the skin
-	// hook never sees them. This retires the last of the 2005-era .ico set
-	// from the dropdowns. (The custom title bar re-tints itself; it listens
+	// hook never sees them. (The custom title bar re-tints itself; it listens
 	// to the same signal.)
 	SkinManager::instance()->styleMainToolbar(ui->mainToolBar);
 	const QColor menuInk(SkinManager::instance()->tokens().text);
@@ -359,9 +355,9 @@ void MainWindow::applyRedesignPreferences()
 {
 	// Heritage is a whole presentation, not a skin: re-applying a skin here
 	// would stomp applyHeritage's empty stylesheet and native palette with
-	// the registry's last skin - exactly the modern-chrome-around-legacy-rows
-	// mixture #165 removed. Keeping skinId untouched also keeps the saved
-	// interface/skin from being clobbered by a heritage session.
+	// the registry's last skin, mixing modern chrome around legacy rows.
+	// Keeping skinId untouched also keeps the saved interface/skin from
+	// being clobbered by a heritage session.
 	if (!SkinManager::instance()->isHeritage())
 	{
 		SkinManager::instance()->applySkin(skinId, skinDark);
@@ -402,19 +398,19 @@ void MainWindow::applyRedesignPreferences()
 	// removing and re-adding a dock that restoreState has just laid out can free a
 	// QLayoutItem that the dock-area layout still references, and the first show()
 	// then dereferences the dangling item (use-after-free crash on heavy/stale saved
-	// layouts - the #54/#75 start-up crash). Skipping the churn when the dock is
-	// already placed avoids creating that dangling item without changing where the
-	// dock ends up; a genuine position change (the graph-position dropdown) still
-	// re-homes because the current area differs from the target.
+	// layouts). Skipping the churn when the dock is already placed avoids creating
+	// that dangling item without changing where the dock ends up; a genuine position
+	// change (the graph-position dropdown) still re-homes because the current area
+	// differs from the target.
 	if (dockWidgetArea(ui->analysisDockWidget) != area)
 	{
 		removeDockWidget(ui->analysisDockWidget);
 		addDockWidget(area, ui->analysisDockWidget);
 	}
 	// The analysis controls live in a compact settings cell beside the graph
-	// (the original panel's shape - feedback round, DC #1289929) instead of a
-	// full-width strip above it. A top/bottom dock lays the cell to the left
-	// of the graph; the narrow right dock stacks it above the graph instead.
+	// instead of a full-width strip above it. A top/bottom dock lays the cell
+	// to the left of the graph; the narrow right dock stacks it above the
+	// graph instead.
 	ui->analysisDockLayout->setDirection(area == Qt::RightDockWidgetArea
 		? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight);
 	ui->analysisDockWidget->setVisible(graphFullscreen || graphWasShown);

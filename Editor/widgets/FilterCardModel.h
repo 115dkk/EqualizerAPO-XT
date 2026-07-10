@@ -48,8 +48,7 @@ class FilterCardModel
 public:
 	static FilterCardDescriptor describeLine(const QString& line, int depth = 0);
 	// The modern stroke pictogram for a card's type badge, keyed by the
-	// descriptor (feedback round 2: pictures replace the English monograms on
-	// the cards, matching the picker tiles). Biquad rows split by their type
+	// descriptor (matching the picker tiles). Biquad rows split by their type
 	// code so every EQ shape carries its response-curve glyph; an unmapped
 	// descriptor (raw text lines) returns empty and the badge falls back to
 	// its monogram, so future commands degrade gracefully instead of going

@@ -184,9 +184,8 @@ const std::vector<Assignment>& CopyFilter::getAssignments() const
 
 std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 {
-	// Reproduces CopyFilterFactory::createFilter's former inline parse verbatim so
-	// the engine still builds the identical CopyFilter (copy_crossfeed stays
-	// bit-identical) and the Editor GUI factory shares the exact same grammar.
+	// One parse shared by the engine factory and the Editor GUI factory; the
+	// copy_crossfeed regression reference pins this exact grammar.
 	vector<Assignment> assignments;
 
 	vector<wstring> assignmentStrings = StringHelper::split(parameters, L' ');
@@ -247,13 +246,12 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 
 std::wstring serializeCopyAssignments(const vector<Assignment>& assignments)
 {
-	// Mirrors the former CopyFilterGUI::store() text so a parse -> serialize round
-	// trip is lossless and the written config line is unchanged. Each factor is
+	// Keeps a parse -> serialize round trip lossless. Each factor is
 	// formatted with the C "%g" default (matching QString::setNum(double)); a bare
 	// integer factor gains a ".0" suffix so it is recognised as a factor (not a
 	// channel) on the next parse, and the dB suffix is appended for decibel
 	// factors. A summand whose channel is a single space is the GUI's "not yet
-	// filled row" sentinel and is skipped here exactly as the GUI did.
+	// filled row" sentinel and is skipped here.
 	wstring result;
 	bool firstAssignment = true;
 

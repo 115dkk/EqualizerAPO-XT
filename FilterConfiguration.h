@@ -51,7 +51,7 @@ public:
 	void read(double** input, unsigned frameCount);
 	// Fused float32 -> double + deinterleave (or planar copy) directly into the
 	// internal planar storage. Used by the APO when the connection is float32,
-	// avoiding the intermediate inputBuf1D/inputBuf2D pass.
+	// avoiding an intermediate conversion buffer.
 	void readFloatInterleaved(const float* input, unsigned frameCount);
 	void readFloatPlanar(const float* const* input, unsigned frameCount);
 	void process(unsigned frameCount);

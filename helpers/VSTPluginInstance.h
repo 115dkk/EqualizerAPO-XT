@@ -79,8 +79,7 @@ public:
 	void onSizeWindow(int w, int h);
 	// Backing store for VST_HOST_OPCODE_GET_TIME, refreshed and returned per
 	// call. Per instance: plugins in different audio streams process
-	// concurrently, and a shared global here let them race on one struct.
-	// (audit #146 TD029)
+	// concurrently, so a shared global here would let them race on one struct.
 	vst_time_info* hostTimeInfo();
 
 private:

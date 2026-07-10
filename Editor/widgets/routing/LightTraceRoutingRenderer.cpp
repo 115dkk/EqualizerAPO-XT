@@ -206,7 +206,7 @@ void StudioRoutingView::relayout()
 	ghostRect = isEnabled() ? QRect(ghostX, outputY, sc(30), chipH) : QRect();
 
 	// Trace curves with vertical tangents; factor readouts fan out along
-	// traces that converge on one output (the legacy 0.28..0.72 spread).
+	// traces that converge on one output (the 0.28..0.72 spread).
 	traceShapes.clear();
 	QHash<int, int> perOutput;
 	for (const StudioRoutingModel::Trace& trace : model.traces())
@@ -522,9 +522,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		p.drawLine(QPointF(c.x(), c.y() - sc(5)), QPointF(c.x(), c.y() + sc(5)));
 	}
 
-	// The fold's reveal chip: the same dashed ghost glass, its label a mono
-	// readout of the channels currently lit out ("+6"), or "fold" once the
-	// whole device layout burns.
+	// The fold's reveal chip (label set in relayout).
 	if (!revealRect.isNull())
 	{
 		const double borderA = revealHovered ? 0.80 : 0.40;
@@ -655,7 +653,7 @@ void StudioRoutingView::mousePressEvent(QMouseEvent* event)
 	if (chip >= 0)
 	{
 		// A press arms drag-to-connect; if no drag develops, the release
-		// selects the chip's traces (the legacy click behaviour).
+		// selects the chip's traces.
 		dragChip = chip;
 		dragFromInput = inputRow;
 		dragging = false;
@@ -844,7 +842,7 @@ void StudioRoutingView::openFactorEditor(int trace)
 
 void StudioRoutingView::commitFactorEditor()
 {
-	// editingFinished can fire twice (return + focus-out), the legacy guard.
+	// editingFinished can fire twice (return + focus-out).
 	if (factorEditor == nullptr || !factorEditor->isVisible() || factorEditorTrace < 0)
 		return;
 
@@ -886,8 +884,8 @@ void StudioRoutingView::commitChannelEditor()
 		return;
 
 	// No routingChanged: a fresh output has no sum yet, and the serializer
-	// skips empty targets (same as the legacy scene's add button). Pinning
-	// keeps the new chip lit while it has no trace yet.
+	// skips empty targets. Pinning keeps the new chip lit while it has no
+	// trace yet.
 	model.addOutput(name);
 	if (!pinnedChannels.contains(name, Qt::CaseInsensitive))
 		pinnedChannels.append(name);

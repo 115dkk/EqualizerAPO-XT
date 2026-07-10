@@ -13,10 +13,7 @@
 SkinManager::SkinManager(QObject* parent)
 	: QObject(parent)
 {
-	// Establishes the class invariant every forwarder below relies on:
-	// activeSkin is NEVER null. Skins::byId falls back to studio for unknown
-	// ids, and applySkin/applyHeritage only ever reassign through it, so the
-	// hook forwarders delegate without a null check.
+	// Establishes the never-null invariant on activeSkin (see the header).
 	activeSkin = Skins::byId(skinId);
 	Q_ASSERT(activeSkin != nullptr);
 	skinId = activeSkin->id();
@@ -93,16 +90,15 @@ void SkinManager::applyHeritage()
 	LogFStatic(L"Heritage presentation applied");
 }
 
-// The @TOKEN@ substitution moved to SkinThemeData::substituteTokens so
+// The @TOKEN@ substitution lives in SkinThemeData::substituteTokens so
 // satellite tools (DeviceSelector) dress the same sheets identically.
 
 void SkinManager::applySkin(const QString& newSkinId, bool dark)
 {
 	heritageMode = false;
 	// Breadcrumb + unconditional log line: a skin-switch crash reported from
-	// the field (only two of five skins survived on a PC-bang machine, not
-	// reproducible on the dev machine) must identify the dying skin in the
-	// crash report and in %TEMP%\EqualizerAPO.log.
+	// the field must identify the dying skin in the crash report and in
+	// %TEMP%\EqualizerAPO.log.
 	CrashHandler::setBreadcrumb(QStringLiteral("applySkin %1 dark=%2").arg(newSkinId).arg(dark).toStdWString());
 	LogFStatic(L"Applying skin %s (dark=%d)", reinterpret_cast<const wchar_t*>(newSkinId.utf16()), dark ? 1 : 0);
 
@@ -134,8 +130,7 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	qApp->setStyleSheet(SkinThemeData::substituteTokens(styleSheet, currentTokens) + SkinThemeData::comboArrowOverride());
 	// The palette is part of the skin: painted (non-QSS) widgets and native
 	// popups read these roles. Deriving it here keeps every switch path (menu,
-	// shortcut, startup, gallery) in step - the light->dark toggle used to
-	// leave the startup palette behind because only main() applied it.
+	// shortcut, startup, gallery) in step.
 	qApp->setPalette(SkinThemeData::palette(currentTokens, darkMode));
 
 	emit skinChanged(currentTokens);
@@ -146,8 +141,8 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 }
 
 // The forwarders below delegate without a null check on purpose: activeSkin
-// is a class invariant (never null, see the constructor). Only genuinely
-// different behavior - the heritage branches - earns a conditional.
+// is never null (class invariant, see the header). Only genuinely different
+// behavior - the heritage branches - earns a conditional.
 
 IRoutingRenderer* SkinManager::routingRenderer() const
 {
@@ -160,9 +155,8 @@ void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobStat
 {
 	if (heritageMode)
 	{
-		// The ISkin base implementation is the pre-skin AudioKnob painter,
-		// moved verbatim when the skins were introduced - exactly the
-		// heritage knob.
+		// The ISkin base implementation is exactly the heritage AudioKnob
+		// painter.
 		activeSkin->ISkin::paintKnob(painter, rect, state, currentTokens);
 		return;
 	}

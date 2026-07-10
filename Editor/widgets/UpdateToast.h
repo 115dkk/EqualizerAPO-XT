@@ -6,9 +6,9 @@ class QLabel;
 class QToolButton;
 
 // A small, dismissible notice anchored to the bottom centre of the main
-// window. First user: the Velopack auto-update flow, which until now staged
-// updates in complete silence - the user had no way to know an update was
-// downloaded and would apply on exit. The widget paints a token-driven card
+// window. First user: the Velopack auto-update flow, which stages updates
+// silently in the background - without this notice the user has no way to
+// know an update was downloaded and applies on exit. The widget paints a token-driven card
 // itself (rounded panel + border) so it reads correctly on every skin even
 // before a skin styles it; skins refine it through QSS on #UpdateToast,
 // #UpdateToastLabel and #UpdateToastClose.

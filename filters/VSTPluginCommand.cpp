@@ -30,12 +30,10 @@ using std::wstring;
 
 VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const wstring& parameters)
 {
-	// This is VSTPluginFilterFactory::createFilter's former inline parse moved
-	// here verbatim. configPath is intentionally unused: the original parse never
-	// looked at it (configPath only decides whether the factory loads the binary,
-	// which stays in the factory). Keep this byte-for-byte equivalent so the
-	// engine still builds the identical VSTPluginFilter and the Editor GUI shares
-	// the exact same grammar.
+	// configPath is intentionally unused: the parse never looks at it
+	// (configPath only decides whether the factory loads the binary, which
+	// stays in the factory). The engine factory and the Editor GUI share this
+	// one grammar.
 	VSTPluginCommand cmd;
 
 	vector<wstring> parts = StringHelper::splitQuoted(parameters, ' ');
@@ -95,9 +93,9 @@ std::wstring VSTPluginCommand::serialize() const
 	// Mirrors the body VSTPluginFilterGUI::store() appends after the "Library
 	// <path>" token. The Library token itself stays in store() because its
 	// relative/absolute resolution uses Qt's QDir; this serializer owns only the
-	// chunk/param body so a parse -> serialize round trip of that body is lossless
-	// and the written config line is unchanged. The returned string carries the
-	// same leading space store() used, so store() can append it directly.
+	// chunk/param body so a parse -> serialize round trip of that body is
+	// lossless. The returned string carries a leading space so store() can
+	// append it directly.
 	wstring result;
 
 	if (chunkData != L"")

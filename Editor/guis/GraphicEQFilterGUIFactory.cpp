@@ -54,9 +54,8 @@ IFilterGUI* GraphicEQFilterGUIFactory::createFilterGUI(QString& command, QString
 	if (command == "GraphicEQ")
 	{
 		// Parse the node list with the same shared parser the engine factory uses,
-		// straight into the Qt-free struct. This replaces the former hack of
-		// building a real GraphicEQFilter (with its IR/FFT setup) just to read its
-		// nodes back and immediately destroy it.
+		// straight into the Qt-free struct, instead of building a throwaway
+		// GraphicEQFilter (with its IR/FFT setup) just to read its nodes back.
 		GraphicEQCommand cmd;
 		cmd.parse(parameters.toStdWString());
 		result = new GraphicEQFilterGUI(cmd.nodes, configPath, filterTable);

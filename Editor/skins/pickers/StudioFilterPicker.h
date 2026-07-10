@@ -1,12 +1,10 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Studio Glass "add filter" picker: a floating frosted-glass panel. The
-	widget paints its own stage (the deep studio background), a soft
-	elevation shadow, an accent glow behind the panel and a luminous top
-	edge; inside sit a prominent sunken-glass search field and one airy
-	sectioned list whose hovered entry pools light under the cursor and
-	whose selected entry carries the skin's signal lamp.
+	Studio Glass "add filter" picker: a floating frosted-glass panel that
+	paints its own stage, with a sunken-glass search field over a sectioned
+	list.
+	Constitution: docs/skins/studio.md ("필터 픽커" section).
 */
 
 #pragma once

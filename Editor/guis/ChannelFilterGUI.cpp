@@ -40,7 +40,7 @@ ChannelFilterGUI::ChannelFilterGUI(const QString& parameters, int selectedChanne
 	selectedChannels.clear();
 
 	// Parse through the shared codec so the GUI accepts exactly what the engine
-	// accepts (the previous split(' ') missed comma-separated selectors).
+	// accepts (a plain split(' ') misses comma-separated selectors).
 	ChannelCommand cmd;
 	ChannelCommand::parse(L"Channel", parameters.toStdWString(), cmd);
 	for (const wstring& channel : cmd.channels)

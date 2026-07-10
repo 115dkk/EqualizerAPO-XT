@@ -56,7 +56,6 @@ void configureParser(ParserX& parser)
 
 	// Same engine-free roster as ExpressionFilterFactory::initialize; the
 	// engine-bound registrations (readRegString etc.) stay engine-only.
-	// (audit #146 TD021)
 	registerEngineFreeParserExtensions(parser);
 }
 

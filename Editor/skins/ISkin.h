@@ -43,8 +43,7 @@ struct CommandRowInfo
 	bool focused = false;
 	// True while the cursor is over the row. Populated at paint time by
 	// CommandRowFrame for ISkin::paintCardChrome; the construction-time hooks
-	// (prepareCommandRow) always see false. Skins that ignore it keep their
-	// exact pre-hover appearance.
+	// (prepareCommandRow) always see false.
 	bool hovered = false;
 	int depth = 0;
 	// Number of If scopes the row lives inside (FilterCardRowScope::logic):
@@ -210,9 +209,8 @@ public:
 
 	// Paint a knob into rect. AudioKnob keeps all input handling (rotary drag,
 	// wheel, keyboard) and delegates only the painting here. The default
-	// implementation (ISkin.cpp) reproduces the shared arc-knob rendering
-	// pixel-identically; it deliberately ignores the hover/drag/focus state
-	// flags so that adding the hook changed nothing visually. Skins override
+	// implementation (ISkin.cpp) is the shared arc-knob rendering; it
+	// deliberately ignores the hover/drag/focus state flags. Skins override
 	// this to give knobs their own philosophy.
 	virtual void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const;
 
@@ -228,15 +226,15 @@ public:
 
 	// Inline stylesheet for the header's type badge (QLabel#FilterTypeBadge).
 	// typeColor is the per-command-type colour from FilterCardModel. The
-	// default reproduces the shared OutlineOnly/filled treatment every skin
-	// used before the hook existed; skins override it when their constitution
-	// reserves colour for other semantics (e.g. matrix keeps traffic-light
-	// colours for status only and renders a monochrome type cell).
+	// default is the shared OutlineOnly/filled treatment; skins override it
+	// when their constitution reserves colour for other semantics (e.g.
+	// matrix keeps traffic-light colours for status only and renders a
+	// monochrome type cell).
 	virtual QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const;
 
 	// Ink for the pictogram the card header places inside the type badge
-	// (feedback round 2: pictures replace the English monograms, matching the
-	// picker tiles). A tinted pixmap cannot follow the QSS 'color' rule the
+	// (the pictures match the picker tiles). A tinted pixmap cannot follow
+	// the QSS 'color' rule the
 	// badge style writes, so each skin restates its badge ink here and the
 	// two must stay in step. badgeToken is the descriptor's monogram (the
 	// biquad type code for Filter rows), which studio folds onto its band
@@ -257,8 +255,8 @@ public:
 	virtual void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const;
 
 	// The row's left scope gutter: the indent margin left of the card frame,
-	// which carries the channel-group rail and the If-block scope lane
-	// (dynamic-commands campaign). Return true to replace the shared default
+	// which carries the channel-group rail and the If-block scope lane.
+	// Return true to replace the shared default
 	// (FilterCardRow's channelGroupStyle rail) for this row; the neutral
 	// default paints nothing and returns false, so every skin stays
 	// pixel-identical until it answers. size is the row widget's full size;
@@ -268,9 +266,8 @@ public:
 	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):
 	// true indents them with the block members (logicDepth) instead of at
 	// their head's level, so a painted scope lane in the gutter passes them
-	// visibly instead of dying behind their full-width faces (the finding of
-	// the rack A/B mock-up round, issue #179). Default: false - semantic
-	// indentation, branch rows align with their If head.
+	// visibly instead of dying behind their full-width faces. Default:
+	// false - semantic indentation, branch rows align with their If head.
 	virtual bool logicSiblingsIndentAsMembers() const;
 
 	// The persistent "add card" row at the end of the filter list (shared

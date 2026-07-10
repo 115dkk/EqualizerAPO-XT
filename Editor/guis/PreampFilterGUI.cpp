@@ -45,10 +45,8 @@ void PreampFilterGUI::store(QString& command, QString& parameters)
 	command = "Preamp";
 
 	// Read the widget into the shared command struct, then serialize it back into
-	// the canonical "<dB> dB" parameter string. PreampCommand::serialize uses %g,
-	// which reproduces the exact text QString("%1 dB").arg(value) emitted before
-	// (C locale, six significant digits, trailing zeros stripped) for the values
-	// this spin box can hold.
+	// the canonical "<dB> dB" parameter string (PreampCommand::serialize uses %g:
+	// C locale, six significant digits, trailing zeros stripped).
 	PreampCommand cmd;
 	cmd.dbGain = ui->doubleSpinBox->value();
 	cmd.valid = true;

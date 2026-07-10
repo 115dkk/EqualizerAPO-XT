@@ -73,7 +73,6 @@ std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned ma
 {
     this->channelCount = channelNames.size();
 
-    // Resize SoA vectors
     a0.resize(channelCount); a1.resize(channelCount); a2.resize(channelCount);
     b1.resize(channelCount); b2.resize(channelCount);
     x1.assign(channelCount, 0.0); x2.assign(channelCount, 0.0);
@@ -96,17 +95,16 @@ std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned ma
             biquadFreq /= centerFreqFactor;
     }
 
-    // 1. Create a single master BiQuad to perform the coefficient calculation.
+    // A single master BiQuad performs the coefficient calculation shared by
+    // all channels.
     BiQuad masterBiquad(type, dbGain, biquadFreq, sampleRate, bandwidthOrQOrS, isBandwidthOrS);
 
-    // 2. Prepare variables to receive the coefficients.
     double temp_a0;
     double temp_coeffs[4];
 
-    // 3. Call public method to get the coefficients
     masterBiquad.getCoefficients(temp_coeffs, temp_a0);
 
-    // 4. Populate our SoA vectors with the coefficients for all channels.
+    // Populate the SoA vectors with the coefficients for all channels.
     // The mapping is based on the original `process` function's variable usage:
     // result = a0*sample + a[1]*x2 + a[0]*x1 - a[3]*y2 - a[2]*y1;
     // Textbook: result = b0*sample + b2*x2 + b1*x1 - a2*y2 - a1*y1
@@ -132,12 +130,11 @@ std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned ma
 void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("BiQuadFilter::process");
-	// FTZ/DAZ is enabled once at the engine boundary by MxcsrFtzDazGuard, so
-	// individual filters no longer touch MXCSR.
+	// FTZ/DAZ is enabled once at the engine boundary by MxcsrFtzDazGuard;
+	// individual filters do not touch MXCSR.
 
     // One Highway-width group of channels at a time. `width` is 8/4/2 on the
-    // x86 targets (matching the former AVX-512/AVX2/SSE2 chunking) and 2 on
-    // ARM64 NEON, which used to run entirely through process_scalar.
+    // x86 targets and 2 on ARM64 NEON.
     const hn::ScalableTag<double> d;
     const unsigned width = (unsigned)hn::Lanes(d);
     const unsigned simdChannels = ((unsigned)channelCount / width) * width;
@@ -154,9 +151,9 @@ void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
 // channels, so the per-frame input samples for the active channel group live in
 // separate pointers (input[i+k][j]); Highway has no portable pointer-array
 // gather, so we marshal them through a small stack buffer and likewise scatter
-// the result. The coefficient/state math keeps the exact FMA op order of the
-// former AVX-512/AVX2/SSE2 kernels, so per-target output is unchanged (and the
-// SSE2 build, which has no FMA hardware, gets the same mul+add Highway emits).
+// the result. The FMA op order of the coefficient/state math is deliberate:
+// reordering it changes per-target output (the SSE2 build, which has no FMA
+// hardware, gets the same mul+add Highway emits).
 void BiQuadFilter::process_simd(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels)
 {
     const hn::ScalableTag<double> d;

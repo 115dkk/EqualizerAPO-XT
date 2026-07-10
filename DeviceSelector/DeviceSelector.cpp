@@ -107,8 +107,8 @@ void DeviceSelector::setupChrome()
 	ui.deviceTreeWidget->setRootIsDecorated(false);
 	// No indentation: every skin draws its own left-edge structure (bus
 	// rails, gutters, port lanes), and a branch strip would sit outside the
-	// delegate rect where the view fills palette Highlight on selection -
-	// the detached selection bar all five skin passes reported.
+	// delegate rect where the view fills palette Highlight on selection,
+	// producing a detached selection bar.
 	ui.deviceTreeWidget->setIndentation(0);
 	QPalette listPalette = ui.deviceTreeWidget->palette();
 	listPalette.setBrush(QPalette::Highlight, Qt::transparent);
@@ -372,10 +372,10 @@ void DeviceSelector::onCopyDeviceCommandClicked()
 
 void DeviceSelector::onTroubleShootingToggled(bool on)
 {
-	// Disclosure slide instead of the old visibility snap: the panel's
-	// maximumHeight sweeps between 0 and its natural height. 160ms OutCubic
-	// reads as a fold without ever feeling like waiting; the indicator is
-	// restyled as a fold chevron in main.cpp's theme sheet.
+	// Disclosure slide: the panel's maximumHeight sweeps between 0 and its
+	// natural height. 160ms OutCubic reads as a fold without ever feeling
+	// like waiting; the indicator is restyled as a fold chevron in
+	// main.cpp's theme sheet.
 	if (troubleshootingSlide == nullptr)
 	{
 		troubleshootingSlide = new QPropertyAnimation(ui.stackedWidget, "maximumHeight", this);

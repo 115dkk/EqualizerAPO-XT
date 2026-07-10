@@ -28,9 +28,9 @@
 
 /* Instance-owned buffer storage, defined in libHybridConv_eapo.cpp. Each
  * hcInit* call allocates one and the matching hcClose* frees it, so buffer
- * lifetime follows the struct instance. (These used to live in process-global
- * maps keyed by struct pointer, which was unguarded shared state across APO
- * instances loading configs concurrently.) */
+ * lifetime follows the struct instance. Instance-owned rather than
+ * process-global: APO instances load configs concurrently, so process-wide
+ * shared state here would be unguarded. */
 struct HConvSingleStorage;
 
 
@@ -70,7 +70,7 @@ void hcInitSingle(HConvSingle *filter, double*h, int hlen, int flen, int steps);
 void hcCloseSingle(HConvSingle *filter);
 
 /* The dual/tripple (low-latency) API is parked in
-   libHybridConv_eapo_dormant.h; no project compiles it. (audit #146 TD009) */
+   libHybridConv_eapo_dormant.h; no project compiles it. */
 
 
 #endif // __LIBHYBRIDCONV_H__

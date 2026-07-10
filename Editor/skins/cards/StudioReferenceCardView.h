@@ -2,13 +2,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Studio Glass's reference card (Include / Convolution / MultiConvolution /
-	VSTPlugin row bodies): the identity stands in the light, the facts sit
-	behind sunken glass. One identity line carries the name (the row's
-	brightest ink) and its lit-glass-chip badges; below it a recessed mono
-	window holds the location and the measured readout as data behind glass.
-	A broken reference dims the name and lights a small danger chip instead
-	of shouting; status is a tiny severity lamp next to one quiet line.
-	See docs/skins/studio.md for the constitution this answers to.
+	VSTPlugin row bodies): an identity line with lit-glass chips over a
+	sunken mono data window.
+	Constitution: docs/skins/studio.md ("참조 카드" section).
 */
 
 #pragma once

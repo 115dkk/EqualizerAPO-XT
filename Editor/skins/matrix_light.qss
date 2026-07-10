@@ -1,8 +1,6 @@
 /* ====================================================================
    Skin: Matrix Light
-   Identity: signal-routing matrix / airport departure board. Square
-   cells, 1px rules, monospace numerics, traffic-light colours reserved
-   for status (never decorative). Everything aligns to the grid.
+   Constitution: docs/skins/matrix.md
    Tokens: bg @BG@ / surface @SURFACE@ / card @CARD@ / cardHover @CARD_HOVER@
            text @TEXT@ / mutedText @MUTED@ / border @BORDER@
            accent @ACCENT@ / borderRadius 0 / row 36
@@ -42,10 +40,8 @@ QToolTip {
 }
 
 /* ===== Menu Bar / Menus: the board's header row =====
-   The menu bar is a row of board cells with 1px rules sitting on the same
-   24px column-grid tile the painted board layers draw elsewhere. Hover =
-   dim cell pre-light, open menu = engaged crosspoint (accent fill + accent
-   rule) - the toolbar function cells' grammar. */
+   The grid tile matches the 24px column grid the painted board layers
+   draw elsewhere. */
 QMenuBar {
     background-color: @SURFACE@;
     background-image: url(:/icons/modern/matrix-grid-light.svg);
@@ -71,11 +67,8 @@ QMenuBar::item:pressed {
     color: @TEXT@;
 }
 
-/* Dropdowns: square panels on the grid texture. Items are cells (generous
-   padding keeps Hangul shaped and unclipped), the selected item is an
-   engaged crosspoint (translucent accent + 1px accent rule), separators are
-   full-width 1px rules, the check indicator is a square LED, and a disabled
-   item is a cancelled departure: dashed outer rule, never hidden. */
+/* Dropdowns: square panels on the grid texture. Generous item padding
+   keeps Hangul shaped and unclipped. */
 QMenu {
     background-color: @SURFACE@;
     background-image: url(:/icons/modern/matrix-grid-light.svg);
@@ -173,10 +166,8 @@ QLabel#ToolBarLabel {
 }
 
 /* ===== Main toolbar: the board's header strip =====
-   A row of square 24px-tall cells with 1px rules, sitting on the 24px
-   column grid that MatrixToolbarBoard paints behind them (it also paints
-   the doubled header rule and the status lamp). The rules never change
-   state - only the light inside the cells does. QToolBar's own padding/
+   MatrixToolbarBoard paints the 24px column grid behind the cells, the
+   doubled header rule and the status lamp. QToolBar's own padding/
    spacing are style metrics Qt does not read from QSS, so the geometry
    discipline lives entirely in the cells. */
 QToolBar#MainToolBar {
@@ -184,9 +175,8 @@ QToolBar#MainToolBar {
     border: 0;
     border-bottom: 1px solid @BORDER@;
 }
-/* Function cells: monochrome ink glyphs in transparent cells, so the
-   column grid runs through them. Hover = dim cell pre-light, pressed/
-   checked = engaged crosspoint (accent fill + accent rule). */
+/* Function cells: transparent so the painted column grid runs through
+   them. */
 QToolBar#MainToolBar QToolButton {
     background: transparent;
     color: @TEXT@;
@@ -207,8 +197,7 @@ QToolBar#MainToolBar QToolButton:checked {
 QToolBar#MainToolBar QToolButton:disabled {
     border-style: dashed;
 }
-/* Engage cell: monochrome caption at rest, the square indicator is the
-   crosspoint LED - accent-lit only while engaged. */
+/* Instant mode engage cell. */
 QToolBar#MainToolBar QCheckBox#InstantModeCheckBox {
     background: transparent;
     color: @TEXT@;
@@ -236,9 +225,8 @@ QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:checked {
     background: @ACCENT@;
     border-color: @ACCENT@;
 }
-/* Status readout cell: mono code on the sunken fill painted by the board
-   layer, headed by the solid square lamp (green = saved, amber = modified
-   - the colours rationing reserves for status). */
+/* Status readout cell: transparent background so the sunken fill and lamp
+   painted by the board layer show through. */
 QToolBar#MainToolBar QLabel#DirtyStatusBadge {
     background: transparent;
     color: @TEXT@;
@@ -289,8 +277,7 @@ QToolBar#MainToolBar QComboBox#ToolBarComboBox:on {
     border-color: @ACCENT@;
 }
 /* Format readout: a mono value cell; amber ink + rule only when the
-   stream is not processed natively (severity is status, never
-   decoration). */
+   stream is not processed natively. */
 QToolBar#MainToolBar QLabel#DeviceFormatBadge {
     background: @GRAPH@;
     color: @MUTED@;
@@ -409,12 +396,8 @@ QAbstractSpinBox::down-arrow:hover {
     border-top-color: @TEXT@;
 }
 
-/* Value cells (X1/M4): with the native spin buttons gone, the authoritative
-   readouts are square board cells in the knob-cell grammar - sunken fill,
-   1px rule, bold mono ink; the value is scrubbed, wheeled or typed in
-   place. Hover pre-lights the rule, focus/typing engages it in accent, a
-   dashed rule cancels it - the same engagement grammar as every other cell
-   on the board. */
+/* Value cells: the native spin buttons are gone; the value is scrubbed,
+   wheeled or typed in place. */
 QDoubleSpinBox[valueScrub="true"],
 QSpinBox[valueScrub="true"] {
     background: @GRAPH@;
@@ -497,11 +480,8 @@ QComboBox QAbstractItemView::item:selected {
     color: @TEXT@;
 }
 
-/* Parameter-mode selectors (X5): these cells were read as labels - they are
-   genuine selects. Caption ink in a transparent cell keeps the catalog
-   monochrome, while the ruled drop-down zone and its arrow stay, so the
-   select affordance is honest; hover pre-lights the cell and an open list
-   engages it, the crosspoint grammar every select on the board follows. */
+/* Parameter-mode selectors: genuine selects in caption ink; the ruled
+   drop-down zone and arrow stay so the affordance is honest. */
 QComboBox[paramSelector="true"] {
     background: transparent;
     color: @MUTED@;
@@ -960,15 +940,14 @@ QWidget#FilterCardEditor {
     background: transparent;
     border-radius: 0;
 }
-/* Caption strip (M2): painted entirely by MatrixRowCaption (sunken board
+/* Caption strip: painted entirely by MatrixRowCaption (sunken board
    line, "> spec" echo, coordinate readout); QSS only keeps Qt's generic
    widget fill out of the way. */
 QWidget#MatrixRowCaption {
     background: transparent;
 }
-/* Type cell: a square outlined monospace code (BQUAD/INC/VST/...). The
-   ink colour is supplied inline by MatrixSkin::typeBadgeStyle - the type
-   reads from the code text, never from a decorative colour. */
+/* Type cell: a square outlined monospace code; the ink colour is supplied
+   inline by MatrixSkin::typeBadgeStyle. */
 QLabel#FilterTypeBadge {
     border: 1px solid @BORDER@;
     border-radius: 0;
@@ -994,13 +973,10 @@ QWidget#FilterCardHeader[filterEnabled="false"] QLabel#FilterCardTitle {
 QWidget#FilterCardHeader[filterEnabled="false"] QLabel#FilterCardSummary {
     color: #9DB4BD;
 }
-/* Cancelled departure (dynamic commands): a false If branch swallowed this
-   line on the last load. The line is live source - not bypassed - so no
-   strikethrough (that is the bypass grammar); the posting stays on the
-   board and simply dims to low-alpha ink behind the dashed rule + quiet
-   rail that MatrixSkin::cardFrameStyle lays inline. Form, not colour (M3).
-   The rgba values are the text/muted tokens at reduced alpha, not new
-   palette entries. */
+/* A false If branch swallowed this line on the last load: live source,
+   not bypassed, so no strikethrough - it dims to low-alpha ink behind the
+   dashed rule MatrixSkin::cardFrameStyle lays inline. The rgba values are
+   the text/muted tokens at reduced alpha, not new palette entries. */
 QWidget#FilterCardHeader[lineSkipped="true"] QLabel#FilterCardTitle {
     color: rgba(16, 36, 47, 0.45);
 }
@@ -1015,11 +991,9 @@ QLabel#FilterCardRawText {
     color: @MUTED@;
     background: transparent;
 }
-/* Row coordinate: a boxed monospace cell speaking the picker's coordinate
-   grammar (bus letter + line number, e.g. "B3"; MatrixSkin rewrites the
-   text). The ink follows the picker's coordinate cells - muted at rest,
-   accent only while the row is engaged. Colour rationing: a permanently
-   accent-lit cell would spend the engage colour on decoration. */
+/* Row coordinate: a boxed monospace cell (bus letter + line number,
+   "B3"; MatrixSkin rewrites the text). Muted at rest, accent only while
+   the row is engaged. */
 QLabel#FilterCardNumber {
     color: @MUTED@;
     background: #FFFFFF;
@@ -1097,17 +1071,9 @@ QLineEdit#EditableValueEditor {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
-/* ===== GraphicEQ card: the board's signal trace =====
-   The clean-install first screen. The response plot is painted whole by
-   MatrixSkin::paintGraphicEqPlot - a sunken data ground under a crisp 1px
-   grid, the response as an accent patch trace, square crosspoint node
-   cells, the 0 dB bus in body ink and the cursor probe in a boxed sunken
-   mono cell - so the sheet only owns the strip around it. The action
-   buttons are transparent function cells in the toolbar train's grammar
-   (hover pre-light, pressed engage, dashed when inert). The selected-band
-   readout strip is the precise entry surface: a mono board caption, the
-   caption-rank Freq/Gain labels, and value cells riding the X1 value-scrub
-   grammar above. */
+/* ===== GraphicEQ card =====
+   The response plot is painted whole by MatrixSkin::paintGraphicEqPlot;
+   the sheet only owns the strip around it. */
 QToolButton#GraphicEQActionButton {
     background: transparent;
     border: 1px solid @BORDER@;
@@ -1128,10 +1094,7 @@ QToolButton#GraphicEQActionButton:pressed {
 QToolButton#GraphicEQActionButton:disabled {
     border: 1px dashed #D4E2E8;
 }
-/* Selected-band readout strip: the plot's precise entry line. The strip
-   itself is transparent board surface; the band caption is a mono board
-   caption (the coordinate the strip is addressing), the Freq/Gain labels
-   speak the caption rank (the gainLabel precedent), and the value cells
+/* Selected-band readout strip: transparent board surface; the value cells
    are dressed by the shared [valueScrub="true"] grammar. */
 QWidget#GraphicEQReadout {
     background: transparent;
@@ -1154,11 +1117,10 @@ QLabel#GraphicEQReadoutLabel {
     text-transform: uppercase;
 }
 
-/* ===== Update toast: a remark posted at the board's foot =====
-   The widget paints the posting's cell itself (surface + 1px rule + accent
-   keel); the sheet supplies the remark register - a mono readout line and
-   a close cell whose pre-light is danger, the one rationed colour a
-   dismissal is allowed (the title bar close cell's precedent). */
+/* ===== Update toast =====
+   The widget paints the posting's cell itself (surface + 1px rule +
+   accent keel); the sheet supplies the mono readout line and the
+   danger-pre-light close cell. */
 QLabel#UpdateToastLabel {
     background: transparent;
     color: @TEXT@;
@@ -1184,15 +1146,9 @@ QToolButton#UpdateToastClose:pressed {
     border: 1px solid @DANGER@;
 }
 
-/* ===== Reference cards: board feed lines (AR2) =====
-   Include / Convolution / MultiConvolution / VST bodies are feed lines on
-   the board (MatrixReferenceCardView): a mono marker cell designates the
-   feed (> SRC / > IR / > IR+ / > DEV) and turns into a danger readout while
-   the reference is broken; the payload name is the darkest mono ink; the
-   location is a muted mono readout; measured facts sit in boxed sunken mono
-   cells; the VST body is headed by the monochrome > IN ... EXTERNAL DEVICE
-   ... OUT > port strip. Colour rationing: danger = broken feed readout,
-   amber = ABS portability caution, accent only on hover/engage. */
+/* ===== Reference cards: board feed lines =====
+   Include / Convolution / MultiConvolution / VST bodies are built by
+   MatrixReferenceCardView; the rules below dress its labels. */
 QWidget#ReferenceCardView,
 QWidget#RefCardContent,
 QWidget#MatrixRefFeedLine,
@@ -1216,8 +1172,7 @@ QLabel#MatrixRefMarker {
     letter-spacing: 1px;
 }
 /* Broken feed: the marker becomes the danger readout (NO FEED / MISSING).
-   Hollow - filled cells are the lamps' engage grammar; a broken feed is a
-   posted deficiency, not an engaged crosspoint. */
+   Hollow - a posted deficiency, not an engaged crosspoint. */
 QLabel#MatrixRefMarker[feedState="missing"] {
     background: transparent;
     color: @DANGER@;
@@ -1260,8 +1215,7 @@ QLabel#MatrixRefAbsCell {
     font-size: 7pt;
     letter-spacing: 1px;
 }
-/* Format code (VST2/VST3): type identity is never coloured - a monochrome
-   code cell, the typeBadgeStyle precedent. */
+/* Format code (VST2/VST3): a monochrome code cell. */
 QLabel#MatrixRefFormatCell {
     background: transparent;
     color: @TEXT@;
@@ -1274,7 +1228,7 @@ QLabel#MatrixRefFormatCell {
     letter-spacing: 1px;
 }
 /* Boxed readout cells: authoritative numbers live in boxed sunken mono
-   cells (rule 5) - the knob value cell's grammar for the IR readout. */
+   cells - the knob value cell's grammar for the IR readout. */
 QLabel#MatrixRefReadoutCell {
     background: @GRAPH@;
     color: @TEXT@;
@@ -1352,9 +1306,8 @@ QPushButton#VSTCardPanelButton {
     max-height: 22px;
     font-size: 9pt;
 }
-/* LOCATE: the recovery crosspoint. An untranslated mono-caps board token,
-   monochrome at rest; the shared icon-button hover supplies the accent
-   engage pre-light. */
+/* LOCATE: an untranslated mono-caps board token, monochrome at rest; the
+   shared icon-button hover supplies the accent pre-light. */
 QToolButton#FilterCardIconButton[matrixLocate="true"] {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-size: 9pt;
@@ -1386,14 +1339,10 @@ QLabel { background: transparent; }
 QWidget#ToolBarSpacer { background: transparent; }
 
 /* ===== Window chrome: the board's masthead =====
-   MatrixSkin::paintTitleBarChrome draws the faint 24px column grid and the
-   inner line of the doubled bottom rule; the QSS bottom border is the outer
-   line. The title is a mono readout line; the caption buttons are function
-   cells in a single-ruled train (min/max drop their right rule so adjacent
-   cells share one 1px line): monochrome at rest, dim accent pre-light on
-   hover, engaged accent fill while pressed. The close cell pre-lights danger
-   on hover - closing is a state change, and status colour is reserved for
-   exactly that. */
+   MatrixSkin::paintTitleBarChrome draws the faint 24px column grid and
+   the inner line of the doubled bottom rule; the QSS bottom border is the
+   outer line. Min/max drop their right rule so adjacent cells share one
+   1px line. */
 QWidget#AppTitleBar {
     background: @SURFACE@;
     border-bottom: 1px solid @BORDER@;

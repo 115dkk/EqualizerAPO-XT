@@ -1,9 +1,9 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Skin theme data (see SkinThemeData.h). The five token tables moved here
-	verbatim from the skin classes' tokens() overrides; each class now
-	delegates, so this file is the single source of truth for skin colours.
+	Skin theme data (see SkinThemeData.h). The skin classes' tokens()
+	overrides delegate here, so this file is the single source of truth for
+	skin colours.
 */
 
 #include "SkinThemeData.h"
@@ -13,6 +13,7 @@
 
 namespace
 {
+// Constitution: docs/skins/studio.md
 SkinTokens studioTokens(bool dark)
 {
 	SkinTokens t;
@@ -40,10 +41,6 @@ SkinTokens studioTokens(bool dark)
 	}
 	else
 	{
-		// S2 re-derivation: the light tokens keep the accent saturation
-		// but the borders sit two steps deeper than the airy panels, so
-		// knob tracks, toggles and input edges stay legible on white
-		// glass; muted ink deepens one step with them.
 		t.background = QStringLiteral("#EEF2F8");
 		t.surface = QStringLiteral("#F8FAFE");
 		t.card = QStringLiteral("#FFFFFF");
@@ -61,6 +58,7 @@ SkinTokens studioTokens(bool dark)
 	return t;
 }
 
+// Constitution: docs/skins/minimal.md
 SkinTokens minimalTokens(bool dark)
 {
 	SkinTokens t;
@@ -105,43 +103,30 @@ SkinTokens minimalTokens(bool dark)
 	return t;
 }
 
+// Constitution: docs/skins/soft.md
 SkinTokens softTokens(bool dark)
 {
 	SkinTokens t;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
-	// Constitution: cards 14px (clearly rounder than studio's 8), generous
-	// line spacing. The tallest row of the five skins; whitespace is the
-	// hierarchy device.
 	t.borderRadius = 14;
 	t.rowHeight = 48;
 	t.channelGroupIndent = 20;
 	t.density = 2;
 	t.channelGroupStyle = SkinTokens::SoftShadow;
 	t.badgeStyle = SkinTokens::SoftPill;
-	// Tiebreaker rule applied: the raw monospace preview strip under every
-	// card is exactly the kind of element that makes a screen feel anxious,
-	// so this skin removes it and keeps the whitespace.
 	t.showRawPreview = false;
-	// Feedback round (DC #1289929): "soft was only round corners". The
-	// accent and the semantic colours now live on the pastel shelf
+	// The accent and the semantic colours live on the pastel shelf
 	// themselves (the softPastelize recipe applied to the old saturated
 	// values), so every consumer - knob arcs, focus rings, toggles, ON
-	// pills, severity inks - is pastel without knowing it. The saturated
-	// #3B82F6 family is retired from this skin.
+	// pills, severity inks - is pastel without knowing it.
 	if (dark)
 	{
-		// AR1 F2: warm graphite, not navy. The old #171923..#3A4056 ramp
-		// shared studio's cold blue cast, so soft-dark photographed as a
-		// studio clone; the dark identity now leans warm (hue ~38, low
-		// saturation) while the light mode keeps its cream. Same two-step
-		// elevation ladder, different temperature.
 		t.background = QStringLiteral("#1C1A17");
 		t.surface = QStringLiteral("#262320");
 		t.card = QStringLiteral("#2F2B26");
 		t.cardHover = QStringLiteral("#38332D");
-		// The selected card face follows the pastel accent mixed deep
-		// into the card (softMix 0.75) instead of the old navy remnant.
+		// The pastel accent mixed deep into the card (softMix 0.75).
 		t.cardSelected = QStringLiteral("#3F4650");
 		t.text = QStringLiteral("#F4F1EA");
 		t.mutedText = QStringLiteral("#B3AB9D");
@@ -174,13 +159,12 @@ SkinTokens softTokens(bool dark)
 	return t;
 }
 
+// Constitution: docs/skins/rack.md
 SkinTokens rackTokens(bool dark)
 {
 	SkinTokens t;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
-	// Machined plate corners; raw config lines stay off the faceplate (the
-	// "..." raw editor still reaches them) - hardware prints no raw text.
 	t.borderRadius = 3;
 	t.showRawPreview = false;
 	t.rowHeight = 36;
@@ -219,13 +203,12 @@ SkinTokens rackTokens(bool dark)
 	return t;
 }
 
+// Constitution: docs/skins/matrix.md
 SkinTokens matrixTokens(bool dark)
 {
 	SkinTokens t;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
-	// Square cells and 1px rules only; 36px rows keep the board dense and
-	// on the 12px grid (gridPitch 24 = two rows of 12).
 	t.borderRadius = 0;
 	t.rowHeight = 36;
 	t.channelGroupIndent = 24;
@@ -233,8 +216,7 @@ SkinTokens matrixTokens(bool dark)
 	t.badgeStyle = SkinTokens::OutlineOnly;
 	t.cardRailWidth = 3;
 	// The shared raw-preview strip is replaced by this skin's own caption
-	// strip (MatrixRowCaption): same raw spec, but spoken in the board's
-	// footer grammar and wired into the crosspoint hover echo (M2).
+	// strip (MatrixRowCaption).
 	t.showRawPreview = false;
 	t.accent = dark ? QStringLiteral("#22D3EE") : QStringLiteral("#008EAA");
 	t.accent2 = dark ? QStringLiteral("#7CFFB2") : QStringLiteral("#0A8F57");

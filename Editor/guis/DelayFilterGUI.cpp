@@ -44,8 +44,7 @@ DelayFilterGUI::~DelayFilterGUI()
 void DelayFilterGUI::store(QString& command, QString& parameters)
 {
 	// Serialize through the shared DelayCommand so the engine parser and the
-	// Editor agree on one "<delay> ms|samples" format. For every reachable
-	// spin-box value this reproduces the previous QString("%0").arg(value) text.
+	// Editor agree on one "<delay> ms|samples" format.
 	DelayCommand cmd;
 	cmd.delay = ui->delaySpinBox->value();
 	cmd.isMs = ui->unitComboBox->currentIndex() == 0;

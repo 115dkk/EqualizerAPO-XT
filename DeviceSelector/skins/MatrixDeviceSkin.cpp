@@ -2,30 +2,17 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Signal Matrix device selector: the operator's target-acquisition board.
-	A vertical bus trace runs down the left lane of each section's device
-	block; every device row owns a square PORT NODE on that trace as its
-	toggle - a hollow port while idle, an LED-filled node with its trace
-	segment energized once the APO is patched in. Node designations speak
-	the board's coordinate grammar (P0.. on the playback bus, C0.. on the
-	capture bus; the section masthead posts the matching BUS letter).
-	Hover is target acquisition: corner brackets close in on the row over
-	a faint scanline tint; selection locks the target (brackets held
-	solid + a LOCK readout cell). Unavailable rows are lost signals: a
-	dashed trace stub, dimmed telemetry and an OFFLINE tag - the row
-	stays posted, like a cancelled departure. Buttons are angular
-	cut-corner plates whose edges energize on hover (the primary carries
-	an EXECUTE chevron that nudges toward its caption); the
-	troubleshooting disclosure is a "> ..." console fold line whose caret
-	materializes under the cursor and holds steady while the fold is open.
-
-	Constitution notes (docs/skins/matrix.md): colour is rationed -
-	accent only for engagement/selection/pre-light, green for live
-	(installed and staying), amber for a pending modification or caution,
-	danger untouched here. The corner language is the rectangle; straight
-	1px rules are drawn crisp (AA off, integer coordinates) exactly like
-	the Editor's board, and antialiasing is only enabled for genuinely
-	diagonal geometry (chamfer edges, chevrons). Text antialiasing stays
-	on throughout.
+	Constitution (colour rationing, crisp-rule/AA law, corner language):
+	docs/skins/matrix.md. Element mapping: a vertical bus trace runs down
+	each section's left lane; a device row's toggle is a square port node on
+	that trace (hollow = idle, LED-filled with an energized trace segment =
+	patched in), designated P0../C0.. under the section masthead's BUS
+	letter. Hover is target acquisition (corner brackets + scanline tint);
+	selection locks the target (brackets held solid + a LOCK cell);
+	unavailable rows are lost signals (dashed trace stub, OFFLINE tag - the
+	row stays posted). Buttons are angular cut-corner plates (the primary
+	carries an EXECUTE chevron); the troubleshooting disclosure is a
+	"> ..." console fold line.
 */
 
 #include "DeviceSkinPainter.h"

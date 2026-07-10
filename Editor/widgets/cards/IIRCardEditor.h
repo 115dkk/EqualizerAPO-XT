@@ -12,9 +12,8 @@ class ValueScrubIntBox;
 
 // The custom-coefficient IIR card body ("Filter: ON IIR Order N Coefficients
 // b0..bN a0..aN"): the order as a value-scrub field plus the two coefficient
-// vectors as labeled rows of scrub fields, promoted from the BQUAD fallback
-// (dynamic-commands finishing pass). Changing the order re-fits the rows in
-// place; every edit serializes through the shared IIRCommand codec so the
+// vectors as labeled rows of scrub fields. Changing the order re-fits the
+// rows in place; every edit serializes through the shared IIRCommand codec so the
 // engine parser and the card agree on one format. BiQuad "Filter" lines never
 // reach this editor - the registry lambda rejects them and they keep their
 // legacy knob GUI through the fallback chain.

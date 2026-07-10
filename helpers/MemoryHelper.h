@@ -40,13 +40,11 @@ public:
 	// Typed, checked construction over alloc()/free().
 	//
 	// alloc() returns nullptr on failure by contract (see
-	// docs/ErrorHandlingPolicy.md) and the raw "alloc + placement-new" idiom that
-	// callers used to repeat never checked for that null, so an out-of-memory
-	// condition turned into a null placement-new and a crash. construct() turns
-	// the null into a std::bad_alloc instead: the configuration-loading loop
-	// already catches std::exception and logs it, so OOM now surfaces as a logged
-	// failure rather than a crash. The successful path is identical to the old
-	// idiom (16-byte aligned alloc followed by placement-new).
+	// docs/ErrorHandlingPolicy.md); a raw "alloc + placement-new" would turn an
+	// out-of-memory condition into a null placement-new and a crash. construct()
+	// turns the null into a std::bad_alloc instead: the configuration-loading
+	// loop catches std::exception and logs it, so OOM surfaces as a logged
+	// failure rather than a crash.
 	template<class T, class... Args>
 	static T* construct(Args&&... args)
 	{

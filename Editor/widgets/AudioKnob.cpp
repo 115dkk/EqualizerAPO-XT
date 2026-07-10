@@ -40,8 +40,7 @@ void AudioKnob::paintEvent(QPaintEvent*)
 {
 	// The widget owns all input handling; painting is delegated to the active
 	// skin (ISkin::paintKnob) so each skin can render knobs with its own
-	// philosophy. The default implementation reproduces the previous rendering
-	// exactly.
+	// philosophy.
 	QPainter painter(this);
 
 	KnobState state;

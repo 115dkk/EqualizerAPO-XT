@@ -83,7 +83,7 @@ void runParserPreampTests()
 	// Leading whitespace is tolerated by the " %lf dB" scan format.
 	expectRoundTrip(L"  3 dB", 3.0, L"3 dB");
 
-	// Malformed parameter (F019 path): keyword is recognized but the value does
+	// Malformed parameter: keyword is recognized but the value does
 	// not parse, so valid stays false and the engine applies no preamp.
 	PreampCommand bad = parsePreamp(L"loud please");
 	harness.expectFalse(bad.valid, "a non-numeric preamp parameter must not parse as valid");

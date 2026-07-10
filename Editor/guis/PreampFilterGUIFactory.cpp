@@ -45,9 +45,9 @@ IFilterGUI* PreampFilterGUIFactory::createFilterGUI(QString& command, QString& p
 		PreampCommand cmd;
 		// A 0 dB line parses as valid (just noOp), so the Editor shows the preamp
 		// GUI for it like the canonical card editor does; only a malformed
-		// parameter (cmd.valid == false) yields no GUI. The former throwaway-filter
-		// hack returned null for 0 dB because the engine skips the no-op filter,
-		// which left the legacy path without a preamp editor for that line.
+		// parameter (cmd.valid == false) yields no GUI. (Going through the
+		// engine's filter creation instead would drop 0 dB - the engine skips
+		// the no-op filter - leaving that line without a preamp editor.)
 		if (PreampFilterFactory::parseCommand(commandWStr, paramWStr, cmd) && cmd.valid)
 			result = new PreampFilterGUI(cmd.dbGain);
 	}

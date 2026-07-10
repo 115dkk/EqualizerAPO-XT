@@ -32,9 +32,6 @@ using std::wstring;
 
 QList<QString> ConfigFileCodec::decodeLines(const string& bytes)
 {
-	// Re-create the same stream the inline loader used: write the raw bytes,
-	// then rewind so getline reads from the start. Reading from a stringstream
-	// built this way is byte-for-byte equivalent to the previous code path.
 	stringstream inputStream;
 	inputStream.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
 	inputStream.seekg(0);

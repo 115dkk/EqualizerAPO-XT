@@ -45,9 +45,9 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	skipProcessing = false;
 
 	// MemoryHelper::alloc returns nullptr on failure (and logs the size). Every
-	// result below is checked, mirroring DelayFilter's hardening: on failure the
-	// filter degrades to skipProcessing (process() passes audio through) with the
-	// already-built state left consistent for cleanup(). (audit #146 TD022)
+	// result below is checked: on failure the filter degrades to skipProcessing
+	// (process() passes audio through) with the already-built state left
+	// consistent for cleanup().
 	void* mem = MemoryHelper::alloc(sizeof(VSTPluginInstance));
 	if (mem == nullptr)
 	{

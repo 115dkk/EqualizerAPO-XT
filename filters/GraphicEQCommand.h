@@ -32,8 +32,7 @@
 // without going through a throwaway GraphicEQFilter instance.
 //
 // The engine (GraphicEQFilterFactory) and the Editor GUI share one parse routine
-// that fills this struct, eliminating the former "build a real filter just to
-// read its nodes back" hack in the Editor.
+// that fills this struct.
 //
 // FilterNode is reused as the node element so the struct carries the identical
 // {freq, dbGain} representation the engine already uses; this keeps the struct
@@ -42,8 +41,7 @@ struct GraphicEQCommand
 {
 	std::vector<FilterNode> nodes;
 
-	// Parses the parameter string of a "GraphicEQ:" line into the node list,
-	// reproducing exactly what GraphicEQFilterFactory::createFilter did inline:
+	// Parses the parameter string of a "GraphicEQ:" line into the node list:
 	// when the string contains no '.', commas are treated as decimal marks and
 	// replaced by periods; numbers matching [-+0-9.eE]+ are read with wcstod and
 	// paired as (freq, gain); a trailing unpaired number is dropped; the nodes
@@ -52,7 +50,7 @@ struct GraphicEQCommand
 
 	// Re-creates the canonical parameter string for this command, i.e. the
 	// "<freq> <gain>; <freq> <gain>; ..." node list that GraphicEQFilterGUI::store()
-	// emitted before. Each value is formatted with the C "%g" default (six
+	// emits. Each value is formatted with the C "%g" default (six
 	// significant digits, trailing zeros stripped), matching QString::arg(double),
 	// and pairs are joined with "; ". This is the single owner of the GraphicEQ
 	// serialization format shared by the Editor GUI so the written config line

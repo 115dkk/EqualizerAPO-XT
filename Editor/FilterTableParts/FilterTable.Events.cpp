@@ -134,7 +134,7 @@ void FilterTable::wheelEvent(QWheelEvent* event)
 	// While the gesture lasts, wheel events over child widgets must reach the
 	// list instead of the widget under the cursor; only an application-wide
 	// filter sees events targeted at descendants. Installed here and removed
-	// when the gesture ends so idle tables filter nothing. (audit #146 TD041)
+	// when the gesture ends so idle tables filter nothing.
 	if (!appWheelFilterInstalled)
 	{
 		QApplication::instance()->installEventFilter(this);

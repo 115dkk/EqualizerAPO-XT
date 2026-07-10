@@ -1,12 +1,7 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	See RackReferenceCardView.h. The painting helpers here imitate
-	RackChrome's grammar (engraveText's contrast pass, paintLed's
-	bezel/halo/dome/specular formula, the display-window glass and segment
-	inks of the rack value displays) so the card body reads as cut from the
-	same machine; RackChrome itself is shared with the frame chrome and
-	stays untouched.
+	See RackReferenceCardView.h.
 */
 
 #include "RackReferenceCardView.h"
@@ -26,8 +21,6 @@
 
 namespace
 {
-// is-dark / withAlpha live in the shared SkinPaint.h.
-
 // Engraved function caption over the label strip, per reference kind.
 // Hardware printing, never translated (rack.md: engravings are not UI
 // strings). The Include caption echoes the PATCH designation the ear
@@ -123,7 +116,7 @@ void RackEngravedLabel::setElideMode(Qt::TextElideMode newElideMode)
 QFont RackEngravedLabel::engraveFont() const
 {
 	// The letter-spaced DM Sans approximation of condensed engraving type
-	// (rack.md R5), read from the live tokens at use time.
+	// (rack.md), read from the live tokens at use time.
 	QFont font(SkinManager::instance()->tokens().fontFamily);
 	font.setPixelSize(pixelSize);
 	font.setBold(boldFace);

@@ -55,9 +55,9 @@ void MainWindow::linesChanged()
 		QString configPath = filterTable->getConfigPath();
 		if (configPath.length() > 0)
 		{
-			// Debounce instant-mode saves. Dragging a knob or typing in a value
-			// previously triggered a full file write per change; coalesce all
-			// changes within a short window into a single save.
+			// Debounce instant-mode saves: dragging a knob or typing in a value
+			// would otherwise trigger a full file write per change, so coalesce
+			// all changes within a short window into a single save.
 			static constexpr int kSaveDebounceMs = 200;
 			const QString timerObjectName = QStringLiteral("__instantModeSaveTimer");
 			QTimer* timer = filterTable->findChild<QTimer*>(timerObjectName, Qt::FindDirectChildrenOnly);
@@ -116,10 +116,8 @@ void MainWindow::updateDirtyStatus()
 	dirtyStatusLabel->setText(dirty ? tr("Unsaved changes") : tr("Saved"));
 	// The badge's look is owned by the skins: every sheet styles
 	// QLabel#DirtyStatusBadge and its [dirty="true"] variant in its own
-	// grammar (amber glass lamp, brighter mono ink, warm pill, LCD segments,
-	// status lamp cell). The inline stylesheet that used to be set here
-	// overrode all of that with one hardcoded pill on the first save-state
-	// change; only the dynamic property + repolish remain.
+	// grammar. Setting an inline stylesheet here would override all of that,
+	// so only the dynamic property + repolish are used.
 	dirtyStatusLabel->setProperty("dirty", dirty);
 	dirtyStatusLabel->style()->unpolish(dirtyStatusLabel);
 	dirtyStatusLabel->style()->polish(dirtyStatusLabel);
@@ -156,7 +154,7 @@ bool MainWindow::on_tabWidget_tabCloseRequested(int index)
 // its own edit shortcuts win (QLineEdit and friends accept the ShortcutOverride
 // for Ctrl+Z/Ctrl+Y), so these actions only fire against the filter list
 // itself. An empty history is a silent no-op, matching the other edit actions'
-// tolerance for inapplicable states. (TD049)
+// tolerance for inapplicable states.
 void MainWindow::on_actionUndo_triggered()
 {
 	FilterTable* filterTable = currentFilterTable();

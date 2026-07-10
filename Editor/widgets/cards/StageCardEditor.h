@@ -25,8 +25,8 @@
 
 class QToolButton;
 
-// Modern card body for a "Stage:" line (Phase 1, the neutral base shared by
-// every skin): checkable chips in the same grammar as the Device and Channel
+// Modern card body for a "Stage:" line (the neutral base shared by every
+// skin): checkable chips in the same grammar as the Device and Channel
 // cards, arranged in two captioned lanes that mirror the engine's pipelines —
 // Playback holds pre-mix and post-mix in signal order behind a chain arrow,
 // Recording holds capture. The written line matches what the legacy checkbox
