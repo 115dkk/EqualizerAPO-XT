@@ -24,6 +24,7 @@
 #include "helpers/StringHelper.h"
 #include "parser/ParserExtensions.h"
 #include "parser/RegistryFunctions.h"
+#include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "ExpressionCommand.h"
@@ -38,6 +39,7 @@ using namespace mup;
 void ExpressionFilterFactory::initialize(FilterEngine* engine)
 {
 	parser = engine->getParser();
+	this->engine = engine;
 	parser->DefineConst(L"inputChannelCount", mup::int_type(engine->getInputChannelCount()));
 	parser->DefineConst(L"outputChannelCount", mup::int_type(engine->getOutputChannelCount()));
 	parser->DefineConst(L"sampleRate", mup::float_type(engine->getSampleRate()));
@@ -58,6 +60,8 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 	// Lex through the shared codec, then evaluate the expression segments in
 	// place so the other factories see the substituted parameter text.
 	wstring output;
+	bool hadInlineExpression = false;
+	bool inlineError = false;
 	for (const InlineExpression::Segment& segment : InlineExpression::split(parameters))
 	{
 		if (!segment.isExpression)
@@ -66,6 +70,7 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 			continue;
 		}
 
+		hadInlineExpression = true;
 		try
 		{
 			parser->SetExpr(segment.text);
@@ -81,14 +86,28 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 		catch (const ParserError& e)
 		{
 			LogF(L"Error while evaluating inline expression %s: %s", segment.text.c_str(), e.GetMsg().c_str());
+			inlineError = true;
 		}
 	}
 
 	parameters = output;
 
+	if (hadInlineExpression)
+	{
+		// Load-trace (dynamic-commands campaign): the Editor shows what a
+		// line's `expression` segments resolved to on this load.
+		ConfigLoadTraceEntry entry;
+		entry.kind = ConfigLoadTraceEntry::Kind::InlineValue;
+		entry.text = output;
+		entry.error = inlineError;
+		engine->traceLoadEvent(std::move(entry));
+	}
+
 	EvalCommand evalCmd;
 	if (EvalCommand::parse(command, parameters, evalCmd))
 	{
+		ConfigLoadTraceEntry entry;
+		entry.kind = ConfigLoadTraceEntry::Kind::Eval;
 		try
 		{
 			parser->SetExpr(evalCmd.expression);
@@ -99,11 +118,15 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 			else
 				resultString = result.ToString().c_str();
 			TraceF(L"Expression %s evaluated to %s", evalCmd.expression.c_str(), resultString.c_str());
+			entry.text = resultString;
 		}
 		catch (const ParserError& e)
 		{
 			LogF(L"Error while evaluating expression %s: %s", evalCmd.expression.c_str(), e.GetMsg().c_str());
+			entry.text = e.GetMsg();
+			entry.error = true;
 		}
+		engine->traceLoadEvent(std::move(entry));
 
 		// command has been handled
 		command = L"";

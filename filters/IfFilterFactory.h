@@ -36,6 +36,7 @@ public:
 
 private:
 	mup::ParserX* parser = nullptr;
+	FilterEngine* engine = nullptr;
 
 	unsigned trueCount = 0;
 	unsigned falseCount = 0;

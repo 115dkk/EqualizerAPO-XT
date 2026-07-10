@@ -40,6 +40,9 @@ namespace mup {
 class ParserX;
 }
 
+struct ConfigLoadTraceEntry;
+class ConfigLoadTraceSink;
+
 #pragma AVRT_VTABLES_BEGIN
 class FilterEngine
 {
@@ -76,6 +79,14 @@ public:
 	// sampleRate / 100 formula. (audit #146 TD033)
 	unsigned getTransitionLength() const {return transitionLength;}
 	mup::ParserX* getParser() {return parser.get();}
+	// Attach before initialize()/loadConfig(); entries describe every load
+	// that runs while attached. The engine does not own the sink; pass nullptr
+	// to detach. The Editor's analysis engine is the only expected consumer -
+	// the APO runtime never attaches one.
+	void setLoadTraceSink(ConfigLoadTraceSink* sink) {traceSink = sink;}
+	// Factories report an evaluation fact for the line currently being
+	// parsed; the engine stamps the file/line position. No-op without a sink.
+	void traceLoadEvent(ConfigLoadTraceEntry entry);
 	// Returns true if the active configuration (or any transition target) carries
 	// state across blocks or has a tail. Used by the APO to skip processing on
 	// silent input when safe. Conservative: returns true while a config swap is
@@ -122,6 +133,12 @@ private:
 	unsigned maxFrameCount = 0;
 
 	// only used during loading
+	ConfigLoadTraceSink* traceSink = nullptr;
+	// Position of the line loadConfigFile is currently feeding to the
+	// factories; saved/restored across Include recursion like the channel
+	// names. Only meaningful while a sink is attached.
+	std::wstring traceFile;
+	int traceLine = 0;
 	std::vector<std::unique_ptr<FilterInfo>> filterInfos;
 	std::vector<std::wstring> currentChannelNames;
 	std::vector<std::wstring> lastChannelNames;

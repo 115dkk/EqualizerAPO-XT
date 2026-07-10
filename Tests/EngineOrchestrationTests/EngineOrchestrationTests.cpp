@@ -25,6 +25,7 @@
 #define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
 #include <sndfile.h>
 
+#include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "helpers/LogHelper.h"
 #include "Tests/TestHarness.h"
@@ -465,6 +466,78 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
+// Dynamic-commands campaign: the engine reports per-line facts while loading
+// (branch decisions, Eval values, swallowed lines) through an attached
+// ConfigLoadTraceSink so the Editor can echo them next to the config rows.
+// This pins the whole grammar over one representative config: an Eval, a
+// taken If with a nested false If inside, a short-circuited ElseIf, a dead
+// Else, inline `expression` substitution, and file/line stamping.
+void testConfigLoadTrace(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"trace.txt",
+		"Eval: x = 2 + 3\n"          // line 1: Eval -> "5"
+		"If: x == 5\n"               // line 2: Condition true
+		"Preamp: -3 dB\n"            // line 3: executes, no entry
+		"If: x > 100\n"              // line 4: Condition false
+		"Delay: 1 ms\n"              // line 5: SkippedLine
+		"EndIf:\n"                   // line 6: closes nested scope, no entry
+		"ElseIf: x == 4\n"           // line 7: chain satisfied -> NotEvaluated
+		"Preamp: -1 dB\n"            // line 8: SkippedLine
+		"Else:\n"                    // line 9: ElseBranch, inactive
+		"Preamp: -2 dB\n"            // line 10: SkippedLine
+		"EndIf:\n"                   // line 11: closes outer scope, no entry
+		"Preamp: `x - 10` dB\n");    // line 12: InlineValue "-5 dB"
+
+	struct Collector : ConfigLoadTraceSink
+	{
+		std::vector<ConfigLoadTraceEntry> entries;
+		void addEntry(const ConfigLoadTraceEntry& entry) override
+		{
+			entries.push_back(entry);
+		}
+	};
+	Collector collector;
+
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 512, configPath);
+
+	const std::vector<ConfigLoadTraceEntry>& entries = collector.entries;
+	harness.requireEqual((int)entries.size(), 9, "load trace entry count");
+
+	auto expectEntry = [&](int index, int line, ConfigLoadTraceEntry::Kind kind,
+		ConfigLoadTraceEntry::Result result, bool active, const std::string& what) {
+		const ConfigLoadTraceEntry& entry = entries[(size_t)index];
+		harness.expectEqual(entry.line, line, what + ": line");
+		harness.expect(entry.kind == kind, what + ": kind");
+		harness.expect(entry.result == result, what + ": result");
+		harness.expectEqual(entry.active, active, what + ": active");
+		harness.expect(entry.file == configPath, what + ": file stamp");
+	};
+
+	expectEntry(0, 1, ConfigLoadTraceEntry::Kind::Eval, ConfigLoadTraceEntry::Result::NotEvaluated, false, "Eval");
+	harness.expect(collector.entries[0].text == L"5", "Eval reports the computed value");
+	harness.expectFalse(collector.entries[0].error, "Eval reports no error");
+	expectEntry(1, 2, ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::True, true, "outer If");
+	expectEntry(2, 4, ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::False, false, "nested If");
+	expectEntry(3, 5, ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false, "swallowed Delay");
+	expectEntry(4, 7, ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::NotEvaluated, false, "short-circuited ElseIf");
+	expectEntry(5, 8, ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false, "swallowed Preamp");
+	expectEntry(6, 9, ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, false, "dead Else");
+	expectEntry(7, 10, ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false, "swallowed Preamp inside the dead Else");
+	expectEntry(8, 12, ConfigLoadTraceEntry::Kind::InlineValue, ConfigLoadTraceEntry::Result::NotEvaluated, false, "inline value");
+	// The engine trims only the command key, not the parameter text, so the
+	// substituted string keeps the space after the colon - the entry reports
+	// exactly what the downstream factories saw.
+	harness.expect(collector.entries[8].text == L" -5 dB", "inline substitution reports the resolved parameters");
+
+	// A second load without a sink must not crash and must add nothing.
+	engine.setLoadTraceSink(nullptr);
+	engine.loadConfig(configPath);
+	harness.expectEqual((int)collector.entries.size(), (int)entries.size(),
+		"detached sink receives nothing on a reload");
+}
+
 } // namespace
 
 int main()
@@ -479,6 +552,7 @@ int main()
 	testMultiConvolutionIgnoresChannelSelection(harness);
 	testConfigSwapCrossfades(harness);
 	testRealBrirCrossfeed(harness);
+	testConfigLoadTrace(harness);
 
 	removeTestDirectory();
 	harness.report();

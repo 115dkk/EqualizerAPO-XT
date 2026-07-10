@@ -184,6 +184,7 @@
     </ClInclude>
     <ClInclude Include="VoicemeeterAPOInfo.h" />
     <ClInclude Include="AbstractAPOInfo.h" />
+    <ClInclude Include="ConfigLoadTrace.h" />
     <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
     <ClInclude Include="FilterConfiguration.h" />

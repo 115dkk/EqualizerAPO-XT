@@ -29,6 +29,7 @@
 #include <QJsonObject>
 #include <QVector>
 
+#include "ConfigLoadTrace.h"
 #include "Editor/helpers/DisableWheelFilter.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
@@ -148,6 +149,14 @@ public:
 	void setRenderMode(RenderMode mode);
 	RenderMode getRenderMode() const;
 
+	// Facts from the analysis engine's most recent configuration load,
+	// filtered by the caller to this table's file (dynamic-commands campaign).
+	// Entry line numbers are 1-based; lookup is by 0-based row index. Facts
+	// go stale between a structural edit and the next analysis run - readers
+	// treat them as advisory, never as the document.
+	void setLoadTraceFacts(const QVector<ConfigLoadTraceEntry>& facts);
+	QList<ConfigLoadTraceEntry> loadTraceFactsForRow(int row) const;
+
 signals:
 	void linesChanged();
 
@@ -244,6 +253,9 @@ private:
 	int presetScrollX = -1;
 	int presetScrollY = -1;
 	RenderMode renderMode = ModernCards;
+	// Analysis load facts keyed by 0-based row index; a row can carry more
+	// than one entry (an Eval line with inline segments reports both).
+	QMultiHash<int, ConfigLoadTraceEntry> loadTraceFacts;
 };
 
 template<typename T> inline uint qHash(const QList<T>& list)
