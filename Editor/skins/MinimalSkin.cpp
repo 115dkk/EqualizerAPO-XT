@@ -615,9 +615,14 @@ public:
 	{
 		// One flat line per command: 1px hairline box, square corners, and
 		// state expressed as background-value steps only. Disabled rows fall
-		// one step below the resting card; selection is the accent-value
-		// background step; hover is exactly one step up from rest.
-		const QString background = !info.enabled ? tokens.surface
+		// one step below the resting card; a line a false If branch swallowed
+		// takes the same step down (to the engine both are dead code, and the
+		// value ladder IS this skin's state channel - maintainer round-1
+		// verdict); selection is the accent-value background step; hover is
+		// exactly one step up from rest. The '#' glyph and the readout column
+		// keep skipped and commented apart.
+		const bool sunken = !info.enabled || info.lineSkipped;
+		const QString background = sunken ? tokens.surface
 			: (info.selected ? tokens.cardSelected : tokens.card);
 		const QString borderColor = info.focused ? tokens.focusRing
 			: (info.selected ? tokens.accent : tokens.border);
@@ -626,7 +631,7 @@ public:
 		if (!info.selected)
 		{
 			style += QStringLiteral(" QFrame#FilterCardRow:hover { background: %1; }")
-				.arg(!info.enabled ? tokens.card : tokens.cardHover);
+				.arg(sunken ? tokens.card : tokens.cardHover);
 		}
 		return style;
 	}
@@ -780,7 +785,12 @@ public:
 		if (info.depth <= 0)
 			return false;
 		painter.setRenderHint(QPainter::Antialiasing, false);
-		painter.setPen(QPen(QColor(tokens.border), 1));
+		// The guides go dashed where they pass a swallowed line: the dash
+		// grammar ("no verified substance") extended to a stretch the engine
+		// is not running, so the structure column itself posts the branch
+		// outcome (maintainer round-1 verdict, paired with the frame's
+		// background step in cardFrameStyle).
+		painter.setPen(QPen(QColor(tokens.border), 1, info.lineSkipped ? Qt::DotLine : Qt::SolidLine));
 		const int unit = tokens.channelGroupIndent;
 		for (int level = 0; level < info.depth; level++)
 		{
