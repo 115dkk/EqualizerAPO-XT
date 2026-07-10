@@ -22,6 +22,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   decided in the concept round (gate beam, watch readout, bracket rule and
   friends) come next; until they land the line body keeps the familiar raw
   editor. ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178))
+- Each skin now presents `If` blocks and `Eval` lines with its own
+  instrument, and the analysis run reports what the engine actually decided:
+  which branch ran, what an `Eval` computed, and which lines a false branch
+  skipped. Rack runs a relay-switched power bus down the block with pilot
+  lamps, Studio a gate beam of light, Minimal prints a TRUE/FALSE readout
+  column and sinks skipped rows one background step behind dashed indent
+  guides, Soft reads simple conditions as friendly sentences held by a pastel
+  bar, and Matrix posts gate lamps, a printed bracket and cancelled-departure
+  styling on skipped rows.
+  ([#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182))
+- The Delay card body was modernized to match the Preamp card: a knob with
+  the classic logarithmic sweep, a Time/Samples selector standing as the
+  caption, and an editable value that now shows milliseconds with two
+  decimals (0.25 ms no longer displays as 0.3 ms). The old body repeated the
+  word "Delay" next to the dial, flush against the card edge.
+  ([#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182))
 
 ## v2.13.0 — 2026-07-09
 
