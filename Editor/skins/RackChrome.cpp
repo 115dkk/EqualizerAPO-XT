@@ -1263,19 +1263,18 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 		painter.fillRect(block, metal);
 		painter.fillRect(QRect(block.left(), block.top(), block.width(), 1), metalLight);
 	};
-	// The relay/pilot lamp, lit from the analysis facts (CommandRowInfo
-	// branchState codes; -1/2 stay unlit - the hardware makes no claim).
-	const auto lamp = [&](int cx, int cy, int state) {
-		QColor fill = mixColor(QColor(tokens.mutedText), QColor(tokens.card), 0.6);
-		if (state == 1)
-			fill = lampGreen;
-		else if (state == 3)
-			fill = lampDanger;
-		else if (state == 0)
-			fill = seam;
+	// The relay/pilot lamp in the panel-LED grammar (paintLed: bezel ring,
+	// dome, specular, halo only when lit) so the bulb keeps its physical
+	// construction in the dark finish too - a bare glowing disc reads as
+	// paint, not hardware. One green bulb per station, lit when the branch is
+	// taken; an evaluation fault lights the red service bulb instead. False,
+	// short-circuited and not-yet-analyzed all read as the same dark dome -
+	// a lamp is on or off, hardware makes no third claim.
+	const auto lamp = [&](qreal cx, qreal cy, int state, qreal radius) {
+		const bool fault = state == 3;
 		painter.setRenderHint(QPainter::Antialiasing, true);
-		painter.setBrush(fill);
-		painter.drawEllipse(QPointF(cx + 0.5, cy + 0.5), 2.1, 2.1);
+		paintLed(painter, QPointF(cx + 0.5, cy + 0.5), radius, fault ? lampDanger : lampGreen, state == 1 || fault, dark);
+		painter.setPen(Qt::NoPen);
 		painter.setBrush(Qt::NoBrush);
 		painter.setRenderHint(QPainter::Antialiasing, false);
 	};
@@ -1300,7 +1299,9 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 			busSegment(level, 0, h, true);
 		const int own = channelLevels + logic;
 		busSegment(own, h - 4, h, info.branchState != 0);
-		lamp(bandCenter(own), h - 3, info.branchState);
+		// A small jewel seated in the mounting seam - the feed point's only
+		// visible face under the full-width relay unit.
+		lamp(bandCenter(own), h - 2.5, info.branchState, 1.4);
 	}
 	else if (branchRow)
 	{
@@ -1311,7 +1312,7 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 		tapStub(own, info.branchState == 1);
 		const int cx = bandCenter(own);
 		contactBlock(QRect(cx - 3, junctionY - 4, 7, 9));
-		lamp(cx, junctionY + 7, info.branchState);
+		lamp(cx, junctionY + 9, info.branchState, 2.2);
 	}
 	else if (tailRow)
 	{
@@ -1332,7 +1333,7 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 			busSegment(level, 0, h, true);
 		busSegment(channelLevels + logic - 1, 0, h, live);
 		tapStub(channelLevels + logic - 1, live);
-		lamp(cardLeft - 6, junctionY, info.lineSkipped ? 0 : (info.enabled ? 1 : -1));
+		lamp(cardLeft - 6, junctionY, info.lineSkipped ? 0 : (info.enabled ? 1 : -1), 2.0);
 	}
 	return true;
 }
