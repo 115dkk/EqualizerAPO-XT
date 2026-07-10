@@ -11,19 +11,11 @@
 #include <QAction>
 #include <QComboBox>
 #include <QDial>
-#include <QEvent>
-#include <QFontMetrics>
 #include <QFontMetricsF>
-#include <QHBoxLayout>
-#include <QIcon>
 #include <QLabel>
-#include <QLayout>
 #include <QPainter>
 #include <QPainterPath>
-#include <QPixmap>
-#include <QStyle>
 #include <QToolBar>
-#include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
 
@@ -32,18 +24,9 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "Editor/skins/RackChrome.h"
 #include "Editor/skins/cards/StudioReferenceCardView.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
-#include "Editor/skins/pickers/MinimalFilterPicker.h"
-#include "Editor/skins/pickers/SoftFilterPicker.h"
-#include "Editor/skins/pickers/RackFilterPicker.h"
-#include "Editor/skins/pickers/MatrixFilterPicker.h"
-#include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
-#include "Editor/widgets/routing/StepListRoutingRenderer.h"
-#include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "Editor/widgets/routing/LightTraceRoutingRenderer.h"
-#include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinPaint.h"
 #include "SkinSupport.h"
 
