@@ -28,4 +28,10 @@ class ExpressionFilterGUIFactory : public IFilterGUIFactory
 public:
 	QList<FilterTemplate> createFilterTemplates() override;
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;
+	// The Control section (shared with Include/Device/Channel/Stage) closes
+	// the catalog instead of leading it; see IFilterGUIFactory.
+	bool templatesSortLast() const override
+	{
+		return true;
+	}
 };

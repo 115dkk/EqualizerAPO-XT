@@ -227,9 +227,11 @@ QMenu* FilterTable::createAddPopupMenu()
 	QMenu* rootMenu = new QMenu;
 	pathMap[QStringList()] = rootMenu;
 
-	for (IFilterGUIFactory* f : factories)
+	// One ordering owner: the menu consumes the same grouped/demoted list as
+	// the picker (pickerFilterTemplates), so both catalogs agree that the
+	// Control section closes the list.
 	{
-		QList<FilterTemplate> templates = f->createFilterTemplates();
+		const QList<FilterTemplate> templates = pickerFilterTemplates();
 		for (FilterTemplate t : templates)
 		{
 			QMenu* menu = pathMap.value(t.getPath());
@@ -262,20 +264,34 @@ QMenu* FilterTable::createAddPopupMenu()
 QList<FilterTemplate> FilterTable::pickerFilterTemplates() const
 {
 	QList<FilterTemplate> templates;
+	QList<QStringList> trailingSections;
 	for (IFilterGUIFactory* factory : factories)
-		templates.append(factory->createFilterTemplates());
+	{
+		const QList<FilterTemplate> factoryTemplates = factory->createFilterTemplates();
+		// A factory can ask for its section to close the catalog
+		// (templatesSortLast); the whole shared category moves with it, so
+		// Control (Expression + Include/Device/Channel/Stage) sits last even
+		// though the Expression factory's order-0 slot publishes it first.
+		if (factory->templatesSortLast())
+			for (const FilterTemplate& filterTemplate : factoryTemplates)
+				if (!trailingSections.contains(filterTemplate.getPath()))
+					trailingSections.append(filterTemplate.getPath());
+		templates.append(factoryTemplates);
+	}
 
 	// Several factories share one category name (the Expression factory's
 	// If/Eval templates and the Include/Device/Channel/Stage factories all
 	// file under "Control"), so the flat factory order interleaves sections.
 	// Pickers that print a header per contiguous run would show the same
-	// section twice; group the templates by category in first-seen order, the
-	// same merge the QMenu path map performs in createAddPopupMenu. The
-	// stable sort keeps the factory order within each category.
+	// section twice; group the templates by category in first-seen order,
+	// with the trailing sections demoted to the end, the same merge the
+	// QMenu path map performs in createAddPopupMenu. The stable sort keeps
+	// the factory order within each category.
 	QList<QStringList> sectionOrder;
 	for (const FilterTemplate& filterTemplate : templates)
-		if (!sectionOrder.contains(filterTemplate.getPath()))
+		if (!trailingSections.contains(filterTemplate.getPath()) && !sectionOrder.contains(filterTemplate.getPath()))
 			sectionOrder.append(filterTemplate.getPath());
+	sectionOrder.append(trailingSections);
 	std::stable_sort(templates.begin(), templates.end(),
 		[&sectionOrder](const FilterTemplate& a, const FilterTemplate& b) {
 		return sectionOrder.indexOf(a.getPath()) < sectionOrder.indexOf(b.getPath());
