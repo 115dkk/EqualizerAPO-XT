@@ -645,10 +645,10 @@ QLineEdit#FilterCardRawEditor {
 }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
-QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
+QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
 QWidget#VSTCardEditor, QWidget#ReferenceCardView, QWidget#RefCardContent,
-QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 600;
     text-transform: uppercase; letter-spacing: 1px; font-size: 9pt;

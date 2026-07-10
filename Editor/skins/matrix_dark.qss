@@ -1067,10 +1067,10 @@ QCheckBox#FilterCardEnabled {
 }
 
 /* ===== Card Editors ===== */
-QWidget#PreampCardEditor,
+QWidget#PreampCardEditor, QWidget#DelayCardEditor,
 QWidget#IncludeCardEditor,
 QWidget#VSTCardEditor,
-QWidget#PreampCardValueBlock,
+QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QLabel#PreampCardCaption {
     background: transparent;
     border: 0;
