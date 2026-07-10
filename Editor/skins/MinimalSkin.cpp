@@ -656,7 +656,7 @@ public:
 		// the raw-mode tag. Rows are rebuilt on skin/theme switches, so
 		// construction-time token values stay current.
 		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
-			|| info.type == QStringLiteral("eval")) && body != nullptr)
+			|| info.type == QStringLiteral("eval") || info.dynamicLine) && body != nullptr)
 		{
 			const SkinTokens& tk = SkinManager::instance()->tokens();
 			if (QLabel* rawText = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))

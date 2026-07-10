@@ -17,7 +17,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 1. 변형별 릴리스 채널을 단일 바이너리 런타임 SIMD dispatch로 대체합니다([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 2. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다.
 3. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다(1차: Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸 배치. 3차: 그래픽 EQ 모던 카드, 카드 추가·삽입 계약, Device Selector 스킨 동기화, [#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
-4. 프로그래밍 계열 설정 명령(`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) 전용 에디터를 만듭니다. 다섯 스킨이 분석 판정으로 블록을 각자의 계기로 표현하고, 픽커가 이 명령들을 삽입하며, 계수 직접 입력 IIR 줄도 전용 카드를 받았습니다([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183)). 남은 조각은 백틱 인라인 식이 든 줄에서 카드를 유지하는 것입니다.
+4. 프로그래밍 계열 설정 명령(`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) 전용 에디터 — 완료. 다섯 스킨이 분석 판정으로 블록을 각자의 계기로 표현하고, 픽커가 이 명령들을 삽입하며, 계수 직접 입력 IIR 줄과 백틱 인라인 식이 든 줄도 각자의 카드를 유지합니다([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
 
 ## 주요 기능
 

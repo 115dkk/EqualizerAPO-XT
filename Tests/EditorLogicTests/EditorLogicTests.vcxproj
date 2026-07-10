@@ -132,6 +132,7 @@
     <ClCompile Include="..\..\filters\StageCommand.cpp" />
     <ClCompile Include="..\..\filters\BiQuadCommand.cpp" />
     <ClCompile Include="..\..\filters\DeviceCommand.cpp" />
+    <ClCompile Include="..\..\filters\ExpressionCommand.cpp" />
     <ClCompile Include="..\..\helpers\StringHelper.cpp" />
     <ClCompile Include="..\..\filters\ChannelCommand.cpp" />
     <ClCompile Include="..\..\filters\FilterFactoryRegistry.cpp" />

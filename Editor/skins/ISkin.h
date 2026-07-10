@@ -66,6 +66,11 @@ struct CommandRowInfo
 	// (empty when unknown); valueError marks a parser failure.
 	QString evalText;
 	bool valueError = false;
+	// True when the line's parameters carry inline `expression` segments, so
+	// its numbers are decided at load time. Rows without a dynamic-capable
+	// editor host the shared raw body; skins extend their raw-body styling
+	// to these rows through this flag.
+	bool dynamicLine = false;
 };
 
 // Interactive state for the list-level add/insert chrome: the trailing

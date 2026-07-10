@@ -110,7 +110,13 @@ QList<GalleryRow> galleryRows()
 		// the IIR card states the order and both coefficient rows (a 2nd-order
 		// Butterworth low-pass at fs/4, a0 = 1). Appended last so the row
 		// numbers of every earlier scene stay stable against the shot baseline.
-		{ QStringLiteral("iir"), QStringLiteral("Filter: ON IIR Order 2 Coefficients 0.2929 0.5858 0.2929 1.0 -0.0 0.1716") }
+		{ QStringLiteral("iir"), QStringLiteral("Filter: ON IIR Order 2 Coefficients 0.2929 0.5858 0.2929 1.0 -0.0 0.1716") },
+		// A dynamic line (inline `expression` gain): the Preamp card opens in
+		// dynamic mode - powered-down knob, the expression as a token in the
+		// value position - instead of parsing the text as 0.0 and destroying
+		// the expression on the first knob turn. Appended last (the iir
+		// lesson: mid-list insertion renumbers every following scene).
+		{ QStringLiteral("dynpreamp"), QStringLiteral("Preamp: `bass + 3` dB") }
 	};
 }
 

@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Lines whose parameters hold an inline `` `expression` `` keep their card
+  now. The Preamp and Delay cards open in a dynamic mode - the knob powers
+  down and the value position shows the expression as written, with the
+  computed value appearing in the analysis readouts - and every other editor
+  stands down to the raw body instead of misreading the text. This also
+  fixes a hazard where such a Preamp line displayed 0.0 dB and a single
+  knob turn silently erased the expression.
+  ([#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184))
 - The programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`)
   are cards now instead of anonymous raw-text rows: each line carries a badge
   for its branch kind (IF/ELIF/ELSE/ENDIF/EVAL) with the condition or

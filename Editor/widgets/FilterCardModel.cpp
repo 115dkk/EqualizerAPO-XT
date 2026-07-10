@@ -4,6 +4,7 @@
 #include <QRegularExpression>
 #include <QSet>
 
+#include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "filters/BiQuadCommand.h"
 
@@ -139,6 +140,19 @@ bool FilterCardModel::isPureCommentLine(const QString& line)
 {
 	QString trimmed = line.trimmed();
 	return trimmed.startsWith('#') && !isDisabledCommandLine(line);
+}
+
+bool FilterCardModel::hasInlineExpressions(const QString& parameters)
+{
+	// Cheap pre-check before the lexer: a line without a backtick can have
+	// no expression segment.
+	if (!parameters.contains(QLatin1Char('`')))
+		return false;
+	const std::vector<InlineExpression::Segment> segments = InlineExpression::split(parameters.toStdWString());
+	for (const InlineExpression::Segment& segment : segments)
+		if (segment.isExpression)
+			return true;
+	return false;
 }
 
 QString FilterCardModel::commandForLine(const QString& line, QString* parameters)

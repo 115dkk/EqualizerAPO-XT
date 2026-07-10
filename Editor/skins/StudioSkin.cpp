@@ -1481,10 +1481,11 @@ public:
 			return;
 
 		if (info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
-			|| info.type == QStringLiteral("eval"))
+			|| info.type == QStringLiteral("eval") || info.dynamicLine)
 		{
-			// Raw text (bare note lines) and the If/Eval logic rows, whose
-			// bodies still host the shared raw editor, are data behind glass.
+			// Raw text (bare note lines), the If/Eval logic rows and dynamic
+			// lines without a dynamic-capable editor, whose bodies host the
+			// shared raw editor, are data behind glass.
 			// FilterCardRow lays a shared inline style on the preview label
 			// (inline outranks any sheet rule), and that default speaks a
 			// half-radius 4px - illegal under the one-8px-round law - so

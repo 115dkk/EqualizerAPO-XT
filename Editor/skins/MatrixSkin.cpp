@@ -609,7 +609,7 @@ public:
 		// designation cell (the "#" marker cell's construction) and the raw
 		// line a sunken mono line cell - 1px rules, radius 0, verbatim text.
 		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
-			|| info.type == QStringLiteral("eval")) && body != nullptr)
+			|| info.type == QStringLiteral("eval") || info.dynamicLine) && body != nullptr)
 		{
 			const SkinTokens& tokens = SkinManager::instance()->tokens();
 			if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
