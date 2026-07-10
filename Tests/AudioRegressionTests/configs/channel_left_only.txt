@@ -1,2 +1,0 @@
-Channel: L
-Preamp: -6 dB

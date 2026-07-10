@@ -1,6 +1,0 @@
-# Example for using an impulse response file.
-#
-# The path can be relative to this configuration file, absolute, quoted when it
-# contains spaces, or use Windows environment variables.
-
-# Convolution: "%USERPROFILE%\Documents\EqualizerAPO\Impulse Responses\room.wav"
