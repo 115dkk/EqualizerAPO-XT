@@ -8,6 +8,7 @@
 #include <QStringBuilder>
 #include <QStyle>
 #include <QScrollArea>
+#include <QDir>
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -89,6 +90,30 @@ void MainWindow::updateAnalysisPanel()
 	analysisPlotScene->setFreqData(analysisThread->getFreqData(), analysisThread->getFreqDataLength(), sampleRate);
 	if (eqGraphView != nullptr)
 		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
+
+	// Hand the engine's per-line load facts (dynamic-commands campaign) to
+	// every open tab whose file took part in this load. A tab whose file was
+	// not part of the analyzed chain receives an empty set, which clears any
+	// stale facts from a previous device/config selection.
+	{
+		const std::vector<ConfigLoadTraceEntry>& trace = analysisThread->getLoadTrace();
+		for (int i = 0; i < ui->tabWidget->count(); i++)
+		{
+			QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
+			FilterTable* filterTable = scrollArea != nullptr ? qobject_cast<FilterTable*>(scrollArea->widget()) : nullptr;
+			if (filterTable == nullptr || filterTable->getConfigPath().isEmpty())
+				continue;
+			const QString tabPath = QDir::toNativeSeparators(filterTable->getConfigPath());
+			QVector<ConfigLoadTraceEntry> tabFacts;
+			for (const ConfigLoadTraceEntry& entry : trace)
+			{
+				const QString entryPath = QDir::toNativeSeparators(QString::fromStdWString(entry.file));
+				if (entryPath.compare(tabPath, Qt::CaseInsensitive) == 0)
+					tabFacts.append(entry);
+			}
+			filterTable->setLoadTraceFacts(tabFacts);
+		}
+	}
 
 	auto setSeverity = [](QLabel* label, const char* severity)
 	{

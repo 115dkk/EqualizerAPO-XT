@@ -300,6 +300,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AbstractAPOInfo.h" />
+    <ClInclude Include="ConfigLoadTrace.h" />
     <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
     <ClInclude Include="FilterConfiguration.h" />

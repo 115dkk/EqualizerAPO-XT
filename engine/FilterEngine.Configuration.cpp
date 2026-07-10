@@ -34,6 +34,7 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
+#include "ConfigLoadTrace.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
 // The individual filter factories self-register via REGISTER_FILTER_FACTORY, and
@@ -122,6 +123,13 @@ void FilterEngine::loadConfigFile(const wstring& path)
 		return;
 
 	vector<wstring> savedChannelNames = currentChannelNames;
+	// Load-trace position: like the channel names, the position is saved and
+	// restored across the Include recursion so entries reported after a nested
+	// file returns are stamped with the outer file again.
+	wstring savedTraceFile = move(traceFile);
+	int savedTraceLine = traceLine;
+	traceFile = path;
+	traceLine = 0;
 
 	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
@@ -135,6 +143,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	{
 		string encodedLine;
 		getline(inputStream, encodedLine);
+		traceLine++;
 		if (encodedLine.size() > 0 && encodedLine[encodedLine.size() - 1] == '\r')
 			encodedLine.resize(encodedLine.size() - 1);
 
@@ -222,6 +231,17 @@ void FilterEngine::loadConfigFile(const wstring& path)
 
 	// restore channels selected in outer configuration file
 	currentChannelNames = savedChannelNames;
+	traceFile = move(savedTraceFile);
+	traceLine = savedTraceLine;
+}
+
+void FilterEngine::traceLoadEvent(ConfigLoadTraceEntry entry)
+{
+	if (traceSink == nullptr)
+		return;
+	entry.file = traceFile;
+	entry.line = traceLine;
+	traceSink->addEntry(entry);
 }
 
 void FilterEngine::watchRegistryKey(const std::wstring& key)

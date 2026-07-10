@@ -119,6 +119,11 @@ unsigned AnalysisThread::getProcessedFrames() const
 	return processedFrames;
 }
 
+const std::vector<ConfigLoadTraceEntry>& AnalysisThread::getLoadTrace() const
+{
+	return resultLoadTrace;
+}
+
 void AnalysisThread::run()
 {
 	while (true)
@@ -166,9 +171,25 @@ void AnalysisThread::run()
 
 		qint64 startTime = timer.nsecsElapsed();
 
+		// Collects the engine's per-line load facts (branch decisions, Eval
+		// values, skipped lines). With a custom config path initialize() loads
+		// synchronously and starts no notification worker, so a plain vector
+		// needs no locking here.
+		struct Collector : ConfigLoadTraceSink
+		{
+			std::vector<ConfigLoadTraceEntry> entries;
+			void addEntry(const ConfigLoadTraceEntry& entry) override
+			{
+				entries.push_back(entry);
+			}
+		};
+		Collector traceCollector;
+
 		FilterEngine engine;
+		engine.setLoadTraceSink(&traceCollector);
 		engine.setDeviceInfo(device->isInput(), true, device->getDeviceName(), device->getConnectionName(), device->getDeviceGuid(), device->getDeviceString());
 		engine.initialize(sampleRate, channelCount, channelCount, channelCount, channelMask, frameCount, configPath.toStdWString());
+		engine.setLoadTraceSink(nullptr);
 		double initializationTime = (timer.nsecsElapsed() - startTime) / 1e6;
 
 		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
@@ -295,6 +316,7 @@ void AnalysisThread::run()
 		this->initializationTime = initializationTime;
 		this->processingTime = processingTime;
 		this->processedFrames = processedFrames;
+		this->resultLoadTrace = std::move(traceCollector.entries);
 		mutex.unlock();
 
 		qDebug("Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);

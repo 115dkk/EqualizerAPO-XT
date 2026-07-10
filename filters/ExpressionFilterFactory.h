@@ -33,4 +33,5 @@ public:
 
 private:
 	mup::ParserX* parser = nullptr;
+	FilterEngine* engine = nullptr;
 };

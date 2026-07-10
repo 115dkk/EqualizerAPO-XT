@@ -19,11 +19,14 @@
 
 #pragma once
 
+#include <vector>
+
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
 #include <fftw3.h>
 
+#include "ConfigLoadTrace.h"
 #include "DeviceAPOInfo.h"
 
 class AnalysisThread : public QThread
@@ -45,6 +48,11 @@ public:
 	double getInitializationTime() const;
 	double getProcessingTime() const;
 	unsigned getProcessedFrames() const;
+	// Per-line facts the engine reported while loading the analyzed config
+	// (branch decisions, Eval values, skipped lines; dynamic-commands
+	// campaign). Like the other getters, only valid between beginGetResult()
+	// and endGetResult().
+	const std::vector<ConfigLoadTraceEntry>& getLoadTrace() const;
 
 signals:
 	void analysisFinished();
@@ -73,6 +81,7 @@ private:
 	double initializationTime = 0.0;
 	double processingTime = 0.0;
 	int processedFrames = 0;
+	std::vector<ConfigLoadTraceEntry> resultLoadTrace;
 
 	// internal (not protected by mutex)
 	int lastFrameCount = -1;

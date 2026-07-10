@@ -293,6 +293,32 @@ void FilterTable::setConfigPath(const QString& value)
 	configPath = value;
 }
 
+void FilterTable::setLoadTraceFacts(const QVector<ConfigLoadTraceEntry>& facts)
+{
+	loadTraceFacts.clear();
+	for (const ConfigLoadTraceEntry& fact : facts)
+	{
+		if (fact.line > 0)
+			loadTraceFacts.insert(fact.line - 1, fact);
+	}
+
+	// The dynamic-command presentations read the facts at paint time; repaint
+	// the rows so lamps/readouts follow the analysis run that just finished.
+	if (gridLayout == nullptr)
+		return;
+	for (int row = 0; row < model.items().count(); row++)
+	{
+		QLayoutItem* cell = gridLayout->itemAtPosition(row, 0);
+		if (cell != nullptr && cell->widget() != nullptr)
+			cell->widget()->update();
+	}
+}
+
+QList<ConfigLoadTraceEntry> FilterTable::loadTraceFactsForRow(int row) const
+{
+	return loadTraceFacts.values(row);
+}
+
 FilterTable::Item* FilterTable::getFocusedItem() const
 {
 	return model.focused();
