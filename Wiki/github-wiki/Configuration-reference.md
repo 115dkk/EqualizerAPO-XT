@@ -147,10 +147,12 @@ Convolution: church.wav
 ```
 
 ### MultiConvolution
-**Syntax:** `MultiConvolution: <channel>=<file channel>[+<file channel>...] [<channel>=... ...] <multichannel impulse response>`
+**Syntax:** `MultiConvolution: <channel>=[<factor>*]<file channel>[+[<factor>*]<file channel>...] [<channel>=... ...] <multichannel impulse response>`
 **Syntax:** `MultiConvolution: <channel> <multichannel impulse response>`
 
 Adds a convolver for true-stereo, BRIR (Binaural Room Impulse Response) and crossfeed setups, where `Convolution`'s in-place 1:1 mapping is not enough. Each mapping convolves the named channel's own signal with the listed channels of the single multichannel impulse-response file (0-based) and sums the results back into that channel. It compresses the Copy → Channel → Convolution → Copy fan-out/sum pattern into one line and is independent of the `Channel:` command: the channel selection neither feeds it nor is changed by it. All mappings read the signal as it was before the line, like `Copy:`, so `L=0+1 R=2+3` processes each ear with its own pair of impulse responses. The one-token form means "every channel of the file": with a 2-channel file, `MultiConvolution: L brir.wav` equals `MultiConvolution: L=0+1 brir.wav`. Whitespace around `=` and `+` is accepted.
+
+Each file channel may carry a factor with `Copy:`'s grammar: `L=0.5*0+1` halves file channel 0's convolution result before the sum, `-1` inverts the phase, `-0.5` does both, and a dB value such as `-6dB*0` attenuates by that amount. Without a factor the result is used as-is.
 
 A mapping target may name a channel that does not exist yet; it is created as a virtual channel (silent unless an earlier line wrote to it). A file-channel index beyond the file's channel count contributes silence and leaves a note in the log. The same path and sample-rate rules as `Convolution` apply: the file name is relative to the configuration file, may be quoted, may contain environment variables such as `%USERPROFILE%`, must be in a format supported by libsndfile, and its sample rate must match the device's. A bad path, sample-rate mismatch, or unusable file still creates the mapped channels, just silent, so later channel selections do not shift. In the Editor, the card shows the file next to a channel-mapping view in every skin: the sources are the file's channels, the outputs are the config's channels plus any virtual channel you add.
 

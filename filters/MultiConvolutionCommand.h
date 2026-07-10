@@ -24,15 +24,19 @@
 // Single owner of the "MultiConvolution:" config-line grammar, shared by the
 // engine factory and the Editor GUI. Two forms are accepted:
 //
-//   MultiConvolution: <target>=<ir ch>[+<ir ch>...] [<target>=... ...] <path>
+//   MultiConvolution: <target>=<summand>[+<summand>...] [<target>=... ...] <path>
 //   MultiConvolution: <target> <path>                        (simple form)
 //
-// Each mapping names one output channel and the 0-based channels of the single
-// multi-channel impulse-response file that are convolved with that output
-// channel's own (pre-command) signal and summed into it. The simple form means
-// "every channel of the file" and is represented by one mapping with an empty
-// irChannels list; the file's channel count is only known when the file is
-// read, so the expansion happens in the filter.
+// A summand is "<ir ch>" or "<factor>*<ir ch>", mirroring Copy's factor
+// grammar: the factor is a decimal number ("0.5", "-1"), optionally with a dB
+// suffix ("-6dB"), and scales that IR channel's convolution result (a negative
+// factor inverts the phase). Each mapping names one output channel and the
+// 0-based channels of the single multi-channel impulse-response file that are
+// convolved with that output channel's own (pre-command) signal and summed
+// into it. The simple form means "every channel of the file at unity" and is
+// represented by one mapping with an empty irChannels list; the file's channel
+// count is only known when the file is read, so the expansion happens in the
+// filter.
 //
 // Whitespace around '=' and '+' is accepted ("L = 0 + 1" and "L=0+1" parse
 // identically); serialize() writes the compact form. The path is the raw
@@ -42,12 +46,32 @@
 // ConvolutionFilePath::resolve to handle.
 struct MultiConvolutionCommand
 {
+	// One "<factor>*<ir ch>" summand. Like Copy, a dB factor keeps its raw dB
+	// value here (isDecibel marks it); the filter converts when it builds its
+	// plans. The converting constructor keeps a bare channel index spelling
+	// ({0, 1} still means channels 0 and 1 at unity).
+	struct IrChannelRef
+	{
+		unsigned channel;
+		double factor;
+		bool isDecibel;
+
+		IrChannelRef(unsigned channel = 0, double factor = 1.0, bool isDecibel = false)
+			: channel(channel), factor(factor), isDecibel(isDecibel) {}
+
+		bool operator==(const IrChannelRef& other) const
+		{
+			return channel == other.channel && factor == other.factor && isDecibel == other.isDecibel;
+		}
+	};
+
 	struct Mapping
 	{
 		std::wstring targetChannel;
-		// 0-based channel indices into the impulse-response file. Empty means
-		// every channel of the file (the simple form).
-		std::vector<unsigned> irChannels;
+		// 0-based channel references into the impulse-response file, each with
+		// its factor. Empty means every channel of the file at unity (the
+		// simple form).
+		std::vector<IrChannelRef> irChannels;
 	};
 
 	std::vector<Mapping> mappings;

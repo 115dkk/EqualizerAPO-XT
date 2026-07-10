@@ -25,6 +25,8 @@ using std::wstring;
 
 namespace
 {
+using IrRef = MultiConvolutionCommand::IrChannelRef;
+
 constexpr int frameLength = 480;
 constexpr int sampleRate = 48000;
 constexpr double tolerance = 1.0e-8;
@@ -269,16 +271,16 @@ void assertMappingGrammarParses()
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 R=2+3 brir.wav", compact), "compact mapping form parses");
 	harness.expectEqual(compact.mappings.size(), (size_t)2, "two mappings parse");
 	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[0].targetChannel == L"L" && compact.mappings[1].targetChannel == L"R", "targets keep their order");
-	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[0].irChannels == std::vector<unsigned>({0, 1}), "first mapping lists IR channels 0 and 1");
-	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[1].irChannels == std::vector<unsigned>({2, 3}), "second mapping lists IR channels 2 and 3");
+	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[0].irChannels == std::vector<IrRef>({0, 1}), "first mapping lists IR channels 0 and 1");
+	harness.expectTrue(compact.mappings.size() == 2 && compact.mappings[1].irChannels == std::vector<IrRef>({2, 3}), "second mapping lists IR channels 2 and 3");
 	harness.expectTrue(compact.path == L"brir.wav", "path follows the mappings");
 	harness.expectFalse(compact.isSimpleForm(), "mapping form is not the simple form");
 
 	MultiConvolutionCommand spaced;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L = 0 + 1 R = 2 + 3 brir.wav", spaced), "spaced mapping form parses");
 	harness.expectTrue(spaced.mappings.size() == 2
-		&& spaced.mappings[0].targetChannel == L"L" && spaced.mappings[0].irChannels == std::vector<unsigned>({0, 1})
-		&& spaced.mappings[1].targetChannel == L"R" && spaced.mappings[1].irChannels == std::vector<unsigned>({2, 3})
+		&& spaced.mappings[0].targetChannel == L"L" && spaced.mappings[0].irChannels == std::vector<IrRef>({0, 1})
+		&& spaced.mappings[1].targetChannel == L"R" && spaced.mappings[1].irChannels == std::vector<IrRef>({2, 3})
 		&& spaced.path == L"brir.wav", "spacing around '=' and '+' does not change the parse");
 
 	harness.expectTrue(compact.serialize() == L"L=0+1 R=2+3 brir.wav", "serialization is the compact form");
@@ -287,8 +289,8 @@ void assertMappingGrammarParses()
 	MultiConvolutionCommand reparsed;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", compact.serialize(), reparsed), "serialized mapping line re-parses");
 	harness.expectTrue(reparsed.mappings.size() == 2
-		&& reparsed.mappings[0].targetChannel == L"L" && reparsed.mappings[0].irChannels == std::vector<unsigned>({0, 1})
-		&& reparsed.mappings[1].targetChannel == L"R" && reparsed.mappings[1].irChannels == std::vector<unsigned>({2, 3})
+		&& reparsed.mappings[0].targetChannel == L"L" && reparsed.mappings[0].irChannels == std::vector<IrRef>({0, 1})
+		&& reparsed.mappings[1].targetChannel == L"R" && reparsed.mappings[1].irChannels == std::vector<IrRef>({2, 3})
 		&& reparsed.path == L"brir.wav", "mapping form round-trips");
 }
 
@@ -299,19 +301,27 @@ void assertPathBoundaryIsRobust()
 {
 	MultiConvolutionCommand equalsPath;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 a=b.wav", equalsPath), "path containing '=' parses");
-	harness.expectTrue(equalsPath.mappings.size() == 1 && equalsPath.mappings[0].irChannels == std::vector<unsigned>({0, 1}), "mapping before '=' path is kept");
+	harness.expectTrue(equalsPath.mappings.size() == 1 && equalsPath.mappings[0].irChannels == std::vector<IrRef>({0, 1}), "mapping before '=' path is kept");
 	harness.expectTrue(equalsPath.path == L"a=b.wav", "word failing the mapping grammar starts the path");
 
 	MultiConvolutionCommand plusPath;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0 mix+mono.wav", plusPath), "path containing '+' parses");
-	harness.expectTrue(plusPath.mappings.size() == 1 && plusPath.mappings[0].irChannels == std::vector<unsigned>({0}), "single IR channel mapping parses");
+	// A parenthesized single-element brace ("({0})") would pick the vector's
+	// size constructor over the initializer list (0 -> IrRef is a user-defined
+	// conversion), so single elements are spelled out.
+	harness.expectTrue(plusPath.mappings.size() == 1 && plusPath.mappings[0].irChannels == std::vector<IrRef>{IrRef(0)}, "single IR channel mapping parses");
 	harness.expectTrue(plusPath.path == L"mix+mono.wav", "path with '+' is not cut apart");
 
 	MultiConvolutionCommand digitPath;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"Ear=3 2ch room ir.wav", digitPath), "digit-leading path parses");
 	harness.expectTrue(digitPath.mappings.size() == 1 && digitPath.mappings[0].targetChannel == L"Ear"
-		&& digitPath.mappings[0].irChannels == std::vector<unsigned>({3}), "single mapping with one IR channel parses");
+		&& digitPath.mappings[0].irChannels == std::vector<IrRef>{IrRef(3)}, "single mapping with one IR channel parses");
 	harness.expectTrue(digitPath.path == L"2ch room ir.wav", "digit-leading path keeps inner spaces");
+
+	MultiConvolutionCommand starPath;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0 2*ch.wav", starPath), "path containing '*' parses");
+	harness.expectTrue(starPath.mappings.size() == 1 && starPath.mappings[0].irChannels == std::vector<IrRef>{IrRef(0)}
+		&& starPath.path == L"2*ch.wav", "a word that is not a valid summand starts the path even with a '*'");
 
 	MultiConvolutionCommand simpleEquals;
 	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"Mixed a=b.wav", simpleEquals), "simple form with '=' in the path parses");
@@ -322,6 +332,92 @@ void assertPathBoundaryIsRobust()
 	MultiConvolutionCommand rejected;
 	harness.expectFalse(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1", rejected), "a mapping line without a path is rejected");
 	harness.expectFalse(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0+1 R=2+3", rejected), "several mappings without a path are rejected");
+}
+
+// The factor grammar mirrors Copy: "<factor>*<ir ch>" scales that IR channel's
+// convolution result, a negative factor inverts the phase, and a dB suffix
+// keeps its raw dB value with the isDecibel marker. Serialization writes the
+// factor back only when it is not unity, and the whole line round-trips.
+void assertFactorGrammarParses()
+{
+	MultiConvolutionCommand factored;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=0.5*0+1 R=-1*2+-0.5*3 brir.wav", factored), "factored mapping form parses");
+	harness.expectTrue(factored.mappings.size() == 2
+		&& factored.mappings[0].irChannels == std::vector<IrRef>({IrRef(0, 0.5), IrRef(1)})
+		&& factored.mappings[1].irChannels == std::vector<IrRef>({IrRef(2, -1.0), IrRef(3, -0.5)})
+		&& factored.path == L"brir.wav", "factors, inversion and inverted low factors parse");
+	harness.expectTrue(factored.serialize() == L"L=0.5*0+1 R=-1*2+-0.5*3 brir.wav", "factors serialize compactly and unity factors stay bare");
+
+	MultiConvolutionCommand spaced;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L = 0.5*0 + 1 brir.wav", spaced), "spaced factored form parses");
+	harness.expectTrue(spaced.mappings.size() == 1
+		&& spaced.mappings[0].irChannels == std::vector<IrRef>({IrRef(0, 0.5), IrRef(1)}), "spacing does not change the factored parse");
+
+	MultiConvolutionCommand decibel;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"L=-6dB*0 brir.wav", decibel), "dB factor parses");
+	harness.expectTrue(decibel.mappings.size() == 1
+		&& decibel.mappings[0].irChannels == std::vector<IrRef>({IrRef(0, -6.0, true)}), "the dB factor keeps its raw value and marker");
+	harness.expectTrue(decibel.serialize() == L"L=-6dB*0 brir.wav", "the dB factor round-trips");
+
+	MultiConvolutionCommand reparsed;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", factored.serialize(), reparsed), "serialized factored line re-parses");
+	harness.expectTrue(reparsed.mappings.size() == 2
+		&& reparsed.mappings[0].irChannels == factored.mappings[0].irChannels
+		&& reparsed.mappings[1].irChannels == factored.mappings[1].irChannels, "factored mappings survive the round trip");
+
+	// An invalid factor ("x*0", "0.5**1") is not a summand, so the word starts
+	// the path exactly like any other non-mapping word.
+	MultiConvolutionCommand invalid;
+	harness.expectTrue(MultiConvolutionCommand::parse(L"MultiConvolution", L"Mixed x*0 y.wav", invalid), "a non-numeric factor word falls back to the path");
+	harness.expectTrue(invalid.mappings.size() == 1 && invalid.mappings[0].targetChannel == L"Mixed"
+		&& invalid.path == L"x*0 y.wav", "the invalid summand word starts the path");
+}
+
+// The filter applies each summand's factor to that IR channel's convolution
+// result before the sum: 0.5 halves, -1 inverts, -0.5 does both, and a dB
+// factor converts like Copy (pow(10, dB/20)).
+void assertFactorScalesConvolutionResult()
+{
+	vector<double> ir0(frameLength, 0.0);
+	ir0[0] = 2.0;
+	vector<double> ir1(frameLength, 0.0);
+	ir1[0] = 3.0;
+
+	struct Case
+	{
+		IrRef ref0;
+		bool alsoUnity1;
+		double expected;
+		const char* label;
+	};
+	const Case cases[] = {
+		{IrRef(0, 0.5), true, 0.5 * 0.2 + 0.3, "a 0.5 factor halves its IR channel's share of the sum"},
+		{IrRef(0, -1.0), false, -0.2, "a -1 factor inverts the phase"},
+		{IrRef(0, -0.5), false, -0.1, "a -0.5 factor inverts and attenuates"},
+		{IrRef(0, -6.0, true), false, pow(10.0, -6.0 / 20.0) * 0.2, "a dB factor converts to its linear scale"},
+	};
+
+	for (const Case& c : cases)
+	{
+		vector<IrRef> refs = {c.ref0};
+		if (c.alsoUnity1)
+			refs.push_back(IrRef(1));
+		wstring irFile = createMultiChannelIr({ir0, ir1});
+		MultiConvolutionFilter filter({{L"L", refs}}, irFile);
+		vector<wstring> allChannels = {L"L", L"R"};
+		filter.initialize((float)sampleRate, frameLength, allChannels);
+		DeleteFileW(irFile.c_str());
+
+		vector<double> inL(frameLength, 0.1);
+		vector<double> inR(frameLength, 0.7);
+		vector<double> out(frameLength, 0.0);
+		double* input[] = {inL.data(), inR.data()};
+		double* output[] = {out.data()};
+		filter.process(output, input, frameLength);
+
+		for (int f = 0; f < frameLength; f++)
+			harness.expectTrue(fabs(out[f] - c.expected) <= tolerance, c.label);
+	}
 }
 
 // serialize -> parse round trip is stable, so the Editor can write the line and
@@ -365,6 +461,8 @@ void runMultiConvolutionTests()
 	assertCommandParsesChannelAndPath();
 	assertMappingGrammarParses();
 	assertPathBoundaryIsRobust();
+	assertFactorGrammarParses();
+	assertFactorScalesConvolutionResult();
 	assertCommandSerializeRoundTrips();
 	harness.report();
 }

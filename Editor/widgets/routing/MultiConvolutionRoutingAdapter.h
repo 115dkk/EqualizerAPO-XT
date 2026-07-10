@@ -5,10 +5,10 @@
 	MultiConvolution command's mappings to/from the routing views' working type
 	(std::vector<Assignment>, filters/CopyFilter.h). The views stay Copy-shaped;
 	an impulse-response channel rides as a decimal summand channel ("0", "1",
-	...) at unity factor, and the fixed source-port list comes from the file's
-	channel count. The card supplies these structures to every skin's
+	...) carrying its factor, and the fixed source-port list comes from the
+	file's channel count. The card supplies these structures to every skin's
 	IRoutingRenderer, so MultiConvolution routing gets the same per-skin
-	presentations as Copy.
+	presentations as Copy, including factor editing.
 */
 
 #pragma once
@@ -24,7 +24,7 @@ class MultiConvolutionRoutingAdapter
 {
 public:
 	// Mappings -> the views' Assignment type. IR channel k becomes a summand
-	// with channel "k" and unity factor. A simple-form mapping (empty list)
+	// with channel "k" and its factor. A simple-form mapping (empty list)
 	// expands to every file channel 0..fileChannelCount-1 for display; when the
 	// file's channel count is unknown (<= 0) it expands to nothing, so callers
 	// must not offer editing in that state (an edit would persist the empty
