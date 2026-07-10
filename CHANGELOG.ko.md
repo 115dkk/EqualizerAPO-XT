@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 파라미터에 백틱 인라인 식이 든 줄도 이제 카드를 유지합니다. Preamp와
+  Delay 카드는 동적 모드로 열려 노브가 꺼지고 값 자리에 식 원문이
+  표시되며(계산된 값은 분석 판독에 나타남), 그 외 편집기는 원문을 잘못
+  읽는 대신 raw 본문으로 물러납니다. 이런 Preamp 줄이 0.0 dB로 표시되고
+  노브를 한 번만 돌려도 식이 소리 없이 지워지던 위험도 함께 고쳤습니다.
+  ([#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184))
 - 프로그래밍 계열 설정 명령(`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`)이 이름
   없는 맨텍스트 행 대신 정식 카드가 됐습니다. 줄마다 분기 종류를 말하는
   배지(IF/ELIF/ELSE/ENDIF/EVAL)가 붙고 조건식이나 수식이 카드 요약으로
