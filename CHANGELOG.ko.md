@@ -30,8 +30,9 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   수정). 이전 본문은 다이얼 옆에 'Delay'라는 단어를 카드 가장자리에 붙여
   반복하고 있었습니다.
   ([#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182))
-- 프로그래밍 명령을 필터 픽커에서 바로 넣을 수 있습니다(Control 분류의
-  If/ElseIf/Else/EndIf/Eval). If/Eval 행에는 글자 배지 대신 전용
+- 프로그래밍 명령을 필터 픽커에서 바로 넣을 수 있습니다. Eval은 컨트롤
+  분류에 들어가고 If 가족은 전용 '분기점' 분류를 받으며, 두 분류는 처리
+  필터들 뒤에서 카탈로그를 닫습니다. If/Eval 행에는 글자 배지 대신 전용
   픽토그램(순서도 결정 다이아몬드, fx 수식 기호)이 붙습니다.
   ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
 - 계수 직접 입력 IIR 필터 줄("Filter: ON IIR Order N Coefficients ...")이

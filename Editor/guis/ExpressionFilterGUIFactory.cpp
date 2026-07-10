@@ -27,14 +27,19 @@ QList<FilterTemplate> ExpressionFilterGUIFactory::createFilterTemplates()
 	// The programmatic vocabulary the expression parser owns. This factory
 	// used to only suppress GUIs for backtick lines, which left conditionals
 	// and Eval as typing-only knowledge; the picker offers them like any
-	// other command, filed under Control next to Include and Channel.
-	QStringList path(tr("Control"));
+	// other command. Eval files under Control next to Include and Channel;
+	// the If family gets its own Branching section (maintainer verdict, #183
+	// review) which closes the catalog after Control - the listing order
+	// here (Eval before the If family) is what puts Control ahead of
+	// Branching among the trailing sections, so keep it.
+	QStringList controlPath(tr("Control"));
+	QStringList branchingPath(tr("Branching"));
 	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("If (Begin conditional section)"), "If: ", path));
-	list.append(FilterTemplate(tr("ElseIf (Alternative condition)"), "ElseIf: ", path));
-	list.append(FilterTemplate(tr("Else (Fallback section)"), "Else:", path));
-	list.append(FilterTemplate(tr("EndIf (End conditional section)"), "EndIf:", path));
-	list.append(FilterTemplate(tr("Eval (Evaluate expression)"), "Eval: ", path));
+	list.append(FilterTemplate(tr("Eval (Evaluate expression)"), "Eval: ", controlPath));
+	list.append(FilterTemplate(tr("If (Begin conditional section)"), "If: ", branchingPath));
+	list.append(FilterTemplate(tr("ElseIf (Alternative condition)"), "ElseIf: ", branchingPath));
+	list.append(FilterTemplate(tr("Else (Fallback section)"), "Else:", branchingPath));
+	list.append(FilterTemplate(tr("EndIf (End conditional section)"), "EndIf:", branchingPath));
 	return list;
 }
 

@@ -995,32 +995,37 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>ExpressionFilterGUIFactory</name>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="31"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
         <source>Control</source>
         <translation type="unfinished">Steuerung</translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="33"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
+        <source>Branching</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="39"/>
         <source>If (Begin conditional section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="34"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="40"/>
         <source>ElseIf (Alternative condition)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="41"/>
         <source>Else (Fallback section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="42"/>
         <source>EndIf (End conditional section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="37"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="38"/>
         <source>Eval (Evaluate expression)</source>
         <translation type="unfinished"></translation>
     </message>

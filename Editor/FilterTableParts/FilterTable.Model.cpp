@@ -268,10 +268,11 @@ QList<FilterTemplate> FilterTable::pickerFilterTemplates() const
 	for (IFilterGUIFactory* factory : factories)
 	{
 		const QList<FilterTemplate> factoryTemplates = factory->createFilterTemplates();
-		// A factory can ask for its section to close the catalog
-		// (templatesSortLast); the whole shared category moves with it, so
-		// Control (Expression + Include/Device/Channel/Stage) sits last even
-		// though the Expression factory's order-0 slot publishes it first.
+		// A factory can ask for its sections to close the catalog
+		// (templatesSortLast); every shared category moves with it, in the
+		// factory's own listing order - so Control (Eval + Include/Device/
+		// Channel/Stage) precedes Branching (the If family) at the tail even
+		// though the Expression factory's order-0 slot publishes them first.
 		if (factory->templatesSortLast())
 			for (const FilterTemplate& filterTemplate : factoryTemplates)
 				if (!trailingSections.contains(filterTemplate.getPath()))

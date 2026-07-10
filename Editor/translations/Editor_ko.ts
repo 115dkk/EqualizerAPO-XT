@@ -920,32 +920,37 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>ExpressionFilterGUIFactory</name>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="31"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
         <source>Control</source>
         <translation>컨트롤</translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="33"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
+        <source>Branching</source>
+        <translation>분기점</translation>
+    </message>
+    <message>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="39"/>
         <source>If (Begin conditional section)</source>
         <translation>If (조건 구간 시작)</translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="34"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="40"/>
         <source>ElseIf (Alternative condition)</source>
         <translation>ElseIf (그 외 조건)</translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="41"/>
         <source>Else (Fallback section)</source>
         <translation>Else (나머지 경우)</translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="42"/>
         <source>EndIf (End conditional section)</source>
         <translation>EndIf (조건 구간 끝)</translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="37"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="38"/>
         <source>Eval (Evaluate expression)</source>
         <translation>Eval (식 계산)</translation>
     </message>

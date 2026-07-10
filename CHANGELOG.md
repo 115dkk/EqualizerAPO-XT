@@ -38,8 +38,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   decimals (0.25 ms no longer displays as 0.3 ms). The old body repeated the
   word "Delay" next to the dial, flush against the card edge.
   ([#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182))
-- The programmatic commands are insertable from the filter picker
-  (If/ElseIf/Else/EndIf/Eval under Control), and If/Eval rows carry their own
+- The programmatic commands are insertable from the filter picker: Eval joins
+  Control, the If family gets its own Branching section, and both close the
+  catalog after the processing filters. If/Eval rows carry their own
   pictograms - a flowchart decision diamond and an fx formula mark - instead
   of letter badges. ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
 - Custom-coefficient IIR filter lines ("Filter: ON IIR Order N Coefficients
