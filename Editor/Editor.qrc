@@ -76,6 +76,8 @@
         <file>icons/modern/window-close.svg</file>
         <file>icons/modern/matrix-grid-dark.svg</file>
         <file>icons/modern/matrix-grid-light.svg</file>
+        <file>icons/modern/logic-if.svg</file>
+        <file>icons/modern/logic-eval.svg</file>
         <file>translations/Editor_zh_CN.qm</file>
         <file>translations/qtbase_zh_CN.qm</file>
         <file>translations/Editor_fr.qm</file>

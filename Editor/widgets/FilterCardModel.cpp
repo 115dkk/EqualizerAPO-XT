@@ -248,19 +248,48 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = tr("Biquad");
 		descriptor.color = QStringLiteral("#22c55e");
 
-		// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
-		// shelf-with-slope, LPQ/HPQ Q-form, PEQ alias and Modal) so the card
-		// title and summary agree with the legacy GUI. The previous regex only
-		// matched PK/LP/HP/LS/HS/NO/AP/BP and silently fell back to "Biquad".
-		QRegularExpression typeExpression(QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"), QRegularExpression::CaseInsensitiveOption);
-		QRegularExpressionMatch match = typeExpression.match(parameters);
-		if (match.hasMatch())
+		// The custom-coefficient IIR grammar ("ON IIR Order N Coefficients ...")
+		// keeps the biquad card type so every skin's biquad styling applies;
+		// only the badge/title/summary say IIR. Like the biquad summary this
+		// echoes what the author wrote with light regexes - the engine
+		// (IIRFilterFactory::parseCommand) stays the single grammar owner.
+		QRegularExpression iirExpression(QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"), QRegularExpression::CaseInsensitiveOption);
+		QRegularExpressionMatch iirMatch = iirExpression.match(parameters);
+		if (iirMatch.hasMatch())
 		{
-			const QString state = match.captured(1).toUpper();
-			const QString code = match.captured(2).toUpper();
-			descriptor.badge = code;
-			descriptor.title = biquadTypeTitle(code);
-			descriptor.summary = summarizeBiquad(parameters, code, state);
+			descriptor.badge = QStringLiteral("IIR");
+			descriptor.title = tr("IIR filter");
+
+			QStringList parts;
+			const QString orderText = firstCapture(QRegularExpression(QStringLiteral("\\bOrder\\s+([0-9]+)"), QRegularExpression::CaseInsensitiveOption), parameters);
+			if (!orderText.isEmpty())
+				parts.append(tr("Order %1").arg(orderText));
+			const QString coefficientList = firstCapture(QRegularExpression(QStringLiteral("\\bCoefficients((?:\\s+[-+0-9.eE]+)+)"), QRegularExpression::CaseInsensitiveOption), parameters).simplified();
+			if (!coefficientList.isEmpty())
+				parts.append(tr("%1 coefficients").arg(coefficientList.split(QLatin1Char(' ')).size()));
+			if (!parts.isEmpty())
+			{
+				descriptor.summary = parts.join(QStringLiteral(" %1 ").arg(QChar(0x00B7)));
+				if (iirMatch.captured(1).toUpper() == QStringLiteral("OFF"))
+					descriptor.summary = QStringLiteral("OFF %1 ").arg(QChar(0x00B7)) + descriptor.summary;
+			}
+		}
+		else
+		{
+			// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
+			// shelf-with-slope, LPQ/HPQ Q-form, PEQ alias and Modal) so the card
+			// title and summary agree with the legacy GUI. The previous regex only
+			// matched PK/LP/HP/LS/HS/NO/AP/BP and silently fell back to "Biquad".
+			QRegularExpression typeExpression(QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"), QRegularExpression::CaseInsensitiveOption);
+			QRegularExpressionMatch match = typeExpression.match(parameters);
+			if (match.hasMatch())
+			{
+				const QString state = match.captured(1).toUpper();
+				const QString code = match.captured(2).toUpper();
+				descriptor.badge = code;
+				descriptor.title = biquadTypeTitle(code);
+				descriptor.summary = summarizeBiquad(parameters, code, state);
+			}
 		}
 	}
 	else if (commandLower == QStringLiteral("graphiceq"))
@@ -480,7 +509,9 @@ QString FilterCardModel::badgeIconResource(const QString& type, const QString& b
 		{ "vst", "plugin" },
 		{ "device", "device-speaker" },
 		{ "stage", "stage-chain" },
-		{ "loudness", "loudness" }
+		{ "loudness", "loudness" },
+		{ "if", "logic-if" },
+		{ "eval", "logic-eval" }
 	};
 	for (const auto& mapping : commands)
 		if (type == QLatin1String(mapping.type))

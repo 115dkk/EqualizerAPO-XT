@@ -319,7 +319,10 @@ QDoubleSpinBox[valueScrub="true"]:disabled, QSpinBox[valueScrub="true"]:disabled
 }
 
 QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
-QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
+QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
+QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
+QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 9pt; }
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;

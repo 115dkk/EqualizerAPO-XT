@@ -1071,6 +1071,8 @@ QWidget#PreampCardEditor, QWidget#DelayCardEditor,
 QWidget#IncludeCardEditor,
 QWidget#VSTCardEditor,
 QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
+QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
+QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#PreampCardCaption {
     background: transparent;
     border: 0;

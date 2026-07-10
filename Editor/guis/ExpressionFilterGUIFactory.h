@@ -23,6 +23,17 @@
 
 class ExpressionFilterGUIFactory : public IFilterGUIFactory
 {
+	Q_OBJECT
+
 public:
+	QList<FilterTemplate> createFilterTemplates() override;
 	IFilterGUI* createFilterGUI(QString& command, QString& parameters) override;
+	// This factory's sections close the catalog instead of leading it:
+	// Control (Eval, shared with Include/Device/Channel/Stage) first, then
+	// Branching (the If family) as the very last section. See
+	// IFilterGUIFactory and the listing order in createFilterTemplates.
+	bool templatesSortLast() const override
+	{
+		return true;
+	}
 };

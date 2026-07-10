@@ -122,24 +122,43 @@ QString softFriendlySentence(const QString& command, const QString& asWritten)
 	if (value.isEmpty())
 		return QString();
 
+	// One complete sentence per operator, not an operator phrase slotted
+	// into a shared "If %1 is %2" frame: particles and word order change
+	// with the comparison in languages like Korean, so only the whole
+	// sentence can be translated.
 	const QString op = match.captured(2);
-	QString phrase;
-	if (op == QStringLiteral("=="))
-		phrase = value;
-	else if (op == QStringLiteral("!="))
-		phrase = QCoreApplication::translate("SoftSkin", "not %1").arg(value);
-	else if (op == QStringLiteral(">="))
-		phrase = QCoreApplication::translate("SoftSkin", "at least %1").arg(value);
-	else if (op == QStringLiteral(">"))
-		phrase = QCoreApplication::translate("SoftSkin", "more than %1").arg(value);
-	else if (op == QStringLiteral("<="))
-		phrase = QCoreApplication::translate("SoftSkin", "at most %1").arg(value);
+	QString sentence;
+	if (command == QStringLiteral("if"))
+	{
+		if (op == QStringLiteral("=="))
+			sentence = QCoreApplication::translate("SoftSkin", "If %1 is %2");
+		else if (op == QStringLiteral("!="))
+			sentence = QCoreApplication::translate("SoftSkin", "If %1 is not %2");
+		else if (op == QStringLiteral(">="))
+			sentence = QCoreApplication::translate("SoftSkin", "If %1 is at least %2");
+		else if (op == QStringLiteral(">"))
+			sentence = QCoreApplication::translate("SoftSkin", "If %1 is more than %2");
+		else if (op == QStringLiteral("<="))
+			sentence = QCoreApplication::translate("SoftSkin", "If %1 is at most %2");
+		else
+			sentence = QCoreApplication::translate("SoftSkin", "If %1 is less than %2");
+	}
 	else
-		phrase = QCoreApplication::translate("SoftSkin", "less than %1").arg(value);
-
-	return command == QStringLiteral("if")
-		? QCoreApplication::translate("SoftSkin", "If %1 is %2").arg(match.captured(1), phrase)
-		: QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is %2").arg(match.captured(1), phrase);
+	{
+		if (op == QStringLiteral("=="))
+			sentence = QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is %2");
+		else if (op == QStringLiteral("!="))
+			sentence = QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is not %2");
+		else if (op == QStringLiteral(">="))
+			sentence = QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is at least %2");
+		else if (op == QStringLiteral(">"))
+			sentence = QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is more than %2");
+		else if (op == QStringLiteral("<="))
+			sentence = QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is at most %2");
+		else
+			sentence = QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is less than %2");
+	}
+	return sentence.arg(match.captured(1), value);
 }
 
 class SoftSkin : public ISkin

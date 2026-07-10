@@ -106,8 +106,13 @@ public:
 	Item* itemAfter(Item* item) const;
 	void removeItem(Item* item);
 	QMenu* createAddPopupMenu();
-	// Every insertable template flattened from the factories, in factory order.
-	// Feeds the skinnable picker and the offscreen skin gallery.
+	// Every insertable template flattened from the factories and grouped by
+	// category (first-seen order; factory order within a category, matching
+	// the QMenu path merge). pickerFilterTemplates is the ordering owner;
+	// filterPickerEntries is its projection for the skinnable picker and the
+	// offscreen skin gallery, and chooseFilterTemplate resolves the picker's
+	// chosen index against the same list.
+	QList<FilterTemplate> pickerFilterTemplates() const;
 	QList<FilterPickerEntry> filterPickerEntries() const;
 	bool chooseFilterTemplate(FilterTemplate* selectedTemplate, const QPoint& globalPos = QPoint());
 	void cut();

@@ -577,9 +577,10 @@ void testFilterCardDescriptors()
 	expectEqual(evalLine.badge, "EVAL", "Eval badge");
 	expectEqual(evalLine.summary, "gain = -3 + 1.5", "Eval summary carries the expression");
 
-	// If/Eval have no pictogram yet; the badge monogram is the fallback.
-	expectTrue(FilterCardModel::badgeIconResource("if", "IF").isEmpty(), "if badge keeps its monogram fallback");
-	expectTrue(FilterCardModel::badgeIconResource("eval", "EVAL").isEmpty(), "eval badge keeps its monogram fallback");
+	// Dynamic-commands finishing pass: If/Eval wear real pictograms (the
+	// decision diamond and the fx formula mark) instead of the monogram.
+	expectEqual(FilterCardModel::badgeIconResource("if", "IF"), ":/icons/modern/logic-if.svg", "if badge pictogram");
+	expectEqual(FilterCardModel::badgeIconResource("eval", "EVAL"), ":/icons/modern/logic-eval.svg", "eval badge pictogram");
 
 	FilterCardDescriptor bareText = FilterCardModel::describeLine("plain note line without a command");
 	expectEqual(bareText.title, "Text", "bare text line title");

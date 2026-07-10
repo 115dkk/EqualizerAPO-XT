@@ -455,6 +455,8 @@ QCheckBox#FilterCardEnabled { background: transparent; }
 QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
 QWidget#VSTCardEditor, QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
+QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
+QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 
 /* ===== Graphic EQ card (round 3, rebuilt form-first) =====
