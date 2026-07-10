@@ -4,8 +4,7 @@
 	Minimal skin's Copy renderer: a monospace, terminal-like sequential step
 	list. Each output is one row "# │ Dest ← Sources" with explicit + / − signs,
 	×N gain factors and an INV marker for phase inversion. This is the academic,
-	unambiguous text+number form (adapted from the redesign mock-up's
-	step-based CopyExpanded view). The listing folds like a pager: only the
+	unambiguous text+number form. The listing folds like a pager: only the
 	steps the command involves are listed, the rest of the device layout sits
 	behind a fold line ("[+N CH]"), and the closing prompt is the add-channel
 	entry - clicking it lets a new virtual channel be typed at the prompt.

@@ -120,7 +120,7 @@ void FilterTable::dropEvent(QDropEvent* event)
 			emit linesChanged();
 			// A single dropped line splices into the card grid; internal drags
 			// keep the full rebuild in mouseMoveEvent after the originals are
-			// removed. (audit #146 TD040)
+			// removed.
 			if (insertedCount == 1 && renderMode == ModernCards)
 				insertRowAt(dropRow);
 			else

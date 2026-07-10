@@ -45,7 +45,7 @@ void showFailureMessage(QString message, QString title);
 int main(int argc, char* argv[])
 {
 	// Shared bootstrap: plugin-path anchoring plus the Editor's language
-	// preference. (audit #146 TD011)
+	// preference.
 	QtAppBootstrap::addExecutableRelativePluginPath();
 
 	QApplication app(argc, argv);

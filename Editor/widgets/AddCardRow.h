@@ -3,8 +3,8 @@
 #include <QWidget>
 
 // The persistent "add card" row at the end of the modern filter list. It
-// replaces the legacy green-icon QToolBar (which predated the skin system and
-// bypassed every ISkin hook). The widget owns all input handling - click,
+// replaces the legacy green-icon QToolBar in the card path. The widget owns
+// all input handling - click,
 // Space/Return, focus - and delegates every pixel to the active skin through
 // ISkin::paintAddRow, so each skin answers the affordance in its own grammar
 // (docs/skins/README.md, shared insertion contract). LegacyRows keeps the

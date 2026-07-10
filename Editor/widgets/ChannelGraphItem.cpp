@@ -61,11 +61,11 @@ void ChannelGraphItem::paint(QPainter* painter, QColor color)
 	QRectF rect = boundingRect();
 	painter->setRenderHint(QPainter::Antialiasing, true);
 
-	// Modern flat channel badge. The old style washed the top of every badge to
-	// pure white (a hard, dated look) and forced black text; instead use a soft
-	// same-hue sheen and pick the label colour from the badge luminance so the
-	// name stays legible on any channel colour and in either theme. Shared by
-	// the Channel filter selection and the studio Copy node graph.
+	// Modern flat channel badge: a soft same-hue sheen (deliberately not a
+	// pure-white top wash) with the label colour picked from the badge
+	// luminance, so the name stays legible on any channel colour and in
+	// either theme. Shared by the Channel filter selection and the studio
+	// Copy node graph.
 	QLinearGradient gradient(rect.topLeft(), rect.bottomLeft());
 	gradient.setColorAt(0, color.lighter(122));
 	gradient.setColorAt(1, color);

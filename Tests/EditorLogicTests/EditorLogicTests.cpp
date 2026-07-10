@@ -38,9 +38,9 @@ namespace
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
 // EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
-// The suite runs under FailurePolicy::Collect so one broken feature block no
-// longer hides the findings of every block after it (audit #146 TD035); the
-// require* wrappers keep the gating checks aborting like before.
+// The suite runs under FailurePolicy::Collect so one broken feature block
+// does not hide the findings of every block after it; the
+// require* wrappers keep the gating checks aborting.
 test::Harness harness("EditorLogicTests", test::FailurePolicy::Collect);
 
 std::string toStd(const QString& s)
@@ -98,9 +98,9 @@ void requireTrue(bool value, const QString& message)
 	harness.require(value, toStd(message));
 }
 
-// FilterListModel: the widget-free document/selection model extracted from
-// FilterTable so its mutation and selection logic is testable without a
-// QWidget. (audit #146 TD032)
+// FilterListModel: the widget-free document/selection model behind
+// FilterTable, so its mutation and selection logic is testable without a
+// QWidget.
 static void testFilterListModel()
 {
 	FilterListModel model;
@@ -203,7 +203,7 @@ static void testFilterListModel()
 }
 
 // FilterListUndo: the widget-free undo/redo history FilterTable commits to on
-// every linesChanged tick. (audit #146 TD049)
+// every linesChanged tick.
 static void testFilterListUndo()
 {
 	FilterListUndo history;
@@ -527,7 +527,7 @@ void testFilterCardDescriptors()
 	expectEqual(multiConvBare.badge, "MCONV", "bare multiconvolution keeps its badge");
 	expectEqual(multiConvBare.type, "convolution", "bare multiconvolution keeps convolution styling");
 
-	// Feedback round 2: the card badges carry the picker's pictograms instead
+	// The card badges carry the picker's pictograms instead
 	// of English monograms. Pin the descriptor-keyed catalog: the biquad
 	// prefix folding (LSC rides the low-shelf glyph, HPQ the high-pass one,
 	// an unparsed BQUAD falls back to the generic peaking curve), the badge
@@ -543,7 +543,7 @@ void testFilterCardDescriptors()
 	expectEqual(FilterCardModel::badgeIconResource("comment", "#"), ":/icons/modern/comment-bubble.svg", "comment badge pictogram");
 	expectTrue(FilterCardModel::badgeIconResource("text", "TXT").isEmpty(), "raw text lines keep their monogram fallback");
 
-	// Dynamic-commands campaign: the programmatic vocabulary is modelled. The
+	// The programmatic vocabulary is modelled. The
 	// If family shares one card type with per-branch badges, Eval gets its own
 	// type, the condition/expression is the summary, and a parameterless line
 	// does not echo itself twice ("ENDIF  EndIf:"). A bare note line keeps the
@@ -623,7 +623,7 @@ void testFilterCardDepths()
 	expectEqual(depths[6], 0, "channel all depth");
 	expectEqual(depths[7], 0, "post channel-all depth");
 
-	// Dynamic-commands campaign: If opens a nestable scope that EndIf closes.
+	// If opens a nestable scope that EndIf closes.
 	// The indent axis puts members one level in while ElseIf/Else/EndIf sit at
 	// their block head's level; the logic axis counts the scope a row lives in,
 	// where branch/tail rows count their own scope so a painted rail can pass
@@ -1212,8 +1212,6 @@ void testRoutingFold()
 
 void testConfigFileCodec()
 {
-	// ConfigFileCodec::decodeLines/encodeLines were extracted expressly as
-	// an independently testable seam but had no tests. (audit #146 TD031)
 	QList<QString> mixed = ConfigFileCodec::decodeLines(std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));
 	requireEqual((int)mixed.size(), 3, "decodeLines splits CRLF and LF terminated lines");
 	expectEqual(mixed[0], "Preamp: -6 dB", "decodeLines strips the trailing CR");

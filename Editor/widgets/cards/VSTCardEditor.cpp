@@ -3,7 +3,7 @@
 
 	Logic ported from Editor/guis/VSTPluginFilterGUI.cpp (Copyright (C) 2017
 	Jonas Thedering) into a card-native layout; store()/parse round-trip verified
-	lossless by --selftest-vst. See VSTCardEditor.h for the AR2 presentation.
+	lossless by --selftest-vst. See VSTCardEditor.h for the presentation.
 */
 
 #include "VSTCardEditor.h"
@@ -67,7 +67,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	root->setSpacing(6);
 
 	view = SkinManager::instance()->createReferenceCardView(QStringLiteral("vst"), this);
-	// DAW slot grammar (AR2 X-2): the device identity opens the panel.
+	// DAW slot grammar: the device identity opens the panel.
 	connect(view, SIGNAL(nameActivated()), this, SLOT(openPanel()));
 	connect(view, SIGNAL(pathCommitted(QString)), this, SLOT(pathCommitted(QString)));
 	root->addWidget(view);

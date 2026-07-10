@@ -26,18 +26,17 @@ class QCoreApplication;
 class QTranslator;
 
 // Startup bootstrap shared by the three Qt apps (Editor, DeviceSelector,
-// UpdateChecker). The plugin-path anchoring and translator setup used to be
-// copy-pasted into each main() and had drifted: only the Editor honored the
-// user's language preference. (audit #146 TD011)
+// UpdateChecker), so the plugin-path anchoring and translator setup cannot
+// drift apart between the three main()s.
 namespace QtAppBootstrap
 {
 // Qt's plugins (platforms\qwindows.dll, imageformats, styles, tls) ship in a
 // "qt" subfolder beside the executable. addLibraryPath() resolves a relative
 // path against the current working directory, not the exe directory, so any
 // launch whose working directory is not the install folder (a file-type
-// association, a shortcut with a different "Start in", a debugger) left Qt
-// unable to locate its platform plugin. For the elevated DeviceSelector this
-// was also a security concern: a caller that controls the working directory
+// association, a shortcut with a different "Start in", a debugger) leaves Qt
+// unable to locate its platform plugin. For the elevated DeviceSelector it is
+// also a security concern: a caller that controls the working directory
 // could plant a Qt plugin DLL there. Anchor the plugin search to the
 // executable's own directory instead. Call before constructing QApplication.
 void addExecutableRelativePluginPath();
@@ -45,7 +44,7 @@ void addExecutableRelativePluginPath();
 // Applies the user's language choice as the default QLocale: the preference
 // the Editor's language menu writes (EDITOR_REGPATH value "language") when
 // set, the system locale otherwise. Shared so DeviceSelector and
-// UpdateChecker follow the language chosen in the Editor. (audit #146 TD018)
+// UpdateChecker follow the language chosen in the Editor.
 void applyUserLocale();
 
 // Installs the qtbase and <catalogName> catalogs from :/translations for the

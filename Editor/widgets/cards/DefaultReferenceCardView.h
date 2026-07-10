@@ -3,7 +3,7 @@
 
 	The neutral reference-card presentation: the ISkin::createReferenceCardView
 	default for skins that have not answered with their own view. It renders
-	the AR2 information hierarchy plainly - icon, name-first label with format /
+	the reference-card information hierarchy plainly - icon, name-first label with format /
 	ABS / MISSING badges, middle-elided location line, readout line, status
 	line - styled from SkinTokens only, so it stays legible under any palette.
 	The five shipped skins override it; keep this class free of any one skin's

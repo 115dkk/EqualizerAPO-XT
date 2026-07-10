@@ -37,12 +37,8 @@ vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstr
 
 	if (command == L"Copy")
 	{
-		// Parse the routing into the shared std::vector<Assignment> (the same type
-		// CopyFilter::getAssignments() returns) via the single shared parser. This
-		// reproduces the former inline grammar verbatim, so the resulting filter -
-		// and therefore copy_crossfeed - stays bit-identical; the Editor GUI factory
-		// now parses through the exact same routine instead of building a throwaway
-		// CopyFilter just to read getAssignments() back.
+		// Parse the routing via the shared parser (parseCopyAssignments), the
+		// same routine the Editor GUI factory uses.
 		vector<Assignment> assignments = parseCopyAssignments(parameters);
 
 		filter = MemoryHelper::construct<CopyFilter>(assignments);

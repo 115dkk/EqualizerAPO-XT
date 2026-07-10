@@ -25,12 +25,11 @@
 // user-facing dB value plus the two distinctions PreampFilterFactory::createFilter
 // makes when turning the line into an engine filter:
 //   - valid  : the parameter parsed as "<number> dB". A malformed parameter
-//              leaves valid == false (the F019 warning path).
+//              leaves valid == false (the factory logs the warning).
 //   - noOp   : the parameter was valid but the gain rounds to 0 dB, which the
 //              factory deliberately skips so the chain has no PreampFilter for it.
 // With both flags a PreampCommand fully determines whether createFilter emits a
-// PreampFilter and with which gain, so the Editor no longer has to build a
-// throwaway PreampFilter just to read getDbGain() back.
+// PreampFilter and with which gain.
 struct PreampCommand
 {
 	double dbGain = 0.0;
@@ -41,6 +40,6 @@ struct PreampCommand
 	// string, the same form PreampFilterGUI::store() emits and that the factory
 	// parser accepts. Qt-free so both the Editor GUI and the round-trip tests can
 	// share it. The dB value is formatted with %g (six significant digits, trailing
-	// zeros stripped), matching what QString::arg(double) produced for these values.
+	// zeros stripped), matching what QString::arg(double) produces for these values.
 	std::wstring serialize() const;
 };

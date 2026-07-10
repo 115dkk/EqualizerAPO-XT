@@ -81,9 +81,9 @@ wstring VSTPluginLibrary::getDefaultPluginPath()
 		catch (const RegistryException& e)
 		{
 			// No installed EqualizerAPO (dev tree, CI runner). The exception
-			// used to escape through callers that never expected it - parsing
-			// any VSTPlugin line with a relative path, or building a VST row
-			// editor, terminated the Editor outright. Fall back to a
+			// must not escape: callers (parsing any VSTPlugin line with a
+			// relative path, or building a VST row editor) do not expect it
+			// and would terminate the Editor outright. Fall back to a
 			// VSTPlugins folder beside the executable; installed systems have
 			// the registry value and never take this path.
 			LogFStatic(L"%s - falling back to the executable directory for VST plugins", e.getMessage().c_str());

@@ -4,7 +4,7 @@
 	Tiny, header-only, framework-free assertion harness shared by the test
 	suites (HybridConvTests, AudioRegressionTests, EditorLogicTests,
 	EngineOrchestrationTests). It keeps the common assertion primitives in one
-	place so the suites no longer each carry their own copy of
+	place so the suites do not each carry their own copy of
 	fail()/expect()/expectEqual().
 
 	The harness deliberately avoids Qt and any heavy dependency so it can be
@@ -15,14 +15,12 @@
 	Two failure policies exist; each suite picks one in the constructor.
 
 	- Abort (the default): a failed assertion prints to stderr and exits the
-	  process with code 1, matching the behaviour of the original hand-rolled
-	  helpers. All suites behave this way unless they opt out.
+	  process with code 1. All suites behave this way unless they opt out.
 	- Collect (opt-in): a failed expect*() prints the same stderr line,
 	  increments the failure counter and lets the suite continue; report()
 	  then prints a failure summary to stderr and exits with code 1. Collect
-	  exists because a failure at the top of a suite used to hide every
+	  exists because under Abort a failure at the top of a suite hides every
 	  finding below it, costing one CI round-trip per finding.
-	  (audit #146 TD035)
 
 	The require*() family always aborts on failure regardless of the policy.
 	It is for gating checks whose failure would make the following code unsafe

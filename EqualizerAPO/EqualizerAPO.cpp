@@ -41,8 +41,8 @@ namespace
 		// exact dwValidBitsPerSample value is too strict — some virtual devices
 		// (CABLE Input, loopback adapters, etc.) report non-canonical valid-bit
 		// counts even though the container is plain 32-bit float. Rejecting them
-		// here used to fall through to silent output and made the device sound
-		// dead. See git 309e9e8 regression.
+		// here would fall through to silent output and make the device sound
+		// dead.
 		if (IsEqualGUID(f.guidFormatType, KSDATAFORMAT_SUBTYPE_IEEE_FLOAT))
 		{
 			if (f.dwBytesPerSampleContainer == 4)
@@ -652,8 +652,8 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 			// APO_FLAG_INPLACE, so a conformant host hands us the same buffer
 			// for input and output — the samples already sit at outBuf untouched
 			// and we just have to mark the buffer valid. Emitting BUFFER_SILENT
-			// here was the cause of the "APO installed → device goes mute"
-			// regression (git 309e9e8).
+			// here instead makes the device go mute the moment the APO is
+			// installed.
 			//
 			// If a host does call us with distinct in/out buffers we cannot
 			// safely copy the bytes through because we do not know the exact

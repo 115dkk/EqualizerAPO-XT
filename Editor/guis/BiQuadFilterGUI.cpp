@@ -37,15 +37,14 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 {
 	ui->setupUi(this);
 
-	// 84x66 instead of the historical 100x66: every skin paints the knob in a
-	// centred square sized by the 66px height, so the width beyond ~66px is
-	// pure horizontal padding. Trimming it (with the spin buttons gone, X1)
-	// lets the row fit the 960px viewport in the widest-font skins (X2).
+	// 84x66: every skin paints the knob in a centred square sized by the 66px
+	// height, so the width beyond ~66px is pure horizontal padding. The trim
+	// lets the row fit the 960px viewport in the widest-font skins.
 	ui->freqDial->setFixedSize(GUIHelper::scale(QSize(84, 66)));
 	ui->gainDial->setFixedSize(GUIHelper::scale(QSize(84, 66)));
 	ui->qDial->setFixedSize(GUIHelper::scale(QSize(84, 66)));
-	// Shared identity for the skin rounds (X5): these are genuine parameter
-	// mode selectors, not labels, and skins may key their styling off these
+	// Shared identity for the skins: these are genuine parameter mode
+	// selectors, not labels, and skins may key their styling off these
 	// properties without touching the legacy .ui.
 	ui->typeComboBox->setProperty("filterSelector", true);
 	ui->freqComboBox->setProperty("paramSelector", true);

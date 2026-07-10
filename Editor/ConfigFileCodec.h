@@ -24,15 +24,12 @@
 #include <QList>
 #include <QByteArray>
 
-// UI-free reader/writer for EqualizerAPO configuration files.
-//
-// The byte/encoding handling used to live inline in MainWindow::load and
-// MainWindow::save. It is extracted here verbatim so the encoding detection
-// (UTF-8 with a system-ANSI fallback when the bytes do not decode as UTF-8) and
-// the Win32 sharing-violation retry loop sit behind a real, independently
-// testable seam. The class deliberately knows nothing about MainWindow or any
-// QWidget: all user-facing reporting (QMessageBox + tr()) stays in the Editor,
-// which inspects the results returned here.
+// UI-free reader/writer for EqualizerAPO configuration files: the encoding
+// detection (UTF-8 with a system-ANSI fallback when the bytes do not decode
+// as UTF-8) and the Win32 sharing-violation retry loop sit behind a real,
+// independently testable seam. The class deliberately knows nothing about
+// MainWindow or any QWidget: all user-facing reporting (QMessageBox + tr())
+// stays in the Editor, which inspects the results returned here.
 class ConfigFileCodec
 {
 public:
@@ -50,8 +47,7 @@ public:
 	// Outcome of a write attempt. opened == false means CreateFile failed with a
 	// non-sharing-violation error (errorMessage set), so the caller should abort.
 	// When opened == true the file was written; comparing bytesWritten against
-	// totalBytes lets the caller detect a short write, mirroring the original
-	// "Only %0/%1 bytes have been written!" check.
+	// totalBytes lets the caller detect a short write.
 	struct WriteResult
 	{
 		bool opened = false;

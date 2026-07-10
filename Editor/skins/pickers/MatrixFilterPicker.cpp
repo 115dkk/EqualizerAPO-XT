@@ -39,8 +39,6 @@ int s(double pixel)
 {
 	return GUIHelper::scale(pixel);
 }
-
-// withAlpha lives in the shared SkinPaint.h.
 }
 
 MatrixFilterPickerView::MatrixFilterPickerView(QWidget* parent)
@@ -135,7 +133,7 @@ void MatrixFilterPickerView::rebuildBuses(const QList<FilterPickerEntry>& entrie
 		buses.append(buses.takeAt(generalBus));
 
 	// Stable board coordinates: bus letter + 1-based cell number. They never
-	// renumber while scanning, like channel numbers on a desk.
+	// renumber while scanning.
 	for (int b = 0; b < buses.size(); b++)
 	{
 		buses[b].letter = QString(QChar('A' + (b % 26)));
@@ -483,11 +481,10 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		}
 		else if (hovered)
 		{
-			// Pre-light recalibrated (M2): the M1 value (16) measured ~3.5%
-			// brightness delta on the rendered board - below the perceptual
-			// threshold, so the mouse appeared to highlight nothing. The band
-			// must read as an addressed bus at a glance; engagement stays
-			// clearly above it (fill + 3px band).
+			// Pre-light alpha: values around 16 measured ~3.5% brightness delta
+			// on the rendered board - below the perceptual threshold, so hover
+			// appeared to highlight nothing. Engagement stays clearly above it
+			// (fill + 3px band).
 			painter.fillRect(cell, withAlpha(accent, 40));
 		}
 		painter.setPen(QPen(border, 1));
@@ -541,11 +538,9 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		if (engaged)
 			painter.fillRect(cellRect, withAlpha(accent, 56));
 		else if (hovered)
-			// Pre-light recalibrated (M2): the M1 value (18) measured ~3.5%
-			// brightness delta - invisible in practice, which read as "hover
-			// does not highlight" on this skin only. Still below the engaged
-			// fill (56 + accent rule + patch trace) so pre-light never reads
-			// as engagement.
+			// Pre-light alpha (see the bus-rail note): below the engaged fill
+			// (56 + accent rule + patch trace) so pre-light never reads as
+			// engagement.
 			painter.fillRect(cellRect, withAlpha(accent, 40));
 		painter.setPen(QPen(border, 1));
 		painter.drawLine(cellRect.left(), cellRect.bottom(), cellRect.right(), cellRect.bottom());
@@ -575,8 +570,7 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 	}
 
 	// A fruitless scan never blanks the board: the entry column posts the
-	// NO SIGNAL notation where the cells would be, the way a departure board
-	// posts a fault line instead of going dark.
+	// NO SIGNAL notation where the cells would be.
 	if (rows.isEmpty())
 	{
 		painter.setFont(monoFont(8.5, true, 2.0));
@@ -623,7 +617,7 @@ void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 		Qt::AlignVCenter | Qt::AlignLeft,
 		footMetrics.elidedText(lineText, Qt::ElideRight, qMax(0, lineAvail)));
 
-	// Outer 1px rule, square corners: the panel's own cell boundary.
+	// Outer 1px rule, square corners.
 	painter.setPen(QPen(border, 1));
 	painter.drawRect(rect().adjusted(0, 0, -1, -1));
 }

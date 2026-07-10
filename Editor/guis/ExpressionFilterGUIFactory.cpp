@@ -24,14 +24,11 @@ REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Expression, ExpressionFilterG
 
 QList<FilterTemplate> ExpressionFilterGUIFactory::createFilterTemplates()
 {
-	// The programmatic vocabulary the expression parser owns. This factory
-	// used to only suppress GUIs for backtick lines, which left conditionals
-	// and Eval as typing-only knowledge; the picker offers them like any
-	// other command. Eval files under Control next to Include and Channel;
-	// the If family gets its own Branching section (maintainer verdict, #183
-	// review) which closes the catalog after Control - the listing order
-	// here (Eval before the If family) is what puts Control ahead of
-	// Branching among the trailing sections, so keep it.
+	// The programmatic vocabulary the expression parser owns. Eval files
+	// under Control next to Include and Channel; the If family gets its own
+	// Branching section, which closes the catalog after Control - the
+	// listing order here (Eval before the If family) is what puts Control
+	// ahead of Branching among the trailing sections, so keep it.
 	QStringList controlPath(tr("Control"));
 	QStringList branchingPath(tr("Branching"));
 	QList<FilterTemplate> list;

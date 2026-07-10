@@ -18,9 +18,9 @@ class ValueScrubBox;
 // install shows. Form before color: the response lives in a skin-painted
 // GraphicEQPlotWidget (ISkin::paintGraphicEqPlot), and the legacy side table
 // is replaced by a selected-band readout strip built from the established
-// per-skin control grammars (X1 value scrub for Freq/Gain, X5 paramSelector
-// for the band layout). The frozen LegacyRows presentation keeps the
-// original GraphicEQFilterGUI untouched.
+// per-skin control grammars (value scrub for Freq/Gain, paramSelector for
+// the band layout). The frozen LegacyRows presentation keeps the original
+// GraphicEQFilterGUI untouched.
 class GraphicEQCardEditor : public IFilterGUI
 {
 	Q_OBJECT

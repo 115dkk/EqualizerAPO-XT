@@ -43,11 +43,11 @@ body = b"fmt " + struct.pack("<I", len(fmt)) + fmt + b"data" + struct.pack("<I",
 open(r"configs\ir_short.wav", "wb").write(b"RIFF" + struct.pack("<I", 4 + len(body)) + b"WAVE" + body)
 ```
 
-## Processing-filter coverage (audit #48, F021)
+## Processing-filter coverage
 
 Three more cases extend coverage to the remaining processing filters. They are
 generated the same way as the baseline set (run `AudioRegressionTests.exe ...
---generate-references`, which writes `<case>.raw` into this directory). The new
+--generate-references`, which writes `<case>.raw` into this directory). The
 reference files are `iir_order2_lowpass.raw`, `channel_left_only.raw`, and
 `loudnesscorrection_bypassed.raw`.
 

@@ -6,10 +6,9 @@
 	(bottom row) and the traces between them, with the seeding and alias
 	rules ported from the legacy CopyFilterGUIScene::load so existing config
 	strings resolve to the same chips ("LFE"/"SUB" aliases, 1-based numeric
-	positions, the constant-input port). Unlike the legacy scene, which
-	rebuilt assignments from item x-coordinates, this model preserves load
-	order, so a parse -> edit-free serialize round-trip is stable.
-	EditorLogicTests pins these bytes.
+	positions, the constant-input port). The model preserves load order, so a
+	parse -> edit-free serialize round-trip is stable. EditorLogicTests pins
+	these bytes.
 */
 
 #pragma once

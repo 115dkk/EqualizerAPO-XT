@@ -135,8 +135,7 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 	{
 		// A query that matches nothing: the index answers with one quiet
 		// status line (the counter above already reads 0/NN). Secondary ink,
-		// no box, no icon - a terminal reports an empty result, it does not
-		// dramatise it.
+		// no box, no icon.
 		painter.setFont(entryFont);
 		painter.setPen(QColor(t.mutedText));
 		painter.drawText(QRect(pad, GUIHelper::scale(2.0), width() - 2 * pad, entryRowHeight()),
@@ -154,8 +153,7 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 		if (row.entryIndex < 0)
 		{
 			// Section caption: uppercase letter-spaced mono over a full-width
-			// hairline rule. The rule is the only "decoration" the index has,
-			// and it is really a separator, i.e. information.
+			// hairline rule.
 			painter.setFont(captionFont);
 			painter.setPen(QColor(t.mutedText));
 			painter.drawText(r.adjusted(pad, GUIHelper::scale(5.0), -pad, -GUIHelper::scale(3.0)),
@@ -167,8 +165,7 @@ void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 			const bool selected = row.entryIndex == selectedEntryIndex;
 			if (selected)
 			{
-				// Inverted block: the line trades foreground for background,
-				// the bluntest possible cursor a text instrument can have.
+				// Inverted block: the line trades foreground for background.
 				painter.fillRect(r, QColor(t.text));
 			}
 			else if (i == hoverRow)
@@ -300,10 +297,10 @@ MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
 	scrollArea->setWidget(indexList);
 	layout->addWidget(scrollArea, 1);
 
-	// Key legend, the BIOS-menu signature (N4: keep and advertise). The full
-	// keyboard grammar in one man-page line - letters filter, digits jump,
-	// arrows move, Return inserts. Plain text, hairline above (QSS); the
-	// arrows are built from code points so the source stays pure ASCII.
+	// Key legend: the full keyboard grammar in one man-page line - letters
+	// filter, digits jump, arrows move, Return inserts. Plain text, hairline
+	// above (QSS); the arrows are built from code points so the source stays
+	// pure ASCII.
 	const QString dot = QStringLiteral(" %1 ").arg(QChar(0x00B7));
 	QLabel* legend = new QLabel(
 		QStringLiteral("A-Z FILTER") + dot + QStringLiteral("NN JUMP") + dot
@@ -331,7 +328,7 @@ void MinimalFilterPickerView::galleryShowcase(GalleryShowcase kind)
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// A term no template matches: the index prints its NO MATCH line and
-		// the counter reads 0/NN - the terminal's honest empty state.
+		// the counter reads 0/NN.
 		queryEdit->setText(QStringLiteral("zzzz"));
 		return;
 	}
@@ -346,13 +343,12 @@ QString MinimalFilterPickerView::sectionKey(const FilterPickerEntry& entry) cons
 
 void MinimalFilterPickerView::rebuildDisplayNumbers()
 {
-	// N3: numbers are page coordinates. Walk the entries exactly the way the
+	// Numbers are page coordinates: walk the entries exactly the way the
 	// resting index lays them out (sections coalesced by first appearance,
-	// original order within a section) and number that order 1..N, so the
-	// full listing counts straight down the page instead of interleaving
-	// creation-order ids across sections. The assignment never changes
-	// afterwards: filtering hides lines but keeps their printed numbers, and
-	// a digit jump always lands on the number the user read off the page.
+	// original order within a section) and number that order 1..N. The
+	// assignment never changes afterwards: filtering hides lines but keeps
+	// their printed numbers, and a digit jump always lands on the number the
+	// user read off the page.
 	QStringList sectionOrder;
 	QHash<QString, QList<int>> sectionEntries;
 	for (int i = 0; i < allEntries.size(); i++)
@@ -457,7 +453,7 @@ void MinimalFilterPickerView::rebuildIndex()
 	if (jumpMode && !displayOrder.isEmpty())
 	{
 		// 1-based, clamped: "0" stays on the first line, overshoot stops at
-		// the last. The number is the printed page coordinate (N3), fixed at
+		// the last. The number is the printed page coordinate, fixed at
 		// setEntries() time - never the filtered row position.
 		target = displayOrder[qBound(0, query.toInt() - 1, displayOrder.size() - 1)];
 	}

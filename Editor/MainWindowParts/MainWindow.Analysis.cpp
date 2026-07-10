@@ -91,8 +91,8 @@ void MainWindow::updateAnalysisPanel()
 	if (eqGraphView != nullptr)
 		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
 
-	// Hand the engine's per-line load facts (dynamic-commands campaign) to
-	// every open tab whose file took part in this load. A tab whose file was
+	// Hand the engine's per-line load facts to every open tab whose file took
+	// part in this load. A tab whose file was
 	// not part of the analyzed chain receives an empty set, which clears any
 	// stale facts from a previous device/config selection.
 	{

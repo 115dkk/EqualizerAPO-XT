@@ -66,9 +66,8 @@ void PreampFilter::process(double** output, double** input, unsigned frameCount)
     const size_t N = hn::Lanes(d);
     const auto gainVec = hn::Set(d, gainFactor);
 
-    // Process each channel independently. One portable Highway loop replaces the
-    // former AVX-512/AVX2/SSE2 ladder; it compiles to the widest target enabled
-    // for this build (and to NEON on ARM64, which used to fall back to scalar).
+    // Process each channel independently. One portable Highway loop compiles to
+    // the widest target enabled for this build (NEON on ARM64).
     for (size_t c = 0; c < channelCount; ++c)
     {
         const double* inputChannel = input[c];

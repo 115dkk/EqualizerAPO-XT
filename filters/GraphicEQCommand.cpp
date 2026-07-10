@@ -33,18 +33,16 @@ using std::wsmatch;
 using std::wsregex_iterator;
 using std::wstring;
 
-// Same number token the GraphicEQFilterFactory parser used. Kept as a static so
-// the (relatively expensive) std::wregex is compiled once.
+// Kept as a static so the (relatively expensive) std::wregex is compiled once.
 static wregex regexNumber(L"[-+0-9.eE]+");
 
 void GraphicEQCommand::parse(const wstring& parameters)
 {
 	nodes.clear();
 
-	// Reproduces GraphicEQFilterFactory::createFilter's inline parse verbatim so
-	// the engine still builds the identical node list (graphiceq_15band stays
-	// bit-identical): when no period is present the parameter is assumed to use a
-	// comma decimal mark and the commas are turned into periods first.
+	// The graphiceq_15band regression reference pins this parse. When no period
+	// is present the parameter is assumed to use a comma decimal mark and the
+	// commas are turned into periods first.
 	wstring value = parameters;
 	if (value.find(L'.') == wstring::npos)
 		value = StringHelper::replaceCharacters(value, L",", L".");
@@ -53,10 +51,8 @@ void GraphicEQCommand::parse(const wstring& parameters)
 
 	// Consume freq/gain pairs; a trailing unpaired number is dropped. The loop
 	// advances only via the body's *it++, so it never increments a past-the-end
-	// iterator. (The original inline parse combined a for-loop increment with
-	// *it++, stepping past end on an odd token count — undefined behavior that a
-	// new round-trip test surfaced.) Pairing for valid even-count input is
-	// unchanged, so graphiceq_15band stays bit-identical.
+	// iterator (combining a for-loop increment with *it++ would step past end on
+	// an odd token count — undefined behavior).
 	for (wsregex_iterator it(value.begin(), value.end(), regexNumber); it != end; )
 	{
 		wsmatch freqMatch = *it++;
@@ -73,10 +69,9 @@ void GraphicEQCommand::parse(const wstring& parameters)
 
 wstring GraphicEQCommand::serialize() const
 {
-	// Matches the former GraphicEQFilterGUI::store() text: each freq and gain is
-	// formatted with the C "%g" default (six significant digits, trailing zeros
-	// stripped) the same way QString::arg(double) did, the two values are
-	// separated by a single space, and pairs are joined with "; ".
+	// Each freq and gain is formatted with the C "%g" default (six significant
+	// digits, trailing zeros stripped), matching QString::arg(double); the two
+	// values are separated by a single space, and pairs are joined with "; ".
 	wstring result;
 	bool first = true;
 	for (const FilterNode& node : nodes)

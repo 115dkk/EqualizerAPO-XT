@@ -2,13 +2,12 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	Mechanical paint helpers shared by the skin TUs (skins, pickers,
-	reference cards, routing renderers). Every function here used to exist as
-	near-identical per-file copies (withAlpha alone had nine); none of them
-	carries a design decision, so sharing them cannot breach the
-	differentiation gate - a skin's grammar lives in what it draws, not in
-	how a QColor gets its alpha. Additions must stay design-free; per-skin
-	recipes are only admitted when several TUs of the SAME skin need them and
-	are marked as off-limits to the neighbours.
+	reference cards, routing renderers). Nothing here carries a design
+	decision, so sharing them cannot breach the differentiation gate - a
+	skin's grammar lives in what it draws, not in how a QColor gets its
+	alpha. Additions must stay design-free; per-skin recipes are only
+	admitted when several TUs of the SAME skin need them and are marked as
+	off-limits to the neighbours.
 
 	Header-only on purpose: SkinThemeData/DeviceSelector-style satellite
 	consumers can include it without linking anything.
@@ -84,7 +83,7 @@ inline QString cssColor(const QColor& color)
 
 // Screen point on a circle around center. Qt-style angles: counter-clockwise
 // from 3 o'clock, and screen Y grows downward, so sin is subtracted. Pass the
-// negated clockwise sweep angle, exactly like the knob painters always did.
+// negated clockwise sweep angle.
 inline QPointF skinArcPoint(const QPointF& center, double radius, double degrees)
 {
 	const double radians = qDegreesToRadians(degrees);

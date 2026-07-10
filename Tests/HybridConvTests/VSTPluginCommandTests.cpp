@@ -5,10 +5,9 @@
 	(VSTPluginCommand::parse + VSTPluginCommand::serialize in
 	filters/VSTPluginCommand.cpp). They confirm that representative "VSTPlugin:"
 	lines - library only, library + ChunkData, library + named params, library +
-	id params, and quoted paths/names - parse into the same library/chunkData/
-	paramMap the engine factory used to read back off a throwaway VSTPluginFilter,
-	and that serializing the parsed command reproduces the canonical parameter
-	body so serialize(parse(line)) round-trips.
+	id params, and quoted paths/names - parse into the expected library/chunkData/
+	paramMap, and that serializing the parsed command reproduces the canonical
+	parameter body so serialize(parse(line)) round-trips.
 
 	Parsing only resolves the cached VSTPluginLibrary object (getInstance does not
 	load the binary), so these tests need no real plugin. To stay independent of

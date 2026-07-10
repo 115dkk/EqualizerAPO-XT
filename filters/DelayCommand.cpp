@@ -28,8 +28,7 @@ std::wstring DelayCommand::serialize() const
 	// Format the magnitude with the C "%g" default (six significant digits, no
 	// trailing zeros). For every value the Delay GUI can produce (integer
 	// samples in [1, 10000] and millisecond values with at most two decimals in
-	// [0, 10000]) this matches the QString("%0").arg(double) text the GUI used
-	// before, so the written config line is unchanged.
+	// [0, 10000]) this matches the QString("%0").arg(double) text.
 	wchar_t buffer[64];
 	swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g", delay);
 

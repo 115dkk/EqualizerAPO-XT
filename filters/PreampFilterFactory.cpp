@@ -53,8 +53,8 @@ bool PreampFilterFactory::parseCommand(const wstring& command, const wstring& pa
 	}
 	else
 	{
-		// Malformed parameter (F019): leave out.valid == false. The warning is
-		// emitted by createFilter so the engine log output stays unchanged; the
+		// Malformed parameter: leave out.valid == false. The warning is
+		// emitted by createFilter (the engine owns the log line); the
 		// Editor path simply discards the GUI for this line.
 	}
 

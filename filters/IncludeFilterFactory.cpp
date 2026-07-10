@@ -64,7 +64,7 @@ vector<IFilter*> IncludeFilterFactory::createFilter(const wstring& configPath, w
 		if (PathIsRelativeW(value.c_str()))
 		{
 			wchar_t filePath[MAX_PATH];
-			// Standard copy + truncate; _Copy_s is an MSVC-internal helper. (audit #146 TD025)
+			// Standard copy + truncate; _Copy_s is an MSVC-internal helper.
 			const size_t copyLength = configPath.copy(filePath, MAX_PATH - 1);
 			filePath[copyLength] = L'\0';
 			PathRemoveFileSpecW(filePath);

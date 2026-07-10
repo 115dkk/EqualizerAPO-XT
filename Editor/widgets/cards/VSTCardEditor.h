@@ -1,15 +1,15 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Modern card body for VSTPlugin rows. It ports the proven plugin-lifecycle
+	Modern card body for VSTPlugin rows. It ports the plugin-lifecycle
 	logic from the legacy VSTPluginFilterGUI (initialise, open panel, embed,
 	store) into a card-native layout, holding the opaque plugin state
-	(chunkData / paramMap) and reproducing it verbatim on store(). A mechanical
-	round-trip self-test (--selftest-vst) confirmed this state survives
+	(chunkData / paramMap) and reproducing it verbatim on store(). The
+	--selftest-vst round-trip test pins that this state survives
 	parse -> store -> parse without loss.
 
-	Presentation follows the AR2 review (issue #97): the plugin is a named
-	device, not a file with a path. The card renders through the active skin's
+	The plugin is presented as a named device, not a file with a path. The
+	card renders through the active skin's
 	ReferenceCardView - plugin display name first (effGetEffectName), the DLL
 	location as secondary metadata, a VST2/VST3 format badge, the broken
 	library as a missing-state transition with a Locate recovery entry, and

@@ -1,7 +1,8 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	QPainter chrome for the "rack" skin. The tiebreaker for every stroke in
+	QPainter chrome for the "rack" skin. Constitution: docs/skins/rack.md.
+	The tiebreaker for every stroke in
 	this file is "would a hardware faceplate have it?" - screws, machined
 	grooves, LEDs and engraved printing yes; glows, value arcs and abstract
 	decoration no (the only exceptions are the thin keyboard-focus ring and
@@ -111,7 +112,7 @@ void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QCol
 	painter.drawEllipse(center - QPointF(radius * 0.35, radius * 0.35), radius * 0.3, radius * 0.3);
 }
 
-// Horizontal brushing grain (R4): fine strokes whose ink varies
+// Horizontal brushing grain: fine strokes whose ink varies
 // deterministically per line, so the metal reads as brushed rather than
 // evenly striped, with sparse brighter polish lines where the abrasive bit
 // deeper. Logical coordinates only - the painter's DPI transform scales the
@@ -448,7 +449,7 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 	painter.drawLine(QPointF(leftEar.right() + 1, r.top()), QPointF(leftEar.right() + 1, r.bottom()));
 	painter.drawLine(QPointF(rightEar.left() + 1, r.top()), QPointF(rightEar.left() + 1, r.bottom()));
 
-	// Unit seating and bezel (R3): a dark seam runs just inside the QSS
+	// Unit seating and bezel: a dark seam runs just inside the QSS
 	// border (the plate sitting in its rack opening), then the chamfer obeys
 	// the one work light - lit along the top and left, falling into shadow
 	// along the bottom and right - so every row reads as its own bolted
@@ -598,7 +599,7 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 
 	// Scale ticks are printed on the PANEL around the knob, never on the
 	// knob - they do not move and there is no value arc; the pointer alone
-	// carries the value, as on real hardware. R1: the printing must read at
+	// carries the value, as on real hardware. The printing must read at
 	// a glance, so the end stops are majors in full panel ink while the
 	// intermediates stay muted; the bipolar neutral (0 dB at 12 o'clock) is
 	// the boldest mark on the plate - the centre detent, in amber, longer
@@ -622,7 +623,7 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 
 	// Bipolar knobs print the cut/boost glyphs in the dead zone under the
 	// scale ends, like a gain pot's faceplate. Unipolar knobs stay plain, so
-	// the two kinds never look alike. R1: the glyphs are engraved (contrast
+	// the two kinds never look alike. The glyphs are engraved (contrast
 	// pass offset one pixel down) in full panel ink, large enough to read at
 	// the gallery's knob size.
 	if (state.bipolar)
@@ -672,7 +673,7 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 	painter.drawArc(QRectF(center.x() - capRadius, center.y() - capRadius, capRadius * 2, capRadius * 2), 60 * 16, 60 * 16);
 
 	// The pointer: a physical painted line. Hover/drag turns it amber (the
-	// hand is on the knob), disabled grays it out. R1: a recessed shadow
+	// hand is on the knob), disabled grays it out. A recessed shadow
 	// pass underneath and a tip reaching the knob skirt keep the pointer
 	// readable against the printed scale at any angle.
 	QColor pointerColor;
@@ -714,8 +715,8 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 	}
 
 	// No value window on the knob itself: a display pane across the cap is
-	// not buildable hardware and it cut the pointer line in half (user
-	// direction, AR2 rework round). The value lives in the card's own LED
+	// not buildable hardware and it would cut the pointer line in half.
+	// The value lives in the card's own LED
 	// display (EditableValue) beside the knob; state.valueText is
 	// deliberately unused here.
 }
@@ -733,9 +734,7 @@ void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& st
 	painter.setClipPath(opening);
 
 	// The bay's blank panel is missing, so the opening shows the rack's
-	// interior - and the inside of a rack has no finish: it is dark in both
-	// modes (the same physical honesty as the display law). The shadow of
-	// the unit above hangs over the top of the opening.
+	// interior - dark in both modes (the inside of a rack has no finish).
 	QLinearGradient interior(r.topLeft(), r.bottomLeft());
 	if (dark)
 	{
@@ -792,10 +791,8 @@ void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& st
 	painter.drawLine(QPointF(r.left() + radius, r.bottom() - 1.0), QPointF(r.right() - radius, r.bottom() - 1.0));
 
 	// Stencilled marking inside the bay - hardware printing, never
-	// translated (the tooltip carries the accessible caption). At rest the
-	// stencil names the state; under the cursor it answers with the action
-	// and the amber pre-heat. Always the dark-recess engraving pass: the
-	// interior is dark in both finishes.
+	// translated (the tooltip carries the accessible caption). Always the
+	// dark-recess engraving pass: the interior is dark in both finishes.
 	const bool warm = state.hovered || state.pressed;
 	QFont stencilFont(tokens.fontFamily);
 	stencilFont.setPixelSize(9);
@@ -874,11 +871,9 @@ void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, cons
 	const bool powered = state.enabled;
 	painter.save();
 
-	// The scope well is dark in BOTH finishes - a cream panel still carries a
-	// dark glass window (the display law). Glass and bezel hexes are the
-	// established display-glass idiom; the graticule sits in the scope-grid
-	// family (the dark table's graphGridMinor grammar - the cream table's
-	// grid token is panel paint, so it never reaches the glass).
+	// The scope well is dark in BOTH finishes (the display law). The
+	// graticule sits in the scope-grid family: the cream table's grid token
+	// is panel paint, so it never reaches the glass.
 	const QColor glassTop = dark ? QColor(0x04, 0x06, 0x05) : QColor(0x0A, 0x0E, 0x0B);
 	const QColor glassBottom = dark ? QColor(0x0A, 0x0F, 0x0C) : QColor(0x11, 0x16, 0x10);
 	const QColor bezel = dark ? QColor(0x05, 0x08, 0x07) : QColor(0x4A, 0x44, 0x38);
@@ -1263,13 +1258,10 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 		painter.fillRect(block, metal);
 		painter.fillRect(QRect(block.left(), block.top(), block.width(), 1), metalLight);
 	};
-	// The relay/pilot lamp in the panel-LED grammar (paintLed: bezel ring,
-	// dome, specular, halo only when lit) so the bulb keeps its physical
-	// construction in the dark finish too - a bare glowing disc reads as
-	// paint, not hardware. One green bulb per station, lit when the branch is
-	// taken; an evaluation fault lights the red service bulb instead. False,
-	// short-circuited and not-yet-analyzed all read as the same dark dome -
-	// a lamp is on or off, hardware makes no third claim.
+	// The relay/pilot lamp in the panel-LED grammar (paintLed) - a bare
+	// glowing disc reads as paint, not hardware. Lit green when the branch
+	// is taken; an evaluation fault lights the red service bulb; false,
+	// short-circuited and not-yet-analyzed all read as the same dark dome.
 	const auto lamp = [&](qreal cx, qreal cy, int state, qreal radius) {
 		const bool fault = state == 3;
 		painter.setRenderHint(QPainter::Antialiasing, true);

@@ -1,21 +1,14 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Hardware Rack device selector: a PATCH BAY. The APO bus runs down the
-	list's left edge as a metal bus bar inside a dark rail channel (the rack's
-	interior has no finish - dark in both modes, the add-row law). Every
-	device row is a 1U bay strip: brushed faceplate, machined right ear with
-	hand-tightened screws and an engraved unit number, a panel LED lamp for
-	the install state, and a 1/4" patch jack as the toggle. Checking a device
-	seats a plug in its jack and patches a cable stub to the bus rail with a
-	lit junction - the connection metaphor is literal. Hover pre-heats the
-	jack ring amber and a plug ghost approaches with the hover progress;
-	pressing pushes the plug in. Sections are the rack's mounting rails: a
-	DZUS quarter-turn fastener whose slot rotates when the bay folds open,
-	mounting slots along the rail, and BAY numbering. The dialog buttons are
-	machined caps (raised at rest, recessed when pressed, the primary legend
-	amber-backlit); the troubleshooting disclosure is a service hatch whose
-	T-handle latch pre-heats under the cursor and turns when opened.
+	Hardware Rack device selector: a patch bay. Constitution (the rack
+	grammar and its laws): docs/skins/rack.md. Element mapping: the APO bus
+	is a bus bar in a rail channel on the list's left edge; a device row is
+	a 1U bay strip whose toggle is a 1/4" patch jack (checking seats a plug
+	and patches a cable to the bus), with a panel lamp for the install
+	state; sections are mounting rails with a DZUS quarter-turn fastener;
+	the dialog buttons are machined caps; the troubleshooting disclosure is
+	a service hatch.
 
 	Paint only, no images; every colour derives from the tokens (black/white
 	alpha passes are light and shadow, not palette). Engraved stencils are
@@ -67,8 +60,8 @@ void engrave(QPainter& painter, const QRectF& rect, int flags, const QString& te
 	painter.drawText(rect, flags, text);
 }
 
-// Horizontal brushing grain (RackChrome R4 grammar): per-line ink density
-// varies deterministically with the seed, sparse polish lines mixed in.
+// Horizontal brushing grain (same grammar as RackChrome): per-line ink
+// density varies deterministically with the seed, sparse polish lines mixed in.
 void paintGrain(QPainter& painter, const QRectF& r, bool dark, uint seed, const SkinTokens& t)
 {
 	const int baseAlpha = dark ? 4 : 5;

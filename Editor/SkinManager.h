@@ -35,7 +35,7 @@ public:
 	// platform's standard palette, and classic light token values for the few
 	// custom painters (analysis graph, knobs). The legacy rows are meant to be
 	// the unmodernized original editor, not skinned widgets inside modern
-	// chrome. (maintainer decision 2026-07-05)
+	// chrome.
 	void applyHeritage();
 	bool isHeritage() const;
 

@@ -2,10 +2,9 @@
 
 #include "FilterListModel.h"
 
-// The mutation/selection semantics below are moved verbatim from FilterTable
+// The mutation/selection semantics below mirror their FilterTable call sites
 // (FilterTable.Clipboard.cpp / FilterTable.Model.cpp / FilterTable.Mouse.cpp)
-// so they can be unit-tested; behavioral notes cite the original call sites.
-// (audit #146 TD032)
+// and live here so they can be unit-tested.
 
 FilterListModel::~FilterListModel()
 {

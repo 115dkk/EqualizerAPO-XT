@@ -13,17 +13,15 @@ std::vector<Assignment> CopyRoutingAdapter::parse(const QString& parameters)
 {
 	// Delegate to the single shared owner of the Copy grammar (parseCopyAssignments
 	// in filters/CopyFilter.cpp) so the editor, the runtime factory and the round-trip
-	// tests all parse through one routine. The earlier hand-ported Qt copy of this
-	// grammar is gone; this keeps the editor and engine in lock-step by construction.
+	// tests all parse through one routine - the editor and engine stay in
+	// lock-step by construction.
 	return parseCopyAssignments(parameters.toStdWString());
 }
 
 QString CopyRoutingAdapter::serialize(const std::vector<Assignment>& assignments)
 {
 	// Delegate to the shared serializer so parse(serialize(assignments)) round-trips
-	// against the same grammar the engine uses. The produced text is identical to the
-	// former inline loop (same "not yet filled row" skip, %g factor formatting, ".0"
-	// suffix and dB handling).
+	// against the same grammar the engine uses.
 	return QString::fromStdWString(serializeCopyAssignments(assignments));
 }
 
@@ -43,7 +41,7 @@ bool CopyRoutingAdapter::isVirtualChannel(const QString& channel)
 
 QString CopyRoutingAdapter::channelColor(const QString& channel)
 {
-	// Fixed hues mirror the redesign mock-up (special-filters.jsx CH_COLORS).
+	// Fixed per-channel hues: the cross-skin data ink for channel identity.
 	static const QHash<QString, QString> colors = {
 		{ QStringLiteral("L"), QStringLiteral("#ef4444") },
 		{ QStringLiteral("R"), QStringLiteral("#3b82f6") },

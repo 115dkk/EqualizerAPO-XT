@@ -283,8 +283,8 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 	// Footer strip: the board's expansion controls as mono caption KEYS. At
 	// rest they wear the exact resting treatment of an empty crosspoint cell
 	// (1px border rule + faint fill) - the pressable-cell form the grid above
-	// has already taught - because a bare transparent caption did not read as
-	// a button at all (gate #176 finding). Hover is the accent prelight.
+	// has already taught - because a bare transparent caption does not read as
+	// a button at all. Hover is the accent prelight.
 	// +N CH reveals the folded device channels, +BUS patches a new virtual
 	// bus onto the board.
 	revealRect = QRect();

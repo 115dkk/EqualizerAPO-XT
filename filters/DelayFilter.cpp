@@ -64,11 +64,10 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 	}
 	bufferLength = static_cast<unsigned>(samples);
 
-	// MemoryHelper::alloc returns nullptr on failure. Check every result: a
-	// failed allocation here used to be dereferenced immediately, turning an
-	// out-of-memory request (reachable from a config Delay value) into a crash.
-	// On failure leave buffers == nullptr; process() then passes audio through
-	// undelayed instead of touching a null ring buffer.
+	// MemoryHelper::alloc returns nullptr on failure. Check every result: an
+	// out-of-memory request is reachable from a config Delay value and must not
+	// crash. On failure leave buffers == nullptr; process() then passes audio
+	// through undelayed instead of touching a null ring buffer.
 	buffers = (double**)MemoryHelper::alloc(sizeof(double*) * channelCount);
 	if (buffers == nullptr)
 	{

@@ -162,9 +162,9 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	if (routingRenderer != nullptr)
 	{
-		// Skin-specific Copy routing view (crosspoint matrix, step list, ...)
-		// replaces the legacy CopyFilterGUI in the card body. The view owns its
-		// working routing state; on edit we serialise it back into item->text.
+		// Skin-specific Copy routing view (crosspoint matrix, step list, ...).
+		// The view owns its working routing state; on edit we serialise it
+		// back into item->text.
 		QWidget* editorContainer = new QWidget(bodyStack);
 		editorContainer->setObjectName(QStringLiteral("FilterCardEditor"));
 		editorContainer->setAttribute(Qt::WA_StyledBackground, true);
@@ -180,8 +180,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		// the same list the legacy CopyFilterGUI receives via configureChannels.
 		// Without it the graph only shows channels already named in the line, so
 		// the user cannot route to/from a channel that has no assignment yet
-		// (e.g. copying L onto R when R is not referenced). That was the studio
-		// (glass) Copy card's "cannot edit" bug.
+		// (e.g. copying L onto R when R is not referenced).
 		std::vector<std::wstring> channelNames = table->getChannelNames();
 		// Copy uses the default port model: symmetric sources/targets seeded
 		// from the device channels, with editable factors.
@@ -207,13 +206,12 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		// view is the editor), but it still owns Copy's channel-propagation
 		// behaviour: FilterTable::propagateChannels walks the row GUIs, and
 		// this one is what hands the Copy line's virtual channels to every
-		// row below. It must keep existing - but parentless it was a
+		// row below. It must keep existing - but parentless it is a
 		// top-level zombie: clearRows() only nulls item->gui, so every
-		// rebuild (skin switch, paste, drag) leaked a complete CopyFilterGUI
-		// per Copy row, and each later applySkin repolished the growing
-		// zombie population, which is exactly the "skin switches keep
-		// getting slower" field complaint (SkinGallery::runSwitchTest
-		// guards this). Adopt it as a hidden child so it dies with the row.
+		// rebuild (skin switch, paste, drag) would leak a CopyFilterGUI per
+		// Copy row and each later applySkin repolishes the growing zombie
+		// population (SkinGallery::runSwitchTest guards this). Adopt it as
+		// a hidden child so it dies with the row.
 		if (QWidget* legacyCopyGui = qobject_cast<QWidget*>(gui))
 		{
 			legacyCopyGui->setParent(this);
@@ -266,9 +264,9 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	}
 	else
 	{
-		// Unrecognized command line: no dedicated editor. Instead of a bare label
-		// (the "ugly plain text" case), present a styled monospace raw card with
-		// the command token emphasized, so it reads as a deliberate raw row.
+		// Unrecognized command line: no dedicated editor. Present a styled
+		// monospace raw card with the command token emphasized, so it reads
+		// as a deliberate raw row instead of bare plain text.
 		const SkinTokens& tk = SkinManager::instance()->tokens();
 		QWidget* rawContainer = new QWidget(bodyStack);
 		rawContainer->setObjectName(QStringLiteral("FilterCardEditor"));
@@ -382,9 +380,9 @@ void FilterCardRow::editText()
 
 void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 {
-	// (audit #146 TD040) The constructor puts the number into numberLabel and
-	// the scope into the outer layout's left margin, the descriptor (scope
-	// rail painting) and the skin styling hooks. Refresh those in place.
+	// The constructor puts the number into numberLabel and the scope into
+	// the outer layout's left margin, the descriptor (scope rail painting)
+	// and the skin styling hooks. Refresh those in place.
 	this->rowNumber = rowNumber;
 	if (numberLabel != nullptr)
 	{
@@ -407,9 +405,6 @@ void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 		descriptor.logicDepth = scope.logic;
 		if (layout() != nullptr)
 			layout()->setContentsMargins(8 + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
-		// Re-derives the descriptor at the new depth and refreshes the badge,
-		// the scopeDepth/logicDepth style properties and the frame/header
-		// stylesheets (refreshStateProperties), then repaints.
 		rebuildSummary();
 	}
 	else
@@ -549,9 +544,9 @@ void FilterCardRow::paintEvent(QPaintEvent*)
 {
 	refreshStateProperties();
 
-	// The active skin may own the whole scope gutter (the If-block lanes of
-	// the dynamic-commands campaign); the shared channel rail below stays the
-	// default for skins that do not answer.
+	// The active skin may own the whole scope gutter (the If-block lanes);
+	// the shared channel rail below stays the default for skins that do not
+	// answer.
 	{
 		QPainter gutterPainter(this);
 		if (SkinManager::instance()->paintScopeGutter(gutterPainter, size(), currentRowInfo()))
@@ -608,7 +603,7 @@ void FilterCardRow::paintEvent(QPaintEvent*)
 }
 
 // Renders the badge pictogram at the label's device pixel ratio in the
-// skin-resolved ink (feedback round 2). The toolbar's GUIHelper::tintedIcon
+// skin-resolved ink. The toolbar's GUIHelper::tintedIcon
 // bakes a DPR-1 pixmap for QIcon consumers; a QLabel needs an explicit
 // DPR-aware pixmap or the glyph blurs on scaled displays. Overshooting the
 // fill past the device-independent size is harmless - untouched pixels have
@@ -653,13 +648,12 @@ void FilterCardRow::rebuildSummary()
 		return;
 	}
 
-	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle); the
-	// default reproduces the previous shared outline/filled treatment.
+	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle).
 	typeBadge->setStyleSheet(SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color));
-	// Feedback round 2 (DC #1289929): the badge carries the picker's pictogram
-	// instead of the English monogram, inked by the skin (ISkin::typeBadgeInk).
-	// The monogram survives only for lines the icon catalog does not map (raw
-	// text), so unknown commands keep reading instead of going blank.
+	// The badge carries the picker's pictogram, inked by the skin
+	// (ISkin::typeBadgeInk). The monogram survives only for lines the icon
+	// catalog does not map (raw text), so unknown commands keep reading
+	// instead of going blank.
 	const QString badgeIcon = FilterCardModel::badgeIconResource(descriptor.type, descriptor.badge);
 	if (badgeIcon.isEmpty())
 	{
@@ -744,10 +738,10 @@ void FilterCardRow::addAfter()
 	FilterTemplate filterTemplate;
 	if (table->chooseFilterTemplate(&filterTemplate, addButton->mapToGlobal(QPoint(0, addButton->height()))))
 	{
-		// Insert BELOW this card (2026-07-09 user decision; shared insertion
-		// contract in docs/skins/README.md). addLine's contract is
-		// insert-before, so the anchor is the item after this one - nullptr
-		// falls through to append-at-end for the last card.
+		// Insert BELOW this card (shared insertion contract in
+		// docs/skins/README.md). addLine's contract is insert-before, so the
+		// anchor is the item after this one - nullptr falls through to
+		// append-at-end for the last card.
 		table->addLine(filterTemplate.getLine(), table->itemAfter(item));
 		FilterTable* targetTable = table;
 		QTimer::singleShot(0, targetTable, [targetTable]() {
@@ -839,9 +833,9 @@ void FilterCardRow::enabledToggled(bool checked)
 	table->updateModel();
 	FilterTable* targetTable = table;
 	FilterTable::Item* targetItem = item;
-	// In-place refresh: only the toggled row's GUI needs to change. Falling
-	// back to a full updateGuis() on a 500+ row config was the dominant
-	// source of toggle latency.
+	// In-place refresh: only the toggled row's GUI needs to change. A full
+	// updateGuis() on a 500+ row config is the dominant source of toggle
+	// latency.
 	QTimer::singleShot(0, targetTable, [targetTable, targetItem]() {
 		targetTable->updateSingleRowGui(targetItem);
 	});
@@ -862,11 +856,11 @@ void FilterCardRow::refreshStateProperties()
 	cardFrame->setRowInfo(info);
 
 	// "enabled" is a real QWidget property, so setting it on cardFrame /
-	// headerWidget was equivalent to calling setEnabled(false) on the whole
-	// card whenever the line was commented out. That killed the toggle button,
-	// the raw editor, and every child editor (Include path field, BiQuad
-	// controls...) so a disabled row could not be re-enabled or even inspected.
-	// Use a dedicated dynamic property name for the styling hook instead.
+	// headerWidget is equivalent to calling setEnabled(false) on the whole
+	// card whenever the line is commented out - killing the toggle button,
+	// the raw editor, and every child editor, so a disabled row could not be
+	// re-enabled or even inspected. Use a dedicated dynamic property name for
+	// the styling hook instead.
 	const QList<QPair<const char*, QVariant>> properties = {
 		{ "filterKind", info.command },
 		{ "filterEnabled", info.enabled },
@@ -892,8 +886,7 @@ void FilterCardRow::refreshStateProperties()
 	}
 
 	// The frame/header chrome is owned by the active skin so each skin can
-	// treat command types differently; the default reproduces the previous
-	// shared token-driven strings (see ISkin::cardFrameStyle).
+	// treat command types differently (see ISkin::cardFrameStyle).
 	const QString frameStyle = SkinManager::instance()->cardFrameStyle(info);
 	const QString headerStyle = SkinManager::instance()->cardHeaderStyle(info);
 	if (cardFrame->styleSheet() != frameStyle)

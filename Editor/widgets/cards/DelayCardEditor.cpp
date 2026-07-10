@@ -93,7 +93,7 @@ void DelayCardEditor::buildLayout(QWidget* valueWidget)
 	valueLayout->setContentsMargins(0, 0, 0, 0);
 	valueLayout->setSpacing(6);
 
-	// The caption slot is the unit selector itself (the X5 grammar the BiQuad
+	// The caption slot is the unit selector itself (the grammar the BiQuad
 	// parameter blocks established): a real mode choice, not a prose label
 	// repeating the card title.
 	unitCombo = new QComboBox(valueBlock);

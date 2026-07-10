@@ -11,7 +11,7 @@ class IFilterGUI;
 // One line of the loaded config file. The gui pointer is stored opaquely for
 // the widget layer (FilterTable/FilterCardRow own and dereference it); the
 // model never touches it, so this header stays QtCore-only and links into
-// EditorLogicTests. (audit #146 TD032)
+// EditorLogicTests.
 struct FilterListItem
 {
 	FilterListItem()
@@ -28,14 +28,12 @@ struct FilterListItem
 	IFilterGUI* gui = nullptr;
 };
 
-// The widget-free document/selection model behind FilterTable, extracted so
-// the mutation and selection logic is unit-testable without a QWidget.
-// (audit #146 TD032)
+// The widget-free document/selection model behind FilterTable; the mutation
+// and selection logic is unit-testable without a QWidget.
 //
 // Ownership: the model owns every FilterListItem it hands out. Items are
 // deleted when they are removed (removeItem/removeItems/deleteSelected),
-// replaced (setLines) or when the model is destroyed - exactly the lifetime
-// FilterTable managed inline before the extraction. Callers must not delete
+// replaced (setLines) or when the model is destroyed. Callers must not delete
 // items themselves and must drop raw pointers after any removing mutation.
 class FilterListModel
 {
@@ -57,9 +55,8 @@ public:
 	QList<QString> lines() const;
 
 	// Replaces the whole document. Focus and the selection anchor move to the
-	// first line (or null when empty) and the selection set is cleared.
-	// (FilterTable historically left the selection set holding pointers into
-	// the deleted document; clearing it here removes that dangling state.)
+	// first line (or null when empty) and the selection set is cleared, so it
+	// can never hold dangling pointers into the deleted document.
 	void setLines(const QList<QString>& lines);
 
 	// Inserts a new line before the given item, or appends when before is
@@ -143,7 +140,7 @@ public:
 	// Shift-click/Shift-arrow range selection: replaces the selection with the
 	// contiguous run between the current anchor (selectionStart) and target.
 	// Leaves the selection untouched when the anchor or target is not part of
-	// the document, matching the widget's historical behavior.
+	// the document.
 	void selectRangeFromAnchor(const FilterListItem* target);
 
 	// Document index of the topmost selected item, or -1 when nothing is

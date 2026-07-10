@@ -48,7 +48,7 @@ void ExpressionFilterFactory::initialize(FilterEngine* engine)
 	parser->DefineFun(new ReadRegDWORDFunction(engine));
 
 	// Engine-free extensions (regex functions, '+', '!') live in one shared
-	// roster so the parser tests register exactly the same set. (audit #146 TD021)
+	// roster so the parser tests register exactly the same set.
 	registerEngineFreeParserExtensions(*parser);
 }
 
@@ -94,7 +94,7 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 
 	if (hadInlineExpression)
 	{
-		// Load-trace (dynamic-commands campaign): the Editor shows what a
+		// Load-trace: the Editor shows what a
 		// line's `expression` segments resolved to on this load.
 		ConfigLoadTraceEntry entry;
 		entry.kind = ConfigLoadTraceEntry::Kind::InlineValue;

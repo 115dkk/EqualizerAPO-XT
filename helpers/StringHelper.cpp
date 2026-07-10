@@ -225,7 +225,5 @@ vector<wstring> StringHelper::splitQuoted(const wstring& s, wchar_t splitChar, w
 
 double StringHelper::parseDouble(const wstring& s)
 {
-	// Mirrors the previous inline wcstod(str, nullptr) calls verbatim so parsed
-	// values stay bit-identical (the trailing pointer was already ignored).
 	return wcstod(s.c_str(), nullptr);
 }

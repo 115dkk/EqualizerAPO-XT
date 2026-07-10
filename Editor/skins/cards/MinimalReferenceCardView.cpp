@@ -51,8 +51,7 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 {
 	// The state's kind (mirrored as the refKind property by the base) is all
 	// the differentiation this skin wants: Include, Convolution and VST are
-	// deliberately the same one-line grammar (constitution: "Include / VST
-	// 행 - 특별 취급하지 않는다").
+	// deliberately the same one-line grammar (constitution).
 	Q_UNUSED(kind);
 
 	QWidget* page = contentWidget();
@@ -89,8 +88,7 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 
 	lineLayout->addLayout(pathLayout);
 
-	// The broken-reference marker: an inverted block token (fg/bg swap),
-	// text on the line rather than a coloured badge.
+	// The broken-reference marker: an inverted block token (fg/bg swap).
 	missingToken = new QLabel(QStringLiteral("MISSING"), page);
 	missingToken->setObjectName(QStringLiteral("MinimalRefMissing"));
 	missingToken->setAttribute(Qt::WA_StyledBackground, true);
@@ -206,9 +204,9 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	repolishChild(statusLabel);
 
 	// The Browse command doubles as the Locate recovery entry while the
-	// reference is broken (AR2 X-4). Same condition the hosts use for their
-	// translated "Locate..." label; the token is the terminal's word for it,
-	// the host's tooltip keeps the translated explanation.
+	// reference is broken. Same condition the hosts use for their translated
+	// "Locate..." label; the token is the terminal's word for it, the host's
+	// tooltip keeps the translated explanation.
 	if (browseButton != nullptr)
 		browseButton->setText(state.missing && !state.editText.isEmpty()
 			? QStringLiteral("LOCATE") : QStringLiteral("BROWSE"));

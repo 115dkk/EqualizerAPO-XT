@@ -48,8 +48,7 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 	QWidget* page = contentWidget();
 	QVBoxLayout* root = new QVBoxLayout(page);
 	// The left inset gives the identity type its margin - print pressed
-	// against the card's edge read as cramped, not calm (user direction,
-	// AR2 rework round).
+	// against the card's edge reads as cramped, not calm.
 	root->setContentsMargins(8, 0, 0, 0);
 	root->setSpacing(5);
 
@@ -92,15 +91,13 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 	windowPane->setVisible(false);
 	QHBoxLayout* windowLayout = new QHBoxLayout(windowPane);
 	// The left margin indents the data one character from the pane's edge -
-	// print does not start at the very edge of the page (user direction, AR2
-	// rework round).
+	// print does not start at the very edge of the page.
 	windowLayout->setContentsMargins(18, 3, 10, 3);
 	windowLayout->setSpacing(10);
 
 	// The location prints as the containing prefix ("Surround\"): the folder
 	// holds the file, so it must read as a path prefix, never as a sub-item
-	// hanging off the name (the ↳ glyph this window used to open with said
-	// exactly that inverted relation).
+	// hanging off the name.
 	locationLabel = new ElidedLabel(windowPane);
 	locationLabel->setObjectName(QStringLiteral("StudioRefLocation"));
 	windowLayout->addWidget(locationLabel, 1, Qt::AlignVCenter);
@@ -180,8 +177,7 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	// datum to fix: the reference as written when it says more than the name,
 	// otherwise the resolved path where the target was expected. Only the
 	// unconfigured card keeps a bare pane (nothing is set, so nothing sits
-	// behind the glass). A lone small name floating on the dark pane read as
-	// abandoned, not quiet (AR2 rework round).
+	// behind the glass).
 	QString windowText;
 	if (state.missing)
 	{
@@ -216,9 +212,9 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 	repolishWidget(statusLamp);
 
 	// A labelled action shows its words - the host swaps Browse to
-	// "Locate..." while the reference is broken (AR2 X-4) - and the Browse
-	// button additionally lights an accent border while it acts as the
-	// recovery entry (glass that brightens on hover, per the constitution).
+	// "Locate..." while the reference is broken - and the Browse button
+	// additionally lights an accent border while it acts as the recovery
+	// entry (glass that brightens on hover, per the constitution).
 	for (QAbstractButton* button : actionButtons)
 	{
 		QToolButton* toolButton = qobject_cast<QToolButton*>(button);

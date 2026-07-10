@@ -44,18 +44,15 @@ struct IrCacheEntry
 // not match, or the file has no usable audio (0 frames / 0 channels /
 // frames > INT_MAX). One implementation shared by ConvolutionFilter and
 // MultiConvolutionFilter so the intake hardening and the cache cannot
-// diverge between them. (audit #146 TD001)
+// diverge between them.
 std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, double sampleRate);
 
 // RAII owner for a flat HConvSingle array. The array is a single block
 // allocated with MemoryHelper::alloc(sizeof(HConvSingle) * count) and must be
 // torn down by closing every element (hcCloseSingle) before freeing the block.
 // Wrapping it makes that teardown automatic and idempotent. The element count
-// is stored by value at adopt() time (audit #146 TD023 replaced the previous
-// reference-to-owner-member binding, which depended on member declaration
-// order). The type stays a thin handle around HConvSingle*: it converts to the
-// raw pointer, so existing call sites (filters[i], &filters[i],
-// filters == nullptr) keep their exact meaning.
+// is stored by value at adopt() time rather than read from an owner member,
+// so it does not depend on member declaration order.
 class HConvSingleArray
 {
 public:
@@ -83,13 +80,11 @@ public:
 	}
 
 	HConvSingle& operator[](unsigned i) const { return ptr[i]; }
-	// Implicit decay to the raw pointer keeps every existing use of `filters`
-	// (filters[i], &filters[i], filters == nullptr, hcInitSingle(&filters[i], ...))
-	// byte-for-byte identical to a raw HConvSingle* member.
+	// Implicit decay to the raw pointer lets call sites keep raw-pointer idioms
+	// (filters[i], &filters[i], filters == nullptr, hcInitSingle(&filters[i], ...)).
 	operator HConvSingle*() const { return ptr; }
 
-	// Close every element, then free the block. Mirrors the legacy cleanup()
-	// sequence exactly (hcCloseSingle loop, then MemoryHelper::free).
+	// Close every element (hcCloseSingle), then free the block.
 	void reset();
 
 private:

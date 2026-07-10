@@ -1,10 +1,8 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Default knob rendering shared by every skin. The body is the pre-hook
-	AudioKnob::paintEvent moved verbatim behind ISkin::paintKnob, so skins
-	that do not override the hook keep exactly the appearance they had before
-	the hook existed.
+	Neutral default implementations of the ISkin hooks, shared by every
+	skin that does not override them.
 */
 
 #include "ISkin.h"
@@ -87,9 +85,6 @@ void ISkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 	}
 }
 
-// The two style defaults are the strings FilterCardRow::refreshStateProperties
-// computed before the hook existed, moved verbatim, so every skin keeps its
-// previous card chrome until it overrides them.
 QString ISkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
 	const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
@@ -114,9 +109,8 @@ QString ISkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tok
 		.arg(tokens.borderRadius);
 }
 
-// The default is the string FilterCardRow::rebuildSummary computed before the
-// hook existed, moved verbatim: outline-style skins ink the badge in the type
-// colour, filled-style skins use the type colour as the pill background.
+// Outline-style skins ink the badge in the type colour, filled-style skins
+// use the type colour as the pill background.
 QString ISkin::typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const
 {
 	Q_UNUSED(info);
@@ -249,7 +243,6 @@ void ISkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& stat
 
 	if (state.curve.size() >= 2)
 	{
-		// Soft fill between the curve and the 0 dB line, then the curve.
 		QPolygonF fill = state.curve;
 		const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
 		fill.append(QPointF(state.curve.last().x(), base));
@@ -303,9 +296,9 @@ void ISkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& stat
 
 void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const
 {
-	// Neutral default, kept close to the pre-hook EqGraphView rendering: a
-	// rounded token ground, the token grid, an accent zero line and an
-	// accent response trace over a translucent fill. Also the heritage look.
+	// Neutral default: a rounded token ground, the token grid, an accent
+	// zero line and an accent response trace over a translucent fill. Also
+	// the heritage look.
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 

@@ -73,12 +73,11 @@ private:
 
 	// One convolution state per (mapping, impulse-response channel) pair, laid
 	// out mapping by mapping; plans[] holds the per-mapping ranges. The holder
-	// runs the close-then-free teardown that cleanup() used to spell out by
-	// hand. (audit #146 TD002)
+	// runs the close-then-free teardown.
 	HConvSingleArray filters;
 	unsigned unitCount;
 	// Pins the cached impulse response for this filter's lifetime; the
-	// process-wide cache holds only weak references. (audit #146 TD001)
+	// process-wide cache holds only weak references.
 	std::shared_ptr<const IrCacheEntry> irEntry;
 	// Scratch buffer for one unit's convolution result before it is summed into
 	// the mapping's output. Sized in initialize() so process() never allocates

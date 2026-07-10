@@ -22,8 +22,8 @@
 
 class QLineEdit;
 
-// Modern card body for a pure comment line (Phase 1, the neutral base shared
-// by every skin): the note's text without the leading '#', editable in place.
+// Modern card body for a pure comment line (the neutral base shared by
+// every skin): the note's text without the leading '#', editable in place.
 // A comment line has no "command: parameters" shape, so store() uses the
 // card-path contract that FilterCardRow::updateModel understands: command
 // "#" means "reassemble as '# <parameters>' with no colon".

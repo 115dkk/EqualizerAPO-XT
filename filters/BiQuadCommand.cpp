@@ -25,9 +25,7 @@
 
 bool biquadTypeFromName(const std::wstring& name, BiQuad::Type& outType)
 {
-	// Single owner of the config keyword -> BiQuad type vocabulary. These are the
-	// exact entries the BiQuadFilterFactory parser relied on before, so the set
-	// of accepted keywords is unchanged.
+	// Single owner of the config keyword -> BiQuad type vocabulary.
 	static const std::unordered_map<std::wstring, BiQuad::Type> nameToType = {
 		{L"PK", BiQuad::PEAKING},
 		{L"PEQ", BiQuad::PEAKING},

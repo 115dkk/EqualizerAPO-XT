@@ -87,9 +87,9 @@ void AnalysisPlotView::drawBackground(QPainter* painter, const QRectF& rect)
 		painter->setBrush(Qt::NoBrush);
 	}
 
-	// The skin's dark flag, not the OS scheme: a dark skin on a light system
-	// used to draw the response curve black on the dark graph background.
-	// (Heritage reports light, matching its classic white graph.)
+	// The skin's dark flag, not the OS scheme: with the OS scheme a dark skin
+	// on a light system draws the response curve black on the dark graph
+	// background. (Heritage reports light, matching its classic white graph.)
 	bool dark = SkinManager::instance()->isDark();
 	painter->setPen(dark ? Qt::white : Qt::black);
 	painter->drawPath(path);

@@ -3,8 +3,7 @@
 
 	The troubleshooting disclosure's header row: a full-width, keyboard
 	reachable fold control painted by the active skin's DeviceSkinPainter.
-	Replaces the checkable QGroupBox title (whose check state only ever
-	meant open/closed). The slide animation of the panel below stays in
+	The slide animation of the panel below stays in
 	DeviceSelector::onTroubleShootingToggled.
 */
 

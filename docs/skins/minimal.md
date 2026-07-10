@@ -259,6 +259,46 @@ Include/Convolution/MultiConvolution/VST 행의 본문은 문자 그대로 **한
   호버 한 스텝(@BORDER@; 토스트 그라운드가 이미 cardHover라 그 위의 스텝),
   눌림은 반전 블록(×는 활자이므로 맞교환이 성립), 포커스는 액센트 헤어라인.
 
+### 분석 그래프 — 플로터 시트
+
+분석 독의 응답 그래프는 넓은 시트에 남은 플로터 기록이다
+(`paintMinimalAnalysisGraph`).
+
+- **양쪽 여백의 dB 숫자.** dB 숫자는 시트 양쪽 여백에 인쇄된다. 여백이
+  좁으면 노브 선례대로 폰트를 줄인다 — 잘라내지 않는다. **0 dB 숫자만 본문
+  잉크**로 찍힌다 — 기준이기 때문이고, 나머지는 보조 잉크다. 주파수 숫자는
+  플롯 아래에 찍히며 직전 인쇄와 겹칠 숫자는 건너뛴다(메이저는 항상
+  찍는다).
+- **0 dB 룰과 트레이스.** 0 dB 룰은 시트의 유일한 풀 잉크 직선이고, 응답은
+  채움도 에코도 없는 본문 잉크 1px 트레이스다.
+- **클리핑 = reverse video 오류 블록.** 트레이스와 0 dB 룰 사이의 초과
+  영역이 통째로 채워지고, 트레이스는 그 안에서 시트 그라운드 색으로
+  반전되어 지나간다(반전이 글리프를 지킨다). 블록의 잉크는 시트의
+  레지스터로 가라앉힌 danger다(색상 유지, 채도·명도 하향 유도 — 면적
+  강도의 생 적색은 두 마감 모두에서 눈을 찌른다). 라이트 시트에서는 잉크에
+  가까운 검붉은 블록이 되고, 트레이스가 검정을 뚫는 흰 선으로 반전된다.
+  상단 밴드의 `RESPONSE` 헤더 옆에 danger 잉크의 `!! OVER 0 DB` 태그가
+  붙는다.
+- **커서 = 플로터 십자선.** 전고 세로 헤어라인 + 판독점의 짧은 수평 틱.
+  잉크는 호버 진행도로 보조 잉크에서 본문 잉크로 올라선다. 커서 판독은 상단
+  밴드 우측의 같은 잉크 모노 한 줄이다.
+- **시트 메타데이터.** 하단의 채널/샘플레이트 캡션(보조 잉크, 원문 그대로),
+  전체를 두르는 정사각 1px 헤어라인 프레임(GraphicEQ 플롯과 같은 프레임).
+
+### Device Selector — 터미널의 장치 선택 메뉴
+
+장치 선택 다이얼로그는 터미널 메뉴다
+(`DeviceSelector/skins/MinimalDeviceSkin.cpp`). 장치는 인쇄된 두 줄
+엔트리다: 그려 넣은 `[x]`/`[ ]` 토글 박스 + 0패딩 유닛 번호 + 명령어 자리의
+연결 이름 + 흐린 `:: 상태` 둘째 줄. 호버는 반전 블록이 줄을 한 문자 셀씩
+쓸고 지나가며 거터에 `>` 프롬프트 캐럿이 나타나고, 선택은 정사각 액센트
+헤어라인 뒤의 풀 반전 블록으로 고정된다. 설치/제거가 대기 중인 행은 저장
+안 된 버퍼의 `*` 마크(무장 액센트 잉크)를 달고, 사용 불가 엔드포인트는
+주석 처리된 줄이다(`#` 거터 + 가라앉은 잉크). 섹션은 `[-]`/`[+]` 폴드
+마크를 단 `== 캡션 ==` 구분 룰, 다이얼로그 버튼은 같은 스윕으로 반전되는
+대괄호 명령(`[ OK ]`), 디스클로저는 폴드 마크를 단 프롬프트 줄이다. 반전은
+엄격한 그라운드/글리프 맞교환(text ↔ surface)이고, 제3의 색은 없다.
+
 ### 동적 명령어 — 들여쓰기 가이드와 워치 판독 칼럼 (If/Eval)
 
 공유 계약: 스코프 표시는 `ISkin::paintScopeGutter`(false 반환 = 공유 채널
@@ -313,12 +353,15 @@ If/ElseIf/Else는 분기 판정을, Eval·인라인 값 행은 `= 값`을 찍는
 ## 구현 지도
 
 - 클래스: `MinimalSkin` — [MinimalSkin.cpp](../../Editor/skins/MinimalSkin.cpp)
-  (`paintMinimalKnob`, `paintMinimalGraphicEqPlot`, `minimalTypeGlyph` 헬퍼
-  포함; 로스터 조립은 [Skins.cpp](../../Editor/skins/Skins.cpp))
+  (`paintMinimalKnob`, `paintMinimalGraphicEqPlot`,
+  `paintMinimalAnalysisGraph`, `minimalTypeGlyph` 헬퍼 포함; 로스터 조립은
+  [Skins.cpp](../../Editor/skins/Skins.cpp))
 - QSS: `Editor/skins/precision_dark.qss`, `precision_light.qss` (이름 유지)
 - 픽커: `Editor/skins/pickers/MinimalFilterPicker.{h,cpp}`
 - 참조 카드: `Editor/skins/cards/MinimalReferenceCardView.{h,cpp}`
 - Copy: `Editor/widgets/routing/StepListRoutingRenderer.{h,cpp}`
+- Device Selector: `DeviceSelector/skins/MinimalDeviceSkin.cpp` (공용 폼 계약은
+  `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)
 
 ## 새 요소를 이 스킨답게 만드는 법
 

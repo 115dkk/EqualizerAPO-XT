@@ -2,10 +2,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 */
 
-// Matrix skin, split out of Skins.cpp (audit #109 F005). This is a verbatim
-// move of the helpers and the class; behaviour is unchanged. The file-scope
-// instance is exposed through matrixSkin() so Skins::all() can assemble the
-// roster without a central definition list.
+// Constitution: docs/skins/matrix.md
+// The file-scope instance is exposed through matrixSkin() so Skins::all()
+// can assemble the roster without a central definition list.
 
 #include "Skins.h"
 
@@ -27,7 +26,6 @@
 #include <QWidget>
 #include <QtMath>
 
-// Studio's S3 band-colour law maps BiQuad filter types onto hue families.
 #include "filters/BiQuad.h"
 
 #include "Editor/SkinManager.h"
@@ -49,14 +47,7 @@
 namespace
 {
 // ── Matrix (signal-routing matrix / departure board) ────────────────────────
-//
-// Constitution: an airport departure board / broadcast routing matrix.
-// Everything aligns to a grid; numeric values are monospace; 1px rules; rows
-// behave like cells with coordinates. Traffic-light colours (green/amber/red)
-// are reserved for status and never used decoratively. Hover highlights the
-// row band and the coordinate-column band (crosspoint feel). Disabled rows get
-// a dashed border. Knobs are rotary encoders with a stepped LED ring and a
-// boxed mono numeric cell as the authoritative reading.
+// Constitution: docs/skins/matrix.md
 
 namespace MatrixMetrics
 {
@@ -81,13 +72,9 @@ QPointF matrixRadialPoint(const QPointF& center, double radius, double fraction)
 	return skinArcPoint(center, radius, -(135.0 + 270.0 * fraction));
 }
 
-// Bus designation of a command type (M2): the row coordinate speaks the same
-// letter-plus-number grammar as the picker's board coordinates (A1..G8), with
-// the letter mirroring the mono type code the badge cell already shows
-// (BQUAD -> B, INC -> I, VST -> V, ...). The letter is a designation, not an
-// identifier - two types may share one, exactly like two flights share a
-// carrier letter; uniqueness stays with the line number, which never
-// renumbers while the board is scanned.
+// Bus letter of a command type for the row coordinate ("B3"). Letters are
+// designations, not identifiers - two types may share one; uniqueness stays
+// with the line number.
 QString matrixBusLetter(const QString& type)
 {
 	if (type == QStringLiteral("biquad"))
@@ -104,10 +91,8 @@ QString matrixBusLetter(const QString& type)
 		return QStringLiteral("I");
 	if (type == QStringLiteral("vst"))
 		return QStringLiteral("V");
-	// The gate family (If/ElseIf/Else/EndIf) and Eval are engine decisions
-	// posted on the board, not remarks: their own designations keep them out
-	// of the R (remark) carrier. Letters are designations, not identifiers -
-	// F and E collide with nothing that matters.
+	// If/Eval get their own designations so they stay out of the R (remark)
+	// carrier.
 	if (type == QStringLiteral("if"))
 		return QStringLiteral("F");
 	if (type == QStringLiteral("eval"))
@@ -122,18 +107,13 @@ QString matrixBusLetter(const QString& type)
 	return QStringLiteral("R");
 }
 
-// Per-row caption strip (M2): the picker footer's grammar imported into the
-// card. A sunken board line fixed under the card body echoes the row's raw
-// spec ("> Filter: ON PK ...") next to the row's board coordinate, exactly
-// like the picker footer echoes the line an engaged coordinate would insert.
-// At rest the readout idles in muted ink; while the row crosspoint is hovered
-// the echo lights - marker and coordinate in accent, spec in full ink. The
-// strip needs no event machinery: the frame's :hover QSS rule already forces
-// a frame repaint on enter/leave (the same trigger the painted column band
+// Per-row caption strip: a sunken board line under the card body echoing the
+// row's raw spec next to its coordinate, lighting on row hover. The strip
+// needs no event machinery: the frame's :hover QSS rule already forces a
+// frame repaint on enter/leave (the same trigger the painted column band
 // uses), which redraws this child, and the gallery's WA_UnderMouse hover
 // equivalent drives it the same way. It replaces the shared raw-preview
-// strip for this skin (tokens().showRawPreview = false), so the row spends
-// the same vertical budget on a line that follows the board's grammar.
+// strip for this skin (tokens().showRawPreview = false).
 class MatrixRowCaption : public QWidget
 {
 public:
@@ -158,15 +138,12 @@ protected:
 		// before the first restyle it is simply unset, which reads enabled.
 		const QVariant enabledProperty = card != nullptr ? card->property("filterEnabled") : QVariant();
 		const bool enabled = !enabledProperty.isValid() || enabledProperty.toBool();
-		// A line swallowed by a false If branch (dynamic commands) idles at
-		// the cancelled ink depth, but keeps its verbatim spec: the source is
-		// live, it just is not running on this device - no "#" appears in the
-		// raw line and no cancel treatment is added here.
+		// A line swallowed by a false If branch idles at the cancelled ink
+		// depth but keeps its verbatim spec: no "#" appears in the raw line
+		// and no cancel treatment is added here.
 		const bool skipped = card != nullptr && card->property("lineSkipped").toBool();
 		const bool lit = enabled && card != nullptr && card->underMouse();
 
-		// Sunken board line under a 1px top rule - the picker footer's
-		// construction.
 		painter.fillRect(rect(), QColor(tokens.surfaceSunken));
 		painter.setPen(QPen(QColor(tokens.border), 1));
 		painter.drawLine(0, 0, width() - 1, 0);
@@ -182,16 +159,14 @@ protected:
 		const QColor accent(tokens.accent);
 		const int pad = 10;
 
-		// Board coordinate readout on the right.
 		const QString coordinate = coordinateSource != nullptr ? coordinateSource->text() : QString();
 		const int coordinateWidth = metrics.horizontalAdvance(coordinate);
 		painter.setPen(lit ? accent : idleInk);
 		painter.drawText(QRect(width() - pad - coordinateWidth, 0, coordinateWidth, height()),
 			Qt::AlignVCenter | Qt::AlignLeft, coordinate);
 
-		// "> <raw line>" spec echo. The raw-preview label keeps its text
-		// current on every model rebuild even while hidden, so it doubles as
-		// the live source of the row's raw spec.
+		// The raw-preview label keeps its text current on every model rebuild
+		// even while hidden, so it doubles as the live source of the raw spec.
 		QString spec = specSource != nullptr ? specSource->text() : QString();
 		if (spec.startsWith(QStringLiteral("Raw")))
 			spec = spec.mid(3).trimmed();
@@ -209,7 +184,7 @@ private:
 	QLabel* coordinateSource;
 };
 
-// Painted chrome layers for the main toolbar (the board's header strip).
+// Painted chrome layers for the main toolbar.
 // QSS cannot draw the 24px column grid or the status lamp, so the matrix
 // toolbar hook parents two transparent, mouse-transparent widgets to the
 // toolbar: UnderCells (lowered below every cell) paints the column grid,
@@ -306,16 +281,14 @@ private:
 
 	void paintBoard(QPainter& painter)
 	{
-		// The faint 24px column grid: the graph paper the whole board sits
-		// on, same pitch and ink as the card grid texture.
+		// Faint 24px column grid, same pitch and ink as the card grid texture.
 		QColor grid(ruleColor);
 		grid.setAlpha(gridAlpha);
 		painter.setPen(QPen(grid, 1));
 		for (int x = MatrixMetrics::gridPitch; x < width(); x += MatrixMetrics::gridPitch)
 			painter.drawLine(x, 0, x, height());
 
-		// Doubled header rule above the QSS bottom border: the strip closes
-		// like a board's title rule, not a plain window edge.
+		// Doubled header rule: this inner line plus the QSS bottom border.
 		painter.setPen(QPen(ruleColor, 1));
 		painter.drawLine(0, height() - 4, width(), height() - 4);
 
@@ -330,9 +303,7 @@ private:
 		QWidget* badge = ownedBadge();
 		if (badge == nullptr)
 			return;
-		// Solid square lamp in traffic-light semantics: green = saved,
-		// amber = modified. This is exactly what colour rationing reserves
-		// colour for - the one truthful lamp on the header strip.
+		// Solid square lamp: green = saved, amber = modified.
 		const QRect cell = badge->geometry();
 		const QRect lampRect(cell.left() + 8, cell.center().y() - 4, 8, 8);
 		painter.fillRect(lampRect, badge->property("dirty").toBool() ? modifiedColor : savedColor);
@@ -356,18 +327,14 @@ public:
 		static CrosspointMatrixRoutingRenderer renderer;
 		return &renderer;
 	}
-	// The "add filter" picker as a two-axis selection instrument: a bus rail
-	// of categories and a column of coordinate-labelled entry cells, engaged
-	// like a crosspoint (MatrixFilterPicker.cpp).
+	// Two-axis picker: a bus rail of categories and a column of
+	// coordinate-labelled entry cells (MatrixFilterPicker.cpp).
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		return new MatrixFilterPickerView(parent);
 	}
 	// Reference rows (Include / Convolution / MultiConvolution / VST) as
-	// board feed lines: a mono marker cell designates the feed and turns
-	// danger while the reference is broken, measured facts sit in boxed
-	// sunken mono cells, and the VST body carries the "> IN ... EXTERNAL
-	// DEVICE ... OUT >" port strip (MatrixReferenceCardView.cpp).
+	// board feed lines (MatrixReferenceCardView.cpp).
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new MatrixReferenceCardView(kind, parent);
@@ -423,7 +390,7 @@ public:
 		}
 
 		QColor litColor = state.bipolar && !boost ? cutColor : accentColor;
-		// Lit-segment luminance is calibrated per mode (M1): on the dark board
+		// Lit-segment luminance is calibrated per mode: on the dark board
 		// the LEDs gain headroom toward white so a lit cell clearly outshines
 		// the ghost ring; the light tokens were derived for maximum contrast
 		// on white, where lightening would only desaturate them.
@@ -433,7 +400,7 @@ public:
 			litColor = litColor.lighter(125);
 		else if (state.hovered)
 			litColor = litColor.lighter(112);
-		// The unlit ring stays visible at low alpha (M1): the range geometry -
+		// The unlit ring stays visible at low alpha: the range geometry -
 		// and the bipolar centre gap - must read even with nothing lit, the
 		// way an unlit LED is still a visible part on the board. Muted ink
 		// instead of border ink, which vanished against the light card.
@@ -452,8 +419,8 @@ public:
 		}
 
 		// Centre detent tick: marks the 0-position gap of bipolar knobs so the
-		// two knob kinds read differently even at rest. Full text ink (M1):
-		// at 0 dB the gap plus this tick is the whole detent statement.
+		// two knob kinds read differently even at rest. Full text ink: at
+		// 0 dB the gap plus this tick is the whole detent statement.
 		if (state.bipolar)
 		{
 			painter.setPen(QPen(state.enabled ? QColor(tokens.text) : QColor(trackColor), 1.0, Qt::SolidLine, Qt::FlatCap));
@@ -461,7 +428,6 @@ public:
 				matrixRadialPoint(center, outerRadius + 4.0, 0.5));
 		}
 
-		// Encoder body and pointer.
 		QColor bodyColor(state.enabled ? tokens.card : tokens.surface);
 		painter.setPen(QPen(borderColor, 1.0, state.enabled ? Qt::SolidLine : Qt::DashLine));
 		painter.setBrush(bodyColor);
@@ -472,8 +438,7 @@ public:
 
 		painter.setRenderHint(QPainter::Antialiasing, false);
 
-		// Keyboard focus: a square cell bracket, not a glow - this skin's
-		// corner language is the rectangle.
+		// Keyboard focus: a square cell bracket, not a glow.
 		if (state.focused && state.enabled)
 		{
 			painter.setPen(QPen(accentColor, 1));
@@ -505,19 +470,13 @@ public:
 		}
 	}
 
-	// Departure-board cell: square corners, 1px rule, and a 3px status rail in
-	// traffic-light semantics (green = active, amber = bypassed). A commented
-	// out row additionally swaps the outer rule for a dashed one. A remark row
-	// (a pure comment) has no signal state at all: amber would claim it is a
-	// bypassed command (colour semantics M3), so its rail is quiet border ink
-	// and its rule stays solid - a remark is not a cancelled flight. A line a
-	// false If branch swallowed on the last load (lineSkipped) IS a cancelled
-	// departure: it stays posted, behind the cancellation dash with a quiet
-	// border-ink rail - green would claim it runs, amber that it is bypassed,
-	// and neither is true of live source the engine chose not to load. Form,
-	// not colour; the header inks dim via the QSS lineSkipped key. This hook
-	// re-runs from every repaint (refreshStateProperties), so the advisory
-	// analysis facts are read at paint time as required.
+	// Departure-board cell: square corners, 1px rule, 3px status rail. A
+	// remark row (pure comment) gets a quiet border-ink rail and a solid
+	// rule; a line a false If branch swallowed (lineSkipped) keeps a quiet
+	// border-ink rail behind the cancellation dash, and the header inks dim
+	// via the QSS lineSkipped key. This hook re-runs from every repaint
+	// (refreshStateProperties), so the advisory analysis facts are read at
+	// paint time as required.
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		const bool remark = info.type == QStringLiteral("comment");
@@ -546,9 +505,8 @@ public:
 		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0px; }");
 	}
 
-	// Monochrome type cell: the command type reads from the mono glyph (the
-	// pictogram since feedback round 2, the code text before), not from a
-	// per-type colour. Traffic-light colours stay reserved for status.
+	// Monochrome type cell: typeColor is deliberately ignored - the command
+	// type reads from the mono glyph, never from a per-type colour.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
 	{
 		Q_UNUSED(typeColor);
@@ -573,11 +531,9 @@ public:
 		if (info.legacyRow)
 			return;
 
-		// The picker's coordinate language imported into the row (M2): the
-		// plain line number becomes a board coordinate, the type's bus letter
-		// ahead of the stable line position ("B3" = a BiQuad entry on line 3,
-		// the picker's C1 cell grammar). Spacer rows are blank board lines
-		// and carry no coordinate.
+		// The plain line number becomes a board coordinate: the type's bus
+		// letter ahead of the stable line position ("B3"). Spacer rows are
+		// blank board lines and carry no coordinate.
 		QLabel* coordinateCell = nullptr;
 		if (card != nullptr && header != nullptr && info.type != QStringLiteral("spacer"))
 		{
@@ -591,8 +547,7 @@ public:
 			}
 
 			// The caption strip docks under the card body and echoes the raw
-			// spec next to that coordinate on hover (the picker footer's
-			// grammar; see MatrixRowCaption).
+			// spec next to that coordinate on hover (see MatrixRowCaption).
 			QVBoxLayout* cardLayout = qobject_cast<QVBoxLayout*>(card->layout());
 			if (cardLayout != nullptr)
 			{
@@ -601,13 +556,11 @@ public:
 			}
 		}
 
-		// A bare or unmodelled line (TXT, and the programmatic If/EndIf/Eval
-		// vocabulary) is a remark posting, and on this board everything
-		// posted lives in a cell (the Comment card's doctrine). The shared
-		// raw card lays inline styles on its two labels, so the board answer
-		// must be inline too: the ">_" scan glyph becomes a sunken mono
-		// designation cell (the "#" marker cell's construction) and the raw
-		// line a sunken mono line cell - 1px rules, radius 0, verbatim text.
+		// Bare/unmodelled lines (TXT, the If/EndIf/Eval vocabulary) live in
+		// cells. The shared raw card lays inline styles on its two labels,
+		// so the board answer must be inline too: the ">_" scan glyph
+		// becomes a sunken mono designation cell and the raw line a sunken
+		// mono line cell.
 		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
 			|| info.type == QStringLiteral("eval") || info.dynamicLine) && body != nullptr)
 		{
@@ -628,9 +581,8 @@ public:
 			}
 		}
 
-		// No per-type body decoration remains: the reference bodies build
-		// their own board grammar in MatrixReferenceCardView (which also
-		// owns the VST port strip that used to be injected from here).
+		// The reference bodies build their own board grammar in
+		// MatrixReferenceCardView; no per-type body decoration here.
 		Q_UNUSED(body);
 	}
 
@@ -654,15 +606,13 @@ public:
 		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
 
 		// A remark row (pure comment) is addressable but carries no signal
-		// state: full grid ink and hover pre-light like an enabled row, but no
-		// status lamp at all (neither green "running" nor amber "bypassed" is
-		// true of a note).
+		// state: full grid ink and hover pre-light like an enabled row, but
+		// no status lamp.
 		const bool remark = info.type == QStringLiteral("comment");
 
-		// Faint column grid: the graph paper the board sits on. Clipped to the
-		// header band - maintainer review (issue #93) judged the texture a
-		// distracting afterimage behind parameter widgets, so the row body
-		// stays a calm opaque panel regardless of editor widget opacity.
+		// Faint column grid, clipped to the header band: the row body stays a
+		// calm opaque panel regardless of editor widget opacity (invariant
+		// rule 3 of the constitution).
 		QColor gridColor(tokens.border);
 		const int gridAlpha = skinColorIsDark(QColor(tokens.surface)) ? 80 : 90;
 		gridColor.setAlpha((info.enabled || remark) ? gridAlpha : gridAlpha / 2);
@@ -694,13 +644,11 @@ public:
 			painter.fillRect(QRect(columnBand.left(), headerBand.top(), columnBand.width(), headerBand.height()), crosspoint);
 		}
 
-		// Status lamp in the left gutter: solid green = active, hollow amber =
-		// bypassed (traffic-light semantics, never decorative). A remark has no
-		// signal state, so it gets no lamp. Gate rows (the If family) post the
-		// engine's branch decision in the same lamp grammar instead of the
-		// generic running lamp, and a line a false branch swallowed un-lights
-		// its lamp: solid = current flows, hollow = it does not. The analysis
-		// facts are advisory and only read here, at paint time.
+		// Status lamp in the left gutter: solid green = active, hollow amber
+		// = bypassed; a remark gets no lamp. Gate rows post the engine's
+		// branch decision in the same lamp grammar, and a swallowed line
+		// un-lights its lamp. The analysis facts are advisory and only read
+		// here, at paint time.
 		if (!remark)
 		{
 			const QRect lampRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5);
@@ -720,13 +668,9 @@ public:
 			}
 			else if (info.type == QStringLiteral("if"))
 			{
-				// The gate lamp: taken = solid success, condition false = the
-				// same lamp unlit (hollow success), an evaluation fault =
-				// solid danger (the rationing table's one legal fault
-				// colour). A branch the chain never reached - or a board no
-				// analysis has scanned yet - shows a hollow muted lamp: no
-				// decision was posted, and muted is the board's ink for
-				// absence, not a status claim.
+				// Gate lamp: taken = solid success, condition false = hollow
+				// success, evaluation fault = solid danger, unreached or not
+				// yet analysed = hollow muted (no decision posted).
 				if (info.branchState == 1)
 					solidLamp(QColor(tokens.success));
 				else if (info.branchState == 3)
@@ -748,16 +692,12 @@ public:
 			}
 		}
 
-		// Computed-value readout (dynamic commands): the engine's Eval result
-		// or the substituted inline-expression text, posted in the boxed
-		// sunken mono cell every authoritative figure on this board lives in
-		// (invariant rule 5), right-aligned in the header ahead of the button
-		// train. Body ink, not accent: a computed control value is a readout,
-		// not routed signal data, so the rationing table's accent clause does
-		// not cover it. A parser fault posts in danger - the Include error
-		// readout precedent. Paint-time only by design: the facts go stale
-		// between an edit and the next analysis run, and this cell repaints
-		// with them instead of baking them into a construction-time label.
+		// Computed-value readout: the engine's Eval result or the substituted
+		// inline-expression text in a boxed sunken mono cell, right-aligned
+		// in the header. Body ink; a parser fault posts in danger. Paint-time
+		// only by design: the facts go stale between an edit and the next
+		// analysis run, and this cell repaints with them instead of baking
+		// them into a construction-time label.
 		if (!info.evalText.isEmpty() || (info.type == QStringLiteral("eval") && info.valueError))
 		{
 			const QString reading = QStringLiteral("= ")
@@ -766,8 +706,8 @@ public:
 			mono.setPointSizeF(7.5);
 			mono.setBold(true);
 			const QFontMetrics metrics(mono);
-			// The button train (enable / + / - / ...) keeps its reserved zone
-			// on the right; the four buttons span ~180px from the band's right
+			// The button train keeps its reserved zone on the right; the four
+			// buttons span ~180px from the band's right
 			// edge and the cell is painted *under* them, so the reserve must
 			// clear the train entirely or the cell's tail hides beneath the
 			// power button. The cell never grows left into the coordinate
@@ -794,15 +734,11 @@ public:
 		}
 	}
 
-	// The If block is a bracket printed on the board's indent bands (dynamic
-	// commands): one crisp 1px muted rule per open scope, opening under the
-	// gate's head row, passing members and branch rows, and closing on the
-	// EndIf row with a short horizontal tick - an L-corner, this skin's
-	// square-corner language. The bracket is structure only: the engine's
+	// The If block as a printed bracket: one crisp 1px muted rule per open
+	// scope, opening under the gate's head row and closing on the EndIf row
+	// with an L-corner. The bracket is structure only: the engine's
 	// decisions post on the cells themselves (gate lamps, cancelled rows,
-	// value readouts), never in the gutter. The rack gutter is switched
-	// power with contact hardware; this one is a printed rule - a different
-	// claim, not a different palette.
+	// value readouts), never in the gutter.
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		const bool ifFamily = info.type == QStringLiteral("if");
@@ -821,8 +757,8 @@ public:
 		// so the bracket passes them; the card edge follows the same rule.
 		const int indentUnits = branchOrTail ? info.depth + 1 : info.depth;
 		const int cardLeft = 8 + indentUnits * unit;
-		// Rules sit on the centres of the existing indent bands - grid-pitch
-		// discipline: the bracket claims no positions of its own.
+		// Rules sit on the centres of the existing indent bands; the bracket
+		// claims no positions of its own.
 		const auto bandCenter = [&](int level) { return 8 + level * unit + unit / 2; };
 
 		// The innermost logicDepth bands are If lanes; any bands outside them
@@ -867,24 +803,16 @@ public:
 	}
 
 	// Branch/tail rows (ElseIf/Else/EndIf) mount one indent unit past their
-	// semantic level, with the block members, so the bracket lane passes them
-	// instead of dying behind their full-width cells (the finding of the rack
-	// mock-up round, issue #179).
+	// semantic level, with the block members, so the bracket lane passes
+	// them instead of dying behind their full-width cells.
 	bool logicSiblingsIndentAsMembers() const override
 	{
 		return true;
 	}
 
-	// The trailing add row is a vacant board cell: a slot the board has not
-	// posted yet (shared insertion contract, docs/skins/README.md). The dashed
-	// 1px rule says "no live signal here" - the cancelled-departure dash,
-	// form not colour - around the board's own graph paper, and the slot's
-	// designation cell holds "+" instead of a bus letter because the letter
-	// is only assigned when the picker posts an entry. The caption is a mono
-	// board caption. Hover is the crosspoint pre-light (row band + coordinate
-	// column band, the card chrome's alphas) with the designation lighting
-	// accent like a hovered coordinate readout; pressing engages the slot:
-	// solid accent rule + LED-filled designation cell. Crisp throughout.
+	// The trailing add row: a vacant board slot behind a dashed 1px rule,
+	// with a "+" designation cell awaiting its bus letter (shared insertion
+	// contract, docs/skins/README.md).
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing, false);
@@ -893,8 +821,8 @@ public:
 		if (cell.width() <= 0 || cell.height() <= 0)
 			return;
 
-		// The vacant slot exposes the board surface's graph paper (the same
-		// faint 24px column grid the masthead and toolbar sit on).
+		// The board surface's graph paper: the same faint 24px column grid
+		// the masthead and toolbar sit on.
 		QColor grid(tokens.border);
 		grid.setAlpha(skinColorIsDark(QColor(tokens.surface)) ? 55 : 90);
 		painter.setPen(QPen(grid, 1));
@@ -925,9 +853,8 @@ public:
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(cell);
 
-		// Designation cell awaiting its bus letter: a sunken coordinate cell
-		// holding "+". Muted at rest like every resting coordinate, accent
-		// pre-light on hover, LED fill while engaged.
+		// Designation cell: muted at rest, accent pre-light on hover, LED
+		// fill while engaged.
 		QFont mono(tokens.monoFontFamily);
 		mono.setPointSizeF(9.0);
 		mono.setBold(true);
@@ -942,8 +869,7 @@ public:
 			: (preLit ? QColor(tokens.accent) : QColor(tokens.mutedText)));
 		painter.drawText(designationRect, Qt::AlignCenter, QStringLiteral("+"));
 
-		// Keyboard focus: a square cell bracket around the designation cell
-		// (glow-free - this skin's corner language is the rectangle).
+		// Keyboard focus: a square cell bracket around the designation cell.
 		if (state.focused && !state.pressed)
 		{
 			painter.setPen(QPen(QColor(tokens.accent), 1));
@@ -963,10 +889,7 @@ public:
 	}
 
 	// The first-boundary seam: a 1px accent rule with a square insertion
-	// cell at its head - the crosspoint about to be patched ahead of line 1.
-	// No disc (this skin's corner language is the rectangle), no glow, AA
-	// off. The hosting widget paints nothing at rest, so the board stays
-	// clean until the cursor crosses the boundary.
+	// cell at its head. The hosting widget paints nothing at rest.
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		if (!state.hovered && !state.pressed)
@@ -980,7 +903,7 @@ public:
 			return;
 
 		// Square insertion cell: sunken well + accent rule while pre-lit,
-		// LED fill while pressed (the engage grammar of every cell).
+		// LED fill while pressed.
 		const QRect cellRect(rect.left(), centerY - side / 2, side, side);
 		painter.setPen(QPen(accent, 1));
 		painter.setBrush(state.pressed ? accent : QColor(tokens.surfaceSunken));
@@ -998,20 +921,9 @@ public:
 		painter.drawLine(cellRect.right() + 5, centerY, rect.right() - 1, centerY);
 	}
 
-	// The GraphicEQ response plot as a signal trace on the board: a sunken
-	// data ground under a crisp 1px grid, the response as an accent patch
-	// trace (routed signal data is the one place accent is legal at rest -
-	// the Copy patch-trace / coefficient-cell precedent), nodes as square
-	// crosspoint cells (rest = empty 1px-ruled cell, hover = crosspoint
-	// pre-light with row/column hairlines through the plot, selected =
-	// engaged LED fill), the 0 dB bus as a body-ink rule one rank above the
-	// grid, and the cursor probe in a boxed sunken mono cell (rule 5). In
-	// the band-locked layouts stems rise off the 0 dB bus in the knob ring's
-	// bipolar grammar (boost = accent, cut = accent2) - never danger; a
-	// negative gain is not a hazard (colour rationing, article 1). AA stays
-	// off for every straight line; only the curve - data, not chrome - is
-	// antialiased. Disabled is the cancelled departure: low-alpha content
-	// behind a dashed outer rule, never hidden.
+	// The GraphicEQ response plot as a signal trace on the board (see the
+	// constitution's GraphicEQ section). AA stays off for every straight
+	// line; only the curve - data, not chrome - is antialiased.
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
 	{
 		const QColor ground(tokens.graph);
@@ -1024,8 +936,8 @@ public:
 
 		painter.setRenderHint(QPainter::Antialiasing, false);
 
-		// Cancelled-departure treatment: the instrument stays posted at low
-		// alpha; the dashed outer rule below is drawn at full strength.
+		// Disabled: content at low alpha; the dashed outer rule below is
+		// drawn at full strength.
 		if (!state.enabled)
 			painter.setOpacity(0.45);
 
@@ -1072,7 +984,7 @@ public:
 		}
 
 		// The 0 dB bus: a body-ink 1px rule, one rank of authority above the
-		// grid (the trace departs from and returns to this line).
+		// grid.
 		const bool zeroVisible = state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom();
 		if (zeroVisible)
 		{
@@ -1122,8 +1034,7 @@ public:
 		}
 
 		// Crosspoint pre-light under the hovered node: a row and a column
-		// hairline through the plot whose intersection is the node - hover
-		// reads as an addressed crosspoint, not a point.
+		// hairline through the plot whose intersection is the node.
 		if (state.enabled && state.hoveredNode >= 0 && state.hoveredNode < state.nodePositions.size())
 		{
 			const QPointF& hoverNode = state.nodePositions.at(state.hoveredNode);
@@ -1165,9 +1076,8 @@ public:
 		}
 
 		// The band the readout strip is addressing wears its coordinate tag
-		// (mono, muted at rest, accent while engaged - the board coordinate
-		// ink), and keyboard focus brackets its cell square (the knob focus
-		// grammar; the corner language is the rectangle).
+		// (mono, muted at rest, accent while engaged), and keyboard focus
+		// brackets its cell square.
 		if (state.focusedNode >= 0 && state.focusedNode < state.nodePositions.size())
 		{
 			const QPointF& focusNode = state.nodePositions.at(state.focusedNode);
@@ -1199,8 +1109,8 @@ public:
 			}
 		}
 
-		// Cursor probe: the authoritative reading lives in a boxed sunken
-		// mono cell (rule 5), posted in the plot's top-right corner.
+		// Cursor probe: a boxed sunken mono cell in the plot's top-right
+		// corner.
 		if (state.cursorValid && !state.cursorText.isEmpty())
 		{
 			QFont probeFont(tokens.monoFontFamily);
@@ -1218,9 +1128,9 @@ public:
 			painter.setFont(labelFont);
 		}
 
-		// Outer rule: the data cell's 1px rule; keyboard focus engages it in
-		// accent, a bypassed row cancels it with the departure dash at full
-		// ink (the row frame's grammar - the dash itself is never dimmed).
+		// Outer rule: keyboard focus engages it in accent, a bypassed row
+		// cancels it with a dash at full ink (the dash itself is never
+		// dimmed).
 		painter.setOpacity(1.0);
 		painter.setPen(QPen(state.enabled ? QColor(state.focused ? accent : borderInk) : borderInk, 1,
 			state.enabled ? Qt::SolidLine : Qt::DashLine));
@@ -1228,25 +1138,11 @@ public:
 		painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
 	}
 
-	// The analysis dock's response graph as the board's telemetry monitor:
-	// the same signal-trace instrument as the GraphicEQ plot, adapted to a
-	// wide always-on readout. A sunken data cell under a crisp integer 1px
-	// grid (AA off, invariant rule 7), mono axis figures posted as tag cells
-	// punched out of the grid (the instrument speaks its own axis language,
-	// not corner notes), the 0 dB bus as the body-ink reference rule, and
-	// the response as the energized accent trace: 1px core over one wider
-	// low-alpha echo stroke - no soft glow, no fill; the echo is the whole
-	// energy statement. A response that can clip posts a hazard zone: thin
-	// amber diagonals across the over-bus band plus an OVER tag cell pinned
-	// to the peak (warning = caution per the rationing table; the trace
-	// itself stays accent - signal data is never recoloured). The cursor is
-	// target acquisition: a vertical scan rule energized from dim to full by
-	// state.hover, a square corner-bracket reticle where it crosses the
-	// trace (the knob focus grammar - the corner language is the rectangle,
-	// so no disc), and the authoritative reading in a boxed sunken mono cell
-	// sliding with the pointer (rule 5). The footer is the picker footer's
-	// board line: sunken strip under a 1px rule, "> " marker, the prepared
-	// channel caption drawn as-is (localized data) and a terse span readout.
+	// The analysis dock's response graph: the GraphicEQ signal-trace
+	// instrument adapted to a wide always-on readout (crisp grid, tag-cell
+	// axis figures, 0 dB bus, accent trace over one echo stroke, amber
+	// hazard hatching when the response can clip, a scan-rule cursor and a
+	// board-line footer).
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
 	{
 		const QColor ground(tokens.graph);
@@ -1256,9 +1152,8 @@ public:
 		const QColor accent(tokens.accent);
 		const bool darkBoard = skinColorIsDark(QColor(tokens.surface));
 		// Caution ink: full amber only on the dark board. On the light board
-		// the raw orange read as crayon against the ice palette (review
-		// verdict), so it sinks to a printed ochre - hue kept, saturation and
-		// value derived down, like hazard markings silkscreened on a board.
+		// raw orange reads as crayon against the ice palette, so it sinks to
+		// a printed ochre - hue kept, saturation and value derived down.
 		const QColor warnBase(tokens.warning);
 		const QColor hazardInk = darkBoard ? warnBase
 			: QColor::fromHsvF(warnBase.hsvHueF(), warnBase.hsvSaturationF() * 0.82, warnBase.valueF() * 0.62);
@@ -1267,10 +1162,8 @@ public:
 		painter.setRenderHint(QPainter::Antialiasing, false);
 		painter.fillRect(state.rect, ground);
 
-		// Crisp 1px grid, integer-aligned. Same rank derivation as the
-		// GraphicEQ plot: minors from the token mesh, the major rank from
-		// muted ink at low alpha (the shared major token equals the border
-		// ink, which the light board cannot tell from the minor mesh).
+		// Crisp 1px grid, integer-aligned; same rank derivation as the
+		// GraphicEQ plot.
 		QColor majorInk(mutedInk);
 		majorInk.setAlpha(90);
 		const QColor minorInk(tokens.graphGridMinor);
@@ -1288,8 +1181,8 @@ public:
 		}
 
 		// Hazard zone: the response can clip, so the whole over-bus band
-		// posts thin amber diagonals (AA off - the pixel staircase is board
-		// grammar, not a defect). Caution is the zone's message.
+		// posts thin amber diagonals (AA off - the pixel staircase is
+		// deliberate).
 		const int zeroYpx = int(state.zeroY);
 		if (state.clipping && zeroYpx > plot.top())
 		{
@@ -1327,18 +1220,16 @@ public:
 		}
 
 		// The 0 dB bus: the board's reference rule, one rank of authority
-		// above the grid (the GraphicEQ plot's construction).
+		// above the grid.
 		QColor zeroInk(textInk);
 		zeroInk.setAlpha(180);
 		painter.setPen(QPen(zeroInk, 1));
 		painter.drawLine(plot.left(), zeroYpx, plot.right(), zeroYpx);
 
-		// Mono axis figures in tag cells: each prepared label sits in a small
-		// cell punched out of the grid (ground fill under the figure), so the
-		// figures read as tags applied to the board rather than margin notes.
-		// Majors speak muted ink, minors one step quieter (the GraphicEQ
-		// plot's label ranks). Frequency tags ride the bottom edge; a tag
-		// that would collide with its neighbour is skipped, never squeezed.
+		// Mono axis figures in tag cells punched out of the grid (ground fill
+		// under the figure). Majors speak muted ink, minors one step quieter.
+		// Frequency tags ride the bottom edge; a tag that would collide with
+		// its neighbour is skipped, never squeezed.
 		QFont tagFont(tokens.monoFontFamily);
 		tagFont.setPointSizeF(7.0);
 		const QFontMetrics tagMetrics(tagFont);
@@ -1400,9 +1291,8 @@ public:
 			painter.drawText(tagRect, Qt::AlignCenter, line.label);
 		}
 
-		// The response trace: the energized accent core over a single wider
-		// low-alpha echo stroke. The curve is data, so it alone is
-		// antialiased (invariant rule 7 governs chrome, not signal).
+		// The response trace: an accent core over a single wider low-alpha
+		// echo stroke. The curve is data, so it alone is antialiased.
 		if (state.curve.size() >= 2)
 		{
 			painter.setRenderHint(QPainter::Antialiasing, true);
@@ -1415,7 +1305,7 @@ public:
 			painter.setRenderHint(QPainter::Antialiasing, false);
 		}
 
-		// The clip peak wears its OVER tag: a boxed cell in caution amber
+		// The clip peak wears an OVER tag: a boxed cell in caution amber
 		// pinned to the highest point of the trace, tied down by a 1px tick.
 		if (state.clipping && state.curve.size() >= 2)
 		{
@@ -1458,10 +1348,10 @@ public:
 			}
 		}
 
-		// Target acquisition. The scan rule energizes from dim to full with
-		// the widget's hover progress; a square corner-bracket reticle marks
-		// where it crosses the trace, and the authoritative reading slides
-		// with the pointer in a boxed sunken mono cell.
+		// Cursor: the scan rule energizes from dim to full with the widget's
+		// hover progress; a square corner-bracket reticle marks where it
+		// crosses the trace, and the reading slides with the pointer in a
+		// boxed sunken mono cell.
 		if (state.cursorValid)
 		{
 			const int scanX = qBound(plot.left(), qRound(state.cursor.x()), plot.right());
@@ -1519,11 +1409,10 @@ public:
 		painter.drawText(QRect(plot.left(), state.rect.top() + 2, qMax(0, plot.width()), 12),
 			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("RESPONSE"));
 
-		// The footer is the picker footer's board line: a sunken strip under
-		// a 1px rule. "> " marker, then the prepared channel/sample-rate
-		// caption exactly as handed over (localized data, elided when tight),
-		// lit from muted to body ink by hover; the fitted span reads on the
-		// right as terse telemetry.
+		// Footer: a sunken board line under a 1px rule. "> " marker, then the
+		// prepared channel/sample-rate caption exactly as handed over
+		// (localized data, elided when tight), lit from muted to body ink by
+		// hover; the fitted span reads on the right.
 		const int footerTop = state.rect.bottom() - 17;
 		painter.fillRect(QRect(state.rect.left() + 1, footerTop + 1, state.rect.width() - 2, 16), QColor(tokens.surfaceSunken));
 		painter.setPen(QPen(borderInk, 1));
@@ -1553,11 +1442,9 @@ public:
 	}
 
 	// The board's masthead: the faint 24px column grid behind the title
-	// readout and a doubled bottom rule (this inner line plus the QSS bottom
-	// border), so the strip closes like a board's title rule, not a plain
-	// window edge - the same construction MatrixToolbarBoard gives the
-	// toolbar strip. The caption cells stay transparent in QSS so the grid
-	// runs through them, exactly like the toolbar's function cells.
+	// readout and a doubled bottom rule (this inner line plus the QSS
+	// bottom border). The caption cells stay transparent in QSS so the grid
+	// runs through them.
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing, false);
@@ -1575,14 +1462,11 @@ public:
 		painter.drawLine(rect.left(), rect.bottom() - 3, rect.right(), rect.bottom() - 3);
 	}
 
-	// The board's header strip. The neutral stroke icons stay, tinted in
-	// plain ink (the catalog is monochrome - colour belongs to the status
-	// lamp); the QSS dresses every toolbar item as a square 1px cell, and
-	// two painted layers add what QSS cannot express: the 24px column grid
-	// behind the cells and the solid square status lamp inside the
-	// DirtyStatusBadge readout. Runs at startup and on every skin/dark
-	// switch, so the layers are looked up again and re-tinted, never
-	// created twice.
+	// The QSS dresses every toolbar item as a square 1px cell; two painted
+	// layers add what QSS cannot express: the 24px column grid behind the
+	// cells and the status lamp inside the DirtyStatusBadge readout. Runs
+	// at startup and on every skin/dark switch, so the layers are looked up
+	// again and re-tinted, never created twice.
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
 	{
 		if (toolBar == nullptr)

@@ -18,9 +18,9 @@ using FilterFactoryCreator = std::unique_ptr<IFilterFactory>(*)();
 //   - Channel selection runs before the processing filters.
 //   - The processing filters run last, each matching its own command keyword.
 //
-// Both factories that handle "Filter ..." (IIR before BiQuad) keep their
-// historical adjacency through these constants. Changing a value here changes
-// the runtime order, so keep the numbering contiguous and intentional.
+// Both factories that handle "Filter ..." must keep IIR directly before
+// BiQuad. Changing a value here changes the runtime order, so keep the
+// numbering contiguous and intentional.
 namespace FilterFactoryPriority
 {
 	constexpr int Device = 0;

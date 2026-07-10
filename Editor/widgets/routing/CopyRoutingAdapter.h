@@ -31,7 +31,7 @@ public:
 
 	// True for channels that are not part of the standard physical layout
 	// (the upmix scratch channels such as VSL/VRR). Used to style them as
-	// dashed "virtual" badges, matching the redesign mock-up.
+	// dashed "virtual" badges.
 	static bool isVirtualChannel(const QString& channel);
 
 	// Fixed display colour for a channel (physical channels have a stable hue;
@@ -66,7 +66,7 @@ public:
 
 	// ── Device channel seeding ─────────────────────────────────────────────
 	// The views derive their rows/columns from the assignments alone, so an
-	// emptied Copy used to leave nothing to click and could never be refilled
+	// emptied Copy would leave nothing to click and could never be refilled
 	// from the GUI. These helpers blend the device channel layout in: every
 	// device channel becomes available as an output row / input column even
 	// when the command line does not (yet) reference it. Rows whose source sum

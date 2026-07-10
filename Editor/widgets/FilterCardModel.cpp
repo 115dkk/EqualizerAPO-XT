@@ -37,7 +37,7 @@ QString biquadTypeTitle(const QString& code)
 {
 	// Map the (already upper-cased) config keyword to a BiQuad type, then defer to
 	// the engine-side title table (filters/BiQuadCommand.h) so the type -> title
-	// strings live in exactly one place (F042). The keyword vocabulary here mirrors
+	// strings live in exactly one place. The keyword vocabulary here mirrors
 	// the typeExpression regex in describeLine; an unknown keyword falls back to
 	// "Biquad", matching biquadTypeTitle(BiQuad::Type)'s own default.
 	const QString normalized = code.toUpper();
@@ -70,16 +70,14 @@ QString firstCapture(const QRegularExpression& expression, const QString& text)
 }
 
 // Reproduces the same labelling the legacy BiQuad GUI shows so the modern card
-// agrees with it for the LSC/HSC/LPQ/HPQ/PEQ/Modal variants that the previous
-// regex did not recognize.
+// agrees with it, including the LSC/HSC/LPQ/HPQ/PEQ/Modal variants.
 //
-// Deliberately NOT routed through BiQuadCommand::parse (audit #146 TD019,
-// skipped): the engine parser is intentionally lossy - missing tokens are
-// synthesized as defaults and variants are merged (see BiQuadCommand.h, audit
-// #109 F007) - while this badge must echo only what the author wrote, in the
-// author's own spelling. The structural pieces already come from shared
-// sources: the command vocabulary from FilterFactoryRegistry and the type
-// titles from BiQuadCommand's table (above).
+// Deliberately NOT routed through BiQuadCommand::parse: the engine parser is
+// intentionally lossy - missing tokens are synthesized as defaults and
+// variants are merged (see BiQuadCommand.h) - while this badge must echo only
+// what the author wrote, in the author's own spelling. The structural pieces
+// already come from shared sources: the command vocabulary from
+// FilterFactoryRegistry and the type titles from BiQuadCommand's table (above).
 QString summarizeBiquad(const QString& parameters, const QString& code, const QString& state)
 {
 	QStringList parts;
@@ -199,10 +197,8 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	descriptor.enabled = !line.trimmed().startsWith('#');
 
 	// Blank / whitespace-only lines (including the trailing newline that almost
-	// every config file ends with) used to fall through to the generic "TXT
-	// Text" branch and produce a full-height card with an empty title. Mark
-	// them as a dedicated spacer so the row widget can render a thin separator
-	// instead of an empty card.
+	// every config file ends with) are a dedicated spacer type so the row
+	// widget can render a thin separator instead of a full-height empty card.
 	if (line.trimmed().isEmpty())
 	{
 		descriptor.type = QStringLiteral("spacer");
@@ -253,10 +249,9 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	else if (commandLower == QStringLiteral("filter") || commandLower.startsWith(QStringLiteral("filter ")))
 	{
 		// EAPO syntax allows numbered filter lines such as `Filter 1:`, `Filter 99:`
-		// (commonly emitted by REW, Room EQ Wizard, Dirac, and other tools). The
-		// exact-match check that used to live here treated `Filter 1` as a generic
-		// text command, which stripped the type-specific badge/title/summary off
-		// every BiQuad card produced by those tools.
+		// (commonly emitted by REW, Room EQ Wizard, Dirac, and other tools), so
+		// this must match by prefix - an exact-match check would strip the
+		// type-specific badge/title/summary off every numbered BiQuad card.
 		descriptor.type = QStringLiteral("biquad");
 		descriptor.badge = QStringLiteral("BQUAD");
 		descriptor.title = tr("Biquad");
@@ -292,8 +287,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		{
 			// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
 			// shelf-with-slope, LPQ/HPQ Q-form, PEQ alias and Modal) so the card
-			// title and summary agree with the legacy GUI. The previous regex only
-			// matched PK/LP/HP/LS/HS/NO/AP/BP and silently fell back to "Biquad".
+			// title and summary agree with the legacy GUI.
 			QRegularExpression typeExpression(QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"), QRegularExpression::CaseInsensitiveOption);
 			QRegularExpressionMatch match = typeExpression.match(parameters);
 			if (match.hasMatch())

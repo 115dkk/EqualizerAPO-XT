@@ -39,7 +39,6 @@ private:
 	// First log() call may race between RT, worker, and GUI threads: the
 	// acquire load on `initialized` publishes `logPath` written under the init
 	// mutex in log(). reset()/set() stay single-threaded test/tool helpers.
-	// (audit #146 TD028)
 	static std::atomic<bool> initialized;
 	static std::wstring logPath;
 	static std::atomic<bool> enableTrace;

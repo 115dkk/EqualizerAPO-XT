@@ -263,6 +263,45 @@ paramSelector 유리 스트립을 탄다. 다섯 액션 버튼은 불 꺼진 유
 (FilterCardIconButton 문법)이 호버에 점등한다. 판독 컨테이너는 투명하다 —
 유리 위에 불투명 패치를 얹지 않는다.
 
+### 분석 그래프 — 유리 콘솔의 모니터링 창
+
+분석 독의 응답 그래프는 GraphicEQ 카드의 응답 계기를 상시 모니터로 넓힌
+것이다. 판은 같은 **가라앉은 유리 창**(8px 라운드 하나로 클립한 graph
+그라운드)이되, 창 안의 빛이 호버에 답한다: 다크는 윗변에서 내려앉는
+프로스트 시인이, 라이트는 아래에 고이는 두께 음영이 한 단 깊어진다(흰
+유리는 더 밝아질 수 없다, S2). 그리드는 데이터 뒤로 물러난 크리스프 1px,
+축 숫자는 DM Mono muted 각인(사이 눈금은 한 단 흐리고, 좁아지면
+마이너부터 물러난다), 채널/샘플레이트 캡션은 눈금 아래 중앙의 muted
+각인이다.
+
+0 dB선은 노브의 발광 앵커를 눕힌 것(액센트 블룸 + 텍스트 잉크 코어)이고,
+응답 트레이스가 이 창의 유일한 빛이다: 4겹 스트로크 글로우가 호버에 한 숨
+들리고, 곡선 아래 채움은 0 dB에서 갈라진다 — 부스트 쪽이 컷 쪽보다 한 단
+따뜻하게 빛나고, 양쪽 다 앵커에 내려앉으며 소멸한다. 평평한 0 dB 응답도
+살아 읽힌다: 발광 트레이스가 켜진 창 안에서 자기 앵커 위에 얹혀 있다. 이
+창은 BiQuad 행이 아니므로 빛은 기본 파랑 하나다(규칙 1).
+
+클리핑은 데이터로서의 위험이다: 0 dB 위의 유리가 danger 워시로 데워지고,
+트레이스의 초과 구간이 danger 스트로크 사다리로 점화하며, 우상단에 점등된
+danger 유리 칩(타입 배지 문법)이 `CLIP`을 게시한다.
+
+커서는 판독점에 빛이 고이는 세로 광선 시임(삽입선 광선의 스트로크 사다리를
+세운 것) + 트레이스 위의 인디케이터 점(할로+코어) + DM Mono의 점등 유리
+판독 칩이고, 그룹 전체가 호버 진행도로 페이드 인한다. 판독 칩은 점을
+따라가되 유리 밖으로 나가지 않게 뒤집히거나 고정된다.
+
+### Device Selector — 유리 모니터링 콘솔
+
+장치 선택 다이얼로그는 빛나는 유리 모니터링 콘솔이다
+(`DeviceSelector/skins/StudioDeviceSkin.cpp`). 엔드포인트는 리스트 스케일의
+유리 채널 스트립(카드의 판 공식)이고, 설치 토글은 **점등 콘솔
+푸시버튼**이다 — LED 위의 유리 캡이 체결 전에는 소켓 속에 어둡게 앉아
+있다가, 체결되면 안에서부터 액센트로 빛난다(글로우는 언제나 겹친 스트로크,
+이펙트 금지). 섹션은 발광 헤어라인 아래의 각인 캡션, 선택된 스트립
+(트러블슈팅 대상)은 액센트 보더 글로우와 왼쪽 시그널 램프를 입고, 사용
+불가 스트립은 **스모크 글라스**다 — 빛이 꺼졌을 뿐 경고가 아니다. 버튼은
+유리 키캡, 디스클로저는 폴드 빛이 호버에 답하는 유리 탭이다.
+
 ### 맨텍스트(raw) 행 (라운드 3)
 
 헌법 그대로 '불 꺼진 유리, 장식 없음'에 데이터 창 하나. 공유 기본이 인라인
@@ -367,13 +406,15 @@ Eval의 값은 램프가 아니라 데이터다: 마지막 분석이 해석한 �
 
 ## 구현 지도
 
-- 클래스: `StudioSkin` — [Skins.cpp](../../Editor/skins/Skins.cpp) (헌법 요약
-  주석이 클래스 위에 있다)
+- 클래스: `StudioSkin` — [StudioSkin.cpp](../../Editor/skins/StudioSkin.cpp)
+  (로스터 조립은 [Skins.cpp](../../Editor/skins/Skins.cpp))
 - QSS: `Editor/skins/studio_dark.qss`, `studio_light.qss`
 - 픽커: `Editor/skins/pickers/StudioFilterPicker.{h,cpp}`
 - 참조 카드: `Editor/skins/cards/StudioReferenceCardView.{h,cpp}`
 - Copy: `Editor/widgets/routing/LightTraceRoutingRenderer.{h,cpp}` +
   `StudioRoutingModel.{h,cpp}`
+- Device Selector: `DeviceSelector/skins/StudioDeviceSkin.cpp` (공용 폼 계약은
+  `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)
 - 헬퍼: 기계적 색 헬퍼(`cssRgba`/`withAlpha`/`skinIsDark`)는 공유
   `Editor/skins/SkinPaint.h`에 있고, 스킨 고유 헬퍼 `studioBandHex`/
   `studioBandFamilyForBiQuadType`/`studioBandPaintColor`는 StudioSkin.cpp 익명

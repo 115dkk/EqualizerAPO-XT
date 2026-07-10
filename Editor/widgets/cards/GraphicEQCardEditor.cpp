@@ -59,8 +59,8 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 
 	modeCombo = new QComboBox(this);
 	modeCombo->setObjectName(QStringLiteral("GraphicEQModeCombo"));
-	// X5 selector grammar: paramSelector marks a real mode selector, so each
-	// skin dresses it with its established parameter-selector treatment.
+	// paramSelector marks a real mode selector, so each skin dresses it with
+	// its established parameter-selector treatment.
 	modeCombo->setProperty("paramSelector", true);
 	modeCombo->addItem(tr("15-band"));
 	modeCombo->addItem(tr("31-band"));
@@ -109,7 +109,7 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 	mainLayout->addWidget(plot);
 
 	// Selected-band readout strip: the precise entry surface that replaces
-	// the legacy side table. Freq/Gain ride the X1 value-scrub grammar every
+	// the legacy side table. Freq/Gain ride the value-scrub grammar every
 	// skin already dresses; the caption is a quiet secondary-ink label.
 	QWidget* readout = new QWidget(this);
 	readout->setObjectName(QStringLiteral("GraphicEQReadout"));

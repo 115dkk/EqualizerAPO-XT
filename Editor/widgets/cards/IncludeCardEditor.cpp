@@ -2,7 +2,7 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
 	The Include row's body: a reference card presenting the included
-	configuration as a named entity (AR2, issue #97). The editor owns the
+	configuration as a named entity. The editor owns the
 	behavior - path resolution, the file dialog, the jump into the included
 	config, dependency import - and renders through the active skin's
 	ReferenceCardView, so each skin answers the same reference in its own
@@ -208,7 +208,7 @@ void IncludeCardEditor::updateFileInfo()
 	}
 
 	// The Browse button doubles as the Locate recovery entry while the
-	// reference is broken (AR2 X-4); the label is the affordance.
+	// reference is broken; the label is the affordance.
 	const bool locate = state.missing && !path.isEmpty();
 	chooseButton->setText(locate ? tr("Locate...") : QString());
 	chooseButton->setToolTip(locate ? tr("Locate the missing file") : tr("Choose include file"));

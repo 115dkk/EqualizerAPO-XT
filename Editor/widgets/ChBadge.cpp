@@ -86,9 +86,9 @@ void ChBadge::paintEvent(QPaintEvent*)
 	else
 	{
 		// Filled style: tone down the saturated channel colour to a soft chip
-		// (low-alpha fill + matching outline). The fully-saturated brush used
-		// to read like a warning indicator next to neutral header controls,
-		// even though the row was in a perfectly normal selection state.
+		// (low-alpha fill + matching outline). A fully-saturated brush reads
+		// like a warning indicator next to neutral header controls, even
+		// though the row is in a perfectly normal selection state.
 		QColor fill = color;
 		fill.setAlpha(SkinManager::instance()->isDark() ? 70 : 48);
 		QPen pen(color, 1.0);
@@ -97,8 +97,8 @@ void ChBadge::paintEvent(QPaintEvent*)
 	}
 
 	painter.drawRoundedRect(badgeRect, radius, radius);
-	// Text always uses the channel colour now; with the muted filled chip the
-	// pure-white glyph on a soft pastel background became hard to read.
+	// Text always uses the channel colour; a pure-white glyph on the muted
+	// chip's soft pastel background is hard to read.
 	painter.setPen(color);
 	QFont badgeFont = font();
 	badgeFont.setBold(true);

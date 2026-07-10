@@ -111,16 +111,12 @@ void CopyFilterGUI::store(QString& command, QString& parameters)
 
 	// Serialize through the single shared owner of the Copy parameter format so the
 	// written config line is identical to what the engine parser (parseCopyAssignments)
-	// reads back. The text produced is byte-for-byte the same as the former inline
-	// loop here (same "not yet filled row" skip, same %g factor formatting and ".0"
-	// suffix, same dB handling).
+	// reads back.
 	parameters += QString::fromStdWString(serializeCopyAssignments(assignments));
 
-	// Keep the two views in sync with the assignments that were just stored, exactly
-	// as before: the inactive tab is reloaded so switching tabs shows the same data.
-	// load() is idempotent in the assignment count, so the former per-assignment
-	// loop is collapsed into one call; it is still guarded on a non-empty list so an
-	// empty store() leaves the views untouched as it did before.
+	// Keep the two views in sync with the assignments that were just stored: the
+	// inactive tab is reloaded so switching tabs shows the same data. The guard on
+	// a non-empty list keeps an empty store() from touching the views.
 	if (!assignments.empty())
 	{
 		if (ui->tabWidget->currentIndex() == 0)

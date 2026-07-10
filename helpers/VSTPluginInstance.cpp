@@ -18,7 +18,7 @@
 */
 
 // VSTPluginInstance is split across several translation units to keep each one
-// focused (audit #48 finding F005):
+// focused:
 //   - VSTPluginInstance.cpp        : construction/teardown, the VST2/VST3 dispatch
 //                                    accessors, prepareForProcessing, the audio
 //                                    process group, and the host callback plumbing.

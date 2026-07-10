@@ -56,12 +56,11 @@ struct InlineExpression
 		}
 	};
 
-	// Splits parameters into segments, reproducing the factory's historical
-	// lexer exactly: "\`" yields a literal backtick (the backslash is
-	// consumed); a backslash not followed by a backtick stays literal; empty
-	// expressions ("``") are kept so the caller reports the evaluation error;
-	// the content of an unterminated expression at the end of the line is
-	// dropped, like the factory dropped it.
+	// Splits parameters into segments: "\`" yields a literal backtick (the
+	// backslash is consumed); a backslash not followed by a backtick stays
+	// literal; empty expressions ("``") are kept so the caller reports the
+	// evaluation error; the content of an unterminated expression at the end
+	// of the line is dropped.
 	static std::vector<Segment> split(const std::wstring& parameters);
 
 	// Re-creates a parameter string by re-escaping backticks in segment text.

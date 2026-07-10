@@ -2,10 +2,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 */
 
-// Soft skin, split out of Skins.cpp (audit #109 F005). This is a verbatim
-// move of the helpers and the class; behaviour is unchanged. The file-scope
-// instance is exposed through softSkin() so Skins::all() can assemble the
-// roster without a central definition list.
+// Soft skin. Constitution: docs/skins/soft.md. The file-scope instance is
+// exposed through softSkin() so Skins::all() can assemble the roster
+// without a central definition list.
 
 #include "Skins.h"
 
@@ -31,7 +30,6 @@
 #include <QWidget>
 #include <QtMath>
 
-// Studio's S3 band-colour law maps BiQuad filter types onto hue families.
 #include "filters/BiQuad.h"
 
 #include "Editor/SkinManager.h"
@@ -53,17 +51,11 @@
 namespace
 {
 // ── Soft ("The iPhone settings screen": macOS System Settings calm) ─────────
-// Round, roomy, impossible to fear. Shadows are faked with two background
-// value steps plus a very light 1px border; hierarchy comes from size and
-// whitespace, never from density. Hover lifts a surface exactly one value
-// step. Tiebreaker: when in doubt, remove elements and add whitespace.
-//
-// The mix/alpha/is-dark vocabulary and the constitution-cited pastel recipe
-// (softPastelize) live in the shared SkinPaint.h; the recipe stays Soft-only
-// by decree there (differentiation gate).
+// The mix/alpha/is-dark vocabulary and the pastel recipe (softPastelize)
+// live in the shared SkinPaint.h; the recipe stays Soft-only by decree
+// there (differentiation gate).
 
-// The friendly-sentence grammar of the dynamic commands (maintainer-picked
-// concept: "sentence conditions, held in a pastel arm"). Only a right-hand
+// The friendly-sentence grammar of the dynamic commands. Only a right-hand
 // side this simple may enter a sentence: a quoted string (the quotes come
 // off), a number, or true/false. Everything else counts as complex and keeps
 // the summary as written - an honest fallback, the dashed raw well in the
@@ -171,18 +163,14 @@ public:
 		return &renderer;
 	}
 
-	// The picker is this skin's consumer-settings moment: a rounded menu card
-	// with a pill search field, pastel category tiles and stadium row
-	// highlights (skins/pickers/SoftFilterPicker.cpp).
+	// A rounded menu card picker (skins/pickers/SoftFilterPicker.cpp).
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
 		return new SoftFilterPickerView(parent);
 	}
 
-	// AR2 (#97): the reference rows answer in the consumer-settings grammar -
-	// a pastel monogram tile leading a two-line identity (name + friendly
-	// caption), IR facts as pastel stadium chips, and a calm accent Locate
-	// pill as the recovery entry (skins/cards/SoftReferenceCardView.cpp).
+	// The reference rows in the consumer-settings grammar
+	// (skins/cards/SoftReferenceCardView.cpp).
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new SoftReferenceCardView(kind, parent);
@@ -236,13 +224,11 @@ public:
 		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 	}
 
-	// AR1 F2: the row's type badge wears the picker's pastel grammar instead
-	// of the shared saturated pill, so the multi-hue "consumer settings"
-	// identity survives into the command list (and into dark mode, where the
-	// old badge was the only colour that separated soft from studio). The ink
-	// is a deep warm neutral on the pastel chip - white text on a pastel is
-	// exactly the kind of low-contrast anxiety this skin removes. A sleeping
-	// (commented-out) row sinks its chip toward the window background.
+	// The row's type badge wears the picker's pastel grammar instead of the
+	// shared saturated pill. The ink is a deep warm neutral on the pastel
+	// chip - white text on a pastel is exactly the kind of low-contrast
+	// anxiety this skin removes. A sleeping (commented-out) row sinks its
+	// chip toward the window background.
 	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& t) const override
 	{
 		const bool dark = skinIsDark(t);
@@ -257,26 +243,18 @@ public:
 			.arg(pastel.name());
 	}
 
-	// The badge pictogram's ink (feedback round 2): the deep warm ink on the
-	// pastel chip - white strokes on a pastel are exactly the low-contrast
-	// anxiety this skin removes. A sleeping chip relaxes to the muted ink.
+	// The badge pictogram's ink: the deep warm ink on the pastel chip -
+	// white strokes on a pastel are exactly the low-contrast anxiety this
+	// skin removes. A sleeping chip relaxes to the muted ink.
 	QColor typeBadgeInk(const CommandRowInfo& info, const QString&, const QString&, const SkinTokens& t) const override
 	{
 		return info.enabled ? QColor(QStringLiteral("#2B251D")) : QColor(t.mutedText);
 	}
 
-	// Round 3, the trailing add row (shared insertion contract,
-	// docs/skins/README.md): "the place where the next card will arrive",
-	// answered kindly. The slot is a full-height dashed STADIUM - the skin's
-	// established "nothing vouches for this yet" edge (Copy's dashed [+]
-	// chip, the virtual channel seats), not a sleeping slot: it stays at the
-	// window elevation with a quiet sunken "+" disc waiting at the centre.
-	// Hover lifts the whole slot exactly one value step and flips the disc
-	// ON in the skin's state grammar (opaque accent pastel + deep warm ink,
-	// the toggle-switches-on moment); pressing deepens the pastel one step,
-	// the same ladder the ON pills climb. Focus is the constitutional quiet
-	// halo, never a hard ring. Whitespace is not economised: one disc, one
-	// caption, nothing else.
+	// The trailing add row (shared insertion contract,
+	// docs/skins/README.md): a full-height dashed stadium slot - the
+	// "nothing vouches for this yet" edge, not a sleeping slot - with a
+	// quiet sunken "+" disc waiting at the centre.
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing);
@@ -354,12 +332,8 @@ public:
 			Qt::AlignVCenter | Qt::AlignLeft, caption);
 	}
 
-	// Round 3, the first-boundary insertion seam: a pastel pill line led by
-	// a round "+" disc. The line is the value-arc pastel (accent mixed one
-	// step toward the card), a stadium bar rather than a hairline - soft has
-	// no hairline vocabulary - and the disc wears the ON grammar (opaque
-	// accent pastel, deep warm ink strokes); pressing deepens the pastel one
-	// step. At rest the widget paints nothing (shared contract).
+	// The first-boundary insertion seam: a pastel pill line led by a round
+	// "+" disc. At rest the widget paints nothing (shared contract).
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
 		if (!state.hovered && !state.pressed)
@@ -390,25 +364,9 @@ public:
 		painter.drawLine(QPointF(discCx, cy - arm), QPointF(discCx, cy + arm));
 	}
 
-	// Round 3 rework, the GraphicEQ response plot: "the response curve you
-	// cannot fear". GraphicEQPlotWidget owns the model and every gesture;
-	// every pixel here is this skin's own instrument. The ground is the
-	// established rounded sunken well (14px round, surfaceSunken face, very
-	// light 1px border - elevation faked by the two value steps, never a
-	// shadow). The grid keeps only the MAJOR lines, very faint: minor
-	// hairlines are exactly the anxious element the tiebreaker removes, and
-	// whitespace does their job. The 0 dB line is a soft notch - rounded
-	// ends, floating clear of the well walls, the knob's 12-o'clock detent
-	// grammar laid flat. The curve imports the bipolar knob's track law:
-	// boost above 0 dB strokes the accent pastel, cut below strokes accent2
-	// (both softened one step toward the card, the value-arc mix 0.25
-	// recipe) over a light pastel wash down to the notch; clipping splits
-	// the passes exactly at the zero crossing. Nodes are big round dots
-	// (rest 5px) that grow half a pixel on hover and flip ON when selected
-	// (opaque pastel fill + the light ring); the keyboard's node wears the
-	// quiet halo. Focus on the surface is the constitutional quiet halo
-	// hugging the well; a disabled plot is the sleeping slot triple (dashed
-	// outline + sunk to the window + muted-ink ghost curve), never an alarm.
+	// The GraphicEQ response plot: "the response curve you cannot fear".
+	// GraphicEQPlotWidget owns the model and every gesture; every pixel
+	// here is this skin's own instrument.
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
 	{
 		const QColor card(tokens.card);
@@ -639,26 +597,12 @@ public:
 	}
 
 	// The analysis dock's response graph: "the friendly response landscape".
-	// EqGraphView owns the sampling, the axis fit and the cursor; every pixel
-	// here is the GraphicEQ instrument's family answer, adapted from an
-	// editable plot to a wide always-on monitoring readout. The ground is the
-	// same rounded sunken well with the major-only grid, and the 0 dB line
-	// stays the soft notch - read here as the calm ground line of a
-	// landscape. The response itself is TERRAIN rather than the plot's airy
-	// wash: opaque pastel masses in the ON-fill grammar (the toggle pills'
-	// opaque pastel + deep warm ink law). Cut valleys below the ground line
-	// wear the accent pastel; a boost hill above it wears the success pastel
-	// while it stays inside headroom, and the moment the config can clip
-	// (state.clipping) the overshoot terrain warms to the warning pastel -
-	// the dirty-badge amber, noticeable but never an alarm - named by a small
-	// "Over 0 dB" chip in the same grammar. The curve is the ON law's warm
-	// ink mixed into each side's pastel, a soft rounded stroke riding the
-	// terrain edge, so a flat 0 dB response still draws as a calm deep-accent
-	// line resting on the ground - alive, not empty. Axis figures speak in
-	// the friendly muted body ink (mono stays reserved for value chips), and
-	// the cursor is a rounded lens dot on the response under a soft vertical
-	// notch guide, with the readout as an ON-pastel stadium pill that floats
-	// in on the hover progress.
+	// EqGraphView owns the sampling, the axis fit and the cursor; every
+	// pixel here is the GraphicEQ instrument's family answer, adapted to a
+	// wide always-on monitoring readout. The response draws as TERRAIN:
+	// opaque pastel masses in the ON-fill grammar - cut valleys in accent,
+	// boost hills in success, warming to the warning pastel the moment the
+	// config can clip (state.clipping), named by an "Over 0 dB" chip.
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
 	{
 		const QColor accent(tokens.accent);
@@ -893,17 +837,9 @@ public:
 		painter.drawPath(wellPath);
 	}
 
-	// Round 3, the plain-text rows (bare note lines and programmatic
-	// commands such as If/EndIf/Eval). The raw line IS the row's content
-	// here, so it stays readable - but the terminal prompt glyph (">_") is
-	// exactly the anxious tech artifact this skin removes (tiebreaker:
-	// remove the element, keep the whitespace). The line itself sits in a
-	// sunken stadium well with a DASHED edge at full ink - the established
-	// "the engine holds this as written, nothing vouches for it" grammar
-	// (Copy's [+] chip, the virtual channel seats) - a note, not an alarm.
-	// A commented-out row relaxes the well to the sleeping triple (dash +
-	// sunk-to-window + muted ink). FilterCardRow laid these styles inline,
-	// so QSS cannot reach them; construction time is the hook's moment.
+	// The plain-text rows (bare note lines and programmatic commands such
+	// as If/EndIf/Eval). FilterCardRow lays these styles inline, so QSS
+	// cannot reach them; construction time is the hook's moment.
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
 		Q_UNUSED(card);
@@ -913,10 +849,10 @@ public:
 		if (info.legacyRow || !rawBodyRow)
 			return;
 
-		// Sentence conditions (dynamic-commands campaign): a simple If/Eval
-		// line is retold in the header as a friendly body-typeface sentence
-		// ("If device is Speakers", "Otherwise", "Set x to 5") - code must
-		// not frighten. The rewrite is queued because the row constructor
+		// Sentence conditions: a simple If/Eval line is retold in the header
+		// as a friendly body-typeface sentence ("If device is Speakers",
+		// "Otherwise", "Set x to 5").
+		// The rewrite is queued because the row constructor
 		// calls rebuildSummary() right after this hook, which would restore
 		// the as-written summary immediately; the queued call lands once the
 		// row has settled (the gallery's processEvents() delivers it too).
@@ -956,16 +892,9 @@ public:
 		}
 	}
 
-	// The If block is held in a pastel arm (dynamic-commands campaign,
-	// maintainer-picked concept: "sentence conditions, held in a pastel
-	// arm"). Each scope level is one quiet rounded bar in the gutter - the
-	// value-arc pastel, 4px wide, stadium caps - that begins as a rounded
-	// fingertip under the If sentence, runs down the member rows and closes
-	// with its cap on the EndIf row. A line a false branch swallowed (or a
-	// commented-out member) relaxes only its own stretch to the knob track's
-	// always-there pastel: the arm keeps holding, that stretch just sleeps.
-	// Branch truth adds no lamps, no reds, no glyphs - never an alarm. The
-	// level math follows the rack round: for members the if-lanes are the
+	// The If block is held in a pastel arm: one quiet rounded bar per scope
+	// level in the gutter, born under the If sentence and closed with its
+	// cap on the EndIf row. Level math: for members the if-lanes are the
 	// innermost logicDepth bands after the depth-logicDepth channel bands.
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
@@ -1054,21 +983,15 @@ public:
 
 	// ElseIf/Else/EndIf mount one indent unit past their head, with the
 	// members, so the pastel arm passes them instead of dying behind their
-	// full-width faces (the finding of the rack A/B mock-up round, #179).
+	// full-width faces.
 	bool logicSiblingsIndentAsMembers() const override
 	{
 		return true;
 	}
 
-	// Annex K, soft: "a handle you cannot fumble". The largest knob of the
-	// five skins. Two-step elevation body, rounded dot indicator (no sharp
-	// line), value in a rounded badge below. AR1 F3/X3: the full travel is an
-	// always-visible pastel track ring (accent mixed far toward the card), and
-	// bipolar knobs differ from unipolar ones at rest, not only when turned -
-	// their track splits at 12 o'clock into an accent2 cut half and an accent
-	// boost half, with a soft detent tick crossing the ring at the 0 dB
-	// centre. The value arc grows from that detent (boost right in accent,
-	// cut left in accent2); unipolar arcs grow from the minimum.
+	// "A handle you cannot fumble." The largest knob of the five skins:
+	// two-step elevation body, rounded dot indicator, value in a rounded
+	// badge below, always-visible pastel track ring.
 	void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const override
 	{
 		painter.setRenderHint(QPainter::Antialiasing);
@@ -1113,7 +1036,7 @@ public:
 			painter.drawEllipse(knobRect.adjusted(-2, -2, 2, 2));
 		}
 
-		// Always-visible pastel track ring (F3). Unipolar travel wears one
+		// Always-visible pastel track ring. Unipolar travel wears one
 		// accent pastel; a bipolar knob splits at the 12 o'clock detent into
 		// an accent2 cut half and an accent boost half, so gain reads as
 		// two-sided even while it rests at 0 dB.
@@ -1148,7 +1071,7 @@ public:
 			}
 		}
 
-		// X3: the 0 dB detent is a soft rounded tick crossing the track ring
+		// The 0 dB detent is a soft rounded tick crossing the track ring
 		// at 12 o'clock, painted over the value arc so the neutral point stays
 		// marked however far the knob is turned. Only bipolar (gain) knobs
 		// carry it - one more way the two knob kinds differ at a glance.
@@ -1181,10 +1104,10 @@ public:
 		painter.drawEllipse(faceRect);
 
 		// Rounded dot indicator instead of a sharp line; it grows slightly on
-		// hover and again while dragging, the calmest possible "I am held" cue.
-		// AR1 F3: the dot is larger than the pre-review 3.5px minimum so the
-		// position reads from across the row, and on a bipolar knob it takes
-		// the colour of the side it sits on (accent boost, accent2 cut).
+		// hover and again while dragging, the calmest possible "I am held"
+		// cue. The dot is large enough that the position reads from across
+		// the row, and on a bipolar knob it takes the colour of the side it
+		// sits on (accent boost, accent2 cut).
 		double dotRadius = qMax(4.5, side * 0.085);
 		if (state.dragging)
 			dotRadius += 1.0;

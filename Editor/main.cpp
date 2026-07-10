@@ -65,9 +65,7 @@ namespace
 // Mechanical round-trip check for VST plugin data: parse a VSTPlugin line, feed
 // the parsed (library, chunkData, paramMap) into the real VSTPluginFilterGUI,
 // call its store(), reparse the result and confirm chunkData / paramMap survive.
-// Used to decide empirically whether a modern VST card editor (which would hold
-// the same opaque state and reuse the same store logic) can replace the legacy
-// GUI without losing plugin state. Returns 0 on success, 1 on any loss.
+// Returns 0 on success, 1 on any loss.
 int runVstRoundTripSelfTest()
 {
 	struct Case { const wchar_t* name = nullptr; std::wstring params; };
@@ -94,14 +92,12 @@ int runVstRoundTripSelfTest()
 		std::wstring chunk0 = f0->getChunkData();
 		std::unordered_map<std::wstring, float> map0 = f0->getParamMap();
 
-		// Real editor store() on the parsed state.
 		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0);
 		QString outCommand, outParams;
 		gui.store(outCommand, outParams);
 
 		for (IFilter* f : filters) { f->~IFilter(); MemoryHelper::free(f); }
 
-		// Reparse the stored line.
 		std::wstring command2 = outCommand.toStdWString();
 		std::wstring params2 = outParams.toStdWString();
 		std::vector<IFilter*> filters2 = factory.createFilter(L"", command2, params2);
@@ -331,16 +327,15 @@ void launchDeviceSelector(const std::wstring& exeDir)
 
 int main(int argc, char* argv[])
 {
-	// First thing in the process: field crashes (so far only reproducible on
-	// foreign machines) must leave a minidump + breadcrumb report behind.
+	// First thing in the process: crashes must leave a minidump + breadcrumb
+	// report behind.
 	CrashHandler::install();
 
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
 		return hookResult;
 
-	// Normal launch (not a Velopack hook; handleVelopackHook already handled and exited
-	// for those). Initialise the Velopack runtime so UpdateManager resolves the correct
+	// Initialise the Velopack runtime so UpdateManager resolves the correct
 	// install context. Auto-apply-on-startup is off because we apply on exit instead.
 	Velopack::VelopackApp::Build().SetAutoApplyOnStartup(false).Run();
 
@@ -361,15 +356,11 @@ int main(int argc, char* argv[])
 	fftw_make_planner_thread_safe();
 
 	// Anchor the Qt plugin search to the executable's directory; shared with
-	// DeviceSelector and UpdateChecker. (audit #146 TD011)
+	// DeviceSelector and UpdateChecker.
 	QtAppBootstrap::addExecutableRelativePluginPath();
 
-	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio.
-	// The editor used to disable Qt scaling (QT_ENABLE_HIGHDPI_SCALING=0) and
-	// only hand-scale a few widget sizes through GUIHelper::scale, so on a 4K /
-	// high-DPI display everything that went through QSS px/pt or was not scaled
-	// by hand painted at physical pixels and looked tiny. Enable Qt scaling and
-	// pin the logical DPI to 96 (AA_Use96Dpi) so GUIHelper::scale becomes a
+	// High-DPI: let Qt scale the whole UI by the monitor's device pixel ratio,
+	// and pin the logical DPI to 96 (AA_Use96Dpi) so GUIHelper::scale becomes a
 	// no-op — Qt's device pixel ratio is then the single scaling source and we
 	// avoid double scaling. PassThrough keeps fractional factors like 150%
 	// exact instead of rounding them to 100%/200%.
@@ -381,10 +372,9 @@ int main(int argc, char* argv[])
 	{
 		// LegacyRows is a whole presentation, not just a row widget: the
 		// heritage editor runs with the platform's native widget style, the
-		// stock ClearType font engine, and system fonts, exactly like the
-		// pre-skin editor. The skinned mode keeps the redesign stack below.
-		// Read the mode before QApplication so the font-engine choice follows
-		// an in-process restart. (maintainer decision 2026-07-05)
+		// stock ClearType font engine, and system fonts. The skinned mode
+		// keeps the redesign stack below. Read the mode before QApplication
+		// so the font-engine choice follows an in-process restart.
 		bool legacyRowsMode;
 		{
 			QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
@@ -413,8 +403,6 @@ int main(int argc, char* argv[])
 		}
 
 		QApplication application(argc, argv);
-		// Heritage keeps the native widget style and the system UI fonts,
-		// like the pre-skin editor; the redesign stack below is skinned-only.
 		if (!legacyRowsMode)
 		{
 			application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));

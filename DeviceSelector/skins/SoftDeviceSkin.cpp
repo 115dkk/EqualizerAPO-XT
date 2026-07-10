@@ -1,21 +1,19 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Soft Lab device selector: fear-free device cards. Every element answers
-	the two friendly questions - does it look SAFE to press, and is it
-	OBVIOUS what will happen. Devices are big rounded cards; the toggle is a
-	large rounded check well whose outcome previews itself on hover; the
-	status sentence leads with a small pastel state dot (green = already
-	fine, blue = will install, amber = needs attention). Hover is a gentle
-	lift faked the constitutional Soft way - a painted one-step-darker
-	plinth below plus a one-step-brighter face, never a blur. Unavailable
-	devices sleep (dashed edge, sunk to the window ground, muted ink);
-	experimental wells wear the dashed "nothing vouches for this" stitch;
-	the selected card keeps a calm pastel ring. Buttons are plump stadium
-	pills on the ON-pastel ladder, and the troubleshooting disclosure is an
-	optional rounded tab borrowing the add-row grammar: a quiet sunken
-	chevron disc that flips ON (opaque accent pastel + deep warm ink) when
-	the panel opens.
+	Soft Lab device selector: fear-free device cards. Constitution (pastel
+	ladder, painted lift, stitch grammar): docs/skins/soft.md. Element
+	mapping: devices are big rounded cards; the toggle is a large rounded
+	check well whose outcome previews itself on hover; the status sentence
+	leads with a small pastel state dot (green = already fine, blue = will
+	install, amber = needs attention). Hover is a painted lift (one-step-
+	darker plinth below + one-step-brighter face, never a blur).
+	Unavailable devices sleep (dashed edge, sunk to the window ground,
+	muted ink); experimental wells wear the dashed stitch; the selected
+	card keeps a calm pastel ring. Buttons are plump stadium pills on the
+	ON-pastel ladder; the troubleshooting disclosure is a rounded tab
+	borrowing the add-row grammar (a sunken chevron disc that flips ON
+	when the panel opens).
 */
 
 #include "DeviceSkinPainter.h"
@@ -28,8 +26,8 @@
 namespace
 {
 // The constitutional deep warm ink that rides every opaque pastel fill
-// (post-#170 Soft grammar, same literal as the Editor's SoftSkin): white
-// text on a pastel is exactly the low-contrast anxiety this skin removes.
+// (same literal as the Editor's SoftSkin): white text on a pastel is
+// exactly the low-contrast anxiety this skin removes.
 QColor softWarmInk()
 {
 	return QColor(QStringLiteral("#2B251D"));

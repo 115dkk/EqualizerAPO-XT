@@ -38,10 +38,7 @@ vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath,
 	if (command == L"GraphicEQ")
 	{
 		// Parse the node list into the shared, Qt-free struct so the engine and the
-		// Editor build the filter from the exact same parsed values. The struct
-		// reproduces the previous inline parse (comma/period handling, number
-		// regex, freq/gain pairing and frequency sort) verbatim, so the resulting
-		// node list - and therefore the GraphicEQFilter - is unchanged.
+		// Editor build the filter from the exact same parsed values.
 		GraphicEQCommand cmd;
 		cmd.parse(parameters);
 

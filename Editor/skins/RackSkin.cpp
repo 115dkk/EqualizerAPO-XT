@@ -2,10 +2,9 @@
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 */
 
-// Rack skin, split out of Skins.cpp (audit #109 F005). This is a verbatim
-// move of the helpers and the class; behaviour is unchanged. The file-scope
-// instance is exposed through rackSkin() so Skins::all() can assemble the
-// roster without a central definition list.
+// Rack skin. Constitution: docs/skins/rack.md. The file-scope instance is
+// exposed through rackSkin() so Skins::all() can assemble the roster
+// without a central definition list.
 
 #include "Skins.h"
 
@@ -28,7 +27,6 @@
 #include <QWidget>
 #include <QtMath>
 
-// Studio's S3 band-colour law maps BiQuad filter types onto hue families.
 #include "filters/BiQuad.h"
 
 #include "Editor/SkinManager.h"
@@ -103,13 +101,9 @@ void monitorLamp(QPainter& painter, const QPointF& center, qreal radius, const Q
 }
 
 // The instrument itself: a dark phosphor-glass window in BOTH finishes (the
-// display law) seated in a machined bezel over a faceplate strip that
-// carries the engraved unit printing. The response is a green phosphor
-// trace with stroke-faked glow; the region above 0 dB is the OVER zone
-// (danger-red warning graticule, the beam burns red, the plate's OVER lamp
-// lights). The pointer drops a scope measurement cursor with a segment
-// readout in the glass corner, and state.hover pre-heats the phosphor on
-// entry. Nothing here is a widget or a timer - a stateless painter.
+// display law) over a faceplate strip carrying the engraved unit printing;
+// the region above 0 dB is the danger-red OVER zone while the response can
+// clip. Nothing here is a widget or a timer - a stateless painter.
 void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens)
 {
 	const bool dark = skinIsDark(tokens);
@@ -133,11 +127,9 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	const QColor segmentBright = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
 	const QColor segmentDim = dark ? QColor(0x4C, 0x9E, 0x74) : QColor(0x2F, 0x8A, 0x61);
 	// The OVER voice is the danger red of a hardware PEAK lamp, not the
-	// panel's amber accent: overdrive is damage, and the review judged the
-	// amber "too soft for something genuinely dangerous". Lifted on the
-	// cream finish the same way the phosphor is.
-	// Barely lifted on the cream finish: the glass is dark in BOTH finishes,
-	// so a strong lift only washes the red toward pink.
+	// panel's amber accent: overdrive is damage. Only barely lifted on the
+	// cream finish - the glass is dark in BOTH finishes, so a strong lift
+	// only washes the red toward pink.
 	const QColor overInk = dark ? QColor(tokens.danger) : QColor(tokens.danger).lighter(115);
 
 	const QRectF full(state.rect);
@@ -447,38 +439,25 @@ public:
 
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
-		// The empty rack bay: the opening's dark interior, the mounting
-		// rails' empty bolt holes and a stencilled EMPTY BAY marking; hover
-		// pre-heats the bezel amber (RackChrome). state.label is a UI string,
-		// not hardware printing, so the stencil ignores it - the widget's
-		// tooltip keeps the translated caption reachable.
+		// state.label is a UI string, not hardware printing, so the stencil
+		// ignores it - the widget's tooltip keeps the translated caption
+		// reachable.
 		RackChrome::paintAddRow(painter, rect, state, tokens);
 	}
 
 	void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const override
 	{
-		// The service slot's amber heat line above the first unit - strokes
-		// only, nothing at rest (RackChrome).
 		RackChrome::paintInsertSeam(painter, rect, state, tokens);
 	}
 
 	void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens) const override
 	{
-		// The unit's oscilloscope display: a dark phosphor-glass well in both
-		// finishes (the display law) behind a recessed bezel, scope graticule,
-		// a green phosphor trace with stroke-faked glow and glowing adjustment
-		// dots; band-locked layouts read as segmented level ladders
-		// (RackChrome).
 		RackChrome::paintGraphicEqPlot(painter, state, tokens);
 	}
 
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
 	{
-		// The SPECTRUM MONITOR unit: the GEQ scope's oscilloscope law widened
-		// into an always-on monitoring readout - phosphor glass in a machined
-		// bezel over an engraved faceplate strip, a danger-red OVER zone
-		// (warning graticule + red-burning beam + plate PEAK lamp) while the
-		// response can clip, and a scope measurement cursor with a readout.
+		// The SPECTRUM MONITOR unit (paintAnalysisMonitor above).
 		paintAnalysisMonitor(painter, state, tokens);
 	}
 
@@ -489,8 +468,8 @@ public:
 		// RackChrome::paintCardChrome (the sheen overlays are translucent, so
 		// the hover state shines through them). The resting border is the dark
 		// seam of the rack opening rather than the token border, so stacked
-		// units separate physically (R3); focus and selection keep their
-		// signal colours.
+		// units separate physically; focus and selection keep their signal
+		// colours.
 		const bool dark = skinIsDark(tokens);
 		const QString seam = dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268");
 		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : seam);
@@ -561,10 +540,9 @@ public:
 		RackChrome::paintCardChrome(painter, rect, info, tokens);
 	}
 
-	// The If-block scope is a relay-switched power bus in the gutter (gate
-	// issue #179, maintainer-picked variant A; the drawing lives in
-	// RackChrome per constitution rule 7). Branch/tail rows mount at member
-	// depth so the lane passes them instead of dying behind their faceplates.
+	// The If-block scope is a relay-switched power bus in the gutter (drawn
+	// in RackChrome). Branch/tail rows mount at member depth so the lane
+	// passes them instead of dying behind their faceplates.
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		return RackChrome::paintScopeGutter(painter, size, info, tokens);
@@ -577,36 +555,26 @@ public:
 
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
 	{
-		// The caption strip is the unit's top panel: brushed sheen, machined
-		// edges, the caption-ear groove and two rail screws (RackChrome). QSS
-		// prints the model designation and dresses the caption buttons as
-		// machined caps.
+		// QSS prints the model designation and dresses the caption buttons
+		// as machined caps; RackChrome paints the panel around them.
 		RackChrome::paintTitleBarChrome(painter, rect, tokens);
 	}
 
 	FilterPickerView* createFilterPicker(QWidget* parent) const override
 	{
-		// The module library browser: a brushed 1U faceplate with engraved
-		// section plates, LED-lit slots and an LCD search strip.
 		return new RackFilterPickerView(parent);
 	}
 
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
-		// The reference row's service face: a bezel status lamp, engraved
-		// identity printing with stamped tags and a dark LCD readout well,
-		// painted in RackChrome's grammar (see RackReferenceCardView).
 		return new RackReferenceCardView(kind, parent);
 	}
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override
 	{
-		// The shared stroke icons first (tinted with the panel's warm ink),
-		// then the master-rail chrome: RackChrome mounts a painted overlay
-		// (brushed strip, machined edges, end screws, engraved series
-		// marking, instant-mode power LED) under the toolbar's controls. The
-		// QSS dresses the controls themselves as transport buttons and an
-		// LCD save-state well.
+		// The shared stroke icons first, then the master-rail overlay
+		// RackChrome mounts under the toolbar's controls; the QSS dresses
+		// the controls themselves.
 		ISkin::styleMainToolbar(toolBar, tokens);
 		RackChrome::styleMainToolbar(toolBar, tokens);
 	}

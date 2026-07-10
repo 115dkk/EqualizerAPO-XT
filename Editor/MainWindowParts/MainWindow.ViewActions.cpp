@@ -74,8 +74,8 @@ void MainWindow::interfaceModeSelected(QAction* action)
 	// The two modes are whole presentations, not just row widgets: heritage
 	// (legacy rows) runs unskinned on the native style, frame, font engine and
 	// system fonts. None of that can swap cleanly inside a live process, and a
-	// partial swap is exactly the modern-chrome-around-legacy-rows mixture this
-	// mode used to show. Restart into the chosen presentation instead.
+	// partial swap mixes modern chrome around legacy rows. Restart into the
+	// chosen presentation instead.
 	if (QMessageBox::question(this, tr("Restart required"), tr("Configuration Editor will be restarted to apply the changed settings. Proceed?")) == QMessageBox::Yes)
 	{
 		// savePreferences() persists interface/legacyRows from this member on

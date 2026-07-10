@@ -595,4 +595,4 @@ void hcCloseSingle(HConvSingle* filter)
 
 // The dual/triple-segment (low-latency) API lives in
 // libHybridConv_eapo_dormant.cpp, which no project compiles; see the
-// banner there. (audit #146 TD009)
+// banner there.

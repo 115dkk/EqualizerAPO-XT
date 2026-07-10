@@ -4,20 +4,18 @@
 	A reference card is the body of a command row whose subject is an external
 	file the configuration points at: Include (a config file), Convolution /
 	MultiConvolution (an impulse response) and VSTPlugin (a plugin library).
-	The adversarial design review (issue #97, AR2) found that DAWs, IDEs and
-	design tools all present such a reference as a *named entity* - a primary
-	name, the location as secondary metadata, the broken state as a visual
-	transition of the item itself, and a recovery affordance (Locate) right at
-	the error - rather than as the path-input form these rows used to be.
+	The reference is presented as a *named entity* - a primary name, the
+	location as secondary metadata, the broken state as a visual transition of
+	the item itself, and a recovery affordance (Locate) right at the error -
+	not as a path-input form. See docs/skin-hooks.md ("Reference card hook").
 
-	ReferenceCardView is the skin seam for that presentation, following the
-	IRoutingRenderer precedent: the host editor owns all behavior (path
-	resolution, file dialogs, plugin lifecycle, import) and describes itself
-	through ReferenceCardState; each skin supplies its own view subclass via
-	ISkin::createReferenceCardView so the five constitutions can answer with
-	genuinely different structures, not palette swaps. The base class owns the
-	one interaction every skin shares: the inline path editor (interaction is
-	shared across skins; skins only restyle it).
+	ReferenceCardView is the skin seam for that presentation: the host editor
+	owns all behavior (path resolution, file dialogs, plugin lifecycle,
+	import) and describes itself through ReferenceCardState; each skin
+	supplies its own view subclass via ISkin::createReferenceCardView so the
+	skins can answer with genuinely different structures, not palette swaps.
+	The base class owns the one interaction every skin shares: the inline
+	path editor (interaction is shared across skins; skins only restyle it).
 */
 
 #pragma once
@@ -53,10 +51,10 @@ struct ReferenceCardState
 	// Short format token ("VST2", "VST3"); empty hides the badge.
 	QString formatBadge;
 	// The target could not be resolved (file not found / library not loaded).
-	// The constitutionally required state transition (AR2 X-3) keys off this.
+	// The skins' required broken-state transition keys off this.
 	bool missing = false;
 	// The reference is an absolute path - a config portability hazard the
-	// skins may badge (AR2 X-10).
+	// skins may badge.
 	bool absolutePath = false;
 	// The primary name is a click affordance (open panel for VST, jump to the
 	// included config). Views must ignore it while missing.
@@ -94,7 +92,7 @@ public:
 	enum class ActionRole
 	{
 		// Open the file dialog. Doubles as the Locate recovery entry while the
-		// reference is missing (AR2 X-4); views surface it accordingly.
+		// reference is missing; views surface it accordingly.
 		Browse,
 		// Jump to the target (open the included config in the editor).
 		OpenTarget,
@@ -142,10 +140,10 @@ protected:
 	// The page the subclass builds its presentation into.
 	QWidget* contentWidget() const;
 
-	// Make widget act as the primary-name click affordance (AR2 X-2: the
-	// device identity opens the panel / jumps to the target). Emits
-	// nameActivated on left-click while the state allows it and keeps the
-	// cursor honest; every view's name label shares this plumbing.
+	// Make widget act as the primary-name click affordance (the identity
+	// opens the panel / jumps to the target). Emits nameActivated on
+	// left-click while the state allows it and keeps the cursor honest;
+	// every view's name label shares this plumbing.
 	void installNameActivation(QWidget* widget);
 
 	bool eventFilter(QObject* watched, QEvent* event) override;

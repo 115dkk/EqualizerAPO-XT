@@ -15,12 +15,6 @@
 
 namespace
 {
-// Every pastel and every elevation step is mixed from tokens that already
-// exist, never from a new palette entry, so both modes stay equally calm.
-// The mix/alpha/is-dark/cssColor helpers and Soft's pastel recipe
-// (softPastelize) come from the shared SkinPaint.h - this file used to keep
-// verbatim copies of all five.
-
 // Which token seeds each kind's tile pastel. The hues stay inside the token
 // family: Include leans on the accent blue, VST on the accent2 violet,
 // Convolution on the success green, and MultiConvolution on a green/blue mix
@@ -36,12 +30,11 @@ QColor kindTilePastel(const QString& kind, const SkinTokens& t, bool dark)
 	return softPastelize(QColor(t.accent), dark);
 }
 
-// The pictogram each kind wears (the shared modern icon set): a picture
-// reads friendlier than a Latin monogram in this skin (user direction, AR2
-// rework round) - the document sheet for Include, the plug for VST, the
-// waveform for Convolution and the layered stack for MultiConvolution (its
-// own mark: many impulse responses summed into one card). The missing-state
-// stroke exclamation stays: the transition lives in the tile either way.
+// The pictogram each kind wears (the shared modern icon set): the document
+// sheet for Include, the plug for VST, the waveform for Convolution and the
+// layered stack for MultiConvolution (its own mark: many impulse responses
+// summed into one card). The missing-state stroke exclamation stays: the
+// transition lives in the tile either way.
 QString kindIconResource(const QString& kind)
 {
 	if (kind == QStringLiteral("vst"))
@@ -54,13 +47,10 @@ QString kindIconResource(const QString& kind)
 }
 }
 
-// The iOS-Settings-style rounded-square colour tile that leads the row: the
-// picker's tile grammar promoted onto the reference card, carrying the
-// kind's familiar pictogram. While the reference is broken the tile itself
-// changes colour and swaps the pictogram for a stroke-drawn alert mark - the
-// state transition lives in the entity, not in a shouting badge. Disabled,
-// the pastel sinks toward the window background like every sleeping Soft
-// chip.
+// The rounded-square colour tile that leads the row (the picker's tile
+// grammar). While the reference is broken the tile changes colour and swaps
+// the pictogram for a stroke-drawn alert mark; disabled, the pastel sinks
+// toward the window background like every sleeping Soft chip.
 class SoftReferenceTile : public QWidget
 {
 public:
@@ -107,9 +97,8 @@ protected:
 
 		if (showAlert)
 		{
-			// A friendly stroke-drawn exclamation mark (round caps, no icon
-			// font) - the same hand as the picker's stroke magnifier, and
-			// far calmer than a warning triangle.
+			// A stroke-drawn exclamation mark (round caps, no icon font) -
+			// the same hand as the picker's stroke magnifier.
 			const QPointF center = tileRect.center();
 			painter.setPen(QPen(ink, side * 0.09, Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(center.x(), tileRect.top() + side * 0.26),
@@ -220,9 +209,9 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, QWidget* paren
 
 	// Fact chips: one quiet blue-grey pastel (the accent pulled toward the
 	// muted ink before pastelizing - facts inform, they do not announce)
-	// under the skin's deep warm chip ink (AR1 F2: white on a pastel is
-	// low-contrast anxiety). Sleeping chips sink toward the window like the
-	// type chip does.
+	// under the skin's deep warm chip ink (white on a pastel is low-contrast
+	// anxiety). Sleeping chips sink toward the window like the type chip
+	// does.
 	const QColor chipPastel = softPastelize(mixColor(QColor(t.accent), QColor(t.mutedText), 0.55), dark);
 	chipStyle = QStringLiteral(
 		"QLabel { background: %1; color: %2; border-radius: 9px; padding: 2px 10px;"
@@ -281,9 +270,9 @@ void SoftReferenceCardView::addLeadingWidget(QWidget* widget)
 
 	// MultiConvolution's output-channel selector is a genuine selector, so
 	// it stays an honest combo dressed as a stadium pill one value step
-	// above the body tray with its arrow visible (the AR1 X5 grammar);
-	// disabled it keeps only a dashed outline - a sleeping slot, not an
-	// alarm. The inner line edit rides flat inside the pill.
+	// above the body tray with its arrow visible; disabled it keeps only a
+	// dashed outline - a sleeping slot, not an alarm. The inner line edit
+	// rides flat inside the pill.
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	widget->setStyleSheet(QStringLiteral(
 		"QComboBox { background: %1; color: %2; border: 1px solid %3; border-radius: 13px;"
@@ -307,10 +296,10 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	const bool dark = skinIsDark(t);
 	const QString kind = state.kind.isEmpty() ? cardKind : state.kind;
 
-	// The broken-state transition (AR2 X-3) lives in the tile, still on the
-	// pastel shelf: an empty reference ("no file selected") is a quiet
-	// warning tint - nothing broke yet - while a dangling path leans on the
-	// danger hue, pastelized so it worries without alarming.
+	// The broken-state transition lives in the tile, still on the pastel
+	// shelf: an empty reference ("no file selected") is a quiet warning tint
+	// - nothing broke yet - while a dangling path leans on the danger hue,
+	// pastelized so it worries without alarming.
 	QColor pastel = kindTilePastel(kind, t, dark);
 	if (state.missing)
 		pastel = softPastelize(QColor(state.editText.trimmed().isEmpty() ? t.warning : t.danger), dark);
@@ -324,13 +313,10 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	formatChip->setText(state.formatBadge);
 
 	// The caption is the friendly second line: the containing location as a
-	// prefix ("Surround\" - the folder holds the file, so it prints as what
-	// the name hangs under, never as the name's sub-item); while the
-	// reference dangles it shows the reference as written, so the row itself
-	// explains what needs relinking. No ABS badge in this skin - the
-	// constitutional tiebreaker removes the element, and an absolute
-	// reference already announces itself through the drive letter this
-	// caption starts with.
+	// prefix ("Surround\"); while the reference dangles it shows the
+	// reference as written, so the row itself explains what needs relinking.
+	// No ABS badge in this skin (constitutional tiebreaker - the drive
+	// letter this caption starts with already says it).
 	QString caption = state.locationPrefix();
 	if (caption.isEmpty() && state.missing)
 		caption = state.editText;
@@ -383,9 +369,9 @@ void SoftReferenceCardView::styleBrowseButton()
 		return;
 
 	// The host swaps the Browse label to a translated "Locate..." while the
-	// reference is broken (AR2 X-4). With a label present the pill becomes
-	// the visual protagonist of the recovery; without one it rests as the
-	// quiet icon pill the sheet gives every card action.
+	// reference is broken. With a label present the pill becomes the visual
+	// protagonist of the recovery; without one it rests as the quiet icon
+	// pill the sheet gives every card action.
 	const bool locate = !browseButton->text().isEmpty();
 	if (QToolButton* toolButton = qobject_cast<QToolButton*>(browseButton))
 		toolButton->setToolButtonStyle(locate ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly);

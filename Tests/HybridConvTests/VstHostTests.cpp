@@ -3,16 +3,16 @@
 
 	Self-contained runtime test for the VST2 hosting path of the engine's VST
 	host classes - VSTPluginLibrary (LoadLibrary + GetProcAddress(VSTPluginMain))
-	and VSTPluginInstance (the F005 host split: VSTPluginInstance.cpp +
-	.VST2.cpp + .State.cpp). It loads the companion TestVst2Plugin.dll (built
+	and VSTPluginInstance (VSTPluginInstance.cpp + .VST2.cpp + .State.cpp).
+	It loads the companion TestVst2Plugin.dll (built
 	from Tests/TestVst2Plugin from our own source, so it always matches the host
 	architecture) and round-trips state plus audio through the engine's public
 	host API.
 
-	Audit #48 finding F026: the F005 split is exercised only by config-line
-	parsing today (VSTPluginCommandTests). This adds the missing runtime
-	coverage - actually loading a plugin, processing audio, and round-tripping
-	chunk state - without depending on any plugin installed on the machine.
+	This is the runtime coverage complementing the config-line parsing tests
+	(VSTPluginCommandTests) - actually loading a plugin, processing audio, and
+	round-tripping chunk state - without depending on any plugin installed on
+	the machine.
 
 	Soft skip: if TestVst2Plugin.dll is not found next to the running test
 	executable (e.g. the plugin project was not built or copied), the test

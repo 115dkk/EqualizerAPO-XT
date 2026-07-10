@@ -8,7 +8,7 @@ class ReferenceCardView;
 
 // Modern card body for a "Convolution:" line, the card-mode counterpart of the
 // legacy guis/ConvolutionFilterGUI. Presents the impulse response as a named
-// reference through the active skin's ReferenceCardView (AR2, issue #97) and
+// reference through the active skin's ReferenceCardView and
 // keeps the convolution-specific readout (length, sample rate, device-rate
 // mismatch) plus the "import into the config directory" affordance.
 class ConvolutionCardEditor : public IFilterGUI

@@ -49,9 +49,8 @@ public:
 	double getProcessingTime() const;
 	unsigned getProcessedFrames() const;
 	// Per-line facts the engine reported while loading the analyzed config
-	// (branch decisions, Eval values, skipped lines; dynamic-commands
-	// campaign). Like the other getters, only valid between beginGetResult()
-	// and endGetResult().
+	// (branch decisions, Eval values, skipped lines). Like the other getters,
+	// only valid between beginGetResult() and endGetResult().
 	const std::vector<ConfigLoadTraceEntry>& getLoadTrace() const;
 
 signals:

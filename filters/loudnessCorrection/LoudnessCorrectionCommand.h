@@ -22,9 +22,7 @@
 #include <string>
 
 // Single owner of the "LoudnessCorrection:" config-line grammar, shared by
-// the engine factory and the Editor GUI. It replaces the regex grammar that
-// used to live in LoudnessCorrectionFilter::FilterParameters::deSerialize and
-// the hand-built string in LoudnessCorrectionFilterGUI::store.
+// the engine factory and the Editor GUI.
 struct LoudnessCorrectionCommand
 {
 	bool state = true;
@@ -38,14 +36,14 @@ struct LoudnessCorrectionCommand
 	float attenuation = 1.0f;
 
 	// Canonical parameter string: "State <0|1> ReferenceLevel <int>
-	// ReferenceOffset <int> Attenuation <value>". Attenuation keeps the GUI's
-	// historical formatting: exactly 0 or 1 is written as "0.0"/"1.0", other
+	// ReferenceOffset <int> Attenuation <value>". Attenuation formatting:
+	// exactly 0 or 1 is written as "0.0"/"1.0", other
 	// values with the C "%g" default, which matches QString::arg(double) for
 	// the spin box's two-decimal granularity.
 	std::wstring serialize() const;
 
 	// Returns true when command names a LoudnessCorrection line and the
 	// required State/ReferenceLevel/ReferenceOffset parameters parse; a
-	// missing Attenuation falls back to 1.0 like before.
+	// missing Attenuation falls back to 1.0.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, LoudnessCorrectionCommand& out);
 };

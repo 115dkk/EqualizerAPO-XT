@@ -1,24 +1,11 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	"Add filter" picker for the minimal skin (Precision Minimal): a terminal
-	index. The control is all type, hairlines and alignment - a man page /
-	BIOS menu rather than a dialog. One bare ">"-prefixed query line on top,
-	a numbered mono index below (uppercase section captions with full-width
-	hairline underlines, entries as single "NN  Name" lines) and a key legend
-	at the bottom. Zero radius, no decoration; selection is an inverted text
-	block, hover is exactly one background-value step.
-
-	Keyboard is the soul: typing letters filters the index, typing digits
-	jumps straight to that entry number, Up/Down move, Return inserts. Esc
-	belongs to the popup host.
-
-	Numbering (N3): numbers are page coordinates, assigned once from the
-	resting index's display order (sections coalesced by first appearance),
-	so the full listing counts 01..NN straight down the page. They never
-	change afterwards - filtering hides lines but keeps their printed
-	numbers, so "07" always jumps to the same template. A query that matches
-	nothing answers with a NO MATCH line, the terminal's honest empty state.
+	"Add filter" picker for the minimal skin (Precision Minimal): a numbered
+	terminal index - a bare ">" query line, a mono index list and a key
+	legend. Letters filter, digits jump to a printed number, Esc belongs to
+	the popup host.
+	Constitution: docs/skins/minimal.md ("필터 픽커" section).
 */
 
 #pragma once
@@ -43,7 +30,7 @@ class MinimalPickerIndexList : public QWidget
 public:
 	struct Row
 	{
-		QString number;       // zero-padded display-order number (N3); empty for captions
+		QString number;       // zero-padded display-order number; empty for captions
 		QString text;         // entry name, or the uppercase caption text
 		int entryIndex = -1;  // original index into the entries list; -1 = caption
 	};
@@ -108,7 +95,7 @@ private:
 	void ensureSelectionVisible();
 
 	QList<FilterPickerEntry> allEntries;
-	// N3 page coordinates: entry indices in resting display order, and each
+	// Page coordinates: entry indices in resting display order, and each
 	// entry's 1-based printed number. Assigned once per setEntries; immutable
 	// while filtering so digit jumps stay stable.
 	QVector<int> displayOrder;
