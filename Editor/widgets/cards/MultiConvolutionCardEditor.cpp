@@ -230,7 +230,6 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 
 	RoutingPortModel portModel;
 	portModel.fixedSources = MultiConvolutionRoutingAdapter::sourcePorts(fileChannelCount, mappings);
-	portModel.allowFactors = false;
 
 	routingView = renderer->create(assignments, targets, portModel, this);
 	routingLayout->addWidget(routingView);
@@ -389,9 +388,9 @@ void MultiConvolutionCardEditor::updateFileInfo()
 					unsigned highest = 0;
 					bool any = false;
 					for (const MultiConvolutionCommand::Mapping& mapping : mappings)
-						for (unsigned c : mapping.irChannels)
+						for (const MultiConvolutionCommand::IrChannelRef& ref : mapping.irChannels)
 						{
-							highest = std::max(highest, c);
+							highest = std::max(highest, ref.channel);
 							any = true;
 						}
 					if (any && (int)highest >= fileChannelCount)

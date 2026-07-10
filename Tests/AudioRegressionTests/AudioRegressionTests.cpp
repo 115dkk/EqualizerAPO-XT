@@ -21,11 +21,17 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <bcrypt.h>
+
+#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
+#include <sndfile.h>
 
 #include "FilterEngine.h"
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
 #include "Tests/TestHarness.h"
+
+#pragma comment(lib, "bcrypt.lib")
 
 namespace
 {
@@ -74,6 +80,10 @@ struct Options
 	std::wstring configDir;
 	std::wstring outDir;
 	double toleranceDb = -120.0;
+	// Extra impulse-response files for the MultiConvolution equivalence
+	// battery (e.g. a real Impulcifer hrir.wav); the synthetic battery always
+	// runs regardless.
+	std::vector<std::wstring> equivIrFiles;
 };
 
 std::wstring toWide(const std::string& s)
@@ -157,6 +167,7 @@ Options parseOptions(int argc, char** argv)
 		else if (a == "--config-dir") o.configDir = toWide(next());
 		else if (a == "--out-dir") o.outDir = toWide(next());
 		else if (a == "--tolerance-db") o.toleranceDb = std::atof(next().c_str());
+		else if (a == "--equiv-ir") o.equivIrFiles.push_back(toWide(next()));
 		else if (a == "--help" || a == "-h") {
 			printf("Usage: AudioRegressionTests [options]\n");
 			printf("  --variant <name>          Tag for the output subdirectory (default: \"default\")\n");
@@ -165,6 +176,8 @@ Options parseOptions(int argc, char** argv)
 			printf("  --config-dir <path>       Override config directory\n");
 			printf("  --out-dir <path>          Override per-variant output directory\n");
 			printf("  --tolerance-db <db>       Compare tolerance in dBFS (default: -120)\n");
+			printf("  --equiv-ir <path>         Also run the MultiConvolution equivalence battery\n");
+			printf("                            against this impulse response file (repeatable)\n");
 			exit(0);
 		}
 		else {
@@ -277,6 +290,364 @@ CompareResult compareBuffers(const std::vector<float>& out, const std::vector<fl
 	return r;
 }
 
+// ---------------------------------------------------------------------------
+// MultiConvolution equivalence battery
+//
+// Proves that the one-line "MultiConvolution: L=<f0>*0+<f1>*1+... <ir>" is
+// bit-identical (SHA-256 over the raw float output) to the manual fan-out it
+// compresses:
+//
+//   Copy: V1=L V2=L ...
+//   Channel: L V1 V2 ...
+//   Convolution: <ir>          (selected channel i gets file channel i)
+//   Copy: L=<f0>*L+<f1>*V1+...
+//   Channel: ALL
+//
+// Both pipelines run the same hcInitSingle/hcPut/hcProcess/hcGet sequence per
+// (input, IR channel) unit at the same block length and sum in the same order,
+// so the equality is exact, not within a tolerance. The battery always runs on
+// deterministic synthetic impulse responses (2 and 8 channels); --equiv-ir
+// adds real files (e.g. an Impulcifer hrir.wav) on top.
+
+std::string sha256Hex(const void* data, size_t size)
+{
+	BCRYPT_ALG_HANDLE alg = nullptr;
+	BCRYPT_HASH_HANDLE hash = nullptr;
+	UCHAR digest[32] = {};
+	std::string hex;
+	if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) == 0)
+	{
+		if (BCryptCreateHash(alg, &hash, nullptr, 0, nullptr, 0, 0) == 0)
+		{
+			BCryptHashData(hash, (PUCHAR)data, (ULONG)size, 0);
+			BCryptFinishHash(hash, digest, sizeof(digest), 0);
+			BCryptDestroyHash(hash);
+			char buf[3];
+			for (UCHAR b : digest)
+			{
+				snprintf(buf, sizeof(buf), "%02x", b);
+				hex += buf;
+			}
+		}
+		BCryptCloseAlgorithmProvider(alg, 0);
+	}
+	return hex;
+}
+
+// Deterministic decaying noise per channel, seeded by the channel index, so
+// every run and every SIMD variant sees the same impulse responses.
+std::vector<std::vector<double>> makeSyntheticIr(unsigned channels, unsigned frames)
+{
+	std::vector<std::vector<double>> ir(channels, std::vector<double>(frames));
+	for (unsigned c = 0; c < channels; ++c)
+	{
+		uint32_t state = 0x9E3779B9u * (c + 1);
+		for (unsigned f = 0; f < frames; ++f)
+		{
+			state = state * 1664525u + 1013904223u;
+			double noise = ((double)state / 4294967296.0) * 2.0 - 1.0;
+			double decay = std::exp(-4.0 * (double)f / (double)frames);
+			ir[c][f] = 0.5 * noise * decay;
+		}
+	}
+	return ir;
+}
+
+bool writeIrWav(const std::wstring& path, const std::vector<std::vector<double>>& channels, unsigned sampleRate)
+{
+	const unsigned numCh = (unsigned)channels.size();
+	const unsigned frames = (unsigned)channels[0].size();
+	std::vector<double> interleaved((size_t)frames * numCh);
+	for (unsigned f = 0; f < frames; ++f)
+		for (unsigned c = 0; c < numCh; ++c)
+			interleaved[(size_t)f * numCh + c] = channels[c][f];
+
+	SF_INFO info = {};
+	info.samplerate = (int)sampleRate;
+	info.channels = (int)numCh;
+	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
+	SNDFILE* file = sf_wchar_open(path.c_str(), SFM_WRITE, &info);
+	if (file == nullptr)
+		return false;
+	sf_writef_double(file, interleaved.data(), (sf_count_t)frames);
+	sf_close(file);
+	return true;
+}
+
+bool writeTextFile(const std::wstring& path, const std::wstring& text)
+{
+	std::string utf8;
+	if (!text.empty())
+	{
+		int n = WideCharToMultiByte(CP_UTF8, 0, text.data(), (int)text.size(), nullptr, 0, nullptr, nullptr);
+		utf8.resize((size_t)n);
+		WideCharToMultiByte(CP_UTF8, 0, text.data(), (int)text.size(), utf8.data(), n, nullptr, nullptr);
+	}
+	HANDLE h = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (h == INVALID_HANDLE_VALUE)
+		return false;
+	DWORD written = 0;
+	BOOL ok = WriteFile(h, utf8.data(), (DWORD)utf8.size(), &written, nullptr);
+	CloseHandle(h);
+	return ok && written == utf8.size();
+}
+
+// "%g" like the command serializers; only ever used next to '*'.
+std::wstring formatFactor(double factor)
+{
+	wchar_t buffer[64];
+	swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g", factor);
+	return buffer;
+}
+
+struct EquivSpec
+{
+	const char* name = "";
+	unsigned irChannelsUsed = 0;  // how many file channels the mapping sums
+	std::vector<double> factors;  // per used file channel; empty = all unity
+	unsigned repeats = 1;         // stacked blocks/lines on the same target
+	bool secondTarget = false;    // also process R with file channels 0+1
+};
+
+double specFactor(const EquivSpec& spec, unsigned c)
+{
+	return c < spec.factors.size() ? spec.factors[c] : 1.0;
+}
+
+// The manual fan-out block for one target; factors[i] scales file channel i's
+// share exactly like the MultiConvolution summand factor does.
+std::wstring manualBlock(const EquivSpec& spec, const std::wstring& target, unsigned channelsUsed, const std::wstring& irPath, bool useFactors)
+{
+	std::wstring text;
+	if (channelsUsed > 1)
+	{
+		text += L"Copy:";
+		for (unsigned c = 1; c < channelsUsed; ++c)
+			text += L" V" + std::to_wstring(c) + L"=" + target;
+		text += L"\r\n";
+	}
+	text += L"Channel: " + target;
+	for (unsigned c = 1; c < channelsUsed; ++c)
+		text += L" V" + std::to_wstring(c);
+	text += L"\r\n";
+	text += L"Convolution: " + irPath + L"\r\n";
+	text += L"Copy: " + target + L"=";
+	for (unsigned c = 0; c < channelsUsed; ++c)
+	{
+		if (c > 0)
+			text += L"+";
+		const double factor = useFactors ? specFactor(spec, c) : 1.0;
+		if (factor != 1.0)
+			text += formatFactor(factor) + L"*";
+		text += c == 0 ? target : L"V" + std::to_wstring(c);
+	}
+	text += L"\r\nChannel: ALL\r\n";
+	return text;
+}
+
+std::wstring multiConvLine(const EquivSpec& spec, const std::wstring& target, unsigned channelsUsed, const std::wstring& irPath, bool useFactors)
+{
+	std::wstring text = L"MultiConvolution: " + target + L"=";
+	for (unsigned c = 0; c < channelsUsed; ++c)
+	{
+		if (c > 0)
+			text += L"+";
+		const double factor = useFactors ? specFactor(spec, c) : 1.0;
+		if (factor != 1.0)
+			text += formatFactor(factor) + L"*";
+		text += std::to_wstring(c);
+	}
+	text += L" " + irPath + L"\r\n";
+	return text;
+}
+
+std::vector<float> makeNoiseInput(unsigned channels, unsigned frames)
+{
+	std::vector<float> input((size_t)frames * channels);
+	uint32_t state = 0x2545F491u;
+	for (float& sample : input)
+	{
+		state = state * 1664525u + 1013904223u;
+		sample = (float)((((double)state / 4294967296.0) * 2.0 - 1.0) * 0.5);
+	}
+	return input;
+}
+
+// Takes the input by value: each run works on its own copy, so one engine
+// touching its input buffer could never leak into the other pipeline.
+std::vector<float> runEngineOverBlocks(const std::wstring& configPath, unsigned channels, unsigned sampleRate,
+	unsigned blockFrames, unsigned blockCount, std::vector<float> input)
+{
+	std::vector<float> output(input.size(), 0.0f);
+	FilterEngine engine;
+	std::wstring deviceName = L"AudioRegressionTests";
+	std::wstring connectionName = L"File";
+	engine.setDeviceInfo(false, true, deviceName, connectionName, L"", deviceName + L" " + connectionName + L" ");
+	engine.initialize((float)sampleRate, channels, channels, channels, 0, blockFrames, configPath);
+	for (unsigned b = 0; b < blockCount; ++b)
+	{
+		size_t offset = (size_t)b * blockFrames * channels;
+		engine.process(output.data() + offset, input.data() + offset, blockFrames);
+	}
+	return output;
+}
+
+bool runEquivalenceCase(const EquivSpec& spec, const std::string& irLabel, const std::wstring& irPath,
+	unsigned irFileChannels, unsigned irFrames, unsigned sampleRate, const Options& opts, bool& outFailed)
+{
+	const unsigned channels = 2;
+	const unsigned blockFrames = 1024;
+	// Enough blocks to play past the impulse response's tail (the historic
+	// "reverb dies mid-way" class of bug), bounded for very long files.
+	const unsigned blockCount = std::min(256u, irFrames / blockFrames + 9);
+	const unsigned channelsUsed = std::min(spec.irChannelsUsed, irFileChannels);
+	const bool useFactors = !spec.factors.empty();
+
+	std::wstring equivDir = opts.outDir + L"\\equiv";
+	ensureDirectory(equivDir);
+	const std::wstring caseName = toWide(irLabel) + L"_" + toWide(spec.name);
+
+	std::wstring manualText;
+	std::wstring multiText;
+	for (unsigned r = 0; r < spec.repeats; ++r)
+	{
+		manualText += manualBlock(spec, L"L", channelsUsed, irPath, useFactors);
+		multiText += multiConvLine(spec, L"L", channelsUsed, irPath, useFactors);
+	}
+	if (spec.secondTarget)
+	{
+		manualText += manualBlock(spec, L"R", std::min(2u, channelsUsed), irPath, false);
+		multiText += multiConvLine(spec, L"R", std::min(2u, channelsUsed), irPath, false);
+	}
+
+	const std::wstring manualPath = equivDir + L"\\" + caseName + L"_manual.txt";
+	const std::wstring multiPath = equivDir + L"\\" + caseName + L"_multiconv.txt";
+	if (!writeTextFile(manualPath, manualText) || !writeTextFile(multiPath, multiText))
+	{
+		fprintf(stderr, "  ERROR: could not write equivalence configs in %S\n", equivDir.c_str());
+		outFailed = true;
+		return false;
+	}
+
+	printf("\n[equiv %s_%s] file channels used=%u repeats=%u blocks=%u\n",
+		irLabel.c_str(), spec.name, channelsUsed, spec.repeats, blockCount);
+
+	std::vector<float> input = makeNoiseInput(channels, blockFrames * blockCount);
+	std::vector<float> outManual;
+	std::vector<float> outMulti;
+	try
+	{
+		outManual = runEngineOverBlocks(manualPath, channels, sampleRate, blockFrames, blockCount, input);
+		outMulti = runEngineOverBlocks(multiPath, channels, sampleRate, blockFrames, blockCount, input);
+	}
+	catch (const std::exception& e)
+	{
+		fprintf(stderr, "  ERROR: %s\n", e.what());
+		outFailed = true;
+		return false;
+	}
+
+	// A failed IR load would make both pipelines quietly diverge or go
+	// silent. Check the processed channel (L, slot 0) alone: the untouched R
+	// passthrough must not be able to satisfy this, and an inversion pair that
+	// cancels to silence on both sides must not "pass" either.
+	double maxAbs = 0.0;
+	for (size_t f = 0; f < outManual.size(); f += channels)
+		maxAbs = std::max(maxAbs, std::fabs((double)outManual[f]));
+	const bool audible = maxAbs > 1.0e-9;
+
+	const std::string hashManual = sha256Hex(outManual.data(), outManual.size() * sizeof(float));
+	const std::string hashMulti = sha256Hex(outMulti.data(), outMulti.size() * sizeof(float));
+	const bool identical = !hashManual.empty() && hashManual == hashMulti;
+
+	printf("  manual    SHA-256 %s\n", hashManual.c_str());
+	printf("  multiconv SHA-256 %s\n", hashMulti.c_str());
+	const bool passed = identical && audible;
+	printf("  %s%s\n", passed ? "PASS" : "FAIL", audible ? "" : "  (output is silent)");
+	if (!passed)
+		outFailed = true;
+	return passed;
+}
+
+// Runs every spec that the file's channel count supports; returns (passed,
+// total) through the counters.
+void runEquivalenceBattery(const std::string& irLabel, const std::wstring& irPath, unsigned irFileChannels,
+	unsigned irFrames, unsigned sampleRate, const Options& opts, bool& outFailed, unsigned& passed, unsigned& total)
+{
+	const std::vector<EquivSpec> specs = {
+		{"basic", 2, {}, 1, false},
+		{"wide", 16, {}, 1, false},
+		{"chained", 2, {}, 2, true},
+		{"factor_half", 2, {0.5, 1.0}, 1, false},
+		{"invert", 2, {-1.0, 1.0}, 1, false},
+		{"invert_half", 2, {-0.5, 1.0}, 1, false},
+	};
+
+	for (const EquivSpec& spec : specs)
+	{
+		// "wide" only says something new when the file offers more than the
+		// two channels "basic" already covers.
+		if (spec.name == std::string("wide") && irFileChannels <= 2)
+			continue;
+		++total;
+		if (runEquivalenceCase(spec, irLabel, irPath, irFileChannels, irFrames, sampleRate, opts, outFailed))
+			++passed;
+	}
+}
+
+void runAllEquivalenceBatteries(const Options& opts, bool& outFailed, unsigned& passed, unsigned& total)
+{
+	const unsigned sampleRate = 48000;
+	const unsigned synthFrames = 2048;
+	std::wstring equivDir = opts.outDir + L"\\equiv";
+	ensureDirectory(equivDir);
+	// The IR paths go into config lines, and the engine resolves relative
+	// paths against the config file's own directory; absolute paths keep the
+	// configs and the IR files independent of both that rule and the cwd.
+	{
+		wchar_t absolute[MAX_PATH];
+		DWORD n = GetFullPathNameW(equivDir.c_str(), MAX_PATH, absolute, nullptr);
+		if (n > 0 && n < MAX_PATH)
+			equivDir = absolute;
+	}
+
+	const struct { const char* label; unsigned channels; } synth[] = {
+		{"syn2", 2},
+		{"syn8", 8},
+	};
+	for (const auto& s : synth)
+	{
+		const std::wstring irPath = equivDir + L"\\" + toWide(s.label) + L"_ir.wav";
+		if (!writeIrWav(irPath, makeSyntheticIr(s.channels, synthFrames), sampleRate))
+		{
+			fprintf(stderr, "ERROR: could not write synthetic IR %S\n", irPath.c_str());
+			outFailed = true;
+			++total;
+			continue;
+		}
+		runEquivalenceBattery(s.label, irPath, s.channels, synthFrames, sampleRate, opts, outFailed, passed, total);
+	}
+
+	unsigned fileIndex = 0;
+	for (const std::wstring& irPath : opts.equivIrFiles)
+	{
+		++fileIndex;
+		SF_INFO info = {};
+		SNDFILE* file = sf_wchar_open(irPath.c_str(), SFM_READ, &info);
+		if (file == nullptr)
+		{
+			fprintf(stderr, "ERROR: --equiv-ir file unreadable: %S\n", irPath.c_str());
+			outFailed = true;
+			++total;
+			continue;
+		}
+		sf_close(file);
+		const std::string label = "ir" + std::to_string(fileIndex);
+		printf("\n--equiv-ir %S: %d channels, %lld frames, %d Hz\n", irPath.c_str(), info.channels, (long long)info.frames, info.samplerate);
+		runEquivalenceBattery(label, irPath, (unsigned)info.channels, (unsigned)info.frames, (unsigned)info.samplerate, opts, outFailed, passed, total);
+	}
+}
+
 bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 {
 	std::wstring configPath = opts.configDir + L"\\" + toWide(tc.configFile);
@@ -366,6 +737,9 @@ int main(int argc, char** argv)
 		if (runCase(tc, opts, anyFailed))
 			++passed;
 	}
+
+	// Self-contained (no stored references), so it runs in both modes.
+	runAllEquivalenceBatteries(opts, anyFailed, passed, total);
 
 	printf("\nSummary: %u/%u passed", passed, total);
 	if (anyFailed)

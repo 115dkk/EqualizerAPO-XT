@@ -36,20 +36,20 @@ vector<Assignment> MultiConvolutionRoutingAdapter::toAssignments(const vector<Mu
 		Assignment assignment;
 		assignment.targetChannel = mapping.targetChannel;
 
-		vector<unsigned> irChannels = mapping.irChannels;
+		vector<MultiConvolutionCommand::IrChannelRef> irChannels = mapping.irChannels;
 		if (irChannels.empty() && fileChannelCount > 0)
 		{
 			irChannels.resize((size_t)fileChannelCount);
 			for (int c = 0; c < fileChannelCount; c++)
-				irChannels[(size_t)c] = (unsigned)c;
+				irChannels[(size_t)c] = MultiConvolutionCommand::IrChannelRef((unsigned)c);
 		}
 
-		for (unsigned c : irChannels)
+		for (const MultiConvolutionCommand::IrChannelRef& ref : irChannels)
 		{
 			Assignment::Summand summand;
-			summand.factor = 1.0;
-			summand.isDecibel = false;
-			summand.channel = std::to_wstring(c);
+			summand.factor = ref.factor;
+			summand.isDecibel = ref.isDecibel;
+			summand.channel = std::to_wstring(ref.channel);
 			assignment.sourceSum.push_back(summand);
 		}
 
@@ -74,7 +74,7 @@ vector<MultiConvolutionCommand::Mapping> MultiConvolutionRoutingAdapter::toMappi
 		{
 			unsigned irChannel = 0;
 			if (parseIrIndex(summand.channel, irChannel))
-				mapping.irChannels.push_back(irChannel);
+				mapping.irChannels.push_back(MultiConvolutionCommand::IrChannelRef(irChannel, summand.factor, summand.isDecibel));
 		}
 
 		// A row whose sum ends up empty is a seeded placeholder (or lost every
@@ -98,9 +98,9 @@ QStringList MultiConvolutionRoutingAdapter::sourcePorts(int fileChannelCount,
 	// removable instead of silently disappearing from the view.
 	vector<unsigned> extra;
 	for (const MultiConvolutionCommand::Mapping& mapping : mappings)
-		for (unsigned c : mapping.irChannels)
-			if ((int)c >= fileChannelCount)
-				extra.push_back(c);
+		for (const MultiConvolutionCommand::IrChannelRef& ref : mapping.irChannels)
+			if ((int)ref.channel >= fileChannelCount)
+				extra.push_back(ref.channel);
 	std::sort(extra.begin(), extra.end());
 	extra.erase(std::unique(extra.begin(), extra.end()), extra.end());
 	for (unsigned c : extra)

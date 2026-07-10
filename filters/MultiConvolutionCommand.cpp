@@ -56,6 +56,48 @@ bool parseIrChannel(const std::wstring& word, unsigned& value)
 	value = (unsigned)wcstoul(word.c_str(), nullptr, 10);
 	return true;
 }
+
+// A summand is "<ir ch>" or "<factor>*<ir ch>" (Copy's factor grammar: decimal
+// number, optional dB suffix). '*' is not a word delimiter, so the whole
+// summand arrives as one word; a word that fits neither form is rejected and
+// the caller rewinds it into the path.
+bool parseSummand(const std::wstring& word, MultiConvolutionCommand::IrChannelRef& ref)
+{
+	const size_t star = word.find(L'*');
+	if (star == std::wstring::npos)
+	{
+		unsigned channel = 0;
+		if (!parseIrChannel(word, channel))
+			return false;
+		ref = MultiConvolutionCommand::IrChannelRef(channel);
+		return true;
+	}
+
+	if (star == 0 || star + 1 >= word.size() || word.find(L'*', star + 1) != std::wstring::npos)
+		return false;
+
+	unsigned channel = 0;
+	if (!parseIrChannel(word.substr(star + 1), channel))
+		return false;
+
+	std::wstring factorText = word.substr(0, star);
+	bool isDecibel = false;
+	if (factorText.size() > 2 && StringHelper::toLowerCase(factorText.substr(factorText.size() - 2)) == L"db")
+	{
+		isDecibel = true;
+		factorText.resize(factorText.size() - 2);
+	}
+
+	// The factor must be a complete number: a partial parse means the word was
+	// not a summand (e.g. a stray file name), not a factor with trailing junk.
+	wchar_t* end = nullptr;
+	const double factor = wcstod(factorText.c_str(), &end);
+	if (end == factorText.c_str() || *end != L'\0')
+		return false;
+
+	ref = MultiConvolutionCommand::IrChannelRef(channel, factor, isDecibel);
+	return true;
+}
 }
 
 bool MultiConvolutionCommand::isSimpleForm() const
@@ -84,12 +126,24 @@ std::wstring MultiConvolutionCommand::serializeMappingsOnly() const
 		{
 			result += L"=";
 			bool firstChannel = true;
-			for (unsigned irChannel : mapping.irChannels)
+			for (const IrChannelRef& ref : mapping.irChannels)
 			{
 				if (!firstChannel)
 					result += L"+";
 				firstChannel = false;
-				result += std::to_wstring(irChannel);
+				if (ref.factor != 1.0 || ref.isDecibel)
+				{
+					// "%g" matches Copy's factor formatting; the '*' separator
+					// makes a bare integer factor unambiguous on re-parse, so
+					// no ".0" suffix is needed here.
+					wchar_t buffer[64];
+					swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g", ref.factor);
+					result += buffer;
+					if (ref.isDecibel)
+						result += L"dB";
+					result += L"*";
+				}
+				result += std::to_wstring(ref.channel);
 			}
 		}
 	}
@@ -143,14 +197,14 @@ bool MultiConvolutionCommand::parse(const std::wstring& command, const std::wstr
 		while (true)
 		{
 			skipSpace(trimmed, pos);
-			const std::wstring number = readWord(trimmed, pos);
-			unsigned irChannel = 0;
-			if (!parseIrChannel(number, irChannel))
+			const std::wstring summand = readWord(trimmed, pos);
+			MultiConvolutionCommand::IrChannelRef ref;
+			if (!parseSummand(summand, ref))
 			{
 				valid = false;
 				break;
 			}
-			mapping.irChannels.push_back(irChannel);
+			mapping.irChannels.push_back(ref);
 
 			size_t next = pos;
 			skipSpace(trimmed, next);

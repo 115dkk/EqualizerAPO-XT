@@ -18,6 +18,7 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -90,10 +91,12 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	const unsigned irFrames = ir->frames;
 
 	// Expand each mapping to its participating IR channels. The simple form
-	// (empty list) means every channel of the file; explicit references beyond
-	// the file's channel count are dropped with a log line, so a wrong index
-	// contributes silence instead of failing the whole line.
-	vector<vector<unsigned>> perMapping(mappings.size());
+	// (empty list) means every channel of the file at unity; explicit
+	// references beyond the file's channel count are dropped with a log line,
+	// so a wrong index contributes silence instead of failing the whole line.
+	// dB factors are converted to linear scales here, like Copy does at
+	// assignment-build time.
+	vector<vector<MultiConvolutionCommand::IrChannelRef>> perMapping(mappings.size());
 	unsigned totalUnits = 0;
 	for (size_t i = 0; i < mappings.size(); i++)
 	{
@@ -101,18 +104,18 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		{
 			perMapping[i].resize(irChannels);
 			for (unsigned c = 0; c < irChannels; c++)
-				perMapping[i][c] = c;
+				perMapping[i][c] = MultiConvolutionCommand::IrChannelRef(c);
 		}
 		else
 		{
-			for (unsigned c : mappings[i].irChannels)
+			for (const MultiConvolutionCommand::IrChannelRef& ref : mappings[i].irChannels)
 			{
-				if (c >= irChannels)
+				if (ref.channel >= irChannels)
 				{
-					LogFStatic(L"Impulse response channel %u out of range (file has %u channels): %s", c, irChannels, filename.c_str());
+					LogFStatic(L"Impulse response channel %u out of range (file has %u channels): %s", ref.channel, irChannels, filename.c_str());
 					continue;
 				}
-				perMapping[i].push_back(c);
+				perMapping[i].push_back(ref);
 			}
 		}
 		totalUnits += (unsigned)perMapping[i].size();
@@ -130,15 +133,17 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	}
 
 	tempBuffer.assign(maxFrameCount, 0.0);
+	unitFactors.assign(totalUnits, 1.0);
 	unsigned next = 0;
 	for (size_t i = 0; i < mappings.size(); i++)
 	{
 		plans[i].firstUnit = next;
-		for (unsigned c : perMapping[i])
+		for (const MultiConvolutionCommand::IrChannelRef& ref : perMapping[i])
 		{
 			// hcInitSingle reads the IR samples during planning but does not
 			// retain the pointer, so the shared cache buffer is safe to feed.
-			hcInitSingle(&allocated[next], const_cast<double*>(ir->buffers[c].data()), (int)irFrames, (int)maxFrameCount, 1);
+			hcInitSingle(&allocated[next], const_cast<double*>(ir->buffers[ref.channel].data()), (int)irFrames, (int)maxFrameCount, 1);
+			unitFactors[next] = ref.isDecibel ? pow(10.0, ref.factor / 20.0) : ref.factor;
 			next++;
 		}
 		plans[i].unitCount = next - plans[i].firstUnit;
@@ -177,8 +182,17 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 			hcPutSingle(&filters[u], in);
 			hcProcessSingle(&filters[u]);
 			hcGetSingle(&filters[u], tempBuffer.data());
-			for (unsigned f = 0; f < frameCount; f++)
-				out[f] += tempBuffer[f];
+			const double factor = unitFactors[u];
+			if (factor == 1.0)
+			{
+				for (unsigned f = 0; f < frameCount; f++)
+					out[f] += tempBuffer[f];
+			}
+			else
+			{
+				for (unsigned f = 0; f < frameCount; f++)
+					out[f] += factor * tempBuffer[f];
+			}
 		}
 	}
 }
@@ -192,6 +206,7 @@ void MultiConvolutionFilter::cleanup()
 	// entry once the last user drops it.
 	irEntry.reset();
 	unitCount = 0;
+	unitFactors.clear();
 	plans.clear();
 	tempBuffer.clear();
 	filterFrameCount = 0;

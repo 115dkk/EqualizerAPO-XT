@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- `MultiConvolution` 매핑의 각 파일 채널에 `Copy:`와 같은 문법으로 배율을
+  붙일 수 있습니다. `L=0.5*0+1`은 파일 채널 0의 컨볼루션 결과를 절반으로
+  줄여 합산하고, `-1`은 역위상, `-0.5`는 둘 다이며, `-6dB*0` 같은 dB 값도
+  됩니다. Editor 카드에서는 라우팅 화면의 배율 편집이 열리고,
+  AudioRegressionTests에 추가된 동등성 배터리가 한 줄 명령과 수동
+  Copy → Channel → Convolution → Copy 체인의 출력이 SHA-256 기준으로
+  비트 동일함을 증명합니다(배율·연속 배치 포함). `--equiv-ir`로 실제
+  임펄사이퍼 hrir.wav에 대해서도 검증했습니다.
+  ([#187](https://github.com/115dkk/EqualizerAPO-XT/pull/187))
 - 파라미터에 백틱 인라인 식이 든 줄도 이제 카드를 유지합니다. Preamp와
   Delay 카드는 동적 모드로 열려 노브가 꺼지고 값 자리에 식 원문이
   표시되며(계산된 값은 분석 판독에 나타남), 그 외 편집기는 원문을 잘못

@@ -912,8 +912,9 @@ void testMultiConvolutionRoutingAdapter()
 	// MultiConvolutionRoutingAdapter: mappings <-> the routing views'
 	// Assignment type must round-trip, because the card serializes the
 	// edited view back into the config line. IR channels ride as decimal
-	// summand channels at unity factor.
+	// summand channels carrying their factor.
 	using Mapping = MultiConvolutionCommand::Mapping;
+	using IrRef = MultiConvolutionCommand::IrChannelRef;
 
 	const std::vector<Mapping> brir = {{L"L", {0, 1}}, {L"R", {2, 3}}};
 	std::vector<Assignment> assignments = MultiConvolutionRoutingAdapter::toAssignments(brir, 4);
@@ -926,9 +927,23 @@ void testMultiConvolutionRoutingAdapter()
 
 	std::vector<Mapping> roundTrip = MultiConvolutionRoutingAdapter::toMappings(assignments);
 	expectTrue(roundTrip.size() == 2
-		&& roundTrip[0].targetChannel == L"L" && roundTrip[0].irChannels == std::vector<unsigned>({0, 1})
-		&& roundTrip[1].targetChannel == L"R" && roundTrip[1].irChannels == std::vector<unsigned>({2, 3}),
+		&& roundTrip[0].targetChannel == L"L" && roundTrip[0].irChannels == std::vector<IrRef>({0, 1})
+		&& roundTrip[1].targetChannel == L"R" && roundTrip[1].irChannels == std::vector<IrRef>({2, 3}),
 		"assignments convert back to the same mappings");
+
+	// A factor set in the view survives the trip to mappings and back, so the
+	// per-summand gain/phase editing the Copy views offer works here too.
+	std::vector<Assignment> withFactor = assignments;
+	withFactor[0].sourceSum[0].factor = -0.5;
+	std::vector<Mapping> factored = MultiConvolutionRoutingAdapter::toMappings(withFactor);
+	expectTrue(factored.size() == 2
+		&& factored[0].irChannels == std::vector<IrRef>({IrRef(0, -0.5), IrRef(1)}),
+		"summand factors ride into the mappings");
+	std::vector<Assignment> factorBack = MultiConvolutionRoutingAdapter::toAssignments(factored, 4);
+	expectTrue(factorBack.size() == 2 && factorBack[0].sourceSum.size() == 2
+		&& factorBack[0].sourceSum[0].factor == -0.5 && !factorBack[0].sourceSum[0].isDecibel
+		&& factorBack[0].sourceSum[1].factor == 1.0,
+		"summand factors ride back into the assignments");
 
 	// The simple form expands to every file channel for display, and to
 	// nothing when the channel count is unknown (callers must not offer
@@ -952,7 +967,7 @@ void testMultiConvolutionRoutingAdapter()
 	bogus.channel = L"VSL";
 	edited[0].sourceSum.push_back(bogus);
 	std::vector<Mapping> cleaned = MultiConvolutionRoutingAdapter::toMappings(edited);
-	expectTrue(cleaned.size() == 2 && cleaned[0].irChannels == std::vector<unsigned>({0, 1}),
+	expectTrue(cleaned.size() == 2 && cleaned[0].irChannels == std::vector<IrRef>({0, 1}),
 		"placeholder rows and non-numeric summands are dropped");
 
 	// Source ports: "0".."N-1" from the file, then any referenced index

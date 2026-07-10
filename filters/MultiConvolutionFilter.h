@@ -76,6 +76,9 @@ private:
 	// runs the close-then-free teardown.
 	HConvSingleArray filters;
 	unsigned unitCount;
+	// Linear scale per unit (dB factors already converted), aligned with the
+	// flat convolution-state array.
+	std::vector<double> unitFactors;
 	// Pins the cached impulse response for this filter's lifetime; the
 	// process-wide cache holds only weak references.
 	std::shared_ptr<const IrCacheEntry> irEntry;
