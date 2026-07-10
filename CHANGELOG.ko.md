@@ -30,6 +30,17 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   수정). 이전 본문은 다이얼 옆에 'Delay'라는 단어를 카드 가장자리에 붙여
   반복하고 있었습니다.
   ([#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182))
+- 프로그래밍 명령을 필터 픽커에서 바로 넣을 수 있습니다(Control 분류의
+  If/ElseIf/Else/EndIf/Eval). If/Eval 행에는 글자 배지 대신 전용
+  픽토그램(순서도 결정 다이아몬드, fx 수식 기호)이 붙습니다.
+  ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
+- 계수 직접 입력 IIR 필터 줄("Filter: ON IIR Order N Coefficients ...")이
+  전용 카드를 받았습니다. 헤더가 차수와 계수 개수를 읽어 주고, 본문에서
+  차수와 두 계수 벡터를 바로 편집합니다. 다른 Filter 줄은 기존 노브
+  그대로입니다. ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
+- 캠페인 전체에 한국어 번역이 들어갔습니다. Soft 스킨의 친절한 조건
+  문장은 비교 연산자별 완결 문장으로 번역해 어색한 조합이 생기지 않게
+  했습니다. ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
 
 ## v2.13.0 — 2026-07-09
 

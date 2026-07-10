@@ -17,7 +17,7 @@ Current work areas:
 1. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 2. Acting on findings from the biweekly automated code audit.
 3. Refining the Editor skins from community feedback rounds (round 1: the Soft pastel rework, dark-mode state contrast, and the compact analysis panel; round 3: the modern GraphicEQ card, the insertion contract and the skinned Device Selector, [#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
-4. A dedicated editor for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`). The card model recognizes them ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178)) and each skin presents blocks with its own instrument driven by the analysis run ([#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182)); remaining work covers the skin constitution chapters, pictograms, picker templates and translations.
+4. A dedicated editor for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`). Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, and custom-coefficient IIR lines have their own card ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183)); the remaining piece is keeping cards alive on lines with inline `` `expression` `` parameters.
 
 ## Features
 
