@@ -585,6 +585,20 @@ void testFilterCardDescriptors()
 	FilterCardDescriptor bareText = FilterCardModel::describeLine("plain note line without a command");
 	expectEqual(bareText.title, "Text", "bare text line title");
 	expectEqual(bareText.summary, "plain note line without a command", "bare text line keeps its content as summary");
+
+	// Dynamic-value contract: hasInlineExpressions must follow the engine's
+	// InlineExpression lexer exactly, because it decides which lines may not
+	// open a parsing editor (a knob turn would serialize the expression
+	// away). Escaped backticks are literal, an empty `` still counts as an
+	// expression (the engine reports its evaluation error), and the content
+	// of an unterminated trailing expression is dropped like the engine
+	// drops it.
+	expectTrue(FilterCardModel::hasInlineExpressions("`bass + 3` dB"), "backtick expression detected");
+	expectTrue(FilterCardModel::hasInlineExpressions("prefix `x` suffix"), "embedded expression detected");
+	expectFalse(FilterCardModel::hasInlineExpressions("-3 dB"), "plain number is not dynamic");
+	expectFalse(FilterCardModel::hasInlineExpressions("\\` literal backtick"), "escaped backtick is literal");
+	expectTrue(FilterCardModel::hasInlineExpressions("``"), "empty expression still counts");
+	expectFalse(FilterCardModel::hasInlineExpressions("`unterminated"), "unterminated trailing expression is dropped");
 }
 
 void testFilterCardDepths()

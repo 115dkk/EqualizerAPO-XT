@@ -149,7 +149,15 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	connect(lineEdit, SIGNAL(editingFinished()), this, SLOT(lineEditingFinished()));
 	bodyStack->addWidget(lineEdit);
 
-	IRoutingRenderer* routingRenderer = (descriptor.type == QStringLiteral("copy"))
+	// A Copy line with inline `expression` factors must not open the routing
+	// view: its parser would read the unresolved text as garbage and the
+	// first edit would serialize the expression away. Such lines keep the
+	// raw body (dynamic-value contract), like every other dynamic line
+	// without a dynamic-capable editor.
+	QString routingParameters;
+	FilterCardModel::commandForLine(item->text, &routingParameters);
+	IRoutingRenderer* routingRenderer = (descriptor.type == QStringLiteral("copy")
+		&& !FilterCardModel::hasInlineExpressions(routingParameters))
 		? SkinManager::instance()->routingRenderer() : nullptr;
 
 	if (routingRenderer != nullptr)
@@ -314,6 +322,11 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	info.focused = table != nullptr && table->getFocusedItem() == item;
 	info.depth = descriptor.depth;
 	info.logicDepth = descriptor.logicDepth;
+	{
+		QString parameters;
+		FilterCardModel::commandForLine(item->text, &parameters);
+		info.dynamicLine = FilterCardModel::hasInlineExpressions(parameters);
+	}
 
 	// Fold in the analysis engine's load facts for this line (dynamic
 	// commands): branch truth for the If family, computed values for

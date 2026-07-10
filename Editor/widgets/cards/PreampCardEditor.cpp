@@ -7,6 +7,7 @@
 #include <QLocale>
 #include <QRegularExpression>
 
+#include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
@@ -33,6 +34,35 @@ double knobValueToGain(int value)
 
 PreampCardEditor::PreampCardEditor(double dbGain, QWidget* parent)
 	: IFilterGUI(parent)
+{
+	editableValue = new EditableValue(this);
+	editableValue->setObjectName(QStringLiteral("PreampCardValue"));
+	editableValue->setUnit(QStringLiteral("dB"));
+	connect(editableValue, SIGNAL(valueChanged(double)), this, SLOT(valueChanged(double)));
+	buildLayout(editableValue);
+
+	setGain(dbGain, false);
+}
+
+PreampCardEditor::PreampCardEditor(const QString& dynamicParameters, QWidget* parent)
+	: IFilterGUI(parent), dynamicParameters(dynamicParameters.trimmed())
+{
+	// The value position carries the expression as written; the knob stays as
+	// hardware but is powered down (there is no number to point at until the
+	// engine loads the configuration).
+	QLabel* token = new QLabel(this->dynamicParameters, this);
+	token->setObjectName(QStringLiteral("DynamicValueToken"));
+	token->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	QFont mono(token->font());
+	mono.setFamily(SkinManager::instance()->tokens().monoFontFamily);
+	token->setFont(mono);
+	token->setToolTip(tr("Computed when the configuration loads; edit the raw line to change the expression."));
+	buildLayout(token);
+
+	knob->setEnabled(false);
+}
+
+void PreampCardEditor::buildLayout(QWidget* valueWidget)
 {
 	setObjectName(QStringLiteral("PreampCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -63,21 +93,24 @@ PreampCardEditor::PreampCardEditor(double dbGain, QWidget* parent)
 	caption->setObjectName(QStringLiteral("PreampCardCaption"));
 	valueLayout->addWidget(caption);
 
-	editableValue = new EditableValue(valueBlock);
-	editableValue->setObjectName(QStringLiteral("PreampCardValue"));
-	editableValue->setUnit(QStringLiteral("dB"));
-	connect(editableValue, SIGNAL(valueChanged(double)), this, SLOT(valueChanged(double)));
-	valueLayout->addWidget(editableValue);
+	valueWidget->setParent(valueBlock);
+	valueLayout->addWidget(valueWidget);
 
 	layout->addWidget(valueBlock, 0, Qt::AlignVCenter);
 	layout->addStretch(1);
-
-	setGain(dbGain, false);
 }
 
 void PreampCardEditor::store(QString& command, QString& parameters)
 {
 	command = QStringLiteral("Preamp");
+	// Dynamic mode reproduces the expression verbatim - the card never
+	// writes a computed number over it. (Nothing emits updateModel in that
+	// mode, so this is belt and braces.)
+	if (!dynamicParameters.isEmpty())
+	{
+		parameters = dynamicParameters;
+		return;
+	}
 	parameters = QStringLiteral("%0 dB").arg(QLocale::c().toString(currentGain, 'f', 1));
 }
 
@@ -132,6 +165,13 @@ QString PreampCardEditor::gainText() const
 
 #include "FilterCardEditorRegistry.h"
 
+#include "Editor/widgets/FilterCardModel.h"
+
 REGISTER_FILTER_CARD_EDITOR(preamp, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+	// An inline `expression` gain opens the dynamic card (token instead of a
+	// number, knob powered down) so no interaction can overwrite the
+	// expression with a parsed 0.0.
+	if (FilterCardModel::hasInlineExpressions(parameters))
+		return new PreampCardEditor(parameters);
 	return new PreampCardEditor(PreampCardEditor::parseGain(parameters));
 })

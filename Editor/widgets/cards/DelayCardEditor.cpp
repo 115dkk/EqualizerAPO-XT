@@ -4,9 +4,11 @@
 
 #include <QComboBox>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QLocale>
 #include <QVBoxLayout>
 
+#include "Editor/SkinManager.h"
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
 #include "filters/DelayCommand.h"
@@ -39,6 +41,36 @@ double knobValueToDelay(int value)
 
 DelayCardEditor::DelayCardEditor(double delay, bool isMs, QWidget* parent)
 	: IFilterGUI(parent), msMode(isMs)
+{
+	editableValue = new EditableValue(this);
+	editableValue->setObjectName(QStringLiteral("DelayCardValue"));
+	editableValue->setUnit(msMode ? QStringLiteral("ms") : tr("samples"));
+	editableValue->setDecimals(msMode ? 2 : 0);
+	connect(editableValue, SIGNAL(valueChanged(double)), this, SLOT(valueChanged(double)));
+	buildLayout(editableValue);
+
+	setDelay(delay, false);
+}
+
+DelayCardEditor::DelayCardEditor(const QString& dynamicParameters, QWidget* parent)
+	: IFilterGUI(parent), dynamicParameters(dynamicParameters.trimmed())
+{
+	QLabel* token = new QLabel(this->dynamicParameters, this);
+	token->setObjectName(QStringLiteral("DynamicValueToken"));
+	token->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	QFont mono(token->font());
+	mono.setFamily(SkinManager::instance()->tokens().monoFontFamily);
+	token->setFont(mono);
+	token->setToolTip(tr("Computed when the configuration loads; edit the raw line to change the expression."));
+	buildLayout(token);
+
+	knob->setEnabled(false);
+	// The unit lives inside the as-written text; a live selector would
+	// promise a mode change the card cannot serialize.
+	unitCombo->setVisible(false);
+}
+
+void DelayCardEditor::buildLayout(QWidget* valueWidget)
 {
 	setObjectName(QStringLiteral("DelayCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -73,28 +105,29 @@ DelayCardEditor::DelayCardEditor(double delay, bool isMs, QWidget* parent)
 	connect(unitCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(unitChanged(int)));
 	valueLayout->addWidget(unitCombo);
 
-	editableValue = new EditableValue(valueBlock);
-	editableValue->setObjectName(QStringLiteral("DelayCardValue"));
-	editableValue->setUnit(msMode ? QStringLiteral("ms") : tr("samples"));
-	editableValue->setDecimals(msMode ? 2 : 0);
-	connect(editableValue, SIGNAL(valueChanged(double)), this, SLOT(valueChanged(double)));
-	valueLayout->addWidget(editableValue);
+	valueWidget->setParent(valueBlock);
+	valueLayout->addWidget(valueWidget);
 
 	layout->addWidget(valueBlock, 0, Qt::AlignVCenter);
 	layout->addStretch(1);
-
-	setDelay(delay, false);
 }
 
 void DelayCardEditor::store(QString& command, QString& parameters)
 {
+	command = QStringLiteral("Delay");
+	// Dynamic mode reproduces the expression verbatim; nothing emits
+	// updateModel there, so this is belt and braces.
+	if (!dynamicParameters.isEmpty())
+	{
+		parameters = dynamicParameters;
+		return;
+	}
+
 	// Serialize through the shared DelayCommand codec so the engine parser and
 	// both Editor GUIs agree on one "<delay> ms|samples" format.
 	DelayCommand cmd;
 	cmd.delay = currentDelay;
 	cmd.isMs = msMode;
-
-	command = QStringLiteral("Delay");
 	parameters = QString::fromStdWString(cmd.serialize());
 }
 
@@ -154,7 +187,15 @@ QString DelayCardEditor::delayText() const
 
 #include "FilterCardEditorRegistry.h"
 
+#include "Editor/widgets/FilterCardModel.h"
+
 REGISTER_FILTER_CARD_EDITOR(delay, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
+	// An inline `expression` delay opens the dynamic card (token instead of
+	// a number, knob powered down) - the engine parser below would reject the
+	// unresolved text and drop the row to the raw body otherwise.
+	if (FilterCardModel::hasInlineExpressions(parameters))
+		return new DelayCardEditor(parameters);
+
 	// Parse through the engine's shared routine; a line it rejects falls back
 	// to the legacy factory chain, exactly like the legacy GUI factory.
 	DelayCommand cmd;

@@ -535,7 +535,7 @@ public:
 		// here, and a powered-down unit dims its segments at the same time
 		// (rows are rebuilt whenever the line's state changes).
 		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
-			|| info.type == QStringLiteral("eval")) && body != nullptr)
+			|| info.type == QStringLiteral("eval") || info.dynamicLine) && body != nullptr)
 		{
 			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
 			{
