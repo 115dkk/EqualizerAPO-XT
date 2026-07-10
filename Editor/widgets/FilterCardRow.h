@@ -60,6 +60,9 @@ private:
 	FilterTable::Item* item = nullptr;
 	IFilterGUI* gui = nullptr;
 	FilterCardDescriptor descriptor;
+	// 1-based document row, kept current by updateRowPosition; indexes the
+	// table's analysis load facts (loadTraceFactsForRow) for currentRowInfo.
+	int rowNumber = 0;
 
 	CommandRowFrame* cardFrame = nullptr;
 	QWidget* headerWidget = nullptr;

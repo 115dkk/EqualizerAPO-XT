@@ -53,6 +53,19 @@ struct CommandRowInfo
 	// through branch rows and terminate them on the EndIf row, independent of
 	// the channel-group indent that depth carries.
 	int logicDepth = 0;
+	// Facts from the analysis engine's most recent configuration load
+	// (ConfigLoadTrace), advisory only - they go stale between an edit and
+	// the next analysis run. branchState applies to If-family rows:
+	// -1 = unknown (no analysis yet), 0 = condition false / dead branch,
+	// 1 = branch taken, 2 = not evaluated (chain already satisfied),
+	// 3 = evaluation error.
+	int branchState = -1;
+	// True when a false branch swallowed this line on the last load.
+	bool lineSkipped = false;
+	// Eval result or the substituted inline-expression parameter text
+	// (empty when unknown); valueError marks a parser failure.
+	QString evalText;
+	bool valueError = false;
 };
 
 // Interactive state for the list-level add/insert chrome: the trailing

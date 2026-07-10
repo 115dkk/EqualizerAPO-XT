@@ -18,7 +18,7 @@
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, FilterCardRowScope scope, QWidget* parent)
-	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, scope.indent))
+	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, scope.indent)), rowNumber(number)
 {
 	descriptor.logicDepth = scope.logic;
 	setAttribute(Qt::WA_StyledBackground, false);
@@ -314,6 +314,45 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	info.focused = table != nullptr && table->getFocusedItem() == item;
 	info.depth = descriptor.depth;
 	info.logicDepth = descriptor.logicDepth;
+
+	// Fold in the analysis engine's load facts for this line (dynamic
+	// commands): branch truth for the If family, computed values for
+	// Eval/inline expressions, and whether a false branch swallowed the line.
+	// Advisory by contract - facts go stale between an edit and the next
+	// analysis run. When both an Eval result and an inline substitution exist
+	// on one line, the Eval result wins regardless of hash order.
+	if (table != nullptr)
+	{
+		const QList<ConfigLoadTraceEntry> facts = table->loadTraceFactsForRow(rowNumber - 1);
+		for (const ConfigLoadTraceEntry& fact : facts)
+		{
+			switch (fact.kind)
+			{
+			case ConfigLoadTraceEntry::Kind::Condition:
+				info.branchState = fact.result == ConfigLoadTraceEntry::Result::True ? 1
+					: fact.result == ConfigLoadTraceEntry::Result::False ? 0
+					: fact.result == ConfigLoadTraceEntry::Result::Error ? 3 : 2;
+				break;
+			case ConfigLoadTraceEntry::Kind::ElseBranch:
+				info.branchState = fact.active ? 1 : 0;
+				break;
+			case ConfigLoadTraceEntry::Kind::Eval:
+				info.evalText = QString::fromStdWString(fact.text);
+				info.valueError = info.valueError || fact.error;
+				break;
+			case ConfigLoadTraceEntry::Kind::InlineValue:
+				// The engine preserves the space after the colon; trim at
+				// this UI boundary so readouts do not start with a gap.
+				if (info.evalText.isEmpty())
+					info.evalText = QString::fromStdWString(fact.text).trimmed();
+				info.valueError = info.valueError || fact.error;
+				break;
+			case ConfigLoadTraceEntry::Kind::SkippedLine:
+				info.lineSkipped = true;
+				break;
+			}
+		}
+	}
 	return info;
 }
 
@@ -333,6 +372,7 @@ void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 	// (audit #146 TD040) The constructor puts the number into numberLabel and
 	// the scope into the outer layout's left margin, the descriptor (scope
 	// rail painting) and the skin styling hooks. Refresh those in place.
+	this->rowNumber = rowNumber;
 	if (numberLabel != nullptr)
 	{
 		// A skin's prepareCommandRow may have rewritten the plain number into
@@ -800,7 +840,9 @@ void FilterCardRow::refreshStateProperties()
 		{ "selected", info.selected },
 		{ "focused", info.focused },
 		{ "scopeDepth", info.depth },
-		{ "logicDepth", info.logicDepth }
+		{ "logicDepth", info.logicDepth },
+		{ "branchState", info.branchState },
+		{ "lineSkipped", info.lineSkipped }
 	};
 
 	bool changed = false;
