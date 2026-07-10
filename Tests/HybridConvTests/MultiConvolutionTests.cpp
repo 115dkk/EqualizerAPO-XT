@@ -386,9 +386,9 @@ void assertFactorScalesConvolutionResult()
 	struct Case
 	{
 		IrRef ref0;
-		bool alsoUnity1;
-		double expected;
-		const char* label;
+		bool alsoUnity1 = false;
+		double expected = 0.0;
+		const char* label = "";
 	};
 	const Case cases[] = {
 		{IrRef(0, 0.5), true, 0.5 * 0.2 + 0.3, "a 0.5 factor halves its IR channel's share of the sum"},

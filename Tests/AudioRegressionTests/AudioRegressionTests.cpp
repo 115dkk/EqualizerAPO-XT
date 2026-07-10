@@ -402,11 +402,11 @@ std::wstring formatFactor(double factor)
 
 struct EquivSpec
 {
-	const char* name;
-	unsigned irChannelsUsed;      // how many file channels the mapping sums
+	const char* name = "";
+	unsigned irChannelsUsed = 0;  // how many file channels the mapping sums
 	std::vector<double> factors;  // per used file channel; empty = all unity
-	unsigned repeats;             // stacked blocks/lines on the same target
-	bool secondTarget;            // also process R with file channels 0+1
+	unsigned repeats = 1;         // stacked blocks/lines on the same target
+	bool secondTarget = false;    // also process R with file channels 0+1
 };
 
 double specFactor(const EquivSpec& spec, unsigned c)
