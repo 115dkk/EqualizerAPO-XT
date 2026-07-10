@@ -254,6 +254,18 @@ QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 60
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
 QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 600; }
 
+/* Dynamic commands: SoftSkin::prepareCommandRow retells a simple If/Eval
+   line as a friendly sentence ("If device is Speakers", "Otherwise"), and
+   that sentence is the row's real content, so it speaks in full body ink -
+   never mono. The as-written source keeps living in the dashed raw well and
+   the sentence's tooltip. The sleeping rule below stays later in the sheet
+   on purpose: a commented-out condition still relaxes to the muted ink. */
+QWidget#FilterCardHeader[filterKind="if"] QLabel#FilterCardSummary,
+QWidget#FilterCardHeader[filterKind="elseif"] QLabel#FilterCardSummary,
+QWidget#FilterCardHeader[filterKind="else"] QLabel#FilterCardSummary,
+QWidget#FilterCardHeader[filterKind="endif"] QLabel#FilterCardSummary,
+QWidget#FilterCardHeader[filterKind="eval"] QLabel#FilterCardSummary { color: @TEXT@; }
+
 /* A commented-out row sleeps: the frame sinks into the window background
    with a dashed outline (set by the skin's cardFrameStyle) and its header
    text relaxes to the muted weight. */
@@ -306,8 +318,8 @@ QDoubleSpinBox[valueScrub="true"]:disabled, QSpinBox[valueScrub="true"]:disabled
     color: rgba(120, 111, 103, 0.55); background: @SURFACE@;
 }
 
-QWidget#PreampCardEditor, QWidget#IncludeCardEditor,
-QWidget#PreampCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
+QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
+QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock, QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 9pt; }
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;

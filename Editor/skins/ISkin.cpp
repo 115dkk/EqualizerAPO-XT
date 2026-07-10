@@ -147,6 +147,18 @@ void ISkin::paintCardChrome(QPainter&, const QRect&, const CommandRowInfo&, cons
 	// Neutral default: no painted decoration on top of the QSS chrome.
 }
 
+bool ISkin::paintScopeGutter(QPainter&, const QSize&, const CommandRowInfo&, const SkinTokens&) const
+{
+	// Neutral default: the shared channel-rail painting stays in charge.
+	return false;
+}
+
+bool ISkin::logicSiblingsIndentAsMembers() const
+{
+	// Neutral default: ElseIf/Else/EndIf align with their If head.
+	return false;
+}
+
 void ISkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: a token-driven ghost row. A dashed 1px outline says

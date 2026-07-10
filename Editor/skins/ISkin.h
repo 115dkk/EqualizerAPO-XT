@@ -53,6 +53,19 @@ struct CommandRowInfo
 	// through branch rows and terminate them on the EndIf row, independent of
 	// the channel-group indent that depth carries.
 	int logicDepth = 0;
+	// Facts from the analysis engine's most recent configuration load
+	// (ConfigLoadTrace), advisory only - they go stale between an edit and
+	// the next analysis run. branchState applies to If-family rows:
+	// -1 = unknown (no analysis yet), 0 = condition false / dead branch,
+	// 1 = branch taken, 2 = not evaluated (chain already satisfied),
+	// 3 = evaluation error.
+	int branchState = -1;
+	// True when a false branch swallowed this line on the last load.
+	bool lineSkipped = false;
+	// Eval result or the substituted inline-expression parameter text
+	// (empty when unknown); valueError marks a parser failure.
+	QString evalText;
+	bool valueError = false;
 };
 
 // Interactive state for the list-level add/insert chrome: the trailing
@@ -237,6 +250,23 @@ public:
 	// per-type markers). Runs after the frame's stylesheet background and
 	// before child widgets paint. Default: no-op.
 	virtual void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// The row's left scope gutter: the indent margin left of the card frame,
+	// which carries the channel-group rail and the If-block scope lane
+	// (dynamic-commands campaign). Return true to replace the shared default
+	// (FilterCardRow's channelGroupStyle rail) for this row; the neutral
+	// default paints nothing and returns false, so every skin stays
+	// pixel-identical until it answers. size is the row widget's full size;
+	// the card frame starts at x = 8 + indent * channelGroupIndent.
+	virtual bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const;
+
+	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):
+	// true indents them with the block members (logicDepth) instead of at
+	// their head's level, so a painted scope lane in the gutter passes them
+	// visibly instead of dying behind their full-width faces (the finding of
+	// the rack A/B mock-up round, issue #179). Default: false - semantic
+	// indentation, branch rows align with their If head.
+	virtual bool logicSiblingsIndentAsMembers() const;
 
 	// The persistent "add card" row at the end of the filter list (shared
 	// insertion contract, docs/skins/README.md). The AddCardRow widget owns

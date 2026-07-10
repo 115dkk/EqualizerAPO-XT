@@ -307,12 +307,13 @@ QString buildReferenceFiles(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, graph x2, copyfold x4). run() multiplies these by
-// skins x 2 modes to self-check the output count, so adding a gallery row
-// needs no external count to be updated. Keep both constants in step with
-// renderStates()/renderSkin() if the state set or chrome shots change.
+// addrow x2, seam, toast, graph x2, copyfold x4, logic). run() multiplies
+// these by skins x 2 modes to self-check the output count, so adding a
+// gallery row needs no external count to be updated. Keep both constants in
+// step with renderStates()/renderSkin() if the state set or chrome shots
+// change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 18;
+constexpr int kExtraShotsPerSkinMode = 19;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -831,6 +832,63 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 				settle();
 				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("editor")) ? 0 : 1;
 			}
+		}
+	}
+
+	// The dynamic-commands logic block (If/ElseIf/Else/EndIf/Eval), captured
+	// as one whole-table shot so the scope presentation that spans rows
+	// (rails, brackets, the relay bus) is judged in context. The offscreen
+	// gallery runs no analysis, so the engine load facts every skin's
+	// presentation reads (branch lamps, TRUE/FALSE readouts, cancelled rows)
+	// are injected synthetically: the outer If is taken, the nested If is
+	// false, the ElseIf chain is short-circuited and the Else is dead.
+	{
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		buildRows(scrollArea, configPath, {
+			QStringLiteral("Eval: bassBoost = 6"),
+			QStringLiteral("If: outputChannelCount >= 6"),
+			QStringLiteral("Preamp: -3 dB"),
+			QStringLiteral("If: sampleRate > 48000"),
+			QStringLiteral("Delay: 0.25 ms"),
+			QStringLiteral("EndIf:"),
+			QStringLiteral("ElseIf: outputChannelCount == 4"),
+			QStringLiteral("Preamp: -1.5 dB"),
+			QStringLiteral("Else:"),
+			QStringLiteral("Preamp: 0 dB"),
+			QStringLiteral("EndIf:"),
+			QStringLiteral("Delay: 5 ms")
+		});
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr)
+		{
+			qWarning("SkinGallery: logic scene has no table (%s %s)", qPrintable(skinId), qPrintable(mode));
+			failures += 1;
+		}
+		else
+		{
+			auto fact = [](int line, ConfigLoadTraceEntry::Kind kind, ConfigLoadTraceEntry::Result result,
+				bool active, const wchar_t* text = L"") {
+				ConfigLoadTraceEntry entry;
+				entry.line = line;
+				entry.kind = kind;
+				entry.result = result;
+				entry.active = active;
+				entry.text = text;
+				return entry;
+			};
+			table->setLoadTraceFacts({
+				fact(1, ConfigLoadTraceEntry::Kind::Eval, ConfigLoadTraceEntry::Result::NotEvaluated, false, L"6"),
+				fact(2, ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::True, true),
+				fact(4, ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::False, false),
+				fact(5, ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false),
+				fact(7, ConfigLoadTraceEntry::Kind::Condition, ConfigLoadTraceEntry::Result::NotEvaluated, false),
+				fact(8, ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false),
+				fact(9, ConfigLoadTraceEntry::Kind::ElseBranch, ConfigLoadTraceEntry::Result::NotEvaluated, false),
+				fact(10, ConfigLoadTraceEntry::Kind::SkippedLine, ConfigLoadTraceEntry::Result::NotEvaluated, false)
+			});
+			QApplication::processEvents();
+			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("logic"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
 	return failures;

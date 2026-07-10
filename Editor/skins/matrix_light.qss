@@ -994,6 +994,22 @@ QWidget#FilterCardHeader[filterEnabled="false"] QLabel#FilterCardTitle {
 QWidget#FilterCardHeader[filterEnabled="false"] QLabel#FilterCardSummary {
     color: #9DB4BD;
 }
+/* Cancelled departure (dynamic commands): a false If branch swallowed this
+   line on the last load. The line is live source - not bypassed - so no
+   strikethrough (that is the bypass grammar); the posting stays on the
+   board and simply dims to low-alpha ink behind the dashed rule + quiet
+   rail that MatrixSkin::cardFrameStyle lays inline. Form, not colour (M3).
+   The rgba values are the text/muted tokens at reduced alpha, not new
+   palette entries. */
+QWidget#FilterCardHeader[lineSkipped="true"] QLabel#FilterCardTitle {
+    color: rgba(16, 36, 47, 0.45);
+}
+QWidget#FilterCardHeader[lineSkipped="true"] QLabel#FilterCardSummary {
+    color: rgba(95, 119, 130, 0.60);
+}
+QWidget#FilterCardHeader[lineSkipped="true"] QLabel#FilterCardNumber {
+    color: rgba(95, 119, 130, 0.60);
+}
 QLabel#FilterCardSummary,
 QLabel#FilterCardRawText {
     color: @MUTED@;
@@ -1047,10 +1063,10 @@ QCheckBox#FilterCardEnabled {
 }
 
 /* ===== Card Editors ===== */
-QWidget#PreampCardEditor,
+QWidget#PreampCardEditor, QWidget#DelayCardEditor,
 QWidget#IncludeCardEditor,
 QWidget#VSTCardEditor,
-QWidget#PreampCardValueBlock,
+QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QLabel#PreampCardCaption {
     background: transparent;
     border: 0;

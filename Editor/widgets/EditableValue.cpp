@@ -47,10 +47,16 @@ void EditableValue::setUnit(const QString& unit)
 	refreshText();
 }
 
+void EditableValue::setDecimals(int decimals)
+{
+	displayDecimals = decimals;
+	refreshText();
+}
+
 void EditableValue::mouseDoubleClickEvent(QMouseEvent* event)
 {
 	QWidget::mouseDoubleClickEvent(event);
-	editField->setText(QLocale::c().toString(currentValue, 'f', 2));
+	editField->setText(QLocale::c().toString(currentValue, 'f', qMax(2, displayDecimals)));
 	stack->setCurrentWidget(editField);
 	editField->setFocus();
 	editField->selectAll();
@@ -77,7 +83,7 @@ void EditableValue::commitEdit()
 
 void EditableValue::refreshText()
 {
-	QString text = QLocale::c().toString(currentValue, 'f', 1);
+	QString text = QLocale::c().toString(currentValue, 'f', displayDecimals);
 	if (!currentUnit.isEmpty())
 		text += QStringLiteral(" ") + currentUnit;
 	displayLabel->setText(text);

@@ -225,6 +225,7 @@ SOURCES += main.cpp\
 	widgets/cards/StageSelectionModel.cpp \
 	widgets/cards/DeviceSelectionModel.cpp \
 	widgets/cards/FilterCardEditorFactory.cpp \
+	widgets/cards/DelayCardEditor.cpp \
 	widgets/cards/FilterCardEditorRegistry.cpp \
 	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
@@ -443,6 +444,7 @@ HEADERS  += \
 	widgets/cards/StageSelectionModel.h \
 	widgets/cards/DeviceSelectionModel.h \
 	widgets/cards/FilterCardEditorFactory.h \
+	widgets/cards/DelayCardEditor.h \
 	widgets/cards/FilterCardEditorRegistry.h \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IncludeCardEditor.h \

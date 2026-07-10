@@ -20,9 +20,11 @@
 #include <QCoreApplication>
 #include <QLabel>
 #include <QLayout>
+#include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
+#include <QRegularExpression>
 #include <QStyle>
 #include <QToolBar>
 #include <QVBoxLayout>
@@ -59,6 +61,86 @@ namespace
 // The mix/alpha/is-dark vocabulary and the constitution-cited pastel recipe
 // (softPastelize) live in the shared SkinPaint.h; the recipe stays Soft-only
 // by decree there (differentiation gate).
+
+// The friendly-sentence grammar of the dynamic commands (maintainer-picked
+// concept: "sentence conditions, held in a pastel arm"). Only a right-hand
+// side this simple may enter a sentence: a quoted string (the quotes come
+// off), a number, or true/false. Everything else counts as complex and keeps
+// the summary as written - an honest fallback, the dashed raw well in the
+// body already holds the source.
+QString softSentenceLiteral(const QString& raw)
+{
+	const QString value = raw.trimmed();
+	if (value.size() >= 2)
+	{
+		const QChar quote = value.at(0);
+		if ((quote == QLatin1Char('"') || quote == QLatin1Char('\'')) && value.endsWith(quote))
+		{
+			const QString inner = value.mid(1, value.size() - 2);
+			if (!inner.contains(QLatin1Char('"')) && !inner.contains(QLatin1Char('\'')))
+				return inner;
+			return QString();
+		}
+	}
+	static const QRegularExpression simple(QStringLiteral("^([-+]?[0-9]+(\\.[0-9]+)?|true|false)$"),
+		QRegularExpression::CaseInsensitiveOption);
+	return simple.match(value).hasMatch() ? value : QString();
+}
+
+// Retells a simple If/ElseIf comparison (identifier op literal), an Else /
+// EndIf marker or a simple Eval assignment as the sentence a settings app
+// would dare to show. Returns an empty string when the line is not that
+// simple, so the caller leaves the as-written summary alone.
+QString softFriendlySentence(const QString& command, const QString& asWritten)
+{
+	// Else/EndIf carry no expression (the engine ignores text after their
+	// colon), so their sentence stands alone. When someone did write
+	// something there, keeping it visible is the honest reading.
+	if (command == QStringLiteral("else"))
+		return asWritten.trimmed().isEmpty() ? QCoreApplication::translate("SoftSkin", "Otherwise") : QString();
+	if (command == QStringLiteral("endif"))
+		return asWritten.trimmed().isEmpty() ? QCoreApplication::translate("SoftSkin", "End of the rule") : QString();
+
+	if (command == QStringLiteral("eval"))
+	{
+		// A simple assignment ("x = 5") becomes "Set x to 5"; a computed
+		// expression stays as written.
+		static const QRegularExpression assignment(QStringLiteral("^([A-Za-z_][A-Za-z0-9_]*)\\s*=(?!=)\\s*(.+)$"));
+		const QRegularExpressionMatch match = assignment.match(asWritten.trimmed());
+		const QString value = match.hasMatch() ? softSentenceLiteral(match.captured(2)) : QString();
+		if (value.isEmpty())
+			return QString();
+		return QCoreApplication::translate("SoftSkin", "Set %1 to %2").arg(match.captured(1), value);
+	}
+
+	if (command != QStringLiteral("if") && command != QStringLiteral("elseif"))
+		return QString();
+
+	static const QRegularExpression comparison(QStringLiteral("^([A-Za-z_][A-Za-z0-9_]*)\\s*(==|!=|<=|>=|<|>)\\s*(.+)$"));
+	const QRegularExpressionMatch match = comparison.match(asWritten.trimmed());
+	const QString value = match.hasMatch() ? softSentenceLiteral(match.captured(3)) : QString();
+	if (value.isEmpty())
+		return QString();
+
+	const QString op = match.captured(2);
+	QString phrase;
+	if (op == QStringLiteral("=="))
+		phrase = value;
+	else if (op == QStringLiteral("!="))
+		phrase = QCoreApplication::translate("SoftSkin", "not %1").arg(value);
+	else if (op == QStringLiteral(">="))
+		phrase = QCoreApplication::translate("SoftSkin", "at least %1").arg(value);
+	else if (op == QStringLiteral(">"))
+		phrase = QCoreApplication::translate("SoftSkin", "more than %1").arg(value);
+	else if (op == QStringLiteral("<="))
+		phrase = QCoreApplication::translate("SoftSkin", "at most %1").arg(value);
+	else
+		phrase = QCoreApplication::translate("SoftSkin", "less than %1").arg(value);
+
+	return command == QStringLiteral("if")
+		? QCoreApplication::translate("SoftSkin", "If %1 is %2").arg(match.captured(1), phrase)
+		: QCoreApplication::translate("SoftSkin", "Otherwise, if %1 is %2").arg(match.captured(1), phrase);
+}
 
 class SoftSkin : public ISkin
 {
@@ -806,10 +888,40 @@ public:
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
 	{
 		Q_UNUSED(card);
-		Q_UNUSED(header);
 		const bool rawBodyRow = info.type == QStringLiteral("text")
 			|| info.type == QStringLiteral("if") || info.type == QStringLiteral("eval");
-		if (info.legacyRow || body == nullptr || !rawBodyRow)
+		if (info.legacyRow || !rawBodyRow)
+			return;
+
+		// Sentence conditions (dynamic-commands campaign): a simple If/Eval
+		// line is retold in the header as a friendly body-typeface sentence
+		// ("If device is Speakers", "Otherwise", "Set x to 5") - code must
+		// not frighten. The rewrite is queued because the row constructor
+		// calls rebuildSummary() right after this hook, which would restore
+		// the as-written summary immediately; the queued call lands once the
+		// row has settled (the gallery's processEvents() delivers it too).
+		// Known limit: a later rebuildSummary() (raw edit, row reshuffle)
+		// restores the as-written text until the row is rebuilt.
+		if (header != nullptr && info.type != QStringLiteral("text"))
+		{
+			if (QLabel* summary = header->findChild<QLabel*>(QStringLiteral("FilterCardSummary")))
+			{
+				const QString command = info.command;
+				QMetaObject::invokeMethod(summary, [summary, command]() {
+					const QString asWritten = summary->text();
+					const QString sentence = softFriendlySentence(command, asWritten);
+					if (sentence.isEmpty() || sentence == asWritten)
+						return;
+					// The as-written line stays reachable before the body is
+					// ever expanded: the sentence's tooltip answers with it.
+					if (!asWritten.trimmed().isEmpty())
+						summary->setToolTip(asWritten);
+					summary->setText(sentence);
+				}, Qt::QueuedConnection);
+			}
+		}
+
+		if (body == nullptr)
 			return;
 
 		const SkinTokens t = SkinManager::instance()->tokens();
@@ -822,6 +934,110 @@ public:
 				"QLabel#FilterCardRawText:disabled { background:%5; color:%6; }")
 				.arg(t.surfaceSunken, t.text, t.border, t.monoFontFamily, t.background, t.mutedText));
 		}
+	}
+
+	// The If block is held in a pastel arm (dynamic-commands campaign,
+	// maintainer-picked concept: "sentence conditions, held in a pastel
+	// arm"). Each scope level is one quiet rounded bar in the gutter - the
+	// value-arc pastel, 4px wide, stadium caps - that begins as a rounded
+	// fingertip under the If sentence, runs down the member rows and closes
+	// with its cap on the EndIf row. A line a false branch swallowed (or a
+	// commented-out member) relaxes only its own stretch to the knob track's
+	// always-there pastel: the arm keeps holding, that stretch just sleeps.
+	// Branch truth adds no lamps, no reds, no glyphs - never an alarm. The
+	// level math follows the rack round: for members the if-lanes are the
+	// innermost logicDepth bands after the depth-logicDepth channel bands.
+	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const bool ifFamily = info.type == QStringLiteral("if");
+		const bool headRow = ifFamily && info.command == QStringLiteral("if");
+		const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
+		const int logic = info.logicDepth;
+		if (!headRow && logic <= 0)
+			return false;
+
+		const QColor card(tokens.card);
+		const QColor accent(tokens.accent);
+		// Live scope: the value-arc pastel. Sleeping stretch: the bipolar
+		// track's far mix - present and quiet, one step off the ground.
+		const QColor arm = mixColor(accent, card, 0.25);
+		const QColor armResting = mixColor(accent, card, 0.78);
+
+		const int unit = tokens.channelGroupIndent;
+		const int h = size.height();
+		// Branch/tail rows mount with the members, one indent unit past
+		// their head (logicSiblingsIndentAsMembers), so the arm passes them
+		// instead of dying behind their full-width faces. The card edge
+		// follows the same rule.
+		const int indentUnits = (ifFamily && !headRow) ? info.depth + 1 : info.depth;
+		const int channelLevels = qMax(0, indentUnits - logic);
+		const bool resting = !info.enabled || info.lineSkipped;
+
+		painter.setRenderHint(QPainter::Antialiasing);
+		painter.setPen(Qt::NoPen);
+
+		// An enclosing Channel group keeps its constitutional SoftShadow
+		// band. The hook sees no per-row type colour (the shared rail tints
+		// by it), so the shade leans on the border token - quieter, same
+		// silhouette.
+		if (channelLevels > 0)
+		{
+			const QRectF band(8 + (channelLevels - 1) * unit, 0, unit, h);
+			QLinearGradient shade(band.left(), 0, band.right(), 0);
+			shade.setColorAt(0, withAlpha(QColor(tokens.border), 110));
+			shade.setColorAt(1, withAlpha(QColor(tokens.border), 0));
+			painter.fillRect(band, shade);
+		}
+
+		// One bar per scope, centred in its indent band. Straight runs
+		// overshoot the row's clip so neighbouring rows tile into one
+		// continuous arm; only the arm's first and last row show a cap.
+		const auto laneX = [&](int level) {
+			return 8.0 + level * unit + unit / 2.0 - 2.0;
+		};
+		const auto runBar = [&](int level, const QColor& color) {
+			painter.setBrush(color);
+			painter.drawRoundedRect(QRectF(laneX(level), -4.0, 4.0, h + 8.0), 2.0, 2.0);
+		};
+
+		// Outer scopes hold straight through every row of an inner block.
+		const int ownLevel = channelLevels + logic - (headRow ? 0 : 1);
+		for (int level = channelLevels; level < ownLevel; level++)
+			runBar(level, arm);
+
+		if (headRow)
+		{
+			// The arm begins BELOW the sentence: a rounded fingertip peeking
+			// out of the row's bottom margin, which the first member row
+			// carries on. A false condition relaxes the fingertip along with
+			// the sleeping members it announces (branchState is fresh at
+			// paint time by contract).
+			painter.setBrush(resting || info.branchState == 0 ? armResting : arm);
+			painter.drawRoundedRect(QRectF(laneX(ownLevel), h - 4.0, 4.0, 8.0), 2.0, 2.0);
+		}
+		else if (tailRow)
+		{
+			// The arm ends here: the bar falls to the row's centre line and
+			// closes with its stadium cap.
+			const qreal capY = 4.0 + tokens.rowHeight / 2.0;
+			painter.setBrush(resting ? armResting : arm);
+			painter.drawRoundedRect(QRectF(laneX(ownLevel), -4.0, 4.0, capY + 4.0), 2.0, 2.0);
+		}
+		else
+		{
+			// Members and branch rows: the arm passes at full height; a
+			// swallowed line relaxes only its own stretch.
+			runBar(ownLevel, resting ? armResting : arm);
+		}
+		return true;
+	}
+
+	// ElseIf/Else/EndIf mount one indent unit past their head, with the
+	// members, so the pastel arm passes them instead of dying behind their
+	// full-width faces (the finding of the rack A/B mock-up round, #179).
+	bool logicSiblingsIndentAsMembers() const override
+	{
+		return true;
 	}
 
 	// Annex K, soft: "a handle you cannot fumble". The largest knob of the

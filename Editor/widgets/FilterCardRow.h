@@ -55,11 +55,19 @@ private:
 	void refreshStateProperties();
 	CommandRowInfo currentRowInfo() const;
 	QString uncommentedLine() const;
+	// Indent units for the outer margin. Branch/tail rows of the If family
+	// (ElseIf/Else/EndIf) follow the active skin's layout policy
+	// (ISkin::logicSiblingsIndentAsMembers, the #179 mock-up finding): a skin
+	// that runs a scope lane down the gutter indents them with the members.
+	int rowIndentUnits() const;
 
 	FilterTable* table = nullptr;
 	FilterTable::Item* item = nullptr;
 	IFilterGUI* gui = nullptr;
 	FilterCardDescriptor descriptor;
+	// 1-based document row, kept current by updateRowPosition; indexes the
+	// table's analysis load facts (loadTraceFactsForRow) for currentRowInfo.
+	int rowNumber = 0;
 
 	CommandRowFrame* cardFrame = nullptr;
 	QWidget* headerWidget = nullptr;

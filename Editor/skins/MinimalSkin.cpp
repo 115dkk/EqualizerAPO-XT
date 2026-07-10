@@ -615,9 +615,14 @@ public:
 	{
 		// One flat line per command: 1px hairline box, square corners, and
 		// state expressed as background-value steps only. Disabled rows fall
-		// one step below the resting card; selection is the accent-value
-		// background step; hover is exactly one step up from rest.
-		const QString background = !info.enabled ? tokens.surface
+		// one step below the resting card; a line a false If branch swallowed
+		// takes the same step down (to the engine both are dead code, and the
+		// value ladder IS this skin's state channel - maintainer round-1
+		// verdict); selection is the accent-value background step; hover is
+		// exactly one step up from rest. The '#' glyph and the readout column
+		// keep skipped and commented apart.
+		const bool sunken = !info.enabled || info.lineSkipped;
+		const QString background = sunken ? tokens.surface
 			: (info.selected ? tokens.cardSelected : tokens.card);
 		const QString borderColor = info.focused ? tokens.focusRing
 			: (info.selected ? tokens.accent : tokens.border);
@@ -626,7 +631,7 @@ public:
 		if (!info.selected)
 		{
 			style += QStringLiteral(" QFrame#FilterCardRow:hover { background: %1; }")
-				.arg(!info.enabled ? tokens.card : tokens.cardHover);
+				.arg(sunken ? tokens.card : tokens.cardHover);
 		}
 		return style;
 	}
@@ -678,6 +683,123 @@ public:
 		glyphLabel->setAlignment(Qt::AlignCenter);
 		glyphLabel->setMinimumWidth(18);
 		headerLayout->insertWidget(0, glyphLabel);
+	}
+	// The watch readout register (dynamic commands): the document stays a
+	// document, and the analysis fact for a line is printed as a right-
+	// aligned DM Mono readout column in the header. If/ElseIf/Else rows
+	// print the branch verdict, Eval and inline-value rows print "= " plus
+	// the computed text; EndIf closes a block and has nothing to report.
+	// The ladder is brightness, never a status colour: TRUE is body ink,
+	// FALSE is secondary ink, "no data yet / not evaluated" is an em dash
+	// one step below secondary (no data makes no claim), and ERR is bold
+	// body ink - the loudest thing monochrome type can do. Painted here
+	// rather than as a construction-time label because the facts refresh
+	// with every analysis run and only paint time is guaranteed to see the
+	// fresh values (prepareCommandRow would freeze the first, stale ones).
+	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const bool ifFamily = info.type == QStringLiteral("if");
+		const bool verdictRow = ifFamily && info.command != QStringLiteral("endif");
+		const bool valueRow = !ifFamily && (!info.evalText.isEmpty() || info.valueError);
+		if (!verdictRow && !valueRow)
+			return;
+
+		QString figure;
+		QColor ink;
+		bool bold = false;
+		if (verdictRow)
+		{
+			if (info.branchState == 1)
+			{
+				figure = QStringLiteral("TRUE");
+				ink = QColor(tokens.text);
+			}
+			else if (info.branchState == 0)
+			{
+				figure = QStringLiteral("FALSE");
+				ink = QColor(tokens.mutedText);
+			}
+			else if (info.branchState == 3)
+			{
+				figure = QStringLiteral("ERR");
+				ink = QColor(tokens.text);
+				bold = true;
+			}
+			else
+			{
+				// Unknown (-1) and short-circuited (2) read the same: the
+				// register holds no measurement. The em dash (U+2014, built
+				// from a code point - pure-ASCII source) sinks one step
+				// below the secondary ink; no third grey token exists and
+				// none is created here, the step is mixed from tokens.
+				figure = QString(QChar(0x2014));
+				ink = mixColor(QColor(tokens.mutedText), QColor(tokens.card), 0.45);
+			}
+		}
+		else if (info.valueError)
+		{
+			figure = QStringLiteral("ERR");
+			ink = QColor(tokens.text);
+			bold = true;
+		}
+		else
+		{
+			figure = QStringLiteral("= ") + info.evalText;
+			ink = QColor(tokens.mutedText);
+		}
+
+		// Right-aligned in the header band, ending ~205px short of the right
+		// edge so the whole header button train (power / + / - / ..., which
+		// spans just under 200px from the frame's right edge) keeps clear
+		// ground; the readout is painted under the buttons, so anything
+		// narrower prints beneath them and only a clipped sliver survives.
+		// The If/Eval summaries are empty by model contract, so the column
+		// prints on empty line space; a cramped card drops the readout
+		// rather than colliding with the line head.
+		const int headerHeight = qMin(tokens.rowHeight, rect.height());
+		const QRect column(rect.left() + 8, rect.top(), rect.width() - 213, headerHeight);
+		if (column.width() < 60)
+			return;
+
+		QFont font(tokens.monoFontFamily);
+		font.setPointSizeF(9.0);
+		font.setBold(bold);
+		painter.setFont(font);
+		painter.setPen(ink);
+		painter.drawText(column, Qt::AlignRight | Qt::AlignVCenter,
+			QFontMetrics(font).elidedText(figure, Qt::ElideRight, column.width()));
+	}
+	// The If-block scope in the gutter is a code editor's indent guide
+	// (dynamic-commands campaign): one crisp 1px border-ink hairline per
+	// scope level, antialiasing off, and nothing else - no lamps, no colour,
+	// no second stroke weight. The channel-group level is drawn by the same
+	// rule, because to a document a hairline is a hairline; state lives in
+	// the readout column and the sunken inks, never in the gutter. Branch
+	// rows keep their semantic indentation (logicSiblingsIndentAsMembers
+	// stays false): ElseIf/Else/EndIf align with their If exactly as source
+	// code would, so the innermost guide pauses on their line the way an
+	// editor's guides do.
+	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		// An unindented row has no gutter; leave the (empty) default path.
+		if (info.depth <= 0)
+			return false;
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		// The guides go dashed where they pass a swallowed line: the dash
+		// grammar ("no verified substance") extended to a stretch the engine
+		// is not running, so the structure column itself posts the branch
+		// outcome (maintainer round-1 verdict, paired with the frame's
+		// background step in cardFrameStyle).
+		painter.setPen(QPen(QColor(tokens.border), 1, info.lineSkipped ? Qt::DotLine : Qt::SolidLine));
+		const int unit = tokens.channelGroupIndent;
+		for (int level = 0; level < info.depth; level++)
+		{
+			// Centred in its indent band, like RackChrome's level math; the
+			// card face starts at x = 8 + depth * unit.
+			const int x = 8 + level * unit + unit / 2;
+			painter.drawLine(x, 0, x, size.height());
+		}
+		return true;
 	}
 	// The trailing add row is the terminal's input prompt line: "+ ADD
 	// FILTER" as an uppercase tracked mono caption inside a 1px hairline

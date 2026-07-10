@@ -18,14 +18,14 @@
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, FilterCardRowScope scope, QWidget* parent)
-	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, scope.indent))
+	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, scope.indent)), rowNumber(number)
 {
 	descriptor.logicDepth = scope.logic;
 	setAttribute(Qt::WA_StyledBackground, false);
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
 	QVBoxLayout* outerLayout = new QVBoxLayout(this);
-	outerLayout->setContentsMargins(8 + descriptor.depth * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
+	outerLayout->setContentsMargins(8 + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
 	outerLayout->setSpacing(0);
 	// Detach the layout's minimumSize from the children's: the body can contain
 	// legacy filter GUIs with huge content-driven sizeHints (DeviceFilterGUI,
@@ -314,6 +314,45 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	info.focused = table != nullptr && table->getFocusedItem() == item;
 	info.depth = descriptor.depth;
 	info.logicDepth = descriptor.logicDepth;
+
+	// Fold in the analysis engine's load facts for this line (dynamic
+	// commands): branch truth for the If family, computed values for
+	// Eval/inline expressions, and whether a false branch swallowed the line.
+	// Advisory by contract - facts go stale between an edit and the next
+	// analysis run. When both an Eval result and an inline substitution exist
+	// on one line, the Eval result wins regardless of hash order.
+	if (table != nullptr)
+	{
+		const QList<ConfigLoadTraceEntry> facts = table->loadTraceFactsForRow(rowNumber - 1);
+		for (const ConfigLoadTraceEntry& fact : facts)
+		{
+			switch (fact.kind)
+			{
+			case ConfigLoadTraceEntry::Kind::Condition:
+				info.branchState = fact.result == ConfigLoadTraceEntry::Result::True ? 1
+					: fact.result == ConfigLoadTraceEntry::Result::False ? 0
+					: fact.result == ConfigLoadTraceEntry::Result::Error ? 3 : 2;
+				break;
+			case ConfigLoadTraceEntry::Kind::ElseBranch:
+				info.branchState = fact.active ? 1 : 0;
+				break;
+			case ConfigLoadTraceEntry::Kind::Eval:
+				info.evalText = QString::fromStdWString(fact.text);
+				info.valueError = info.valueError || fact.error;
+				break;
+			case ConfigLoadTraceEntry::Kind::InlineValue:
+				// The engine preserves the space after the colon; trim at
+				// this UI boundary so readouts do not start with a gap.
+				if (info.evalText.isEmpty())
+					info.evalText = QString::fromStdWString(fact.text).trimmed();
+				info.valueError = info.valueError || fact.error;
+				break;
+			case ConfigLoadTraceEntry::Kind::SkippedLine:
+				info.lineSkipped = true;
+				break;
+			}
+		}
+	}
 	return info;
 }
 
@@ -333,6 +372,7 @@ void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 	// (audit #146 TD040) The constructor puts the number into numberLabel and
 	// the scope into the outer layout's left margin, the descriptor (scope
 	// rail painting) and the skin styling hooks. Refresh those in place.
+	this->rowNumber = rowNumber;
 	if (numberLabel != nullptr)
 	{
 		// A skin's prepareCommandRow may have rewritten the plain number into
@@ -353,7 +393,7 @@ void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 		descriptor.depth = scope.indent;
 		descriptor.logicDepth = scope.logic;
 		if (layout() != nullptr)
-			layout()->setContentsMargins(8 + scope.indent * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
+			layout()->setContentsMargins(8 + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
 		// Re-derives the descriptor at the new depth and refreshes the badge,
 		// the scopeDepth/logicDepth style properties and the frame/header
 		// stylesheets (refreshStateProperties), then repaints.
@@ -481,9 +521,29 @@ bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
 	return QWidget::eventFilter(watched, event);
 }
 
+int FilterCardRow::rowIndentUnits() const
+{
+	// Member level is one unit past the branch/tail row's own semantic level
+	// (depth already carries any enclosing channel group, so +1 keeps mixed
+	// Channel x If nesting aligned with the block members).
+	if (descriptor.type == QStringLiteral("if") && descriptor.badge != QStringLiteral("IF")
+		&& SkinManager::instance()->logicSiblingsIndentAsMembers())
+		return descriptor.depth + 1;
+	return descriptor.depth;
+}
+
 void FilterCardRow::paintEvent(QPaintEvent*)
 {
 	refreshStateProperties();
+
+	// The active skin may own the whole scope gutter (the If-block lanes of
+	// the dynamic-commands campaign); the shared channel rail below stays the
+	// default for skins that do not answer.
+	{
+		QPainter gutterPainter(this);
+		if (SkinManager::instance()->paintScopeGutter(gutterPainter, size(), currentRowInfo()))
+			return;
+	}
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	if (descriptor.depth <= 0)
@@ -800,10 +860,13 @@ void FilterCardRow::refreshStateProperties()
 		{ "selected", info.selected },
 		{ "focused", info.focused },
 		{ "scopeDepth", info.depth },
-		{ "logicDepth", info.logicDepth }
+		{ "logicDepth", info.logicDepth },
+		{ "branchState", info.branchState },
+		{ "lineSkipped", info.lineSkipped }
 	};
 
 	bool changed = false;
+	bool propertiesChanged = false;
 	for (const auto& property : properties)
 	{
 		if (cardFrame->property(property.first) != property.second)
@@ -811,6 +874,7 @@ void FilterCardRow::refreshStateProperties()
 			cardFrame->setProperty(property.first, property.second);
 			headerWidget->setProperty(property.first, property.second);
 			changed = true;
+			propertiesChanged = true;
 		}
 	}
 
@@ -838,5 +902,25 @@ void FilterCardRow::refreshStateProperties()
 		widget->style()->unpolish(widget);
 		widget->style()->polish(widget);
 		widget->update();
+	}
+
+	// Descendant-selector QSS rules key on the dynamic properties above
+	// (e.g. "#FilterCardHeader[lineSkipped=\"true\"] QLabel#FilterCardTitle"),
+	// but Qt resolves such rules per *descendant*, so repolishing only the
+	// frame/header leaves the labels on their cached style whenever a
+	// property changes after construction (analysis facts like lineSkipped
+	// arrive with every load report). Skins whose frame stylesheet string
+	// happens to change too were masked by the subtree invalidation
+	// setStyleSheet performs; skins with a stable frame style never saw the
+	// rule apply. Repolish the labels whenever a property value moved.
+	if (propertiesChanged)
+	{
+		const QList<QLabel*> labels = cardFrame->findChildren<QLabel*>();
+		for (QLabel* label : labels)
+		{
+			label->style()->unpolish(label);
+			label->style()->polish(label);
+			label->update();
+		}
 	}
 }
