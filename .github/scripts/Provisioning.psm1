@@ -362,11 +362,19 @@ function Install-QtSdk {
     $qtArchDir = if ($Platform -eq "ARM64") { "msvc2022_arm64" } else { "msvc2022_64" }
     $qtOutput = Join-Path $WorkspaceRoot "Qt"
 
-    python -m aqt -c $configPath install-qt $qtHost desktop $QtVersion $qtArch `
-        --autodesktop `
-        --outputdir $qtOutput `
-        --archives qtbase qttools qtsvg qttranslations `
-        --external 7z | Out-Host
+    # CI runners ship 7z.exe and extraction is faster with it, but local dev
+    # machines often lack it; aqt's bundled py7zr handles extraction fine, so
+    # only request the external tool when it is actually on PATH.
+    $aqtArgs = @(
+        '-c', $configPath, 'install-qt', $qtHost, 'desktop', $QtVersion, $qtArch,
+        '--autodesktop',
+        '--outputdir', $qtOutput,
+        '--archives', 'qtbase', 'qttools', 'qtsvg', 'qttranslations'
+    )
+    if (Get-Command 7z -ErrorAction SilentlyContinue) {
+        $aqtArgs += @('--external', '7z')
+    }
+    python -m aqt @aqtArgs | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Qt installation failed"
     }
