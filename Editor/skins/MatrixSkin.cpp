@@ -104,6 +104,14 @@ QString matrixBusLetter(const QString& type)
 		return QStringLiteral("I");
 	if (type == QStringLiteral("vst"))
 		return QStringLiteral("V");
+	// The gate family (If/ElseIf/Else/EndIf) and Eval are engine decisions
+	// posted on the board, not remarks: their own designations keep them out
+	// of the R (remark) carrier. Letters are designations, not identifiers -
+	// F and E collide with nothing that matters.
+	if (type == QStringLiteral("if"))
+		return QStringLiteral("F");
+	if (type == QStringLiteral("eval"))
+		return QStringLiteral("E");
 	if (type == QStringLiteral("stage"))
 		return QStringLiteral("S");
 	if (type == QStringLiteral("loudness"))
@@ -150,6 +158,11 @@ protected:
 		// before the first restyle it is simply unset, which reads enabled.
 		const QVariant enabledProperty = card != nullptr ? card->property("filterEnabled") : QVariant();
 		const bool enabled = !enabledProperty.isValid() || enabledProperty.toBool();
+		// A line swallowed by a false If branch (dynamic commands) idles at
+		// the cancelled ink depth, but keeps its verbatim spec: the source is
+		// live, it just is not running on this device - no "#" appears in the
+		// raw line and no cancel treatment is added here.
+		const bool skipped = card != nullptr && card->property("lineSkipped").toBool();
 		const bool lit = enabled && card != nullptr && card->underMouse();
 
 		// Sunken board line under a 1px top rule - the picker footer's
@@ -164,7 +177,7 @@ protected:
 		const QFontMetrics metrics(mono);
 
 		QColor idleInk(tokens.mutedText);
-		if (!enabled)
+		if (!enabled || skipped)
 			idleInk.setAlpha(120);
 		const QColor accent(tokens.accent);
 		const int pad = 10;
@@ -497,14 +510,22 @@ public:
 	// out row additionally swaps the outer rule for a dashed one. A remark row
 	// (a pure comment) has no signal state at all: amber would claim it is a
 	// bypassed command (colour semantics M3), so its rail is quiet border ink
-	// and its rule stays solid - a remark is not a cancelled flight.
+	// and its rule stays solid - a remark is not a cancelled flight. A line a
+	// false If branch swallowed on the last load (lineSkipped) IS a cancelled
+	// departure: it stays posted, behind the cancellation dash with a quiet
+	// border-ink rail - green would claim it runs, amber that it is bypassed,
+	// and neither is true of live source the engine chose not to load. Form,
+	// not colour; the header inks dim via the QSS lineSkipped key. This hook
+	// re-runs from every repaint (refreshStateProperties), so the advisory
+	// analysis facts are read at paint time as required.
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		const bool remark = info.type == QStringLiteral("comment");
-		const QString railColor = remark ? tokens.border : (info.enabled ? tokens.success : tokens.warning);
+		const bool cancelled = !remark && info.enabled && info.lineSkipped;
+		const QString railColor = remark || cancelled ? tokens.border : (info.enabled ? tokens.success : tokens.warning);
 		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
 		const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
-		const QString borderStyle = (info.enabled || remark) ? QStringLiteral("solid") : QStringLiteral("dashed");
+		const QString borderStyle = ((info.enabled && !cancelled) || remark) ? QStringLiteral("solid") : QStringLiteral("dashed");
 		QString style = QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
 			.arg(backgroundColor, borderStyle, borderColor, railColor);
@@ -675,21 +696,183 @@ public:
 
 		// Status lamp in the left gutter: solid green = active, hollow amber =
 		// bypassed (traffic-light semantics, never decorative). A remark has no
-		// signal state, so it gets no lamp.
+		// signal state, so it gets no lamp. Gate rows (the If family) post the
+		// engine's branch decision in the same lamp grammar instead of the
+		// generic running lamp, and a line a false branch swallowed un-lights
+		// its lamp: solid = current flows, hollow = it does not. The analysis
+		// facts are advisory and only read here, at paint time.
 		if (!remark)
 		{
 			const QRect lampRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5);
-			if (info.enabled)
+			const auto solidLamp = [&](const QColor& ink)
 			{
-				painter.fillRect(lampRect, QColor(tokens.success));
+				painter.fillRect(lampRect, ink);
+			};
+			const auto hollowLamp = [&](const QColor& ink)
+			{
+				painter.setPen(QPen(ink, 1));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
+			};
+			if (!info.enabled)
+			{
+				hollowLamp(QColor(tokens.warning));
+			}
+			else if (info.type == QStringLiteral("if"))
+			{
+				// The gate lamp: taken = solid success, condition false = the
+				// same lamp unlit (hollow success), an evaluation fault =
+				// solid danger (the rationing table's one legal fault
+				// colour). A branch the chain never reached - or a board no
+				// analysis has scanned yet - shows a hollow muted lamp: no
+				// decision was posted, and muted is the board's ink for
+				// absence, not a status claim.
+				if (info.branchState == 1)
+					solidLamp(QColor(tokens.success));
+				else if (info.branchState == 3)
+					solidLamp(QColor(tokens.danger));
+				else if (info.branchState == 0)
+					hollowLamp(QColor(tokens.success));
+				else
+					hollowLamp(QColor(tokens.mutedText));
+			}
+			else if (info.lineSkipped)
+			{
+				// Cancelled departure: live source behind a closed gate keeps
+				// its running lamp, unlit.
+				hollowLamp(QColor(tokens.success));
 			}
 			else
 			{
-				painter.setPen(QPen(QColor(tokens.warning), 1));
-				painter.setBrush(Qt::NoBrush);
-				painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
+				solidLamp(QColor(tokens.success));
 			}
 		}
+
+		// Computed-value readout (dynamic commands): the engine's Eval result
+		// or the substituted inline-expression text, posted in the boxed
+		// sunken mono cell every authoritative figure on this board lives in
+		// (invariant rule 5), right-aligned in the header ahead of the button
+		// train. Body ink, not accent: a computed control value is a readout,
+		// not routed signal data, so the rationing table's accent clause does
+		// not cover it. A parser fault posts in danger - the Include error
+		// readout precedent. Paint-time only by design: the facts go stale
+		// between an edit and the next analysis run, and this cell repaints
+		// with them instead of baking them into a construction-time label.
+		if (!info.evalText.isEmpty() || (info.type == QStringLiteral("eval") && info.valueError))
+		{
+			const QString reading = QStringLiteral("= ")
+				+ (info.evalText.isEmpty() ? QStringLiteral("ERR") : info.evalText);
+			QFont mono(tokens.monoFontFamily);
+			mono.setPointSizeF(7.5);
+			mono.setBold(true);
+			const QFontMetrics metrics(mono);
+			// The button train (enable / + / - / ...) keeps its reserved zone
+			// on the right; the four buttons span ~180px from the band's right
+			// edge and the cell is painted *under* them, so the reserve must
+			// clear the train entirely or the cell's tail hides beneath the
+			// power button. The cell never grows left into the coordinate
+			// band, and a reading that still does not fit is elided, never
+			// squeezed.
+			const int reserved = 192;
+			const int cellRight = headerBand.right() - reserved;
+			const int maxWidth = qMin(220, cellRight - headerBand.left() - MatrixMetrics::coordinateBandWidth);
+			if (maxWidth > 40)
+			{
+				const QString elided = metrics.elidedText(reading, Qt::ElideRight, maxWidth - 12);
+				const int cellWidth = qMin(maxWidth, metrics.horizontalAdvance(elided) + 12);
+				const QRect cellRect(cellRight - cellWidth,
+					headerBand.top() + (headerBand.height() - MatrixMetrics::knobCellHeight) / 2,
+					cellWidth, MatrixMetrics::knobCellHeight);
+				painter.setPen(QPen(info.valueError ? QColor(tokens.danger) : QColor(tokens.border), 1));
+				painter.setBrush(QColor(tokens.surfaceSunken));
+				painter.drawRect(cellRect.adjusted(0, 0, -1, -1));
+				painter.setBrush(Qt::NoBrush);
+				painter.setFont(mono);
+				painter.setPen(info.valueError ? QColor(tokens.danger) : QColor(tokens.text));
+				painter.drawText(cellRect, Qt::AlignCenter, elided);
+			}
+		}
+	}
+
+	// The If block is a bracket printed on the board's indent bands (dynamic
+	// commands): one crisp 1px muted rule per open scope, opening under the
+	// gate's head row, passing members and branch rows, and closing on the
+	// EndIf row with a short horizontal tick - an L-corner, this skin's
+	// square-corner language. The bracket is structure only: the engine's
+	// decisions post on the cells themselves (gate lamps, cancelled rows,
+	// value readouts), never in the gutter. The rack gutter is switched
+	// power with contact hardware; this one is a printed rule - a different
+	// claim, not a different palette.
+	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const bool ifFamily = info.type == QStringLiteral("if");
+		const bool headRow = ifFamily && info.command == QStringLiteral("if");
+		const bool branchOrTail = ifFamily && !headRow;
+		const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
+		const int logic = info.logicDepth;
+		if (!headRow && logic <= 0)
+			return false;
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		const int unit = tokens.channelGroupIndent;
+		const int h = size.height();
+		// Branch/tail rows mount at member depth (logicSiblingsIndentAsMembers)
+		// so the bracket passes them; the card edge follows the same rule.
+		const int indentUnits = branchOrTail ? info.depth + 1 : info.depth;
+		const int cardLeft = 8 + indentUnits * unit;
+		// Rules sit on the centres of the existing indent bands - grid-pitch
+		// discipline: the bracket claims no positions of its own.
+		const auto bandCenter = [&](int level) { return 8 + level * unit + unit / 2; };
+
+		// The innermost logicDepth bands are If lanes; any bands outside them
+		// are channel groups and keep a quiet 1px border-ink rule, one ink
+		// rank below the bracket, so scope reads above grouping.
+		const int ifLevels = headRow ? logic : branchOrTail ? logic - 1 : logic;
+		const int channelLevels = qMax(0, indentUnits - ifLevels - (branchOrTail ? 1 : 0));
+		painter.setPen(QPen(QColor(tokens.border), 1));
+		for (int level = 0; level < channelLevels; level++)
+			painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+
+		painter.setPen(QPen(QColor(tokens.mutedText), 1));
+		const int junctionY = 4 + tokens.rowHeight / 2;
+		if (headRow)
+		{
+			for (int level = channelLevels; level < channelLevels + logic; level++)
+				painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+			// The bracket opens under the head: its rule first shows in the
+			// margin below the gate's full-width cell.
+			const int own = bandCenter(channelLevels + logic);
+			painter.drawLine(own, h - 4, own, h);
+		}
+		else if (tailRow)
+		{
+			for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+				painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+			// The closing L-corner: down to the tail's centre line, then a
+			// half-pitch tick to the EndIf cell's edge.
+			const int own = bandCenter(channelLevels + logic - 1);
+			painter.drawLine(own, 0, own, junctionY);
+			painter.drawLine(own, junctionY, cardLeft - 1, junctionY);
+		}
+		else
+		{
+			// Members and branch rows: every open bracket passes straight
+			// through. ElseIf/Else post their state on their own cells (the
+			// gate lamp), not on the bracket.
+			for (int level = channelLevels; level < channelLevels + logic; level++)
+				painter.drawLine(bandCenter(level), 0, bandCenter(level), h);
+		}
+		return true;
+	}
+
+	// Branch/tail rows (ElseIf/Else/EndIf) mount one indent unit past their
+	// semantic level, with the block members, so the bracket lane passes them
+	// instead of dying behind their full-width cells (the finding of the rack
+	// mock-up round, issue #179).
+	bool logicSiblingsIndentAsMembers() const override
+	{
+		return true;
 	}
 
 	// The trailing add row is a vacant board cell: a slot the board has not

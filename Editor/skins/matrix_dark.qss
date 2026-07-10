@@ -998,6 +998,22 @@ QWidget#FilterCardHeader[filterEnabled="false"] QLabel#FilterCardTitle {
 QWidget#FilterCardHeader[filterEnabled="false"] QLabel#FilterCardSummary {
     color: #4A6470;
 }
+/* Cancelled departure (dynamic commands): a false If branch swallowed this
+   line on the last load. The line is live source - not bypassed - so no
+   strikethrough (that is the bypass grammar); the posting stays on the
+   board and simply dims to low-alpha ink behind the dashed rule + quiet
+   rail that MatrixSkin::cardFrameStyle lays inline. Form, not colour (M3).
+   The rgba values are the text/muted tokens at reduced alpha, not new
+   palette entries. */
+QWidget#FilterCardHeader[lineSkipped="true"] QLabel#FilterCardTitle {
+    color: rgba(223, 245, 255, 0.45);
+}
+QWidget#FilterCardHeader[lineSkipped="true"] QLabel#FilterCardSummary {
+    color: rgba(127, 160, 174, 0.55);
+}
+QWidget#FilterCardHeader[lineSkipped="true"] QLabel#FilterCardNumber {
+    color: rgba(127, 160, 174, 0.55);
+}
 QLabel#FilterCardSummary,
 QLabel#FilterCardRawText {
     color: @MUTED@;

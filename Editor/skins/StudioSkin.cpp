@@ -434,8 +434,11 @@ public:
 	// glass cannot get brighter) and a shade pooling at the bottom as the
 	// pane's thickness. On top of the pane, DSP rows wear the signal lamp in
 	// their band colour (S3) and VST rows a border-hugging halo, with hover
-	// blooming one ladder step (S4). Include/comment/raw rows stay unlit
-	// panes; disabled rows paint nothing - the light is off, the glass dead.
+	// blooming one ladder step (S4). Include/comment/raw rows and the If/Eval
+	// logic rows stay unlit panes - the gate beam in the gutter carries the
+	// logic state, and a resolved Eval adds only a quiet mono readout at the
+	// header's right; disabled rows paint nothing - the light is off, the
+	// glass dead.
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{
 		if (!info.enabled || info.type == QStringLiteral("spacer"))
@@ -488,9 +491,44 @@ public:
 		{
 			// Unlit panes: the glass surface only, no lamp. Include points
 			// elsewhere; comments and raw text carry no signal, and the If/Eval
-			// logic rows gate signal rather than process it (their gate-beam
-			// presentation is a separate campaign step - until it lands they
-			// stay unlit like the raw rows they used to be).
+			// logic rows gate signal rather than process it - their state lives
+			// in the gutter's gate beam (paintScopeGutter), never as a tint on
+			// the glass or the ink.
+			//
+			// An Eval row the last analysis run resolved shows its value as a
+			// quiet mono readout at the header's right: the hover-value grammar
+			// (muted ink, present when known) - data, not a lamp. It is painted
+			// here rather than tagged in prepareCommandRow because the fact
+			// refreshes with every analysis run and only paint time sees fresh
+			// values. An unresolved or errored Eval simply stays quiet; studio
+			// never alarms. The summary label bounds the readout, so a long
+			// expression keeps the right of way and the value yields.
+			if (info.type == QStringLiteral("eval") && !info.evalText.isEmpty() && !info.valueError
+				&& painter.device() != nullptr && painter.device()->devType() == QInternal::Widget)
+			{
+				const QWidget* frame = static_cast<const QWidget*>(painter.device());
+				const QLabel* summary = frame->findChild<QLabel*>(QStringLiteral("FilterCardSummary"));
+				if (summary != nullptr && summary->isVisible())
+				{
+					const QRectF span(summary->mapTo(frame, QPoint(0, 0)), QSizeF(summary->size()));
+					QFont readoutFont(tokens.monoFontFamily);
+					readoutFont.setPointSizeF(8.0);
+					const QFontMetricsF readoutMetrics(readoutFont);
+					const QString readout = QStringLiteral("= ") + info.evalText;
+					const QFontMetricsF summaryMetrics(summary->font());
+					const double summaryWidth = summary->text().isEmpty()
+						? 0.0 : summaryMetrics.horizontalAdvance(summary->text()) + 16.0;
+					if (summaryWidth + readoutMetrics.horizontalAdvance(readout) <= span.width())
+					{
+						painter.setFont(readoutFont);
+						// The header sheen washes this ink toward white in
+						// light mode (S1), so the light ink starts at full
+						// text strength and lands muted; dark stays muted.
+						painter.setPen(dark ? withAlpha(tokens.mutedText, 225) : QColor(tokens.text));
+						painter.drawText(span, Qt::AlignRight | Qt::AlignVCenter, readout);
+					}
+				}
+			}
 			painter.restore();
 			return;
 		}
@@ -533,6 +571,173 @@ public:
 		}
 
 		painter.restore();
+	}
+
+	// The If-block scope is a GATE BEAM: a vertical light flowing down the
+	// gutter along the block's member cards (dynamic-commands campaign,
+	// maintainer-confirmed concept). The beam is the knob arc's stroke ladder
+	// turned vertical - wide translucent passes under a narrow bright core
+	// (rule 3, no effects) - in the row's default blue accent: logic rows are
+	// non-BiQuad, so they carry the base light and one light only (rule 1);
+	// the glass and the ink never take the beam colour. State is light
+	// intensity (rule 4): a live run is lit, a run whose line a false branch
+	// swallowed is a de-energized residual trace (a switched-off light, not
+	// an alarm), and the If/ElseIf/Else stations answer with the indicator-
+	// dot grammar (halo + core) - lit while the branch was taken, dark for
+	// false, short-circuited, errored and not-yet-analyzed alike (a light is
+	// on or off; studio never alarms). The beam is born as a short feed
+	// peeking out of the head row's bottom margin and dies on the EndIf row
+	// with a fade-out, the insert seam's ray dying at its end. Outer channel
+	// groups keep a quiet neutral gradient bar so mixed Channel x If nesting
+	// stays readable. The level math mirrors the rack gutter (the worked
+	// example of issue #179): for members the if-lanes are the innermost
+	// logicDepth bands after the depth - logicDepth outer channel bands, and
+	// branch/tail rows mount at member depth (logicSiblingsIndentAsMembers)
+	// so the beam passes their faces instead of dying behind them.
+	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const override
+	{
+		const bool ifFamily = info.type == QStringLiteral("if");
+		const bool headRow = ifFamily && info.command == QStringLiteral("if");
+		const bool branchRow = ifFamily && (info.command == QStringLiteral("elseif") || info.command == QStringLiteral("else"));
+		const bool tailRow = ifFamily && info.command == QStringLiteral("endif");
+		const int logic = info.logicDepth;
+		if (!headRow && logic <= 0)
+			return false;
+
+		const int unit = tokens.channelGroupIndent;
+		const double h = size.height();
+		const double junctionY = 4.0 + tokens.rowHeight / 2.0;
+		const int indentUnits = (ifFamily && !headRow) ? info.depth + 1 : info.depth;
+
+		const QColor beam(tokens.accent);
+		const bool live = info.enabled && !info.lineSkipped;
+
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		painter.setPen(Qt::NoPen);
+
+		const auto bandCenter = [unit](int level) { return 8.0 + level * unit + unit / 2.0; };
+
+		// One run of the beam: the arc's glow ladder turned vertical. A lit
+		// run carries the full ladder, a de-energized run only a faint
+		// residual core. A fading run (the EndIf termination) holds its light
+		// for half the drop and dies before the end - strokes with gradient
+		// brushes, never effects.
+		const auto beamRun = [&](int level, double y0, double y1, bool runLive, bool fadeOut) {
+			struct Stroke { double width; int alpha; };
+			static const Stroke litLadder[] = { { 7.0, 24 }, { 3.4, 64 }, { 1.4, 210 } };
+			static const Stroke deadLadder[] = { { 3.4, 14 }, { 1.2, 64 } };
+			const Stroke* ladder = runLive ? litLadder : deadLadder;
+			const int count = runLive ? 3 : 2;
+			const double x = bandCenter(level);
+			for (int i = 0; i < count; i++)
+			{
+				QPen pen;
+				if (fadeOut)
+				{
+					QLinearGradient dying(QPointF(x, y0), QPointF(x, y1));
+					dying.setColorAt(0.0, withAlpha(beam, ladder[i].alpha));
+					dying.setColorAt(0.55, withAlpha(beam, ladder[i].alpha));
+					dying.setColorAt(1.0, withAlpha(beam, 0));
+					pen = QPen(QBrush(dying), ladder[i].width);
+				}
+				else
+				{
+					pen = QPen(withAlpha(beam, ladder[i].alpha), ladder[i].width);
+				}
+				pen.setCapStyle(Qt::FlatCap);
+				painter.setPen(pen);
+				painter.drawLine(QPointF(x, y0), QPointF(x, y1));
+			}
+			painter.setPen(Qt::NoPen);
+		};
+
+		// The station's answer: the indicator-dot grammar (halo + core). The
+		// unlit dot is the GEQ plot's lights-out node - a glass core under a
+		// neutral hairline, a socket the light never reached.
+		const auto anchor = [&](double cx, double cy, bool litDot, double coreRadius) {
+			if (litDot)
+			{
+				painter.setBrush(withAlpha(beam, 110));
+				painter.drawEllipse(QPointF(cx, cy), coreRadius * 2.0, coreRadius * 2.0);
+				painter.setBrush(beam);
+				painter.drawEllipse(QPointF(cx, cy), coreRadius, coreRadius);
+			}
+			else
+			{
+				painter.setPen(QPen(withAlpha(tokens.border, 220), 1.0));
+				painter.setBrush(QColor(tokens.card));
+				painter.drawEllipse(QPointF(cx, cy), coreRadius, coreRadius);
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(Qt::NoBrush);
+			}
+		};
+
+		// Outer channel-group levels keep studio's quiet gradient bar (the
+		// shared default's geometry) in neutral ink: the channel group is
+		// context, and the gutter's one light belongs to the beam.
+		const auto channelRail = [&](int level) {
+			QLinearGradient bar(0, 0, 0, h);
+			bar.setColorAt(0.0, withAlpha(tokens.border, 70));
+			bar.setColorAt(1.0, withAlpha(tokens.border, 16));
+			painter.fillRect(QRectF(8.0 + level * unit + 7.0, 0.0, 3.0, h), bar);
+		};
+
+		const int ifLevels = headRow ? logic : (branchRow || tailRow) ? logic - 1 : logic;
+		const int channelLevels = qMax(0, indentUnits - ifLevels - ((branchRow || tailRow) ? 1 : 0));
+		for (int level = 0; level < channelLevels; level++)
+			channelRail(level);
+
+		if (headRow)
+		{
+			// The head sits at its semantic depth, so its block's beam only
+			// peeks out of the bottom margin: a short feed whose light already
+			// answers the condition, under the station's anchor dot.
+			for (int level = channelLevels; level < channelLevels + logic; level++)
+				beamRun(level, 0.0, h, true, false);
+			const int own = channelLevels + logic;
+			beamRun(own, h - 4.0, h, live && info.branchState != 0, false);
+			anchor(bandCenter(own), h - 2.0, info.branchState == 1, 2.2);
+		}
+		else if (branchRow)
+		{
+			// The chain's beam passes the ElseIf/Else face; the anchor on it
+			// reports this branch. The runs between stations belong to the
+			// member rows, which dim their own swallowed segments.
+			for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+				beamRun(level, 0.0, h, true, false);
+			const int own = channelLevels + logic - 1;
+			beamRun(own, 0.0, h, live, false);
+			anchor(bandCenter(own), junctionY, info.branchState == 1, 3.0);
+		}
+		else if (tailRow)
+		{
+			// The beam terminates on the EndIf row: it fades out above the
+			// header line and simply is not there below - no cap, no anchor.
+			for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+				beamRun(level, 0.0, h, true, false);
+			beamRun(channelLevels + logic - 1, 0.0, junctionY + 4.0, live, true);
+		}
+		else
+		{
+			// A member card: the innermost lane is its block's beam and takes
+			// the row's own fate - a swallowed line de-energizes only its own
+			// run, the outer lanes stay lit for the rows below.
+			for (int level = channelLevels; level + 1 < channelLevels + logic; level++)
+				beamRun(level, 0.0, h, true, false);
+			beamRun(channelLevels + logic - 1, 0.0, h, live, false);
+		}
+
+		painter.restore();
+		return true;
+	}
+
+	// Branch/tail rows mount one indent unit past their semantic level so the
+	// gate beam passes them instead of dying behind their full-width faces
+	// (the finding of the rack A/B mock-up round, issue #179).
+	bool logicSiblingsIndentAsMembers() const override
+	{
+		return true;
 	}
 
 	// The trailing add row is a glass slot not yet fitted with a pane

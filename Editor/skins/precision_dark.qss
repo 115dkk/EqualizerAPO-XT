@@ -424,6 +424,16 @@ QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardTitle,
 QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardSummary,
 QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardNumber,
 QFrame#FilterCardRow[filterEnabled="false"] QLabel#MinimalTypeGlyph { color: @MUTED@; }
+/* A line swallowed by a false If branch (dynamic commands) sinks like the
+   comment register: to the engine both are dead code, so both wear the same
+   secondary ink - form, not colour. State rule, so it stays behind the kind
+   rules above (cascade law) and wins the include/vst bright-summary rule.
+   The verdicts themselves live in the painted readout column
+   (MinimalSkin::paintCardChrome), which QSS deliberately does not touch. */
+QFrame#FilterCardRow[lineSkipped="true"] QLabel#FilterCardTitle,
+QFrame#FilterCardRow[lineSkipped="true"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[lineSkipped="true"] QLabel#FilterCardNumber,
+QFrame#FilterCardRow[lineSkipped="true"] QLabel#MinimalTypeGlyph { color: @MUTED@; }
 QLabel#FilterCardNumber {
     color: @MUTED@; background: transparent;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;

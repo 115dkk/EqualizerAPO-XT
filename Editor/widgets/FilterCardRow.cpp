@@ -866,6 +866,7 @@ void FilterCardRow::refreshStateProperties()
 	};
 
 	bool changed = false;
+	bool propertiesChanged = false;
 	for (const auto& property : properties)
 	{
 		if (cardFrame->property(property.first) != property.second)
@@ -873,6 +874,7 @@ void FilterCardRow::refreshStateProperties()
 			cardFrame->setProperty(property.first, property.second);
 			headerWidget->setProperty(property.first, property.second);
 			changed = true;
+			propertiesChanged = true;
 		}
 	}
 
@@ -900,5 +902,25 @@ void FilterCardRow::refreshStateProperties()
 		widget->style()->unpolish(widget);
 		widget->style()->polish(widget);
 		widget->update();
+	}
+
+	// Descendant-selector QSS rules key on the dynamic properties above
+	// (e.g. "#FilterCardHeader[lineSkipped=\"true\"] QLabel#FilterCardTitle"),
+	// but Qt resolves such rules per *descendant*, so repolishing only the
+	// frame/header leaves the labels on their cached style whenever a
+	// property changes after construction (analysis facts like lineSkipped
+	// arrive with every load report). Skins whose frame stylesheet string
+	// happens to change too were masked by the subtree invalidation
+	// setStyleSheet performs; skins with a stable frame style never saw the
+	// rule apply. Repolish the labels whenever a property value moved.
+	if (propertiesChanged)
+	{
+		const QList<QLabel*> labels = cardFrame->findChildren<QLabel*>();
+		for (QLabel* label : labels)
+		{
+			label->style()->unpolish(label);
+			label->style()->polish(label);
+			label->update();
+		}
 	}
 }
