@@ -14,6 +14,20 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Backend hot-path optimizations; output is bit-identical to before (the
+  audio regression references did not change). Stereo — and any channels
+  left over from a SIMD group — now run through a dual-chain biquad kernel
+  instead of one latency-bound channel at a time, which the AVX2/AVX-512
+  builds had been leaving fully scalar (a stereo 20-filter chain drops from
+  0.44% to 0.25% of one core at 48 kHz). Convolution partition spectra
+  moved from hundreds of per-partition heap blocks into two contiguous
+  64-byte-aligned slabs, pre-touched at load so the audio thread's first
+  block takes no soft page faults. The 1-4 channel interleaved float/double
+  conversions now use explicit Highway SIMD (stereo: read 195→64 ns, write
+  195→98 ns per 480-frame block on AVX2). Each fix is pinned by a new
+  regression test, and the benchmark scenarios plus the measurement record
+  are committed under `Benchmark/scenarios/` and `docs/perf/`.
+  ([#192](https://github.com/115dkk/EqualizerAPO-XT/pull/192))
 - Uninstalling on Windows 11 24H2/25H2 (and Server 2025, OS build 26100+)
   no longer fails on endpoints whose `FxProperties` key this installation
   created. The OS now puts its own subkeys below `FxProperties`, so the old
