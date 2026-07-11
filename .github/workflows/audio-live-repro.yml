@@ -52,9 +52,14 @@
 #     driver, writes HKLM, runs an uninstaller, and cycles audio services. It is
 #     a deliberate, manually-triggered diagnostic on a DISPOSABLE GitHub runner,
 #     never a developer machine.
-#   - runs-on: windows-2022 (NOT windows-latest). windows-latest migrated to
-#     Server 2025; the Scream self-signed-driver recipe is only confirmed on
-#     Server 2022. Pin it so the experiment stays reproducible.
+#   - runs-on: selectable via the "runner" input, default windows-2022 (NOT
+#     windows-latest, which migrated to Server 2025). The Scream
+#     self-signed-driver recipe was originally confirmed on Server 2022, so
+#     that stays the default for reproducibility. windows-2025 (Server 2025,
+#     OS build 26100 - the same codebase as Windows 11 24H2) can be selected
+#     to prove the APO registers, loads into audiodg and keeps the endpoint
+#     alive on the 24H2-era audio stack, where upstream Equalizer APO has
+#     many "stopped working after 24H2/25H2" field reports.
 #
 # EXIT-CODE CONVENTION (see Diagnose-LiveEndpoint.ps1 for the full rationale)
 #   exit 0 = bug REPRODUCED (endpoint went inactive after the AudioSrv-only
@@ -84,6 +89,14 @@ on:
           - reproduce
           - expect-fixed
         default: reproduce
+      runner:
+        description: "Runner image: windows-2022 = Server 2022 (recipe-proven baseline); windows-2025 = Server 2025, build 26100 = Windows 11 24H2 codebase"
+        required: false
+        type: choice
+        options:
+          - windows-2022
+          - windows-2025
+        default: windows-2022
 
 permissions:
   contents: read
@@ -113,7 +126,7 @@ env:
 
 jobs:
   live-repro:
-    runs-on: windows-2022
+    runs-on: ${{ inputs.runner || 'windows-2022' }}
     timeout-minutes: 30
 
     steps:
