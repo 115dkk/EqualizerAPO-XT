@@ -26,6 +26,7 @@
 // Forward declarations for the additional suites that share this binary's
 // main(); each runXxxTests() is defined in the correspondingly named
 // XxxTests.cpp next to this file.
+void runBiQuadKernelTests();
 void runChannelCommandTests();
 void runCommonLogicTests();
 void runConvolutionCommandTests();
@@ -235,6 +236,7 @@ int main()
 
 	// Pure-logic helper, command-codec and parser-extension coverage that also
 	// lives in this console binary (one XxxTests.cpp per suite).
+	runBiQuadKernelTests();
 	runChannelCommandTests();
 	runCommonLogicTests();
 	runConvolutionCommandTests();

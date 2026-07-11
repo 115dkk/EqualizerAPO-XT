@@ -309,6 +309,7 @@
     <ClInclude Include="filters\BiQuadCommand.h" />
     <ClInclude Include="filters\BiQuadFilter.h" />
     <ClInclude Include="filters\BiQuadFilterFactory.h" />
+    <ClInclude Include="filters\BiQuadKernelPlan.h" />
     <ClInclude Include="filters\ChannelCommand.h" />
     <ClInclude Include="filters\ChannelFilter.h" />
     <ClInclude Include="filters\ChannelFilterFactory.h" />
