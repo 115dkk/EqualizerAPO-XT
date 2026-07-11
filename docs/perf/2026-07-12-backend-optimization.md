@@ -76,8 +76,12 @@ Highway 소스를 유지했습니다. write 계약 임계값 2.4배는 구 구�
 신 구현(≥2.77) 사이에 놓인 값입니다.
 
 write 커널은 처음에 half-width 벡터(DemoteTo 후 부분 벡터
-StoreInterleaved2)로 구현했다가, ARM64 러너 실측에서 스칼라와 동속
-(0.99배)으로 판명되어 전폭(full-width) 형태로 재작업했습니다. double
-벡터 두 개를 demote 후 Combine해 반복당 프레임을 2배로 늘리면 NEON에서
-vst2q 계열로 내려가며, 이 재작업으로 x64도 AVX2 write가 4.16배에서
-5.13배로 좋아졌습니다. ARM64 write 계약 임계값은 1.5배입니다.
+StoreInterleaved2)로 구현했는데, ARM64 러너 실측에서 스칼라와 동속
+(0.99배)이었습니다. double 벡터 두 개를 demote 후 Combine하는
+전폭(full-width) 형태로 재작업하자 x64는 좋아졌지만(AVX2 write
+4.16→5.13배) ARM64는 오히려 0.47배(1562 ns)로 더 나빠졌습니다. MSVC
+ARM64가 Highway 인터리브 스토어를 어느 형태로든 스칼라 이하로
+낮추는 것으로 실측되어, **ARM64의 write는 스칼라 루프를 유지**합니다
+(수정 전과 동일 코드라 회귀 없음). 인터리브 로드는 ARM64에서도 2.7배가
+나오므로 read는 전 타깃 Highway를 유지하며, 처리량 계약도 플랫폼별로
+실재하는 방향을 지킵니다: x86은 write ≥2.4배, ARM64는 read ≥1.5배.

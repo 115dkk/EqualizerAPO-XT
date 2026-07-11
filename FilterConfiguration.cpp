@@ -175,12 +175,17 @@ void readFloat4(double* d0, double* d1, double* d2, double* d3, const float* inp
 	}
 }
 
-// The write kernels demote two double vectors per channel and Combine them
-// into one full-width float vector before the interleaved store. Half-width
-// StoreInterleaved2 measured scalar-speed on NEON (0.99x the naive loop on
-// the ARM64 runner); the full-width form batches 2*Lanes(double) frames per
-// iteration and lowers to vst2q/vst3q/vst4q there. DemoteTo rounds each lane
-// exactly like before, so output bits are unchanged.
+// The write direction is per-target. On x86 the kernels demote two double
+// vectors per channel and Combine them into one full-width float vector
+// before the interleaved store (measured 5.1x the naive loop on AVX2, 2.8x
+// on SSE2). On MSVC ARM64, Highway's interleaved STORES lower below scalar
+// speed in every shape we measured on the CI runner (half-width 0.99x,
+// full-width Combine 0.47x), so the write kernels keep the plain scalar
+// loop there — identical to the pre-vectorization behavior. Interleaved
+// LOADS are fine on ARM64 (2.7x), so the read kernels stay portable.
+// DemoteTo rounds each lane exactly like static_cast<float>, so output bits
+// are identical on every path.
+#ifndef _M_ARM64
 hn::Vec<hn::ScalableTag<float>> demoteTwo(const double* src, size_t i)
 {
 	const hn::ScalableTag<double> dd;
@@ -191,15 +196,18 @@ hn::Vec<hn::ScalableTag<float>> demoteTwo(const double* src, size_t i)
 		hn::DemoteTo(dfh, hn::LoadU(dd, src + i + N)),
 		hn::DemoteTo(dfh, hn::LoadU(dd, src + i)));
 }
+#endif
 
 void writeFloat2(float* output, const double* s0, const double* s1, size_t frameCount)
 {
+	size_t i = 0;
+#ifndef _M_ARM64
 	const hn::ScalableTag<double> dd;
 	const hn::ScalableTag<float> df;
 	const size_t step = 2 * hn::Lanes(dd);
-	size_t i = 0;
 	for (; i + step <= frameCount; i += step)
 		hn::StoreInterleaved2(demoteTwo(s0, i), demoteTwo(s1, i), df, output + i * 2);
+#endif
 	for (; i < frameCount; i++)
 	{
 		output[i * 2 + 0] = static_cast<float>(s0[i]);
@@ -209,12 +217,14 @@ void writeFloat2(float* output, const double* s0, const double* s1, size_t frame
 
 void writeFloat3(float* output, const double* s0, const double* s1, const double* s2, size_t frameCount)
 {
+	size_t i = 0;
+#ifndef _M_ARM64
 	const hn::ScalableTag<double> dd;
 	const hn::ScalableTag<float> df;
 	const size_t step = 2 * hn::Lanes(dd);
-	size_t i = 0;
 	for (; i + step <= frameCount; i += step)
 		hn::StoreInterleaved3(demoteTwo(s0, i), demoteTwo(s1, i), demoteTwo(s2, i), df, output + i * 3);
+#endif
 	for (; i < frameCount; i++)
 	{
 		output[i * 3 + 0] = static_cast<float>(s0[i]);
@@ -225,12 +235,14 @@ void writeFloat3(float* output, const double* s0, const double* s1, const double
 
 void writeFloat4(float* output, const double* s0, const double* s1, const double* s2, const double* s3, size_t frameCount)
 {
+	size_t i = 0;
+#ifndef _M_ARM64
 	const hn::ScalableTag<double> dd;
 	const hn::ScalableTag<float> df;
 	const size_t step = 2 * hn::Lanes(dd);
-	size_t i = 0;
 	for (; i + step <= frameCount; i += step)
 		hn::StoreInterleaved4(demoteTwo(s0, i), demoteTwo(s1, i), demoteTwo(s2, i), demoteTwo(s3, i), df, output + i * 4);
+#endif
 	for (; i < frameCount; i++)
 	{
 		output[i * 4 + 0] = static_cast<float>(s0[i]);
@@ -261,11 +273,13 @@ void readDouble2(double* d0, double* d1, const double* input, size_t frameCount)
 
 void writeDouble2(double* output, const double* s0, const double* s1, size_t frameCount)
 {
+	size_t i = 0;
+#ifndef _M_ARM64
 	const hn::ScalableTag<double> dd;
 	const size_t N = hn::Lanes(dd);
-	size_t i = 0;
 	for (; i + N <= frameCount; i += N)
 		hn::StoreInterleaved2(hn::LoadU(dd, s0 + i), hn::LoadU(dd, s1 + i), dd, output + i * 2);
+#endif
 	for (; i < frameCount; i++)
 	{
 		output[i * 2 + 0] = s0[i];
