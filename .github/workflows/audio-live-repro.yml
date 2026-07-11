@@ -239,15 +239,29 @@ jobs:
               Pop-Location
           }
           Log "devcon exited with $devconRc"
+          # devcon returns 0 on success and 1 when a reboot is required; anything
+          # else is a real install failure. Assert HERE, and never let devcon's
+          # code linger in $LASTEXITCODE: GitHub's pwsh wrapper appends
+          # "exit $LASTEXITCODE" to the script, so a stale native exit code
+          # becomes a silent step failure at the end.
+          if ($devconRc -ne 0 -and $devconRc -ne 1) {
+              Write-Error "devcon install failed (rc=$devconRc)"; exit 1
+          }
 
           # --- Make sure the audio services are up after the device add --------
           # Start them, then force an AudioEndpointBuilder restart so the freshly
           # installed Scream device is enumerated into the live endpoint graph
           # (this is SETUP, not the bug under test - the uninstall is what must
           # never restart AudioEndpointBuilder).
+          # NOTE: this must NOT shell out to "net start audiosrv". On images where
+          # AudioSrv is already running (windows-2025 starts it; windows-2022 does
+          # not) net exits non-zero for the benign "already been started" case,
+          # and that code leaks into the appended "exit $LASTEXITCODE" wrapper -
+          # the step then fails after all the real work succeeded, with no error
+          # text. Start-Service is idempotent and sets no native exit code.
           Log "Ensuring AudioEndpointBuilder + AudioSrv are running"
           try { Start-Service AudioEndpointBuilder -ErrorAction Stop } catch { Log "Start AudioEndpointBuilder: $($_.Exception.Message)" }
-          cmd /c "net start audiosrv" 2>&1 | ForEach-Object { Log $_ }
+          try { Start-Service AudioSrv -ErrorAction Stop } catch { Log "Start AudioSrv: $($_.Exception.Message)" }
           Log "Forcing AudioEndpointBuilder restart to enumerate the new device"
           try { Restart-Service -Force AudioEndpointBuilder -ErrorAction Stop } catch { Log "Restart AudioEndpointBuilder: $($_.Exception.Message)" }
           try { Start-Service AudioSrv -ErrorAction Stop } catch { Log "Start AudioSrv: $($_.Exception.Message)" }
@@ -271,15 +285,26 @@ jobs:
           } while (-not $screamSeen -and (Get-Date) -lt $deadline)
           Log "Scream endpoint visible in MMDevices: $screamSeen"
 
-          # Forensic enumeration into the log.
+          # Forensic enumeration into the log (best effort - never fails the step).
           Log "Win32_SoundDevice:"
-          Get-CimInstance Win32_SoundDevice | Select-Object Name, Status, StatusInfo |
-              Format-Table -AutoSize | Out-String | ForEach-Object { Add-Content -Path $log -Value $_ }
+          try {
+              Get-CimInstance Win32_SoundDevice -ErrorAction Stop | Select-Object Name, Status, StatusInfo |
+                  Format-Table -AutoSize | Out-String | ForEach-Object { Add-Content -Path $log -Value $_ }
+          } catch { Log "Get-CimInstance failed: $($_.Exception.Message)" }
           Log "Get-PnpDevice -Class AudioEndpoint:"
           try {
               Get-PnpDevice -Class AudioEndpoint -ErrorAction Stop | Select-Object Status, FriendlyName, InstanceId |
                   Format-Table -AutoSize | Out-String | ForEach-Object { Add-Content -Path $log -Value $_ }
           } catch { Log "Get-PnpDevice failed: $($_.Exception.Message)" }
+
+          # Deterministic step verdict: the endpoint must have appeared. Exit
+          # explicitly so no stale $LASTEXITCODE from a native tool above can
+          # decide this step's outcome via the appended wrapper.
+          if (-not $screamSeen) {
+              Write-Error "Scream endpoint never appeared in MMDevices within the wait window"
+              exit 1
+          }
+          exit 0
 
       # -----------------------------------------------------------------------
       # STEP 2: Discover the Scream Render endpoint's GUID at runtime.
