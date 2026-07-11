@@ -197,25 +197,32 @@ double minBatchSeconds(Fn&& fn, int samples, int batch)
 	return best;
 }
 
-// The stereo float WRITE (double planar -> float interleaved) must clearly
-// beat the naive strided scalar loop. Measured on x64 MSVC: the
-// auto-vectorizer already lifts the constant-stride loops to ~2.1x the naive
-// reference (both directions), explicit StoreInterleaved2 reaches 2.7x
-// (SSE2) to 4.1x (AVX2), so the 2.4x bar separates the explicit-SIMD write
-// from the merely auto-vectorized one. The read direction cannot serve as
-// the contract: auto-vectorized strided loads already sit at 2.1x and the
-// Highway read is not uniformly ahead of that on 2-lane targets. It is still
-// measured and printed for the benchmark record, and its bit-exactness is
-// pinned by the equivalence test above. The ARM64 bar stays conservative
-// because the MSVC ARM64 auto-vectorizer baseline is unmeasured; three
-// attempts absorb CI scheduling outliers.
-void testStereoFloatWriteBeatsScalarReference(test::Harness& harness)
+// The stereo float conversions must clearly beat the naive strided scalar
+// loop — in the direction each platform actually vectorizes.
+//
+// x86 gates the WRITE: the MSVC auto-vectorizer already lifts the
+// constant-stride loops to ~2.1x the naive reference (both directions),
+// explicit StoreInterleaved2 reaches 2.8x (SSE2) to 5.1x (AVX2), so the
+// 2.4x bar separates the explicit-SIMD write from the merely
+// auto-vectorized one. The read direction cannot serve as the contract
+// there: auto-vectorized strided loads already sit at 2.1x and the Highway
+// read is not uniformly ahead of that on 2-lane targets.
+//
+// ARM64 gates the READ (LoadInterleaved2, measured 2.7x): MSVC ARM64
+// lowers Highway's interleaved STORES below scalar speed in every shape
+// measured on the CI runner (half-width 0.99x, full-width Combine 0.47x),
+// so the write kernels keep the scalar loop there and a write bar would be
+// meaningless. Both directions are always measured and printed for the
+// benchmark record; three attempts absorb CI scheduling outliers.
+void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
 {
 	constexpr unsigned channels = 2;
 	constexpr unsigned frames = maxFrames;
 #ifdef _M_ARM64
+	constexpr bool gateWrite = false;
 	constexpr double requiredRatio = 1.5;
 #else
+	constexpr bool gateWrite = true;
 	constexpr double requiredRatio = 2.4;
 #endif
 	IoFixture fixture(harness, channels);
@@ -281,16 +288,18 @@ void testStereoFloatWriteBeatsScalarReference(test::Harness& harness)
 			"write: scalar %.0f ns vs %.0f ns (%.2fx)\n",
 			refReadSeconds / 64 * 1e9, candReadSeconds / 64 * 1e9, refReadSeconds / candReadSeconds,
 			refWriteSeconds / 64 * 1e9, candWriteSeconds / 64 * 1e9, refWriteSeconds / candWriteSeconds);
-		bestRatio = std::max(bestRatio, refWriteSeconds / candWriteSeconds);
+		const double gatedRatio = gateWrite ? refWriteSeconds / candWriteSeconds
+			: refReadSeconds / candReadSeconds;
+		bestRatio = std::max(bestRatio, gatedRatio);
 		if (bestRatio >= requiredRatio)
 			break;
 	}
 
 	char label[160];
 	snprintf(label, sizeof(label),
-		"stereo float write is only %.2fx the naive scalar loop (needs >= %.1fx); "
-		"the interleave stores still run one strided element at a time",
-		bestRatio, requiredRatio);
+		"stereo float %s is only %.2fx the naive scalar loop (needs >= %.1fx); "
+		"the interleaved conversion still runs one strided element at a time",
+		gateWrite ? "write" : "read", bestRatio, requiredRatio);
 	harness.expect(bestRatio >= requiredRatio, label);
 
 	// The measured loops must have produced real output (keeps the work live).
@@ -303,5 +312,5 @@ void testStereoFloatWriteBeatsScalarReference(test::Harness& harness)
 void runSampleIoTests(test::Harness& harness)
 {
 	testConversionsMatchScalarReferenceBitExactly(harness);
-	testStereoFloatWriteBeatsScalarReference(harness);
+	testStereoFloatConversionBeatsScalarReference(harness);
 }

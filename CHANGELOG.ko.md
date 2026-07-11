@@ -17,7 +17,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   대신 64바이트 정렬 연속 slab 두 개에 배치되고, 로드 시점에 미리 만져
   두어 오디오 스레드의 첫 블록이 소프트 페이지 폴트를 겪지 않습니다.
   1~4채널 인터리브 float/double 변환은 명시적인 Highway SIMD를 씁니다
-  (AVX2 스테레오 기준 480프레임 블록당 read 195→64 ns, write 195→98 ns).
+  (AVX2 스테레오 기준 480프레임 블록당 read 195→64 ns, write 195→122 ns).
   세 수정 모두 새 회귀 테스트로 고정했고, 벤치마크 시나리오와 측정
   기록을 `Benchmark/scenarios/`와 `docs/perf/`에 남겼습니다.
   ([#192](https://github.com/115dkk/EqualizerAPO-XT/pull/192))

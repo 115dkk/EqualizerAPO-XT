@@ -24,7 +24,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   64-byte-aligned slabs, pre-touched at load so the audio thread's first
   block takes no soft page faults. The 1-4 channel interleaved float/double
   conversions now use explicit Highway SIMD (stereo: read 195→64 ns, write
-  195→98 ns per 480-frame block on AVX2). Each fix is pinned by a new
+  195→122 ns per 480-frame block on AVX2). Each fix is pinned by a new
   regression test, and the benchmark scenarios plus the measurement record
   are committed under `Benchmark/scenarios/` and `docs/perf/`.
   ([#192](https://github.com/115dkk/EqualizerAPO-XT/pull/192))
