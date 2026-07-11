@@ -105,8 +105,11 @@ param(
     #               INACTIVE after the AudioSrv-only uninstall AND an
     #               AudioEndpointBuilder restart brought it back).
     # expect-fixed : verify a FIXED release (exit 0 = endpoint STAYED ACTIVE
-    #               through the real uninstall, so the shipped fix works; exit 2
-    #               = it went inactive, i.e. the fix is absent or ineffective).
+    #               through the real uninstall AND no EQ CLSID was left dangling
+    #               in FxProperties; exit 2 = the endpoint went inactive OR the
+    #               registry stayed dirty - on OS build 26100+ the dirty case is
+    #               the NOKEY-branch deleteKey failing on the OS-created
+    #               FxProperties subkeys, issue #189).
     [Parameter(Mandatory = $false)]
     [ValidateSet('reproduce', 'expect-fixed')]
     [string]$Mode = 'reproduce'
@@ -204,9 +207,14 @@ $afterVeloState = Get-EndpointActivity $afterVelo
 $afterAebState  = Get-EndpointActivity $afterAeb
 
 # The registry being CLEAN after uninstall is what makes the live disappearance
-# the AudioEndpointBuilder/stale-graph bug rather than a registry-delete bug. We
-# report it but do not gate on it (a not-clean registry is a different finding,
-# covered by Diagnose-AudioUninstall.ps1 / Diagnose-DanglingOnFailure.ps1).
+# the AudioEndpointBuilder/stale-graph bug rather than a registry-delete bug.
+# In reproduce mode it is reported but not gated on (a not-clean registry is a
+# different finding). In expect-fixed mode it IS part of the pass criteria:
+# on OS build 26100+ (Windows 11 24H2 codebase / Server 2025) the OS creates
+# subkeys under FxProperties, DeviceAPOInfo::uninstall's NOKEY-branch deleteKey
+# fails on them, and the uninstall then leaves the removed EQ CLSIDs dangling
+# in FxProperties (issue #189). A release only counts as fixed when the
+# endpoint survives AND no EQ GUID is left behind.
 $registryClean = [bool]$afterVelo.registryClean
 
 # Whether the EQ APO was actually live before the uninstall. If it was never
@@ -248,12 +256,20 @@ elseif ($afterVeloState -eq 'Unknown') {
 }
 elseif ($Mode -eq 'expect-fixed') {
     # Validating a FIXED release: the endpoint must STAY ACTIVE through the real
-    # uninstall (the shipped ApoRegistration::uninstall restarts AudioEndpointBuilder).
+    # uninstall (the shipped ApoRegistration::uninstall restarts AudioEndpointBuilder)
+    # AND the registry must be clean afterwards (no EQ CLSID left dangling -
+    # the 26100+ FxProperties-subkey regression, issue #189).
     if ($afterVeloState -eq 'Active') {
         $verdicts.Add('(fixed) PASS: the endpoint STAYED ACTIVE through the real uninstall - with audio in use and no reboot. The shipped build restarts AudioEndpointBuilder during uninstall, so removing the APO no longer drops the device.')
     }
     else {
         $verdicts.Add("(fixed) FAIL: the endpoint went INACTIVE/missing after the real uninstall (after-state=$afterVeloState). The AudioEndpointBuilder restart did not take effect during uninstall - the fix is absent or ineffective in this build.")
+    }
+    if ($registryClean) {
+        $verdicts.Add('(fixed) Registry is CLEAN after uninstall: no EQ APO GUID left in FxProperties.')
+    }
+    else {
+        $verdicts.Add('(fixed) FAIL: the uninstall left an EQ APO GUID dangling in FxProperties. On OS build 26100+ this is the NOKEY-branch deleteKey failing on the OS-created FxProperties subkeys (issue #189); the per-device restore never completed.')
     }
 }
 elseif ($reproduced) {
@@ -304,11 +320,16 @@ if ($inconclusive) {
     exit 1
 }
 if ($Mode -eq 'expect-fixed') {
-    if ($afterVeloState -eq 'Active') {
-        Write-Host 'RESULT: (expect-fixed) PASS - the endpoint survived the real uninstall with audio in use; the shipped fix works (exit 0).'
+    if ($afterVeloState -eq 'Active' -and $registryClean) {
+        Write-Host 'RESULT: (expect-fixed) PASS - the endpoint survived the real uninstall with audio in use AND the registry is clean; the shipped fixes work (exit 0).'
         exit 0
     }
-    Write-Host 'RESULT: (expect-fixed) FAIL - the endpoint went inactive after the uninstall; the fix is absent or ineffective in this build (exit 2). Inspect the snapshots.'
+    if ($afterVeloState -ne 'Active') {
+        Write-Host 'RESULT: (expect-fixed) FAIL - the endpoint went inactive after the uninstall; the fix is absent or ineffective in this build (exit 2). Inspect the snapshots.'
+    }
+    else {
+        Write-Host 'RESULT: (expect-fixed) FAIL - the uninstall left an EQ APO GUID dangling in FxProperties (26100+ NOKEY deleteKey regression, issue #189) (exit 2). Inspect the snapshots.'
+    }
     exit 2
 }
 # reproduce mode
