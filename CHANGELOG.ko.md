@@ -8,6 +8,18 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- Windows 11 24H2/25H2(그리고 Server 2025, 빌드 26100 이상)에서 제거가
+  실패하던 문제를 고쳤습니다. 이 설치가 `FxProperties` 키를 만들었던
+  장치에서, 24H2부터는 OS가 그 아래에 자체 하위 키를 만들어 넣기 때문에
+  키 통삭제가 레지스트리 오류를 던졌습니다. 그 결과 `DeviceSelector /u`는
+  모달 오류 창에 걸려 멎고(무인 실행에서는 영구 대기), 앱 제거는 조용히
+  넘어가 삭제된 EQ APO CLSID가 장치의 `FxProperties`에 매달린 채
+  남았습니다. 이제 제거는 자신이 쓴 값만 지우고 키는 다른 내용물이 전혀
+  없을 때만 삭제하며, `/u`는 오류를 대화상자 대신 stderr와 종료 코드로
+  보고합니다. 라이브 CI 하네스(`audio-live-repro.yml`의
+  `runner=windows-2025`)로 재현하고 회귀 게이트를 남겼습니다(이슈
+  [#189](https://github.com/115dkk/EqualizerAPO-XT/issues/189)).
+  ([#191](https://github.com/115dkk/EqualizerAPO-XT/pull/191))
 - `MultiConvolution` 매핑의 각 파일 채널에 `Copy:`와 같은 문법으로 배율을
   붙일 수 있습니다. `L=0.5*0+1`은 파일 채널 0의 컨볼루션 결과를 절반으로
   줄여 합산하고, `-1`은 역위상, `-0.5`는 둘 다이며, `-6dB*0` 같은 dB 값도

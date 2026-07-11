@@ -215,10 +215,12 @@ int main(int argc, char* argv[])
 				}
 				catch (const RegistryException& e)
 				{
-					QMessageBox::critical(nullptr,
-						DeviceSelector::tr(
-							"Error while accessing the registry"),
-						QString::fromStdWString(e.getMessage()));
+					// /u is the unattended uninstall entry point (installer
+					// hooks, scripts, CI). A modal dialog here blocks forever
+					// when nobody can dismiss it (observed as a 120s hang on
+					// build 26100 runners, issue #189), so report through
+					// stderr and the exit code instead.
+					fwprintf(stderr, L"DeviceSelector /u: %ls\n", e.getMessage().c_str());
 					result = -1;
 				}
 			}

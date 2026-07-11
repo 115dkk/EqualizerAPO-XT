@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Uninstalling on Windows 11 24H2/25H2 (and Server 2025, OS build 26100+)
+  no longer fails on endpoints whose `FxProperties` key this installation
+  created. The OS now puts its own subkeys below `FxProperties`, so the old
+  whole-key delete threw a registry error: `DeviceSelector /u` blocked on a
+  modal error dialog (forever when run unattended) and the app uninstall
+  silently left the removed EQ APO CLSIDs dangling in the device's
+  `FxProperties`. The uninstall now removes only the values it wrote and
+  deletes the key only when nothing else lives in it, and `/u` reports
+  registry errors through stderr and the exit code instead of a dialog.
+  Reproduced and guarded by the live CI harness
+  (`audio-live-repro.yml` with `runner=windows-2025`, issue
+  [#189](https://github.com/115dkk/EqualizerAPO-XT/issues/189)).
+  ([#191](https://github.com/115dkk/EqualizerAPO-XT/pull/191))
 - `MultiConvolution` mappings now take a per-file-channel factor with
   `Copy:`'s grammar: `L=0.5*0+1` halves file channel 0's convolution
   result before the sum, `-1` inverts the phase, `-0.5` does both, and dB
