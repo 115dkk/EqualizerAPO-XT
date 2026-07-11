@@ -57,9 +57,13 @@ private:
     std::vector<double> x1, x2, y1, y2;     // State variables
 
     // Processes a Highway-vector-width group of channels at a time (NEON on
-    // ARM64, the widest enabled x86 target otherwise). Leftover channels that do
-    // not fill a vector go through process_scalar.
+    // ARM64, the widest enabled x86 target otherwise). Leftover channels that
+    // do not fill a vector run in pairs through process_dual (two independent
+    // dependency chains overlapped in one loop, scalar arithmetic identical to
+    // process_scalar bit for bit); a final odd channel goes through
+    // process_scalar. planBiQuadKernels decides the split.
     void process_simd(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);
+    void process_dual(double** output, double** input, unsigned frameCount, unsigned startChannel);
     void process_scalar(double** output, double** input, unsigned frameCount, unsigned startChannel);
 };
 #pragma AVRT_VTABLES_END

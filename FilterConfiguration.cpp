@@ -25,6 +25,19 @@
 #include "FilterConfiguration.h"
 #include "helpers/PerfProfile.h"
 
+// stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
+// macros here. Undefine them before Highway, whose templates use std::min and
+// std::max.
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+#include "hwy/highway.h"
+
+namespace hn = hwy::HWY_NAMESPACE;
+
 FilterConfiguration::FilterConfiguration(const FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
 {
 	this->allChannelCount = allChannelCount;
@@ -61,8 +74,211 @@ FilterConfiguration::~FilterConfiguration()
 }
 
 #pragma AVRT_CODE_BEGIN
+namespace
+{
+// Fused format conversions between the APO-facing interleaved buffers and the
+// engine's planar double storage, one explicit Highway kernel per channel
+// count the interleaved load/store family supports (2/3/4). PromoteTo is
+// exact, DemoteTo rounds to nearest-even like static_cast<float>, and the
+// interleaved shuffles only move bits, so each kernel is bit-identical to the
+// scalar loop it replaces; SampleIoTests pins that equality. 6/8/arbitrary
+// channels stay on the strided scalar loops below: Highway has no interleaved
+// op for those strides and their conversion share is small.
+
+void promoteFloats(double* dest, const float* src, size_t count)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= count; i += N)
+		hn::StoreU(hn::PromoteTo(dd, hn::LoadU(df, src + i)), dd, dest + i);
+	for (; i < count; i++)
+		dest[i] = static_cast<double>(src[i]);
+}
+
+void demoteDoubles(float* dest, const double* src, size_t count)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= count; i += N)
+		hn::StoreU(hn::DemoteTo(df, hn::LoadU(dd, src + i)), df, dest + i);
+	for (; i < count; i++)
+		dest[i] = static_cast<float>(src[i]);
+}
+
+void readFloat2(double* d0, double* d1, const float* input, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+	{
+		hn::Vec<decltype(df)> f0, f1;
+		hn::LoadInterleaved2(df, input + i * 2, f0, f1);
+		hn::StoreU(hn::PromoteTo(dd, f0), dd, d0 + i);
+		hn::StoreU(hn::PromoteTo(dd, f1), dd, d1 + i);
+	}
+	for (; i < frameCount; i++)
+	{
+		d0[i] = static_cast<double>(input[i * 2 + 0]);
+		d1[i] = static_cast<double>(input[i * 2 + 1]);
+	}
+}
+
+void readFloat3(double* d0, double* d1, double* d2, const float* input, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+	{
+		hn::Vec<decltype(df)> f0, f1, f2;
+		hn::LoadInterleaved3(df, input + i * 3, f0, f1, f2);
+		hn::StoreU(hn::PromoteTo(dd, f0), dd, d0 + i);
+		hn::StoreU(hn::PromoteTo(dd, f1), dd, d1 + i);
+		hn::StoreU(hn::PromoteTo(dd, f2), dd, d2 + i);
+	}
+	for (; i < frameCount; i++)
+	{
+		d0[i] = static_cast<double>(input[i * 3 + 0]);
+		d1[i] = static_cast<double>(input[i * 3 + 1]);
+		d2[i] = static_cast<double>(input[i * 3 + 2]);
+	}
+}
+
+void readFloat4(double* d0, double* d1, double* d2, double* d3, const float* input, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+	{
+		hn::Vec<decltype(df)> f0, f1, f2, f3;
+		hn::LoadInterleaved4(df, input + i * 4, f0, f1, f2, f3);
+		hn::StoreU(hn::PromoteTo(dd, f0), dd, d0 + i);
+		hn::StoreU(hn::PromoteTo(dd, f1), dd, d1 + i);
+		hn::StoreU(hn::PromoteTo(dd, f2), dd, d2 + i);
+		hn::StoreU(hn::PromoteTo(dd, f3), dd, d3 + i);
+	}
+	for (; i < frameCount; i++)
+	{
+		d0[i] = static_cast<double>(input[i * 4 + 0]);
+		d1[i] = static_cast<double>(input[i * 4 + 1]);
+		d2[i] = static_cast<double>(input[i * 4 + 2]);
+		d3[i] = static_cast<double>(input[i * 4 + 3]);
+	}
+}
+
+void writeFloat2(float* output, const double* s0, const double* s1, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+	{
+		const auto f0 = hn::DemoteTo(df, hn::LoadU(dd, s0 + i));
+		const auto f1 = hn::DemoteTo(df, hn::LoadU(dd, s1 + i));
+		hn::StoreInterleaved2(f0, f1, df, output + i * 2);
+	}
+	for (; i < frameCount; i++)
+	{
+		output[i * 2 + 0] = static_cast<float>(s0[i]);
+		output[i * 2 + 1] = static_cast<float>(s1[i]);
+	}
+}
+
+void writeFloat3(float* output, const double* s0, const double* s1, const double* s2, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+	{
+		const auto f0 = hn::DemoteTo(df, hn::LoadU(dd, s0 + i));
+		const auto f1 = hn::DemoteTo(df, hn::LoadU(dd, s1 + i));
+		const auto f2 = hn::DemoteTo(df, hn::LoadU(dd, s2 + i));
+		hn::StoreInterleaved3(f0, f1, f2, df, output + i * 3);
+	}
+	for (; i < frameCount; i++)
+	{
+		output[i * 3 + 0] = static_cast<float>(s0[i]);
+		output[i * 3 + 1] = static_cast<float>(s1[i]);
+		output[i * 3 + 2] = static_cast<float>(s2[i]);
+	}
+}
+
+void writeFloat4(float* output, const double* s0, const double* s1, const double* s2, const double* s3, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const hn::Rebind<float, decltype(dd)> df;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+	{
+		const auto f0 = hn::DemoteTo(df, hn::LoadU(dd, s0 + i));
+		const auto f1 = hn::DemoteTo(df, hn::LoadU(dd, s1 + i));
+		const auto f2 = hn::DemoteTo(df, hn::LoadU(dd, s2 + i));
+		const auto f3 = hn::DemoteTo(df, hn::LoadU(dd, s3 + i));
+		hn::StoreInterleaved4(f0, f1, f2, f3, df, output + i * 4);
+	}
+	for (; i < frameCount; i++)
+	{
+		output[i * 4 + 0] = static_cast<float>(s0[i]);
+		output[i * 4 + 1] = static_cast<float>(s1[i]);
+		output[i * 4 + 2] = static_cast<float>(s2[i]);
+		output[i * 4 + 3] = static_cast<float>(s3[i]);
+	}
+}
+
+void readDouble2(double* d0, double* d1, const double* input, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+	{
+		hn::Vec<decltype(dd)> v0, v1;
+		hn::LoadInterleaved2(dd, input + i * 2, v0, v1);
+		hn::StoreU(v0, dd, d0 + i);
+		hn::StoreU(v1, dd, d1 + i);
+	}
+	for (; i < frameCount; i++)
+	{
+		d0[i] = input[i * 2 + 0];
+		d1[i] = input[i * 2 + 1];
+	}
+}
+
+void writeDouble2(double* output, const double* s0, const double* s1, size_t frameCount)
+{
+	const hn::ScalableTag<double> dd;
+	const size_t N = hn::Lanes(dd);
+	size_t i = 0;
+	for (; i + N <= frameCount; i += N)
+		hn::StoreInterleaved2(hn::LoadU(dd, s0 + i), hn::LoadU(dd, s1 + i), dd, output + i * 2);
+	for (; i < frameCount; i++)
+	{
+		output[i * 2 + 0] = s0[i];
+		output[i * 2 + 1] = s1[i];
+	}
+}
+}
+
 void FilterConfiguration::read(double* input, unsigned frameCount)
 {
+	if (realChannelCount == 2)
+	{
+		readDouble2(allSamples[0], allSamples[1], input, frameCount);
+		return;
+	}
 #define DEINTERLEAVE_MACRO(ccount)\
 	{\
 		for (size_t c = 0; c < ccount; c++)\
@@ -80,9 +296,6 @@ void FilterConfiguration::read(double* input, unsigned frameCount)
 	{
 	case 1:
 		DEINTERLEAVE_MACRO(1)
-		break;
-	case 2:
-		DEINTERLEAVE_MACRO(2)
 		break;
 	case 6:
 		DEINTERLEAVE_MACRO(6)
@@ -117,10 +330,16 @@ void FilterConfiguration::readFloatInterleaved(const float* input, unsigned fram
 	switch (realChannelCount)
 	{
 	case 1:
-		READ_FLOAT_INTERLEAVED_MACRO(1)
+		promoteFloats(allSamples[0], input, frameCount);
 		break;
 	case 2:
-		READ_FLOAT_INTERLEAVED_MACRO(2)
+		readFloat2(allSamples[0], allSamples[1], input, frameCount);
+		break;
+	case 3:
+		readFloat3(allSamples[0], allSamples[1], allSamples[2], input, frameCount);
+		break;
+	case 4:
+		readFloat4(allSamples[0], allSamples[1], allSamples[2], allSamples[3], input, frameCount);
 		break;
 	case 6:
 		READ_FLOAT_INTERLEAVED_MACRO(6)
@@ -138,12 +357,7 @@ void FilterConfiguration::readFloatInterleaved(const float* input, unsigned fram
 void FilterConfiguration::readFloatPlanar(const float* const* input, unsigned frameCount)
 {
 	for (unsigned c = 0; c < realChannelCount; c++)
-	{
-		double* sampleChannel = allSamples[c];
-		const float* src = input[c];
-		for (size_t i = 0; i < frameCount; i++)
-			sampleChannel[i] = static_cast<double>(src[i]);
-	}
+		promoteFloats(allSamples[c], input[c], frameCount);
 }
 
 void FilterConfiguration::process(unsigned frameCount)
@@ -227,7 +441,7 @@ void FilterConfiguration::write(double* output, unsigned frameCount)
 		INTERLEAVE_MACRO(1)
 		break;
 	case 2:
-		INTERLEAVE_MACRO(2)
+		writeDouble2(output, allSamples[0], allSamples[1], frameCount);
 		break;
 	case 6:
 		INTERLEAVE_MACRO(6)
@@ -262,10 +476,16 @@ void FilterConfiguration::writeFloatInterleaved(float* output, unsigned frameCou
 	switch (outputChannelCount)
 	{
 	case 1:
-		WRITE_FLOAT_INTERLEAVED_MACRO(1)
+		demoteDoubles(output, allSamples[0], frameCount);
 		break;
 	case 2:
-		WRITE_FLOAT_INTERLEAVED_MACRO(2)
+		writeFloat2(output, allSamples[0], allSamples[1], frameCount);
+		break;
+	case 3:
+		writeFloat3(output, allSamples[0], allSamples[1], allSamples[2], frameCount);
+		break;
+	case 4:
+		writeFloat4(output, allSamples[0], allSamples[1], allSamples[2], allSamples[3], frameCount);
 		break;
 	case 6:
 		WRITE_FLOAT_INTERLEAVED_MACRO(6)
@@ -283,12 +503,7 @@ void FilterConfiguration::writeFloatInterleaved(float* output, unsigned frameCou
 void FilterConfiguration::writeFloatPlanar(float* const* output, unsigned frameCount)
 {
 	for (unsigned c = 0; c < outputChannelCount; c++)
-	{
-		const double* sampleChannel = allSamples[c];
-		float* dst = output[c];
-		for (size_t i = 0; i < frameCount; i++)
-			dst[i] = static_cast<float>(sampleChannel[i]);
-	}
+		demoteDoubles(output[c], allSamples[c], frameCount);
 }
 #pragma AVRT_CODE_END
 

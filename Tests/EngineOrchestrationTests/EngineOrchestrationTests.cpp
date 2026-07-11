@@ -540,6 +540,9 @@ void testConfigLoadTrace(test::Harness& harness)
 
 } // namespace
 
+// Defined in SampleIoTests.cpp next to this file.
+void runSampleIoTests(test::Harness& harness);
+
 int main()
 {
 	LogHelper::set(stderr, false, false, false);
@@ -547,6 +550,7 @@ int main()
 	test::Harness harness("EngineOrchestrationTests");
 
 	testProcessWithoutConfigurationDoesNotCrash(harness);
+	runSampleIoTests(harness);
 	testChannelSelectorRouting(harness);
 	testCopySwapsChannels(harness);
 	testMultiConvolutionIgnoresChannelSelection(harness);

@@ -14,6 +14,9 @@
     <ClInclude Include="filters\BiQuadFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\BiQuadKernelPlan.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="filters\ChannelCommand.h">
       <Filter>filters</Filter>
     </ClInclude>

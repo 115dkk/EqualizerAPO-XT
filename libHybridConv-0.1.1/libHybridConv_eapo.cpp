@@ -65,12 +65,14 @@ struct HConvSingleStorage
 	HcAlignedPtr<double> inFreqReal;
 	HcAlignedPtr<double> inFreqImag;
 	std::vector<int> stepTask;
-	std::vector<HcAlignedPtr<double>> filterReal;
-	std::vector<HcAlignedPtr<double>> filterImag;
+	// The per-partition real/imag planes live in two contiguous slabs (filter
+	// read-only, mix read-modify-write) so the per-block partition sweep walks
+	// two allocations instead of hundreds of scattered heap blocks. The plane
+	// layout inside the slabs is pinned by HybridConvTests.
+	HcSlabPtr<double> filterSlab;
+	HcSlabPtr<double> mixSlab;
 	std::vector<double*> filterRealPtrs;
 	std::vector<double*> filterImagPtrs;
-	std::vector<HcAlignedPtr<double>> mixReal;
-	std::vector<HcAlignedPtr<double>> mixImag;
 	std::vector<double*> mixRealPtrs;
 	std::vector<double*> mixImagPtrs;
 	HcAlignedPtr<double> historyTime;
@@ -481,39 +483,36 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 			filter->steptask[i]++;
 	}
 
-	size = sizeof *filter->filterbuf_freq_real * filter->num_filterbuf;
-	storage.filterReal.resize(filter->num_filterbuf);
-	storage.filterImag.resize(filter->num_filterbuf);
+	// Each plane is padded to a whole number of cache lines so every real and
+	// imag plane starts 64-byte aligned; a partition is [real|imag]. The
+	// memset doubles as a pre-touch so first use on the audio thread does not
+	// take the soft page faults.
+	const size_t planeStride = ((size_t)flen + 1 + 7) & ~(size_t)7;
+	const size_t partitionStride = 2 * planeStride;
+
+	storage.filterSlab = makeHcSlab<double>((size_t)filter->num_filterbuf * partitionStride);
 	storage.filterRealPtrs.resize(filter->num_filterbuf);
 	storage.filterImagPtrs.resize(filter->num_filterbuf);
 	filter->filterbuf_freq_real = storage.filterRealPtrs.data();
 	filter->filterbuf_freq_imag = storage.filterImagPtrs.data();
 	for (i = 0; i < filter->num_filterbuf; i++) {
-		size = sizeof *filter->filterbuf_freq_real[i] * (flen + 1);
-		storage.filterReal[i] = makeHcAlignedArray<double>((size_t)flen + 1);
-		storage.filterImag[i] = makeHcAlignedArray<double>((size_t)flen + 1);
-		filter->filterbuf_freq_real[i] = storage.filterReal[i].get();
-		filter->filterbuf_freq_imag[i] = storage.filterImag[i].get();
+		filter->filterbuf_freq_real[i] = storage.filterSlab.get() + (size_t)i * partitionStride;
+		filter->filterbuf_freq_imag[i] = filter->filterbuf_freq_real[i] + planeStride;
 	}
+	memset(storage.filterSlab.get(), 0, (size_t)filter->num_filterbuf * partitionStride * sizeof(double));
 
 	filter->num_mixbuf = filter->num_filterbuf + 1;
 
-	size = sizeof *filter->mixbuf_freq_real * filter->num_mixbuf;
-	storage.mixReal.resize(filter->num_mixbuf);
-	storage.mixImag.resize(filter->num_mixbuf);
+	storage.mixSlab = makeHcSlab<double>((size_t)filter->num_mixbuf * partitionStride);
 	storage.mixRealPtrs.resize(filter->num_mixbuf);
 	storage.mixImagPtrs.resize(filter->num_mixbuf);
 	filter->mixbuf_freq_real = storage.mixRealPtrs.data();
 	filter->mixbuf_freq_imag = storage.mixImagPtrs.data();
 	for (i = 0; i < filter->num_mixbuf; i++) {
-		size = sizeof *filter->mixbuf_freq_real[i] * (flen + 1);
-		storage.mixReal[i] = makeHcAlignedArray<double>((size_t)flen + 1);
-		storage.mixImag[i] = makeHcAlignedArray<double>((size_t)flen + 1);
-		filter->mixbuf_freq_real[i] = storage.mixReal[i].get();
-		filter->mixbuf_freq_imag[i] = storage.mixImag[i].get();
-		memset(filter->mixbuf_freq_real[i], 0, size);
-		memset(filter->mixbuf_freq_imag[i], 0, size);
+		filter->mixbuf_freq_real[i] = storage.mixSlab.get() + (size_t)i * partitionStride;
+		filter->mixbuf_freq_imag[i] = filter->mixbuf_freq_real[i] + planeStride;
 	}
+	memset(storage.mixSlab.get(), 0, (size_t)filter->num_mixbuf * partitionStride * sizeof(double));
 
 	size = sizeof *filter->history_time * flen;
 	storage.historyTime = makeHcAlignedArray<double>(flen);

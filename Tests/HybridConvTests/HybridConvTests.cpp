@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -26,6 +27,7 @@
 // Forward declarations for the additional suites that share this binary's
 // main(); each runXxxTests() is defined in the correspondingly named
 // XxxTests.cpp next to this file.
+void runBiQuadKernelTests();
 void runChannelCommandTests();
 void runCommonLogicTests();
 void runConvolutionCommandTests();
@@ -205,6 +207,64 @@ void assertConvolutionFilterRecoversFromInitialShortFrame()
 	expectClose(rendered[sampleRate + frameLength + 17], impulseResponse[sampleRate + frameLength + 17], sampleRate + frameLength + 17);
 }
 
+// Checks one plane-pointer array pair (real/imag) for the slab layout
+// contract: every plane 64-byte aligned, real/imag adjacent at a constant
+// offset that holds a full plane, and a constant partition stride of exactly
+// two plane offsets, so a block's partition sweep walks one contiguous
+// allocation instead of hundreds of scattered heap blocks.
+void expectSlabLayout(double* const* real, double* const* imag, int count, int planeLength, const char* what)
+{
+	char message[128];
+
+	if (count < 2)
+		fail(string(what) + ": test needs at least two partitions");
+
+	const ptrdiff_t planeOffset = imag[0] - real[0];
+	snprintf(message, sizeof(message), "%s: imag plane must sit one padded plane after real (offset %td, plane %d)",
+		what, planeOffset, planeLength);
+	harness.expect(planeOffset >= planeLength, message);
+
+	for (int s = 0; s < count; s++)
+	{
+		snprintf(message, sizeof(message), "%s: partition %d real plane is not 64-byte aligned", what, s);
+		harness.expect(reinterpret_cast<uintptr_t>(real[s]) % 64 == 0, message);
+		snprintf(message, sizeof(message), "%s: partition %d imag plane is not 64-byte aligned", what, s);
+		harness.expect(reinterpret_cast<uintptr_t>(imag[s]) % 64 == 0, message);
+		snprintf(message, sizeof(message), "%s: partition %d real/imag offset differs from partition 0", what, s);
+		harness.expect(imag[s] - real[s] == planeOffset, message);
+	}
+
+	for (int s = 0; s + 1 < count; s++)
+	{
+		snprintf(message, sizeof(message), "%s: partition %d does not follow partition %d contiguously", what, s + 1, s);
+		harness.expect(real[s + 1] - real[s] == 2 * planeOffset, message);
+	}
+}
+
+// The per-block partition sweep in hcProcessSingle touches every filter plane
+// and one mix plane per partition. With per-plane heap allocations that sweep
+// crosses hundreds of scattered pages (DTLB pressure, prefetcher restarts);
+// the layout contract pins the single-slab arrangement instead.
+void assertPartitionBuffersFormOneSlab()
+{
+	vector<double> impulseResponse((size_t)sampleRate * 2, 0.0);
+	impulseResponse[0] = 1.0;
+	impulseResponse[impulseResponse.size() - 1] = 0.5;
+
+	HConvSingle filter = {};
+	hcInitSingle(&filter, impulseResponse.data(), static_cast<int>(impulseResponse.size()), frameLength, 1);
+
+	if (filter.num_filterbuf < 100)
+		fail("slab layout test expected a partition count in the hundreds");
+
+	expectSlabLayout(filter.filterbuf_freq_real, filter.filterbuf_freq_imag,
+		filter.num_filterbuf, frameLength + 1, "filter planes");
+	expectSlabLayout(filter.mixbuf_freq_real, filter.mixbuf_freq_imag,
+		filter.num_mixbuf, frameLength + 1, "mix planes");
+
+	hcCloseSingle(&filter);
+}
+
 void assertConvolutionPathParsing()
 {
 	_wputenv_s(L"EAPO_XT_TEST_IR_DIR", L"C:\\Impulse Responses");
@@ -231,10 +291,12 @@ int main()
 	assertSparseImpulseResponseSurvivesPastOneSecond(0);
 	assertSparseImpulseResponseSurvivesPastOneSecond(137);
 	assertConvolutionFilterRecoversFromInitialShortFrame();
+	assertPartitionBuffersFormOneSlab();
 	assertConvolutionPathParsing();
 
 	// Pure-logic helper, command-codec and parser-extension coverage that also
 	// lives in this console binary (one XxxTests.cpp per suite).
+	runBiQuadKernelTests();
 	runChannelCommandTests();
 	runCommonLogicTests();
 	runConvolutionCommandTests();

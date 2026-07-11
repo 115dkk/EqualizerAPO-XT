@@ -244,6 +244,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HybridConvTests.cpp" />
+    <ClCompile Include="BiQuadKernelTests.cpp" />
     <ClCompile Include="ChannelCommandTests.cpp" />
     <ClCompile Include="CommonLogicTests.cpp" />
     <ClCompile Include="ConvolutionCommandTests.cpp" />

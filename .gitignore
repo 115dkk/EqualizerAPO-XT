@@ -266,3 +266,6 @@ _card_variants_demo.txt
 combined-audit-report.md
 change-summary.txt
 TECH_DEBT_AUDIT.md
+
+# Generated benchmark input (Benchmark/scenarios/New-BenchIr.ps1)
+Benchmark/scenarios/*.wav
