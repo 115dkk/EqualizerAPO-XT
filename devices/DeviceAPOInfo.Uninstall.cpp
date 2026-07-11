@@ -73,7 +73,31 @@ void DeviceAPOInfo::uninstall()
 
 	if (originalApoGuids[0] == APOGUID_NOKEY)
 	{
-		RegistryHelper::deleteKey(keyPath + L"\\FxProperties");
+		// This installation created FxProperties, but since Windows 11 24H2
+		// (build 26100) the OS puts its own subkeys below it, and
+		// RegDeleteKeyExW refuses to delete a key that has subkeys - a
+		// whole-key delete therefore throws on such systems and the uninstall
+		// leaves the EQ CLSIDs dangling (issue #189). Delete the values this
+		// installation wrote and remove the key itself only when nothing else
+		// lives in it.
+		wstring fxPath = keyPath + L"\\FxProperties";
+		if (RegistryHelper::keyExists(fxPath))
+		{
+			static const wchar_t* ownedValueNames[] = {
+				lfxGuidValueName, gfxGuidValueName, sfxGuidValueName,
+				mfxGuidValueName, efxGuidValueName,
+				sfxProcessingModesValueName, mfxProcessingModesValueName,
+				efxProcessingModesValueName, fxTitleValueName
+			};
+			for (const wchar_t* valueName : ownedValueNames)
+			{
+				if (RegistryHelper::valueExists(fxPath, valueName))
+					RegistryHelper::deleteValue(fxPath, valueName);
+			}
+
+			if (RegistryHelper::keyEmpty(fxPath))
+				RegistryHelper::deleteKey(fxPath);
+		}
 	}
 	else
 	{
