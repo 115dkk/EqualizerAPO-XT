@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include <limits>
+#include <new>
 #include "helpers/MemoryHelper.h"
 #include "IIRFilter.h"
 #include "helpers/PerfProfile.h"
@@ -60,15 +62,27 @@ vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, 
 {
 	channelCount = (unsigned)channelNames.size();
 
+	// The unsigned multiplications could wrap before widening to size_t
+	// (CodeQL cpp/integer-multiplication-cast-to-long); validate in size_t and
+	// use the same element count for allocation and initialization. Checked
+	// before freeing the old buffers so a failure cannot leave x/y dangling.
+	const size_t maxSize = (std::numeric_limits<size_t>::max)();
+	if (channelCount != 0 && static_cast<size_t>(order) > maxSize / channelCount)
+		throw std::bad_alloc();
+
+	const size_t stateCount = static_cast<size_t>(order) * channelCount;
+	if (stateCount > maxSize / sizeof *x)
+		throw std::bad_alloc();
+
 	if (x != nullptr)
 		MemoryHelper::free(x);
 	if (y != nullptr)
 		MemoryHelper::free(y);
 
-	x = static_cast<double*>(MemoryHelper::alloc(order * channelCount * sizeof *x));
-	y = static_cast<double*>(MemoryHelper::alloc(order * channelCount * sizeof *y));
-	std::fill_n(x, order * channelCount, 0.0);
-	std::fill_n(y, order * channelCount, 0.0);
+	x = static_cast<double*>(MemoryHelper::alloc(stateCount * sizeof *x));
+	y = static_cast<double*>(MemoryHelper::alloc(stateCount * sizeof *y));
+	std::fill_n(x, stateCount, 0.0);
+	std::fill_n(y, stateCount, 0.0);
 
 	return channelNames;
 }

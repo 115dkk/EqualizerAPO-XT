@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <new>
 #include "EqualizerAPO.h"
 #include "../helpers/LogHelper.h"
 #include "ClassFactory.h"
@@ -64,14 +65,27 @@ HRESULT __stdcall ClassFactory::CreateInstance(IUnknown* pUnknownOuter, const II
 	if (pUnknownOuter != nullptr && iid != __uuidof(IUnknown))
 		return E_NOINTERFACE;
 
-	EqualizerAPO* apo = new EqualizerAPO(pUnknownOuter);
-	if (apo == nullptr)
+	// The throwing operator new never returns null, so the old null check was
+	// dead code; the EqualizerAPO constructor (or a member constructor) can
+	// throw instead, and no C++ exception may cross this COM boundary into
+	// audiodg.exe. Translate to HRESULTs.
+	try
+	{
+		EqualizerAPO* apo = new EqualizerAPO(pUnknownOuter);
+
+		HRESULT hr = apo->NonDelegatingQueryInterface(iid, ppv);
+
+		apo->NonDelegatingRelease();
+		return hr;
+	}
+	catch (const std::bad_alloc&)
+	{
 		return E_OUTOFMEMORY;
-
-	HRESULT hr = apo->NonDelegatingQueryInterface(iid, ppv);
-
-	apo->NonDelegatingRelease();
-	return hr;
+	}
+	catch (...)
+	{
+		return E_FAIL;
+	}
 }
 
 HRESULT __stdcall ClassFactory::LockServer(BOOL bLock)
