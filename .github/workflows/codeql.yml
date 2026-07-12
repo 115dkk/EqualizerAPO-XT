@@ -20,16 +20,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ── C++ 코어 (MSVC) ──
-          # MacType DLL은 Windows + MSVC 빌드가 필수.
-          # 자기 프로젝트의 빌드 명령에 맞게 수정할 것.
+          # C++ 코어를 MSVC로 직접 빌드해 CodeQL 트레이서에 컴파일 과정을 태운다.
+          # 표준 GitHub 호스티드 windows-2025(VS 2022 Enterprise)에서 돌린다.
+          # build.yml의 x64 러너(windows-2025-vs2026, VS 2026/v145)는 커스텀
+          # 라벨이라 CodeQL 번들이 없어 쓰지 않는다. 그래서 아래 빌드는 이
+          # 이미지의 v143 툴셋으로 강제한다(.vcxproj 기본값은 v145).
           - language: c-cpp
-            os: windows-latest
+            os: windows-2025
             build-mode: manual
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      # build.yml과 동일하게 MSBuild를 PATH에 올린다. 깨진 vcvarsall cmd
+      # 스텁을 대체한다(그 스텁은 msbuild를 PATH에 못 올려 곧바로 실패했다).
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      # 정본 프로비저너를 재사용한다(Provisioning.psm1을 build.yml과 공유).
+      # avx2/x64 의존성(FFTW·muparserx·libsndfile·TCLAP·VST3·Highway)을 내려받고
+      # 검증한다. 아래 MSBuild 프로젝트들은 Qt를 링크하지 않으므로 -SkipQt로
+      # 무거운 Qt 설치를 건너뛴다. init 앞에 두어 다운로드는 트레이싱하지 않는다.
+      - name: Provision C++ dependencies (no Qt)
+        shell: pwsh
+        run: ./setup-build.ps1 -SkipQt
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -38,15 +55,54 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
-      # C++ 수동 빌드 — 프로젝트에 맞게 수정 필요
-      - if: matrix.build-mode == 'manual'
-        name: Build C++ (MSVC)
-        shell: cmd
+      # 출하되는 C++ 표면을 빌드한다. build.yml의 프로퍼티 집합을 그대로 쓰되,
+      # 보안 표면이 아닌 테스트 프로젝트는 빼고 핵심(엔진·파서·필터·헬퍼가 든
+      # Common 정적 라이브러리, APO DLL, 보조 exe)만 빌드해 분석 잡음을 줄인다.
+      # Common이 다른 프로젝트의 링크 의존이므로 먼저 빌드한다.
+      - name: Build C++ core (MSVC)
+        shell: pwsh
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-          msbuild EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64
+          $ErrorActionPreference = "Stop"
+          $deps = "${{ github.workspace }}\deps"
+
+          # 링커가 우리 .lib를 찾도록 LIB에 검색 경로를 앞세운다(build.yml과 동일).
+          $env:LIB = "$deps\libsndfile\build\Release;$deps\muparserx\build\Release;$deps\fftw\Release;$env:LIB"
+
+          $projects = @(
+            "Common.vcxproj",
+            "EqualizerAPO\EqualizerAPO.vcxproj",
+            "VoicemeeterClient\VoicemeeterClient.vcxproj",
+            "Benchmark\Benchmark.vcxproj"
+          )
+
+          $buildParams = @(
+            "/m",
+            "/p:Configuration=Release",
+            "/p:Platform=x64",
+            "/t:rebuild",
+            "/p:PlatformToolset=v143",  # windows-2025 = VS 2022; .vcxproj 기본 v145는 이 이미지에 없다
+            "/p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2",  # 출하되는 avx2 코드경로를 분석
+            "/p:FFTW_INCLUDE=$deps\fftw\include",
+            "/p:FFTW_LIB=$deps\fftw\Release",
+            "/p:MUPARSERX_INCLUDE=$deps\muparserx\parser",
+            "/p:MUPARSERX_LIB=$deps\muparserx\build\Release",
+            "/p:LIBSNDFILE_INCLUDE=$deps\libsndfile\include",
+            "/p:LIBSNDFILE_LIB=$deps\libsndfile\build\Release",
+            "/p:TCLAP_ROOT=$deps\tclap",
+            "/p:VST3_SDK=$deps\vst3sdk",
+            "/p:HIGHWAY_INCLUDE=$deps\highway"
+          )
+
+          foreach ($project in $projects) {
+            Write-Host "`n=== Building $project ==="
+            msbuild $project @buildParams
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Build failed for $project"
+              exit $LASTEXITCODE
+            }
+          }
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
