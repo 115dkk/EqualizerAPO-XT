@@ -1,0 +1,52 @@
+name: "CodeQL"
+
+on:
+  schedule:
+    - cron: "0 4 * * 1" # 매주 월요일 04:00 UTC
+  workflow_dispatch: # Actions 탭에서 수동 실행
+
+# PR마다 돌리지 않는다.
+# 주 1회에만 돌리고 진짜 필요하면 수동으로 돌린다.
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      security-events: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── C++ 코어 (MSVC) ──
+          # MacType DLL은 Windows + MSVC 빌드가 필수.
+          # 자기 프로젝트의 빌드 명령에 맞게 수정할 것.
+          - language: c-cpp
+            os: windows-latest
+            build-mode: manual
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      # C++ 수동 빌드 — 프로젝트에 맞게 수정 필요
+      - if: matrix.build-mode == 'manual'
+        name: Build C++ (MSVC)
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          msbuild EqualizerAPO.sln /p:Configuration=Release /p:Platform=x64
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
