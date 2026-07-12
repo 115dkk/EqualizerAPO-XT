@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include <limits>
+#include <new>
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "VSTPluginFilter.h"
@@ -142,8 +144,18 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 	// Allocate float buffers for conversion
 	if (firstEffect->numInputs() > 0) {
-		floatInputs = (float**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(float*));
-		_floatInputBuffer = static_cast<float*>(MemoryHelper::alloc(firstEffect->numInputs() * maxFrameCount * sizeof *_floatInputBuffer));
+		// A hostile or broken plugin can report a bus count whose product with
+		// maxFrameCount wraps before widening to size_t (CodeQL
+		// cpp/integer-multiplication-cast-to-long); validate in size_t first.
+		const size_t inputCount = static_cast<size_t>(firstEffect->numInputs());
+		const size_t maxSize = (std::numeric_limits<size_t>::max)();
+		if (inputCount > maxSize / sizeof(float*) ||
+			(maxFrameCount != 0 &&
+				inputCount > maxSize / maxFrameCount / sizeof *_floatInputBuffer))
+			throw std::bad_alloc();
+
+		floatInputs = (float**)MemoryHelper::alloc(inputCount * sizeof(float*));
+		_floatInputBuffer = static_cast<float*>(MemoryHelper::alloc(inputCount * maxFrameCount * sizeof *_floatInputBuffer));
 		if (floatInputs == nullptr || _floatInputBuffer == nullptr)
 		{
 			LogF(L"The VST plugin %s could not allocate float input buffers; passing audio through.", libPath.c_str());
@@ -156,8 +168,16 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	}
 
 	if (firstEffect->numOutputs() > 0) {
-		floatOutputs = (float**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(float*));
-		_floatOutputBuffer = static_cast<float*>(MemoryHelper::alloc(firstEffect->numOutputs() * maxFrameCount * sizeof *_floatOutputBuffer));
+		// Same wrap-before-widening hazard as the input buffers above.
+		const size_t outputCount = static_cast<size_t>(firstEffect->numOutputs());
+		const size_t maxSize = (std::numeric_limits<size_t>::max)();
+		if (outputCount > maxSize / sizeof(float*) ||
+			(maxFrameCount != 0 &&
+				outputCount > maxSize / maxFrameCount / sizeof *_floatOutputBuffer))
+			throw std::bad_alloc();
+
+		floatOutputs = (float**)MemoryHelper::alloc(outputCount * sizeof(float*));
+		_floatOutputBuffer = static_cast<float*>(MemoryHelper::alloc(outputCount * maxFrameCount * sizeof *_floatOutputBuffer));
 		if (floatOutputs == nullptr || _floatOutputBuffer == nullptr)
 		{
 			LogF(L"The VST plugin %s could not allocate float output buffers; passing audio through.", libPath.c_str());

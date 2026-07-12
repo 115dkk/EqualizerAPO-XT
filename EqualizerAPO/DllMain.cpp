@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <new>
 #include <string>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -54,14 +55,26 @@ STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** ppv)
 	if (clsid != EQUALIZERAPO_POST_MIX_GUID && clsid != EQUALIZERAPO_PRE_MIX_GUID)
 		return CLASS_E_CLASSNOTAVAILABLE;
 
-	ClassFactory* factory = new ClassFactory();
-	if (factory == nullptr)
+	// The throwing operator new never returns null, so the old null check was
+	// dead code; what actually escapes on failure is a C++ exception, which
+	// must not cross this COM boundary into audiodg.exe. Translate to HRESULTs.
+	try
+	{
+		ClassFactory* factory = new ClassFactory();
+
+		HRESULT hr = factory->QueryInterface(iid, ppv);
+		factory->Release();
+
+		return hr;
+	}
+	catch (const std::bad_alloc&)
+	{
 		return E_OUTOFMEMORY;
-
-	HRESULT hr = factory->QueryInterface(iid, ppv);
-	factory->Release();
-
-	return hr;
+	}
+	catch (...)
+	{
+		return E_FAIL;
+	}
 }
 
 STDAPI DllRegisterServer()
