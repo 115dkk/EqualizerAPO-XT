@@ -55,47 +55,48 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
-      # 출하되는 C++ 표면을 빌드한다. build.yml의 프로퍼티 집합을 그대로 쓰되,
-      # 보안 표면이 아닌 테스트 프로젝트는 빼고 핵심(엔진·파서·필터·헬퍼가 든
-      # Common 정적 라이브러리, APO DLL, 보조 exe)만 빌드해 분석 잡음을 줄인다.
-      # Common이 다른 프로젝트의 링크 의존이므로 먼저 빌드한다.
+      # 출하되는 C++ 표면을 컴파일해 CodeQL 트레이서에 태운다. CodeQL은 링크가
+      # 아니라 컴파일만 필요하므로(추출기가 cl.exe 호출을 후킹) APO DLL·보조
+      # exe는 /t:ClCompile로 컴파일만 한다. 이렇게 하면 표준 GitHub 러너의
+      # VS(현재 VS 2026/"18")에 ATL 컴포넌트가 없어 링크 단계에서 atls.lib를
+      # 못 찾던 문제(build.yml이 커스텀 windows-2025-vs2026 러너를 쓰는 이유)를
+      # 링크 자체를 건너뛰어 피한다. Common은 다른 프로젝트가 참조하는 정적
+      # 라이브러리라 먼저 정식 빌드한다(lib.exe는 외부 lib를 링크하지 않는다).
+      # 보안 표면이 아닌 테스트 프로젝트는 분석 잡음이라 뺀다.
       - name: Build C++ core (MSVC)
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           $deps = "${{ github.workspace }}\deps"
 
-          # 링커가 우리 .lib를 찾도록 LIB에 검색 경로를 앞세운다(build.yml과 동일).
-          $env:LIB = "$deps\libsndfile\build\Release;$deps\muparserx\build\Release;$deps\fftw\Release;$env:LIB"
-
-          $projects = @(
-            "Common.vcxproj",
-            "EqualizerAPO\EqualizerAPO.vcxproj",
-            "VoicemeeterClient\VoicemeeterClient.vcxproj",
-            "Benchmark\Benchmark.vcxproj"
-          )
-
-          $buildParams = @(
+          # 헤더 경로만 있으면 컴파일된다(링크는 하지 않으므로 lib 경로 불필요).
+          $includeParams = @(
             "/m",
             "/p:Configuration=Release",
             "/p:Platform=x64",
-            "/t:rebuild",
-            "/p:PlatformToolset=v143",  # windows-2025 = VS 2022; .vcxproj 기본 v145는 이 이미지에 없다
+            "/p:PlatformToolset=v143",  # windows-2025 이미지의 VS는 v143 툴셋; .vcxproj 기본 v145는 없다
             "/p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2",  # 출하되는 avx2 코드경로를 분석
             "/p:FFTW_INCLUDE=$deps\fftw\include",
-            "/p:FFTW_LIB=$deps\fftw\Release",
             "/p:MUPARSERX_INCLUDE=$deps\muparserx\parser",
-            "/p:MUPARSERX_LIB=$deps\muparserx\build\Release",
             "/p:LIBSNDFILE_INCLUDE=$deps\libsndfile\include",
-            "/p:LIBSNDFILE_LIB=$deps\libsndfile\build\Release",
             "/p:TCLAP_ROOT=$deps\tclap",
             "/p:VST3_SDK=$deps\vst3sdk",
             "/p:HIGHWAY_INCLUDE=$deps\highway"
           )
 
-          foreach ($project in $projects) {
-            Write-Host "`n=== Building $project ==="
-            msbuild $project @buildParams
+          # 프로젝트별 빌드 대상: Common은 정식 빌드(정적 lib 생성 + 컴파일),
+          # 나머지는 컴파일 전용.
+          $targets = [ordered]@{
+            "Common.vcxproj"                              = "Build"
+            "EqualizerAPO\EqualizerAPO.vcxproj"           = "ClCompile"
+            "VoicemeeterClient\VoicemeeterClient.vcxproj" = "ClCompile"
+            "Benchmark\Benchmark.vcxproj"                 = "ClCompile"
+          }
+
+          foreach ($project in $targets.Keys) {
+            $target = $targets[$project]
+            Write-Host "`n=== $target $project ==="
+            msbuild $project "/t:$target" @includeParams
             if ($LASTEXITCODE -ne 0) {
               Write-Error "Build failed for $project"
               exit $LASTEXITCODE
