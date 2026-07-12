@@ -1,6 +1,6 @@
 #define MAJOR 2
 #define MINOR 18
-#define REVISION 3
+#define REVISION 4
 
 // Canonical GitHub repository for release and update URLs, consumed by the
 // Editor's Velopack bootstrap, the UpdateChecker, and the auto-detect
