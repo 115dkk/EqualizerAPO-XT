@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EQ APO-XT · Tauri Toy</title>
+    <script type="module" src="/main.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Equalizer APO<span> · Tauri Toy</span></h1>
+      <div class="actions">
+        <button id="btn-sample" class="btn">샘플 불러오기</button>
+        <button id="btn-parse" class="btn btn-accent">파싱 →</button>
+        <button id="btn-serialize" class="btn">← 직렬화</button>
+      </div>
+    </header>
+    <main class="panes">
+      <section class="pane">
+        <div class="pane-head">config.txt</div>
+        <textarea id="config-input" spellcheck="false" placeholder="Equalizer APO config 텍스트를 붙여넣거나 '샘플 불러오기'를 누르세요."></textarea>
+      </section>
+      <section class="pane">
+        <div class="pane-head">필터 <span id="filter-count">0</span></div>
+        <div id="filter-list" class="filter-list"></div>
+      </section>
+    </main>
+    <section class="graph-pane">
+      <div class="pane-head">주파수 응답 <span id="graph-info"></span></div>
+      <canvas id="graph" class="graph"></canvas>
+    </section>
+    <footer class="statusbar" id="status">준비됨</footer>
+  </body>
+</html>
