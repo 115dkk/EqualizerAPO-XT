@@ -1,0 +1,182 @@
+* { box-sizing: border-box; }
+
+:root {
+  /* rack skin — dark finish (SkinThemeData rackTokens) */
+  --bg: #0B0D0F;
+  --surface: #14181C;
+  --card: #1D2328;
+  --card-hover: #252B2F;
+  --card-sel: #332718;
+  --text: #E6E0D4;
+  --muted: #9A9488;
+  --border: #3A4248;
+  --graph: #060807;
+  --grid-minor: #1F3A31;
+  --accent: #F4B860;
+  --accent2: #5ED0A0;
+  --danger: #E5544A;
+  --focus: #F4B860;
+  --font: "DM Sans", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+  --mono: "DM Mono", "Cascadia Code", "Consolas", monospace;
+}
+
+body.cream {
+  /* rack skin — cream (light) finish */
+  --bg: #E7E2D8;
+  --surface: #F4EFE5;
+  --card: #FFFAEF;
+  --card-hover: #F7EEDC;
+  --card-sel: #FCE8BD;
+  --text: #2B2721;
+  --muted: #746A5D;
+  --border: #C9BFAE;
+  --graph: #FFF7E6;
+  --grid-minor: #D6C4A6;
+  --accent: #B66A00;
+  --accent2: #177A55;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,0.04), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+}
+
+/* ── steel cabinet with side mounting rails ── */
+.cabinet {
+  max-width: 760px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 14px 26px 20px;
+  position: relative;
+  background: var(--surface);
+}
+.cabinet::before, .cabinet::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 20px;
+  background:
+    /* bolt holes down the rail */
+    repeating-radial-gradient(circle at 10px 22px, rgba(0,0,0,0.55) 0 2.4px, transparent 3px 44px),
+    linear-gradient(90deg, rgba(255,255,255,0.10), rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.5));
+  border-right: 1px solid rgba(0,0,0,0.6);
+  box-shadow: inset -2px 0 3px rgba(0,0,0,0.4);
+}
+.cabinet::before { left: 0; }
+.cabinet::after { right: 0; transform: scaleX(-1); }
+
+/* ── master rail (toolbar) ── */
+.master-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 14px;
+  margin-bottom: 12px;
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 40%, rgba(0,0,0,0.28)),
+    var(--card);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 1px 2px rgba(0,0,0,0.5);
+}
+.rail-mark {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+.rail-controls { display: flex; align-items: center; gap: 8px; }
+
+.rk-btn {
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text);
+  padding: 5px 11px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.22)), var(--card);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 1px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+.rk-btn:hover { border-color: var(--accent); }
+.rk-btn:active { box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+.rk-btn-accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+
+.rail-led {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent2) 80%, white), var(--accent2) 55%, color-mix(in srgb, var(--accent2) 40%, black));
+  box-shadow: 0 0 7px var(--accent2), inset 0 0 2px rgba(255,255,255,0.6);
+  border: 1px solid rgba(0,0,0,0.6);
+}
+
+/* ── SPECTRUM MONITOR bay ── */
+.monitor-bay {
+  position: relative;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.24)), var(--card);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.5);
+  padding: 8px;
+  margin-bottom: 12px;
+}
+.bay-label {
+  position: absolute; top: 10px; left: 16px;
+  font-size: 8px; font-weight: 700; letter-spacing: 2px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.monitor-canvas { display: block; width: 100%; height: 176px; }
+
+/* ── unit stack ── */
+.rack { display: flex; flex-direction: column; gap: 8px; }
+.rack-unit { display: block; width: 100%; cursor: default; }
+
+/* ── config drawer ── */
+.config-drawer {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--card);
+  overflow: hidden;
+}
+.config-drawer > summary {
+  cursor: pointer;
+  padding: 7px 12px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  color: var(--muted);
+  list-style: none;
+}
+.config-drawer > summary::-webkit-details-marker { display: none; }
+.config-drawer textarea {
+  width: 100%;
+  height: 150px;
+  resize: vertical;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: var(--graph);
+  color: var(--accent2);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 10px 12px;
+  outline: none;
+}
+
+/* ── status ── */
+.status {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.5px;
+}

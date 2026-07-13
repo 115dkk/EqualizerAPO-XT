@@ -1,8 +1,7 @@
-const { invoke } = window.__TAURI__.core;
+import { drawUnit } from "./rack-chrome.js";
+import { drawKnob, drawScope } from "./rack-controls.js";
 
-const SAMPLE_RATE = 48000;
-const NUM_POINTS = 200;
-const DB_RANGE = 24;
+const { invoke } = window.__TAURI__.core;
 
 const SAMPLE = `Preamp: -6.5 dB
 Filter 1: ON PK Fc 1000 Hz Gain -3 dB Q 1.41
@@ -13,169 +12,169 @@ Copy: L=R R=L
 # 내 프로필`;
 
 let lines = [];
-let lastResp = [];
 
 const $ = (s) => document.querySelector(s);
-function status(msg) { $("#status").textContent = msg; }
-function escapeHtml(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function status(m) { $("#status").textContent = m; }
+function isDark() { return !document.body.classList.contains("cream"); }
 
-function sparkline(points) {
-  if (!points || !points.length) return "";
-  const w = 96, h = 22;
-  const gains = points.map((p) => p[1]);
-  const min = Math.min(-6, ...gains), max = Math.max(6, ...gains);
-  const n = points.length;
-  const pts = points.map((p, i) => {
-    const x = (n > 1 ? i / (n - 1) : 0) * w;
-    const y = h - ((p[1] - min) / (max - min || 1)) * h;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
+function tokens() {
+  const cs = getComputedStyle(document.body);
+  const g = (n) => cs.getPropertyValue(n).trim();
+  return {
+    card: g("--card"), accent: g("--accent"), accent2: g("--accent2"),
+    text: g("--text"), mutedText: g("--muted"), focusRing: g("--focus"),
+    danger: g("--danger"), graphGridMinor: g("--grid-minor"),
+    monoFontFamily: "DM Mono, monospace",
+  };
 }
 
-function cardFor(line) {
-  const el = document.createElement("div");
-  el.className = "card card-" + line.kind.toLowerCase();
-  let body = "";
+const KIND_TYPE = { Preamp: "preamp", Biquad: "biquad", GraphicEq: "graphiceq", Comment: "comment", Raw: "text", Blank: "spacer" };
+const LABELS = { preamp: "PREAMP", biquad: "FILTER", graphiceq: "GRAPHIC", comment: "NOTE", text: "AUX" };
+
+function unitHeight(line) {
   switch (line.kind) {
-    case "Preamp":
-      body = `<span class="tag">Preamp</span><span class="val"><b>${line.gain_db}</b> dB</span>`;
-      break;
-    case "Biquad": {
-      const parts = [`Fc <b>${line.freq_hz}</b> Hz`];
-      if (line.gain_db != null) parts.push(`Gain <b>${line.gain_db}</b> dB`);
-      if (line.q != null) parts.push(`Q <b>${line.q}</b>`);
-      if (line.bw_oct != null) parts.push(`BW <b>${line.bw_oct}</b>`);
-      const idx = line.index != null ? `#${line.index}` : "";
-      body = `<span class="tag">Filter ${idx}</span>`
-        + `<span class="dot ${line.enabled ? "on" : "off"}" title="${line.enabled ? "ON" : "OFF"}"></span>`
-        + `<span class="chip">${escapeHtml(line.ftype)}</span>`
-        + `<span class="val">${parts.join(" · ")}</span>`;
-      break;
-    }
-    case "GraphicEq":
-      body = `<span class="tag">GraphicEQ</span><span class="val">${line.points.length} points</span>`
-        + `<span class="spark">${sparkline(line.points)}</span>`;
-      break;
-    case "Comment":
-      body = `<span class="val comment"># ${escapeHtml(line.text)}</span>`;
-      break;
-    case "Blank":
-      el.classList.add("blank");
-      body = `<span class="val muted">·</span>`;
-      break;
-    case "Raw":
-      body = `<span class="tag raw">raw</span><span class="val mono">${escapeHtml(line.text)}</span>`;
-      break;
-    default:
-      body = `<span class="val mono">${escapeHtml(JSON.stringify(line))}</span>`;
+    case "GraphicEq": return 100;
+    case "Comment": case "Raw": return 42;
+    default: return 76; // Preamp, Biquad
   }
-  el.innerHTML = body;
-  return el;
 }
 
-function renderCards() {
-  const list = $("#filter-list");
-  list.innerHTML = "";
-  for (const line of lines) list.appendChild(cardFor(line));
-  $("#filter-count").textContent = lines.filter((l) => l.kind !== "Blank").length;
-}
-
-function drawGraph(resp) {
-  const canvas = $("#graph");
-  if (!canvas) return;
+function setupCanvas(canvas, w, h) {
   const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) return;
-  canvas.width = Math.round(rect.width * dpr);
-  canvas.height = Math.round(rect.height * dpr);
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  canvas.style.height = h + "px";
   const ctx = canvas.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const W = rect.width, H = rect.height;
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
 
-  const fmin = 20, fmax = SAMPLE_RATE / 2;
-  const xOf = (f) => (Math.log10(f / fmin) / Math.log10(fmax / fmin)) * W;
-  const yOf = (db) => H / 2 - (db / DB_RANGE) * (H / 2);
+// A dark LCD well with green phosphor segment text.
+function lcd(ctx, x, y, text, tk, align = "left") {
+  ctx.save();
+  ctx.font = '11px "DM Mono", monospace';
+  ctx.textBaseline = "middle";
+  ctx.textAlign = align;
+  ctx.shadowColor = tk.accent2;
+  ctx.shadowBlur = 5;
+  ctx.fillStyle = tk.accent2;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
 
-  ctx.font = "10px 'Cascadia Code', monospace";
-  ctx.textBaseline = "alphabetic";
+function fmtFreq(f) { return f >= 1000 ? (f / 1000) + "k" : "" + f; }
 
-  // vertical grid (frequencies)
-  ctx.strokeStyle = "#232b35";
-  ctx.fillStyle = "#6b7480";
-  ctx.lineWidth = 1;
-  for (const f of [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]) {
-    if (f > fmax) continue;
-    const px = xOf(f);
-    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
-    ctx.fillText(f >= 1000 ? f / 1000 + "k" : "" + f, px + 3, H - 4);
-  }
-  // horizontal grid (dB)
-  for (const db of [-24, -12, 12, 24]) {
-    const py = yOf(db);
-    ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke();
-    ctx.fillText(db + "", 3, py - 2);
-  }
-  // 0 dB baseline
-  ctx.strokeStyle = "#3a4553";
-  ctx.beginPath(); ctx.moveTo(0, yOf(0)); ctx.lineTo(W, yOf(0)); ctx.stroke();
+function renderUnit(line) {
+  const canvas = document.createElement("canvas");
+  canvas.className = "rack-unit";
+  $("#rack").appendChild(canvas);
+  const w = canvas.clientWidth || $("#rack").clientWidth;
+  const h = unitHeight(line);
+  const ctx = setupCanvas(canvas, w, h);
+  const tk = tokens();
+  const dark = isDark();
+  const type = KIND_TYPE[line.kind] || "text";
+  const label = LABELS[type] || "AUX";
+  const enabled = line.kind === "Comment" ? true : (line.enabled !== false);
 
-  if (!resp || !resp.length) return;
-
-  // response curve
-  ctx.strokeStyle = "#3ad6c5";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  resp.forEach((p, i) => {
-    const px = xOf(p[0]);
-    const py = yOf(Math.max(-DB_RANGE, Math.min(DB_RANGE, p[1])));
-    if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+  drawUnit(ctx, 0, 0, w, h, {
+    dark, type, enabled, selected: false, focused: false,
+    command: JSON.stringify(line).slice(0, 24), label, tokens: tk,
+    rowHeight: 36, borderRadius: 3,
   });
-  ctx.stroke();
-}
 
-async function updateGraph() {
-  try {
-    lastResp = await invoke("frequency_response", { lines, sampleRate: SAMPLE_RATE, numPoints: NUM_POINTS });
-    drawGraph(lastResp);
-    $("#graph-info").textContent = `${SAMPLE_RATE / 1000}kHz · ${lastResp.length}pt`;
-  } catch (e) {
-    $("#graph-info").textContent = "(계산 오류)";
-    status("응답 계산 오류: " + e);
+  const ctrlLeft = 30;   // clear the left ear + status LEDs
+  const ctrlRight = w - 26;
+
+  if (line.kind === "Preamp") {
+    drawKnob(ctx, ctrlLeft, 6, 64, h - 12, { ratio: clamp((line.gain_db + 24) / 48, 0, 1), bipolar: true, enabled: true }, tk);
+    lcd(ctx, ctrlLeft + 72, h / 2, `${line.gain_db} dB`, tk);
+  } else if (line.kind === "Biquad") {
+    const g = line.gain_db != null ? line.gain_db : 0;
+    drawKnob(ctx, ctrlLeft, 6, 64, h - 12, { ratio: clamp((g + 24) / 48, 0, 1), bipolar: line.gain_db != null, enabled }, tk);
+    lcd(ctx, ctrlLeft + 74, h / 2 - 9, `${line.ftype}  Fc ${fmtFreq(line.freq_hz)}Hz`, tk);
+    const parts = [];
+    if (line.gain_db != null) parts.push(`G ${line.gain_db}dB`);
+    if (line.q != null) parts.push(`Q ${line.q}`);
+    if (parts.length) lcd(ctx, ctrlLeft + 74, h / 2 + 9, parts.join("   "), tk);
+  } else if (line.kind === "GraphicEq") {
+    renderGeq(ctx, line, ctrlLeft, 8, ctrlRight - ctrlLeft, h - 16, tk, dark);
+  } else if (line.kind === "Comment") {
+    lcd(ctx, ctrlLeft, h / 2, "# " + line.text, tk);
+  } else if (line.kind === "Raw") {
+    lcd(ctx, ctrlLeft, h / 2, line.text, tk);
   }
 }
 
-async function parse() {
+function renderGeq(ctx, line, x, y, w, h, tk, dark) {
+  const pts = line.points || [];
+  const fmin = 20, fmax = 24000, dbRange = 12;
+  const xOf = (f) => x + (Math.log10(clamp(f, fmin, fmax) / fmin) / Math.log10(fmax / fmin)) * w;
+  const yOf = (db) => y + h / 2 - (clamp(db, -dbRange, dbRange) / dbRange) * (h / 2);
+  const curve = pts.map((p) => [xOf(p[0]), yOf(p[1])]);
+  const plot = { x, y, w, h };
+  drawScope(ctx, plot, curve, tk, { dark, powered: line.enabled !== false, plotRect: plot, zeroY: yOf(0), vertical: [], horizontal: [] });
+}
+
+async function renderMonitor() {
+  const canvas = $("#monitor");
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const ctx = setupCanvas(canvas, w, h);
+  const tk = tokens();
+  const dark = isDark();
+  const plot = { x: 36, y: 10, w: w - 46, h: h - 30 };
+  const fmin = 20, fmax = 24000, dbRange = 24;
+  const xOf = (f) => plot.x + (Math.log10(clamp(f, fmin, fmax) / fmin) / Math.log10(fmax / fmin)) * plot.w;
+  const yOf = (db) => plot.y + plot.h / 2 - (clamp(db, -dbRange, dbRange) / dbRange) * (plot.h / 2);
+
+  let resp = [];
+  try { resp = await invoke("frequency_response", { lines, sampleRate: 48000, numPoints: 220 }); }
+  catch (e) { status("응답 계산 오류: " + e); }
+
+  const curve = resp.map((p) => [xOf(p[0]), yOf(p[1])]);
+  const zeroY = yOf(0);
+  const vertical = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+    .filter((f) => f <= fmax)
+    .map((f) => ({ pos: xOf(f), major: f === 100 || f === 1000 || f === 10000, label: fmtFreq(f) }));
+  const horizontal = [-24, -12, 0, 12, 24].map((db) => ({ pos: yOf(db), major: db === 0, label: "" + db }));
+
+  drawScope(ctx, { x: 0, y: 0, w, h }, curve, tk, { dark, powered: true, plotRect: plot, zeroY, vertical, horizontal });
+}
+
+async function parseAndRender() {
   const text = $("#config-input").value;
   try {
     lines = await invoke("load_config_text", { text });
-    renderCards();
-    await updateGraph();
-    status(`파싱됨 · ${lines.length}줄 · 필터 ${lines.filter((l) => l.kind === "Biquad").length}개`);
-  } catch (e) {
-    status("파싱 오류: " + e);
+  } catch (e) { status("파싱 오류: " + e); return; }
+  $("#rack").innerHTML = "";
+  for (const line of lines) {
+    if (line.kind === "Blank") continue;
+    renderUnit(line);
   }
+  await renderMonitor();
+  const units = lines.filter((l) => l.kind !== "Blank").length;
+  status(`장착 유닛 ${units}대 · 필터 ${lines.filter((l) => l.kind === "Biquad").length}대`);
 }
 
-async function serialize() {
-  if (!lines.length) { status("먼저 파싱하세요"); return; }
-  try {
-    const text = await invoke("save_config_text", { lines });
-    $("#config-input").value = text;
-    status("직렬화됨 (round-trip 확인용)");
-  } catch (e) {
-    status("직렬화 오류: " + e);
-  }
+function rerender() {
+  if (!lines.length) return;
+  $("#rack").innerHTML = "";
+  for (const line of lines) { if (line.kind !== "Blank") renderUnit(line); }
+  renderMonitor();
 }
 
 window.addEventListener("DOMContentLoaded", () => {
   $("#btn-sample").addEventListener("click", () => {
     $("#config-input").value = SAMPLE;
-    status("샘플 로드됨 — '파싱 →'을 누르세요");
+    status("샘플 장착됨 — PARSE");
   });
-  $("#btn-parse").addEventListener("click", parse);
-  $("#btn-serialize").addEventListener("click", serialize);
+  $("#btn-parse").addEventListener("click", parseAndRender);
+  $("#btn-finish").addEventListener("click", () => {
+    document.body.classList.toggle("cream");
+    rerender();
+  });
 });
 
-window.addEventListener("resize", () => drawGraph(lastResp));
+window.addEventListener("resize", rerender);
