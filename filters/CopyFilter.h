@@ -56,6 +56,13 @@ std::vector<Assignment> parseCopyAssignments(const std::wstring& parameters);
 // assignments with an empty target are skipped.
 std::wstring serializeCopyAssignments(const std::vector<Assignment>& assignments);
 
+// Applies Copy's channel-flow semantics without constructing an Editor GUI.
+// Every assignment that has at least one real summand makes its target
+// available to the commands below it. Existing names and aliases are kept in
+// their canonical spelling through ChannelHelper::getChannelIndex().
+void propagateCopyChannels(const std::vector<Assignment>& assignments,
+	std::vector<std::wstring>& channelNames);
+
 #pragma AVRT_VTABLES_BEGIN
 class CopyFilter : public IFilter
 {

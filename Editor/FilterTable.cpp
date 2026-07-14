@@ -34,6 +34,7 @@
 #include <QSettings>
 
 #include "MainWindow.h"
+#include "SkinManager.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
 #include "FilterGUIFactoryRegistry.h"
@@ -312,6 +313,19 @@ IFilterGUI* FilterTable::createRowGui(const QString& line)
 	// still gets a real editor; the legacy path stays frozen (raw row).
 	if (renderMode == ModernCards && FilterCardModel::isPureCommentLine(line))
 		return new CommentCardEditor(line);
+
+	// Copy's maintained card editor is the skin routing view built directly by
+	// FilterCardRow. Channel propagation is handled by the row's Qt-free Copy
+	// domain logic, so a normal Copy row no longer needs a hidden heritage GUI.
+	// Dynamic Copy parameters still fall through: routing editors must not
+	// parse and rewrite inline expressions.
+	QString cardParameters;
+	FilterCardModel::commandForLine(line, &cardParameters);
+	if (renderMode == ModernCards
+		&& FilterCardModel::describeLine(line, 0).type == QStringLiteral("copy")
+		&& !FilterCardModel::hasInlineExpressions(cardParameters)
+		&& SkinManager::instance()->routingRenderer() != nullptr)
+		return nullptr;
 
 	int pos = line.indexOf(':');
 	if (pos == -1)

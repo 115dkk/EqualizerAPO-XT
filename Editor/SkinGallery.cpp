@@ -13,6 +13,8 @@
 #include <QEnterEvent>
 #include <QFile>
 #include <QFrame>
+#include <QGraphicsScene>
+#include <QGraphicsView>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QImage>
@@ -20,6 +22,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QPixmap>
+#include <QPointer>
 #include <QToolButton>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -31,6 +34,7 @@
 
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
+#include "Editor/guis/CopyFilterGUI.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
@@ -1004,6 +1008,26 @@ int runSwitchTest(const QStringList& arguments)
 		limitMs = 8000;
 
 	int failures = 0;
+	{
+		// LegacyRows still uses CopyFilterGUI. Its QGraphicsView does not own
+		// the scene, so the GUI must parent it explicitly; allWidgets() cannot
+		// detect this leak because QGraphicsScene is not a QWidget.
+		CopyFilterGUI* legacyCopy = new CopyFilterGUI({}, table);
+		QGraphicsView* graphicsView = legacyCopy->findChild<QGraphicsView*>();
+		QPointer<QGraphicsScene> scene = graphicsView != nullptr ? graphicsView->scene() : nullptr;
+		if (scene.isNull())
+		{
+			qWarning("SkinSwitchTest: legacy CopyFilterGUI scene was not created");
+			failures++;
+		}
+		delete legacyCopy;
+		if (!scene.isNull())
+		{
+			qWarning("SkinSwitchTest: deleting CopyFilterGUI did not delete its scene");
+			delete scene.data();
+			failures++;
+		}
+	}
 	qint64 worstMs = 0;
 	QString worstName;
 	const int rounds = 3;
@@ -1101,6 +1125,12 @@ int runSwitchTest(const QStringList& arguments)
 		QHash<QByteArray, int> histogram;
 		for (QWidget* widget : QApplication::allWidgets())
 			histogram[widget->metaObject()->className()]++;
+		const int legacyCopyWidgets = histogram.value(QByteArrayLiteral("CopyFilterGUI"));
+		if (legacyCopyWidgets != 0)
+		{
+			qWarning("SkinSwitchTest: modern cards retained %d CopyFilterGUI widgets", legacyCopyWidgets);
+			failures++;
+		}
 		QList<QPair<int, QByteArray>> ranked;
 		for (auto it = histogram.constBegin(); it != histogram.constEnd(); ++it)
 			ranked.append({ it.value(), it.key() });

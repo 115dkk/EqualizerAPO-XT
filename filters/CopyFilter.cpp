@@ -311,3 +311,31 @@ std::wstring serializeCopyAssignments(const vector<Assignment>& assignments)
 
 	return result;
 }
+
+
+void propagateCopyChannels(const vector<Assignment>& assignments, vector<wstring>& channelNames)
+{
+	for (const Assignment& assignment : assignments)
+	{
+		if (assignment.targetChannel.empty())
+			continue;
+
+		bool hasSummand = false;
+		for (const Assignment::Summand& summand : assignment.sourceSum)
+		{
+			// A single space is the legacy form's unfinished-row sentinel.
+			// An empty channel is a constant summand and therefore still
+			// produces the target channel.
+			if (summand.channel != L" ")
+			{
+				hasSummand = true;
+				break;
+			}
+		}
+		if (!hasSummand)
+			continue;
+
+		if (ChannelHelper::getChannelIndex(assignment.targetChannel, channelNames, true) == -1)
+			channelNames.push_back(assignment.targetChannel);
+	}
+}

@@ -77,8 +77,20 @@ void FilterTable::propagateChannels()
 {
 	vector<wstring> channelNames = getChannelNames();
 
-	for (Item* item : model.items())
+	for (int row = 0; row < model.items().size(); row++)
 	{
+		Item* item = model.items()[row];
+		if (renderMode == ModernCards && gridLayout != nullptr)
+		{
+			QLayoutItem* cell = gridLayout->itemAtPosition(row, 0);
+			FilterCardRow* cardRow = cell != nullptr ? qobject_cast<FilterCardRow*>(cell->widget()) : nullptr;
+			if (cardRow != nullptr)
+			{
+				cardRow->configureChannels(channelNames);
+				continue;
+			}
+		}
+
 		if (item->gui != nullptr)
 			item->gui->configureChannels(channelNames);
 	}

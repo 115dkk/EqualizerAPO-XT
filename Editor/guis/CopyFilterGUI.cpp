@@ -19,7 +19,6 @@
 
 #include "Editor/widgets/ResizeCorner.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "helpers/ChannelHelper.h"
 #include "CopyFilterGUIForm.h"
 #include "CopyFilterGUI.h"
 #include "ui_CopyFilterGUI.h"
@@ -35,6 +34,7 @@ CopyFilterGUI::CopyFilterGUI(const std::vector<Assignment>& assignments, FilterT
 	ui->setupUi(this);
 
 	scene = new CopyFilterGUIScene;
+	scene->setParent(this);
 	ui->graphicsView->setScene(scene);
 	ui->graphicsView->setBackgroundRole(QPalette::Window);
 
@@ -76,26 +76,7 @@ void CopyFilterGUI::configureChannels(vector<wstring>& channelNames)
 		ui->form->setChannelNames(channelNames);
 	}
 
-	for (Assignment assignment : assignments)
-	{
-		if (assignment.targetChannel == L"")
-			continue;
-		bool hasSummand = false;
-		for (Assignment::Summand summand : assignment.sourceSum)
-		{
-			if (summand.channel != L" ")
-			{
-				hasSummand = true;
-				break;
-			}
-		}
-		if (!hasSummand)
-			continue;
-
-		int channelIndex = ChannelHelper::getChannelIndex(assignment.targetChannel, channelNames, true);
-		if (channelIndex == -1)
-			channelNames.push_back(assignment.targetChannel);
-	}
+	propagateCopyChannels(assignments, channelNames);
 }
 
 void CopyFilterGUI::store(QString& command, QString& parameters)

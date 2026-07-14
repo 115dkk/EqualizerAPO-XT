@@ -201,22 +201,8 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		bodyStack->addWidget(editorContainer);
 		bodyStack->setCurrentWidget(editorContainer);
 		connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
+		connect(routingView, SIGNAL(routingChanged()), table, SLOT(updateChannels()));
 
-		// The legacy CopyFilterGUI never appears in this card (the routing
-		// view is the editor), but it still owns Copy's channel-propagation
-		// behaviour: FilterTable::propagateChannels walks the row GUIs, and
-		// this one is what hands the Copy line's virtual channels to every
-		// row below. It must keep existing - but parentless it is a
-		// top-level zombie: clearRows() only nulls item->gui, so every
-		// rebuild (skin switch, paste, drag) would leak a CopyFilterGUI per
-		// Copy row and each later applySkin repolishes the growing zombie
-		// population (SkinGallery::runSwitchTest guards this). Adopt it as
-		// a hidden child so it dies with the row.
-		if (QWidget* legacyCopyGui = qobject_cast<QWidget*>(gui))
-		{
-			legacyCopyGui->setParent(this);
-			legacyCopyGui->hide();
-		}
 		// The expand default above keys off the gui the body shows; routing
 		// rows are their own editor and start open.
 		expandButton->setChecked(true);
@@ -308,6 +294,23 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// the active skin to tag or extend this row.
 	SkinManager::instance()->prepareCommandRow(currentRowInfo(), cardFrame, headerWidget, bodyStack);
 	rebuildSummary();
+}
+
+void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
+{
+	if (routingView != nullptr && descriptor.type == QStringLiteral("copy"))
+	{
+		if (descriptor.enabled)
+		{
+			QString parameters;
+			FilterCardModel::commandForLine(item->text, &parameters);
+			propagateCopyChannels(CopyRoutingAdapter::parse(parameters), channelNames);
+		}
+		return;
+	}
+
+	if (gui != nullptr)
+		gui->configureChannels(channelNames);
 }
 
 CommandRowInfo FilterCardRow::currentRowInfo() const
