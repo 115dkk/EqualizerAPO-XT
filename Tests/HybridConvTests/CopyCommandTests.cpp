@@ -192,6 +192,37 @@ void testEmptySumAssignmentsSerializeToNothing()
 	harness.expectTrue(serializeCopyAssignments(onlySeeded) == L"",
 		"a lone empty-sum assignment serializes to an empty string");
 }
+void testPropagateChannels()
+{
+	vector<wstring> channels = {L"L", L"R", L"LFE"};
+	vector<Assignment> assignments = parseCopyAssignments(L"V1=L V2=0 SUB=R");
+
+	Assignment unfinished;
+	unfinished.targetChannel = L"UNFINISHED";
+	Assignment::Summand sentinel;
+	sentinel.channel = L" ";
+	unfinished.sourceSum.push_back(sentinel);
+	assignments.push_back(unfinished);
+
+	Assignment empty;
+	empty.targetChannel = L"EMPTY";
+	assignments.push_back(empty);
+
+	propagateCopyChannels(assignments, channels);
+	harness.expectTrue(channels == vector<wstring>({L"L", L"R", L"LFE", L"V1", L"V2"}),
+		"Copy channel propagation appends valid targets in order, keeps LFE/SUB aliases unique, and skips unfinished rows");
+
+	propagateCopyChannels(assignments, channels);
+	harness.expectTrue(channels == vector<wstring>({L"L", L"R", L"LFE", L"V1", L"V2"}),
+		"Copy channel propagation is idempotent");
+
+	vector<wstring> chained = {L"L", L"R"};
+	propagateCopyChannels(parseCopyAssignments(L"V1=L"), chained);
+	propagateCopyChannels(parseCopyAssignments(L"V2=V1"), chained);
+	harness.expectTrue(chained == vector<wstring>({L"L", L"R", L"V1", L"V2"}),
+		"successive Copy commands expose virtual targets to the commands below them");
+}
+
 }
 
 void runCopyCommandTests()
@@ -204,5 +235,6 @@ void runCopyCommandTests()
 	testMalformedChunkDropped();
 	testSerializeRoundTrip();
 	testEmptySumAssignmentsSerializeToNothing();
+	testPropagateChannels();
 	harness.report();
 }

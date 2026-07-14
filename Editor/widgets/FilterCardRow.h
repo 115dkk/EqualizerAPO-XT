@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -21,6 +24,7 @@ class FilterCardRow : public QWidget
 
 public:
 	FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, FilterCardRowScope scope, QWidget* parent = nullptr);
+	void configureChannels(std::vector<std::wstring>& channelNames);
 
 	QRect getHeaderRect() const;
 	void editText();
