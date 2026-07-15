@@ -317,7 +317,11 @@ QList<FilterPickerEntry> FilterTable::filterPickerEntries() const
 	QList<FilterPickerEntry> entries;
 	const QList<FilterTemplate> templates = pickerFilterTemplates();
 	for (const FilterTemplate& filterTemplate : templates)
-		entries.append({ filterTemplate.getPath(), filterTemplate.getName(), filterTemplate.getLine() });
+	{
+		const QString line = filterTemplate.getLine();
+		entries.append({ filterTemplate.getPath(), filterTemplate.getName(), line,
+			filterTemplateDescription(line) });
+	}
 	return entries;
 }
 

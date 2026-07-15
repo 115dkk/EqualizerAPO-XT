@@ -1135,6 +1135,113 @@ Select a different file or change the device configuration.</source>
     </message>
 </context>
 <context>
+    <name>FilterPickerView</name>
+    <message>
+        <source>A note EqualizerAPO skips while processing</source>
+        <translation>처리할 때 건너뛰는 메모입니다</translation>
+    </message>
+    <message>
+        <source>Boosts or cuts a band around a center frequency</source>
+        <translation>중심 주파수 주변 대역을 키우거나 줄입니다</translation>
+    </message>
+    <message>
+        <source>Passes the lows and rolls off above the cutoff</source>
+        <translation>낮은 대역만 통과시키고 차단 주파수 위를 깎습니다</translation>
+    </message>
+    <message>
+        <source>Passes the highs and rolls off below the cutoff</source>
+        <translation>높은 대역만 통과시키고 차단 주파수 아래를 깎습니다</translation>
+    </message>
+    <message>
+        <source>Passes a band around the center and drops the rest</source>
+        <translation>중심 주변 대역만 통과시키고 나머지를 줄입니다</translation>
+    </message>
+    <message>
+        <source>Raises or lowers everything below the corner frequency</source>
+        <translation>기준 주파수 아래 전체를 올리거나 내립니다</translation>
+    </message>
+    <message>
+        <source>Raises or lowers everything above the corner frequency</source>
+        <translation>기준 주파수 위 전체를 올리거나 내립니다</translation>
+    </message>
+    <message>
+        <source>Cuts a narrow band deeply and leaves the rest</source>
+        <translation>좁은 대역만 깊게 깎고 나머지는 그대로 둡니다</translation>
+    </message>
+    <message>
+        <source>Shifts phase around a frequency without changing level</source>
+        <translation>레벨은 그대로 두고 특정 주파수 주변 위상만 바꿉니다</translation>
+    </message>
+    <message>
+        <source>Applies overall gain before the other filters</source>
+        <translation>다른 필터보다 먼저 전체 음량을 조정합니다</translation>
+    </message>
+    <message>
+        <source>Delays the signal by a time or distance</source>
+        <translation>신호를 지정한 시간이나 거리만큼 늦춥니다</translation>
+    </message>
+    <message>
+        <source>Mixes and routes the signal between channels</source>
+        <translation>채널 사이로 신호를 섞거나 보냅니다</translation>
+    </message>
+    <message>
+        <source>Sets a gain for each graphic-EQ band</source>
+        <translation>그래픽 EQ 대역마다 이득을 지정합니다</translation>
+    </message>
+    <message>
+        <source>Applies an impulse response, such as a room or reverb</source>
+        <translation>방이나 리버브 같은 임펄스 응답을 적용합니다</translation>
+    </message>
+    <message>
+        <source>Convolves several inputs, as in BRIR headphone synthesis</source>
+        <translation>BRIR 헤드폰 합성처럼 여러 입력을 컨볼루션합니다</translation>
+    </message>
+    <message>
+        <source>Compensates hearing at low listening levels</source>
+        <translation>낮은 음량에서 청감을 보정합니다</translation>
+    </message>
+    <message>
+        <source>Runs an external VST audio plugin</source>
+        <translation>외부 VST 오디오 플러그인을 실행합니다</translation>
+    </message>
+    <message>
+        <source>Selects which channels the following filters affect</source>
+        <translation>뒤따르는 필터가 적용될 채널을 고릅니다</translation>
+    </message>
+    <message>
+        <source>Limits the following filters to one device</source>
+        <translation>뒤따르는 필터를 특정 장치로 한정합니다</translation>
+    </message>
+    <message>
+        <source>Chooses the processing stage for the following filters</source>
+        <translation>뒤따르는 필터의 처리 단계를 고릅니다</translation>
+    </message>
+    <message>
+        <source>Loads another configuration file here</source>
+        <translation>다른 설정 파일을 이 자리에 불러옵니다</translation>
+    </message>
+    <message>
+        <source>Computes a variable from an expression</source>
+        <translation>식을 계산해 변수에 담습니다</translation>
+    </message>
+    <message>
+        <source>Applies the following filters only when a condition holds</source>
+        <translation>조건이 참일 때만 뒤따르는 필터를 적용합니다</translation>
+    </message>
+    <message>
+        <source>Tries another condition when the previous one failed</source>
+        <translation>앞 조건이 어긋나면 다른 조건을 확인합니다</translation>
+    </message>
+    <message>
+        <source>Runs when none of the conditions above matched</source>
+        <translation>위 조건에 하나도 맞지 않을 때 실행합니다</translation>
+    </message>
+    <message>
+        <source>Closes the conditional block</source>
+        <translation>조건 블록을 닫습니다</translation>
+    </message>
+</context>
+<context>
     <name>FilterTable</name>
     <message>
         <location filename="../FilterTable.cpp" line="234"/>

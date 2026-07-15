@@ -5,6 +5,7 @@
 #include "FilterPickerView.h"
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QListWidget>
@@ -13,6 +14,63 @@
 #include <QVBoxLayout>
 
 #include "Editor/helpers/GUIHelper.h"
+
+QString filterTemplateDescription(const QString& rawLine)
+{
+	const QString line = rawLine.trimmed();
+	if (line.isEmpty())
+		return QString();
+	if (line.startsWith(QLatin1Char('#')))
+		return QCoreApplication::translate("FilterPickerView", "A note EqualizerAPO skips while processing");
+
+	const int colon = line.indexOf(QLatin1Char(':'));
+	const QString command = (colon > 0 ? line.left(colon) : line).trimmed();
+
+	// Biquad templates all share the "Filter" command, so split further on the
+	// type token to give each response shape its own line. The tokens match the
+	// Soft picker's pictogram table (BiQuadFilterGUIFactory writes them).
+	if (command == QLatin1String("Filter"))
+	{
+		static const struct { const char* token; const char* description; } curves[] = {
+			{ " PK ", QT_TRANSLATE_NOOP("FilterPickerView", "Boosts or cuts a band around a center frequency") },
+			{ " LP ", QT_TRANSLATE_NOOP("FilterPickerView", "Passes the lows and rolls off above the cutoff") },
+			{ " HP ", QT_TRANSLATE_NOOP("FilterPickerView", "Passes the highs and rolls off below the cutoff") },
+			{ " BP ", QT_TRANSLATE_NOOP("FilterPickerView", "Passes a band around the center and drops the rest") },
+			{ " LS ", QT_TRANSLATE_NOOP("FilterPickerView", "Raises or lowers everything below the corner frequency") },
+			{ " HS ", QT_TRANSLATE_NOOP("FilterPickerView", "Raises or lowers everything above the corner frequency") },
+			{ " NO ", QT_TRANSLATE_NOOP("FilterPickerView", "Cuts a narrow band deeply and leaves the rest") },
+			{ " AP ", QT_TRANSLATE_NOOP("FilterPickerView", "Shifts phase around a frequency without changing level") }
+		};
+		for (const auto& curve : curves)
+			if (line.contains(QLatin1String(curve.token)))
+				return QCoreApplication::translate("FilterPickerView", curve.description);
+		return QString();
+	}
+
+	static const struct { const char* command; const char* description; } commands[] = {
+		{ "Preamp", QT_TRANSLATE_NOOP("FilterPickerView", "Applies overall gain before the other filters") },
+		{ "Delay", QT_TRANSLATE_NOOP("FilterPickerView", "Delays the signal by a time or distance") },
+		{ "Copy", QT_TRANSLATE_NOOP("FilterPickerView", "Mixes and routes the signal between channels") },
+		{ "GraphicEQ", QT_TRANSLATE_NOOP("FilterPickerView", "Sets a gain for each graphic-EQ band") },
+		{ "Convolution", QT_TRANSLATE_NOOP("FilterPickerView", "Applies an impulse response, such as a room or reverb") },
+		{ "MultiConvolution", QT_TRANSLATE_NOOP("FilterPickerView", "Convolves several inputs, as in BRIR headphone synthesis") },
+		{ "LoudnessCorrection", QT_TRANSLATE_NOOP("FilterPickerView", "Compensates hearing at low listening levels") },
+		{ "VSTPlugin", QT_TRANSLATE_NOOP("FilterPickerView", "Runs an external VST audio plugin") },
+		{ "Channel", QT_TRANSLATE_NOOP("FilterPickerView", "Selects which channels the following filters affect") },
+		{ "Device", QT_TRANSLATE_NOOP("FilterPickerView", "Limits the following filters to one device") },
+		{ "Stage", QT_TRANSLATE_NOOP("FilterPickerView", "Chooses the processing stage for the following filters") },
+		{ "Include", QT_TRANSLATE_NOOP("FilterPickerView", "Loads another configuration file here") },
+		{ "Eval", QT_TRANSLATE_NOOP("FilterPickerView", "Computes a variable from an expression") },
+		{ "If", QT_TRANSLATE_NOOP("FilterPickerView", "Applies the following filters only when a condition holds") },
+		{ "ElseIf", QT_TRANSLATE_NOOP("FilterPickerView", "Tries another condition when the previous one failed") },
+		{ "Else", QT_TRANSLATE_NOOP("FilterPickerView", "Runs when none of the conditions above matched") },
+		{ "EndIf", QT_TRANSLATE_NOOP("FilterPickerView", "Closes the conditional block") }
+	};
+	for (const auto& mapping : commands)
+		if (command == QLatin1String(mapping.command))
+			return QCoreApplication::translate("FilterPickerView", mapping.description);
+	return QString();
+}
 
 FilterPickerView::FilterPickerView(QWidget* parent)
 	: QWidget(parent)

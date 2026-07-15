@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The Soft skin's add-filter picker described each template with the raw
+  config line it would insert (`Filter: ON PK Fc 100 Hz Gain 0 dB Q 10`
+  under "Peaking filter", `Delay: 0 ms` under "Delay"), which is noise to
+  anyone not editing the syntax by hand. Every template now carries a
+  one-line, translated description of what it does ("Boosts or cuts a band
+  around a center frequency"), keyed off the command token so it stays
+  correct as the catalog grows; the raw line still lives in the row's
+  tooltip. ([#197](https://github.com/115dkk/EqualizerAPO-XT/pull/197))
 - Backend hot-path optimizations; output is bit-identical to before (the
   audio regression references did not change). Stereo — and any channels
   left over from a SIMD group — now run through a dual-chain biquad kernel
