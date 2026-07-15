@@ -318,6 +318,9 @@ void assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix()
 {
 	constexpr unsigned slotCount = 2;
 	HConvSingle* slots = static_cast<HConvSingle*>(MemoryHelper::alloc(sizeof(HConvSingle) * slotCount));
+	// cppcheck 2.21 reports a parser error on this ordinary null check after the
+	// templated/static_cast allocation expression; MSVC builds and runs the path.
+	// cppcheck-suppress syntaxError
 	if (slots == nullptr)
 		fail("could not allocate convolver slots for partial-initialization test");
 	memset(slots, 0xA5, sizeof(HConvSingle) * slotCount);

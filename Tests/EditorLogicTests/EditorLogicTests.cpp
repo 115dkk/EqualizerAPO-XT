@@ -1345,7 +1345,7 @@ void testConfigFileCodecRejectsPartialRead()
 	expectTrue(result.lines.isEmpty(), "readConfig does not expose a partial configuration");
 }
 
-void testMemoryHelperConstructReleasesStorageWhenConstructorThrows() noexcept
+void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 {
 	struct ThrowingConstructor
 	{
@@ -1394,6 +1394,9 @@ int main(int argc, char** argv)
 	testConfigFileCodec();
 	testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 	testConfigFileCodecRejectsPartialRead();
+	// The constructor exception is deliberately caught inside the test; cppcheck
+	// does not propagate that catch back through MemoryHelper::construct.
+	// cppcheck-suppress throwInEntryPoint
 	testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
 	testFilterListModel();
 	testFilterListUndo();
