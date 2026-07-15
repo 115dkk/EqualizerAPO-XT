@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
+#include <iostream>
 #include <malloc.h>
 #include <stdexcept>
 #include <thread>
@@ -1375,32 +1377,42 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 
 int main(int argc, char** argv)
 {
-	QCoreApplication app(argc, argv);
+	try
+	{
+		QCoreApplication app(argc, argv);
 
-	testConvolutionPathHelper();
-	testUpdateInfoFormatter();
-	testVelopackUpdateInfo();
-	testVelopackGitHubRelease();
-	testVelopackFeeds();
-	testFilterCardDescriptors();
-	testFilterCardDepths();
-	testConfigImport();
-	testChannelSelectionModel();
-	testDeviceSelectionModel();
-	testMultiConvolutionRoutingAdapter();
-	testStageSelectionModel();
-	testStudioRoutingModel();
-	testRoutingFold();
-	testConfigFileCodec();
-	testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
-	testConfigFileCodecRejectsPartialRead();
-	// The constructor exception is deliberately caught inside the test; cppcheck
-	// does not propagate that catch back through MemoryHelper::construct.
-	// cppcheck-suppress throwInEntryPoint
-	testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
-	testFilterListModel();
-	testFilterListUndo();
+		testConvolutionPathHelper();
+		testUpdateInfoFormatter();
+		testVelopackUpdateInfo();
+		testVelopackGitHubRelease();
+		testVelopackFeeds();
+		testFilterCardDescriptors();
+		testFilterCardDepths();
+		testConfigImport();
+		testChannelSelectionModel();
+		testDeviceSelectionModel();
+		testMultiConvolutionRoutingAdapter();
+		testStageSelectionModel();
+		testStudioRoutingModel();
+		testRoutingFold();
+		testConfigFileCodec();
+		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
+		testConfigFileCodecRejectsPartialRead();
+		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
+		testFilterListModel();
+		testFilterListUndo();
 
-	harness.report();
-	return 0;
+		harness.report();
+		return EXIT_SUCCESS;
+	}
+	catch (const std::exception& error)
+	{
+		std::cerr << "Unhandled exception escaped a test: " << error.what() << '\n';
+	}
+	catch (...)
+	{
+		std::cerr << "A non-standard exception escaped a test.\n";
+	}
+
+	return EXIT_FAILURE;
 }
