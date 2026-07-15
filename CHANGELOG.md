@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Configuration saving is now atomic and partial reads are rejected instead
+  of being applied as valid audio graphs. Filter factories, HybridConv/FFTW
+  plans, IR data, Copy/IIR state, VST instances, COM apartments, and VST3 DLL
+  factories now have explicit RAII ownership and checked external sizes.
+  Failed filter initialization rolls back the whole reload and keeps the
+  active configuration, so an allocation failure or malformed plug-in cannot
+  escape the loader and terminate the Windows audio service. The DSP hot path
+  and its operation order are unchanged. ([#198](https://github.com/115dkk/EqualizerAPO-XT/pull/198))
 - The Soft skin's add-filter picker described each template with the raw
   config line it would insert (`Filter: ON PK Fc 100 Hz Gain 0 dB Q 10`
   under "Peaking filter", `Delay: 0 ms` under "Delay"), which is noise to
