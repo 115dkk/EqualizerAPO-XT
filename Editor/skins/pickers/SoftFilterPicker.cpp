@@ -548,7 +548,11 @@ void SoftFilterPickerView::rebuildList()
 		QListWidgetItem* item = new QListWidgetItem(listWidget);
 		item->setData(EntryIndexRole, i);
 		item->setData(TitleRole, entry.name);
-		item->setData(CaptionRole, softCaption(entry.line));
+		// A calm sentence about what the filter does, not the raw config line.
+		// The catalog describes every current template; softCaption stays the
+		// fallback so a future, undescribed template still reads kindly.
+		item->setData(CaptionRole,
+			entry.description.isEmpty() ? softCaption(entry.line) : entry.description);
 		item->setData(TintRole, tint);
 		item->setData(KindRole, EntryItem);
 		item->setData(GlyphRole, entryMonograms.value(i, entry.name.left(1).toUpper()));

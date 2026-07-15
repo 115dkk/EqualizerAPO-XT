@@ -21,10 +21,21 @@ class QListWidget;
 // One insertable template, flattened from the filter GUI factories.
 struct FilterPickerEntry
 {
-	QStringList path; // category path, e.g. ["Parametric filters"]
-	QString name;     // display name, e.g. "Peaking filter"
-	QString line;     // the config line the template inserts
+	QStringList path;   // category path, e.g. ["Parametric filters"]
+	QString name;       // display name, e.g. "Peaking filter"
+	QString line;       // the config line the template inserts
+	QString description; // one-line explanation of what the template does,
+	                     // empty for templates the catalog does not yet describe
 };
+
+// A short, translated explanation of what a template does, keyed off the
+// config line it inserts (command words are stable; translated names are not,
+// the same reasoning the Soft picker uses to key its tile pictograms). Empty
+// for an unrecognised line, so a skin can fall back to its own phrasing and a
+// future template degrades gracefully instead of showing nothing. Skins show
+// this in place of the raw config line, which reads as noise to anyone who is
+// not editing the syntax by hand.
+QString filterTemplateDescription(const QString& line);
 
 // Base class for the skin-specific picker widget. The host embeds it in a
 // frameless Qt::Popup container, calls setEntries() once, and runs a local
