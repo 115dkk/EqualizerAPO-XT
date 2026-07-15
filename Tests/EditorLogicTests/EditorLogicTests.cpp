@@ -1345,7 +1345,7 @@ void testConfigFileCodecRejectsPartialRead()
 	expectTrue(result.lines.isEmpty(), "readConfig does not expose a partial configuration");
 }
 
-void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
+void testMemoryHelperConstructReleasesStorageWhenConstructorThrows() noexcept
 {
 	struct ThrowingConstructor
 	{

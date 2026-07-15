@@ -161,6 +161,11 @@ int VSTPluginLibrary::customInitialize()
 
 void VSTPluginLibrary::customUninitialize() noexcept
 {
+	releasePluginFactory();
+}
+
+void VSTPluginLibrary::releasePluginFactory() noexcept
+{
 	if (factory != nullptr)
 	{
 		factory->release();
@@ -175,7 +180,7 @@ VSTPluginLibrary::~VSTPluginLibrary()
 	// AbstractLibrary's base destructor unloads the module after this derived
 	// destructor returns. Release module-owned VST3 objects while their code is
 	// still resident.
-	customUninitialize();
+	releasePluginFactory();
 }
 
 VSTPluginLibrary::VSTPluginLibrary(const wstring& libPath)

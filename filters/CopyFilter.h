@@ -84,12 +84,12 @@ private:
 
 	struct InternalAssignment
 	{
-		int targetChannel;
+		int targetChannel = 0;
 
 		struct InternalSummand
 		{
-			double factor;
-			int channel;
+			double factor = 0.0;
+			int channel = 0;
 		};
 
 		std::vector<InternalSummand> sourceSum;

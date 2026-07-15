@@ -317,7 +317,7 @@ void assertInvalidConvolverArgumentsLeaveEmptyOutput()
 void assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix()
 {
 	constexpr unsigned slotCount = 2;
-	auto* slots = static_cast<HConvSingle*>(MemoryHelper::alloc(sizeof(HConvSingle) * slotCount));
+	HConvSingle* slots = static_cast<HConvSingle*>(MemoryHelper::alloc(sizeof(HConvSingle) * slotCount));
 	if (slots == nullptr)
 		fail("could not allocate convolver slots for partial-initialization test");
 	memset(slots, 0xA5, sizeof(HConvSingle) * slotCount);
