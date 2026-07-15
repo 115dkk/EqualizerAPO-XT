@@ -40,17 +40,17 @@ void IfFilterFactory::initialize(FilterEngine* engine)
 	this->engine = engine;
 }
 
-vector<IFilter*> IfFilterFactory::startOfConfiguration()
+FilterVector IfFilterFactory::startOfConfiguration()
 {
 	trueCount = 0;
 	falseCount = 0;
 	while (!trueCountStack.empty())
 		trueCountStack.pop();
 
-	return vector<IFilter*>();
+	return {};
 }
 
-std::vector<IFilter*> IfFilterFactory::startOfFile(const std::wstring& configPath)
+FilterVector IfFilterFactory::startOfFile(const std::wstring& configPath)
 {
 	trueCountStack.push(trueCount);
 	trueCount = 0;
@@ -61,10 +61,10 @@ std::vector<IFilter*> IfFilterFactory::startOfFile(const std::wstring& configPat
 		falseCount = 0;
 	}
 
-	return vector<IFilter*>();
+	return {};
 }
 
-vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IfCommand cmd;
 	bool isIfFamily = IfCommand::parse(command, parameters, cmd);
@@ -231,10 +231,10 @@ vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstrin
 		command = L"";
 	}
 
-	return vector<IFilter*>();
+	return {};
 }
 
-std::vector<IFilter*> IfFilterFactory::endOfFile(const std::wstring& configPath)
+FilterVector IfFilterFactory::endOfFile(const std::wstring& configPath)
 {
 	if (trueCount != 0 || falseCount != 0)
 	{
@@ -244,7 +244,7 @@ std::vector<IFilter*> IfFilterFactory::endOfFile(const std::wstring& configPath)
 	trueCount = trueCountStack.top();
 	trueCountStack.pop();
 
-	return vector<IFilter*>();
+	return {};
 }
 
 bool IfFilterFactory::toBoolean(const Value& value)

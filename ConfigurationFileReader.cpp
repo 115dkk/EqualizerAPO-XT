@@ -8,6 +8,16 @@
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
 
+namespace
+{
+std::stringstream makeFailedStream()
+{
+	std::stringstream stream;
+	stream.setstate(std::ios::badbit);
+	return stream;
+}
+}
+
 std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& path)
 {
 	DWORD error = ERROR_SUCCESS;
@@ -15,14 +25,25 @@ std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& pat
 	if (hFile == INVALID_HANDLE_VALUE)
 	{
 		LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
-		return {};
+		return makeFailedStream();
 	}
 
 	std::stringstream inputStream;
 	char buf[8192];
-	unsigned long bytesRead = 0;
-	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr) && bytesRead != 0)
+	for (;;)
+	{
+		DWORD bytesRead = 0;
+		if (!ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr))
+		{
+			error = GetLastError();
+			CloseHandle(hFile);
+			LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
+			return makeFailedStream();
+		}
+		if (bytesRead == 0)
+			break;
 		inputStream.write(buf, bytesRead);
+	}
 
 	CloseHandle(hFile);
 	inputStream.seekg(0);

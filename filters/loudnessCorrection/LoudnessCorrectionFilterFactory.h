@@ -28,5 +28,5 @@ class LoudnessCorrectionFilterFactory : public IFilterFactory
 {
 public:
 	LoudnessCorrectionFilterFactory();
-	virtual std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters);
+	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 };

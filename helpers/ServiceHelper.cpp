@@ -105,7 +105,7 @@ Service::Service(SC_HANDLE scManager, const std::wstring& serviceName, bool allo
 	DWORD desiredAccess = SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS;
 	if (allowEnumerate)
 		desiredAccess |= SERVICE_ENUMERATE_DEPENDENTS;
-	serviceHandle = OpenServiceW(scManager, serviceName.c_str(), SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS);
+	serviceHandle = OpenServiceW(scManager, serviceName.c_str(), desiredAccess);
 	if (serviceHandle == nullptr)
 		fail(L"OpenService", GetLastError());
 }

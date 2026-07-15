@@ -240,6 +240,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConfigurationFileReaderTests.cpp" />
     <ClCompile Include="EngineOrchestrationTests.cpp" />
     <ClCompile Include="SampleIoTests.cpp" />
   </ItemGroup>

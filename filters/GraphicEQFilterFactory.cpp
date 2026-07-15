@@ -31,10 +31,8 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory
 using std::vector;
 using std::wstring;
 
-vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector GraphicEQFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	GraphicEQFilter* filter = nullptr;
-
 	if (command == L"GraphicEQ")
 	{
 		// Parse the node list into the shared, Qt-free struct so the engine and the
@@ -44,10 +42,8 @@ vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath,
 
 		TraceF(L"Graphic equalizer with %d nodes", cmd.nodes.size());
 
-		filter = MemoryHelper::construct<GraphicEQFilter>(cmd.nodes, 16384);
+		return singleFilter(makeFilter<GraphicEQFilter>(cmd.nodes, 16384));
 	}
 
-	if (filter == nullptr)
-		return vector<IFilter*>(0);
-	return vector<IFilter*>(1, filter);
+	return {};
 }

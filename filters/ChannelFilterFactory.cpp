@@ -31,12 +31,11 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Channel, ChannelFilterFactory, fa
 using std::vector;
 using std::wstring;
 
-vector<IFilter*> ChannelFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector ChannelFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	ChannelCommand cmd;
 	if (!ChannelCommand::parse(command, parameters, cmd))
-		return vector<IFilter*>(0);
+		return {};
 
-	ChannelFilter* filter = MemoryHelper::construct<ChannelFilter>(cmd.channels);
-	return vector<IFilter*>(1, filter);
+	return singleFilter(makeFilter<ChannelFilter>(cmd.channels));
 }

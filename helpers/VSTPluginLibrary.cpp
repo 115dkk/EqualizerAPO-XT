@@ -159,6 +159,30 @@ int VSTPluginLibrary::customInitialize()
 	return FUNCTIONS_MISSING;
 }
 
+void VSTPluginLibrary::customUninitialize() noexcept
+{
+	releasePluginFactory();
+}
+
+void VSTPluginLibrary::releasePluginFactory() noexcept
+{
+	if (factory != nullptr)
+	{
+		factory->release();
+		factory = nullptr;
+	}
+	GetPluginFactory = nullptr;
+	VSTPluginMain = nullptr;
+}
+
+VSTPluginLibrary::~VSTPluginLibrary()
+{
+	// AbstractLibrary's base destructor unloads the module after this derived
+	// destructor returns. Release module-owned VST3 objects while their code is
+	// still resident.
+	releasePluginFactory();
+}
+
 VSTPluginLibrary::VSTPluginLibrary(const wstring& libPath)
 	: libPath(libPath), loadPath(libPath)
 {

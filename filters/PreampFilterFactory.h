@@ -28,7 +28,7 @@
 class PreampFilterFactory : public IFilterFactory
 {
 public:
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 	// Parses a "Preamp:" config line into a PreampCommand. This is the single
 	// owner of the preamp grammar: createFilter() uses it to decide whether to

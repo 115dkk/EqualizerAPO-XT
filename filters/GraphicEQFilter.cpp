@@ -20,8 +20,11 @@
 #include "stdafx.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <mutex>
+#include <new>
+#include <stdexcept>
 #include <unordered_map>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -77,10 +80,25 @@ namespace
 		}
 	};
 
-	struct EqIrCacheEntry
+	struct FftwComplexDeleter
 	{
-		std::vector<double> ir;
+		void operator()(fftw_complex* value) const noexcept
+		{
+			fftw_free(value);
+		}
 	};
+
+	struct FftwPlanDeleter
+	{
+		void operator()(fftw_plan_s* value) const noexcept
+		{
+			if (value != nullptr)
+				fftw_destroy_plan(value);
+		}
+	};
+
+	using FftwComplexPtr = std::unique_ptr<fftw_complex, FftwComplexDeleter>;
+	using FftwPlanPtr = std::unique_ptr<fftw_plan_s, FftwPlanDeleter>;
 
 	std::mutex& eqIrCacheMutex()
 	{
@@ -88,9 +106,9 @@ namespace
 		return m;
 	}
 
-	std::unordered_map<EqIrCacheKey, std::shared_ptr<const EqIrCacheEntry>, EqIrCacheKeyHash>& eqIrCache()
+	std::unordered_map<EqIrCacheKey, std::weak_ptr<const std::vector<double>>, EqIrCacheKeyHash>& eqIrCache()
 	{
-		static std::unordered_map<EqIrCacheKey, std::shared_ptr<const EqIrCacheEntry>, EqIrCacheKeyHash> c;
+		static std::unordered_map<EqIrCacheKey, std::weak_ptr<const std::vector<double>>, EqIrCacheKeyHash> c;
 		return c;
 	}
 }
@@ -108,24 +126,31 @@ const std::vector<FilterNode>& GraphicEQFilter::getNodes()
 void GraphicEQFilter::initializeFilters(unsigned frameCount)
 {
 	EqIrCacheKey key{ nodes, static_cast<int>(sampleRate), filterLength };
-	std::shared_ptr<const EqIrCacheEntry> cached;
+	std::shared_ptr<const std::vector<double>> cached;
 	{
 		std::lock_guard<std::mutex> lock(eqIrCacheMutex());
 		auto it = eqIrCache().find(key);
 		if (it != eqIrCache().end())
-			cached = it->second;
+			cached = it->second.lock();
 	}
 
 	if (!cached)
 	{
-		auto entry = std::make_shared<EqIrCacheEntry>();
-		entry->ir.resize(filterLength);
+		if (filterLength == 0 || filterLength > static_cast<unsigned>((std::numeric_limits<int>::max)() / 2))
+			throw std::invalid_argument("GraphicEQ filter length is out of range");
+
+		auto entry = std::make_shared<std::vector<double>>(filterLength);
+		const size_t fftLength = static_cast<size_t>(filterLength) * 2;
 
 		fftw_make_planner_thread_safe();
-		fftw_complex* timeData = fftw_alloc_complex(filterLength * 2);
-		fftw_complex* freqData = fftw_alloc_complex(filterLength * 2);
-		fftw_plan planForward = fftw_plan_dft_1d(filterLength * 2, timeData, freqData, FFTW_FORWARD, FFTW_ESTIMATE);
-		fftw_plan planReverse = fftw_plan_dft_1d(filterLength * 2, freqData, timeData, FFTW_BACKWARD, FFTW_ESTIMATE);
+		FftwComplexPtr timeData(fftw_alloc_complex(fftLength));
+		FftwComplexPtr freqData(fftw_alloc_complex(fftLength));
+		if (!timeData || !freqData)
+			throw std::bad_alloc();
+		FftwPlanPtr planForward(fftw_plan_dft_1d(static_cast<int>(fftLength), timeData.get(), freqData.get(), FFTW_FORWARD, FFTW_ESTIMATE));
+		FftwPlanPtr planReverse(fftw_plan_dft_1d(static_cast<int>(fftLength), freqData.get(), timeData.get(), FFTW_BACKWARD, FFTW_ESTIMATE));
+		if (!planForward || !planReverse)
+			throw std::runtime_error("Could not create GraphicEQ FFTW plans");
 
 		GainIterator gainIterator(nodes);
 		for (unsigned i = 0; i < filterLength; i++)
@@ -134,43 +159,46 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 			double dbGain = gainIterator.gainAt(freq);
 			double gain = pow(10.0, dbGain / 20.0);
 
-			freqData[i][0] = gain;
-			freqData[i][1] = 0;
-			freqData[2 * filterLength - i - 1][0] = gain;
-			freqData[2 * filterLength - i - 1][1] = 0;
+			freqData.get()[i][0] = gain;
+			freqData.get()[i][1] = 0;
+			freqData.get()[2 * filterLength - i - 1][0] = gain;
+			freqData.get()[2 * filterLength - i - 1][1] = 0;
 		}
 
-		mps(timeData, freqData, planForward, planReverse);
+		mps(timeData.get(), freqData.get(), planForward.get(), planReverse.get());
 
-		fftw_execute(planReverse);
+		fftw_execute(planReverse.get());
 
 		for (unsigned i = 0; i < 2 * filterLength; i++)
 		{
-			timeData[i][0] /= 2 * filterLength;
-			timeData[i][1] /= 2 * filterLength;
+			timeData.get()[i][0] /= 2 * filterLength;
+			timeData.get()[i][1] /= 2 * filterLength;
 		}
 
 		for (unsigned i = 0; i < filterLength; i++)
 		{
 			double factor = 0.5 * (1 + cos(2 * M_PI * i * 1.0 / (2 * filterLength)));
-			timeData[i][0] *= factor;
-			timeData[i][1] *= factor;
+			timeData.get()[i][0] *= factor;
+			timeData.get()[i][1] *= factor;
 		}
 
 		for (unsigned i = 0; i < filterLength; i++)
-			entry->ir[i] = timeData[i][0];
-
-		fftw_free(timeData);
-		fftw_free(freqData);
-		fftw_destroy_plan(planForward);
-		fftw_destroy_plan(planReverse);
+			(*entry)[i] = timeData.get()[i][0];
 
 		{
 			std::lock_guard<std::mutex> lock(eqIrCacheMutex());
-			eqIrCache().emplace(std::move(key), entry);
+			for (auto it = eqIrCache().begin(); it != eqIrCache().end();)
+			{
+				if (it->second.expired())
+					it = eqIrCache().erase(it);
+				else
+					++it;
+			}
+			eqIrCache()[std::move(key)] = entry;
 		}
 		cached = entry;
 	}
+	synthesizedIr = cached;
 
 	fftw_make_planner_thread_safe();
 	HConvSingle* allocated = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
@@ -181,11 +209,14 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		LogF(L"GraphicEQFilter: could not allocate %u filter slots", channelCount);
 		return;
 	}
-	filters.adopt(allocated, channelCount);
+	HConvSingleArray pendingFilters;
+	pendingFilters.adoptUninitialized(allocated, channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		hcInitSingle(&filters[i], const_cast<double*>(cached->ir.data()), static_cast<int>(filterLength), static_cast<int>(frameCount), 1);
+		hcInitSingle(&pendingFilters[i], const_cast<double*>(cached->data()), static_cast<int>(filterLength), static_cast<int>(frameCount), 1);
+		pendingFilters.markInitialized();
 	}
+	filters = std::move(pendingFilters);
 }
 
 // Minimum phase spectrum from coefficients

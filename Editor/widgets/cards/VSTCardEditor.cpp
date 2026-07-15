@@ -590,7 +590,6 @@ void VSTCardEditor::updatePermissionWarning()
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "helpers/VSTPluginLibrary.h"
-#include "helpers/MemoryHelper.h"
 
 REGISTER_FILTER_CARD_EDITOR(vstplugin, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
 	// Parse the line into the engine's VST filter (no plugin DLL is loaded
@@ -599,21 +598,16 @@ REGISTER_FILTER_CARD_EDITOR(vstplugin, [](FilterTable*, const QString&, const QS
 	VSTPluginFilterFactory factory;
 	std::wstring commandWStr = L"VSTPlugin";
 	std::wstring paramWStr = parameters.toStdWString();
-	std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
+	FilterVector filters = factory.createFilter(L"", commandWStr, paramWStr);
 	VSTCardEditor* editor;
 	if (!filters.empty())
 	{
-		VSTPluginFilter* filter = static_cast<VSTPluginFilter*>(filters[0]);
+		VSTPluginFilter* filter = static_cast<VSTPluginFilter*>(filters[0].get());
 		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap());
 	}
 	else
 	{
 		editor = new VSTCardEditor(VSTPluginLibrary::getInstance(L""), L"", std::unordered_map<std::wstring, float>());
-	}
-	for (IFilter* f : filters)
-	{
-		f->~IFilter();
-		MemoryHelper::free(f);
 	}
 	return editor;
 })

@@ -32,6 +32,7 @@ public:
 	HRESULT getVolume(double& currentVolume);
 	HRESULT setVolume(double volume);
 private:
+	winutil::ComApartment _comApartment;
 	winutil::ComPtr<IAudioEndpointVolume> _endpointVolume;
 	float _minVol = 0.0f;
 	float _maxVol = 0.0f;

@@ -29,7 +29,7 @@ class IIRFilterFactory : public IFilterFactory
 {
 public:
 	IIRFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
 	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient

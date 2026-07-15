@@ -21,6 +21,7 @@
 #include <atomic>
 #include <cmath>
 #include <memory>
+#include <utility>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <fftw3.h>
@@ -152,12 +153,15 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		LogF(L"ConvolutionFilter: could not allocate %u filter slots", channelCount);
 		return;
 	}
-	filters.adopt(allocated, channelCount);
+	HConvSingleArray pendingFilters;
+	pendingFilters.adoptUninitialized(allocated, channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		// hcInitSingle reads the IR samples during planning but does not retain
 		// the pointer, so it is safe to feed it the shared cache buffer.
 		const std::vector<double>& src = ir->buffers[i % ir->channels];
-		hcInitSingle(&filters[i], const_cast<double*>(src.data()), static_cast<int>(ir->frames), static_cast<int>(frameCount), 1);
+		hcInitSingle(&pendingFilters[i], const_cast<double*>(src.data()), static_cast<int>(ir->frames), static_cast<int>(frameCount), 1);
+		pendingFilters.markInitialized();
 	}
+	filters = std::move(pendingFilters);
 }

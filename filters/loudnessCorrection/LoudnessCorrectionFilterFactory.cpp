@@ -41,9 +41,9 @@ LoudnessCorrectionFilterFactory::LoudnessCorrectionFilterFactory()
 {
 }
 
-vector<IFilter*> LoudnessCorrectionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector LoudnessCorrectionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	vector<IFilter*> allFilter(0);
+	FilterVector allFilters;
 
 	LoudnessCorrectionCommand cmd;
 	if (LoudnessCorrectionCommand::parse(command, parameters, cmd))
@@ -54,9 +54,8 @@ vector<IFilter*> LoudnessCorrectionFilterFactory::createFilter(const wstring& co
 		filterParameters.referenceLevel = cmd.referenceLevel;
 		filterParameters.referenceOffset = cmd.referenceOffset;
 		filterParameters.attenuation = cmd.attenuation;
-		void* mem = MemoryHelper::alloc(sizeof(LoudnessCorrectionFilter));
-		allFilter.push_back(new(mem) LoudnessCorrectionFilter(filterParameters));
+		allFilters.push_back(makeFilter<LoudnessCorrectionFilter>(filterParameters));
 	}
 
-	return allFilter;
+	return allFilters;
 }

@@ -19,9 +19,11 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
@@ -49,10 +51,10 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, d
 
 // RAII owner for a flat HConvSingle array. The array is a single block
 // allocated with MemoryHelper::alloc(sizeof(HConvSingle) * count) and must be
-// torn down by closing every element (hcCloseSingle) before freeing the block.
-// Wrapping it makes that teardown automatic and idempotent. The element count
-// is stored by value at adopt() time rather than read from an owner member,
-// so it does not depend on member declaration order.
+// torn down by closing every successfully initialized element (hcCloseSingle)
+// before freeing the block. Wrapping it makes partial-initialization rollback
+// automatic and idempotent. Counts are stored in the owner rather than read
+// from a filter member, so teardown does not depend on declaration order.
 class HConvSingleArray
 {
 public:
@@ -61,6 +63,27 @@ public:
 
 	HConvSingleArray(const HConvSingleArray&) = delete;
 	HConvSingleArray& operator=(const HConvSingleArray&) = delete;
+	HConvSingleArray(HConvSingleArray&& other) noexcept
+		: ptr(other.ptr), capacity(other.capacity), initializedCount(other.initializedCount)
+	{
+		other.ptr = nullptr;
+		other.capacity = 0;
+		other.initializedCount = 0;
+	}
+	HConvSingleArray& operator=(HConvSingleArray&& other) noexcept
+	{
+		if (this != &other)
+		{
+			reset();
+			ptr = other.ptr;
+			capacity = other.capacity;
+			initializedCount = other.initializedCount;
+			other.ptr = nullptr;
+			other.capacity = 0;
+			other.initializedCount = 0;
+		}
+		return *this;
+	}
 
 	// Take ownership of a freshly allocated block holding `newCount` elements.
 	// Any previously held block is torn down first using the same
@@ -70,7 +93,27 @@ public:
 		if (newPtr != ptr)
 			reset();
 		ptr = newPtr;
-		count = newCount;
+		capacity = newCount;
+		initializedCount = newCount;
+	}
+
+	// Take ownership before initialization starts, then register each element
+	// only after hcInitSingle has committed it. If a later initialization
+	// throws, reset() closes the completed prefix and never reads untouched
+	// allocation bytes.
+	void adoptUninitialized(HConvSingle* newPtr, unsigned newCapacity)
+	{
+		if (newPtr != ptr)
+			reset();
+		ptr = newPtr;
+		capacity = newCapacity;
+		initializedCount = 0;
+	}
+
+	void markInitialized() noexcept
+	{
+		assert(initializedCount < capacity);
+		initializedCount++;
 	}
 
 	HConvSingleArray& operator=(std::nullptr_t)
@@ -84,10 +127,11 @@ public:
 	// (filters[i], &filters[i], filters == nullptr, hcInitSingle(&filters[i], ...)).
 	operator HConvSingle*() const { return ptr; }
 
-	// Close every element (hcCloseSingle), then free the block.
+	// Close the successfully initialized prefix, then free the whole block.
 	void reset();
 
 private:
 	HConvSingle* ptr = nullptr;
-	unsigned count = 0;
+	unsigned capacity = 0;
+	unsigned initializedCount = 0;
 };

@@ -54,13 +54,13 @@ using std::vector;
 using std::wstring;
 
 
-void FilterEngine::addFilters(const vector<IFilter*>& filters)
+void FilterEngine::addFilters(FilterVector filters)
 {
-	for (vector<IFilter*>::const_iterator it = filters.begin(); it != filters.end(); it++)
+	for (FilterPtr& ownedFilter : filters)
 	{
-		IFilter* filter = *it;
 		auto filterInfo = make_unique<FilterInfo>();
-		filterInfo->filter.reset(filter);
+		filterInfo->filter = move(ownedFilter);
+		IFilter* filter = filterInfo->filter.get();
 		filterInfo->inPlace = filter->getInPlace();
 		vector<wstring> savedChannelNames = currentChannelNames;
 		bool allChannels = filter->getAllChannels();
@@ -247,7 +247,13 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 				break;
 			}
 
-			engine->loadConfig();
+			const bool loaded = engine->loadConfig();
+			// A successful reload normally keeps the permit until the RT thread
+			// finishes the crossfade. Failed loads publish nothing, and a recovery
+			// load after an initially missing configuration installs currentConfig
+			// directly; both cases must return the permit here.
+			if (!loaded || !engine->nextConfigReady.load(std::memory_order_acquire))
+				engine->releaseLoadPermit();
 			FindNextChangeNotification(notificationHandle);
 			registryEvent.reset();
 		}

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <string.h>
 #include <unordered_map>
@@ -77,6 +78,34 @@ struct HConvSingleStorage
 	std::vector<double*> mixImagPtrs;
 	HcAlignedPtr<double> historyTime;
 };
+
+namespace
+{
+class HcPlanOwner
+{
+public:
+	explicit HcPlanOwner(fftw_plan plan = nullptr) noexcept : plan(plan) {}
+	~HcPlanOwner()
+	{
+		if (plan != nullptr)
+			fftw_destroy_plan(plan);
+	}
+
+	HcPlanOwner(const HcPlanOwner&) = delete;
+	HcPlanOwner& operator=(const HcPlanOwner&) = delete;
+
+	fftw_plan get() const noexcept { return plan; }
+	fftw_plan release() noexcept
+	{
+		fftw_plan result = plan;
+		plan = nullptr;
+		return result;
+	}
+
+private:
+	fftw_plan plan;
+};
+}
 
 
 
@@ -441,83 +470,96 @@ static inline void copy_split_complex_vec(const fftw_complex* __restrict src,
 }
 void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps)
 {
-	int i, j, size, num, pos;
+	if (filter == nullptr)
+		throw std::invalid_argument("hcInitSingle requires an output filter");
+
+	if (h == nullptr)
+		throw std::invalid_argument("hcInitSingle requires impulse-response samples");
+	if (hlen <= 0 || flen <= 0 || steps <= 0)
+		throw std::invalid_argument("hcInitSingle lengths and step count must be positive");
+	if (flen > (std::numeric_limits<int>::max)() / 2)
+		throw std::length_error("hcInitSingle frame length is too large");
+	if (steps == (std::numeric_limits<int>::max)())
+		throw std::length_error("hcInitSingle step count is too large");
+
+	int i, j, num, pos;
 	double gain;
-	// The struct may come from uninitialized stack or heap memory, so the old
-	// storage pointer must not be read here. Every init pairs with a
-	// hcCloseSingle, which frees it.
-	filter->storage = new HConvSingleStorage();
-	auto& storage = *filter->storage;
+	const size_t frameLength = static_cast<size_t>(flen);
+	const size_t dftLength = checkedHcMultiply(frameLength, 2);
+	const size_t complexLength = frameLength + 1;
+	const size_t filterSegmentCount =
+		(static_cast<size_t>(hlen) + frameLength - 1) / frameLength;
+	if (filterSegmentCount >= static_cast<size_t>((std::numeric_limits<int>::max)()))
+		throw std::length_error("hcInitSingle requires too many partitions");
 
-	filter->step = 0;
-	filter->maxstep = steps;
-	filter->mixpos = 0;
-	filter->framelength = flen;
+	const size_t planeStride = (complexLength + 7) & ~static_cast<size_t>(7);
+	const size_t partitionStride = checkedHcMultiply(planeStride, 2);
+	const size_t filterSlabElements = checkedHcMultiply(filterSegmentCount, partitionStride);
+	const size_t mixSegmentCount = filterSegmentCount + 1;
+	const size_t mixSlabElements = checkedHcMultiply(mixSegmentCount, partitionStride);
 
-	size = sizeof *filter->dft_time * 2 * flen;
-	storage.dftTime = makeHcAlignedArray<double>(2 * (size_t)flen);
-	filter->dft_time = storage.dftTime.get();
+	HConvSingle temp = {};
+	auto storageOwner = std::make_unique<HConvSingleStorage>();
+	auto& storage = *storageOwner;
 
-	size = sizeof(fftw_complex) * (flen + 1);
-	storage.dftFreq = makeHcAlignedArray<fftw_complex>((size_t)flen + 1);
-	filter->dft_freq = storage.dftFreq.get();
+	temp.step = 0;
+	temp.maxstep = steps;
+	temp.mixpos = 0;
+	temp.framelength = flen;
 
-	size = sizeof *filter->in_freq_real * (flen + 1);
-	storage.inFreqReal = makeHcAlignedArray<double>((size_t)flen + 1);
-	storage.inFreqImag = makeHcAlignedArray<double>((size_t)flen + 1);
-	filter->in_freq_real = storage.inFreqReal.get();
-	filter->in_freq_imag = storage.inFreqImag.get();
+	storage.dftTime = makeHcAlignedArray<double>(dftLength);
+	temp.dft_time = storage.dftTime.get();
+	storage.dftFreq = makeHcAlignedArray<fftw_complex>(complexLength);
+	temp.dft_freq = storage.dftFreq.get();
+	storage.inFreqReal = makeHcAlignedArray<double>(complexLength);
+	storage.inFreqImag = makeHcAlignedArray<double>(complexLength);
+	temp.in_freq_real = storage.inFreqReal.get();
+	temp.in_freq_imag = storage.inFreqImag.get();
 
-	filter->num_filterbuf = (hlen + flen - 1) / flen;
-
-	size = sizeof *filter->steptask * (steps + 1);
-	storage.stepTask.resize((size_t)steps + 1);
-	filter->steptask = storage.stepTask.data();
-	num = filter->num_filterbuf / steps;
+	temp.num_filterbuf = static_cast<int>(filterSegmentCount);
+	storage.stepTask.resize(static_cast<size_t>(steps) + 1);
+	temp.steptask = storage.stepTask.data();
+	num = temp.num_filterbuf / steps;
 	for (i = 0; i <= steps; i++)
-		filter->steptask[i] = i * num;
-	pos = (filter->steptask[1] == 0) ? 1 : 2;
-	num = filter->num_filterbuf % steps;
+		temp.steptask[i] = i * num;
+	pos = (temp.steptask[1] == 0) ? 1 : 2;
+	num = temp.num_filterbuf % steps;
 	for (j = pos; j < pos + num; j++) {
 		for (i = j; i <= steps; i++)
-			filter->steptask[i]++;
+			temp.steptask[i]++;
 	}
 
 	// Each plane is padded to a whole number of cache lines so every real and
 	// imag plane starts 64-byte aligned; a partition is [real|imag]. The
 	// memset doubles as a pre-touch so first use on the audio thread does not
 	// take the soft page faults.
-	const size_t planeStride = ((size_t)flen + 1 + 7) & ~(size_t)7;
-	const size_t partitionStride = 2 * planeStride;
-
-	storage.filterSlab = makeHcSlab<double>((size_t)filter->num_filterbuf * partitionStride);
-	storage.filterRealPtrs.resize(filter->num_filterbuf);
-	storage.filterImagPtrs.resize(filter->num_filterbuf);
-	filter->filterbuf_freq_real = storage.filterRealPtrs.data();
-	filter->filterbuf_freq_imag = storage.filterImagPtrs.data();
-	for (i = 0; i < filter->num_filterbuf; i++) {
-		filter->filterbuf_freq_real[i] = storage.filterSlab.get() + (size_t)i * partitionStride;
-		filter->filterbuf_freq_imag[i] = filter->filterbuf_freq_real[i] + planeStride;
+	storage.filterSlab = makeHcSlab<double>(filterSlabElements);
+	storage.filterRealPtrs.resize(filterSegmentCount);
+	storage.filterImagPtrs.resize(filterSegmentCount);
+	temp.filterbuf_freq_real = storage.filterRealPtrs.data();
+	temp.filterbuf_freq_imag = storage.filterImagPtrs.data();
+	for (i = 0; i < temp.num_filterbuf; i++) {
+		temp.filterbuf_freq_real[i] = storage.filterSlab.get() + (size_t)i * partitionStride;
+		temp.filterbuf_freq_imag[i] = temp.filterbuf_freq_real[i] + planeStride;
 	}
-	memset(storage.filterSlab.get(), 0, (size_t)filter->num_filterbuf * partitionStride * sizeof(double));
+	memset(storage.filterSlab.get(), 0, checkedHcMultiply(filterSlabElements, sizeof(double)));
 
-	filter->num_mixbuf = filter->num_filterbuf + 1;
+	temp.num_mixbuf = static_cast<int>(mixSegmentCount);
 
-	storage.mixSlab = makeHcSlab<double>((size_t)filter->num_mixbuf * partitionStride);
-	storage.mixRealPtrs.resize(filter->num_mixbuf);
-	storage.mixImagPtrs.resize(filter->num_mixbuf);
-	filter->mixbuf_freq_real = storage.mixRealPtrs.data();
-	filter->mixbuf_freq_imag = storage.mixImagPtrs.data();
-	for (i = 0; i < filter->num_mixbuf; i++) {
-		filter->mixbuf_freq_real[i] = storage.mixSlab.get() + (size_t)i * partitionStride;
-		filter->mixbuf_freq_imag[i] = filter->mixbuf_freq_real[i] + planeStride;
+	storage.mixSlab = makeHcSlab<double>(mixSlabElements);
+	storage.mixRealPtrs.resize(mixSegmentCount);
+	storage.mixImagPtrs.resize(mixSegmentCount);
+	temp.mixbuf_freq_real = storage.mixRealPtrs.data();
+	temp.mixbuf_freq_imag = storage.mixImagPtrs.data();
+	for (i = 0; i < temp.num_mixbuf; i++) {
+		temp.mixbuf_freq_real[i] = storage.mixSlab.get() + (size_t)i * partitionStride;
+		temp.mixbuf_freq_imag[i] = temp.mixbuf_freq_real[i] + planeStride;
 	}
-	memset(storage.mixSlab.get(), 0, (size_t)filter->num_mixbuf * partitionStride * sizeof(double));
+	memset(storage.mixSlab.get(), 0, checkedHcMultiply(mixSlabElements, sizeof(double)));
 
-	size = sizeof *filter->history_time * flen;
-	storage.historyTime = makeHcAlignedArray<double>(flen);
-	filter->history_time = storage.historyTime.get();
-	memset(filter->history_time, 0, size);
+	storage.historyTime = makeHcAlignedArray<double>(frameLength);
+	temp.history_time = storage.historyTime.get();
+	memset(temp.history_time, 0, checkedHcMultiply(frameLength, sizeof(double)));
 
 	// When a cached wisdom file exists we use FFTW_MEASURE — planner returns immediately from the cache,
 	// giving the optimized plan without the multi-second learning cost. Without wisdom we fall back to
@@ -542,54 +584,76 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 			});
 		}
 		unsigned fftw_flags = (wisdomAvailable ? FFTW_MEASURE : FFTW_ESTIMATE) | FFTW_PRESERVE_INPUT;
-		filter->fft = fftw_plan_dft_r2c_1d(2 * flen, filter->dft_time, filter->dft_freq, fftw_flags);
-		filter->ifft = fftw_plan_dft_c2r_1d(2 * flen, filter->dft_freq, filter->dft_time, fftw_flags);
+		HcPlanOwner fft(fftw_plan_dft_r2c_1d(2 * flen, temp.dft_time, temp.dft_freq, fftw_flags));
+		if (fft.get() == nullptr)
+			throw std::runtime_error("FFTW could not create the forward convolution plan");
+		HcPlanOwner ifft(fftw_plan_dft_c2r_1d(2 * flen, temp.dft_freq, temp.dft_time, fftw_flags));
+		if (ifft.get() == nullptr)
+			throw std::runtime_error("FFTW could not create the inverse convolution plan");
+
+		temp.fft = fft.release();
+		temp.ifft = ifft.release();
 	}
+	HcPlanOwner fft(temp.fft);
+	HcPlanOwner ifft(temp.ifft);
+	temp.fft = nullptr;
+	temp.ifft = nullptr;
 
 	gain = 0.5 / flen;
 
-	memset(filter->dft_time, 0, sizeof *filter->dft_time * 2 * flen);
+	memset(temp.dft_time, 0, checkedHcMultiply(dftLength, sizeof(double)));
 
 	// Full-length segments
-	for (i = 0; i < filter->num_filterbuf - 1; i++) {
+	for (i = 0; i < temp.num_filterbuf - 1; i++) {
 		// dft_time[0:flen] = gain * h[i * flen + 0 : + flen]
-		mul_store_gain_double(filter->dft_time, h + (size_t)i * flen, flen, gain);
+		mul_store_gain_double(temp.dft_time, h + (size_t)i * flen, flen, gain);
 
-		fftw_execute(filter->fft);
+		fftw_execute(fft.get());
 
 		// Split complex to separate real/imag buffers
-		copy_split_complex_vec((const fftw_complex*)filter->dft_freq,
-			filter->filterbuf_freq_real[i],
-			filter->filterbuf_freq_imag[i],
+		copy_split_complex_vec((const fftw_complex*)temp.dft_freq,
+			temp.filterbuf_freq_real[i],
+			temp.filterbuf_freq_imag[i],
 			flen + 1);
 	}
 
 	// Tail (possibly partial) segment
 	int last_segment_len = hlen - i * flen;
 	if (last_segment_len > 0) {
-		mul_store_gain_double(filter->dft_time, h + (size_t)i * flen, last_segment_len, gain);
+		mul_store_gain_double(temp.dft_time, h + (size_t)i * flen, last_segment_len, gain);
 		// zero the remainder up to 2*flen
-		memset(&filter->dft_time[last_segment_len], 0,
-			sizeof *filter->dft_time * (2 * (size_t)flen - (size_t)last_segment_len));
+		memset(&temp.dft_time[last_segment_len], 0,
+			checkedHcMultiply(dftLength - (size_t)last_segment_len, sizeof(double)));
 	}
 	else {
 		// No tail data: ensure the time buffer is zeroed
-		memset(filter->dft_time, 0, sizeof *filter->dft_time * 2 * flen);
+		memset(temp.dft_time, 0, checkedHcMultiply(dftLength, sizeof(double)));
 	}
 
-	fftw_execute(filter->fft);
-	copy_split_complex_vec((const fftw_complex*)filter->dft_freq,
-		filter->filterbuf_freq_real[i],
-		filter->filterbuf_freq_imag[i],
+	fftw_execute(fft.get());
+	copy_split_complex_vec((const fftw_complex*)temp.dft_freq,
+		temp.filterbuf_freq_real[i],
+		temp.filterbuf_freq_imag[i],
 		flen + 1);
+
+	temp.fft = fft.release();
+	temp.ifft = ifft.release();
+	temp.storage = storageOwner.release();
+	// Publish only after every allocation, plan, and initial transform has
+	// succeeded. A throwing path never exposes partial ownership to the caller.
+	*filter = temp;
 }
 
 void hcCloseSingle(HConvSingle* filter)
 {
-	fftw_destroy_plan(filter->ifft);
-	fftw_destroy_plan(filter->fft);
+	if (filter == nullptr)
+		return;
+	if (filter->ifft != nullptr)
+		fftw_destroy_plan(filter->ifft);
+	if (filter->fft != nullptr)
+		fftw_destroy_plan(filter->fft);
 	delete filter->storage;
-	memset(filter, 0, sizeof(HConvSingle));
+	*filter = {};
 }
 
 // The dual/triple-segment (low-latency) API lives in

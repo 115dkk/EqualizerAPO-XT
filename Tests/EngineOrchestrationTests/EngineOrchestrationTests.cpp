@@ -430,6 +430,30 @@ void testConfigSwapCrossfades(test::Harness& harness)
 	harness.expect(std::fabs(finalRight - target) < 1e-4f, "right channel did not converge to the new config gain");
 }
 
+// A reload is one transaction: filters may have been constructed and
+// initialized, but the active configuration must not change unless the final
+// FilterConfiguration allocation also succeeds. This injects failure at that
+// exact allocation (one PreampFilter allocation succeeds first).
+void testFailedConfigLoadKeepsActiveConfiguration(test::Harness& harness)
+{
+	std::wstring configA = writeConfig(harness, L"transaction_a.txt", "Preamp: -6.0206 dB\n");
+	std::wstring configB = writeConfig(harness, L"transaction_b.txt", "Preamp: -20 dB\n");
+
+	FilterEngine engine;
+	initializeEngine(engine, 48000, 2, 480, configA);
+	std::vector<float> before = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expect(std::fabs(before[0] - 0.5f) < 1e-3f, "transaction test did not establish config A");
+
+	MemoryHelper::failAllocationAfterForTesting(1);
+	bool loaded = engine.loadConfig(configB);
+	MemoryHelper::resetAllocationFailureForTesting();
+	harness.expectFalse(loaded, "reload reported success after injected FilterConfiguration allocation failure");
+
+	std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
+	harness.expect(std::fabs(after[0] - 0.5f) < 1e-3f,
+		"failed reload replaced or damaged the active configuration");
+}
+
 // process() can arrive before initialize(), and initialize() can finish
 // without loading any configuration (unreadable ConfigPath and no custom
 // path). Both leave currentConfig null; every overload must pass audio
@@ -542,6 +566,7 @@ void testConfigLoadTrace(test::Harness& harness)
 
 // Defined in SampleIoTests.cpp next to this file.
 void runSampleIoTests(test::Harness& harness);
+void runConfigurationFileReaderTests(test::Harness& harness);
 
 int main()
 {
@@ -550,11 +575,13 @@ int main()
 	test::Harness harness("EngineOrchestrationTests");
 
 	testProcessWithoutConfigurationDoesNotCrash(harness);
+	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
 	testChannelSelectorRouting(harness);
 	testCopySwapsChannels(harness);
 	testMultiConvolutionIgnoresChannelSelection(harness);
 	testConfigSwapCrossfades(harness);
+	testFailedConfigLoadKeepsActiveConfiguration(harness);
 	testRealBrirCrossfeed(harness);
 	testConfigLoadTrace(harness);
 

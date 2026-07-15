@@ -8,6 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 설정 저장을 원자적으로 바꾸고, 일부만 읽힌 설정은 정상 오디오 그래프로
+  적용하지 않게 했습니다. 필터 팩터리, HybridConv/FFTW 플랜, IR 데이터,
+  Copy/IIR 상태, VST 인스턴스, COM 아파트먼트와 VST3 DLL 팩터리에 명시적인
+  RAII 소유권과 외부 크기 검증을 적용했습니다. 필터 초기화가 실패하면 설정
+  재로딩 전체를 되돌리고 기존 설정을 유지하므로, 할당 실패나 손상된
+  플러그인의 예외가 로더 밖으로 빠져나가 Windows 오디오 서비스를 종료하지
+  않습니다. DSP 핫패스와 연산 순서는 바꾸지 않았습니다.
+  ([#198](https://github.com/115dkk/EqualizerAPO-XT/pull/198))
 - Soft 스킨의 필터 추가 목록이 각 템플릿을 삽입할 설정 줄 그대로
   ("피킹 필터" 밑에 `Filter: ON PK Fc 100 Hz Gain 0 dB Q 10`, "지연" 밑에
   `Delay: 0 ms`) 설명하던 것을 고쳤습니다. 문법을 직접 편집하지 않는

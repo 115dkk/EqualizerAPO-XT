@@ -61,9 +61,9 @@ bool PreampFilterFactory::parseCommand(const wstring& command, const wstring& pa
 	return true;
 }
 
-vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	PreampFilter* filter = nullptr;
+	FilterPtr filter;
 
 	PreampCommand cmd;
 	if (parseCommand(command, parameters, cmd))
@@ -78,7 +78,7 @@ vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, ws
 			{
 				TraceF(L"Adjusting preamp by %g dB", cmd.dbGain);
 
-				filter = MemoryHelper::construct<PreampFilter>(cmd.dbGain);
+				filter = makeFilter<PreampFilter>(cmd.dbGain);
 			}
 		}
 		else
@@ -88,6 +88,6 @@ vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, ws
 	}
 
 	if (filter == nullptr)
-		return vector<IFilter*>(0);
-	return vector<IFilter*>(1, filter);
+		return {};
+	return singleFilter(std::move(filter));
 }

@@ -83,16 +83,29 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 	out.order = order;
 	out.coefficients.clear();
 	for (const wstring& coefficientString : coefficientStrings)
-		out.coefficients.push_back(StringHelper::parseDouble(coefficientString));
+	{
+		double coefficient = StringHelper::parseDouble(coefficientString);
+		if (!std::isfinite(coefficient))
+		{
+			LogFStatic(L"IIR coefficients must be finite");
+			return false;
+		}
+		out.coefficients.push_back(coefficient);
+	}
+	if (out.coefficients[order + 1] == 0.0)
+	{
+		LogFStatic(L"IIR a0 coefficient must not be zero");
+		return false;
+	}
 
 	return true;
 }
 
-vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IIRCommand cmd;
 	if (!parseCommand(command, parameters, cmd))
-		return vector<IFilter*>(0);
+		return {};
 
 	wstringstream stream;
 	stream << L"Adding IIR filter of order " << cmd.order << " with coefficients";
@@ -103,6 +116,5 @@ vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstri
 
 	TraceF(L"%s", stream.str().c_str());
 
-	IIRFilter* filter = MemoryHelper::construct<IIRFilter>(cmd.coefficients);
-	return vector<IFilter*>(1, filter);
+	return singleFilter(makeFilter<IIRFilter>(cmd.coefficients));
 }

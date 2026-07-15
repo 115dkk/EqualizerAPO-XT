@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <system_error>
 #include <utility>
 
 class Win32Event
@@ -11,6 +12,8 @@ public:
 	Win32Event(bool manualReset, bool initialState)
 		: handle(CreateEventW(nullptr, manualReset, initialState, nullptr))
 	{
+		if (handle == nullptr)
+			throw std::system_error(static_cast<int>(GetLastError()), std::system_category(), "CreateEventW");
 	}
 
 	~Win32Event()

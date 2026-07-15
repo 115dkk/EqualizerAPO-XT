@@ -46,6 +46,8 @@ private:
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	size_t channelCount = 0;
+	unsigned effectInputCount = 0;
+	unsigned effectOutputCount = 0;
 	unsigned effectChannelCount = 0;
 	size_t effectCount = 0;
 	VSTPluginInstance** effects = nullptr;

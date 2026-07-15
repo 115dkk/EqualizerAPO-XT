@@ -84,19 +84,17 @@ private:
 
 	struct InternalAssignment
 	{
-		int targetChannel;
+		int targetChannel = 0;
 
 		struct InternalSummand
 		{
-			double factor;
-			int channel;
+			double factor = 0.0;
+			int channel = 0;
 		};
 
-		InternalSummand* sourceSum;
-		unsigned sourceCount;
+		std::vector<InternalSummand> sourceSum;
 	};
 
-	InternalAssignment* internalAssignments;
-	unsigned assignmentCount;
+	std::vector<InternalAssignment> internalAssignments;
 };
 #pragma AVRT_VTABLES_END

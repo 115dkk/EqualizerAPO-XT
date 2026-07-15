@@ -39,6 +39,7 @@ public:
 protected:
 	virtual bool loadFunctions() = 0;
 	virtual int customInitialize();
+	virtual void customUninitialize() noexcept;
 
 	HMODULE module = nullptr;
 

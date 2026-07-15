@@ -10,7 +10,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define WIN32_LEAN_AND_MEAN
@@ -20,7 +24,9 @@
 
 #include "filters/ConvolutionFilter.h"
 #include "filters/ConvolutionFilePath.h"
+#include "filters/IrCache.h"
 #include "helpers/LogHelper.h"
+#include "helpers/MemoryHelper.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 #include "Tests/TestHarness.h"
 
@@ -265,6 +271,71 @@ void assertPartitionBuffersFormOneSlab()
 	hcCloseSingle(&filter);
 }
 
+void assertEmptyConvolverCloseIsIdempotent()
+{
+	HConvSingle filter = {};
+	hcCloseSingle(nullptr);
+	hcCloseSingle(&filter);
+	vector<double> impulseResponse(1, 1.0);
+	hcInitSingle(&filter, impulseResponse.data(), 1, 8, 1);
+	hcCloseSingle(&filter);
+	hcCloseSingle(&filter);
+
+	harness.expect(filter.storage == nullptr, "closing an empty convolver should preserve its empty state");
+}
+
+void assertInvalidConvolverArgumentsLeaveEmptyOutput()
+{
+	vector<double> impulseResponse(1, 1.0);
+	HConvSingle filter = {};
+	bool rejected = false;
+	try
+	{
+		hcInitSingle(&filter, impulseResponse.data(), 1, 1, 0);
+	}
+	catch (const std::invalid_argument&)
+	{
+		rejected = true;
+	}
+
+	harness.expect(rejected, "hcInitSingle should reject a zero processing-step count");
+	harness.expect(filter.storage == nullptr, "failed hcInitSingle should leave a safely closable empty output");
+	hcCloseSingle(&filter);
+
+	rejected = false;
+	try
+	{
+		hcInitSingle(&filter, impulseResponse.data(), 1, (std::numeric_limits<int>::max)(), 1);
+	}
+	catch (const std::length_error&)
+	{
+		rejected = true;
+	}
+	harness.expect(rejected, "hcInitSingle should reject a frame length that overflows FFTW's transform size");
+}
+
+void assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix()
+{
+	constexpr unsigned slotCount = 2;
+	HConvSingle* slots = static_cast<HConvSingle*>(MemoryHelper::alloc(sizeof(HConvSingle) * slotCount));
+	// cppcheck 2.21 reports a parser error on this ordinary null check after the
+	// templated/static_cast allocation expression; MSVC builds and runs the path.
+	// cppcheck-suppress syntaxError
+	if (slots == nullptr)
+		fail("could not allocate convolver slots for partial-initialization test");
+	memset(slots, 0xA5, sizeof(HConvSingle) * slotCount);
+
+	HConvSingleArray pending;
+	pending.adoptUninitialized(slots, slotCount);
+	vector<double> impulseResponse(1, 1.0);
+	hcInitSingle(&pending[0], impulseResponse.data(), 1, 8, 1);
+	pending.markInitialized();
+
+	HConvSingleArray owner(std::move(pending));
+	owner.reset();
+	owner.reset();
+}
+
 void assertConvolutionPathParsing()
 {
 	_wputenv_s(L"EAPO_XT_TEST_IR_DIR", L"C:\\Impulse Responses");
@@ -282,6 +353,7 @@ void assertConvolutionPathParsing()
 		ConvolutionFilePath::resolve(L"C:\\EqualizerAPO\\config\\config.txt", L"") == L"",
 		"empty convolution path should remain empty");
 }
+
 }
 
 int main()
@@ -292,6 +364,9 @@ int main()
 	assertSparseImpulseResponseSurvivesPastOneSecond(137);
 	assertConvolutionFilterRecoversFromInitialShortFrame();
 	assertPartitionBuffersFormOneSlab();
+	assertEmptyConvolverCloseIsIdempotent();
+	assertInvalidConvolverArgumentsLeaveEmptyOutput();
+	assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix();
 	assertConvolutionPathParsing();
 
 	// Pure-logic helper, command-codec and parser-extension coverage that also

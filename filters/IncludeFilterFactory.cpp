@@ -39,21 +39,21 @@ void IncludeFilterFactory::initialize(FilterEngine* engine)
 	this->engine = engine;
 }
 
-vector<IFilter*> IncludeFilterFactory::startOfConfiguration()
+FilterVector IncludeFilterFactory::startOfConfiguration()
 {
 	recursionDepth = -1;
 
-	return vector<IFilter*>();
+	return {};
 }
 
-vector<IFilter*> IncludeFilterFactory::startOfFile(const wstring& configPath)
+FilterVector IncludeFilterFactory::startOfFile(const wstring& configPath)
 {
 	recursionDepth++;
 
-	return vector<IFilter*>();
+	return {};
 }
 
-vector<IFilter*> IncludeFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector IncludeFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IncludeCommand cmd;
 	if (IncludeCommand::parse(command, parameters, cmd))
@@ -81,12 +81,12 @@ vector<IFilter*> IncludeFilterFactory::createFilter(const wstring& configPath, w
 		command = L"";
 	}
 
-	return vector<IFilter*>();
+	return {};
 }
 
-std::vector<IFilter*> IncludeFilterFactory::endOfFile(const wstring& configPath)
+FilterVector IncludeFilterFactory::endOfFile(const wstring& configPath)
 {
 	recursionDepth--;
 
-	return vector<IFilter*>();
+	return {};
 }

@@ -33,9 +33,9 @@ using std::unordered_map;
 using std::vector;
 using std::wstring;
 
-vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	VSTPluginFilter* filter = nullptr;
+	FilterPtr filter;
 
 	if (command == L"VSTPlugin")
 	{
@@ -81,12 +81,12 @@ vector<IFilter*> VSTPluginFilterFactory::createFilter(const wstring& configPath,
 
 			if (create)
 			{
-				filter = MemoryHelper::construct<VSTPluginFilter>(library, chunkData, paramMap);
+				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap);
 			}
 		}
 	}
 
 	if (filter == nullptr)
-		return vector<IFilter*>(0);
-	return vector<IFilter*>(1, filter);
+		return {};
+	return singleFilter(std::move(filter));
 }

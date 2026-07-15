@@ -30,7 +30,7 @@ class BiQuadFilterFactory : public IFilterFactory
 {
 public:
 	BiQuadFilterFactory();
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 	// Parses a "Filter:" config line into a BiQuadCommand. This is the single
 	// owner of the BiQuad config-line grammar: createFilter() uses it to build

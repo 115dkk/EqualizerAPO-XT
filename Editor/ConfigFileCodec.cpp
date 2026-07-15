@@ -19,6 +19,8 @@
 
 #include <sstream>
 
+#include <QSaveFile>
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -86,9 +88,19 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 	string buffer;
 
 	char buf[8192];
-	unsigned long bytesRead = -1;
-	while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr) && bytesRead != 0)
+	for (;;)
 	{
+		DWORD bytesRead = 0;
+		if (!ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr))
+		{
+			error = GetLastError();
+			CloseHandle(hFile);
+			result.ok = false;
+			result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
+			return result;
+		}
+		if (bytesRead == 0)
+			break;
 		buffer.append(buf, bytesRead);
 	}
 
@@ -106,21 +118,35 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 	QByteArray byteArray = encodeLines(lines);
 	result.totalBytes = byteArray.length();
 
-	DWORD error = ERROR_SUCCESS;
-	HANDLE hFile = openFileWithSharingRetry(path.toStdWString().c_str(), GENERIC_WRITE, 0, CREATE_ALWAYS, error);
-	if (hFile == INVALID_HANDLE_VALUE)
+	QSaveFile file(path);
+	file.setDirectWriteFallback(false);
+	if (!file.open(QIODevice::WriteOnly))
 	{
 		result.opened = false;
-		result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
+		result.errorMessage = file.errorString();
 		return result;
 	}
 
-	unsigned long bytesWritten;
-	WriteFile(hFile, byteArray.constData(), byteArray.length(), &bytesWritten, nullptr);
+	const qint64 bytesWritten = file.write(byteArray);
+	if (bytesWritten != byteArray.size())
+	{
+		file.cancelWriting();
+		result.opened = false;
+		result.bytesWritten = bytesWritten > 0 ? static_cast<unsigned long>(bytesWritten) : 0;
+		result.errorMessage = file.errorString();
+		if (result.errorMessage.isEmpty())
+			result.errorMessage = QStringLiteral("Only %1/%2 bytes could be written").arg(bytesWritten).arg(byteArray.size());
+		return result;
+	}
 
-	CloseHandle(hFile);
+	result.bytesWritten = static_cast<unsigned long>(bytesWritten);
+	if (!file.commit())
+	{
+		result.opened = false;
+		result.errorMessage = file.errorString();
+		return result;
+	}
 
 	result.opened = true;
-	result.bytesWritten = bytesWritten;
 	return result;
 }

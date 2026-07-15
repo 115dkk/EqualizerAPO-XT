@@ -40,8 +40,6 @@ CopyFilter::CopyFilter(const vector<Assignment>& assignments)
 {
 	this->assignments = assignments;
 
-	internalAssignments = nullptr;
-	assignmentCount = 0;
 }
 
 CopyFilter::~CopyFilter()
@@ -51,17 +49,13 @@ CopyFilter::~CopyFilter()
 
 vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
-	cleanup();
-
-	assignmentCount = (unsigned)assignments.size();
-	internalAssignments = (InternalAssignment*)MemoryHelper::alloc(assignmentCount * sizeof(InternalAssignment));
-
+	vector<InternalAssignment> preparedAssignments;
+	preparedAssignments.reserve(assignments.size());
 	vector<wstring> outChannelNames;
 
-	for (unsigned i = 0; i < assignmentCount; i++)
+	for (Assignment& a : assignments)
 	{
-		InternalAssignment& ia = internalAssignments[i];
-		Assignment& a = assignments[i];
+		InternalAssignment ia;
 
 		wstring channelName = a.targetChannel;
 		int channelIndex = ChannelHelper::getChannelIndex(a.targetChannel, channelNames, true);
@@ -72,13 +66,11 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 		if (it == outChannelNames.end())
 			outChannelNames.push_back(channelName);
 
-		ia.sourceCount = (unsigned)a.sourceSum.size();
-		ia.sourceSum = (InternalAssignment::InternalSummand*)MemoryHelper::alloc(ia.sourceCount * sizeof(InternalAssignment::InternalSummand));
+		ia.sourceSum.reserve(a.sourceSum.size());
 
-		for (unsigned j = 0; j < ia.sourceCount; j++)
+		for (Assignment::Summand& s : a.sourceSum)
 		{
-			InternalAssignment::InternalSummand& is = ia.sourceSum[j];
-			Assignment::Summand& s = a.sourceSum[j];
+			InternalAssignment::InternalSummand is;
 
 			if (s.channel != L"")
 				is.channel = ChannelHelper::getChannelIndex(s.channel, channelNames);
@@ -89,18 +81,22 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 				is.factor = pow(10.0, s.factor / 20.0);
 			else
 				is.factor = s.factor;
+
+			ia.sourceSum.push_back(is);
 		}
+
+		preparedAssignments.push_back(std::move(ia));
 	}
 
 	wstringstream stream;
 	stream << "Copying ";
-	for (unsigned i = 0; i < assignmentCount; i++)
+	for (size_t i = 0; i < preparedAssignments.size(); i++)
 	{
-		InternalAssignment& ia = internalAssignments[i];
+		InternalAssignment& ia = preparedAssignments[i];
 		if (i > 0)
 			stream << ", ";
 		stream << L"to channel " << outChannelNames[ia.targetChannel].c_str() << " ";
-		for (unsigned j = 0; j < ia.sourceCount; j++)
+		for (size_t j = 0; j < ia.sourceSum.size(); j++)
 		{
 			const InternalAssignment::InternalSummand& is = ia.sourceSum[j];
 			if (j > 0)
@@ -112,6 +108,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 		}
 	}
 	TraceF(L"%s", stream.str().c_str());
+	internalAssignments = std::move(preparedAssignments);
 
 	return outChannelNames;
 }
@@ -120,11 +117,9 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 void CopyFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("CopyFilter::process");
-	for (unsigned i = 0; i < assignmentCount; i++)
+	for (InternalAssignment& ia : internalAssignments)
 	{
-		InternalAssignment& ia = internalAssignments[i];
-
-		if (ia.targetChannel == -1 || ia.sourceCount == 0)
+		if (ia.targetChannel == -1 || ia.sourceSum.empty())
 			continue;
 
 		{
@@ -140,7 +135,7 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 					output[ia.targetChannel][f] = is.factor * input[is.channel][f];
 		}
 
-		for (unsigned j = 1; j < ia.sourceCount; j++)
+		for (size_t j = 1; j < ia.sourceSum.size(); j++)
 		{
 			const InternalAssignment::InternalSummand& is = ia.sourceSum[j];
 
@@ -160,21 +155,7 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 
 void CopyFilter::cleanup()
 {
-	if (internalAssignments != nullptr)
-	{
-		for (unsigned i = 0; i < assignmentCount; i++)
-		{
-			InternalAssignment& ia = internalAssignments[i];
-			if (ia.sourceSum != nullptr)
-			{
-				MemoryHelper::free(ia.sourceSum);
-				ia.sourceSum = nullptr;
-			}
-		}
-
-		MemoryHelper::free(internalAssignments);
-		internalAssignments = nullptr;
-	}
+	internalAssignments.clear();
 }
 
 const std::vector<Assignment>& CopyFilter::getAssignments() const

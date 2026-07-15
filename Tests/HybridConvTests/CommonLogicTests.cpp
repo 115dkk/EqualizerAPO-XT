@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "IFilter.h"
 #include "helpers/StringHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "Tests/TestHarness.h"
@@ -21,6 +22,42 @@ using std::vector;
 namespace
 {
 test::Harness harness("CommonLogicTests");
+
+class LifetimeProbeFilter : public IFilter
+{
+public:
+	LifetimeProbeFilter(bool* destroyed)
+		: destroyed(destroyed)
+	{
+	}
+
+	~LifetimeProbeFilter() override
+	{
+		*destroyed = true;
+	}
+
+	std::vector<std::wstring> initialize(float, unsigned, std::vector<std::wstring> channelNames) override
+	{
+		return channelNames;
+	}
+
+	void process(double**, double**, unsigned) override
+	{
+	}
+
+private:
+	bool* destroyed;
+};
+
+void testOwningFilterPointer()
+{
+	bool destroyed = false;
+	{
+		FilterPtr filter = makeFilter<LifetimeProbeFilter>(&destroyed);
+		harness.expectTrue(filter != nullptr, "makeFilter should return an owning filter pointer");
+	}
+	harness.expectTrue(destroyed, "FilterPtr should destroy and release the filter when ownership ends");
+}
 
 void testStringHelper()
 {
@@ -100,6 +137,7 @@ void testChannelHelper()
 
 void runCommonLogicTests()
 {
+	testOwningFilterPointer();
 	testStringHelper();
 	testChannelHelper();
 	harness.report();

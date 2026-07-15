@@ -34,10 +34,10 @@ public:
 private:
 	unsigned order;
 	double b0;
-	double* a;
-	double* b;
+	std::vector<double> a;
+	std::vector<double> b;
 	unsigned channelCount = 0;
-	double* x;
-	double* y;
+	std::vector<double> x;
+	std::vector<double> y;
 };
 #pragma AVRT_VTABLES_END

@@ -111,15 +111,16 @@ wstring DeviceAPOInfo::getDefaultDevice(bool input, int role)
 	wstring result;
 
 	winutil::ComPtr<IMMDeviceEnumerator> enumerator;
-	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
+	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+		__uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(enumerator.put()));
 	if (SUCCEEDED(hr))
 	{
 		winutil::ComPtr<IMMDevice> endPoint;
-		hr = enumerator->GetDefaultAudioEndpoint(input ? eCapture : eRender, (ERole)role, &endPoint);
+		hr = enumerator->GetDefaultAudioEndpoint(input ? eCapture : eRender, (ERole)role, endPoint.put());
 		if (SUCCEEDED(hr))
 		{
 			winutil::ComPtr<IPropertyStore> propertyStore;
-			hr = endPoint->OpenPropertyStore(STGM_READ, &propertyStore);
+			hr = endPoint->OpenPropertyStore(STGM_READ, propertyStore.put());
 			if (SUCCEEDED(hr))
 			{
 				winutil::PropVariant variant;

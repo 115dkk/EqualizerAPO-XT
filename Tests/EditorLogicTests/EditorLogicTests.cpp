@@ -1,5 +1,14 @@
 #include <cstdio>
 #include <cstdlib>
+#include <malloc.h>
+#include <stdexcept>
+#include <thread>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -28,10 +37,29 @@
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/StudioRoutingModel.h"
+#include "helpers/MemoryHelper.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
 #include "Tests/TestHarness.h"
+
+namespace
+{
+int memoryHelperAllocations = 0;
+int memoryHelperFrees = 0;
+}
+
+void* MemoryHelper::alloc(size_t size)
+{
+	++memoryHelperAllocations;
+	return _aligned_malloc(size, 16);
+}
+
+void MemoryHelper::free(void* ptr)
+{
+	++memoryHelperFrees;
+	_aligned_free(ptr);
+}
 
 namespace
 {
@@ -1249,6 +1277,100 @@ void testConfigFileCodec()
 	requireEqual((int)roundTrip.size(), 2, "encodeLines output decodes back to the same line count");
 	expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
 }
+
+void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
+{
+	QTemporaryDir dir;
+	requireTrue(dir.isValid(), "atomic-save test creates a temporary directory");
+
+	QString path = QDir::toNativeSeparators(dir.filePath("config.txt"));
+	QFile original(path);
+	requireTrue(original.open(QIODevice::WriteOnly), "atomic-save test creates the original file");
+	requireTrue(original.write("original") == 8, "atomic-save test writes the original contents");
+	original.close();
+
+	// Access 0 with read/write sharing still permits in-place writes, while
+	// omitting FILE_SHARE_DELETE prevents replacement while this handle lives.
+	HANDLE replacementBlocker = CreateFileW(
+		path.toStdWString().c_str(),
+		0,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		nullptr,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+	requireTrue(replacementBlocker != INVALID_HANDLE_VALUE, "atomic-save test locks replacement of the original file");
+
+	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(path, QList<QString>() << "replacement");
+	CloseHandle(replacementBlocker);
+
+	expectFalse(result.opened, "writeConfig reports an atomic replacement failure");
+
+	QFile preserved(path);
+	requireTrue(preserved.open(QIODevice::ReadOnly), "atomic-save test reopens the original file");
+	expectEqual(QString::fromUtf8(preserved.readAll()), "original", "failed atomic replacement preserves the original contents");
+}
+
+void testConfigFileCodecRejectsPartialRead()
+{
+	const std::wstring pipeName = L"\\\\.\\pipe\\EditorLogicTests-ConfigRead-" + std::to_wstring(GetCurrentProcessId());
+	HANDLE pipe = CreateNamedPipeW(
+		pipeName.c_str(),
+		PIPE_ACCESS_OUTBOUND,
+		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+		1,
+		4096,
+		4096,
+		0,
+		nullptr);
+	requireTrue(pipe != INVALID_HANDLE_VALUE, "partial-read test creates a named pipe");
+
+	bool serverSucceeded = false;
+	std::thread server([&]() {
+		BOOL connected = ConnectNamedPipe(pipe, nullptr);
+		if (!connected && GetLastError() == ERROR_PIPE_CONNECTED)
+			connected = TRUE;
+		const char prefix[] = "Preamp: -6 dB\r\n";
+		DWORD written = 0;
+		if (connected && WriteFile(pipe, prefix, sizeof(prefix) - 1, &written, nullptr) && written == sizeof(prefix) - 1)
+			serverSucceeded = FlushFileBuffers(pipe) != FALSE;
+		DisconnectNamedPipe(pipe);
+		CloseHandle(pipe);
+	});
+
+	ConfigFileCodec::ReadResult result = ConfigFileCodec::readConfig(QString::fromStdWString(pipeName));
+	server.join();
+	requireTrue(serverSucceeded, "partial-read test sends the configuration prefix");
+	expectFalse(result.ok, "readConfig rejects bytes followed by a ReadFile failure");
+	expectTrue(result.lines.isEmpty(), "readConfig does not expose a partial configuration");
+}
+
+void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
+{
+	struct ThrowingConstructor
+	{
+		ThrowingConstructor()
+		{
+			throw std::runtime_error("constructor failure");
+		}
+	};
+
+	memoryHelperAllocations = 0;
+	memoryHelperFrees = 0;
+	bool threw = false;
+	try
+	{
+		MemoryHelper::construct<ThrowingConstructor>();
+	}
+	catch (const std::runtime_error&)
+	{
+		threw = true;
+	}
+
+	expectTrue(threw, "construct propagates a constructor exception");
+	expectEqual(memoryHelperAllocations, 1, "construct allocates storage once");
+	expectEqual(memoryHelperFrees, 1, "construct releases storage when construction fails");
+}
 }
 
 int main(int argc, char** argv)
@@ -1270,6 +1392,12 @@ int main(int argc, char** argv)
 	testStudioRoutingModel();
 	testRoutingFold();
 	testConfigFileCodec();
+	testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
+	testConfigFileCodecRejectsPartialRead();
+	// The constructor exception is deliberately caught inside the test; cppcheck
+	// does not propagate that catch back through MemoryHelper::construct.
+	// cppcheck-suppress throwInEntryPoint
+	testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
 	testFilterListModel();
 	testFilterListUndo();
 

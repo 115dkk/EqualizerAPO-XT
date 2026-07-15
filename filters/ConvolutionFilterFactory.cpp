@@ -32,16 +32,15 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, ConvolutionFilterFac
 using std::vector;
 using std::wstring;
 
-vector<IFilter*> ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	ConvolutionCommand cmd;
 	if (!ConvolutionCommand::parse(command, parameters, cmd))
-		return vector<IFilter*>(0);
+		return {};
 
 	wstring absolutePath = ConvolutionFilePath::resolve(configPath, cmd.path);
 	if (absolutePath.empty())
-		return vector<IFilter*>(0);
+		return {};
 
-	ConvolutionFilter* filter = MemoryHelper::construct<ConvolutionFilter>(absolutePath);
-	return vector<IFilter*>(1, filter);
+	return singleFilter(makeFilter<ConvolutionFilter>(absolutePath));
 }

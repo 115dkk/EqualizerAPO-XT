@@ -73,7 +73,12 @@ int AbstractLibrary::initialize()
 
 		int res = customInitialize();
 		if (res < 0)
+		{
+			customUninitialize();
+			FreeLibrary(module);
+			module = nullptr;
 			return res;
+		}
 
 		TraceF(L"Loaded library %s", libPath.c_str());
 
@@ -87,6 +92,11 @@ int AbstractLibrary::customInitialize()
 {
 	// overwrite if needed
 	return 0;
+}
+
+void AbstractLibrary::customUninitialize() noexcept
+{
+	// overwrite if needed
 }
 
 wstring AbstractLibrary::getLoadPath()

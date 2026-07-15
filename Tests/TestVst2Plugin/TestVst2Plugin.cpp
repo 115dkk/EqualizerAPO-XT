@@ -32,6 +32,9 @@
 #include <cstdint>
 #include <cstring>
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #include "helpers/aeffectx.h"
 
 namespace
@@ -289,6 +292,27 @@ vst_effect_t* createEffect()
 	effect->version = 1;
 	effect->process_float = &processReplacing;
 	effect->process_double = &processDoubleReplacing;
+
+	// Host robustness tests select malformed metadata before creating an
+	// instance. Normal test runs leave the variable unset and retain the fixed
+	// two-channel contract documented above.
+	wchar_t metadataMode[32] = {};
+	if (GetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", metadataMode,
+		static_cast<DWORD>(sizeof(metadataMode) / sizeof(metadataMode[0]))) > 0)
+	{
+		if (wcscmp(metadataMode, L"huge-inputs") == 0)
+			effect->num_inputs = 2048;
+		else if (wcscmp(metadataMode, L"negative-inputs") == 0)
+			effect->num_inputs = -1;
+		else if (wcscmp(metadataMode, L"huge-outputs") == 0)
+			effect->num_outputs = 2048;
+		else if (wcscmp(metadataMode, L"negative-outputs") == 0)
+			effect->num_outputs = -1;
+		else if (wcscmp(metadataMode, L"negative-delay") == 0)
+			effect->delay = -1;
+		else if (wcscmp(metadataMode, L"huge-delay") == 0)
+			effect->delay = INT32_MAX;
+	}
 
 	return effect;
 }

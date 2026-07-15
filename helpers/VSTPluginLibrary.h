@@ -31,6 +31,8 @@
 class VSTPluginLibrary : public AbstractLibrary
 {
 public:
+	~VSTPluginLibrary() override;
+
 	static std::shared_ptr<VSTPluginLibrary> getInstance(const std::wstring& libPath);
 	static std::wstring getDefaultPluginPath();
 
@@ -48,9 +50,11 @@ public:
 protected:
 	bool loadFunctions() override;
 	int customInitialize() override;
+	void customUninitialize() noexcept override;
 
 private:
 	VSTPluginLibrary(const std::wstring& libPath);
+	void releasePluginFactory() noexcept;
 	static std::wstring resolveVST3ModulePath(const std::wstring& libPath);
 	static std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> instanceMap;
 	static std::wstring defaultPluginPath;
