@@ -36,6 +36,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -45,6 +46,8 @@
 
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/VSTPluginInstance.h"
+#include "filters/VSTPluginFilter.h"
+#include "filters/loudnessCorrection/VolumeController.h"
 #include "Tests/TestHarness.h"
 
 using std::shared_ptr;
@@ -55,6 +58,41 @@ using std::wstring;
 namespace
 {
 test::Harness harness("VstHostTests");
+
+class RejectingLibrary : public AbstractLibrary
+{
+public:
+	explicit RejectingLibrary(wstring path)
+		: path(std::move(path))
+	{
+	}
+
+	wstring getLibPath() override
+	{
+		return path;
+	}
+
+	int getCustomInitializeCount() const
+	{
+		return customInitializeCount;
+	}
+
+protected:
+	bool loadFunctions() override
+	{
+		return true;
+	}
+
+	int customInitialize() override
+	{
+		++customInitializeCount;
+		return FUNCTIONS_MISSING;
+	}
+
+private:
+	wstring path;
+	int customInitializeCount = 0;
+};
 
 // Must match TestVst2Plugin.cpp's ChunkBlob layout and magic exactly so we can
 // build a chunk the plugin will accept and predict what it emits.
@@ -131,10 +169,65 @@ bool closeEnough(double a, double b)
 {
 	return std::fabs(a - b) <= 1.0e-9;
 }
+
+void expectRejectedMetadataPassesThrough(const shared_ptr<VSTPluginLibrary>& library,
+	const wchar_t* mode, const std::string& label)
+{
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", mode);
+
+	ChunkBlob gainBlob = {};
+	gainBlob.magic = kChunkMagic;
+	gainBlob.version = kChunkVersion;
+	gainBlob.gain = 0.5f;
+
+	{
+		VSTPluginFilter filter(library, encodeChunk(gainBlob), unordered_map<wstring, float>());
+		filter.initialize(48000.0f, 4, {L"L", L"R"});
+
+		double inLeft[4] = {0.25, 0.5, 0.75, 1.0};
+		double inRight[4] = {-0.25, -0.5, -0.75, -1.0};
+		double outLeft[4] = {};
+		double outRight[4] = {};
+		double* input[2] = {inLeft, inRight};
+		double* output[2] = {outLeft, outRight};
+		filter.process(output, input, 4);
+
+		bool unchanged = true;
+		for (int i = 0; i < 4; ++i)
+		{
+			if (!closeEnough(outLeft[i], inLeft[i]) || !closeEnough(outRight[i], inRight[i]))
+				unchanged = false;
+		}
+		harness.expectTrue(unchanged, label + ": malformed plugin is bypassed");
+	}
+
+	SetEnvironmentVariableW(L"EAPO_TEST_VST_METADATA", nullptr);
+}
+
+void testVolumeControllerBalancesComInitialization()
+{
+	bool threadStartedUninitialized = false;
+	bool threadEndedUninitialized = false;
+	std::thread worker([&]()
+	{
+		ULONG_PTR token = 0;
+		threadStartedUninitialized = CoGetContextToken(&token) == CO_E_NOTINITIALIZED;
+		{
+			VolumeController controller;
+		}
+		threadEndedUninitialized = CoGetContextToken(&token) == CO_E_NOTINITIALIZED;
+	});
+	worker.join();
+
+	harness.expectTrue(threadStartedUninitialized, "COM balance test starts on an uninitialized thread");
+	harness.expectTrue(threadEndedUninitialized, "VolumeController balances COM initialization");
+}
 } // namespace
 
 void runVstHostTests()
 {
+	testVolumeControllerBalancesComInitialization();
+
 	const wstring dir = exeDirectory();
 	if (dir.empty())
 	{
@@ -151,6 +244,17 @@ void runVstHostTests()
 		return;
 	}
 
+	// A failed subclass initialization must roll the DLL load back completely.
+	// Otherwise the second call sees a non-null module and returns 0 (already
+	// initialized), turning the original failure into a false success.
+	RejectingLibrary rejectingLibrary(dllPath);
+	harness.expectEqual(rejectingLibrary.initialize(), AbstractLibrary::FUNCTIONS_MISSING,
+		"custom initialization failure is reported");
+	harness.expectEqual(rejectingLibrary.initialize(), AbstractLibrary::FUNCTIONS_MISSING,
+		"custom initialization failure is reported again after rollback");
+	harness.expectEqual(rejectingLibrary.getCustomInitializeCount(), 2,
+		"custom initialization is retried after rollback");
+
 	// Load the library through the engine's loader (LoadLibrary +
 	// GetProcAddress(VSTPluginMain)). initialize() returns >0 on the first
 	// successful load (1) and 0 if already loaded; negative values are the
@@ -162,6 +266,13 @@ void runVstHostTests()
 	int loadResult = library->initialize();
 	harness.expectTrue(loadResult >= 0, "library initialize did not return an error code");
 	harness.expectTrue(library->VSTPluginMain != nullptr, "VSTPluginMain symbol resolved");
+
+	expectRejectedMetadataPassesThrough(library, L"huge-inputs", "unrealistic input count");
+	expectRejectedMetadataPassesThrough(library, L"negative-inputs", "negative input count");
+	expectRejectedMetadataPassesThrough(library, L"huge-outputs", "unrealistic output count");
+	expectRejectedMetadataPassesThrough(library, L"negative-outputs", "negative output count");
+	expectRejectedMetadataPassesThrough(library, L"negative-delay", "negative initial delay");
+	expectRejectedMetadataPassesThrough(library, L"huge-delay", "unrealistic initial delay");
 
 	// Construct and initialize the instance the way the engine does (heap
 	// allocated, owned here). processLevel mirrors a realtime audio thread.

@@ -92,11 +92,9 @@ private:
 			int channel;
 		};
 
-		InternalSummand* sourceSum;
-		unsigned sourceCount;
+		std::vector<InternalSummand> sourceSum;
 	};
 
-	InternalAssignment* internalAssignments;
-	unsigned assignmentCount;
+	std::vector<InternalAssignment> internalAssignments;
 };
 #pragma AVRT_VTABLES_END

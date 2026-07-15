@@ -31,20 +31,16 @@ using std::find;
 using std::vector;
 using std::wstring;
 
-vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector CopyFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	CopyFilter* filter = nullptr;
-
 	if (command == L"Copy")
 	{
 		// Parse the routing via the shared parser (parseCopyAssignments), the
 		// same routine the Editor GUI factory uses.
 		vector<Assignment> assignments = parseCopyAssignments(parameters);
 
-		filter = MemoryHelper::construct<CopyFilter>(assignments);
+		return singleFilter(makeFilter<CopyFilter>(assignments));
 	}
 
-	if (filter == nullptr)
-		return vector<IFilter*>(0);
-	return vector<IFilter*>(1, filter);
+	return {};
 }

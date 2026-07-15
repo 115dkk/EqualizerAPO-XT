@@ -27,11 +27,6 @@
 
 class FilterEngine;
 
-struct FilterDeleter
-{
-	void operator()(IFilter* filter) const;
-};
-
 struct FilterInfo
 {
 	std::unique_ptr<IFilter, FilterDeleter> filter;

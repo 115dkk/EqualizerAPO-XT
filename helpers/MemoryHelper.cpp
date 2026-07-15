@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include <atomic>
+#include <limits>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <malloc.h>
@@ -28,8 +30,27 @@
 #include "LogHelper.h"
 #include "MemoryHelper.h"
 
+namespace
+{
+	constexpr size_t allocationFailureDisabled = (std::numeric_limits<size_t>::max)();
+	std::atomic<size_t> allocationFailureCountdown{ allocationFailureDisabled };
+}
+
 void* MemoryHelper::alloc(size_t size)
 {
+	size_t remaining = allocationFailureCountdown.load(std::memory_order_relaxed);
+	while (remaining != allocationFailureDisabled)
+	{
+		if (remaining == 0)
+		{
+			LogFStatic(L"Injected allocation failure for %Iu bytes.", size);
+			return nullptr;
+		}
+		if (allocationFailureCountdown.compare_exchange_weak(
+			remaining, remaining - 1, std::memory_order_relaxed, std::memory_order_relaxed))
+			break;
+	}
+
 #ifdef _DEBUG
 	void* memory = _aligned_malloc_dbg(size, 16, __FILE__, __LINE__);
 #else
@@ -42,6 +63,16 @@ void* MemoryHelper::alloc(size_t size)
 	}
 
 	return memory;
+}
+
+void MemoryHelper::failAllocationAfterForTesting(size_t successfulAllocations) noexcept
+{
+	allocationFailureCountdown.store(successfulAllocations, std::memory_order_relaxed);
+}
+
+void MemoryHelper::resetAllocationFailureForTesting() noexcept
+{
+	allocationFailureCountdown.store(allocationFailureDisabled, std::memory_order_relaxed);
 }
 
 void MemoryHelper::free(void* ptr)

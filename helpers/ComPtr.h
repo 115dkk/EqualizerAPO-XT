@@ -24,7 +24,7 @@
 
 namespace winutil
 {
-	// Move-only COM smart pointer. Copying performs AddRef so the reference
+	// Copyable COM smart pointer. Copying performs AddRef so the reference
 	// count stays balanced; the previous hand-rolled local versions relied on
 	// never being copied and would have double-released on an accidental copy.
 	template<typename T>
@@ -78,15 +78,12 @@ namespace winutil
 		explicit operator bool() const noexcept { return ptr != nullptr; }
 
 		// Releases any held interface and hands back the address of the
-		// internal pointer for use as an out-parameter, e.g.
-		// CoCreateInstance(..., &p) or IID_PPV_ARGS(&p).
+		// internal pointer for use as an out-parameter.
 		T** put() noexcept
 		{
 			reset();
 			return &ptr;
 		}
-
-		T** operator&() noexcept { return put(); }
 
 		void reset() noexcept
 		{
@@ -99,6 +96,32 @@ namespace winutil
 
 	private:
 		T* ptr = nullptr;
+	};
+
+	// Balances CoInitialize on the constructing thread. Declare this before any
+	// ComPtr members so those interfaces are released before CoUninitialize runs
+	// during reverse-order member destruction.
+	class ComApartment
+	{
+	public:
+		ComApartment() noexcept
+			: result(CoInitialize(nullptr))
+		{
+		}
+
+		~ComApartment()
+		{
+			if (SUCCEEDED(result))
+				CoUninitialize();
+		}
+
+		ComApartment(const ComApartment&) = delete;
+		ComApartment& operator=(const ComApartment&) = delete;
+		ComApartment(ComApartment&&) = delete;
+		ComApartment& operator=(ComApartment&&) = delete;
+
+	private:
+		HRESULT result;
 	};
 
 	// RAII wrapper for a PROPVARIANT: PropVariantInit on construction,
@@ -142,8 +165,6 @@ namespace winutil
 			reset();
 			return &ptr;
 		}
-
-		T** operator&() noexcept { return put(); }
 
 		void reset() noexcept
 		{

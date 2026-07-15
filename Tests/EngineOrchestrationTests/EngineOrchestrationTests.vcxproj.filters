@@ -11,6 +11,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ConfigurationFileReaderTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="EngineOrchestrationTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

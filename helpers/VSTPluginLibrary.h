@@ -31,6 +31,8 @@
 class VSTPluginLibrary : public AbstractLibrary
 {
 public:
+	~VSTPluginLibrary() override;
+
 	static std::shared_ptr<VSTPluginLibrary> getInstance(const std::wstring& libPath);
 	static std::wstring getDefaultPluginPath();
 
@@ -48,6 +50,7 @@ public:
 protected:
 	bool loadFunctions() override;
 	int customInitialize() override;
+	void customUninitialize() noexcept override;
 
 private:
 	VSTPluginLibrary(const std::wstring& libPath);

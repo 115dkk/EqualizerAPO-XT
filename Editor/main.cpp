@@ -81,14 +81,14 @@ int runVstRoundTripSelfTest()
 		VSTPluginFilterFactory factory;
 		std::wstring command = L"VSTPlugin";
 		std::wstring params = c.params;
-		std::vector<IFilter*> filters = factory.createFilter(L"", command, params);
+		FilterVector filters = factory.createFilter(L"", command, params);
 		if (filters.empty())
 		{
 			fprintf(stderr, "[VST selftest] %ls: parse produced no filter\n", c.name);
 			failures++;
 			continue;
 		}
-		VSTPluginFilter* f0 = static_cast<VSTPluginFilter*>(filters[0]);
+		VSTPluginFilter* f0 = static_cast<VSTPluginFilter*>(filters[0].get());
 		std::wstring chunk0 = f0->getChunkData();
 		std::unordered_map<std::wstring, float> map0 = f0->getParamMap();
 
@@ -96,22 +96,18 @@ int runVstRoundTripSelfTest()
 		QString outCommand, outParams;
 		gui.store(outCommand, outParams);
 
-		for (IFilter* f : filters) { f->~IFilter(); MemoryHelper::free(f); }
-
 		std::wstring command2 = outCommand.toStdWString();
 		std::wstring params2 = outParams.toStdWString();
-		std::vector<IFilter*> filters2 = factory.createFilter(L"", command2, params2);
+		FilterVector filters2 = factory.createFilter(L"", command2, params2);
 		if (filters2.empty())
 		{
 			fprintf(stderr, "[VST selftest] %ls: re-parse produced no filter (params='%ls')\n", c.name, params2.c_str());
 			failures++;
 			continue;
 		}
-		VSTPluginFilter* f1 = static_cast<VSTPluginFilter*>(filters2[0]);
+		VSTPluginFilter* f1 = static_cast<VSTPluginFilter*>(filters2[0].get());
 		std::wstring chunk1 = f1->getChunkData();
 		std::unordered_map<std::wstring, float> map1 = f1->getParamMap();
-		for (IFilter* f : filters2) { f->~IFilter(); MemoryHelper::free(f); }
-
 		bool ok = (chunk0 == chunk1) && (map0 == map1);
 		if (!ok)
 		{

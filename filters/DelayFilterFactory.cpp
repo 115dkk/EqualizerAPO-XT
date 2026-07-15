@@ -77,12 +77,11 @@ bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameter
 	return false;
 }
 
-vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	DelayCommand cmd;
 	if (!parseCommand(command, parameters, cmd))
-		return vector<IFilter*>(0);
+		return {};
 
-	DelayFilter* filter = MemoryHelper::construct<DelayFilter>(cmd.delay, cmd.isMs);
-	return vector<IFilter*>(1, filter);
+	return singleFilter(makeFilter<DelayFilter>(cmd.delay, cmd.isMs));
 }

@@ -232,15 +232,14 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	return true;
 }
 
-vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector BiQuadFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	BiQuadCommand cmd;
 	if (!parseCommand(command, parameters, cmd))
-		return vector<IFilter*>(0);
+		return {};
 
-	BiQuadFilter* filter = MemoryHelper::construct<BiQuadFilter>(
-		cmd.type, cmd.dbGain, cmd.freq, cmd.bandwidthOrQOrS, cmd.isBandwidthOrS, cmd.isCornerFreq);
-	return vector<IFilter*>(1, filter);
+	return singleFilter(makeFilter<BiQuadFilter>(
+		cmd.type, cmd.dbGain, cmd.freq, cmd.bandwidthOrQOrS, cmd.isBandwidthOrS, cmd.isCornerFreq));
 }
 
 double BiQuadFilterFactory::getFreq(const wstring& freqString)

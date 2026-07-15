@@ -28,7 +28,7 @@
 class DelayFilterFactory : public IFilterFactory
 {
 public:
-	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 	// Parses a "Delay:" config line into a DelayCommand. This is the single owner
 	// of the Delay config-line grammar: createFilter() uses it to build the

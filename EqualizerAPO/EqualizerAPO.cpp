@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include <exception>
+#include <new>
 #include <Unknwn.h>
 #define INITGUID
 #include <mmdeviceapi.h>
@@ -514,7 +516,28 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 			channelMask = inFormat.dwChannelMask;
 	}
 
-	engine.initialize(outFormat.fFramesPerSecond, inFormat.dwSamplesPerFrame, realChannelCount, outFormat.dwSamplesPerFrame, channelMask, maxFrameCount);
+	try
+	{
+		engine.initialize(outFormat.fFramesPerSecond, inFormat.dwSamplesPerFrame, realChannelCount, outFormat.dwSamplesPerFrame, channelMask, maxFrameCount);
+	}
+	catch (const std::bad_alloc&)
+	{
+		LogF(L"Filter engine initialization ran out of memory; rejecting LockForProcess instead of terminating the audio service");
+		UnlockForProcess();
+		return E_OUTOFMEMORY;
+	}
+	catch (const std::exception& e)
+	{
+		LogF(L"Filter engine initialization failed; rejecting LockForProcess: %S", e.what());
+		UnlockForProcess();
+		return E_FAIL;
+	}
+	catch (...)
+	{
+		LogF(L"Filter engine initialization failed with an unknown exception; rejecting LockForProcess");
+		UnlockForProcess();
+		return E_FAIL;
+	}
 
 	return hr;
 }

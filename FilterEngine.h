@@ -53,7 +53,10 @@ public:
 	void setPreMix(bool preMix);
 	void setDeviceInfo(bool capture, bool postMixInstalled, const std::wstring& deviceName, const std::wstring& connectionName, const std::wstring& deviceGuid, const std::wstring& deviceString);
 	void initialize(float sampleRate, unsigned inputChannelCount, unsigned realChannelCount, unsigned outputChannelCount, unsigned channelMask, unsigned maxFrameCount, const std::wstring& customPath = L"");
-	void loadConfig(const std::wstring& customPath = L"");
+	// Builds a complete configuration before publishing it. A failed load keeps
+	// the active configuration and returns false; no initialization exception is
+	// allowed to escape the configuration-loading boundary.
+	bool loadConfig(const std::wstring& customPath = L"");
 	void loadConfigFile(const std::wstring& path);
 	void watchRegistryKey(const std::wstring& key);
 	void process(float* output, float* input, unsigned frameCount);
@@ -100,7 +103,7 @@ private:
 	};
 	using FilterConfigurationPtr = std::unique_ptr<FilterConfiguration, FilterConfigurationDeleter>;
 
-	void addFilters(const std::vector<IFilter*>& filters);
+	void addFilters(FilterVector filters);
 	void cleanupConfigurations();
 	static void notificationThread(FilterEngine* engine);
 	bool acquireLoadPermit();

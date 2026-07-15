@@ -34,9 +34,9 @@ class ConfigFileCodec
 {
 public:
 	// Outcome of a read attempt. ok == false means the file could not be opened
-	// because of a non-sharing-violation error; errorMessage then holds the
-	// formatted system error string the caller should surface. A locked file is
-	// retried internally and never reported as a failure.
+	// or could not be read completely; errorMessage then holds the formatted
+	// system error string the caller should surface. A locked file is retried
+	// internally and never reported as a failure.
 	struct ReadResult
 	{
 		bool ok = false;
@@ -44,10 +44,10 @@ public:
 		QString errorMessage;
 	};
 
-	// Outcome of a write attempt. opened == false means CreateFile failed with a
-	// non-sharing-violation error (errorMessage set), so the caller should abort.
-	// When opened == true the file was written; comparing bytesWritten against
-	// totalBytes lets the caller detect a short write.
+	// Outcome of a write attempt. opened remains the compatibility success flag:
+	// it is true only after the complete temporary file has been atomically
+	// committed to path. Any open, write, flush, or replacement failure leaves
+	// it false and sets errorMessage.
 	struct WriteResult
 	{
 		bool opened = false;
@@ -61,8 +61,9 @@ public:
 	// separators (the caller converts it).
 	static ReadResult readConfig(const QString& path);
 
-	// Writes lines to path, retrying while the file is locked, joining lines with
-	// CRLF and encoding each line as UTF-8 (no trailing newline).
+	// Writes lines to a temporary file next to path, then atomically commits it.
+	// A failed write or replacement leaves an existing path unchanged. Lines are
+	// joined with CRLF and encoded as UTF-8 (no trailing newline).
 	static WriteResult writeConfig(const QString& path, const QList<QString>& lines);
 
 	// Pure, file-system-free transforms, exposed for reuse and testing.

@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <cmath>
 #include <climits>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -36,6 +37,9 @@ using std::abs;
 
 namespace
 {
+	constexpr unsigned kMaxIrChannels = 1024;
+	using SndFilePtr = std::unique_ptr<SNDFILE, decltype(&sf_close)>;
+
 	// Cache of decoded impulse-response PCM, keyed by path + mtime + sample rate.
 	// Lets a config reload (or a second filter using the same IR) skip the
 	// libsndfile read + interleave-to-planar pass. File I/O and the per-channel
@@ -111,16 +115,16 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, d
 	}
 
 	SF_INFO info{};
-	SNDFILE* in = sf_wchar_open(filename.c_str(), SFM_READ, &info);
-	if (in == nullptr)
+	SNDFILE* opened = sf_wchar_open(filename.c_str(), SFM_READ, &info);
+	if (opened == nullptr)
 	{
-		LogFStatic(L"Error while reading impulse response file: %S", sf_strerror(in));
+		LogFStatic(L"Error while reading impulse response file: %S", sf_strerror(opened));
 		return nullptr;
 	}
+	SndFilePtr in(opened, &sf_close);
 	if (abs(sampleRate - info.samplerate) > 1.0)
 	{
 		LogFStatic(L"Impulse response sample rate (%d Hz) does not match device sample rate (%f Hz)", info.samplerate, sampleRate);
-		sf_close(in);
 		return nullptr;
 	}
 
@@ -129,26 +133,37 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, d
 	// filter-pointer array (crash); channels == 0 divides by zero in the
 	// channel map; and frames > INT_MAX would wrap negative when cast to int.
 	// All three are reachable from a user-writable config plus a crafted IR.
-	if (info.frames <= 0 || info.channels <= 0 || info.frames > INT_MAX)
+	if (info.frames <= 0 || info.channels <= 0 || info.frames > INT_MAX
+		|| static_cast<unsigned>(info.channels) > kMaxIrChannels)
 	{
 		LogFStatic(L"Impulse response has no usable audio (frames=%lld, channels=%d); ignoring %s",
 			static_cast<long long>(info.frames), info.channels, filename.c_str());
-		sf_close(in);
 		return nullptr;
 	}
 
 	const unsigned channels = static_cast<unsigned>(info.channels);
 	const unsigned frames = static_cast<unsigned>(info.frames);
+	if (static_cast<size_t>(frames) > (std::numeric_limits<size_t>::max)() / channels)
+	{
+		LogFStatic(L"Impulse response dimensions are too large (frames=%u, channels=%u); ignoring %s",
+			frames, channels, filename.c_str());
+		return nullptr;
+	}
 	std::vector<double> interleaved(static_cast<size_t>(frames) * channels);
 	sf_count_t numRead = 0;
 	while (numRead < info.frames)
 	{
-		sf_count_t got = sf_readf_double(in, interleaved.data() + numRead * channels, info.frames - numRead);
+		sf_count_t got = sf_readf_double(in.get(), interleaved.data() + numRead * channels, info.frames - numRead);
 		if (got <= 0)
-			break; // truncated or unreadable file: stop instead of spinning forever
+			break;
 		numRead += got;
 	}
-	sf_close(in);
+	if (numRead != info.frames)
+	{
+		LogFStatic(L"Impulse response ended early (expected %lld frames, read %lld); ignoring %s",
+			static_cast<long long>(info.frames), static_cast<long long>(numRead), filename.c_str());
+		return nullptr;
+	}
 
 	auto entry = std::make_shared<IrCacheEntry>();
 	entry->channels = channels;
@@ -185,11 +200,12 @@ void HConvSingleArray::reset()
 {
 	if (ptr != nullptr)
 	{
-		for (unsigned i = 0; i < count; i++)
+		for (unsigned i = 0; i < initializedCount; i++)
 			hcCloseSingle(&ptr[i]);
 
 		MemoryHelper::free(ptr);
 		ptr = nullptr;
 	}
-	count = 0;
+	capacity = 0;
+	initializedCount = 0;
 }

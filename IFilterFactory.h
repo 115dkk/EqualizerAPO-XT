@@ -34,8 +34,8 @@ public:
 	virtual ~IFilterFactory() {}
 
 	virtual void initialize(FilterEngine* engine) {}
-	virtual std::vector<IFilter*> startOfConfiguration() {return std::vector<IFilter*>();}
-	virtual std::vector<IFilter*> startOfFile(const std::wstring& configPath) {return std::vector<IFilter*>();}
+	virtual FilterVector startOfConfiguration() {return {};}
+	virtual FilterVector startOfFile(const std::wstring& configPath) {return {};}
 	// Contract (see the dispatch loop in engine/FilterEngine.Configuration.cpp):
 	// the engine offers each config line to every factory in priority order.
 	// - Returning one or more filters consumes the line; iteration stops.
@@ -46,8 +46,8 @@ public:
 	//   the next factory.
 	// `parameters` may be normalized in place (e.g. decimal-comma fixes); the
 	// engine does not read it back after the call.
-	virtual std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) = 0;
-	virtual std::vector<IFilter*> endOfFile(const std::wstring& configPath) {return std::vector<IFilter*>();}
-	virtual std::vector<IFilter*> endOfConfiguration() {return std::vector<IFilter*>();}
+	virtual FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) = 0;
+	virtual FilterVector endOfFile(const std::wstring& configPath) {return {};}
+	virtual FilterVector endOfConfiguration() {return {};}
 };
 #pragma AVRT_VTABLES_END

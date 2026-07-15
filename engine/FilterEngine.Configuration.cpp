@@ -60,58 +60,100 @@ using std::wstring;
 using namespace mup;
 
 
-void FilterEngine::loadConfig(const wstring& customPath)
+bool FilterEngine::loadConfig(const wstring& customPath)
 {
 	lock_guard<mutex> lock(loadMutex);
 	timer.start();
-	previousConfig.reset();
 
-	allChannelNames = ChannelHelper::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
+	// The factories build through these engine-owned scratch fields. Move the
+	// previous idle state aside so the whole load is transactional: any exception
+	// discards the partial filters/channel routing and restores registry watches,
+	// while currentConfig remains untouched.
+	auto savedFilterInfos = move(filterInfos);
+	auto savedCurrentChannelNames = move(currentChannelNames);
+	auto savedLastChannelNames = move(lastChannelNames);
+	auto savedLastNewChannelNames = move(lastNewChannelNames);
+	auto savedAllChannelNames = move(allChannelNames);
+	auto savedWatchRegistryKeys = move(watchRegistryKeys);
+	auto savedTraceFile = move(traceFile);
+	const int savedTraceLine = traceLine;
+	const bool savedLastInPlace = lastInPlace;
 
-	currentChannelNames = allChannelNames;
-	lastChannelNames.clear();
-	lastNewChannelNames.clear();
-	watchRegistryKeys.clear();
-	parser->ClearVar();
+	auto rollback = [&]() noexcept {
+		filterInfos = move(savedFilterInfos);
+		currentChannelNames = move(savedCurrentChannelNames);
+		lastChannelNames = move(savedLastChannelNames);
+		lastNewChannelNames = move(savedLastNewChannelNames);
+		allChannelNames = move(savedAllChannelNames);
+		watchRegistryKeys = move(savedWatchRegistryKeys);
+		traceFile = move(savedTraceFile);
+		traceLine = savedTraceLine;
+		lastInPlace = savedLastInPlace;
+	};
 
-	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+	try
 	{
-		IFilterFactory* factory = it->get();
-		vector<IFilter*> newFilters = factory->startOfConfiguration();
-		if (!newFilters.empty())
-			addFilters(newFilters);
+		allChannelNames = ChannelHelper::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
+
+		currentChannelNames = allChannelNames;
+		lastChannelNames.clear();
+		lastNewChannelNames.clear();
+		watchRegistryKeys.clear();
+		parser->ClearVar();
+
+		for (auto it = factories.cbegin(); it != factories.cend(); it++)
+		{
+			IFilterFactory* factory = it->get();
+			FilterVector newFilters = factory->startOfConfiguration();
+			if (!newFilters.empty())
+				addFilters(move(newFilters));
+		}
+
+		if (customPath.empty())
+			loadConfigFile(configPath + L"\\config.txt");
+		else
+			loadConfigFile(customPath);
+
+		for (auto it = factories.cbegin(); it != factories.cend(); it++)
+		{
+			IFilterFactory* factory = it->get();
+			FilterVector newFilters = factory->endOfConfiguration();
+			if (!newFilters.empty())
+				addFilters(move(newFilters));
+		}
+
+		FilterConfigurationPtr config(MemoryHelper::construct<FilterConfiguration>(this, move(filterInfos), (unsigned)allChannelNames.size()));
+
+		filterInfos.clear();
+
+		double loadTime = timer.stop();
+		TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
+
+		previousConfig.reset();
+		if (!currentConfig)
+			currentConfig = move(config);
+		else
+		{
+			nextConfig = move(config);
+			// Release: publish the fully-constructed FilterConfiguration to the RT
+			// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
+			nextConfigReady.store(true, std::memory_order_release);
+		}
+		return true;
 	}
-
-	if (customPath.empty())
-		loadConfigFile(configPath + L"\\config.txt");
-	else
-		loadConfigFile(customPath);
-
-	for (auto it = factories.cbegin(); it != factories.cend(); it++)
+	catch (const exception& e)
 	{
-		IFilterFactory* factory = it->get();
-		vector<IFilter*> newFilters = factory->endOfConfiguration();
-		if (!newFilters.empty())
-			addFilters(newFilters);
+		rollback();
+		timer.stop();
+		LogF(L"Configuration load failed; keeping the active configuration: %S", e.what());
 	}
-
-	void* mem = MemoryHelper::alloc(sizeof(FilterConfiguration));
-	FilterConfigurationPtr config(new(mem) FilterConfiguration(this, move(filterInfos), (unsigned)allChannelNames.size()));
-
-	filterInfos.clear();
-
-	double loadTime = timer.stop();
-	TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
-
-	if (!currentConfig)
-		currentConfig = move(config);
-	else
+	catch (...)
 	{
-		nextConfig = move(config);
-		// Release: publish the fully-constructed FilterConfiguration to the RT
-		// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
-		nextConfigReady.store(true, std::memory_order_release);
+		rollback();
+		timer.stop();
+		LogF(L"Configuration load failed with an unknown exception; keeping the active configuration");
 	}
+	return false;
 }
 
 void FilterEngine::loadConfigFile(const wstring& path)
@@ -134,9 +176,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
 		IFilterFactory* factory = it->get();
-		vector<IFilter*> newFilters = factory->startOfFile(path);
+		FilterVector newFilters = factory->startOfFile(path);
 		if (!newFilters.empty())
-			addFilters(newFilters);
+			addFilters(move(newFilters));
 	}
 
 	while (inputStream.good())
@@ -165,15 +207,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			{
 				IFilterFactory* factory = it->get();
 
-				vector<IFilter*> newFilters;
+				FilterVector newFilters;
 				try
 				{
-					// A factory that throws after constructing some filters leaks
-					// those IFilter*s: partial results live inside the factory and
-					// cannot be reclaimed here. The leak is bounded by config-reload
-					// frequency and accepted; factories that allocate more than
-					// trivially should own partials via a scope guard before
-					// returning.
 					newFilters = factory->createFilter(path, key, value);
 				}
 				catch (const exception& e)
@@ -185,7 +221,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 					break;
 				if (!newFilters.empty())
 				{
-					addFilters(newFilters);
+					addFilters(move(newFilters));
 					producedFilter = true;
 					break;
 				}
@@ -224,9 +260,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
 		IFilterFactory* factory = it->get();
-		vector<IFilter*> newFilters = factory->endOfFile(path);
+		FilterVector newFilters = factory->endOfFile(path);
 		if (!newFilters.empty())
-			addFilters(newFilters);
+			addFilters(move(newFilters));
 	}
 
 	// restore channels selected in outer configuration file

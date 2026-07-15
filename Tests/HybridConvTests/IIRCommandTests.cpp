@@ -64,6 +64,12 @@ void testParameterValidation()
 	harness.expectFalse(
 		IIRFilterFactory::parseCommand(L"Filter", L"ON IIR Order 1", cmd),
 		"a line without Coefficients is rejected");
+	harness.expectFalse(
+		IIRFilterFactory::parseCommand(L"Filter", L"ON IIR Order 1 Coefficients 1 0 0 0", cmd),
+		"a zero a0 coefficient is rejected");
+	harness.expectFalse(
+		IIRFilterFactory::parseCommand(L"Filter", L"ON IIR Order 1 Coefficients 1e999 0 1 0", cmd),
+		"non-finite coefficients are rejected");
 }
 
 void testRoundTrip()

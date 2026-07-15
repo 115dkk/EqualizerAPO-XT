@@ -18,8 +18,10 @@
 */
 
 #include "stdafx.h"
+#include <cmath>
 #include <limits>
 #include <new>
+#include <stdexcept>
 #include "helpers/MemoryHelper.h"
 #include "IIRFilter.h"
 #include "helpers/PerfProfile.h"
@@ -32,13 +34,19 @@ using std::wstring;
 
 IIRFilter::IIRFilter(const vector<double>& coefficients)
 {
-	order = (unsigned)coefficients.size() / 2 - 1;
-	a = static_cast<double*>(MemoryHelper::alloc(order * sizeof *a));
-	b = static_cast<double*>(MemoryHelper::alloc(order * sizeof *b));
-	x = nullptr;
-	y = nullptr;
+	if (coefficients.size() < 4 || coefficients.size() % 2 != 0)
+		throw std::invalid_argument("IIR coefficients must contain matching b and a terms");
+	for (double coefficient : coefficients)
+		if (!std::isfinite(coefficient))
+			throw std::invalid_argument("IIR coefficients must be finite");
+
+	order = static_cast<unsigned>(coefficients.size() / 2 - 1);
+	a.resize(order);
+	b.resize(order);
 
 	double a0 = coefficients[order + 1];
+	if (a0 == 0.0)
+		throw std::invalid_argument("IIR a0 coefficient must not be zero");
 	b0 = coefficients[0] / a0;
 	for (unsigned i = 0; i < order; i++)
 	{
@@ -49,13 +57,6 @@ IIRFilter::IIRFilter(const vector<double>& coefficients)
 
 IIRFilter::~IIRFilter()
 {
-	MemoryHelper::free(a);
-	MemoryHelper::free(b);
-
-	if (x != nullptr)
-		MemoryHelper::free(x);
-	if (y != nullptr)
-		MemoryHelper::free(y);
 }
 
 vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
@@ -71,18 +72,13 @@ vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, 
 		throw std::bad_alloc();
 
 	const size_t stateCount = static_cast<size_t>(order) * channelCount;
-	if (stateCount > maxSize / sizeof *x)
+	if (stateCount > maxSize / sizeof(double))
 		throw std::bad_alloc();
 
-	if (x != nullptr)
-		MemoryHelper::free(x);
-	if (y != nullptr)
-		MemoryHelper::free(y);
-
-	x = static_cast<double*>(MemoryHelper::alloc(stateCount * sizeof *x));
-	y = static_cast<double*>(MemoryHelper::alloc(stateCount * sizeof *y));
-	std::fill_n(x, stateCount, 0.0);
-	std::fill_n(y, stateCount, 0.0);
+	vector<double> newX(stateCount, 0.0);
+	vector<double> newY(stateCount, 0.0);
+	x.swap(newX);
+	y.swap(newY);
 
 	return channelNames;
 }
@@ -97,8 +93,8 @@ void IIRFilter::process(double** output, double** input, unsigned frameCount)
 		double* outputChannel = output[i];
 
 		unsigned channelOffset = i * order;
-		double* xo = x + channelOffset;
-		double* yo = y + channelOffset;
+		double* xo = x.data() + channelOffset;
+		double* yo = y.data() + channelOffset;
 		for (unsigned j = 0; j < frameCount; j++)
 		{
 			double sample = inputChannel[j];

@@ -45,14 +45,14 @@ void DeviceFilterFactory::initialize(FilterEngine* engine)
 }
 #endif
 
-vector<IFilter*> DeviceFilterFactory::startOfConfiguration()
+FilterVector DeviceFilterFactory::startOfConfiguration()
 {
 	deviceMatches = true;
 
-	return vector<IFilter*>();
+	return {};
 }
 
-vector<IFilter*> DeviceFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector DeviceFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	DeviceCommand cmd;
 	if (DeviceCommand::parse(command, parameters, cmd))
@@ -67,13 +67,13 @@ vector<IFilter*> DeviceFilterFactory::createFilter(const wstring& configPath, ws
 		// skip line for further factories
 		command = L"";
 
-	return vector<IFilter*>();
+	return {};
 }
 
-std::vector<IFilter*> DeviceFilterFactory::endOfFile(const std::wstring& configPath)
+FilterVector DeviceFilterFactory::endOfFile(const std::wstring& configPath)
 {
 	// in outer file, the device must have matched, otherwise the inner file would not have been included
 	deviceMatches = true;
 
-	return vector<IFilter*>();
+	return {};
 }

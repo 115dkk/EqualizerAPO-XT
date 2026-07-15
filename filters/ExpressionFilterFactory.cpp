@@ -52,10 +52,10 @@ void ExpressionFilterFactory::initialize(FilterEngine* engine)
 	registerEngineFreeParserExtensions(*parser);
 }
 
-vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector ExpressionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command.length() > 0 && command[0] == L'#')
-		return vector<IFilter*>();
+		return {};
 
 	// Lex through the shared codec, then evaluate the expression segments in
 	// place so the other factories see the substituted parameter text.
@@ -132,5 +132,5 @@ vector<IFilter*> ExpressionFilterFactory::createFilter(const wstring& configPath
 		command = L"";
 	}
 
-	return vector<IFilter*>();
+	return {};
 }

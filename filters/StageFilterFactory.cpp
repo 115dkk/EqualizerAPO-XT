@@ -40,23 +40,23 @@ void StageFilterFactory::initialize(FilterEngine* engine)
 	engine->getParser()->DefineConst(L"stage", engine->isCapture() ? L"capture" : engine->isPreMix() ? L"pre-mix" : L"post-mix");
 }
 
-vector<IFilter*> StageFilterFactory::startOfConfiguration()
+FilterVector StageFilterFactory::startOfConfiguration()
 {
 	stageMatches = engineCapture || !enginePreMix || !enginePostMixInstalled;
 	while (!stageMatchesStack.empty())
 		stageMatchesStack.pop();
 
-	return vector<IFilter*>();
+	return {};
 }
 
-std::vector<IFilter*> StageFilterFactory::startOfFile(const std::wstring& configPath)
+FilterVector StageFilterFactory::startOfFile(const std::wstring& configPath)
 {
 	stageMatchesStack.push(stageMatches);
 
-	return vector<IFilter*>();
+	return {};
 }
 
-vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+FilterVector StageFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	StageCommand cmd;
 	if (StageCommand::parse(command, parameters, cmd))
@@ -108,13 +108,13 @@ vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wst
 		// skip line for further factories
 		command = L"";
 
-	return vector<IFilter*>();
+	return {};
 }
 
-std::vector<IFilter*> StageFilterFactory::endOfFile(const std::wstring& configPath)
+FilterVector StageFilterFactory::endOfFile(const std::wstring& configPath)
 {
 	stageMatches = stageMatchesStack.top();
 	stageMatchesStack.pop();
 
-	return vector<IFilter*>();
+	return {};
 }

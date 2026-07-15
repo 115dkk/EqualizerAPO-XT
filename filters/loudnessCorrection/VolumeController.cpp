@@ -23,19 +23,19 @@
 
 VolumeController::VolumeController()
 {
-	CoInitialize(nullptr);
-
 	winutil::ComPtr<IMMDeviceEnumerator> deviceEnumerator;
-	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (LPVOID*)&deviceEnumerator);
+	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER,
+		__uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(deviceEnumerator.put()));
 	if (FAILED(hr) || !deviceEnumerator)
 		return;
 
 	winutil::ComPtr<IMMDevice> defaultDevice;
-	hr = deviceEnumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &defaultDevice);
+	hr = deviceEnumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, defaultDevice.put());
 	if (FAILED(hr) || !defaultDevice)
 		return;
 
-	hr = defaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER, nullptr, (LPVOID*)&_endpointVolume);
+	hr = defaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_INPROC_SERVER,
+		nullptr, reinterpret_cast<void**>(_endpointVolume.put()));
 	if (FAILED(hr) || !_endpointVolume)
 		return;
 

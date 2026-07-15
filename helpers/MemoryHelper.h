@@ -36,6 +36,12 @@ class MemoryHelper
 public:
 	static void* alloc(size_t size);
 	static void free(void* ptr);
+	// Deterministic failure injection for allocation-path tests. Passing N lets
+	// N subsequent allocations succeed and makes the following allocation fail;
+	// resetAllocationFailureForTesting() restores normal operation. MemoryHelper
+	// is used only while filters/configurations are prepared, never in AVRT_CODE.
+	static void failAllocationAfterForTesting(size_t successfulAllocations) noexcept;
+	static void resetAllocationFailureForTesting() noexcept;
 
 	// Typed, checked construction over alloc()/free().
 	//
@@ -51,7 +57,15 @@ public:
 		void* mem = alloc(sizeof(T));
 		if (mem == nullptr)
 			throw std::bad_alloc();
-		return new(mem) T(std::forward<Args>(args)...);
+		try
+		{
+			return ::new(mem) T(std::forward<Args>(args)...);
+		}
+		catch (...)
+		{
+			free(mem);
+			throw;
+		}
 	}
 
 	template<class T>

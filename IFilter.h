@@ -19,7 +19,9 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "helpers/MemoryHelper.h"
@@ -49,3 +51,24 @@ public:
 protected:
 };
 #pragma AVRT_VTABLES_END
+
+struct FilterDeleter
+{
+	void operator()(IFilter* filter) const;
+};
+
+using FilterPtr = std::unique_ptr<IFilter, FilterDeleter>;
+using FilterVector = std::vector<FilterPtr>;
+
+template<class T, class... Args>
+FilterPtr makeFilter(Args&&... args)
+{
+	return FilterPtr(MemoryHelper::construct<T>(std::forward<Args>(args)...));
+}
+
+inline FilterVector singleFilter(FilterPtr filter)
+{
+	FilterVector filters;
+	filters.push_back(std::move(filter));
+	return filters;
+}

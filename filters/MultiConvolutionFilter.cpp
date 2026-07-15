@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <utility>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <fftw3.h>
@@ -131,6 +132,8 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		LogF(L"MultiConvolutionFilter: could not allocate %u convolution units", totalUnits);
 		return outChannelNames;
 	}
+	HConvSingleArray pendingFilters;
+	pendingFilters.adoptUninitialized(allocated, totalUnits);
 
 	tempBuffer.assign(maxFrameCount, 0.0);
 	unitFactors.assign(totalUnits, 1.0);
@@ -142,13 +145,14 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		{
 			// hcInitSingle reads the IR samples during planning but does not
 			// retain the pointer, so the shared cache buffer is safe to feed.
-			hcInitSingle(&allocated[next], const_cast<double*>(ir->buffers[ref.channel].data()), (int)irFrames, (int)maxFrameCount, 1);
+			hcInitSingle(&pendingFilters[next], const_cast<double*>(ir->buffers[ref.channel].data()), (int)irFrames, (int)maxFrameCount, 1);
+			pendingFilters.markInitialized();
 			unitFactors[next] = ref.isDecibel ? pow(10.0, ref.factor / 20.0) : ref.factor;
 			next++;
 		}
 		plans[i].unitCount = next - plans[i].firstUnit;
 	}
-	filters.adopt(allocated, next);
+	filters = std::move(pendingFilters);
 	unitCount = next;
 	filterFrameCount = maxFrameCount;
 

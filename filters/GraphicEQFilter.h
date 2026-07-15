@@ -41,5 +41,6 @@ private:
 
 	std::vector<FilterNode> nodes;
 	unsigned filterLength;
+	std::shared_ptr<const std::vector<double>> synthesizedIr;
 };
 #pragma AVRT_VTABLES_END

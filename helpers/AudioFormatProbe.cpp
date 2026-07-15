@@ -47,23 +47,24 @@ Result probe(const std::wstring& deviceGuid)
 	// (Qt does this implicitly via the GUI event loop).
 	ComPtr<IMMDeviceEnumerator> enumerator;
 	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr,
-		CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&enumerator));
+		CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator),
+		reinterpret_cast<void**>(enumerator.put()));
 	if (FAILED(hr) || !enumerator)
 		return result;
 
 	ComPtr<IMMDevice> device;
-	hr = enumerator->GetDevice(deviceGuid.c_str(), &device);
+	hr = enumerator->GetDevice(deviceGuid.c_str(), device.put());
 	if (FAILED(hr) || !device)
 		return result;
 
 	ComPtr<IAudioClient> client;
 	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr,
-		reinterpret_cast<void**>(&client));
+		reinterpret_cast<void**>(client.put()));
 	if (FAILED(hr) || !client)
 		return result;
 
 	CoTaskMem<WAVEFORMATEX> mixFormat;
-	hr = client->GetMixFormat(&mixFormat);
+	hr = client->GetMixFormat(mixFormat.put());
 	if (FAILED(hr) || !mixFormat)
 		return result;
 

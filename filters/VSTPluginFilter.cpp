@@ -26,6 +26,20 @@
 
 using std::max;
 
+namespace
+{
+constexpr unsigned kMaxPluginChannelCount = 1024;
+constexpr unsigned kMaxPluginLatencySamples = 16 * 1024 * 1024;
+
+bool checkedMultiply(size_t left, size_t right, size_t& result) noexcept
+{
+	if (left != 0 && right > (std::numeric_limits<size_t>::max)() / left)
+		return false;
+	result = left * right;
+	return true;
+}
+}
+
 VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap)
 	: library(library), libPath(library->getLibPath()), chunkData(chunkData), paramMap(paramMap)
 {
@@ -64,7 +78,28 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		skipProcessing = true;
 	}
 
-	effectChannelCount = max(firstEffect->numInputs(), firstEffect->numOutputs());
+	// Metadata is plugin-controlled. Snapshot it once, validate the signed
+	// values, and use only the cached values for every allocation and processing
+	// loop below. Re-reading allows a broken plugin to change the loop bounds
+	// after the corresponding buffers were sized.
+	const int reportedInputCount = firstEffect->numInputs();
+	const int reportedOutputCount = firstEffect->numOutputs();
+	const int reportedLatency = firstEffect->getInitialDelay();
+	if (reportedInputCount < 0 || reportedOutputCount < 0 || reportedLatency < 0
+		|| reportedInputCount > static_cast<int>(kMaxPluginChannelCount)
+		|| reportedOutputCount > static_cast<int>(kMaxPluginChannelCount)
+		|| reportedLatency > static_cast<int>(kMaxPluginLatencySamples))
+	{
+		LogF(L"The VST plugin %s reported invalid channel or latency metadata; passing audio through.", libPath.c_str());
+		skipProcessing = true;
+		firstEffect->~VSTPluginInstance();
+		MemoryHelper::free(firstEffect);
+		return channelNames;
+	}
+
+	effectInputCount = static_cast<unsigned>(reportedInputCount);
+	effectOutputCount = static_cast<unsigned>(reportedOutputCount);
+	effectChannelCount = max(effectInputCount, effectOutputCount);
 	if (effectChannelCount == 0)
 	{
 		skipProcessing = true;
@@ -74,8 +109,18 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	}
 
 	// round up
-	effectCount = (channelCount + (effectChannelCount - 1)) / effectChannelCount;
-	effects = (VSTPluginInstance**)MemoryHelper::alloc(effectCount * sizeof(VSTPluginInstance*));
+	effectCount = channelCount / effectChannelCount + (channelCount % effectChannelCount != 0 ? 1 : 0);
+	size_t allocationBytes = 0;
+	if (!checkedMultiply(effectCount, sizeof(VSTPluginInstance*), allocationBytes))
+	{
+		LogF(L"The VST plugin %s reported metadata that overflows its instance table; passing audio through.", libPath.c_str());
+		skipProcessing = true;
+		effectCount = 0;
+		firstEffect->~VSTPluginInstance();
+		MemoryHelper::free(firstEffect);
+		return channelNames;
+	}
+	effects = (VSTPluginInstance**)MemoryHelper::alloc(allocationBytes);
 	if (effects == nullptr)
 	{
 		LogF(L"The VST plugin %s could not allocate its instance table; passing audio through.", libPath.c_str());
@@ -109,8 +154,26 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	prepareForProcessing(sampleRate, maxFrameCount);
 
 	// 2 times for input and output
-	emptyChannelCount = 2 * (effectCount * effectChannelCount - channelCount);
-	emptyChannels = (double**)MemoryHelper::alloc(emptyChannelCount * sizeof(double*));
+	size_t paddedChannelCount = 0;
+	if (!checkedMultiply(effectCount, effectChannelCount, paddedChannelCount)
+		|| paddedChannelCount < channelCount
+		|| paddedChannelCount - channelCount > (std::numeric_limits<size_t>::max)() / 2)
+	{
+		LogF(L"The VST plugin %s reported metadata that overflows its padding count; passing audio through.", libPath.c_str());
+		skipProcessing = true;
+		return channelNames;
+	}
+	emptyChannelCount = 2 * (paddedChannelCount - channelCount);
+	if (!checkedMultiply(emptyChannelCount, sizeof(double*), allocationBytes))
+	{
+		LogF(L"The VST plugin %s reported metadata that overflows its padding table; passing audio through.", libPath.c_str());
+		skipProcessing = true;
+		emptyChannelCount = 0;
+		return channelNames;
+	}
+	emptyChannels = emptyChannelCount > 0
+		? (double**)MemoryHelper::alloc(allocationBytes)
+		: nullptr;
 	if (emptyChannels == nullptr && emptyChannelCount > 0)
 	{
 		LogF(L"The VST plugin %s could not allocate padding channels; passing audio through.", libPath.c_str());
@@ -120,7 +183,13 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	}
 	for (unsigned i = 0; i < emptyChannelCount; i++)
 	{
-		emptyChannels[i] = static_cast<double*>(MemoryHelper::alloc(maxFrameCount * sizeof *emptyChannels[i]));
+		if (!checkedMultiply(maxFrameCount, sizeof *emptyChannels[i], allocationBytes))
+		{
+			skipProcessing = true;
+			emptyChannelCount = i;
+			return channelNames;
+		}
+		emptyChannels[i] = static_cast<double*>(MemoryHelper::alloc(allocationBytes));
 		if (emptyChannels[i] == nullptr)
 		{
 			LogF(L"The VST plugin %s could not allocate padding channel %u; passing audio through.", libPath.c_str(), i);
@@ -133,9 +202,22 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		std::fill_n(emptyChannels[i], maxFrameCount, 0.0);
 	}
 
-	inputArray = (double**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(double*));
-	outputArray = (double**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(double*));
-	if (inputArray == nullptr || outputArray == nullptr)
+	if (!checkedMultiply(effectInputCount, sizeof(double*), allocationBytes))
+	{
+		LogF(L"The VST plugin %s reported an input count that overflows its bus table; passing audio through.", libPath.c_str());
+		skipProcessing = true;
+		return channelNames;
+	}
+	inputArray = effectInputCount > 0 ? (double**)MemoryHelper::alloc(allocationBytes) : nullptr;
+	if (!checkedMultiply(effectOutputCount, sizeof(double*), allocationBytes))
+	{
+		LogF(L"The VST plugin %s reported an output count that overflows its bus table; passing audio through.", libPath.c_str());
+		skipProcessing = true;
+		return channelNames;
+	}
+	outputArray = effectOutputCount > 0 ? (double**)MemoryHelper::alloc(allocationBytes) : nullptr;
+	if ((effectInputCount > 0 && inputArray == nullptr)
+		|| (effectOutputCount > 0 && outputArray == nullptr))
 	{
 		LogF(L"The VST plugin %s could not allocate its bus arrays; passing audio through.", libPath.c_str());
 		skipProcessing = true;
@@ -143,11 +225,11 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	}
 
 	// Allocate float buffers for conversion
-	if (firstEffect->numInputs() > 0) {
+	if (effectInputCount > 0) {
 		// A hostile or broken plugin can report a bus count whose product with
 		// maxFrameCount wraps before widening to size_t (CodeQL
 		// cpp/integer-multiplication-cast-to-long); validate in size_t first.
-		const size_t inputCount = static_cast<size_t>(firstEffect->numInputs());
+		const size_t inputCount = effectInputCount;
 		const size_t maxSize = (std::numeric_limits<size_t>::max)();
 		if (inputCount > maxSize / sizeof(float*) ||
 			(maxFrameCount != 0 &&
@@ -162,14 +244,14 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			skipProcessing = true;
 			return channelNames;
 		}
-		for (int i = 0; i < firstEffect->numInputs(); ++i) {
+		for (unsigned i = 0; i < effectInputCount; ++i) {
 			floatInputs[i] = _floatInputBuffer + i * maxFrameCount;
 		}
 	}
 
-	if (firstEffect->numOutputs() > 0) {
+	if (effectOutputCount > 0) {
 		// Same wrap-before-widening hazard as the input buffers above.
-		const size_t outputCount = static_cast<size_t>(firstEffect->numOutputs());
+		const size_t outputCount = effectOutputCount;
 		const size_t maxSize = (std::numeric_limits<size_t>::max)();
 		if (outputCount > maxSize / sizeof(float*) ||
 			(maxFrameCount != 0 &&
@@ -184,16 +266,23 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			skipProcessing = true;
 			return channelNames;
 		}
-		for (int i = 0; i < firstEffect->numOutputs(); ++i) {
+		for (unsigned i = 0; i < effectOutputCount; ++i) {
 			floatOutputs[i] = _floatOutputBuffer + i * maxFrameCount;
 		}
 	}
 
 	// Allocate delay compensation buffers
-	delayBufferLength = firstEffect->getInitialDelay();
+	delayBufferLength = static_cast<unsigned>(reportedLatency);
 	if (delayBufferLength > 0)
 	{
-		delayBuffers = (double**)MemoryHelper::alloc(channelCount * sizeof(double*));
+		if (!checkedMultiply(channelCount, sizeof(double*), allocationBytes))
+		{
+			LogF(L"The VST plugin %s reported a latency whose channel table overflows; passing audio through.", libPath.c_str());
+			skipProcessing = true;
+			delayBufferLength = 0;
+			return channelNames;
+		}
+		delayBuffers = (double**)MemoryHelper::alloc(allocationBytes);
 		if (delayBuffers == nullptr)
 		{
 			LogF(L"The VST plugin %s could not allocate delay buffers; passing audio through.", libPath.c_str());
@@ -203,7 +292,17 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		}
 		for (unsigned i = 0; i < channelCount; i++)
 		{
-			delayBuffers[i] = static_cast<double*>(MemoryHelper::alloc(delayBufferLength * sizeof *delayBuffers[i]));
+			if (!checkedMultiply(delayBufferLength, sizeof *delayBuffers[i], allocationBytes))
+			{
+				for (unsigned j = 0; j < i; j++)
+					MemoryHelper::free(delayBuffers[j]);
+				MemoryHelper::free(delayBuffers);
+				delayBuffers = nullptr;
+				delayBufferLength = 0;
+				skipProcessing = true;
+				return channelNames;
+			}
+			delayBuffers[i] = static_cast<double*>(MemoryHelper::alloc(allocationBytes));
 			if (delayBuffers[i] == nullptr)
 			{
 				LogF(L"The VST plugin %s could not allocate delay buffer %u; passing audio through.", libPath.c_str(), i);
@@ -219,7 +318,13 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			}
 			std::fill_n(delayBuffers[i], delayBufferLength, 0.0);
 		}
-		delayTempBuffer = static_cast<double*>(MemoryHelper::alloc(maxFrameCount * sizeof *delayTempBuffer));
+		if (!checkedMultiply(maxFrameCount, sizeof *delayTempBuffer, allocationBytes))
+		{
+			skipProcessing = true;
+			delayBufferLength = 0;
+			return channelNames;
+		}
+		delayTempBuffer = static_cast<double*>(MemoryHelper::alloc(allocationBytes));
 		if (delayTempBuffer == nullptr)
 		{
 			LogF(L"The VST plugin %s could not allocate its delay scratch buffer; passing audio through.", libPath.c_str());
@@ -280,7 +385,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		{
 			VSTPluginInstance* effect = effects[i];
 			// Setup double pointer arrays to point to the correct source/destination double buffers
-			for (int j = 0; j < effect->numInputs(); j++)
+			for (unsigned j = 0; j < effectInputCount; j++)
 			{
 				if (channelOffset + j < channelCount)
 					inputArray[j] = input[channelOffset + j];
@@ -288,7 +393,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					inputArray[j] = emptyChannels[emptyChannelIndex++];
 			}
 
-			for (int j = 0; j < effect->numOutputs(); j++)
+			for (unsigned j = 0; j < effectOutputCount; j++)
 			{
 				if (channelOffset + j < channelCount)
 					outputArray[j] = output[channelOffset + j];
@@ -301,7 +406,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			}
 			else {
 				// Convert input from double** to float** using pre-allocated buffers
-				for (int j = 0; j < effect->numInputs(); j++)
+				for (unsigned j = 0; j < effectInputCount; j++)
 				{
 					convertDoubleToFloat(floatInputs[j], inputArray[j], frameCount);
 				}
@@ -313,21 +418,21 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				else
 				{
 					// For non-replacing, VST expects to add to the output. Clear float buffer first.
-					for (int j = 0; j < effect->numOutputs(); j++)
+					for (unsigned j = 0; j < effectOutputCount; j++)
 						std::fill_n(floatOutputs[j], frameCount, 0.0f);
 					effect->process(floatInputs, floatOutputs, frameCount);
 				}
 
 				// Convert output from float** back to double** into the final destination
-				for (int j = 0; j < effect->numOutputs(); j++)
+				for (unsigned j = 0; j < effectOutputCount; j++)
 				{
 					convertFloatToDouble(outputArray[j], floatOutputs[j], frameCount);
 				}
 			}
 
-			if (effect->numOutputs() < effect->numInputs())
+			if (effectOutputCount < effectInputCount)
 			{
-				for (int j = effect->numOutputs(); j < effect->numInputs(); j++)
+				for (unsigned j = effectOutputCount; j < effectInputCount; j++)
 				{
 					if (channelOffset + j < channelCount)
 						std::fill_n(output[channelOffset + j], frameCount, 0.0);
@@ -425,6 +530,9 @@ void VSTPluginFilter::cleanup()
 		effects = nullptr;
 	}
 	effectCount = 0;
+	effectInputCount = 0;
+	effectOutputCount = 0;
+	effectChannelCount = 0;
 
 	if (emptyChannels != nullptr)
 	{
