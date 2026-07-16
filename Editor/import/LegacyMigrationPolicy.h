@@ -61,6 +61,13 @@ public:
     // Uninstall.exe next to the config dir).
     static Action classify(const QString& existingConfigPath, const QString& stableRoot,
         bool legacyMarkersPresent, bool volatileXt);
+
+    // If path lies under fromRoot, the same relative location under toRoot
+    // (forward slashes); otherwise an empty string. Case-insensitive,
+    // separator-insensitive, and boundary-safe ("...\configX" is not under
+    // "...\config"). Pure string logic for remapping saved open-file and
+    // recent-file paths after a migration.
+    static QString remapUnderRoot(const QString& path, const QString& fromRoot, const QString& toRoot);
 };
 
 }

@@ -269,6 +269,56 @@ int LegacyMigration::dryRun()
 	return 0;
 }
 
+QString LegacyMigration::adoptMigratedFile(const QString& path)
+{
+	const QString migratedFrom = readRegistryString(L"MigratedFrom");
+	if (migratedFrom.isEmpty())
+		return path;
+
+	const QString stableRoot = stableConfigRoot();
+	const QString remapped = LegacyMigrationPolicy::remapUnderRoot(path, migratedFrom, stableRoot);
+	if (remapped.isEmpty())
+		return path;
+
+	if (!QFile::exists(remapped))
+	{
+		// The referenced-set import only carried what config.txt reaches; a
+		// tab the user kept open on some other file is still worth keeping
+		// alive. Copy it over on demand — the legacy original stays behind.
+		if (!QFile::exists(path))
+			return path;
+		QDir().mkpath(QFileInfo(remapped).absolutePath());
+		if (!QFile::copy(path, remapped))
+			return path;
+	}
+
+	// Row prefs and scroll offsets are keyed by the absolute path; port them
+	// so the remapped tab keeps its per-file state. Never overwrite prefs the
+	// new path already accumulated. The key mirrors EDITOR_PER_FILE_REGPATH
+	// (MainWindow.h) without pulling the whole MainWindow header in here.
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH L"\\file-specific"), QSettings::NativeFormat);
+	const QString oldGroup = QDir::toNativeSeparators(path).replace(QLatin1Char('\\'), QLatin1Char('|'));
+	const QString newGroup = QDir::toNativeSeparators(remapped).replace(QLatin1Char('\\'), QLatin1Char('|'));
+	settings.beginGroup(newGroup);
+	const bool newGroupEmpty = settings.allKeys().isEmpty();
+	settings.endGroup();
+	if (newGroupEmpty)
+	{
+		settings.beginGroup(oldGroup);
+		const QStringList keys = settings.allKeys();
+		QVariantList values;
+		for (const QString& key : keys)
+			values.append(settings.value(key));
+		settings.endGroup();
+		settings.beginGroup(newGroup);
+		for (int i = 0; i < keys.size(); i++)
+			settings.setValue(keys[i], values[i]);
+		settings.endGroup();
+	}
+
+	return QDir::toNativeSeparators(remapped);
+}
+
 void LegacyMigration::maybeShowStartupNotice(QWidget* parent)
 {
     const QString stamp = readRegistryString(L"MigrationStamp");

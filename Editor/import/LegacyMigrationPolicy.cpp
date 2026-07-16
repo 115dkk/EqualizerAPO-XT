@@ -36,6 +36,20 @@ bool LegacyMigrationPolicy::hasLegacyApoFolderName(const QString& dir)
     return legacyPattern.match(clean).hasMatch();
 }
 
+QString LegacyMigrationPolicy::remapUnderRoot(const QString& path, const QString& fromRoot, const QString& toRoot)
+{
+    const QString cleanPath = QDir::cleanPath(QDir::fromNativeSeparators(path.trimmed()));
+    const QString cleanFrom = QDir::cleanPath(QDir::fromNativeSeparators(fromRoot.trimmed()));
+    if (cleanPath.isEmpty() || cleanFrom.isEmpty())
+        return QString();
+    if (cleanPath.length() <= cleanFrom.length()
+        || !cleanPath.startsWith(cleanFrom, Qt::CaseInsensitive)
+        || cleanPath.at(cleanFrom.length()) != QLatin1Char('/'))
+        return QString();
+    const QString rel = cleanPath.mid(cleanFrom.length() + 1);
+    return QDir::cleanPath(QDir::fromNativeSeparators(toRoot) + QLatin1Char('/') + rel);
+}
+
 LegacyMigrationPolicy::Action LegacyMigrationPolicy::classify(const QString& existingConfigPath,
     const QString& stableRoot, bool legacyMarkersPresent, bool volatileXt)
 {

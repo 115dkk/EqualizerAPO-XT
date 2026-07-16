@@ -50,6 +50,10 @@ void MainWindow::linesChanged()
 		return;
 	}
 
+	// Every document edit lands here (undo capture rides the same signal), so
+	// this keeps the Edit-menu undo/redo enabled states current.
+	updateUndoRedoActions();
+
 	if (instantModeCheckBox->isChecked())
 	{
 		QString configPath = filterTable->getConfigPath();
@@ -162,6 +166,7 @@ void MainWindow::on_actionUndo_triggered()
 		return;
 
 	filterTable->undo();
+	updateUndoRedoActions();
 }
 
 void MainWindow::on_actionRedo_triggered()
@@ -171,6 +176,14 @@ void MainWindow::on_actionRedo_triggered()
 		return;
 
 	filterTable->redo();
+	updateUndoRedoActions();
+}
+
+void MainWindow::updateUndoRedoActions()
+{
+	FilterTable* filterTable = currentFilterTable();
+	ui->actionUndo->setEnabled(filterTable != nullptr && filterTable->canUndo());
+	ui->actionRedo->setEnabled(filterTable != nullptr && filterTable->canRedo());
 }
 
 void MainWindow::on_actionCut_triggered()

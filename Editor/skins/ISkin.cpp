@@ -443,5 +443,9 @@ void ISkin::styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const
 			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), ink, 18));
 		else if (action->objectName() == QStringLiteral("actionSave"))
 			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/save.svg"), ink, 18));
+		else if (action->objectName() == QStringLiteral("actionUndo"))
+			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/undo.svg"), ink, 18));
+		else if (action->objectName() == QStringLiteral("actionRedo"))
+			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/redo.svg"), ink, 18));
 	}
 }

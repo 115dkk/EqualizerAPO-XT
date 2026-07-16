@@ -328,6 +328,18 @@ public:
 		rightEarAction = right;
 	}
 
+	// The StyleChange filter below hides the ears when another skin's sheet
+	// arrives, but a same-skin re-apply is skipped upstream and delivers no
+	// StyleChange - the reuse path calls this so the zones come back with
+	// the chrome regardless of how the hook was reached.
+	void showEarZones()
+	{
+		if (leftEarAction != nullptr)
+			leftEarAction->setVisible(true);
+		if (rightEarAction != nullptr)
+			rightEarAction->setVisible(true);
+	}
+
 protected:
 	bool eventFilter(QObject* watched, QEvent* event) override
 	{
@@ -1199,6 +1211,7 @@ void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens)
 		plate->setEarActions(leftEar, rightEar);
 	}
 	plate->setTokens(tokens);
+	plate->showEarZones();
 	plate->lower();
 	plate->show();
 	plate->update();

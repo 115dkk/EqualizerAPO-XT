@@ -25,6 +25,7 @@
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"
+#include "Editor/import/LegacyMigration.h"
 #include "Editor/widgets/TitleBar.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
@@ -112,13 +113,19 @@ void MainWindow::loadPreferences()
 		QStringList fileList = openFilesValue.toStringList();
 		for (int i = 0; i < fileList.size(); i++)
 		{
-			load(fileList[i]);
+			// Saved absolute paths may predate a config migration; a tab
+			// restored into the legacy folder would edit files the audio
+			// pipeline no longer reads.
+			load(EqAPO::Import::LegacyMigration::adoptMigratedFile(fileList[i]));
 			if (i == tabIndex)
 				tabIndex = ui->tabWidget->currentIndex();
 		}
 	}
 	ui->tabWidget->setCurrentIndex(tabIndex);
 	recentFiles = settings.value("recentFiles").toStringList();
+	for (QString& recentFile : recentFiles)
+		recentFile = EqAPO::Import::LegacyMigration::adoptMigratedFile(recentFile);
+	recentFiles.removeDuplicates();
 	updateRecentFiles();
 
 	QVariant languageValue = settings.value("language");
@@ -135,7 +142,14 @@ void MainWindow::loadPreferences()
 	QVariant stateValue = settings.value("windowState");
 	if (stateValue.isValid())
 		restoreState(stateValue.toByteArray(), kWindowStateVersion);
+	// The saved window state can carry a hidden main toolbar (e.g. the app
+	// was closed while the graph was fullscreen, which hides it), and nothing
+	// else ever re-shows it - the "the save/tools row is gone" report, with
+	// no obvious way back for the user. Toolbar visibility is session
+	// chrome, not a persisted preference: every session starts with it on.
+	ui->mainToolBar->setVisible(true);
 	applyRedesignPreferences();
+	updateUndoRedoActions();
 }
 
 void MainWindow::savePreferences()
@@ -362,6 +376,13 @@ void MainWindow::applyRedesignPreferences()
 	{
 		SkinManager::instance()->applySkin(skinId, skinDark);
 		skinId = SkinManager::instance()->currentSkinId();
+		// The toolbar/menu dressing must not depend on applySkin actually
+		// running: a same-skin re-apply is skipped (no skinChanged signal),
+		// which used to leave the toolbar on the .ui's legacy .ico icons and
+		// without the skin's chrome (rack's rail/LED) in every session that
+		// never switched skins - the "default icons appear sometimes" report.
+		// dressSkinChrome is idempotent and cheap, so run it directly.
+		dressSkinChrome();
 	}
 
 	if (interfaceModeActionGroup != nullptr)

@@ -14,6 +14,31 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The main toolbar's skin dressing no longer depends on a skin switch
+  actually happening: sessions that started on their saved skin came up
+  with the legacy Windows-era icons and without the skin's toolbar chrome
+  (rack's rail, MASTER label, ear zones, and the instant-mode pilot lamp),
+  seemingly at random — dressed only if a skin or dark toggle had run since
+  launch. The dressing now also runs directly on every preferences pass,
+  and rack re-shows its rail zones without relying on a style-change event.
+  A saved window state carrying a hidden toolbar (e.g. the app was closed
+  while the graph was fullscreen) also stopped eating the save/tools row:
+  every session now starts with the toolbar visible.
+  ([#205](https://github.com/115dkk/EqualizerAPO-XT/pull/205))
+- Undo/redo for the filter list is finally visible: the main toolbar
+  carries undo/redo buttons after New/Open/Save (nudging the instant-mode
+  toggle right), and both the buttons and the Edit-menu entries now grey
+  out when the active tab's history has nothing to step to — previously
+  they only lived in the Edit menu and always rendered enabled, silently
+  doing nothing on an empty history.
+  ([#205](https://github.com/115dkk/EqualizerAPO-XT/pull/205))
+- After a config migration, restored tabs, recent files, and their per-file
+  view preferences kept pointing into the old legacy folder — the one the
+  audio pipeline no longer reads, so editing a restored tab silently changed
+  nothing. Saved paths under the migrated folder now remap to their copies
+  in the new configuration root on startup, copying a file over on demand
+  when the migration's referenced-set import did not carry it.
+  ([#205](https://github.com/115dkk/EqualizerAPO-XT/pull/205))
 - EqualizerAPO-XT now has its own configuration root:
   `%LOCALAPPDATA%\EqualizerAPO-XT\config`. The fork used to keep reading the
   registry config path a legacy Equalizer APO install had claimed, so edits

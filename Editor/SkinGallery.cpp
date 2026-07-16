@@ -345,6 +345,11 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	actionOpen->setObjectName(QStringLiteral("actionOpen"));
 	QAction* actionSave = toolBar->addAction(QStringLiteral("Save"));
 	actionSave->setObjectName(QStringLiteral("actionSave"));
+	toolBar->addSeparator();
+	QAction* actionUndo = toolBar->addAction(QStringLiteral("Undo"));
+	actionUndo->setObjectName(QStringLiteral("actionUndo"));
+	QAction* actionRedo = toolBar->addAction(QStringLiteral("Redo"));
+	actionRedo->setObjectName(QStringLiteral("actionRedo"));
 
 	QWidget* spacer = new QWidget;
 	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));

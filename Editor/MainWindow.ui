@@ -117,6 +117,9 @@
    <addaction name="actionNew"/>
    <addaction name="actionOpen"/>
    <addaction name="actionSave"/>
+   <addaction name="separator"/>
+   <addaction name="actionUndo"/>
+   <addaction name="actionRedo"/>
   </widget>
   <widget class="QDockWidget" name="analysisDockWidget">
    <property name="windowTitle">
