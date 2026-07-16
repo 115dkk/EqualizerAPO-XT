@@ -11,7 +11,9 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEnterEvent>
+#include <QEventLoop>
 #include <QFile>
+#include <QFileDialog>
 #include <QFrame>
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -31,6 +33,14 @@
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QToolBar>
+#include <QTreeView>
+#include <QUrl>
+
+#define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
@@ -317,17 +327,75 @@ QString buildReferenceFiles(const QDir& outDir)
 	return refsDir.filePath(QStringLiteral("gallery.txt"));
 }
 
+// Pin a file or directory's timestamps to a fixed instant so the file
+// dialog's Detail date column is identical between runs on the same machine.
+// Directories need the Win32 path: QFile::setFileTime only opens files.
+bool pinFileTime(const QString& path)
+{
+	HANDLE handle = CreateFileW(reinterpret_cast<const wchar_t*>(path.utf16()), FILE_WRITE_ATTRIBUTES,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	if (handle == INVALID_HANDLE_VALUE)
+		return false;
+	SYSTEMTIME systemTime = {};
+	systemTime.wYear = 2026;
+	systemTime.wMonth = 1;
+	systemTime.wDay = 1;
+	systemTime.wHour = 12;
+	FILETIME fileTime;
+	SystemTimeToFileTime(&systemTime, &fileTime);
+	const bool ok = SetFileTime(handle, &fileTime, &fileTime, &fileTime) != 0;
+	CloseHandle(handle);
+	return ok;
+}
+
+// Fixture tree for the file-dialog chrome shot: two folders and two matching
+// configurations, every entry's timestamps pinned so the Detail view's
+// name/size/date cells do not depend on when the gallery ran. The dialog's
+// "Look in" text still embeds the output dir, like the reference-path shots.
+// Returns the directory the dialog opens on, or an empty string on failure.
+QString buildFileDialogFixture(const QDir& outDir)
+{
+	QDir fixtureDir(outDir.filePath(QStringLiteral("filedialog")));
+	if (!fixtureDir.mkpath(QStringLiteral("config")) || !fixtureDir.mkpath(QStringLiteral("IRs")))
+		return QString();
+
+	const auto writeText = [&fixtureDir](const QString& name, const QByteArray& content)
+	{
+		QFile file(fixtureDir.filePath(name));
+		if (!file.open(QIODevice::WriteOnly))
+			return false;
+		file.write(content);
+		file.close();
+		return pinFileTime(fixtureDir.filePath(name));
+	};
+	if (!writeText(QStringLiteral("demo.txt"), QByteArrayLiteral("# gallery demo config\nPreamp: -6 dB\n")))
+		return QString();
+	if (!writeText(QStringLiteral("voice - bass boost.txt"), QByteArrayLiteral("# gallery demo config\nPreamp: -3 dB\n")))
+		return QString();
+	if (!writeWavFile(fixtureDir.filePath(QStringLiteral("IRs/room.wav")), 2, 48000, 4800))
+		return QString();
+	if (!pinFileTime(fixtureDir.filePath(QStringLiteral("IRs/room.wav"))))
+		return QString();
+	for (const QString& dir : { QStringLiteral("config"), QStringLiteral("IRs") })
+		if (!pinFileTime(fixtureDir.filePath(dir)))
+			return QString();
+	if (!pinFileTime(fixtureDir.absolutePath()))
+		return QString();
+	return fixtureDir.absolutePath();
+}
+
 // renderSkin() renders, per skin and per mode: every gallery row in
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, graph x2, copyfold x4, logic, channelscope). run()
-// multiplies these by skins x 2 modes to self-check the output count, so
-// adding a gallery row needs no external count to be updated. Keep both
-// constants in step with renderStates()/renderSkin() if the state set or
-// chrome shots change.
+// addrow x2, seam, toast, filedialog, graph x2, copyfold x4, logic,
+// channelscope). run() multiplies these by skins x 2 modes to self-check the
+// output count, so adding a gallery row needs no external count to be
+// updated. Keep both constants in step with renderStates()/renderSkin() if
+// the state set or chrome shots change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 20;
+constexpr int kExtraShotsPerSkinMode = 21;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -778,6 +846,40 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		toast->showMessage(QStringLiteral("Update 2.99.0 has been downloaded and will be applied when you close the editor."), 0);
 		QApplication::processEvents();
 		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("toast"), QStringLiteral("normal")) ? 0 : 1;
+	}
+
+	// The skinned file dialog (GUIHelper::prepareFileDialog): Qt's widget
+	// dialog under the app-wide sheet, its navigation buttons dressed through
+	// ISkin::styleFileDialog. The fixture's pinned timestamps keep the Detail
+	// columns deterministic, and the sidebar is overridden with fixture-local
+	// folders so its labels do not depend on this machine's user folders.
+	{
+		const QString fixturePath = buildFileDialogFixture(outDir);
+		if (fixturePath.isEmpty())
+		{
+			qWarning("SkinGallery: could not build the file dialog fixture");
+			failures += 1;
+		}
+		else
+		{
+			QFileDialog dialog(nullptr, QStringLiteral("Open file"), fixturePath, QStringLiteral("*.txt"));
+			dialog.setFileMode(QFileDialog::ExistingFiles);
+			dialog.setNameFilter(QStringLiteral("E-APO configurations (*.txt)"));
+			GUIHelper::prepareFileDialog(dialog);
+			dialog.setSidebarUrls({ QUrl::fromLocalFile(QDir(fixturePath).filePath(QStringLiteral("config"))),
+				QUrl::fromLocalFile(QDir(fixturePath).filePath(QStringLiteral("IRs"))) });
+			dialog.show();
+			// QFileSystemModel lists directories on a worker thread; wait for
+			// the four fixture rows (config, IRs, demo, voice) to land before
+			// grabbing.
+			QTreeView* view = dialog.findChild<QTreeView*>(QStringLiteral("treeView"));
+			QElapsedTimer listTimer;
+			listTimer.start();
+			while (listTimer.elapsed() < 3000
+				&& (view == nullptr || view->model() == nullptr || view->model()->rowCount(view->rootIndex()) < 4))
+				QApplication::processEvents(QEventLoop::AllEvents, 50);
+			failures += saveGrab(&dialog, outDir, skinId, mode, QStringLiteral("filedialog"), QStringLiteral("normal")) ? 0 : 1;
+		}
 	}
 
 	// The analysis dock's response graph with a deterministic synthetic

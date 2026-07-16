@@ -56,6 +56,7 @@ void MainWindow::on_actionOpen_triggered()
 	QFileDialog dialog(this, tr("Open file"), path, "*.txt");
 	dialog.setFileMode(QFileDialog::ExistingFiles);
 	dialog.setNameFilter(tr("E-APO configurations (*.txt)"));
+	GUIHelper::prepareFileDialog(dialog);
 
 	if (dialog.exec() == QDialog::Accepted)
 	{
@@ -111,6 +112,7 @@ void MainWindow::on_actionSaveAs_triggered()
 	dialog.setAcceptMode(QFileDialog::AcceptSave);
 	dialog.setNameFilter(tr("E-APO configurations (*.txt)"));
 	dialog.setDefaultSuffix(".txt");
+	GUIHelper::prepareFileDialog(dialog);
 	if (filename.length() > 0)
 		dialog.selectFile(filename);
 

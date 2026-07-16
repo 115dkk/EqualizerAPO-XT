@@ -8,6 +8,7 @@
 class FilterPickerView;
 class IRoutingRenderer;
 class ISkin;
+class QFileDialog;
 class QPainter;
 class QRect;
 class QToolBar;
@@ -86,6 +87,11 @@ public:
 
 	// Main toolbar icons/chrome for the active skin (ISkin::styleMainToolbar).
 	void styleMainToolbar(QToolBar* toolBar) const;
+
+	// Navigation chrome of a non-native file dialog for the active skin
+	// (ISkin::styleFileDialog). No-op in heritage mode; the shared dialog
+	// setup (GUIHelper::prepareFileDialog) keeps the dialog native there.
+	void styleFileDialog(QFileDialog* dialog) const;
 
 	// Painted title-bar decoration for the active skin (ISkin::paintTitleBarChrome).
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect) const;

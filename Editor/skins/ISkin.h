@@ -22,6 +22,7 @@
 
 class FilterPickerView;
 class IRoutingRenderer;
+class QFileDialog;
 class QPainter;
 class QToolBar;
 class QWidget;
@@ -337,4 +338,17 @@ public:
 	// actions are identified by their .ui object names (actionNew,
 	// actionOpen, actionSave).
 	virtual void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const;
+
+	// Dress a non-native QFileDialog (GUIHelper::prepareFileDialog) in this
+	// skin's language. The dialog's widget tree is assembled from primitives
+	// the skin sheet already styles (tree/list views, header sections,
+	// combos, buttons, scrollbars); this hook answers the parts QSS cannot
+	// reach - the navigation tool buttons' icons, which QFileDialog seeds
+	// from the platform style. Buttons are identified by Qt's internal
+	// object names (backButton, forwardButton, toParentButton,
+	// newFolderButton, listModeButton, detailModeButton). The default is the
+	// shared modern stroke set tinted with the text token; skins override to
+	// re-tint or swap the icon language, mirroring their styleMainToolbar
+	// answer. Never called in heritage mode (the dialog stays native there).
+	virtual void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const;
 };

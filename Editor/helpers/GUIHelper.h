@@ -24,6 +24,8 @@
 
 #pragma once
 
+class QFileDialog;
+
 class GUIHelper
 {
 public:
@@ -44,4 +46,12 @@ public:
 	// interface/knobGainRange; clamped to [1, 100], default ±20 dB.
 	static double knobGainRange();
 	static void setKnobGainRange(double range);
+	// Shared setup for every file dialog the Editor opens. Under a skin the
+	// dialog switches to Qt's widget-based (non-native) implementation so the
+	// app-wide skin sheet reaches it, gets a sidebar seeded with the config
+	// root and the user's standard folders, and is dressed by the active
+	// skin (SkinManager::styleFileDialog). In heritage mode this is a no-op:
+	// the platform-native dialog is part of the unmodernized original. Call
+	// it right after constructing the dialog, before exec().
+	static void prepareFileDialog(QFileDialog& dialog);
 };

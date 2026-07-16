@@ -140,7 +140,8 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	// up/down arrows render as a "-". The override (SkinThemeData) replaces the
 	// arrow sub-controls app-wide with a real chevron SVG, appended after the
 	// skin sheet so it wins on equal specificity.
-	qApp->setStyleSheet(SkinThemeData::substituteTokens(styleSheet, currentTokens) + SkinThemeData::comboArrowOverride());
+	qApp->setStyleSheet(SkinThemeData::substituteTokens(styleSheet, currentTokens) + SkinThemeData::comboArrowOverride()
+		+ SkinThemeData::fileDialogOverride());
 	// The palette is part of the skin: painted (non-QSS) widgets and native
 	// popups read these roles. Deriving it here keeps every switch path (menu,
 	// shortcut, startup, gallery) in step.
@@ -270,4 +271,11 @@ void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 	// Qt::ToolButtonTextOnly; everyone else expects icon-only).
 	toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 	activeSkin->styleMainToolbar(toolBar, currentTokens);
+}
+
+void SkinManager::styleFileDialog(QFileDialog* dialog) const
+{
+	if (heritageMode)
+		return; // the dialog stays platform-native in heritage mode
+	activeSkin->styleFileDialog(dialog, currentTokens);
 }

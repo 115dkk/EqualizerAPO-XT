@@ -9,6 +9,7 @@
 #include "Skins.h"
 
 #include <QAction>
+#include <QFileDialog>
 #include <QFontMetrics>
 #include <QFontMetricsF>
 #include <QIcon>
@@ -20,6 +21,7 @@
 #include <QPixmap>
 #include <QRegularExpression>
 #include <QToolBar>
+#include <QToolButton>
 #include <QWidget>
 #include <QtMath>
 
@@ -1151,6 +1153,36 @@ public:
 				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/undo.svg"), mixColor(QColor(tokens.accent2), card, 0.15)));
 			else if (action->objectName() == QStringLiteral("actionRedo"))
 				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/redo.svg"), mixColor(QColor(tokens.accent2), card, 0.15)));
+		}
+	}
+
+	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override
+	{
+		if (dialog == nullptr)
+			return;
+
+		// The toolbar's pastel tiles carried into the dialog's navigation
+		// row, with the same semantic tints: the movement pair rides
+		// accent2 like undo/redo, the folder pair keeps actionOpen's warm
+		// tint and actionNew's accent, and the view toggles stay muted so
+		// they read as mode switches, not actions.
+		const QColor card(tokens.card);
+		const struct { const char* name; const char* resource; QColor tile; } buttons[] = {
+			{ "backButton", ":/icons/modern/nav-back.svg", mixColor(QColor(tokens.accent2), card, 0.15) },
+			{ "forwardButton", ":/icons/modern/nav-forward.svg", mixColor(QColor(tokens.accent2), card, 0.15) },
+			{ "toParentButton", ":/icons/modern/folder-up.svg", mixColor(QColor(tokens.warning), card, 0.15) },
+			{ "newFolderButton", ":/icons/modern/folder-new.svg", mixColor(QColor(tokens.accent), card, 0.15) },
+			{ "listModeButton", ":/icons/modern/view-list.svg", mixColor(QColor(tokens.mutedText), card, 0.15) },
+			{ "detailModeButton", ":/icons/modern/view-detail.svg", mixColor(QColor(tokens.mutedText), card, 0.15) },
+		};
+		for (const auto& button : buttons)
+		{
+			QToolButton* toolButton = dialog->findChild<QToolButton*>(QLatin1String(button.name));
+			if (toolButton != nullptr)
+			{
+				toolButton->setIcon(softTileIcon(QLatin1String(button.resource), button.tile));
+				toolButton->setIconSize(GUIHelper::scale(QSize(22, 22)));
+			}
 		}
 	}
 

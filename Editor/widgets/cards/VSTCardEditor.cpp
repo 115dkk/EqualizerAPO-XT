@@ -386,6 +386,7 @@ void VSTCardEditor::selectFile()
 	QFileDialog dialog(this, tr("Select VST plugin"), fileInfo.absoluteFilePath(), "*.dll *.vst3");
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter(tr("VST plugins (*.dll *.vst3)"));
+	GUIHelper::prepareFileDialog(dialog);
 	if (displayPath.length() > 0)
 		dialog.selectFile(fileInfo.fileName());
 	if (dialog.exec() == QDialog::Accepted)

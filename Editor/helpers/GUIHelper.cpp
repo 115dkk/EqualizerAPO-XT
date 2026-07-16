@@ -20,16 +20,25 @@
 #include "GUIHelper.h"
 
 #include <QApplication>
+#include <QDir>
+#include <QFileDialog>
 #include <QFont>
 #include <QFontMetrics>
+#include <QHeaderView>
 #include <QPainter>
 #include <QPalette>
 #include <QPixmap>
 #include <QScreen>
 #include <QSettings>
+#include <QSplitter>
+#include <QStandardPaths>
 #include <QStyleHints>
+#include <QTreeView>
+#include <QUrl>
 
 #include "helpers/RegistryHelper.h"
+#include "Editor/SkinManager.h"
+#include "Editor/import/LegacyMigration.h"
 
 QSize GUIHelper::scale(QSize size)
 {
@@ -111,4 +120,67 @@ void GUIHelper::setKnobGainRange(double range)
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 	settings.setValue("interface/knobGainRange", qBound(1.0, range, 100.0));
+}
+
+void GUIHelper::prepareFileDialog(QFileDialog& dialog)
+{
+	SkinManager* skinManager = SkinManager::instance();
+	if (skinManager->isHeritage())
+		return;
+
+	// The widget-based dialog inherits the app-wide skin sheet; setting the
+	// option also makes QFileDialog build its widget tree now, so the skin
+	// hook below can reach the navigation buttons.
+	dialog.setOption(QFileDialog::DontUseNativeDialog);
+	dialog.setViewMode(QFileDialog::Detail);
+
+	// Sidebar: the active config root first (the folder the engine actually
+	// reads, HKLM ConfigPath), then the user's standard folders. Downloads is
+	// included because impulse responses and shared presets usually arrive
+	// there.
+	QList<QUrl> sidebar;
+	QString configRoot;
+	try
+	{
+		if (RegistryHelper::keyExists(APP_REGPATH) && RegistryHelper::valueExists(APP_REGPATH, L"ConfigPath"))
+			configRoot = QString::fromStdWString(RegistryHelper::readValue(APP_REGPATH, L"ConfigPath"));
+	}
+	catch (const RegistryException&)
+	{
+		// Unreadable registry: fall through to the stable root.
+	}
+	if (configRoot.isEmpty())
+		configRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
+	if (!configRoot.isEmpty() && QDir(configRoot).exists())
+		sidebar.append(QUrl::fromLocalFile(QDir(configRoot).absolutePath()));
+	for (QStandardPaths::StandardLocation location : { QStandardPaths::DownloadLocation,
+			QStandardPaths::DocumentsLocation, QStandardPaths::DesktopLocation, QStandardPaths::HomeLocation })
+	{
+		const QString path = QStandardPaths::writableLocation(location);
+		if (!path.isEmpty())
+			sidebar.append(QUrl::fromLocalFile(path));
+	}
+	dialog.setSidebarUrls(sidebar);
+
+	// A roomier default than QFileDialog's compact size hint, so the Detail
+	// columns (name/size/date) fit without immediate scrolling.
+	dialog.resize(scale(QSize(820, 520)));
+
+	// Readable Detail columns: the name column takes the free width and the
+	// metadata columns track their content. The stock dialog leaves every
+	// column at a narrow default that truncates even short cells.
+	if (QTreeView* view = dialog.findChild<QTreeView*>(QStringLiteral("treeView")))
+	{
+		QHeaderView* header = view->header();
+		header->setSectionResizeMode(0, QHeaderView::Stretch);
+		for (int section = 1; section < header->count(); section++)
+			header->setSectionResizeMode(section, QHeaderView::ResizeToContents);
+	}
+
+	// Enough sidebar width for the location labels under the larger skin
+	// typefaces; the stock split truncates even short folder names on soft.
+	if (QSplitter* splitter = dialog.findChild<QSplitter*>(QStringLiteral("splitter")))
+		splitter->setSizes({ scale(150.0), scale(650.0) });
+
+	skinManager->styleFileDialog(&dialog);
 }
