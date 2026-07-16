@@ -261,12 +261,14 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="StageCommandTests.cpp" />
     <ClCompile Include="VSTPluginCommandTests.cpp" />
     <ClCompile Include="VstHostTests.cpp" />
+    <ClCompile Include="Vst3HostTests.cpp" />
     <ClCompile Include="ParserPreampTests.cpp" />
     <ClCompile Include="ParserTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\filters\ConvolutionFilePath.h" />
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h" />
+    <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h" />
   </ItemGroup>
   <!-- Build the companion VST2 test plugin first and copy it next to the test
        executable so VstHostTests' GetModuleFileName-relative lookup finds it on
@@ -278,7 +280,19 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
+    <ProjectReference Include="..\TestVst3Plugin\TestVst3Plugin.vcxproj">
+      <Project>{A8D60A6B-509B-47DB-8E42-673E67EF3A16}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemGroup>
+  <!-- Vst3HostTests assembles standard .vst3 bundles from this staged module
+       at runtime (bundle resolution is part of what it tests). -->
+  <Target Name="CopyTestVst3Plugin" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\TestVst3Plugin\$(Platform)\$(Configuration)\TestVst3Plugin.vst3"
+          DestinationFiles="$(OutDir)TestVst3PluginModule.vst3"
+          Condition="Exists('$(MSBuildThisFileDirectory)..\TestVst3Plugin\$(Platform)\$(Configuration)\TestVst3Plugin.vst3')" />
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

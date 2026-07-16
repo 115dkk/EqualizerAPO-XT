@@ -370,6 +370,7 @@
     <ClInclude Include="helpers\StringHelper.h" />
     <ClInclude Include="helpers\UncaughtExceptions.h" />
     <ClInclude Include="helpers\VSTPluginInstance.h" />
+    <ClInclude Include="helpers\VST3HostObjects.h" />
     <ClInclude Include="helpers\VSTPluginInstanceInternal.h" />
     <ClInclude Include="helpers\VSTPluginLibrary.h" />
     <ClInclude Include="IFilter.h" />

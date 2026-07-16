@@ -35,8 +35,11 @@
 // introduced because each consumer already pulls in the same namespaces.
 
 #include <vector>
+#include "VST3HostObjects.h"
 #include "VSTPluginInstance.h"
 #include "pluginterfaces/base/futils.h"
+#include "pluginterfaces/gui/iplugviewcontentscalesupport.h"
+#include "pluginterfaces/vst/ivstpluginterfacesupport.h"
 
 using namespace std;
 using namespace Steinberg;
@@ -128,7 +131,8 @@ private:
 	size_t position = 0;
 };
 
-class VSTPluginInstance::VST3HostContext : public IHostApplication, public IComponentHandler, public IPlugFrame
+class VSTPluginInstance::VST3HostContext : public IHostApplication, public IComponentHandler,
+	public IComponentHandler2, public IPlugFrame, public IPlugInterfaceSupport
 {
 public:
 	VST3HostContext(VSTPluginInstance* instance) : instance(instance) {}
@@ -138,7 +142,9 @@ public:
 		QUERY_INTERFACE(iid, obj, FUnknown::iid, IHostApplication)
 		QUERY_INTERFACE(iid, obj, IHostApplication::iid, IHostApplication)
 		QUERY_INTERFACE(iid, obj, IComponentHandler::iid, IComponentHandler)
+		QUERY_INTERFACE(iid, obj, IComponentHandler2::iid, IComponentHandler2)
 		QUERY_INTERFACE(iid, obj, IPlugFrame::iid, IPlugFrame)
+		QUERY_INTERFACE(iid, obj, IPlugInterfaceSupport::iid, IPlugInterfaceSupport)
 		*obj = NULL;
 		return kNoInterface;
 	}
@@ -158,30 +164,66 @@ public:
 		return kResultOk;
 	}
 
-	tresult PLUGIN_API createInstance(TUID, TUID, void**) override
+	tresult PLUGIN_API createInstance(TUID cid, TUID iid, void** obj) override
 	{
-		return kNoInterface;
+		// IMessage/IAttributeList for the component<->controller connection;
+		// everything else stays unavailable (VST3HostObjects).
+		return VST3HostObjects::createInstance(cid, iid, obj);
 	}
 
 	tresult PLUGIN_API beginEdit(ParamID) override { return kResultOk; }
-	tresult PLUGIN_API performEdit(ParamID, ParamValue) override
+	tresult PLUGIN_API performEdit(ParamID id, ParamValue value) override
 	{
+		// A GUI edit only lives in the controller until the host feeds it to
+		// the processor through IParameterChanges; the instance queues it for
+		// the next process block (or flushes immediately while idle).
 		if (instance != NULL)
-			instance->onAutomate();
+			instance->onVST3ParameterEdit(id, value);
 		return kResultOk;
 	}
 	tresult PLUGIN_API endEdit(ParamID) override { return kResultOk; }
-	tresult PLUGIN_API restartComponent(int32) override { return kResultOk; }
+	// Honest answer: this host does not re-read parameter layout / latency on
+	// request. Claiming kResultOk here made plug-ins assume a refresh
+	// happened.
+	tresult PLUGIN_API restartComponent(int32) override { return kNotImplemented; }
+
+	tresult PLUGIN_API setDirty(TBool state) override
+	{
+		if (state && instance != NULL)
+			instance->onAutomate();
+		return kResultOk;
+	}
+	tresult PLUGIN_API requestOpenEditor(FIDString name) override
+	{
+		// The host opens editors on user action only; unknown view types are
+		// refused outright.
+		return name == nullptr || strcmp(name, ViewType::kEditor) == 0 ? kNotImplemented : kResultFalse;
+	}
+	tresult PLUGIN_API startGroupEdit() override { return kResultOk; }
+	tresult PLUGIN_API finishGroupEdit() override { return kResultOk; }
+
+	tresult PLUGIN_API isPlugInterfaceSupported(const TUID iid) override
+	{
+		return FUnknownPrivate::iidEqual(iid, IComponent::iid)
+			|| FUnknownPrivate::iidEqual(iid, IAudioProcessor::iid)
+			|| FUnknownPrivate::iidEqual(iid, IEditController::iid)
+			|| FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IConnectionPoint::iid)
+			|| FUnknownPrivate::iidEqual(iid, IPlugView::iid)
+			|| FUnknownPrivate::iidEqual(iid, IPlugViewContentScaleSupport::iid)
+			? kResultTrue : kResultFalse;
+	}
 
 	tresult PLUGIN_API resizeView(IPlugView* view, ViewRect* newSize) override
 	{
 		if (view != NULL && newSize != NULL)
 		{
-			view->onSize(newSize);
+			// Resize the host windows first so the view lays out against its
+			// final geometry, and forward the view's own verdict.
 			if (instance != NULL)
 				instance->onSizeWindow(newSize->getWidth(), newSize->getHeight());
+			return view->onSize(newSize);
 		}
-		return kResultOk;
+		return kInvalidArgument;
 	}
 
 private:

@@ -25,6 +25,7 @@
 #include "AbstractLibrary.h"
 #include "aeffectx.h"
 #include "pluginterfaces/base/ipluginbase.h"
+#include "pluginterfaces/base/smartpointer.h"
 #include <queue>
 #include "VSTPluginInstance.h"
 
@@ -71,5 +72,17 @@ private:
 	std::wstring loadPath;
 	bool vst3 = false;
 	std::unique_ptr<Steinberg::IPluginFactory, FactoryDeleter> factory;
+	// The factory-level host context handed to IPluginFactory3::setHostContext
+	// before any class is created; some plug-ins refuse to instantiate without
+	// one. Owned here (IPtr) and detached from the factory before the factory
+	// itself is released.
+	Steinberg::IPtr<Steinberg::FUnknown> vst3FactoryHostContext;
+	// InitDll/ExitDll are plain C (cdecl) exports in Steinberg's Windows module
+	// ABI. PLUGIN_API is __stdcall on Win32, where the mismatch would corrupt
+	// the stack (x64/ARM64 mask it); keep the raw calling convention.
+	typedef bool (* vst3ModuleEntryFunc)();
+	vst3ModuleEntryFunc InitDll = nullptr;
+	vst3ModuleEntryFunc ExitDll = nullptr;
+	bool vst3ModuleInitialized = false;
 	Steinberg::PClassInfo vst3ClassInfo;
 };

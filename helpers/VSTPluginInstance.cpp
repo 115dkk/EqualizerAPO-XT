@@ -45,9 +45,62 @@ using namespace std;
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 
-class EmptyVST3ParameterChanges : public IParameterChanges
+// The parameter-change list handed to IAudioProcessor::process. Fixed-size
+// and allocation-free after construction, so filling it on the audio thread
+// stays RT-safe. Each parameter gets a single-point queue (sample offset 0):
+// this host forwards GUI edits, not sample-accurate automation curves.
+// Ported from the ripDZL fork's VST3 compatibility work
+// (github.com/ripDZL/EqualizerAPO-XT/pull/1).
+class VSTPluginInstance::VST3ParameterChanges : public IParameterChanges
 {
 public:
+	class ParamValueQueue : public IParamValueQueue
+	{
+	public:
+		tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
+		{
+			QUERY_INTERFACE(iid, obj, FUnknown::iid, IParamValueQueue)
+			QUERY_INTERFACE(iid, obj, IParamValueQueue::iid, IParamValueQueue)
+			*obj = NULL;
+			return kNoInterface;
+		}
+
+		// Embedded in the owning list; lifetime is the instance's.
+		uint32 PLUGIN_API addRef() override { return 2; }
+		uint32 PLUGIN_API release() override { return 1; }
+		ParamID PLUGIN_API getParameterId() override { return id; }
+		int32 PLUGIN_API getPointCount() override { return hasPoint ? 1 : 0; }
+		tresult PLUGIN_API getPoint(int32 index, int32& sampleOffset, ParamValue& pointValue) override
+		{
+			if (!hasPoint || index != 0)
+				return kInvalidArgument;
+			sampleOffset = 0;
+			pointValue = value;
+			return kResultOk;
+		}
+		tresult PLUGIN_API addPoint(int32, ParamValue pointValue, int32& index) override
+		{
+			// Later points collapse onto the single slot: the last value of a
+			// block wins, which is the semantic a control edit needs.
+			value = pointValue;
+			hasPoint = true;
+			index = 0;
+			return kResultOk;
+		}
+
+		void set(ParamID parameterId, ParamValue pointValue)
+		{
+			id = parameterId;
+			value = pointValue;
+			hasPoint = true;
+		}
+
+	private:
+		ParamID id = 0;
+		ParamValue value = 0.0;
+		bool hasPoint = false;
+	};
+
 	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
 	{
 		QUERY_INTERFACE(iid, obj, FUnknown::iid, IParameterChanges)
@@ -56,15 +109,46 @@ public:
 		return kNoInterface;
 	}
 
+	// Owned by the instance through a unique_ptr; refcounting is vestigial.
 	uint32 PLUGIN_API addRef() override { return 2; }
 	uint32 PLUGIN_API release() override { return 1; }
-	int32 PLUGIN_API getParameterCount() override { return 0; }
-	IParamValueQueue* PLUGIN_API getParameterData(int32) override { return NULL; }
-	IParamValueQueue* PLUGIN_API addParameterData(const ParamID&, int32& index) override
+	int32 PLUGIN_API getParameterCount() override { return count; }
+	IParamValueQueue* PLUGIN_API getParameterData(int32 index) override
 	{
-		index = -1;
-		return NULL;
+		return index >= 0 && index < count ? &queues[index] : NULL;
 	}
+	IParamValueQueue* PLUGIN_API addParameterData(const ParamID& id, int32& index) override
+	{
+		for (int32 i = 0; i < count; i++)
+		{
+			if (queues[i].getParameterId() == id)
+			{
+				index = i;
+				return &queues[i];
+			}
+		}
+		if (count >= (int32)queues.size())
+		{
+			index = -1;
+			return NULL;
+		}
+		index = count++;
+		queues[index].set(id, 0.0);
+		return &queues[index];
+	}
+
+	void clear() { count = 0; }
+	void add(ParamID id, ParamValue value)
+	{
+		int32 index;
+		IParamValueQueue* queue = addParameterData(id, index);
+		if (queue != NULL)
+			queue->addPoint(0, value, index);
+	}
+
+private:
+	array<ParamValueQueue, VSTPluginInstance::vst3ParameterEditQueueSize> queues{};
+	int32 count = 0;
 };
 
 class EmptyVST3EventList : public IEventList
@@ -85,7 +169,6 @@ public:
 	tresult PLUGIN_API addEvent(Event&) override { return kResultFalse; }
 };
 
-static EmptyVST3ParameterChanges emptyVST3ParameterChanges;
 static EmptyVST3EventList emptyVST3EventList;
 
 void VST2EffectDeleter::operator()(vst_effect_t* effect) const noexcept
@@ -107,6 +190,8 @@ void VST2EffectDeleter::operator()(vst_effect_t* effect) const noexcept
 VSTPluginInstance::VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
 	: library(library), processLevel(processLevel)
 {
+	if (library->isVST3())
+		vst3InputParameterChanges.reset(new VST3ParameterChanges());
 }
 
 VSTPluginInstance::~VSTPluginInstance()
@@ -115,6 +200,133 @@ VSTPluginInstance::~VSTPluginInstance()
 	sizeWindowFunc = nullptr;
 	releaseVST3();
 	effect.reset();
+}
+
+void VSTPluginInstance::onVST3ParameterEdit(ParamID id, ParamValue value)
+{
+	queueVST3ParameterEdit(id, value);
+	const bool processing = vst3Processing.load(memory_order_acquire);
+	flushVST3ParameterChanges();
+	// While audio is running, the component does not own this value until its
+	// next process call drains inputParameterChanges; saving synchronously
+	// here would persist the previous component state. Editor instances are
+	// stopped and take the immediate path below.
+	if (!processing && !vst3Processing.load(memory_order_acquire)
+		&& vst3ParameterEditRead.load(memory_order_acquire) == vst3ParameterEditWrite.load(memory_order_acquire))
+		onAutomate();
+}
+
+void VSTPluginInstance::queueVST3ParameterEdit(ParamID id, ParamValue value)
+{
+	// Single-producer ring: every writer runs on the instance's control
+	// thread (the Editor's GUI thread for performEdit and writeToEffect; in
+	// the engine, the configuration loader before processing starts). The
+	// consumer is whoever runs the next process call. A full ring drops the
+	// edit - the following edit of the same control supersedes it anyway.
+	unsigned writeIndex = vst3ParameterEditWrite.load(memory_order_relaxed);
+	unsigned nextWriteIndex = (writeIndex + 1) % vst3ParameterEditQueueSize;
+	if (nextWriteIndex != vst3ParameterEditRead.load(memory_order_acquire))
+	{
+		vst3ParameterEditQueue[writeIndex] = { id, value };
+		vst3ParameterEditWrite.store(nextWriteIndex, memory_order_release);
+	}
+}
+
+IParameterChanges* VSTPluginInstance::prepareVST3ParameterChanges()
+{
+	if (vst3InputParameterChanges == NULL)
+		return NULL;
+
+	// Drain the pending edits into the fixed-size change list. Runs on the
+	// audio thread between blocks (or on the control thread during an idle
+	// flush); allocation-free either way.
+	vst3InputParameterChanges->clear();
+	unsigned readIndex = vst3ParameterEditRead.load(memory_order_relaxed);
+	unsigned writeIndex = vst3ParameterEditWrite.load(memory_order_acquire);
+	while (readIndex != writeIndex)
+	{
+		const PendingVST3ParameterEdit& edit = vst3ParameterEditQueue[readIndex];
+		vst3InputParameterChanges->add(edit.id, edit.value);
+		readIndex = (readIndex + 1) % vst3ParameterEditQueueSize;
+	}
+	vst3ParameterEditRead.store(readIndex, memory_order_release);
+	return vst3InputParameterChanges.get();
+}
+
+void VSTPluginInstance::flushVST3ParameterChanges()
+{
+	// Deliver queued edits to a plug-in that is not currently processing:
+	// per the VST3 contract the processor only consumes IParameterChanges
+	// inside process(), so an idle instance gets a zero-sample call. The
+	// running case needs nothing - the next audio block drains the queue.
+	if (vst3Component == NULL || vst3Processor == NULL
+		|| vst3Processing.load(memory_order_acquire)
+		|| vst3ParameterEditRead.load(memory_order_acquire) == vst3ParameterEditWrite.load(memory_order_acquire))
+		return;
+	bool expected = false;
+	if (!vst3ParameterFlushInProgress.compare_exchange_strong(expected, true, memory_order_acq_rel))
+		return;
+	struct FlushFlagReset
+	{
+		atomic<bool>& flag;
+		~FlushFlagReset() { flag.store(false, memory_order_release); }
+	} reset{ vst3ParameterFlushInProgress };
+
+	lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
+	if (vst3Processing.load(memory_order_acquire)
+		|| vst3ParameterEditRead.load(memory_order_acquire) == vst3ParameterEditWrite.load(memory_order_acquire))
+		return;
+
+	// An instance that never prepared for processing (an Editor preview
+	// before the first analysis run) still needs a valid setup before it may
+	// be activated.
+	bool activatedForFlush = false;
+	if (!vst3Active)
+	{
+		if (sampleRate <= 0.0f)
+		{
+			ProcessSetup setup;
+			setup.processMode = kRealtime;
+			setup.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
+			setup.maxSamplesPerBlock = 1;
+			setup.sampleRate = 48000.0;
+			if (vst3Processor->setupProcessing(setup) != kResultOk)
+				return;
+		}
+		if (vst3Component->setActive(true) != kResultOk)
+			return;
+		vst3Active = true;
+		activatedForFlush = true;
+	}
+
+	if (vst3Processor->setProcessing(true) != kResultOk)
+	{
+		if (activatedForFlush)
+		{
+			vst3Component->setActive(false);
+			vst3Active = false;
+		}
+		return;
+	}
+
+	ProcessData data;
+	data.processMode = kRealtime;
+	data.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
+	data.numSamples = 0;
+	data.numInputs = 0;
+	data.numOutputs = 0;
+	data.inputs = NULL;
+	data.outputs = NULL;
+	data.inputParameterChanges = prepareVST3ParameterChanges();
+	data.inputEvents = &emptyVST3EventList;
+	vst3Processor->process(data);
+	vst3Processor->setProcessing(false);
+
+	if (activatedForFlush)
+	{
+		vst3Component->setActive(false);
+		vst3Active = false;
+	}
 }
 
 bool VSTPluginInstance::initialize()
@@ -276,15 +488,25 @@ void VSTPluginInstance::startProcessing()
 {
 	if (library->isVST3())
 	{
-		if (vst3Component != NULL && !vst3Active)
+		lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
+		if (vst3Component == NULL || vst3Processor == NULL || vst3Processing.load(memory_order_acquire))
+			return;
+
+		// Publish the transition before calling into the plug-in. A plug-in
+		// may synchronously call the component handler from
+		// setActive/setProcessing; those edits must stay queued instead of
+		// attempting a nested idle flush.
+		vst3Processing.store(true, memory_order_release);
+		if (!vst3Active)
+			vst3Active = vst3Component->setActive(true) == kResultOk;
+		if (!vst3Active || vst3Processor->setProcessing(true) != kResultOk)
 		{
-			vst3Component->setActive(true);
-			vst3Active = true;
-		}
-		if (vst3Processor != NULL && !vst3Processing)
-		{
-			vst3Processor->setProcessing(true);
-			vst3Processing = true;
+			if (vst3Active)
+			{
+				vst3Component->setActive(false);
+				vst3Active = false;
+			}
+			vst3Processing.store(false, memory_order_release);
 		}
 		return;
 	}
@@ -316,7 +538,7 @@ void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray
 		data.numOutputs = vst3OutputBusCount > 0 ? 1 : 0;
 		data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
 		data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
-		data.inputParameterChanges = &emptyVST3ParameterChanges;
+		data.inputParameterChanges = prepareVST3ParameterChanges();
 		data.inputEvents = &emptyVST3EventList;
 		data.processContext = &vst3ProcessContext;
 		vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
@@ -354,7 +576,7 @@ void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** out
 		data.numOutputs = vst3OutputBusCount > 0 ? 1 : 0;
 		data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
 		data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
-		data.inputParameterChanges = &emptyVST3ParameterChanges;
+		data.inputParameterChanges = prepareVST3ParameterChanges();
 		data.inputEvents = &emptyVST3EventList;
 		data.processContext = &vst3ProcessContext;
 		vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
@@ -390,16 +612,24 @@ void VSTPluginInstance::stopProcessing()
 {
 	if (library->isVST3())
 	{
-		if (vst3Processor != NULL && vst3Processing)
 		{
-			vst3Processor->setProcessing(false);
-			vst3Processing = false;
+			lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
+			const bool wasProcessing = vst3Processing.load(memory_order_acquire);
+			// Keep component-handler callbacks in queue-only mode through
+			// both plug-in calls below.
+			vst3Processing.store(true, memory_order_release);
+			if (vst3Processor != NULL && wasProcessing)
+				vst3Processor->setProcessing(false);
+			if (vst3Component != NULL && vst3Active)
+			{
+				vst3Component->setActive(false);
+				vst3Active = false;
+			}
+			vst3Processing.store(false, memory_order_release);
 		}
-		if (vst3Component != NULL && vst3Active)
-		{
-			vst3Component->setActive(false);
-			vst3Active = false;
-		}
+		// Edits that arrived during the audio run but after its last block
+		// still need to reach the processor.
+		flushVST3ParameterChanges();
 		return;
 	}
 

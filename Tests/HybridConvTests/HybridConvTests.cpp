@@ -48,6 +48,7 @@ void runLoudnessCorrectionCommandTests();
 void runStageCommandTests();
 void runVSTPluginCommandTests();
 void runVstHostTests();
+void runVst3HostTests();
 void runParserTests();
 void runParserPreampTests();
 void runMultiConvolutionTests();
@@ -432,6 +433,10 @@ int runHybridConvTests()
 	// Runtime VST2 host load/state/audio test. Soft-skips if the
 	// companion TestVst2Plugin.dll is not next to this executable.
 	runVstHostTests();
+	// Runtime VST3 host contract test against the deterministic companion
+	// module (bundle resolution, module lifecycle, host services, editor,
+	// state, parameter flush). Soft-skips without the module.
+	runVst3HostTests();
 	runParserTests();
 	runParserPreampTests();
 	runMultiConvolutionTests();

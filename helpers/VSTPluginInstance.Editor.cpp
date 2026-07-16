@@ -100,7 +100,8 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 		}
 
 		ViewRect rect;
-		if (vst3View->getSize(&rect) == kResultOk)
+		const bool hasPreAttachSize = vst3View->getSize(&rect) == kResultOk;
+		if (hasPreAttachSize)
 		{
 			physWidth = max<int32>(1, rect.getWidth());
 			physHeight = max<int32>(1, rect.getHeight());
@@ -129,6 +130,9 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 			stopEditing();
 			return false;
 		}
+		// removed() may only be called on a view that was attached; a failure
+		// before this point must not send it (stopEditing checks the flag).
+		vst3ViewAttached = true;
 		if (vst3View->getSize(&rect) == kResultOk)
 		{
 			physWidth = max<int32>(1, rect.getWidth());
@@ -137,9 +141,13 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 				*width = toLogical(physWidth);
 			if (height != NULL)
 				*height = toLogical(physHeight);
-			vst3View->onSize(&rect);
 		}
+		// Size the host window first, then let the view lay out against the
+		// final geometry. A view that could not report a size before attach
+		// gets no onSize: it never asserted these dimensions as its own.
 		SetWindowPos(vst3EditorHostWindow.get(), NULL, 0, 0, physWidth, physHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		if (hasPreAttachSize)
+			vst3View->onSize(&rect);
 		EnumChildWindows(vst3EditorHostWindow.get(), showChildWindow, 0);
 		return true;
 	}
@@ -188,7 +196,9 @@ void VSTPluginInstance::stopEditing()
 	{
 		if (vst3View != NULL)
 		{
-			vst3View->removed();
+			if (vst3ViewAttached)
+				vst3View->removed();
+			vst3ViewAttached = false;
 			vst3View->setFrame(NULL);
 			vst3View.reset();
 		}

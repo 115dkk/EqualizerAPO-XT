@@ -59,6 +59,9 @@
     <ClCompile Include="VstHostTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Vst3HostTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ParserPreampTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -68,6 +71,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

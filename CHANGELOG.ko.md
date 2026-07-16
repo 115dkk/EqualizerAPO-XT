@@ -8,6 +8,21 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- VST3 호스팅이 많은 플러그인이 기대는 계약 조각들을 채웠습니다. ripDZL
+  포크의 호환성 작업([ripDZL#1](https://github.com/ripDZL/EqualizerAPO-XT/pull/1))을
+  가져와 이 저장소의 RAII 관용구로 다시 쓴 것입니다. GUI에서 돌린
+  파라미터가 이제 실제로 오디오 처리에 도달하고(이전에는 컨트롤러에서
+  멈췄습니다), 단일 컴포넌트 플러그인이 두 번 initialize/terminate되던
+  크래시급 수명 버그가 사라졌으며, 분리형 플러그인이 컴포넌트↔컨트롤러
+  통신에 쓰는 IMessage/IAttributeList를 호스트가 만들어 주고, 컨트롤러
+  전용 상태(UI 설정)가 컴포넌트 상태 옆에 저장·복원되며, Windows 모듈
+  수명(InitDll/ExitDll, 팩토리 호스트 컨텍스트)을 지킵니다. 컨트롤러
+  전용 상태가 있는 VST3 청크는 새 결합 레이아웃을 쓰므로, 구버전이 만든
+  청크는 여기서 그대로 읽히지만 그런 새 청크는 구버전에서 읽히지
+  않습니다. 결정적 VST3 테스트 모듈과 호스트 계약 검사 43건이 CI에서
+  전부를 지킵니다.
+  ([#210](https://github.com/115dkk/EqualizerAPO-XT/pull/210))
+
 - 스킨 파일 대화상자가 사용자 심사를 거쳐 2차 디자인을 입었습니다.
   폴더·파일 그림을 셸 아이콘에서 빌리지 않고 스킨이 직접 답합니다.
   studio는 유리에 가는 스트로크로 새기고, minimal은 ASCII 아트 없이
