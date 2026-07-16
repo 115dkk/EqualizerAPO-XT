@@ -10,6 +10,14 @@
 	main window) and a dialog-mode TitleBar (title text + the conventional
 	close X, no minimize/maximize) is inserted above the dialog's layout.
 	QDialog::close on an exec()ed dialog rejects it, matching Cancel.
+
+	Do not add a minimize button here (reviewed and rejected, 2026-07-17):
+	the platform's own file dialogs carry only the X, and these dialogs are
+	application-modal - minimizing one would leave the blocked main window
+	looking dead while the owned dialog has no taskbar entry to bring it
+	back. Moving the dialog aside (drag) and Alt-Tab already cover the
+	"look behind it" need. Revisit only if this chrome is ever mounted on a
+	modeless window.
 */
 
 #pragma once
