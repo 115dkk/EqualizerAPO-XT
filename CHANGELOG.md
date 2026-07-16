@@ -14,6 +14,20 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Opening a large configuration in the card view took over ten seconds on
+  older CPUs (reported on an i7-7700K). The Editor was resolving its skin
+  stylesheet against every card widget several times over: cards were built
+  parentless and re-styled when moved into the table, the finished table was
+  re-styled again when inserted into the tab bar, each card re-dressed its
+  frame after its ~40 child widgets already existed, and the startup path
+  re-applied the identical skin over the fully built window. Cards are now
+  built in place, dressed before their children exist, and a same-skin
+  re-apply is skipped, cutting a 300-row load from about 4.5 s to 1.5 s and
+  a full skin switch over 138 rows from 1.8 s to 0.7 s on the same machine
+  (proportionally larger on older CPUs). The whole-table channel scan also
+  no longer walks the layout quadratically, and the CI skin-switch
+  regression gate tightened from 4 s to 2.5 s.
+  ([#203](https://github.com/115dkk/EqualizerAPO-XT/pull/203))
 - The channel badges at the top right of a filter card sat on an opaque
   app-background rectangle (nearly black in dark skins) that cut into the
   card surface — an unnamed container picked up every skin's global widget

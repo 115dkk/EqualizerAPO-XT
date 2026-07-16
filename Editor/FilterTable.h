@@ -213,6 +213,11 @@ private:
 	// place after an incremental splice. Returns false when a row widget is
 	// not a FilterCardRow (caller falls back to updateGuis).
 	bool renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes);
+	// The grid's row widgets indexed by document row (0..items-1), collected in
+	// one pass over the layout. QGridLayout::itemAtPosition scans linearly, so
+	// per-row lookups in a whole-table loop are quadratic; every such loop
+	// walks this vector instead. Slots without a row widget stay null.
+	QVector<QWidget*> rowWidgetsByRow() const;
 	// Card-path list chrome (shared insertion contract, docs/skins/README.md):
 	// the trailing AddCardRow lives in the grid and is rebuilt by updateGuis;
 	// the hover-only FilterInsertSeam floats over the first card's top margin

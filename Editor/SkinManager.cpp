@@ -95,6 +95,19 @@ void SkinManager::applyHeritage()
 
 void SkinManager::applySkin(const QString& newSkinId, bool dark)
 {
+	// Re-dressing the app with the identical sheet is not free: Qt re-resolves
+	// the stylesheet against every live widget. At startup this used to run
+	// three times (main(), loadPreferences() before and after the open-files
+	// restore); the post-restore pass alone re-polished every filter card and
+	// took seconds on a large config.
+	if (sheetApplied && !heritageMode && darkMode == dark
+		&& Skins::byId(newSkinId)->id() == skinId)
+	{
+		LogFStatic(L"Skin %s (dark=%d) already active, skipping re-apply",
+			reinterpret_cast<const wchar_t*>(skinId.utf16()), dark ? 1 : 0);
+		return;
+	}
+
 	heritageMode = false;
 	// Breadcrumb + unconditional log line: a skin-switch crash reported from
 	// the field must identify the dying skin in the crash report and in
@@ -133,6 +146,7 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	// shortcut, startup, gallery) in step.
 	qApp->setPalette(SkinThemeData::palette(currentTokens, darkMode));
 
+	sheetApplied = true;
 	emit skinChanged(currentTokens);
 	for (QWidget* widget : qApp->allWidgets())
 		widget->update();
