@@ -1147,6 +1147,10 @@ public:
 				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/folder-open.svg"), mixColor(QColor(tokens.warning), card, 0.15)));
 			else if (action->objectName() == QStringLiteral("actionSave"))
 				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/save.svg"), mixColor(QColor(tokens.success), card, 0.15)));
+			else if (action->objectName() == QStringLiteral("actionUndo"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/undo.svg"), mixColor(QColor(tokens.accent2), card, 0.15)));
+			else if (action->objectName() == QStringLiteral("actionRedo"))
+				action->setIcon(softTileIcon(QStringLiteral(":/icons/modern/redo.svg"), mixColor(QColor(tokens.accent2), card, 0.15)));
 		}
 	}
 

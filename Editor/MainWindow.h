@@ -146,6 +146,10 @@ private:
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
 	void updateDirtyStatus();
+	// Grey the Edit-menu undo/redo entries out while the active tab's history
+	// has nothing to step to; without this they always render enabled and
+	// silently no-op, which reads as "undo/redo is gone".
+	void updateUndoRedoActions();
 	template<class T> QList<T> toQList(const std::vector<T>& vector);
 
 	std::unique_ptr<Ui::MainWindow> ui;

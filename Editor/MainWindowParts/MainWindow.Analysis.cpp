@@ -64,6 +64,7 @@ void MainWindow::instantModeEnabled(bool enabled)
 void MainWindow::on_tabWidget_currentChanged(int index)
 {
 	updateDirtyStatus();
+	updateUndoRedoActions();
 	startAnalysis();
 }
 

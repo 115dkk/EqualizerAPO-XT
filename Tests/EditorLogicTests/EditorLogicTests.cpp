@@ -1016,6 +1016,24 @@ void testLegacyMigrationScanAndPolicy()
 		stableRoot, false, true) == Policy::Action::MigrateVolatileXt, "volatile XT dir is rescued");
 	expectTrue(Policy::classify("D:\\my configs", stableRoot, false, false) == Policy::Action::RespectCustom,
 		"a user-chosen folder is left alone");
+
+	// Saved open/recent file paths remap into the stable root after a
+	// migration; anything outside the migrated folder stays untouched.
+	expectEqual(Policy::remapUnderRoot("C:\\Program Files\\EqualizerAPO\\config\\Surround\\ir.wav",
+		"C:\\Program Files\\EqualizerAPO\\config", stableRoot),
+		stableRoot + "/Surround/ir.wav", "nested legacy path remaps with its subfolder");
+	expectEqual(Policy::remapUnderRoot("c:/program files/equalizerapo/CONFIG/config.txt",
+		"C:\\Program Files\\EqualizerAPO\\config", stableRoot),
+		stableRoot + "/config.txt", "remap is case- and separator-insensitive");
+	expectTrue(Policy::remapUnderRoot("C:\\Program Files\\EqualizerAPO\\configX\\a.txt",
+		"C:\\Program Files\\EqualizerAPO\\config", stableRoot).isEmpty(),
+		"a sibling folder sharing the prefix is not remapped");
+	expectTrue(Policy::remapUnderRoot("D:\\elsewhere\\a.txt",
+		"C:\\Program Files\\EqualizerAPO\\config", stableRoot).isEmpty(),
+		"paths outside the migrated root are untouched");
+	expectTrue(Policy::remapUnderRoot("C:\\Program Files\\EqualizerAPO\\config",
+		"C:\\Program Files\\EqualizerAPO\\config", stableRoot).isEmpty(),
+		"the root itself is not a file to remap");
 }
 
 void testChannelSelectionModel()
