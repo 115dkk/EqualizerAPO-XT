@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- GraphicEQ가 합성한 임펄스 응답을 출력 채널마다 되풀이해 변환하지 않고
+  한 번만 변환합니다. Convolution과 MultiConvolution도 실제로 참조하는
+  서로 다른 IR 채널마다 불변 주파수 영역 필터뱅크를 하나만 만들며, 채널별
+  history·mix 버퍼·FFTW 실행 plan은 계속 독립적으로 유지합니다. 공유
+  소유권으로 뱅크 수명을 보장하며 AVRT 경로, DSP 순서와 출력 연산은
+  바뀌지 않았습니다.
+  ([#201](https://github.com/115dkk/EqualizerAPO-XT/pull/201))
 - 설정을 불러올 때 Convolution, GraphicEQ, MultiConvolution과 큰 다채널
   IR 준비 작업이 제한된 수의 멀티코어 작업자를 사용합니다. Modern Cards는
   각 행의 파싱된 descriptor/scope를 한 번만 준비하고 고정 정규식과 색을

@@ -216,7 +216,7 @@ void assertConvolutionFilterRecoversFromInitialShortFrame()
 // offset that holds a full plane, and a constant partition stride of exactly
 // two plane offsets, so a block's partition sweep walks one contiguous
 // allocation instead of hundreds of scattered heap blocks.
-void expectSlabLayout(double* const* real, double* const* imag, int count, int planeLength, const char* what)
+void expectSlabLayout(const double* const* real, const double* const* imag, int count, int planeLength, const char* what)
 {
 	char message[128];
 
@@ -280,6 +280,48 @@ void assertEmptyConvolverCloseIsIdempotent()
 	hcCloseSingle(&filter);
 
 	harness.expect(filter.storage == nullptr, "closing an empty convolver should preserve its empty state");
+}
+
+void assertSharedFilterBankKeepsIndependentRuntimeState()
+{
+	vector<double> impulseResponse((size_t)frameLength * 2, 0.0);
+	impulseResponse[0] = 0.5;
+	impulseResponse[frameLength + 17] = -0.25;
+
+	HConvSingle prototype = {};
+	HConvSingle sibling = {};
+	hcInitSingle(&prototype, impulseResponse.data(), static_cast<int>(impulseResponse.size()), frameLength, 1);
+	hcInitSingleWithSharedFilterBank(&sibling, &prototype);
+
+	harness.expectTrue(
+		prototype.filterbuf_freq_real == sibling.filterbuf_freq_real &&
+		prototype.filterbuf_freq_imag == sibling.filterbuf_freq_imag,
+		"sibling channels should reuse one immutable transformed filter bank");
+	harness.expectTrue(
+		prototype.history_time != sibling.history_time &&
+		prototype.mixbuf_freq_real != sibling.mixbuf_freq_real &&
+		prototype.dft_time != sibling.dft_time,
+		"sibling channels must retain independent mutable convolution state");
+
+	// The sibling owns a shared reference, not a borrowed pointer. Destroying
+	// the prototype first must leave every transformed partition alive.
+	hcCloseSingle(&prototype);
+	vector<double> input(frameLength, 0.0);
+	vector<double> output(frameLength, 0.0);
+	vector<double> rendered((size_t)frameLength * 3, 0.0);
+	for (int frame = 0; frame < 3; ++frame)
+	{
+		fill(input.begin(), input.end(), 0.0);
+		if (frame == 0)
+			input[0] = 1.0;
+		hcPutSingle(&sibling, input.data());
+		hcProcessSingle(&sibling);
+		hcGetSingle(&sibling, output.data());
+		copy(output.begin(), output.end(), rendered.begin() + (size_t)frame * frameLength);
+	}
+	expectClose(rendered[0], 0.5, 0);
+	expectClose(rendered[frameLength + 17], -0.25, frameLength + 17);
+	hcCloseSingle(&sibling);
 }
 
 void assertInvalidConvolverArgumentsLeaveEmptyOutput()
@@ -364,6 +406,7 @@ int runHybridConvTests()
 	assertSparseImpulseResponseSurvivesPastOneSecond(137);
 	assertConvolutionFilterRecoversFromInitialShortFrame();
 	assertPartitionBuffersFormOneSlab();
+	assertSharedFilterBankKeepsIndependentRuntimeState();
 	assertEmptyConvolverCloseIsIdempotent();
 	assertInvalidConvolverArgumentsLeaveEmptyOutput();
 	assertConvolverArraySupportsOutOfOrderInitialization();

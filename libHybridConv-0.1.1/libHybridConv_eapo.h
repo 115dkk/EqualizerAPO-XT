@@ -26,11 +26,9 @@
 #include <fftw3.h>
 
 
-/* Instance-owned buffer storage, defined in libHybridConv_eapo.cpp. Each
- * hcInit* call allocates one and the matching hcClose* frees it, so buffer
- * lifetime follows the struct instance. Instance-owned rather than
- * process-global: APO instances load configs concurrently, so process-wide
- * shared state here would be unguarded. */
+/* Instance-owned runtime storage, defined in libHybridConv_eapo.cpp. A storage
+ * object may retain an immutable filter bank shared with sibling channels;
+ * mutable histories, mix buffers and FFTW plans always remain per instance. */
 struct HConvSingleStorage;
 
 
@@ -46,8 +44,8 @@ typedef struct str_HConvSingle
 	double *in_freq_real;		// input buffer (frequency domain)
 	double *in_freq_imag;		// input buffer (frequency domain)
 	int num_filterbuf;		// number of filter segments
-	double **filterbuf_freq_real;	// filter segments (frequency domain)
-	double **filterbuf_freq_imag;	// filter segments (frequency domain)
+	const double *const *filterbuf_freq_real;	// shared immutable filter segments (frequency domain)
+	const double *const *filterbuf_freq_imag;	// shared immutable filter segments (frequency domain)
 	int num_mixbuf;			// number of mixing segments		
 	double **mixbuf_freq_real;	// mixing segments (frequency domain)
 	double **mixbuf_freq_imag;	// mixing segments (frequency domain)
@@ -67,6 +65,7 @@ void hcProcessSingle(HConvSingle *filter);
 void hcGetSingle(HConvSingle *filter, double*y);
 void hcGetAddSingle(HConvSingle *filter, double*y);
 void hcInitSingle(HConvSingle *filter, double*h, int hlen, int flen, int steps);
+void hcInitSingleWithSharedFilterBank(HConvSingle *filter, const HConvSingle *prototype);
 void hcCloseSingle(HConvSingle *filter);
 
 /* The dual/tripple (low-latency) API is parked in

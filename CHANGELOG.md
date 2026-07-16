@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- GraphicEQ now transforms its synthesized impulse response once instead of
+  once per output channel. Convolution and MultiConvolution likewise build one
+  immutable frequency-domain filter bank per distinct referenced IR channel,
+  while channel histories, mix buffers, and FFTW execution plans remain
+  independent. Shared ownership keeps the bank alive without changing the
+  AVRT path, DSP order, or output arithmetic.
+  ([#201](https://github.com/115dkk/EqualizerAPO-XT/pull/201))
 - Convolution, GraphicEQ, MultiConvolution, and large multi-channel IR
   preparation now use bounded multicore workers while a configuration is
   loading. Modern Cards prepare each row's parsed descriptor/scope once and
