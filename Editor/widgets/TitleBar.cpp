@@ -29,8 +29,8 @@ QToolButton* makeCaptionButton(const char* objectName, QWidget* parent)
 }
 }
 
-TitleBar::TitleBar(QWidget* window, QWidget* parent)
-	: QWidget(parent), hostWindow(window)
+TitleBar::TitleBar(QWidget* window, QWidget* parent, bool dialogMode)
+	: QWidget(parent), hostWindow(window), dialogMode(dialogMode)
 {
 	setObjectName(QStringLiteral("AppTitleBar"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -48,18 +48,21 @@ TitleBar::TitleBar(QWidget* window, QWidget* parent)
 
 	layout->addStretch(1);
 
-	minimizeButton = makeCaptionButton("TitleBarMin", this);
-	connect(minimizeButton, &QToolButton::clicked, hostWindow, &QWidget::showMinimized);
-	layout->addWidget(minimizeButton);
+	if (!dialogMode)
+	{
+		minimizeButton = makeCaptionButton("TitleBarMin", this);
+		connect(minimizeButton, &QToolButton::clicked, hostWindow, &QWidget::showMinimized);
+		layout->addWidget(minimizeButton);
 
-	maximizeButton = makeCaptionButton("TitleBarMax", this);
-	connect(maximizeButton, &QToolButton::clicked, this, [this]() {
-		if (hostWindow->isMaximized())
-			hostWindow->showNormal();
-		else
-			hostWindow->showMaximized();
-	});
-	layout->addWidget(maximizeButton);
+		maximizeButton = makeCaptionButton("TitleBarMax", this);
+		connect(maximizeButton, &QToolButton::clicked, this, [this]() {
+			if (hostWindow->isMaximized())
+				hostWindow->showNormal();
+			else
+				hostWindow->showMaximized();
+		});
+		layout->addWidget(maximizeButton);
+	}
 
 	closeButton = makeCaptionButton("TitleBarClose", this);
 	connect(closeButton, &QToolButton::clicked, hostWindow, &QWidget::close);
@@ -89,14 +92,16 @@ void TitleBar::applySkinIcons()
 {
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	const QColor ink(tokens.text);
-	minimizeButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/window-min.svg"), ink, 14));
-	maximizeButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/window-max.svg"), ink, 14));
+	if (minimizeButton != nullptr)
+		minimizeButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/window-min.svg"), ink, 14));
 	closeButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/window-close.svg"), ink, 14));
 	updateMaximizeButton();
 }
 
 void TitleBar::updateMaximizeButton()
 {
+	if (maximizeButton == nullptr)
+		return;
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	const QColor ink(tokens.text);
 	const bool maximized = hostWindow->isMaximized();
@@ -128,7 +133,7 @@ void TitleBar::paintEvent(QPaintEvent*)
 
 void TitleBar::mouseDoubleClickEvent(QMouseEvent* event)
 {
-	if (isCaptionPoint(event->pos()))
+	if (!dialogMode && isCaptionPoint(event->pos()))
 	{
 		if (hostWindow->isMaximized())
 			hostWindow->showNormal();

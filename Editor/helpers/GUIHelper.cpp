@@ -39,6 +39,7 @@
 #include "helpers/RegistryHelper.h"
 #include "Editor/SkinManager.h"
 #include "Editor/import/LegacyMigration.h"
+#include "Editor/widgets/DialogChrome.h"
 
 QSize GUIHelper::scale(QSize size)
 {
@@ -181,6 +182,15 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	// typefaces; the stock split truncates even short folder names on soft.
 	if (QSplitter* splitter = dialog.findChild<QSplitter*>(QStringLiteral("splitter")))
 		splitter->setSizes({ scale(150.0), scale(650.0) });
+
+	// The same skinned caption the main window wears - title text plus the
+	// conventional close X - replaces the native Windows caption, which was
+	// the one remaining piece of stock chrome on a skinned dialog. The
+	// registry escape hatch that restores the native caption on the main
+	// window applies here too.
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	if (!settings.value(QStringLiteral("interface/nativeTitleBar"), false).toBool())
+		DialogChrome::attach(&dialog);
 
 	skinManager->styleFileDialog(&dialog);
 }

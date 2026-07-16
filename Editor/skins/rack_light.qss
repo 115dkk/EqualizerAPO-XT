@@ -135,6 +135,29 @@ QToolBar#MainToolBar QToolButton:pressed {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
     border-color: @ACCENT@; border-top-color: #B8AC92;
 }
+/* The file dialog's navigation keys wear the same machined transport caps as
+   the master rail (tagged by RackSkin::styleFileDialog; the attribute
+   selector outranks the shared icon-button padding reset appended after
+   every sheet). */
+QToolButton[rackTransport="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E6DECC);
+    border: 1px solid #AFA288; border-top-color: #FFFFFF;
+    border-radius: 2px;
+    min-width: 22px; min-height: 22px; padding: 3px 5px; margin: 0 1px;
+}
+QToolButton[rackTransport="true"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F0E8D6);
+    border-color: @ACCENT@; border-top-color: #FFFFFF;
+}
+QToolButton[rackTransport="true"]:pressed,
+QToolButton[rackTransport="true"]:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #EFE8D8);
+    border-color: @ACCENT@; border-top-color: #B8AC92;
+}
+QToolButton[rackTransport="true"]:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F2ECDD, stop:1 #E2DAC8);
+    border-color: #C4B89E; border-top-color: #F7F2E6;
+}
 /* Instant mode is a panel switch read by its lamp: the stock indicator
    collapses and RackChrome paints a real LED in the padding-reserved well. */
 QCheckBox#InstantModeCheckBox {
