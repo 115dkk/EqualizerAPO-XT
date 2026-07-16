@@ -34,7 +34,7 @@ using std::wstring;
 
 ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, const QStringList& selectedChannels, int selectedChannelMask, const vector<wstring>& channelNames)
 	: QDialog(parent),
-	ui(new Ui::ChannelFilterGUIDialog)
+	ui(std::make_unique<Ui::ChannelFilterGUIDialog>())
 {
 	ui->setupUi(this);
 	resize(GUIHelper::scale(QSize(355, 329)));
@@ -126,10 +126,7 @@ ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, const QStringLis
 	ui->stackedWidget->setCurrentIndex((selectedChannelMask & SPEAKER_BACK_CENTER) ? 1 : 0);
 }
 
-ChannelFilterGUIDialog::~ChannelFilterGUIDialog()
-{
-	delete ui;
-}
+ChannelFilterGUIDialog::~ChannelFilterGUIDialog() = default;
 
 void ChannelFilterGUIDialog::on_addButton_clicked()
 {

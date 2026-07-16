@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QTimer>
 #include "Editor/IFilterGUIFactory.h"
 #include "Editor/FilterTable.h"
@@ -42,6 +44,6 @@ private slots:
 private:
 	FilterTable* filterTable = nullptr;
 	QTimer* timer = nullptr;
-	VolumeController* volumeController = nullptr;
+	std::unique_ptr<VolumeController> volumeController;
 	double lastVolume = -1;
 };

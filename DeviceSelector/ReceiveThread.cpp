@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
+#include "helpers/Win32Resource.h"
 #include "ReceiveThread.h"
 
 ReceiveThread::ReceiveThread(const std::wstring& pipeName)
@@ -37,18 +38,19 @@ void ReceiveThread::stop()
 {
 	if (pipeName != L"")
 	{
-		HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
-		if (pipe == INVALID_HANDLE_VALUE)
+		winutil::UniqueHandle pipe(CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(),
+			GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
+		if (!pipe)
 		{
 			if (WaitNamedPipeW((L"\\\\.\\pipe\\" + pipeName).c_str(), 1000))
-				pipe = CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+				pipe.reset(CreateFileW((L"\\\\.\\pipe\\" + pipeName).c_str(),
+					GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
 		}
-		if (pipe != INVALID_HANDLE_VALUE)
+		if (pipe)
 		{
 			DWORD bytesWritten;
-			WriteFile(pipe, "stop", 4, &bytesWritten, nullptr);
-			FlushFileBuffers(pipe);
-			CloseHandle(pipe);
+			WriteFile(pipe.get(), "stop", 4, &bytesWritten, nullptr);
+			FlushFileBuffers(pipe.get());
 		}
 		pipeName = L"";
 	}
@@ -61,42 +63,41 @@ void ReceiveThread::run()
 {
 	try
 	{
-		PSECURITY_DESCRIPTOR pSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
+		winutil::UniqueLocalPtr<void> pSD(LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH));
 		if (!pSD)
 			throw ReceiveException(L"Could not allocate security descriptor: " + StringHelper::getSystemErrorString(GetLastError()));
-		SCOPE_EXIT{LocalFree(pSD);};
 
-		if (!InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION))
+		if (!InitializeSecurityDescriptor(pSD.get(), SECURITY_DESCRIPTOR_REVISION))
 			throw ReceiveException(L"Could not initialize security descriptor: " + StringHelper::getSystemErrorString(GetLastError()));
 
-		if (!SetSecurityDescriptorDacl(pSD, TRUE, nullptr, FALSE))
+		if (!SetSecurityDescriptorDacl(pSD.get(), TRUE, nullptr, FALSE))
 			throw ReceiveException(L"Could not set security descriptor DACL: " + StringHelper::getSystemErrorString(GetLastError()));
 
 		SECURITY_ATTRIBUTES sa;
 		sa.nLength = sizeof(sa);
-		sa.lpSecurityDescriptor = pSD;
+		sa.lpSecurityDescriptor = pSD.get();
 		sa.bInheritHandle = FALSE;
 
 		char buf[1024];
 		while (true)
 		{
-			HANDLE pipe = CreateNamedPipeW((L"\\\\.\\pipe\\" + pipeName).c_str(), PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
-				PIPE_UNLIMITED_INSTANCES, 0, sizeof(buf), 0, &sa);
-			if (pipe == INVALID_HANDLE_VALUE)
+			winutil::UniqueHandle pipe(CreateNamedPipeW((L"\\\\.\\pipe\\" + pipeName).c_str(),
+				PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
+				PIPE_UNLIMITED_INSTANCES, 0, sizeof(buf), 0, &sa));
+			if (!pipe)
 				throw ReceiveException(L"Could not create named pipe: " + StringHelper::getSystemErrorString(GetLastError()));
-			SCOPE_EXIT{CloseHandle(pipe);};
 
-			bool connected = ConnectNamedPipe(pipe, nullptr);
+			bool connected = ConnectNamedPipe(pipe.get(), nullptr);
 			if (!connected)
 				connected = GetLastError() == ERROR_PIPE_CONNECTED;
 
 			if (!connected)
 				continue;
 
-			SCOPE_EXIT{DisconnectNamedPipe(pipe);};
+			SCOPE_EXIT{DisconnectNamedPipe(pipe.get());};
 
 			DWORD bytesRead;
-			bool ok = ReadFile(pipe, buf, sizeof(buf), &bytesRead, nullptr);
+			bool ok = ReadFile(pipe.get(), buf, sizeof(buf), &bytesRead, nullptr);
 			if (!ok || bytesRead == 0)
 				throw ReceiveException(L"Could not read from pipe: " + StringHelper::getSystemErrorString(GetLastError()));
 

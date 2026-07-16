@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 
 namespace Ui {
@@ -42,6 +44,6 @@ private slots:
 	void on_actionPowerOn_toggled(bool checked);
 
 private:
-	Ui::CommentFilterGUI* ui;
+	std::unique_ptr<Ui::CommentFilterGUI> ui;
 	IFilterGUI* child;
 };

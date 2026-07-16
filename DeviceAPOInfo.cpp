@@ -30,6 +30,7 @@
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/ComPtr.h"
+#include "helpers/Win32Resource.h"
 
 using std::make_shared;
 using std::move;
@@ -173,14 +174,13 @@ bool DeviceAPOInfo::checkAPORegistration(bool fix)
 				// regsvr32.exe (no extra process, no transient window).
 				// LOAD_WITH_ALTERED_SEARCH_PATH resolves the DLL's own
 				// dependencies relative to its directory.
-				HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
-				if (module != nullptr)
+				winutil::UniqueModule module(LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH));
+				if (module)
 				{
 					using DllServerProc = HRESULT(__stdcall*)();
-					DllServerProc registerProc = reinterpret_cast<DllServerProc>(GetProcAddress(module, "DllRegisterServer"));
+					DllServerProc registerProc = reinterpret_cast<DllServerProc>(GetProcAddress(module.get(), "DllRegisterServer"));
 					if (registerProc != nullptr)
 						registerProc();
-					FreeLibrary(module);
 				}
 			}
 		}

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QDialog>
 
 #include "DeviceFilterGUI.h"
@@ -44,7 +46,7 @@ private slots:
 	void on_showOnlyInstalledCheckBox_toggled(bool checked);
 
 private:
-	Ui::DeviceFilterGUIDialog* ui;
+	std::unique_ptr<Ui::DeviceFilterGUIDialog> ui;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

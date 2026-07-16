@@ -28,7 +28,7 @@
 
 LoudnessCorrectionFilterGUIDialog::LoudnessCorrectionFilterGUIDialog(QWidget* parent)
 	: QDialog(parent),
-	ui(new Ui::LoudnessCorrectionFilterGUIDialog)
+	ui(std::make_unique<Ui::LoudnessCorrectionFilterGUIDialog>())
 {
 	ui->setupUi(this);
 }
@@ -36,7 +36,6 @@ LoudnessCorrectionFilterGUIDialog::LoudnessCorrectionFilterGUIDialog(QWidget* pa
 LoudnessCorrectionFilterGUIDialog::~LoudnessCorrectionFilterGUIDialog()
 {
 	on_stopButton_clicked();
-	delete ui;
 }
 
 int LoudnessCorrectionFilterGUIDialog::getMeasuredLevel()

@@ -27,7 +27,7 @@ static const double dialMin = 1.0;
 static const double dialMax = 10000.0;
 
 DelayFilterGUI::DelayFilterGUI(double delay, bool isMs)
-	: ui(new Ui::DelayFilterGUI)
+	: ui(std::make_unique<Ui::DelayFilterGUI>())
 {
 	ui->setupUi(this);
 
@@ -36,10 +36,7 @@ DelayFilterGUI::DelayFilterGUI(double delay, bool isMs)
 	ui->delaySpinBox->setValue(delay);
 }
 
-DelayFilterGUI::~DelayFilterGUI()
-{
-	delete ui;
-}
+DelayFilterGUI::~DelayFilterGUI() = default;
 
 void DelayFilterGUI::store(QString& command, QString& parameters)
 {

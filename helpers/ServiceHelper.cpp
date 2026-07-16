@@ -24,6 +24,7 @@
 #include "PrecisionTimer.h"
 #include "StringHelper.h"
 #include "ServiceHelper.h"
+#include "Win32Resource.h"
 
 using std::make_shared;
 using std::shared_ptr;
@@ -32,13 +33,12 @@ using std::wstring;
 
 void ServiceHelper::restartService(const wstring& serviceName)
 {
-	SC_HANDLE scManager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
-	if (scManager == nullptr)
+	winutil::UniqueServiceHandle scManager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS));
+	if (!scManager)
 		throw ServiceException(L"OpenSCManager failed (" + StringHelper::getSystemErrorString(GetLastError()) + L")");
-	SCOPE_EXIT{CloseServiceHandle(scManager); };
 
 	vector<shared_ptr<Service>> services;
-	shared_ptr<Service> mainService = make_shared<Service>(scManager, serviceName, true);
+	shared_ptr<Service> mainService = make_shared<Service>(scManager.get(), serviceName, true);
 	services.push_back(mainService);
 
 	DWORD mainState = mainService->getState();
@@ -47,7 +47,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 		vector<wstring> dependentServices = mainService->getActiveDependentServices();
 		for (const wstring& dependentServiceName : dependentServices)
 		{
-			shared_ptr<Service> dependentService = make_shared<Service>(scManager, dependentServiceName.c_str(), false);
+			shared_ptr<Service> dependentService = make_shared<Service>(scManager.get(), dependentServiceName.c_str(), false);
 			services.insert(prev(services.end()), dependentService);
 		}
 	}
@@ -105,14 +105,9 @@ Service::Service(SC_HANDLE scManager, const std::wstring& serviceName, bool allo
 	DWORD desiredAccess = SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS;
 	if (allowEnumerate)
 		desiredAccess |= SERVICE_ENUMERATE_DEPENDENTS;
-	serviceHandle = OpenServiceW(scManager, serviceName.c_str(), desiredAccess);
-	if (serviceHandle == nullptr)
+	serviceHandle.reset(OpenServiceW(scManager, serviceName.c_str(), desiredAccess));
+	if (!serviceHandle)
 		fail(L"OpenService", GetLastError());
-}
-
-Service::~Service()
-{
-	CloseServiceHandle(serviceHandle);
 }
 
 const std::wstring& Service::getServiceName()
@@ -124,7 +119,7 @@ DWORD Service::getState()
 {
 	SERVICE_STATUS_PROCESS ssp;
 	DWORD dwBytesNeeded;
-	if (!QueryServiceStatusEx(serviceHandle, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp, sizeof(SERVICE_STATUS_PROCESS), &dwBytesNeeded))
+	if (!QueryServiceStatusEx(serviceHandle.get(), SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp, sizeof(SERVICE_STATUS_PROCESS), &dwBytesNeeded))
 		fail(L"QueryServiceStatusEx", GetLastError());
 
 	return ssp.dwCurrentState;
@@ -132,14 +127,14 @@ DWORD Service::getState()
 
 void Service::start()
 {
-	if (!StartServiceW(serviceHandle, 0, nullptr))
+	if (!StartServiceW(serviceHandle.get(), 0, nullptr))
 		fail(L"StartService", GetLastError());
 }
 
 DWORD Service::stop()
 {
 	SERVICE_STATUS ss;
-	if (!ControlService(serviceHandle, SERVICE_CONTROL_STOP, &ss))
+	if (!ControlService(serviceHandle.get(), SERVICE_CONTROL_STOP, &ss))
 		fail(L"ControlService", GetLastError());
 
 	return ss.dwCurrentState;
@@ -148,7 +143,7 @@ DWORD Service::stop()
 vector<wstring> Service::getActiveDependentServices()
 {
 	DWORD bytesNeeded, count;
-	if (EnumDependentServicesW(serviceHandle, SERVICE_ACTIVE, nullptr, 0, &bytesNeeded, &count))
+	if (EnumDependentServicesW(serviceHandle.get(), SERVICE_ACTIVE, nullptr, 0, &bytesNeeded, &count))
 		// if the call succeeds, there are no dependent services
 		return vector<wstring>();
 
@@ -156,18 +151,17 @@ vector<wstring> Service::getActiveDependentServices()
 	if (error != ERROR_MORE_DATA)
 		fail(L"EnumDependentServices", error);
 
-	LPENUM_SERVICE_STATUSW dependencies = (LPENUM_SERVICE_STATUSW)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bytesNeeded);
+	winutil::UniqueProcessHeapPtr<ENUM_SERVICE_STATUSW> dependencies(
+		static_cast<LPENUM_SERVICE_STATUSW>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bytesNeeded)));
 	if (!dependencies)
 		throw ServiceException(L"HeapAlloc for EnumDependentServices failed");
 
-	SCOPE_EXIT{HeapFree(GetProcessHeap(), 0, dependencies); };
-
-	if (!EnumDependentServicesW(serviceHandle, SERVICE_ACTIVE, dependencies, bytesNeeded, &bytesNeeded, &count))
+	if (!EnumDependentServicesW(serviceHandle.get(), SERVICE_ACTIVE, dependencies.get(), bytesNeeded, &bytesNeeded, &count))
 		fail(L"EnumDependentServices", GetLastError());
 
 	vector<wstring> result;
 	for (unsigned i = 0; i < count; i++)
-		result.push_back(dependencies[i].lpServiceName);
+		result.push_back(dependencies.get()[i].lpServiceName);
 
 	return result;
 }

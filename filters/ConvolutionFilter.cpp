@@ -145,7 +145,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		filename.c_str(), ir->channels, ir->frames);
 
 	fftw_make_planner_thread_safe();
-	HConvSingle* allocated = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
+	auto allocated = MemoryHelper::allocateArray<HConvSingle>(channelCount);
 	if (allocated == nullptr)
 	{
 		// alloc returns nullptr on failure; bail to the inert state (filters stays
@@ -154,7 +154,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		return;
 	}
 	HConvSingleArray pendingFilters;
-	pendingFilters.adoptUninitialized(allocated, channelCount);
+	pendingFilters.adoptUninitialized(std::move(allocated), channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		// hcInitSingle reads the IR samples during planning but does not retain

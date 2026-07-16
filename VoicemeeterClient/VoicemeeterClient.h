@@ -19,9 +19,11 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 #include "../FilterEngine.h"
+#include "../helpers/Win32Resource.h"
 #include "VoicemeeterRemote.h"
 
 class VoicemeeterClient
@@ -41,13 +43,16 @@ private:
 
 	std::vector<std::wstring> outputs;
 	unsigned long mainThreadId;
+	winutil::UniqueModule module;
 	T_VBVMR_INTERFACE vmr;
 	size_t wTimer = 0;
+	bool loggedIn = false;
+	bool callbackRegistered = false;
 	bool connected = true;
 	float sampleRate = 0.0f;
 	unsigned maxFrameCount = 0;
 
-	std::vector<FilterEngine*> engines;
+	std::vector<std::unique_ptr<FilterEngine>> engines;
 	std::vector<int> idleSampleCounts;
 };
 

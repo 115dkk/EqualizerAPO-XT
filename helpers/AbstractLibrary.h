@@ -22,6 +22,8 @@
 #include <mutex>
 #include <string>
 
+#include "helpers/Win32Resource.h"
+
 class AbstractLibrary
 {
 public:
@@ -41,7 +43,7 @@ protected:
 	virtual int customInitialize();
 	virtual void customUninitialize() noexcept;
 
-	HMODULE module = nullptr;
+	winutil::UniqueModule module;
 
 private:
 	static unsigned short getFileArchitecture(const std::wstring& filePath);

@@ -77,8 +77,9 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 	ReadResult result;
 
 	DWORD error = ERROR_SUCCESS;
-	HANDLE hFile = openFileWithSharingRetry(path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
-	if (hFile == INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle file = openFileWithSharingRetry(
+		path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
+	if (!file)
 	{
 		result.ok = false;
 		result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
@@ -91,10 +92,9 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 	for (;;)
 	{
 		DWORD bytesRead = 0;
-		if (!ReadFile(hFile, buf, sizeof(buf), &bytesRead, nullptr))
+		if (!ReadFile(file.get(), buf, sizeof(buf), &bytesRead, nullptr))
 		{
 			error = GetLastError();
-			CloseHandle(hFile);
 			result.ok = false;
 			result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
 			return result;
@@ -103,8 +103,6 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 			break;
 		buffer.append(buf, bytesRead);
 	}
-
-	CloseHandle(hFile);
 
 	result.ok = true;
 	result.lines = decodeLines(buffer);

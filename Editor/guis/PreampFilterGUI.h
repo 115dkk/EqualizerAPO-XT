@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 #include <filters/PreampFilter.h>
 
@@ -41,5 +43,5 @@ private slots:
 	void on_dial_valueChanged(int value);
 
 private:
-	Ui::PreampFilterGUI* ui;
+	std::unique_ptr<Ui::PreampFilterGUI> ui;
 };

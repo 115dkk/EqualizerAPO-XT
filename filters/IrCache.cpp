@@ -26,11 +26,9 @@
 #include <unordered_map>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
-#include <sndfile.h>
-
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/SndfileRAII.h"
 #include "IrCache.h"
 
 using std::abs;
@@ -38,7 +36,6 @@ using std::abs;
 namespace
 {
 	constexpr unsigned kMaxIrChannels = 1024;
-	using SndFilePtr = std::unique_ptr<SNDFILE, decltype(&sf_close)>;
 
 	// Cache of decoded impulse-response PCM, keyed by path + mtime + sample rate.
 	// Lets a config reload (or a second filter using the same IR) skip the
@@ -121,7 +118,7 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, d
 		LogFStatic(L"Error while reading impulse response file: %S", sf_strerror(opened));
 		return nullptr;
 	}
-	SndFilePtr in(opened, &sf_close);
+	sndfile::Handle in(opened);
 	if (abs(sampleRate - info.samplerate) > 1.0)
 	{
 		LogFStatic(L"Impulse response sample rate (%d Hz) does not match device sample rate (%f Hz)", info.samplerate, sampleRate);
@@ -201,10 +198,9 @@ void HConvSingleArray::reset()
 	if (ptr != nullptr)
 	{
 		for (unsigned i = 0; i < initializedCount; i++)
-			hcCloseSingle(&ptr[i]);
+			hcCloseSingle(&ptr.get()[i]);
 
-		MemoryHelper::free(ptr);
-		ptr = nullptr;
+		ptr.reset();
 	}
 	capacity = 0;
 	initializedCount = 0;

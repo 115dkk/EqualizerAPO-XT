@@ -18,6 +18,7 @@
 
 #include "ConfigurationFileReader.h"
 #include "Tests/TestHarness.h"
+#include "helpers/Win32Resource.h"
 
 void runConfigurationFileReaderTests(test::Harness& harness)
 {
@@ -30,7 +31,7 @@ void runConfigurationFileReaderTests(test::Harness& harness)
 	harness.expectFalse(missing.good(), "readWithRetry reports an open failure");
 
 	const std::wstring pipeName = L"\\\\.\\pipe\\EngineOrchestrationTests-ConfigRead-" + std::to_wstring(GetCurrentProcessId());
-	HANDLE pipe = CreateNamedPipeW(
+	winutil::UniqueHandle pipe(CreateNamedPipeW(
 		pipeName.c_str(),
 		PIPE_ACCESS_OUTBOUND,
 		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
@@ -38,20 +39,19 @@ void runConfigurationFileReaderTests(test::Harness& harness)
 		4096,
 		4096,
 		0,
-		nullptr);
-	harness.require(pipe != INVALID_HANDLE_VALUE, "partial configuration read creates a named pipe");
+		nullptr));
+	harness.require(static_cast<bool>(pipe), "partial configuration read creates a named pipe");
 
 	bool serverSucceeded = false;
 	std::thread server([&]() {
-		BOOL connected = ConnectNamedPipe(pipe, nullptr);
+		BOOL connected = ConnectNamedPipe(pipe.get(), nullptr);
 		if (!connected && GetLastError() == ERROR_PIPE_CONNECTED)
 			connected = TRUE;
 		const char prefix[] = "Preamp: -6 dB\r\n";
 		DWORD written = 0;
-		if (connected && WriteFile(pipe, prefix, sizeof(prefix) - 1, &written, nullptr) && written == sizeof(prefix) - 1)
-			serverSucceeded = FlushFileBuffers(pipe) != FALSE;
-		DisconnectNamedPipe(pipe);
-		CloseHandle(pipe);
+		if (connected && WriteFile(pipe.get(), prefix, sizeof(prefix) - 1, &written, nullptr) && written == sizeof(prefix) - 1)
+			serverSucceeded = FlushFileBuffers(pipe.get()) != FALSE;
+		DisconnectNamedPipe(pipe.get());
 	});
 
 	std::stringstream input = ConfigurationFileReader::readWithRetry(pipeName);

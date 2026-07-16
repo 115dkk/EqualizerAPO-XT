@@ -20,6 +20,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "IFilter.h"
@@ -68,7 +69,7 @@ class CopyFilter : public IFilter
 {
 public:
 	CopyFilter(const std::vector<Assignment>& assignments);
-	virtual ~CopyFilter();
+	~CopyFilter() override = default;
 	bool getAllChannels() override {return true;}
 	bool getInPlace() override {return false;}
 	bool producesTailFromSilentInput() const override {return false;}
@@ -78,21 +79,28 @@ public:
 	const std::vector<Assignment>& getAssignments() const;
 
 private:
-	void cleanup();
-
 	std::vector<Assignment> assignments;
+
+	struct InternalSummand
+	{
+		int channel;
+		double factor;
+
+		InternalSummand(int channel, double factor) noexcept
+			: channel(channel), factor(factor)
+		{
+		}
+	};
 
 	struct InternalAssignment
 	{
-		int targetChannel = 0;
-
-		struct InternalSummand
-		{
-			double factor = 0.0;
-			int channel = 0;
-		};
-
+		int targetChannel;
 		std::vector<InternalSummand> sourceSum;
+
+		InternalAssignment(int targetChannel, std::vector<InternalSummand> sourceSum)
+			: targetChannel(targetChannel), sourceSum(std::move(sourceSum))
+		{
+		}
 	};
 
 	std::vector<InternalAssignment> internalAssignments;

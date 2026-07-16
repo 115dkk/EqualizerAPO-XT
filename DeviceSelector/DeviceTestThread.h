@@ -20,6 +20,7 @@
 #pragma once
 
 #include <DeviceAPOInfo.h>
+#include <QHash>
 #include <QThread>
 #include "ReceiveThread.h"
 

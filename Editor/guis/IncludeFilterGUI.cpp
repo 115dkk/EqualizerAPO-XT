@@ -26,7 +26,7 @@
 #include "ui_IncludeFilterGUI.h"
 
 IncludeFilterGUI::IncludeFilterGUI(FilterTable* filterTable, const QString& path)
-	: ui(new Ui::IncludeFilterGUI), filterTable(filterTable)
+	: ui(std::make_unique<Ui::IncludeFilterGUI>()), filterTable(filterTable)
 {
 	ui->setupUi(this);
 
@@ -44,10 +44,7 @@ IncludeFilterGUI::IncludeFilterGUI(FilterTable* filterTable, const QString& path
 	updateFileInfo();
 }
 
-IncludeFilterGUI::~IncludeFilterGUI()
-{
-	delete ui;
-}
+IncludeFilterGUI::~IncludeFilterGUI() = default;
 
 void IncludeFilterGUI::store(QString& command, QString& parameters)
 {

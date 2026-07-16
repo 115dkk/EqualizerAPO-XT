@@ -25,11 +25,10 @@ using std::vector;
 using std::wstring;
 
 CommentFilterGUI::CommentFilterGUI(IFilterGUI* child, bool isComment)
+	: ui(std::make_unique<Ui::CommentFilterGUI>()), child(child)
 {
-	ui = new Ui::CommentFilterGUI;
 	ui->setupUi(this);
 
-	this->child = child;
 	connect(child, SIGNAL(updateModel()), this, SIGNAL(updateModel()));
 	connect(child, SIGNAL(updateChannels()), this, SIGNAL(updateChannels()));
 
@@ -44,10 +43,7 @@ CommentFilterGUI::CommentFilterGUI(IFilterGUI* child, bool isComment)
 	child->setEnabled(!isComment);
 }
 
-CommentFilterGUI::~CommentFilterGUI()
-{
-	delete ui;
-}
+CommentFilterGUI::~CommentFilterGUI() = default;
 
 void CommentFilterGUI::configureChannels(vector<wstring>& channelNames)
 {

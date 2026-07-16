@@ -19,14 +19,17 @@
 
 #pragma once
 
+#include <vector>
+
 #include "IFilter.h"
+#include "helpers/MemoryHelper.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class DelayFilter : public IFilter
 {
 public:
 	DelayFilter(double delay, bool isMs);
-	virtual ~DelayFilter();
+	~DelayFilter() override = default;
 	bool getInPlace() override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;
@@ -35,13 +38,11 @@ public:
 	bool getIsMs() const;
 
 private:
-	void cleanup();
-
 	double delay;
 	bool isMs;
 	unsigned bufferLength = 0;
 	unsigned channelCount = 0;
-	double** buffers;
+	std::vector<MemoryHelper::UniqueAllocation<double>> buffers;
 	unsigned bufferOffset = 0;
 };
 #pragma AVRT_VTABLES_END

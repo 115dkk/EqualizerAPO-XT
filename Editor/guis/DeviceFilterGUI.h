@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 #include "DeviceFilterGUIFactory.h"
 
@@ -40,7 +42,7 @@ private slots:
 	void on_pushButton_clicked();
 
 private:
-	Ui::DeviceFilterGUI* ui;
+	std::unique_ptr<Ui::DeviceFilterGUI> ui;
 	DeviceFilterGUIFactory* factory;
 	QString pattern;
 };

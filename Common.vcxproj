@@ -358,11 +358,14 @@
     <ClInclude Include="helpers\FileSharingRetry.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\LogHelper.h" />
+    <ClInclude Include="helpers\FftwRAII.h" />
     <ClInclude Include="helpers\MemoryHelper.h" />
+    <ClInclude Include="helpers\Win32Resource.h" />
     <ClInclude Include="helpers\PerfProfile.h" />
     <ClInclude Include="helpers\PrecisionTimer.h" />
     <ClInclude Include="helpers\RegistryHelper.h" />
     <ClInclude Include="helpers\ScopeGuard.h" />
+    <ClInclude Include="helpers\SndfileRAII.h" />
     <ClInclude Include="helpers\StringHelper.h" />
     <ClInclude Include="helpers\UncaughtExceptions.h" />
     <ClInclude Include="helpers\VSTPluginInstance.h" />

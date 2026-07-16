@@ -30,6 +30,7 @@
 #include "../helpers/RegistryHelper.h"
 #include "../helpers/StringHelper.h"
 #include "../helpers/ComPtr.h"
+#include "../helpers/Win32Resource.h"
 #include "../DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
 
@@ -582,20 +583,21 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 {
 	string message = "{\"deviceGuid\":\"" + StringHelper::toString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
 
-	HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
-	if (pipe == INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle pipe(CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(),
+		GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
+	if (!pipe)
 	{
 		if (WaitNamedPipeW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), 1000))
-			pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+			pipe.reset(CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(),
+				GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
 	}
-	if (pipe != INVALID_HANDLE_VALUE)
+	if (pipe)
 	{
 		DWORD bytesWritten;
-		if (!WriteFile(pipe, message.c_str(), static_cast<int>(message.length()), &bytesWritten, nullptr))
+		if (!WriteFile(pipe.get(), message.c_str(), static_cast<int>(message.length()), &bytesWritten, nullptr))
 			LogF(L"Could not write to pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
 
-		FlushFileBuffers(pipe);
-		CloseHandle(pipe);
+		FlushFileBuffers(pipe.get());
 	}
 	else
 	{

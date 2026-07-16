@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QDialog>
 #include <QCheckBox>
 #include "helpers/VSTPluginInstance.h"
@@ -44,6 +46,7 @@ private slots:
 	void on_autoApplyCheckBox_clicked(bool checked);
 
 private:
-	Ui::VSTPluginFilterGUIDialog* ui;
+	std::unique_ptr<Ui::VSTPluginFilterGUIDialog> ui;
+	// Non-owning: the dialog is stack-bound inside the effect owner's method.
 	VSTPluginInstance* effect;
 };

@@ -38,6 +38,7 @@
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
+#include "VSTPluginInstanceInternal.h"
 #include "pluginterfaces/base/futils.h"
 
 using namespace std;
@@ -87,6 +88,22 @@ public:
 static EmptyVST3ParameterChanges emptyVST3ParameterChanges;
 static EmptyVST3EventList emptyVST3EventList;
 
+void VST2EffectDeleter::operator()(vst_effect_t* effect) const noexcept
+{
+	if (effect != NULL)
+	{
+		__try
+		{
+			effect->control(effect, VST_EFFECT_OPCODE_DESTROY, 0, 0, NULL, 0.0f);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			// A broken plugin must not take down the host while its RAII owner
+			// unwinds. The plugin's memory is no longer safely reclaimable here.
+		}
+	}
+}
+
 VSTPluginInstance::VSTPluginInstance(const std::shared_ptr<VSTPluginLibrary>& library, int processLevel)
 	: library(library), processLevel(processLevel)
 {
@@ -97,11 +114,7 @@ VSTPluginInstance::~VSTPluginInstance()
 	automateFunc = nullptr;
 	sizeWindowFunc = nullptr;
 	releaseVST3();
-	if (effect != NULL)
-	{
-		effect->control(effect, VST_EFFECT_OPCODE_DESTROY, 0, 0, NULL, 0.0f);
-		effect = NULL;
-	}
+	effect.reset();
 }
 
 bool VSTPluginInstance::initialize()
@@ -174,7 +187,7 @@ std::wstring VSTPluginInstance::getName() const
 
 	char buf[256];
 	memset(buf, 0, sizeof(buf));
-	effect->control(effect, VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
 	buf[255] = '\0'; // just to be sure
 
 	return StringHelper::toWString(buf, CP_UTF8);
@@ -255,8 +268,8 @@ void VSTPluginInstance::prepareForProcessing(float sampleRate, int blockSize)
 		return;
 
 	this->sampleRate = sampleRate;
-	effect->control(effect, VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, NULL, sampleRate);
-	effect->control(effect, VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, NULL, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_SET_SAMPLE_RATE, 0, 0, NULL, sampleRate);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_SET_BLOCK_SIZE, 0, blockSize, NULL, 0.0f);
 }
 
 void VSTPluginInstance::startProcessing()
@@ -279,8 +292,8 @@ void VSTPluginInstance::startProcessing()
 	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 1, NULL, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, NULL, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_SUSPEND, 0, 1, NULL, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, NULL, 0.0f);
 }
 
 void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray, int frameCount)
@@ -318,7 +331,7 @@ void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray
 	if (effect == NULL)
 		return;
 
-	effect->process_float(effect, inputArray, outputArray, frameCount);
+	effect->process_float(effect.get(), inputArray, outputArray, frameCount);
 }
 
 void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** outputArray, int frameCount)
@@ -356,7 +369,7 @@ void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** out
 	if (effect == NULL)
 		return;
 
-	effect->process_double(effect, inputArray, outputArray, frameCount);
+	effect->process_double(effect.get(), inputArray, outputArray, frameCount);
 }
 
 void VSTPluginInstance::process(float** inputArray, float** outputArray, int frameCount)
@@ -370,7 +383,7 @@ void VSTPluginInstance::process(float** inputArray, float** outputArray, int fra
 	if (effect == NULL)
 		return;
 
-	effect->process(effect, inputArray, outputArray, frameCount);
+	effect->process(effect.get(), inputArray, outputArray, frameCount);
 }
 
 void VSTPluginInstance::stopProcessing()
@@ -393,8 +406,20 @@ void VSTPluginInstance::stopProcessing()
 	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_PROCESS_END, 0, 0, NULL, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_SUSPEND, 0, 0, NULL, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_PROCESS_END, 0, 0, NULL, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_SUSPEND, 0, 0, NULL, 0.0f);
+}
+
+void VSTPluginInstance::stopProcessingSafely() noexcept
+{
+	__try
+	{
+		stopProcessing();
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		// Cleanup is best effort across a third-party native-code boundary.
+	}
 }
 
 void VSTPluginInstance::setAutomateFunc(std::function<void()> func)
@@ -415,12 +440,12 @@ void VSTPluginInstance::setSizeWindowFunc(std::function<void(int, int)> func)
 
 void VSTPluginInstance::onSizeWindow(int w, int h)
 {
-	if (vst3EditorHostWindow != NULL)
+	if (vst3EditorHostWindow)
 	{
 		// w/h arrive in physical pixels from the plugin's resizeView request.
 		// The native host window takes physical px; the Qt frame
 		// (sizeWindowFunc) takes logical px, so divide by the editor scale.
-		SetWindowPos(vst3EditorHostWindow, NULL, 0, 0, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		SetWindowPos(vst3EditorHostWindow.get(), NULL, 0, 0, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 		if (sizeWindowFunc)
 		{
 			double s = editorScaleFactor > 0.0 ? editorScaleFactor : 1.0;

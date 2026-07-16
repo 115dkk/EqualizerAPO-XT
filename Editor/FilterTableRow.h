@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QWidget>
 #include <QTime>
 
@@ -55,7 +57,7 @@ private slots:
 	void on_lineEdit_editingCanceled();
 
 private:
-	Ui::FilterTableRow* ui;
+	std::unique_ptr<Ui::FilterTableRow> ui;
 	FilterTable* table;
 	FilterTable::Item* item;
 	IFilterGUI* gui;

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 
 namespace Ui {
@@ -43,5 +45,5 @@ private slots:
 	void on_captureCheckBox_toggled(bool checked);
 
 private:
-	Ui::StageFilterGUI* ui;
+	std::unique_ptr<Ui::StageFilterGUI> ui;
 };

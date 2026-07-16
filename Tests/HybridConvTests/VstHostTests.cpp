@@ -276,7 +276,7 @@ void runVstHostTests()
 
 	// Construct and initialize the instance the way the engine does (heap
 	// allocated, owned here). processLevel mirrors a realtime audio thread.
-	VSTPluginInstance* instance = new VSTPluginInstance(library, 2);
+	auto instance = std::make_unique<VSTPluginInstance>(library, 2);
 	bool initialized = instance->initialize();
 	harness.expectTrue(initialized, "VSTPluginInstance initialize succeeded");
 
@@ -373,9 +373,8 @@ void runVstHostTests()
 
 	instance->stopProcessing();
 
-	// Teardown mirrors the engine: the destructor sends effClose, which frees
-	// the plugin-side AEffect and per-instance state.
-	delete instance;
+	// The owning pointer mirrors the engine and sends effClose on every exit,
+	// including an unexpected exception from a later assertion.
 
 	harness.report();
 }

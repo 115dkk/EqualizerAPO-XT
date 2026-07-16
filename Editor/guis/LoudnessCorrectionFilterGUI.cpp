@@ -25,7 +25,7 @@
 
 LoudnessCorrectionFilterGUI::LoudnessCorrectionFilterGUI(double refLevel, double refOffset, double att)
 	: IFilterGUI(),
-	ui(new Ui::LoudnessCorrectionFilterGUI)
+	ui(std::make_unique<Ui::LoudnessCorrectionFilterGUI>())
 {
 	ui->setupUi(this);
 
@@ -41,10 +41,7 @@ LoudnessCorrectionFilterGUI::LoudnessCorrectionFilterGUI(double refLevel, double
 	timer.start(10);
 }
 
-LoudnessCorrectionFilterGUI::~LoudnessCorrectionFilterGUI()
-{
-	delete ui;
-}
+LoudnessCorrectionFilterGUI::~LoudnessCorrectionFilterGUI() = default;
 
 void LoudnessCorrectionFilterGUI::store(QString& command, QString& parameters)
 {

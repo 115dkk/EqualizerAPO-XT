@@ -23,6 +23,9 @@
 
 VolumeController::VolumeController()
 {
+	if (!_comApartment.isUsable())
+		return;
+
 	winutil::ComPtr<IMMDeviceEnumerator> deviceEnumerator;
 	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER,
 		__uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(deviceEnumerator.put()));

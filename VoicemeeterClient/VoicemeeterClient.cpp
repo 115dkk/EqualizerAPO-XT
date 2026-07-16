@@ -53,10 +53,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	if (lpCmdLine[0] != 0)
 	{
 		int argc;
-		wchar_t** argv = CommandLineToArgvW(lpCmdLine, &argc);
+		winutil::UniqueLocalPtr<wchar_t*> argv(CommandLineToArgvW(lpCmdLine, &argc));
+		if (!argv)
+			return -1;
 		for (int i = 0; i < argc; i++)
-			outputs.push_back(argv[i]);
-		LocalFree(argv);
+			outputs.push_back(argv.get()[i]);
 	}
 
 	try
@@ -89,14 +90,13 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 	else
 		throw InitError(L"Voicemeeter is not installed");
 
-	HMODULE module = nullptr;
-	module = LoadLibraryW((voicemeeterDirectory + L"\\" voicemeeterRemoteFileName).c_str());
-	if (module == nullptr)
+	module.reset(LoadLibraryW((voicemeeterDirectory + L"\\" voicemeeterRemoteFileName).c_str()));
+	if (!module)
 		throw InitError(L"Failed to load " voicemeeterRemoteFileName);
 
 	vmr = {};
 
-#define LOAD_PROC(proc) vmr.proc = (T_ ## proc)GetProcAddress(module, # proc);if (vmr.proc == nullptr) throw InitError(L"Did not find function \"" # proc L"\" in " voicemeeterRemoteFileName)
+#define LOAD_PROC(proc) vmr.proc = (T_ ## proc)GetProcAddress(module.get(), # proc);if (vmr.proc == nullptr) throw InitError(L"Did not find function \"" # proc L"\" in " voicemeeterRemoteFileName)
 	LOAD_PROC(VBVMR_Login);
 	LOAD_PROC(VBVMR_Logout);
 	LOAD_PROC(VBVMR_GetVoicemeeterType);
@@ -106,7 +106,15 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 	LOAD_PROC(VBVMR_AudioCallbackStop);
 	LOAD_PROC(VBVMR_AudioCallbackUnregister);
 
-	initSoftware();
+	try
+	{
+		initSoftware();
+	}
+	catch (...)
+	{
+		endSoftware();
+		throw;
+	}
 }
 
 VoicemeeterClient::~VoicemeeterClient()
@@ -161,7 +169,7 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 		VBVMR_LPT_AUDIOINFO audioInfo = (VBVMR_LPT_AUDIOINFO)lpData;
 		sampleRate = static_cast<float>(audioInfo->samplerate);
 		maxFrameCount = audioInfo->nbSamplePerFrame;
-		for (FilterEngine* engine : engines)
+		for (const auto& engine : engines)
 			if (engine != nullptr)
 				engine->initialize(sampleRate, 8, 8, 8, 0, maxFrameCount);
 		VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
@@ -183,7 +191,7 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 		{
 			FilterEngine* engine = nullptr;
 			if (i < engines.size())
-				engine = engines[i];
+				engine = engines[i].get();
 
 			bool idle = true;
 			bool inputSilent = true;
@@ -220,6 +228,7 @@ void VoicemeeterClient::initSoftware()
 	long rep = vmr.VBVMR_Login();
 	if (rep < 0)
 		throw InitError(L"Failed To Login");
+	loggedIn = true;
 	if (vmr.VBVMR_IsParametersDirty() == 0)
 		detectVoicemeeterType();
 	else
@@ -251,6 +260,10 @@ void VoicemeeterClient::initSoftware()
 				throw InitError(L"Failed to register audio callback");
 			}
 		}
+		else
+		{
+			callbackRegistered = true;
+		}
 	}
 }
 
@@ -273,9 +286,6 @@ void VoicemeeterClient::detectVoicemeeterType()
 		if (outputCount != engines.size())
 		{
 			idleSampleCounts.clear();
-			for (FilterEngine* engine : engines)
-				if (engine != nullptr)
-					delete engine;
 			engines.clear();
 
 			for (unsigned i = 0; i < outputCount; i++)
@@ -285,11 +295,11 @@ void VoicemeeterClient::detectVoicemeeterType()
 				wstring output = sstream.str();
 				if (find(outputs.begin(), outputs.end(), output) != outputs.end())
 				{
-					FilterEngine* engine = new FilterEngine();
+					auto engine = std::make_unique<FilterEngine>();
 					engine->setDeviceInfo(false, true, L"Voicemeeter", output, L"", L"Voicemeeter " + output);
 					if (sampleRate != 0.0f && maxFrameCount != 0)
 						engine->initialize(sampleRate, 8, 8, 8, 0, maxFrameCount);
-					engines.push_back(engine);
+					engines.push_back(std::move(engine));
 				}
 				else
 				{
@@ -304,10 +314,16 @@ void VoicemeeterClient::detectVoicemeeterType()
 
 void VoicemeeterClient::endSoftware()
 {
-	if (vmr.VBVMR_Logout != nullptr)
-		vmr.VBVMR_Logout();
-	if (vmr.VBVMR_AudioCallbackUnregister != nullptr)
+	if (callbackRegistered && vmr.VBVMR_AudioCallbackUnregister != nullptr)
+	{
 		vmr.VBVMR_AudioCallbackUnregister();
+		callbackRegistered = false;
+	}
+	if (loggedIn && vmr.VBVMR_Logout != nullptr)
+	{
+		vmr.VBVMR_Logout();
+		loggedIn = false;
+	}
 }
 
 void VoicemeeterClient::handleCommand(WPARAM wparam, LPARAM lparam)

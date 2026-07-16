@@ -84,10 +84,10 @@ void MainWindow::on_resolutionSpinBox_valueChanged(int value)
 
 void MainWindow::updateAnalysisPanel()
 {
-	analysisThread->beginGetResult();
-	int sampleRate = analysisThread->getFreqDataSampleRate();
-	int latency = analysisThread->getLatency();
-	analysisPlotScene->setFreqData(analysisThread->getFreqData(), analysisThread->getFreqDataLength(), sampleRate);
+	auto result = analysisThread->lockResult();
+	int sampleRate = result.freqDataSampleRate();
+	int latency = result.latency();
+	analysisPlotScene->setFreqData(result.freqData(), result.freqDataLength(), sampleRate);
 	if (eqGraphView != nullptr)
 		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
 
@@ -96,7 +96,7 @@ void MainWindow::updateAnalysisPanel()
 	// not part of the analyzed chain receives an empty set, which clears any
 	// stale facts from a previous device/config selection.
 	{
-		const std::vector<ConfigLoadTraceEntry>& trace = analysisThread->getLoadTrace();
+		const std::vector<ConfigLoadTraceEntry>& trace = result.loadTrace();
 		for (int i = 0; i < ui->tabWidget->count(); i++)
 		{
 			QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
@@ -125,30 +125,28 @@ void MainWindow::updateAnalysisPanel()
 		label->update();
 	};
 
-	double peakGain = analysisThread->getPeakGain();
+	double peakGain = result.peakGain();
 	ui->peakGainValueLabel->setText(tr("%0 dB").arg(peakGain, 0, 'f', 1));
 	setSeverity(ui->peakGainValueLabel, peakGain > 0 ? "critical" : "normal");
 
-	int processedFrames = analysisThread->getProcessedFrames();
+	int processedFrames = result.processedFrames();
 	if (sampleRate <= 0 || processedFrames <= 0)
 	{
 		ui->latencyValueLabel->setText(QString::fromUtf8("\xE2\x80\x94"));
 		ui->cpuUsageValueLabel->setText(QString::fromUtf8("\xE2\x80\x94"));
 		setSeverity(ui->cpuUsageValueLabel, "normal");
-		ui->initTimeValueLabel->setText(tr("%0 ms").arg(analysisThread->getInitializationTime(), 0, 'f', 1));
-		analysisThread->endGetResult();
+		ui->initTimeValueLabel->setText(tr("%0 ms").arg(result.initializationTime(), 0, 'f', 1));
 		return;
 	}
 
 	ui->latencyValueLabel->setText(tr("%0 ms (%1 s.)").arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
 
-	ui->initTimeValueLabel->setText(tr("%0 ms").arg(analysisThread->getInitializationTime(), 0, 'f', 1));
+	ui->initTimeValueLabel->setText(tr("%0 ms").arg(result.initializationTime(), 0, 'f', 1));
 
-	double cpuUsage = analysisThread->getProcessingTime() * 100.0 / (processedFrames * 1000.0 / sampleRate);
+	double cpuUsage = result.processingTime() * 100.0 / (processedFrames * 1000.0 / sampleRate);
 	ui->cpuUsageValueLabel->setText(tr("%0 %").arg(cpuUsage, 0, 'f', 1));
 	setSeverity(ui->cpuUsageValueLabel, cpuUsage >= 50 ? "critical" : (cpuUsage >= 20 ? "warning" : "normal"));
 
-	analysisThread->endGetResult();
 }
 
 

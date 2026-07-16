@@ -126,14 +126,14 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		return outChannelNames;
 
 	fftw_make_planner_thread_safe();
-	HConvSingle* allocated = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * totalUnits);
+	auto allocated = MemoryHelper::allocateArray<HConvSingle>(totalUnits);
 	if (allocated == nullptr)
 	{
 		LogF(L"MultiConvolutionFilter: could not allocate %u convolution units", totalUnits);
 		return outChannelNames;
 	}
 	HConvSingleArray pendingFilters;
-	pendingFilters.adoptUninitialized(allocated, totalUnits);
+	pendingFilters.adoptUninitialized(std::move(allocated), totalUnits);
 
 	tempBuffer.assign(maxFrameCount, 0.0);
 	unitFactors.assign(totalUnits, 1.0);

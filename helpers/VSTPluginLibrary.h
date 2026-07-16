@@ -53,6 +53,15 @@ protected:
 	void customUninitialize() noexcept override;
 
 private:
+	struct FactoryDeleter
+	{
+		void operator()(Steinberg::IPluginFactory* value) const noexcept
+		{
+			if (value != nullptr)
+				value->release();
+		}
+	};
+
 	VSTPluginLibrary(const std::wstring& libPath);
 	void releasePluginFactory() noexcept;
 	static std::wstring resolveVST3ModulePath(const std::wstring& libPath);
@@ -61,6 +70,6 @@ private:
 	std::wstring libPath;
 	std::wstring loadPath;
 	bool vst3 = false;
-	Steinberg::IPluginFactory* factory = NULL;
+	std::unique_ptr<Steinberg::IPluginFactory, FactoryDeleter> factory;
 	Steinberg::PClassInfo vst3ClassInfo;
 };

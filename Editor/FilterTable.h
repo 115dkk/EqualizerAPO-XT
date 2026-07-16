@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include <QLabel>
 #include <QListWidget>
 #include <QTableWidget>
@@ -243,7 +246,7 @@ private:
 	// True while applyHistoryState replays a snapshot, so the resulting
 	// linesChanged marks the tab dirty without re-recording the step.
 	bool restoringHistory = false;
-	QList<IFilterGUIFactory*> factories;
+	std::vector<std::unique_ptr<IFilterGUIFactory>> factories;
 	bool scrollingNow = false;
 	// True while the app-global wheel-redirect filter is installed; see
 	// wheelEvent()/eventFilter().

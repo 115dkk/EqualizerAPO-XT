@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 #include "Editor/FilterTable.h"
 
@@ -44,6 +46,6 @@ private slots:
 private:
 	void updateFileInfo();
 
-	Ui::IncludeFilterGUI* ui;
+	std::unique_ptr<Ui::IncludeFilterGUI> ui;
 	FilterTable* filterTable;
 };

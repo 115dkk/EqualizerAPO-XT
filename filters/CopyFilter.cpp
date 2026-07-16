@@ -37,14 +37,8 @@ using std::wstringstream;
 using std::wstring;
 
 CopyFilter::CopyFilter(const vector<Assignment>& assignments)
+	: assignments(assignments)
 {
-	this->assignments = assignments;
-
-}
-
-CopyFilter::~CopyFilter()
-{
-	cleanup();
 }
 
 vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
@@ -53,39 +47,38 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 	preparedAssignments.reserve(assignments.size());
 	vector<wstring> outChannelNames;
 
-	for (Assignment& a : assignments)
+	for (const Assignment& a : assignments)
 	{
-		InternalAssignment ia;
-
 		wstring channelName = a.targetChannel;
 		int channelIndex = ChannelHelper::getChannelIndex(a.targetChannel, channelNames, true);
 		if (channelIndex != -1)
 			channelName = channelNames[channelIndex];
 		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
-		ia.targetChannel = static_cast<int>(it - outChannelNames.begin());
+		const int targetChannel = static_cast<int>(it - outChannelNames.begin());
 		if (it == outChannelNames.end())
 			outChannelNames.push_back(channelName);
 
-		ia.sourceSum.reserve(a.sourceSum.size());
+		vector<InternalSummand> sourceSum;
+		sourceSum.reserve(a.sourceSum.size());
 
-		for (Assignment::Summand& s : a.sourceSum)
+		for (const Assignment::Summand& s : a.sourceSum)
 		{
-			InternalAssignment::InternalSummand is;
-
+			int sourceChannel;
 			if (s.channel != L"")
-				is.channel = ChannelHelper::getChannelIndex(s.channel, channelNames);
+				sourceChannel = ChannelHelper::getChannelIndex(s.channel, channelNames);
 			else
-				is.channel = -1;
+				sourceChannel = -1;
 
+			double factor;
 			if (s.isDecibel)
-				is.factor = pow(10.0, s.factor / 20.0);
+				factor = pow(10.0, s.factor / 20.0);
 			else
-				is.factor = s.factor;
+				factor = s.factor;
 
-			ia.sourceSum.push_back(is);
+			sourceSum.emplace_back(sourceChannel, factor);
 		}
 
-		preparedAssignments.push_back(std::move(ia));
+		preparedAssignments.emplace_back(targetChannel, std::move(sourceSum));
 	}
 
 	wstringstream stream;
@@ -98,7 +91,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 		stream << L"to channel " << outChannelNames[ia.targetChannel].c_str() << " ";
 		for (size_t j = 0; j < ia.sourceSum.size(); j++)
 		{
-			const InternalAssignment::InternalSummand& is = ia.sourceSum[j];
+			const InternalSummand& is = ia.sourceSum[j];
 			if (j > 0)
 				stream << ", ";
 			if (is.channel != -1)
@@ -117,13 +110,13 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 void CopyFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("CopyFilter::process");
-	for (InternalAssignment& ia : internalAssignments)
+	for (const InternalAssignment& ia : internalAssignments)
 	{
 		if (ia.targetChannel == -1 || ia.sourceSum.empty())
 			continue;
 
 		{
-			InternalAssignment::InternalSummand& is = ia.sourceSum[0];
+			const InternalSummand& is = ia.sourceSum[0];
 
 			if (is.channel == -1)
 				for (unsigned f = 0; f < frameCount; f++)
@@ -137,7 +130,7 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 
 		for (size_t j = 1; j < ia.sourceSum.size(); j++)
 		{
-			const InternalAssignment::InternalSummand& is = ia.sourceSum[j];
+			const InternalSummand& is = ia.sourceSum[j];
 
 			if (is.channel == -1)
 				for (unsigned f = 0; f < frameCount; f++)
@@ -152,11 +145,6 @@ void CopyFilter::process(double** output, double** input, unsigned frameCount)
 	}
 }
 #pragma AVRT_CODE_END
-
-void CopyFilter::cleanup()
-{
-	internalAssignments.clear();
-}
 
 const std::vector<Assignment>& CopyFilter::getAssignments() const
 {

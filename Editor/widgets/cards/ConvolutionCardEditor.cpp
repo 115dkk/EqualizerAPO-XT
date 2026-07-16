@@ -12,9 +12,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
-#include <sndfile.h>
-
 #include "AbstractAPOInfo.h"
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
@@ -27,6 +24,7 @@
 #include "ReferenceCardView.h"
 #include "filters/ConvolutionCommand.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/SndfileRAII.h"
 
 ConvolutionCardEditor::ConvolutionCardEditor(FilterTable* filterTable, const QString& path, QWidget* parent)
 	: IFilterGUI(parent), filterTable(filterTable), path(path.trimmed())
@@ -208,8 +206,8 @@ void ConvolutionCardEditor::updateFileInfo()
 			// so it usually reads the file even when the audio service cannot;
 			// the readout stays visible next to any permission status below.
 			SF_INFO sfInfo = {};
-			SNDFILE* file = sf_wchar_open(state.fullPath.toStdWString().c_str(), SFM_READ, &sfInfo);
-			if (file == nullptr)
+			sndfile::Handle file(sf_wchar_open(state.fullPath.toStdWString().c_str(), SFM_READ, &sfInfo));
+			if (!file)
 			{
 				state.statusText = tr("Unsupported file format");
 				state.statusSeverity = ReferenceCardState::Severity::Critical;
@@ -221,8 +219,6 @@ void ConvolutionCardEditor::updateFileInfo()
 				state.readout << tr("%1 ms").arg(QString::number(lengthMs, 'f', 1))
 					<< tr("%1 samples").arg(static_cast<qlonglong>(sfInfo.frames))
 					<< tr("%1 Hz").arg(sampleRate);
-				sf_close(file);
-
 				const unsigned deviceRate = currentDeviceSampleRate();
 				if (deviceRate != 0 && static_cast<unsigned>(sampleRate) != deviceRate)
 				{

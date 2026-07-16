@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "filters/CopyFilter.h"
 #include "Editor/IFilterGUI.h"
 #include "CopyFilterGUIScene.h"
@@ -46,7 +48,7 @@ public:
 	void storePreferences(QVariantMap& prefs) override;
 
 private:
-	Ui::CopyFilterGUI* ui;
+	std::unique_ptr<Ui::CopyFilterGUI> ui;
 	CopyFilterGUIScene* scene;
 
 	std::vector<std::wstring> inputChannelNames;

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QWidget>
 
 #include "filters/CopyFilter.h"
@@ -46,5 +48,5 @@ private slots:
 	void on_modeComboBox_currentIndexChanged(int index);
 
 private:
-	Ui::CopyFilterGUIRow* ui;
+	std::unique_ptr<Ui::CopyFilterGUIRow> ui;
 };

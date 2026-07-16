@@ -135,17 +135,18 @@ bool VSTPluginInstance::initializeVST2()
 
 	__try
 	{
-		effect = library->VSTPluginMain(callback);
-		effect->host_internal = this;
-		if (effect->magic_number == VST_MAGICNUMBER)
+		vst_effect_t* candidate = library->VSTPluginMain(callback);
+		if (candidate != NULL && candidate->magic_number == VST_MAGICNUMBER)
 		{
-			effect->control(effect, VST_EFFECT_OPCODE_INITIALIZE, 0, 0, NULL, 0.0f);
+			effect.reset(candidate);
+			effect->host_internal = this;
+			effect->control(effect.get(), VST_EFFECT_OPCODE_INITIALIZE, 0, 0, NULL, 0.0f);
 
 			usedChannelCount = max(numInputs(), numOutputs());
 		}
 		else
 		{
-			effect = NULL;
+			result = false;
 		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)

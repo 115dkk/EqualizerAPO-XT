@@ -277,7 +277,7 @@ QList<FilterTemplate> FilterTable::pickerFilterTemplates() const
 {
 	QList<FilterTemplate> templates;
 	QList<QStringList> trailingSections;
-	for (IFilterGUIFactory* factory : factories)
+	for (const auto& factory : factories)
 	{
 		const QList<FilterTemplate> factoryTemplates = factory->createFilterTemplates();
 		// A factory can ask for its sections to close the catalog

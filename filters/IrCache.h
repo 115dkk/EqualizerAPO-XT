@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "helpers/MemoryHelper.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 
 // Decoded impulse-response PCM, shared between filters that reference the same
@@ -64,9 +65,8 @@ public:
 	HConvSingleArray(const HConvSingleArray&) = delete;
 	HConvSingleArray& operator=(const HConvSingleArray&) = delete;
 	HConvSingleArray(HConvSingleArray&& other) noexcept
-		: ptr(other.ptr), capacity(other.capacity), initializedCount(other.initializedCount)
+		: ptr(std::move(other.ptr)), capacity(other.capacity), initializedCount(other.initializedCount)
 	{
-		other.ptr = nullptr;
 		other.capacity = 0;
 		other.initializedCount = 0;
 	}
@@ -75,10 +75,9 @@ public:
 		if (this != &other)
 		{
 			reset();
-			ptr = other.ptr;
+			ptr = std::move(other.ptr);
 			capacity = other.capacity;
 			initializedCount = other.initializedCount;
-			other.ptr = nullptr;
 			other.capacity = 0;
 			other.initializedCount = 0;
 		}
@@ -88,24 +87,14 @@ public:
 	// Take ownership of a freshly allocated block holding `newCount` elements.
 	// Any previously held block is torn down first using the same
 	// close-then-free sequence.
-	void adopt(HConvSingle* newPtr, unsigned newCount)
-	{
-		if (newPtr != ptr)
-			reset();
-		ptr = newPtr;
-		capacity = newCount;
-		initializedCount = newCount;
-	}
-
 	// Take ownership before initialization starts, then register each element
 	// only after hcInitSingle has committed it. If a later initialization
 	// throws, reset() closes the completed prefix and never reads untouched
 	// allocation bytes.
-	void adoptUninitialized(HConvSingle* newPtr, unsigned newCapacity)
+	void adoptUninitialized(MemoryHelper::UniqueAllocation<HConvSingle> newPtr, unsigned newCapacity)
 	{
-		if (newPtr != ptr)
-			reset();
-		ptr = newPtr;
+		reset();
+		ptr = std::move(newPtr);
 		capacity = newCapacity;
 		initializedCount = 0;
 	}
@@ -122,16 +111,16 @@ public:
 		return *this;
 	}
 
-	HConvSingle& operator[](unsigned i) const { return ptr[i]; }
+	HConvSingle& operator[](unsigned i) const { return ptr.get()[i]; }
 	// Implicit decay to the raw pointer lets call sites keep raw-pointer idioms
 	// (filters[i], &filters[i], filters == nullptr, hcInitSingle(&filters[i], ...)).
-	operator HConvSingle*() const { return ptr; }
+	operator HConvSingle*() const { return ptr.get(); }
 
 	// Close the successfully initialized prefix, then free the whole block.
 	void reset();
 
 private:
-	HConvSingle* ptr = nullptr;
+	MemoryHelper::UniqueAllocation<HConvSingle> ptr;
 	unsigned capacity = 0;
 	unsigned initializedCount = 0;
 };

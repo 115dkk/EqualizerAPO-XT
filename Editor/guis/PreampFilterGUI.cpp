@@ -27,7 +27,7 @@
 
 
 PreampFilterGUI::PreampFilterGUI(double dbGain)
-	: ui(new Ui::PreampFilterGUI)
+	: ui(std::make_unique<Ui::PreampFilterGUI>())
 {
 	ui->setupUi(this);
 
@@ -35,10 +35,7 @@ PreampFilterGUI::PreampFilterGUI(double dbGain)
 	ui->doubleSpinBox->setValue(dbGain);
 }
 
-PreampFilterGUI::~PreampFilterGUI()
-{
-	delete ui;
-}
+PreampFilterGUI::~PreampFilterGUI() = default;
 
 void PreampFilterGUI::store(QString& command, QString& parameters)
 {

@@ -28,7 +28,7 @@ using std::shared_ptr;
 
 DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterGUIFactory* factory, const QString& pattern)
 	: QDialog(gui),
-	ui(new Ui::DeviceFilterGUIDialog)
+	ui(std::make_unique<Ui::DeviceFilterGUIDialog>())
 {
 	ui->setupUi(this);
 	resize(GUIHelper::scale(QSize(500, 350)));
@@ -79,10 +79,7 @@ DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterG
 		ui->treeWidget->resizeColumnToContents(i);
 }
 
-DeviceFilterGUIDialog::~DeviceFilterGUIDialog()
-{
-	delete ui;
-}
+DeviceFilterGUIDialog::~DeviceFilterGUIDialog() = default;
 
 QString DeviceFilterGUIDialog::getPattern()
 {

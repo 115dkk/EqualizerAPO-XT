@@ -72,7 +72,7 @@ template<class T> QList<T> MainWindow::toQList(const std::vector<T>& vector)
 }
 
 MainWindow::MainWindow(QDir configDir, QWidget* parent)
-	: QMainWindow(parent), ui(new Ui::MainWindow), configDir(configDir)
+	: QMainWindow(parent), ui(std::make_unique<Ui::MainWindow>()), configDir(configDir)
 {
 	outputDevices = toQList(DeviceAPOInfo::loadAllInfos(false));
 	inputDevices = toQList(DeviceAPOInfo::loadAllInfos(true));
@@ -220,9 +220,9 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	}
 	ui->tabWidget->setObjectName(QStringLiteral("MainTabWidget"));
 
-	analysisThread = new AnalysisThread;
+	analysisThread = std::make_unique<AnalysisThread>();
 	analysisThread->start();
-	connect(analysisThread, SIGNAL(analysisFinished()), this, SLOT(updateAnalysisPanel()));
+	connect(analysisThread.get(), SIGNAL(analysisFinished()), this, SLOT(updateAnalysisPanel()));
 
 	// Derive the language roster from the catalogs that actually shipped
 	// (:/translations/Editor_<code>.qm) instead of a hand-maintained list, so
@@ -298,11 +298,7 @@ void MainWindow::watchForPendingUpdate()
 }
 
 MainWindow::~MainWindow()
-{
-	delete ui;
-
-	delete analysisThread;
-}
+= default;
 
 void MainWindow::doChecks()
 {

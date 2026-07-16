@@ -18,18 +18,17 @@
 */
 
 #include <QFileDialog>
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
-#include <sndfile.h>
 
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "filters/ConvolutionCommand.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/SndfileRAII.h"
 #include "ConvolutionFilterGUI.h"
 #include "ui_ConvolutionFilterGUI.h"
 
 ConvolutionFilterGUI::ConvolutionFilterGUI(const QString& configPath, unsigned deviceSampleRate, const QString& path)
-	: ui(new Ui::ConvolutionFilterGUI), deviceSampleRate(deviceSampleRate)
+	: ui(std::make_unique<Ui::ConvolutionFilterGUI>()), deviceSampleRate(deviceSampleRate)
 {
 	ui->setupUi(this);
 
@@ -46,10 +45,7 @@ ConvolutionFilterGUI::ConvolutionFilterGUI(const QString& configPath, unsigned d
 	updateFileInfo();
 }
 
-ConvolutionFilterGUI::~ConvolutionFilterGUI()
-{
-	delete ui;
-}
+ConvolutionFilterGUI::~ConvolutionFilterGUI() = default;
 
 void ConvolutionFilterGUI::store(QString& command, QString& parameters)
 {
@@ -132,8 +128,8 @@ void ConvolutionFilterGUI::updateFileInfo()
 			else
 			{
 				SF_INFO info = {};
-				SNDFILE* file = sf_wchar_open(path.toStdWString().c_str(), SFM_READ, &info);
-				if (file == nullptr)
+				sndfile::Handle file(sf_wchar_open(path.toStdWString().c_str(), SFM_READ, &info));
+				if (!file)
 				{
 					error = tr("Unsupported file format");
 					labelsVisible = false;
@@ -145,8 +141,6 @@ void ConvolutionFilterGUI::updateFileInfo()
 
 					ui->labelLengthValue->setText(tr("%0 ms (%1 samples)").arg(length).arg(info.frames));
 					ui->labelSampleRateValue->setText(tr("%0 Hz").arg(sampleRate));
-					sf_close(file);
-
 					if (sampleRate != deviceSampleRate)
 					{
 						error = tr("The file sample rate does not match the device sample rate (%0 Hz)!\nSelect a different file or change the device configuration.").arg(deviceSampleRate);

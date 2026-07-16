@@ -45,7 +45,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap)
-	: ui(new Ui::VSTPluginFilterGUI), library(library), chunkData(chunkData), paramMap(paramMap)
+	: ui(std::make_unique<Ui::VSTPluginFilterGUI>()), library(library), chunkData(chunkData), paramMap(paramMap)
 {
 	ui->setupUi(this);
 	ui->frame->setVisible(false);
@@ -78,11 +78,7 @@ VSTPluginFilterGUI::~VSTPluginFilterGUI()
 	{
 		if (embedded)
 			on_embedAction_toggled(false);
-		delete effect;
-		effect = nullptr;
 	}
-
-	delete ui;
 }
 
 void VSTPluginFilterGUI::store(QString& command, QString& parameters)
@@ -133,7 +129,7 @@ void VSTPluginFilterGUI::on_openPanelButton_clicked()
 	{
 		effect->writeToEffect(chunkData, paramMap);
 
-		VSTPluginFilterGUIDialog dialog(this, effect, autoApplyDialog);
+		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
 		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
 		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
 		connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(on_idle()));
@@ -202,7 +198,7 @@ void VSTPluginFilterGUI::initPlugin()
 		}
 		else
 		{
-			effect = new VSTPluginInstance(library, 1);
+			effect = std::make_unique<VSTPluginInstance>(library, 1);
 			if (effect->initialize())
 			{
 				effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
@@ -213,8 +209,7 @@ void VSTPluginFilterGUI::initPlugin()
 			}
 			else
 			{
-				delete effect;
-				effect = nullptr;
+				effect.reset();
 
 				color = Qt::red;
 				text = tr("Plugin crashed during initialization.");
@@ -239,8 +234,7 @@ void VSTPluginFilterGUI::on_pathLineEdit_editingFinished()
 			oldId = effect->uniqueID();
 			if (ui->embedAction->isChecked())
 				on_embedAction_toggled(false);
-			delete effect;
-			effect = nullptr;
+			effect.reset();
 		}
 
 		QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));

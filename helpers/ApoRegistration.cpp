@@ -33,9 +33,11 @@
 #include <objidl.h>
 
 #include "AbstractAPOInfo.h"
+#include "ComPtr.h"
 #include "DeviceAPOInfo.h"
 #include "RegistryHelper.h"
 #include "ServiceHelper.h"
+#include "Win32Resource.h"
 
 namespace
 {
@@ -112,30 +114,27 @@ int ApoRegistration::waitForProcess(const std::wstring& executable, const std::w
 	startupInfo.dwFlags = STARTF_USESHOWWINDOW;
 	startupInfo.wShowWindow = SW_HIDE;
 
-	PROCESS_INFORMATION processInfo;
-	ZeroMemory(&processInfo, sizeof(processInfo));
+	winutil::UniqueProcessInformation processInfo;
 
 	if (!CreateProcessW(executable.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
-			CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInfo))
+			CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, processInfo.put()))
 	{
 		logLine(L"ERR", L"CreateProcess failed for %s (gle=%lu)", executable.c_str(), GetLastError());
 		return -1;
 	}
 
-	DWORD waitResult = WaitForSingleObject(processInfo.hProcess, timeoutMs);
+	DWORD waitResult = WaitForSingleObject(processInfo.process(), timeoutMs);
 	DWORD exitCode = static_cast<DWORD>(-1);
 	if (waitResult == WAIT_OBJECT_0)
 	{
-		GetExitCodeProcess(processInfo.hProcess, &exitCode);
+		GetExitCodeProcess(processInfo.process(), &exitCode);
 	}
 	else
 	{
 		logLine(L"ERR", L"%s timed out after %u ms", executable.c_str(), timeoutMs);
-		TerminateProcess(processInfo.hProcess, 1);
+		TerminateProcess(processInfo.process(), 1);
 	}
 
-	CloseHandle(processInfo.hProcess);
-	CloseHandle(processInfo.hThread);
 	return static_cast<int>(exitCode);
 }
 
@@ -144,8 +143,8 @@ int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregis
 	// LOAD_WITH_ALTERED_SEARCH_PATH resolves EqualizerAPO.dll's own dependencies
 	// (FFTW, libsndfile, ...) relative to the DLL directory, matching how the
 	// audio engine and regsvr32 load it.
-	HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
-	if (module == nullptr)
+	winutil::UniqueModule module(LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH));
+	if (!module)
 	{
 		logLine(L"ERR", L"LoadLibrary failed for %s (gle=%lu)", dllPath.c_str(), GetLastError());
 		return -1;
@@ -153,7 +152,7 @@ int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregis
 
 	using DllServerProc = HRESULT(__stdcall*)();
 	const char* entryName = unregister ? "DllUnregisterServer" : "DllRegisterServer";
-	DllServerProc proc = reinterpret_cast<DllServerProc>(GetProcAddress(module, entryName));
+	DllServerProc proc = reinterpret_cast<DllServerProc>(GetProcAddress(module.get(), entryName));
 
 	HRESULT hr = E_FAIL;
 	if (proc != nullptr)
@@ -161,7 +160,6 @@ int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregis
 	else
 		logLine(L"ERR", L"%S not found in %s (gle=%lu)", entryName, dllPath.c_str(), GetLastError());
 
-	FreeLibrary(module);
 	return SUCCEEDED(hr) ? 0 : static_cast<int>(hr);
 }
 
@@ -347,8 +345,8 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 
 bool ApoRegistration::stopAudioService()
 {
-	SC_HANDLE manager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
-	if (manager == nullptr)
+	winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
+	if (!manager)
 	{
 		logLine(L"ERR", L"OpenSCManager failed: %lu", GetLastError());
 		return false;
@@ -356,21 +354,18 @@ bool ApoRegistration::stopAudioService()
 
 	try
 	{
-		Service service(manager, kAudioServiceName, true);
+		Service service(manager.get(), kAudioServiceName, true);
 		DWORD state = service.getState();
 		if (state == SERVICE_RUNNING)
 		{
 			service.stop();
-			CloseServiceHandle(manager);
 			logLine(L"INFO", L"Stopped AudioSrv");
 			return true;
 		}
-		CloseServiceHandle(manager);
 		return false;
 	}
 	catch (const ServiceException& e)
 	{
-		CloseServiceHandle(manager);
 		logLine(L"ERR", L"Failed to stop AudioSrv: %s", e.getMessage().c_str());
 		return false;
 	}
@@ -378,8 +373,8 @@ bool ApoRegistration::stopAudioService()
 
 bool ApoRegistration::startAudioService()
 {
-	SC_HANDLE manager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
-	if (manager == nullptr)
+	winutil::UniqueServiceHandle manager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT));
+	if (!manager)
 	{
 		logLine(L"ERR", L"OpenSCManager failed: %lu", GetLastError());
 		return false;
@@ -387,21 +382,18 @@ bool ApoRegistration::startAudioService()
 
 	try
 	{
-		Service service(manager, kAudioServiceName, true);
+		Service service(manager.get(), kAudioServiceName, true);
 		DWORD state = service.getState();
 		if (state == SERVICE_STOPPED)
 		{
 			service.start();
-			CloseServiceHandle(manager);
 			logLine(L"INFO", L"Started AudioSrv");
 			return true;
 		}
-		CloseServiceHandle(manager);
 		return state == SERVICE_RUNNING;
 	}
 	catch (const ServiceException& e)
 	{
-		CloseServiceHandle(manager);
 		logLine(L"ERR", L"Failed to start AudioSrv: %s", e.getMessage().c_str());
 		return false;
 	}
@@ -434,16 +426,11 @@ constexpr wchar_t kDeviceSelectorShortcutFile[] = L"Device Selector.lnk";
 
 std::wstring publicProgramsPath()
 {
-	PWSTR raw = nullptr;
-	HRESULT hr = SHGetKnownFolderPath(FOLDERID_CommonPrograms, 0, nullptr, &raw);
-	if (FAILED(hr) || raw == nullptr)
-	{
-		if (raw != nullptr)
-			CoTaskMemFree(raw);
+	winutil::UniqueCoTaskMemPtr<wchar_t> raw;
+	HRESULT hr = SHGetKnownFolderPath(FOLDERID_CommonPrograms, 0, nullptr, raw.put());
+	if (FAILED(hr) || !raw)
 		return std::wstring();
-	}
-	std::wstring path(raw);
-	CoTaskMemFree(raw);
+	std::wstring path(raw.get());
 	return path;
 }
 
@@ -451,10 +438,10 @@ HRESULT writeShellLink(const std::wstring& target, const std::wstring& workingDi
 	const std::wstring& description, const std::wstring& iconPath, int iconIndex,
 	const std::wstring& linkPath)
 {
-	IShellLinkW* shellLink = nullptr;
+	winutil::ComPtr<IShellLinkW> shellLink;
 	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
-		IID_IShellLinkW, reinterpret_cast<void**>(&shellLink));
-	if (FAILED(hr) || shellLink == nullptr)
+		IID_IShellLinkW, reinterpret_cast<void**>(shellLink.put()));
+	if (FAILED(hr) || !shellLink)
 		return hr;
 
 	shellLink->SetPath(target.c_str());
@@ -465,14 +452,12 @@ HRESULT writeShellLink(const std::wstring& target, const std::wstring& workingDi
 	if (!iconPath.empty())
 		shellLink->SetIconLocation(iconPath.c_str(), iconIndex);
 
-	IPersistFile* persistFile = nullptr;
-	hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<void**>(&persistFile));
-	if (SUCCEEDED(hr) && persistFile != nullptr)
+	winutil::ComPtr<IPersistFile> persistFile;
+	hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<void**>(persistFile.put()));
+	if (SUCCEEDED(hr) && persistFile)
 	{
 		hr = persistFile->Save(linkPath.c_str(), TRUE);
-		persistFile->Release();
 	}
-	shellLink->Release();
 	return hr;
 }
 } // namespace
@@ -500,16 +485,18 @@ bool ApoRegistration::createStartMenuShortcuts(const std::wstring& installDir)
 		return false;
 	}
 
-	HRESULT comInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-	bool needsUninit = SUCCEEDED(comInit);
+	winutil::ComApartment apartment(COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (!apartment.isUsable())
+	{
+		logLine(L"ERR", L"COM initialization failed (hr=0x%08lx)",
+			static_cast<unsigned long>(apartment.status()));
+		return false;
+	}
 
 	std::wstring linkPath = joinPath(shortcutFolder, kDeviceSelectorShortcutFile);
 	HRESULT hr = writeShellLink(deviceSelector, installDir,
 		L"Configure which audio devices use EqualizerAPO",
 		deviceSelector, 0, linkPath);
-
-	if (needsUninit)
-		CoUninitialize();
 
 	if (FAILED(hr))
 	{
@@ -554,8 +541,8 @@ bool ApoRegistration::migrateLegacyConfig(const std::wstring& legacyDir, const s
 	bool copiedAny = false;
 	WIN32_FIND_DATAW findData;
 	std::wstring pattern = joinPath(legacyConfig, L"*");
-	HANDLE finder = FindFirstFileW(pattern.c_str(), &findData);
-	if (finder == INVALID_HANDLE_VALUE)
+	winutil::UniqueFindHandle finder(FindFirstFileW(pattern.c_str(), &findData));
+	if (!finder)
 		return false;
 
 	do
@@ -569,8 +556,7 @@ bool ApoRegistration::migrateLegacyConfig(const std::wstring& legacyDir, const s
 		if (CopyFileW(source.c_str(), target.c_str(), TRUE))
 			copiedAny = true;
 	}
-	while (FindNextFileW(finder, &findData));
+	while (FindNextFileW(finder.get(), &findData));
 
-	FindClose(finder);
 	return copiedAny;
 }

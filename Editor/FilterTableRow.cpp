@@ -36,7 +36,7 @@
 
 FilterTableRow::FilterTableRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui)
 	: QWidget(table),
-	ui(new Ui::FilterTableRow)
+	ui(std::make_unique<Ui::FilterTableRow>())
 {
 	ui->setupUi(this);
 	ui->labelNumber->setMinimumWidth(GUIHelper::scale(25));
@@ -66,10 +66,7 @@ FilterTableRow::FilterTableRow(FilterTable* table, int number, FilterTable::Item
 	ui->stackedWidget->setCurrentIndex(1);
 }
 
-FilterTableRow::~FilterTableRow()
-{
-	delete ui;
-}
+FilterTableRow::~FilterTableRow() = default;
 
 QRect FilterTableRow::getHeaderRect()
 {

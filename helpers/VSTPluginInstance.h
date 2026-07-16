@@ -24,6 +24,7 @@
 #include <functional>
 #include "aeffectx.h"
 #include "pluginterfaces/base/ibstream.h"
+#include "pluginterfaces/base/smartpointer.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
 #include "pluginterfaces/vst/ivsteditcontroller.h"
 #include "pluginterfaces/vst/ivstevents.h"
@@ -32,8 +33,16 @@
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/gui/iplugview.h"
+#include "Win32Resource.h"
 
 class VSTPluginLibrary;
+
+struct VST2EffectDeleter
+{
+	void operator()(vst_effect_t* effect) const noexcept;
+};
+
+using VST2EffectPtr = std::unique_ptr<vst_effect_t, VST2EffectDeleter>;
 
 class VSTPluginInstance
 {
@@ -67,6 +76,7 @@ public:
 	void processReplacing(float** inputArray, float** outputArray, int frameCount);
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();
+	void stopProcessingSafely() noexcept;
 
 	bool startEditing(HWND hWnd, short* width, short* height, double scaleFactor = 1.0);
 	void doIdle();
@@ -93,15 +103,15 @@ private:
 	Steinberg::Vst::SpeakerArrangement speakerArrangementForChannelCount(int count) const;
 
 	std::shared_ptr<VSTPluginLibrary> library;
-	vst_effect_t* effect = NULL;
-	Steinberg::Vst::IComponent* vst3Component = NULL;
-	Steinberg::Vst::IAudioProcessor* vst3Processor = NULL;
-	Steinberg::Vst::IEditController* vst3Controller = NULL;
-	Steinberg::Vst::IConnectionPoint* vst3ComponentConnection = NULL;
-	Steinberg::Vst::IConnectionPoint* vst3ControllerConnection = NULL;
-	Steinberg::IPlugView* vst3View = NULL;
-	HWND vst3EditorHostWindow = NULL;
-	VST3HostContext* vst3HostContext = NULL;
+	VST2EffectPtr effect;
+	Steinberg::IPtr<Steinberg::Vst::IComponent> vst3Component;
+	Steinberg::IPtr<Steinberg::Vst::IAudioProcessor> vst3Processor;
+	Steinberg::IPtr<Steinberg::Vst::IEditController> vst3Controller;
+	Steinberg::IPtr<Steinberg::Vst::IConnectionPoint> vst3ComponentConnection;
+	Steinberg::IPtr<Steinberg::Vst::IConnectionPoint> vst3ControllerConnection;
+	Steinberg::IPtr<Steinberg::IPlugView> vst3View;
+	winutil::UniqueWindowHandle vst3EditorHostWindow;
+	Steinberg::IPtr<VST3HostContext> vst3HostContext;
 	int vst3InputBusCount = 0;
 	int vst3OutputBusCount = 0;
 	int vst3InputChannelCount = 0;
