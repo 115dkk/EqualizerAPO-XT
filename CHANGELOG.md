@@ -28,6 +28,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   no longer walks the layout quadratically, and the CI skin-switch
   regression gate tightened from 4 s to 2.5 s.
   ([#203](https://github.com/115dkk/EqualizerAPO-XT/pull/203))
+
+## v2.19.0 — 2026-07-16
+
 - The channel badges at the top right of a filter card sat on an opaque
   app-background rectangle (nearly black in dark skins) that cut into the
   card surface — an unnamed container picked up every skin's global widget
@@ -60,6 +63,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   unchanged. CI covers worker exception cleanup and enforces a 4-second
   ceiling for the 138-row offscreen skin-switch stress test.
   ([#200](https://github.com/115dkk/EqualizerAPO-XT/pull/200))
+
+## v2.18.6 — 2026-07-16
+
 - Configuration saving is now atomic and partial reads are rejected instead
   of being applied as valid audio graphs. Filter factories, HybridConv/FFTW
   plans, IR data, Copy/IIR state, VST instances, COM apartments, and VST3 DLL
@@ -68,6 +74,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   active configuration, so an allocation failure or malformed plug-in cannot
   escape the loader and terminate the Windows audio service. The DSP hot path
   and its operation order are unchanged. ([#198](https://github.com/115dkk/EqualizerAPO-XT/pull/198))
+
+## v2.18.5 — 2026-07-15
+
 - The Soft skin's add-filter picker described each template with the raw
   config line it would insert (`Filter: ON PK Fc 100 Hz Gain 0 dB Q 10`
   under "Peaking filter", `Delay: 0 ms` under "Delay"), which is noise to
@@ -76,6 +85,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   around a center frequency"), keyed off the command token so it stays
   correct as the catalog grows; the raw line still lives in the row's
   tooltip. ([#197](https://github.com/115dkk/EqualizerAPO-XT/pull/197))
+
+## v2.18.4 — 2026-07-13
+
+- Six confirmed CodeQL findings were fixed: allocation sizes computed from
+  external data are validated against overflow before memory is requested,
+  and exceptions no longer cross COM boundaries.
+  ([#195](https://github.com/115dkk/EqualizerAPO-XT/pull/195))
+
+## v2.18.3 — 2026-07-12
+
 - Backend hot-path optimizations; output is bit-identical to before (the
   audio regression references did not change). Stereo — and any channels
   left over from a SIMD group — now run through a dual-chain biquad kernel
@@ -90,6 +109,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   regression test, and the benchmark scenarios plus the measurement record
   are committed under `Benchmark/scenarios/` and `docs/perf/`.
   ([#192](https://github.com/115dkk/EqualizerAPO-XT/pull/192))
+- The ARM64 build's interleaved write conversions had been running at scalar
+  speed. The NEON kernel now writes full-width vectors, matching the read
+  direction. ([#193](https://github.com/115dkk/EqualizerAPO-XT/pull/193))
+
+## v2.18.1 — 2026-07-11
+
 - Uninstalling on Windows 11 24H2/25H2 (and Server 2025, OS build 26100+)
   no longer fails on endpoints whose `FxProperties` key this installation
   created. The OS now puts its own subkeys below `FxProperties`, so the old
@@ -103,6 +128,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   (`audio-live-repro.yml` with `runner=windows-2025`, issue
   [#189](https://github.com/115dkk/EqualizerAPO-XT/issues/189)).
   ([#191](https://github.com/115dkk/EqualizerAPO-XT/pull/191))
+
+## v2.18.0 — 2026-07-11
+
 - `MultiConvolution` mappings now take a per-file-channel factor with
   `Copy:`'s grammar: `L=0.5*0+1` halves file channel 0's convolution
   result before the sum, `-1` inverts the phase, `-0.5` does both, and dB
@@ -113,6 +141,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   factors and stacked lines included - verified against real Impulcifer
   hrir.wav captures via `--equiv-ir`.
   ([#187](https://github.com/115dkk/EqualizerAPO-XT/pull/187))
+
+## v2.17.0 — 2026-07-10
+
 - Lines whose parameters hold an inline `` `expression` `` keep their card
   now. The Preamp and Delay cards open in a dynamic mode - the knob powers
   down and the value position shows the expression as written, with the
@@ -121,14 +152,25 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   fixes a hazard where such a Preamp line displayed 0.0 dB and a single
   knob turn silently erased the expression.
   ([#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184))
-- The programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`)
-  are cards now instead of anonymous raw-text rows: each line carries a badge
-  for its branch kind (IF/ELIF/ELSE/ENDIF/EVAL) with the condition or
-  expression as the card summary, and the rows inside an `If` block are
-  indented like a channel group, nesting included. The per-skin presentations
-  decided in the concept round (gate beam, watch readout, bracket rule and
-  friends) come next; until they land the line body keeps the familiar raw
-  editor. ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178))
+
+## v2.16.0 — 2026-07-10
+
+- The programmatic commands are insertable from the filter picker: Eval joins
+  Control, the If family gets its own Branching section, and both close the
+  catalog after the processing filters. If/Eval rows carry their own
+  pictograms - a flowchart decision diamond and an fx formula mark - instead
+  of letter badges. ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
+- Custom-coefficient IIR filter lines ("Filter: ON IIR Order N Coefficients
+  ...") got their own card: the header reads the order and coefficient count,
+  and the body edits the order and both coefficient vectors directly. Other
+  Filter lines keep their familiar knobs. ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
+- Korean translations cover the whole campaign, and the friendly condition
+  sentences in the Soft skin are translated as complete sentences per
+  comparison so the wording stays natural.
+  ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
+
+## v2.15.0 — 2026-07-10
+
 - Each skin now presents `If` blocks and `Eval` lines with its own
   instrument, and the analysis run reports what the engine actually decided:
   which branch ran, what an `Eval` computed, and which lines a false branch
@@ -145,19 +187,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   decimals (0.25 ms no longer displays as 0.3 ms). The old body repeated the
   word "Delay" next to the dial, flush against the card edge.
   ([#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182))
-- The programmatic commands are insertable from the filter picker: Eval joins
-  Control, the If family gets its own Branching section, and both close the
-  catalog after the processing filters. If/Eval rows carry their own
-  pictograms - a flowchart decision diamond and an fx formula mark - instead
-  of letter badges. ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
-- Custom-coefficient IIR filter lines ("Filter: ON IIR Order N Coefficients
-  ...") got their own card: the header reads the order and coefficient count,
-  and the body edits the order and both coefficient vectors directly. Other
-  Filter lines keep their familiar knobs. ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
-- Korean translations cover the whole campaign, and the friendly condition
-  sentences in the Soft skin are translated as complete sentences per
-  comparison so the wording stays natural.
-  ([#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183))
+
+## v2.14.0 — 2026-07-10
+
+- The programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`)
+  are cards now instead of anonymous raw-text rows: each line carries a badge
+  for its branch kind (IF/ELIF/ELSE/ENDIF/EVAL) with the condition or
+  expression as the card summary, and the rows inside an `If` block are
+  indented like a channel group, nesting included. The per-skin presentations
+  decided in the concept round (gate beam, watch readout, bracket rule and
+  friends) come next; until they land the line body keeps the familiar raw
+  editor. ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178))
 
 ## v2.13.0 — 2026-07-09
 
