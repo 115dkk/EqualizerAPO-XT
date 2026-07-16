@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The channel badges at the top right of a filter card sat on an opaque
+  app-background rectangle (nearly black in dark skins) that cut into the
+  card surface — an unnamed container picked up every skin's global widget
+  background rule. The strip is now transparent in all skins. Rows inside a
+  Channel: selection (other than ALL) also inherit the selection's badges,
+  so which channels a group member affects is readable on the row itself;
+  rows that name their own channels, like Copy, keep their own badges, and
+  toggling a Channel:/If: line's power now refreshes the indent and badges
+  of the rows below it immediately.
+  ([#202](https://github.com/115dkk/EqualizerAPO-XT/pull/202))
+- Device Selector launched right after changing the Editor skin came up in
+  the previous skin, because the choice was only saved when the Editor
+  closed. The skin and dark-mode choice is now persisted the moment it
+  changes. Devices can also be selected by double-clicking anywhere on the
+  row — previously only the painted toggle at the row's right edge reacted,
+  and nothing told you that. ([#202](https://github.com/115dkk/EqualizerAPO-XT/pull/202))
 - GraphicEQ now transforms its synthesized impulse response once instead of
   once per output channel. Convolution and MultiConvolution likewise build one
   immutable frequency-domain filter bank per distinct referenced IR channel,

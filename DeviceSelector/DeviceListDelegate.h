@@ -3,9 +3,10 @@
 
 	Renders the device tree through the active skin's DeviceSkinPainter and
 	owns the list's feel: per-row hover progress (interruptible 150ms in /
-	110ms out), toggle press feedback, click-to-toggle on the painted jack
-	and single-click section folding. The QTreeWidget keeps all data and
-	behaviour; this delegate only replaces its pixels and pointer feel.
+	110ms out), toggle press feedback, click-to-toggle on the painted jack,
+	double-click-to-toggle anywhere on a device row and single-click section
+	folding. The QTreeWidget keeps all data and behaviour; this delegate only
+	replaces its pixels and pointer feel.
 */
 
 #pragma once

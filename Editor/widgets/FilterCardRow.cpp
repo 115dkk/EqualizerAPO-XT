@@ -20,6 +20,26 @@
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
+namespace
+{
+// Row types the engine narrows to the enclosing Channel: selection (every
+// downstream filter initializes against the selected channel set), so an
+// inherited scope badge on them states a fact. Channel/Copy rows carry their
+// own channel badges, and control rows (device, stage, eval, the If family),
+// notes and unknown raw text are not gated by the selection at all.
+bool channelSelectionGatesType(const QString& type)
+{
+	return type == QStringLiteral("biquad")
+		|| type == QStringLiteral("preamp")
+		|| type == QStringLiteral("delay")
+		|| type == QStringLiteral("graphiceq")
+		|| type == QStringLiteral("convolution")
+		|| type == QStringLiteral("vst")
+		|| type == QStringLiteral("loudness")
+		|| type == QStringLiteral("include");
+}
+}
+
 FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
 	FilterCardDescriptor preparedDescriptor, QWidget* parent)
 	: QWidget(parent), table(table), item(item), gui(gui), descriptor(std::move(preparedDescriptor)), rowNumber(number)
@@ -89,6 +109,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	headerLayout->addWidget(summaryLabel, 1);
 
 	channelBadgeContainer = new QWidget(headerWidget);
+	// A plain QWidget matches every skin's global "QWidget { background: @BG@ }"
+	// rule, and the style then paints that app-background plate over the card
+	// surface - a dark rectangle cut around the badges. The widget-level rule
+	// outranks any skin sheet, so the strip stays transparent under all skins.
+	channelBadgeContainer->setStyleSheet(QStringLiteral("background: transparent;"));
 	channelBadgeLayout = new QHBoxLayout(channelBadgeContainer);
 	channelBadgeLayout->setContentsMargins(0, 0, 0, 0);
 	channelBadgeLayout->setSpacing(3);
@@ -394,10 +419,12 @@ void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 		numberLabel->setText(text.left(digitStart) + QString::number(rowNumber));
 	}
 
-	if (descriptor.depth != scope.indent || descriptor.logicDepth != scope.logic)
+	if (descriptor.depth != scope.indent || descriptor.logicDepth != scope.logic
+		|| descriptor.scopeChannels != scope.channels)
 	{
 		descriptor.depth = scope.indent;
 		descriptor.logicDepth = scope.logic;
+		descriptor.scopeChannels = scope.channels;
 		if (layout() != nullptr)
 			layout()->setContentsMargins(8 + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
 		applyDescriptor();
@@ -630,8 +657,10 @@ void FilterCardRow::rebuildSummary()
 	// carried over from the previous descriptor (assigned by the constructor /
 	// updateRowPosition from calculateScopes).
 	const int logicDepth = descriptor.logicDepth;
+	const QStringList scopeChannels = descriptor.scopeChannels;
 	descriptor = FilterCardModel::describeLine(item->text, descriptor.depth);
 	descriptor.logicDepth = logicDepth;
+	descriptor.scopeChannels = scopeChannels;
 	applyDescriptor();
 }
 
@@ -694,7 +723,16 @@ void FilterCardRow::applyDescriptor()
 	// but its body IS the note editor - keep it editable.
 	if (gui != nullptr)
 		gui->setEnabled(descriptor.enabled || descriptor.type == QStringLiteral("comment"));
-	buildChannelBadges(descriptor.channelBadges);
+	// A row's own channel list (the Channel card's selection, Copy's
+	// destinations) wins. Other rows inside a Channel: selection inherit the
+	// selection's badges, so the group's reach is readable on every member
+	// row instead of only on its head - but only for row types the engine
+	// actually narrows to the selection; control rows, notes and raw text
+	// would claim an influence they do not have.
+	QStringList badgeChannels = descriptor.channelBadges;
+	if (badgeChannels.isEmpty() && channelSelectionGatesType(descriptor.type))
+		badgeChannels = descriptor.scopeChannels;
+	buildChannelBadges(badgeChannels);
 	refreshStateProperties();
 	update();
 }

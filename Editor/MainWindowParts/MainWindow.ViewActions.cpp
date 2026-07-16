@@ -39,6 +39,20 @@ using std::vector;
 using std::wstring;
 
 
+namespace
+{
+// Companion tools (DeviceSelector, UpdateChecker) dress themselves from
+// interface/skin + interface/dark at startup. savePreferences() writes the
+// pair only when the Editor closes, so a freshly picked skin stayed
+// invisible to a tool launched right after the switch - persist immediately.
+void persistSkinChoice(const QString& skinId, bool dark)
+{
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	settings.setValue("interface/skin", skinId);
+	settings.setValue("interface/dark", dark);
+}
+}
+
 void MainWindow::on_mainToolBar_visibilityChanged(bool visible)
 {
 	ui->actionToolbar->setChecked(visible);
@@ -122,6 +136,7 @@ void MainWindow::skinSelected(QAction* action)
 		if (filterTable != nullptr)
 			filterTable->updateGuis();
 	}
+	persistSkinChoice(skinId, skinDark);
 }
 
 void MainWindow::darkThemeToggled(bool checked)
@@ -144,6 +159,7 @@ void MainWindow::darkThemeToggled(bool checked)
 		if (filterTable != nullptr)
 			filterTable->updateGuis();
 	}
+	persistSkinChoice(skinId, skinDark);
 }
 
 void MainWindow::on_graphPositionComboBox_currentIndexChanged(int index)

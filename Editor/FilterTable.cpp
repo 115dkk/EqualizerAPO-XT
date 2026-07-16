@@ -432,12 +432,14 @@ void FilterTable::updateSingleRowGui(Item* item)
 	// structural context, so the include/depth state the factories track
 	// stays valid.
 	FilterCardDescriptor descriptor;
+	QVector<FilterCardRowScope> rowScopes;
 	if (renderMode == ModernCards)
 	{
-		const QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
+		rowScopes = FilterCardModel::calculateScopes(getLines());
 		const FilterCardRowScope scope = rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope();
 		descriptor = FilterCardModel::describeLine(item->text, scope.indent);
 		descriptor.logicDepth = scope.logic;
+		descriptor.scopeChannels = scope.channels;
 	}
 	IFilterGUI* gui = createRowGui(item->text,
 		renderMode == ModernCards ? &descriptor : nullptr);
@@ -454,6 +456,17 @@ void FilterTable::updateSingleRowGui(Item* item)
 		if (renderMode != ModernCards)
 			connect(gui, SIGNAL(updateModel()), this, SLOT(updateModel()));
 		connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
+	}
+
+	// The edited row may be a scope head (a Channel: or If: line whose enable
+	// state just flipped): the indent and channel scope of every row below it
+	// changes with it, which this in-place path used to leave stale until the
+	// next full rebuild. updateRowPosition is cheap (in-place, no widget
+	// rebuild) and only re-applies rows whose scope actually changed.
+	if (renderMode == ModernCards && !renumberRowsBelow(rowIndex + 1, rowScopes))
+	{
+		updateGuis();
+		return;
 	}
 
 	propagateChannels();
@@ -545,6 +558,7 @@ void FilterTable::insertRowAt(int index)
 	FilterCardRowScope scope = index < rowScopes.size() ? rowScopes[index] : FilterCardRowScope();
 	FilterCardDescriptor descriptor = FilterCardModel::describeLine(item->text, scope.indent);
 	descriptor.logicDepth = scope.logic;
+	descriptor.scopeChannels = scope.channels;
 	IFilterGUI* gui = createRowGui(item->text, &descriptor);
 	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, std::move(descriptor));
 	gridLayout->addWidget(rowWidget, index, 0);

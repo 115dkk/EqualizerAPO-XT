@@ -321,13 +321,13 @@ QString buildReferenceFiles(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, graph x2, copyfold x4, logic). run() multiplies
-// these by skins x 2 modes to self-check the output count, so adding a
-// gallery row needs no external count to be updated. Keep both constants in
-// step with renderStates()/renderSkin() if the state set or chrome shots
-// change.
+// addrow x2, seam, toast, graph x2, copyfold x4, logic, channelscope). run()
+// multiplies these by skins x 2 modes to self-check the output count, so
+// adding a gallery row needs no external count to be updated. Keep both
+// constants in step with renderStates()/renderSkin() if the state set or
+// chrome shots change.
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 19;
+constexpr int kExtraShotsPerSkinMode = 20;
 
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
@@ -902,6 +902,34 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 			});
 			QApplication::processEvents();
 			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("logic"), QStringLiteral("normal")) ? 0 : 1;
+		}
+	}
+
+	// A Channel: selection group, captured as one whole-table shot: member
+	// rows inherit the selection's badges (channel identity on every member,
+	// where the rail only shows extent), the Copy member keeps its own
+	// destination badges, and Channel: ALL returns the tail to unbadged.
+	{
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 560);
+		buildRows(scrollArea, configPath, {
+			QStringLiteral("Channel: L R"),
+			QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71"),
+			QStringLiteral("Delay: 5 ms"),
+			QStringLiteral("Copy: SL=L SR=R"),
+			QStringLiteral("Channel: ALL"),
+			QStringLiteral("Preamp: -3 dB")
+		});
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr)
+		{
+			qWarning("SkinGallery: channel scope scene has no table (%s %s)", qPrintable(skinId), qPrintable(mode));
+			failures += 1;
+		}
+		else
+		{
+			QApplication::processEvents();
+			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("channelscope"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
 	return failures;

@@ -111,6 +111,11 @@ void DeviceSelector::setupChrome()
 	// delegate rect where the view fills palette Highlight on selection,
 	// producing a detached selection bar.
 	ui.deviceTreeWidget->setIndentation(0);
+	// Sections fold on a single click (the delegate consumes the press) and
+	// the delegate also folds on the double-click's second press; leave the
+	// view's own double-click expansion off so the two never fight and every
+	// rapid click toggles exactly once.
+	ui.deviceTreeWidget->setExpandsOnDoubleClick(false);
 	QPalette listPalette = ui.deviceTreeWidget->palette();
 	listPalette.setBrush(QPalette::Highlight, Qt::transparent);
 	ui.deviceTreeWidget->setPalette(listPalette);

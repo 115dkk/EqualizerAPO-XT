@@ -16,6 +16,12 @@ struct FilterCardDescriptor
 	QString summary;
 	QString color;
 	QStringList channelBadges;
+	// The enclosing Channel: selection this row runs under (empty when the
+	// selection is ALL or there is none). Like logicDepth, this comes from
+	// neighbouring-line context (the build plan / calculateScopes), not from
+	// the line itself, so the row preserves it across describeLine()
+	// re-derivations.
+	QStringList scopeChannels;
 	int depth = 0;
 	// Number of If scopes the row lives inside (the logic axis of depth; see
 	// FilterCardRowScope::logic). Not derivable from the line alone, so the
@@ -38,6 +44,10 @@ struct FilterCardRowScope
 {
 	int indent = 0;
 	int logic = 0;
+	// The Channel: selection in effect for this row (empty = ALL/none). On a
+	// Channel row itself this is already the row's new selection; consumers
+	// that badge member rows skip the head, which carries its own badges.
+	QStringList channels;
 };
 
 // Immutable presentation work prepared once for a modern-card rebuild. The
