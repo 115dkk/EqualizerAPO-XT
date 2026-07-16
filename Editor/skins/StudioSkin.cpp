@@ -194,6 +194,21 @@ public:
 		}
 	}
 
+	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override
+	{
+		// The shared stroke set in the toolbar's half-muted ink, so the
+		// dialog chrome recedes behind the file data the same way the main
+		// toolbar recedes behind the cards.
+		const QColor text(tokens.text);
+		const QColor muted(tokens.mutedText);
+		const QColor ink((muted.red() + text.red()) / 2,
+			(muted.green() + text.green()) / 2,
+			(muted.blue() + text.blue()) / 2);
+		SkinTokens recededTokens = tokens;
+		recededTokens.text = ink.name(QColor::HexRgb);
+		ISkin::styleFileDialog(dialog, recededTokens);
+	}
+
 	// "The arc IS the value": no knob body, only a thin track circle, a
 	// glowing arc in the row's band colour and a small indicator dot. The
 	// numeric readout fades in while hovering or dragging; disabled knobs

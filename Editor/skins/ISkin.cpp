@@ -8,8 +8,10 @@
 #include "ISkin.h"
 
 #include <QAction>
+#include <QFileDialog>
 #include <QPainter>
 #include <QToolBar>
+#include <QToolButton>
 #include <QtMath>
 
 #include "Editor/helpers/GUIHelper.h"
@@ -447,5 +449,34 @@ void ISkin::styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const
 			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/undo.svg"), ink, 18));
 		else if (action->objectName() == QStringLiteral("actionRedo"))
 			action->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/redo.svg"), ink, 18));
+	}
+}
+
+void ISkin::styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const
+{
+	if (dialog == nullptr)
+		return;
+
+	// Neutral default: the shared modern stroke set on the dialog's own
+	// navigation buttons, tinted with the text token. QFileDialog seeds these
+	// from QStyle::standardIcon, which is the last place the platform style's
+	// 2005-era pictograms would survive inside a skinned session.
+	const QColor ink(tokens.text);
+	const struct { const char* name; const char* resource; } buttons[] = {
+		{ "backButton", ":/icons/modern/nav-back.svg" },
+		{ "forwardButton", ":/icons/modern/nav-forward.svg" },
+		{ "toParentButton", ":/icons/modern/folder-up.svg" },
+		{ "newFolderButton", ":/icons/modern/folder-new.svg" },
+		{ "listModeButton", ":/icons/modern/view-list.svg" },
+		{ "detailModeButton", ":/icons/modern/view-detail.svg" },
+	};
+	for (const auto& button : buttons)
+	{
+		QToolButton* toolButton = dialog->findChild<QToolButton*>(QLatin1String(button.name));
+		if (toolButton != nullptr)
+		{
+			toolButton->setIcon(GUIHelper::tintedIcon(QLatin1String(button.resource), ink, 18));
+			toolButton->setIconSize(GUIHelper::scale(QSize(18, 18)));
+		}
 	}
 }

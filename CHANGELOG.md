@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Every file dialog in the Editor — Open and Save as, plus the impulse
+  response, Include, VST and frequency-response pickers on the cards — now
+  follows the active skin instead of popping the stock Windows dialog.
+  Under a skin the dialog switches to Qt's widget implementation, so it
+  wears the skin's surfaces and typography, and each skin answers the
+  navigation buttons in its own language (the shared stroke icons by
+  default, soft's pastel tiles, studio's receded ink). The sidebar starts
+  with the active configuration root pinned first, then Downloads,
+  Documents, Desktop and Home; the Detail columns finally get readable
+  widths; and the dialog speaks the app's language (Korean included)
+  instead of the OS locale only. The legacy-rows heritage presentation
+  keeps the untouched native dialog on purpose.
+  ([#207](https://github.com/115dkk/EqualizerAPO-XT/pull/207))
+
+## v2.21.0 — 2026-07-16
+
 - The main toolbar's skin dressing no longer depends on a skin switch
   actually happening: sessions that started on their saved skin came up
   with the legacy Windows-era icons and without the skin's toolbar chrome
@@ -39,6 +55,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   in the new configuration root on startup, copying a file over on demand
   when the migration's referenced-set import did not carry it.
   ([#205](https://github.com/115dkk/EqualizerAPO-XT/pull/205))
+
+## v2.20.0 — 2026-07-16
+
 - EqualizerAPO-XT now has its own configuration root:
   `%LOCALAPPDATA%\EqualizerAPO-XT\config`. The fork used to keep reading the
   registry config path a legacy Equalizer APO install had claimed, so edits

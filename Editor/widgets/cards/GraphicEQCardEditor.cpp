@@ -308,6 +308,7 @@ void GraphicEQCardEditor::importTriggered()
 	nameFilters.append(tr("Frequency response (*.csv)"));
 	nameFilters.append(tr("All files (*.*)"));
 	dialog.setNameFilters(nameFilters);
+	GUIHelper::prepareFileDialog(dialog);
 	if (dialog.exec() != QDialog::Accepted)
 		return;
 
@@ -365,6 +366,7 @@ void GraphicEQCardEditor::exportTriggered()
 	nameFilters.append(tr("All files (*.*)"));
 	dialog.setNameFilters(nameFilters);
 	dialog.setDefaultSuffix(".csv");
+	GUIHelper::prepareFileDialog(dialog);
 	if (dialog.exec() != QDialog::Accepted)
 		return;
 

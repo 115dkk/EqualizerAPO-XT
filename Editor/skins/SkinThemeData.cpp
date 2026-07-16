@@ -344,6 +344,13 @@ QString comboArrowOverride()
 		" border: none; background: transparent; }");
 }
 
+QString fileDialogOverride()
+{
+	return QStringLiteral(
+		"QFileDialog QToolButton {"
+		" padding: 2px; min-height: 0px; min-width: 0px; }");
+}
+
 QPalette palette(const SkinTokens& tokens, bool dark)
 {
 	QPalette palette;

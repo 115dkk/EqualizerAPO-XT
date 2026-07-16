@@ -95,6 +95,7 @@ void ConvolutionCardEditor::chooseFile()
 	QFileDialog dialog(this, tr("Select impulse response file"), startInfo.absolutePath(), QStringLiteral("*.wav *.flac *.ogg"));
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter(tr("Impulse response (*.wav *.flac *.ogg)"));
+	GUIHelper::prepareFileDialog(dialog);
 	if (!path.isEmpty())
 		dialog.selectFile(startInfo.fileName());
 	if (dialog.exec() == QDialog::Accepted)

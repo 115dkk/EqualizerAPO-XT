@@ -100,6 +100,7 @@ void IncludeCardEditor::chooseFile()
 	QFileDialog dialog(this, tr("Include file"), fileInfo.absolutePath(), QStringLiteral("*.txt"));
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter(tr("E-APO configurations (*.txt)"));
+	GUIHelper::prepareFileDialog(dialog);
 	if (!path.isEmpty())
 		dialog.selectFile(fileInfo.fileName());
 	if (dialog.exec() == QDialog::Accepted)
