@@ -312,7 +312,7 @@ void assertInvalidConvolverArgumentsLeaveEmptyOutput()
 	harness.expect(rejected, "hcInitSingle should reject a frame length that overflows FFTW's transform size");
 }
 
-void assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix()
+void assertConvolverArraySupportsOutOfOrderInitialization()
 {
 	constexpr unsigned slotCount = 2;
 	auto slots = MemoryHelper::allocateArray<HConvSingle>(slotCount);
@@ -321,13 +321,15 @@ void assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix()
 	// cppcheck-suppress syntaxError
 	if (slots == nullptr)
 		fail("could not allocate convolver slots for partial-initialization test");
-	memset(slots.get(), 0xA5, sizeof(HConvSingle) * slotCount);
-
 	HConvSingleArray pending;
-	pending.adoptUninitialized(std::move(slots), slotCount);
+	pending.adoptStorage(std::move(slots), slotCount);
+	harness.expect(pending[0].storage == nullptr && pending[1].storage == nullptr,
+		"adopting convolver storage should establish inert slots");
 	vector<double> impulseResponse(1, 1.0);
-	hcInitSingle(&pending[0], impulseResponse.data(), 1, 8, 1);
-	pending.markInitialized();
+	// Initialize the later slot first. Parallel preparation is free to finish
+	// slots in any order, and reset must close both this live slot and the
+	// untouched zero slot safely.
+	hcInitSingle(&pending[1], impulseResponse.data(), 1, 8, 1);
 
 	HConvSingleArray owner(std::move(pending));
 	owner.reset();
@@ -364,7 +366,7 @@ int runHybridConvTests()
 	assertPartitionBuffersFormOneSlab();
 	assertEmptyConvolverCloseIsIdempotent();
 	assertInvalidConvolverArgumentsLeaveEmptyOutput();
-	assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix();
+	assertConvolverArraySupportsOutOfOrderInitialization();
 	assertConvolutionPathParsing();
 
 	// Pure-logic helper, command-codec and parser-extension coverage that also

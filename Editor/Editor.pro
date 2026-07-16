@@ -45,6 +45,7 @@ SOURCES += main.cpp\
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
 	../helpers/MemoryHelper.cpp \
+	../helpers/ParallelExecutor.cpp \
 	FilterTableRow.cpp \
 	FilterTemplate.cpp \
 	guis/DeviceFilterGUI.cpp \

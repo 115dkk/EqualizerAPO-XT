@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include <cassert>
 #include <cstddef>
 #include <memory>
+#include <new>
 #include <string>
 #include <utility>
 #include <vector>
@@ -65,10 +65,9 @@ public:
 	HConvSingleArray(const HConvSingleArray&) = delete;
 	HConvSingleArray& operator=(const HConvSingleArray&) = delete;
 	HConvSingleArray(HConvSingleArray&& other) noexcept
-		: ptr(std::move(other.ptr)), capacity(other.capacity), initializedCount(other.initializedCount)
+		: ptr(std::move(other.ptr)), capacity(other.capacity)
 	{
 		other.capacity = 0;
-		other.initializedCount = 0;
 	}
 	HConvSingleArray& operator=(HConvSingleArray&& other) noexcept
 	{
@@ -77,9 +76,7 @@ public:
 			reset();
 			ptr = std::move(other.ptr);
 			capacity = other.capacity;
-			initializedCount = other.initializedCount;
 			other.capacity = 0;
-			other.initializedCount = 0;
 		}
 		return *this;
 	}
@@ -87,22 +84,19 @@ public:
 	// Take ownership of a freshly allocated block holding `newCount` elements.
 	// Any previously held block is torn down first using the same
 	// close-then-free sequence.
-	// Take ownership before initialization starts, then register each element
-	// only after hcInitSingle has committed it. If a later initialization
-	// throws, reset() closes the completed prefix and never reads untouched
-	// allocation bytes.
-	void adoptUninitialized(MemoryHelper::UniqueAllocation<HConvSingle> newPtr, unsigned newCapacity)
+	// Take ownership before initialization starts and value-initialize every C
+	// slot to hcCloseSingle's inert state. Initialization may then complete in
+	// any order (including on multiple threads); rollback closes every slot,
+	// with untouched slots remaining safe no-ops.
+	void adoptStorage(MemoryHelper::UniqueAllocation<HConvSingle> newPtr, unsigned newCapacity)
 	{
+		if (newCapacity != 0 && newPtr == nullptr)
+			throw std::bad_alloc();
 		reset();
 		ptr = std::move(newPtr);
 		capacity = newCapacity;
-		initializedCount = 0;
-	}
-
-	void markInitialized() noexcept
-	{
-		assert(initializedCount < capacity);
-		initializedCount++;
+		for (unsigned i = 0; i < capacity; ++i)
+			::new (static_cast<void*>(&ptr.get()[i])) HConvSingle{};
 	}
 
 	HConvSingleArray& operator=(std::nullptr_t)
@@ -116,11 +110,10 @@ public:
 	// (filters[i], &filters[i], filters == nullptr, hcInitSingle(&filters[i], ...)).
 	operator HConvSingle*() const { return ptr.get(); }
 
-	// Close the successfully initialized prefix, then free the whole block.
+	// Close every valid zero-or-initialized slot, then free the whole block.
 	void reset();
 
 private:
 	MemoryHelper::UniqueAllocation<HConvSingle> ptr;
 	unsigned capacity = 0;
-	unsigned initializedCount = 0;
 };

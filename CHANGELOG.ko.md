@@ -8,6 +8,14 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- 설정을 불러올 때 Convolution, GraphicEQ, MultiConvolution과 큰 다채널
+  IR 준비 작업이 제한된 수의 멀티코어 작업자를 사용합니다. Modern Cards는
+  각 행의 파싱된 descriptor/scope를 한 번만 준비하고 고정 정규식과 색을
+  입힌 SVG 배지를 캐시해 스킨 재구성의 반복 작업을 줄였습니다. HConv
+  소유권은 순서가 뒤섞인 초기화와 롤백도 안전하게 처리하며, AVRT 오디오
+  콜백과 DSP 순서·출력 연산은 바뀌지 않았습니다. CI는 작업자 예외 정리를
+  검사하고 138행 offscreen 스킨 전환 스트레스 테스트에 4초 상한을
+  적용합니다. ([#200](https://github.com/115dkk/EqualizerAPO-XT/pull/200))
 - 설정 저장을 원자적으로 바꾸고, 일부만 읽힌 설정은 정상 오디오 그래프로
   적용하지 않게 했습니다. 필터 팩터리, HybridConv/FFTW 플랜, IR 데이터,
   Copy/IIR 상태, VST 인스턴스, COM 아파트먼트와 VST3 DLL 팩터리에 명시적인

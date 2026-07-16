@@ -28,6 +28,7 @@
 #include <windows.h>
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/ParallelExecutor.h"
 #include "helpers/SndfileRAII.h"
 #include "IrCache.h"
 
@@ -36,6 +37,7 @@ using std::abs;
 namespace
 {
 	constexpr unsigned kMaxIrChannels = 1024;
+	constexpr size_t kParallelDeinterleaveMinimumSamples = 1u << 18;
 
 	// Cache of decoded impulse-response PCM, keyed by path + mtime + sample rate.
 	// Lets a config reload (or a second filter using the same IR) skip the
@@ -166,14 +168,19 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, d
 	entry->channels = channels;
 	entry->frames = frames;
 	entry->buffers.resize(channels);
-	for (unsigned c = 0; c < channels; ++c)
-	{
+	auto deinterleaveChannel = [&](size_t index) {
+		const unsigned c = static_cast<unsigned>(index);
 		entry->buffers[c].resize(frames);
 		double* dst = entry->buffers[c].data();
 		const double* src = interleaved.data() + c;
 		for (unsigned i = 0; i < frames; ++i)
 			dst[i] = src[i * channels];
-	}
+	};
+	if (channels > 1 && interleaved.size() >= kParallelDeinterleaveMinimumSamples)
+		ParallelExecutor::forEach(channels, deinterleaveChannel);
+	else
+		for (unsigned c = 0; c < channels; ++c)
+			deinterleaveChannel(c);
 
 	{
 		std::lock_guard<std::mutex> lock(irCacheMutex());
@@ -197,11 +204,10 @@ void HConvSingleArray::reset()
 {
 	if (ptr != nullptr)
 	{
-		for (unsigned i = 0; i < initializedCount; i++)
+		for (unsigned i = 0; i < capacity; i++)
 			hcCloseSingle(&ptr.get()[i]);
 
 		ptr.reset();
 	}
 	capacity = 0;
-	initializedCount = 0;
 }

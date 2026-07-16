@@ -23,7 +23,8 @@ class FilterCardRow : public QWidget
 	Q_OBJECT
 
 public:
-	FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, FilterCardRowScope scope, QWidget* parent = nullptr);
+	FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
+		FilterCardDescriptor descriptor, QWidget* parent = nullptr);
 	void configureChannels(std::vector<std::wstring>& channelNames);
 
 	QRect getHeaderRect() const;
@@ -53,6 +54,7 @@ private slots:
 private:
 	void watchEditorScroll(QScrollArea* scroll);
 	void syncEditorScrollHeight(QScrollArea* scroll);
+	void applyDescriptor();
 	void rebuildSummary();
 	void setEditing(bool editing);
 	void buildChannelBadges(const QStringList& channels);
@@ -90,5 +92,6 @@ private:
 	QStackedWidget* bodyStack = nullptr;
 	QLineEdit* lineEdit = nullptr;
 	RoutingView* routingView = nullptr;
+	QStringList renderedChannelBadges;
 	bool editingDone = false;
 };

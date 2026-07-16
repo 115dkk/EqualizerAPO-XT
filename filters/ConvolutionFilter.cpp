@@ -28,6 +28,7 @@
 
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/ParallelExecutor.h"
 #include "ConvolutionFilter.h"
 #include "helpers/PerfProfile.h"
 
@@ -154,14 +155,13 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		return;
 	}
 	HConvSingleArray pendingFilters;
-	pendingFilters.adoptUninitialized(std::move(allocated), channelCount);
-	for (unsigned i = 0; i < channelCount; i++)
-	{
+	pendingFilters.adoptStorage(std::move(allocated), channelCount);
+	ParallelExecutor::forEach(channelCount, [&](size_t index) {
+		const unsigned i = static_cast<unsigned>(index);
 		// hcInitSingle reads the IR samples during planning but does not retain
 		// the pointer, so it is safe to feed it the shared cache buffer.
 		const std::vector<double>& src = ir->buffers[i % ir->channels];
 		hcInitSingle(&pendingFilters[i], const_cast<double*>(src.data()), static_cast<int>(ir->frames), static_cast<int>(frameCount), 1);
-		pendingFilters.markInitialized();
-	}
+	});
 	filters = std::move(pendingFilters);
 }

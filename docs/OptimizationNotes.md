@@ -61,3 +61,28 @@
 - 세 Qt 실행 파일은 `windeployqt --release --no-opengl-sw` 배포가 통과했고, `platforms/qwindows.dll`과 SVG 플러그인이 배치됐습니다.
 - `Benchmark.exe --help` 실행이 통과해 콘솔 실행 파일의 DLL 로딩을 확인했습니다.
 - `EqualizerAPO.sln` 전체 MSBuild는 Qt VS Tools의 `QtMsBuild` 파일이 없어 `DeviceSelector.vcxproj`, `UpdateChecker.vcxproj`에서 실패합니다. CI와 로컬 검증은 이 두 프로젝트를 qmake로 빌드합니다.
+
+## 2026-07-16 멀티코어 및 Qt 재구성 패스
+
+### 적용한 최적화
+
+- `ParallelExecutor`를 설정 준비 전용 Module로 추가했습니다. 호출 스레드도 작업자로 참여하고, 동시성은 하드웨어 스레드 수와 16개 상한 중 작은 값으로 제한합니다. 첫 예외가 발생하면 새 작업을 중단하고 생성한 스레드를 모두 합류한 뒤 원래 예외를 다시 던집니다.
+- `ConvolutionFilter`, `GraphicEQFilter`, `MultiConvolutionFilter`의 서로 독립적인 `HConvSingle` 초기화를 병렬화했습니다. FFTW plan 생성은 기존 planner 잠금 아래에 있고, plan 실행과 인스턴스별 버퍼 준비는 병렬로 진행됩니다.
+- 큰 다채널 IR의 planar 변환을 채널 단위로 병렬화했습니다. 작은 IR은 스레드 생성 비용이 더 크므로 기존 순차 루프를 유지합니다.
+- `HConvSingleArray`는 완료된 prefix만 추적하던 소유권 모델을 없앴습니다. 모든 C 슬롯을 먼저 영 상태로 만들고 전체 capacity를 닫으므로 병렬 작업이 어떤 순서로 끝나거나 중간 실패해도 정리가 안전합니다.
+- Qt modern-card 재구성은 `FilterCardBuildPlan` Seam에서 descriptor와 scope를 한 번만 준비합니다. 행 GUI 선택, 카드 생성, 스킨 정보가 같은 결과를 공유하므로 한 줄당 반복되던 정규식/inline-expression 해석이 사라집니다.
+- 고정 `QRegularExpression`은 재사용하고, 타입 배지 SVG tint 결과는 resource/color/size/DPR 키로 `QPixmapCache`에 보관합니다. 동일한 채널 배지 목록도 다시 만들지 않습니다.
+
+### 의도적으로 제외한 항목
+
+- 오디오 callback 안에 영구 worker pool을 두지 않았습니다. endpoint마다 별도 callback이 실행되는 환경에서 일반 작업자 스레드를 기다리면 MMCSS 우선순위 역전과 다중 endpoint 경합이 생길 수 있습니다. 현재 AVRT 경로에는 새 할당, mutex, 예외, 로그가 없습니다.
+- 필터 체인 전체 병렬화는 적용하지 않았습니다. 필터가 앞 단계의 채널/버퍼 출력을 다음 단계 입력으로 소비하므로 일반적인 병렬 실행은 DSP 순서와 결과를 바꿉니다.
+- `MultiConvolution` 합산 루프의 SIMD 변경은 이번 패스에서 제외했습니다. 곱셈-덧셈 결합 여부가 마지막 비트를 바꿀 수 있어, 별도 수치 계약과 기준 데이터 갱신 없이 적용하지 않습니다.
+- Qt 카드 widget virtualization은 장기 후보로 남겼습니다. 현재 스킨 Interface가 각 행의 실제 QWidget과 body editor를 구성하므로, viewport 재활용은 별도 상태 모델과 포커스/접근성 설계가 필요한 독립 프로젝트입니다.
+
+### CI 회귀 경계
+
+- `EngineOrchestrationTests`가 병렬 작업의 exactly-once 실행과 예외 합류/전파를 검사합니다.
+- `HybridConvTests`가 뒤쪽 슬롯을 먼저 초기화한 배열도 반복 정리 가능한지 검사합니다.
+- `EditorLogicTests`가 build plan의 descriptor/scope/dynamic-line 결과를 기존 계산과 대조합니다.
+- offscreen skin-switch test의 138-row 재구성 상한을 8초에서 4초로 낮췄습니다. 로컬 장시간 검증을 반복하지 않고 PR의 AVX2 CI를 성능·수명 회귀 판정 기준으로 사용합니다.

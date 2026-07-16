@@ -146,6 +146,9 @@
     <ClInclude Include="helpers\MemoryHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\ParallelExecutor.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\Win32Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -351,6 +354,9 @@
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\MemoryHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ParallelExecutor.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\PerfProfile.cpp">
