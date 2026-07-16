@@ -72,6 +72,16 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	headerWidget->setMinimumHeight(SkinManager::instance()->tokens().rowHeight);
 	cardLayout->addWidget(headerWidget);
 
+	// Dress the frame and header now, while the card is two widgets deep:
+	// setStyleSheet() re-resolves the style of every descendant, so applying
+	// these sheets to the finished ~40-widget card (the applyDescriptor() call
+	// at the end of this constructor used to be the first apply) re-styled the
+	// whole subtree per card - measured ~3 ms each on a 300-row config.
+	// Children created below inherit the sheets as they appear, and the
+	// applyDescriptor() re-run finds identical strings and properties, so it
+	// skips both the re-set and the construction-time repolish entirely.
+	refreshStateProperties();
+
 	QHBoxLayout* headerLayout = new QHBoxLayout(headerWidget);
 	headerLayout->setContentsMargins(8, 4, 8, 4);
 	headerLayout->setSpacing(8);
@@ -687,7 +697,12 @@ void FilterCardRow::applyDescriptor()
 	}
 
 	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle).
-	typeBadge->setStyleSheet(SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color));
+	// Only touch the widget when the style actually changed: setStyleSheet
+	// unconditionally rebuilds the widget's style, and applyDescriptor runs
+	// again on every summary rebuild.
+	const QString badgeStyle = SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color);
+	if (typeBadge->styleSheet() != badgeStyle)
+		typeBadge->setStyleSheet(badgeStyle);
 	// The badge carries the picker's pictogram, inked by the skin
 	// (ISkin::typeBadgeInk). The monogram survives only for lines the icon
 	// catalog does not map (raw text), so unknown commands keep reading
@@ -706,11 +721,21 @@ void FilterCardRow::applyDescriptor()
 	}
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);
+	// The text stays current even while the label is hidden: skins may read
+	// it as the live raw-spec source instead of showing the label itself
+	// (MatrixRowCaption's caption strip does).
 	rawPreviewLabel->setText(tr("Raw") + QStringLiteral("  ") + item->text);
-	rawPreviewLabel->setVisible(SkinManager::instance()->tokens().showRawPreview);
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	rawPreviewLabel->setStyleSheet(QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")
-		.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily));
+	rawPreviewLabel->setVisible(tokens.showRawPreview);
+	// Skins without a raw preview never show the label, and rows are rebuilt
+	// on every skin switch - skip the per-widget stylesheet for them.
+	if (tokens.showRawPreview)
+	{
+		const QString previewStyle = QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")
+			.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily);
+		if (rawPreviewLabel->styleSheet() != previewStyle)
+			rawPreviewLabel->setStyleSheet(previewStyle);
+	}
 	enabledButton->blockSignals(true);
 	enabledButton->setChecked(descriptor.enabled);
 	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));

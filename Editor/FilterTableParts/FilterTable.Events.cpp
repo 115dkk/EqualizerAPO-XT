@@ -274,11 +274,10 @@ void FilterTable::disableWheelForWidgets()
 
 void FilterTable::updateRowWidgets()
 {
-	for (int i = 0; i < model.items().size(); i++)
+	for (QWidget* rowWidget : rowWidgetsByRow())
 	{
-		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
-		if (layoutItem != nullptr && layoutItem->widget() != nullptr)
-			layoutItem->widget()->update();
+		if (rowWidget != nullptr)
+			rowWidget->update();
 	}
 	update();
 }
@@ -306,11 +305,10 @@ void FilterTable::setLoadTraceFacts(const QVector<ConfigLoadTraceEntry>& facts)
 	// the rows so lamps/readouts follow the analysis run that just finished.
 	if (gridLayout == nullptr)
 		return;
-	for (int row = 0; row < model.items().count(); row++)
+	for (QWidget* rowWidget : rowWidgetsByRow())
 	{
-		QLayoutItem* cell = gridLayout->itemAtPosition(row, 0);
-		if (cell != nullptr && cell->widget() != nullptr)
-			cell->widget()->update();
+		if (rowWidget != nullptr)
+			rowWidget->update();
 	}
 }
 

@@ -159,6 +159,11 @@ void FilterTable::updateGuis()
 	QElapsedTimer timer;
 	timer.start();
 
+	// One repaint at the end instead of one per inserted row; on-screen
+	// rebuilds of large configs repainted the growing table hundreds of times.
+	const bool updatesWereEnabled = updatesEnabled();
+	setUpdatesEnabled(false);
+
 	clearRows();
 
 	qDebug("Delete took %d ms", timer.elapsed());
@@ -173,8 +178,16 @@ void FilterTable::updateGuis()
 	for (const auto& factory : factories)
 		factory->startOfFile(configPath);
 
+	// Phase accounting for the "Create took" log below; large configs spend
+	// seconds here, so the breakdown tells slow-startup reports apart without
+	// a profiler build.
+	QElapsedTimer phaseTimer;
+	phaseTimer.start();
+	qint64 prepareNs = 0, guiNs = 0, rowCtorNs = 0, addNs = 0, channelsNs = 0;
+
 	const QVector<FilterCardBuildPlan> rowPlans = renderMode == ModernCards
 		? FilterCardModel::prepareRows(getLines()) : QVector<FilterCardBuildPlan>();
+	prepareNs = phaseTimer.nsecsElapsed();
 	int row = 0;
 	for (Item* item : model.items())
 	{
@@ -183,15 +196,25 @@ void FilterTable::updateGuis()
 			descriptor = row < rowPlans.size()
 				? rowPlans[row].descriptor
 				: FilterCardModel::describeLine(item->text);
+		phaseTimer.start();
 		IFilterGUI* gui = createRowGui(item->text,
 			renderMode == ModernCards ? &descriptor : nullptr);
+		guiNs += phaseTimer.nsecsElapsed();
 
 		// LegacyRows is a frozen fallback that must not be extended; see the
 		// RenderMode enum and docs/FilterListUiPolicy.md.
+		// Parent the card here instead of letting addWidget() reparent it: moving
+		// a finished ~40-widget card under the stylesheet-dressed table forces a
+		// style re-resolution of the whole subtree (measured ~3 ms per card).
+		// With the parent fixed up front, addWidget() only places the item.
+		phaseTimer.start();
 		QWidget* rowWidget = renderMode == ModernCards
-			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, std::move(descriptor)))
+			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, std::move(descriptor), this))
 			: static_cast<QWidget*>(new FilterTableRow(this, row + 1, item, gui));
+		rowCtorNs += phaseTimer.nsecsElapsed();
+		phaseTimer.start();
 		gridLayout->addWidget(rowWidget, row, 0);
+		addNs += phaseTimer.nsecsElapsed();
 
 		item->gui = gui;
 
@@ -210,7 +233,9 @@ void FilterTable::updateGuis()
 	for (const auto& factory : factories)
 		factory->endOfFile(configPath);
 
+	phaseTimer.start();
 	propagateChannels();
+	channelsNs = phaseTimer.nsecsElapsed();
 
 	if (renderMode == ModernCards)
 	{
@@ -251,7 +276,11 @@ void FilterTable::updateGuis()
 
 	disableWheelForWidgets();
 
-	qDebug("Create took %d ms", timer.elapsed());
+	setUpdatesEnabled(updatesWereEnabled);
+
+	qDebug("Create took %d ms (prepare %d, editor guis %d, card rows %d, add %d, channels %d, rows %d)",
+		int(timer.elapsed()), int(prepareNs / 1000000), int(guiNs / 1000000),
+		int(rowCtorNs / 1000000), int(addNs / 1000000), int(channelsNs / 1000000), row);
 	update();
 }
 
@@ -443,9 +472,9 @@ void FilterTable::updateSingleRowGui(Item* item)
 	}
 	IFilterGUI* gui = createRowGui(item->text,
 		renderMode == ModernCards ? &descriptor : nullptr);
-	// Same render-mode policy as updateGuis().
+	// Same render-mode and parenting policy as updateGuis().
 	QWidget* rowWidget = renderMode == ModernCards
-		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, std::move(descriptor)))
+		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, std::move(descriptor), this))
 		: static_cast<QWidget*>(new FilterTableRow(this, rowIndex + 1, item, gui));
 	gridLayout->addWidget(rowWidget, rowIndex, 0);
 
@@ -504,12 +533,29 @@ bool moveGridCell(QGridLayout* gridLayout, int fromRow, int toRow)
 }
 }
 
+QVector<QWidget*> FilterTable::rowWidgetsByRow() const
+{
+	QVector<QWidget*> widgets(int(model.items().count()), nullptr);
+	if (gridLayout == nullptr)
+		return widgets;
+	for (int i = 0; i < gridLayout->count(); i++)
+	{
+		int row = 0, column = 0, rowSpan = 0, columnSpan = 0;
+		gridLayout->getItemPosition(i, &row, &column, &rowSpan, &columnSpan);
+		if (column != 0 || row >= widgets.size())
+			continue;
+		if (QWidget* widget = gridLayout->itemAt(i)->widget())
+			widgets[row] = widget;
+	}
+	return widgets;
+}
+
 bool FilterTable::renumberRowsBelow(int firstRow, const QVector<FilterCardRowScope>& rowScopes)
 {
-	for (int i = firstRow; i < model.items().count(); i++)
+	const QVector<QWidget*> rowWidgets = rowWidgetsByRow();
+	for (int i = firstRow; i < rowWidgets.size(); i++)
 	{
-		QLayoutItem* cell = gridLayout->itemAtPosition(i, 0);
-		FilterCardRow* cardRow = cell != nullptr ? qobject_cast<FilterCardRow*>(cell->widget()) : nullptr;
+		FilterCardRow* cardRow = qobject_cast<FilterCardRow*>(rowWidgets[i]);
 		if (cardRow == nullptr)
 			return false;
 		cardRow->updateRowPosition(i + 1, i < rowScopes.size() ? rowScopes[i] : FilterCardRowScope());
@@ -560,7 +606,7 @@ void FilterTable::insertRowAt(int index)
 	descriptor.logicDepth = scope.logic;
 	descriptor.scopeChannels = scope.channels;
 	IFilterGUI* gui = createRowGui(item->text, &descriptor);
-	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, std::move(descriptor));
+	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, std::move(descriptor), this);
 	gridLayout->addWidget(rowWidget, index, 0);
 
 	item->gui = gui;

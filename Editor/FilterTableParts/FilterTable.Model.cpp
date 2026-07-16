@@ -77,13 +77,14 @@ void FilterTable::propagateChannels()
 {
 	vector<wstring> channelNames = getChannelNames();
 
+	const QVector<QWidget*> rowWidgets = renderMode == ModernCards
+		? rowWidgetsByRow() : QVector<QWidget*>();
 	for (int row = 0; row < model.items().size(); row++)
 	{
 		Item* item = model.items()[row];
-		if (renderMode == ModernCards && gridLayout != nullptr)
+		if (row < rowWidgets.size())
 		{
-			QLayoutItem* cell = gridLayout->itemAtPosition(row, 0);
-			FilterCardRow* cardRow = cell != nullptr ? qobject_cast<FilterCardRow*>(cell->widget()) : nullptr;
+			FilterCardRow* cardRow = qobject_cast<FilterCardRow*>(rowWidgets[row]);
 			if (cardRow != nullptr)
 			{
 				cardRow->configureChannels(channelNames);
@@ -447,12 +448,8 @@ void FilterTable::updateSizeHints()
 	// crash on a plain restyle). Nothing to size while the rows are being rebuilt.
 	if (gridLayout == nullptr)
 		return;
-	for (int i = 0; i < model.items().size(); i++)
+	for (QWidget* rowWidget : rowWidgetsByRow())
 	{
-		QLayoutItem* layoutItem = gridLayout->itemAtPosition(i, 0);
-		if (layoutItem == nullptr)
-			continue;
-		QWidget* rowWidget = layoutItem->widget();
 		if (rowWidget != nullptr)
 			rowWidget->updateGeometry();
 	}

@@ -128,6 +128,8 @@ void MainWindow::channelConfigurationSelected(int index)
 
 FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPath, QList<QString> lines)
 {
+	QElapsedTimer phaseTimer;
+	phaseTimer.start();
 	QScrollArea* scrollArea = new QScrollArea(ui->tabWidget);
 	scrollArea->setWidgetResizable(true);
 	FilterTable* filterTable = new FilterTable(this);
@@ -141,10 +143,23 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 	filterTable->updateDeviceAndChannelMask(selectedDevice, channelMask);
 	filterTable->initialize(scrollArea, outputDevices, inputDevices);
 	filterTable->setRenderMode(currentRenderMode);
-	filterTable->setLines(configPath, lines);
+	const qint64 setupNs = phaseTimer.nsecsElapsed();
+	phaseTimer.start();
 
+	// Insert the still-empty scroll area into the tab widget BEFORE building
+	// the rows. Adding it afterwards reparents the finished table under the
+	// tab stack, and the app stylesheet then re-resolves against every card
+	// widget a second time - over a second on a 300-row config. The insert
+	// fires currentChanged for the first tab; its handlers (dirty badge,
+	// debounced analysis kick) are the same ones every tab switch runs.
 	int tabIndex = ui->tabWidget->addTab(scrollArea, title);
 	ui->tabWidget->setTabToolTip(tabIndex, tooltip);
+	const qint64 insertNs = phaseTimer.nsecsElapsed();
+	phaseTimer.start();
+
+	filterTable->setLines(configPath, lines);
+	qDebug("addTab: setup %d, insert %d, setLines %d ms",
+		int(setupNs / 1000000), int(insertNs / 1000000), int(phaseTimer.nsecsElapsed() / 1000000));
 
 	return filterTable;
 }

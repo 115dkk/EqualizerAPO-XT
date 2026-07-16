@@ -104,4 +104,8 @@ private:
 	QString skinId = QStringLiteral("studio");
 	bool darkMode = true;
 	bool heritageMode = false;
+	// True once applySkin() has dressed the application at least once. The
+	// constructor seeds skinId/tokens without applying a stylesheet, so the
+	// same-skin short-circuit in applySkin() must not fire before then.
+	bool sheetApplied = false;
 };
