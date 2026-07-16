@@ -14,6 +14,24 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- EqualizerAPO-XT now has its own configuration root:
+  `%LOCALAPPDATA%\EqualizerAPO-XT\config`. The fork used to keep reading the
+  registry config path a legacy Equalizer APO install had claimed, so edits
+  to the XT install's own `config\config.txt` did nothing while the old
+  `Program Files` folder kept driving the audio — even after the legacy APO
+  was uninstalled. On install and on every update, the hook now classifies
+  the trusted path: a legacy Equalizer APO folder has its `config.txt`
+  imported with everything it references (Include chains at any depth,
+  Convolution and MultiConvolution impulse responses, VST references,
+  folder structure preserved) and the trust is repointed, after which the
+  old folder is no longer read; a config folder inside a Velopack
+  `current\` dir is rescued wholesale, since updates recreate `current\`
+  and would have deleted it; a folder the user chose on purpose is left
+  alone. The Editor shows a one-time notice after a migration, and
+  `Editor.exe --migration-dry-run` prints what would happen on a machine
+  without changing anything. The import scanner also learned
+  `MultiConvolution:` lines and quoted convolution paths.
+  ([#204](https://github.com/115dkk/EqualizerAPO-XT/pull/204))
 - Opening a large configuration in the card view took over ten seconds on
   older CPUs (reported on an i7-7700K). The Editor was resolving its skin
   stylesheet against every card widget several times over: cards were built

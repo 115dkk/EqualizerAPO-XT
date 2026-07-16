@@ -119,6 +119,7 @@
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
+    <ClCompile Include="..\..\Editor\import\LegacyMigrationPolicy.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListUndo.cpp" />
@@ -143,6 +144,7 @@
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h" />
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h" />
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
+    <ClInclude Include="..\..\Editor\import\LegacyMigrationPolicy.h" />
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />

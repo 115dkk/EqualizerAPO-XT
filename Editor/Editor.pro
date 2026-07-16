@@ -265,6 +265,8 @@ SOURCES += main.cpp\
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
 	import/ImportExecutor.cpp \
+	import/LegacyMigration.cpp \
+	import/LegacyMigrationPolicy.cpp \
 	widgets/MiddleClickTabBar.cpp
 
 HEADERS  += \
@@ -487,6 +489,8 @@ HEADERS  += \
 	import/ImportDialog.h \
 	import/ImportExecutor.h \
 	import/ImportManifest.h \
+	import/LegacyMigration.h \
+	import/LegacyMigrationPolicy.h \
 	widgets/MiddleClickTabBar.h
 
 FORMS    += \

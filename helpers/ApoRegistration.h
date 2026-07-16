@@ -41,8 +41,12 @@ public:
 	static bool stopAudioService();
 	static bool startAudioService();
 
-	static std::wstring detectLegacyInstall();
-	static bool migrateLegacyConfig(const std::wstring& legacyDir, const std::wstring& newDir);
+	// Grants Users full control and LOCAL SERVICE modify on a config
+	// directory (recursive), so the user can edit configs and audiodg can
+	// read them (and write APO trace logs). install() applies it to the
+	// packaged config dir; the legacy migration applies it to the stable
+	// config root it creates. Returns false when icacls reports a failure.
+	static bool secureConfigDir(const std::wstring& configDir);
 
 	static int waitForProcess(const std::wstring& executable, const std::wstring& arguments, unsigned timeoutMs = 30000);
 

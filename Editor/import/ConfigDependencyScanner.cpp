@@ -4,6 +4,7 @@
 
 #include "ConfigDependencyScanner.h"
 #include "../widgets/FilterCardModel.h"
+#include "filters/MultiConvolutionCommand.h"
 
 #include <QDir>
 #include <QFile>
@@ -24,6 +25,7 @@ bool isReferenceCommand(const QString& commandLower)
 {
     return commandLower == QStringLiteral("include")
         || commandLower == QStringLiteral("convolution")
+        || commandLower == QStringLiteral("multiconvolution")
         || commandLower == QStringLiteral("vstplugin");
 }
 
@@ -31,8 +33,36 @@ QString kindForCommand(const QString& commandLower)
 {
     if (commandLower == QStringLiteral("include")) return QStringLiteral("Include");
     if (commandLower == QStringLiteral("convolution")) return QStringLiteral("Convolution");
+    if (commandLower == QStringLiteral("multiconvolution")) return QStringLiteral("MultiConvolution");
     if (commandLower == QStringLiteral("vstplugin")) return QStringLiteral("VSTPlugin");
     return commandLower;
+}
+
+// The engine unquotes convolution paths in ConvolutionFilePath::resolve, so a
+// quoted reference is a valid line; the scanner must look at the same file.
+QString stripSurroundingQuotes(const QString& text)
+{
+    QString trimmed = text.trimmed();
+    if (trimmed.length() >= 2 && trimmed.startsWith(QLatin1Char('"')) && trimmed.endsWith(QLatin1Char('"')))
+        return trimmed.mid(1, trimmed.length() - 2);
+    return trimmed;
+}
+
+// The path portion of the line for the given reference command. Include and
+// VSTPlugin use the raw parameters; the convolution family shares the
+// engine's own grammar so factors/mappings never leak into the path.
+QString referencePath(const QString& commandLower, const QString& parameters)
+{
+    if (commandLower == QStringLiteral("multiconvolution"))
+    {
+        MultiConvolutionCommand command;
+        if (!MultiConvolutionCommand::parse(L"MultiConvolution", parameters.toStdWString(), command))
+            return QString();
+        return stripSurroundingQuotes(QString::fromStdWString(command.path));
+    }
+    if (commandLower == QStringLiteral("convolution"))
+        return stripSurroundingQuotes(parameters);
+    return parameters;
 }
 
 QString resolveAbsolute(const QString& reference, const QString& baseDir)
@@ -58,6 +88,15 @@ QString relativeToRoot(const QString& targetAbs, const QString& rootDir)
     if (rel.isEmpty() || rel.startsWith(QStringLiteral("..")))
         return QString();
     return QDir::fromNativeSeparators(rel);
+}
+
+// Destination path for a source-relative path under the chosen layout.
+QString destForRelative(const QString& rel, const QString& rootSourceDir, DestLayout layout)
+{
+    if (layout == DestLayout::SourceFolderIsRoot)
+        return rel;
+    QString rootName = QFileInfo(rootSourceDir).fileName();
+    return rootName.isEmpty() ? rel : rootName + QStringLiteral("/") + rel;
 }
 
 void appendItem(ImportManifest& manifest,
@@ -96,6 +135,7 @@ void appendItem(ImportManifest& manifest,
 void scanConfigFile(ImportManifest& manifest,
                     const QString& sourceTxtAbs,
                     const QString& rootSourceDir,
+                    DestLayout layout,
                     int depth,
                     QSet<QString>& visited)
 {
@@ -136,7 +176,8 @@ void scanConfigFile(ImportManifest& manifest,
         if (!isReferenceCommand(commandLower))
             continue;
 
-        QString refAbs = resolveAbsolute(parameters, baseDir);
+        QString reference = referencePath(commandLower, parameters);
+        QString refAbs = resolveAbsolute(reference, baseDir);
         if (refAbs.isEmpty())
             continue;
 
@@ -149,19 +190,16 @@ void scanConfigFile(ImportManifest& manifest,
             continue;
         }
 
-        QString rootName = QFileInfo(rootSourceDir).fileName();
-        QString destRel = rootName.isEmpty() ? rel : rootName + QStringLiteral("/") + rel;
-
-        appendItem(manifest, refAbs, destRel, kindForCommand(commandLower));
+        appendItem(manifest, refAbs, destForRelative(rel, rootSourceDir, layout), kindForCommand(commandLower));
 
         if (commandLower == QStringLiteral("include"))
-            scanConfigFile(manifest, refAbs, rootSourceDir, depth + 1, visited);
+            scanConfigFile(manifest, refAbs, rootSourceDir, layout, depth + 1, visited);
     }
 }
 
 }
 
-ImportManifest ConfigDependencyScanner::scan(const QString& rootSource, const QString& configDir)
+ImportManifest ConfigDependencyScanner::scan(const QString& rootSource, const QString& configDir, DestLayout layout)
 {
     Q_UNUSED(configDir);
 
@@ -177,11 +215,7 @@ ImportManifest ConfigDependencyScanner::scan(const QString& rootSource, const QS
     }
 
     manifest.rootSourceDir = rootInfo.absoluteDir().absolutePath();
-    QString rootName = QFileInfo(manifest.rootSourceDir).fileName();
-    QString rootRel = rootName.isEmpty()
-        ? rootInfo.fileName()
-        : rootName + QStringLiteral("/") + rootInfo.fileName();
-    manifest.rootDest = rootRel;
+    manifest.rootDest = destForRelative(rootInfo.fileName(), manifest.rootSourceDir, layout);
 
     appendItem(manifest, manifest.rootSource, manifest.rootDest, QStringLiteral("Root"));
 
@@ -189,7 +223,7 @@ ImportManifest ConfigDependencyScanner::scan(const QString& rootSource, const QS
     if (suffix == QStringLiteral("txt"))
     {
         QSet<QString> visited;
-        scanConfigFile(manifest, manifest.rootSource, manifest.rootSourceDir, 0, visited);
+        scanConfigFile(manifest, manifest.rootSource, manifest.rootSourceDir, layout, 0, visited);
     }
 
     return manifest;

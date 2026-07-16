@@ -2565,6 +2565,28 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>QObject</name>
     <message>
+        <location filename="../import/LegacyMigration.cpp" line="279"/>
+        <source>Configuration folder moved</source>
+        <translation>설정 폴더 이동 안내</translation>
+    </message>
+    <message>
+        <location filename="../import/LegacyMigration.cpp" line="280"/>
+        <source>Your Equalizer APO configuration was imported into the EqualizerAPO-XT configuration folder:
+
+%1
+
+This folder is now the one the audio pipeline reads. The previous folder is no longer used:
+
+%2</source>
+        <translation>기존 Equalizer APO 설정을 EqualizerAPO-XT 설정 폴더로 가져왔습니다.
+
+%1
+
+이제 오디오 처리는 이 폴더를 읽습니다. 이전 폴더는 더 이상 사용되지 않습니다.
+
+%2</translation>
+    </message>
+    <message>
         <location filename="../import/ConfigDependencyScanner.cpp" line="90"/>
         <source>Missing file: %1</source>
         <translation>누락된 파일: %1</translation>
