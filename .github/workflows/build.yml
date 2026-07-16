@@ -1282,7 +1282,7 @@ jobs:
         $targetCommit = "${{ github.sha }}"
         $inputRoot = "${{ github.workspace }}\release-input"
         $licensePath = "${{ github.workspace }}\License.txt"
-        $iconPath = "${{ github.workspace }}\Editor\icons\applications-graphics-rotated.ico"
+        $iconPath = "${{ github.workspace }}\Editor\icons\app-icon.ico"
         $configSource = "${{ github.workspace }}\Setup\config"
         $extrasSource = @(
           "${{ github.workspace }}\Setup\Configuration tutorial (online).url",

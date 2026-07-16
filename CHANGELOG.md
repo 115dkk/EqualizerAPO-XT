@@ -14,6 +14,29 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The skinned file dialog got its second design round from user review.
+  Each skin now answers the folder/file pictograms itself instead of
+  borrowing the shell set: studio engraves thin receded strokes into the
+  glass, minimal draws square hairline glyphs that feel like a terminal
+  without being ASCII art, rack shelves skeuomorphic objects (a manila
+  folder, paper sheets with a real turned corner, a metal drive slab), and
+  matrix renders chamfered CRT glyphs over its faint board grid. Rack's
+  navigation row also wears the same machined transport caps as its main
+  toolbar. The dialog's native Windows caption is replaced by the same
+  skinned title strip the main window wears — title text plus the
+  conventional close X — with move, snap and edge-resize staying native
+  (the registry escape hatch that restores the native caption applies to
+  dialogs too).
+  ([#208](https://github.com/115dkk/EqualizerAPO-XT/pull/208))
+- The Editor finally sheds its 2005-era notepad-and-pencil application
+  icon: a new response-curve badge (a peaking curve with a node handle,
+  the card view's own identity) ships as a multi-resolution icon on the
+  executable — window, taskbar, Explorer — and on the installer produced
+  by Velopack.
+  ([#208](https://github.com/115dkk/EqualizerAPO-XT/pull/208))
+
+## v2.22.0 — 2026-07-16
+
 - Every file dialog in the Editor — Open and Save as, plus the impulse
   response, Include, VST and frequency-response pickers on the cards — now
   follows the active skin instead of popping the stock Windows dialog.

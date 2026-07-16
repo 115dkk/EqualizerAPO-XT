@@ -24,7 +24,11 @@ class TitleBar : public QWidget
 	Q_OBJECT
 
 public:
-	explicit TitleBar(QWidget* window, QWidget* parent = nullptr);
+	// dialogMode drops the minimize/maximize buttons and the double-click
+	// maximize gesture: dialog captions carry only the title and the close
+	// button, per the platform convention. The QSS names and the painted
+	// skin chrome stay identical to the main window's strip.
+	explicit TitleBar(QWidget* window, QWidget* parent = nullptr, bool dialogMode = false);
 
 	// True when the given point (in this widget's coordinates) sits on the
 	// draggable caption area (i.e. not on one of the buttons). Used by the
@@ -50,4 +54,5 @@ private:
 	QToolButton* minimizeButton = nullptr;
 	QToolButton* maximizeButton = nullptr;
 	QToolButton* closeButton = nullptr;
+	bool dialogMode = false;
 };

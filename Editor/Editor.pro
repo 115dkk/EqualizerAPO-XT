@@ -199,6 +199,7 @@ SOURCES += main.cpp\
 	skins/pickers/MatrixFilterPicker.cpp \
 	skins/RackChrome.cpp \
 	skins/Skins.cpp \
+	skins/SkinFileIcons.cpp \
 	skins/SkinThemeData.cpp \
 	skins/StudioSkin.cpp \
 	skins/MinimalSkin.cpp \
@@ -251,6 +252,7 @@ SOURCES += main.cpp\
 	widgets/FilterPickerView.cpp \
 	widgets/UpdateToast.cpp \
 	widgets/ValueScrubBox.cpp \
+	widgets/DialogChrome.cpp \
 	widgets/TitleBar.cpp \
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/RoutingFold.cpp \
@@ -424,6 +426,7 @@ HEADERS  += \
 	skins/pickers/MatrixFilterPicker.h \
 	skins/RackChrome.h \
 	skins/Skins.h \
+	skins/SkinFileIcons.h \
 	skins/SkinPaint.h \
 	skins/SkinSupport.h \
 	skins/SkinThemeData.h \
@@ -473,6 +476,7 @@ HEADERS  += \
 	widgets/FilterPickerView.h \
 	widgets/UpdateToast.h \
 	widgets/ValueScrubBox.h \
+	widgets/DialogChrome.h \
 	widgets/TitleBar.h \
 	widgets/routing/CopyRoutingAdapter.h \
 	widgets/routing/RoutingFold.h \

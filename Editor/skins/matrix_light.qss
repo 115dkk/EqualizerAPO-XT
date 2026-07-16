@@ -783,6 +783,14 @@ QTableView::item:selected {
 QTreeView::branch {
     background: transparent;
 }
+/* The file dialog's views sit on the board grid, like the menus: the same
+   24px tile, faint enough to read as the panel behind the rows rather than
+   competing with them (round-2 verdict: "거슬리지 않는 선에서"). */
+QFileDialog QTreeView,
+QFileDialog QListView {
+    background-color: @BG@;
+    background-image: url(:/icons/modern/matrix-grid-light.svg);
+}
 
 /* ===== Sliders ===== */
 QSlider::groove:horizontal {
