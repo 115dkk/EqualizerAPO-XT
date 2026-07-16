@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 
 namespace Ui {
@@ -43,7 +45,7 @@ private slots:
 private:
 	void updateFileInfo();
 
-	Ui::ConvolutionFilterGUI* ui;
+	std::unique_ptr<Ui::ConvolutionFilterGUI> ui;
 	QString configPath;
 	unsigned deviceSampleRate;
 };

@@ -23,6 +23,7 @@
 #include "VSTPluginInstance.h"
 #include "VSTPluginInstanceInternal.h"
 #include "pluginterfaces/base/futils.h"
+#include "pluginterfaces/base/smartpointer.h"
 
 using namespace std;
 using namespace Steinberg;
@@ -30,20 +31,26 @@ using namespace Steinberg::Vst;
 
 bool VSTPluginInstance::initializeVST3()
 {
-	vst3HostContext = new VST3HostContext(this);
+	vst3HostContext = IPtr<VST3HostContext>::adopt(new VST3HostContext(this));
 
 	const PClassInfo& classInfo = library->getVST3ClassInfo();
 	FUID componentId(classInfo.cid);
 	TUID componentIid;
 	IComponent::iid.toTUID(componentIid);
-	if (library->getFactory()->createInstance(componentId, componentIid, (void**)&vst3Component) != kResultOk || vst3Component == NULL)
+	IComponent* rawComponent = NULL;
+	const tresult componentResult = library->getFactory()->createInstance(
+		componentId,
+		componentIid,
+		(void**)&rawComponent);
+	vst3Component = IPtr<IComponent>::adopt(rawComponent);
+	if (componentResult != kResultOk || vst3Component == NULL)
 	{
 		LogF(L"Could not create IComponent instance of VST3 plugin %s.", library->getLibPath().c_str());
 		return false;
 	}
 
 	vst3Component->setIoMode(kSimple);
-	if (vst3Component->initialize(static_cast<IHostApplication*>(vst3HostContext)) != kResultOk)
+	if (vst3Component->initialize(static_cast<IHostApplication*>(vst3HostContext.get())) != kResultOk)
 	{
 		LogF(L"Could not initialize IComponent of VST3 plugin %s.", library->getLibPath().c_str());
 		return false;
@@ -51,7 +58,10 @@ bool VSTPluginInstance::initializeVST3()
 
 	TUID processorIid;
 	IAudioProcessor::iid.toTUID(processorIid);
-	if (vst3Component->queryInterface(processorIid, (void**)&vst3Processor) != kResultOk || vst3Processor == NULL)
+	IAudioProcessor* rawProcessor = NULL;
+	const tresult processorResult = vst3Component->queryInterface(processorIid, (void**)&rawProcessor);
+	vst3Processor = IPtr<IAudioProcessor>::adopt(rawProcessor);
+	if (processorResult != kResultOk || vst3Processor == NULL)
 	{
 		LogF(L"VST3 plugin %s does not provide the IAudioProcessor interface.", library->getLibPath().c_str());
 		return false;
@@ -63,31 +73,48 @@ bool VSTPluginInstance::initializeVST3()
 	{
 		TUID controllerIid;
 		IEditController::iid.toTUID(controllerIid);
-		library->getFactory()->createInstance(controllerClassId, controllerIid, (void**)&vst3Controller);
+		IEditController* rawController = NULL;
+		library->getFactory()->createInstance(controllerClassId, controllerIid, (void**)&rawController);
+		vst3Controller = IPtr<IEditController>::adopt(rawController);
 	}
 	if (vst3Controller == NULL)
 	{
 		TUID controllerIid;
 		IEditController::iid.toTUID(controllerIid);
-		vst3Component->queryInterface(controllerIid, (void**)&vst3Controller);
+		IEditController* rawController = NULL;
+		vst3Component->queryInterface(controllerIid, (void**)&rawController);
+		vst3Controller = IPtr<IEditController>::adopt(rawController);
 	}
 	if (vst3Controller != NULL)
 	{
-		vst3Controller->initialize(static_cast<IHostApplication*>(vst3HostContext));
-		vst3Controller->setComponentHandler(vst3HostContext);
+		vst3Controller->initialize(static_cast<IHostApplication*>(vst3HostContext.get()));
+		vst3Controller->setComponentHandler(static_cast<IComponentHandler*>(vst3HostContext.get()));
 
-		VST3MemoryStream* stream = new VST3MemoryStream();
-		if (vst3Component->getState(stream) == kResultOk)
+		auto stream = IPtr<VST3MemoryStream>::adopt(new VST3MemoryStream());
+		if (vst3Component->getState(stream.get()) == kResultOk)
 		{
 			stream->seek(0, IBStream::kIBSeekSet);
-			vst3Controller->setComponentState(stream);
+			vst3Controller->setComponentState(stream.get());
 		}
-		stream->release();
 
 		TUID connectionPointIid;
 		Steinberg::Vst::IConnectionPoint::iid.toTUID(connectionPointIid);
-		if (vst3Component->queryInterface(connectionPointIid, (void**)&vst3ComponentConnection) == kResultOk
-			&& vst3Controller->queryInterface(connectionPointIid, (void**)&vst3ControllerConnection) == kResultOk)
+		Steinberg::Vst::IConnectionPoint* rawComponentConnection = NULL;
+		const tresult componentConnectionResult = vst3Component->queryInterface(
+			connectionPointIid,
+			(void**)&rawComponentConnection);
+		vst3ComponentConnection = IPtr<Steinberg::Vst::IConnectionPoint>::adopt(rawComponentConnection);
+
+		Steinberg::Vst::IConnectionPoint* rawControllerConnection = NULL;
+		const tresult controllerConnectionResult = vst3Controller->queryInterface(
+			connectionPointIid,
+			(void**)&rawControllerConnection);
+		vst3ControllerConnection = IPtr<Steinberg::Vst::IConnectionPoint>::adopt(rawControllerConnection);
+
+		if (componentConnectionResult == kResultOk
+			&& controllerConnectionResult == kResultOk
+			&& vst3ComponentConnection != NULL
+			&& vst3ControllerConnection != NULL)
 		{
 			vst3ComponentConnection->connect(vst3ControllerConnection);
 			vst3ControllerConnection->connect(vst3ComponentConnection);
@@ -118,7 +145,7 @@ void VSTPluginInstance::releaseVST3()
 	automateFunc = nullptr;
 	sizeWindowFunc = nullptr;
 	stopEditing();
-	stopProcessing();
+	stopProcessingSafely();
 
 	if (vst3Controller != NULL)
 		vst3Controller->setComponentHandler(NULL);
@@ -129,37 +156,23 @@ void VSTPluginInstance::releaseVST3()
 		vst3ControllerConnection->disconnect(vst3ComponentConnection);
 	}
 	if (vst3ComponentConnection != NULL)
-	{
-		vst3ComponentConnection->release();
-		vst3ComponentConnection = NULL;
-	}
+		vst3ComponentConnection.reset();
 	if (vst3ControllerConnection != NULL)
-	{
-		vst3ControllerConnection->release();
-		vst3ControllerConnection = NULL;
-	}
+		vst3ControllerConnection.reset();
 	if (vst3Controller != NULL)
 	{
 		vst3Controller->terminate();
-		vst3Controller->release();
-		vst3Controller = NULL;
+		vst3Controller.reset();
 	}
 	if (vst3Processor != NULL)
-	{
-		vst3Processor->release();
-		vst3Processor = NULL;
-	}
+		vst3Processor.reset();
 	if (vst3Component != NULL)
 	{
 		vst3Component->terminate();
-		vst3Component->release();
-		vst3Component = NULL;
+		vst3Component.reset();
 	}
 	if (vst3HostContext != NULL)
-	{
-		vst3HostContext->release();
-		vst3HostContext = NULL;
-	}
+		vst3HostContext.reset();
 }
 
 void VSTPluginInstance::configureVST3Buses(int requestedChannelCount)

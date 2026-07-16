@@ -38,6 +38,7 @@
 #endif
 #include <math.h>
 #include <fftw3.h>
+#include "../helpers/FftwRAII.h"
 #include "../helpers/LogHelper.h"
 #include "HcAlignedStorage.h"
 #include "libHybridConv_eapo.h"
@@ -78,36 +79,6 @@ struct HConvSingleStorage
 	std::vector<double*> mixImagPtrs;
 	HcAlignedPtr<double> historyTime;
 };
-
-namespace
-{
-class HcPlanOwner
-{
-public:
-	explicit HcPlanOwner(fftw_plan plan = nullptr) noexcept : plan(plan) {}
-	~HcPlanOwner()
-	{
-		if (plan != nullptr)
-			fftw_destroy_plan(plan);
-	}
-
-	HcPlanOwner(const HcPlanOwner&) = delete;
-	HcPlanOwner& operator=(const HcPlanOwner&) = delete;
-
-	fftw_plan get() const noexcept { return plan; }
-	fftw_plan release() noexcept
-	{
-		fftw_plan result = plan;
-		plan = nullptr;
-		return result;
-	}
-
-private:
-	fftw_plan plan;
-};
-}
-
-
 
 double hcTime(void)
 {
@@ -566,6 +537,8 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 	// FFTW_ESTIMATE so a fresh install does not introduce a multi-second audio glitch at startup.
 	// A separate warmup tool can pre-populate %LOCALAPPDATA%\EqualizerAPO\fftw_wisdom.dat to unlock the
 	// faster MEASURE path on subsequent runs.
+	fftw::Plan fft;
+	fftw::Plan ifft;
 	{
 		static std::mutex plannerMutex;
 		std::lock_guard<std::mutex> lock(plannerMutex);
@@ -584,20 +557,9 @@ void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps
 			});
 		}
 		unsigned fftw_flags = (wisdomAvailable ? FFTW_MEASURE : FFTW_ESTIMATE) | FFTW_PRESERVE_INPUT;
-		HcPlanOwner fft(fftw_plan_dft_r2c_1d(2 * flen, temp.dft_time, temp.dft_freq, fftw_flags));
-		if (fft.get() == nullptr)
-			throw std::runtime_error("FFTW could not create the forward convolution plan");
-		HcPlanOwner ifft(fftw_plan_dft_c2r_1d(2 * flen, temp.dft_freq, temp.dft_time, fftw_flags));
-		if (ifft.get() == nullptr)
-			throw std::runtime_error("FFTW could not create the inverse convolution plan");
-
-		temp.fft = fft.release();
-		temp.ifft = ifft.release();
+		fft = fftw::makeRealToComplexPlan(2 * flen, temp.dft_time, temp.dft_freq, fftw_flags);
+		ifft = fftw::makeComplexToRealPlan(2 * flen, temp.dft_freq, temp.dft_time, fftw_flags);
 	}
-	HcPlanOwner fft(temp.fft);
-	HcPlanOwner ifft(temp.ifft);
-	temp.fft = nullptr;
-	temp.ifft = nullptr;
 
 	gain = 0.5 / flen;
 

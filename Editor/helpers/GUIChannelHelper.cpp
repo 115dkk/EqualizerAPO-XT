@@ -22,14 +22,10 @@
 
 #include "GUIChannelHelper.h"
 
-GUIChannelHelper* GUIChannelHelper::instance = nullptr;
-
 GUIChannelHelper* GUIChannelHelper::getInstance()
 {
-	if (instance == nullptr)
-		instance = new GUIChannelHelper();
-
-	return instance;
+	static GUIChannelHelper instance;
+	return &instance;
 }
 
 GUIChannelHelper::GUIChannelHelper()

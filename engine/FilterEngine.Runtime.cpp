@@ -186,13 +186,13 @@ void FilterEngine::finishTransitionIfReady()
 void FilterEngine::notificationThread(FilterEngine* engine)
 {
 
-	HANDLE notificationHandle = FindFirstChangeNotificationW(engine->configPath.c_str(), true, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
-	if (notificationHandle == INVALID_HANDLE_VALUE)
-		notificationHandle = nullptr;
+	winutil::UniqueChangeNotification notification(
+		FindFirstChangeNotificationW(engine->configPath.c_str(), true,
+			FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE));
 
 	Win32Event registryEvent(true, false);
 
-	HANDLE handles[3] = {engine->shutdownEvent->get(), notificationHandle, registryEvent.get()};
+	HANDLE handles[3] = {engine->shutdownEvent->get(), notification.get(), registryEvent.get()};
 	while (true)
 	{
 		// watchRegistryKeys is cleared and refilled under loadMutex whenever a
@@ -205,14 +205,14 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 			watchedKeys.assign(engine->watchRegistryKeys.begin(), engine->watchRegistryKeys.end());
 		}
 
-		vector<HKEY> keyHandles;
+		vector<winutil::UniqueRegistryKey> keyHandles;
 		for (auto it = watchedKeys.begin(); it != watchedKeys.end(); it++)
 		{
 			try
 			{
-				HKEY keyHandle = RegistryHelper::openKey(*it, KEY_NOTIFY | KEY_WOW64_64KEY);
-				keyHandles.push_back(keyHandle);
-				RegNotifyChangeKeyValue(keyHandle, false, REG_NOTIFY_CHANGE_LAST_SET, registryEvent.get(), true);
+				keyHandles.push_back(RegistryHelper::openKey(*it, KEY_NOTIFY | KEY_WOW64_64KEY));
+				RegNotifyChangeKeyValue(keyHandles.back().get(), false,
+					REG_NOTIFY_CHANGE_LAST_SET, registryEvent.get(), true);
 			}
 			catch (const RegistryException& e)
 			{
@@ -221,11 +221,6 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 		}
 
 		DWORD which = Win32Event::waitAny(3, handles);
-
-		for (auto it = keyHandles.begin(); it != keyHandles.end(); it++)
-		{
-			RegCloseKey(*it);
-		}
 
 		if (which == WAIT_OBJECT_0)
 		{
@@ -236,9 +231,9 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 		{
 			if (which == WAIT_OBJECT_0 + 1)
 			{
-				FindNextChangeNotification(notificationHandle);
+				FindNextChangeNotification(notification.get());
 				// Wait for second event within 10 milliseconds to avoid loading twice
-				Win32Event::waitOne(notificationHandle, 10);
+				Win32Event::waitOne(notification.get(), 10);
 			}
 
 			if (!engine->acquireLoadPermit())
@@ -254,10 +249,9 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 			// directly; both cases must return the permit here.
 			if (!loaded || !engine->nextConfigReady.load(std::memory_order_acquire))
 				engine->releaseLoadPermit();
-			FindNextChangeNotification(notificationHandle);
+			FindNextChangeNotification(notification.get());
 			registryEvent.reset();
 		}
 	}
 
-	FindCloseChangeNotification(notificationHandle);
 }

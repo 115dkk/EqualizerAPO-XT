@@ -23,35 +23,47 @@
 
 #include <QThread>
 #include <QMutex>
+#include <QMutexLocker>
 #include <QWaitCondition>
 #include <fftw3.h>
 
 #include "ConfigLoadTrace.h"
 #include "DeviceAPOInfo.h"
+#include "helpers/FftwRAII.h"
 
 class AnalysisThread : public QThread
 {
 	Q_OBJECT
 
 public:
+	class ResultLock
+	{
+	public:
+		ResultLock(const ResultLock&) = delete;
+		ResultLock& operator=(const ResultLock&) = delete;
+
+		fftw_complex* freqData() const;
+		int freqDataLength() const;
+		int freqDataSampleRate() const;
+		double peakGain() const;
+		int latency() const;
+		double initializationTime() const;
+		double processingTime() const;
+		unsigned processedFrames() const;
+		const std::vector<ConfigLoadTraceEntry>& loadTrace() const;
+
+	private:
+		friend class AnalysisThread;
+		explicit ResultLock(AnalysisThread& owner);
+
+		AnalysisThread& owner;
+		QMutexLocker<QMutex> locker;
+	};
+
 	AnalysisThread();
 	~AnalysisThread();
 	void setParameters(std::shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, const QString& configPath, int frameCount);
-	void beginGetResult();
-	void endGetResult();
-
-	fftw_complex* getFreqData() const;
-	int getFreqDataLength() const;
-	int getFreqDataSampleRate() const;
-	double getPeakGain() const;
-	int getLatency() const;
-	double getInitializationTime() const;
-	double getProcessingTime() const;
-	unsigned getProcessedFrames() const;
-	// Per-line facts the engine reported while loading the analyzed config
-	// (branch decisions, Eval values, skipped lines). Like the other getters,
-	// only valid between beginGetResult() and endGetResult().
-	const std::vector<ConfigLoadTraceEntry>& getLoadTrace() const;
+	ResultLock lockResult();
 
 signals:
 	void analysisFinished();
@@ -72,7 +84,7 @@ private:
 	int frameCount = 0;
 
 	// output
-	fftw_complex* resultFreqData = nullptr;
+	fftw::ComplexBuffer resultFreqData;
 	int freqDataLength = 0;
 	int freqDataSampleRate = 0;
 	double peakGain = 0.0;
@@ -85,9 +97,9 @@ private:
 	// internal (not protected by mutex)
 	int lastFrameCount = -1;
 	int lastChannelCount = -1;
-	double* buf = nullptr;
-	double* buf2 = nullptr;
-	double* timeData = nullptr;
-	fftw_complex* freqData = nullptr;
-	fftw_plan planForward = nullptr;
+	std::vector<double> buf;
+	std::vector<double> buf2;
+	fftw::RealBuffer timeData;
+	fftw::ComplexBuffer freqData;
+	fftw::Plan planForward;
 };

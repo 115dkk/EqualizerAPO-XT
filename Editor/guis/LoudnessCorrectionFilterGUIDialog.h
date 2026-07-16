@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QDialog>
 #include <QBuffer>
 
@@ -45,6 +47,6 @@ private slots:
 	void on_bothRadioButton_toggled(bool checked);
 
 private:
-	Ui::LoudnessCorrectionFilterGUIDialog* ui;
+	std::unique_ptr<Ui::LoudnessCorrectionFilterGUIDialog> ui;
 	QBuffer buffer;
 };

@@ -39,7 +39,6 @@ public:
 
 private:
 	GUIChannelHelper();
-	static GUIChannelHelper* instance;
 
 	QList<ChannelConfigurationInfo> channelConfigurationInfos;
 };

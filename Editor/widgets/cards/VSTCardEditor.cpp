@@ -135,8 +135,6 @@ VSTCardEditor::~VSTCardEditor()
 	{
 		if (embedded)
 			embedToggled(false);
-		delete effect;
-		effect = nullptr;
 	}
 }
 
@@ -192,7 +190,7 @@ void VSTCardEditor::openPanel()
 	{
 		effect->writeToEffect(chunkData, paramMap);
 
-		VSTPluginFilterGUIDialog dialog(this, effect, autoApplyDialog);
+		VSTPluginFilterGUIDialog dialog(this, effect.get(), autoApplyDialog);
 		connect(dialog.getApplyButton(), SIGNAL(pressed()), SLOT(applyDialog()));
 		connect(dialog.getAutoApplyCheckBox(), SIGNAL(toggled(bool)), SLOT(autoApplyToggled(bool)));
 		connect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), SLOT(onIdle()));
@@ -259,7 +257,7 @@ void VSTCardEditor::initPlugin()
 		}
 		else
 		{
-			effect = new VSTPluginInstance(library, 1);
+			effect = std::make_unique<VSTPluginInstance>(library, 1);
 			if (effect->initialize())
 			{
 				effect->setLanguage(QLocale().language() == QLocale::German ? 2 : 1);
@@ -267,8 +265,7 @@ void VSTCardEditor::initPlugin()
 			}
 			else
 			{
-				delete effect;
-				effect = nullptr;
+				effect.reset();
 				initErrorText = tr("Plugin crashed during initialization.");
 			}
 		}
@@ -348,8 +345,7 @@ void VSTCardEditor::pathCommitted(const QString& text)
 			oldId = effect->uniqueID();
 			if (embedAction->isChecked())
 				embedToggled(false);
-			delete effect;
-			effect = nullptr;
+			effect.reset();
 		}
 
 		QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));

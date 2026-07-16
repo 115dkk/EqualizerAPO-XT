@@ -13,7 +13,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -22,12 +24,10 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
-#include <sndfile.h>
-
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "helpers/LogHelper.h"
+#include "helpers/SndfileRAII.h"
 #include "Tests/TestHarness.h"
 
 namespace
@@ -123,11 +123,10 @@ std::wstring writeStereoDeltaIr(test::Harness& harness, const std::wstring& file
 	info.samplerate = 48000;
 	info.channels = 2;
 	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
-	SNDFILE* file = sf_wchar_open(path.c_str(), SFM_WRITE, &info);
-	if (file == nullptr)
+	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_WRITE, &info));
+	if (!file)
 		harness.fail("could not write stereo delta IR");
-	sf_writef_double(file, interleaved.data(), frames);
-	sf_close(file);
+	sf_writef_double(file.get(), interleaved.data(), frames);
 
 	writtenConfigFiles().push_back(path);
 	return path;
@@ -202,14 +201,13 @@ void testMultiConvolutionIgnoresChannelSelection(test::Harness& harness)
 void readStereoIr(test::Harness& harness, const std::wstring& path, std::vector<double>& ch0, std::vector<double>& ch1)
 {
 	SF_INFO info = {};
-	SNDFILE* file = sf_wchar_open(path.c_str(), SFM_READ, &info);
-	if (file == nullptr)
+	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_READ, &info));
+	if (!file)
 		harness.fail("could not open BRIR IR file");
 	if (info.channels != 2)
 		harness.fail("BRIR IR file is not stereo");
 	std::vector<double> interleaved((size_t)info.frames * info.channels);
-	sf_readf_double(file, interleaved.data(), info.frames);
-	sf_close(file);
+	sf_readf_double(file.get(), interleaved.data(), info.frames);
 	ch0.resize((size_t)info.frames);
 	ch1.resize((size_t)info.frames);
 	for (sf_count_t i = 0; i < info.frames; i++)
@@ -233,9 +231,8 @@ void writeStereoIr(const std::wstring& path, const std::vector<double>& ch0, con
 	info.samplerate = 48000;
 	info.channels = 2;
 	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
-	SNDFILE* file = sf_wchar_open(path.c_str(), SFM_WRITE, &info);
-	sf_writef_double(file, interleaved.data(), (sf_count_t)frames);
-	sf_close(file);
+	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_WRITE, &info));
+	sf_writef_double(file.get(), interleaved.data(), (sf_count_t)frames);
 	writtenConfigFiles().push_back(path);
 }
 
@@ -291,13 +288,13 @@ void testRealBrirCrossfeed(test::Harness& harness)
 	wchar_t* dirBuf = nullptr;
 	size_t dirLen = 0;
 	_wdupenv_s(&dirBuf, &dirLen, L"EAPO_XT_BRIR_DIR");
-	if (dirBuf == nullptr)
+	std::unique_ptr<wchar_t, decltype(&std::free)> dirOwner(dirBuf, &std::free);
+	if (!dirOwner)
 	{
 		std::printf("  [skip] testRealBrirCrossfeed: set EAPO_XT_BRIR_DIR to the BRIR folder to run it\n");
 		return;
 	}
-	std::wstring dir(dirBuf);
-	free(dirBuf);
+	std::wstring dir(dirOwner.get());
 
 	std::wstring flPath = dir + L"\\Thead400FL.wav";
 	std::wstring frPath = dir + L"\\Thead400FR.wav";
@@ -568,7 +565,7 @@ void testConfigLoadTrace(test::Harness& harness)
 void runSampleIoTests(test::Harness& harness);
 void runConfigurationFileReaderTests(test::Harness& harness);
 
-int main()
+int runEngineOrchestrationTests()
 {
 	LogHelper::set(stderr, false, false, false);
 
@@ -588,4 +585,21 @@ int main()
 	removeTestDirectory();
 	harness.report();
 	return 0;
+}
+
+int main()
+{
+	try
+	{
+		return runEngineOrchestrationTests();
+	}
+	catch (const std::exception& error)
+	{
+		std::fprintf(stderr, "EngineOrchestrationTests: unhandled exception: %s\n", error.what());
+	}
+	catch (...)
+	{
+		std::fprintf(stderr, "EngineOrchestrationTests: unhandled non-standard exception\n");
+	}
+	return EXIT_FAILURE;
 }

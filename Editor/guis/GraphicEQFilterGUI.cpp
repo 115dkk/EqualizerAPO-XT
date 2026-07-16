@@ -41,7 +41,7 @@ using std::vector;
 QRegularExpression GraphicEQFilterGUI::numberRegEx("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?");
 
 GraphicEQFilterGUI::GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, const QString& configPath, FilterTable* filterTable)
-	: ui(new Ui::GraphicEQFilterGUI), configPath(configPath)
+	: ui(std::make_unique<Ui::GraphicEQFilterGUI>()), configPath(configPath)
 {
 	ui->setupUi(this);
 	if(GUIHelper::isDarkMode())
@@ -100,10 +100,7 @@ GraphicEQFilterGUI::GraphicEQFilterGUI(const std::vector<FilterNode>& nodes, con
 	ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }
 
-GraphicEQFilterGUI::~GraphicEQFilterGUI()
-{
-	delete ui;
-}
+GraphicEQFilterGUI::~GraphicEQFilterGUI() = default;
 
 void GraphicEQFilterGUI::store(QString& command, QString& parameters)
 {

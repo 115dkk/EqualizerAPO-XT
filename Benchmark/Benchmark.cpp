@@ -23,6 +23,7 @@
 #include <crtdbg.h>
 #endif
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -31,7 +32,6 @@
 #include <cmath>
 #include <string>
 #include <vector>
-#include <sndfile.h>
 #include <tclap/CmdLine.h>
 
 #include "../version.h"
@@ -41,6 +41,7 @@
 #include "../helpers/PrecisionTimer.h"
 #include "../helpers/MemoryHelper.h"
 #include "../helpers/PerfProfile.h"
+#include "../helpers/SndfileRAII.h"
 
 using std::cerr;
 using std::cout;
@@ -114,10 +115,10 @@ int main(int argc, char** argv)
 			timer.start();
 
 			SF_INFO info;
-			SNDFILE* inFile = sf_open(input.c_str(), SFM_READ, &info);
-			if (inFile == nullptr)
+			sndfile::Handle inFile(sf_open(input.c_str(), SFM_READ, &info));
+			if (!inFile)
 			{
-				cerr << sf_strerror(inFile);
+				cerr << sf_strerror(nullptr);
 				return 1;
 			}
 
@@ -131,10 +132,7 @@ int main(int argc, char** argv)
 
 			sf_count_t numRead = 0;
 			while (numRead < frameCount)
-				numRead += sf_readf_float(inFile, buf.data() + numRead * channelCount, frameCount - numRead);
-
-			sf_close(inFile);
-			inFile = nullptr;
+				numRead += sf_readf_float(inFile.get(), buf.data() + numRead * channelCount, frameCount - numRead);
 
 			double readTime = timer.stop();
 			cout << "Reading input file took " << readTime << " seconds\n";
@@ -301,19 +299,16 @@ int main(int argc, char** argv)
 			cout << "\nWriting output to " << output << "\n";
 
 			SF_INFO info = {frameCount, static_cast<int>(sampleRate), static_cast<int>(channelCount), SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
-			SNDFILE* outFile = sf_open(output.c_str(), SFM_WRITE, &info);
-			if (outFile == nullptr)
+			sndfile::Handle outFile(sf_open(output.c_str(), SFM_WRITE, &info));
+			if (!outFile)
 			{
-				cerr << sf_strerror(outFile);
+				cerr << sf_strerror(nullptr);
 				return 1;
 			}
 
 			sf_count_t numWritten = 0;
 			while (numWritten < frameCount)
-				numWritten += sf_writef_float(outFile, buf2.data() + numWritten * channelCount, frameCount - numWritten);
-
-			sf_close(outFile);
-			outFile = nullptr;
+				numWritten += sf_writef_float(outFile.get(), buf2.data() + numWritten * channelCount, frameCount - numWritten);
 		}
 
 		if (!noPauseArg.getValue())
@@ -325,5 +320,15 @@ int main(int argc, char** argv)
 	{
 		cerr << "Error: " << e.error() << " for arg " << e.argId() << "\n";
 		return -1;
+	}
+	catch (const std::exception& error)
+	{
+		cerr << "Unhandled exception: " << error.what() << "\n";
+		return EXIT_FAILURE;
+	}
+	catch (...)
+	{
+		cerr << "Unhandled non-standard exception\n";
+		return EXIT_FAILURE;
 	}
 }

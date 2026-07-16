@@ -33,7 +33,7 @@ static const double dialQMin = 0.3333;
 static const double dialQMax = 33.3333;
 
 BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
-	: ui(new Ui::BiQuadFilterGUI)
+	: ui(std::make_unique<Ui::BiQuadFilterGUI>())
 {
 	ui->setupUi(this);
 
@@ -95,10 +95,7 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 	ui->gainSpinBox->setValue(command.dbGain);
 }
 
-BiQuadFilterGUI::~BiQuadFilterGUI()
-{
-	delete ui;
-}
+BiQuadFilterGUI::~BiQuadFilterGUI() = default;
 
 // This is the sole BiQuad serializer; the engine only parses. It emits from the
 // combo-box mode selectors (Fixed/Q/BW/Slope, centre/corner) rather than from a

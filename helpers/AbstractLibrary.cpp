@@ -26,13 +26,12 @@ using std::wstring;
 
 AbstractLibrary::~AbstractLibrary()
 {
-	if (module != nullptr)
+	if (module)
 	{
 		wchar_t path[MAX_PATH];
-		GetModuleFileNameW(module, path, MAX_PATH);
+		GetModuleFileNameW(module.get(), path, MAX_PATH);
 
-		FreeLibrary(module);
-		module = nullptr;
+		module.reset();
 
 		TraceF(L"Unloaded library %s", path);
 	}
@@ -42,13 +41,13 @@ int AbstractLibrary::initialize()
 {
 	std::lock_guard<std::mutex> lock(initMutex);
 
-	if (module == nullptr)
+	if (!module)
 	{
 		wstring libPath = getLoadPath();
 		if (GetFileAttributesW(libPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 			return FILE_NOT_FOUND;
-		module = LoadLibraryW(libPath.c_str());
-		if (module == nullptr)
+		module.reset(LoadLibraryW(libPath.c_str()));
+		if (!module)
 		{
 			unsigned short arch = getFileArchitecture(libPath);
 #if defined(_M_ARM64)
@@ -66,8 +65,8 @@ int AbstractLibrary::initialize()
 
 		if (!loadFunctions())
 		{
-			FreeLibrary(module);
-			module = nullptr;
+			customUninitialize();
+			module.reset();
 			return FUNCTIONS_MISSING;
 		}
 
@@ -75,8 +74,7 @@ int AbstractLibrary::initialize()
 		if (res < 0)
 		{
 			customUninitialize();
-			FreeLibrary(module);
-			module = nullptr;
+			module.reset();
 			return res;
 		}
 
@@ -110,23 +108,21 @@ unsigned short AbstractLibrary::getFileArchitecture(const wstring& filePath)
 {
 	unsigned short result = 0;
 
-	HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (hFile != INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle file(CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ,
+		nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+	if (file)
 	{
-		HANDLE hMap = CreateFileMappingW(hFile, nullptr, PAGE_READONLY, 0, 0, nullptr);
-		if (hMap != nullptr)
+		winutil::UniqueHandle mapping(CreateFileMappingW(file.get(), nullptr, PAGE_READONLY, 0, 0, nullptr));
+		if (mapping)
 		{
-			void* mapAddr = MapViewOfFileEx(hMap, FILE_MAP_READ, 0, 0, 0, nullptr);
-			if (mapAddr != nullptr)
+			winutil::UniqueMappedView view(MapViewOfFileEx(mapping.get(), FILE_MAP_READ, 0, 0, 0, nullptr));
+			if (view)
 			{
-				PIMAGE_NT_HEADERS ntHeaders = ImageNtHeader(mapAddr);
+				PIMAGE_NT_HEADERS ntHeaders = ImageNtHeader(view.get());
 				if (ntHeaders != nullptr)
 					result = ntHeaders->FileHeader.Machine;
-				UnmapViewOfFile(mapAddr);
 			}
-			CloseHandle(hMap);
 		}
-		CloseHandle(hFile);
 	}
 
 	return result;

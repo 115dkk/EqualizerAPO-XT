@@ -31,12 +31,6 @@ using std::wstring;
 DelayFilter::DelayFilter(double delay, bool isMs)
 	: delay(delay), isMs(isMs)
 {
-	buffers = nullptr;
-}
-
-DelayFilter::~DelayFilter()
-{
-	cleanup();
 }
 
 // Upper bound on the per-channel delay ring buffer. A config Delay value is
@@ -49,7 +43,7 @@ static const double kMaxDelaySamples = 32.0 * 1024.0 * 1024.0;
 
 vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
-	cleanup();
+	buffers.clear();
 
 	channelCount = (unsigned)channelNames.size();
 
@@ -64,33 +58,21 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 	}
 	bufferLength = static_cast<unsigned>(samples);
 
-	// MemoryHelper::alloc returns nullptr on failure. Check every result: an
-	// out-of-memory request is reachable from a config Delay value and must not
-	// crash. On failure leave buffers == nullptr; process() then passes audio
-	// through undelayed instead of touching a null ring buffer.
-	buffers = (double**)MemoryHelper::alloc(sizeof(double*) * channelCount);
-	if (buffers == nullptr)
-	{
-		LogFStatic(L"Delay pointer-array allocation failed (%u channels); passing audio through", channelCount);
-		bufferOffset = 0;
-		return channelNames;
-	}
-
+	std::vector<MemoryHelper::UniqueAllocation<double>> preparedBuffers;
+	preparedBuffers.reserve(channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		buffers[i] = static_cast<double*>(MemoryHelper::alloc(sizeof *buffers[i] * bufferLength));
-		if (buffers[i] == nullptr)
+		auto buffer = MemoryHelper::allocateArray<double>(bufferLength);
+		if (!buffer)
 		{
 			LogFStatic(L"Delay buffer allocation failed (%u samples); passing audio through", bufferLength);
-			for (unsigned j = 0; j < i; j++)
-				MemoryHelper::free(buffers[j]);
-			MemoryHelper::free(buffers);
-			buffers = nullptr;
 			bufferOffset = 0;
 			return channelNames;
 		}
-		std::fill_n(buffers[i], bufferLength, 0.0);
+		std::fill_n(buffer.get(), bufferLength, 0.0);
+		preparedBuffers.push_back(std::move(buffer));
 	}
+	buffers = std::move(preparedBuffers);
 
 	bufferOffset = 0;
 
@@ -101,7 +83,7 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 void DelayFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("DelayFilter::process");
-	if (buffers == nullptr)
+	if (buffers.empty())
 	{
 		// Allocation failed at initialize(): pass audio through undelayed rather
 		// than dereferencing a null ring buffer.
@@ -114,7 +96,7 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 	{
 		double* inputChannel = input[i];
 		double* outputChannel = output[i];
-		double* bufferChannel = buffers[i];
+		double* bufferChannel = buffers[i].get();
 
 		if (bufferLength <= frameCount)
 		{
@@ -146,18 +128,6 @@ void DelayFilter::process(double** output, double** input, unsigned frameCount)
 		bufferOffset = (bufferOffset + frameCount) % bufferLength;
 }
 #pragma AVRT_CODE_END
-
-void DelayFilter::cleanup()
-{
-	if (buffers != nullptr)
-	{
-		for (unsigned i = 0; i < channelCount; i++)
-			MemoryHelper::free(buffers[i]);
-
-		MemoryHelper::free(buffers);
-		buffers = nullptr;
-	}
-}
 
 bool DelayFilter::getIsMs() const
 {

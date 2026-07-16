@@ -33,11 +33,6 @@ LoudnessCorrectionFilterGUIFactory::~LoudnessCorrectionFilterGUIFactory()
 	if (timer != nullptr)
 		timer->stop();
 
-	if (volumeController != nullptr)
-	{
-		delete volumeController;
-		volumeController = nullptr;
-	}
 }
 
 void LoudnessCorrectionFilterGUIFactory::initialize(FilterTable* filterTable)
@@ -78,7 +73,7 @@ void LoudnessCorrectionFilterGUIFactory::checkVolume()
 {
 	if (volumeController == nullptr)
 	{
-		volumeController = new VolumeController();
+		volumeController = std::make_unique<VolumeController>();
 		volumeController->getVolume(lastVolume);
 	}
 	else

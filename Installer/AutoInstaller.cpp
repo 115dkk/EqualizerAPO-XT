@@ -37,6 +37,8 @@
 #include <intrin.h>      // __cpuid, __cpuidex, _xgetbv
 #include <string>
 
+#include "../helpers/ComPtr.h"
+#include "../helpers/Win32Resource.h"
 #include "../version.h"
 
 #pragma comment(lib, "winhttp.lib")
@@ -46,6 +48,25 @@
 
 namespace
 {
+struct BCryptAlgorithmTraits
+{
+    using resource_type = BCRYPT_ALG_HANDLE;
+    static resource_type invalid() noexcept { return nullptr; }
+    static bool isValid(resource_type value) noexcept { return value != nullptr; }
+    static void close(resource_type value) noexcept { BCryptCloseAlgorithmProvider(value, 0); }
+};
+
+struct BCryptHashTraits
+{
+    using resource_type = BCRYPT_HASH_HANDLE;
+    static resource_type invalid() noexcept { return nullptr; }
+    static bool isValid(resource_type value) noexcept { return value != nullptr; }
+    static void close(resource_type value) noexcept { BCryptDestroyHash(value); }
+};
+
+using UniqueBCryptAlgorithm = winutil::UniqueResource<BCryptAlgorithmTraits>;
+using UniqueBCryptHash = winutil::UniqueResource<BCryptHashTraits>;
+
 // GitHub repository that hosts the releases. Matches the GithubSource URL used by
 // the in-app updater (Editor/main.cpp).
 const wchar_t* kRepoOwner = L"115dkk";
@@ -216,37 +237,37 @@ std::wstring tempFilePath(const std::wstring& fileName)
 bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::wstring& error)
 {
     bool ok = false;
-    HINTERNET session = nullptr;
-    HINTERNET connect = nullptr;
-    HINTERNET request = nullptr;
-    HANDLE file = INVALID_HANDLE_VALUE;
+    winutil::UniqueWinHttpHandle session;
+    winutil::UniqueWinHttpHandle connect;
+    winutil::UniqueWinHttpHandle request;
+    winutil::UniqueHandle file;
 
-    session = WinHttpOpen(kUserAgent, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
-        WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-    if (session == nullptr)
+    session.reset(WinHttpOpen(kUserAgent, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+        WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
+    if (!session)
     {
         error = L"Could not initialise WinHTTP.";
         goto cleanup;
     }
 
-    connect = WinHttpConnect(session, L"github.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
-    if (connect == nullptr)
+    connect.reset(WinHttpConnect(session.get(), L"github.com", INTERNET_DEFAULT_HTTPS_PORT, 0));
+    if (!connect)
     {
         error = L"Could not connect to github.com.";
         goto cleanup;
     }
 
-    request = WinHttpOpenRequest(connect, L"GET", path.c_str(), nullptr,
-        WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
-    if (request == nullptr)
+    request.reset(WinHttpOpenRequest(connect.get(), L"GET", path.c_str(), nullptr,
+        WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE));
+    if (!request)
     {
         error = L"Could not create the download request.";
         goto cleanup;
     }
 
-    if (!WinHttpSendRequest(request, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+    if (!WinHttpSendRequest(request.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0,
             WINHTTP_NO_REQUEST_DATA, 0, 0, 0) ||
-        !WinHttpReceiveResponse(request, nullptr))
+        !WinHttpReceiveResponse(request.get(), nullptr))
     {
         error = L"No response from the download server. Check your internet connection.";
         goto cleanup;
@@ -255,7 +276,7 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
     {
         DWORD statusCode = 0;
         DWORD size = sizeof(statusCode);
-        WinHttpQueryHeaders(request,
+        WinHttpQueryHeaders(request.get(),
             WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
             WINHTTP_HEADER_NAME_BY_INDEX, &statusCode, &size, WINHTTP_NO_HEADER_INDEX);
         if (statusCode != 200)
@@ -266,9 +287,9 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
         }
     }
 
-    file = CreateFileW(outFile.c_str(), GENERIC_WRITE, 0, nullptr,
-        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (file == INVALID_HANDLE_VALUE)
+    file.reset(CreateFileW(outFile.c_str(), GENERIC_WRITE, 0, nullptr,
+        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!file)
     {
         error = L"Could not create a temporary file for the download.";
         goto cleanup;
@@ -277,7 +298,7 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
     for (;;)
     {
         DWORD available = 0;
-        if (!WinHttpQueryDataAvailable(request, &available))
+        if (!WinHttpQueryDataAvailable(request.get(), &available))
         {
             error = L"The download was interrupted.";
             goto cleanup;
@@ -288,14 +309,14 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
         std::string buffer;
         buffer.resize(available);
         DWORD read = 0;
-        if (!WinHttpReadData(request, &buffer[0], available, &read) || read == 0)
+        if (!WinHttpReadData(request.get(), &buffer[0], available, &read) || read == 0)
         {
             error = L"The download was interrupted.";
             goto cleanup;
         }
 
         DWORD written = 0;
-        if (!WriteFile(file, buffer.data(), read, &written, nullptr) || written != read)
+        if (!WriteFile(file.get(), buffer.data(), read, &written, nullptr) || written != read)
         {
             error = L"Could not write the downloaded installer to disk.";
             goto cleanup;
@@ -305,16 +326,12 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
     ok = true;
 
 cleanup:
-    if (file != INVALID_HANDLE_VALUE)
-        CloseHandle(file);
-    if (request != nullptr)
-        WinHttpCloseHandle(request);
-    if (connect != nullptr)
-        WinHttpCloseHandle(connect);
-    if (session != nullptr)
-        WinHttpCloseHandle(session);
-    if (!ok && file != INVALID_HANDLE_VALUE)
-        DeleteFileW(outFile.c_str());
+    {
+        const bool removePartialFile = !ok && static_cast<bool>(file);
+        file.reset();
+        if (removePartialFile)
+            DeleteFileW(outFile.c_str());
+    }
     return ok;
 }
 
@@ -325,27 +342,27 @@ cleanup:
 bool sha256OfFile(const std::wstring& path, std::wstring& outHexLower, std::wstring& error)
 {
     bool ok = false;
-    BCRYPT_ALG_HANDLE algorithm = nullptr;
-    BCRYPT_HASH_HANDLE hash = nullptr;
-    HANDLE file = INVALID_HANDLE_VALUE;
+    UniqueBCryptAlgorithm algorithm;
+    UniqueBCryptHash hash;
+    winutil::UniqueHandle file;
     UCHAR digest[32] = {};
     std::string buffer;
     buffer.resize(64 * 1024);
 
-    if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) != 0)
+    if (BCryptOpenAlgorithmProvider(algorithm.put(), BCRYPT_SHA256_ALGORITHM, nullptr, 0) != 0)
     {
         error = L"Could not initialise the SHA-256 provider.";
         goto cleanup;
     }
-    if (BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0) != 0)
+    if (BCryptCreateHash(algorithm.get(), hash.put(), nullptr, 0, nullptr, 0, 0) != 0)
     {
         error = L"Could not create a SHA-256 hash object.";
         goto cleanup;
     }
 
-    file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (file == INVALID_HANDLE_VALUE)
+    file.reset(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!file)
     {
         error = L"Could not open the downloaded installer for verification.";
         goto cleanup;
@@ -354,21 +371,21 @@ bool sha256OfFile(const std::wstring& path, std::wstring& outHexLower, std::wstr
     for (;;)
     {
         DWORD read = 0;
-        if (!ReadFile(file, &buffer[0], static_cast<DWORD>(buffer.size()), &read, nullptr))
+        if (!ReadFile(file.get(), &buffer[0], static_cast<DWORD>(buffer.size()), &read, nullptr))
         {
             error = L"Could not read the downloaded installer for verification.";
             goto cleanup;
         }
         if (read == 0)
             break;
-        if (BCryptHashData(hash, reinterpret_cast<PUCHAR>(&buffer[0]), read, 0) != 0)
+        if (BCryptHashData(hash.get(), reinterpret_cast<PUCHAR>(&buffer[0]), read, 0) != 0)
         {
             error = L"Could not hash the downloaded installer.";
             goto cleanup;
         }
     }
 
-    if (BCryptFinishHash(hash, digest, sizeof(digest), 0) != 0)
+    if (BCryptFinishHash(hash.get(), digest, sizeof(digest), 0) != 0)
     {
         error = L"Could not finish hashing the downloaded installer.";
         goto cleanup;
@@ -388,12 +405,6 @@ bool sha256OfFile(const std::wstring& path, std::wstring& outHexLower, std::wstr
     ok = true;
 
 cleanup:
-    if (file != INVALID_HANDLE_VALUE)
-        CloseHandle(file);
-    if (hash != nullptr)
-        BCryptDestroyHash(hash);
-    if (algorithm != nullptr)
-        BCryptCloseAlgorithmProvider(algorithm, 0);
     return ok;
 }
 
@@ -497,21 +508,20 @@ std::wstring expectedHashFromChecksums(const std::string& text, const std::wstri
 bool readSmallFile(const std::wstring& path, std::string& outData)
 {
     bool ok = false;
-    HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (file == INVALID_HANDLE_VALUE)
+    winutil::UniqueHandle file(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!file)
         return false;
 
     LARGE_INTEGER size = {};
-    if (GetFileSizeEx(file, &size) && size.QuadPart > 0 && size.QuadPart <= 1024 * 1024)
+    if (GetFileSizeEx(file.get(), &size) && size.QuadPart > 0 && size.QuadPart <= 1024 * 1024)
     {
         outData.resize(static_cast<size_t>(size.QuadPart));
         DWORD read = 0;
-        ok = ReadFile(file, &outData[0], static_cast<DWORD>(outData.size()), &read, nullptr) &&
+        ok = ReadFile(file.get(), &outData[0], static_cast<DWORD>(outData.size()), &read, nullptr) &&
             read == outData.size();
     }
 
-    CloseHandle(file);
     if (!ok)
         outData.clear();
     return ok;
@@ -573,28 +583,26 @@ bool launchSetup(const std::wstring& setupPath, bool silent, DWORD& exitCode)
 
     STARTUPINFOW startup = {};
     startup.cb = sizeof(startup);
-    PROCESS_INFORMATION proc = {};
+    winutil::UniqueProcessInformation proc;
 
     // CreateProcessW may modify the command-line buffer, so pass a writable copy.
     std::wstring mutableCommand = commandLine;
     if (!CreateProcessW(setupPath.c_str(), &mutableCommand[0], nullptr, nullptr, FALSE,
-            0, nullptr, nullptr, &startup, &proc))
+            0, nullptr, nullptr, &startup, proc.put()))
     {
         return false;
     }
 
     if (silent)
     {
-        WaitForSingleObject(proc.hProcess, INFINITE);
-        GetExitCodeProcess(proc.hProcess, &exitCode);
+        WaitForSingleObject(proc.process(), INFINITE);
+        GetExitCodeProcess(proc.process(), &exitCode);
     }
     else
     {
         exitCode = 0;
     }
 
-    CloseHandle(proc.hThread);
-    CloseHandle(proc.hProcess);
     return true;
 }
 
@@ -620,9 +628,9 @@ const wchar_t* flagValue(int argc, wchar_t** argv, const wchar_t* flag)
 
 void writeTextFile(const wchar_t* path, const std::wstring& text)
 {
-    HANDLE file = CreateFileW(path, GENERIC_WRITE, 0, nullptr,
-        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (file == INVALID_HANDLE_VALUE)
+    winutil::UniqueHandle file(CreateFileW(path, GENERIC_WRITE, 0, nullptr,
+        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!file)
         return;
     std::string utf8;
     int needed = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
@@ -631,9 +639,8 @@ void writeTextFile(const wchar_t* path, const std::wstring& text)
         utf8.resize(needed - 1);
         WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, &utf8[0], needed - 1, nullptr, nullptr);
         DWORD written = 0;
-        WriteFile(file, utf8.data(), static_cast<DWORD>(utf8.size()), &written, nullptr);
+        WriteFile(file.get(), utf8.data(), static_cast<DWORD>(utf8.size()), &written, nullptr);
     }
-    CloseHandle(file);
 }
 
 // Print the detection result for --detect-only. Try the parent console first
@@ -646,13 +653,12 @@ int reportDetection(const std::wstring& channel, const std::wstring& url,
 
     if (AttachConsole(ATTACH_PARENT_PROCESS))
     {
-        HANDLE conout = CreateFileW(L"CONOUT$", GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
-        if (conout != INVALID_HANDLE_VALUE)
+        winutil::UniqueHandle conout(CreateFileW(L"CONOUT$", GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr));
+        if (conout)
         {
             DWORD written = 0;
-            WriteConsoleW(conout, text.c_str(), static_cast<DWORD>(text.size()), &written, nullptr);
-            CloseHandle(conout);
+            WriteConsoleW(conout.get(), text.c_str(), static_cast<DWORD>(text.size()), &written, nullptr);
         }
         FreeConsole();
     }
@@ -672,33 +678,26 @@ int reportDetection(const std::wstring& channel, const std::wstring& url,
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
 {
     int argc = 0;
-    wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    const bool detectOnly = argv != nullptr && hasFlag(argc, argv, L"--detect-only");
-    const bool silent = argv != nullptr && hasFlag(argc, argv, L"--silent");
-    const wchar_t* outPath = argv != nullptr ? flagValue(argc, argv, L"--out") : nullptr;
+    winutil::UniqueLocalPtr<wchar_t*> argv(CommandLineToArgvW(GetCommandLineW(), &argc));
+    const bool detectOnly = argv && hasFlag(argc, argv.get(), L"--detect-only");
+    const bool silent = argv && hasFlag(argc, argv.get(), L"--silent");
+    const wchar_t* outPath = argv ? flagValue(argc, argv.get(), L"--out") : nullptr;
 
     int index = kAvx2;
     const std::wstring channel = detectChannel(&index);
     const std::wstring url = downloadUrl(channel);
 
     if (detectOnly)
-    {
-        const int code = reportDetection(channel, url, outPath, index);
-        if (argv != nullptr)
-            LocalFree(argv);
-        return code;
-    }
+        return reportDetection(channel, url, outPath, index);
 
-    if (argv != nullptr)
-        LocalFree(argv);
-
-    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    winutil::ComApartment apartment(COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     // A marquee shell progress dialog covers the detect+download gap so the user
     // is not left staring at nothing before Velopack's installer appears.
-    IProgressDialog* progress = nullptr;
-    if (SUCCEEDED(CoCreateInstance(CLSID_ProgressDialog, nullptr, CLSCTX_INPROC_SERVER,
-            IID_PPV_ARGS(&progress))) && progress != nullptr)
+    winutil::ComPtr<IProgressDialog> progress;
+    if (apartment.isUsable()
+        && SUCCEEDED(CoCreateInstance(CLSID_ProgressDialog, nullptr, CLSCTX_INPROC_SERVER,
+            IID_PPV_ARGS(progress.put()))) && progress)
     {
         progress->SetTitle(L"EqualizerAPO-XT");
         progress->SetLine(1, L"Selecting the best build for your CPU...", FALSE, nullptr);
@@ -716,16 +715,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
     bool verified = false;
     if (downloaded)
     {
-        if (progress != nullptr)
+        if (progress)
             progress->SetLine(1, L"Verifying the downloaded installer...", FALSE, nullptr);
         verified = verifySetupChecksum(outFile, assetName(channel), error);
     }
 
-    if (progress != nullptr)
+    if (progress)
     {
         progress->StopProgressDialog();
-        progress->Release();
-        progress = nullptr;
+        progress.reset();
     }
 
     int result = 0;
@@ -762,6 +760,5 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
         }
     }
 
-    CoUninitialize();
     return result;
 }

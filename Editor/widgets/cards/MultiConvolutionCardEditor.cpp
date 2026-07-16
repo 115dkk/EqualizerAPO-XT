@@ -34,9 +34,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
-#include <sndfile.h>
-
 #include "AbstractAPOInfo.h"
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
@@ -50,6 +47,7 @@
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "ReferenceCardView.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/SndfileRAII.h"
 
 MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	const std::vector<MultiConvolutionCommand::Mapping>& mappings,
@@ -355,8 +353,8 @@ void MultiConvolutionCardEditor::updateFileInfo()
 				state.directory = QDir::toNativeSeparators(asWritten.path());
 
 			SF_INFO sfInfo = {};
-			SNDFILE* file = sf_wchar_open(state.fullPath.toStdWString().c_str(), SFM_READ, &sfInfo);
-			if (file == nullptr)
+			sndfile::Handle file(sf_wchar_open(state.fullPath.toStdWString().c_str(), SFM_READ, &sfInfo));
+			if (!file)
 			{
 				state.statusText = tr("Unsupported file format");
 				state.statusSeverity = ReferenceCardState::Severity::Critical;
@@ -372,8 +370,6 @@ void MultiConvolutionCardEditor::updateFileInfo()
 					<< tr("%1 Hz").arg(sampleRate)
 					<< tr("%1 ch").arg(sfInfo.channels);
 				fileChannelCount = sfInfo.channels;
-				sf_close(file);
-
 				const unsigned deviceRate = currentDeviceSampleRate();
 				if (deviceRate != 0 && static_cast<unsigned>(sampleRate) != deviceRate)
 				{

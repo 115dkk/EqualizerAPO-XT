@@ -140,8 +140,14 @@
     <ClInclude Include="helpers\LogHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\FftwRAII.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\MemoryHelper.h">
       <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\Win32Resource.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="helpers\PerfProfile.h">
       <Filter>helpers</Filter>
@@ -153,6 +159,9 @@
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="helpers\ScopeGuard.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\SndfileRAII.h">
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="helpers\StringHelper.h">

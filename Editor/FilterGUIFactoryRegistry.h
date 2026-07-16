@@ -19,11 +19,14 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include <QList>
 
 class IFilterGUIFactory;
 
-using FilterGUIFactoryCreator = IFilterGUIFactory* (*)();
+using FilterGUIFactoryCreator = std::unique_ptr<IFilterGUIFactory>(*)();
 
 // Single source of truth for the order in which FilterTable offers each parsed
 // configuration line to the GUI factories. Factories are sorted by ascending
@@ -59,9 +62,9 @@ class FilterGUIFactoryRegistry
 public:
 	static bool registerFactory(int order, FilterGUIFactoryCreator creator);
 
-	// Fresh factory instances in ascending order. The caller (FilterTable) takes
-	// ownership and deletes them.
-	static QList<IFilterGUIFactory*> createFactories();
+	// Fresh factory instances in ascending order. Ownership is explicit in the
+	// returned collection and transfers to FilterTable by move.
+	static std::vector<std::unique_ptr<IFilterGUIFactory>> createFactories();
 };
 
 // Registers a GUI factory with its matching order. The factory's .cpp is compiled
@@ -71,5 +74,5 @@ public:
 #define REGISTER_FILTER_GUI_FACTORY(order, factoryType) \
 	namespace \
 	{ \
-		const bool factoryType##Registered = FilterGUIFactoryRegistry::registerFactory(order, []() -> IFilterGUIFactory* { return new factoryType; }); \
+		const bool factoryType##Registered = FilterGUIFactoryRegistry::registerFactory(order, []() -> std::unique_ptr<IFilterGUIFactory> { return std::make_unique<factoryType>(); }); \
 	}

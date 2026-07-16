@@ -12,7 +12,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <limits>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -23,18 +25,36 @@
 #include <windows.h>
 #include <bcrypt.h>
 
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
-#include <sndfile.h>
-
 #include "FilterEngine.h"
 #include "helpers/LogHelper.h"
+#include "helpers/SndfileRAII.h"
 #include "helpers/StringHelper.h"
+#include "helpers/Win32Resource.h"
 #include "Tests/TestHarness.h"
 
 #pragma comment(lib, "bcrypt.lib")
 
 namespace
 {
+
+struct BCryptAlgorithmTraits
+{
+	using resource_type = BCRYPT_ALG_HANDLE;
+	static resource_type invalid() noexcept { return nullptr; }
+	static bool isValid(resource_type value) noexcept { return value != nullptr; }
+	static void close(resource_type value) noexcept { BCryptCloseAlgorithmProvider(value, 0); }
+};
+
+struct BCryptHashTraits
+{
+	using resource_type = BCRYPT_HASH_HANDLE;
+	static resource_type invalid() noexcept { return nullptr; }
+	static bool isValid(resource_type value) noexcept { return value != nullptr; }
+	static void close(resource_type value) noexcept { BCryptDestroyHash(value); }
+};
+
+using UniqueBCryptAlgorithm = winutil::UniqueResource<BCryptAlgorithmTraits>;
+using UniqueBCryptHash = winutil::UniqueResource<BCryptHashTraits>;
 
 enum class SignalType
 {
@@ -221,25 +241,24 @@ std::vector<float> generateSignal(SignalType type, unsigned sampleRate, unsigned
 
 bool writeRawFloat(const std::wstring& path, const std::vector<float>& data)
 {
-	HANDLE h = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (h == INVALID_HANDLE_VALUE) return false;
+	winutil::UniqueHandle file(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr,
+		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+	if (!file) return false;
 	DWORD written = 0;
-	BOOL ok = WriteFile(h, data.data(), (DWORD)(data.size() * sizeof(float)), &written, nullptr);
-	CloseHandle(h);
+	BOOL ok = WriteFile(file.get(), data.data(), (DWORD)(data.size() * sizeof(float)), &written, nullptr);
 	return ok && written == data.size() * sizeof(float);
 }
 
 bool readRawFloat(const std::wstring& path, std::vector<float>& out)
 {
-	HANDLE h = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (h == INVALID_HANDLE_VALUE) return false;
+	winutil::UniqueHandle file(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+	if (!file) return false;
 	LARGE_INTEGER size;
-	GetFileSizeEx(h, &size);
-	if (size.QuadPart % sizeof(float) != 0) { CloseHandle(h); return false; }
+	if (!GetFileSizeEx(file.get(), &size) || size.QuadPart % sizeof(float) != 0) return false;
 	out.resize((size_t)(size.QuadPart / sizeof(float)));
 	DWORD readBytes = 0;
-	BOOL ok = ReadFile(h, out.data(), (DWORD)(out.size() * sizeof(float)), &readBytes, nullptr);
-	CloseHandle(h);
+	BOOL ok = ReadFile(file.get(), out.data(), (DWORD)(out.size() * sizeof(float)), &readBytes, nullptr);
 	return ok && readBytes == out.size() * sizeof(float);
 }
 
@@ -311,17 +330,16 @@ CompareResult compareBuffers(const std::vector<float>& out, const std::vector<fl
 
 std::string sha256Hex(const void* data, size_t size)
 {
-	BCRYPT_ALG_HANDLE alg = nullptr;
-	BCRYPT_HASH_HANDLE hash = nullptr;
+	UniqueBCryptAlgorithm algorithm;
+	UniqueBCryptHash hash;
 	UCHAR digest[32] = {};
 	std::string hex;
-	if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) == 0)
+	if (BCryptOpenAlgorithmProvider(algorithm.put(), BCRYPT_SHA256_ALGORITHM, nullptr, 0) == 0)
 	{
-		if (BCryptCreateHash(alg, &hash, nullptr, 0, nullptr, 0, 0) == 0)
+		if (BCryptCreateHash(algorithm.get(), hash.put(), nullptr, 0, nullptr, 0, 0) == 0)
 		{
-			BCryptHashData(hash, (PUCHAR)data, (ULONG)size, 0);
-			BCryptFinishHash(hash, digest, sizeof(digest), 0);
-			BCryptDestroyHash(hash);
+			BCryptHashData(hash.get(), (PUCHAR)data, (ULONG)size, 0);
+			BCryptFinishHash(hash.get(), digest, sizeof(digest), 0);
 			char buf[3];
 			for (UCHAR b : digest)
 			{
@@ -329,7 +347,6 @@ std::string sha256Hex(const void* data, size_t size)
 				hex += buf;
 			}
 		}
-		BCryptCloseAlgorithmProvider(alg, 0);
 	}
 	return hex;
 }
@@ -366,11 +383,10 @@ bool writeIrWav(const std::wstring& path, const std::vector<std::vector<double>>
 	info.samplerate = (int)sampleRate;
 	info.channels = (int)numCh;
 	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
-	SNDFILE* file = sf_wchar_open(path.c_str(), SFM_WRITE, &info);
-	if (file == nullptr)
+	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_WRITE, &info));
+	if (!file)
 		return false;
-	sf_writef_double(file, interleaved.data(), (sf_count_t)frames);
-	sf_close(file);
+	sf_writef_double(file.get(), interleaved.data(), (sf_count_t)frames);
 	return true;
 }
 
@@ -383,12 +399,12 @@ bool writeTextFile(const std::wstring& path, const std::wstring& text)
 		utf8.resize((size_t)n);
 		WideCharToMultiByte(CP_UTF8, 0, text.data(), (int)text.size(), utf8.data(), n, nullptr, nullptr);
 	}
-	HANDLE h = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (h == INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle file(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr,
+		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+	if (!file)
 		return false;
 	DWORD written = 0;
-	BOOL ok = WriteFile(h, utf8.data(), (DWORD)utf8.size(), &written, nullptr);
-	CloseHandle(h);
+	BOOL ok = WriteFile(file.get(), utf8.data(), (DWORD)utf8.size(), &written, nullptr);
 	return ok && written == utf8.size();
 }
 
@@ -633,15 +649,14 @@ void runAllEquivalenceBatteries(const Options& opts, bool& outFailed, unsigned& 
 	{
 		++fileIndex;
 		SF_INFO info = {};
-		SNDFILE* file = sf_wchar_open(irPath.c_str(), SFM_READ, &info);
-		if (file == nullptr)
+		sndfile::Handle file(sf_wchar_open(irPath.c_str(), SFM_READ, &info));
+		if (!file)
 		{
 			fprintf(stderr, "ERROR: --equiv-ir file unreadable: %S\n", irPath.c_str());
 			outFailed = true;
 			++total;
 			continue;
 		}
-		sf_close(file);
 		const std::string label = "ir" + std::to_string(fileIndex);
 		printf("\n--equiv-ir %S: %d channels, %lld frames, %d Hz\n", irPath.c_str(), info.channels, (long long)info.frames, info.samplerate);
 		runEquivalenceBattery(label, irPath, (unsigned)info.channels, (unsigned)info.frames, (unsigned)info.samplerate, opts, outFailed, passed, total);
@@ -713,7 +728,7 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 
 }
 
-int main(int argc, char** argv)
+int runAudioRegressionTests(int argc, char** argv)
 {
 	LogHelper::set(stderr, false, false, false);
 
@@ -755,4 +770,21 @@ int main(int argc, char** argv)
 	test::Harness harness("AudioRegressionTests");
 	harness.expect(!anyFailed, "one or more regression cases failed (drift beyond tolerance or I/O error)");
 	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	try
+	{
+		return runAudioRegressionTests(argc, argv);
+	}
+	catch (const std::exception& error)
+	{
+		fprintf(stderr, "AudioRegressionTests: unhandled exception: %s\n", error.what());
+	}
+	catch (...)
+	{
+		fprintf(stderr, "AudioRegressionTests: unhandled non-standard exception\n");
+	}
+	return EXIT_FAILURE;
 }

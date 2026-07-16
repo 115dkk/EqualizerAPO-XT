@@ -18,15 +18,14 @@
 #include <vector>
 
 #define WIN32_LEAN_AND_MEAN
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
 #include <windows.h>
-#include <sndfile.h>
 
 #include "filters/ConvolutionFilter.h"
 #include "filters/ConvolutionFilePath.h"
 #include "filters/IrCache.h"
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/SndfileRAII.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 #include "Tests/TestHarness.h"
 
@@ -130,12 +129,11 @@ wstring createImpulseResponseFile(const vector<double>& impulseResponse)
 	info.channels = 1;
 	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
 
-	SNDFILE* file = sf_wchar_open(filename.c_str(), SFM_WRITE, &info);
-	if (file == nullptr)
+	sndfile::Handle file(sf_wchar_open(filename.c_str(), SFM_WRITE, &info));
+	if (!file)
 		fail("could not create temporary impulse response file");
 
-	sf_count_t written = sf_writef_double(file, impulseResponse.data(), (sf_count_t)impulseResponse.size());
-	sf_close(file);
+	sf_count_t written = sf_writef_double(file.get(), impulseResponse.data(), (sf_count_t)impulseResponse.size());
 
 	if (written != (sf_count_t)impulseResponse.size())
 		fail("could not write complete temporary impulse response file");
@@ -317,16 +315,16 @@ void assertInvalidConvolverArgumentsLeaveEmptyOutput()
 void assertPartiallyInitializedConvolverArrayClosesOnlyCompletedPrefix()
 {
 	constexpr unsigned slotCount = 2;
-	HConvSingle* slots = static_cast<HConvSingle*>(MemoryHelper::alloc(sizeof(HConvSingle) * slotCount));
+	auto slots = MemoryHelper::allocateArray<HConvSingle>(slotCount);
 	// cppcheck 2.21 reports a parser error on this ordinary null check after the
 	// templated/static_cast allocation expression; MSVC builds and runs the path.
 	// cppcheck-suppress syntaxError
 	if (slots == nullptr)
 		fail("could not allocate convolver slots for partial-initialization test");
-	memset(slots, 0xA5, sizeof(HConvSingle) * slotCount);
+	memset(slots.get(), 0xA5, sizeof(HConvSingle) * slotCount);
 
 	HConvSingleArray pending;
-	pending.adoptUninitialized(slots, slotCount);
+	pending.adoptUninitialized(std::move(slots), slotCount);
 	vector<double> impulseResponse(1, 1.0);
 	hcInitSingle(&pending[0], impulseResponse.data(), 1, 8, 1);
 	pending.markInitialized();
@@ -356,7 +354,7 @@ void assertConvolutionPathParsing()
 
 }
 
-int main()
+int runHybridConvTests()
 {
 	LogHelper::set(stdout, true, true, false);
 
@@ -395,4 +393,21 @@ int main()
 
 	harness.report();
 	return 0;
+}
+
+int main()
+{
+	try
+	{
+		return runHybridConvTests();
+	}
+	catch (const std::exception& error)
+	{
+		std::fprintf(stderr, "HybridConvTests: unhandled exception: %s\n", error.what());
+	}
+	catch (...)
+	{
+		std::fprintf(stderr, "HybridConvTests: unhandled non-standard exception\n");
+	}
+	return EXIT_FAILURE;
 }

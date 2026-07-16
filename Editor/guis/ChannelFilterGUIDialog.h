@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QCheckBox>
 #include <QDialog>
 
@@ -44,6 +46,6 @@ private slots:
 	void on_allChannelsCheckBox_toggled(bool checked);
 
 private:
-	Ui::ChannelFilterGUIDialog* ui;
+	std::unique_ptr<Ui::ChannelFilterGUIDialog> ui;
 	QList<QCheckBox*> checkBoxes;
 };

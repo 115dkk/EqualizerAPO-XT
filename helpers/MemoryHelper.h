@@ -19,7 +19,10 @@
 
 #pragma once
 
+#include <limits>
+#include <memory>
 #include <new>
+#include <type_traits>
 #include <utility>
 
 #ifdef USE_WINDDK
@@ -34,6 +37,30 @@
 class MemoryHelper
 {
 public:
+	template<class T>
+	struct AllocationDeleter
+	{
+		void operator()(T* ptr) const noexcept
+		{
+			MemoryHelper::free(ptr);
+		}
+	};
+
+	template<class T>
+	struct ObjectDeleter
+	{
+		void operator()(T* ptr) const noexcept
+		{
+			MemoryHelper::destroy(ptr);
+		}
+	};
+
+	template<class T>
+	using UniqueAllocation = std::unique_ptr<T, AllocationDeleter<T>>;
+
+	template<class T>
+	using UniqueObject = std::unique_ptr<T, ObjectDeleter<T>>;
+
 	static void* alloc(size_t size);
 	static void free(void* ptr);
 	// Deterministic failure injection for allocation-path tests. Passing N lets
@@ -42,6 +69,20 @@ public:
 	// is used only while filters/configurations are prepared, never in AVRT_CODE.
 	static void failAllocationAfterForTesting(size_t successfulAllocations) noexcept;
 	static void resetAllocationFailureForTesting() noexcept;
+
+	// Owns aligned storage for trivially destructible C-style arrays. A null
+	// result represents either a size overflow or allocation failure; callers
+	// can preserve their existing fallback policy without ever holding a raw
+	// allocation between the acquire and commit steps.
+	template<class T>
+	static UniqueAllocation<T> allocateArray(size_t count) noexcept
+	{
+		static_assert(std::is_trivially_destructible_v<T>,
+			"allocateArray owns storage only; use constructUnique for objects");
+		if (count > (std::numeric_limits<size_t>::max)() / sizeof(T))
+			return {};
+		return UniqueAllocation<T>(static_cast<T*>(alloc(count * sizeof(T))));
+	}
 
 	// Typed, checked construction over alloc()/free().
 	//
@@ -66,6 +107,12 @@ public:
 			free(mem);
 			throw;
 		}
+	}
+
+	template<class T, class... Args>
+	static UniqueObject<T> constructUnique(Args&&... args)
+	{
+		return UniqueObject<T>(construct<T>(std::forward<Args>(args)...));
 	}
 
 	template<class T>

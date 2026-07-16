@@ -29,7 +29,7 @@ using std::vector;
 using std::wstring;
 
 CopyFilterGUI::CopyFilterGUI(const std::vector<Assignment>& assignments, FilterTable* filterTable)
-	: ui(new Ui::CopyFilterGUI)
+	: ui(std::make_unique<Ui::CopyFilterGUI>())
 {
 	ui->setupUi(this);
 
@@ -59,10 +59,7 @@ CopyFilterGUI::CopyFilterGUI(const std::vector<Assignment>& assignments, FilterT
 	connect(ui->form, SIGNAL(updateChannels()), this, SIGNAL(updateChannels()));
 }
 
-CopyFilterGUI::~CopyFilterGUI()
-{
-	delete ui;
-}
+CopyFilterGUI::~CopyFilterGUI() = default;
 
 void CopyFilterGUI::configureChannels(vector<wstring>& channelNames)
 {

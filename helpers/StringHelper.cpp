@@ -25,6 +25,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "StringHelper.h"
+#include "Win32Resource.h"
 
 using std::find;
 using std::string;
@@ -170,18 +171,17 @@ wstring StringHelper::join(const vector<wstring>& strings, const wstring& separa
 
 wstring StringHelper::getSystemErrorString(long status)
 {
-	wchar_t* buf = nullptr;
+	winutil::UniqueLocalPtr<wchar_t> buffer;
 
-	// cppcheck-suppress knownConditionTrueFalse ; FormatMessageW allocates into buf through the casted out pointer
-	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, status, 0, (LPTSTR)&buf, 0, nullptr) != 0 && buf != nullptr)
+	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr, status, 0, reinterpret_cast<LPWSTR>(buffer.put()), 0, nullptr) != 0 && buffer)
 	{
-		wstring result(buf);
-		LocalFree(buf);
+		wstring result(buffer.get());
 
 		// remove trailing newline
-		if (result.back() == L'\n')
+		if (!result.empty() && result.back() == L'\n')
 			result.erase(prev(result.end()));
-		if (result.back() == L'\r')
+		if (!result.empty() && result.back() == L'\r')
 			result.erase(prev(result.end()));
 		return result;
 	}

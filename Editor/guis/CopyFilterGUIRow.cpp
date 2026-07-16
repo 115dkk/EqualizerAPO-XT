@@ -26,7 +26,7 @@ using std::wstring;
 
 CopyFilterGUIRow::CopyFilterGUIRow(Assignment::Summand summand, const std::vector<wstring>& channelNames, QWidget* parent)
 	: QWidget(parent),
-	ui(new Ui::CopyFilterGUIRow)
+	ui(std::make_unique<Ui::CopyFilterGUIRow>())
 {
 	ui->setupUi(this);
 
@@ -59,10 +59,7 @@ CopyFilterGUIRow::CopyFilterGUIRow(Assignment::Summand summand, const std::vecto
 	connect(ui->channelComboBox, SIGNAL(editTextChanged(QString)), this, SIGNAL(updateChannels()));
 }
 
-CopyFilterGUIRow::~CopyFilterGUIRow()
-{
-	delete ui;
-}
+CopyFilterGUIRow::~CopyFilterGUIRow() = default;
 
 void CopyFilterGUIRow::setChannelNames(const vector<wstring>& channelNames)
 {

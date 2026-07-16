@@ -109,6 +109,11 @@ namespace winutil
 		{
 		}
 
+		explicit ComApartment(DWORD flags) noexcept
+			: result(CoInitializeEx(nullptr, flags))
+		{
+		}
+
 		~ComApartment()
 		{
 			if (SUCCEEDED(result))
@@ -119,6 +124,12 @@ namespace winutil
 		ComApartment& operator=(const ComApartment&) = delete;
 		ComApartment(ComApartment&&) = delete;
 		ComApartment& operator=(ComApartment&&) = delete;
+
+		HRESULT status() const noexcept { return result; }
+		bool isUsable() const noexcept
+		{
+			return SUCCEEDED(result) || result == RPC_E_CHANGED_MODE;
+		}
 
 	private:
 		HRESULT result;

@@ -18,6 +18,8 @@
 */
 
 #include <algorithm>
+#include <memory>
+#include <vector>
 
 #include "FilterGUIFactoryRegistry.h"
 #include "IFilterGUIFactory.h"
@@ -45,17 +47,17 @@ bool FilterGUIFactoryRegistry::registerFactory(int order, FilterGUIFactoryCreato
 	return true;
 }
 
-QList<IFilterGUIFactory*> FilterGUIFactoryRegistry::createFactories()
+std::vector<std::unique_ptr<IFilterGUIFactory>> FilterGUIFactoryRegistry::createFactories()
 {
 	QList<FilterGUIFactoryRegistration> sortedRegistrations = registrations();
 	std::stable_sort(sortedRegistrations.begin(), sortedRegistrations.end(), [](const FilterGUIFactoryRegistration& left, const FilterGUIFactoryRegistration& right) {
 		return left.order < right.order;
 	});
 
-	QList<IFilterGUIFactory*> factories;
+	std::vector<std::unique_ptr<IFilterGUIFactory>> factories;
 	factories.reserve(sortedRegistrations.size());
 	for (const FilterGUIFactoryRegistration& registration : sortedRegistrations)
-		factories.append(registration.creator());
+		factories.push_back(registration.creator());
 
 	return factories;
 }

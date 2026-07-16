@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 #include "ChannelFilterGUIScene.h"
 
@@ -43,7 +45,7 @@ private slots:
 private:
 	void refreshGui();
 
-	Ui::ChannelFilterGUI* ui;
+	std::unique_ptr<Ui::ChannelFilterGUI> ui;
 	QStringList selectedChannels;
 	int selectedChannelMask;
 	std::vector<std::wstring> channelNames;

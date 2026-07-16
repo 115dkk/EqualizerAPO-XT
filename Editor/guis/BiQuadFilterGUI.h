@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "Editor/IFilterGUI.h"
 #include <filters/BiQuad.h>
 #include <filters/BiQuadCommand.h>
@@ -50,7 +52,7 @@ private slots:
 private:
 	int getTypeCategory(BiQuad::Type type);
 
-	Ui::BiQuadFilterGUI* ui;
+	std::unique_ptr<Ui::BiQuadFilterGUI> ui;
 	BiQuad::Type previousType = BiQuad::PEAKING;
 	bool qIsBwOrS = false;
 };

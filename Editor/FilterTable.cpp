@@ -73,7 +73,7 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 
 	// The roster and its matching order live in the factory translation units
 	// themselves via REGISTER_FILTER_GUI_FACTORY (see FilterGUIFactoryRegistry).
-	// FilterTable owns the returned instances and deletes them in its destructor.
+	// FilterTable owns the returned instances through the collection.
 	factories = FilterGUIFactoryRegistry::createFactories();
 
 	// Every mutation - structural (add/delete/paste/drop) or in-row (knob
@@ -93,9 +93,6 @@ FilterTable::~FilterTable()
 
 	// The items themselves are owned and deleted by the FilterListModel member.
 
-	for (IFilterGUIFactory* factory : factories)
-		delete factory;
-	factories.clear();
 }
 
 void FilterTable::initialize(QScrollArea* scrollArea, const QList<shared_ptr<AbstractAPOInfo>>& outputDevices, const QList<shared_ptr<AbstractAPOInfo>>& inputDevices)
@@ -110,7 +107,7 @@ void FilterTable::initialize(QScrollArea* scrollArea, const QList<shared_ptr<Abs
 	// per scroll gesture in wheelEvent().
 	scrollArea->installEventFilter(this);
 
-	for (IFilterGUIFactory* factory : factories)
+	for (const auto& factory : factories)
 		factory->initialize(this);
 }
 
@@ -171,7 +168,7 @@ void FilterTable::updateGuis()
 	gridLayout->setColumnStretch(0, 0);
 	gridLayout->setColumnStretch(1, 1);
 
-	for (IFilterGUIFactory* factory : factories)
+	for (const auto& factory : factories)
 		factory->startOfFile(configPath);
 
 	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
@@ -201,7 +198,7 @@ void FilterTable::updateGuis()
 		row++;
 	}
 
-	for (IFilterGUIFactory* factory : factories)
+	for (const auto& factory : factories)
 		factory->endOfFile(configPath);
 
 	propagateChannels();
@@ -350,10 +347,13 @@ IFilterGUI* FilterTable::createRowGui(const QString& line)
 			return cardGui;
 	}
 
-	IFilterGUI* gui = nullptr;
-	for (IFilterGUIFactory* factory : factories)
+	// Factory results are parentless until the selected row adopts them. Keep
+	// the temporary legacy GUI scoped while card-mode replacement is decided,
+	// so a card constructor failure cannot strand it.
+	std::unique_ptr<IFilterGUI> gui;
+	for (const auto& factory : factories)
 	{
-		gui = factory->createFilterGUI(factoryKey, factoryValue);
+		gui.reset(factory->createFilterGUI(factoryKey, factoryValue));
 		if (gui != nullptr || factoryKey == "")
 			break;
 	}
@@ -370,20 +370,20 @@ IFilterGUI* FilterTable::createRowGui(const QString& line)
 		// fall back to the legacy GUI.
 		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
 		if (cardGui != nullptr)
-		{
-			delete gui;
 			return cardGui;
-		}
 		// In Modern Cards we skip the legacy CommentFilterGUI decorator on
 		// purpose: the card row already owns the enable/disable affordance
 		// and a second power toolbar inside the body editor only produces
 		// rules that disagree with the card header.
-		return gui;
+		return gui.release();
 	}
 
-	for (IFilterGUIFactory* factory : factories)
-		gui = factory->decorateFilterGUI(gui);
-	return gui;
+	// The legacy decorator Interface accepts and may adopt a raw child pointer.
+	// Release at that established ownership-transfer seam.
+	IFilterGUI* decoratedGui = gui.release();
+	for (const auto& factory : factories)
+		decoratedGui = factory->decorateFilterGUI(decoratedGui);
+	return decoratedGui;
 }
 
 void FilterTable::updateSingleRowGui(Item* item)

@@ -56,9 +56,9 @@ private:
 	bool embedPlugin();
 	void updatePermissionWarning();
 
-	Ui::VSTPluginFilterGUI* ui;
+	std::unique_ptr<Ui::VSTPluginFilterGUI> ui;
 	std::shared_ptr<VSTPluginLibrary> library;
-	VSTPluginInstance* effect = nullptr;
+	std::unique_ptr<VSTPluginInstance> effect;
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;

@@ -64,7 +64,7 @@ private:
 	void onSizeWindow(int w, int h);
 
 	std::shared_ptr<VSTPluginLibrary> library;
-	VSTPluginInstance* effect = nullptr;
+	std::unique_ptr<VSTPluginInstance> effect;
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;

@@ -42,13 +42,29 @@ public:
 		: fn(std::move(fn))
 	{
 	}
-	~ScopeGuard()
+
+	ScopeGuard(const ScopeGuard&) = delete;
+	ScopeGuard& operator=(const ScopeGuard&) = delete;
+
+	ScopeGuard(ScopeGuard&& other) noexcept(noexcept(Fun(std::move(other.fn))))
+		: fn(std::move(other.fn)), active(other.active)
 	{
-		fn();
+		other.dismiss();
 	}
+
+	ScopeGuard& operator=(ScopeGuard&&) = delete;
+
+	~ScopeGuard() noexcept
+	{
+		if (active)
+			fn();
+	}
+
+	void dismiss() noexcept { active = false; }
 
 private:
 	Fun fn;
+	bool active = true;
 };
 
 class UncaughtExceptionCounter
@@ -83,13 +99,30 @@ public:
 	{
 	}
 
-	~ScopeGuardForNewException()
+	ScopeGuardForNewException(const ScopeGuardForNewException&) = delete;
+	ScopeGuardForNewException& operator=(const ScopeGuardForNewException&) = delete;
+
+	ScopeGuardForNewException(ScopeGuardForNewException&& other) noexcept(
+		noexcept(FunctionType(std::move(other.function_))))
+		: function_(std::move(other.function_)), ec_(other.ec_), active_(other.active_)
 	{
-		if (executeOnException == ec_.newUncaughtException())
+		other.dismiss();
+	}
+
+	ScopeGuardForNewException& operator=(ScopeGuardForNewException&&) = delete;
+
+	~ScopeGuardForNewException() noexcept
+	{
+		if (active_ && executeOnException == ec_.newUncaughtException())
 		{
 			function_();
 		}
 	}
+
+	void dismiss() noexcept { active_ = false; }
+
+private:
+	bool active_ = true;
 };
 
 template<typename Fun> ScopeGuard<Fun> operator+(ScopeGuardOnExit, Fun&& fn)

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include <QList>
 #include <QSet>
 #include <QString>
@@ -39,7 +42,7 @@ class FilterListModel
 {
 public:
 	FilterListModel() = default;
-	~FilterListModel();
+	~FilterListModel() = default;
 
 	FilterListModel(const FilterListModel&) = delete;
 	FilterListModel& operator=(const FilterListModel&) = delete;
@@ -160,6 +163,9 @@ public:
 	CopyPayload copyPayload() const;
 
 private:
+	std::vector<std::unique_ptr<FilterListItem>> ownedItems;
+	// Stable, non-owning projection retained as the readable caller Interface.
+	// Mutations prepare its replacement before swapping owner and view state.
 	QList<FilterListItem*> itemList;
 	QSet<FilterListItem*> selectedSet;
 	FilterListItem* focusedItem = nullptr;

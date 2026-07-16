@@ -26,13 +26,14 @@ using std::vector;
 using std::wstring;
 
 ChannelFilterGUI::ChannelFilterGUI(const QString& parameters, int selectedChannelMask)
-	: ui(new Ui::ChannelFilterGUI)
+	: ui(std::make_unique<Ui::ChannelFilterGUI>())
 {
 	ui->setupUi(this);
 
 	this->selectedChannelMask = selectedChannelMask;
 
 	scene = new ChannelFilterGUIScene;
+	scene->setParent(this);
 	ui->graphicsView->setScene(scene);
 	ui->graphicsView->setBackgroundRole(QPalette::Window);
 	connect(scene, SIGNAL(selectionChanged()), this, SLOT(updateSelectedChannels()));
@@ -47,10 +48,7 @@ ChannelFilterGUI::ChannelFilterGUI(const QString& parameters, int selectedChanne
 		selectedChannels.append(QString::fromStdWString(channel));
 }
 
-ChannelFilterGUI::~ChannelFilterGUI()
-{
-	delete ui;
-}
+ChannelFilterGUI::~ChannelFilterGUI() = default;
 
 void ChannelFilterGUI::configureChannels(vector<wstring>& channelNames)
 {

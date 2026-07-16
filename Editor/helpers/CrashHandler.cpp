@@ -11,6 +11,7 @@
 #include <dbghelp.h>
 #include <shlobj.h>
 
+#include "helpers/Win32Resource.h"
 #include "version.h"
 
 namespace
@@ -51,24 +52,25 @@ void writeReport(EXCEPTION_POINTERS* pointers, const wchar_t* reason)
 	swprintf_s(dumpPath, L"%s\\Editor-%d.%d.%d-%lu-%lu.dmp", dumpDirectory,
 		MAJOR, MINOR, REVISION, pid, tick);
 
-	HANDLE dumpFile = CreateFileW(dumpPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (dumpFile != INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle dumpFile(
+		CreateFileW(dumpPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+	if (dumpFile)
 	{
 		MINIDUMP_EXCEPTION_INFORMATION info;
 		info.ThreadId = GetCurrentThreadId();
 		info.ExceptionPointers = pointers;
 		info.ClientPointers = FALSE;
-		MiniDumpWriteDump(GetCurrentProcess(), pid, dumpFile,
+		MiniDumpWriteDump(GetCurrentProcess(), pid, dumpFile.get(),
 			static_cast<MINIDUMP_TYPE>(MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory),
 			pointers != nullptr ? &info : nullptr, nullptr, nullptr);
-		CloseHandle(dumpFile);
 	}
 
 	wchar_t textPath[MAX_PATH];
 	swprintf_s(textPath, L"%s\\Editor-%d.%d.%d-%lu-%lu.txt", dumpDirectory,
 		MAJOR, MINOR, REVISION, pid, tick);
-	HANDLE textFile = CreateFileW(textPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (textFile != INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle textFile(
+		CreateFileW(textPath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+	if (textFile)
 	{
 		wchar_t line[768];
 		const DWORD code = (pointers != nullptr && pointers->ExceptionRecord != nullptr)
@@ -84,9 +86,8 @@ void writeReport(EXCEPTION_POINTERS* pointers, const wchar_t* reason)
 		if (length > 0)
 		{
 			DWORD written = 0;
-			WriteFile(textFile, line, length * sizeof(wchar_t), &written, nullptr);
+			WriteFile(textFile.get(), line, length * sizeof(wchar_t), &written, nullptr);
 		}
-		CloseHandle(textFile);
 	}
 }
 

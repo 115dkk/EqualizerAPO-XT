@@ -53,6 +53,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/Win32Resource.h"
 #include "helpers/VelopackBootstrap.h"
 #include "version.h"
 #include "helpers/QtAppBootstrap.h"
@@ -164,14 +165,13 @@ bool isHookArgument(const char* arg)
 bool isCurrentProcessElevated()
 {
 	BOOL elevated = FALSE;
-	HANDLE token = nullptr;
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+	winutil::UniqueHandle token;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, token.put()))
 		return false;
 	TOKEN_ELEVATION elevation;
 	DWORD size = sizeof(elevation);
-	if (GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &size))
+	if (GetTokenInformation(token.get(), TokenElevation, &elevation, sizeof(elevation), &size))
 		elevated = elevation.TokenIsElevated;
-	CloseHandle(token);
 	return elevated == TRUE;
 }
 
@@ -251,10 +251,10 @@ int relaunchElevatedAndWait(int argc, char* argv[])
 	if (info.hProcess == nullptr)
 		return 1;
 
-	WaitForSingleObject(info.hProcess, INFINITE);
+	winutil::UniqueHandle process(info.hProcess);
+	WaitForSingleObject(process.get(), INFINITE);
 	DWORD exitCode = 1;
-	GetExitCodeProcess(info.hProcess, &exitCode);
-	CloseHandle(info.hProcess);
+	GetExitCodeProcess(process.get(), &exitCode);
 	return static_cast<int>(exitCode);
 }
 

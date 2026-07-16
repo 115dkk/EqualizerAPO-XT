@@ -22,7 +22,7 @@
 #include "ui_StageFilterGUI.h"
 
 StageFilterGUI::StageFilterGUI(const QString& parameters)
-	: ui(new Ui::StageFilterGUI)
+	: ui(std::make_unique<Ui::StageFilterGUI>())
 {
 	ui->setupUi(this);
 
@@ -35,10 +35,7 @@ StageFilterGUI::StageFilterGUI(const QString& parameters)
 	ui->captureCheckBox->setChecked(cmd.contains(StageCommand::capture));
 }
 
-StageFilterGUI::~StageFilterGUI()
-{
-	delete ui;
-}
+StageFilterGUI::~StageFilterGUI() = default;
 
 void StageFilterGUI::store(QString& command, QString& parameters)
 {

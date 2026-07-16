@@ -25,8 +25,10 @@
 #include <shellapi.h>
 #include <TlHelp32.h>
 #include <Winternl.h>
+#include "helpers/ComPtr.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/StringHelper.h"
+#include "helpers/Win32Resource.h"
 #include "VoicemeeterAPOInfo.h"
 
 using std::exception;
@@ -38,6 +40,8 @@ using std::sort;
 using std::vector;
 using std::wstringstream;
 using std::wstring;
+using winutil::ComPtr;
+using winutil::CoTaskMem;
 
 #define voicemeeterKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
 #define voicemeeterWowKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
@@ -294,11 +298,13 @@ void VoicemeeterAPOInfo::reinstall()
 
 wstring VoicemeeterAPOInfo::getStartupPath()
 {
-	PWSTR startupPath;
-	SHGetKnownFolderPath(FOLDERID_Startup, KF_FLAG_DONT_UNEXPAND, nullptr, &startupPath);
-	wstring result(startupPath);
-
-	CoTaskMemFree(startupPath);
+	CoTaskMem<wchar_t> startupPath;
+	if (FAILED(SHGetKnownFolderPath(FOLDERID_Startup, KF_FLAG_DONT_UNEXPAND,
+		nullptr, startupPath.put())))
+	{
+		return wstring();
+	}
+	wstring result(startupPath.get());
 
 	return result + L"\\" + startupFilename;
 }
@@ -316,21 +322,17 @@ wstring VoicemeeterAPOInfo::getClientPath()
 
 void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path, const wstring& args)
 {
-	IShellLink* shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
+	ComPtr<IShellLink> shellLink;
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(shellLink.put()));
 	if (SUCCEEDED(hr))
 	{
 		shellLink->SetPath(path.c_str());
 		shellLink->SetArguments(args.c_str());
-		IPersistFile* persistFile;
-		hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&persistFile));
+		ComPtr<IPersistFile> persistFile;
+		hr = shellLink->QueryInterface(IID_PPV_ARGS(persistFile.put()));
 		if (SUCCEEDED(hr))
-		{
-			hr = persistFile->Save(lnkPath.c_str(), TRUE);
-			persistFile->Release();
-		}
-
-		shellLink->Release();
+			persistFile->Save(lnkPath.c_str(), TRUE);
 	}
 }
 
@@ -338,12 +340,13 @@ wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)
 {
 	wstring result;
 
-	IShellLink* shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
+	ComPtr<IShellLink> shellLink;
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(shellLink.put()));
 	if (SUCCEEDED(hr))
 	{
-		IPersistFile* persistFile;
-		hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&persistFile));
+		ComPtr<IPersistFile> persistFile;
+		hr = shellLink->QueryInterface(IID_PPV_ARGS(persistFile.put()));
 		if (SUCCEEDED(hr))
 		{
 			hr = persistFile->Load(lnkPath.c_str(), STGM_READ);
@@ -361,10 +364,7 @@ wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)
 						*path = buf;
 				}
 			}
-			persistFile->Release();
 		}
-
-		shellLink->Release();
 	}
 
 	return result;
@@ -377,10 +377,11 @@ vector<wstring> VoicemeeterAPOInfo::splitArgs(const wstring& argString)
 	if (argString.length() > 0)
 	{
 		int argc;
-		wchar_t** argv = CommandLineToArgvW(argString.c_str(), &argc);
+		winutil::UniqueLocalPtr<wchar_t*> argv(CommandLineToArgvW(argString.c_str(), &argc));
+		if (!argv)
+			return result;
 		for (int i = 0; i < argc; i++)
-			result.push_back(argv[i]);
-		LocalFree(argv);
+			result.push_back(argv.get()[i]);
 	}
 
 	return result;
@@ -410,8 +411,9 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	vector<wstring> args = splitArgs(argString);
 	wstring clientPath = getClientPath();
 
-	HANDLE tokenHandle;
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tokenHandle))
+	winutil::UniqueHandle tokenHandle;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+		tokenHandle.put()))
 		throw RegistryException(L"Error in OpenProcessToken while taking ownership");
 
 	LUID luid;
@@ -423,52 +425,57 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	tp.Privileges[0].Luid = luid;
 	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-	if (!AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
+	if (!AdjustTokenPrivileges(tokenHandle.get(), FALSE, &tp,
+		sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
 		throw RegistryException(L"Error in AdjustTokenPrivileges while taking ownership");
 
-	HMODULE module = LoadLibraryW(L"ntdll.dll");
-	if (module == nullptr)
+	winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
+	if (!module)
 		throw exception("Could not load ntdll.dll");
-	SCOPE_EXIT{FreeLibrary(module); };
 
-	pfnNtQueryInformationProcess NtQueryInformationProcess = (pfnNtQueryInformationProcess)GetProcAddress(module, "NtQueryInformationProcess");
+	pfnNtQueryInformationProcess NtQueryInformationProcess =
+		reinterpret_cast<pfnNtQueryInformationProcess>(GetProcAddress(module.get(), "NtQueryInformationProcess"));
 	if (NtQueryInformationProcess == nullptr)
 		throw exception("Function NtQueryInformationProcess not found in ntdll.dll");
 
-	HANDLE snapshotHandle = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (snapshotHandle == INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle snapshotHandle(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
+	if (!snapshotHandle)
 		throw exception("Could not take a snapshot of all processes");
-	SCOPE_EXIT{CloseHandle(snapshotHandle); };
 
 	bool matchingProcessExists = false;
 
 	PROCESSENTRY32W entry;
 	entry.dwSize = sizeof(PROCESSENTRY32W);
-	bool loop = Process32FirstW(snapshotHandle, &entry) != 0;
+	bool loop = Process32FirstW(snapshotHandle.get(), &entry) != 0;
 	while (loop)
 	{
 		if (wcscmp(entry.szExeFile, clientFilename) == 0)
 		{
-			HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE, FALSE, entry.th32ProcessID);
-			if (processHandle == INVALID_HANDLE_VALUE)
+			winutil::UniqueHandle processHandle(OpenProcess(
+				PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE,
+				FALSE, entry.th32ProcessID));
+			if (!processHandle)
 				throw exception("Could not open process");
-			SCOPE_EXIT{CloseHandle(processHandle); };
 
 			PROCESS_BASIC_INFORMATION basicInformation;
-			NTSTATUS status = NtQueryInformationProcess(processHandle, ProcessBasicInformation, &basicInformation, sizeof(basicInformation), nullptr);
+			NTSTATUS status = NtQueryInformationProcess(processHandle.get(), ProcessBasicInformation,
+				&basicInformation, sizeof(basicInformation), nullptr);
 			if (status < 0)
 				throw exception("Could not query process information");
 
 			_PEB peb;
-			if (!ReadProcessMemory(processHandle, basicInformation.PebBaseAddress, &peb, sizeof(peb), nullptr))
+			if (!ReadProcessMemory(processHandle.get(), basicInformation.PebBaseAddress,
+				&peb, sizeof(peb), nullptr))
 				throw exception("Could not read peb from process memory");
 
 			RTL_USER_PROCESS_PARAMETERS processParams;
-			if (!ReadProcessMemory(processHandle, peb.ProcessParameters, &processParams, sizeof(processParams), nullptr))
+			if (!ReadProcessMemory(processHandle.get(), peb.ProcessParameters,
+				&processParams, sizeof(processParams), nullptr))
 				throw exception("Could not read process parameters from process memory");
 
 			vector<wchar_t> cmdLineBuf(processParams.CommandLine.Length / sizeof(wchar_t));
-			if (!ReadProcessMemory(processHandle, processParams.CommandLine.Buffer, cmdLineBuf.data(), processParams.CommandLine.Length, nullptr))
+			if (!ReadProcessMemory(processHandle.get(), processParams.CommandLine.Buffer,
+				cmdLineBuf.data(), processParams.CommandLine.Length, nullptr))
 				throw exception("Could not read command line from process memory");
 			wstring cmdLine(cmdLineBuf.data(), cmdLineBuf.size());
 
@@ -482,7 +489,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 				matchingProcessExists = true;
 		}
 
-		loop = Process32NextW(snapshotHandle, &entry) != 0;
+		loop = Process32NextW(snapshotHandle.get(), &entry) != 0;
 	}
 
 	if (!matchingProcessExists && !args.empty())
@@ -506,20 +513,19 @@ void VoicemeeterAPOInfo::saveVoicemeeterSampleRate(unsigned sampleRate)
 
 void VoicemeeterAPOInfo::closeProcess(unsigned long processId)
 {
-	HANDLE snapshotHandle = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-	if (snapshotHandle == INVALID_HANDLE_VALUE)
+	winutil::UniqueHandle snapshotHandle(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0));
+	if (!snapshotHandle)
 		throw exception("Could not take a snapshot of all processes");
-	SCOPE_EXIT{CloseHandle(snapshotHandle); };
 
 	THREADENTRY32 entry;
 	entry.dwSize = sizeof(THREADENTRY32);
-	bool loop = Thread32First(snapshotHandle, &entry) != 0;
+	bool loop = Thread32First(snapshotHandle.get(), &entry) != 0;
 	while (loop)
 	{
 		if (entry.th32OwnerProcessID == processId)
 			// will just fail for threads not having a message queue
 			PostThreadMessageW(entry.th32ThreadID, WM_QUIT, 0, 0);
 
-		loop = Thread32Next(snapshotHandle, &entry) != 0;
+		loop = Thread32Next(snapshotHandle.get(), &entry) != 0;
 	}
 }

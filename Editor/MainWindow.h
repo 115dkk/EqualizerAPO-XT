@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <QMainWindow>
@@ -147,7 +148,7 @@ private:
 	void updateDirtyStatus();
 	template<class T> QList<T> toQList(const std::vector<T>& vector);
 
-	Ui::MainWindow* ui;
+	std::unique_ptr<Ui::MainWindow> ui;
 
 	QDir configDir;
 	QCheckBox* instantModeCheckBox;
@@ -160,7 +161,7 @@ private:
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
 	AnalysisPlotScene* analysisPlotScene;
 	EqGraphView* eqGraphView = nullptr;
-	AnalysisThread* analysisThread = nullptr;
+	std::unique_ptr<AnalysisThread> analysisThread;
 	QTimer* analysisDebounceTimer = nullptr;
 	bool restart = false;
 	bool noSavePreferences = false;

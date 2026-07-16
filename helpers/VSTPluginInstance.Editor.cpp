@@ -21,6 +21,7 @@
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTPluginInstanceInternal.h"
+#include "pluginterfaces/base/smartpointer.h"
 #include "pluginterfaces/gui/iplugviewcontentscalesupport.h"
 
 using namespace std;
@@ -79,20 +80,23 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 		if (vst3Controller == NULL)
 			return false;
 		stopEditing();
-		vst3View = vst3Controller->createView(ViewType::kEditor);
+		vst3View = IPtr<IPlugView>::adopt(vst3Controller->createView(ViewType::kEditor));
 		if (vst3View == NULL)
 			return false;
-		vst3View->setFrame(vst3HostContext);
+		vst3View->setFrame(static_cast<IPlugFrame*>(vst3HostContext.get()));
 
 		// Hand DPI-aware plugins (FabFilter Pro-Q, etc.) the host scale before
 		// they lay out, so getSize() returns a rect that matches the real
 		// monitor. Plugins without this interface fall back to reading the DPI
 		// from their parent window, which is per-monitor aware in this process.
-		IPlugViewContentScaleSupport* scaleSupport = NULL;
-		if (vst3View->queryInterface(IPlugViewContentScaleSupport::iid, (void**)&scaleSupport) == kResultOk && scaleSupport != NULL)
+		IPlugViewContentScaleSupport* rawScaleSupport = NULL;
+		const tresult scaleResult = vst3View->queryInterface(
+			IPlugViewContentScaleSupport::iid,
+			(void**)&rawScaleSupport);
+		auto scaleSupport = IPtr<IPlugViewContentScaleSupport>::adopt(rawScaleSupport);
+		if (scaleResult == kResultOk && scaleSupport)
 		{
 			scaleSupport->setContentScaleFactor((IPlugViewContentScaleSupport::ScaleFactor)scaleFactor);
-			scaleSupport->release();
 		}
 
 		ViewRect rect;
@@ -112,15 +116,15 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 			return false;
 		}
 		registerVST3EditorHostWindowClass();
-		vst3EditorHostWindow = CreateWindowExW(0, vst3EditorHostWindowClass, L"",
+		vst3EditorHostWindow.reset(CreateWindowExW(0, vst3EditorHostWindowClass, L"",
 			WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
-			0, 0, physWidth, physHeight, hWnd, NULL, GetModuleHandleW(NULL), NULL);
-		if (vst3EditorHostWindow == NULL)
+			0, 0, physWidth, physHeight, hWnd, NULL, GetModuleHandleW(NULL), NULL));
+		if (!vst3EditorHostWindow)
 		{
 			stopEditing();
 			return false;
 		}
-		if (vst3View->attached(vst3EditorHostWindow, kPlatformTypeHWND) != kResultOk)
+		if (vst3View->attached(vst3EditorHostWindow.get(), kPlatformTypeHWND) != kResultOk)
 		{
 			stopEditing();
 			return false;
@@ -135,8 +139,8 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 				*height = toLogical(physHeight);
 			vst3View->onSize(&rect);
 		}
-		SetWindowPos(vst3EditorHostWindow, NULL, 0, 0, physWidth, physHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-		EnumChildWindows(vst3EditorHostWindow, showChildWindow, 0);
+		SetWindowPos(vst3EditorHostWindow.get(), NULL, 0, 0, physWidth, physHeight, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		EnumChildWindows(vst3EditorHostWindow.get(), showChildWindow, 0);
 		return true;
 	}
 
@@ -144,9 +148,9 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 		return false;
 
 	vst_rect_t* rect;
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_OPEN, 0, 0, hWnd, 0.0f);
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_OPEN, 0, 0, hWnd, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_GET_RECT, 0, 0, &rect, 0.0f);
 
 	if (width != NULL)
 		*width = rect->right - rect->left;
@@ -159,11 +163,11 @@ void VSTPluginInstance::doIdle()
 {
 	if (library->isVST3())
 	{
-		if (vst3EditorHostWindow != NULL)
+		if (vst3EditorHostWindow)
 		{
-			InvalidateRect(vst3EditorHostWindow, NULL, FALSE);
-			UpdateWindow(vst3EditorHostWindow);
-			EnumChildWindows(vst3EditorHostWindow, [](HWND hWnd, LPARAM) -> BOOL {
+			InvalidateRect(vst3EditorHostWindow.get(), NULL, FALSE);
+			UpdateWindow(vst3EditorHostWindow.get());
+			EnumChildWindows(vst3EditorHostWindow.get(), [](HWND hWnd, LPARAM) -> BOOL {
 				InvalidateRect(hWnd, NULL, FALSE);
 				UpdateWindow(hWnd);
 				return TRUE;
@@ -175,7 +179,7 @@ void VSTPluginInstance::doIdle()
 	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_KEEP_ALIVE, 0, 0, NULL, 0.0f);
 }
 
 void VSTPluginInstance::stopEditing()
@@ -186,19 +190,14 @@ void VSTPluginInstance::stopEditing()
 		{
 			vst3View->removed();
 			vst3View->setFrame(NULL);
-			vst3View->release();
-			vst3View = NULL;
+			vst3View.reset();
 		}
-		if (vst3EditorHostWindow != NULL)
-		{
-			DestroyWindow(vst3EditorHostWindow);
-			vst3EditorHostWindow = NULL;
-		}
+		vst3EditorHostWindow.reset();
 		return;
 	}
 
 	if (effect == NULL)
 		return;
 
-	effect->control(effect, VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, NULL, 0.0f);
+	effect->control(effect.get(), VST_EFFECT_OPCODE_EDITOR_CLOSE, 0, 0, NULL, 0.0f);
 }

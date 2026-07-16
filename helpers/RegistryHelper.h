@@ -25,6 +25,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include "Win32Resource.h"
+
 // {EACD2258-FCAC-4FF4-B36D-419E924A6D79}
 const GUID EQUALIZERAPO_PRE_MIX_GUID = {0xeacd2258, 0xfcac, 0x4ff4, {0xb3, 0x6d, 0x41, 0x9e, 0x92, 0x4a, 0x6d, 0x79}};
 // {EC1CC9CE-FAED-4822-828A-82A81A6F018F}
@@ -61,7 +63,7 @@ public:
 	static void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath);
 	static std::wstring getGuidString(GUID guid);
 	static bool isWindowsVersionAtLeast(unsigned major, unsigned minor);
-	static HKEY openKey(const std::wstring& key, REGSAM samDesired);
+	static winutil::UniqueRegistryKey openKey(const std::wstring& key, REGSAM samDesired);
 
 private:
 	static std::wstring splitKey(const std::wstring& key, HKEY* rootKey);

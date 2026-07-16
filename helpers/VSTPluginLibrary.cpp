@@ -22,6 +22,7 @@
 #include "RegistryHelper.h"
 #include "LogHelper.h"
 #include "VSTPluginLibrary.h"
+#include "Win32Resource.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
 
 using namespace std;
@@ -116,7 +117,7 @@ bool VSTPluginLibrary::isVST3() const
 
 Steinberg::IPluginFactory* VSTPluginLibrary::getFactory() const
 {
-	return factory;
+	return factory.get();
 }
 
 const Steinberg::PClassInfo& VSTPluginLibrary::getVST3ClassInfo() const
@@ -128,11 +129,11 @@ bool VSTPluginLibrary::loadFunctions()
 {
 	if (vst3)
 	{
-		GetPluginFactory = (getPluginFactoryFunc)GetProcAddress(module, "GetPluginFactory");
+		GetPluginFactory = (getPluginFactoryFunc)GetProcAddress(module.get(), "GetPluginFactory");
 		return GetPluginFactory != NULL;
 	}
 
-	VSTPluginMain = (vstPluginMain)GetProcAddress(module, "VSTPluginMain");
+	VSTPluginMain = (vstPluginMain)GetProcAddress(module.get(), "VSTPluginMain");
 	return VSTPluginMain != NULL;
 }
 
@@ -141,8 +142,8 @@ int VSTPluginLibrary::customInitialize()
 	if (!vst3)
 		return 0;
 
-	factory = GetPluginFactory();
-	if (factory == NULL)
+	factory.reset(GetPluginFactory());
+	if (!factory)
 		return FUNCTIONS_MISSING;
 
 	for (Steinberg::int32 i = 0; i < factory->countClasses(); i++)
@@ -166,11 +167,7 @@ void VSTPluginLibrary::customUninitialize() noexcept
 
 void VSTPluginLibrary::releasePluginFactory() noexcept
 {
-	if (factory != nullptr)
-	{
-		factory->release();
-		factory = nullptr;
-	}
+	factory.reset();
 	GetPluginFactory = nullptr;
 	VSTPluginMain = nullptr;
 }
@@ -214,8 +211,8 @@ wstring VSTPluginLibrary::resolveVST3ModulePath(const wstring& libPath)
 	PathAppendW(searchPath, L"*.vst3");
 
 	WIN32_FIND_DATAW findData;
-	HANDLE hFind = FindFirstFileW(searchPath, &findData);
-	if (hFind == INVALID_HANDLE_VALUE)
+	winutil::UniqueFindHandle find(FindFirstFileW(searchPath, &findData));
+	if (!find)
 		return libPath;
 
 	wchar_t modulePath[MAX_PATH];
@@ -223,7 +220,5 @@ wstring VSTPluginLibrary::resolveVST3ModulePath(const wstring& libPath)
 	PathAppendW(modulePath, L"Contents");
 	PathAppendW(modulePath, platformDir);
 	PathAppendW(modulePath, findData.cFileName);
-	FindClose(hFind);
-
 	return modulePath;
 }

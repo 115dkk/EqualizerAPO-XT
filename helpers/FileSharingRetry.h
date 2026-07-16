@@ -22,27 +22,28 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include "Win32Resource.h"
+
 // Opens a file, retrying while another process holds it open for writing
-// (ERROR_SHARING_VIOLATION). Returns INVALID_HANDLE_VALUE on any other
+// (ERROR_SHARING_VIOLATION). Returns an empty owning handle on any other
 // error with that error code in lastError.
-inline HANDLE openFileWithSharingRetry(const wchar_t* path, DWORD desiredAccess, DWORD shareMode, DWORD creationDisposition, DWORD& lastError)
+inline winutil::UniqueHandle openFileWithSharingRetry(
+	const wchar_t* path, DWORD desiredAccess, DWORD shareMode, DWORD creationDisposition, DWORD& lastError)
 {
 	lastError = ERROR_SUCCESS;
 
-	HANDLE hFile = INVALID_HANDLE_VALUE;
-	while (hFile == INVALID_HANDLE_VALUE)
+	for (;;)
 	{
-		hFile = CreateFileW(path, desiredAccess, shareMode, nullptr, creationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			lastError = GetLastError();
-			if (lastError != ERROR_SHARING_VIOLATION)
-				return INVALID_HANDLE_VALUE;
+		winutil::UniqueHandle file(CreateFileW(
+			path, desiredAccess, shareMode, nullptr, creationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr));
+		if (file)
+			return file;
 
-			// file is being written, so wait
-			Sleep(1);
-		}
+		lastError = GetLastError();
+		if (lastError != ERROR_SHARING_VIOLATION)
+			return {};
+
+		// file is being written, so wait
+		Sleep(1);
 	}
-
-	return hFile;
 }

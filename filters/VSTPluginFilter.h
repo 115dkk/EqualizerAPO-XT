@@ -19,7 +19,10 @@
 
 #pragma once
 
+#include <vector>
+
 #include "IFilter.h"
+#include "helpers/MemoryHelper.h"
 #include "helpers/VSTPluginLibrary.h"
 
 #pragma AVRT_VTABLES_BEGIN
@@ -49,23 +52,21 @@ private:
 	unsigned effectInputCount = 0;
 	unsigned effectOutputCount = 0;
 	unsigned effectChannelCount = 0;
-	size_t effectCount = 0;
-	VSTPluginInstance** effects = nullptr;
-	size_t emptyChannelCount = 0;
-	double** emptyChannels = nullptr;
-	double** inputArray = nullptr;
-	double** outputArray = nullptr;
+	std::vector<MemoryHelper::UniqueObject<VSTPluginInstance>> effects;
+	std::vector<MemoryHelper::UniqueAllocation<double>> emptyChannels;
+	std::vector<double*> inputArray;
+	std::vector<double*> outputArray;
 
 	// Buffers for float conversion
-	float** floatInputs = nullptr;
-	float* _floatInputBuffer = nullptr;
-	float** floatOutputs = nullptr;
-	float* _floatOutputBuffer = nullptr;
+	std::vector<float*> floatInputs;
+	MemoryHelper::UniqueAllocation<float> floatInputBuffer;
+	std::vector<float*> floatOutputs;
+	MemoryHelper::UniqueAllocation<float> floatOutputBuffer;
 
 	// Delay compensation buffers
 	unsigned delayBufferLength = 0;
-	double** delayBuffers = nullptr;
-	double* delayTempBuffer = nullptr;
+	std::vector<MemoryHelper::UniqueAllocation<double>> delayBuffers;
+	MemoryHelper::UniqueAllocation<double> delayTempBuffer;
 	unsigned delayBufferOffset = 0;
 
 	bool skipProcessing = false;

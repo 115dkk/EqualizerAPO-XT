@@ -21,6 +21,7 @@
 #include <DeviceAPOInfo.h>
 #include <helpers/RegistryHelper.h>
 #include <helpers/ServiceHelper.h>
+#include <helpers/Win32Resource.h>
 #include <QPropertyAnimation>
 #include <VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
@@ -322,8 +323,9 @@ void DeviceSelector::finish(bool deviceUpdated)
 	{
 		if (QMessageBox::question(this, tr("Reboot"), tr("To apply the changes, Windows should be rebooted. Reboot now?")) == QMessageBox::Yes)
 		{
-			HANDLE tokenHandle;
-			if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tokenHandle))
+			winutil::UniqueHandle tokenHandle;
+			if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+				tokenHandle.put()))
 			{
 				LUID luid;
 				if (LookupPrivilegeValue(nullptr, SE_SHUTDOWN_NAME, &luid))
@@ -333,11 +335,10 @@ void DeviceSelector::finish(bool deviceUpdated)
 					tp.Privileges[0].Luid = luid;
 					tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-					if (AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
+					if (AdjustTokenPrivileges(tokenHandle.get(), FALSE, &tp,
+						sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
 						InitiateShutdownW(nullptr, nullptr, 0, SHUTDOWN_RESTART | SHUTDOWN_GRACE_OVERRIDE, SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_MAINTENANCE);
 				}
-
-				CloseHandle(tokenHandle);
 			}
 		}
 	}

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <vector>
 
 #include <QRegularExpression>
@@ -69,7 +71,7 @@ private slots:
 private:
 	void setFreqEditable(bool editable);
 
-	Ui::GraphicEQFilterGUI* ui;
+	std::unique_ptr<Ui::GraphicEQFilterGUI> ui;
 	GraphicEQFilterGUIScene* scene;
 	QString configPath;
 	static QRegularExpression numberRegEx;

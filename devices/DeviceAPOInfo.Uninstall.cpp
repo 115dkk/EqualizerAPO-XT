@@ -9,6 +9,7 @@
 #include "VoicemeeterAPOInfo.h"
 
 #include "helpers/StringHelper.h"
+#include "helpers/ComPtr.h"
 #include "helpers/RegistryHelper.h"
 
 using std::make_shared;
@@ -219,20 +220,25 @@ wstring DeviceAPOInfo::getPostMixChildGuid()
 
 void DeviceAPOInfo::testAPOInstallation()
 {
-	IMMDeviceEnumerator* enumerator = nullptr;
-	IMMDevice* device = nullptr;
-	IAudioClient* audioClient = nullptr;
-	WAVEFORMATEX* format = nullptr;
+	winutil::ComPtr<IMMDeviceEnumerator> enumerator;
+	winutil::ComPtr<IMMDevice> device;
+	winutil::ComPtr<IAudioClient> audioClient;
+	winutil::CoTaskMem<WAVEFORMATEX> format;
 
-	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
+	HRESULT hr = CoCreateInstance(
+		__uuidof(MMDeviceEnumerator),
+		nullptr,
+		CLSCTX_ALL,
+		__uuidof(IMMDeviceEnumerator),
+		reinterpret_cast<void**>(enumerator.put()));
 	if (FAILED(hr))
 		fail(L"CoCreateInstance for IMMDeviceEnumerator", hr);
-	SCOPE_EXIT{enumerator->Release(); };
 
-	hr = enumerator->GetDevice(((input ? L"{0.0.1.00000000}." : L"{0.0.0.00000000}.") + deviceGuid).c_str(), &device);
+	hr = enumerator->GetDevice(
+		((input ? L"{0.0.1.00000000}." : L"{0.0.0.00000000}.") + deviceGuid).c_str(),
+		device.put());
 	if (FAILED(hr))
 		fail(L"GetDevice", hr);
-	SCOPE_EXIT{device->Release(); };
 
 	DWORD state;
 	hr = device->GetState(&state);
@@ -241,17 +247,19 @@ void DeviceAPOInfo::testAPOInstallation()
 	if (state & DEVICE_STATE_DISABLED || state & DEVICE_STATE_UNPLUGGED)
 		return;
 
-	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&audioClient);
+	hr = device->Activate(
+		__uuidof(IAudioClient),
+		CLSCTX_ALL,
+		nullptr,
+		reinterpret_cast<void**>(audioClient.put()));
 	if (FAILED(hr))
 		fail(L"Activate", hr);
-	SCOPE_EXIT{audioClient->Release(); };
 
-	hr = audioClient->GetMixFormat(&format);
+	hr = audioClient->GetMixFormat(format.put());
 	if (FAILED(hr))
 		fail(L"GetMixFormat", hr);
-	SCOPE_EXIT{CoTaskMemFree(format); };
 
-	hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 1000000 /*100 ms*/, 0, format, nullptr);
+	hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 1000000 /*100 ms*/, 0, format.get(), nullptr);
 	if (FAILED(hr))
 	{
 		// Field machines (PC-bang demo, issue #75) showed endpoints that
@@ -262,14 +270,17 @@ void DeviceAPOInfo::testAPOInstallation()
 		// accepted format is good enough. Retry once with engine-side
 		// auto-conversion; a failed Initialize leaves the client unusable,
 		// so a fresh one must be activated for the retry.
-		IAudioClient* retryClient = nullptr;
-		HRESULT retryHr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&retryClient);
+		winutil::ComPtr<IAudioClient> retryClient;
+		HRESULT retryHr = device->Activate(
+			__uuidof(IAudioClient),
+			CLSCTX_ALL,
+			nullptr,
+			reinterpret_cast<void**>(retryClient.put()));
 		if (SUCCEEDED(retryHr))
 		{
-			SCOPE_EXIT{retryClient->Release(); };
 			retryHr = retryClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
 				AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
-				1000000 /*100 ms*/, 0, format, nullptr);
+				1000000 /*100 ms*/, 0, format.get(), nullptr);
 		}
 		if (FAILED(retryHr))
 			fail(L"Initialize", hr); // report the original failure

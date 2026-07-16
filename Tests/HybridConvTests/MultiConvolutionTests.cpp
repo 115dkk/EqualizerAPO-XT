@@ -12,12 +12,11 @@
 #include <vector>
 
 #define WIN32_LEAN_AND_MEAN
-#define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
 #include <windows.h>
-#include <sndfile.h>
 
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/MultiConvolutionFilter.h"
+#include "helpers/SndfileRAII.h"
 #include "Tests/TestHarness.h"
 
 using std::vector;
@@ -60,11 +59,10 @@ wstring createMultiChannelIr(const vector<vector<double>>& channels)
 	info.channels = (int)numCh;
 	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
 
-	SNDFILE* file = sf_wchar_open(filename.c_str(), SFM_WRITE, &info);
-	if (file == nullptr)
+	sndfile::Handle file(sf_wchar_open(filename.c_str(), SFM_WRITE, &info));
+	if (!file)
 		harness.fail("could not create temporary impulse response file");
-	sf_writef_double(file, interleaved.data(), (sf_count_t)frames);
-	sf_close(file);
+	sf_writef_double(file.get(), interleaved.data(), (sf_count_t)frames);
 
 	return filename;
 }

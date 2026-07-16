@@ -32,6 +32,7 @@
 #include <sndfile.h>
 
 #include "helpers/LogHelper.h"
+#include "helpers/FftwRAII.h"
 #include "helpers/MemoryHelper.h"
 #include "GraphicEQFilter.h"
 
@@ -80,26 +81,6 @@ namespace
 		}
 	};
 
-	struct FftwComplexDeleter
-	{
-		void operator()(fftw_complex* value) const noexcept
-		{
-			fftw_free(value);
-		}
-	};
-
-	struct FftwPlanDeleter
-	{
-		void operator()(fftw_plan_s* value) const noexcept
-		{
-			if (value != nullptr)
-				fftw_destroy_plan(value);
-		}
-	};
-
-	using FftwComplexPtr = std::unique_ptr<fftw_complex, FftwComplexDeleter>;
-	using FftwPlanPtr = std::unique_ptr<fftw_plan_s, FftwPlanDeleter>;
-
 	std::mutex& eqIrCacheMutex()
 	{
 		static std::mutex m;
@@ -143,14 +124,10 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		const size_t fftLength = static_cast<size_t>(filterLength) * 2;
 
 		fftw_make_planner_thread_safe();
-		FftwComplexPtr timeData(fftw_alloc_complex(fftLength));
-		FftwComplexPtr freqData(fftw_alloc_complex(fftLength));
-		if (!timeData || !freqData)
-			throw std::bad_alloc();
-		FftwPlanPtr planForward(fftw_plan_dft_1d(static_cast<int>(fftLength), timeData.get(), freqData.get(), FFTW_FORWARD, FFTW_ESTIMATE));
-		FftwPlanPtr planReverse(fftw_plan_dft_1d(static_cast<int>(fftLength), freqData.get(), timeData.get(), FFTW_BACKWARD, FFTW_ESTIMATE));
-		if (!planForward || !planReverse)
-			throw std::runtime_error("Could not create GraphicEQ FFTW plans");
+		auto timeData = fftw::allocateComplex(fftLength);
+		auto freqData = fftw::allocateComplex(fftLength);
+		auto planForward = fftw::makeComplexPlan(static_cast<int>(fftLength), timeData.get(), freqData.get(), FFTW_FORWARD);
+		auto planReverse = fftw::makeComplexPlan(static_cast<int>(fftLength), freqData.get(), timeData.get(), FFTW_BACKWARD);
 
 		GainIterator gainIterator(nodes);
 		for (unsigned i = 0; i < filterLength; i++)
@@ -201,7 +178,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	synthesizedIr = cached;
 
 	fftw_make_planner_thread_safe();
-	HConvSingle* allocated = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
+	auto allocated = MemoryHelper::allocateArray<HConvSingle>(channelCount);
 	if (allocated == nullptr)
 	{
 		// alloc returns nullptr on failure; stay inert (filters is null from
@@ -210,7 +187,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		return;
 	}
 	HConvSingleArray pendingFilters;
-	pendingFilters.adoptUninitialized(allocated, channelCount);
+	pendingFilters.adoptUninitialized(std::move(allocated), channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
 		hcInitSingle(&pendingFilters[i], const_cast<double*>(cached->data()), static_cast<int>(filterLength), static_cast<int>(frameCount), 1);

@@ -21,6 +21,7 @@
 #include <chrono>
 #include <helpers/RegistryHelper.h>
 #include <helpers/ServiceHelper.h>
+#include <helpers/ComPtr.h>
 #include <ObjBase.h>
 #include "DeviceTestThread.h"
 
@@ -62,8 +63,15 @@ void DeviceTestThread::run()
 {
 	SCOPE_EXIT{emit finished(); };
 
-	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-	SCOPE_EXIT{CoUninitialize(); };
+	winutil::ComApartment apartment(COINIT_MULTITHREADED);
+	if (!apartment.isUsable())
+	{
+		emit logError(tr("Could not initialize COM for device testing."));
+		emit abort(tr("COM initialization failed (0x%1).")
+			.arg(static_cast<qulonglong>(apartment.status()), 8, 16, QLatin1Char('0')), -1);
+		return;
+	}
+
 	try
 	{
 		emit log(tr("Restarting audio service..."));

@@ -19,6 +19,8 @@
 
 #include <QElapsedTimer>
 
+#include <stdexcept>
+
 #include "FilterEngine.h"
 #include "AnalysisThread.h"
 
@@ -35,26 +37,13 @@ AnalysisThread::AnalysisThread()
 
 AnalysisThread::~AnalysisThread()
 {
-	mutex.lock();
-	quit = true;
-	condition.wakeAll();
-	mutex.unlock();
+	{
+		QMutexLocker locker(&mutex);
+		quit = true;
+		condition.wakeAll();
+	}
 
 	wait();
-
-	if (resultFreqData != nullptr)
-		fftw_free(resultFreqData);
-
-	if (buf != nullptr)
-		delete[] buf;
-	if (buf2 != nullptr)
-		delete[] buf2;
-	if (timeData != nullptr)
-		fftw_free(timeData);
-	if (freqData != nullptr)
-		fftw_free(freqData);
-	if (planForward != nullptr)
-		fftw_destroy_plan(planForward);
 }
 
 void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, const QString& configPath, int frameCount)
@@ -69,81 +58,91 @@ void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int chann
 	condition.wakeAll();
 }
 
-void AnalysisThread::beginGetResult()
+AnalysisThread::ResultLock AnalysisThread::lockResult()
 {
-	mutex.lock();
+	return ResultLock(*this);
 }
 
-void AnalysisThread::endGetResult()
+AnalysisThread::ResultLock::ResultLock(AnalysisThread& owner)
+	: owner(owner), locker(&owner.mutex)
 {
-	mutex.unlock();
 }
 
-fftw_complex* AnalysisThread::getFreqData() const
+fftw_complex* AnalysisThread::ResultLock::freqData() const
 {
-	return resultFreqData;
+	return owner.resultFreqData.get();
 }
 
-int AnalysisThread::getFreqDataLength() const
+int AnalysisThread::ResultLock::freqDataLength() const
 {
-	return freqDataLength;
+	return owner.freqDataLength;
 }
 
-int AnalysisThread::getFreqDataSampleRate() const
+int AnalysisThread::ResultLock::freqDataSampleRate() const
 {
-	return freqDataSampleRate;
+	return owner.freqDataSampleRate;
 }
 
-double AnalysisThread::getPeakGain() const
+double AnalysisThread::ResultLock::peakGain() const
 {
-	return peakGain;
+	return owner.peakGain;
 }
 
-int AnalysisThread::getLatency() const
+int AnalysisThread::ResultLock::latency() const
 {
-	return latency;
+	return owner.latency;
 }
 
-double AnalysisThread::getInitializationTime() const
+double AnalysisThread::ResultLock::initializationTime() const
 {
-	return initializationTime;
+	return owner.initializationTime;
 }
 
-double AnalysisThread::getProcessingTime() const
+double AnalysisThread::ResultLock::processingTime() const
 {
-	return processingTime;
+	return owner.processingTime;
 }
 
-unsigned AnalysisThread::getProcessedFrames() const
+unsigned AnalysisThread::ResultLock::processedFrames() const
 {
-	return processedFrames;
+	return owner.processedFrames;
 }
 
-const std::vector<ConfigLoadTraceEntry>& AnalysisThread::getLoadTrace() const
+const std::vector<ConfigLoadTraceEntry>& AnalysisThread::ResultLock::loadTrace() const
 {
-	return resultLoadTrace;
+	return owner.resultLoadTrace;
 }
 
 void AnalysisThread::run()
+try
 {
 	while (true)
 	{
-		mutex.lock();
-		if (!quit && this->frameCount == 0)
-			condition.wait(&mutex);
-		if (quit)
+		shared_ptr<AbstractAPOInfo> device;
+		int channelMask;
+		int channelIndex;
+		QString configPath;
+		int frameCount;
 		{
-			mutex.unlock();
-			break;
+			QMutexLocker locker(&mutex);
+			while (!quit && this->frameCount == 0)
+				condition.wait(&mutex);
+			if (quit)
+				break;
+
+			device = this->device;
+			channelMask = this->channelMask;
+			channelIndex = this->channelIndex;
+			configPath = this->configPath;
+			frameCount = this->frameCount;
+			this->frameCount = 0;
 		}
 
-		shared_ptr<AbstractAPOInfo> device = this->device;
-		int channelMask = this->channelMask;
-		int channelIndex = this->channelIndex;
-		QString configPath = this->configPath;
-		int frameCount = this->frameCount;
-		this->frameCount = 0;
-		mutex.unlock();
+		if (frameCount <= 0)
+		{
+			qWarning("Analysis skipped an invalid frame count: %d", frameCount);
+			continue;
+		}
 
 		QElapsedTimer timer;
 		timer.start();
@@ -194,31 +193,29 @@ void AnalysisThread::run()
 
 		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
 		{
-			if (buf != nullptr)
-				delete[] buf;
-			buf = new double[frameCount * channelCount];
-			std::fill_n(buf, frameCount * channelCount, 0.0);
-
-			if (buf2 != nullptr)
-				delete[] buf2;
-			buf2 = new double[frameCount * channelCount];
+			if (channelCount != 0
+				&& static_cast<size_t>(frameCount) > (numeric_limits<size_t>::max)() / channelCount)
+			{
+				throw std::length_error("Analysis buffer size overflow");
+			}
+			const size_t sampleCount = static_cast<size_t>(frameCount) * channelCount;
+			std::vector<double> newBuf(sampleCount, 0.0);
+			std::vector<double> newBuf2(sampleCount);
+			buf = std::move(newBuf);
+			buf2 = std::move(newBuf2);
 		}
 		for (unsigned i = 0; i < channelCount; i++)
 			buf[i] = 1.0f;
 
 		if (frameCount != lastFrameCount)
 		{
-			if (timeData != nullptr)
-				fftw_free(timeData);
-			timeData = fftw_alloc_real(frameCount);
-
-			if (freqData != nullptr)
-				fftw_free(freqData);
-			freqData = fftw_alloc_complex(frameCount);
-
-			if (planForward != nullptr)
-				fftw_destroy_plan(planForward);
-			planForward = fftw_plan_dft_r2c_1d(frameCount, timeData, freqData, FFTW_ESTIMATE);
+			auto newTimeData = fftw::allocateReal(frameCount);
+			auto newFreqData = fftw::allocateComplex(frameCount);
+			auto newPlan = fftw::makeRealToComplexPlan(frameCount, newTimeData.get(), newFreqData.get());
+			planForward.reset();
+			timeData = std::move(newTimeData);
+			freqData = std::move(newFreqData);
+			planForward = std::move(newPlan);
 		}
 
 		lastFrameCount = frameCount;
@@ -232,7 +229,7 @@ void AnalysisThread::run()
 		while (processedFrames < 10 * sampleRate)
 		{
 			qint64 startTime = timer.nsecsElapsed();
-			engine.process(buf2, buf, frameCount);
+			engine.process(buf2.data(), buf.data(), frameCount);
 			processingTime += (timer.nsecsElapsed() - startTime) / 1e6;
 			processedFrames += frameCount;
 
@@ -240,7 +237,7 @@ void AnalysisThread::run()
 			{
 				for (int i = 0; i < startFrame; i++)
 				{
-					timeData[frameCount - startFrame + i] = buf2[i * channelCount + channelIndex];
+					timeData.get()[frameCount - startFrame + i] = buf2[i * channelCount + channelIndex];
 				}
 				break;
 			}
@@ -259,7 +256,7 @@ void AnalysisThread::run()
 			{
 				for (int i = 0; i < frameCount - startFrame; i++)
 				{
-					timeData[i] = buf2[(startFrame + i) * channelCount + channelIndex];
+						timeData.get()[i] = buf2[(startFrame + i) * channelCount + channelIndex];
 				}
 
 				if (startFrame == 0)
@@ -281,13 +278,13 @@ void AnalysisThread::run()
 		{
 			latency += startFrame;
 
-			fftw_execute(planForward);
+			fftw_execute(planForward.get());
 
 			peakGain = -DBL_MAX;
 
 			for (int i = 0; i < frameCount / 2; i++)
 			{
-				double sqrGain = freqData[i][0] * freqData[i][0] + freqData[i][1] * freqData[i][1];
+				double sqrGain = freqData.get()[i][0] * freqData.get()[i][0] + freqData.get()[i][1] * freqData.get()[i][1];
 				if (sqrGain > peakGain)
 					peakGain = sqrGain;
 			}
@@ -298,29 +295,34 @@ void AnalysisThread::run()
 		{
 			latency = 0;
 			peakGain = -numeric_limits<double>::infinity();
-			std::fill_n(&freqData[0][0], frameCount * 2, 0.0);
+			std::fill_n(&freqData.get()[0][0], frameCount * 2, 0.0);
 		}
 
-		mutex.lock();
-		if (this->freqDataLength != frameCount)
 		{
-			if (resultFreqData != nullptr)
-				fftw_free(resultFreqData);
-			resultFreqData = fftw_alloc_complex(frameCount);
+			QMutexLocker locker(&mutex);
+			if (this->freqDataLength != frameCount)
+				resultFreqData = fftw::allocateComplex(frameCount);
+			std::copy_n(&freqData.get()[0][0], frameCount * 2, &resultFreqData.get()[0][0]);
+			this->freqDataLength = frameCount;
+			this->freqDataSampleRate = sampleRate;
+			this->latency = latency;
+			this->peakGain = peakGain;
+			this->initializationTime = initializationTime;
+			this->processingTime = processingTime;
+			this->processedFrames = processedFrames;
+			this->resultLoadTrace = std::move(traceCollector.entries);
 		}
-		std::copy_n(&freqData[0][0], frameCount * 2, &resultFreqData[0][0]);
-		this->freqDataLength = frameCount;
-		this->freqDataSampleRate = sampleRate;
-		this->latency = latency;
-		this->peakGain = peakGain;
-		this->initializationTime = initializationTime;
-		this->processingTime = processingTime;
-		this->processedFrames = processedFrames;
-		this->resultLoadTrace = std::move(traceCollector.entries);
-		mutex.unlock();
 
 		qDebug("Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
 
 		emit analysisFinished();
 	}
+}
+catch (const std::exception& error)
+{
+	qCritical("Analysis thread stopped after an exception: %s", error.what());
+}
+catch (...)
+{
+	qCritical("Analysis thread stopped after a non-standard exception");
 }

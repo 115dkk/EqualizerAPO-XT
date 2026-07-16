@@ -28,16 +28,13 @@ using std::shared_ptr;
 using std::string;
 
 DeviceFilterGUI::DeviceFilterGUI(DeviceFilterGUIFactory* factory)
-	: ui(new Ui::DeviceFilterGUI)
+	: ui(std::make_unique<Ui::DeviceFilterGUI>())
 {
 	ui->setupUi(this);
 	this->factory = factory;
 }
 
-DeviceFilterGUI::~DeviceFilterGUI()
-{
-	delete ui;
-}
+DeviceFilterGUI::~DeviceFilterGUI() = default;
 
 void DeviceFilterGUI::load(const QString& parameters)
 {

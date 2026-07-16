@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QTimer>
 
 #include "Editor/IFilterGUI.h"
@@ -47,7 +49,7 @@ private slots:
 	void updateVolume();
 
 private:
-	Ui::LoudnessCorrectionFilterGUI* ui;
+	std::unique_ptr<Ui::LoudnessCorrectionFilterGUI> ui;
 	bool state = true;
 	QTimer timer;
 	VolumeController volumeController;

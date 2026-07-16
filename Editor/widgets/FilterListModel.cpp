@@ -1,4 +1,8 @@
-#include <QtAlgorithms>
+#include <algorithm>
+#include <iterator>
+#include <memory>
+#include <utility>
+#include <vector>
 
 #include "FilterListModel.h"
 
@@ -6,9 +10,18 @@
 // (FilterTable.Clipboard.cpp / FilterTable.Model.cpp / FilterTable.Mouse.cpp)
 // and live here so they can be unit-tested.
 
-FilterListModel::~FilterListModel()
+namespace
 {
-	qDeleteAll(itemList);
+	using OwnedFilterListItem = std::unique_ptr<FilterListItem>;
+
+	QList<FilterListItem*> buildItemView(const std::vector<OwnedFilterListItem>& ownedItems)
+	{
+		QList<FilterListItem*> result;
+		result.reserve(static_cast<qsizetype>(ownedItems.size()));
+		for (const auto& item : ownedItems)
+			result.append(item.get());
+		return result;
+	}
 }
 
 QList<QString> FilterListModel::lines() const
@@ -22,43 +35,48 @@ QList<QString> FilterListModel::lines() const
 
 void FilterListModel::setLines(const QList<QString>& lines)
 {
-	qDeleteAll(itemList);
-	itemList.clear();
-	// FilterTable::setLines never cleared the selection set, leaving it full
-	// of pointers into the deleted document; clear it so a reused address in
-	// the new document can never appear pre-selected.
-	selectedSet.clear();
-
+	std::vector<OwnedFilterListItem> newOwnedItems;
+	newOwnedItems.reserve(static_cast<size_t>(lines.size()));
 	for (const QString& line : lines)
-		itemList.append(new FilterListItem(line));
+		newOwnedItems.push_back(std::make_unique<FilterListItem>(line));
 
-	if (!itemList.isEmpty())
-	{
-		focusedItem = itemList[0];
-		selectionStartItem = itemList[0];
-	}
-	else
-	{
-		focusedItem = nullptr;
-		selectionStartItem = nullptr;
-	}
+	QList<FilterListItem*> newItemList = buildItemView(newOwnedItems);
+	QSet<FilterListItem*> newSelectedSet;
+	FilterListItem* newFocusedItem = newItemList.isEmpty() ? nullptr : newItemList[0];
+
+	// All potentially-throwing work is complete. These swaps form one
+	// no-throw commit, so the old document remains coherent on allocation
+	// failure and is destroyed only after no raw observer references it.
+	ownedItems.swap(newOwnedItems);
+	itemList.swap(newItemList);
+	selectedSet.swap(newSelectedSet);
+	focusedItem = newFocusedItem;
+	selectionStartItem = newFocusedItem;
 }
 
 FilterListItem* FilterListModel::addLine(const QString& line, const FilterListItem* before)
 {
-	FilterListItem* newItem = new FilterListItem(line);
+	auto newItem = std::make_unique<FilterListItem>(line);
+	FilterListItem* result = newItem.get();
+	int index = before == nullptr ? itemList.size() : itemList.indexOf(before);
+	if (index < 0)
+		index = itemList.size();
 
-	if (before != nullptr)
+	QList<FilterListItem*> newItemList;
+	newItemList.reserve(itemList.size() + 1);
+	for (int i = 0; i <= itemList.size(); i++)
 	{
-		int index = itemList.indexOf(before);
-		itemList.insert(index, newItem);
-	}
-	else
-	{
-		itemList.append(newItem);
+		if (i == index)
+			newItemList.append(result);
+		if (i < itemList.size())
+			newItemList.append(itemList[i]);
 	}
 
-	return newItem;
+	ownedItems.reserve(ownedItems.size() + 1);
+	ownedItems.insert(ownedItems.begin() + index, std::move(newItem));
+	itemList.swap(newItemList);
+
+	return result;
 }
 
 bool FilterListModel::removeItem(FilterListItem* item)
@@ -67,94 +85,149 @@ bool FilterListModel::removeItem(FilterListItem* item)
 	if (index == -1)
 		return false;
 
-	itemList.removeAt(index);
 	FilterListItem* replacement = nullptr;
-	if (!itemList.isEmpty())
-		replacement = itemList[qMin(index, int(itemList.size()) - 1)];
+	if (itemList.size() > 1)
+		replacement = itemList[index + 1 < itemList.size() ? index + 1 : index - 1];
 
-	if (selectedSet.remove(item) && replacement != nullptr)
-		selectedSet.insert(replacement);
-	if (focusedItem == item)
-		focusedItem = replacement;
-	if (selectionStartItem == item)
-		selectionStartItem = replacement;
+	QList<FilterListItem*> newItemList;
+	newItemList.reserve(itemList.size() - 1);
+	for (FilterListItem* existingItem : itemList)
+	{
+		if (existingItem != item)
+			newItemList.append(existingItem);
+	}
 
-	delete item;
+	QSet<FilterListItem*> newSelectedSet = selectedSet;
+	if (newSelectedSet.remove(item) && replacement != nullptr)
+		newSelectedSet.insert(replacement);
+	FilterListItem* newFocusedItem = focusedItem == item ? replacement : focusedItem;
+	FilterListItem* newSelectionStartItem = selectionStartItem == item ? replacement : selectionStartItem;
+
+	itemList.swap(newItemList);
+	selectedSet.swap(newSelectedSet);
+	focusedItem = newFocusedItem;
+	selectionStartItem = newSelectionStartItem;
+	ownedItems.erase(ownedItems.begin() + index);
 	return true;
 }
 
 void FilterListModel::removeItems(const QSet<FilterListItem*>& itemsToRemove)
 {
-	for (FilterListItem* item : itemsToRemove)
+	std::vector<FilterListItem*> removedItems;
+	removedItems.reserve(ownedItems.size());
+	QList<FilterListItem*> newItemList;
+	newItemList.reserve(itemList.size());
+	for (const auto& ownedItem : ownedItems)
 	{
-		itemList.removeOne(item);
-		if (focusedItem == item)
-			focusedItem = nullptr;
-		if (selectionStartItem == item)
-			selectionStartItem = nullptr;
-		selectedSet.remove(item);
-		delete item;
+		FilterListItem* item = ownedItem.get();
+		if (itemsToRemove.contains(item))
+			removedItems.push_back(item);
+		else
+			newItemList.append(item);
 	}
+	if (removedItems.empty())
+		return;
+
+	QSet<FilterListItem*> newSelectedSet = selectedSet;
+	for (FilterListItem* item : removedItems)
+		newSelectedSet.remove(item);
+	const auto wasRemoved = [&removedItems](FilterListItem* item) {
+		return std::find(removedItems.begin(), removedItems.end(), item) != removedItems.end();
+	};
+	FilterListItem* newFocusedItem = wasRemoved(focusedItem) ? nullptr : focusedItem;
+	FilterListItem* newSelectionStartItem = wasRemoved(selectionStartItem) ? nullptr : selectionStartItem;
+
+	itemList.swap(newItemList);
+	selectedSet.swap(newSelectedSet);
+	focusedItem = newFocusedItem;
+	selectionStartItem = newSelectionStartItem;
+	ownedItems.erase(std::remove_if(ownedItems.begin(), ownedItems.end(), [&itemsToRemove](const auto& ownedItem) {
+		return itemsToRemove.contains(ownedItem.get());
+	}), ownedItems.end());
 }
 
 QList<FilterListItem*> FilterListModel::insertLines(const QStringList& lines, const QList<QVariantMap>& prefsList, int dropRow)
 {
+	dropRow = qBound(0, dropRow, itemList.size());
+	std::vector<OwnedFilterListItem> newOwnedItems;
+	newOwnedItems.reserve(static_cast<size_t>(lines.size()));
 	QList<FilterListItem*> inserted;
-
-	selectedSet.clear();
-	focusedItem = nullptr;
-	selectionStartItem = nullptr;
+	inserted.reserve(lines.size());
 	for (int i = 0; i < lines.size(); i++)
 	{
-		FilterListItem* item = new FilterListItem(lines[i]);
+		auto ownedItem = std::make_unique<FilterListItem>(lines[i]);
 		if (i < prefsList.size())
-			item->prefs = prefsList[i];
-		selectedSet.insert(item);
-		itemList.insert(dropRow++, item);
-		if (focusedItem == nullptr)
-		{
-			focusedItem = item;
-			selectionStartItem = item;
-		}
-		inserted.append(item);
+			ownedItem->prefs = prefsList[i];
+		inserted.append(ownedItem.get());
+		newOwnedItems.push_back(std::move(ownedItem));
 	}
+
+	QList<FilterListItem*> newItemList;
+	newItemList.reserve(itemList.size() + inserted.size());
+	for (int i = 0; i < dropRow; i++)
+		newItemList.append(itemList[i]);
+	for (FilterListItem* item : inserted)
+		newItemList.append(item);
+	for (int i = dropRow; i < itemList.size(); i++)
+		newItemList.append(itemList[i]);
+
+	QSet<FilterListItem*> newSelectedSet;
+	newSelectedSet.reserve(inserted.size());
+	for (FilterListItem* item : inserted)
+		newSelectedSet.insert(item);
+	FilterListItem* newFocusedItem = inserted.isEmpty() ? nullptr : inserted[0];
+
+	ownedItems.reserve(ownedItems.size() + newOwnedItems.size());
+	ownedItems.insert(ownedItems.begin() + dropRow,
+		std::make_move_iterator(newOwnedItems.begin()),
+		std::make_move_iterator(newOwnedItems.end()));
+	itemList.swap(newItemList);
+	selectedSet.swap(newSelectedSet);
+	focusedItem = newFocusedItem;
+	selectionStartItem = newFocusedItem;
 
 	return inserted;
 }
 
 void FilterListModel::deleteSelected()
 {
-	QList<FilterListItem*> newItems;
+	QList<FilterListItem*> newItemList;
+	// selectedSet is normally a subset of the document, but reserving the
+	// current view size keeps this transaction safe even if a caller supplied
+	// an external observer through the public selection Interface.
+	newItemList.reserve(itemList.size());
 	for (FilterListItem* item : itemList)
 	{
-		if (selectedSet.contains(item))
-		{
-			if (item == focusedItem)
-				focusedItem = nullptr;
-			if (item == selectionStartItem)
-				selectionStartItem = nullptr;
-			delete item;
-		}
-		else
-		{
-			newItems.append(item);
-		}
+		if (!selectedSet.contains(item))
+			newItemList.append(item);
 	}
-	selectedSet.clear();
-	itemList = newItems;
+	FilterListItem* newFocusedItem = selectedSet.contains(focusedItem) ? nullptr : focusedItem;
+	FilterListItem* newSelectionStartItem = selectedSet.contains(selectionStartItem) ? nullptr : selectionStartItem;
+
+	QSet<FilterListItem*> removedItems;
+	removedItems.swap(selectedSet);
+	itemList.swap(newItemList);
+	focusedItem = newFocusedItem;
+	selectionStartItem = newSelectionStartItem;
+	ownedItems.erase(std::remove_if(ownedItems.begin(), ownedItems.end(), [&removedItems](const auto& ownedItem) {
+		return removedItems.contains(ownedItem.get());
+	}), ownedItems.end());
 }
 
 void FilterListModel::selectOnly(FilterListItem* item)
 {
-	selectedSet.clear();
-	selectedSet.insert(item);
+	QSet<FilterListItem*> newSelectedSet;
+	newSelectedSet.insert(item);
+	selectedSet.swap(newSelectedSet);
 }
 
 void FilterListModel::selectAll()
 {
-	selectedSet.clear();
+	QSet<FilterListItem*> newSelectedSet;
+	newSelectedSet.reserve(itemList.size());
 	for (FilterListItem* item : itemList)
-		selectedSet.insert(item);
+		newSelectedSet.insert(item);
+	selectedSet.swap(newSelectedSet);
 }
 
 void FilterListModel::selectRangeFromAnchor(const FilterListItem* target)
@@ -164,9 +237,11 @@ void FilterListModel::selectRangeFromAnchor(const FilterListItem* target)
 	if (startRow == -1 || targetRow == -1)
 		return;
 
-	selectedSet.clear();
+	QSet<FilterListItem*> newSelectedSet;
+	newSelectedSet.reserve(qAbs(targetRow - startRow) + 1);
 	for (int i = qMin(startRow, targetRow); i <= qMax(startRow, targetRow); i++)
-		selectedSet.insert(itemList[i]);
+		newSelectedSet.insert(itemList[i]);
+	selectedSet.swap(newSelectedSet);
 }
 
 int FilterListModel::firstSelectedIndex() const

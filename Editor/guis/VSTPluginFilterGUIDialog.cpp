@@ -27,7 +27,7 @@ using std::placeholders::_2;
 
 VSTPluginFilterGUIDialog::VSTPluginFilterGUIDialog(QWidget* parent, VSTPluginInstance* effect, bool autoApply)
 	: QDialog(parent, Qt::WindowCloseButtonHint),
-	ui(new Ui::VSTPluginFilterGUIDialog),
+	ui(std::make_unique<Ui::VSTPluginFilterGUIDialog>()),
 	effect(effect)
 {
 	ui->setupUi(this);
@@ -53,8 +53,6 @@ VSTPluginFilterGUIDialog::~VSTPluginFilterGUIDialog()
 {
 	effect->stopEditing();
 	effect->setSizeWindowFunc(nullptr);
-
-	delete ui;
 }
 
 QPushButton* VSTPluginFilterGUIDialog::getApplyButton()

@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+#include "Win32Resource.h"
+
 class ServiceHelper
 {
 public:
@@ -32,7 +34,7 @@ class Service
 {
 public:
 	Service(SC_HANDLE scManager, const std::wstring& serviceName, bool allowEnumerate);
-	virtual ~Service();
+	virtual ~Service() = default;
 	const std::wstring& getServiceName();
 	DWORD getState();
 	void start();
@@ -42,7 +44,7 @@ public:
 private:
 	void fail(const std::wstring& functionName, DWORD error);
 
-	SC_HANDLE serviceHandle;
+	winutil::UniqueServiceHandle serviceHandle;
 	std::wstring serviceName;
 };
 

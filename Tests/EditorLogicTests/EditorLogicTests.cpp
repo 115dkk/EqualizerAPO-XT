@@ -40,6 +40,7 @@
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/StudioRoutingModel.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/Win32Resource.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
@@ -131,6 +132,26 @@ void requireTrue(bool value, const QString& message)
 // FilterListModel: the widget-free document/selection model behind
 // FilterTable, so its mutation and selection logic is testable without a
 // QWidget.
+static void requireFilterListModelInvariants(const FilterListModel& model, const char* stage)
+{
+	QSet<FilterListItem*> documentItems;
+	for (FilterListItem* item : model.items())
+	{
+		if (item == nullptr || documentItems.contains(item))
+			throw std::runtime_error(std::string("FilterListModel projection invariant failed after ") + stage);
+		documentItems.insert(item);
+	}
+	for (FilterListItem* item : model.selected())
+	{
+		if (!documentItems.contains(item))
+			throw std::runtime_error(std::string("FilterListModel selection invariant failed after ") + stage);
+	}
+	if (model.focused() != nullptr && !documentItems.contains(model.focused()))
+		throw std::runtime_error(std::string("FilterListModel focus invariant failed after ") + stage);
+	if (model.selectionStart() != nullptr && !documentItems.contains(model.selectionStart()))
+		throw std::runtime_error(std::string("FilterListModel anchor invariant failed after ") + stage);
+}
+
 static void testFilterListModel()
 {
 	FilterListModel model;
@@ -143,12 +164,14 @@ static void testFilterListModel()
 	expectTrue(model.focused() == model.items()[0], "setLines focuses the first line");
 	expectTrue(model.selectionStart() == model.items()[0], "setLines anchors the selection on the first line");
 	expectTrue(model.selected().isEmpty(), "setLines starts with an empty selection");
+	requireFilterListModelInvariants(model, "setLines");
 
 	// addLine inserts before an anchor item, or appends without one.
 	FilterListItem* added = model.addLine("Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71", model.items()[1]);
 	expectEqual((int)model.items().indexOf(added), 1, "addLine inserts before the anchor");
 	FilterListItem* appended = model.addLine("GraphicEQ: 20 -1; 1000 2");
 	expectEqual((int)model.items().indexOf(appended), (int)model.items().size() - 1, "addLine without anchor appends");
+	requireFilterListModelInvariants(model, "addLine");
 
 	// Range selection math (the Shift-click/Shift-arrow logic): anchor..target
 	// in either direction; a missing anchor leaves the selection untouched.
@@ -196,6 +219,7 @@ static void testFilterListModel()
 	expectTrue(model.selectionStart() == inserted[0], "insertLines anchors on the first inserted line");
 	expectTrue(inserted[0]->prefs.value("expanded").toBool() && inserted[1]->prefs.isEmpty(),
 		"insertLines aligns prefs by index and leaves extra lines without prefs");
+	requireFilterListModelInvariants(model, "insertLines");
 
 	// deleteSelected removes exactly the selection, clears it and drops the
 	// focus/anchor when they pointed at deleted rows.
@@ -212,6 +236,7 @@ static void testFilterListModel()
 	expectTrue(model.selected().isEmpty(), "deleteSelected clears the selection");
 	expectTrue(model.focused() == nullptr && model.selectionStart() == nullptr,
 		"deleteSelected drops focus/anchor pointing at deleted rows");
+	requireFilterListModelInvariants(model, "deleteSelected");
 
 	// selectAll selects every row.
 	model.selectAll();
@@ -230,6 +255,36 @@ static void testFilterListModel()
 	expectTrue(model.focused() == replacement && model.selectionStart() == replacement,
 		"removeItem moves focus and anchor to the neighbouring row");
 	expectFalse(model.removeItem(nullptr), "removeItem rejects items outside the document");
+	requireFilterListModelInvariants(model, "removeItem");
+
+	// Batch removal has no individual replacement semantics, but must commit
+	// ownership, projection and observer state together.
+	FilterListModel batchModel;
+	batchModel.setLines(QList<QString>() << "one" << "two" << "three");
+	FilterListItem* removed = batchModel.items()[1];
+	batchModel.select(removed);
+	batchModel.setFocused(removed);
+	batchModel.setSelectionStart(removed);
+	batchModel.removeItems(QSet<FilterListItem*>() << removed);
+	requireFilterListModelInvariants(batchModel, "removeItems");
+	if (batchModel.lines() != (QList<QString>() << "one" << "three"))
+		throw std::runtime_error("FilterListModel removeItems order invariant failed");
+
+	// Invalid external anchors and drop rows must be normalized before the
+	// owner vector is indexed; this is both a public-API guard and a regression
+	// test for the former begin() - 1 undefined behavior.
+	FilterListModel boundaryModel;
+	boundaryModel.setLines(QList<QString>() << "middle");
+	FilterListItem externalAnchor("external");
+	const FilterListItem* appendedAtBoundary = boundaryModel.addLine("end", &externalAnchor);
+	boundaryModel.insertLines(QStringList() << "front", {}, -100);
+	boundaryModel.insertLines(QStringList() << "tail", {}, 100);
+	requireFilterListModelInvariants(boundaryModel, "boundary normalization");
+	if (boundaryModel.lines() != (QList<QString>() << "front" << "middle" << "end" << "tail")
+		|| boundaryModel.items()[2] != appendedAtBoundary)
+	{
+		throw std::runtime_error("FilterListModel boundary normalization failed");
+	}
 }
 
 // FilterListUndo: the widget-free undo/redo history FilterTable commits to on
@@ -1293,18 +1348,18 @@ void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
 
 	// Access 0 with read/write sharing still permits in-place writes, while
 	// omitting FILE_SHARE_DELETE prevents replacement while this handle lives.
-	HANDLE replacementBlocker = CreateFileW(
+	winutil::UniqueHandle replacementBlocker(CreateFileW(
 		path.toStdWString().c_str(),
 		0,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		nullptr,
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
-		nullptr);
-	requireTrue(replacementBlocker != INVALID_HANDLE_VALUE, "atomic-save test locks replacement of the original file");
+		nullptr));
+	requireTrue(static_cast<bool>(replacementBlocker), "atomic-save test locks replacement of the original file");
 
 	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(path, QList<QString>() << "replacement");
-	CloseHandle(replacementBlocker);
+	replacementBlocker.reset();
 
 	expectFalse(result.opened, "writeConfig reports an atomic replacement failure");
 
@@ -1316,7 +1371,7 @@ void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
 void testConfigFileCodecRejectsPartialRead()
 {
 	const std::wstring pipeName = L"\\\\.\\pipe\\EditorLogicTests-ConfigRead-" + std::to_wstring(GetCurrentProcessId());
-	HANDLE pipe = CreateNamedPipeW(
+	winutil::UniqueHandle pipe(CreateNamedPipeW(
 		pipeName.c_str(),
 		PIPE_ACCESS_OUTBOUND,
 		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
@@ -1324,20 +1379,19 @@ void testConfigFileCodecRejectsPartialRead()
 		4096,
 		4096,
 		0,
-		nullptr);
-	requireTrue(pipe != INVALID_HANDLE_VALUE, "partial-read test creates a named pipe");
+		nullptr));
+	requireTrue(static_cast<bool>(pipe), "partial-read test creates a named pipe");
 
 	bool serverSucceeded = false;
 	std::thread server([&]() {
-		BOOL connected = ConnectNamedPipe(pipe, nullptr);
+		BOOL connected = ConnectNamedPipe(pipe.get(), nullptr);
 		if (!connected && GetLastError() == ERROR_PIPE_CONNECTED)
 			connected = TRUE;
 		const char prefix[] = "Preamp: -6 dB\r\n";
 		DWORD written = 0;
-		if (connected && WriteFile(pipe, prefix, sizeof(prefix) - 1, &written, nullptr) && written == sizeof(prefix) - 1)
-			serverSucceeded = FlushFileBuffers(pipe) != FALSE;
-		DisconnectNamedPipe(pipe);
-		CloseHandle(pipe);
+		if (connected && WriteFile(pipe.get(), prefix, sizeof(prefix) - 1, &written, nullptr) && written == sizeof(prefix) - 1)
+			serverSucceeded = FlushFileBuffers(pipe.get()) != FALSE;
+		DisconnectNamedPipe(pipe.get());
 	});
 
 	ConfigFileCodec::ReadResult result = ConfigFileCodec::readConfig(QString::fromStdWString(pipeName));
