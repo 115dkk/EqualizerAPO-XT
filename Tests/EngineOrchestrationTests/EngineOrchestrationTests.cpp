@@ -10,6 +10,7 @@
 */
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -17,6 +18,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <stdexcept>
 #include <vector>
 
 #ifndef NOMINMAX
@@ -27,11 +29,41 @@
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "helpers/LogHelper.h"
+#include "helpers/ParallelExecutor.h"
 #include "helpers/SndfileRAII.h"
 #include "Tests/TestHarness.h"
 
 namespace
 {
+
+void testParallelExecutor(test::Harness& harness)
+{
+	constexpr size_t taskCount = 257;
+	std::vector<std::atomic<unsigned>> visits(taskCount);
+	for (std::atomic<unsigned>& visit : visits)
+		visit.store(0, std::memory_order_relaxed);
+
+	ParallelExecutor::forEach(taskCount, [&](size_t index) {
+		visits[index].fetch_add(1, std::memory_order_relaxed);
+	}, 4);
+	for (size_t index = 0; index < taskCount; ++index)
+		harness.expectEqual(visits[index].load(std::memory_order_relaxed), 1u,
+			"parallel executor visits each task exactly once");
+
+	bool propagated = false;
+	try
+	{
+		ParallelExecutor::forEach(64, [](size_t index) {
+			if (index == 7)
+				throw std::runtime_error("parallel operation failed");
+		}, 4);
+	}
+	catch (const std::runtime_error& error)
+	{
+		propagated = std::string(error.what()) == "parallel operation failed";
+	}
+	harness.expect(propagated, "parallel executor joins workers and propagates the first exception");
+}
 
 std::vector<std::wstring>& writtenConfigFiles()
 {
@@ -572,6 +604,7 @@ int runEngineOrchestrationTests()
 	test::Harness harness("EngineOrchestrationTests");
 
 	testProcessWithoutConfigurationDoesNotCrash(harness);
+	testParallelExecutor(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
 	testChannelSelectorRouting(harness);

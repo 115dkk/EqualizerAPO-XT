@@ -774,6 +774,37 @@ void testFilterCardDepths()
 	expectEqual(mixed[5].logic, 1, "endif closes the scope in mixed nesting");
 }
 
+void testFilterCardBuildPlans()
+{
+	const QList<QString> lines({
+		"Channel: L R",
+		"If: sampleRate == 48000",
+		"Copy: L=R*`gain`",
+		"EndIf:",
+		"Channel: ALL"
+	});
+	const QVector<FilterCardBuildPlan> plans = FilterCardModel::prepareRows(lines);
+	const QVector<FilterCardRowScope> scopes = FilterCardModel::calculateScopes(lines);
+	requireEqual(plans.size(), lines.size(), "card build-plan count");
+	requireEqual(scopes.size(), lines.size(), "card build-plan scope count");
+
+	for (int i = 0; i < plans.size(); ++i)
+	{
+		expectEqual(plans[i].descriptor.depth, scopes[i].indent,
+			QString("build plan %1 descriptor indent").arg(i));
+		expectEqual(plans[i].descriptor.logicDepth, scopes[i].logic,
+			QString("build plan %1 descriptor logic depth").arg(i));
+		expectEqual(plans[i].scope.indent, scopes[i].indent,
+			QString("build plan %1 scope indent").arg(i));
+		expectEqual(plans[i].scope.logic, scopes[i].logic,
+			QString("build plan %1 scope logic depth").arg(i));
+	}
+
+	expectEqual(plans[0].descriptor.parameters, "L R", "build plan preserves parsed parameters");
+	expectTrue(plans[2].descriptor.dynamicLine, "build plan carries inline-expression state");
+	expectEqual(plans[2].descriptor.type, "copy", "build plan carries the prepared card type");
+}
+
 void testConfigImport()
 {
 	QTemporaryDir tempDir;
@@ -1442,6 +1473,7 @@ int main(int argc, char** argv)
 		testVelopackFeeds();
 		testFilterCardDescriptors();
 		testFilterCardDepths();
+		testFilterCardBuildPlans();
 		testConfigImport();
 		testChannelSelectionModel();
 		testDeviceSelectionModel();

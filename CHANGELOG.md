@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Convolution, GraphicEQ, MultiConvolution, and large multi-channel IR
+  preparation now use bounded multicore workers while a configuration is
+  loading. Modern Cards prepare each row's parsed descriptor/scope once and
+  cache fixed regexes and tinted SVG badges, reducing repeated work during
+  skin rebuilds. HConv ownership now supports out-of-order initialization and
+  rollback; the AVRT audio callback, DSP order, and output arithmetic are
+  unchanged. CI covers worker exception cleanup and enforces a 4-second
+  ceiling for the 138-row offscreen skin-switch stress test.
+  ([#200](https://github.com/115dkk/EqualizerAPO-XT/pull/200))
 - Configuration saving is now atomic and partial reads are rejected instead
   of being applied as valid audio graphs. Filter factories, HybridConv/FFTW
   plans, IR data, Copy/IIR state, VST instances, COM apartments, and VST3 DLL

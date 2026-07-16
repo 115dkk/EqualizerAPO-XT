@@ -197,7 +197,7 @@ private:
 	// lookup, legacy factory chain, card override for commented lines,
 	// decorator gating). Shared by updateGuis() and updateSingleRowGui() so
 	// policy edits happen once.
-	IFilterGUI* createRowGui(const QString& line);
+	IFilterGUI* createRowGui(const QString& line, const FilterCardDescriptor* preparedDescriptor = nullptr);
 	// Inserts the mime data's lines at dropRow and makes them the selection.
 	// Shared by paste() and dropEvent(). Returns the number of inserted lines
 	// so the callers can take the incremental single-row path.

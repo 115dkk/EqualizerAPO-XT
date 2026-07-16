@@ -9,6 +9,7 @@
 struct FilterCardDescriptor
 {
 	QString command;
+	QString parameters;
 	QString type;
 	QString badge;
 	QString title;
@@ -17,13 +18,14 @@ struct FilterCardDescriptor
 	QStringList channelBadges;
 	int depth = 0;
 	// Number of If scopes the row lives inside (the logic axis of depth; see
-	// FilterCardRowScope::logic). Not derivable from the line alone, so the row
-	// widget assigns it from calculateScopes() and preserves it across
-	// describeLine() re-derivations.
+	// FilterCardRowScope::logic). Not derivable from the line alone, so the
+	// build plan assigns it from neighbouring-line context and the row preserves
+	// it across describeLine() re-derivations.
 	int logicDepth = 0;
 	bool enabled = true;
 	bool canToggleEnabled = true;
 	bool routeType = false;
+	bool dynamicLine = false;
 };
 
 // Per-row scope answer of calculateScopes(): the indent that drives the left
@@ -38,6 +40,15 @@ struct FilterCardRowScope
 	int logic = 0;
 };
 
+// Immutable presentation work prepared once for a modern-card rebuild. The
+// descriptor carries the parsed line and the scope carries neighbouring-line
+// context; consumers no longer reinterpret the same command independently.
+struct FilterCardBuildPlan
+{
+	FilterCardDescriptor descriptor;
+	FilterCardRowScope scope;
+};
+
 class FilterCardModel
 {
 	// describeLine() produces the human-readable card title/summary strings. It is
@@ -47,6 +58,7 @@ class FilterCardModel
 
 public:
 	static FilterCardDescriptor describeLine(const QString& line, int depth = 0);
+	static QVector<FilterCardBuildPlan> prepareRows(const QList<QString>& lines);
 	// The modern stroke pictogram for a card's type badge, keyed by the
 	// descriptor (matching the picker tiles). Biquad rows split by their type
 	// code so every EQ shape carries its response-curve glyph; an unmapped

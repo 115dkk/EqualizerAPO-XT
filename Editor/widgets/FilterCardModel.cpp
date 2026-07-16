@@ -4,6 +4,8 @@
 #include <QRegularExpression>
 #include <QSet>
 
+#include <utility>
+
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "filters/BiQuadCommand.h"
@@ -80,31 +82,46 @@ QString firstCapture(const QRegularExpression& expression, const QString& text)
 // FilterFactoryRegistry and the type titles from BiQuadCommand's table (above).
 QString summarizeBiquad(const QString& parameters, const QString& code, const QString& state)
 {
+	static const QRegularExpression frequencyExpression(
+		QStringLiteral("\\bFc\\s*([-+0-9.,eE\\x{00A0}]+)\\s*H\\s*z"),
+		QRegularExpression::CaseInsensitiveOption);
+	static const QRegularExpression gainExpression(
+		QStringLiteral("\\bGain\\s*([-+0-9.,eE]+)\\s*dB"),
+		QRegularExpression::CaseInsensitiveOption);
+	static const QRegularExpression slopeExpression(
+		QStringLiteral("^\\s*(?:ON|OFF)\\s+[A-Za-z]+\\s+([-+0-9.,eE]+)\\s*dB"),
+		QRegularExpression::CaseInsensitiveOption);
+	static const QRegularExpression qExpression(
+		QStringLiteral("\\bQ\\s*([-+0-9.,eE]+)"),
+		QRegularExpression::CaseInsensitiveOption);
+	static const QRegularExpression bandwidthExpression(
+		QStringLiteral("\\bBW\\s+Oct\\s*([-+0-9.,eE]+)"),
+		QRegularExpression::CaseInsensitiveOption);
+
 	QStringList parts;
 	const bool shelf = code == QStringLiteral("LS") || code == QStringLiteral("LSC") || code == QStringLiteral("HS") || code == QStringLiteral("HSC");
 	const bool centerFrequency = code == QStringLiteral("LSC") || code == QStringLiteral("HSC");
 
-	const QString freq = firstCapture(QRegularExpression(QStringLiteral("\\bFc\\s*([-+0-9.,eE\\x{00A0}]+)\\s*H\\s*z"), QRegularExpression::CaseInsensitiveOption), parameters);
+	const QString freq = firstCapture(frequencyExpression, parameters);
 	if (!freq.isEmpty())
 		parts.append(QStringLiteral("%1 %2 Hz").arg(shelf ? (centerFrequency ? QStringLiteral("Center") : QStringLiteral("Corner")) : QStringLiteral("Fc"), freq));
 
-	const QString gain = firstCapture(QRegularExpression(QStringLiteral("\\bGain\\s*([-+0-9.,eE]+)\\s*dB"), QRegularExpression::CaseInsensitiveOption), parameters);
+	const QString gain = firstCapture(gainExpression, parameters);
 	if (!gain.isEmpty())
 		parts.append(QStringLiteral("Gain %1 dB").arg(gain));
 
 	if (shelf)
 	{
-		const QRegularExpression slopeExpression(QStringLiteral("^\\s*(?:ON|OFF)\\s+[A-Za-z]+\\s+([-+0-9.,eE]+)\\s*dB"), QRegularExpression::CaseInsensitiveOption);
 		const QString slope = firstCapture(slopeExpression, parameters);
 		if (!slope.isEmpty())
 			parts.append(QStringLiteral("Slope %1 dB/Oct").arg(slope));
 	}
 
-	const QString q = firstCapture(QRegularExpression(QStringLiteral("\\bQ\\s*([-+0-9.,eE]+)"), QRegularExpression::CaseInsensitiveOption), parameters);
+	const QString q = firstCapture(qExpression, parameters);
 	if (!q.isEmpty())
 		parts.append(QStringLiteral("Q %1").arg(q));
 
-	const QString bandwidth = firstCapture(QRegularExpression(QStringLiteral("\\bBW\\s+Oct\\s*([-+0-9.,eE]+)"), QRegularExpression::CaseInsensitiveOption), parameters);
+	const QString bandwidth = firstCapture(bandwidthExpression, parameters);
 	if (!bandwidth.isEmpty())
 		parts.append(QStringLiteral("BW %1 Oct").arg(bandwidth));
 
@@ -112,6 +129,41 @@ QString summarizeBiquad(const QString& parameters, const QString& code, const QS
 	if (state == QStringLiteral("OFF"))
 		summary = QStringLiteral("OFF \xC2\xB7 ") + summary;
 	return summary;
+}
+
+FilterCardRowScope advanceScope(bool enabled, const QString& command,
+	const QStringList& channelBadges, int& channelDepth, int& ifDepth)
+{
+	FilterCardRowScope scope;
+	if (enabled && command == QStringLiteral("channel"))
+	{
+		scope.indent = ifDepth;
+		scope.logic = ifDepth;
+		channelDepth = (channelBadges.isEmpty() || channelBadges.contains(QStringLiteral("ALL"))) ? 0 : 1;
+	}
+	else if (enabled && command == QStringLiteral("if"))
+	{
+		scope.indent = channelDepth + ifDepth;
+		scope.logic = ifDepth;
+		ifDepth++;
+	}
+	else if (enabled && (command == QStringLiteral("elseif") || command == QStringLiteral("else")))
+	{
+		scope.indent = channelDepth + qMax(0, ifDepth - 1);
+		scope.logic = ifDepth;
+	}
+	else if (enabled && command == QStringLiteral("endif"))
+	{
+		scope.indent = channelDepth + qMax(0, ifDepth - 1);
+		scope.logic = ifDepth;
+		ifDepth = qMax(0, ifDepth - 1);
+	}
+	else
+	{
+		scope.indent = channelDepth + ifDepth;
+		scope.logic = ifDepth;
+	}
+	return scope;
 }
 }
 
@@ -182,9 +234,10 @@ QString FilterCardModel::commandForLine(const QString& line, QString* parameters
 
 QStringList FilterCardModel::parseChannelList(const QString& text)
 {
+	static const QRegularExpression whitespaceExpression(QStringLiteral("\\s+"));
 	QString normalized = text;
 	normalized.replace(',', ' ');
-	QStringList result = normalized.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+	QStringList result = normalized.split(whitespaceExpression, Qt::SkipEmptyParts);
 	for (QString& channel : result)
 		channel = channel.trimmed().toUpper();
 	return result;
@@ -223,6 +276,8 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	QString command = commandForLine(line, &parameters);
 	QString commandLower = command.toLower();
 	descriptor.command = command;
+	descriptor.parameters = parameters;
+	descriptor.dynamicLine = hasInlineExpressions(parameters);
 	descriptor.title = command.isEmpty() ? tr("Text") : command;
 	descriptor.summary = compactWhitespace(parameters);
 	descriptor.type = QStringLiteral("text");
@@ -262,18 +317,23 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		// only the badge/title/summary say IIR. Like the biquad summary this
 		// echoes what the author wrote with light regexes - the engine
 		// (IIRFilterFactory::parseCommand) stays the single grammar owner.
-		QRegularExpression iirExpression(QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"), QRegularExpression::CaseInsensitiveOption);
-		QRegularExpressionMatch iirMatch = iirExpression.match(parameters);
+		static const QRegularExpression iirExpression(
+			QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"), QRegularExpression::CaseInsensitiveOption);
+		static const QRegularExpression orderExpression(
+			QStringLiteral("\\bOrder\\s+([0-9]+)"), QRegularExpression::CaseInsensitiveOption);
+		static const QRegularExpression coefficientExpression(
+			QStringLiteral("\\bCoefficients((?:\\s+[-+0-9.eE]+)+)"), QRegularExpression::CaseInsensitiveOption);
+		const QRegularExpressionMatch iirMatch = iirExpression.match(parameters);
 		if (iirMatch.hasMatch())
 		{
 			descriptor.badge = QStringLiteral("IIR");
 			descriptor.title = tr("IIR filter");
 
 			QStringList parts;
-			const QString orderText = firstCapture(QRegularExpression(QStringLiteral("\\bOrder\\s+([0-9]+)"), QRegularExpression::CaseInsensitiveOption), parameters);
+			const QString orderText = firstCapture(orderExpression, parameters);
 			if (!orderText.isEmpty())
 				parts.append(tr("Order %1").arg(orderText));
-			const QString coefficientList = firstCapture(QRegularExpression(QStringLiteral("\\bCoefficients((?:\\s+[-+0-9.eE]+)+)"), QRegularExpression::CaseInsensitiveOption), parameters).simplified();
+			const QString coefficientList = firstCapture(coefficientExpression, parameters).simplified();
 			if (!coefficientList.isEmpty())
 				parts.append(tr("%1 coefficients").arg(coefficientList.split(QLatin1Char(' ')).size()));
 			if (!parts.isEmpty())
@@ -288,8 +348,10 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 			// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
 			// shelf-with-slope, LPQ/HPQ Q-form, PEQ alias and Modal) so the card
 			// title and summary agree with the legacy GUI.
-			QRegularExpression typeExpression(QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"), QRegularExpression::CaseInsensitiveOption);
-			QRegularExpressionMatch match = typeExpression.match(parameters);
+			static const QRegularExpression typeExpression(
+				QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"),
+				QRegularExpression::CaseInsensitiveOption);
+			const QRegularExpressionMatch match = typeExpression.match(parameters);
 			if (match.hasMatch())
 			{
 				const QString state = match.captured(1).toUpper();
@@ -319,7 +381,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.color = QStringLiteral("#06b6d4");
 		descriptor.routeType = true;
 
-		QRegularExpression stepExpression(QStringLiteral("([A-Za-z0-9]+)\\s*="));
+		static const QRegularExpression stepExpression(QStringLiteral("([A-Za-z0-9]+)\\s*="));
 		QRegularExpressionMatchIterator matches = stepExpression.globalMatch(parameters);
 		QStringList destinations;
 		while (matches.hasNext())
@@ -384,7 +446,8 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = tr("MultiConvolution");
 		descriptor.color = QStringLiteral("#ec4899");
 		const QString trimmedParams = parameters.trimmed();
-		const int split = trimmedParams.indexOf(QRegularExpression(QStringLiteral("\\s")));
+		static const QRegularExpression whitespaceExpression(QStringLiteral("\\s"));
+		const int split = trimmedParams.indexOf(whitespaceExpression);
 		const QString channel = split < 0 ? trimmedParams : trimmedParams.left(split);
 		const QString fileName = split < 0 ? QString() : QFileInfo(trimmedParams.mid(split + 1).trimmed()).fileName();
 		if (!channel.isEmpty() && !fileName.isEmpty())
@@ -541,45 +604,36 @@ QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString
 	int ifDepth = 0;
 	for (const QString& line : lines)
 	{
-		bool enabled = !line.trimmed().startsWith('#');
+		const bool enabled = !line.trimmed().startsWith('#');
 		QString parameters;
-		QString command = commandForLine(line, &parameters).toLower();
-		FilterCardRowScope scope;
-		if (enabled && command == QStringLiteral("channel"))
-		{
-			// The Channel row itself sits outside the group it opens but stays
-			// inside any enclosing If block.
-			scope.indent = ifDepth;
-			scope.logic = ifDepth;
-			QStringList channels = parseChannelList(parameters);
-			channelDepth = (channels.isEmpty() || channels.contains(QStringLiteral("ALL"))) ? 0 : 1;
-		}
-		else if (enabled && command == QStringLiteral("if"))
-		{
-			scope.indent = channelDepth + ifDepth;
-			scope.logic = ifDepth;
-			ifDepth++;
-		}
-		else if (enabled && (command == QStringLiteral("elseif") || command == QStringLiteral("else")))
-		{
-			scope.indent = channelDepth + qMax(0, ifDepth - 1);
-			scope.logic = ifDepth;
-		}
-		else if (enabled && command == QStringLiteral("endif"))
-		{
-			scope.indent = channelDepth + qMax(0, ifDepth - 1);
-			scope.logic = ifDepth;
-			ifDepth = qMax(0, ifDepth - 1);
-		}
-		else
-		{
-			scope.indent = channelDepth + ifDepth;
-			scope.logic = ifDepth;
-		}
-		scopes.append(scope);
+		const QString command = commandForLine(line, &parameters).toLower();
+		const QStringList channels = command == QStringLiteral("channel")
+			? parseChannelList(parameters) : QStringList();
+		scopes.append(advanceScope(enabled, command, channels, channelDepth, ifDepth));
 	}
 
 	return scopes;
+}
+
+QVector<FilterCardBuildPlan> FilterCardModel::prepareRows(const QList<QString>& lines)
+{
+	QVector<FilterCardBuildPlan> plans;
+	plans.reserve(lines.size());
+
+	int channelDepth = 0;
+	int ifDepth = 0;
+	for (const QString& line : lines)
+	{
+		FilterCardBuildPlan plan;
+		plan.descriptor = describeLine(line);
+		plan.scope = advanceScope(plan.descriptor.enabled,
+			plan.descriptor.command.toLower(), plan.descriptor.channelBadges,
+			channelDepth, ifDepth);
+		plan.descriptor.depth = plan.scope.indent;
+		plan.descriptor.logicDepth = plan.scope.logic;
+		plans.append(std::move(plan));
+	}
+	return plans;
 }
 
 QVector<int> FilterCardModel::calculateDepths(const QList<QString>& lines)

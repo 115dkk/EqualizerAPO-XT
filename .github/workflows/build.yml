@@ -863,6 +863,10 @@ jobs:
         $env:QT_QPA_PLATFORM = "offscreen"
         # GUI-subsystem exe: qWarning only reaches redirected stderr with this set
         $env:QT_FORCE_STDERR_LOGGING = "1"
+        # Keep the measured 100+ row card rebuild within a useful regression
+        # budget. The historical default (8 s) was a crash-storm guard; the
+        # prepared-row/cached-badge path is expected to stay comfortably below 4 s.
+        $env:EAPO_SWITCH_LIMIT_MS = "4000"
         $log = "${{ github.workspace }}\skin-switch-test.log"
         $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
           -ArgumentList @("--skin-switch-test") -PassThru -Wait -NoNewWindow `

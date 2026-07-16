@@ -5,6 +5,7 @@
 #include <QMenu>
 #include <QPainter>
 #include <QPixmap>
+#include <QPixmapCache>
 #include <QPropertyAnimation>
 #include <QRegularExpression>
 #include <QScrollArea>
@@ -12,15 +13,17 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include <utility>
+
 #include "Editor/SkinManager.h"
 #include "Editor/widgets/ChBadge.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 
-FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui, FilterCardRowScope scope, QWidget* parent)
-	: QWidget(parent), table(table), item(item), gui(gui), descriptor(FilterCardModel::describeLine(item->text, scope.indent)), rowNumber(number)
+FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
+	FilterCardDescriptor preparedDescriptor, QWidget* parent)
+	: QWidget(parent), table(table), item(item), gui(gui), descriptor(std::move(preparedDescriptor)), rowNumber(number)
 {
-	descriptor.logicDepth = scope.logic;
 	setAttribute(Qt::WA_StyledBackground, false);
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -89,6 +92,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	channelBadgeLayout = new QHBoxLayout(channelBadgeContainer);
 	channelBadgeLayout->setContentsMargins(0, 0, 0, 0);
 	channelBadgeLayout->setSpacing(3);
+	channelBadgeContainer->setVisible(false);
 	headerLayout->addWidget(channelBadgeContainer);
 
 	enabledButton = new QToolButton(headerWidget);
@@ -154,10 +158,8 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// first edit would serialize the expression away. Such lines keep the
 	// raw body (dynamic-value contract), like every other dynamic line
 	// without a dynamic-capable editor.
-	QString routingParameters;
-	FilterCardModel::commandForLine(item->text, &routingParameters);
 	IRoutingRenderer* routingRenderer = (descriptor.type == QStringLiteral("copy")
-		&& !FilterCardModel::hasInlineExpressions(routingParameters))
+		&& !descriptor.dynamicLine)
 		? SkinManager::instance()->routingRenderer() : nullptr;
 
 	if (routingRenderer != nullptr)
@@ -173,9 +175,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
 		editorLayout->setContentsMargins(12, 10, 12, 12);
 
-		QString parameters;
-		FilterCardModel::commandForLine(item->text, &parameters);
-		std::vector<Assignment> routingAssignments = CopyRoutingAdapter::parse(parameters);
+		std::vector<Assignment> routingAssignments = CopyRoutingAdapter::parse(descriptor.parameters);
 		// Seed the routing editor with the real device channel set (L, R, C, ...),
 		// the same list the legacy CopyFilterGUI receives via configureChannels.
 		// Without it the graph only shows channels already named in the line, so
@@ -293,7 +293,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// (FilterTable::updateGuis), so construction time is the right moment for
 	// the active skin to tag or extend this row.
 	SkinManager::instance()->prepareCommandRow(currentRowInfo(), cardFrame, headerWidget, bodyStack);
-	rebuildSummary();
+	applyDescriptor();
 }
 
 void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
@@ -301,11 +301,7 @@ void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
 	if (routingView != nullptr && descriptor.type == QStringLiteral("copy"))
 	{
 		if (descriptor.enabled)
-		{
-			QString parameters;
-			FilterCardModel::commandForLine(item->text, &parameters);
-			propagateCopyChannels(CopyRoutingAdapter::parse(parameters), channelNames);
-		}
+			propagateCopyChannels(CopyRoutingAdapter::parse(descriptor.parameters), channelNames);
 		return;
 	}
 
@@ -323,11 +319,7 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	info.focused = table != nullptr && table->getFocusedItem() == item;
 	info.depth = descriptor.depth;
 	info.logicDepth = descriptor.logicDepth;
-	{
-		QString parameters;
-		FilterCardModel::commandForLine(item->text, &parameters);
-		info.dynamicLine = FilterCardModel::hasInlineExpressions(parameters);
-	}
+	info.dynamicLine = descriptor.dynamicLine;
 
 	// Fold in the analysis engine's load facts for this line (dynamic
 	// commands): branch truth for the If family, computed values for
@@ -408,7 +400,7 @@ void FilterCardRow::updateRowPosition(int rowNumber, FilterCardRowScope scope)
 		descriptor.logicDepth = scope.logic;
 		if (layout() != nullptr)
 			layout()->setContentsMargins(8 + rowIndentUnits() * SkinManager::instance()->tokens().channelGroupIndent, 4, 8, 4);
-		rebuildSummary();
+		applyDescriptor();
 	}
 	else
 	{
@@ -613,6 +605,14 @@ void FilterCardRow::paintEvent(QPaintEvent*)
 // no coverage for CompositionMode_SourceIn to paint on.
 static QPixmap badgePictogram(const QString& resource, const QColor& ink, int size, qreal devicePixelRatio)
 {
+	const QString cacheKey = QStringLiteral("FilterCardBadge:%1:%2:%3:%4")
+		.arg(resource, ink.name(QColor::HexArgb))
+		.arg(size)
+		.arg(devicePixelRatio, 0, 'f', 3);
+	QPixmap cached;
+	if (QPixmapCache::find(cacheKey, &cached))
+		return cached;
+
 	QPixmap pixmap = QIcon(resource).pixmap(QSize(size, size), devicePixelRatio);
 	if (pixmap.isNull())
 		return pixmap;
@@ -620,6 +620,7 @@ static QPixmap badgePictogram(const QString& resource, const QColor& ink, int si
 	painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
 	painter.fillRect(pixmap.rect(), ink);
 	painter.end();
+	QPixmapCache::insert(cacheKey, pixmap);
 	return pixmap;
 }
 
@@ -631,6 +632,11 @@ void FilterCardRow::rebuildSummary()
 	const int logicDepth = descriptor.logicDepth;
 	descriptor = FilterCardModel::describeLine(item->text, descriptor.depth);
 	descriptor.logicDepth = logicDepth;
+	applyDescriptor();
+}
+
+void FilterCardRow::applyDescriptor()
+{
 
 	// Blank lines render as a thin spacer: no header, no body, no raw preview.
 	// The card frame itself stays visible (so its background fills the gap and
@@ -695,6 +701,10 @@ void FilterCardRow::rebuildSummary()
 
 void FilterCardRow::buildChannelBadges(const QStringList& channels)
 {
+	if (channels == renderedChannelBadges)
+		return;
+	renderedChannelBadges = channels;
+
 	while (QLayoutItem* child = channelBadgeLayout->takeAt(0))
 	{
 		delete child->widget();

@@ -28,6 +28,7 @@
 #include "helpers/ChannelHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/ParallelExecutor.h"
 #include "MultiConvolutionFilter.h"
 
 using std::find;
@@ -133,25 +134,30 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		return outChannelNames;
 	}
 	HConvSingleArray pendingFilters;
-	pendingFilters.adoptUninitialized(std::move(allocated), totalUnits);
+	pendingFilters.adoptStorage(std::move(allocated), totalUnits);
 
 	tempBuffer.assign(maxFrameCount, 0.0);
 	unitFactors.assign(totalUnits, 1.0);
+	std::vector<unsigned> unitChannels(totalUnits);
 	unsigned next = 0;
 	for (size_t i = 0; i < mappings.size(); i++)
 	{
 		plans[i].firstUnit = next;
 		for (const MultiConvolutionCommand::IrChannelRef& ref : perMapping[i])
 		{
-			// hcInitSingle reads the IR samples during planning but does not
-			// retain the pointer, so the shared cache buffer is safe to feed.
-			hcInitSingle(&pendingFilters[next], const_cast<double*>(ir->buffers[ref.channel].data()), (int)irFrames, (int)maxFrameCount, 1);
-			pendingFilters.markInitialized();
+			unitChannels[next] = ref.channel;
 			unitFactors[next] = ref.isDecibel ? pow(10.0, ref.factor / 20.0) : ref.factor;
 			next++;
 		}
 		plans[i].unitCount = next - plans[i].firstUnit;
 	}
+	ParallelExecutor::forEach(totalUnits, [&](size_t index) {
+		const unsigned unit = static_cast<unsigned>(index);
+		// hcInitSingle reads the IR samples during planning but does not
+		// retain the pointer, so the shared cache buffer is safe to feed.
+		hcInitSingle(&pendingFilters[unit], const_cast<double*>(ir->buffers[unitChannels[unit]].data()),
+			(int)irFrames, (int)maxFrameCount, 1);
+	});
 	filters = std::move(pendingFilters);
 	unitCount = next;
 	filterFrameCount = maxFrameCount;

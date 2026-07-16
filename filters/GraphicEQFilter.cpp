@@ -34,6 +34,7 @@
 #include "helpers/LogHelper.h"
 #include "helpers/FftwRAII.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/ParallelExecutor.h"
 #include "GraphicEQFilter.h"
 
 using std::exp;
@@ -187,12 +188,11 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		return;
 	}
 	HConvSingleArray pendingFilters;
-	pendingFilters.adoptUninitialized(std::move(allocated), channelCount);
-	for (unsigned i = 0; i < channelCount; i++)
-	{
+	pendingFilters.adoptStorage(std::move(allocated), channelCount);
+	ParallelExecutor::forEach(channelCount, [&](size_t index) {
+		const unsigned i = static_cast<unsigned>(index);
 		hcInitSingle(&pendingFilters[i], const_cast<double*>(cached->data()), static_cast<int>(filterLength), static_cast<int>(frameCount), 1);
-		pendingFilters.markInitialized();
-	}
+	});
 	filters = std::move(pendingFilters);
 }
 

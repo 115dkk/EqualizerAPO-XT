@@ -33,6 +33,8 @@
 #include <QJsonDocument>
 #include <QSettings>
 
+#include <utility>
+
 #include "MainWindow.h"
 #include "SkinManager.h"
 #include "FilterTableRow.h"
@@ -171,16 +173,23 @@ void FilterTable::updateGuis()
 	for (const auto& factory : factories)
 		factory->startOfFile(configPath);
 
-	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
+	const QVector<FilterCardBuildPlan> rowPlans = renderMode == ModernCards
+		? FilterCardModel::prepareRows(getLines()) : QVector<FilterCardBuildPlan>();
 	int row = 0;
 	for (Item* item : model.items())
 	{
-		IFilterGUI* gui = createRowGui(item->text);
+		FilterCardDescriptor descriptor;
+		if (renderMode == ModernCards)
+			descriptor = row < rowPlans.size()
+				? rowPlans[row].descriptor
+				: FilterCardModel::describeLine(item->text);
+		IFilterGUI* gui = createRowGui(item->text,
+			renderMode == ModernCards ? &descriptor : nullptr);
 
 		// LegacyRows is a frozen fallback that must not be extended; see the
 		// RenderMode enum and docs/FilterListUiPolicy.md.
 		QWidget* rowWidget = renderMode == ModernCards
-			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, row < rowScopes.size() ? rowScopes[row] : FilterCardRowScope()))
+			? static_cast<QWidget*>(new FilterCardRow(this, row + 1, item, gui, std::move(descriptor)))
 			: static_cast<QWidget*>(new FilterTableRow(this, row + 1, item, gui));
 		gridLayout->addWidget(rowWidget, row, 0);
 
@@ -303,12 +312,19 @@ void FilterTable::resizeEvent(QResizeEvent* event)
 		insertSeam->setGeometry(0, 0, width(), 10);
 }
 
-IFilterGUI* FilterTable::createRowGui(const QString& line)
+IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescriptor* preparedDescriptor)
 {
+	FilterCardDescriptor derivedDescriptor;
+	if (renderMode == ModernCards && preparedDescriptor == nullptr)
+	{
+		derivedDescriptor = FilterCardModel::describeLine(line);
+		preparedDescriptor = &derivedDescriptor;
+	}
+
 	// A pure comment has no "command: parameters" shape (with or without an
 	// inner colon), so it never reaches the factories below. In card mode it
 	// still gets a real editor; the legacy path stays frozen (raw row).
-	if (renderMode == ModernCards && FilterCardModel::isPureCommentLine(line))
+	if (renderMode == ModernCards && preparedDescriptor->type == QStringLiteral("comment"))
 		return new CommentCardEditor(line);
 
 	// Copy's maintained card editor is the skin routing view built directly by
@@ -316,11 +332,9 @@ IFilterGUI* FilterTable::createRowGui(const QString& line)
 	// domain logic, so a normal Copy row no longer needs a hidden heritage GUI.
 	// Dynamic Copy parameters still fall through: routing editors must not
 	// parse and rewrite inline expressions.
-	QString cardParameters;
-	FilterCardModel::commandForLine(line, &cardParameters);
 	if (renderMode == ModernCards
-		&& FilterCardModel::describeLine(line, 0).type == QStringLiteral("copy")
-		&& !FilterCardModel::hasInlineExpressions(cardParameters)
+		&& preparedDescriptor->type == QStringLiteral("copy")
+		&& !preparedDescriptor->dynamicLine
 		&& SkinManager::instance()->routingRenderer() != nullptr)
 		return nullptr;
 
@@ -417,13 +431,19 @@ void FilterTable::updateSingleRowGui(Item* item)
 	// in-place edit (enabled toggle) does not change the surrounding file's
 	// structural context, so the include/depth state the factories track
 	// stays valid.
-	IFilterGUI* gui = createRowGui(item->text);
-
-	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
-	FilterCardRowScope scope = rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope();
+	FilterCardDescriptor descriptor;
+	if (renderMode == ModernCards)
+	{
+		const QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
+		const FilterCardRowScope scope = rowIndex < rowScopes.size() ? rowScopes[rowIndex] : FilterCardRowScope();
+		descriptor = FilterCardModel::describeLine(item->text, scope.indent);
+		descriptor.logicDepth = scope.logic;
+	}
+	IFilterGUI* gui = createRowGui(item->text,
+		renderMode == ModernCards ? &descriptor : nullptr);
 	// Same render-mode policy as updateGuis().
 	QWidget* rowWidget = renderMode == ModernCards
-		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, scope))
+		? static_cast<QWidget*>(new FilterCardRow(this, rowIndex + 1, item, gui, std::move(descriptor)))
 		: static_cast<QWidget*>(new FilterTableRow(this, rowIndex + 1, item, gui));
 	gridLayout->addWidget(rowWidget, rowIndex, 0);
 
@@ -521,11 +541,12 @@ void FilterTable::insertRowAt(int index)
 	// cache the config path there, which an edit inside the loaded file does
 	// not change.
 	Item* item = model.items().at(index);
-	IFilterGUI* gui = createRowGui(item->text);
-
 	QVector<FilterCardRowScope> rowScopes = FilterCardModel::calculateScopes(getLines());
 	FilterCardRowScope scope = index < rowScopes.size() ? rowScopes[index] : FilterCardRowScope();
-	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, scope);
+	FilterCardDescriptor descriptor = FilterCardModel::describeLine(item->text, scope.indent);
+	descriptor.logicDepth = scope.logic;
+	IFilterGUI* gui = createRowGui(item->text, &descriptor);
+	QWidget* rowWidget = new FilterCardRow(this, index + 1, item, gui, std::move(descriptor));
 	gridLayout->addWidget(rowWidget, index, 0);
 
 	item->gui = gui;
