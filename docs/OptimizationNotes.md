@@ -86,3 +86,10 @@
 - `HybridConvTests`가 뒤쪽 슬롯을 먼저 초기화한 배열도 반복 정리 가능한지 검사합니다.
 - `EditorLogicTests`가 build plan의 descriptor/scope/dynamic-line 결과를 기존 계산과 대조합니다.
 - offscreen skin-switch test의 138-row 재구성 상한을 8초에서 4초로 낮췄습니다. 로컬 장시간 검증을 반복하지 않고 PR의 AVX2 CI를 성능·수명 회귀 판정 기준으로 사용합니다.
+
+## 2026-07-16 공유 convolution 필터뱅크
+
+- `HConvSingle`을 불변 필터뱅크와 채널별 런타임 상태로 분리했습니다. 필터뱅크는 주파수 영역 IR 파티션만 소유하며 `shared_ptr<const ...>`로 수명이 관리됩니다. history, mix slab, DFT 작업 버퍼와 FFTW plan은 계속 각 채널이 따로 소유합니다.
+- GraphicEQ는 합성 IR을 한 번만 변환합니다. Convolution은 서로 다른 IR 채널마다 한 번, MultiConvolution은 실제로 참조한 IR 채널마다 한 번만 변환하며, 같은 IR을 쓰는 나머지 출력은 완성된 뱅크를 공유합니다.
+- 공개 `HConvSingle` Interface의 필터 파티션 포인터를 `const`로 바꿔 오디오 처리 경로가 공유 뱅크를 수정할 수 없게 했습니다. AVRT 경로의 연산 순서와 채널별 상태는 바뀌지 않았습니다.
+- `HybridConvTests`는 형제 인스턴스가 동일한 필터뱅크와 서로 다른 가변 버퍼를 갖는지, 원본 인스턴스를 먼저 닫아도 공유 소유권으로 convolution 출력이 유지되는지 검사합니다.

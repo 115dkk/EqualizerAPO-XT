@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <memory>
@@ -156,12 +157,18 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	}
 	HConvSingleArray pendingFilters;
 	pendingFilters.adoptStorage(std::move(allocated), channelCount);
-	ParallelExecutor::forEach(channelCount, [&](size_t index) {
+	// Build one immutable frequency-domain filter bank per distinct IR channel.
+	// Output channels that reuse a mono/stereo IR still receive independent
+	// histories, mix buffers and FFTW execution plans.
+	const unsigned distinctIrChannels = (std::min)(channelCount, ir->channels);
+	ParallelExecutor::forEach(distinctIrChannels, [&](size_t index) {
 		const unsigned i = static_cast<unsigned>(index);
 		// hcInitSingle reads the IR samples during planning but does not retain
 		// the pointer, so it is safe to feed it the shared cache buffer.
-		const std::vector<double>& src = ir->buffers[i % ir->channels];
+		const std::vector<double>& src = ir->buffers[i];
 		hcInitSingle(&pendingFilters[i], const_cast<double*>(src.data()), static_cast<int>(ir->frames), static_cast<int>(frameCount), 1);
 	});
+	for (unsigned i = distinctIrChannels; i < channelCount; ++i)
+		hcInitSingleWithSharedFilterBank(&pendingFilters[i], &pendingFilters[i % ir->channels]);
 	filters = std::move(pendingFilters);
 }

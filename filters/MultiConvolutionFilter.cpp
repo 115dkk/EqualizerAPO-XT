@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <utility>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -151,13 +152,33 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 		}
 		plans[i].unitCount = next - plans[i].firstUnit;
 	}
-	ParallelExecutor::forEach(totalUnits, [&](size_t index) {
-		const unsigned unit = static_cast<unsigned>(index);
+	// A routing expression may reference the same IR channel more than once.
+	// Transform each referenced channel once and share only its immutable bank.
+	const unsigned noPrototype = (std::numeric_limits<unsigned>::max)();
+	std::vector<unsigned> prototypes(ir->channels, noPrototype);
+	std::vector<unsigned> prototypeUnits;
+	for (unsigned unit = 0; unit < totalUnits; ++unit)
+	{
+		const unsigned irChannel = unitChannels[unit];
+		if (prototypes[irChannel] == noPrototype)
+		{
+			prototypes[irChannel] = unit;
+			prototypeUnits.push_back(unit);
+		}
+	}
+	ParallelExecutor::forEach(prototypeUnits.size(), [&](size_t index) {
+		const unsigned unit = prototypeUnits[index];
 		// hcInitSingle reads the IR samples during planning but does not
 		// retain the pointer, so the shared cache buffer is safe to feed.
 		hcInitSingle(&pendingFilters[unit], const_cast<double*>(ir->buffers[unitChannels[unit]].data()),
 			(int)irFrames, (int)maxFrameCount, 1);
 	});
+	for (unsigned unit = 0; unit < totalUnits; ++unit)
+	{
+		const unsigned prototype = prototypes[unitChannels[unit]];
+		if (unit != prototype)
+			hcInitSingleWithSharedFilterBank(&pendingFilters[unit], &pendingFilters[prototype]);
+	}
 	filters = std::move(pendingFilters);
 	unitCount = next;
 	filterFrameCount = maxFrameCount;

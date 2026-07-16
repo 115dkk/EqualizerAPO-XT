@@ -34,7 +34,6 @@
 #include "helpers/LogHelper.h"
 #include "helpers/FftwRAII.h"
 #include "helpers/MemoryHelper.h"
-#include "helpers/ParallelExecutor.h"
 #include "GraphicEQFilter.h"
 
 using std::exp;
@@ -177,6 +176,8 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		cached = entry;
 	}
 	synthesizedIr = cached;
+	if (channelCount == 0)
+		return;
 
 	fftw_make_planner_thread_safe();
 	auto allocated = MemoryHelper::allocateArray<HConvSingle>(channelCount);
@@ -189,10 +190,12 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	}
 	HConvSingleArray pendingFilters;
 	pendingFilters.adoptStorage(std::move(allocated), channelCount);
-	ParallelExecutor::forEach(channelCount, [&](size_t index) {
-		const unsigned i = static_cast<unsigned>(index);
-		hcInitSingle(&pendingFilters[i], const_cast<double*>(cached->data()), static_cast<int>(filterLength), static_cast<int>(frameCount), 1);
-	});
+	// Every channel uses the same synthesized IR. Transform it once, then share
+	// the immutable bank while keeping all processing state channel-local.
+	hcInitSingle(&pendingFilters[0], const_cast<double*>(cached->data()),
+		static_cast<int>(filterLength), static_cast<int>(frameCount), 1);
+	for (unsigned i = 1; i < channelCount; ++i)
+		hcInitSingleWithSharedFilterBank(&pendingFilters[i], &pendingFilters[0]);
 	filters = std::move(pendingFilters);
 }
 

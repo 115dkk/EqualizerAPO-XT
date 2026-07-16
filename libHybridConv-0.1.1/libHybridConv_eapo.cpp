@@ -56,25 +56,30 @@
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-// Definitions of the instance-owned storage declared in libHybridConv_eapo.h.
-// hcInit* allocates one per instance and the matching hcClose* deletes it, so
-// no state is shared between instances; the FFTW planner lock in hcInitSingle
-// stays the only cross-instance synchronization in this file.
+// The transformed impulse response is immutable after initialization and can
+// be shared by several channel instances. Runtime state and FFTW plans remain
+// instance-owned because hcProcessSingle mutates them on the audio thread.
+struct HConvFilterBankStorage
+{
+	HcSlabPtr<double> slab;
+	std::vector<double*> realPtrs;
+	std::vector<double*> imagPtrs;
+	int frameLength = 0;
+	int segmentCount = 0;
+	std::size_t planeStride = 0;
+};
+
 struct HConvSingleStorage
 {
+	std::shared_ptr<const HConvFilterBankStorage> filterBank;
 	HcAlignedPtr<double> dftTime;
 	HcAlignedPtr<fftw_complex> dftFreq;
 	HcAlignedPtr<double> inFreqReal;
 	HcAlignedPtr<double> inFreqImag;
 	std::vector<int> stepTask;
-	// The per-partition real/imag planes live in two contiguous slabs (filter
-	// read-only, mix read-modify-write) so the per-block partition sweep walks
-	// two allocations instead of hundreds of scattered heap blocks. The plane
-	// layout inside the slabs is pinned by HybridConvTests.
-	HcSlabPtr<double> filterSlab;
+	// Mix planes are mutable per-channel state. The immutable filter planes live
+	// in filterBank; both layouts are pinned by HybridConvTests.
 	HcSlabPtr<double> mixSlab;
-	std::vector<double*> filterRealPtrs;
-	std::vector<double*> filterImagPtrs;
 	std::vector<double*> mixRealPtrs;
 	std::vector<double*> mixImagPtrs;
 	HcAlignedPtr<double> historyTime;
@@ -439,171 +444,234 @@ static inline void copy_split_complex_vec(const fftw_complex* __restrict src,
 		im[j] = s[2 * (size_t)j + 1];
 	}
 }
-void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps)
+namespace
+{
+	struct PendingSingle
+	{
+		HConvSingle value = {};
+		std::unique_ptr<HConvSingleStorage> storage = std::make_unique<HConvSingleStorage>();
+		fftw::Plan fft;
+		fftw::Plan ifft;
+
+		void publish(HConvSingle* output) noexcept
+		{
+			value.fft = fft.release();
+			value.ifft = ifft.release();
+			value.storage = storage.release();
+			*output = value;
+		}
+	};
+
+	void validateSingleShape(int frameLength, int steps)
+	{
+		if (frameLength <= 0 || steps <= 0)
+			throw std::invalid_argument("hcInitSingle frame length and step count must be positive");
+		if (frameLength > (std::numeric_limits<int>::max)() / 2)
+			throw std::length_error("hcInitSingle frame length is too large");
+		if (steps == (std::numeric_limits<int>::max)())
+			throw std::length_error("hcInitSingle step count is too large");
+	}
+
+	std::shared_ptr<HConvFilterBankStorage> makeFilterBank(int impulseLength, int frameLength)
+	{
+		const size_t frameSize = static_cast<size_t>(frameLength);
+		const size_t complexLength = frameSize + 1;
+		const size_t segmentCount =
+			(static_cast<size_t>(impulseLength) + frameSize - 1) / frameSize;
+		if (segmentCount >= static_cast<size_t>((std::numeric_limits<int>::max)()))
+			throw std::length_error("hcInitSingle requires too many partitions");
+
+		auto bank = std::make_shared<HConvFilterBankStorage>();
+		bank->frameLength = frameLength;
+		bank->segmentCount = static_cast<int>(segmentCount);
+		bank->planeStride = (complexLength + 7) & ~static_cast<size_t>(7);
+		const size_t partitionStride = checkedHcMultiply(bank->planeStride, 2);
+		const size_t slabElements = checkedHcMultiply(segmentCount, partitionStride);
+		bank->slab = makeHcSlab<double>(slabElements);
+		bank->realPtrs.resize(segmentCount);
+		bank->imagPtrs.resize(segmentCount);
+		for (size_t i = 0; i < segmentCount; ++i)
+		{
+			bank->realPtrs[i] = bank->slab.get() + i * partitionStride;
+			bank->imagPtrs[i] = bank->realPtrs[i] + bank->planeStride;
+		}
+		memset(bank->slab.get(), 0, checkedHcMultiply(slabElements, sizeof(double)));
+		return bank;
+	}
+
+	PendingSingle prepareSingleRuntime(
+		std::shared_ptr<const HConvFilterBankStorage> filterBank,
+		int steps)
+	{
+		PendingSingle pending;
+		HConvSingle& temp = pending.value;
+		HConvSingleStorage& storage = *pending.storage;
+		storage.filterBank = std::move(filterBank);
+		const HConvFilterBankStorage& bank = *storage.filterBank;
+		const size_t frameLength = static_cast<size_t>(bank.frameLength);
+		const size_t dftLength = checkedHcMultiply(frameLength, 2);
+		const size_t complexLength = frameLength + 1;
+		const size_t mixSegmentCount = static_cast<size_t>(bank.segmentCount) + 1;
+		const size_t partitionStride = checkedHcMultiply(bank.planeStride, 2);
+		const size_t mixSlabElements = checkedHcMultiply(mixSegmentCount, partitionStride);
+
+		temp.maxstep = steps;
+		temp.framelength = bank.frameLength;
+		temp.num_filterbuf = bank.segmentCount;
+		temp.filterbuf_freq_real = bank.realPtrs.data();
+		temp.filterbuf_freq_imag = bank.imagPtrs.data();
+
+		storage.dftTime = makeHcAlignedArray<double>(dftLength);
+		temp.dft_time = storage.dftTime.get();
+		storage.dftFreq = makeHcAlignedArray<fftw_complex>(complexLength);
+		temp.dft_freq = storage.dftFreq.get();
+		storage.inFreqReal = makeHcAlignedArray<double>(complexLength);
+		storage.inFreqImag = makeHcAlignedArray<double>(complexLength);
+		temp.in_freq_real = storage.inFreqReal.get();
+		temp.in_freq_imag = storage.inFreqImag.get();
+
+		storage.stepTask.resize(static_cast<size_t>(steps) + 1);
+		temp.steptask = storage.stepTask.data();
+		int num = temp.num_filterbuf / steps;
+		for (int i = 0; i <= steps; ++i)
+			temp.steptask[i] = i * num;
+		const int pos = temp.steptask[1] == 0 ? 1 : 2;
+		num = temp.num_filterbuf % steps;
+		for (int j = pos; j < pos + num; ++j)
+		{
+			for (int i = j; i <= steps; ++i)
+				++temp.steptask[i];
+		}
+
+		temp.num_mixbuf = static_cast<int>(mixSegmentCount);
+		storage.mixSlab = makeHcSlab<double>(mixSlabElements);
+		storage.mixRealPtrs.resize(mixSegmentCount);
+		storage.mixImagPtrs.resize(mixSegmentCount);
+		temp.mixbuf_freq_real = storage.mixRealPtrs.data();
+		temp.mixbuf_freq_imag = storage.mixImagPtrs.data();
+		for (int i = 0; i < temp.num_mixbuf; ++i)
+		{
+			temp.mixbuf_freq_real[i] = storage.mixSlab.get() + static_cast<size_t>(i) * partitionStride;
+			temp.mixbuf_freq_imag[i] = temp.mixbuf_freq_real[i] + bank.planeStride;
+		}
+		memset(storage.mixSlab.get(), 0, checkedHcMultiply(mixSlabElements, sizeof(double)));
+
+		storage.historyTime = makeHcAlignedArray<double>(frameLength);
+		temp.history_time = storage.historyTime.get();
+		memset(temp.history_time, 0, checkedHcMultiply(frameLength, sizeof(double)));
+
+		// FFTW's planner mutates process-global state. The lock is only held while
+		// creating each channel's private execution plans; filter-bank transforms
+		// happen after it is released.
+		{
+			static std::mutex plannerMutex;
+			std::lock_guard<std::mutex> lock(plannerMutex);
+			char appData[MAX_PATH];
+			static std::string wisdomPath;
+			static bool wisdomAvailable = false;
+			if (wisdomPath.empty() && GetEnvironmentVariableA("LOCALAPPDATA", appData, MAX_PATH) > 0)
+			{
+				std::string dir = std::string(appData) + "\\EqualizerAPO";
+				CreateDirectoryA(dir.c_str(), nullptr);
+				wisdomPath = dir + "\\fftw_wisdom.dat";
+				static std::once_flag importedFlag;
+				std::call_once(importedFlag, []() {
+					if (!wisdomPath.empty() && GetFileAttributesA(wisdomPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+						wisdomAvailable = fftw_import_wisdom_from_filename(wisdomPath.c_str()) != 0;
+				});
+			}
+			const unsigned flags =
+				(wisdomAvailable ? FFTW_MEASURE : FFTW_ESTIMATE) | FFTW_PRESERVE_INPUT;
+			pending.fft = fftw::makeRealToComplexPlan(
+				2 * bank.frameLength, temp.dft_time, temp.dft_freq, flags);
+			pending.ifft = fftw::makeComplexToRealPlan(
+				2 * bank.frameLength, temp.dft_freq, temp.dft_time, flags);
+		}
+
+		return pending;
+	}
+
+	void transformFilterBank(
+		PendingSingle& pending,
+		HConvFilterBankStorage& bank,
+		const double* impulse,
+		int impulseLength)
+	{
+		HConvSingle& temp = pending.value;
+		const int frameLength = bank.frameLength;
+		const size_t dftLength = checkedHcMultiply(static_cast<size_t>(frameLength), 2);
+		const double gain = 0.5 / frameLength;
+		memset(temp.dft_time, 0, checkedHcMultiply(dftLength, sizeof(double)));
+
+		int partition = 0;
+		for (; partition < bank.segmentCount - 1; ++partition)
+		{
+			mul_store_gain_double(
+				temp.dft_time,
+				impulse + static_cast<size_t>(partition) * frameLength,
+				frameLength,
+				gain);
+			fftw_execute(pending.fft.get());
+			copy_split_complex_vec(
+				temp.dft_freq,
+				bank.realPtrs[partition],
+				bank.imagPtrs[partition],
+				frameLength + 1);
+		}
+
+		const int tailLength = impulseLength - partition * frameLength;
+		if (tailLength > 0)
+		{
+			mul_store_gain_double(temp.dft_time, impulse + static_cast<size_t>(partition) * frameLength,
+				tailLength, gain);
+			memset(temp.dft_time + tailLength, 0,
+				checkedHcMultiply(dftLength - static_cast<size_t>(tailLength), sizeof(double)));
+		}
+		else
+		{
+			memset(temp.dft_time, 0, checkedHcMultiply(dftLength, sizeof(double)));
+		}
+		fftw_execute(pending.fft.get());
+		copy_split_complex_vec(temp.dft_freq, bank.realPtrs[partition], bank.imagPtrs[partition],
+			frameLength + 1);
+	}
+}
+
+void hcInitSingle(HConvSingle* filter, double* h, int hlen, int flen, int steps)
 {
 	if (filter == nullptr)
 		throw std::invalid_argument("hcInitSingle requires an output filter");
-
 	if (h == nullptr)
 		throw std::invalid_argument("hcInitSingle requires impulse-response samples");
-	if (hlen <= 0 || flen <= 0 || steps <= 0)
-		throw std::invalid_argument("hcInitSingle lengths and step count must be positive");
-	if (flen > (std::numeric_limits<int>::max)() / 2)
-		throw std::length_error("hcInitSingle frame length is too large");
-	if (steps == (std::numeric_limits<int>::max)())
-		throw std::length_error("hcInitSingle step count is too large");
+	if (hlen <= 0)
+		throw std::invalid_argument("hcInitSingle impulse length must be positive");
+	validateSingleShape(flen, steps);
 
-	int i, j, num, pos;
-	double gain;
-	const size_t frameLength = static_cast<size_t>(flen);
-	const size_t dftLength = checkedHcMultiply(frameLength, 2);
-	const size_t complexLength = frameLength + 1;
-	const size_t filterSegmentCount =
-		(static_cast<size_t>(hlen) + frameLength - 1) / frameLength;
-	if (filterSegmentCount >= static_cast<size_t>((std::numeric_limits<int>::max)()))
-		throw std::length_error("hcInitSingle requires too many partitions");
-
-	const size_t planeStride = (complexLength + 7) & ~static_cast<size_t>(7);
-	const size_t partitionStride = checkedHcMultiply(planeStride, 2);
-	const size_t filterSlabElements = checkedHcMultiply(filterSegmentCount, partitionStride);
-	const size_t mixSegmentCount = filterSegmentCount + 1;
-	const size_t mixSlabElements = checkedHcMultiply(mixSegmentCount, partitionStride);
-
-	HConvSingle temp = {};
-	auto storageOwner = std::make_unique<HConvSingleStorage>();
-	auto& storage = *storageOwner;
-
-	temp.step = 0;
-	temp.maxstep = steps;
-	temp.mixpos = 0;
-	temp.framelength = flen;
-
-	storage.dftTime = makeHcAlignedArray<double>(dftLength);
-	temp.dft_time = storage.dftTime.get();
-	storage.dftFreq = makeHcAlignedArray<fftw_complex>(complexLength);
-	temp.dft_freq = storage.dftFreq.get();
-	storage.inFreqReal = makeHcAlignedArray<double>(complexLength);
-	storage.inFreqImag = makeHcAlignedArray<double>(complexLength);
-	temp.in_freq_real = storage.inFreqReal.get();
-	temp.in_freq_imag = storage.inFreqImag.get();
-
-	temp.num_filterbuf = static_cast<int>(filterSegmentCount);
-	storage.stepTask.resize(static_cast<size_t>(steps) + 1);
-	temp.steptask = storage.stepTask.data();
-	num = temp.num_filterbuf / steps;
-	for (i = 0; i <= steps; i++)
-		temp.steptask[i] = i * num;
-	pos = (temp.steptask[1] == 0) ? 1 : 2;
-	num = temp.num_filterbuf % steps;
-	for (j = pos; j < pos + num; j++) {
-		for (i = j; i <= steps; i++)
-			temp.steptask[i]++;
-	}
-
-	// Each plane is padded to a whole number of cache lines so every real and
-	// imag plane starts 64-byte aligned; a partition is [real|imag]. The
-	// memset doubles as a pre-touch so first use on the audio thread does not
-	// take the soft page faults.
-	storage.filterSlab = makeHcSlab<double>(filterSlabElements);
-	storage.filterRealPtrs.resize(filterSegmentCount);
-	storage.filterImagPtrs.resize(filterSegmentCount);
-	temp.filterbuf_freq_real = storage.filterRealPtrs.data();
-	temp.filterbuf_freq_imag = storage.filterImagPtrs.data();
-	for (i = 0; i < temp.num_filterbuf; i++) {
-		temp.filterbuf_freq_real[i] = storage.filterSlab.get() + (size_t)i * partitionStride;
-		temp.filterbuf_freq_imag[i] = temp.filterbuf_freq_real[i] + planeStride;
-	}
-	memset(storage.filterSlab.get(), 0, checkedHcMultiply(filterSlabElements, sizeof(double)));
-
-	temp.num_mixbuf = static_cast<int>(mixSegmentCount);
-
-	storage.mixSlab = makeHcSlab<double>(mixSlabElements);
-	storage.mixRealPtrs.resize(mixSegmentCount);
-	storage.mixImagPtrs.resize(mixSegmentCount);
-	temp.mixbuf_freq_real = storage.mixRealPtrs.data();
-	temp.mixbuf_freq_imag = storage.mixImagPtrs.data();
-	for (i = 0; i < temp.num_mixbuf; i++) {
-		temp.mixbuf_freq_real[i] = storage.mixSlab.get() + (size_t)i * partitionStride;
-		temp.mixbuf_freq_imag[i] = temp.mixbuf_freq_real[i] + planeStride;
-	}
-	memset(storage.mixSlab.get(), 0, checkedHcMultiply(mixSlabElements, sizeof(double)));
-
-	storage.historyTime = makeHcAlignedArray<double>(frameLength);
-	temp.history_time = storage.historyTime.get();
-	memset(temp.history_time, 0, checkedHcMultiply(frameLength, sizeof(double)));
-
-	// When a cached wisdom file exists we use FFTW_MEASURE — planner returns immediately from the cache,
-	// giving the optimized plan without the multi-second learning cost. Without wisdom we fall back to
-	// FFTW_ESTIMATE so a fresh install does not introduce a multi-second audio glitch at startup.
-	// A separate warmup tool can pre-populate %LOCALAPPDATA%\EqualizerAPO\fftw_wisdom.dat to unlock the
-	// faster MEASURE path on subsequent runs.
-	fftw::Plan fft;
-	fftw::Plan ifft;
-	{
-		static std::mutex plannerMutex;
-		std::lock_guard<std::mutex> lock(plannerMutex);
-		char appData[MAX_PATH];
-		static std::string wisdomPath;
-		static bool wisdomAvailable = false;
-		if (wisdomPath.empty() && GetEnvironmentVariableA("LOCALAPPDATA", appData, MAX_PATH) > 0)
-		{
-			std::string dir = std::string(appData) + "\\EqualizerAPO";
-			CreateDirectoryA(dir.c_str(), nullptr);
-			wisdomPath = dir + "\\fftw_wisdom.dat";
-			static std::once_flag importedFlag;
-			std::call_once(importedFlag, []() {
-				if (!wisdomPath.empty() && GetFileAttributesA(wisdomPath.c_str()) != INVALID_FILE_ATTRIBUTES)
-					wisdomAvailable = (fftw_import_wisdom_from_filename(wisdomPath.c_str()) != 0);
-			});
-		}
-		unsigned fftw_flags = (wisdomAvailable ? FFTW_MEASURE : FFTW_ESTIMATE) | FFTW_PRESERVE_INPUT;
-		fft = fftw::makeRealToComplexPlan(2 * flen, temp.dft_time, temp.dft_freq, fftw_flags);
-		ifft = fftw::makeComplexToRealPlan(2 * flen, temp.dft_freq, temp.dft_time, fftw_flags);
-	}
-
-	gain = 0.5 / flen;
-
-	memset(temp.dft_time, 0, checkedHcMultiply(dftLength, sizeof(double)));
-
-	// Full-length segments
-	for (i = 0; i < temp.num_filterbuf - 1; i++) {
-		// dft_time[0:flen] = gain * h[i * flen + 0 : + flen]
-		mul_store_gain_double(temp.dft_time, h + (size_t)i * flen, flen, gain);
-
-		fftw_execute(fft.get());
-
-		// Split complex to separate real/imag buffers
-		copy_split_complex_vec((const fftw_complex*)temp.dft_freq,
-			temp.filterbuf_freq_real[i],
-			temp.filterbuf_freq_imag[i],
-			flen + 1);
-	}
-
-	// Tail (possibly partial) segment
-	int last_segment_len = hlen - i * flen;
-	if (last_segment_len > 0) {
-		mul_store_gain_double(temp.dft_time, h + (size_t)i * flen, last_segment_len, gain);
-		// zero the remainder up to 2*flen
-		memset(&temp.dft_time[last_segment_len], 0,
-			checkedHcMultiply(dftLength - (size_t)last_segment_len, sizeof(double)));
-	}
-	else {
-		// No tail data: ensure the time buffer is zeroed
-		memset(temp.dft_time, 0, checkedHcMultiply(dftLength, sizeof(double)));
-	}
-
-	fftw_execute(fft.get());
-	copy_split_complex_vec((const fftw_complex*)temp.dft_freq,
-		temp.filterbuf_freq_real[i],
-		temp.filterbuf_freq_imag[i],
-		flen + 1);
-
-	temp.fft = fft.release();
-	temp.ifft = ifft.release();
-	temp.storage = storageOwner.release();
+	auto filterBank = makeFilterBank(hlen, flen);
+	PendingSingle pending = prepareSingleRuntime(filterBank, steps);
+	transformFilterBank(pending, *filterBank, h, hlen);
 	// Publish only after every allocation, plan, and initial transform has
 	// succeeded. A throwing path never exposes partial ownership to the caller.
-	*filter = temp;
+	pending.publish(filter);
+}
+
+void hcInitSingleWithSharedFilterBank(HConvSingle* filter, const HConvSingle* prototype)
+{
+	if (filter == nullptr)
+		throw std::invalid_argument("shared hcInitSingle requires an output filter");
+	if (prototype == nullptr || prototype->storage == nullptr ||
+		prototype->storage->filterBank == nullptr)
+	{
+		throw std::invalid_argument("shared hcInitSingle requires an initialized prototype");
+	}
+	if (filter == prototype)
+		throw std::invalid_argument("shared hcInitSingle output must differ from its prototype");
+	validateSingleShape(prototype->framelength, prototype->maxstep);
+
+	PendingSingle pending = prepareSingleRuntime(
+		prototype->storage->filterBank,
+		prototype->maxstep);
+	pending.publish(filter);
 }
 
 void hcCloseSingle(HConvSingle* filter)
