@@ -224,16 +224,8 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 		return Result::RegistrationFailed;
 	}
 
-	// Config dir gets Users:F so the user can edit configs, and LOCAL SERVICE
-	// modify (M) so audiodg can read/write trace logs from the APO.
-	std::wstring configDir = joinPath(installDir, L"config");
-	std::wstring configAclArgs = L"\"" + configDir + L"\" "
-		L"/grant *S-1-5-32-545:(OI)(CI)F "
-		L"/grant *S-1-5-19:(OI)(CI)M "
-		L"/T /C /Q";
-	rc = waitForProcess(icacls, configAclArgs, 30000);
-	if (rc != 0)
-		logLine(L"WARN", L"icacls (config dir) returned %d, continuing", rc);
+	if (!secureConfigDir(joinPath(installDir, L"config")))
+		logLine(L"WARN", L"icacls (config dir) failed, continuing");
 
 	// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
 	// DeviceSelector is the elevated companion that performs per-device APO
@@ -399,24 +391,17 @@ bool ApoRegistration::startAudioService()
 	}
 }
 
-std::wstring ApoRegistration::detectLegacyInstall()
+bool ApoRegistration::secureConfigDir(const std::wstring& configDir)
 {
-	try
-	{
-		if (!RegistryHelper::valueExists(kRegPath, L"InstallPath"))
-			return std::wstring();
-		std::wstring legacy = RegistryHelper::readValue(kRegPath, L"InstallPath");
-		if (legacy.empty())
-			return std::wstring();
-		std::wstring marker = joinPath(legacy, L"Uninstall.exe");
-		if (!fileExists(marker))
-			return std::wstring();
-		return legacy;
-	}
-	catch (const RegistryException&)
-	{
-		return std::wstring();
-	}
+	// Users:F so the user can edit configs, LOCAL SERVICE modify (M) so
+	// audiodg can read them and write APO trace logs. Built-in well-known
+	// SIDs and a local path — same trust boundary note as install().
+	std::wstring icacls = joinPath(systemPath(), L"icacls.exe");
+	std::wstring configAclArgs = L"\"" + configDir + L"\" "
+		L"/grant *S-1-5-32-545:(OI)(CI)F "
+		L"/grant *S-1-5-19:(OI)(CI)M "
+		L"/T /C /Q";
+	return waitForProcess(icacls, configAclArgs, 30000) == 0;
 }
 
 namespace
@@ -526,37 +511,4 @@ bool ApoRegistration::removeStartMenuShortcuts()
 	// Best-effort cleanup of empty folder; ignore failure (other lnks may live there).
 	RemoveDirectoryW(shortcutFolder.c_str());
 	return ok;
-}
-
-bool ApoRegistration::migrateLegacyConfig(const std::wstring& legacyDir, const std::wstring& newDir)
-{
-	std::wstring legacyConfig = joinPath(legacyDir, L"config");
-	std::wstring newConfig = joinPath(newDir, L"config");
-
-	if (!directoryExists(legacyConfig))
-		return false;
-	if (!createDirectoryRecursive(newConfig))
-		return false;
-
-	bool copiedAny = false;
-	WIN32_FIND_DATAW findData;
-	std::wstring pattern = joinPath(legacyConfig, L"*");
-	winutil::UniqueFindHandle finder(FindFirstFileW(pattern.c_str(), &findData));
-	if (!finder)
-		return false;
-
-	do
-	{
-		if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-			continue;
-		std::wstring source = joinPath(legacyConfig, findData.cFileName);
-		std::wstring target = joinPath(newConfig, findData.cFileName);
-		if (fileExists(target))
-			continue;
-		if (CopyFileW(source.c_str(), target.c_str(), TRUE))
-			copiedAny = true;
-	}
-	while (FindNextFileW(finder.get(), &findData));
-
-	return copiedAny;
 }

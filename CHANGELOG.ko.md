@@ -8,6 +8,22 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- EqualizerAPO-XT가 전용 설정 루트(`%LOCALAPPDATA%\EqualizerAPO-XT\config`)를
+  갖습니다. 지금까지는 기존 Equalizer APO 설치가 잡아 둔 레지스트리 설정
+  경로를 그대로 읽어서, XT 설치 폴더의 `config\config.txt`를 아무리 고쳐도
+  적용되지 않고 옛 `Program Files` 폴더가 계속 오디오를 움직였습니다.
+  기존 APO를 제거한 뒤에도 마찬가지였습니다. 이제 설치와 업데이트 때마다
+  훅이 신뢰 경로를 판정합니다. 기존 Equalizer APO 폴더라면 `config.txt`가
+  참조하는 모든 파일(몇 단계든 Include 체인, Convolution·MultiConvolution
+  임펄스 응답, VST 참조, 폴더 구조 보존)을 가져온 뒤 신뢰를 새 루트로
+  돌리며, 이후 옛 폴더는 더 이상 읽히지 않습니다. Velopack `current\` 안의
+  설정 폴더라면 통째로 구출합니다(업데이트가 `current\`를 재생성하며
+  지워버리기 때문입니다). 사용자가 직접 고른 폴더는 건드리지 않습니다.
+  이관이 일어나면 에디터가 한 번 안내를 띄우고, `Editor.exe
+  --migration-dry-run`으로 아무것도 바꾸지 않고 어떤 판정이 나는지 확인할
+  수 있습니다. 가져오기 스캐너는 `MultiConvolution:` 줄과 따옴표로 감싼
+  컨볼루션 경로도 인식합니다.
+  ([#204](https://github.com/115dkk/EqualizerAPO-XT/pull/204))
 - 카드 보기에서 큰 설정 파일을 열면 오래된 CPU 기준 10초 넘게 걸리던
   문제를 고쳤습니다(i7-7700K 보고). 에디터가 스킨 스타일시트를 모든 카드
   위젯에 대해 여러 번 다시 해석하고 있었습니다. 카드를 부모 없이 만든 뒤

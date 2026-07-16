@@ -46,6 +46,7 @@
 #include "MainWindow.h"
 #include "SkinGallery.h"
 #include "SkinManager.h"
+#include "import/LegacyMigration.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
@@ -285,12 +286,18 @@ int handleVelopackHook(int argc, char* argv[])
 		if (matchesHook(arg, "--veloapp-install"))
 		{
 			auto rc = ApoRegistration::install(exeDir);
+			// The trusted config root: adopt the stable folder, or migrate a
+			// legacy Equalizer APO / volatile current\config tree into it.
+			if (rc == ApoRegistration::Result::Success)
+				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir);
 			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
 		}
 		if (matchesHook(arg, "--veloapp-updated"))
 		{
 			ApoRegistration::stopAudioService();
 			auto rc = ApoRegistration::install(exeDir);
+			if (rc == ApoRegistration::Result::Success)
+				EqAPO::Import::LegacyMigration::runElevatedHookStep(exeDir);
 			ApoRegistration::startAudioService();
 			return rc == ApoRegistration::Result::Success ? 0 : static_cast<int>(rc);
 		}
@@ -458,6 +465,11 @@ int main(int argc, char* argv[])
 		if (application.arguments().contains(QStringLiteral("--skin-switch-test")))
 			return SkinGallery::runSwitchTest(application.arguments());
 
+		// Read-only report of what the install hook's config migration would
+		// do on this machine (classification + manifest); writes nothing.
+		if (application.arguments().contains(QStringLiteral("--migration-dry-run")))
+			return EqAPO::Import::LegacyMigration::dryRun();
+
 		// Diagnostic self-test: crash deliberately so a field machine can verify
 		// that the crash handler leaves a dump + report under
 		// %LOCALAPPDATA%\EqualizerAPO-XT\crashdumps.
@@ -488,7 +500,12 @@ int main(int argc, char* argv[])
 		QTranslator editorTranslator;
 		QtAppBootstrap::installTranslators(application, QStringLiteral("Editor"), qtTranslator, editorTranslator);
 
-		QString configPath = QDir::currentPath();
+		// Without a registry value the old fallback was the process CWD, which
+		// silently edits whatever folder the Editor was launched from; prefer
+		// the stable XT config root when it exists.
+		QString stableRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
+		QString configPath = !stableRoot.isEmpty() && QDir(stableRoot).exists()
+			? stableRoot : QDir::currentPath();
 		if (RegistryHelper::keyExists(APP_REGPATH) && RegistryHelper::valueExists(APP_REGPATH, L"ConfigPath"))
 			configPath = QString::fromStdWString(RegistryHelper::readValue(APP_REGPATH, L"ConfigPath"));
 		QDir configDir(configPath);
@@ -504,6 +521,10 @@ int main(int argc, char* argv[])
 
 		MainWindow w(configDir);
 		w.show();
+
+		// One-time notice after the install hook migrated a config tree; a
+		// no-op for everyone else.
+		EqAPO::Import::LegacyMigration::maybeShowStartupNotice(&w);
 
 		QCommandLineParser parser;
 		parser.process(application);

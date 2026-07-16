@@ -30,6 +30,7 @@
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
+#include "Editor/import/LegacyMigrationPolicy.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/FilterListUndo.h"
@@ -924,6 +925,99 @@ void testConfigImport()
 	expectTrue(QFile::exists(convConfigDest + "/Surround/ir.wav"), "ir.wav missing after single-file import");
 }
 
+void testLegacyMigrationScanAndPolicy()
+{
+	QTemporaryDir tempDir;
+	requireTrue(tempDir.isValid(), "QTemporaryDir must be valid");
+
+	// A legacy config root: config.txt reaching files through a nested
+	// Include, a quoted Convolution path in a subfolder, and both
+	// MultiConvolution forms (simple and factor mappings).
+	QString legacyDir = tempDir.path() + "/config";
+	expectTrue(QDir().mkpath(legacyDir + "/irs"), "failed to create legacy tree");
+
+	auto writeText = [](const QString& path, const QString& body) {
+		QFile f(path);
+		expectTrue(f.open(QIODevice::WriteOnly | QIODevice::Text), QString("could not open %1 for write").arg(path));
+		QTextStream ts(&f);
+		ts << body;
+	};
+	auto writeBlob = [](const QString& path, int bytes) {
+		QFile f(path);
+		expectTrue(f.open(QIODevice::WriteOnly), QString("could not open %1 for write").arg(path));
+		f.write(QByteArray(bytes, '\0'));
+	};
+
+	writeText(legacyDir + "/config.txt",
+		"Preamp: -3 dB\n"
+		"Include: upmix.txt\n"
+		"MultiConvolution: L=0.5*0+1 R=1 irs/hrir.wav\n");
+	writeText(legacyDir + "/upmix.txt",
+		"Convolution: \"irs/room ir.wav\"\n"
+		"MultiConvolution: C brir.wav\n");
+	writeBlob(legacyDir + "/irs/hrir.wav", 96);
+	writeBlob(legacyDir + "/irs/room ir.wav", 48);
+	writeBlob(legacyDir + "/brir.wav", 32);
+
+	// SourceFolderIsRoot maps the legacy folder 1:1 onto the target root:
+	// no "config/" prefix on any destination.
+	EqAPO::Import::ImportManifest manifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		legacyDir + "/config.txt", tempDir.path() + "/root",
+		EqAPO::Import::DestLayout::SourceFolderIsRoot);
+	expectFalse(manifest.hasErrors, "legacy scan should not flag errors");
+	requireEqual(int(manifest.items.size()), 5, "expected config + include + three IRs");
+	expectEqual(manifest.rootDest, "config.txt", "migration layout keeps the root name bare");
+
+	QStringList destRels;
+	for (const auto& item : manifest.items)
+		destRels.append(item.destRelative);
+	expectTrue(destRels.contains("config.txt"), "root config present without folder prefix");
+	expectTrue(destRels.contains("upmix.txt"), "included file present");
+	expectTrue(destRels.contains("irs/hrir.wav"), "factor-form MultiConvolution IR collected");
+	expectTrue(destRels.contains("irs/room ir.wav"), "quoted Convolution path collected");
+	expectTrue(destRels.contains("brir.wav"), "simple-form MultiConvolution IR collected");
+
+	// The card editors' nested layout still prefixes the source folder name.
+	EqAPO::Import::ImportManifest nested = EqAPO::Import::ConfigDependencyScanner::scan(
+		legacyDir + "/config.txt", tempDir.path() + "/root");
+	expectEqual(nested.rootDest, "config/config.txt", "default layout keeps the folder prefix");
+
+	// Policy: the pure classification the elevated hook acts on.
+	using Policy = EqAPO::Import::LegacyMigrationPolicy;
+	const QString stableRoot = Policy::stableConfigRoot("C:/Users/me/AppData/Local");
+	expectEqual(stableRoot, "C:/Users/me/AppData/Local/EqualizerAPO-XT/config",
+		"stable root derives from LOCALAPPDATA");
+	expectTrue(Policy::stableConfigRoot(" ").isEmpty(), "missing LOCALAPPDATA yields no root");
+
+	expectTrue(Policy::isVolatileXtConfigDir("C:\\Users\\me\\AppData\\Local\\EqualizerAPO-XT-x64-avx2\\current\\config"),
+		"variant current\\config is volatile");
+	expectTrue(Policy::isVolatileXtConfigDir("D:/apps/EqualizerAPO-XT-arm64-neon/current/config"),
+		"volatile match is drive- and variant-independent");
+	expectFalse(Policy::isVolatileXtConfigDir("C:\\Program Files\\EqualizerAPO\\config"),
+		"legacy Program Files root is not volatile");
+	expectFalse(Policy::isVolatileXtConfigDir(stableRoot), "the stable root itself is not volatile");
+
+	expectTrue(Policy::hasLegacyApoFolderName("C:\\Program Files\\EqualizerAPO\\config"),
+		"upstream default install dir is recognized by name");
+	expectTrue(Policy::hasLegacyApoFolderName("D:/tools/Equalizer APO/config"),
+		"spaced installer folder name is recognized on any drive");
+	expectFalse(Policy::hasLegacyApoFolderName("C:\\Users\\me\\AppData\\Local\\EqualizerAPO-XT\\config"),
+		"the XT stable root is not mistaken for the legacy install");
+	expectFalse(Policy::hasLegacyApoFolderName("D:\\my configs"),
+		"unrelated folders carry no legacy name");
+
+	expectTrue(Policy::classify(QString(), stableRoot, false, false) == Policy::Action::AdoptStableRoot,
+		"no ConfigPath adopts the stable root");
+	expectTrue(Policy::classify("c:\\users\\me\\appdata\\local\\equalizerapo-xt\\CONFIG", stableRoot, false, false)
+		== Policy::Action::AlreadyOurs, "case-insensitive match on the stable root");
+	expectTrue(Policy::classify("C:\\Program Files\\EqualizerAPO\\config", stableRoot, true, false)
+		== Policy::Action::MigrateLegacy, "legacy markers trigger the import");
+	expectTrue(Policy::classify("C:\\Users\\me\\AppData\\Local\\EqualizerAPO-XT-x64-avx2\\current\\config",
+		stableRoot, false, true) == Policy::Action::MigrateVolatileXt, "volatile XT dir is rescued");
+	expectTrue(Policy::classify("D:\\my configs", stableRoot, false, false) == Policy::Action::RespectCustom,
+		"a user-chosen folder is left alone");
+}
+
 void testChannelSelectionModel()
 {
 	// ChannelSelectionModel serialization identity: for equivalent
@@ -1506,6 +1600,7 @@ int main(int argc, char** argv)
 		testFilterCardDepths();
 		testFilterCardBuildPlans();
 		testConfigImport();
+		testLegacyMigrationScanAndPolicy();
 		testChannelSelectionModel();
 		testDeviceSelectionModel();
 		testMultiConvolutionRoutingAdapter();
