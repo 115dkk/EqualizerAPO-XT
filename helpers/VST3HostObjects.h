@@ -33,10 +33,20 @@ namespace VST3HostObjects
 class AttributeList : public Steinberg::Vst::IAttributeList
 {
 public:
+	// Spelled out instead of the SDK's QUERY_INTERFACE macro: cppcheck cannot
+	// expand SDK macros in a standalone header and fails the gate on them
+	// (the .cpp-hosted host objects keep the macro form).
 	Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void** obj) override
 	{
-		QUERY_INTERFACE(iid, obj, Steinberg::FUnknown::iid, Steinberg::Vst::IAttributeList)
-		QUERY_INTERFACE(iid, obj, Steinberg::Vst::IAttributeList::iid, Steinberg::Vst::IAttributeList)
+		if (obj == NULL)
+			return Steinberg::kInvalidArgument;
+		if (Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::FUnknown::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IAttributeList::iid))
+		{
+			*obj = static_cast<Steinberg::Vst::IAttributeList*>(this);
+			addRef();
+			return Steinberg::kResultOk;
+		}
 		*obj = NULL;
 		return Steinberg::kNoInterface;
 	}
@@ -155,8 +165,15 @@ public:
 
 	Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void** obj) override
 	{
-		QUERY_INTERFACE(iid, obj, Steinberg::FUnknown::iid, Steinberg::Vst::IMessage)
-		QUERY_INTERFACE(iid, obj, Steinberg::Vst::IMessage::iid, Steinberg::Vst::IMessage)
+		if (obj == NULL)
+			return Steinberg::kInvalidArgument;
+		if (Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::FUnknown::iid)
+			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IMessage::iid))
+		{
+			*obj = static_cast<Steinberg::Vst::IMessage*>(this);
+			addRef();
+			return Steinberg::kResultOk;
+		}
 		*obj = NULL;
 		return Steinberg::kNoInterface;
 	}
