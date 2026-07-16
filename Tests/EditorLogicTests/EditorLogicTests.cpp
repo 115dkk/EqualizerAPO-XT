@@ -120,6 +120,13 @@ void expectEqual(int actual, int expected, const QString& message)
 		toStd(QString("%1: expected %2, got %3").arg(message).arg(expected).arg(actual)));
 }
 
+void expectEqual(const QStringList& actual, const QStringList& expected, const QString& message)
+{
+	harness.expectTrue(
+		actual == expected,
+		toStd(QString("%1: expected '%2', got '%3'").arg(message, expected.join(' '), actual.join(' '))));
+}
+
 // require counterparts of the wrappers above: same message format, but they
 // abort on failure regardless of the Collect policy. Use them for checks
 // whose failure would make the following lines unsafe (size checks before
@@ -772,6 +779,26 @@ void testFilterCardDepths()
 	expectEqual(mixed[3].logic, 1, "channel row logic depth inside block");
 	expectEqual(mixed[4].indent, 1, "post channel-all member keeps if indent");
 	expectEqual(mixed[5].logic, 1, "endif closes the scope in mixed nesting");
+	// The scope also names the active selection: rows under "Channel: L R"
+	// carry {L, R} until Channel: ALL clears it. The selection survives If
+	// nesting, and a commented-out Channel line changes nothing.
+	expectEqual(mixed[1].channels, QStringList({ "L", "R" }), "if head carries the channel selection");
+	expectEqual(mixed[2].channels, QStringList({ "L", "R" }), "member carries the channel selection");
+	expectEqual(mixed[4].channels, QStringList(), "channel-all clears the selection");
+	expectEqual(mixed[5].channels, QStringList(), "endif after channel-all carries no selection");
+
+	QVector<FilterCardRowScope> channelScopes = FilterCardModel::calculateScopes(QList<QString>({
+		"Channel: SL SR",                         // 0: selects SL SR
+		"Preamp: -3 dB",                          // 1: under SL SR
+		"# Channel: L",                           // 2: comment, selection unchanged
+		"Delay: 1 ms",                            // 3: still under SL SR
+		"Channel: ALL",                           // 4: back to all channels
+		"Preamp: 0 dB"                            // 5: no selection
+	}));
+	requireEqual(channelScopes.size(), 6, "channel selection scope count");
+	expectEqual(channelScopes[1].channels, QStringList({ "SL", "SR" }), "member under channel selection");
+	expectEqual(channelScopes[3].channels, QStringList({ "SL", "SR" }), "commented channel keeps the selection");
+	expectEqual(channelScopes[5].channels, QStringList(), "channel-all resets the selection");
 }
 
 void testFilterCardBuildPlans()
@@ -803,6 +830,10 @@ void testFilterCardBuildPlans()
 	expectEqual(plans[0].descriptor.parameters, "L R", "build plan preserves parsed parameters");
 	expectTrue(plans[2].descriptor.dynamicLine, "build plan carries inline-expression state");
 	expectEqual(plans[2].descriptor.type, "copy", "build plan carries the prepared card type");
+	expectEqual(plans[2].descriptor.scopeChannels, QStringList({ "L", "R" }),
+		"build plan carries the enclosing channel selection");
+	expectEqual(plans[1].descriptor.scopeChannels, QStringList({ "L", "R" }),
+		"if head carries the enclosing channel selection");
 }
 
 void testConfigImport()

@@ -132,14 +132,16 @@ QString summarizeBiquad(const QString& parameters, const QString& code, const QS
 }
 
 FilterCardRowScope advanceScope(bool enabled, const QString& command,
-	const QStringList& channelBadges, int& channelDepth, int& ifDepth)
+	const QStringList& channelBadges, QStringList& activeChannels, int& channelDepth, int& ifDepth)
 {
 	FilterCardRowScope scope;
 	if (enabled && command == QStringLiteral("channel"))
 	{
 		scope.indent = ifDepth;
 		scope.logic = ifDepth;
-		channelDepth = (channelBadges.isEmpty() || channelBadges.contains(QStringLiteral("ALL"))) ? 0 : 1;
+		const bool selectsAll = channelBadges.isEmpty() || channelBadges.contains(QStringLiteral("ALL"));
+		channelDepth = selectsAll ? 0 : 1;
+		activeChannels = selectsAll ? QStringList() : channelBadges;
 	}
 	else if (enabled && command == QStringLiteral("if"))
 	{
@@ -163,6 +165,7 @@ FilterCardRowScope advanceScope(bool enabled, const QString& command,
 		scope.indent = channelDepth + ifDepth;
 		scope.logic = ifDepth;
 	}
+	scope.channels = activeChannels;
 	return scope;
 }
 }
@@ -600,6 +603,7 @@ QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString
 	// enabled lines move either axis - a commented-out If/EndIf is a comment to
 	// the engine too. An unbalanced EndIf clamps at zero instead of going
 	// negative, mirroring how the engine just ignores the stray line.
+	QStringList activeChannels;
 	int channelDepth = 0;
 	int ifDepth = 0;
 	for (const QString& line : lines)
@@ -609,7 +613,7 @@ QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString
 		const QString command = commandForLine(line, &parameters).toLower();
 		const QStringList channels = command == QStringLiteral("channel")
 			? parseChannelList(parameters) : QStringList();
-		scopes.append(advanceScope(enabled, command, channels, channelDepth, ifDepth));
+		scopes.append(advanceScope(enabled, command, channels, activeChannels, channelDepth, ifDepth));
 	}
 
 	return scopes;
@@ -620,6 +624,7 @@ QVector<FilterCardBuildPlan> FilterCardModel::prepareRows(const QList<QString>& 
 	QVector<FilterCardBuildPlan> plans;
 	plans.reserve(lines.size());
 
+	QStringList activeChannels;
 	int channelDepth = 0;
 	int ifDepth = 0;
 	for (const QString& line : lines)
@@ -628,9 +633,10 @@ QVector<FilterCardBuildPlan> FilterCardModel::prepareRows(const QList<QString>& 
 		plan.descriptor = describeLine(line);
 		plan.scope = advanceScope(plan.descriptor.enabled,
 			plan.descriptor.command.toLower(), plan.descriptor.channelBadges,
-			channelDepth, ifDepth);
+			activeChannels, channelDepth, ifDepth);
 		plan.descriptor.depth = plan.scope.indent;
 		plan.descriptor.logicDepth = plan.scope.logic;
+		plan.descriptor.scopeChannels = plan.scope.channels;
 		plans.append(std::move(plan));
 	}
 	return plans;

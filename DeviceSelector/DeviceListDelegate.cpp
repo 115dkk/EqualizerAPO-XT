@@ -84,6 +84,33 @@ bool DeviceListDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, c
 			}
 		}
 	}
+	else if (event->type() == QEvent::MouseButtonDblClick)
+	{
+		QMouseEvent* mouse = static_cast<QMouseEvent*>(event);
+		if (mouse->button() == Qt::LeftButton)
+		{
+			if (isSection)
+			{
+				// The double-click's second press folds again, so rapid clicks
+				// keep toggling instead of the view swallowing every other one.
+				QTreeWidgetItem* item = tree->topLevelItem(index.row());
+				if (item != nullptr)
+					item->setExpanded(!item->isExpanded());
+				return true;
+			}
+			// The jack already toggled on the first click's release; eat the
+			// double-click so fast jack clicking stays one toggle per pair.
+			if (DeviceSkinPainter::active()->toggleRect(option.rect).contains(mouse->pos()))
+				return true;
+			// Double-click anywhere else on the row toggles the device too.
+			// The painted jack is the only single-click control, and nothing
+			// tells a first-time user that; double-clicking the device they
+			// want is what everyone tries first.
+			const Qt::CheckState now = static_cast<Qt::CheckState>(index.data(Qt::CheckStateRole).toInt());
+			model->setData(index, now == Qt::Checked ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
+			return true;
+		}
+	}
 	else if (event->type() == QEvent::MouseButtonRelease)
 	{
 		QMouseEvent* mouse = static_cast<QMouseEvent*>(event);
