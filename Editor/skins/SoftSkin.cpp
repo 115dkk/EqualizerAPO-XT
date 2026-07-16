@@ -1167,7 +1167,10 @@ public:
 		// tint and actionNew's accent, and the view toggles stay muted so
 		// they read as mode switches, not actions.
 		const QColor card(tokens.card);
-		const struct { const char* name; const char* resource; QColor tile; } buttons[] = {
+		// The default initializers keep cppcheck's uninitMemberVarNoCtor happy:
+		// the QColor member gives this aggregate a non-trivial flavor its
+		// heuristic mistakes for a constructor-less class.
+		const struct { const char* name = nullptr; const char* resource = nullptr; QColor tile; } buttons[] = {
 			{ "backButton", ":/icons/modern/nav-back.svg", mixColor(QColor(tokens.accent2), card, 0.15) },
 			{ "forwardButton", ":/icons/modern/nav-forward.svg", mixColor(QColor(tokens.accent2), card, 0.15) },
 			{ "toParentButton", ":/icons/modern/folder-up.svg", mixColor(QColor(tokens.warning), card, 0.15) },
