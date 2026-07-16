@@ -22,10 +22,74 @@
 #include "RegistryHelper.h"
 #include "LogHelper.h"
 #include "VSTPluginLibrary.h"
+#include "VST3HostObjects.h"
 #include "Win32Resource.h"
+#include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
+#include "pluginterfaces/vst/ivsthostapplication.h"
 
 using namespace std;
+
+namespace
+{
+// The host context a VST3 module sees before any class is instantiated
+// (IPluginFactory3::setHostContext). Some plug-ins consult it for the host
+// name or ask it to manufacture IMessage/IAttributeList objects during
+// factory-level setup. Ported from the ripDZL fork's VST3 compatibility
+// work (github.com/ripDZL/EqualizerAPO-XT/pull/1).
+class VST3FactoryHostContext : public Steinberg::Vst::IHostApplication
+{
+public:
+	Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void** obj) override
+	{
+		QUERY_INTERFACE(iid, obj, Steinberg::FUnknown::iid, Steinberg::Vst::IHostApplication)
+		QUERY_INTERFACE(iid, obj, Steinberg::Vst::IHostApplication::iid, Steinberg::Vst::IHostApplication)
+		*obj = NULL;
+		return Steinberg::kNoInterface;
+	}
+
+	Steinberg::uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
+	Steinberg::uint32 PLUGIN_API release() override
+	{
+		Steinberg::uint32 result = InterlockedDecrement(&refCount);
+		if (result == 0)
+			delete this;
+		return result;
+	}
+
+	Steinberg::tresult PLUGIN_API getName(Steinberg::Vst::String128 name) override
+	{
+		wcsncpy_s((wchar_t*)name, 128, L"Equalizer APO", _TRUNCATE);
+		return Steinberg::kResultOk;
+	}
+
+	Steinberg::tresult PLUGIN_API createInstance(Steinberg::TUID cid, Steinberg::TUID iid, void** obj) override
+	{
+		return VST3HostObjects::createInstance(cid, iid, obj);
+	}
+
+private:
+	volatile LONG refCount = 1;
+};
+
+// Detach the host context from the factory before either side goes away, so
+// the module never holds a dangling host pointer.
+void clearFactoryHostContext(Steinberg::IPluginFactory* factory, Steinberg::IPtr<Steinberg::FUnknown>& context) noexcept
+{
+	if (factory != nullptr && context != nullptr)
+	{
+		Steinberg::TUID factory3Iid;
+		Steinberg::IPluginFactory3::iid.toTUID(factory3Iid);
+		Steinberg::IPluginFactory3* rawFactory3 = nullptr;
+		if (factory->queryInterface(factory3Iid, (void**)&rawFactory3) == Steinberg::kResultOk && rawFactory3 != nullptr)
+		{
+			auto factory3 = Steinberg::IPtr<Steinberg::IPluginFactory3>::adopt(rawFactory3);
+			factory3->setHostContext(nullptr);
+		}
+	}
+	context.reset();
+}
+}
 
 std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> VSTPluginLibrary::instanceMap;
 std::wstring VSTPluginLibrary::defaultPluginPath;
@@ -129,6 +193,10 @@ bool VSTPluginLibrary::loadFunctions()
 {
 	if (vst3)
 	{
+		// InitDll/ExitDll are optional in the module ABI; only
+		// GetPluginFactory is mandatory.
+		InitDll = (vst3ModuleEntryFunc)GetProcAddress(module.get(), "InitDll");
+		ExitDll = (vst3ModuleEntryFunc)GetProcAddress(module.get(), "ExitDll");
 		GetPluginFactory = (getPluginFactoryFunc)GetProcAddress(module.get(), "GetPluginFactory");
 		return GetPluginFactory != NULL;
 	}
@@ -142,9 +210,33 @@ int VSTPluginLibrary::customInitialize()
 	if (!vst3)
 		return 0;
 
+	// Standard Windows VST3 module lifecycle: InitDll before the factory,
+	// ExitDll after the last release. A module that exports InitDll may
+	// legitimately refuse to load. On every failure path below the caller
+	// (AbstractLibrary::initialize) runs customUninitialize(), which unwinds
+	// whatever this method managed to set up.
+	if (InitDll != nullptr)
+	{
+		if (!InitDll())
+			return LOADING_FAILED;
+		vst3ModuleInitialized = true;
+	}
+
 	factory.reset(GetPluginFactory());
 	if (!factory)
 		return FUNCTIONS_MISSING;
+
+	Steinberg::TUID factory3Iid;
+	Steinberg::IPluginFactory3::iid.toTUID(factory3Iid);
+	Steinberg::IPluginFactory3* rawFactory3 = nullptr;
+	if (factory->queryInterface(factory3Iid, (void**)&rawFactory3) == Steinberg::kResultOk && rawFactory3 != nullptr)
+	{
+		auto factory3 = Steinberg::IPtr<Steinberg::IPluginFactory3>::adopt(rawFactory3);
+		vst3FactoryHostContext = Steinberg::IPtr<Steinberg::FUnknown>::adopt(
+			static_cast<Steinberg::Vst::IHostApplication*>(new VST3FactoryHostContext()));
+		if (factory3->setHostContext(vst3FactoryHostContext.get()) != Steinberg::kResultOk)
+			return LOADING_FAILED;
+	}
 
 	for (Steinberg::int32 i = 0; i < factory->countClasses(); i++)
 	{
@@ -167,7 +259,13 @@ void VSTPluginLibrary::customUninitialize() noexcept
 
 void VSTPluginLibrary::releasePluginFactory() noexcept
 {
+	// Reverse of customInitialize: detach the host context while the factory
+	// is alive, drop the factory, then let the module tear itself down.
+	clearFactoryHostContext(factory.get(), vst3FactoryHostContext);
 	factory.reset();
+	if (vst3ModuleInitialized && ExitDll != nullptr)
+		ExitDll();
+	vst3ModuleInitialized = false;
 	GetPluginFactory = nullptr;
 	VSTPluginMain = nullptr;
 }

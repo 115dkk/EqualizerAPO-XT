@@ -14,6 +14,23 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- VST3 hosting fills in the contract pieces many plug-ins depend on, adapted
+  from the ripDZL fork's compatibility work
+  ([ripDZL#1](https://github.com/ripDZL/EqualizerAPO-XT/pull/1)) and
+  restated in this codebase's RAII idiom. GUI parameter edits now actually
+  reach audio processing (they used to stop at the controller), a
+  single-component plug-in is no longer initialized and terminated twice
+  (a crash-grade lifecycle bug), the host manufactures the
+  IMessage/IAttributeList objects split plug-ins use to talk between their
+  component and controller, controller-private state (UI preferences) is
+  saved and restored next to the component state, and the Windows module
+  lifecycle (InitDll/ExitDll, factory host context) is honored. A saved
+  VST3 chunk that carries controller-private state uses a new combined
+  layout: older versions load their own chunks fine here, but such a new
+  chunk does not load on older versions. A deterministic VST3 test module
+  and 43 host-contract checks guard all of it in CI.
+  ([#210](https://github.com/115dkk/EqualizerAPO-XT/pull/210))
+
 - The skinned file dialog got its second design round from user review.
   Each skin now answers the folder/file pictograms itself instead of
   borrowing the shell set: studio engraves thin receded strokes into the

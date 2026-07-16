@@ -19,9 +19,12 @@
 
 #pragma once
 
+#include <array>
+#include <atomic>
 #include <string>
 #include <memory>
 #include <functional>
+#include <mutex>
 #include "aeffectx.h"
 #include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/base/smartpointer.h"
@@ -95,12 +98,28 @@ public:
 private:
 	class VST3HostContext;
 	class VST3MemoryStream;
+	class VST3ParameterChanges;
+
+	// One GUI parameter edit waiting for the processor. The ring below is
+	// written by the edit path and drained by whoever runs the next process
+	// call; see queueVST3ParameterEdit for the threading contract.
+	struct PendingVST3ParameterEdit
+	{
+		Steinberg::Vst::ParamID id = 0;
+		Steinberg::Vst::ParamValue value = 0.0;
+	};
+
+	static constexpr unsigned vst3ParameterEditQueueSize = 1024;
 
 	bool initializeVST2();
 	bool initializeVST3();
 	void releaseVST3();
 	void configureVST3Buses(int requestedChannelCount);
 	Steinberg::Vst::SpeakerArrangement speakerArrangementForChannelCount(int count) const;
+	void onVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
+	void queueVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
+	Steinberg::Vst::IParameterChanges* prepareVST3ParameterChanges();
+	void flushVST3ParameterChanges();
 
 	std::shared_ptr<VSTPluginLibrary> library;
 	VST2EffectPtr effect;
@@ -110,15 +129,28 @@ private:
 	Steinberg::IPtr<Steinberg::Vst::IConnectionPoint> vst3ComponentConnection;
 	Steinberg::IPtr<Steinberg::Vst::IConnectionPoint> vst3ControllerConnection;
 	Steinberg::IPtr<Steinberg::IPlugView> vst3View;
+	bool vst3ViewAttached = false;
 	winutil::UniqueWindowHandle vst3EditorHostWindow;
 	Steinberg::IPtr<VST3HostContext> vst3HostContext;
+	std::unique_ptr<VST3ParameterChanges> vst3InputParameterChanges;
+	std::array<PendingVST3ParameterEdit, vst3ParameterEditQueueSize> vst3ParameterEditQueue{};
+	std::atomic<unsigned> vst3ParameterEditWrite{ 0 };
+	std::atomic<unsigned> vst3ParameterEditRead{ 0 };
+	std::mutex vst3LifecycleMutex;
+	std::atomic<bool> vst3ParameterFlushInProgress{ false };
 	int vst3InputBusCount = 0;
 	int vst3OutputBusCount = 0;
 	int vst3InputChannelCount = 0;
 	int vst3OutputChannelCount = 0;
 	bool vst3SupportsDouble = false;
+	// Whether initialize() succeeded on the component / whether the
+	// controller is a separately created object. A single-component plug-in
+	// exposes IEditController from the already initialized component object,
+	// which must not be initialized or terminated a second time.
+	bool vst3ComponentInitialized = false;
+	bool vst3ControllerInitializedSeparately = false;
 	bool vst3Active = false;
-	bool vst3Processing = false;
+	std::atomic<bool> vst3Processing{ false };
 	Steinberg::Vst::ProcessContext vst3ProcessContext = {};
 	Steinberg::Vst::TSamples vst3SamplePosition = 0;
 	std::function<void()> automateFunc;

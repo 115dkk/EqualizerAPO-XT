@@ -55,6 +55,7 @@ bool VSTPluginInstance::initializeVST3()
 		LogF(L"Could not initialize IComponent of VST3 plugin %s.", library->getLibPath().c_str());
 		return false;
 	}
+	vst3ComponentInitialized = true;
 
 	TUID processorIid;
 	IAudioProcessor::iid.toTUID(processorIid);
@@ -67,17 +68,10 @@ bool VSTPluginInstance::initializeVST3()
 		return false;
 	}
 
-	TUID controllerClassId;
-	memset(controllerClassId, 0, sizeof(controllerClassId));
-	if (vst3Component->getControllerClassId(controllerClassId) == kResultOk)
-	{
-		TUID controllerIid;
-		IEditController::iid.toTUID(controllerIid);
-		IEditController* rawController = NULL;
-		library->getFactory()->createInstance(controllerClassId, controllerIid, (void**)&rawController);
-		vst3Controller = IPtr<IEditController>::adopt(rawController);
-	}
-	if (vst3Controller == NULL)
+	// A single-component plug-in exposes IEditController from the same object
+	// as IComponent. That object is already initialized above and must not be
+	// initialized (or later terminated) a second time, so the query comes
+	// first and only a separately created controller gets its own lifecycle.
 	{
 		TUID controllerIid;
 		IEditController::iid.toTUID(controllerIid);
@@ -85,9 +79,31 @@ bool VSTPluginInstance::initializeVST3()
 		vst3Component->queryInterface(controllerIid, (void**)&rawController);
 		vst3Controller = IPtr<IEditController>::adopt(rawController);
 	}
+	if (vst3Controller == NULL)
+	{
+		TUID controllerClassId;
+		memset(controllerClassId, 0, sizeof(controllerClassId));
+		if (vst3Component->getControllerClassId(controllerClassId) == kResultOk)
+		{
+			TUID controllerIid;
+			IEditController::iid.toTUID(controllerIid);
+			IEditController* rawController = NULL;
+			if (library->getFactory()->createInstance(controllerClassId, controllerIid, (void**)&rawController) == kResultOk
+				&& rawController != NULL)
+			{
+				vst3Controller = IPtr<IEditController>::adopt(rawController);
+				if (vst3Controller->initialize(static_cast<IHostApplication*>(vst3HostContext.get())) == kResultOk)
+					vst3ControllerInitializedSeparately = true;
+				else
+				{
+					LogF(L"Could not initialize IEditController of VST3 plugin %s.", library->getLibPath().c_str());
+					vst3Controller.reset();
+				}
+			}
+		}
+	}
 	if (vst3Controller != NULL)
 	{
-		vst3Controller->initialize(static_cast<IHostApplication*>(vst3HostContext.get()));
 		vst3Controller->setComponentHandler(static_cast<IComponentHandler*>(vst3HostContext.get()));
 
 		auto stream = IPtr<VST3MemoryStream>::adopt(new VST3MemoryStream());
@@ -97,27 +113,32 @@ bool VSTPluginInstance::initializeVST3()
 			vst3Controller->setComponentState(stream.get());
 		}
 
-		TUID connectionPointIid;
-		Steinberg::Vst::IConnectionPoint::iid.toTUID(connectionPointIid);
-		Steinberg::Vst::IConnectionPoint* rawComponentConnection = NULL;
-		const tresult componentConnectionResult = vst3Component->queryInterface(
-			connectionPointIid,
-			(void**)&rawComponentConnection);
-		vst3ComponentConnection = IPtr<Steinberg::Vst::IConnectionPoint>::adopt(rawComponentConnection);
-
-		Steinberg::Vst::IConnectionPoint* rawControllerConnection = NULL;
-		const tresult controllerConnectionResult = vst3Controller->queryInterface(
-			connectionPointIid,
-			(void**)&rawControllerConnection);
-		vst3ControllerConnection = IPtr<Steinberg::Vst::IConnectionPoint>::adopt(rawControllerConnection);
-
-		if (componentConnectionResult == kResultOk
-			&& controllerConnectionResult == kResultOk
-			&& vst3ComponentConnection != NULL
-			&& vst3ControllerConnection != NULL)
+		// The connection pair only exists between two distinct objects; a
+		// single-component plug-in is its own counterpart.
+		if (vst3ControllerInitializedSeparately)
 		{
-			vst3ComponentConnection->connect(vst3ControllerConnection);
-			vst3ControllerConnection->connect(vst3ComponentConnection);
+			TUID connectionPointIid;
+			Steinberg::Vst::IConnectionPoint::iid.toTUID(connectionPointIid);
+			Steinberg::Vst::IConnectionPoint* rawComponentConnection = NULL;
+			const tresult componentConnectionResult = vst3Component->queryInterface(
+				connectionPointIid,
+				(void**)&rawComponentConnection);
+			vst3ComponentConnection = IPtr<Steinberg::Vst::IConnectionPoint>::adopt(rawComponentConnection);
+
+			Steinberg::Vst::IConnectionPoint* rawControllerConnection = NULL;
+			const tresult controllerConnectionResult = vst3Controller->queryInterface(
+				connectionPointIid,
+				(void**)&rawControllerConnection);
+			vst3ControllerConnection = IPtr<Steinberg::Vst::IConnectionPoint>::adopt(rawControllerConnection);
+
+			if (componentConnectionResult == kResultOk
+				&& controllerConnectionResult == kResultOk
+				&& vst3ComponentConnection != NULL
+				&& vst3ControllerConnection != NULL)
+			{
+				vst3ComponentConnection->connect(vst3ControllerConnection);
+				vst3ControllerConnection->connect(vst3ComponentConnection);
+			}
 		}
 	}
 
@@ -161,16 +182,22 @@ void VSTPluginInstance::releaseVST3()
 		vst3ControllerConnection.reset();
 	if (vst3Controller != NULL)
 	{
-		vst3Controller->terminate();
+		// A controller obtained from the component object is terminated once,
+		// through the component below.
+		if (vst3ControllerInitializedSeparately)
+			vst3Controller->terminate();
 		vst3Controller.reset();
 	}
+	vst3ControllerInitializedSeparately = false;
 	if (vst3Processor != NULL)
 		vst3Processor.reset();
 	if (vst3Component != NULL)
 	{
-		vst3Component->terminate();
+		if (vst3ComponentInitialized)
+			vst3Component->terminate();
 		vst3Component.reset();
 	}
+	vst3ComponentInitialized = false;
 	if (vst3HostContext != NULL)
 		vst3HostContext.reset();
 }
