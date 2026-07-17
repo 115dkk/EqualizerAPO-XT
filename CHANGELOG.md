@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.24.1 — 2026-07-17
+
 - Opening a file dialog (Open, Save as, or any of the card file pickers) and
   then closing it hung the Editor whenever the skinned title bar was in use
   (the default). The custom-frame helper kept an application-wide native
