@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Opening a file dialog (Open, Save as, or any of the card file pickers) and
+  then closing it hung the Editor whenever the skinned title bar was in use
+  (the default). The custom-frame helper kept an application-wide native
+  message filter installed while the dialog was being torn down, and its
+  per-message window lookup recreated the dialog's native window mid-destroy,
+  wedging the message loop. The filter is now removed the moment the dialog
+  hides, before Qt destroys the native window. Sessions with the native title
+  bar restored were never affected.
+  ([#211](https://github.com/115dkk/EqualizerAPO-XT/pull/211))
+
+## v2.24.0 — 2026-07-16
+
 - VST3 hosting fills in the contract pieces many plug-ins depend on, adapted
   from the ripDZL fork's compatibility work
   ([ripDZL#1](https://github.com/ripDZL/EqualizerAPO-XT/pull/1)) and
@@ -30,6 +42,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   chunk does not load on older versions. A deterministic VST3 test module
   and 43 host-contract checks guard all of it in CI.
   ([#210](https://github.com/115dkk/EqualizerAPO-XT/pull/210))
+
+## v2.23.0 — 2026-07-16
 
 - The skinned file dialog got its second design round from user review.
   Each skin now answers the folder/file pictograms itself instead of

@@ -73,6 +73,14 @@ jobs:
         # Canonical version.h reader, shared with the create-release job.
         . .\.github\scripts\Get-VersionPart.ps1
 
+        # version.h has already been bumped (or left as-is) by the previous
+        # step; read the resulting version so the changelog and the job outputs
+        # agree with it.
+        $major = Get-VersionPart "MAJOR"
+        $minor = Get-VersionPart "MINOR"
+        $revision = Get-VersionPart "REVISION"
+        $baseVersion = "$major.$minor.$revision"
+
         git diff --quiet -- version.h
         $diffExit = $LASTEXITCODE
         $global:LASTEXITCODE = 0
@@ -80,7 +88,15 @@ jobs:
         if ($diffExit -eq 1) {
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add version.h
+          # File the accumulated "## Unreleased" entries under the version being
+          # cut, so the release ships with its own changelog section. A no-op
+          # when Unreleased is empty; only reached on a real bump, so a
+          # non-bumping push (docs/ci/chore/refactor) leaves the entries
+          # accumulating for the next release - the manual convention this
+          # automates (CLAUDE.md).
+          $releaseDate = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
+          .\.github\scripts\Update-Changelog.ps1 -Version $baseVersion -Date $releaseDate
+          git add version.h CHANGELOG.md CHANGELOG.ko.md
           # [skip ci] keeps any future GitHub change from triggering a second run on
           # this commit; the current workflow keeps going regardless.
           git commit -m "chore(version): bump version [skip ci]"
@@ -93,10 +109,6 @@ jobs:
         }
 
         $sha = (& git rev-parse HEAD).Trim()
-        $major = Get-VersionPart "MAJOR"
-        $minor = Get-VersionPart "MINOR"
-        $revision = Get-VersionPart "REVISION"
-        $baseVersion = "$major.$minor.$revision"
 
         Write-Host "Bumped HEAD: $sha"
         Write-Host "Base version: $baseVersion"
@@ -1110,11 +1122,13 @@ jobs:
         retention-days: 30
 
   pester:
-    # Unit-tests the release keystone Bump-Version.ps1 (the Conventional Commit
-    # -> SemVer mapping that decides every release). Like cppcheck this is an
-    # independent gate with no `if:`, so it runs on pull requests too, where the
-    # version-bump job is skipped. Pester 5 is pinned for reproducibility the
-    # same way the cppcheck version is.
+    # Unit-tests the release-keystone scripts the version-bump job runs:
+    # Bump-Version.ps1 (the Conventional Commit -> SemVer mapping that decides
+    # every release) and Update-Changelog.ps1 (moving the Unreleased entries
+    # under the bumped version). Like cppcheck this is an independent gate with
+    # no `if:`, so it runs on pull requests too, where the version-bump job is
+    # skipped. Pester 5 is pinned for reproducibility the same way the cppcheck
+    # version is.
     runs-on: windows-latest
     steps:
     - name: Checkout repository

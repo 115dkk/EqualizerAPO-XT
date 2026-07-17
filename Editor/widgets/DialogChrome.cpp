@@ -6,6 +6,7 @@
 
 #include <QCoreApplication>
 #include <QDialog>
+#include <QEvent>
 #include <QLayout>
 
 #define WIN32_LEAN_AND_MEAN
@@ -31,19 +32,50 @@ DialogChrome::DialogChrome(QDialog* dialog)
 	// full width, without disturbing the dialog's own grid.
 	dialog->layout()->setMenuBar(titleBar);
 
-	// Force the native window into existence so the filter has a handle to
-	// match and the frame change below reaches the right window.
-	HWND hwnd = reinterpret_cast<HWND>(dialog->winId());
-	QCoreApplication::instance()->installNativeEventFilter(this);
+	// Force the native window into existence, then cache its handle so
+	// nativeEventFilter never has to call winId() again (see the header).
+	hostWinId = dialog->winId();
+	setNativeFilter(true);
+
+	// Watch the dialog itself so the native filter comes back out on hide,
+	// before Qt destroys the native window.
+	dialog->installEventFilter(this);
 
 	// Recalculate the non-client area now that WM_NCCALCSIZE is handled.
-	SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+	SetWindowPos(reinterpret_cast<HWND>(hostWinId), nullptr, 0, 0, 0, 0,
 		SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 DialogChrome::~DialogChrome()
 {
-	QCoreApplication::instance()->removeNativeEventFilter(this);
+	setNativeFilter(false);
+}
+
+void DialogChrome::setNativeFilter(bool installed)
+{
+	if (installed == nativeFilterInstalled)
+		return;
+	if (installed)
+		QCoreApplication::instance()->installNativeEventFilter(this);
+	else
+		QCoreApplication::instance()->removeNativeEventFilter(this);
+	nativeFilterInstalled = installed;
+}
+
+bool DialogChrome::eventFilter(QObject* watched, QEvent* event)
+{
+	if (watched == dialog)
+	{
+		// Hide fires on every close path (accept, reject, Esc, the custom X)
+		// before Qt destroys the native window, so dropping the native filter
+		// here keeps every teardown message away from nativeEventFilter. A
+		// later show (a reused dialog) reinstates it.
+		if (event->type() == QEvent::Hide)
+			setNativeFilter(false);
+		else if (event->type() == QEvent::Show)
+			setNativeFilter(true);
+	}
+	return QObject::eventFilter(watched, event);
 }
 
 bool DialogChrome::nativeEventFilter(const QByteArray& eventType, void* message, qintptr* result)
@@ -52,7 +84,7 @@ bool DialogChrome::nativeEventFilter(const QByteArray& eventType, void* message,
 		return false;
 
 	MSG* msg = static_cast<MSG*>(message);
-	if (dialog == nullptr || msg->hwnd != reinterpret_cast<HWND>(dialog->winId()))
+	if (dialog == nullptr || msg->hwnd != reinterpret_cast<HWND>(hostWinId))
 		return false;
 
 	// The recipe mirrors MainWindow::nativeEvent (MainWindow.Frame.cpp):

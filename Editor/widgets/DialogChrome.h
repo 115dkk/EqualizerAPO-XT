@@ -26,6 +26,7 @@
 #include <QObject>
 
 class QDialog;
+class QEvent;
 class TitleBar;
 
 class DialogChrome : public QObject, public QAbstractNativeEventFilter
@@ -39,10 +40,28 @@ public:
 
 	bool nativeEventFilter(const QByteArray& eventType, void* message, qintptr* result) override;
 
+protected:
+	// Watches the dialog for show/hide so the app-wide native filter is only
+	// installed while the dialog is actually visible. It is removed on hide,
+	// before Qt tears the native window down: leaving it installed through
+	// destruction let a teardown message reach nativeEventFilter, whose
+	// per-message winId() lookup recreated a zombie native window mid-destroy
+	// and hung the Editor (custom-frame dialogs only). A later show puts it
+	// back so a reused dialog keeps its frame.
+	bool eventFilter(QObject* watched, QEvent* event) override;
+
 private:
 	explicit DialogChrome(QDialog* dialog);
 	~DialogChrome() override;
 
+	void setNativeFilter(bool installed);
+
 	QDialog* dialog = nullptr;
 	TitleBar* titleBar = nullptr;
+	// The dialog's native handle, cached at construction. nativeEventFilter
+	// compares against this instead of calling winId() per message: winId()
+	// on a widget being destroyed recreates its native window (see the
+	// eventFilter note above).
+	quintptr hostWinId = 0;
+	bool nativeFilterInstalled = false;
 };
