@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The stereo-input upmixer option added in v2.25.0 is now reachable from the
+  Editor: both the legacy row and the modern card gained a checkable "Stereo
+  input" entry in their Options menu. Loading a config restores the checked
+  state from `StereoInput 1`, saving serializes it back, and unchecking
+  removes the option. Previously the Editor did not know the flag and dropped
+  it on save, so a hand-edited `StereoInput 1` disappeared the moment the row
+  was re-saved - there was no practical way for ordinary users to enable the
+  feature. Round-trip coverage was added to --selftest-vst and the
+  VSTPluginCommand tests.
+  ([#215](https://github.com/115dkk/EqualizerAPO-XT/pull/215))
+
 ## v2.25.0 — 2026-07-20
 
 - Upmixer plugins that want a DAW-style bus layout (a stereo input bus
