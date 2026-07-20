@@ -138,36 +138,53 @@ jobs:
       run: |
         $ErrorActionPreference = "Stop"
         $contentId = "cqL1zn"
+        $userAgent = "Mozilla/5.0"
 
-        $account = Invoke-RestMethod -Method Post -Uri "https://api.gofile.io/accounts"
+        # gofile dropped the static ?wt= website token scraped from global.js;
+        # the API now wants a dynamic X-Website-Token header derived from the
+        # User-Agent, the account token, a 4-hour time slot, and a shared
+        # constant (same scheme as ltsdw/gofile-downloader).
+        function New-WebsiteToken([string]$accountToken) {
+          $timeSlot = [long][math]::Floor([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() / 14400)
+          $raw = "${userAgent}::en-US::${accountToken}::${timeSlot}::9844d94d963d30"
+          $sha = [System.Security.Cryptography.SHA256]::Create()
+          try {
+            return (($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($raw))) | ForEach-Object { $_.ToString("x2") }) -join ""
+          } finally { $sha.Dispose() }
+        }
+
+        function New-GofileHeaders([string]$accountToken) {
+          $h = @{
+            "User-Agent"      = $userAgent
+            "Origin"          = "https://gofile.io"
+            "Referer"         = "https://gofile.io/"
+            "X-Website-Token" = (New-WebsiteToken $accountToken)
+            "X-BL"            = "en-US"
+          }
+          if ($accountToken) { $h["Authorization"] = "Bearer $accountToken" }
+          return $h
+        }
+
+        $account = $null
+        try {
+          $account = Invoke-RestMethod -Method Post -Uri "https://api.gofile.io/accounts" -Headers (New-GofileHeaders "")
+        } catch { Write-Error "gofile guest account request threw: $($_.ErrorDetails.Message)"; exit 1 }
         if ($account.status -ne "ok") { Write-Error "gofile guest account failed: $($account | ConvertTo-Json -Depth 4)"; exit 1 }
         $token = $account.data.token
+        Write-Host "guest account created"
 
-        # The contents API needs gofile's rotating website token from its
-        # frontend bundle; keep the last known value as a fallback.
-        $wtCandidates = @()
-        try {
-          $globalJs = (Invoke-WebRequest -Uri "https://gofile.io/dist/js/global.js" -UseBasicParsing).Content
-          foreach ($m in [regex]::Matches($globalJs, 'wt\s*[:=]\s*"([^"]+)"')) { $wtCandidates += $m.Groups[1].Value }
-        } catch { Write-Warning "could not read global.js: $_" }
-        $wtCandidates += "4fd6sg89d7s6"
-        $wtCandidates = $wtCandidates | Select-Object -Unique
-        Write-Host "website-token candidates: $($wtCandidates -join ', ')"
-
-        $headers = @{ Authorization = "Bearer $token" }
         function Get-GofileContent([string]$id) {
-          foreach ($wt in $script:wtCandidates) {
-            try {
-              $r = Invoke-RestMethod -Uri "https://api.gofile.io/contents/${id}?wt=$wt" -Headers $script:headers
-              if ($r.status -eq "ok") { return $r.data }
-              Write-Warning "contents($id) wt=${wt}: $($r.status)"
-            } catch { Write-Warning "contents($id) wt=${wt} threw: $_" }
-          }
+          $url = "https://api.gofile.io/contents/${id}?cache=true&sortField=createTime&sortDirection=1"
+          try {
+            $r = Invoke-RestMethod -Uri $url -Headers (New-GofileHeaders $script:token)
+            if ($r.status -eq "ok") { return $r.data }
+            Write-Warning "contents($id): $($r | ConvertTo-Json -Depth 4)"
+          } catch { Write-Warning "contents($id) threw: $($_.ErrorDetails.Message)" }
           return $null
         }
 
         $root = Get-GofileContent $contentId
-        if ($null -eq $root) { Write-Error "gofile listing failed for every website-token candidate"; exit 1 }
+        if ($null -eq $root) { Write-Error "gofile contents listing failed (see warnings above for the API responses)"; exit 1 }
 
         $files = @()
         $queue = New-Object System.Collections.Queue
@@ -191,7 +208,8 @@ jobs:
 
         $downloadDir = "${{ github.workspace }}\plugin"
         New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
-        $cookie = @{ Cookie = "accountToken=$token" }
+        $cookie = (New-GofileHeaders $token)
+        $cookie["Cookie"] = "accountToken=$token"
 
         $vst3 = $files | Where-Object { $_.name -match '\.vst3$' } | Select-Object -First 1
         if ($null -eq $vst3) {

@@ -45,12 +45,16 @@ constexpr double pi = 3.14159265358979323846;
 
 const wchar_t* wellKnownChannelName(unsigned index, unsigned count)
 {
-	static const wchar_t* surround71[8] = {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"};
-	static const wchar_t* surround51[6] = {L"L", L"R", L"C", L"LFE", L"RL", L"RR"};
 	if (count == 8)
+	{
+		static const wchar_t* surround71[8] = {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"};
 		return surround71[index];
+	}
 	if (count == 6)
+	{
+		static const wchar_t* surround51[6] = {L"L", L"R", L"C", L"LFE", L"RL", L"RR"};
 		return surround51[index];
+	}
 	if (count == 2)
 		return index == 0 ? L"L" : L"R";
 	return nullptr;
