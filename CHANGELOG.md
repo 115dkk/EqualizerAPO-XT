@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The VST3 host now negotiates plugin buses from the device's real channel
+  count instead of forcing every plugin into stereo at load time. An upmixer
+  that expects one 5.1/7.1 bus (stereo signal in L/R, the plugin fills the
+  other speakers) used to be split into several stereo instances that each
+  saw only two channels, so only the front speakers played. Such plugins now
+  get a single full-width instance; setBusArrangements results are verified
+  against the bus info the plugin reports, 7.1.2 (10ch) and 7.1.4 (12ch)
+  layouts are newly supported, and plugins that reject every proposal fall
+  back to their own preferred arrangement. A deterministic upmixer-contract
+  test module guards this in CI.
+  ([#212](https://github.com/115dkk/EqualizerAPO-XT/pull/212))
+
 ## v2.24.1 — 2026-07-17
 
 - Opening a file dialog (Open, Save as, or any of the card file pickers) and
