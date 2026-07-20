@@ -59,8 +59,9 @@ bool checkedMultiply(size_t left, size_t right, size_t& result) noexcept
 }
 }
 
-VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap)
-	: library(library), libPath(library->getLibPath()), chunkData(chunkData), paramMap(paramMap)
+VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap,
+	bool stereoInput)
+	: library(library), libPath(library->getLibPath()), chunkData(chunkData), paramMap(paramMap), forceStereoInput(stereoInput)
 {
 }
 
@@ -110,11 +111,14 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// or 7.1 bus) is split into several stereo instances that each see only
 	// two channels.
 	//
-	// Upmixer-type plugins (declared via the VST3 subcategory) additionally
-	// get a stereo input bus with the full-width output bus: their engine
-	// keys on that asymmetric layout. Everything else keeps symmetric buses,
-	// where a narrowed input bus would discard device channels.
-	const bool upmixerLayout = channelCount > 2 && isUpmixerSubCategory(library->getVST3SubCategories());
+	// Upmixer-type plugins additionally get a stereo input bus with the
+	// full-width output bus: their engine keys on that asymmetric layout.
+	// The role comes from the "StereoInput 1" config option or the VST3
+	// subcategory; it is never inferred from accepted layouts alone, because
+	// for anything but an upmixer a narrowed input bus would discard device
+	// channels.
+	const bool upmixerLayout = channelCount > 2
+		&& (forceStereoInput || isUpmixerSubCategory(library->getVST3SubCategories()));
 	const auto negotiateInstance = [upmixerLayout](VSTPluginInstance* effect, unsigned targetChannelCount)
 	{
 		effect->negotiateChannelCount(static_cast<int>(targetChannelCount));

@@ -141,10 +141,10 @@ void printChannelTable(const std::vector<std::wstring>& channelNames, const RunR
 RunResult runProbe(const std::shared_ptr<VSTPluginLibrary>& library,
 	const std::vector<std::wstring>& channelNames,
 	const std::unordered_map<std::wstring, float>& paramMap,
-	unsigned warmupSeconds, bool printTable)
+	unsigned warmupSeconds, bool printTable, bool stereoInput = false)
 {
 	const unsigned channelCount = static_cast<unsigned>(channelNames.size());
-	VSTPluginFilter filter(library, std::wstring(), paramMap);
+	VSTPluginFilter filter(library, std::wstring(), paramMap, stereoInput);
 	filter.initialize(probeSampleRate, probeBlockSize, channelNames);
 
 	std::vector<std::vector<double>> inputData(channelCount, std::vector<double>(probeBlockSize, 0.0));
@@ -434,12 +434,25 @@ int wmain(int argc, wchar_t** argv)
 		}
 	}
 
-	// Diagnostic layout experiment: does the engine engage when the input bus
-	// stays stereo while only the output bus is widened (the layout a DAW
-	// would negotiate)? This does not flip the verdict - Equalizer APO's
-	// filter path feeds symmetric buses today - but it pins down whether a
-	// remaining failure lives in the plugin's engine or in the bus layout it
-	// expects.
+	// The user-facing escape hatch for upmixers that declare only a generic
+	// "Fx" subcategory: the "StereoInput 1" config option runs the same
+	// filter path with a stereo input bus and the full-width output bus.
+	if (!pass && channelCount > 2)
+	{
+		wprintf(L"\n=== StereoInput 1 configuration (filter path, stereo input bus) ===\n");
+		const RunResult stereoInputResult = runProbe(library, channelNames,
+			std::unordered_map<std::wstring, float>(), defaultWarmupSeconds, true, true);
+		if (stereoInputResult.activeChannels > 2)
+		{
+			pass = true;
+			passingConfiguration = L"StereoInput 1 (stereo input bus + full-width output bus)";
+		}
+	}
+
+	// Diagnostic layout experiment through the raw instance, kept for the
+	// record when even the StereoInput filter path stays silent: it pins down
+	// whether a remaining failure lives in the plugin's engine or in the bus
+	// layout it expects.
 	if (!pass && channelCount > 2)
 	{
 		wprintf(L"\n=== asymmetric bus experiment (stereo input bus, %u-channel output bus) ===\n", channelCount);
