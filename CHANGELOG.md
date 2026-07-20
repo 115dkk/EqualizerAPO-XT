@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Upmixer plugins that want a DAW-style bus layout (a stereo input bus
+  feeding the full-width output bus) are now supported. Running the real
+  OpenSpatial Upmixer binary on a CI runner (PR #213) showed it accepts a
+  symmetric 7.1 layout but leaves its engine disengaged there, only playing
+  the front pair; the engine fully engages with the asymmetric layout. Add
+  `StereoInput 1` to the VSTPlugin config line to negotiate that layout;
+  plugins that declare an Up-Downmix/Spatial/Surround VST3 subcategory get
+  it automatically. The layout applies only when the plugin actually accepts
+  it, and ordinary multichannel plugins keep symmetric buses so no device
+  channels are lost.
+  ([#214](https://github.com/115dkk/EqualizerAPO-XT/pull/214))
+
 ## v2.24.2 — 2026-07-20
 
 - The VST3 host now negotiates plugin buses from the device's real channel
