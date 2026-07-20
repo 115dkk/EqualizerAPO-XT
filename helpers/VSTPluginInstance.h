@@ -63,6 +63,10 @@ public:
 	// instance can process the whole device width. numInputs()/numOutputs()
 	// reflect the negotiated result either way.
 	bool negotiateChannelCount(int channelCount);
+	// Diagnostic variant for the one-off RealVstProbe harness (PR #213):
+	// proposes different input and output widths (e.g. a stereo input bus
+	// feeding a 7.1 output bus, the layout JUCE upmixers commonly prefer).
+	bool negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount);
 	bool canReplacing() const;
 	int uniqueID() const;
 	std::wstring getName() const;
@@ -129,6 +133,7 @@ private:
 	bool initializeVST3();
 	void releaseVST3();
 	void configureVST3Buses(int requestedChannelCount);
+	void configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount);
 	void applyVST3BusActivation();
 	int speakerArrangementCandidatesForChannelCount(int count, Steinberg::Vst::SpeakerArrangement* candidates) const;
 	int vst3BusChannelCount(Steinberg::Vst::BusDirection direction) const;

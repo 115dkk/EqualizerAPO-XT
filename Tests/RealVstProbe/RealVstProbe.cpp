@@ -89,6 +89,51 @@ struct RunResult
 	std::vector<double> peaks;
 };
 
+// Music-like stereo test signal: an amplitude-modulated correlated component
+// (what an upmixer steers to the center) plus per-channel uncorrelated noise
+// (what it steers to the surround/ambience buses). Two stationary pure tones
+// were observed to leave the plugin's steering analysis idle, so the signal
+// carries both level movement and decorrelated content.
+struct StereoSignalGenerator
+{
+	unsigned long long samplePosition = 0;
+	unsigned leftSeed = 22222u;
+	unsigned rightSeed = 77777u;
+
+	static double noise(unsigned& seed)
+	{
+		seed = seed * 1664525u + 1013904223u;
+		return (static_cast<double>(seed >> 8) / 8388608.0) - 1.0;
+	}
+
+	void fill(double* left, double* right, unsigned frameCount)
+	{
+		for (unsigned s = 0; s < frameCount; s++)
+		{
+			const double t = static_cast<double>(samplePosition++) / probeSampleRate;
+			const double envelope = 0.6 + 0.4 * sin(2.0 * pi * 3.0 * t);
+			const double common = 0.22 * envelope * sin(2.0 * pi * 997.0 * t);
+			left[s] = common + 0.12 * noise(leftSeed);
+			right[s] = common + 0.12 * noise(rightSeed);
+		}
+	}
+};
+
+void printChannelTable(const std::vector<std::wstring>& channelNames, const RunResult& result,
+	unsigned warmupSeconds)
+{
+	wprintf(L"per-channel output over the last %u s of a %u s stereo run (%u channels):\n",
+		measureSeconds, warmupSeconds + measureSeconds, static_cast<unsigned>(channelNames.size()));
+	for (size_t c = 0; c < channelNames.size(); c++)
+	{
+		const double rmsDb = result.rms[c] > 0.0 ? 20.0 * log10(result.rms[c]) : -999.0;
+		wprintf(L"  %-4s rms=%.8f (%7.1f dBFS)  peak=%.8f  %s\n",
+			channelNames[c].c_str(), result.rms[c], rmsDb, result.peaks[c],
+			result.rms[c] > activeRmsThreshold ? L"ACTIVE" : L"silent");
+	}
+	wprintf(L"active channels: %u / %u\n", result.activeChannels, static_cast<unsigned>(channelNames.size()));
+}
+
 // Runs a stereo test signal (a correlated component an upmixer steers to the
 // center plus an anti-correlated component it steers to the surrounds; all
 // other input channels silent) through a fresh VSTPluginFilter and measures
@@ -119,19 +164,11 @@ RunResult runProbe(const std::shared_ptr<VSTPluginLibrary>& library,
 	const unsigned totalBlocks = static_cast<unsigned>((warmupSeconds + measureSeconds) * probeSampleRate) / probeBlockSize;
 	const unsigned measureStartBlock = static_cast<unsigned>(warmupSeconds * probeSampleRate) / probeBlockSize;
 	unsigned long long measuredSamples = 0;
-	unsigned long long samplePosition = 0;
+	StereoSignalGenerator generator;
 
 	for (unsigned block = 0; block < totalBlocks; block++)
 	{
-		for (unsigned s = 0; s < probeBlockSize; s++)
-		{
-			const double t = static_cast<double>(samplePosition + s) / probeSampleRate;
-			const double common = 0.25 * sin(2.0 * pi * 997.0 * t);
-			const double side = 0.1 * sin(2.0 * pi * 3163.0 * t);
-			inputData[0][s] = common + side;
-			inputData[1][s] = common - side;
-		}
-		samplePosition += probeBlockSize;
+		generator.fill(inputData[0].data(), inputData[1].data(), probeBlockSize);
 		filter.process(outputs.data(), inputs.data(), probeBlockSize);
 		if (block < measureStartBlock)
 			continue;
@@ -156,18 +193,109 @@ RunResult runProbe(const std::shared_ptr<VSTPluginLibrary>& library,
 	}
 
 	if (printTable)
+		printChannelTable(channelNames, result, warmupSeconds);
+	return result;
+}
+
+// Feeds the plugin directly through VSTPluginInstance with a stereo input bus
+// and a wider output bus - the layout JUCE upmixers commonly declare and the
+// one a DAW like Reaper would give this plugin. Diagnostic only: Equalizer
+// APO's filter path feeds symmetric buses, so a surround field that appears
+// only here means the plugin keys its engine on the asymmetric layout.
+RunResult runAsymmetricProbe(const std::shared_ptr<VSTPluginLibrary>& library, unsigned outputChannels)
+{
+	RunResult result;
+	VSTPluginInstance instance(library, 2);
+	if (!instance.initialize())
 	{
-		wprintf(L"per-channel output over the last %u s of a %u s stereo run (%u channels):\n",
-			measureSeconds, warmupSeconds + measureSeconds, channelCount);
-		for (unsigned c = 0; c < channelCount; c++)
-		{
-			const double rmsDb = result.rms[c] > 0.0 ? 20.0 * log10(result.rms[c]) : -999.0;
-			wprintf(L"  %-4s rms=%.8f (%7.1f dBFS)  peak=%.8f  %s\n",
-				channelNames[c].c_str(), result.rms[c], rmsDb, result.peaks[c],
-				result.rms[c] > activeRmsThreshold ? L"ACTIVE" : L"silent");
-		}
-		wprintf(L"active channels: %u / %u\n", result.activeChannels, channelCount);
+		wprintf(L"asymmetric probe: plugin instance did not initialize\n");
+		return result;
 	}
+	const bool negotiated = instance.negotiateBusChannelCounts(2, static_cast<int>(outputChannels));
+	wprintf(L"asymmetric negotiation (in=2, out=%u): in=%d out=%d (%s)\n",
+		outputChannels, instance.numInputs(), instance.numOutputs(), negotiated ? L"accepted" : L"rejected");
+	const int inCount = instance.numInputs();
+	const int outCount = instance.numOutputs();
+	if (inCount < 2 || outCount < 1 || inCount > 64 || outCount > 64)
+		return result;
+
+	instance.prepareForProcessing(probeSampleRate, static_cast<int>(probeBlockSize));
+	instance.startProcessing();
+
+	const unsigned inChannels = static_cast<unsigned>(inCount);
+	const unsigned outChannels = static_cast<unsigned>(outCount);
+	std::vector<std::vector<double>> inputData(inChannels, std::vector<double>(probeBlockSize, 0.0));
+	std::vector<std::vector<double>> outputData(outChannels, std::vector<double>(probeBlockSize, 0.0));
+	std::vector<std::vector<float>> floatInputData(inChannels, std::vector<float>(probeBlockSize, 0.0f));
+	std::vector<std::vector<float>> floatOutputData(outChannels, std::vector<float>(probeBlockSize, 0.0f));
+	std::vector<double*> inputs(inChannels);
+	std::vector<double*> outputs(outChannels);
+	std::vector<float*> floatInputs(inChannels);
+	std::vector<float*> floatOutputs(outChannels);
+	for (unsigned i = 0; i < inChannels; i++)
+	{
+		inputs[i] = inputData[i].data();
+		floatInputs[i] = floatInputData[i].data();
+	}
+	for (unsigned i = 0; i < outChannels; i++)
+	{
+		outputs[i] = outputData[i].data();
+		floatOutputs[i] = floatOutputData[i].data();
+	}
+
+	result.rms.assign(outChannels, 0.0);
+	result.peaks.assign(outChannels, 0.0);
+	std::vector<double> sumSquares(outChannels, 0.0);
+	const unsigned totalBlocks = static_cast<unsigned>((defaultWarmupSeconds + measureSeconds) * probeSampleRate) / probeBlockSize;
+	const unsigned measureStartBlock = static_cast<unsigned>(defaultWarmupSeconds * probeSampleRate) / probeBlockSize;
+	unsigned long long measuredSamples = 0;
+	StereoSignalGenerator generator;
+	const bool useDouble = instance.canDoubleReplacing();
+
+	for (unsigned block = 0; block < totalBlocks; block++)
+	{
+		generator.fill(inputData[0].data(), inputData[1].data(), probeBlockSize);
+		if (useDouble)
+			instance.processDoubleReplacing(inputs.data(), outputs.data(), static_cast<int>(probeBlockSize));
+		else
+		{
+			for (unsigned c = 0; c < inChannels; c++)
+				for (unsigned s = 0; s < probeBlockSize; s++)
+					floatInputData[c][s] = static_cast<float>(inputData[c][s]);
+			instance.processReplacing(floatInputs.data(), floatOutputs.data(), static_cast<int>(probeBlockSize));
+			for (unsigned c = 0; c < outChannels; c++)
+				for (unsigned s = 0; s < probeBlockSize; s++)
+					outputData[c][s] = floatOutputData[c][s];
+		}
+		if (block < measureStartBlock)
+			continue;
+		measuredSamples += probeBlockSize;
+		for (unsigned c = 0; c < outChannels; c++)
+		{
+			for (unsigned s = 0; s < probeBlockSize; s++)
+			{
+				const double v = outputData[c][s];
+				sumSquares[c] += v * v;
+				if (fabs(v) > result.peaks[c])
+					result.peaks[c] = fabs(v);
+			}
+		}
+	}
+	instance.stopProcessing();
+
+	std::vector<std::wstring> outputNames;
+	for (unsigned c = 0; c < outChannels; c++)
+	{
+		const wchar_t* known = wellKnownChannelName(c, outChannels);
+		outputNames.push_back(known != nullptr ? std::wstring(known) : (L"CH" + std::to_wstring(c + 1)));
+	}
+	for (unsigned c = 0; c < outChannels; c++)
+	{
+		result.rms[c] = measuredSamples > 0 ? sqrt(sumSquares[c] / static_cast<double>(measuredSamples)) : 0.0;
+		if (result.rms[c] > activeRmsThreshold)
+			result.activeChannels++;
+	}
+	printChannelTable(outputNames, result, defaultWarmupSeconds);
 	return result;
 }
 
@@ -303,6 +431,18 @@ int wmain(int argc, wchar_t** argv)
 				break;
 			}
 		}
+	}
+
+	// Diagnostic layout experiment: does the engine engage when the input bus
+	// stays stereo while only the output bus is widened (the layout a DAW
+	// would negotiate)? This does not flip the verdict - Equalizer APO's
+	// filter path feeds symmetric buses today - but it pins down whether a
+	// remaining failure lives in the plugin's engine or in the bus layout it
+	// expects.
+	if (!pass && channelCount > 2)
+	{
+		wprintf(L"\n=== asymmetric bus experiment (stereo input bus, %u-channel output bus) ===\n", channelCount);
+		runAsymmetricProbe(library, channelCount);
 	}
 
 	wprintf(L"\nverdict: %s\n", pass
