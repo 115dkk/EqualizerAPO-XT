@@ -1,0 +1,238 @@
+# One-off engineering-evidence workflow. Builds the engine's VST3 host plus
+# Tests/RealVstProbe, downloads the real OpenSpatial Upmixer binary the
+# speaker-gallery users run (gofile folder cqL1zn, shared by its author), and
+# proves on a hosted runner that the negotiated 7.1 host path drives all eight
+# output channels - the claim v2.24.2 makes to users who cannot verify it on
+# real hardware. This workflow and Tests/RealVstProbe are throwaway proof
+# material: the PR that carries them is closed without merging once the
+# evidence run is recorded, because CI must not depend on an expiring
+# third-party download link.
+name: Real VST3 upmixer probe
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/real-vst-probe.yml'
+      - 'Tests/RealVstProbe/**'
+
+env:
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  probe:
+    runs-on: windows-2025-vs2026
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v3
+
+    - name: Resolve pinned dependency tags
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        "VST3_TAG=$($manifest.Shared.Vst3Tag)" >> $env:GITHUB_ENV
+        "HIGHWAY_TAG=$($manifest.Shared.HighwayTag)" >> $env:GITHUB_ENV
+        "TCLAP_TAG=$($manifest.Shared.TclapTag)" >> $env:GITHUB_ENV
+
+    - name: Download dependency release assets
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        Import-Module "${{ github.workspace }}\.github\scripts\Provisioning.psm1" -Force
+        $manifest = Import-PowerShellDataFile -Path "${{ github.workspace }}\.github\simd-variants.psd1"
+        $downloads = Get-DependencyDownloadSpec -Manifest $manifest `
+          -DepsRoot "${{ github.workspace }}\deps" `
+          -Platform "x64" `
+          -Simd "avx2"
+        Invoke-DependencyDownload -Downloads $downloads `
+          -DownloadRoot "${{ github.workspace }}\deps\_downloads"
+
+    - name: Download TCLAP
+      uses: actions/checkout@v6
+      with:
+        repository: 115dkk/tclap
+        ref: ${{ env.TCLAP_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/tclap
+
+    - name: Download VST3 pluginterfaces
+      uses: actions/checkout@v6
+      with:
+        repository: steinbergmedia/vst3_pluginterfaces
+        ref: ${{ env.VST3_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/vst3sdk/pluginterfaces
+
+    - name: Download Highway
+      uses: actions/checkout@v6
+      with:
+        repository: google/highway
+        ref: ${{ env.HIGHWAY_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/highway
+
+    - name: Setup dependency structures
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $depsPath = "${{ github.workspace }}\deps"
+
+        $fftwHeader = Get-ChildItem -Path "$depsPath\fftw\Include" -Recurse -Filter "fftw3.h" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $fftwLib = Get-ChildItem -Path "$depsPath\fftw\Release" -Recurse -Filter "libfftw3.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $mpxLib = Get-ChildItem -Path "$depsPath\muparserx\build\Release" -Recurse -Filter "muparserx.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $fftwHeader -or -not $fftwLib -or -not $mpxLib) {
+          Write-Error "dependency layout incomplete (fftw3.h/libfftw3.lib/muparserx.lib)"
+          exit 1
+        }
+
+        echo "FFTW_INCLUDE=$($fftwHeader.Directory.FullName)" >> $env:GITHUB_ENV
+        echo "FFTW_LIB=$($fftwLib.Directory.FullName)" >> $env:GITHUB_ENV
+        echo "MUPARSERX_INCLUDE=$depsPath\muparserx\parser" >> $env:GITHUB_ENV
+        echo "MUPARSERX_LIB=$($mpxLib.Directory.FullName)" >> $env:GITHUB_ENV
+        echo "LIBSNDFILE_INCLUDE=$depsPath\libsndfile\include" >> $env:GITHUB_ENV
+        echo "LIBSNDFILE_LIB=$depsPath\libsndfile\build\Release" >> $env:GITHUB_ENV
+        echo "TCLAP_ROOT=$depsPath\tclap" >> $env:GITHUB_ENV
+        echo "VST3_SDK=$depsPath\vst3sdk" >> $env:GITHUB_ENV
+        echo "HIGHWAY_INCLUDE=$depsPath\highway" >> $env:GITHUB_ENV
+
+    - name: Build host and probe
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $libPaths = @("$env:LIBSNDFILE_LIB", "$env:MUPARSERX_LIB", "$env:FFTW_LIB")
+        if ($env:LIB) { $env:LIB = ($libPaths + $env:LIB) -join ";" } else { $env:LIB = $libPaths -join ";" }
+
+        $buildParams = @(
+          "/m",
+          "/p:Configuration=${{ env.BUILD_CONFIGURATION }}",
+          "/p:Platform=x64",
+          "/t:rebuild",
+          "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE",
+          "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
+          "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE",
+          "/p:FFTW_LIB=$env:FFTW_LIB",
+          "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
+          "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
+          "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
+          "/p:VST3_SDK=$env:VST3_SDK",
+          "/p:HIGHWAY_INCLUDE=$env:HIGHWAY_INCLUDE",
+          "/p:PlatformToolset=v145",
+          "/p:PreferredToolArchitecture=x64",
+          "/p:EnableEnhancedInstructionSet=AdvancedVectorExtensions2"
+        )
+
+        foreach ($project in @("Common.vcxproj", "Tests\RealVstProbe\RealVstProbe.vcxproj")) {
+          Write-Host "=== Building $project ==="
+          msbuild $project @buildParams
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Build failed for $project"
+            exit $LASTEXITCODE
+          }
+        }
+
+    - name: Download the OpenSpatial Upmixer (gofile cqL1zn)
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $contentId = "cqL1zn"
+
+        $account = Invoke-RestMethod -Method Post -Uri "https://api.gofile.io/accounts"
+        if ($account.status -ne "ok") { Write-Error "gofile guest account failed: $($account | ConvertTo-Json -Depth 4)"; exit 1 }
+        $token = $account.data.token
+
+        # The contents API needs gofile's rotating website token from its
+        # frontend bundle; keep the last known value as a fallback.
+        $wtCandidates = @()
+        try {
+          $globalJs = (Invoke-WebRequest -Uri "https://gofile.io/dist/js/global.js" -UseBasicParsing).Content
+          foreach ($m in [regex]::Matches($globalJs, 'wt\s*[:=]\s*"([^"]+)"')) { $wtCandidates += $m.Groups[1].Value }
+        } catch { Write-Warning "could not read global.js: $_" }
+        $wtCandidates += "4fd6sg89d7s6"
+        $wtCandidates = $wtCandidates | Select-Object -Unique
+        Write-Host "website-token candidates: $($wtCandidates -join ', ')"
+
+        $headers = @{ Authorization = "Bearer $token" }
+        function Get-GofileContent([string]$id) {
+          foreach ($wt in $script:wtCandidates) {
+            try {
+              $r = Invoke-RestMethod -Uri "https://api.gofile.io/contents/${id}?wt=$wt" -Headers $script:headers
+              if ($r.status -eq "ok") { return $r.data }
+              Write-Warning "contents($id) wt=${wt}: $($r.status)"
+            } catch { Write-Warning "contents($id) wt=${wt} threw: $_" }
+          }
+          return $null
+        }
+
+        $root = Get-GofileContent $contentId
+        if ($null -eq $root) { Write-Error "gofile listing failed for every website-token candidate"; exit 1 }
+
+        $files = @()
+        $queue = New-Object System.Collections.Queue
+        $queue.Enqueue($root)
+        while ($queue.Count -gt 0) {
+          $node = $queue.Dequeue()
+          if ($node.type -eq "file") { $files += $node; continue }
+          if ($null -eq $node.children) { continue }
+          foreach ($childProp in $node.children.PSObject.Properties) {
+            $child = $childProp.Value
+            if ($child.type -eq "folder") {
+              $resolved = Get-GofileContent $child.id
+              if ($null -ne $resolved) { $queue.Enqueue($resolved) }
+            } else {
+              $files += $child
+            }
+          }
+        }
+        Write-Host "shared files:"
+        $files | ForEach-Object { Write-Host ("  {0}  ({1} bytes)" -f $_.name, $_.size) }
+
+        $downloadDir = "${{ github.workspace }}\plugin"
+        New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+        $cookie = @{ Cookie = "accountToken=$token" }
+
+        $vst3 = $files | Where-Object { $_.name -match '\.vst3$' } | Select-Object -First 1
+        if ($null -eq $vst3) {
+          # The Windows build may be shipped inside an archive; expand and search.
+          $archive = $files | Where-Object { $_.name -match '\.(zip|7z)$' } | Select-Object -First 1
+          if ($null -eq $archive -or $archive.name -notmatch '\.zip$') { Write-Error "no .vst3 (or .zip containing one) in the gofile folder"; exit 1 }
+          $zipPath = Join-Path $downloadDir $archive.name
+          Invoke-WebRequest -Uri $archive.link -OutFile $zipPath -Headers $cookie
+          Expand-Archive -Path $zipPath -DestinationPath (Join-Path $downloadDir "extracted") -Force
+          $extractedVst3 = Get-ChildItem -Path (Join-Path $downloadDir "extracted") -Recurse -Filter "*.vst3" -File | Select-Object -First 1
+          if ($null -eq $extractedVst3) { Write-Error "archive contained no .vst3 module"; exit 1 }
+          $target = $extractedVst3.FullName
+        } else {
+          $target = Join-Path $downloadDir $vst3.name
+          Invoke-WebRequest -Uri $vst3.link -OutFile $target -Headers $cookie
+        }
+
+        Write-Host "plugin module: $target"
+        Get-FileHash -Algorithm SHA256 -Path $target | Format-List
+        "PLUGIN_PATH=$target" >> $env:GITHUB_ENV
+
+    - name: Probe 7.1 (8 channels)
+      shell: pwsh
+      run: |
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
+        & "${{ github.workspace }}\Tests\RealVstProbe\x64\Release\RealVstProbe.exe" "$env:PLUGIN_PATH" 8 2>&1 | Tee-Object -FilePath probe-8ch.txt
+        exit $LASTEXITCODE
+
+    - name: Probe stereo (2 channels)
+      shell: pwsh
+      run: |
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
+        & "${{ github.workspace }}\Tests\RealVstProbe\x64\Release\RealVstProbe.exe" "$env:PLUGIN_PATH" 2 2>&1 | Tee-Object -FilePath probe-2ch.txt
+        exit $LASTEXITCODE
+
+    - name: Upload probe evidence
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: real-vst-probe-evidence
+        path: |
+          probe-8ch.txt
+          probe-2ch.txt
+        retention-days: 30
