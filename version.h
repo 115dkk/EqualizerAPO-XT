@@ -1,6 +1,6 @@
 #define MAJOR 2
 #define MINOR 24
-#define REVISION 1
+#define REVISION 2
 
 // Canonical GitHub repository for release and update URLs, consumed by the
 // Editor's Velopack bootstrap, the UpdateChecker, and the auto-detect

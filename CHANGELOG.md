@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.24.2 — 2026-07-20
+
 - The VST3 host now negotiates plugin buses from the device's real channel
   count instead of forcing every plugin into stereo at load time. An upmixer
   that expects one 5.1/7.1 bus (stereo signal in L/R, the plugin fills the
