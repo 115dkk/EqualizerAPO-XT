@@ -425,8 +425,13 @@ void runVst3HostTests()
 		stereoFilter.initialize(48000.0f, 4, stereoChannels);
 		double stereoIn[2][4] = {{0.5, -0.5, 0.25, -0.25}, {1.0, -1.0, 0.75, -0.75}};
 		double stereoOut[2][4] = {};
-		double* stereoInputs[] = {stereoIn[0], stereoIn[1]};
-		double* stereoOutputs[] = {stereoOut[0], stereoOut[1]};
+		double* stereoInputs[2];
+		double* stereoOutputs[2];
+		for (int channel = 0; channel < 2; ++channel)
+		{
+			stereoInputs[channel] = stereoIn[channel];
+			stereoOutputs[channel] = stereoOut[channel];
+		}
 		stereoFilter.process(stereoOutputs, stereoInputs, 4);
 		harness.expectTrue(closeEnough(stereoOut[0][1], -0.5) && closeEnough(stereoOut[1][2], 0.75),
 			"a stereo device still negotiates the upmixer's stereo layout");
