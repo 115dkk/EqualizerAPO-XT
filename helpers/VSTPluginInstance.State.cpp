@@ -280,6 +280,40 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 	}
 }
 
+int VSTPluginInstance::getParameterCount() const
+{
+	if (library->isVST3())
+		return vst3Controller != NULL ? vst3Controller->getParameterCount() : 0;
+	return effect != NULL ? effect->num_params : 0;
+}
+
+bool VSTPluginInstance::getParameterDetails(int index, std::wstring& title, double& normalizedValue, int& stepCount) const
+{
+	if (!library->isVST3() || vst3Controller == NULL)
+		return false;
+	ParameterInfo info;
+	if (vst3Controller->getParameterInfo(index, info) != kResultOk)
+		return false;
+	title = wstring((wchar_t*)info.title);
+	normalizedValue = vst3Controller->getParamNormalized(info.id);
+	stepCount = info.stepCount;
+	return true;
+}
+
+std::wstring VSTPluginInstance::getParameterValueString(int index, double normalizedValue) const
+{
+	if (!library->isVST3() || vst3Controller == NULL)
+		return L"";
+	ParameterInfo info;
+	if (vst3Controller->getParameterInfo(index, info) != kResultOk)
+		return L"";
+	String128 text;
+	memset(text, 0, sizeof(text));
+	if (vst3Controller->getParamStringByValue(info.id, normalizedValue, text) != kResultOk)
+		return L"";
+	return wstring((wchar_t*)text);
+}
+
 void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_map<std::wstring, float>& paramMap) const
 {
 	if (library->isVST3())

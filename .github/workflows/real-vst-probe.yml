@@ -245,6 +245,17 @@ jobs:
         & "${{ github.workspace }}\Tests\RealVstProbe\x64\Release\RealVstProbe.exe" "$env:PLUGIN_PATH" 2 2>&1 | Tee-Object -FilePath probe-2ch.txt
         exit $LASTEXITCODE
 
+    # Windows devices rarely expose 12 channels, so a 7.1.4 negotiation result
+    # is recorded as evidence without gating the job.
+    - name: Probe 7.1.4 (12 channels, informational)
+      if: always()
+      continue-on-error: true
+      shell: pwsh
+      run: |
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
+        & "${{ github.workspace }}\Tests\RealVstProbe\x64\Release\RealVstProbe.exe" "$env:PLUGIN_PATH" 12 2>&1 | Tee-Object -FilePath probe-12ch.txt
+        exit $LASTEXITCODE
+
     - name: Upload probe evidence
       if: always()
       uses: actions/upload-artifact@v7
@@ -253,4 +264,5 @@ jobs:
         path: |
           probe-8ch.txt
           probe-2ch.txt
+          probe-12ch.txt
         retention-days: 30

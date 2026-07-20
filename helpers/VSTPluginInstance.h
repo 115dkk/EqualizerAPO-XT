@@ -80,6 +80,13 @@ public:
 	void writeToEffect(const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap);
 	void readFromEffect(std::wstring& chunkData, std::unordered_map<std::wstring, float>& paramMap) const;
 
+	// Diagnostic parameter enumeration for the one-off RealVstProbe harness
+	// (PR #213): lets a GUI-less run discover a plugin's output-mode selector
+	// by title, step count, and per-step display string. VST3 only.
+	int getParameterCount() const;
+	bool getParameterDetails(int index, std::wstring& title, double& normalizedValue, int& stepCount) const;
+	std::wstring getParameterValueString(int index, double normalizedValue) const;
+
 	void startProcessing();
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount);
 	void processReplacing(float** inputArray, float** outputArray, int frameCount);
