@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include <algorithm>
+#include <cctype>
 #include <limits>
 #include <new>
 #include "helpers/StringHelper.h"
@@ -30,6 +32,23 @@ namespace
 {
 constexpr unsigned kMaxPluginChannelCount = 1024;
 constexpr unsigned kMaxPluginLatencySamples = 16 * 1024 * 1024;
+
+// A plugin that declares itself an up/downmixer or spatializer processes a
+// stereo source into the speaker layout; its input bus must stay stereo
+// while only the output bus spans the device. The OpenSpatial Upmixer
+// accepts a symmetric multichannel layout but leaves its engine disengaged
+// there, which is why the declared role - not the accepted layout - drives
+// the choice (probe evidence in PR #213).
+bool isUpmixerSubCategory(const std::string& subCategories)
+{
+	std::string lower = subCategories;
+	std::transform(lower.begin(), lower.end(), lower.begin(),
+		[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	return lower.find("up-downmix") != std::string::npos
+		|| lower.find("updownmix") != std::string::npos
+		|| lower.find("spatial") != std::string::npos
+		|| lower.find("surround") != std::string::npos;
+}
 
 bool checkedMultiply(size_t left, size_t right, size_t& result) noexcept
 {
@@ -90,8 +109,20 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// analyzes the whole speaker layout at once (an upmixer expecting one 5.1
 	// or 7.1 bus) is split into several stereo instances that each see only
 	// two channels.
+	//
+	// Upmixer-type plugins (declared via the VST3 subcategory) additionally
+	// get a stereo input bus with the full-width output bus: their engine
+	// keys on that asymmetric layout. Everything else keeps symmetric buses,
+	// where a narrowed input bus would discard device channels.
+	const bool upmixerLayout = channelCount > 2 && isUpmixerSubCategory(library->getVST3SubCategories());
+	const auto negotiateInstance = [upmixerLayout](VSTPluginInstance* effect, unsigned targetChannelCount)
+	{
+		effect->negotiateChannelCount(static_cast<int>(targetChannelCount));
+		if (upmixerLayout && targetChannelCount > 2)
+			effect->negotiateBusChannelCounts(2, static_cast<int>(targetChannelCount));
+	};
 	if (channelCount <= kMaxPluginChannelCount)
-		firstEffect->negotiateChannelCount(static_cast<int>(channelCount));
+		negotiateInstance(firstEffect.get(), static_cast<unsigned>(channelCount));
 
 	// Metadata is plugin-controlled. Snapshot it once, validate the signed
 	// values, and use only the cached values for every allocation and processing
@@ -149,9 +180,9 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			return channelNames;
 		}
 
-		// Every additional instance is brought to the same negotiated width as
-		// the first one before the consistency check below.
-		effects[i]->negotiateChannelCount(static_cast<int>(effectChannelCount));
+		// Every additional instance is brought to the same negotiated layout
+		// as the first one before the consistency check below.
+		negotiateInstance(effects[i].get(), effectChannelCount);
 
 		const int instanceInputCount = effects[i]->numInputs();
 		const int instanceOutputCount = effects[i]->numOutputs();

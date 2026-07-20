@@ -332,6 +332,7 @@ int wmain(int argc, wchar_t** argv)
 	}
 	wprintf(L"plugin: %s\n", pluginPath.c_str());
 	wprintf(L"format: %s\n", library->isVST3() ? L"VST3" : L"VST2");
+	wprintf(L"subcategories: %hs\n", library->getVST3SubCategories().c_str());
 
 	// Instance-level negotiation record plus the parameter inventory the
 	// configuration search below draws from.
