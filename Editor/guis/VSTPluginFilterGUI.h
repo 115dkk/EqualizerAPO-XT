@@ -33,7 +33,8 @@ class VSTPluginFilterGUI : public IFilterGUI
 	Q_OBJECT
 
 public:
-	explicit VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap);
+	explicit VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap,
+		bool stereoInput = false);
 	~VSTPluginFilterGUI() override;
 
 	void store(QString& command, QString& parameters) override;
@@ -49,6 +50,7 @@ private slots:
 	void on_pathLineEdit_editingFinished();
 	void on_selectButton_clicked();
 	void on_embedAction_toggled(bool checked);
+	void stereoInputToggled(bool checked);
 	void on_idle();
 
 private:
@@ -63,5 +65,7 @@ private:
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;
 	bool autoApplyDialog = false;
+	bool stereoInput = false;
+	QAction* stereoInputAction = nullptr;
 	QElapsedTimer lastReadTimer;
 };

@@ -29,6 +29,7 @@
 #include "helpers/aeffectx.h"
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
+#include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
@@ -56,8 +57,8 @@ QString displayPathForLibrary(const wstring& libPath)
 }
 
 VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring& chunkData,
-	const unordered_map<wstring, float>& paramMap, QWidget* parent)
-	: IFilterGUI(parent), library(library), chunkData(chunkData), paramMap(paramMap)
+	const unordered_map<wstring, float>& paramMap, bool stereoInput, QWidget* parent)
+	: IFilterGUI(parent), library(library), chunkData(chunkData), paramMap(paramMap), stereoInput(stereoInput)
 {
 	setObjectName(QStringLiteral("VSTCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -91,9 +92,18 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	optionsButton->setText(QStringLiteral("..."));
 	optionsButton->setPopupMode(QToolButton::InstantPopup);
 	QMenu* menu = new QMenu(optionsButton);
+	menu->setToolTipsVisible(true);
 	embedAction = menu->addAction(tr("Embed panel in card"));
 	embedAction->setCheckable(true);
 	connect(embedAction, SIGNAL(toggled(bool)), this, SLOT(embedToggled(bool)));
+	// Same shared Options-menu placement as the legacy row: the interaction
+	// layer is skin-independent, so no per-skin chrome answer is needed and
+	// both editors behave identically.
+	stereoInputAction = menu->addAction(tr("Stereo input"));
+	stereoInputAction->setCheckable(true);
+	stereoInputAction->setChecked(stereoInput);
+	stereoInputAction->setToolTip(tr("Use for upmixers that expand a stereo signal to multichannel."));
+	connect(stereoInputAction, SIGNAL(toggled(bool)), this, SLOT(stereoInputToggled(bool)));
 	optionsButton->setMenu(menu);
 	view->addActionButton(ReferenceCardView::ActionRole::Options, optionsButton);
 
@@ -148,20 +158,22 @@ void VSTCardEditor::store(QString& command, QString& parameters)
 		relativePath = "\"" + relativePath + "\"";
 	parameters = "Library " + relativePath;
 
-	if (chunkData != L"")
-	{
-		parameters += " ChunkData \"" + QString::fromStdWString(chunkData) + "\"";
-	}
-	else
-	{
-		for (auto it : paramMap)
-		{
-			QString name = QString::fromStdWString(it.first);
-			if (name.contains(" ") || name.contains("\""))
-				name = "\"" + name.replace("\"", "\"\"") + "\"";
-			parameters += " " + name + " " + QString("%1").arg(it.second);
-		}
-	}
+	// The Library token stays here for its QDir-based path resolution; the
+	// body (StereoInput, then ChunkData or params) comes from the shared
+	// serializer, so this card and the legacy row emit the same grammar.
+	VSTPluginCommand cmd;
+	cmd.chunkData = chunkData;
+	cmd.paramMap = paramMap;
+	cmd.stereoInput = stereoInput;
+	parameters += QString::fromStdWString(cmd.serialize());
+}
+
+void VSTCardEditor::stereoInputToggled(bool checked)
+{
+	if (stereoInput == checked)
+		return;
+	stereoInput = checked;
+	updateModel();
 }
 
 void VSTCardEditor::loadPreferences(const QVariantMap& prefs)
@@ -600,7 +612,7 @@ REGISTER_FILTER_CARD_EDITOR(vstplugin, [](FilterTable*, const QString&, const QS
 	if (!filters.empty())
 	{
 		VSTPluginFilter* filter = static_cast<VSTPluginFilter*>(filters[0].get());
-		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap());
+		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap(), filter->getStereoInput());
 	}
 	else
 	{

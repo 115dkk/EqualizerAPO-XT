@@ -39,7 +39,7 @@ class VSTCardEditor : public IFilterGUI
 
 public:
 	VSTCardEditor(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData,
-		const std::unordered_map<std::wstring, float>& paramMap, QWidget* parent = nullptr);
+		const std::unordered_map<std::wstring, float>& paramMap, bool stereoInput = false, QWidget* parent = nullptr);
 	~VSTCardEditor();
 
 	void store(QString& command, QString& parameters) override;
@@ -53,6 +53,7 @@ private slots:
 	void pathCommitted(const QString& text);
 	void selectFile();
 	void embedToggled(bool checked);
+	void stereoInputToggled(bool checked);
 	void onIdle();
 
 private:
@@ -69,6 +70,7 @@ private:
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;
 	bool autoApplyDialog = false;
+	bool stereoInput = false;
 	QElapsedTimer lastReadTimer;
 
 	// The library reference as displayed/edited (relative to the VSTPlugins
@@ -84,6 +86,7 @@ private:
 	QPushButton* openPanelButton = nullptr;
 	QToolButton* optionsButton = nullptr;
 	QAction* embedAction = nullptr;
+	QAction* stereoInputAction = nullptr;
 	QFrame* frame = nullptr;
 	QPlainTextEdit* warningTextEdit = nullptr;
 };

@@ -50,9 +50,9 @@ IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString
 		VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters.toStdWString());
 		std::shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
 		if (library != nullptr)
-			result = new VSTPluginFilterGUI(library, cmd.chunkData, cmd.paramMap);
+			result = new VSTPluginFilterGUI(library, cmd.chunkData, cmd.paramMap, cmd.stereoInput);
 		else
-			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"", unordered_map<wstring, float>());
+			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"", unordered_map<wstring, float>(), cmd.stereoInput);
 	}
 
 	return result;

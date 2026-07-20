@@ -21,6 +21,8 @@
 #include <QFileDialog>
 #include <QSettings>
 #include <QAbstractEventDispatcher>
+#include <QAction>
+#include <QMenu>
 #include <QStringList>
 
 #define WIN32_LEAN_AND_MEAN
@@ -44,8 +46,9 @@ using std::wstring;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap)
-	: ui(std::make_unique<Ui::VSTPluginFilterGUI>()), library(library), chunkData(chunkData), paramMap(paramMap)
+VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap,
+	bool stereoInput)
+	: ui(std::make_unique<Ui::VSTPluginFilterGUI>()), library(library), chunkData(chunkData), paramMap(paramMap), stereoInput(stereoInput)
 {
 	ui->setupUi(this);
 	ui->frame->setVisible(false);
@@ -59,7 +62,17 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 	ui->pathLineEdit->setText(relativePath);
 
 	QMenu* menu = new QMenu(ui->optionsButton);
+	menu->setToolTipsVisible(true);
 	menu->addAction(ui->embedAction);
+	// The stereo-input toggle lives in the shared Options menu on purpose: the
+	// interaction layer is skin-independent, so no per-skin chrome answer is
+	// needed and the legacy row and the card behave identically.
+	stereoInputAction = new QAction(tr("Stereo input"), this);
+	stereoInputAction->setCheckable(true);
+	stereoInputAction->setChecked(stereoInput);
+	stereoInputAction->setToolTip(tr("Use for upmixers that expand a stereo signal to multichannel."));
+	connect(stereoInputAction, &QAction::toggled, this, &VSTPluginFilterGUI::stereoInputToggled);
+	menu->addAction(stereoInputAction);
 	ui->optionsButton->setMenu(menu);
 
 	// Frozen legacy row: it stays functional under every skin, so it consults
@@ -101,7 +114,16 @@ void VSTPluginFilterGUI::store(QString& command, QString& parameters)
 	VSTPluginCommand cmd;
 	cmd.chunkData = chunkData;
 	cmd.paramMap = paramMap;
+	cmd.stereoInput = stereoInput;
 	parameters += QString::fromStdWString(cmd.serialize());
+}
+
+void VSTPluginFilterGUI::stereoInputToggled(bool checked)
+{
+	if (stereoInput == checked)
+		return;
+	stereoInput = checked;
+	updateModel();
 }
 
 void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)

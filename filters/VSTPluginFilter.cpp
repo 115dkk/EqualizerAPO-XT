@@ -483,6 +483,11 @@ const std::unordered_map<std::wstring, float>& VSTPluginFilter::getParamMap() co
 	return paramMap;
 }
 
+bool VSTPluginFilter::getStereoInput() const
+{
+	return forceStereoInput;
+}
+
 void VSTPluginFilter::cleanup()
 {
 	for (const auto& effect : effects)

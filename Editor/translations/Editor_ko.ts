@@ -2937,6 +2937,14 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
+        <source>Stereo input</source>
+        <translation>스테레오 입력</translation>
+    </message>
+    <message>
+        <source>Use for upmixers that expand a stereo signal to multichannel.</source>
+        <translation>스테레오 신호를 다채널로 확장하는 업믹서에 사용합니다.</translation>
+    </message>
+    <message>
         <source>VST plugin (.dll, .vst3)</source>
         <translation type="vanished">VST 플러그인 (.dll, .vst3)</translation>
     </message>
@@ -3033,6 +3041,14 @@ Change the file permissions or copy the files to the config directory.</source>
 </context>
 <context>
     <name>VSTPluginFilterGUI</name>
+    <message>
+        <source>Stereo input</source>
+        <translation>스테레오 입력</translation>
+    </message>
+    <message>
+        <source>Use for upmixers that expand a stereo signal to multichannel.</source>
+        <translation>스테레오 신호를 다채널로 확장하는 업믹서에 사용합니다.</translation>
+    </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
         <source>Open panel</source>
