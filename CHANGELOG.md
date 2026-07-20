@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.25.0 — 2026-07-20
+
 - Upmixer plugins that want a DAW-style bus layout (a stereo input bus
   feeding the full-width output bus) are now supported. Running the real
   OpenSpatial Upmixer binary on a CI runner (PR #213) showed it accepts a

@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.25.0 — 2026-07-20
+
 - DAW식 버스 배치(스테레오 입력 버스 + 전폭 출력 버스)를 전제하는
   업믹서 플러그인을 지원합니다. 실제 OpenSpatial Upmixer 바이너리를
   CI 러너에서 구동한 검증(PR #213)에서, 이 플러그인은 대칭 7.1 배치를
