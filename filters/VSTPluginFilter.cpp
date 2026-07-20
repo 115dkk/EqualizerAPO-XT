@@ -84,6 +84,15 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		return channelNames;
 	}
 
+	// A multichannel-capable plugin must see the full device width before its
+	// channel counts are frozen below. Without this, the stereo probe from
+	// initialize() becomes the permanent instance width, and a plugin that
+	// analyzes the whole speaker layout at once (an upmixer expecting one 5.1
+	// or 7.1 bus) is split into several stereo instances that each see only
+	// two channels.
+	if (channelCount <= kMaxPluginChannelCount)
+		firstEffect->negotiateChannelCount(static_cast<int>(channelCount));
+
 	// Metadata is plugin-controlled. Snapshot it once, validate the signed
 	// values, and use only the cached values for every allocation and processing
 	// loop below. Re-reading allows a broken plugin to change the loop bounds
@@ -139,6 +148,10 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			skipProcessing = true;
 			return channelNames;
 		}
+
+		// Every additional instance is brought to the same negotiated width as
+		// the first one before the consistency check below.
+		effects[i]->negotiateChannelCount(static_cast<int>(effectChannelCount));
 
 		const int instanceInputCount = effects[i]->numInputs();
 		const int instanceOutputCount = effects[i]->numOutputs();

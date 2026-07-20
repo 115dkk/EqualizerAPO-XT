@@ -21,6 +21,7 @@
 
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/VSTPluginInstance.h"
+#include "filters/VSTPluginFilter.h"
 #include "Tests/TestHarness.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
 
@@ -350,6 +351,86 @@ void runVst3HostTests()
 	}
 	harness.expectTrue(GetFileAttributesW(exitMarker.c_str()) != INVALID_FILE_ATTRIBUTES,
 		"VST3 module ExitDll runs before the successful library unloads");
+
+	// Multichannel bus negotiation. The companion module in "Upmixer.vst3"
+	// mode reproduces the OpenSpatial Upmixer contract: it wants one 7.1 bus
+	// pair (L/R carrying the source, the plugin fills the other channels) but
+	// also accepts plain stereo, so a host that only proposes stereo silently
+	// degrades it into several blind stereo instances - the "only the front
+	// speakers play" failure reported by users.
+	const wstring upmixerBundle = prepareBundle(directory, L"UpmixerBundle.vst3", L"TestVst3Upmixer.vst3");
+	shared_ptr<VSTPluginLibrary> upmixerLibrary = VSTPluginLibrary::getInstance(upmixerBundle);
+	harness.expectTrue(!upmixerBundle.empty() && upmixerLibrary->initialize() >= 0,
+		"upmixer VST3 module initializes");
+
+	typedef int (*UpmixerCountFunc)();
+	HMODULE upmixerModule = GetModuleHandleW(L"TestVst3Upmixer.vst3");
+	UpmixerCountFunc upmixerComponentCount = upmixerModule != nullptr
+		? reinterpret_cast<UpmixerCountFunc>(GetProcAddress(upmixerModule, "GetUpmixerComponentCount")) : nullptr;
+	harness.expectTrue(upmixerComponentCount != nullptr, "upmixer instance counter is exported");
+
+	{
+		VSTPluginInstance upmixerProbe(upmixerLibrary, 2);
+		harness.expectTrue(upmixerProbe.initialize(), "upmixer VST3 component initializes");
+		harness.expectTrue(upmixerProbe.negotiateChannelCount(8), "upmixer negotiates up to a 7.1 bus");
+		harness.expectEqual(upmixerProbe.numInputs(), 8, "negotiated upmixer input bus spans 8 channels");
+		harness.expectEqual(upmixerProbe.numOutputs(), 8, "negotiated upmixer output bus spans 8 channels");
+	}
+
+	const int upmixerInstancesBefore = upmixerComponentCount != nullptr ? upmixerComponentCount() : -1;
+	{
+		VSTPluginFilter upmixerFilter(upmixerLibrary, wstring(), std::unordered_map<wstring, float>());
+		std::vector<wstring> surroundChannels = {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"};
+		upmixerFilter.initialize(48000.0f, 4, surroundChannels);
+
+		constexpr unsigned frameCount = 4;
+		double inputData[8][frameCount] = {};
+		double outputData[8][frameCount] = {};
+		double* inputs[8];
+		double* outputs[8];
+		for (int channel = 0; channel < 8; ++channel)
+		{
+			inputs[channel] = inputData[channel];
+			outputs[channel] = outputData[channel];
+		}
+		const double left = 0.5;
+		const double right = 0.25;
+		for (unsigned sample = 0; sample < frameCount; ++sample)
+		{
+			inputData[0][sample] = left;
+			inputData[1][sample] = right;
+		}
+		upmixerFilter.process(outputs, inputs, frameCount);
+
+		harness.expectTrue(closeEnough(outputData[0][0], left) && closeEnough(outputData[1][0], right),
+			"upmixed front channels keep the stereo source");
+		harness.expectTrue(closeEnough(outputData[2][0], left + right),
+			"center channel receives the upmix result");
+		harness.expectTrue(closeEnough(outputData[3][0], 0.125 * (left + right)),
+			"LFE channel receives the upmix result");
+		harness.expectTrue(closeEnough(outputData[4][0], 0.25 * left) && closeEnough(outputData[5][0], 0.25 * right),
+			"rear channels receive the upmix result");
+		harness.expectTrue(closeEnough(outputData[6][0], 0.5 * left) && closeEnough(outputData[7][0], 0.5 * right),
+			"side channels receive the upmix result");
+	}
+	if (upmixerComponentCount != nullptr)
+		harness.expectEqual(upmixerComponentCount() - upmixerInstancesBefore, 1,
+			"a 7.1 device is served by exactly one full-width upmixer instance");
+
+	{
+		// Stereo devices must keep working through the same plugin: the
+		// negotiation settles on the stereo layout the plugin also supports.
+		VSTPluginFilter stereoFilter(upmixerLibrary, wstring(), std::unordered_map<wstring, float>());
+		std::vector<wstring> stereoChannels = {L"L", L"R"};
+		stereoFilter.initialize(48000.0f, 4, stereoChannels);
+		double stereoIn[2][4] = {{0.5, -0.5, 0.25, -0.25}, {1.0, -1.0, 0.75, -0.75}};
+		double stereoOut[2][4] = {};
+		double* stereoInputs[] = {stereoIn[0], stereoIn[1]};
+		double* stereoOutputs[] = {stereoOut[0], stereoOut[1]};
+		stereoFilter.process(stereoOutputs, stereoInputs, 4);
+		harness.expectTrue(closeEnough(stereoOut[0][1], -0.5) && closeEnough(stereoOut[1][2], 0.75),
+			"a stereo device still negotiates the upmixer's stereo layout");
+	}
 
 	harness.report();
 }
