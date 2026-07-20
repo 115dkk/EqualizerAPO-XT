@@ -57,6 +57,12 @@ public:
 
 	int numInputs() const;
 	int numOutputs() const;
+	// Proposes a bus layout matching channelCount to the plugin (VST3 only;
+	// VST2 channel counts are fixed by the effect). Returns true when the
+	// plugin afterwards spans at least channelCount channels, so a single
+	// instance can process the whole device width. numInputs()/numOutputs()
+	// reflect the negotiated result either way.
+	bool negotiateChannelCount(int channelCount);
 	bool canReplacing() const;
 	int uniqueID() const;
 	std::wstring getName() const;
@@ -110,12 +116,15 @@ private:
 	};
 
 	static constexpr unsigned vst3ParameterEditQueueSize = 1024;
+	static constexpr int vst3MaxArrangementCandidates = 2;
 
 	bool initializeVST2();
 	bool initializeVST3();
 	void releaseVST3();
 	void configureVST3Buses(int requestedChannelCount);
-	Steinberg::Vst::SpeakerArrangement speakerArrangementForChannelCount(int count) const;
+	void applyVST3BusActivation();
+	int speakerArrangementCandidatesForChannelCount(int count, Steinberg::Vst::SpeakerArrangement* candidates) const;
+	int vst3BusChannelCount(Steinberg::Vst::BusDirection direction) const;
 	void onVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 	void queueVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 	Steinberg::Vst::IParameterChanges* prepareVST3ParameterChanges();

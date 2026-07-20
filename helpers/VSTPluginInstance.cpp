@@ -465,7 +465,12 @@ void VSTPluginInstance::prepareForProcessing(float sampleRate, int blockSize)
 			return;
 
 		this->sampleRate = sampleRate;
-		configureVST3Buses(usedChannelCount > 0 ? usedChannelCount : max(vst3InputChannelCount, vst3OutputChannelCount));
+		// The bus width was negotiated in initialize()/negotiateChannelCount()
+		// and the host's buffer layout is already frozen to it. Renegotiating
+		// here (e.g. to usedChannelCount, which can be a smaller remainder for
+		// the last instance) could change the reported channel counts after
+		// the buffers were sized, so only re-activate the buses.
+		applyVST3BusActivation();
 		ProcessSetup setup;
 		setup.processMode = kRealtime;
 		setup.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
