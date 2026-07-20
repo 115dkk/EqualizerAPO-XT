@@ -47,6 +47,11 @@ public:
 	getPluginFactoryFunc GetPluginFactory;
 	Steinberg::IPluginFactory* getFactory() const;
 	const Steinberg::PClassInfo& getVST3ClassInfo() const;
+	// The audio class's PClassInfo2 subCategories string ("Fx|Up-Downmix"
+	// etc.), empty when the factory only provides the basic class info. The
+	// host uses it to recognize upmixer-type plugins whose input bus must
+	// stay stereo while the output bus spans the device.
+	const std::string& getVST3SubCategories() const;
 
 protected:
 	bool loadFunctions() override;
@@ -85,4 +90,5 @@ private:
 	vst3ModuleEntryFunc ExitDll = nullptr;
 	bool vst3ModuleInitialized = false;
 	Steinberg::PClassInfo vst3ClassInfo;
+	std::string vst3SubCategories;
 };

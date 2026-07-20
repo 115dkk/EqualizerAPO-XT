@@ -81,7 +81,7 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 
 			if (create)
 			{
-				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap);
+				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, cmd.stereoInput);
 			}
 		}
 	}

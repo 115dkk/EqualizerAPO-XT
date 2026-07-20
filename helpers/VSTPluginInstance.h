@@ -63,6 +63,11 @@ public:
 	// instance can process the whole device width. numInputs()/numOutputs()
 	// reflect the negotiated result either way.
 	bool negotiateChannelCount(int channelCount);
+	// Proposes different input and output widths - a stereo input bus feeding
+	// a full-width output bus, the DAW-style layout upmixer plugins key their
+	// engine on. Returns true only when the plugin accepts both widths
+	// exactly; on rejection the plugin's own preferred layout is re-applied.
+	bool negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount);
 	bool canReplacing() const;
 	int uniqueID() const;
 	std::wstring getName() const;
@@ -122,6 +127,7 @@ private:
 	bool initializeVST3();
 	void releaseVST3();
 	void configureVST3Buses(int requestedChannelCount);
+	void configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount);
 	void applyVST3BusActivation();
 	int speakerArrangementCandidatesForChannelCount(int count, Steinberg::Vst::SpeakerArrangement* candidates) const;
 	int vst3BusChannelCount(Steinberg::Vst::BusDirection direction) const;

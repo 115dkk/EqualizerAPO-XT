@@ -353,10 +353,11 @@ void runVst3HostTests()
 		"VST3 module ExitDll runs before the successful library unloads");
 
 	// Multichannel bus negotiation. The companion module in "Upmixer.vst3"
-	// mode reproduces the OpenSpatial Upmixer contract: it wants one 7.1 bus
-	// pair (L/R carrying the source, the plugin fills the other channels) but
-	// also accepts plain stereo, so a host that only proposes stereo silently
-	// degrades it into several blind stereo instances - the "only the front
+	// mode reproduces the OpenSpatial Upmixer contract measured in PR #213:
+	// it accepts stereo, symmetric 7.1, and a stereo input bus feeding a 7.1
+	// output bus, but its upmix engine only runs on that last, DAW-style
+	// asymmetric layout. On a symmetric 7.1 layout it passes the front pair
+	// through and leaves the other six channels silent - the "only the front
 	// speakers play" failure reported by users.
 	const wstring upmixerBundle = prepareBundle(directory, L"UpmixerBundle.vst3", L"TestVst3Upmixer.vst3");
 	shared_ptr<VSTPluginLibrary> upmixerLibrary = VSTPluginLibrary::getInstance(upmixerBundle);
@@ -375,17 +376,20 @@ void runVst3HostTests()
 		harness.expectTrue(upmixerProbe.negotiateChannelCount(8), "upmixer negotiates up to a 7.1 bus");
 		harness.expectEqual(upmixerProbe.numInputs(), 8, "negotiated upmixer input bus spans 8 channels");
 		harness.expectEqual(upmixerProbe.numOutputs(), 8, "negotiated upmixer output bus spans 8 channels");
+		harness.expectTrue(upmixerProbe.negotiateBusChannelCounts(2, 8),
+			"upmixer accepts the stereo-input/7.1-output layout");
+		harness.expectEqual(upmixerProbe.numInputs(), 2, "asymmetric layout keeps the input bus stereo");
+		harness.expectEqual(upmixerProbe.numOutputs(), 8, "asymmetric layout keeps the output bus at 8 channels");
 	}
 
-	const int upmixerInstancesBefore = upmixerComponentCount != nullptr ? upmixerComponentCount() : -1;
+	const auto runUpmixerFilter = [&upmixerLibrary](bool stereoInput, double left, double right, double (&outputData)[8][4])
 	{
-		VSTPluginFilter upmixerFilter(upmixerLibrary, wstring(), std::unordered_map<wstring, float>());
+		VSTPluginFilter upmixerFilter(upmixerLibrary, wstring(), std::unordered_map<wstring, float>(), stereoInput);
 		std::vector<wstring> surroundChannels = {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"};
 		upmixerFilter.initialize(48000.0f, 4, surroundChannels);
 
 		constexpr unsigned frameCount = 4;
 		double inputData[8][frameCount] = {};
-		double outputData[8][frameCount] = {};
 		double* inputs[8];
 		double* outputs[8];
 		for (int channel = 0; channel < 8; ++channel)
@@ -393,29 +397,54 @@ void runVst3HostTests()
 			inputs[channel] = inputData[channel];
 			outputs[channel] = outputData[channel];
 		}
-		const double left = 0.5;
-		const double right = 0.25;
 		for (unsigned sample = 0; sample < frameCount; ++sample)
 		{
 			inputData[0][sample] = left;
 			inputData[1][sample] = right;
 		}
 		upmixerFilter.process(outputs, inputs, frameCount);
+	};
 
+	const double left = 0.5;
+	const double right = 0.25;
+
+	const int upmixerInstancesBefore = upmixerComponentCount != nullptr ? upmixerComponentCount() : -1;
+	{
+		// Without StereoInput the host keeps symmetric buses: a single
+		// full-width instance, front pair passed through, engine off. This
+		// documents the measured real-plugin behavior rather than a host
+		// defect - the layout choice must stay an explicit opt-in.
+		double outputData[8][4] = {};
+		runUpmixerFilter(false, left, right, outputData);
 		harness.expectTrue(closeEnough(outputData[0][0], left) && closeEnough(outputData[1][0], right),
-			"upmixed front channels keep the stereo source");
-		harness.expectTrue(closeEnough(outputData[2][0], left + right),
-			"center channel receives the upmix result");
-		harness.expectTrue(closeEnough(outputData[3][0], 0.125 * (left + right)),
-			"LFE channel receives the upmix result");
-		harness.expectTrue(closeEnough(outputData[4][0], 0.25 * left) && closeEnough(outputData[5][0], 0.25 * right),
-			"rear channels receive the upmix result");
-		harness.expectTrue(closeEnough(outputData[6][0], 0.5 * left) && closeEnough(outputData[7][0], 0.5 * right),
-			"side channels receive the upmix result");
+			"symmetric 7.1 layout passes the front pair through");
+		harness.expectTrue(closeEnough(outputData[2][0], 0.0) && closeEnough(outputData[4][0], 0.0),
+			"symmetric 7.1 layout leaves the upmix engine disengaged");
 	}
 	if (upmixerComponentCount != nullptr)
 		harness.expectEqual(upmixerComponentCount() - upmixerInstancesBefore, 1,
 			"a 7.1 device is served by exactly one full-width upmixer instance");
+
+	const int stereoInputInstancesBefore = upmixerComponentCount != nullptr ? upmixerComponentCount() : -1;
+	{
+		// "StereoInput 1" negotiates the stereo input bus with the full-width
+		// output bus, which is what engages the upmix engine.
+		double outputData[8][4] = {};
+		runUpmixerFilter(true, left, right, outputData);
+		harness.expectTrue(closeEnough(outputData[0][0], left) && closeEnough(outputData[1][0], right),
+			"StereoInput keeps the stereo source on the front channels");
+		harness.expectTrue(closeEnough(outputData[2][0], left + right),
+			"StereoInput drives the center channel");
+		harness.expectTrue(closeEnough(outputData[3][0], 0.125 * (left + right)),
+			"StereoInput drives the LFE channel");
+		harness.expectTrue(closeEnough(outputData[4][0], 0.25 * left) && closeEnough(outputData[5][0], 0.25 * right),
+			"StereoInput drives the rear channels");
+		harness.expectTrue(closeEnough(outputData[6][0], 0.5 * left) && closeEnough(outputData[7][0], 0.5 * right),
+			"StereoInput drives the side channels");
+	}
+	if (upmixerComponentCount != nullptr)
+		harness.expectEqual(upmixerComponentCount() - stereoInputInstancesBefore, 1,
+			"StereoInput still uses exactly one plugin instance");
 
 	{
 		// Stereo devices must keep working through the same plugin: the

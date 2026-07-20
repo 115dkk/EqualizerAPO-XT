@@ -66,6 +66,10 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 		{
 			cmd.chunkData = value;
 		}
+		else if (key == L"StereoInput")
+		{
+			cmd.stereoInput = value == L"1" || value == L"true";
+		}
 		else
 		{
 			if (!isdigit(value.c_str()[0]))
@@ -97,6 +101,9 @@ std::wstring VSTPluginCommand::serialize() const
 	// lossless. The returned string carries a leading space so store() can
 	// append it directly.
 	wstring result;
+
+	if (stereoInput)
+		result += L" StereoInput 1";
 
 	if (chunkData != L"")
 	{
