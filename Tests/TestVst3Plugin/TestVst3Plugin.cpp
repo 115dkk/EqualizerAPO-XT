@@ -623,7 +623,7 @@ public:
 		std::memset(&info, 0, sizeof(info));
 		info.mediaType = kAudio;
 		info.direction = direction;
-		info.channelCount = SpeakerArr::getChannelCount(arrangement);
+		info.channelCount = SpeakerArr::getChannelCount(direction == kInput ? inputArrangement : outputArrangement);
 		info.busType = kMain;
 		info.flags = BusInfo::kDefaultActive;
 		copyString128(info.name, direction == kInput ? L"Upmix In" : L"Upmix Out");
@@ -645,18 +645,29 @@ public:
 	tresult PLUGIN_API setBusArrangements(SpeakerArrangement* inputs, int32 numIns,
 		SpeakerArrangement* outputs, int32 numOuts) override
 	{
-		if (numIns != 1 || numOuts != 1 || inputs == nullptr || outputs == nullptr || inputs[0] != outputs[0])
+		if (numIns != 1 || numOuts != 1 || inputs == nullptr || outputs == nullptr)
 			return kResultFalse;
-		if (inputs[0] != SpeakerArr::kStereo && inputs[0] != SpeakerArr::k71Music && inputs[0] != SpeakerArr::k71Cine)
+		const auto isSurround = [](SpeakerArrangement a)
+		{
+			return a == SpeakerArr::k71Music || a == SpeakerArr::k71Cine;
+		};
+		// Accepted layouts mirror the real plugin: symmetric stereo, symmetric
+		// 7.1 (accepted but the engine stays off there), and the DAW-style
+		// stereo input bus feeding a 7.1 output bus.
+		const bool symmetric = inputs[0] == outputs[0]
+			&& (inputs[0] == SpeakerArr::kStereo || isSurround(inputs[0]));
+		const bool stereoIntoSurround = inputs[0] == SpeakerArr::kStereo && isSurround(outputs[0]);
+		if (!symmetric && !stereoIntoSurround)
 			return kResultFalse;
-		arrangement = inputs[0];
+		inputArrangement = inputs[0];
+		outputArrangement = outputs[0];
 		return kResultOk;
 	}
-	tresult PLUGIN_API getBusArrangement(BusDirection, int32 index, SpeakerArrangement& current) override
+	tresult PLUGIN_API getBusArrangement(BusDirection direction, int32 index, SpeakerArrangement& current) override
 	{
 		if (index != 0)
 			return kInvalidArgument;
-		current = arrangement;
+		current = direction == kInput ? inputArrangement : outputArrangement;
 		return kResultOk;
 	}
 	tresult PLUGIN_API canProcessSampleSize(int32 size) override
@@ -676,12 +687,19 @@ public:
 			return kResultOk;
 		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
 			return kResultFalse;
-		const int32 channels = SpeakerArr::getChannelCount(arrangement);
-		// The host must hand over the full negotiated bus width; anything
+		const int32 inputChannels = SpeakerArr::getChannelCount(inputArrangement);
+		const int32 outputChannels = SpeakerArr::getChannelCount(outputArrangement);
+		// The host must hand over the full negotiated bus widths; anything
 		// narrower means it broke the arrangement contract.
 		if (data.numInputs != 1 || data.numOutputs != 1 || data.inputs == nullptr || data.outputs == nullptr
-			|| data.inputs[0].numChannels != channels || data.outputs[0].numChannels != channels)
+			|| data.inputs[0].numChannels != inputChannels || data.outputs[0].numChannels != outputChannels)
 			return kResultFalse;
+		// Like the real plugin, the upmix engine runs only on the DAW-style
+		// layout (stereo input bus, multichannel output bus). On a symmetric
+		// multichannel layout the plugin accepts the buses but passes the
+		// front pair through and leaves every other channel silent - the
+		// exact behavior the probe measured on the OpenSpatial Upmixer.
+		const bool engineEngaged = inputChannels == 2 && outputChannels == 8;
 		for (int32 sample = 0; sample < data.numSamples; ++sample)
 		{
 			const double left = data.symbolicSampleSize == kSample64
@@ -689,7 +707,7 @@ public:
 			const double right = data.symbolicSampleSize == kSample64
 				? data.inputs[0].channelBuffers64[1][sample] : data.inputs[0].channelBuffers32[1][sample];
 			double values[8] = {left, right, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-			if (channels == 8)
+			if (engineEngaged)
 			{
 				// Distinct per-channel markers so the host test can verify
 				// both that every channel is produced and that it lands on
@@ -701,7 +719,7 @@ public:
 				values[6] = 0.5 * left;
 				values[7] = 0.5 * right;
 			}
-			for (int32 channel = 0; channel < channels; ++channel)
+			for (int32 channel = 0; channel < outputChannels; ++channel)
 			{
 				if (data.symbolicSampleSize == kSample64)
 					data.outputs[0].channelBuffers64[channel][sample] = values[channel];
@@ -720,7 +738,8 @@ private:
 	std::atomic<bool> active{false};
 	std::atomic<bool> processing{false};
 	ProcessSetup setup{};
-	SpeakerArrangement arrangement = SpeakerArr::k71Music;
+	SpeakerArrangement inputArrangement = SpeakerArr::k71Music;
+	SpeakerArrangement outputArrangement = SpeakerArr::k71Music;
 };
 
 class TestController final : public IEditController, private RefCounted

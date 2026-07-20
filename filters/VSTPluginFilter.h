@@ -29,7 +29,8 @@
 class VSTPluginFilter : public IFilter
 {
 public:
-	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap);
+	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap,
+		bool stereoInput = false);
 	~VSTPluginFilter();
 
 	bool getInPlace() override {return false;}
@@ -71,5 +72,6 @@ private:
 
 	bool skipProcessing = false;
 	bool reportCrash = true;
+	bool forceStereoInput = false;
 };
 #pragma AVRT_VTABLES_END

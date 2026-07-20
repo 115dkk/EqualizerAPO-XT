@@ -204,29 +204,40 @@ void VSTPluginInstance::releaseVST3()
 
 void VSTPluginInstance::configureVST3Buses(int requestedChannelCount)
 {
+	configureVST3Buses(requestedChannelCount, requestedChannelCount);
+}
+
+void VSTPluginInstance::configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount)
+{
 	if (vst3Component == NULL || vst3Processor == NULL)
 		return;
 
-	const int channelCount = max(1, requestedChannelCount);
+	const int inputChannelCount = max(1, requestedInputChannelCount);
+	const int outputChannelCount = max(1, requestedOutputChannelCount);
 
 	applyVST3BusActivation();
 
-	// Propose arrangements matching the requested width and verify each attempt:
-	// the return value alone is not enough because the bus info the component
-	// reports afterwards is what the process() buffers must match.
+	// Propose arrangements matching the requested widths and verify each
+	// attempt: the return value alone is not enough because the bus info the
+	// component reports afterwards is what the process() buffers must match.
 	bool accepted = false;
-	SpeakerArrangement candidates[vst3MaxArrangementCandidates];
-	const int candidateCount = speakerArrangementCandidatesForChannelCount(channelCount, candidates);
-	for (int i = 0; i < candidateCount && !accepted; i++)
+	SpeakerArrangement inputCandidates[vst3MaxArrangementCandidates];
+	SpeakerArrangement outputCandidates[vst3MaxArrangementCandidates];
+	const int inputCandidateCount = speakerArrangementCandidatesForChannelCount(inputChannelCount, inputCandidates);
+	const int outputCandidateCount = speakerArrangementCandidatesForChannelCount(outputChannelCount, outputCandidates);
+	for (int i = 0; i < inputCandidateCount && !accepted; i++)
 	{
-		SpeakerArrangement inputArrangement = candidates[i];
-		SpeakerArrangement outputArrangement = candidates[i];
-		const tresult result = vst3Processor->setBusArrangements(
-			vst3InputBusCount > 0 ? &inputArrangement : NULL, vst3InputBusCount > 0 ? 1 : 0,
-			vst3OutputBusCount > 0 ? &outputArrangement : NULL, vst3OutputBusCount > 0 ? 1 : 0);
-		accepted = result == kResultTrue
-			&& (vst3InputBusCount == 0 || vst3BusChannelCount(kInput) == channelCount)
-			&& (vst3OutputBusCount == 0 || vst3BusChannelCount(kOutput) == channelCount);
+		for (int j = 0; j < outputCandidateCount && !accepted; j++)
+		{
+			SpeakerArrangement inputArrangement = inputCandidates[i];
+			SpeakerArrangement outputArrangement = outputCandidates[j];
+			const tresult result = vst3Processor->setBusArrangements(
+				vst3InputBusCount > 0 ? &inputArrangement : NULL, vst3InputBusCount > 0 ? 1 : 0,
+				vst3OutputBusCount > 0 ? &outputArrangement : NULL, vst3OutputBusCount > 0 ? 1 : 0);
+			accepted = result == kResultTrue
+				&& (vst3InputBusCount == 0 || vst3BusChannelCount(kInput) == inputChannelCount)
+				&& (vst3OutputBusCount == 0 || vst3BusChannelCount(kOutput) == outputChannelCount);
+		}
 	}
 
 	if (!accepted)
@@ -282,6 +293,17 @@ bool VSTPluginInstance::negotiateChannelCount(int channelCount)
 
 	configureVST3Buses(channelCount);
 	return max(vst3InputChannelCount, vst3OutputChannelCount) >= channelCount;
+}
+
+bool VSTPluginInstance::negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount)
+{
+	if (!library->isVST3())
+		return numInputs() >= inputChannelCount && numOutputs() >= outputChannelCount;
+	if (vst3Component == NULL || vst3Processor == NULL)
+		return false;
+
+	configureVST3Buses(inputChannelCount, outputChannelCount);
+	return vst3InputChannelCount == inputChannelCount && vst3OutputChannelCount == outputChannelCount;
 }
 
 int VSTPluginInstance::speakerArrangementCandidatesForChannelCount(int count, SpeakerArrangement* candidates) const

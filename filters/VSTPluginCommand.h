@@ -39,6 +39,11 @@ struct VSTPluginCommand
 	std::wstring libraryPath;
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
+	// "StereoInput 1": negotiate a stereo input bus with the full-width output
+	// bus. Upmixer plugins (OpenSpatial Upmixer and similar) key their engine
+	// on that DAW-style layout but often declare only a generic "Fx" VST3
+	// subcategory, so the host cannot recognize them automatically.
+	bool stereoInput = false;
 
 	// Qt-free parser for a "VSTPlugin:" parameter string: splitQuoted on spaces
 	// into key/value pairs, "Library" resolved through the

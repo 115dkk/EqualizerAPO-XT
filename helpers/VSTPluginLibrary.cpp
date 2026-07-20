@@ -189,6 +189,11 @@ const Steinberg::PClassInfo& VSTPluginLibrary::getVST3ClassInfo() const
 	return vst3ClassInfo;
 }
 
+const std::string& VSTPluginLibrary::getVST3SubCategories() const
+{
+	return vst3SubCategories;
+}
+
 bool VSTPluginLibrary::loadFunctions()
 {
 	if (vst3)
@@ -245,6 +250,17 @@ int VSTPluginLibrary::customInitialize()
 			&& strcmp(info.category, kVstAudioEffectClass) == 0)
 		{
 			vst3ClassInfo = info;
+			vst3SubCategories.clear();
+			Steinberg::TUID factory2Iid;
+			Steinberg::IPluginFactory2::iid.toTUID(factory2Iid);
+			Steinberg::IPluginFactory2* rawFactory2 = nullptr;
+			if (factory->queryInterface(factory2Iid, (void**)&rawFactory2) == Steinberg::kResultOk && rawFactory2 != nullptr)
+			{
+				auto factory2 = Steinberg::IPtr<Steinberg::IPluginFactory2>::adopt(rawFactory2);
+				Steinberg::PClassInfo2 info2;
+				if (factory2->getClassInfo2(i, &info2) == Steinberg::kResultOk)
+					vst3SubCategories = info2.subCategories;
+			}
 			return 0;
 		}
 	}
