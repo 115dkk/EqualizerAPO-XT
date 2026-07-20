@@ -41,6 +41,7 @@ public:
 	std::shared_ptr<VSTPluginLibrary> getLibrary() const;
 	const std::wstring& getChunkData() const;
 	const std::unordered_map<std::wstring, float>& getParamMap() const;
+	bool getStereoInput() const;
 
 private:
 	void cleanup();

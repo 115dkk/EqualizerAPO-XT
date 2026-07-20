@@ -2910,6 +2910,14 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>VSTCardEditor</name>
     <message>
+        <source>Stereo input</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use for upmixers that expand a stereo signal to multichannel.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>VST plugin (.dll, .vst3)</source>
         <translation type="vanished">Plugin VST (.dll, .vst3)</translation>
     </message>
@@ -3006,6 +3014,14 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
 </context>
 <context>
     <name>VSTPluginFilterGUI</name>
+    <message>
+        <source>Stereo input</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use for upmixers that expand a stereo signal to multichannel.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
         <source>Open panel</source>

@@ -74,7 +74,9 @@ int runVstRoundTripSelfTest()
 	const Case cases[] = {
 		{ L"chunkData", L"Library \"fake plugin.dll\" ChunkData \"QUJDREVGR0g=\"" },
 		{ L"paramMap", L"Library fake.dll Gain 0.5 Mix 0.25 Width 1" },
-		{ L"paramMap-quoted-name", L"Library fake.dll \"Dry/Wet\" 0.75 Output 0.5" }
+		{ L"paramMap-quoted-name", L"Library fake.dll \"Dry/Wet\" 0.75 Output 0.5" },
+		{ L"stereoInput-chunk", L"Library fake.dll StereoInput 1 ChunkData \"QUJDREVGR0g=\"" },
+		{ L"stereoInput-params", L"Library fake.dll StereoInput 1 Gain 0.5" }
 	};
 
 	int failures = 0;
@@ -93,8 +95,9 @@ int runVstRoundTripSelfTest()
 		VSTPluginFilter* f0 = static_cast<VSTPluginFilter*>(filters[0].get());
 		std::wstring chunk0 = f0->getChunkData();
 		std::unordered_map<std::wstring, float> map0 = f0->getParamMap();
+		const bool stereo0 = f0->getStereoInput();
 
-		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0);
+		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0, stereo0);
 		QString outCommand, outParams;
 		gui.store(outCommand, outParams);
 
@@ -110,12 +113,13 @@ int runVstRoundTripSelfTest()
 		VSTPluginFilter* f1 = static_cast<VSTPluginFilter*>(filters2[0].get());
 		std::wstring chunk1 = f1->getChunkData();
 		std::unordered_map<std::wstring, float> map1 = f1->getParamMap();
-		bool ok = (chunk0 == chunk1) && (map0 == map1);
+		const bool stereo1 = f1->getStereoInput();
+		bool ok = (chunk0 == chunk1) && (map0 == map1) && (stereo0 == stereo1);
 		if (!ok)
 		{
 			failures++;
-			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu\n",
-				c.name, chunk0.c_str(), chunk1.c_str(), map0.size(), map1.size());
+			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu, stereoInput %d->%d\n",
+				c.name, chunk0.c_str(), chunk1.c_str(), map0.size(), map1.size(), stereo0 ? 1 : 0, stereo1 ? 1 : 0);
 			for (auto& kv : map0)
 			{
 				auto it = map1.find(kv.first);

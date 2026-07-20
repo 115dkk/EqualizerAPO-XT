@@ -169,6 +169,26 @@ void testSerializeRoundTrip()
 	VSTPluginCommand builtReparsed = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll" + builtBody);
 	harness.expectEqual(paramValue(builtReparsed.paramMap, L"Feedback", "hand-built Feedback"), 0.6f, "hand-built round trip");
 }
+void testStereoInput()
+{
+	// "StereoInput 1" is a reserved key, not a plugin parameter: it sets the
+	// flag, stays out of the param map, and serializes back as the leading
+	// body token so the option survives an Editor load/save cycle. Any value
+	// other than 1/true reads as off, and an off flag is not emitted at all
+	// (the config line stays byte-identical for everyone not using it).
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\upmix.vst3 StereoInput 1 ChunkData \"QUJDRA==\"");
+	harness.expectTrue(cmd.stereoInput, "stereo-input: flag set");
+	harness.expectTrue(cmd.chunkData == L"QUJDRA==", "stereo-input: chunk preserved");
+	harness.expectEqual(cmd.paramMap.size(), (size_t)0, "stereo-input: not a plugin parameter");
+	expectBodyRoundTrip(L"Library C:\\plugins\\upmix.vst3 StereoInput 1 ChunkData \"QUJDRA==\"",
+		L" StereoInput 1 ChunkData \"QUJDRA==\"");
+	expectBodyRoundTrip(L"Library C:\\plugins\\upmix.vst3 StereoInput 1 Gain 0.5",
+		L" StereoInput 1 Gain 0.5");
+
+	VSTPluginCommand off = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\upmix.vst3 StereoInput 0 Gain 0.5");
+	harness.expectFalse(off.stereoInput, "stereo-input: 0 reads as off");
+	harness.expectTrue(off.serialize() == L" Gain 0.5", "stereo-input: off flag is not emitted");
+}
 }
 
 void runVSTPluginCommandTests()
@@ -181,5 +201,6 @@ void runVSTPluginCommandTests()
 	testIdParams();
 	testNonNumericValueBranch();
 	testSerializeRoundTrip();
+	testStereoInput();
 	harness.report();
 }

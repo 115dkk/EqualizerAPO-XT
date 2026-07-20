@@ -3134,6 +3134,14 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>VSTCardEditor</name>
     <message>
+        <source>Stereo input</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use for upmixers that expand a stereo signal to multichannel.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>VST plugin (.dll, .vst3)</source>
         <translation type="vanished">VST-Plugin (.dll, .vst3)</translation>
     </message>
@@ -3230,6 +3238,14 @@ Change the file permissions or copy the files to the config directory.</source>
 </context>
 <context>
     <name>VSTPluginFilterGUI</name>
+    <message>
+        <source>Stereo input</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use for upmixers that expand a stereo signal to multichannel.</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="57"/>
         <source>VST plugin</source>
