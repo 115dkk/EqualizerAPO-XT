@@ -522,7 +522,7 @@ try {
             -Body (New-RewSettingBody $currentSignalSetting $signal 'generator signal') | Out-Null
     }
     Invoke-RewApi -Path '/generator/level' -Method Post `
-        -Body @{ level = -18.0; unit = 'dBFS' } | Out-Null
+        -Body @{ value = -18.0; unit = 'dBFS' } | Out-Null
 
     $commands = Invoke-RewApi -Path '/generator/commands'
     $play = Select-Choice $commands '^(Start|Play)' 'generator start command'
