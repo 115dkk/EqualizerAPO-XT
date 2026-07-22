@@ -56,16 +56,6 @@ namespace
 		return EqualizerAPO::ApoSampleFormat::Unsupported;
 	}
 
-	size_t bytesPerSample(EqualizerAPO::ApoSampleFormat fmt)
-	{
-		switch (fmt)
-		{
-		case EqualizerAPO::ApoSampleFormat::Float32: return sizeof(float);
-		case EqualizerAPO::ApoSampleFormat::Float64: return sizeof(double);
-		default: return 0;
-		}
-	}
-
 	// Shared block processing parameterized on the connection sample type. The
 	// FilterEngine has overloads for both float* and double* so the same body
 	// works for either path. APO_FLAG_BITSPERSAMPLE_MUST_MATCH guarantees the
@@ -453,10 +443,29 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 
 	inputSampleFormat = detectSampleFormat(inFormat);
 	outputSampleFormat = detectSampleFormat(outFormat);
-	bufferPassthroughPlan = {};
-	bufferPassthroughPlan.inputBytesPerFrame = bytesPerSample(inputSampleFormat) * inFormat.dwSamplesPerFrame;
-	bufferPassthroughPlan.outputBytesPerFrame = bytesPerSample(outputSampleFormat) * outFormat.dwSamplesPerFrame;
+	const size_t passthroughMaxFrameCount = maxInputFrameCount != 0
+		? maxInputFrameCount : maxOutputFrameCount;
+	const ApoBufferLayout inputLayout = {
+		inFormat.dwSamplesPerFrame,
+		inFormat.dwBytesPerSampleContainer,
+		inFormat.dwValidBitsPerSample,
+		inFormat.fFramesPerSecond,
+		inFormat.dwChannelMask
+	};
+	const ApoBufferLayout outputLayout = {
+		outFormat.dwSamplesPerFrame,
+		outFormat.dwBytesPerSampleContainer,
+		outFormat.dwValidBitsPerSample,
+		outFormat.fFramesPerSecond,
+		outFormat.dwChannelMask
+	};
+	bufferPassthroughPlan = makeApoBufferPassthroughPlan(inputLayout, outputLayout,
+		IsEqualGUID(inFormat.guidFormatType, outFormat.guidFormatType),
+		passthroughMaxFrameCount);
 	TraceF(L"Resolved APO sample formats: in=%d, out=%d", static_cast<int>(inputSampleFormat), static_cast<int>(outputSampleFormat));
+	TraceF(L"Opaque APO passthrough: input bytes/frame=%zu, output bytes/frame=%zu, distinct buffers compatible=%d",
+		bufferPassthroughPlan.inputBytesPerFrame, bufferPassthroughPlan.outputBytesPerFrame,
+		bufferPassthroughPlan.distinctBuffersAreCompatible ? 1 : 0);
 
 	// Loud warning so the user can see in TraceLog.txt why a device sounds dry:
 	// when the format is something we cannot natively process the engine is
@@ -628,15 +637,16 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 		// Silent input fast path. When the active configuration has no stateful or
 		// tail-bearing filter, the host does not require us to surface newly-audible
 		// output (allowSilentBufferModification == false), and no child APO could
-		// synthesize audio, the engine can be skipped entirely. Works for any
-		// connection sample format since we only need to zero the output buffer.
+		// synthesize audio, the engine can be skipped entirely. The exact output
+		// frame size was validated while locking, including opaque PCM formats.
 		if (isSilentInput && !allowSilentBufferModification && !childRT && !engine.hasStatefulOrTailFilters())
 		{
-			const size_t outBytes = bytesPerSample(outputSampleFormat);
-			if (outBytes > 0)
+			size_t outputByteCount = 0;
+			if (checkedApoBufferSize(frameCount,
+				bufferPassthroughPlan.outputBytesPerFrame, outputByteCount))
 			{
 				memset(reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer), 0,
-					static_cast<size_t>(frameCount) * outputChannelCount * outBytes);
+					outputByteCount);
 				ppOutputConnections[0]->u32ValidFrameCount = frameCount;
 				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
 				break;
@@ -676,21 +686,10 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 		}
 		else
 		{
-			// Unsupported or mismatched connection format: do NOT process, but
-			// still let audio reach the device. The APO is registered with
-			// APO_FLAG_INPLACE, so a conformant host hands us the same buffer
-			// for input and output — the samples already sit at outBuf untouched
-			// and we just have to mark the buffer valid. Emitting BUFFER_SILENT
-			// here instead makes the device go mute the moment the APO is
-			// installed.
-			//
-			// If a host does call us with distinct in/out buffers we cannot
-			// safely copy the bytes through because we do not know the exact
-			// input container size when the format is unsupported, and copying
-			// the wrong number of bytes would either truncate the signal or
-			// read past the input buffer. In that rare case we fall back to
-			// silence — it is still better than emitting random memory, and
-			// such a host is non-compliant given APO_FLAG_INPLACE anyway.
+			// Unsupported or mismatched connection format: bypass the DSP without
+			// reinterpreting integer samples as float. LockForProcess recorded the
+			// exact byte layouts, so identical opaque formats can also pass through
+			// distinct host buffers. A real mismatch remains safely silent.
 			const void* inBuf = reinterpret_cast<const void*>(ppInputConnections[0]->pBuffer);
 			void* outBuf = reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer);
 			ppOutputConnections[0]->u32ValidFrameCount = frameCount;
