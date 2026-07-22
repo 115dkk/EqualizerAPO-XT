@@ -489,7 +489,12 @@ try {
 
     $outputs = Invoke-RewApi -Path '/audio/java/outputs'
     if (@($outputs).Count -gt 0) {
-        $output = Get-ChoiceText (@($outputs)[0])
+        $namedOutputs = @($outputs | Where-Object { (Get-ChoiceText $_) -notmatch '^Default' })
+        $output = if ($namedOutputs.Count -gt 0) {
+            Get-ChoiceText $namedOutputs[0]
+        } else {
+            Get-ChoiceText (@($outputs)[0])
+        }
         $currentOutputSetting = Invoke-RewApi -Path '/audio/java/output'
         $currentOutput = Get-ChoiceText $currentOutputSetting
         if ($currentOutput -ne $output) {
@@ -513,7 +518,7 @@ try {
     $currentSignalSetting = Invoke-RewApi -Path '/generator/signal'
     $currentSignal = Get-ChoiceText $currentSignalSetting
     if ($currentSignal -ne $signal) {
-        Invoke-RewApi -Path '/generator/signal' -Method Put `
+        Invoke-RewApi -Path '/generator/signal' -Method Post `
             -Body (New-RewSettingBody $currentSignalSetting $signal 'generator signal') | Out-Null
     }
     Invoke-RewApi -Path '/generator/level' -Method Post `
