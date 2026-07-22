@@ -10,6 +10,7 @@
     <ClCompile Include="..\stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApoBufferPassthrough.h" />
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="EqualizerAPO.h" />
     <ClInclude Include="resource.h" />

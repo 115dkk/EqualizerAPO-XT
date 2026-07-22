@@ -596,6 +596,7 @@ void testConfigLoadTrace(test::Harness& harness)
 // Defined in SampleIoTests.cpp next to this file.
 void runSampleIoTests(test::Harness& harness);
 void runConfigurationFileReaderTests(test::Harness& harness);
+void runApoBufferPassthroughTests(test::Harness& harness);
 
 int runEngineOrchestrationTests()
 {
@@ -607,6 +608,7 @@ int runEngineOrchestrationTests()
 	testParallelExecutor(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
+	runApoBufferPassthroughTests(harness);
 	testChannelSelectorRouting(harness);
 	testCopySwapsChannels(harness);
 	testMultiConvolutionIgnoresChannelSelection(harness);

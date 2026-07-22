@@ -156,6 +156,7 @@ EqualizerAPO::EqualizerAPO(IUnknown* pUnkOuter)
 
 	inputSampleFormat = ApoSampleFormat::Unsupported;
 	outputSampleFormat = ApoSampleFormat::Unsupported;
+	bufferPassthroughPlan = {};
 
 	InterlockedIncrement(&instCount);
 }
@@ -452,6 +453,9 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 
 	inputSampleFormat = detectSampleFormat(inFormat);
 	outputSampleFormat = detectSampleFormat(outFormat);
+	bufferPassthroughPlan = {};
+	bufferPassthroughPlan.inputBytesPerFrame = bytesPerSample(inputSampleFormat) * inFormat.dwSamplesPerFrame;
+	bufferPassthroughPlan.outputBytesPerFrame = bytesPerSample(outputSampleFormat) * outFormat.dwSamplesPerFrame;
 	TraceF(L"Resolved APO sample formats: in=%d, out=%d", static_cast<int>(inputSampleFormat), static_cast<int>(outputSampleFormat));
 
 	// Loud warning so the user can see in TraceLog.txt why a device sounds dry:
@@ -690,20 +694,10 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 			const void* inBuf = reinterpret_cast<const void*>(ppInputConnections[0]->pBuffer);
 			void* outBuf = reinterpret_cast<void*>(ppOutputConnections[0]->pBuffer);
 			ppOutputConnections[0]->u32ValidFrameCount = frameCount;
-			if (inBuf == outBuf)
-			{
-				ppOutputConnections[0]->u32BufferFlags = isSilentInput ? BUFFER_SILENT : BUFFER_VALID;
-			}
-			else
-			{
-				const size_t outBytes = bytesPerSample(outputSampleFormat);
-				if (outBytes > 0)
-				{
-					memset(outBuf, 0,
-						static_cast<size_t>(frameCount) * outputChannelCount * outBytes);
-				}
-				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
-			}
+			const ApoBufferState state = passthroughApoFrames(inBuf, outBuf,
+				frameCount, isSilentInput, bufferPassthroughPlan);
+			ppOutputConnections[0]->u32BufferFlags = state == ApoBufferState::Valid
+				? BUFFER_VALID : BUFFER_SILENT;
 		}
 
 		break;

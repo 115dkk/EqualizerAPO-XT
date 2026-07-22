@@ -24,6 +24,7 @@
 #include <audioenginebaseapo.h>
 #include <BaseAudioProcessingObject.h>
 #include "../FilterEngine.h"
+#include "ApoBufferPassthrough.h"
 
 // Identifies the single, user-configurable processing effect that
 // EqualizerAPO represents. Reported through IAudioSystemEffects2::GetEffectsList
@@ -114,4 +115,5 @@ private:
 	// and to keep silent-fast-path math correct.
 	ApoSampleFormat inputSampleFormat;
 	ApoSampleFormat outputSampleFormat;
+	ApoBufferPassthroughPlan bufferPassthroughPlan;
 };
