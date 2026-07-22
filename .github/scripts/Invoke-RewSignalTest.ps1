@@ -82,7 +82,10 @@ function Get-ChoiceText {
     param($Choice)
 
     if ($Choice -is [string]) { return $Choice }
-    foreach ($property in @('name', 'label', 'value', 'id', 'command', 'driver')) {
+    foreach ($property in @(
+        'name', 'label', 'value', 'id', 'command', 'driver', 'outputDevice',
+        'output', 'outputChannel', 'signal'
+    )) {
         if ($null -ne $Choice.PSObject.Properties[$property]) {
             return [string]$Choice.$property
         }
@@ -463,30 +466,41 @@ try {
     } while ($screamOutputs.Count -eq 0 -and (Get-Date) -lt $deadline)
 
     $outputDevice = Select-Choice $outputDevices 'Scream' 'Java output device' -PreferShared
-    Invoke-RewApi -Path '/audio/java/output-device' -Method Post -Body $outputDevice | Out-Null
+    $currentOutputDevice = Get-ChoiceText (Invoke-RewApi -Path '/audio/java/output-device')
+    if ($currentOutputDevice -ne $outputDevice) {
+        Invoke-RewApi -Path '/audio/java/output-device' -Method Post `
+            -Body @{ outputDevice = $outputDevice } | Out-Null
+    }
     Start-Sleep -Seconds 2
 
     $outputs = Invoke-RewApi -Path '/audio/java/outputs'
     if (@($outputs).Count -gt 0) {
         $output = Get-ChoiceText (@($outputs)[0])
-        Invoke-RewApi -Path '/audio/java/output' -Method Post -Body $output | Out-Null
+        $currentOutput = Get-ChoiceText (Invoke-RewApi -Path '/audio/java/output')
+        if ($currentOutput -ne $output) {
+            Invoke-RewApi -Path '/audio/java/output' -Method Post `
+                -Body @{ output = $output } | Out-Null
+        }
     }
     $outputChannels = Invoke-RewApi -Path '/audio/java/output-channels'
     $stereo = @($outputChannels | Where-Object { (Get-ChoiceText $_) -match 'L\+R|Stereo' } | Select-Object -First 1)
     if ($stereo.Count -gt 0) {
-        Invoke-RewApi -Path '/audio/java/output-channel' -Method Post -Body (Get-ChoiceText $stereo[0]) | Out-Null
+        $outputChannel = Get-ChoiceText $stereo[0]
+        $currentOutputChannel = Get-ChoiceText (Invoke-RewApi -Path '/audio/java/output-channel')
+        if ($currentOutputChannel -ne $outputChannel) {
+            Invoke-RewApi -Path '/audio/java/output-channel' -Method Post `
+                -Body @{ outputChannel = $outputChannel } | Out-Null
+        }
     }
 
     $signal = Select-Choice (Invoke-RewApi -Path '/generator/signals') 'sweep' 'generator sweep signal'
-    Invoke-RewApi -Path '/generator/signal' -Method Put -Body $signal | Out-Null
-    $level = Invoke-RewApi -Path '/generator/level'
-    if ($level -is [double] -or $level -is [int] -or $level -is [string]) {
-        Invoke-RewApi -Path '/generator/level' -Method Post -Body '-18 dBFS' | Out-Null
+    $currentSignal = Get-ChoiceText (Invoke-RewApi -Path '/generator/signal')
+    if ($currentSignal -ne $signal) {
+        Invoke-RewApi -Path '/generator/signal' -Method Put `
+            -Body @{ signal = $signal } | Out-Null
     }
-    else {
-        $levelBody = @{ value = -18.0; unit = 'dBFS' }
-        Invoke-RewApi -Path '/generator/level' -Method Post -Body $levelBody | Out-Null
-    }
+    Invoke-RewApi -Path '/generator/level' -Method Post `
+        -Body @{ level = -18.0; unit = 'dBFS' } | Out-Null
 
     $commands = Invoke-RewApi -Path '/generator/commands'
     $play = Select-Choice $commands '^(Start|Play)' 'generator start command'
