@@ -64,9 +64,18 @@ function Invoke-RewApi {
         $parameters.ContentType = 'application/json'
         $parameters.Body = $Body | ConvertTo-Json -Depth 12 -Compress
     }
-    $response = Invoke-RestMethod @parameters
-    Write-ApiRecord -Method $Method -Path $Path -Body $Body -Response $response
-    return $response
+    try {
+        $response = Invoke-RestMethod @parameters
+        Write-ApiRecord -Method $Method -Path $Path -Body $Body -Response $response
+        return $response
+    }
+    catch {
+        Write-ApiRecord -Method $Method -Path $Path -Body $Body -Response @{
+            error = $_.Exception.Message
+            details = $_.ErrorDetails.Message
+        }
+        throw
+    }
 }
 
 function Get-ChoiceText {
@@ -436,7 +445,13 @@ try {
 
     Invoke-RewApi -Path '/application/logging' -Method Post -Body $true | Out-Null
     $driver = Select-Choice (Invoke-RewApi -Path '/audio/driver-types') '^Java$' 'audio driver'
-    Invoke-RewApi -Path '/audio/driver' -Method Post -Body $driver | Out-Null
+    $currentDriver = Get-ChoiceText (Invoke-RewApi -Path '/audio/driver')
+    if ($currentDriver -ne $driver) {
+        Invoke-RewApi -Path '/audio/driver' -Method Post -Body $driver | Out-Null
+    }
+    else {
+        Write-Host "REW already uses the $driver audio driver"
+    }
 
     $deadline = (Get-Date).AddSeconds(30)
     do {
