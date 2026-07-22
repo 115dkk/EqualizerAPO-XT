@@ -408,7 +408,9 @@ jobs:
 
           # A released installer is a valid tracer bullet only while no runtime
           # source differs. CI/test files, changelogs and version.h are harmless.
-          $runtimeChanges = @(git diff --name-only "$tag...HEAD" -- | Where-Object {
+          # Compare the two trees directly. actions/checkout is intentionally
+          # shallow, so a three-dot diff would require an unavailable merge base.
+          $runtimeChanges = @(git diff --name-only "$tag" HEAD -- | Where-Object {
               $_ -notlike '.github/*' -and
               $_ -notin @('CHANGELOG.md', 'CHANGELOG.ko.md', 'version.h')
           })
