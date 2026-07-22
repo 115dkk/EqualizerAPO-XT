@@ -98,15 +98,6 @@ on:
           - windows-2022
           - windows-2025
         default: windows-2022
-      apo_stage:
-        description: "REW mode only: system-effect registration stage"
-        required: false
-        type: choice
-        options:
-          - lfx-gfx
-          - sfx-mfx
-          - sfx-efx
-        default: lfx-gfx
 
 permissions:
   contents: read
@@ -745,7 +736,6 @@ jobs:
           $renderReg = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"
           $epPath = "$env:MMDEVICES_ROOT\Render\$env:SCREAM_GUID"
           $fxPath = "$epPath\FxProperties"
-          $fxProviderPath = "$renderReg\$env:SCREAM_GUID\FxProperties"
           $childGuidPath = "$env:CHILD_APO_ROOT\$env:SCREAM_GUID"
 
           # --- Take ownership + grant Administrators FullControl ----------------
@@ -820,76 +810,27 @@ jobs:
           reg add $childGuidPath /v "AllowSilentBufferModification" /t REG_SZ /d "false" /f | Out-Null
           reg add $childGuidPath /v "Version" /t REG_SZ /d "2" /f | Out-Null
 
-          $stage = "${{ inputs.apo_stage }}"
-          if ([string]::IsNullOrWhiteSpace($stage)) { $stage = 'lfx-gfx' }
-          $processingModes = @{
-              sfx = '{d3993a3f-99c2-4402-b5ec-a92a0367664b},5'
-              mfx = '{d3993a3f-99c2-4402-b5ec-a92a0367664b},6'
-              efx = '{d3993a3f-99c2-4402-b5ec-a92a0367664b},7'
-          }
-          $defaultMode = '{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}'
-          function Set-FxString([string]$name, [string]$value) {
-              New-ItemProperty -Path $fxProviderPath -Name $name -PropertyType String -Value $value -Force -ErrorAction Stop | Out-Null
-          }
-          function Set-FxMode([string]$name) {
-              New-ItemProperty -Path $fxProviderPath -Name $name -PropertyType MultiString -Value @($defaultMode) -Force -ErrorAction Stop | Out-Null
-          }
-          function Remove-FxValue([string]$name) {
-              Remove-ItemProperty -Path $fxProviderPath -Name $name -ErrorAction SilentlyContinue
-          }
-          switch ($stage) {
-              'lfx-gfx' {
-                  Set-FxString $env:FX_LFX $env:EQ_PREMIX_GUID
-                  Set-FxString $env:FX_GFX $env:EQ_POSTMIX_GUID
-                  foreach ($vn in @($env:FX_SFX, $env:FX_MFX, $env:FX_EFX)) {
-                      Remove-FxValue $vn
-                  }
-              }
-              'sfx-mfx' {
-                  foreach ($vn in @($env:FX_LFX, $env:FX_GFX)) { Remove-FxValue $vn }
-                  Set-FxString $env:FX_SFX $env:EQ_PREMIX_GUID
-                  Set-FxString $env:FX_MFX $env:EQ_POSTMIX_GUID
-                  Set-FxMode $processingModes.sfx
-                  Set-FxMode $processingModes.mfx
-              }
-              'sfx-efx' {
-                  foreach ($vn in @($env:FX_LFX, $env:FX_GFX)) { Remove-FxValue $vn }
-                  Set-FxString $env:FX_SFX $env:EQ_PREMIX_GUID
-                  Set-FxString $env:FX_EFX $env:EQ_POSTMIX_GUID
-                  Set-FxMode $processingModes.sfx
-                  Set-FxMode $processingModes.efx
-              }
-              default { throw "Unknown APO stage: $stage" }
+          # INSTALL_LFX_GFX: EQ pre-mix into LFX (,1), EQ post-mix into GFX (,2),
+          # delete SFX/MFX/EFX (Install.cpp:144-156).
+          reg add $fxPath /v "$env:FX_LFX" /t REG_SZ /d "$env:EQ_PREMIX_GUID" /f | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error "reg add LFX failed ($LASTEXITCODE) - FxProperties not writable"; exit 1 }
+          reg add $fxPath /v "$env:FX_GFX" /t REG_SZ /d "$env:EQ_POSTMIX_GUID" /f | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error "reg add GFX failed ($LASTEXITCODE) - FxProperties not writable"; exit 1 }
+          foreach ($vn in @($env:FX_SFX, $env:FX_MFX, $env:FX_EFX)) {
+              reg delete $fxPath /v "$vn" /f 2>$null | Out-Null
           }
 
           # Read the EQ GUIDs back to PROVE the write landed (the previous run
           # printed "Applied" unconditionally while every write was access-denied).
           function Test-FxPointsAtEq {
-              $p = $fxProviderPath
+              $p = "$renderReg\$env:SCREAM_GUID\FxProperties"
               if (-not (Test-Path $p)) { return $false }
-              $expected = @{}
-              switch ($stage) {
-                  'lfx-gfx' {
-                      $expected[$env:FX_LFX] = $env:EQ_PREMIX_GUID
-                      $expected[$env:FX_GFX] = $env:EQ_POSTMIX_GUID
-                  }
-                  'sfx-mfx' {
-                      $expected[$env:FX_SFX] = $env:EQ_PREMIX_GUID
-                      $expected[$env:FX_MFX] = $env:EQ_POSTMIX_GUID
-                  }
-                  'sfx-efx' {
-                      $expected[$env:FX_SFX] = $env:EQ_PREMIX_GUID
-                      $expected[$env:FX_EFX] = $env:EQ_POSTMIX_GUID
-                  }
-              }
-              foreach ($pair in $expected.GetEnumerator()) {
-                  $actual = [string](Get-ItemProperty -Path $p -Name $pair.Key -ErrorAction SilentlyContinue)."$($pair.Key)"
-                  if ($actual -ne $pair.Value) { return $false }
-              }
-              return $true
+              $lfx = [string](Get-ItemProperty -Path $p -Name $env:FX_LFX -ErrorAction SilentlyContinue)."$($env:FX_LFX)"
+              $gfx = [string](Get-ItemProperty -Path $p -Name $env:FX_GFX -ErrorAction SilentlyContinue)."$($env:FX_GFX)"
+              return ($lfx -eq $env:EQ_PREMIX_GUID -and $gfx -eq $env:EQ_POSTMIX_GUID)
           }
           if (-not (Test-FxPointsAtEq)) { Write-Error "FxProperties does not point at the EQ APO after writing; setup failed"; exit 1 }
-          Write-Host "Verified: Scream FxProperties now points at the EQ APO ($stage written)"
+          Write-Host "Verified: Scream FxProperties now points at the EQ APO (LFX/GFX written)"
 
           # Re-cycle AudioEndpointBuilder so the freshly-written FxProperties are
           # read into the live graph (the GUI install triggers a comparable
