@@ -426,8 +426,13 @@ try {
     # Keep the exact beta API schema with the capture artifacts. Beta 130 does
     # not route GET /audio even though the published prose documents it, so
     # readiness is established through /generator/status instead.
-    Invoke-WebRequest -Uri "$baseUri/doc.json" `
-        -OutFile (Join-Path $OutputDirectory "rew-$Phase-openapi.json")
+    try {
+        Invoke-WebRequest -Uri "$baseUri/doc.json" `
+            -OutFile (Join-Path $OutputDirectory "rew-$Phase-openapi.json")
+    }
+    catch {
+        Write-Warning "REW did not expose its optional OpenAPI document: $($_.Exception.Message)"
+    }
 
     Invoke-RewApi -Path '/application/logging' -Method Post -Body $true | Out-Null
     $driver = Select-Choice (Invoke-RewApi -Path '/audio/driver-types') '^Java$' 'audio driver'
