@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <cstring>
 
 #include "helpers/PerfProfile.h"
 #include "helpers/MxcsrGuard.h"
@@ -73,6 +74,80 @@ void convertDoubleToFloat(float* dest, const double* src, size_t count) {
 
 namespace
 {
+	template <typename Sample>
+	void bypassInterleaved(Sample* output, Sample* input, unsigned inputChannelCount,
+		unsigned outputChannelCount, unsigned frameCount)
+	{
+		if (frameCount == 0 || outputChannelCount == 0)
+			return;
+
+		if (inputChannelCount == outputChannelCount)
+		{
+			if (input != output)
+			{
+				const size_t sampleCount = static_cast<size_t>(frameCount) * outputChannelCount;
+				std::memmove(output, input, sampleCount * sizeof(Sample));
+			}
+			return;
+		}
+
+		const unsigned copiedChannelCount = (std::min)(inputChannelCount, outputChannelCount);
+		// Equal layouts and zero outputs returned above, so a remaining mono input
+		// necessarily expands to at least stereo.
+		const bool copyMonoToStereo = inputChannelCount == 1;
+		auto adaptFrame = [&](unsigned frame) {
+			Sample* outputFrame = output + static_cast<size_t>(frame) * outputChannelCount;
+			Sample* inputFrame = input + static_cast<size_t>(frame) * inputChannelCount;
+			if (copiedChannelCount != 0)
+			{
+				std::memmove(outputFrame, inputFrame,
+					static_cast<size_t>(copiedChannelCount) * sizeof(Sample));
+			}
+			unsigned initializedChannelCount = copiedChannelCount;
+			if (copyMonoToStereo)
+			{
+				outputFrame[1] = outputFrame[0];
+				initializedChannelCount = 2;
+			}
+			std::fill(outputFrame + initializedChannelCount,
+				outputFrame + outputChannelCount, static_cast<Sample>(0));
+		};
+
+		if (input == output && outputChannelCount > inputChannelCount)
+		{
+			for (unsigned frame = frameCount; frame-- > 0;)
+				adaptFrame(frame);
+		}
+		else
+		{
+			for (unsigned frame = 0; frame < frameCount; ++frame)
+				adaptFrame(frame);
+		}
+	}
+
+	template <typename Sample>
+	void bypassPlanar(Sample** output, Sample** input, unsigned inputChannelCount,
+		unsigned outputChannelCount, unsigned frameCount)
+	{
+		const unsigned copiedChannelCount = (std::min)(inputChannelCount, outputChannelCount);
+		const size_t channelBytes = static_cast<size_t>(frameCount) * sizeof(Sample);
+		for (unsigned channel = 0; channel < copiedChannelCount; ++channel)
+		{
+			if (output[channel] != input[channel])
+				std::memmove(output[channel], input[channel], channelBytes);
+		}
+
+		unsigned initializedChannelCount = copiedChannelCount;
+		if (inputChannelCount == 1 && outputChannelCount >= 2)
+		{
+			if (output[1] != output[0])
+				std::memmove(output[1], output[0], channelBytes);
+			initializedChannelCount = 2;
+		}
+		for (unsigned channel = initializedChannelCount; channel < outputChannelCount; ++channel)
+			std::fill_n(output[channel], frameCount, static_cast<Sample>(0));
+	}
+
 	// Per-layout I/O policy for FilterEngine::processImpl below. Only the bypass
 	// copy and the configuration read/write entry points differ per layout;
 	// the hot-swap/transition choreography lives once in processImpl. The
@@ -86,9 +161,10 @@ namespace
 		static constexpr const char* readNextLabel = "FilterConfiguration::readFloatInterleaved(next)";
 		static constexpr const char* writeLabel = "FilterConfiguration::writeFloatInterleaved";
 
-		static void bypassCopy(float* output, float* input, unsigned outputChannelCount, unsigned, unsigned frameCount)
+		static void bypass(float* output, float* input, unsigned inputChannelCount,
+			unsigned outputChannelCount, unsigned frameCount)
 		{
-			std::copy_n(input, outputChannelCount * frameCount, output);
+			bypassInterleaved(output, input, inputChannelCount, outputChannelCount, frameCount);
 		}
 		static void read(FilterConfiguration& config, float* input, unsigned frameCount)
 		{
@@ -109,10 +185,10 @@ namespace
 		static constexpr const char* readNextLabel = "FilterConfiguration::readFloatPlanar(next)";
 		static constexpr const char* writeLabel = "FilterConfiguration::writeFloatPlanar";
 
-		static void bypassCopy(float** output, float** input, unsigned, unsigned realChannelCount, unsigned frameCount)
+		static void bypass(float** output, float** input, unsigned inputChannelCount,
+			unsigned outputChannelCount, unsigned frameCount)
 		{
-			for (unsigned c = 0; c < realChannelCount; c++)
-				std::copy_n(input[c], frameCount, output[c]);
+			bypassPlanar(output, input, inputChannelCount, outputChannelCount, frameCount);
 		}
 		static void read(FilterConfiguration& config, float** input, unsigned frameCount)
 		{
@@ -131,9 +207,10 @@ namespace
 		static constexpr const char* readNextLabel = "FilterConfiguration::read(interleaved)";
 		static constexpr const char* writeLabel = "FilterConfiguration::write(interleaved)";
 
-		static void bypassCopy(double* output, double* input, unsigned outputChannelCount, unsigned, unsigned frameCount)
+		static void bypass(double* output, double* input, unsigned inputChannelCount,
+			unsigned outputChannelCount, unsigned frameCount)
 		{
-			std::copy_n(input, outputChannelCount * frameCount, output);
+			bypassInterleaved(output, input, inputChannelCount, outputChannelCount, frameCount);
 		}
 		static void read(FilterConfiguration& config, double* input, unsigned frameCount)
 		{
@@ -152,10 +229,10 @@ namespace
 		static constexpr const char* readNextLabel = "FilterConfiguration::read(planar)";
 		static constexpr const char* writeLabel = "FilterConfiguration::write(planar)";
 
-		static void bypassCopy(double** output, double** input, unsigned, unsigned realChannelCount, unsigned frameCount)
+		static void bypass(double** output, double** input, unsigned inputChannelCount,
+			unsigned outputChannelCount, unsigned frameCount)
 		{
-			for (unsigned c = 0; c < realChannelCount; c++)
-				std::copy_n(input[c], frameCount, output[c]);
+			bypassPlanar(output, input, inputChannelCount, outputChannelCount, frameCount);
 		}
 		static void read(FilterConfiguration& config, double** input, unsigned frameCount)
 		{
@@ -185,16 +262,16 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 		// ConfigPath with no custom path, or an empty path value), and the APO
 		// can call process() before initialize(). Treat both like the
 		// empty-config bypass below instead of dereferencing null.
-		if (realChannelCount == outputChannelCount && input != output)
-			IoTraits::bypassCopy(output, input, outputChannelCount, realChannelCount, frameCount);
+		IoTraits::bypass(output, input, realChannelCount, outputChannelCount, frameCount);
 		return;
 	}
 
 	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
 	{
-		// Bypass mode: if no filters are active, just copy input to output if necessary.
-		if (realChannelCount == outputChannelCount && input != output)
-			IoTraits::bypassCopy(output, input, outputChannelCount, realChannelCount, frameCount);
+		// A render APO can legitimately receive fewer channels than the endpoint
+		// exposes. Preserve the real input channels and initialize every output even
+		// when no filter is active; the adapter also handles exact in-place buffers.
+		IoTraits::bypass(output, input, realChannelCount, outputChannelCount, frameCount);
 		return;
 	}
 

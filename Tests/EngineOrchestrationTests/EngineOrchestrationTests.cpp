@@ -519,6 +519,52 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
+// Windows may give a render APO fewer input channels than the endpoint output
+// layout (for example, a stereo application stream feeding an 8-channel
+// endpoint). An empty configuration is still responsible for adapting that
+// connection: preserve the real input channels and silence the extra outputs.
+void testEmptyConfigurationExpandsRenderChannels(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"empty-channel-expansion.txt",
+		"# All filters are disabled\n");
+
+	FilterEngine engine;
+	const std::wstring deviceName = L"EngineOrchestrationTests";
+	engine.setDeviceInfo(false, true, deviceName, L"File", L"", deviceName + L" File");
+	engine.initialize(48000.0f, 2, 2, 8, 0, 16, configPath);
+
+	constexpr unsigned frames = 4;
+	float input[frames * 2] = {
+		0.25f, -0.5f,
+		0.5f, -0.25f,
+		0.75f, 0.125f,
+		1.0f, 0.0f
+	};
+	auto expectExpanded = [&](const float* output, const std::string& layout) {
+		for (unsigned frame = 0; frame < frames; ++frame)
+		{
+			harness.expectEqual(output[frame * 8], input[frame * 2],
+				layout + " preserves the left input channel while expanding");
+			harness.expectEqual(output[frame * 8 + 1], input[frame * 2 + 1],
+				layout + " preserves the right input channel while expanding");
+			for (unsigned channel = 2; channel < 8; ++channel)
+				harness.expectEqual(output[frame * 8 + channel], 0.0f,
+					layout + " silences an added output channel");
+		}
+	};
+
+	float output[frames * 8];
+	std::fill_n(output, frames * 8, -1.0f);
+	engine.process(output, input, frames);
+	expectExpanded(output, "distinct-buffer empty config");
+
+	float inPlace[frames * 8];
+	std::fill_n(inPlace, frames * 8, -1.0f);
+	std::copy_n(input, frames * 2, inPlace);
+	engine.process(inPlace, inPlace, frames);
+	expectExpanded(inPlace, "in-place empty config");
+}
+
 // The engine reports per-line facts while loading
 // (branch decisions, Eval values, swallowed lines) through an attached
 // ConfigLoadTraceSink so the Editor can echo them next to the config rows.
@@ -604,6 +650,7 @@ int runEngineOrchestrationTests()
 	test::Harness harness("EngineOrchestrationTests");
 
 	testProcessWithoutConfigurationDoesNotCrash(harness);
+	testEmptyConfigurationExpandsRenderChannels(harness);
 	testParallelExecutor(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
