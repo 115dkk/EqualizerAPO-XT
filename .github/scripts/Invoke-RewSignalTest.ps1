@@ -419,9 +419,15 @@ try {
     $deadline = (Get-Date).AddSeconds(90)
     do {
         Start-Sleep -Milliseconds 750
-        try { $audioStatus = Invoke-RewApi -Path '/audio' } catch { $audioStatus = $null }
-    } while ($null -eq $audioStatus -and (Get-Date) -lt $deadline)
-    if ($null -eq $audioStatus) { throw 'REW API did not become ready within 90 seconds' }
+        try { $generatorStatus = Invoke-RewApi -Path '/generator/status' } catch { $generatorStatus = $null }
+    } while ($null -eq $generatorStatus -and (Get-Date) -lt $deadline)
+    if ($null -eq $generatorStatus) { throw 'REW API did not become ready within 90 seconds' }
+
+    # Keep the exact beta API schema with the capture artifacts. Beta 130 does
+    # not route GET /audio even though the published prose documents it, so
+    # readiness is established through /generator/status instead.
+    Invoke-WebRequest -Uri "$baseUri/doc.json" `
+        -OutFile (Join-Path $OutputDirectory "rew-$Phase-openapi.json")
 
     Invoke-RewApi -Path '/application/logging' -Method Post -Body $true | Out-Null
     $driver = Select-Choice (Invoke-RewApi -Path '/audio/driver-types') '^Java$' 'audio driver'
@@ -430,11 +436,11 @@ try {
     $deadline = (Get-Date).AddSeconds(30)
     do {
         Start-Sleep -Milliseconds 750
-        $audioStatus = Invoke-RewApi -Path '/audio'
-        $ready = $audioStatus.ready -or $audioStatus.audioEndpointsReady -or $audioStatus.endpointsReady
-    } while (-not $ready -and (Get-Date) -lt $deadline)
+        try { $outputDevices = Invoke-RewApi -Path '/audio/java/output-devices' } catch { $outputDevices = @() }
+        $screamOutputs = @($outputDevices | Where-Object { (Get-ChoiceText $_) -match 'Scream' })
+    } while ($screamOutputs.Count -eq 0 -and (Get-Date) -lt $deadline)
 
-    $outputDevice = Select-Choice (Invoke-RewApi -Path '/audio/java/output-devices') 'Scream' 'Java output device' -PreferShared
+    $outputDevice = Select-Choice $outputDevices 'Scream' 'Java output device' -PreferShared
     Invoke-RewApi -Path '/audio/java/output-device' -Method Post -Body $outputDevice | Out-Null
     Start-Sleep -Seconds 2
 
