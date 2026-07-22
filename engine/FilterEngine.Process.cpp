@@ -92,7 +92,9 @@ namespace
 		}
 
 		const unsigned copiedChannelCount = (std::min)(inputChannelCount, outputChannelCount);
-		const bool copyMonoToStereo = inputChannelCount == 1 && outputChannelCount >= 2;
+		// Equal layouts and zero outputs returned above, so a remaining mono input
+		// necessarily expands to at least stereo.
+		const bool copyMonoToStereo = inputChannelCount == 1;
 		auto adaptFrame = [&](unsigned frame) {
 			Sample* outputFrame = output + static_cast<size_t>(frame) * outputChannelCount;
 			Sample* inputFrame = input + static_cast<size_t>(frame) * inputChannelCount;
