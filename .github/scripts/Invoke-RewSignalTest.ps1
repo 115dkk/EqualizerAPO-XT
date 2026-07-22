@@ -82,11 +82,13 @@ function Get-ChoiceText {
     param($Choice)
 
     if ($Choice -is [string]) { return $Choice }
-    foreach ($property in @('name', 'label', 'value', 'id', 'command')) {
+    foreach ($property in @('name', 'label', 'value', 'id', 'command', 'driver')) {
         if ($null -ne $Choice.PSObject.Properties[$property]) {
             return [string]$Choice.$property
         }
     }
+    $properties = @($Choice.PSObject.Properties)
+    if ($properties.Count -eq 1) { return [string]$properties[0].Value }
     return [string]$Choice
 }
 
