@@ -110,6 +110,17 @@ function Select-Choice {
     return (Get-ChoiceText $matches[0])
 }
 
+function New-RewSettingBody {
+    param($Current, $Value, [string]$What)
+
+    if ($Current -is [string] -or $Current -is [ValueType]) { return $Value }
+    $properties = @($Current.PSObject.Properties)
+    if ($properties.Count -ne 1) {
+        throw "REW returned an unexpected $What setting model: $($Current | ConvertTo-Json -Depth 6 -Compress)"
+    }
+    return @{ $properties[0].Name = $Value }
+}
+
 function Send-RewCommand {
     param([string]$Path, [string]$Command)
 
@@ -450,9 +461,11 @@ try {
 
     Invoke-RewApi -Path '/application/logging' -Method Post -Body $true | Out-Null
     $driver = Select-Choice (Invoke-RewApi -Path '/audio/driver-types') '^Java$' 'audio driver'
-    $currentDriver = Get-ChoiceText (Invoke-RewApi -Path '/audio/driver')
+    $currentDriverSetting = Invoke-RewApi -Path '/audio/driver'
+    $currentDriver = Get-ChoiceText $currentDriverSetting
     if ($currentDriver -ne $driver) {
-        Invoke-RewApi -Path '/audio/driver' -Method Post -Body $driver | Out-Null
+        Invoke-RewApi -Path '/audio/driver' -Method Post `
+            -Body (New-RewSettingBody $currentDriverSetting $driver 'audio driver') | Out-Null
     }
     else {
         Write-Host "REW already uses the $driver audio driver"
@@ -466,38 +479,42 @@ try {
     } while ($screamOutputs.Count -eq 0 -and (Get-Date) -lt $deadline)
 
     $outputDevice = Select-Choice $outputDevices 'Scream' 'Java output device' -PreferShared
-    $currentOutputDevice = Get-ChoiceText (Invoke-RewApi -Path '/audio/java/output-device')
+    $currentOutputDeviceSetting = Invoke-RewApi -Path '/audio/java/output-device'
+    $currentOutputDevice = Get-ChoiceText $currentOutputDeviceSetting
     if ($currentOutputDevice -ne $outputDevice) {
         Invoke-RewApi -Path '/audio/java/output-device' -Method Post `
-            -Body @{ outputDevice = $outputDevice } | Out-Null
+            -Body (New-RewSettingBody $currentOutputDeviceSetting $outputDevice 'output device') | Out-Null
     }
     Start-Sleep -Seconds 2
 
     $outputs = Invoke-RewApi -Path '/audio/java/outputs'
     if (@($outputs).Count -gt 0) {
         $output = Get-ChoiceText (@($outputs)[0])
-        $currentOutput = Get-ChoiceText (Invoke-RewApi -Path '/audio/java/output')
+        $currentOutputSetting = Invoke-RewApi -Path '/audio/java/output'
+        $currentOutput = Get-ChoiceText $currentOutputSetting
         if ($currentOutput -ne $output) {
             Invoke-RewApi -Path '/audio/java/output' -Method Post `
-                -Body @{ output = $output } | Out-Null
+                -Body (New-RewSettingBody $currentOutputSetting $output 'output') | Out-Null
         }
     }
     $outputChannels = Invoke-RewApi -Path '/audio/java/output-channels'
     $stereo = @($outputChannels | Where-Object { (Get-ChoiceText $_) -match 'L\+R|Stereo' } | Select-Object -First 1)
     if ($stereo.Count -gt 0) {
         $outputChannel = Get-ChoiceText $stereo[0]
-        $currentOutputChannel = Get-ChoiceText (Invoke-RewApi -Path '/audio/java/output-channel')
+        $currentOutputChannelSetting = Invoke-RewApi -Path '/audio/java/output-channel'
+        $currentOutputChannel = Get-ChoiceText $currentOutputChannelSetting
         if ($currentOutputChannel -ne $outputChannel) {
             Invoke-RewApi -Path '/audio/java/output-channel' -Method Post `
-                -Body @{ outputChannel = $outputChannel } | Out-Null
+                -Body (New-RewSettingBody $currentOutputChannelSetting $outputChannel 'output channel') | Out-Null
         }
     }
 
     $signal = Select-Choice (Invoke-RewApi -Path '/generator/signals') 'sweep' 'generator sweep signal'
-    $currentSignal = Get-ChoiceText (Invoke-RewApi -Path '/generator/signal')
+    $currentSignalSetting = Invoke-RewApi -Path '/generator/signal'
+    $currentSignal = Get-ChoiceText $currentSignalSetting
     if ($currentSignal -ne $signal) {
         Invoke-RewApi -Path '/generator/signal' -Method Put `
-            -Body @{ signal = $signal } | Out-Null
+            -Body (New-RewSettingBody $currentSignalSetting $signal 'generator signal') | Out-Null
     }
     Invoke-RewApi -Path '/generator/level' -Method Post `
         -Body @{ level = -18.0; unit = 'dBFS' } | Out-Null
