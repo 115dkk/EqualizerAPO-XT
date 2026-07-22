@@ -530,9 +530,9 @@ try {
 
     $capture = [RewWasapiLoopback]::CaptureAsync($EndpointId, 8000, $wavPath)
     Start-Sleep -Milliseconds 750
-    Send-RewCommand -Path '/generator/commands' -Command $play | Out-Null
+    Send-RewCommand -Path '/generator/command' -Command $play | Out-Null
     Start-Sleep -Seconds 5
-    Send-RewCommand -Path '/generator/commands' -Command $stop | Out-Null
+    Send-RewCommand -Path '/generator/command' -Command $stop | Out-Null
     $result = $capture.GetAwaiter().GetResult()
 
     $verdict = [ordered]@{
