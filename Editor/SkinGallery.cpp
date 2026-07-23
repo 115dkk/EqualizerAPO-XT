@@ -398,6 +398,32 @@ QString buildFileDialogFixture(const QDir& outDir)
 constexpr int kStatesPerRow = 3;
 constexpr int kExtraShotsPerSkinMode = 21;
 
+// A rendered toolbar is never one flat colour: buttons, combos and labels
+// cover a sizable share of the strip. A grab that matches its own corner
+// pixel almost everywhere means the controls were not painted - the
+// styled-background overlay regression (a full-size chrome overlay child
+// picking up the sheets' universal QWidget background rule and blanking
+// the whole strip) produced exactly this while every visibility flag,
+// geometry and child list stayed healthy.
+bool toolbarRenderIsBlank(const QImage& image)
+{
+	if (image.isNull() || image.width() < 10 || image.height() < 4)
+		return true;
+	const QRgb corner = image.pixel(1, 1);
+	qint64 same = 0;
+	qint64 total = 0;
+	for (int y = 0; y < image.height(); y += 2)
+	{
+		for (int x = 0; x < image.width(); x += 2)
+		{
+			total++;
+			if (image.pixel(x, y) == corner)
+				same++;
+		}
+	}
+	return same * 100 >= total * 99;
+}
+
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
 // judges chrome, not data, and constructing the real toolbar would drag in
@@ -420,8 +446,15 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	QAction* actionRedo = toolBar->addAction(QStringLiteral("Redo"));
 	actionRedo->setObjectName(QStringLiteral("actionRedo"));
 
-	QWidget* spacer = new QWidget;
-	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	// Same non-surface contract as MainWindow's spacers: no framework
+	// background, ever (the universal QWidget rule would stamp the strip).
+	const auto makeSpacer = []() {
+		QWidget* spacer = new QWidget;
+		spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+		spacer->setAttribute(Qt::WA_NoSystemBackground, true);
+		return spacer;
+	};
+	QWidget* spacer = makeSpacer();
 	spacer->setFixedWidth(10);
 	toolBar->addWidget(spacer);
 
@@ -434,8 +467,7 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	dirtyBadge->setObjectName(QStringLiteral("DirtyStatusBadge"));
 	toolBar->addWidget(dirtyBadge);
 
-	spacer = new QWidget;
-	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	spacer = makeSpacer();
 	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	toolBar->addWidget(spacer);
 
@@ -448,8 +480,7 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	deviceCombo->addItem(QStringLiteral("Default (Speakers - Example Audio)"));
 	toolBar->addWidget(deviceCombo);
 
-	spacer = new QWidget;
-	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	spacer = makeSpacer();
 	spacer->setFixedWidth(10);
 	toolBar->addWidget(spacer);
 
@@ -1196,6 +1227,15 @@ int runSwitchTest(const QStringList& arguments)
 					probeToolBar->sizeHint().width());
 				problems++;
 			}
+		}
+		// Pixels, not flags: the field bug rendered the strip blank while
+		// every logical probe stayed healthy.
+		if (probeToolBar->isVisible()
+			&& toolbarRenderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
+		{
+			qWarning("SkinSwitchTest: %s: toolbar rendered blank (controls not painted)",
+				qPrintable(switchName));
+			problems++;
 		}
 		return problems;
 	};

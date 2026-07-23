@@ -308,6 +308,10 @@ public:
 	{
 		setObjectName(QLatin1String(kToolbarPlateName));
 		setAttribute(Qt::WA_TransparentForMouseEvents);
+		// No framework background ever: the sheets' universal QWidget rule
+		// would otherwise stamp an opaque fill over the strip through QSS
+		// polish (see MatrixToolbarBoard for the field failure this caused).
+		setAttribute(Qt::WA_NoSystemBackground, true);
 		toolBar->installEventFilter(this);
 		setGeometry(toolBar->rect());
 		if (QCheckBox* box = toolBar->findChild<QCheckBox*>(QStringLiteral("InstantModeCheckBox"), Qt::FindDirectChildrenOnly))
@@ -386,6 +390,9 @@ QWidget* makeEarSpacer(QWidget* parent)
 	spacer->setObjectName(QLatin1String(kToolbarEarSpacerName));
 	spacer->setFixedWidth(kRailEarWidth);
 	spacer->setAttribute(Qt::WA_TransparentForMouseEvents);
+	// Reserved space only: without this the universal QWidget background
+	// rule stamps an opaque patch over the rail ear the plate paints.
+	spacer->setAttribute(Qt::WA_NoSystemBackground, true);
 	return spacer;
 }
 }
