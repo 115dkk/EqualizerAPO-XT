@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.26.1 — 2026-07-23
+
 - The real culprit behind "the toolbar quietly empties after switching
   skins a few times" is fixed (the previous release's fullscreen-latch fix
   closed a second, unrelated way to lose the bar). Visiting the Signal
