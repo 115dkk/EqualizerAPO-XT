@@ -8,6 +8,11 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- Windows 빌드에서 `windows.h`가 직접 또는 간접 포함되기 전에
+  `NOMINMAX`를 정의합니다. 기존 `min`, `max` 매크로가 표준 라이브러리와
+  Highway 헤더를 깨뜨리지 않으므로 지역적인 `#undef` 우회 코드도
+  제거했습니다.
+
 ## v2.25.1 — 2026-07-20
 
 - v2.25.0의 스테레오 입력 업믹서 옵션을 에디터에서 켤 수 있게

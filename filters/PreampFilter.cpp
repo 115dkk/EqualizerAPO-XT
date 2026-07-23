@@ -21,15 +21,6 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-// stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
-// macros here. Undefine them before Highway, whose templates use std::min and
-// std::max; otherwise the macro expansion breaks the headers.
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
 #include "hwy/highway.h"
 
 #include "PreampFilter.h"
