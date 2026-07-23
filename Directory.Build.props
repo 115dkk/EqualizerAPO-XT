@@ -15,6 +15,10 @@
   configuration, while the console and test projects pin Release even in Debug -
   so collapsing them into one block would change effective Debug link paths.
   They stay in each .vcxproj.
+
+  NOMINMAX is shared here so every MSBuild translation unit sees it before any
+  direct or transitive inclusion of <windows.h>. The qmake projects mirror this
+  definition in their .pro files.
 -->
 <Project>
   <PropertyGroup>
@@ -25,4 +29,9 @@
     <VST3_SDK Condition="'$(VST3_SDK)'==''">$(MSBuildThisFileDirectory)deps\vst3sdk</VST3_SDK>
     <HIGHWAY_INCLUDE Condition="'$(HIGHWAY_INCLUDE)'==''">$(MSBuildThisFileDirectory)deps\highway</HIGHWAY_INCLUDE>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
 </Project>

@@ -14,6 +14,7 @@ TEMPLATE = app
 DEFINES += WIN32
 DEFINES += _UNICODE
 DEFINES += MUP_USE_WIDE_STRING
+DEFINES += NOMINMAX
 # Release channel baked in at build time (mirrors Editor.pro). When unset, a
 # local build falls back to VelopackUpdateInfo::defaultChannel()'s per-arch
 # guess for feed lookups; CI always passes the channel explicitly.

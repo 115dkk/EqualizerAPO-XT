@@ -14,6 +14,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- Windows builds now define `NOMINMAX` before any direct or transitive
+  inclusion of `windows.h`, preventing the legacy `min` and `max` macros from
+  breaking standard-library and Highway headers. The local `#undef`
+  workarounds are no longer needed.
+
 ## v2.25.1 — 2026-07-20
 
 - The stereo-input upmixer option added in v2.25.0 is now reachable from the

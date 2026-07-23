@@ -22,15 +22,6 @@
 #include "BiQuadKernelPlan.h"
 #include "helpers/PerfProfile.h"
 
-// stdafx.h pulls in <windows.h> without NOMINMAX, so min/max are defined as
-// macros here. Undefine them before Highway, whose templates use std::min and
-// std::max.
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
 #include "hwy/highway.h"
 
 namespace hn = hwy::HWY_NAMESPACE;
