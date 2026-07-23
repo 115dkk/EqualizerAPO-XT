@@ -1220,6 +1220,9 @@ private:
 				(side - glyphLogical.height()) / 2.0), glyph);
 			painter.end();
 			icon.addPixmap(pixmap);
+			// The whole tile fades when the action is disabled, the shared
+			// disabled-glyph recipe (undo/redo on an empty history).
+			icon.addPixmap(GUIHelper::fadedPixmap(pixmap), QIcon::Disabled);
 		}
 		return icon;
 	}

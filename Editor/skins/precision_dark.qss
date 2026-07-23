@@ -101,6 +101,9 @@ QToolBar#MainToolBar QToolButton {
 }
 QToolBar#MainToolBar QToolButton:hover { background: @CARD@; border: 0; }
 QToolBar#MainToolBar QToolButton:pressed { background: @TEXT@; color: @SURFACE@; border: 0; }
+/* Text-only commands must grey out from the type itself: this strip has no
+   icon whose disabled variant could carry the state. */
+QToolBar#MainToolBar QToolButton:disabled { color: @BORDER@; background: transparent; }
 /* Instant mode is an armed flag: off rests muted, on is full ink (the
    checked indicator's accent block is the active-state tag). */
 QToolBar#MainToolBar QCheckBox { color: @MUTED@; }

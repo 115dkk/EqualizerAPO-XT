@@ -21,6 +21,7 @@
 #include <QHBoxLayout>
 #include <QImage>
 #include <QLabel>
+#include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPixmap>
@@ -1133,6 +1134,72 @@ int runSwitchTest(const QStringList& arguments)
 		return 1;
 	}
 
+	// The main toolbar rides along in a real QMainWindow top area, wired the
+	// way MainWindow wires it (skinChanged -> styleMainToolbar). The gallery
+	// builds a fresh replica per skin, so per-skin chrome state that survives
+	// on ONE long-lived toolbar across revisits (rack's plate + ear-spacer
+	// actions, matrix's board layers) is only exercised here - the field
+	// report was the whole action train vanishing after returning to an
+	// already-visited skin.
+	QMainWindow probeWindow;
+	// Wide enough that the full action train genuinely fits in every skin's
+	// paddings: a hidden item then always means the layout lost the room, not
+	// that the room was honestly missing.
+	probeWindow.resize(1600, 768);
+	QToolBar* probeToolBar = buildToolbarReplica(nullptr);
+	probeWindow.addToolBar(Qt::TopToolBarArea, probeToolBar);
+	probeWindow.setCentralWidget(new QWidget(&probeWindow));
+	probeWindow.show();
+	QObject::connect(SkinManager::instance(), &SkinManager::skinChanged, probeToolBar,
+		[probeToolBar](const SkinTokens&) { SkinManager::instance()->styleMainToolbar(probeToolBar); });
+
+	// Everything in the action train must stay alive and laid out: an action
+	// reported invisible, an item widget QToolBarLayout hid (overflow into the
+	// extension popup counts - the real toolbar never overflows at 1024px), or
+	// a collapsed toolbar all reproduce the "toolbar is gone" field state.
+	const auto checkToolbar = [&probeWindow, probeToolBar](const QString& switchName) {
+		int problems = 0;
+		if (!probeToolBar->isVisibleTo(&probeWindow))
+		{
+			qWarning("SkinSwitchTest: %s: main toolbar widget is hidden", qPrintable(switchName));
+			problems++;
+		}
+		if (probeToolBar->height() < 16)
+		{
+			qWarning("SkinSwitchTest: %s: main toolbar collapsed to %dpx",
+				qPrintable(switchName), probeToolBar->height());
+			problems++;
+		}
+		const bool rackActive = SkinManager::instance()->currentSkinId() == QLatin1String("rack");
+		for (QAction* action : probeToolBar->actions())
+		{
+			QWidget* item = probeToolBar->widgetForAction(action);
+			const bool earSpacer = item != nullptr
+				&& item->objectName() == QLatin1String("RackToolbarEarSpacer");
+			// Rack's rail-ear zones legitimately leave with its chrome; every
+			// other item must survive every switch.
+			if (earSpacer && !rackActive)
+				continue;
+			const QString label = item != nullptr && !item->objectName().isEmpty()
+				? item->objectName() : action->objectName();
+			if (!action->isVisible())
+			{
+				qWarning("SkinSwitchTest: %s: toolbar action %s turned invisible",
+					qPrintable(switchName), qPrintable(label));
+				problems++;
+			}
+			else if (item != nullptr && item->isHidden())
+			{
+				qWarning("SkinSwitchTest: %s: toolbar item %s was hidden by the layout (item hint %dpx, bar %dpx wide, bar hint %dpx)",
+					qPrintable(switchName), qPrintable(label),
+					item->sizeHint().width(), probeToolBar->width(),
+					probeToolBar->sizeHint().width());
+				problems++;
+			}
+		}
+		return problems;
+	};
+
 	// Generous ceiling: a healthy switch is well under a second offscreen,
 	// the regression class this guards against cost multiple seconds per
 	// switch, and CI runners are slow and variable. Overridable for local
@@ -1143,6 +1210,8 @@ int runSwitchTest(const QStringList& arguments)
 		limitMs = 8000;
 
 	int failures = 0;
+	QApplication::processEvents();
+	failures += checkToolbar(QStringLiteral("baseline (before any switch)"));
 	{
 		// LegacyRows still uses CopyFilterGUI. Its QGraphicsView does not own
 		// the scene, so the GUI must parent it explicitly; allWidgets() cannot
@@ -1236,6 +1305,7 @@ int runSwitchTest(const QStringList& arguments)
 						failures++;
 					}
 				}
+				failures += checkToolbar(name);
 				if (elapsed > limitMs)
 				{
 					qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",

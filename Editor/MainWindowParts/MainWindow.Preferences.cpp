@@ -304,7 +304,10 @@ void MainWindow::setupRedesignActions()
 
 	// The graph position is chosen explicitly via the dropdown in the analysis
 	// panel's control bar (graphPositionComboBox), so no position action here.
-	QAction* fullscreenGraphAction = interfaceMenu->addAction(tr("Fullscreen graph"));
+	// Checkable so the menu shows whether the mode is on; the slot keeps the
+	// check in step when the shortcut toggles it.
+	fullscreenGraphAction = interfaceMenu->addAction(tr("Fullscreen graph"));
+	fullscreenGraphAction->setCheckable(true);
 	fullscreenGraphAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+F")));
 	connect(fullscreenGraphAction, SIGNAL(triggered()), this, SLOT(toggleGraphFullscreen()));
 

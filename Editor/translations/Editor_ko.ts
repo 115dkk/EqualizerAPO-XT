@@ -1797,6 +1797,16 @@ Alexander Walch</translation>
         <translation>파일</translation>
     </message>
     <message>
+        <location filename="../MainWindow.ui" line="521"/>
+        <source>APO settings</source>
+        <translation>APO 설정</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="524"/>
+        <source>Run the Device Selector to install or remove Equalizer APO on audio devices</source>
+        <translation>장치 선택기를 실행해 오디오 장치에 Equalizer APO를 설치하거나 제거합니다</translation>
+    </message>
+    <message>
         <location filename="../MainWindow.ui" line="184"/>
         <source>From</source>
         <translation>소스</translation>

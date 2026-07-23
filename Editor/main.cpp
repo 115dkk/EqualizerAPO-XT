@@ -531,6 +531,11 @@ int main(int argc, char* argv[])
 		EqAPO::Import::LegacyMigration::maybeShowStartupNotice(&w);
 
 		QCommandLineParser parser;
+		// Diagnostic switch storm (see MainWindow::startSkinSwitchStorm);
+		// registered so the parser does not reject it as an unknown option.
+		QCommandLineOption stormOption(QStringLiteral("skin-switch-storm"));
+		stormOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(stormOption);
 		parser.process(application);
 		QStringList args = parser.positionalArguments();
 		if (args.isEmpty() && w.isEmpty())
@@ -540,7 +545,9 @@ int main(int argc, char* argv[])
 			w.load(configDir.absoluteFilePath(arg));
 
 		bool firstRun = VelopackBootstrap::isFirstRun();
-		if (firstRun)
+		if (parser.isSet(stormOption))
+			w.startSkinSwitchStorm();  // storm sessions skip doChecks: its modal warnings would stall the timer
+		else if (firstRun)
 			launchDeviceSelector(executableDirectory());
 		else
 			w.doChecks();
