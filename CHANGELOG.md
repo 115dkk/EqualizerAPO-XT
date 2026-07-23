@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.25.2 — 2026-07-23
+
 - Windows builds now define `NOMINMAX` before any direct or transitive
   inclusion of `windows.h`, preventing the legacy `min` and `max` macros from
   breaking standard-library and Highway headers. The local `#undef`
