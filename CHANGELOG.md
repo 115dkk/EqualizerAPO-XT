@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.26.0 — 2026-07-23
+
 - The main toolbar no longer vanishes for good after a graph-fullscreen
   round trip. Entering fullscreen (Ctrl+Alt+F, right next to the skin
   shortcuts) hides the toolbar, which unchecked View > Toolbar through the
