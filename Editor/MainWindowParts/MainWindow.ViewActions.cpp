@@ -1,3 +1,6 @@
+#include <cstdio>
+#include <cstdlib>
+#include <memory>
 #include <sstream>
 #include <QDrag>
 #include <QElapsedTimer>
@@ -13,6 +16,8 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
+#include <QTimer>
+#include <QToolBar>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -56,6 +61,129 @@ void persistSkinChoice(const QString& skinId, bool dark)
 void MainWindow::on_mainToolBar_visibilityChanged(bool visible)
 {
 	ui->actionToolbar->setChecked(visible);
+}
+
+void MainWindow::startSkinSwitchStorm()
+{
+	// A diagnostic session must not overwrite the user's preferences: the
+	// switches below write interface/skin+dark immediately (persistSkinChoice),
+	// so snapshot those and restore them when the storm ends.
+	noSavePreferences = true;
+	noSaveFilePreferences = true;
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	const QVariant savedSkin = settings.value("interface/skin");
+	const QVariant savedDark = settings.value("interface/dark");
+
+	// Steps: "skin <id> <dark|light>", "resize <width>", "fullscreen" (toggle).
+	// The sequence mixes revisits with the suspected aggravators: a window too
+	// narrow for the action train (mass overflow into the extension popup) and
+	// the graph-fullscreen toolbar hide.
+	static const char* const storm[] = {
+		"fullscreen", "fullscreen",
+		"skin rack dark", "skin studio dark",
+		"showtoolbar",
+		"resize 900", "fullscreen", "skin matrix dark", "fullscreen",
+		"showtoolbar", "resize 1900",
+		"skin studio dark", "skin rack dark", "skin studio dark",
+	};
+	const int stormCount = int(sizeof(storm) / sizeof(storm[0]));
+
+	auto stepIndex = std::make_shared<int>(0);
+	auto failures = std::make_shared<int>(0);
+
+	const auto checkToolbar = [this, failures](const QString& afterStep) {
+		QToolBar* toolBar = ui->mainToolBar;
+		const bool rackActive = SkinManager::instance()->currentSkinId() == QLatin1String("rack");
+		int hidden = 0;
+		QStringList hiddenNames;
+		for (QAction* action : toolBar->actions())
+		{
+			QWidget* item = toolBar->widgetForAction(action);
+			if (item == nullptr)
+				continue;
+			if (!rackActive && item->objectName() == QLatin1String("RackToolbarEarSpacer"))
+				continue;
+			// The format badge hides itself while the stream is native; its
+			// visibility is data, not layout.
+			if (item->objectName() == QLatin1String("DeviceFormatBadge"))
+				continue;
+			if (item->isHidden())
+			{
+				hidden++;
+				hiddenNames.append(!item->objectName().isEmpty() ? item->objectName() : action->objectName());
+			}
+		}
+		qWarning("Storm %s: toolbar visible=%d geom %d,%d %dx%d hint %dx%d window %dx%d hiddenItems=%d [%s] actionChecked=%d",
+			qPrintable(afterStep), toolBar->isVisible() ? 1 : 0,
+			toolBar->geometry().x(), toolBar->geometry().y(), toolBar->width(), toolBar->height(),
+			toolBar->sizeHint().width(), toolBar->sizeHint().height(),
+			width(), height(), hidden, qPrintable(hiddenNames.join(QLatin1Char(','))),
+			ui->actionToolbar->isChecked() ? 1 : 0);
+		// Hidden items only count against a window that has honest room for
+		// the whole train and is not in graph fullscreen (which hides the bar).
+		const bool roomy = width() >= toolBar->sizeHint().width() + 40;
+		if (!graphFullscreen && (!toolBar->isVisible() || (roomy && hidden > 0)))
+			(*failures)++;
+	};
+
+	QTimer* timer = new QTimer(this);
+	timer->setInterval(700);
+	connect(timer, &QTimer::timeout, this, [this, timer, stepIndex, failures, checkToolbar, savedSkin, savedDark, stormCount]() {
+		// The previous step has had a full event-loop turn to settle; judge it.
+		if (*stepIndex > 0)
+			checkToolbar(QStringLiteral("step %1 [%2]").arg(*stepIndex)
+				.arg(QLatin1String(storm[*stepIndex - 1])));
+		else
+			checkToolbar(QStringLiteral("baseline"));
+
+		if (*stepIndex >= stormCount)
+		{
+			timer->stop();
+			QSettings restore(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+			restore.setValue("interface/skin", savedSkin);
+			restore.setValue("interface/dark", savedDark);
+			restore.sync();
+			qWarning("Storm: done, %d steps, failures=%d", stormCount, *failures);
+			std::fflush(nullptr);
+			std::_Exit(*failures > 0 ? 1 : 0);
+		}
+
+		const QStringList step = QString::fromLatin1(storm[*stepIndex]).split(QLatin1Char(' '));
+		(*stepIndex)++;
+		if (step.value(0) == QLatin1String("resize"))
+		{
+			resize(step.value(1).toInt(), height());
+		}
+		else if (step.value(0) == QLatin1String("fullscreen"))
+		{
+			toggleGraphFullscreen();
+		}
+		else if (step.value(0) == QLatin1String("showtoolbar"))
+		{
+			// The user's recovery path: View > Toolbar re-check.
+			ui->actionToolbar->setChecked(true);
+			on_actionToolbar_triggered(true);
+		}
+		else if (step.value(0) == QLatin1String("skin"))
+		{
+			const bool dark = step.value(2) == QLatin1String("dark");
+			if (darkThemeAction != nullptr && darkThemeAction->isChecked() != dark)
+				darkThemeAction->setChecked(dark);
+			if (skinActionGroup != nullptr)
+			{
+				for (QAction* action : skinActionGroup->actions())
+				{
+					if (action->data().toString() == step.value(1))
+					{
+						action->setChecked(true);
+						action->trigger();
+						break;
+					}
+				}
+			}
+		}
+	});
+	timer->start();
 }
 
 void MainWindow::on_analysisDockWidget_visibilityChanged(bool visible)
@@ -205,9 +333,24 @@ void MainWindow::knobRangeSelected(QAction* action)
 void MainWindow::toggleGraphFullscreen()
 {
 	graphFullscreen = !graphFullscreen;
-	ui->centralWidget->setVisible(!graphFullscreen);
-	ui->mainToolBar->setVisible(!graphFullscreen && ui->actionToolbar->isChecked());
+	if (graphFullscreen)
+	{
+		// Remember the toolbar's visibility BEFORE hiding it: the hide fires
+		// visibilityChanged, which unchecks actionToolbar, so consulting the
+		// action on the way out latched the toolbar hidden forever after one
+		// fullscreen round trip - the "toolbar is gone" field report.
+		toolbarVisibleBeforeGraphFullscreen = !ui->mainToolBar->isHidden();
+		ui->centralWidget->setVisible(false);
+		ui->mainToolBar->setVisible(false);
+	}
+	else
+	{
+		ui->centralWidget->setVisible(true);
+		ui->mainToolBar->setVisible(toolbarVisibleBeforeGraphFullscreen);
+	}
 	ui->analysisDockWidget->setVisible(true);
+	if (fullscreenGraphAction != nullptr)
+		fullscreenGraphAction->setChecked(graphFullscreen);
 }
 
 void MainWindow::nativeTitleBarToggled(bool checked)

@@ -107,7 +107,25 @@ QIcon GUIHelper::tintedIcon(const QString& resource, const QColor& color, int si
 	painter.fillRect(QRect(QPoint(0, 0), pixmap.deviceIndependentSize().toSize()), color);
 	painter.end();
 
-	return QIcon(pixmap);
+	QIcon icon(pixmap);
+	// A disabled action must read as disabled from the glyph itself, not only
+	// from the button chrome: bake a faded variant instead of relying on the
+	// style's generated disabled look, which under the skins left the icon at
+	// full strength (undo/redo looked clickable with an empty history).
+	icon.addPixmap(fadedPixmap(pixmap), QIcon::Disabled);
+	return icon;
+}
+
+QPixmap GUIHelper::fadedPixmap(const QPixmap& pixmap)
+{
+	// DestinationIn multiplies the existing alpha, keeping the glyph's shape
+	// and colour while dropping its strength to roughly a third.
+	QPixmap faded = pixmap;
+	QPainter painter(&faded);
+	painter.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+	painter.fillRect(faded.rect(), QColor(0, 0, 0, 90));
+	painter.end();
+	return faded;
 }
 
 double GUIHelper::knobGainRange()

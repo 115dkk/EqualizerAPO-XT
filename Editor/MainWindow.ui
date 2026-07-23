@@ -94,6 +94,8 @@
      </property>
      <addaction name="separator"/>
     </widget>
+    <addaction name="actionApoSettings"/>
+    <addaction name="separator"/>
     <addaction name="menuLanguage"/>
     <addaction name="separator"/>
     <addaction name="actionResetAllGlobalPreferences"/>
@@ -511,6 +513,14 @@
    </property>
    <property name="shortcut">
     <string notr="true">Alt+F4</string>
+   </property>
+  </action>
+  <action name="actionApoSettings">
+   <property name="text">
+    <string>APO settings</string>
+   </property>
+   <property name="toolTip">
+    <string>Run the Device Selector to install or remove Equalizer APO on audio devices</string>
    </property>
   </action>
   <action name="actionUndo">

@@ -1808,6 +1808,16 @@ Alexander Walch</translation>
         <translation>Datei</translation>
     </message>
     <message>
+        <location filename="../MainWindow.ui" line="521"/>
+        <source>APO settings</source>
+        <translation>APO-Einstellungen</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="524"/>
+        <source>Run the Device Selector to install or remove Equalizer APO on audio devices</source>
+        <translation>Startet den Device Selector, um Equalizer APO auf Audiogeräten zu installieren oder zu entfernen</translation>
+    </message>
+    <message>
         <location filename="../MainWindow.ui" line="68"/>
         <source>Edit</source>
         <translation>Bearbeiten</translation>

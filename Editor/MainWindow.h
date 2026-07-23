@@ -67,6 +67,10 @@ public:
 	~MainWindow();
 	void doChecks();
 	void runDeviceSelector();
+	// Diagnostic behind --skin-switch-storm: drives the real skin/dark menu
+	// actions through a revisit-heavy sequence on the live window and reports
+	// the main toolbar's health after every switch, then exits the process.
+	void startSkinSwitchStorm();
 	void load(QString path);
 	void save(FilterTable* filterTable, QString path);
 	bool isEmpty();
@@ -111,6 +115,7 @@ private slots:
 	void on_actionToolbar_triggered(bool checked);
 	void on_actionAnalysisPanel_triggered(bool checked);
 
+	void on_actionApoSettings_triggered();
 	void languageSelected(bool selected);
 	void interfaceModeSelected(QAction* action);
 	void skinSelected(QAction* action);
@@ -174,12 +179,17 @@ private:
 	QString skinId = QStringLiteral("studio");
 	bool skinDark = true;
 	bool graphFullscreen = false;
+	// Snapshot for leaving graph fullscreen: hiding the toolbar on the way in
+	// unchecks actionToolbar through the visibilityChanged sync, so the
+	// action's checked state cannot say whether the user wanted the bar.
+	bool toolbarVisibleBeforeGraphFullscreen = true;
 	// 0 = top, 1 = bottom (default, matching the original Equalizer APO), 2 = right.
 	int graphDockPosition = 1;
 	FilterTable::RenderMode currentRenderMode = FilterTable::ModernCards;
 	QActionGroup* interfaceModeActionGroup = nullptr;
 	QActionGroup* skinActionGroup = nullptr;
 	QAction* darkThemeAction = nullptr;
+	QAction* fullscreenGraphAction = nullptr;
 	QActionGroup* knobRangeActionGroup = nullptr;
 	// Custom window chrome (frameless caption); nullptr when the
 	// interface/nativeTitleBar escape hatch keeps the stock caption.

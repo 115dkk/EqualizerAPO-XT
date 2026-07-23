@@ -40,6 +40,9 @@ public:
 	// kept, so the same icon adapts to any dark/light skin without per-theme
 	// duplicate files. size is in logical pixels and is DPI-scaled internally.
 	static QIcon tintedIcon(const QString& resource, const QColor& color, int size = 20);
+	// The pixmap at roughly a third of its alpha: the shared recipe for a
+	// disabled icon state, so every skin's disabled glyph fades the same way.
+	static QPixmap fadedPixmap(const QPixmap& pixmap);
 	// User-configurable span for dB gain knobs (Preamp card, biquad gain dial):
 	// a knob covers ±knobGainRange() dB, while direct text entry keeps each
 	// command's full range and merely pegs the knob at its end. Stored under

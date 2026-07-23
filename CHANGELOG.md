@@ -14,6 +14,29 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The main toolbar no longer vanishes for good after a graph-fullscreen
+  round trip. Entering fullscreen (Ctrl+Alt+F, right next to the skin
+  shortcuts) hides the toolbar, which unchecked View > Toolbar through the
+  visibility sync; leaving fullscreen then consulted that same checkbox, so
+  the toolbar stayed hidden until the next restart — usually blamed on skin
+  switching, since that is what those shortcuts are used for. Leaving
+  fullscreen now restores the toolbar from its remembered pre-fullscreen
+  state, the Fullscreen graph menu entry shows a check while the mode is on,
+  and the toolbar is no longer draggable (an accidental handle drag could
+  float it or squeeze it into the overflow popup). The skin-switch CI gate
+  now also fails if any toolbar control goes missing across skin revisits.
+  ([#219](https://github.com/115dkk/EqualizerAPO-XT/pull/219))
+- The Settings menu gained an "APO settings" entry that launches the Device
+  Selector, so installing or removing the APO on devices no longer requires
+  hunting down the separate executable.
+  ([#219](https://github.com/115dkk/EqualizerAPO-XT/pull/219))
+- Disabled toolbar and menu actions now look disabled from the glyph itself:
+  the shared tinted icons (and soft's colour tiles) bake a faded variant for
+  the disabled state, and minimal's text-only commands grey out their type.
+  Previously undo/redo on an empty history only dimmed the button chrome
+  slightly, so the buttons still read as clickable.
+  ([#219](https://github.com/115dkk/EqualizerAPO-XT/pull/219))
+
 ## v2.25.2 — 2026-07-23
 
 - Windows builds now define `NOMINMAX` before any direct or transitive

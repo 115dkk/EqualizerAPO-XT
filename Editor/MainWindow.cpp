@@ -110,6 +110,10 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	});
 
 	ui->mainToolBar->setObjectName(QStringLiteral("MainToolBar"));
+	// App chrome, not a palette: an accidental handle drag can float the bar
+	// or shrink it into the overflow popup, both of which read as "the toolbar
+	// vanished". The gallery replica is immovable for the same reason.
+	ui->mainToolBar->setMovable(false);
 
 	QWidget* spacer = new QWidget;
 	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
@@ -386,6 +390,11 @@ void MainWindow::doChecks()
 			return;
 		}
 	}
+}
+
+void MainWindow::on_actionApoSettings_triggered()
+{
+	runDeviceSelector();
 }
 
 void MainWindow::runDeviceSelector()
