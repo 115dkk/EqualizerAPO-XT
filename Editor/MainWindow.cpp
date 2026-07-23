@@ -115,8 +115,16 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	// vanished". The gallery replica is immovable for the same reason.
 	ui->mainToolBar->setMovable(false);
 
-	QWidget* spacer = new QWidget;
-	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	// Toolbar spacers are reserved space, never surfaces: the skins' universal
+	// "QWidget { background }" rule would otherwise let QSS polish stamp
+	// opaque patches over the strip (and over rack's painted rail).
+	const auto makeToolBarSpacer = []() {
+		QWidget* spacer = new QWidget;
+		spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+		spacer->setAttribute(Qt::WA_NoSystemBackground, true);
+		return spacer;
+	};
+	QWidget* spacer = makeToolBarSpacer();
 	spacer->setFixedWidth(10);
 	ui->mainToolBar->addWidget(spacer);
 
@@ -132,8 +140,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	dirtyStatusLabel->setToolTip(tr("Current file save state"));
 	ui->mainToolBar->addWidget(dirtyStatusLabel);
 
-	spacer = new QWidget;
-	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	spacer = makeToolBarSpacer();
 	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	ui->mainToolBar->addWidget(spacer);
 
@@ -156,8 +163,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	deviceFormatBadge->setToolTip(tr("Whether EqualizerAPO is processing this device's stream natively, or forwarding it without applying filters."));
 	ui->mainToolBar->addWidget(deviceFormatBadge);
 
-	spacer = new QWidget;
-	spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
+	spacer = makeToolBarSpacer();
 	spacer->setFixedWidth(10);
 	ui->mainToolBar->addWidget(spacer);
 

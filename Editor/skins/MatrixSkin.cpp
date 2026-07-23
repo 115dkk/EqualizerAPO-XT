@@ -275,6 +275,13 @@ public:
 			? QStringLiteral("MatrixToolbarBoardUnder")
 			: QStringLiteral("MatrixToolbarBoardOver"));
 		setAttribute(Qt::WA_TransparentForMouseEvents);
+		// Every sheet's universal "QWidget { background: @BG@ }" rule makes
+		// QSS polish give this overlay a framework-painted opaque fill
+		// (WA_StyledBackground), bypassing the paintEvent guard below. The
+		// raised layer then blanks the entire toolbar under every skin once
+		// matrix has been visited - the "toolbar quietly empties after a few
+		// skin switches" field bug. This overlay never owns a background.
+		setAttribute(Qt::WA_NoSystemBackground, true);
 		toolBar->installEventFilter(this);
 		if (layer == OverCells)
 		{

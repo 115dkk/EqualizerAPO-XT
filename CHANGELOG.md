@@ -14,6 +14,26 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The real culprit behind "the toolbar quietly empties after switching
+  skins a few times" is fixed (the previous release's fullscreen-latch fix
+  closed a second, unrelated way to lose the bar). Visiting the Signal
+  Matrix skin creates two full-width chrome overlay layers on the toolbar,
+  and every skin sheet opens with a universal `QWidget { background }`
+  rule: Qt's stylesheet polish makes any widget matching such a rule paint
+  a framework-level opaque fill, bypassing the overlays' own do-not-paint
+  guard. From the next skin switch on, the top overlay covered every
+  toolbar control while all logical state (visibility flags, geometry,
+  child order) stayed healthy — which is why flag-based checks kept
+  passing while the screen lost the bar. The overlays, rack's rail-ear
+  reserves and the toolbar spacers now refuse the framework background
+  outright. The CI switch gate additionally judges rendered pixels — a
+  toolbar grab that comes back near-uniform fails the build, verified to
+  catch exactly this bug when the fix is removed — and a real-window
+  diagnostic (`--skin-switch-storm`) drives the actual menus with
+  synthesized clicks, screenshots every step, and restores the user's
+  preferences afterwards.
+  ([#220](https://github.com/115dkk/EqualizerAPO-XT/pull/220))
+
 ## v2.26.0 — 2026-07-23
 
 - The main toolbar no longer vanishes for good after a graph-fullscreen
