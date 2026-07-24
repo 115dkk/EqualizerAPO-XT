@@ -40,7 +40,12 @@ using std::wstring;
 
 namespace
 {
+	// Mute-path diagnostics, written from the audio thread and read in cleanup().
+	// process() may only bump these relaxed atomics; the log line that describes
+	// them is written off the real-time path. See ConvolutionFilter.cpp for the
+	// same pair.
 	std::atomic<unsigned long long> multiMuteCallCount{ 0 };
+	std::atomic<unsigned> multiFirstMuteFrameCount{ 0 };
 }
 
 MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionCommand::Mapping>& mappings, const wstring& filename)
@@ -184,11 +189,14 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 
 	if (filters != nullptr && frameCount != filterFrameCount)
 	{
-		const unsigned long long count = multiMuteCallCount.fetch_add(1, std::memory_order_relaxed) + 1;
+		// No logging here. LogHelper opens, writes and closes %TEMP%\EqualizerAPO.log
+		// for every line, and this branch fires exactly when the stream can least
+		// afford blocking I/O on the audio thread. cleanup() writes the same line.
+		multiMuteCallCount.fetch_add(1, std::memory_order_relaxed);
 		if (!frameCountMismatchLogged)
 		{
-			LogF(L"MultiConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls so far: %llu]",
-				frameCount, filterFrameCount, count);
+			// Keep the block size that first failed; the deferred report needs it.
+			multiFirstMuteFrameCount.store(frameCount, std::memory_order_relaxed);
 			frameCountMismatchLogged = true;
 		}
 	}
@@ -232,6 +240,15 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 
 void MultiConvolutionFilter::cleanup()
 {
+	// Deferred report of the mute path that process() took on the audio thread.
+	// It runs before the members are cleared so the initialized block size is
+	// still available.
+	if (frameCountMismatchLogged)
+		LogF(L"MultiConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls: %llu total]",
+			multiFirstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
+			multiMuteCallCount.load(std::memory_order_relaxed));
+	frameCountMismatchLogged = false;
+
 	// HConvSingleArray::reset() runs the close-then-free sequence.
 	filters = nullptr;
 	// Release this filter's hold on the cached IR; the weak-ptr cache frees the
@@ -242,9 +259,4 @@ void MultiConvolutionFilter::cleanup()
 	plans.clear();
 	tempBuffer.clear();
 	filterFrameCount = 0;
-
-	if (frameCountMismatchLogged)
-		LogF(L"MultiConvolutionFilter: mismatch mute fired %llu time(s) total",
-			multiMuteCallCount.load(std::memory_order_relaxed));
-	frameCountMismatchLogged = false;
 }

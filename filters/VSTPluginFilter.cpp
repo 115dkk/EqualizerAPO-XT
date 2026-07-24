@@ -466,11 +466,13 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		if (reportCrash)
-		{
-			LogF(L"The VST plugin %s crashed during audio processing.", libPath.c_str());
-			reportCrash = false;
-		}
+		// Only arm the report here; cleanup() writes it. Two reasons not to log on
+		// this thread: LogHelper opens, writes and closes the log file per line
+		// (a file open that a filter driver can stall for milliseconds, on the
+		// audio thread, while the stream is already glitching), and the CRT state
+		// this handler would re-enter is exactly what the plugin just faulted
+		// inside. The fault repeats per block, so a one-shot flag loses nothing.
+		reportCrash = false;
 
 		for (unsigned i = 0; i < channelCount; i++)
 			std::copy_n(input[i], frameCount, output[i]);
@@ -500,6 +502,15 @@ bool VSTPluginFilter::getStereoInput() const
 
 void VSTPluginFilter::cleanup()
 {
+	// Deferred crash report from process(): the audio thread only clears the flag
+	// (see the __except handler). Re-arm it so a re-initialized instance can report
+	// a fresh fault; cleanup() runs at the start of initialize() and at teardown.
+	if (!reportCrash)
+	{
+		LogF(L"The VST plugin %s crashed during audio processing.", libPath.c_str());
+		reportCrash = true;
+	}
+
 	for (const auto& effect : effects)
 		effect->stopProcessingSafely();
 	effects.clear();
