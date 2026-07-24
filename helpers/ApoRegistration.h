@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 
 class ApoRegistration
@@ -37,6 +38,8 @@ public:
 
 	static Result install(const std::wstring& installDir);
 	static Result uninstall(const std::wstring& installDir);
+	using DeviceUninstallErrorSink = std::function<void(const std::wstring&)>;
+	static Result uninstallAllDeviceApos(const DeviceUninstallErrorSink& errorSink);
 
 	static bool stopAudioService();
 	static bool startAudioService();

@@ -242,29 +242,9 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 {
 	bool serviceWasRunning = stopAudioService();
 
-	Result deviceResult = Result::Success;
-	for (int inputPass = 0; inputPass <= 1; inputPass++)
-	{
-		std::vector<std::shared_ptr<AbstractAPOInfo>> apoInfos = DeviceAPOInfo::loadAllInfos(inputPass == 1);
-		for (std::shared_ptr<AbstractAPOInfo>& apoInfo : apoInfos)
-		{
-			try
-			{
-				if (apoInfo->isInstalled())
-					apoInfo->uninstall();
-			}
-			catch (const RegistryException& e)
-			{
-				logLine(L"ERR", L"Failed to uninstall APO from device: %s", e.getMessage().c_str());
-				deviceResult = Result::DeviceUninstallFailed;
-			}
-			catch (const DeviceException& e)
-			{
-				logLine(L"ERR", L"Failed to uninstall APO from device: %s", e.getMessage().c_str());
-				deviceResult = Result::DeviceUninstallFailed;
-			}
-		}
-	}
+	const Result deviceResult = uninstallAllDeviceApos([](const std::wstring& message) {
+		logLine(L"ERR", L"Failed to uninstall APO from device: %s", message.c_str());
+	});
 
 	std::wstring dllPath = joinPath(installDir, L"EqualizerAPO.dll");
 	if (fileExists(dllPath))
@@ -299,28 +279,9 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 
 	if (serviceWasRunning)
 	{
-		// Force a LIVE endpoint-graph rebuild, then bring AudioSrv back.
-		//
-		// Restarting only AudioSrv (Windows Audio) is not enough to apply an APO
-		// removal: AudioEndpointBuilder - the service AudioSrv depends on, which
-		// enumerates endpoints and reads FxProperties to build the APO chain -
-		// keeps its stale in-memory graph that still references the just-removed
-		// APO. While audio is in use, the affected endpoint then becomes unusable
-		// and vanishes from Windows until a reboot rebuilds the graph (users hit
-		// this as "all my audio devices disappeared after uninstalling"). This was
-		// reproduced on a live virtual (Scream) endpoint with audio in use: after
-		// an AudioSrv-only uninstall the endpoint went missing, and only an
-		// AudioEndpointBuilder restart - or a reboot - brought it back, even
-		// though the registry was already clean.
-		//
-		// AudioSrv was stopped above, so restart AudioEndpointBuilder FIRST while
-		// AudioSrv is cleanly stopped: AEB rebuilds the graph from the now-clean
-		// registry, and we then start AudioSrv on top of the rebuilt graph. Doing
-		// it in this order avoids a race where starting AudioSrv first leaves it in
-		// START_PENDING and the AEB-restart cascade tries to stop a still-starting
-		// service (which would abort the restart and leave the graph stale). If the
-		// AEB restart fails we still start AudioSrv so audio is not left down; a
-		// reboot would then be needed to fully apply the removal.
+		// This epilogue intentionally belongs to the package hook, not the /u
+		// helper. The hook has already stopped AudioSrv and must rebuild the
+		// endpoint graph exactly once after every device has been cleaned.
 		try
 		{
 			ServiceHelper::restartService(kAudioEndpointBuilderServiceName);
@@ -333,6 +294,36 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 	}
 
 	return deviceResult;
+}
+
+ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUninstallErrorSink& errorSink)
+{
+	Result result = Result::Success;
+	for (int inputPass = 0; inputPass <= 1; inputPass++)
+	{
+		std::vector<std::shared_ptr<AbstractAPOInfo>> apoInfos = DeviceAPOInfo::loadAllInfos(inputPass == 1);
+		for (std::shared_ptr<AbstractAPOInfo>& apoInfo : apoInfos)
+		{
+			try
+			{
+				if (apoInfo->isInstalled())
+					apoInfo->uninstall();
+			}
+			catch (const RegistryException& e)
+			{
+				if (errorSink)
+					errorSink(e.getMessage());
+				result = Result::DeviceUninstallFailed;
+			}
+			catch (const DeviceException& e)
+			{
+				if (errorSink)
+					errorSink(e.getMessage());
+				result = Result::DeviceUninstallFailed;
+			}
+		}
+	}
+	return result;
 }
 
 bool ApoRegistration::stopAudioService()

@@ -35,6 +35,7 @@
 #include "skins/DeviceSkinPainter.h"
 #include "Editor/helpers/QtAppBootstrap.h"
 #include "Editor/skins/SkinThemeData.h"
+#include "helpers/ApoRegistration.h"
 
 namespace
 {
@@ -201,30 +202,13 @@ int main(int argc, char* argv[])
 
 	if (app.arguments().contains("/u"))
 	{
-		for (int index = 0; index <= 1; index++)
-		{
-			std::vector<std::shared_ptr<AbstractAPOInfo>> apoInfos =
-				DeviceAPOInfo::loadAllInfos(index == 1);
-
-			for (std::shared_ptr<AbstractAPOInfo>& apoInfo : apoInfos)
-			{
-				try
-				{
-					if (apoInfo->isInstalled())
-						apoInfo->uninstall();
-				}
-				catch (const RegistryException& e)
-				{
-					// /u is the unattended uninstall entry point (installer
-					// hooks, scripts, CI). A modal dialog here blocks forever
-					// when nobody can dismiss it (observed as a 120s hang on
-					// build 26100 runners, issue #189), so report through
-					// stderr and the exit code instead.
-					fwprintf(stderr, L"DeviceSelector /u: %ls\n", e.getMessage().c_str());
-					result = -1;
-				}
-			}
-		}
+		const ApoRegistration::Result uninstallResult = ApoRegistration::uninstallAllDeviceApos(
+			[](const std::wstring& message) {
+				// /u is unattended: stderr cannot block on a modal dialog.
+				fwprintf(stderr, L"DeviceSelector /u: %ls\n", message.c_str());
+			});
+		if (uninstallResult != ApoRegistration::Result::Success)
+			result = -1;
 
 		VoicemeeterAPOInfo::ensureVoicemeeterClientRunning();
 	}

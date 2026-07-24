@@ -39,6 +39,7 @@ SOURCES += \
 	skins/RackDeviceSkin.cpp \
 	skins/MatrixDeviceSkin.cpp \
 	../helpers/ServiceHelper.cpp \
+	../helpers/ApoRegistration.cpp \
 	stdafx.cpp
 
 HEADERS += \
@@ -55,6 +56,7 @@ HEADERS += \
 	SkinButton.h \
 	skins/DeviceSkinPainter.h \
 	../helpers/ServiceHelper.h \
+	../helpers/ApoRegistration.h \
 	resource.h \
 	stdafx.h
 
