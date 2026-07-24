@@ -115,6 +115,10 @@ void testMalformedChunkDropped()
 	// An empty parameter (the "Copy: " template line) parses to no assignments.
 	vector<Assignment> empty = parseCopyAssignments(L"");
 	harness.expectEqual(empty.size(), (size_t)0, "empty parameter has no assignments");
+
+	vector<Assignment> nonFinite = parseCopyAssignments(L"L=1.0e999*R");
+	harness.expectEqual(nonFinite.size(), (size_t)0,
+		"an assignment with a non-finite Copy factor is rejected");
 }
 
 // Asserts that parsing parameters then serializing the assignments reproduces

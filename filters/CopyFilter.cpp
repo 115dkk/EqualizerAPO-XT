@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 #include <cstdio>
@@ -171,6 +172,7 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 			assignment.targetChannel = target;
 
 			vector<wstring> summands = StringHelper::split(source, '+');
+			bool validAssignment = true;
 			for (vector<wstring>::iterator it2 = summands.begin(); it2 != summands.end(); it2++)
 			{
 				vector<wstring> factors = StringHelper::split(*it2, '*');
@@ -199,11 +201,22 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 				{
 					summand.factor = wcstod(factor.c_str(), nullptr);
 					summand.isDecibel = factor.size() > 2 && StringHelper::toLowerCase(factor.substr(factor.size() - 2)) == L"db";
+					const double linearFactor = summand.isDecibel
+						? pow(10.0, summand.factor / 20.0) : summand.factor;
+					if (!std::isfinite(summand.factor) || !std::isfinite(linearFactor))
+					{
+						LogFStatic(L"Copy factor %s for target %s must be finite; ignoring assignment",
+							factor.c_str(), target.c_str());
+						validAssignment = false;
+						break;
+					}
 				}
 
 				summand.channel = channel;
 				assignment.sourceSum.push_back(summand);
 			}
+			if (!validAssignment)
+				assignment.sourceSum.clear();
 		}
 
 		if (assignment.targetChannel != L"" && !assignment.sourceSum.empty())
