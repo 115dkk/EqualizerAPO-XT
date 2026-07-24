@@ -12,6 +12,11 @@
 
 namespace
 {
+QString middleDotSeparator()
+{
+	return QStringLiteral(" %1 ").arg(QChar(0x00B7));
+}
+
 bool isKnownConfigCommand(const QString& command)
 {
 	QString normalized = command.trimmed().toLower();
@@ -125,9 +130,9 @@ QString summarizeBiquad(const QString& parameters, const QString& code, const QS
 	if (!bandwidth.isEmpty())
 		parts.append(QStringLiteral("BW %1 Oct").arg(bandwidth));
 
-	QString summary = parts.isEmpty() ? parameters.simplified() : parts.join(QStringLiteral(" \xC2\xB7 "));
+	QString summary = parts.isEmpty() ? parameters.simplified() : parts.join(middleDotSeparator());
 	if (state == QStringLiteral("OFF"))
-		summary = QStringLiteral("OFF \xC2\xB7 ") + summary;
+		summary = QStringLiteral("OFF") + middleDotSeparator() + summary;
 	return summary;
 }
 
@@ -341,9 +346,9 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 				parts.append(tr("%1 coefficients").arg(coefficientList.split(QLatin1Char(' ')).size()));
 			if (!parts.isEmpty())
 			{
-				descriptor.summary = parts.join(QStringLiteral(" %1 ").arg(QChar(0x00B7)));
+				descriptor.summary = parts.join(middleDotSeparator());
 				if (iirMatch.captured(1).toUpper() == QStringLiteral("OFF"))
-					descriptor.summary = QStringLiteral("OFF %1 ").arg(QChar(0x00B7)) + descriptor.summary;
+					descriptor.summary = QStringLiteral("OFF") + middleDotSeparator() + descriptor.summary;
 			}
 		}
 		else
@@ -454,7 +459,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		const QString channel = split < 0 ? trimmedParams : trimmedParams.left(split);
 		const QString fileName = split < 0 ? QString() : QFileInfo(trimmedParams.mid(split + 1).trimmed()).fileName();
 		if (!channel.isEmpty() && !fileName.isEmpty())
-			descriptor.summary = QStringLiteral("%1 · %2").arg(channel, fileName);
+			descriptor.summary = channel + middleDotSeparator() + fileName;
 		else if (!channel.isEmpty())
 			descriptor.summary = channel;
 	}
