@@ -87,12 +87,9 @@ void MainWindow::channelConfigurationSelected(int index)
 	int channelMask;
 	getDeviceAndChannelMask(&selectedDevice, &channelMask);
 
-	for (int i = 0; i < ui->tabWidget->count(); i++)
-	{
-		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
-		FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
+	forEachFilterTable([&](int, FilterTable* filterTable) {
 		filterTable->updateDeviceAndChannelMask(selectedDevice, channelMask);
-	}
+	});
 
 	ui->analysisChannelComboBox->clear();
 

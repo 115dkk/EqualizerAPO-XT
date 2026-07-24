@@ -42,17 +42,15 @@ void MainWindow::load(QString path)
 {
 	path = QDir::toNativeSeparators(path);
 
-	for (int i = 0; i < ui->tabWidget->count(); i++)
-	{
-		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
-		FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
-
+	forEachFilterTable([&](int i, FilterTable* filterTable) {
 		if (filterTable->getConfigPath() == path)
 		{
 			ui->tabWidget->setCurrentIndex(i);
-			return;
 		}
-	}
+	});
+	if (FilterTable* filterTable = currentFilterTable();
+		filterTable != nullptr && filterTable->getConfigPath() == path)
+		return;
 
 	QElapsedTimer timer;
 	timer.start();

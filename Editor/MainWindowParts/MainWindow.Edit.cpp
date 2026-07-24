@@ -90,15 +90,10 @@ void MainWindow::linesChanged()
 	}
 
 	int tabIndex = -1;
-	for (int i = 0; i < ui->tabWidget->count(); i++)
-	{
-		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
-		if (scrollArea->widget() == filterTable)
-		{
+	forEachFilterTable([&](int i, FilterTable* candidate) {
+		if (candidate == filterTable)
 			tabIndex = i;
-			break;
-		}
-	}
+	});
 	if (tabIndex < 0)
 		return;
 	QString tabText = ui->tabWidget->tabText(tabIndex);
@@ -132,10 +127,8 @@ bool MainWindow::on_tabWidget_tabCloseRequested(int index)
 {
 	if (askForClose(index))
 	{
-		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(index));
-		if (scrollArea != nullptr)
+		if (FilterTable* filterTable = filterTableForTab(index))
 		{
-			FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 			QString path = filterTable->getConfigPath();
 			recentFiles.removeAll(path);
 			recentFiles.prepend(path);
@@ -188,51 +181,41 @@ void MainWindow::updateUndoRedoActions()
 
 void MainWindow::on_actionCut_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == nullptr)
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
 		return;
-
-	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 	filterTable->cut();
 }
 
 void MainWindow::on_actionCopy_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == nullptr)
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
 		return;
-
-	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 	filterTable->copy();
 }
 
 void MainWindow::on_actionPaste_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == nullptr)
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
 		return;
-
-	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 	filterTable->paste();
 }
 
 void MainWindow::on_actionDelete_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == nullptr)
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
 		return;
-
-	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 	filterTable->deleteSelectedLines();
 }
 
 void MainWindow::on_actionSelectAll_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == nullptr)
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
 		return;
-
-	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 	filterTable->selectAll();
 }
 

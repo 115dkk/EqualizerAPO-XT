@@ -175,17 +175,10 @@ void MainWindow::savePreferences()
 	// zoom to the legacy scene.
 
 	QStringList fileList;
-	for (int i = 0; i < ui->tabWidget->count(); i++)
-	{
-		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
-		if (scrollArea == nullptr)
-			continue;
-		FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
+	forEachFilterTable([&](int, FilterTable* filterTable) {
 		if (filterTable->getConfigPath().length() > 0)
-		{
 			fileList.append(filterTable->getConfigPath());
-		}
-	}
+	});
 	settings.setValue("openFiles", fileList);
 	settings.setValue("tabIndex", ui->tabWidget->currentIndex());
 	settings.setValue("recentFiles", recentFiles);
@@ -467,3 +460,11 @@ FilterTable* MainWindow::currentFilterTable() const
 	return filterTableForTab(ui->tabWidget->currentIndex());
 }
 
+void MainWindow::forEachFilterTable(const std::function<void(int, FilterTable*)>& visitor) const
+{
+	for (int i = 0; i < ui->tabWidget->count(); ++i)
+	{
+		if (FilterTable* filterTable = filterTableForTab(i))
+			visitor(i, filterTable);
+	}
+}

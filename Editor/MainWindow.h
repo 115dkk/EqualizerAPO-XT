@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -150,6 +151,7 @@ private:
 	void watchForPendingUpdate();
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
+	void forEachFilterTable(const std::function<void(int, FilterTable*)>& visitor) const;
 	void updateDirtyStatus();
 	// Grey the Edit-menu undo/redo entries out while the active tab's history
 	// has nothing to step to; without this they always render enabled and

@@ -39,11 +39,9 @@ using std::wstring;
 
 void MainWindow::on_actionOpen_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
 	QString path;
-	if (scrollArea != nullptr)
+	if (FilterTable* filterTable = currentFilterTable())
 	{
-		FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 		if (filterTable->getConfigPath().length() > 0)
 		{
 			QFileInfo fileInfo(filterTable->getConfigPath());
@@ -67,11 +65,9 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == nullptr)
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
 		return;
-
-	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 
 	if (filterTable->getConfigPath().length() == 0)
 	{
@@ -90,11 +86,10 @@ void MainWindow::on_actionSave_triggered()
 
 void MainWindow::on_actionSaveAs_triggered()
 {
-	QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-	if (scrollArea == nullptr)
+	FilterTable* filterTable = currentFilterTable();
+	if (filterTable == nullptr)
 		return;
 
-	FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 	QString path;
 	QString filename;
 	if (filterTable->getConfigPath().length() == 0)
@@ -181,12 +176,8 @@ bool MainWindow::askForClose(int tabIndex)
 
 	if (!discarded && !noSaveFilePreferences)
 	{
-		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(tabIndex));
-		if (scrollArea != nullptr)
-		{
-			FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
+		if (FilterTable* filterTable = filterTableForTab(tabIndex))
 			filterTable->savePreferences();
-		}
 	}
 
 	return true;

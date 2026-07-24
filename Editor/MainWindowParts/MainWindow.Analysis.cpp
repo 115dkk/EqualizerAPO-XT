@@ -43,11 +43,7 @@ void MainWindow::instantModeEnabled(bool enabled)
 {
 	if (enabled)
 	{
-		for (int i = 0; i < ui->tabWidget->count(); i++)
-		{
-			QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
-			FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
-
+		forEachFilterTable([&](int i, FilterTable* filterTable) {
 			if (filterTable->getConfigPath().length() > 0)
 			{
 				save(filterTable, filterTable->getConfigPath());
@@ -56,7 +52,7 @@ void MainWindow::instantModeEnabled(bool enabled)
 				if (tabText.endsWith('*'))
 					ui->tabWidget->setTabText(i, tabText.left(tabText.length() - 1));
 			}
-		}
+		});
 		updateDirtyStatus();
 	}
 }
@@ -99,12 +95,9 @@ void MainWindow::updateAnalysisPanel()
 	// stale facts from a previous device/config selection.
 	{
 		const std::vector<ConfigLoadTraceEntry>& trace = result.loadTrace();
-		for (int i = 0; i < ui->tabWidget->count(); i++)
-		{
-			QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->widget(i));
-			FilterTable* filterTable = scrollArea != nullptr ? qobject_cast<FilterTable*>(scrollArea->widget()) : nullptr;
-			if (filterTable == nullptr || filterTable->getConfigPath().isEmpty())
-				continue;
+		forEachFilterTable([&](int, FilterTable* filterTable) {
+			if (filterTable->getConfigPath().isEmpty())
+				return;
 			const QString tabPath = QDir::toNativeSeparators(filterTable->getConfigPath());
 			QVector<ConfigLoadTraceEntry> tabFacts;
 			for (const ConfigLoadTraceEntry& entry : trace)
@@ -114,7 +107,7 @@ void MainWindow::updateAnalysisPanel()
 					tabFacts.append(entry);
 			}
 			filterTable->setLoadTraceFacts(tabFacts);
-		}
+		});
 	}
 
 	auto setSeverity = [](QLabel* label, const char* severity)
@@ -203,11 +196,8 @@ void MainWindow::executeStartAnalysis()
 
 		if (ui->startFromComboBox->currentIndex() == 1)
 		{
-			QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-			if (scrollArea != nullptr)
+			if (FilterTable* filterTable = currentFilterTable())
 			{
-				FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
-
 				if (filterTable->getConfigPath().length() > 0)
 					configPath = filterTable->getConfigPath();
 			}
