@@ -76,6 +76,7 @@ private:
 	int rowNumber = 0;
 
 	CommandRowFrame* cardFrame = nullptr;
+	CommandRowInfo visualInfo;
 	QWidget* headerWidget = nullptr;
 	QLabel* numberLabel = nullptr;
 	QLabel* typeBadge = nullptr;
