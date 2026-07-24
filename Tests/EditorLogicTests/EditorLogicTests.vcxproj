@@ -117,6 +117,8 @@ if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EditorLogicTests.cpp" />
+    <ClCompile Include="ConfigFileCodecTests.cpp" />
+    <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
@@ -168,6 +170,7 @@ if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll"
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />
     <ClInclude Include="..\..\UpdateChecker\UpdateInfoFormatter.h" />
     <ClInclude Include="..\..\UpdateChecker\VelopackUpdateInfo.h" />
+    <ClInclude Include="EditorLogicTestSupport.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

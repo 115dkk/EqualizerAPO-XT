@@ -58,6 +58,7 @@
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
 #include "Tests/TestHarness.h"
+#include "EditorLogicTestSupport.h"
 
 namespace
 {
@@ -77,8 +78,6 @@ void MemoryHelper::free(void* ptr)
 	_aligned_free(ptr);
 }
 
-namespace
-{
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
 // EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
@@ -1614,96 +1613,8 @@ void testRoutingFold()
 	expectEqual((int)seedOnly.size(), (int)emptySeeded.size() - 1, "the seed row itself is still removed");
 }
 
-void testConfigFileCodec()
-{
-	QList<QString> mixed = ConfigFileCodec::decodeLines(std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));
-	requireEqual((int)mixed.size(), 3, "decodeLines splits CRLF and LF terminated lines");
-	expectEqual(mixed[0], "Preamp: -6 dB", "decodeLines strips the trailing CR");
-	expectEqual(mixed[2], "last", "decodeLines keeps the final unterminated line");
 
-	QList<QString> unicode = ConfigFileCodec::decodeLines(std::string("# caf\xC3\xA9"));
-	expectEqual(unicode[0], QString::fromUtf8("# caf\xC3\xA9"), "decodeLines decodes valid UTF-8");
 
-	// 0xE9 alone is invalid UTF-8, so the system-ANSI fallback must engage.
-	// The decoded glyph depends on the machine's CP_ACP (e.g. CP1252 vs
-	// CP949), so only the line structure is asserted, not the character.
-	QList<QString> fallback = ConfigFileCodec::decodeLines(std::string("caf\xE9\r\nnext"));
-	requireEqual((int)fallback.size(), 2, "ANSI fallback still yields one entry per line");
-	expectEqual(fallback[1], "next", "ANSI fallback preserves the following line");
-
-	QByteArray encoded = ConfigFileCodec::encodeLines(QList<QString>() << "a" << QString::fromUtf8("caf\xC3\xA9"));
-	expectEqual(QString::fromUtf8(encoded), QString::fromUtf8("a\r\ncaf\xC3\xA9"), "encodeLines joins with CRLF, UTF-8, no trailing newline");
-
-	QList<QString> roundTrip = ConfigFileCodec::decodeLines(std::string(encoded.constData(), (size_t)encoded.size()));
-	requireEqual((int)roundTrip.size(), 2, "encodeLines output decodes back to the same line count");
-	expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
-}
-
-void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
-{
-	QTemporaryDir dir;
-	requireTrue(dir.isValid(), "atomic-save test creates a temporary directory");
-
-	QString path = QDir::toNativeSeparators(dir.filePath("config.txt"));
-	QFile original(path);
-	requireTrue(original.open(QIODevice::WriteOnly), "atomic-save test creates the original file");
-	requireTrue(original.write("original") == 8, "atomic-save test writes the original contents");
-	original.close();
-
-	// Access 0 with read/write sharing still permits in-place writes, while
-	// omitting FILE_SHARE_DELETE prevents replacement while this handle lives.
-	winutil::UniqueHandle replacementBlocker(CreateFileW(
-		path.toStdWString().c_str(),
-		0,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		nullptr,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		nullptr));
-	requireTrue(static_cast<bool>(replacementBlocker), "atomic-save test locks replacement of the original file");
-
-	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(path, QList<QString>() << "replacement");
-	replacementBlocker.reset();
-
-	expectFalse(result.opened, "writeConfig reports an atomic replacement failure");
-
-	QFile preserved(path);
-	requireTrue(preserved.open(QIODevice::ReadOnly), "atomic-save test reopens the original file");
-	expectEqual(QString::fromUtf8(preserved.readAll()), "original", "failed atomic replacement preserves the original contents");
-}
-
-void testConfigFileCodecRejectsPartialRead()
-{
-	const std::wstring pipeName = L"\\\\.\\pipe\\EditorLogicTests-ConfigRead-" + std::to_wstring(GetCurrentProcessId());
-	winutil::UniqueHandle pipe(CreateNamedPipeW(
-		pipeName.c_str(),
-		PIPE_ACCESS_OUTBOUND,
-		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-		1,
-		4096,
-		4096,
-		0,
-		nullptr));
-	requireTrue(static_cast<bool>(pipe), "partial-read test creates a named pipe");
-
-	bool serverSucceeded = false;
-	std::thread server([&]() {
-		BOOL connected = ConnectNamedPipe(pipe.get(), nullptr);
-		if (!connected && GetLastError() == ERROR_PIPE_CONNECTED)
-			connected = TRUE;
-		const char prefix[] = "Preamp: -6 dB\r\n";
-		DWORD written = 0;
-		if (connected && WriteFile(pipe.get(), prefix, sizeof(prefix) - 1, &written, nullptr) && written == sizeof(prefix) - 1)
-			serverSucceeded = FlushFileBuffers(pipe.get()) != FALSE;
-		DisconnectNamedPipe(pipe.get());
-	});
-
-	ConfigFileCodec::ReadResult result = ConfigFileCodec::readConfig(QString::fromStdWString(pipeName));
-	server.join();
-	requireTrue(serverSucceeded, "partial-read test sends the configuration prefix");
-	expectFalse(result.ok, "readConfig rejects bytes followed by a ReadFile failure");
-	expectTrue(result.lines.isEmpty(), "readConfig does not expose a partial configuration");
-}
 
 void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 {
@@ -1732,108 +1643,9 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 	expectEqual(memoryHelperFrees, 1, "construct releases storage when construction fails");
 }
 
-void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce()
-{
-	OwnedBackgroundTask task;
-	std::promise<void> enteredPromise;
-	std::future<void> entered = enteredPromise.get_future();
-	std::promise<void> releasePromise;
-	std::shared_future<void> release = releasePromise.get_future().share();
-	std::atomic<bool> completed{ false };
 
-	expectTrue(task.startOnce([&]() {
-		enteredPromise.set_value();
-		release.wait();
-		completed.store(true);
-	}), "owned background task starts its worker");
-	requireTrue(entered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
-		"owned background task enters its worker");
-	expectFalse(task.startOnce([]() {}), "owned background task rejects a second start");
 
-	std::future<void> joined = std::async(std::launch::async, [&]() {
-		task.join();
-	});
-	expectTrue(joined.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout,
-		"join waits while the owned worker is active");
-	releasePromise.set_value();
-	requireTrue(joined.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
-		"join completes after the owned worker exits");
-	joined.get();
-	expectTrue(completed.load(), "join observes completion of the owned worker");
-}
 
-void testSkinTokensCarryExplicitMode()
-{
-	const QStringList skinIds = {
-		QStringLiteral("studio"), QStringLiteral("minimal"), QStringLiteral("soft"),
-		QStringLiteral("rack"), QStringLiteral("matrix")
-	};
-	for (const QString& skinId : skinIds)
-	{
-		expectTrue(SkinThemeData::tokens(skinId, true).dark,
-			QStringLiteral("%1 dark tokens carry dark=true").arg(skinId));
-		expectFalse(SkinThemeData::tokens(skinId, false).dark,
-			QStringLiteral("%1 light tokens carry dark=false").arg(skinId));
-	}
-}
-
-void testEverySkinSheetResolvesAllThemeTokens()
-{
-	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());
-	repoRoot.cdUp();
-	repoRoot.cdUp();
-	const QStringList skinIds = {
-		QStringLiteral("studio"), QStringLiteral("minimal"),
-		QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix")
-	};
-	const QRegularExpression unresolved(QStringLiteral("@[A-Z_0-9]+@"));
-	for (const QString& skinId : skinIds)
-	{
-		for (bool dark : { false, true })
-		{
-			const QString resource = SkinThemeData::qssResource(skinId, dark);
-			const QString sourcePath = repoRoot.filePath(
-				QStringLiteral("Editor/skins/") + QFileInfo(resource).fileName());
-			QFile file(sourcePath);
-			expectTrue(file.open(QIODevice::ReadOnly | QIODevice::Text),
-				QStringLiteral("loads %1 source sheet").arg(resource));
-			const QString resolved = SkinThemeData::substituteTokens(
-				QString::fromUtf8(file.readAll()), SkinThemeData::tokens(skinId, dark));
-			expectFalse(unresolved.match(resolved).hasMatch(),
-				QStringLiteral("%1 leaves no unresolved @TOKEN@ sentinel").arg(resource));
-		}
-	}
-}
-
-void testEditableValueTextUsesDisplayedDecimalFormatFirst()
-{
-	const QLocale german(QLocale::German, QLocale::Germany);
-	double value = 0.0;
-	expectTrue(parseEditableValueText(QStringLiteral("12.345"), german, &value),
-		"dot-decimal text parses under a grouping-dot locale");
-	expectTrue(qAbs(value - 12.345) < 0.000001,
-		"dot-decimal text keeps the displayed C-locale meaning");
-	expectTrue(parseEditableValueText(QStringLiteral("12,5"), german, &value),
-		"system-locale decimal text remains accepted as a fallback");
-	expectTrue(qAbs(value - 12.5) < 0.000001,
-		"system-locale fallback keeps its decimal meaning");
-}
-
-void testBenchmarkBatchPlanUsesOnlyComparableFullBatches()
-{
-	const BenchmarkBatchPlan partial = planBenchmarkBatches(1000, 480);
-	expectEqual(partial.processedFrames, 960u,
-		"benchmark processes only full fixed-size batches");
-	expectEqual(partial.trimmedFrames, 40u,
-		"benchmark reports the excluded partial tail");
-
-	const BenchmarkBatchPlan exact = planBenchmarkBatches(960, 480);
-	expectEqual(exact.processedFrames, 960u,
-		"batch-aligned benchmark lengths remain unchanged");
-	expectEqual(exact.trimmedFrames, 0u,
-		"batch-aligned benchmark lengths trim nothing");
-}
-}
 
 int main(int argc, char** argv)
 {
