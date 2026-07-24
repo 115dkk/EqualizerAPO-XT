@@ -69,6 +69,13 @@ public:
 	// is used only while filters/configurations are prepared, never in AVRT_CODE.
 	static void failAllocationAfterForTesting(size_t successfulAllocations) noexcept;
 	static void resetAllocationFailureForTesting() noexcept;
+	// Lifetime observation for tests: successful alloc() calls and non-null
+	// free() calls since the last reset. A test binary that links Common.lib
+	// whole-archive cannot define its own alloc()/free() to count them any
+	// more, so the counters live next to the real definitions instead.
+	static size_t allocationCountForTesting() noexcept;
+	static size_t freeCountForTesting() noexcept;
+	static void resetAllocationCountsForTesting() noexcept;
 
 	// Owns aligned storage for trivially destructible C-style arrays. A null
 	// result represents either a size overflow or allocation failure; callers

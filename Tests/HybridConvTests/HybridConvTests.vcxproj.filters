@@ -35,6 +35,9 @@
     <ClCompile Include="ExpressionCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FilterFactoryRegistryTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="GraphicEQCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

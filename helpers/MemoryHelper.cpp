@@ -34,6 +34,15 @@ namespace
 {
 	constexpr size_t allocationFailureDisabled = (std::numeric_limits<size_t>::max)();
 	std::atomic<size_t> allocationFailureCountdown{ allocationFailureDisabled };
+	// Deliberately not guarded by _DEBUG: CI builds and runs Release only, so a
+	// debug-only counter would leave the observing test with nothing to read.
+	// Atomic because configuration preparation can run on several threads at
+	// once (MemoryHelper never runs in AVRT_CODE, so the interlocked increment
+	// costs nothing on any path where cost matters). Relaxed ordering matches
+	// allocationFailureCountdown: the counters carry no data, and the test
+	// reads them after the work it measures has finished.
+	std::atomic<size_t> successfulAllocationCount{ 0 };
+	std::atomic<size_t> completedFreeCount{ 0 };
 }
 
 void* MemoryHelper::alloc(size_t size)
@@ -62,6 +71,7 @@ void* MemoryHelper::alloc(size_t size)
 		return nullptr;
 	}
 
+	successfulAllocationCount.fetch_add(1, std::memory_order_relaxed);
 	return memory;
 }
 
@@ -75,8 +85,29 @@ void MemoryHelper::resetAllocationFailureForTesting() noexcept
 	allocationFailureCountdown.store(allocationFailureDisabled, std::memory_order_relaxed);
 }
 
+size_t MemoryHelper::allocationCountForTesting() noexcept
+{
+	return successfulAllocationCount.load(std::memory_order_relaxed);
+}
+
+size_t MemoryHelper::freeCountForTesting() noexcept
+{
+	return completedFreeCount.load(std::memory_order_relaxed);
+}
+
+void MemoryHelper::resetAllocationCountsForTesting() noexcept
+{
+	successfulAllocationCount.store(0, std::memory_order_relaxed);
+	completedFreeCount.store(0, std::memory_order_relaxed);
+}
+
 void MemoryHelper::free(void* ptr)
 {
+	// A null free is a no-op, so counting it would make the two totals
+	// incomparable: a failed alloc() returns null and is not counted either.
+	if (ptr != nullptr)
+		completedFreeCount.fetch_add(1, std::memory_order_relaxed);
+
 #ifdef _DEBUG
 	_aligned_free_dbg(ptr);
 #else

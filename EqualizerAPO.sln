@@ -21,6 +21,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HybridConvTests", "Tests\Hy
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EditorLogicTests", "Tests\EditorLogicTests\EditorLogicTests.vcxproj", "{4F4BB877-4BD5-4F09-BAB9-22DDB413DBF4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6758B50E-B9F0-4389-A61D-A842F0545E1B} = {6758B50E-B9F0-4389-A61D-A842F0545E1B}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AudioRegressionTests", "Tests\AudioRegressionTests\AudioRegressionTests.vcxproj", "{D273C249-AD1C-4072-809C-8E430F982BFE}"
 	ProjectSection(ProjectDependencies) = postProject
