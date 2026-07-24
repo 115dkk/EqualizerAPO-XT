@@ -550,8 +550,10 @@ void testConfigSwapCrossfades(test::Harness& harness)
 	initializeEngine(engine, sampleRate, 2, 480, configA);
 
 	// The engine's real crossfade length; do not re-derive its formula here.
+	// A zero length would leave the sampled transition empty, so the midpoint
+	// read below needs this as a gating check.
 	const unsigned transitionLength = engine.getTransitionLength();
-	harness.expect(transitionLength > 0, "engine reported no transition length after initialize");
+	harness.require(transitionLength > 0, "engine reported no transition length after initialize");
 
 	// Settle on config A.
 	std::vector<float> settled = processDcBlock(engine, 1.0f, 1.0f, 480);

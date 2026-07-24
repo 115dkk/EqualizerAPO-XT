@@ -161,6 +161,8 @@ SOURCES += main.cpp\
 	../filters/ConvolutionFilter.cpp \
 	../filters/ConvolutionFilePath.cpp \
 	../filters/MultiConvolutionCommand.cpp \
+	../filters/MultiConvolutionFilter.cpp \
+	../filters/MultiConvolutionFilterFactory.cpp \
 	../ConfigurationFileReader.cpp \
 	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \

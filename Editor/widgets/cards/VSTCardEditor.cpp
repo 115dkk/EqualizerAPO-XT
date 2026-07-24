@@ -26,7 +26,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "helpers/aeffectx.h"
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "filters/VSTPluginCommand.h"

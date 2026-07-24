@@ -790,13 +790,15 @@ int runAudioRegressionTests(int argc, char** argv)
 	else
 		printf("\n");
 
-	// Route the final verdict through the shared harness. On failure this
-	// prints to stderr and exits(1); on success it returns 0, preserving the
-	// previous "return anyFailed ? 1 : 0" exit semantics. anyFailed covers both
-	// a tolerance drift in verify mode and a reference-write error in generate
-	// mode.
+	// Route the final verdict through the shared harness. Under the harness
+	// default (Collect) it is report() that carries the exit code: it prints
+	// the failure summary to stderr and exits(1), preserving the previous
+	// "return anyFailed ? 1 : 0" exit semantics. Without the report() call a
+	// failed run would return 0. anyFailed covers both a tolerance drift in
+	// verify mode and a reference-write error in generate mode.
 	test::Harness harness("AudioRegressionTests");
 	harness.expect(!anyFailed, "one or more regression cases failed (drift beyond tolerance or I/O error)");
+	harness.report();
 	return 0;
 }
 

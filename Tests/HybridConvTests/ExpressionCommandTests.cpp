@@ -36,45 +36,46 @@ void testInlineSplit()
 {
 	// Plain text gives one literal segment; empty text gives none.
 	vector<Segment> segments = InlineExpression::split(L"plain text");
-	harness.expectEqual(segments.size(), (size_t)1, "plain text segment count");
+	harness.requireEqual(segments.size(), (size_t)1, "plain text segment count");
 	harness.expectTrue(segments[0] == Segment{false, L"plain text"}, "plain text segment");
 	harness.expectEqual(InlineExpression::split(L"").size(), (size_t)0, "empty text gives no segments");
 
 	// Backticks delimit expressions.
 	segments = InlineExpression::split(L"a `x + 1` b");
-	harness.expectEqual(segments.size(), (size_t)3, "literal/expression/literal count");
+	harness.requireEqual(segments.size(), (size_t)3, "literal/expression/literal count");
 	harness.expectTrue(segments[0] == Segment{false, L"a "}, "leading literal");
 	harness.expectTrue(segments[1] == Segment{true, L"x + 1"}, "expression body");
 	harness.expectTrue(segments[2] == Segment{false, L" b"}, "trailing literal");
 
 	// "\`" escapes a literal backtick on both sides of the delimiter.
 	segments = InlineExpression::split(L"a\\`b");
-	harness.expectEqual(segments.size(), (size_t)1, "escaped backtick stays literal");
+	harness.requireEqual(segments.size(), (size_t)1, "escaped backtick stays literal");
 	harness.expectTrue(segments[0] == Segment{false, L"a`b"}, "escape is resolved in literal text");
 
 	segments = InlineExpression::split(L"`a\\`b`");
-	harness.expectEqual(segments.size(), (size_t)1, "escaped backtick inside expression");
+	harness.requireEqual(segments.size(), (size_t)1, "escaped backtick inside expression");
 	harness.expectTrue(segments[0] == Segment{true, L"a`b"}, "escape is resolved in expression text");
 
 	// A backslash not followed by a backtick stays literal.
 	segments = InlineExpression::split(L"a\\b");
+	harness.requireEqual(segments.size(), (size_t)1, "plain backslash gives one literal segment");
 	harness.expectTrue(segments[0] == Segment{false, L"a\\b"}, "plain backslash stays literal");
 
 	// A double backslash before a backtick: the first backslash stays, the
 	// second escapes the backtick, and the final backtick then opens an
 	// unterminated (dropped) expression.
 	segments = InlineExpression::split(L"\\\\`x`");
-	harness.expectEqual(segments.size(), (size_t)1, "double backslash gives one literal segment");
+	harness.requireEqual(segments.size(), (size_t)1, "double backslash gives one literal segment");
 	harness.expectTrue(segments[0] == Segment{false, L"\\`x"}, "only the second backslash escapes");
 
 	// Empty expressions are kept so the caller reports the evaluation error.
 	segments = InlineExpression::split(L"a``b");
-	harness.expectEqual(segments.size(), (size_t)3, "empty expression is kept");
+	harness.requireEqual(segments.size(), (size_t)3, "empty expression is kept");
 	harness.expectTrue(segments[1] == Segment{true, L""}, "empty expression body");
 
 	// The content of an unterminated expression is dropped.
 	segments = InlineExpression::split(L"a`bc");
-	harness.expectEqual(segments.size(), (size_t)1, "unterminated expression is dropped");
+	harness.requireEqual(segments.size(), (size_t)1, "unterminated expression is dropped");
 	harness.expectTrue(segments[0] == Segment{false, L"a"}, "literal before unterminated expression survives");
 }
 

@@ -49,7 +49,7 @@ void testParameterValidation()
 		IIRFilterFactory::parseCommand(L"Filter", L"ON IIR Order 2 Coefficients 1 0 0 0.5 0 0", cmd),
 		"order 2 with 6 coefficients parses");
 	harness.expectEqual(cmd.order, 2u, "parsed order");
-	harness.expectEqual(cmd.coefficients.size(), (size_t)6, "parsed coefficient count");
+	harness.requireEqual(cmd.coefficients.size(), (size_t)6, "parsed coefficient count");
 	harness.expectTrue(cmd.coefficients[0] == 1.0 && cmd.coefficients[3] == 0.5, "coefficient values");
 
 	harness.expectFalse(

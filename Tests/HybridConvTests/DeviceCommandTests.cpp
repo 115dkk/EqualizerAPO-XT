@@ -32,8 +32,9 @@ DeviceCommand parsePatterns(const wstring& parameters)
 void testTokenization()
 {
 	DeviceCommand cmd = parsePatterns(L"Speakers Realtek; USB Audio");
-	harness.expectEqual(cmd.patterns.size(), (size_t)2, "two patterns are split on ';'");
-	harness.expectEqual(cmd.patterns[0].size(), (size_t)2, "first pattern word count");
+	harness.requireEqual(cmd.patterns.size(), (size_t)2, "two patterns are split on ';'");
+	harness.requireEqual(cmd.patterns[0].size(), (size_t)2, "first pattern word count");
+	harness.requireEqual(cmd.patterns[1].size(), (size_t)2, "second pattern word count");
 	harness.expectTrue(cmd.patterns[0][0] == L"Speakers", "first word kept verbatim");
 	harness.expectTrue(cmd.patterns[1][1] == L"Audio", "second pattern second word");
 

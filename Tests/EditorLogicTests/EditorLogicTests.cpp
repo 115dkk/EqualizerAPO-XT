@@ -81,10 +81,11 @@ void MemoryHelper::free(void* ptr)
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
 // EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
-// The suite runs under FailurePolicy::Collect so one broken feature block
-// does not hide the findings of every block after it; the
-// require* wrappers keep the gating checks aborting.
-test::Harness harness("EditorLogicTests", test::FailurePolicy::Collect);
+// The policy argument is left off on purpose: FailurePolicy::Collect is the
+// harness default now, so one broken feature block does not hide the findings
+// of every block after it. The require* wrappers keep the gating checks
+// aborting, and main() always reaches report().
+test::Harness harness("EditorLogicTests");
 
 std::string toStd(const QString& s)
 {

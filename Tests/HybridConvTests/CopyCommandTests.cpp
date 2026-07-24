@@ -33,8 +33,8 @@ test::Harness harness("CopyCommandTests");
 // out of range.
 const Assignment::Summand& summandAt(const vector<Assignment>& assignments, size_t a, size_t s, const std::string& label)
 {
-	harness.expectTrue(a < assignments.size(), label + ": assignment index out of range");
-	harness.expectTrue(s < assignments[a].sourceSum.size(), label + ": summand index out of range");
+	harness.require(a < assignments.size(), label + ": assignment index out of range");
+	harness.require(s < assignments[a].sourceSum.size(), label + ": summand index out of range");
 	return assignments[a].sourceSum[s];
 }
 
@@ -51,7 +51,7 @@ void testSimpleRouting()
 {
 	// Plain identity routing: each target reads one source channel at unit gain.
 	vector<Assignment> assignments = parseCopyAssignments(L"L=R C=C");
-	harness.expectEqual(assignments.size(), (size_t)2, "two-assignment list size");
+	harness.requireEqual(assignments.size(), (size_t)2, "two-assignment list size");
 	harness.expectTrue(assignments[0].targetChannel == L"L", "first target is L");
 	harness.expectEqual(assignments[0].sourceSum.size(), (size_t)1, "L has one summand");
 	expectSummand(assignments, 0, 0, L"R", 1.0, false, "L=R summand");
@@ -63,7 +63,7 @@ void testCrossfeedWithFactors()
 {
 	// Mono downmix: both outputs are a weighted sum of L and R.
 	vector<Assignment> assignments = parseCopyAssignments(L"L=0.5*L+0.5*R R=0.5*L+0.5*R");
-	harness.expectEqual(assignments.size(), (size_t)2, "downmix assignment count");
+	harness.requireEqual(assignments.size(), (size_t)2, "downmix assignment count");
 	harness.expectEqual(assignments[0].sourceSum.size(), (size_t)2, "L has two summands");
 	expectSummand(assignments, 0, 0, L"L", 0.5, false, "L summand 0");
 	expectSummand(assignments, 0, 1, L"R", 0.5, false, "L summand 1");
@@ -77,7 +77,7 @@ void testNegativeFactorAndVirtualChannel()
 	// leading "0.866" carries a '.' so it is read as a factor, and "-0.5" is a
 	// negative factor on the second summand.
 	vector<Assignment> assignments = parseCopyAssignments(L"VSL=0.866*L+-0.5*R");
-	harness.expectEqual(assignments.size(), (size_t)1, "virtual channel assignment count");
+	harness.requireEqual(assignments.size(), (size_t)1, "virtual channel assignment count");
 	harness.expectTrue(assignments[0].targetChannel == L"VSL", "target is virtual VSL");
 	expectSummand(assignments, 0, 0, L"L", 0.866, false, "VSL summand 0");
 	expectSummand(assignments, 0, 1, L"R", -0.5, false, "VSL summand 1");
@@ -108,7 +108,7 @@ void testMalformedChunkDropped()
 	// A token with no '=' is not an assignment and is dropped, matching the
 	// engine factory; the well-formed assignments around it survive.
 	vector<Assignment> assignments = parseCopyAssignments(L"L=R garbage C=C");
-	harness.expectEqual(assignments.size(), (size_t)2, "malformed chunk is dropped");
+	harness.requireEqual(assignments.size(), (size_t)2, "malformed chunk is dropped");
 	harness.expectTrue(assignments[0].targetChannel == L"L", "surviving target L");
 	harness.expectTrue(assignments[1].targetChannel == L"C", "surviving target C");
 
@@ -174,7 +174,7 @@ void testSerializeRoundTrip()
 	harness.expectTrue(serialized == L"SL=0.7*L", "hand-built assignment should serialize to 'SL=0.7*L'");
 
 	vector<Assignment> reparsed = parseCopyAssignments(serialized);
-	harness.expectEqual(reparsed.size(), (size_t)1, "round-trip assignment count");
+	harness.requireEqual(reparsed.size(), (size_t)1, "round-trip assignment count");
 	harness.expectTrue(reparsed[0].targetChannel == L"SL", "round-trip target");
 	expectSummand(reparsed, 0, 0, L"L", 0.7, false, "round-trip summand");
 }

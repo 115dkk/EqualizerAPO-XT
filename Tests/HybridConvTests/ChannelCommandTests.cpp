@@ -29,19 +29,19 @@ std::vector<wstring> parseChannels(const wstring& parameters)
 void testTokenization()
 {
 	std::vector<wstring> channels = parseChannels(L" L R ");
-	harness.expectEqual(channels.size(), (size_t)2, "'L R' selector count");
+	harness.requireEqual(channels.size(), (size_t)2, "'L R' selector count");
 	harness.expectTrue(channels[0] == L"L", "first selector");
 	harness.expectTrue(channels[1] == L"R", "second selector");
 
 	// Commas are separators too; the Editor GUI historically missed this.
 	channels = parseChannels(L"L,R");
-	harness.expectEqual(channels.size(), (size_t)2, "'L,R' selector count");
+	harness.requireEqual(channels.size(), (size_t)2, "'L,R' selector count");
 	harness.expectTrue(channels[0] == L"L", "'L,R' first selector");
 	harness.expectTrue(channels[1] == L"R", "'L,R' second selector");
 
 	// Mixed separators and position numbers.
 	channels = parseChannels(L"1, c  SUB");
-	harness.expectEqual(channels.size(), (size_t)3, "mixed separator selector count");
+	harness.requireEqual(channels.size(), (size_t)3, "mixed separator selector count");
 	harness.expectTrue(channels[0] == L"1", "numeric selector");
 	harness.expectTrue(channels[1] == L"C", "lower-case selector is upper-cased");
 	harness.expectTrue(channels[2] == L"SUB", "name selector");

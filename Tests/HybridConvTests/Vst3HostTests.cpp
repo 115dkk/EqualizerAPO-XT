@@ -114,7 +114,7 @@ void runVst3HostTests()
 	}
 
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
-	harness.expectTrue(library != nullptr, "bundle resolves to a library");
+	harness.require(library != nullptr, "bundle resolves to a library");
 	harness.expectTrue(library->isVST3(), "bundle is recognized as VST3");
 	harness.expectTrue(library->initialize() >= 0, "Windows VST3 module lifecycle initializes before factory access");
 	harness.expectTrue(library->getFactory() != nullptr, "VST3 factory is available after module initialization");
