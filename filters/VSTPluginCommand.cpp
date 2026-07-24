@@ -36,6 +36,25 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 	// one grammar.
 	VSTPluginCommand cmd;
 
+	wstring libraryReference = extractLibraryReference(parameters);
+	if (!libraryReference.empty())
+	{
+		if (PathIsRelativeW(libraryReference.c_str()))
+		{
+			wchar_t filePath[MAX_PATH];
+			wstring pluginPath = VSTPluginLibrary::getDefaultPluginPath();
+			pluginPath._Copy_s(filePath, sizeof(filePath) / sizeof(wchar_t), MAX_PATH);
+			if (pluginPath.size() < MAX_PATH)
+				filePath[pluginPath.size()] = L'\0';
+			else
+				filePath[MAX_PATH - 1] = L'\0';
+			PathAppendW(filePath, libraryReference.c_str());
+			cmd.libraryPath = filePath;
+		}
+		else
+			cmd.libraryPath = libraryReference;
+	}
+
 	vector<wstring> parts = StringHelper::splitQuoted(parameters, ' ');
 	for (unsigned i = 0; i + 1 < parts.size(); i += 2)
 	{
@@ -43,25 +62,7 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 		wstring value = parts[i + 1];
 
 		if (key == L"Library")
-		{
-			wstring libPath;
-			if (PathIsRelativeW(value.c_str()))
-			{
-				wchar_t filePath[MAX_PATH];
-				wstring pluginPath = VSTPluginLibrary::getDefaultPluginPath();
-				pluginPath._Copy_s(filePath, sizeof(filePath) / sizeof(wchar_t), MAX_PATH);
-				if (pluginPath.size() < MAX_PATH)
-					filePath[pluginPath.size()] = L'\0';
-				else
-					filePath[MAX_PATH - 1] = L'\0';
-				PathAppendW(filePath, value.c_str());
-				libPath = filePath;
-			}
-			else
-				libPath = value;
-
-			cmd.libraryPath = libPath;
-		}
+			continue;
 		else if (key == L"ChunkData")
 		{
 			cmd.chunkData = value;

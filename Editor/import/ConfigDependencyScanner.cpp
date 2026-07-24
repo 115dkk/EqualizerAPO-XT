@@ -7,6 +7,7 @@
 #include "../widgets/FilterCardModel.h"
 #include "filters/ConvolutionFilePath.h"
 #include "filters/MultiConvolutionCommand.h"
+#include "filters/VSTPluginCommand.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -48,9 +49,9 @@ QString stripSurroundingQuotes(const QString& text)
     return trimmed;
 }
 
-// The path portion of the line for the given reference command. Include and
-// VSTPlugin use the raw parameters; the convolution family shares the
-// engine's own grammar so factors/mappings never leak into the path.
+// The path portion of the line for the given reference command. The
+// convolution family and VSTPlugin share their engine grammar so routing
+// factors, mappings, state and parameter pairs never leak into the path.
 QString referencePath(const QString& commandLower, const QString& parameters)
 {
     if (commandLower == QStringLiteral("multiconvolution"))
@@ -62,6 +63,9 @@ QString referencePath(const QString& commandLower, const QString& parameters)
     }
     if (commandLower == QStringLiteral("convolution"))
         return stripSurroundingQuotes(parameters);
+    if (commandLower == QStringLiteral("vstplugin"))
+        return QString::fromStdWString(
+            VSTPluginCommand::extractLibraryReference(parameters.toStdWString()));
     return parameters;
 }
 
@@ -168,6 +172,23 @@ void scanConfigFile(ImportManifest& manifest,
             continue;
 
         QString reference = referencePath(commandLower, parameters);
+        if (commandLower == QStringLiteral("vstplugin"))
+        {
+            if (reference.isEmpty())
+            {
+                manifest.warnings.append(QObject::tr(
+                    "VSTPlugin line has no Library reference: %1 (in %2)")
+                    .arg(parameters, sourceTxtAbs));
+                manifest.hasErrors = true;
+            }
+            else if (!manifest.externalReferences.contains(reference))
+                manifest.externalReferences.append(reference);
+
+            // Plugin binaries are machine-installed dependencies. Preserve the
+            // config line verbatim, but never copy the binary into config.
+            continue;
+        }
+
         QString refAbs = resolveAbsolute(reference, sourceTxtAbs);
         if (refAbs.isEmpty())
             continue;

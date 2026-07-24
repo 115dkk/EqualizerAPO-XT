@@ -908,6 +908,34 @@ void testConfigImport()
 		QDir::cleanPath(surroundDir + "/env.wav"),
 		"scanner and engine resolve environment-expanded paths identically");
 
+	const QString externalPlugin = tempDir.path() + "/plugins/Test Vst.dll";
+	expectTrue(QDir().mkpath(QFileInfo(externalPlugin).absolutePath()),
+		"failed to create external VST fixture directory");
+	writeBlob(externalPlugin, 64);
+	const QString vstLine = QStringLiteral("VSTPlugin: Library \"%1\" ChunkData \"QUJDRA==\"\n")
+		.arg(QDir::toNativeSeparators(externalPlugin));
+	writeText(surroundDir + "/vst.txt", vstLine);
+
+	auto vstManifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		surroundDir + "/vst.txt", tempDir.path() + "/configdir");
+	expectFalse(vstManifest.hasErrors,
+		"an external VST reference should not block config import");
+	requireEqual(int(vstManifest.items.size()), 1,
+		"external VST binaries must not be copied with the config");
+	requireEqual(int(vstManifest.externalReferences.size()), 1,
+		"external VST reference should be recorded separately");
+	expectPath(vstManifest.externalReferences[0], externalPlugin);
+
+	const QString vstImportDir = tempDir.path() + "/vst-import";
+	const auto vstImportResult = EqAPO::Import::ImportExecutor::execute(vstManifest, vstImportDir);
+	expectTrue(vstImportResult.success, "VST config import should succeed without copying its DLL");
+	expectEqual(vstImportResult.filesCopied, 1, "VST import copies only the config file");
+	const auto importedVstConfig = ConfigFileCodec::readConfig(vstImportDir + "/Surround/vst.txt");
+	expectTrue(importedVstConfig.ok, "imported VST config should be readable");
+	requireEqual(int(importedVstConfig.lines.size()), 2, "imported VST config preserves its line and terminator");
+	expectEqual(importedVstConfig.lines[0], vstLine.trimmed(),
+		"imported config must retain the external VST Library reference");
+
 	// Legacy configs use the system ANSI code page when a line is not valid
 	// UTF-8. Pick a character that round-trips through this machine's ACP but
 	// is invalid as standalone UTF-8, then prove the import scanner follows the

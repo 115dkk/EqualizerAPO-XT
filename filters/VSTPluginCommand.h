@@ -22,6 +22,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "helpers/StringHelper.h"
+
 // Plain description of a parsed "VSTPlugin:" config line. It holds exactly the
 // three things VSTPluginFilterFactory::createFilter extracts from the parameter
 // string before building a VSTPluginFilter: the resolved library PATH (already
@@ -44,6 +46,20 @@ struct VSTPluginCommand
 	// on that DAW-style layout but often declare only a generic "Fx" VST3
 	// subcategory, so the host cannot recognize them automatically.
 	bool stereoInput = false;
+
+	// Returns the value paired with the Library key without resolving or
+	// loading it. Import/migration uses this to retain VST binaries as external
+	// references while copying only the config and its portable dependencies.
+	static std::wstring extractLibraryReference(const std::wstring& parameters)
+	{
+		const std::vector<std::wstring> parts = StringHelper::splitQuoted(parameters, L' ');
+		for (size_t i = 0; i + 1 < parts.size(); i += 2)
+		{
+			if (parts[i] == L"Library")
+				return parts[i + 1];
+		}
+		return L"";
+	}
 
 	// Qt-free parser for a "VSTPlugin:" parameter string: splitQuoted on spaces
 	// into key/value pairs, "Library" resolved through the
