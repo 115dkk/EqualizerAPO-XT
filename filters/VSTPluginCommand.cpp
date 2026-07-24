@@ -20,6 +20,7 @@
 #include "stdafx.h"
 
 #include <cstdio>
+#include <cwctype>
 
 #include "helpers/StringHelper.h"
 #include "helpers/VSTPluginLibrary.h"
@@ -73,7 +74,7 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 		}
 		else
 		{
-			if (!isdigit(value.c_str()[0]))
+			if (value.empty() || !std::iswdigit(value[0]))
 			{
 				size_t x = (size_t)i + 2;
 				if (x < parts.size())

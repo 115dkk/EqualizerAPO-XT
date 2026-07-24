@@ -119,6 +119,12 @@ void testNonNumericValueBranch()
 	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", L"Library C:\\plugins\\reverb.dll ParamName SomeText 0.5");
 	harness.expectEqual(cmd.paramMap.size(), (size_t)1, "non-numeric: one param");
 	harness.expectEqual(paramValue(cmd.paramMap, L"SomeText", "non-numeric value"), 0.5f, "non-numeric: mapped value");
+
+	VSTPluginCommand unicode = VSTPluginCommand::parse(
+		L"", L"Library C:\\plugins\\reverb.dll ParamName \xD55C\xAE00\xC774\xB984 0.25");
+	harness.expectEqual(unicode.paramMap.size(), (size_t)1, "non-ASCII name: one param");
+	harness.expectEqual(paramValue(unicode.paramMap, L"\xD55C\xAE00\xC774\xB984", "non-ASCII name value"),
+		0.25f, "non-ASCII parameter name is classified safely");
 }
 
 // Asserts that serializing a parsed command reproduces the expected canonical
