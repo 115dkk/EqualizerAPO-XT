@@ -309,12 +309,13 @@ jobs:
       # STEP 3: Download + silently install the latest released x64-avx2 build.
       #
       #   The per-channel Velopack Setup asset name doubles the channel because
-      #   the packId already embeds it (Installer/AutoInstaller.cpp:179-182,
-      #   build.yml:1448-1449,1510):
+      #   the packId already embeds it (assetName() in
+      #   Installer/AutoInstaller.cpp and the create-release job in build.yml):
       #       EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe
-      #   Velopack's Setup.exe accepts --silent (Installer/AutoInstaller.cpp:569,
-      #   launchSetup forwards it).
-      #   We verify against SHA256SUMS.txt if present (build.yml:1589-1626).
+      #   Velopack's Setup.exe accepts --silent (launchSetup() in
+      #   Installer/AutoInstaller.cpp forwards it).
+      #   We verify against SHA256SUMS.txt if present (the SHA256SUMS step in
+      #   build.yml's create-release job).
       # -----------------------------------------------------------------------
       - name: Download + silently install x64-avx2 release (20)
         shell: pwsh

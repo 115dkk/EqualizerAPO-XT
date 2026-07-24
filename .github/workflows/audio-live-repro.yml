@@ -551,7 +551,7 @@ jobs:
       # STEP 3: Download + silently install the latest released x64-avx2 build.
       #   Same logic as audio-uninstall-repro.yml: the Setup asset name doubles
       #   the channel because the packId already embeds it
-      #   (Installer/AutoInstaller.cpp:179-182), Setup.exe accepts --silent, and
+      #   (assetName() in Installer/AutoInstaller.cpp), Setup.exe accepts --silent, and
       #   we verify against SHA256SUMS.txt if present.
       # -----------------------------------------------------------------------
       - name: Download + silently install x64-avx2 release (25)
