@@ -584,18 +584,17 @@ public:
 
 	// Monochrome type cell: typeColor is deliberately ignored - the command
 	// type reads from the mono glyph, never from a per-type colour.
-	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
+	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
+		const QString& badgeToken, const SkinTokens& tokens) const override
 	{
 		Q_UNUSED(typeColor);
+		Q_UNUSED(badgeToken);
 		const QString ink = info.enabled ? tokens.text : tokens.mutedText;
-		return QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
-			.arg(ink, tokens.border);
-	}
-
-	// The pictogram keeps the cell monochrome: board ink awake, muted asleep.
-	QColor typeBadgeInk(const CommandRowInfo& info, const QString&, const QString&, const SkinTokens& tokens) const override
-	{
-		return QColor(info.enabled ? tokens.text : tokens.mutedText);
+		return {
+			QStringLiteral("color:%1; border-color:%2; background-color:transparent;")
+				.arg(ink, tokens.border),
+			QColor(ink)
+		};
 	}
 
 	// Row chrome shared by every command type: the coordinate cell and the

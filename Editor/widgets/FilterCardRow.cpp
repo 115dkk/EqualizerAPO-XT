@@ -696,15 +696,15 @@ void FilterCardRow::applyDescriptor()
 		return;
 	}
 
-	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle).
+	const BadgeTreatment badgeTreatment = SkinManager::instance()->badgeTreatment(
+		currentRowInfo(), descriptor.color, descriptor.badge);
+	// The badge chrome and pictogram ink are one skin-owned decision.
 	// Only touch the widget when the style actually changed: setStyleSheet
 	// unconditionally rebuilds the widget's style, and applyDescriptor runs
 	// again on every summary rebuild.
-	const QString badgeStyle = SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color);
-	if (typeBadge->styleSheet() != badgeStyle)
-		typeBadge->setStyleSheet(badgeStyle);
-	// The badge carries the picker's pictogram, inked by the skin
-	// (ISkin::typeBadgeInk). The monogram survives only for lines the icon
+	if (typeBadge->styleSheet() != badgeTreatment.qss)
+		typeBadge->setStyleSheet(badgeTreatment.qss);
+	// The monogram survives only for lines the icon
 	// catalog does not map (raw text), so unknown commands keep reading
 	// instead of going blank.
 	const QString badgeIcon = FilterCardModel::badgeIconResource(descriptor.type, descriptor.badge);
@@ -715,9 +715,8 @@ void FilterCardRow::applyDescriptor()
 	}
 	else
 	{
-		const QColor ink = SkinManager::instance()->typeBadgeInk(currentRowInfo(), descriptor.color, descriptor.badge);
 		typeBadge->setText(QString());
-		typeBadge->setPixmap(badgePictogram(badgeIcon, ink, 16, devicePixelRatioF()));
+		typeBadge->setPixmap(badgePictogram(badgeIcon, badgeTreatment.ink, 16, devicePixelRatioF()));
 	}
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);

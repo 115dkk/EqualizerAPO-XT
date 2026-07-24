@@ -189,14 +189,9 @@ QString SkinManager::cardHeaderStyle(const CommandRowInfo& info) const
 	return activeSkin->cardHeaderStyle(info, currentTokens);
 }
 
-QString SkinManager::typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const
+BadgeTreatment SkinManager::badgeTreatment(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const
 {
-	return activeSkin->typeBadgeStyle(info, typeColor, currentTokens);
-}
-
-QColor SkinManager::typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const
-{
-	return activeSkin->typeBadgeInk(info, typeColor, badgeToken, currentTokens);
+	return activeSkin->badgeTreatment(info, typeColor, badgeToken, currentTokens);
 }
 
 void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const

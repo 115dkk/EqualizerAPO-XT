@@ -214,26 +214,26 @@ public:
 	// chip - white text on a pastel is exactly the kind of low-contrast
 	// anxiety this skin removes. A sleeping (commented-out) row sinks its
 	// chip toward the window background.
-	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& t) const override
+	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
+		const QString& badgeToken, const SkinTokens& t) const override
 	{
+		Q_UNUSED(badgeToken);
 		const bool dark = skinIsDark(t);
 		const QColor pastel = softPastelize(QColor(typeColor), dark);
 		if (!info.enabled)
 		{
 			const QColor sleeping = mixColor(pastel, QColor(t.background), 0.62);
-			return QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
-				.arg(t.mutedText, sleeping.name());
+			return {
+				QStringLiteral("color:%1; border-color:transparent; background-color:%2;")
+					.arg(t.mutedText, sleeping.name()),
+				QColor(t.mutedText)
+			};
 		}
-		return QStringLiteral("color:#2B251D; border-color:transparent; background-color:%1;")
-			.arg(pastel.name());
-	}
-
-	// The badge pictogram's ink: the deep warm ink on the pastel chip -
-	// white strokes on a pastel are exactly the low-contrast anxiety this
-	// skin removes. A sleeping chip relaxes to the muted ink.
-	QColor typeBadgeInk(const CommandRowInfo& info, const QString&, const QString&, const SkinTokens& t) const override
-	{
-		return info.enabled ? QColor(QStringLiteral("#2B251D")) : QColor(t.mutedText);
+		return {
+			QStringLiteral("color:#2B251D; border-color:transparent; background-color:%1;")
+				.arg(pastel.name()),
+			QColor(QStringLiteral("#2B251D"))
+		};
 	}
 
 	// The trailing add row (shared insertion contract,

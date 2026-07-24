@@ -1407,13 +1407,19 @@ public:
 	// through the studioBand property the prepareCommandRow hook tagged
 	// them with; other commands keep their model colour as quiet ink.
 	// Disabled rows switch the chip off.
-	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const override
+	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
+		const QString& badgeToken, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
 		if (!info.enabled)
 		{
-			return QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: transparent; border: 1px solid %2; }")
-				.arg(cssRgba(tokens.mutedText, 0.65), cssRgba(tokens.border, 0.55));
+			QColor sleeping(tokens.mutedText);
+			sleeping.setAlphaF(0.65f);
+			return {
+				QStringLiteral("QLabel#FilterTypeBadge { color: %1; background-color: transparent; border: 1px solid %2; }")
+					.arg(cssRgba(tokens.mutedText, 0.65), cssRgba(tokens.border, 0.55)),
+				sleeping
+			};
 		}
 
 		const QString baseInk = info.type == QStringLiteral("biquad") ? tokens.accent : typeColor;
@@ -1428,24 +1434,10 @@ public:
 					.arg(QLatin1String(family), band, cssRgba(band, dark ? 0.15 : 0.10), cssRgba(band, dark ? 0.42 : 0.45));
 			}
 		}
-		return style;
-	}
-
-	// The badge pictogram's ink: a sleeping row's dimmed muted ink, a
-	// biquad's band colour (from the type code, agreeing with the
-	// studioBand tag the QSS variants follow), every other command its type
-	// colour.
-	QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken, const SkinTokens& tokens) const override
-	{
-		if (!info.enabled)
-		{
-			QColor sleeping(tokens.mutedText);
-			sleeping.setAlphaF(0.65);
-			return sleeping;
-		}
-		if (info.type == QStringLiteral("biquad"))
-			return QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), skinIsDark(tokens)));
-		return QColor(typeColor);
+		const QColor ink = info.type == QStringLiteral("biquad")
+			? QColor(studioBandHex(studioBandFamilyForBadgeToken(badgeToken), dark))
+			: QColor(typeColor);
+		return { style, ink };
 	}
 
 	// Tags BiQuad rows with their band family so the QSS attribute
