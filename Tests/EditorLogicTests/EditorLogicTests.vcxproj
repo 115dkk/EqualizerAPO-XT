@@ -155,6 +155,7 @@
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
     <ClInclude Include="..\..\helpers\StringHelper.h" />
+    <ClInclude Include="..\..\helpers\OwnedBackgroundTask.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />

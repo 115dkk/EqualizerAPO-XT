@@ -41,11 +41,15 @@ public:
 	static std::wstring currentBinDir();
 
 	// Check the GitHub release feed and, if a newer build exists, download it into the
-	// Velopack staging area so it is ready to apply on exit. Runs the network work on a
-	// detached worker thread and returns immediately; repeat calls in the same session
+	// Velopack staging area so it is ready to apply on exit. Runs the network work on an
+	// owned worker thread and returns immediately; repeat calls in the same session
 	// are ignored. `repoUrl` is the full repository URL ("https://github.com/user/repo").
 	// `channel` overrides the build channel; leave empty to use the installed channel.
 	static void startBackgroundDownload(const std::string& repoUrl, const std::string& channel = std::string());
+
+	// Wait for the owned update worker to finish. Call during orderly shutdown before
+	// querying or applying a staged update.
+	static void shutdown();
 
 	// True once a downloaded update is staged and waiting to be applied.
 	static bool hasPendingUpdate();

@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
+#include <atomic>
+#include <chrono>
 #include <exception>
+#include <future>
 #include <iostream>
 #include <malloc.h>
 #include <stdexcept>
@@ -42,6 +45,7 @@
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/StudioRoutingModel.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/OwnedBackgroundTask.h"
 #include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
@@ -1717,6 +1721,36 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 	expectEqual(memoryHelperAllocations, 1, "construct allocates storage once");
 	expectEqual(memoryHelperFrees, 1, "construct releases storage when construction fails");
 }
+
+void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce()
+{
+	OwnedBackgroundTask task;
+	std::promise<void> enteredPromise;
+	std::future<void> entered = enteredPromise.get_future();
+	std::promise<void> releasePromise;
+	std::shared_future<void> release = releasePromise.get_future().share();
+	std::atomic<bool> completed{ false };
+
+	expectTrue(task.startOnce([&]() {
+		enteredPromise.set_value();
+		release.wait();
+		completed.store(true);
+	}), "owned background task starts its worker");
+	requireTrue(entered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+		"owned background task enters its worker");
+	expectFalse(task.startOnce([]() {}), "owned background task rejects a second start");
+
+	std::future<void> joined = std::async(std::launch::async, [&]() {
+		task.join();
+	});
+	expectTrue(joined.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout,
+		"join waits while the owned worker is active");
+	releasePromise.set_value();
+	requireTrue(joined.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+		"join completes after the owned worker exits");
+	joined.get();
+	expectTrue(completed.load(), "join observes completion of the owned worker");
+}
 }
 
 int main(int argc, char** argv)
@@ -1746,6 +1780,7 @@ int main(int argc, char** argv)
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 		testConfigFileCodecRejectsPartialRead();
 		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
+		testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
 		testFilterListModel();
 		testFilterListUndo();
 

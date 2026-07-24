@@ -574,6 +574,10 @@ int main(int argc, char* argv[])
 	}
 	while (restart);
 
+	// The session owns the download worker. Join it before inspecting staged state so
+	// neither process shutdown nor static destruction can race with its publication.
+	VelopackBootstrap::shutdown();
+
 	// If the background worker staged an update, apply it now. exec() has returned and
 	// the QApplication is destroyed, so no other thread is writing to the install dir.
 	// The apply is silent and does not restart; the new version comes up next launch.

@@ -73,5 +73,8 @@
     <ClInclude Include="..\..\UpdateChecker\VelopackUpdateInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\helpers\OwnedBackgroundTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

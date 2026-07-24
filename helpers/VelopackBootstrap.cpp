@@ -20,6 +20,7 @@
 #include "VelopackBootstrap.h"
 
 #include "LogHelper.h"
+#include "OwnedBackgroundTask.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -27,7 +28,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <thread>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -72,14 +72,23 @@ std::wstring envVar(const wchar_t* name)
 	return value;
 }
 
-// State for the staged update produced by the background worker. The UpdateManager
-// must outlive the worker thread so applyPendingUpdateAndExit() can drive the apply,
-// hence it is kept here rather than on the worker's stack.
-std::mutex g_updateMutex;
-std::unique_ptr<Velopack::UpdateManager> g_manager;
-std::unique_ptr<Velopack::UpdateInfo> g_pendingUpdate;
-std::atomic<bool> g_downloadStarted{ false };
-std::atomic<bool> g_updateReady{ false };
+// The session owns both the worker and every object that worker publishes. Keep
+// the worker last so its destructor joins before the state above it is destroyed,
+// even if a caller exits without the explicit orderly-shutdown hook.
+struct UpdateSession
+{
+	std::mutex updateMutex;
+	std::unique_ptr<Velopack::UpdateManager> manager;
+	std::unique_ptr<Velopack::UpdateInfo> pendingUpdate;
+	std::atomic<bool> updateReady{ false };
+	OwnedBackgroundTask worker;
+};
+
+UpdateSession& updateSession()
+{
+	static UpdateSession session;
+	return session;
+}
 }
 
 bool VelopackBootstrap::isFirstRun()
@@ -134,12 +143,8 @@ void VelopackBootstrap::startBackgroundDownload(const std::string& repoUrl, cons
 	if (repoUrl.empty())
 		return;
 
-	// Run the check + download at most once per session.
-	bool expected = false;
-	if (!g_downloadStarted.compare_exchange_strong(expected, true))
-		return;
-
-	std::thread([repoUrl, channel]()
+	UpdateSession& session = updateSession();
+	session.worker.startOnce([repoUrl, channel, &session]()
 	{
 		try
 		{
@@ -159,10 +164,10 @@ void VelopackBootstrap::startBackgroundDownload(const std::string& repoUrl, cons
 
 			manager->DownloadUpdates(*info);
 
-			std::lock_guard<std::mutex> lock(g_updateMutex);
-			g_pendingUpdate = std::make_unique<Velopack::UpdateInfo>(*info);
-			g_manager = std::move(manager);
-			g_updateReady.store(true);
+			std::lock_guard<std::mutex> lock(session.updateMutex);
+			session.pendingUpdate = std::make_unique<Velopack::UpdateInfo>(*info);
+			session.manager = std::move(manager);
+			session.updateReady.store(true);
 		}
 		catch (const std::exception& e)
 		{
@@ -174,36 +179,43 @@ void VelopackBootstrap::startBackgroundDownload(const std::string& repoUrl, cons
 			LogFStatic(L"[VelopackBootstrap] background update failed: unknown error");
 			fprintf(stderr, "[VelopackBootstrap] background update failed: unknown error\n");
 		}
-	}).detach();
+	});
+}
+
+void VelopackBootstrap::shutdown()
+{
+	updateSession().worker.join();
 }
 
 bool VelopackBootstrap::hasPendingUpdate()
 {
-	return g_updateReady.load();
+	return updateSession().updateReady.load();
 }
 
 std::wstring VelopackBootstrap::pendingUpdateVersion()
 {
-	std::lock_guard<std::mutex> lock(g_updateMutex);
-	if (!g_updateReady.load() || !g_pendingUpdate)
+	UpdateSession& session = updateSession();
+	std::lock_guard<std::mutex> lock(session.updateMutex);
+	if (!session.updateReady.load() || !session.pendingUpdate)
 		return std::wstring();
 	// Velopack version strings are plain ASCII semver, so the widening is a
 	// straight code-unit copy.
-	const std::string& version = g_pendingUpdate->TargetFullRelease.Version;
+	const std::string& version = session.pendingUpdate->TargetFullRelease.Version;
 	return std::wstring(version.begin(), version.end());
 }
 
 void VelopackBootstrap::applyPendingUpdateAndExit()
 {
-	std::lock_guard<std::mutex> lock(g_updateMutex);
-	if (!g_updateReady.load() || !g_manager || !g_pendingUpdate)
+	UpdateSession& session = updateSession();
+	std::lock_guard<std::mutex> lock(session.updateMutex);
+	if (!session.updateReady.load() || !session.manager || !session.pendingUpdate)
 		return;
 
 	try
 	{
 		// Apply silently and do not restart: the user closed the app, so we just swap
 		// files in the background and let the new version come up on the next launch.
-		g_manager->WaitExitThenApplyUpdates(*g_pendingUpdate, /*silent*/ true, /*restart*/ false);
+		session.manager->WaitExitThenApplyUpdates(*session.pendingUpdate, /*silent*/ true, /*restart*/ false);
 	}
 	catch (const std::exception& e)
 	{
