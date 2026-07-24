@@ -1,6 +1,5 @@
 #include "FilterCardEditorFactory.h"
 
-#include <QSet>
 #include <QString>
 
 #include "Editor/IFilterGUI.h"
@@ -24,10 +23,7 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 	// card-first lookup would otherwise bypass.
 	if (FilterCardModel::hasInlineExpressions(parameters))
 	{
-		static const QSet<QString> dynamicCapable = {
-			QStringLiteral("preamp"), QStringLiteral("delay")
-		};
-		if (!dynamicCapable.contains(normalizedCommand))
+		if (!FilterCardEditorRegistry::supportsDynamicParameters(normalizedCommand))
 			return nullptr;
 	}
 

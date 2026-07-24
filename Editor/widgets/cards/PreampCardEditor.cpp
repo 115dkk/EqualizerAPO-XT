@@ -167,7 +167,7 @@ QString PreampCardEditor::gainText() const
 
 #include "Editor/widgets/FilterCardModel.h"
 
-REGISTER_FILTER_CARD_EDITOR(preamp, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+REGISTER_DYNAMIC_FILTER_CARD_EDITOR(preamp, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
 	// An inline `expression` gain opens the dynamic card (token instead of a
 	// number, knob powered down) so no interaction can overwrite the
 	// expression with a parsed 0.0.

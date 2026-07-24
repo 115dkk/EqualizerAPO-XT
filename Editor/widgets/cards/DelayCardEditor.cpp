@@ -189,7 +189,7 @@ QString DelayCardEditor::delayText() const
 
 #include "Editor/widgets/FilterCardModel.h"
 
-REGISTER_FILTER_CARD_EDITOR(delay, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
+REGISTER_DYNAMIC_FILTER_CARD_EDITOR(delay, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
 	// An inline `expression` delay opens the dynamic card (token instead of
 	// a number, knob powered down) - the engine parser below would reject the
 	// unresolved text and drop the row to the raw body otherwise.
