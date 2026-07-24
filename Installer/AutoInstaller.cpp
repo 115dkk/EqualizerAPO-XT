@@ -69,8 +69,6 @@ using UniqueBCryptHash = winutil::UniqueResource<BCryptHashTraits>;
 
 // GitHub repository that hosts the releases. Matches the GithubSource URL used by
 // the in-app updater (Editor/main.cpp).
-const wchar_t* kRepoOwner = L"115dkk";
-const wchar_t* kRepoName = L"EqualizerAPO-XT";
 const wchar_t* kReleasesPage = EAPO_REPO_URL_W L"/releases/latest";
 const wchar_t* kUserAgent = L"EqualizerAPO-XT-Setup";
 
@@ -208,7 +206,7 @@ std::wstring assetName(const std::wstring& channel)
 // to the newest release's asset, so this binary never needs rebuilding per release.
 std::wstring latestAssetPath(const std::wstring& asset)
 {
-    return std::wstring(L"/") + kRepoOwner + L"/" + kRepoName +
+    return std::wstring(L"/") + EAPO_REPO_SLUG_W +
         L"/releases/latest/download/" + asset;
 }
 
