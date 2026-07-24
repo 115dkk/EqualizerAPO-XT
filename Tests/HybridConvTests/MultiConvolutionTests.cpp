@@ -8,6 +8,8 @@
 */
 
 #include <cmath>
+#include <cstdio>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -17,6 +19,8 @@
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/MultiConvolutionFilter.h"
 #include "helpers/SndfileRAII.h"
+#include "helpers/LogHelper.h"
+#include "helpers/PerfProfile.h"
 #include "Tests/TestHarness.h"
 
 using std::vector;
@@ -65,6 +69,58 @@ wstring createMultiChannelIr(const vector<vector<double>>& channels)
 	sf_writef_double(file.get(), interleaved.data(), (sf_count_t)frames);
 
 	return filename;
+}
+
+void assertMismatchIsLoggedAndProfiled()
+{
+	FILE* logFile = nullptr;
+	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
+	{
+		harness.fail("could not create mismatch log capture");
+		return;
+	}
+	LogHelper::useStream(logFile, false, true, false);
+	PerfProfile::reset();
+	PerfProfile::enable();
+
+	{
+		vector<double> ir(frameLength, 0.0);
+		ir[0] = 1.0;
+		wstring irFile = createMultiChannelIr({ ir });
+		MultiConvolutionFilter filter({ { L"L", { 0 } } }, irFile);
+		filter.initialize((float)sampleRate, frameLength, vector<wstring>{ L"L" });
+		DeleteFileW(irFile.c_str());
+
+		constexpr unsigned shortBlock = frameLength / 2;
+		vector<double> in(shortBlock, 0.1);
+		vector<double> out(shortBlock, 1.0);
+		double* input[] = { in.data() };
+		double* output[] = { out.data() };
+		filter.process(output, input, shortBlock);
+		filter.process(output, input, shortBlock);
+	}
+
+	PerfProfile::disable();
+	std::ostringstream profile;
+	PerfProfile::report(profile);
+	harness.expectTrue(profile.str().find("MultiConvolutionFilter::process") != std::string::npos,
+		"MultiConvolution process contributes a profiling scope");
+
+	std::fflush(logFile);
+	std::rewind(logFile);
+	std::wstring log;
+	wchar_t buffer[1024];
+	while (std::fgetws(buffer, static_cast<int>(std::size(buffer)), logFile) != nullptr)
+		log.append(buffer);
+	std::fclose(logFile);
+	LogHelper::useStream(stdout, true, true, false);
+
+	const std::wstring marker = L"MultiConvolutionFilter: frameCount";
+	const size_t first = log.find(marker);
+	harness.expectTrue(first != std::string::npos,
+		"MultiConvolution frame-count mismatch is logged");
+	harness.expectTrue(first != std::string::npos && log.find(marker, first + marker.size()) == std::string::npos,
+		"MultiConvolution mismatch detail is logged only once per instance");
 }
 
 // First tracer bullet for the mapping semantics: "L=0+1" convolves channel L's
@@ -452,6 +508,7 @@ void assertCommandSerializeRoundTrips()
 
 void runMultiConvolutionTests()
 {
+	assertMismatchIsLoggedAndProfiled();
 	assertMappingConvolvesTargetsOwnSignal();
 	assertEachMappingWritesItsOwnOutput();
 	assertSimpleFormUsesEveryIrChannel();
