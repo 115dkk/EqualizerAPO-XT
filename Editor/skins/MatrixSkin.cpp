@@ -1561,6 +1561,10 @@ public:
 			MatrixToolbarBoard* board = existing != nullptr
 				? static_cast<MatrixToolbarBoard*>(existing)
 				: new MatrixToolbarBoard(toolBar, layer);
+			if (layer == MatrixToolbarBoard::UnderCells)
+				board->lower();
+			else
+				board->raise();
 			return board;
 		};
 		boardLayer(QStringLiteral("MatrixToolbarBoardUnder"), MatrixToolbarBoard::UnderCells)->setBoardTokens(tokens);

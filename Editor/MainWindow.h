@@ -175,6 +175,7 @@ private:
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;
+	bool skinPersistenceSuppressed = false;
 	QStringList recentFiles;
 	QString skinId = QStringLiteral("studio");
 	bool skinDark = true;

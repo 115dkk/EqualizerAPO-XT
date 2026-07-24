@@ -1156,6 +1156,9 @@ int runSwitchTest(const QStringList& arguments)
 		qWarning("SkinSwitchTest: table construction failed");
 		return 1;
 	}
+	// Gallery tables deliberately have no MainWindow. This supported host mode
+	// must keep navigation callbacks harmless.
+	table->openConfig(QString());
 
 	// A live TitleBar rides along: its caption glyphs are tinted icons, not
 	// QSS, so a switch path that forgets to re-dress them leaves them in the

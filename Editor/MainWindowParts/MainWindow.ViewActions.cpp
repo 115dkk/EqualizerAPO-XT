@@ -72,14 +72,11 @@ void MainWindow::on_mainToolBar_visibilityChanged(bool visible)
 
 void MainWindow::startSkinSwitchStorm()
 {
-	// A diagnostic session must not overwrite the user's preferences: the
-	// switches below write interface/skin+dark immediately (persistSkinChoice),
-	// so snapshot those and restore them when the storm ends.
+	// A diagnostic session must not overwrite the user's preferences, even if
+	// it crashes or the window closes before the final step.
 	noSavePreferences = true;
 	noSaveFilePreferences = true;
-	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	const QVariant savedSkin = settings.value("interface/skin");
-	const QVariant savedDark = settings.value("interface/dark");
+	skinPersistenceSuppressed = true;
 
 	// Steps: "skin <id> <dark|light>" (direct action trigger),
 	// "menuskin <id> <dark|light>" (a REAL popup menu opened and clicked with
@@ -251,7 +248,7 @@ void MainWindow::startSkinSwitchStorm()
 
 	QTimer* timer = new QTimer(this);
 	timer->setInterval(900);
-	connect(timer, &QTimer::timeout, this, [this, timer, stepIndex, failures, checkToolbar, savedSkin, savedDark, stormCount]() {
+	connect(timer, &QTimer::timeout, this, [this, timer, stepIndex, failures, checkToolbar, stormCount]() {
 		// The previous step has had a full event-loop turn to settle; judge it.
 		if (*stepIndex > 0)
 			checkToolbar(QStringLiteral("step %1 [%2]").arg(*stepIndex)
@@ -262,10 +259,6 @@ void MainWindow::startSkinSwitchStorm()
 		if (*stepIndex >= stormCount)
 		{
 			timer->stop();
-			QSettings restore(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-			restore.setValue("interface/skin", savedSkin);
-			restore.setValue("interface/dark", savedDark);
-			restore.sync();
 			qWarning("Storm: done, %d steps, failures=%d", stormCount, *failures);
 			std::fflush(nullptr);
 			std::_Exit(*failures > 0 ? 1 : 0);
@@ -441,7 +434,8 @@ void MainWindow::skinSelected(QAction* action)
 		if (filterTable != nullptr)
 			filterTable->updateGuis();
 	}
-	persistSkinChoice(skinId, skinDark);
+	if (!skinPersistenceSuppressed)
+		persistSkinChoice(skinId, skinDark);
 }
 
 void MainWindow::darkThemeToggled(bool checked)
@@ -464,7 +458,8 @@ void MainWindow::darkThemeToggled(bool checked)
 		if (filterTable != nullptr)
 			filterTable->updateGuis();
 	}
-	persistSkinChoice(skinId, skinDark);
+	if (!skinPersistenceSuppressed)
+		persistSkinChoice(skinId, skinDark);
 }
 
 void MainWindow::on_graphPositionComboBox_currentIndexChanged(int index)

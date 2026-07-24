@@ -168,6 +168,8 @@ void FilterTable::addActionTriggered()
 
 void FilterTable::openConfig(QString path)
 {
+	if (mainWindow == nullptr)
+		return;
 	mainWindow->load(path);
 }
 
@@ -217,7 +219,7 @@ void FilterTable::setScrollOffsets(int x, int y)
 
 void FilterTable::updateAnalysis()
 {
-	if (isVisible())
+	if (mainWindow != nullptr && isVisible())
 		mainWindow->startAnalysis();
 }
 

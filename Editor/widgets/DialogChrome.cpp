@@ -73,7 +73,10 @@ bool DialogChrome::eventFilter(QObject* watched, QEvent* event)
 		if (event->type() == QEvent::Hide)
 			setNativeFilter(false);
 		else if (event->type() == QEvent::Show)
+		{
+			hostWinId = dialog->winId();
 			setNativeFilter(true);
+		}
 	}
 	return QObject::eventFilter(watched, event);
 }
