@@ -75,6 +75,8 @@ struct TestCase
 	unsigned frames;
 };
 
+void ensureDirectory(const std::wstring& path);
+
 const TestCase kCases[] = {
 	{ "preamp_minus6",       "preamp_minus6.txt",       SignalType::DCStereo,      48000, 2, 4800  },
 	{ "biquad_peaking_1khz", "biquad_peaking_1khz.txt", SignalType::ImpulseStereo, 48000, 2, 8192  },
@@ -91,6 +93,21 @@ const TestCase kCases[] = {
 	// parsing covered without that non-determinism.
 	{ "loudnesscorrection_bypassed", "loudnesscorrection_bypassed.txt", SignalType::ImpulseStereo, 48000, 2, 256 },
 };
+
+bool writeCaseManifest(const std::wstring& directory)
+{
+	ensureDirectory(directory);
+	const std::wstring path = directory + L"\\cases.json";
+	FILE* file = nullptr;
+	if (_wfopen_s(&file, path.c_str(), L"wb") != 0 || file == nullptr)
+		return false;
+	fputs("{\n  \"cases\": [\n", file);
+	for (size_t i = 0; i < sizeof(kCases) / sizeof(kCases[0]); ++i)
+		fprintf(file, "    \"%s\"%s\n", kCases[i].name,
+			i + 1 == sizeof(kCases) / sizeof(kCases[0]) ? "" : ",");
+	fputs("  ]\n}\n", file);
+	return fclose(file) == 0;
+}
 
 struct Options
 {
@@ -744,6 +761,17 @@ int runAudioRegressionTests(int argc, char** argv)
 	printf("  cases       = %zu\n", sizeof(kCases) / sizeof(kCases[0]));
 
 	bool anyFailed = false;
+	const std::wstring outVariantDir = opts.outDir + L"\\" + toWide(opts.variant);
+	if (!writeCaseManifest(outVariantDir))
+	{
+		fprintf(stderr, "  ERROR: could not write case manifest to %S\n", outVariantDir.c_str());
+		anyFailed = true;
+	}
+	if (opts.generateMode && !writeCaseManifest(opts.refDir))
+	{
+		fprintf(stderr, "  ERROR: could not write reference case manifest to %S\n", opts.refDir.c_str());
+		anyFailed = true;
+	}
 	unsigned passed = 0;
 	unsigned total = 0;
 	for (const auto& tc : kCases)

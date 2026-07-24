@@ -593,7 +593,7 @@ jobs:
         $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:MUPARSERX_LIB;$env:PATH"
 
         $repoRefDir = "${{ github.workspace }}\Tests\AudioRegressionTests\references"
-        $hasRefs = Test-Path (Join-Path $repoRefDir "preamp_minus6.raw")
+        $hasRefs = Test-Path (Join-Path $repoRefDir "cases.json")
         # The primary (reference-seeding) variant is flagged in simd-variants.psd1.
         $isPrimary = "${{ matrix.primary }}" -eq "true"
 

@@ -1,0 +1,13 @@
+{
+  "cases": [
+    "preamp_minus6",
+    "biquad_peaking_1khz",
+    "copy_crossfeed",
+    "delay_512",
+    "graphiceq_15band",
+    "convolution_short",
+    "iir_order2_lowpass",
+    "channel_left_only",
+    "loudnesscorrection_bypassed"
+  ]
+}
