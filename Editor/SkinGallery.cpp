@@ -1098,7 +1098,7 @@ int runSwitchTest(const QStringList& arguments)
 	QWidget toastHost;
 	UpdateToast timerProbe(&toastHost);
 	timerProbe.showMessage(QStringLiteral("temporary"), 15000);
-	QTimer* const autoHideTimer = timerProbe.findChild<QTimer*>(QStringLiteral("UpdateToastAutoHide"));
+	const QTimer* const autoHideTimer = timerProbe.findChild<QTimer*>(QStringLiteral("UpdateToastAutoHide"));
 	if (autoHideTimer == nullptr || !autoHideTimer->isActive())
 	{
 		qWarning("SkinSwitchTest: update toast does not own a restartable auto-hide timer");
