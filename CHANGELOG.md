@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.26.5 — 2026-07-24
+
 - The audio processing thread no longer waits on a lock, opens a file, or
   allocates memory. Loudness correction used to hand its updated filter
   coefficients across a mutex that a background thread held while calling into
