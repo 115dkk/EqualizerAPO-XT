@@ -2,12 +2,10 @@
 
 #include <cmath>
 
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QLocale>
 #include <QRegularExpression>
 
-#include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
@@ -33,71 +31,32 @@ double knobValueToGain(int value)
 }
 
 PreampCardEditor::PreampCardEditor(double dbGain, QWidget* parent)
-	: IFilterGUI(parent)
+	: ScalarKnobCardEditor(parent)
 {
-	editableValue = new EditableValue(this);
+	EditableValue* editableValue = new EditableValue(this);
 	editableValue->setObjectName(QStringLiteral("PreampCardValue"));
 	editableValue->setUnit(QStringLiteral("dB"));
 	connect(editableValue, SIGNAL(valueChanged(double)), this, SLOT(valueChanged(double)));
-	buildLayout(editableValue);
+	QLabel* caption = new QLabel(tr("Gain"), this);
+	caption->setObjectName(QStringLiteral("PreampCardCaption"));
+	const double knobRange = GUIHelper::knobGainRange();
+	initializeScalarCard(QStringLiteral("PreampCardEditor"), QStringLiteral("PreampCardKnob"),
+		QStringLiteral("PreampCardValueBlock"), caption, editableValue, QString(), true,
+		gainToKnobValue(-knobRange), gainToKnobValue(knobRange));
+	connect(scalarKnob(), SIGNAL(valueChanged(int)), this, SLOT(knobChanged(int)));
 
 	setGain(dbGain, false);
 }
 
 PreampCardEditor::PreampCardEditor(const QString& dynamicParameters, QWidget* parent)
-	: IFilterGUI(parent), dynamicParameters(dynamicParameters.trimmed())
+	: ScalarKnobCardEditor(parent)
 {
-	// The value position carries the expression as written; the knob stays as
-	// hardware but is powered down (there is no number to point at until the
-	// engine loads the configuration).
-	QLabel* token = new QLabel(this->dynamicParameters, this);
-	token->setObjectName(QStringLiteral("DynamicValueToken"));
-	token->setTextInteractionFlags(Qt::TextSelectableByMouse);
-	QFont mono(token->font());
-	mono.setFamily(SkinManager::instance()->tokens().monoFontFamily);
-	token->setFont(mono);
-	token->setToolTip(tr("Computed when the configuration loads; edit the raw line to change the expression."));
-	buildLayout(token);
-
-	knob->setEnabled(false);
-}
-
-void PreampCardEditor::buildLayout(QWidget* valueWidget)
-{
-	setObjectName(QStringLiteral("PreampCardEditor"));
-	setAttribute(Qt::WA_StyledBackground, true);
-
-	QHBoxLayout* layout = new QHBoxLayout(this);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(14);
-
-	knob = new AudioKnob(this);
-	knob->setObjectName(QStringLiteral("PreampCardKnob"));
-	knob->setBipolar(true);
-	// A gain outside the knob span (typed directly) pegs the knob at its end
-	// while the editable value keeps showing the real number.
-	const double knobRange = GUIHelper::knobGainRange();
-	knob->setRange(gainToKnobValue(-knobRange), gainToKnobValue(knobRange));
-	knob->setSingleStep(1);
-	knob->setPageStep(10);
-	connect(knob, SIGNAL(valueChanged(int)), this, SLOT(knobChanged(int)));
-	layout->addWidget(knob, 0, Qt::AlignVCenter);
-
-	QWidget* valueBlock = new QWidget(this);
-	valueBlock->setObjectName(QStringLiteral("PreampCardValueBlock"));
-	QVBoxLayout* valueLayout = new QVBoxLayout(valueBlock);
-	valueLayout->setContentsMargins(0, 0, 0, 0);
-	valueLayout->setSpacing(6);
-
-	QLabel* caption = new QLabel(tr("Gain"), valueBlock);
+	QLabel* caption = new QLabel(tr("Gain"), this);
 	caption->setObjectName(QStringLiteral("PreampCardCaption"));
-	valueLayout->addWidget(caption);
-
-	valueWidget->setParent(valueBlock);
-	valueLayout->addWidget(valueWidget);
-
-	layout->addWidget(valueBlock, 0, Qt::AlignVCenter);
-	layout->addStretch(1);
+	const double knobRange = GUIHelper::knobGainRange();
+	initializeScalarCard(QStringLiteral("PreampCardEditor"), QStringLiteral("PreampCardKnob"),
+		QStringLiteral("PreampCardValueBlock"), caption, nullptr, dynamicParameters, true,
+		gainToKnobValue(-knobRange), gainToKnobValue(knobRange));
 }
 
 void PreampCardEditor::store(QString& command, QString& parameters)
@@ -106,9 +65,9 @@ void PreampCardEditor::store(QString& command, QString& parameters)
 	// Dynamic mode reproduces the expression verbatim - the card never
 	// writes a computed number over it. (Nothing emits updateModel in that
 	// mode, so this is belt and braces.)
-	if (!dynamicParameters.isEmpty())
+	if (isDynamic())
 	{
-		parameters = dynamicParameters;
+		parameters = dynamicParameters();
 		return;
 	}
 	parameters = QStringLiteral("%0 dB").arg(QLocale::c().toString(currentGain, 'f', 1));
@@ -138,24 +97,9 @@ void PreampCardEditor::valueChanged(double value)
 
 void PreampCardEditor::setGain(double value, bool notify)
 {
-	if (updating)
-		return;
-
-	updating = true;
 	currentGain = qBound(MinimumGain, value, MaximumGain);
 	const int knobValue = gainToKnobValue(currentGain);
-	const bool knobBlocked = knob->blockSignals(true);
-	knob->setValue(knobValue);
-	knob->blockSignals(knobBlocked);
-	knob->setValueText(gainText());
-
-	const bool valueBlocked = editableValue->blockSignals(true);
-	editableValue->setValue(currentGain);
-	editableValue->blockSignals(valueBlocked);
-	updating = false;
-
-	if (notify)
-		emit updateModel();
+	synchronizeScalar(currentGain, knobValue, gainText(), notify);
 }
 
 QString PreampCardEditor::gainText() const

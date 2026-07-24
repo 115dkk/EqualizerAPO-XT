@@ -1,16 +1,14 @@
 #pragma once
 
-#include "Editor/IFilterGUI.h"
+#include "ScalarKnobCardEditor.h"
 
-class AudioKnob;
-class EditableValue;
 class QComboBox;
 
 // The Delay card's modern body: knob + the unit selector (Time/Samples)
 // standing as the caption over the editable value, mirroring the Preamp card.
 // Replaces the legacy DelayFilterGUI in the card path; LegacyRows keeps the
 // frozen .ui GUI.
-class DelayCardEditor : public IFilterGUI
+class DelayCardEditor : public ScalarKnobCardEditor
 {
 	Q_OBJECT
 
@@ -30,16 +28,10 @@ private slots:
 	void unitChanged(int index);
 
 private:
-	void buildLayout(QWidget* valueWidget);
 	void setDelay(double value, bool notify);
 	QString delayText() const;
 
-	AudioKnob* knob = nullptr;
-	EditableValue* editableValue = nullptr;
 	QComboBox* unitCombo = nullptr;
 	double currentDelay = 0.0;
 	bool msMode = true;
-	bool updating = false;
-	// Non-empty in dynamic mode: the as-written parameter text to reproduce.
-	QString dynamicParameters;
 };

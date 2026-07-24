@@ -237,6 +237,7 @@ SOURCES += main.cpp\
 	widgets/cards/IIRCardEditor.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
+	widgets/cards/ScalarKnobCardEditor.cpp \
 	widgets/cards/ReferenceCardView.cpp \
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
@@ -467,6 +468,7 @@ HEADERS  += \
 	widgets/cards/IIRCardEditor.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
+	widgets/cards/ScalarKnobCardEditor.h \
 	widgets/cards/ReferenceCardView.h \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTCardEditor.h \
