@@ -7,6 +7,9 @@
     <ClInclude Include="..\helpers\MemoryHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="..\helpers\SynchronizedState.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="VoicemeeterRemote.h" />
   </ItemGroup>
   <ItemGroup>

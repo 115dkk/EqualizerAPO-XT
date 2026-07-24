@@ -274,6 +274,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\helpers\MemoryHelper.h" />
+    <ClInclude Include="..\helpers\SynchronizedState.h" />
     <ClInclude Include="..\stdafx.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="VoicemeeterClient.h" />

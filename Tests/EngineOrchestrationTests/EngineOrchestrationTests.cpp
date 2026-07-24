@@ -11,11 +11,13 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
+#include <future>
 #include <memory>
 #include <string>
 #include <stdexcept>
@@ -36,6 +38,7 @@
 #include "helpers/ParallelExecutor.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/SndfileRAII.h"
+#include "helpers/SynchronizedState.h"
 #include "helpers/Win32Event.h"
 #include "Tests/TestHarness.h"
 
@@ -163,6 +166,38 @@ void testRegistryExportHeaderPreservesQualifiedRoot(test::Harness& harness)
 	harness.expect(RegistryHelper::formatExportHeader(key)
 			== L"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties]",
 		"registry export writes an already-qualified key exactly once");
+}
+
+void testSynchronizedStateSerializesReplacement(test::Harness& harness)
+{
+	SynchronizedState<int> state(1);
+	std::promise<void> enteredPromise;
+	std::future<void> entered = enteredPromise.get_future();
+	std::promise<void> releasePromise;
+	std::shared_future<void> release = releasePromise.get_future().share();
+
+	std::future<int> reader = std::async(std::launch::async, [&]() {
+		return state.withLock([&](int& value) {
+			enteredPromise.set_value();
+			release.wait();
+			return value;
+		});
+	});
+	harness.expect(entered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+		"synchronized state reader acquires the state");
+
+	std::future<void> replacement = std::async(std::launch::async, [&]() {
+		state.replace(2);
+	});
+	harness.expect(replacement.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout,
+		"state replacement waits for an active reader");
+	releasePromise.set_value();
+	reader.wait();
+	replacement.wait();
+	harness.expectEqual(reader.get(), 1, "active reader keeps the original state alive");
+	replacement.get();
+	harness.expectEqual(state.withLock([](int& value) { return value; }), 2,
+		"subsequent reader observes the complete replacement");
 }
 
 // Builds an engine the same way AudioRegressionTests does: no registry
@@ -855,6 +890,7 @@ int runEngineOrchestrationTests()
 	testLogHelperFileDestination(harness);
 	testLogHelperUserDestination(harness);
 	testRegistryExportHeaderPreservesQualifiedRoot(harness);
+	testSynchronizedStateSerializesReplacement(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);
