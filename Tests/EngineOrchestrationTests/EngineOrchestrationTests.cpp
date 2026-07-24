@@ -29,6 +29,7 @@
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
+#include "helpers/ComBoundary.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ParallelExecutor.h"
 #include "helpers/SndfileRAII.h"
@@ -698,6 +699,29 @@ int runEngineOrchestrationTests()
 	LogHelper::set(stderr, false, false, false);
 
 	test::Harness harness("EngineOrchestrationTests");
+
+	try
+	{
+		harness.expect(ComBoundary::invoke([]() -> HRESULT {
+			throw std::bad_alloc();
+		}) == E_OUTOFMEMORY, "COM boundary maps allocation failure");
+	}
+	catch (...)
+	{
+		harness.fail("allocation exception escaped the COM boundary");
+	}
+	try
+	{
+		harness.expect(ComBoundary::invoke([]() -> HRESULT {
+			throw std::runtime_error("injected COM failure");
+		}) == E_UNEXPECTED, "COM boundary maps unexpected exception");
+	}
+	catch (...)
+	{
+		harness.fail("unexpected exception escaped the COM boundary");
+	}
+	harness.expect(ComBoundary::invoke([] { return S_FALSE; }) == S_FALSE,
+		"COM boundary preserves callback HRESULT");
 
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);

@@ -131,6 +131,9 @@
     <ClInclude Include="helpers\ChannelHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\ComBoundary.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\FileSharingRetry.h">
       <Filter>helpers</Filter>
     </ClInclude>

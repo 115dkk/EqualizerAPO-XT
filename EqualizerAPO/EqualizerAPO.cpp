@@ -27,6 +27,7 @@
 #include <ksmedia.h>
 
 #include "../helpers/LogHelper.h"
+#include "../helpers/ComBoundary.h"
 #include "../helpers/RegistryHelper.h"
 #include "../helpers/StringHelper.h"
 #include "../helpers/ComPtr.h"
@@ -199,6 +200,7 @@ HRESULT EqualizerAPO::GetLatency(HNSTIME* pTime)
 
 HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 {
+	return ComBoundary::invoke([&]() -> HRESULT {
 	LogHelper::reset();
 
 	TraceF(L"Initialize: cbDataSize=%u (APOInitSystemEffects=%u)", cbDataSize, static_cast<unsigned>(sizeof(APOInitSystemEffects)));
@@ -336,11 +338,13 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	}
 
 	return S_OK;
+	});
 }
 
 HRESULT EqualizerAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
 	IAudioMediaType* pRequestedInputFormat, IAudioMediaType** ppSupportedInputFormat)
 {
+	return ComBoundary::invoke([&]() -> HRESULT {
 	if (!pRequestedInputFormat)
 		return E_POINTER;
 
@@ -414,12 +418,14 @@ HRESULT EqualizerAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
 	}
 
 	return hr;
+	});
 }
 
 HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 	APO_CONNECTION_DESCRIPTOR** ppInputConnections, UINT32 u32NumOutputConnections,
 	APO_CONNECTION_DESCRIPTOR** ppOutputConnections)
 {
+	return ComBoundary::invoke([&]() -> HRESULT {
 	HRESULT hr;
 
 	UNCOMPRESSEDAUDIOFORMAT inFormat;
@@ -541,10 +547,12 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 	}
 
 	return hr;
+	});
 }
 
 HRESULT EqualizerAPO::UnlockForProcess()
 {
+	return ComBoundary::invoke([&]() -> HRESULT {
 	if (childCfg)
 	{
 		HRESULT hr = childCfg->UnlockForProcess();
@@ -556,6 +564,7 @@ HRESULT EqualizerAPO::UnlockForProcess()
 	}
 
 	return CBaseAudioProcessingObject::UnlockForProcess();
+	});
 }
 
 void EqualizerAPO::resetChild()
@@ -714,6 +723,7 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 
 HRESULT EqualizerAPO::GetEffectsList(LPGUID* effects, UINT* numEffects, HANDLE /*event*/)
 {
+	return ComBoundary::invoke([&]() -> HRESULT {
 	if (effects == nullptr || numEffects == nullptr)
 		return E_POINTER;
 
@@ -734,6 +744,7 @@ HRESULT EqualizerAPO::GetEffectsList(LPGUID* effects, UINT* numEffects, HANDLE /
 	*effects = list;
 	*numEffects = 1;
 	return S_OK;
+	});
 }
 
 HRESULT EqualizerAPO::NonDelegatingQueryInterface(const IID& iid, void** ppv)
