@@ -120,7 +120,9 @@ jobs:
   # here, so adding or renaming a variant cannot silently diverge between the
   # manifest, this matrix, the installer, and the release tooling. The same job
   # lints the channel strings compiled into Installer/AutoInstaller.cpp against
-  # the manifest.
+  # the manifest, and the engine source list Editor.pro keeps in step with
+  # Common.vcxproj. Both drifts otherwise surface only inside a matrix leg, and
+  # the source-list one only at the Editor link step twenty minutes in.
   prepare-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -137,6 +139,10 @@ jobs:
     - name: Lint variant consumers against the manifest
       shell: pwsh
       run: ./.github/scripts/Test-VariantSync.ps1
+
+    - name: Lint the Editor's engine source list against Common.vcxproj
+      shell: pwsh
+      run: ./.github/scripts/Test-SourceSync.ps1
 
     - name: Generate build matrix from the manifest
       id: gen
