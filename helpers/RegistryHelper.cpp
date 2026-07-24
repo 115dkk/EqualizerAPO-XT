@@ -486,7 +486,7 @@ void RegistryHelper::saveToFile(const wstring& key, const vector<wstring>& value
 		throw RegistryException(L"Error while opening file " + filepath + L" for writing");
 
 	stream << L"Windows Registry Editor Version 5.00\n" << endl;
-	stream << L"[HKEY_LOCAL_MACHINE\\" << key << L"]" << endl;
+	stream << formatExportHeader(key) << endl;
 	for (vector<wstring>::const_iterator it = valuenames.cbegin(); it != valuenames.cend(); it++)
 	{
 		const wstring& valuename = *it;
@@ -497,6 +497,11 @@ void RegistryHelper::saveToFile(const wstring& key, const vector<wstring>& value
 	stream << endl;
 
 	stream.close();
+}
+
+wstring RegistryHelper::formatExportHeader(const wstring& key)
+{
+	return L"[" + key + L"]";
 }
 
 wstring RegistryHelper::getGuidString(GUID guid)

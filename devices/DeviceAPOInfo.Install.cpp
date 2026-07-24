@@ -116,8 +116,16 @@ void DeviceAPOInfo::install()
 		}
 
 		if (!valuenames.empty())
+		{
+			wstring backupDirectory = RegistryHelper::readValue(APP_REGPATH, L"ConfigPath");
+			if (backupDirectory.empty())
+				throw RegistryException(L"ConfigPath is empty; refusing to write a registry backup to the process directory");
+			if (backupDirectory.back() != L'\\' && backupDirectory.back() != L'/')
+				backupDirectory += L"\\";
 			RegistryHelper::saveToFile(keyPath + L"\\FxProperties", valuenames,
-				L"backup_" + StringHelper::replaceIllegalCharacters(deviceName) + L"_" + StringHelper::replaceIllegalCharacters(connectionName) + L".reg");
+				backupDirectory + L"backup_" + StringHelper::replaceIllegalCharacters(deviceName)
+				+ L"_" + StringHelper::replaceIllegalCharacters(connectionName) + L".reg");
+		}
 	}
 
 	wstring preMixValue;

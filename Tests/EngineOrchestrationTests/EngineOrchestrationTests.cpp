@@ -34,6 +34,7 @@
 #include "helpers/ComBoundary.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ParallelExecutor.h"
+#include "helpers/RegistryHelper.h"
 #include "helpers/SndfileRAII.h"
 #include "helpers/Win32Event.h"
 #include "Tests/TestHarness.h"
@@ -154,6 +155,14 @@ void testLogHelperUserDestination(test::Harness& harness)
 	RemoveDirectoryW((localRoot + L"\\EqualizerAPO\\logs").c_str());
 	RemoveDirectoryW((localRoot + L"\\EqualizerAPO").c_str());
 	RemoveDirectoryW(localRoot.c_str());
+}
+
+void testRegistryExportHeaderPreservesQualifiedRoot(test::Harness& harness)
+{
+	const std::wstring key = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties";
+	harness.expect(RegistryHelper::formatExportHeader(key)
+			== L"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties]",
+		"registry export writes an already-qualified key exactly once");
 }
 
 // Builds an engine the same way AudioRegressionTests does: no registry
@@ -845,6 +854,7 @@ int runEngineOrchestrationTests()
 
 	testLogHelperFileDestination(harness);
 	testLogHelperUserDestination(harness);
+	testRegistryExportHeaderPreservesQualifiedRoot(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);
