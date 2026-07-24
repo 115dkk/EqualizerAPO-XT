@@ -229,10 +229,13 @@ void runVstHostTests()
 {
 	testVolumeControllerBalancesComInitialization();
 
+	// Both soft-skip paths report before returning: under the harness default
+	// (Collect) a failure recorded above only fails the build through report().
 	const wstring dir = exeDirectory();
 	if (dir.empty())
 	{
 		std::printf("VstHostTests skipped: could not resolve test executable directory\n");
+		harness.report();
 		return;
 	}
 
@@ -242,6 +245,7 @@ void runVstHostTests()
 		// Soft skip - never fail the suite when the helper plugin was not built
 		// or copied. The orchestrator wires the post-build copy / CI build.
 		std::printf("VstHostTests skipped: test plugin not found at %ls\n", dllPath.c_str());
+		harness.report();
 		return;
 	}
 
@@ -266,7 +270,7 @@ void runVstHostTests()
 		"imported config retains the external VST library path");
 	shared_ptr<VSTPluginLibrary> library =
 		VSTPluginLibrary::getInstance(importedCommand.libraryPath);
-	harness.expectTrue(library != nullptr, "getInstance returned a library");
+	harness.require(library != nullptr, "getInstance returned a library");
 	harness.expectFalse(library->isVST3(), "test plugin is hosted via the VST2 path");
 
 	int loadResult = library->initialize();

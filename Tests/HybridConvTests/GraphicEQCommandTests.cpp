@@ -35,7 +35,7 @@ GraphicEQCommand parse(const wstring& parameters)
 
 void expectNode(const GraphicEQCommand& cmd, size_t index, double freq, double gain, const std::string& label)
 {
-	harness.expectTrue(index < cmd.nodes.size(), label + ": node index out of range");
+	harness.require(index < cmd.nodes.size(), label + ": node index out of range");
 	harness.expectEqual(cmd.nodes[index].freq, freq, label + " freq");
 	harness.expectEqual(cmd.nodes[index].dbGain, gain, label + " gain");
 }

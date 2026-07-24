@@ -142,8 +142,10 @@ void assertMappingConvolvesTargetsOwnSignal()
 	DeleteFileW(irFile.c_str());
 
 	harness.expectTrue(filter.getAllChannels(), "the filter asks for every channel instead of the selection");
-	harness.expectEqual(outChannels.size(), (size_t)1, "one mapping declares one output channel");
-	harness.expectTrue(!outChannels.empty() && outChannels[0] == L"L", "the mapping target is the output channel");
+	// process() writes output[plan.outputSlot] for every mapping, so a wider
+	// declaration than the output array below would run off its end.
+	harness.requireEqual(outChannels.size(), (size_t)1, "one mapping declares one output channel");
+	harness.expectTrue(outChannels[0] == L"L", "the mapping target is the output channel");
 
 	vector<double> inL(frameLength, 0.1);
 	vector<double> inR(frameLength, 0.7);
@@ -172,9 +174,7 @@ void assertEachMappingWritesItsOwnOutput()
 	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 	DeleteFileW(irFile.c_str());
 
-	harness.expectEqual(outChannels.size(), (size_t)2, "two mappings declare two output channels");
-	if (outChannels.size() != 2)
-		return;
+	harness.requireEqual(outChannels.size(), (size_t)2, "two mappings declare two output channels");
 
 	vector<double> inL(frameLength, 0.1);
 	vector<double> inR(frameLength, 0.7);
@@ -208,7 +208,7 @@ void assertSimpleFormUsesEveryIrChannel()
 	vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 	DeleteFileW(irFile.c_str());
 
-	harness.expectEqual(outChannels.size(), (size_t)1, "simple form declares one output channel");
+	harness.requireEqual(outChannels.size(), (size_t)1, "simple form declares one output channel");
 
 	vector<double> inL(frameLength, 0.1);
 	vector<double> inR(frameLength, 0.7);
@@ -239,8 +239,8 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 		vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 		DeleteFileW(irFile.c_str());
 
-		harness.expectEqual(outChannels.size(), (size_t)1, "a new target is declared as an output channel");
-		harness.expectTrue(!outChannels.empty() && outChannels[0] == L"Wet", "the virtual output keeps its name");
+		harness.requireEqual(outChannels.size(), (size_t)1, "a new target is declared as an output channel");
+		harness.expectTrue(outChannels[0] == L"Wet", "the virtual output keeps its name");
 
 		vector<double> inL(frameLength, 0.1);
 		vector<double> inR(frameLength, 0.7);
@@ -278,7 +278,7 @@ void assertMissingSourcesAndDuplicatesDegradeGracefully()
 		vector<wstring> outChannels = filter.initialize((float)sampleRate, frameLength, allChannels);
 		DeleteFileW(irFile.c_str());
 
-		harness.expectEqual(outChannels.size(), (size_t)1, "duplicate targets share one output channel");
+		harness.requireEqual(outChannels.size(), (size_t)1, "duplicate targets share one output channel");
 
 		vector<double> inL(frameLength, 0.1);
 		vector<double> inR(frameLength, 0.7);

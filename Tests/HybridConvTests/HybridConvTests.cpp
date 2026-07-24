@@ -478,7 +478,9 @@ int runHybridConvTests()
 	runVstHostTests();
 	// Runtime VST3 host contract test against the deterministic companion
 	// module (bundle resolution, module lifecycle, host services, editor,
-	// state, parameter flush). Soft-skips without the module.
+	// state, parameter flush). Unlike the VST2 suite above this one does not
+	// soft-skip: a missing module fails the run, because the module is built
+	// from this repository and its absence is a build problem.
 	runVst3HostTests();
 	runParserTests();
 	runParserPreampTests();

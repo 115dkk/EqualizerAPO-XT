@@ -29,13 +29,13 @@ StageCommand parseStages(const wstring& parameters)
 void testTokenization()
 {
 	StageCommand cmd = parseStages(L" pre-mix post-mix ");
-	harness.expectEqual(cmd.stages.size(), (size_t)2, "'pre-mix post-mix' selector count");
+	harness.requireEqual(cmd.stages.size(), (size_t)2, "'pre-mix post-mix' selector count");
 	harness.expectTrue(cmd.stages[0] == StageCommand::preMix, "first selector");
 	harness.expectTrue(cmd.stages[1] == StageCommand::postMix, "second selector");
 
 	// Selectors are case-insensitive; the codec lower-cases like the factory.
 	cmd = parseStages(L"Capture PRE-MIX");
-	harness.expectEqual(cmd.stages.size(), (size_t)2, "mixed-case selector count");
+	harness.requireEqual(cmd.stages.size(), (size_t)2, "mixed-case selector count");
 	harness.expectTrue(cmd.stages[0] == StageCommand::capture, "upper-case selector is lower-cased");
 	harness.expectTrue(cmd.stages[1] == StageCommand::preMix, "all-caps selector is lower-cased");
 

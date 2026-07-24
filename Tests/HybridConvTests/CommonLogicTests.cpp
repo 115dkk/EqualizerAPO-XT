@@ -70,12 +70,12 @@ void testStringHelper()
 
 	// split on a separator, default skipEmpty == true.
 	vector<wstring> words = StringHelper::split(L"a b  c", L' ');
-	harness.expectEqual((int)words.size(), 3, "split should skip empty tokens by default");
+	harness.requireEqual((int)words.size(), 3, "split should skip empty tokens by default");
 	harness.expectTrue(words[0] == L"a" && words[1] == L"b" && words[2] == L"c", "split tokens mismatch");
 
 	// split with skipEmpty == false keeps the empty token between the spaces.
 	vector<wstring> withEmpty = StringHelper::split(L"a,,b", L',', false);
-	harness.expectEqual((int)withEmpty.size(), 3, "split should keep empty tokens when asked");
+	harness.requireEqual((int)withEmpty.size(), 3, "split should keep empty tokens when asked");
 	harness.expectTrue(withEmpty[1] == L"", "the middle empty token must be preserved");
 
 	// join is the inverse of a simple split.
@@ -106,7 +106,7 @@ void testStringHelper()
 	// splitQuoted treats a quoted span as a single token even with separators
 	// inside it.
 	vector<wstring> quoted = StringHelper::splitQuoted(L"a \"b c\" d", L' ');
-	harness.expectEqual((int)quoted.size(), 3, "splitQuoted token count");
+	harness.requireEqual((int)quoted.size(), 3, "splitQuoted token count");
 	harness.expectTrue(quoted[1] == L"b c", "quoted span must survive splitQuoted as one token");
 }
 
@@ -115,13 +115,13 @@ void testChannelHelper()
 	// A stereo default mask must name exactly the front-left/right pair.
 	int stereoMask = ChannelHelper::getDefaultChannelMask(2);
 	vector<wstring> stereo = ChannelHelper::getChannelNames(2, stereoMask);
-	harness.expectEqual((int)stereo.size(), 2, "stereo should have two channels");
+	harness.requireEqual((int)stereo.size(), 2, "stereo should have two channels");
 	harness.expectTrue(stereo[0] == L"L" && stereo[1] == L"R", "stereo channel names should be L, R");
 
 	// A 5.1 default mask must include the canonical surround names.
 	int surroundMask = ChannelHelper::getDefaultChannelMask(6);
 	vector<wstring> surround = ChannelHelper::getChannelNames(6, surroundMask);
-	harness.expectEqual((int)surround.size(), 6, "5.1 should have six channels");
+	harness.requireEqual((int)surround.size(), 6, "5.1 should have six channels");
 	harness.expectTrue(surround[0] == L"L" && surround[1] == L"R" && surround[2] == L"C" && surround[3] == L"LFE",
 		"5.1 channel order should start L, R, C, LFE");
 

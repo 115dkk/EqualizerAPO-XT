@@ -12,15 +12,22 @@
 	EditorLogicTests. Messages are std::string; callers that work in another
 	string type convert at the boundary.
 
-	Two failure policies exist; each suite picks one in the constructor.
+	Two failure policies exist; the constructor takes Collect unless a suite
+	asks for the other one.
 
-	- Abort (the default): a failed assertion prints to stderr and exits the
-	  process with code 1. All suites behave this way unless they opt out.
-	- Collect (opt-in): a failed expect*() prints the same stderr line,
-	  increments the failure counter and lets the suite continue; report()
-	  then prints a failure summary to stderr and exits with code 1. Collect
-	  exists because under Abort a failure at the top of a suite hides every
-	  finding below it, costing one CI round-trip per finding.
+	- Collect (the default): a failed expect*() prints to stderr, increments
+	  the failure counter and lets the suite continue; report() then prints a
+	  failure summary to stderr and exits with code 1. It is the default
+	  because under Abort a failure at the top of a suite hides every finding
+	  below it, costing one CI round-trip per finding.
+	- Abort (opt-in): a failed assertion prints the same stderr line and exits
+	  the process with code 1 immediately.
+
+	Under Collect only report() fails the build, so every path that leaves a
+	suite - including soft skips and early returns - has to reach it. A suite
+	that cannot guarantee that must pass Abort explicitly. The destructor is
+	the backstop: a harness that recorded failures and was never reported kills
+	the process with code 1 rather than letting the run finish green.
 
 	The require*() family always aborts on failure regardless of the policy.
 	It is for gating checks whose failure would make the following code unsafe
@@ -53,9 +60,26 @@ enum class FailurePolicy
 class Harness
 {
 public:
-	explicit Harness(std::string suiteName, FailurePolicy policy = FailurePolicy::Abort)
-		: name_(std::move(suiteName)), policy_(policy), passed_(0), failed_(0)
+	explicit Harness(std::string suiteName, FailurePolicy policy = FailurePolicy::Collect)
+		: name_(std::move(suiteName)), policy_(policy), passed_(0), failed_(0), reported_(false)
 	{
+	}
+
+	// Backstop for the Collect default. A suite that records failures and then
+	// leaves without report() would exit 0 and turn a broken test green; that
+	// cannot be caught at compile time, so catch it here instead. Suite
+	// harnesses live at namespace scope, so this often runs during static
+	// destruction where std::exit is not allowed - _Exit is, after a manual
+	// flush. aborting_ keeps an in-flight fail() from tripping the sibling
+	// harnesses that never got their turn to report.
+	~Harness()
+	{
+		if (failed_ == 0 || reported_ || aborting_)
+			return;
+		std::fprintf(stderr, "%s FAILED (%u of %u checks failed) and never called report()\n",
+			name_.c_str(), failed_, passed_ + failed_);
+		std::fflush(nullptr);
+		std::_Exit(1);
 	}
 
 	// Prints the failure to stderr and terminates with exit code 1, matching
@@ -64,6 +88,7 @@ public:
 	[[noreturn]] void fail(const std::string& message) const
 	{
 		std::fprintf(stderr, "%s failed: %s\n", name_.c_str(), message.c_str());
+		aborting_ = true;
 		std::exit(1);
 	}
 
@@ -134,16 +159,18 @@ public:
 		return passed_;
 	}
 
-	// Emits a single "<suite> passed (<n> checks)" line on stdout. Suites that
-	// already print their own success banner can call this instead, or keep
-	// their banner and read passed() if they prefer. If Collect mode recorded
-	// any failures, prints a failure summary to stderr instead and exits with
-	// code 1 so the suite still fails the build.
-	void report() const
+	// Carries the verdict, so every suite has to reach it before it leaves:
+	// under Collect this is the only place a recorded failure turns into a
+	// non-zero exit code. On failure it prints a summary to stderr and exits
+	// with code 1; otherwise it emits a single "<suite> passed (<n> checks)"
+	// line on stdout, which a suite with its own success banner may duplicate.
+	void report()
 	{
+		reported_ = true;
 		if (failed_ > 0)
 		{
 			std::fprintf(stderr, "%s FAILED (%u of %u checks failed)\n", name_.c_str(), failed_, passed_ + failed_);
+			aborting_ = true;
 			std::exit(1);
 		}
 		std::printf("%s passed (%u checks)\n", name_.c_str(), passed_);
@@ -165,6 +192,12 @@ private:
 	FailurePolicy policy_;
 	unsigned passed_;
 	unsigned failed_;
+	bool reported_;
+
+	// Set once the process is already on its way out with a non-zero code, so
+	// the destructor backstop stays quiet for every other harness in the same
+	// binary. Written from the const fail(), hence mutable-by-being-static.
+	static inline bool aborting_ = false;
 };
 
 } // namespace test
