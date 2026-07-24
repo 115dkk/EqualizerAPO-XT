@@ -31,6 +31,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfoKeys.h"
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
@@ -46,6 +47,24 @@
 
 namespace
 {
+void testDeviceApoRegistryVocabulary(test::Harness& harness)
+{
+	harness.expectEqual(allGuidValueNameCount, 5u,
+		"the five legacy APO slots stay in their indexed order");
+	const auto ownedBegin = std::begin(ownedFxValueNames);
+	const auto ownedEnd = std::end(ownedFxValueNames);
+	for (const wchar_t* valueName : allGuidValueNames)
+		harness.expect(std::find(ownedBegin, ownedEnd, valueName) != ownedEnd,
+			"every installed APO GUID value is in the uninstall ownership table");
+	for (const wchar_t* valueName : {
+		sfxProcessingModesValueName, mfxProcessingModesValueName,
+		efxProcessingModesValueName, fxTitleValueName })
+	{
+		harness.expect(std::find(ownedBegin, ownedEnd, valueName) != ownedEnd,
+			"every installed processing value is in the uninstall ownership table");
+	}
+}
+
 void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
 {
 	using InstallState = DeviceAPOInfo::InstallState;
@@ -912,6 +931,7 @@ int runEngineOrchestrationTests()
 	testLogHelperUserDestination(harness);
 	testRegistryExportHeaderPreservesQualifiedRoot(harness);
 	testSynchronizedStateSerializesReplacement(harness);
+	testDeviceApoRegistryVocabulary(harness);
 	testInstallStateComparisonIgnoresPadding(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
