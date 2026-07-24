@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.26.4 — 2026-07-24
+
 - Editor와 오디오 엔진이 무엇을 명령으로 볼지 이제 같게 판단합니다. 엔진은 처음부터
   대소문자를 구분해서, `preamp: -6 dB`는 엔진에게 그냥 글자입니다. Equalizer APO
   1.4.2에서 `copy: 나중에 다시 측정할 것` 같은 줄이 아무 일도 하지 않았던 것과 같은

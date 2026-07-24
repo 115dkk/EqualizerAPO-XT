@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.26.4 — 2026-07-24
+
 - The Editor and the audio engine now agree on what counts as a command. The
   engine has always been case-sensitive, so `preamp: -6 dB` is inert text to it
   the same way `copy: remember to re-measure` has been inert in Equalizer APO
