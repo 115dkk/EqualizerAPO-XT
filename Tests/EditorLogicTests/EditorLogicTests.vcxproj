@@ -73,7 +73,7 @@
     <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt</QT_ROOT>
   </PropertyGroup>
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
     <LibraryPath>$(QT_ROOT)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -86,11 +86,12 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(QT_ROOT)\bin\Qt6Core.dll" copy /Y "$(QT_ROOT)\bin\Qt6Core.dll" "$(OutDir)"
-if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutDir)"</Command>
+if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutDir)"
+if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">

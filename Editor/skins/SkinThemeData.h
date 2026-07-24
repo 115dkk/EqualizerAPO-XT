@@ -18,8 +18,20 @@
 
 #include "Editor/SkinTokens.h"
 
+class QApplication;
+
 namespace SkinThemeData
 {
+// Registers the shared static font faces and fallback chain. Editor passes
+// includeSarasa=true for its monospace CJK surfaces; satellite tools keep the
+// smaller common set.
+void registerBundledFonts(bool includeSarasa = false);
+
+// Applies the complete process theme contract: optional Fusion base style,
+// token palette, QSS with Studio fallback, and common widget overrides.
+void applyToApplication(QApplication& app, const QString& skinId, bool dark,
+	bool setFusionStyle = true, bool includeSarasa = false);
+
 // Canonical skin id for any stored value: applies the legacy aliases
 // (glassy -> studio, industrial -> rack) and falls back to "studio" for
 // unknown ids, mirroring Skins::byId.

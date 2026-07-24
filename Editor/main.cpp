@@ -63,6 +63,7 @@
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/EditorSettings.h"
+#include "Editor/skins/SkinThemeData.h"
 
 
 namespace
@@ -416,46 +417,7 @@ int main(int argc, char* argv[])
 		if (!legacyRowsMode)
 		{
 			application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
-
-			// Bundle the redesign's typefaces so the skins render identically
-			// regardless of what is installed: DM Sans / DM Mono carry the Latin
-			// look, Pretendard carries Korean. Static weight instances are used on
-			// purpose — Qt does not reliably select a weight off a variable font's
-			// wght axis, so a variable DM Sans / Pretendard rendered every QSS
-			// font-weight (600/700) at the thin default. Registering Regular/Medium/
-			// SemiBold/Bold per family lets font-weight resolve to a real face.
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Regular.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Medium.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-SemiBold.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Bold.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Regular.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Medium.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Regular.otf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Medium.otf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-SemiBold.otf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Bold.otf"));
-			// Sarasa Mono K: a true fixed-width CJK face, subset to Hangul + ASCII.
-			// It is the monospace Korean fallback so Korean in mono contexts keeps the
-			// grid instead of dropping to the proportional Pretendard. Regular + Bold
-			// cover the mono font-weights the skins use.
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
-
-			// Fallback chain for painted (non-QSS) text where Qt resolves a single
-			// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
-			// Pretendard -> Noto Sans -> Malgun Gothic (Korean) / Microsoft YaHei
-			// (Chinese).
-			const QStringList cjkChain = {
-				QStringLiteral("Pretendard"),
-				QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans"),
-				QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
-			};
-			QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
-			// Mono text puts Sarasa Mono K ahead of the proportional CJK chain so
-			// monospace Korean stays fixed-width; Consolas stays first for any Latin
-			// the embedded DM Mono might lack.
-			QFont::insertSubstitutions(QStringLiteral("DM Mono"),
-				QStringList{ QStringLiteral("Consolas"), QStringLiteral("Sarasa Mono K") } + cjkChain);
+			SkinThemeData::registerBundledFonts(true);
 		}
 
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))

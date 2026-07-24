@@ -123,30 +123,9 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	darkMode = dark;
 	currentTokens = activeSkin->tokens(darkMode);
 
-	QString styleSheet;
-	QFile file(activeSkin->qssResource(darkMode));
-	if (file.open(QFile::ReadOnly))
-	{
-		styleSheet = QString::fromUtf8(file.readAll());
-	}
-	else
-	{
-		QFile fallback(Skins::byId(QStringLiteral("studio"))->qssResource(darkMode));
-		if (fallback.open(QFile::ReadOnly))
-			styleSheet = QString::fromUtf8(fallback.readAll());
-	}
-	// Combo-box and spin-box arrows: every skin draws these with the CSS-border
-	// triangle trick (image: none on a 0x0 box plus coloured borders). On Qt 6.10
-	// that collapses to a flat dash instead of a triangle, so the dropdown and
-	// up/down arrows render as a "-". The override (SkinThemeData) replaces the
-	// arrow sub-controls app-wide with a real chevron SVG, appended after the
-	// skin sheet so it wins on equal specificity.
-	qApp->setStyleSheet(SkinThemeData::substituteTokens(styleSheet, currentTokens) + SkinThemeData::comboArrowOverride()
-		+ SkinThemeData::fileDialogOverride());
-	// The palette is part of the skin: painted (non-QSS) widgets and native
-	// popups read these roles. Deriving it here keeps every switch path (menu,
-	// shortcut, startup, gallery) in step.
-	qApp->setPalette(SkinThemeData::palette(currentTokens, darkMode));
+	// The process-wide QSS/palette/font contract is shared with companion
+	// executables. The Editor keeps its CustomStyle, so Fusion is not reset.
+	SkinThemeData::applyToApplication(*qApp, skinId, darkMode, false, true);
 
 	sheetApplied = true;
 	emit skinChanged(currentTokens);

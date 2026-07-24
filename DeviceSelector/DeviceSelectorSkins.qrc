@@ -26,6 +26,7 @@
         <file alias="fonts/DMMono-Regular.ttf">../Editor/fonts/DMMono-Regular.ttf</file>
         <file alias="fonts/DMMono-Medium.ttf">../Editor/fonts/DMMono-Medium.ttf</file>
         <file alias="fonts/Pretendard-Regular.otf">../Editor/fonts/Pretendard-Regular.otf</file>
+        <file alias="fonts/Pretendard-Medium.otf">../Editor/fonts/Pretendard-Medium.otf</file>
         <file alias="fonts/Pretendard-SemiBold.otf">../Editor/fonts/Pretendard-SemiBold.otf</file>
         <file alias="fonts/Pretendard-Bold.otf">../Editor/fonts/Pretendard-Bold.otf</file>
     </qresource>
