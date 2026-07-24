@@ -1,5 +1,33 @@
 # Audio regression references
 
+## These baselines are deliberately not regenerated
+
+The harness used to hand each case's whole signal to `process()` in one call,
+which meant a stored baseline could not observe anything that a stateful filter
+carries between calls. Every case now drives the engine in fixed-size blocks the
+way Windows drives the APO, with `blockFrames` chosen per case to divide the
+signal length exactly.
+
+The baselines below were **not** regenerated for that change, and that is the
+point: they were produced by whole-buffer runs, the blocked runs reproduce them
+to within floating-point noise (worst case `3.1e-17` on `convolution_short`,
+`1.0e-38` on `biquad_peaking_1khz`, exact elsewhere), and the tolerance is
+-120 dB. So the files now assert something stronger than they used to. They pin
+the output *and* the fact that chunking the signal differently does not change
+it.
+
+Keep it that way. If a future change genuinely requires new baselines, prefer
+regenerating from a whole-buffer run and letting the blocked comparison prove
+invariance again, rather than regenerating in block mode - the latter would
+silently discard the evidence.
+
+Note that `blockFrames` must divide `frames`. `ConvolutionFilter` freezes its
+block length at `initialize()` and mutes any block of a different size, so a
+short final block would silence the tail instead of testing it. The harness
+fails the case rather than letting that happen quietly.
+
+## Provenance
+
 These raw float baselines were generated from commit `329db3a`
 (`fix(engine): link all filter factories from Common.lib and cache FFTW wisdom`).
 
