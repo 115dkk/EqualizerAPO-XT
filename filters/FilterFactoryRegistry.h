@@ -60,6 +60,25 @@ public:
 	// so callers match the first whitespace-delimited token of the trimmed key.
 	static const std::set<std::wstring>& knownConfigCommands();
 
+	// Resolves a configuration line's key - the text before the first colon - to
+	// the command keyword the engine recognizes, or an empty string when nothing
+	// claims it. This is the single place that answers "is this line a command,
+	// and which one", so the engine, the Editor's card model and the card editor
+	// registry cannot drift into three different answers.
+	//
+	// The answer is what the factories will actually do with the key, not a
+	// simplification of it, so the rule has two halves. Keys beginning with
+	// "Filter" resolve to "Filter" because BiQuad and IIR match by prefix, which
+	// is how "Filter 1" and "Filter1" both work. Every other key must equal a
+	// registered keyword exactly, because those factories compare the whole key -
+	// "Channel 2" is not a Channel command and the engine never runs it.
+	//
+	// The match is case-sensitive, and that is load-bearing: Equalizer APO 1.4.2
+	// leaves "copy: a note to self" inert precisely because "copy" is not "Copy",
+	// so accepting either casing would start routing audio in configs that never
+	// did.
+	static std::wstring canonicalCommand(const std::wstring& key);
+
 	// Subset of knownConfigCommands() whose factories set suppressMissingFilterWarning.
 	// The engine uses it to skip the malformed-parameters warning for commands that
 	// legitimately produce no filter.
