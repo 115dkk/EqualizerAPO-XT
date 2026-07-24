@@ -52,6 +52,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Benchmark\BatchPlan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>

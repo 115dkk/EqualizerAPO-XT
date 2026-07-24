@@ -8,6 +8,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BatchPlan.h" />
     <ClInclude Include="..\stdafx.h" />
     <ClInclude Include="..\helpers\MemoryHelper.h">
       <Filter>helpers</Filter>

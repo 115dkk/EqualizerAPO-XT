@@ -30,6 +30,7 @@
 #include <QTextStream>
 
 #include "Editor/ConfigFileCodec.h"
+#include "Benchmark/BatchPlan.h"
 #include "Editor/helpers/AnalysisWorkerRecovery.h"
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
@@ -1783,6 +1784,21 @@ void testEditableValueTextUsesDisplayedDecimalFormatFirst()
 	expectTrue(qAbs(value - 12.5) < 0.000001,
 		"system-locale fallback keeps its decimal meaning");
 }
+
+void testBenchmarkBatchPlanUsesOnlyComparableFullBatches()
+{
+	const BenchmarkBatchPlan partial = planBenchmarkBatches(1000, 480);
+	expectEqual(partial.processedFrames, 960u,
+		"benchmark processes only full fixed-size batches");
+	expectEqual(partial.trimmedFrames, 40u,
+		"benchmark reports the excluded partial tail");
+
+	const BenchmarkBatchPlan exact = planBenchmarkBatches(960, 480);
+	expectEqual(exact.processedFrames, 960u,
+		"batch-aligned benchmark lengths remain unchanged");
+	expectEqual(exact.trimmedFrames, 0u,
+		"batch-aligned benchmark lengths trim nothing");
+}
 }
 
 int main(int argc, char** argv)
@@ -1815,6 +1831,7 @@ int main(int argc, char** argv)
 		testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
 		testSkinTokensCarryExplicitMode();
 		testEditableValueTextUsesDisplayedDecimalFormatFirst();
+		testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
 		testFilterListModel();
 		testFilterListUndo();
 
