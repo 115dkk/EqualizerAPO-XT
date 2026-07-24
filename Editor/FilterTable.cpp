@@ -166,7 +166,7 @@ void FilterTable::updateGuis()
 
 	clearRows();
 
-	qDebug("Delete took %d ms", timer.elapsed());
+	qDebug("Delete took %d ms", int(timer.elapsed()));
 	timer.start();
 
 	gridLayout = new QGridLayout(this);

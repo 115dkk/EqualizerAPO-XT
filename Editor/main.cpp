@@ -55,6 +55,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
 #include "helpers/VelopackBootstrap.h"
 #include "version.h"
@@ -185,12 +186,7 @@ std::wstring widenArg(const char* arg)
 {
 	if (arg == nullptr)
 		return std::wstring();
-	int needed = MultiByteToWideChar(CP_UTF8, 0, arg, -1, nullptr, 0);
-	if (needed <= 0)
-		return std::wstring();
-	std::wstring out(static_cast<size_t>(needed - 1), L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, arg, -1, out.data(), needed);
-	return out;
+	return StringHelper::toWString(std::string(arg), CP_UTF8);
 }
 
 std::wstring buildArgumentLine(int argc, char* argv[])
