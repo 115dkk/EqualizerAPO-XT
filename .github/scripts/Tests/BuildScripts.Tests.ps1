@@ -8,7 +8,10 @@ Describe "extracted build script decisions" {
             -WorkspaceRoot $root -Platform ARM64 -SimdVariant neon -CanExecute:$false -PlanOnly
         $plan.PlatformToolset | Should -Be "v143"
         $plan.ToolArchitecture | Should -Be "ARM64"
-        $plan.RuntimeTests | Should -Be @("EditorLogicTests")
+        # A runner that cannot execute the variant runs nothing: EditorLogicTests
+        # links Common.lib whole-archive and so now carries the variant's /arch
+        # into a static initializer.
+        $plan.RuntimeTests | Should -BeNullOrEmpty
     }
 
     It "derives the AVX10 and ARM64 update channels" {

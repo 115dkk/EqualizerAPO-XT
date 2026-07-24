@@ -2,7 +2,6 @@
 
 #include <QFileInfo>
 #include <QRegularExpression>
-#include <QSet>
 
 #include <utility>
 
@@ -15,29 +14,6 @@ namespace
 QString middleDotSeparator()
 {
 	return QStringLiteral(" %1 ").arg(QChar(0x00B7));
-}
-
-bool isKnownConfigCommand(const QString& command)
-{
-	QString normalized = command.trimmed().toLower();
-	if (normalized.startsWith(QStringLiteral("filter")))
-		return true;
-
-	// Derive the recognized command vocabulary from the engine's single source
-	// of truth (FilterFactoryRegistry) instead of duplicating it here, so this
-	// stays in sync as factories are added or renamed. Registry keys are
-	// case-sensitive while this comparison is lowercased, so each keyword is
-	// lowered on the way in. "Comment" is not a factory command, so it is added
-	// explicitly. "Filter" is already handled by the startsWith check above, so
-	// its presence in the registry set is harmless.
-	static const QSet<QString> knownCommands = []() {
-		QSet<QString> commands;
-		for (const std::wstring& keyword : FilterFactoryRegistry::knownConfigCommands())
-			commands.insert(QString::fromStdWString(keyword).toLower());
-		commands.insert(QStringLiteral("comment"));
-		return commands;
-	}();
-	return knownCommands.contains(normalized);
 }
 
 QString biquadTypeTitle(const QString& code)
@@ -136,11 +112,14 @@ QString summarizeBiquad(const QString& parameters, const QString& code, const QS
 	return summary;
 }
 
-FilterCardRowScope advanceScope(bool enabled, const QString& command,
+// keyword is the engine's canonical command (FilterCardModel::canonicalCommand),
+// so a lowercase "if:" or "channel:" moves neither axis here for the same reason
+// it opens no scope in the engine.
+FilterCardRowScope advanceScope(bool enabled, const QString& keyword,
 	const QStringList& channelBadges, QStringList& activeChannels, int& channelDepth, int& ifDepth)
 {
 	FilterCardRowScope scope;
-	if (enabled && command == QStringLiteral("channel"))
+	if (enabled && keyword == QStringLiteral("Channel"))
 	{
 		scope.indent = ifDepth;
 		scope.logic = ifDepth;
@@ -148,18 +127,18 @@ FilterCardRowScope advanceScope(bool enabled, const QString& command,
 		channelDepth = selectsAll ? 0 : 1;
 		activeChannels = selectsAll ? QStringList() : channelBadges;
 	}
-	else if (enabled && command == QStringLiteral("if"))
+	else if (enabled && keyword == QStringLiteral("If"))
 	{
 		scope.indent = channelDepth + ifDepth;
 		scope.logic = ifDepth;
 		ifDepth++;
 	}
-	else if (enabled && (command == QStringLiteral("elseif") || command == QStringLiteral("else")))
+	else if (enabled && (keyword == QStringLiteral("ElseIf") || keyword == QStringLiteral("Else")))
 	{
 		scope.indent = channelDepth + qMax(0, ifDepth - 1);
 		scope.logic = ifDepth;
 	}
-	else if (enabled && command == QStringLiteral("endif"))
+	else if (enabled && keyword == QStringLiteral("EndIf"))
 	{
 		scope.indent = channelDepth + qMax(0, ifDepth - 1);
 		scope.logic = ifDepth;
@@ -180,6 +159,17 @@ QString FilterCardModel::compactWhitespace(const QString& text)
 	return text.simplified();
 }
 
+QString FilterCardModel::canonicalCommand(const QString& key)
+{
+	// The one QString <-> std::wstring crossing for command classification, and
+	// nothing more. The rule lives in the engine
+	// (FilterFactoryRegistry::canonicalCommand) so that the Editor cannot hold a
+	// second opinion about what a line is - which is exactly how "preamp:" came
+	// to open a live card for a line the engine never ran.
+	return QString::fromStdWString(
+		FilterFactoryRegistry::canonicalCommand(key.toStdWString()));
+}
+
 bool FilterCardModel::isDisabledCommandLine(const QString& line)
 {
 	QString trimmed = line.trimmed();
@@ -191,7 +181,11 @@ bool FilterCardModel::isDisabledCommandLine(const QString& line)
 	if (colon < 0)
 		return false;
 
-	return isKnownConfigCommand(trimmed.left(colon));
+	// Only a real command can be a *disabled* command. "# Comment: ..." and
+	// "# todo: ..." are notes, and so is "# preamp: ..." - the engine would not
+	// run that line even with the '#' removed, so offering to re-enable it
+	// would promise something the engine never delivers.
+	return !canonicalCommand(trimmed.left(colon)).isEmpty();
 }
 
 bool FilterCardModel::isPureCommentLine(const QString& line)
@@ -282,7 +276,10 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 
 	QString parameters;
 	QString command = commandForLine(line, &parameters);
-	QString commandLower = command.toLower();
+	// The engine decides what this line is; the card only decides how to draw
+	// it. A key nothing claims (plain prose, an unknown keyword, a lowercase
+	// "preamp:") keeps the raw-text card, which is what the engine does with it.
+	const QString keyword = canonicalCommand(command);
 	descriptor.command = command;
 	descriptor.parameters = parameters;
 	descriptor.dynamicLine = hasInlineExpressions(parameters);
@@ -295,26 +292,26 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	if (!descriptor.enabled && command != QStringLiteral("#"))
 		descriptor.summary = compactWhitespace(parameters);
 
-	if (commandLower == QStringLiteral("preamp"))
+	if (keyword == QStringLiteral("Preamp"))
 	{
 		descriptor.type = QStringLiteral("preamp");
 		descriptor.badge = QStringLiteral("PRE");
 		descriptor.title = tr("Preamp");
 		descriptor.color = QStringLiteral("#f59e0b");
 	}
-	else if (commandLower == QStringLiteral("delay"))
+	else if (keyword == QStringLiteral("Delay"))
 	{
 		descriptor.type = QStringLiteral("delay");
 		descriptor.badge = QStringLiteral("DLY");
 		descriptor.title = tr("Delay");
 		descriptor.color = QStringLiteral("#14b8a6");
 	}
-	else if (commandLower == QStringLiteral("filter") || commandLower.startsWith(QStringLiteral("filter ")))
+	else if (keyword == QStringLiteral("Filter"))
 	{
 		// EAPO syntax allows numbered filter lines such as `Filter 1:`, `Filter 99:`
-		// (commonly emitted by REW, Room EQ Wizard, Dirac, and other tools), so
-		// this must match by prefix - an exact-match check would strip the
-		// type-specific badge/title/summary off every numbered BiQuad card.
+		// (commonly emitted by REW, Room EQ Wizard, Dirac, and other tools).
+		// canonicalCommand already folds the trailing token away, so both spellings
+		// land here and keep the type-specific badge/title/summary.
 		descriptor.type = QStringLiteral("biquad");
 		descriptor.badge = QStringLiteral("BQUAD");
 		descriptor.title = tr("Biquad");
@@ -370,7 +367,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 			}
 		}
 	}
-	else if (commandLower == QStringLiteral("graphiceq"))
+	else if (keyword == QStringLiteral("GraphicEQ"))
 	{
 		descriptor.type = QStringLiteral("graphiceq");
 		descriptor.badge = QStringLiteral("GEQ");
@@ -381,7 +378,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		if (!parameters.trimmed().isEmpty())
 			descriptor.summary = tr("%1 bands").arg(bandCount);
 	}
-	else if (commandLower == QStringLiteral("copy"))
+	else if (keyword == QStringLiteral("Copy"))
 	{
 		descriptor.type = QStringLiteral("copy");
 		descriptor.badge = QStringLiteral("CPY");
@@ -412,7 +409,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 				descriptor.summary = tr("%1 steps").arg(destinations.size());
 		}
 	}
-	else if (commandLower == QStringLiteral("channel"))
+	else if (keyword == QStringLiteral("Channel"))
 	{
 		descriptor.type = QStringLiteral("channel");
 		descriptor.badge = QStringLiteral("CH");
@@ -422,7 +419,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.channelBadges = parseChannelList(parameters);
 		descriptor.summary = descriptor.channelBadges.join(' ');
 	}
-	else if (commandLower == QStringLiteral("include"))
+	else if (keyword == QStringLiteral("Include"))
 	{
 		descriptor.type = QStringLiteral("include");
 		descriptor.badge = QStringLiteral("INC");
@@ -433,7 +430,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		if (descriptor.summary.isEmpty())
 			descriptor.summary = parameters;
 	}
-	else if (commandLower == QStringLiteral("convolution"))
+	else if (keyword == QStringLiteral("Convolution"))
 	{
 		descriptor.type = QStringLiteral("convolution");
 		descriptor.badge = QStringLiteral("CONV");
@@ -443,7 +440,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		if (!fileName.isEmpty())
 			descriptor.summary = fileName;
 	}
-	else if (commandLower == QStringLiteral("multiconvolution"))
+	else if (keyword == QStringLiteral("MultiConvolution"))
 	{
 		// Shares the convolution row type so skins style it like the single-input
 		// convolution card. The grammar differs: the first token is the output
@@ -463,7 +460,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		else if (!channel.isEmpty())
 			descriptor.summary = channel;
 	}
-	else if (commandLower == QStringLiteral("vstplugin"))
+	else if (keyword == QStringLiteral("VSTPlugin"))
 	{
 		descriptor.type = QStringLiteral("vst");
 		descriptor.badge = QStringLiteral("VST");
@@ -473,29 +470,29 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		if (descriptor.summary.isEmpty())
 			descriptor.summary = parameters;
 	}
-	else if (commandLower == QStringLiteral("device"))
+	else if (keyword == QStringLiteral("Device"))
 	{
 		descriptor.type = QStringLiteral("device");
 		descriptor.badge = QStringLiteral("DEV");
 		descriptor.title = tr("Device");
 		descriptor.color = QStringLiteral("#64748b");
 	}
-	else if (commandLower == QStringLiteral("stage"))
+	else if (keyword == QStringLiteral("Stage"))
 	{
 		descriptor.type = QStringLiteral("stage");
 		descriptor.badge = QStringLiteral("STG");
 		descriptor.title = tr("Stage");
 		descriptor.color = QStringLiteral("#f97316");
 	}
-	else if (commandLower == QStringLiteral("loudnesscorrection"))
+	else if (keyword == QStringLiteral("LoudnessCorrection"))
 	{
 		descriptor.type = QStringLiteral("loudness");
 		descriptor.badge = QStringLiteral("LOUD");
 		descriptor.title = tr("Loudness");
 		descriptor.color = QStringLiteral("#eab308");
 	}
-	else if (commandLower == QStringLiteral("if") || commandLower == QStringLiteral("elseif")
-		|| commandLower == QStringLiteral("else") || commandLower == QStringLiteral("endif"))
+	else if (keyword == QStringLiteral("If") || keyword == QStringLiteral("ElseIf")
+		|| keyword == QStringLiteral("Else") || keyword == QStringLiteral("EndIf"))
 	{
 		// The whole If family shares one card type; the badge tells the branch
 		// kind apart. The summary is the condition expression as written - for
@@ -503,17 +500,17 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		// summary is the honest reading (the title already says everything).
 		descriptor.type = QStringLiteral("if");
 		descriptor.color = QStringLiteral("#f43f5e");
-		if (commandLower == QStringLiteral("if"))
+		if (keyword == QStringLiteral("If"))
 		{
 			descriptor.badge = QStringLiteral("IF");
 			descriptor.title = tr("If");
 		}
-		else if (commandLower == QStringLiteral("elseif"))
+		else if (keyword == QStringLiteral("ElseIf"))
 		{
 			descriptor.badge = QStringLiteral("ELIF");
 			descriptor.title = tr("Else if");
 		}
-		else if (commandLower == QStringLiteral("else"))
+		else if (keyword == QStringLiteral("Else"))
 		{
 			descriptor.badge = QStringLiteral("ELSE");
 			descriptor.title = tr("Else");
@@ -524,7 +521,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 			descriptor.title = tr("End if");
 		}
 	}
-	else if (commandLower == QStringLiteral("eval"))
+	else if (keyword == QStringLiteral("Eval"))
 	{
 		descriptor.type = QStringLiteral("eval");
 		descriptor.badge = QStringLiteral("EVAL");
@@ -652,10 +649,10 @@ QVector<FilterCardRowScope> FilterCardModel::calculateScopes(const QList<QString
 	{
 		const bool enabled = !line.trimmed().startsWith('#');
 		QString parameters;
-		const QString command = commandForLine(line, &parameters).toLower();
-		const QStringList channels = command == QStringLiteral("channel")
+		const QString keyword = canonicalCommand(commandForLine(line, &parameters));
+		const QStringList channels = keyword == QStringLiteral("Channel")
 			? parseChannelList(parameters) : QStringList();
-		scopes.append(advanceScope(enabled, command, channels, activeChannels, channelDepth, ifDepth));
+		scopes.append(advanceScope(enabled, keyword, channels, activeChannels, channelDepth, ifDepth));
 	}
 
 	return scopes;
@@ -674,7 +671,7 @@ QVector<FilterCardBuildPlan> FilterCardModel::prepareRows(const QList<QString>& 
 		FilterCardBuildPlan plan;
 		plan.descriptor = describeLine(line);
 		plan.scope = advanceScope(plan.descriptor.enabled,
-			plan.descriptor.command.toLower(), plan.descriptor.channelBadges,
+			canonicalCommand(plan.descriptor.command), plan.descriptor.channelBadges,
 			activeChannels, channelDepth, ifDepth);
 		plan.descriptor.depth = plan.scope.indent;
 		plan.descriptor.logicDepth = plan.scope.logic;

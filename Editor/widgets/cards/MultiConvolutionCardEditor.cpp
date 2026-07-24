@@ -380,10 +380,20 @@ void MultiConvolutionCardEditor::updateFileInfo()
 
 #include "FilterCardEditorRegistry.h"
 
-REGISTER_FILTER_CARD_EDITOR(multiconvolution, [](FilterTable* filterTable, const QString& command, const QString& parameters) -> IFilterGUI* {
-	// MultiConvolutionCommand owns the line grammar (mapping and simple
-	// forms); the card hosts the mapping in the skin's routing view.
+REGISTER_FILTER_CARD_EDITOR(MultiConvolution, [](FilterTable* filterTable, const QString& command, const QString& parameters) -> IFilterGUI* {
+	// MultiConvolutionCommand owns the line grammar (mapping and simple forms);
+	// the card hosts the mapping in the skin's routing view. Text the parser
+	// rejects falls through rather than opening a card with no path, which the
+	// first interaction would write back over what the author had.
+	//
+	// The empty line is the exception: the Insert menu drops a bare
+	// "MultiConvolution:" template and the parser rejects it (it wants both a
+	// target and a path), but there is nothing to lose yet and an empty card is
+	// exactly what the user asked for. The legacy GUI factory claims that line
+	// for the same reason.
 	MultiConvolutionCommand cmd;
-	MultiConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
+	if (!MultiConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd)
+		&& !parameters.trimmed().isEmpty())
+		return nullptr;
 	return new MultiConvolutionCardEditor(filterTable, cmd.mappings, QString::fromStdWString(cmd.path));
 })

@@ -14,6 +14,28 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The Editor and the audio engine now agree on what counts as a command. The
+  engine has always been case-sensitive, so `preamp: -6 dB` is inert text to it
+  the same way `copy: remember to re-measure` has been inert in Equalizer APO
+  since 1.4.2. The Editor used its own looser rule, which meant it drew a live
+  card for lines the engine never ran, and touching that card could turn a note
+  into a real command. Those lines now show as plain text, matching what
+  actually happens to your audio. Three things follow from the same fix
+  ([#224](https://github.com/115dkk/EqualizerAPO-XT/pull/224)):
+  - Numbered filter lines such as `Filter 1: ON IIR Order 2 Coefficients ...`
+    open the IIR card again. REW and Dirac write this form by default, and it
+    was falling through to the plain-text editor.
+  - A commented-out line is only offered an enable toggle when enabling it
+    would actually do something.
+  - Keys such as `Channel 2:` are no longer treated as commands. The engine
+    never ran them, and the Editor used to rewrite them into ones it would.
+- The Preamp card reads and writes gain the way the engine does. `Preamp:
+  -6,5 dB` written with a decimal comma is -6.5 dB to both, where the card
+  previously read -6.0 dB and silently rewrote the line on the first knob turn.
+  Exponent forms are read correctly, precision is no longer truncated
+  (`-6.25 dB` stays `-6.25 dB`), and a line the engine cannot parse no longer
+  opens a card that would overwrite it.
+
 ## v2.26.3 — 2026-07-24
 
 - The Editor now recognises `MultiConvolution:` lines the way the audio engine

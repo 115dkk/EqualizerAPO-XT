@@ -40,6 +40,7 @@ void runCopyCommandTests();
 void runDelayCommandTests();
 void runDeviceCommandTests();
 void runExpressionCommandTests();
+void runFilterFactoryRegistryTests();
 void runGraphicEQCommandTests();
 void runIfCommandTests();
 void runIIRCommandTests();
@@ -466,6 +467,9 @@ int runHybridConvTests()
 	runDelayCommandTests();
 	runDeviceCommandTests();
 	runExpressionCommandTests();
+	// Command-classification contract shared by the engine and the Editor
+	// (FilterFactoryRegistry::canonicalCommand and the two keyword sets).
+	runFilterFactoryRegistryTests();
 	runGraphicEQCommandTests();
 	runIfCommandTests();
 	runIIRCommandTests();

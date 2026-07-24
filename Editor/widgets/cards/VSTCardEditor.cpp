@@ -571,7 +571,7 @@ void VSTCardEditor::updatePermissionWarning()
 #include "filters/VSTPluginFilterFactory.h"
 #include "helpers/VSTPluginLibrary.h"
 
-REGISTER_FILTER_CARD_EDITOR(vstplugin, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
 	// Parse the line into the engine's VST filter (no plugin DLL is loaded
 	// for configPath == L""), then hand the opaque state to the card editor.
 	// The store()/parse round-trip is verified lossless (--selftest-vst).

@@ -136,6 +136,6 @@ void ChannelCardEditor::commitSelection()
 
 #include "FilterCardEditorRegistry.h"
 
-REGISTER_FILTER_CARD_EDITOR(channel, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+REGISTER_FILTER_CARD_EDITOR(Channel, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
 	return new ChannelCardEditor(parameters);
 })

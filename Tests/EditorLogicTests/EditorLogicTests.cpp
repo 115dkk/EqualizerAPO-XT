@@ -5,7 +5,6 @@
 #include <exception>
 #include <future>
 #include <iostream>
-#include <malloc.h>
 #include <stdexcept>
 #include <thread>
 
@@ -52,6 +51,7 @@
 #include "Editor/widgets/routing/StudioRoutingModel.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/OwnedBackgroundTask.h"
+#include "filters/FilterFactoryRegistry.h"
 #include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
@@ -59,24 +59,6 @@
 
 #include "Tests/TestHarness.h"
 #include "EditorLogicTestSupport.h"
-
-namespace
-{
-int memoryHelperAllocations = 0;
-int memoryHelperFrees = 0;
-}
-
-void* MemoryHelper::alloc(size_t size)
-{
-	++memoryHelperAllocations;
-	return _aligned_malloc(size, 16);
-}
-
-void MemoryHelper::free(void* ptr)
-{
-	++memoryHelperFrees;
-	_aligned_free(ptr);
-}
 
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
@@ -599,6 +581,16 @@ void testVelopackFeeds()
 
 void testFilterCardDescriptors()
 {
+	// Every classification below runs through FilterCardModel::canonicalCommand,
+	// which asks the engine's registry. The registry is filled by file-scope
+	// statics in the *FilterFactory translation units, which nothing here
+	// references by name - that is why this project links Common.lib whole
+	// (/WHOLEARCHIVE) instead of on demand. Gate on the vocabulary so a
+	// dropped factory object shows up as one clear failure instead of thirty
+	// badge mismatches on cards that all fell back to raw text.
+	harness.require(!FilterFactoryRegistry::knownConfigCommands().empty(),
+		"knownConfigCommands() is empty; no filter factory translation unit is linked into this test binary");
+
 	FilterCardDescriptor preamp = FilterCardModel::describeLine("Preamp: -6 dB");
 	expectEqual(preamp.badge, "PRE", "preamp card badge");
 	expectEqual(preamp.title, "Preamp", "preamp card title");
@@ -726,6 +718,26 @@ void testFilterCardDescriptors()
 	FilterCardDescriptor bareText = FilterCardModel::describeLine("plain note line without a command");
 	expectEqual(bareText.title, "Text", "bare text line title");
 	expectEqual(bareText.summary, "plain note line without a command", "bare text line keeps its content as summary");
+
+	// Classification follows the engine, casing and all. A lower-case key is
+	// prose in Equalizer APO 1.4.2 and stays prose here, because a card would
+	// let one knob turn rewrite an inert note into a line that processes audio.
+	FilterCardDescriptor lowerCasePreamp = FilterCardModel::describeLine("preamp: -6 dB");
+	expectEqual(lowerCasePreamp.type, "text", "a lower-case \"preamp:\" key is prose to the engine, so it gets no card");
+	FilterCardDescriptor lowerCaseCopyNote = FilterCardModel::describeLine("copy: remember to re-measure the room");
+	expectEqual(lowerCaseCopyNote.type, "text", "the 1.4.2 \"copy: a note to self\" line must not become a routing card");
+
+	// A numbered key is the Filter family's own grammar (REW and Dirac write
+	// it), so those keep their card. No other factory accepts a trailing token:
+	// "Channel 2:" is a line the engine recognizes but never runs, and its card
+	// would rewrite the key to "Channel" on the first edit.
+	FilterCardDescriptor numberedFilter = FilterCardModel::describeLine("Filter 1: ON PK Fc 1000 Hz Gain -3 dB Q 0.71");
+	expectEqual(numberedFilter.type, "biquad", "a numbered Filter line keeps the biquad card");
+	expectEqual(numberedFilter.badge, "PK", "a numbered Filter line keeps its parsed badge");
+	FilterCardDescriptor numberedChannel = FilterCardModel::describeLine("Channel 2: L R");
+	expectEqual(numberedChannel.type, "text", "only the Filter family takes a trailing token, so \"Channel 2:\" stays raw text");
+	FilterCardDescriptor numberedCopy = FilterCardModel::describeLine("Copy 2: L=R");
+	expectEqual(numberedCopy.type, "text", "\"Copy 2:\" must not open the routing view that would rewrite it as \"Copy:\"");
 
 	// Dynamic-value contract: hasInlineExpressions must follow the engine's
 	// InlineExpression lexer exactly, because it decides which lines may not
@@ -1627,8 +1639,9 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 		}
 	};
 
-	memoryHelperAllocations = 0;
-	memoryHelperFrees = 0;
+	// The counters live in MemoryHelper itself; this binary links Common.lib
+	// whole-archive and therefore cannot substitute its own alloc()/free().
+	MemoryHelper::resetAllocationCountsForTesting();
 	bool threw = false;
 	try
 	{
@@ -1640,8 +1653,8 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 	}
 
 	expectTrue(threw, "construct propagates a constructor exception");
-	expectEqual(memoryHelperAllocations, 1, "construct allocates storage once");
-	expectEqual(memoryHelperFrees, 1, "construct releases storage when construction fails");
+	expectEqual((int)MemoryHelper::allocationCountForTesting(), 1, "construct allocates storage once");
+	expectEqual((int)MemoryHelper::freeCountForTesting(), 1, "construct releases storage when construction fails");
 }
 
 

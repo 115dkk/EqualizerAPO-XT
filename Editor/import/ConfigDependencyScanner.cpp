@@ -22,21 +22,15 @@ namespace EqAPO::Import
 namespace
 {
 
-bool isReferenceCommand(const QString& commandLower)
+// keyword is the engine's canonical command (FilterCardModel::canonicalCommand),
+// so the scanner follows exactly the lines the engine would follow: a lowercase
+// "include:" is prose to the engine and must not drag a file into the import.
+bool isReferenceCommand(const QString& keyword)
 {
-    return commandLower == QStringLiteral("include")
-        || commandLower == QStringLiteral("convolution")
-        || commandLower == QStringLiteral("multiconvolution")
-        || commandLower == QStringLiteral("vstplugin");
-}
-
-QString kindForCommand(const QString& commandLower)
-{
-    if (commandLower == QStringLiteral("include")) return QStringLiteral("Include");
-    if (commandLower == QStringLiteral("convolution")) return QStringLiteral("Convolution");
-    if (commandLower == QStringLiteral("multiconvolution")) return QStringLiteral("MultiConvolution");
-    if (commandLower == QStringLiteral("vstplugin")) return QStringLiteral("VSTPlugin");
-    return commandLower;
+    return keyword == QStringLiteral("Include")
+        || keyword == QStringLiteral("Convolution")
+        || keyword == QStringLiteral("MultiConvolution")
+        || keyword == QStringLiteral("VSTPlugin");
 }
 
 // The engine unquotes convolution paths in ConvolutionFilePath::resolve, so a
@@ -52,18 +46,18 @@ QString stripSurroundingQuotes(const QString& text)
 // The path portion of the line for the given reference command. The
 // convolution family and VSTPlugin share their engine grammar so routing
 // factors, mappings, state and parameter pairs never leak into the path.
-QString referencePath(const QString& commandLower, const QString& parameters)
+QString referencePath(const QString& keyword, const QString& parameters)
 {
-    if (commandLower == QStringLiteral("multiconvolution"))
+    if (keyword == QStringLiteral("MultiConvolution"))
     {
         MultiConvolutionCommand command;
         if (!MultiConvolutionCommand::parse(L"MultiConvolution", parameters.toStdWString(), command))
             return QString();
         return stripSurroundingQuotes(QString::fromStdWString(command.path));
     }
-    if (commandLower == QStringLiteral("convolution"))
+    if (keyword == QStringLiteral("Convolution"))
         return stripSurroundingQuotes(parameters);
-    if (commandLower == QStringLiteral("vstplugin"))
+    if (keyword == QStringLiteral("VSTPlugin"))
         return QString::fromStdWString(
             VSTPluginCommand::extractLibraryReference(parameters.toStdWString()));
     return parameters;
@@ -166,13 +160,13 @@ void scanConfigFile(ImportManifest& manifest,
 
         QString parameters;
         QString command = FilterCardModel::commandForLine(line, &parameters);
-        QString commandLower = command.toLower();
+        const QString keyword = FilterCardModel::canonicalCommand(command);
 
-        if (!isReferenceCommand(commandLower))
+        if (!isReferenceCommand(keyword))
             continue;
 
-        QString reference = referencePath(commandLower, parameters);
-        if (commandLower == QStringLiteral("vstplugin"))
+        QString reference = referencePath(keyword, parameters);
+        if (keyword == QStringLiteral("VSTPlugin"))
         {
             if (reference.isEmpty())
             {
@@ -202,9 +196,11 @@ void scanConfigFile(ImportManifest& manifest,
             continue;
         }
 
-        appendItem(manifest, refAbs, destForRelative(rel, rootSourceDir, layout), kindForCommand(commandLower));
+        // The manifest's kind column shows the engine's own keyword, so the
+        // import list names each row the way the config line spells it.
+        appendItem(manifest, refAbs, destForRelative(rel, rootSourceDir, layout), keyword);
 
-        if (commandLower == QStringLiteral("include"))
+        if (keyword == QStringLiteral("Include"))
             scanConfigFile(manifest, refAbs, rootSourceDir, layout, depth + 1, visited);
     }
 }

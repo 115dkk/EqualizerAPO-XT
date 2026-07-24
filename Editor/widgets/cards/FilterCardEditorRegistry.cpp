@@ -38,19 +38,19 @@ QHash<QString, Registration>& registry()
 }
 }
 
-bool FilterCardEditorRegistry::registerEditor(const QString& lowercaseCommand,
+bool FilterCardEditorRegistry::registerEditor(const QString& commandKeyword,
 	FilterCardEditorCreator creator, bool dynamicCapable)
 {
-	registry().insert(lowercaseCommand, { creator, dynamicCapable });
+	registry().insert(commandKeyword, { creator, dynamicCapable });
 	return true;
 }
 
-FilterCardEditorCreator FilterCardEditorRegistry::find(const QString& normalizedCommand)
+FilterCardEditorCreator FilterCardEditorRegistry::find(const QString& commandKeyword)
 {
-	return registry().value(normalizedCommand).creator;
+	return registry().value(commandKeyword).creator;
 }
 
-bool FilterCardEditorRegistry::supportsDynamicParameters(const QString& normalizedCommand)
+bool FilterCardEditorRegistry::supportsDynamicParameters(const QString& commandKeyword)
 {
-	return registry().value(normalizedCommand).dynamicCapable;
+	return registry().value(commandKeyword).dynamicCapable;
 }

@@ -22,8 +22,14 @@ $projects = @(
 )
 $platformToolset = if ($Platform -eq "ARM64") { "v143" } else { "v145" }
 $toolArchitecture = if ($Platform -eq "ARM64") { "ARM64" } else { "x64" }
-$runtimeTests = @("EditorLogicTests")
-if ($CanExecute) { $runtimeTests += @("HybridConvTests", "EngineOrchestrationTests") }
+# EditorLogicTests used to run everywhere because it linked no engine code and
+# so carried only baseline instructions. It now links Common.lib whole-archive
+# to get the filter factories' self-registration, which means it inherits the
+# variant's /arch and executes a file-scope std::wregex construction before
+# main. On a runner that cannot execute AVX-512 that is an illegal-instruction
+# fault at static init, so it belongs behind the same gate as the others.
+$runtimeTests = @()
+if ($CanExecute) { $runtimeTests += @("EditorLogicTests", "HybridConvTests", "EngineOrchestrationTests") }
 $plan = [pscustomobject]@{
     Projects = $projects
     PlatformToolset = $platformToolset

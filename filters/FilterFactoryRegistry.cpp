@@ -66,6 +66,37 @@ const set<wstring>& FilterFactoryRegistry::knownConfigCommands()
 	return commands;
 }
 
+wstring FilterFactoryRegistry::canonicalCommand(const wstring& key)
+{
+	const size_t first = key.find_first_not_of(L" \t");
+	if (first == wstring::npos)
+		return wstring();
+
+	const size_t last = key.find_last_not_of(L" \t");
+	const wstring trimmedKey = key.substr(first, last - first + 1);
+
+	// The Filter family is the one place a trailing token is part of the
+	// grammar. BiQuadFilterFactory and IIRFilterFactory both match with
+	// rfind(L"Filter", 0) == 0, so "Filter", "Filter 1" and even "Filter1" all
+	// reach them - IIRCommandTests pins the unspaced form. Reproducing the
+	// prefix here rather than comparing the first token is what keeps this
+	// function honest about what the engine will actually run.
+	static const wstring filterPrefix = L"Filter";
+	if (trimmedKey.rfind(filterPrefix, 0) == 0 && knownConfigCommands().count(filterPrefix) != 0)
+		return filterPrefix;
+
+	// Every other factory compares the whole key for equality, so a trailing
+	// token means the line is not that command at all: the engine reads
+	// "Channel 2:" as an unrecognized key and never runs it. Matching only the
+	// first token here would tell callers otherwise, and the Editor would then
+	// rewrite such a line into canonical spelling on the first edit - turning a
+	// line the engine ignores into one it executes.
+	if (knownConfigCommands().count(trimmedKey) == 0)
+		return wstring();
+
+	return trimmedKey;
+}
+
 const set<wstring>& FilterFactoryRegistry::commandsWithoutFilter()
 {
 	static const set<wstring> commands = []() {

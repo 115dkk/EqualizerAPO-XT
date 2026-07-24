@@ -29,15 +29,6 @@
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\filters\BiQuadCommand.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\filters\ChannelCommand.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\filters\FilterFactoryRegistry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\UpdateChecker\UpdateInfoFormatter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

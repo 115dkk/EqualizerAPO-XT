@@ -182,12 +182,13 @@ void IIRCardEditor::rebuildRow(FlowLayout* flow, QVector<ValueScrubBox*>& boxes,
 
 #include "FilterCardEditorRegistry.h"
 
-REGISTER_FILTER_CARD_EDITOR(filter, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
-	// Parse through the engine's shared routine; it returns false for every
-	// non-IIR "Filter" line, so BiQuad rows fall back to the legacy knob GUI
-	// through the factory chain. That nullptr is load-bearing - "filter" was
-	// unclaimed in the card registry precisely because BiQuad still lives in
-	// the fallback path.
+REGISTER_FILTER_CARD_EDITOR(Filter, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
+	// IIR and BiQuad both register "Filter" with the engine, so every Filter
+	// line - numbered ("Filter 1:") or not - arrives here. Parse through the
+	// engine's shared routine, which returns false for every non-IIR "Filter"
+	// line; those rows fall back to the legacy knob GUI through the factory
+	// chain. That nullptr is load-bearing: it is the only thing keeping an
+	// ordinary "Filter: ON PK ..." out of the coefficient card.
 	IIRCommand cmd;
 	std::wstring wideCommand = command.toStdWString();
 	std::wstring wideParameters = parameters.toStdWString();

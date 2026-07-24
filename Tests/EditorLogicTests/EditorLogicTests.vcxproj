@@ -72,9 +72,19 @@
     <QT_ROOT Condition="'$(QT_ROOT)'=='' and '$(Qt6_DIR)'!=''">$(Qt6_DIR)</QT_ROOT>
     <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt</QT_ROOT>
   </PropertyGroup>
+  <!-- Same defaults as the other test projects: CI passes these as global
+       properties, a local build falls back to the deps/ layout. Only the
+       library halves are needed - nothing compiled here includes an FFTW,
+       libsndfile or muparserx header; they are link-time dependencies of
+       Common.lib. -->
+  <PropertyGroup>
+    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\fftw\Release</FFTW_LIB>
+    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
+    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
+  </PropertyGroup>
   <PropertyGroup>
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
-    <LibraryPath>$(QT_ROOT)\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(QT_ROOT)\lib;$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -86,12 +96,24 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- Whole-archive, in every configuration. The set of recognized config
+           commands is assembled by file-scope self-registration in the filter
+           factory TUs (REGISTER_FILTER_FACTORY), and on-demand linking keeps
+           only the objects something else references, so the registry came up
+           empty and canonicalCommand() answered "unknown" for every key. The
+           remaining libraries are what pulling all of Common.lib in then
+           requires (engine, parser, device registration, VST host); muparserx
+           is added per configuration below because its Debug build has a
+           different name. -->
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(QT_ROOT)\bin\Qt6Core.dll" copy /Y "$(QT_ROOT)\bin\Qt6Core.dll" "$(OutDir)"
 if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutDir)"
-if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll" "$(OutDir)"</Command>
+if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll" "$(OutDir)"
+if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
+if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -100,6 +122,9 @@ if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll"
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <!-- muparserx names its Debug import library with a trailing 'd', same as
+           EngineOrchestrationTests. -->
+      <AdditionalDependencies>muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
@@ -113,6 +138,7 @@ if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll"
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -136,15 +162,10 @@ if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll"
     <ClCompile Include="..\..\Editor\widgets\routing\MultiConvolutionRoutingAdapter.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\RoutingFold.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\StudioRoutingModel.cpp" />
-    <ClCompile Include="..\..\filters\MultiConvolutionCommand.cpp" />
-    <ClCompile Include="..\..\filters\ConvolutionFilePath.cpp" />
-    <ClCompile Include="..\..\filters\StageCommand.cpp" />
-    <ClCompile Include="..\..\filters\BiQuadCommand.cpp" />
-    <ClCompile Include="..\..\filters\DeviceCommand.cpp" />
-    <ClCompile Include="..\..\filters\ExpressionCommand.cpp" />
-    <ClCompile Include="..\..\helpers\StringHelper.cpp" />
-    <ClCompile Include="..\..\filters\ChannelCommand.cpp" />
-    <ClCompile Include="..\..\filters\FilterFactoryRegistry.cpp" />
+    <!-- The engine-side command parsers and helpers this suite exercises are
+         not listed here: they live in Common.lib, which is now linked whole
+         (see the Link settings above). Compiling them a second time would make
+         every one of them a duplicate symbol. -->
     <ClCompile Include="..\..\UpdateChecker\UpdateInfoFormatter.cpp" />
     <ClCompile Include="..\..\UpdateChecker\VelopackUpdateInfo.cpp" />
   </ItemGroup>

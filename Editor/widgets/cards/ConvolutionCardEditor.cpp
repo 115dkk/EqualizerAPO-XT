@@ -210,10 +210,14 @@ void ConvolutionCardEditor::updateFileInfo()
 #include "FilterCardEditorRegistry.h"
 #include "filters/ConvolutionCommand.h"
 
-REGISTER_FILTER_CARD_EDITOR(convolution, [](FilterTable* filterTable, const QString& command, const QString& parameters) -> IFilterGUI* {
+REGISTER_FILTER_CARD_EDITOR(Convolution, [](FilterTable* filterTable, const QString& command, const QString& parameters) -> IFilterGUI* {
 	// ConvolutionCommand owns the line grammar; the path it yields preserves
-	// the author's quotes/variables so store() round-trips the config text.
+	// the author's quotes/variables so store() round-trips the config text. A
+	// key the parser rejects (only "Convolution" exactly runs, unlike the
+	// numbered Filter form) must fall through instead of opening a card with an
+	// empty path, which the first interaction would write back over the line.
 	ConvolutionCommand cmd;
-	ConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd);
+	if (!ConvolutionCommand::parse(command.trimmed().toStdWString(), parameters.toStdWString(), cmd))
+		return nullptr;
 	return new ConvolutionCardEditor(filterTable, QString::fromStdWString(cmd.path));
 })

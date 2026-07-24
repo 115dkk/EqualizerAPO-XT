@@ -231,13 +231,11 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			// point with no filter means the parameters were malformed.
 			if (!producedFilter && !key.empty())
 			{
-				// A key may carry a trailing token (e.g. "Filter 1"); match the first
-				// whitespace-delimited token against the canonical command set. Both
-				// sets are derived from the registered factories (see FilterFactoryRegistry).
-				wstring commandKeyword = key.substr(0, key.find_first_of(L" \t"));
-				const std::set<wstring>& knownCommands = FilterFactoryRegistry::knownConfigCommands();
-				const std::set<wstring>& commandsWithoutFilter = FilterFactoryRegistry::commandsWithoutFilter();
-				if (knownCommands.count(commandKeyword) != 0 && commandsWithoutFilter.count(commandKeyword) == 0)
+				// canonicalCommand applies the trailing-token and case rules; the
+				// suppression set is derived from the same registrations, so neither
+				// can drift from the factories that define them.
+				const wstring commandKeyword = FilterFactoryRegistry::canonicalCommand(key);
+				if (!commandKeyword.empty() && FilterFactoryRegistry::commandsWithoutFilter().count(commandKeyword) == 0)
 					LogF(L"Command \"%s\" was recognized but produced no filter, likely due to malformed parameters", key.c_str());
 			}
 		}
