@@ -242,9 +242,9 @@ function Build-VcpkgDependencies {
     }
 
     $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
-    if (-not $vcpkgRoot -or -not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
+    if (-not $vcpkgRoot -or -not (Test-Path (Join-Path $vcpkgRoot ".git"))) {
         $vcpkgRoot = $VcpkgFallbackRoot
-        if (-not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
+        if (-not (Test-Path (Join-Path $vcpkgRoot ".git"))) {
             # Pin vcpkg to the manifest commit: cloning a moving HEAD would let
             # the portfiles (and thus the FFTW/libsndfile binaries built here)
             # change without a reviewed diff in simd-variants.psd1. --depth 1
@@ -252,13 +252,23 @@ function Build-VcpkgDependencies {
             # checked out.
             git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
             if ($LASTEXITCODE -ne 0) { throw "Failed to clone vcpkg" }
-            git -C $vcpkgRoot fetch --depth 1 origin $VcpkgCommit
-            if ($LASTEXITCODE -ne 0) { throw "Failed to fetch pinned vcpkg commit $VcpkgCommit" }
-            git -C $vcpkgRoot checkout --detach $VcpkgCommit
-            if ($LASTEXITCODE -ne 0) { throw "Failed to check out pinned vcpkg commit $VcpkgCommit" }
-            & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
-            if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed" }
         }
+    }
+
+    # GitHub runner images also provide a git checkout. Pin that checkout just
+    # like the fallback clone so CI and local builds use identical portfiles.
+    git -C $vcpkgRoot fetch --depth 1 origin $VcpkgCommit
+    if ($LASTEXITCODE -ne 0) { throw "Failed to fetch pinned vcpkg commit $VcpkgCommit" }
+    git -C $vcpkgRoot checkout --detach $VcpkgCommit
+    if ($LASTEXITCODE -ne 0) { throw "Failed to check out pinned vcpkg commit $VcpkgCommit" }
+    $effectiveVcpkgCommit = (git -C $vcpkgRoot rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or $effectiveVcpkgCommit -ne $VcpkgCommit) {
+        throw "Effective vcpkg commit '$effectiveVcpkgCommit' does not match pin '$VcpkgCommit'"
+    }
+    Write-Host "Using pinned vcpkg commit $effectiveVcpkgCommit"
+    if (-not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
+        & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
+        if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed" }
     }
 
     $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
