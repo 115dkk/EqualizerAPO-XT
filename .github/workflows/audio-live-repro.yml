@@ -559,60 +559,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $ErrorActionPreference = "Stop"
-          $repo = "${{ github.repository }}"
-          $tag = "${{ github.event.inputs.release_tag }}"
+          & "$env:GITHUB_WORKSPACE\.github\scripts\Install-ReleaseBuild.ps1" `
+              -Repository "${{ github.repository }}" `
+              -Tag "${{ github.event.inputs.release_tag }}" `
+              -Channel "x64-avx2" `
+              -DownloadDirectory (Join-Path $env:RUNNER_TEMP "release-dl") `
+              -GitHubEnvironmentPath $env:GITHUB_ENV
 
-          $asset = "EqualizerAPO-XT-x64-avx2-x64-avx2-Setup.exe"
-          $dl = Join-Path $env:RUNNER_TEMP "release-dl"
-          New-Item -ItemType Directory -Force -Path $dl | Out-Null
-
-          if ([string]::IsNullOrWhiteSpace($tag)) {
-              gh release download --repo $repo --pattern $asset --dir $dl --clobber
-              gh release download --repo $repo --pattern "SHA256SUMS.txt" --dir $dl --clobber
-          } else {
-              gh release download $tag --repo $repo --pattern $asset --dir $dl --clobber
-              gh release download $tag --repo $repo --pattern "SHA256SUMS.txt" --dir $dl --clobber
-          }
-
-          $setup = Join-Path $dl $asset
-          if (-not (Test-Path $setup)) { Write-Error "Could not download $asset"; exit 1 }
-
-          $sums = Join-Path $dl "SHA256SUMS.txt"
-          if (Test-Path $sums) {
-              $line = Get-Content $sums | Where-Object { $_ -match [regex]::Escape($asset) + '$' } | Select-Object -First 1
-              if ($line) {
-                  $expected = ($line -split '\s+')[0].ToLowerInvariant()
-                  $actual = (Get-FileHash -Path $setup -Algorithm SHA256).Hash.ToLowerInvariant()
-                  if ($expected -ne $actual) { Write-Error "Checksum mismatch for $asset (expected $expected, got $actual)"; exit 1 }
-                  Write-Host "Checksum OK for $asset"
-              } else {
-                  Write-Warning "SHA256SUMS.txt present but does not list $asset; skipping verification"
-              }
-          } else {
-              Write-Warning "No SHA256SUMS.txt asset on the release; skipping verification"
-          }
-
-          Write-Host "Running silent install: $setup --silent"
-          $p = Start-Process -FilePath $setup -ArgumentList "--silent" -PassThru -Wait
-          Write-Host "Setup exited with $($p.ExitCode)"
-
-          $candidates = @(
-              (Join-Path $env:LOCALAPPDATA "EqualizerAPO-XT-x64-avx2"),
-              (Join-Path ${env:ProgramData} "EqualizerAPO-XT-x64-avx2")
-          )
-          $root = $candidates | Where-Object { Test-Path (Join-Path $_ "Update.exe") } | Select-Object -First 1
-          if (-not $root) {
-              $root = Get-ChildItem -Path $env:LOCALAPPDATA -Directory -ErrorAction SilentlyContinue |
-                  Where-Object { $_.Name -like "EqualizerAPO-XT*" -and (Test-Path (Join-Path $_.FullName "Update.exe")) } |
-                  Select-Object -ExpandProperty FullName -First 1
-          }
-          if (-not $root) { Write-Error "Velopack install root not found after install"; exit 1 }
-          $current = Join-Path $root "current"
-          Write-Host "Install root: $root"
-          Write-Host "Bin dir:      $current"
-          "VELO_ROOT=$root"       | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "VELO_CURRENT=$current" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       # -----------------------------------------------------------------------
       # STEP 4: Register the EQ APO on the REAL Scream endpoint.
