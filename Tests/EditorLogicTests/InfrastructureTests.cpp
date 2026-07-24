@@ -66,8 +66,8 @@ void testSkinTokensCarryExplicitMode()
 void testEverySkinSheetResolvesAllThemeTokens()
 {
 	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());
-	repoRoot.cdUp();
-	repoRoot.cdUp();
+	requireTrue(repoRoot.cdUp(), "skin-token test reaches the tests directory");
+	requireTrue(repoRoot.cdUp(), "skin-token test reaches the repository root");
 	const QStringList skinIds = {
 		QStringLiteral("studio"), QStringLiteral("minimal"),
 		QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix")

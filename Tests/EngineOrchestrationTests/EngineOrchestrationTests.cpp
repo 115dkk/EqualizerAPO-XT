@@ -217,7 +217,7 @@ void testSynchronizedStateSerializesReplacement(test::Harness& harness)
 	std::shared_future<void> release = releasePromise.get_future().share();
 
 	std::future<int> reader = std::async(std::launch::async, [&]() {
-		return state.withLock([&](int& value) {
+		return state.withLock([&](const int& value) {
 			enteredPromise.set_value();
 			release.wait();
 			return value;
@@ -236,7 +236,7 @@ void testSynchronizedStateSerializesReplacement(test::Harness& harness)
 	replacement.wait();
 	harness.expectEqual(reader.get(), 1, "active reader keeps the original state alive");
 	replacement.get();
-	harness.expectEqual(state.withLock([](int& value) { return value; }), 2,
+	harness.expectEqual(state.withLock([](const int& value) { return value; }), 2,
 		"subsequent reader observes the complete replacement");
 }
 

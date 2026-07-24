@@ -53,6 +53,8 @@ FftwPlanningPolicy::Session::Session()
 	initializeWisdom();
 }
 
+// Deliberately requires a live Session: the Session owns the planner lock.
+// cppcheck-suppress functionStatic
 unsigned FftwPlanningPolicy::Session::flags() const
 {
 	// The first plan for a transform length measures and becomes reusable
@@ -60,6 +62,9 @@ unsigned FftwPlanningPolicy::Session::flags() const
 	return FFTW_MEASURE | FFTW_PRESERVE_INPUT;
 }
 
+// Deliberately requires a live Session: FFTW wisdom mutation is serialized by
+// the planner lock held for this object's lifetime.
+// cppcheck-suppress functionStatic
 bool FftwPlanningPolicy::Session::exportWisdomForLength(int transformLength)
 {
 	if (wisdomPath().empty())

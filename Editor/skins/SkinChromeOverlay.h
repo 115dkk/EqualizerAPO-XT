@@ -33,7 +33,9 @@ public:
 		setAttribute(Qt::WA_NoSystemBackground, true);
 		toolBar->installEventFilter(this);
 		setGeometry(toolBar->rect());
-		syncActiveState();
+		// Derived overlays finish wiring their active-state dependants before
+		// refreshOverlay() invokes the virtual callback.
+		setVisible(isOwnerActive());
 		reassertZOrder();
 	}
 

@@ -176,7 +176,7 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 		const unsigned newMaxFrameCount = audioInfo->nbSamplePerFrame;
 		sampleRate.store(newSampleRate);
 		maxFrameCount.store(newMaxFrameCount);
-		engineState.withLock([&](EngineState& state) {
+		engineState.withLock([&](const EngineState& state) {
 			for (const auto& engine : state.engines)
 				if (engine != nullptr)
 					engine->initialize(newSampleRate, 8, 8, 8, 0, newMaxFrameCount);
@@ -294,7 +294,7 @@ void VoicemeeterClient::detectVoicemeeterType()
 		else
 			outputCount = 1;
 
-		bool sizeChanged = engineState.withLock([&](EngineState& state) {
+		bool sizeChanged = engineState.withLock([&](const EngineState& state) {
 			return outputCount != state.engines.size();
 		});
 		if (sizeChanged)

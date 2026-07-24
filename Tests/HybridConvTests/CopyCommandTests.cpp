@@ -244,7 +244,8 @@ void testConstantCopyPreservesTrueSilence()
 	harness.expectFalse(filter.producesTailFromSilentInput(),
 		"constant Copy does not claim a tail from silent input");
 
-	right[0] = 1.0;
+	// cppcheck-suppress unreadVariable
+	right[0] = 1.0; // Observed indirectly through inputs by the silence detector.
 	filter.process(outputs, inputs, 4);
 	for (double sample : output)
 		harness.expectEqual(sample, 0.5, "constant Copy remains available when the input carries a signal");

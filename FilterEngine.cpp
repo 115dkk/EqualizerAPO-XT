@@ -76,7 +76,8 @@ void FilterEngine::FilterConfigurationDeleter::operator()(FilterConfiguration* c
 }
 
 FilterEngine::FilterEngine()
-	: preMix(false),
+	: factories(FilterFactoryRegistry::createFactories()),
+	  preMix(false),
 	  capture(false),
 	  postMixInstalled(true),
 	  inputChannelCount(0),
@@ -85,7 +86,6 @@ FilterEngine::FilterEngine()
 	  lastInputWasSilent(false),
 	  transitionCounter(0)
 {
-	factories = FilterFactoryRegistry::createFactories();
 }
 
 FilterEngine::~FilterEngine()
