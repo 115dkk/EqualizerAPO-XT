@@ -36,6 +36,13 @@ namespace PerfProfile
 	void enable();
 	void disable();
 	void reset();
+
+	// Labels are keyed by address, kept in a fixed per-thread table and printed
+	// long after the call. A label must therefore be a static-lifetime string with
+	// one stable address per distinct text (a literal, or a type_info name), and
+	// the set of distinct labels must stay small. Passing a temporary buffer would
+	// both dangle and fill the table; report() prints how many samples the table
+	// had to drop.
 	void record(const char* label, double seconds);
 	void report(std::ostream& os);
 }
