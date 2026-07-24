@@ -97,7 +97,11 @@ namespace
 
 	struct ThreadLocalStats
 	{
-		Slot slots[kSlotCount];
+		// Not named "slots": Qt defines that as an empty macro, and this file is
+		// compiled into the Editor behind a precompiled header that includes Qt,
+		// so the member would preprocess away there while building fine anywhere
+		// else. Same reason to avoid signals, emit, foreach and forever.
+		Slot slotTable[kSlotCount];
 		// Samples dropped because every probe found a foreign label. Reported, so a
 		// truncated profile is never silently wrong.
 		std::uint64_t dropped = 0;
@@ -173,7 +177,7 @@ void reset()
 		if (tls == nullptr)
 			continue;
 		for (size_t s = 0; s < kSlotCount; s++)
-			tls->slots[s] = Slot();
+			tls->slotTable[s] = Slot();
 		tls->dropped = 0;
 	}
 }
@@ -188,7 +192,7 @@ void record(const char* label, double seconds)
 	size_t index = slotIndex(label);
 	for (size_t probe = 0; probe < kSlotCount; probe++)
 	{
-		Slot& slot = stats.slots[index];
+		Slot& slot = stats.slotTable[index];
 		if (slot.label == nullptr || slot.label == label)
 		{
 			if (slot.entry.count == 0)
@@ -237,7 +241,7 @@ void report(std::ostream& os)
 			dropped += tls->dropped;
 			for (size_t s = 0; s < kSlotCount; s++)
 			{
-				const Slot& slot = tls->slots[s];
+				const Slot& slot = tls->slotTable[s];
 				if (slot.entry.count == 0)
 					continue;
 
