@@ -1299,6 +1299,10 @@ int runSwitchTest(const QStringList& arguments)
 	int limitMs = qEnvironmentVariableIntValue("EAPO_SWITCH_LIMIT_MS", &limitOk);
 	if (!limitOk || limitMs <= 0)
 		limitMs = 8000;
+	bool warningOk = false;
+	int warningMs = qEnvironmentVariableIntValue("EAPO_SWITCH_WARN_MS", &warningOk);
+	if (!warningOk || warningMs <= 0 || warningMs >= limitMs)
+		warningMs = 0;
 
 	int failures = 0;
 	const auto checkPaintOnlyChrome = [&scrollArea, &failures](const QString& objectName) {
@@ -1426,6 +1430,11 @@ int runSwitchTest(const QStringList& arguments)
 						qPrintable(name), static_cast<long long>(elapsed), limitMs);
 					failures++;
 				}
+				else if (warningMs > 0 && elapsed > warningMs)
+				{
+					qWarning("SkinSwitchTest: switch to %s took %lld ms (warning %d ms; hard limit %d ms)",
+						qPrintable(name), static_cast<long long>(elapsed), warningMs, limitMs);
+				}
 				if (elapsed > worstMs)
 				{
 					worstMs = elapsed;
@@ -1466,9 +1475,9 @@ int runSwitchTest(const QStringList& arguments)
 		qWarning("SkinSwitchTest: %d top-level widgets", windows);
 	}
 
-	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), limit %d ms, failures %d",
+	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
 		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
-		qPrintable(worstName), limitMs, failures);
+		qPrintable(worstName), warningMs, limitMs, failures);
 
 	// Same no-teardown exit as run(): everything is flushed, and unwinding
 	// the offscreen QApplication can hang the process on a leftover resource.

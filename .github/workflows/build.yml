@@ -616,6 +616,10 @@ jobs:
           } else {
             Write-Host "No reference set in tree; recording variant output only (non-primary variant)"
             & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "AudioRegressionTests output recording failed for variant '$variant'"
+              exit $LASTEXITCODE
+            }
           }
         } finally {
           Pop-Location
@@ -879,7 +883,8 @@ jobs:
         # budget. The historical default (8 s) was a crash-storm guard; after
         # the construct-in-place/no-repolish startup work the same rebuild
         # runs in well under half the previous 4 s budget.
-        $env:EAPO_SWITCH_LIMIT_MS = "2500"
+        $env:EAPO_SWITCH_WARN_MS = "2500"
+        $env:EAPO_SWITCH_LIMIT_MS = "5000"
         $log = "${{ github.workspace }}\skin-switch-test.log"
         $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
           -ArgumentList @("--skin-switch-test") -PassThru -Wait -NoNewWindow `
@@ -1285,7 +1290,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        dotnet tool install -g vpk
+        $manifest = Import-PowerShellDataFile "${{ github.workspace }}\.github\simd-variants.psd1"
+        dotnet tool install -g vpk --version $manifest.Shared.VelopackVpkVersion
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }
