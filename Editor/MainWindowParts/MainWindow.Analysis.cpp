@@ -88,6 +88,7 @@ void MainWindow::updateAnalysisPanel()
 	auto result = analysisThread->lockResult();
 	int sampleRate = result.freqDataSampleRate();
 	int latency = result.latency();
+	const QString errorText = result.errorText();
 	analysisPlotScene->setFreqData(result.freqData(), result.freqDataLength(), sampleRate);
 	if (eqGraphView != nullptr)
 		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
@@ -125,6 +126,20 @@ void MainWindow::updateAnalysisPanel()
 		label->style()->polish(label);
 		label->update();
 	};
+
+	if (!errorText.isEmpty())
+	{
+		ui->peakGainValueLabel->setText(tr("Analysis failed"));
+		ui->peakGainValueLabel->setToolTip(errorText);
+		setSeverity(ui->peakGainValueLabel, "critical");
+		const QString unavailable = QString::fromUtf8("\xE2\x80\x94");
+		ui->latencyValueLabel->setText(unavailable);
+		ui->initTimeValueLabel->setText(unavailable);
+		ui->cpuUsageValueLabel->setText(unavailable);
+		setSeverity(ui->cpuUsageValueLabel, "normal");
+		return;
+	}
+	ui->peakGainValueLabel->setToolTip(QString());
 
 	double peakGain = result.peakGain();
 	ui->peakGainValueLabel->setText(tr("%0 dB").arg(peakGain, 0, 'f', 1));

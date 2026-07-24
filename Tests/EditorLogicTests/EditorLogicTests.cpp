@@ -26,6 +26,7 @@
 #include <QTextStream>
 
 #include "Editor/ConfigFileCodec.h"
+#include "Editor/helpers/AnalysisWorkerRecovery.h"
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportExecutor.h"
@@ -424,6 +425,30 @@ void testConvolutionPathHelper()
 	expectFalse(
 		ConvolutionPathHelper::relativePathLooksContainedLexically("C:/Impulse/room.wav"),
 		"absolute path was accepted as relative");
+}
+
+void testAnalysisWorkerRecovery()
+{
+	bool failurePublished = false;
+	try
+	{
+		const bool succeeded = AnalysisWorkerRecovery::run(
+			[] { throw std::bad_alloc(); },
+			[&](const char*) { failurePublished = true; });
+		expectFalse(succeeded, "failed analysis iteration reported success");
+	}
+	catch (...)
+	{
+		harness.fail("analysis iteration exception escaped and would stop the worker");
+	}
+	expectTrue(failurePublished, "analysis failure was not published");
+
+	bool nextIterationRan = false;
+	const bool recovered = AnalysisWorkerRecovery::run(
+		[&] { nextIterationRan = true; },
+		[](const char*) {});
+	expectTrue(recovered, "next analysis iteration did not recover");
+	expectTrue(nextIterationRan, "analysis worker did not accept work after a failure");
 }
 
 void testUpdateInfoFormatter()
@@ -1701,6 +1726,7 @@ int main(int argc, char** argv)
 		QCoreApplication app(argc, argv);
 
 		testConvolutionPathHelper();
+		testAnalysisWorkerRecovery();
 		testUpdateInfoFormatter();
 		testVelopackUpdateInfo();
 		testVelopackGitHubRelease();

@@ -359,6 +359,7 @@ HEADERS  += \
 	guis/ConvolutionFilterGUI.h \
 	guis/MultiConvolutionFilterGUIFactory.h \
 	guis/MultiConvolutionFilterGUI.h \
+	helpers/AnalysisWorkerRecovery.h \
 	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
 	widgets/EscapableLineEdit.h \

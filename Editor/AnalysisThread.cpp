@@ -22,6 +22,7 @@
 #include <stdexcept>
 
 #include "FilterEngine.h"
+#include "helpers/AnalysisWorkerRecovery.h"
 #include "AnalysisThread.h"
 
 using std::abs;
@@ -108,13 +109,17 @@ unsigned AnalysisThread::ResultLock::processedFrames() const
 	return owner.processedFrames;
 }
 
+const QString& AnalysisThread::ResultLock::errorText() const
+{
+	return owner.resultErrorText;
+}
+
 const std::vector<ConfigLoadTraceEntry>& AnalysisThread::ResultLock::loadTrace() const
 {
 	return owner.resultLoadTrace;
 }
 
 void AnalysisThread::run()
-try
 {
 	while (true)
 	{
@@ -144,6 +149,8 @@ try
 			continue;
 		}
 
+		AnalysisWorkerRecovery::run([&]
+		{
 		QElapsedTimer timer;
 		timer.start();
 
@@ -310,19 +317,28 @@ try
 			this->initializationTime = initializationTime;
 			this->processingTime = processingTime;
 			this->processedFrames = processedFrames;
+			this->resultErrorText.clear();
 			this->resultLoadTrace = std::move(traceCollector.entries);
 		}
 
 		qDebug("Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
+		},
+		[&](const char* error)
+		{
+			qCritical("Analysis failed; worker remains available: %s", error);
+			QMutexLocker locker(&mutex);
+			resultFreqData.reset();
+			freqDataLength = 0;
+			freqDataSampleRate = 0;
+			peakGain = numeric_limits<double>::quiet_NaN();
+			latency = 0;
+			initializationTime = 0.0;
+			processingTime = 0.0;
+			processedFrames = 0;
+			resultErrorText = QString::fromUtf8(error);
+			resultLoadTrace.clear();
+		});
 
 		emit analysisFinished();
 	}
-}
-catch (const std::exception& error)
-{
-	qCritical("Analysis thread stopped after an exception: %s", error.what());
-}
-catch (...)
-{
-	qCritical("Analysis thread stopped after a non-standard exception");
 }
