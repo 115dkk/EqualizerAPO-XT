@@ -34,6 +34,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QToolBar>
 #include <QTreeView>
 #include <QUrl>
@@ -1133,6 +1134,22 @@ int runSwitchTest(const QStringList& arguments)
 		|| accessibilitySeam.accessibleName().isEmpty())
 	{
 		qWarning("SkinSwitchTest: insertion seam lacks keyboard accessibility parity");
+		return 1;
+	}
+
+	QWidget toastHost;
+	UpdateToast timerProbe(&toastHost);
+	timerProbe.showMessage(QStringLiteral("temporary"), 15000);
+	QTimer* autoHideTimer = timerProbe.findChild<QTimer*>(QStringLiteral("UpdateToastAutoHide"));
+	if (autoHideTimer == nullptr || !autoHideTimer->isActive())
+	{
+		qWarning("SkinSwitchTest: update toast does not own a restartable auto-hide timer");
+		return 1;
+	}
+	timerProbe.showMessage(QStringLiteral("persistent"), 0);
+	if (autoHideTimer->isActive())
+	{
+		qWarning("SkinSwitchTest: persistent update toast kept a stale auto-hide timer");
 		return 1;
 	}
 
