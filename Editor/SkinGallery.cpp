@@ -480,6 +480,12 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	deviceCombo->addItem(QStringLiteral("Default (Speakers - Example Audio)"));
 	toolBar->addWidget(deviceCombo);
 
+	QLabel* formatBadge = new QLabel(QStringLiteral("Passthrough"));
+	formatBadge->setObjectName(QStringLiteral("DeviceFormatBadge"));
+	formatBadge->setAttribute(Qt::WA_StyledBackground, true);
+	formatBadge->setProperty("severity", QStringLiteral("warning"));
+	toolBar->addWidget(formatBadge);
+
 	spacer = makeSpacer();
 	spacer->setFixedWidth(10);
 	toolBar->addWidget(spacer);
@@ -1190,6 +1196,15 @@ int runSwitchTest(const QStringList& arguments)
 	// a collapsed toolbar all reproduce the "toolbar is gone" field state.
 	const auto checkToolbar = [&probeWindow, probeToolBar](const QString& switchName) {
 		int problems = 0;
+		QLabel* formatBadge = probeToolBar->findChild<QLabel*>(
+			QStringLiteral("DeviceFormatBadge"), Qt::FindDirectChildrenOnly);
+		if (formatBadge == nullptr
+			|| formatBadge->property("severity").toString() != QLatin1String("warning"))
+		{
+			qWarning("SkinSwitchTest: %s: representative DeviceFormatBadge is missing",
+				qPrintable(switchName));
+			problems++;
+		}
 		if (!probeToolBar->isVisibleTo(&probeWindow))
 		{
 			qWarning("SkinSwitchTest: %s: main toolbar widget is hidden", qPrintable(switchName));
@@ -1207,9 +1222,11 @@ int runSwitchTest(const QStringList& arguments)
 			QWidget* item = probeToolBar->widgetForAction(action);
 			const bool earSpacer = item != nullptr
 				&& item->objectName() == QLatin1String("RackToolbarEarSpacer");
+			const bool dataControlledItem = item != nullptr
+				&& item->objectName() == QLatin1String("DeviceFormatBadge");
 			// Rack's rail-ear zones legitimately leave with its chrome; every
-			// other item must survive every switch.
-			if (earSpacer && !rackActive)
+			// other non-data-controlled item must survive every switch.
+			if ((earSpacer && !rackActive) || dataControlledItem)
 				continue;
 			const QString label = item != nullptr && !item->objectName().isEmpty()
 				? item->objectName() : action->objectName();
