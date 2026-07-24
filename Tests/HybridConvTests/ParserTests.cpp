@@ -18,12 +18,7 @@
 #include <iostream>
 
 #include <mpParser.h>
-#include <mpPackageCommon.h>
-#include <mpPackageNonCmplx.h>
-#include <mpPackageStr.h>
-#include <mpPackageMatrix.h>
-
-#include "parser/ParserExtensions.h"
+#include "parser/EngineParser.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -33,49 +28,20 @@ namespace
 {
 test::Harness harness("ParserTests");
 
-// Mirror of the engine's parser bring-up, minus the registry functions.
-void configureParser(ParserX& parser)
+double evalFloat(EngineParser& parser, const wstring& expr)
 {
-	// Mirror FilterEngine's parser bring-up exactly (FilterEngine.cpp:93-94,194-202):
-	// default ParserX, EnableAutoCreateVar, Clear the defaults, then add the four
-	// packages. The Clear* calls are required: a default ParserX already defines
-	// constants such as "pi", so AddPackage(PackageCommon) throws "Constant pi is
-	// already defined" without them. After ClearOprt() the built-in "+" is gone and
-	// AddPackage(PackageCommon) re-adds it, so the RemoveOprt(L"+") below is valid.
-	parser.EnableAutoCreateVar(true);
-
-	parser.ClearConst();
-	parser.ClearFun();
-	parser.ClearInfixOprt();
-	parser.ClearOprt();
-	parser.ClearPostfixOprt();
-	parser.AddPackage(PackageCommon::Instance());
-	parser.AddPackage(PackageNonCmplx::Instance());
-	parser.AddPackage(PackageStr::Instance());
-	parser.AddPackage(PackageMatrix::Instance());
-
-	// Same engine-free roster as ExpressionFilterFactory::initialize; the
-	// engine-bound registrations (readRegString etc.) stay engine-only.
-	registerEngineFreeParserExtensions(parser);
+	return parser.evaluate(expr).GetFloat();
 }
 
-double evalFloat(ParserX& parser, const wstring& expr)
+wstring evalString(EngineParser& parser, const wstring& expr)
 {
-	parser.SetExpr(expr);
-	return parser.Eval().GetFloat();
-}
-
-wstring evalString(ParserX& parser, const wstring& expr)
-{
-	parser.SetExpr(expr);
-	const IValue& result = parser.Eval();
+	const Value result = parser.evaluate(expr);
 	return result.GetType() == L's' ? result.GetString() : result.ToString();
 }
 
-bool evalBool(ParserX& parser, const wstring& expr)
+bool evalBool(EngineParser& parser, const wstring& expr)
 {
-	parser.SetExpr(expr);
-	return parser.Eval().GetBool();
+	return parser.evaluate(expr).GetBool();
 }
 }
 
@@ -85,8 +51,8 @@ void runParserTests()
 	// test failure, never as an uncaught exception that aborts the process.
 	try
 	{
-		ParserX parser;
-		configureParser(parser);
+		EngineParser parser;
+		parser.reinitialize();
 
 		// AddOperator: '+' still adds numbers, but concatenates when either side is
 		// a string.
@@ -117,8 +83,7 @@ void runParserTests()
 		bool threw = false;
 		try
 		{
-			parser.SetExpr(L"regexSearch(1, 2)");
-			parser.Eval();
+			parser.evaluate(L"regexSearch(1, 2)");
 		}
 		catch (const ParserError&)
 		{

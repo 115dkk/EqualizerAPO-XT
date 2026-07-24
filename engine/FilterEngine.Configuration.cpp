@@ -99,7 +99,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		lastChannelNames.clear();
 		lastNewChannelNames.clear();
 		watchRegistryKeys.clear();
-		parser->ClearVar();
+		parser.beginLoad();
 
 		for (auto it = factories.cbegin(); it != factories.cend(); it++)
 		{

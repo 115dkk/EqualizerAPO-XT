@@ -203,6 +203,9 @@
     <ClInclude Include="parser\ParserExtensions.h">
       <Filter>parser</Filter>
     </ClInclude>
+    <ClInclude Include="parser\EngineParser.h">
+      <Filter>parser</Filter>
+    </ClInclude>
     <ClInclude Include="parser\StringOperators.h">
       <Filter>parser</Filter>
     </ClInclude>
@@ -407,6 +410,9 @@
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="parser\ParserExtensions.cpp">
+      <Filter>parser</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\EngineParser.cpp">
       <Filter>parser</Filter>
     </ClCompile>
     <ClCompile Include="parser\RegexFunctions.cpp">

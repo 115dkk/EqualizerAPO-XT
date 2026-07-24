@@ -82,12 +82,9 @@ FilterEngine::FilterEngine()
 	  inputChannelCount(0),
       realChannelCount(0),
       outputChannelCount(0),
-	  parser(make_unique<ParserX>()),
 	  lastInputWasSilent(false),
 	  transitionCounter(0)
 {
-	parser->EnableAutoCreateVar(true);
-
 	factories = FilterFactoryRegistry::createFactories();
 }
 
@@ -187,15 +184,7 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 			TraceF(L"Registry ConfigPath unavailable (%s); proceeding with caller-supplied custom path", e.getMessage().c_str());
 		}
 
-		parser->ClearConst();
-		parser->ClearFun();
-		parser->ClearInfixOprt();
-		parser->ClearOprt();
-		parser->ClearPostfixOprt();
-		parser->AddPackage(PackageCommon::Instance());
-		parser->AddPackage(PackageNonCmplx::Instance());
-		parser->AddPackage(PackageStr::Instance());
-		parser->AddPackage(PackageMatrix::Instance());
+		parser.reinitialize();
 
 		for (const auto& factory : factories)
 			factory->initialize(this);

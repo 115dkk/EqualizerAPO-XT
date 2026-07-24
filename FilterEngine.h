@@ -31,12 +31,9 @@
 #include "IFilterFactory.h"
 #include "FilterConfiguration.h"
 #include "engine/ConfigSwapChannel.h"
+#include "parser/EngineParser.h"
 #include "helpers/PrecisionTimer.h"
 #include "helpers/MemoryHelper.h"
-
-namespace mup {
-class ParserX;
-}
 
 struct ConfigLoadTraceEntry;
 class ConfigLoadTraceSink;
@@ -79,7 +76,7 @@ public:
 	// Exposed so tests exercise the real value instead of re-deriving the
 	// sampleRate / 100 formula.
 	unsigned getTransitionLength() const {return transitionLength;}
-	mup::ParserX* getParser() {return parser.get();}
+	EngineParser* getParser() {return &parser;}
 	// Attach before initialize()/loadConfig(); entries describe every load
 	// that runs while attached. The engine does not own the sink; pass nullptr
 	// to detach. The Editor's analysis engine is the only expected consumer -
@@ -145,7 +142,7 @@ private:
 	std::vector<std::wstring> lastNewChannelNames;
 	std::vector<std::wstring> allChannelNames;
 	bool lastInPlace = false;
-	std::unique_ptr<mup::ParserX> parser;
+	EngineParser parser;
 
 	ConfigSwapChannel<FilterConfigurationPtr> configChannel;
 

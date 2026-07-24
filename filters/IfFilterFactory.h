@@ -20,10 +20,11 @@
 #pragma once
 
 #include <string>
-#include <mpParser.h>
-
 #include "IFilterFactory.h"
 #include "IFilter.h"
+
+class EngineParser;
+namespace mup { class Value; }
 
 class IfFilterFactory : public IFilterFactory
 {
@@ -35,7 +36,7 @@ public:
 	FilterVector endOfFile(const std::wstring& configPath) override;
 
 private:
-	mup::ParserX* parser = nullptr;
+	EngineParser* parser = nullptr;
 	FilterEngine* engine = nullptr;
 
 	unsigned trueCount = 0;

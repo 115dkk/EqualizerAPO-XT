@@ -38,10 +38,10 @@ void DeviceFilterFactory::initialize(FilterEngine* engine)
 {
 	deviceString = engine->getDeviceString();
 
-	mup::ParserX* parser = engine->getParser();
-	parser->DefineConst(L"deviceName", engine->getDeviceName());
-	parser->DefineConst(L"connectionName", engine->getConnectionName());
-	parser->DefineConst(L"deviceGuid", engine->getDeviceGuid());
+	EngineParser* parser = engine->getParser();
+	parser->defineConst(L"deviceName", engine->getDeviceName());
+	parser->defineConst(L"connectionName", engine->getConnectionName());
+	parser->defineConst(L"deviceGuid", engine->getDeviceGuid());
 }
 #endif
 

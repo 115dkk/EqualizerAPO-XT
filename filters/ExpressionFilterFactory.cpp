@@ -40,16 +40,12 @@ void ExpressionFilterFactory::initialize(FilterEngine* engine)
 {
 	parser = engine->getParser();
 	this->engine = engine;
-	parser->DefineConst(L"inputChannelCount", mup::int_type(engine->getInputChannelCount()));
-	parser->DefineConst(L"outputChannelCount", mup::int_type(engine->getOutputChannelCount()));
-	parser->DefineConst(L"sampleRate", mup::float_type(engine->getSampleRate()));
+	parser->defineConst(L"inputChannelCount", mup::int_type(engine->getInputChannelCount()));
+	parser->defineConst(L"outputChannelCount", mup::int_type(engine->getOutputChannelCount()));
+	parser->defineConst(L"sampleRate", mup::float_type(engine->getSampleRate()));
 
-	parser->DefineFun(new ReadRegStringFunction(engine));
-	parser->DefineFun(new ReadRegDWORDFunction(engine));
-
-	// Engine-free extensions (regex functions, '+', '!') live in one shared
-	// roster so the parser tests register exactly the same set.
-	registerEngineFreeParserExtensions(*parser);
+	parser->defineFunction(new ReadRegStringFunction(engine));
+	parser->defineFunction(new ReadRegDWORDFunction(engine));
 }
 
 FilterVector ExpressionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
@@ -73,8 +69,7 @@ FilterVector ExpressionFilterFactory::createFilter(const wstring& configPath, ws
 		hadInlineExpression = true;
 		try
 		{
-			parser->SetExpr(segment.text);
-			Value result = parser->Eval();
+			Value result = parser->evaluate(segment.text);
 			wstring resultString;
 			if (result.GetType() == L's')
 				resultString = result.GetString();
@@ -110,8 +105,7 @@ FilterVector ExpressionFilterFactory::createFilter(const wstring& configPath, ws
 		entry.kind = ConfigLoadTraceEntry::Kind::Eval;
 		try
 		{
-			parser->SetExpr(evalCmd.expression);
-			Value result = parser->Eval();
+			Value result = parser->evaluate(evalCmd.expression);
 			wstring resultString;
 			if (result.GetType() == L's')
 				resultString = result.GetString();

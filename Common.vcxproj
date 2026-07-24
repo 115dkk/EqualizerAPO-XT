@@ -384,6 +384,7 @@
     <ClInclude Include="parser\RegexFunctions.h" />
     <ClInclude Include="parser\RegistryFunctions.h" />
     <ClInclude Include="parser\ParserExtensions.h" />
+    <ClInclude Include="parser\EngineParser.h" />
     <ClInclude Include="parser\StringOperators.h" />
     <ClInclude Include="VoicemeeterAPOInfo.h" />
     <ClInclude Include="stdafx.h" />
@@ -470,6 +471,7 @@
     <ClCompile Include="helpers\FftwPlanningPolicy.cpp" />
     <ClCompile Include="parser\LogicalOperators.cpp" />
     <ClCompile Include="parser\ParserExtensions.cpp" />
+    <ClCompile Include="parser\EngineParser.cpp" />
     <ClCompile Include="parser\RegexFunctions.cpp" />
     <ClCompile Include="parser\RegistryFunctions.cpp" />
     <ClCompile Include="parser\StringOperators.cpp" />
