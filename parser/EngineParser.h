@@ -1,8 +1,14 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
-#include <mpParser.h>
+namespace mup
+{
+class ICallback;
+class ParserX;
+class Value;
+}
 
 // Owns the muparserx lifecycle used by the engine.  Callers can define
 // engine-specific facts and evaluate expressions, but cannot partially repeat
@@ -11,6 +17,10 @@ class EngineParser
 {
 public:
 	EngineParser();
+	~EngineParser();
+
+	EngineParser(const EngineParser&) = delete;
+	EngineParser& operator=(const EngineParser&) = delete;
 
 	void reinitialize();
 	void beginLoad();
@@ -19,5 +29,5 @@ public:
 	mup::Value evaluate(const std::wstring& expression);
 
 private:
-	mup::ParserX parser;
+	std::unique_ptr<mup::ParserX> parser;
 };
