@@ -3,6 +3,8 @@
 #include <QDir>
 #include <QFileInfo>
 
+#include "filters/ConvolutionFilePath.h"
+
 namespace
 {
 QDir configDirectory(const QString& configPath)
@@ -14,14 +16,11 @@ QDir configDirectory(const QString& configPath)
 
 QString ConvolutionPathHelper::absolutePathForConfig(const QString& configPath, const QString& path)
 {
-	if (path.isEmpty())
+	const std::wstring resolved = ConvolutionFilePath::resolve(
+		configPath.toStdWString(), path.toStdWString());
+	if (resolved.empty())
 		return QString();
-
-	QString normalizedPath = QDir::fromNativeSeparators(path);
-	if (QDir::isAbsolutePath(normalizedPath))
-		return QDir::cleanPath(normalizedPath);
-
-	return QDir::cleanPath(configDirectory(configPath).absoluteFilePath(normalizedPath));
+	return QDir::cleanPath(QString::fromStdWString(resolved));
 }
 
 QString ConvolutionPathHelper::displayPathForSelection(const QString& configPath, const QString& selectedPath)

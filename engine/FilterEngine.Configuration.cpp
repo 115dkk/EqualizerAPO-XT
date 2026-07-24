@@ -68,7 +68,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 	// The factories build through these engine-owned scratch fields. Move the
 	// previous idle state aside so the whole load is transactional: any exception
 	// discards the partial filters/channel routing and restores registry watches,
-	// while currentConfig remains untouched.
+	// while the active configuration remains untouched.
 	auto savedFilterInfos = move(filterInfos);
 	auto savedCurrentChannelNames = move(currentChannelNames);
 	auto savedLastChannelNames = move(lastChannelNames);
@@ -99,7 +99,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		lastChannelNames.clear();
 		lastNewChannelNames.clear();
 		watchRegistryKeys.clear();
-		parser->ClearVar();
+		parser.beginLoad();
 
 		for (auto it = factories.cbegin(); it != factories.cend(); it++)
 		{
@@ -129,16 +129,9 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		double loadTime = timer.stop();
 		TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
 
-		previousConfig.reset();
-		if (!currentConfig)
-			currentConfig = move(config);
-		else
-		{
-			nextConfig = move(config);
-			// Release: publish the fully-constructed FilterConfiguration to the RT
-			// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
-			nextConfigReady.store(true, std::memory_order_release);
-		}
+		configChannel.publish(move(config));
+		// Release: publish the fully-constructed FilterConfiguration to the RT
+		// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
 		return true;
 	}
 	catch (const exception& e)
@@ -181,17 +174,10 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			addFilters(move(newFilters));
 	}
 
-	while (inputStream.good())
+	const vector<wstring> decodedLines = ConfigurationFileReader::decodeLines(inputStream);
+	for (const wstring& line : decodedLines)
 	{
-		string encodedLine;
-		getline(inputStream, encodedLine);
 		traceLine++;
-		if (encodedLine.size() > 0 && encodedLine[encodedLine.size() - 1] == '\r')
-			encodedLine.resize(encodedLine.size() - 1);
-
-		wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
-		if (line.find(L'\uFFFD') != wstring::npos)
-			line = StringHelper::toWString(encodedLine, CP_ACP);
 
 		size_t pos = line.find(L':');
 		if (pos != wstring::npos)

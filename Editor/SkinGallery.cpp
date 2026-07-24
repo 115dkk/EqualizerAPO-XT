@@ -1,4 +1,6 @@
 #include "SkinGallery.h"
+#include "diagnostics/ToolbarPixelProbe.h"
+#include "widgets/MainToolbarKit.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -20,6 +22,7 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QImage>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QMainWindow>
 #include <QMenu>
@@ -33,6 +36,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QToolBar>
 #include <QTreeView>
 #include <QUrl>
@@ -388,15 +392,52 @@ QString buildFileDialogFixture(const QDir& outDir)
 
 // renderSkin() renders, per skin and per mode: every gallery row in
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
-// disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
+// disabled from renderStates(commented=true)), plus the registered fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
 // addrow x2, seam, toast, filedialog, graph x2, copyfold x4, logic,
 // channelscope). run() multiplies these by skins x 2 modes to self-check the
 // output count, so adding a gallery row needs no external count to be
-// updated. Keep both constants in step with renderStates()/renderSkin() if
-// the state set or chrome shots change.
+// updated. The fixed count is derived from galleryScenarios().
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 21;
+
+struct GalleryScenario
+{
+	QString id;
+	QStringList states;
+};
+
+// Fixed chrome scenarios are registered once. The render blocks below build
+// their specialized widgets, while this table owns scenario identity, state
+// vocabulary, and the deterministic shot-count contract.
+const QList<GalleryScenario>& galleryScenarios()
+{
+	static const QList<GalleryScenario> scenarios = {
+		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"), QStringLiteral("empty") } },
+		{ QStringLiteral("toolbar"), { QStringLiteral("normal") } },
+		{ QStringLiteral("analysis"), { QStringLiteral("normal") } },
+		{ QStringLiteral("titlebar"), { QStringLiteral("normal") } },
+		{ QStringLiteral("menubar"), { QStringLiteral("normal") } },
+		{ QStringLiteral("menu"), { QStringLiteral("normal") } },
+		{ QStringLiteral("addrow"), { QStringLiteral("normal"), QStringLiteral("hover") } },
+		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
+		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
+		{ QStringLiteral("filedialog"), { QStringLiteral("normal") } },
+		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor") } },
+		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
+			QStringLiteral("expanded"), QStringLiteral("editor") } },
+		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
+		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } }
+	};
+	return scenarios;
+}
+
+int fixedScenarioShotCount()
+{
+	int count = 0;
+	for (const GalleryScenario& scenario : galleryScenarios())
+		count += scenario.states.size();
+	return count;
+}
 
 // A rendered toolbar is never one flat colour: buttons, combos and labels
 // cover a sizable share of the strip. A grab that matches its own corner
@@ -405,25 +446,6 @@ constexpr int kExtraShotsPerSkinMode = 21;
 // picking up the sheets' universal QWidget background rule and blanking
 // the whole strip) produced exactly this while every visibility flag,
 // geometry and child list stayed healthy.
-bool toolbarRenderIsBlank(const QImage& image)
-{
-	if (image.isNull() || image.width() < 10 || image.height() < 4)
-		return true;
-	const QRgb corner = image.pixel(1, 1);
-	qint64 same = 0;
-	qint64 total = 0;
-	for (int y = 0; y < image.height(); y += 2)
-	{
-		for (int x = 0; x < image.width(); x += 2)
-		{
-			total++;
-			if (image.pixel(x, y) == corner)
-				same++;
-		}
-	}
-	return same * 100 >= total * 99;
-}
-
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
 // judges chrome, not data, and constructing the real toolbar would drag in
@@ -431,77 +453,21 @@ bool toolbarRenderIsBlank(const QImage& image)
 QToolBar* buildToolbarReplica(QWidget* parent)
 {
 	QToolBar* toolBar = new QToolBar(parent);
-	toolBar->setObjectName(QStringLiteral("MainToolBar"));
-	toolBar->setMovable(false);
-
-	QAction* actionNew = toolBar->addAction(QStringLiteral("New"));
-	actionNew->setObjectName(QStringLiteral("actionNew"));
-	QAction* actionOpen = toolBar->addAction(QStringLiteral("Open"));
-	actionOpen->setObjectName(QStringLiteral("actionOpen"));
-	QAction* actionSave = toolBar->addAction(QStringLiteral("Save"));
-	actionSave->setObjectName(QStringLiteral("actionSave"));
-	toolBar->addSeparator();
-	QAction* actionUndo = toolBar->addAction(QStringLiteral("Undo"));
-	actionUndo->setObjectName(QStringLiteral("actionUndo"));
-	QAction* actionRedo = toolBar->addAction(QStringLiteral("Redo"));
-	actionRedo->setObjectName(QStringLiteral("actionRedo"));
-
-	// Same non-surface contract as MainWindow's spacers: no framework
-	// background, ever (the universal QWidget rule would stamp the strip).
-	const auto makeSpacer = []() {
-		QWidget* spacer = new QWidget;
-		spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
-		spacer->setAttribute(Qt::WA_NoSystemBackground, true);
-		return spacer;
-	};
-	QWidget* spacer = makeSpacer();
-	spacer->setFixedWidth(10);
-	toolBar->addWidget(spacer);
-
-	QCheckBox* instantMode = new QCheckBox(QStringLiteral("Instant mode"));
-	instantMode->setObjectName(QStringLiteral("InstantModeCheckBox"));
-	instantMode->setChecked(true);
-	toolBar->addWidget(instantMode);
-
-	QLabel* dirtyBadge = new QLabel(QStringLiteral("Saved"));
-	dirtyBadge->setObjectName(QStringLiteral("DirtyStatusBadge"));
-	toolBar->addWidget(dirtyBadge);
-
-	spacer = makeSpacer();
-	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	toolBar->addWidget(spacer);
-
-	QLabel* deviceLabel = new QLabel(QStringLiteral("Device"));
-	deviceLabel->setObjectName(QStringLiteral("ToolBarLabel"));
-	toolBar->addWidget(deviceLabel);
-
-	SkinComboBox* deviceCombo = new SkinComboBox;
-	deviceCombo->setObjectName(QStringLiteral("ToolBarComboBox"));
-	deviceCombo->addItem(QStringLiteral("Default (Speakers - Example Audio)"));
-	toolBar->addWidget(deviceCombo);
-
-	spacer = makeSpacer();
-	spacer->setFixedWidth(10);
-	toolBar->addWidget(spacer);
-
-	QLabel* channelLabel = new QLabel(QStringLiteral("Channels"));
-	channelLabel->setObjectName(QStringLiteral("ToolBarLabel"));
-	toolBar->addWidget(channelLabel);
-
-	SkinComboBox* channelCombo = new SkinComboBox;
-	channelCombo->setObjectName(QStringLiteral("ToolBarComboBox"));
-	channelCombo->addItem(QStringLiteral("7.1 surround"));
-	toolBar->addWidget(channelCombo);
-
+	MainToolbarKit::Content content;
+	content.instantMode = QStringLiteral("Instant mode");
+	content.saved = QStringLiteral("Saved");
+	content.device = QStringLiteral("Device");
+	content.channels = QStringLiteral("Channels");
+	content.deviceValue = QStringLiteral("Default (Speakers - Example Audio)");
+	content.channelValue = QStringLiteral("7.1 surround");
+	content.formatText = QStringLiteral("Passthrough");
+	content.formatSeverity = QStringLiteral("warning");
+	content.formatVisible = true;
+	MainToolbarKit::populate(toolBar, content, true);
 	SkinManager::instance()->styleMainToolbar(toolBar);
 	return toolBar;
 }
 
-// Faithful replica of the analysis dock's contents: the compact settings cell
-// beside the graph with dummy readouts. Same object names as MainWindow so
-// every sheet's #analysisControlBar / #AnalysisStatChip rules are judged; the
-// graph is a real EqGraphView left empty (background and frame only, no curve
-// data needed).
 QWidget* buildAnalysisPanelReplica(QWidget* parent)
 {
 	QWidget* panel = new QWidget(parent);
@@ -1116,6 +1082,35 @@ int runSwitchTest(const QStringList& arguments)
 
 	qWarning("SkinSwitchTest: starting");
 
+	FilterInsertSeam accessibilitySeam;
+	int seamActivations = 0;
+	QObject::connect(&accessibilitySeam, &FilterInsertSeam::activated,
+		[&seamActivations]() { seamActivations++; });
+	QKeyEvent activateSeam(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
+	QApplication::sendEvent(&accessibilitySeam, &activateSeam);
+	if (accessibilitySeam.focusPolicy() != Qt::StrongFocus || seamActivations != 1
+		|| accessibilitySeam.accessibleName().isEmpty())
+	{
+		qWarning("SkinSwitchTest: insertion seam lacks keyboard accessibility parity");
+		return 1;
+	}
+
+	QWidget toastHost;
+	UpdateToast timerProbe(&toastHost);
+	timerProbe.showMessage(QStringLiteral("temporary"), 15000);
+	const QTimer* const autoHideTimer = timerProbe.findChild<QTimer*>(QStringLiteral("UpdateToastAutoHide"));
+	if (autoHideTimer == nullptr || !autoHideTimer->isActive())
+	{
+		qWarning("SkinSwitchTest: update toast does not own a restartable auto-hide timer");
+		return 1;
+	}
+	timerProbe.showMessage(QStringLiteral("persistent"), 0);
+	if (autoHideTimer->isActive())
+	{
+		qWarning("SkinSwitchTest: persistent update toast kept a stale auto-hide timer");
+		return 1;
+	}
+
 	// Scratch reference targets so the reference cards resolve like the
 	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
 	QTemporaryDir scratch;
@@ -1150,6 +1145,9 @@ int runSwitchTest(const QStringList& arguments)
 		qWarning("SkinSwitchTest: table construction failed");
 		return 1;
 	}
+	// Gallery tables deliberately have no MainWindow. This supported host mode
+	// must keep navigation callbacks harmless.
+	table->openConfig(QString());
 
 	// A live TitleBar rides along: its caption glyphs are tinted icons, not
 	// QSS, so a switch path that forgets to re-dress them leaves them in the
@@ -1190,6 +1188,15 @@ int runSwitchTest(const QStringList& arguments)
 	// a collapsed toolbar all reproduce the "toolbar is gone" field state.
 	const auto checkToolbar = [&probeWindow, probeToolBar](const QString& switchName) {
 		int problems = 0;
+		QLabel* formatBadge = probeToolBar->findChild<QLabel*>(
+			QStringLiteral("DeviceFormatBadge"), Qt::FindDirectChildrenOnly);
+		if (formatBadge == nullptr
+			|| formatBadge->property("severity").toString() != QLatin1String("warning"))
+		{
+			qWarning("SkinSwitchTest: %s: representative DeviceFormatBadge is missing",
+				qPrintable(switchName));
+			problems++;
+		}
 		if (!probeToolBar->isVisibleTo(&probeWindow))
 		{
 			qWarning("SkinSwitchTest: %s: main toolbar widget is hidden", qPrintable(switchName));
@@ -1201,15 +1208,13 @@ int runSwitchTest(const QStringList& arguments)
 				qPrintable(switchName), probeToolBar->height());
 			problems++;
 		}
-		const bool rackActive = SkinManager::instance()->currentSkinId() == QLatin1String("rack");
 		for (QAction* action : probeToolBar->actions())
 		{
 			QWidget* item = probeToolBar->widgetForAction(action);
-			const bool earSpacer = item != nullptr
-				&& item->objectName() == QLatin1String("RackToolbarEarSpacer");
-			// Rack's rail-ear zones legitimately leave with its chrome; every
-			// other item must survive every switch.
-			if (earSpacer && !rackActive)
+			// State-driven items legitimately hide; every other item belongs
+			// to the structural health contract.
+			if (item != nullptr
+				&& MainToolbarKit::visibilityIsDataObjectNames().contains(item->objectName()))
 				continue;
 			const QString label = item != nullptr && !item->objectName().isEmpty()
 				? item->objectName() : action->objectName();
@@ -1231,7 +1236,7 @@ int runSwitchTest(const QStringList& arguments)
 		// Pixels, not flags: the field bug rendered the strip blank while
 		// every logical probe stayed healthy.
 		if (probeToolBar->isVisible()
-			&& toolbarRenderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
+			&& ToolbarPixelProbe::renderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
 		{
 			qWarning("SkinSwitchTest: %s: toolbar rendered blank (controls not painted)",
 				qPrintable(switchName));
@@ -1248,8 +1253,31 @@ int runSwitchTest(const QStringList& arguments)
 	int limitMs = qEnvironmentVariableIntValue("EAPO_SWITCH_LIMIT_MS", &limitOk);
 	if (!limitOk || limitMs <= 0)
 		limitMs = 8000;
+	bool warningOk = false;
+	int warningMs = qEnvironmentVariableIntValue("EAPO_SWITCH_WARN_MS", &warningOk);
+	if (!warningOk || warningMs <= 0 || warningMs >= limitMs)
+		warningMs = 0;
 
 	int failures = 0;
+	const auto checkPaintOnlyChrome = [&scrollArea, &failures](const QString& objectName) {
+		const QList<QWidget*> widgets = scrollArea.findChildren<QWidget*>(objectName);
+		if (widgets.isEmpty())
+		{
+			qWarning("SkinSwitchTest: paint-only chrome %s is missing", qPrintable(objectName));
+			failures++;
+			return;
+		}
+		for (QWidget* widget : widgets)
+		{
+			if (!widget->testAttribute(Qt::WA_NoSystemBackground))
+			{
+				qWarning("SkinSwitchTest: paint-only chrome %s accepts a framework background",
+					qPrintable(objectName));
+				failures++;
+				break;
+			}
+		}
+	};
 	QApplication::processEvents();
 	failures += checkToolbar(QStringLiteral("baseline (before any switch)"));
 	{
@@ -1312,6 +1340,10 @@ int runSwitchTest(const QStringList& arguments)
 						qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
 					failures++;
 				}
+				if (skin->id() == QLatin1String("soft"))
+					checkPaintOnlyChrome(QStringLiteral("SoftReferenceTile"));
+				else if (skin->id() == QLatin1String("matrix"))
+					checkPaintOnlyChrome(QStringLiteral("MatrixRowCaption"));
 				{
 					// Caption ink check. tintedIcon paints every covered pixel
 					// in the ink colour, so the strongest-coverage pixel must
@@ -1351,6 +1383,11 @@ int runSwitchTest(const QStringList& arguments)
 					qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
 						qPrintable(name), static_cast<long long>(elapsed), limitMs);
 					failures++;
+				}
+				else if (warningMs > 0 && elapsed > warningMs)
+				{
+					qWarning("SkinSwitchTest: switch to %s took %lld ms (warning %d ms; hard limit %d ms)",
+						qPrintable(name), static_cast<long long>(elapsed), warningMs, limitMs);
 				}
 				if (elapsed > worstMs)
 				{
@@ -1392,9 +1429,9 @@ int runSwitchTest(const QStringList& arguments)
 		qWarning("SkinSwitchTest: %d top-level widgets", windows);
 	}
 
-	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), limit %d ms, failures %d",
+	qWarning("SkinSwitchTest: %d switches over %d rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
 		rounds * int(Skins::all().size()) * 2, int(lines.size()), static_cast<long long>(worstMs),
-		qPrintable(worstName), limitMs, failures);
+		qPrintable(worstName), warningMs, limitMs, failures);
 
 	// Same no-teardown exit as run(): everything is flushed, and unwinding
 	// the offscreen QApplication can hang the process on a leftover resource.
@@ -1462,14 +1499,35 @@ int run(const QStringList& arguments)
 	// the run even when every attempted grab succeeded. galleryRows() drives the
 	// row term, so adding a gallery row updates this expectation automatically
 	// and no external (build.yml) count needs to be touched.
-	const int perSkinMode = static_cast<int>(galleryRows().size()) * kStatesPerRow + kExtraShotsPerSkinMode;
+	const int extraShots = fixedScenarioShotCount();
+	const int perSkinMode = static_cast<int>(galleryRows().size()) * kStatesPerRow + extraShots;
 	const int expected = static_cast<int>(skinIds.size()) * 2 * perSkinMode;
 	const int actual = static_cast<int>(outDir.entryList(QStringList{QStringLiteral("*.png")}, QDir::Files).size());
 	if (actual != expected)
 	{
 		qWarning("SkinGallery: expected %d shots (%d skins x 2 modes x (%d rows x %d + %d extras)), wrote %d",
-			expected, static_cast<int>(skinIds.size()), static_cast<int>(galleryRows().size()), kStatesPerRow, kExtraShotsPerSkinMode, actual);
+			expected, static_cast<int>(skinIds.size()), static_cast<int>(galleryRows().size()), kStatesPerRow, extraShots, actual);
 		failures++;
+	}
+	for (const QString& skinId : skinIds)
+	{
+		for (const QString& mode : { QStringLiteral("dark"), QStringLiteral("light") })
+		{
+			for (const GalleryScenario& scenario : galleryScenarios())
+			{
+				for (const QString& state : scenario.states)
+				{
+					const QString fileName = QStringLiteral("%1_%2_%3_%4.png")
+						.arg(skinId.trimmed(), mode, scenario.id, state);
+					if (!outDir.exists(fileName))
+					{
+						qWarning("SkinGallery: registered scenario output is missing: %s",
+							qPrintable(fileName));
+						failures++;
+					}
+				}
+			}
+		}
 	}
 
 	// --skin-gallery is a headless one-shot: by this point every screenshot has

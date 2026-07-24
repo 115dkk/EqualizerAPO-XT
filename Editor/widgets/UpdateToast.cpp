@@ -29,8 +29,16 @@ UpdateToast::UpdateToast(QWidget* host)
 	closeButton->setAutoRaise(true);
 	closeButton->setText(QString(QChar(0x00D7))); // multiplication sign as a close glyph
 	closeButton->setToolTip(tr("Dismiss"));
-	connect(closeButton, &QToolButton::clicked, this, &QWidget::hide);
+	connect(closeButton, &QToolButton::clicked, this, [this]() {
+		autoHideTimer->stop();
+		hide();
+	});
 	layout->addWidget(closeButton, 0, Qt::AlignTop);
+
+	autoHideTimer = new QTimer(this);
+	autoHideTimer->setObjectName(QStringLiteral("UpdateToastAutoHide"));
+	autoHideTimer->setSingleShot(true);
+	connect(autoHideTimer, &QTimer::timeout, this, &QWidget::hide);
 
 	host->installEventFilter(this);
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens& tokens) {
@@ -48,8 +56,9 @@ void UpdateToast::showMessage(const QString& message, int autoHideMs)
 	reposition();
 	show();
 	raise();
+	autoHideTimer->stop();
 	if (autoHideMs > 0)
-		QTimer::singleShot(autoHideMs, this, &QWidget::hide);
+		autoHideTimer->start(autoHideMs);
 }
 
 void UpdateToast::paintEvent(QPaintEvent*)

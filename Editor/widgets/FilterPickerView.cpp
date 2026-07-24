@@ -72,6 +72,24 @@ QString filterTemplateDescription(const QString& rawLine)
 	return QString();
 }
 
+QString filterPickerSection(const FilterPickerEntry& entry)
+{
+	return entry.path.isEmpty()
+		? QCoreApplication::translate("FilterPickerView", "General")
+		: entry.path.join(QStringLiteral(" / "));
+}
+
+bool filterPickerMatches(const FilterPickerEntry& entry, const QString& section, const QString& query)
+{
+	const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
+	const QStringList terms = query.split(
+		QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+	for (const QString& term : terms)
+		if (!haystack.contains(term, Qt::CaseInsensitive))
+			return false;
+	return true;
+}
+
 FilterPickerView::FilterPickerView(QWidget* parent)
 	: QWidget(parent)
 {
@@ -162,27 +180,13 @@ void DefaultFilterPickerView::rebuildList()
 {
 	listWidget->clear();
 
-	const QStringList terms = searchEdit->text().split(
-		QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-
 	QString currentSection;
 	bool sectionStarted = false;
 	for (int i = 0; i < allEntries.size(); i++)
 	{
 		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
-
-		bool matches = true;
-		const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
-		for (const QString& term : terms)
-		{
-			if (!haystack.contains(term, Qt::CaseInsensitive))
-			{
-				matches = false;
-				break;
-			}
-		}
-		if (!matches)
+		const QString section = filterPickerSection(entry);
+		if (!filterPickerMatches(entry, section, searchEdit->text()))
 			continue;
 
 		if (!sectionStarted || section != currentSection)

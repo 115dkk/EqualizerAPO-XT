@@ -30,10 +30,12 @@
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
 #include "ReferenceCardView.h"
+#include "FileReferenceController.h"
 #include "helpers/RegistryHelper.h"
 
 IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& path, QWidget* parent)
-	: IFilterGUI(parent), filterTable(filterTable), path(path.trimmed())
+	: IFilterGUI(parent), filterTable(filterTable),
+	  reference(new FileReferenceController(QStringLiteral("include"), path, this))
 {
 	setObjectName(QStringLiteral("IncludeCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -84,7 +86,7 @@ IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& pa
 void IncludeCardEditor::store(QString& command, QString& parameters)
 {
 	command = QStringLiteral("Include");
-	parameters = path;
+	parameters = reference->writtenPath();
 }
 
 void IncludeCardEditor::chooseFile()
@@ -94,22 +96,15 @@ void IncludeCardEditor::chooseFile()
 
 	QFileInfo fileInfo(filterTable->getConfigPath());
 	QDir configDir = fileInfo.absoluteDir();
-	if (!path.isEmpty())
+	if (!reference->writtenPath().isEmpty())
 		fileInfo = currentFileInfo();
 
-	QFileDialog dialog(this, tr("Include file"), fileInfo.absolutePath(), QStringLiteral("*.txt"));
-	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setNameFilter(tr("E-APO configurations (*.txt)"));
-	GUIHelper::prepareFileDialog(dialog);
-	if (!path.isEmpty())
-		dialog.selectFile(fileInfo.fileName());
-	if (dialog.exec() == QDialog::Accepted)
+	const QString selected = reference->chooseExistingFile(
+		this, tr("Include file"), fileInfo.absolutePath(),
+		tr("E-APO configurations (*.txt)"), configDir.absolutePath(),
+		reference->writtenPath().isEmpty() ? QString() : fileInfo.fileName());
+	if (!selected.isEmpty())
 	{
-		QString absolutePath = dialog.selectedFiles().first();
-		QString relativePath = configDir.relativeFilePath(absolutePath);
-		if (relativePath.startsWith(QStringLiteral("../../")))
-			relativePath = absolutePath;
-		path = QDir::toNativeSeparators(relativePath);
 		updateFileInfo();
 		emit updateModel();
 	}
@@ -117,7 +112,7 @@ void IncludeCardEditor::chooseFile()
 
 void IncludeCardEditor::openFile()
 {
-	if (filterTable == nullptr || path.isEmpty())
+	if (filterTable == nullptr || reference->writtenPath().isEmpty())
 		return;
 
 	filterTable->openConfig(currentFileInfo().absoluteFilePath());
@@ -125,7 +120,7 @@ void IncludeCardEditor::openFile()
 
 void IncludeCardEditor::pathCommitted(const QString& text)
 {
-	path = text.trimmed();
+	reference->setWrittenPath(text);
 	updateFileInfo();
 	emit updateModel();
 }
@@ -133,84 +128,39 @@ void IncludeCardEditor::pathCommitted(const QString& text)
 QFileInfo IncludeCardEditor::currentFileInfo() const
 {
 	if (filterTable == nullptr)
-		return QFileInfo(path);
+		return QFileInfo(reference->writtenPath());
 
-	QString normalizedPath = QDir::fromNativeSeparators(path);
+	QString normalizedPath = QDir::fromNativeSeparators(reference->writtenPath());
 	if (QDir::isAbsolutePath(normalizedPath))
-		return QFileInfo(path);
+		return QFileInfo(reference->writtenPath());
 
 	QFileInfo configInfo(filterTable->getConfigPath());
 	QFileInfo fileInfo;
-	fileInfo.setFile(configInfo.absoluteDir(), path);
+	fileInfo.setFile(configInfo.absoluteDir(), reference->writtenPath());
 	return fileInfo;
 }
 
 void IncludeCardEditor::updateFileInfo()
 {
-	ReferenceCardState state;
-	state.kind = QStringLiteral("include");
-	state.editText = path;
-
+	const QFileInfo fileInfo = currentFileInfo();
+	reference->setResolvedPath(fileInfo.absoluteFilePath());
+	ReferenceCardState state = reference->describe(tr("No file selected"));
 	bool offerImport = false;
-	if (path.isEmpty())
+	if (!state.missing)
 	{
-		state.missing = true;
-		state.name = tr("No file selected");
-	}
-	else
-	{
-		const QString normalized = QDir::fromNativeSeparators(path);
-		const QFileInfo asWritten(normalized);
-		state.name = asWritten.fileName();
-		state.absolutePath = QDir::isAbsolutePath(normalized);
-
-		QFileInfo fileInfo = currentFileInfo();
-		state.fullPath = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
-		// Location: the as-written parent for a relative reference (empty when
-		// the file sits next to the config), the resolved directory when absolute.
-		if (state.absolutePath)
-			state.directory = QDir::toNativeSeparators(fileInfo.absolutePath());
-		else if (asWritten.path() != QStringLiteral("."))
-			state.directory = QDir::toNativeSeparators(asWritten.path());
-
-		if (!fileInfo.exists())
+		state.nameClickable = true;
+		if (!FileReferenceController::isReadableByAudioService(state.fullPath))
 		{
-			state.missing = true;
-		}
-		else
-		{
-			state.nameClickable = true;
-
-			// The audio service only holds rights it was granted; a file it
-			// cannot read silently drops out of the config, so surface it and
-			// offer the dependency import. The offscreen gallery renders
-			// synthetic files with no meaningful ACL story - it skips the probe.
-			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
-			{
-				const QString nativeAbsolute = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
-				ACCESS_MASK mask = GENERIC_READ;
-				try
-				{
-					mask = RegistryHelper::getFileAccessForUser(nativeAbsolute.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
-				}
-				catch (const RegistryException&)
-				{
-				}
-
-				if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
-				{
-					state.statusText = tr("Not readable by the audio service");
-					state.statusSeverity = ReferenceCardState::Severity::Critical;
-					state.nameClickable = false;
-					offerImport = true;
-				}
-			}
+			state.statusText = tr("Not readable by the audio service");
+			state.statusSeverity = ReferenceCardState::Severity::Critical;
+			state.nameClickable = false;
+			offerImport = true;
 		}
 	}
 
 	// The Browse button doubles as the Locate recovery entry while the
 	// reference is broken; the label is the affordance.
-	const bool locate = state.missing && !path.isEmpty();
+	const bool locate = state.missing && !reference->writtenPath().isEmpty();
 	chooseButton->setText(locate ? tr("Locate...") : QString());
 	chooseButton->setToolTip(locate ? tr("Locate the missing file") : tr("Choose include file"));
 
@@ -223,33 +173,9 @@ void IncludeCardEditor::importToConfig()
 	if (filterTable == nullptr)
 		return;
 
-	QFileInfo fileInfo = currentFileInfo();
-	if (!fileInfo.exists())
+	reference->setResolvedPath(currentFileInfo().absoluteFilePath());
+	if (!reference->importIntoConfig(this, filterTable->getConfigPath()))
 		return;
-
-	QString sourcePath = fileInfo.absoluteFilePath();
-	QString configDir = QFileInfo(filterTable->getConfigPath()).absolutePath();
-
-	auto manifest = EqAPO::Import::ConfigDependencyScanner::scan(sourcePath, configDir);
-	if (manifest.items.isEmpty())
-	{
-		QMessageBox::warning(this, tr("Import"), tr("Nothing to import: %1").arg(manifest.warnings.join('\n')));
-		return;
-	}
-
-	EqAPO::Import::ImportDialog dialog(manifest, configDir, this);
-	if (dialog.exec() != QDialog::Accepted)
-		return;
-
-	auto result = EqAPO::Import::ImportExecutor::execute(manifest, configDir);
-	if (!result.success)
-	{
-		QMessageBox::warning(this, tr("Import"),
-			tr("Some files could not be copied:\n%1").arg(result.errors.join('\n')));
-		return;
-	}
-
-	path = QDir::toNativeSeparators(manifest.rootDest);
 	updateFileInfo();
 	emit updateModel();
 }

@@ -18,6 +18,7 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -30,11 +31,17 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ParallelExecutor.h"
+#include "helpers/PerfProfile.h"
 #include "MultiConvolutionFilter.h"
 
 using std::find;
 using std::vector;
 using std::wstring;
+
+namespace
+{
+	std::atomic<unsigned long long> multiMuteCallCount{ 0 };
+}
 
 MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionCommand::Mapping>& mappings, const wstring& filename)
 {
@@ -42,6 +49,7 @@ MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionComm
 	this->filename = filename;
 	sampleRate = 0.0f;
 	filterFrameCount = 0;
+	frameCountMismatchLogged = false;
 	unitCount = 0;
 }
 
@@ -127,16 +135,6 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	if (totalUnits == 0)
 		return outChannelNames;
 
-	fftw_make_planner_thread_safe();
-	auto allocated = MemoryHelper::allocateArray<HConvSingle>(totalUnits);
-	if (allocated == nullptr)
-	{
-		LogF(L"MultiConvolutionFilter: could not allocate %u convolution units", totalUnits);
-		return outChannelNames;
-	}
-	HConvSingleArray pendingFilters;
-	pendingFilters.adoptStorage(std::move(allocated), totalUnits);
-
 	tempBuffer.assign(maxFrameCount, 0.0);
 	unitFactors.assign(totalUnits, 1.0);
 	std::vector<unsigned> unitChannels(totalUnits);
@@ -156,30 +154,21 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	// Transform each referenced channel once and share only its immutable bank.
 	const unsigned noPrototype = (std::numeric_limits<unsigned>::max)();
 	std::vector<unsigned> prototypes(ir->channels, noPrototype);
-	std::vector<unsigned> prototypeUnits;
 	for (unsigned unit = 0; unit < totalUnits; ++unit)
 	{
 		const unsigned irChannel = unitChannels[unit];
 		if (prototypes[irChannel] == noPrototype)
-		{
 			prototypes[irChannel] = unit;
-			prototypeUnits.push_back(unit);
-		}
 	}
-	ParallelExecutor::forEach(prototypeUnits.size(), [&](size_t index) {
-		const unsigned unit = prototypeUnits[index];
-		// hcInitSingle reads the IR samples during planning but does not
-		// retain the pointer, so the shared cache buffer is safe to feed.
-		hcInitSingle(&pendingFilters[unit], const_cast<double*>(ir->buffers[unitChannels[unit]].data()),
-			(int)irFrames, (int)maxFrameCount, 1);
-	});
+	std::vector<ConvolverUnitSource> sources(totalUnits);
 	for (unsigned unit = 0; unit < totalUnits; ++unit)
 	{
-		const unsigned prototype = prototypes[unitChannels[unit]];
-		if (unit != prototype)
-			hcInitSingleWithSharedFilterBank(&pendingFilters[unit], &pendingFilters[prototype]);
+		const unsigned irChannel = unitChannels[unit];
+		sources[unit] = { ir->buffers[irChannel].data(), irFrames, prototypes[irChannel] };
 	}
-	filters = std::move(pendingFilters);
+	filters = buildConvolverArray(sources, maxFrameCount);
+	if (filters == nullptr)
+		return outChannelNames;
 	unitCount = next;
 	filterFrameCount = maxFrameCount;
 
@@ -189,8 +178,20 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 #pragma AVRT_CODE_BEGIN
 void MultiConvolutionFilter::process(double** output, double** input, unsigned frameCount)
 {
+	PerfScope _ps("MultiConvolutionFilter::process");
 	if (frameCount == 0)
 		return;
+
+	if (filters != nullptr && frameCount != filterFrameCount)
+	{
+		const unsigned long long count = multiMuteCallCount.fetch_add(1, std::memory_order_relaxed) + 1;
+		if (!frameCountMismatchLogged)
+		{
+			LogF(L"MultiConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls so far: %llu]",
+				frameCount, filterFrameCount, count);
+			frameCountMismatchLogged = true;
+		}
+	}
 
 	// libHybridConv fixes its block length at hcInitSingle time, so a block of
 	// any other size cannot be fed to the convolver; without a usable IR there
@@ -241,4 +242,9 @@ void MultiConvolutionFilter::cleanup()
 	plans.clear();
 	tempBuffer.clear();
 	filterFrameCount = 0;
+
+	if (frameCountMismatchLogged)
+		LogF(L"MultiConvolutionFilter: mismatch mute fired %llu time(s) total",
+			multiMuteCallCount.load(std::memory_order_relaxed));
+	frameCountMismatchLogged = false;
 }

@@ -57,6 +57,8 @@ public:
 	explicit SoftReferenceTile(QWidget* parent = nullptr)
 		: QWidget(parent)
 	{
+		setObjectName(QStringLiteral("SoftReferenceTile"));
+		configurePaintOnlyChrome(this);
 		setFixedSize(GUIHelper::scale(QSize(34, 34)));
 	}
 

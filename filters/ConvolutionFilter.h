@@ -50,7 +50,6 @@ private:
 	void cleanup();
 
 	std::wstring filename;
-	unsigned maxFrameCount;
 	unsigned filterFrameCount;
 	bool frameCountMismatchLogged;
 };

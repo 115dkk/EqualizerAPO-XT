@@ -18,6 +18,7 @@
 */
 
 #include "GUIHelper.h"
+#include "Editor/helpers/EditorSettings.h"
 
 #include <QApplication>
 #include <QDir>
@@ -131,14 +132,14 @@ QPixmap GUIHelper::fadedPixmap(const QPixmap& pixmap)
 double GUIHelper::knobGainRange()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	const double range = settings.value("interface/knobGainRange", 20.0).toDouble();
+	const double range = settings.value(QLatin1String(EditorSettings::Keys::KnobGainRange), 20.0).toDouble();
 	return qBound(1.0, range, 100.0);
 }
 
 void GUIHelper::setKnobGainRange(double range)
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	settings.setValue("interface/knobGainRange", qBound(1.0, range, 100.0));
+	settings.setValue(QLatin1String(EditorSettings::Keys::KnobGainRange), qBound(1.0, range, 100.0));
 }
 
 void GUIHelper::prepareFileDialog(QFileDialog& dialog)
@@ -207,7 +208,7 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	// registry escape hatch that restores the native caption on the main
 	// window applies here too.
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	if (!settings.value(QStringLiteral("interface/nativeTitleBar"), false).toBool())
+	if (!settings.value(QLatin1String(EditorSettings::Keys::NativeTitleBar), false).toBool())
 		DialogChrome::attach(&dialog);
 
 	skinManager->styleFileDialog(&dialog);

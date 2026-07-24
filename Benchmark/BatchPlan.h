@@ -1,0 +1,15 @@
+#pragma once
+
+struct BenchmarkBatchPlan
+{
+	unsigned processedFrames;
+	unsigned trimmedFrames;
+};
+
+constexpr BenchmarkBatchPlan planBenchmarkBatches(unsigned frameCount, unsigned batchSize)
+{
+	if (batchSize == 0)
+		return { 0, frameCount };
+	const unsigned processed = frameCount - frameCount % batchSize;
+	return { processed, frameCount - processed };
+}

@@ -61,6 +61,7 @@ void SkinManager::applyHeritage()
 	// Classic light values for the custom painters that consume tokens. The
 	// widget chrome itself comes from the native style, untouched by QSS.
 	SkinTokens tokens = activeSkin->tokens(false);
+	tokens.dark = false;
 	tokens.background = QStringLiteral("#f0f0f0");
 	tokens.surface = QStringLiteral("#ffffff");
 	tokens.surfaceRaised = QStringLiteral("#f5f5f5");
@@ -122,30 +123,9 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 	darkMode = dark;
 	currentTokens = activeSkin->tokens(darkMode);
 
-	QString styleSheet;
-	QFile file(activeSkin->qssResource(darkMode));
-	if (file.open(QFile::ReadOnly))
-	{
-		styleSheet = QString::fromUtf8(file.readAll());
-	}
-	else
-	{
-		QFile fallback(Skins::byId(QStringLiteral("studio"))->qssResource(darkMode));
-		if (fallback.open(QFile::ReadOnly))
-			styleSheet = QString::fromUtf8(fallback.readAll());
-	}
-	// Combo-box and spin-box arrows: every skin draws these with the CSS-border
-	// triangle trick (image: none on a 0x0 box plus coloured borders). On Qt 6.10
-	// that collapses to a flat dash instead of a triangle, so the dropdown and
-	// up/down arrows render as a "-". The override (SkinThemeData) replaces the
-	// arrow sub-controls app-wide with a real chevron SVG, appended after the
-	// skin sheet so it wins on equal specificity.
-	qApp->setStyleSheet(SkinThemeData::substituteTokens(styleSheet, currentTokens) + SkinThemeData::comboArrowOverride()
-		+ SkinThemeData::fileDialogOverride());
-	// The palette is part of the skin: painted (non-QSS) widgets and native
-	// popups read these roles. Deriving it here keeps every switch path (menu,
-	// shortcut, startup, gallery) in step.
-	qApp->setPalette(SkinThemeData::palette(currentTokens, darkMode));
+	// The process-wide QSS/palette/font contract is shared with companion
+	// executables. The Editor keeps its CustomStyle, so Fusion is not reset.
+	SkinThemeData::applyToApplication(*qApp, skinId, darkMode, false, true);
 
 	sheetApplied = true;
 	emit skinChanged(currentTokens);
@@ -188,14 +168,9 @@ QString SkinManager::cardHeaderStyle(const CommandRowInfo& info) const
 	return activeSkin->cardHeaderStyle(info, currentTokens);
 }
 
-QString SkinManager::typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const
+BadgeTreatment SkinManager::badgeTreatment(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const
 {
-	return activeSkin->typeBadgeStyle(info, typeColor, currentTokens);
-}
-
-QColor SkinManager::typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const
-{
-	return activeSkin->typeBadgeInk(info, typeColor, badgeToken, currentTokens);
+	return activeSkin->badgeTreatment(info, typeColor, badgeToken, currentTokens);
 }
 
 void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const

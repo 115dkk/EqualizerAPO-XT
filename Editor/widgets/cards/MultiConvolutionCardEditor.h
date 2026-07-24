@@ -24,6 +24,7 @@
 #include "filters/MultiConvolutionCommand.h"
 
 class FilterTable;
+class FileReferenceController;
 class QLabel;
 class QToolButton;
 class QVBoxLayout;
@@ -65,8 +66,7 @@ private:
 	void rebuildRoutingView();
 
 	FilterTable* filterTable = nullptr;
-	// The reference as written in the config line (relative stays relative).
-	QString path;
+	FileReferenceController* reference = nullptr;
 	// The mapping state of the line; the routing view edits it. A simple-form
 	// line stays simple until the routing is touched.
 	std::vector<MultiConvolutionCommand::Mapping> mappings;

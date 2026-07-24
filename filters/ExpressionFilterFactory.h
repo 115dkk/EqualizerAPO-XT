@@ -20,10 +20,10 @@
 #pragma once
 
 #include <string>
-#include <mpParser.h>
-
 #include "IFilterFactory.h"
 #include "IFilter.h"
+
+class EngineParser;
 
 class ExpressionFilterFactory : public IFilterFactory
 {
@@ -32,6 +32,6 @@ public:
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 private:
-	mup::ParserX* parser = nullptr;
+	EngineParser* parser = nullptr;
 	FilterEngine* engine = nullptr;
 };

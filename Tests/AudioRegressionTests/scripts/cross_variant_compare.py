@@ -31,19 +31,6 @@ ARTIFACT_ROOT = "artifacts"
 # Fallback only; the authoritative list comes from RUNNER_EXECUTABLE_VARIANTS.
 FALLBACK_VARIANTS = ["sse2", "avx", "avx2"]
 TOLERANCE_DB = -120.0
-CASES = [
-    "preamp_minus6",
-    "biquad_peaking_1khz",
-    "copy_crossfeed",
-    "delay_512",
-    "graphiceq_15band",
-    "convolution_short",
-    "iir_order2_lowpass",
-    "channel_left_only",
-    "loudnesscorrection_bypassed",
-]
-
-
 def load_raw(path: str) -> np.ndarray:
     with open(path, "rb") as f:
         return np.frombuffer(f.read(), dtype=np.float32)
@@ -93,6 +80,21 @@ def variant_dir(variant: str) -> str:
     return candidates[0]
 
 
+def load_cases(directory: str) -> list:
+    manifest_path = os.path.join(directory, "cases.json")
+    with open(manifest_path, "r", encoding="utf-8") as stream:
+        data = json.load(stream)
+    cases = data.get("cases")
+    if (
+        not isinstance(cases, list)
+        or not cases
+        or not all(isinstance(case, str) and case for case in cases)
+        or len(cases) != len(set(cases))
+    ):
+        raise ValueError(f"invalid case manifest: {manifest_path}")
+    return cases
+
+
 def main() -> int:
     variants = resolve_variants()
     pairs = [(variants[i], variants[j]) for i in range(len(variants)) for j in range(i + 1, len(variants))]
@@ -105,12 +107,27 @@ def main() -> int:
             print(f"ERROR: missing variant output directory for {variant}: {dirs[variant]}")
         return 1
 
+    manifests = {}
+    try:
+        manifests = {variant: load_cases(directory) for variant, directory in dirs.items()}
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        print(f"ERROR: {error}")
+        return 1
+    cases = manifests[variants[0]]
+    for variant in variants[1:]:
+        if manifests[variant] != cases:
+            print(
+                f"ERROR: case manifest mismatch: {variants[0]}={cases}, "
+                f"{variant}={manifests[variant]}"
+            )
+            return 1
+
     all_ok = True
     comparisons = 0
     for a, b in pairs:
         a_dir = dirs[a]
         b_dir = dirs[b]
-        for case in CASES:
+        for case in cases:
             a_file = os.path.join(a_dir, f"{case}.raw")
             b_file = os.path.join(b_dir, f"{case}.raw")
             if not (os.path.isfile(a_file) and os.path.isfile(b_file)):

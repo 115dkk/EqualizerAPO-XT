@@ -211,3 +211,41 @@ void HConvSingleArray::reset()
 	}
 	capacity = 0;
 }
+
+HConvSingleArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sources,
+	unsigned frameCount)
+{
+	HConvSingleArray result;
+	if (sources.empty())
+		return result;
+
+	fftw_make_planner_thread_safe();
+	auto allocated = MemoryHelper::allocateArray<HConvSingle>(sources.size());
+	if (allocated == nullptr)
+	{
+		LogFStatic(L"Could not allocate %zu convolution unit(s)", sources.size());
+		return result;
+	}
+	result.adoptStorage(std::move(allocated), static_cast<unsigned>(sources.size()));
+
+	std::vector<unsigned> prototypes;
+	prototypes.reserve(sources.size());
+	for (unsigned unit = 0; unit < sources.size(); ++unit)
+	{
+		if (sources[unit].prototype == unit)
+			prototypes.push_back(unit);
+	}
+	ParallelExecutor::forEach(prototypes.size(), [&](size_t index) {
+		const unsigned unit = prototypes[index];
+		const ConvolverUnitSource& source = sources[unit];
+		hcInitSingle(&result[unit], const_cast<double*>(source.samples),
+			static_cast<int>(source.sampleCount), static_cast<int>(frameCount), 1);
+	});
+	for (unsigned unit = 0; unit < sources.size(); ++unit)
+	{
+		const unsigned prototype = sources[unit].prototype;
+		if (prototype != unit)
+			hcInitSingleWithSharedFilterBank(&result[unit], &result[prototype]);
+	}
+	return result;
+}

@@ -179,24 +179,12 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	if (channelCount == 0)
 		return;
 
-	fftw_make_planner_thread_safe();
-	auto allocated = MemoryHelper::allocateArray<HConvSingle>(channelCount);
-	if (allocated == nullptr)
-	{
-		// alloc returns nullptr on failure; stay inert (filters is null from
-		// cleanup(), process() then no-ops) instead of dereferencing it.
-		LogF(L"GraphicEQFilter: could not allocate %u filter slots", channelCount);
-		return;
-	}
-	HConvSingleArray pendingFilters;
-	pendingFilters.adoptStorage(std::move(allocated), channelCount);
 	// Every channel uses the same synthesized IR. Transform it once, then share
 	// the immutable bank while keeping all processing state channel-local.
-	hcInitSingle(&pendingFilters[0], const_cast<double*>(cached->data()),
-		static_cast<int>(filterLength), static_cast<int>(frameCount), 1);
-	for (unsigned i = 1; i < channelCount; ++i)
-		hcInitSingleWithSharedFilterBank(&pendingFilters[i], &pendingFilters[0]);
-	filters = std::move(pendingFilters);
+	std::vector<ConvolverUnitSource> sources(channelCount);
+	for (unsigned i = 0; i < channelCount; ++i)
+		sources[i] = { cached->data(), filterLength, 0 };
+	filters = buildConvolverArray(sources, frameCount);
 }
 
 // Minimum phase spectrum from coefficients

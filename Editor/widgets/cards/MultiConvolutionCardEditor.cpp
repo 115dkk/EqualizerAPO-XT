@@ -46,13 +46,16 @@
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "ReferenceCardView.h"
+#include "FileReferenceController.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/SndfileRAII.h"
 
 MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	const std::vector<MultiConvolutionCommand::Mapping>& mappings,
 	const QString& path, QWidget* parent)
-	: IFilterGUI(parent), filterTable(filterTable), path(path.trimmed()), mappings(mappings)
+	: IFilterGUI(parent), filterTable(filterTable),
+	  reference(new FileReferenceController(QStringLiteral("multiconvolution"), path, this)),
+	  mappings(mappings)
 {
 	setObjectName(QStringLiteral("MultiConvolutionCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -133,7 +136,7 @@ void MultiConvolutionCardEditor::store(QString& command, QString& parameters)
 
 	MultiConvolutionCommand cmd;
 	cmd.mappings = mappings;
-	cmd.path = path.toStdWString();
+	cmd.path = reference->writtenPath().toStdWString();
 	parameters = QString::fromStdWString(cmd.serialize());
 }
 
@@ -240,19 +243,16 @@ void MultiConvolutionCardEditor::chooseFile()
 		return;
 
 	const QString configPath = filterTable->getConfigPath();
-	const QString currentAbsolute = ConvolutionPathHelper::absolutePathForConfig(configPath, path);
+	const QString currentAbsolute = resolvedAbsolutePath();
 	QFileInfo startInfo(currentAbsolute.isEmpty() ? configPath : currentAbsolute);
 
-	QFileDialog dialog(this, tr("Select impulse response file"), startInfo.absolutePath(), QStringLiteral("*.wav *.flac *.ogg"));
-	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setNameFilter(tr("Impulse response (*.wav *.flac *.ogg)"));
-	GUIHelper::prepareFileDialog(dialog);
-	if (!path.isEmpty())
-		dialog.selectFile(startInfo.fileName());
-	if (dialog.exec() == QDialog::Accepted)
+	const QString selected = reference->chooseExistingFile(
+		this, tr("Select impulse response file"), startInfo.absolutePath(),
+		tr("Impulse response (*.wav *.flac *.ogg)"),
+		QFileInfo(configPath).absolutePath(),
+		reference->writtenPath().isEmpty() ? QString() : startInfo.fileName());
+	if (!selected.isEmpty())
 	{
-		const QString selected = dialog.selectedFiles().first();
-		path = ConvolutionPathHelper::displayPathForSelection(configPath, selected);
 		updateFileInfo();
 		emit updateModel();
 	}
@@ -260,7 +260,7 @@ void MultiConvolutionCardEditor::chooseFile()
 
 void MultiConvolutionCardEditor::pathCommitted(const QString& text)
 {
-	path = text.trimmed();
+	reference->setWrittenPath(text);
 	updateFileInfo();
 	emit updateModel();
 }
@@ -270,32 +270,9 @@ void MultiConvolutionCardEditor::importToConfig()
 	if (filterTable == nullptr)
 		return;
 
-	const QString source = resolvedAbsolutePath();
-	if (source.isEmpty() || !QFileInfo::exists(source))
+	reference->setResolvedPath(resolvedAbsolutePath());
+	if (!reference->importIntoConfig(this, filterTable->getConfigPath()))
 		return;
-
-	const QString configDir = QFileInfo(filterTable->getConfigPath()).absolutePath();
-
-	EqAPO::Import::ImportManifest manifest = EqAPO::Import::ConfigDependencyScanner::scan(source, configDir);
-	if (manifest.items.isEmpty())
-	{
-		QMessageBox::warning(this, tr("Import"), tr("Nothing to import: %1").arg(manifest.warnings.join('\n')));
-		return;
-	}
-
-	EqAPO::Import::ImportDialog dialog(manifest, configDir, this);
-	if (dialog.exec() != QDialog::Accepted)
-		return;
-
-	EqAPO::Import::ExecutionResult result = EqAPO::Import::ImportExecutor::execute(manifest, configDir);
-	if (!result.success)
-	{
-		QMessageBox::warning(this, tr("Import"),
-			tr("Some files could not be copied:\n%1").arg(result.errors.join('\n')));
-		return;
-	}
-
-	path = QDir::toNativeSeparators(manifest.rootDest);
 	updateFileInfo();
 	emit updateModel();
 }
@@ -305,7 +282,8 @@ QString MultiConvolutionCardEditor::resolvedAbsolutePath() const
 	if (filterTable == nullptr)
 		return QString();
 
-	return ConvolutionPathHelper::absolutePathForConfig(filterTable->getConfigPath(), path);
+	reference->resolveAgainstConfig(filterTable->getConfigPath());
+	return reference->resolvedPath();
 }
 
 unsigned MultiConvolutionCardEditor::currentDeviceSampleRate() const
@@ -319,40 +297,13 @@ unsigned MultiConvolutionCardEditor::currentDeviceSampleRate() const
 
 void MultiConvolutionCardEditor::updateFileInfo()
 {
-	ReferenceCardState state;
-	state.kind = QStringLiteral("multiconvolution");
-	state.editText = path;
-
+	const QString absolute = resolvedAbsolutePath();
+	ReferenceCardState state = reference->describe(tr("No file selected"));
 	fileChannelCount = 0;
 	bool offerImport = false;
-	if (path.isEmpty())
+	if (!state.missing)
 	{
-		state.missing = true;
-		state.name = tr("No file selected");
-	}
-	else
-	{
-		const QString normalized = QDir::fromNativeSeparators(path);
-		const QFileInfo asWritten(normalized);
-		state.name = asWritten.fileName();
-		state.absolutePath = QDir::isAbsolutePath(normalized);
-
-		const QString absolute = resolvedAbsolutePath();
 		QFileInfo fileInfo(absolute);
-		if (absolute.isEmpty() || !fileInfo.exists())
-		{
-			state.missing = true;
-			if (asWritten.path() != QStringLiteral("."))
-				state.directory = QDir::toNativeSeparators(asWritten.path());
-		}
-		else
-		{
-			state.fullPath = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
-			if (state.absolutePath)
-				state.directory = QDir::toNativeSeparators(fileInfo.absolutePath());
-			else if (asWritten.path() != QStringLiteral("."))
-				state.directory = QDir::toNativeSeparators(asWritten.path());
-
 			SF_INFO sfInfo = {};
 			sndfile::Handle file(sf_wchar_open(state.fullPath.toStdWString().c_str(), SFM_READ, &sfInfo));
 			if (!file)
@@ -402,17 +353,7 @@ void MultiConvolutionCardEditor::updateFileInfo()
 			// inside the config directory. The offscreen gallery skips the probe.
 			if (!qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
 			{
-				ACCESS_MASK mask = GENERIC_READ;
-				try
-				{
-					mask = RegistryHelper::getFileAccessForUser(state.fullPath.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
-				}
-				catch (const RegistryException&)
-				{
-				}
-				const bool readableByService = (mask & GENERIC_READ) == GENERIC_READ || (mask & FILE_GENERIC_READ) == FILE_GENERIC_READ;
-
-				if (!readableByService)
+				if (!FileReferenceController::isReadableByAudioService(state.fullPath))
 				{
 					state.statusText = tr("Not readable by the audio service");
 					state.statusSeverity = ReferenceCardState::Severity::Critical;
@@ -426,10 +367,9 @@ void MultiConvolutionCardEditor::updateFileInfo()
 						offerImport = true;
 				}
 			}
-		}
 	}
 
-	const bool locate = state.missing && !path.isEmpty();
+	const bool locate = state.missing && !reference->writtenPath().isEmpty();
 	chooseButton->setText(locate ? tr("Locate...") : QString());
 	chooseButton->setToolTip(locate ? tr("Locate the missing file") : tr("Select impulse response file"));
 

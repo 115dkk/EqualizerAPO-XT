@@ -74,10 +74,12 @@ public:
 	// code so every EQ shape carries its response-curve glyph; an unmapped
 	// descriptor (raw text lines) returns empty and the badge falls back to
 	// its monogram, so future commands degrade gracefully instead of going
-	// blank. The picker keeps its own template-line-keyed copy of this table
-	// (SoftFilterPicker's softEntryIcon) because catalog entries have no
-	// descriptor - keep the two in step when adding commands.
+	// blank. Picker entries use commandIconResource below, so the command
+	// vocabulary and these descriptor-specific cases stay in one owner.
 	static QString badgeIconResource(const QString& type, const QString& badge);
+	// Shared command vocabulary used by picker entries and card badges.
+	// Parameters are consulted only for the Filter response-curve split.
+	static QString commandIconResource(const QString& command, const QString& parameters = QString());
 	// Full per-row scope description: indent depth (channel group + If nesting)
 	// and the If-nesting count. Commented-out lines never open or close scopes,
 	// matching the engine (a '#' line is a comment to the parser too).

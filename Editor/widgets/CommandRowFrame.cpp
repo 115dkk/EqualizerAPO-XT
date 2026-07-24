@@ -1,6 +1,8 @@
 #include "CommandRowFrame.h"
 
+#include <QLabel>
 #include <QPainter>
+#include <QStyle>
 
 #include "Editor/SkinManager.h"
 
@@ -9,9 +11,60 @@ CommandRowFrame::CommandRowFrame(QWidget* parent)
 {
 }
 
-void CommandRowFrame::setRowInfo(const CommandRowInfo& rowInfo)
+void CommandRowFrame::applyRowInfo(const CommandRowInfo& rowInfo, QWidget* header)
 {
 	info = rowInfo;
+	const QList<QPair<const char*, QVariant>> properties = {
+		{ "filterKind", info.command }, { "filterEnabled", info.enabled },
+		{ "selected", info.selected }, { "focused", info.focused },
+		{ "scopeDepth", info.depth }, { "logicDepth", info.logicDepth },
+		{ "branchState", info.branchState }, { "lineSkipped", info.lineSkipped }
+	};
+	bool changed = false;
+	bool propertiesChanged = false;
+	for (const auto& property : properties)
+	{
+		if (this->property(property.first) == property.second)
+			continue;
+		setProperty(property.first, property.second);
+		if (header != nullptr)
+			header->setProperty(property.first, property.second);
+		changed = true;
+		propertiesChanged = true;
+	}
+
+	const QString frameStyle = SkinManager::instance()->cardFrameStyle(info);
+	const QString headerStyle = SkinManager::instance()->cardHeaderStyle(info);
+	if (styleSheet() != frameStyle)
+	{
+		setStyleSheet(frameStyle);
+		changed = true;
+	}
+	if (header != nullptr && header->styleSheet() != headerStyle)
+	{
+		header->setStyleSheet(headerStyle);
+		changed = true;
+	}
+	if (!changed)
+		return;
+
+	for (QWidget* widget : { static_cast<QWidget*>(this), header })
+	{
+		if (widget == nullptr)
+			continue;
+		widget->style()->unpolish(widget);
+		widget->style()->polish(widget);
+		widget->update();
+	}
+	if (propertiesChanged)
+	{
+		for (QLabel* label : findChildren<QLabel*>())
+		{
+			label->style()->unpolish(label);
+			label->style()->polish(label);
+			label->update();
+		}
+	}
 }
 
 const CommandRowInfo& CommandRowFrame::rowInfo() const

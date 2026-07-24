@@ -187,6 +187,13 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		}
 	}
 
+	if (!std::isfinite(freq) || !std::isfinite(gain) || !std::isfinite(bandwidthOrQOrS))
+	{
+		LogFStatic(L"Filter parameters must be finite in filter string %s%s",
+			typeString.c_str(), parameters.c_str());
+		error = true;
+	}
+
 	if (bandwidthOrQOrS == 0)
 	{
 		if (type == BiQuad::PEAKING || type == BiQuad::ALL_PASS)

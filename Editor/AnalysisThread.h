@@ -50,6 +50,7 @@ public:
 		double initializationTime() const;
 		double processingTime() const;
 		unsigned processedFrames() const;
+		const QString& errorText() const;
 		const std::vector<ConfigLoadTraceEntry>& loadTrace() const;
 
 	private:
@@ -92,6 +93,7 @@ private:
 	double initializationTime = 0.0;
 	double processingTime = 0.0;
 	int processedFrames = 0;
+	QString resultErrorText;
 	std::vector<ConfigLoadTraceEntry> resultLoadTrace;
 
 	// internal (not protected by mutex)

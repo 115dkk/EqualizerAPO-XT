@@ -90,8 +90,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		{
 			try
 			{
-				parser->SetExpr(expression);
-				Value result = parser->Eval();
+				Value result = parser->evaluate(expression);
 				bool isTrue = toBoolean(result);
 				if (result.GetType() == L'b')
 					TraceF(L"If(%s) evaluated to %s", expression.c_str(), result.ToString().c_str());
@@ -144,8 +143,7 @@ FilterVector IfFilterFactory::createFilter(const wstring& configPath, wstring& c
 		{
 			try
 			{
-				parser->SetExpr(expression);
-				Value result = parser->Eval();
+				Value result = parser->evaluate(expression);
 				bool isTrue = toBoolean(result);
 				if (result.GetType() == L'b')
 					TraceF(L"ElseIf(%s) evaluated to %s", expression.c_str(), result.ToString().c_str());

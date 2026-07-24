@@ -32,6 +32,10 @@ class LogHelper
 {
 public:
 	static void log(const char* file, int line, const void* caller, bool trace, const wchar_t* format, ...);
+	static void useDefaultApoLog();
+	static void useFile(const std::wstring& path, bool enableTrace, bool compact, bool useConsoleColors);
+	static bool useUserFile(const std::wstring& fileName, bool enableTrace, bool compact, bool useConsoleColors);
+	static void useStream(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors);
 	static void reset();
 	static void set(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors);
 

@@ -61,7 +61,13 @@ public:
 
 		bool operator!=(const InstallState& other) const
 		{
-			return memcmp(this, &other, sizeof(InstallState)) != 0;
+			return installPreMix != other.installPreMix
+				|| installPostMix != other.installPostMix
+				|| useOriginalAPOPreMix != other.useOriginalAPOPreMix
+				|| useOriginalAPOPostMix != other.useOriginalAPOPostMix
+				|| autoAdjust != other.autoAdjust
+				|| installMode != other.installMode
+				|| allowSilentBufferModification != other.allowSilentBufferModification;
 		}
 	};
 

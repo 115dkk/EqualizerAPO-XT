@@ -4,6 +4,8 @@
 
 struct SkinTokens
 {
+	bool dark = true;
+
 	enum GroupStyle
 	{
 		TreeLines,

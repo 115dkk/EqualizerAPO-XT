@@ -113,24 +113,19 @@ QString ISkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tok
 
 // Outline-style skins ink the badge in the type colour, filled-style skins
 // use the type colour as the pill background.
-QString ISkin::typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const
-{
-	Q_UNUSED(info);
-	const bool outlineBadge = tokens.badgeStyle == SkinTokens::OutlineOnly || tokens.badgeStyle == SkinTokens::WireframeBorder;
-	return QStringLiteral("color:%1; border-color:%2; background-color:%3;")
-		.arg(outlineBadge ? typeColor : QStringLiteral("white"),
-			typeColor,
-			outlineBadge ? QStringLiteral("transparent") : typeColor);
-}
-
-// Mirrors the default typeBadgeStyle ink: outline badges draw the pictogram
-// in the type colour, filled pills draw it white on the coloured ground.
-QColor ISkin::typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken, const SkinTokens& tokens) const
+BadgeTreatment ISkin::badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
+	const QString& badgeToken, const SkinTokens& tokens) const
 {
 	Q_UNUSED(info);
 	Q_UNUSED(badgeToken);
 	const bool outlineBadge = tokens.badgeStyle == SkinTokens::OutlineOnly || tokens.badgeStyle == SkinTokens::WireframeBorder;
-	return outlineBadge ? QColor(typeColor) : QColor(Qt::white);
+	return {
+		QStringLiteral("color:%1; border-color:%2; background-color:%3;")
+			.arg(outlineBadge ? typeColor : QStringLiteral("white"),
+				typeColor,
+				outlineBadge ? QStringLiteral("transparent") : typeColor),
+		outlineBadge ? QColor(typeColor) : QColor(Qt::white)
+	};
 }
 
 void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget*) const
@@ -306,7 +301,7 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 
 	const QColor accent(tokens.accent);
 	const QColor muted(tokens.mutedText);
-	const bool dark = QColor(tokens.background).lightness() < 128;
+	const bool dark = tokens.dark;
 
 	QRectF bgRect = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
 	const qreal radius = qMax(0, tokens.borderRadius - 2);

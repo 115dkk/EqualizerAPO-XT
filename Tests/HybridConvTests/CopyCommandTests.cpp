@@ -115,6 +115,10 @@ void testMalformedChunkDropped()
 	// An empty parameter (the "Copy: " template line) parses to no assignments.
 	vector<Assignment> empty = parseCopyAssignments(L"");
 	harness.expectEqual(empty.size(), (size_t)0, "empty parameter has no assignments");
+
+	vector<Assignment> nonFinite = parseCopyAssignments(L"L=1.0e999*R");
+	harness.expectEqual(nonFinite.size(), (size_t)0,
+		"an assignment with a non-finite Copy factor is rejected");
 }
 
 // Asserts that parsing parameters then serializing the assignments reproduces
@@ -223,6 +227,30 @@ void testPropagateChannels()
 		"successive Copy commands expose virtual targets to the commands below them");
 }
 
+void testConstantCopyPreservesTrueSilence()
+{
+	CopyFilter filter(parseCopyAssignments(L"L=0.5"));
+	filter.initialize(48000.0f, 4, vector<wstring>{ L"L", L"R" });
+
+	double left[4] = {};
+	double right[4] = {};
+	double output[4] = { 9.0, 9.0, 9.0, 9.0 };
+	double* inputs[] = { left, right };
+	double* outputs[] = { output };
+
+	filter.process(outputs, inputs, 4);
+	for (double sample : output)
+		harness.expectEqual(sample, 0.0, "true silence remains silent with a constant Copy summand");
+	harness.expectFalse(filter.producesTailFromSilentInput(),
+		"constant Copy does not claim a tail from silent input");
+
+	// cppcheck-suppress unreadVariable
+	right[0] = 1.0; // Observed indirectly through inputs by the silence detector.
+	filter.process(outputs, inputs, 4);
+	for (double sample : output)
+		harness.expectEqual(sample, 0.5, "constant Copy remains available when the input carries a signal");
+}
+
 }
 
 void runCopyCommandTests()
@@ -236,5 +264,6 @@ void runCopyCommandTests()
 	testSerializeRoundTrip();
 	testEmptySumAssignmentsSerializeToNothing();
 	testPropagateChannels();
+	testConstantCopyPreservesTrueSilence();
 	harness.report();
 }

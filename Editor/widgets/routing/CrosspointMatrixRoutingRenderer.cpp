@@ -487,36 +487,20 @@ void CrosspointMatrixView::commitEditor()
 		return;
 	}
 
-	double factor = 1.0;
-	bool isDecibel = false;
-	if (raw.compare(QLatin1String("INV"), Qt::CaseInsensitive) == 0)
-	{
-		factor = -1.0;
-	}
-	else
-	{
-		QString num = raw;
-		if (num.right(2).toLower() == QLatin1String("db"))
-		{
-			isDecibel = true;
-			num = num.left(num.size() - 2).trimmed();
-		}
-		bool ok = false;
-		const double parsed = num.toDouble(&ok);
-		if (ok)
-			factor = parsed;
-	}
+	Assignment::Summand parsed;
+	if (!CopyRoutingAdapter::parseFactorToken(raw, parsed))
+		return;
 
 	if (idx >= 0)
 	{
-		a.sourceSum[idx].factor = factor;
-		a.sourceSum[idx].isDecibel = isDecibel;
+		a.sourceSum[idx].factor = parsed.factor;
+		a.sourceSum[idx].isDecibel = parsed.isDecibel;
 	}
 	else
 	{
 		Assignment::Summand s;
-		s.factor = factor;
-		s.isDecibel = isDecibel;
+		s.factor = parsed.factor;
+		s.isDecibel = parsed.isDecibel;
 		s.channel = channel.toStdWString();
 		a.sourceSum.push_back(s);
 	}
@@ -554,21 +538,7 @@ void CrosspointMatrixView::commitChannelEditor()
 	// An existing channel just gets pinned onto the board; a new name becomes
 	// a virtual bus row. No routingChanged: a fresh target has no sum yet and
 	// the serializer skips empty targets.
-	bool exists = false;
-	for (const Assignment& a : workingAssignments)
-		if (QString::fromStdWString(a.targetChannel).compare(name, Qt::CaseInsensitive) == 0)
-		{
-			exists = true;
-			break;
-		}
-	if (!exists)
-	{
-		Assignment assignment;
-		assignment.targetChannel = name.toStdWString();
-		workingAssignments.push_back(assignment);
-	}
-	if (!pinnedChannels.contains(name, Qt::CaseInsensitive))
-		pinnedChannels.append(name);
+	CopyRoutingAdapter::ensureTargetChannel(workingAssignments, pinnedChannels, name);
 	rebuildMatrix();
 }
 

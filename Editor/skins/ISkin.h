@@ -73,6 +73,15 @@ struct CommandRowInfo
 	bool dynamicLine = false;
 };
 
+// One value object owns both halves of the type-badge treatment.  Keeping the
+// stylesheet and pictogram ink together prevents a skin from changing one
+// without the other.
+struct BadgeTreatment
+{
+	QString qss;
+	QColor ink;
+};
+
 // Interactive state for the list-level add/insert chrome: the trailing
 // "add card" row (AddCardRow) and the first-boundary insertion seam
 // (FilterInsertSeam). The widgets own all input handling; the skin only
@@ -231,16 +240,10 @@ public:
 	// when their constitution reserves colour for other semantics (e.g.
 	// matrix keeps traffic-light colours for status only and renders a
 	// monochrome type cell).
-	virtual QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor, const SkinTokens& tokens) const;
-
-	// Ink for the pictogram the card header places inside the type badge
-	// (the pictures match the picker tiles). A tinted pixmap cannot follow
-	// the QSS 'color' rule the
-	// badge style writes, so each skin restates its badge ink here and the
-	// two must stay in step. badgeToken is the descriptor's monogram (the
-	// biquad type code for Filter rows), which studio folds onto its band
-	// families. The default mirrors the default typeBadgeStyle ink.
-	virtual QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken, const SkinTokens& tokens) const;
+	// badgeToken is the descriptor's monogram (the biquad type code for
+	// Filter rows), which Studio folds onto its band families.
+	virtual BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
+		const QString& badgeToken, const SkinTokens& tokens) const;
 
 	// Called once when a command row or a command body editor is built, so a
 	// skin can tag widgets with dynamic properties or attach extra chrome.

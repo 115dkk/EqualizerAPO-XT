@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 #include <cstdio>
@@ -43,6 +44,8 @@ CopyFilter::CopyFilter(const vector<Assignment>& assignments)
 
 vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
+	inputChannelCount = channelNames.size();
+	hasNonzeroConstant = false;
 	vector<InternalAssignment> preparedAssignments;
 	preparedAssignments.reserve(assignments.size());
 	vector<wstring> outChannelNames;
@@ -75,6 +78,8 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 			else
 				factor = s.factor;
 
+			if (sourceChannel == -1 && factor != 0.0)
+				hasNonzeroConstant = true;
 			sourceSum.emplace_back(sourceChannel, factor);
 		}
 
@@ -110,6 +115,29 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 void CopyFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("CopyFilter::process");
+	if (hasNonzeroConstant)
+	{
+		bool silent = true;
+		for (size_t channel = 0; channel < inputChannelCount && silent; channel++)
+		{
+			for (unsigned frame = 0; frame < frameCount; frame++)
+			{
+				if (input[channel][frame] != 0.0)
+				{
+					silent = false;
+					break;
+				}
+			}
+		}
+		if (silent)
+		{
+			for (const InternalAssignment& assignment : internalAssignments)
+				if (assignment.targetChannel != -1)
+					std::fill_n(output[assignment.targetChannel], frameCount, 0.0);
+			return;
+		}
+	}
+
 	for (const InternalAssignment& ia : internalAssignments)
 	{
 		if (ia.targetChannel == -1 || ia.sourceSum.empty())
@@ -171,6 +199,7 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 			assignment.targetChannel = target;
 
 			vector<wstring> summands = StringHelper::split(source, '+');
+			bool validAssignment = true;
 			for (vector<wstring>::iterator it2 = summands.begin(); it2 != summands.end(); it2++)
 			{
 				vector<wstring> factors = StringHelper::split(*it2, '*');
@@ -199,11 +228,22 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 				{
 					summand.factor = wcstod(factor.c_str(), nullptr);
 					summand.isDecibel = factor.size() > 2 && StringHelper::toLowerCase(factor.substr(factor.size() - 2)) == L"db";
+					const double linearFactor = summand.isDecibel
+						? pow(10.0, summand.factor / 20.0) : summand.factor;
+					if (!std::isfinite(summand.factor) || !std::isfinite(linearFactor))
+					{
+						LogFStatic(L"Copy factor %s for target %s must be finite; ignoring assignment",
+							factor.c_str(), target.c_str());
+						validAssignment = false;
+						break;
+					}
 				}
 
 				summand.channel = channel;
 				assignment.sourceSum.push_back(summand);
 			}
+			if (!validAssignment)
+				assignment.sourceSum.clear();
 		}
 
 		if (assignment.targetChannel != L"" && !assignment.sourceSum.empty())

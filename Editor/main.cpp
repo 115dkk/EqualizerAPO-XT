@@ -45,21 +45,26 @@
 #include "CustomStyle.h"
 #include "MainWindow.h"
 #include "SkinGallery.h"
+#include "diagnostics/SkinSwitchStorm.h"
 #include "SkinManager.h"
 #include "import/LegacyMigration.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
 #include "helpers/VSTPluginLibrary.h"
+#include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
 #include "helpers/VelopackBootstrap.h"
 #include "version.h"
 #include "helpers/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/EditorSettings.h"
+#include "Editor/skins/SkinThemeData.h"
 
 
 namespace
@@ -184,12 +189,7 @@ std::wstring widenArg(const char* arg)
 {
 	if (arg == nullptr)
 		return std::wstring();
-	int needed = MultiByteToWideChar(CP_UTF8, 0, arg, -1, nullptr, 0);
-	if (needed <= 0)
-		return std::wstring();
-	std::wstring out(static_cast<size_t>(needed - 1), L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, arg, -1, out.data(), needed);
-	return out;
+	return StringHelper::toWString(std::string(arg), CP_UTF8);
 }
 
 std::wstring buildArgumentLine(int argc, char* argv[])
@@ -230,7 +230,7 @@ int relaunchElevatedAndWait(int argc, char* argv[])
 	DWORD length = GetModuleFileNameW(nullptr, exePathBuffer, MAX_PATH);
 	if (length == 0)
 	{
-		fwprintf(stderr, L"GetModuleFileName failed (gle=%lu)\n", GetLastError());
+		LogFStatic(L"[Editor] GetModuleFileName failed (gle=%lu)", GetLastError());
 		return 1;
 	}
 
@@ -248,7 +248,7 @@ int relaunchElevatedAndWait(int argc, char* argv[])
 	if (!ShellExecuteExW(&info))
 	{
 		DWORD gle = GetLastError();
-		fwprintf(stderr, L"ShellExecuteEx(runas) failed (gle=%lu)\n", gle);
+		LogFStatic(L"[Editor] ShellExecuteEx(runas) failed (gle=%lu)", gle);
 		// ERROR_CANCELLED (1223) means the user declined UAC.
 		return gle == ERROR_CANCELLED ? 1223 : 1;
 	}
@@ -342,6 +342,11 @@ int main(int argc, char* argv[])
 	if (hookResult >= 0)
 		return hookResult;
 
+	// Keep Editor diagnostics on disk even though this is a GUI-subsystem process
+	// without a usable stderr stream.
+	if (!LogHelper::useUserFile(L"Editor.log", true, false, false))
+		LogHelper::useDefaultApoLog();
+
 	// Initialise the Velopack runtime so UpdateManager resolves the correct
 	// install context. Auto-apply-on-startup is off because we apply on exit instead.
 	Velopack::VelopackApp::Build().SetAutoApplyOnStartup(false).Run();
@@ -385,7 +390,7 @@ int main(int argc, char* argv[])
 		bool legacyRowsMode;
 		{
 			QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-			legacyRowsMode = settings.value(QStringLiteral("interface/legacyRows"), false).toBool();
+			legacyRowsMode = settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool();
 		}
 
 		// Font rendering (skinned mode): force Qt's FreeType font engine on
@@ -413,46 +418,7 @@ int main(int argc, char* argv[])
 		if (!legacyRowsMode)
 		{
 			application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
-
-			// Bundle the redesign's typefaces so the skins render identically
-			// regardless of what is installed: DM Sans / DM Mono carry the Latin
-			// look, Pretendard carries Korean. Static weight instances are used on
-			// purpose — Qt does not reliably select a weight off a variable font's
-			// wght axis, so a variable DM Sans / Pretendard rendered every QSS
-			// font-weight (600/700) at the thin default. Registering Regular/Medium/
-			// SemiBold/Bold per family lets font-weight resolve to a real face.
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Regular.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Medium.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-SemiBold.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMSans-Bold.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Regular.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/DMMono-Medium.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Regular.otf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Medium.otf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-SemiBold.otf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Pretendard-Bold.otf"));
-			// Sarasa Mono K: a true fixed-width CJK face, subset to Hangul + ASCII.
-			// It is the monospace Korean fallback so Korean in mono contexts keeps the
-			// grid instead of dropping to the proportional Pretendard. Regular + Bold
-			// cover the mono font-weights the skins use.
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
-			QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
-
-			// Fallback chain for painted (non-QSS) text where Qt resolves a single
-			// QFont family. DM Sans/DM Mono lack Korean glyphs, so route CJK through
-			// Pretendard -> Noto Sans -> Malgun Gothic (Korean) / Microsoft YaHei
-			// (Chinese).
-			const QStringList cjkChain = {
-				QStringLiteral("Pretendard"),
-				QStringLiteral("Noto Sans KR"), QStringLiteral("Noto Sans"),
-				QStringLiteral("Malgun Gothic"), QStringLiteral("Microsoft YaHei")
-			};
-			QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
-			// Mono text puts Sarasa Mono K ahead of the proportional CJK chain so
-			// monospace Korean stays fixed-width; Consolas stays first for any Latin
-			// the embedded DM Mono might lack.
-			QFont::insertSubstitutions(QStringLiteral("DM Mono"),
-				QStringList{ QStringLiteral("Consolas"), QStringLiteral("Sarasa Mono K") } + cjkChain);
+			SkinThemeData::registerBundledFonts(true);
 		}
 
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
@@ -492,10 +458,9 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString();
-			bool dark = settings.value(QStringLiteral("interface/dark"), GUIHelper::isDarkMode()).toBool();
+			const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isDarkMode());
 			// applySkin also derives the application palette from the tokens.
-			SkinManager::instance()->applySkin(skinId, dark);
+			SkinManager::instance()->applySkin(choice.id, choice.dark);
 		}
 
 		QtAppBootstrap::applyUserLocale();
@@ -531,7 +496,7 @@ int main(int argc, char* argv[])
 		EqAPO::Import::LegacyMigration::maybeShowStartupNotice(&w);
 
 		QCommandLineParser parser;
-		// Diagnostic switch storm (see MainWindow::startSkinSwitchStorm);
+		// Diagnostic switch storm (see diagnostics/SkinSwitchStorm);
 		// registered so the parser does not reject it as an unknown option.
 		QCommandLineOption stormOption(QStringLiteral("skin-switch-storm"));
 		stormOption.setFlags(QCommandLineOption::HiddenFromHelp);
@@ -546,7 +511,7 @@ int main(int argc, char* argv[])
 
 		bool firstRun = VelopackBootstrap::isFirstRun();
 		if (parser.isSet(stormOption))
-			w.startSkinSwitchStorm();  // storm sessions skip doChecks: its modal warnings would stall the timer
+			SkinSwitchStorm::run(w);  // storm sessions skip doChecks: its modal warnings would stall the timer
 		else if (firstRun)
 			launchDeviceSelector(executableDirectory());
 		else
@@ -573,6 +538,10 @@ int main(int argc, char* argv[])
 		restart = w.shouldRestart();
 	}
 	while (restart);
+
+	// The session owns the download worker. Join it before inspecting staged state so
+	// neither process shutdown nor static destruction can race with its publication.
+	VelopackBootstrap::shutdown();
 
 	// If the background worker staged an update, apply it now. exec() has returned and
 	// the QApplication is destroyed, so no other thread is writing to the install dir.

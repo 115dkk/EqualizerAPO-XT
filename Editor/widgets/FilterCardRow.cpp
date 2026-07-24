@@ -574,14 +574,12 @@ int FilterCardRow::rowIndentUnits() const
 
 void FilterCardRow::paintEvent(QPaintEvent*)
 {
-	refreshStateProperties();
-
 	// The active skin may own the whole scope gutter (the If-block lanes);
 	// the shared channel rail below stays the default for skins that do not
 	// answer.
 	{
 		QPainter gutterPainter(this);
-		if (SkinManager::instance()->paintScopeGutter(gutterPainter, size(), currentRowInfo()))
+		if (SkinManager::instance()->paintScopeGutter(gutterPainter, size(), visualInfo))
 			return;
 	}
 
@@ -696,15 +694,15 @@ void FilterCardRow::applyDescriptor()
 		return;
 	}
 
-	// The badge chrome is owned by the active skin (ISkin::typeBadgeStyle).
+	const BadgeTreatment badgeTreatment = SkinManager::instance()->badgeTreatment(
+		currentRowInfo(), descriptor.color, descriptor.badge);
+	// The badge chrome and pictogram ink are one skin-owned decision.
 	// Only touch the widget when the style actually changed: setStyleSheet
 	// unconditionally rebuilds the widget's style, and applyDescriptor runs
 	// again on every summary rebuild.
-	const QString badgeStyle = SkinManager::instance()->typeBadgeStyle(currentRowInfo(), descriptor.color);
-	if (typeBadge->styleSheet() != badgeStyle)
-		typeBadge->setStyleSheet(badgeStyle);
-	// The badge carries the picker's pictogram, inked by the skin
-	// (ISkin::typeBadgeInk). The monogram survives only for lines the icon
+	if (typeBadge->styleSheet() != badgeTreatment.qss)
+		typeBadge->setStyleSheet(badgeTreatment.qss);
+	// The monogram survives only for lines the icon
 	// catalog does not map (raw text), so unknown commands keep reading
 	// instead of going blank.
 	const QString badgeIcon = FilterCardModel::badgeIconResource(descriptor.type, descriptor.badge);
@@ -715,9 +713,8 @@ void FilterCardRow::applyDescriptor()
 	}
 	else
 	{
-		const QColor ink = SkinManager::instance()->typeBadgeInk(currentRowInfo(), descriptor.color, descriptor.badge);
 		typeBadge->setText(QString());
-		typeBadge->setPixmap(badgePictogram(badgeIcon, ink, 16, devicePixelRatioF()));
+		typeBadge->setPixmap(badgePictogram(badgeIcon, badgeTreatment.ink, 16, devicePixelRatioF()));
 	}
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);
@@ -928,81 +925,6 @@ void FilterCardRow::refreshStateProperties()
 	if (cardFrame == nullptr)
 		return;
 
-	const CommandRowInfo info = currentRowInfo();
-	cardFrame->setRowInfo(info);
-
-	// "enabled" is a real QWidget property, so setting it on cardFrame /
-	// headerWidget is equivalent to calling setEnabled(false) on the whole
-	// card whenever the line is commented out - killing the toggle button,
-	// the raw editor, and every child editor, so a disabled row could not be
-	// re-enabled or even inspected. Use a dedicated dynamic property name for
-	// the styling hook instead.
-	const QList<QPair<const char*, QVariant>> properties = {
-		{ "filterKind", info.command },
-		{ "filterEnabled", info.enabled },
-		{ "selected", info.selected },
-		{ "focused", info.focused },
-		{ "scopeDepth", info.depth },
-		{ "logicDepth", info.logicDepth },
-		{ "branchState", info.branchState },
-		{ "lineSkipped", info.lineSkipped }
-	};
-
-	bool changed = false;
-	bool propertiesChanged = false;
-	for (const auto& property : properties)
-	{
-		if (cardFrame->property(property.first) != property.second)
-		{
-			cardFrame->setProperty(property.first, property.second);
-			headerWidget->setProperty(property.first, property.second);
-			changed = true;
-			propertiesChanged = true;
-		}
-	}
-
-	// The frame/header chrome is owned by the active skin so each skin can
-	// treat command types differently (see ISkin::cardFrameStyle).
-	const QString frameStyle = SkinManager::instance()->cardFrameStyle(info);
-	const QString headerStyle = SkinManager::instance()->cardHeaderStyle(info);
-	if (cardFrame->styleSheet() != frameStyle)
-	{
-		cardFrame->setStyleSheet(frameStyle);
-		changed = true;
-	}
-	if (headerWidget->styleSheet() != headerStyle)
-	{
-		headerWidget->setStyleSheet(headerStyle);
-		changed = true;
-	}
-
-	if (!changed)
-		return;
-
-	for (QWidget* widget : { static_cast<QWidget*>(cardFrame), headerWidget })
-	{
-		widget->style()->unpolish(widget);
-		widget->style()->polish(widget);
-		widget->update();
-	}
-
-	// Descendant-selector QSS rules key on the dynamic properties above
-	// (e.g. "#FilterCardHeader[lineSkipped=\"true\"] QLabel#FilterCardTitle"),
-	// but Qt resolves such rules per *descendant*, so repolishing only the
-	// frame/header leaves the labels on their cached style whenever a
-	// property changes after construction (analysis facts like lineSkipped
-	// arrive with every load report). Skins whose frame stylesheet string
-	// happens to change too were masked by the subtree invalidation
-	// setStyleSheet performs; skins with a stable frame style never saw the
-	// rule apply. Repolish the labels whenever a property value moved.
-	if (propertiesChanged)
-	{
-		const QList<QLabel*> labels = cardFrame->findChildren<QLabel*>();
-		for (QLabel* label : labels)
-		{
-			label->style()->unpolish(label);
-			label->style()->polish(label);
-			label->update();
-		}
-	}
+	visualInfo = currentRowInfo();
+	cardFrame->applyRowInfo(visualInfo, headerWidget);
 }

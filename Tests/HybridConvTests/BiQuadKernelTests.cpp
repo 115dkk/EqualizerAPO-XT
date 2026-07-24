@@ -18,6 +18,7 @@
 
 #include "filters/BiQuad.h"
 #include "filters/BiQuadFilter.h"
+#include "filters/BiQuadFilterFactory.h"
 #include "filters/BiQuadKernelPlan.h"
 #include "Tests/TestHarness.h"
 
@@ -27,6 +28,22 @@ using std::wstring;
 namespace
 {
 test::Harness harness("BiQuadKernelTests");
+
+void testBiQuadRejectsNonFiniteParameters()
+{
+	const wchar_t* cases[] = {
+		L"ON PK Fc 1e999 Hz Gain 3 dB Q 1",
+		L"ON PK Fc 1000 Hz Gain 1e999 dB Q 1",
+		L"ON PK Fc 1000 Hz Gain 3 dB Q 1e999",
+	};
+	for (const wchar_t* text : cases)
+	{
+		std::wstring parameters(text);
+		BiQuadCommand command;
+		harness.expectFalse(BiQuadFilterFactory::parseCommand(L"Filter", parameters, command),
+			"BiQuad rejects a non-finite numeric parameter");
+	}
+}
 
 constexpr unsigned frameCount = 480;
 constexpr unsigned blockCount = 3;
@@ -165,6 +182,7 @@ void testMultiChannelMatchesMonoBitExactly()
 
 void runBiQuadKernelTests()
 {
+	testBiQuadRejectsNonFiniteParameters();
 	testPlanCoversEveryChannelOnce();
 	testPlanDoesNotSerializePairableChannels();
 	testMultiChannelMatchesMonoBitExactly();

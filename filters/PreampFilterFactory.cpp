@@ -43,7 +43,7 @@ bool PreampFilterFactory::parseCommand(const wstring& command, const wstring& pa
 
 	double preamp_dB;
 	int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
-	if (matched == 1)
+	if (matched == 1 && std::isfinite(preamp_dB))
 	{
 		out.valid = true;
 		out.dbGain = preamp_dB;

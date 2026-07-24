@@ -52,7 +52,6 @@ ConvolutionFilter::ConvolutionFilter(const wstring& filename)
 {
 	this->filename = filename;
 	filterFrameCount = 0;
-	maxFrameCount = 0;
 	frameCountMismatchLogged = false;
 }
 
@@ -66,7 +65,6 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 	cleanup();
 
 	this->sampleRate = sampleRate;
-	this->maxFrameCount = maxFrameCount;
 	channelCount = (unsigned)channelNames.size();
 	filterFrameCount = 0;
 
@@ -146,29 +144,16 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	TraceF(L"Convolving using impulse response file %s (%u channels, %u frames)",
 		filename.c_str(), ir->channels, ir->frames);
 
-	fftw_make_planner_thread_safe();
-	auto allocated = MemoryHelper::allocateArray<HConvSingle>(channelCount);
-	if (allocated == nullptr)
-	{
-		// alloc returns nullptr on failure; bail to the inert state (filters stays
-		// null from cleanup(), process() then no-ops) rather than dereferencing it.
-		LogF(L"ConvolutionFilter: could not allocate %u filter slots", channelCount);
-		return;
-	}
-	HConvSingleArray pendingFilters;
-	pendingFilters.adoptStorage(std::move(allocated), channelCount);
 	// Build one immutable frequency-domain filter bank per distinct IR channel.
 	// Output channels that reuse a mono/stereo IR still receive independent
 	// histories, mix buffers and FFTW execution plans.
 	const unsigned distinctIrChannels = (std::min)(channelCount, ir->channels);
-	ParallelExecutor::forEach(distinctIrChannels, [&](size_t index) {
-		const unsigned i = static_cast<unsigned>(index);
-		// hcInitSingle reads the IR samples during planning but does not retain
-		// the pointer, so it is safe to feed it the shared cache buffer.
-		const std::vector<double>& src = ir->buffers[i];
-		hcInitSingle(&pendingFilters[i], const_cast<double*>(src.data()), static_cast<int>(ir->frames), static_cast<int>(frameCount), 1);
-	});
-	for (unsigned i = distinctIrChannels; i < channelCount; ++i)
-		hcInitSingleWithSharedFilterBank(&pendingFilters[i], &pendingFilters[i % ir->channels]);
-	filters = std::move(pendingFilters);
+	std::vector<ConvolverUnitSource> sources(channelCount);
+	for (unsigned i = 0; i < channelCount; ++i)
+	{
+		const unsigned irChannel = i % ir->channels;
+		sources[i] = { ir->buffers[irChannel].data(), ir->frames,
+			i < distinctIrChannels ? i : irChannel };
+	}
+	filters = buildConvolverArray(sources, frameCount);
 }

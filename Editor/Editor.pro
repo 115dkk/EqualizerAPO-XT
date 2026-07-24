@@ -100,6 +100,7 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilter.cpp \
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
+	../helpers/FftwPlanningPolicy.cpp \
 	../helpers/GainIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
@@ -126,6 +127,7 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.Frame.cpp \
 	MainWindowParts/MainWindow.Preferences.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
+	diagnostics/SkinSwitchStorm.cpp \
 	ConfigFileCodec.cpp \
 	guis/StageFilterGUI.cpp \
 	guis/StageFilterGUIFactory.cpp \
@@ -137,6 +139,7 @@ SOURCES += main.cpp\
 	../engine/FilterEngine.Configuration.cpp \
 	../engine/FilterEngine.Process.cpp \
 	../engine/FilterEngine.Runtime.cpp \
+	../engine/ConfigWatcher.cpp \
 	../filters/FilterFactoryRegistry.cpp \
 	../FilterConfiguration.cpp \
 	../filters/ChannelCommand.cpp \
@@ -161,6 +164,7 @@ SOURCES += main.cpp\
 	../ConfigurationFileReader.cpp \
 	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \
+	../parser/EngineParser.cpp \
 	../parser/RegexFunctions.cpp \
 	../parser/RegistryFunctions.cpp \
 	../parser/StringOperators.cpp \
@@ -212,6 +216,7 @@ SOURCES += main.cpp\
 	skins/pickers/SoftFilterPicker.cpp \
 	skins/pickers/RackFilterPicker.cpp \
 	widgets/AddCardRow.cpp \
+	widgets/ActivatableListChrome.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/FilterInsertSeam.cpp \
 	widgets/GraphicEQPlotWidget.cpp \
@@ -230,10 +235,13 @@ SOURCES += main.cpp\
 	widgets/cards/FilterCardEditorFactory.cpp \
 	widgets/cards/DelayCardEditor.cpp \
 	widgets/cards/FilterCardEditorRegistry.cpp \
+	widgets/cards/FileReferenceController.Dialogs.cpp \
+	widgets/cards/FileReferenceController.cpp \
 	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IIRCardEditor.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
+	widgets/cards/ScalarKnobCardEditor.cpp \
 	widgets/cards/ReferenceCardView.cpp \
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
@@ -244,6 +252,7 @@ SOURCES += main.cpp\
 	skins/cards/MatrixReferenceCardView.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
+	widgets/EditableValueText.cpp \
 	widgets/ChBadge.cpp \
 	widgets/EqGraphView.cpp \
 	widgets/FilterCardModel.cpp \
@@ -252,6 +261,7 @@ SOURCES += main.cpp\
 	widgets/FilterListUndo.cpp \
 	widgets/FilterPickerView.cpp \
 	widgets/UpdateToast.cpp \
+	widgets/MainToolbarKit.cpp \
 	widgets/ValueScrubBox.cpp \
 	widgets/DialogChrome.cpp \
 	widgets/TitleBar.cpp \
@@ -345,6 +355,7 @@ HEADERS  += \
 	../filters/GraphicEQFilter.h \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
+	../helpers/FftwPlanningPolicy.h \
 	../helpers/GainIterator.h \
 	guis/GraphicEQFilterGUIScene.h \
 	widgets/FrequencyPlotView.h \
@@ -359,6 +370,7 @@ HEADERS  += \
 	guis/ConvolutionFilterGUI.h \
 	guis/MultiConvolutionFilterGUIFactory.h \
 	guis/MultiConvolutionFilterGUI.h \
+	helpers/AnalysisWorkerRecovery.h \
 	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
 	widgets/EscapableLineEdit.h \
@@ -373,6 +385,7 @@ HEADERS  += \
 	AnalysisPlotView.h \
 	AnalysisPlotScene.h \
 	../FilterEngine.h \
+	../engine/ConfigWatcher.h \
 	../FilterConfiguration.h \
 	../filters/ChannelFilterFactory.h \
 	../filters/ExpressionCommand.h \
@@ -395,6 +408,7 @@ HEADERS  += \
 	../parser/RegexFunctions.h \
 	../parser/RegistryFunctions.h \
 	../parser/ParserExtensions.h \
+	../parser/EngineParser.h \
 	../parser/StringOperators.h \
 	AnalysisThread.h \
 	widgets/ExponentialSpinBox.h \
@@ -419,6 +433,8 @@ HEADERS  += \
 	../filters/loudnessCorrection/VolumeController.h \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/CrashHandler.h \
+	diagnostics/ToolbarPixelProbe.h \
+	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
 	SkinGallery.h \
 	SkinTokens.h \
@@ -428,6 +444,7 @@ HEADERS  += \
 	skins/RackChrome.h \
 	skins/Skins.h \
 	skins/SkinFileIcons.h \
+	skins/SkinChromeOverlay.h \
 	skins/SkinPaint.h \
 	skins/SkinSupport.h \
 	skins/SkinThemeData.h \
@@ -436,6 +453,7 @@ HEADERS  += \
 	skins/pickers/SoftFilterPicker.h \
 	skins/pickers/RackFilterPicker.h \
 	widgets/AddCardRow.h \
+	widgets/ActivatableListChrome.h \
 	widgets/AudioKnob.h \
 	widgets/FilterInsertSeam.h \
 	widgets/GraphicEQPlotWidget.h \
@@ -454,10 +472,12 @@ HEADERS  += \
 	widgets/cards/FilterCardEditorFactory.h \
 	widgets/cards/DelayCardEditor.h \
 	widgets/cards/FilterCardEditorRegistry.h \
+	widgets/cards/FileReferenceController.h \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IIRCardEditor.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
+	widgets/cards/ScalarKnobCardEditor.h \
 	widgets/cards/ReferenceCardView.h \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTCardEditor.h \
@@ -468,6 +488,7 @@ HEADERS  += \
 	skins/cards/MatrixReferenceCardView.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
+	widgets/EditableValueText.h \
 	widgets/ChBadge.h \
 	widgets/EqGraphView.h \
 	widgets/FilterCardModel.h \
@@ -476,6 +497,7 @@ HEADERS  += \
 	widgets/FilterListUndo.h \
 	widgets/FilterPickerView.h \
 	widgets/UpdateToast.h \
+	widgets/MainToolbarKit.h \
 	widgets/ValueScrubBox.h \
 	widgets/DialogChrome.h \
 	widgets/TitleBar.h \

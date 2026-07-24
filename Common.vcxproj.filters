@@ -131,6 +131,9 @@
     <ClInclude Include="helpers\ChannelHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\ComBoundary.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\FileSharingRetry.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -141,6 +144,9 @@
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="helpers\FftwRAII.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\FftwPlanningPolicy.h">
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="helpers\MemoryHelper.h">
@@ -197,6 +203,9 @@
     <ClInclude Include="parser\ParserExtensions.h">
       <Filter>parser</Filter>
     </ClInclude>
+    <ClInclude Include="parser\EngineParser.h">
+      <Filter>parser</Filter>
+    </ClInclude>
     <ClInclude Include="parser\StringOperators.h">
       <Filter>parser</Filter>
     </ClInclude>
@@ -205,6 +214,8 @@
     <ClInclude Include="ConfigLoadTrace.h" />
     <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
+    <ClInclude Include="engine\ConfigSwapChannel.h" />
+    <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="IFilter.h" />
@@ -395,7 +406,13 @@
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp">
       <Filter>libHybridConv-0.1.1</Filter>
     </ClCompile>
+    <ClCompile Include="helpers\FftwPlanningPolicy.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
     <ClCompile Include="parser\ParserExtensions.cpp">
+      <Filter>parser</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\EngineParser.cpp">
       <Filter>parser</Filter>
     </ClCompile>
     <ClCompile Include="parser\RegexFunctions.cpp">
@@ -420,6 +437,7 @@
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />
     <ClCompile Include="engine\FilterEngine.Process.cpp" />
     <ClCompile Include="engine\FilterEngine.Runtime.cpp" />
+    <ClCompile Include="engine\ConfigWatcher.cpp" />
     <ClCompile Include="filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp">

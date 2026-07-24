@@ -61,6 +61,7 @@ void DeviceSkinPainter::setHeritageTheme()
 {
 	static const DeviceSkinPainter neutral;
 	SkinTokens tokens; // classic light values, mirroring SkinManager::applyHeritage
+	tokens.dark = false;
 	tokens.background = QStringLiteral("#f0f0f0");
 	tokens.surface = QStringLiteral("#ffffff");
 	tokens.surfaceRaised = QStringLiteral("#f5f5f5");

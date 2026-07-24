@@ -39,6 +39,7 @@
 #include <math.h>
 #include <fftw3.h>
 #include "../helpers/FftwRAII.h"
+#include "../helpers/FftwPlanningPolicy.h"
 #include "../helpers/LogHelper.h"
 #include "HcAlignedStorage.h"
 #include "libHybridConv_eapo.h"
@@ -89,60 +90,6 @@ double hcTime(void)
 }
 
 ////////////////////////////////////////////////////////////////
-
-double getProcTime(int flen, int num, double dur)
-{
-	HConvSingle filter;
-	int xlen, hlen, ylen;
-	int n;
-	int pos;
-	double t_start, t_diff;
-	double counter = 0.0;
-	double proc_time;
-	double lin, mul;
-
-	xlen = 2048 * 2048;
-	std::vector<double> x(xlen);
-	lin = pow(10.0, -100.0 / 20.0);	// 0.00001 = -100dB
-	mul = pow(lin, 1.0 / static_cast<double>(xlen));
-	x[0] = 1.0;
-	for (n = 1; n < xlen; n++)
-		x[n] = -mul * x[n - 1];
-
-	hlen = flen * num;
-	std::vector<double> h(hlen);
-	lin = pow(10.0, -60.0 / 20.0);	// 0.001 = -60dB
-	mul = pow(lin, 1.0 / static_cast<double>(hlen));
-	h[0] = 1.0;
-	for (n = 1; n < hlen; n++)
-		h[n] = mul * h[n - 1];
-
-	ylen = flen;
-	std::vector<double> y(ylen);
-
-	hcInitSingle(&filter, h.data(), hlen, flen, 1);
-
-	t_diff = 0.0;
-	t_start = hcTime();
-	pos = 0;
-	while (t_diff < dur)
-	{
-		hcPutSingle(&filter, &x[pos]);
-		hcProcessSingle(&filter);
-		hcGetSingle(&filter, y.data());
-		pos += flen;
-		if (pos >= xlen)
-			pos = 0;
-		counter += 1.0;
-		t_diff = hcTime() - t_start;
-	}
-	proc_time = t_diff / counter;
-	LogFStatic(L"Processing time: %7.3f us", 1000000.0 * proc_time);
-
-	hcCloseSingle(&filter);
-
-	return proc_time;
-}
 
 void hcPutSingle(HConvSingle* filter, double* x)
 {
@@ -401,18 +348,6 @@ static inline void mul_store_gain_double(double* __restrict dst,
 	for (; i < n; ++i) dst[i] = src[i] * gain;
 }
 
-static inline void copy_split_complex_scalar(const fftw_complex * __restrict src,
-	double* __restrict re,
-	double* __restrict im,
-	int n_complex)
-{
-	// n_complex = flen + 1
-	for (int j = 0; j < n_complex; ++j) {
-		re[j] = src[j][0];
-		im[j] = src[j][1];
-	}
-}
-
 // Interleaved (re,im) -> planar (re[] / im[]) via one Highway interleaved load.
 static inline void copy_split_complex_vec(const fftw_complex* __restrict src,
 	double* __restrict re,
@@ -551,32 +486,16 @@ namespace
 		temp.history_time = storage.historyTime.get();
 		memset(temp.history_time, 0, checkedHcMultiply(frameLength, sizeof(double)));
 
-		// FFTW's planner mutates process-global state. The lock is only held while
-		// creating each channel's private execution plans; filter-bank transforms
-		// happen after it is released.
+		// FFTW's planner mutates process-global state. The policy session owns
+		// serialization plus the import/measure/export wisdom lifecycle.
 		{
-			static std::mutex plannerMutex;
-			std::lock_guard<std::mutex> lock(plannerMutex);
-			char appData[MAX_PATH];
-			static std::string wisdomPath;
-			static bool wisdomAvailable = false;
-			if (wisdomPath.empty() && GetEnvironmentVariableA("LOCALAPPDATA", appData, MAX_PATH) > 0)
-			{
-				std::string dir = std::string(appData) + "\\EqualizerAPO";
-				CreateDirectoryA(dir.c_str(), nullptr);
-				wisdomPath = dir + "\\fftw_wisdom.dat";
-				static std::once_flag importedFlag;
-				std::call_once(importedFlag, []() {
-					if (!wisdomPath.empty() && GetFileAttributesA(wisdomPath.c_str()) != INVALID_FILE_ATTRIBUTES)
-						wisdomAvailable = fftw_import_wisdom_from_filename(wisdomPath.c_str()) != 0;
-				});
-			}
-			const unsigned flags =
-				(wisdomAvailable ? FFTW_MEASURE : FFTW_ESTIMATE) | FFTW_PRESERVE_INPUT;
+			FftwPlanningPolicy::Session planning;
+			const unsigned flags = planning.flags();
 			pending.fft = fftw::makeRealToComplexPlan(
 				2 * bank.frameLength, temp.dft_time, temp.dft_freq, flags);
 			pending.ifft = fftw::makeComplexToRealPlan(
 				2 * bank.frameLength, temp.dft_freq, temp.dft_time, flags);
+			planning.exportWisdomForLength(2 * bank.frameLength);
 		}
 
 		return pending;

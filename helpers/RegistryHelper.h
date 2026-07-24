@@ -60,6 +60,7 @@ public:
 	static bool keyExists(const std::wstring& key);
 	static bool valueExists(const std::wstring& key, const std::wstring& valuename);
 	static bool keyEmpty(const std::wstring& key);
+	static std::wstring formatExportHeader(const std::wstring& key);
 	static void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath);
 	static std::wstring getGuidString(GUID guid);
 	static bool isWindowsVersionAtLeast(unsigned major, unsigned minor);

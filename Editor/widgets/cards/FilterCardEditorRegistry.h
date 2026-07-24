@@ -36,11 +36,13 @@ using FilterCardEditorCreator = IFilterGUI* (*)(FilterTable* filterTable, const 
 class FilterCardEditorRegistry
 {
 public:
-	static bool registerEditor(const QString& lowercaseCommand, FilterCardEditorCreator creator);
+	static bool registerEditor(const QString& lowercaseCommand, FilterCardEditorCreator creator,
+		bool dynamicCapable = false);
 
 	// The creator registered for the lowercased command keyword, or nullptr
 	// when no card editor covers it.
 	static FilterCardEditorCreator find(const QString& normalizedCommand);
+	static bool supportsDynamicParameters(const QString& normalizedCommand);
 };
 
 // Registers a card editor for a (lowercase identifier) command keyword. The
@@ -50,4 +52,10 @@ public:
 	namespace \
 	{ \
 		const bool keyword##CardEditorRegistered = FilterCardEditorRegistry::registerEditor(QStringLiteral(#keyword), __VA_ARGS__); \
+	}
+
+#define REGISTER_DYNAMIC_FILTER_CARD_EDITOR(keyword, ...) \
+	namespace \
+	{ \
+		const bool keyword##CardEditorRegistered = FilterCardEditorRegistry::registerEditor(QStringLiteral(#keyword), __VA_ARGS__, true); \
 	}

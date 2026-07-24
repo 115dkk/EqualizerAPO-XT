@@ -167,6 +167,9 @@
         # velopack_libc ships as a single cross-platform zip attached to the
         # velopack/velopack release. The asset name is velopack_libc_<version>.zip.
         VelopackLibcVersion = '1.1.1'
+        # dotnet tool package used to build release assets. Bump together with
+        # VelopackLibcVersion after reviewing packer changes.
+        VelopackVpkVersion  = '1.1.1'
         # SHA-256 of velopack_libc_<VelopackLibcVersion>.zip, verified like the
         # DependencyReleases assets below. Bump together with VelopackLibcVersion.
         VelopackLibcSha256  = '7b77d378226e4c5b110565dbe1c718cc91eadbf0c4be8b8e6af9ed8ea6202cb1'

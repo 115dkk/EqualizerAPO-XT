@@ -97,8 +97,27 @@ void DeviceTestThread::run()
 		std::wstring pipeName = L"EqualizerAPODeviceTest";
 		ReceiveThread thread(pipeName);
 
-		RegistryHelper::writeValue(APP_REGPATH, L"DeviceTestPipeName", pipeName);
-		SCOPE_EXIT{RegistryHelper::deleteValue(APP_REGPATH, L"DeviceTestPipeName"); };
+		try
+		{
+			RegistryHelper::writeValue(APP_REGPATH, L"DeviceTestPipeName", pipeName);
+		}
+		catch (const RegistryException& e)
+		{
+			emit logError(tr("Could not prepare the device test."));
+			emit abort(QString::fromStdWString(e.getMessage()), -1);
+			return;
+		}
+		SCOPE_EXIT{
+			try
+			{
+				RegistryHelper::deleteValue(APP_REGPATH, L"DeviceTestPipeName");
+			}
+			catch (const RegistryException& e)
+			{
+				emit logError(tr("Could not remove the device test registration: %1")
+					.arg(QString::fromStdWString(e.getMessage())));
+			}
+		};
 
 		for (QString deviceGuid : remainingDevices)
 		{

@@ -46,6 +46,7 @@
 
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/VSTPluginInstance.h"
+#include "filters/VSTPluginCommand.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/loudnessCorrection/VolumeController.h"
 #include "Tests/TestHarness.h"
@@ -259,7 +260,12 @@ void runVstHostTests()
 	// GetProcAddress(VSTPluginMain)). initialize() returns >0 on the first
 	// successful load (1) and 0 if already loaded; negative values are the
 	// AbstractLibrary error codes.
-	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(dllPath);
+	const VSTPluginCommand importedCommand = VSTPluginCommand::parse(
+		L"", L"Library \"" + dllPath + L"\"");
+	harness.expectTrue(importedCommand.libraryPath == dllPath,
+		"imported config retains the external VST library path");
+	shared_ptr<VSTPluginLibrary> library =
+		VSTPluginLibrary::getInstance(importedCommand.libraryPath);
 	harness.expectTrue(library != nullptr, "getInstance returned a library");
 	harness.expectFalse(library->isVST3(), "test plugin is hosted via the VST2 path");
 

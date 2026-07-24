@@ -18,13 +18,20 @@
 #include <QColor>
 #include <QPointF>
 #include <QString>
+#include <QWidget>
 #include <QtMath>
 
 #include "Editor/SkinTokens.h"
 
-// The skin hooks receive tokens but no mode flag; a colour's luminance is the
-// unambiguous proxy (every dark ground in the five palettes is deep, every
-// light one near-white).
+// House rule for paint-only chrome: its paintEvent owns every background
+// pixel, so framework/QSS polishing must never stamp an opaque background
+// before or after that event. Per-sheet transparent rules may decorate the
+// widget but are not the load-bearing defense.
+inline void configurePaintOnlyChrome(QWidget* widget)
+{
+	widget->setAttribute(Qt::WA_NoSystemBackground, true);
+}
+
 inline bool skinColorIsDark(const QColor& color)
 {
 	return color.lightness() < 128;
@@ -32,7 +39,7 @@ inline bool skinColorIsDark(const QColor& color)
 
 inline bool skinIsDark(const SkinTokens& tokens)
 {
-	return skinColorIsDark(QColor(tokens.background));
+	return tokens.dark;
 }
 
 inline QColor withAlpha(QColor color, int alpha)

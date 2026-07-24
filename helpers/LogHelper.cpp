@@ -36,6 +36,15 @@ FILE* LogHelper::presetFP = nullptr;
 bool LogHelper::compact = false;
 bool LogHelper::useConsoleColors = false;
 
+namespace
+{
+std::mutex& logStateMutex()
+{
+	static std::mutex mutex;
+	return mutex;
+}
+}
+
 void LogHelper::log(const char* file, int line, const void* caller, bool trace, const wchar_t* format, ...)
 {
 	// Two concurrent first-loggers would race on logPath (a std::wstring).
@@ -43,8 +52,7 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 	// acquire load so later loggers see logPath.
 	if (!initialized.load(std::memory_order_acquire))
 	{
-		static std::mutex initMutex;
-		std::lock_guard<std::mutex> lock(initMutex);
+		std::lock_guard<std::mutex> lock(logStateMutex());
 		if (!initialized.load(std::memory_order_relaxed))
 		{
 			wchar_t temp[255];
@@ -130,17 +138,62 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 
 void LogHelper::reset()
 {
-	initialized = false;
-	logPath = L"";
-	enableTrace = false;
+	useDefaultApoLog();
 }
 
 void LogHelper::set(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors)
 {
-	LogHelper::initialized = true;
+	useStream(fp, enableTrace, compact, useConsoleColors);
+}
 
-	LogHelper::presetFP = fp;
-	LogHelper::enableTrace = enableTrace;
-	LogHelper::compact = compact;
-	LogHelper::useConsoleColors = useConsoleColors;
+void LogHelper::useDefaultApoLog()
+{
+	std::lock_guard<std::mutex> lock(logStateMutex());
+	presetFP = nullptr;
+	logPath.clear();
+	enableTrace.store(false);
+	compact = false;
+	useConsoleColors = false;
+	initialized.store(false, std::memory_order_release);
+}
+
+void LogHelper::useFile(const std::wstring& path, bool traceEnabled, bool compactOutput, bool consoleColors)
+{
+	std::lock_guard<std::mutex> lock(logStateMutex());
+	presetFP = nullptr;
+	logPath = path;
+	enableTrace.store(traceEnabled);
+	compact = compactOutput;
+	useConsoleColors = consoleColors;
+	initialized.store(true, std::memory_order_release);
+}
+
+bool LogHelper::useUserFile(const std::wstring& fileName, bool traceEnabled, bool compactOutput, bool consoleColors)
+{
+	wchar_t localAppData[MAX_PATH] = {};
+	DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", localAppData, MAX_PATH);
+	if (length == 0 || length >= MAX_PATH || fileName.empty())
+		return false;
+
+	std::wstring productDirectory = std::wstring(localAppData, length) + L"\\EqualizerAPO";
+	if (!CreateDirectoryW(productDirectory.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
+		return false;
+
+	std::wstring logDirectory = productDirectory + L"\\logs";
+	if (!CreateDirectoryW(logDirectory.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
+		return false;
+
+	useFile(logDirectory + L"\\" + fileName, traceEnabled, compactOutput, consoleColors);
+	return true;
+}
+
+void LogHelper::useStream(FILE* fp, bool traceEnabled, bool compactOutput, bool consoleColors)
+{
+	std::lock_guard<std::mutex> lock(logStateMutex());
+	presetFP = fp;
+	logPath.clear();
+	enableTrace.store(traceEnabled);
+	compact = compactOutput;
+	useConsoleColors = consoleColors;
+	initialized.store(true, std::memory_order_release);
 }

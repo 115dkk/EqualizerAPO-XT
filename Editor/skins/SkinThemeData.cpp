@@ -8,6 +8,12 @@
 
 #include "SkinThemeData.h"
 
+#include <QApplication>
+#include <QFile>
+#include <QFont>
+#include <QFontDatabase>
+#include <QStyleFactory>
+
 // finishTokens; header-only, no link dependency on the skin classes.
 #include "SkinSupport.h"
 
@@ -17,6 +23,7 @@ namespace
 SkinTokens studioTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 8;
@@ -62,6 +69,7 @@ SkinTokens studioTokens(bool dark)
 SkinTokens minimalTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.accent = QStringLiteral("#3B82F6");
 	t.fontFamily = QStringLiteral("DM Mono");
 	t.monoFontFamily = QStringLiteral("DM Mono");
@@ -107,6 +115,7 @@ SkinTokens minimalTokens(bool dark)
 SkinTokens softTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 14;
@@ -163,6 +172,7 @@ SkinTokens softTokens(bool dark)
 SkinTokens rackTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 3;
@@ -207,6 +217,7 @@ SkinTokens rackTokens(bool dark)
 SkinTokens matrixTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 0;
@@ -257,6 +268,47 @@ SkinTokens matrixTokens(bool dark)
 
 namespace SkinThemeData
 {
+void registerBundledFonts(bool includeSarasa)
+{
+	static bool commonAdded = false;
+	static bool sarasaAdded = false;
+	if (!commonAdded)
+	{
+		commonAdded = true;
+		const QStringList fonts = {
+			QStringLiteral(":/fonts/DMSans-Regular.ttf"),
+			QStringLiteral(":/fonts/DMSans-Medium.ttf"),
+			QStringLiteral(":/fonts/DMSans-SemiBold.ttf"),
+			QStringLiteral(":/fonts/DMSans-Bold.ttf"),
+			QStringLiteral(":/fonts/DMMono-Regular.ttf"),
+			QStringLiteral(":/fonts/DMMono-Medium.ttf"),
+			QStringLiteral(":/fonts/Pretendard-Regular.otf"),
+			QStringLiteral(":/fonts/Pretendard-Medium.otf"),
+			QStringLiteral(":/fonts/Pretendard-SemiBold.otf"),
+			QStringLiteral(":/fonts/Pretendard-Bold.otf")
+		};
+		for (const QString& font : fonts)
+			QFontDatabase::addApplicationFont(font);
+	}
+	if (includeSarasa && !sarasaAdded)
+	{
+		sarasaAdded = true;
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
+		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
+	}
+
+	const QStringList cjkChain = {
+		QStringLiteral("Pretendard"), QStringLiteral("Noto Sans KR"),
+		QStringLiteral("Noto Sans"), QStringLiteral("Malgun Gothic"),
+		QStringLiteral("Microsoft YaHei")
+	};
+	QFont::insertSubstitutions(QStringLiteral("DM Sans"), cjkChain);
+	QStringList monoChain{ QStringLiteral("Consolas") };
+	if (includeSarasa)
+		monoChain.append(QStringLiteral("Sarasa Mono K"));
+	QFont::insertSubstitutions(QStringLiteral("DM Mono"), monoChain + cjkChain);
+}
+
 QString resolveId(const QString& id)
 {
 	if (id == QStringLiteral("glassy"))
@@ -267,6 +319,27 @@ QString resolveId(const QString& id)
 		|| id == QStringLiteral("rack") || id == QStringLiteral("matrix"))
 		return id;
 	return QStringLiteral("studio");
+}
+
+void applyToApplication(QApplication& app, const QString& skinId, bool dark,
+	bool setFusionStyle, bool includeSarasa)
+{
+	registerBundledFonts(includeSarasa);
+	if (setFusionStyle)
+		app.setStyle(QStyleFactory::create(QStringLiteral("fusion")));
+
+	const QString resolvedId = resolveId(skinId);
+	const SkinTokens themeTokens = tokens(resolvedId, dark);
+	QString styleSheet;
+	QFile sheet(qssResource(resolvedId, dark));
+	if (!sheet.open(QFile::ReadOnly) && resolvedId != QLatin1String("studio"))
+		sheet.setFileName(qssResource(QStringLiteral("studio"), dark));
+	if (sheet.isOpen() || sheet.open(QFile::ReadOnly))
+		styleSheet = QString::fromUtf8(sheet.readAll());
+
+	app.setPalette(palette(themeTokens, dark));
+	app.setStyleSheet(substituteTokens(styleSheet, themeTokens)
+		+ comboArrowOverride() + fileDialogOverride());
 }
 
 SkinTokens tokens(const QString& id, bool dark)

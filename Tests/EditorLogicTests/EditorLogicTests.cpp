@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
+#include <atomic>
+#include <chrono>
 #include <exception>
+#include <future>
 #include <iostream>
 #include <malloc.h>
 #include <stdexcept>
@@ -17,23 +20,30 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
+#include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 #include <QVector>
 
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTextStream>
 
 #include "Editor/ConfigFileCodec.h"
+#include "Benchmark/BatchPlan.h"
+#include "Editor/helpers/AnalysisWorkerRecovery.h"
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/import/LegacyMigrationPolicy.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/FilterListUndo.h"
+#include "Editor/widgets/EditableValueText.h"
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/DeviceSelectionModel.h"
 #include "Editor/widgets/cards/StageSelectionModel.h"
@@ -41,11 +51,14 @@
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/StudioRoutingModel.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/OwnedBackgroundTask.h"
+#include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
 
 #include "Tests/TestHarness.h"
+#include "EditorLogicTestSupport.h"
 
 namespace
 {
@@ -65,8 +78,6 @@ void MemoryHelper::free(void* ptr)
 	_aligned_free(ptr);
 }
 
-namespace
-{
 // Generic assertion primitives are shared with the other suites via the
 // header-only harness. The QString helpers below convert at the boundary so
 // EditorLogicTests can keep its Qt-specific checks (expectPath) alongside.
@@ -388,6 +399,7 @@ void requireEqual(int actual, int expected, const QString& message)
 void testConvolutionPathHelper()
 {
 	const QString configPath = "C:/EqualizerAPO/config/config.txt";
+	qputenv("EAPO_XT_TEST_IR_DIR", "C:\\Impulse Responses");
 
 	expectPath(
 		ConvolutionPathHelper::absolutePathForConfig(configPath, "irs/room.wav"),
@@ -395,6 +407,13 @@ void testConvolutionPathHelper()
 	expectPath(
 		ConvolutionPathHelper::absolutePathForConfig(configPath, "C:/Impulse/room.wav"),
 		"C:/Impulse/room.wav");
+	expectTrue(
+		ConvolutionPathHelper::absolutePathForConfig(configPath, QString()).isEmpty(),
+		"empty convolution path should remain empty");
+	expectPath(
+		ConvolutionPathHelper::absolutePathForConfig(
+			configPath, "\"%EAPO_XT_TEST_IR_DIR%\\quoted room.wav\""),
+		"C:/Impulse Responses/quoted room.wav");
 
 	expectPath(
 		ConvolutionPathHelper::displayPathForSelection(configPath, "C:/EqualizerAPO/config/irs/room.wav"),
@@ -415,6 +434,30 @@ void testConvolutionPathHelper()
 	expectFalse(
 		ConvolutionPathHelper::relativePathLooksContainedLexically("C:/Impulse/room.wav"),
 		"absolute path was accepted as relative");
+}
+
+void testAnalysisWorkerRecovery()
+{
+	bool failurePublished = false;
+	try
+	{
+		const bool succeeded = AnalysisWorkerRecovery::run(
+			[] { throw std::bad_alloc(); },
+			[&](const char*) { failurePublished = true; });
+		expectFalse(succeeded, "failed analysis iteration reported success");
+	}
+	catch (...)
+	{
+		harness.fail("analysis iteration exception escaped and would stop the worker");
+	}
+	expectTrue(failurePublished, "analysis failure was not published");
+
+	bool nextIterationRan = false;
+	const bool recovered = AnalysisWorkerRecovery::run(
+		[&] { nextIterationRan = true; },
+		[](const char*) {});
+	expectTrue(recovered, "next analysis iteration did not recover");
+	expectTrue(nextIterationRan, "analysis worker did not accept work after a failure");
 }
 
 void testUpdateInfoFormatter()
@@ -635,6 +678,10 @@ void testFilterCardDescriptors()
 	expectEqual(FilterCardModel::badgeIconResource("device", "DEV"), ":/icons/modern/device-speaker.svg", "device badge pictogram");
 	expectEqual(FilterCardModel::badgeIconResource("comment", "#"), ":/icons/modern/comment-bubble.svg", "comment badge pictogram");
 	expectTrue(FilterCardModel::badgeIconResource("text", "TXT").isEmpty(), "raw text lines keep their monogram fallback");
+	expectEqual(FilterCardModel::commandIconResource("MultiConvolution"), ":/icons/modern/multi-convolution.svg",
+		"picker command vocabulary shares the multiconvolution pictogram");
+	expectEqual(FilterCardModel::commandIconResource("Filter", "ON HP Fc 120 Hz"), ":/icons/modern/eq-highpass.svg",
+		"picker command vocabulary shares the biquad curve split");
 
 	// The programmatic vocabulary is modelled. The
 	// If family shares one card type with per-branch badges, Eval gets its own
@@ -884,6 +931,88 @@ void testConfigImport()
 	expectTrue(destRels.contains("Surround/child.txt"), "include child present");
 	expectTrue(destRels.contains("Surround/ir.wav"), "ir wav present");
 	expectTrue(destRels.contains("Surround/nested.wav"), "nested wav present");
+
+	writeBlob(surroundDir + "/env.wav", 24);
+	qputenv("EAPO_XT_TEST_IMPORT_IR", surroundDir.toUtf8());
+	writeText(surroundDir + "/env.txt",
+		"Convolution: \"%EAPO_XT_TEST_IMPORT_IR%/env.wav\"\n");
+	auto environmentManifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		surroundDir + "/env.txt", tempDir.path() + "/configdir");
+	expectFalse(environmentManifest.hasErrors,
+		"scanner did not apply the engine's environment expansion policy");
+	requireEqual(int(environmentManifest.items.size()), 2,
+		"environment-expanded config collects its referenced IR");
+	expectEqual(environmentManifest.items[1].sourceAbsolute,
+		QDir::cleanPath(surroundDir + "/env.wav"),
+		"scanner and engine resolve environment-expanded paths identically");
+
+	const QString externalPlugin = tempDir.path() + "/plugins/Test Vst.dll";
+	expectTrue(QDir().mkpath(QFileInfo(externalPlugin).absolutePath()),
+		"failed to create external VST fixture directory");
+	writeBlob(externalPlugin, 64);
+	const QString vstLine = QStringLiteral("VSTPlugin: Library \"%1\" ChunkData \"QUJDRA==\"\n")
+		.arg(QDir::toNativeSeparators(externalPlugin));
+	writeText(surroundDir + "/vst.txt", vstLine);
+
+	auto vstManifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		surroundDir + "/vst.txt", tempDir.path() + "/configdir");
+	expectFalse(vstManifest.hasErrors,
+		"an external VST reference should not block config import");
+	requireEqual(int(vstManifest.items.size()), 1,
+		"external VST binaries must not be copied with the config");
+	requireEqual(int(vstManifest.externalReferences.size()), 1,
+		"external VST reference should be recorded separately");
+	expectPath(vstManifest.externalReferences[0], externalPlugin);
+
+	const QString vstImportDir = tempDir.path() + "/vst-import";
+	const auto vstImportResult = EqAPO::Import::ImportExecutor::execute(vstManifest, vstImportDir);
+	expectTrue(vstImportResult.success, "VST config import should succeed without copying its DLL");
+	expectEqual(vstImportResult.filesCopied, 1, "VST import copies only the config file");
+	const auto importedVstConfig = ConfigFileCodec::readConfig(vstImportDir + "/Surround/vst.txt");
+	expectTrue(importedVstConfig.ok, "imported VST config should be readable");
+	requireEqual(int(importedVstConfig.lines.size()), 2, "imported VST config preserves its line and terminator");
+	expectEqual(importedVstConfig.lines[0], vstLine.trimmed(),
+		"imported config must retain the external VST Library reference");
+
+	// Legacy configs use the system ANSI code page when a line is not valid
+	// UTF-8. Pick a character that round-trips through this machine's ACP but
+	// is invalid as standalone UTF-8, then prove the import scanner follows the
+	// same decoding policy as the engine and ConfigFileCodec.
+	const std::wstring ansiCandidates[] = {L"\u00e9", L"\uac00", L"\u0416", L"\u3042"};
+	std::string ansiLeafBytes;
+	std::wstring ansiLeafWide;
+	for (const std::wstring& candidate : ansiCandidates)
+	{
+		std::string encoded = StringHelper::toString(candidate, CP_ACP);
+		if (encoded.find('?') == std::string::npos
+			&& StringHelper::toWString(encoded, CP_ACP) == candidate
+			&& QString::fromUtf8(encoded.data(), static_cast<qsizetype>(encoded.size())).contains(QChar::ReplacementCharacter))
+		{
+			ansiLeafBytes = "ansi-" + encoded + ".wav";
+			ansiLeafWide = L"ansi-" + candidate + L".wav";
+			break;
+		}
+	}
+
+	if (!ansiLeafBytes.empty())
+	{
+		const QString ansiLeaf = QString::fromStdWString(ansiLeafWide);
+		writeBlob(surroundDir + "/" + ansiLeaf, 32);
+
+		QFile ansiConfig(surroundDir + "/ansi.txt");
+		requireTrue(ansiConfig.open(QIODevice::WriteOnly), "could not create ANSI config");
+		const std::string ansiLine = "Convolution: " + ansiLeafBytes + "\r\n";
+		requireTrue(ansiConfig.write(ansiLine.data(), static_cast<qint64>(ansiLine.size()))
+			== static_cast<qint64>(ansiLine.size()), "could not write ANSI config bytes");
+		ansiConfig.close();
+
+		auto ansiManifest = EqAPO::Import::ConfigDependencyScanner::scan(
+			surroundDir + "/ansi.txt", tempDir.path() + "/configdir");
+		expectFalse(ansiManifest.hasErrors, "scanner decoded an ANSI config differently from the engine");
+		requireEqual(int(ansiManifest.items.size()), 2, "ANSI config collects its referenced IR");
+		expectEqual(ansiManifest.items[1].sourceAbsolute,
+			QDir::cleanPath(surroundDir + "/" + ansiLeaf), "ANSI reference resolves to the real file");
+	}
 
 	// Missing reference should surface as a non-fatal warning + hasErrors.
 	writeText(surroundDir + "/broken.txt", "Convolution: does_not_exist.wav\n");
@@ -1484,96 +1613,8 @@ void testRoutingFold()
 	expectEqual((int)seedOnly.size(), (int)emptySeeded.size() - 1, "the seed row itself is still removed");
 }
 
-void testConfigFileCodec()
-{
-	QList<QString> mixed = ConfigFileCodec::decodeLines(std::string("Preamp: -6 dB\r\nInclude: a.txt\nlast"));
-	requireEqual((int)mixed.size(), 3, "decodeLines splits CRLF and LF terminated lines");
-	expectEqual(mixed[0], "Preamp: -6 dB", "decodeLines strips the trailing CR");
-	expectEqual(mixed[2], "last", "decodeLines keeps the final unterminated line");
 
-	QList<QString> unicode = ConfigFileCodec::decodeLines(std::string("# caf\xC3\xA9"));
-	expectEqual(unicode[0], QString::fromUtf8("# caf\xC3\xA9"), "decodeLines decodes valid UTF-8");
 
-	// 0xE9 alone is invalid UTF-8, so the system-ANSI fallback must engage.
-	// The decoded glyph depends on the machine's CP_ACP (e.g. CP1252 vs
-	// CP949), so only the line structure is asserted, not the character.
-	QList<QString> fallback = ConfigFileCodec::decodeLines(std::string("caf\xE9\r\nnext"));
-	requireEqual((int)fallback.size(), 2, "ANSI fallback still yields one entry per line");
-	expectEqual(fallback[1], "next", "ANSI fallback preserves the following line");
-
-	QByteArray encoded = ConfigFileCodec::encodeLines(QList<QString>() << "a" << QString::fromUtf8("caf\xC3\xA9"));
-	expectEqual(QString::fromUtf8(encoded), QString::fromUtf8("a\r\ncaf\xC3\xA9"), "encodeLines joins with CRLF, UTF-8, no trailing newline");
-
-	QList<QString> roundTrip = ConfigFileCodec::decodeLines(std::string(encoded.constData(), (size_t)encoded.size()));
-	requireEqual((int)roundTrip.size(), 2, "encodeLines output decodes back to the same line count");
-	expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
-}
-
-void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
-{
-	QTemporaryDir dir;
-	requireTrue(dir.isValid(), "atomic-save test creates a temporary directory");
-
-	QString path = QDir::toNativeSeparators(dir.filePath("config.txt"));
-	QFile original(path);
-	requireTrue(original.open(QIODevice::WriteOnly), "atomic-save test creates the original file");
-	requireTrue(original.write("original") == 8, "atomic-save test writes the original contents");
-	original.close();
-
-	// Access 0 with read/write sharing still permits in-place writes, while
-	// omitting FILE_SHARE_DELETE prevents replacement while this handle lives.
-	winutil::UniqueHandle replacementBlocker(CreateFileW(
-		path.toStdWString().c_str(),
-		0,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		nullptr,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		nullptr));
-	requireTrue(static_cast<bool>(replacementBlocker), "atomic-save test locks replacement of the original file");
-
-	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(path, QList<QString>() << "replacement");
-	replacementBlocker.reset();
-
-	expectFalse(result.opened, "writeConfig reports an atomic replacement failure");
-
-	QFile preserved(path);
-	requireTrue(preserved.open(QIODevice::ReadOnly), "atomic-save test reopens the original file");
-	expectEqual(QString::fromUtf8(preserved.readAll()), "original", "failed atomic replacement preserves the original contents");
-}
-
-void testConfigFileCodecRejectsPartialRead()
-{
-	const std::wstring pipeName = L"\\\\.\\pipe\\EditorLogicTests-ConfigRead-" + std::to_wstring(GetCurrentProcessId());
-	winutil::UniqueHandle pipe(CreateNamedPipeW(
-		pipeName.c_str(),
-		PIPE_ACCESS_OUTBOUND,
-		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-		1,
-		4096,
-		4096,
-		0,
-		nullptr));
-	requireTrue(static_cast<bool>(pipe), "partial-read test creates a named pipe");
-
-	bool serverSucceeded = false;
-	std::thread server([&]() {
-		BOOL connected = ConnectNamedPipe(pipe.get(), nullptr);
-		if (!connected && GetLastError() == ERROR_PIPE_CONNECTED)
-			connected = TRUE;
-		const char prefix[] = "Preamp: -6 dB\r\n";
-		DWORD written = 0;
-		if (connected && WriteFile(pipe.get(), prefix, sizeof(prefix) - 1, &written, nullptr) && written == sizeof(prefix) - 1)
-			serverSucceeded = FlushFileBuffers(pipe.get()) != FALSE;
-		DisconnectNamedPipe(pipe.get());
-	});
-
-	ConfigFileCodec::ReadResult result = ConfigFileCodec::readConfig(QString::fromStdWString(pipeName));
-	server.join();
-	requireTrue(serverSucceeded, "partial-read test sends the configuration prefix");
-	expectFalse(result.ok, "readConfig rejects bytes followed by a ReadFile failure");
-	expectTrue(result.lines.isEmpty(), "readConfig does not expose a partial configuration");
-}
 
 void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 {
@@ -1601,7 +1642,10 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 	expectEqual(memoryHelperAllocations, 1, "construct allocates storage once");
 	expectEqual(memoryHelperFrees, 1, "construct releases storage when construction fails");
 }
-}
+
+
+
+
 
 int main(int argc, char** argv)
 {
@@ -1610,6 +1654,7 @@ int main(int argc, char** argv)
 		QCoreApplication app(argc, argv);
 
 		testConvolutionPathHelper();
+		testAnalysisWorkerRecovery();
 		testUpdateInfoFormatter();
 		testVelopackUpdateInfo();
 		testVelopackGitHubRelease();
@@ -1629,6 +1674,12 @@ int main(int argc, char** argv)
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 		testConfigFileCodecRejectsPartialRead();
 		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
+		testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
+		testSkinTokensCarryExplicitMode();
+		testEverySkinSheetResolvesAllThemeTokens();
+		testEditableValueTextUsesDisplayedDecimalFormatFirst();
+		testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
+		testFileReferenceControllerOwnsPathState();
 		testFilterListModel();
 		testFilterListUndo();
 

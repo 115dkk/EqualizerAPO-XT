@@ -303,6 +303,8 @@
     <ClInclude Include="ConfigLoadTrace.h" />
     <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
+    <ClInclude Include="engine\ConfigSwapChannel.h" />
+    <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="filters\BiQuad.h" />
@@ -355,10 +357,12 @@
     <ClInclude Include="helpers\AbstractLibrary.h" />
     <ClInclude Include="helpers\aeffectx.h" />
     <ClInclude Include="helpers\ChannelHelper.h" />
+    <ClInclude Include="helpers\ComBoundary.h" />
     <ClInclude Include="helpers\FileSharingRetry.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\LogHelper.h" />
     <ClInclude Include="helpers\FftwRAII.h" />
+    <ClInclude Include="helpers\FftwPlanningPolicy.h" />
     <ClInclude Include="helpers\MemoryHelper.h" />
     <ClInclude Include="helpers\ParallelExecutor.h" />
     <ClInclude Include="helpers\Win32Resource.h" />
@@ -380,6 +384,7 @@
     <ClInclude Include="parser\RegexFunctions.h" />
     <ClInclude Include="parser\RegistryFunctions.h" />
     <ClInclude Include="parser\ParserExtensions.h" />
+    <ClInclude Include="parser\EngineParser.h" />
     <ClInclude Include="parser\StringOperators.h" />
     <ClInclude Include="VoicemeeterAPOInfo.h" />
     <ClInclude Include="stdafx.h" />
@@ -397,6 +402,7 @@
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />
     <ClCompile Include="engine\FilterEngine.Process.cpp" />
     <ClCompile Include="engine\FilterEngine.Runtime.cpp" />
+    <ClCompile Include="engine\ConfigWatcher.cpp" />
     <ClCompile Include="filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="filters\BiQuad.cpp" />
     <ClCompile Include="filters\BiQuadCommand.cpp" />
@@ -462,8 +468,10 @@
     <ClCompile Include="helpers\VSTPluginLibrary.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp" />
+    <ClCompile Include="helpers\FftwPlanningPolicy.cpp" />
     <ClCompile Include="parser\LogicalOperators.cpp" />
     <ClCompile Include="parser\ParserExtensions.cpp" />
+    <ClCompile Include="parser\EngineParser.cpp" />
     <ClCompile Include="parser\RegexFunctions.cpp" />
     <ClCompile Include="parser\RegistryFunctions.cpp" />
     <ClCompile Include="parser\StringOperators.cpp" />

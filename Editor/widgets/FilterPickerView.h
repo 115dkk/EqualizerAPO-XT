@@ -36,6 +36,8 @@ struct FilterPickerEntry
 // this in place of the raw config line, which reads as noise to anyone who is
 // not editing the syntax by hand.
 QString filterTemplateDescription(const QString& line);
+QString filterPickerSection(const FilterPickerEntry& entry);
+bool filterPickerMatches(const FilterPickerEntry& entry, const QString& section, const QString& query);
 
 // Base class for the skin-specific picker widget. The host embeds it in a
 // frameless Qt::Popup container, calls setEntries() once, and runs a local

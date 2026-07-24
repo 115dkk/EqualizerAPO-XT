@@ -73,7 +73,7 @@
     <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt</QT_ROOT>
   </PropertyGroup>
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
     <LibraryPath>$(QT_ROOT)\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -86,10 +86,12 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Qt6Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if exist "$(QT_ROOT)\bin\Qt6Core.dll" copy /Y "$(QT_ROOT)\bin\Qt6Core.dll" "$(OutDir)"</Command>
+      <Command>if exist "$(QT_ROOT)\bin\Qt6Core.dll" copy /Y "$(QT_ROOT)\bin\Qt6Core.dll" "$(OutDir)"
+if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutDir)"
+if exist "$(QT_ROOT)\bin\Qt6Widgets.dll" copy /Y "$(QT_ROOT)\bin\Qt6Widgets.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -115,21 +117,27 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EditorLogicTests.cpp" />
+    <ClCompile Include="ConfigFileCodecTests.cpp" />
+    <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigrationPolicy.cpp" />
+    <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\EditableValueText.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListUndo.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\cards\FileReferenceController.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\StageSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\MultiConvolutionRoutingAdapter.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\RoutingFold.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\StudioRoutingModel.cpp" />
     <ClCompile Include="..\..\filters\MultiConvolutionCommand.cpp" />
+    <ClCompile Include="..\..\filters\ConvolutionFilePath.cpp" />
     <ClCompile Include="..\..\filters\StageCommand.cpp" />
     <ClCompile Include="..\..\filters\BiQuadCommand.cpp" />
     <ClCompile Include="..\..\filters\DeviceCommand.cpp" />
@@ -141,24 +149,30 @@
     <ClCompile Include="..\..\UpdateChecker\VelopackUpdateInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Benchmark\BatchPlan.h" />
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h" />
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h" />
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
     <ClInclude Include="..\..\Editor\import\LegacyMigrationPolicy.h" />
+    <ClInclude Include="..\..\Editor\skins\SkinThemeData.h" />
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />
+    <ClInclude Include="..\..\Editor\widgets\EditableValueText.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListUndo.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
     <ClInclude Include="..\..\helpers\StringHelper.h" />
+    <ClInclude Include="..\..\helpers\OwnedBackgroundTask.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />
     <ClInclude Include="..\..\UpdateChecker\UpdateInfoFormatter.h" />
     <ClInclude Include="..\..\UpdateChecker\VelopackUpdateInfo.h" />
+    <ClInclude Include="EditorLogicTestSupport.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

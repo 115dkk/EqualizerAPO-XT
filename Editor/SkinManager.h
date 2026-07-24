@@ -15,6 +15,7 @@ class QToolBar;
 class QWidget;
 class ReferenceCardView;
 struct AnalysisGraphState;
+struct BadgeTreatment;
 struct CommandRowInfo;
 struct GraphicEQPlotState;
 struct KnobState;
@@ -57,8 +58,7 @@ public:
 	// current tokens (see the ISkin hooks for semantics).
 	QString cardFrameStyle(const CommandRowInfo& info) const;
 	QString cardHeaderStyle(const CommandRowInfo& info) const;
-	QString typeBadgeStyle(const CommandRowInfo& info, const QString& typeColor) const;
-	QColor typeBadgeInk(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const;
+	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info) const;

@@ -89,6 +89,9 @@ void runParserPreampTests()
 	harness.expectFalse(bad.valid, "a non-numeric preamp parameter must not parse as valid");
 	harness.expectFalse(bad.noOp, "a malformed preamp parameter is not a no-op");
 
+	PreampCommand nonFinite = parsePreamp(L"1e999 dB");
+	harness.expectFalse(nonFinite.valid, "a non-finite preamp value must not parse as valid");
+
 	// A non-"Preamp" command is rejected outright (returns false, leaves the
 	// struct in its default state).
 	{

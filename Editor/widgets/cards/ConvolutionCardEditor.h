@@ -3,6 +3,7 @@
 #include "Editor/IFilterGUI.h"
 
 class FilterTable;
+class FileReferenceController;
 class QToolButton;
 class ReferenceCardView;
 
@@ -31,8 +32,7 @@ private:
 	void updateFileInfo();
 
 	FilterTable* filterTable = nullptr;
-	// The reference as written in the config line (relative stays relative).
-	QString path;
+	FileReferenceController* reference = nullptr;
 	ReferenceCardView* view = nullptr;
 	QToolButton* chooseButton = nullptr;
 	QToolButton* editButton = nullptr;

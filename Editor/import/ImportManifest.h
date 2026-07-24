@@ -46,6 +46,9 @@ struct ImportManifest
     // Every file we plan to copy (root + dependencies). Items keep a
     // stable order so the dialog can display them in scan order.
     QVector<ImportItem> items;
+    // VST binaries stay at their configured locations. Their Library values
+    // are recorded here for diagnostics but are deliberately not copy items.
+    QStringList externalReferences;
     // Non-fatal messages (file not found, dependency outside root, etc).
     QStringList warnings;
     // Sum of sizeBytes across all existing items, for the confirmation UI.

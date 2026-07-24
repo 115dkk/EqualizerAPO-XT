@@ -42,6 +42,7 @@
 #include "../helpers/MemoryHelper.h"
 #include "../helpers/PerfProfile.h"
 #include "../helpers/SndfileRAII.h"
+#include "BatchPlan.h"
 
 using std::cerr;
 using std::cout;
@@ -168,8 +169,20 @@ int main(int argc, char** argv)
 		}
 
 		unsigned batchsize = batchsizeArg.getValue();
+		if (batchsize == 0)
+		{
+			cerr << "Batch size must be greater than zero\n";
+			return 1;
+		}
+		const BenchmarkBatchPlan batchPlan = planBenchmarkBatches(frameCount, batchsize);
+		const unsigned processedFrameCount = batchPlan.processedFrames;
+		if (processedFrameCount == 0)
+		{
+			cerr << "Input must contain at least one complete batch (" << batchsize << " frames)\n";
+			return 1;
+		}
 
-		vector<float> buf2((size_t)frameCount * channelCount, 0.0f);
+		vector<float> buf2((size_t)processedFrameCount * channelCount, 0.0f);
 
 		PrecisionTimer timer;
 		timer.start();
@@ -202,24 +215,27 @@ int main(int argc, char** argv)
 				PerfProfile::enable();
 			}
 
-			cout << "\nProcessing " << frameCount << " frames from " << channelCount << " channel(s)";
+			cout << "\nProcessing " << processedFrameCount << " frames from " << channelCount << " channel(s)";
 			if (repeatCount > 1)
 				cout << " x" << repeatCount << " repetitions";
 			cout << "\n";
+			if (batchPlan.trimmedFrames > 0)
+				cout << "Excluded " << batchPlan.trimmedFrames
+					<< " trailing frame(s) so every measured batch remains " << batchsize
+					<< " frames; published batch metrics stay directly comparable.\n";
 
 			vector<double> batchTimes;
-			batchTimes.reserve(((size_t)frameCount / batchsize + 1) * repeatCount);
+			batchTimes.reserve(((size_t)processedFrameCount / batchsize) * repeatCount);
 
 			timer.start();
 
 			PrecisionTimer batchTimer;
 			for (unsigned r = 0; r < repeatCount; r++)
 			{
-				for (unsigned i = 0; i < frameCount; i += batchsize)
+				for (unsigned i = 0; i < processedFrameCount; i += batchsize)
 				{
-					unsigned actual = min(batchsize, frameCount - i);
 					batchTimer.start();
-					engine.process(buf2.data() + i * channelCount, buf.data() + i * channelCount, actual);
+					engine.process(buf2.data() + i * channelCount, buf.data() + i * channelCount, batchsize);
 					batchTimes.push_back(batchTimer.stop());
 				}
 			}
@@ -229,9 +245,9 @@ int main(int argc, char** argv)
 			if (profileEnabled)
 				PerfProfile::disable();
 
-			double totalAudio = static_cast<double>(length) * repeatCount;
+			double totalAudio = static_cast<double>(processedFrameCount) / sampleRate * repeatCount;
 
-			cout << frameCount * channelCount * repeatCount << " samples processed in " << time << " seconds\n";
+			cout << processedFrameCount * channelCount * repeatCount << " samples processed in " << time << " seconds\n";
 			cout << "This is equivalent to " << 100.0f * time / totalAudio << "% CPU load (one core) when processing in real time\n";
 
 			if (!batchTimes.empty())
@@ -269,7 +285,7 @@ int main(int argc, char** argv)
 
 			unsigned clipCount = 0;
 			float maxLevel = 0;
-			for (unsigned i = 0; i < frameCount * channelCount; i++)
+			for (unsigned i = 0; i < processedFrameCount * channelCount; i++)
 			{
 				float f = fabs(buf2[i]);
 				if (f > maxLevel)
@@ -298,7 +314,7 @@ int main(int argc, char** argv)
 
 			cout << "\nWriting output to " << output << "\n";
 
-			SF_INFO info = {frameCount, static_cast<int>(sampleRate), static_cast<int>(channelCount), SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
+			SF_INFO info = {processedFrameCount, static_cast<int>(sampleRate), static_cast<int>(channelCount), SF_FORMAT_WAV | SF_FORMAT_PCM_16, 0};
 			sndfile::Handle outFile(sf_open(output.c_str(), SFM_WRITE, &info));
 			if (!outFile)
 			{
@@ -307,8 +323,8 @@ int main(int argc, char** argv)
 			}
 
 			sf_count_t numWritten = 0;
-			while (numWritten < frameCount)
-				numWritten += sf_writef_float(outFile.get(), buf2.data() + numWritten * channelCount, frameCount - numWritten);
+			while (numWritten < processedFrameCount)
+				numWritten += sf_writef_float(outFile.get(), buf2.data() + numWritten * channelCount, processedFrameCount - numWritten);
 		}
 
 		if (!noPauseArg.getValue())

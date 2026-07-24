@@ -104,5 +104,7 @@ private:
 	};
 
 	std::vector<InternalAssignment> internalAssignments;
+	size_t inputChannelCount = 0;
+	bool hasNonzeroConstant = false;
 };
 #pragma AVRT_VTABLES_END

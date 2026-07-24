@@ -96,6 +96,11 @@ void testUnpairedAndComma()
 	// An empty parameter (the "variable bands" template) parses to no nodes.
 	GraphicEQCommand empty = parse(L"");
 	harness.expectEqual(empty.nodes.size(), (size_t)0, "empty parameter has no nodes");
+
+	GraphicEQCommand nonFinite = parse(L"100 1e999; 1000 2");
+	harness.expectEqual(nonFinite.nodes.size(), (size_t)1,
+		"a non-finite GraphicEQ pair is rejected without dropping valid pairs");
+	expectNode(nonFinite, 0, 1000.0, 2.0, "finite node after rejected pair");
 }
 
 // Asserts that parsing parameters then serializing the command reproduces the

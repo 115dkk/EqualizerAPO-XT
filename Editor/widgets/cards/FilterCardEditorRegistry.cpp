@@ -23,22 +23,34 @@
 
 namespace
 {
+struct Registration
+{
+	FilterCardEditorCreator creator = nullptr;
+	bool dynamicCapable = false;
+};
+
 // Function-local static so registrations from other translation units'
 // static initializers never race a not-yet-constructed map.
-QHash<QString, FilterCardEditorCreator>& registry()
+QHash<QString, Registration>& registry()
 {
-	static QHash<QString, FilterCardEditorCreator> map;
+	static QHash<QString, Registration> map;
 	return map;
 }
 }
 
-bool FilterCardEditorRegistry::registerEditor(const QString& lowercaseCommand, FilterCardEditorCreator creator)
+bool FilterCardEditorRegistry::registerEditor(const QString& lowercaseCommand,
+	FilterCardEditorCreator creator, bool dynamicCapable)
 {
-	registry().insert(lowercaseCommand, creator);
+	registry().insert(lowercaseCommand, { creator, dynamicCapable });
 	return true;
 }
 
 FilterCardEditorCreator FilterCardEditorRegistry::find(const QString& normalizedCommand)
 {
-	return registry().value(normalizedCommand, nullptr);
+	return registry().value(normalizedCommand).creator;
+}
+
+bool FilterCardEditorRegistry::supportsDynamicParameters(const QString& normalizedCommand)
+{
+	return registry().value(normalizedCommand).dynamicCapable;
 }

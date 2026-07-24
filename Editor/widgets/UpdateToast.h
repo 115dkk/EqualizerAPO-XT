@@ -3,6 +3,7 @@
 #include <QWidget>
 
 class QLabel;
+class QTimer;
 class QToolButton;
 
 // A small, dismissible notice anchored to the bottom centre of the main
@@ -32,4 +33,5 @@ private:
 
 	QLabel* label = nullptr;
 	QToolButton* closeButton = nullptr;
+	QTimer* autoHideTimer = nullptr;
 };

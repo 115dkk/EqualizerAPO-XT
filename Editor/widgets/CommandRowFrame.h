@@ -20,7 +20,7 @@ class CommandRowFrame : public QFrame
 public:
 	explicit CommandRowFrame(QWidget* parent = nullptr);
 
-	void setRowInfo(const CommandRowInfo& info);
+	void applyRowInfo(const CommandRowInfo& info, QWidget* header);
 	const CommandRowInfo& rowInfo() const;
 
 protected:

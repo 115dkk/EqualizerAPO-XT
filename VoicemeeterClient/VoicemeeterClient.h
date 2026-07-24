@@ -19,11 +19,13 @@
 
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
 #include "../FilterEngine.h"
 #include "../helpers/Win32Resource.h"
+#include "../helpers/SynchronizedState.h"
 #include "VoicemeeterRemote.h"
 
 class VoicemeeterClient
@@ -41,6 +43,12 @@ private:
 	void handleCommand(WPARAM wparam, LPARAM lparam);
 	static bool isBufferSilent(float** sampleData, long sampleCount);
 
+	struct EngineState
+	{
+		std::vector<std::unique_ptr<FilterEngine>> engines;
+		std::vector<int> idleSampleCounts;
+	};
+
 	std::vector<std::wstring> outputs;
 	unsigned long mainThreadId;
 	winutil::UniqueModule module;
@@ -48,12 +56,10 @@ private:
 	size_t wTimer = 0;
 	bool loggedIn = false;
 	bool callbackRegistered = false;
-	bool connected = true;
-	float sampleRate = 0.0f;
-	unsigned maxFrameCount = 0;
-
-	std::vector<std::unique_ptr<FilterEngine>> engines;
-	std::vector<int> idleSampleCounts;
+	std::atomic<bool> connected{ true };
+	std::atomic<float> sampleRate{ 0.0f };
+	std::atomic<unsigned> maxFrameCount{ 0 };
+	SynchronizedState<EngineState> engineState;
 };
 
 class InitError

@@ -1,11 +1,8 @@
 #pragma once
 
-#include "Editor/IFilterGUI.h"
+#include "ScalarKnobCardEditor.h"
 
-class AudioKnob;
-class EditableValue;
-
-class PreampCardEditor : public IFilterGUI
+class PreampCardEditor : public ScalarKnobCardEditor
 {
 	Q_OBJECT
 
@@ -27,14 +24,8 @@ private slots:
 	void valueChanged(double value);
 
 private:
-	void buildLayout(QWidget* valueWidget);
 	void setGain(double value, bool notify);
 	QString gainText() const;
 
-	AudioKnob* knob = nullptr;
-	EditableValue* editableValue = nullptr;
 	double currentGain = 0.0;
-	bool updating = false;
-	// Non-empty in dynamic mode: the as-written parameter text to reproduce.
-	QString dynamicParameters;
 };

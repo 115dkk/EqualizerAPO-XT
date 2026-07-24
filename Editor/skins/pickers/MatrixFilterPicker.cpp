@@ -10,7 +10,6 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QRegularExpression>
 
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
@@ -206,23 +205,12 @@ void MatrixFilterPickerView::computeMetrics()
 
 void MatrixFilterPickerView::applyQuery()
 {
-	const QStringList terms = query.split(
-		QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-
 	for (Bus& bus : buses)
 	{
 		for (Cell& cell : bus.cells)
 		{
-			const QString haystack = bus.label + QLatin1Char(' ') + cell.name + QLatin1Char(' ') + cell.line;
-			cell.matches = true;
-			for (const QString& term : terms)
-			{
-				if (!haystack.contains(term, Qt::CaseInsensitive))
-				{
-					cell.matches = false;
-					break;
-				}
-			}
+			const FilterPickerEntry entry{ {}, cell.name, cell.line, {} };
+			cell.matches = filterPickerMatches(entry, bus.label, query);
 		}
 	}
 

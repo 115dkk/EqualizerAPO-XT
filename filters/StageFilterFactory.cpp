@@ -37,7 +37,8 @@ void StageFilterFactory::initialize(FilterEngine* engine)
 	engineCapture = engine->isCapture();
 	enginePostMixInstalled = engine->isPostMixInstalled();
 
-	engine->getParser()->DefineConst(L"stage", engine->isCapture() ? L"capture" : engine->isPreMix() ? L"pre-mix" : L"post-mix");
+	engine->getParser()->defineConst(L"stage",
+		engine->isCapture() ? L"capture" : engine->isPreMix() ? L"pre-mix" : L"post-mix");
 }
 
 FilterVector StageFilterFactory::startOfConfiguration()

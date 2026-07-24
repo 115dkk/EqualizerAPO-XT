@@ -71,6 +71,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		MessageBoxW(nullptr, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
 		return -1;
 	}
+	catch (const RegistryException& e)
+	{
+		MessageBoxW(nullptr, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
+		return -1;
+	}
 }
 
 VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
@@ -146,13 +151,13 @@ void VoicemeeterClient::run()
 				// check if Voicemeeter type has changed
 				if (vmr.VBVMR_IsParametersDirty() >= 0)
 				{
-					if (!connected)
+					if (!connected.load())
 						detectVoicemeeterType();
 				}
 				else
 				{
 					// Voicemeeter has been shut down
-					connected = false;
+					connected.store(false);
 				}
 			}
 			break;
@@ -167,11 +172,15 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 	case VBVMR_CBCOMMAND_STARTING:
 	{
 		VBVMR_LPT_AUDIOINFO audioInfo = (VBVMR_LPT_AUDIOINFO)lpData;
-		sampleRate = static_cast<float>(audioInfo->samplerate);
-		maxFrameCount = audioInfo->nbSamplePerFrame;
-		for (const auto& engine : engines)
-			if (engine != nullptr)
-				engine->initialize(sampleRate, 8, 8, 8, 0, maxFrameCount);
+		const float newSampleRate = static_cast<float>(audioInfo->samplerate);
+		const unsigned newMaxFrameCount = audioInfo->nbSamplePerFrame;
+		sampleRate.store(newSampleRate);
+		maxFrameCount.store(newMaxFrameCount);
+		engineState.withLock([&](const EngineState& state) {
+			for (const auto& engine : state.engines)
+				if (engine != nullptr)
+					engine->initialize(newSampleRate, 8, 8, 8, 0, newMaxFrameCount);
+		});
 		VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
 	}
 	break;
@@ -187,37 +196,39 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 		int nbo = audioBuffer->audiobuffer_nbo;
 		unsigned n = min(nbi, nbo) / 8;
 
-		for (unsigned i = 0; i < n; i++)
-		{
-			FilterEngine* engine = nullptr;
-			if (i < engines.size())
-				engine = engines[i].get();
-
-			bool idle = true;
-			bool inputSilent = true;
-			if (engine != nullptr)
+		engineState.withLock([&](EngineState& state) {
+			for (unsigned i = 0; i < n; i++)
 			{
-				inputSilent = isBufferSilent(audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
-				idle = inputSilent && idleSampleCounts[i] > 10 * engine->getSampleRate();
-			}
+				FilterEngine* engine = nullptr;
+				if (i < state.engines.size())
+					engine = state.engines[i].get();
 
-			// avoid processing when idle (Voicemeeter does still call this when no audio is played)
-			if (!idle)
-			{
-				engine->process(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
+				bool idle = true;
+				bool inputSilent = true;
+				if (engine != nullptr)
+				{
+					inputSilent = isBufferSilent(audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
+					idle = inputSilent && state.idleSampleCounts[i] > 10 * engine->getSampleRate();
+				}
 
-				bool outputSilent = isBufferSilent(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_nbs);
-				if (inputSilent && outputSilent)
-					idleSampleCounts[i] += audioBuffer->audiobuffer_nbs;
+				// avoid processing when idle (Voicemeeter does still call this when no audio is played)
+				if (!idle)
+				{
+					engine->process(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
+
+					bool outputSilent = isBufferSilent(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_nbs);
+					if (inputSilent && outputSilent)
+						state.idleSampleCounts[i] += audioBuffer->audiobuffer_nbs;
+					else
+						state.idleSampleCounts[i] = 0;
+				}
 				else
-					idleSampleCounts[i] = 0;
+				{
+					for (int j = 0; j < 8; j++)
+						std::copy_n(audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs, audioBuffer->audiobuffer_w[8 * i + j]);
+				}
 			}
-			else
-			{
-				for (int j = 0; j < 8; j++)
-					std::copy_n(audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs, audioBuffer->audiobuffer_w[8 * i + j]);
-			}
-		}
+		});
 	}
 	break;
 	}
@@ -232,7 +243,7 @@ void VoicemeeterClient::initSoftware()
 	if (vmr.VBVMR_IsParametersDirty() == 0)
 		detectVoicemeeterType();
 	else
-		connected = false;
+		connected.store(false);
 	unsigned tries = 30;
 	bool loop = true;
 	while (loop)
@@ -273,7 +284,7 @@ void VoicemeeterClient::detectVoicemeeterType()
 	long rep = vmr.VBVMR_GetVoicemeeterType(&vmType);
 	if (rep == 0)
 	{
-		connected = true;
+		connected.store(true);
 
 		unsigned outputCount;
 		if (vmType == 3)
@@ -283,10 +294,14 @@ void VoicemeeterClient::detectVoicemeeterType()
 		else
 			outputCount = 1;
 
-		if (outputCount != engines.size())
+		bool sizeChanged = engineState.withLock([&](const EngineState& state) {
+			return outputCount != state.engines.size();
+		});
+		if (sizeChanged)
 		{
-			idleSampleCounts.clear();
-			engines.clear();
+			EngineState replacement;
+			replacement.engines.reserve(outputCount);
+			replacement.idleSampleCounts.reserve(outputCount);
 
 			for (unsigned i = 0; i < outputCount; i++)
 			{
@@ -297,17 +312,29 @@ void VoicemeeterClient::detectVoicemeeterType()
 				{
 					auto engine = std::make_unique<FilterEngine>();
 					engine->setDeviceInfo(false, true, L"Voicemeeter", output, L"", L"Voicemeeter " + output);
-					if (sampleRate != 0.0f && maxFrameCount != 0)
-						engine->initialize(sampleRate, 8, 8, 8, 0, maxFrameCount);
-					engines.push_back(std::move(engine));
+					replacement.engines.push_back(std::move(engine));
 				}
 				else
 				{
-					engines.push_back(nullptr);
+					replacement.engines.push_back(nullptr);
 				}
 
-				idleSampleCounts.push_back(0);
+				replacement.idleSampleCounts.push_back(0);
 			}
+
+			// Finish building first, then initialize and publish atomically with
+			// respect to the audio callback.
+			engineState.withLock([&](EngineState& state) {
+				const float currentSampleRate = sampleRate.load();
+				const unsigned currentMaxFrameCount = maxFrameCount.load();
+				if (currentSampleRate != 0.0f && currentMaxFrameCount != 0)
+				{
+					for (const auto& engine : replacement.engines)
+						if (engine != nullptr)
+							engine->initialize(currentSampleRate, 8, 8, 8, 0, currentMaxFrameCount);
+				}
+				state = std::move(replacement);
+			});
 		}
 	}
 }

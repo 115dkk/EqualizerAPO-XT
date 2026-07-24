@@ -247,6 +247,7 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 	PerfScope _eapo_total(IoTraits::totalLabel);
 	MxcsrFtzDazGuard _mxcsrGuard;
 
+	FilterConfigurationPtr& currentConfig = configChannel.current();
 	if (currentConfig == nullptr)
 	{
 		// initialize() can finish without loading any configuration (unreadable
@@ -257,7 +258,7 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 		return;
 	}
 
-	if (currentConfig->isEmpty() && !nextConfigReady.load(std::memory_order_acquire))
+	if (currentConfig->isEmpty() && !configChannel.hasPending())
 	{
 		// A render APO can legitimately receive fewer channels than the endpoint
 		// exposes. Preserve the real input channels and initialize every output even
@@ -275,8 +276,9 @@ void FilterEngine::processImpl(SampleType output, SampleType input, unsigned fra
 		currentConfig->process(frameCount);
 	}
 
-	if (nextConfigReady.load(std::memory_order_acquire))
+	if (configChannel.hasPending())
 	{
+		FilterConfigurationPtr& nextConfig = configChannel.pending();
 		{
 			PerfScope _ps(IoTraits::readNextLabel);
 			IoTraits::read(*nextConfig, input, frameCount);

@@ -18,13 +18,16 @@
 
 #include "MultiConvolutionFilterGUI.h"
 
+#include <QDir>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QToolButton>
 
 #include "filters/MultiConvolutionCommand.h"
+#include "Editor/helpers/ConvolutionPathHelper.h"
 
 MultiConvolutionFilterGUI::MultiConvolutionFilterGUI(const QString& configPath, const QString& mappingsText, const QString& path)
 	: configPath(configPath)
@@ -71,11 +74,21 @@ void MultiConvolutionFilterGUI::store(QString& command, QString& parameters)
 
 void MultiConvolutionFilterGUI::selectFile()
 {
-	QString file = QFileDialog::getOpenFileName(this, tr("Select impulse response file"), configPath,
-			tr("Impulse response (*.wav *.flac *.ogg)"));
-	if (!file.isEmpty())
+	QFileInfo fileInfo(configPath);
+	const QString path = pathEdit->text();
+	const QString absolutePath = ConvolutionPathHelper::absolutePathForConfig(configPath, path);
+	if (!absolutePath.isEmpty())
+		fileInfo.setFile(absolutePath);
+
+	QFileDialog dialog(this, tr("Select impulse response file"), fileInfo.absolutePath(), "*.wav;*.flac;*.ogg");
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	dialog.setNameFilter(tr("Impulse response (*.wav *.flac *.ogg)"));
+	if (!path.isEmpty())
+		dialog.selectFile(fileInfo.fileName());
+	if (dialog.exec() == QDialog::Accepted)
 	{
-		pathEdit->setText(file);
+		const QString selectedPath = dialog.selectedFiles().first();
+		pathEdit->setText(ConvolutionPathHelper::displayPathForSelection(configPath, selectedPath));
 		emit updateModel();
 	}
 }

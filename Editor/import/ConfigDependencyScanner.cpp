@@ -3,17 +3,18 @@
 */
 
 #include "ConfigDependencyScanner.h"
+#include "../ConfigFileCodec.h"
 #include "../widgets/FilterCardModel.h"
+#include "filters/ConvolutionFilePath.h"
 #include "filters/MultiConvolutionCommand.h"
+#include "filters/VSTPluginCommand.h"
 
 #include <QDir>
-#include <QFile>
 #include <QFileInfo>
 #include <QObject>
 #include <QSet>
 #include <QString>
 #include <QStringList>
-#include <QTextStream>
 
 namespace EqAPO::Import
 {
@@ -48,9 +49,9 @@ QString stripSurroundingQuotes(const QString& text)
     return trimmed;
 }
 
-// The path portion of the line for the given reference command. Include and
-// VSTPlugin use the raw parameters; the convolution family shares the
-// engine's own grammar so factors/mappings never leak into the path.
+// The path portion of the line for the given reference command. The
+// convolution family and VSTPlugin share their engine grammar so routing
+// factors, mappings, state and parameter pairs never leak into the path.
 QString referencePath(const QString& commandLower, const QString& parameters)
 {
     if (commandLower == QStringLiteral("multiconvolution"))
@@ -62,20 +63,19 @@ QString referencePath(const QString& commandLower, const QString& parameters)
     }
     if (commandLower == QStringLiteral("convolution"))
         return stripSurroundingQuotes(parameters);
+    if (commandLower == QStringLiteral("vstplugin"))
+        return QString::fromStdWString(
+            VSTPluginCommand::extractLibraryReference(parameters.toStdWString()));
     return parameters;
 }
 
-QString resolveAbsolute(const QString& reference, const QString& baseDir)
+QString resolveAbsolute(const QString& reference, const QString& configPath)
 {
-    QString trimmed = reference.trimmed();
-    if (trimmed.isEmpty())
+    const std::wstring resolved = ConvolutionFilePath::resolve(
+        configPath.toStdWString(), reference.toStdWString());
+    if (resolved.empty())
         return QString();
-
-    QFileInfo info(trimmed);
-    if (info.isAbsolute())
-        return QDir::cleanPath(info.absoluteFilePath());
-
-    return QDir::cleanPath(QDir(baseDir).absoluteFilePath(trimmed));
+    return QDir::cleanPath(QString::fromStdWString(resolved));
 }
 
 // Returns relativePath using forward slashes if target is inside rootDir,
@@ -150,21 +150,16 @@ void scanConfigFile(ImportManifest& manifest,
         return;
     visited.insert(sourceTxtAbs);
 
-    QFile file(sourceTxtAbs);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    const ConfigFileCodec::ReadResult readResult = ConfigFileCodec::readConfig(sourceTxtAbs);
+    if (!readResult.ok)
     {
         manifest.warnings.append(QObject::tr("Cannot open %1 for scanning.").arg(sourceTxtAbs));
         manifest.hasErrors = true;
         return;
     }
 
-    QFileInfo configInfo(sourceTxtAbs);
-    QString baseDir = configInfo.absoluteDir().absolutePath();
-
-    QTextStream stream(&file);
-    while (!stream.atEnd())
+    for (const QString& line : readResult.lines)
     {
-        QString line = stream.readLine();
         QString trimmed = line.trimmed();
         if (trimmed.isEmpty() || trimmed.startsWith('#'))
             continue;
@@ -177,7 +172,24 @@ void scanConfigFile(ImportManifest& manifest,
             continue;
 
         QString reference = referencePath(commandLower, parameters);
-        QString refAbs = resolveAbsolute(reference, baseDir);
+        if (commandLower == QStringLiteral("vstplugin"))
+        {
+            if (reference.isEmpty())
+            {
+                manifest.warnings.append(QObject::tr(
+                    "VSTPlugin line has no Library reference: %1 (in %2)")
+                    .arg(parameters, sourceTxtAbs));
+                manifest.hasErrors = true;
+            }
+            else if (!manifest.externalReferences.contains(reference))
+                manifest.externalReferences.append(reference);
+
+            // Plugin binaries are machine-installed dependencies. Preserve the
+            // config line verbatim, but never copy the binary into config.
+            continue;
+        }
+
+        QString refAbs = resolveAbsolute(reference, sourceTxtAbs);
         if (refAbs.isEmpty())
             continue;
 

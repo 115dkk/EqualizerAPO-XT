@@ -17,20 +17,6 @@
 #include "MainWindow.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
-#include "guis/ExpressionFilterGUIFactory.h"
-#include "guis/CommentFilterGUIFactory.h"
-#include "guis/DeviceFilterGUIFactory.h"
-#include "guis/ChannelFilterGUIFactory.h"
-#include "guis/StageFilterGUIFactory.h"
-#include "guis/PreampFilterGUIFactory.h"
-#include "guis/BiQuadFilterGUIFactory.h"
-#include "guis/CopyFilterGUIFactory.h"
-#include "guis/DelayFilterGUIFactory.h"
-#include "guis/IncludeFilterGUIFactory.h"
-#include "guis/GraphicEQFilterGUIFactory.h"
-#include "guis/ConvolutionFilterGUIFactory.h"
-#include "guis/VSTPluginFilterGUIFactory.h"
-#include "guis/LoudnessCorrectionFilterGUIFactory.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
@@ -168,6 +154,8 @@ void FilterTable::addActionTriggered()
 
 void FilterTable::openConfig(QString path)
 {
+	if (mainWindow == nullptr)
+		return;
 	mainWindow->load(path);
 }
 
@@ -217,7 +205,7 @@ void FilterTable::setScrollOffsets(int x, int y)
 
 void FilterTable::updateAnalysis()
 {
-	if (isVisible())
+	if (mainWindow != nullptr && isVisible())
 		mainWindow->startAnalysis();
 }
 

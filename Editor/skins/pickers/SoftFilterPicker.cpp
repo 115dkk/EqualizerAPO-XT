@@ -19,6 +19,7 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/FilterCardModel.h"
 
 namespace
 {
@@ -114,62 +115,12 @@ QString softEntryIcon(const FilterPickerEntry& entry)
 {
 	const QString line = entry.line.trimmed();
 	if (line.startsWith(QLatin1Char('#')))
-		return QStringLiteral(":/icons/modern/comment-bubble.svg");
+		return FilterCardModel::commandIconResource(QStringLiteral("#"));
 
 	const int colon = line.indexOf(QLatin1Char(':'));
 	const QString command = colon > 0 ? line.left(colon).trimmed() : QString();
-	if (command == QLatin1String("Filter"))
-	{
-		static const struct { const char* token; const char* icon; } curves[] = {
-			{ " PK ", "eq-peaking" },
-			{ " LP ", "eq-lowpass" },
-			{ " HP ", "eq-highpass" },
-			{ " BP ", "eq-bandpass" },
-			{ " LS ", "eq-lowshelf" },
-			{ " HS ", "eq-highshelf" },
-			{ " NO ", "eq-notch" },
-			{ " AP ", "eq-allpass" }
-		};
-		for (const auto& curve : curves)
-			if (line.contains(QLatin1String(curve.token)))
-				return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(curve.icon));
-		return QStringLiteral(":/icons/modern/eq-peaking.svg");
-	}
-
-	static const struct { const char* command; const char* icon; } commands[] = {
-		{ "Include", "file-include" },
-		{ "Convolution", "waveform" },
-		{ "MultiConvolution", "multi-convolution" },
-		{ "VSTPlugin", "plugin" },
-		{ "GraphicEQ", "graphic-eq" },
-		// The volume ramp, not a knob: Soft's audience reads consumer
-		// volume glyphs, and the knob face read as a clock.
-		{ "Preamp", "preamp-gain" },
-		{ "Delay", "delay-clock" },
-		{ "Device", "device-speaker" },
-		// A channel list with a check: the command SELECTS the channels the
-		// following filters apply to - a fork glyph read as splitting the
-		// signal.
-		{ "Channel", "channel-select" },
-		{ "Stage", "stage-chain" },
-		{ "Copy", "route-channels" },
-		{ "LoudnessCorrection", "loudness" },
-		// The flowchart decision diamond: a condition choosing between paths.
-		// Deliberately not a fork arrow - a fork reads as the signal being
-		// split, the same objection that retired the old Channel fork glyph.
-		// All four block keywords wear it; they are one construct.
-		{ "If", "logic-if" },
-		{ "ElseIf", "logic-if" },
-		{ "Else", "logic-if" },
-		{ "EndIf", "logic-if" },
-		// The spreadsheet formula mark: Eval computes and assigns a value, so
-		// it wears "fx" rather than anything shaped like a response curve.
-		{ "Eval", "logic-eval" }
-	};
-	for (const auto& mapping : commands)
-		if (command == QLatin1String(mapping.command))
-			return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(mapping.icon));
-	return QString();
+	const QString parameters = colon >= 0 ? line.mid(colon + 1) : QString();
+	return FilterCardModel::commandIconResource(command, parameters);
 }
 
 // Templates that insert a bare command ("Include:", "Copy: ", "# ") would
@@ -508,27 +459,13 @@ void SoftFilterPickerView::rebuildList()
 {
 	listWidget->clear();
 
-	const QStringList terms = searchEdit->text().split(
-		QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-
 	QString currentSection;
 	bool sectionStarted = false;
 	for (int i = 0; i < allEntries.size(); i++)
 	{
 		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
-
-		bool matches = true;
-		const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
-		for (const QString& term : terms)
-		{
-			if (!haystack.contains(term, Qt::CaseInsensitive))
-			{
-				matches = false;
-				break;
-			}
-		}
-		if (!matches)
+		const QString section = filterPickerSection(entry);
+		if (!filterPickerMatches(entry, section, searchEdit->text()))
 			continue;
 
 		const QColor tint = sectionColors.value(section,

@@ -11,14 +11,18 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
+#include <future>
 #include <memory>
+#include <new>
 #include <string>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 #ifndef NOMINMAX
@@ -26,15 +30,60 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfoKeys.h"
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
+#include "engine/ConfigSwapChannel.h"
+#include "engine/ConfigWatcher.h"
+#include "helpers/ComBoundary.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ParallelExecutor.h"
+#include "helpers/RegistryHelper.h"
 #include "helpers/SndfileRAII.h"
+#include "helpers/SynchronizedState.h"
+#include "helpers/Win32Event.h"
 #include "Tests/TestHarness.h"
 
 namespace
 {
+void testDeviceApoRegistryVocabulary(test::Harness& harness)
+{
+	harness.expectEqual(allGuidValueNameCount, 5u,
+		"the five legacy APO slots stay in their indexed order");
+	const auto ownedBegin = std::begin(ownedFxValueNames);
+	const auto ownedEnd = std::end(ownedFxValueNames);
+	for (const wchar_t* valueName : allGuidValueNames)
+		harness.expect(std::find(ownedBegin, ownedEnd, valueName) != ownedEnd,
+			"every installed APO GUID value is in the uninstall ownership table");
+	for (const wchar_t* valueName : {
+		sfxProcessingModesValueName, mfxProcessingModesValueName,
+		efxProcessingModesValueName, fxTitleValueName })
+	{
+		harness.expect(std::find(ownedBegin, ownedEnd, valueName) != ownedEnd,
+			"every installed processing value is in the uninstall ownership table");
+	}
+}
+
+void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
+{
+	using InstallState = DeviceAPOInfo::InstallState;
+	alignas(InstallState) unsigned char leftStorage[sizeof(InstallState)];
+	alignas(InstallState) unsigned char rightStorage[sizeof(InstallState)];
+	std::fill_n(leftStorage, sizeof(leftStorage), static_cast<unsigned char>(0xAA));
+	std::fill_n(rightStorage, sizeof(rightStorage), static_cast<unsigned char>(0x55));
+	InstallState* left = new (leftStorage) InstallState();
+	InstallState* right = new (rightStorage) InstallState();
+
+	harness.expect(!(*left != *right),
+		"logically identical install states ignore padding bytes");
+	right->allowSilentBufferModification = true;
+	harness.expect(*left != *right,
+		"a changed install-state field is detected");
+
+	left->~InstallState();
+	right->~InstallState();
+}
 
 void testParallelExecutor(test::Harness& harness)
 {
@@ -100,6 +149,95 @@ std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, c
 		harness.fail("could not write temp config file");
 	writtenConfigFiles().push_back(path);
 	return path;
+}
+
+void testLogHelperFileDestination(test::Harness& harness)
+{
+	const std::wstring path = testDirectory() + L"\\LogHelperDestination.log";
+	DeleteFileW(path.c_str());
+
+	LogHelper::useFile(path, true, false, false);
+	LogFStatic(L"file destination %d", 42);
+
+	std::ifstream stream(path, std::ios::binary);
+	const std::string contents((std::istreambuf_iterator<char>(stream)),
+		std::istreambuf_iterator<char>());
+	harness.expect(stream.good() || stream.eof(), "file logger writes a readable destination");
+	harness.expect(contents.find("file destination 42") != std::string::npos,
+		"file logger writes diagnostics to the selected path");
+
+	LogHelper::useStream(stderr, false, false, false);
+	DeleteFileW(path.c_str());
+}
+
+void testLogHelperUserDestination(test::Harness& harness)
+{
+	wchar_t previousLocalAppData[MAX_PATH] = {};
+	const DWORD previousLength = GetEnvironmentVariableW(
+		L"LOCALAPPDATA", previousLocalAppData, MAX_PATH);
+	const std::wstring localRoot = testDirectory() + L"\\LocalAppData";
+	CreateDirectoryW(localRoot.c_str(), nullptr);
+	SetEnvironmentVariableW(L"LOCALAPPDATA", localRoot.c_str());
+
+	harness.expect(LogHelper::useUserFile(L"Editor.log", true, false, false),
+		"user logger creates its product log directory");
+	LogFStatic(L"user destination");
+	const std::wstring path = localRoot + L"\\EqualizerAPO\\logs\\Editor.log";
+	std::ifstream stream(path, std::ios::binary);
+	const std::string contents((std::istreambuf_iterator<char>(stream)),
+		std::istreambuf_iterator<char>());
+	harness.expect(contents.find("user destination") != std::string::npos,
+		"user logger writes to the per-user Editor log");
+
+	LogHelper::useStream(stderr, false, false, false);
+	if (previousLength > 0 && previousLength < MAX_PATH)
+		SetEnvironmentVariableW(L"LOCALAPPDATA", previousLocalAppData);
+	else
+		SetEnvironmentVariableW(L"LOCALAPPDATA", nullptr);
+	DeleteFileW(path.c_str());
+	RemoveDirectoryW((localRoot + L"\\EqualizerAPO\\logs").c_str());
+	RemoveDirectoryW((localRoot + L"\\EqualizerAPO").c_str());
+	RemoveDirectoryW(localRoot.c_str());
+}
+
+void testRegistryExportHeaderPreservesQualifiedRoot(test::Harness& harness)
+{
+	const std::wstring key = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties";
+	harness.expect(RegistryHelper::formatExportHeader(key)
+			== L"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties]",
+		"registry export writes an already-qualified key exactly once");
+}
+
+void testSynchronizedStateSerializesReplacement(test::Harness& harness)
+{
+	SynchronizedState<int> state(1);
+	std::promise<void> enteredPromise;
+	std::future<void> entered = enteredPromise.get_future();
+	std::promise<void> releasePromise;
+	std::shared_future<void> release = releasePromise.get_future().share();
+
+	std::future<int> reader = std::async(std::launch::async, [&]() {
+		return state.withLock([&](const int& value) {
+			enteredPromise.set_value();
+			release.wait();
+			return value;
+		});
+	});
+	harness.expect(entered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+		"synchronized state reader acquires the state");
+
+	std::future<void> replacement = std::async(std::launch::async, [&]() {
+		state.replace(2);
+	});
+	harness.expect(replacement.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout,
+		"state replacement waits for an active reader");
+	releasePromise.set_value();
+	reader.wait();
+	replacement.wait();
+	harness.expectEqual(reader.get(), 1, "active reader keeps the original state alive");
+	replacement.get();
+	harness.expectEqual(state.withLock([](const int& value) { return value; }), 2,
+		"subsequent reader observes the complete replacement");
 }
 
 // Builds an engine the same way AudioRegressionTests does: no registry
@@ -519,6 +657,123 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
+void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness)
+{
+	const std::wstring firstDirectory = testDirectory() + L"\\watch-a";
+	const std::wstring secondDirectory = testDirectory() + L"\\watch-b";
+	CreateDirectoryW(firstDirectory.c_str(), nullptr);
+	CreateDirectoryW(secondDirectory.c_str(), nullptr);
+
+	std::atomic<int> selectedPath = 0;
+	std::atomic<int> snapshotCount = 0;
+	std::atomic<int> callbackCount = 0;
+	Win32Event shutdown(true, false);
+	Win32Event changed(true, false);
+	ConfigWatcher watcher(
+		shutdown.get(),
+		[&] {
+			++snapshotCount;
+			ConfigWatcher::Snapshot snapshot;
+			if (selectedPath == 0)
+				snapshot.directory = testDirectory() + L"\\missing-watch";
+			else if (selectedPath == 1)
+				snapshot.directory = firstDirectory;
+			else
+				snapshot.directory = secondDirectory;
+			return snapshot;
+		},
+		[&] {
+			++callbackCount;
+			changed.set();
+			return true;
+		});
+	std::thread worker([&] { watcher.run(); });
+
+	Sleep(120);
+	harness.expect(snapshotCount.load() <= 2,
+		"unavailable config watch uses backoff instead of hot-looping");
+
+	auto triggerAndWait = [&](int pathIndex, const std::wstring& directory,
+		const char* label) {
+		selectedPath = pathIndex;
+		changed.reset();
+		bool observed = false;
+		for (int attempt = 0; attempt < 24 && !observed; ++attempt)
+		{
+			const std::wstring file = directory + L"\\change-"
+				+ std::to_wstring(attempt) + L".txt";
+			HANDLE output = CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr,
+				CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+			if (output != INVALID_HANDLE_VALUE)
+				CloseHandle(output);
+			observed = WaitForSingleObject(changed.get(), 150) == WAIT_OBJECT_0;
+			DeleteFileW(file.c_str());
+		}
+		harness.expect(observed, label);
+	};
+
+	triggerAndWait(1, firstDirectory,
+		"watcher recovers when the config directory becomes available");
+	triggerAndWait(2, secondDirectory,
+		"watcher follows a ConfigPath directory change");
+
+	shutdown.set();
+	worker.join();
+	RemoveDirectoryW(firstDirectory.c_str());
+	RemoveDirectoryW(secondDirectory.c_str());
+	harness.expect(callbackCount.load() >= 2,
+		"both config directories produced change callbacks");
+}
+
+// initialize() seeds an empty active configuration and publishes the requested
+// file through the same worker->RT channel used by every later reload. Before
+// the first audio block consumes it, the public state query must conservatively
+// report the pending transition instead of treating the config as directly
+// installed.
+void testInitialLoadUsesPublicationChannel(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"initial-publication.txt",
+		"Preamp: -6.0206 dB\n");
+
+	FilterEngine engine;
+	const std::wstring deviceName = L"EngineOrchestrationTests";
+	engine.setDeviceInfo(false, true, deviceName, L"File", L"", deviceName + L" File");
+	engine.initialize(48000.0f, 2, 2, 2, 0, 16, configPath);
+
+	harness.expect(engine.hasStatefulOrTailFilters(),
+		"initial configuration bypassed the worker-to-RT publication channel");
+}
+
+void testConfigSwapChannelPermitRoundTrip(test::Harness& harness)
+{
+	using TestChannel = ConfigSwapChannel<std::unique_ptr<int>>;
+
+	TestChannel channel;
+	channel.reset(std::make_unique<int>(1));
+	harness.require(channel.acquirePublishPermit(0),
+		"fresh config channel did not grant its producer permit");
+	channel.publish(std::make_unique<int>(2));
+	harness.expect(channel.hasPending(), "published config was not visible to the RT side");
+	harness.expectEqual(*channel.current(), 1, "publish replaced current before RT acquisition");
+
+	channel.completeTransition();
+	harness.expectFalse(channel.hasPending(), "completed transition stayed pending");
+	harness.expectEqual(*channel.current(), 2, "completed transition did not promote pending config");
+	harness.require(channel.acquirePublishPermit(0),
+		"RT completion did not return the producer permit");
+	channel.releasePublishPermit();
+
+	harness.require(channel.acquirePublishPermit(0),
+		"config channel did not grant a permit before reset");
+	channel.publish(std::make_unique<int>(3));
+	channel.reset(std::make_unique<int>(4));
+	harness.expectFalse(channel.hasPending(), "reset kept a discarded pending config");
+	harness.expectEqual(*channel.current(), 4, "reset did not install its seed config");
+	harness.require(channel.acquirePublishPermit(0),
+		"reset discarded a pending config without returning its permit");
+	channel.releasePublishPermit();
+}
+
 // Windows may give a render APO fewer input channels than the endpoint output
 // layout (for example, a stereo application stream feeding an 8-channel
 // endpoint). An empty configuration is still responsible for adapting that
@@ -649,9 +904,41 @@ int runEngineOrchestrationTests()
 
 	test::Harness harness("EngineOrchestrationTests");
 
+	try
+	{
+		harness.expect(ComBoundary::invoke([]() -> HRESULT {
+			throw std::bad_alloc();
+		}) == E_OUTOFMEMORY, "COM boundary maps allocation failure");
+	}
+	catch (...)
+	{
+		harness.fail("allocation exception escaped the COM boundary");
+	}
+	try
+	{
+		harness.expect(ComBoundary::invoke([]() -> HRESULT {
+			throw std::runtime_error("injected COM failure");
+		}) == E_UNEXPECTED, "COM boundary maps unexpected exception");
+	}
+	catch (...)
+	{
+		harness.fail("unexpected exception escaped the COM boundary");
+	}
+	harness.expect(ComBoundary::invoke([] { return S_FALSE; }) == S_FALSE,
+		"COM boundary preserves callback HRESULT");
+
+	testLogHelperFileDestination(harness);
+	testLogHelperUserDestination(harness);
+	testRegistryExportHeaderPreservesQualifiedRoot(harness);
+	testSynchronizedStateSerializesReplacement(harness);
+	testDeviceApoRegistryVocabulary(harness);
+	testInstallStateComparisonIgnoresPadding(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
+	testInitialLoadUsesPublicationChannel(harness);
+	testConfigSwapChannelPermitRoundTrip(harness);
 	testEmptyConfigurationExpandsRenderChannels(harness);
 	testParallelExecutor(harness);
+	testConfigWatcherBackoffAndPathRefresh(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
 	testChannelSelectorRouting(harness);

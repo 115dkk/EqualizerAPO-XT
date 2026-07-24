@@ -285,6 +285,7 @@
     <ClCompile Include="Benchmark.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BatchPlan.h" />
     <ClInclude Include="..\helpers\MemoryHelper.h" />
     <ClInclude Include="..\stdafx.h" />
   </ItemGroup>

@@ -425,6 +425,7 @@
     </ClCompile>
     <ClInclude Include="..\Editor\skins\SkinThemeData.h" />
     <ClCompile Include="..\helpers\ServiceHelper.cpp" />
+    <ClCompile Include="..\helpers\ApoRegistration.cpp" />
     <ClCompile Include="DeviceSelector.cpp" />
     <ClInclude Include="..\helpers\ServiceHelper.h" />
     <QtMoc Include="DeviceTestDialog.h" />

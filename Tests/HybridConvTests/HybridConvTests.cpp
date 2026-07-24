@@ -64,6 +64,48 @@ constexpr int sampleRate = 48000;
 constexpr double tolerance = 1.0e-8;
 
 test::Harness harness("HybridConvTests");
+wstring wisdomTestDirectory;
+wstring previousLocalAppData;
+
+void assertFftwWisdomIsExported()
+{
+	wchar_t tempPath[MAX_PATH] = {};
+	harness.expectTrue(GetTempPathW(MAX_PATH, tempPath) > 0,
+		"FFTW wisdom test resolves temporary directory");
+	wisdomTestDirectory = wstring(tempPath)
+		+ L"EqualizerAPO-XT-wisdom-" + std::to_wstring(GetCurrentProcessId());
+	CreateDirectoryW(wisdomTestDirectory.c_str(), nullptr);
+
+	wchar_t oldLocalAppData[MAX_PATH] = {};
+	const DWORD oldLength = GetEnvironmentVariableW(
+		L"LOCALAPPDATA", oldLocalAppData, MAX_PATH);
+	if (oldLength > 0 && oldLength < MAX_PATH)
+		previousLocalAppData.assign(oldLocalAppData, oldLength);
+	_wputenv_s(L"LOCALAPPDATA", wisdomTestDirectory.c_str());
+
+	double impulse[] = {1.0};
+	HConvSingle filter = {};
+	hcInitSingle(&filter, impulse, 1, 64, 1);
+	hcCloseSingle(&filter);
+
+	const wstring wisdomPath =
+		wisdomTestDirectory + L"\\EqualizerAPO\\fftw_wisdom.dat";
+	WIN32_FILE_ATTRIBUTE_DATA attributes = {};
+	harness.expectTrue(GetFileAttributesExW(
+		wisdomPath.c_str(), GetFileExInfoStandard, &attributes) != 0,
+		"first convolution plan exports FFTW wisdom");
+	harness.expectTrue(attributes.nFileSizeHigh != 0 || attributes.nFileSizeLow != 0,
+		"exported FFTW wisdom is not empty");
+}
+
+void cleanupFftwWisdomTest()
+{
+	const wstring wisdomDir = wisdomTestDirectory + L"\\EqualizerAPO";
+	DeleteFileW((wisdomDir + L"\\fftw_wisdom.dat").c_str());
+	RemoveDirectoryW(wisdomDir.c_str());
+	RemoveDirectoryW(wisdomTestDirectory.c_str());
+	_wputenv_s(L"LOCALAPPDATA", previousLocalAppData.c_str());
+}
 
 struct Tap
 {
@@ -403,6 +445,7 @@ int runHybridConvTests()
 {
 	LogHelper::set(stdout, true, true, false);
 
+	assertFftwWisdomIsExported();
 	assertSparseImpulseResponseSurvivesPastOneSecond(0);
 	assertSparseImpulseResponseSurvivesPastOneSecond(137);
 	assertConvolutionFilterRecoversFromInitialShortFrame();
@@ -441,6 +484,7 @@ int runHybridConvTests()
 	runParserPreampTests();
 	runMultiConvolutionTests();
 
+	cleanupFftwWisdomTest();
 	harness.report();
 	return 0;
 }

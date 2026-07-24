@@ -22,10 +22,12 @@
 #include "GraphicEQCommand.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <regex>
 
 #include "helpers/StringHelper.h"
+#include "helpers/LogHelper.h"
 
 using std::sort;
 using std::wregex;
@@ -61,6 +63,12 @@ void GraphicEQCommand::parse(const wstring& parameters)
 		wsmatch gainMatch = *it++;
 		double freq = StringHelper::parseDouble(freqMatch.str(0));
 		double gain = StringHelper::parseDouble(gainMatch.str(0));
+		if (!std::isfinite(freq) || !std::isfinite(gain))
+		{
+			LogFStatic(L"GraphicEQ frequency and gain must be finite; ignoring pair %s %s",
+				freqMatch.str(0).c_str(), gainMatch.str(0).c_str());
+			continue;
+		}
 		FilterNode node(freq, gain);
 		nodes.push_back(node);
 	}

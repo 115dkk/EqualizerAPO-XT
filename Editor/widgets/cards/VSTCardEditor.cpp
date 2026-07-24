@@ -36,6 +36,7 @@
 #include "Editor/MainWindow.h"
 #include "Editor/guis/VSTPluginFilterGUIDialog.h"
 #include "ReferenceCardView.h"
+#include "FileReferenceController.h"
 
 using std::shared_ptr;
 using std::unordered_map;
@@ -126,7 +127,8 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	warningTextEdit->setVisible(false);
 	root->addWidget(warningTextEdit);
 
-	displayPath = displayPathForLibrary(library->getLibPath());
+	reference = new FileReferenceController(
+		QStringLiteral("vst"), displayPathForLibrary(library->getLibPath()), this);
 
 	// Let the active skin decorate this VST body (the row is recreated on
 	// skin switches, so construction is the only moment needed).
@@ -152,7 +154,7 @@ void VSTCardEditor::store(QString& command, QString& parameters)
 {
 	command = "VSTPlugin";
 
-	QString relativePath = displayPathForLibrary(library->getLibPath());
+	QString relativePath = reference->writtenPath();
 
 	if (relativePath.contains(" "))
 		relativePath = "\"" + relativePath + "\"";
@@ -289,22 +291,12 @@ void VSTCardEditor::initPlugin()
 // the broken library as the missing transition with Locate as recovery.
 void VSTCardEditor::updateReferenceState()
 {
-	ReferenceCardState state;
-	state.kind = QStringLiteral("vst");
-	state.editText = displayPath;
-
-	if (displayPath.isEmpty())
+	reference->setResolvedPath(QString::fromStdWString(library->getLibPath()));
+	ReferenceCardState state = reference->describe(tr("No plugin selected"));
+	if (!reference->writtenPath().isEmpty())
 	{
-		state.missing = true;
-		state.name = tr("No plugin selected");
-	}
-	else
-	{
-		const QString normalized = QDir::fromNativeSeparators(displayPath);
+		const QString normalized = QDir::fromNativeSeparators(reference->writtenPath());
 		const QFileInfo asWritten(normalized);
-		state.name = asWritten.fileName();
-		state.absolutePath = QDir::isAbsolutePath(normalized);
-		state.fullPath = QDir::toNativeSeparators(QString::fromStdWString(library->getLibPath()));
 
 		const QString suffix = asWritten.suffix().toLower();
 		if (suffix == QStringLiteral("vst3"))
@@ -312,12 +304,7 @@ void VSTCardEditor::updateReferenceState()
 		else if (suffix == QStringLiteral("dll"))
 			state.formatBadge = QStringLiteral("VST2");
 
-		if (state.absolutePath)
-			state.directory = QDir::toNativeSeparators(QFileInfo(QString::fromStdWString(library->getLibPath())).absolutePath());
-		else if (asWritten.path() != QStringLiteral("."))
-			state.directory = QDir::toNativeSeparators(asWritten.path());
-
-		state.missing = libraryMissing;
+		state.missing = state.missing || libraryMissing;
 		if (effect != nullptr)
 		{
 			const QString pluginName = QString::fromStdWString(effect->getName());
@@ -338,17 +325,17 @@ void VSTCardEditor::updateReferenceState()
 		}
 	}
 
-	const bool locate = state.missing && !displayPath.isEmpty();
+	const bool locate = state.missing && !reference->writtenPath().isEmpty();
 	selectButton->setText(locate ? tr("Locate...") : QString());
 	selectButton->setToolTip(locate ? tr("Locate the missing plugin library") : tr("Select VST plugin"));
-	openPanelButton->setEnabled(!state.missing && !displayPath.isEmpty());
+	openPanelButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty());
 
 	view->setState(state);
 }
 
 void VSTCardEditor::pathCommitted(const QString& text)
 {
-	displayPath = text;
+	reference->setWrittenPath(text);
 	if (QString::fromStdWString(library->getLibPath()) != text)
 	{
 		int oldId = 0;
@@ -392,23 +379,17 @@ void VSTCardEditor::selectFile()
 		lastDir = pluginsDir.absolutePath();
 
 	QFileInfo fileInfo(lastDir);
-	if (displayPath.length() > 0)
-		fileInfo.setFile(pluginsDir, displayPath);
+	if (!reference->writtenPath().isEmpty())
+		fileInfo.setFile(pluginsDir, reference->writtenPath());
 
-	QFileDialog dialog(this, tr("Select VST plugin"), fileInfo.absoluteFilePath(), "*.dll *.vst3");
-	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setNameFilter(tr("VST plugins (*.dll *.vst3)"));
-	GUIHelper::prepareFileDialog(dialog);
-	if (displayPath.length() > 0)
-		dialog.selectFile(fileInfo.fileName());
-	if (dialog.exec() == QDialog::Accepted)
+	const QString absolutePath = reference->chooseExistingFile(
+		this, tr("Select VST plugin"), fileInfo.absoluteFilePath(),
+		tr("VST plugins (*.dll *.vst3)"), pluginsDir.absolutePath(),
+		reference->writtenPath().isEmpty() ? QString() : fileInfo.fileName());
+	if (!absolutePath.isEmpty())
 	{
-		QString absolutePath = dialog.selectedFiles().first();
 		settings.setValue("vst/lastDir", QDir::toNativeSeparators(QFileInfo(absolutePath).absolutePath()));
-		QString relativePath = pluginsDir.relativeFilePath(absolutePath);
-		if (relativePath.startsWith("../../"))
-			relativePath = absolutePath;
-		pathCommitted(QDir::toNativeSeparators(relativePath));
+		pathCommitted(reference->writtenPath());
 	}
 }
 
@@ -525,17 +506,8 @@ void VSTCardEditor::updatePermissionWarning()
 		return;
 	}
 
-	ACCESS_MASK mask = GENERIC_READ;
-	try
-	{
-		mask = RegistryHelper::getFileAccessForUser(library->getLibPath(), SECURITY_LOCAL_SERVICE_RID);
-	}
-	catch (const RegistryException&)
-	{
-		// ignore
-	}
-
-	if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
+	if (!FileReferenceController::isReadableByAudioService(
+		QString::fromStdWString(library->getLibPath())))
 	{
 		QString text = tr("The library is not readable by the audio service.\nChange the file permissions or copy the file to the VSTPlugins directory.");
 		warningTextEdit->setPlainText(text);

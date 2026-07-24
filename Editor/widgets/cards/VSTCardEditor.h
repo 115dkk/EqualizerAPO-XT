@@ -31,6 +31,7 @@ class QPushButton;
 class QFrame;
 class QPlainTextEdit;
 class QAction;
+class FileReferenceController;
 class ReferenceCardView;
 
 class VSTCardEditor : public IFilterGUI
@@ -73,10 +74,7 @@ private:
 	bool stereoInput = false;
 	QElapsedTimer lastReadTimer;
 
-	// The library reference as displayed/edited (relative to the VSTPlugins
-	// directory when possible), plus the last initPlugin outcome feeding the
-	// reference-card state.
-	QString displayPath;
+	FileReferenceController* reference = nullptr;
 	QString initErrorText;
 	bool libraryMissing = false;
 

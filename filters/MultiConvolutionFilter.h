@@ -57,6 +57,7 @@ private:
 	std::wstring filename;
 	float sampleRate;
 	unsigned filterFrameCount;
+	bool frameCountMismatchLogged;
 
 	// Where one mapping reads and writes: units [firstUnit, firstUnit+unitCount)
 	// of the flat convolution-state array feed output[outputSlot] from

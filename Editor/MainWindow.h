@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -45,6 +46,7 @@ class MainWindow;
 class QLabel;
 class TitleBar;
 class UpdateToast;
+namespace SkinSwitchStorm { void run(MainWindow& window); }
 
 // MainWindow's implementation is split across several translation units (all
 // listed in Editor.pro SOURCES). When looking for a method, check the matching
@@ -67,10 +69,6 @@ public:
 	~MainWindow();
 	void doChecks();
 	void runDeviceSelector();
-	// Diagnostic behind --skin-switch-storm: drives the real skin/dark menu
-	// actions through a revisit-heavy sequence on the live window and reports
-	// the main toolbar's health after every switch, then exits the process.
-	void startSkinSwitchStorm();
 	void load(QString path);
 	void save(FilterTable* filterTable, QString path);
 	bool isEmpty();
@@ -128,6 +126,9 @@ private slots:
 	void on_actionResetAllFileSpecificPreferences_triggered();
 
 private:
+	friend void SkinSwitchStorm::run(MainWindow& window);
+	void startSkinSwitchStorm();
+	void applySkinAndRebuild();
 	void executeStartAnalysis();
 	FilterTable* addTab(QString title, QString tooltip, QString configPath, QList<QString> lines);
 	void getDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask);
@@ -150,6 +151,7 @@ private:
 	void watchForPendingUpdate();
 	FilterTable* filterTableForTab(int tabIndex) const;
 	FilterTable* currentFilterTable() const;
+	void forEachFilterTable(const std::function<void(int, FilterTable*)>& visitor) const;
 	void updateDirtyStatus();
 	// Grey the Edit-menu undo/redo entries out while the active tab's history
 	// has nothing to step to; without this they always render enabled and
@@ -175,6 +177,7 @@ private:
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;
+	bool skinPersistenceSuppressed = false;
 	QStringList recentFiles;
 	QString skinId = QStringLiteral("studio");
 	bool skinDark = true;

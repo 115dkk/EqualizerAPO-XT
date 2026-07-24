@@ -246,6 +246,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\FilterEngine.h" />
+    <ClInclude Include="..\..\helpers\SynchronizedState.h" />
     <ClInclude Include="..\TestHarness.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
