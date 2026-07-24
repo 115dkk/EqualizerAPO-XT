@@ -392,15 +392,52 @@ QString buildFileDialogFixture(const QDir& outDir)
 
 // renderSkin() renders, per skin and per mode: every gallery row in
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
-// disabled from renderStates(commented=true)), plus kExtraShotsPerSkinMode fixed
+// disabled from renderStates(commented=true)), plus the registered fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
 // addrow x2, seam, toast, filedialog, graph x2, copyfold x4, logic,
 // channelscope). run() multiplies these by skins x 2 modes to self-check the
 // output count, so adding a gallery row needs no external count to be
-// updated. Keep both constants in step with renderStates()/renderSkin() if
-// the state set or chrome shots change.
+// updated. The fixed count is derived from galleryScenarios().
 constexpr int kStatesPerRow = 3;
-constexpr int kExtraShotsPerSkinMode = 21;
+
+struct GalleryScenario
+{
+	QString id;
+	QStringList states;
+};
+
+// Fixed chrome scenarios are registered once. The render blocks below build
+// their specialized widgets, while this table owns scenario identity, state
+// vocabulary, and the deterministic shot-count contract.
+const QList<GalleryScenario>& galleryScenarios()
+{
+	static const QList<GalleryScenario> scenarios = {
+		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"), QStringLiteral("empty") } },
+		{ QStringLiteral("toolbar"), { QStringLiteral("normal") } },
+		{ QStringLiteral("analysis"), { QStringLiteral("normal") } },
+		{ QStringLiteral("titlebar"), { QStringLiteral("normal") } },
+		{ QStringLiteral("menubar"), { QStringLiteral("normal") } },
+		{ QStringLiteral("menu"), { QStringLiteral("normal") } },
+		{ QStringLiteral("addrow"), { QStringLiteral("normal"), QStringLiteral("hover") } },
+		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
+		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
+		{ QStringLiteral("filedialog"), { QStringLiteral("normal") } },
+		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor") } },
+		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
+			QStringLiteral("expanded"), QStringLiteral("editor") } },
+		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
+		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } }
+	};
+	return scenarios;
+}
+
+int fixedScenarioShotCount()
+{
+	int count = 0;
+	for (const GalleryScenario& scenario : galleryScenarios())
+		count += scenario.states.size();
+	return count;
+}
 
 // A rendered toolbar is never one flat colour: buttons, combos and labels
 // cover a sizable share of the strip. A grab that matches its own corner
@@ -1462,14 +1499,35 @@ int run(const QStringList& arguments)
 	// the run even when every attempted grab succeeded. galleryRows() drives the
 	// row term, so adding a gallery row updates this expectation automatically
 	// and no external (build.yml) count needs to be touched.
-	const int perSkinMode = static_cast<int>(galleryRows().size()) * kStatesPerRow + kExtraShotsPerSkinMode;
+	const int extraShots = fixedScenarioShotCount();
+	const int perSkinMode = static_cast<int>(galleryRows().size()) * kStatesPerRow + extraShots;
 	const int expected = static_cast<int>(skinIds.size()) * 2 * perSkinMode;
 	const int actual = static_cast<int>(outDir.entryList(QStringList{QStringLiteral("*.png")}, QDir::Files).size());
 	if (actual != expected)
 	{
 		qWarning("SkinGallery: expected %d shots (%d skins x 2 modes x (%d rows x %d + %d extras)), wrote %d",
-			expected, static_cast<int>(skinIds.size()), static_cast<int>(galleryRows().size()), kStatesPerRow, kExtraShotsPerSkinMode, actual);
+			expected, static_cast<int>(skinIds.size()), static_cast<int>(galleryRows().size()), kStatesPerRow, extraShots, actual);
 		failures++;
+	}
+	for (const QString& skinId : skinIds)
+	{
+		for (const QString& mode : { QStringLiteral("dark"), QStringLiteral("light") })
+		{
+			for (const GalleryScenario& scenario : galleryScenarios())
+			{
+				for (const QString& state : scenario.states)
+				{
+					const QString fileName = QStringLiteral("%1_%2_%3_%4.png")
+						.arg(skinId.trimmed(), mode, scenario.id, state);
+					if (!outDir.exists(fileName))
+					{
+						qWarning("SkinGallery: registered scenario output is missing: %s",
+							qPrintable(fileName));
+						failures++;
+					}
+				}
+			}
+		}
 	}
 
 	// --skin-gallery is a headless one-shot: by this point every screenshot has
