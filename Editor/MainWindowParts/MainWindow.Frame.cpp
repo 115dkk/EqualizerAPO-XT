@@ -23,6 +23,7 @@
 
 #include "Editor/widgets/TitleBar.h"
 #include "Editor/helpers/EditorSettings.h"
+#include "Editor/helpers/WindowFrameHitTest.h"
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
@@ -62,75 +63,8 @@ bool MainWindow::nativeEvent(const QByteArray& eventType, void* message, qintptr
 		return QMainWindow::nativeEvent(eventType, message, result);
 
 	MSG* msg = static_cast<MSG*>(message);
-	switch (msg->message)
-	{
-	case WM_NCCALCSIZE:
-	{
-		if (msg->wParam == TRUE)
-		{
-			// Claim the whole window rect as client area (the caption is
-			// gone). A maximized window extends past the monitor edge by the
-			// frame thickness, so inset all four sides to keep the content
-			// on screen.
-			NCCALCSIZE_PARAMS* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(msg->lParam);
-			if (IsZoomed(msg->hwnd))
-			{
-				const int frame = GetSystemMetrics(SM_CXSIZEFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-				params->rgrc[0].left += frame;
-				params->rgrc[0].top += frame;
-				params->rgrc[0].right -= frame;
-				params->rgrc[0].bottom -= frame;
-			}
-			*result = 0;
-			return true;
-		}
-		break;
-	}
-	case WM_NCHITTEST:
-	{
-		// Work in window-relative LOGICAL coordinates: physical offset from
-		// the window origin divided by the window's device pixel ratio. This
-		// avoids mixed-DPI global-coordinate mapping entirely.
-		RECT windowRect;
-		GetWindowRect(msg->hwnd, &windowRect);
-		const double scale = devicePixelRatioF();
-		const QPoint rel(
-			qRound((GET_X_LPARAM(msg->lParam) - windowRect.left) / scale),
-			qRound((GET_Y_LPARAM(msg->lParam) - windowRect.top) / scale));
-
-		const int border = 6;
-		if (!isMaximized())
-		{
-			const bool left = rel.x() < border;
-			const bool right = rel.x() >= width() - border;
-			const bool top = rel.y() < border;
-			const bool bottom = rel.y() >= height() - border;
-			if (top && left) { *result = HTTOPLEFT; return true; }
-			if (top && right) { *result = HTTOPRIGHT; return true; }
-			if (bottom && left) { *result = HTBOTTOMLEFT; return true; }
-			if (bottom && right) { *result = HTBOTTOMRIGHT; return true; }
-			if (top) { *result = HTTOP; return true; }
-			if (bottom) { *result = HTBOTTOM; return true; }
-			if (left) { *result = HTLEFT; return true; }
-			if (right) { *result = HTRIGHT; return true; }
-		}
-
-		if (titleBar != nullptr)
-		{
-			const QPoint inTitleBar = titleBar->mapFrom(this, rel);
-			if (titleBar->isCaptionPoint(inTitleBar))
-			{
-				// Native caption semantics: drag to move, drag to the screen
-				// edge to snap, double-click to maximize/restore.
-				*result = HTCAPTION;
-				return true;
-			}
-		}
-		break;
-	}
-	default:
-		break;
-	}
+	if (WindowFrameHitTest::handle(this, titleBar, msg, result))
+		return true;
 
 	return QMainWindow::nativeEvent(eventType, message, result);
 }
