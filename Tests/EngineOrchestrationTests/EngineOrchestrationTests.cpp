@@ -19,6 +19,7 @@
 #include <fstream>
 #include <future>
 #include <memory>
+#include <new>
 #include <string>
 #include <stdexcept>
 #include <thread>
@@ -29,6 +30,7 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "DeviceAPOInfo.h"
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
@@ -44,6 +46,25 @@
 
 namespace
 {
+void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
+{
+	using InstallState = DeviceAPOInfo::InstallState;
+	alignas(InstallState) unsigned char leftStorage[sizeof(InstallState)];
+	alignas(InstallState) unsigned char rightStorage[sizeof(InstallState)];
+	std::fill_n(leftStorage, sizeof(leftStorage), static_cast<unsigned char>(0xAA));
+	std::fill_n(rightStorage, sizeof(rightStorage), static_cast<unsigned char>(0x55));
+	InstallState* left = new (leftStorage) InstallState();
+	InstallState* right = new (rightStorage) InstallState();
+
+	harness.expect(!(*left != *right),
+		"logically identical install states ignore padding bytes");
+	right->allowSilentBufferModification = true;
+	harness.expect(*left != *right,
+		"a changed install-state field is detected");
+
+	left->~InstallState();
+	right->~InstallState();
+}
 
 void testParallelExecutor(test::Harness& harness)
 {
@@ -891,6 +912,7 @@ int runEngineOrchestrationTests()
 	testLogHelperUserDestination(harness);
 	testRegistryExportHeaderPreservesQualifiedRoot(harness);
 	testSynchronizedStateSerializesReplacement(harness);
+	testInstallStateComparisonIgnoresPadding(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);
