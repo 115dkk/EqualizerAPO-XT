@@ -117,3 +117,17 @@ private:
 	MemoryHelper::UniqueAllocation<HConvSingle> ptr;
 	unsigned capacity = 0;
 };
+
+struct ConvolverUnitSource
+{
+	const double* samples = nullptr;
+	unsigned sampleCount = 0;
+	unsigned prototype = 0;
+};
+
+// Builds independent HConvSingle processing states while sharing immutable
+// filter banks between units that name the same prototype. Planning,
+// allocation, parallel prototype transforms, fan-out and rollback live here
+// so all convolution filters follow one construction contract.
+HConvSingleArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sources,
+	unsigned frameCount);

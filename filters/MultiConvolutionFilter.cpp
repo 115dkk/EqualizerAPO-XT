@@ -135,16 +135,6 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	if (totalUnits == 0)
 		return outChannelNames;
 
-	fftw_make_planner_thread_safe();
-	auto allocated = MemoryHelper::allocateArray<HConvSingle>(totalUnits);
-	if (allocated == nullptr)
-	{
-		LogF(L"MultiConvolutionFilter: could not allocate %u convolution units", totalUnits);
-		return outChannelNames;
-	}
-	HConvSingleArray pendingFilters;
-	pendingFilters.adoptStorage(std::move(allocated), totalUnits);
-
 	tempBuffer.assign(maxFrameCount, 0.0);
 	unitFactors.assign(totalUnits, 1.0);
 	std::vector<unsigned> unitChannels(totalUnits);
@@ -164,30 +154,21 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	// Transform each referenced channel once and share only its immutable bank.
 	const unsigned noPrototype = (std::numeric_limits<unsigned>::max)();
 	std::vector<unsigned> prototypes(ir->channels, noPrototype);
-	std::vector<unsigned> prototypeUnits;
 	for (unsigned unit = 0; unit < totalUnits; ++unit)
 	{
 		const unsigned irChannel = unitChannels[unit];
 		if (prototypes[irChannel] == noPrototype)
-		{
 			prototypes[irChannel] = unit;
-			prototypeUnits.push_back(unit);
-		}
 	}
-	ParallelExecutor::forEach(prototypeUnits.size(), [&](size_t index) {
-		const unsigned unit = prototypeUnits[index];
-		// hcInitSingle reads the IR samples during planning but does not
-		// retain the pointer, so the shared cache buffer is safe to feed.
-		hcInitSingle(&pendingFilters[unit], const_cast<double*>(ir->buffers[unitChannels[unit]].data()),
-			(int)irFrames, (int)maxFrameCount, 1);
-	});
+	std::vector<ConvolverUnitSource> sources(totalUnits);
 	for (unsigned unit = 0; unit < totalUnits; ++unit)
 	{
-		const unsigned prototype = prototypes[unitChannels[unit]];
-		if (unit != prototype)
-			hcInitSingleWithSharedFilterBank(&pendingFilters[unit], &pendingFilters[prototype]);
+		const unsigned irChannel = unitChannels[unit];
+		sources[unit] = { ir->buffers[irChannel].data(), irFrames, prototypes[irChannel] };
 	}
-	filters = std::move(pendingFilters);
+	filters = buildConvolverArray(sources, maxFrameCount);
+	if (filters == nullptr)
+		return outChannelNames;
 	unitCount = next;
 	filterFrameCount = maxFrameCount;
 
