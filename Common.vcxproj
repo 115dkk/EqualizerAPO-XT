@@ -304,6 +304,7 @@
     <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
     <ClInclude Include="engine\ConfigSwapChannel.h" />
+    <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="filters\BiQuad.h" />
@@ -400,6 +401,7 @@
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />
     <ClCompile Include="engine\FilterEngine.Process.cpp" />
     <ClCompile Include="engine\FilterEngine.Runtime.cpp" />
+    <ClCompile Include="engine\ConfigWatcher.cpp" />
     <ClCompile Include="filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="filters\BiQuad.cpp" />
     <ClCompile Include="filters\BiQuadCommand.cpp" />

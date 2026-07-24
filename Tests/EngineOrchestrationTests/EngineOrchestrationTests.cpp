@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 #ifndef NOMINMAX
@@ -29,10 +30,12 @@
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
+#include "engine/ConfigWatcher.h"
 #include "helpers/ComBoundary.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ParallelExecutor.h"
 #include "helpers/SndfileRAII.h"
+#include "helpers/Win32Event.h"
 #include "Tests/TestHarness.h"
 
 namespace
@@ -521,6 +524,74 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
+void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness)
+{
+	const std::wstring firstDirectory = testDirectory() + L"\\watch-a";
+	const std::wstring secondDirectory = testDirectory() + L"\\watch-b";
+	CreateDirectoryW(firstDirectory.c_str(), nullptr);
+	CreateDirectoryW(secondDirectory.c_str(), nullptr);
+
+	std::atomic<int> selectedPath = 0;
+	std::atomic<int> snapshotCount = 0;
+	std::atomic<int> callbackCount = 0;
+	Win32Event shutdown(true, false);
+	Win32Event changed(true, false);
+	ConfigWatcher watcher(
+		shutdown.get(),
+		[&] {
+			++snapshotCount;
+			ConfigWatcher::Snapshot snapshot;
+			if (selectedPath == 0)
+				snapshot.directory = testDirectory() + L"\\missing-watch";
+			else if (selectedPath == 1)
+				snapshot.directory = firstDirectory;
+			else
+				snapshot.directory = secondDirectory;
+			return snapshot;
+		},
+		[&] {
+			++callbackCount;
+			changed.set();
+			return true;
+		});
+	std::thread worker([&] { watcher.run(); });
+
+	Sleep(120);
+	harness.expect(snapshotCount.load() <= 2,
+		"unavailable config watch uses backoff instead of hot-looping");
+
+	auto triggerAndWait = [&](int pathIndex, const std::wstring& directory,
+		const char* label) {
+		selectedPath = pathIndex;
+		changed.reset();
+		bool observed = false;
+		for (int attempt = 0; attempt < 24 && !observed; ++attempt)
+		{
+			const std::wstring file = directory + L"\\change-"
+				+ std::to_wstring(attempt) + L".txt";
+			HANDLE output = CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr,
+				CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+			if (output != INVALID_HANDLE_VALUE)
+				CloseHandle(output);
+			observed = WaitForSingleObject(changed.get(), 150) == WAIT_OBJECT_0;
+			DeleteFileW(file.c_str());
+		}
+		harness.expect(observed, label);
+	};
+
+	triggerAndWait(1, firstDirectory,
+		"watcher recovers when the config directory becomes available");
+	triggerAndWait(2, secondDirectory,
+		"watcher follows a ConfigPath directory change");
+
+	shutdown.set();
+	worker.join();
+	RemoveDirectoryW(firstDirectory.c_str());
+	RemoveDirectoryW(secondDirectory.c_str());
+	harness.expect(callbackCount.load() >= 2,
+		"both config directories produced change callbacks");
+}
+
 // initialize() seeds an empty active configuration and publishes the requested
 // file through the same worker->RT channel used by every later reload. Before
 // the first audio block consumes it, the public state query must conservatively
@@ -728,6 +799,7 @@ int runEngineOrchestrationTests()
 	testConfigSwapChannelPermitRoundTrip(harness);
 	testEmptyConfigurationExpandsRenderChannels(harness);
 	testParallelExecutor(harness);
+	testConfigWatcherBackoffAndPathRefresh(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
 	testChannelSelectorRouting(harness);

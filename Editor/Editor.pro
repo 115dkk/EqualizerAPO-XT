@@ -138,6 +138,7 @@ SOURCES += main.cpp\
 	../engine/FilterEngine.Configuration.cpp \
 	../engine/FilterEngine.Process.cpp \
 	../engine/FilterEngine.Runtime.cpp \
+	../engine/ConfigWatcher.cpp \
 	../filters/FilterFactoryRegistry.cpp \
 	../FilterConfiguration.cpp \
 	../filters/ChannelCommand.cpp \
@@ -376,6 +377,7 @@ HEADERS  += \
 	AnalysisPlotView.h \
 	AnalysisPlotScene.h \
 	../FilterEngine.h \
+	../engine/ConfigWatcher.h \
 	../FilterConfiguration.h \
 	../filters/ChannelFilterFactory.h \
 	../filters/ExpressionCommand.h \

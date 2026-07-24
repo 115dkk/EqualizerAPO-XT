@@ -33,6 +33,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "ConfigurationFileReader.h"
+#include "engine/ConfigWatcher.h"
 #include "FilterEngine.h"
 // Filter factory headers intentionally omitted: the factories self-register and
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this TU names none
@@ -167,71 +168,25 @@ void FilterEngine::finishTransitionIfReady()
 
 void FilterEngine::notificationThread(FilterEngine* engine)
 {
-
-	winutil::UniqueChangeNotification notification(
-		FindFirstChangeNotificationW(engine->configPath.c_str(), true,
-			FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE));
-
-	Win32Event registryEvent(true, false);
-
-	HANDLE handles[3] = {engine->configChannel.shutdownHandle(), notification.get(), registryEvent.get()};
-	while (true)
-	{
-		// watchRegistryKeys is cleared and refilled under loadMutex whenever a
-		// configuration loads (loadConfig can run on the APO thread for a device
-		// format change while this thread is between waits). Snapshot it under
-		// the same mutex instead of iterating the live set.
-		vector<wstring> watchedKeys;
-		{
+	ConfigWatcher watcher(
+		engine->configChannel.shutdownHandle(),
+		[engine] {
+			ConfigWatcher::Snapshot snapshot;
 			lock_guard<mutex> lock(engine->loadMutex);
-			watchedKeys.assign(engine->watchRegistryKeys.begin(), engine->watchRegistryKeys.end());
-		}
-
-		vector<winutil::UniqueRegistryKey> keyHandles;
-		for (auto it = watchedKeys.begin(); it != watchedKeys.end(); it++)
-		{
-			try
-			{
-				keyHandles.push_back(RegistryHelper::openKey(*it, KEY_NOTIFY | KEY_WOW64_64KEY));
-				RegNotifyChangeKeyValue(keyHandles.back().get(), false,
-					REG_NOTIFY_CHANGE_LAST_SET, registryEvent.get(), true);
-			}
-			catch (const RegistryException& e)
-			{
-				LogFStatic(L"%s", e.getMessage().c_str());
-			}
-		}
-
-		DWORD which = Win32Event::waitAny(3, handles);
-
-		if (which == WAIT_OBJECT_0)
-		{
-			// Shutdown
-			break;
-		}
-		else
-		{
-			if (which == WAIT_OBJECT_0 + 1)
-			{
-				FindNextChangeNotification(notification.get());
-				// Wait for second event within 10 milliseconds to avoid loading twice
-				Win32Event::waitOne(notification.get(), 10);
-			}
-
+			snapshot.directory = engine->configPath;
+			snapshot.registryKeys.assign(
+				engine->watchRegistryKeys.begin(),
+				engine->watchRegistryKeys.end());
+			return snapshot;
+		},
+		[engine] {
 			if (!engine->acquireLoadPermit())
-			{
-				// Shutdown
-				break;
-			}
+				return false;
 
 			const bool loaded = engine->loadConfig();
-			// A successful load keeps the permit until the RT thread finishes the
-			// crossfade. Failed loads publish nothing and return it here.
 			if (!loaded)
 				engine->releaseLoadPermit();
-			FindNextChangeNotification(notification.get());
-			registryEvent.reset();
-		}
-	}
-
+			return true;
+		});
+	watcher.run();
 }

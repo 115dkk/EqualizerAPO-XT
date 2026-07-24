@@ -212,6 +212,7 @@
     <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
     <ClInclude Include="engine\ConfigSwapChannel.h" />
+    <ClInclude Include="engine\ConfigWatcher.h" />
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="IFilter.h" />
@@ -430,6 +431,7 @@
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />
     <ClCompile Include="engine\FilterEngine.Process.cpp" />
     <ClCompile Include="engine\FilterEngine.Runtime.cpp" />
+    <ClCompile Include="engine\ConfigWatcher.cpp" />
     <ClCompile Include="filters\FilterFactoryRegistry.cpp" />
     <ClCompile Include="IFilter.cpp" />
     <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp">
