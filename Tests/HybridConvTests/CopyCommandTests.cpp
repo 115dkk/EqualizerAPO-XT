@@ -227,6 +227,29 @@ void testPropagateChannels()
 		"successive Copy commands expose virtual targets to the commands below them");
 }
 
+void testConstantCopyPreservesTrueSilence()
+{
+	CopyFilter filter(parseCopyAssignments(L"L=0.5"));
+	filter.initialize(48000.0f, 4, vector<wstring>{ L"L", L"R" });
+
+	double left[4] = {};
+	double right[4] = {};
+	double output[4] = { 9.0, 9.0, 9.0, 9.0 };
+	double* inputs[] = { left, right };
+	double* outputs[] = { output };
+
+	filter.process(outputs, inputs, 4);
+	for (double sample : output)
+		harness.expectEqual(sample, 0.0, "true silence remains silent with a constant Copy summand");
+	harness.expectFalse(filter.producesTailFromSilentInput(),
+		"constant Copy does not claim a tail from silent input");
+
+	right[0] = 1.0;
+	filter.process(outputs, inputs, 4);
+	for (double sample : output)
+		harness.expectEqual(sample, 0.5, "constant Copy remains available when the input carries a signal");
+}
+
 }
 
 void runCopyCommandTests()
@@ -240,5 +263,6 @@ void runCopyCommandTests()
 	testSerializeRoundTrip();
 	testEmptySumAssignmentsSerializeToNothing();
 	testPropagateChannels();
+	testConstantCopyPreservesTrueSilence();
 	harness.report();
 }

@@ -44,6 +44,8 @@ CopyFilter::CopyFilter(const vector<Assignment>& assignments)
 
 vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
 {
+	inputChannelCount = channelNames.size();
+	hasNonzeroConstant = false;
 	vector<InternalAssignment> preparedAssignments;
 	preparedAssignments.reserve(assignments.size());
 	vector<wstring> outChannelNames;
@@ -76,6 +78,8 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 			else
 				factor = s.factor;
 
+			if (sourceChannel == -1 && factor != 0.0)
+				hasNonzeroConstant = true;
 			sourceSum.emplace_back(sourceChannel, factor);
 		}
 
@@ -111,6 +115,29 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 void CopyFilter::process(double** output, double** input, unsigned frameCount)
 {
 	PerfScope _ps("CopyFilter::process");
+	if (hasNonzeroConstant)
+	{
+		bool silent = true;
+		for (size_t channel = 0; channel < inputChannelCount && silent; channel++)
+		{
+			for (unsigned frame = 0; frame < frameCount; frame++)
+			{
+				if (input[channel][frame] != 0.0)
+				{
+					silent = false;
+					break;
+				}
+			}
+		}
+		if (silent)
+		{
+			for (const InternalAssignment& assignment : internalAssignments)
+				if (assignment.targetChannel != -1)
+					std::fill_n(output[assignment.targetChannel], frameCount, 0.0);
+			return;
+		}
+	}
+
 	for (const InternalAssignment& ia : internalAssignments)
 	{
 		if (ia.targetChannel == -1 || ia.sourceSum.empty())
