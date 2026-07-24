@@ -887,8 +887,7 @@ void StudioRoutingView::commitChannelEditor()
 	// skips empty targets. Pinning keeps the new chip lit while it has no
 	// trace yet.
 	model.addOutput(name);
-	if (!pinnedChannels.contains(name, Qt::CaseInsensitive))
-		pinnedChannels.append(name);
+	CopyRoutingAdapter::pinChannel(pinnedChannels, name);
 	relayout();
 }
 

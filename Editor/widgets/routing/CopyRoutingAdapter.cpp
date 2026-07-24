@@ -25,6 +25,55 @@ QString CopyRoutingAdapter::serialize(const std::vector<Assignment>& assignments
 	return QString::fromStdWString(serializeCopyAssignments(assignments));
 }
 
+bool CopyRoutingAdapter::parseFactorToken(const QString& token, Assignment::Summand& summand)
+{
+	const QString raw = token.trimmed();
+	if (raw.compare(QLatin1String("INV"), Qt::CaseInsensitive) == 0)
+	{
+		summand.factor = -1.0;
+		summand.isDecibel = false;
+		return true;
+	}
+	bool isDecibel = false;
+	QString number = raw;
+	if (number.endsWith(QLatin1String("db"), Qt::CaseInsensitive))
+	{
+		isDecibel = true;
+		number.chop(2);
+		number = number.trimmed();
+	}
+	bool ok = false;
+	const double factor = number.toDouble(&ok);
+	if (!ok)
+		return false;
+	summand.factor = factor;
+	summand.isDecibel = isDecibel;
+	return true;
+}
+
+void CopyRoutingAdapter::pinChannel(QStringList& pinnedChannels, const QString& channel)
+{
+	if (!pinnedChannels.contains(channel, Qt::CaseInsensitive))
+		pinnedChannels.append(channel);
+}
+
+void CopyRoutingAdapter::ensureTargetChannel(std::vector<Assignment>& assignments,
+	QStringList& pinnedChannels, const QString& channel)
+{
+	for (const Assignment& assignment : assignments)
+	{
+		if (QString::fromStdWString(assignment.targetChannel).compare(channel, Qt::CaseInsensitive) == 0)
+		{
+			pinChannel(pinnedChannels, channel);
+			return;
+		}
+	}
+	Assignment assignment;
+	assignment.targetChannel = channel.toStdWString();
+	assignments.push_back(assignment);
+	pinChannel(pinnedChannels, channel);
+}
+
 bool CopyRoutingAdapter::isVirtualChannel(const QString& channel)
 {
 	static const QSet<QString> physical = {

@@ -29,6 +29,12 @@ public:
 	// CopyFilterGUI::store so a parse/serialise round-trip is lossless.
 	static QString serialize(const std::vector<Assignment>& assignments);
 
+	// Shared factor editor grammar: INV, numeric, or numeric dB.
+	static bool parseFactorToken(const QString& token, Assignment::Summand& summand);
+	static void ensureTargetChannel(std::vector<Assignment>& assignments, QStringList& pinnedChannels,
+		const QString& channel);
+	static void pinChannel(QStringList& pinnedChannels, const QString& channel);
+
 	// True for channels that are not part of the standard physical layout
 	// (the upmix scratch channels such as VSL/VRR). Used to style them as
 	// dashed "virtual" badges.
