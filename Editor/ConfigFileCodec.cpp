@@ -17,8 +17,6 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <sstream>
-
 #include <QSaveFile>
 
 #define WIN32_LEAN_AND_MEAN
@@ -26,33 +24,16 @@
 
 #include "helpers/FileSharingRetry.h"
 #include "helpers/StringHelper.h"
+#include "ConfigurationFileReader.h"
 #include "ConfigFileCodec.h"
 
 using std::string;
-using std::stringstream;
-using std::wstring;
 
 QList<QString> ConfigFileCodec::decodeLines(const string& bytes)
 {
-	stringstream inputStream;
-	inputStream.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-	inputStream.seekg(0);
-
 	QList<QString> lines;
-	while (inputStream.good())
-	{
-		string encodedLine;
-		getline(inputStream, encodedLine);
-		if (encodedLine.size() > 0 && encodedLine[encodedLine.size() - 1] == '\r')
-			encodedLine.resize(encodedLine.size() - 1);
-
-		wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
-		if (line.find(L'\uFFFD') != wstring::npos)
-			line = StringHelper::toWString(encodedLine, CP_ACP);
-
+	for (const std::wstring& line : ConfigurationFileReader::decodeLines(bytes))
 		lines.append(QString::fromStdWString(line));
-	}
-
 	return lines;
 }
 

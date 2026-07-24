@@ -3,17 +3,16 @@
 */
 
 #include "ConfigDependencyScanner.h"
+#include "../ConfigFileCodec.h"
 #include "../widgets/FilterCardModel.h"
 #include "filters/MultiConvolutionCommand.h"
 
 #include <QDir>
-#include <QFile>
 #include <QFileInfo>
 #include <QObject>
 #include <QSet>
 #include <QString>
 #include <QStringList>
-#include <QTextStream>
 
 namespace EqAPO::Import
 {
@@ -150,8 +149,8 @@ void scanConfigFile(ImportManifest& manifest,
         return;
     visited.insert(sourceTxtAbs);
 
-    QFile file(sourceTxtAbs);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    const ConfigFileCodec::ReadResult readResult = ConfigFileCodec::readConfig(sourceTxtAbs);
+    if (!readResult.ok)
     {
         manifest.warnings.append(QObject::tr("Cannot open %1 for scanning.").arg(sourceTxtAbs));
         manifest.hasErrors = true;
@@ -161,10 +160,8 @@ void scanConfigFile(ImportManifest& manifest,
     QFileInfo configInfo(sourceTxtAbs);
     QString baseDir = configInfo.absoluteDir().absolutePath();
 
-    QTextStream stream(&file);
-    while (!stream.atEnd())
+    for (const QString& line : readResult.lines)
     {
-        QString line = stream.readLine();
         QString trimmed = line.trimmed();
         if (trimmed.isEmpty() || trimmed.startsWith('#'))
             continue;

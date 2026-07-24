@@ -174,17 +174,10 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			addFilters(move(newFilters));
 	}
 
-	while (inputStream.good())
+	const vector<wstring> decodedLines = ConfigurationFileReader::decodeLines(inputStream);
+	for (const wstring& line : decodedLines)
 	{
-		string encodedLine;
-		getline(inputStream, encodedLine);
 		traceLine++;
-		if (encodedLine.size() > 0 && encodedLine[encodedLine.size() - 1] == '\r')
-			encodedLine.resize(encodedLine.size() - 1);
-
-		wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
-		if (line.find(L'\uFFFD') != wstring::npos)
-			line = StringHelper::toWString(encodedLine, CP_ACP);
 
 		size_t pos = line.find(L':');
 		if (pos != wstring::npos)

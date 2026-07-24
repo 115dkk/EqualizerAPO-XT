@@ -41,6 +41,7 @@
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/StudioRoutingModel.h"
 #include "helpers/MemoryHelper.h"
+#include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
 #include "UpdateChecker/UpdateInfoFormatter.h"
 #include "UpdateChecker/VelopackUpdateInfo.h"
@@ -884,6 +885,46 @@ void testConfigImport()
 	expectTrue(destRels.contains("Surround/child.txt"), "include child present");
 	expectTrue(destRels.contains("Surround/ir.wav"), "ir wav present");
 	expectTrue(destRels.contains("Surround/nested.wav"), "nested wav present");
+
+	// Legacy configs use the system ANSI code page when a line is not valid
+	// UTF-8. Pick a character that round-trips through this machine's ACP but
+	// is invalid as standalone UTF-8, then prove the import scanner follows the
+	// same decoding policy as the engine and ConfigFileCodec.
+	const std::wstring ansiCandidates[] = {L"\u00e9", L"\uac00", L"\u0416", L"\u3042"};
+	std::string ansiLeafBytes;
+	std::wstring ansiLeafWide;
+	for (const std::wstring& candidate : ansiCandidates)
+	{
+		std::string encoded = StringHelper::toString(candidate, CP_ACP);
+		if (encoded.find('?') == std::string::npos
+			&& StringHelper::toWString(encoded, CP_ACP) == candidate
+			&& QString::fromUtf8(encoded.data(), static_cast<qsizetype>(encoded.size())).contains(QChar::ReplacementCharacter))
+		{
+			ansiLeafBytes = "ansi-" + encoded + ".wav";
+			ansiLeafWide = L"ansi-" + candidate + L".wav";
+			break;
+		}
+	}
+
+	if (!ansiLeafBytes.empty())
+	{
+		const QString ansiLeaf = QString::fromStdWString(ansiLeafWide);
+		writeBlob(surroundDir + "/" + ansiLeaf, 32);
+
+		QFile ansiConfig(surroundDir + "/ansi.txt");
+		requireTrue(ansiConfig.open(QIODevice::WriteOnly), "could not create ANSI config");
+		const std::string ansiLine = "Convolution: " + ansiLeafBytes + "\r\n";
+		requireTrue(ansiConfig.write(ansiLine.data(), static_cast<qint64>(ansiLine.size()))
+			== static_cast<qint64>(ansiLine.size()), "could not write ANSI config bytes");
+		ansiConfig.close();
+
+		auto ansiManifest = EqAPO::Import::ConfigDependencyScanner::scan(
+			surroundDir + "/ansi.txt", tempDir.path() + "/configdir");
+		expectFalse(ansiManifest.hasErrors, "scanner decoded an ANSI config differently from the engine");
+		requireEqual(int(ansiManifest.items.size()), 2, "ANSI config collects its referenced IR");
+		expectEqual(ansiManifest.items[1].sourceAbsolute,
+			QDir::cleanPath(surroundDir + "/" + ansiLeaf), "ANSI reference resolves to the real file");
+	}
 
 	// Missing reference should surface as a non-fatal warning + hasErrors.
 	writeText(surroundDir + "/broken.txt", "Convolution: does_not_exist.wav\n");
