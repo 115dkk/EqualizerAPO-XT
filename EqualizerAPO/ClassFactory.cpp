@@ -51,13 +51,14 @@ ULONG __stdcall ClassFactory::AddRef()
 
 ULONG __stdcall ClassFactory::Release()
 {
-	if (InterlockedDecrement(&refCount) == 0)
+	const LONG remaining = InterlockedDecrement(&refCount);
+	if (remaining == 0)
 	{
 		delete this;
 		return 0;
 	}
 
-	return refCount;
+	return static_cast<ULONG>(remaining);
 }
 
 HRESULT __stdcall ClassFactory::CreateInstance(IUnknown* pUnknownOuter, const IID& iid, void** ppv)

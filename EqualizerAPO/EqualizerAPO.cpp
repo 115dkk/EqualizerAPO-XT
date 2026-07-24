@@ -778,11 +778,12 @@ ULONG EqualizerAPO::NonDelegatingAddRef()
 
 ULONG EqualizerAPO::NonDelegatingRelease()
 {
-	if (InterlockedDecrement(&refCount) == 0)
+	const LONG remaining = InterlockedDecrement(&refCount);
+	if (remaining == 0)
 	{
 		delete this;
 		return 0;
 	}
 
-	return refCount;
+	return static_cast<ULONG>(remaining);
 }
