@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.26.3 — 2026-07-24
+
 - The Editor now recognises `MultiConvolution:` lines the way the audio engine
   does. Two of the filter's source files were never listed in the Editor's own
   build, so the Editor's copy of the engine had no `MultiConvolution` factory:

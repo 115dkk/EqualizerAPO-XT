@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.26.3 — 2026-07-24
+
 - Editor가 `MultiConvolution:` 줄을 오디오 엔진과 같게 인식합니다. 이 필터의
   소스 파일 두 개가 Editor 쪽 빌드 목록에 처음부터 빠져 있어서, Editor 안에서
   도는 엔진에는 `MultiConvolution` 팩토리가 없었습니다. 그래서 분석 패널이 그
