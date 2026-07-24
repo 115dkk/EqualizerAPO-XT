@@ -59,7 +59,6 @@ typedef struct str_HConvSingle
 
 /* single filter functions */
 double hcTime(void);
-double getProcTime(int flen, int num, double dur);
 void hcPutSingle(HConvSingle *filter, double*x);
 void hcProcessSingle(HConvSingle *filter);
 void hcGetSingle(HConvSingle *filter, double*y);

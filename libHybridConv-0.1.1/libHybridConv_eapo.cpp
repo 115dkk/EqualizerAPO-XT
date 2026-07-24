@@ -91,60 +91,6 @@ double hcTime(void)
 
 ////////////////////////////////////////////////////////////////
 
-double getProcTime(int flen, int num, double dur)
-{
-	HConvSingle filter;
-	int xlen, hlen, ylen;
-	int n;
-	int pos;
-	double t_start, t_diff;
-	double counter = 0.0;
-	double proc_time;
-	double lin, mul;
-
-	xlen = 2048 * 2048;
-	std::vector<double> x(xlen);
-	lin = pow(10.0, -100.0 / 20.0);	// 0.00001 = -100dB
-	mul = pow(lin, 1.0 / static_cast<double>(xlen));
-	x[0] = 1.0;
-	for (n = 1; n < xlen; n++)
-		x[n] = -mul * x[n - 1];
-
-	hlen = flen * num;
-	std::vector<double> h(hlen);
-	lin = pow(10.0, -60.0 / 20.0);	// 0.001 = -60dB
-	mul = pow(lin, 1.0 / static_cast<double>(hlen));
-	h[0] = 1.0;
-	for (n = 1; n < hlen; n++)
-		h[n] = mul * h[n - 1];
-
-	ylen = flen;
-	std::vector<double> y(ylen);
-
-	hcInitSingle(&filter, h.data(), hlen, flen, 1);
-
-	t_diff = 0.0;
-	t_start = hcTime();
-	pos = 0;
-	while (t_diff < dur)
-	{
-		hcPutSingle(&filter, &x[pos]);
-		hcProcessSingle(&filter);
-		hcGetSingle(&filter, y.data());
-		pos += flen;
-		if (pos >= xlen)
-			pos = 0;
-		counter += 1.0;
-		t_diff = hcTime() - t_start;
-	}
-	proc_time = t_diff / counter;
-	LogFStatic(L"Processing time: %7.3f us", 1000000.0 * proc_time);
-
-	hcCloseSingle(&filter);
-
-	return proc_time;
-}
-
 void hcPutSingle(HConvSingle* filter, double* x)
 {
 	const size_t flen = (size_t)filter->framelength;
@@ -400,18 +346,6 @@ static inline void mul_store_gain_double(double* __restrict dst,
 	for (; i + N <= n; i += N)
 		hn::StoreU(hn::Mul(hn::LoadU(d, src + i), g), d, dst + i);
 	for (; i < n; ++i) dst[i] = src[i] * gain;
-}
-
-static inline void copy_split_complex_scalar(const fftw_complex * __restrict src,
-	double* __restrict re,
-	double* __restrict im,
-	int n_complex)
-{
-	// n_complex = flen + 1
-	for (int j = 0; j < n_complex; ++j) {
-		re[j] = src[j][0];
-		im[j] = src[j][1];
-	}
 }
 
 // Interleaved (re,im) -> planar (re[] / im[]) via one Highway interleaved load.

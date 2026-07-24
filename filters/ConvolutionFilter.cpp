@@ -52,7 +52,6 @@ ConvolutionFilter::ConvolutionFilter(const wstring& filename)
 {
 	this->filename = filename;
 	filterFrameCount = 0;
-	maxFrameCount = 0;
 	frameCountMismatchLogged = false;
 }
 
@@ -66,7 +65,6 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 	cleanup();
 
 	this->sampleRate = sampleRate;
-	this->maxFrameCount = maxFrameCount;
 	channelCount = (unsigned)channelNames.size();
 	filterFrameCount = 0;
 
