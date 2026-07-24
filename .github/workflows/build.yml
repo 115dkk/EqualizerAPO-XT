@@ -1249,27 +1249,20 @@ jobs:
         $packVersion = $baseVersion
         $tag = "v$packVersion"
 
-        # If this exact version was already published (version.h did not bump on this
-        # push), skip re-releasing so we don't overwrite an existing release/tag.
-        $alreadyReleased = "false"
-        gh release view $tag --repo "${{ github.repository }}" *> $null
-        if ($LASTEXITCODE -eq 0) {
-          $alreadyReleased = "true"
-          Write-Host "Release $tag already exists; release steps will be skipped."
-        }
-        $global:LASTEXITCODE = 0
-
         "base_version=$baseVersion" >> $env:GITHUB_OUTPUT
         "pack_version=$packVersion" >> $env:GITHUB_OUTPUT
         "tag=$tag" >> $env:GITHUB_OUTPUT
-        "already_released=$alreadyReleased" >> $env:GITHUB_OUTPUT
+        .\.github\scripts\Publish-Release.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag $tag `
+          -PackVersion $packVersion
 
         Write-Host "Base version: $baseVersion"
         Write-Host "Release version: $packVersion"
         Write-Host "Release tag: $tag"
 
     - name: Create source archive
-      if: steps.version.outputs.already_released != 'true'
+      if: steps.version.outputs.needs_source == 'true'
       shell: pwsh
       run: |
         $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
@@ -1284,7 +1277,7 @@ jobs:
         Write-Host "Created source archive: $sourceZip"
 
     - name: Create Velopack release
-      if: steps.version.outputs.already_released != 'true'
+      if: steps.version.outputs.missing_channels != '' || steps.version.outputs.needs_source == 'true'
       shell: pwsh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1311,6 +1304,8 @@ jobs:
         )
         $qtPluginFolders = @('iconengines', 'imageformats', 'platforms', 'styles', 'tls')
         $buildArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO-*")
+        $missingChannels = @("${{ steps.version.outputs.missing_channels }}".Split(
+          ',', [System.StringSplitOptions]::RemoveEmptyEntries))
 
         if ($buildArtifacts.Count -eq 0) {
           Write-Error "No build artifacts were found in $inputRoot"
@@ -1320,6 +1315,10 @@ jobs:
         foreach ($artifact in $buildArtifacts) {
           $variant = $artifact.Name.Substring("EqualizerAPO-".Length)
           $channel = ($variant -replace "_", "-").ToLowerInvariant()
+          if ($missingChannels -notcontains $channel) {
+            Write-Host "Channel $channel is already complete on $tag; skipping."
+            continue
+          }
           $packId = "EqualizerAPO-XT-$channel"
           $packTitle = "EqualizerAPO-XT $variant"
           $outputDir = "${{ github.workspace }}\velopack-output\$channel"
@@ -1418,14 +1417,16 @@ jobs:
           }
         }
 
-        $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
-        gh release upload $tag $sourceZip --clobber --repo "${{ github.repository }}"
-        if ($LASTEXITCODE -ne 0) {
-          exit $LASTEXITCODE
+        if ("${{ steps.version.outputs.needs_source }}" -eq "true") {
+          $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
+          gh release upload $tag $sourceZip --clobber --repo "${{ github.repository }}"
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
         }
 
     - name: Build and publish auto-detect installer
-      if: steps.version.outputs.already_released != 'true'
+      if: steps.version.outputs.needs_installer == 'true'
       shell: pwsh
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1461,7 +1462,7 @@ jobs:
     # assets are re-downloaded from the release rather than hashed from local
     # build directories so the hashes cover exactly the bytes users will get.
     - name: Publish release checksums
-      if: steps.version.outputs.already_released != 'true'
+      if: steps.version.outputs.needs_checksums == 'true'
       shell: pwsh
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1500,7 +1501,7 @@ jobs:
         }
 
     - name: Write release notes
-      if: steps.version.outputs.already_released != 'true'
+      if: steps.version.outputs.needs_notes == 'true'
       shell: pwsh
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
