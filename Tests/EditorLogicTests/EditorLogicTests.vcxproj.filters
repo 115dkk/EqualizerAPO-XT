@@ -50,6 +50,9 @@
     <ClCompile Include="..\..\Editor\widgets\EditableValueText.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\cards\FileReferenceController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Benchmark\BatchPlan.h">
@@ -89,6 +92,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\EditableValueText.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1679,6 +1679,7 @@ int main(int argc, char** argv)
 		testEverySkinSheetResolvesAllThemeTokens();
 		testEditableValueTextUsesDisplayedDecimalFormatFirst();
 		testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
+		testFileReferenceControllerOwnsPathState();
 		testFilterListModel();
 		testFilterListUndo();
 

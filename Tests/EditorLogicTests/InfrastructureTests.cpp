@@ -10,10 +10,12 @@
 #include <QFileInfo>
 #include <QLocale>
 #include <QRegularExpression>
+#include <QTemporaryDir>
 
 #include "Benchmark/BatchPlan.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/EditableValueText.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "helpers/OwnedBackgroundTask.h"
 
 void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce()
@@ -116,4 +118,43 @@ void testBenchmarkBatchPlanUsesOnlyComparableFullBatches()
 		"batch-aligned benchmark lengths remain unchanged");
 	expectEqual(exact.trimmedFrames, 0u,
 		"batch-aligned benchmark lengths trim nothing");
+}
+
+void testFileReferenceControllerOwnsPathState()
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "file-reference test creates a temporary root");
+	QDir root(temp.path());
+	requireTrue(root.mkpath(QStringLiteral("config/irs")),
+		"file-reference test creates the config dependency directory");
+	requireTrue(root.mkpath(QStringLiteral("outside")),
+		"file-reference test creates the external directory");
+	const QString configPath = root.filePath(QStringLiteral("config/config.txt"));
+	const QString impulsePath = root.filePath(QStringLiteral("config/irs/room.wav"));
+	QFile impulse(impulsePath);
+	requireTrue(impulse.open(QIODevice::WriteOnly),
+		"file-reference test creates the resolved dependency");
+	impulse.close();
+
+	FileReferenceController reference(
+		QStringLiteral("convolution"), QStringLiteral("irs/room.wav"));
+	reference.resolveAgainstConfig(configPath);
+	ReferenceCardState state = reference.describe(QStringLiteral("No file selected"));
+	expectFalse(state.missing, "controller resolves a config-relative reference");
+	expectEqual(state.name, QStringLiteral("room.wav"),
+		"controller derives the reference display name");
+	expectEqual(state.directory, QDir::toNativeSeparators(QStringLiteral("irs")),
+		"controller preserves the as-written relative directory");
+	expectPath(state.fullPath, impulsePath);
+
+	reference.setWrittenPath(QStringLiteral("irs/missing.wav"));
+	reference.resolveAgainstConfig(configPath);
+	state = reference.describe(QStringLiteral("No file selected"));
+	expectTrue(state.missing, "controller owns and reports an edited missing path");
+	expectTrue(state.fullPath.isEmpty(), "missing references do not expose a clickable path");
+
+	const QString baseDirectory = root.filePath(QStringLiteral("config/deep"));
+	const QString farSelection = root.filePath(QStringLiteral("outside/plugin.dll"));
+	expectPath(FileReferenceController::displayPathForBaseDirectory(
+		baseDirectory, farSelection), farSelection);
 }

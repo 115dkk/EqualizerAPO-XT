@@ -25,3 +25,4 @@ void testSkinTokensCarryExplicitMode();
 void testEverySkinSheetResolvesAllThemeTokens();
 void testEditableValueTextUsesDisplayedDecimalFormatFirst();
 void testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
+void testFileReferenceControllerOwnsPathState();
