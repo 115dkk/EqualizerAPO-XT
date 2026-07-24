@@ -459,27 +459,13 @@ void SoftFilterPickerView::rebuildList()
 {
 	listWidget->clear();
 
-	const QStringList terms = searchEdit->text().split(
-		QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-
 	QString currentSection;
 	bool sectionStarted = false;
 	for (int i = 0; i < allEntries.size(); i++)
 	{
 		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
-
-		bool matches = true;
-		const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
-		for (const QString& term : terms)
-		{
-			if (!haystack.contains(term, Qt::CaseInsensitive))
-			{
-				matches = false;
-				break;
-			}
-		}
-		if (!matches)
+		const QString section = filterPickerSection(entry);
+		if (!filterPickerMatches(entry, section, searchEdit->text()))
 			continue;
 
 		const QColor tint = sectionColors.value(section,

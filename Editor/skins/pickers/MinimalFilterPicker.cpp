@@ -397,10 +397,6 @@ void MinimalFilterPickerView::rebuildIndex()
 			break;
 		}
 	}
-	const QStringList terms = jumpMode
-		? QStringList()
-		: query.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-
 	// Coalesce by path (first-appearance order): one caption per category.
 	// Factories may revisit a category, and a repeated caption would read as
 	// corruption in an index. This walk revisits the entries in their
@@ -413,17 +409,7 @@ void MinimalFilterPickerView::rebuildIndex()
 		const FilterPickerEntry& entry = allEntries[i];
 		const QString section = sectionKey(entry);
 
-		bool matches = true;
-		const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
-		for (const QString& term : terms)
-		{
-			if (!haystack.contains(term, Qt::CaseInsensitive))
-			{
-				matches = false;
-				break;
-			}
-		}
-		if (!matches)
+		if (!jumpMode && !filterPickerMatches(entry, section, query))
 			continue;
 
 		if (!sectionEntries.contains(section))

@@ -15,7 +15,6 @@
 #include <QMouseEvent>
 #include <QListWidget>
 #include <QPainter>
-#include <QRegularExpression>
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
 #include <QtMath>
@@ -359,9 +358,6 @@ void RackFilterPickerView::rebuildList()
 {
 	listWidget->clear();
 
-	const QStringList terms = searchEdit->text().split(
-		QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-
 	int sectionCount = 0;
 	int entryCount = 0;
 	QString currentSection;
@@ -369,19 +365,8 @@ void RackFilterPickerView::rebuildList()
 	for (int i = 0; i < allEntries.size(); i++)
 	{
 		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
-
-		bool matches = true;
-		const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
-		for (const QString& term : terms)
-		{
-			if (!haystack.contains(term, Qt::CaseInsensitive))
-			{
-				matches = false;
-				break;
-			}
-		}
-		if (!matches)
+		const QString section = filterPickerSection(entry);
+		if (!filterPickerMatches(entry, section, searchEdit->text()))
 			continue;
 
 		if (!sectionStarted || section != currentSection)
