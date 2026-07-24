@@ -677,6 +677,10 @@ void testFilterCardDescriptors()
 	expectEqual(FilterCardModel::badgeIconResource("device", "DEV"), ":/icons/modern/device-speaker.svg", "device badge pictogram");
 	expectEqual(FilterCardModel::badgeIconResource("comment", "#"), ":/icons/modern/comment-bubble.svg", "comment badge pictogram");
 	expectTrue(FilterCardModel::badgeIconResource("text", "TXT").isEmpty(), "raw text lines keep their monogram fallback");
+	expectEqual(FilterCardModel::commandIconResource("MultiConvolution"), ":/icons/modern/multi-convolution.svg",
+		"picker command vocabulary shares the multiconvolution pictogram");
+	expectEqual(FilterCardModel::commandIconResource("Filter", "ON HP Fc 120 Hz"), ":/icons/modern/eq-highpass.svg",
+		"picker command vocabulary shares the biquad curve split");
 
 	// The programmatic vocabulary is modelled. The
 	// If family shares one card type with per-branch badges, Eval gets its own

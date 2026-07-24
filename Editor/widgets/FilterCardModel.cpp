@@ -577,23 +577,60 @@ QString FilterCardModel::badgeIconResource(const QString& type, const QString& b
 			: QStringLiteral(":/icons/modern/waveform.svg");
 	}
 
-	static const struct { const char* type; const char* icon; } commands[] = {
-		{ "comment", "comment-bubble" },
+	if (type == QStringLiteral("comment"))
+		return commandIconResource(QStringLiteral("#"));
+	if (type == QStringLiteral("vst"))
+		return commandIconResource(QStringLiteral("vstplugin"));
+	if (type == QStringLiteral("loudness"))
+		return commandIconResource(QStringLiteral("loudnesscorrection"));
+	return commandIconResource(type);
+}
+
+QString FilterCardModel::commandIconResource(const QString& command, const QString& parameters)
+{
+	const QString normalized = command.trimmed().toLower();
+	if (normalized == QStringLiteral("#") || normalized == QStringLiteral("comment"))
+		return QStringLiteral(":/icons/modern/comment-bubble.svg");
+	if (normalized == QStringLiteral("filter"))
+	{
+		const QString upper = QStringLiteral(" ") + parameters.toUpper() + QStringLiteral(" ");
+		static const struct { const char* token; const char* icon; } curves[] = {
+			{ " PK ", "eq-peaking" },
+			{ " LP ", "eq-lowpass" },
+			{ " HP ", "eq-highpass" },
+			{ " BP ", "eq-bandpass" },
+			{ " LS ", "eq-lowshelf" },
+			{ " HS ", "eq-highshelf" },
+			{ " NO ", "eq-notch" },
+			{ " AP ", "eq-allpass" }
+		};
+		for (const auto& curve : curves)
+			if (upper.contains(QLatin1String(curve.token)))
+				return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(curve.icon));
+		return QStringLiteral(":/icons/modern/eq-peaking.svg");
+	}
+
+	static const struct { const char* command; const char* icon; } commands[] = {
+		{ "include", "file-include" },
+		{ "convolution", "waveform" },
+		{ "multiconvolution", "multi-convolution" },
+		{ "vstplugin", "plugin" },
+		{ "graphiceq", "graphic-eq" },
 		{ "preamp", "preamp-gain" },
 		{ "delay", "delay-clock" },
-		{ "graphiceq", "graphic-eq" },
-		{ "copy", "route-channels" },
-		{ "channel", "channel-select" },
-		{ "include", "file-include" },
-		{ "vst", "plugin" },
 		{ "device", "device-speaker" },
+		{ "channel", "channel-select" },
 		{ "stage", "stage-chain" },
-		{ "loudness", "loudness" },
+		{ "copy", "route-channels" },
+		{ "loudnesscorrection", "loudness" },
 		{ "if", "logic-if" },
+		{ "elseif", "logic-if" },
+		{ "else", "logic-if" },
+		{ "endif", "logic-if" },
 		{ "eval", "logic-eval" }
 	};
 	for (const auto& mapping : commands)
-		if (type == QLatin1String(mapping.type))
+		if (normalized == QLatin1String(mapping.command))
 			return QStringLiteral(":/icons/modern/%1.svg").arg(QLatin1String(mapping.icon));
 	return QString();
 }
