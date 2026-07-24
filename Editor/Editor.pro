@@ -259,6 +259,7 @@ SOURCES += main.cpp\
 	widgets/FilterListUndo.cpp \
 	widgets/FilterPickerView.cpp \
 	widgets/UpdateToast.cpp \
+	widgets/MainToolbarKit.cpp \
 	widgets/ValueScrubBox.cpp \
 	widgets/DialogChrome.cpp \
 	widgets/TitleBar.cpp \
@@ -493,6 +494,7 @@ HEADERS  += \
 	widgets/FilterListUndo.h \
 	widgets/FilterPickerView.h \
 	widgets/UpdateToast.h \
+	widgets/MainToolbarKit.h \
 	widgets/ValueScrubBox.h \
 	widgets/DialogChrome.h \
 	widgets/TitleBar.h \

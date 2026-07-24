@@ -52,6 +52,7 @@ using std::vector;
 using std::wstring;
 #include "Editor/diagnostics/ToolbarPixelProbe.h"
 #include "Editor/diagnostics/SkinSwitchStorm.h"
+#include "Editor/widgets/MainToolbarKit.h"
 
 void MainWindow::startSkinSwitchStorm()
 {
@@ -127,8 +128,7 @@ void MainWindow::startSkinSwitchStorm()
 			// makes their state race the check tick - logged above, never
 			// counted. The format badge hides itself while the stream is
 			// native; its visibility is data, not layout.
-			if (item->objectName() == QLatin1String("RackToolbarEarSpacer")
-				|| item->objectName() == QLatin1String("DeviceFormatBadge"))
+			if (MainToolbarKit::visibilityIsDataObjectNames().contains(item->objectName()))
 				continue;
 			if (item->isHidden())
 			{

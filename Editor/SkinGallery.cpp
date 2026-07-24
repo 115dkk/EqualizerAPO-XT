@@ -1,5 +1,6 @@
 #include "SkinGallery.h"
 #include "diagnostics/ToolbarPixelProbe.h"
+#include "widgets/MainToolbarKit.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -415,83 +416,21 @@ constexpr int kExtraShotsPerSkinMode = 21;
 QToolBar* buildToolbarReplica(QWidget* parent)
 {
 	QToolBar* toolBar = new QToolBar(parent);
-	toolBar->setObjectName(QStringLiteral("MainToolBar"));
-	toolBar->setMovable(false);
-
-	QAction* actionNew = toolBar->addAction(QStringLiteral("New"));
-	actionNew->setObjectName(QStringLiteral("actionNew"));
-	QAction* actionOpen = toolBar->addAction(QStringLiteral("Open"));
-	actionOpen->setObjectName(QStringLiteral("actionOpen"));
-	QAction* actionSave = toolBar->addAction(QStringLiteral("Save"));
-	actionSave->setObjectName(QStringLiteral("actionSave"));
-	toolBar->addSeparator();
-	QAction* actionUndo = toolBar->addAction(QStringLiteral("Undo"));
-	actionUndo->setObjectName(QStringLiteral("actionUndo"));
-	QAction* actionRedo = toolBar->addAction(QStringLiteral("Redo"));
-	actionRedo->setObjectName(QStringLiteral("actionRedo"));
-
-	// Same non-surface contract as MainWindow's spacers: no framework
-	// background, ever (the universal QWidget rule would stamp the strip).
-	const auto makeSpacer = []() {
-		QWidget* spacer = new QWidget;
-		spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
-		spacer->setAttribute(Qt::WA_NoSystemBackground, true);
-		return spacer;
-	};
-	QWidget* spacer = makeSpacer();
-	spacer->setFixedWidth(10);
-	toolBar->addWidget(spacer);
-
-	QCheckBox* instantMode = new QCheckBox(QStringLiteral("Instant mode"));
-	instantMode->setObjectName(QStringLiteral("InstantModeCheckBox"));
-	instantMode->setChecked(true);
-	toolBar->addWidget(instantMode);
-
-	QLabel* dirtyBadge = new QLabel(QStringLiteral("Saved"));
-	dirtyBadge->setObjectName(QStringLiteral("DirtyStatusBadge"));
-	toolBar->addWidget(dirtyBadge);
-
-	spacer = makeSpacer();
-	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	toolBar->addWidget(spacer);
-
-	QLabel* deviceLabel = new QLabel(QStringLiteral("Device"));
-	deviceLabel->setObjectName(QStringLiteral("ToolBarLabel"));
-	toolBar->addWidget(deviceLabel);
-
-	SkinComboBox* deviceCombo = new SkinComboBox;
-	deviceCombo->setObjectName(QStringLiteral("ToolBarComboBox"));
-	deviceCombo->addItem(QStringLiteral("Default (Speakers - Example Audio)"));
-	toolBar->addWidget(deviceCombo);
-
-	QLabel* formatBadge = new QLabel(QStringLiteral("Passthrough"));
-	formatBadge->setObjectName(QStringLiteral("DeviceFormatBadge"));
-	formatBadge->setAttribute(Qt::WA_StyledBackground, true);
-	formatBadge->setProperty("severity", QStringLiteral("warning"));
-	toolBar->addWidget(formatBadge);
-
-	spacer = makeSpacer();
-	spacer->setFixedWidth(10);
-	toolBar->addWidget(spacer);
-
-	QLabel* channelLabel = new QLabel(QStringLiteral("Channels"));
-	channelLabel->setObjectName(QStringLiteral("ToolBarLabel"));
-	toolBar->addWidget(channelLabel);
-
-	SkinComboBox* channelCombo = new SkinComboBox;
-	channelCombo->setObjectName(QStringLiteral("ToolBarComboBox"));
-	channelCombo->addItem(QStringLiteral("7.1 surround"));
-	toolBar->addWidget(channelCombo);
-
+	MainToolbarKit::Content content;
+	content.instantMode = QStringLiteral("Instant mode");
+	content.saved = QStringLiteral("Saved");
+	content.device = QStringLiteral("Device");
+	content.channels = QStringLiteral("Channels");
+	content.deviceValue = QStringLiteral("Default (Speakers - Example Audio)");
+	content.channelValue = QStringLiteral("7.1 surround");
+	content.formatText = QStringLiteral("Passthrough");
+	content.formatSeverity = QStringLiteral("warning");
+	content.formatVisible = true;
+	MainToolbarKit::populate(toolBar, content, true);
 	SkinManager::instance()->styleMainToolbar(toolBar);
 	return toolBar;
 }
 
-// Faithful replica of the analysis dock's contents: the compact settings cell
-// beside the graph with dummy readouts. Same object names as MainWindow so
-// every sheet's #analysisControlBar / #AnalysisStatChip rules are judged; the
-// graph is a real EqGraphView left empty (background and frame only, no curve
-// data needed).
 QWidget* buildAnalysisPanelReplica(QWidget* parent)
 {
 	QWidget* panel = new QWidget(parent);
@@ -1232,17 +1171,13 @@ int runSwitchTest(const QStringList& arguments)
 				qPrintable(switchName), probeToolBar->height());
 			problems++;
 		}
-		const bool rackActive = SkinManager::instance()->currentSkinId() == QLatin1String("rack");
 		for (QAction* action : probeToolBar->actions())
 		{
 			QWidget* item = probeToolBar->widgetForAction(action);
-			const bool earSpacer = item != nullptr
-				&& item->objectName() == QLatin1String("RackToolbarEarSpacer");
-			const bool dataControlledItem = item != nullptr
-				&& item->objectName() == QLatin1String("DeviceFormatBadge");
-			// Rack's rail-ear zones legitimately leave with its chrome; every
-			// other non-data-controlled item must survive every switch.
-			if ((earSpacer && !rackActive) || dataControlledItem)
+			// State-driven items legitimately hide; every other item belongs
+			// to the structural health contract.
+			if (item != nullptr
+				&& MainToolbarKit::visibilityIsDataObjectNames().contains(item->objectName()))
 				continue;
 			const QString label = item != nullptr && !item->objectName().isEmpty()
 				? item->objectName() : action->objectName();

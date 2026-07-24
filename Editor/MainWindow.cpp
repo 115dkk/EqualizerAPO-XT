@@ -46,6 +46,7 @@
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/SkinComboBox.h"
+#include "Editor/widgets/MainToolbarKit.h"
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
@@ -107,72 +108,23 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 		dressSkinChrome();
 	});
 
-	ui->mainToolBar->setObjectName(QStringLiteral("MainToolBar"));
-	// App chrome, not a palette: an accidental handle drag can float the bar
-	// or shrink it into the overflow popup, both of which read as "the toolbar
-	// vanished". The gallery replica is immovable for the same reason.
-	ui->mainToolBar->setMovable(false);
-
-	// Toolbar spacers are reserved space, never surfaces: the skins' universal
-	// "QWidget { background }" rule would otherwise let QSS polish stamp
-	// opaque patches over the strip (and over rack's painted rail).
-	const auto makeToolBarSpacer = []() {
-		QWidget* spacer = new QWidget;
-		spacer->setObjectName(QStringLiteral("ToolBarSpacer"));
-		spacer->setAttribute(Qt::WA_NoSystemBackground, true);
-		return spacer;
-	};
-	QWidget* spacer = makeToolBarSpacer();
-	spacer->setFixedWidth(10);
-	ui->mainToolBar->addWidget(spacer);
-
-	instantModeCheckBox = new QCheckBox(tr("Instant mode"));
-	instantModeCheckBox->setObjectName(QStringLiteral("InstantModeCheckBox"));
-	instantModeCheckBox->setChecked(true);
-	instantModeCheckBox->setToolTip(tr("Changes are saved immediately"));
+	MainToolbarKit::Content toolbarContent;
+	toolbarContent.instantMode = tr("Instant mode");
+	toolbarContent.saved = tr("Saved");
+	toolbarContent.device = tr("Device");
+	toolbarContent.channels = tr("Channels");
+	toolbarContent.instantModeToolTip = tr("Changes are saved immediately");
+	toolbarContent.savedToolTip = tr("Current file save state");
+	toolbarContent.formatToolTip = tr("Whether EqualizerAPO is processing this device's stream natively, or forwarding it without applying filters.");
+	const MainToolbarKit::Widgets toolbarWidgets =
+		MainToolbarKit::populate(ui->mainToolBar, toolbarContent, false);
+	instantModeCheckBox = toolbarWidgets.instantMode;
+	dirtyStatusLabel = toolbarWidgets.dirtyStatus;
+	deviceComboBox = toolbarWidgets.device;
+	deviceFormatBadge = toolbarWidgets.deviceFormat;
+	channelConfigurationComboBox = toolbarWidgets.channels;
 	connect(instantModeCheckBox, SIGNAL(toggled(bool)), this, SLOT(instantModeEnabled(bool)));
-	ui->mainToolBar->addWidget(instantModeCheckBox);
-
-	dirtyStatusLabel = new QLabel(tr("Saved"));
-	dirtyStatusLabel->setObjectName(QStringLiteral("DirtyStatusBadge"));
-	dirtyStatusLabel->setToolTip(tr("Current file save state"));
-	ui->mainToolBar->addWidget(dirtyStatusLabel);
-
-	spacer = makeToolBarSpacer();
-	spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	ui->mainToolBar->addWidget(spacer);
-
-	QLabel* deviceLabel = new QLabel(tr("Device"));
-	deviceLabel->setObjectName(QStringLiteral("ToolBarLabel"));
-	ui->mainToolBar->addWidget(deviceLabel);
-
-	// SkinComboBox enforces a font-aware height floor and widens the popup to
-	// its contents.
-	deviceComboBox = new SkinComboBox;
-	deviceComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
 	connect(deviceComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::deviceSelected);
-	ui->mainToolBar->addWidget(deviceComboBox);
-
-	deviceFormatBadge = new QLabel(QString());
-	deviceFormatBadge->setObjectName(QStringLiteral("DeviceFormatBadge"));
-	deviceFormatBadge->setAttribute(Qt::WA_StyledBackground, true);
-	deviceFormatBadge->setProperty("severity", QStringLiteral("normal"));
-	deviceFormatBadge->setVisible(false);
-	deviceFormatBadge->setToolTip(tr("Whether EqualizerAPO is processing this device's stream natively, or forwarding it without applying filters."));
-	ui->mainToolBar->addWidget(deviceFormatBadge);
-
-	spacer = makeToolBarSpacer();
-	spacer->setFixedWidth(10);
-	ui->mainToolBar->addWidget(spacer);
-
-	QLabel* channelLabel = new QLabel(tr("Channels"));
-	channelLabel->setObjectName(QStringLiteral("ToolBarLabel"));
-	ui->mainToolBar->addWidget(channelLabel);
-
-	channelConfigurationComboBox = new SkinComboBox;
-	channelConfigurationComboBox->setObjectName(QStringLiteral("ToolBarComboBox"));
-	channelConfigurationComboBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-	ui->mainToolBar->addWidget(channelConfigurationComboBox);
 
 	QStandardItemModel* model = qobject_cast<QStandardItemModel*>(deviceComboBox->model());
 	if (defaultOutputDevice != nullptr)
