@@ -102,24 +102,6 @@ permissions:
   contents: read
 
 env:
-  # EqualizerAPO APO CLSIDs (helpers/RegistryHelper.h:29,31). Upper-case so they
-  # match StringFromCLSID output (RegistryHelper::getGuidString), which is what
-  # install writes into FxProperties.
-  EQ_PREMIX_GUID: "{EACD2258-FCAC-4FF4-B36D-419E924A6D79}"
-  EQ_POSTMIX_GUID: "{EC1CC9CE-FAED-4822-828A-82A81A6F018F}"
-  # The APO value-name fmtid + indices written under FxProperties
-  # (devices/DeviceAPOInfo.Install.cpp:38-47).
-  FX_LFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1"
-  FX_GFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},2"
-  FX_SFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5"
-  FX_MFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},6"
-  FX_EFX: "{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7"
-  # The {b3f8fa53-...},6 device-friendly-name value used to spot the Scream
-  # endpoint (devices/DeviceAPOInfo.Install.cpp:34, deviceValueName).
-  DEVICE_FRIENDLY_VALUE: "{b3f8fa53-0004-438e-9003-51a46e139bfc},6"
-  # Registry roots (mirrors the #define paths in DeviceAPOInfo.*.cpp:24-27).
-  MMDEVICES_ROOT: "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\MMDevices\\Audio"
-  CHILD_APO_ROOT: "HKLM\\SOFTWARE\\EqualizerAPO\\Child APOs"
   # Scream release pin (the self-signed recipe is verified against 4.0).
   SCREAM_VERSION: "4.0"
   SCREAM_URL: "https://github.com/duncanthrax/scream/releases/download/4.0/Scream4.0.zip"
@@ -135,6 +117,12 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Checkout (for the diagnosis script)
         uses: actions/checkout@v6
+
+      - name: Load shared APO endpoint contract
+        shell: pwsh
+        run: |
+          Import-Module "$env:GITHUB_WORKSPACE\.github\scripts\ApoEndpointHarness.psm1" -Force
+          Export-ApoEndpointContract -GitHubEnvironmentPath $env:GITHUB_ENV
 
       - name: Prepare snapshot directory
         shell: pwsh
