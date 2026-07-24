@@ -123,6 +123,7 @@ if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutD
     <ClCompile Include="..\..\Editor\import\LegacyMigrationPolicy.cpp" />
     <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp" />
+    <ClCompile Include="..\..\Editor\widgets\EditableValueText.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\FilterListUndo.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp" />
@@ -151,6 +152,7 @@ if exist "$(QT_ROOT)\bin\Qt6Gui.dll" copy /Y "$(QT_ROOT)\bin\Qt6Gui.dll" "$(OutD
     <ClInclude Include="..\..\Editor\skins\SkinThemeData.h" />
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h" />
+    <ClInclude Include="..\..\Editor\widgets\EditableValueText.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListModel.h" />
     <ClInclude Include="..\..\Editor\widgets\FilterListUndo.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />

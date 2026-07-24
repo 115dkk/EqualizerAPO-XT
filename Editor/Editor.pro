@@ -247,6 +247,7 @@ SOURCES += main.cpp\
 	skins/cards/MatrixReferenceCardView.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
+	widgets/EditableValueText.cpp \
 	widgets/ChBadge.cpp \
 	widgets/EqGraphView.cpp \
 	widgets/FilterCardModel.cpp \
@@ -475,6 +476,7 @@ HEADERS  += \
 	skins/cards/MatrixReferenceCardView.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
+	widgets/EditableValueText.h \
 	widgets/ChBadge.h \
 	widgets/EqGraphView.h \
 	widgets/FilterCardModel.h \

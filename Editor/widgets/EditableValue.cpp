@@ -1,4 +1,5 @@
 #include "EditableValue.h"
+#include "EditableValueText.h"
 
 #include <QLocale>
 #include <QMouseEvent>
@@ -67,11 +68,8 @@ void EditableValue::commitEdit()
 	if (stack->currentWidget() != editField)
 		return;
 
-	bool ok = false;
-	double parsedValue = QLocale::system().toDouble(editField->text(), &ok);
-	if (!ok)
-		parsedValue = QLocale::c().toDouble(editField->text(), &ok);
-	if (ok)
+	double parsedValue = 0.0;
+	if (parseEditableValueText(editField->text(), QLocale::system(), &parsedValue))
 	{
 		currentValue = parsedValue;
 		emit valueChanged(currentValue);

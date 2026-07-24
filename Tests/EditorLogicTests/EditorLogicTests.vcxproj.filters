@@ -47,6 +47,9 @@
     <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\EditableValueText.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h">
@@ -80,6 +83,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\skins\SkinThemeData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\EditableValueText.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
