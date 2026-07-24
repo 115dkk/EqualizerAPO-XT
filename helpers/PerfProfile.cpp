@@ -224,7 +224,7 @@ void report(std::ostream& os)
 	// a few dozen rows by linear search needs no container of its own.
 	struct Row
 	{
-		const char* label;
+		const char* label = nullptr;
 		Entry entry;
 	};
 
