@@ -34,6 +34,7 @@
 #include "PreviewDevices.h"
 #include "skins/DeviceSkinPainter.h"
 #include "Editor/helpers/QtAppBootstrap.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "helpers/ApoRegistration.h"
 
@@ -92,7 +93,7 @@ void applyTheme(QApplication& app, const QString& skinId, bool dark)
 void applyEditorTheme(QApplication& app)
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	if (settings.value(QStringLiteral("interface/legacyRows"), false).toBool())
+	if (settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool())
 	{
 		// Neutral base forms in classic light colours for the painted chrome;
 		// the stock sub-widgets keep the native style.
@@ -103,9 +104,8 @@ void applyEditorTheme(QApplication& app)
 	}
 
 	const bool systemDark = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
-	applyTheme(app,
-		settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString(),
-		settings.value(QStringLiteral("interface/dark"), systemDark).toBool());
+	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, systemDark);
+	applyTheme(app, choice.id, choice.dark);
 }
 
 // --skin-shots <outDir>: renders the dialog with canned devices for every

@@ -35,6 +35,7 @@
 #include "helpers/ChannelHelper.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "version.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
@@ -60,8 +61,7 @@ namespace
 void persistSkinChoice(const QString& skinId, bool dark)
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	settings.setValue("interface/skin", skinId);
-	settings.setValue("interface/dark", dark);
+	EditorSettings::writeSkinChoice(settings, { skinId, dark });
 }
 }
 
@@ -409,6 +409,11 @@ void MainWindow::skinSelected(QAction* action)
 		return;
 
 	skinId = action->data().toString();
+	applySkinAndRebuild();
+}
+
+void MainWindow::applySkinAndRebuild()
+{
 	// Tear the rows down BEFORE swapping the global stylesheet. qApp->setStyleSheet
 	// re-polishes every live widget, and a loaded config inflates the tree to
 	// thousands of widgets; re-polishing them only to immediately rebuild them in
@@ -441,25 +446,7 @@ void MainWindow::skinSelected(QAction* action)
 void MainWindow::darkThemeToggled(bool checked)
 {
 	skinDark = checked;
-	// Clear rows before the global stylesheet swap (see skinSelected) so the
-	// re-polish does not run over thousands of soon-to-be-rebuilt card widgets.
-	for (int i = 0; i < ui->tabWidget->count(); i++)
-	{
-		FilterTable* filterTable = filterTableForTab(i);
-		if (filterTable != nullptr)
-			filterTable->clearRows();
-	}
-	SkinManager::instance()->applySkin(skinId, skinDark);
-	skinId = SkinManager::instance()->currentSkinId();
-	// Rebuild rows so painted card/routing widgets pick up the new palette.
-	for (int i = 0; i < ui->tabWidget->count(); i++)
-	{
-		FilterTable* filterTable = filterTableForTab(i);
-		if (filterTable != nullptr)
-			filterTable->updateGuis();
-	}
-	if (!skinPersistenceSuppressed)
-		persistSkinChoice(skinId, skinDark);
+	applySkinAndRebuild();
 }
 
 void MainWindow::on_graphPositionComboBox_currentIndexChanged(int index)
@@ -534,7 +521,7 @@ void MainWindow::nativeTitleBarToggled(bool checked)
 	if (QMessageBox::question(this, tr("Restart required"), tr("Configuration Editor will be restarted to apply the changed settings. Proceed?")) == QMessageBox::Yes)
 	{
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-		settings.setValue("interface/nativeTitleBar", checked);
+		settings.setValue(QLatin1String(EditorSettings::Keys::NativeTitleBar), checked);
 		restart = true;
 		close();
 	}

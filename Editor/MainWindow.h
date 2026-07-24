@@ -129,6 +129,7 @@ private slots:
 	void on_actionResetAllFileSpecificPreferences_triggered();
 
 private:
+	void applySkinAndRebuild();
 	void executeStartAnalysis();
 	FilterTable* addTab(QString title, QString tooltip, QString configPath, QList<QString> lines);
 	void getDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo>* selectedDevice, int* channelMask);

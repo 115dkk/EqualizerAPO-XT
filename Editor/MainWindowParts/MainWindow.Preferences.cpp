@@ -24,6 +24,7 @@
 #include "helpers/ChannelHelper.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "version.h"
 #include "Editor/import/LegacyMigration.h"
 #include "Editor/widgets/TitleBar.h"
@@ -59,9 +60,10 @@ const int kWindowStateVersion = 1;
 void MainWindow::loadPreferences()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	skinId = settings.value("interface/skin", "studio").toString();
-	skinDark = settings.value("interface/dark", GUIHelper::isDarkMode()).toBool();
-	currentRenderMode = settings.value("interface/legacyRows", false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
+	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isDarkMode());
+	skinId = choice.id;
+	skinDark = choice.dark;
+	currentRenderMode = settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
 	// Default to the bottom, like the original Equalizer APO's analysis panel.
 	graphDockPosition = qBound(0, settings.value("interface/graphDockPosition", 1).toInt(), 2);
 	applyRedesignPreferences();
@@ -182,9 +184,8 @@ void MainWindow::savePreferences()
 	settings.setValue("openFiles", fileList);
 	settings.setValue("tabIndex", ui->tabWidget->currentIndex());
 	settings.setValue("recentFiles", recentFiles);
-	settings.setValue("interface/skin", skinId);
-	settings.setValue("interface/dark", skinDark);
-	settings.setValue("interface/legacyRows", currentRenderMode == FilterTable::LegacyRows);
+	EditorSettings::writeSkinChoice(settings, { skinId, skinDark });
+	settings.setValue(QLatin1String(EditorSettings::Keys::LegacyRows), currentRenderMode == FilterTable::LegacyRows);
 	settings.setValue("interface/graphDockPosition", graphDockPosition);
 
 	settings.sync();

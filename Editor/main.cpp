@@ -62,6 +62,7 @@
 #include "helpers/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/EditorSettings.h"
 
 
 namespace
@@ -387,7 +388,7 @@ int main(int argc, char* argv[])
 		bool legacyRowsMode;
 		{
 			QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-			legacyRowsMode = settings.value(QStringLiteral("interface/legacyRows"), false).toBool();
+			legacyRowsMode = settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool();
 		}
 
 		// Font rendering (skinned mode): force Qt's FreeType font engine on
@@ -494,10 +495,9 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			QString skinId = settings.value(QStringLiteral("interface/skin"), QStringLiteral("studio")).toString();
-			bool dark = settings.value(QStringLiteral("interface/dark"), GUIHelper::isDarkMode()).toBool();
+			const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isDarkMode());
 			// applySkin also derives the application palette from the tokens.
-			SkinManager::instance()->applySkin(skinId, dark);
+			SkinManager::instance()->applySkin(choice.id, choice.dark);
 		}
 
 		QtAppBootstrap::applyUserLocale();

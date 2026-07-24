@@ -22,6 +22,7 @@
 #include <windowsx.h>
 
 #include "Editor/widgets/TitleBar.h"
+#include "Editor/helpers/EditorSettings.h"
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
@@ -30,8 +31,8 @@ void MainWindow::setupWindowChrome()
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 	// Heritage (legacy rows) keeps the stock Windows caption: the custom
 	// title strip is part of the modern presentation.
-	useCustomFrame = !settings.value("interface/nativeTitleBar", false).toBool()
-		&& !settings.value(QStringLiteral("interface/legacyRows"), false).toBool();
+	useCustomFrame = !settings.value(QLatin1String(EditorSettings::Keys::NativeTitleBar), false).toBool()
+		&& !settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool();
 	if (!useCustomFrame)
 		return;
 
