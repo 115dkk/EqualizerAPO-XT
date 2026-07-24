@@ -73,25 +73,39 @@ struct TestCase
 	unsigned sampleRate;
 	unsigned channels;
 	unsigned frames;
+	// The engine is driven this many frames at a time, the way Windows calls the
+	// APO with a fixed period. Every stateful filter here - BiQuad, Delay,
+	// Convolution's partitioned overlap-add, GraphicEQ - carries state between
+	// calls, and that carry-over is only observable across successive process()
+	// calls. A single whole-buffer call cannot see it at all.
+	//
+	// Must divide frames exactly. ConvolutionFilter freezes its block length at
+	// initialize() and mutes any block of a different size (ConvolutionFilter.cpp
+	// frameCount mismatch guard), so a short final block would silence the tail
+	// rather than test it.
+	unsigned blockFrames;
 };
 
 void ensureDirectory(const std::wstring& path);
 
 const TestCase kCases[] = {
-	{ "preamp_minus6",       "preamp_minus6.txt",       SignalType::DCStereo,      48000, 2, 4800  },
-	{ "biquad_peaking_1khz", "biquad_peaking_1khz.txt", SignalType::ImpulseStereo, 48000, 2, 8192  },
-	{ "copy_crossfeed",      "copy_crossfeed.txt",      SignalType::ImpulseStereo, 48000, 2, 256   },
-	{ "delay_512",           "delay_512.txt",           SignalType::ImpulseStereo, 48000, 2, 2048  },
-	{ "graphiceq_15band",    "graphiceq_15band.txt",    SignalType::ImpulseStereo, 48000, 2, 8192  },
-	{ "convolution_short",   "convolution_short.txt",   SignalType::ImpulseStereo, 48000, 2, 4096  },
-	{ "iir_order2_lowpass",  "iir_order2_lowpass.txt",  SignalType::ImpulseStereo, 48000, 2, 256   },
-	{ "channel_left_only",   "channel_left_only.txt",   SignalType::DCStereo,      48000, 2, 256   },
+	{ "preamp_minus6",       "preamp_minus6.txt",       SignalType::DCStereo,      48000, 2, 4800, 480 },
+	{ "biquad_peaking_1khz", "biquad_peaking_1khz.txt", SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "copy_crossfeed",      "copy_crossfeed.txt",      SignalType::ImpulseStereo, 48000, 2, 256,  64  },
+	// 2048 frames in 256-frame blocks puts the 512-sample delay line's read and
+	// write heads in different blocks, which is where a delay's ring-buffer
+	// wrap-around goes wrong if it goes wrong at all.
+	{ "delay_512",           "delay_512.txt",           SignalType::ImpulseStereo, 48000, 2, 2048, 256 },
+	{ "graphiceq_15band",    "graphiceq_15band.txt",    SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "convolution_short",   "convolution_short.txt",   SignalType::ImpulseStereo, 48000, 2, 4096, 512 },
+	{ "iir_order2_lowpass",  "iir_order2_lowpass.txt",  SignalType::ImpulseStereo, 48000, 2, 256,  64  },
+	{ "channel_left_only",   "channel_left_only.txt",   SignalType::DCStereo,      48000, 2, 256,  64  },
 	// LoudnessCorrection with State 0 is a deterministic pass-through. With
 	// State 1 the filter reads the live system master volume (VolumeController)
 	// and runs a background parameter thread, so its output is not stable
 	// enough for a stored reference; State 0 keeps the factory + parameter
 	// parsing covered without that non-determinism.
-	{ "loudnesscorrection_bypassed", "loudnesscorrection_bypassed.txt", SignalType::ImpulseStereo, 48000, 2, 256 },
+	{ "loudnesscorrection_bypassed", "loudnesscorrection_bypassed.txt", SignalType::ImpulseStereo, 48000, 2, 256, 64 },
 };
 
 bool writeCaseManifest(const std::wstring& directory)
@@ -688,7 +702,16 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 	ensureDirectory(outVariantDir);
 	std::wstring outPath = outVariantDir + L"\\" + toWide(tc.name) + L".raw";
 
-	printf("\n[%s] config=%S frames=%u channels=%u\n", tc.name, configPath.c_str(), tc.frames, tc.channels);
+	printf("\n[%s] config=%S frames=%u channels=%u block=%u\n", tc.name, configPath.c_str(), tc.frames, tc.channels, tc.blockFrames);
+
+	// A short final block would be muted by the convolution filters rather than
+	// processed, which would quietly weaken the case instead of failing it.
+	if (tc.blockFrames == 0 || tc.frames % tc.blockFrames != 0)
+	{
+		fprintf(stderr, "  ERROR: blockFrames %u does not divide frames %u\n", tc.blockFrames, tc.frames);
+		outFailed = true;
+		return false;
+	}
 
 	std::vector<float> input = generateSignal(tc.inputType, tc.sampleRate, tc.channels, tc.frames);
 	std::vector<float> output((size_t)tc.frames * tc.channels, 0.0f);
@@ -701,8 +724,14 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 		std::wstring deviceGuid = L"";
 		std::wstring deviceString = deviceName + L" " + connectionName + L" " + deviceGuid;
 		engine.setDeviceInfo(false, true, deviceName, connectionName, deviceGuid, deviceString);
-		engine.initialize((float)tc.sampleRate, tc.channels, tc.channels, tc.channels, 0, tc.frames, configPath);
-		engine.process(output.data(), input.data(), tc.frames);
+		// maxFrameCount is the block size, not the signal length: that is what the
+		// APO passes and what the convolution filters partition against.
+		engine.initialize((float)tc.sampleRate, tc.channels, tc.channels, tc.channels, 0, tc.blockFrames, configPath);
+		for (unsigned offset = 0; offset < tc.frames; offset += tc.blockFrames)
+		{
+			const size_t sampleOffset = (size_t)offset * tc.channels;
+			engine.process(output.data() + sampleOffset, input.data() + sampleOffset, tc.blockFrames);
+		}
 	}
 	catch (const std::exception& e)
 	{
