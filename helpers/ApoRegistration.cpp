@@ -35,6 +35,7 @@
 #include "AbstractAPOInfo.h"
 #include "ComPtr.h"
 #include "DeviceAPOInfo.h"
+#include "LogHelper.h"
 #include "RegistryHelper.h"
 #include "ServiceHelper.h"
 #include "Win32Resource.h"
@@ -97,8 +98,7 @@ void logLine(const wchar_t* level, const wchar_t* format, ...)
 	va_start(args, format);
 	_vsnwprintf_s(buffer, _TRUNCATE, format, args);
 	va_end(args);
-	fwprintf(stderr, L"[ApoRegistration] %s: %s\n", level, buffer);
-	fflush(stderr);
+	LogFStatic(L"[ApoRegistration] %s: %s", level, buffer);
 }
 }
 

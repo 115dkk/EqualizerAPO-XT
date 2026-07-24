@@ -107,6 +107,55 @@ std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, c
 	return path;
 }
 
+void testLogHelperFileDestination(test::Harness& harness)
+{
+	const std::wstring path = testDirectory() + L"\\LogHelperDestination.log";
+	DeleteFileW(path.c_str());
+
+	LogHelper::useFile(path, true, false, false);
+	LogFStatic(L"file destination %d", 42);
+
+	std::ifstream stream(path, std::ios::binary);
+	const std::string contents((std::istreambuf_iterator<char>(stream)),
+		std::istreambuf_iterator<char>());
+	harness.expect(stream.good() || stream.eof(), "file logger writes a readable destination");
+	harness.expect(contents.find("file destination 42") != std::string::npos,
+		"file logger writes diagnostics to the selected path");
+
+	LogHelper::useStream(stderr, false, false, false);
+	DeleteFileW(path.c_str());
+}
+
+void testLogHelperUserDestination(test::Harness& harness)
+{
+	wchar_t previousLocalAppData[MAX_PATH] = {};
+	const DWORD previousLength = GetEnvironmentVariableW(
+		L"LOCALAPPDATA", previousLocalAppData, MAX_PATH);
+	const std::wstring localRoot = testDirectory() + L"\\LocalAppData";
+	CreateDirectoryW(localRoot.c_str(), nullptr);
+	SetEnvironmentVariableW(L"LOCALAPPDATA", localRoot.c_str());
+
+	harness.expect(LogHelper::useUserFile(L"Editor.log", true, false, false),
+		"user logger creates its product log directory");
+	LogFStatic(L"user destination");
+	const std::wstring path = localRoot + L"\\EqualizerAPO\\logs\\Editor.log";
+	std::ifstream stream(path, std::ios::binary);
+	const std::string contents((std::istreambuf_iterator<char>(stream)),
+		std::istreambuf_iterator<char>());
+	harness.expect(contents.find("user destination") != std::string::npos,
+		"user logger writes to the per-user Editor log");
+
+	LogHelper::useStream(stderr, false, false, false);
+	if (previousLength > 0 && previousLength < MAX_PATH)
+		SetEnvironmentVariableW(L"LOCALAPPDATA", previousLocalAppData);
+	else
+		SetEnvironmentVariableW(L"LOCALAPPDATA", nullptr);
+	DeleteFileW(path.c_str());
+	RemoveDirectoryW((localRoot + L"\\EqualizerAPO\\logs").c_str());
+	RemoveDirectoryW((localRoot + L"\\EqualizerAPO").c_str());
+	RemoveDirectoryW(localRoot.c_str());
+}
+
 // Builds an engine the same way AudioRegressionTests does: no registry
 // dependency, config loaded from the caller-supplied path.
 void initializeEngine(FilterEngine& engine, unsigned sampleRate, unsigned channels, unsigned maxFrameCount, const std::wstring& configPath)
@@ -794,6 +843,8 @@ int runEngineOrchestrationTests()
 	harness.expect(ComBoundary::invoke([] { return S_FALSE; }) == S_FALSE,
 		"COM boundary preserves callback HRESULT");
 
+	testLogHelperFileDestination(harness);
+	testLogHelperUserDestination(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);

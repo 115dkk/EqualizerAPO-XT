@@ -51,6 +51,7 @@
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
 #include "helpers/VSTPluginLibrary.h"
+#include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
@@ -230,7 +231,7 @@ int relaunchElevatedAndWait(int argc, char* argv[])
 	DWORD length = GetModuleFileNameW(nullptr, exePathBuffer, MAX_PATH);
 	if (length == 0)
 	{
-		fwprintf(stderr, L"GetModuleFileName failed (gle=%lu)\n", GetLastError());
+		LogFStatic(L"[Editor] GetModuleFileName failed (gle=%lu)", GetLastError());
 		return 1;
 	}
 
@@ -248,7 +249,7 @@ int relaunchElevatedAndWait(int argc, char* argv[])
 	if (!ShellExecuteExW(&info))
 	{
 		DWORD gle = GetLastError();
-		fwprintf(stderr, L"ShellExecuteEx(runas) failed (gle=%lu)\n", gle);
+		LogFStatic(L"[Editor] ShellExecuteEx(runas) failed (gle=%lu)", gle);
 		// ERROR_CANCELLED (1223) means the user declined UAC.
 		return gle == ERROR_CANCELLED ? 1223 : 1;
 	}
@@ -341,6 +342,11 @@ int main(int argc, char* argv[])
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
 		return hookResult;
+
+	// Keep Editor diagnostics on disk even though this is a GUI-subsystem process
+	// without a usable stderr stream.
+	if (!LogHelper::useUserFile(L"Editor.log", true, false, false))
+		LogHelper::useDefaultApoLog();
 
 	// Initialise the Velopack runtime so UpdateManager resolves the correct
 	// install context. Auto-apply-on-startup is off because we apply on exit instead.

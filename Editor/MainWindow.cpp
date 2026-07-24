@@ -90,8 +90,6 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	ui->setupUi(this);
 	resize(GUIHelper::scale(QSize(1024, 768)));
 
-	LogHelper::set(stderr, true, false, false);
-
 	QString version = QString("%0.%1").arg(MAJOR).arg(MINOR);
 	if (REVISION != 0)
 		version += QString(".%0").arg(REVISION);

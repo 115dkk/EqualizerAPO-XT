@@ -172,12 +172,10 @@ void VelopackBootstrap::startBackgroundDownload(const std::string& repoUrl, cons
 		catch (const std::exception& e)
 		{
 			LogFStatic(L"[VelopackBootstrap] background update failed: %S", e.what());
-			fprintf(stderr, "[VelopackBootstrap] background update failed: %s\n", e.what());
 		}
 		catch (...)
 		{
 			LogFStatic(L"[VelopackBootstrap] background update failed: unknown error");
-			fprintf(stderr, "[VelopackBootstrap] background update failed: unknown error\n");
 		}
 	});
 }
@@ -220,7 +218,6 @@ void VelopackBootstrap::applyPendingUpdateAndExit()
 	catch (const std::exception& e)
 	{
 		LogFStatic(L"[VelopackBootstrap] apply update failed: %S", e.what());
-		fprintf(stderr, "[VelopackBootstrap] apply update failed: %s\n", e.what());
 		return;
 	}
 
