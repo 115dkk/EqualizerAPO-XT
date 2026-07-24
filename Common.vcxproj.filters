@@ -146,6 +146,9 @@
     <ClInclude Include="helpers\FftwRAII.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\FftwPlanningPolicy.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\MemoryHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -398,6 +401,9 @@
     </ClCompile>
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp">
       <Filter>libHybridConv-0.1.1</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\FftwPlanningPolicy.cpp">
+      <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="parser\ParserExtensions.cpp">
       <Filter>parser</Filter>

@@ -100,6 +100,7 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilter.cpp \
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
+	../helpers/FftwPlanningPolicy.cpp \
 	../helpers/GainIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
@@ -345,6 +346,7 @@ HEADERS  += \
 	../filters/GraphicEQFilter.h \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
+	../helpers/FftwPlanningPolicy.h \
 	../helpers/GainIterator.h \
 	guis/GraphicEQFilterGUIScene.h \
 	widgets/FrequencyPlotView.h \
