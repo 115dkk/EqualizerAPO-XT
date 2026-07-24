@@ -14,6 +14,20 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The audio processing thread no longer waits on a lock, opens a file, or
+  allocates memory. Loudness correction used to hand its updated filter
+  coefficients across a mutex that a background thread held while calling into
+  Windows for the current volume, so the audio thread could be made to wait on a
+  lower-priority thread inside the Windows audio engine - the classic recipe for
+  a dropout. The handoff is now lock-free. Three filters also wrote a log line
+  from inside the audio callback, which opens and closes a file in `%TEMP%`, and
+  they only did so at the exact moments least able to afford it: a format change
+  or a plugin crash. Those lines now come out after processing stops, at the cost
+  of appearing later than they used to
+  ([#226](https://github.com/115dkk/EqualizerAPO-XT/pull/226)).
+  - Output is unchanged. The nine golden regression cases reproduce their stored
+    baselines to the same last digit as before the change.
+
 ## v2.26.4 — 2026-07-24
 
 - The Editor and the audio engine now agree on what counts as a command. The
