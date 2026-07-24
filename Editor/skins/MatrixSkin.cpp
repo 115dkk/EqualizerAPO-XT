@@ -190,6 +190,7 @@ public:
 		: QWidget(card), specSource(specSource), coordinateSource(coordinateSource)
 	{
 		setObjectName(QStringLiteral("MatrixRowCaption"));
+		configurePaintOnlyChrome(this);
 		// The strip is a readout, never a control; clicks fall through.
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		setFixedHeight(18);

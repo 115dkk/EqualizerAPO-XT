@@ -18,9 +18,19 @@
 #include <QColor>
 #include <QPointF>
 #include <QString>
+#include <QWidget>
 #include <QtMath>
 
 #include "Editor/SkinTokens.h"
+
+// House rule for paint-only chrome: its paintEvent owns every background
+// pixel, so framework/QSS polishing must never stamp an opaque background
+// before or after that event. Per-sheet transparent rules may decorate the
+// widget but are not the load-bearing defense.
+inline void configurePaintOnlyChrome(QWidget* widget)
+{
+	widget->setAttribute(Qt::WA_NoSystemBackground, true);
+}
 
 // The skin hooks receive tokens but no mode flag; a colour's luminance is the
 // unambiguous proxy (every dark ground in the five palettes is deep, every

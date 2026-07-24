@@ -1267,6 +1267,25 @@ int runSwitchTest(const QStringList& arguments)
 		limitMs = 8000;
 
 	int failures = 0;
+	const auto checkPaintOnlyChrome = [&scrollArea, &failures](const QString& objectName) {
+		const QList<QWidget*> widgets = scrollArea.findChildren<QWidget*>(objectName);
+		if (widgets.isEmpty())
+		{
+			qWarning("SkinSwitchTest: paint-only chrome %s is missing", qPrintable(objectName));
+			failures++;
+			return;
+		}
+		for (QWidget* widget : widgets)
+		{
+			if (!widget->testAttribute(Qt::WA_NoSystemBackground))
+			{
+				qWarning("SkinSwitchTest: paint-only chrome %s accepts a framework background",
+					qPrintable(objectName));
+				failures++;
+				break;
+			}
+		}
+	};
 	QApplication::processEvents();
 	failures += checkToolbar(QStringLiteral("baseline (before any switch)"));
 	{
@@ -1329,6 +1348,10 @@ int runSwitchTest(const QStringList& arguments)
 						qPrintable(name), qPrintable(SkinManager::instance()->currentSkinId()));
 					failures++;
 				}
+				if (skin->id() == QLatin1String("soft"))
+					checkPaintOnlyChrome(QStringLiteral("SoftReferenceTile"));
+				else if (skin->id() == QLatin1String("matrix"))
+					checkPaintOnlyChrome(QStringLiteral("MatrixRowCaption"));
 				{
 					// Caption ink check. tintedIcon paints every covered pixel
 					// in the ink colour, so the strongest-coverage pixel must
