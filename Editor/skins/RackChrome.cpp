@@ -24,6 +24,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "ISkin.h"
+#include "SkinChromeOverlay.h"
 #include "SkinPaint.h"
 
 namespace
@@ -299,22 +300,14 @@ void paintToolbarRail(QPainter& painter, const QRect& rect, const QToolBar* tool
 // switch toggles and hides itself when another skin's stylesheet takes over
 // (every skin switch delivers StyleChange to the toolbar). No Q_OBJECT: it
 // is found again by object name and only connects to existing signals.
-class RackToolbarPlate : public QWidget
+class RackToolbarPlate : public SkinChromeOverlay
 {
 public:
 	explicit RackToolbarPlate(QToolBar* parentToolBar)
-		: QWidget(parentToolBar)
-		, toolBar(parentToolBar)
+		: SkinChromeOverlay(parentToolBar, QLatin1String(kToolbarPlateName),
+			QStringLiteral("rack"), ZPolicy::BelowControls)
 	{
-		setObjectName(QLatin1String(kToolbarPlateName));
-		setAttribute(Qt::WA_TransparentForMouseEvents);
-		// No framework background ever: the sheets' universal QWidget rule
-		// would otherwise stamp an opaque fill over the strip through QSS
-		// polish (see MatrixToolbarBoard for the field failure this caused).
-		setAttribute(Qt::WA_NoSystemBackground, true);
-		toolBar->installEventFilter(this);
-		setGeometry(toolBar->rect());
-		if (QCheckBox* box = toolBar->findChild<QCheckBox*>(QStringLiteral("InstantModeCheckBox"), Qt::FindDirectChildrenOnly))
+		if (QCheckBox* box = parentToolBar->findChild<QCheckBox*>(QStringLiteral("InstantModeCheckBox"), Qt::FindDirectChildrenOnly))
 			connect(box, &QCheckBox::toggled, this, QOverload<>::of(&QWidget::update));
 	}
 
@@ -345,37 +338,20 @@ public:
 	}
 
 protected:
-	bool eventFilter(QObject* watched, QEvent* event) override
+	void ownerActiveChanged(bool active) override
 	{
-		if (watched == toolBar)
-		{
-			if (event->type() == QEvent::Resize)
-			{
-				setGeometry(toolBar->rect());
-			}
-			else if (event->type() == QEvent::StyleChange)
-			{
-				// Every skin switch restyles the application; only the rack
-				// stylesheet may keep the rail chrome and the ear zones.
-				const bool rackActive = SkinManager::instance()->currentSkinId() == QLatin1String("rack");
-				setVisible(rackActive);
-				if (leftEarAction != nullptr)
-					leftEarAction->setVisible(rackActive);
-				if (rightEarAction != nullptr)
-					rightEarAction->setVisible(rackActive);
-			}
-		}
-		return QWidget::eventFilter(watched, event);
+		if (leftEarAction != nullptr)
+			leftEarAction->setVisible(active);
+		if (rightEarAction != nullptr)
+			rightEarAction->setVisible(active);
 	}
 
-	void paintEvent(QPaintEvent*) override
+	void paintChrome(QPainter& painter) override
 	{
-		QPainter painter(this);
-		paintToolbarRail(painter, rect(), toolBar, tokens);
+		paintToolbarRail(painter, rect(), parentToolBar(), tokens);
 	}
 
 private:
-	QToolBar* toolBar = nullptr;
 	QAction* leftEarAction = nullptr;
 	QAction* rightEarAction = nullptr;
 	SkinTokens tokens;
@@ -1219,9 +1195,7 @@ void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens)
 	}
 	plate->setTokens(tokens);
 	plate->showEarZones();
-	plate->lower();
-	plate->show();
-	plate->update();
+	plate->refreshOverlay();
 }
 
 bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens)

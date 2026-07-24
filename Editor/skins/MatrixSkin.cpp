@@ -24,6 +24,7 @@
 #include "Editor/skins/pickers/MatrixFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "SkinFileIcons.h"
+#include "SkinChromeOverlay.h"
 #include "SkinPaint.h"
 #include "SkinSupport.h"
 
@@ -264,26 +265,20 @@ private:
 // hook run (this file has no moc, so findChild by class is unavailable),
 // and painting self-suspends while another skin is active because the real
 // MainWindow toolbar keeps its children across runtime skin switches.
-class MatrixToolbarBoard : public QWidget
+class MatrixToolbarBoard : public SkinChromeOverlay
 {
 public:
 	enum Layer { UnderCells, OverCells };
 
 	MatrixToolbarBoard(QToolBar* toolBar, Layer boardLayer)
-		: QWidget(toolBar), layer(boardLayer)
+		: SkinChromeOverlay(toolBar,
+			boardLayer == UnderCells
+				? QStringLiteral("MatrixToolbarBoardUnder")
+				: QStringLiteral("MatrixToolbarBoardOver"),
+			QStringLiteral("matrix"),
+			boardLayer == UnderCells ? ZPolicy::BelowControls : ZPolicy::AboveControls),
+		layer(boardLayer)
 	{
-		setObjectName(layer == UnderCells
-			? QStringLiteral("MatrixToolbarBoardUnder")
-			: QStringLiteral("MatrixToolbarBoardOver"));
-		setAttribute(Qt::WA_TransparentForMouseEvents);
-		// Every sheet's universal "QWidget { background: @BG@ }" rule makes
-		// QSS polish give this overlay a framework-painted opaque fill
-		// (WA_StyledBackground), bypassing the paintEvent guard below. The
-		// raised layer then blanks the entire toolbar under every skin once
-		// matrix has been visited - the "toolbar quietly empties after a few
-		// skin switches" field bug. This overlay never owns a background.
-		setAttribute(Qt::WA_NoSystemBackground, true);
-		toolBar->installEventFilter(this);
 		if (layer == OverCells)
 		{
 			// The lamp must follow the badge's dirty-state restyles and the
@@ -291,12 +286,7 @@ public:
 			if (QWidget* badge = toolBar->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge")))
 				badge->installEventFilter(this);
 		}
-		setGeometry(toolBar->rect());
-		if (layer == UnderCells)
-			lower();
-		else
-			raise();
-		show();
+		refreshOverlay();
 	}
 
 	void setBoardTokens(const SkinTokens& tokens)
@@ -314,29 +304,17 @@ public:
 
 	bool eventFilter(QObject* watched, QEvent* event) override
 	{
-		if (watched == parentWidget())
-		{
-			if (event->type() == QEvent::Resize)
-				setGeometry(parentWidget()->rect());
-		}
-		else if (event->type() == QEvent::Paint || event->type() == QEvent::Move
+		if (watched != parentToolBar()
+			&& (event->type() == QEvent::Paint || event->type() == QEvent::Move
 			|| event->type() == QEvent::Resize || event->type() == QEvent::Show
-			|| event->type() == QEvent::Hide)
-		{
+			|| event->type() == QEvent::Hide))
 			update();
-		}
-		return QWidget::eventFilter(watched, event);
+		return SkinChromeOverlay::eventFilter(watched, event);
 	}
 
 protected:
-	void paintEvent(QPaintEvent*) override
+	void paintChrome(QPainter& painter) override
 	{
-		// The layers stay parented to the shared toolbar after a runtime
-		// skin switch; they must never leak matrix chrome into another skin.
-		if (SkinManager::instance()->currentSkinId() != QStringLiteral("matrix"))
-			return;
-
-		QPainter painter(this);
 		painter.setRenderHint(QPainter::Antialiasing, false);
 		if (layer == UnderCells)
 			paintBoard(painter);
@@ -350,7 +328,7 @@ private:
 	// at runtime; painting a lamp under that pill would garble its text.
 	QWidget* ownedBadge() const
 	{
-		QWidget* badge = parentWidget()->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge"));
+		QWidget* badge = parentToolBar()->findChild<QWidget*>(QStringLiteral("DirtyStatusBadge"));
 		if (badge == nullptr || !badge->isVisible() || !badge->styleSheet().isEmpty())
 			return nullptr;
 		return badge;
@@ -1560,10 +1538,7 @@ public:
 			MatrixToolbarBoard* board = existing != nullptr
 				? static_cast<MatrixToolbarBoard*>(existing)
 				: new MatrixToolbarBoard(toolBar, layer);
-			if (layer == MatrixToolbarBoard::UnderCells)
-				board->lower();
-			else
-				board->raise();
+			board->refreshOverlay();
 			return board;
 		};
 		boardLayer(QStringLiteral("MatrixToolbarBoardUnder"), MatrixToolbarBoard::UnderCells)->setBoardTokens(tokens);

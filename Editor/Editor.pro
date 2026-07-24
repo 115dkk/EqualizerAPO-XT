@@ -435,6 +435,7 @@ HEADERS  += \
 	skins/RackChrome.h \
 	skins/Skins.h \
 	skins/SkinFileIcons.h \
+	skins/SkinChromeOverlay.h \
 	skins/SkinPaint.h \
 	skins/SkinSupport.h \
 	skins/SkinThemeData.h \
