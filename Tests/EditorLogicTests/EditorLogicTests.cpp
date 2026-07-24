@@ -21,11 +21,13 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
+#include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 #include <QVector>
 
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTextStream>
 
@@ -1775,6 +1777,34 @@ void testSkinTokensCarryExplicitMode()
 	}
 }
 
+void testEverySkinSheetResolvesAllThemeTokens()
+{
+	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());
+	repoRoot.cdUp();
+	repoRoot.cdUp();
+	const QStringList skinIds = {
+		QStringLiteral("studio"), QStringLiteral("minimal"),
+		QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix")
+	};
+	const QRegularExpression unresolved(QStringLiteral("@[A-Z_0-9]+@"));
+	for (const QString& skinId : skinIds)
+	{
+		for (bool dark : { false, true })
+		{
+			const QString resource = SkinThemeData::qssResource(skinId, dark);
+			const QString sourcePath = repoRoot.filePath(
+				QStringLiteral("Editor/skins/") + QFileInfo(resource).fileName());
+			QFile file(sourcePath);
+			expectTrue(file.open(QIODevice::ReadOnly | QIODevice::Text),
+				QStringLiteral("loads %1 source sheet").arg(resource));
+			const QString resolved = SkinThemeData::substituteTokens(
+				QString::fromUtf8(file.readAll()), SkinThemeData::tokens(skinId, dark));
+			expectFalse(unresolved.match(resolved).hasMatch(),
+				QStringLiteral("%1 leaves no unresolved @TOKEN@ sentinel").arg(resource));
+		}
+	}
+}
+
 void testEditableValueTextUsesDisplayedDecimalFormatFirst()
 {
 	const QLocale german(QLocale::German, QLocale::Germany);
@@ -1834,6 +1864,7 @@ int main(int argc, char** argv)
 		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
 		testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
 		testSkinTokensCarryExplicitMode();
+		testEverySkinSheetResolvesAllThemeTokens();
 		testEditableValueTextUsesDisplayedDecimalFormatFirst();
 		testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
 		testFilterListModel();
