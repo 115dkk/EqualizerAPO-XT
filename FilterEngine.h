@@ -23,8 +23,6 @@
 #include <vector>
 #include <memory>
 #include <unordered_set>
-#include <atomic>
-#include <condition_variable>
 #include <mutex>
 #include <thread>
 #define WIN32_LEAN_AND_MEAN
@@ -32,9 +30,9 @@
 
 #include "IFilterFactory.h"
 #include "FilterConfiguration.h"
+#include "engine/ConfigSwapChannel.h"
 #include "helpers/PrecisionTimer.h"
 #include "helpers/MemoryHelper.h"
-#include "helpers/Win32Event.h"
 
 namespace mup {
 class ParserX;
@@ -149,19 +147,7 @@ private:
 	bool lastInPlace = false;
 	std::unique_ptr<mup::ParserX> parser;
 
-	FilterConfigurationPtr currentConfig;
-	FilterConfigurationPtr nextConfig;
-	FilterConfigurationPtr previousConfig;
-	// Publication flag for the nextConfig worker->RT handoff. The notification
-	// worker builds a FilterConfiguration and stores it into nextConfig under
-	// loadMutex; the real-time process() thread reads nextConfig lock-free. As
-	// nextConfig is a plain unique_ptr, on a weakly-ordered CPU (ARM64) the RT
-	// thread could see the new pointer before the configuration's construction is
-	// visible. This atomic carries the release(worker)/acquire(RT) edge: the RT
-	// dereferences nextConfig only after acquire-loading true here. On x86/x64
-	// (TSO) it lowers to plain loads/stores, so the existing platforms are
-	// unaffected.
-	std::atomic<bool> nextConfigReady{ false };
+	ConfigSwapChannel<FilterConfigurationPtr> configChannel;
 
 	unsigned transitionCounter;
 	unsigned transitionLength = 0;
@@ -169,13 +155,8 @@ private:
 	// Recomputed by initialize() whenever transitionLength changes.
 	std::vector<double> transitionFactorTable;
 	std::mutex loadMutex;
-	std::mutex loadPermitMutex;
-	std::condition_variable loadPermitCv;
-	bool loadPermitAvailable;
 	PrecisionTimer timer;
 	std::thread notificationWorker;
-	std::unique_ptr<Win32Event> shutdownEvent;
-	bool shutdownRequested;
 	std::unordered_set<std::wstring> watchRegistryKeys;
 	bool lastInputWasSilent;
 };

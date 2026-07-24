@@ -68,7 +68,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 	// The factories build through these engine-owned scratch fields. Move the
 	// previous idle state aside so the whole load is transactional: any exception
 	// discards the partial filters/channel routing and restores registry watches,
-	// while currentConfig remains untouched.
+	// while the active configuration remains untouched.
 	auto savedFilterInfos = move(filterInfos);
 	auto savedCurrentChannelNames = move(currentChannelNames);
 	auto savedLastChannelNames = move(lastChannelNames);
@@ -129,16 +129,9 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		double loadTime = timer.stop();
 		TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
 
-		previousConfig.reset();
-		if (!currentConfig)
-			currentConfig = move(config);
-		else
-		{
-			nextConfig = move(config);
-			// Release: publish the fully-constructed FilterConfiguration to the RT
-			// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
-			nextConfigReady.store(true, std::memory_order_release);
-		}
+		configChannel.publish(move(config));
+		// Release: publish the fully-constructed FilterConfiguration to the RT
+		// thread. Pairs with the acquire loads in process()/finishTransitionIfReady.
 		return true;
 	}
 	catch (const exception& e)

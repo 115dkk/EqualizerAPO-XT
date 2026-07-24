@@ -84,8 +84,6 @@ FilterEngine::FilterEngine()
       outputChannelCount(0),
 	  parser(make_unique<ParserX>()),
 	  lastInputWasSilent(false),
-	  loadPermitAvailable(true),
-	  shutdownRequested(false),
 	  transitionCounter(0)
 {
 	parser->EnableAutoCreateVar(true);
@@ -98,16 +96,9 @@ FilterEngine::~FilterEngine()
 	// Make sure notification thread is terminated before cleaning up, otherwise deleted memory might be accessed in loadConfig
 	if (notificationWorker.joinable())
 	{
-		{
-			lock_guard<mutex> lock(loadPermitMutex);
-			shutdownRequested = true;
-			loadPermitAvailable = true;
-		}
-		loadPermitCv.notify_all();
-		shutdownEvent->set();
+		configChannel.shutdown();
 		notificationWorker.join();
 		TraceF(L"Successfully terminated directory change notification thread");
-		shutdownEvent.reset();
 	}
 
 	cleanupConfigurations();
@@ -120,8 +111,9 @@ void FilterEngine::setPreMix(bool preMix)
 
 bool FilterEngine::hasStatefulOrTailFilters() const
 {
-	if (nextConfig)
+	if (configChannel.hasPending())
 		return true;
+	const FilterConfigurationPtr& currentConfig = configChannel.current();
 	if (!currentConfig)
 		return true;
 	if (currentConfig->isEmpty())
@@ -174,6 +166,13 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 		vector<wstring> channelNames = ChannelHelper::getChannelNames(deviceChannelCount, channelMask);
 		TraceF(L"%d channels for this device: %s", deviceChannelCount, StringHelper::join(channelNames, L" ").c_str());
 
+		// The RT thread always starts from a valid empty configuration. Every
+		// loaded file, including the initial one, is then published through the
+		// same release/acquire handoff as a later reload.
+		configChannel.reset(FilterConfigurationPtr(
+			MemoryHelper::construct<FilterConfiguration>(
+				this, vector<std::unique_ptr<FilterInfo>>(), deviceChannelCount)));
+
 		try
 		{
 			configPath = RegistryHelper::readValue(APP_REGPATH, L"ConfigPath");
@@ -206,12 +205,16 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 
 	if (shouldLoadConfig)
 	{
-		loadConfig(customPath);
+		const bool loaded = loadConfig(customPath);
 
 		lock_guard<mutex> lock(loadMutex);
+		// Initial/re-initialization loads still travel through ConfigSwapChannel,
+		// but the first RT block must preserve the historical immediate-start
+		// behavior rather than fading in from the seeded empty configuration.
+		if (loaded)
+			transitionCounter = transitionLength;
 		if (!notificationWorker.joinable() && customPath.empty())
 		{
-			shutdownEvent = make_unique<Win32Event>(true, false);
 			notificationWorker = thread(notificationThread, this);
 			TraceF(L"Successfully created directory change notification thread for %s and its subtree", configPath.c_str());
 		}

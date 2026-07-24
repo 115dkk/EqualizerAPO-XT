@@ -205,6 +205,7 @@
     <ClInclude Include="ConfigLoadTrace.h" />
     <ClInclude Include="ConfigurationFileReader.h" />
     <ClInclude Include="DeviceAPOInfo.h" />
+    <ClInclude Include="engine\ConfigSwapChannel.h" />
     <ClInclude Include="FilterConfiguration.h" />
     <ClInclude Include="FilterEngine.h" />
     <ClInclude Include="IFilter.h" />

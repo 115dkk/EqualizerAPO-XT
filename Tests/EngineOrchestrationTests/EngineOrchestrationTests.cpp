@@ -28,6 +28,7 @@
 #include <windows.h>
 #include "ConfigLoadTrace.h"
 #include "FilterEngine.h"
+#include "engine/ConfigSwapChannel.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ParallelExecutor.h"
 #include "helpers/SndfileRAII.h"
@@ -519,6 +520,55 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
+// initialize() seeds an empty active configuration and publishes the requested
+// file through the same worker->RT channel used by every later reload. Before
+// the first audio block consumes it, the public state query must conservatively
+// report the pending transition instead of treating the config as directly
+// installed.
+void testInitialLoadUsesPublicationChannel(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"initial-publication.txt",
+		"Preamp: -6.0206 dB\n");
+
+	FilterEngine engine;
+	const std::wstring deviceName = L"EngineOrchestrationTests";
+	engine.setDeviceInfo(false, true, deviceName, L"File", L"", deviceName + L" File");
+	engine.initialize(48000.0f, 2, 2, 2, 0, 16, configPath);
+
+	harness.expect(engine.hasStatefulOrTailFilters(),
+		"initial configuration bypassed the worker-to-RT publication channel");
+}
+
+void testConfigSwapChannelPermitRoundTrip(test::Harness& harness)
+{
+	using TestChannel = ConfigSwapChannel<std::unique_ptr<int>>;
+
+	TestChannel channel;
+	channel.reset(std::make_unique<int>(1));
+	harness.require(channel.acquirePublishPermit(0),
+		"fresh config channel did not grant its producer permit");
+	channel.publish(std::make_unique<int>(2));
+	harness.expect(channel.hasPending(), "published config was not visible to the RT side");
+	harness.expectEqual(*channel.current(), 1, "publish replaced current before RT acquisition");
+
+	channel.completeTransition();
+	harness.expectFalse(channel.hasPending(), "completed transition stayed pending");
+	harness.expectEqual(*channel.current(), 2, "completed transition did not promote pending config");
+	harness.require(channel.acquirePublishPermit(0),
+		"RT completion did not return the producer permit");
+	channel.releasePublishPermit();
+
+	harness.require(channel.acquirePublishPermit(0),
+		"config channel did not grant a permit before reset");
+	channel.publish(std::make_unique<int>(3));
+	channel.reset(std::make_unique<int>(4));
+	harness.expectFalse(channel.hasPending(), "reset kept a discarded pending config");
+	harness.expectEqual(*channel.current(), 4, "reset did not install its seed config");
+	harness.require(channel.acquirePublishPermit(0),
+		"reset discarded a pending config without returning its permit");
+	channel.releasePublishPermit();
+}
+
 // Windows may give a render APO fewer input channels than the endpoint output
 // layout (for example, a stereo application stream feeding an 8-channel
 // endpoint). An empty configuration is still responsible for adapting that
@@ -650,6 +700,8 @@ int runEngineOrchestrationTests()
 	test::Harness harness("EngineOrchestrationTests");
 
 	testProcessWithoutConfigurationDoesNotCrash(harness);
+	testInitialLoadUsesPublicationChannel(harness);
+	testConfigSwapChannelPermitRoundTrip(harness);
 	testEmptyConfigurationExpandsRenderChannels(harness);
 	testParallelExecutor(harness);
 	runConfigurationFileReaderTests(harness);

@@ -141,45 +141,27 @@ void FilterEngine::addFilters(FilterVector filters)
 
 void FilterEngine::cleanupConfigurations()
 {
-	currentConfig.reset();
-	nextConfig.reset();
-	nextConfigReady.store(false, std::memory_order_relaxed);
-	previousConfig.reset();
+	configChannel.reset();
 }
 
 bool FilterEngine::acquireLoadPermit()
 {
-	unique_lock<mutex> lock(loadPermitMutex);
-	loadPermitCv.wait(lock, [&] {return shutdownRequested || loadPermitAvailable; });
-	if (shutdownRequested)
-		return false;
-
-	loadPermitAvailable = false;
-	return true;
+	return configChannel.acquirePublishPermit();
 }
 
 void FilterEngine::releaseLoadPermit()
 {
-	{
-		lock_guard<mutex> lock(loadPermitMutex);
-		loadPermitAvailable = true;
-	}
-	loadPermitCv.notify_one();
+	configChannel.releasePublishPermit();
 }
 
 void FilterEngine::finishTransitionIfReady()
 {
-	// Acquire: pairs with the release store in loadConfig so the dereference of
-	// nextConfig below observes the fully-constructed configuration on ARM64.
-	if (nextConfigReady.load(std::memory_order_acquire) && transitionCounter >= transitionLength)
+	// ConfigSwapChannel's acquire load observes the producer's fully-constructed
+	// configuration before it is dereferenced on ARM64.
+	if (configChannel.hasPending() && transitionCounter >= transitionLength)
 	{
-		previousConfig = move(currentConfig);
-		currentConfig = move(nextConfig);
-		// Cleared before releaseLoadPermit(); the permit mutex then publishes this
-		// to the worker, which cannot store a new nextConfig until it reacquires.
-		nextConfigReady.store(false, std::memory_order_relaxed);
+		configChannel.completeTransition();
 		transitionCounter = 0;
-		releaseLoadPermit();
 	}
 }
 
@@ -192,7 +174,7 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 
 	Win32Event registryEvent(true, false);
 
-	HANDLE handles[3] = {engine->shutdownEvent->get(), notification.get(), registryEvent.get()};
+	HANDLE handles[3] = {engine->configChannel.shutdownHandle(), notification.get(), registryEvent.get()};
 	while (true)
 	{
 		// watchRegistryKeys is cleared and refilled under loadMutex whenever a
@@ -243,11 +225,9 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 			}
 
 			const bool loaded = engine->loadConfig();
-			// A successful reload normally keeps the permit until the RT thread
-			// finishes the crossfade. Failed loads publish nothing, and a recovery
-			// load after an initially missing configuration installs currentConfig
-			// directly; both cases must return the permit here.
-			if (!loaded || !engine->nextConfigReady.load(std::memory_order_acquire))
+			// A successful load keeps the permit until the RT thread finishes the
+			// crossfade. Failed loads publish nothing and return it here.
+			if (!loaded)
 				engine->releaseLoadPermit();
 			FindNextChangeNotification(notification.get());
 			registryEvent.reset();
