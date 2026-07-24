@@ -308,7 +308,7 @@ public:
 		// The hook carries no mode flag; infer it from the strip's surface
 		// (the studioIsDark pattern). The light border ink needs more alpha
 		// than the dark one to stay visible as graph paper on white.
-		gridAlpha = skinColorIsDark(QColor(tokens.surface)) ? 55 : 90;
+		gridAlpha = tokens.dark ? 55 : 90;
 		update();
 	}
 
@@ -471,7 +471,7 @@ public:
 		// the LEDs gain headroom toward white so a lit cell clearly outshines
 		// the ghost ring; the light tokens were derived for maximum contrast
 		// on white, where lightening would only desaturate them.
-		if (skinColorIsDark(QColor(tokens.surface)))
+		if (tokens.dark)
 			litColor = litColor.lighter(112);
 		if (state.dragging)
 			litColor = litColor.lighter(125);
@@ -691,7 +691,7 @@ public:
 		// calm opaque panel regardless of editor widget opacity (invariant
 		// rule 3 of the constitution).
 		QColor gridColor(tokens.border);
-		const int gridAlpha = skinColorIsDark(QColor(tokens.surface)) ? 80 : 90;
+		const int gridAlpha = tokens.dark ? 80 : 90;
 		gridColor.setAlpha((info.enabled || remark) ? gridAlpha : gridAlpha / 2);
 		painter.setPen(QPen(gridColor, 1));
 		for (int x = content.left() + MatrixMetrics::gridPitch; x < content.right(); x += MatrixMetrics::gridPitch)
@@ -901,7 +901,7 @@ public:
 		// The board surface's graph paper: the same faint 24px column grid
 		// the masthead and toolbar sit on.
 		QColor grid(tokens.border);
-		grid.setAlpha(skinColorIsDark(QColor(tokens.surface)) ? 55 : 90);
+		grid.setAlpha(tokens.dark ? 55 : 90);
 		painter.setPen(QPen(grid, 1));
 		for (int x = cell.left() + MatrixMetrics::gridPitch; x < cell.right(); x += MatrixMetrics::gridPitch)
 			painter.drawLine(x, cell.top() + 1, x, cell.bottom() - 1);
@@ -1227,7 +1227,7 @@ public:
 		const QColor mutedInk(tokens.mutedText);
 		const QColor textInk(tokens.text);
 		const QColor accent(tokens.accent);
-		const bool darkBoard = skinColorIsDark(QColor(tokens.surface));
+		const bool darkBoard = tokens.dark;
 		// Caution ink: full amber only on the dark board. On the light board
 		// raw orange reads as crayon against the ice palette, so it sinks to
 		// a printed ochre - hue kept, saturation and value derived down.
@@ -1530,7 +1530,7 @@ public:
 		// (the studioIsDark pattern). The light border ink needs more alpha
 		// than the dark one to stay visible as graph paper on white.
 		QColor grid(tokens.border);
-		grid.setAlpha(skinColorIsDark(QColor(tokens.surface)) ? 55 : 90);
+		grid.setAlpha(tokens.dark ? 55 : 90);
 		painter.setPen(QPen(grid, 1));
 		for (int x = rect.left() + MatrixMetrics::gridPitch; x < rect.right(); x += MatrixMetrics::gridPitch)
 			painter.drawLine(x, rect.top(), x, rect.bottom());

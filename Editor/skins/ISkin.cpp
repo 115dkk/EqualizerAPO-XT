@@ -306,7 +306,7 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 
 	const QColor accent(tokens.accent);
 	const QColor muted(tokens.mutedText);
-	const bool dark = QColor(tokens.background).lightness() < 128;
+	const bool dark = tokens.dark;
 
 	QRectF bgRect = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
 	const qreal radius = qMax(0, tokens.borderRadius - 2);

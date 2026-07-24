@@ -35,6 +35,7 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/import/LegacyMigrationPolicy.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/FilterListUndo.h"
@@ -1751,6 +1752,21 @@ void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce()
 	joined.get();
 	expectTrue(completed.load(), "join observes completion of the owned worker");
 }
+
+void testSkinTokensCarryExplicitMode()
+{
+	const QStringList skinIds = {
+		QStringLiteral("studio"), QStringLiteral("minimal"), QStringLiteral("soft"),
+		QStringLiteral("rack"), QStringLiteral("matrix")
+	};
+	for (const QString& skinId : skinIds)
+	{
+		expectTrue(SkinThemeData::tokens(skinId, true).dark,
+			QStringLiteral("%1 dark tokens carry dark=true").arg(skinId));
+		expectFalse(SkinThemeData::tokens(skinId, false).dark,
+			QStringLiteral("%1 light tokens carry dark=false").arg(skinId));
+	}
+}
 }
 
 int main(int argc, char** argv)
@@ -1781,6 +1797,7 @@ int main(int argc, char** argv)
 		testConfigFileCodecRejectsPartialRead();
 		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
 		testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
+		testSkinTokensCarryExplicitMode();
 		testFilterListModel();
 		testFilterListUndo();
 

@@ -32,9 +32,6 @@ inline void configurePaintOnlyChrome(QWidget* widget)
 	widget->setAttribute(Qt::WA_NoSystemBackground, true);
 }
 
-// The skin hooks receive tokens but no mode flag; a colour's luminance is the
-// unambiguous proxy (every dark ground in the five palettes is deep, every
-// light one near-white).
 inline bool skinColorIsDark(const QColor& color)
 {
 	return color.lightness() < 128;
@@ -42,7 +39,7 @@ inline bool skinColorIsDark(const QColor& color)
 
 inline bool skinIsDark(const SkinTokens& tokens)
 {
-	return skinColorIsDark(QColor(tokens.background));
+	return tokens.dark;
 }
 
 inline QColor withAlpha(QColor color, int alpha)

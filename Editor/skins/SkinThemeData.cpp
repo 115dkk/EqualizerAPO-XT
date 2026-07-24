@@ -17,6 +17,7 @@ namespace
 SkinTokens studioTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 8;
@@ -62,6 +63,7 @@ SkinTokens studioTokens(bool dark)
 SkinTokens minimalTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.accent = QStringLiteral("#3B82F6");
 	t.fontFamily = QStringLiteral("DM Mono");
 	t.monoFontFamily = QStringLiteral("DM Mono");
@@ -107,6 +109,7 @@ SkinTokens minimalTokens(bool dark)
 SkinTokens softTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 14;
@@ -163,6 +166,7 @@ SkinTokens softTokens(bool dark)
 SkinTokens rackTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 3;
@@ -207,6 +211,7 @@ SkinTokens rackTokens(bool dark)
 SkinTokens matrixTokens(bool dark)
 {
 	SkinTokens t;
+	t.dark = dark;
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 0;

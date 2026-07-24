@@ -61,6 +61,7 @@ void SkinManager::applyHeritage()
 	// Classic light values for the custom painters that consume tokens. The
 	// widget chrome itself comes from the native style, untouched by QSS.
 	SkinTokens tokens = activeSkin->tokens(false);
+	tokens.dark = false;
 	tokens.background = QStringLiteral("#f0f0f0");
 	tokens.surface = QStringLiteral("#ffffff");
 	tokens.surfaceRaised = QStringLiteral("#f5f5f5");

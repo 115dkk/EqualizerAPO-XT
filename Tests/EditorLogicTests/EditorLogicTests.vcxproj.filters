@@ -44,6 +44,9 @@
     <ClCompile Include="..\..\UpdateChecker\VelopackUpdateInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Editor\helpers\ConvolutionPathHelper.h">
@@ -74,6 +77,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\helpers\OwnedBackgroundTask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\skins\SkinThemeData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
