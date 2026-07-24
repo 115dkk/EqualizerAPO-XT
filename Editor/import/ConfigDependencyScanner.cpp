@@ -5,6 +5,7 @@
 #include "ConfigDependencyScanner.h"
 #include "../ConfigFileCodec.h"
 #include "../widgets/FilterCardModel.h"
+#include "filters/ConvolutionFilePath.h"
 #include "filters/MultiConvolutionCommand.h"
 
 #include <QDir>
@@ -64,17 +65,13 @@ QString referencePath(const QString& commandLower, const QString& parameters)
     return parameters;
 }
 
-QString resolveAbsolute(const QString& reference, const QString& baseDir)
+QString resolveAbsolute(const QString& reference, const QString& configPath)
 {
-    QString trimmed = reference.trimmed();
-    if (trimmed.isEmpty())
+    const std::wstring resolved = ConvolutionFilePath::resolve(
+        configPath.toStdWString(), reference.toStdWString());
+    if (resolved.empty())
         return QString();
-
-    QFileInfo info(trimmed);
-    if (info.isAbsolute())
-        return QDir::cleanPath(info.absoluteFilePath());
-
-    return QDir::cleanPath(QDir(baseDir).absoluteFilePath(trimmed));
+    return QDir::cleanPath(QString::fromStdWString(resolved));
 }
 
 // Returns relativePath using forward slashes if target is inside rootDir,
@@ -157,9 +154,6 @@ void scanConfigFile(ImportManifest& manifest,
         return;
     }
 
-    QFileInfo configInfo(sourceTxtAbs);
-    QString baseDir = configInfo.absoluteDir().absolutePath();
-
     for (const QString& line : readResult.lines)
     {
         QString trimmed = line.trimmed();
@@ -174,7 +168,7 @@ void scanConfigFile(ImportManifest& manifest,
             continue;
 
         QString reference = referencePath(commandLower, parameters);
-        QString refAbs = resolveAbsolute(reference, baseDir);
+        QString refAbs = resolveAbsolute(reference, sourceTxtAbs);
         if (refAbs.isEmpty())
             continue;
 

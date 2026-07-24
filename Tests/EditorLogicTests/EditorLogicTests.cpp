@@ -389,6 +389,7 @@ void requireEqual(int actual, int expected, const QString& message)
 void testConvolutionPathHelper()
 {
 	const QString configPath = "C:/EqualizerAPO/config/config.txt";
+	qputenv("EAPO_XT_TEST_IR_DIR", "C:\\Impulse Responses");
 
 	expectPath(
 		ConvolutionPathHelper::absolutePathForConfig(configPath, "irs/room.wav"),
@@ -396,6 +397,13 @@ void testConvolutionPathHelper()
 	expectPath(
 		ConvolutionPathHelper::absolutePathForConfig(configPath, "C:/Impulse/room.wav"),
 		"C:/Impulse/room.wav");
+	expectTrue(
+		ConvolutionPathHelper::absolutePathForConfig(configPath, QString()).isEmpty(),
+		"empty convolution path should remain empty");
+	expectPath(
+		ConvolutionPathHelper::absolutePathForConfig(
+			configPath, "\"%EAPO_XT_TEST_IR_DIR%\\quoted room.wav\""),
+		"C:/Impulse Responses/quoted room.wav");
 
 	expectPath(
 		ConvolutionPathHelper::displayPathForSelection(configPath, "C:/EqualizerAPO/config/irs/room.wav"),
@@ -885,6 +893,20 @@ void testConfigImport()
 	expectTrue(destRels.contains("Surround/child.txt"), "include child present");
 	expectTrue(destRels.contains("Surround/ir.wav"), "ir wav present");
 	expectTrue(destRels.contains("Surround/nested.wav"), "nested wav present");
+
+	writeBlob(surroundDir + "/env.wav", 24);
+	qputenv("EAPO_XT_TEST_IMPORT_IR", surroundDir.toUtf8());
+	writeText(surroundDir + "/env.txt",
+		"Convolution: \"%EAPO_XT_TEST_IMPORT_IR%/env.wav\"\n");
+	auto environmentManifest = EqAPO::Import::ConfigDependencyScanner::scan(
+		surroundDir + "/env.txt", tempDir.path() + "/configdir");
+	expectFalse(environmentManifest.hasErrors,
+		"scanner did not apply the engine's environment expansion policy");
+	requireEqual(int(environmentManifest.items.size()), 2,
+		"environment-expanded config collects its referenced IR");
+	expectEqual(environmentManifest.items[1].sourceAbsolute,
+		QDir::cleanPath(surroundDir + "/env.wav"),
+		"scanner and engine resolve environment-expanded paths identically");
 
 	// Legacy configs use the system ANSI code page when a line is not valid
 	// UTF-8. Pick a character that round-trips through this machine's ACP but

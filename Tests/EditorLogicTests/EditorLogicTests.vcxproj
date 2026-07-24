@@ -130,6 +130,7 @@
     <ClCompile Include="..\..\Editor\widgets\routing\RoutingFold.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\StudioRoutingModel.cpp" />
     <ClCompile Include="..\..\filters\MultiConvolutionCommand.cpp" />
+    <ClCompile Include="..\..\filters\ConvolutionFilePath.cpp" />
     <ClCompile Include="..\..\filters\StageCommand.cpp" />
     <ClCompile Include="..\..\filters\BiQuadCommand.cpp" />
     <ClCompile Include="..\..\filters\DeviceCommand.cpp" />
