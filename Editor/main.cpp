@@ -45,6 +45,7 @@
 #include "CustomStyle.h"
 #include "MainWindow.h"
 #include "SkinGallery.h"
+#include "diagnostics/SkinSwitchStorm.h"
 #include "SkinManager.h"
 #include "import/LegacyMigration.h"
 #include "filters/VSTPluginFilter.h"
@@ -495,7 +496,7 @@ int main(int argc, char* argv[])
 		EqAPO::Import::LegacyMigration::maybeShowStartupNotice(&w);
 
 		QCommandLineParser parser;
-		// Diagnostic switch storm (see MainWindow::startSkinSwitchStorm);
+		// Diagnostic switch storm (see diagnostics/SkinSwitchStorm);
 		// registered so the parser does not reject it as an unknown option.
 		QCommandLineOption stormOption(QStringLiteral("skin-switch-storm"));
 		stormOption.setFlags(QCommandLineOption::HiddenFromHelp);
@@ -510,7 +511,7 @@ int main(int argc, char* argv[])
 
 		bool firstRun = VelopackBootstrap::isFirstRun();
 		if (parser.isSet(stormOption))
-			w.startSkinSwitchStorm();  // storm sessions skip doChecks: its modal warnings would stall the timer
+			SkinSwitchStorm::run(w);  // storm sessions skip doChecks: its modal warnings would stall the timer
 		else if (firstRun)
 			launchDeviceSelector(executableDirectory());
 		else

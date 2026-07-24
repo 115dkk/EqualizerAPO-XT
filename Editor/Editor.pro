@@ -127,6 +127,7 @@ SOURCES += main.cpp\
 	MainWindowParts/MainWindow.Frame.cpp \
 	MainWindowParts/MainWindow.Preferences.cpp \
 	MainWindowParts/MainWindow.ViewActions.cpp \
+	diagnostics/SkinSwitchStorm.cpp \
 	ConfigFileCodec.cpp \
 	guis/StageFilterGUI.cpp \
 	guis/StageFilterGUIFactory.cpp \
@@ -163,6 +164,7 @@ SOURCES += main.cpp\
 	../ConfigurationFileReader.cpp \
 	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \
+	../parser/EngineParser.cpp \
 	../parser/RegexFunctions.cpp \
 	../parser/RegistryFunctions.cpp \
 	../parser/StringOperators.cpp \
@@ -403,6 +405,7 @@ HEADERS  += \
 	../parser/RegexFunctions.h \
 	../parser/RegistryFunctions.h \
 	../parser/ParserExtensions.h \
+	../parser/EngineParser.h \
 	../parser/StringOperators.h \
 	AnalysisThread.h \
 	widgets/ExponentialSpinBox.h \
@@ -427,6 +430,8 @@ HEADERS  += \
 	../filters/loudnessCorrection/VolumeController.h \
 	guis/LoudnessCorrectionFilterGUIDialog.h \
 	helpers/CrashHandler.h \
+	diagnostics/ToolbarPixelProbe.h \
+	diagnostics/SkinSwitchStorm.h \
 	helpers/QtSndfileHandle.h \
 	SkinGallery.h \
 	SkinTokens.h \

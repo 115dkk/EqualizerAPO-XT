@@ -1,4 +1,5 @@
 #include "SkinGallery.h"
+#include "diagnostics/ToolbarPixelProbe.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -407,25 +408,6 @@ constexpr int kExtraShotsPerSkinMode = 21;
 // picking up the sheets' universal QWidget background rule and blanking
 // the whole strip) produced exactly this while every visibility flag,
 // geometry and child list stayed healthy.
-bool toolbarRenderIsBlank(const QImage& image)
-{
-	if (image.isNull() || image.width() < 10 || image.height() < 4)
-		return true;
-	const QRgb corner = image.pixel(1, 1);
-	qint64 same = 0;
-	qint64 total = 0;
-	for (int y = 0; y < image.height(); y += 2)
-	{
-		for (int x = 0; x < image.width(); x += 2)
-		{
-			total++;
-			if (image.pixel(x, y) == corner)
-				same++;
-		}
-	}
-	return same * 100 >= total * 99;
-}
-
 // Faithful chrome replica of MainWindow's toolbar: same object names, same
 // widget train, dummy data where the real one reads devices. The gallery
 // judges chrome, not data, and constructing the real toolbar would drag in
@@ -1282,7 +1264,7 @@ int runSwitchTest(const QStringList& arguments)
 		// Pixels, not flags: the field bug rendered the strip blank while
 		// every logical probe stayed healthy.
 		if (probeToolBar->isVisible()
-			&& toolbarRenderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
+			&& ToolbarPixelProbe::renderIsBlank(probeToolBar->grab().toImage().convertToFormat(QImage::Format_RGB32)))
 		{
 			qWarning("SkinSwitchTest: %s: toolbar rendered blank (controls not painted)",
 				qPrintable(switchName));
