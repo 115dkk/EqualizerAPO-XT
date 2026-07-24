@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The Editor now recognises `MultiConvolution:` lines the way the audio engine
+  does. Two of the filter's source files were never listed in the Editor's own
+  build, so the Editor's copy of the engine had no `MultiConvolution` factory:
+  the analysis panel drew the frequency response as if those lines were not
+  there, and a commented-out `# MultiConvolution:` line was treated as an
+  ordinary note instead of a disabled command, so the enable toggle did not
+  bring it back. Playback was never affected, because the audio processing
+  object is built from a different project that always had both files. A CI
+  lint now compares the two source lists and fails the build when they drift
+  ([#223](https://github.com/115dkk/EqualizerAPO-XT/pull/223)).
+
 ## v2.26.1 — 2026-07-23
 
 - The real culprit behind "the toolbar quietly empties after switching

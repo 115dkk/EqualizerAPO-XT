@@ -29,21 +29,13 @@ $ErrorActionPreference = "Stop"
 # Sources Common.vcxproj compiles that Editor.pro is expected NOT to list. Each
 # entry carries its reason; an exception without one is how such a list rots.
 #
-# The two MultiConvolution entries need the longer story. They have never been in
-# Editor.pro (added by #130, still absent through #139, #162 and #187) and their
-# absence cannot break the Editor link: the filter is constructed only by its
-# factory, and the factory is reached only through the REGISTER_FILTER_FACTORY
-# static in its own translation unit, so the pair is an island in the link graph -
-# precisely the case the .pro's "a missing engine file fails the link loudly"
-# guarantee does not cover. The absence is observable at runtime though (the
-# Editor's FilterFactoryRegistry has no "MultiConvolution" keyword, so the
-# analysis FilterEngine and FilterCardModel::isKnownConfigCommand do not
-# recognise the line). No maintainer decision recording that as intended was
-# found, so they are listed here to describe the tree as it is, not to bless it.
+# Keep this list short. A self-registering translation unit that nothing names
+# directly is an island in the link graph, so leaving it out of Editor.pro does
+# not fail the link - it just silently removes the feature from the Editor. That
+# is how the two MultiConvolution files went missing from #130 until this lint
+# was written; they are now listed in Editor.pro rather than excused here.
 $knownEditorOmissions = [ordered]@{
-  "filters/MultiConvolutionFilter.cpp"        = "reachable only through its factory's self-registration; never carried by Editor.pro"
-  "filters/MultiConvolutionFilterFactory.cpp" = "self-registering leaf translation unit; never carried by Editor.pro"
-  "stdafx.cpp"                                = "MSBuild's precompiled-header creator (/Yc stdafx.h); qmake builds its own PCH unit from Editor/stable.h"
+  "stdafx.cpp" = "MSBuild's precompiled-header creator (/Yc stdafx.h); qmake builds its own PCH unit from Editor/stable.h"
 }
 
 $projectPath = Join-Path $RepoRoot "Common.vcxproj"

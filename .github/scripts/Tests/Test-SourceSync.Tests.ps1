@@ -23,8 +23,6 @@ BeforeAll {
     # these on the Common side and only there, otherwise the lint reports the
     # list itself as stale - which is the behaviour two of the cases below check.
     $script:KnownOmissions = @(
-        'filters/MultiConvolutionFilter.cpp'
-        'filters/MultiConvolutionFilterFactory.cpp'
         'stdafx.cpp'
     )
 
@@ -136,7 +134,7 @@ Describe "Test-SourceSync.ps1" {
     It "fails when a known omission has become an Editor.pro source" {
         $root = New-FixtureRepo `
             -CommonSources @('FilterEngine.cpp') `
-            -EditorSources @('../FilterEngine.cpp', '../filters/MultiConvolutionFilter.cpp')
+            -EditorSources @('../FilterEngine.cpp', '../stdafx.cpp')
         $result = Invoke-SourceSync -RepoRoot $root
 
         $result.ExitCode | Should -Not -Be 0
