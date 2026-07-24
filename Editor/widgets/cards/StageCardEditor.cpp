@@ -115,6 +115,6 @@ void StageCardEditor::chipToggled()
 
 #include "FilterCardEditorRegistry.h"
 
-REGISTER_FILTER_CARD_EDITOR(stage, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+REGISTER_FILTER_CARD_EDITOR(Stage, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
 	return new StageCardEditor(parameters);
 })

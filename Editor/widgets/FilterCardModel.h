@@ -88,6 +88,19 @@ public:
 	// that only need the margin depth.
 	static QVector<int> calculateDepths(const QList<QString>& lines);
 	static QString commandForLine(const QString& line, QString* parameters);
+	// The engine's own answer to "is this key a command the engine runs, and
+	// which one": FilterFactoryRegistry::canonicalCommand brought across the Qt
+	// boundary, empty when no factory claims the key. Every Editor decision that
+	// hinges on a line being a command asks this, so the card model, the card
+	// editor registry and the engine cannot end up with three different answers.
+	// Two properties carry the weight: only the first whitespace-delimited token
+	// is matched (so "Filter 1" is the "Filter" command), and the match is
+	// case-sensitive (so a 1.4.2 config's "copy: a note to self" stays a note).
+	// The one place this is stricter than the registry is the trailing token:
+	// only IIR/BiQuad accept "Filter <n>", so "Channel 2" resolves to nothing
+	// here rather than handing an inert line to an editor that would rewrite
+	// its key (see the implementation comment).
+	static QString canonicalCommand(const QString& key);
 	// A line that is a note, not a disabled command; such a line has no
 	// "command: parameters" shape, so FilterTable routes it to the comment card.
 	static bool isPureCommentLine(const QString& line);

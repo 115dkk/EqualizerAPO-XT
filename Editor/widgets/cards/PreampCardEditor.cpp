@@ -4,11 +4,12 @@
 
 #include <QLabel>
 #include <QLocale>
-#include <QRegularExpression>
 
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
+#include "filters/PreampCommand.h"
+#include "filters/PreampFilterFactory.h"
 
 namespace
 {
@@ -70,19 +71,17 @@ void PreampCardEditor::store(QString& command, QString& parameters)
 		parameters = dynamicParameters();
 		return;
 	}
-	parameters = QStringLiteral("%0 dB").arg(QLocale::c().toString(currentGain, 'f', 1));
-}
 
-double PreampCardEditor::parseGain(const QString& parameters)
-{
-	static const QRegularExpression numberExpression(QStringLiteral("([-+]?\\d+(?:\\.\\d+)?)"));
-	const QRegularExpressionMatch match = numberExpression.match(parameters);
-	if (!match.hasMatch())
-		return 0.0;
-
-	bool ok = false;
-	const double value = QLocale::c().toDouble(match.captured(1), &ok);
-	return ok ? value : 0.0;
+	// Serialize through the shared PreampCommand codec, like the legacy GUI and
+	// the Delay card do, so one line cannot come back in two different formats
+	// depending on which editor the user happened to have open. The card used to
+	// write a fixed single decimal here, which silently rounded away anything
+	// finer (a -6.25 dB line became -6.2 dB on the first knob touch).
+	PreampCommand cmd;
+	cmd.dbGain = currentGain;
+	cmd.valid = true;
+	cmd.noOp = std::abs(currentGain) < 1e-9;
+	parameters = QString::fromStdWString(cmd.serialize());
 }
 
 void PreampCardEditor::knobChanged(int value)
@@ -111,11 +110,23 @@ QString PreampCardEditor::gainText() const
 
 #include "Editor/widgets/FilterCardModel.h"
 
-REGISTER_DYNAMIC_FILTER_CARD_EDITOR(preamp, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
+REGISTER_DYNAMIC_FILTER_CARD_EDITOR(Preamp, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
 	// An inline `expression` gain opens the dynamic card (token instead of a
 	// number, knob powered down) so no interaction can overwrite the
 	// expression with a parsed 0.0.
 	if (FilterCardModel::hasInlineExpressions(parameters))
 		return new PreampCardEditor(parameters);
-	return new PreampCardEditor(PreampCardEditor::parseGain(parameters));
+
+	// Read the number through the engine's own parse routine. The card's former
+	// regex took only the first "-?digits(.digits)?" run, so it read "-6,5 dB"
+	// as -6 and "1e1 dB" as 1 while the engine read -6.5 and 10; one knob touch
+	// then wrote the card's misreading back over the line. A malformed value
+	// yields no card, matching the legacy GUI factory: the line stays raw text
+	// instead of silently becoming 0 dB.
+	std::wstring wideCommand = command.toStdWString();
+	std::wstring wideParameters = parameters.toStdWString();
+	PreampCommand cmd;
+	if (!PreampFilterFactory::parseCommand(wideCommand, wideParameters, cmd) || !cmd.valid)
+		return nullptr;
+	return new PreampCardEditor(cmd.dbGain);
 })

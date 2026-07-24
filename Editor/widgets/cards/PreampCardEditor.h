@@ -17,8 +17,6 @@ public:
 
 	void store(QString& command, QString& parameters) override;
 
-	static double parseGain(const QString& parameters);
-
 private slots:
 	void knobChanged(int value);
 	void valueChanged(double value);

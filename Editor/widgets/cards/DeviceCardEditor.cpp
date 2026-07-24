@@ -171,6 +171,6 @@ void DeviceCardEditor::reloadChips()
 
 #include "FilterCardEditorRegistry.h"
 
-REGISTER_FILTER_CARD_EDITOR(device, [](FilterTable* filterTable, const QString&, const QString& parameters) -> IFilterGUI* {
+REGISTER_FILTER_CARD_EDITOR(Device, [](FilterTable* filterTable, const QString&, const QString& parameters) -> IFilterGUI* {
 	return new DeviceCardEditor(filterTable, parameters);
 })

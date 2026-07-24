@@ -30,9 +30,11 @@ namespace
 {
 IFilterGUI* createGraphicEQCardEditor(FilterTable* filterTable, const QString& command, const QString& parameters)
 {
-	// Exact-case contract, matching the legacy GUI factory and the engine
-	// parser: a "graphiceq:" line is not a command the engine runs, so it
-	// falls through to the raw-text card instead of getting a live editor.
+	// Exact-key contract, matching the legacy GUI factory and the engine parser.
+	// FilterCardModel::canonicalCommand already rejects both the wrong casing
+	// and the trailing-token spelling ("GraphicEQ 2:" runs nowhere), so this is
+	// the second lock on a door that is already shut - kept because the card is
+	// one keystroke away from writing a GraphicEQ line over whatever it opened.
 	if (command != QStringLiteral("GraphicEQ"))
 		return nullptr;
 
@@ -42,7 +44,7 @@ IFilterGUI* createGraphicEQCardEditor(FilterTable* filterTable, const QString& c
 }
 }
 
-REGISTER_FILTER_CARD_EDITOR(graphiceq, createGraphicEQCardEditor)
+REGISTER_FILTER_CARD_EDITOR(GraphicEQ, createGraphicEQCardEditor)
 
 GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const QString& configPath, FilterTable* filterTable, QWidget* parent)
 	: IFilterGUI(parent), configPath(configPath)
