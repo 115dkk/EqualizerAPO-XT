@@ -239,7 +239,12 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		const size_t inputCount = effectInputCount;
 		const size_t maxSize = (std::numeric_limits<size_t>::max)();
 		if (maxFrameCount != 0 && inputCount > maxSize / maxFrameCount)
-			throw std::bad_alloc();
+		{
+			LogF(L"The VST plugin %s reported input dimensions that overflow the conversion buffer; passing audio through.",
+				libPath.c_str());
+			skipProcessing = true;
+			return channelNames;
+		}
 
 		floatInputs.resize(inputCount);
 		floatInputBuffer = MemoryHelper::allocateArray<float>(inputCount * maxFrameCount);
@@ -259,7 +264,12 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		const size_t outputCount = effectOutputCount;
 		const size_t maxSize = (std::numeric_limits<size_t>::max)();
 		if (maxFrameCount != 0 && outputCount > maxSize / maxFrameCount)
-			throw std::bad_alloc();
+		{
+			LogF(L"The VST plugin %s reported output dimensions that overflow the conversion buffer; passing audio through.",
+				libPath.c_str());
+			skipProcessing = true;
+			return channelNames;
+		}
 
 		floatOutputs.resize(outputCount);
 		floatOutputBuffer = MemoryHelper::allocateArray<float>(outputCount * maxFrameCount);
