@@ -20,6 +20,7 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QImage>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QMainWindow>
 #include <QMenu>
@@ -1121,6 +1122,19 @@ int runSwitchTest(const QStringList& arguments)
 	Q_UNUSED(arguments);
 
 	qWarning("SkinSwitchTest: starting");
+
+	FilterInsertSeam accessibilitySeam;
+	int seamActivations = 0;
+	QObject::connect(&accessibilitySeam, &FilterInsertSeam::activated,
+		[&seamActivations]() { seamActivations++; });
+	QKeyEvent activateSeam(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
+	QApplication::sendEvent(&accessibilitySeam, &activateSeam);
+	if (accessibilitySeam.focusPolicy() != Qt::StrongFocus || seamActivations != 1
+		|| accessibilitySeam.accessibleName().isEmpty())
+	{
+		qWarning("SkinSwitchTest: insertion seam lacks keyboard accessibility parity");
+		return 1;
+	}
 
 	// Scratch reference targets so the reference cards resolve like the
 	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.

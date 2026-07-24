@@ -214,6 +214,7 @@ SOURCES += main.cpp\
 	skins/pickers/SoftFilterPicker.cpp \
 	skins/pickers/RackFilterPicker.cpp \
 	widgets/AddCardRow.cpp \
+	widgets/ActivatableListChrome.cpp \
 	widgets/AudioKnob.cpp \
 	widgets/FilterInsertSeam.cpp \
 	widgets/GraphicEQPlotWidget.cpp \
@@ -441,6 +442,7 @@ HEADERS  += \
 	skins/pickers/SoftFilterPicker.h \
 	skins/pickers/RackFilterPicker.h \
 	widgets/AddCardRow.h \
+	widgets/ActivatableListChrome.h \
 	widgets/AudioKnob.h \
 	widgets/FilterInsertSeam.h \
 	widgets/GraphicEQPlotWidget.h \
