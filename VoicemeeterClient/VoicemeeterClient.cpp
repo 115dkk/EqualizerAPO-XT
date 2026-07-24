@@ -71,6 +71,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		MessageBoxW(nullptr, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
 		return -1;
 	}
+	catch (const RegistryException& e)
+	{
+		MessageBoxW(nullptr, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
+		return -1;
+	}
 }
 
 VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
