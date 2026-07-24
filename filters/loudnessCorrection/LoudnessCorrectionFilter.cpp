@@ -72,10 +72,8 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 		double preAmp;
 		getLShelfParamter(vol, freqLS, qLS, gainLS, preAmp);
 		_attFactor = exp(preAmp / 6 * log(2));
-		_pendingAttFactor = _attFactor;
 		getHShelfParamter(vol + preAmp, freqHS, qHS, gainHS);
 		_neutral = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
-		_neutralUpDate = _neutral;
 	}
 
 	for (unsigned i = 0; i < _channelCount; i++)
@@ -83,6 +81,17 @@ std::vector<std::wstring> LoudnessCorrectionFilter::initialize(float sampleRate,
 		_lowShelfBiquads[i] = BiQuad(BiQuad::LOW_SHELF, gainLS, freqLS, _sampleRate, qLS, false);
 		_highShelfBiquads[i] = BiQuad(BiQuad::HIGH_SHELF, gainHS, freqHS, _sampleRate, qHS, false);
 	}
+
+	// Seed both slots before the update thread starts. process() only copies a
+	// slot after the update thread published a full set, so these values never
+	// reach the audio, but they keep every slot readable at any time.
+	CoefficientSet seed;
+	seed.attFactor = _attFactor;
+	seed.neutral = _neutral;
+	_coefficientSlots[0] = seed;
+	_coefficientSlots[1] = seed;
+	_publishedSlot.store(0, std::memory_order_relaxed);
+
 	{
 		std::lock_guard<std::mutex> lock(_parameterUpdateThreadMutex);
 		_stopParameterUpdateThread = false;
@@ -149,6 +158,9 @@ void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* l
 				break;
 		}
 
+		// Skip while a published set is still unconsumed. This is also what keeps
+		// two slots sufficient: the next fill cannot start until process() has
+		// cleared the flag for the previous one.
 		if (!lCorrection->_parameterChanged.load())
 		{
 			res = volumeController.getVolume(vol);
@@ -158,13 +170,20 @@ void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* l
 				{
 					lCorrection->getLShelfParamter(vol, freqLS, qLS, gainLS, preAmp);
 					lCorrection->getHShelfParamter(vol + preAmp, freqHS, qHS, gainHS);
-					{
-						std::lock_guard<std::mutex> lock(lCorrection->_parameterUpdateMutex);
-						lCorrection->_pendingAttFactor = exp(preAmp / 6 * log(2));
-						lCorrection->upDateBiquadCoefficients(freqHS, qHS, gainHS, true);
-						lCorrection->upDateBiquadCoefficients(freqLS, qLS, gainLS, false);
-						lCorrection->_neutralUpDate = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
-					}
+
+					// Fill the slot process() is not reading. Only this thread
+					// writes _publishedSlot, so the load can be relaxed.
+					const unsigned nextSlot = 1u - lCorrection->_publishedSlot.load(std::memory_order_relaxed);
+					CoefficientSet& target = lCorrection->_coefficientSlots[nextSlot];
+					target.attFactor = exp(preAmp / 6 * log(2));
+					lCorrection->upDateBiquadCoefficients(target, freqHS, qHS, gainHS, true);
+					lCorrection->upDateBiquadCoefficients(target, freqLS, qLS, gainLS, false);
+					target.neutral = std::max<double>(std::abs(gainLS), std::abs(gainHS)) < 0.2 ? true : false;
+					// Release: makes the writes above visible to the acquire load
+					// in process(). Everything after this point must not touch the
+					// slot again.
+					lCorrection->_publishedSlot.store(nextSlot, std::memory_order_release);
+
 					volOld = vol;
 
 					lCorrection->_parameterChanged.store(true);
@@ -172,11 +191,6 @@ void LoudnessCorrectionFilter::parameterUpdateThread(LoudnessCorrectionFilter* l
 			}
 		}
 	}
-}
-
-bool LoudnessCorrectionFilter::upDateNeutral()
-{
-	return _neutralUpDate;
 }
 
 #pragma AVRT_CODE_BEGIN
@@ -195,14 +209,18 @@ void LoudnessCorrectionFilter::process(double** output, double** input, unsigned
 	}
 	if (_parameterChanged.exchange(false))
 	{
-		std::lock_guard<std::mutex> lock(_parameterUpdateMutex);
-		_attFactor = _pendingAttFactor;
+		// Acquire: pairs with the release store in parameterUpdateThread() and
+		// makes that slot's coefficients visible here. No lock, so this cannot
+		// wait on the normal-priority thread that calls COM through
+		// VolumeController.
+		const CoefficientSet& published = _coefficientSlots[_publishedSlot.load(std::memory_order_acquire)];
+		_attFactor = published.attFactor;
 		for (unsigned i = 0; i < _channelCount; i++)
 		{
-			_lowShelfBiquads[i].setCoefficients(_aLS, _a0LS);
-			_highShelfBiquads[i].setCoefficients(_aHS, _a0HS);
+			_lowShelfBiquads[i].setCoefficients(published.aLS, published.a0LS);
+			_highShelfBiquads[i].setCoefficients(published.aHS, published.a0HS);
 		}
-		_neutral = upDateNeutral();
+		_neutral = published.neutral;
 	}
 	for (unsigned i = 0; i < _channelCount; i++)
 	{
@@ -225,7 +243,9 @@ void LoudnessCorrectionFilter::process(double** output, double** input, unsigned
 	}
 }
 
-void LoudnessCorrectionFilter::upDateBiquadCoefficients(const double& freq, const double& bandwidthOrQOrS, const double& dbGain, bool highshelf)
+// Runs on the parameter update thread and writes into the slot that is not
+// published yet, never into the one process() may be reading.
+void LoudnessCorrectionFilter::upDateBiquadCoefficients(CoefficientSet& target, const double& freq, const double& bandwidthOrQOrS, const double& dbGain, bool highshelf)
 {
 	double A;
 	A = pow(10, dbGain / 40);
@@ -243,22 +263,22 @@ void LoudnessCorrectionFilter::upDateBiquadCoefficients(const double& freq, cons
 	if (highshelf)
 	{
 		a0 = (A + 1) - (A - 1) * cs + beta;
-		_a0HS = (A * ((A + 1) + (A - 1) * cs + beta)) / a0;
-		_aHS[0] = (-2 * A * ((A - 1) + (A + 1) * cs)) / a0;
-		_aHS[1] = (A * ((A + 1) + (A - 1) * cs - beta)) / a0;
+		target.a0HS = (A * ((A + 1) + (A - 1) * cs + beta)) / a0;
+		target.aHS[0] = (-2 * A * ((A - 1) + (A + 1) * cs)) / a0;
+		target.aHS[1] = (A * ((A + 1) + (A - 1) * cs - beta)) / a0;
 
-		_aHS[2] = (2 * ((A - 1) - (A + 1) * cs)) / a0;
-		_aHS[3] = ((A + 1) - (A - 1) * cs - beta) / a0;
+		target.aHS[2] = (2 * ((A - 1) - (A + 1) * cs)) / a0;
+		target.aHS[3] = ((A + 1) - (A - 1) * cs - beta) / a0;
 	}
 	else
 	{
 		a0 = (A + 1) + (A - 1) * cs + beta;
-		_a0LS = (A * ((A + 1) - (A - 1) * cs + beta)) / a0;
-		_aLS[0] = (2 * A * ((A - 1) - (A + 1) * cs)) / a0;
-		_aLS[1] = (A * ((A + 1) - (A - 1) * cs - beta)) / a0;
+		target.a0LS = (A * ((A + 1) - (A - 1) * cs + beta)) / a0;
+		target.aLS[0] = (2 * A * ((A - 1) - (A + 1) * cs)) / a0;
+		target.aLS[1] = (A * ((A + 1) - (A - 1) * cs - beta)) / a0;
 
-		_aLS[2] = (-2 * ((A - 1) + (A + 1) * cs)) / a0;
-		_aLS[3] = ((A + 1) + (A - 1) * cs - beta) / a0;
+		target.aLS[2] = (-2 * ((A - 1) + (A + 1) * cs)) / a0;
+		target.aLS[3] = ((A + 1) + (A - 1) * cs - beta) / a0;
 	}
 }
 #pragma AVRT_CODE_END
