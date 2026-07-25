@@ -9,6 +9,7 @@
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 
+#include "Editor/SkinManager.h"
 #include "Editor/analysis/AnalysisViewController.h"
 #include "Editor/guis/BiQuadWidthConversion.h"
 #include "Editor/widgets/AudioKnob.h"
@@ -184,14 +185,36 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 			index == 1 ? AnalysisMetric::GroupDelayMs : AnalysisMetric::PhaseDegrees);
 	});
 	footerRow->addWidget(graphBlock, 0, Qt::AlignVCenter);
-	footerRow->addStretch(1);
 
-	// Stated rather than left to be inferred from a knob that is not there. The
-	// whole difficulty with this filter is that its most obvious reading says
-	// nothing.
-	magnitudeNote = new QLabel(tr("Magnitude: 0.0 dB (fixed)"), this);
-	magnitudeNote->setObjectName(QStringLiteral("AllPassCardMagnitudeNote"));
-	footerRow->addWidget(magnitudeNote, 0, Qt::AlignVCenter);
+	// The one reading this filter has that never moves, stated rather than left
+	// to be inferred from a gain knob that is not there - the whole difficulty
+	// with an all-pass is that its most obvious reading says nothing.
+	//
+	// It is a captioned readout in the same row as the two switches, not a
+	// sentence pinned to the right margin. What marks it as a readout rather
+	// than a value you can set is that it carries no field chrome: the two
+	// values above sit in bordered boxes, this one is bare type. The mono font
+	// comes from the active skin's tokens the way the dynamic value token in
+	// ScalarKnobCardEditor takes it, because a static value has no sheet rule
+	// of its own.
+	QWidget* magnitudeBlock = new QWidget(this);
+	magnitudeBlock->setObjectName(QStringLiteral("AllPassCardMagnitudeBlock"));
+	QVBoxLayout* magnitudeLayout = new QVBoxLayout(magnitudeBlock);
+	magnitudeLayout->setContentsMargins(0, 0, 0, 0);
+	magnitudeLayout->setSpacing(6);
+	QLabel* magnitudeCaption = new QLabel(tr("Magnitude"), magnitudeBlock);
+	magnitudeCaption->setObjectName(QStringLiteral("AllPassCardCaption"));
+	magnitudeLayout->addWidget(magnitudeCaption);
+	magnitudeNote = new QLabel(tr("0.0 dB"), magnitudeBlock);
+	magnitudeNote->setObjectName(QStringLiteral("AllPassCardMagnitudeValue"));
+	QFont magnitudeFont(magnitudeNote->font());
+	magnitudeFont.setFamily(SkinManager::instance()->tokens().monoFontFamily);
+	magnitudeNote->setFont(magnitudeFont);
+	magnitudeNote->setToolTip(tr("An all-pass does not change level at any frequency, so there is nothing to set here."));
+	magnitudeLayout->addWidget(magnitudeNote);
+	footerRow->addWidget(magnitudeBlock, 0, Qt::AlignVCenter);
+
+	footerRow->addStretch(1);
 	mainLayout->addLayout(footerRow);
 
 	setFrequency(command.freq, false);

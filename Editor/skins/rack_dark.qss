@@ -517,9 +517,9 @@ QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
 QWidget#AllPassCardEditor, QWidget#AllPassCardParamBlock, QWidget#AllPassCardValueBlock,
-QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock,
+QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock, QWidget#AllPassCardMagnitudeBlock,
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
-QLabel#AllPassCardCaption,
+QLabel#AllPassCardCaption, QLabel#AllPassCardMagnitudeValue,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption {
