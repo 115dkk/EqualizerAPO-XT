@@ -56,7 +56,13 @@ public:
 	enum class GalleryShowcase
 	{
 		HoverFirstEntry,
-		EmptySearch
+		EmptySearch,
+		// A search that lands on the Phase & Time group. The shared match
+		// predicate includes the category in what it searches, so one term
+		// brings back Delay and both all-pass sections together - which is the
+		// only way a gallery shot can show where those templates went, rather
+		// than only that they left the parametric list.
+		PhaseAndTimeSearch
 	};
 
 	explicit FilterPickerView(QWidget* parent = nullptr);

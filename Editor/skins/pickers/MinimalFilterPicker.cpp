@@ -325,6 +325,14 @@ void MinimalFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries
 
 void MinimalFilterPickerView::galleryShowcase(GalleryShowcase kind)
 {
+	if (kind == GalleryShowcase::PhaseAndTimeSearch)
+	{
+		// Where Delay and the two all-pass sections went. The category is
+		// part of what the shared predicate searches, so one term returns
+		// the whole group.
+		queryEdit->setText(QStringLiteral("phase"));
+		return;
+	}
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// A term no template matches: the index prints its NO MATCH line and

@@ -431,7 +431,15 @@ void StudioFilterPickerView::galleryShowcase(GalleryShowcase kind)
 			}
 		}
 	}
-	else if (kind == GalleryShowcase::EmptySearch)
+	else if (kind == GalleryShowcase::PhaseAndTimeSearch)
+	{
+		// Where Delay and the two all-pass sections went. The category is
+		// part of what the shared predicate searches, so one term returns
+		// the whole group.
+		searchEdit->setText(QStringLiteral("phase"));
+		return;
+	}
+	if (kind == GalleryShowcase::EmptySearch)
 	{
 		searchEdit->setText(QStringLiteral("zzz-no-match"));
 	}

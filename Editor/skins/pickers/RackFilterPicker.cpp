@@ -310,6 +310,14 @@ void RackFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
 
 void RackFilterPickerView::galleryShowcase(GalleryShowcase kind)
 {
+	if (kind == GalleryShowcase::PhaseAndTimeSearch)
+	{
+		// Where Delay and the two all-pass sections went. The category is
+		// part of what the shared predicate searches, so one term returns
+		// the whole group.
+		searchEdit->setText(QStringLiteral("PHASE"));
+		return;
+	}
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// A query no module matches: the LCD keeps the dead search term and

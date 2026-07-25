@@ -416,6 +416,14 @@ void SoftFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
 
 void SoftFilterPickerView::galleryShowcase(GalleryShowcase kind)
 {
+	if (kind == GalleryShowcase::PhaseAndTimeSearch)
+	{
+		// Where Delay and the two all-pass sections went. The category is
+		// part of what the shared predicate searches, so one term returns
+		// the whole group.
+		searchEdit->setText(QStringLiteral("phase"));
+		return;
+	}
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// What the user sees after a fruitless search: the friendly

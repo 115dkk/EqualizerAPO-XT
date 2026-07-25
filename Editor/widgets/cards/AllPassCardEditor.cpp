@@ -79,11 +79,12 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	mainLayout->setContentsMargins(0, 0, 0, 0);
 	mainLayout->setSpacing(10);
 
-	QLabel* description = new QLabel(
-		tr("Changes phase and group delay around Fc. The magnitude response stays at 0 dB."), this);
-	description->setObjectName(QStringLiteral("AllPassCardDescription"));
-	description->setWordWrap(true);
-	mainLayout->addWidget(description);
+	// What the filter does is said by the card's tooltip and, visibly, by the
+	// fixed-magnitude readout in the footer. A standing sentence of prose in
+	// the body was the first thing this card was told reads as legacy chrome,
+	// and it is: no other card explains itself in a paragraph.
+	setToolTip(tr("An all-pass changes phase and group delay around Fc. "
+		"The magnitude response stays at 0 dB, so this filter is invisible in the magnitude graph."));
 
 	// Two knobs side by side, the way the legacy row already places them. The
 	// card deliberately does not grow a third or fourth column for the readout
@@ -93,31 +94,6 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	QHBoxLayout* parameterRow = new QHBoxLayout();
 	parameterRow->setContentsMargins(0, 0, 0, 0);
 	parameterRow->setSpacing(24);
-
-	// The order leads the row, because it decides what the rest of the row
-	// even contains. The reform document places it in the card header; the
-	// header belongs to FilterCardRow and is shared by every card, so putting
-	// a per-card control there is a change to the card frame rather than to
-	// this card. It sits here instead, which keeps the document's binding
-	// constraint - no extra body row - and can move up if the frame ever grows
-	// a per-card header slot.
-	QWidget* orderBlock = new QWidget(this);
-	orderBlock->setObjectName(QStringLiteral("AllPassCardOrderBlock"));
-	QVBoxLayout* orderLayout = new QVBoxLayout(orderBlock);
-	orderLayout->setContentsMargins(0, 0, 0, 0);
-	orderLayout->setSpacing(6);
-	QLabel* orderCaption = new QLabel(tr("Order"), orderBlock);
-	orderCaption->setObjectName(QStringLiteral("AllPassCardCaption"));
-	orderLayout->addWidget(orderCaption);
-	orderSegment = new SegmentedControl(orderBlock);
-	orderSegment->setObjectName(QStringLiteral("AllPassCardOrderSegment"));
-	orderSegment->setLabels({tr("1st"), tr("2nd")});
-	orderSegment->setToolTip(tr("A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. "
-		"A 2nd-order section turns a full 360 and has a width."));
-	orderSegment->setCurrentIndex(command.type == BiQuad::ALL_PASS_1 ? 0 : 1);
-	connect(orderSegment, &SegmentedControl::currentIndexChanged, this, &AllPassCardEditor::orderChanged);
-	orderLayout->addWidget(orderSegment);
-	parameterRow->addWidget(orderBlock, 0, Qt::AlignVCenter);
 
 	QLabel* frequencyCaption = new QLabel(tr("Center frequency"), this);
 	frequencyCaption->setObjectName(QStringLiteral("AllPassCardCaption"));
@@ -153,22 +129,56 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	parameterRow->addStretch(1);
 	mainLayout->addLayout(parameterRow);
 
+	// Both mode switches live here, captioned alike, so they read as a pair of
+	// settings rather than as one control stranded beside the knobs. The order
+	// used to lead the parameter row, where a narrow two-cell segment next to
+	// two large knob blocks simply stuck out.
+	//
+	// The reform document puts the order in the card header. The header belongs
+	// to FilterCardRow and is shared by every card, so a per-card control there
+	// is a change to the card frame; this keeps the document's binding
+	// constraint - no extra body row - and can move up if the frame ever grows
+	// a per-card header slot.
 	QHBoxLayout* footerRow = new QHBoxLayout();
 	footerRow->setContentsMargins(0, 0, 0, 0);
-	footerRow->setSpacing(12);
+	footerRow->setSpacing(24);
+
+	const auto captionedSegment = [this](const QString& blockName, const QString& segmentName,
+		const QString& caption, const QStringList& labels, SegmentedControl*& out) {
+		QWidget* block = new QWidget(this);
+		block->setObjectName(blockName);
+		QVBoxLayout* layout = new QVBoxLayout(block);
+		layout->setContentsMargins(0, 0, 0, 0);
+		layout->setSpacing(6);
+		QLabel* label = new QLabel(caption, block);
+		label->setObjectName(QStringLiteral("AllPassCardCaption"));
+		layout->addWidget(label);
+		out = new SegmentedControl(block);
+		out->setObjectName(segmentName);
+		out->setLabels(labels);
+		layout->addWidget(out);
+		return block;
+	};
+
+	QWidget* orderBlock = captionedSegment(QStringLiteral("AllPassCardOrderBlock"),
+		QStringLiteral("AllPassCardOrderSegment"), tr("Order"), {tr("1st"), tr("2nd")}, orderSegment);
+	orderSegment->setToolTip(tr("A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. "
+		"A 2nd-order section turns a full 360 and has a width."));
+	orderSegment->setCurrentIndex(command.type == BiQuad::ALL_PASS_1 ? 0 : 1);
+	connect(orderSegment, &SegmentedControl::currentIndexChanged, this, &AllPassCardEditor::orderChanged);
+	footerRow->addWidget(orderBlock, 0, Qt::AlignVCenter);
 
 	// One segment rather than two buttons: two buttons side by side would fill
 	// the row with nothing but buttons, and these are two views of one thing,
 	// not two independent actions.
-	graphSegment = new SegmentedControl(this);
-	graphSegment->setObjectName(QStringLiteral("AllPassCardGraphSegment"));
-	graphSegment->setLabels({tr("Phase"), tr("Group delay")});
+	QWidget* graphBlock = captionedSegment(QStringLiteral("AllPassCardGraphBlock"),
+		QStringLiteral("AllPassCardGraphSegment"), tr("Graph"), {tr("Phase"), tr("Group delay")}, graphSegment);
 	graphSegment->setToolTip(tr("Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again."));
 	connect(graphSegment, &SegmentedControl::currentIndexChanged, this, [](int index) {
 		AnalysisViewController::instance()->requestMetric(
 			index == 1 ? AnalysisMetric::GroupDelayMs : AnalysisMetric::PhaseDegrees);
 	});
-	footerRow->addWidget(graphSegment, 0, Qt::AlignVCenter);
+	footerRow->addWidget(graphBlock, 0, Qt::AlignVCenter);
 	footerRow->addStretch(1);
 
 	// Stated rather than left to be inferred from a knob that is not there. The

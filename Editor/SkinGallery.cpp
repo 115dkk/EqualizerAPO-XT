@@ -147,7 +147,13 @@ QList<GalleryRow> galleryRows()
 		// spelling the editors used to lose - and appended last, because
 		// inserting mid-list renumbers every following scene against the
 		// stored baseline.
-		{ QStringLiteral("allpass"), QStringLiteral("Filter 4: ON AP Fc 900 Hz BW Oct 1") }
+		{ QStringLiteral("allpass"), QStringLiteral("Filter 4: ON AP Fc 900 Hz BW Oct 1") },
+		// A notch: the other gain-less biquad. The legacy row hides the gain
+		// block for every type that has no gain and lets the remaining blocks
+		// stretch into the space, so this row and the all-pass above it look
+		// the same - which is the evidence that the all-pass row's spacing is
+		// the .ui's own behaviour and not something this campaign introduced.
+		{ QStringLiteral("notch"), QStringLiteral("Filter 5: ON NO Fc 800 Hz") }
 	};
 }
 
@@ -425,7 +431,8 @@ struct GalleryScenario
 const QList<GalleryScenario>& galleryScenarios()
 {
 	static const QList<GalleryScenario> scenarios = {
-		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"), QStringLiteral("empty") } },
+		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"),
+			QStringLiteral("empty"), QStringLiteral("phasetime") } },
 		{ QStringLiteral("toolbar"), { QStringLiteral("normal") } },
 		{ QStringLiteral("analysis"), { QStringLiteral("normal") } },
 		{ QStringLiteral("titlebar"), { QStringLiteral("normal") } },
@@ -844,6 +851,13 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		picker->galleryShowcase(FilterPickerView::GalleryShowcase::EmptySearch);
 		QApplication::processEvents();
 		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("empty")) ? 0 : 1;
+		// The Phase & Time group. Without this the gallery only shows that the
+		// all-pass left the parametric list, not where it went - and the list
+		// is taller than the picker, so the group is below the fold in the
+		// resting shot.
+		picker->galleryShowcase(FilterPickerView::GalleryShowcase::PhaseAndTimeSearch);
+		QApplication::processEvents();
+		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("phasetime")) ? 0 : 1;
 		delete picker;
 	}
 
