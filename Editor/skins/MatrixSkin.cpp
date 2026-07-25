@@ -1194,7 +1194,7 @@ public:
 
 	// The analysis dock's response graph: the GraphicEQ signal-trace
 	// instrument adapted to a wide always-on readout (crisp grid, tag-cell
-	// axis figures, 0 dB bus, accent trace over one echo stroke, amber
+	// axis figures, zero bus, accent trace over one echo stroke, amber
 	// hazard hatching when the response can clip, a scan-rule cursor and a
 	// board-line footer).
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
@@ -1254,15 +1254,22 @@ public:
 			// Where the trace actually exceeds the bus, the hazard densifies:
 			// half-pitch diagonals at full caution ink, clipped to the area
 			// between the trace and the 0 dB rule. The band says "this side
-			// can clip"; the dense region says WHERE and BY HOW MUCH.
-			if (state.curve.size() >= 2)
+			// can clip"; the dense region says WHERE and BY HOW MUCH. One
+			// closed cell per segment, cut in a single stencil, so the dense
+			// ink lands only where the board actually posted a reading.
+			QPainterPath overshoot;
+			for (const QPolygonF& segment : state.curves)
 			{
-				QPolygonF closed = state.curve;
-				closed.append(QPointF(state.curve.last().x(), state.zeroY));
-				closed.append(QPointF(state.curve.first().x(), state.zeroY));
-				QPainterPath overshoot;
+				if (segment.size() < 2)
+					continue;
+				QPolygonF closed = segment;
+				closed.append(QPointF(segment.last().x(), state.zeroY));
+				closed.append(QPointF(segment.first().x(), state.zeroY));
 				overshoot.addPolygon(closed);
 				overshoot.closeSubpath();
+			}
+			if (!overshoot.isEmpty())
+			{
 				painter.setClipPath(overshoot, Qt::IntersectClip);
 				QColor dense(hazardInk);
 				dense.setAlpha(darkBoard ? 165 : 190);
@@ -1273,12 +1280,17 @@ public:
 			painter.restore();
 		}
 
-		// The 0 dB bus: the board's reference rule, one rank of authority
-		// above the grid.
-		QColor zeroInk(textInk);
-		zeroInk.setAlpha(180);
-		painter.setPen(QPen(zeroInk, 1));
-		painter.drawLine(plot.left(), zeroYpx, plot.right(), zeroYpx);
+		// The zero bus: the board's reference rule, one rank of authority
+		// above the grid. Posted only when the metric's zero sits inside the
+		// fitted range; a group delay that never goes negative would print it
+		// on the frame edge, where it is a border and not a bus.
+		if (state.zeroVisible)
+		{
+			QColor zeroInk(textInk);
+			zeroInk.setAlpha(180);
+			painter.setPen(QPen(zeroInk, 1));
+			painter.drawLine(plot.left(), zeroYpx, plot.right(), zeroYpx);
+		}
 
 		// Mono axis figures in tag cells punched out of the grid (ground fill
 		// under the figure). Majors speak muted ink, minors one step quieter.
@@ -1308,8 +1320,8 @@ public:
 			lastTagRight = tagRect.right();
 		}
 
-		// dB tags ride the left edge. When the fitted range packs the 6 dB
-		// rules tighter than a figure, thin the tags anchored on the 0 dB bus
+		// Value tags ride the left edge. When the fitted range packs the value
+		// rules tighter than a figure, thin the tags anchored on the zero bus
 		// so the bus always keeps its figure. A tag that cannot centre on its
 		// rule inside the plot (the range extremes at the plot edges) is
 		// dropped, not squeezed - the footer's span readout posts those two
@@ -1346,30 +1358,46 @@ public:
 		}
 
 		// The response trace: an accent core over a single wider low-alpha
-		// echo stroke. The curve is data, so it alone is antialiased.
-		if (state.curve.size() >= 2)
+		// echo stroke. The curve is data, so it alone is antialiased. One run
+		// of the stroke pair per segment - the trace breaks where the metric
+		// has no reading, and a stroke bridging the break would post a figure
+		// the board never measured.
+		for (const QPolygonF& segment : state.curves)
 		{
+			if (segment.size() < 2)
+				continue;
 			painter.setRenderHint(QPainter::Antialiasing, true);
 			QColor echo(accent);
 			echo.setAlpha(70);
 			painter.setPen(QPen(echo, 3));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.setPen(QPen(accent, 1));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.setRenderHint(QPainter::Antialiasing, false);
 		}
 
 		// The clip peak wears an OVER tag: a boxed cell in caution amber
 		// pinned to the highest point of the trace, tied down by a 1px tick.
-		if (state.clipping && state.curve.size() >= 2)
+		// The scan runs across every segment - one tag for the whole board,
+		// on the loudest point wherever it landed.
+		if (state.clipping)
 		{
-			QPointF peak = state.curve.first();
-			for (const QPointF& point : state.curve)
+			QPointF peak;
+			bool peakFound = false;
+			for (const QPolygonF& segment : state.curves)
 			{
-				if (point.y() < peak.y())
-					peak = point;
+				if (segment.size() < 2)
+					continue;
+				for (const QPointF& point : segment)
+				{
+					if (!peakFound || point.y() < peak.y())
+					{
+						peak = point;
+						peakFound = true;
+					}
+				}
 			}
-			if (peak.y() < state.zeroY)
+			if (peakFound && peak.y() < state.zeroY)
 			{
 				QFont overFont(tokens.monoFontFamily);
 				overFont.setPointSizeF(7.0);
@@ -1477,7 +1505,9 @@ public:
 		painter.setFont(footerFont);
 		const QFontMetrics footerMetrics(footerFont);
 		const QRect footerRect(state.rect.left() + 10, footerTop + 1, state.rect.width() - 20, 16);
-		const QString spanText = QStringLiteral("+%1 / %2 DB").arg(state.maxDb, 0, 'f', 0).arg(state.minDb, 0, 'f', 0);
+		// The span arrives finished, in the metric's own unit; the board only
+		// puts it in board case.
+		const QString spanText = state.spanValueText.toUpper();
 		painter.setPen(mutedInk);
 		painter.drawText(footerRect, Qt::AlignRight | Qt::AlignVCenter, spanText);
 		const QString marker = QStringLiteral("> ");

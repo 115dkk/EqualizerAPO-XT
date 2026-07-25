@@ -13,20 +13,11 @@
 namespace
 {
 constexpr double MinHz = 20.0;
-constexpr double MaxHz = 20000.0;
 
-double xToHz(const QRectF& graphRect, double x)
-{
-	const double t = graphRect.width() <= 0.0 ? 0.0 : (x - graphRect.left()) / graphRect.width();
-	return MinHz * std::pow(MaxHz / MinHz, t);
-}
-
-double dbToY(const QRectF& graphRect, double db, double minDb, double maxDb)
-{
-	const double bounded = qBound(minDb, db, maxDb);
-	const double t = (maxDb - bounded) / (maxDb - minDb);
-	return graphRect.top() + graphRect.height() * t;
-}
+// Decade markers plus the two ends. Any tick above the graph's upper limit is
+// dropped rather than crowded against the right edge, which is what happens at
+// sample rates whose Nyquist falls below 20 kHz.
+const double FrequencyTicks[] = {20.0, 50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0};
 
 QString hzLabel(double hz)
 {
@@ -48,10 +39,9 @@ EqGraphView::EqGraphView(QWidget* parent)
 	});
 }
 
-void EqGraphView::setNodes(const std::vector<FilterNode>& nodes, unsigned sampleRate, const QString& channel)
+void EqGraphView::setResponse(const std::shared_ptr<const AnalysisResponse>& response, const QString& channel)
 {
-	currentNodes = nodes;
-	currentSampleRate = sampleRate;
+	currentResponse = response ? response : std::make_shared<AnalysisResponse>();
 	currentChannel = channel.isEmpty() ? QStringLiteral("All") : channel;
 	curveDirty = true;
 	update();
@@ -62,6 +52,37 @@ void EqGraphView::setChannel(const QString& channel)
 	// Only the label changes; the cached curve geometry stays valid.
 	currentChannel = channel;
 	update();
+}
+
+void EqGraphView::setMetric(AnalysisMetric metric)
+{
+	if (currentMetric == metric)
+		return;
+	// Re-derived from the response already in hand. Deliberately does not touch
+	// the analysis thread: a metric change is a display choice, not a new
+	// measurement.
+	currentMetric = metric;
+	curveDirty = true;
+	update();
+}
+
+AnalysisMetric EqGraphView::metric() const
+{
+	return currentMetric;
+}
+
+void EqGraphView::setIncludeLatency(bool include)
+{
+	if (currentIncludeLatency == include)
+		return;
+	currentIncludeLatency = include;
+	curveDirty = true;
+	update();
+}
+
+bool EqGraphView::includeLatency() const
+{
+	return currentIncludeLatency;
 }
 
 void EqGraphView::resizeEvent(QResizeEvent* event)
@@ -92,6 +113,19 @@ void EqGraphView::setPreviewCursor(double xRatio)
 QRectF EqGraphView::plotRect() const
 {
 	return QRectF(rect()).adjusted(18, 16, -18, -28);
+}
+
+AnalysisCurveRequest EqGraphView::curveRequest(const QRectF& graphRect) const
+{
+	AnalysisCurveRequest request;
+	request.metric = currentMetric;
+	request.includeLatency = currentIncludeLatency;
+	// One column per pixel, both ends included - the same set of x positions
+	// the graph has always sampled.
+	request.columnCount = static_cast<int>(graphRect.right()) - static_cast<int>(graphRect.left()) + 1;
+	request.minHz = MinHz;
+	request.maxHz = analysisUpperFrequency(*currentResponse);
+	return request;
 }
 
 void EqGraphView::mouseMoveEvent(QMouseEvent* event)
@@ -137,33 +171,12 @@ void EqGraphView::animateHover(double target, int duration)
 
 void EqGraphView::rebuildCurve(const QRectF& graphRect)
 {
-	GainIterator gainIterator(currentNodes);
-	cachedDb.clear();
-	cachedDb.reserve(qMax(2, static_cast<int>(graphRect.width())));
-	double maxAbsDb = 0.0;
-	for (int x = static_cast<int>(graphRect.left()); x <= static_cast<int>(graphRect.right()); x++)
-	{
-		const double db = gainIterator.gainAt(xToHz(graphRect, x));
-		const double finiteDb = std::isfinite(db) ? db : -120.0;
-		cachedDb.append(finiteDb);
-		maxAbsDb = std::max(maxAbsDb, std::abs(finiteDb));
-	}
-
-	const double rangeDb = qBound(12.0, std::ceil(maxAbsDb / 6.0) * 6.0, 60.0);
-	cachedMinDb = -rangeDb;
-	cachedMaxDb = rangeDb;
-	cachedZeroY = dbToY(graphRect, 0.0, cachedMinDb, cachedMaxDb);
-	cachedClipping = false;
-
-	cachedCurve.clear();
-	cachedCurve.reserve(cachedDb.size());
-	for (int i = 0; i < cachedDb.size(); i++)
-	{
-		cachedCurve.append(QPointF(graphRect.left() + i,
-			dbToY(graphRect, cachedDb[i], cachedMinDb, cachedMaxDb)));
-		if (cachedDb[i] > 0.05)
-			cachedClipping = true;
-	}
+	const AnalysisCurveRequest request = curveRequest(graphRect);
+	cachedCurve = buildAnalysisCurve(*currentResponse, request);
+	cachedSegments = buildCurveSegments(cachedCurve.values, graphRect,
+		cachedCurve.minimum, cachedCurve.maximum);
+	cachedZeroY = analysisValueToY(graphRect, 0.0, cachedCurve.minimum, cachedCurve.maximum);
+	cachedZeroVisible = cachedCurve.minimum <= 0.0 && cachedCurve.maximum >= 0.0;
 
 	cachedSize = size();
 	cachedGraphRect = graphRect;
@@ -181,35 +194,46 @@ void EqGraphView::paintEvent(QPaintEvent*)
 	if (curveDirty || cachedSize != size() || cachedGraphRect != graphRect)
 		rebuildCurve(graphRect);
 
+	const AnalysisCurveRequest request = curveRequest(graphRect);
+
 	AnalysisGraphState state;
 	state.rect = rect();
 	state.plotRect = graphRect;
-	state.curve = cachedCurve;
+	state.metric = cachedCurve.metric;
+	state.curves = cachedSegments;
 	state.zeroY = cachedZeroY;
-	state.minDb = cachedMinDb;
-	state.maxDb = cachedMaxDb;
-	state.clipping = cachedClipping;
+	state.zeroVisible = cachedZeroVisible;
+	state.minimum = cachedCurve.minimum;
+	state.maximum = cachedCurve.maximum;
+	state.unit = cachedCurve.unit;
+	state.clipping = cachedCurve.clipping;
 	state.hover = hoverValue;
-	state.channelText = currentSampleRate == 0
+	state.topValueText = cachedCurve.topLabel;
+	state.bottomValueText = cachedCurve.bottomLabel;
+	state.spanValueText = cachedCurve.spanText;
+	state.leftFooterText = analysisFrequencyCaption(request.minHz);
+	state.rightFooterText = analysisFrequencyCaption(request.maxHz);
+	state.channelText = currentResponse->sampleRate == 0
 		? currentChannel
-		: QStringLiteral("%1 - %2 Hz").arg(currentChannel).arg(currentSampleRate);
+		: QStringLiteral("%1 - %2 Hz").arg(currentChannel).arg(currentResponse->sampleRate);
 
-	const QVector<double> frequencyTicks = {20.0, 50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0};
-	for (double hz : frequencyTicks)
+	for (double hz : FrequencyTicks)
 	{
-		const double t = std::log(hz / MinHz) / std::log(MaxHz / MinHz);
+		if (hz > request.maxHz)
+			continue;
+		const double t = std::log(hz / request.minHz) / std::log(request.maxHz / request.minHz);
 		AnalysisGraphState::GridLine line;
 		line.pos = graphRect.left() + graphRect.width() * t;
 		line.label = hzLabel(hz);
 		line.major = hz == 100.0 || hz == 1000.0 || hz == 10000.0;
 		state.vertical.append(line);
 	}
-	for (int db = static_cast<int>(cachedMinDb); db <= static_cast<int>(cachedMaxDb); db += 6)
+	for (const AnalysisCurveTick& tick : cachedCurve.ticks)
 	{
 		AnalysisGraphState::GridLine line;
-		line.pos = dbToY(graphRect, db, cachedMinDb, cachedMaxDb);
-		line.label = db > 0 ? QStringLiteral("+%1").arg(db) : QString::number(db);
-		line.major = db == 0;
+		line.pos = analysisValueToY(graphRect, tick.value, cachedCurve.minimum, cachedCurve.maximum);
+		line.label = tick.label;
+		line.major = tick.major;
 		state.horizontal.append(line);
 	}
 
@@ -219,16 +243,25 @@ void EqGraphView::paintEvent(QPaintEvent*)
 		cursorX = graphRect.left() + graphRect.width() * previewCursorRatio;
 	else if (cursorValid)
 		cursorX = qBound(graphRect.left(), cursorPos.x(), graphRect.right());
-	if (cursorX >= graphRect.left() && !cachedDb.isEmpty())
+	if (cursorX >= graphRect.left() && !cachedCurve.values.isEmpty())
 	{
-		const int index = qBound(0, static_cast<int>(cursorX - graphRect.left()), cachedDb.size() - 1);
-		const double hz = xToHz(graphRect, cursorX);
+		const int index = qBound(0, static_cast<int>(cursorX - graphRect.left()), cachedCurve.values.size() - 1);
+		const double value = cachedCurve.values[index];
+		const double t = graphRect.width() <= 0.0 ? 0.0 : (cursorX - graphRect.left()) / graphRect.width();
+		const double hz = request.minHz * std::pow(request.maxHz / request.minHz, t);
+		// A column the metric has no value for gets a crosshair and a frequency
+		// but no reading, rather than a plausible-looking number.
 		state.cursorValid = true;
-		state.cursor = QPointF(cursorX, dbToY(graphRect, cachedDb[index], cachedMinDb, cachedMaxDb));
+		state.cursor = QPointF(cursorX,
+			analysisValueToY(graphRect, value, cachedCurve.minimum, cachedCurve.maximum));
 		state.curveYAtCursor = state.cursor.y();
-		state.cursorText = QStringLiteral("%1 Hz  %2 dB")
-			.arg(hz >= 1000.0 ? QString::number(hz / 1000.0, 'f', 2) + QStringLiteral("k") : QString::number(hz, 'f', 0))
-			.arg(cachedDb[index], 0, 'f', 1);
+		if (std::isfinite(value))
+		{
+			state.cursorText = QStringLiteral("%1 Hz  %2 %3")
+				.arg(hz >= 1000.0 ? QString::number(hz / 1000.0, 'f', 2) + QStringLiteral("k") : QString::number(hz, 'f', 0))
+				.arg(value, 0, 'f', 1)
+				.arg(cachedCurve.unit);
+		}
 	}
 
 	SkinManager::instance()->paintAnalysisGraph(painter, state);

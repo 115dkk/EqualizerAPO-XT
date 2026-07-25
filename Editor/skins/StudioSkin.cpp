@@ -1210,9 +1210,10 @@ public:
 				captionMetrics.elidedText(state.channelText, Qt::ElideRight, plot.width()));
 		}
 
-		// 0 dB: the knob's luminous anchor laid flat - accent bloom under a
-		// text-ink core.
-		if (state.zeroY >= plot.top() && state.zeroY <= plot.bottom())
+		// Zero: the knob's luminous anchor laid flat - accent bloom under a
+		// text-ink core. Drawn only when the metric's zero is inside the fitted
+		// range; a group delay that never goes negative has no anchor to lay.
+		if (state.zeroVisible)
 		{
 			const int zy = int(state.zeroY);
 			painter.setPen(QPen(withAlpha(tokens.accent, 52), 3));
@@ -1234,13 +1235,19 @@ public:
 			painter.fillRect(QRectF(plot.left(), plot.top(), plot.width(), zeroClamped - plot.top()), warmth);
 		}
 
-		if (state.curve.size() >= 2)
+		// One pass per segment. The response breaks where the metric has no
+		// value, and the glass must break with it - a bridging stroke would
+		// glow across a reading the config never produced.
+		for (const QPolygonF& segment : state.curves)
 		{
-			// The under-fill splits at 0 dB: boost glows a step warmer than
+			if (segment.size() < 2)
+				continue;
+
+			// The under-fill splits at zero: boost glows a step warmer than
 			// cut, both dying as they land on the anchor.
-			QPolygonF fill = state.curve;
-			fill.append(QPointF(state.curve.last().x(), zeroClamped));
-			fill.prepend(QPointF(state.curve.first().x(), zeroClamped));
+			QPolygonF fill = segment;
+			fill.append(QPointF(segment.last().x(), zeroClamped));
+			fill.prepend(QPointF(segment.first().x(), zeroClamped));
 			const double zeroRatio = qBound(0.02, (zeroClamped - plot.top()) / qMax(1.0, plot.height()), 0.98);
 			QLinearGradient split(0, plot.top(), 0, plot.bottom());
 			split.setColorAt(0.0, withAlpha(tokens.accent, 62));
@@ -1265,7 +1272,7 @@ public:
 				glow.setCapStyle(Qt::RoundCap);
 				glow.setJoinStyle(Qt::RoundJoin);
 				painter.setPen(glow);
-				painter.drawPolyline(state.curve);
+				painter.drawPolyline(segment);
 			}
 
 			// The overshoot segment ignites: the same stroke ladder re-drawn
@@ -1286,7 +1293,7 @@ public:
 					firePen.setCapStyle(Qt::RoundCap);
 					firePen.setJoinStyle(Qt::RoundJoin);
 					painter.setPen(firePen);
-					painter.drawPolyline(state.curve);
+					painter.drawPolyline(segment);
 				}
 				painter.restore();
 			}

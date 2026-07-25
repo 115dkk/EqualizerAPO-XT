@@ -394,13 +394,18 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		painter.drawLine(plotLeft, y, plotRight, y);
 	}
 
-	// The 0 dB axis: a phosphor-tinted centre line with the scope's fine
-	// hash ticks - the boundary the OVER zone burns against.
-	painter.setPen(QPen(withAlpha(phosphor, 145), 1));
-	painter.drawLine(plotLeft, zeroRow, plotRight, zeroRow);
-	painter.setPen(QPen(withAlpha(phosphor, 60), 1));
-	for (int x = plotLeft + 4; x < plotRight - 2; x += 7)
-		painter.drawLine(x, zeroRow - 2, x, zeroRow + 2);
+	// The zero axis: a phosphor-tinted centre line with the scope's fine
+	// hash ticks - the boundary the OVER zone burns against. Struck only while
+	// the metric's zero sits inside the fitted range; a group delay that never
+	// goes negative would otherwise get an axis printed along the glass edge.
+	if (state.zeroVisible)
+	{
+		painter.setPen(QPen(withAlpha(phosphor, 145), 1));
+		painter.drawLine(plotLeft, zeroRow, plotRight, zeroRow);
+		painter.setPen(QPen(withAlpha(phosphor, 60), 1));
+		for (int x = plotLeft + 4; x < plotRight - 2; x += 7)
+			painter.drawLine(x, zeroRow - 2, x, zeroRow + 2);
+	}
 
 	// Axis figures: etched in segment ink (numerals - hardware printing,
 	// never translated). The dB column reads inside the left graticule edge
@@ -437,14 +442,20 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	painter.save();
 	painter.setClipRect(state.plotRect.adjusted(-1, -1, 1, 1), Qt::IntersectClip);
 	painter.setRenderHint(QPainter::Antialiasing, true);
-	if (state.curve.size() >= 2)
+	// One sweep per segment. The metric goes dark where it has no value, and the
+	// beam blanks with it: a tube that flew across the gap would burn in a
+	// reading the machine never received.
+	for (const QPolygonF& segment : state.curves)
 	{
+		if (segment.size() < 2)
+			continue;
+
 		const double base = qBound(state.plotRect.top(), zeroY, state.plotRect.bottom());
 
 		// Afterglow: the faint phosphor wash between the trace and the axis.
-		QPolygonF afterglow = state.curve;
-		afterglow.append(QPointF(state.curve.last().x(), base));
-		afterglow.prepend(QPointF(state.curve.first().x(), base));
+		QPolygonF afterglow = segment;
+		afterglow.append(QPointF(segment.last().x(), base));
+		afterglow.prepend(QPointF(segment.first().x(), base));
 		painter.setPen(Qt::NoPen);
 		painter.setBrush(withAlpha(phosphor, qRound(18.0 + 8.0 * hover)));
 		painter.drawPolygon(afterglow);
@@ -453,11 +464,11 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		// machine); the entry hover intensifies the phosphor.
 		painter.setBrush(Qt::NoBrush);
 		painter.setPen(QPen(withAlpha(phosphor, qRound(20.0 + 12.0 * hover)), 6.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-		painter.drawPolyline(state.curve);
+		painter.drawPolyline(segment);
 		painter.setPen(QPen(withAlpha(phosphor, qRound(58.0 + 22.0 * hover)), 3.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-		painter.drawPolyline(state.curve);
+		painter.drawPolyline(segment);
 		painter.setPen(QPen(phosphor, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-		painter.drawPolyline(state.curve);
+		painter.drawPolyline(segment);
 
 		// Above the axis the beam burns danger-red: the same passes redrawn
 		// inside the OVER band only, hotter than the phosphor ever gets, plus
@@ -472,13 +483,13 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 			painter.drawPolygon(afterglow);
 			painter.setBrush(Qt::NoBrush);
 			painter.setPen(QPen(withAlpha(overInk, qRound(44.0 + 14.0 * hover)), 7.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.setPen(QPen(withAlpha(overInk, qRound(105.0 + 26.0 * hover)), 3.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.setPen(QPen(overInk, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.setPen(QPen(withAlpha(mixColor(overInk, QColor(255, 255, 255), 0.55), 215), 0.9, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.restore();
 		}
 	}

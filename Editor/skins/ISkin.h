@@ -19,6 +19,7 @@
 #include <QVector>
 
 #include "Editor/SkinTokens.h"
+#include "Editor/analysis/AnalysisMetric.h"
 
 class FilterPickerView;
 class IRoutingRenderer;
@@ -143,14 +144,29 @@ struct AnalysisGraphState
 	// Full widget rect and the inner data area (labels live in the margins).
 	QRect rect;
 	QRectF plotRect;
-	// The whole config's response sampled per px across plotRect, and the y
-	// of 0 dB. The dB range is fitted symmetrically around 0.
-	QPolygonF curve;
+	// Which quantity is on screen. Magnitude is the default, and the only one
+	// where rising above zero is a danger state - see clipping below.
+	AnalysisMetric metric = AnalysisMetric::MagnitudeDb;
+	// The whole config's response sampled per px across plotRect, split
+	// wherever the metric has no value at all. Magnitude always arrives as a
+	// single segment; phase and group delay break inside a null, where a
+	// reading would have to be invented. Never join two segments - a bridging
+	// line claims the response passed through values it never had.
+	QVector<QPolygonF> curves;
+	// y of the metric's zero, and whether that zero lands inside plotRect.
+	// Magnitude fits symmetrically so its zero is always visible; a group delay
+	// that never goes negative can push it to the very edge.
 	double zeroY = 0;
-	double minDb = 0;
-	double maxDb = 0;
-	// Any sample rises above 0 dB - the response can clip. Universal danger
-	// semantics; skins should make the overshoot readable.
+	bool zeroVisible = false;
+	// The fitted value range, in the metric's own unit.
+	double minimum = 0;
+	double maximum = 0;
+	// "dB", "deg", "ms". Present so a skin can compose its own typography
+	// (upper case, an abbreviation) without knowing which metric is showing.
+	QString unit;
+	// Magnitude rose above 0 dB - the response can clip. Universal danger
+	// semantics; skins should make the overshoot readable. Never set for phase
+	// or group delay, where a positive value is ordinary.
 	bool clipping = false;
 	// Grid with prepared labels ("100", "1k", "+6"); minor lines carry none.
 	struct GridLine
@@ -164,6 +180,18 @@ struct AnalysisGraphState
 	// Footer caption, already formatted ("All - 48000 Hz"; channel only
 	// while no analysis ran yet).
 	QString channelText;
+	// Prepared axis captions. A skin prints these rather than formatting a
+	// number and appending a unit, so a new metric does not mean editing five
+	// skins again. topValueText/bottomValueText caption the two ends of the
+	// value axis ("+12 dB", "-12 dB"), spanValueText combines them
+	// ("+12 / -12 dB"), and the footer texts caption the frequency axis ends
+	// ("20 Hz", "20 kHz") - which are not always 20 Hz and 20 kHz, because the
+	// upper end stops at Nyquist.
+	QString topValueText;
+	QString bottomValueText;
+	QString spanValueText;
+	QString leftFooterText;
+	QString rightFooterText;
 	// Pointer-driven readout: cursor position inside plotRect, the y of the
 	// response under it, and the prepared "1.2 kHz  -3.4 dB" text.
 	bool cursorValid = false;

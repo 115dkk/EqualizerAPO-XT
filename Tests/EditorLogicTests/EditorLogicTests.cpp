@@ -1686,6 +1686,11 @@ int main(int argc, char** argv)
 		testRoutingFold();
 		testAnalysisResponseBinArithmetic();
 		testAnalysisResponseEmptyAndLatency();
+		testResponseCurveMatchesTheLegacyMagnitudePath();
+		testResponseCurveFitsAndLabelsTheValueAxis();
+		testResponseCurveHandlesEmptyAndDegenerateRequests();
+		testResponseCurveFrequencyAxis();
+		testResponseCurveSegmentsBreakWhereTheValueIsMissing();
 		testConfigFileCodec();
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 		testConfigFileCodecRejectsPartialRead();

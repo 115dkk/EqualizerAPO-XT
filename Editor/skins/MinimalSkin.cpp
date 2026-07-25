@@ -405,8 +405,9 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		lastFigureRight = x + halfWidth;
 	}
 
-	// The dB figures live in the side margins. The margins are narrow, so
-	// the axis font follows the knob precedent: shrink to fit, never clip.
+	// The value figures live in the side margins, printed exactly as the axis
+	// prepared them, whichever metric is on the sheet. The margins are narrow,
+	// so the axis font follows the knob precedent: shrink to fit, never clip.
 	QFont axisFont(labelFont);
 	{
 		const double marginWidth = plotLeft - state.rect.left();
@@ -448,15 +449,24 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	// derived down): a raw semantic red at area strength hurt the eyes in
 	// both finishes - a terminal's error field is dim red, not neon.
 	QPainterPath overshoot;
-	const bool overshootValid = state.clipping && state.curve.size() >= 2 && state.zeroY > plotTop + 1.0;
+	const bool overshootValid = state.clipping && state.zeroY > plotTop + 1.0;
 	const bool darkSheet = ground.lightness() < 128;
 	if (overshootValid)
 	{
-		QPolygonF closed = state.curve;
-		closed.append(QPointF(state.curve.last().x(), state.zeroY));
-		closed.append(QPointF(state.curve.first().x(), state.zeroY));
-		overshoot.addPolygon(closed);
-		overshoot.closeSubpath();
+		// One closed block per printed piece of the trace. Clipping is a
+		// magnitude reading and magnitude prints in one piece, so in practice
+		// this records once; a record with gaps still gets a block per piece
+		// instead of one field spanning what was never measured.
+		for (const QPolygonF& segment : state.curves)
+		{
+			if (segment.size() < 2)
+				continue;
+			QPolygonF closed = segment;
+			closed.append(QPointF(segment.last().x(), state.zeroY));
+			closed.append(QPointF(segment.first().x(), state.zeroY));
+			overshoot.addPolygon(closed);
+			overshoot.closeSubpath();
+		}
 
 		// Dark sheet: a dim red field (phosphor's error register). Light
 		// sheet: a black-red block - on an ink-on-paper terminal the error
@@ -475,8 +485,10 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		painter.restore();
 	}
 
-	// The 0 dB rule: the one full-strength straight line, body ink 1px.
-	if (state.zeroY >= plotTop && state.zeroY <= plotBottom)
+	// The zero rule: the one full-strength straight line, body ink 1px. It
+	// prints only when the metric's zero lands inside the sheet - a group
+	// delay that never goes negative has nothing to rule off against.
+	if (state.zeroVisible)
 	{
 		const double zeroY = qFloor(state.zeroY) + 0.5;
 		painter.setPen(QPen(bodyInk, 1));
@@ -485,19 +497,24 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 
 	// The response: a single 1px body-ink trace. No fill, no echo - the
 	// trace is data and the brightest line on the sheet. Inside the error
-	// block it inverts to ground ink (reverse video keeps the glyph).
-	if (state.curve.size() >= 2)
+	// block it inverts to ground ink (reverse video keeps the glyph). One
+	// pass per piece: where the metric has no reading the pen lifts off the
+	// sheet, and a stroke across the gap would print a measurement that was
+	// never taken.
+	for (const QPolygonF& segment : state.curves)
 	{
+		if (segment.size() < 2)
+			continue;
 		painter.setPen(QPen(bodyInk, 1));
 		painter.setBrush(Qt::NoBrush);
-		painter.drawPolyline(state.curve);
+		painter.drawPolyline(segment);
 		if (overshootValid)
 		{
 			painter.save();
 			painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
 			painter.setClipPath(overshoot, Qt::IntersectClip);
 			painter.setPen(QPen(ground, 1));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.restore();
 		}
 	}

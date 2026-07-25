@@ -620,7 +620,7 @@ public:
 
 		// Major-only grid, the border sunk most of the way into the well;
 		// straight lines stay crisp with antialiasing off. The horizontal
-		// majors' only member is the 0 dB row, which the soft notch draws
+		// majors' only member is the zero row, which the soft notch draws
 		// itself, so only the frequency decades remain - whitespace does the
 		// rest (tiebreaker).
 		painter.setRenderHint(QPainter::Antialiasing, false);
@@ -635,13 +635,19 @@ public:
 		// The response terrain: opaque pastel masses split at the ground line
 		// by clip rects, so the semantic colour change lands exactly on the
 		// zero crossing (the GraphicEQ instrument's seam trick). Each pass
-		// lays the mass, then its warm-ink stroke on the terrain edge.
-		if (state.curve.size() >= 2)
+		// lays the mass, then its warm-ink stroke on the terrain edge. One
+		// landscape per piece of the response: where the metric has no reading
+		// the ground simply ends, because a mass carried across that gap would
+		// show a hill nobody measured.
+		for (const QPolygonF& segment : state.curves)
 		{
+			if (segment.size() < 2)
+				continue;
+
 			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
-			QPolygonF terrain = state.curve;
-			terrain.append(QPointF(state.curve.last().x(), base));
-			terrain.prepend(QPointF(state.curve.first().x(), base));
+			QPolygonF terrain = segment;
+			terrain.append(QPointF(segment.last().x(), base));
+			terrain.prepend(QPointF(segment.first().x(), base));
 
 			const QColor overFill(state.clipping ? tokens.warning : tokens.success);
 			const qreal splitY = qBound(frame.top(), qreal(state.zeroY), frame.bottom());
@@ -658,15 +664,18 @@ public:
 				painter.drawPolygon(terrain);
 				painter.setPen(QPen(mixColor(side, warmInk, 0.40), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 				painter.setBrush(Qt::NoBrush);
-				painter.drawPolyline(state.curve);
+				painter.drawPolyline(segment);
 				painter.restore();
 			}
 		}
 
-		// The calm ground line: the soft 0 dB notch, rounded ends floating
+		// The calm ground line: the soft zero notch, rounded ends floating
 		// clear of the well walls, laid over the masses so the ground level
-		// reads through the hills.
-		if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
+		// reads through the hills. Drawn only while zero is really inside the
+		// fitted range - a group delay that never goes negative would have its
+		// ground pressed flat against the well floor, which is a wall, not a
+		// landmark.
+		if (state.zeroVisible)
 		{
 			painter.setPen(QPen(withAlpha(QColor(tokens.text), 110), 2, Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(state.plotRect.left() + 6.0, state.zeroY),
@@ -697,10 +706,12 @@ public:
 			painter.drawText(labelRect, align | Qt::AlignTop, line.label);
 		}
 
-		// The dB figures rest just above their (unpainted) rows along the
+		// The value figures rest just above their (unpainted) rows along the
 		// left edge, thinned to a calm cadence when the fitted range packs
-		// the rows tighter than a caption, anchored at the 0 dB ground so
-		// the kept figures stay symmetric around it.
+		// the rows tighter than a caption, anchored at the zero ground so
+		// the kept figures stay symmetric around it. They arrive already
+		// worded for whichever metric is showing, so nothing here spells a
+		// unit.
 		int groundIndex = 0;
 		for (int i = 0; i < state.horizontal.size(); i++)
 		{

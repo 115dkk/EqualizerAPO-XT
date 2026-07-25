@@ -19,6 +19,11 @@ void requireEqual(int actual, int expected, const QString& message);
 
 void testAnalysisResponseBinArithmetic();
 void testAnalysisResponseEmptyAndLatency();
+void testResponseCurveMatchesTheLegacyMagnitudePath();
+void testResponseCurveFitsAndLabelsTheValueAxis();
+void testResponseCurveHandlesEmptyAndDegenerateRequests();
+void testResponseCurveFrequencyAxis();
+void testResponseCurveSegmentsBreakWhereTheValueIsMissing();
 void testConfigFileCodec();
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 void testConfigFileCodecRejectsPartialRead();

@@ -2,6 +2,8 @@
 #include "diagnostics/ToolbarPixelProbe.h"
 #include "widgets/MainToolbarKit.h"
 
+#include <cmath>
+#include <complex>
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
@@ -468,6 +470,8 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	return toolBar;
 }
 
+std::shared_ptr<const AnalysisResponse> galleryAnalysisResponse();
+
 QWidget* buildAnalysisPanelReplica(QWidget* parent)
 {
 	QWidget* panel = new QWidget(parent);
@@ -538,9 +542,61 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 
 	EqGraphView* graph = new EqGraphView(panel);
 	graph->setObjectName(QStringLiteral("ModernAnalysisGraph"));
+	// Fed the same synthetic spectrum as the standalone graph shots. Left
+	// empty, this replica used to draw a flat line across the middle, because
+	// a response with no data read as a perfectly flat 0 dB one - a measurement
+	// the analyzer had never taken. An unanalyzed graph now draws no trace at
+	// all, which is correct and which would make this shot an empty pane.
+	graph->setResponse(galleryAnalysisResponse(), QStringLiteral("All"));
 	dockLayout->addWidget(bar);
 	dockLayout->addWidget(graph, 1);
 	return panel;
+}
+
+// The gallery's analysis fixture, as a complex spectrum.
+//
+// The graph consumes what the analyzer produces - a complex response per FFT bin
+// - so the fixture has to be one too, not a hand-drawn dB curve. These are the
+// same nine breakpoints the fixture has always used (boosts, cuts and a
+// clipping shelf so the over-0dB emphasis shows); the curve between them is
+// straight in dB against log frequency, and each bin simply samples it. Phase
+// is left at zero: this fixture exists for the magnitude shots, and a metric
+// that needs phase gets its own fixture.
+std::shared_ptr<const AnalysisResponse> galleryAnalysisResponse()
+{
+	struct Breakpoint { double hz; double db; };
+	static const Breakpoint curve[] = {
+		{20.0, 0.0}, {45.0, 5.5}, {120.0, 2.0}, {300.0, -4.5}, {900.0, 1.0},
+		{2500.0, -7.5}, {6000.0, 3.0}, {11000.0, 6.5}, {20000.0, -2.0}
+	};
+	constexpr int breakpointCount = int(sizeof(curve) / sizeof(curve[0]));
+
+	const auto dbAt = [&](double hz) {
+		if (hz <= curve[0].hz)
+			return curve[0].db;
+		if (hz >= curve[breakpointCount - 1].hz)
+			return curve[breakpointCount - 1].db;
+		for (int i = 1; i < breakpointCount; i++)
+		{
+			if (hz > curve[i].hz)
+				continue;
+			const double t = std::log(hz / curve[i - 1].hz) / std::log(curve[i].hz / curve[i - 1].hz);
+			return curve[i - 1].db + t * (curve[i].db - curve[i - 1].db);
+		}
+		return curve[breakpointCount - 1].db;
+	};
+
+	auto response = std::make_shared<AnalysisResponse>();
+	response->sampleRate = 48000;
+	response->fftSize = 65536;
+	const size_t binCount = AnalysisResponse::binCountFor(response->fftSize);
+	response->bins.resize(binCount);
+	for (size_t i = 0; i < binCount; i++)
+	{
+		const double hz = response->frequencyOf(i);
+		response->bins[i] = std::complex<double>(std::pow(10.0, dbAt(hz) / 20.0), 0.0);
+	}
+	return response;
 }
 
 // QSS :hover matches widgets whose Qt::WA_UnderMouse attribute is set, and
@@ -880,18 +936,13 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		}
 	}
 
-	// The analysis dock's response graph with a deterministic synthetic
-	// response (boosts, cuts and a clipping shelf so the over-0dB emphasis
+	// The analysis dock's response graph over the deterministic synthetic
+	// spectrum (boosts, cuts and a clipping shelf so the over-0dB emphasis
 	// shows), at rest and with the pinned cursor readout.
 	{
 		EqGraphView graph;
 		graph.resize(940, 220);
-		const std::vector<FilterNode> response = {
-			FilterNode(20.0, 0.0), FilterNode(45.0, 5.5), FilterNode(120.0, 2.0),
-			FilterNode(300.0, -4.5), FilterNode(900.0, 1.0), FilterNode(2500.0, -7.5),
-			FilterNode(6000.0, 3.0), FilterNode(11000.0, 6.5), FilterNode(20000.0, -2.0)
-		};
-		graph.setNodes(response, 48000, QStringLiteral("All"));
+		graph.setResponse(galleryAnalysisResponse(), QStringLiteral("All"));
 		graph.show();
 		QApplication::processEvents();
 		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("normal")) ? 0 : 1;

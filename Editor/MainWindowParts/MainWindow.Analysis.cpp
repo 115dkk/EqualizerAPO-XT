@@ -88,7 +88,7 @@ void MainWindow::updateAnalysisPanel()
 	const QString errorText = result.errorText();
 	analysisPlotScene->setResponse(*response);
 	if (eqGraphView != nullptr)
-		eqGraphView->setNodes(analysisPlotScene->getNodes(), response->sampleRate, ui->analysisChannelComboBox->currentText());
+		eqGraphView->setResponse(response, ui->analysisChannelComboBox->currentText());
 
 	// Hand the engine's per-line load facts to every open tab whose file took
 	// part in this load. A tab whose file was
