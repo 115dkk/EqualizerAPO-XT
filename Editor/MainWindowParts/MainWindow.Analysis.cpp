@@ -148,6 +148,7 @@ void MainWindow::setupAnalysisMetricControls()
 	// 250px wide and this control gets no label column, so the cells have to
 	// carry the whole width themselves.
 	ui->analysisMetricSegment->setLabels({tr("Mag"), tr("Phase"), tr("GD")});
+	ui->includeBaseDelayCheckBox->setObjectName(QStringLiteral("AnalysisFormCheck"));
 	ui->analysisMetricSegment->setToolTip(tr("What the graph shows: magnitude in dB, phase in degrees, or group delay in ms."));
 	ui->includeBaseDelayCheckBox->setToolTip(
 		tr("The analyzer removes the configuration's bulk delay before measuring, so a filter's own phase is readable. "

@@ -219,6 +219,15 @@ QFrame[frameShape="4"], QFrame[frameShape="5"] { background: @BORDER@; border: 0
 
 QFrame#analysisControlBar { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 14px; }
 QLabel#AnalysisFormLabel { color: @MUTED@; background: transparent; font-weight: 600; padding: 0 6px; }
+/* The base-delay option speaks in the same register as the field labels
+   beside it, derived from this skin's own AnalysisFormLabel rule. Its
+   indicator is the toolbar checkbox's, added to those selectors above. */
+QCheckBox#AnalysisFormCheck {
+    color: @MUTED@;
+    font-weight: 600;
+    background: transparent;
+}
+
 QComboBox#AnalysisFormCombo { min-width: 110px; }
 QFrame#AnalysisStatChip { background: @CARD@; border: 1px solid @BORDER@; border-radius: 14px; }
 QLabel#AnalysisStatLabel { color: @MUTED@; background: transparent; font-weight: 600; font-size: 9pt; letter-spacing: 1px; }
@@ -416,18 +425,18 @@ QToolBar#MainToolBar QLabel#ToolBarLabel { color: @MUTED@; padding: 0 6px 0 14px
 /* Instant mode as a friendly toggle: stadium track, knob baked into the
    state SVGs, calm accent when on. The off track is the muted token at low
    alpha so the near-white knob reads in both modes. */
-QCheckBox#InstantModeCheckBox { color: @TEXT@; font-weight: 600; spacing: 10px; padding: 4px 6px; }
-QCheckBox#InstantModeCheckBox::indicator {
+QCheckBox#InstantModeCheckBox, QCheckBox#AnalysisFormCheck { color: @TEXT@; font-weight: 600; spacing: 10px; padding: 4px 6px; }
+QCheckBox#InstantModeCheckBox::indicator, QCheckBox#AnalysisFormCheck::indicator {
     width: 36px; height: 20px; border-radius: 10px; border: 0;
     background: rgba(179, 171, 157, 0.38);
     image: url(:/icons/modern/soft-toggle-knob-off.svg);
 }
-QCheckBox#InstantModeCheckBox::indicator:hover { background: rgba(179, 171, 157, 0.50); }
-QCheckBox#InstantModeCheckBox::indicator:checked {
+QCheckBox#InstantModeCheckBox::indicator:hover, QCheckBox#AnalysisFormCheck::indicator:hover { background: rgba(179, 171, 157, 0.50); }
+QCheckBox#InstantModeCheckBox::indicator:checked, QCheckBox#AnalysisFormCheck::indicator:checked {
     background: @ACCENT@;
     image: url(:/icons/modern/soft-toggle-knob-on.svg);
 }
-QCheckBox#InstantModeCheckBox::indicator:checked:hover { background: #7FA3D5; }
+QCheckBox#InstantModeCheckBox::indicator:checked:hover, QCheckBox#AnalysisFormCheck::indicator:checked:hover { background: #7FA3D5; }
 
 /* The save state is a status pill: a solid pastel chip carrying the
    deep warm ink (the type chip's grammar promoted to chrome). Unsaved

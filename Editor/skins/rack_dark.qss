@@ -160,13 +160,25 @@ QToolButton[rackTransport="true"]:disabled {
 }
 /* Instant mode is a panel switch read by its lamp: the stock indicator
    collapses and RackChrome paints a real LED in the padding-reserved well. */
-QCheckBox#InstantModeCheckBox {
+QCheckBox#InstantModeCheckBox, QCheckBox#AnalysisFormCheck {
     color: @TEXT@; background: transparent;
     font-weight: 700; font-size: 8pt;
     text-transform: uppercase; letter-spacing: 1px;
     padding: 2px 4px 2px 22px; spacing: 0;
 }
 QCheckBox#InstantModeCheckBox::indicator { width: 0; height: 0; background: transparent; border: 0; image: none; }
+/* The analysis bar's base-delay option is not painted by RackChrome the way
+   the toolbar switch is, so it keeps a real indicator: the same dark LCD well
+   the save-state readout uses, lit in phosphor when engaged. */
+QCheckBox#AnalysisFormCheck { padding: 2px 4px; spacing: 8px; }
+QCheckBox#AnalysisFormCheck::indicator {
+    width: 11px; height: 11px; border-radius: 2px;
+    background: #0B0F0C;
+    border: 1px solid #050807; border-bottom-color: #39424A;
+    image: none;
+}
+QCheckBox#AnalysisFormCheck::indicator:checked { background: #86F2BA; }
+QCheckBox#AnalysisFormCheck::indicator:hover { border-color: @ACCENT@; }
 /* The save-state readout is a dark LCD well in both modes - displays do not
    follow the panel finish. Modified state burns amber segments. */
 QLabel#DirtyStatusBadge {
@@ -452,6 +464,17 @@ QLabel#AnalysisFormLabel {
     color: @MUTED@; background: transparent;
     font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 0 4px;
 }
+/* The base-delay option speaks in the same register as the field labels
+   beside it, derived from this skin's own AnalysisFormLabel rule. Its
+   indicator is the toolbar checkbox's, added to those selectors above. */
+QCheckBox#AnalysisFormCheck {
+    color: @MUTED@;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: transparent;
+}
+
 QComboBox#AnalysisFormCombo { min-width: 110px; }
 QFrame#AnalysisStatChip { background: #0A0D0F; border: 1px solid #060809; border-radius: 2px; }
 QLabel#AnalysisStatLabel {
