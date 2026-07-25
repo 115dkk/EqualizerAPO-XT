@@ -228,7 +228,7 @@ QCheckBox#AnalysisFormCheck {
     background: transparent;
 }
 
-QComboBox#AnalysisFormCombo { min-width: 110px; }
+QComboBox#AnalysisFormCombo { min-width: 80px; }
 QFrame#AnalysisStatChip { background: @CARD@; border: 1px solid @BORDER@; border-radius: 14px; }
 QLabel#AnalysisStatLabel { color: @MUTED@; background: transparent; font-weight: 600; font-size: 9pt; letter-spacing: 1px; }
 QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace; }

@@ -337,7 +337,7 @@ QCheckBox#AnalysisFormCheck {
     background: transparent;
 }
 
-QComboBox#AnalysisFormCombo { min-width: 110px; }
+QComboBox#AnalysisFormCombo { min-width: 80px; }
 QFrame#AnalysisStatChip { background: @BG@; border: 1px solid @BORDER@; border-radius: 0; }
 QLabel#AnalysisStatLabel {
     color: @MUTED@; background: transparent;

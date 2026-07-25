@@ -160,9 +160,26 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	ui->analysisControlBar->setAttribute(Qt::WA_StyledBackground, true);
 	for (QLabel* label : { ui->startFromLabel, ui->analysisChannelLabel, ui->resolutionLabel })
 		label->setObjectName(QStringLiteral("AnalysisFormLabel"));
-	for (QComboBox* combo : { ui->startFromComboBox, ui->analysisChannelComboBox })
+	// Ignored rather than Preferred: these sit in a bar capped at 250px, and a
+	// combo's own size hint is its widest item plus the drop-down and whatever
+	// padding the active skin gives it. That hint has always been larger than
+	// the column can offer, so the layout laid them out at their minimum and
+	// the bar clipped their right edge - which reads as the graph pane eating
+	// into the bar. With the hint ignored they take the column's width instead
+	// and elide, which is what a fixed-width bar needs them to do.
+	for (QComboBox* combo : { ui->startFromComboBox, ui->analysisChannelComboBox, ui->graphPositionComboBox })
+	{
 		combo->setObjectName(QStringLiteral("AnalysisFormCombo"));
+		combo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+		combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+		combo->setMinimumContentsLength(6);
+	}
 	ui->resolutionSpinBox->setObjectName(QStringLiteral("AnalysisFormSpin"));
+	ui->resolutionSpinBox->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+	// With the hints ignored the control column has nothing left asking for
+	// width, so it has to be told to take what is spare. The label column keeps
+	// its own width, which is what aligns the four captions.
+	ui->analysisControlLayout->setColumnStretch(1, 1);
 	for (QFrame* chip : { ui->peakChip, ui->latencyChip, ui->initChip, ui->cpuChip })
 	{
 		chip->setObjectName(QStringLiteral("AnalysisStatChip"));

@@ -512,6 +512,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	grid->setContentsMargins(10, 6, 18, 6);
 	grid->setHorizontalSpacing(8);
 	grid->setVerticalSpacing(4);
+	grid->setColumnStretch(1, 1);
 
 	const QStringList formLabels = { QStringLiteral("From"), QStringLiteral("Channel"),
 		QStringLiteral("Res"), QStringLiteral("Pos") };
@@ -529,6 +530,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 			// the lighter widget under the same object name.
 			QSpinBox* spin = new QSpinBox;
 			spin->setObjectName(QStringLiteral("AnalysisFormSpin"));
+			spin->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
 			spin->setRange(128, 8388608);
 			spin->setValue(65536);
 			grid->addWidget(spin, row, 1);
@@ -537,6 +539,9 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 		{
 			QComboBox* combo = new QComboBox;
 			combo->setObjectName(QStringLiteral("AnalysisFormCombo"));
+			combo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+			combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+			combo->setMinimumContentsLength(6);
 			combo->addItem(formValues[row]);
 			grid->addWidget(combo, row, 1);
 		}
