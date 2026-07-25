@@ -9,7 +9,6 @@
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 
-#include "Editor/SkinManager.h"
 #include "Editor/analysis/AnalysisViewController.h"
 #include "Editor/guis/BiQuadWidthConversion.h"
 #include "Editor/widgets/AudioKnob.h"
@@ -158,11 +157,20 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 		layout->setSpacing(6);
 		QLabel* label = new QLabel(caption, block);
 		label->setObjectName(QStringLiteral("AllPassCardCaption"));
+		// Centred over the control it names. Left-aligned captions over compact
+		// controls leave a ragged left edge across the row, which is what this
+		// footer was reported for; the parameter row above keeps its
+		// left-aligned captions because those sit over wide value fields and
+		// follow the Preamp and Delay cards.
+		label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 		layout->addWidget(label);
 		out = new SegmentedControl(block);
 		out->setObjectName(segmentName);
 		out->setLabels(labels);
 		layout->addWidget(out);
+		// The block is only as wide as its widest child, so centring the
+		// caption centres it over the segment rather than over empty space.
+		block->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 		return block;
 	};
 
@@ -204,14 +212,14 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	magnitudeLayout->setSpacing(6);
 	QLabel* magnitudeCaption = new QLabel(tr("Magnitude"), magnitudeBlock);
 	magnitudeCaption->setObjectName(QStringLiteral("AllPassCardCaption"));
+	magnitudeCaption->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 	magnitudeLayout->addWidget(magnitudeCaption);
 	magnitudeNote = new QLabel(tr("0.0 dB"), magnitudeBlock);
 	magnitudeNote->setObjectName(QStringLiteral("AllPassCardMagnitudeValue"));
-	QFont magnitudeFont(magnitudeNote->font());
-	magnitudeFont.setFamily(SkinManager::instance()->tokens().monoFontFamily);
-	magnitudeNote->setFont(magnitudeFont);
+	magnitudeNote->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 	magnitudeNote->setToolTip(tr("An all-pass does not change level at any frequency, so there is nothing to set here."));
 	magnitudeLayout->addWidget(magnitudeNote);
+	magnitudeBlock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 	footerRow->addWidget(magnitudeBlock, 0, Qt::AlignVCenter);
 
 	footerRow->addStretch(1);

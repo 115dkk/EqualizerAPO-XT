@@ -648,6 +648,18 @@ QLabel#EditableValue {
     padding: 6px 10px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
+/* The all-pass card states its fixed magnitude as a reading. It takes this
+   skin's value typography but none of the field chrome: there is nothing to
+   type into it, and a box would say there is. */
+QLabel#AllPassCardMagnitudeValue {
+    color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    background: transparent;
+    border: 0;
+    padding: 6px 0;
+}
+
 QLineEdit#EditableValueEditor {
     background: @CARD_HOVER@; border: 1px solid @ACCENT@;
     border-radius: 6px; padding: 6px 10px;
