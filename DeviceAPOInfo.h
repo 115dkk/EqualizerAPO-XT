@@ -23,6 +23,7 @@
 #include <vector>
 #include <memory>
 #include "AbstractAPOInfo.h"
+#include "helpers/IRegistry.h"
 
 #define APOGUID_NULL L"{00000000-0000-0000-0000-000000000000}"
 #define APOGUID_NOKEY L"!KEY"
@@ -71,10 +72,19 @@ public:
 		}
 	};
 
-	static std::vector<std::shared_ptr<AbstractAPOInfo>> loadAllInfos(bool input);
+	// Every registry access this class makes goes through the injected port. The
+	// default is the live adapter, so the existing callers (DeviceSelector,
+	// Editor, ApoRegistration, the APO DLL) keep compiling unchanged and keep
+	// talking to the real HKLM; a test hands in an in-memory fake instead.
+	// getDefaultDevice takes none because it reads the endpoint through COM.
+	explicit DeviceAPOInfo(IRegistry& registry = systemRegistry());
+
+	static std::vector<std::shared_ptr<AbstractAPOInfo>> loadAllInfos(bool input, IRegistry& registry = systemRegistry());
 	static std::wstring getDefaultDevice(bool input, int role = 1);
-	static bool checkProtectedAudioDG(bool fix);
-	static bool checkAPORegistration(bool fix);
+	static bool checkProtectedAudioDG(bool fix, IRegistry& registry = systemRegistry());
+	// const because the fix branch registers the COM server by calling the DLL's
+	// own DllRegisterServer, and never writes through the port.
+	static bool checkAPORegistration(bool fix, const IRegistry& registry = systemRegistry());
 	bool load(const std::wstring& deviceGuid, std::wstring defaultDeviceGuid = L"");
 	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
@@ -130,6 +140,13 @@ private:
 	InstallState currentInstallState;
 	// selection in GUI
 	InstallState selectedInstallState;
+
+	// A reference, not a value: the adapter is a process-wide singleton and the
+	// fake outlives the info object in a test, so there is nothing to own here.
+	// It also makes the class non-assignable, which is harmless - every
+	// DeviceAPOInfo in the tree is constructed in place and used through a
+	// shared_ptr or as a local.
+	IRegistry& registry;
 };
 
 class DeviceException

@@ -37,16 +37,16 @@ void DeviceAPOInfo::uninstall()
 		// installation wrote and remove the key itself only when nothing else
 		// lives in it.
 		wstring fxPath = keyPath + L"\\FxProperties";
-		if (RegistryHelper::keyExists(fxPath))
+		if (registry.keyExists(fxPath))
 		{
 			for (const wchar_t* valueName : ownedFxValueNames)
 			{
-				if (RegistryHelper::valueExists(fxPath, valueName))
-					RegistryHelper::deleteValue(fxPath, valueName);
+				if (registry.valueExists(fxPath, valueName))
+					registry.deleteValue(fxPath, valueName);
 			}
 
-			if (RegistryHelper::keyEmpty(fxPath))
-				RegistryHelper::deleteKey(fxPath);
+			if (registry.keyEmpty(fxPath))
+				registry.deleteKey(fxPath);
 		}
 	}
 	else
@@ -55,24 +55,24 @@ void DeviceAPOInfo::uninstall()
 		{
 			if (originalApoGuids[i] == APOGUID_NOVALUE)
 			{
-				if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
-					RegistryHelper::deleteValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
+				if (registry.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
+					registry.deleteValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
 			}
 			else if (originalApoGuids[i] != L"")
 			{
-				RegistryHelper::writeValue(keyPath + L"\\FxProperties", allGuidValueNames[i], originalApoGuids[i]);
+				registry.writeValue(keyPath + L"\\FxProperties", allGuidValueNames[i], originalApoGuids[i]);
 			}
 		}
 	}
 
-	if (RegistryHelper::keyExists(childApoPath) && RegistryHelper::valueExists(childApoPath, deviceGuid))
-		RegistryHelper::deleteValue(childApoPath, deviceGuid);
+	if (registry.keyExists(childApoPath) && registry.valueExists(childApoPath, deviceGuid))
+		registry.deleteValue(childApoPath, deviceGuid);
 
-	if (RegistryHelper::keyExists(childApoPath L"\\" + deviceGuid))
-		RegistryHelper::deleteKey(childApoPath L"\\" + deviceGuid);
+	if (registry.keyExists(childApoPath L"\\" + deviceGuid))
+		registry.deleteKey(childApoPath L"\\" + deviceGuid);
 
-	if (RegistryHelper::keyExists(childApoPath) && RegistryHelper::keyEmpty(childApoPath))
-		RegistryHelper::deleteKey(childApoPath);
+	if (registry.keyExists(childApoPath) && registry.keyEmpty(childApoPath))
+		registry.deleteKey(childApoPath);
 }
 
 void DeviceAPOInfo::reinstall()

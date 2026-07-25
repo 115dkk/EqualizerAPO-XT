@@ -23,13 +23,18 @@
 #include <vector>
 #include <memory>
 #include "AbstractAPOInfo.h"
+#include "helpers/IRegistry.h"
 
 class VoicemeeterAPOInfo : public AbstractAPOInfo
 {
 public:
-	static void prependInfos(std::vector<std::shared_ptr<AbstractAPOInfo>>& list);
+	// Same injection as DeviceAPOInfo, for the same reason: prependInfos is
+	// called from DeviceAPOInfo::loadAllInfos, so it has to be able to pass the
+	// registry it was given down. Only the registry reads are routed through the
+	// port; the startup-shortcut and process work stays on the Win32 calls.
+	static void prependInfos(std::vector<std::shared_ptr<AbstractAPOInfo>>& list, IRegistry& registry = systemRegistry());
 
-	VoicemeeterAPOInfo(const std::wstring& connectionName, bool voicemeeterInstalled);
+	VoicemeeterAPOInfo(const std::wstring& connectionName, bool voicemeeterInstalled, IRegistry& registry = systemRegistry());
 
 	std::wstring getConnectionName() const override;
 	std::wstring getDeviceName() const override;
@@ -52,7 +57,7 @@ public:
 	void uninstall() override;
 	void reinstall() override;
 	static void ensureVoicemeeterClientRunning();
-	static void saveVoicemeeterSampleRate(unsigned sampleRate);
+	static void saveVoicemeeterSampleRate(unsigned sampleRate, IRegistry& registry = systemRegistry());
 
 private:
 	static std::wstring getStartupPath();
@@ -69,4 +74,5 @@ private:
 	bool defaultDevice = false;
 	bool voicemeeterInstalled;
 	bool changes = false;
+	IRegistry& registry;
 };

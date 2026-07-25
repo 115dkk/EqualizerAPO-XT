@@ -23,8 +23,8 @@ void DeviceAPOInfo::install()
 	if (!selectedInstallState.installPreMix && !selectedInstallState.installPostMix)
 		return;
 
-	RegistryHelper::createKey(childApoPath);
-	RegistryHelper::createKey(childApoPath L"\\" + deviceGuid);
+	registry.createKey(childApoPath);
+	registry.createKey(childApoPath L"\\" + deviceGuid);
 
 	wstring keyPath;
 	if (!input)
@@ -32,26 +32,26 @@ void DeviceAPOInfo::install()
 	else
 		keyPath = captureKeyPath L"\\" + deviceGuid;
 
-	if (!RegistryHelper::keyExists(keyPath + L"\\FxProperties"))
+	if (!registry.keyExists(keyPath + L"\\FxProperties"))
 	{
 		try
 		{
-			RegistryHelper::createKey(keyPath + L"\\FxProperties");
+			registry.createKey(keyPath + L"\\FxProperties");
 		}
 		catch (const RegistryException&)
 		{
 			// Permissions were not sufficient, so change them
-			RegistryHelper::takeOwnership(keyPath);
-			RegistryHelper::makeWritable(keyPath);
+			registry.takeOwnership(keyPath);
+			registry.makeWritable(keyPath);
 
-			RegistryHelper::createKey(keyPath + L"\\FxProperties");
+			registry.createKey(keyPath + L"\\FxProperties");
 		}
 
-		RegistryHelper::writeValue(keyPath + L"\\FxProperties", fxTitleValueName, L"Equalizer APO");
+		registry.writeValue(keyPath + L"\\FxProperties", fxTitleValueName, L"Equalizer APO");
 
 		for (int i = 0; i < allGuidValueNameCount; i++)
 		{
-			RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, allGuidValueNames[i], APOGUID_NOKEY);
+			registry.writeValue(childApoPath L"\\" + deviceGuid, allGuidValueNames[i], APOGUID_NOKEY);
 		}
 	}
 	else
@@ -61,23 +61,23 @@ void DeviceAPOInfo::install()
 		for (int i = 0; i < allGuidValueNameCount; i++)
 		{
 			wstring apoGuidString = APOGUID_NOVALUE;
-			if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
+			if (registry.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
 			{
-				apoGuidString = RegistryHelper::readValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
+				apoGuidString = registry.readValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
 				valuenames.push_back(allGuidValueNames[i]);
 			}
 
-			RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, allGuidValueNames[i], apoGuidString);
+			registry.writeValue(childApoPath L"\\" + deviceGuid, allGuidValueNames[i], apoGuidString);
 		}
 
 		if (!valuenames.empty())
 		{
-			wstring backupDirectory = RegistryHelper::readValue(APP_REGPATH, L"ConfigPath");
+			wstring backupDirectory = registry.readValue(APP_REGPATH, L"ConfigPath");
 			if (backupDirectory.empty())
 				throw RegistryException(L"ConfigPath is empty; refusing to write a registry backup to the process directory");
 			if (backupDirectory.back() != L'\\' && backupDirectory.back() != L'/')
 				backupDirectory += L"\\";
-			RegistryHelper::saveToFile(keyPath + L"\\FxProperties", valuenames,
+			registry.saveToFile(keyPath + L"\\FxProperties", valuenames,
 				backupDirectory + L"backup_" + StringHelper::replaceIllegalCharacters(deviceName)
 				+ L"_" + StringHelper::replaceIllegalCharacters(connectionName) + L".reg");
 		}
@@ -89,76 +89,76 @@ void DeviceAPOInfo::install()
 		preMixValue = getOriginalAPOPreMix();
 	if (selectedInstallState.useOriginalAPOPostMix)
 		postMixValue = getOriginalAPOPostMix();
-	RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, preMixChildGuidValueName, preMixValue);
-	RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName, postMixValue);
+	registry.writeValue(childApoPath L"\\" + deviceGuid, preMixChildGuidValueName, preMixValue);
+	registry.writeValue(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName, postMixValue);
 
-	RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName, selectedInstallState.allowSilentBufferModification ? L"true" : L"false");
+	registry.writeValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName, selectedInstallState.allowSilentBufferModification ? L"true" : L"false");
 	if (selectedInstallState.autoAdjust)
 	{
-		if (RegistryHelper::valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
-			RegistryHelper::deleteValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName);
+		if (registry.valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
+			registry.deleteValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName);
 	}
 	else
 	{
-		RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName, L"true");
+		registry.writeValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName, L"true");
 	}
-	RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, versionValueName, installVersion);
+	registry.writeValue(childApoPath L"\\" + deviceGuid, versionValueName, installVersion);
 
 	if (selectedInstallState.installMode == INSTALL_LFX_GFX)
 	{
 		if (selectedInstallState.installPreMix)
-			RegistryHelper::writeValue(keyPath + L"\\FxProperties", lfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
+			registry.writeValue(keyPath + L"\\FxProperties", lfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
 		if (selectedInstallState.installPostMix && !input)
-			RegistryHelper::writeValue(keyPath + L"\\FxProperties", gfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
-		if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", sfxGuidValueName))
-			RegistryHelper::deleteValue(keyPath + L"\\FxProperties", sfxGuidValueName);
-		if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", mfxGuidValueName))
-			RegistryHelper::deleteValue(keyPath + L"\\FxProperties", mfxGuidValueName);
-		if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", efxGuidValueName))
-			RegistryHelper::deleteValue(keyPath + L"\\FxProperties", efxGuidValueName);
+			registry.writeValue(keyPath + L"\\FxProperties", gfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+		if (registry.valueExists(keyPath + L"\\FxProperties", sfxGuidValueName))
+			registry.deleteValue(keyPath + L"\\FxProperties", sfxGuidValueName);
+		if (registry.valueExists(keyPath + L"\\FxProperties", mfxGuidValueName))
+			registry.deleteValue(keyPath + L"\\FxProperties", mfxGuidValueName);
+		if (registry.valueExists(keyPath + L"\\FxProperties", efxGuidValueName))
+			registry.deleteValue(keyPath + L"\\FxProperties", efxGuidValueName);
 	}
 	else if (selectedInstallState.installMode == INSTALL_SFX_MFX)
 	{
-		if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", lfxGuidValueName))
-			RegistryHelper::deleteValue(keyPath + L"\\FxProperties", lfxGuidValueName);
-		if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
-			RegistryHelper::deleteValue(keyPath + L"\\FxProperties", gfxGuidValueName);
+		if (registry.valueExists(keyPath + L"\\FxProperties", lfxGuidValueName))
+			registry.deleteValue(keyPath + L"\\FxProperties", lfxGuidValueName);
+		if (registry.valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
+			registry.deleteValue(keyPath + L"\\FxProperties", gfxGuidValueName);
 		if (selectedInstallState.installPreMix)
 		{
-			RegistryHelper::writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
-			if (!RegistryHelper::valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
-				RegistryHelper::writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
+			registry.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
+			if (!registry.valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
+				registry.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
 		}
 		if (selectedInstallState.installPostMix && !input)
 		{
-			RegistryHelper::writeValue(keyPath + L"\\FxProperties", mfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
-			if (!RegistryHelper::valueExists(keyPath + L"\\FxProperties", mfxProcessingModesValueName))
-				RegistryHelper::writeMultiValue(keyPath + L"\\FxProperties", mfxProcessingModesValueName, defaultProcessingModeValue);
+			registry.writeValue(keyPath + L"\\FxProperties", mfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+			if (!registry.valueExists(keyPath + L"\\FxProperties", mfxProcessingModesValueName))
+				registry.writeMultiValue(keyPath + L"\\FxProperties", mfxProcessingModesValueName, defaultProcessingModeValue);
 		}
 		// don't change efx
 	}
 	else if (selectedInstallState.installMode == INSTALL_SFX_EFX)
 	{
-		if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", lfxGuidValueName))
-			RegistryHelper::deleteValue(keyPath + L"\\FxProperties", lfxGuidValueName);
-		if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
-			RegistryHelper::deleteValue(keyPath + L"\\FxProperties", gfxGuidValueName);
+		if (registry.valueExists(keyPath + L"\\FxProperties", lfxGuidValueName))
+			registry.deleteValue(keyPath + L"\\FxProperties", lfxGuidValueName);
+		if (registry.valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
+			registry.deleteValue(keyPath + L"\\FxProperties", gfxGuidValueName);
 		if (selectedInstallState.installPreMix)
 		{
-			RegistryHelper::writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
-			if (!RegistryHelper::valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
-				RegistryHelper::writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
+			registry.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
+			if (!registry.valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
+				registry.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
 		}
 		// don't change mfx
 		if (selectedInstallState.installPostMix && !input)
 		{
-			RegistryHelper::writeValue(keyPath + L"\\FxProperties", efxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
-			if (!RegistryHelper::valueExists(keyPath + L"\\FxProperties", efxProcessingModesValueName))
-				RegistryHelper::writeMultiValue(keyPath + L"\\FxProperties", efxProcessingModesValueName, defaultProcessingModeValue);
+			registry.writeValue(keyPath + L"\\FxProperties", efxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+			if (!registry.valueExists(keyPath + L"\\FxProperties", efxProcessingModesValueName))
+				registry.writeMultiValue(keyPath + L"\\FxProperties", efxProcessingModesValueName, defaultProcessingModeValue);
 		}
 	}
 
 	// force-enable enhancements
-	if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", disableEnhancementsValueName))
-		RegistryHelper::deleteValue(keyPath + L"\\FxProperties", disableEnhancementsValueName);
+	if (registry.valueExists(keyPath + L"\\FxProperties", disableEnhancementsValueName))
+		registry.deleteValue(keyPath + L"\\FxProperties", disableEnhancementsValueName);
 }
