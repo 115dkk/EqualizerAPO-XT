@@ -115,7 +115,7 @@ bool DeviceAPOInfo::checkProtectedAudioDG(bool fix, IRegistry& registry)
 	return result;
 }
 
-bool DeviceAPOInfo::checkAPORegistration(bool fix, IRegistry& registry)
+bool DeviceAPOInfo::checkAPORegistration(bool fix, const IRegistry& registry)
 {
 	bool result = true;
 

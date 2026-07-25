@@ -82,7 +82,9 @@ public:
 	static std::vector<std::shared_ptr<AbstractAPOInfo>> loadAllInfos(bool input, IRegistry& registry = systemRegistry());
 	static std::wstring getDefaultDevice(bool input, int role = 1);
 	static bool checkProtectedAudioDG(bool fix, IRegistry& registry = systemRegistry());
-	static bool checkAPORegistration(bool fix, IRegistry& registry = systemRegistry());
+	// const because the fix branch registers the COM server by calling the DLL's
+	// own DllRegisterServer, and never writes through the port.
+	static bool checkAPORegistration(bool fix, const IRegistry& registry = systemRegistry());
 	bool load(const std::wstring& deviceGuid, std::wstring defaultDeviceGuid = L"");
 	bool canBeUpgraded() const override;
 	bool hasChanges() const override;
