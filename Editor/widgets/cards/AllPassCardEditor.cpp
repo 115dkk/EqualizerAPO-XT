@@ -42,7 +42,12 @@ double logKnobToValue(int step, double minimum, double maximum)
 QWidget* buildKnobBlock(QWidget* parent, AudioKnob*& knob, const QString& knobObjectName,
 	QWidget* caption, EditableValue* value)
 {
+	// Named, because an unnamed QWidget is matched by whatever generic rule a
+	// sheet carries and comes out as an opaque rectangle behind the chrome -
+	// the speckling this card was reported for. Every container in a card body
+	// has to be a name the skin sheets know and set transparent.
 	QWidget* block = new QWidget(parent);
+	block->setObjectName(QStringLiteral("AllPassCardParamBlock"));
 	QHBoxLayout* layout = new QHBoxLayout(block);
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(14);

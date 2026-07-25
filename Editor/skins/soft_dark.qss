@@ -317,8 +317,12 @@ QDoubleSpinBox[valueScrub="true"]:disabled, QSpinBox[valueScrub="true"]:disabled
 QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
+QWidget#AllPassCardEditor, QWidget#AllPassCardParamBlock, QWidget#AllPassCardValueBlock,
+QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock,
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
+QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
+QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 9pt; }
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
