@@ -370,7 +370,7 @@ QCheckBox#AnalysisFormCheck {
     background: transparent;
 }
 
-QComboBox#AnalysisFormCombo { min-width: 110px; }
+QComboBox#AnalysisFormCombo { min-width: 80px; }
 QFrame#AnalysisStatChip {
     background: @CARD@; border: 1px solid @BORDER@; border-radius: 0;
 }
