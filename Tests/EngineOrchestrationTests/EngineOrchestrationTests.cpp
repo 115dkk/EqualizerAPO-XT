@@ -899,6 +899,7 @@ void testConfigLoadTrace(test::Harness& harness)
 // Defined in SampleIoTests.cpp next to this file.
 void runSampleIoTests(test::Harness& harness);
 void runConfigurationFileReaderTests(test::Harness& harness);
+void runDeviceApoInfoTests(test::Harness& harness);
 
 int runEngineOrchestrationTests()
 {
@@ -935,6 +936,7 @@ int runEngineOrchestrationTests()
 	testSynchronizedStateSerializesReplacement(harness);
 	testDeviceApoRegistryVocabulary(harness);
 	testInstallStateComparisonIgnoresPadding(harness);
+	runDeviceApoInfoTests(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);

@@ -241,13 +241,16 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConfigurationFileReaderTests.cpp" />
+    <ClCompile Include="DeviceApoInfoTests.cpp" />
     <ClCompile Include="EngineOrchestrationTests.cpp" />
     <ClCompile Include="SampleIoTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\FilterEngine.h" />
+    <ClInclude Include="..\..\helpers\IRegistry.h" />
     <ClInclude Include="..\..\helpers\SynchronizedState.h" />
     <ClInclude Include="..\TestHarness.h" />
+    <ClInclude Include="FakeRegistry.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
