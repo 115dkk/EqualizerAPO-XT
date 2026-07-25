@@ -14,6 +14,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QRegion>
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -1221,6 +1222,23 @@ public:
 		QColor majorInk(mutedInk);
 		majorInk.setAlpha(90);
 		const QColor minorInk(tokens.graphGridMinor);
+		// Unwrapped phase runs past half turns, and on this board a half turn
+		// is a landmark: a rule standing on a multiple of 180 degrees takes the
+		// major rank even though the axis marks only zero as major, so an
+		// all-pass sweep reads as counted turns instead of an even ladder.
+		// Magnitude and group delay have no such landmark and keep the ranks
+		// they arrive with. The value behind a rule is recovered from its y
+		// through the same mapping the widget used to place it.
+		const double valueSpan = state.maximum - state.minimum;
+		const auto landmarkRule = [&state, valueSpan](const AnalysisGraphState::GridLine& line) {
+			if (state.metric != AnalysisMetric::PhaseDegrees || valueSpan <= 0.0
+				|| state.plotRect.height() <= 0.0)
+				return false;
+			const double value = state.maximum
+				- (line.pos - state.plotRect.top()) / state.plotRect.height() * valueSpan;
+			const double turns = value / 180.0;
+			return qAbs(turns - qRound(turns)) < 1e-6;
+		};
 		for (const AnalysisGraphState::GridLine& line : state.vertical)
 		{
 			const int x = int(line.pos);
@@ -1230,7 +1248,7 @@ public:
 		for (const AnalysisGraphState::GridLine& line : state.horizontal)
 		{
 			const int y = int(line.pos);
-			painter.setPen(QPen(line.major ? majorInk : minorInk, 1));
+			painter.setPen(QPen(line.major || landmarkRule(line) ? majorInk : minorInk, 1));
 			painter.drawLine(plot.left(), y, plot.right(), y);
 		}
 
@@ -1282,14 +1300,75 @@ public:
 
 		// The zero bus: the board's reference rule, one rank of authority
 		// above the grid. Posted only when the metric's zero sits inside the
-		// fitted range; a group delay that never goes negative would print it
-		// on the frame edge, where it is a border and not a bus.
-		if (state.zeroVisible)
+		// fitted range, and - for the metrics that can land it there - only
+		// when it is clear of the frame: a group delay that never goes
+		// negative and a phase that never rises above zero both push it onto
+		// the outer rule, where the same 1px line is a border and not a bus.
+		// Magnitude fits symmetrically, so its bus is always inside the pane
+		// and this second test can never fire on it.
+		const bool zeroOnFrame = state.metric != AnalysisMetric::MagnitudeDb
+			&& (zeroYpx <= plot.top() + 1 || zeroYpx >= plot.bottom() - 1);
+		if (state.zeroVisible && !zeroOnFrame)
 		{
 			QColor zeroInk(textInk);
 			zeroInk.setAlpha(180);
 			painter.setPen(QPen(zeroInk, 1));
 			painter.drawLine(plot.left(), zeroYpx, plot.right(), zeroYpx);
+		}
+
+		// Phase and group delay have no value at all inside a null, so the
+		// trace arrives in pieces. A departure board does not leave a slot
+		// blank: the columns with no reading are bracketed by the cancellation
+		// dash (form, never colour - a null is a reading the board could not
+		// take, not a fault) and, where the gap is wide enough to carry it,
+		// posted with the picker's empty-scan wording in a sunken mono cell.
+		// Magnitude always arrives as one segment, so none of this is on its
+		// path.
+		if (state.metric != AnalysisMetric::MagnitudeDb)
+		{
+			QFont gapFont(tokens.monoFontFamily);
+			gapFont.setPointSizeF(7.0);
+			gapFont.setBold(true);
+			const QFontMetrics gapMetrics(gapFont);
+			const QString gapText = QStringLiteral("NO SIGNAL");
+			const int gapCellWidth = gapMetrics.horizontalAdvance(gapText) + 12;
+			const int gapCellHeight = gapMetrics.height() + 2;
+			const auto postGap = [&](double from, double to) {
+				const int left = qRound(from);
+				const int right = qRound(to);
+				// A one or two column hole is already legible as a break in
+				// the trace; bracketing it would print two dashes on top of
+				// each other.
+				if (right - left < 3)
+					return;
+				painter.setPen(QPen(borderInk, 1, Qt::DashLine));
+				if (left > plot.left())
+					painter.drawLine(left, plot.top() + 1, left, plot.bottom() - 1);
+				if (right < plot.right())
+					painter.drawLine(right, plot.top() + 1, right, plot.bottom() - 1);
+				if (right - left < gapCellWidth + 10)
+					return;
+				const QRect gapRect((left + right - gapCellWidth) / 2,
+					plot.center().y() - gapCellHeight / 2, gapCellWidth, gapCellHeight);
+				painter.setPen(QPen(borderInk, 1));
+				painter.setBrush(QColor(tokens.surfaceSunken));
+				painter.drawRect(gapRect.adjusted(0, 0, -1, -1));
+				painter.setBrush(Qt::NoBrush);
+				painter.setFont(gapFont);
+				painter.setPen(mutedInk);
+				painter.drawText(gapRect, Qt::AlignCenter, gapText);
+			};
+			// The complement of what the segments cover, so a hole at either
+			// end of the axis is posted the same way as one in the middle.
+			double coveredTo = state.plotRect.left();
+			for (const QPolygonF& segment : state.curves)
+			{
+				if (segment.isEmpty())
+					continue;
+				postGap(coveredTo, segment.first().x());
+				coveredTo = qMax(coveredTo, segment.last().x());
+			}
+			postGap(coveredTo, state.plotRect.right());
 		}
 
 		// Mono axis figures in tag cells punched out of the grid (ground fill
@@ -1353,7 +1432,9 @@ public:
 				continue;
 			const QRect tagRect(plot.left() + 4, tagY, tagWidth, tagHeight);
 			painter.fillRect(tagRect, ground);
-			painter.setPen(line.major ? mutedInk : minorLabelInk);
+			// The tag keeps the rank of the rule it stands on, so a promoted
+			// half-turn landmark is named as loudly as it is drawn.
+			painter.setPen(line.major || landmarkRule(line) ? mutedInk : minorLabelInk);
 			painter.drawText(tagRect, Qt::AlignCenter, line.label);
 		}
 
@@ -1442,23 +1523,34 @@ public:
 			painter.setPen(QPen(scanInk, 1));
 			painter.drawLine(scanX, plot.top(), scanX, plot.bottom());
 
-			const int crossY = qRound(state.curveYAtCursor);
-			const int bracketLeft = scanX - 5;
-			const int bracketRight = scanX + 5;
-			const int bracketTop = crossY - 5;
-			const int bracketBottom = crossY + 5;
-			const int leg = 3;
-			QColor reticleInk(accent);
-			reticleInk.setAlpha(140 + qRound(state.hover * 115.0));
-			painter.setPen(QPen(reticleInk, 1));
-			painter.drawLine(bracketLeft, bracketTop, bracketLeft + leg, bracketTop);
-			painter.drawLine(bracketLeft, bracketTop, bracketLeft, bracketTop + leg);
-			painter.drawLine(bracketRight - leg, bracketTop, bracketRight, bracketTop);
-			painter.drawLine(bracketRight, bracketTop, bracketRight, bracketTop + leg);
-			painter.drawLine(bracketLeft, bracketBottom - leg, bracketLeft, bracketBottom);
-			painter.drawLine(bracketLeft, bracketBottom, bracketLeft + leg, bracketBottom);
-			painter.drawLine(bracketRight, bracketBottom - leg, bracketRight, bracketBottom);
-			painter.drawLine(bracketRight - leg, bracketBottom, bracketRight, bracketBottom);
+			// Target acquired, but only where there is a target: a column the
+			// metric has no value for hands over a clamped y, and a reticle
+			// pinned to the frame edge would claim a crossing the response
+			// never had. The scan rule stays (the board is still addressing
+			// that column) and the gap posting above says why nothing is
+			// there. Magnitude always has a reading, so it always brackets.
+			const bool noReading = state.metric != AnalysisMetric::MagnitudeDb
+				&& state.cursorText.isEmpty();
+			if (!noReading)
+			{
+				const int crossY = qRound(state.curveYAtCursor);
+				const int bracketLeft = scanX - 5;
+				const int bracketRight = scanX + 5;
+				const int bracketTop = crossY - 5;
+				const int bracketBottom = crossY + 5;
+				const int leg = 3;
+				QColor reticleInk(accent);
+				reticleInk.setAlpha(140 + qRound(state.hover * 115.0));
+				painter.setPen(QPen(reticleInk, 1));
+				painter.drawLine(bracketLeft, bracketTop, bracketLeft + leg, bracketTop);
+				painter.drawLine(bracketLeft, bracketTop, bracketLeft, bracketTop + leg);
+				painter.drawLine(bracketRight - leg, bracketTop, bracketRight, bracketTop);
+				painter.drawLine(bracketRight, bracketTop, bracketRight, bracketTop + leg);
+				painter.drawLine(bracketLeft, bracketBottom - leg, bracketLeft, bracketBottom);
+				painter.drawLine(bracketLeft, bracketBottom, bracketLeft + leg, bracketBottom);
+				painter.drawLine(bracketRight, bracketBottom - leg, bracketRight, bracketBottom);
+				painter.drawLine(bracketRight - leg, bracketBottom, bracketRight, bracketBottom);
+			}
 
 			if (!state.cursorText.isEmpty())
 			{
@@ -1481,7 +1573,22 @@ public:
 		}
 
 		// Terse board caption in the masthead margin (a painted stylistic
-		// caption in the toolbar caption grammar, not user data).
+		// caption in the toolbar caption grammar, not user data). A board
+		// names what it is carrying, and the metric switch changes exactly
+		// that, so the two new quantities take the masthead with the unit in
+		// brackets behind them - the unit arrives finished in the state and is
+		// only put in board case here. Magnitude keeps the designation it has
+		// always had.
+		QString masthead = QStringLiteral("RESPONSE");
+		if (state.metric != AnalysisMetric::MagnitudeDb)
+		{
+			const QString quantity = state.metric == AnalysisMetric::PhaseDegrees
+				? QStringLiteral("PHASE")
+				: QStringLiteral("GROUP DELAY");
+			masthead = state.unit.isEmpty()
+				? quantity
+				: QStringLiteral("%1 [%2]").arg(quantity, state.unit.toUpper());
+		}
 		QFont captionFont(tokens.monoFontFamily);
 		captionFont.setPointSizeF(7.0);
 		captionFont.setWeight(QFont::DemiBold);
@@ -1489,7 +1596,7 @@ public:
 		painter.setFont(captionFont);
 		painter.setPen(mutedInk);
 		painter.drawText(QRect(plot.left(), state.rect.top() + 2, qMax(0, plot.width()), 12),
-			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("RESPONSE"));
+			Qt::AlignLeft | Qt::AlignVCenter, masthead);
 
 		// Footer: a sunken board line under a 1px rule. "> " marker, then the
 		// prepared channel/sample-rate caption exactly as handed over
@@ -1523,6 +1630,233 @@ public:
 		painter.setPen(QPen(borderInk, 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
+	}
+
+	// A row of mutually exclusive choices as a patch bus. The cells are ports
+	// on a board: a 1px rule divides them, a bus lane runs under them, and the
+	// choice is a lit block plugged into one port - the picker's engagement
+	// grammar (LED fill + patch trace that makes the routing literally
+	// visible) folded into a 24px strip. That lane is what keeps the control
+	// from reading as an ordinary board cell that happens to sit in a row: an
+	// ordinary cell has no bus under it and nothing travelling along it.
+	//
+	// The block reads state.selectionPosition, so running through three
+	// choices is one patch walking the bus. It is snapped to whole pixels
+	// (rule 7 - a board steps, it does not glide), and the labels are drawn
+	// twice under complementary clips, so a label the block is crossing is lit
+	// exactly as far as the block has reached instead of fading through a
+	// half-ink nobody chose.
+	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const override
+	{
+		const QColor borderInk(tokens.border);
+		const QColor mutedInk(tokens.mutedText);
+		const QColor textInk(tokens.text);
+		const QColor accent(tokens.accent);
+		const QRect frame = state.rect;
+
+		painter.save();
+		// Invariant rule 7: no antialiasing under a 1px rule. Nothing here is
+		// a curve, so only the type is smoothed.
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+		// Sunken board ground, the recess every readout cell sits in.
+		painter.fillRect(frame, QColor(tokens.surfaceSunken));
+		if (state.labels.isEmpty() || frame.width() < 8 || frame.height() < 8)
+		{
+			painter.setPen(QPen(borderInk, 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(frame.adjusted(0, 0, -1, -1));
+			painter.restore();
+			return;
+		}
+
+		// Cancelled: every slot stays on the board and loses its light. The
+		// contents sink to low alpha; the outer rule takes the cancellation
+		// dash at full ink further down.
+		if (!state.enabled)
+			painter.setOpacity(0.55);
+
+		// The bus lane takes the bottom of the strip and the ports sit above
+		// it. A strip too short for both keeps the ports and drops the lane
+		// rather than crushing the two together.
+		const bool hasLane = frame.height() >= 18;
+		const int laneY = hasLane ? frame.bottom() - 3 : frame.bottom() + 2;
+		const int cellTop = frame.top() + 2;
+		const int cellBottom = laneY - 2;
+		const int cellHeight = qMax(1, cellBottom - cellTop);
+		const int lastIndex = static_cast<int>(state.labels.size()) - 1;
+		// Both edges are rounded from the fractional cell, never the width
+		// from one edge: that is what makes the ports tile the strip exactly
+		// instead of leaving a seam that drifts along the bus.
+		const auto columnSpan = [&](double index, int inset) {
+			const QRectF seg = state.segmentRect(index);
+			const int left = qRound(seg.left()) + inset;
+			const int right = qRound(seg.right()) - inset;
+			return QRect(left, cellTop, qMax(1, right - left), cellHeight);
+		};
+		const auto columnRect = [&](double index) { return columnSpan(index, 0); };
+
+		// A cancelled strip answers to nothing: the pointer states are dropped
+		// here once instead of being tested at every use below.
+		const int hovered = state.enabled && state.hoveredIndex >= 0 && state.hoveredIndex <= lastIndex
+			? state.hoveredIndex : -1;
+		const int pressed = state.enabled && state.pressedIndex >= 0 && state.pressedIndex <= lastIndex
+			? state.pressedIndex : -1;
+
+		// Crosspoint pre-light: addressing a port lights the whole bus faintly
+		// (the row band) and the addressed column firmly, so the cell reads as
+		// an intersection rather than as a button. The column band carries far
+		// more alpha than the picker's original 16-18, which measured about
+		// 3.5% brightness on a real panel and was reported as "hover does not
+		// highlight" (M2 recalibration).
+		if (hovered >= 0)
+		{
+			painter.fillRect(frame.adjusted(1, 1, -1, -1), withAlpha(accent, 14));
+			painter.fillRect(columnRect(hovered).adjusted(1, -1, -1, 1), withAlpha(accent, 40));
+		}
+
+		// The port dividers and the bus rule: crisp integer 1px board ruling.
+		painter.setPen(QPen(borderInk, 1));
+		for (int i = 1; i <= lastIndex; i++)
+		{
+			const int x = qRound(state.segmentRect(i).left());
+			painter.drawLine(x, frame.top() + 1, x, hasLane ? laneY + 2 : frame.bottom() - 1);
+		}
+		if (hasLane)
+			painter.drawLine(frame.left() + 1, laneY, frame.right() - 1, laneY);
+
+		// The bus ladder: a resting port is border ink, the addressed port
+		// takes accent at 1px, the engaged port takes accent at 2px. Three
+		// ranks that cannot be mistaken for one another at arm's length.
+		if (hasLane && hovered >= 0)
+		{
+			const QRect column = columnRect(hovered);
+			painter.setPen(QPen(withAlpha(accent, 120), 1));
+			painter.drawLine(column.left() + 1, laneY, column.right() - 1, laneY);
+		}
+
+		// Press is the engage preview: the 1px accent rule plus a fill well
+		// clear of the pre-light, one step short of the lit block it is about
+		// to become.
+		if (pressed >= 0 && pressed != state.selectedIndex)
+		{
+			const QRect column = columnRect(pressed).adjusted(1, -1, -1, 1);
+			painter.fillRect(column, withAlpha(accent, 90));
+			painter.setPen(QPen(accent, 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(column.adjusted(0, 0, -1, -1));
+		}
+
+		// The engaged port. Whole-pixel geometry so the fill and the label
+		// clip below agree exactly and the travel steps instead of blurring.
+		const double position = qBound(0.0, state.selectionPosition, double(lastIndex));
+		const QRect mark = columnSpan(position, 2);
+		QColor litInk(accent);
+		// Pressing the port that is already engaged still answers: the lamp
+		// brightens by the skin's own step rather than doing nothing.
+		if (pressed >= 0 && pressed == state.selectedIndex)
+			litInk = litInk.lighter(115);
+		if (state.enabled)
+		{
+			painter.fillRect(mark, litInk);
+		}
+		else
+		{
+			// Hollow lamp: the choice stays posted, unlit.
+			painter.setPen(QPen(mutedInk, 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(mark.adjusted(0, 0, -1, -1));
+		}
+
+		// The patch: the block's footprint on the bus and the 1px drop that
+		// plugs one into the other.
+		if (hasLane)
+		{
+			const QColor patchInk = state.enabled ? litInk : mutedInk;
+			painter.setPen(QPen(patchInk, 1));
+			painter.drawLine(mark.center().x(), mark.bottom() + 1, mark.center().x(), laneY - 1);
+			if (state.enabled)
+				painter.fillRect(QRect(mark.left(), laneY, mark.width(), 2), patchInk);
+			else
+				painter.drawLine(mark.left(), laneY, mark.right(), laneY);
+		}
+
+		// Board type: one size and one weight in every cell (rank comes from
+		// position and light, never from size), all caps, elided rather than
+		// squeezed.
+		QFont cellFont(tokens.monoFontFamily);
+		cellFont.setPointSizeF(7.5);
+		cellFont.setWeight(QFont::DemiBold);
+		cellFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
+		painter.setFont(cellFont);
+		const QFontMetrics cellMetrics(cellFont);
+		const auto drawLabels = [&](bool lit) {
+			for (int i = 0; i <= lastIndex; i++)
+			{
+				const QRect column = columnRect(i);
+				// A cancelled strip keeps its figures readable and lets the
+				// opacity say it is cancelled; only a live board lights ink.
+				QColor ink = mutedInk;
+				if (state.enabled)
+				{
+					if (lit)
+						ink = QColor(tokens.background);
+					else if (i == hovered || i == pressed)
+						ink = textInk;
+				}
+				painter.setPen(ink);
+				painter.drawText(column, Qt::AlignCenter,
+					cellMetrics.elidedText(state.labels.at(i).toUpper(), Qt::ElideRight,
+						qMax(0, column.width() - 8)));
+			}
+		};
+		painter.save();
+		QRegion unlit(frame);
+		if (state.enabled)
+			unlit -= QRegion(mark);
+		painter.setClipRegion(unlit);
+		drawLabels(false);
+		painter.restore();
+		if (state.enabled)
+		{
+			painter.save();
+			painter.setClipRect(mark);
+			drawLabels(true);
+			painter.restore();
+		}
+
+		// Keyboard focus brackets the engaged port at the port's own edges -
+		// square corners, never a glow (the corner language is the
+		// rectangle), and it travels with the patch.
+		if (state.focused && state.enabled)
+		{
+			QRect bracket = columnRect(position).adjusted(0, -1, 0, 1);
+			// The end ports would otherwise put their corners on the outer
+			// rule, which paints last and would swallow them.
+			bracket.setLeft(qMax(bracket.left(), frame.left() + 1));
+			bracket.setRight(qMin(bracket.right(), frame.right() - 1));
+			bracket.setTop(qMax(bracket.top(), frame.top() + 1));
+			bracket.setBottom(qMin(bracket.bottom(), frame.bottom() - 1));
+			const int leg = qBound(3, bracket.width() / 6, 6);
+			painter.setPen(QPen(accent, 1));
+			painter.drawLine(bracket.left(), bracket.top(), bracket.left() + leg, bracket.top());
+			painter.drawLine(bracket.left(), bracket.top(), bracket.left(), bracket.top() + leg);
+			painter.drawLine(bracket.right() - leg, bracket.top(), bracket.right(), bracket.top());
+			painter.drawLine(bracket.right(), bracket.top(), bracket.right(), bracket.top() + leg);
+			painter.drawLine(bracket.left(), bracket.bottom() - leg, bracket.left(), bracket.bottom());
+			painter.drawLine(bracket.left(), bracket.bottom(), bracket.left() + leg, bracket.bottom());
+			painter.drawLine(bracket.right(), bracket.bottom() - leg, bracket.right(), bracket.bottom());
+			painter.drawLine(bracket.right() - leg, bracket.bottom(), bracket.right(), bracket.bottom());
+		}
+
+		// The strip's outer rule; a cancelled control cancels it with a dash
+		// at full ink (the dash itself is never dimmed).
+		painter.setOpacity(1.0);
+		painter.setPen(QPen(borderInk, 1, state.enabled ? Qt::SolidLine : Qt::DashLine));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(frame.adjusted(0, 0, -1, -1));
+		painter.restore();
 	}
 
 	// The board's masthead: the faint 24px column grid behind the title

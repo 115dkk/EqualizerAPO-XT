@@ -39,8 +39,13 @@ QString filterTemplateDescription(const QString& rawLine)
 			{ " LS ", QT_TRANSLATE_NOOP("FilterPickerView", "Raises or lowers everything below the corner frequency") },
 			{ " HS ", QT_TRANSLATE_NOOP("FilterPickerView", "Raises or lowers everything above the corner frequency") },
 			{ " NO ", QT_TRANSLATE_NOOP("FilterPickerView", "Cuts a narrow band deeply and leaves the rest") },
-			{ " AP ", QT_TRANSLATE_NOOP("FilterPickerView", "Shifts phase around a frequency without changing level") }
+			{ " AP ", QT_TRANSLATE_NOOP("FilterPickerView", "Changes phase and group delay around the center frequency. Level remains unchanged.") }
 		};
+		// The order distinguishes the two all-pass entries, which share a type
+		// token and would otherwise read identically in the picker.
+		if (line.contains(QLatin1String(" AP ")) && line.contains(QLatin1String("Order 1")))
+			return QCoreApplication::translate("FilterPickerView",
+				"First order. Rotates 180 degrees in total, passing 90 degrees at Fc.");
 		for (const auto& curve : curves)
 			if (line.contains(QLatin1String(curve.token)))
 				return QCoreApplication::translate("FilterPickerView", curve.description);
