@@ -102,11 +102,6 @@ void MainWindow::loadPreferences()
 	ui->startFromComboBox->setCurrentIndex(settings.value("analysis/startFrom").toInt());
 	ui->analysisChannelComboBox->setCurrentText(settings.value("analysis/channel").toString());
 	ui->resolutionSpinBox->setValue(settings.value("analysis/resolution", 65536).toInt());
-	// The legacy QGraphicsView is hidden and its zoom is no longer user-controlled —
-	// EqGraphView auto-fits its data. Reset the scene zoom to a sane default so its
-	// getNodes() output (still consumed by EqGraphView) is not skewed by an old saved
-	// zoom from previous XT versions.
-	analysisPlotScene->setZoom(1.0, 1.0);
 
 	QVariant openFilesValue = settings.value("openFiles");
 	int tabIndex = settings.value("tabIndex").toInt();

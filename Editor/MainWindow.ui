@@ -458,19 +458,6 @@
        </layout>
       </widget>
      </item>
-     <item>
-      <widget class="AnalysisPlotView" name="graphicsView">
-       <property name="mouseTracking">
-        <bool>true</bool>
-       </property>
-       <property name="renderHints">
-        <set>QPainter::RenderHint::Antialiasing|QPainter::RenderHint::TextAntialiasing</set>
-       </property>
-       <property name="visible">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
     </layout>
    </widget>
   </widget>
@@ -652,11 +639,6 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
-  <customwidget>
-   <class>AnalysisPlotView</class>
-   <extends>QGraphicsView</extends>
-   <header>Editor/AnalysisPlotView.h</header>
-  </customwidget>
   <customwidget>
    <class>SegmentedControl</class>
    <extends>QWidget</extends>

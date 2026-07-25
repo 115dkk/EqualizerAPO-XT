@@ -135,8 +135,6 @@ SOURCES += main.cpp\
 	guis/StageFilterGUIFactory.cpp \
 	guis/ExpressionFilterGUIFactory.cpp \
 	widgets/ResizeCorner.cpp \
-	AnalysisPlotView.cpp \
-	AnalysisPlotScene.cpp \
 	analysis/AnalysisResponse.cpp \
 	analysis/ResponseCurveBuilder.cpp \
 	../FilterEngine.cpp \
@@ -394,8 +392,6 @@ HEADERS  += \
 	guis/StageFilterGUIFactory.h \
 	guis/ExpressionFilterGUIFactory.h \
 	widgets/ResizeCorner.h \
-	AnalysisPlotView.h \
-	AnalysisPlotScene.h \
 	analysis/AnalysisMetric.h \
 	analysis/AnalysisResponse.h \
 	analysis/ResponseCurveBuilder.h \

@@ -32,7 +32,6 @@
 
 #include "FilterTable.h"
 #include "DeviceAPOInfo.h"
-#include "Editor/AnalysisPlotScene.h"
 #include "Editor/AnalysisThread.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "helpers/RegistryHelper.h"
@@ -175,7 +174,6 @@ private:
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
-	AnalysisPlotScene* analysisPlotScene;
 	EqGraphView* eqGraphView = nullptr;
 	std::unique_ptr<AnalysisThread> analysisThread;
 	QTimer* analysisDebounceTimer = nullptr;

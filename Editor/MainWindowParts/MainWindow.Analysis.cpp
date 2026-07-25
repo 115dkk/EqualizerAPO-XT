@@ -200,7 +200,6 @@ void MainWindow::updateAnalysisPanel()
 	const int sampleRate = static_cast<int>(response->sampleRate);
 	const int latency = response->latencyFrames;
 	const QString errorText = result.errorText();
-	analysisPlotScene->setResponse(*response);
 	if (eqGraphView != nullptr)
 		eqGraphView->setResponse(response, ui->analysisChannelComboBox->currentText());
 

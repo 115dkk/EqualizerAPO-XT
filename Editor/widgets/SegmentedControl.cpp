@@ -113,6 +113,20 @@ int SegmentedControl::indexAt(const QPointF& position) const
 
 void SegmentedControl::animateSelectionTo(int index)
 {
+	if (!isVisible())
+	{
+		// Nothing to animate on a control nobody is looking at, and animating
+		// anyway is not free: a card that sets its initial choice while being
+		// built leaves an indicator travelling for 160 ms afterwards, so a
+		// screenshot taken in that window catches it part way and differs from
+		// run to run. That is how this turned up.
+		if (selectionAnimation != nullptr)
+			selectionAnimation->stop();
+		selectionPosition = index;
+		update();
+		return;
+	}
+
 	if (selectionAnimation == nullptr)
 	{
 		selectionAnimation = new QVariantAnimation(this);
