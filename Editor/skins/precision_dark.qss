@@ -359,6 +359,17 @@ QLabel#AnalysisFormLabel {
     color: @MUTED@; background: transparent;
     font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 0 4px;
 }
+/* The base-delay option speaks in the same register as the field labels
+   beside it, derived from this skin's own AnalysisFormLabel rule. Its
+   indicator is the toolbar checkbox's, added to those selectors above. */
+QCheckBox#AnalysisFormCheck {
+    color: @MUTED@;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: transparent;
+}
+
 QComboBox#AnalysisFormCombo { min-width: 110px; }
 QFrame#AnalysisStatChip {
     background: @CARD@; border: 1px solid @BORDER@; border-radius: 0;

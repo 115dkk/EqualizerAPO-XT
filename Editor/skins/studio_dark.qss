@@ -191,34 +191,34 @@ QToolBar#MainToolBar QToolButton:pressed {
 
 /* Instant mode: a round signal lamp recast as a switch; the label is lit
    with the lamp. */
-QCheckBox#InstantModeCheckBox {
+QCheckBox#InstantModeCheckBox, QCheckBox#AnalysisFormCheck {
     color: @MUTED@;
     background: transparent;
     spacing: 8px;
     padding: 2px 4px;
 }
-QCheckBox#InstantModeCheckBox:checked {
+QCheckBox#InstantModeCheckBox:checked, QCheckBox#AnalysisFormCheck:checked {
     color: @TEXT@;
 }
-QCheckBox#InstantModeCheckBox:disabled {
+QCheckBox#InstantModeCheckBox:disabled, QCheckBox#AnalysisFormCheck:disabled {
     color: #5a5a72;
 }
-QCheckBox#InstantModeCheckBox::indicator {
+QCheckBox#InstantModeCheckBox::indicator, QCheckBox#AnalysisFormCheck::indicator {
     width: 14px;
     height: 14px;
     border-radius: 7px;
     background: #08080f;
     border: 1px solid @BORDER@;
 }
-QCheckBox#InstantModeCheckBox::indicator:hover {
+QCheckBox#InstantModeCheckBox::indicator:hover, QCheckBox#AnalysisFormCheck::indicator:hover {
     border-color: rgba(91, 140, 255, 0.65);
 }
-QCheckBox#InstantModeCheckBox::indicator:checked {
+QCheckBox#InstantModeCheckBox::indicator:checked, QCheckBox#AnalysisFormCheck::indicator:checked {
     background: qradialgradient(cx: 0.5, cy: 0.42, radius: 0.75, fx: 0.5, fy: 0.36,
         stop: 0 #E2EBFF, stop: 0.35 @ACCENT@, stop: 1 rgba(91, 140, 255, 0.16));
     border: 1px solid rgba(91, 140, 255, 0.8);
 }
-QCheckBox#InstantModeCheckBox::indicator:checked:disabled {
+QCheckBox#InstantModeCheckBox::indicator:checked:disabled, QCheckBox#AnalysisFormCheck::indicator:checked:disabled {
     background: @BORDER@;
     border-color: @BORDER@;
 }
@@ -840,6 +840,17 @@ QLabel#AnalysisFormLabel {
     letter-spacing: 1px;
     padding: 0 4px;
 }
+/* The base-delay option speaks in the same register as the field labels
+   beside it, derived from this skin's own AnalysisFormLabel rule. Its
+   indicator is the toolbar checkbox's, added to those selectors above. */
+QCheckBox#AnalysisFormCheck {
+    color: @MUTED@;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent;
+}
+
 QComboBox#AnalysisFormCombo {
     min-width: 110px;
 }

@@ -198,7 +198,7 @@ QToolBar#MainToolBar QToolButton:disabled {
     border-style: dashed;
 }
 /* Instant mode engage cell. */
-QToolBar#MainToolBar QCheckBox#InstantModeCheckBox {
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox, QCheckBox#AnalysisFormCheck {
     background: transparent;
     color: @TEXT@;
     border: 1px solid @BORDER@;
@@ -212,16 +212,16 @@ QToolBar#MainToolBar QCheckBox#InstantModeCheckBox {
     text-transform: uppercase;
     letter-spacing: 1px;
 }
-QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator {
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator, QCheckBox#AnalysisFormCheck::indicator {
     width: 10px;
     height: 10px;
     background: @GRAPH@;
     border: 1px solid @BORDER@;
 }
-QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:hover {
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:hover, QCheckBox#AnalysisFormCheck::indicator:hover {
     border-color: @ACCENT@;
 }
-QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:checked {
+QToolBar#MainToolBar QCheckBox#InstantModeCheckBox::indicator:checked, QCheckBox#AnalysisFormCheck::indicator:checked {
     background: @ACCENT@;
     border-color: @ACCENT@;
 }
@@ -901,6 +901,18 @@ QLabel#AnalysisFormLabel {
     padding: 0 4px;
     font-size: 9pt;
 }
+/* The base-delay option speaks in the same register as the field labels
+   beside it, derived from this skin's own AnalysisFormLabel rule. Its
+   indicator is the toolbar checkbox's, added to those selectors above. */
+QCheckBox#AnalysisFormCheck {
+    color: @MUTED@;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 9pt;
+    background: transparent;
+}
+
 QComboBox#AnalysisFormCombo {
     min-width: 110px;
 }

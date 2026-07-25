@@ -509,7 +509,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	// joined this bar: the two extra rows are paid for by tightening the
 	// rhythm and by pairing the four readouts two to a row, so the row count
 	// stays at nine and the 250px cap is untouched.
-	grid->setContentsMargins(10, 6, 10, 6);
+	grid->setContentsMargins(10, 6, 18, 6);
 	grid->setHorizontalSpacing(8);
 	grid->setVerticalSpacing(4);
 
@@ -547,7 +547,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	grid->addWidget(metricSegment, 4, 0, 1, 2);
 
 	QCheckBox* includeBaseDelay = new QCheckBox(QStringLiteral("Include base delay"));
-	includeBaseDelay->setObjectName(QStringLiteral("includeBaseDelayCheckBox"));
+	includeBaseDelay->setObjectName(QStringLiteral("AnalysisFormCheck"));
 	grid->addWidget(includeBaseDelay, 5, 0, 1, 2);
 
 	const QStringList statLabels = { QStringLiteral("Peak"), QStringLiteral("Lat"),
