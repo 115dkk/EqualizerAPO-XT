@@ -1691,6 +1691,11 @@ int main(int argc, char** argv)
 		testResponseCurveHandlesEmptyAndDegenerateRequests();
 		testResponseCurveFrequencyAxis();
 		testResponseCurveSegmentsBreakWhereTheValueIsMissing();
+		testPhaseAndGroupDelayOfAUnityResponse();
+		testPhaseAndGroupDelayOfAPureDelay();
+		testPhaseAndGroupDelayOfAnAllPass();
+		testPhaseBreaksWhereTheResponseIsDead();
+		testPhaseAndGroupDelayAxisCaptions();
 		testConfigFileCodec();
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 		testConfigFileCodecRejectsPartialRead();

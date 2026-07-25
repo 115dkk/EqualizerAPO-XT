@@ -62,6 +62,10 @@ struct AnalysisCurve
 	bool clipping = false;
 
 	bool isEmpty() const;
+	// One reading, in the metric's own spelling: "+3.2 dB", "-181.4°",
+	// "0.52 ms". The unit is not always separated by a space, so callers must
+	// not build this by concatenation.
+	QString formatValue(double value) const;
 };
 
 AnalysisCurve buildAnalysisCurve(const AnalysisResponse& response, const AnalysisCurveRequest& request);

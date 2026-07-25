@@ -257,10 +257,11 @@ void EqGraphView::paintEvent(QPaintEvent*)
 		state.curveYAtCursor = state.cursor.y();
 		if (std::isfinite(value))
 		{
-			state.cursorText = QStringLiteral("%1 Hz  %2 %3")
-				.arg(hz >= 1000.0 ? QString::number(hz / 1000.0, 'f', 2) + QStringLiteral("k") : QString::number(hz, 'f', 0))
-				.arg(value, 0, 'f', 1)
-				.arg(cachedCurve.unit);
+			state.cursorText = QStringLiteral("%1  %2")
+				.arg(hz >= 1000.0
+						? QStringLiteral("%1 kHz").arg(hz / 1000.0, 0, 'f', 2)
+						: QStringLiteral("%1 Hz").arg(hz, 0, 'f', 0),
+					cachedCurve.formatValue(value));
 		}
 	}
 
