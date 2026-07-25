@@ -31,7 +31,18 @@ class BiQuad
 public:
 	enum Type
 	{
-		LOW_PASS, HIGH_PASS, BAND_PASS, NOTCH, ALL_PASS, PEAKING, LOW_SHELF, HIGH_SHELF
+		LOW_PASS, HIGH_PASS, BAND_PASS, NOTCH, ALL_PASS, PEAKING, LOW_SHELF, HIGH_SHELF,
+		// A 1st-order all-pass section. Appended rather than placed next to
+		// ALL_PASS on purpose: anything that serialized these values or used
+		// them as an index would silently shift if the enumerators moved.
+		//
+		// It is a genuinely different filter, not a preset of the 2nd-order
+		// one. A 2nd-order section turns a full circle; no choice of Q makes it
+		// turn half of one. Q 0.5 is two 1st-order sections at the same
+		// frequency, and below that they separate onto two different
+		// frequencies - so the one thing a cascade of 2nd-order sections cannot
+		// produce is a single 90-degree crossing.
+		ALL_PASS_1
 	};
 
 	BiQuad() {}

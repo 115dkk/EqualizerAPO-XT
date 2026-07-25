@@ -123,6 +123,20 @@ const TestCase kCases[] = {
 	{ "allpass_q0707",       "allpass_q0707.txt",       SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
 	{ "allpass_q10",         "allpass_q10.txt",         SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
 	{ "allpass_bw1oct",      "allpass_bw1oct.txt",      SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	// The 1st-order section, which the config grammar reaches through
+	// "Order 1". It is not a preset of the 2nd-order one: no choice of Q makes
+	// a 2nd-order section turn half a circle, so this is the only way to get a
+	// 90-degree crossing.
+	{ "allpass_order1_fc100",  "allpass_order1_fc100.txt",  SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "allpass_order1_fc1000", "allpass_order1_fc1000.txt", SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	// The identity that anchors the whole 1st-order derivation, at the level a
+	// user would hear it: two 1st-order sections at one frequency are one
+	// 2nd-order section at Q 0.5. These two cases are separate configurations
+	// whose baselines are byte-identical to each other, which is a stronger
+	// statement than either baseline alone. HybridConvTests proves the same
+	// thing on the coefficients.
+	{ "allpass_order1_x2",     "allpass_order1_x2.txt",     SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "allpass_order2_q05",    "allpass_order2_q05.txt",    SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
 };
 
 bool writeCaseManifest(const std::wstring& directory)

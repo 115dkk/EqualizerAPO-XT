@@ -127,6 +127,22 @@ frames.
   here; this baseline is the engine's answer, so after the Editor fix an
   open-and-save round trip has to reproduce it byte for byte.
 
+### First-order sections
+
+Four more cases cover the 1st-order all-pass the `Order 1` parameter reaches.
+`allpass_order1_fc100` and `allpass_order1_fc1000` pin the section itself.
+
+`allpass_order1_x2` and `allpass_order2_q05` are the identity that anchors the
+whole derivation: two 1st-order sections at one frequency in series are exactly
+one 2nd-order section at Q 0.5. They are separate configurations
+(`Filter 1: ON AP Fc 500 Hz Order 1` twice, against
+`Filter 1: ON AP Fc 500 Hz Q 0.5 Order 2`) whose baselines came out
+**byte-identical to each other**, SHA-256
+`943DAF819D9B499A159395274FF28B4D65AF9C928C6B81940C2D797AD92F44DD`. If a future
+change to the 1st-order coefficients breaks that equality, the two files stop
+matching each other as well as their own baselines. `HybridConvTests` proves the
+same identity on the coefficients.
+
 Unlike the older baselines these were generated in whole-buffer mode
 (`blockFrames` temporarily set equal to `frames`) and are verified by the
 committed 512-frame blocked run, which reproduces them exactly

@@ -94,6 +94,31 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	parameterRow->setContentsMargins(0, 0, 0, 0);
 	parameterRow->setSpacing(24);
 
+	// The order leads the row, because it decides what the rest of the row
+	// even contains. The reform document places it in the card header; the
+	// header belongs to FilterCardRow and is shared by every card, so putting
+	// a per-card control there is a change to the card frame rather than to
+	// this card. It sits here instead, which keeps the document's binding
+	// constraint - no extra body row - and can move up if the frame ever grows
+	// a per-card header slot.
+	QWidget* orderBlock = new QWidget(this);
+	orderBlock->setObjectName(QStringLiteral("AllPassCardOrderBlock"));
+	QVBoxLayout* orderLayout = new QVBoxLayout(orderBlock);
+	orderLayout->setContentsMargins(0, 0, 0, 0);
+	orderLayout->setSpacing(6);
+	QLabel* orderCaption = new QLabel(tr("Order"), orderBlock);
+	orderCaption->setObjectName(QStringLiteral("AllPassCardCaption"));
+	orderLayout->addWidget(orderCaption);
+	orderSegment = new SegmentedControl(orderBlock);
+	orderSegment->setObjectName(QStringLiteral("AllPassCardOrderSegment"));
+	orderSegment->setLabels({tr("1st"), tr("2nd")});
+	orderSegment->setToolTip(tr("A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. "
+		"A 2nd-order section turns a full 360 and has a width."));
+	orderSegment->setCurrentIndex(command.type == BiQuad::ALL_PASS_1 ? 0 : 1);
+	connect(orderSegment, &SegmentedControl::currentIndexChanged, this, &AllPassCardEditor::orderChanged);
+	orderLayout->addWidget(orderSegment);
+	parameterRow->addWidget(orderBlock, 0, Qt::AlignVCenter);
+
 	QLabel* frequencyCaption = new QLabel(tr("Center frequency"), this);
 	frequencyCaption->setObjectName(QStringLiteral("AllPassCardCaption"));
 	frequencyValue = new EditableValue(this);
@@ -119,8 +144,9 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	widthValue->setObjectName(QStringLiteral("AllPassCardWidthValue"));
 	widthValue->setDecimals(4);
 	connect(widthValue, SIGNAL(valueChanged(double)), this, SLOT(widthValueChanged(double)));
-	parameterRow->addWidget(buildKnobBlock(this, widthKnob,
-		QStringLiteral("AllPassCardWidthKnob"), widthModeCombo, widthValue));
+	widthBlock = buildKnobBlock(this, widthKnob,
+		QStringLiteral("AllPassCardWidthKnob"), widthModeCombo, widthValue);
+	parameterRow->addWidget(widthBlock);
 	connect(widthKnob, SIGNAL(valueChanged(int)), this, SLOT(widthKnobChanged(int)));
 	connect(widthModeCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(widthModeChanged(int)));
 
@@ -154,7 +180,35 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	mainLayout->addLayout(footerRow);
 
 	setFrequency(command.freq, false);
-	setWidth(command.bandwidthOrQOrS, false);
+	// A line that arrived as 1st order carries no width, so the card starts
+	// from the default rather than from zero - the value is kept live in the
+	// model so switching to 2nd order and back does not lose it.
+	setWidth(command.bandwidthOrQOrS != 0.0 ? command.bandwidthOrQOrS
+		: BiQuadWidth::defaultQ(BiQuad::ALL_PASS), false);
+	applyOrderVisibility();
+}
+
+bool AllPassCardEditor::firstOrder() const
+{
+	return orderSegment != nullptr && orderSegment->currentIndex() == 0;
+}
+
+void AllPassCardEditor::applyOrderVisibility()
+{
+	// Hidden, not disabled. A 1st-order section has no width at all, and a
+	// control left greyed out in place says the opposite - that the value
+	// exists and is merely unavailable.
+	if (widthBlock != nullptr)
+		widthBlock->setVisible(!firstOrder());
+}
+
+void AllPassCardEditor::orderChanged(int index)
+{
+	Q_UNUSED(index);
+	if (synchronizing)
+		return;
+	applyOrderVisibility();
+	emit updateModel();
 }
 
 bool AllPassCardEditor::bandwidthMode() const
@@ -166,7 +220,19 @@ void AllPassCardEditor::store(QString& command, QString& parameters)
 {
 	// The line keeps the command name it arrived with, number and all.
 	command = originalCommand;
-	parameters = QStringLiteral("ON AP Fc %1 Hz %2 %3")
+	if (firstOrder())
+	{
+		// No width is written, because the section does not have one. The card
+		// keeps the value it would use at 2nd order, so switching back restores
+		// it, but a value the filter ignores has no business in the file.
+		parameters = QStringLiteral("ON AP Fc %1 Hz Order 1")
+			.arg(QLocale::c().toString(currentFrequency, 'g', 10));
+		return;
+	}
+	// The order is written out even though 2 is what an absent Order means.
+	// A default hidden in the grammar cannot be changed later and cannot be
+	// read off the file.
+	parameters = QStringLiteral("ON AP Fc %1 Hz %2 %3 Order 2")
 		.arg(QLocale::c().toString(currentFrequency, 'g', 10),
 			bandwidthMode() ? QStringLiteral("BW Oct") : QStringLiteral("Q"),
 			QLocale::c().toString(currentWidth, 'g', 10));

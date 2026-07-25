@@ -89,6 +89,32 @@ BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandw
 		a1 = -2 * cs;
 		a2 = 1 - alpha;
 		break;
+	case ALL_PASS_1:
+	{
+		// Bilinear transform of (s - w0) / (s + w0), prewarped: with
+		// K = tan(w0 / 2) the section is (c + z^-1) / (1 + c z^-1), where
+		// c = (K - 1) / (K + 1).
+		//
+		// b2 and a2 are left at zero rather than the section getting its own
+		// class. That wastes two multiplies per sample in process(), and buys
+		// leaving the real-time kernels, every SIMD variant and
+		// BiQuadKernelPlan untouched - which is the better trade for a filter
+		// that costs the same as the one already running beside it.
+		//
+		// Stability: 0 < Fc < Nyquist gives K > 0, so |c| < 1 and the pole at
+		// z = -c is inside the unit circle. At the very edges the pole reaches
+		// it, which is the same boundary behaviour every 2nd-order section
+		// here already has.
+		double K = tan(M_PI * freq / srate);
+		double c = (K - 1) / (K + 1);
+		b0 = c;
+		b1 = 1;
+		b2 = 0;
+		a0 = 1;
+		a1 = c;
+		a2 = 0;
+		break;
+	}
 	case PEAKING:
 		b0 = 1 + (alpha * A);
 		b1 = -2 * cs;

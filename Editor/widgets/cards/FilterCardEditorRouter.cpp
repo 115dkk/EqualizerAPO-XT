@@ -48,7 +48,7 @@ REGISTER_FILTER_CARD_EDITOR(Filter, [](FilterTable*, const QString& command, con
 		// so each attempt needs its own copy of the original text.
 		std::wstring wideParameters = parameters.toStdWString();
 		if (BiQuadFilterFactory::parseCommand(wideCommand, wideParameters, cmd)
-			&& cmd.type == BiQuad::ALL_PASS)
+			&& (cmd.type == BiQuad::ALL_PASS || cmd.type == BiQuad::ALL_PASS_1))
 		{
 			// The command name is carried through verbatim so that editing
 			// "Filter 99:" saves "Filter 99:" and not "Filter:".

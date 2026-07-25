@@ -42,6 +42,7 @@ public:
 	void store(QString& command, QString& parameters) override;
 
 private slots:
+	void orderChanged(int index);
 	void frequencyKnobChanged(int value);
 	void frequencyValueChanged(double value);
 	void widthKnobChanged(int value);
@@ -52,6 +53,8 @@ private:
 	void setFrequency(double value, bool notify);
 	void setWidth(double value, bool notify);
 	bool bandwidthMode() const;
+	bool firstOrder() const;
+	void applyOrderVisibility();
 
 	// The command keyword exactly as the line spelled it ("Filter", "Filter 1",
 	// "Filter 99"), so editing a numbered line does not renumber it.
@@ -62,6 +65,8 @@ private:
 	AudioKnob* widthKnob = nullptr;
 	EditableValue* widthValue = nullptr;
 	QComboBox* widthModeCombo = nullptr;
+	SegmentedControl* orderSegment = nullptr;
+	QWidget* widthBlock = nullptr;
 	QLabel* magnitudeNote = nullptr;
 	SegmentedControl* graphSegment = nullptr;
 

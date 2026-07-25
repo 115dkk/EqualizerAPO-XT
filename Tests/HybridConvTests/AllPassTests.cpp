@@ -422,6 +422,161 @@ void testBandwidthIsNotTheSameNumberAsQ()
 	harness.expect(std::abs(ratio - M_SQRT2) < 0.01, oss.str());
 }
 
+// Two 1st-order sections at the same frequency, in series, are exactly one
+// 2nd-order section at Q 0.5. Not approximately - the normalized coefficients
+// are equal term for term, because c1 = 2c and c2 = c^2 both fall out of
+// c = (t-1)/(t+1) with t = tan(w0/2).
+//
+// This is the harness for the whole 1st-order addition. A mistake in the
+// bilinear derivation or in the prewarping shows up here, tied to a filter
+// whose behaviour is already pinned by every test above. If it fails, the
+// derivation is wrong; do not go adjusting the other 1st-order tests.
+void testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf()
+{
+	for (double srate : kSampleRates)
+	{
+		for (double fc : {20.0, 100.0, 1000.0, 10000.0})
+		{
+			if (fc >= srate * 0.45)
+				continue;
+
+			const Coefficients first = coefficientsOf(BiQuad(BiQuad::ALL_PASS_1, 0.0, fc, srate, 0.0, false));
+			const Coefficients second = coefficientsOf(makeAllPass(fc, srate, 0.5, false));
+
+			std::ostringstream label;
+			label << "srate " << srate << ", Fc " << fc << " Hz";
+
+			// The cascade's transfer function is the square of the section's:
+			// (c + z^-1)^2 / (1 + c z^-1)^2.
+			const double c = first.b0;
+			harness.expect(std::abs(first.b1 - 1.0) < 1e-12, "the 1st-order numerator is c + z^-1, " + label.str());
+			harness.expect(first.b2 == 0.0 && first.a2 == 0.0,
+				"the 1st-order section leaves the second-order taps at exactly zero, " + label.str());
+			harness.expect(std::abs(first.a1 - c) < 1e-12, "the 1st-order denominator mirrors it, " + label.str());
+
+			harness.expect(std::abs(second.a1 - 2.0 * c) < 1e-12,
+				"two 1st-order sections give the Q 0.5 first-order term, " + label.str());
+			harness.expect(std::abs(second.a2 - c * c) < 1e-12,
+				"and its second-order term, " + label.str());
+
+			// The same statement as a response check, at a frequency where the
+			// two would visibly disagree if the derivation were off.
+			// The response comparison is looser than the coefficient one on
+			// purpose. At 20 Hz on a 192 kHz stream the pole sits within 7e-4
+			// of z = 1, so evaluating there magnifies the last bits of the
+			// coefficients; the tolerance is what that conditioning costs, not
+			// slack in the identity. |H| is 1 everywhere, so this is a relative
+			// error too.
+			const double probe = fc * 1.7;
+			const std::complex<double> cascade = responseAt(first, probe, srate) * responseAt(first, probe, srate);
+			const std::complex<double> single = responseAt(second, probe, srate);
+			harness.expect(std::abs(cascade - single) < 1e-9,
+				"the cascade's response equals the Q 0.5 section's, " + label.str());
+		}
+	}
+}
+
+// A 1st-order section turns half as far as a 2nd-order one and passes -90
+// degrees at Fc rather than -180. That half turn is what no cascade of
+// 2nd-order sections can produce, and the whole reason the order exists.
+void testFirstOrderAllPassBehaviour()
+{
+	for (double srate : kSampleRates)
+	{
+		for (double fc : {20.0, 100.0, 1000.0, 10000.0, srate * 0.45})
+		{
+			const Coefficients c = coefficientsOf(BiQuad(BiQuad::ALL_PASS_1, 0.0, fc, srate, 0.0, false));
+			std::ostringstream label;
+			label << "srate " << srate << ", Fc " << fc << " Hz";
+
+			harness.expect(allFinite(c), "1st-order coefficients are finite, " + label.str());
+			harness.expect(std::abs(c.b0) < 1.0, "the 1st-order pole stays inside the unit circle, " + label.str());
+
+			BiQuad magnitude(BiQuad::ALL_PASS_1, 0.0, fc, srate, 0.0, false);
+			double worst = 0.0;
+			for (double hz = 20.0; hz < srate * 0.499; hz *= 1.1)
+				worst = std::max(worst, std::abs(magnitude.gainAt(hz, srate)));
+			harness.expect(worst < 1e-9, "1st-order magnitude stays at 0 dB, " + label.str());
+
+			const double atCenter = phaseDegreesAt(c, fc, srate);
+			std::ostringstream oss;
+			oss << "1st-order phase at Fc is -90 deg (" << label.str() << ", got " << atCenter << ")";
+			harness.expect(std::abs(atCenter + 90.0) < 1e-6, oss.str());
+
+			// Probed relative to Fc rather than at a fixed 1 Hz: a 1st-order
+			// section turns gradually, so at 1 Hz a filter centred on 20 Hz is
+			// already several degrees along. Four decades below Fc the phase is
+			// about -0.01 degrees.
+			harness.expect(std::abs(phaseDegreesAt(c, fc * 1e-4, srate)) < 0.1,
+				"1st-order phase approaches 0 deg well below Fc, " + label.str());
+			const double nearNyquist = phaseDegreesAt(c, srate * 0.4999, srate);
+			harness.expect(nearNyquist < -175.0 && nearNyquist >= -180.0,
+				"1st-order phase approaches -180 deg at Nyquist and no further, " + label.str());
+
+			// Group delay at Fc, in samples, is (1 + K^2) / (2K).
+			const double K = std::tan(M_PI * fc / srate);
+			const double expected = (1.0 + K * K) / (2.0 * K);
+			const double measured = groupDelaySamplesAt(c, fc, srate);
+			std::ostringstream gd;
+			gd << "1st-order group delay at Fc is (1+K^2)/(2K) samples (" << label.str()
+				<< ", expected " << expected << ", measured " << measured << ")";
+			harness.expect(std::abs(measured - expected) < expected * 1e-6, gd.str());
+		}
+	}
+}
+
+// The grammar the order arrives in.
+void testOrderParsing()
+{
+	auto parse = [](const wchar_t* text, BiQuadCommand& out) {
+		std::wstring parameters(text);
+		return BiQuadFilterFactory::parseCommand(L"Filter", parameters, out);
+	};
+
+	BiQuadCommand command;
+	// No Order at all is a 2nd-order section. Every configuration written
+	// before the order existed depends on this reading.
+	harness.require(parse(L"ON AP Fc 100 Hz Q 0.707", command), "an all-pass without an order parses");
+	harness.expectEqual(static_cast<int>(command.type), static_cast<int>(BiQuad::ALL_PASS),
+		"an all-pass without an order is 2nd order");
+	harness.expectFalse(command.orderWasExplicit, "and the line is marked as not having said so");
+
+	harness.require(parse(L"ON AP Fc 100 Hz Q 0.707 Order 2", command), "Order 2 parses");
+	harness.expectEqual(static_cast<int>(command.type), static_cast<int>(BiQuad::ALL_PASS),
+		"Order 2 is the 2nd-order section");
+	harness.expectTrue(command.orderWasExplicit, "and the line is marked as having said so");
+
+	harness.require(parse(L"ON AP Fc 100 Hz Order 1", command), "Order 1 parses without a width");
+	harness.expectEqual(static_cast<int>(command.type), static_cast<int>(BiQuad::ALL_PASS_1),
+		"Order 1 is the 1st-order section");
+	harness.expectTrue(command.orderWasExplicit, "Order 1 is an explicit order");
+
+	// A width left over from a 2nd-order line is discarded rather than
+	// rejected: switching an existing filter's order should not make its line
+	// unloadable.
+	BiQuadCommand withWidth;
+	BiQuadCommand withoutWidth;
+	harness.require(parse(L"ON AP Fc 250 Hz Q 2 Order 1", withWidth), "Order 1 with a stray Q still parses");
+	harness.require(parse(L"ON AP Fc 250 Hz Order 1", withoutWidth), "Order 1 without one parses");
+	harness.expect(withWidth.bandwidthOrQOrS == 0.0, "the stray width is discarded");
+	const Coefficients a = coefficientsOf(BiQuad(withWidth.type, 0.0, withWidth.freq, 48000.0,
+		withWidth.bandwidthOrQOrS, withWidth.isBandwidthOrS));
+	const Coefficients b = coefficientsOf(BiQuad(withoutWidth.type, 0.0, withoutWidth.freq, 48000.0,
+		withoutWidth.bandwidthOrQOrS, withoutWidth.isBandwidthOrS));
+	harness.expect(a.b0 == b.b0 && a.b1 == b.b1 && a.a1 == b.a1,
+		"so it makes exactly the filter it would without one");
+
+	harness.expectFalse(parse(L"ON AP Fc 100 Hz Order 3", command), "Order 3 is rejected");
+	harness.expectFalse(parse(L"ON AP Fc 100 Hz Order 0", command), "Order 0 is rejected");
+
+	// The order is meaningless on the other biquad types and is ignored there
+	// rather than changing what they are.
+	harness.require(parse(L"ON PK Fc 1000 Hz Gain 3 dB Q 1 Order 1", command),
+		"an order on a peaking filter still parses");
+	harness.expectEqual(static_cast<int>(command.type), static_cast<int>(BiQuad::PEAKING),
+		"and leaves it a peaking filter");
+}
+
 // An all-pass with no width is an error, unlike LP/HP/BP/NO which fall back to
 // a default. The reform keeps that for Order 2 and relaxes it only for Order 1,
 // where the parameter does not exist.
@@ -457,6 +612,9 @@ void runAllPassTests()
 	testOutputIsBlockSizeInvariant();
 	testKernelsAgreeForAllPass();
 	testExtremeCenterFrequenciesStayStable();
+	testTwoFirstOrderSectionsEqualOneSecondOrderAtQHalf();
+	testFirstOrderAllPassBehaviour();
+	testOrderParsing();
 	testAcceptsBandwidth();
 	testBandwidthIsNotTheSameNumberAsQ();
 	testWidthIsMandatory();

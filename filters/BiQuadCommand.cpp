@@ -70,6 +70,8 @@ const wchar_t* biquadTypeTitle(BiQuad::Type type)
 		return L"Notch";
 	case BiQuad::ALL_PASS:
 		return L"All-pass";
+	case BiQuad::ALL_PASS_1:
+		return L"All-pass (1st order)";
 	}
 	return L"Biquad";
 }
