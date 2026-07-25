@@ -220,6 +220,16 @@ void SkinManager::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState
 	activeSkin->paintAnalysisGraph(painter, state, currentTokens);
 }
 
+void SkinManager::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state) const
+{
+	if (heritageMode)
+	{
+		activeSkin->ISkin::paintSegmentedControl(painter, state, currentTokens);
+		return;
+	}
+	activeSkin->paintSegmentedControl(painter, state, currentTokens);
+}
+
 FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 {
 	return activeSkin->createFilterPicker(parent);

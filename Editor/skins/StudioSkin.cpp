@@ -1118,11 +1118,17 @@ public:
 	// an always-on monitor (sunken pane, crisp grid, 0 dB anchor,
 	// four-stroke trace over a split under-fill, danger clip treatment,
 	// light-seam cursor). The cursor group fades in on state.hover.
+	//
+	// Phase and group delay ride the same instrument, but the parts of it
+	// that mean "gain" do not carry over and are re-derived below. Every
+	// such branch is guarded on the metric, so the magnitude view is the
+	// same pane it has always been, pixel for pixel.
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
 		const QRectF plot = state.plotRect;
 		const double hover = qBound(0.0, state.hover, 1.0);
+		const bool magnitude = state.metric == AnalysisMetric::MagnitudeDb;
 
 		painter.save();
 		painter.setRenderHint(QPainter::Antialiasing, true);
@@ -1210,14 +1216,78 @@ public:
 				captionMetrics.elidedText(state.channelText, Qt::ElideRight, plot.width()));
 		}
 
-		// 0 dB: the knob's luminous anchor laid flat - accent bloom under a
-		// text-ink core.
-		if (state.zeroY >= plot.top() && state.zeroY <= plot.bottom())
+		// What the value axis is measuring, engraved in the corner the CLIP
+		// chip owns under magnitude - which is free here, because neither
+		// other metric can clip. The tick figures are bare signed numbers in
+		// every metric, so without this the degree sign and the millisecond
+		// never appear; the prepared span text carries both ends and the
+		// unit in the metric's own spelling. Drawn before the data, so the
+		// trace passes in front of it (the UI recedes behind the values).
+		// Magnitude keeps its historical silence: dB is the assumed default,
+		// and this pane must not change one pixel of it.
+		if (!magnitude && !state.spanValueText.isEmpty())
+		{
+			const QFontMetricsF spanMetrics(labelFont);
+			painter.setPen(withAlpha(tokens.mutedText, 190));
+			painter.drawText(QRectF(plot.left(), plot.top() + 4.0, plot.width() - 8.0, 11.0),
+				Qt::AlignRight | Qt::AlignTop,
+				spanMetrics.elidedText(state.spanValueText, Qt::ElideRight, plot.width() - 8.0));
+		}
+
+		// Phase turns: the frequencies where the response has come a half or
+		// a whole way around. Magnitude has one landmark (unity) and phase
+		// has a ladder of them, so the anchor grammar extends one step down
+		// the luminance ladder - accent bloom under an accent core, brighter
+		// than the grid and dimmer than the zero anchor, and never the
+		// text-ink core that keeps the anchor unmistakable. Drawn only while
+		// the turns can still be counted: a phase wound thousands of degrees
+		// deep leaves the reading to the grid.
+		if (state.metric == AnalysisMetric::PhaseDegrees && state.maximum > state.minimum)
+		{
+			const double span = state.maximum - state.minimum;
+			const double deepest = qMax(qAbs(state.minimum), qAbs(state.maximum));
+			if (plot.height() * 180.0 / span >= 18.0)
+			{
+				for (double turn = 180.0; turn <= deepest; turn += 180.0)
+				{
+					for (double value : { -turn, turn })
+					{
+						if (value < state.minimum || value > state.maximum)
+							continue;
+						const int y = int(plot.top() + plot.height() * (state.maximum - value) / span);
+						// A landmark on the frame is the frame, not a reading.
+						if (y <= int(plot.top()) + 2 || y >= int(plot.bottom()) - 2)
+							continue;
+						painter.setPen(QPen(withAlpha(tokens.accent, 26), 3));
+						painter.drawLine(int(plot.left()), y, int(plot.right()), y);
+						painter.setPen(QPen(withAlpha(tokens.accent, 96), 1));
+						painter.drawLine(int(plot.left()), y, int(plot.right()), y);
+					}
+				}
+			}
+		}
+
+		// Zero: the knob's luminous anchor laid flat - accent bloom under a
+		// text-ink core. Drawn only when the metric's zero is inside the fitted
+		// range, which is not the same as inside the pane: a group delay keeps
+		// zero in its fit and measures upward from it, so the anchor lands on
+		// the frame edge and is demoted there rather than dropped.
+		if (state.zeroVisible)
 		{
 			const int zy = int(state.zeroY);
-			painter.setPen(QPen(withAlpha(tokens.accent, 52), 3));
-			painter.drawLine(int(plot.left()), zy, int(plot.right()), zy);
-			painter.setPen(QPen(withAlpha(tokens.text, 200), 1));
+			// A zero sitting on the pane's edge is a boundary, not a detent:
+			// the bloom would smear into the border and read as chrome. Only
+			// the new metrics can put it there - magnitude fits symmetrically
+			// and always keeps its anchor mid-pane - so this never changes the
+			// magnitude view.
+			const bool anchorOnEdge = !magnitude
+				&& (state.zeroY <= plot.top() + 2.0 || state.zeroY >= plot.bottom() - 2.0);
+			if (!anchorOnEdge)
+			{
+				painter.setPen(QPen(withAlpha(tokens.accent, 52), 3));
+				painter.drawLine(int(plot.left()), zy, int(plot.right()), zy);
+			}
+			painter.setPen(QPen(withAlpha(tokens.text, anchorOnEdge ? 120 : 200), 1));
 			painter.drawLine(int(plot.left()), zy, int(plot.right()), zy);
 		}
 
@@ -1234,21 +1304,62 @@ public:
 			painter.fillRect(QRectF(plot.left(), plot.top(), plot.width(), zeroClamped - plot.top()), warmth);
 		}
 
-		if (state.curve.size() >= 2)
+		// One pass per segment. The response breaks where the metric has no
+		// value, and the glass must break with it - a bridging stroke would
+		// glow across a reading the config never produced.
+		for (const QPolygonF& segment : state.curves)
 		{
-			// The under-fill splits at 0 dB: boost glows a step warmer than
-			// cut, both dying as they land on the anchor.
-			QPolygonF fill = state.curve;
-			fill.append(QPointF(state.curve.last().x(), zeroClamped));
-			fill.prepend(QPointF(state.curve.first().x(), zeroClamped));
-			const double zeroRatio = qBound(0.02, (zeroClamped - plot.top()) / qMax(1.0, plot.height()), 0.98);
-			QLinearGradient split(0, plot.top(), 0, plot.bottom());
-			split.setColorAt(0.0, withAlpha(tokens.accent, 62));
-			split.setColorAt(zeroRatio, withAlpha(tokens.accent, 8));
-			split.setColorAt(1.0, withAlpha(tokens.accent, 34));
-			painter.setPen(Qt::NoPen);
-			painter.setBrush(split);
-			painter.drawPolygon(fill);
+			if (segment.size() < 2)
+				continue;
+
+			// The under-fill is a gain idea, so each metric answers for it
+			// separately.
+			if (magnitude)
+			{
+				// It splits at zero: boost glows a step warmer than cut, both
+				// dying as they land on the anchor.
+				QPolygonF fill = segment;
+				fill.append(QPointF(segment.last().x(), zeroClamped));
+				fill.prepend(QPointF(segment.first().x(), zeroClamped));
+				const double zeroRatio = qBound(0.02, (zeroClamped - plot.top()) / qMax(1.0, plot.height()), 0.98);
+				QLinearGradient split(0, plot.top(), 0, plot.bottom());
+				split.setColorAt(0.0, withAlpha(tokens.accent, 62));
+				split.setColorAt(zeroRatio, withAlpha(tokens.accent, 8));
+				split.setColorAt(1.0, withAlpha(tokens.accent, 34));
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(split);
+				painter.drawPolygon(fill);
+			}
+			else if (state.metric == AnalysisMetric::GroupDelayMs)
+			{
+				// A delay is a duration measured from no delay at all, so the
+				// fill keeps its meaning here: it is how much time, and it
+				// still dies as it lands on the anchor. What goes is the
+				// split - warmer above, cooler below is a boost/cut idea, and
+				// a delay that runs early is not a quieter kind of delay. The
+				// two sides light equally. The anchor is usually the pane's
+				// own floor (a group delay rarely goes negative), so the
+				// stops collapse to a single falloff rather than leaving a
+				// bright sliver in the last two percent of the pane.
+				QPolygonF fill = segment;
+				fill.append(QPointF(segment.last().x(), zeroClamped));
+				fill.prepend(QPointF(segment.first().x(), zeroClamped));
+				const double zeroRatio = qBound(0.0, (zeroClamped - plot.top()) / qMax(1.0, plot.height()), 1.0);
+				QLinearGradient sink(0, plot.top(), 0, plot.bottom());
+				sink.setColorAt(0.0, withAlpha(tokens.accent, zeroRatio <= 0.02 ? 8 : 48));
+				if (zeroRatio > 0.02 && zeroRatio < 0.98)
+					sink.setColorAt(zeroRatio, withAlpha(tokens.accent, 8));
+				sink.setColorAt(1.0, withAlpha(tokens.accent, zeroRatio >= 0.98 ? 8 : 48));
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(sink);
+				painter.drawPolygon(fill);
+			}
+			// Phase gets no fill. The area between the trace and zero would
+			// have to mean "how far from zero phase", and zero phase sits at
+			// the very top of an all-pass's axis, so the fill swallows the
+			// pane to say something no one reads a phase view for. Under this
+			// metric the trace is the whole light of the window, which is
+			// what the constitution says it is anyway.
 
 			// The trace: four layered strokes, the glow lifted a breath
 			// while the pointer holds the pane.
@@ -1265,7 +1376,7 @@ public:
 				glow.setCapStyle(Qt::RoundCap);
 				glow.setJoinStyle(Qt::RoundJoin);
 				painter.setPen(glow);
-				painter.drawPolyline(state.curve);
+				painter.drawPolyline(segment);
 			}
 
 			// The overshoot segment ignites: the same stroke ladder re-drawn
@@ -1286,7 +1397,7 @@ public:
 					firePen.setCapStyle(Qt::RoundCap);
 					firePen.setJoinStyle(Qt::RoundJoin);
 					painter.setPen(firePen);
-					painter.drawPolyline(state.curve);
+					painter.drawPolyline(segment);
 				}
 				painter.restore();
 			}
@@ -1325,7 +1436,16 @@ public:
 
 			const double cx = state.cursor.x();
 			const double curveY = qBound(plot.top(), state.curveYAtCursor, plot.bottom());
-			const double poolAt = qBound(0.05, (curveY - plot.top()) / qMax(1.0, plot.height()), 0.95);
+			// Inside a null the metric has no value, and the state says so by
+			// leaving the reading text empty. There is nothing for the light
+			// to land on, so the seam crosses the pane unpooled and dimmer,
+			// and neither the dot nor the chip appears - a dot on a column
+			// with no reading is a number the config never produced. Never
+			// the case under magnitude, which floors instead of breaking.
+			const bool reading = magnitude || !state.cursorText.isEmpty();
+			const double poolAt = reading
+				? qBound(0.05, (curveY - plot.top()) / qMax(1.0, plot.height()), 0.95)
+				: 0.5;
 			const auto seam = [&](int alpha) {
 				QLinearGradient gradient(cx, plot.top(), cx, plot.bottom());
 				gradient.setColorAt(0.0, withAlpha(tokens.accent, 0));
@@ -1334,25 +1454,28 @@ public:
 				return gradient;
 			};
 			// Bloom, mid, core: the insert seam's stroke ladder set upright.
-			QPen seamBloom(QBrush(seam(56)), 5.0);
+			QPen seamBloom(QBrush(seam(reading ? 56 : 26)), 5.0);
 			seamBloom.setCapStyle(Qt::RoundCap);
 			painter.setPen(seamBloom);
 			painter.drawLine(QPointF(cx, plot.top()), QPointF(cx, plot.bottom()));
-			QPen seamMid(QBrush(seam(140)), 2.4);
+			QPen seamMid(QBrush(seam(reading ? 140 : 62)), 2.4);
 			seamMid.setCapStyle(Qt::RoundCap);
 			painter.setPen(seamMid);
 			painter.drawLine(QPointF(cx, plot.top()), QPointF(cx, plot.bottom()));
-			QPen seamCore(QBrush(seam(235)), 1.0);
+			QPen seamCore(QBrush(seam(reading ? 235 : 96)), 1.0);
 			seamCore.setCapStyle(Qt::RoundCap);
 			painter.setPen(seamCore);
 			painter.drawLine(QPointF(cx, plot.top()), QPointF(cx, plot.bottom()));
 
 			// The reading point: the indicator dot (halo + core) on the trace.
-			painter.setPen(Qt::NoPen);
-			painter.setBrush(withAlpha(tokens.accent, 110));
-			painter.drawEllipse(QPointF(cx, curveY), 6.0, 6.0);
-			painter.setBrush(QColor(tokens.accent));
-			painter.drawEllipse(QPointF(cx, curveY), 3.0, 3.0);
+			if (reading)
+			{
+				painter.setPen(Qt::NoPen);
+				painter.setBrush(withAlpha(tokens.accent, 110));
+				painter.drawEllipse(QPointF(cx, curveY), 6.0, 6.0);
+				painter.setBrush(QColor(tokens.accent));
+				painter.drawEllipse(QPointF(cx, curveY), 3.0, 3.0);
+			}
 
 			// The reading chip: sunken glass over the pane, accent-lit edge,
 			// DM Mono value ink. It follows the dot and flips or clamps to
@@ -1398,6 +1521,185 @@ public:
 		painter.setRenderHint(QPainter::Antialiasing, false);
 		painter.fillRect(QRectF(frame.left() + 7.0, frame.top() + 1.0, frame.width() - 14.0, 1.0),
 			dark ? QColor(0, 0, 0, 140) : QColor(0, 0, 0, 30));
+
+		painter.restore();
+	}
+
+	// A row of exclusive choices: the knob's track laid flat, with the arc's
+	// light condensed into one lit glass cap that rides along it. The knob
+	// says "the arc is the value"; this says "the cap is the choice", and the
+	// two are the same instrument seen from different sides. Unchosen cells
+	// are unlit glass and carry no chrome of their own - no dividers, no
+	// separate cell frames - because a divider is neither an arc, a label nor
+	// a value (the tiebreaker). One control for both its uses: the analysis
+	// metric on the dock's bar and the all-pass order inside a card, which is
+	// why the strip sinks into whatever it sits on instead of naming a
+	// surface colour of its own.
+	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const override
+	{
+		if (state.labels.isEmpty())
+			return;
+
+		const bool dark = skinIsDark(tokens);
+		const bool lit = state.enabled;
+		// The pane light, which follows the row's band colour when the control
+		// is tagged (a BiQuad card) and stays the base accent otherwise.
+		const QColor light = studioBandPaintColor(painter, tokens);
+		const int pointed = state.pressedIndex >= 0 ? state.pressedIndex : state.hoveredIndex;
+
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+		const QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		QPainterPath channel;
+		channel.addRoundedRect(frame, 8.0, 8.0);
+
+		// The channel is a sunken strip. It deepens whatever is behind it
+		// rather than painting a colour of its own, so the same control reads
+		// on the analysis bar and on a card's glass. Dark sinks with a black
+		// wash; in light the text ink's shade carries it, because white glass
+		// cannot brighten (S2).
+		painter.setPen(Qt::NoPen);
+		painter.fillPath(channel, dark ? QColor(0, 0, 0, lit ? 92 : 62) : withAlpha(tokens.text, lit ? 20 : 12));
+
+		painter.save();
+		painter.setClipPath(channel);
+
+		// The sunken tell: a dark line settling just inside the top edge, the
+		// graph pane's inner shadow at strip scale. Straight, so AA is off.
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.fillRect(QRectF(frame.left() + 6.0, frame.top() + 1.0, frame.width() - 12.0, 1.0),
+			dark ? QColor(0, 0, 0, 110) : withAlpha(tokens.text, 34));
+		painter.setRenderHint(QPainter::Antialiasing, true);
+
+		// Keyboard focus is the outline of the light, not of the shape: a
+		// wide faint stroke hugging the channel from inside, under the cap.
+		if (lit && state.focused)
+		{
+			painter.setBrush(Qt::NoBrush);
+			painter.setPen(QPen(withAlpha(tokens.focusRing, 70), 3.0));
+			painter.drawRoundedRect(frame.adjusted(1.5, 1.5, -1.5, -1.5), 6.5, 6.5);
+		}
+
+		// Light pooling under the cursor - the picker's answer to hover, on a
+		// cell the mark has not reached. Radial, so the pool has no edge of
+		// its own to be mistaken for a second selection; pressing turns it one
+		// step up the ladder. Held above the picker's alphas because a strip
+		// cell is a fraction of a picker row: at the picker's numbers this
+		// pool would be painted and still not be seen.
+		if (lit && pointed >= 0 && qAbs(pointed - state.selectionPosition) > 0.35)
+		{
+			const bool poolPressed = state.pressedIndex == pointed;
+			const QRectF cell = state.segmentRect(pointed);
+			QRadialGradient pool(cell.center(), qMax(cell.width(), cell.height()) * 0.62);
+			pool.setColorAt(0.0, withAlpha(light, dark ? (poolPressed ? 70 : 44) : (poolPressed ? 56 : 34)));
+			pool.setColorAt(1.0, withAlpha(light, 0));
+			painter.fillRect(cell, pool);
+		}
+
+		// The cap reads selectionPosition, never selectedIndex: a quick run
+		// through three choices has to be one mark crossing the strip. While
+		// it travels its bloom widens and brightens - light in motion smears -
+		// and settles back as it lands.
+		const QRectF cap = state.segmentRect(state.selectionPosition).adjusted(2.0, 2.0, -2.0, -2.0);
+		const double travel = qBound(0.0, qAbs(state.selectionPosition - qRound(state.selectionPosition)) * 2.0, 1.0);
+		const bool capPointed = pointed == state.selectedIndex;
+		const bool capPressed = state.pressedIndex == state.selectedIndex;
+		// 6px: the single 8px round reduced by the 2px inset, the way the card
+		// chrome's inner pane rounds 7 inside its 1px border. Concentric, not
+		// a second radius language.
+		const double capRadius = 6.0;
+
+		if (lit)
+		{
+			// Bloom stroke, translucent fill, hairline: the CLIP chip's ladder
+			// in the pane's light instead of danger.
+			const int bloom = (capPressed ? 88 : (capPointed ? 64 : 44)) + qRound(30.0 * travel);
+			const int fill = dark
+				? (capPressed ? 62 : (capPointed ? 50 : 38))
+				: (capPressed ? 44 : (capPointed ? 34 : 26));
+			painter.setPen(QPen(withAlpha(light, qMin(255, bloom)), 3.0 + 2.5 * travel));
+			painter.setBrush(withAlpha(light, fill));
+			painter.drawRoundedRect(cap, capRadius, capRadius);
+			painter.setPen(QPen(withAlpha(light, capPointed ? 190 : 150), 1.0));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRoundedRect(cap, capRadius, capRadius);
+
+			if (dark)
+			{
+				// Centre-bright reflection under the cap's top edge: the glass
+				// formula, so the cap is a lit pane and not a coloured tile.
+				const double y = cap.top() + 1.5;
+				QLinearGradient reflection(cap.left(), y, cap.right(), y);
+				reflection.setColorAt(0.0, QColor(255, 255, 255, 0));
+				reflection.setColorAt(0.5, QColor(255, 255, 255, capPointed ? 84 : 56));
+				reflection.setColorAt(1.0, QColor(255, 255, 255, 0));
+				painter.setPen(QPen(QBrush(reflection), 1.0));
+				painter.drawLine(QPointF(cap.left() + 5.0, y), QPointF(cap.right() - 5.0, y));
+			}
+			else
+			{
+				// The lit white cap cannot brighten, so the shade pooling at
+				// its bottom edge says it is a pane sitting in the channel.
+				QPainterPath capPath;
+				capPath.addRoundedRect(cap, capRadius, capRadius);
+				QLinearGradient depthShade(QPointF(cap.left(), cap.bottom() - cap.height() * 0.5), cap.bottomLeft());
+				depthShade.setColorAt(0.0, withAlpha(tokens.text, 0));
+				depthShade.setColorAt(1.0, withAlpha(tokens.text, capPointed ? 34 : 26));
+				painter.fillPath(capPath, depthShade);
+			}
+		}
+		else
+		{
+			// Lights out, and not one pixel of accent survives. The choice is
+			// still on record, as a single neutral alpha step - the disabled
+			// engaged chip's precedent, not a greyed-out accent.
+			painter.setPen(QPen(withAlpha(tokens.border, dark ? 120 : 150), 1.0));
+			painter.setBrush(dark ? QColor(255, 255, 255, 16) : withAlpha(tokens.text, 14));
+			painter.drawRoundedRect(cap, capRadius, capRadius);
+		}
+
+		painter.restore();
+
+		// The channel's edge: a hairline that lights to the focus ring when
+		// the keyboard holds the control.
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(lit && state.focused ? QColor(tokens.focusRing) : withAlpha(tokens.border, lit ? 210 : 130), 1.0));
+		painter.drawRoundedRect(frame, 8.0, 8.0);
+
+		// Labels. Hierarchy is luminance first, weight second: a cell's ink is
+		// mixed toward the pane light by how much of the cap has arrived on
+		// it, so the light travels with the mark instead of jumping to it. The
+		// chosen cell ends in the light's own ink over the translucent fill,
+		// which is the lit glass chip - never inverted text on a solid block.
+		QFont labelFont(tokens.fontFamily);
+		labelFont.setPointSizeF(9.0);
+		for (int i = 0; i < state.labels.size(); i++)
+		{
+			const QRectF cell = state.segmentRect(i);
+			const double cover = qBound(0.0, 1.0 - qAbs(double(i) - state.selectionPosition), 1.0);
+			QColor ink;
+			if (!lit)
+			{
+				ink = withAlpha(tokens.mutedText, cover > 0.5 ? 170 : 110);
+			}
+			else
+			{
+				const QColor base = (i == pointed && cover < 0.5)
+					? QColor(tokens.text) : withAlpha(tokens.mutedText, 235);
+				ink = mixColor(base, light, cover);
+				ink.setAlpha(qRound(base.alpha() + (255 - base.alpha()) * cover));
+			}
+
+			QFont cellFont = labelFont;
+			cellFont.setWeight(cover > 0.5 ? QFont::DemiBold : QFont::Normal);
+			const QFontMetricsF cellMetrics(cellFont);
+			painter.setFont(cellFont);
+			painter.setPen(ink);
+			painter.drawText(cell, Qt::AlignCenter,
+				cellMetrics.elidedText(state.labels.at(i), Qt::ElideRight, qMax(8.0, cell.width() - 6.0)));
+		}
 
 		painter.restore();
 	}

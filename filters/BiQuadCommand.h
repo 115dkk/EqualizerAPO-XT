@@ -38,6 +38,12 @@ struct BiQuadCommand
 	double bandwidthOrQOrS = 0.0;
 	bool isBandwidthOrS = false;
 	bool isCornerFreq = false;
+	// Whether the line said "Order" out loud. An all-pass without it is a
+	// 2nd-order section, which is the only reading that keeps every
+	// configuration written before the order existed sounding the same - but a
+	// default hidden in the grammar cannot be changed later and cannot be read
+	// off the file, so the Editor uses this to fill it in.
+	bool orderWasExplicit = false;
 	// The grammar currently only accepts lines beginning with "ON"; OFF lines do
 	// not parse. The flag is carried so callers do not have to re-derive it.
 	bool enabled = true;

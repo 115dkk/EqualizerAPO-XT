@@ -64,6 +64,7 @@ SOURCES += main.cpp\
 	guis/ChannelFilterGUI.cpp \
 	guis/ChannelFilterGUIFactory.cpp \
 	guis/BiQuadFilterGUI.cpp \
+	guis/BiQuadWidthConversion.cpp \
 	../filters/BiQuad.cpp \
 	../filters/BiQuadCommand.cpp \
 	../filters/BiQuadFilter.cpp \
@@ -134,8 +135,8 @@ SOURCES += main.cpp\
 	guis/StageFilterGUIFactory.cpp \
 	guis/ExpressionFilterGUIFactory.cpp \
 	widgets/ResizeCorner.cpp \
-	AnalysisPlotView.cpp \
-	AnalysisPlotScene.cpp \
+	analysis/AnalysisResponse.cpp \
+	analysis/ResponseCurveBuilder.cpp \
 	../FilterEngine.cpp \
 	../engine/FilterEngine.Configuration.cpp \
 	../engine/FilterEngine.Process.cpp \
@@ -242,6 +243,9 @@ SOURCES += main.cpp\
 	widgets/cards/FileReferenceController.cpp \
 	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IIRCardEditor.cpp \
+	widgets/cards/AllPassCardEditor.cpp \
+	widgets/cards/FilterCardEditorRouter.cpp \
+	analysis/AnalysisViewController.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ScalarKnobCardEditor.cpp \
@@ -258,6 +262,7 @@ SOURCES += main.cpp\
 	widgets/EditableValueText.cpp \
 	widgets/ChBadge.cpp \
 	widgets/EqGraphView.cpp \
+	widgets/SegmentedControl.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/FilterListModel.cpp \
@@ -323,6 +328,7 @@ HEADERS  += \
 	guis/ChannelFilterGUI.h \
 	guis/ChannelFilterGUIFactory.h \
 	guis/BiQuadFilterGUI.h \
+	guis/BiQuadWidthConversion.h \
 	../filters/BiQuad.h \
 	../filters/BiQuadCommand.h \
 	../filters/BiQuadFilter.h \
@@ -386,8 +392,9 @@ HEADERS  += \
 	guis/StageFilterGUIFactory.h \
 	guis/ExpressionFilterGUIFactory.h \
 	widgets/ResizeCorner.h \
-	AnalysisPlotView.h \
-	AnalysisPlotScene.h \
+	analysis/AnalysisMetric.h \
+	analysis/AnalysisResponse.h \
+	analysis/ResponseCurveBuilder.h \
 	../FilterEngine.h \
 	../engine/ConfigWatcher.h \
 	../FilterConfiguration.h \
@@ -479,6 +486,8 @@ HEADERS  += \
 	widgets/cards/FileReferenceController.h \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IIRCardEditor.h \
+	widgets/cards/AllPassCardEditor.h \
+	analysis/AnalysisViewController.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
 	widgets/cards/ScalarKnobCardEditor.h \
@@ -495,6 +504,7 @@ HEADERS  += \
 	widgets/EditableValueText.h \
 	widgets/ChBadge.h \
 	widgets/EqGraphView.h \
+	widgets/SegmentedControl.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
 	widgets/FilterListModel.h \

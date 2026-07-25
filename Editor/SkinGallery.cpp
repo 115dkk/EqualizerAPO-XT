@@ -2,6 +2,8 @@
 #include "diagnostics/ToolbarPixelProbe.h"
 #include "widgets/MainToolbarKit.h"
 
+#include <cmath>
+#include <complex>
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
@@ -55,6 +57,10 @@
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
+#include "Editor/widgets/SegmentedControl.h"
+#include "Editor/analysis/AnalysisMetric.h"
+#include "Editor/analysis/AnalysisResponse.h"
+#include "filters/BiQuad.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
@@ -134,7 +140,14 @@ QList<GalleryRow> galleryRows()
 		// value position - instead of parsing the text as 0.0 and destroying
 		// the expression on the first knob turn. Appended last (mid-list
 		// insertion renumbers every following scene).
-		{ QStringLiteral("dynpreamp"), QStringLiteral("Preamp: `bass + 3` dB") }
+		{ QStringLiteral("dynpreamp"), QStringLiteral("Preamp: `bass + 3` dB") },
+		// The all-pass card. It has no gain and its magnitude is flat, so the
+		// card has to say in words what the filter does; these shots are how
+		// that reads in each skin. Written as a bandwidth on purpose - the
+		// spelling the editors used to lose - and appended last, because
+		// inserting mid-list renumbers every following scene against the
+		// stored baseline.
+		{ QStringLiteral("allpass"), QStringLiteral("Filter 4: ON AP Fc 900 Hz BW Oct 1") }
 	};
 }
 
@@ -422,7 +435,10 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
 		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
 		{ QStringLiteral("filedialog"), { QStringLiteral("normal") } },
-		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor") } },
+		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor"),
+			QStringLiteral("phase"), QStringLiteral("groupdelay") } },
+		{ QStringLiteral("segment"), { QStringLiteral("normal"), QStringLiteral("selected"),
+			QStringLiteral("hover") } },
 		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
 			QStringLiteral("expanded"), QStringLiteral("editor") } },
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
@@ -468,6 +484,8 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	return toolBar;
 }
 
+std::shared_ptr<const AnalysisResponse> galleryAnalysisResponse();
+
 QWidget* buildAnalysisPanelReplica(QWidget* parent)
 {
 	QWidget* panel = new QWidget(parent);
@@ -480,9 +498,13 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	bar->setAttribute(Qt::WA_StyledBackground, true);
 	bar->setMaximumWidth(250);
 	QGridLayout* grid = new QGridLayout(bar);
-	grid->setContentsMargins(10, 8, 10, 8);
+	// Matches MainWindow.ui after the metric switch and the base-delay option
+	// joined this bar: the two extra rows are paid for by tightening the
+	// rhythm and by pairing the four readouts two to a row, so the row count
+	// stays at nine and the 250px cap is untouched.
+	grid->setContentsMargins(10, 6, 10, 6);
 	grid->setHorizontalSpacing(8);
-	grid->setVerticalSpacing(6);
+	grid->setVerticalSpacing(4);
 
 	const QStringList formLabels = { QStringLiteral("From"), QStringLiteral("Channel"),
 		QStringLiteral("Res"), QStringLiteral("Pos") };
@@ -513,9 +535,17 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 		}
 	}
 
-	const QStringList statLabels = { QStringLiteral("Peak"), QStringLiteral("Latency"),
+	SegmentedControl* metricSegment = new SegmentedControl;
+	metricSegment->setLabels({ QStringLiteral("Mag"), QStringLiteral("Phase"), QStringLiteral("GD") });
+	grid->addWidget(metricSegment, 4, 0, 1, 2);
+
+	QCheckBox* includeBaseDelay = new QCheckBox(QStringLiteral("Include base delay"));
+	includeBaseDelay->setObjectName(QStringLiteral("includeBaseDelayCheckBox"));
+	grid->addWidget(includeBaseDelay, 5, 0, 1, 2);
+
+	const QStringList statLabels = { QStringLiteral("Peak"), QStringLiteral("Lat"),
 		QStringLiteral("Init"), QStringLiteral("CPU") };
-	const QStringList statValues = { QStringLiteral("-6.0 dB"), QStringLiteral("0.0 ms (0 s.)"),
+	const QStringList statValues = { QStringLiteral("-6.0 dB"), QStringLiteral("0.0 ms"),
 		QStringLiteral("0.4 ms"), QStringLiteral("0.1 %") };
 	for (int i = 0; i < statLabels.size(); i++)
 	{
@@ -523,7 +553,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 		chipFrame->setObjectName(QStringLiteral("AnalysisStatChip"));
 		chipFrame->setAttribute(Qt::WA_StyledBackground, true);
 		QHBoxLayout* chipLayout = new QHBoxLayout(chipFrame);
-		chipLayout->setContentsMargins(10, 3, 10, 3);
+		chipLayout->setContentsMargins(8, 3, 8, 3);
 		chipLayout->setSpacing(6);
 		QLabel* label = new QLabel(statLabels[i]);
 		label->setObjectName(QStringLiteral("AnalysisStatLabel"));
@@ -532,15 +562,108 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 		value->setObjectName(QStringLiteral("AnalysisStatValue"));
 		value->setProperty("severity", QStringLiteral("normal"));
 		chipLayout->addWidget(value);
-		grid->addWidget(chipFrame, 4 + i, 0, 1, 2);
+
+		const int row = 6 + i / 2;
+		QHBoxLayout* pairLayout = qobject_cast<QHBoxLayout*>(
+			grid->itemAtPosition(row, 0) == nullptr ? nullptr : grid->itemAtPosition(row, 0)->layout());
+		if (pairLayout == nullptr)
+		{
+			pairLayout = new QHBoxLayout;
+			pairLayout->setSpacing(6);
+			grid->addLayout(pairLayout, row, 0, 1, 2);
+		}
+		pairLayout->addWidget(chipFrame);
 	}
 	grid->setRowStretch(8, 1);
 
 	EqGraphView* graph = new EqGraphView(panel);
 	graph->setObjectName(QStringLiteral("ModernAnalysisGraph"));
+	// Fed the same synthetic spectrum as the standalone graph shots. Left
+	// empty, this replica used to draw a flat line across the middle, because
+	// a response with no data read as a perfectly flat 0 dB one - a measurement
+	// the analyzer had never taken. An unanalyzed graph now draws no trace at
+	// all, which is correct and which would make this shot an empty pane.
+	graph->setResponse(galleryAnalysisResponse(), QStringLiteral("All"));
 	dockLayout->addWidget(bar);
 	dockLayout->addWidget(graph, 1);
 	return panel;
+}
+
+// The gallery's analysis fixture, as a complex spectrum.
+//
+// The graph consumes what the analyzer produces - a complex response per FFT bin
+// - so the fixture has to be one too, not a hand-drawn dB curve. These are the
+// same nine breakpoints the fixture has always used (boosts, cuts and a
+// clipping shelf so the over-0dB emphasis shows); the curve between them is
+// straight in dB against log frequency, and each bin simply samples it. Phase
+// is left at zero: this fixture exists for the magnitude shots, and a metric
+// that needs phase gets its own fixture.
+std::shared_ptr<const AnalysisResponse> galleryAnalysisResponse()
+{
+	struct Breakpoint { double hz; double db; };
+	static const Breakpoint curve[] = {
+		{20.0, 0.0}, {45.0, 5.5}, {120.0, 2.0}, {300.0, -4.5}, {900.0, 1.0},
+		{2500.0, -7.5}, {6000.0, 3.0}, {11000.0, 6.5}, {20000.0, -2.0}
+	};
+	constexpr int breakpointCount = int(sizeof(curve) / sizeof(curve[0]));
+
+	const auto dbAt = [&](double hz) {
+		if (hz <= curve[0].hz)
+			return curve[0].db;
+		if (hz >= curve[breakpointCount - 1].hz)
+			return curve[breakpointCount - 1].db;
+		for (int i = 1; i < breakpointCount; i++)
+		{
+			if (hz > curve[i].hz)
+				continue;
+			const double t = std::log(hz / curve[i - 1].hz) / std::log(curve[i].hz / curve[i - 1].hz);
+			return curve[i - 1].db + t * (curve[i].db - curve[i - 1].db);
+		}
+		return curve[breakpointCount - 1].db;
+	};
+
+	auto response = std::make_shared<AnalysisResponse>();
+	response->sampleRate = 48000;
+	response->fftSize = 65536;
+	const size_t binCount = AnalysisResponse::binCountFor(response->fftSize);
+	response->bins.resize(binCount);
+	for (size_t i = 0; i < binCount; i++)
+	{
+		const double hz = response->frequencyOf(i);
+		response->bins[i] = std::complex<double>(std::pow(10.0, dbAt(hz) / 20.0), 0.0);
+	}
+	return response;
+}
+
+// A real 2nd-order all-pass, evaluated on the unit circle from the engine's own
+// coefficients. Flat in magnitude by construction, so it is the fixture that
+// makes the phase and group-delay shots show something a magnitude plot cannot:
+// a full turn of phase around 1 kHz and a delay peak sitting on it.
+// Spelled out rather than reached for through M_PI, which only exists when
+// _USE_MATH_DEFINES was defined before the first header that pulls math.h in -
+// an ordering constraint no translation unit this large should have to keep.
+constexpr double Pi = 3.14159265358979323846;
+
+std::shared_ptr<const AnalysisResponse> galleryAllPassResponse()
+{
+	auto response = std::make_shared<AnalysisResponse>();
+	response->sampleRate = 48000;
+	response->fftSize = 65536;
+	response->bins.resize(AnalysisResponse::binCountFor(response->fftSize));
+
+	BiQuad biquad(BiQuad::ALL_PASS, 0.0, 1000.0, response->sampleRate, 0.707, false);
+	double packed[4];
+	double b0 = 0.0;
+	biquad.getCoefficients(packed, b0);
+	for (size_t i = 0; i < response->bins.size(); i++)
+	{
+		const double omega = 2.0 * Pi * response->frequencyOf(i) / response->sampleRate;
+		const std::complex<double> z1 = std::polar(1.0, -omega);
+		const std::complex<double> z2 = z1 * z1;
+		response->bins[i] = (b0 + packed[0] * z1 + packed[1] * z2)
+			/ (1.0 + packed[2] * z1 + packed[3] * z2);
+	}
+	return response;
 }
 
 // QSS :hover matches widgets whose Qt::WA_UnderMouse attribute is set, and
@@ -880,24 +1003,58 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		}
 	}
 
-	// The analysis dock's response graph with a deterministic synthetic
-	// response (boosts, cuts and a clipping shelf so the over-0dB emphasis
+	// The analysis dock's response graph over the deterministic synthetic
+	// spectrum (boosts, cuts and a clipping shelf so the over-0dB emphasis
 	// shows), at rest and with the pinned cursor readout.
 	{
 		EqGraphView graph;
 		graph.resize(940, 220);
-		const std::vector<FilterNode> response = {
-			FilterNode(20.0, 0.0), FilterNode(45.0, 5.5), FilterNode(120.0, 2.0),
-			FilterNode(300.0, -4.5), FilterNode(900.0, 1.0), FilterNode(2500.0, -7.5),
-			FilterNode(6000.0, 3.0), FilterNode(11000.0, 6.5), FilterNode(20000.0, -2.0)
-		};
-		graph.setNodes(response, 48000, QStringLiteral("All"));
+		graph.setResponse(galleryAnalysisResponse(), QStringLiteral("All"));
 		graph.show();
 		QApplication::processEvents();
 		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("normal")) ? 0 : 1;
 		graph.setPreviewCursor(0.62);
 		QApplication::processEvents();
 		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("cursor")) ? 0 : 1;
+	}
+
+	// The same graph showing what a magnitude plot cannot: an all-pass's phase
+	// and its group delay. The fixture is a real 2nd-order all-pass evaluated
+	// from the engine's own coefficients, so these shots show the filter rather
+	// than a drawing of one, and the cursor is pinned to prove the readout
+	// changes unit with the metric.
+	{
+		EqGraphView graph;
+		graph.resize(940, 220);
+		graph.setResponse(galleryAllPassResponse(), QStringLiteral("All"));
+		graph.setPreviewCursor(0.62);
+		graph.show();
+		graph.setMetric(AnalysisMetric::PhaseDegrees);
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("phase")) ? 0 : 1;
+		graph.setMetric(AnalysisMetric::GroupDelayMs);
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("groupdelay")) ? 0 : 1;
+	}
+
+	// The metric switch itself, in its three positions plus hover, so the new
+	// segmented control is judged as a control and not only in situ.
+	{
+		SegmentedControl segment;
+		segment.setLabels({ QStringLiteral("Mag"), QStringLiteral("Phase"), QStringLiteral("GD") });
+		segment.resize(230, segment.sizeHint().height());
+		segment.show();
+		// setPreviewState rather than setCurrentIndex: the indicator animates,
+		// and a shot taken while it travels differs from run to run.
+		segment.setPreviewState(0, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("normal")) ? 0 : 1;
+		segment.setPreviewState(1, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("selected")) ? 0 : 1;
+		segment.setPreviewState(1, 2);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("hover")) ? 0 : 1;
 	}
 
 	// The Copy channel fold over a synthetic 7.1 endpoint. The row matrix's

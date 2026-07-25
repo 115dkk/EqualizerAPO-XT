@@ -14,6 +14,9 @@
     <ClCompile Include="HybridConvTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AllPassTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="BiQuadKernelTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

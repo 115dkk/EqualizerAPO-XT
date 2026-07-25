@@ -169,19 +169,19 @@
          <number>10</number>
         </property>
         <property name="topMargin">
-         <number>8</number>
+         <number>6</number>
         </property>
         <property name="rightMargin">
          <number>10</number>
         </property>
         <property name="bottomMargin">
-         <number>8</number>
+         <number>6</number>
         </property>
         <property name="horizontalSpacing">
          <number>8</number>
         </property>
         <property name="verticalSpacing">
-         <number>6</number>
+         <number>4</number>
         </property>
         <item row="0" column="0">
          <widget class="QLabel" name="startFromLabel">
@@ -267,156 +267,180 @@
          </widget>
         </item>
         <item row="4" column="0" colspan="2">
-         <widget class="QFrame" name="peakChip">
-          <property name="frameShape">
-           <enum>QFrame::Shape::NoFrame</enum>
-          </property>
-          <layout class="QHBoxLayout" name="peakChipLayout">
-           <property name="leftMargin">
-            <number>10</number>
-           </property>
-           <property name="topMargin">
-            <number>3</number>
-           </property>
-           <property name="rightMargin">
-            <number>10</number>
-           </property>
-           <property name="bottomMargin">
-            <number>3</number>
-           </property>
-           <property name="spacing">
-            <number>6</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="peakGainLabel">
-             <property name="text">
-              <string>Peak</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="peakGainValueLabel">
-             <property name="text">
-              <string notr="true"/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
+         <widget class="SegmentedControl" name="analysisMetricSegment"/>
         </item>
         <item row="5" column="0" colspan="2">
-         <widget class="QFrame" name="latencyChip">
-          <property name="frameShape">
-           <enum>QFrame::Shape::NoFrame</enum>
+         <widget class="QCheckBox" name="includeBaseDelayCheckBox">
+          <property name="text">
+           <string>Include base delay</string>
           </property>
-          <layout class="QHBoxLayout" name="latencyChipLayout">
-           <property name="leftMargin">
-            <number>10</number>
-           </property>
-           <property name="topMargin">
-            <number>3</number>
-           </property>
-           <property name="rightMargin">
-            <number>10</number>
-           </property>
-           <property name="bottomMargin">
-            <number>3</number>
-           </property>
-           <property name="spacing">
-            <number>6</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="latencyLabel">
-             <property name="text">
-              <string>Latency</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="latencyValueLabel">
-             <property name="text">
-              <string notr="true"/>
-             </property>
-            </widget>
-           </item>
-          </layout>
          </widget>
         </item>
         <item row="6" column="0" colspan="2">
-         <widget class="QFrame" name="initChip">
-          <property name="frameShape">
-           <enum>QFrame::Shape::NoFrame</enum>
+         <layout class="QHBoxLayout" name="peakLatencyRow">
+          <property name="spacing">
+           <number>6</number>
           </property>
-          <layout class="QHBoxLayout" name="initChipLayout">
-           <property name="leftMargin">
-            <number>10</number>
-           </property>
-           <property name="topMargin">
-            <number>3</number>
-           </property>
-           <property name="rightMargin">
-            <number>10</number>
-           </property>
-           <property name="bottomMargin">
-            <number>3</number>
-           </property>
-           <property name="spacing">
-            <number>6</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="initTimeLabel">
-             <property name="text">
-              <string>Init</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="initTimeValueLabel">
-             <property name="text">
-              <string notr="true"/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
+            <item>
+             <widget class="QFrame" name="peakChip">
+              <property name="frameShape">
+               <enum>QFrame::Shape::NoFrame</enum>
+              </property>
+              <layout class="QHBoxLayout" name="peakChipLayout">
+               <property name="leftMargin">
+                <number>8</number>
+               </property>
+               <property name="topMargin">
+                <number>3</number>
+               </property>
+               <property name="rightMargin">
+                <number>8</number>
+               </property>
+               <property name="bottomMargin">
+                <number>3</number>
+               </property>
+               <property name="spacing">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="peakGainLabel">
+                 <property name="text">
+                  <string>Peak</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="peakGainValueLabel">
+                 <property name="text">
+                  <string notr="true"/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="latencyChip">
+              <property name="frameShape">
+               <enum>QFrame::Shape::NoFrame</enum>
+              </property>
+              <layout class="QHBoxLayout" name="latencyChipLayout">
+               <property name="leftMargin">
+                <number>8</number>
+               </property>
+               <property name="topMargin">
+                <number>3</number>
+               </property>
+               <property name="rightMargin">
+                <number>8</number>
+               </property>
+               <property name="bottomMargin">
+                <number>3</number>
+               </property>
+               <property name="spacing">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="latencyLabel">
+                 <property name="text">
+                  <string>Lat</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="latencyValueLabel">
+                 <property name="text">
+                  <string notr="true"/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+         </layout>
         </item>
         <item row="7" column="0" colspan="2">
-         <widget class="QFrame" name="cpuChip">
-          <property name="frameShape">
-           <enum>QFrame::Shape::NoFrame</enum>
+         <layout class="QHBoxLayout" name="initCpuRow">
+          <property name="spacing">
+           <number>6</number>
           </property>
-          <layout class="QHBoxLayout" name="cpuChipLayout">
-           <property name="leftMargin">
-            <number>10</number>
-           </property>
-           <property name="topMargin">
-            <number>3</number>
-           </property>
-           <property name="rightMargin">
-            <number>10</number>
-           </property>
-           <property name="bottomMargin">
-            <number>3</number>
-           </property>
-           <property name="spacing">
-            <number>6</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="cpuUsageLabel">
-             <property name="text">
-              <string>CPU</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="cpuUsageValueLabel">
-             <property name="text">
-              <string notr="true"/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
+            <item>
+             <widget class="QFrame" name="initChip">
+              <property name="frameShape">
+               <enum>QFrame::Shape::NoFrame</enum>
+              </property>
+              <layout class="QHBoxLayout" name="initChipLayout">
+               <property name="leftMargin">
+                <number>8</number>
+               </property>
+               <property name="topMargin">
+                <number>3</number>
+               </property>
+               <property name="rightMargin">
+                <number>8</number>
+               </property>
+               <property name="bottomMargin">
+                <number>3</number>
+               </property>
+               <property name="spacing">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="initTimeLabel">
+                 <property name="text">
+                  <string>Init</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="initTimeValueLabel">
+                 <property name="text">
+                  <string notr="true"/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="cpuChip">
+              <property name="frameShape">
+               <enum>QFrame::Shape::NoFrame</enum>
+              </property>
+              <layout class="QHBoxLayout" name="cpuChipLayout">
+               <property name="leftMargin">
+                <number>8</number>
+               </property>
+               <property name="topMargin">
+                <number>3</number>
+               </property>
+               <property name="rightMargin">
+                <number>8</number>
+               </property>
+               <property name="bottomMargin">
+                <number>3</number>
+               </property>
+               <property name="spacing">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="cpuUsageLabel">
+                 <property name="text">
+                  <string>CPU</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="cpuUsageValueLabel">
+                 <property name="text">
+                  <string notr="true"/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+         </layout>
         </item>
         <item row="8" column="0" colspan="2">
          <spacer name="analysisControlSpacer">
@@ -432,19 +456,6 @@
          </spacer>
         </item>
        </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="AnalysisPlotView" name="graphicsView">
-       <property name="mouseTracking">
-        <bool>true</bool>
-       </property>
-       <property name="renderHints">
-        <set>QPainter::RenderHint::Antialiasing|QPainter::RenderHint::TextAntialiasing</set>
-       </property>
-       <property name="visible">
-        <bool>false</bool>
-       </property>
       </widget>
      </item>
     </layout>
@@ -629,9 +640,9 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>AnalysisPlotView</class>
-   <extends>QGraphicsView</extends>
-   <header>Editor/AnalysisPlotView.h</header>
+   <class>SegmentedControl</class>
+   <extends>QWidget</extends>
+   <header>Editor/widgets/SegmentedControl.h</header>
   </customwidget>
   <customwidget>
    <class>ExponentialSpinBox</class>

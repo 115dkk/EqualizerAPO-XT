@@ -15,6 +15,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QStringList>
 #include <QToolBar>
 #include <QWidget>
 #include <QtMath>
@@ -356,13 +357,31 @@ void paintMinimalGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& stat
 	painter.drawRect(state.rect.adjusted(0, 0, -1, -1));
 }
 
+// What the sheet is a record OF. A plotter sheet that does not say what it
+// plotted is not a record, and the two new metrics have no danger tag and no
+// dB in their figures to give it away. Magnitude keeps the RESPONSE masthead
+// it has printed since this graph existed.
+QString minimalSheetHeading(AnalysisMetric metric)
+{
+	switch (metric)
+	{
+	case AnalysisMetric::PhaseDegrees:
+		return QStringLiteral("PHASE");
+	case AnalysisMetric::GroupDelayMs:
+		return QStringLiteral("GROUP DELAY");
+	case AnalysisMetric::MagnitudeDb:
+		break;
+	}
+	return QStringLiteral("RESPONSE");
+}
+
 // The analysis dock's response graph as this skin's plotter sheet: the
 // measurement-record grammar of the GraphicEQ plot stretched into a wide
 // always-on lab chart. Straight lines land on half-pixel centres so they
-// stay crisp with antialiasing on. The sheet prints its own RESPONSE
-// header top-left, so an empty config's flat trace still reads as a
-// deliberate record; the footer channel/sample-rate caption is sheet
-// metadata, printed as-is (localized data) and elided, never overflowed.
+// stay crisp with antialiasing on. The sheet prints its own record header
+// top-left, so an empty config's flat trace still reads as a deliberate
+// record; the footer channel/sample-rate caption is sheet metadata, printed
+// as-is (localized data) and elided, never overflowed.
 void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens)
 {
 	const QColor ground(tokens.graph);
@@ -370,6 +389,10 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	const QColor gridMajor(tokens.graphGridMajor);
 	const QColor secondary(tokens.mutedText);
 	const QColor bodyInk(tokens.text);
+	// Every dB-only idea below is guarded on this. The magnitude sheet has to
+	// print exactly as it did before phase and group delay existed, so a
+	// branch that is not gated here is a regression, not an improvement.
+	const bool magnitudeSheet = state.metric == AnalysisMetric::MagnitudeDb;
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
@@ -405,9 +428,14 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		lastFigureRight = x + halfWidth;
 	}
 
-	// The dB figures live in the side margins. The margins are narrow, so
-	// the axis font follows the knob precedent: shrink to fit, never clip.
+	// The value figures are printed exactly as the axis prepared them,
+	// whichever metric is on the sheet. On a dB sheet they live in the side
+	// margins, which are narrow, so the axis font follows the knob precedent:
+	// shrink to fit, never clip. The other two metrics print theirs inboard
+	// (below) where the margin is not the constraint, and keep the sheet's one
+	// type size.
 	QFont axisFont(labelFont);
+	if (magnitudeSheet)
 	{
 		const double marginWidth = plotLeft - state.rect.left();
 		double widest = 0.0;
@@ -433,10 +461,31 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		if (!line.major && lastFigureY - y < 11.0)
 			continue;
 		painter.setPen(line.major ? bodyInk : secondary);
-		painter.drawText(QRectF(state.rect.left(), y - 6.0, plotLeft - state.rect.left() - 2.0, 12.0),
-			Qt::AlignRight | Qt::AlignVCenter, line.label);
-		painter.drawText(QRectF(plotRight + 2.0, y - 6.0, state.rect.right() - plotRight - 2.0, 12.0),
-			Qt::AlignLeft | Qt::AlignVCenter, line.label);
+		if (magnitudeSheet)
+		{
+			painter.drawText(QRectF(state.rect.left(), y - 6.0, plotLeft - state.rect.left() - 2.0, 12.0),
+				Qt::AlignRight | Qt::AlignVCenter, line.label);
+			painter.drawText(QRectF(plotRight + 2.0, y - 6.0, state.rect.right() - plotRight - 2.0, 12.0),
+				Qt::AlignLeft | Qt::AlignVCenter, line.label);
+		}
+		else
+		{
+			// A dB figure is three characters and the margins were cut to hold
+			// exactly that. "-360" and "+2.00" do not fit them at any legible
+			// size, and a figure that overflows its right-aligned box loses its
+			// sign first: the sheet would print a wrong number, which is worse
+			// than printing an ugly one. So on these sheets the scale moves
+			// inboard and each figure sits ON its own rule (the picker's
+			// caption-on-a-rule law), still at both edges because a 940px sheet
+			// is read from whichever side is nearer. A rule against the pane's
+			// top has no room above it and prints below instead. The trace is
+			// drawn after this and crosses the figures the way a plotter's pen
+			// crosses the scale already printed on the paper.
+			const double advance = QFontMetricsF(axisFont).horizontalAdvance(line.label);
+			const double baseline = y - plotTop < 12.0 ? y + 10.0 : y - 3.0;
+			painter.drawText(QPointF(plotLeft + 4.0, baseline), line.label);
+			painter.drawText(QPointF(plotRight - 4.0 - advance, baseline), line.label);
+		}
 		lastFigureY = y;
 	}
 
@@ -448,15 +497,24 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	// derived down): a raw semantic red at area strength hurt the eyes in
 	// both finishes - a terminal's error field is dim red, not neon.
 	QPainterPath overshoot;
-	const bool overshootValid = state.clipping && state.curve.size() >= 2 && state.zeroY > plotTop + 1.0;
+	const bool overshootValid = state.clipping && state.zeroY > plotTop + 1.0;
 	const bool darkSheet = ground.lightness() < 128;
 	if (overshootValid)
 	{
-		QPolygonF closed = state.curve;
-		closed.append(QPointF(state.curve.last().x(), state.zeroY));
-		closed.append(QPointF(state.curve.first().x(), state.zeroY));
-		overshoot.addPolygon(closed);
-		overshoot.closeSubpath();
+		// One closed block per printed piece of the trace. Clipping is a
+		// magnitude reading and magnitude prints in one piece, so in practice
+		// this records once; a record with gaps still gets a block per piece
+		// instead of one field spanning what was never measured.
+		for (const QPolygonF& segment : state.curves)
+		{
+			if (segment.size() < 2)
+				continue;
+			QPolygonF closed = segment;
+			closed.append(QPointF(segment.last().x(), state.zeroY));
+			closed.append(QPointF(segment.first().x(), state.zeroY));
+			overshoot.addPolygon(closed);
+			overshoot.closeSubpath();
+		}
 
 		// Dark sheet: a dim red field (phosphor's error register). Light
 		// sheet: a black-red block - on an ink-on-paper terminal the error
@@ -475,8 +533,14 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		painter.restore();
 	}
 
-	// The 0 dB rule: the one full-strength straight line, body ink 1px.
-	if (state.zeroY >= plotTop && state.zeroY <= plotBottom)
+	// The zero rule: the one full-strength straight line, body ink 1px. It
+	// prints only when the metric's zero lands inside the sheet. On the two new
+	// metrics that is often the sheet's own edge - a group delay keeps zero in
+	// its fit and measures upward from it, a descending phase starts at it - and
+	// the rule is printed there all the same, because a baseline drawn along the
+	// bottom or the top of a plotter sheet is still the axis the pen was zeroed
+	// against.
+	if (state.zeroVisible)
 	{
 		const double zeroY = qFloor(state.zeroY) + 0.5;
 		painter.setPen(QPen(bodyInk, 1));
@@ -485,19 +549,24 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 
 	// The response: a single 1px body-ink trace. No fill, no echo - the
 	// trace is data and the brightest line on the sheet. Inside the error
-	// block it inverts to ground ink (reverse video keeps the glyph).
-	if (state.curve.size() >= 2)
+	// block it inverts to ground ink (reverse video keeps the glyph). One
+	// pass per piece: where the metric has no reading the pen lifts off the
+	// sheet, and a stroke across the gap would print a measurement that was
+	// never taken.
+	for (const QPolygonF& segment : state.curves)
 	{
+		if (segment.size() < 2)
+			continue;
 		painter.setPen(QPen(bodyInk, 1));
 		painter.setBrush(Qt::NoBrush);
-		painter.drawPolyline(state.curve);
+		painter.drawPolyline(segment);
 		if (overshootValid)
 		{
 			painter.save();
 			painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
 			painter.setClipPath(overshoot, Qt::IntersectClip);
 			painter.setPen(QPen(ground, 1));
-			painter.drawPolyline(state.curve);
+			painter.drawPolyline(segment);
 			painter.restore();
 		}
 	}
@@ -512,7 +581,13 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		const double readingY = qFloor(state.curveYAtCursor) + 0.5;
 		painter.setPen(QPen(crosshairInk, 1));
 		painter.drawLine(QPointF(cursorX, plotTop), QPointF(cursorX, plotBottom));
-		painter.drawLine(QPointF(cursorX - 6.0, readingY), QPointF(cursorX + 6.0, readingY));
+		// The short tick IS the reading, so it only prints where there is one.
+		// Inside a null the metric has no value and curveYAtCursor falls back to
+		// the axis floor; a tick parked there would print a measurement that was
+		// never taken. The prepared readout is the state's own answer to whether
+		// the column has a value, and a magnitude column always has one.
+		if (magnitudeSheet || !state.cursorText.isEmpty())
+			painter.drawLine(QPointF(cursorX - 6.0, readingY), QPointF(cursorX + 6.0, readingY));
 	}
 
 	// Top-margin annotations: the engraved sheet header (plus the clip tag
@@ -525,7 +600,7 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	painter.setFont(captionFont);
 	painter.setPen(secondary);
-	const QString heading = QStringLiteral("RESPONSE");
+	const QString heading = minimalSheetHeading(state.metric);
 	painter.drawText(topBand, Qt::AlignLeft | Qt::AlignVCenter, heading);
 	if (state.clipping)
 	{
@@ -536,11 +611,36 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		painter.drawText(topBand.adjusted(headingWidth + 12.0, 0.0, 0.0, 0.0),
 			Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("!! OVER 0 DB"));
 	}
+	else if (!magnitudeSheet && !state.spanValueText.isEmpty())
+	{
+		// Figures first: the scale stays bare signed numbers in every metric,
+		// so the unit is named once, here, on the line that identifies the
+		// record. On a dB sheet the unit rode in the OVER tag and the cursor
+		// readout; phase and group delay have no tag, and a column of signed
+		// numbers that never names its unit is not a reading. The span arrives
+		// already formatted - a degree sign is never spelled in this file - and
+		// takes the slot the error tag holds on a magnitude sheet: one masthead,
+		// one register. It prints in the data register (plain, as-is) rather
+		// than the caption's tracked bold, because it carries values.
+		const double headingWidth = QFontMetricsF(captionFont).horizontalAdvance(heading);
+		painter.setFont(labelFont);
+		painter.drawText(topBand.adjusted(headingWidth + 12.0, 0.0, 0.0, 0.0),
+			Qt::AlignLeft | Qt::AlignVCenter, state.spanValueText);
+	}
 	if (state.cursorValid && !state.cursorText.isEmpty())
 	{
 		painter.setFont(labelFont);
 		painter.setPen(crosshairInk);
 		painter.drawText(topBand, Qt::AlignRight | Qt::AlignVCenter, state.cursorText);
+	}
+	else if (!magnitudeSheet && state.cursorValid)
+	{
+		// A terminal reports an empty result instead of dressing it up (the
+		// picker's NO MATCH law). The crosshair still names the frequency; the
+		// readout says the pen was off the sheet in that column.
+		painter.setFont(labelFont);
+		painter.setPen(secondary);
+		painter.drawText(topBand, Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("NO READING"));
 	}
 
 	// Sheet metadata on the bottom edge: the channel/sample-rate caption,
@@ -559,6 +659,153 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	painter.setPen(QPen(QColor(tokens.border), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRect(QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5));
+}
+
+// A row of mutually exclusive choices as this skin's selector field.
+//
+// The constitution already answers "pick one of a few": not a box you open,
+// but a caption wearing a caret over a single hairline underline (X5). A
+// segmented control is that same field with every choice printed at once, so
+// the underline stops being the field's decoration and becomes the mark that
+// says which word the field currently holds. No pill, no filled cell, no glow
+// - a fill would say "selected" in a sheet where a fill already says
+// "pressed", and a terminal has no third value to spend.
+//
+// One device per state, which is what keeps a monochrome control readable at
+// roughly 76x24: the travelling rule is the value, one background value step
+// (with the ink lifting to body brightness) is hover, the reverse block is the
+// press, the square accent hairline is focus, and the ink ladder alone carries
+// disabled. Every one of them is separable at a glance from the others.
+void paintMinimalSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens)
+{
+	if (state.labels.isEmpty())
+		return;
+
+	// Rules and blocks are crisp on the pixel grid; only the type is
+	// antialiased. Same law as the GraphicEQ plot.
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRect rect = state.rect;
+	const QColor bodyInk(tokens.text);
+	const QColor secondary(tokens.mutedText);
+	const QColor inverted(tokens.surface);
+
+	// The field's ground is the card step the other fields on the analysis bar
+	// stand on (stat chips, combos), so the control reads as one more field on
+	// the same printed form rather than a widget dropped onto it. Disabled
+	// sinks exactly one step below it.
+	painter.fillRect(rect, QColor(state.enabled ? tokens.card : tokens.surface));
+
+	QStringList words;
+	words.reserve(state.labels.size());
+	for (const QString& label : state.labels)
+		words.append(label.toUpper());
+	const int count = int(words.size());
+
+	// Uppercase tracked mono, one size for every cell (hierarchy is brightness
+	// and weight here, never size). A cramped cell shrinks the type the way the
+	// knob's figure does - never clipped - and only elides at the floor.
+	QFont font(tokens.monoFontFamily);
+	font.setPointSizeF(9.0);
+	font.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+	const double cellWidth = state.segmentRect(0).width();
+	const auto widestWord = [&words](const QFont& probe) {
+		// Measured bold: the chosen word is the widest one the cell must hold.
+		QFont heavy(probe);
+		heavy.setBold(true);
+		const QFontMetricsF metrics(heavy);
+		double widest = 0.0;
+		for (const QString& word : words)
+			widest = qMax(widest, metrics.horizontalAdvance(word));
+		return widest;
+	};
+	while (widestWord(font) > cellWidth - 10.0 && font.pointSizeF() > 6.5)
+		font.setPointSizeF(font.pointSizeF() - 0.5);
+
+	// The mark's rule sits under the type and clear of the field's bottom edge:
+	// an underlined word inside a slot, not a second frame line.
+	const int markY = rect.bottom() - qBound(3, rect.height() / 5, 6);
+	const QRectF typeBand(rect.left(), rect.top(), rect.width(), markY - rect.top());
+
+	for (int i = 0; i < count; i++)
+	{
+		const QRectF cell = state.segmentRect(i);
+		const bool pressedCell = state.enabled && state.pressedIndex == i;
+		const bool hoveredCell = state.enabled && state.hoveredIndex == i && !pressedCell;
+
+		// Cells are snapped to whole pixels before anything is filled, so a
+		// fractional cell edge never leaves a soft seam between two of them.
+		const QRect fill = QRect(qRound(cell.left()), rect.top() + 1,
+			qRound(cell.right()) - qRound(cell.left()), rect.height() - 2)
+			.intersected(rect.adjusted(1, 1, -1, -1));
+
+		QColor ink(secondary);
+		if (pressedCell)
+		{
+			// The engraved-command press: the cell swaps ink and ground. The
+			// choice is a word, so the swap holds (reverse video keeps the
+			// glyph) - the same block the add row and the toast close print.
+			painter.fillRect(fill, bodyInk);
+			ink = inverted;
+		}
+		else if (hoveredCell)
+		{
+			// Exactly one background value step, and the caption ink lifts to
+			// body brightness because the cell acts on click (the add row's
+			// hover law). The step alone is a couple of values on the dark
+			// console; the ink lift is what makes the hover arrive.
+			painter.fillRect(fill, QColor(tokens.cardHover));
+			ink = bodyInk;
+		}
+		else if (state.enabled && i == state.selectedIndex)
+		{
+			ink = bodyInk;
+		}
+
+		QFont cellFont(font);
+		cellFont.setBold(i == state.selectedIndex);
+		painter.setFont(cellFont);
+		painter.setPen(ink);
+		// Absolute tracking adds a step after the last glyph too, so a centred
+		// advance sits half a step right of true centre. Alignment is this
+		// skin's whole argument, so the half step is taken back.
+		const QRectF wordCell(cell.left() - 0.5, typeBand.top(), cell.width(), typeBand.height());
+		painter.drawText(wordCell, Qt::AlignCenter,
+			QFontMetricsF(cellFont).elidedText(words.at(i), Qt::ElideRight, cell.width() - 4.0));
+	}
+
+	// The mark reads selectionPosition, not selectedIndex, and sizes itself to
+	// the word it is under: running through three choices is one cursor moving
+	// between fields (stretching as it goes from MAG to PHASE), not three cells
+	// lighting up in turn. Accent stays out of it - a chosen metric is a value,
+	// not a live gesture, and the accent belongs to focus.
+	const double position = qBound(0.0, state.selectionPosition, double(count - 1));
+	const int low = qBound(0, qFloor(position), count - 1);
+	const int high = qMin(low + 1, count - 1);
+	const double travel = position - low;
+	QFont markFont(font);
+	markFont.setBold(true);
+	const QFontMetricsF markMetrics(markFont);
+	const double markWidth = qMin(cellWidth - 4.0,
+		markMetrics.horizontalAdvance(words.at(low)) * (1.0 - travel)
+		+ markMetrics.horizontalAdvance(words.at(high)) * travel + 6.0);
+	const double markCenter = state.segmentRect(position).center().x();
+	// Pressing the cell the mark is already under inverts the whole cell, so
+	// the rule inverts with the word it belongs to.
+	const bool markInverted = state.enabled && state.pressedIndex >= 0
+		&& state.pressedIndex == state.selectedIndex;
+	painter.setPen(QPen(!state.enabled ? secondary : (markInverted ? inverted : bodyInk), 1));
+	painter.drawLine(qRound(markCenter - markWidth / 2.0), markY,
+		qRound(markCenter + markWidth / 2.0), markY);
+
+	// The field's edge: one square 1px hairline. Keyboard focus swaps it for
+	// the accent hairline, the frame this skin puts around every focused
+	// control; the mark keeps body ink underneath so the armed field still
+	// says which cell it holds.
+	painter.setPen(QPen(QColor(state.focused && state.enabled ? tokens.focusRing : tokens.border), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(rect.adjusted(0, 0, -1, -1));
 }
 
 // Leading type glyph for the line head, plain ASCII for the mapped types so
@@ -642,6 +889,12 @@ public:
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const override
 	{
 		paintMinimalAnalysisGraph(painter, state, tokens);
+	}
+	// The metric switch (and, next in this campaign, an all-pass card's order):
+	// one control, one grammar, both uses.
+	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const override
+	{
+		paintMinimalSegmentedControl(painter, state, tokens);
 	}
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override
 	{

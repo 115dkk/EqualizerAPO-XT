@@ -40,7 +40,20 @@ QList<FilterTemplate> BiQuadFilterGUIFactory::createFilterTemplates()
 	list.append(FilterTemplate(tr("Low-shelf filter"), "Filter: ON LS Fc 100 Hz Gain 0 dB", path));
 	list.append(FilterTemplate(tr("High-shelf filter"), "Filter: ON HS Fc 100 Hz Gain 0 dB", path));
 	list.append(FilterTemplate(tr("Notch filter"), "Filter: ON NO Fc 100 Hz", path));
-	list.append(FilterTemplate(tr("All-pass filter"), "Filter: ON AP Fc 100 Hz Q 10", path));
+
+	// The all-pass sits under Phase & Time, not among the parametric filters.
+	// Every other entry in that group changes a level; this one cannot. Listing
+	// it beside them is a large part of why it read as a filter that does
+	// nothing - a user looking for a level control finds it, tries it, and
+	// hears no difference at all.
+	//
+	// Q 0.707 rather than the 10 this template used to create: Q 10 at 100 Hz
+	// concentrates a third of a second of group delay into a narrow band, which
+	// is a strange filter to hand someone as a starting point. Existing
+	// configurations keep whatever they were written with.
+	QStringList phasePath(tr("Phase & Time"));
+	list.append(FilterTemplate(tr("1st-order all-pass"), "Filter: ON AP Fc 100 Hz Order 1", phasePath));
+	list.append(FilterTemplate(tr("2nd-order all-pass"), "Filter: ON AP Fc 100 Hz Q 0.707 Order 2", phasePath));
 	return list;
 }
 

@@ -1,0 +1,2 @@
+Filter 1: ON AP Fc 500 Hz Order 1
+Filter 2: ON AP Fc 500 Hz Order 1

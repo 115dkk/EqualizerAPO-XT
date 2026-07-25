@@ -69,29 +69,14 @@ AnalysisThread::ResultLock::ResultLock(AnalysisThread& owner)
 {
 }
 
-fftw_complex* AnalysisThread::ResultLock::freqData() const
+std::shared_ptr<const AnalysisResponse> AnalysisThread::ResultLock::response() const
 {
-	return owner.resultFreqData.get();
-}
-
-int AnalysisThread::ResultLock::freqDataLength() const
-{
-	return owner.freqDataLength;
-}
-
-int AnalysisThread::ResultLock::freqDataSampleRate() const
-{
-	return owner.freqDataSampleRate;
+	return owner.resultResponse;
 }
 
 double AnalysisThread::ResultLock::peakGain() const
 {
 	return owner.peakGain;
-}
-
-int AnalysisThread::ResultLock::latency() const
-{
-	return owner.latency;
 }
 
 double AnalysisThread::ResultLock::initializationTime() const
@@ -217,7 +202,11 @@ void AnalysisThread::run()
 		if (frameCount != lastFrameCount)
 		{
 			auto newTimeData = fftw::allocateReal(frameCount);
-			auto newFreqData = fftw::allocateComplex(frameCount);
+			// A real-to-complex transform writes frameCount / 2 + 1 bins and
+			// nothing beyond them. Allocating frameCount of them, as this used
+			// to, wasted half the buffer and left the tail uninitialized for
+			// anyone who read the whole thing.
+			auto newFreqData = fftw::allocateComplex(AnalysisResponse::binCountFor(frameCount));
 			auto newPlan = fftw::makeRealToComplexPlan(frameCount, newTimeData.get(), newFreqData.get());
 			planForward.reset();
 			timeData = std::move(newTimeData);
@@ -302,17 +291,25 @@ void AnalysisThread::run()
 		{
 			latency = 0;
 			peakGain = -numeric_limits<double>::infinity();
-			std::fill_n(&freqData.get()[0][0], frameCount * 2, 0.0);
+			std::fill_n(&freqData.get()[0][0], AnalysisResponse::binCountFor(frameCount) * 2, 0.0);
 		}
+
+		// Built outside the lock: the copy out of the FFTW buffer is the only
+		// unavoidable one, and the UI should not wait behind it. Publishing is
+		// then a pointer swap, and what it points at is never touched again, so
+		// a reader can let go of the mutex and still build a curve safely.
+		auto response = std::make_shared<AnalysisResponse>();
+		response->sampleRate = static_cast<unsigned>(sampleRate);
+		response->fftSize = static_cast<size_t>(frameCount);
+		response->latencyFrames = latency;
+		const size_t binCount = AnalysisResponse::binCountFor(frameCount);
+		response->bins.resize(binCount);
+		for (size_t i = 0; i < binCount; i++)
+			response->bins[i] = std::complex<double>(freqData.get()[i][0], freqData.get()[i][1]);
 
 		{
 			QMutexLocker locker(&mutex);
-			if (this->freqDataLength != frameCount)
-				resultFreqData = fftw::allocateComplex(frameCount);
-			std::copy_n(&freqData.get()[0][0], frameCount * 2, &resultFreqData.get()[0][0]);
-			this->freqDataLength = frameCount;
-			this->freqDataSampleRate = sampleRate;
-			this->latency = latency;
+			this->resultResponse = std::move(response);
 			this->peakGain = peakGain;
 			this->initializationTime = initializationTime;
 			this->processingTime = processingTime;
@@ -327,11 +324,10 @@ void AnalysisThread::run()
 		{
 			qCritical("Analysis failed; worker remains available: %s", error);
 			QMutexLocker locker(&mutex);
-			resultFreqData.reset();
-			freqDataLength = 0;
-			freqDataSampleRate = 0;
+			// An empty response rather than a null one, so the graph clears
+			// instead of keeping the previous config's curve on screen.
+			resultResponse = std::make_shared<AnalysisResponse>();
 			peakGain = numeric_limits<double>::quiet_NaN();
-			latency = 0;
 			initializationTime = 0.0;
 			processingTime = 0.0;
 			processedFrames = 0;

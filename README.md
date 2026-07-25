@@ -17,7 +17,13 @@ Current work areas:
 1. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
 2. Acting on findings from the biweekly automated code audit.
 3. Refining the Editor skins from community feedback rounds (round 1: the Soft pastel rework, dark-mode state contrast, and the compact analysis panel; round 3: the modern GraphicEQ card, the insertion contract and the skinned Device Selector, [#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
-4. Editors for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) — complete. Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, custom-coefficient IIR lines have their own card, and lines with inline `` `expression` `` parameters keep their card in a dynamic mode ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
+4. Phase and time. The analysis graph now switches between magnitude, phase and
+   group delay, the all-pass filter has its own card and a 1st-order section,
+   and `Delay` and the all-pass share a "Phase & Time" group in the picker. An
+   all-pass changes nothing about level, so a magnitude-only graph could never
+   show one ([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228),
+   [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
+5. Editors for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) — complete. Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, custom-coefficient IIR lines have their own card, and lines with inline `` `expression` `` parameters keep their card in a dynamic mode ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
 
 ## Features
 

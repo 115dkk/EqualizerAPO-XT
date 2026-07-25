@@ -47,6 +47,15 @@ static wregex regexGain(L"\\s+Gain\\s*([-+0-9.eE]+)\\s*dB");
 static wregex regexQ(L"\\s+Q\\s*([-+0-9.eE]+)");
 static wregex regexBW(L"\\s+BW\\s+Oct\\s*([-+0-9.eE]+)");
 static wregex regexSlope(L"^\\s*([-+0-9.eE]+)\\s*dB");
+// The section order, currently only meaningful for an all-pass.
+//
+// A parameter rather than a new type keyword ("AP1"), because the type regex
+// above accepts letters only: a digit in the keyword would be cut off the type
+// token and drift into the parameters, where it would be read as part of
+// something else. "Order" is also already the word this format uses for the
+// same idea in "Filter: ON IIR Order <m> Coefficients ...", so the vocabulary
+// does not grow.
+static wregex regexOrder(L"\\s+Order\\s*([0-9]+)");
 
 // Lowercase description used only in the parse trace/log messages. Kept local
 // (and separate from the capitalized biquadTypeTitle the GUI shows) so the
@@ -71,6 +80,8 @@ static const wchar_t* typeLogDescription(BiQuad::Type type)
 		return L"notch";
 	case BiQuad::ALL_PASS:
 		return L"all-pass";
+	case BiQuad::ALL_PASS_1:
+		return L"1st-order all-pass";
 	}
 	return L"";
 }
@@ -115,6 +126,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	double bandwidthOrQOrS = 0;
 	bool isBandwidthOrS = false;
 	bool isCornerFreq = false;
+	bool orderWasExplicit = false;
 	bool error = false;
 
 	found = regex_search(parameters, match, regexFreq);
@@ -187,6 +199,41 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		}
 	}
 
+	found = regex_search(parameters, match, regexOrder);
+	if (found)
+	{
+		if (type != BiQuad::ALL_PASS)
+			TraceFStatic(L"Ignoring order for filter of type %s", typeDescription);
+		else
+		{
+			const wstring orderString = match.str(1);
+			const long order = wcstol(orderString.c_str(), nullptr, 10);
+			if (order == 1)
+			{
+				type = BiQuad::ALL_PASS_1;
+				typeDescription = typeLogDescription(type);
+				stream << L" as a 1st-order section";
+			}
+			else if (order != 2)
+			{
+				LogFStatic(L"Order must be 1 or 2 in filter string %s%s", typeString.c_str(), parameters.c_str());
+				error = true;
+			}
+			orderWasExplicit = true;
+		}
+	}
+
+	if (type == BiQuad::ALL_PASS_1 && bandwidthOrQOrS != 0)
+	{
+		// A 1st-order section has no width: how fast its phase turns is fixed
+		// by Fc alone. A Q or bandwidth on such a line is not an error - a user
+		// who switches an existing filter to 1st order leaves one behind - but
+		// it is discarded, and said so, the way a gain on an all-pass is.
+		TraceFStatic(L"Ignoring width for filter of type %s", typeDescription);
+		bandwidthOrQOrS = 0;
+		isBandwidthOrS = false;
+	}
+
 	if (!std::isfinite(freq) || !std::isfinite(gain) || !std::isfinite(bandwidthOrQOrS))
 	{
 		LogFStatic(L"Filter parameters must be finite in filter string %s%s",
@@ -235,6 +282,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	out.bandwidthOrQOrS = bandwidthOrQOrS;
 	out.isBandwidthOrS = isBandwidthOrS;
 	out.isCornerFreq = isCornerFreq;
+	out.orderWasExplicit = orderWasExplicit;
 	out.enabled = true;
 	return true;
 }

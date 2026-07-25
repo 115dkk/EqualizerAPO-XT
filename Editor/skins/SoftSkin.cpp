@@ -620,7 +620,7 @@ public:
 
 		// Major-only grid, the border sunk most of the way into the well;
 		// straight lines stay crisp with antialiasing off. The horizontal
-		// majors' only member is the 0 dB row, which the soft notch draws
+		// majors' only member is the zero row, which the soft notch draws
 		// itself, so only the frequency decades remain - whitespace does the
 		// rest (tiebreaker).
 		painter.setRenderHint(QPainter::Antialiasing, false);
@@ -635,13 +635,73 @@ public:
 		// The response terrain: opaque pastel masses split at the ground line
 		// by clip rects, so the semantic colour change lands exactly on the
 		// zero crossing (the GraphicEQ instrument's seam trick). Each pass
-		// lays the mass, then its warm-ink stroke on the terrain edge.
-		if (state.curve.size() >= 2)
+		// lays the mass, then its warm-ink stroke on the terrain edge. One
+		// landscape per piece of the response: where the metric has no reading
+		// the ground simply ends, because a mass carried across that gap would
+		// show a hill nobody measured.
+		//
+		// Terrain is a landscape of LEVEL, so only magnitude gets it. The two
+		// metrics that are not levels answer in their own form below, sharing
+		// this instrument's vocabulary - the knob track's pale body pastel,
+		// the warm-ink edge stroke, rounded ends everywhere - but not its
+		// masses, and never its danger side: rising above the ground is only
+		// dangerous when the quantity is a gain.
+		const bool magnitude = state.metric == AnalysisMetric::MagnitudeDb;
+		const QColor bodyPastel = mixColor(accent, well, 0.68);
+		const QColor traceInk = mixColor(accent, warmInk, 0.40);
+		for (const QPolygonF& segment : state.curves)
 		{
+			if (segment.size() < 2)
+				continue;
+
+			if (!magnitude)
+			{
+				if (state.metric == AnalysisMetric::PhaseDegrees)
+				{
+					// A turn is not a height above anything, so there is no
+					// mass to lay. A fill to zero would say "how far from
+					// unity gain" about a quantity that has no gain, and since
+					// an all-pass's phase only descends, zero sits on the top
+					// wall and that fill swallows the whole pane. What a phase
+					// is, is a path - so it gets the knob's track law instead:
+					// the always-visible pale pastel ribbon with the deeper
+					// value-arc ink riding it. The rounded ends are what make
+					// a piece honest; where the phase has no reading the
+					// ribbon simply stops instead of being carried across.
+					painter.setPen(QPen(bodyPastel, 9.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+					painter.drawPolyline(segment);
+				}
+				else
+				{
+					// A group delay is a WAIT, measured from no delay at all,
+					// and this skin already draws a level standing on a line:
+					// the GraphicEQ's rounded stems. One stem every roomy
+					// step, grown from the ground to the reading, so that a
+					// plain Delay - every pitch held back by the same amount -
+					// reads as a calm even comb instead of the solid slab a
+					// filled mass would make of it. Whitespace between the
+					// stems does the rest (tiebreaker). The stems are spaced
+					// off the pane's own left edge, not off each piece, so the
+					// comb stays in step across a break.
+					const double ground = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
+					painter.setPen(QPen(bodyPastel, 5.0, Qt::SolidLine, Qt::RoundCap));
+					for (const QPointF& point : segment)
+					{
+						if (qRound(point.x() - state.plotRect.left()) % 26 != 0)
+							continue;
+						painter.drawLine(QPointF(point.x(), ground), point);
+					}
+				}
+				painter.setPen(QPen(traceInk, 3.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawPolyline(segment);
+				continue;
+			}
+
 			const double base = qBound(state.plotRect.top(), state.zeroY, state.plotRect.bottom());
-			QPolygonF terrain = state.curve;
-			terrain.append(QPointF(state.curve.last().x(), base));
-			terrain.prepend(QPointF(state.curve.first().x(), base));
+			QPolygonF terrain = segment;
+			terrain.append(QPointF(segment.last().x(), base));
+			terrain.prepend(QPointF(segment.first().x(), base));
 
 			const QColor overFill(state.clipping ? tokens.warning : tokens.success);
 			const qreal splitY = qBound(frame.top(), qreal(state.zeroY), frame.bottom());
@@ -658,15 +718,24 @@ public:
 				painter.drawPolygon(terrain);
 				painter.setPen(QPen(mixColor(side, warmInk, 0.40), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 				painter.setBrush(Qt::NoBrush);
-				painter.drawPolyline(state.curve);
+				painter.drawPolyline(segment);
 				painter.restore();
 			}
 		}
 
-		// The calm ground line: the soft 0 dB notch, rounded ends floating
+		// The calm ground line: the soft zero notch, rounded ends floating
 		// clear of the well walls, laid over the masses so the ground level
-		// reads through the hills.
-		if (state.zeroY >= state.plotRect.top() && state.zeroY <= state.plotRect.bottom())
+		// reads through the hills. Drawn only while zero is really inside the
+		// fitted range - and, for the metrics that can push it onto a frame
+		// edge (a group delay that never goes negative, a phase that only
+		// descends), only while it is far enough inside to be a landmark. A
+		// notch lying along the floor is read as the floor. Magnitude fits
+		// symmetrically, so its ground is always the middle of the pane and
+		// this clearance never applies to it.
+		const bool groundIsLandmark = state.zeroVisible
+			&& (magnitude || (state.zeroY > state.plotRect.top() + 6.0
+				&& state.zeroY < state.plotRect.bottom() - 6.0));
+		if (groundIsLandmark)
 		{
 			painter.setPen(QPen(withAlpha(QColor(tokens.text), 110), 2, Qt::SolidLine, Qt::RoundCap));
 			painter.drawLine(QPointF(state.plotRect.left() + 6.0, state.zeroY),
@@ -697,10 +766,12 @@ public:
 			painter.drawText(labelRect, align | Qt::AlignTop, line.label);
 		}
 
-		// The dB figures rest just above their (unpainted) rows along the
+		// The value figures rest just above their (unpainted) rows along the
 		// left edge, thinned to a calm cadence when the fitted range packs
-		// the rows tighter than a caption, anchored at the 0 dB ground so
-		// the kept figures stay symmetric around it.
+		// the rows tighter than a caption, anchored at the zero ground so
+		// the kept figures stay symmetric around it. They arrive already
+		// worded for whichever metric is showing, so nothing here spells a
+		// unit.
 		int groundIndex = 0;
 		for (int i = 0; i < state.horizontal.size(); i++)
 		{
@@ -769,6 +840,49 @@ public:
 			}
 		}
 
+		// Naming what is on the pane. Everybody knows a dB, and the grid
+		// figures are bare signed numbers in every metric, so under phase and
+		// group delay nothing here would say what those numbers count. This is
+		// the skin that names things: a quiet chip carries the quantity with
+		// the unit the state handed over (never a unit spelled here), and the
+		// plain-language line beside it says what the view means - the same
+		// voice as the clip advice, and the answer to why the magnitude view
+		// of these filters looked like nothing was happening. The row starts
+		// past the value-figure column so it can never sit on a figure,
+		// however tightly the fitted range packs the rows.
+		if (!magnitude)
+		{
+			const bool phase = state.metric == AnalysisMetric::PhaseDegrees;
+			const QString name = phase
+				? QCoreApplication::translate("SoftSkin", "Phase in %1").arg(state.unit)
+				: QCoreApplication::translate("SoftSkin", "Delay in %1").arg(state.unit);
+			const QString meaning = phase
+				? QCoreApplication::translate("SoftSkin", "How far each pitch is turned - the volume stays the same")
+				: QCoreApplication::translate("SoftSkin", "How long each pitch is held back before you hear it");
+
+			const QFontMetrics nameMetrics(labelFont);
+			const qreal chipH = 18.0;
+			const qreal chipW = nameMetrics.horizontalAdvance(name) + 16.0;
+			const QRectF chip(state.plotRect.left() + 58.0, state.plotRect.top() + 6.0, chipW, chipH);
+			painter.setPen(QPen(border, 1));
+			painter.setBrush(QColor(tokens.card));
+			painter.drawRoundedRect(chip, chipH / 2.0, chipH / 2.0);
+			painter.setPen(QColor(tokens.text));
+			painter.drawText(chip, Qt::AlignCenter, name);
+
+			// The sentence stops well short of the readout pill's corner, and
+			// stands down entirely when the pane is too narrow to hold it -
+			// a clipped explanation explains nothing.
+			const QRectF meaningRect(chip.right() + 10.0, chip.top(),
+				qMax(0.0, state.plotRect.right() - 150.0 - chip.right() - 10.0), chipH);
+			if (meaningRect.width() >= 120.0)
+			{
+				painter.setPen(labelInk);
+				painter.drawText(meaningRect, Qt::AlignLeft | Qt::AlignVCenter,
+					nameMetrics.elidedText(meaning, Qt::ElideRight, int(meaningRect.width())));
+			}
+		}
+
 		// The cursor: a soft vertical notch guide (the detent grammar stood
 		// upright), a rounded lens dot sitting on the response in its side's
 		// pastel, and the readout as an ON-pastel stadium pill in the well's
@@ -786,15 +900,24 @@ public:
 
 			// The lens: an elevated card face wearing its side's warm-ink
 			// ring under a quiet text-ink halo, so it reads both on a
-			// terrain mass of the same pastel and on the bare well.
-			const bool overshoot = state.curveYAtCursor < state.zeroY - 0.5;
+			// terrain mass of the same pastel and on the bare well. Above the
+			// ground means "louder than unity" only where the quantity is a
+			// gain, so the level colours are magnitude's alone; a phase or a
+			// wait has no dangerous side and keeps the calm accent all the way
+			// across. And a column the metric has no reading for gets the
+			// guide but no lens: the pointer's frequency is real, while a dot
+			// parked on the axis edge would claim a value nobody measured.
+			const bool overshoot = magnitude && state.curveYAtCursor < state.zeroY - 0.5;
 			const QColor lensSide = overshoot ? QColor(state.clipping ? tokens.warning : tokens.success) : accent;
-			painter.setPen(QPen(withAlpha(QColor(tokens.text), 70), 3));
-			painter.setBrush(Qt::NoBrush);
-			painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 7.5, 7.5);
-			painter.setPen(QPen(mixColor(lensSide, warmInk, 0.40), 2));
-			painter.setBrush(QColor(tokens.card));
-			painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 5.0, 5.0);
+			if (magnitude || !state.cursorText.isEmpty())
+			{
+				painter.setPen(QPen(withAlpha(QColor(tokens.text), 70), 3));
+				painter.setBrush(Qt::NoBrush);
+				painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 7.5, 7.5);
+				painter.setPen(QPen(mixColor(lensSide, warmInk, 0.40), 2));
+				painter.setBrush(QColor(tokens.card));
+				painter.drawEllipse(QPointF(state.cursor.x(), state.curveYAtCursor), 5.0, 5.0);
+			}
 
 			if (!state.cursorText.isEmpty())
 			{
@@ -820,6 +943,136 @@ public:
 		painter.setPen(QPen(border, 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawPath(wellPath);
+	}
+
+	// A row of mutually exclusive choices, in the grammar this skin already
+	// owns for "pick one of these": the matched bank of equal-width stadium
+	// pills (the Stage card's switch bank, the Phase 2 pill states). The bank
+	// is bound into one object by a sunken track - the value-scrub well's
+	// ground - so it reads as one setting with three positions instead of
+	// three toggles that happen to sit together, and the choice itself wears
+	// the ON grammar every switched-on thing here wears: an opaque pastel
+	// fill under deep warm ink.
+	//
+	// The pill TRAVELS. It is drawn at selectionPosition, and each label's ink
+	// warms in proportion to how much of the pill has arrived over its cell,
+	// so running through three choices is one pastel object walking to its
+	// next slot rather than three cells blinking. Sliding is the settings-app
+	// gesture this skin is modelled on; switching belongs to the skins with
+	// harder edges. One control for both of its uses (the analysis metric, an
+	// all-pass's order) - a second convention for the same job would be a
+	// second thing to learn.
+	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const override
+	{
+		if (state.labels.isEmpty())
+			return;
+
+		painter.save();
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+		const QColor accent(tokens.accent);
+		const QColor warmInk(QStringLiteral("#2B251D"));
+		const bool asleep = !state.enabled;
+
+		// The ground: one elevation step down, closed by the very light 1px
+		// border. No shadow, ever. Asleep it is the sleeping-slot triple -
+		// sunk into the window background, dashed outline, muted ink - which
+		// is an empty slot, not an alarm.
+		const QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+		const qreal trackRadius = frame.height() / 2.0;
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(asleep ? QColor(tokens.background) : QColor(tokens.surfaceSunken));
+		painter.drawRoundedRect(frame, trackRadius, trackRadius);
+
+		// Roomy on every side, so the mark is a stadium inside a stadium and
+		// the cells keep a visible gap between them. Nothing divides the cells
+		// but that gap - dividing hairlines are the neighbours' vocabulary.
+		const qreal inset = qBound(2.0, frame.height() / 7.0, 4.0);
+		const auto pillOf = [&](double index) {
+			return state.segmentRect(index).adjusted(inset, inset, -inset, -inset);
+		};
+		const QRectF mark = pillOf(state.selectionPosition);
+		const qreal pillRadius = mark.height() / 2.0;
+
+		// Hover on a cell that is not the choice: exactly one step up from the
+		// sunken ground, with the scrub well's pale accent edge. The step
+		// alone is a few units of lightness in the light theme, which is the
+		// kind of state that passes review and is invisible on a real panel,
+		// so the edge carries it there.
+		if (!asleep && state.hoveredIndex >= 0 && state.hoveredIndex != state.selectedIndex
+			&& state.hoveredIndex != state.pressedIndex)
+		{
+			const QRectF hoverPill = pillOf(state.hoveredIndex);
+			painter.setPen(QPen(withAlpha(accent, 128), 1));
+			painter.setBrush(QColor(tokens.surface));
+			painter.drawRoundedRect(hoverPill, pillRadius, pillRadius);
+		}
+
+		// Pressed on another cell: the knob's always-visible track pastel (the
+		// scope arm's resting mix), the choice on its way but not yet made -
+		// the release makes it. It stays a step below the ON pill on purpose,
+		// so a press never competes with the current choice for the eye.
+		// Pressing the current choice deepens its own pastel instead, the ON
+		// ladder the add row's disc climbs.
+		if (!asleep && state.pressedIndex >= 0 && state.pressedIndex != state.selectedIndex)
+		{
+			const QRectF pressPill = pillOf(state.pressedIndex);
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(mixColor(accent, QColor(tokens.card), 0.78));
+			painter.drawRoundedRect(pressPill, pillRadius, pillRadius);
+		}
+
+		QColor markFill = accent;
+		if (asleep)
+			markFill = mixColor(accent, QColor(tokens.background), 0.62);
+		else if (state.pressedIndex == state.selectedIndex)
+			markFill = mixColor(accent, warmInk, 0.18);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(markFill);
+		painter.drawRoundedRect(mark, pillRadius, pillRadius);
+
+		QFont font = painter.font();
+		font.setWeight(QFont::DemiBold);
+		painter.setFont(font);
+		const QFontMetricsF metrics(font);
+		for (int i = 0; i < state.labels.size(); i++)
+		{
+			const QRectF cell = state.segmentRect(i);
+			// How much of the travelling pill has arrived over this cell: 1 on
+			// the chosen cell at rest, 0 everywhere else, and split between
+			// two cells while it walks. The ink crosses over exactly as the
+			// pastel does, so the label is never dark warm ink on the ground.
+			const double arrival = mark.width() > 0.0
+				? qBound(0.0, mark.intersected(cell).width() / mark.width(), 1.0)
+				: 0.0;
+			QColor resting(tokens.mutedText);
+			if (!asleep && (i == state.hoveredIndex || i == state.pressedIndex))
+				resting = QColor(tokens.text);
+			painter.setPen(asleep ? QColor(tokens.mutedText) : mixColor(resting, warmInk, arrival));
+			painter.drawText(cell, Qt::AlignCenter,
+				metrics.elidedText(state.labels.at(i), Qt::ElideRight,
+					int(qMax(8.0, cell.width() - inset * 2.0 - 6.0))));
+		}
+
+		// Focus is the quiet halo (alpha 90, 3px) hugging the inside of the
+		// track, never a hard ring.
+		if (state.focused && !asleep)
+		{
+			painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 90), 3));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRoundedRect(frame.adjusted(1.5, 1.5, -1.5, -1.5),
+				qMax(0.0, trackRadius - 1.5), qMax(0.0, trackRadius - 1.5));
+		}
+
+		QPen edge(QColor(tokens.border), 1);
+		if (asleep)
+			edge.setStyle(Qt::DashLine);
+		painter.setPen(edge);
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRoundedRect(frame, trackRadius, trackRadius);
+
+		painter.restore();
 	}
 
 	// The plain-text rows (bare note lines and programmatic commands such

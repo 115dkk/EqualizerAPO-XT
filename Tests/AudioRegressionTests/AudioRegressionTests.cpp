@@ -106,6 +106,37 @@ const TestCase kCases[] = {
 	// enough for a stored reference; State 0 keeps the factory + parameter
 	// parsing covered without that non-determinism.
 	{ "loudnesscorrection_bypassed", "loudnesscorrection_bypassed.txt", SignalType::ImpulseStereo, 48000, 2, 256, 64 },
+	// All-pass, added for the reform in issue #228. An all-pass is flat, so an
+	// impulse response is the only thing that can catch a change in it: the
+	// whole filter lives in where the energy lands in time, not in how much
+	// there is. These three baselines exist so the Editor-side work can prove
+	// it left the engine alone.
+	//
+	// q0707 is the width the reform makes the default for new filters, q10 is
+	// the width the current template creates and existing configs therefore
+	// carry, and bw1oct is the case the Editor silently rewrites to "Q 1"
+	// today - the one baseline that has to change meaning only when the fix
+	// lands, and not before.
+	//
+	// 8192 frames at 512 covers the ring-down: the longest of the three is
+	// bw1oct, whose group delay at 80 Hz is around 540 samples.
+	{ "allpass_q0707",       "allpass_q0707.txt",       SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "allpass_q10",         "allpass_q10.txt",         SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "allpass_bw1oct",      "allpass_bw1oct.txt",      SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	// The 1st-order section, which the config grammar reaches through
+	// "Order 1". It is not a preset of the 2nd-order one: no choice of Q makes
+	// a 2nd-order section turn half a circle, so this is the only way to get a
+	// 90-degree crossing.
+	{ "allpass_order1_fc100",  "allpass_order1_fc100.txt",  SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "allpass_order1_fc1000", "allpass_order1_fc1000.txt", SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	// The identity that anchors the whole 1st-order derivation, at the level a
+	// user would hear it: two 1st-order sections at one frequency are one
+	// 2nd-order section at Q 0.5. These two cases are separate configurations
+	// whose baselines are byte-identical to each other, which is a stronger
+	// statement than either baseline alone. HybridConvTests proves the same
+	// thing on the coefficients.
+	{ "allpass_order1_x2",     "allpass_order1_x2.txt",     SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	{ "allpass_order2_q05",    "allpass_order2_q05.txt",    SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
 };
 
 bool writeCaseManifest(const std::wstring& directory)

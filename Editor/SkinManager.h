@@ -20,6 +20,7 @@ struct CommandRowInfo;
 struct GraphicEQPlotState;
 struct KnobState;
 struct ListChromeState;
+struct SegmentedControlState;
 
 class SkinManager : public QObject
 {
@@ -77,6 +78,11 @@ public:
 	// The analysis dock's response graph (ISkin::paintAnalysisGraph). In
 	// heritage mode the neutral base rendering answers with the classic look.
 	void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state) const;
+
+	// A row of mutually exclusive choices (ISkin::paintSegmentedControl). Like
+	// the analysis graph, heritage mode answers with the neutral base rendering
+	// so no skin instrument leaks into legacy rows.
+	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state) const;
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;

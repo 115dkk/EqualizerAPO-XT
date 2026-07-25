@@ -143,9 +143,16 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EditorLogicTests.cpp" />
+    <ClCompile Include="AnalysisResponseTests.cpp" />
+    <ClCompile Include="ResponseCurveBuilderTests.cpp" />
+    <ClCompile Include="PhaseCurveTests.cpp" />
+    <ClCompile Include="BiQuadWidthConversionTests.cpp" />
     <ClCompile Include="ConfigFileCodecTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
+    <ClCompile Include="..\..\Editor\analysis\AnalysisResponse.cpp" />
+    <ClCompile Include="..\..\Editor\analysis\ResponseCurveBuilder.cpp" />
+    <ClCompile Include="..\..\Editor\guis\BiQuadWidthConversion.cpp" />
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp" />
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />

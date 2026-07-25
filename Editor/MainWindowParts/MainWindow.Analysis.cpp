@@ -1,6 +1,7 @@
 #include <sstream>
 #include <QDrag>
 #include <QElapsedTimer>
+#include <QCheckBox>
 #include <QLabel>
 #include <QMimeData>
 #include <QPushButton>
@@ -19,6 +20,10 @@
 #include <windows.h>
 #include <shellapi.h>
 
+#include "Editor/analysis/AnalysisMetric.h"
+#include "Editor/analysis/AnalysisViewController.h"
+#include "Editor/widgets/EqGraphView.h"
+#include "Editor/widgets/SegmentedControl.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
@@ -79,15 +84,124 @@ void MainWindow::on_resolutionSpinBox_valueChanged(int value)
 	startAnalysis();
 }
 
+namespace
+{
+// Stored as words rather than as the enum's numbers, so a settings file stays
+// readable and an enum that grows a member later cannot silently reinterpret an
+// old value.
+QString metricSettingName(AnalysisMetric metric)
+{
+	switch (metric)
+	{
+	case AnalysisMetric::PhaseDegrees:
+		return QStringLiteral("phase");
+	case AnalysisMetric::GroupDelayMs:
+		return QStringLiteral("group-delay");
+	case AnalysisMetric::MagnitudeDb:
+		break;
+	}
+	return QStringLiteral("magnitude");
+}
+
+// Anything unrecognized falls back to magnitude, which is what an existing
+// user's first launch has to look like.
+AnalysisMetric metricFromSettingName(const QString& name)
+{
+	if (name == QStringLiteral("phase"))
+		return AnalysisMetric::PhaseDegrees;
+	if (name == QStringLiteral("group-delay"))
+		return AnalysisMetric::GroupDelayMs;
+	return AnalysisMetric::MagnitudeDb;
+}
+
+int metricIndex(AnalysisMetric metric)
+{
+	switch (metric)
+	{
+	case AnalysisMetric::PhaseDegrees:
+		return 1;
+	case AnalysisMetric::GroupDelayMs:
+		return 2;
+	case AnalysisMetric::MagnitudeDb:
+		break;
+	}
+	return 0;
+}
+
+AnalysisMetric metricAtIndex(int index)
+{
+	switch (index)
+	{
+	case 1:
+		return AnalysisMetric::PhaseDegrees;
+	case 2:
+		return AnalysisMetric::GroupDelayMs;
+	default:
+		return AnalysisMetric::MagnitudeDb;
+	}
+}
+}
+
+void MainWindow::setupAnalysisMetricControls()
+{
+	// Three abbreviations rather than three words: the control bar is capped at
+	// 250px wide and this control gets no label column, so the cells have to
+	// carry the whole width themselves.
+	ui->analysisMetricSegment->setLabels({tr("Mag"), tr("Phase"), tr("GD")});
+	ui->analysisMetricSegment->setToolTip(tr("What the graph shows: magnitude in dB, phase in degrees, or group delay in ms."));
+	ui->includeBaseDelayCheckBox->setToolTip(
+		tr("The analyzer removes the configuration's bulk delay before measuring, so a filter's own phase is readable. "
+		   "Switch this on to put that delay back into the reading."));
+
+	QSettings settings;
+	const AnalysisMetric metric = metricFromSettingName(
+		settings.value(QStringLiteral("analysis/viewMetric")).toString());
+	const bool includeLatency = settings.value(QStringLiteral("analysis/includeLatency"), false).toBool();
+
+	ui->analysisMetricSegment->setCurrentIndex(metricIndex(metric));
+	ui->includeBaseDelayCheckBox->setChecked(includeLatency);
+	if (eqGraphView != nullptr)
+	{
+		eqGraphView->setMetric(metric);
+		eqGraphView->setIncludeLatency(includeLatency);
+	}
+	// The base-delay option only means anything where the delay shows: it
+	// cannot change a magnitude. The choice is still remembered while hidden.
+	ui->includeBaseDelayCheckBox->setVisible(metric != AnalysisMetric::MagnitudeDb);
+
+	connect(ui->analysisMetricSegment, &SegmentedControl::currentIndexChanged, this, [this](int index) {
+		const AnalysisMetric chosen = metricAtIndex(index);
+		if (eqGraphView != nullptr)
+			eqGraphView->setMetric(chosen);
+		ui->includeBaseDelayCheckBox->setVisible(chosen != AnalysisMetric::MagnitudeDb);
+		QSettings().setValue(QStringLiteral("analysis/viewMetric"), metricSettingName(chosen));
+	});
+	connect(ui->includeBaseDelayCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
+		if (eqGraphView != nullptr)
+			eqGraphView->setIncludeLatency(checked);
+		QSettings().setValue(QStringLiteral("analysis/includeLatency"), checked);
+	});
+
+	// A filter card can ask for a reading that makes its own filter legible.
+	// Routed through the switch rather than straight to the graph: a graph
+	// showing phase under a switch that still reads "Mag" would be a lie about
+	// what the user is looking at, and the switch's own handler already does
+	// the rest (the graph, the base-delay row, the stored preference).
+	connect(AnalysisViewController::instance(), &AnalysisViewController::metricRequested,
+		this, [this](AnalysisMetric metric) {
+			ui->analysisMetricSegment->setCurrentIndex(metricIndex(metric));
+		});
+}
+
 void MainWindow::updateAnalysisPanel()
 {
 	auto result = analysisThread->lockResult();
-	int sampleRate = result.freqDataSampleRate();
-	int latency = result.latency();
+	const std::shared_ptr<const AnalysisResponse> response = result.response();
+	const int sampleRate = static_cast<int>(response->sampleRate);
+	const int latency = response->latencyFrames;
 	const QString errorText = result.errorText();
-	analysisPlotScene->setFreqData(result.freqData(), result.freqDataLength(), sampleRate);
 	if (eqGraphView != nullptr)
-		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
+		eqGraphView->setResponse(response, ui->analysisChannelComboBox->currentText());
 
 	// Hand the engine's per-line load facts to every open tab whose file took
 	// part in this load. A tab whose file was
@@ -148,7 +262,13 @@ void MainWindow::updateAnalysisPanel()
 		return;
 	}
 
-	ui->latencyValueLabel->setText(tr("%0 ms (%1 s.)").arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
+	// Milliseconds only. The frame count moved to the tooltip when the metric
+	// switch and the base-delay option joined this bar: two readouts now share
+	// a row, and "0.0 ms (0 s.)" does not fit beside another one inside the
+	// bar's 250px cap.
+	ui->latencyValueLabel->setText(tr("%0 ms").arg(latency * 1000.0 / sampleRate, 0, 'f', 1));
+	ui->latencyChip->setToolTip(tr("%0 ms (%1 samples) of latency the analyzer removed before measuring")
+		.arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
 
 	ui->initTimeValueLabel->setText(tr("%0 ms").arg(result.initializationTime(), 0, 'f', 1));
 

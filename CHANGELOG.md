@@ -14,6 +14,41 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- The all-pass filter is now something you can see and set. It was always in the
+  configuration reference, but everything about the Editor treated it as a row in
+  an import-compatibility table: it sat among the level filters, it was created
+  at `Q 10`, and the analysis graph - which only ever drew magnitude - showed it
+  as a straight line at 0 dB no matter what it was set to. That is the correct
+  magnitude, and it is also the whole problem, because level is the one thing an
+  all-pass does not change ([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228)).
+  - **The analysis graph switches between magnitude, phase and group delay.** The
+    switch is in the analysis control bar. Nothing is measured again when you use
+    it: one analysis produces all three readings.
+  - **Phase and group delay can include or exclude the configuration's bulk
+    delay.** The analyzer removes it before measuring, which is what makes a
+    filter's own phase readable; a checkbox puts it back. A configuration that is
+    only `Delay: 10 ms` reads as flat with the box off and as exactly 10 ms with
+    it on.
+  - **An all-pass line written as `BW Oct 1` used to come back as `Q 1`.** The
+    engine had always accepted the bandwidth; the Editor's width selector offered
+    the all-pass no way to keep it, so the number was read as a Q and saved as
+    one. That is a different filter - about a factor of √2 less group delay at the
+    centre frequency. Both editors now keep the spelling the line was written in.
+  - **All-pass filters get their own card**, with no gain control, a statement
+    that the magnitude is fixed at 0 dB, and a switch that puts the analysis graph
+    on a reading where the filter is visible.
+  - **New: 1st-order all-pass sections**, written `Filter: ON AP Fc 100 Hz Order 1`.
+    A 1st-order section turns 180° and passes 90° at Fc; a 2nd-order one turns a
+    full circle at any Q, so this was previously impossible to write. `Order` is
+    optional and means 2 when absent, so existing configurations are untouched.
+  - **`Delay` and the all-pass now live together under "Phase & Time"** in the
+    filter picker, away from the filters that change level.
+  - New all-pass filters are created at `Q 0.707` instead of `Q 10`. Existing
+    configurations are never migrated.
+  - Two defects found on the way: the analyzer allocated twice the FFT buffer it
+    needed and read the uninitialized half on every run, and an unanalyzed graph
+    drew a flat 0 dB response - a measurement that had not been taken.
+
 ## v2.26.5 — 2026-07-24
 
 - The audio processing thread no longer waits on a lock, opens a file, or

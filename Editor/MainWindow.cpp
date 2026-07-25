@@ -152,12 +152,9 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 
 	connect(channelConfigurationComboBox, QOverload<int>::of(&QComboBox::activated), this, &MainWindow::channelConfigurationSelected);
 
-	analysisPlotScene = new AnalysisPlotScene(ui->graphicsView);
-	ui->graphicsView->setScene(analysisPlotScene);
 	eqGraphView = new EqGraphView(ui->dockWidgetContents);
 	eqGraphView->setObjectName(QStringLiteral("ModernAnalysisGraph"));
 	ui->analysisDockLayout->insertWidget(1, eqGraphView, 1);
-	ui->graphicsView->hide();
 
 	ui->analysisControlBar->setObjectName(QStringLiteral("analysisControlBar"));
 	ui->analysisControlBar->setAttribute(Qt::WA_StyledBackground, true);
@@ -179,6 +176,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 		value->setProperty("severity", QStringLiteral("normal"));
 	}
 	ui->tabWidget->setObjectName(QStringLiteral("MainTabWidget"));
+	setupAnalysisMetricControls();
 
 	analysisThread = std::make_unique<AnalysisThread>();
 	analysisThread->start();

@@ -32,7 +32,6 @@
 
 #include "FilterTable.h"
 #include "DeviceAPOInfo.h"
-#include "Editor/AnalysisPlotScene.h"
 #include "Editor/AnalysisThread.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "helpers/RegistryHelper.h"
@@ -74,6 +73,11 @@ public:
 	bool isEmpty();
 	bool shouldRestart();
 	void startAnalysis();
+	// Builds the analysis graph's metric switch and its base-delay option,
+	// restores both from settings, and wires them to the graph. Deliberately
+	// does not touch the analysis thread: which quantity is on screen is a
+	// display choice derived from the response already in hand.
+	void setupAnalysisMetricControls();
 
 protected:
 	void closeEvent(QCloseEvent* event) override;
@@ -170,7 +174,6 @@ private:
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
 	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
-	AnalysisPlotScene* analysisPlotScene;
 	EqGraphView* eqGraphView = nullptr;
 	std::unique_ptr<AnalysisThread> analysisThread;
 	QTimer* analysisDebounceTimer = nullptr;

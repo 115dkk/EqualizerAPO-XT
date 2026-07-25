@@ -320,18 +320,27 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	for (const AnalysisGraphState::GridLine& line : state.horizontal)
 		painter.drawLine(QPointF(state.plotRect.left(), line.pos), QPointF(state.plotRect.right(), line.pos));
 
-	QPen zeroPen(accent, 1.4);
-	zeroPen.setCosmetic(true);
-	painter.setPen(zeroPen);
-	painter.drawLine(QPointF(state.plotRect.left(), state.zeroY), QPointF(state.plotRect.right(), state.zeroY));
-
-	if (state.curve.size() >= 2)
+	if (state.zeroVisible)
 	{
+		QPen zeroPen(accent, 1.4);
+		zeroPen.setCosmetic(true);
+		painter.setPen(zeroPen);
+		painter.drawLine(QPointF(state.plotRect.left(), state.zeroY), QPointF(state.plotRect.right(), state.zeroY));
+	}
+
+	for (const QPolygonF& segment : state.curves)
+	{
+		if (segment.size() < 2)
+			continue;
 		QPainterPath curvePath;
-		curvePath.addPolygon(state.curve);
+		curvePath.addPolygon(segment);
+		// Closed on the segment's own ends, not the plot's: with more than one
+		// segment, sweeping to the plot edges would wash the accent under the
+		// gap where the metric had no reading. A single full-width segment ends
+		// exactly at the plot edges, so the resting magnitude view is unchanged.
 		QPainterPath fillPath = curvePath;
-		fillPath.lineTo(state.plotRect.right(), state.zeroY);
-		fillPath.lineTo(state.plotRect.left(), state.zeroY);
+		fillPath.lineTo(segment.last().x(), state.zeroY);
+		fillPath.lineTo(segment.first().x(), state.zeroY);
 		fillPath.closeSubpath();
 		painter.fillPath(fillPath, withAlpha(accent, dark ? 30 : 18));
 
@@ -346,13 +355,13 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	painter.setFont(labelFont);
 	painter.setPen(muted);
 	const QRectF footer(state.plotRect.left(), state.plotRect.bottom() + 3, state.plotRect.width(), 18);
-	painter.drawText(footer, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("20 Hz"));
+	painter.drawText(footer, Qt::AlignLeft | Qt::AlignVCenter, state.leftFooterText);
 	painter.drawText(footer, Qt::AlignCenter, state.channelText);
-	painter.drawText(footer, Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("20 kHz"));
+	painter.drawText(footer, Qt::AlignRight | Qt::AlignVCenter, state.rightFooterText);
 	painter.drawText(QRectF(state.plotRect.left() + 4, state.plotRect.top() + 3, 70, 18),
-		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("+%1 dB").arg(state.maxDb, 0, 'f', 0));
+		Qt::AlignLeft | Qt::AlignVCenter, state.topValueText);
 	painter.drawText(QRectF(state.plotRect.left() + 4, state.plotRect.bottom() - 21, 70, 18),
-		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("%1 dB").arg(state.minDb, 0, 'f', 0));
+		Qt::AlignLeft | Qt::AlignVCenter, state.bottomValueText);
 
 	if (state.cursorValid)
 	{
@@ -369,6 +378,56 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 			painter.drawText(QRectF(state.plotRect.adjusted(0, 2, -6, 0)), Qt::AlignRight | Qt::AlignTop, state.cursorText);
 		}
 	}
+}
+
+void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const
+{
+	// Neutral default: a token-coloured pill, the chosen cell filled in accent,
+	// the rest reading as muted text on the surface. Also the heritage look.
+	if (state.labels.isEmpty())
+		return;
+
+	painter.save();
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+	const qreal radius = qMin(frame.height() / 2.0, qreal(qMax(2, tokens.borderRadius)));
+	QPainterPath pill;
+	pill.addRoundedRect(frame, radius, radius);
+	painter.fillPath(pill, QColor(tokens.surface));
+	painter.setPen(QPen(QColor(state.focused ? tokens.focusRing : tokens.border), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawPath(pill);
+
+	// Drawn at the animated position, so a run through three choices reads as
+	// one travelling mark. The inner radius is the outer minus the inset, which
+	// is what keeps the two roundings concentric.
+	const double inset = 2.0;
+	QRectF indicator = state.segmentRect(state.selectionPosition).adjusted(inset, inset, -inset, -inset);
+	if (state.enabled)
+	{
+		QPainterPath mark;
+		const qreal innerRadius = qMax(0.0, radius - inset);
+		mark.addRoundedRect(indicator, innerRadius, innerRadius);
+		painter.fillPath(mark, withAlpha(QColor(tokens.accent), state.pressedIndex == state.selectedIndex ? 220 : 255));
+	}
+
+	for (int i = 0; i < state.labels.size(); i++)
+	{
+		const QRectF cell = state.segmentRect(i);
+		QColor ink(i == state.selectedIndex ? tokens.cardSelected : tokens.mutedText);
+		if (i == state.selectedIndex)
+			ink = QColor(tokens.surface);
+		if (!state.enabled)
+			ink = withAlpha(QColor(tokens.mutedText), 110);
+		else if (i != state.selectedIndex && i == state.hoveredIndex)
+			ink = QColor(tokens.text);
+		painter.setPen(ink);
+		painter.drawText(cell, Qt::AlignCenter, state.labels.at(i));
+	}
+
+	painter.restore();
 }
 
 void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const

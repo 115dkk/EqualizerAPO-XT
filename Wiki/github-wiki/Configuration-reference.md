@@ -59,6 +59,10 @@ Adds a filter of the given type, frequency, gain and Q / bandwidth. The first fo
 
 The table below lists the supported filter types. In the parameter columns, **X** marks a required parameter and **O** an optional one. These cover every filter of the "Generic" and "FBQ2496" types; other equalizer types may also work if their text format matches. Note one difference: the band-pass filter here is a true band-pass with no gain (like the low/high-pass filters), unlike the DCX2496's "BP", which is really a peaking filter.
 
+Matching those export formats is why the table exists, but it is not what the
+table is limited to. The all-pass in particular is a phase tool with its own
+section below, not a row kept here for an importer's sake.
+
 | Type | Description | Fc | Gain | Q/BW | Example |
 | --- | --- | --- | --- | --- | --- |
 | PK<br>Modal<br>PEQ | Peaking filter (parametric EQ) | X | X | X | `ON PK Fc 50.0 Hz Gain -10.0 dB Q 2.50`<br>`ON Modal Fc 100 Hz Gain 3.0 dB Q 5.41 T60 target 100 ms`<br>`ON PEQ Fc 100 Hz Gain 1.0 dB BW Oct 0.167` |
@@ -70,7 +74,45 @@ The table below lists the supported filter types. In the parameter columns, **X*
 | LS 6dB<br>LS 12dB | Low-shelf filter (6 / 12 dB per octave, corner freq.) | X | X |  | `ON LS 6dB Fc 50.0 Hz Gain 7.2 dB`<br>`ON LS 12dB Fc 2000 Hz Gain -5.0 dB` |
 | HS 6dB<br>HS 12dB | High-shelf filter (6 / 12 dB per octave, corner freq.) | X | X |  | `ON HS 6dB Fc 12000 Hz Gain 10.0 dB`<br>`ON HS 12dB Fc 500 Hz Gain 5.0 dB` |
 | NO | Notch filter | X |  | O | `ON NO Fc 800 Hz` |
-| AP | All-pass filter | X |  | X | `ON AP Fc 900 Hz Q 0.707` |
+| AP | All-pass filter (see below) | X |  | X for `Order 2` | `ON AP Fc 900 Hz Q 0.707`<br>`ON AP Fc 900 Hz Order 1` |
+
+#### All-pass
+
+The all-pass is in this table because it is written the same way as the filters
+around it, but it does something none of them do. It does not change level at
+any frequency. What it changes is *when* each frequency arrives: its phase and
+its group delay. That is what it is for - aligning drivers, correcting the phase
+a crossover introduced, shaping a transient.
+
+Because it is flat, a magnitude plot cannot show it. The Editor's analysis graph
+switches between **Mag**, **Phase** and **GD** for exactly this reason; on
+Magnitude an all-pass is a straight line no matter what it is set to.
+
+```
+Filter <n>: ON AP Fc <frequency> Hz Order 1
+Filter <n>: ON AP Fc <frequency> Hz Q <q> Order 2
+Filter <n>: ON AP Fc <frequency> Hz BW Oct <bandwidth> Order 2
+```
+
+`Order` chooses the section. It is optional, and a line without it is a
+2nd-order section - so every configuration written before `Order` existed
+behaves exactly as it did.
+
+|  | Total rotation | Phase at Fc | Width | Group delay at Fc |
+| --- | --- | --- | --- | --- |
+| `Order 1` | 180° | −90° | none | 1 / (2π·Fc) |
+| `Order 2` | 360° | −180° | `Q` or `BW Oct` | 2Q / (π·Fc) |
+
+The two group-delay figures hold while Fc is well below Nyquist; the exact
+2nd-order value is 4Q / sin(2π·Fc/rate) samples.
+
+A 1st-order section is not a 2nd-order one with some particular Q. A 2nd-order
+section always turns a full circle, so no setting of it produces a 90° crossing.
+Two 1st-order sections at the same frequency are exactly a 2nd-order section at
+`Q 0.5`, and below that they separate onto two different frequencies.
+
+`Order 1` takes no width; a `Q` or `BW Oct` on such a line is ignored. `Order 2`
+requires one. An order that is neither 1 nor 2 is an error.
 
 
 ### Filter with custom coefficients

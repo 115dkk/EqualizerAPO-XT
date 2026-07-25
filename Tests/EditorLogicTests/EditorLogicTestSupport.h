@@ -17,6 +17,20 @@ void expectEqual(const QStringList& actual, const QStringList& expected, const Q
 void requireTrue(bool value, const QString& message);
 void requireEqual(int actual, int expected, const QString& message);
 
+void testAnalysisResponseBinArithmetic();
+void testAnalysisResponseEmptyAndLatency();
+void testResponseCurveMatchesTheLegacyMagnitudePath();
+void testResponseCurveFitsAndLabelsTheValueAxis();
+void testResponseCurveHandlesEmptyAndDegenerateRequests();
+void testResponseCurveFrequencyAxis();
+void testResponseCurveSegmentsBreakWhereTheValueIsMissing();
+void testPhaseAndGroupDelayOfAUnityResponse();
+void testPhaseAndGroupDelayOfAPureDelay();
+void testPhaseAndGroupDelayOfAnAllPass();
+void testPhaseBreaksWhereTheResponseIsDead();
+void testPhaseAndGroupDelayAxisCaptions();
+void testBiQuadWidthRoundTripsExactly();
+void testBiQuadWidthModesAndDefaults();
 void testConfigFileCodec();
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 void testConfigFileCodecRejectsPartialRead();

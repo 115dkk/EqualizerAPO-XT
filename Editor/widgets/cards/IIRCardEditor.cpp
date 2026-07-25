@@ -180,19 +180,7 @@ void IIRCardEditor::rebuildRow(FlowLayout* flow, QVector<ValueScrubBox*>& boxes,
 	}
 }
 
-#include "FilterCardEditorRegistry.h"
-
-REGISTER_FILTER_CARD_EDITOR(Filter, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
-	// IIR and BiQuad both register "Filter" with the engine, so every Filter
-	// line - numbered ("Filter 1:") or not - arrives here. Parse through the
-	// engine's shared routine, which returns false for every non-IIR "Filter"
-	// line; those rows fall back to the legacy knob GUI through the factory
-	// chain. That nullptr is load-bearing: it is the only thing keeping an
-	// ordinary "Filter: ON PK ..." out of the coefficient card.
-	IIRCommand cmd;
-	std::wstring wideCommand = command.toStdWString();
-	std::wstring wideParameters = parameters.toStdWString();
-	if (!IIRFilterFactory::parseCommand(wideCommand, wideParameters, cmd))
-		return nullptr;
-	return new IIRCardEditor(cmd.order, cmd.coefficients);
-})
+// The "Filter" registration lives in FilterCardEditorRouter.cpp: IIR is not
+// the only card behind that keyword, and the registry holds one creator per
+// key, so the choice between IIR, all-pass and the legacy GUI has to be made
+// in one place rather than raced between translation units.
