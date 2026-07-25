@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.27.0 — 2026-07-25
+
 - The all-pass filter is now something you can see and set. It was always in the
   configuration reference, but everything about the Editor treated it as a row in
   an import-compatibility table: it sat among the level filters, it was created
