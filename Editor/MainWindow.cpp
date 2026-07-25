@@ -179,6 +179,7 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 		value->setProperty("severity", QStringLiteral("normal"));
 	}
 	ui->tabWidget->setObjectName(QStringLiteral("MainTabWidget"));
+	setupAnalysisMetricControls();
 
 	analysisThread = std::make_unique<AnalysisThread>();
 	analysisThread->start();

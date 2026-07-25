@@ -260,6 +260,7 @@ SOURCES += main.cpp\
 	widgets/EditableValueText.cpp \
 	widgets/ChBadge.cpp \
 	widgets/EqGraphView.cpp \
+	widgets/SegmentedControl.cpp \
 	widgets/FilterCardModel.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/FilterListModel.cpp \
@@ -500,6 +501,7 @@ HEADERS  += \
 	widgets/EditableValueText.h \
 	widgets/ChBadge.h \
 	widgets/EqGraphView.h \
+	widgets/SegmentedControl.h \
 	widgets/FilterCardModel.h \
 	widgets/FilterCardRow.h \
 	widgets/FilterListModel.h \

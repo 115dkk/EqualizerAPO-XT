@@ -57,6 +57,10 @@
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
+#include "Editor/widgets/SegmentedControl.h"
+#include "Editor/analysis/AnalysisMetric.h"
+#include "Editor/analysis/AnalysisResponse.h"
+#include "filters/BiQuad.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
@@ -424,7 +428,10 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("seam"), { QStringLiteral("hover") } },
 		{ QStringLiteral("toast"), { QStringLiteral("normal") } },
 		{ QStringLiteral("filedialog"), { QStringLiteral("normal") } },
-		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor") } },
+		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor"),
+			QStringLiteral("phase"), QStringLiteral("groupdelay") } },
+		{ QStringLiteral("segment"), { QStringLiteral("normal"), QStringLiteral("selected"),
+			QStringLiteral("hover") } },
 		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
 			QStringLiteral("expanded"), QStringLiteral("editor") } },
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
@@ -484,9 +491,13 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	bar->setAttribute(Qt::WA_StyledBackground, true);
 	bar->setMaximumWidth(250);
 	QGridLayout* grid = new QGridLayout(bar);
-	grid->setContentsMargins(10, 8, 10, 8);
+	// Matches MainWindow.ui after the metric switch and the base-delay option
+	// joined this bar: the two extra rows are paid for by tightening the
+	// rhythm and by pairing the four readouts two to a row, so the row count
+	// stays at nine and the 250px cap is untouched.
+	grid->setContentsMargins(10, 6, 10, 6);
 	grid->setHorizontalSpacing(8);
-	grid->setVerticalSpacing(6);
+	grid->setVerticalSpacing(4);
 
 	const QStringList formLabels = { QStringLiteral("From"), QStringLiteral("Channel"),
 		QStringLiteral("Res"), QStringLiteral("Pos") };
@@ -517,9 +528,17 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 		}
 	}
 
-	const QStringList statLabels = { QStringLiteral("Peak"), QStringLiteral("Latency"),
+	SegmentedControl* metricSegment = new SegmentedControl;
+	metricSegment->setLabels({ QStringLiteral("Mag"), QStringLiteral("Phase"), QStringLiteral("GD") });
+	grid->addWidget(metricSegment, 4, 0, 1, 2);
+
+	QCheckBox* includeBaseDelay = new QCheckBox(QStringLiteral("Include base delay"));
+	includeBaseDelay->setObjectName(QStringLiteral("includeBaseDelayCheckBox"));
+	grid->addWidget(includeBaseDelay, 5, 0, 1, 2);
+
+	const QStringList statLabels = { QStringLiteral("Peak"), QStringLiteral("Lat"),
 		QStringLiteral("Init"), QStringLiteral("CPU") };
-	const QStringList statValues = { QStringLiteral("-6.0 dB"), QStringLiteral("0.0 ms (0 s.)"),
+	const QStringList statValues = { QStringLiteral("-6.0 dB"), QStringLiteral("0.0 ms"),
 		QStringLiteral("0.4 ms"), QStringLiteral("0.1 %") };
 	for (int i = 0; i < statLabels.size(); i++)
 	{
@@ -527,7 +546,7 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 		chipFrame->setObjectName(QStringLiteral("AnalysisStatChip"));
 		chipFrame->setAttribute(Qt::WA_StyledBackground, true);
 		QHBoxLayout* chipLayout = new QHBoxLayout(chipFrame);
-		chipLayout->setContentsMargins(10, 3, 10, 3);
+		chipLayout->setContentsMargins(8, 3, 8, 3);
 		chipLayout->setSpacing(6);
 		QLabel* label = new QLabel(statLabels[i]);
 		label->setObjectName(QStringLiteral("AnalysisStatLabel"));
@@ -536,7 +555,17 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 		value->setObjectName(QStringLiteral("AnalysisStatValue"));
 		value->setProperty("severity", QStringLiteral("normal"));
 		chipLayout->addWidget(value);
-		grid->addWidget(chipFrame, 4 + i, 0, 1, 2);
+
+		const int row = 6 + i / 2;
+		QHBoxLayout* pairLayout = qobject_cast<QHBoxLayout*>(
+			grid->itemAtPosition(row, 0) == nullptr ? nullptr : grid->itemAtPosition(row, 0)->layout());
+		if (pairLayout == nullptr)
+		{
+			pairLayout = new QHBoxLayout;
+			pairLayout->setSpacing(6);
+			grid->addLayout(pairLayout, row, 0, 1, 2);
+		}
+		pairLayout->addWidget(chipFrame);
 	}
 	grid->setRowStretch(8, 1);
 
@@ -595,6 +624,37 @@ std::shared_ptr<const AnalysisResponse> galleryAnalysisResponse()
 	{
 		const double hz = response->frequencyOf(i);
 		response->bins[i] = std::complex<double>(std::pow(10.0, dbAt(hz) / 20.0), 0.0);
+	}
+	return response;
+}
+
+// A real 2nd-order all-pass, evaluated on the unit circle from the engine's own
+// coefficients. Flat in magnitude by construction, so it is the fixture that
+// makes the phase and group-delay shots show something a magnitude plot cannot:
+// a full turn of phase around 1 kHz and a delay peak sitting on it.
+// Spelled out rather than reached for through M_PI, which only exists when
+// _USE_MATH_DEFINES was defined before the first header that pulls math.h in -
+// an ordering constraint no translation unit this large should have to keep.
+constexpr double Pi = 3.14159265358979323846;
+
+std::shared_ptr<const AnalysisResponse> galleryAllPassResponse()
+{
+	auto response = std::make_shared<AnalysisResponse>();
+	response->sampleRate = 48000;
+	response->fftSize = 65536;
+	response->bins.resize(AnalysisResponse::binCountFor(response->fftSize));
+
+	BiQuad biquad(BiQuad::ALL_PASS, 0.0, 1000.0, response->sampleRate, 0.707, false);
+	double packed[4];
+	double b0 = 0.0;
+	biquad.getCoefficients(packed, b0);
+	for (size_t i = 0; i < response->bins.size(); i++)
+	{
+		const double omega = 2.0 * Pi * response->frequencyOf(i) / response->sampleRate;
+		const std::complex<double> z1 = std::polar(1.0, -omega);
+		const std::complex<double> z2 = z1 * z1;
+		response->bins[i] = (b0 + packed[0] * z1 + packed[1] * z2)
+			/ (1.0 + packed[2] * z1 + packed[3] * z2);
 	}
 	return response;
 }
@@ -949,6 +1009,45 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		graph.setPreviewCursor(0.62);
 		QApplication::processEvents();
 		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("cursor")) ? 0 : 1;
+	}
+
+	// The same graph showing what a magnitude plot cannot: an all-pass's phase
+	// and its group delay. The fixture is a real 2nd-order all-pass evaluated
+	// from the engine's own coefficients, so these shots show the filter rather
+	// than a drawing of one, and the cursor is pinned to prove the readout
+	// changes unit with the metric.
+	{
+		EqGraphView graph;
+		graph.resize(940, 220);
+		graph.setResponse(galleryAllPassResponse(), QStringLiteral("All"));
+		graph.setPreviewCursor(0.62);
+		graph.show();
+		graph.setMetric(AnalysisMetric::PhaseDegrees);
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("phase")) ? 0 : 1;
+		graph.setMetric(AnalysisMetric::GroupDelayMs);
+		QApplication::processEvents();
+		failures += saveGrab(&graph, outDir, skinId, mode, QStringLiteral("graph"), QStringLiteral("groupdelay")) ? 0 : 1;
+	}
+
+	// The metric switch itself, in its three positions plus hover, so the new
+	// segmented control is judged as a control and not only in situ.
+	{
+		SegmentedControl segment;
+		segment.setLabels({ QStringLiteral("Mag"), QStringLiteral("Phase"), QStringLiteral("GD") });
+		segment.resize(230, segment.sizeHint().height());
+		segment.show();
+		// setPreviewState rather than setCurrentIndex: the indicator animates,
+		// and a shot taken while it travels differs from run to run.
+		segment.setPreviewState(0, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("normal")) ? 0 : 1;
+		segment.setPreviewState(1, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("selected")) ? 0 : 1;
+		segment.setPreviewState(1, 2);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("hover")) ? 0 : 1;
 	}
 
 	// The Copy channel fold over a synthetic 7.1 endpoint. The row matrix's

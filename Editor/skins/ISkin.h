@@ -202,6 +202,31 @@ struct AnalysisGraphState
 	double hover = 0.0;
 };
 
+// Snapshot of a SegmentedControl handed to ISkin::paintSegmentedControl. The
+// widget owns every bit of input handling and state; the skin only draws, which
+// keeps repaints cheap and lets a theme switch restyle everything with one
+// update() broadcast.
+struct SegmentedControlState
+{
+	QRect rect;
+	QStringList labels;
+	int selectedIndex = 0;
+	// Where the selection is right now, in index units. Equal to selectedIndex
+	// at rest, somewhere between two indices while it travels. A skin that
+	// slides an indicator reads this; a skin that simply fills the chosen cell
+	// reads selectedIndex and ignores it.
+	double selectionPosition = 0.0;
+	int hoveredIndex = -1;
+	int pressedIndex = -1;
+	bool focused = false;
+	bool enabled = true;
+
+	// The cell a given index occupies. Fractional widths are kept rather than
+	// rounded, so the cells tile the control exactly instead of leaving a seam
+	// that drifts with the width.
+	QRectF segmentRect(double index) const;
+};
+
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
 // all input handling; the skin only paints.
 struct KnobState
@@ -333,6 +358,21 @@ public:
 	// look); each shipped skin answers with the same instrument family it
 	// chose for the GraphicEQ plot.
 	virtual void paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state, const SkinTokens& tokens) const;
+
+	// A row of mutually exclusive choices, all visible at once: the analysis
+	// graph's metric, an all-pass section's order. The widget owns every bit of
+	// input handling and hands over a finished state; the skin only draws.
+	//
+	// One control for both uses on purpose. Two visual conventions for "pick
+	// one of these few" would be a second grammar to learn and a second thing
+	// to keep consistent across five skins.
+	//
+	// The default (ISkin.cpp) is a token-coloured pill with the chosen cell
+	// filled. A skin that slides an indicator should read
+	// state.selectionPosition rather than state.selectedIndex, so a quick run
+	// through three choices reads as one travelling mark instead of three
+	// jumps.
+	virtual void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

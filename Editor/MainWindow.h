@@ -74,6 +74,11 @@ public:
 	bool isEmpty();
 	bool shouldRestart();
 	void startAnalysis();
+	// Builds the analysis graph's metric switch and its base-delay option,
+	// restores both from settings, and wires them to the graph. Deliberately
+	// does not touch the analysis thread: which quantity is on screen is a
+	// display choice derived from the response already in hand.
+	void setupAnalysisMetricControls();
 
 protected:
 	void closeEvent(QCloseEvent* event) override;

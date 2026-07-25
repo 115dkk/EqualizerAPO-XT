@@ -380,6 +380,56 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	}
 }
 
+void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const
+{
+	// Neutral default: a token-coloured pill, the chosen cell filled in accent,
+	// the rest reading as muted text on the surface. Also the heritage look.
+	if (state.labels.isEmpty())
+		return;
+
+	painter.save();
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRectF frame = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+	const qreal radius = qMin(frame.height() / 2.0, qreal(qMax(2, tokens.borderRadius)));
+	QPainterPath pill;
+	pill.addRoundedRect(frame, radius, radius);
+	painter.fillPath(pill, QColor(tokens.surface));
+	painter.setPen(QPen(QColor(state.focused ? tokens.focusRing : tokens.border), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawPath(pill);
+
+	// Drawn at the animated position, so a run through three choices reads as
+	// one travelling mark. The inner radius is the outer minus the inset, which
+	// is what keeps the two roundings concentric.
+	const double inset = 2.0;
+	QRectF indicator = state.segmentRect(state.selectionPosition).adjusted(inset, inset, -inset, -inset);
+	if (state.enabled)
+	{
+		QPainterPath mark;
+		const qreal innerRadius = qMax(0.0, radius - inset);
+		mark.addRoundedRect(indicator, innerRadius, innerRadius);
+		painter.fillPath(mark, withAlpha(QColor(tokens.accent), state.pressedIndex == state.selectedIndex ? 220 : 255));
+	}
+
+	for (int i = 0; i < state.labels.size(); i++)
+	{
+		const QRectF cell = state.segmentRect(i);
+		QColor ink(i == state.selectedIndex ? tokens.cardSelected : tokens.mutedText);
+		if (i == state.selectedIndex)
+			ink = QColor(tokens.surface);
+		if (!state.enabled)
+			ink = withAlpha(QColor(tokens.mutedText), 110);
+		else if (i != state.selectedIndex && i == state.hoveredIndex)
+			ink = QColor(tokens.text);
+		painter.setPen(ink);
+		painter.drawText(cell, Qt::AlignCenter, state.labels.at(i));
+	}
+
+	painter.restore();
+}
+
 void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: an accent hairline across the boundary with a small
