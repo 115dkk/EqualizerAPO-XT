@@ -8,6 +8,9 @@
     "convolution_short",
     "iir_order2_lowpass",
     "channel_left_only",
-    "loudnesscorrection_bypassed"
+    "loudnesscorrection_bypassed",
+    "allpass_q0707",
+    "allpass_q10",
+    "allpass_bw1oct"
   ]
 }

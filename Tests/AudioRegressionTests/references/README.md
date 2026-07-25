@@ -103,6 +103,37 @@ reference files are `iir_order2_lowpass.raw`, `channel_left_only.raw`, and
   stored baseline across machines/CI runners. Input `ImpulseStereo`, 48000 Hz,
   2 channels, 256 frames.
 
+## All-pass coverage
+
+Three cases pin the 2nd-order all-pass before the reform in issue #228 changes
+anything above the DSP. An all-pass is flat, so a magnitude comparison would
+pass no matter what happened to it; only the impulse response can see the
+filter at all, because the whole filter is in where the energy lands in time.
+
+The reference files are `allpass_q0707.raw`, `allpass_q10.raw`, and
+`allpass_bw1oct.raw`. All three use `ImpulseStereo`, 48000 Hz, 2 channels, 8192
+frames.
+
+* `allpass_q0707` (`Filter 1: ON AP Fc 1000 Hz Q 0.707`): the width the reform
+  makes the default for newly created filters.
+
+* `allpass_q10` (`Filter 1: ON AP Fc 1000 Hz Q 10`): the width the current
+  Editor template creates, and therefore the width existing user configs carry.
+  The reform must not migrate it, so this baseline is what proves it did not.
+
+* `allpass_bw1oct` (`Filter 1: ON AP Fc 80 Hz BW Oct 1`): the case the Editor
+  silently rewrites to `Q 1` today, because the all-pass width-mode selector
+  offers no second entry to restore. The engine has always honoured `BW Oct`
+  here; this baseline is the engine's answer, so after the Editor fix an
+  open-and-save round trip has to reproduce it byte for byte.
+
+Unlike the older baselines these were generated in whole-buffer mode
+(`blockFrames` temporarily set equal to `frames`) and are verified by the
+committed 512-frame blocked run, which reproduces them exactly
+(`maxAbsError = 0`). That is the order the top of this file asks for, and it
+means these three files pin the output *and* the block-size invariance, the
+same way the older ones do.
+
 ### VST (not covered)
 
 The VST processing filter is intentionally not given a regression case. It

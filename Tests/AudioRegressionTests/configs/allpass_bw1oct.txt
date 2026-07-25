@@ -1,0 +1,1 @@
+Filter 1: ON AP Fc 80 Hz BW Oct 1
