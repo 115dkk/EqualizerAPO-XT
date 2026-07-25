@@ -1269,7 +1269,9 @@ public:
 
 		// Zero: the knob's luminous anchor laid flat - accent bloom under a
 		// text-ink core. Drawn only when the metric's zero is inside the fitted
-		// range; a group delay that never goes negative has no anchor to lay.
+		// range, which is not the same as inside the pane: a group delay keeps
+		// zero in its fit and measures upward from it, so the anchor lands on
+		// the frame edge and is demoted there rather than dropped.
 		if (state.zeroVisible)
 		{
 			const int zy = int(state.zeroY);

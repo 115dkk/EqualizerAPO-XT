@@ -713,8 +713,12 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 
 	// The zero axis: a phosphor-tinted centre line with the scope's fine
 	// hash ticks - the boundary the OVER zone burns against. Struck only while
-	// the metric's zero sits inside the fitted range; a group delay that never
-	// goes negative would otherwise get an axis printed along the glass edge.
+	// the metric's zero sits inside the fitted range. It is not always the
+	// centre: a group delay measured upward from no delay at all keeps zero in
+	// its fit, so the rail lands on the bottom of the beam area, and a phase
+	// that only descends puts it on the top. This machine strikes it there
+	// anyway - a rail along the floor of the tube is a scope's baseline, which
+	// is exactly what zero is on those two functions.
 	if (state.zeroVisible)
 	{
 		painter.setPen(QPen(withAlpha(phosphor, 145), 1));
@@ -866,8 +870,12 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		const QColor mark = overPoint ? overInk : phosphor;
 		const QPointF measured(state.cursor.x(), state.curveYAtCursor);
 		// The cursor line and its grab ticks stand in a null; the measured point
-		// does not, because there is no reading there to brighten.
-		if (magnitude || qIsFinite(state.curveYAtCursor))
+		// does not, because there is no reading there to brighten. The state's
+		// own answer to "did this column have a value" is the prepared readout:
+		// curveYAtCursor is clamped into the pane before it arrives, so it is
+		// finite even where nothing was measured and cannot be tested for it. A
+		// magnitude column always has a value.
+		if (magnitude || !state.cursorText.isEmpty())
 		{
 			QRadialGradient halo(measured, 8.0);
 			halo.setColorAt(0.0, withAlpha(mark, 90));

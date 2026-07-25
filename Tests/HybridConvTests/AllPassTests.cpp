@@ -260,6 +260,8 @@ void renderInBlocks(BiQuadFilter& filter, unsigned totalFrames, unsigned blockFr
 	while (written < totalFrames)
 	{
 		for (unsigned i = 0; i < blockFrames; i++)
+			// cppcheck-suppress unreadVariable ; process() reads this through inPtr[0], which was
+			// bound to input.data() before the loop - an indirection cppcheck's dataflow does not follow
 			input[i] = (written + i == 0) ? 1.0 : 0.0;
 		filter.process(outPtr, inPtr, blockFrames);
 		memcpy(out.data() + written, output.data(), blockFrames * sizeof(double));

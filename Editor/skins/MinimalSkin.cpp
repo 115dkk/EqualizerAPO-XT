@@ -534,8 +534,12 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	}
 
 	// The zero rule: the one full-strength straight line, body ink 1px. It
-	// prints only when the metric's zero lands inside the sheet - a group
-	// delay that never goes negative has nothing to rule off against.
+	// prints only when the metric's zero lands inside the sheet. On the two new
+	// metrics that is often the sheet's own edge - a group delay keeps zero in
+	// its fit and measures upward from it, a descending phase starts at it - and
+	// the rule is printed there all the same, because a baseline drawn along the
+	// bottom or the top of a plotter sheet is still the axis the pen was zeroed
+	// against.
 	if (state.zeroVisible)
 	{
 		const double zeroY = qFloor(state.zeroY) + 0.5;
