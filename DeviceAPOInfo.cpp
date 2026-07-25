@@ -43,17 +43,22 @@ static PROPERTYKEY guidPropertyKey = {
 	{0x1da5d803, 0xd492, 0x4edd, {0x8c, 0x23, 0xe0, 0xc0, 0xff, 0xee, 0x7f, 0x0e}}, 4
 };
 
-vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input)
+DeviceAPOInfo::DeviceAPOInfo(IRegistry& registry)
+	: registry(registry)
+{
+}
+
+vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input, IRegistry& registry)
 {
 	vector<shared_ptr<AbstractAPOInfo>> result;
 
-	vector<wstring> deviceGuidStrings = RegistryHelper::enumSubKeys(input ? captureKeyPath : renderKeyPath);
+	vector<wstring> deviceGuidStrings = registry.enumSubKeys(input ? captureKeyPath : renderKeyPath);
 	wstring defaultDeviceGuid = getDefaultDevice(input);
 	for (vector<wstring>::iterator it = deviceGuidStrings.begin(); it != deviceGuidStrings.end(); it++)
 	{
 		wstring deviceGuidString = *it;
 
-		shared_ptr<DeviceAPOInfo> info = make_shared<DeviceAPOInfo>();
+		shared_ptr<DeviceAPOInfo> info = make_shared<DeviceAPOInfo>(registry);
 		if (info->load(deviceGuidString, defaultDeviceGuid))
 		{
 			info->selectedInstallState = info->currentInstallState;
@@ -62,7 +67,7 @@ vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input)
 	}
 
 	if (!input)
-		VoicemeeterAPOInfo::prependInfos(result);
+		VoicemeeterAPOInfo::prependInfos(result, registry);
 
 	return result;
 }
@@ -95,29 +100,29 @@ wstring DeviceAPOInfo::getDefaultDevice(bool input, int role)
 	return result;
 }
 
-bool DeviceAPOInfo::checkProtectedAudioDG(bool fix)
+bool DeviceAPOInfo::checkProtectedAudioDG(bool fix, IRegistry& registry)
 {
 	bool result = true;
 
-	if (!RegistryHelper::valueExists(protectedDGKeyPath, protectedDGValueName) || RegistryHelper::readDWORDValue(protectedDGKeyPath, protectedDGValueName) != 1)
+	if (!registry.valueExists(protectedDGKeyPath, protectedDGValueName) || registry.readDWORDValue(protectedDGKeyPath, protectedDGValueName) != 1)
 	{
 		result = false;
 
 		if (fix)
-			RegistryHelper::writeDWORDValue(protectedDGKeyPath, protectedDGValueName, 1);
+			registry.writeDWORDValue(protectedDGKeyPath, protectedDGValueName, 1);
 	}
 
 	return result;
 }
 
-bool DeviceAPOInfo::checkAPORegistration(bool fix)
+bool DeviceAPOInfo::checkAPORegistration(bool fix, IRegistry& registry)
 {
 	bool result = true;
 
-	if (!RegistryHelper::keyExists(apoRegistrationKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID))
-		|| !RegistryHelper::keyExists(apoRegistrationKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID))
-		|| !RegistryHelper::keyExists(clsidKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID))
-		|| !RegistryHelper::keyExists(clsidKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID)))
+	if (!registry.keyExists(apoRegistrationKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID))
+		|| !registry.keyExists(apoRegistrationKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID))
+		|| !registry.keyExists(clsidKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID))
+		|| !registry.keyExists(clsidKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID)))
 	{
 		result = false;
 

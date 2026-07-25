@@ -59,13 +59,13 @@ typedef NTSTATUS(NTAPI* pfnNtQueryInformationProcess)(
 	OUT PULONG ReturnLength OPTIONAL
 	);
 
-void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list)
+void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list, IRegistry& registry)
 {
 	wstring voicemeeterDirectory;
-	if (RegistryHelper::keyExists(voicemeeterKeyPath))
-		voicemeeterDirectory = RegistryHelper::readValue(voicemeeterKeyPath, uninstallStringValueName);
-	else if (RegistryHelper::keyExists(voicemeeterWowKeyPath))
-		voicemeeterDirectory = RegistryHelper::readValue(voicemeeterWowKeyPath, uninstallStringValueName);
+	if (registry.keyExists(voicemeeterKeyPath))
+		voicemeeterDirectory = registry.readValue(voicemeeterKeyPath, uninstallStringValueName);
+	else if (registry.keyExists(voicemeeterWowKeyPath))
+		voicemeeterDirectory = registry.readValue(voicemeeterWowKeyPath, uninstallStringValueName);
 
 	if (voicemeeterDirectory.length() > 0)
 	{
@@ -104,7 +104,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list)
 		{
 			wstringstream sstream;
 			sstream << "Output A" << (i + 1);
-			shared_ptr<AbstractAPOInfo> info = *list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(sstream.str(), true));
+			shared_ptr<AbstractAPOInfo> info = *list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(sstream.str(), true, registry));
 			if (info->isInstalled())
 				anyInstalled = true;
 		}
@@ -132,14 +132,14 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list)
 		int i = 0;
 		for (wstring arg : args)
 		{
-			list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(arg, false));
+			list.insert(list.begin() + i, make_shared<VoicemeeterAPOInfo>(arg, false, registry));
 			i++;
 		}
 	}
 }
 
-VoicemeeterAPOInfo::VoicemeeterAPOInfo(const wstring& connectionName, bool voicemeeterInstalled)
-	: connectionName(connectionName), voicemeeterInstalled(voicemeeterInstalled)
+VoicemeeterAPOInfo::VoicemeeterAPOInfo(const wstring& connectionName, bool voicemeeterInstalled, IRegistry& registry)
+	: connectionName(connectionName), voicemeeterInstalled(voicemeeterInstalled), registry(registry)
 {
 	wstring startupFilePath = getStartupPath();
 	wstring path;
@@ -150,8 +150,8 @@ VoicemeeterAPOInfo::VoicemeeterAPOInfo(const wstring& connectionName, bool voice
 	sampleRate = 48000;
 	try
 	{
-		if (RegistryHelper::keyExists(voicemeeterClientKeyPath) && RegistryHelper::valueExists(voicemeeterClientKeyPath, sampleRateValueName))
-			sampleRate = (unsigned)RegistryHelper::readDWORDValue(voicemeeterClientKeyPath, sampleRateValueName);
+		if (registry.keyExists(voicemeeterClientKeyPath) && registry.valueExists(voicemeeterClientKeyPath, sampleRateValueName))
+			sampleRate = (unsigned)registry.readDWORDValue(voicemeeterClientKeyPath, sampleRateValueName);
 	}
 	catch (const RegistryException&)
 	{
@@ -498,12 +498,12 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	}
 }
 
-void VoicemeeterAPOInfo::saveVoicemeeterSampleRate(unsigned sampleRate)
+void VoicemeeterAPOInfo::saveVoicemeeterSampleRate(unsigned sampleRate, IRegistry& registry)
 {
 	try
 	{
-		RegistryHelper::createKey(voicemeeterClientKeyPath);
-		RegistryHelper::writeDWORDValue(voicemeeterClientKeyPath, sampleRateValueName, sampleRate);
+		registry.createKey(voicemeeterClientKeyPath);
+		registry.writeDWORDValue(voicemeeterClientKeyPath, sampleRateValueName, sampleRate);
 	}
 	catch (const RegistryException&)
 	{
