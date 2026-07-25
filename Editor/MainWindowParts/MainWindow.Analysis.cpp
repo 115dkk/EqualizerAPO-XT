@@ -21,6 +21,7 @@
 #include <shellapi.h>
 
 #include "Editor/analysis/AnalysisMetric.h"
+#include "Editor/analysis/AnalysisViewController.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/SegmentedControl.h"
 #include "helpers/StringHelper.h"
@@ -180,6 +181,16 @@ void MainWindow::setupAnalysisMetricControls()
 			eqGraphView->setIncludeLatency(checked);
 		QSettings().setValue(QStringLiteral("analysis/includeLatency"), checked);
 	});
+
+	// A filter card can ask for a reading that makes its own filter legible.
+	// Routed through the switch rather than straight to the graph: a graph
+	// showing phase under a switch that still reads "Mag" would be a lie about
+	// what the user is looking at, and the switch's own handler already does
+	// the rest (the graph, the base-delay row, the stored preference).
+	connect(AnalysisViewController::instance(), &AnalysisViewController::metricRequested,
+		this, [this](AnalysisMetric metric) {
+			ui->analysisMetricSegment->setCurrentIndex(metricIndex(metric));
+		});
 }
 
 void MainWindow::updateAnalysisPanel()

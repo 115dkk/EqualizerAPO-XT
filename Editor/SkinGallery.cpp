@@ -140,7 +140,14 @@ QList<GalleryRow> galleryRows()
 		// value position - instead of parsing the text as 0.0 and destroying
 		// the expression on the first knob turn. Appended last (mid-list
 		// insertion renumbers every following scene).
-		{ QStringLiteral("dynpreamp"), QStringLiteral("Preamp: `bass + 3` dB") }
+		{ QStringLiteral("dynpreamp"), QStringLiteral("Preamp: `bass + 3` dB") },
+		// The all-pass card. It has no gain and its magnitude is flat, so the
+		// card has to say in words what the filter does; these shots are how
+		// that reads in each skin. Written as a bandwidth on purpose - the
+		// spelling the editors used to lose - and appended last, because
+		// inserting mid-list renumbers every following scene against the
+		// stored baseline.
+		{ QStringLiteral("allpass"), QStringLiteral("Filter 4: ON AP Fc 900 Hz BW Oct 1") }
 	};
 }
 

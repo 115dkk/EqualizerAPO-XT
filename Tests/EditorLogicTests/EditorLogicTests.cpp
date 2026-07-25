@@ -1696,6 +1696,8 @@ int main(int argc, char** argv)
 		testPhaseAndGroupDelayOfAnAllPass();
 		testPhaseBreaksWhereTheResponseIsDead();
 		testPhaseAndGroupDelayAxisCaptions();
+		testBiQuadWidthRoundTripsExactly();
+		testBiQuadWidthModesAndDefaults();
 		testConfigFileCodec();
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 		testConfigFileCodecRejectsPartialRead();

@@ -21,6 +21,7 @@
 #include <cmath>
 #include <QStandardItemModel>
 
+#include "Editor/guis/BiQuadWidthConversion.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "BiQuadFilterGUI.h"
 #include "ui_BiQuadFilterGUI.h"
@@ -86,6 +87,11 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 		ui->qComboBox->setCurrentIndex(command.isBandwidthOrS ? (command.bandwidthOrQOrS == 0.9 || command.isCornerFreq ? 0 : 1) : (command.isCornerFreq ? 1 : 2));
 	else if (type == BiQuad::NOTCH)
 		ui->qComboBox->setCurrentIndex(command.bandwidthOrQOrS == 30.0 ? 0 : 1);
+	// The all-pass restores the mode it was written in, the way peaking does.
+	// Without this the width-mode selector stayed on "Q factor" whatever the
+	// line said, and store() then wrote a Q back.
+	else if (type == BiQuad::ALL_PASS)
+		ui->qComboBox->setCurrentIndex(command.isBandwidthOrS ? 1 : 0);
 
 	if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF) && command.isBandwidthOrS && command.bandwidthOrQOrS != 0.9)
 		ui->qSpinBox->setValue(command.bandwidthOrQOrS * 12.0);
@@ -241,7 +247,12 @@ void BiQuadFilterGUI::on_typeComboBox_currentIndexChanged(int index)
 		ui->qComboBox->addItem(tr("Slope"), 'S');
 	if (type == BiQuad::PEAKING || type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::ALL_PASS || type == BiQuad::BAND_PASS || type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF || type == BiQuad::NOTCH)
 		ui->qComboBox->addItem(tr("Q factor"), 'Q');
-	if (type == BiQuad::PEAKING)
+	// The all-pass used to be left with "Q factor" as its only entry, which the
+	// setEnabled below then locked, so a line written as "BW Oct 1" was read as
+	// a Q, redisplayed as one and saved as one - a different filter, about a
+	// factor of sqrt(2) less group delay at Fc. The engine had always accepted
+	// the bandwidth; only this list refused it.
+	if (BiQuadWidth::offersBandwidth(type))
 		ui->qComboBox->addItem(tr("Bandwidth"), 'B');
 	ui->qComboBox->setEnabled(ui->qComboBox->count() > 1);
 	int qIndex = ui->qComboBox->findData(mode);
@@ -252,7 +263,7 @@ void BiQuadFilterGUI::on_typeComboBox_currentIndexChanged(int index)
 	}
 	else if (type == BiQuad::PEAKING || type == BiQuad::ALL_PASS)
 	{
-		ui->qSpinBox->setValue(10);
+		ui->qSpinBox->setValue(BiQuadWidth::defaultQ(type));
 	}
 
 	bool gainVisible = type == BiQuad::PEAKING || type == BiQuad::LOW_SHELF
@@ -345,18 +356,14 @@ void BiQuadFilterGUI::on_qComboBox_currentIndexChanged(int index)
 		}
 		else // from BW
 		{
-			double n = ui->qSpinBox->value();
-			double p2n = pow(2.0, n);
-			q = sqrt(p2n) / (p2n - 1.0);
+			q = BiQuadWidth::qFromBandwidth(ui->qSpinBox->value());
 		}
 		ui->qSpinBox->setValue(q);
 		qIsBwOrS = false;
 	}
 	else if (!qIsBwOrS && mode == 'B')
 	{
-		double q = ui->qSpinBox->value();
-		double n = 2.0 / M_LN2 * asinh(1.0 / (2.0 * q));
-		ui->qSpinBox->setValue(n);
+		ui->qSpinBox->setValue(BiQuadWidth::bandwidthFromQ(ui->qSpinBox->value()));
 		qIsBwOrS = true;
 	}
 	else if (!qIsBwOrS && mode == 'S')

@@ -29,6 +29,8 @@ void testPhaseAndGroupDelayOfAPureDelay();
 void testPhaseAndGroupDelayOfAnAllPass();
 void testPhaseBreaksWhereTheResponseIsDead();
 void testPhaseAndGroupDelayAxisCaptions();
+void testBiQuadWidthRoundTripsExactly();
+void testBiQuadWidthModesAndDefaults();
 void testConfigFileCodec();
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 void testConfigFileCodecRejectsPartialRead();
