@@ -14,67 +14,72 @@
 <context>
     <name>AllPassCardEditor</name>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="83"/>
-        <source>Changes phase and group delay around Fc. The magnitude response stays at 0 dB.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="109"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="164"/>
         <source>Order</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="114"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="164"/>
         <source>1st</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="114"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="164"/>
         <source>2nd</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="115"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
         <source>A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. A 2nd-order section turns a full 360 and has a width.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="122"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="98"/>
         <source>Center frequency</source>
         <translation type="unfinished">Mittenfrequenz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="140"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="86"/>
+        <source>An all-pass changes phase and group delay around Fc. The magnitude response stays at 0 dB, so this filter is invisible in the magnitude graph.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="116"/>
         <source>Q factor</source>
         <translation type="unfinished">Q-Faktor</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="141"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="117"/>
         <source>Bandwidth</source>
         <translation type="unfinished">Bandbreite</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="175"/>
         <source>Phase</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="175"/>
         <source>Group delay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="166"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="175"/>
+        <source>Graph</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
         <source>Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="177"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="187"/>
         <source>Magnitude: 0.0 dB (fixed)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="323"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="333"/>
         <source>Oct</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2825,7 +2830,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>MatrixFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="115"/>
+        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="126"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
@@ -2833,7 +2838,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>MinimalFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/MinimalFilterPicker.cpp" line="341"/>
+        <location filename="../skins/pickers/MinimalFilterPicker.cpp" line="349"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
@@ -3208,12 +3213,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>Allgemein</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="508"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="516"/>
         <source>Nothing matches your search</source>
         <translation>Keine Treffer für Ihre Suche</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="509"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="517"/>
         <source>Try a shorter or different keyword</source>
         <translation>Versuchen Sie ein kürzeres oder anderes Stichwort</translation>
     </message>

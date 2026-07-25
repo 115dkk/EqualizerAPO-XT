@@ -317,8 +317,12 @@ QDoubleSpinBox[valueScrub="true"]:disabled, QSpinBox[valueScrub="true"]:disabled
 QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
+QWidget#AllPassCardEditor, QWidget#AllPassCardParamBlock, QWidget#AllPassCardValueBlock,
+QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock, QWidget#AllPassCardMagnitudeBlock,
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
+QLabel#AllPassCardCaption, QLabel#AllPassCardMagnitudeValue,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
+QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 9pt; }
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
@@ -326,6 +330,18 @@ QLabel#EditableValue {
     padding: 8px 14px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 700;
 }
+/* The all-pass card states its fixed magnitude as a reading. It takes this
+   skin's value typography but none of the field chrome: there is nothing to
+   type into it, and a box would say there is. */
+QLabel#AllPassCardMagnitudeValue {
+    color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+    background: transparent;
+    border: 0;
+    padding: 6px 0;
+}
+
 QLineEdit#EditableValueEditor {
     background: @SURFACE_SUNKEN@; border: 1px solid @ACCENT@;
     border-radius: 16px; padding: 8px 14px;

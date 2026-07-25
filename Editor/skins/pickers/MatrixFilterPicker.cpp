@@ -66,6 +66,17 @@ QSize MatrixFilterPickerView::sizeHint() const
 
 void MatrixFilterPickerView::galleryShowcase(GalleryShowcase kind)
 {
+	if (kind == GalleryShowcase::PhaseAndTimeSearch)
+	{
+		// Where Delay and the two all-pass sections went. The category is part
+		// of what the shared predicate searches, so one term returns the whole
+		// group.
+		query = QStringLiteral("phase");
+		applyQuery();
+		update();
+		return;
+	}
+
 	if (kind == GalleryShowcase::EmptySearch)
 	{
 		// A scan no template answers: every bus count drops to 0, the rail
