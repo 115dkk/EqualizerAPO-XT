@@ -136,6 +136,7 @@ SOURCES += main.cpp\
 	widgets/ResizeCorner.cpp \
 	AnalysisPlotView.cpp \
 	AnalysisPlotScene.cpp \
+	analysis/AnalysisResponse.cpp \
 	../FilterEngine.cpp \
 	../engine/FilterEngine.Configuration.cpp \
 	../engine/FilterEngine.Process.cpp \
@@ -388,6 +389,7 @@ HEADERS  += \
 	widgets/ResizeCorner.h \
 	AnalysisPlotView.h \
 	AnalysisPlotScene.h \
+	analysis/AnalysisResponse.h \
 	../FilterEngine.h \
 	../engine/ConfigWatcher.h \
 	../FilterConfiguration.h \

@@ -14,6 +14,12 @@
     <ClCompile Include="EditorLogicTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AnalysisResponseTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\analysis\AnalysisResponse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Editor\helpers\ConvolutionPathHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

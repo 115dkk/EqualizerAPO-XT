@@ -18,6 +18,8 @@
 */
 
 #include <cmath>
+#include <complex>
+
 #include "AnalysisPlotScene.h"
 
 using std::log10;
@@ -29,19 +31,31 @@ AnalysisPlotScene::AnalysisPlotScene(QObject* parent)
 {
 }
 
-void AnalysisPlotScene::setFreqData(fftw_complex* freqData, int frameCount, unsigned sampleRate)
+// Magnitude-only dB nodes, derived from the same complex bins the rest of the
+// analysis now works from. The bin count stops one short of the response's own
+// (fftSize / 2 rather than fftSize / 2 + 1) because that is what this scene has
+// always plotted; matching it exactly keeps the magnitude curve identical
+// through the change of data source.
+void AnalysisPlotScene::setResponse(const AnalysisResponse& response)
 {
-	const int count = frameCount / 2;
+	const size_t count = response.fftSize / 2;
 	nodes.clear();
 	nodes.reserve(count);
-	for (int i = 0; i < count; i++)
+	for (size_t i = 0; i < count && i < response.bins.size(); i++)
 	{
-		double freq = (i * 1.0 / frameCount) * sampleRate;
+		double freq = response.frequencyOf(i);
 		// GainIterator can't handle 0 Hz node
 		if (freq == 0.0)
 			freq = 0.001;
-		double gain = sqrt(freqData[i][0] * freqData[i][0] + freqData[i][1] * freqData[i][1]);
-		double dbGain = log10(gain) * 20;
+		// sqrt(re^2 + im^2) rather than std::abs(complex): std::abs guards
+		// against intermediate overflow and can land a bit away from this
+		// expression. That difference is far below anything visible, but the
+		// curve builder that replaces this path has to be shown to reproduce
+		// the magnitude exactly, and a last-bit disagreement between two
+		// spellings of the same formula would make that comparison useless.
+		const double re = response.bins[i].real();
+		const double im = response.bins[i].imag();
+		double dbGain = log10(sqrt(re * re + im * im)) * 20;
 		nodes.emplace_back(freq, dbGain);
 	}
 

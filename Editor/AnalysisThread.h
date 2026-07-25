@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <QThread>
@@ -29,6 +30,7 @@
 
 #include "ConfigLoadTrace.h"
 #include "DeviceAPOInfo.h"
+#include "Editor/analysis/AnalysisResponse.h"
 #include "helpers/FftwRAII.h"
 
 class AnalysisThread : public QThread
@@ -42,11 +44,14 @@ public:
 		ResultLock(const ResultLock&) = delete;
 		ResultLock& operator=(const ResultLock&) = delete;
 
-		fftw_complex* freqData() const;
-		int freqDataLength() const;
-		int freqDataSampleRate() const;
+		// The run's complex response. Never null, so callers do not have to
+		// check before the first analysis has finished; an unfinished or
+		// failed run yields an empty one. Taking a copy of the shared_ptr is
+		// how the UI gets a snapshot: it costs a refcount rather than half a
+		// megabyte, and it lets the lock go before any curve is built, because
+		// the object it points at is never modified once published.
+		std::shared_ptr<const AnalysisResponse> response() const;
 		double peakGain() const;
-		int latency() const;
 		double initializationTime() const;
 		double processingTime() const;
 		unsigned processedFrames() const;
@@ -85,11 +90,8 @@ private:
 	int frameCount = 0;
 
 	// output
-	fftw::ComplexBuffer resultFreqData;
-	int freqDataLength = 0;
-	int freqDataSampleRate = 0;
+	std::shared_ptr<const AnalysisResponse> resultResponse = std::make_shared<AnalysisResponse>();
 	double peakGain = 0.0;
-	int latency = 0;
 	double initializationTime = 0.0;
 	double processingTime = 0.0;
 	int processedFrames = 0;

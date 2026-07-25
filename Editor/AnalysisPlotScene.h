@@ -20,8 +20,8 @@
 #pragma once
 
 #include <vector>
-#include <fftw3.h>
 
+#include "Editor/analysis/AnalysisResponse.h"
 #include "Editor/widgets/FrequencyPlotScene.h"
 #include "helpers/GainIterator.h"
 
@@ -32,7 +32,7 @@ class AnalysisPlotScene : public FrequencyPlotScene
 public:
 	AnalysisPlotScene(QObject* parent = 0);
 
-	void setFreqData(fftw_complex* freqData, int frameCount, unsigned sampleRate);
+	void setResponse(const AnalysisResponse& response);
 
 	const std::vector<FilterNode>& getNodes() const;
 

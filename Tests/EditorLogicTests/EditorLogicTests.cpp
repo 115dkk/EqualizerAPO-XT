@@ -1684,6 +1684,8 @@ int main(int argc, char** argv)
 		testStageSelectionModel();
 		testStudioRoutingModel();
 		testRoutingFold();
+		testAnalysisResponseBinArithmetic();
+		testAnalysisResponseEmptyAndLatency();
 		testConfigFileCodec();
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 		testConfigFileCodecRejectsPartialRead();

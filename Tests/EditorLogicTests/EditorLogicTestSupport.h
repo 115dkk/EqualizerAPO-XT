@@ -17,6 +17,8 @@ void expectEqual(const QStringList& actual, const QStringList& expected, const Q
 void requireTrue(bool value, const QString& message);
 void requireEqual(int actual, int expected, const QString& message);
 
+void testAnalysisResponseBinArithmetic();
+void testAnalysisResponseEmptyAndLatency();
 void testConfigFileCodec();
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 void testConfigFileCodecRejectsPartialRead();

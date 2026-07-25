@@ -82,12 +82,13 @@ void MainWindow::on_resolutionSpinBox_valueChanged(int value)
 void MainWindow::updateAnalysisPanel()
 {
 	auto result = analysisThread->lockResult();
-	int sampleRate = result.freqDataSampleRate();
-	int latency = result.latency();
+	const std::shared_ptr<const AnalysisResponse> response = result.response();
+	const int sampleRate = static_cast<int>(response->sampleRate);
+	const int latency = response->latencyFrames;
 	const QString errorText = result.errorText();
-	analysisPlotScene->setFreqData(result.freqData(), result.freqDataLength(), sampleRate);
+	analysisPlotScene->setResponse(*response);
 	if (eqGraphView != nullptr)
-		eqGraphView->setNodes(analysisPlotScene->getNodes(), static_cast<unsigned>(sampleRate), ui->analysisChannelComboBox->currentText());
+		eqGraphView->setNodes(analysisPlotScene->getNodes(), response->sampleRate, ui->analysisChannelComboBox->currentText());
 
 	// Hand the engine's per-line load facts to every open tab whose file took
 	// part in this load. A tab whose file was
