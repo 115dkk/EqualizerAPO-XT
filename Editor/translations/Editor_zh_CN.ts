@@ -4,11 +4,79 @@
 <context>
     <name>AddCardRow</name>
     <message>
-        <location filename="../widgets/AddCardRow.cpp" line="17"/>
-        <location filename="../widgets/AddCardRow.cpp" line="18"/>
-        <location filename="../widgets/AddCardRow.cpp" line="44"/>
+        <location filename="../widgets/AddCardRow.cpp" line="13"/>
+        <location filename="../widgets/AddCardRow.cpp" line="14"/>
+        <location filename="../widgets/AddCardRow.cpp" line="40"/>
         <source>Add filter</source>
         <translation type="unfinished">添加过滤器</translation>
+    </message>
+</context>
+<context>
+    <name>AllPassCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="83"/>
+        <source>Changes phase and group delay around Fc. The magnitude response stays at 0 dB.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="109"/>
+        <source>Order</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="114"/>
+        <source>1st</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="114"/>
+        <source>2nd</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="115"/>
+        <source>A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. A 2nd-order section turns a full 360 and has a width.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="122"/>
+        <source>Center frequency</source>
+        <translation type="unfinished">中心频率</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="140"/>
+        <source>Q factor</source>
+        <translation type="unfinished">Q 因子</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="141"/>
+        <source>Bandwidth</source>
+        <translation type="unfinished">带宽</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
+        <source>Phase</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
+        <source>Group delay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="166"/>
+        <source>Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="177"/>
+        <source>Magnitude: 0.0 dB (fixed)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="323"/>
+        <source>Oct</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -73,40 +141,40 @@
         <translation>全通滤波器</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="222"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="224"/>
         <source>Center frequency</source>
         <translation>中心频率</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="224"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
         <source>Corner frequency</source>
         <translation>转角频率</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="241"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="243"/>
         <source>Fixed Q</source>
         <translation>固定 Q</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="243"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="283"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="290"/>
         <source>Fixed S</source>
         <translation>固定 S</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="285"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="292"/>
         <source>Q factor</source>
         <translation>Q 因子</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="256"/>
         <source>Bandwidth</source>
         <translation>带宽</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="284"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="291"/>
         <source>Slope</source>
         <translation>斜率</translation>
     </message>
@@ -154,9 +222,23 @@
         <translation>陷波滤波器</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="43"/>
+        <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="54"/>
+        <source>Phase &amp; Time</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="55"/>
+        <source>1st-order all-pass</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/BiQuadFilterGUIFactory.cpp" line="56"/>
+        <source>2nd-order all-pass</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>All-pass filter</source>
-        <translation>全通滤波器</translation>
+        <translation type="vanished">全通滤波器</translation>
     </message>
 </context>
 <context>
@@ -344,8 +426,8 @@
         <translation type="vanished">脉冲响应文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="97"/>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="270"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="98"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="204"/>
         <source>Select impulse response file</source>
         <translation>选择脉冲响应文件</translation>
     </message>
@@ -365,55 +447,51 @@
         <translation>脉冲响应 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="132"/>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="143"/>
         <source>Import</source>
-        <translation>导入</translation>
+        <translation type="vanished">导入</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="132"/>
         <source>Nothing to import: %1</source>
-        <translation>无可导入内容：%1</translation>
+        <translation type="vanished">无可导入内容：%1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="144"/>
         <source>Some files could not be copied:
 %1</source>
-        <translation>部分文件无法复制：
+        <translation type="vanished">部分文件无法复制：
 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="180"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="149"/>
         <source>No file selected</source>
         <translation>未选择文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="221"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="168"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="222"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="169"/>
         <source>%1 samples</source>
         <translation>%1 采样</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="223"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="170"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="253"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="188"/>
         <source>Not readable by the audio service</source>
         <translation>音频服务无法读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="269"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="203"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="270"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="204"/>
         <source>Locate the missing file</source>
         <translation>定位缺失的文件</translation>
     </message>
@@ -422,7 +500,7 @@
         <translation type="vanished">找不到文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="214"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="161"/>
         <source>Unsupported file format</source>
         <translation>不支持的文件格式</translation>
     </message>
@@ -431,7 +509,7 @@
         <translation type="vanished">%1 ms · %2 个采样点 · %3 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="229"/>
+        <location filename="../widgets/cards/ConvolutionCardEditor.cpp" line="174"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>采样率与设备不匹配（%1 Hz）</translation>
     </message>
@@ -480,7 +558,7 @@ Click the import button to copy it into the config directory.</source>
     <message>
         <location filename="../guis/ConvolutionFilterGUI.ui" line="86"/>
         <location filename="../guis/ConvolutionFilterGUI.ui" line="144"/>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="102"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="98"/>
         <source>No file selected</source>
         <translation>未选择文件</translation>
     </message>
@@ -489,44 +567,44 @@ Click the import button to copy it into the config directory.</source>
         <translation type="vanished">长度：</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="72"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="68"/>
         <source>Select impulse response file</source>
         <translation>选择脉冲响应文件</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="74"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="70"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>脉冲响应 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="110"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="106"/>
         <source>File not found</source>
         <translation>未找到文件</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="129"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="125"/>
         <source>The file is not readable for the audio service.
 Change the file permissions or copy the file to the config directory.</source>
         <translation>音频服务无法读取该文件。
 更改文件权限或将文件复制到配置目录。</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="138"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="134"/>
         <source>Unsupported file format</source>
         <translation>不支持的文件格式</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="146"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="142"/>
         <source>%0 ms (%1 samples)</source>
         <translation>%0 毫秒（%1 个采样率）</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="147"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="143"/>
         <source>%0 Hz</source>
         <translation>%0 Hz</translation>
     </message>
     <message>
-        <location filename="../guis/ConvolutionFilterGUI.cpp" line="152"/>
+        <location filename="../guis/ConvolutionFilterGUI.cpp" line="146"/>
         <source>The file sample rate does not match the device sample rate (%0 Hz)!
 Select a different file or change the device configuration.</source>
         <translation>文件采样率与设备采样率 (%0 Hz) 不匹配！
@@ -662,14 +740,13 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DefaultFilterPickerView</name>
     <message>
-        <location filename="../widgets/FilterPickerView.cpp" line="38"/>
+        <location filename="../widgets/FilterPickerView.cpp" line="119"/>
         <source>Search filters</source>
         <translation>搜索滤波器</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterPickerView.cpp" line="115"/>
         <source>General</source>
-        <translation>常规</translation>
+        <translation type="vanished">常规</translation>
     </message>
 </context>
 <context>
@@ -688,18 +765,18 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DelayCardEditor</name>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="70"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="49"/>
         <source>Time</source>
         <translation type="unfinished">时间</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="71"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="50"/>
         <source>Samples</source>
         <translation type="unfinished">采样</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="78"/>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="43"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="108"/>
         <source>samples</source>
         <translation type="unfinished"></translation>
     </message>
@@ -708,7 +785,7 @@ Select a different file or change the device configuration.</source>
     <name>DelayFilterGUI</name>
     <message>
         <location filename="../guis/DelayFilterGUI.ui" line="32"/>
-        <location filename="../guis/DelayFilterGUI.cpp" line="59"/>
+        <location filename="../guis/DelayFilterGUI.cpp" line="55"/>
         <source> ms</source>
         <translation> 毫秒</translation>
     </message>
@@ -732,7 +809,7 @@ Select a different file or change the device configuration.</source>
         <translation>采样</translation>
     </message>
     <message>
-        <location filename="../guis/DelayFilterGUI.cpp" line="59"/>
+        <location filename="../guis/DelayFilterGUI.cpp" line="55"/>
         <source> samples</source>
         <translation> 采样</translation>
     </message>
@@ -740,14 +817,18 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DelayFilterGUIFactory</name>
     <message>
-        <location filename="../guis/DelayFilterGUIFactory.cpp" line="35"/>
+        <location filename="../guis/DelayFilterGUIFactory.cpp" line="39"/>
         <source>Delay</source>
         <translation>延迟</translation>
     </message>
     <message>
-        <location filename="../guis/DelayFilterGUIFactory.cpp" line="35"/>
+        <location filename="../guis/DelayFilterGUIFactory.cpp" line="39"/>
+        <source>Phase &amp; Time</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Basic filters</source>
-        <translation>基本过滤器</translation>
+        <translation type="vanished">基本过滤器</translation>
     </message>
     <message>
         <source>Simple filters</source>
@@ -819,57 +900,57 @@ Select a different file or change the device configuration.</source>
         <translation>更改...</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="49"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="46"/>
         <source>Type</source>
         <translation>类型</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="50"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="47"/>
         <source>Connection</source>
         <translation>连接</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="51"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="48"/>
         <source>Device</source>
         <translation>设备</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="52"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="49"/>
         <source>State</source>
         <translation>状态</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="61"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="58"/>
         <source>All devices</source>
         <translation>所有设备</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="92"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="89"/>
         <source>Capture</source>
         <translation>捕获</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="94"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="91"/>
         <source>Playback</source>
         <translation>回放</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="99"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="96"/>
         <source>APO installed</source>
         <translation>已安装 APO</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="101"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="98"/>
         <source>APO not installed</source>
         <translation>未安装 APO</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="104"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="101"/>
         <source>Voicemeeter was uninstalled</source>
         <translation>Voicemeeter 已卸载</translation>
     </message>
     <message>
-        <location filename="../guis/DeviceFilterGUI.cpp" line="114"/>
+        <location filename="../guis/DeviceFilterGUI.cpp" line="111"/>
         <source>No device matched</source>
         <translation>没有匹配的设备</translation>
     </message>
@@ -994,170 +1075,191 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>ExpressionFilterGUIFactory</name>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="32"/>
         <source>Control</source>
         <translation type="unfinished">控制</translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="33"/>
         <source>Branching</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="39"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="36"/>
         <source>If (Begin conditional section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="40"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="37"/>
         <source>ElseIf (Alternative condition)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="41"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="38"/>
         <source>Else (Fallback section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="42"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="39"/>
         <source>EndIf (End conditional section)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="38"/>
+        <location filename="../guis/ExpressionFilterGUIFactory.cpp" line="35"/>
         <source>Eval (Evaluate expression)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
+    <name>FileReferenceController</name>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="68"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="81"/>
+        <source>Import</source>
+        <translation type="unfinished">导入</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="69"/>
+        <source>Nothing to import: %1</source>
+        <translation type="unfinished">无可导入内容：%1</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="82"/>
+        <source>Some files could not be copied:
+%1</source>
+        <translation type="unfinished">部分文件无法复制：
+%1</translation>
+    </message>
+</context>
+<context>
     <name>FilterCardModel</name>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="203"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="268"/>
         <source>Comment</source>
         <translation>注释</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="216"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="286"/>
         <source>Text</source>
         <translation>文本</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="229"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="299"/>
         <source>Preamp</source>
         <translation>前置放大</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="236"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="306"/>
         <source>Delay</source>
         <translation>延迟</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="248"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="317"/>
         <source>Biquad</source>
         <translation>Biquad</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="261"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="335"/>
         <source>IIR filter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="266"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="340"/>
         <source>Order %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="269"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="343"/>
         <source>%1 coefficients</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="299"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="374"/>
         <source>Graphic EQ</source>
         <translation>图形均衡器</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="304"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="379"/>
         <source>%1 bands</source>
         <translation>%1 个频段</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="310"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="385"/>
         <source>Copy</source>
         <translation>复制</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="332"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="407"/>
         <source>%1 steps, %2 virtual</source>
         <translation>%1 项，%2 个虚拟声道</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="334"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="409"/>
         <source>%1 steps</source>
         <translation>%1 项</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="341"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="416"/>
         <source>Channel</source>
         <translation>声道</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="351"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="426"/>
         <source>Include</source>
         <translation>包含</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="437"/>
         <source>Convolution</source>
         <translation>卷积</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="376"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="451"/>
         <source>MultiConvolution</source>
         <translation>多路卷积</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="391"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="467"/>
         <source>VST Plugin</source>
         <translation>VST 插件</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="401"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="477"/>
         <source>Device</source>
         <translation>设备</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="408"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="484"/>
         <source>Stage</source>
         <translation>阶段</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="415"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="491"/>
         <source>Loudness</source>
         <translation>响度</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="430"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="506"/>
         <source>If</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="435"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="511"/>
         <source>Else if</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="440"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="516"/>
         <source>Else</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="445"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="521"/>
         <source>End if</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="452"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="528"/>
         <source>Eval</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1165,12 +1267,12 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="61"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="94"/>
         <source>Expand filter card</source>
         <translation>展开滤波器卡片</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="97"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="136"/>
         <source>Enable or comment out this command</source>
         <translation>启用或注释掉此命令</translation>
     </message>
@@ -1179,22 +1281,22 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">在此卡片前添加滤波器</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="106"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="145"/>
         <source>Add filter after this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="113"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="152"/>
         <source>Remove filter</source>
         <translation>移除滤波器</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="121"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="160"/>
         <source>Edit raw command</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="664"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="724"/>
         <source>Raw</source>
         <translation>原始</translation>
     </message>
@@ -1202,16 +1304,160 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterInsertSeam</name>
     <message>
-        <location filename="../widgets/FilterInsertSeam.cpp" line="17"/>
+        <location filename="../widgets/FilterInsertSeam.cpp" line="15"/>
+        <location filename="../widgets/FilterInsertSeam.cpp" line="16"/>
         <location filename="../widgets/FilterInsertSeam.cpp" line="32"/>
         <source>Insert filter at the top</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
+    <name>FilterPickerView</name>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="24"/>
+        <source>A note EqualizerAPO skips while processing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="35"/>
+        <source>Boosts or cuts a band around a center frequency</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="36"/>
+        <source>Passes the lows and rolls off above the cutoff</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="37"/>
+        <source>Passes the highs and rolls off below the cutoff</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="38"/>
+        <source>Passes a band around the center and drops the rest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="39"/>
+        <source>Raises or lowers everything below the corner frequency</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="40"/>
+        <source>Raises or lowers everything above the corner frequency</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="41"/>
+        <source>Cuts a narrow band deeply and leaves the rest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="42"/>
+        <source>Changes phase and group delay around the center frequency. Level remains unchanged.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="47"/>
+        <source>First order. Rotates 180 degrees in total, passing 90 degrees at Fc.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="56"/>
+        <source>Applies overall gain before the other filters</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="57"/>
+        <source>Delays the signal by a time or distance</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="58"/>
+        <source>Mixes and routes the signal between channels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="59"/>
+        <source>Sets a gain for each graphic-EQ band</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="60"/>
+        <source>Applies an impulse response, such as a room or reverb</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="61"/>
+        <source>Convolves several inputs, as in BRIR headphone synthesis</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="62"/>
+        <source>Compensates hearing at low listening levels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="63"/>
+        <source>Runs an external VST audio plugin</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="64"/>
+        <source>Selects which channels the following filters affect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="65"/>
+        <source>Limits the following filters to one device</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="66"/>
+        <source>Chooses the processing stage for the following filters</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="67"/>
+        <source>Loads another configuration file here</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="68"/>
+        <source>Computes a variable from an expression</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="69"/>
+        <source>Applies the following filters only when a condition holds</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="70"/>
+        <source>Tries another condition when the previous one failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="71"/>
+        <source>Runs when none of the conditions above matched</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="72"/>
+        <source>Closes the conditional block</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterPickerView.cpp" line="83"/>
+        <source>General</source>
+        <translation type="unfinished">常规</translation>
+    </message>
+</context>
+<context>
     <name>FilterTable</name>
     <message>
-        <location filename="../FilterTable.cpp" line="234"/>
+        <location filename="../FilterTable.cpp" line="262"/>
         <source>Add filter</source>
         <translation>添加过滤器</translation>
     </message>
@@ -1241,37 +1487,37 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>GUIChannelHelper</name>
     <message>
-        <location filename="../helpers/GUIChannelHelper.cpp" line="37"/>
+        <location filename="../helpers/GUIChannelHelper.cpp" line="33"/>
         <source>Mono</source>
         <translation>单声道</translation>
     </message>
     <message>
-        <location filename="../helpers/GUIChannelHelper.cpp" line="38"/>
+        <location filename="../helpers/GUIChannelHelper.cpp" line="34"/>
         <source>Stereo</source>
         <translation>立体声</translation>
     </message>
     <message>
-        <location filename="../helpers/GUIChannelHelper.cpp" line="39"/>
+        <location filename="../helpers/GUIChannelHelper.cpp" line="35"/>
         <source>Quadraphonic</source>
         <translation>四声道</translation>
     </message>
     <message>
-        <location filename="../helpers/GUIChannelHelper.cpp" line="40"/>
+        <location filename="../helpers/GUIChannelHelper.cpp" line="36"/>
         <source>Surround</source>
         <translation>环绕声</translation>
     </message>
     <message>
-        <location filename="../helpers/GUIChannelHelper.cpp" line="41"/>
+        <location filename="../helpers/GUIChannelHelper.cpp" line="37"/>
         <source>5.1</source>
         <translation>5.1</translation>
     </message>
     <message>
-        <location filename="../helpers/GUIChannelHelper.cpp" line="42"/>
+        <location filename="../helpers/GUIChannelHelper.cpp" line="38"/>
         <source>5.1 Surround</source>
         <translation>5.1 环绕声</translation>
     </message>
     <message>
-        <location filename="../helpers/GUIChannelHelper.cpp" line="43"/>
+        <location filename="../helpers/GUIChannelHelper.cpp" line="39"/>
         <source>7.1 Surround</source>
         <translation>7.1 环绕声</translation>
     </message>
@@ -1279,89 +1525,89 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>GraphicEQCardEditor</name>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="65"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="67"/>
         <source>15-band</source>
         <translation type="unfinished">15 频段</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="66"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="68"/>
         <source>31-band</source>
         <translation type="unfinished">31 频段</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="67"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="69"/>
         <source>variable</source>
         <translation type="unfinished">可变</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="70"/>
         <source>Band layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="81"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="83"/>
         <source>Import</source>
         <translation type="unfinished">导入</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="82"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="84"/>
         <source>Export</source>
         <translation type="unfinished">导出</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="83"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="85"/>
         <source>Invert response</source>
         <translation type="unfinished">反转响应</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="84"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="86"/>
         <source>Normalize response</source>
         <translation type="unfinished">规范化响应</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="85"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="87"/>
         <source>Reset response</source>
         <translation type="unfinished">重置响应</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="125"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="127"/>
         <source>Freq.</source>
         <translation type="unfinished">频率</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="137"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="139"/>
         <source>Gain</source>
         <translation type="unfinished">增益</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="247"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="249"/>
         <source>Band %0 / %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="253"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="255"/>
         <source>No bands</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="305"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="307"/>
         <source>Import frequency response</source>
         <translation type="unfinished">导入频率响应</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="308"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="364"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="310"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="367"/>
         <source>Frequency response (*.csv)</source>
         <translation type="unfinished">频率响应 (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="309"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="365"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="311"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="368"/>
         <source>All files (*.*)</source>
         <translation type="unfinished">所有文件 (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="360"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="363"/>
         <source>Export frequency response</source>
         <translation type="unfinished">输出频率响应</translation>
     </message>
@@ -1432,24 +1678,24 @@ Select a different file or change the device configuration.</source>
         <translation>重置响应</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="310"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="306"/>
         <source>Import frequency response</source>
         <translation>导入频率响应</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="313"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="386"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="309"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="382"/>
         <source>Frequency response (*.csv)</source>
         <translation>频率响应 (*.csv)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="314"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="387"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="310"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="383"/>
         <source>All files (*.*)</source>
         <translation>所有文件 (*.*)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="382"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="378"/>
         <source>Export frequency response</source>
         <translation>输出频率响应</translation>
     </message>
@@ -1504,7 +1750,7 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">配置文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="214"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="165"/>
         <source>Choose include file</source>
         <translation>选择包含文件</translation>
     </message>
@@ -1513,42 +1759,42 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">打开包含文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="62"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="64"/>
         <source>Copy this file and its dependencies into the config directory</source>
         <translation>将此文件及其依赖项复制到配置目录</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="70"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="72"/>
         <source>Edit the path as text</source>
         <translation>以文本方式编辑路径</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="100"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="103"/>
         <source>Include file</source>
         <translation>包含文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="102"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="104"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>E-APO 配置 (*.txt)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="157"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="147"/>
         <source>No file selected</source>
         <translation>未选择文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="201"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="154"/>
         <source>Not readable by the audio service</source>
         <translation>音频服务无法读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="213"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="164"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="214"/>
+        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="165"/>
         <source>Locate the missing file</source>
         <translation>定位缺失的文件</translation>
     </message>
@@ -1567,21 +1813,17 @@ Click the import button to copy it into the config directory.</source>
 点击导入按钮将其复制到配置目录。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="235"/>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="246"/>
         <source>Import</source>
-        <translation>导入</translation>
+        <translation type="vanished">导入</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="235"/>
         <source>Nothing to import: %1</source>
-        <translation>无可导入内容：%1</translation>
+        <translation type="vanished">无可导入内容：%1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/IncludeCardEditor.cpp" line="247"/>
         <source>Some files could not be copied:
 %1</source>
-        <translation>部分文件无法复制：
+        <translation type="vanished">部分文件无法复制：
 %1</translation>
     </message>
 </context>
@@ -1607,27 +1849,27 @@ Click the import button to copy it into the config directory.</source>
         <translation>在编辑器中打开文件</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="66"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="63"/>
         <source>Include file</source>
         <translation>包含文件</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="68"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="65"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>E-APO 配置 (*.txt)</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="111"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="108"/>
         <source>No file selected</source>
         <translation>未选择文件</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="120"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="117"/>
         <source>File not found</source>
         <translation>未找到文件</translation>
     </message>
     <message>
-        <location filename="../guis/IncludeFilterGUI.cpp" line="137"/>
+        <location filename="../guis/IncludeFilterGUI.cpp" line="134"/>
         <source>The file is not readable for the audio service.
 Change the file permissions or copy the file to the config directory.</source>
         <translation>音频服务无法读取该文件。
@@ -1784,12 +2026,12 @@ Alexander Walch</source>
 <context>
     <name>LoudnessCorrectionFilterGUIFactory</name>
     <message>
-        <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="51"/>
+        <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="46"/>
         <source>Loudness correction</source>
         <translation>响度校正</translation>
     </message>
     <message>
-        <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="51"/>
+        <location filename="../guis/LoudnessCorrectionFilterGUIFactory.cpp" line="46"/>
         <source>Advanced filters</source>
         <translation>高级过滤器</translation>
     </message>
@@ -1806,12 +2048,17 @@ Alexander Walch</source>
         <translation>文件</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="521"/>
+        <location filename="../MainWindow.ui" line="346"/>
+        <source>Lat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="531"/>
         <source>APO settings</source>
         <translation>APO 设置</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="524"/>
+        <location filename="../MainWindow.ui" line="534"/>
         <source>Run the Device Selector to install or remove Equalizer APO on audio devices</source>
         <translation>运行 Device Selector 以在音频设备上安装或移除 Equalizer APO</translation>
     </message>
@@ -1836,84 +2083,88 @@ Alexander Walch</source>
         <translation>语言</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="109"/>
-        <location filename="../MainWindow.ui" line="582"/>
+        <location filename="../MainWindow.ui" line="111"/>
+        <location filename="../MainWindow.ui" line="606"/>
         <source>Toolbar</source>
         <translation>工具栏</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="123"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="393"/>
+        <location filename="../MainWindow.ui" line="128"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="402"/>
         <source>Graph</source>
         <translation>图表</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="184"/>
+        <location filename="../MainWindow.ui" line="189"/>
         <source>From</source>
         <translation>起始</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="205"/>
+        <location filename="../MainWindow.ui" line="210"/>
         <source>Channel</source>
         <translation>声道</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="215"/>
+        <location filename="../MainWindow.ui" line="220"/>
         <source>Res</source>
         <translation>分辨率</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="241"/>
+        <location filename="../MainWindow.ui" line="246"/>
         <source>Pos</source>
         <translation>位置</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="249"/>
+        <location filename="../MainWindow.ui" line="254"/>
         <source>Top</source>
         <translation>顶部</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="254"/>
+        <location filename="../MainWindow.ui" line="259"/>
         <source>Bottom</source>
         <translation>底部</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="259"/>
+        <location filename="../MainWindow.ui" line="264"/>
         <source>Right</source>
         <translation>右</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="288"/>
+        <location filename="../MainWindow.ui" line="275"/>
+        <source>Include base delay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.ui" line="308"/>
         <source>Peak</source>
         <translation>峰值</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="326"/>
         <source>Latency</source>
-        <translation>延迟</translation>
+        <translation type="vanished">延迟</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="364"/>
+        <location filename="../MainWindow.ui" line="391"/>
         <source>Init</source>
         <translation>初始化</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="402"/>
+        <location filename="../MainWindow.ui" line="429"/>
         <source>CPU</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="515"/>
+        <location filename="../MainWindow.ui" line="539"/>
         <source>Undo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="523"/>
+        <location filename="../MainWindow.ui" line="547"/>
         <source>Redo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="590"/>
+        <location filename="../MainWindow.ui" line="614"/>
         <source>Analysis panel</source>
         <translation>分析面板</translation>
     </message>
@@ -1934,7 +2185,7 @@ Alexander Walch</source>
         <translation type="vanished">开始于：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="197"/>
+        <location filename="../MainWindow.ui" line="202"/>
         <source>Current file</source>
         <translation>当前文件</translation>
     </message>
@@ -1959,7 +2210,7 @@ Alexander Walch</source>
         <translation type="vanished">峰值增益：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="454"/>
+        <location filename="../MainWindow.ui" line="470"/>
         <source>New</source>
         <translation>新建</translation>
     </message>
@@ -1968,8 +2219,8 @@ Alexander Walch</source>
         <translation type="vanished">Ctrl+N</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="466"/>
-        <location filename="../MainWindow.ui" line="469"/>
+        <location filename="../MainWindow.ui" line="482"/>
+        <location filename="../MainWindow.ui" line="485"/>
         <source>Open</source>
         <translation>打开</translation>
     </message>
@@ -1978,8 +2229,8 @@ Alexander Walch</source>
         <translation type="vanished">Ctrl+O</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="481"/>
-        <location filename="../MainWindow.ui" line="484"/>
+        <location filename="../MainWindow.ui" line="497"/>
+        <location filename="../MainWindow.ui" line="500"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
@@ -1988,13 +2239,13 @@ Alexander Walch</source>
         <translation type="vanished">Ctrl+S</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="496"/>
-        <location filename="../MainWindow.ui" line="499"/>
+        <location filename="../MainWindow.ui" line="512"/>
+        <location filename="../MainWindow.ui" line="515"/>
         <source>Save as...</source>
         <translation>另存为...</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="507"/>
+        <location filename="../MainWindow.ui" line="523"/>
         <source>Exit</source>
         <translation>退出</translation>
     </message>
@@ -2003,7 +2254,7 @@ Alexander Walch</source>
         <translation type="vanished">Alt+F4</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="535"/>
+        <location filename="../MainWindow.ui" line="559"/>
         <source>Cut</source>
         <translation>剪切</translation>
     </message>
@@ -2012,7 +2263,7 @@ Alexander Walch</source>
         <translation type="vanished">Ctrl+X</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="547"/>
+        <location filename="../MainWindow.ui" line="571"/>
         <source>Copy</source>
         <translation>复制</translation>
     </message>
@@ -2021,7 +2272,7 @@ Alexander Walch</source>
         <translation type="vanished">Ctrl+C</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="559"/>
+        <location filename="../MainWindow.ui" line="583"/>
         <source>Paste</source>
         <translation>粘贴</translation>
     </message>
@@ -2030,37 +2281,37 @@ Alexander Walch</source>
         <translation type="vanished">Ctrl+V</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="571"/>
+        <location filename="../MainWindow.ui" line="595"/>
         <source>Delete</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="595"/>
+        <location filename="../MainWindow.ui" line="619"/>
         <source>Reset all global preferences</source>
         <translation>重置所有全局首选项</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="600"/>
+        <location filename="../MainWindow.ui" line="624"/>
         <source>Reset all file-specific preferences</source>
         <translation>重置所有文件特定的首选项</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="609"/>
+        <location filename="../MainWindow.ui" line="633"/>
         <source>Select all</source>
         <translation>全选</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="98"/>
+        <location filename="../MainWindow.cpp" line="97"/>
         <source>Equalizer APO %0 Configuration Editor</source>
         <translation>Equalizer APO %0 配置编辑器</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="119"/>
+        <location filename="../MainWindow.cpp" line="112"/>
         <source>Instant mode</source>
         <translation>即时模式</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="122"/>
+        <location filename="../MainWindow.cpp" line="116"/>
         <source>Changes are saved immediately</source>
         <translation>更改将立即保存</translation>
     </message>
@@ -2073,7 +2324,7 @@ Alexander Walch</source>
         <translation type="vanished">声道配置：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="171"/>
+        <location filename="../MainWindow.cpp" line="131"/>
         <source>Default</source>
         <translation>默认</translation>
     </message>
@@ -2086,17 +2337,17 @@ Alexander Walch</source>
         <translation type="vanished">输入设备：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="173"/>
+        <location filename="../MainWindow.cpp" line="133"/>
         <source>Playback devices:</source>
         <translation>播放设备：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="184"/>
+        <location filename="../MainWindow.cpp" line="144"/>
         <source>Capture devices:</source>
         <translation>捕获设备：</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="312"/>
+        <location filename="../MainWindow.cpp" line="265"/>
         <source>Registry problem</source>
         <translation>注册表问题</translation>
     </message>
@@ -2111,7 +2362,7 @@ Do you want to run the Configurator application to fix the problem?</source>
 是否要运行配置器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="321"/>
+        <location filename="../MainWindow.cpp" line="274"/>
         <source>APO not installed to device</source>
         <translation>未将 APO 安装到设备</translation>
     </message>
@@ -2122,7 +2373,7 @@ Do you want to run the Configurator application to fix the problem?</source>
 是否要运行配置器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="388"/>
+        <location filename="../MainWindow.cpp" line="341"/>
         <source>Audio enhancements disabled</source>
         <translation>音频增强功能已禁用</translation>
     </message>
@@ -2135,24 +2386,24 @@ Do you want to run the Configurator application to fix the problem?</source>
 您是否要运行配置器应用程序来修复该问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="63"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="96"/>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="102"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="61"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="94"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="100"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="63"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="61"/>
         <source>Error while reading configuration file: %0</source>
         <translation>读取配置文件时出错：%0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="96"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="94"/>
         <source>Error while writing configuration file: %0</source>
         <translation>写入配置文件时出错：%0</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="102"/>
+        <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="100"/>
         <source>Only %0/%1 bytes have been written!</source>
         <translation>仅写入了 %0/%1 字节！</translation>
     </message>
@@ -2165,42 +2416,77 @@ Do you want to run the Configurator application to fix the problem?</source>
         <translation>跟随设备</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="172"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="184"/>
         <source>EQ active · 32-bit float</source>
         <translation>均衡器已启用 · 32 位浮点</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="174"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="186"/>
         <source>EqualizerAPO is processing this stream natively (IEEE_FLOAT 32-bit, %0 Hz, %1 ch).</source>
         <translation>EqualizerAPO 正在原生处理此音频流（IEEE_FLOAT 32 位，%0 Hz，%1 声道）。</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="178"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="190"/>
         <source>EQ active · 64-bit float</source>
         <translation>均衡器已启用 · 64 位浮点</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="180"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="192"/>
         <source>EqualizerAPO is processing this stream natively (IEEE_FLOAT 64-bit, %0 Hz, %1 ch).</source>
         <translation>EqualizerAPO 正在原生处理此音频流（IEEE_FLOAT 64 位，%0 Hz，%1 声道）。</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="184"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="196"/>
         <source>Passthrough · EQ inactive</source>
         <translation>直通 · 均衡器未启用</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="186"/>
+        <location filename="../MainWindowParts/MainWindow.Device.cpp" line="198"/>
         <source>This device&apos;s stream format is %0 (%1-bit container). EqualizerAPO only processes IEEE_FLOAT 32/64-bit streams natively, so audio is forwarded without any filter being applied. Switch the device&apos;s default format to a 32-bit IEEE_FLOAT one in Sound Settings if you need filtering on this device.</source>
         <translation>此设备的流格式为 %0（%1 位容器）。EqualizerAPO 仅原生处理 IEEE_FLOAT 32/64 位音频流，因此音频会被转发而不应用任何滤波器。如果你需要对此设备进行滤波处理，请在声音设置中将该设备的默认格式切换为 32 位 IEEE_FLOAT。</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="129"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="150"/>
+        <source>Mag</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="150"/>
+        <source>Phase</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="150"/>
+        <source>GD</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="151"/>
+        <source>What the graph shows: magnitude in dB, phase in degrees, or group delay in ms.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="153"/>
+        <source>The analyzer removes the configuration&apos;s bulk delay before measuring, so a filter&apos;s own phase is readable. Switch this on to put that delay back into the reading.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="239"/>
+        <source>Analysis failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="252"/>
         <source>%0 dB</source>
         <translation>%0 dB</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="148"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="270"/>
+        <source>%0 ms (%1 samples) of latency the analyzer removed before measuring</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="276"/>
         <source>%0 %</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2209,17 +2495,17 @@ Do you want to run the Configurator application to fix the problem?</source>
         <translation type="vanished">%0 毫秒（%1 个采样）</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="143"/>
         <source>%0 ms (%1 s.)</source>
-        <translation>%0 毫秒（%1 秒）</translation>
+        <translation type="vanished">%0 毫秒（%1 秒）</translation>
     </message>
     <message>
         <source>%0 ms (%1 samples)</source>
         <translation type="vanished">%0 毫秒（%1 个采样）</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="138"/>
-        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="145"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="261"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="269"/>
+        <location filename="../MainWindowParts/MainWindow.Analysis.cpp" line="273"/>
         <source>%0 ms</source>
         <translation>%0 毫秒</translation>
     </message>
@@ -2228,111 +2514,111 @@ Do you want to run the Configurator application to fix the problem?</source>
         <translation type="vanished">%0 % (单核)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="169"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="176"/>
         <source>Gain knobs will cover ± this many dB:</source>
         <translation>增益旋钮将覆盖 ± 多少 dB：</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="79"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="203"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="230"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="257"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="276"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="95"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="225"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="252"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="279"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="298"/>
         <source>Restart required</source>
         <translation>需要重新启动</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="79"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="203"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="230"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="257"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="276"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="95"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="225"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="252"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="279"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="298"/>
         <source>Configuration Editor will be restarted to apply the changed settings. Proceed?</source>
         <translation>配置编辑器将重新启动以应用更改的设置。继续吗？</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="116"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="154"/>
+        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="115"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="151"/>
         <source>Unsaved changes</source>
         <translation>未保存的更改</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="155"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="152"/>
         <source>The configuration file %0 has unsaved changes.</source>
         <translation>配置文件 %0 有未保存的更改。</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="156"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="153"/>
         <source>Do you want to save the changes before closing the file?</source>
         <translation>您是否要在关闭文件之前保存更改？</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="56"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="54"/>
         <source>Open file</source>
         <translation>打开文件</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="126"/>
-        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="116"/>
+        <location filename="../MainWindow.cpp" line="113"/>
+        <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="115"/>
         <source>Saved</source>
         <translation>已保存</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="128"/>
+        <location filename="../MainWindow.cpp" line="117"/>
         <source>Current file save state</source>
         <translation>当前文件保存状态</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="136"/>
+        <location filename="../MainWindow.cpp" line="114"/>
         <source>Device</source>
         <translation>设备</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="152"/>
+        <location filename="../MainWindow.cpp" line="118"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>EqualizerAPO 是原生处理此设备的音频流，还是不应用滤波器直接转发。</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="160"/>
+        <location filename="../MainWindow.cpp" line="115"/>
         <source>Channels</source>
         <translation>声道</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="259"/>
+        <location filename="../MainWindow.cpp" line="216"/>
         <source>Automatic (%0)</source>
         <translation>自动 (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="295"/>
+        <location filename="../MainWindow.cpp" line="252"/>
         <source>An update has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="296"/>
+        <location filename="../MainWindow.cpp" line="253"/>
         <source>Update %0 has been downloaded and will be applied when you close the editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="312"/>
+        <location filename="../MainWindow.cpp" line="265"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO 操作所需的注册表值设置不正确。
 是否要运行设备选择器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="321"/>
+        <location filename="../MainWindow.cpp" line="274"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO 尚未安装到所选设备。
 是否要运行设备选择器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="356"/>
+        <location filename="../MainWindow.cpp" line="309"/>
         <source>EQ inactive on some devices</source>
         <translation>部分设备上均衡器未启用</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="357"/>
+        <location filename="../MainWindow.cpp" line="310"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -2345,7 +2631,7 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 这并非崩溃，声音仍会到达设备，只是没有均衡处理。如果你需要对这些设备进行滤波处理，请在声音设置中将其默认格式切换为 32 位 IEEE_FLOAT。</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="388"/>
+        <location filename="../MainWindow.cpp" line="341"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -2353,95 +2639,95 @@ Do you want to run the Device Selector application to fix the problem?</source>
 是否要运行设备选择器应用程序来修复此问题？</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="58"/>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="112"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="56"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="108"/>
         <source>E-APO configurations (*.txt)</source>
         <translation>E-APO 配置 (*.txt)</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="109"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="105"/>
         <source>Save file as</source>
         <translation>文件另存为</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="132"/>
+        <location filename="../MainWindowParts/MainWindow.FileActions.cpp" line="129"/>
         <source>Unsaved</source>
         <translation>未保存</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="224"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="225"/>
         <source>Interface</source>
         <translation>界面</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="228"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="229"/>
         <source>Modern cards</source>
         <translation>现代卡片</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="232"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="233"/>
         <source>Legacy rows</source>
         <translation>传统行</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="243"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="244"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="244"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="245"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="245"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="246"/>
         <source>Soft Lab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="246"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="247"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="247"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="248"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="259"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="260"/>
         <source>Dark theme</source>
         <translation>深色主题</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="277"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="168"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="278"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="175"/>
         <source>Knob gain range</source>
         <translation>旋钮增益范围</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="282"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="283"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="287"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="334"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="288"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="337"/>
         <source>Custom...</source>
         <translation>自定义…</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="296"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="298"/>
         <source>Fullscreen graph</source>
         <translation>全屏图表</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="304"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="307"/>
         <source>Native title bar</source>
         <translation>原生标题栏</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="335"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="338"/>
         <source>Custom (±%1 dB)...</source>
         <translation>自定义（±%1 dB）…</translation>
     </message>
@@ -2537,7 +2823,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MatrixFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="118"/>
+        <location filename="../skins/pickers/MatrixFilterPicker.cpp" line="115"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
@@ -2545,7 +2831,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MinimalFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/MinimalFilterPicker.cpp" line="344"/>
+        <location filename="../skins/pickers/MinimalFilterPicker.cpp" line="341"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
@@ -2561,43 +2847,43 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">输出声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="82"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="83"/>
         <source>Copy this file into the config directory</source>
         <translation>将此文件复制到配置目录</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="90"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="91"/>
         <source>Edit the path as text</source>
         <translation>以文本方式编辑路径</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="104"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="105"/>
         <source>Channel mapping</source>
         <translation>声道映射</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="113"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>添加输出声道（新名称会创建虚拟声道）</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="170"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
         <source>Add output channel</source>
         <translation>添加输出声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="172"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>声道名称（未知名称会创建虚拟声道）：</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="212"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="213"/>
         <source>Select a readable impulse response file to edit the channel mapping.</source>
         <translation>请选择可读取的脉冲响应文件以编辑声道映射。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="249"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="250"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
         <source>Select impulse response file</source>
         <translation>选择脉冲响应文件</translation>
     </message>
@@ -2607,75 +2893,71 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>脉冲响应 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
         <source>Import</source>
-        <translation>导入</translation>
+        <translation type="vanished">导入</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="284"/>
         <source>Nothing to import: %1</source>
-        <translation>无可导入内容：%1</translation>
+        <translation type="vanished">无可导入内容：%1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="296"/>
         <source>Some files could not be copied:
 %1</source>
-        <translation>部分文件无法复制：
+        <translation type="vanished">部分文件无法复制：
 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="333"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
         <source>No file selected</source>
         <translation>未选择文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="362"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
         <source>Unsupported file format</source>
         <translation>不支持的文件格式</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="320"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="372"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="321"/>
         <source>%1 samples</source>
         <translation>%1 采样</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="322"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="323"/>
         <source>%1 ch</source>
         <translation>%1 声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="381"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="328"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>采样率与设备不匹配（%1 Hz）</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="399"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="346"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>映射引用了声道 %1，但文件只有 %2 个声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="421"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="358"/>
         <source>Not readable by the audio service</source>
         <translation>音频服务无法读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="437"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="438"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
         <source>Locate the missing file</source>
         <translation>定位缺失的文件</translation>
     </message>
@@ -2683,28 +2965,28 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionFilterGUI</name>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="35"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="38"/>
         <source>Mappings:</source>
         <translation>映射：</translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="38"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="41"/>
         <source>Output mappings, e.g. &quot;L=0+1 R=2+3&quot; (file channels are 0-based) or just &quot;L&quot; for every file channel</source>
         <translation>输出映射，如 &quot;L=0+1 R=2+3&quot;（文件声道从 0 开始），只写 &quot;L&quot; 则使用文件的全部声道</translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="42"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="45"/>
         <source>Impulse response:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="49"/>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="74"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="52"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="83"/>
         <source>Select impulse response file</source>
         <translation type="unfinished">选择脉冲响应文件</translation>
     </message>
     <message>
-        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="75"/>
+        <location filename="../guis/MultiConvolutionFilterGUI.cpp" line="85"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation type="unfinished">脉冲响应 (*.wav *.flac *.ogg)</translation>
     </message>
@@ -2725,7 +3007,8 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>PreampCardEditor</name>
     <message>
-        <location filename="../widgets/cards/PreampCardEditor.cpp" line="62"/>
+        <location filename="../widgets/cards/PreampCardEditor.cpp" line="41"/>
+        <location filename="../widgets/cards/PreampCardEditor.cpp" line="55"/>
         <source>Gain</source>
         <translation>增益</translation>
     </message>
@@ -2784,27 +3067,32 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="90"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="123"/>
         <source>Missing file: %1</source>
         <translation>缺失文件：%1</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="104"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="138"/>
         <source>Recursion limit reached at %1; nested references were not followed.</source>
         <translation>在 %1 处达到递归上限；未跟踪嵌套引用。</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="116"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="150"/>
         <source>Cannot open %1 for scanning.</source>
         <translation>无法打开 %1 进行扫描。</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="146"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="173"/>
+        <source>VSTPlugin line has no Library reference: %1 (in %2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="193"/>
         <source>Reference outside the source folder will be skipped: %1 (in %2)</source>
         <translation>将跳过源文件夹之外的引用：%1（位于 %2）</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="174"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="220"/>
         <source>Root file does not exist: %1</source>
         <translation>根文件不存在：%1</translation>
     </message>
@@ -2858,50 +3146,72 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <source>Failed to copy %1 to %2.</source>
         <translation>无法将 %1 复制到 %2。</translation>
     </message>
+    <message>
+        <location filename="../import/LegacyMigration.cpp" line="334"/>
+        <source>Configuration folder moved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../import/LegacyMigration.cpp" line="335"/>
+        <source>Your Equalizer APO configuration was imported into the EqualizerAPO-XT configuration folder:
+
+%1
+
+This folder is now the one the audio pipeline reads. The previous folder is no longer used:
+
+%2</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>RackFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/RackFilterPicker.cpp" line="258"/>
+        <location filename="../skins/pickers/RackFilterPicker.cpp" line="254"/>
         <source>SEARCH</source>
         <translation>搜索</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/RackFilterPicker.cpp" line="375"/>
         <source>General</source>
-        <translation>常规</translation>
+        <translation type="vanished">常规</translation>
+    </message>
+</context>
+<context>
+    <name>ScalarKnobCardEditor</name>
+    <message>
+        <location filename="../widgets/cards/ScalarKnobCardEditor.cpp" line="59"/>
+        <source>Computed when the configuration loads; edit the raw line to change the expression.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>SoftFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="193"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="138"/>
         <source>Complete as it is</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="195"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="140"/>
         <source>Choose the details after adding</source>
         <translation>添加后再设置详细信息</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="430"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="370"/>
         <source>Search filters</source>
         <translation>搜索滤波器</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="469"/>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="530"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="409"/>
         <source>General</source>
         <translation>常规</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="578"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="508"/>
         <source>Nothing matches your search</source>
         <translation>没有匹配你搜索的内容</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="579"/>
+        <location filename="../skins/pickers/SoftFilterPicker.cpp" line="509"/>
         <source>Try a shorter or different keyword</source>
         <translation>请尝试更短或不同的关键词</translation>
     </message>
@@ -2909,83 +3219,103 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>SoftSkin</name>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="100"/>
+        <location filename="../skins/SoftSkin.cpp" line="77"/>
         <source>Otherwise</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="102"/>
+        <location filename="../skins/SoftSkin.cpp" line="79"/>
         <source>End of the rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="113"/>
+        <location filename="../skins/SoftSkin.cpp" line="90"/>
         <source>Set %1 to %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="134"/>
+        <location filename="../skins/SoftSkin.cpp" line="111"/>
         <source>If %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="136"/>
+        <location filename="../skins/SoftSkin.cpp" line="113"/>
         <source>If %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="138"/>
+        <location filename="../skins/SoftSkin.cpp" line="115"/>
         <source>If %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="140"/>
+        <location filename="../skins/SoftSkin.cpp" line="117"/>
         <source>If %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="142"/>
+        <location filename="../skins/SoftSkin.cpp" line="119"/>
         <source>If %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="144"/>
+        <location filename="../skins/SoftSkin.cpp" line="121"/>
         <source>If %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="149"/>
+        <location filename="../skins/SoftSkin.cpp" line="126"/>
         <source>Otherwise, if %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="151"/>
+        <location filename="../skins/SoftSkin.cpp" line="128"/>
         <source>Otherwise, if %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="153"/>
+        <location filename="../skins/SoftSkin.cpp" line="130"/>
         <source>Otherwise, if %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="155"/>
+        <location filename="../skins/SoftSkin.cpp" line="132"/>
         <source>Otherwise, if %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="157"/>
+        <location filename="../skins/SoftSkin.cpp" line="134"/>
         <source>Otherwise, if %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/SoftSkin.cpp" line="159"/>
+        <location filename="../skins/SoftSkin.cpp" line="136"/>
         <source>Otherwise, if %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../skins/SoftSkin.cpp" line="826"/>
         <source>Sound may distort - keep it below 0 dB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="857"/>
+        <source>Phase in %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="858"/>
+        <source>Delay in %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="860"/>
+        <source>How far each pitch is turned - the volume stays the same</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../skins/SoftSkin.cpp" line="861"/>
+        <source>How long each pitch is held back before you hear it</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3095,17 +3425,16 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StudioFilterPickerView</name>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="260"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="257"/>
         <source>Search filters</source>
         <translation>搜索滤波器</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="365"/>
         <source>General</source>
-        <translation>常规</translation>
+        <translation type="vanished">常规</translation>
     </message>
     <message>
-        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="412"/>
+        <location filename="../skins/pickers/StudioFilterPicker.cpp" line="394"/>
         <source>No matching filters</source>
         <translation>没有匹配的滤波器</translation>
     </message>
@@ -3113,7 +3442,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="585"/>
+        <location filename="../widgets/routing/LightTraceRoutingRenderer.cpp" line="583"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>在声道之间拖动即可路由——点击 + 添加输出</translation>
     </message>
@@ -3121,12 +3450,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="106"/>
+        <location filename="../widgets/TitleBar.cpp" line="111"/>
         <source>Restore</source>
         <translation>还原</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="106"/>
+        <location filename="../widgets/TitleBar.cpp" line="111"/>
         <source>Maximize</source>
         <translation>最大化</translation>
     </message>
@@ -3142,10 +3471,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>VSTCardEditor</name>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="102"/>
         <source>Stereo input</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="105"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3154,18 +3485,18 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">VST 插件 (.dll, .vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="334"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="390"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="329"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="385"/>
         <source>Select VST plugin</source>
         <translation>选择 VST 插件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="84"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="85"/>
         <source>Open panel</source>
         <translation>打开面板</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="94"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="96"/>
         <source>Embed panel in card</source>
         <translation>将面板嵌入卡片</translation>
     </message>
@@ -3178,64 +3509,64 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">找不到文件。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="103"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="113"/>
         <source>Edit the path as text</source>
         <translation>以文本方式编辑路径</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="245"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="256"/>
         <source>Library could not be loaded.</source>
         <translation>无法加载库。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="248"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="259"/>
         <source>Library does not contain needed functions.</source>
         <translation>库中不包含所需的函数。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="256"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="267"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>库的架构不正确。仅支持 %1 位的库。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="272"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="282"/>
         <source>Plugin crashed during initialization.</source>
         <translation>插件在初始化期间崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="290"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="294"/>
         <source>No plugin selected</source>
         <translation>未选择插件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="333"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="328"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="334"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="329"/>
         <source>Locate the missing plugin library</source>
         <translation>定位缺失的插件库</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="392"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="386"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 插件 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="434"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="423"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>插件在打开面板时崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="531"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="511"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>音频服务无法读取此库。
 请更改文件权限，或将该文件复制到 VSTPlugins 目录。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="576"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="556"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -3247,10 +3578,12 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTPluginFilterGUI</name>
     <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="69"/>
         <source>Stereo input</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="72"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3283,42 +3616,42 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation type="vanished">未选择文件</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="173"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="189"/>
         <source>No file selected.</source>
         <translation>未选择文件。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="186"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="202"/>
         <source>File not found.</source>
         <translation>未找到文件。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="189"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="205"/>
         <source>Library could not be loaded.</source>
         <translation>无法加载库。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="192"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="208"/>
         <source>Library does not contain needed functions.</source>
         <translation>库不包含所需的函数。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="200"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="216"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>库的体系结构错误。仅支持 %1 位库。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="221"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="236"/>
         <source>Plugin crashed during initialization.</source>
         <translation>插件在初始化期间崩溃。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="282"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="296"/>
         <source>Select VST plugin</source>
         <translation>选择 VST 插件</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="284"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="298"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 插件 (*.dll *.vst3)</translation>
     </message>
@@ -3327,12 +3660,12 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation type="vanished">VST 插件 (*.dll)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="332"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="346"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>打开面板时插件崩溃。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="433"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="447"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>音频服务无法读取该库。
@@ -3345,7 +3678,7 @@ Change the file permissions or copy the file to the plugins directory.</source>
 更改文件权限或将文件复制到插件目录。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="480"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="494"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
