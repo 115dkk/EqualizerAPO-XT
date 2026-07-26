@@ -27,7 +27,7 @@
 #include <windows.h>
 
 #include "helpers/StringHelper.h"
-#include "helpers/RegistryHelper.h"
+#include "helpers/AudioEngineAccess.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/SkinManager.h"
@@ -530,16 +530,7 @@ void VSTCardEditor::updatePermissionWarning()
 			QFile file(path);
 			if (file.exists())
 			{
-				ACCESS_MASK fileMask = GENERIC_READ;
-				try
-				{
-					fileMask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
-				}
-				catch (const RegistryException&)
-				{
-					// ignore
-				}
-				if ((fileMask & GENERIC_READ) != GENERIC_READ && (fileMask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
+				if (!AudioEngineAccess::isReadableByAudioEngine(path.toStdWString()))
 					files.append(path);
 			}
 		}

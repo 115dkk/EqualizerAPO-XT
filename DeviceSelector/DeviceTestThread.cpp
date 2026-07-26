@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <chrono>
 #include <helpers/RegistryHelper.h>
+#include <helpers/WindowsVersion.h>
 #include <helpers/ServiceHelper.h>
 #include <helpers/ComPtr.h>
 #include <ObjBase.h>
@@ -31,7 +32,7 @@ using std::thread;
 DeviceTestThread::DeviceTestThread(QObject* parent, const QVector<std::shared_ptr<DeviceAPOInfo>>& devices)
 	: QThread(parent)
 {
-	bool isNewerWindows = RegistryHelper::isWindowsVersionAtLeast(6, 3); // Windows 8.1
+	bool isNewerWindows = WindowsVersion::isAtLeast(6, 3); // Windows 8.1
 	for (const std::shared_ptr<DeviceAPOInfo>& apoInfo : devices)
 	{
 		if (apoInfo->isDisabled() || apoInfo->isUnplugged())

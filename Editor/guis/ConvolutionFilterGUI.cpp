@@ -22,7 +22,7 @@
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "filters/ConvolutionCommand.h"
-#include "helpers/RegistryHelper.h"
+#include "helpers/AudioEngineAccess.h"
 #include "helpers/SndfileRAII.h"
 #include "ConvolutionFilterGUI.h"
 #include "ui_ConvolutionFilterGUI.h"
@@ -110,17 +110,7 @@ void ConvolutionFilterGUI::updateFileInfo()
 		{
 			path = QDir::toNativeSeparators(fileInfo.absoluteFilePath());
 
-			ACCESS_MASK mask = GENERIC_READ;
-			try
-			{
-				mask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
-			}
-			catch (const RegistryException& e)
-			{
-				// ignore
-			}
-
-			if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
+			if (!AudioEngineAccess::isReadableByAudioEngine(path.toStdWString()))
 			{
 				error = tr("The file is not readable for the audio service.\nChange the file permissions or copy the file to the config directory.");
 				labelsVisible = false;

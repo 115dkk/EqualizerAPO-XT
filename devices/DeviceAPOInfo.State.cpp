@@ -11,6 +11,7 @@
 
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/WindowsVersion.h"
 
 using std::make_shared;
 using std::move;
@@ -40,7 +41,7 @@ wstring DeviceAPOInfo::getOriginalAPOPreMix()
 	{
 	case INSTALL_LFX_GFX:
 		guid = originalApoGuids[LFX_INDEX];
-		if (RegistryHelper::isWindowsVersionAtLeast(6, 3)) // Windows 8.1
+		if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
 		{
 			if (originalApoGuids[LFX_INDEX] == APOGUID_NOVALUE && originalApoGuids[GFX_INDEX] == APOGUID_NOVALUE)
 				guid = originalApoGuids[SFX_INDEX];
@@ -71,7 +72,7 @@ wstring DeviceAPOInfo::getOriginalAPOPostMix()
 	{
 	case INSTALL_LFX_GFX:
 		guid = originalApoGuids[GFX_INDEX];
-		if (RegistryHelper::isWindowsVersionAtLeast(6, 3)) // Windows 8.1
+		if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
 		{
 			if (originalApoGuids[LFX_INDEX] == APOGUID_NOVALUE && originalApoGuids[GFX_INDEX] == APOGUID_NOVALUE)
 				guid = originalApoGuids[MFX_INDEX];

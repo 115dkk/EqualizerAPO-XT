@@ -55,7 +55,6 @@ public:
 	static void deleteKey(const std::wstring& key);
 	static void makeWritable(const std::wstring& key);
 	static void takeOwnership(const std::wstring& key);
-	static ACCESS_MASK getFileAccessForUser(const std::wstring& path, unsigned long rid);
 	static std::vector<std::wstring> enumSubKeys(const std::wstring& key);
 	static std::vector<std::wstring> enumValues(const std::wstring& key);
 	static bool keyExists(const std::wstring& key);
@@ -64,13 +63,10 @@ public:
 	static std::wstring formatExportHeader(const std::wstring& key);
 	static void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath);
 	static std::wstring getGuidString(GUID guid);
-	static bool isWindowsVersionAtLeast(unsigned major, unsigned minor);
 	static winutil::UniqueRegistryKey openKey(const std::wstring& key, REGSAM samDesired);
 
 private:
 	static std::wstring splitKey(const std::wstring& key, HKEY* rootKey);
-
-	static unsigned long windowsVersion;
 };
 
 class RegistryException

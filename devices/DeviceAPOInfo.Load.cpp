@@ -11,6 +11,7 @@
 
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/WindowsVersion.h"
 
 using std::make_shared;
 using std::move;
@@ -216,7 +217,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 		}
 		else
 		{
-			if (RegistryHelper::isWindowsVersionAtLeast(6, 3)) // Windows 8.1
+			if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
 			{
 				// only use LFX/GFX if the audio driver supplied only those APOs
 				if (registry.keyExists(keyPath + L"\\FxProperties")

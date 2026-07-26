@@ -16,7 +16,7 @@
 	harder to remove.
 
 	Host dependency, deliberately not hidden: load()'s install-mode inference
-	asks RegistryHelper::isWindowsVersionAtLeast(6, 3), which reads the running
+	asks WindowsVersion::isAtLeast(6, 3), which reads the running
 	kernel32 and is not part of the port. The two inference tests therefore
 	expect whichever answer the host justifies rather than assuming Windows 8.1
 	or newer.
@@ -43,6 +43,7 @@
 #include "DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/WindowsVersion.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"
@@ -195,7 +196,7 @@ void testLoadWithForeignApoGuidsReportsNotInstalled(test::Harness& harness)
 	harness.expect(info.getOriginalAPOPostMix() == vendorPostMixGuid,
 		"the MFX slot answers the same way for the post-mix half");
 
-	const bool windows81OrNewer = RegistryHelper::isWindowsVersionAtLeast(6, 3);
+	const bool windows81OrNewer = WindowsVersion::isAtLeast(6, 3);
 	harness.expectEqual(static_cast<int>(info.getCurrentInstallState().installMode),
 		static_cast<int>(windows81OrNewer ? DeviceAPOInfo::INSTALL_SFX_EFX : DeviceAPOInfo::INSTALL_LFX_GFX),
 		"a driver that supplies SFX/MFX gets the SFX/EFX mode on Windows 8.1 and newer; before that only LFX/GFX exists");
@@ -228,7 +229,7 @@ void testLoadInfersSfxMfxForACombinedBluetoothDevice(test::Harness& harness)
 	DeviceAPOInfo info(registry);
 	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads");
 
-	const bool windows81OrNewer = RegistryHelper::isWindowsVersionAtLeast(6, 3);
+	const bool windows81OrNewer = WindowsVersion::isAtLeast(6, 3);
 	harness.expectEqual(static_cast<int>(info.getCurrentInstallState().installMode),
 		static_cast<int>(windows81OrNewer ? DeviceAPOInfo::INSTALL_SFX_MFX : DeviceAPOInfo::INSTALL_LFX_GFX),
 		"a combined Bluetooth endpoint falls back to SFX/MFX because its EFX slot is never reached");

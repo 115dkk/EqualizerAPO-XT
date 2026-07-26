@@ -33,6 +33,7 @@
 #include <objidl.h>
 
 #include "AbstractAPOInfo.h"
+#include "AudioEngineAccess.h"
 #include "ComPtr.h"
 #include "DeviceAPOInfo.h"
 #include "LogHelper.h"
@@ -46,15 +47,6 @@ constexpr wchar_t kRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO";
 constexpr wchar_t kAudioRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio";
 constexpr wchar_t kAudioServiceName[] = L"AudioSrv";
 constexpr wchar_t kAudioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";
-
-std::wstring systemPath()
-{
-	wchar_t buffer[MAX_PATH];
-	UINT length = GetSystemDirectoryW(buffer, MAX_PATH);
-	if (length == 0 || length > MAX_PATH)
-		return L"C:\\Windows\\System32";
-	return std::wstring(buffer, length);
-}
 
 std::wstring joinPath(const std::wstring& a, const std::wstring& b)
 {
@@ -102,42 +94,6 @@ void logLine(const wchar_t* level, const wchar_t* format, ...)
 }
 }
 
-int ApoRegistration::waitForProcess(const std::wstring& executable, const std::wstring& arguments, unsigned timeoutMs)
-{
-	std::wstring commandLine = L"\"" + executable + L"\" " + arguments;
-	std::vector<wchar_t> mutableCommand(commandLine.begin(), commandLine.end());
-	mutableCommand.push_back(L'\0');
-
-	STARTUPINFOW startupInfo;
-	ZeroMemory(&startupInfo, sizeof(startupInfo));
-	startupInfo.cb = sizeof(startupInfo);
-	startupInfo.dwFlags = STARTF_USESHOWWINDOW;
-	startupInfo.wShowWindow = SW_HIDE;
-
-	winutil::UniqueProcessInformation processInfo;
-
-	if (!CreateProcessW(executable.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
-			CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, processInfo.put()))
-	{
-		logLine(L"ERR", L"CreateProcess failed for %s (gle=%lu)", executable.c_str(), GetLastError());
-		return -1;
-	}
-
-	DWORD waitResult = WaitForSingleObject(processInfo.process(), timeoutMs);
-	DWORD exitCode = static_cast<DWORD>(-1);
-	if (waitResult == WAIT_OBJECT_0)
-	{
-		GetExitCodeProcess(processInfo.process(), &exitCode);
-	}
-	else
-	{
-		logLine(L"ERR", L"%s timed out after %u ms", executable.c_str(), timeoutMs);
-		TerminateProcess(processInfo.process(), 1);
-	}
-
-	return static_cast<int>(exitCode);
-}
-
 int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregister)
 {
 	// LOAD_WITH_ALTERED_SEARCH_PATH resolves EqualizerAPO.dll's own dependencies
@@ -165,6 +121,15 @@ int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregis
 
 ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 {
+	// Both hooks write HKLM and rewrite ACLs on the install tree, so they only
+	// work elevated. That was an assumption nothing checked: an unelevated run
+	// failed later, one operation at a time, with a registry error that says
+	// nothing about elevation. Say it once, at the top, and keep going - the
+	// hooks are invoked by the installer and a refusal here would break an
+	// install that Windows may still be able to complete.
+	if (!AudioEngineAccess::isElevated())
+		logLine(L"WARN", L"install() is running unelevated; HKLM writes and ACL grants will fail");
+
 	std::wstring dllPath = joinPath(installDir, L"EqualizerAPO.dll");
 	if (!fileExists(dllPath))
 	{
@@ -194,38 +159,26 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 		return Result::RegistryFailed;
 	}
 
-	// audiodg.exe runs as LOCAL SERVICE (*S-1-5-19) and loads EqualizerAPO.dll
-	// via the COM InprocServer32 path written below. When Velopack installs the
-	// app under %LocalAppData% the default ACL only grants the installing user
-	// and Administrators, so the audio engine fails to map the DLL and Windows
-	// reports the device as access-denied / invalidated from outside (the
-	// symptom users see is GetMixFormat / Initialize returning E_ACCESSDENIED
-	// in DeviceSelector). Widen the ACL on the whole install root for both
-	// LOCAL SERVICE (RX recursive) and Users (RX recursive) before any APO
-	// registration takes effect.
-	// Trust boundary: installDir and the executable paths come from the local
-	// install location, and the principals are built-in well-known SIDs, not from
-	// network or untrusted user input. Spawning system icacls.exe / regsvr32 and
-	// widening these ACLs is therefore safe. Preserve this assumption — if these
-	// inputs ever become caller-supplied, they must be validated/quoted first.
-	std::wstring icacls = joinPath(systemPath(), L"icacls.exe");
-	std::wstring installAclArgs = L"\"" + installDir + L"\" "
-		L"/grant *S-1-5-19:(OI)(CI)RX "
-		L"/grant *S-1-5-32-545:(OI)(CI)RX "
-		L"/T /C /Q";
-	int rc = waitForProcess(icacls, installAclArgs, 30000);
-	if (rc != 0)
-		logLine(L"WARN", L"icacls (install root) returned %d, continuing", rc);
+	// audiodg.exe loads EqualizerAPO.dll via the COM InprocServer32 path written
+	// below, and when Velopack installs the app under %LocalAppData% the default
+	// ACL only grants the installing user and Administrators - so the audio engine
+	// cannot map the DLL and the symptom the user sees is GetMixFormat or
+	// Initialize returning E_ACCESSDENIED in DeviceSelector. Widen the tree before
+	// any APO registration takes effect. Who gets what, and the trust boundary the
+	// grant relies on, are in helpers/AudioEngineAccess.cpp.
+	AudioEngineAccess::Grant installGrant = AudioEngineAccess::grantEngineAccess(installDir);
+	if (installGrant != AudioEngineAccess::Grant::Applied)
+		logLine(L"WARN", L"Install root access grant %s, continuing", AudioEngineAccess::describe(installGrant));
 
-	rc = registerComServer(dllPath, false);
+	int rc = registerComServer(dllPath, false);
 	if (rc != 0)
 	{
 		logLine(L"ERR", L"DllRegisterServer returned 0x%08X", rc);
 		return Result::RegistrationFailed;
 	}
 
-	if (!secureConfigDir(joinPath(installDir, L"config")))
-		logLine(L"WARN", L"icacls (config dir) failed, continuing");
+	// secureConfigDir already logs which grant failed.
+	secureConfigDir(joinPath(installDir, L"config"));
 
 	// Velopack's vpk pack only emits a shortcut for --mainExe (Editor.exe).
 	// DeviceSelector is the elevated companion that performs per-device APO
@@ -240,6 +193,9 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 
 ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDir)
 {
+	if (!AudioEngineAccess::isElevated())
+		logLine(L"WARN", L"uninstall() is running unelevated; device APO removal and HKLM cleanup will fail");
+
 	bool serviceWasRunning = stopAudioService();
 
 	const Result deviceResult = uninstallAllDeviceApos([](const std::wstring& message) {
@@ -384,15 +340,12 @@ bool ApoRegistration::startAudioService()
 
 bool ApoRegistration::secureConfigDir(const std::wstring& configDir)
 {
-	// Users:F so the user can edit configs, LOCAL SERVICE modify (M) so
-	// audiodg can read them and write APO trace logs. Built-in well-known
-	// SIDs and a local path — same trust boundary note as install().
-	std::wstring icacls = joinPath(systemPath(), L"icacls.exe");
-	std::wstring configAclArgs = L"\"" + configDir + L"\" "
-		L"/grant *S-1-5-32-545:(OI)(CI)F "
-		L"/grant *S-1-5-19:(OI)(CI)M "
-		L"/T /C /Q";
-	return waitForProcess(icacls, configAclArgs, 30000) == 0;
+	// Who needs what on a config directory is declared once, in
+	// helpers/AudioEngineAccess.cpp, together with the check that verifies it.
+	const AudioEngineAccess::Grant grant = AudioEngineAccess::grantConfigAccess(configDir);
+	if (grant != AudioEngineAccess::Grant::Applied)
+		logLine(L"WARN", L"Config directory access grant %s", AudioEngineAccess::describe(grant));
+	return grant == AudioEngineAccess::Grant::Applied;
 }
 
 namespace
