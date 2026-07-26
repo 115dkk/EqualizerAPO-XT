@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
 #include "Editor/IFilterGUIFactory.h"
 
 class ChannelFilterGUIFactory : public IFilterGUIFactory

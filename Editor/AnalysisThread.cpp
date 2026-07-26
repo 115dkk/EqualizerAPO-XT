@@ -21,7 +21,7 @@
 
 #include <stdexcept>
 
-#include "FilterEngine.h"
+#include "engine/FilterEngine.h"
 #include "helpers/AnalysisWorkerRecovery.h"
 #include "AnalysisThread.h"
 

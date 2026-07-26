@@ -28,8 +28,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "IFilterFactory.h"
-#include "FilterConfiguration.h"
+#include "engine/IFilterFactory.h"
+#include "engine/FilterConfiguration.h"
 #include "engine/ConfigSwapChannel.h"
 #include "parser/EngineParser.h"
 #include "helpers/PrecisionTimer.h"

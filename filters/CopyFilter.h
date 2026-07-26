@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "IFilter.h"
+#include "engine/IFilter.h"
 
 struct Assignment
 {

@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <DeviceAPOInfo.h>
+#include <devices/DeviceAPOInfo.h>
 #include <QtWidgets/QDialog>
 #include "DeviceTestThread.h"
 #include "OpacityIconEngine.h"

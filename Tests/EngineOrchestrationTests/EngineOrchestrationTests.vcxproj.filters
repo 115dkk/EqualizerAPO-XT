@@ -37,7 +37,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\FilterEngine.h">
+    <ClInclude Include="..\..\engine\FilterEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\TestHarness.h">

@@ -249,7 +249,7 @@ xcopy /Y /I /E "$(ProjectDir)configs" "$(OutDir)configs\"</Command>
     <ClCompile Include="AudioRegressionTests.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\FilterEngine.h" />
+    <ClInclude Include="..\..\engine\FilterEngine.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="configs\preamp_minus6.txt" />

@@ -30,8 +30,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "FilterConfiguration.h"
-#include "FilterEngine.h"
+#include "engine/FilterConfiguration.h"
+#include "engine/FilterEngine.h"
 #include "Tests/TestHarness.h"
 
 namespace

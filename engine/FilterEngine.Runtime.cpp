@@ -32,9 +32,9 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
-#include "ConfigurationFileReader.h"
+#include "engine/ConfigurationFileReader.h"
 #include "engine/ConfigWatcher.h"
-#include "FilterEngine.h"
+#include "engine/FilterEngine.h"
 // Filter factory headers intentionally omitted: the factories self-register and
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this TU names none
 // of them (see FilterEngine.Configuration.cpp).

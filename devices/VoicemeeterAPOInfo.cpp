@@ -29,7 +29,7 @@
 #include "helpers/RegistryHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
-#include "VoicemeeterAPOInfo.h"
+#include "devices/VoicemeeterAPOInfo.h"
 
 using std::exception;
 using std::find;

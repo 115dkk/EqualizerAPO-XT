@@ -30,10 +30,10 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
-#include "ConfigLoadTrace.h"
-#include "FilterEngine.h"
+#include "engine/ConfigLoadTrace.h"
+#include "engine/FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
 #include "engine/ConfigWatcher.h"
 #include "helpers/ComBoundary.h"

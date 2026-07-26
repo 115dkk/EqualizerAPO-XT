@@ -18,7 +18,7 @@
 */
 
 #include "stdafx.h"
-#include <DeviceAPOInfo.h>
+#include <devices/DeviceAPOInfo.h>
 #include <helpers/RegistryHelper.h>
 #include "DeviceTestDialog.h"
 #include "OpacityIconEngine.h"

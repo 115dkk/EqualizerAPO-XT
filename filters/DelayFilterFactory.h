@@ -21,8 +21,8 @@
 
 #include <string>
 
-#include "IFilterFactory.h"
-#include "IFilter.h"
+#include "engine/IFilterFactory.h"
+#include "engine/IFilter.h"
 #include "DelayCommand.h"
 
 class DelayFilterFactory : public IFilterFactory

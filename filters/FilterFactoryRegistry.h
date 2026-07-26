@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "IFilterFactory.h"
+#include "engine/IFilterFactory.h"
 
 using FilterFactoryCreator = std::unique_ptr<IFilterFactory>(*)();
 

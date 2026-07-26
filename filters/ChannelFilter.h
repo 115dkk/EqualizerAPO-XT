@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "IFilter.h"
+#include "engine/IFilter.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class ChannelFilter : public IFilter

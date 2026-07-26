@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-#include <AbstractAPOInfo.h>
+#include <devices/AbstractAPOInfo.h>
 
 namespace PreviewDevices
 {

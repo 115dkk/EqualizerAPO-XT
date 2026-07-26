@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-#include "IFilter.h"
+#include "engine/IFilter.h"
 
 class FilterEngine;
 

@@ -22,7 +22,7 @@
 
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
-#include "FilterEngine.h"
+#include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "IncludeCommand.h"
 #include "IncludeFilterFactory.h"

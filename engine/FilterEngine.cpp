@@ -37,8 +37,8 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
-#include "ConfigurationFileReader.h"
-#include "FilterEngine.h"
+#include "engine/ConfigurationFileReader.h"
+#include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 
 using std::exception;

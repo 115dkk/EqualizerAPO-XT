@@ -21,7 +21,7 @@
 #include "DeviceFilterGUI.h"
 #include "DeviceFilterGUIDialog.h"
 #include <filters/DeviceCommand.h>
-#include <VoicemeeterAPOInfo.h>
+#include <devices/VoicemeeterAPOInfo.h>
 #include "ui_DeviceFilterGUI.h"
 
 using std::shared_ptr;

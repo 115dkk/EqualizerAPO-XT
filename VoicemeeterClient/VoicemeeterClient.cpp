@@ -24,7 +24,7 @@
 #include <shellapi.h>
 #include "../helpers/RegistryHelper.h"
 #include "VoicemeeterClient.h"
-#include "../VoicemeeterAPOInfo.h"
+#include "../devices/VoicemeeterAPOInfo.h"
 
 #define voicemeeterKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
 #define voicemeeterWowKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"

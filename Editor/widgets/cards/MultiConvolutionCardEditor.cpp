@@ -34,7 +34,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "AbstractAPOInfo.h"
+#include "devices/AbstractAPOInfo.h"
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"

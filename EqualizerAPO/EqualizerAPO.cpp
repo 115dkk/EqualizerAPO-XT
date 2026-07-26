@@ -32,7 +32,7 @@
 #include "../helpers/StringHelper.h"
 #include "../helpers/ComPtr.h"
 #include "../helpers/Win32Resource.h"
-#include "../DeviceAPOInfo.h"
+#include "../devices/DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
 
 namespace

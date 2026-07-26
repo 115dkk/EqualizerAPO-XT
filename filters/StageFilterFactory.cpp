@@ -21,7 +21,7 @@
 #include <mpParser.h>
 #include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
-#include "FilterEngine.h"
+#include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "StageCommand.h"
 #include "StageFilterFactory.h"

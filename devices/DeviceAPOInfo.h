@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "AbstractAPOInfo.h"
+#include "devices/AbstractAPOInfo.h"
 #include "helpers/IRegistry.h"
 #include "helpers/RegistryTransaction.h"
 

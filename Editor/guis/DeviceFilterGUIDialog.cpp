@@ -22,7 +22,7 @@
 #include "ui_DeviceFilterGUIDialog.h"
 
 #include <filters/DeviceCommand.h>
-#include <VoicemeeterAPOInfo.h>
+#include <devices/VoicemeeterAPOInfo.h>
 
 using std::shared_ptr;
 

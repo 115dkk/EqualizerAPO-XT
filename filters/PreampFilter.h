@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "IFilter.h"
+#include "engine/IFilter.h"
 #include <vector> // Required for std::vector
 #include <string> // Required for std::wstring
 

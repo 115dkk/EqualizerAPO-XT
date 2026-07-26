@@ -5,8 +5,8 @@
 #include <shellapi.h>
 #include <comdef.h>
 
-#include "DeviceAPOInfo.h"
-#include "VoicemeeterAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
+#include "devices/VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
 
 #include "helpers/LogHelper.h"

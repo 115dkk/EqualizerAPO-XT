@@ -32,10 +32,10 @@
 #include <objbase.h>
 #include <objidl.h>
 
-#include "AbstractAPOInfo.h"
+#include "devices/AbstractAPOInfo.h"
 #include "AudioEngineAccess.h"
 #include "ComPtr.h"
-#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
 #include "LogHelper.h"
 #include "RegistryHelper.h"
 #include "ServiceHelper.h"
