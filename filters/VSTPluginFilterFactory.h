@@ -24,7 +24,7 @@
 #include "IFilterFactory.h"
 #include "IFilter.h"
 
-class VSTPluginFilterFactory : public IFilterFactory
+class VSTPluginFilterFactory : public ParseReportingFactory
 {
 public:
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;

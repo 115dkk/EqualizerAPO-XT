@@ -19,3 +19,22 @@
 
 #include "stdafx.h"
 #include "IFilter.h"
+
+#include "ConfigLoadTrace.h"
+#include "FilterEngine.h"
+#include "IFilterFactory.h"
+
+// Defined here rather than in IFilterFactory.h because the reporting path needs
+// FilterEngine, and every filter's header includes IFilterFactory.h - pulling the
+// engine into all of them would be a real compile-time cost for two functions.
+void ParseReportingFactory::initialize(FilterEngine* engine)
+{
+	reportingEngine = engine;
+}
+
+FilterVector ParseReportingFactory::reportParseError(const std::wstring& command, const std::wstring& reason) const
+{
+	if (reportingEngine != nullptr)
+		reportingEngine->reportParseError(command, reason);
+	return {};
+}

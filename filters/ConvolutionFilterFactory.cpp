@@ -27,7 +27,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "ConvolutionFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, ConvolutionFilterFactory, false, L"Convolution")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Convolution, ConvolutionFilterFactory, L"Convolution")
 
 using std::vector;
 using std::wstring;
@@ -35,12 +35,17 @@ using std::wstring;
 FilterVector ConvolutionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	ConvolutionCommand cmd;
+	// parse() answers false only for another command's line, so everything below
+	// is this factory's own line and its failures are this factory's to report.
 	if (!ConvolutionCommand::parse(command, parameters, cmd))
 		return {};
 
+	if (cmd.path.empty())
+		return reportParseError(command, L"expected the path of an impulse response file");
+
 	wstring absolutePath = ConvolutionFilePath::resolve(configPath, cmd.path);
 	if (absolutePath.empty())
-		return {};
+		return reportParseError(command, L"the impulse response file \"" + cmd.path + L"\" was not found");
 
 	return singleFilter(makeFilter<ConvolutionFilter>(absolutePath));
 }

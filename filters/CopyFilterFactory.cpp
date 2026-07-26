@@ -25,7 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "CopyFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Copy, CopyFilterFactory, false, L"Copy")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Copy, CopyFilterFactory, L"Copy")
 
 using std::find;
 using std::vector;
@@ -38,6 +38,9 @@ FilterVector CopyFilterFactory::createFilter(const wstring& configPath, wstring&
 		// Parse the routing via the shared parser (parseCopyAssignments), the
 		// same routine the Editor GUI factory uses.
 		vector<Assignment> assignments = parseCopyAssignments(parameters);
+
+		if (assignments.empty())
+			return reportParseError(command, L"expected at least one assignment, as in \"L=R\" or \"L=0.5*L+0.5*R\"");
 
 		return singleFilter(makeFilter<CopyFilter>(assignments));
 	}

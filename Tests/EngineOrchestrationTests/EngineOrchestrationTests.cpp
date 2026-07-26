@@ -894,6 +894,58 @@ void testConfigLoadTrace(test::Harness& harness)
 		"detached sink receives nothing on a reload");
 }
 
+// The parse-error channel that replaced the engine's guess. What matters is the
+// pair of judgements: a factory's own broken line is reported, and a line no
+// factory claimed is not - because prose and notes are how 1.4.2 configurations
+// carry comments, and reporting those would bury the real diagnostics.
+void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
+{
+	const std::wstring configPath = writeConfig(harness, L"parse-errors.txt",
+		"Convolution:\n"                    // line 1: its own command, no path
+		"Channel:\n"                        // line 2: its own command, no channel
+		"Copy:\n"                           // line 3: its own command, no assignment
+		"GraphicEQ:\n"                      // line 4: its own command, no nodes
+		"remember to try 2 dB less here\n"  // line 5: prose, not an error
+		"copy: a note to self\n"            // line 6: wrong case, so prose
+		"Preamp: -3 dB\n");                 // line 7: fine, and must still run
+
+	struct Collector : ConfigLoadTraceSink
+	{
+		std::vector<ConfigLoadTraceEntry> entries;
+		void addEntry(const ConfigLoadTraceEntry& entry) override
+		{
+			entries.push_back(entry);
+		}
+	};
+	Collector collector;
+
+	FilterEngine engine;
+	engine.setLoadTraceSink(&collector);
+	initializeEngine(engine, 48000, 2, 512, configPath);
+
+	std::vector<int> errorLines;
+	for (const ConfigLoadTraceEntry& entry : collector.entries)
+	{
+		if (entry.kind != ConfigLoadTraceEntry::Kind::ParseError)
+			continue;
+		harness.expect(entry.error, "a parse error is flagged as one");
+		harness.expect(!entry.text.empty(), "and carries a reason, which is the whole point of moving the diagnosis into the factory");
+		harness.expect(entry.file == configPath, "stamped with the file it is in");
+		errorLines.push_back(entry.line);
+	}
+
+	harness.requireEqual(errorLines.size(), size_t(4),
+		"one report per broken line, and none for the two lines that are prose");
+	harness.expect(errorLines[0] == 1 && errorLines[1] == 2 && errorLines[2] == 3 && errorLines[3] == 4,
+		"the reports land on the lines that are broken, in order");
+
+	// The load kept going: half a configuration is still worth running, and a
+	// broken line must not take the working ones below it with it. loadConfig
+	// answers false only when the whole load failed.
+	harness.expect(engine.loadConfig(configPath),
+		"a configuration with four unusable lines still loads, because the working lines below them have to run");
+}
+
 } // namespace
 
 // Defined in SampleIoTests.cpp next to this file.
@@ -956,6 +1008,7 @@ int runEngineOrchestrationTests()
 	testFailedConfigLoadKeepsActiveConfiguration(harness);
 	testRealBrirCrossfeed(harness);
 	testConfigLoadTrace(harness);
+	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
 
 	removeTestDirectory();
 	harness.report();

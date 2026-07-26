@@ -45,12 +45,9 @@ class FilterFactoryRegistry
 public:
 	// commandKeywords: the top-level config keyword(s) this factory matches in
 	// createFilter() (e.g. {L"If", L"ElseIf", L"Else", L"EndIf"}); their union is
-	// knownConfigCommands(). suppressMissingFilterWarning: true when a recognized
-	// line that produces no filter is still legitimate (control-flow commands, or
-	// a valid no-op like Preamp 0 dB / Delay 0 / Filter "ON None") and must not
-	// raise the "recognized but produced no filter" diagnostic.
+	// knownConfigCommands().
 	static bool registerFactory(int priority, FilterFactoryCreator creator,
-		std::vector<std::wstring> commandKeywords, bool suppressMissingFilterWarning);
+		std::vector<std::wstring> commandKeywords);
 	static std::vector<std::unique_ptr<IFilterFactory>> createFactories();
 
 	// Canonical set of recognized top-level configuration command keywords,
@@ -78,20 +75,20 @@ public:
 	// so accepting either casing would start routing audio in configs that never
 	// did.
 	static std::wstring canonicalCommand(const std::wstring& key);
-
-	// Subset of knownConfigCommands() whose factories set suppressMissingFilterWarning.
-	// The engine uses it to skip the malformed-parameters warning for commands that
-	// legitimately produce no filter.
-	static const std::set<std::wstring>& commandsWithoutFilter();
 };
 
-// Registers a factory with its priority, whether a recognized-but-no-filter line
-// is legitimate (suppressMissingFilterWarning), and its command keyword(s) as the
-// trailing varargs (at least one). Both knownConfigCommands() and
-// commandsWithoutFilter() are derived from these registrations, so a new filter is
-// declared in exactly one place instead of in two hand-maintained central lists.
-#define REGISTER_FILTER_FACTORY(priority, factoryType, suppressMissingFilterWarning, ...) \
+// Registers a factory with its priority and its command keyword(s) as the
+// trailing varargs (at least one). knownConfigCommands() is derived from these
+// registrations, so a new filter is declared in exactly one place instead of in a
+// hand-maintained central list.
+//
+// There used to be a third parameter saying whether a recognised line that
+// produces no filter is legitimate, because the engine warned about the ones that
+// were not. It is gone: a factory that cannot use its own line now says so itself
+// through ParseReportingFactory::reportParseError, which knows what was wrong
+// instead of inferring that something was.
+#define REGISTER_FILTER_FACTORY(priority, factoryType, ...) \
 	namespace \
 	{ \
-		const bool factoryType##Registered = FilterFactoryRegistry::registerFactory(priority, []() -> std::unique_ptr<IFilterFactory> { return std::make_unique<factoryType>(); }, std::vector<std::wstring>{__VA_ARGS__}, suppressMissingFilterWarning); \
+		const bool factoryType##Registered = FilterFactoryRegistry::registerFactory(priority, []() -> std::unique_ptr<IFilterFactory> { return std::make_unique<factoryType>(); }, std::vector<std::wstring>{__VA_ARGS__}); \
 	}

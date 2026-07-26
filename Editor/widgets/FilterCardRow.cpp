@@ -391,6 +391,12 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 			case ConfigLoadTraceEntry::Kind::SkippedLine:
 				info.lineSkipped = true;
 				break;
+			case ConfigLoadTraceEntry::Kind::ParseError:
+				// Several can arrive for one line if a factory reports more than
+				// once; the first is the one that stopped it.
+				if (info.parseError.isEmpty())
+					info.parseError = QString::fromStdWString(fact.text);
+				break;
 			}
 		}
 	}
@@ -718,6 +724,12 @@ void FilterCardRow::applyDescriptor()
 	}
 	titleLabel->setText(descriptor.title);
 	summaryLabel->setText(descriptor.summary);
+	// A line the engine could not use says why on hover. The analysis run is what
+	// produces the reason, so this is empty until one has happened and goes stale
+	// on edit, like every other load fact.
+	const QString parseError = currentRowInfo().parseError;
+	summaryLabel->setToolTip(parseError.isEmpty() ? QString()
+		: tr("This line was not applied: %1").arg(parseError));
 	// The text stays current even while the label is hidden: skins may read
 	// it as the live raw-spec source instead of showing the label itself
 	// (MatrixRowCaption's caption strip does).

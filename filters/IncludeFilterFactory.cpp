@@ -27,7 +27,7 @@
 #include "IncludeCommand.h"
 #include "IncludeFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Include, IncludeFilterFactory, true, L"Include")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Include, IncludeFilterFactory, L"Include")
 
 using std::vector;
 using std::wstring;

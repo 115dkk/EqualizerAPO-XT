@@ -2,10 +2,10 @@
 	This file is part of EqualizerAPO-XT.
 
 	Contract tests for the command-classification seam in
-	filters/FilterFactoryRegistry: knownConfigCommands(), commandsWithoutFilter()
-	and above all canonicalCommand(), the one routine that answers "is this
-	configuration line a command, and which one" for the engine, the Editor's
-	card model and the card-editor registry. Those three used to answer it
+	filters/FilterFactoryRegistry: knownConfigCommands() and above all
+	canonicalCommand(), the one routine that answers "is this configuration line a
+	command, and which one" for the engine, the Editor's card model and the
+	card-editor registry. Those three used to answer it
 	separately and drifted apart, so the rule is pinned here rather than in any
 	one consumer.
 
@@ -192,33 +192,6 @@ void testEveryRegisteredKeywordRoundTrips()
 	}
 }
 
-// FilterEngine::loadConfigFile looks the canonicalCommand result up in
-// commandsWithoutFilter() to decide whether to suppress the "recognized but
-// produced no filter" warning. An entry canonicalCommand can never produce would
-// be a suppression that silently stopped working.
-void testCommandsWithoutFilterIsLookedUpByCanonicalForm()
-{
-	const set<wstring>& commands = FilterFactoryRegistry::knownConfigCommands();
-	const set<wstring>& withoutFilter = FilterFactoryRegistry::commandsWithoutFilter();
-
-	harness.require(!withoutFilter.empty(), "commandsWithoutFilter() must not be empty; control-flow commands belong in it");
-
-	for (const wstring& keyword : withoutFilter)
-	{
-		harness.expectTrue(commands.count(keyword) == 1,
-			"commandsWithoutFilter() entry \"" + narrow(keyword) + "\" must also be a known config command");
-		expectCanonical(keyword, keyword,
-			"the engine looks this entry up by canonical form, so it has to be its own canonical form");
-	}
-
-	// Spot-check both sides of the distinction the set encodes: control flow and
-	// the valid no-op commands are suppressed, a processing command with no
-	// legitimate no-filter path is not.
-	harness.expectTrue(withoutFilter.count(L"If") == 1, "\"If\" steers parsing and never adds a filter, so it is suppressed");
-	harness.expectTrue(withoutFilter.count(L"Preamp") == 1, "\"Preamp\" has a valid 0 dB no-op, so it is suppressed");
-	harness.expectTrue(withoutFilter.count(L"Convolution") == 0,
-		"\"Convolution\" has no valid no-filter path, so reaching the end with no filter must still warn");
-}
 }
 
 void runFilterFactoryRegistryTests()
@@ -230,7 +203,6 @@ void runFilterFactoryRegistryTests()
 	testPrefixMatchingFollowsTheFactories();
 	testEmptyAndUnregisteredKeys();
 	testEveryRegisteredKeywordRoundTrips();
-	testCommandsWithoutFilterIsLookedUpByCanonicalForm();
 
 	harness.report();
 }

@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "IIRFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::IIR, IIRFilterFactory, true, L"Filter")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::IIR, IIRFilterFactory, L"Filter")
 
 using std::find;
 using std::regex;

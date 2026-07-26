@@ -24,7 +24,7 @@
 #include "IFilterFactory.h"
 #include "IFilter.h"
 
-class ChannelFilterFactory : public IFilterFactory
+class ChannelFilterFactory : public ParseReportingFactory
 {
 public:
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;

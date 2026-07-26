@@ -28,7 +28,7 @@
 #include "DeviceCommand.h"
 #include "DeviceFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Device, DeviceFilterFactory, true, L"Device")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Device, DeviceFilterFactory, L"Device")
 
 using std::vector;
 using std::wstring;

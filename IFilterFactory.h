@@ -51,3 +51,36 @@ public:
 	virtual FilterVector endOfConfiguration() {return {};}
 };
 #pragma AVRT_VTABLES_END
+
+// Base for the factories that can tell a malformed line from one that is not
+// theirs.
+//
+// The engine cannot make that distinction: from outside a factory, "recognised
+// the command and produced no filter" covers both a broken parameter list and a
+// command that legitimately produces nothing (Preamp 0 dB, a disabled Filter, and
+// every control-flow command). It used to guess, with a hand-maintained list of
+// the commands to excuse, so the diagnosis lived in the one place that cannot
+// know why a parse failed and a new no-op filter became a false warning until
+// somebody remembered the list.
+//
+// A factory that inherits this says it itself, at the point where it knows:
+//
+//     if (!ConvolutionCommand::parse(command, parameters, cmd))
+//         return reportParseError(command, L"expected a file path");
+//
+// reportParseError returns an empty FilterVector, so the failure path stays one
+// line, and the report reaches both the log and the Editor's per-line trace.
+class ParseReportingFactory : public IFilterFactory
+{
+public:
+	// Factories with their own initialize() must call this one from it.
+	void initialize(FilterEngine* engine) override;
+
+protected:
+	// Always returns {}. Does nothing when no engine has been handed over, which
+	// is the case in the unit tests that construct a factory directly.
+	FilterVector reportParseError(const std::wstring& command, const std::wstring& reason) const;
+
+private:
+	FilterEngine* reportingEngine = nullptr;
+};

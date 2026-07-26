@@ -188,7 +188,11 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			// allow to use indentation
 			key = StringHelper::trim(key);
 
-			bool producedFilter = false;
+			// No verdict is reached here about a line that produced nothing. A
+			// factory that recognised the command and could not use it says so
+			// itself, through reportParseError, at the point where it knows what
+			// was wrong. What is left over here is a line no factory claimed:
+			// prose, a comment, a note, an unknown key - and that is not an error.
 			for (auto it = factories.cbegin(); it != factories.cend(); it++)
 			{
 				IFilterFactory* factory = it->get();
@@ -208,35 +212,8 @@ void FilterEngine::loadConfigFile(const wstring& path)
 				if (!newFilters.empty())
 				{
 					addFilters(move(newFilters));
-					producedFilter = true;
 					break;
 				}
-			}
-
-			// Distinguish "no factory recognized this key" (plain text, comments,
-			// unknown keys) from "a recognized command was matched but produced no
-			// filter" (likely malformed parameters). A consumed control command
-			// leaves key empty, so it is excluded by the !key.empty() check.
-			//
-			// Boundary: some recognized commands legitimately add no filter and are
-			// listed in commandsWithoutFilter below, so they are not flagged:
-			//   - Control-flow commands (Device/If/.../Stage/Eval/Include) steer
-			//     parsing and never add a filter by design.
-			//   - Preamp (0 dB), Delay (0) have valid no-op paths, and BiQuad/IIR
-			//     ("Filter ...", including the "ON None" disable form) plus Preamp
-			//     already emit their own specific parameter diagnostics, so a generic
-			//     warning here would be a false positive or a duplicate.
-			// The remaining processing commands (Convolution, VSTPlugin,
-			// LoudnessCorrection, ...) have no valid no-filter path, so reaching this
-			// point with no filter means the parameters were malformed.
-			if (!producedFilter && !key.empty())
-			{
-				// canonicalCommand applies the trailing-token and case rules; the
-				// suppression set is derived from the same registrations, so neither
-				// can drift from the factories that define them.
-				const wstring commandKeyword = FilterFactoryRegistry::canonicalCommand(key);
-				if (!commandKeyword.empty() && FilterFactoryRegistry::commandsWithoutFilter().count(commandKeyword) == 0)
-					LogF(L"Command \"%s\" was recognized but produced no filter, likely due to malformed parameters", key.c_str());
 			}
 		}
 	}
@@ -253,6 +230,20 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	currentChannelNames = savedChannelNames;
 	traceFile = move(savedTraceFile);
 	traceLine = savedTraceLine;
+}
+
+void FilterEngine::reportParseError(const wstring& command, const wstring& reason)
+{
+	// The log line goes out whether or not a sink is attached: the APO runtime
+	// never attaches one, and a user whose Convolution line silently does nothing
+	// has to be able to find out why from the log.
+	LogF(L"%s: %s (line %d of %s)", command.c_str(), reason.c_str(), traceLine, traceFile.c_str());
+
+	ConfigLoadTraceEntry entry;
+	entry.kind = ConfigLoadTraceEntry::Kind::ParseError;
+	entry.error = true;
+	entry.text = reason;
+	traceLoadEvent(std::move(entry));
 }
 
 void FilterEngine::traceLoadEvent(ConfigLoadTraceEntry entry)

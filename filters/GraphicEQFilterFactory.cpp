@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "GraphicEQFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory, false, L"GraphicEQ")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::GraphicEQ, GraphicEQFilterFactory, L"GraphicEQ")
 
 using std::vector;
 using std::wstring;
@@ -39,6 +39,9 @@ FilterVector GraphicEQFilterFactory::createFilter(const wstring& configPath, wst
 		// Editor build the filter from the exact same parsed values.
 		GraphicEQCommand cmd;
 		cmd.parse(parameters);
+
+		if (cmd.nodes.empty())
+			return reportParseError(command, L"expected frequency/gain pairs, as in \"25 -6; 50 -3; 100 0\"");
 
 		TraceF(L"Graphic equalizer with %d nodes", cmd.nodes.size());
 

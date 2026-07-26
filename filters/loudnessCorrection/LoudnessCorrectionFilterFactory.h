@@ -24,7 +24,7 @@
 #include "IFilterFactory.h"
 #include "IFilter.h"
 
-class LoudnessCorrectionFilterFactory : public IFilterFactory
+class LoudnessCorrectionFilterFactory : public ParseReportingFactory
 {
 public:
 	LoudnessCorrectionFilterFactory();

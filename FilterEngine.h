@@ -85,6 +85,11 @@ public:
 	// Factories report an evaluation fact for the line currently being
 	// parsed; the engine stamps the file/line position. No-op without a sink.
 	void traceLoadEvent(ConfigLoadTraceEntry entry);
+	// A factory saying "this line was mine and its parameters are wrong". Stamps
+	// the current file and line, logs it, and passes it to the trace sink so the
+	// Editor can mark the row. See ParseReportingFactory in IFilterFactory.h for
+	// why the factories report this rather than the engine inferring it.
+	void reportParseError(const std::wstring& command, const std::wstring& reason);
 	// Returns true if the active configuration (or any transition target) carries
 	// state across blocks or has a tail. Used by the APO to skip processing on
 	// silent input when safe. Conservative: returns true while a config swap is

@@ -26,7 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filters/FilterFactoryRegistry.h"
 #include "ChannelFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Channel, ChannelFilterFactory, false, L"Channel")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Channel, ChannelFilterFactory, L"Channel")
 
 using std::vector;
 using std::wstring;
@@ -36,6 +36,12 @@ FilterVector ChannelFilterFactory::createFilter(const wstring& configPath, wstri
 	ChannelCommand cmd;
 	if (!ChannelCommand::parse(command, parameters, cmd))
 		return {};
+
+	// "Channel:" with nothing after it selects no channel, which means every
+	// filter below it is applied to nothing. The engine used to infer this from
+	// the outside; the line itself says it better.
+	if (cmd.channels.empty())
+		return reportParseError(command, L"expected at least one channel name or number");
 
 	return singleFilter(makeFilter<ChannelFilter>(cmd.channels));
 }
