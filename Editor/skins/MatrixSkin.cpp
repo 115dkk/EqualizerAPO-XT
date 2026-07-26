@@ -811,7 +811,6 @@ public:
 		// drawn, where the card face starts, and where a band's centre is. The
 		// branch/tail rows' extra unit (logicSiblingsIndentAsMembers) is already
 		// folded into laneCount, because the same call sets the row's own margin.
-		const int unit = info.laneUnit;
 		const int h = size.height();
 		const int indentUnits = info.laneCount;
 		const int cardLeft = info.cardLeft;

@@ -1056,7 +1056,6 @@ public:
 		// is not running (paired with the frame's background step in
 		// cardFrameStyle).
 		painter.setPen(QPen(QColor(tokens.border), 1, info.lineSkipped ? Qt::DotLine : Qt::SolidLine));
-		const int unit = info.laneUnit;
 		for (int level = 0; level < info.depth; level++)
 		{
 			// Centred in its indent band. The centre comes from the row widget

@@ -1203,7 +1203,6 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 	const bool dark = skinIsDark(tokens);
 	// Lane geometry from the row widget; see CommandRowInfo. The branch/tail
 	// rows' extra indent unit is already in laneCount.
-	const int unit = info.laneUnit;
 	const int h = size.height();
 	const int junctionY = 4 + tokens.rowHeight / 2;
 	const int indentUnits = info.laneCount;
