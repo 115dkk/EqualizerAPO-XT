@@ -59,8 +59,16 @@ public:
 	static std::wstring pendingUpdateVersion();
 
 	// Apply the staged update silently without restarting, then exit the process. The
-	// updater waits for this process to close before swapping files, so the new version
-	// appears on the next launch. Does nothing (and returns) if no update is staged;
-	// otherwise it does not return.
+	// normal unelevated Editor first delegates to one elevated coordinator process.
+	// Update.exe and both update hooks inherit that token, so the service stop and APO
+	// re-registration share one UAC consent. Does nothing (and returns) if no update is
+	// staged; otherwise it does not return.
 	static void applyPendingUpdateAndExit();
+
+	// Entry point for the short-lived elevated coordinator launched above. It reopens
+	// the already-downloaded package through Velopack's public pending-update API,
+	// starts Update.exe, then returns so the updater can proceed. The caller must exit
+	// immediately with the returned status.
+	static int runElevatedUpdateCoordinator(
+		const std::string& repoUrl, const std::string& channel = std::string());
 };

@@ -50,7 +50,6 @@ private:
 	int summandIndex(int outRow, const QString& channel) const;
 	QRect cellRect(int outRow, int inCol) const;
 	bool hitTest(const QPoint& pos, int& outRow, int& inCol) const;
-	bool foldable() const;
 	QRect stripRect() const;
 	void commitEditor();
 	void openChannelEditor();
@@ -61,8 +60,8 @@ private:
 	// command references few (or no) channels.
 	std::vector<std::wstring> deviceChannels;
 	// Fixed-source mode (MultiConvolution): input columns come only from
-	// portModel.fixedSources, factors are locked to unity and the panel does
-	// not fold (the mapped targets are the whole surface).
+	// portModel.fixedSources and factors are locked to unity; target rows use
+	// the same fold as Copy.
 	RoutingPortModel portModel;
 	CopyRoutingAdapter::Matrix matrix;
 

@@ -38,33 +38,16 @@ CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments
 	rebuildMatrix();
 }
 
-bool CrosspointMatrixView::foldable() const
-{
-	// Fixed-source mode (MultiConvolution) lays out exactly the mapped
-	// targets; there is nothing to fold and the card owns virtual outputs.
-	return !portModel.fixedSourceMode();
-}
-
 void CrosspointMatrixView::rebuildMatrix()
 {
-	if (foldable())
-	{
-		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels, channelsExpanded);
-		rowMap = fold.visibleRows;
-		vector<Assignment> visible;
-		visible.reserve(rowMap.size());
-		for (int row : rowMap)
-			visible.push_back(workingAssignments[row]);
-		matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
-	}
-	else
-	{
-		fold = RoutingFold::Fold();
-		matrix = CopyRoutingAdapter::buildMatrix(workingAssignments, portModel.fixedSources);
-		rowMap.clear();
-		for (int i = 0; i < matrix.outputs.size(); ++i)
-			rowMap.append(i);
-	}
+	fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
+		channelsExpanded, portModel.fixedSources);
+	rowMap = fold.visibleRows;
+	vector<Assignment> visible;
+	visible.reserve(rowMap.size());
+	for (int row : rowMap)
+		visible.push_back(workingAssignments[row]);
+	matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
 	syncSizeToHint();
 	update();
 }
@@ -128,13 +111,10 @@ QSize CrosspointMatrixView::sizeHint() const
 {
 	int w = rowHeaderWidth + matrix.inputs.size() * cellW + 2;
 	int h = colHeaderHeight + matrix.outputs.size() * cellH + 2;
-	if (foldable())
-	{
-		// The footer's caption cells need their own width when the grid above
-		// is narrow (an emptied deviceless Copy has no columns at all).
-		h += 4 + footerH;
-		w = qMax(w, 220);
-	}
+	// The footer's caption cells need their own width when the grid above
+	// is narrow (an emptied deviceless Copy has no columns at all).
+	h += 4 + footerH;
+	w = qMax(w, 220);
 	return QSize(w, h);
 }
 
@@ -224,7 +204,7 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 		// A virtual bus can leave the board: hovering its row exposes an x
 		// target on the header pill (physical channels fold instead of
 		// leaving, so they never get one).
-		if (foldable() && virt && hoveredRow == r)
+		if (virt && hoveredRow == r)
 		{
 			const QRect xr(pill.right() - 14, pill.top(), 14, pill.height());
 			p.setPen(mix(col, 220));
@@ -289,74 +269,68 @@ void CrosspointMatrixView::paintEvent(QPaintEvent*)
 	// bus onto the board.
 	revealRect = QRect();
 	addRect = QRect();
-	if (foldable())
-	{
-		const QRect footer = footerRect();
-		QFontMetrics fm(monoFont);
-		int x = 4;
+	const QRect footer = footerRect();
+	QFontMetrics fm(monoFont);
+	int x = 4;
 
-		auto captionCell = [&](const QString& caption, bool hovered) {
-			const int w = fm.horizontalAdvance(caption) + 16;
-			const QRect cr(x, footer.top(), w, footer.height());
-			const QRect cell = cr.adjusted(0, 1, -1, -2);
-			if (hovered)
-			{
-				p.setPen(QPen(mix(accent, 200), 1));
-				p.setBrush(mix(accent, 24));
-			}
-			else
-			{
-				p.setPen(QPen(border, 1));
-				p.setBrush(mix(border, 18));
-			}
-			p.drawRect(cell);
-			p.setPen(hovered ? text : muted);
-			p.drawText(cr, Qt::AlignCenter, caption);
-			x += w + 8;
-			return cr;
-		};
-
-		if (fold.hiddenChannels > 0 || channelsExpanded)
+	auto captionCell = [&](const QString& caption, bool hovered) {
+		const int w = fm.horizontalAdvance(caption) + 16;
+		const QRect cr(x, footer.top(), w, footer.height());
+		const QRect cell = cr.adjusted(0, 1, -1, -2);
+		if (hovered)
 		{
-			const QString caption = channelsExpanded
-				? QStringLiteral("FOLD")
-				: QStringLiteral("+%1 CH").arg(fold.hiddenChannels);
-			revealRect = captionCell(caption, hoveredControl == 1);
+			p.setPen(QPen(mix(accent, 200), 1));
+			p.setBrush(mix(accent, 24));
 		}
-		addRect = captionCell(QStringLiteral("+BUS"), hoveredControl == 2);
+		else
+		{
+			p.setPen(QPen(border, 1));
+			p.setBrush(mix(border, 18));
+		}
+		p.drawRect(cell);
+		p.setPen(hovered ? text : muted);
+		p.drawText(cr, Qt::AlignCenter, caption);
+		x += w + 8;
+		return cr;
+	};
+
+	if (fold.hiddenChannels > 0 || channelsExpanded)
+	{
+		const QString caption = channelsExpanded
+			? QStringLiteral("FOLD")
+			: QStringLiteral("+%1 CH").arg(fold.hiddenChannels);
+		revealRect = captionCell(caption, hoveredControl == 1);
 	}
+	addRect = captionCell(QStringLiteral("+BUS"), hoveredControl == 2);
 }
 
 void CrosspointMatrixView::mousePressEvent(QMouseEvent* event)
 {
-	if (foldable())
+	for (int r = 0; r < removeRects.size(); ++r)
 	{
-		for (int r = 0; r < removeRects.size(); ++r)
+		if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
 		{
-			if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
-			{
-				const QString channel = matrix.outputs[r];
-				for (int i = pinnedChannels.size() - 1; i >= 0; i--)
-					if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
-						pinnedChannels.removeAt(i);
-				const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
-				rebuildMatrix();
-				if (changed)
-					emit routingChanged();
-				return;
-			}
-		}
-		if (!revealRect.isNull() && revealRect.contains(event->pos()))
-		{
-			channelsExpanded = !channelsExpanded;
+			const QString channel = matrix.outputs[r];
+			for (int i = pinnedChannels.size() - 1; i >= 0; i--)
+				if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
+					pinnedChannels.removeAt(i);
+			const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
 			rebuildMatrix();
+			if (changed)
+				emit routingChanged();
 			return;
 		}
-		if (!addRect.isNull() && addRect.contains(event->pos()))
-		{
-			openChannelEditor();
-			return;
-		}
+	}
+	if (!revealRect.isNull() && revealRect.contains(event->pos()))
+	{
+		channelsExpanded = !channelsExpanded;
+		rebuildMatrix();
+		return;
+	}
+	if (!addRect.isNull() && addRect.contains(event->pos()))
+	{
+		openChannelEditor();
+		return;
 	}
 
 	int outRow = -1, inCol = -1;

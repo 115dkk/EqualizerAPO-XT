@@ -35,6 +35,7 @@ void testConfigFileCodec();
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 void testConfigFileCodecRejectsPartialRead();
 void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
+void testUpdateElevationPolicyUsesOnePromptForEditorUpdates();
 void testSkinTokensCarryExplicitMode();
 void testEverySkinSheetResolvesAllThemeTokens();
 void testEditableValueTextUsesDisplayedDecimalFormatFirst();

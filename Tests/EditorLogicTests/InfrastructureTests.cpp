@@ -17,6 +17,7 @@
 #include "Editor/widgets/EditableValueText.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
 #include "helpers/OwnedBackgroundTask.h"
+#include "helpers/UpdateElevationPolicy.h"
 
 void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce()
 {
@@ -46,6 +47,26 @@ void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce()
 		"join completes after the owned worker exits");
 	joined.get();
 	expectTrue(completed.load(), "join observes completion of the owned worker");
+}
+
+void testUpdateElevationPolicyUsesOnePromptForEditorUpdates()
+{
+	using UpdateElevationPolicy::ApplyMode;
+
+	expectTrue(
+		UpdateElevationPolicy::chooseApplyMode(true, false) == ApplyMode::LaunchElevatedCoordinator,
+		"an unelevated Editor delegates a staged update to one elevated coordinator");
+	expectTrue(
+		UpdateElevationPolicy::chooseApplyMode(true, true) == ApplyMode::ApplyInCurrentProcess,
+		"the elevated coordinator starts the updater without another elevation");
+	expectFalse(UpdateElevationPolicy::hookMustSelfElevate(true),
+		"update hooks inheriting the elevated updater token do not request UAC again");
+
+	expectTrue(
+		UpdateElevationPolicy::chooseApplyMode(false, false) == ApplyMode::None,
+		"an Editor without a staged update does not request elevation");
+	expectTrue(UpdateElevationPolicy::hookMustSelfElevate(false),
+		"standalone install and uninstall hooks still elevate when required");
 }
 
 void testSkinTokensCarryExplicitMode()

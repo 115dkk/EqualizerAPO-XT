@@ -335,11 +335,11 @@ public:
 	// override to answer with their own philosophy.
 	virtual void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
 
-	// The hover-only insertion seam above the FIRST card (the one place a new
-	// card can be inserted in front of everything, since the header "+" adds
-	// below its card). The widget is invisible at rest and only paints while
-	// hovered, so this hook never changes a skin's at-rest gallery. The default
-	// is a thin accent line with a small "+" disc at the left edge.
+	// The hover-only insertion seam above the FIRST card: a direct alternative
+	// to that card header's "+" (both insert at the leading edge). The widget
+	// is invisible at rest and only paints while hovered, so this hook never
+	// changes a skin's at-rest gallery. The default is a thin accent line with
+	// a small "+" disc at the left edge.
 	virtual void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const;
 
 	// The GraphicEQ card's response plot (GraphicEQPlotWidget) - the clean

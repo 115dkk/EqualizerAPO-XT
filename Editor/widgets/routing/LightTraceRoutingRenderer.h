@@ -68,8 +68,8 @@ private:
 	QPointF portPoint(bool inputRow, int index) const;
 	int chipAt(const QPoint& pos, bool* inputRow) const;
 	int traceAt(const QPoint& pos) const;
+	bool chipHasTrace(bool inputRow, int index) const;
 	QString chipLabel(bool inputRow, int index) const;
-	bool foldable() const;
 	void openFactorEditor(int trace);
 	void openChannelEditor();
 

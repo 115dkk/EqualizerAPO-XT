@@ -1,15 +1,16 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	RoutingFold is the shared, presentation-free half of the Copy routing
-	views' channel fold. Seeding every device channel keeps an emptied Copy
-	editable, but laying the whole seeded set out flat made the views grow
-	with the device (a 7.1 layout is an 8-row matrix of mostly empty cells,
-	and most skins draw the routing as exactly such a matrix). The fold keeps
-	the seeded surface and collapses its presentation: a collapsed view shows
-	only the channels the command actually involves (or two representatives
-	when the command is empty), and everything else waits behind the per-skin
-	reveal control. Serialization is untouched - it never wrote empty rows.
+	RoutingFold is the shared, presentation-free half of the Copy and
+	MultiConvolution routing views' target-channel fold. Seeding every device
+	channel keeps an emptied command editable, but laying the whole seeded set
+	out flat made the views grow with the device (a 7.1 layout is an 8-row
+	matrix of mostly empty cells, and most skins draw the routing as exactly
+	such a matrix). The fold keeps the seeded surface and collapses its
+	presentation: a collapsed view shows only the channels the command actually
+	involves (or two representatives when the command is empty), and everything
+	else waits behind the per-skin reveal control. Serialization is untouched -
+	it never wrote empty rows.
 
 	This TU is Qt Core + the Assignment struct only (no parser, no engine),
 	so EditorLogicTests compiles it directly.
@@ -46,10 +47,13 @@ struct Fold
 // targets the command referenced when the view was created, plus every
 // channel the user added by name this session. When nothing is referenced
 // or pinned, the first two device channels stand in as representatives so
-// an empty Copy still offers something to click.
+// an empty command still offers something to click. fixedInputs locks the
+// source side to an external port list (the selected MultiConvolution WAV);
+// only target rows fold in that mode.
 Fold fold(const std::vector<Assignment>& seeded,
 	const std::vector<std::wstring>& channelNames,
-	const QStringList& pinned, bool expanded);
+	const QStringList& pinned, bool expanded,
+	const QStringList& fixedInputs = QStringList());
 
 // The targets that arrive with a non-empty sum - the initial pin set (these
 // rows must never fold away mid-session just because their last source was

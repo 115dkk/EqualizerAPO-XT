@@ -142,8 +142,8 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	addButton = new QToolButton(headerWidget);
 	addButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	addButton->setText(QStringLiteral("+"));
-	addButton->setToolTip(tr("Add filter after this card"));
-	connect(addButton, SIGNAL(clicked()), this, SLOT(addAfter()));
+	addButton->setToolTip(tr("Add filter above this card"));
+	connect(addButton, SIGNAL(clicked()), this, SLOT(addAbove()));
 	headerLayout->addWidget(addButton);
 
 	removeButton = new QToolButton(headerWidget);
@@ -806,16 +806,14 @@ void FilterCardRow::routingEdited()
 	table->updateModel();
 }
 
-void FilterCardRow::addAfter()
+void FilterCardRow::addAbove()
 {
 	FilterTemplate filterTemplate;
 	if (table->chooseFilterTemplate(&filterTemplate, addButton->mapToGlobal(QPoint(0, addButton->height()))))
 	{
-		// Insert BELOW this card (shared insertion contract in
-		// docs/skins/README.md). addLine's contract is insert-before, so the
-		// anchor is the item after this one - nullptr falls through to
-		// append-at-end for the last card.
-		table->addLine(filterTemplate.getLine(), table->itemAfter(item));
+		// A card header's + belongs to that card's leading edge: addLine takes
+		// an insert-before anchor, so this row itself is the desired anchor.
+		table->addLine(filterTemplate.getLine(), item);
 		FilterTable* targetTable = table;
 		QTimer::singleShot(0, targetTable, [targetTable]() {
 			targetTable->updateGuis();

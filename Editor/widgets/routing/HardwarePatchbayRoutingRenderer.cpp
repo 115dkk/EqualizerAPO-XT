@@ -33,33 +33,16 @@ HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments
 	rebuildMatrix();
 }
 
-bool HardwarePatchbayView::foldable() const
-{
-	// Fixed-source mode (MultiConvolution) lays out exactly the mapped
-	// targets; there is nothing to fold and the card owns virtual outputs.
-	return !portModel.fixedSourceMode();
-}
-
 void HardwarePatchbayView::rebuildMatrix()
 {
-	if (foldable())
-	{
-		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels, channelsExpanded);
-		rowMap = fold.visibleRows;
-		vector<Assignment> visible;
-		visible.reserve(rowMap.size());
-		for (int row : rowMap)
-			visible.push_back(workingAssignments[row]);
-		matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
-	}
-	else
-	{
-		fold = RoutingFold::Fold();
-		matrix = CopyRoutingAdapter::buildMatrix(workingAssignments, portModel.fixedSources);
-		rowMap.clear();
-		for (int i = 0; i < matrix.outputs.size(); ++i)
-			rowMap.append(i);
-	}
+	fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
+		channelsExpanded, portModel.fixedSources);
+	rowMap = fold.visibleRows;
+	vector<Assignment> visible;
+	visible.reserve(rowMap.size());
+	for (int row : rowMap)
+		visible.push_back(workingAssignments[row]);
+	matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
 	syncSizeToHint();
 	update();
 }
@@ -123,11 +106,8 @@ QSize HardwarePatchbayView::sizeHint() const
 {
 	int w = rowHeaderWidth + matrix.inputs.size() * cellW + 8;
 	int h = colHeaderHeight + matrix.outputs.size() * cellH + 8;
-	if (foldable())
-	{
-		h += 10 + stripH + 4;
-		w = qMax(w, 240);
-	}
+	h += 10 + stripH + 4;
+	w = qMax(w, 240);
 	return QSize(w, h);
 }
 
@@ -247,7 +227,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		// A virtual channel label can be unpatched from the faceplate:
 		// hovering its row engraves an x target under the label (device
 		// channels fold instead of leaving, so they never get one).
-		if (foldable() && CopyRoutingAdapter::isVirtualChannel(out) && hoveredRow == r)
+		if (CopyRoutingAdapter::isVirtualChannel(out) && hoveredRow == r)
 		{
 			const QRect xr(labelRect.right() - 12, labelRect.center().y() + 8, 14, 14);
 			p.setPen(a8(col, 230));
@@ -358,63 +338,57 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	// while the full device layout is mounted.
 	revealRect = QRect();
 	addRect = QRect();
-	if (foldable())
+	const QRect strip = stripRect();
+	QFontMetrics fm(label);
+	int x = 6;
+
+	if (fold.hiddenChannels > 0 || channelsExpanded)
 	{
-		const QRect strip = stripRect();
-		QFontMetrics fm(label);
-		int x = 6;
-
-		if (fold.hiddenChannels > 0 || channelsExpanded)
-		{
-			const QString capText = channelsExpanded
-				? QStringLiteral("ALL")
-				: QStringLiteral("+%1").arg(fold.hiddenChannels);
-			revealRect = QRect(x, strip.top(), 44, 30);
-			drawCap(revealRect, channelsExpanded, capText, hoveredControl == 1);
-			// Tracked engraving under the cap's right shoulder names the bank.
-			p.setFont(label);
-			p.setPen(a8(QColor(t.mutedText), 220));
-			const QString engrave = QStringLiteral("CHANNELS");
-			p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, 30),
-				Qt::AlignVCenter | Qt::AlignLeft, engrave);
-			x += 52 + fm.horizontalAdvance(engrave) + 24;
-		}
-
-		addRect = QRect(x, strip.top(), 44, 30);
-		drawCap(addRect, false, QStringLiteral("ADD"), hoveredControl == 2);
+		const QString capText = channelsExpanded
+			? QStringLiteral("ALL")
+			: QStringLiteral("+%1").arg(fold.hiddenChannels);
+		revealRect = QRect(x, strip.top(), 44, 30);
+		drawCap(revealRect, channelsExpanded, capText, hoveredControl == 1);
+		// Tracked engraving under the cap's right shoulder names the bank.
+		p.setFont(label);
+		p.setPen(a8(QColor(t.mutedText), 220));
+		const QString engrave = QStringLiteral("CHANNELS");
+		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, 30),
+			Qt::AlignVCenter | Qt::AlignLeft, engrave);
+		x += 52 + fm.horizontalAdvance(engrave) + 24;
 	}
+
+	addRect = QRect(x, strip.top(), 44, 30);
+	drawCap(addRect, false, QStringLiteral("ADD"), hoveredControl == 2);
 }
 
 void HardwarePatchbayView::mousePressEvent(QMouseEvent* event)
 {
-	if (foldable())
+	for (int r = 0; r < removeRects.size(); ++r)
 	{
-		for (int r = 0; r < removeRects.size(); ++r)
+		if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
 		{
-			if (!removeRects[r].isNull() && removeRects[r].contains(event->pos()))
-			{
-				const QString channel = matrix.outputs[r];
-				for (int i = pinnedChannels.size() - 1; i >= 0; i--)
-					if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
-						pinnedChannels.removeAt(i);
-				const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
-				rebuildMatrix();
-				if (changed)
-					emit routingChanged();
-				return;
-			}
-		}
-		if (!revealRect.isNull() && revealRect.contains(event->pos()))
-		{
-			channelsExpanded = !channelsExpanded;
+			const QString channel = matrix.outputs[r];
+			for (int i = pinnedChannels.size() - 1; i >= 0; i--)
+				if (pinnedChannels[i].compare(channel, Qt::CaseInsensitive) == 0)
+					pinnedChannels.removeAt(i);
+			const bool changed = RoutingFold::removeChannel(workingAssignments, channel);
 			rebuildMatrix();
+			if (changed)
+				emit routingChanged();
 			return;
 		}
-		if (!addRect.isNull() && addRect.contains(event->pos()))
-		{
-			openChannelEditor();
-			return;
-		}
+	}
+	if (!revealRect.isNull() && revealRect.contains(event->pos()))
+	{
+		channelsExpanded = !channelsExpanded;
+		rebuildMatrix();
+		return;
+	}
+	if (!addRect.isNull() && addRect.contains(event->pos()))
+	{
+		openChannelEditor();
+		return;
 	}
 
 	int outRow = -1, inCol = -1;

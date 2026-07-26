@@ -31,7 +31,9 @@ The Editor embeds the native Velopack client (`velopack_libc`) and updates itsel
 
 1. On a normal launch the Editor calls `Velopack::VelopackApp::Build().SetAutoApplyOnStartup(false).Run()`. Auto-apply on startup is off because updates are applied on exit instead.
 2. About 60 seconds after start (only for Velopack installs), a background worker checks the GitHub release feed for the build's channel with `UpdateManager::CheckForUpdates()` and, if a newer build exists, downloads it with `DownloadUpdates()` into the Velopack staging area. The download runs off the GUI thread and never blocks shutdown.
-3. When the Editor exits, if an update was staged it calls `WaitExitThenApplyUpdates(info, silent: true, restart: false)` and quits. The updater waits for the process to close, swaps the files silently, and does not relaunch. The new version comes up on the next launch.
+3. When the Editor exits with an update staged, it asks for elevation once and launches a short-lived elevated Editor coordinator. The coordinator reopens the staged package with `UpdatePendingRestart()`, calls `WaitExitThenApplyUpdates(info, silent: true, restart: false)`, and exits. The updater inherits that token, waits for the coordinator to close, swaps the files silently, and does not relaunch. The new version comes up on the next launch.
+
+The single elevation is required even though Velopack itself is installed per-user. Before replacing `current`, the old `--veloapp-obsolete` hook must stop the Windows audio service so the loaded APO DLL no longer locks the directory. After replacement, the new `--veloapp-updated` hook writes the machine-wide APO registration and restarts the service. Running the updater from the elevated coordinator lets both hooks inherit the same administrator token instead of prompting once per hook.
 
 This logic lives in `helpers/VelopackBootstrap.cpp` (`startBackgroundDownload`, `hasPendingUpdate`, `applyPendingUpdateAndExit`) and is wired into `Editor/main.cpp`. The channel is injected at build time with `EAPO_UPDATE_CHANNEL`, the same macro UpdateChecker uses.
 

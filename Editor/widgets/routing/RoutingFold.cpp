@@ -24,7 +24,8 @@ QSet<QString> upperSet(const QStringList& names)
 
 Fold fold(const vector<Assignment>& seeded,
 	const vector<wstring>& channelNames,
-	const QStringList& pinned, bool expanded)
+	const QStringList& pinned, bool expanded,
+	const QStringList& fixedInputs)
 {
 	Fold result;
 	const QSet<QString> pinnedUpper = upperSet(pinned);
@@ -65,6 +66,15 @@ Fold fold(const vector<Assignment>& seeded,
 		if (visible[i])
 			result.visibleRows.append(i);
 	result.hiddenChannels = static_cast<int>(seeded.size()) - result.visibleRows.size();
+
+	// MultiConvolution's source ports are file channels, not device channels.
+	// They never participate in the target fold: every IR port remains
+	// available while only the output rows collapse.
+	if (!fixedInputs.isEmpty())
+	{
+		result.inputs = fixedInputs;
+		return result;
+	}
 
 	// Input columns: first-seen across the visible sums, like buildMatrix.
 	QSet<QString> seen;

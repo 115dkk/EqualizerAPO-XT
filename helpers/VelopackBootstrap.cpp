@@ -21,6 +21,7 @@
 
 #include "LogHelper.h"
 #include "OwnedBackgroundTask.h"
+#include "UpdateElevationPolicy.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -31,6 +32,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <shellapi.h>
 
 // Velopack.hpp pulls in the C ABI header; include it after windows.h so the
 // platform headers resolve in the expected order.
@@ -55,6 +57,58 @@ bool fileExists(const std::wstring& path)
 {
 	DWORD attrs = GetFileAttributesW(path.c_str());
 	return attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+bool isCurrentProcessElevated()
+{
+	HANDLE token = nullptr;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+		return false;
+
+	TOKEN_ELEVATION elevation{};
+	DWORD size = sizeof(elevation);
+	const bool elevated =
+		GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &size)
+		&& elevation.TokenIsElevated != 0;
+	CloseHandle(token);
+	return elevated;
+}
+
+bool launchElevatedUpdateCoordinator()
+{
+	wchar_t exePath[MAX_PATH];
+	const DWORD length = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+	if (length == 0 || length == MAX_PATH)
+	{
+		LogFStatic(L"[VelopackBootstrap] failed to resolve Editor path for update elevation (gle=%lu)",
+			GetLastError());
+		return false;
+	}
+
+	SHELLEXECUTEINFOW info{};
+	info.cbSize = sizeof(info);
+	info.fMask = SEE_MASK_NOASYNC;
+	info.lpVerb = L"runas";
+	info.lpFile = exePath;
+	info.lpParameters = UpdateElevationPolicy::kElevatedCoordinatorArgumentW;
+	info.nShow = SW_HIDE;
+
+	if (ShellExecuteExW(&info))
+		return true;
+
+	const DWORD error = GetLastError();
+	LogFStatic(L"[VelopackBootstrap] update elevation was not started (gle=%lu)", error);
+	return false;
+}
+
+Velopack::UpdateOptions updateOptions(const std::string& channel)
+{
+	Velopack::UpdateOptions options{};
+	options.AllowVersionDowngrade = false;
+	options.MaximumDeltasBeforeFallback = 10;
+	if (!channel.empty())
+		options.ExplicitChannel = channel;
+	return options;
 }
 
 std::wstring envVar(const wchar_t* name)
@@ -148,11 +202,7 @@ void VelopackBootstrap::startBackgroundDownload(const std::string& repoUrl, cons
 	{
 		try
 		{
-			Velopack::UpdateOptions options{};
-			options.AllowVersionDowngrade = false;
-			options.MaximumDeltasBeforeFallback = 10;
-			if (!channel.empty())
-				options.ExplicitChannel = channel;
+			Velopack::UpdateOptions options = updateOptions(channel);
 
 			auto manager = std::make_unique<Velopack::UpdateManager>(
 				std::make_unique<Velopack::GithubSource>(repoUrl, "", false),
@@ -206,13 +256,27 @@ void VelopackBootstrap::applyPendingUpdateAndExit()
 {
 	UpdateSession& session = updateSession();
 	std::lock_guard<std::mutex> lock(session.updateMutex);
-	if (!session.updateReady.load() || !session.manager || !session.pendingUpdate)
+	const bool hasPendingUpdate =
+		session.updateReady.load() && session.manager && session.pendingUpdate;
+	const UpdateElevationPolicy::ApplyMode applyMode =
+		UpdateElevationPolicy::chooseApplyMode(hasPendingUpdate, isCurrentProcessElevated());
+	if (applyMode == UpdateElevationPolicy::ApplyMode::None)
 		return;
+
+	if (applyMode == UpdateElevationPolicy::ApplyMode::LaunchElevatedCoordinator)
+	{
+		if (!launchElevatedUpdateCoordinator())
+			return;
+
+		// The coordinator has inherited the staged package on disk. Exit this
+		// unelevated instance so it cannot keep current\Editor.exe locked.
+		std::exit(0);
+	}
 
 	try
 	{
-		// Apply silently and do not restart: the user closed the app, so we just swap
-		// files in the background and let the new version come up on the next launch.
+		// This branch is used when the Editor was already elevated. Update.exe and
+		// both lifecycle hooks inherit that token, so no hook requests UAC itself.
 		session.manager->WaitExitThenApplyUpdates(*session.pendingUpdate, /*silent*/ true, /*restart*/ false);
 	}
 	catch (const std::exception& e)
@@ -223,4 +287,45 @@ void VelopackBootstrap::applyPendingUpdateAndExit()
 
 	// The updater is now waiting for this process to exit before swapping files.
 	std::exit(0);
+}
+
+int VelopackBootstrap::runElevatedUpdateCoordinator(
+	const std::string& repoUrl, const std::string& channel)
+{
+	if (!isCurrentProcessElevated())
+	{
+		LogFStatic(L"[VelopackBootstrap] refusing to coordinate an update without elevation");
+		return 1;
+	}
+	if (!isVelopackInstall() || repoUrl.empty())
+		return 1;
+
+	try
+	{
+		Velopack::UpdateOptions options = updateOptions(channel);
+		Velopack::UpdateManager manager(
+			std::make_unique<Velopack::GithubSource>(repoUrl, "", false),
+			&options);
+		std::optional<Velopack::VelopackAsset> pendingUpdate = manager.UpdatePendingRestart();
+		if (!pendingUpdate.has_value())
+		{
+			LogFStatic(L"[VelopackBootstrap] elevated coordinator found no staged update");
+			return 1;
+		}
+
+		// The updater inherits this process's elevated token. It runs the old
+		// --veloapp-obsolete hook, swaps current\, then runs the new
+		// --veloapp-updated hook, all under the one consent granted here.
+		manager.WaitExitThenApplyUpdates(*pendingUpdate, /*silent*/ true, /*restart*/ false);
+		return 0;
+	}
+	catch (const std::exception& e)
+	{
+		LogFStatic(L"[VelopackBootstrap] elevated update coordination failed: %S", e.what());
+	}
+	catch (...)
+	{
+		LogFStatic(L"[VelopackBootstrap] elevated update coordination failed: unknown error");
+	}
+	return 1;
 }

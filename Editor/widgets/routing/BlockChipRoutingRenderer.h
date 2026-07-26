@@ -44,7 +44,6 @@ protected:
 private:
 	struct Hit { int row = 0; int summand = 0; QRect rect; };
 	struct AddHit { int row = 0; QRect rect; };
-	bool foldable() const;
 	void refold();
 	void commitEditor();
 	void showAddMenu(int row, const QPoint& globalPos);
@@ -55,9 +54,9 @@ private:
 	// Device channel layout, offered by the per-block [+] chip menu.
 	std::vector<std::wstring> deviceChannels;
 	// Fixed-source mode (MultiConvolution): the [+] menu offers only
-	// portModel.fixedSources, factors are locked to unity (a double-click
-	// removes the chip instead of editing a gain) and the list does not fold
-	// (the mapped targets are the whole list).
+	// portModel.fixedSources and factors are locked to unity (a double-click
+	// removes the chip instead of editing a gain). The fixed sources stay
+	// available while the target blocks use the shared channel fold.
 	RoutingPortModel portModel;
 
 	// Channel fold: only fold.visibleRows get an equation block; pinned

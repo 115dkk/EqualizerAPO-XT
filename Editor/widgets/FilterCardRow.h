@@ -43,7 +43,7 @@ protected:
 
 private slots:
 	void updateModel();
-	void addAfter();
+	void addAbove();
 	void removeThis();
 	void editTextToggled(bool checked);
 	void lineEditingFinished();
