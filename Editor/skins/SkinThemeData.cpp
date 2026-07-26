@@ -309,16 +309,59 @@ void registerBundledFonts(bool includeSarasa)
 	QFont::insertSubstitutions(QStringLiteral("DM Mono"), monoChain + cjkChain);
 }
 
+const QVector<SkinEntry>& roster()
+{
+	// Display order. Studio is first, and that is load-bearing twice over: it is
+	// the default skin and it is what an unknown id falls back to.
+	static const QVector<SkinEntry> entries = {
+		{ QStringLiteral("studio"), QStringLiteral("studio"), &studioTokens },
+		// The minimal skin's sheets are precision_light.qss / precision_dark.qss;
+		// the name predates the skin's rename and the files were left alone.
+		{ QStringLiteral("minimal"), QStringLiteral("precision"), &minimalTokens },
+		{ QStringLiteral("soft"), QStringLiteral("soft"), &softTokens },
+		{ QStringLiteral("rack"), QStringLiteral("rack"), &rackTokens },
+		{ QStringLiteral("matrix"), QStringLiteral("matrix"), &matrixTokens },
+	};
+	return entries;
+}
+
+QStringList ids()
+{
+	QStringList result;
+	result.reserve(roster().size());
+	for (const SkinEntry& skin : roster())
+		result.append(skin.id);
+	return result;
+}
+
+const SkinEntry& entry(const QString& id)
+{
+	const QString resolved = resolveId(id);
+	for (const SkinEntry& skin : roster())
+	{
+		if (skin.id == resolved)
+			return skin;
+	}
+	// resolveId only ever returns a roster id, so this is unreachable; returning
+	// the first entry rather than asserting keeps the fallback that has always
+	// been the behaviour for an id nobody knows.
+	return roster().first();
+}
+
 QString resolveId(const QString& id)
 {
+	// The two aliases are stored values from earlier releases, so they cannot be
+	// derived from anything - they are the only hard-coded ids here.
 	if (id == QStringLiteral("glassy"))
 		return QStringLiteral("studio");
 	if (id == QStringLiteral("industrial"))
 		return QStringLiteral("rack");
-	if (id == QStringLiteral("studio") || id == QStringLiteral("minimal") || id == QStringLiteral("soft")
-		|| id == QStringLiteral("rack") || id == QStringLiteral("matrix"))
-		return id;
-	return QStringLiteral("studio");
+	for (const SkinEntry& skin : roster())
+	{
+		if (skin.id == id)
+			return id;
+	}
+	return roster().first().id;
 }
 
 void applyToApplication(QApplication& app, const QString& skinId, bool dark,
@@ -344,26 +387,13 @@ void applyToApplication(QApplication& app, const QString& skinId, bool dark,
 
 SkinTokens tokens(const QString& id, bool dark)
 {
-	const QString resolved = resolveId(id);
-	if (resolved == QStringLiteral("minimal"))
-		return minimalTokens(dark);
-	if (resolved == QStringLiteral("soft"))
-		return softTokens(dark);
-	if (resolved == QStringLiteral("rack"))
-		return rackTokens(dark);
-	if (resolved == QStringLiteral("matrix"))
-		return matrixTokens(dark);
-	return studioTokens(dark);
+	return entry(id).tokens(dark);
 }
 
 QString qssResource(const QString& id, bool dark)
 {
-	QString resolved = resolveId(id);
-	// Historical file names: the minimal skin's sheets keep their original
-	// precision_* names on purpose (docs/skins/minimal.md).
-	if (resolved == QStringLiteral("minimal"))
-		resolved = QStringLiteral("precision");
-	return QStringLiteral(":/skins/%1_%2.qss").arg(resolved, dark ? QStringLiteral("dark") : QStringLiteral("light"));
+	return QStringLiteral(":/skins/%1_%2.qss")
+		.arg(entry(id).qssBaseName, dark ? QStringLiteral("dark") : QStringLiteral("light"));
 }
 
 QString substituteTokens(QString qss, const SkinTokens& tokens)

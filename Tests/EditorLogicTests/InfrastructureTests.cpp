@@ -6,6 +6,7 @@
 #include <thread>
 
 #include <QDir>
+#include <QSet>
 #include <QFile>
 #include <QFileInfo>
 #include <QLocale>
@@ -69,12 +70,52 @@ void testUpdateElevationPolicyUsesOnePromptForEditorUpdates()
 		"standalone install and uninstall hooks still elevate when required");
 }
 
+// The roster is the one list of which skins exist, so what is worth pinning is
+// that it is complete and that everything derived from it lands on a real skin.
+// Missing a skin used to be silent: resolveId() falls back to Studio, so a skin
+// that was registered but forgotten in one of eighteen places was drawn as Studio
+// with no error anywhere.
+void testTheSkinRosterIsTheOneList()
+{
+	const QVector<SkinThemeData::SkinEntry>& roster = SkinThemeData::roster();
+	requireTrue(roster.size() >= 5, "the roster carries the five built-in skins");
+	expectTrue(roster.first().id == QStringLiteral("studio"),
+		"studio is first, which is what an unknown id falls back to and what the default is");
+
+	QSet<QString> seen;
+	for (const SkinThemeData::SkinEntry& skin : roster)
+	{
+		expectFalse(skin.id.isEmpty(), "every entry has an id");
+		expectFalse(skin.qssBaseName.isEmpty(), "every entry names its style sheet");
+		expectTrue(skin.tokens != nullptr, "every entry carries its token table");
+		expectFalse(seen.contains(skin.id),
+			QStringLiteral("%1 appears once").arg(skin.id));
+		seen.insert(skin.id);
+
+		expectTrue(SkinThemeData::resolveId(skin.id) == skin.id,
+			QStringLiteral("%1 is its own canonical id").arg(skin.id));
+		expectTrue(SkinThemeData::entry(skin.id).id == skin.id,
+			QStringLiteral("%1 resolves back to its own entry").arg(skin.id));
+	}
+
+	const QStringList ids = SkinThemeData::ids();
+	requireTrue(ids.size() == roster.size(), "ids() has one entry per roster skin, in the same order");
+	for (int index = 0; index < ids.size(); index++)
+		expectTrue(ids[index] == roster[index].id, "ids() preserves the roster order, which is the display order");
+
+	// The two stored aliases from earlier releases, which are the only ids that
+	// cannot be derived from the roster.
+	expectTrue(SkinThemeData::resolveId(QStringLiteral("glassy")) == QStringLiteral("studio"),
+		"the glassy alias still resolves, because it is what old registries hold");
+	expectTrue(SkinThemeData::resolveId(QStringLiteral("industrial")) == QStringLiteral("rack"),
+		"and so does industrial");
+	expectTrue(SkinThemeData::resolveId(QStringLiteral("no such skin")) == roster.first().id,
+		"an unknown id falls back to the first entry rather than producing no skin at all");
+}
+
 void testSkinTokensCarryExplicitMode()
 {
-	const QStringList skinIds = {
-		QStringLiteral("studio"), QStringLiteral("minimal"), QStringLiteral("soft"),
-		QStringLiteral("rack"), QStringLiteral("matrix")
-	};
+	const QStringList skinIds = SkinThemeData::ids();
 	for (const QString& skinId : skinIds)
 	{
 		expectTrue(SkinThemeData::tokens(skinId, true).dark,
@@ -89,10 +130,7 @@ void testEverySkinSheetResolvesAllThemeTokens()
 	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());
 	requireTrue(repoRoot.cdUp(), "skin-token test reaches the tests directory");
 	requireTrue(repoRoot.cdUp(), "skin-token test reaches the repository root");
-	const QStringList skinIds = {
-		QStringLiteral("studio"), QStringLiteral("minimal"),
-		QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix")
-	};
+	const QStringList skinIds = SkinThemeData::ids();
 	const QRegularExpression unresolved(QStringLiteral("@[A-Z_0-9]+@"));
 	for (const QString& skinId : skinIds)
 	{

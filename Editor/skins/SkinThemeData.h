@@ -15,6 +15,8 @@
 
 #include <QPalette>
 #include <QString>
+#include <QStringList>
+#include <QVector>
 
 #include "Editor/SkinTokens.h"
 
@@ -22,6 +24,39 @@ class QApplication;
 
 namespace SkinThemeData
 {
+// THE SKIN ROSTER. The one list of which skins exist.
+//
+// Adding a skin used to mean editing eighteen places, and missing one did not
+// fail: resolveId() falls back to "studio" for an id it does not know, so a new
+// skin that compiled, registered and appeared in the menu was drawn as Studio
+// with no error anywhere. Everything that needs to know the membership - the
+// token lookup, the QSS path, the Editor's ISkin instances, Device Selector's
+// painters and shot harness, the tests - reads it from here now.
+//
+// The display name is deliberately absent: it is translated, and this unit is
+// compiled into satellite tools that install no translators. The Editor's menu
+// keeps that table and looks names up by id, so a roster id with no name shows as
+// its raw id rather than vanishing from the menu.
+struct SkinEntry
+{
+	// As stored in the registry and written in a config. Never translated.
+	QString id;
+	// Base name of the .qss pair, which is not always the id: the minimal skin's
+	// sheets keep their original precision_* names (docs/skins/minimal.md).
+	QString qssBaseName;
+	// The skin's token table. Every skin builds both modes from one function,
+	// so the roster carries one pointer rather than a light/dark pair.
+	SkinTokens (*tokens)(bool dark);
+};
+
+// Every built-in skin, in display order.
+const QVector<SkinEntry>& roster();
+// Just the ids, in the same order.
+QStringList ids();
+// The entry for a stored id, alias-resolved. Never null: an unknown id resolves
+// to the first entry, the way resolveId() has always fallen back to Studio.
+const SkinEntry& entry(const QString& id);
+
 // Registers the shared static font faces and fallback chain. Editor passes
 // includeSarasa=true for its monospace CJK surfaces; satellite tools keep the
 // smaller common set.
