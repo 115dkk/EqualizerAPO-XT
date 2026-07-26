@@ -26,7 +26,7 @@
 | S5d | audiodg 접근 검사와 부여를 `AudioEngineAccess` 한 곳으로 | #237 | (없음) |
 | S5c | 설치 결과를 값으로 보고하고 로그·`--diagnose`로 내보냄 | #238 | |
 | S7 | 설정 파싱 오류를 팩토리가 줄 단위로 보고 | #239 | |
-| S4 | 스킨 명단을 `SkinThemeData::roster()` 하나로 | (진행 중) | |
+| S4 | 스킨 명단을 `SkinThemeData::roster()` 하나로 | #241 | (없음) |
 
 S1 이 고친 사용자 체감 결함은 셋입니다. 소수점 쉼표로 적은 `Preamp: -6,5 dB` 가 카드를 건드리는
 순간 `-6.0` 으로 덮어써지던 것, REW·Dirac 이 기본으로 내보내는 `Filter 1: ON IIR ...` 에
