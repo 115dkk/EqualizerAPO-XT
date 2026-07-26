@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "IFilter.h"
+#include "engine/IFilter.h"
 #include "IrCache.h"
 #include "MultiConvolutionCommand.h"
 

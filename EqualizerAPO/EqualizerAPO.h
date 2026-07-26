@@ -23,7 +23,7 @@
 #include <Unknwn.h>
 #include <audioenginebaseapo.h>
 #include <BaseAudioProcessingObject.h>
-#include "../FilterEngine.h"
+#include "../engine/FilterEngine.h"
 
 // Identifies the single, user-configurable processing effect that
 // EqualizerAPO represents. Reported through IAudioSystemEffects2::GetEffectsList

@@ -21,7 +21,7 @@
 
 #include <string>
 
-#include "devices/DeviceInstallReport.h"
+#include "DeviceInstallReport.h"
 
 class AbstractAPOInfo
 {

@@ -250,7 +250,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="SampleIoTests.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\FilterEngine.h" />
+    <ClInclude Include="..\..\engine\FilterEngine.h" />
     <ClInclude Include="..\..\helpers\IRegistry.h" />
     <ClInclude Include="..\..\helpers\RegistryTransaction.h" />
     <ClInclude Include="..\..\helpers\SynchronizedState.h" />

@@ -182,10 +182,15 @@ void RegistryTransaction::createKey(const wstring& key)
 		created.push_back(key);
 
 	target.createKey(key);
-	recordApplied(L"create key " + key);
 
+	// Nothing is recorded when the key was already there. createKey succeeds on an
+	// existing key, and a report line saying a key was created when it was not
+	// misleads the person reading it - which matters because that report is the
+	// whole point of recording what was applied.
 	if (!created.empty())
 	{
+		recordApplied(L"create key " + key);
+
 		Entry entry;
 		entry.kind = Entry::Kind::DeleteKeys;
 		// Deepest first, because a parent cannot be deleted while a child is left.

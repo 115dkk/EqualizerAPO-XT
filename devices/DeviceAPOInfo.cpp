@@ -26,7 +26,7 @@
 
 #include "DeviceAPOInfo.h"
 #include "VoicemeeterAPOInfo.h"
-#include "devices/DeviceAPOInfoKeys.h"
+#include "DeviceAPOInfoKeys.h"
 
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"

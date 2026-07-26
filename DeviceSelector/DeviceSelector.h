@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <AbstractAPOInfo.h>
+#include <devices/AbstractAPOInfo.h>
 #include <QtWidgets/QDialog>
 #include "ui_DeviceSelector.h"
 

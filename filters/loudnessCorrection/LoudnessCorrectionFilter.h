@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <IFilter.h>
+#include <engine/IFilter.h>
 #include <filters/BiQuad.h>
 
 #include <atomic>

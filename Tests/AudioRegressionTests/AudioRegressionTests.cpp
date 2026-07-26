@@ -25,7 +25,7 @@
 #include <windows.h>
 #include <bcrypt.h>
 
-#include "FilterEngine.h"
+#include "engine/FilterEngine.h"
 #include "helpers/LogHelper.h"
 #include "helpers/SndfileRAII.h"
 #include "helpers/StringHelper.h"

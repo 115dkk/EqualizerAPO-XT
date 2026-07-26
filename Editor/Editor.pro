@@ -56,7 +56,7 @@ SOURCES += main.cpp\
 	FilterTemplate.cpp \
 	guis/DeviceFilterGUI.cpp \
 	guis/DeviceFilterGUIFactory.cpp \
-	../DeviceAPOInfo.cpp \
+	../devices/DeviceAPOInfo.cpp \
 	../devices/DeviceAPOInfo.Install.cpp \
 	../devices/DeviceAPOInfo.Load.cpp \
 	../devices/DeviceAPOInfo.State.cpp \
@@ -81,7 +81,7 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUIChannelItem.cpp \
 	../filters/CopyFilter.cpp \
 	../filters/CopyFilterFactory.cpp \
-	../IFilter.cpp \
+	../engine/IFilter.cpp \
 	guis/CopyFilterGUIScene.cpp \
 	guis/CopyFilterGUIForm.cpp \
 	guis/CopyFilterGUIRow.cpp \
@@ -142,13 +142,13 @@ SOURCES += main.cpp\
 	widgets/ResizeCorner.cpp \
 	analysis/AnalysisResponse.cpp \
 	analysis/ResponseCurveBuilder.cpp \
-	../FilterEngine.cpp \
+	../engine/FilterEngine.cpp \
 	../engine/FilterEngine.Configuration.cpp \
 	../engine/FilterEngine.Process.cpp \
 	../engine/FilterEngine.Runtime.cpp \
 	../engine/ConfigWatcher.cpp \
 	../filters/FilterFactoryRegistry.cpp \
-	../FilterConfiguration.cpp \
+	../engine/FilterConfiguration.cpp \
 	../filters/ChannelCommand.cpp \
 	../filters/ChannelFilterFactory.cpp \
 	../filters/ExpressionCommand.cpp \
@@ -170,7 +170,7 @@ SOURCES += main.cpp\
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
-	../ConfigurationFileReader.cpp \
+	../engine/ConfigurationFileReader.cpp \
 	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \
 	../parser/EngineParser.cpp \
@@ -181,8 +181,8 @@ SOURCES += main.cpp\
 	widgets/ExponentialSpinBox.cpp \
 	FilterTableMimeData.cpp \
 	CustomStyle.cpp \
-	../AbstractAPOInfo.cpp \
-	../VoicemeeterAPOInfo.cpp \
+	../devices/AbstractAPOInfo.cpp \
+	../devices/VoicemeeterAPOInfo.cpp \
 	../helpers/AbstractLibrary.cpp \
 	../helpers/VST3PluginIIDs.cpp \
 	../helpers/VSTPluginLibrary.cpp \
@@ -330,7 +330,7 @@ HEADERS  += \
 	FilterTemplate.h \
 	guis/DeviceFilterGUI.h \
 	guis/DeviceFilterGUIFactory.h \
-	../DeviceAPOInfo.h \
+	../devices/DeviceAPOInfo.h \
 	guis/DeviceFilterGUIDialog.h \
 	../filters/DeviceCommand.h \
 	../filters/DeviceFilterFactory.h \
@@ -350,8 +350,8 @@ HEADERS  += \
 	guis/CopyFilterGUIChannelItem.h \
 	../filters/CopyFilter.h \
 	../filters/CopyFilterFactory.h \
-	../IFilter.h \
-	../IFilterFactory.h \
+	../engine/IFilter.h \
+	../engine/IFilterFactory.h \
 	guis/CopyFilterGUIScene.h \
 	guis/CopyFilterGUIForm.h \
 	guis/CopyFilterGUIRow.h \
@@ -405,9 +405,9 @@ HEADERS  += \
 	analysis/AnalysisMetric.h \
 	analysis/AnalysisResponse.h \
 	analysis/ResponseCurveBuilder.h \
-	../FilterEngine.h \
+	../engine/FilterEngine.h \
 	../engine/ConfigWatcher.h \
-	../FilterConfiguration.h \
+	../engine/FilterConfiguration.h \
 	../filters/ChannelFilterFactory.h \
 	../filters/ExpressionCommand.h \
 	../filters/ExpressionFilterFactory.h \
@@ -435,8 +435,8 @@ HEADERS  += \
 	widgets/ExponentialSpinBox.h \
 	FilterTableMimeData.h \
 	CustomStyle.h \
-	../AbstractAPOInfo.h \
-	../VoicemeeterAPOInfo.h \
+	../devices/AbstractAPOInfo.h \
+	../devices/VoicemeeterAPOInfo.h \
 	../helpers/AbstractLibrary.h \
 	../helpers/VSTPluginLibrary.h \
 	guis/VSTPluginFilterGUI.h \

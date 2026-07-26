@@ -18,7 +18,7 @@
 */
 
 #include "stdafx.h"
-#include <DeviceAPOInfo.h>
+#include <devices/DeviceAPOInfo.h>
 #include <helpers/LogHelper.h>
 #include <helpers/RegistryHelper.h>
 #include <helpers/WindowsVersion.h>
@@ -26,7 +26,7 @@
 #include <helpers/Win32Resource.h>
 #include <QDir>
 #include <QPropertyAnimation>
-#include <VoicemeeterAPOInfo.h>
+#include <devices/VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
 #include "../version.h"
 #include "DeviceListDelegate.h"

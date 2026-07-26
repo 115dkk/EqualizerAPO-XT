@@ -35,7 +35,7 @@
 #include <tclap/CmdLine.h>
 
 #include "../version.h"
-#include "../FilterEngine.h"
+#include "../engine/FilterEngine.h"
 #include "../helpers/LogHelper.h"
 #include "../helpers/StringHelper.h"
 #include "../helpers/PrecisionTimer.h"

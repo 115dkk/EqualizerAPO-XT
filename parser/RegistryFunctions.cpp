@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <memory>
 #include "RegistryFunctions.h"
 #include "../helpers/RegistryHelper.h"
-#include "../FilterEngine.h"
+#include "../engine/FilterEngine.h"
 
 using std::make_unique;
 using std::string;

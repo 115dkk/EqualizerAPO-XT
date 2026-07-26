@@ -28,8 +28,8 @@
 #include <QWaitCondition>
 #include <fftw3.h>
 
-#include "ConfigLoadTrace.h"
-#include "DeviceAPOInfo.h"
+#include "engine/ConfigLoadTrace.h"
+#include "devices/DeviceAPOInfo.h"
 #include "Editor/analysis/AnalysisResponse.h"
 #include "helpers/FftwRAII.h"
 

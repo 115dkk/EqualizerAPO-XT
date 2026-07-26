@@ -16,7 +16,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "ConfigurationFileReader.h"
+#include "engine/ConfigurationFileReader.h"
 #include "Tests/TestHarness.h"
 #include "helpers/Win32Resource.h"
 

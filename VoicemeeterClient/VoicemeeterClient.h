@@ -23,7 +23,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "../FilterEngine.h"
+#include "../engine/FilterEngine.h"
 #include "../helpers/Win32Resource.h"
 #include "../helpers/SynchronizedState.h"
 #include "VoicemeeterRemote.h"

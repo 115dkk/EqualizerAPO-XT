@@ -32,13 +32,13 @@
 #include <QJsonObject>
 #include <QVector>
 
-#include "ConfigLoadTrace.h"
+#include "engine/ConfigLoadTrace.h"
 #include "Editor/helpers/DisableWheelFilter.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
 #include "Editor/widgets/FilterListUndo.h"
 #include "Editor/widgets/FilterPickerView.h"
-#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
 #include "FilterTemplate.h"
 #include "IFilterGUI.h"
 #include "IFilterGUIFactory.h"

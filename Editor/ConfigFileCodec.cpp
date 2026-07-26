@@ -24,7 +24,7 @@
 
 #include "helpers/FileSharingRetry.h"
 #include "helpers/StringHelper.h"
-#include "ConfigurationFileReader.h"
+#include "engine/ConfigurationFileReader.h"
 #include "ConfigFileCodec.h"
 
 using std::string;

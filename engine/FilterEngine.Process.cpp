@@ -157,7 +157,10 @@ namespace
 		{
 			bypassInterleaved(output, input, inputChannelCount, outputChannelCount, frameCount);
 		}
-		static void read(FilterConfiguration& config, float* input, unsigned frameCount)
+		// const because that is what readFloatInterleaved takes. cppcheck could not
+		// see this until the include moved into the same folder and started
+		// resolving; the reading side of an IO policy never writes to its input.
+		static void read(FilterConfiguration& config, const float* input, unsigned frameCount)
 		{
 			config.readFloatInterleaved(input, frameCount);
 		}

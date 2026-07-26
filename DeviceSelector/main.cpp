@@ -18,7 +18,7 @@
 */
 
 #include "stdafx.h"
-#include <DeviceAPOInfo.h>
+#include <devices/DeviceAPOInfo.h>
 #include <helpers/RegistryHelper.h>
 #include <ObjBase.h>
 #include <QDir>
@@ -28,7 +28,7 @@
 #include <QSettings>
 #include <QStyleFactory>
 #include <QtWidgets/QApplication>
-#include <VoicemeeterAPOInfo.h>
+#include <devices/VoicemeeterAPOInfo.h>
 #include <winsock2.h>
 #include "ReceiveThread.h"
 #include "DeviceSelector.h"

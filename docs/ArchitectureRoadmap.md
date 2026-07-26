@@ -2,6 +2,8 @@
 
 2026-07-25 저장소 전체 아키텍처 검토에서 나온 후보와 처리 상태를 기록합니다.
 모듈 하나를 들여다봐서는 보이지 않고 두 모듈을 나란히 놓아야 드러나는 어긋남만 후보로 올렸습니다.
+**후보는 2026-07-27 까지 전부 처리했습니다.** 이제 이 문서의 값은 남은 작업 목록이 아니라
+아래 두 절, 곧 건드리지 않기로 한 것과 그 근거입니다.
 
 이 문서의 목적은 두 가지입니다. 남은 작업을 나중에 다른 사람이(또는 몇 달 뒤의 자신이)
 맥락 없이 집어들 수 있게 하는 것, 그리고 **이미 검토해서 건드리지 않기로 한 것**을 기록해
@@ -29,6 +31,7 @@
 | S4 | 스킨 명단을 `SkinThemeData::roster()` 하나로 | #241 | (없음) |
 | (작은 것) | 프로파일 라벨 선계산, 테스트 프로젝트 소스 목록 검사, Debug `/WHOLEARCHIVE` | #240 | |
 | S3 | 레인 좌표·눈금 라벨 상자·알파 토큰을 공용 어휘로 | #242 | (없음) |
+| (루트) | 엔진·장치 선언을 `engine/`·`devices/` 로 이동 | #243 | |
 
 S3 이 없앤 것은 복제된 산술입니다. 차별화 자체는 스킨 헌법이 지키는 설계이므로 그대로 두고,
 아무도 디자인으로 정한 적 없는 계산만 한 곳으로 모았습니다.
@@ -132,26 +135,18 @@ S4 가 없앤 것은 조용한 실패입니다. 스킨을 하나 추가하려면
 스킨 추가 절차는 `docs/skin-hooks.md` 에 적었고, 그 문서가 스킨 클래스가 `Skins.cpp` 에 있다고
 말하던 틀린 대목도 고쳤습니다.
 
-## 남은 작업
+루트 구조 정리는 폴더 이름이 가리키는 클래스의 선언이 그 폴더에 없던 상태를 없앤 것입니다.
+`FilterEngine.h` 와 `FilterEngine.cpp` 는 루트에 있고 `FilterEngine.Process.cpp` 같은 본문은 `engine/` 에
+있었습니다. 16개 파일을 `engine/`(`FilterEngine`, `FilterConfiguration`, `ConfigurationFileReader`,
+`ConfigLoadTrace`, `IFilter`, `IFilterFactory`)과 `devices/`(`DeviceAPOInfo`, `AbstractAPOInfo`,
+`VoicemeeterAPOInfo`)로 옮기고 include 118곳과 프로젝트 파일 일곱 개를 고쳤습니다.
+`stdafx` 는 105개 파일이 포함하는 PCH 이고 `version.h` 는 CI 의 `Bump-Version.ps1` 이 직접 쓰는
+릴리스 계약이라 루트에 남겼습니다.
 
+조용히 실패할 수 있는 종류가 아닙니다. 전부 컴파일러와 링커가 잡습니다. 그래도 갤러리를 다시
+렌더해 픽셀이 안 바뀐 것도 확인했습니다.
 
-### 루트 구조 정리 (착수 전)
-
-루트에 엔진 소스 19개가 남아 있는데 `engine/` 과 `devices/` 는 이미 만들어져 있습니다.
-`FilterEngine.h` 와 `FilterEngine.cpp` 는 루트에, `FilterEngine.Process.cpp` 같은 본문은 `engine/` 에 있어서
-**폴더 이름이 가리키는 클래스의 선언이 그 폴더에 없습니다.**
-
-옮길 것은 `engine/` 으로 `FilterEngine`, `FilterConfiguration`, `ConfigurationFileReader`, `ConfigLoadTrace`,
-`IFilter`, `IFilterFactory`, `devices/` 로 `DeviceAPOInfo`, `AbstractAPOInfo`, `VoicemeeterAPOInfo` 입니다.
-`stdafx` 는 `Common.vcxproj` 의 PCH 이고 105개 파일이 포함하므로 루트에 둡니다.
-`version.h` 는 CI 의 `Bump-Version.ps1` 이 직접 쓰는 릴리스 계약이라 옮기면 위험만 늡니다.
-
-비용은 include 약 117개 치환이고 전부 컴파일러가 잡아줍니다. 조용히 실패할 수 있는 종류가 아닙니다.
-다만 `Common.vcxproj`, `Editor.pro`, 테스트 `.vcxproj`, 나머지 `.pro` 의 파일 목록도 함께 고쳐야 합니다.
-
-가치가 낮고 churn 이 크므로 다른 작업이 없는 조용한 시점에 한 번에 하는 편이 좋습니다.
-
-### 작은 것들
+### 작은 것들 (처리 완료)
 
 셋은 처리했고 하나는 전제가 틀렸습니다.
 
@@ -174,6 +169,22 @@ S4 가 없앤 것은 조용한 실패입니다. 스킨을 하나 추가하려면
 컴파일 시간 이득은 없습니다. 그래도 각 TU 가 자기 의존을 직접 적게 된 것은 남겨뒀습니다.
 `aeffectx.h` 와 VST3 base 헤더 자체를 감추려면 클래스가 값으로 들고 있는 `PClassInfo` 와
 `IPtr` 를 pimpl 로 옮겨야 하는데, 측정된 이득이 없는 상태에서 할 churn 은 아닙니다.
+
+## 남은 작업
+
+없습니다. 2026-07-25 검토가 올린 후보는 2026-07-27 까지 전부 처리했습니다(PR #236~#243).
+
+다음 감사가 후보로 다시 올리기 쉬운 것 세 가지는 **의도적으로 남겼습니다.** 리팩터링이
+지나가는 길에 정할 일이 아니라 스킨 라운드가 갤러리 게이트를 걸고 정할 일입니다.
+
+- **그래프 Y축 눈금 라벨의 안쪽 여백.** 스킨마다 4·5·6·8 px 입니다. 상자를 만드는 코드는
+  `skinXTickLabelRect`·`skinYTickLabelRect` 로 모였지만 여백은 호출자의 인자로 남았습니다.
+  여기서 통일하면 세 스킨의 픽셀이 바뀝니다.
+- **파싱 오류의 스킨별 표시.** `CommandRowInfo::parseError` 로 값은 UI 계층까지 오고 카드가
+  툴팁으로 보여줍니다. 다섯 스킨이 '엔진이 건너뛴 줄'을 각자 어떻게 그릴지는 디자인 결정입니다.
+- **QSS 리터럴을 알파 토큰으로 옮기기.** `@TOKEN_RGB@` 는 있습니다. 다만 기존 `rgba()` 리터럴
+  대부분은 토큰을 펼쳐 적은 것이 아니라 그 자리에서 고른 색이라, 토큰과 값이 같은 것만 골라
+  바꾸는 시트별 작업입니다.
 
 ## 건드리지 않기로 한 것
 

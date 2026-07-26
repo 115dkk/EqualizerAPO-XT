@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "IFilter.h"
+#include "engine/IFilter.h"
 #include "helpers/StringHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "Tests/TestHarness.h"

@@ -30,7 +30,7 @@
 
 #include "IFilterFactory.h"
 #include "FilterConfiguration.h"
-#include "engine/ConfigSwapChannel.h"
+#include "ConfigSwapChannel.h"
 #include "parser/EngineParser.h"
 #include "helpers/PrecisionTimer.h"
 #include "helpers/MemoryHelper.h"

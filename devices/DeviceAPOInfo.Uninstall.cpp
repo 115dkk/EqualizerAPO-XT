@@ -171,12 +171,12 @@ DeviceAPOInfo::InstallState& DeviceAPOInfo::getSelectedInstallState()
 	return selectedInstallState;
 }
 
-wstring DeviceAPOInfo::getPreMixChildGuid()
+const wstring& DeviceAPOInfo::getPreMixChildGuid() const
 {
 	return preMixChildGuid;
 }
 
-wstring DeviceAPOInfo::getPostMixChildGuid()
+const wstring& DeviceAPOInfo::getPostMixChildGuid() const
 {
 	return postMixChildGuid;
 }

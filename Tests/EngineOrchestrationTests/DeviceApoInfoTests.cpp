@@ -40,7 +40,7 @@
 #include <mmdeviceapi.h>
 #include <mmreg.h>
 
-#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/WindowsVersion.h"

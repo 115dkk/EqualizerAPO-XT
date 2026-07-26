@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
 #include "Editor/FilterTable.h"
 #include "filters/ConvolutionCommand.h"
 #include "ConvolutionFilterGUI.h"

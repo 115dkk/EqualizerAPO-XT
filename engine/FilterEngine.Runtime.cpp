@@ -33,7 +33,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "ConfigurationFileReader.h"
-#include "engine/ConfigWatcher.h"
+#include "ConfigWatcher.h"
 #include "FilterEngine.h"
 // Filter factory headers intentionally omitted: the factories self-register and
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this TU names none

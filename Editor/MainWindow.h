@@ -31,7 +31,7 @@
 #include <QTimer>
 
 #include "FilterTable.h"
-#include "DeviceAPOInfo.h"
+#include "devices/DeviceAPOInfo.h"
 #include "Editor/AnalysisThread.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "helpers/RegistryHelper.h"

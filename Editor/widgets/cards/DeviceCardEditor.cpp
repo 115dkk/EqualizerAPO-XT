@@ -4,7 +4,7 @@
 
 #include "Editor/FilterTable.h"
 #include "Editor/widgets/FlowLayout.h"
-#include <AbstractAPOInfo.h>
+#include <devices/AbstractAPOInfo.h>
 
 using std::shared_ptr;
 
