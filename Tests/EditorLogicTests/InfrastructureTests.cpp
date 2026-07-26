@@ -125,6 +125,34 @@ void testSkinTokensCarryExplicitMode()
 	}
 }
 
+// The alpha form a sheet needs to hold a token at partial opacity. QSS has no
+// variables and its rgba() takes three numbers, so without this a sheet had to
+// write the palette value out by hand and a token change stopped reaching it.
+void testTokenSubstitutionOffersAnAlphaForm()
+{
+	const SkinTokens tokens = SkinThemeData::tokens(QStringLiteral("studio"), true);
+	const QColor accent(tokens.accent);
+	requireTrue(accent.isValid(), "the studio accent token parses as a colour");
+
+	const QString resolved = SkinThemeData::substituteTokens(
+		QStringLiteral("QWidget { background: rgba(@ACCENT_RGB@, 0.30); color: @ACCENT@; }"), tokens);
+
+	expectTrue(resolved.contains(QStringLiteral("rgba(%1, %2, %3, 0.30)")
+			.arg(accent.red()).arg(accent.green()).arg(accent.blue())),
+		"the alpha form expands to the token's three channels, so rgba() gets numbers");
+	expectTrue(resolved.contains(QStringLiteral("color: ") + tokens.accent),
+		"and the plain form still expands to the hex value");
+	expectFalse(resolved.contains(QStringLiteral("_RGB")),
+		"the longer sentinel is replaced before the shorter one, or the hex value would be left with _RGB stuck to it");
+
+	// A font family is not a colour and has no channels; asking for its alpha form
+	// has to leave the sheet alone rather than produce something that would make
+	// the whole rule invalid.
+	const QString fontSheet = SkinThemeData::substituteTokens(
+		QStringLiteral("QWidget { font-family: \"@FONT@\"; }"), tokens);
+	expectTrue(fontSheet.contains(tokens.fontFamily), "the font token still resolves");
+}
+
 void testEverySkinSheetResolvesAllThemeTokens()
 {
 	QDir repoRoot(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath());

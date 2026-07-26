@@ -356,6 +356,13 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	info.logicDepth = descriptor.logicDepth;
 	info.dynamicLine = descriptor.dynamicLine;
 
+	// The lane geometry, resolved here because this widget is what decides it:
+	// rowIndentUnits() is the same call its own layout margin uses, so a skin's
+	// gutter can no longer disagree with the card face it sits beside.
+	info.laneUnit = SkinManager::instance()->tokens().channelGroupIndent;
+	info.laneCount = rowIndentUnits();
+	info.cardLeft = 8 + info.laneCount * info.laneUnit;
+
 	// Fold in the analysis engine's load facts for this line (dynamic
 	// commands): branch truth for the If family, computed values for
 	// Eval/inline expressions, and whether a false branch swallowed the line.

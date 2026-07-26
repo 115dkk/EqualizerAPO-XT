@@ -636,10 +636,12 @@ public:
 		if (!headRow && logic <= 0)
 			return false;
 
-		const int unit = tokens.channelGroupIndent;
+		// Lane geometry from the row widget; see CommandRowInfo. The branch/tail
+		// rows' extra indent unit is already in laneCount.
+		const int unit = info.laneUnit;
 		const double h = size.height();
 		const double junctionY = 4.0 + tokens.rowHeight / 2.0;
-		const int indentUnits = (ifFamily && !headRow) ? info.depth + 1 : info.depth;
+		const int indentUnits = info.laneCount;
 
 		const QColor beam(tokens.accent);
 		const bool live = info.enabled && !info.lineSkipped;
@@ -648,7 +650,7 @@ public:
 		painter.setRenderHint(QPainter::Antialiasing, true);
 		painter.setPen(Qt::NoPen);
 
-		const auto bandCenter = [unit](int level) { return 8.0 + level * unit + unit / 2.0; };
+		const auto bandCenter = [&info](int level) { return double(info.laneCenter(level)); };
 
 		// One run of the beam: a lit run carries the full ladder, a
 		// de-energized run only a faint residual core. A fading run (the
@@ -1179,7 +1181,9 @@ public:
 			if (line.label.isEmpty() || (!line.major && vSpacing < 30.0))
 				continue;
 			painter.setPen(withAlpha(tokens.mutedText, line.major ? 215 : 140));
-			painter.drawText(QRect(int(line.pos) - 24, int(plot.bottom()) + 2, 48, 11),
+			// int() and toRect() keep the integer box the glass has always used: a
+			// float rect lays the glyphs out on subpixels and would move them.
+			painter.drawText(skinXTickLabelRect(int(line.pos), int(plot.bottom()) + 2, 11.0).toRect(),
 				Qt::AlignHCenter | Qt::AlignTop, line.label);
 		}
 		const int hCount = state.horizontal.size();
@@ -1191,8 +1195,10 @@ public:
 			if (line.label.isEmpty() || (!line.major && (i % hLabelStep) != 0))
 				continue;
 			painter.setPen(withAlpha(tokens.mutedText, line.major ? 200 : 130));
-			const double labelY = qBound(plot.top() + 2.0, line.pos - 11.0, plot.bottom() - 12.0);
-			painter.drawText(QRectF(plot.left() + 5.0, labelY, 44.0, 10.0),
+			// Clamped so the topmost and bottommost figures stay inside the glass;
+			// the clamp is on the box's centre, which is what the helper takes.
+			const double labelY = qBound(plot.top() + 7.0, line.pos - 6.0, plot.bottom() - 7.0);
+			painter.drawText(skinYTickLabelRect(labelY, plot.left() + 5.0, 44.0, 10.0),
 				Qt::AlignLeft | Qt::AlignVCenter, line.label);
 		}
 
@@ -1733,7 +1739,8 @@ public:
 	// hooks (knob arcs, signal lamp) all light the row in one colour. The tag
 	// follows the type selector live; repolishing re-evaluates the same rules
 	// cardFrameStyle/typeBadgeStyle returned at construction.
-	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
+		const SkinTokens& tokens) const override
 	{
 		if (body == nullptr)
 			return;
@@ -1752,7 +1759,6 @@ public:
 			QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText"));
 			if (raw == nullptr)
 				return;
-			const SkinTokens tokens = SkinManager::instance()->tokens();
 			const bool dark = skinIsDark(tokens);
 			const QString fill = dark
 				? (info.enabled ? QStringLiteral("rgba(6, 9, 20, 0.55)") : QStringLiteral("rgba(6, 9, 20, 0.30)"))

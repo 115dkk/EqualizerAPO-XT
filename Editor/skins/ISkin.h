@@ -54,6 +54,29 @@ struct CommandRowInfo
 	// through branch rows and terminate them on the EndIf row, independent of
 	// the channel-group indent that depth carries.
 	int logicDepth = 0;
+	// LANE GEOMETRY, resolved by the row widget that owns the layout.
+	//
+	// Four skins used to recompute the same three expressions from depth,
+	// logicDepth and tokens.channelGroupIndent - the card's left edge, the centre
+	// of an indent band, and the "branch and tail rows mount one unit deeper"
+	// rule. The arithmetic is not a design decision, and having it in four places
+	// meant a change to the indent could move the card face without moving the
+	// lanes drawn beside it. A skin now answers what a lane looks like; where it
+	// is comes with the row.
+	//
+	// laneUnit is one indent band's width, laneCount how many bands are drawn to
+	// the left of the card face, and cardLeft the x the face starts at. All in
+	// row-widget coordinates, which is the space paintScopeGutter paints in.
+	int laneUnit = 0;
+	int laneCount = 0;
+	int cardLeft = 0;
+
+	// Centre of the given indent band, 0-based from the outermost. What a rail or
+	// a scope lane is drawn on.
+	int laneCenter(int level) const
+	{
+		return cardLeft - (laneCount - level) * laneUnit + laneUnit / 2;
+	}
 	// Facts from the analysis engine's most recent configuration load
 	// (ConfigLoadTrace), advisory only - they go stale between an edit and
 	// the next analysis run. branchState applies to If-family rows:
@@ -313,7 +336,12 @@ public:
 	// body stack; for body editors that consult the hook themselves (the
 	// Include/VST card editors and the legacy Include/VST rows) only body is
 	// set. Default: no-op.
-	virtual void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
+	//
+	// tokens is passed like every other hook's. It was the one hook without it,
+	// and all five skins reached for SkinManager::instance()->tokens() instead -
+	// which works only because the singleton happens to hold the skin being asked.
+	virtual void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
+		const SkinTokens& tokens) const;
 
 	// Painted decoration over the card frame's QSS background (rails, screws,
 	// per-type markers). Runs after the frame's stylesheet background and
@@ -325,8 +353,8 @@ public:
 	// Return true to replace the shared default
 	// (FilterCardRow's channelGroupStyle rail) for this row; the neutral
 	// default paints nothing and returns false, so every skin stays
-	// pixel-identical until it answers. size is the row widget's full size;
-	// the card frame starts at x = 8 + indent * channelGroupIndent.
+	// pixel-identical until it answers. size is the row widget's full size, and
+	// info carries the lane geometry (cardLeft, laneCount, laneCenter).
 	virtual bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const;
 
 	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):

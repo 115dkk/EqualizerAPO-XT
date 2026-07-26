@@ -1074,7 +1074,8 @@ public:
 	// The plain-text rows (bare note lines and programmatic commands such
 	// as If/EndIf/Eval). FilterCardRow lays these styles inline, so QSS
 	// cannot reach them; construction time is the hook's moment.
-	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
+		const SkinTokens& tokens) const override
 	{
 		Q_UNUSED(card);
 		const bool rawBodyRow = info.type == QStringLiteral("text")
@@ -1114,7 +1115,7 @@ public:
 		if (body == nullptr)
 			return;
 
-		const SkinTokens t = SkinManager::instance()->tokens();
+		const SkinTokens& t = tokens;
 		if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
 			glyph->setVisible(false);
 		if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
@@ -1146,13 +1147,12 @@ public:
 		const QColor arm = mixColor(accent, card, 0.25);
 		const QColor armResting = mixColor(accent, card, 0.78);
 
-		const int unit = tokens.channelGroupIndent;
+		// Lane geometry from the row widget; see CommandRowInfo. The extra indent
+		// unit branch/tail rows mount with is already in laneCount, so the arm
+		// passes them instead of dying behind their full-width faces.
+		const int unit = info.laneUnit;
 		const int h = size.height();
-		// Branch/tail rows mount with the members, one indent unit past
-		// their head (logicSiblingsIndentAsMembers), so the arm passes them
-		// instead of dying behind their full-width faces. The card edge
-		// follows the same rule.
-		const int indentUnits = (ifFamily && !headRow) ? info.depth + 1 : info.depth;
+		const int indentUnits = info.laneCount;
 		const int channelLevels = qMax(0, indentUnits - logic);
 		const bool resting = !info.enabled || info.lineSkipped;
 
@@ -1165,7 +1165,9 @@ public:
 		// silhouette.
 		if (channelLevels > 0)
 		{
-			const QRectF band(8 + (channelLevels - 1) * unit, 0, unit, h);
+			// The band itself, not its centre: laneCenter gives the middle, so
+			// step back half a unit for the left edge.
+			const QRectF band(info.laneCenter(channelLevels - 1) - unit / 2.0, 0, unit, h);
 			QLinearGradient shade(band.left(), 0, band.right(), 0);
 			shade.setColorAt(0, withAlpha(QColor(tokens.border), 110));
 			shade.setColorAt(1, withAlpha(QColor(tokens.border), 0));
@@ -1175,8 +1177,9 @@ public:
 		// One bar per scope, centred in its indent band. Straight runs
 		// overshoot the row's clip so neighbouring rows tile into one
 		// continuous arm; only the arm's first and last row show a cap.
-		const auto laneX = [&](int level) {
-			return 8.0 + level * unit + unit / 2.0 - 2.0;
+		const auto laneX = [&info](int level) {
+			// Two pixels left of the band centre, so the 4px bar straddles it.
+			return double(info.laneCenter(level)) - 2.0;
 		};
 		const auto runBar = [&](int level, const QColor& color) {
 			painter.setBrush(color);

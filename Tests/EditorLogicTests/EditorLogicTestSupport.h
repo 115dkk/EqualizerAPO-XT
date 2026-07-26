@@ -38,6 +38,7 @@ void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
 void testUpdateElevationPolicyUsesOnePromptForEditorUpdates();
 void testTheSkinRosterIsTheOneList();
 void testSkinTokensCarryExplicitMode();
+void testTokenSubstitutionOffersAnAlphaForm();
 void testEverySkinSheetResolvesAllThemeTokens();
 void testEditableValueTextUsesDisplayedDecimalFormatFirst();
 void testBenchmarkBatchPlanUsesOnlyComparableFullBatches();

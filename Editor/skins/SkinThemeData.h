@@ -80,6 +80,12 @@ SkinTokens tokens(const QString& id, bool dark);
 QString qssResource(const QString& id, bool dark);
 
 // Replaces the @TOKEN@ sentinels of a skin sheet with the token values.
+//
+// Every colour token also answers to an @TOKEN_RGB@ form, which expands to the
+// three channels without the "#": a sheet writes rgba(@ACCENT_RGB@, 0.30) where
+// it previously had to spell the palette value out by hand, which meant a token
+// change did not reach it. QSS has no variables and its rgba() wants numbers, so
+// this is the only way a sheet can hold a token at partial alpha.
 QString substituteTokens(QString qss, const SkinTokens& tokens);
 
 // Token-derived QPalette for the widgets QSS does not cover (item views,

@@ -9,6 +9,7 @@
 #include "SkinThemeData.h"
 
 #include <QApplication>
+#include <QColor>
 #include <QFile>
 #include <QFont>
 #include <QFontDatabase>
@@ -427,7 +428,26 @@ QString substituteTokens(QString qss, const SkinTokens& tokens)
 		{ "@MONO@", tokens.monoFontFamily }
 	};
 	for (const Substitution& s : table)
+	{
+		// The alpha form first, because "@ACCENT@" is a prefix of "@ACCENT_RGB@"
+		// and replacing the shorter one first would leave "#7AA2F7_RGB".
+		//
+		// QSS has no variables and its rgba() takes three numbers, so a sheet that
+		// wanted a token at 30% had to write the palette value out by hand - and
+		// then a token change did not reach it. With this it can say
+		// rgba(@ACCENT_RGB@, 0.30) instead.
+		//
+		// Only colour tokens get the form; a font family has no channels. A value
+		// that does not parse as a colour is skipped rather than emitting
+		// something that would make the whole rule invalid.
+		const QColor color(s.value);
+		if (color.isValid())
+		{
+			qss.replace(QLatin1String(s.placeholder).left(int(qstrlen(s.placeholder)) - 1) + QLatin1String("_RGB@"),
+				QStringLiteral("%1, %2, %3").arg(color.red()).arg(color.green()).arg(color.blue()));
+		}
 		qss.replace(QLatin1String(s.placeholder), s.value);
+	}
 	return qss;
 }
 

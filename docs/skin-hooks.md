@@ -282,6 +282,31 @@ offscreen platform. PNGs from the same machine and build are byte-stable, so
 `Get-FileHash` comparisons prove pixel identity; PNGs from different machines
 may differ slightly in font rasterization.
 
+## Lane geometry and tick label boxes
+
+`CommandRowInfo` carries the row's lane geometry: `laneUnit` (one indent band),
+`laneCount` (how many bands are drawn left of the card face), `cardLeft`, and
+`laneCenter(level)`. `paintScopeGutter` paints in that space, so a skin answers
+what a lane looks like and never recomputes where it is. The rule that a branch or
+tail row mounts one unit deeper than its head is already folded into `laneCount`,
+because the same call sets the row widget's own left margin - a gutter can no
+longer disagree with the card face beside it.
+
+`skinXTickLabelRect` / `skinYTickLabelRect` in `SkinPaint.h` build a tick label
+box centred on a grid line. The y variant keeps its inset and width as arguments:
+the skins use 4, 5, 6 and 8 px and nobody decided they should differ, but nobody
+decided they should agree either, so settling it is a skin round's call rather
+than a refactor's.
+
+Colour tokens answer to an `@TOKEN_RGB@` form as well as `@TOKEN@`, expanding to
+the three channels so a sheet can write `rgba(@ACCENT_RGB@, 0.30)`. QSS has no
+variables and its `rgba()` wants numbers, so this is the only way a sheet holds a
+token at partial alpha instead of writing the palette value out by hand.
+
+`prepareCommandRow` receives `SkinTokens` like every other hook. It was the one
+that did not, and all five skins reached for `SkinManager::instance()->tokens()`
+inside it instead.
+
 ## Adding a skin
 
 Six files, and the first one is the only list of which skins exist.

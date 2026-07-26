@@ -760,7 +760,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 			continue;
 		const bool overFigure = overZone && line.pos < zeroY - 1.0;
 		painter.setPen(withAlpha(overFigure ? overInk : segmentDim, line.major ? 235 : 150));
-		painter.drawText(QRect(plotLeft + 4, int(line.pos) - 8, 34, 16),
+		painter.drawText(skinYTickLabelRect(int(line.pos), plotLeft + 4, 34.0, 16.0).toRect(),
 			Qt::AlignLeft | Qt::AlignVCenter, line.label);
 	}
 	const int glassBottomRow = int(glassFrame.bottom());
@@ -769,7 +769,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		if (line.label.isEmpty())
 			continue;
 		painter.setPen(withAlpha(segmentDim, line.major ? 235 : 150));
-		painter.drawText(QRect(int(line.pos) - 24, plotBottom, 48, glassBottomRow - plotBottom),
+		painter.drawText(skinXTickLabelRect(int(line.pos), plotBottom, glassBottomRow - plotBottom).toRect(),
 			Qt::AlignHCenter | Qt::AlignVCenter, line.label);
 	}
 
@@ -992,7 +992,8 @@ public:
 		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 	}
 
-	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
+		const SkinTokens& tokens) const override
 	{
 		// Reserve the rack-ear zones along the faceplate edges so the painted
 		// chrome (screws, LEDs, patchbay jacks, the VST nameplate) never
@@ -1021,7 +1022,7 @@ public:
 		{
 			if (QLabel* raw = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))
 			{
-				const SkinTokens tk = SkinManager::instance()->tokens();
+				const SkinTokens& tk = tokens;
 				const bool dark = skinIsDark(tk);
 				const QString glass = dark ? QStringLiteral("#0B0F0C") : QStringLiteral("#11150F");
 				const QString segments = !info.enabled
