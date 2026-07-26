@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.28.0 — 2026-07-26
+
 - **When installing onto a device fails, you can now find out why.** Device
   Selector performs the install, and it wrote no log at all: the error appeared in
   a message box, and the log file people were asked for had nothing about the
