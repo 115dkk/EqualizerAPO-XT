@@ -31,6 +31,7 @@
 #include "FilterTable.h"
 #include "MainWindow.h"
 #include "SkinManager.h"
+#include "skins/SkinThemeData.h"
 #include "ui_MainWindow.h"
 
 using std::find;
@@ -240,18 +241,22 @@ void MainWindow::setupRedesignActions()
 
 	skinActionGroup = new QActionGroup(this);
 	skinActionGroup->setExclusive(true);
-	const QList<QPair<QString, QString>> skins = {
+	// Which skins exist and in what order comes from SkinThemeData::roster(); this
+	// only supplies the translated names. A roster id with no name here shows as
+	// its raw id - visible and reportable, unlike the old hand-written list, where
+	// a forgotten skin was simply absent from the menu.
+	const QHash<QString, QString> skinNames = {
 		{ QStringLiteral("studio"), tr("Studio Glass") },
 		{ QStringLiteral("minimal"), tr("Precision Minimal") },
 		{ QStringLiteral("soft"), tr("Soft Lab") },
 		{ QStringLiteral("rack"), tr("Hardware Rack") },
 		{ QStringLiteral("matrix"), tr("Signal Matrix") }
 	};
-	for (const auto& skin : skins)
+	for (const QString& skinId : SkinThemeData::ids())
 	{
-		QAction* action = interfaceMenu->addAction(skin.second);
+		QAction* action = interfaceMenu->addAction(skinNames.value(skinId, skinId));
 		action->setCheckable(true);
-		action->setData(skin.first);
+		action->setData(skinId);
 		action->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+%1").arg(skinActionGroup->actions().size() + 1)));
 		skinActionGroup->addAction(action);
 	}

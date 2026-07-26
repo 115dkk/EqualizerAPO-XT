@@ -89,8 +89,9 @@ int runSkinShots(QApplication& app)
 	}
 
 	int failures = 0;
-	const QStringList skins = { QStringLiteral("studio"), QStringLiteral("minimal"),
-		QStringLiteral("soft"), QStringLiteral("rack"), QStringLiteral("matrix") };
+	// From the roster, so a new skin appears in the review captures without
+	// anybody remembering this list.
+	const QStringList skins = SkinThemeData::ids();
 	for (const QString& skinId : skins)
 	{
 		for (int darkIndex = 0; darkIndex < 2; darkIndex++)

@@ -1741,6 +1741,7 @@ int main(int argc, char** argv)
 		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
 		testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
 		testUpdateElevationPolicyUsesOnePromptForEditorUpdates();
+		testTheSkinRosterIsTheOneList();
 		testSkinTokensCarryExplicitMode();
 		testEverySkinSheetResolvesAllThemeTokens();
 		testEditableValueTextUsesDisplayedDecimalFormatFirst();

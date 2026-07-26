@@ -23,6 +23,10 @@ const DeviceSkinPainter* matrixDeviceSkinPainter();
 
 const DeviceSkinPainter* DeviceSkinPainter::forSkin(const QString& skinId)
 {
+	// The id is already alias-resolved to one of SkinThemeData::roster(), so this
+	// only has to answer which painter implements it. A roster id with no painter
+	// here falls back to Studio, which is the same shape as the Editor's ISkin
+	// lookup and the one place this executable can be behind the roster.
 	const QString id = SkinThemeData::resolveId(skinId);
 	if (id == QStringLiteral("minimal"))
 		return minimalDeviceSkinPainter();

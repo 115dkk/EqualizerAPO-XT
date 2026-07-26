@@ -41,8 +41,10 @@ virtual void paintKnob(QPainter& painter, const QRect& rect,
 - The default implementation reproduces the pre-hook rendering
   pixel-identically and deliberately ignores the hover/drag/focus flags.
 
-`SkinManager::paintKnob` routes the widget to the active skin; a skin
-implements the override on its `ISkin` subclass in `Editor/skins/Skins.cpp`.
+`SkinManager::paintKnob` routes the widget to the active skin; a skin implements
+the override on its `ISkin` subclass, which lives in its own translation unit
+(`Editor/skins/StudioSkin.cpp` and its four siblings). `Skins.cpp` only holds the
+roster lookup - it stopped holding the skin classes when they were split apart.
 
 ## Command-row chrome hook
 
@@ -279,3 +281,36 @@ derives the palette), and renders at device pixel ratio 1 on the
 offscreen platform. PNGs from the same machine and build are byte-stable, so
 `Get-FileHash` comparisons prove pixel identity; PNGs from different machines
 may differ slightly in font rasterization.
+
+## Adding a skin
+
+Six files, and the first one is the only list of which skins exist.
+
+1. **`Editor/skins/SkinThemeData.cpp`** — add an entry to `roster()`: the id as it
+   will be stored in the registry, the base name of its `.qss` pair, and its token
+   function. Everything derived from the roster follows automatically: the Editor's
+   menu, the token and style-sheet lookups, Device Selector's shot harness, and the
+   `testTheSkinRosterIsTheOneList` check.
+2. **`Editor/skins/<Name>Skin.cpp`** — the `ISkin` subclass, one translation unit
+   per skin, plus its `<name>Skin()` accessor declared in `SkinSupport.h`.
+3. **`Editor/skins/Skins.cpp`** — one line in `implementationFor()` mapping the id
+   to that accessor. A roster id missing from here is logged and left out of
+   `Skins::all()`, rather than silently drawn as Studio.
+4. **`Editor/skins/<name>_light.qss` / `<name>_dark.qss`** plus their entries in
+   the resource file. Every `@TOKEN@` the sheets use has to be produced by the
+   token table, which `testEverySkinSheetResolvesAllThemeTokens` checks.
+5. **`Editor/MainWindowParts/MainWindow.Preferences.cpp`** — the translated display
+   name, keyed by id. A missing name shows the raw id in the menu.
+6. **`DeviceSelector/skins/<Name>DeviceSkin.cpp`** and one line in
+   `DeviceSkinPainter::forSkin` — the device dialog's counterpart. Without it that
+   dialog draws the new skin as Studio, which is the one place a partial roster is
+   still tolerated.
+
+And the constitution: **`docs/skins/<name>.md`** records what the skin is for and
+what it must not do. `docs/skins/README.md` says why that document exists before
+the code does.
+
+Until this list existed, adding a skin meant editing eighteen places, and missing
+one did not fail. `resolveId()` returns `"studio"` for an id it does not know, so a
+skin that compiled, registered and appeared in the menu was drawn as Studio with no
+error anywhere.
