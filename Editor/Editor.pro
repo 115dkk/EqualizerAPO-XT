@@ -26,6 +26,8 @@ SOURCES += main.cpp\
 	../helpers/RegistryHelper.cpp \
 	../helpers/IRegistry.cpp \
 	../helpers/RegistryTransaction.cpp \
+	../helpers/WindowsVersion.cpp \
+	../helpers/AudioEngineAccess.cpp \
 	../helpers/ServiceHelper.cpp \
 	../helpers/ApoRegistration.cpp \
 	../helpers/AudioFormatProbe.cpp \
@@ -298,6 +300,8 @@ HEADERS  += \
 	../helpers/RegistryHelper.h \
 	../helpers/IRegistry.h \
 	../helpers/RegistryTransaction.h \
+	../helpers/WindowsVersion.h \
+	../helpers/AudioEngineAccess.h \
 	../helpers/ServiceHelper.h \
 	../helpers/ApoRegistration.h \
 	../helpers/AudioFormatProbe.h \

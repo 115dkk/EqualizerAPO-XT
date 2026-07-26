@@ -27,6 +27,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "helpers/AudioEngineAccess.h"
 #include "helpers/StringHelper.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
@@ -432,17 +433,7 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 		return;
 	}
 
-	ACCESS_MASK mask = GENERIC_READ;
-	try
-	{
-		mask = RegistryHelper::getFileAccessForUser(library->getLibPath(), SECURITY_LOCAL_SERVICE_RID);
-	}
-	catch (const RegistryException& e)
-	{
-		// ignore
-	}
-
-	if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
+	if (!AudioEngineAccess::isReadableByAudioEngine(library->getLibPath()))
 	{
 		QString text = tr("The library is not readable by the audio service.\nChange the file permissions or copy the file to the VSTPlugins directory.");
 
@@ -467,17 +458,7 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 			QFile file(path);
 			if (file.exists())
 			{
-				ACCESS_MASK mask = GENERIC_READ;
-				try
-				{
-					mask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
-				}
-				catch (const RegistryException& e)
-				{
-					// ignore
-				}
-
-				if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
+				if (!AudioEngineAccess::isReadableByAudioEngine(path.toStdWString()))
 					files.append(path);
 			}
 		}

@@ -36,7 +36,6 @@ using std::vector;
 using std::wofstream;
 using std::wstring;
 
-DWORD RegistryHelper::windowsVersion = 0;
 
 wstring RegistryHelper::readValue(const wstring& key, const wstring& valuename)
 {
@@ -371,52 +370,6 @@ void RegistryHelper::takeOwnership(const wstring& key)
 		throw RegistryException(L"Error in AdjustTokenPrivileges while taking ownership");
 }
 
-ACCESS_MASK RegistryHelper::getFileAccessForUser(const std::wstring& path, unsigned long rid)
-{
-	ACCESS_MASK result;
-
-	winutil::UniqueLocalPtr<void> sd;
-	if (GetNamedSecurityInfoW(path.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION
-		| GROUP_SECURITY_INFORMATION, nullptr, nullptr, nullptr, nullptr, sd.put()) != ERROR_SUCCESS)
-		throw RegistryException(L"Error in GetNamedSecurityInfoW while getting file access");
-
-	winutil::UniqueAuthzResourceManager manager;
-	if (!AuthzInitializeResourceManager(AUTHZ_RM_FLAG_NO_AUDIT, nullptr, nullptr, nullptr, nullptr, manager.put()))
-		throw RegistryException(L"Error in AuthzInitializeResourceManager while getting file access");
-
-	winutil::UniqueSid sid;
-	SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
-	if (!AllocateAndInitializeSid(&authority, 1, rid, 0, 0, 0, 0, 0, 0, 0, sid.put()))
-		throw RegistryException(L"Error in AllocateAndInitializeSid while getting file access");
-
-	LUID unusedId = {0};
-	winutil::UniqueAuthzContext context;
-	if (!AuthzInitializeContextFromSid(0, sid.get(), manager.get(), nullptr, unusedId, nullptr, context.put()))
-		throw RegistryException(L"Error in AuthzInitializeContextFromSid while getting file access");
-
-	AUTHZ_ACCESS_REQUEST request = {0};
-
-	request.DesiredAccess = MAXIMUM_ALLOWED;
-	request.PrincipalSelfSid = nullptr;
-	request.ObjectTypeList = nullptr;
-	request.ObjectTypeListLength = 0;
-	request.OptionalArguments = nullptr;
-
-	AUTHZ_ACCESS_REPLY reply = {0};
-	BYTE buf[1024];
-	RtlZeroMemory(buf, sizeof(buf));
-	reply.ResultListLength = 1;
-	reply.GrantedAccessMask = reinterpret_cast<ACCESS_MASK*>(buf);
-	reply.Error = reinterpret_cast<DWORD*>(buf + sizeof(ACCESS_MASK));
-
-	if (!AuthzAccessCheck(0, context.get(), &request, nullptr, sd.get(), nullptr, 0, &reply, nullptr))
-		throw RegistryException(L"Error in AuthzAccessCheck while getting file access");
-
-	result = *reply.GrantedAccessMask;
-
-	return result;
-}
-
 bool RegistryHelper::keyExists(const wstring& key)
 {
 	bool result;
@@ -538,31 +491,6 @@ wstring RegistryHelper::getGuidString(GUID guid)
 	std::wstring result(temp.get());
 
 	return result;
-}
-
-bool RegistryHelper::isWindowsVersionAtLeast(unsigned major, unsigned minor)
-{
-	if (windowsVersion == 0)
-	{
-		DWORD handle;
-		DWORD size = GetFileVersionInfoSizeW(L"kernel32.dll", &handle);
-		if (size != 0)
-		{
-			vector<char> data(size);
-			if (GetFileVersionInfo(L"kernel32.dll", handle, size, data.data()))
-			{
-				VS_FIXEDFILEINFO* info;
-				UINT len;
-				if (VerQueryValueW(data.data(), L"\\", reinterpret_cast<LPVOID*>(&info), &len))
-					windowsVersion = info->dwProductVersionMS;
-			}
-		}
-	}
-
-	// this will only work for major and minor up to 99
-	DWORD compareVersion = ((major / 10) << 20) + ((major % 10) << 16) + ((minor / 10) << 4) + (minor % 10);
-
-	return windowsVersion >= compareVersion;
 }
 
 winutil::UniqueRegistryKey RegistryHelper::openKey(const wstring& key, REGSAM samDesired)

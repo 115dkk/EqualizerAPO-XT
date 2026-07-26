@@ -13,7 +13,7 @@
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
-#include "helpers/RegistryHelper.h"
+#include "helpers/AudioEngineAccess.h"
 
 QString FileReferenceController::chooseExistingFile(QWidget* parent,
 	const QString& title, const QString& initialPath,
@@ -41,17 +41,8 @@ bool FileReferenceController::isReadableByAudioService(const QString& absolutePa
 {
 	if (absolutePath.isEmpty() || qEnvironmentVariableIsSet("EAPO_SKIN_GALLERY"))
 		return true;
-	ACCESS_MASK mask = GENERIC_READ;
-	try
-	{
-		mask = RegistryHelper::getFileAccessForUser(
-			QDir::toNativeSeparators(absolutePath).toStdWString(), SECURITY_LOCAL_SERVICE_RID);
-	}
-	catch (const RegistryException&)
-	{
-	}
-	return (mask & GENERIC_READ) == GENERIC_READ
-		|| (mask & FILE_GENERIC_READ) == FILE_GENERIC_READ;
+	return AudioEngineAccess::isReadableByAudioEngine(
+		QDir::toNativeSeparators(absolutePath).toStdWString());
 }
 
 bool FileReferenceController::importIntoConfig(

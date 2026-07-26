@@ -23,6 +23,7 @@
 | S6 | RT 경로에서 뮤텍스·파일 입출력·힙 할당 제거 | #226 | v2.26.5 |
 | S5a | 레지스트리 포트와 인메모리 가짜 도입 | #227 | (없음) |
 | S5b | 설치·제거·재설치를 `RegistryTransaction` 안에서 수행 | #236 | |
+| S5d | audiodg 접근 검사와 부여를 `AudioEngineAccess` 한 곳으로 | #237 | (없음) |
 
 S1 이 고친 사용자 체감 결함은 셋입니다. 소수점 쉼표로 적은 `Preamp: -6,5 dB` 가 카드를 건드리는
 순간 `-6.0` 으로 덮어써지던 것, REW·Dirac 이 기본으로 내보내는 `Filter 1: ON IIR ...` 에
@@ -39,6 +40,18 @@ MFX 는 드라이버 것인 엔드포인트가 남았습니다. `load()` 는 둘
 헤더에 사후 조건으로 적었습니다. 판정 수단은 가짜 레지스트리에 한 값의 쓰기 실패를 심는 것입니다.
 실제 기계에서는 드라이버가 쥔 속성 하나의 ACL 로 일어나는 실패라서, 그 외의 방법으로는 중간에서
 끊어진 설치를 재현할 수 없습니다.
+
+S5d 는 "audiodg(LOCAL SERVICE)가 이 파일을 읽을 수 있는가"를 `helpers/AudioEngineAccess.h` 한 곳으로
+모았습니다. SID 와 각 주체가 필요한 권한을 한 표에 선언하고, 검사와 부여가 같은 표를 읽습니다.
+Editor 의 6개 호출 지점이 같은 마스크 비교를 각자 적던 것은 `isReadableByAudioEngine` 하나로 줄었고,
+`ApoRegistration` 의 `icacls` 인자 문자열 두 개도 그 모듈로 들어갔습니다.
+`getFileAccessForUser`(파일 ACL 질의)와 `isWindowsVersionAtLeast`(kernel32 버전 자원)는
+레지스트리 연산이 아니므로 각각 `AudioEngineAccess` 와 `helpers/WindowsVersion.h` 로 나갔습니다.
+승격 가정은 이제 로그로 드러납니다. 승격 없이 도는 훅을 거부하지는 않습니다.
+설치기가 부르는 훅이라 거부하면 Windows 가 마칠 수 있는 설치까지 깨뜨립니다.
+
+`tools/` 의 두 PowerShell 스크립트는 아직 같은 지식을 따로 갖고 있습니다.
+그것을 프로그램 안으로 들이는 것은 S5c 의 `--diagnose` 몫입니다.
 
 ## 남은 작업
 
@@ -58,19 +71,6 @@ PowerShell 스크립트의 검사를 프로그램 안으로 들여옵니다.
 관련해서 `Editor/main.cpp` 는 Velopack 훅을 `LogHelper::useUserFile` 보다 **먼저** 실행합니다.
 그래서 훅 출력이 `%TEMP%\EqualizerAPO.log` 로 떨어지고, 승격 후에는 그 `%TEMP%` 가 다른 계정의 것일 수 있습니다.
 이것도 같이 다뤄야 합니다.
-
-### S5d. audiodg 접근 권한을 한 모듈로 (착수 전)
-
-"audiodg(LOCAL SERVICE)가 이 파일을 읽을 수 있는가"는 현장에서 가장 자주 나는 실패인데,
-검사와 수리가 세 언어 네 곳에 흩어져 있습니다. `RegistryHelper::getFileAccessForUser`(AuthZ, 읽기 전용 6곳),
-`ApoRegistration` 의 `icacls` 호출(부여), `Diagnose-EqualizerAPO.ps1`(`Get-Acl`), `Repair-EqualizerAPO.ps1`(`icacls` 재차).
-앱은 조건을 **감지**할 수 있고 권한을 **부여**할 수도 있는데, 둘을 함께 하는 경로가 없어서
-사용자에게 PowerShell 스크립트를 받으라고 안내합니다.
-
-**방향.** `isReadableByAudioEngine(path)`, `grantEngineAccess(installRoot)`, `grantConfigAccess(configDir)` 를
-가진 모듈 하나에 SID 와 권한 표를 한 번만 선언합니다. `getFileAccessForUser` 와 `isWindowsVersionAtLeast` 는
-레지스트리 연산이 아니므로 `RegistryHelper` 에서 내보냅니다.
-`ApoRegistration::install/uninstall` 이 승격을 가정만 하고 검사하지 않으므로 `requiresElevation()` 단언도 함께 둡니다.
 
 ### S7. 설정 파싱의 오류 모델 (착수 전)
 

@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include <DeviceAPOInfo.h>
 #include <helpers/RegistryHelper.h>
+#include <helpers/WindowsVersion.h>
 #include <helpers/ServiceHelper.h>
 #include <helpers/Win32Resource.h>
 #include <QPropertyAnimation>
@@ -54,7 +55,7 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 		QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 	}
 
-	if (!RegistryHelper::isWindowsVersionAtLeast(6, 3)) // Windows 8.1
+	if (!WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
 	{
 		ui.installModeComboBox->removeItem(2);
 		ui.installModeComboBox->removeItem(1);
@@ -519,7 +520,7 @@ void DeviceSelector::updateButtons()
 	ui.useOriginalAPOPreMixCheckBox->setChecked(installState.useOriginalAPOPreMix && hasOriginalAPOPreMix);
 	ui.useOriginalAPOPostMixCheckBox->setChecked(installState.useOriginalAPOPostMix && hasOriginalAPOPostMix);
 
-	if (RegistryHelper::isWindowsVersionAtLeast(6, 3)) // Windows 8.1
+	if (WindowsVersion::isAtLeast(6, 3)) // Windows 8.1
 		ui.installModeComboBox->setCurrentIndex(installState.installMode);
 
 	ui.allowSilentBufferCheckBox->setChecked(installState.allowSilentBufferModification);

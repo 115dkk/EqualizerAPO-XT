@@ -23,12 +23,12 @@
 #include <vector>
 
 // Deliberately no <windows.h> here, and that is the whole point of this file.
-// RegistryHelper.h has to pull the Win32 headers in because getFileAccessForUser
-// returns an ACCESS_MASK and openKey takes a REGSAM; every translation unit that
-// wants to talk to the registry therefore inherits the Win32 macro soup. This
-// port names only the operations the device layer performs, all of which are
-// expressible in standard types, so a test can include it and stand up a fake
-// without a Windows toolchain in its include path.
+// RegistryHelper.h has to pull the Win32 headers in because openKey takes a
+// REGSAM and returns a handle wrapper; every translation unit that wants to talk
+// to the registry therefore inherits the Win32 macro soup. This port names only
+// the operations the device layer performs, all of which are expressible in
+// standard types, so a test can include it and stand up a fake without a Windows
+// toolchain in its include path.
 //
 // The method set is what devices/DeviceAPOInfo.{Install,Load,State,
 // Uninstall}.cpp, DeviceAPOInfo.cpp and VoicemeeterAPOInfo.cpp call, plus the
@@ -46,9 +46,10 @@
 // first. A port that could only describe the forward direction would leave the
 // rollback guessing.
 //
-// RegistryHelper keeps the rest (openKey, formatExportHeader) plus the three
-// members that are not registry operations at all and so have no business in a
-// registry port: getGuidString, isWindowsVersionAtLeast, getFileAccessForUser.
+// RegistryHelper keeps the rest (openKey, formatExportHeader) plus getGuidString,
+// which is not a registry operation at all. The other two that were not - the
+// Windows version probe and the file access check - have since moved to
+// helpers/WindowsVersion.h and helpers/AudioEngineAccess.h.
 //
 // CONTRACT - read this before writing a fake, because the real implementation's
 // failure behaviour is what the install and uninstall code is built around.
