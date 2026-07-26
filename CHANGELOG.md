@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.29.0 — 2026-07-26
+
 - **A configuration line the engine cannot use now says which line and why.** A
   broken `Convolution:` or `Copy:` line used to produce a log entry that guessed -
   "recognized but produced no filter, likely due to malformed parameters" - and on
