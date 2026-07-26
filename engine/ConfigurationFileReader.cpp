@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "engine/ConfigurationFileReader.h"
+#include "ConfigurationFileReader.h"
 
 #include <windows.h>
 

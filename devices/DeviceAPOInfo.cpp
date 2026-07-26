@@ -24,9 +24,9 @@
 #include <shellapi.h>
 #include <comdef.h>
 
-#include "devices/DeviceAPOInfo.h"
-#include "devices/VoicemeeterAPOInfo.h"
-#include "devices/DeviceAPOInfoKeys.h"
+#include "DeviceAPOInfo.h"
+#include "VoicemeeterAPOInfo.h"
+#include "DeviceAPOInfoKeys.h"
 
 #include "helpers/StringHelper.h"
 #include "helpers/RegistryHelper.h"

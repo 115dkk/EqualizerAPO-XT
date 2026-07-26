@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "helpers/MemoryHelper.h"
-#include "engine/IFilter.h"
+#include "IFilter.h"
 
 class FilterEngine;
 

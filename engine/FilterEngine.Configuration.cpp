@@ -34,9 +34,9 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
-#include "engine/ConfigLoadTrace.h"
-#include "engine/ConfigurationFileReader.h"
-#include "engine/FilterEngine.h"
+#include "ConfigLoadTrace.h"
+#include "ConfigurationFileReader.h"
+#include "FilterEngine.h"
 // The individual filter factories self-register via REGISTER_FILTER_FACTORY, and
 // every consumer links Common.lib with /WHOLEARCHIVE, which forces each factory
 // translation unit into the link without the engine naming or including it. So

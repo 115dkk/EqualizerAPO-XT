@@ -21,8 +21,8 @@
 #include <algorithm>
 #include <typeinfo>
 
-#include "engine/FilterEngine.h"
-#include "engine/FilterConfiguration.h"
+#include "FilterEngine.h"
+#include "FilterConfiguration.h"
 #include "helpers/PerfProfile.h"
 
 #include "hwy/highway.h"

@@ -18,11 +18,11 @@
 */
 
 #include "stdafx.h"
-#include "engine/IFilter.h"
+#include "IFilter.h"
 
-#include "engine/ConfigLoadTrace.h"
-#include "engine/FilterEngine.h"
-#include "engine/IFilterFactory.h"
+#include "ConfigLoadTrace.h"
+#include "FilterEngine.h"
+#include "IFilterFactory.h"
 
 // Defined here rather than in IFilterFactory.h because the reporting path needs
 // FilterEngine, and every filter's header includes IFilterFactory.h - pulling the

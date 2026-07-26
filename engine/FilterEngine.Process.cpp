@@ -23,7 +23,7 @@
 
 #include "helpers/PerfProfile.h"
 #include "helpers/MxcsrGuard.h"
-#include "engine/FilterEngine.h"
+#include "FilterEngine.h"
 // Filter factory headers intentionally omitted: the factories self-register and
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this hot-path TU
 // names none of them (see FilterEngine.Configuration.cpp). The muparserx and
