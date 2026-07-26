@@ -23,7 +23,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   `%LOCALAPPDATA%\EqualizerAPO\logs\DeviceSelector.log`. The error dialog says
   where that is, and says whether the device was left as it was - or, in the one
   case where undoing the change also failed, that it may be left partly changed
-  and needs a reboot before another attempt.
+  and needs a reboot before another attempt. ([#238](https://github.com/115dkk/EqualizerAPO-XT/pull/238))
 - **`Editor.exe --diagnose` writes an install report.** It covers the install
   path, the COM registration, whether the audio engine (`audiodg.exe`, running as
   LOCAL SERVICE) and ordinary users can read the install and config directories,
@@ -33,12 +33,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   nothing and needs no administrator rights, which is the point: the same checks
   previously required downloading `tools/Diagnose-EqualizerAPO.ps1`. Device
   Selector accepts the same switch, but it always asks for elevation, so the
-  Editor form is the one to use.
+  Editor form is the one to use. ([#238](https://github.com/115dkk/EqualizerAPO-XT/pull/238))
 - **A Windows version check was wrong for Windows 10 and 11.** It packed each
   decimal digit of the version into its own group of bits, so a major version of
   10 or above did not compare correctly. Nothing had asked it about a version that
   high, so nothing was misbehaving; the new diagnostics report was the first
-  caller to try, which is how it surfaced.
+  caller to try, which is how it surfaced. ([#238](https://github.com/115dkk/EqualizerAPO-XT/pull/238))
 
 ## v2.27.5 — 2026-07-26
 
