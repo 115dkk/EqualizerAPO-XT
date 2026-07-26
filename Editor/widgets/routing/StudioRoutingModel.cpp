@@ -233,6 +233,46 @@ void StudioRoutingModel::addTrace(int input, int output)
 		emitOrder.append(output);
 }
 
+bool StudioRoutingModel::rewirePort(bool inputSide, int fromPort, int toPort)
+{
+	const int portCount = inputSide ? inputs.size() : outputs.size();
+	if (fromPort < 0 || fromPort >= portCount || toPort < 0
+		|| toPort >= portCount || fromPort == toPort)
+		return false;
+
+	bool changed = false;
+	for (Trace& trace : traceList)
+	{
+		int& endpoint = inputSide ? trace.input : trace.output;
+		if (endpoint != fromPort)
+			continue;
+		endpoint = toPort;
+		changed = true;
+	}
+	if (!changed || inputSide)
+		return changed;
+
+	// Moving a target also moves its serialization slot. If the destination
+	// already has a slot, the sums merge there and the now-empty old slot
+	// disappears; otherwise replace the old slot in place to retain order.
+	const int oldOrder = emitOrder.indexOf(fromPort);
+	const int newOrder = emitOrder.indexOf(toPort);
+	if (newOrder >= 0)
+	{
+		if (oldOrder >= 0)
+			emitOrder.removeAt(oldOrder);
+	}
+	else if (oldOrder >= 0)
+	{
+		emitOrder[oldOrder] = toPort;
+	}
+	else
+	{
+		emitOrder.append(toPort);
+	}
+	return true;
+}
+
 void StudioRoutingModel::removeTrace(int index)
 {
 	if (index >= 0 && index < traceList.size())

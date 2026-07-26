@@ -413,8 +413,9 @@ QString buildFileDialogFixture(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus the registered fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, filedialog, graph x2, copyfold x4, logic,
-// channelscope). run() multiplies these by skins x 2 modes to self-check the
+// addrow x2, seam, toast, filedialog, graph x2, copyfold x4,
+// multiconvfold x2, logic, channelscope). run() multiplies these by skins x 2
+// modes to self-check the
 // output count, so adding a gallery row needs no external count to be
 // updated. The fixed count is derived from galleryScenarios().
 constexpr int kStatesPerRow = 3;
@@ -448,6 +449,8 @@ const QList<GalleryScenario>& galleryScenarios()
 			QStringLiteral("hover") } },
 		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
 			QStringLiteral("expanded"), QStringLiteral("editor") } },
+		{ QStringLiteral("multiconvfold"), { QStringLiteral("normal"),
+			QStringLiteral("expanded") } },
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
 		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } }
 	};
@@ -1125,6 +1128,64 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 				view->galleryShowcase(QStringLiteral("addChannel"));
 				settle();
 				failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("editor")) ? 0 : 1;
+			}
+		}
+	}
+
+	// MultiConvolution shares Copy's target-channel fold, but its source side
+	// is the selected WAV's fixed channel list. This 4-channel BRIR over a 7.1
+	// endpoint proves both halves of that contract in every renderer: the
+	// collapsed card lists only mapped L/R outputs while retaining source
+	// ports 0..3, and the reveal control expands all eight outputs.
+	{
+		auto surround = std::make_shared<GalleryAPOInfo>(
+			L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") },
+			surround, 0x63F);
+		if (rows.size() != 1)
+		{
+			qWarning("SkinGallery: MultiConvolution fold scene expected 1 row, got %lld (%s %s)",
+				static_cast<long long>(rows.size()), qPrintable(skinId), qPrintable(mode));
+			failures += 2;
+		}
+		else
+		{
+			FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+			auto settle = [&]() {
+				QApplication::processEvents();
+				if (table != nullptr && table->layout() != nullptr)
+					table->layout()->activate();
+				QApplication::processEvents();
+			};
+			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
+				QStringLiteral("multiconvfold"), QStringLiteral("normal"));
+			failures += saveGrab(rows[0], outDir, skinId, mode,
+				QStringLiteral("multiconvfold"), QStringLiteral("normal")) ? 0 : 1;
+			// MultiConvolution rebuilds its routing view after file metadata
+			// and device channels arrive. The superseded view is hidden and
+			// deleteLater'd, but processEvents does not guarantee deferred
+			// deletion here; choose the live visible child explicitly.
+			RoutingView* view = nullptr;
+			for (RoutingView* candidate : rows[0]->findChildren<RoutingView*>())
+				if (candidate->isVisible())
+					view = candidate;
+			if (view == nullptr)
+			{
+				qWarning("SkinGallery: MultiConvolution fold scene has no routing view (%s %s)",
+					qPrintable(skinId), qPrintable(mode));
+				failures++;
+			}
+			else
+			{
+				view->galleryShowcase(QStringLiteral("expanded"));
+				settle();
+				failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
+					QStringLiteral("multiconvfold"), QStringLiteral("expanded"));
+				failures += saveGrab(rows[0], outDir, skinId, mode,
+					QStringLiteral("multiconvfold"), QStringLiteral("expanded")) ? 0 : 1;
 			}
 		}
 	}

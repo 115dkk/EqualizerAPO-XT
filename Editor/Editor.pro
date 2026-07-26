@@ -300,6 +300,7 @@ HEADERS  += \
 	../helpers/ApoRegistration.h \
 	../helpers/AudioFormatProbe.h \
 	../helpers/VelopackBootstrap.h \
+	../helpers/UpdateElevationPolicy.h \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \

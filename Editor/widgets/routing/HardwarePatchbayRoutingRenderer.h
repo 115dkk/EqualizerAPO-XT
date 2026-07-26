@@ -61,8 +61,8 @@ private:
 	// command references few (or no) channels.
 	std::vector<std::wstring> deviceChannels;
 	// Fixed-source mode (MultiConvolution): input columns come only from
-	// portModel.fixedSources, factors are locked to unity and the panel does
-	// not fold (the mapped targets are the whole surface).
+	// portModel.fixedSources and factors are locked to unity; target rows use
+	// the same fold as Copy.
 	RoutingPortModel portModel;
 	CopyRoutingAdapter::Matrix matrix;
 

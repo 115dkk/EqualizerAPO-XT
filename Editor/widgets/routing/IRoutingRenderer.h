@@ -14,6 +14,7 @@
 #pragma once
 
 #include <vector>
+#include <QLayout>
 #include <QStringList>
 #include <QWidget>
 
@@ -36,7 +37,7 @@ public:
 	// Offscreen gallery hook (SkinGallery): drive a state the renderer cannot
 	// reach without a real pointer. Supported states: "expanded" reveals the
 	// folded channels, "addChannel" opens the add-channel editor with a sample
-	// name typed in. Default no-op (fixed-source views have no fold).
+	// name typed in. Default no-op for renderers without those affordances.
 	virtual void galleryShowcase(const QString& state) { Q_UNUSED(state); }
 
 protected:
@@ -51,6 +52,21 @@ protected:
 	{
 		updateGeometry();
 		resize(sizeHint());
+
+		// MultiConvolution nests the routing view two layouts below the editor
+		// widget that FilterCardRow's height-pinning scroll watches. Resizing
+		// only this leaf leaves those layouts' cached size hints unchanged, so
+		// an expanded target fold is painted into the old collapsed height and
+		// clipped. Invalidate the size-hint chain and notify each ancestor;
+		// the watched editor then emits a fresh LayoutRequest and the card
+		// scroll repins itself to the expanded content.
+		for (QWidget* ancestor = parentWidget(); ancestor != nullptr;
+			ancestor = ancestor->parentWidget())
+		{
+			if (ancestor->layout() != nullptr)
+				ancestor->layout()->invalidate();
+			ancestor->updateGeometry();
+		}
 	}
 
 signals:

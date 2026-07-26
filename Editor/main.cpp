@@ -57,6 +57,7 @@
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/StringHelper.h"
+#include "helpers/UpdateElevationPolicy.h"
 #include "helpers/Win32Resource.h"
 #include "helpers/VelopackBootstrap.h"
 #include "version.h"
@@ -172,6 +173,25 @@ bool isHookArgument(const char* arg)
 		matchesHook(arg, "--veloapp-uninstall"));
 }
 
+bool hasArgument(int argc, char* argv[], const char* expected)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		if (argv[i] != nullptr && std::strcmp(argv[i], expected) == 0)
+			return true;
+	}
+	return false;
+}
+
+std::string configuredUpdateChannel()
+{
+#ifdef EAPO_UPDATE_CHANNEL
+	return EAPO_UPDATE_CHANNEL;
+#else
+	return std::string();
+#endif
+}
+
 bool isCurrentProcessElevated()
 {
 	BOOL elevated = FALSE;
@@ -221,9 +241,10 @@ std::wstring buildArgumentLine(int argc, char* argv[])
 }
 
 // Re-launches this exe elevated with the same arguments, waits, and returns
-// the child's exit code. Velopack runs hooks in the user's security context
-// (the installer itself is unelevated for per-user installs), but the hook
-// needs admin to write HKLM and register the APO DLL. We bridge the gap here.
+// the child's exit code. Per-user setup/uninstall can invoke hooks in the
+// user's security context, while APO registration needs HKLM access. The
+// Editor's in-app update path elevates Update.exe once before either update
+// hook, so this per-hook fallback is not reached during that flow.
 int relaunchElevatedAndWait(int argc, char* argv[])
 {
 	wchar_t exePathBuffer[MAX_PATH];
@@ -277,7 +298,7 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!hookSeen)
 		return -1;
 
-	if (!isCurrentProcessElevated())
+	if (UpdateElevationPolicy::hookMustSelfElevate(isCurrentProcessElevated()))
 		return relaunchElevatedAndWait(argc, argv);
 
 	for (int i = 1; i < argc; i++)
@@ -346,6 +367,15 @@ int main(int argc, char* argv[])
 	// without a usable stderr stream.
 	if (!LogHelper::useUserFile(L"Editor.log", true, false, false))
 		LogHelper::useDefaultApoLog();
+
+	if (hasArgument(argc, argv, UpdateElevationPolicy::kElevatedCoordinatorArgument))
+	{
+		// The coordinator is an internal one-shot process, not a normal Editor
+		// launch. Avoid VelopackApp's startup package scan and go directly to
+		// reopening the already-staged update.
+		return VelopackBootstrap::runElevatedUpdateCoordinator(
+			EAPO_REPO_URL, configuredUpdateChannel());
+	}
 
 	// Initialise the Velopack runtime so UpdateManager resolves the correct
 	// install context. Auto-apply-on-startup is off because we apply on exit instead.
@@ -525,11 +555,8 @@ int main(int argc, char* argv[])
 			// device enumeration are all comfortably finished. The download runs on
 			// its own worker thread and just stages the update for apply-on-exit.
 			QTimer::singleShot(60000, qApp, []() {
-				std::string channel;
-#ifdef EAPO_UPDATE_CHANNEL
-				channel = EAPO_UPDATE_CHANNEL;
-#endif
-				VelopackBootstrap::startBackgroundDownload(EAPO_REPO_URL, channel);
+				VelopackBootstrap::startBackgroundDownload(
+					EAPO_REPO_URL, configuredUpdateChannel());
 			});
 		}
 

@@ -43,16 +43,17 @@ std::vector<Assignment> StepListView::assignments() const
 
 bool StepListView::foldable() const
 {
-	// Fixed-source mode (MultiConvolution) lists exactly the mapped targets;
-	// there is nothing to fold and the card owns virtual outputs.
-	return !portModel.fixedSourceMode();
+	// Both grammars fold target channels. MultiConvolution keeps its complete
+	// fixed IR source list in the per-step add menu.
+	return true;
 }
 
 void StepListView::refold()
 {
 	if (foldable())
 	{
-		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels, channelsExpanded);
+		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
+			channelsExpanded, portModel.fixedSources);
 	}
 	else
 	{

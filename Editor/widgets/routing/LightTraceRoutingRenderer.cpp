@@ -56,9 +56,9 @@ std::vector<Assignment> StudioRoutingView::assignments() const
 
 bool StudioRoutingView::foldable() const
 {
-	// Fixed-source mode (MultiConvolution) lays out exactly the mapped
-	// targets; there is nothing to fold.
-	return !portModel.fixedSourceMode();
+	// Copy and MultiConvolution share the target-channel fold. Fixed-source
+	// mode keeps every IR input lit; only its device/output row collapses.
+	return true;
 }
 
 void StudioRoutingView::galleryShowcase(const QString& state)
@@ -134,6 +134,11 @@ void StudioRoutingView::relayout()
 				|| j >= model.seededOutputCount();
 		for (int i = 0; i < inputPorts.size(); i++)
 		{
+			if (portModel.fixedSourceMode())
+			{
+				inputVisible[i] = true;
+				continue;
+			}
 			const bool isConst = model.constInput(i);
 			inputVisible[i] = channelsExpanded || inputLit[i]
 				|| (!isConst && (pinnedUpper.contains(inputPorts[i].toUpper())
@@ -554,8 +559,12 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		bool overTarget = false;
 		bool overInput = false;
 		const int target = chipAt(dragPos, &overInput);
-		if (target >= 0 && overInput != dragFromInput)
-			overTarget = true;
+		if (target >= 0)
+		{
+			overTarget = overInput != dragFromInput
+				|| (overInput == dragFromInput && target != dragChip
+					&& chipHasTrace(dragFromInput, dragChip));
+		}
 		if (overTarget)
 		{
 			strokeTrace(path, true, false);
@@ -612,6 +621,15 @@ int StudioRoutingView::traceAt(const QPoint& pos) const
 		if (!traceShapes[i].hit.isEmpty() && traceShapes[i].hit.contains(pos))
 			return i;
 	return -1;
+}
+
+bool StudioRoutingView::chipHasTrace(bool inputRow, int index) const
+{
+	for (const StudioRoutingModel::Trace& trace : model.traces())
+		if ((inputRow && trace.input == index)
+			|| (!inputRow && trace.output == index))
+			return true;
+	return false;
 }
 
 void StudioRoutingView::mousePressEvent(QMouseEvent* event)
@@ -746,6 +764,13 @@ void StudioRoutingView::mouseReleaseEvent(QMouseEvent* event)
 			const int input = fromInput ? fromChip : target;
 			const int output = fromInput ? target : fromChip;
 			model.addTrace(input, output);
+			relayout();
+			emit routingChanged();
+			return;
+		}
+		if (target >= 0 && targetIsInput == fromInput && target != fromChip
+			&& model.rewirePort(fromInput, fromChip, target))
+		{
 			relayout();
 			emit routingChanged();
 			return;

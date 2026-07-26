@@ -56,9 +56,9 @@ private:
 	// Device channel layout, offered by the per-row [+] source menu.
 	std::vector<std::wstring> deviceChannels;
 	// Fixed-source mode (MultiConvolution): the [+] menu offers only
-	// portModel.fixedSources, factors are locked to unity (a double-click
-	// removes the source instead of editing a gain) and the listing does not
-	// fold (the mapped targets are the whole listing).
+	// portModel.fixedSources and factors are locked to unity (a double-click
+	// removes the source instead of editing a gain). The fixed sources stay
+	// available while the target steps use the shared channel fold.
 	RoutingPortModel portModel;
 
 	// Channel fold: the listing shows fold.visibleRows only; pinned channels

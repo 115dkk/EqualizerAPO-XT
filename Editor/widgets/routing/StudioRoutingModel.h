@@ -70,6 +70,12 @@ public:
 	// Connects input -> output at unity gain (0.0 from the constant port,
 	// matching the legacy scene's constant-summand behaviour).
 	void addTrace(int input, int output);
+
+	// Moves every existing endpoint on one side from one port to another.
+	// This is the model operation behind dragging a connected chip along its
+	// own row to correct a mistaken source or target. Factors and opposite
+	// endpoints are preserved. Returns false when nothing was connected.
+	bool rewirePort(bool inputSide, int fromPort, int toPort);
 	void removeTrace(int index);
 
 	// The factor editor's commit: empty text removes the trace, a "db"

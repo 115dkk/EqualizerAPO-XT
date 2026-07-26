@@ -40,16 +40,17 @@ CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments
 
 bool CrosspointMatrixView::foldable() const
 {
-	// Fixed-source mode (MultiConvolution) lays out exactly the mapped
-	// targets; there is nothing to fold and the card owns virtual outputs.
-	return !portModel.fixedSourceMode();
+	// Both grammars fold target channels. MultiConvolution only fixes the
+	// source columns to the selected IR file's channel list.
+	return true;
 }
 
 void CrosspointMatrixView::rebuildMatrix()
 {
 	if (foldable())
 	{
-		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels, channelsExpanded);
+		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
+			channelsExpanded, portModel.fixedSources);
 		rowMap = fold.visibleRows;
 		vector<Assignment> visible;
 		visible.reserve(rowMap.size());

@@ -1507,6 +1507,25 @@ void testStudioRoutingModel()
 	model.addTrace(2, 1);
 	expectEqual(formatted(model.assignments()), "L=1*0+1*1 R=1*2", "fixed mode keeps every factor at unity");
 
+	// Re-dragging a connected chip along its own row moves that endpoint
+	// instead of silently rejecting the same-side drop. Every trace touching
+	// the chip moves together, while factors and the opposite endpoints stay
+	// intact.
+	std::vector<Assignment> rewired(2);
+	rewired[0].targetChannel = L"L";
+	rewired[0].sourceSum = { summand(0.25, L"L") };
+	rewired[1].targetChannel = L"R";
+	rewired[1].sourceSum = { summand(0.75, L"L") };
+	model.load(rewired, { L"L", L"R", L"C" }, copyMode);
+	expectTrue(model.rewirePort(true, 0, 1), "a connected input chip can move to another input");
+	expectEqual(formatted(model.assignments()), "L=0.25*R R=0.75*R",
+		"input rewire moves every attached trace and preserves factors");
+	expectTrue(model.rewirePort(false, 0, 2), "a connected output chip can move to another output");
+	expectEqual(formatted(model.assignments()), "C=0.25*R R=0.75*R",
+		"output rewire preserves the opposite endpoint and assignment order");
+	expectFalse(model.rewirePort(true, 2, 0), "an unconnected chip has no endpoint to move");
+	expectFalse(model.rewirePort(false, 1, 1), "dropping back on the same chip is a no-op");
+
 	// removeChannel: the named channel leaves both rows with every touching
 	// trace, and the surviving trace indices stay consistent.
 	std::vector<Assignment> removable(2);
@@ -1525,10 +1544,9 @@ void testStudioRoutingModel()
 
 void testRoutingFold()
 {
-	// RoutingFold: the Copy views' channel fold. A collapsed view lists only
-	// the channels the command involves; the seeded rest waits behind the
-	// reveal control. (README task: Copy GUI area growth on multi-channel
-	// devices.)
+	// RoutingFold: the Copy and MultiConvolution views' target-channel fold.
+	// A collapsed view lists only the channels the command involves; the
+	// seeded rest waits behind the reveal control.
 	auto summand = [](double factor, const wchar_t* channel) {
 		Assignment::Summand s;
 		s.factor = factor;
@@ -1567,6 +1585,25 @@ void testRoutingFold()
 	expectEqual(expanded.hiddenChannels, 0, "expanded: nothing is hidden");
 	expectEqual(expanded.inputs.join(','), "L,R,VC,C,LFE,RL,RR,SL,SR",
 		"expanded: referenced inputs first, then the device layout");
+
+	// MultiConvolution uses the same target-channel fold, but its IR source
+	// ports are fixed by the selected WAV and must stay present in both
+	// collapsed and expanded states.
+	const QStringList irSources = QStringList() << "0" << "1" << "2" << "3";
+	RoutingFold::Fold fixedCollapsed = RoutingFold::fold(seeded, surround,
+		RoutingFold::referencedTargets(parsed), false, irSources);
+	expectEqual(fixedCollapsed.visibleRows.size(), 2,
+		"fixed-source collapsed: only mapped targets are listed");
+	expectEqual(fixedCollapsed.hiddenChannels, 7,
+		"fixed-source collapsed: unused targets are folded");
+	expectEqual(fixedCollapsed.inputs.join(','), "0,1,2,3",
+		"fixed-source collapsed: every IR port remains visible");
+	RoutingFold::Fold fixedExpanded = RoutingFold::fold(seeded, surround,
+		RoutingFold::referencedTargets(parsed), true, irSources);
+	expectEqual(fixedExpanded.visibleRows.size(), (int)seeded.size(),
+		"fixed-source expanded: every target is listed");
+	expectEqual(fixedExpanded.inputs.join(','), "0,1,2,3",
+		"fixed-source expanded: source ports remain fixed");
 
 	// An empty Copy shows the first two device channels as representatives.
 	std::vector<Assignment> emptySeeded;
@@ -1703,6 +1740,7 @@ int main(int argc, char** argv)
 		testConfigFileCodecRejectsPartialRead();
 		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();
 		testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
+		testUpdateElevationPolicyUsesOnePromptForEditorUpdates();
 		testSkinTokensCarryExplicitMode();
 		testEverySkinSheetResolvesAllThemeTokens();
 		testEditableValueTextUsesDisplayedDecimalFormatFirst();
