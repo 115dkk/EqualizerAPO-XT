@@ -132,8 +132,12 @@ public:
 	bool isUnplugged() const override;
 	const InstallState& getCurrentInstallState();
 	InstallState& getSelectedInstallState();
-	std::wstring getPreMixChildGuid();
-	std::wstring getPostMixChildGuid();
+	// By const reference: both callers copy into a local or compare, and the
+	// strings live as long as the info object. cppcheck only started asking for
+	// this once the header moved beside its base and the class became fully
+	// visible to the analysis.
+	const std::wstring& getPreMixChildGuid() const;
+	const std::wstring& getPostMixChildGuid() const;
 	void testAPOInstallation();
 
 private:
