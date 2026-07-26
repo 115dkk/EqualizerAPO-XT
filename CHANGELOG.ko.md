@@ -20,7 +20,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   두 가지는 숨기지 않고 적었습니다. 드라이버가 잠근 엔드포인트에 키를 만들려고
   넓힌 권한은 넓힌 채로 남고, 드라이버의 원래 효과 사슬을 담은 `.reg` 백업 파일도
   디스크에 남습니다. 손으로 복원할 때 필요한 사본이기
-  때문입니다 ([#TBD](https://github.com/115dkk/EqualizerAPO-XT/pull/TBD)).
+  때문입니다 ([#236](https://github.com/115dkk/EqualizerAPO-XT/pull/236)).
 
 ## v2.27.0 — 2026-07-25
 

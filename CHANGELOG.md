@@ -28,7 +28,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   take back are documented rather than hidden: permissions widened to create a
   key on a driver-locked endpoint stay widened, and the `.reg` backup of the
   driver's own effect chain stays on disk, because it is the copy you would need
-  to restore it by hand ([#TBD](https://github.com/115dkk/EqualizerAPO-XT/pull/TBD)).
+  to restore it by hand ([#236](https://github.com/115dkk/EqualizerAPO-XT/pull/236)).
 
 ## v2.27.0 — 2026-07-25
 
