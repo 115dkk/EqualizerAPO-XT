@@ -10,6 +10,7 @@
 #include <QAction>
 #include <QFileDialog>
 #include <QPainter>
+#include <QPainterStateGuard>
 #include <QToolBar>
 #include <QToolButton>
 #include <QtMath>
@@ -387,7 +388,7 @@ void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState
 	if (state.labels.isEmpty())
 		return;
 
-	painter.save();
+	QPainterStateGuard painterState(&painter);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -426,8 +427,6 @@ void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState
 		painter.setPen(ink);
 		painter.drawText(cell, Qt::AlignCenter, state.labels.at(i));
 	}
-
-	painter.restore();
 }
 
 void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const

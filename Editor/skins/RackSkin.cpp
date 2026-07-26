@@ -14,6 +14,7 @@
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPainterStateGuard>
 #include <QStyle>
 #include <QToolBar>
 #include <QToolButton>
@@ -278,7 +279,7 @@ void paintSelectorBank(QPainter& painter, const SegmentedControlState& state, co
 	const QColor lightInk(255, 255, 255);
 	const QColor grainInk = dark ? lightInk : mixColor(bodyInk, panel, 0.30);
 
-	painter.save();
+	QPainterStateGuard painterState(&painter);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -295,7 +296,7 @@ void paintSelectorBank(QPainter& painter, const SegmentedControlState& state, co
 	painter.setPen(Qt::NoPen);
 	painter.fillPath(well, panel.darker(dark ? 178 : 122));
 
-	painter.save();
+	QPainterStateGuard wellState(&painter);
 	painter.setClipPath(well);
 
 	QLinearGradient overhang(frame.topLeft(), QPointF(frame.left(), frame.top() + 4.0));
@@ -351,10 +352,11 @@ void paintSelectorBank(QPainter& painter, const SegmentedControlState& state, co
 		painter.setPen(Qt::NoPen);
 		painter.fillPath(capPath, face);
 
-		painter.save();
-		painter.setClipPath(capPath);
-		monitorGrain(painter, cap, grainInk, seed);
-		painter.restore();
+		{
+			QPainterStateGuard capState(&painter);
+			painter.setClipPath(capPath);
+			monitorGrain(painter, cap, grainInk, seed);
+		}
 
 		const QColor topEdge = raised ? withAlpha(lightInk, dark ? 46 : 155) : withAlpha(shadowInk, dark ? 175 : 125);
 		const QColor bottomEdge = raised ? withAlpha(shadowInk, dark ? 165 : 95) : withAlpha(lightInk, dark ? 70 : 175);
@@ -505,14 +507,12 @@ void paintSelectorBank(QPainter& painter, const SegmentedControlState& state, co
 		painter.fillPath(well, withAlpha(shadowInk, dark ? 140 : 96));
 	}
 
-	painter.restore();
+	wellState.restore();
 
 	// The machined bezel around the opening.
 	painter.setBrush(Qt::NoBrush);
 	painter.setPen(QPen(withAlpha(shadowInk, dark ? 215 : 135), 1));
 	painter.drawPath(well);
-
-	painter.restore();
 }
 
 // The instrument itself: a dark phosphor-glass window in BOTH finishes (the
@@ -529,7 +529,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	// is fenced behind this flag. Nothing outside those fences changes with the
 	// function, so the magnitude face is the one it always had.
 	const bool magnitude = state.metric == AnalysisMetric::MagnitudeDb;
-	painter.save();
+	QPainterStateGuard painterState(&painter);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
 	// Display-glass idiom shared with the GEQ scope and the LCD wells: the
@@ -642,7 +642,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	// ── The glass window ──
 	QPainterPath glassPath;
 	glassPath.addRoundedRect(glassFrame, 2.0, 2.0);
-	painter.save();
+	QPainterStateGuard glassState(&painter);
 	painter.setClipPath(glassPath);
 
 	QLinearGradient ground(glassFrame.topLeft(), glassFrame.bottomLeft());
@@ -774,7 +774,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	}
 
 	// ── The beam ── (masked to the graticule area, like a tube's trace)
-	painter.save();
+	QPainterStateGuard beamState(&painter);
 	painter.setClipRect(state.plotRect.adjusted(-1, -1, 1, 1), Qt::IntersectClip);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	// One sweep per segment. The metric goes dark where it has no value, and the
@@ -827,7 +827,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 		// a white-hot core - an overdriven beam, not an annotation.
 		if (overZone)
 		{
-			painter.save();
+			QPainterStateGuard overZoneState(&painter);
 			painter.setClipRect(QRectF(state.plotRect.left() - 1.0, state.plotRect.top() - 1.0,
 				state.plotRect.width() + 2.0, zeroY - state.plotRect.top() + 1.0), Qt::IntersectClip);
 			painter.setPen(Qt::NoPen);
@@ -842,10 +842,9 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 			painter.drawPolyline(segment);
 			painter.setPen(QPen(withAlpha(mixColor(overInk, QColor(255, 255, 255), 0.55), 215), 0.9, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 			painter.drawPolyline(segment);
-			painter.restore();
 		}
 	}
-	painter.restore();
+	beamState.restore();
 
 	// ── The measurement cursor ── a scope cursor line with grab ticks, a
 	// brightened measured point on the beam and a segment readout in the
@@ -908,7 +907,7 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	overhang.setColorAt(1.0, QColor(0, 0, 0, 0));
 	painter.fillRect(QRectF(glassFrame.left(), glassFrame.top(), glassFrame.width(), 9.0), overhang);
 
-	painter.restore();
+	glassState.restore();
 
 	// Bezel frame and the lit lower lip between glass and plate.
 	painter.setBrush(Qt::NoBrush);
@@ -918,8 +917,6 @@ void paintAnalysisMonitor(QPainter& painter, const AnalysisGraphState& state, co
 	painter.setRenderHint(QPainter::Antialiasing, false);
 	painter.setPen(QPen(bezelLip, 1));
 	painter.drawLine(int(glassFrame.left()) + 2, int(glassFrame.bottom()), int(glassFrame.right()) - 2, int(glassFrame.bottom()));
-
-	painter.restore();
 }
 
 class RackSkin : public ISkin

@@ -15,6 +15,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPainterStateGuard>
 #include <QStringList>
 #include <QToolBar>
 #include <QWidget>
@@ -527,10 +528,9 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 			dangerBase.hsvSaturationF() * (darkSheet ? 0.70 : 0.84),
 			dangerBase.valueF() * (darkSheet ? 0.56 : 0.55));
 
-		painter.save();
+		QPainterStateGuard overshootState(&painter);
 		painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
 		painter.fillPath(overshoot, errorBlock);
-		painter.restore();
 	}
 
 	// The zero rule: the one full-strength straight line, body ink 1px. It
@@ -562,12 +562,11 @@ void paintMinimalAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 		painter.drawPolyline(segment);
 		if (overshootValid)
 		{
-			painter.save();
+			QPainterStateGuard overshootSegmentState(&painter);
 			painter.setClipRect(QRectF(plotLeft, plotTop, plotRight - plotLeft, state.zeroY - plotTop));
 			painter.setClipPath(overshoot, Qt::IntersectClip);
 			painter.setPen(QPen(ground, 1));
 			painter.drawPolyline(segment);
-			painter.restore();
 		}
 	}
 

@@ -2,6 +2,7 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QScopedValueRollback>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 
@@ -79,17 +80,18 @@ void ScalarKnobCardEditor::synchronizeScalar(double value, int knobValue,
 	if (synchronizing || editableValue == nullptr)
 		return;
 
-	synchronizing = true;
 	{
-		const QSignalBlocker knobBlocker(knob);
-		knob->setValue(knobValue);
+		const QScopedValueRollback<bool> sync(synchronizing, true);
+		{
+			const QSignalBlocker knobBlocker(knob);
+			knob->setValue(knobValue);
+		}
+		knob->setValueText(knobText);
+		{
+			const QSignalBlocker valueBlocker(editableValue);
+			editableValue->setValue(value);
+		}
 	}
-	knob->setValueText(knobText);
-	{
-		const QSignalBlocker valueBlocker(editableValue);
-		editableValue->setValue(value);
-	}
-	synchronizing = false;
 
 	if (notify)
 		emit updateModel();

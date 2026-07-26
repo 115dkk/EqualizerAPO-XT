@@ -14,6 +14,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPainterStateGuard>
 #include <QRegion>
 #include <QToolBar>
 #include <QVBoxLayout>
@@ -1261,7 +1262,7 @@ public:
 			const QRect zone(plot.left(), plot.top(), plot.width(), zeroYpx - plot.top());
 			QColor hatch(hazardInk);
 			hatch.setAlpha(darkBoard ? 60 : 70);
-			painter.save();
+			QPainterStateGuard hazardState(&painter);
 			painter.setClipRect(zone);
 			painter.setPen(QPen(hatch, 1));
 			// Diagonals on the board's 12px half-pitch (gridPitch 24 = two
@@ -1295,7 +1296,6 @@ public:
 				for (int x = zone.left() - zone.height(); x <= zone.right(); x += 5)
 					painter.drawLine(x, zone.bottom(), x + zone.height(), zone.top());
 			}
-			painter.restore();
 		}
 
 		// The zero bus: the board's reference rule, one rank of authority
@@ -1654,7 +1654,7 @@ public:
 		const QColor accent(tokens.accent);
 		const QRect frame = state.rect;
 
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 		// Invariant rule 7: no antialiasing under a 1px rule. Nothing here is
 		// a curve, so only the type is smoothed.
 		painter.setRenderHint(QPainter::Antialiasing, false);
@@ -1667,7 +1667,6 @@ public:
 			painter.setPen(QPen(borderInk, 1));
 			painter.setBrush(Qt::NoBrush);
 			painter.drawRect(frame.adjusted(0, 0, -1, -1));
-			painter.restore();
 			return;
 		}
 
@@ -1811,19 +1810,19 @@ public:
 						qMax(0, column.width() - 8)));
 			}
 		};
-		painter.save();
-		QRegion unlit(frame);
-		if (state.enabled)
-			unlit -= QRegion(mark);
-		painter.setClipRegion(unlit);
-		drawLabels(false);
-		painter.restore();
+		{
+			QPainterStateGuard unlitLabelState(&painter);
+			QRegion unlit(frame);
+			if (state.enabled)
+				unlit -= QRegion(mark);
+			painter.setClipRegion(unlit);
+			drawLabels(false);
+		}
 		if (state.enabled)
 		{
-			painter.save();
+			QPainterStateGuard litLabelState(&painter);
 			painter.setClipRect(mark);
 			drawLabels(true);
-			painter.restore();
 		}
 
 		// Keyboard focus brackets the engaged port at the port's own edges -
@@ -1856,7 +1855,6 @@ public:
 		painter.setPen(QPen(borderInk, 1, state.enabled ? Qt::SolidLine : Qt::DashLine));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(frame.adjusted(0, 0, -1, -1));
-		painter.restore();
 	}
 
 	// The board's masthead: the faint 24px column grid behind the title

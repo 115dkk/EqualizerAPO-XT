@@ -18,6 +18,7 @@
 #include <QHash>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPainterStateGuard>
 #include <QToolBar>
 #include <QtMath>
 
@@ -392,7 +393,7 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 		return;
 
 	const bool dark = skinIsDark(tokens);
-	painter.save();
+	QPainterStateGuard painterState(&painter);
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	// Stay inside the 1px QSS border (the machined plate edge) and clip all
@@ -547,13 +548,12 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 		earFont.setPixelSize(8);
 		earFont.setBold(true);
 		earFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.5);
-		painter.save();
+		QPainterStateGuard labelState(&painter);
 		painter.translate(r.left() + 14.5, r.bottom() - 16);
 		painter.rotate(-90);
 		painter.setFont(earFont);
 		const QRectF textRect(0, -10, r.height() - 64, 20);
 		engraveText(painter, textRect, Qt::AlignLeft | Qt::AlignVCenter, label, withAlpha(QColor(tokens.mutedText), 200), dark);
-		painter.restore();
 	}
 
 	// Commented-out line: the whole unit is powered down behind a dim film.
@@ -568,8 +568,6 @@ void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo&
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(r.adjusted(1.5, 1.5, -1.5, -1.5), radius - 1, radius - 1);
 	}
-
-	painter.restore();
 }
 
 void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens)
@@ -719,7 +717,7 @@ void paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, con
 void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens)
 {
 	const bool dark = skinIsDark(tokens);
-	painter.save();
+	QPainterStateGuard painterState(&painter);
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	const QRectF r = QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5);
@@ -819,8 +817,6 @@ void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& st
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(r.adjusted(1.5, 1.5, -1.5, -1.5), radius - 1, radius - 1);
 	}
-
-	painter.restore();
 }
 
 void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens)
@@ -831,7 +827,7 @@ void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState
 		return;
 
 	const bool dark = skinIsDark(tokens);
-	painter.save();
+	QPainterStateGuard painterState(&painter);
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	// A service slot heating up between the rail and the first unit:
@@ -856,15 +852,13 @@ void paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState
 	painter.setPen(QPen(withAlpha(amber, state.pressed ? 255 : 210), 1.4, Qt::SolidLine, Qt::FlatCap));
 	painter.drawLine(QPointF(left + kEarWidth, y - 3), QPointF(left + kEarWidth, y + 3));
 	painter.drawLine(QPointF(right - kEarWidth, y - 3), QPointF(right - kEarWidth, y + 3));
-
-	painter.restore();
 }
 
 void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, const SkinTokens& tokens)
 {
 	const bool dark = skinIsDark(tokens);
 	const bool powered = state.enabled;
-	painter.save();
+	QPainterStateGuard painterState(&painter);
 
 	// The scope well is dark in BOTH finishes (the display law). The
 	// graticule sits in the scope-grid family: the cream table's grid token
@@ -965,7 +959,7 @@ void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, cons
 	}
 
 	// The beam stays inside the graticule area, like a tube masks its trace.
-	painter.save();
+	QPainterStateGuard beamState(&painter);
 	painter.setClipRect(state.plotRect.adjusted(-1, -1, 1, 1), Qt::IntersectClip);
 
 	if (state.curve.size() >= 2)
@@ -1063,7 +1057,7 @@ void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, cons
 			painter.drawEllipse(center, 7.0, 7.0);
 		}
 	}
-	painter.restore();
+	beamState.restore();
 
 	// Cursor readout: top-right inside the glass, bright segments.
 	if (powered && state.cursorValid && !state.cursorText.isEmpty())
@@ -1101,8 +1095,6 @@ void paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& state, cons
 		painter.setPen(QPen(bezelLip, 1));
 		painter.drawLine(QPointF(r.left() + radius, r.bottom()), QPointF(r.right() - radius, r.bottom()));
 	}
-
-	painter.restore();
 }
 
 void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens)

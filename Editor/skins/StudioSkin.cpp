@@ -16,6 +16,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPainterStateGuard>
 #include <QToolBar>
 #include <QWidget>
 #include <QtMath>
@@ -218,7 +219,7 @@ public:
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override
 	{
 		const bool dark = skinIsDark(tokens);
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 
 		// The 1px lighter top edge, quieter than a panel's reflection.
 		painter.fillRect(QRectF(rect.left(), rect.top(), rect.width(), 1.0),
@@ -246,8 +247,6 @@ public:
 		corePen.setCapStyle(Qt::RoundCap);
 		painter.setPen(corePen);
 		painter.drawLine(QPointF(x0, y), QPointF(x0 + span, y));
-
-		painter.restore();
 	}
 
 	// The QSS sheets own the toolbar strip itself; code only re-inks the
@@ -499,7 +498,7 @@ public:
 			return;
 
 		const bool dark = skinIsDark(tokens);
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 		painter.setRenderHint(QPainter::Antialiasing);
 
 		// The pane: the glass surface treatment stays inside the border.
@@ -578,7 +577,6 @@ public:
 					}
 				}
 			}
-			painter.restore();
 			return;
 		}
 
@@ -618,8 +616,6 @@ public:
 			painter.fillRect(QRectF(rect.left(), y0 - 3.0, 4.0, segment + 6.0), bloom);
 			painter.fillRect(QRectF(rect.left(), y0, 2.0, segment), lamp);
 		}
-
-		painter.restore();
 	}
 
 	// The If-block scope is a gate beam: the knob arc's stroke ladder turned
@@ -648,7 +644,7 @@ public:
 		const QColor beam(tokens.accent);
 		const bool live = info.enabled && !info.lineSkipped;
 
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 		painter.setRenderHint(QPainter::Antialiasing, true);
 		painter.setPen(Qt::NoPen);
 
@@ -759,8 +755,6 @@ public:
 				beamRun(level, 0.0, h, true, false);
 			beamRun(channelLevels + logic - 1, 0.0, h, live, false);
 		}
-
-		painter.restore();
 		return true;
 	}
 
@@ -921,7 +915,7 @@ public:
 		const bool lit = state.enabled;
 		const QRectF plot = state.plotRect;
 
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 		if (!lit)
 			painter.setOpacity(0.45);
 
@@ -1110,8 +1104,6 @@ public:
 		painter.setRenderHint(QPainter::Antialiasing, false);
 		painter.fillRect(QRectF(frame.left() + 7.0, frame.top() + 1.0, frame.width() - 14.0, 1.0),
 			dark ? QColor(0, 0, 0, lit ? 140 : 80) : QColor(0, 0, 0, lit ? 30 : 16));
-
-		painter.restore();
 	}
 
 	// The analysis dock's response graph: the GraphicEQ gauge widened into
@@ -1130,7 +1122,7 @@ public:
 		const double hover = qBound(0.0, state.hover, 1.0);
 		const bool magnitude = state.metric == AnalysisMetric::MagnitudeDb;
 
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 		painter.setRenderHint(QPainter::Antialiasing, true);
 		painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -1383,7 +1375,7 @@ public:
 			// in danger, clipped to the glass above the anchor.
 			if (state.clipping && zeroClamped > plot.top())
 			{
-				painter.save();
+				QPainterStateGuard overshootState(&painter);
 				painter.setClipRect(QRectF(plot.left(), plot.top(), plot.width(), zeroClamped - plot.top()),
 					Qt::IntersectClip);
 				const struct { double width; int alpha; } flames[] = {
@@ -1399,7 +1391,6 @@ public:
 					painter.setPen(firePen);
 					painter.drawPolyline(segment);
 				}
-				painter.restore();
 			}
 		}
 
@@ -1431,7 +1422,7 @@ public:
 		// group rides state.hover for its entry motion.
 		if (state.cursorValid && hover > 0.01)
 		{
-			painter.save();
+			QPainterStateGuard cursorState(&painter);
 			painter.setOpacity(painter.opacity() * hover);
 
 			const double cx = state.cursor.x();
@@ -1510,7 +1501,6 @@ public:
 				painter.setPen(QColor(tokens.text));
 				painter.drawText(chip, Qt::AlignCenter, readout);
 			}
-			painter.restore();
 		}
 
 		// The pane's edge: a hairline border over a darker inner top edge.
@@ -1521,8 +1511,6 @@ public:
 		painter.setRenderHint(QPainter::Antialiasing, false);
 		painter.fillRect(QRectF(frame.left() + 7.0, frame.top() + 1.0, frame.width() - 14.0, 1.0),
 			dark ? QColor(0, 0, 0, 140) : QColor(0, 0, 0, 30));
-
-		painter.restore();
 	}
 
 	// A row of exclusive choices: the knob's track laid flat, with the arc's
@@ -1547,7 +1535,7 @@ public:
 		const QColor light = studioBandPaintColor(painter, tokens);
 		const int pointed = state.pressedIndex >= 0 ? state.pressedIndex : state.hoveredIndex;
 
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 		painter.setRenderHint(QPainter::Antialiasing, true);
 		painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -1563,7 +1551,7 @@ public:
 		painter.setPen(Qt::NoPen);
 		painter.fillPath(channel, dark ? QColor(0, 0, 0, lit ? 92 : 62) : withAlpha(tokens.text, lit ? 20 : 12));
 
-		painter.save();
+		QPainterStateGuard channelState(&painter);
 		painter.setClipPath(channel);
 
 		// The sunken tell: a dark line settling just inside the top edge, the
@@ -1660,7 +1648,7 @@ public:
 			painter.drawRoundedRect(cap, capRadius, capRadius);
 		}
 
-		painter.restore();
+		channelState.restore();
 
 		// The channel's edge: a hairline that lights to the focus ring when
 		// the keyboard holds the control.
@@ -1700,8 +1688,6 @@ public:
 			painter.drawText(cell, Qt::AlignCenter,
 				cellMetrics.elidedText(state.labels.at(i), Qt::ElideRight, qMax(8.0, cell.width() - 6.0)));
 		}
-
-		painter.restore();
 	}
 
 	// The type badge is a lit glass chip: translucent fill with the ink and
