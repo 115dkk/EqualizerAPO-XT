@@ -50,7 +50,6 @@ private:
 	int summandIndex(int outRow, const QString& channel) const;
 	QRect cellRect(int outRow, int inCol) const;
 	bool hitTest(const QPoint& pos, int& outRow, int& inCol) const;
-	bool foldable() const;
 	QRect stripRect() const;
 	void commitEditor();
 	void openChannelEditor();

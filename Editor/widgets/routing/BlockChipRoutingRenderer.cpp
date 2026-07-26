@@ -41,26 +41,10 @@ std::vector<Assignment> BlockChipView::assignments() const
 	return workingAssignments;
 }
 
-bool BlockChipView::foldable() const
-{
-	// Both grammars fold target channels. MultiConvolution keeps its complete
-	// fixed IR source list in the per-row add menu.
-	return true;
-}
-
 void BlockChipView::refold()
 {
-	if (foldable())
-	{
-		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
-			channelsExpanded, portModel.fixedSources);
-	}
-	else
-	{
-		fold = RoutingFold::Fold();
-		for (int i = 0; i < (int)workingAssignments.size(); i++)
-			fold.visibleRows.append(i);
-	}
+	fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
+		channelsExpanded, portModel.fixedSources);
 	syncSizeToHint();
 	update();
 }
@@ -101,8 +85,7 @@ QSize BlockChipView::sizeHint() const
 	}
 	const int n = fold.visibleRows.size();
 	int h = n * blockH + (n + 1) * gap;
-	if (foldable())
-		h += controlH + gap;
+	h += controlH + gap;
 	return QSize(maxW + 24, h);
 }
 
@@ -248,7 +231,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		// A virtual channel's block can be removed: hovering the block shows a
 		// quiet × pill at its tail (device channels fold instead of leaving,
 		// so they never get one). Muted, small, never alarming.
-		if (foldable() && CopyRoutingAdapter::isVirtualChannel(dest) && hoveredRow == r)
+		if (CopyRoutingAdapter::isVirtualChannel(dest) && hoveredRow == r)
 		{
 			const QRect xChip(x, y + (blockH - 22) / 2, 22, 22);
 			p.setPen(QPen(alpha(muted, 140), 1));
@@ -264,41 +247,38 @@ void BlockChipView::paintEvent(QPaintEvent*)
 	// grammar - sunken ground, 1px border, muted ink; hover raises it one
 	// step) and the dashed "add channel" chip (the not-hardware-backed
 	// grammar shared with the per-block [+]).
-	if (foldable())
+	const int y = gap + fold.visibleRows.size() * (blockH + gap);
+	QFont chipFont = uiFont(12);
+	p.setFont(chipFont);
+	QFontMetrics fm(chipFont);
+	int x = 8;
+
+	if (fold.hiddenChannels > 0 || channelsExpanded)
 	{
-		const int y = gap + fold.visibleRows.size() * (blockH + gap);
-		QFont chipFont = uiFont(12);
-		p.setFont(chipFont);
-		QFontMetrics fm(chipFont);
-		int x = 8;
+		const QString caption = channelsExpanded
+			? tr("Show fewer channels")
+			: tr("Show %n more channel(s)", nullptr, fold.hiddenChannels);
+		const int w = fm.horizontalAdvance(caption) + 24;
+		revealRect = QRect(x, y, w, controlH - 4);
+		const bool hovered = hoveredControl == 1;
+		p.setPen(QPen(alpha(border, 160), 1));
+		p.setBrush(hovered ? alpha(border, 60) : alpha(border, 30));
+		p.drawRoundedRect(revealRect, (controlH - 4) / 2, (controlH - 4) / 2);
+		p.setPen(hovered ? text : muted);
+		p.drawText(revealRect, Qt::AlignCenter, caption);
+		x += w + 10;
+	}
 
-		if (fold.hiddenChannels > 0 || channelsExpanded)
-		{
-			const QString caption = channelsExpanded
-				? tr("Show fewer channels")
-				: tr("Show %n more channel(s)", nullptr, fold.hiddenChannels);
-			const int w = fm.horizontalAdvance(caption) + 24;
-			revealRect = QRect(x, y, w, controlH - 4);
-			const bool hovered = hoveredControl == 1;
-			p.setPen(QPen(alpha(border, 160), 1));
-			p.setBrush(hovered ? alpha(border, 60) : alpha(border, 30));
-			p.drawRoundedRect(revealRect, (controlH - 4) / 2, (controlH - 4) / 2);
-			p.setPen(hovered ? text : muted);
-			p.drawText(revealRect, Qt::AlignCenter, caption);
-			x += w + 10;
-		}
-
-		{
-			const QString caption = QStringLiteral("+ ") + tr("Add channel");
-			const int w = fm.horizontalAdvance(caption) + 24;
-			addChannelRect = QRect(x, y, w, controlH - 4);
-			const bool hovered = hoveredControl == 2;
-			p.setPen(QPen(alpha(accent, hovered ? 220 : 140), 1, Qt::DashLine));
-			p.setBrush(alpha(accent, hovered ? 40 : 24));
-			p.drawRoundedRect(addChannelRect, (controlH - 4) / 2, (controlH - 4) / 2);
-			p.setPen(alpha(accent, hovered ? 255 : 220));
-			p.drawText(addChannelRect, Qt::AlignCenter, caption);
-		}
+	{
+		const QString caption = QStringLiteral("+ ") + tr("Add channel");
+		const int w = fm.horizontalAdvance(caption) + 24;
+		addChannelRect = QRect(x, y, w, controlH - 4);
+		const bool hovered = hoveredControl == 2;
+		p.setPen(QPen(alpha(accent, hovered ? 220 : 140), 1, Qt::DashLine));
+		p.setBrush(alpha(accent, hovered ? 40 : 24));
+		p.drawRoundedRect(addChannelRect, (controlH - 4) / 2, (controlH - 4) / 2);
+		p.setPen(alpha(accent, hovered ? 255 : 220));
+		p.drawText(addChannelRect, Qt::AlignCenter, caption);
 	}
 }
 

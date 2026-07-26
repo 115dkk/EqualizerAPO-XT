@@ -44,7 +44,6 @@ protected:
 private:
 	struct Hit { int row = 0; int summand = 0; QRect rect; };
 	struct AddHit { int row = 0; QRect rect; };
-	bool foldable() const;
 	void refold();
 	void commitEditor();
 	void showAddMenu(int row, const QPoint& globalPos);

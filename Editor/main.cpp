@@ -173,7 +173,7 @@ bool isHookArgument(const char* arg)
 		matchesHook(arg, "--veloapp-uninstall"));
 }
 
-bool hasArgument(int argc, char* argv[], const char* expected)
+bool hasArgument(int argc, char* const argv[], const char* expected)
 {
 	for (int i = 1; i < argc; i++)
 	{

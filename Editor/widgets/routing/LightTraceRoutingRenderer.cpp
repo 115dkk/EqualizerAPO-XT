@@ -54,13 +54,6 @@ std::vector<Assignment> StudioRoutingView::assignments() const
 	return model.assignments();
 }
 
-bool StudioRoutingView::foldable() const
-{
-	// Copy and MultiConvolution share the target-channel fold. Fixed-source
-	// mode keeps every IR input lit; only its device/output row collapses.
-	return true;
-}
-
 void StudioRoutingView::galleryShowcase(const QString& state)
 {
 	if (state == QLatin1String("expanded"))
@@ -113,52 +106,49 @@ void StudioRoutingView::relayout()
 	inputVisible = QVector<bool>(inputPorts.size(), true);
 	outputVisible = QVector<bool>(outputPorts.size(), true);
 	hiddenOutputs = 0;
-	if (foldable())
+	QVector<bool> inputLit(inputPorts.size(), false);
+	QVector<bool> outputLit(outputPorts.size(), false);
+	for (const StudioRoutingModel::Trace& trace : model.traces())
 	{
-		QVector<bool> inputLit(inputPorts.size(), false);
-		QVector<bool> outputLit(outputPorts.size(), false);
-		for (const StudioRoutingModel::Trace& trace : model.traces())
-		{
-			if (trace.input >= 0 && trace.input < inputLit.size())
-				inputLit[trace.input] = true;
-			if (trace.output >= 0 && trace.output < outputLit.size())
-				outputLit[trace.output] = true;
-		}
-		QSet<QString> pinnedUpper;
-		for (const QString& name : pinnedChannels)
-			pinnedUpper.insert(name.toUpper());
-
-		for (int j = 0; j < outputPorts.size(); j++)
-			outputVisible[j] = channelsExpanded || outputLit[j]
-				|| pinnedUpper.contains(outputPorts[j].toUpper())
-				|| j >= model.seededOutputCount();
-		for (int i = 0; i < inputPorts.size(); i++)
-		{
-			if (portModel.fixedSourceMode())
-			{
-				inputVisible[i] = true;
-				continue;
-			}
-			const bool isConst = model.constInput(i);
-			inputVisible[i] = channelsExpanded || inputLit[i]
-				|| (!isConst && (pinnedUpper.contains(inputPorts[i].toUpper())
-					|| i >= model.seededInputCount()));
-		}
-		// Representative fallback: while nothing is routed, the first two
-		// device channels stand in on both rows. Keyed on traces, not pins,
-		// so a freshly added virtual chip keeps its counterparts to connect
-		// to.
-		if (!channelsExpanded && model.traces().isEmpty())
-		{
-			for (int j = 0; j < outputPorts.size() && j < qMin(2, model.seededOutputCount()); j++)
-				outputVisible[j] = true;
-			for (int i = 0; i < inputPorts.size() && i < qMin(2, model.seededInputCount()); i++)
-				inputVisible[i] = true;
-		}
-		for (bool v : outputVisible)
-			if (!v)
-				hiddenOutputs++;
+		if (trace.input >= 0 && trace.input < inputLit.size())
+			inputLit[trace.input] = true;
+		if (trace.output >= 0 && trace.output < outputLit.size())
+			outputLit[trace.output] = true;
 	}
+	QSet<QString> pinnedUpper;
+	for (const QString& name : pinnedChannels)
+		pinnedUpper.insert(name.toUpper());
+
+	for (int j = 0; j < outputPorts.size(); j++)
+		outputVisible[j] = channelsExpanded || outputLit[j]
+			|| pinnedUpper.contains(outputPorts[j].toUpper())
+			|| j >= model.seededOutputCount();
+	for (int i = 0; i < inputPorts.size(); i++)
+	{
+		if (portModel.fixedSourceMode())
+		{
+			inputVisible[i] = true;
+			continue;
+		}
+		const bool isConst = model.constInput(i);
+		inputVisible[i] = channelsExpanded || inputLit[i]
+			|| (!isConst && (pinnedUpper.contains(inputPorts[i].toUpper())
+				|| i >= model.seededInputCount()));
+	}
+	// Representative fallback: while nothing is routed, the first two
+	// device channels stand in on both rows. Keyed on traces, not pins,
+	// so a freshly added virtual chip keeps its counterparts to connect
+	// to.
+	if (!channelsExpanded && model.traces().isEmpty())
+	{
+		for (int j = 0; j < outputPorts.size() && j < qMin(2, model.seededOutputCount()); j++)
+			outputVisible[j] = true;
+		for (int i = 0; i < inputPorts.size() && i < qMin(2, model.seededInputCount()); i++)
+			inputVisible[i] = true;
+	}
+	for (bool v : outputVisible)
+		if (!v)
+			hiddenOutputs++;
 
 	auto rowRects = [&](const QStringList& labels, bool inputRow, int y) {
 		QVector<QRect> rects;
@@ -190,7 +180,7 @@ void StudioRoutingView::relayout()
 	// lights currently off, "fold" once everything burns) in the same dashed
 	// ghost-glass grammar as the add chip below.
 	revealRect = QRect();
-	if (foldable() && isEnabled() && (hiddenOutputs > 0 || channelsExpanded))
+	if (isEnabled() && (hiddenOutputs > 0 || channelsExpanded))
 	{
 		int revealX = marginX;
 		for (const QRect& rect : inputRects)
@@ -472,7 +462,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		// small x pane at the chip's shoulder (device channels fold instead
 		// of leaving, so they never get one).
 		const QString label = chipLabel(false, i);
-		if (foldable() && lit && hoveredChip == i && !hoveredChipIsInput
+		if (lit && hoveredChip == i && !hoveredChipIsInput
 			&& CopyRoutingAdapter::isVirtualChannel(label))
 		{
 			const QRect chip = outputRects[i];
@@ -562,8 +552,7 @@ void StudioRoutingView::paintEvent(QPaintEvent*)
 		if (target >= 0)
 		{
 			overTarget = overInput != dragFromInput
-				|| (overInput == dragFromInput && target != dragChip
-					&& chipHasTrace(dragFromInput, dragChip));
+				|| (target != dragChip && chipHasTrace(dragFromInput, dragChip));
 		}
 		if (overTarget)
 		{

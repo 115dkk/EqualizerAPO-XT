@@ -70,7 +70,6 @@ private:
 	int traceAt(const QPoint& pos) const;
 	bool chipHasTrace(bool inputRow, int index) const;
 	QString chipLabel(bool inputRow, int index) const;
-	bool foldable() const;
 	void openFactorEditor(int trace);
 	void openChannelEditor();
 

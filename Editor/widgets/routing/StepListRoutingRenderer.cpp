@@ -41,26 +41,10 @@ std::vector<Assignment> StepListView::assignments() const
 	return workingAssignments;
 }
 
-bool StepListView::foldable() const
-{
-	// Both grammars fold target channels. MultiConvolution keeps its complete
-	// fixed IR source list in the per-step add menu.
-	return true;
-}
-
 void StepListView::refold()
 {
-	if (foldable())
-	{
-		fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
-			channelsExpanded, portModel.fixedSources);
-	}
-	else
-	{
-		fold = RoutingFold::Fold();
-		for (int i = 0; i < (int)workingAssignments.size(); i++)
-			fold.visibleRows.append(i);
-	}
+	fold = RoutingFold::fold(workingAssignments, deviceChannels, pinnedChannels,
+		channelsExpanded, portModel.fixedSources);
 	syncSizeToHint();
 	update();
 }
@@ -105,7 +89,7 @@ QSize StepListView::sizeHint() const
 	// The fold line (when channels are folded away) and the prompt/cursor
 	// line that closes the listing.
 	int extraLines = 1;
-	if (foldable() && (fold.hiddenChannels > 0 || channelsExpanded))
+	if (fold.hiddenChannels > 0 || channelsExpanded)
 		extraLines++;
 	return QSize(maxWidth + 16, headerH + (fold.visibleRows.size() + extraLines) * rowH + 8);
 }
@@ -143,7 +127,7 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(QPen(withAlpha(border, 160), 1));
 	p.drawLine(0, headerH, width(), headerH);
 
-	const bool foldLine = foldable() && (fold.hiddenChannels > 0 || channelsExpanded);
+	const bool foldLine = fold.hiddenChannels > 0 || channelsExpanded;
 	const int listedRows = fold.visibleRows.size() + (foldLine ? 1 : 0);
 
 	// Line-number gutter: the number column is set off by a hairline, like a
@@ -266,7 +250,7 @@ void StepListView::paintEvent(QPaintEvent*)
 
 		// A virtual channel can leave the listing: hovering its step exposes
 		// an [x] bracket target (device channels fold instead of leaving).
-		if (foldable() && CopyRoutingAdapter::isVirtualChannel(dest) && hoveredRow == r)
+		if (CopyRoutingAdapter::isVirtualChannel(dest) && hoveredRow == r)
 		{
 			const QRect xRect(x, y + (rowH - 18) / 2, 18, 18);
 			drawBracketTarget(xRect, QStringLiteral("x"), false);
@@ -301,15 +285,12 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(muted);
 	p.drawText(QRect(0, py, 36, rowH), Qt::AlignCenter, QStringLiteral(">"));
 	p.fillRect(QRect(44, py + (rowH - 15) / 2, 8, 15), withAlpha(QColor(t.accent), 210));
-	if (foldable())
+	promptRect = QRect(0, py, width(), rowH);
+	if (hoveredControl == 2 && (channelEditor == nullptr || !channelEditor->isVisible()))
 	{
-		promptRect = QRect(0, py, width(), rowH);
-		if (hoveredControl == 2 && (channelEditor == nullptr || !channelEditor->isVisible()))
-		{
-			p.setPen(withAlpha(muted, 190));
-			p.drawText(QRect(58, py, 220, rowH), Qt::AlignLeft | Qt::AlignVCenter,
-				QStringLiteral("add channel"));
-		}
+		p.setPen(withAlpha(muted, 190));
+		p.drawText(QRect(58, py, 220, rowH), Qt::AlignLeft | Qt::AlignVCenter,
+			QStringLiteral("add channel"));
 	}
 }
 
