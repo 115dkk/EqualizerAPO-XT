@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 #include <memory>
@@ -144,6 +145,19 @@ private:
 	// are split out.
 	void installWithin(RegistryTransaction& plan);
 	void uninstallWithin(RegistryTransaction& plan);
+
+	// The one place the three public operations share: it opens the transaction,
+	// records what the device looked like beforehand, runs the steps, and fills in
+	// the report whether they finished or threw. The steps are a callable because
+	// reinstall() is three of them under one transaction, which a member-function
+	// pointer could not express.
+	void runReported(DeviceInstallReport::Operation operation,
+		const std::function<void(RegistryTransaction&)>& steps);
+	void beginReport(DeviceInstallReport::Operation operation);
+	void finishReport(RegistryTransaction& plan);
+	// Rolls the transaction back before reading what the rollback could not do,
+	// then logs the whole report. The caller rethrows.
+	void failReport(RegistryTransaction& plan, const std::wstring& failure);
 
 	std::wstring deviceName;
 	std::wstring connectionName;

@@ -47,6 +47,11 @@
 	    that install() now runs inside can only be judged by interrupting an
 	    install midway, and no other means of interrupting one exists.
 
+	  * denyRead() arms a key that exists but cannot be opened, which is what a
+	    driver-locked FxProperties key is. keyExists keeps answering true for it,
+	    because the real keyExists opens the key for query and a denial is not an
+	    absence; code that walks every endpoint has to survive the difference.
+
 	enumValues returns the names in the map's case-insensitive order rather than
 	the insertion order RegEnumValueW happens to produce. The port documents no
 	order for that reason, and a caller that depends on one is relying on
@@ -181,6 +186,17 @@ public:
 	void failValueWrite(const std::wstring& key, const std::wstring& valuename)
 	{
 		failedValueWrites_.insert(key + L"\\" + valuename);
+	}
+
+	// Makes one key refuse to be opened at all, the way a driver-locked
+	// FxProperties key does. keyExists still answers true, because the real
+	// keyExists opens with KEY_QUERY_VALUE and a key whose ACL denies the caller
+	// is not a key that is absent - telling those two apart is the difference
+	// between "install here" and "cannot install here", and code that walks
+	// endpoints has to survive the second.
+	void denyRead(const std::wstring& key)
+	{
+		deniedReadKeys_.insert(key);
 	}
 
 	// --- Inspection of the operations that have no in-memory effect.
@@ -422,6 +438,8 @@ private:
 		std::map<std::wstring, ValueMap, CaseInsensitiveLess>::const_iterator it = keys_.find(key);
 		if (it == keys_.end())
 			throw RegistryException(L"Error while opening registry key " + key + L": the system cannot find the file specified");
+		if (deniedReadKeys_.find(key) != deniedReadKeys_.end())
+			throw RegistryException(L"Error while opening registry key " + key + L": access is denied");
 		return it->second;
 	}
 
@@ -487,6 +505,7 @@ private:
 	std::map<std::wstring, ValueMap, CaseInsensitiveLess> keys_;
 	std::set<std::wstring, CaseInsensitiveLess> deniedCreateKeys_;
 	std::set<std::wstring, CaseInsensitiveLess> failedValueWrites_;
+	std::set<std::wstring, CaseInsensitiveLess> deniedReadKeys_;
 	std::vector<std::wstring> takeOwnershipCalls_;
 	std::vector<std::wstring> makeWritableCalls_;
 	std::vector<Export> exports_;

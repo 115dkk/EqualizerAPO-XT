@@ -19,10 +19,12 @@
 
 #include "stdafx.h"
 #include <DeviceAPOInfo.h>
+#include <helpers/LogHelper.h>
 #include <helpers/RegistryHelper.h>
 #include <helpers/WindowsVersion.h>
 #include <helpers/ServiceHelper.h>
 #include <helpers/Win32Resource.h>
+#include <QDir>
 #include <QPropertyAnimation>
 #include <VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
@@ -286,7 +288,25 @@ void DeviceSelector::onDialogAccepted()
 			}
 			catch (const RegistryException& e)
 			{
-				QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
+				// The operation put the endpoint back before throwing, and its
+				// report is already in DeviceSelector.log. Two things are added
+				// here: where to find that log, and the one case where the
+				// endpoint was *not* put back, which the user has to know about
+				// before they try again.
+				QString message = QString::fromStdWString(e.getMessage());
+				const DeviceInstallReport& report = info->getLastOperationReport();
+				if (report.leftInconsistent())
+				{
+					message += QLatin1String("\n\n") + tr("Undoing the change did not finish either, so this "
+						"device may be left partly changed. Reboot before trying again, and see the log for details.");
+				}
+				else if (report.operation != DeviceInstallReport::Operation::None)
+				{
+					message += QLatin1String("\n\n") + tr("The device was left as it was before.");
+				}
+				message += QLatin1String("\n\n") + tr("Details are in %1.")
+					.arg(QDir::toNativeSeparators(QString::fromStdWString(LogHelper::currentPath())));
+				QMessageBox::critical(this, tr("Error while accessing the registry"), message);
 			}
 		}
 	}

@@ -41,6 +41,7 @@ SOURCES += \
 	../helpers/ServiceHelper.cpp \
 	../helpers/ApoRegistration.cpp \
 	../helpers/AudioEngineAccess.cpp \
+	../helpers/InstallDiagnostics.cpp \
 	stdafx.cpp
 
 HEADERS += \
@@ -59,6 +60,7 @@ HEADERS += \
 	../helpers/ServiceHelper.h \
 	../helpers/ApoRegistration.h \
 	../helpers/AudioEngineAccess.h \
+	../helpers/InstallDiagnostics.h \
 	resource.h \
 	stdafx.h
 

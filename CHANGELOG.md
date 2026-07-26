@@ -14,6 +14,32 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **When installing onto a device fails, you can now find out why.** Device
+  Selector performs the install, and it wrote no log at all: the error appeared in
+  a message box, and the log file people were asked for had nothing about the
+  install in it, because the Editor was not the program that ran it. Install,
+  uninstall and repair now record what they found on the device, what they wrote,
+  and what failed with which Windows error, into
+  `%LOCALAPPDATA%\EqualizerAPO\logs\DeviceSelector.log`. The error dialog says
+  where that is, and says whether the device was left as it was - or, in the one
+  case where undoing the change also failed, that it may be left partly changed
+  and needs a reboot before another attempt.
+- **`Editor.exe --diagnose` writes an install report.** It covers the install
+  path, the COM registration, whether the audio engine (`audiodg.exe`, running as
+  LOCAL SERVICE) and ordinary users can read the install and config directories,
+  and which audio endpoints currently have Equalizer APO in their chain. The
+  report goes to the console if you run it from one, and to
+  `%LOCALAPPDATA%\EqualizerAPO\logs\diagnose-<time>.txt` either way. It changes
+  nothing and needs no administrator rights, which is the point: the same checks
+  previously required downloading `tools/Diagnose-EqualizerAPO.ps1`. Device
+  Selector accepts the same switch, but it always asks for elevation, so the
+  Editor form is the one to use.
+- **A Windows version check was wrong for Windows 10 and 11.** It packed each
+  decimal digit of the version into its own group of bits, so a major version of
+  10 or above did not compare correctly. Nothing had asked it about a version that
+  high, so nothing was misbehaving; the new diagnostics report was the first
+  caller to try, which is how it surfaced.
+
 ## v2.27.5 — 2026-07-26
 
 - **An installation that fails partway no longer leaves a device half connected.**

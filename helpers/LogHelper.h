@@ -39,6 +39,12 @@ public:
 	static void reset();
 	static void set(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors);
 
+	// Where log() is writing, or an empty string when it is writing to a stream
+	// (the test suites) or has not been initialised yet. Exists so a program can
+	// tell the user where to look: an error dialog that says what went wrong but
+	// not where the detail is leaves the user with nothing to send.
+	static std::wstring currentPath();
+
 private:
 	// First log() call may race between RT, worker, and GUI threads: the
 	// acquire load on `initialized` publishes `logPath` written under the init

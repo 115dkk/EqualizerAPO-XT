@@ -24,6 +24,7 @@
 | S5a | 레지스트리 포트와 인메모리 가짜 도입 | #227 | (없음) |
 | S5b | 설치·제거·재설치를 `RegistryTransaction` 안에서 수행 | #236 | |
 | S5d | audiodg 접근 검사와 부여를 `AudioEngineAccess` 한 곳으로 | #237 | (없음) |
+| S5c | 설치 결과를 값으로 보고하고 로그·`--diagnose`로 내보냄 | (진행 중) | |
 
 S1 이 고친 사용자 체감 결함은 셋입니다. 소수점 쉼표로 적은 `Preamp: -6,5 dB` 가 카드를 건드리는
 순간 `-6.0` 으로 덮어써지던 것, REW·Dirac 이 기본으로 내보내는 `Filter 1: ON IIR ...` 에
@@ -50,27 +51,29 @@ Editor 의 6개 호출 지점이 같은 마스크 비교를 각자 적던 것은
 승격 가정은 이제 로그로 드러납니다. 승격 없이 도는 훅을 거부하지는 않습니다.
 설치기가 부르는 훅이라 거부하면 Windows 가 마칠 수 있는 설치까지 깨뜨립니다.
 
-`tools/` 의 두 PowerShell 스크립트는 아직 같은 지식을 따로 갖고 있습니다.
-그것을 프로그램 안으로 들이는 것은 S5c 의 `--diagnose` 몫입니다.
+S5c 는 그 침묵을 없앴습니다. `devices/`·`RegistryHelper`·`ServiceHelper`·`DeviceSelector.cpp` 를 합쳐
+약 950줄에 로그 호출이 0개였습니다. 설치를 실제로 수행하는 DeviceSelector 가 로그 파일을 아예 열지 않았으니
+사용자가 설치 실패를 신고해도 읽을 것이 없었습니다.
+
+이제 세 연산이 `DeviceInstallReport` 를 값으로 남깁니다. 무엇을 발견했고(FxProperties 유무, 드라이버가 채운
+슬롯, 백업 파일 경로, 요청된 모드), 무엇을 썼고(트랜잭션이 적용한 변경 목록 그대로), 무엇이 어떤 Win32
+상태로 실패했는지입니다. 성공은 요약 한 줄, 실패는 전체 블록이 `DeviceSelector.log` 에 들어갑니다.
+`Editor/main.cpp` 의 로그 대상 선택도 Velopack 훅보다 앞으로 옮겼습니다. 훅 출력이 `%TEMP%` 로 떨어지던
+것을 없애는 것이 목적입니다.
+
+`--diagnose` 는 PowerShell 스크립트의 검사를 프로그램 안으로 들였습니다. Editor 와 DeviceSelector 둘 다
+받습니다. **사용자에게 안내할 것은 Editor 쪽입니다.** DeviceSelector 는 `requireAdministrator` 로 링크되므로
+읽기만 해도 UAC 프롬프트가 뜨는데, 이 보고서의 목적은 무엇을 바꾸기 전에 먼저 보는 것입니다.
+
+부수적으로 `WindowsVersion::isAtLeast` 의 버그를 찾았습니다. 예전 구현은 십진 숫자를 니블에 하나씩 담는
+비교값을 만들었는데 kernel32 는 major 를 그냥 정수로 보고합니다. 그래서 major 10 이상에서 어긋나
+`isAtLeast(10, 0)` 이 Windows 10·11 에서 false 였습니다. 기존 호출자는 6.3 만 물었고 그 값에서는
+두 방식이 우연히 일치해서 드러나지 않았습니다. 진단 보고서가 처음으로 10 을 물어서 발견됐습니다.
+
+`tools/` 의 두 스크립트는 남겨뒀습니다. 설치가 아예 없는 기계에서도 돌아가고, 복구(`Repair-`) 쪽은
+아직 프로그램 안에 대응물이 없습니다.
 
 ## 남은 작업
-
-### S5c. 설치 경로 진단 (착수 전)
-
-`devices/`, `RegistryHelper`, `ServiceHelper`, `DeviceSelector.cpp` 를 합쳐 약 950줄에 로그 호출이 0개입니다.
-사용자가 설치 실패를 신고하면 `Editor.log` 에는 아무것도 없습니다. 설치를 실제로 수행한 DeviceSelector 가
-어디에도 쓰지 않기 때문입니다. 그래서 진단 지식이 `tools/Diagnose-EqualizerAPO.ps1` 에 PowerShell 로,
-GUID 를 다시 적어가며 프로그램 바깥에 존재합니다.
-
-**방향.** 장치별 적용 결과를 값으로 돌려주게 합니다. 무엇을 발견했고(FxProperties 유무, 원본 저장 여부,
-선택된 모드), 무엇을 썼고, 무엇이 어떤 Win32 상태로 실패했는지입니다.
-DeviceSelector 가 그것을 화면에 그리고 `DeviceSelector.log` 에 남기며, Velopack 훅도 같은 모양을 씁니다.
-그다음 `DeviceSelector --diagnose` 로 설치 경로·ACL·COM 등록·엔드포인트별 APO 사슬을 출력해,
-PowerShell 스크립트의 검사를 프로그램 안으로 들여옵니다.
-
-관련해서 `Editor/main.cpp` 는 Velopack 훅을 `LogHelper::useUserFile` 보다 **먼저** 실행합니다.
-그래서 훅 출력이 `%TEMP%\EqualizerAPO.log` 로 떨어지고, 승격 후에는 그 `%TEMP%` 가 다른 계정의 것일 수 있습니다.
-이것도 같이 다뤄야 합니다.
 
 ### S7. 설정 파싱의 오류 모델 (착수 전)
 

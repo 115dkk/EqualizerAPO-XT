@@ -21,9 +21,9 @@ using std::wstring;
 
 void DeviceAPOInfo::uninstall()
 {
-	RegistryTransaction plan(registry);
-	uninstallWithin(plan);
-	plan.commit();
+	runReported(DeviceInstallReport::Operation::Uninstall, [this](RegistryTransaction& plan) {
+		uninstallWithin(plan);
+	});
 }
 
 void DeviceAPOInfo::uninstallWithin(RegistryTransaction& plan)
@@ -89,11 +89,11 @@ void DeviceAPOInfo::reinstall()
 	// APO GUIDs as the driver has them, and uninstall() has just put them back.
 	// load() only reads, but it throws on an installation this build cannot
 	// describe, and before this it threw with the device already uninstalled.
-	RegistryTransaction plan(registry);
-	uninstallWithin(plan);
-	load(deviceGuid);
-	installWithin(plan);
-	plan.commit();
+	runReported(DeviceInstallReport::Operation::Reinstall, [this](RegistryTransaction& plan) {
+		uninstallWithin(plan);
+		load(deviceGuid);
+		installWithin(plan);
+	});
 }
 
 wstring DeviceAPOInfo::getConnectionName() const

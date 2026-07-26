@@ -35,6 +35,9 @@
     <ClCompile Include="..\helpers\AudioEngineAccess.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
+    <ClCompile Include="..\helpers\InstallDiagnostics.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
     <ClCompile Include="..\helpers\ApoRegistration.cpp">
       <Filter>helpers</Filter>
     </ClCompile>

@@ -23,6 +23,15 @@
     <ClCompile Include="RegistryTransactionTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="InstallDiagnosticsTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\helpers\AudioEngineAccess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\helpers\InstallDiagnostics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SampleIoTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

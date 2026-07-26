@@ -56,12 +56,20 @@
 	    site in the device layer overwrites or deletes a binary value; the check
 	    is there so that a future one fails loudly rather than silently.
 
+	THE JOURNAL ONLY DESCRIBES CHANGES THAT HAPPENED. An operation that throws
+	changed nothing, so it adds no undo step - the snapshot is taken first,
+	because that is the only moment the old contents still exist, but the entry is
+	kept only after the mutation succeeds. Getting this backwards is subtle and
+	costly: a write refused by an ACL would leave an entry that puts the value
+	back on top of itself, and that step would then be refused by the same ACL, so
+	an ordinary failed write would report itself as a rollback that did not finish
+	- which is the signal reserved for a device left in a state nothing describes.
+
 	ROLLBACK ITSELF DOES NOT THROW. It runs from a destructor during exception
 	propagation, where throwing would end the process, so a failed undo step is
-	recorded in rollbackFailures() and the remaining steps still run. Nothing
-	reads that list yet; it exists because the alternative is a rollback that
-	fails silently, and because the install diagnostics still to be written are
-	the caller that will want it.
+	recorded in rollbackFailures() and the remaining steps still run. The device
+	layer reports that list: it is the difference between "nothing happened" and
+	"this endpoint needs a reboot before you try again".
 */
 
 #pragma once
@@ -95,6 +103,13 @@ public:
 	bool isFullyReversible() const;
 	// Undo steps rollback() could not perform, each as one human-readable line.
 	const std::vector<std::wstring>& rollbackFailures() const;
+
+	// Every mutation that was applied, in order, one human-readable line each.
+	// This is what makes an install reportable: the record is written by the same
+	// call that performs the change, so it cannot describe a different change than
+	// the one that happened. Survives commit() and rollback(), because a caller
+	// reporting a failure needs to say how far it got.
+	const std::vector<std::wstring>& appliedOperations() const;
 
 	// --- IRegistry. Reads forward unchanged.
 
@@ -146,6 +161,10 @@ private:
 	{
 		enum class Kind
 		{
+			// Nothing to undo. Produced when the operation was going to throw
+			// anyway, so that the journal never grows an entry for a change that
+			// did not happen.
+			Nothing,
 			// The value was not there before: undo by deleting it.
 			DeleteValue,
 			// The value was there: undo by writing the snapshot back.
@@ -156,7 +175,7 @@ private:
 			RestoreKey
 		};
 
-		Kind kind = Kind::DeleteValue;
+		Kind kind = Kind::Nothing;
 		std::wstring key;
 		ValueSnapshot value;
 		std::vector<std::wstring> keys;
@@ -166,13 +185,25 @@ private:
 	// Reads the value so it can be put back. Throws RegistryException when its
 	// type cannot be restored, which the caller lets propagate before applying.
 	ValueSnapshot snapshot(const std::wstring& key, const std::wstring& valuename) const;
-	// Records how to undo a write to this value, whatever it holds now.
-	void journalValueWrite(const std::wstring& key, const std::wstring& valuename);
+	// Builds the entry that would undo a write to this value, whatever it holds
+	// now. Reads the current contents, so it has to run before the write - and it
+	// is also where a value that cannot be restored is refused, which is why it
+	// runs before anything is applied.
+	Entry prepareValueWrite(const std::wstring& key, const std::wstring& valuename) const;
+	// Adds a prepared entry to the journal, which happens only after the mutation
+	// it undoes has actually succeeded. A write that threw changed nothing, and an
+	// undo entry for it would make the rollback put a value back on top of itself
+	// - harmless in the registry, but it turns a write that was refused into a
+	// rollback step that is refused too, and a rollback failure means something
+	// much worse than a write failure.
+	void keep(const Entry& entry);
+	void recordApplied(const std::wstring& description);
 	void undo(const Entry& entry);
 	void restoreValue(const std::wstring& key, const ValueSnapshot& stored);
 
 	IRegistry& target;
 	std::vector<Entry> journal;
+	std::vector<std::wstring> applied;
 	std::vector<std::wstring> failures;
 	bool committed = false;
 	bool fullyReversible = true;

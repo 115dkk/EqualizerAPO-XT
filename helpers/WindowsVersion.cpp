@@ -20,43 +20,55 @@
 
 namespace
 {
-DWORD productVersion()
+WindowsVersion::Version readVersion()
 {
-	// C++11 guarantees the initialisation runs once even under concurrent first
-	// calls, which the previous plain-DWORD cache did not.
-	static const DWORD cached = []() -> DWORD {
-		DWORD handle;
-		DWORD size = GetFileVersionInfoSizeW(L"kernel32.dll", &handle);
-		if (size == 0)
-			return 0;
+	WindowsVersion::Version version;
 
-		std::vector<char> data(size);
-		if (!GetFileVersionInfoW(L"kernel32.dll", handle, size, data.data()))
-			return 0;
+	DWORD handle;
+	DWORD size = GetFileVersionInfoSizeW(L"kernel32.dll", &handle);
+	if (size == 0)
+		return version;
 
-		VS_FIXEDFILEINFO* info;
-		UINT length;
-		if (!VerQueryValueW(data.data(), L"\\", reinterpret_cast<LPVOID*>(&info), &length))
-			return 0;
+	std::vector<char> data(size);
+	if (!GetFileVersionInfoW(L"kernel32.dll", handle, size, data.data()))
+		return version;
 
-		return info->dwProductVersionMS;
-	}();
+	VS_FIXEDFILEINFO* info;
+	UINT length;
+	if (!VerQueryValueW(data.data(), L"\\", reinterpret_cast<LPVOID*>(&info), &length))
+		return version;
 
-	return cached;
+	// VS_FIXEDFILEINFO keeps the major in the high word and the minor in the low
+	// word, and the build in the high word of the *LS* field.
+	version.major = HIWORD(info->dwProductVersionMS);
+	version.minor = LOWORD(info->dwProductVersionMS);
+	version.build = HIWORD(info->dwProductVersionLS);
+	return version;
 }
 }
 
 namespace WindowsVersion
 {
 
+Version current()
+{
+	// C++11 guarantees the initialisation runs once even under concurrent first
+	// calls, which the previous plain-DWORD cache did not.
+	static const Version cached = readVersion();
+	return cached;
+}
+
 bool isAtLeast(unsigned major, unsigned minor)
 {
-	// The version resource packs each decimal digit into its own nibble, so 6.3
-	// is 0x00060003. This only works for major and minor up to 99.
-	const DWORD compareVersion = ((major / 10) << 20) + ((major % 10) << 16)
-		+ ((minor / 10) << 4) + (minor % 10);
-
-	return productVersion() >= compareVersion;
+	// Compare the fields, not a packed integer. The version this replaced packed
+	// each decimal digit into its own nibble, which made 10 come out as 0x10 while
+	// kernel32 reports it as 0x0A - so isAtLeast(10, 0) answered false on Windows
+	// 10 and 11. Nothing had asked it that yet: the only caller in the tree asks
+	// for 6.3, where a per-nibble packing and the real one happen to agree.
+	const Version version = current();
+	if (version.major != major)
+		return version.major > major;
+	return version.minor >= minor;
 }
 
 } // namespace WindowsVersion

@@ -192,6 +192,35 @@ void testAFailedUndoStepIsRecordedAndTheRestStillRuns(test::Harness& harness)
 		"the steps that can still run do run; one unrestorable value must not abandon the rest of the rollback");
 }
 
+void testAWriteThatWasRefusedLeavesNoUndoStep(test::Harness& harness)
+{
+	FakeRegistry registry;
+	registry.seedKey(rootKey);
+	registry.seedString(rootKey, L"Locked", L"original");
+	registry.failValueWrite(rootKey, L"Locked");
+
+	RegistryTransaction plan(registry);
+	bool threw = false;
+	try
+	{
+		plan.writeValue(rootKey, L"Locked", L"attempted");
+	}
+	catch (const RegistryException&)
+	{
+		threw = true;
+	}
+
+	harness.expect(threw, "the refused write reports itself");
+	harness.expectEqual(plan.pendingUndoCount(), size_t(0),
+		"a write that changed nothing leaves nothing to undo; journalling it before applying it would put the value back on top of itself");
+
+	plan.rollback();
+	harness.expectEqual(plan.rollbackFailures().size(), size_t(0),
+		"and so the rollback reports no failure - which matters because a refused write is ordinary while a refused rollback means the device is in a state nothing describes");
+	harness.expect(registry.readValue(rootKey, L"Locked") == L"original",
+		"the value is what it was");
+}
+
 void testPermissionChangesAreReportedAsIrreversible(test::Harness& harness)
 {
 	FakeRegistry registry;
@@ -216,5 +245,6 @@ void runRegistryTransactionTests(test::Harness& harness)
 	testAValueItCannotRestoreIsRefusedBeforeAnythingChanges(harness);
 	testRollbackLeavesAKeySomethingElseMovedInto(harness);
 	testAFailedUndoStepIsRecordedAndTheRestStillRuns(harness);
+	testAWriteThatWasRefusedLeavesNoUndoStep(harness);
 	testPermissionChangesAreReportedAsIrreversible(harness);
 }
