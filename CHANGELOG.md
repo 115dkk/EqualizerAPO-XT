@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A failed install's report no longer claims it created a registry key it did
+  not.** Device Selector's log lists what an install wrote, and it counted a key as
+  created whenever the install touched one - including keys that were already
+  there. Nothing behaved differently; the line was simply wrong in the one place
+  someone reads to work out what happened ([#243](https://github.com/115dkk/EqualizerAPO-XT/pull/243)).
+
 ## v2.29.0 — 2026-07-26
 
 - **A configuration line the engine cannot use now says which line and why.** A
