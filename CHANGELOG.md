@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.27.5 — 2026-07-26
+
 - **An installation that fails partway no longer leaves a device half connected.**
   Installing onto an audio endpoint performs around forty registry changes, and
   they used to run in a straight line: if one of them failed - an ACL on a
