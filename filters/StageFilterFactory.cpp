@@ -26,7 +26,7 @@
 #include "StageCommand.h"
 #include "StageFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Stage, StageFilterFactory, true, L"Stage")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Stage, StageFilterFactory, L"Stage")
 
 using std::vector;
 using std::wstring;

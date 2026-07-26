@@ -18,7 +18,6 @@ struct FilterFactoryRegistration
 	int priority = 0;
 	FilterFactoryCreator creator = nullptr;
 	vector<wstring> commandKeywords;
-	bool suppressMissingFilterWarning = false;
 };
 
 vector<FilterFactoryRegistration>& registrations()
@@ -29,9 +28,9 @@ vector<FilterFactoryRegistration>& registrations()
 }
 
 bool FilterFactoryRegistry::registerFactory(int priority, FilterFactoryCreator creator,
-	vector<wstring> commandKeywords, bool suppressMissingFilterWarning)
+	vector<wstring> commandKeywords)
 {
-	registrations().push_back({priority, creator, std::move(commandKeywords), suppressMissingFilterWarning});
+	registrations().push_back({priority, creator, std::move(commandKeywords)});
 	return true;
 }
 
@@ -95,17 +94,4 @@ wstring FilterFactoryRegistry::canonicalCommand(const wstring& key)
 		return wstring();
 
 	return trimmedKey;
-}
-
-const set<wstring>& FilterFactoryRegistry::commandsWithoutFilter()
-{
-	static const set<wstring> commands = []() {
-		set<wstring> result;
-		for (const FilterFactoryRegistration& registration : registrations())
-			if (registration.suppressMissingFilterWarning)
-				for (const wstring& keyword : registration.commandKeywords)
-					result.insert(keyword);
-		return result;
-	}();
-	return commands;
 }

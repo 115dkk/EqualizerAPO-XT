@@ -31,7 +31,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "LoudnessCorrectionFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::LoudnessCorrection, LoudnessCorrectionFilterFactory, false, L"LoudnessCorrection")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::LoudnessCorrection, LoudnessCorrectionFilterFactory, L"LoudnessCorrection")
 
 using std::regex;
 using std::vector;
@@ -45,8 +45,20 @@ FilterVector LoudnessCorrectionFilterFactory::createFilter(const wstring& config
 {
 	FilterVector allFilters;
 
+	if (command != L"LoudnessCorrection")
+		return allFilters;
+
 	LoudnessCorrectionCommand cmd;
-	if (LoudnessCorrectionCommand::parse(command, parameters, cmd))
+	if (!LoudnessCorrectionCommand::parse(command, parameters, cmd))
+	{
+		// The parser wants all three of State, ReferenceLevel and
+		// ReferenceOffset; a line missing any of them produced nothing at all and
+		// said nothing about which.
+		return reportParseError(command,
+			L"expected State, ReferenceLevel and ReferenceOffset, as in "
+			L"\"State 1 ReferenceLevel 75 ReferenceOffset 0\"");
+	}
+
 	{
 		TraceF(L"Adding loudness correction filter");
 		LoudnessCorrectionFilter::FilterParameters filterParameters;

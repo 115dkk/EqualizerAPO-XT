@@ -14,6 +14,7 @@ another by accident.
 | Install / uninstall orchestration | Return a `Result` enum | `helpers/ApoRegistration.h`, `helpers/ApoRegistration.cpp` |
 | VST plugin loading | Return `bool` | `helpers/VSTPluginInstance.cpp` |
 | Allocation helpers (audio / real-time path) | Return `nullptr` and log | `helpers/MemoryHelper.cpp` |
+| Configuration parsing | Report the line and keep loading | `filters/*Factory.cpp`, `ConfigLoadTrace.h` |
 
 ## Why each layer differs
 
@@ -61,6 +62,29 @@ point in a structured-exception guard and reports the crash as `false`. A plain
 the rest of the filter graph, with no exception crossing the graph-construction
 path. The caller only needs "did it load," not a failure taxonomy.
 
+### Configuration parsing reports per line and never stops the load
+
+A configuration file is the one untrusted text this program reads, and it is
+edited by hand. Half of one is still worth running: a broken `Convolution:` line
+must not take the twelve working filters below it with it, because the user would
+then have no sound at all instead of sound without one effect.
+
+So a factory that recognises its command and cannot use the parameters calls
+`ParseReportingFactory::reportParseError(command, reason)`. That logs the file and
+line, and hands the same reason to `ConfigLoadTrace` so the Editor can mark the
+row. The load continues with the next line. Nothing throws: `createFilter` runs
+inside the engine's dispatch loop for every line of every file, and an exception
+there would abandon the rest of the configuration.
+
+Two rules make this honest. **The factory reports, not the engine.** The engine
+cannot tell a broken parameter list from a command that legitimately produces no
+filter - `Preamp: 0 dB` produces none, and so does every control-flow command -
+and it used to guess from the outside with a hand-maintained list of commands to
+excuse, which meant a new no-op filter became a false warning until somebody
+remembered the list. **A line no factory claimed is not an error.** Prose,
+comments and unknown keys are how 1.4.2 configurations carry notes, and reporting
+them would bury the real diagnostics.
+
 ### Allocation helpers return `nullptr` by contract
 
 `MemoryHelper::alloc` returns `nullptr` on failure and logs the requested size
@@ -73,7 +97,7 @@ the representative allocation case.
 
 ## Note on convergence
 
-Converging these four models into one is out of scope for this change and is
+Converging these five models into one is out of scope for this change and is
 intentionally deferred. The models are kept distinct on purpose: the boundary
 runs along "setup-time, failure aborts the operation" (exceptions or a staged
 `Result`) versus "real-time / audio path, failure must stay local and

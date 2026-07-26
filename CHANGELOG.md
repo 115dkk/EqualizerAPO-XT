@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A configuration line the engine cannot use now says which line and why.** A
+  broken `Convolution:` or `Copy:` line used to produce a log entry that guessed -
+  "recognized but produced no filter, likely due to malformed parameters" - and on
+  screen it looked exactly like a note somebody had typed into the file. The
+  command that owns the line now reports what it expected, so the log names the
+  file, the line and the reason, and hovering the card in the Editor shows the same
+  sentence. Nothing else changes about how a configuration loads: the lines below a
+  broken one still run, because half a configuration is better than none. ([#239](https://github.com/115dkk/EqualizerAPO-XT/pull/239))
+
 ## v2.28.0 — 2026-07-26
 
 - **When installing onto a device fails, you can now find out why.** Device

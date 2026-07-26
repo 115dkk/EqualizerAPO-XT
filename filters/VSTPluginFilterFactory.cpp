@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory, false, L"VSTPlugin")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory, L"VSTPlugin")
 
 using std::shared_ptr;
 using std::unordered_map;
@@ -47,43 +47,42 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 		const wstring& chunkData = cmd.chunkData;
 		const unordered_map<wstring, float>& paramMap = cmd.paramMap;
 
-		if (library != nullptr)
-		{
-			bool create = true;
-			if (configPath != L"")
-			{
-				create = false;
-				TraceF(L"Adding VST plugin %s", library->getLibPath().c_str());
-				int res = library->initialize();
-				if (res < 0)
-				{
-					if (res == AbstractLibrary::FILE_NOT_FOUND)
-						LogF(L"File %s not found", library->getLibPath());
-					else if (res == AbstractLibrary::LOADING_FAILED)
-						LogF(L"Library %s could not be loaded", library->getLibPath());
-					else if (res == AbstractLibrary::FUNCTIONS_MISSING)
-						LogF(L"Library %s does not contain needed functions", library->getLibPath());
-					else if (res == AbstractLibrary::WRONG_ARCHITECTURE)
-					{
-#ifdef _WIN64
-						int bitDepth = 64;
-#else
-						int bitDepth = 32;
-#endif
-						LogF(L"Library %s has wrong architecture, must be %d-bit", library->getLibPath(), bitDepth);
-					}
-				}
-				else
-				{
-					create = true;
-				}
-			}
+		if (library == nullptr)
+			return reportParseError(command, L"expected Library followed by the path of a plugin");
 
-			if (create)
+		bool create = true;
+		if (configPath != L"")
+		{
+			create = false;
+			TraceF(L"Adding VST plugin %s", library->getLibPath().c_str());
+			int res = library->initialize();
+			if (res < 0)
 			{
-				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, cmd.stereoInput);
+				// These four were already diagnosed, but only into the log. They
+				// are reported now so the Editor can mark the line: a plugin of
+				// the wrong architecture is the single most common VST mistake,
+				// and it is invisible on screen.
+				if (res == AbstractLibrary::FILE_NOT_FOUND)
+					return reportParseError(command, L"the plugin \"" + library->getLibPath() + L"\" was not found");
+				if (res == AbstractLibrary::LOADING_FAILED)
+					return reportParseError(command, L"the plugin \"" + library->getLibPath() + L"\" could not be loaded");
+				if (res == AbstractLibrary::FUNCTIONS_MISSING)
+					return reportParseError(command, L"\"" + library->getLibPath() + L"\" is not a VST plugin: it does not export the entry points");
+#ifdef _WIN64
+				const wstring bitDepth = L"64";
+#else
+				const wstring bitDepth = L"32";
+#endif
+				if (res == AbstractLibrary::WRONG_ARCHITECTURE)
+					return reportParseError(command, L"the plugin \"" + library->getLibPath()
+						+ L"\" is built for the other architecture; a " + bitDepth + L"-bit plugin is needed here");
+				return reportParseError(command, L"the plugin \"" + library->getLibPath() + L"\" could not be initialised");
 			}
+			create = true;
 		}
+
+		if (create)
+			filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, cmd.stereoInput);
 	}
 
 	if (filter == nullptr)

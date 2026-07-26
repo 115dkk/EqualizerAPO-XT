@@ -27,7 +27,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "DelayFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory, true, L"Delay")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory, L"Delay")
 
 using std::vector;
 using std::wstringstream;

@@ -67,6 +67,15 @@ struct CommandRowInfo
 	// (empty when unknown); valueError marks a parser failure.
 	QString evalText;
 	bool valueError = false;
+	// Why the last analysis run could not use this line's parameters, straight
+	// from the factory that owns the command, or empty when it was fine. A row
+	// with this set is one the engine skipped, which until now looked exactly
+	// like a note somebody typed.
+	//
+	// No skin paints it yet: a per-skin treatment for it is a design decision and
+	// belongs in a round with the gallery gate. The card carries it as a tooltip
+	// in the meantime, which is not a skin surface.
+	QString parseError;
 	// True when the line's parameters carry inline `expression` segments, so
 	// its numbers are decided at load time. Rows without a dynamic-capable
 	// editor host the shared raw body; skins extend their raw-body styling

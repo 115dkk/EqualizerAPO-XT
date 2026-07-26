@@ -32,6 +32,18 @@ struct ConfigLoadTraceEntry
 		// Any line a false branch swallowed before the other factories saw
 		// it. Comment lines are not reported (they never execute anyway).
 		SkippedLine,
+		// A line whose command was recognised but whose parameters could not be
+		// parsed, reported by the factory that owns the command. text carries the
+		// reason and error is always set.
+		//
+		// This kind replaced a guess. The engine used to notice that a recognised
+		// command had produced no filter and log "likely due to malformed
+		// parameters", with a hand-maintained list of commands that legitimately
+		// produce none - which meant the diagnosis was inferred from the outside by
+		// the one place that cannot know why a parse failed, and a new filter with a
+		// valid no-op path silently became a false warning until somebody added it
+		// to the list.
+		ParseError,
 	};
 
 	// How a Condition line's expression fared. NotEvaluated marks an ElseIf
