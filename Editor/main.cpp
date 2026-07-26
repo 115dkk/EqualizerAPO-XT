@@ -51,6 +51,7 @@
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
+#include "helpers/VSTPluginInstance.h"
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"

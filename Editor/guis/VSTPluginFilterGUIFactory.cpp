@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include "helpers/VSTPluginInstance.h"
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/StringHelper.h"
 #include "filters/VSTPluginCommand.h"

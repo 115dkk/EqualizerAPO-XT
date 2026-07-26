@@ -110,6 +110,14 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <!-- The filter factories self-register from static initialisers, so the
+           linker has to keep every Common.lib object even though nothing names
+           them. Without this the command vocabulary comes up empty, and
+           FilterFactoryRegistryTests stops the run there with a require().
+           Only the Release configurations had it, so a Debug build of this
+           suite could not get past its first test - invisible in CI, which
+           builds Release only, and in the way of anybody debugging it. -->
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -131,6 +139,14 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <!-- The filter factories self-register from static initialisers, so the
+           linker has to keep every Common.lib object even though nothing names
+           them. Without this the command vocabulary comes up empty, and
+           FilterFactoryRegistryTests stops the run there with a require().
+           Only the Release configurations had it, so a Debug build of this
+           suite could not get past its first test - invisible in CI, which
+           builds Release only, and in the way of anybody debugging it. -->
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -150,6 +166,14 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <!-- The filter factories self-register from static initialisers, so the
+           linker has to keep every Common.lib object even though nothing names
+           them. Without this the command vocabulary comes up empty, and
+           FilterFactoryRegistryTests stops the run there with a require().
+           Only the Release configurations had it, so a Debug build of this
+           suite could not get past its first test - invisible in CI, which
+           builds Release only, and in the way of anybody debugging it. -->
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>

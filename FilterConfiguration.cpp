@@ -49,6 +49,15 @@ FilterConfiguration::FilterConfiguration(const FilterEngine* engine, std::vector
 
 	this->filterInfos = std::move(filterInfos);
 
+	// Resolve the profiler's labels here, off the audio thread. typeid().name()
+	// allocates inside the CRT on the first question about a type, and process()
+	// asked it per filter per block whenever profiling was on.
+	for (const auto& info : this->filterInfos)
+	{
+		if (info && info->filter)
+			info->profileLabel = typeid(*info->filter).name();
+	}
+
 	allStateless = true;
 	for (const auto& info : this->filterInfos)
 	{
@@ -394,7 +403,7 @@ void FilterConfiguration::process(unsigned frameCount)
 
 		if (PerfProfile::active())
 		{
-			PerfScope _ps(typeid(*filterInfo->filter).name());
+			PerfScope _ps(filterInfo->profileLabel);
 			filterInfo->filter->process(currentSamples2.data(), currentSamples.data(), frameCount);
 		}
 		else
