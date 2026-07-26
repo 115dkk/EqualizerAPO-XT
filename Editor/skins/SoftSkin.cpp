@@ -18,6 +18,7 @@
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPainterStateGuard>
 #include <QPixmap>
 #include <QRegularExpression>
 #include <QToolBar>
@@ -371,7 +372,7 @@ public:
 		painter.setBrush(well);
 		painter.drawPath(wellPath);
 
-		painter.save();
+		QPainterStateGuard wellState(&painter);
 		painter.setClipPath(wellPath);
 
 		// Axis captions ride the body face in faded ink - the constitution
@@ -470,7 +471,7 @@ public:
 				for (int pass = 0; pass < 2; pass++)
 				{
 					const bool boostPass = pass == 0;
-					painter.save();
+					QPainterStateGuard curvePassState(&painter);
 					painter.setClipRect(boostPass ? aboveZero : belowZero, Qt::IntersectClip);
 					painter.setPen(Qt::NoPen);
 					painter.setBrush(withAlpha(boostPass ? accent : accent2, 40));
@@ -478,7 +479,6 @@ public:
 					painter.setPen(QPen(boostPass ? boost : cut, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 					painter.setBrush(Qt::NoBrush);
 					painter.drawPolyline(state.curve);
-					painter.restore();
 				}
 			}
 		}
@@ -561,7 +561,7 @@ public:
 			painter.drawText(pill, Qt::AlignCenter, state.cursorText);
 		}
 
-		painter.restore();
+		wellState.restore();
 
 		// The well edge: a very light 1px line awake; asleep it becomes the
 		// dashed outline of the sleeping-slot triple.
@@ -607,7 +607,7 @@ public:
 		painter.setBrush(well);
 		painter.drawPath(wellPath);
 
-		painter.save();
+		QPainterStateGuard wellState(&painter);
 		painter.setClipPath(wellPath);
 
 		// Axis captions ride the body face in faded ink, exactly like the
@@ -711,7 +711,7 @@ public:
 			{
 				const bool overshootPass = pass == 0;
 				const QColor side = overshootPass ? overFill : accent;
-				painter.save();
+				QPainterStateGuard curvePassState(&painter);
 				painter.setClipRect(overshootPass ? aboveZero : belowZero, Qt::IntersectClip);
 				painter.setPen(Qt::NoPen);
 				painter.setBrush(side);
@@ -719,7 +719,6 @@ public:
 				painter.setPen(QPen(mixColor(side, warmInk, 0.40), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 				painter.setBrush(Qt::NoBrush);
 				painter.drawPolyline(segment);
-				painter.restore();
 			}
 		}
 
@@ -891,7 +890,7 @@ public:
 		const double entry = qBound(0.0, state.hover, 1.0);
 		if (state.cursorValid && entry > 0.01)
 		{
-			painter.save();
+			QPainterStateGuard cursorState(&painter);
 			painter.setOpacity(entry);
 
 			painter.setPen(QPen(withAlpha(QColor(tokens.text), 70), 2, Qt::SolidLine, Qt::RoundCap));
@@ -934,10 +933,9 @@ public:
 				painter.drawText(pill, Qt::AlignCenter,
 					pillMetrics.elidedText(state.cursorText, Qt::ElideRight, int(pillW - 12.0)));
 			}
-			painter.restore();
 		}
 
-		painter.restore();
+		wellState.restore();
 
 		// The well edge: the very light 1px line of the two-step elevation.
 		painter.setPen(QPen(border, 1));
@@ -967,7 +965,7 @@ public:
 		if (state.labels.isEmpty())
 			return;
 
-		painter.save();
+		QPainterStateGuard painterState(&painter);
 		painter.setRenderHint(QPainter::Antialiasing, true);
 		painter.setRenderHint(QPainter::TextAntialiasing, true);
 
@@ -1071,8 +1069,6 @@ public:
 		painter.setPen(edge);
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(frame, trackRadius, trackRadius);
-
-		painter.restore();
 	}
 
 	// The plain-text rows (bare note lines and programmatic commands such

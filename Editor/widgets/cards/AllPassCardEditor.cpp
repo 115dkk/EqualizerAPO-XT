@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLocale>
+#include <QScopedValueRollback>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 
@@ -335,17 +336,18 @@ void AllPassCardEditor::setFrequency(double value, bool notify)
 	if (synchronizing)
 		return;
 
-	synchronizing = true;
 	{
-		const QSignalBlocker blocker(frequencyKnob);
-		frequencyKnob->setValue(logKnobValue(currentFrequency, FrequencyMin, FrequencyMax));
+		const QScopedValueRollback<bool> sync(synchronizing, true);
+		{
+			const QSignalBlocker blocker(frequencyKnob);
+			frequencyKnob->setValue(logKnobValue(currentFrequency, FrequencyMin, FrequencyMax));
+		}
+		frequencyKnob->setValueText(QLocale::c().toString(currentFrequency, 'f', 0));
+		{
+			const QSignalBlocker valueBlocker(frequencyValue);
+			frequencyValue->setValue(currentFrequency);
+		}
 	}
-	frequencyKnob->setValueText(QLocale::c().toString(currentFrequency, 'f', 0));
-	{
-		const QSignalBlocker blocker(frequencyValue);
-		frequencyValue->setValue(currentFrequency);
-	}
-	synchronizing = false;
 
 	if (notify)
 		emit updateModel();
@@ -358,18 +360,19 @@ void AllPassCardEditor::setWidth(double value, bool notify)
 		return;
 
 	const double asQ = bandwidthMode() ? BiQuadWidth::qFromBandwidth(currentWidth) : currentWidth;
-	synchronizing = true;
 	{
-		const QSignalBlocker blocker(widthKnob);
-		widthKnob->setValue(logKnobValue(asQ, QMin, QMax));
+		const QScopedValueRollback<bool> sync(synchronizing, true);
+		{
+			const QSignalBlocker blocker(widthKnob);
+			widthKnob->setValue(logKnobValue(asQ, QMin, QMax));
+		}
+		widthKnob->setValueText(QLocale::c().toString(currentWidth, 'f', 3));
+		{
+			const QSignalBlocker blocker(widthValue);
+			widthValue->setUnit(bandwidthMode() ? tr("Oct") : QString());
+			widthValue->setValue(currentWidth);
+		}
 	}
-	widthKnob->setValueText(QLocale::c().toString(currentWidth, 'f', 3));
-	{
-		const QSignalBlocker blocker(widthValue);
-		widthValue->setUnit(bandwidthMode() ? tr("Oct") : QString());
-		widthValue->setValue(currentWidth);
-	}
-	synchronizing = false;
 
 	if (notify)
 		emit updateModel();
