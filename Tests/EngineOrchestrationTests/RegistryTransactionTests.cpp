@@ -41,6 +41,17 @@ void testCommitKeepsEverythingAndEmptiesTheJournal(test::Harness& harness)
 		plan.writeValue(leafKey, L"Name", L"value");
 		harness.expectEqual(plan.pendingUndoCount(), size_t(2),
 			"two operations that changed something are two operations a rollback would have to undo");
+		harness.expectEqual(plan.appliedOperations().size(), size_t(2),
+			"and two lines in the record of what was applied");
+
+		// createKey succeeds on a key that is already there, and that is not a
+		// change: the record has to stay silent about it or the install report
+		// claims a key was created when it was not.
+		plan.createKey(leafKey);
+		harness.expectEqual(plan.appliedOperations().size(), size_t(2),
+			"creating a key that already exists adds nothing to the record");
+		harness.expectEqual(plan.pendingUndoCount(), size_t(2),
+			"and nothing to undo");
 		plan.commit();
 		harness.expectEqual(plan.pendingUndoCount(), size_t(0),
 			"a committed transaction has nothing left to undo, so its destructor does nothing");
