@@ -151,6 +151,58 @@ Describe "Test-SourceSync.ps1" {
         $result.Output | Should -Match "no longer compiles it"
     }
 
+    It "reports a test project that lists a source which is not on disk" {
+        $root = New-FixtureRepo `
+            -CommonSources @('FilterEngine.cpp') `
+            -EditorSources @('../FilterEngine.cpp')
+        # A test project alongside the fixture, listing one file that exists and
+        # one that does not - the shape a rename leaves behind.
+        $projectDir = Join-Path $root 'Tests' 'EditorLogicTests'
+        New-Item -ItemType Directory -Path $projectDir -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $projectDir 'Present.cpp'), '')
+        $testProject = @"
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Present.cpp" />
+    <ClCompile Include="..\..\Editor\Renamed.cpp" />
+  </ItemGroup>
+</Project>
+"@
+        [System.IO.File]::WriteAllText((Join-Path $projectDir 'EditorLogicTests.vcxproj'), $testProject, (New-Object System.Text.UTF8Encoding($true)))
+
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match "which is not on disk"
+        $result.Output | Should -Match ([regex]::Escape("Renamed.cpp"))
+    }
+
+    It "passes when every source a test project lists exists" {
+        $root = New-FixtureRepo `
+            -CommonSources @('FilterEngine.cpp') `
+            -EditorSources @('../FilterEngine.cpp')
+        $projectDir = Join-Path $root 'Tests' 'HybridConvTests'
+        New-Item -ItemType Directory -Path $projectDir -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $projectDir 'Suite.cpp'), '')
+        $testProject = @"
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Suite.cpp" />
+    <ClCompile Include="..\..\FilterEngine.cpp" />
+  </ItemGroup>
+</Project>
+"@
+        [System.IO.File]::WriteAllText((Join-Path $projectDir 'HybridConvTests.vcxproj'), $testProject, (New-Object System.Text.UTF8Encoding($true)))
+        [System.IO.File]::WriteAllText((Join-Path $root 'FilterEngine.cpp'), '')
+
+        $result = Invoke-SourceSync -RepoRoot $root
+
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match "listed sources and headers all exist"
+    }
+
     It "refuses to pass when it could not read any ClCompile entry" {
         $root = New-FixtureRepo -SkipKnownOmissions -CommonSources @() -EditorSources @('../FilterEngine.cpp')
         $result = Invoke-SourceSync -RepoRoot $root

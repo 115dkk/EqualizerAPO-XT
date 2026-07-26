@@ -33,6 +33,16 @@ struct FilterInfo
 	bool inPlace = true;
 	std::vector<size_t> inChannels;
 	std::vector<size_t> outChannels;
+	// The filter's type name, for the profiler's scope label. Resolved when the
+	// configuration is built rather than in process(): typeid(x).name() allocates
+	// inside the CRT the first time it is asked about a type, and process() runs
+	// on the audio thread. It was the last first-call allocation left there, and
+	// only when profiling was switched on - which is exactly when a first call
+	// happens for every filter type at once.
+	//
+	// Points into the type's static type_info, so it outlives everything here and
+	// needs no storage of its own.
+	const char* profileLabel = "filter";
 };
 
 #pragma AVRT_VTABLES_BEGIN

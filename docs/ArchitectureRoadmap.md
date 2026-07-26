@@ -27,6 +27,7 @@
 | S5c | 설치 결과를 값으로 보고하고 로그·`--diagnose`로 내보냄 | #238 | |
 | S7 | 설정 파싱 오류를 팩토리가 줄 단위로 보고 | #239 | |
 | S4 | 스킨 명단을 `SkinThemeData::roster()` 하나로 | #241 | (없음) |
+| (작은 것) | 프로파일 라벨 선계산, 테스트 프로젝트 소스 목록 검사, Debug `/WHOLEARCHIVE` | #240 | |
 
 S1 이 고친 사용자 체감 결함은 셋입니다. 소수점 쉼표로 적은 `Preamp: -6,5 dB` 가 카드를 건드리는
 순간 `-6.0` 으로 덮어써지던 것, REW·Dirac 이 기본으로 내보내는 `Filter 1: ON IIR ...` 에
@@ -141,20 +142,27 @@ S4 가 없앤 것은 조용한 실패입니다. 스킨을 하나 추가하려면
 
 ### 작은 것들
 
-- `FilterConfiguration.cpp` 의 `typeid(*filter).name()` 은 타입마다 첫 호출에서 CRT 안에서 할당합니다.
-  오디오 스레드에 남은 마지막 첫-호출 할당이고 프로파일링이 켜졌을 때만 발생합니다.
-  `FilterInfo` 에 라벨 포인터를 초기화 시점에 채워두면 됩니다.
-- `Tests/EditorLogicTests/EditorLogicTests.vcxproj` 는 22개짜리 자체 소스 목록을 갖고 있고 아무것도 검사하지 않습니다.
-  `Test-SourceSync.ps1` 과 같은 종류의 문제입니다.
-- `FilterCardRow` 의 `info.command.toLower()` 와 `FilterCardModel::commandIconResource` 는 아직 소문자로 다룹니다.
-  둘 다 스킨 QSS 선택자 키와 픽토그램 조회용이라 명령 판정이 아니지만, 저장소 안에 명령 문자열을 소문자로
-  다루는 자리가 남아 있다는 사실은 기록해 둡니다. 바꾸려면 스킨 5개와 스타일시트 4개를 같이 고쳐야 합니다.
-- `helpers/VSTPluginLibrary.h` 가 공개 헤더에서 `aeffectx.h`(98KB)를 노출합니다.
-  Editor 의 6개 TU 가 그것을 통과시키면서 실제로는 멤버 4개만 씁니다.
-  얇은 정면 인터페이스를 두고 원래 헤더를 호스트 TU 전용으로 감추면 컴파일 시간이 실제로 줄어듭니다.
-- `HybridConvTests.vcxproj` 는 Release 세 구성에만 `/WHOLEARCHIVE` 가 있고 Debug 에는 없습니다.
-  `FilterFactoryRegistryTests` 가 어휘 비어 있음을 `require` 로 막으므로 Debug 실행이 그 지점에서 멈춥니다.
-  CI 는 Release 만 빌드하므로 파이프라인에는 영향이 없지만 Debug 로 디버깅하는 사람에게는 걸림돌입니다.
+셋은 처리했고 하나는 전제가 틀렸습니다.
+
+- `FilterConfiguration.cpp` 의 `typeid(*filter).name()` 은 이제 설정을 만들 때 한 번 풀어
+  `FilterInfo::profileLabel` 에 담습니다. 오디오 스레드에 남은 마지막 첫-호출 할당이었고,
+  프로파일링을 켠 순간 모든 필터 타입에 대해 동시에 일어나던 것입니다.
+- `HybridConvTests.vcxproj` 의 Debug 세 구성에 `/WHOLEARCHIVE` 가 들어갔습니다.
+  없으면 팩토리 자기등록이 링크에서 빠져 어휘가 비고, `FilterFactoryRegistryTests` 가 `require` 로
+  거기서 실행을 멈춥니다. CI 는 Release 만 빌드하므로 파이프라인에는 보이지 않았고,
+  Debug 로 디버깅하려는 사람만 막혔습니다.
+- 테스트 프로젝트 네 개의 손으로 쓴 소스 목록은 이제 `Test-SourceSync.ps1` 이 검사합니다.
+  Editor.pro 와의 동기화가 아닙니다. 그 목록은 의도적으로 부분집합입니다. 검사하는 것은 실제로
+  깨지는 성질, 즉 목록에 있는 파일이 디스크에 있는지입니다. 이름이 바뀌거나 옮겨진 파일은 지금까지
+  매트릭스 레그 20분 지점의 컴파일 오류로만 드러났습니다. pester 케이스 2건을 함께 넣었습니다.
+
+`helpers/VSTPluginLibrary.h` 의 `aeffectx.h` 노출은 **전제가 틀렸습니다.** 로드맵은 6개 Editor TU 가
+멤버 4개만 쓰면서 98KB 헤더를 통과시킨다고 적었는데, 실제로는 그 TU 들이 전부
+`VSTPluginInstance` 멤버를 직접 씁니다. `VSTPluginLibrary.h` 에서 `VSTPluginInstance.h` include 를
+떼어내려면 그 8곳에 도로 넣어야 했고, 그러면 어떤 TU 의 include 그래프도 줄지 않습니다.
+컴파일 시간 이득은 없습니다. 그래도 각 TU 가 자기 의존을 직접 적게 된 것은 남겨뒀습니다.
+`aeffectx.h` 와 VST3 base 헤더 자체를 감추려면 클래스가 값으로 들고 있는 `PClassInfo` 와
+`IPtr` 를 pimpl 로 옮겨야 하는데, 측정된 이득이 없는 상태에서 할 churn 은 아닙니다.
 
 ## 건드리지 않기로 한 것
 
