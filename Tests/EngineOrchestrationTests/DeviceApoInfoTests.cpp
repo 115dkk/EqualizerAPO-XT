@@ -7,11 +7,13 @@
 	HKLM\...\MMDevices\Audio, so running them under test would have rewritten
 	the APO chain of a real audio endpoint on the machine doing the testing.
 
-	What these tests are for: they record what the code does today, so the
-	install transaction work that follows can tell a deliberate change from an
-	accidental one. They are not a specification. Where the current behaviour
-	looks questionable it is left alone and reported, not asserted - a test that
-	pins a wart makes the wart harder to remove.
+	What these tests are for: they record what the code does today. Most of them
+	were written before install() ran inside a RegistryTransaction, so that the
+	rework could be judged against them; the last two were added with it and are
+	the ones that stage a failure midway and check what is left behind. They are
+	not a specification. Where the current behaviour looks questionable it is left
+	alone and reported, not asserted - a test that pins a wart makes the wart
+	harder to remove.
 
 	Host dependency, deliberately not hidden: load()'s install-mode inference
 	asks RegistryHelper::isWindowsVersionAtLeast(6, 3), which reads the running
@@ -520,6 +522,97 @@ void testInstallTakesOwnershipWhenFxPropertiesCannotBeCreated(test::Harness& har
 		"the retry after the permission change is what actually creates the key; without it install would report success having written nothing");
 }
 
+// The failure this rework exists for. install() writes our CLSIDs into the
+// endpoint last, one slot at a time, so a failure between the two used to leave
+// a device with our pre-mix APO and the driver's post-mix APO - and load() then
+// reported it as installed, because finding either CLSID is what installed
+// means. Nobody, including this program, could describe that endpoint's audio
+// chain afterwards.
+void testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(test::Harness& harness)
+{
+	FakeRegistry registry;
+	seedRenderDevice(registry);
+	registry.seedString(fxPropertiesKey, lfxGuidValueName, vendorPreMixGuid);
+	registry.seedString(fxPropertiesKey, gfxGuidValueName, vendorPostMixGuid);
+	registry.seedString(APP_REGPATH, L"ConfigPath", L"C:\\ProgramData\\EqualizerAPO\\config");
+	// The post-mix slot refuses the write. On a real machine this is an ACL on
+	// that one property, or a driver service holding the key.
+	registry.failValueWrite(fxPropertiesKey, gfxGuidValueName);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the device loads before installing");
+	DeviceAPOInfo::InstallState& selected = info.getSelectedInstallState();
+	selected.installPreMix = true;
+	selected.installPostMix = true;
+	selected.useOriginalAPOPreMix = true;
+	selected.useOriginalAPOPostMix = true;
+	selected.installMode = DeviceAPOInfo::INSTALL_LFX_GFX;
+
+	bool threw = false;
+	try
+	{
+		info.install();
+	}
+	catch (const RegistryException&)
+	{
+		threw = true;
+	}
+
+	harness.expect(threw,
+		"a failed install still reports the failure; the transaction changes what it leaves behind, not whether it complains");
+	harness.expect(registry.readValue(fxPropertiesKey, lfxGuidValueName) == vendorPreMixGuid,
+		"the slot that was written before the failure is put back to the driver's GUID, so the endpoint is not left half ours");
+	harness.expect(registry.readValue(fxPropertiesKey, gfxGuidValueName) == vendorPostMixGuid,
+		"the slot that refused the write never changed");
+	harness.expectFalse(registry.keyExists(childApoKey),
+		"the bookkeeping key this install created is gone with it, so no stale record of an installation that never happened survives");
+	harness.expectFalse(registry.keyExists(childApoPath),
+		"and neither does the parent key it had to create on the way");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid),
+		"the device still loads after the failed install");
+	harness.expectFalse(reloaded.isInstalled(),
+		"the state a failed install leaves must not read as installed, which is the failure mode this whole change is about");
+}
+
+void testUninstallPutsTheInstallationBackWhenItCannotFinish(test::Harness& harness)
+{
+	FakeRegistry registry;
+	installOverVendorApos(harness, registry);
+	// Uninstall restores the driver's slots one at a time. The second one refuses
+	// the write, so without a rollback the endpoint would keep our post-mix APO
+	// while its pre-mix slot went back to the driver: installed and uninstalled at
+	// the same time, and no run of either operation would agree on which.
+	registry.failValueWrite(fxPropertiesKey, gfxGuidValueName);
+
+	DeviceAPOInfo info(registry);
+	harness.require(info.load(testDeviceGuid, otherDeviceGuid), "the installed device loads");
+
+	bool threw = false;
+	try
+	{
+		info.uninstall();
+	}
+	catch (const RegistryException&)
+	{
+		threw = true;
+	}
+
+	harness.expect(threw, "the failed uninstall reports its failure");
+	harness.expect(registry.readValue(fxPropertiesKey, lfxGuidValueName) == ourPreMixGuid(),
+		"a rolled-back uninstall leaves the installation in place; a device that is neither installed nor uninstalled is the state with no way out");
+	harness.expect(registry.readValue(childApoKey, lfxGuidValueName) == vendorPreMixGuid,
+		"the record of what the driver had is still there, so a later uninstall can still restore it");
+	harness.expect(registry.readValue(childApoKey, versionValueName) == installVersion,
+		"including the version stamp, without which load() would treat the installation as a version-1 upgrade candidate");
+
+	DeviceAPOInfo reloaded(registry);
+	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the device loads after the failed uninstall");
+	harness.expect(reloaded.isInstalled(),
+		"and it reads as installed, which is what it still is");
+}
+
 void testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(test::Harness& harness)
 {
 	FakeRegistry registry;
@@ -556,5 +649,7 @@ void runDeviceApoInfoTests(test::Harness& harness)
 	testInstallExportsTheDriverValuesBeforeOverwritingThem(harness);
 	testUninstallRestoresTheDriverApoGuids(harness);
 	testInstallTakesOwnershipWhenFxPropertiesCannotBeCreated(harness);
+	testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(harness);
+	testUninstallPutsTheInstallationBackWhenItCannotFinish(harness);
 	testCheckProtectedAudioDGReportsAndFixesTheDisabledFlag(harness);
 }

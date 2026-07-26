@@ -900,6 +900,7 @@ void testConfigLoadTrace(test::Harness& harness)
 void runSampleIoTests(test::Harness& harness);
 void runConfigurationFileReaderTests(test::Harness& harness);
 void runDeviceApoInfoTests(test::Harness& harness);
+void runRegistryTransactionTests(test::Harness& harness);
 
 int runEngineOrchestrationTests()
 {
@@ -936,6 +937,7 @@ int runEngineOrchestrationTests()
 	testSynchronizedStateSerializesReplacement(harness);
 	testDeviceApoRegistryVocabulary(harness);
 	testInstallStateComparisonIgnoresPadding(harness);
+	runRegistryTransactionTests(harness);
 	runDeviceApoInfoTests(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);

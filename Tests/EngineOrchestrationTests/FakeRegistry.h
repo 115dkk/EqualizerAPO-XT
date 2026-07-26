@@ -42,6 +42,16 @@
 	    reading, so a failed read leaves a truncated file behind, while the fake
 	    records nothing.
 
+	  * failValueWrite() arms a write failure on one value. Nothing in the
+	    registry behaves that way on request; it is here because the transaction
+	    that install() now runs inside can only be judged by interrupting an
+	    install midway, and no other means of interrupting one exists.
+
+	enumValues returns the names in the map's case-insensitive order rather than
+	the insertion order RegEnumValueW happens to produce. The port documents no
+	order for that reason, and a caller that depends on one is relying on
+	something the real registry does not promise either.
+
 	Key paths and value names compare case-insensitively, which is what the
 	Windows registry does. The device code always builds its paths from the
 	constants in devices/DeviceAPOInfoKeys.h, so this never actually matters -
@@ -86,6 +96,7 @@ public:
 		std::wstring stringValue;
 		unsigned long dwordValue = 0;
 		std::vector<unsigned char> binaryValue;
+		std::vector<std::wstring> multiValue;
 	};
 
 	// One recorded saveToFile call, with the values as they read at the time.
@@ -145,11 +156,31 @@ public:
 		ensureKey(key)[valuename] = stored;
 	}
 
+	void seedMulti(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& value)
+	{
+		Value stored;
+		stored.type = Value::Type::MultiString;
+		stored.multiValue = value;
+		ensureKey(key)[valuename] = stored;
+	}
+
 	// Arms the ACL denial install() recovers from: createKey on this exact path
 	// throws until makeWritable is called on it or on one of its parents.
 	void denyCreateKey(const std::wstring& key)
 	{
 		deniedCreateKeys_.insert(key);
+	}
+
+	// Arms a failure on one value's writes and deletes, so a test can stop an
+	// install midway and see what the rollback puts back. A real machine fails
+	// there for reasons a fake cannot reproduce - an ACL on that one property, a
+	// driver holding the key - and "it never fails in the middle" is exactly the
+	// assumption the transaction exists to remove, so the fake has to be able to
+	// stage it. Reads are left working: the code being tested has to be able to
+	// see the value it cannot write.
+	void failValueWrite(const std::wstring& key, const std::wstring& valuename)
+	{
+		failedValueWrites_.insert(key + L"\\" + valuename);
 	}
 
 	// --- Inspection of the operations that have no in-memory effect.
@@ -187,6 +218,14 @@ public:
 		return value.dwordValue;
 	}
 
+	std::vector<std::wstring> readMultiValue(const std::wstring& key, const std::wstring& valuename) const override
+	{
+		const Value& value = requireValue(key, valuename);
+		if (value.type != Value::Type::MultiString)
+			throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
+		return value.multiValue;
+	}
+
 	std::vector<unsigned char> readBinaryValue(const std::wstring& key, const std::wstring& valuename) const override
 	{
 		const Value& value = requireValue(key, valuename);
@@ -222,6 +261,16 @@ public:
 		return result;
 	}
 
+	std::vector<std::wstring> enumValues(const std::wstring& key) const override
+	{
+		const ValueMap& values = requireKey(key);
+
+		std::vector<std::wstring> result;
+		for (const auto& entry : values)
+			result.push_back(entry.first);
+		return result;
+	}
+
 	bool keyExists(const std::wstring& key) const override
 	{
 		// Not requireKey: this is the one operation that answers instead of
@@ -248,7 +297,7 @@ public:
 		Value stored;
 		stored.type = Value::Type::String;
 		stored.stringValue = value;
-		requireWritableKey(key)[valuename] = stored;
+		store(key, valuename, stored);
 	}
 
 	void writeDWORDValue(const std::wstring& key, const std::wstring& valuename, unsigned long value) override
@@ -256,20 +305,26 @@ public:
 		Value stored;
 		stored.type = Value::Type::Dword;
 		stored.dwordValue = value;
-		requireWritableKey(key)[valuename] = stored;
+		store(key, valuename, stored);
 	}
 
 	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override
 	{
+		writeMultiValue(key, valuename, std::vector<std::wstring>{value});
+	}
+
+	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) override
+	{
 		Value stored;
 		stored.type = Value::Type::MultiString;
-		stored.stringValue = value;
-		requireWritableKey(key)[valuename] = stored;
+		stored.multiValue = values;
+		store(key, valuename, stored);
 	}
 
 	void deleteValue(const std::wstring& key, const std::wstring& valuename) override
 	{
 		ValueMap& values = requireWritableKey(key);
+		requireWritableValue(key, valuename);
 		ValueMap::iterator it = values.find(valuename);
 		if (it == values.end())
 			throw RegistryException(L"Error while deleting registry value " + key + L"\\" + valuename + L": not found");
@@ -370,6 +425,21 @@ private:
 		return it->second;
 	}
 
+	// The one write path, so the armed-failure check cannot be forgotten by a
+	// future write overload.
+	void store(const std::wstring& key, const std::wstring& valuename, const Value& value)
+	{
+		ValueMap& values = requireWritableKey(key);
+		requireWritableValue(key, valuename);
+		values[valuename] = value;
+	}
+
+	void requireWritableValue(const std::wstring& key, const std::wstring& valuename) const
+	{
+		if (failedValueWrites_.find(key + L"\\" + valuename) != failedValueWrites_.end())
+			throw RegistryException(L"Error while writing registry value " + key + L"\\" + valuename + L": access is denied");
+	}
+
 	// The write-side counterpart. Separate only so the const reads cannot reach
 	// a mutable map by accident.
 	ValueMap& requireWritableKey(const std::wstring& key)
@@ -416,6 +486,7 @@ private:
 
 	std::map<std::wstring, ValueMap, CaseInsensitiveLess> keys_;
 	std::set<std::wstring, CaseInsensitiveLess> deniedCreateKeys_;
+	std::set<std::wstring, CaseInsensitiveLess> failedValueWrites_;
 	std::vector<std::wstring> takeOwnershipCalls_;
 	std::vector<std::wstring> makeWritableCalls_;
 	std::vector<Export> exports_;

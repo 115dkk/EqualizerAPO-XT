@@ -21,6 +21,13 @@ using std::wstring;
 
 void DeviceAPOInfo::uninstall()
 {
+	RegistryTransaction plan(registry);
+	uninstallWithin(plan);
+	plan.commit();
+}
+
+void DeviceAPOInfo::uninstallWithin(RegistryTransaction& plan)
+{
 	wstring keyPath;
 	if (!input)
 		keyPath = renderKeyPath L"\\" + deviceGuid;
@@ -37,16 +44,16 @@ void DeviceAPOInfo::uninstall()
 		// installation wrote and remove the key itself only when nothing else
 		// lives in it.
 		wstring fxPath = keyPath + L"\\FxProperties";
-		if (registry.keyExists(fxPath))
+		if (plan.keyExists(fxPath))
 		{
 			for (const wchar_t* valueName : ownedFxValueNames)
 			{
-				if (registry.valueExists(fxPath, valueName))
-					registry.deleteValue(fxPath, valueName);
+				if (plan.valueExists(fxPath, valueName))
+					plan.deleteValue(fxPath, valueName);
 			}
 
-			if (registry.keyEmpty(fxPath))
-				registry.deleteKey(fxPath);
+			if (plan.keyEmpty(fxPath))
+				plan.deleteKey(fxPath);
 		}
 	}
 	else
@@ -55,31 +62,38 @@ void DeviceAPOInfo::uninstall()
 		{
 			if (originalApoGuids[i] == APOGUID_NOVALUE)
 			{
-				if (registry.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
-					registry.deleteValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
+				if (plan.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
+					plan.deleteValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
 			}
 			else if (originalApoGuids[i] != L"")
 			{
-				registry.writeValue(keyPath + L"\\FxProperties", allGuidValueNames[i], originalApoGuids[i]);
+				plan.writeValue(keyPath + L"\\FxProperties", allGuidValueNames[i], originalApoGuids[i]);
 			}
 		}
 	}
 
-	if (registry.keyExists(childApoPath) && registry.valueExists(childApoPath, deviceGuid))
-		registry.deleteValue(childApoPath, deviceGuid);
+	if (plan.keyExists(childApoPath) && plan.valueExists(childApoPath, deviceGuid))
+		plan.deleteValue(childApoPath, deviceGuid);
 
-	if (registry.keyExists(childApoPath L"\\" + deviceGuid))
-		registry.deleteKey(childApoPath L"\\" + deviceGuid);
+	if (plan.keyExists(childApoPath L"\\" + deviceGuid))
+		plan.deleteKey(childApoPath L"\\" + deviceGuid);
 
-	if (registry.keyExists(childApoPath) && registry.keyEmpty(childApoPath))
-		registry.deleteKey(childApoPath);
+	if (plan.keyExists(childApoPath) && plan.keyEmpty(childApoPath))
+		plan.deleteKey(childApoPath);
 }
 
 void DeviceAPOInfo::reinstall()
 {
-	uninstall();
+	// One transaction over all three steps. The reload in the middle is what
+	// makes this more than uninstall-then-install: install() needs the original
+	// APO GUIDs as the driver has them, and uninstall() has just put them back.
+	// load() only reads, but it throws on an installation this build cannot
+	// describe, and before this it threw with the device already uninstalled.
+	RegistryTransaction plan(registry);
+	uninstallWithin(plan);
 	load(deviceGuid);
-	install();
+	installWithin(plan);
+	plan.commit();
 }
 
 wstring DeviceAPOInfo::getConnectionName() const

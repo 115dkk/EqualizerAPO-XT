@@ -57,6 +57,7 @@ public:
 	static void takeOwnership(const std::wstring& key);
 	static ACCESS_MASK getFileAccessForUser(const std::wstring& path, unsigned long rid);
 	static std::vector<std::wstring> enumSubKeys(const std::wstring& key);
+	static std::vector<std::wstring> enumValues(const std::wstring& key);
 	static bool keyExists(const std::wstring& key);
 	static bool valueExists(const std::wstring& key, const std::wstring& valuename);
 	static bool keyEmpty(const std::wstring& key);

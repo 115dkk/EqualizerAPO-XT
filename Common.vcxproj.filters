@@ -143,6 +143,9 @@
     <ClInclude Include="helpers\IRegistry.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\RegistryTransaction.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\LogHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -368,6 +371,9 @@
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\IRegistry.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\RegistryTransaction.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\LogHelper.cpp">
