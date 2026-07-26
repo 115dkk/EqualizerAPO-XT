@@ -25,6 +25,7 @@ SOURCES += main.cpp\
 	../helpers/StringHelper.cpp \
 	../helpers/RegistryHelper.cpp \
 	../helpers/IRegistry.cpp \
+	../helpers/RegistryTransaction.cpp \
 	../helpers/ServiceHelper.cpp \
 	../helpers/ApoRegistration.cpp \
 	../helpers/AudioFormatProbe.cpp \
@@ -296,6 +297,7 @@ HEADERS  += \
 	../helpers/StringHelper.h \
 	../helpers/RegistryHelper.h \
 	../helpers/IRegistry.h \
+	../helpers/RegistryTransaction.h \
 	../helpers/ServiceHelper.h \
 	../helpers/ApoRegistration.h \
 	../helpers/AudioFormatProbe.h \

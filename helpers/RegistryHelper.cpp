@@ -465,6 +465,32 @@ vector<wstring> RegistryHelper::enumSubKeys(const wstring& key)
 	return result;
 }
 
+vector<wstring> RegistryHelper::enumValues(const wstring& key)
+{
+	vector<wstring> result;
+
+	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY));
+
+	// 16383 is the documented maximum length of a registry value name, and the
+	// names this codebase deals with are property-key strings well inside it, so
+	// one buffer of that size means the loop never has to grow anything.
+	vector<wchar_t> valueName(16384);
+	DWORD nameLength = static_cast<DWORD>(valueName.size());
+	DWORD index = 0;
+
+	LSTATUS status;
+	while ((status = RegEnumValueW(keyHandle.get(), index++, valueName.data(), &nameLength, nullptr, nullptr, nullptr, nullptr)) == ERROR_SUCCESS)
+	{
+		result.push_back(wstring(valueName.data(), nameLength));
+		nameLength = static_cast<DWORD>(valueName.size());
+	}
+
+	if (status != ERROR_NO_MORE_ITEMS)
+		throw RegistryException(L"Error while enumerating values of registry key " + key + L": " + StringHelper::getSystemErrorString(status));
+
+	return result;
+}
+
 bool RegistryHelper::keyEmpty(const wstring& key)
 {
 	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY));

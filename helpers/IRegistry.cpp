@@ -45,6 +45,11 @@ public:
 		return RegistryHelper::readDWORDValue(key, valuename);
 	}
 
+	std::vector<std::wstring> readMultiValue(const std::wstring& key, const std::wstring& valuename) const override
+	{
+		return RegistryHelper::readMultiValue(key, valuename);
+	}
+
 	std::vector<unsigned char> readBinaryValue(const std::wstring& key, const std::wstring& valuename) const override
 	{
 		return RegistryHelper::readBinaryValue(key, valuename);
@@ -53,6 +58,11 @@ public:
 	std::vector<std::wstring> enumSubKeys(const std::wstring& key) const override
 	{
 		return RegistryHelper::enumSubKeys(key);
+	}
+
+	std::vector<std::wstring> enumValues(const std::wstring& key) const override
+	{
+		return RegistryHelper::enumValues(key);
 	}
 
 	bool keyExists(const std::wstring& key) const override
@@ -83,6 +93,11 @@ public:
 	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override
 	{
 		RegistryHelper::writeMultiValue(key, valuename, value);
+	}
+
+	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) override
+	{
+		RegistryHelper::writeMultiValue(key, valuename, values);
 	}
 
 	void deleteValue(const std::wstring& key, const std::wstring& valuename) override

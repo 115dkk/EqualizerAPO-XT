@@ -24,6 +24,7 @@
 #include <memory>
 #include "AbstractAPOInfo.h"
 #include "helpers/IRegistry.h"
+#include "helpers/RegistryTransaction.h"
 
 #define APOGUID_NULL L"{00000000-0000-0000-0000-000000000000}"
 #define APOGUID_NOKEY L"!KEY"
@@ -91,8 +92,29 @@ public:
 	bool isExperimental() const override;
 	std::wstring getOriginalAPOPreMix();
 	std::wstring getOriginalAPOPostMix();
+
+	// POST-CONDITIONS ON FAILURE. All three run their registry changes inside one
+	// RegistryTransaction, so a throw leaves the endpoint as it was found: no
+	// half-connected device, and in particular no state that load() would go on
+	// to report as installed. The exception that comes out is the original one,
+	// not a rollback failure.
+	//
+	// Two caveats, both from RegistryTransaction and both harmless here. If
+	// install() had to take ownership of a driver-owned FxProperties key, the
+	// widened permissions stay after a rollback, because a security descriptor is
+	// not something this port can store and put back. And the .reg backup of the
+	// driver's APO GUIDs stays on disk, because it is the artefact the user is
+	// told to keep.
+	//
+	// If a rollback step itself fails - some other process deleted the key we
+	// were putting a value back into - the step is recorded rather than thrown,
+	// and the original exception still comes out. Nothing carries those records
+	// out to the caller yet; they are the reason the transaction keeps them.
 	void install() override;
 	void uninstall() override;
+	// Was uninstall(); load(); install(), which left the device uninstalled when
+	// the middle call threw. The three now share one transaction, so the endpoint
+	// either ends up reinstalled or untouched.
 	void reinstall() override;
 	std::wstring getConnectionName() const override;
 	std::wstring getDeviceName() const override;
@@ -115,6 +137,13 @@ public:
 
 private:
 	void fail(const std::wstring& functionName, HRESULT hr);
+
+	// The bodies of install() and uninstall(), performing every registry change
+	// through the transaction they are given rather than through the member port.
+	// reinstall() calls both inside one transaction, which is the only reason they
+	// are split out.
+	void installWithin(RegistryTransaction& plan);
+	void uninstallWithin(RegistryTransaction& plan);
 
 	std::wstring deviceName;
 	std::wstring connectionName;

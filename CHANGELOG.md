@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **An installation that fails partway no longer leaves a device half connected.**
+  Installing onto an audio endpoint performs around forty registry changes, and
+  they used to run in a straight line: if one of them failed - an ACL on a
+  property the driver owns, another process holding the endpoint key - whatever
+  had already been written stayed written. The device could end up with our
+  pre-mix effect in place and the driver's post-mix effect still there, and
+  Device Selector reported it as installed, because finding either one is what
+  installed means. Repairing an installation had the sharper version of the same
+  problem: it removed the installation first, and a failure in the step after
+  that left the device with nothing. Install, uninstall and repair now either
+  finish or put the endpoint back as they found it. Two things a rollback cannot
+  take back are documented rather than hidden: permissions widened to create a
+  key on a driver-locked endpoint stay widened, and the `.reg` backup of the
+  driver's own effect chain stays on disk, because it is the copy you would need
+  to restore it by hand ([#TBD](https://github.com/115dkk/EqualizerAPO-XT/pull/TBD)).
+
 ## v2.27.0 — 2026-07-25
 
 - The all-pass filter is now something you can see and set. It was always in the

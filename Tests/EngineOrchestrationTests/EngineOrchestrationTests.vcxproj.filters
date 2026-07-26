@@ -20,6 +20,9 @@
     <ClCompile Include="EngineOrchestrationTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RegistryTransactionTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SampleIoTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -32,6 +35,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\helpers\IRegistry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\helpers\RegistryTransaction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FakeRegistry.h">

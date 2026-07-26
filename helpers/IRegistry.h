@@ -30,15 +30,23 @@
 // expressible in standard types, so a test can include it and stand up a fake
 // without a Windows toolchain in its include path.
 //
-// The method set is exactly what devices/DeviceAPOInfo.{Install,Load,State,
-// Uninstall}.cpp, DeviceAPOInfo.cpp and VoicemeeterAPOInfo.cpp call today
-// (127 call sites over these 16 operations; AbstractAPOInfo.cpp touches the
-// registry not at all), and it is meant to stay that way. Nothing was added for
-// symmetry or completeness: an operation nobody calls is an operation every
-// future fake has to implement for nothing.
+// The method set is what devices/DeviceAPOInfo.{Install,Load,State,
+// Uninstall}.cpp, DeviceAPOInfo.cpp and VoicemeeterAPOInfo.cpp call, plus the
+// three RegistryTransaction needs to undo them, and it is meant to stay that
+// way. Nothing was added for symmetry or completeness: an operation nobody
+// calls is an operation every future fake has to implement for nothing.
 //
-// RegistryHelper keeps the rest (readMultiValue, openKey,
-// formatExportHeader, the vector overload of writeMultiValue) plus the three
+// Those three - enumValues, readMultiValue and the vector overload of
+// writeMultiValue - are here because a rollback has to put back exactly what it
+// displaced, which is a strictly larger set of operations than applying the
+// change needed. install() only ever writes a REG_MULTI_SZ that was absent, but
+// uninstall() deletes the processing-mode values it wrote, and undoing that
+// delete means reading a REG_MULTI_SZ and writing all of its strings back.
+// deleteKey takes a key's values with it, so undoing one means enumerating them
+// first. A port that could only describe the forward direction would leave the
+// rollback guessing.
+//
+// RegistryHelper keeps the rest (openKey, formatExportHeader) plus the three
 // members that are not registry operations at all and so have no business in a
 // registry port: getGuidString, isWindowsVersionAtLeast, getFileAccessForUser.
 //
@@ -89,10 +97,17 @@ public:
 	virtual std::wstring readValue(const std::wstring& key, const std::wstring& valuename) const = 0;
 	// Throws if the key is missing or the value is not REG_DWORD.
 	virtual unsigned long readDWORDValue(const std::wstring& key, const std::wstring& valuename) const = 0;
+	// The strings of a REG_MULTI_SZ. Throws if the key is missing or the value is
+	// not REG_MULTI_SZ.
+	virtual std::vector<std::wstring> readMultiValue(const std::wstring& key, const std::wstring& valuename) const = 0;
 	// Raw bytes as stored. Throws if the key is missing or the value is not REG_BINARY.
 	virtual std::vector<unsigned char> readBinaryValue(const std::wstring& key, const std::wstring& valuename) const = 0;
 	// Immediate child key names, not full paths. Throws if the key is missing.
 	virtual std::vector<std::wstring> enumSubKeys(const std::wstring& key) const = 0;
+	// Value names of this key alone, in no guaranteed order. The default value of
+	// a key comes back as an empty name, the way RegEnumValueW reports it.
+	// Throws if the key is missing.
+	virtual std::vector<std::wstring> enumValues(const std::wstring& key) const = 0;
 	// The only operation that answers false instead of throwing for a missing key.
 	virtual bool keyExists(const std::wstring& key) const = 0;
 	// Throws if the key is missing; returns false only for a missing value.
@@ -105,10 +120,12 @@ public:
 	// Writes REG_SZ, overwriting whatever type was there.
 	virtual void writeValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) = 0;
 	virtual void writeDWORDValue(const std::wstring& key, const std::wstring& valuename, unsigned long value) = 0;
-	// Writes a REG_MULTI_SZ holding this one string. The vector overload of
-	// RegistryHelper::writeMultiValue stays out of the port because the device
-	// layer only ever writes the single processing-mode GUID.
+	// Writes a REG_MULTI_SZ holding this one string. The device layer only ever
+	// writes the single processing-mode GUID through this one.
 	virtual void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) = 0;
+	// Writes a REG_MULTI_SZ holding every string given. Only a rollback uses it,
+	// to put back a driver's multi-string value verbatim.
+	virtual void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) = 0;
 	// Throws if the value is not there, so callers guard it with valueExists.
 	virtual void deleteValue(const std::wstring& key, const std::wstring& valuename) = 0;
 
