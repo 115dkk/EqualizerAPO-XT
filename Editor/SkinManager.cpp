@@ -175,7 +175,9 @@ BadgeTreatment SkinManager::badgeTreatment(const CommandRowInfo& info, const QSt
 
 void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const
 {
-	activeSkin->prepareCommandRow(info, card, header, body);
+	// The tokens come from here rather than from each skin reaching back into this
+	// singleton, which is what all five did before the hook took them.
+	activeSkin->prepareCommandRow(info, card, header, body, tokens());
 }
 
 void SkinManager::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const

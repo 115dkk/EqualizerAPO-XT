@@ -1201,14 +1201,12 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 		return false;
 
 	const bool dark = skinIsDark(tokens);
-	const int unit = tokens.channelGroupIndent;
+	// Lane geometry from the row widget; see CommandRowInfo. The branch/tail
+	// rows' extra indent unit is already in laneCount.
 	const int h = size.height();
 	const int junctionY = 4 + tokens.rowHeight / 2;
-	// Branch/tail rows are indented with the members (one unit past their
-	// semantic level; logicSiblingsIndentAsMembers). The card edge follows
-	// the same rule.
-	const int indentUnits = (ifFamily && !headRow) ? info.depth + 1 : info.depth;
-	const int cardLeft = 8 + indentUnits * unit;
+	const int indentUnits = info.laneCount;
+	const int cardLeft = info.cardLeft;
 
 	// The gutter is machined hardware: the bus casing is the rack opening's
 	// dark seam, the core is the amber accent, contact blocks and caps are
@@ -1227,7 +1225,7 @@ bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo
 	painter.setPen(Qt::NoPen);
 
 	const bool live = info.enabled && !info.lineSkipped;
-	const auto bandCenter = [&](int level) { return 8 + level * unit + unit / 2; };
+	const auto bandCenter = [&info](int level) { return info.laneCenter(level); };
 	const auto busSegment = [&](int level, int y0, int y1, bool segmentLive) {
 		const int cx = bandCenter(level);
 		painter.fillRect(QRect(cx - 3, y0, 7, y1 - y0), seam);

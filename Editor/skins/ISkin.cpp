@@ -129,7 +129,7 @@ BadgeTreatment ISkin::badgeTreatment(const CommandRowInfo& info, const QString& 
 	};
 }
 
-void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget*) const
+void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget*, const SkinTokens&) const
 {
 	// Neutral default: rows keep their stock construction.
 }

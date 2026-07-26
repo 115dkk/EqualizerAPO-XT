@@ -1743,6 +1743,7 @@ int main(int argc, char** argv)
 		testUpdateElevationPolicyUsesOnePromptForEditorUpdates();
 		testTheSkinRosterIsTheOneList();
 		testSkinTokensCarryExplicitMode();
+		testTokenSubstitutionOffersAnAlphaForm();
 		testEverySkinSheetResolvesAllThemeTokens();
 		testEditableValueTextUsesDisplayedDecimalFormatFirst();
 		testBenchmarkBatchPlanUsesOnlyComparableFullBatches();

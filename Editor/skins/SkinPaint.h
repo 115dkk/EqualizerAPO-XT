@@ -17,6 +17,7 @@
 
 #include <QColor>
 #include <QPointF>
+#include <QRectF>
 #include <QString>
 #include <QWidget>
 #include <QtMath>
@@ -91,6 +92,33 @@ inline QString cssColor(const QColor& color)
 // Screen point on a circle around center. Qt-style angles: counter-clockwise
 // from 3 o'clock, and screen Y grows downward, so sin is subtracted. Pass the
 // negated clockwise sweep angle.
+// AXIS TICK LABEL BOXES.
+//
+// Every skin's analysis graph and EQ plot centres an x tick label on its grid
+// line and puts a y tick label against a plot edge. The boxes were retyped at
+// sixteen call sites, "pos - 24, 48 wide" and its variants each time, which is
+// arithmetic rather than design: what the label looks like is the skin's, where
+// the box goes is the grid's.
+//
+// The y variant keeps its inset and width as arguments on purpose. The skins use
+// 4, 5, 6 and 8 px, and nobody ever decided that they should differ - but nobody
+// decided they should agree either, and settling it here would change three
+// skins' pixels on the way past. It stays visible as a caller's choice until a
+// skin round settles it.
+
+// A tick label box centred horizontally on an x grid line. width is the box the
+// label may use; the caller aligns inside it (Qt::AlignHCenter).
+inline QRectF skinXTickLabelRect(double x, double top, double height, double width = 48.0)
+{
+	return QRectF(x - width / 2.0, top, width, height);
+}
+
+// A tick label box centred vertically on a y grid line, starting at left.
+inline QRectF skinYTickLabelRect(double y, double left, double width, double height = 12.0)
+{
+	return QRectF(left, y - height / 2.0, width, height);
+}
+
 inline QPointF skinArcPoint(const QPointF& center, double radius, double degrees)
 {
 	const double radians = qDegreesToRadians(degrees);

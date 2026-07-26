@@ -582,7 +582,8 @@ public:
 	// and the reference bodies (Include / Convolution / MultiConvolution /
 	// VST) speak their board grammar through MatrixReferenceCardView instead
 	// of being decorated here.
-	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const override
+	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
+		const SkinTokens& tokens) const override
 	{
 		if (info.legacyRow)
 			return;
@@ -620,7 +621,6 @@ public:
 		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
 			|| info.type == QStringLiteral("eval") || info.dynamicLine) && body != nullptr)
 		{
-			const SkinTokens& tokens = SkinManager::instance()->tokens();
 			if (QLabel* glyph = body->findChild<QLabel*>(QStringLiteral("FilterCardRawGlyph")))
 			{
 				glyph->setStyleSheet(QStringLiteral(
@@ -807,15 +807,16 @@ public:
 
 		painter.setRenderHint(QPainter::Antialiasing, false);
 
-		const int unit = tokens.channelGroupIndent;
+		// Lane geometry from the row widget: the indent unit, how many bands are
+		// drawn, where the card face starts, and where a band's centre is. The
+		// branch/tail rows' extra unit (logicSiblingsIndentAsMembers) is already
+		// folded into laneCount, because the same call sets the row's own margin.
 		const int h = size.height();
-		// Branch/tail rows mount at member depth (logicSiblingsIndentAsMembers)
-		// so the bracket passes them; the card edge follows the same rule.
-		const int indentUnits = branchOrTail ? info.depth + 1 : info.depth;
-		const int cardLeft = 8 + indentUnits * unit;
+		const int indentUnits = info.laneCount;
+		const int cardLeft = info.cardLeft;
 		// Rules sit on the centres of the existing indent bands; the bracket
 		// claims no positions of its own.
-		const auto bandCenter = [&](int level) { return 8 + level * unit + unit / 2; };
+		const auto bandCenter = [&info](int level) { return info.laneCenter(level); };
 
 		// The innermost logicDepth bands are If lanes; any bands outside them
 		// are channel groups and keep a quiet 1px border-ink rule, one ink
