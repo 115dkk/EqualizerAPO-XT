@@ -46,7 +46,7 @@ struct SkinEntry
 	QString qssBaseName;
 	// The skin's token table. Every skin builds both modes from one function,
 	// so the roster carries one pointer rather than a light/dark pair.
-	SkinTokens (*tokens)(bool dark);
+	SkinTokens (*tokens)(bool dark) = nullptr;
 };
 
 // Every built-in skin, in display order.
