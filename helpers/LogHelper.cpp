@@ -146,6 +146,13 @@ void LogHelper::set(FILE* fp, bool enableTrace, bool compact, bool useConsoleCol
 	useStream(fp, enableTrace, compact, useConsoleColors);
 }
 
+std::wstring LogHelper::currentPath()
+{
+	std::lock_guard<std::mutex> lock(logStateMutex());
+	// presetFP wins in log(), so a stream destination has no path to report.
+	return presetFP == nullptr ? logPath : std::wstring();
+}
+
 void LogHelper::useDefaultApoLog()
 {
 	std::lock_guard<std::mutex> lock(logStateMutex());

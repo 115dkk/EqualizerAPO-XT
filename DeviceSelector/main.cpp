@@ -23,6 +23,7 @@
 #include <ObjBase.h>
 #include <QDir>
 #include <QFile>
+#include <QMessageBox>
 #include <QFontDatabase>
 #include <QSettings>
 #include <QStyleFactory>
@@ -37,6 +38,8 @@
 #include "Editor/helpers/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "helpers/ApoRegistration.h"
+#include "helpers/InstallDiagnostics.h"
+#include "helpers/LogHelper.h"
 
 namespace
 {
@@ -129,11 +132,51 @@ int runSkinShots(QApplication& app)
 	fprintf(stderr, "DeviceSelector shots: %d failures\n", failures);
 	return failures == 0 ? 0 : 1;
 }
+
+// --diagnose: writes the install-path report. Read-only and unelevated, because
+// the point of it is to be able to look before deciding whether to change
+// anything.
+//
+// The report goes to a file and, when this process was started from a console, to
+// that console as well. DeviceSelector is a GUI-subsystem executable, so its
+// stdout is not connected to the shell that launched it until we attach: without
+// AttachConsole a user running "DeviceSelector --diagnose" from PowerShell would
+// see nothing at all and reasonably conclude the switch does not work.
+int runDiagnose(QApplication& app)
+{
+	Q_UNUSED(app);
+
+	const std::wstring reportPath = InstallDiagnostics::writeReport();
+	if (reportPath.empty())
+	{
+		// The console form already printed everything; a message box is only
+		// needed when there is no console and nothing on disk either, which means
+		// the report went nowhere.
+		QMessageBox::warning(nullptr, QStringLiteral("Equalizer APO"),
+			QStringLiteral("The diagnostics report could not be written."));
+		return 1;
+	}
+
+	// Started by double-click or from the Start menu: the path is the only useful
+	// thing to say, and a modal box is the only place to say it. Harmless when a
+	// console was attached as well - the same content is in both.
+	QMessageBox::information(nullptr, QStringLiteral("Equalizer APO"),
+		QStringLiteral("Diagnostics written to\n%1")
+			.arg(QDir::toNativeSeparators(QString::fromStdWString(reportPath))));
+	return 0;
+}
 }
 
 int main(int argc, char* argv[])
 {
 	int result = 0;
+
+	// Before anything else, because this is the process that performs the APO
+	// install and until now it wrote no log at all. A user reporting that
+	// installing did nothing left behind an Editor.log with no mention of the
+	// install, because the Editor was not the program that ran it.
+	if (!LogHelper::useUserFile(L"DeviceSelector.log", true, false, false))
+		LogHelper::useDefaultApoLog();
 
 	// Shared bootstrap: anchors the plugin path (a security concern for this
 	// elevated process) and, below, applies the language the user picked in
@@ -153,6 +196,9 @@ int main(int argc, char* argv[])
 
 	if (app.arguments().contains(QStringLiteral("--skin-shots")))
 		return runSkinShots(app);
+
+	if (app.arguments().contains(QStringLiteral("--diagnose")))
+		return runDiagnose(app);
 
 	applyEditorTheme(app);
 

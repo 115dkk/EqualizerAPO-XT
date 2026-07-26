@@ -28,6 +28,7 @@ SOURCES += main.cpp\
 	../helpers/RegistryTransaction.cpp \
 	../helpers/WindowsVersion.cpp \
 	../helpers/AudioEngineAccess.cpp \
+	../helpers/InstallDiagnostics.cpp \
 	../helpers/ServiceHelper.cpp \
 	../helpers/ApoRegistration.cpp \
 	../helpers/AudioFormatProbe.cpp \
@@ -60,6 +61,7 @@ SOURCES += main.cpp\
 	../devices/DeviceAPOInfo.Load.cpp \
 	../devices/DeviceAPOInfo.State.cpp \
 	../devices/DeviceAPOInfo.Uninstall.cpp \
+	../devices/DeviceInstallReport.cpp \
 	guis/DeviceFilterGUIDialog.cpp \
 	../filters/DeviceCommand.cpp \
 	../filters/DeviceFilterFactory.cpp \
@@ -302,6 +304,7 @@ HEADERS  += \
 	../helpers/RegistryTransaction.h \
 	../helpers/WindowsVersion.h \
 	../helpers/AudioEngineAccess.h \
+	../helpers/InstallDiagnostics.h \
 	../helpers/ServiceHelper.h \
 	../helpers/ApoRegistration.h \
 	../helpers/AudioFormatProbe.h \

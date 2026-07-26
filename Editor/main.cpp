@@ -59,6 +59,8 @@
 #include "helpers/StringHelper.h"
 #include "helpers/UpdateElevationPolicy.h"
 #include "helpers/Win32Resource.h"
+#include "helpers/AudioEngineAccess.h"
+#include "helpers/InstallDiagnostics.h"
 #include "helpers/VelopackBootstrap.h"
 #include "version.h"
 #include "helpers/QtAppBootstrap.h"
@@ -192,19 +194,6 @@ std::string configuredUpdateChannel()
 #endif
 }
 
-bool isCurrentProcessElevated()
-{
-	BOOL elevated = FALSE;
-	winutil::UniqueHandle token;
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, token.put()))
-		return false;
-	TOKEN_ELEVATION elevation;
-	DWORD size = sizeof(elevation);
-	if (GetTokenInformation(token.get(), TokenElevation, &elevation, sizeof(elevation), &size))
-		elevated = elevation.TokenIsElevated;
-	return elevated == TRUE;
-}
-
 std::wstring widenArg(const char* arg)
 {
 	if (arg == nullptr)
@@ -298,7 +287,7 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!hookSeen)
 		return -1;
 
-	if (UpdateElevationPolicy::hookMustSelfElevate(isCurrentProcessElevated()))
+	if (UpdateElevationPolicy::hookMustSelfElevate(AudioEngineAccess::isElevated()))
 		return relaunchElevatedAndWait(argc, argv);
 
 	for (int i = 1; i < argc; i++)
@@ -359,14 +348,41 @@ int main(int argc, char* argv[])
 	// report behind.
 	CrashHandler::install();
 
+	// Before the hooks, not after. The hooks are the part of this program that
+	// registers the APO, restarts the audio service and removes the APO from every
+	// device, and they used to run before any log destination was chosen - so
+	// their output landed in LogHelper's fallback, %TEMP%\EqualizerAPO.log. Under
+	// elevation that %TEMP% belongs to whichever account the installer elevated
+	// to, which is not the one the user would look in. The hook output now goes
+	// where the rest of the Editor's does. It is still that account's
+	// %LOCALAPPDATA% when elevated, but it is the same file the elevated update
+	// coordinator writes, so there is one place to look rather than two.
+	if (!LogHelper::useUserFile(L"Editor.log", true, false, false))
+		LogHelper::useDefaultApoLog();
+
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
 		return hookResult;
 
-	// Keep Editor diagnostics on disk even though this is a GUI-subsystem process
-	// without a usable stderr stream.
-	if (!LogHelper::useUserFile(L"Editor.log", true, false, false))
-		LogHelper::useDefaultApoLog();
+	// --diagnose before anything is built, so the report can be produced on a
+	// machine where starting the Editor proper is part of the problem.
+	//
+	// It is offered here as well as in Device Selector because Device Selector
+	// links with requireAdministrator: running it prompts for elevation even to
+	// read, and this report exists precisely so someone can look before deciding
+	// whether to change anything. The Editor runs as the user, so this is the form
+	// to tell people about.
+	if (hasArgument(argc, argv, "--diagnose"))
+	{
+		const std::wstring reportPath = InstallDiagnostics::writeReport();
+		if (reportPath.empty())
+		{
+			LogFStatic(L"[Editor] the diagnostics report could not be written");
+			return 1;
+		}
+		LogFStatic(L"[Editor] diagnostics written to %s", reportPath.c_str());
+		return 0;
+	}
 
 	if (hasArgument(argc, argv, UpdateElevationPolicy::kElevatedCoordinatorArgument))
 	{

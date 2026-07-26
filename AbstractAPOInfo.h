@@ -21,6 +21,8 @@
 
 #include <string>
 
+#include "devices/DeviceInstallReport.h"
+
 class AbstractAPOInfo
 {
 public:
@@ -44,4 +46,24 @@ public:
 	virtual void install() = 0;
 	virtual void uninstall() = 0;
 	virtual void reinstall() = 0;
+
+	// What the last install, uninstall or reinstall on this object did. The
+	// caller needs this whether the operation succeeded or threw, so it is a
+	// value on the object rather than a return type: the three functions are
+	// declared void by an interface every device type implements, and the one
+	// caller that matters - Device Selector - runs them inside a try block and
+	// wants the report in both paths.
+	//
+	// Not pure virtual, and the storage is here rather than in each subclass,
+	// because the device types that do not touch an endpoint's APO chain have
+	// nothing to fill it with: the Voicemeeter type rewrites a startup shortcut
+	// and the preview type used by the skin gallery does nothing at all. They
+	// leave it at NotAttempted, which is the truth about them.
+	const DeviceInstallReport& getLastOperationReport() const
+	{
+		return lastOperationReport;
+	}
+
+protected:
+	DeviceInstallReport lastOperationReport;
 };

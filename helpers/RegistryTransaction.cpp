@@ -55,6 +55,16 @@ const vector<wstring>& RegistryTransaction::rollbackFailures() const
 	return failures;
 }
 
+const vector<wstring>& RegistryTransaction::appliedOperations() const
+{
+	return applied;
+}
+
+void RegistryTransaction::recordApplied(const wstring& description)
+{
+	applied.push_back(description);
+}
+
 // --- Reads.
 
 wstring RegistryTransaction::readValue(const wstring& key, const wstring& valuename) const
@@ -107,26 +117,35 @@ bool RegistryTransaction::keyEmpty(const wstring& key) const
 
 void RegistryTransaction::writeValue(const wstring& key, const wstring& valuename, const wstring& value)
 {
-	journalValueWrite(key, valuename);
+	const Entry entry = prepareValueWrite(key, valuename);
 	target.writeValue(key, valuename, value);
+	keep(entry);
+	recordApplied(L"write " + key + L"\\" + valuename + L" = " + value);
 }
 
 void RegistryTransaction::writeDWORDValue(const wstring& key, const wstring& valuename, unsigned long value)
 {
-	journalValueWrite(key, valuename);
+	const Entry entry = prepareValueWrite(key, valuename);
 	target.writeDWORDValue(key, valuename, value);
+	keep(entry);
+	recordApplied(L"write dword " + key + L"\\" + valuename + L" = " + std::to_wstring(value));
 }
 
 void RegistryTransaction::writeMultiValue(const wstring& key, const wstring& valuename, const wstring& value)
 {
-	journalValueWrite(key, valuename);
+	const Entry entry = prepareValueWrite(key, valuename);
 	target.writeMultiValue(key, valuename, value);
+	keep(entry);
+	recordApplied(L"write multi " + key + L"\\" + valuename + L" = " + value);
 }
 
 void RegistryTransaction::writeMultiValue(const wstring& key, const wstring& valuename, const vector<wstring>& values)
 {
-	journalValueWrite(key, valuename);
+	const Entry entry = prepareValueWrite(key, valuename);
 	target.writeMultiValue(key, valuename, values);
+	keep(entry);
+	recordApplied(L"write multi " + key + L"\\" + valuename + L" ("
+		+ std::to_wstring(values.size()) + L" strings)");
 }
 
 void RegistryTransaction::deleteValue(const wstring& key, const wstring& valuename)
@@ -134,16 +153,17 @@ void RegistryTransaction::deleteValue(const wstring& key, const wstring& valuena
 	// A missing key or value makes the delete throw, and there is nothing to put
 	// back in that case. keyExists first because valueExists throws for a missing
 	// key rather than answering.
+	Entry entry;
 	if (target.keyExists(key) && target.valueExists(key, valuename))
 	{
-		Entry entry;
 		entry.kind = Entry::Kind::RestoreValue;
 		entry.key = key;
 		entry.value = snapshot(key, valuename);
-		journal.push_back(entry);
 	}
 
 	target.deleteValue(key, valuename);
+	keep(entry);
+	recordApplied(L"delete " + key + L"\\" + valuename);
 }
 
 void RegistryTransaction::createKey(const wstring& key)
@@ -162,6 +182,7 @@ void RegistryTransaction::createKey(const wstring& key)
 		created.push_back(key);
 
 	target.createKey(key);
+	recordApplied(L"create key " + key);
 
 	if (!created.empty())
 	{
@@ -175,9 +196,9 @@ void RegistryTransaction::createKey(const wstring& key)
 
 void RegistryTransaction::deleteKey(const wstring& key)
 {
+	Entry entry;
 	if (target.keyExists(key))
 	{
-		Entry entry;
 		entry.kind = Entry::Kind::RestoreKey;
 		entry.key = key;
 		// deleteKey only succeeds on a key without subkeys, so this key's own
@@ -185,27 +206,32 @@ void RegistryTransaction::deleteKey(const wstring& key)
 		const vector<wstring> valueNames = target.enumValues(key);
 		for (const wstring& valuename : valueNames)
 			entry.values.push_back(snapshot(key, valuename));
-		journal.push_back(entry);
 	}
 
 	target.deleteKey(key);
+	keep(entry);
+	recordApplied(L"delete key " + key);
 }
 
 void RegistryTransaction::takeOwnership(const wstring& key)
 {
 	fullyReversible = false;
 	target.takeOwnership(key);
+	recordApplied(L"take ownership of " + key + L" (not reversible)");
 }
 
 void RegistryTransaction::makeWritable(const wstring& key)
 {
 	fullyReversible = false;
 	target.makeWritable(key);
+	recordApplied(L"grant write access to " + key + L" (not reversible)");
 }
 
 void RegistryTransaction::saveToFile(const wstring& key, const vector<wstring>& valuenames, const wstring& filepath)
 {
 	target.saveToFile(key, valuenames, filepath);
+	recordApplied(L"export " + std::to_wstring(valuenames.size()) + L" values of " + key
+		+ L" to " + filepath);
 }
 
 // --- Journalling.
@@ -254,14 +280,15 @@ RegistryTransaction::ValueSnapshot RegistryTransaction::snapshot(const wstring& 
 		+ L" holds a type this transaction cannot restore, so the change was not applied");
 }
 
-void RegistryTransaction::journalValueWrite(const wstring& key, const wstring& valuename)
+RegistryTransaction::Entry RegistryTransaction::prepareValueWrite(const wstring& key, const wstring& valuename) const
 {
-	// A write into a key that does not exist throws and changes nothing, so there
-	// is no undo to record for it.
-	if (!target.keyExists(key))
-		return;
-
 	Entry entry;
+
+	// A write into a key that does not exist throws and changes nothing, so there
+	// is no undo to prepare for it.
+	if (!target.keyExists(key))
+		return entry;
+
 	entry.key = key;
 	if (target.valueExists(key, valuename))
 	{
@@ -273,7 +300,13 @@ void RegistryTransaction::journalValueWrite(const wstring& key, const wstring& v
 		entry.kind = Entry::Kind::DeleteValue;
 		entry.value.name = valuename;
 	}
-	journal.push_back(entry);
+	return entry;
+}
+
+void RegistryTransaction::keep(const Entry& entry)
+{
+	if (entry.kind != Entry::Kind::Nothing)
+		journal.push_back(entry);
 }
 
 void RegistryTransaction::restoreValue(const wstring& key, const ValueSnapshot& stored)
@@ -301,6 +334,9 @@ void RegistryTransaction::undo(const Entry& entry)
 	{
 		switch (entry.kind)
 		{
+		case Entry::Kind::Nothing:
+			break;
+
 		case Entry::Kind::DeleteValue:
 			if (target.keyExists(entry.key) && target.valueExists(entry.key, entry.value.name))
 				target.deleteValue(entry.key, entry.value.name);

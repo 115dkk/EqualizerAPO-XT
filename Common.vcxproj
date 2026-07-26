@@ -400,6 +400,7 @@
     <ClCompile Include="devices\DeviceAPOInfo.Load.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.State.cpp" />
     <ClCompile Include="devices\DeviceAPOInfo.Uninstall.cpp" />
+    <ClCompile Include="devices\DeviceInstallReport.cpp" />
     <ClCompile Include="FilterConfiguration.cpp" />
     <ClCompile Include="FilterEngine.cpp" />
     <ClCompile Include="engine\FilterEngine.Configuration.cpp" />

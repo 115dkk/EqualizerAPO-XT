@@ -361,6 +361,8 @@ void testInstallThenLoadRoundTripsTheInstallState(test::Harness& harness)
 		"the device still loads after being installed onto");
 	harness.expect(reloaded.isInstalled(),
 		"a fresh load has to see the installation the previous object just wrote");
+	harness.expectEqual(reloaded.getLastOperationReport().operation == DeviceInstallReport::Operation::None, true,
+		"a freshly loaded object has performed no operation, so its report says so instead of describing somebody else's");
 	harness.expect(!(reloaded.getCurrentInstallState() != requested),
 		"every field of the install state survives the round trip through the registry; a field that is written but never read back would silently reset itself on the next start");
 }
@@ -575,6 +577,25 @@ void testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(test::Harness& h
 		"the device still loads after the failed install");
 	harness.expectFalse(reloaded.isInstalled(),
 		"the state a failed install leaves must not read as installed, which is the failure mode this whole change is about");
+
+	// The report is the only thing a user can send after this: the message box is
+	// closed by the time they ask for help, and before this there was nothing in
+	// any log to look at.
+	const DeviceInstallReport& report = info.getLastOperationReport();
+	harness.expectEqual(static_cast<int>(report.outcome), static_cast<int>(DeviceInstallReport::Outcome::Failed),
+		"a failed operation reports itself as failed rather than leaving the previous verdict standing");
+	harness.expect(!report.failure.empty(),
+		"the report carries the registry's own message, which is where the Win32 status is");
+	harness.expect(!report.appliedOperations.empty(),
+		"and how far it got, so a reader can see which slot it died on");
+	harness.expectFalse(report.leftInconsistent(),
+		"the rollback finished, so this device is not in the one state that needs a reboot to leave");
+	harness.expect(report.fxPropertiesExisted,
+		"the report says the driver had published its own FxProperties key, which is what makes the vendor-APO branch the one that ran");
+	harness.expectEqual(report.driverSlots.size(), size_t(2),
+		"and which slots the driver had filled, taken from what load() found rather than from the state after the failure");
+	harness.expect(!report.backupPath.empty(),
+		"the export happened before the failure, so its path is in the report - it is the file a user needs to restore the driver's chain by hand");
 }
 
 void testUninstallPutsTheInstallationBackWhenItCannotFinish(test::Harness& harness)

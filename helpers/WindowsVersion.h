@@ -20,14 +20,22 @@
 namespace WindowsVersion
 {
 
-// True when the running kernel is at least this major.minor. Both are limited to
-// 99, which the packed comparison below relies on and which no Windows version
-// has come close to.
-//
-// Reads kernel32.dll's product version rather than asking GetVersionEx, because
-// GetVersionEx has been subject to application-compatibility shimming since
-// Windows 8.1 and lies to a process without the right manifest - which is the
-// exact version boundary the callers care about.
+// What kernel32.dll's version resource reports. Read from there rather than from
+// GetVersionEx, because GetVersionEx has been subject to application-compatibility
+// shimming since Windows 8.1 and lies to a process without the right manifest -
+// which is the exact version boundary the callers care about.
+struct Version
+{
+	unsigned major = 0;
+	unsigned minor = 0;
+	// 26100 and up is Windows 11 24H2, where the OS started creating its own
+	// subkeys below an endpoint's FxProperties (issue #189).
+	unsigned build = 0;
+};
+
+Version current();
+
+// True when the running kernel is at least this major.minor.
 bool isAtLeast(unsigned major, unsigned minor);
 
 } // namespace WindowsVersion

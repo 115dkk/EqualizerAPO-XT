@@ -2,6 +2,20 @@
 
 EqualizerAPO-XT 설치 진단과 복구를 위한 PowerShell 헬퍼.
 
+## 먼저: 프로그램에 들어간 진단
+
+같은 검사가 이제 프로그램 안에 있습니다. 스크립트를 받을 필요가 없습니다.
+
+```powershell
+Editor.exe --diagnose
+```
+
+설치 경로, COM 등록, audiodg(LOCAL SERVICE)와 Users의 접근 권한, 엔드포인트별 APO 사슬을 콘솔에 출력하고 `%LOCALAPPDATA%\EqualizerAPO\logs\diagnose-<시각>.txt`에도 남깁니다. 읽기 전용이고 권한 상승이 필요 없습니다.
+
+`DeviceSelector.exe --diagnose`도 같은 보고서를 냅니다. 다만 DeviceSelector는 `requireAdministrator`로 링크되므로 읽기만 하더라도 UAC 프롬프트가 뜹니다. 그래서 사용자에게 안내할 것은 Editor 쪽입니다.
+
+아래 두 스크립트는 남겨둡니다. 설치가 아예 없거나 실행 파일이 실행되지 않는 기계에서도 돌아가고, 복구 쪽은 아직 프로그램 안에 대응물이 없습니다.
+
 ## Diagnose-EqualizerAPO.ps1
 
 읽기 전용 진단 스크립트입니다. 설치 경로, ACL, COM 등록 상태, MMDevices의 APO 체인을 덤프하고 Device Selector에서 "GetMixFormat / Initialize 액세스 거부"가 발생하는 조건이 있는지 점검합니다. 권한 상승 없이 실행할 수 있습니다.
