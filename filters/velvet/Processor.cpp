@@ -260,7 +260,7 @@ void Processor::generateBank(std::size_t channelIndex, unsigned bankIndex,
 		bank.storage[i].gain *= scale;
 }
 
-double Processor::convolve(const Channel& channel, unsigned bankIndex) const noexcept
+double Processor::convolve(const Channel& channel, unsigned bankIndex) noexcept
 {
 	const Bank& bank = channel.banks[bankIndex];
 	double result = 0.0;

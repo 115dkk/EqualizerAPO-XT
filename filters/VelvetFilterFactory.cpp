@@ -6,6 +6,8 @@
 #include "VelvetCommand.h"
 #include "VelvetFilter.h"
 
+// cppcheck's standalone parser does not expand the static-registration macro.
+// cppcheck-suppress unknownMacro
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Velvet,
 	VelvetFilterFactory, L"Velvet")
 

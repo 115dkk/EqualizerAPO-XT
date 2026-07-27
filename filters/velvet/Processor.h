@@ -96,7 +96,7 @@ private:
 		std::size_t frameCount) noexcept;
 	void generateBank(std::size_t channel, unsigned bankIndex,
 		std::uint64_t generation) noexcept;
-	double convolve(const Channel& channel, unsigned bankIndex) const noexcept;
+	static double convolve(const Channel& channel, unsigned bankIndex) noexcept;
 	void startTransition() noexcept;
 	void finishTransition() noexcept;
 	std::size_t secondsToSamples(double seconds) const noexcept;

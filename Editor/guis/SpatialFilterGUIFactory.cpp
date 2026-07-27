@@ -9,6 +9,8 @@
 #include "filters/VelvetCommand.h"
 #include "helpers/ChannelHelper.h"
 
+// cppcheck's standalone parser does not expand the static-registration macro.
+// cppcheck-suppress unknownMacro
 REGISTER_FILTER_GUI_FACTORY(FilterGUIFactoryOrder::Spatial,
 	SpatialFilterGUIFactory)
 
