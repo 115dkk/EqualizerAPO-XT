@@ -44,6 +44,9 @@
     <ClCompile Include="GraphicEQCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="HilbertVelvetTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="IfCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

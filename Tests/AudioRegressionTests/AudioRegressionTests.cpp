@@ -137,6 +137,14 @@ const TestCase kCases[] = {
 	// thing on the coefficients.
 	{ "allpass_order1_x2",     "allpass_order1_x2.txt",     SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
 	{ "allpass_order2_q05",    "allpass_order2_q05.txt",    SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
+	// Spatial filters added as independent commands. Hilbert proves that one
+	// channel receives the 1025-tap quadrature FIR while the other receives
+	// the matching 512-sample latency. Static Velvet pins the sparse,
+	// unit-energy kernels; Dynamic Velvet uses DC long enough to cross two
+	// renewal boundaries and therefore pins the equal-power transition path.
+	{ "hilbert_roles",         "hilbert_roles.txt",         SignalType::ImpulseStereo, 48000, 2, 4096, 512 },
+	{ "velvet_static",         "velvet_static.txt",         SignalType::ImpulseStereo, 48000, 2, 4096, 256 },
+	{ "velvet_dynamic",        "velvet_dynamic.txt",        SignalType::DCStereo,      48000, 2, 12288, 256 },
 };
 
 bool writeCaseManifest(const std::wstring& directory)

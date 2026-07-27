@@ -78,6 +78,8 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 	auto savedTraceFile = move(traceFile);
 	const int savedTraceLine = traceLine;
 	const bool savedLastInPlace = lastInPlace;
+	const bool savedFrozenDynamicAnalysis = frozenDynamicAnalysis;
+	frozenDynamicAnalysis = false;
 
 	auto rollback = [&]() noexcept {
 		filterInfos = move(savedFilterInfos);
@@ -89,6 +91,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 		traceFile = move(savedTraceFile);
 		traceLine = savedTraceLine;
 		lastInPlace = savedLastInPlace;
+		frozenDynamicAnalysis = savedFrozenDynamicAnalysis;
 	};
 
 	try

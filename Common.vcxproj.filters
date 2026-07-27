@@ -41,6 +41,13 @@
     <ClInclude Include="filters\IrCache.h">
       <Filter>filters</Filter>
     </ClInclude>
+    <ClInclude Include="filters\HilbertCommand.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\HilbertFilter.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\HilbertFilterFactory.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\VelvetCommand.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\VelvetFilter.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\VelvetFilterFactory.h"><Filter>filters</Filter></ClInclude>
+    <ClInclude Include="filters\velvet\Processor.h"><Filter>filters\velvet</Filter></ClInclude>
     <ClInclude Include="filters\CopyFilter.h">
       <Filter>filters</Filter>
     </ClInclude>
@@ -283,6 +290,13 @@
     <ClCompile Include="filters\IrCache.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\HilbertCommand.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\HilbertFilter.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\HilbertFilterFactory.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\VelvetCommand.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\VelvetFilter.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\VelvetFilterFactory.cpp"><Filter>filters</Filter></ClCompile>
+    <ClCompile Include="filters\velvet\Processor.cpp"><Filter>filters\velvet</Filter></ClCompile>
     <ClCompile Include="filters\CopyFilter.cpp">
       <Filter>filters</Filter>
     </ClCompile>
@@ -490,6 +504,9 @@
     </Filter>
     <Filter Include="filters\loudnessCorrection">
       <UniqueIdentifier>{c473f978-6002-42aa-adf5-3b5f10868d2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="filters\velvet">
+      <UniqueIdentifier>{0ce9cc67-a2b9-4a19-bdd0-b467f8a5c2d4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

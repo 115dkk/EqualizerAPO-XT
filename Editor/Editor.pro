@@ -122,6 +122,7 @@ SOURCES += main.cpp\
 	guis/ConvolutionFilterGUI.cpp \
 	guis/MultiConvolutionFilterGUIFactory.cpp \
 	guis/MultiConvolutionFilterGUI.cpp \
+	guis/SpatialFilterGUIFactory.cpp \
 	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
@@ -170,6 +171,13 @@ SOURCES += main.cpp\
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
+	../filters/HilbertCommand.cpp \
+	../filters/HilbertFilter.cpp \
+	../filters/HilbertFilterFactory.cpp \
+	../filters/VelvetCommand.cpp \
+	../filters/VelvetFilter.cpp \
+	../filters/VelvetFilterFactory.cpp \
+	../filters/velvet/Processor.cpp \
 	../engine/ConfigurationFileReader.cpp \
 	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \
@@ -249,6 +257,9 @@ SOURCES += main.cpp\
 	widgets/cards/GraphicEQCardEditor.cpp \
 	widgets/cards/IIRCardEditor.cpp \
 	widgets/cards/AllPassCardEditor.cpp \
+	widgets/cards/HilbertCardEditor.cpp \
+	widgets/cards/VelvetCardEditor.cpp \
+	widgets/cards/VelvetImpulsePreview.cpp \
 	widgets/cards/FilterCardEditorRouter.cpp \
 	analysis/AnalysisViewController.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
@@ -390,6 +401,7 @@ HEADERS  += \
 	guis/ConvolutionFilterGUI.h \
 	guis/MultiConvolutionFilterGUIFactory.h \
 	guis/MultiConvolutionFilterGUI.h \
+	guis/SpatialFilterGUIFactory.h \
 	helpers/AnalysisWorkerRecovery.h \
 	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
@@ -426,6 +438,13 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
+	../filters/HilbertCommand.h \
+	../filters/HilbertFilter.h \
+	../filters/HilbertFilterFactory.h \
+	../filters/VelvetCommand.h \
+	../filters/VelvetFilter.h \
+	../filters/VelvetFilterFactory.h \
+	../filters/velvet/Processor.h \
 	../parser/RegexFunctions.h \
 	../parser/RegistryFunctions.h \
 	../parser/ParserExtensions.h \
@@ -497,6 +516,9 @@ HEADERS  += \
 	widgets/cards/GraphicEQCardEditor.h \
 	widgets/cards/IIRCardEditor.h \
 	widgets/cards/AllPassCardEditor.h \
+	widgets/cards/HilbertCardEditor.h \
+	widgets/cards/VelvetCardEditor.h \
+	widgets/cards/VelvetImpulsePreview.h \
 	analysis/AnalysisViewController.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \

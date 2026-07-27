@@ -212,6 +212,32 @@ MultiConvolution: L=0 XL=1 XR=2 R=3 brir.wav
 Copy: L=L+XL R=R+XR
 ```
 
+### Hilbert
+**Syntax:** `Hilbert: [Shift=<channel>[,<channel>...]] [Align=<channel>[,<channel>...]] [Direction=-90|+90]`
+
+Applies a fixed 1025-tap linear-phase Hilbert transform to the channels named by `Shift`. `Direction` selects a -90° (default) or +90° phase shift. The transform has 512 samples of latency and a unity-gain mid-band response. `Shift=ALL` is the default and addresses every channel that exists at this line.
+
+`Align` applies only the matching 512-sample delay to explicitly named channels, without phase shifting them. A channel cannot appear in both roles, `Align=ALL` is not accepted, and `Align` cannot be used together with `Shift=ALL`. Channel names in this command are explicit and do not depend on the current `Channel:` selection. Unknown names are ignored and reported in the log.
+
+```
+Hilbert: Shift=SL,SR Align=L,R Direction=-90
+```
+
+The Editor exposes the two channel roles separately and plots the phase and group-delay response of the transform.
+
+### Velvet
+**Syntax:** `Velvet: [Mode=Dynamic|Static] [Amount=0%..100%] [Length=1ms..100ms] [Density=100/s..4000/s] [Evolution=0.1s..60s] [Transition=1ms..2000ms] [Decay=-120dB..0dB] [Variation=1..4294967295]`
+
+Runs an independently generated sparse velvet-noise FIR on every currently selected channel. It decorrelates input audio; it does not add a continuous noise signal. `Amount` is the dry/wet mix, `Length` is the FIR time spread, `Density` is the average impulse density, `Decay` sets the end-of-window gain, and `Variation` is the deterministic seed stored in the configuration.
+
+`Mode=Dynamic` is the default. A new deterministic bank is generated every `Evolution` interval and replaces the active bank through an equal-power `Transition`; the transition may not exceed 90% of the evolution interval. `Mode=Static` keeps one bank. Each channel receives a separately generated, unit-energy sparse response, and processing performs no allocation after initialization.
+
+```
+Velvet: Mode=Dynamic Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136
+```
+
+The Editor shows the sparse response, tap and correlation statistics, the dynamic controls only when they apply, and an Advanced fold for density, transition, decay and variation. Frequency-response analysis freezes a dynamic filter to its deterministic static snapshot and labels the graph accordingly, so an evolving response is never presented as a stationary measurement.
+
 ## Control commands
 These do not change the audio directly; they control which commands run and how they apply.
 

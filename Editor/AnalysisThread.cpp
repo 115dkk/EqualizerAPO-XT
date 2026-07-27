@@ -177,6 +177,7 @@ void AnalysisThread::run()
 		Collector traceCollector;
 
 		FilterEngine engine;
+		engine.setAnalysisMode(true);
 		engine.setLoadTraceSink(&traceCollector);
 		engine.setDeviceInfo(device->isInput(), true, device->getDeviceName(), device->getConnectionName(), device->getDeviceGuid(), device->getDeviceString());
 		engine.initialize(sampleRate, channelCount, channelCount, channelCount, channelMask, frameCount, configPath.toStdWString());
@@ -302,6 +303,7 @@ void AnalysisThread::run()
 		response->sampleRate = static_cast<unsigned>(sampleRate);
 		response->fftSize = static_cast<size_t>(frameCount);
 		response->latencyFrames = latency;
+		response->frozenDynamicResponse = engine.usedFrozenDynamicAnalysis();
 		const size_t binCount = AnalysisResponse::binCountFor(frameCount);
 		response->bins.resize(binCount);
 		for (size_t i = 0; i < binCount; i++)

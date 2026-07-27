@@ -35,9 +35,11 @@ namespace FilterFactoryPriority
 	constexpr int Delay = 9;
 	constexpr int Copy = 10;
 	constexpr int Convolution = 11;
-	constexpr int GraphicEQ = 12;
-	constexpr int VSTPlugin = 13;
-	constexpr int LoudnessCorrection = 14;
+	constexpr int Hilbert = 12;
+	constexpr int Velvet = 13;
+	constexpr int GraphicEQ = 14;
+	constexpr int VSTPlugin = 15;
+	constexpr int LoudnessCorrection = 16;
 }
 
 class FilterFactoryRegistry

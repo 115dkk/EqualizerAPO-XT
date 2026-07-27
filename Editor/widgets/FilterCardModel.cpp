@@ -8,6 +8,8 @@
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "filters/BiQuadCommand.h"
+#include "filters/HilbertCommand.h"
+#include "filters/VelvetCommand.h"
 
 namespace
 {
@@ -306,6 +308,51 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = tr("Delay");
 		descriptor.color = QStringLiteral("#14b8a6");
 	}
+	else if (keyword == QStringLiteral("Hilbert"))
+	{
+		descriptor.type = QStringLiteral("hilbert");
+		descriptor.badge = QStringLiteral("H90");
+		descriptor.title = tr("Hilbert transform");
+		descriptor.color = QStringLiteral("#6366f1");
+		HilbertCommand parsed;
+		if (HilbertCommand::parse(command.toStdWString(),
+			parameters.toStdWString(), parsed))
+		{
+			QStringList parts;
+			parts.append(parsed.directionDegrees < 0
+				? QStringLiteral("−90°") : QStringLiteral("+90°"));
+			parts.append(tr("%1 shifted").arg(parsed.shiftedChannels.size() == 1
+				&& parsed.shiftedChannels.front() == L"ALL"
+				? QStringLiteral("ALL")
+				: QString::number(parsed.shiftedChannels.size())));
+			if (!parsed.alignedChannels.empty())
+				parts.append(tr("%1 aligned").arg(parsed.alignedChannels.size()));
+			descriptor.summary = parts.join(middleDotSeparator());
+			for (const std::wstring& channel : parsed.shiftedChannels)
+				descriptor.channelBadges.append(QString::fromStdWString(channel));
+		}
+	}
+	else if (keyword == QStringLiteral("Velvet"))
+	{
+		descriptor.type = QStringLiteral("velvet");
+		descriptor.badge = QStringLiteral("VEL");
+		descriptor.title = tr("Velvet decorrelator");
+		descriptor.color = QStringLiteral("#d946ef");
+		VelvetCommand parsed;
+		if (VelvetCommand::parse(command.toStdWString(),
+			parameters.toStdWString(), parsed))
+		{
+			const int taps = qMax(2, qRound(parsed.parameters.lengthMs
+				* parsed.parameters.density / 1000.0));
+			descriptor.summary = QStringLiteral("%1%2%3%4%5")
+				.arg(parsed.parameters.dynamic ? tr("Dynamic") : tr("Static"),
+					middleDotSeparator(),
+					tr("%1%").arg(parsed.parameters.amount * 100.0, 0, 'g', 4),
+					middleDotSeparator(),
+					tr("%1 ms · %2 taps/ch")
+						.arg(parsed.parameters.lengthMs, 0, 'g', 5).arg(taps));
+		}
+	}
 	else if (keyword == QStringLiteral("Filter"))
 	{
 		// EAPO syntax allows numbered filter lines such as `Filter 1:`, `Filter 99:`
@@ -573,6 +620,10 @@ QString FilterCardModel::badgeIconResource(const QString& type, const QString& b
 			? QStringLiteral(":/icons/modern/multi-convolution.svg")
 			: QStringLiteral(":/icons/modern/waveform.svg");
 	}
+	if (type == QStringLiteral("hilbert"))
+		return commandIconResource(QStringLiteral("hilbert"));
+	if (type == QStringLiteral("velvet"))
+		return commandIconResource(QStringLiteral("velvet"));
 
 	if (type == QStringLiteral("comment"))
 		return commandIconResource(QStringLiteral("#"));
@@ -615,6 +666,8 @@ QString FilterCardModel::commandIconResource(const QString& command, const QStri
 		{ "graphiceq", "graphic-eq" },
 		{ "preamp", "preamp-gain" },
 		{ "delay", "delay-clock" },
+		{ "hilbert", "eq-allpass" },
+		{ "velvet", "waveform" },
 		{ "device", "device-speaker" },
 		{ "channel", "channel-select" },
 		{ "stage", "stage-chain" },

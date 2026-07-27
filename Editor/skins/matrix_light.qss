@@ -1731,3 +1731,24 @@ QWidget#FilterCardHeader[filterKind="#"] QLabel#FilterCardTitle {
 QWidget#FilterCardHeader[filterKind="#"] QLabel#FilterCardSummary {
     color: @MUTED@;
 }
+/* Hilbert / Velvet cards: independent phase and sparse-FIR instruments. */
+QWidget#HilbertCardEditor, QWidget#HilbertModeBlock, QWidget#HilbertChannelRole,
+QWidget#HilbertChannelChips, QWidget#HilbertReadoutBlock,
+QWidget#VelvetCardEditor, QWidget#VelvetPrimaryRow, QWidget#VelvetValueBlock, QWidget#VelvetAdvancedPanel,
+QLabel#HilbertCaption, QLabel#HilbertReadout, QLabel#VelvetCaption,
+QLabel#VelvetStatistics, QLabel#CardValidationMessage {
+    background: transparent;
+    border: 0;
+}
+QLabel#HilbertCaption, QLabel#VelvetCaption { color: @MUTED@; font-weight: 600; }
+QLabel#HilbertReadout, QLabel#VelvetStatistics {
+    color: @TEXT@;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-weight: 700;
+}
+QLabel#CardValidationMessage { color: @DANGER@; font-weight: 700; }
+QToolButton#VelvetAdvancedToggle {
+    min-height: 40px; padding: 0 10px; color: @MUTED@;
+    background: transparent; border: 1px solid @BORDER@;
+}
+QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }

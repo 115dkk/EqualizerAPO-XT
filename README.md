@@ -30,6 +30,19 @@ Current work areas:
 - Double-precision internal audio processing for complex filter chains.
 - Convolution, GraphicEQ, parametric EQ, VST2/VST3, and standard Equalizer APO filter support.
 - MultiConvolution filter for true-stereo and BRIR (Binaural Room Impulse Response) playback: `MultiConvolution: L=0+1 R=2+3 brir.wav` convolves each channel's own signal with its mapped channels of one multichannel impulse response and sums them back, independent of the Channel command - the fan-out/sum pattern the in-place Convolution filter cannot express, in one line. Each mapped channel takes an optional factor with Copy's grammar (`L=0.5*0+1`; `-1` inverts the phase, `-6dB` works too). The Editor edits the mapping in every skin's routing view.
+- A built-in 1025-tap linear-phase Hilbert transform with explicit phase-shift
+  and latency-alignment roles. For example,
+  `Hilbert: Shift=SL,SR Align=L,R Direction=-90` applies the selected ±90°
+  transform to `SL,SR` and the matching 512-sample delay to `L,R`.
+- A built-in sparse velvet-noise decorrelator. `Velvet: Mode=Dynamic` gives
+  every channel an independent, unit-energy kernel and renews the kernels with
+  an equal-power transition; Static mode and the amount, time spread, density,
+  evolution, transition, decay, and deterministic variation are all explicit
+  parameters. Frequency-response analysis freezes Dynamic mode to one labelled
+  snapshot because a time-varying response has no single permanent curve.
+  The independent, MIT-licensed
+  [Dynamic Velvet Decorrelator VST3](https://github.com/115dkk/Velvet-Noise-Decorrelator-VST3)
+  exposes the same portable DSP outside EqualizerAPO-XT.
 - Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it.
 - Portable SIMD kernels written once with [Google Highway](https://github.com/google/highway) and compiled per variant: SSE2, AVX, AVX2, AVX-512, and AVX10.1 on x64, NEON on ARM64.
 - Modernized Qt Editor: card-based filter UI and five fully differentiated visual skins — each with its own row chrome, knob rendering, and Copy routing renderer ([docs/skin-integration-report.md](docs/skin-integration-report.md)) — plus embedded fonts and high-DPI scaling.

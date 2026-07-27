@@ -216,6 +216,8 @@ void EqGraphView::paintEvent(QPaintEvent*)
 	state.channelText = currentResponse->sampleRate == 0
 		? currentChannel
 		: QStringLiteral("%1 - %2 Hz").arg(currentChannel).arg(currentResponse->sampleRate);
+	if (currentResponse->frozenDynamicResponse)
+		state.channelText += tr(" · frozen Velvet snapshot");
 
 	for (double hz : FrequencyTicks)
 	{

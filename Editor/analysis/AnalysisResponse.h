@@ -38,6 +38,9 @@ struct AnalysisResponse
 	// view that wants the delay back reapplies the linear phase this implies
 	// rather than asking for a second analysis.
 	int latencyFrames = 0;
+	// True when a time-varying filter was intentionally frozen to one
+	// deterministic kernel for this frequency-response measurement.
+	bool frozenDynamicResponse = false;
 	// DC first, Nyquist last: binCountFor(fftSize) entries.
 	std::vector<std::complex<double>> bins;
 

@@ -205,6 +205,32 @@ MultiConvolution: L=0 XL=1 XR=2 R=3 brir.wav
 Copy: L=L+XL R=R+XR
 ```
 
+### Hilbert
+**문법:** `Hilbert: [Shift=<채널>[,<채널>...]] [Align=<채널>[,<채널>...]] [Direction=-90|+90]`
+
+`Shift`에 적은 채널에 고정된 1025탭 선형 위상 Hilbert 변환을 적용합니다. `Direction`은 -90°(기본값) 또는 +90° 위상 이동을 고릅니다. 변환 지연은 512샘플이며 중역 통과 이득은 1입니다. 기본값인 `Shift=ALL`은 이 줄에 존재하는 모든 채널을 대상으로 합니다.
+
+`Align`은 위상을 이동하지 않고 명시한 채널에 같은 512샘플 지연만 적용합니다. 한 채널을 두 역할에 동시에 넣을 수 없고, `Align=ALL`은 허용되지 않으며, `Shift=ALL`과 `Align`을 함께 쓸 수도 없습니다. 이 명령의 채널 이름은 `Channel:`의 현재 선택과 무관한 명시적 역할입니다. 존재하지 않는 이름은 무시하고 로그에 기록합니다.
+
+```
+Hilbert: Shift=SL,SR Align=L,R Direction=-90
+```
+
+Editor에서는 두 채널 역할을 따로 편집하고 변환의 위상 및 군지연 응답을 그립니다.
+
+### Velvet
+**문법:** `Velvet: [Mode=Dynamic|Static] [Amount=0%..100%] [Length=1ms..100ms] [Density=100/s..4000/s] [Evolution=0.1s..60s] [Transition=1ms..2000ms] [Decay=-120dB..0dB] [Variation=1..4294967295]`
+
+현재 선택된 각 채널을 서로 독립적으로 만든 희소 벨벳 노이즈 FIR로 처리합니다. 입력 오디오를 비상관화하는 필터이며, 연속적인 노이즈 신호를 더하는 생성기가 아닙니다. `Amount`는 드라이/웻 비율, `Length`는 FIR 시간 폭, `Density`는 평균 임펄스 밀도, `Decay`는 창 끝의 이득, `Variation`은 설정에 저장되는 결정적 시드입니다.
+
+기본값은 `Mode=Dynamic`입니다. `Evolution` 간격마다 새 결정적 뱅크를 만들고 `Transition` 동안 등전력 전환으로 활성 뱅크를 교체합니다. 전환 시간은 진화 간격의 90%를 넘을 수 없습니다. `Mode=Static`은 한 뱅크를 유지합니다. 채널마다 별도의 단위 에너지 희소 응답을 쓰며, 초기화가 끝난 뒤 실시간 처리 경로에서는 메모리를 할당하지 않습니다.
+
+```
+Velvet: Mode=Dynamic Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136
+```
+
+Editor는 희소 응답과 탭·상관 통계를 보여주고, 동적 제어는 적용되는 모드에서만 드러내며, 밀도·전환·감쇠·변형값은 고급 접이식 영역에 둡니다. 주파수 응답 분석에서는 동적 필터를 결정적인 정적 스냅샷으로 고정하고 그래프에 그 사실을 표시하므로, 계속 변하는 응답을 정지 측정처럼 표현하지 않습니다.
+
 ## 제어 명령
 오디오를 직접 바꾸지 않고, 어떤 명령이 실행될지와 어떻게 적용될지를 제어합니다.
 
