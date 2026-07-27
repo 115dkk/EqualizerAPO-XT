@@ -280,6 +280,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <ClCompile Include="ExpressionCommandTests.cpp" />
     <ClCompile Include="FilterFactoryRegistryTests.cpp" />
     <ClCompile Include="GraphicEQCommandTests.cpp" />
+    <ClCompile Include="HilbertVelvetTests.cpp" />
     <ClCompile Include="IfCommandTests.cpp" />
     <ClCompile Include="IIRCommandTests.cpp" />
     <ClCompile Include="IncludeCommandTests.cpp" />

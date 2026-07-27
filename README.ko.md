@@ -25,6 +25,18 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 - 오디오를 내부에서 double 정밀도로 처리해 복잡한 필터 체인에서도 정밀도를 잃지 않습니다.
 - Convolution, GraphicEQ, 파라메트릭 EQ, VST2/VST3와 기존 Equalizer APO 필터를 지원합니다.
 - 트루 스테레오와 BRIR(Binaural Room Impulse Response) 재생을 위한 MultiConvolution 필터가 있습니다. `MultiConvolution: L=0+1 R=2+3 brir.wav`처럼 각 채널 자신의 신호를 매핑된 파일 채널들과 컨볼루션해 합산하며, Channel 명령과 무관하게 동작합니다. 제자리 처리만 하는 기존 Convolution 필터가 표현하지 못하는 분기·합산 패턴이 한 줄로 끝나고, 파일 채널마다 Copy와 같은 문법으로 배율을 붙일 수 있습니다(`L=0.5*0+1`, `-1`은 역위상, `-6dB`도 가능). Editor에서는 스킨마다 다른 라우팅 화면으로 매핑을 편집합니다.
+- 1025탭 선형 위상 힐베르트 변환이 내장되어 있습니다.
+  `Hilbert: Shift=SL,SR Align=L,R Direction=-90`처럼 위상을 ±90° 바꿀
+  채널과 512샘플 지연만 맞출 채널을 명시적으로 나눕니다.
+- 희소 벨벳 노이즈 비상관화 필터가 내장되어 있습니다.
+  `Velvet: Mode=Dynamic`은 채널마다 독립적인 단위 에너지 커널을 만들고 동일
+  전력 전환으로 커널을 계속 갱신합니다. 고정 모드와 양·시간 분산·밀도·변화
+  주기·전환·감쇠·결정적 변형을 모두 직접 설정할 수 있습니다. 시간에 따라
+  변하는 응답에는 영구적인 곡선 하나가 없으므로, 주파수 응답 분석은 동적
+  모드를 결정적 커널 하나로 고정하고 그래프에 스냅샷임을 표시합니다. 같은
+  휴대용 DSP를 EqualizerAPO-XT 밖에서 쓰는 독립 MIT 프로젝트
+  [Dynamic Velvet Decorrelator VST3](https://github.com/115dkk/Velvet-Noise-Decorrelator-VST3)도
+  별도로 배포합니다.
 - Steinberg VST3 SDK(MIT 라이선스 pluginterfaces)로 VST3를 네이티브 호스팅하며, 플러그인이 지원하면 64비트(double)로 처리합니다.
 - SIMD 커널은 [Google Highway](https://github.com/google/highway)로 한 번만 작성해 변형별로 컴파일합니다. x64는 SSE2, AVX, AVX2, AVX-512, AVX10.1, ARM64는 NEON입니다.
 - Qt Editor를 현대화했습니다. 카드 기반 필터 UI와 행 chrome·노브 렌더링·Copy 라우팅 렌더러까지 서로 다른 5종 스킨([docs/skin-integration-report.md](docs/skin-integration-report.md)), 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.

@@ -82,6 +82,12 @@ public:
 	// to detach. The Editor's analysis engine is the only expected consumer -
 	// the APO runtime never attaches one.
 	void setLoadTraceSink(ConfigLoadTraceSink* sink) {traceSink = sink;}
+	// Analysis owns a deterministic view of time-varying filters. Set before
+	// initialize(), so factories can freeze their dynamic state while loading.
+	void setAnalysisMode(bool enabled) {analysisMode = enabled;}
+	bool isAnalysisMode() const {return analysisMode;}
+	void markFrozenDynamicAnalysis() {frozenDynamicAnalysis = true;}
+	bool usedFrozenDynamicAnalysis() const {return frozenDynamicAnalysis;}
 	// Factories report an evaluation fact for the line currently being
 	// parsed; the engine stamps the file/line position. No-op without a sink.
 	void traceLoadEvent(ConfigLoadTraceEntry entry);
@@ -136,6 +142,8 @@ private:
 
 	// only used during loading
 	ConfigLoadTraceSink* traceSink = nullptr;
+	bool analysisMode = false;
+	bool frozenDynamicAnalysis = false;
 	// Position of the line loadConfigFile is currently feeding to the
 	// factories; saved/restored across Include recursion like the channel
 	// names. Only meaningful while a sink is attached.

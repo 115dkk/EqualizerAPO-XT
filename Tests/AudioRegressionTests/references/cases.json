@@ -15,6 +15,9 @@
     "allpass_order1_fc100",
     "allpass_order1_fc1000",
     "allpass_order1_x2",
-    "allpass_order2_q05"
+    "allpass_order2_q05",
+    "hilbert_roles",
+    "velvet_static",
+    "velvet_dynamic"
   ]
 }

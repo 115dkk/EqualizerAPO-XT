@@ -946,6 +946,34 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 		"a configuration with four unusable lines still loads, because the working lines below them have to run");
 }
 
+void testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(
+	test::Harness& harness)
+{
+	const std::wstring dynamicPath = writeConfig(harness, L"analysis-velvet-dynamic.txt",
+		"Velvet: Mode=Dynamic Amount=100% Length=27.5625ms "
+		"Density=1088.435/s Evolution=5s Transition=250ms "
+		"Decay=-60dB Variation=2050083136\n");
+	const std::wstring staticPath = writeConfig(harness, L"analysis-velvet-static.txt",
+		"Velvet: Mode=Static Amount=100% Length=27.5625ms "
+		"Density=1088.435/s Evolution=5s Transition=250ms "
+		"Decay=-60dB Variation=2050083136\n");
+
+	FilterEngine analysis;
+	analysis.setAnalysisMode(true);
+	initializeEngine(analysis, 48000, 2, 256, dynamicPath);
+	harness.expect(analysis.usedFrozenDynamicAnalysis(),
+		"analysis freezes Dynamic Velvet to one deterministic kernel and labels the response");
+	harness.expect(analysis.loadConfig(staticPath),
+		"analysis can reload a static Velvet configuration");
+	harness.expect(!analysis.usedFrozenDynamicAnalysis(),
+		"a static Velvet response is not labelled as a frozen dynamic snapshot");
+
+	FilterEngine runtime;
+	initializeEngine(runtime, 48000, 2, 256, dynamicPath);
+	harness.expect(!runtime.usedFrozenDynamicAnalysis(),
+		"the real-time engine keeps Dynamic Velvet live and never reports an analysis snapshot");
+}
+
 } // namespace
 
 // Defined in SampleIoTests.cpp next to this file.
@@ -1009,6 +1037,7 @@ int runEngineOrchestrationTests()
 	testRealBrirCrossfeed(harness);
 	testConfigLoadTrace(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
+	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);
 
 	removeTestDirectory();
 	harness.report();

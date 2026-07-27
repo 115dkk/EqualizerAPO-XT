@@ -53,8 +53,9 @@ namespace FilterGUIFactoryOrder
 	constexpr int Copy = 9;
 	constexpr int GraphicEQ = 10;
 	constexpr int Convolution = 11;
-	constexpr int VSTPlugin = 12;
-	constexpr int LoudnessCorrection = 13;
+	constexpr int Spatial = 12;
+	constexpr int VSTPlugin = 13;
+	constexpr int LoudnessCorrection = 14;
 }
 
 class FilterGUIFactoryRegistry

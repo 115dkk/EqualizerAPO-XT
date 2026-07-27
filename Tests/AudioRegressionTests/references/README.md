@@ -150,7 +150,31 @@ committed 512-frame blocked run, which reproduces them exactly
 means these three files pin the output *and* the block-size invariance, the
 same way the older ones do.
 
-### VST (not covered)
+## Hilbert and Velvet coverage
+
+Three references were introduced together with the two built-in spatial
+commands, which had no earlier implementation to preserve:
+
+* `hilbert_roles.raw` runs
+  `Hilbert: Shift=L Align=R Direction=-90` on a stereo impulse. The left
+  channel pins the normalized 1025-tap quadrature FIR and the right channel
+  pins the matching 512-sample alignment delay. It uses 4096 frames in
+  512-frame blocks.
+* `velvet_static.raw` runs the default Static kernel on a stereo impulse. It
+  pins deterministic per-channel sparse taps, normalization, mixing and
+  channel independence over 4096 frames in 256-frame blocks.
+* `velvet_dynamic.raw` runs a 100 ms Evolution interval and a 50 ms Transition
+  over stereo DC for 12288 frames in 256-frame blocks. The signal crosses two
+  renewal boundaries, so the stored output covers bank generation and the
+  equal-power transition rather than only initial setup.
+
+These references were generated in an isolated reference directory and only
+the three new files were copied here; none of the earlier baselines were
+regenerated. `HilbertVelvetTests` separately proves FIR antisymmetry, phase
+sign, 0 dB mid-band normalization, unit-energy/correlation bounds, smooth
+dynamic renewal and host-block invariance.
+
+## VST (not covered)
 
 The VST processing filter is intentionally not given a regression case. It
 requires an external VST plugin that is not part of the repository, and the

@@ -43,6 +43,7 @@ void runDeviceCommandTests();
 void runExpressionCommandTests();
 void runFilterFactoryRegistryTests();
 void runGraphicEQCommandTests();
+void runHilbertVelvetTests();
 void runIfCommandTests();
 void runIIRCommandTests();
 void runIncludeCommandTests();
@@ -475,6 +476,7 @@ int runHybridConvTests()
 	// (FilterFactoryRegistry::canonicalCommand and the two keyword sets).
 	runFilterFactoryRegistryTests();
 	runGraphicEQCommandTests();
+	runHilbertVelvetTests();
 	runIfCommandTests();
 	runIIRCommandTests();
 	runIncludeCommandTests();

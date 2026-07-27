@@ -79,6 +79,8 @@ void testAnalysisResponseEmptyAndLatency()
 	// response that carries bins but no sample rate to place them on.
 	AnalysisResponse untouched;
 	expectTrue(untouched.isEmpty(), "a default-constructed response is empty");
+	expectFalse(untouched.frozenDynamicResponse,
+		"a default response is not labelled as a frozen dynamic snapshot");
 	expectEqual(static_cast<int>(untouched.binCount()), 0, "an empty response has no bins");
 	expectTrue(untouched.frequencyOf(5) == 0.0, "an empty response reports no frequency");
 	expectEqual(static_cast<int>(untouched.nearestBin(1000.0)), 0,
@@ -90,6 +92,10 @@ void testAnalysisResponseEmptyAndLatency()
 
 	AnalysisResponse populated = makeResponse(48000, 1024);
 	expectFalse(populated.isEmpty(), "a populated response is not empty");
+	populated.frozenDynamicResponse = true;
+	AnalysisResponse copied = populated;
+	expectTrue(copied.frozenDynamicResponse,
+		"the frozen-dynamic analysis marker survives response publication");
 
 	// The analyzer strips leading silence and reports it separately, so the
 	// bins describe the config with its bulk delay removed. A view that wants

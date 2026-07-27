@@ -14,6 +14,27 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Hilbert phase shifting is now a built-in filter with a complete Editor.**
+  `Hilbert: Shift=SL,SR Align=L,R Direction=-90` runs a normalized 1025-tap
+  linear-phase FIR on the explicitly shifted channels and applies its
+  512-sample latency, without the phase transform, to explicitly aligned
+  channels. Its independent card edits both channel roles and ±90° direction,
+  reports the fixed FIR/latency contract, and can switch the analysis graph
+  directly to phase or group delay.
+- **Dynamic velvet-noise decorrelation is now a built-in filter with a complete
+  Editor.** Every channel receives an independently seeded, sparse unit-energy
+  FIR. Dynamic mode renews preallocated kernel banks at the Evolution interval
+  and crosses between them with equal-power weights; Static mode keeps one
+  deterministic bank. The independent card exposes amount, time spread and
+  evolution up front, a deterministic impulse preview and correlation readout,
+  and density, transition, decay and variation in a real expanding Advanced
+  section. Frequency-response analysis freezes a Dynamic filter to one
+  deterministic bank and labels the graph as a frozen Velvet snapshot.
+- Both commands have strict round-tripping grammars, allocation-free real-time
+  processing after initialization, independent picker entries, five-skin
+  gallery coverage including invalid, expanded and 520 px states, and
+  unit/integration/audio-reference tests. A separately distributable
+  MIT-licensed VST3 uses the same independently implemented portable Velvet DSP.
 - **A failed install's report no longer claims it created a registry key it did
   not.** Device Selector's log lists what an install wrote, and it counted a key as
   created whenever the install touched one - including keys that were already

@@ -16,6 +16,7 @@
 #include "Editor/widgets/FilterCardModel.h"
 
 class QScrollArea;
+class ElidedLabel;
 class RoutingView;
 
 class FilterCardRow : public QWidget
@@ -80,8 +81,8 @@ private:
 	QWidget* headerWidget = nullptr;
 	QLabel* numberLabel = nullptr;
 	QLabel* typeBadge = nullptr;
-	QLabel* titleLabel = nullptr;
-	QLabel* summaryLabel = nullptr;
+	ElidedLabel* titleLabel = nullptr;
+	ElidedLabel* summaryLabel = nullptr;
 	QLabel* rawPreviewLabel = nullptr;
 	QWidget* channelBadgeContainer = nullptr;
 	QHBoxLayout* channelBadgeLayout = nullptr;

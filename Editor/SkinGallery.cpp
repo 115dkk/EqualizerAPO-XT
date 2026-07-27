@@ -153,7 +153,14 @@ QList<GalleryRow> galleryRows()
 		// stretch into the space, so this row and the all-pass above it look
 		// the same - which is the evidence that the all-pass row's spacing is
 		// the .ui's own behaviour and not something this campaign introduced.
-		{ QStringLiteral("notch"), QStringLiteral("Filter 5: ON NO Fc 800 Hz") }
+		{ QStringLiteral("notch"), QStringLiteral("Filter 5: ON NO Fc 800 Hz") },
+		// Independent built-in phase and sparse-FIR cards. Velvet appears in
+		// both time modes, plus a malformed line so the in-card repair state is
+		// judged rather than dropping to raw text.
+		{ QStringLiteral("hilbert"), QStringLiteral("Hilbert: Shift=SL,SR Align=L,R Direction=-90") },
+		{ QStringLiteral("velvet_dynamic"), QStringLiteral("Velvet: Mode=Dynamic Amount=85% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136") },
+		{ QStringLiteral("velvet_static"), QStringLiteral("Velvet: Mode=Static Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136") },
+		{ QStringLiteral("velvet_invalid"), QStringLiteral("Velvet: Mode=Dynamic Length=not-a-time") }
 	};
 }
 
@@ -452,7 +459,9 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("multiconvfold"), { QStringLiteral("normal"),
 			QStringLiteral("expanded") } },
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
-		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } }
+		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } },
+		{ QStringLiteral("velvet-advanced"), { QStringLiteral("normal") } },
+		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } }
 	};
 	return scenarios;
 }
@@ -1272,6 +1281,68 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		{
 			QApplication::processEvents();
 			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("channelscope"), QStringLiteral("normal")) ? 0 : 1;
+		}
+	}
+
+	// The expanded state is part of the card contract: all expert controls
+	// remain reachable without changing the compact default presentation.
+	{
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
+			QStringLiteral("Velvet: Mode=Dynamic Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136")
+		});
+		if (rows.size() != 1)
+		{
+			qWarning("SkinGallery: Velvet advanced scene has no row (%s %s)",
+				qPrintable(skinId), qPrintable(mode));
+			failures++;
+		}
+		else
+		{
+			QToolButton* toggle = rows[0]->findChild<QToolButton*>(QStringLiteral("VelvetAdvancedToggle"));
+			if (toggle == nullptr)
+			{
+				qWarning("SkinGallery: Velvet advanced toggle missing (%s %s)",
+					qPrintable(skinId), qPrintable(mode));
+				failures++;
+			}
+			else
+			{
+				toggle->setChecked(true);
+				QApplication::processEvents();
+				if (rows[0]->layout() != nullptr)
+					rows[0]->layout()->activate();
+				QApplication::processEvents();
+				failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
+					QStringLiteral("velvet-advanced"), QStringLiteral("normal"));
+				failures += saveGrab(rows[0], outDir, skinId, mode,
+					QStringLiteral("velvet-advanced"), QStringLiteral("normal")) ? 0 : 1;
+			}
+		}
+	}
+
+	// A compact dock width catches accidental horizontal minimums in the
+	// parameter row. The primary controls must wrap/contract without forcing a
+	// horizontal scrollbar; advanced controls stay folded.
+	{
+		QScrollArea scrollArea;
+		scrollArea.resize(520, 640);
+		const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
+			QStringLiteral("Velvet: Mode=Dynamic Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136")
+		});
+		if (rows.size() != 1)
+		{
+			qWarning("SkinGallery: Velvet narrow scene has no row (%s %s)",
+				qPrintable(skinId), qPrintable(mode));
+			failures++;
+		}
+		else
+		{
+			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
+				QStringLiteral("velvet-narrow"), QStringLiteral("normal"));
+			failures += saveGrab(rows[0], outDir, skinId, mode,
+				QStringLiteral("velvet-narrow"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
 	return failures;
