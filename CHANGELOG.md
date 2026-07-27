@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.30.0 — 2026-07-27
+
 - **Hilbert phase shifting is now a built-in filter with a complete Editor.**
   `Hilbert: Shift=SL,SR Align=L,R Direction=-90` runs a normalized 1025-tap
   linear-phase FIR on the explicitly shifted channels and applies its

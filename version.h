@@ -1,5 +1,5 @@
 #define MAJOR 2
-#define MINOR 29
+#define MINOR 30
 #define REVISION 0
 
 // Canonical GitHub repository for release and update URLs, consumed by the

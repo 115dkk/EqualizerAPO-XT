@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.30.0 — 2026-07-27
+
 - **힐베르트 위상 변환이 완전한 Editor를 갖춘 내장 필터가 됐습니다.**
   `Hilbert: Shift=SL,SR Align=L,R Direction=-90`은 위상 변환 채널에 정규화한
   1025탭 선형 위상 FIR을 적용하고, 지연 정렬 채널에는 위상 변환 없이 같은
