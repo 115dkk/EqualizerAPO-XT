@@ -11,6 +11,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Editor
 TEMPLATE = app
 
+# Object files mirror the source tree. Without this, qmake drops every object
+# into one directory by basename, and ../filters/velvet/Processor.cpp then
+# collides with ../BassManagementCore/src/Processor.cpp (last one wins at
+# link time).
+CONFIG += object_parallel_to_source
+
 PRECOMPILED_HEADER = stable.h
 QMAKE_CXXFLAGS_WARN_ON -= -w34100
 QMAKE_LFLAGS += /STACK:32000000
@@ -123,6 +129,7 @@ SOURCES += main.cpp\
 	guis/MultiConvolutionFilterGUIFactory.cpp \
 	guis/MultiConvolutionFilterGUI.cpp \
 	guis/SpatialFilterGUIFactory.cpp \
+	guis/BassManagementFilterGUIFactory.cpp \
 	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
@@ -171,6 +178,15 @@ SOURCES += main.cpp\
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
+	../filters/bassManagement/BassManagementCommand.cpp \
+	../filters/bassManagement/BassManagementFilter.cpp \
+	../filters/bassManagement/BassManagementFilterFactory.cpp \
+	../BassManagementCore/src/Compiler.cpp \
+	../BassManagementCore/src/Graph.cpp \
+	../BassManagementCore/src/Json.cpp \
+	../BassManagementCore/src/Preset.cpp \
+	../BassManagementCore/src/Processor.cpp \
+	../BassManagementCore/src/StateCodec.cpp \
 	../filters/HilbertCommand.cpp \
 	../filters/HilbertFilter.cpp \
 	../filters/HilbertFilterFactory.cpp \
@@ -243,6 +259,8 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelCardEditor.cpp \
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
+	widgets/cards/BassManagementCardEditor.cpp \
+	widgets/cards/BassManagementCardView.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
@@ -402,6 +420,7 @@ HEADERS  += \
 	guis/MultiConvolutionFilterGUIFactory.h \
 	guis/MultiConvolutionFilterGUI.h \
 	guis/SpatialFilterGUIFactory.h \
+	guis/BassManagementFilterGUIFactory.h \
 	helpers/AnalysisWorkerRecovery.h \
 	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
@@ -438,6 +457,9 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
+	../filters/bassManagement/BassManagementCommand.h \
+	../filters/bassManagement/BassManagementFilter.h \
+	../filters/bassManagement/BassManagementFilterFactory.h \
 	../filters/HilbertCommand.h \
 	../filters/HilbertFilter.h \
 	../filters/HilbertFilterFactory.h \
@@ -503,6 +525,8 @@ HEADERS  += \
 	widgets/cards/ChannelCardEditor.h \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
+	widgets/cards/BassManagementCardEditor.h \
+	widgets/cards/BassManagementCardView.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
@@ -654,7 +678,7 @@ contains(QT_ARCH, arm64) {
 	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
 }
 
-INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
+INCLUDEPATH += $$PWD/.. $$PWD/../BassManagementCore/include $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
 LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {

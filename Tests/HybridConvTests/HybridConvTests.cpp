@@ -33,6 +33,13 @@
 // main(); each runXxxTests() is defined in the correspondingly named
 // XxxTests.cpp next to this file.
 void runAllPassTests();
+void runBassManagementCodecTests();
+void runBassManagementCommandTests();
+void runBassManagementCompilerTests();
+void runBassManagementEngineTests();
+void runBassManagementVst3Tests();
+void runBassManagementJsonTests();
+void runBassManagementProcessorTests();
 void runBiQuadKernelTests();
 void runChannelCommandTests();
 void runCommonLogicTests();
@@ -464,6 +471,16 @@ int runHybridConvTests()
 	// All-pass DSP invariants plus the characterizations the reform in issue
 	// #228 has to preserve or is about to change deliberately.
 	runAllPassTests();
+	// Bass Management shared core (MIT BassManagementCore) plus its JSON codec:
+	// pure-logic suites, no engine or device dependency.
+	runBassManagementJsonTests();
+	runBassManagementCodecTests();
+	runBassManagementCommandTests();
+	runBassManagementCompilerTests();
+	// Engine-level integration: original issue #246 chain vs the preset,
+	// Profile-form equivalence, invalid-state pass-through.
+	runBassManagementEngineTests();
+	runBassManagementProcessorTests();
 	runBiQuadKernelTests();
 	runChannelCommandTests();
 	runCommonLogicTests();
@@ -492,6 +509,9 @@ int runHybridConvTests()
 	// soft-skip: a missing module fails the run, because the module is built
 	// from this repository and its absence is a build problem.
 	runVst3HostTests();
+	// Native/VST3 parity for the Bass Management plugin, loaded through the
+	// same host path as the companion-module suites above.
+	runBassManagementVst3Tests();
 	runParserTests();
 	runParserPreampTests();
 	runMultiConvolutionTests();

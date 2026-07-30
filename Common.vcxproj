@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -128,27 +128,27 @@
     <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Release</MUPARSERX_LIB>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)BassManagementCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)BassManagementCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)BassManagementCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)BassManagementCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)BassManagementCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)BassManagementCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -323,6 +323,9 @@
     <ClInclude Include="filters\MultiConvolutionCommand.h" />
     <ClInclude Include="filters\MultiConvolutionFilter.h" />
     <ClInclude Include="filters\MultiConvolutionFilterFactory.h" />
+    <ClInclude Include="filters\bassManagement\BassManagementCommand.h" />
+    <ClInclude Include="filters\bassManagement\BassManagementFilter.h" />
+    <ClInclude Include="filters\bassManagement\BassManagementFilterFactory.h" />
     <ClInclude Include="filters\HilbertCommand.h" />
     <ClInclude Include="filters\HilbertFilter.h" />
     <ClInclude Include="filters\HilbertFilterFactory.h" />
@@ -430,6 +433,9 @@
     <ClCompile Include="filters\MultiConvolutionCommand.cpp" />
     <ClCompile Include="filters\MultiConvolutionFilter.cpp" />
     <ClCompile Include="filters\MultiConvolutionFilterFactory.cpp" />
+    <ClCompile Include="filters\bassManagement\BassManagementCommand.cpp" />
+    <ClCompile Include="filters\bassManagement\BassManagementFilter.cpp" />
+    <ClCompile Include="filters\bassManagement\BassManagementFilterFactory.cpp" />
     <ClCompile Include="filters\HilbertCommand.cpp" />
     <ClCompile Include="filters\HilbertFilter.cpp" />
     <ClCompile Include="filters\HilbertFilterFactory.cpp" />

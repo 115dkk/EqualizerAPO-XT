@@ -7,6 +7,8 @@
 
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "BassManagement/StateCodec.h"
+#include "filters/bassManagement/BassManagementCommand.h"
 #include "filters/BiQuadCommand.h"
 #include "filters/HilbertCommand.h"
 #include "filters/VelvetCommand.h"
@@ -538,6 +540,90 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = tr("Loudness");
 		descriptor.color = QStringLiteral("#eab308");
 	}
+	else if (keyword == QStringLiteral("BassManagement"))
+	{
+		descriptor.type = QStringLiteral("bassmanagement");
+		descriptor.badge = QStringLiteral("BASS");
+		descriptor.title = tr("Bass management");
+		descriptor.color = QStringLiteral("#84cc16");
+
+		// Keep card-list work bounded. The full editor owns profile I/O and
+		// detailed validation; the descriptor only summarizes an in-memory
+		// State payload or names a linked profile.
+		constexpr qsizetype maximumSummaryPayload = 1024 * 1024;
+		if (parameters.size() > maximumSummaryPayload)
+		{
+			descriptor.summary = tr("invalid state");
+		}
+		else
+		{
+			BassManagementCommand parsed;
+			if (!BassManagementCommand::parse(command.toStdWString(),
+				parameters.toStdWString(), parsed))
+			{
+				descriptor.summary = tr("invalid state");
+			}
+			else if (parsed.form == BassManagementCommand::Form::Profile)
+			{
+				QString path = QString::fromStdWString(parsed.payload);
+				if (path.size() >= 2 && path.front() == QLatin1Char('"')
+					&& path.back() == QLatin1Char('"'))
+				{
+					path = path.mid(1, path.size() - 2);
+				}
+				descriptor.summary = QFileInfo(path).fileName();
+				if (descriptor.summary.isEmpty())
+					descriptor.summary = path;
+			}
+			else
+			{
+				const std::string payload =
+					bassManagementToUtf8(parsed.payload);
+				const bassmgmt::StateDecodeResult decoded =
+					bassmgmt::decodeState(payload);
+				if (!decoded.succeeded())
+				{
+					descriptor.summary = tr("invalid state");
+				}
+				else
+				{
+					int lfeChannels = 0;
+					int bassPaths = 0;
+					for (const bassmgmt::PhysicalChannel& channel
+						: decoded.state->layout.channels)
+					{
+						if (QString::fromUtf8(channel.id.data(),
+							static_cast<int>(channel.id.size()))
+							.compare(QStringLiteral("LFE"),
+								Qt::CaseInsensitive) == 0)
+						{
+							lfeChannels++;
+						}
+					}
+					for (const bassmgmt::Path& path
+						: decoded.state->paths)
+					{
+						if (path.kind == bassmgmt::PathKind::Bass)
+							bassPaths++;
+					}
+
+					const int mainChannels =
+						static_cast<int>(
+							decoded.state->layout.channels.size())
+						- lfeChannels;
+					const QString layout =
+						QStringLiteral("%1.%2")
+							.arg(mainChannels)
+							.arg(lfeChannels);
+					descriptor.summary =
+						tr("%1 - %2 groups - %3 bass paths")
+							.arg(layout)
+							.arg(decoded.state->speakerGroups.size())
+							.arg(bassPaths);
+				}
+			}
+		}
+	}
 	else if (keyword == QStringLiteral("If") || keyword == QStringLiteral("ElseIf")
 		|| keyword == QStringLiteral("Else") || keyword == QStringLiteral("EndIf"))
 	{
@@ -673,6 +759,7 @@ QString FilterCardModel::commandIconResource(const QString& command, const QStri
 		{ "stage", "stage-chain" },
 		{ "copy", "route-channels" },
 		{ "loudnesscorrection", "loudness" },
+		{ "bassmanagement", "bass-management" },
 		{ "if", "logic-if" },
 		{ "elseif", "logic-if" },
 		{ "else", "logic-if" },

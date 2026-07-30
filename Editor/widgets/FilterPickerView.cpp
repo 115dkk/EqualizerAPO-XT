@@ -60,6 +60,7 @@ QString filterTemplateDescription(const QString& rawLine)
 		{ "Convolution", QT_TRANSLATE_NOOP("FilterPickerView", "Applies an impulse response, such as a room or reverb") },
 		{ "MultiConvolution", QT_TRANSLATE_NOOP("FilterPickerView", "Convolves several inputs, as in BRIR headphone synthesis") },
 		{ "LoudnessCorrection", QT_TRANSLATE_NOOP("FilterPickerView", "Compensates hearing at low listening levels") },
+		{ "BassManagement", QT_TRANSLATE_NOOP("FilterPickerView", "Applies crossover filtering and routes bass and source LFE per speaker group") },
 		{ "VSTPlugin", QT_TRANSLATE_NOOP("FilterPickerView", "Runs an external VST audio plugin") },
 		{ "Channel", QT_TRANSLATE_NOOP("FilterPickerView", "Selects which channels the following filters affect") },
 		{ "Device", QT_TRANSLATE_NOOP("FilterPickerView", "Limits the following filters to one device") },

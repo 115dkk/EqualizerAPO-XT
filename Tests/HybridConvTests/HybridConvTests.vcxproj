@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -74,27 +74,27 @@
     <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath);$(MSBuildThisFileDirectory)..\..\BassManagementCore\include</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath);$(MSBuildThisFileDirectory)..\..\BassManagementCore\include</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath);$(MSBuildThisFileDirectory)..\..\BassManagementCore\include</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath);$(MSBuildThisFileDirectory)..\..\BassManagementCore\include</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath);$(MSBuildThisFileDirectory)..\..\BassManagementCore\include</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(FFTW_INCLUDE);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(VST3_SDK);$(IncludePath);$(MSBuildThisFileDirectory)..\..\BassManagementCore\include</IncludePath>
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -118,7 +118,7 @@
            suite could not get past its first test - invisible in CI, which
            builds Release only, and in the way of anybody debugging it. -->
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\BassManagementCore\$(Platform)\$(Configuration)\BassManagementCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -147,7 +147,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
            suite could not get past its first test - invisible in CI, which
            builds Release only, and in the way of anybody debugging it. -->
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\BassManagementCore\$(Platform)\$(Configuration)\BassManagementCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -174,7 +174,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
            suite could not get past its first test - invisible in CI, which
            builds Release only, and in the way of anybody debugging it. -->
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\BassManagementCore\$(Platform)\$(Configuration)\BassManagementCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -202,7 +202,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\BassManagementCore\$(Platform)\$(Configuration)\BassManagementCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -231,7 +231,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\BassManagementCore\$(Platform)\$(Configuration)\BassManagementCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -258,7 +258,7 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\BassManagementCore\$(Platform)\$(Configuration)\BassManagementCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(FFTW_LIB)\*.dll" copy /Y "$(FFTW_LIB)\*.dll" "$(OutDir)"
@@ -269,6 +269,13 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
   <ItemGroup>
     <ClCompile Include="HybridConvTests.cpp" />
     <ClCompile Include="AllPassTests.cpp" />
+    <ClCompile Include="BassManagementCodecTests.cpp" />
+    <ClCompile Include="BassManagementCommandTests.cpp" />
+    <ClCompile Include="BassManagementCompilerTests.cpp" />
+    <ClCompile Include="BassManagementEngineTests.cpp" />
+    <ClCompile Include="BassManagementVst3Tests.cpp" />
+    <ClCompile Include="BassManagementJsonTests.cpp" />
+    <ClCompile Include="BassManagementProcessorTests.cpp" />
     <ClCompile Include="BiQuadKernelTests.cpp" />
     <ClCompile Include="ChannelCommandTests.cpp" />
     <ClCompile Include="CommonLogicTests.cpp" />
@@ -307,8 +314,12 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
-    <ProjectReference Include="..\TestVst3Plugin\TestVst3Plugin.vcxproj">
-      <Project>{A8D60A6B-509B-47DB-8E42-673E67EF3A16}</Project>
+    <ProjectReference Include="..\TestVst3Plugin\TestVst3Plugin.vcxproj">
+      <Project>{A8D60A6B-509B-47DB-8E42-673E67EF3A16}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>    <ProjectReference Include="..\..\VST3\BassManagement\BassManagementVst3.vcxproj">
+      <Project>{7C1E63B8-4A2F-4C41-9E0D-52A8B4F6D913}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
@@ -319,6 +330,13 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\TestVst3Plugin\$(Platform)\$(Configuration)\TestVst3Plugin.vst3"
           DestinationFiles="$(OutDir)TestVst3PluginModule.vst3"
           Condition="Exists('$(MSBuildThisFileDirectory)..\TestVst3Plugin\$(Platform)\$(Configuration)\TestVst3Plugin.vst3')" />
+  </Target>
+  <!-- The Bass Management VST3 plugin parity suite stages this module into a
+       standard bundle at runtime, mirroring the TestVst3Plugin staging above. -->
+  <Target Name="CopyBassManagementVst3Plugin" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\VST3\BassManagement\$(Platform)\$(Configuration)\EapoXtBassManagement.vst3"
+          DestinationFiles="$(OutDir)EapoXtBassManagementModule.vst3"
+          Condition="Exists('$(MSBuildThisFileDirectory)..\..\VST3\BassManagement\$(Platform)\$(Configuration)\EapoXtBassManagement.vst3')" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

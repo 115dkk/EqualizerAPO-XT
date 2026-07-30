@@ -365,6 +365,16 @@ int VSTPluginInstance::numOutputs() const
 	return effect->num_outputs;
 }
 
+const std::vector<int>& VSTPluginInstance::getVST3InputChannelMapping() const
+{
+	return vst3InputChannelMapping;
+}
+
+const std::vector<int>& VSTPluginInstance::getVST3OutputChannelMapping() const
+{
+	return vst3OutputChannelMapping;
+}
+
 bool VSTPluginInstance::canReplacing() const
 {
 	if (library->isVST3())

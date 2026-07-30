@@ -640,6 +640,7 @@ jobs:
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/platforms/
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/styles/
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/tls/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/VST3/
         if-no-files-found: error
         retention-days: 90
 

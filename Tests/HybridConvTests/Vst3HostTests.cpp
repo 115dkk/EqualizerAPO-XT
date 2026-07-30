@@ -22,6 +22,9 @@
 #include "helpers/VSTPluginLibrary.h"
 #include "helpers/VSTPluginInstance.h"
 #include "filters/VSTPluginFilter.h"
+// After VSTPluginInstance.h: the VST3 SDK defines a VST_VERSION macro that
+// would otherwise break the enum of the same name in the VST2 aeffectx.h.
+#include "pluginterfaces/vst/vstspeaker.h"
 #include "Tests/TestHarness.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
 
@@ -464,6 +467,115 @@ void runVst3HostTests()
 		stereoFilter.process(stereoOutputs, stereoInputs, 4);
 		harness.expectTrue(closeEnough(stereoOut[0][1], -0.5) && closeEnough(stereoOut[1][2], 0.75),
 			"a stereo device still negotiates the upmixer's stereo layout");
+	}
+
+	// Semantic 4.1/5.0 negotiation and accepted-arrangement channel mapping.
+	const wstring surround41Bundle = prepareBundle(directory,
+		L"Surround41Bundle.vst3", L"TestVst3Surround41.vst3");
+	shared_ptr<VSTPluginLibrary> surround41Library = VSTPluginLibrary::getInstance(surround41Bundle);
+	harness.expectTrue(!surround41Bundle.empty() && surround41Library->initialize() >= 0,
+		"Surround41 VST3 module initializes");
+
+	typedef unsigned long long (*Surround41ArrangementFunc)();
+	HMODULE surround41Module = GetModuleHandleW(L"TestVst3Surround41.vst3");
+	Surround41ArrangementFunc surround41AcceptedArrangement = surround41Module != nullptr
+		? reinterpret_cast<Surround41ArrangementFunc>(
+			GetProcAddress(surround41Module, "GetSurround41AcceptedOutputArrangement")) : nullptr;
+	harness.expectTrue(surround41AcceptedArrangement != nullptr,
+		"Surround41 accepted-arrangement probe is exported");
+
+	{
+		VSTPluginInstance surround41Probe(surround41Library, 2);
+		const std::vector<wstring> surround41Channels = {L"L", L"R", L"LFE", L"RL", L"RR"};
+		harness.expectTrue(surround41Probe.initialize(), "Surround41 VST3 component initializes");
+		surround41Probe.setChannelNameHints(surround41Channels);
+		harness.expectTrue(surround41Probe.negotiateChannelCount(5),
+			"semantic 4.1 names negotiate a five-channel bus");
+		harness.expectTrue(surround41AcceptedArrangement != nullptr
+			&& surround41AcceptedArrangement()
+				== static_cast<unsigned long long>(Steinberg::Vst::SpeakerArr::k41Music),
+			"semantic 4.1 names negotiate k41Music instead of k50");
+	}
+
+	{
+		VSTPluginInstance surround50Probe(surround41Library, 2);
+		const std::vector<wstring> surround50Channels = {L"L", L"R", L"C", L"RL", L"RR"};
+		harness.expectTrue(surround50Probe.initialize(), "Surround41 component reinitializes for 5.0");
+		surround50Probe.setChannelNameHints(surround50Channels);
+		harness.expectTrue(surround50Probe.negotiateChannelCount(5),
+			"semantic 5.0 names negotiate a five-channel bus");
+		harness.expectTrue(surround41AcceptedArrangement != nullptr
+			&& surround41AcceptedArrangement()
+				== static_cast<unsigned long long>(Steinberg::Vst::SpeakerArr::k50),
+			"semantic 5.0 names negotiate k50");
+	}
+
+	{
+		const std::vector<wstring> surround41Channels = {L"L", L"R", L"LFE", L"RL", L"RR"};
+		VSTPluginFilter surround41Filter(surround41Library, wstring(),
+			std::unordered_map<wstring, float>());
+		surround41Filter.initialize(48000.0f, 4, surround41Channels);
+
+		double inputData[5][4] = {};
+		double outputData[5][4] = {};
+		double* inputs[5];
+		double* outputs[5];
+		for (int channel = 0; channel < 5; channel++)
+		{
+			inputs[channel] = inputData[channel];
+			outputs[channel] = outputData[channel];
+		}
+		surround41Filter.process(outputs, inputs, 4);
+
+		harness.expectTrue(closeEnough(outputData[2][0], 0.5),
+			"4.1 EAPO LFE receives the accepted arrangement's Lfe bus slot");
+		harness.expectTrue(closeEnough(outputData[3][0], 0.375),
+			"4.1 EAPO RL receives the accepted arrangement's Ls bus slot");
+		harness.expectTrue(closeEnough(outputData[4][0], 0.4375),
+			"4.1 EAPO RR receives the accepted arrangement's Rs bus slot");
+	}
+
+	{
+		// The default component remains stereo-only. The semantic k41Music
+		// and count-based k50 proposals are rejected, after which each split
+		// instance uses its reported stereo arrangement and identity fallback.
+		const std::vector<wstring> surround41Channels = {L"L", L"R", L"LFE", L"RL", L"RR"};
+		VSTPluginFilter stereoFallbackFilter(library, wstring(),
+			std::unordered_map<wstring, float>());
+		stereoFallbackFilter.initialize(48000.0f, 4, surround41Channels);
+
+		double inputData[5][4] = {
+			{0.1, 0.2, 0.3, 0.4},
+			{0.5, 0.6, 0.7, 0.8},
+			{0.9, 1.0, 1.1, 1.2},
+			{1.3, 1.4, 1.5, 1.6},
+			{1.7, 1.8, 1.9, 2.0}
+		};
+		double outputData[5][4] = {};
+		double* inputs[5];
+		double* outputs[5];
+		for (int channel = 0; channel < 5; channel++)
+		{
+			inputs[channel] = inputData[channel];
+			outputs[channel] = outputData[channel];
+		}
+		stereoFallbackFilter.process(outputs, inputs, 4);
+
+		// The default factory rotates its component scenarios, so one split
+		// instance is float-only and its channels round-trip double->float->
+		// double. A float tolerance still proves what this test is about:
+		// no channel ends up swapped, scaled or silenced by a stale mapping.
+		bool fallbackPassedThrough = true;
+		for (int channel = 0; channel < 5; channel++)
+		{
+			for (int sample = 0; sample < 4; sample++)
+			{
+				fallbackPassedThrough = fallbackPassedThrough
+					&& std::fabs(outputData[channel][sample] - inputData[channel][sample]) <= 1.0e-6;
+			}
+		}
+		harness.expectTrue(fallbackPassedThrough,
+			"4.1 names fall back cleanly through the default stereo-only component");
 	}
 
 	harness.report();

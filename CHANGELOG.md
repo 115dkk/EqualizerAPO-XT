@@ -14,6 +14,36 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Bass management is now one configuration line instead of a page of Copy
+  chains.** The new `BassManagement:` command (issue
+  [#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) runs
+  per-speaker-group crossovers, dedicated bass paths, preservation of the
+  physical LFE input as its own source path, per-path gain/polarity/delay/EQ
+  and an output summing matrix from a single JSON state, inline or from a
+  `*.bmxt.json` profile file. The built-in `Issue #246 - Front/Rear 4.1`
+  preset reproduces the reporter's original low-level chain sample for sample
+  (verified by an engine-level parity test), automatic headroom keeps the
+  summed outputs below 0 dBFS, invalid states log an error instead of muting,
+  and unreferenced channels pass through bit-exactly. The Editor shows a
+  Bass Management card with its own badge and summary. The DSP lives in a new
+  MIT-licensed BassManagementCore library shared with the plugin below.
+- **A standalone Bass Management VST3 plugin ships with every release.** The
+  MIT-licensed `EAPO XT Bass Management` plugin (in the `VST3\` folder of the
+  install) runs the identical DSP core in any VST3 host, negotiates stereo
+  through 7.1 layouts including 4.1, and exchanges the same JSON state as the
+  native command, so presets move between Equalizer APO XT and a DAW
+  unchanged. It exposes bypass, source-LFE gain/polarity/delay and headroom
+  trim as host-automatable parameters; the full routing graph travels through
+  the plugin state. It has no custom graphical editor yet - hosts show their
+  generic parameter view.
+- **VST3 hosting no longer mislabels 4.1 layouts as 5.0.** The host used to
+  pick a speaker arrangement from the channel count alone, so five channels
+  always negotiated as L/R/C/Ls/Rs and a 4.1 system's LFE was presented to
+  plugins as a Center channel. Arrangements are now chosen from the actual
+  channel names (`L R LFE RL RR` negotiates k41Music), the accepted
+  arrangement is read back from the plugin instead of assumed, and an
+  explicit per-arrangement channel mapping routes each engine channel to the
+  right plugin bus slot.
 - **Hilbert phase shifting is now a built-in filter with a complete Editor.**
   `Hilbert: Shift=SL,SR Align=L,R Direction=-90` runs a normalized 1025-tap
   linear-phase FIR on the explicitly shifted channels and applies its

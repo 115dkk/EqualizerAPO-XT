@@ -38,6 +38,9 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/import/LegacyMigrationPolicy.h"
+#include "BassManagement/Preset.h"
+#include "BassManagement/StateCodec.h"
+#include "filters/bassManagement/BassManagementCommand.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "Editor/widgets/FilterListModel.h"
@@ -782,6 +785,49 @@ void testFilterCardDescriptors()
 	expectFalse(FilterCardModel::hasInlineExpressions("\\` literal backtick"), "escaped backtick is literal");
 	expectTrue(FilterCardModel::hasInlineExpressions("``"), "empty expression still counts");
 	expectFalse(FilterCardModel::hasInlineExpressions("`unterminated"), "unterminated trailing expression is dropped");
+}
+
+void testBassManagementDescriptors()
+{
+	// The fixture is the built-in preset: card summaries must work for the
+	// exact JSON the engine and the VST3 plugin exchange. Widget-level card
+	// editor coverage lives in the Editor build itself (moc) because this
+	// binary intentionally compiles no Q_OBJECT editor sources.
+	const bassmgmt::PresetCreateResult preset =
+		bassmgmt::createBuiltInPreset(bassmgmt::kIssue246FrontRear41PresetId);
+	requireTrue(preset.succeeded(), "bass-management preset fixture created");
+	const bassmgmt::StateEncodeResult encoded =
+		bassmgmt::encodeStateCanonical(*preset.state);
+	requireTrue(encoded.succeeded(), "bass-management descriptor fixture encoded");
+
+	const QString json = QString::fromUtf8(encoded.text->data(),
+		static_cast<int>(encoded.text->size()));
+	const FilterCardDescriptor descriptor = FilterCardModel::describeLine(
+		QStringLiteral("BassManagement: State ") + json);
+	expectEqual(descriptor.type, "bassmanagement", "bass-management card type");
+	expectEqual(descriptor.badge, "BASS", "bass-management badge");
+	expectEqual(descriptor.title, "Bass management", "bass-management title");
+	expectFalse(descriptor.color.isEmpty(), "bass-management color is populated");
+	expectFalse(descriptor.summary.isEmpty(), "bass-management state summary is populated");
+	expectTrue(descriptor.summary.contains(QStringLiteral("bass")),
+		QStringLiteral("state summary counts bass paths: ") + descriptor.summary);
+
+	const FilterCardDescriptor profile = FilterCardModel::describeLine(
+		"BassManagement: Profile \"Living Room.bmxt.json\"");
+	expectTrue(profile.summary.contains("Living Room.bmxt.json"),
+		QStringLiteral("profile summary names the linked file: ") + profile.summary);
+
+	const FilterCardDescriptor broken = FilterCardModel::describeLine(
+		"BassManagement: State {\"schema\":\"wrong\"}");
+	expectEqual(broken.type, "bassmanagement", "invalid state keeps the card type");
+	expectFalse(broken.summary.isEmpty(), "invalid state still has a summary");
+
+	expectEqual(FilterCardModel::badgeIconResource("bassmanagement", "BASS"),
+		":/icons/modern/bass-management.svg", "bass-management badge icon");
+	expectEqual(FilterCardModel::commandIconResource("BassManagement"),
+		":/icons/modern/bass-management.svg", "bass-management command icon");
+	expectEqual(FilterCardModel::canonicalCommand("BassManagement"),
+		"BassManagement", "bass-management canonical command");
 }
 
 void testFilterCardDepths()
@@ -1741,6 +1787,7 @@ int main(int argc, char** argv)
 		testVelopackGitHubRelease();
 		testVelopackFeeds();
 		testFilterCardDescriptors();
+	testBassManagementDescriptors();
 		testFilterCardDepths();
 		testFilterCardBuildPlans();
 		testConfigImport();
