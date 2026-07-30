@@ -69,6 +69,7 @@ int parameterSlot(ParamID id)
 	}
 }
 
+// cppcheck-suppress constParameterReference // the caller mutates through the returned pointer
 bassmgmt::Path* findSourceLfePath(bassmgmt::BassManagementState& state)
 {
 	for (bassmgmt::Path& path : state.paths)
@@ -131,7 +132,7 @@ struct BassManagementProcessor::PreparedEngine
 	std::vector<float> bypassScratch32;
 	std::vector<double> bypassScratch64;
 
-	void processBypass(ProcessData& data) noexcept
+	void processBypass(const ProcessData& data) noexcept
 	{
 		const std::size_t frames = static_cast<std::size_t>(data.numSamples);
 		if (data.symbolicSampleSize == kSample64)
@@ -454,8 +455,8 @@ std::vector<std::string> BassManagementProcessor::channelLayoutForArrangement(
 {
 	struct Role
 	{
-		Speaker speaker;
-		const char* id;
+		Speaker speaker = 0;
+		const char* id = nullptr;
 	};
 
 	// k71Cine uses Lc/Rc rather than Sl/Sr. They map to the same canonical
@@ -1007,7 +1008,7 @@ bool BassManagementProcessor::applyParameterLocked(
 		const double requested =
 			normalizedToRange(normalizedValue, -40.0, 0.0);
 		double automatic = candidate.headroom.manualTrimDb;
-		if (PreparedEngine* engine = current_.load(std::memory_order_acquire))
+		if (const PreparedEngine* engine = current_.load(std::memory_order_acquire))
 			automatic = engine->automaticTrimDb;
 
 		candidate.headroom.manualTrimDb = requested;

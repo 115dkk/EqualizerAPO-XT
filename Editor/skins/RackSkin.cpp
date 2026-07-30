@@ -23,6 +23,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/RackChrome.h"
 #include "Editor/skins/cards/RackReferenceCardView.h"
+#include "Editor/skins/cards/RackBassManagementCardView.h"
 #include "Editor/skins/pickers/RackFilterPicker.h"
 #include "Editor/widgets/routing/HardwarePatchbayRoutingRenderer.h"
 #include "SkinPaint.h"
@@ -1072,6 +1073,11 @@ public:
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new RackReferenceCardView(kind, parent);
+	}
+
+	BassManagementCardView* createBassManagementCardView(QWidget* parent) const override
+	{
+		return new RackBassManagementCardView(parent);
 	}
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override

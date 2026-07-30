@@ -374,14 +374,14 @@ void testEmptyEqSlotsPreserved()
 	harness.require(
 		std::holds_alternative<bassmgmt::EqualizerSlotsStage>(
 			decoded.state->paths[0].chain[4]),
-		"Main chain must retain the EQ-slots variant");
+		"Main chain must retain the EQ-eqSlots variant");
 
-	const bassmgmt::EqualizerSlotsStage& slots =
+	const bassmgmt::EqualizerSlotsStage& eqSlots =
 		std::get<bassmgmt::EqualizerSlotsStage>(
 			decoded.state->paths[0].chain[4]);
 
 	harness.expectTrue(
-		slots.filters.empty(),
+		eqSlots.filters.empty(),
 		"Empty eqSlots filters array must remain empty");
 }
 

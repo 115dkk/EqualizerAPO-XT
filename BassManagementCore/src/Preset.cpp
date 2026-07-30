@@ -33,7 +33,7 @@ Path makePath(
 	PathKind kind,
 	std::vector<SourceMixTerm> sourceMix,
 	double preGainDb,
-	std::vector<BiquadFilter> crossovers,
+	const std::vector<BiquadFilter>& crossovers,
 	double delayMilliseconds)
 {
 	Path path;

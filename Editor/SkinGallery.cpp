@@ -1,6 +1,8 @@
 #include "SkinGallery.h"
 #include "diagnostics/ToolbarPixelProbe.h"
 #include "widgets/MainToolbarKit.h"
+#include "BassManagement/Preset.h"
+#include "BassManagement/StateCodec.h"
 
 #include <cmath>
 #include <complex>
@@ -102,6 +104,23 @@ struct GalleryRow
 // to an idle endpoint (the routed/at-rest contrast every skin styles), while
 // "device_all" shows the all-devices master engaged over powered-down
 // endpoint chips.
+// The inline-State fixture is generated through the core instead of pasting
+// JSON, so the gallery always renders exactly what the codec would emit.
+QString bassManagementPresetRowLine()
+{
+	const bassmgmt::PresetCreateResult preset =
+		bassmgmt::createBuiltInPreset(bassmgmt::kIssue246FrontRear41PresetId);
+	if (!preset.succeeded())
+		return QStringLiteral("BassManagement:");
+	const bassmgmt::StateEncodeResult encoded =
+		bassmgmt::encodeStateCanonical(*preset.state);
+	if (!encoded.succeeded())
+		return QStringLiteral("BassManagement:");
+	return QStringLiteral("BassManagement: State ")
+		+ QString::fromUtf8(encoded.text->data(),
+			static_cast<int>(encoded.text->size()));
+}
+
 QList<GalleryRow> galleryRows()
 {
 	return {
@@ -160,7 +179,15 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("hilbert"), QStringLiteral("Hilbert: Shift=SL,SR Align=L,R Direction=-90") },
 		{ QStringLiteral("velvet_dynamic"), QStringLiteral("Velvet: Mode=Dynamic Amount=85% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136") },
 		{ QStringLiteral("velvet_static"), QStringLiteral("Velvet: Mode=Static Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136") },
-		{ QStringLiteral("velvet_invalid"), QStringLiteral("Velvet: Mode=Dynamic Length=not-a-time") }
+		{ QStringLiteral("velvet_invalid"), QStringLiteral("Velvet: Mode=Dynamic Length=not-a-time") },
+		// The Bass Management card in its two load-bearing shapes: the built-in
+		// #246 preset as an inline State (built through the core so the JSON is
+		// always the canonical bytes the engine sees), and a linked profile
+		// whose file is missing, which is the warning state every skin must
+		// carry without dropping the card. Appended last (mid-list insertion
+		// renumbers every following scene against the stored baseline).
+		{ QStringLiteral("bassmanagement"), bassManagementPresetRowLine() },
+		{ QStringLiteral("bassmanagement_missing"), QStringLiteral("BassManagement: Profile \"missing.bmxt.json\"") }
 	};
 }
 

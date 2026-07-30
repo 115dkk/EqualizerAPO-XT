@@ -27,6 +27,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/cards/StudioReferenceCardView.h"
+#include "Editor/skins/cards/StudioBassManagementCardView.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
 #include "Editor/widgets/routing/LightTraceRoutingRenderer.h"
 #include "SkinFileIcons.h"
@@ -210,6 +211,11 @@ public:
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new StudioReferenceCardView(kind, parent);
+	}
+
+	BassManagementCardView* createBassManagementCardView(QWidget* parent) const override
+	{
+		return new StudioBassManagementCardView(parent);
 	}
 
 	// The title bar: the QSS keeps the strip on the deep stage colour; this

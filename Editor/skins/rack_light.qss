@@ -1177,3 +1177,21 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid @BORDER@;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
+
+/* Bass Management faceplate: every sub-widget paints on the module's own
+   brushed panel, so QSS must not layer default fills or frames on top. */
+RackBassManagementCardView,
+RackCrossoverReadout,
+RackLfeLamp,
+RackHeadroomMeter,
+QWidget#RackBassHeader,
+QWidget#RackBassInstrumentRow,
+QWidget#RackBassActionHost,
+QLabel#RackBassValidity,
+QLabel#RackBassLayout,
+QLabel#RackBassProfile,
+QLabel#RackBassCounts,
+QLabel#RackBassStatus {
+	background: transparent;
+	border: none;
+}

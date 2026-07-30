@@ -287,6 +287,11 @@ SOURCES += main.cpp\
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	skins/cards/StudioReferenceCardView.cpp \
+	skins/cards/StudioBassManagementCardView.cpp \
+	skins/cards/MinimalBassManagementCardView.cpp \
+	skins/cards/SoftBassManagementCardView.cpp \
+	skins/cards/RackBassManagementCardView.cpp \
+	skins/cards/MatrixBassManagementCardView.cpp \
 	skins/cards/MinimalReferenceCardView.cpp \
 	skins/cards/SoftReferenceCardView.cpp \
 	skins/cards/RackReferenceCardView.cpp \
@@ -551,6 +556,11 @@ HEADERS  += \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTCardEditor.h \
 	skins/cards/StudioReferenceCardView.h \
+	skins/cards/StudioBassManagementCardView.h \
+	skins/cards/MinimalBassManagementCardView.h \
+	skins/cards/SoftBassManagementCardView.h \
+	skins/cards/RackBassManagementCardView.h \
+	skins/cards/MatrixBassManagementCardView.h \
 	skins/cards/MinimalReferenceCardView.h \
 	skins/cards/SoftReferenceCardView.h \
 	skins/cards/RackReferenceCardView.h \

@@ -24,6 +24,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/skins/cards/MinimalReferenceCardView.h"
+#include "Editor/skins/cards/MinimalBassManagementCardView.h"
 #include "Editor/widgets/routing/StepListRoutingRenderer.h"
 #include "SkinFileIcons.h"
 #include "SkinPaint.h"
@@ -852,6 +853,11 @@ public:
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new MinimalReferenceCardView(kind, parent);
+	}
+
+	BassManagementCardView* createBassManagementCardView(QWidget* parent) const override
+	{
+		return new MinimalBassManagementCardView(parent);
 	}
 	// The neutral default keeps the shared stroke icons on the actions so the
 	// File menu (which shares the QActions) stays modern; the toolbar buttons

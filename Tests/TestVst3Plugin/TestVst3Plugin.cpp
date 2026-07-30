@@ -856,8 +856,8 @@ public:
 
 		const struct
 		{
-			Speaker speaker;
-			double value;
+			Speaker speaker = 0;
+			double value = 0.0;
 		} roles[] = {
 			{kSpeakerL, 0.125},
 			{kSpeakerR, 0.25},

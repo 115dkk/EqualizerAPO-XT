@@ -312,6 +312,7 @@ void runBassManagementVst3Tests()
 		impulseInputs[channel] = impulseInput[channel];
 		impulseOutputs[channel] = impulseOutput[channel];
 	}
+	// cppcheck-suppress unreadVariable // read through the impulseInputs pointer array
 	impulseInput[0][0] = 1.0;
 	instance.processDoubleReplacing(impulseInputs, impulseOutputs, blockSize);
 

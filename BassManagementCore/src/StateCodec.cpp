@@ -1587,7 +1587,7 @@ private:
 		return "";
 	}
 
-	Json encodeLayout(const ChannelLayout& layout)
+	static Json encodeLayout(const ChannelLayout& layout)
 	{
 		Json::Array channels;
 
@@ -1606,7 +1606,7 @@ private:
 		return Json(std::move(encoded));
 	}
 
-	Json encodeSpeakerGroups(
+	static Json encodeSpeakerGroups(
 		const std::vector<SpeakerGroup>& groups)
 	{
 		Json::Array encodedGroups;
@@ -1867,7 +1867,7 @@ private:
 		return Json(std::move(encoded));
 	}
 
-	Json encodeMetadata(const StateMetadata& metadata)
+	static Json encodeMetadata(const StateMetadata& metadata)
 	{
 		Json::Object encoded;
 		encoded.emplace(
