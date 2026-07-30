@@ -41,6 +41,43 @@ void testConfigFileCodec()
 	expectEqual(roundTrip[1], QString::fromUtf8("caf\xC3\xA9"), "decode(encode(lines)) round-trips non-ASCII text");
 }
 
+void testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses()
+{
+	QTemporaryDir dir;
+	requireTrue(dir.isValid(), "atomic-save retry test creates a temporary directory");
+
+	QString path = QDir::toNativeSeparators(dir.filePath("config.txt"));
+	QFile original(path);
+	requireTrue(original.open(QIODevice::WriteOnly), "atomic-save retry test creates the original file");
+	requireTrue(original.write("original") == 8, "atomic-save retry test writes the original contents");
+	original.close();
+
+	winutil::UniqueHandle reader(CreateFileW(
+		path.toStdWString().c_str(),
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		nullptr,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr));
+	requireTrue(static_cast<bool>(reader), "atomic-save retry test holds the engine-style read handle");
+
+	std::thread releaseReader([reader = std::move(reader)]() mutable {
+		Sleep(20);
+		reader.reset();
+	});
+	ConfigFileCodec::WriteResult result = ConfigFileCodec::writeConfig(
+		path, QList<QString>() << "replacement");
+	releaseReader.join();
+
+	expectTrue(result.opened, "writeConfig retries until a short configuration read finishes");
+
+	QFile committed(path);
+	requireTrue(committed.open(QIODevice::ReadOnly), "atomic-save retry test opens the committed file");
+	expectEqual(QString::fromUtf8(committed.readAll()), "replacement",
+		"the retry atomically commits the complete replacement");
+}
+
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails()
 {
 	QTemporaryDir dir;
