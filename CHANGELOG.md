@@ -8,23 +8,22 @@ fork started on 2026-05-22.
 
 Versions are bumped automatically by CI from Conventional Commits message
 types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
-1.23, and 1.25 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
+1.23, 1.25, and 2.30.1 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
 ## Unreleased
-
-## v2.30.1 — 2026-07-30
 
 - **Saving a configuration no longer intermittently fails with "Access is
   denied" while the audio engine reloads it.** The Editor writes through a
   temporary file and atomically replaces the old configuration. Creating that
   temporary file wakes the engine's directory watcher, which could open the old
   file without allowing its directory entry to be replaced; if the Editor
-  committed during that short read, Windows rejected the replacement. Config
-  readers now permit atomic replacement while keeping their existing handle on
-  a stable view of the old bytes. A failed save also records its path, error and
-  exact open/write/commit stage in
+  committed during that short read, Windows rejected the replacement. The
+  Editor now retries only that atomic commit for a bounded period, while config
+  readers keep rejecting in-place writes and retain a stable view of the bytes
+  they opened. A failed save also records its path, error and exact
+  open/write/commit stage in
   `%LOCALAPPDATA%\EqualizerAPO\logs\Editor.log`.
 
 ## v2.30.0 — 2026-07-27

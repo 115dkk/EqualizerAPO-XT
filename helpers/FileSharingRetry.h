@@ -47,19 +47,3 @@ inline winutil::UniqueHandle openFileWithSharingRetry(
 		Sleep(1);
 	}
 }
-
-// Configuration readers must not block QSaveFile's atomic replacement of the
-// path they are reading. FILE_SHARE_DELETE lets the old file stay alive
-// through this handle while the directory entry is replaced; omitting
-// FILE_SHARE_WRITE still prevents an in-place writer from changing the bytes
-// underneath the reader.
-inline winutil::UniqueHandle openFileForReplaceableReadWithRetry(
-	const wchar_t* path, DWORD& lastError)
-{
-	return openFileWithSharingRetry(
-		path,
-		GENERIC_READ,
-		FILE_SHARE_READ | FILE_SHARE_DELETE,
-		OPEN_EXISTING,
-		lastError);
-}
