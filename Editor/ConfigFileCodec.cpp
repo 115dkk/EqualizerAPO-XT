@@ -23,11 +23,26 @@
 #include <windows.h>
 
 #include "helpers/FileSharingRetry.h"
+#include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
 #include "engine/ConfigurationFileReader.h"
 #include "ConfigFileCodec.h"
 
 using std::string;
+
+namespace
+{
+void logWriteFailure(const QString& path, const wchar_t* stage, const QString& message)
+{
+	const std::wstring nativePath = path.toStdWString();
+	const std::wstring nativeMessage = message.toStdWString();
+	LogFStatic(
+		L"[Editor] configuration save failed during %s for %s: %s",
+		stage,
+		nativePath.c_str(),
+		nativeMessage.c_str());
+}
+}
 
 QList<QString> ConfigFileCodec::decodeLines(const string& bytes)
 {
@@ -58,8 +73,8 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 	ReadResult result;
 
 	DWORD error = ERROR_SUCCESS;
-	winutil::UniqueHandle file = openFileWithSharingRetry(
-		path.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
+	winutil::UniqueHandle file = openFileForReplaceableReadWithRetry(
+		path.toStdWString().c_str(), error);
 	if (!file)
 	{
 		result.ok = false;
@@ -103,6 +118,7 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 	{
 		result.opened = false;
 		result.errorMessage = file.errorString();
+		logWriteFailure(path, L"temporary-file open", result.errorMessage);
 		return result;
 	}
 
@@ -115,6 +131,7 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 		result.errorMessage = file.errorString();
 		if (result.errorMessage.isEmpty())
 			result.errorMessage = QStringLiteral("Only %1/%2 bytes could be written").arg(bytesWritten).arg(byteArray.size());
+		logWriteFailure(path, L"temporary-file write", result.errorMessage);
 		return result;
 	}
 
@@ -123,6 +140,7 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 	{
 		result.opened = false;
 		result.errorMessage = file.errorString();
+		logWriteFailure(path, L"atomic commit", result.errorMessage);
 		return result;
 	}
 

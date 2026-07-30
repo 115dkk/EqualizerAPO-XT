@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Saving a configuration no longer intermittently fails with "Access is
+  denied" while the audio engine reloads it.** The Editor writes through a
+  temporary file and atomically replaces the old configuration. Creating that
+  temporary file wakes the engine's directory watcher, which could open the old
+  file without allowing its directory entry to be replaced; if the Editor
+  committed during that short read, Windows rejected the replacement. Config
+  readers now permit atomic replacement while keeping their existing handle on
+  a stable view of the old bytes. A failed save also records its path, error and
+  exact open/write/commit stage in
+  `%LOCALAPPDATA%\EqualizerAPO\logs\Editor.log`.
+
 ## v2.30.0 — 2026-07-27
 
 - **Hilbert phase shifting is now a built-in filter with a complete Editor.**

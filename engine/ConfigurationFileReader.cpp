@@ -21,8 +21,7 @@ std::stringstream makeFailedStream()
 std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& path)
 {
 	DWORD error = ERROR_SUCCESS;
-	winutil::UniqueHandle file = openFileWithSharingRetry(
-		path.c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
+	winutil::UniqueHandle file = openFileForReplaceableReadWithRetry(path.c_str(), error);
 	if (!file)
 	{
 		LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
