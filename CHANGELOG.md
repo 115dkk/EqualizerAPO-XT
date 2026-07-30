@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.30.1 — 2026-07-30
+
 - **Saving a configuration no longer intermittently fails with "Access is
   denied" while the audio engine reloads it.** The Editor writes through a
   temporary file and atomically replaces the old configuration. Creating that
