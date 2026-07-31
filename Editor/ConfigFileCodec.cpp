@@ -23,11 +23,28 @@
 #include <windows.h>
 
 #include "helpers/FileSharingRetry.h"
+#include "helpers/LogHelper.h"
 #include "helpers/StringHelper.h"
 #include "engine/ConfigurationFileReader.h"
 #include "ConfigFileCodec.h"
 
 using std::string;
+
+namespace
+{
+constexpr ULONGLONG atomicCommitRetryWindowMs = 250;
+
+void logWriteFailure(const QString& path, const wchar_t* stage, const QString& message)
+{
+	const std::wstring nativePath = path.toStdWString();
+	const std::wstring nativeMessage = message.toStdWString();
+	LogFStatic(
+		L"[Editor] configuration save failed during %s for %s: %s",
+		stage,
+		nativePath.c_str(),
+		nativeMessage.c_str());
+}
+}
 
 QList<QString> ConfigFileCodec::decodeLines(const string& bytes)
 {
@@ -97,35 +114,59 @@ ConfigFileCodec::WriteResult ConfigFileCodec::writeConfig(const QString& path, c
 	QByteArray byteArray = encodeLines(lines);
 	result.totalBytes = byteArray.length();
 
-	QSaveFile file(path);
-	file.setDirectWriteFallback(false);
-	if (!file.open(QIODevice::WriteOnly))
+	int commitFailures = 0;
+	ULONGLONG retryDeadline = 0;
+	for (;;)
 	{
+		QSaveFile file(path);
+		file.setDirectWriteFallback(false);
+		if (!file.open(QIODevice::WriteOnly))
+		{
+			result.opened = false;
+			result.errorMessage = file.errorString();
+			logWriteFailure(path, L"temporary-file open", result.errorMessage);
+			return result;
+		}
+
+		const qint64 bytesWritten = file.write(byteArray);
+		if (bytesWritten != byteArray.size())
+		{
+			file.cancelWriting();
+			result.opened = false;
+			result.bytesWritten = bytesWritten > 0 ? static_cast<unsigned long>(bytesWritten) : 0;
+			result.errorMessage = file.errorString();
+			if (result.errorMessage.isEmpty())
+				result.errorMessage = QStringLiteral("Only %1/%2 bytes could be written").arg(bytesWritten).arg(byteArray.size());
+			logWriteFailure(path, L"temporary-file write", result.errorMessage);
+			return result;
+		}
+
+		result.bytesWritten = static_cast<unsigned long>(bytesWritten);
+		if (file.commit())
+		{
+			if (commitFailures != 0)
+				TraceFStatic(L"[Editor] configuration save succeeded after %d atomic-commit retries", commitFailures);
+			result.opened = true;
+			return result;
+		}
+
 		result.opened = false;
 		result.errorMessage = file.errorString();
-		return result;
-	}
+		if (file.error() != QFileDevice::RenameError)
+		{
+			logWriteFailure(path, L"atomic commit", result.errorMessage);
+			return result;
+		}
 
-	const qint64 bytesWritten = file.write(byteArray);
-	if (bytesWritten != byteArray.size())
-	{
-		file.cancelWriting();
-		result.opened = false;
-		result.bytesWritten = bytesWritten > 0 ? static_cast<unsigned long>(bytesWritten) : 0;
-		result.errorMessage = file.errorString();
-		if (result.errorMessage.isEmpty())
-			result.errorMessage = QStringLiteral("Only %1/%2 bytes could be written").arg(bytesWritten).arg(byteArray.size());
-		return result;
+		++commitFailures;
+		const ULONGLONG now = GetTickCount64();
+		if (retryDeadline == 0)
+			retryDeadline = now + atomicCommitRetryWindowMs;
+		else if (now >= retryDeadline)
+		{
+			logWriteFailure(path, L"atomic commit", result.errorMessage);
+			return result;
+		}
+		Sleep(1);
 	}
-
-	result.bytesWritten = static_cast<unsigned long>(bytesWritten);
-	if (!file.commit())
-	{
-		result.opened = false;
-		result.errorMessage = file.errorString();
-		return result;
-	}
-
-	result.opened = true;
-	return result;
 }

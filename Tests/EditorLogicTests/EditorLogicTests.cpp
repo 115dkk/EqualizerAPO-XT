@@ -1813,6 +1813,7 @@ int main(int argc, char** argv)
 		testBiQuadWidthRoundTripsExactly();
 		testBiQuadWidthModesAndDefaults();
 		testConfigFileCodec();
+		testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses();
 		testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 		testConfigFileCodecRejectsPartialRead();
 		testMemoryHelperConstructReleasesStorageWhenConstructorThrows();

@@ -32,6 +32,7 @@ void testPhaseAndGroupDelayAxisCaptions();
 void testBiQuadWidthRoundTripsExactly();
 void testBiQuadWidthModesAndDefaults();
 void testConfigFileCodec();
+void testConfigFileCodecRetriesAtomicReplaceAfterReaderCloses();
 void testConfigFileCodecPreservesExistingFileWhenAtomicReplaceFails();
 void testConfigFileCodecRejectsPartialRead();
 void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce();
