@@ -14,6 +14,7 @@
 
 #include <QAbstractButton>
 #include <QColor>
+#include <QEvent>
 #include <QFont>
 #include <QFontMetrics>
 #include <QFontMetricsF>
@@ -27,19 +28,21 @@
 #include <QResizeEvent>
 #include <QSizePolicy>
 #include <QStringList>
+#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 #include "Editor/SkinManager.h"
-#include "Editor/widgets/ElidedLabel.h"
 
 namespace
 {
 QColor withOpacity(const QColor& source, qreal opacity)
 {
 	QColor color = source;
-	color.setAlpha(qBound(0,
-		qRound(source.alpha() * std::clamp(opacity, 0.0, 1.0)),
+	color.setAlpha(qBound(
+		0,
+		qRound(source.alpha()
+			* std::clamp(opacity, 0.0, 1.0)),
 		255));
 	return color;
 }
@@ -50,37 +53,55 @@ qreal devicePixelCenter(qreal coordinate, qreal devicePixelRatio)
 		/ devicePixelRatio;
 }
 
-QFont studioMonoFont(QFont::Weight weight = QFont::Normal)
+QFont studioMonoFont(
+	const QWidget* widget,
+	QFont::Weight weight = QFont::Normal)
 {
+	QFont font = widget != nullptr
+		? widget->font()
+		: QFont();
+
 	const QString family =
 		SkinManager::instance()->tokens().monoFontFamily;
-	QFont font(family);
-	if (family.isEmpty())
+	if (!family.isEmpty())
+		font.setFamily(family);
+	else
 		font.setStyleHint(QFont::Monospace);
+
 	font.setFixedPitch(true);
 	font.setWeight(weight);
 	return font;
 }
 
-void paintGlassSurface(QPainter& painter, const QWidget* widget,
+void paintGlassSurface(
+	QPainter& painter,
+	const QWidget* widget,
 	const QRectF& bounds)
 {
 	const qreal dpr = widget->devicePixelRatioF();
 	const qreal pixel = 1.0 / dpr;
-	const qreal enabledFactor = widget->isEnabled() ? 1.0 : 0.45;
+	const qreal enabledFactor =
+		widget->isEnabled() ? 1.0 : 0.45;
 	const QPalette palette = widget->palette();
 
 	const QRectF frame = bounds.adjusted(
-		pixel / 2.0, pixel / 2.0, -pixel / 2.0, -pixel / 2.0);
+		pixel / 2.0,
+		pixel / 2.0,
+		-pixel / 2.0,
+		-pixel / 2.0);
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(withOpacity(
-		palette.color(QPalette::Base), 0.58 * enabledFactor));
+		palette.color(QPalette::Base),
+		0.58 * enabledFactor));
 	painter.drawRoundedRect(frame, 8.0, 8.0);
 
-	QPen borderPen(withOpacity(
-		palette.color(QPalette::Mid), 0.72 * enabledFactor), pixel);
+	QPen borderPen(
+		withOpacity(
+			palette.color(QPalette::Mid),
+			0.72 * enabledFactor),
+		pixel);
 	borderPen.setJoinStyle(Qt::RoundJoin);
 	painter.setPen(borderPen);
 	painter.setBrush(Qt::NoBrush);
@@ -88,8 +109,11 @@ void paintGlassSurface(QPainter& painter, const QWidget* widget,
 
 	const qreal reflectionY =
 		devicePixelCenter(frame.top() + pixel, dpr);
-	QPen reflectionPen(withOpacity(
-		palette.color(QPalette::Light), 0.30 * enabledFactor), pixel);
+	QPen reflectionPen(
+		withOpacity(
+			palette.color(QPalette::Light),
+			0.30 * enabledFactor),
+		pixel);
 	reflectionPen.setCapStyle(Qt::FlatCap);
 	painter.setPen(reflectionPen);
 	painter.drawLine(
@@ -98,8 +122,11 @@ void paintGlassSurface(QPainter& painter, const QWidget* widget,
 
 	const qreal shadeY =
 		devicePixelCenter(frame.bottom() - pixel, dpr);
-	QPen shadePen(withOpacity(
-		palette.color(QPalette::Dark), 0.24 * enabledFactor), pixel);
+	QPen shadePen(
+		withOpacity(
+			palette.color(QPalette::Dark),
+			0.24 * enabledFactor),
+		pixel);
 	shadePen.setCapStyle(Qt::FlatCap);
 	painter.setPen(shadePen);
 	painter.drawLine(
@@ -107,29 +134,39 @@ void paintGlassSurface(QPainter& painter, const QWidget* widget,
 		QPointF(frame.right() - 8.0, shadeY));
 }
 
-void drawGlowPath(QPainter& painter, const QPainterPath& path,
-	const QColor& color, bool luminous, qreal intensity = 1.0)
+void drawGlowPath(
+	QPainter& painter,
+	const QPainterPath& path,
+	const QColor& color,
+	bool luminous,
+	qreal intensity = 1.0)
 {
 	intensity = std::clamp(intensity, 0.0, 1.0);
 
 	if (luminous)
 	{
-		QPen outerPen(withOpacity(color, 0.10 * intensity), 8.0);
+		QPen outerPen(
+			withOpacity(color, 0.12 * intensity),
+			8.0);
 		outerPen.setCapStyle(Qt::RoundCap);
 		outerPen.setJoinStyle(Qt::RoundJoin);
 		painter.setPen(outerPen);
 		painter.drawPath(path);
 
-		QPen middlePen(withOpacity(color, 0.25 * intensity), 4.0);
+		QPen middlePen(
+			withOpacity(color, 0.30 * intensity),
+			4.0);
 		middlePen.setCapStyle(Qt::RoundCap);
 		middlePen.setJoinStyle(Qt::RoundJoin);
 		painter.setPen(middlePen);
 		painter.drawPath(path);
 	}
 
-	QPen corePen(withOpacity(color,
-		luminous ? 0.96 * intensity : 0.66 * intensity),
-		luminous ? 1.5 : 1.0);
+	QPen corePen(
+		withOpacity(
+			color,
+			(luminous ? 0.98 : 0.74) * intensity),
+		luminous ? 1.6 : 1.35);
 	corePen.setCapStyle(Qt::RoundCap);
 	corePen.setJoinStyle(Qt::RoundJoin);
 	painter.setPen(corePen);
@@ -151,7 +188,9 @@ double representativeCornerFrequency(const QString& text)
 	if (frequencyMatch.hasMatch())
 	{
 		QString numberText = frequencyMatch.captured(1);
-		numberText.replace(QLatin1Char(','), QLatin1Char('.'));
+		numberText.replace(
+			QLatin1Char(','),
+			QLatin1Char('.'));
 
 		bool ok = false;
 		double frequency = numberText.toDouble(&ok);
@@ -161,7 +200,10 @@ double representativeCornerFrequency(const QString& text)
 		if (!frequencyMatch.captured(2).isEmpty())
 			frequency *= 1000.0;
 
-		return std::clamp(frequency, 10.0, 40000.0);
+		return std::clamp(
+			frequency,
+			10.0,
+			40000.0);
 	}
 
 	static const QRegularExpression numberExpression(
@@ -173,38 +215,186 @@ double representativeCornerFrequency(const QString& text)
 	while (matches.hasNext())
 	{
 		QString numberText = matches.next().captured(1);
-		numberText.replace(QLatin1Char(','), QLatin1Char('.'));
+		numberText.replace(
+			QLatin1Char(','),
+			QLatin1Char('.'));
 
 		bool ok = false;
 		const double number = numberText.toDouble(&ok);
 		if (ok)
-			largestNumber = std::max(largestNumber, number);
+			largestNumber =
+				std::max(largestNumber, number);
 	}
 
 	if (largestNumber <= 0.0)
 		return 0.0;
 
-	return std::clamp(largestNumber, 10.0, 40000.0);
+	return std::clamp(
+		largestNumber,
+		10.0,
+		40000.0);
 }
 
-class GlassChipLabel : public QLabel
+void setStyledProperty(
+	QWidget* widget,
+	const char* name,
+	const QString& value)
+{
+	if (widget == nullptr
+		|| widget->property(name).toString() == value)
+	{
+		return;
+	}
+
+	widget->setProperty(name, value);
+	widget->style()->unpolish(widget);
+	widget->style()->polish(widget);
+	widget->updateGeometry();
+	widget->update();
+}
+
+QString countText(
+	int count,
+	const QString& singular,
+	const QString& plural)
+{
+	return count == 1
+		? singular
+		: plural.arg(count);
+}
+}
+
+class RightElidedLabel : public QLabel
 {
 public:
-	explicit GlassChipLabel(QWidget* parent)
+	explicit RightElidedLabel(QWidget* parent = nullptr)
 		: QLabel(parent)
 	{
-		setAlignment(Qt::AlignCenter);
-		setContentsMargins(9, 2, 9, 2);
-		setFont(studioMonoFont(QFont::Medium));
-		setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+		setSizePolicy(
+			QSizePolicy::Expanding,
+			QSizePolicy::Preferred);
 		setAttribute(Qt::WA_TransparentForMouseEvents);
+	}
+
+	void setFullText(const QString& text)
+	{
+		if (fullText == text)
+			return;
+
+		fullText = text;
+		updateDisplayedText();
+		updateGeometry();
 	}
 
 	QSize sizeHint() const override
 	{
 		const QFontMetrics metrics(font());
-		return QSize(metrics.horizontalAdvance(text()) + 18,
-			std::max(24, metrics.height() + 6));
+		const QMargins margins = contentsMargins();
+		return QSize(
+			metrics.horizontalAdvance(fullText)
+				+ margins.left()
+				+ margins.right(),
+			std::max(
+				QLabel::sizeHint().height(),
+				metrics.height()
+					+ margins.top()
+					+ margins.bottom()));
+	}
+
+protected:
+	void resizeEvent(QResizeEvent* event) override
+	{
+		QLabel::resizeEvent(event);
+		updateDisplayedText();
+	}
+
+	bool event(QEvent* event) override
+	{
+		const bool handled = QLabel::event(event);
+
+		switch (event->type())
+		{
+		case QEvent::FontChange:
+		case QEvent::StyleChange:
+		case QEvent::Polish:
+		case QEvent::Show:
+			updateDisplayedText();
+			break;
+
+		default:
+			break;
+		}
+
+		return handled;
+	}
+
+private:
+	void updateDisplayedText()
+	{
+		const int availableWidth =
+			std::max(0, contentsRect().width());
+		const QFontMetrics metrics(font());
+
+		QLabel::setText(metrics.elidedText(
+			fullText,
+			Qt::ElideRight,
+			availableWidth));
+	}
+
+	QString fullText;
+};
+
+class ProfileSummaryWidget : public QWidget
+{
+public:
+	explicit ProfileSummaryWidget(QWidget* parent = nullptr)
+		: QWidget(parent)
+	{
+		setObjectName(
+			QStringLiteral("StudioBassProfileSummary"));
+		setMinimumWidth(140);
+		setMinimumHeight(26);
+		setSizePolicy(
+			QSizePolicy::Expanding,
+			QSizePolicy::Preferred);
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+	}
+
+	void setParts(
+		const QString& prefixText,
+		const QString& nameText,
+		const QString& suffixText,
+		const QString& completeText)
+	{
+		prefix = prefixText;
+		name = nameText;
+		suffix = suffixText;
+		fullText = completeText;
+
+		setToolTip(fullText);
+		setAccessibleDescription(fullText);
+		updateGeometry();
+		update();
+	}
+
+	QSize sizeHint() const override
+	{
+		const QFontMetrics metrics(font());
+		const int gap =
+			metrics.horizontalAdvance(QLatin1Char(' '));
+
+		int preferredWidth =
+			metrics.horizontalAdvance(prefix)
+			+ metrics.horizontalAdvance(name);
+		if (!suffix.isEmpty())
+		{
+			preferredWidth += gap
+				+ metrics.horizontalAdvance(suffix);
+		}
+
+		return QSize(
+			std::max(180, preferredWidth),
+			std::max(26, metrics.height() + 8));
 	}
 
 protected:
@@ -212,66 +402,142 @@ protected:
 	{
 		Q_UNUSED(event)
 
+		const QRect content =
+			rect().adjusted(0, 2, 0, -2);
+		const int availableWidth = content.width();
+		if (availableWidth <= 0 || name.isEmpty())
+			return;
+
+		const QFontMetrics metrics(font());
+		const int gap =
+			metrics.horizontalAdvance(QLatin1Char(' '));
+		const int prefixWidth =
+			metrics.horizontalAdvance(prefix);
+		const int suffixWidth =
+			metrics.horizontalAdvance(suffix);
+		const int minimumNameWidth =
+			std::min(
+				metrics.horizontalAdvance(name),
+				metrics.horizontalAdvance(
+					QStringLiteral("M...")));
+
+		bool showSuffix =
+			!suffix.isEmpty()
+			&& availableWidth
+				>= suffixWidth
+					+ gap
+					+ minimumNameWidth;
+
+		const int suffixReserve = showSuffix
+			? suffixWidth + gap
+			: 0;
+
+		const bool showPrefix =
+			!prefix.isEmpty()
+			&& availableWidth - suffixReserve
+				>= prefixWidth
+					+ minimumNameWidth;
+
+		const int prefixReserve = showPrefix
+			? prefixWidth
+			: 0;
+		const int nameWidth = std::max(
+			0,
+			availableWidth
+				- prefixReserve
+				- suffixReserve);
+
+		const QString displayedName =
+			metrics.elidedText(
+				name,
+				Qt::ElideRight,
+				nameWidth);
+		if (displayedName.isEmpty())
+			return;
+
 		QPainter painter(this);
-		paintGlassSurface(painter, this, QRectF(rect()));
+		painter.setRenderHint(
+			QPainter::TextAntialiasing,
+			true);
+		painter.setFont(font());
 
-		const QString severity =
-			property("severity").toString();
-		// Assigned by every severity branch below.
-		QColor ink;
-
-		if (severity == QStringLiteral("valid"))
-		{
-			ink = palette().color(QPalette::Highlight);
-
-			painter.setRenderHint(QPainter::Antialiasing, true);
-			painter.setPen(Qt::NoPen);
-			painter.setBrush(withOpacity(ink,
-				isEnabled() ? 0.09 : 0.0));
-			const qreal pixel = 1.0 / devicePixelRatioF();
-			painter.drawRoundedRect(
-				QRectF(rect()).adjusted(
-					pixel, pixel, -pixel, -pixel),
-				8.0, 8.0);
-		}
-		else if (severity == QStringLiteral("invalid"))
-		{
-			ink = palette().color(QPalette::BrightText);
-		}
-		else if (severity == QStringLiteral("warning"))
-		{
-			ink = palette().color(QPalette::Text);
-		}
-		else
-		{
-			ink = palette().color(QPalette::Mid);
-		}
-
+		QColor ink =
+			palette().color(QPalette::Text);
 		if (!isEnabled())
 			ink = withOpacity(ink, 0.45);
-
-		painter.setFont(font());
 		painter.setPen(ink);
+
+		int x = content.left();
+
+		if (showPrefix)
+		{
+			painter.drawText(
+				QRect(
+					x,
+					content.top(),
+					prefixWidth,
+					content.height()),
+				Qt::AlignLeft | Qt::AlignVCenter,
+				prefix);
+			x += prefixWidth;
+		}
+
+		const int displayedNameWidth =
+			metrics.horizontalAdvance(displayedName);
 		painter.drawText(
-			rect().adjusted(9, 2, -9, -2),
-			alignment(),
-			fontMetrics().elidedText(
-				text(), Qt::ElideRight,
-				std::max(0, width() - 18)));
+			QRect(
+				x,
+				content.top(),
+				std::min(nameWidth, displayedNameWidth),
+				content.height()),
+			Qt::AlignLeft | Qt::AlignVCenter,
+			displayedName);
+		x += displayedNameWidth;
+
+		if (showSuffix)
+		{
+			x += gap;
+			painter.drawText(
+				QRect(
+					x,
+					content.top(),
+					suffixWidth,
+					content.height()),
+				Qt::AlignLeft | Qt::AlignVCenter,
+				suffix);
+		}
 	}
+
+private:
+	QString prefix;
+	QString name;
+	QString suffix;
+	QString fullText;
 };
 
-class GlowReadoutLabel : public QLabel
+class GlowReadoutWidget : public QWidget
 {
 public:
-	explicit GlowReadoutLabel(QWidget* parent)
-		: QLabel(parent)
+	explicit GlowReadoutWidget(QWidget* parent = nullptr)
+		: QWidget(parent)
 	{
-		setAlignment(Qt::AlignCenter);
-		setFont(studioMonoFont(QFont::DemiBold));
-		setMinimumSize(144, 40);
-		setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+		setObjectName(
+			QStringLiteral("StudioBassHeadroomReadout"));
+		setMinimumSize(152, 42);
+		setSizePolicy(
+			QSizePolicy::Fixed,
+			QSizePolicy::Fixed);
 		setAttribute(Qt::WA_TransparentForMouseEvents);
+	}
+
+	void setText(const QString& value)
+	{
+		if (readoutText == value)
+			return;
+
+		readoutText = value;
+		updateGeometry();
+		update();
 	}
 
 	void setAutomatic(bool automatic)
@@ -287,8 +553,11 @@ public:
 	{
 		const QFontMetrics metrics(font());
 		return QSize(
-			std::max(144, metrics.horizontalAdvance(text()) + 24),
-			std::max(40, metrics.height() + 16));
+			std::max(
+				152,
+				metrics.horizontalAdvance(readoutText)
+					+ 24),
+			std::max(42, metrics.height() + 18));
 	}
 
 protected:
@@ -297,17 +566,44 @@ protected:
 		Q_UNUSED(event)
 
 		QPainter painter(this);
-		paintGlassSurface(painter, this, QRectF(rect()));
-		painter.setRenderHint(QPainter::Antialiasing, true);
+		paintGlassSurface(
+			painter,
+			this,
+			QRectF(rect()));
+		painter.setRenderHint(
+			QPainter::Antialiasing,
+			true);
 
-		const QFontMetricsF metrics(font());
-		const qreal textWidth = metrics.horizontalAdvance(text());
-		const qreal x = (width() - textWidth) / 2.0;
-		const qreal y = (height() - metrics.height()) / 2.0
-			+ metrics.ascent();
+		const QRect textRect =
+			rect().adjusted(12, 7, -12, -7);
+		const QFontMetrics metrics(font());
+		const QString displayedText =
+			metrics.elidedText(
+				readoutText,
+				Qt::ElideRight,
+				std::max(0, textRect.width()));
+
+		if (displayedText.isEmpty())
+			return;
+
+		const QFontMetricsF floatingMetrics(font());
+		const qreal textWidth =
+			floatingMetrics.horizontalAdvance(
+				displayedText);
+		const qreal x =
+			textRect.left()
+			+ (textRect.width() - textWidth) / 2.0;
+		const qreal y =
+			textRect.top()
+			+ (textRect.height()
+				- floatingMetrics.height()) / 2.0
+			+ floatingMetrics.ascent();
 
 		QPainterPath glyphs;
-		glyphs.addText(QPointF(x, y), font(), text());
+		glyphs.addText(
+			QPointF(x, y),
+			font(),
+			displayedText);
 
 		if (autoMode && isEnabled())
 		{
@@ -316,22 +612,28 @@ protected:
 
 			painter.setBrush(Qt::NoBrush);
 
-			QPen outerGlow(withOpacity(accent, 0.15), 6.0);
+			QPen outerGlow(
+				withOpacity(accent, 0.15),
+				6.0);
 			outerGlow.setJoinStyle(Qt::RoundJoin);
 			painter.setPen(outerGlow);
 			painter.drawPath(glyphs);
 
-			QPen innerGlow(withOpacity(accent, 0.36), 2.5);
+			QPen innerGlow(
+				withOpacity(accent, 0.36),
+				2.5);
 			innerGlow.setJoinStyle(Qt::RoundJoin);
 			painter.setPen(innerGlow);
 			painter.drawPath(glyphs);
 
-			painter.fillPath(glyphs,
+			painter.fillPath(
+				glyphs,
 				withOpacity(accent, 0.98));
 		}
 		else
 		{
-			QColor ink = palette().color(QPalette::Text);
+			QColor ink =
+				palette().color(QPalette::Text);
 			if (!isEnabled())
 				ink = withOpacity(ink, 0.45);
 			painter.fillPath(glyphs, ink);
@@ -339,24 +641,28 @@ protected:
 	}
 
 private:
+	QString readoutText;
 	bool autoMode = false;
 };
 
 class BassInstrumentWidget : public QWidget
 {
 public:
-	explicit BassInstrumentWidget(QWidget* parent)
+	explicit BassInstrumentWidget(QWidget* parent = nullptr)
 		: QWidget(parent)
 	{
-		setObjectName(QStringLiteral("StudioBassInstrument"));
-		setMinimumHeight(78);
-		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+		setObjectName(
+			QStringLiteral("StudioBassInstrument"));
+		setMinimumHeight(102);
+		setSizePolicy(
+			QSizePolicy::Expanding,
+			QSizePolicy::Fixed);
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 	}
 
-	void setPresentation(bool stateValid,
+	void setPresentation(
+		bool stateValid,
 		bool sourceLfeIsPreserved,
-		double sourceLfeGain,
 		const QString& highPass,
 		const QString& lowPass,
 		const QString& mainCaptionText,
@@ -368,7 +674,6 @@ public:
 	{
 		valid = stateValid;
 		sourceLfePreserved = sourceLfeIsPreserved;
-		sourceLfeGainDb = sourceLfeGain;
 		highPassFrequency =
 			representativeCornerFrequency(highPass);
 		lowPassFrequency =
@@ -378,13 +683,14 @@ public:
 		lfeCaption = lfeCaptionText;
 		highPassCaption = highPassCaptionText;
 		lowPassCaption = lowPassCaptionText;
+
 		setAccessibleDescription(description);
 		update();
 	}
 
 	QSize sizeHint() const override
 	{
-		return QSize(430, 82);
+		return QSize(440, 104);
 	}
 
 protected:
@@ -393,133 +699,283 @@ protected:
 		Q_UNUSED(event)
 
 		QPainter painter(this);
-		paintGlassSurface(painter, this, QRectF(rect()));
-		painter.setRenderHint(QPainter::Antialiasing, true);
+		paintGlassSurface(
+			painter,
+			this,
+			QRectF(rect()));
+		painter.setRenderHint(
+			QPainter::Antialiasing,
+			true);
 
 		const qreal dpr = devicePixelRatioF();
 		const qreal pixel = 1.0 / dpr;
 		const QRectF bounds =
-			QRectF(rect()).adjusted(9.0, 8.0, -9.0, -8.0);
-		const qreal splitX =
-			bounds.left() + bounds.width() * 0.61;
+			QRectF(rect()).adjusted(
+				10.0,
+				10.0,
+				-10.0,
+				-10.0);
 
-		const QPalette currentPalette = palette();
-		const QColor accent =
-			currentPalette.color(QPalette::Highlight);
-		const QColor quiet =
-			currentPalette.color(QPalette::Mid);
-		const QColor text =
-			currentPalette.color(QPalette::Text);
-		const QColor muted =
-			currentPalette.color(QPalette::Mid);
+		if (bounds.width() <= 0.0
+			|| bounds.height() <= 0.0)
+		{
+			return;
+		}
 
-		const bool luminous = valid && isEnabled();
-		const QColor traceColor = luminous ? accent : quiet;
-
-		const qreal dividerX =
-			devicePixelCenter(splitX, dpr);
-		QPen dividerPen(withOpacity(quiet,
-			isEnabled() ? 0.42 : 0.22), pixel);
-		dividerPen.setCapStyle(Qt::FlatCap);
-		painter.setPen(dividerPen);
-		painter.drawLine(
-			QPointF(dividerX, bounds.top() + 4.0),
-			QPointF(dividerX, bounds.bottom() - 4.0));
-
-		QFont captionFont = studioMonoFont(QFont::Medium);
+		QFont captionFont =
+			studioMonoFont(this, QFont::Medium);
 		if (captionFont.pointSizeF() > 0.0)
 		{
 			captionFont.setPointSizeF(
-				std::max(7.0,
+				std::max(
+					7.0,
 					captionFont.pointSizeF() - 1.0));
 		}
-		painter.setFont(captionFont);
-		painter.setPen(withOpacity(text,
-			isEnabled() ? 0.76 : 0.38));
 
-		const qreal mainY =
-			devicePixelCenter(bounds.top() + 18.0, dpr);
-		const qreal bassY =
-			devicePixelCenter(bounds.bottom() - 20.0, dpr);
-		const qreal traceStart = bounds.left() + 53.0;
-		const qreal traceEnd =
-			std::max(traceStart + 18.0, splitX - 11.0);
+		const QFontMetricsF metrics(captionFont);
+		const qreal rowHeight =
+			std::ceil(metrics.height()) + 2.0;
+		const qreal labelWidth = std::ceil(
+			std::max({
+				metrics.horizontalAdvance(mainCaption),
+				metrics.horizontalAdvance(bassCaption),
+				metrics.horizontalAdvance(lfeCaption)
+			})) + 3.0;
+
+		const qreal highPassWidth =
+			std::ceil(
+				metrics.horizontalAdvance(
+					highPassCaption))
+			+ 2.0;
+		const qreal lowPassWidth =
+			std::ceil(
+				metrics.horizontalAdvance(
+					lowPassCaption))
+			+ 2.0;
+
+		const qreal minimumResponseWidth =
+			std::max(
+				92.0,
+				highPassWidth
+					+ lowPassWidth
+					+ 10.0);
+		const qreal minimumTraceWidth = 34.0;
+		const qreal desiredSplit =
+			bounds.left()
+			+ std::max(
+				labelWidth
+					+ 10.0
+					+ minimumTraceWidth,
+				bounds.width() * 0.62);
+
+		const bool responseFits =
+			bounds.width()
+				>= labelWidth
+					+ 10.0
+					+ minimumTraceWidth
+					+ 10.0
+					+ minimumResponseWidth;
+
+		const qreal splitX = responseFits
+			? std::clamp(
+				desiredSplit,
+				bounds.left()
+					+ labelWidth
+					+ 10.0
+					+ minimumTraceWidth,
+				bounds.right()
+					- minimumResponseWidth
+					- 8.0)
+			: bounds.right();
+
+		const QColor accent =
+			palette().color(QPalette::Highlight);
+		const QColor text =
+			palette().color(QPalette::Text);
+		const QColor quiet =
+			palette().color(QPalette::Mid);
+
+		const qreal enabledFactor =
+			isEnabled() ? 1.0 : 0.45;
+		const bool luminous = valid && isEnabled();
+
+		painter.setFont(captionFont);
+		painter.setPen(
+			withOpacity(text, 0.86 * enabledFactor));
+
+		const QRectF mainLabelRect(
+			bounds.left(),
+			bounds.top(),
+			labelWidth,
+			rowHeight);
+		const QRectF bassLabelRect(
+			bounds.left(),
+			bounds.center().y() - rowHeight / 2.0,
+			labelWidth,
+			rowHeight);
+		const QRectF lfeLabelRect(
+			bounds.left(),
+			bounds.bottom() - rowHeight,
+			labelWidth,
+			rowHeight);
 
 		painter.drawText(
-			QRectF(bounds.left(), mainY - 10.0, 46.0, 20.0),
+			mainLabelRect,
 			Qt::AlignLeft | Qt::AlignVCenter,
 			mainCaption);
 		painter.drawText(
-			QRectF(bounds.left(), bassY - 10.0, 46.0, 20.0),
+			bassLabelRect,
 			Qt::AlignLeft | Qt::AlignVCenter,
 			bassCaption);
-
-		QPainterPath mainTrace;
-		mainTrace.moveTo(traceStart, mainY);
-		mainTrace.lineTo(traceEnd, mainY);
-		drawGlowPath(painter, mainTrace, traceColor,
-			luminous, 0.92);
-
-		QPainterPath bassTrace;
-		bassTrace.moveTo(traceStart, bassY);
-		bassTrace.lineTo(traceEnd, bassY);
-		drawGlowPath(painter, bassTrace, traceColor,
-			luminous, 0.82);
-
-		const qreal lfeY =
-			devicePixelCenter(bounds.bottom() - 3.0, dpr);
-		const qreal lfeStart = bounds.left() + 27.0;
-		QPainterPath lfeTrace;
-		lfeTrace.moveTo(lfeStart, lfeY);
-		lfeTrace.cubicTo(
-			lfeStart + 13.0, lfeY,
-			traceStart - 13.0, bassY,
-			traceStart, bassY);
-
-		if (sourceLfePreserved)
-		{
-			drawGlowPath(painter, lfeTrace, traceColor,
-				luminous, 0.74);
-		}
-		else
-		{
-			QPen offPen(withOpacity(quiet,
-				isEnabled() ? 0.55 : 0.28), pixel);
-			offPen.setDashPattern({ 3.0, 3.0 });
-			offPen.setCapStyle(Qt::FlatCap);
-			painter.setPen(offPen);
-			painter.drawPath(lfeTrace);
-		}
-
-		painter.setPen(withOpacity(muted,
-			isEnabled() ? 0.72 : 0.36));
 		painter.drawText(
-			QRectF(bounds.left(), lfeY - 8.0, 25.0, 16.0),
+			lfeLabelRect,
 			Qt::AlignLeft | Qt::AlignVCenter,
 			lfeCaption);
 
-		const QRectF responseBounds(
-			splitX + 10.0,
-			bounds.top() + 10.0,
-			std::max(20.0, bounds.right() - splitX - 16.0),
-			std::max(24.0, bounds.height() - 18.0));
+		const qreal mainY = devicePixelCenter(
+			mainLabelRect.center().y(),
+			dpr);
+		const qreal bassY = devicePixelCenter(
+			bassLabelRect.center().y(),
+			dpr);
+		const qreal lfeY = devicePixelCenter(
+			lfeLabelRect.center().y(),
+			dpr);
 
-		painter.setPen(withOpacity(muted,
-			isEnabled() ? 0.72 : 0.36));
-		painter.drawText(
-			QRectF(responseBounds.left(),
-				bounds.top() - 1.0,
-				responseBounds.width() / 2.0,
-				14.0),
-			Qt::AlignLeft | Qt::AlignTop,
-			highPassCaption);
-		painter.drawText(
-			QRectF(responseBounds.center().x(),
-				bounds.top() - 1.0,
-				responseBounds.width() / 2.0,
-				14.0),
-			Qt::AlignRight | Qt::AlignTop,
-			lowPassCaption);
+		const qreal traceStart =
+			bounds.left() + labelWidth + 9.0;
+		const qreal traceEnd = responseFits
+			? splitX - 11.0
+			: bounds.right() - 4.0;
+
+		if (traceEnd > traceStart)
+		{
+			QPainterPath mainTrace;
+			mainTrace.moveTo(traceStart, mainY);
+			mainTrace.lineTo(traceEnd, mainY);
+			drawGlowPath(
+				painter,
+				mainTrace,
+				accent,
+				luminous,
+				0.96 * enabledFactor);
+
+			QPainterPath bassTrace;
+			bassTrace.moveTo(traceStart, bassY);
+			bassTrace.lineTo(traceEnd, bassY);
+			drawGlowPath(
+				painter,
+				bassTrace,
+				accent,
+				luminous,
+				0.86 * enabledFactor);
+
+			const qreal lfeStart =
+				bounds.left() + labelWidth + 2.0;
+			QPainterPath lfeTrace;
+			lfeTrace.moveTo(lfeStart, lfeY);
+			lfeTrace.cubicTo(
+				lfeStart + 12.0,
+				lfeY,
+				traceStart - 12.0,
+				bassY,
+				traceStart,
+				bassY);
+
+			if (sourceLfePreserved)
+			{
+				drawGlowPath(
+					painter,
+					lfeTrace,
+					accent,
+					luminous,
+					0.78 * enabledFactor);
+			}
+			else
+			{
+				QPen offPen(
+					withOpacity(
+						accent,
+						0.58 * enabledFactor),
+					pixel);
+				offPen.setDashPattern({ 3.0, 3.0 });
+				offPen.setCapStyle(Qt::FlatCap);
+				painter.setPen(offPen);
+				painter.drawPath(lfeTrace);
+			}
+		}
+
+		if (!responseFits)
+			return;
+
+		const qreal dividerX =
+			devicePixelCenter(splitX, dpr);
+		QPen dividerPen(
+			withOpacity(
+				quiet,
+				0.62 * enabledFactor),
+			pixel);
+		dividerPen.setCapStyle(Qt::FlatCap);
+		painter.setPen(dividerPen);
+		painter.drawLine(
+			QPointF(
+				dividerX,
+				bounds.top() + 3.0),
+			QPointF(
+				dividerX,
+				bounds.bottom() - 3.0));
+
+		const QRectF responsePanel(
+			splitX + 10.0,
+			bounds.top(),
+			bounds.right() - splitX - 10.0,
+			bounds.height());
+
+		const bool drawBothCaptions =
+			highPassWidth
+				+ lowPassWidth
+				+ 8.0
+				<= responsePanel.width();
+
+		painter.setPen(
+			withOpacity(text, 0.82 * enabledFactor));
+
+		if (highPassWidth <= responsePanel.width())
+		{
+			painter.drawText(
+				QRectF(
+					responsePanel.left(),
+					responsePanel.top(),
+					highPassWidth,
+					rowHeight),
+				Qt::AlignLeft | Qt::AlignVCenter,
+				highPassCaption);
+		}
+
+		if (drawBothCaptions)
+		{
+			painter.drawText(
+				QRectF(
+					responsePanel.right()
+						- lowPassWidth,
+					responsePanel.top(),
+					lowPassWidth,
+					rowHeight),
+				Qt::AlignRight | Qt::AlignVCenter,
+				lowPassCaption);
+		}
+
+		const QRectF responseBounds(
+			responsePanel.left() + 2.0,
+			responsePanel.top() + rowHeight + 5.0,
+			std::max(
+				1.0,
+				responsePanel.width() - 4.0),
+			std::max(
+				1.0,
+				responsePanel.height()
+					- rowHeight
+					- 9.0));
 
 		double minimumCorner = 0.0;
 		double maximumCorner = 0.0;
@@ -529,23 +985,33 @@ protected:
 			minimumCorner = highPassFrequency;
 			maximumCorner = highPassFrequency;
 		}
+
 		if (lowPassFrequency > 0.0)
 		{
 			minimumCorner = minimumCorner > 0.0
-				? std::min(minimumCorner, lowPassFrequency)
+				? std::min(
+					minimumCorner,
+					lowPassFrequency)
 				: lowPassFrequency;
 			maximumCorner =
-				std::max(maximumCorner, lowPassFrequency);
+				std::max(
+					maximumCorner,
+					lowPassFrequency);
 		}
 
 		if (maximumCorner <= 0.0)
 			return;
 
 		const double minimumFrequency =
-			std::max(10.0, minimumCorner / 6.0);
+			std::max(
+				10.0,
+				minimumCorner / 6.0);
 		const double maximumFrequency =
-			std::min(40000.0,
-				std::max(500.0, maximumCorner * 6.0));
+			std::min(
+				40000.0,
+				std::max(
+					500.0,
+					maximumCorner * 6.0));
 		const double logarithmicMinimum =
 			std::log(minimumFrequency);
 		const double logarithmicRange =
@@ -553,48 +1019,61 @@ protected:
 			- logarithmicMinimum;
 
 		auto buildResponsePath =
-			[&responseBounds, logarithmicMinimum,
-				logarithmicRange](double corner,
+			[&responseBounds,
+				logarithmicMinimum,
+				logarithmicRange](
+				double corner,
 				bool highPass)
 			{
 				QPainterPath responsePath;
 				constexpr int sampleCount = 64;
 
 				for (int sample = 0;
-					sample < sampleCount; ++sample)
+					sample < sampleCount;
+					++sample)
 				{
 					const double position =
 						static_cast<double>(sample)
 						/ (sampleCount - 1);
 					const double frequency =
-						std::exp(logarithmicMinimum
+						std::exp(
+							logarithmicMinimum
 							+ position
-							* logarithmicRange);
+								* logarithmicRange);
 					const double ratio =
 						frequency / corner;
 					const double fourthPower =
 						std::pow(ratio, 4.0);
-					const double magnitude = highPass
-						? std::sqrt(fourthPower
-							/ (1.0 + fourthPower))
-						: 1.0
-							/ std::sqrt(
-								1.0 + fourthPower);
+					const double magnitude =
+						highPass
+							? std::sqrt(
+								fourthPower
+								/ (1.0
+									+ fourthPower))
+							: 1.0
+								/ std::sqrt(
+									1.0
+									+ fourthPower);
 					const double decibels =
-						20.0 * std::log10(
-							std::max(0.0316227766,
+						20.0
+						* std::log10(
+							std::max(
+								0.0316227766,
 								magnitude));
 					const double normalized =
 						std::clamp(
-							(decibels + 30.0) / 30.0,
-							0.0, 1.0);
+							(decibels + 30.0)
+								/ 30.0,
+							0.0,
+							1.0);
+
 					const QPointF point(
 						responseBounds.left()
 							+ position
-							* responseBounds.width(),
+								* responseBounds.width(),
 						responseBounds.bottom()
 							- normalized
-							* responseBounds.height());
+								* responseBounds.height());
 
 					if (sample == 0)
 						responsePath.moveTo(point);
@@ -607,22 +1086,34 @@ protected:
 
 		painter.save();
 		painter.setClipRect(
-			responseBounds.adjusted(-8.0, -8.0, 8.0, 8.0));
+			responseBounds.adjusted(
+				-8.0,
+				-8.0,
+				8.0,
+				8.0));
 
 		if (highPassFrequency > 0.0)
 		{
-			drawGlowPath(painter,
+			drawGlowPath(
+				painter,
 				buildResponsePath(
-					highPassFrequency, true),
-				traceColor, luminous, 0.92);
+					highPassFrequency,
+					true),
+				accent,
+				luminous,
+				0.96 * enabledFactor);
 		}
 
 		if (lowPassFrequency > 0.0)
 		{
-			drawGlowPath(painter,
+			drawGlowPath(
+				painter,
 				buildResponsePath(
-					lowPassFrequency, false),
-				traceColor, luminous, 0.68);
+					lowPassFrequency,
+					false),
+				accent,
+				luminous,
+				0.76 * enabledFactor);
 		}
 
 		painter.restore();
@@ -631,7 +1122,6 @@ protected:
 private:
 	bool valid = false;
 	bool sourceLfePreserved = false;
-	double sourceLfeGainDb = 0.0;
 	double highPassFrequency = 0.0;
 	double lowPassFrequency = 0.0;
 	QString mainCaption;
@@ -641,15 +1131,6 @@ private:
 	QString lowPassCaption;
 };
 
-QString countText(int count, const QString& singular,
-	const QString& plural)
-{
-	return count == 1
-		? singular
-		: plural.arg(count);
-}
-}
-
 StudioBassManagementCardView::StudioBassManagementCardView(
 	QWidget* parent)
 	: BassManagementCardView(parent)
@@ -658,74 +1139,58 @@ StudioBassManagementCardView::StudioBassManagementCardView(
 		QStringLiteral("StudioBassManagementCardView"));
 
 	QVBoxLayout* root = new QVBoxLayout(this);
-	root->setContentsMargins(8, 0, 0, 0);
-	root->setSpacing(5);
+	root->setContentsMargins(12, 10, 12, 10);
+	root->setSpacing(7);
 
 	QHBoxLayout* captionLayout = new QHBoxLayout();
 	captionLayout->setContentsMargins(0, 0, 0, 0);
 	captionLayout->setSpacing(8);
 
-	validityChip = new GlassChipLabel(this);
+	validityChip = new QLabel(this);
 	validityChip->setObjectName(
 		QStringLiteral("StudioBassValidity"));
+	validityChip->setAlignment(Qt::AlignCenter);
+	validityChip->setMinimumHeight(28);
+	validityChip->setSizePolicy(
+		QSizePolicy::Fixed,
+		QSizePolicy::Fixed);
 	validityChip->setAccessibleName(
 		tr("Bass-management validity"));
 	validityChip->setToolTip(
 		tr("Validation status of the bass-management state"));
+	validityChip->setAttribute(
+		Qt::WA_TransparentForMouseEvents);
 	captionLayout->addWidget(
-		validityChip, 0, Qt::AlignVCenter);
+		validityChip,
+		0,
+		Qt::AlignVCenter);
 
-	layoutLabel = new ElidedLabel(this);
+	layoutLabel = new RightElidedLabel(this);
 	layoutLabel->setObjectName(
 		QStringLiteral("StudioBassLayout"));
-	layoutLabel->setAccessibleName(tr("Speaker layout"));
-	layoutLabel->setToolTip(
-		tr("Physical speaker layout stored in this state"));
+	layoutLabel->setAccessibleName(
+		tr("Speaker layout"));
 	layoutLabel->setMinimumWidth(110);
-	layoutLabel->setSizePolicy(
-		QSizePolicy::Expanding, QSizePolicy::Preferred);
-	layoutLabel->setAttribute(
-		Qt::WA_TransparentForMouseEvents);
 	captionLayout->addWidget(
-		layoutLabel, 2, Qt::AlignVCenter);
-
-	profileLabel = new ElidedLabel(this);
-	profileLabel->setObjectName(
-		QStringLiteral("StudioBassProfile"));
-	profileLabel->setAccessibleName(
-		tr("Bass-management profile"));
-	profileLabel->setToolTip(
-		tr("Embedded state or linked profile name"));
-	profileLabel->setSizePolicy(
-		QSizePolicy::Expanding, QSizePolicy::Preferred);
-	profileLabel->setAttribute(
-		Qt::WA_TransparentForMouseEvents);
-	captionLayout->addWidget(
-		profileLabel, 1, Qt::AlignVCenter);
-
-	captionLayout->addStretch(1);
+		layoutLabel,
+		1,
+		Qt::AlignVCenter);
 
 	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
-	actionLayout->setSpacing(4);
+	actionLayout->setSpacing(6);
 	captionLayout->addLayout(actionLayout);
 
 	root->addLayout(captionLayout);
 
-	crossoverLabel = new ElidedLabel(this);
+	crossoverLabel = new RightElidedLabel(this);
 	crossoverLabel->setObjectName(
 		QStringLiteral("StudioBassCrossovers"));
 	crossoverLabel->setAccessibleName(
 		tr("Representative crossovers"));
+	crossoverLabel->setMinimumWidth(100);
 	crossoverLabel->setToolTip(
 		tr("Representative high-pass and low-pass crossover sections"));
-	crossoverLabel->setFont(
-		studioMonoFont(QFont::Medium));
-	crossoverLabel->setMinimumWidth(100);
-	crossoverLabel->setSizePolicy(
-		QSizePolicy::Expanding, QSizePolicy::Preferred);
-	crossoverLabel->setAttribute(
-		Qt::WA_TransparentForMouseEvents);
 	root->addWidget(crossoverLabel);
 
 	statusLabel = new QLabel(this);
@@ -739,66 +1204,68 @@ StudioBassManagementCardView::StudioBassManagementCardView(
 		Qt::WA_TransparentForMouseEvents);
 	root->addWidget(statusLabel);
 
-	secondaryRow = new QWidget(this);
-	secondaryRow->setObjectName(
-		QStringLiteral("StudioBassSecondaryRow"));
-	secondaryRow->setAttribute(
-		Qt::WA_TransparentForMouseEvents);
-	QHBoxLayout* secondaryLayout =
-		new QHBoxLayout(secondaryRow);
-	secondaryLayout->setContentsMargins(0, 0, 0, 0);
-	secondaryLayout->setSpacing(6);
+	factsRow = new QWidget(this);
+	factsRow->setObjectName(
+		QStringLiteral("StudioBassFactsRow"));
 
-	groupChip = new GlassChipLabel(secondaryRow);
-	groupChip->setObjectName(
-		QStringLiteral("StudioBassCountChip"));
-	groupChip->setAccessibleName(
-		tr("Speaker group count"));
-	groupChip->setToolTip(
-		tr("Number of speaker groups"));
-	secondaryLayout->addWidget(
-		groupChip, 0, Qt::AlignVCenter);
+	QHBoxLayout* factsLayout =
+		new QHBoxLayout(factsRow);
+	factsLayout->setContentsMargins(0, 0, 0, 0);
+	factsLayout->setSpacing(6);
 
-	pathChip = new GlassChipLabel(secondaryRow);
-	pathChip->setObjectName(
-		QStringLiteral("StudioBassCountChip"));
-	pathChip->setAccessibleName(
-		tr("Bass path count"));
-	pathChip->setToolTip(
-		tr("Number of bass paths"));
-	secondaryLayout->addWidget(
-		pathChip, 0, Qt::AlignVCenter);
-
-	routesChip = new GlassChipLabel(secondaryRow);
+	routesChip = new QLabel(factsRow);
 	routesChip->setObjectName(
-		QStringLiteral("StudioBassCountChip"));
+		QStringLiteral("StudioBassFactChip"));
+	routesChip->setAlignment(Qt::AlignCenter);
+	routesChip->setMinimumHeight(28);
+	routesChip->setSizePolicy(
+		QSizePolicy::Fixed,
+		QSizePolicy::Fixed);
 	routesChip->setAccessibleName(
 		tr("Active matrix route count"));
 	routesChip->setToolTip(
 		tr("Number of active matrix routes"));
-	secondaryLayout->addWidget(
-		routesChip, 0, Qt::AlignVCenter);
-
-	secondaryLayout->addStretch(1);
-
-	lfeLabel = new QLabel(secondaryRow);
-	lfeLabel->setObjectName(
-		QStringLiteral("StudioBassLfe"));
-	lfeLabel->setAccessibleName(
-		tr("Source LFE routing"));
-	lfeLabel->setToolTip(
-		tr("Whether source LFE is preserved and at what gain"));
-	lfeLabel->setFont(studioMonoFont());
-	lfeLabel->setAttribute(
+	routesChip->setAttribute(
 		Qt::WA_TransparentForMouseEvents);
-	secondaryLayout->addWidget(
-		lfeLabel, 0, Qt::AlignVCenter);
+	factsLayout->addWidget(
+		routesChip,
+		0,
+		Qt::AlignVCenter);
 
-	root->addWidget(secondaryRow);
+	lfeChip = new QLabel(factsRow);
+	lfeChip->setObjectName(
+		QStringLiteral("StudioBassFactChip"));
+	lfeChip->setAlignment(Qt::AlignCenter);
+	lfeChip->setMinimumHeight(28);
+	lfeChip->setSizePolicy(
+		QSizePolicy::Fixed,
+		QSizePolicy::Fixed);
+	lfeChip->setAccessibleName(
+		tr("Source LFE routing"));
+	lfeChip->setToolTip(
+		tr("Whether source LFE is preserved and at what gain"));
+	lfeChip->setAttribute(
+		Qt::WA_TransparentForMouseEvents);
+	factsLayout->addWidget(
+		lfeChip,
+		0,
+		Qt::AlignVCenter);
 
-	QHBoxLayout* instrumentLayout = new QHBoxLayout();
+	profileSummary =
+		new ProfileSummaryWidget(factsRow);
+	profileSummary->setAccessibleName(
+		tr("Bass-management profile"));
+	factsLayout->addWidget(
+		profileSummary,
+		1,
+		Qt::AlignVCenter);
+
+	root->addWidget(factsRow);
+
+	QHBoxLayout* instrumentLayout =
+		new QHBoxLayout();
 	instrumentLayout->setContentsMargins(0, 0, 0, 0);
-	instrumentLayout->setSpacing(8);
+	instrumentLayout->setSpacing(10);
 
 	instrumentPane = new BassInstrumentWidget(this);
 	instrumentPane->setAccessibleName(
@@ -810,15 +1277,15 @@ StudioBassManagementCardView::StudioBassManagementCardView(
 	headroomPane = new QWidget(this);
 	headroomPane->setObjectName(
 		QStringLiteral("StudioBassHeadroomPane"));
-	headroomPane->setAttribute(
-		Qt::WA_TransparentForMouseEvents);
+
 	QVBoxLayout* headroomLayout =
 		new QVBoxLayout(headroomPane);
 	headroomLayout->setContentsMargins(0, 0, 0, 0);
-	headroomLayout->setSpacing(3);
+	headroomLayout->setSpacing(4);
 
 	QLabel* headroomCaption = new QLabel(
-		tr("HEADROOM"), headroomPane);
+		tr("HEADROOM"),
+		headroomPane);
 	headroomCaption->setObjectName(
 		QStringLiteral("StudioBassHeadroomCaption"));
 	headroomCaption->setAlignment(Qt::AlignCenter);
@@ -829,9 +1296,7 @@ StudioBassManagementCardView::StudioBassManagementCardView(
 	headroomLayout->addWidget(headroomCaption);
 
 	headroomReadout =
-		new GlowReadoutLabel(headroomPane);
-	headroomReadout->setObjectName(
-		QStringLiteral("StudioBassHeadroomReadout"));
+		new GlowReadoutWidget(headroomPane);
 	headroomReadout->setAccessibleName(
 		tr("Headroom trim"));
 	headroomReadout->setToolTip(
@@ -839,25 +1304,26 @@ StudioBassManagementCardView::StudioBassManagementCardView(
 	headroomLayout->addWidget(headroomReadout);
 
 	instrumentLayout->addWidget(
-		headroomPane, 0, Qt::AlignVCenter);
+		headroomPane,
+		0,
+		Qt::AlignVCenter);
 	root->addLayout(instrumentLayout);
 
-	connect(SkinManager::instance(),
+	connect(
+		SkinManager::instance(),
 		&SkinManager::skinChanged,
 		this,
 		[this]()
 		{
 			update();
-			validityChip->update();
-			groupChip->update();
-			pathChip->update();
-			routesChip->update();
+			layoutLabel->update();
+			profileSummary->update();
+			crossoverLabel->update();
 			instrumentPane->update();
 			headroomReadout->update();
+			updateResponsiveVisibility(width());
 		});
 
-	// Qualified on purpose: seeding the initial presentation from the
-	// constructor must not dispatch to a further-derived override.
 	StudioBassManagementCardView::applyState(state());
 	updateResponsiveVisibility(width());
 }
@@ -869,6 +1335,8 @@ void StudioBassManagementCardView::addActionButton(
 		return;
 
 	button->setParent(this);
+	button->setObjectName(
+		QStringLiteral("StudioBassActionButton"));
 	button->setMinimumSize(
 		std::max(40, button->minimumWidth()),
 		std::max(40, button->minimumHeight()));
@@ -890,28 +1358,28 @@ void StudioBassManagementCardView::addActionButton(
 		accessibleName = tr("Bass-management action");
 
 	button->setAccessibleName(accessibleName);
+
 	if (button->toolTip().trimmed().isEmpty())
 		button->setToolTip(accessibleName);
 
-	if (QToolButton* toolButton =
-		qobject_cast<QToolButton*>(button))
-	{
-		toolButton->setToolButtonStyle(
-			toolButton->text().isEmpty()
-				? Qt::ToolButtonIconOnly
-				: Qt::ToolButtonTextBesideIcon);
-	}
+	if (button->text().trimmed().isEmpty())
+		button->setText(accessibleName);
 
 	actionLayout->addWidget(
-		button, 0, Qt::AlignVCenter);
+		button,
+		0,
+		Qt::AlignVCenter);
 	actionButtons.append(button);
+
+	updateResponsiveVisibility(width());
 }
 
 void StudioBassManagementCardView::applyState(
 	const BassManagementCardState& state)
 {
 	const bool linkedProfileMissing =
-		state.linkedProfile && state.profileMissing;
+		state.linkedProfile
+		&& state.profileMissing;
 	const bool effectiveValid =
 		state.valid
 		&& state.errorText.isEmpty()
@@ -921,64 +1389,79 @@ void StudioBassManagementCardView::applyState(
 
 	if (!effectiveValid)
 	{
-		validityChip->setText(tr("! INVALID"));
-		validityChip->setProperty(
-			"severity", QStringLiteral("invalid"));
+		validityChip->setText(tr("ERROR"));
+		setStyledProperty(
+			validityChip,
+			"severity",
+			QStringLiteral("invalid"));
 		validityChip->setAccessibleDescription(
 			tr("The bass-management state is invalid"));
 	}
 	else if (hasWarning)
 	{
 		validityChip->setText(tr("! WARNING"));
-		validityChip->setProperty(
-			"severity", QStringLiteral("warning"));
+		setStyledProperty(
+			validityChip,
+			"severity",
+			QStringLiteral("warning"));
 		validityChip->setAccessibleDescription(
 			tr("The bass-management state is valid with a warning"));
 	}
 	else
 	{
 		validityChip->setText(tr("OK VALID"));
-		validityChip->setProperty(
-			"severity", QStringLiteral("valid"));
+		setStyledProperty(
+			validityChip,
+			"severity",
+			QStringLiteral("valid"));
 		validityChip->setAccessibleDescription(
 			tr("The bass-management state is valid"));
 	}
-	validityChip->update();
 
 	const QString layoutText =
 		state.layoutLabel.isEmpty()
 			? tr("Unknown")
 			: state.layoutLabel;
-	layoutLabel->setFullText(
-		tr("Layout: %1").arg(layoutText));
+	const QString layoutSummary =
+		tr("Layout: %1").arg(layoutText);
+	layoutLabel->setFullText(layoutSummary);
 	layoutLabel->setToolTip(
 		tr("Speaker layout: %1").arg(layoutText));
+	layoutLabel->setAccessibleDescription(layoutSummary);
 
-	QString profileText;
+	QString profileName;
+	QString profileSuffix;
+
 	if (state.linkedProfile)
 	{
-		const QString profileName =
-			state.profileName.isEmpty()
-				? tr("Unnamed linked profile")
-				: state.profileName;
-
-		profileText = linkedProfileMissing
-			? tr("Profile: %1 (linked, missing)")
-				.arg(profileName)
-			: tr("Profile: %1 (linked)")
-				.arg(profileName);
+		profileName = state.profileName.isEmpty()
+			? tr("Unnamed linked profile")
+			: state.profileName;
+		profileSuffix = linkedProfileMissing
+			? tr("(linked, missing)")
+			: tr("(linked)");
 	}
 	else
 	{
-		const QString profileName =
-			state.profileName.isEmpty()
-				? tr("Embedded state")
-				: state.profileName;
-		profileText =
-			tr("Profile: %1").arg(profileName);
+		profileName = state.profileName.isEmpty()
+			? tr("Embedded state")
+			: state.profileName;
 	}
-	profileLabel->setFullText(profileText);
-	profileLabel->setToolTip(profileText);
+
+	const QString profilePrefix = tr("Profile: ");
+	const QString profileText =
+		profileSuffix.isEmpty()
+			? profilePrefix + profileName
+			: profilePrefix
+				+ profileName
+				+ QLatin1Char(' ')
+				+ profileSuffix;
+
+	profileSummary->setParts(
+		profilePrefix,
+		profileName,
+		profileSuffix,
+		profileText);
 
 	QStringList crossoverParts;
 	if (!state.representativeHighPass.isEmpty())
@@ -1002,22 +1485,8 @@ void StudioBassManagementCardView::applyState(
 					QStringLiteral(" / ")));
 	crossoverLabel->setFullText(crossoverSummary);
 	crossoverLabel->setToolTip(crossoverSummary);
-
-	groupChip->setText(countText(
-		state.speakerGroupCount,
-		tr("1 group"),
-		tr("%1 groups")));
-	groupChip->setAccessibleDescription(
-		tr("%1 speaker groups")
-			.arg(state.speakerGroupCount));
-
-	pathChip->setText(countText(
-		state.bassPathCount,
-		tr("1 bass path"),
-		tr("%1 bass paths")));
-	pathChip->setAccessibleDescription(
-		tr("%1 bass paths")
-			.arg(state.bassPathCount));
+	crossoverLabel->setAccessibleDescription(
+		crossoverSummary);
 
 	routesChip->setText(countText(
 		state.activeMatrixEdges,
@@ -1034,67 +1503,40 @@ void StudioBassManagementCardView::applyState(
 			? tr("LFE %1 dB").arg(
 				QString::number(
 					state.sourceLfeGainDb,
-					'f', 1))
+					'f',
+					1))
 			: tr("LFE preserved");
 	}
 	else
 	{
 		lfeText = tr("LFE not preserved");
 	}
-	lfeLabel->setText(lfeText);
-	lfeLabel->setAccessibleDescription(lfeText);
 
-	QString headroomText;
-	QString headroomDescription;
-	if (state.headroomAuto)
-	{
-		if (std::isfinite(state.headroomTrimDb))
-		{
-			headroomText = tr("AUTO  %1 dB").arg(
-				QString::number(
-					state.headroomTrimDb,
-					'f', 1));
-			headroomDescription =
-				tr("Automatic headroom trim, %1 decibels")
-					.arg(QString::number(
-						state.headroomTrimDb,
-						'f', 1));
-		}
-		else
-		{
-			headroomText = tr("AUTO  -- dB");
-			headroomDescription =
-				tr("Automatic headroom trim is unavailable");
-		}
-	}
-	else
-	{
-		if (std::isfinite(state.headroomTrimDb))
-		{
-			headroomText = tr("MANUAL  %1 dB").arg(
-				QString::number(
-					state.headroomTrimDb,
-					'f', 1));
-			headroomDescription =
-				tr("Manual headroom trim, %1 decibels")
-					.arg(QString::number(
-						state.headroomTrimDb,
-						'f', 1));
-		}
-		else
-		{
-			headroomText = tr("MANUAL  -- dB");
-			headroomDescription =
-				tr("Manual headroom trim is unavailable");
-		}
-	}
+	lfeChip->setText(lfeText);
+	lfeChip->setAccessibleDescription(lfeText);
+
+	const bool finiteHeadroom =
+		std::isfinite(state.headroomTrimDb);
+	const QString headroomValue = finiteHeadroom
+		? QString::number(
+			state.headroomTrimDb,
+			'f',
+			1)
+		: QStringLiteral("--");
+
+	const QString headroomText = state.headroomAuto
+		? tr("AUTO %1 dB").arg(headroomValue)
+		: tr("MANUAL %1 dB").arg(headroomValue);
+	const QString headroomDescription = state.headroomAuto
+		? tr("Automatic headroom trim: %1 dB")
+			.arg(headroomValue)
+		: tr("Manual headroom trim: %1 dB")
+			.arg(headroomValue);
 
 	headroomReadout->setText(headroomText);
 	headroomReadout->setAccessibleDescription(
 		headroomDescription);
-	static_cast<GlowReadoutLabel*>(
-		headroomReadout)->setAutomatic(
-			state.headroomAuto);
+	headroomReadout->setAutomatic(state.headroomAuto);
 
 	const QString highPassDescription =
 		state.representativeHighPass.isEmpty()
@@ -1111,23 +1553,22 @@ void StudioBassManagementCardView::applyState(
 
 	const QString instrumentDescription =
 		tr("Signal traces. Main high-pass %1. Bass low-pass %2. Source LFE %3.")
-			.arg(highPassDescription,
+			.arg(
+				highPassDescription,
 				lowPassDescription,
 				lfeDescription);
 
-	static_cast<BassInstrumentWidget*>(
-		instrumentPane)->setPresentation(
-			effectiveValid,
-			state.sourceLfePreserved,
-			state.sourceLfeGainDb,
-			state.representativeHighPass,
-			state.representativeLowPass,
-			tr("MAIN"),
-			tr("BASS"),
-			tr("LFE"),
-			tr("HP"),
-			tr("LP"),
-			instrumentDescription);
+	instrumentPane->setPresentation(
+		effectiveValid,
+		state.sourceLfePreserved,
+		state.representativeHighPass,
+		state.representativeLowPass,
+		tr("MAIN"),
+		tr("BASS"),
+		tr("LFE"),
+		tr("HP"),
+		tr("LP"),
+		instrumentDescription);
 
 	QStringList statusLines;
 	if (!state.errorText.isEmpty())
@@ -1167,13 +1608,14 @@ void StudioBassManagementCardView::applyState(
 	statusLabel->setText(
 		statusLines.join(QLatin1Char('\n')));
 	statusLabel->setVisible(!statusLines.isEmpty());
-	statusLabel->setProperty("severity",
+	setStyledProperty(
+		statusLabel,
+		"severity",
 		!effectiveValid
 			? QStringLiteral("invalid")
 			: hasWarning
 				? QStringLiteral("warning")
 				: QStringLiteral("none"));
-	statusLabel->update();
 
 	QStringList accessibleSummary;
 	accessibleSummary.append(
@@ -1197,18 +1639,6 @@ void StudioBassManagementCardView::applyState(
 		accessibleSummary.join(
 			QStringLiteral(". ")));
 
-	for (QAbstractButton* button : actionButtons)
-	{
-		if (QToolButton* toolButton =
-			qobject_cast<QToolButton*>(button))
-		{
-			toolButton->setToolButtonStyle(
-				toolButton->text().isEmpty()
-					? Qt::ToolButtonIconOnly
-					: Qt::ToolButtonTextBesideIcon);
-		}
-	}
-
 	updateResponsiveVisibility(width());
 }
 
@@ -1221,42 +1651,80 @@ void StudioBassManagementCardView::paintEvent(
 		return;
 
 	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(
+		QPainter::Antialiasing,
+		true);
 
 	const qreal dpr = devicePixelRatioF();
 	const qreal pixel = 1.0 / dpr;
-	const QRectF focusRect = QRectF(rect()).adjusted(
-		pixel / 2.0, pixel / 2.0,
-		-pixel / 2.0, -pixel / 2.0);
+	const QRectF focusRect =
+		QRectF(rect()).adjusted(
+			pixel / 2.0,
+			pixel / 2.0,
+			-pixel / 2.0,
+			-pixel / 2.0);
 	const QColor focusColor =
 		palette().color(QPalette::Highlight);
 
-	QPen glowPen(withOpacity(focusColor, 0.22), 4.0);
+	QPen glowPen(
+		withOpacity(focusColor, 0.22),
+		4.0);
 	glowPen.setJoinStyle(Qt::RoundJoin);
 	painter.setPen(glowPen);
 	painter.setBrush(Qt::NoBrush);
-	painter.drawRoundedRect(focusRect, 8.0, 8.0);
+	painter.drawRoundedRect(
+		focusRect,
+		8.0,
+		8.0);
 
-	QPen corePen(withOpacity(focusColor, 0.82), pixel);
+	QPen corePen(
+		withOpacity(focusColor, 0.82),
+		pixel);
 	corePen.setJoinStyle(Qt::RoundJoin);
 	painter.setPen(corePen);
-	painter.drawRoundedRect(focusRect, 8.0, 8.0);
+	painter.drawRoundedRect(
+		focusRect,
+		8.0,
+		8.0);
 }
 
 void StudioBassManagementCardView::resizeEvent(
 	QResizeEvent* event)
 {
 	QWidget::resizeEvent(event);
-	updateResponsiveVisibility(event->size().width());
+	updateResponsiveVisibility(
+		event->size().width());
 }
 
 void StudioBassManagementCardView::updateResponsiveVisibility(
 	int availableWidth)
 {
-	profileLabel->setVisible(availableWidth >= 640);
-	secondaryRow->setVisible(availableWidth >= 560);
-	routesChip->setVisible(availableWidth >= 760);
-	lfeLabel->setVisible(availableWidth >= 680);
+	profileSummary->setVisible(availableWidth >= 600);
+	lfeChip->setVisible(availableWidth >= 480);
 	instrumentPane->setVisible(availableWidth >= 560);
 	headroomPane->setVisible(availableWidth >= 720);
+
+	const bool showActionText =
+		availableWidth >= 700;
+
+	for (QAbstractButton* button : actionButtons)
+	{
+		QToolButton* toolButton =
+			qobject_cast<QToolButton*>(button);
+		if (toolButton == nullptr)
+			continue;
+
+		if (toolButton->icon().isNull())
+		{
+			toolButton->setToolButtonStyle(
+				Qt::ToolButtonTextOnly);
+		}
+		else
+		{
+			toolButton->setToolButtonStyle(
+				showActionText
+					? Qt::ToolButtonTextBesideIcon
+					: Qt::ToolButtonIconOnly);
+		}
+	}
 }

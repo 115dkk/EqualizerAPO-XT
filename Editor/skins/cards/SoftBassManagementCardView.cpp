@@ -12,16 +12,18 @@
 #include <cmath>
 
 #include <QAbstractButton>
+#include <QColor>
 #include <QEvent>
-#include <QFont>
-#include <QFontMetrics>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QPen>
 #include <QResizeEvent>
 #include <QSizePolicy>
 #include <QStringList>
+#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -71,42 +73,40 @@ qreal crispLineCoordinate(qreal coordinate, qreal devicePixelRatio)
 		/ devicePixelRatio;
 }
 
-void drawRoundedChip(QPainter& painter, const QRectF& rect,
-	const QColor& fill, const QColor& border, bool enabled)
+void refreshStyle(QWidget* widget)
 {
-	const qreal devicePixelRatio = painter.device()->devicePixelRatioF();
-	const QRectF paintRect = crispOnePixelRect(rect, devicePixelRatio);
+	if (widget == nullptr || widget->style() == nullptr)
+		return;
 
-	QPen pen(border, 1.0 / devicePixelRatio);
-	pen.setStyle(enabled ? Qt::SolidLine : Qt::DashLine);
-	pen.setCapStyle(Qt::RoundCap);
-	pen.setJoinStyle(Qt::RoundJoin);
-
-	painter.setPen(pen);
-	painter.setBrush(fill);
-	painter.drawRoundedRect(paintRect,
-		paintRect.height() / 2.0, paintRect.height() / 2.0);
+	widget->style()->unpolish(widget);
+	widget->style()->polish(widget);
+	widget->update();
 }
 
-QFont fixedPitchFont(const SkinTokens& tokens, const QFont& fallback)
+QString formattedDb(double value)
 {
-	QFont font(tokens.monoFontFamily);
-	if (font.family().isEmpty())
-	{
-		font = fallback;
-		font.setStyleHint(QFont::Monospace);
-		font.setFixedPitch(true);
-	}
-	return font;
+	if (!std::isfinite(value))
+		return QStringLiteral("--");
+
+	return QStringLiteral("%1 dB").arg(
+		QString::number(value, 'f', 1));
 }
 }
+
+enum class SoftBassStatusKind
+{
+	Warning,
+	Error
+};
 
 class SoftBassStatusIcon : public QWidget
 {
 public:
-	explicit SoftBassStatusIcon(const QColor& color, QWidget* parent = nullptr)
-		: QWidget(parent), ink(color)
+	explicit SoftBassStatusIcon(
+		SoftBassStatusKind kind, QWidget* parent = nullptr)
+		: QWidget(parent), statusKind(kind)
 	{
+		configurePaintOnlyChrome(this);
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		setFixedSize(GUIHelper::scale(QSize(18, 18)));
 	}
@@ -117,102 +117,244 @@ protected:
 		QPainter painter(this);
 		painter.setRenderHint(QPainter::Antialiasing);
 
-		QColor paintInk = isEnabled()
-			? ink
-			: QColor(SkinManager::instance()->tokens().mutedText);
-		paintInk = opaqueColor(paintInk);
+		const SkinTokens& tokens = SkinManager::instance()->tokens();
+		QColor ink = isEnabled()
+			? warmChipInk(tokens)
+			: opaqueColor(QColor(tokens.mutedText));
 
 		const qreal devicePixelRatio = devicePixelRatioF();
 		QRectF circleRect = rect();
-		circleRect.adjust(GUIHelper::scale(1.5), GUIHelper::scale(1.5),
+		circleRect.adjust(
+			GUIHelper::scale(1.5), GUIHelper::scale(1.5),
 			-GUIHelper::scale(1.5), -GUIHelper::scale(1.5));
 		circleRect = crispOnePixelRect(circleRect, devicePixelRatio);
 
-		QPen circlePen(paintInk, 1.0 / devicePixelRatio);
+		QPen circlePen(ink, 1.0 / devicePixelRatio);
 		circlePen.setCapStyle(Qt::RoundCap);
 		painter.setPen(circlePen);
 		painter.setBrush(Qt::NoBrush);
 		painter.drawEllipse(circleRect);
 
 		const QPointF center = circleRect.center();
-		QPen markPen(paintInk, GUIHelper::scale(1.8),
+		QPen markPen(
+			ink, GUIHelper::scale(1.8),
 			Qt::SolidLine, Qt::RoundCap);
 		painter.setPen(markPen);
 		painter.drawLine(
-			QPointF(center.x(), circleRect.top() + circleRect.height() * 0.27),
-			QPointF(center.x(), circleRect.top() + circleRect.height() * 0.58));
+			QPointF(
+				center.x(),
+				circleRect.top() + circleRect.height() * 0.27),
+			QPointF(
+				center.x(),
+				circleRect.top() + circleRect.height() * 0.58));
 
 		painter.setPen(Qt::NoPen);
-		painter.setBrush(paintInk);
+		painter.setBrush(ink);
 		const qreal dotRadius = GUIHelper::scale(1.0);
 		painter.drawEllipse(
-			QPointF(center.x(), circleRect.top() + circleRect.height() * 0.75),
+			QPointF(
+				center.x(),
+				circleRect.top() + circleRect.height() * 0.75),
 			dotRadius, dotRadius);
 	}
 
 private:
-	QColor ink;
+	SoftBassStatusKind statusKind;
 };
 
 class SoftBassStatusChip : public QWidget
 {
 public:
-	SoftBassStatusChip(const QString& objectName, const QColor& fill,
-		const QColor& ink, QWidget* parent = nullptr)
+	explicit SoftBassStatusChip(
+		SoftBassStatusKind kind, QWidget* parent = nullptr)
 		: QWidget(parent)
 	{
-		setObjectName(objectName);
+		setObjectName(kind == SoftBassStatusKind::Error
+			? QStringLiteral("SoftBassErrorChip")
+			: QStringLiteral("SoftBassWarningChip"));
 		setAttribute(Qt::WA_StyledBackground, true);
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 
 		QHBoxLayout* layout = new QHBoxLayout(this);
-		layout->setContentsMargins(GUIHelper::scale(10.0),
-			GUIHelper::scale(6.0), GUIHelper::scale(12.0),
-			GUIHelper::scale(6.0));
+		layout->setContentsMargins(
+			GUIHelper::scale(10.0), GUIHelper::scale(6.0),
+			GUIHelper::scale(12.0), GUIHelper::scale(6.0));
 		layout->setSpacing(GUIHelper::scale(7.0));
 
-		SoftBassStatusIcon* icon = new SoftBassStatusIcon(ink, this);
-		layout->addWidget(icon, 0, Qt::AlignTop);
+		statusIcon = new SoftBassStatusIcon(kind, this);
+		layout->addWidget(statusIcon, 0, Qt::AlignTop);
 
 		textLabel = new QLabel(this);
+		textLabel->setObjectName(QStringLiteral("SoftBassStatusText"));
 		textLabel->setWordWrap(true);
 		textLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+		textLabel->setSizePolicy(
+			QSizePolicy::Expanding, QSizePolicy::Minimum);
 		layout->addWidget(textLabel, 1);
-
-		const SkinTokens& tokens = SkinManager::instance()->tokens();
-		const QColor border = opaqueColor(
-			mixColor(fill, ink, skinIsDark(tokens) ? 0.20 : 0.14));
-		const QColor disabledFill = opaqueColor(
-			mixColor(fill, QColor(tokens.background), 0.66));
-
-		const QString selector = QStringLiteral("QWidget#") + objectName;
-		setStyleSheet(
-			selector + QStringLiteral(
-				" { background: %1; border: 1px solid %2;"
-				" border-radius: 12px; }")
-				.arg(cssColor(fill), cssColor(border))
-			+ selector + QStringLiteral(
-				" QLabel { color: %1; background: transparent;"
-				" font-size: 9pt; font-weight: 600; }")
-				.arg(cssColor(ink))
-			+ selector + QStringLiteral(
-				":disabled { background: %1; border: 1px dashed %2; }")
-				.arg(cssColor(disabledFill), tokens.border)
-			+ selector + QStringLiteral(
-				":disabled QLabel { color: %1; }")
-				.arg(tokens.mutedText));
 	}
 
 	void setMessage(const QString& message, const QString& accessibleName)
 	{
 		textLabel->setText(message);
+		textLabel->setToolTip(message);
 		setAccessibleName(accessibleName);
 		setToolTip(message);
 	}
 
+	void refresh()
+	{
+		update();
+		statusIcon->update();
+	}
+
 private:
+	SoftBassStatusIcon* statusIcon = nullptr;
 	QLabel* textLabel = nullptr;
+};
+
+// Fully painted on purpose. The pastel fill and the warm ink are Soft's
+// badge grammar (softPastelize + warmChipInk); painting keeps the pair
+// atomic and immune to sheet cascade surprises, exactly like the skin's
+// type badges.
+class SoftBassFlowChip : public QWidget
+{
+public:
+	SoftBassFlowChip(
+		const QString& role, bool stacked, QWidget* parent = nullptr)
+		: QWidget(parent), flowRole(role), stackedChip(stacked)
+	{
+		setObjectName(QStringLiteral("SoftBassFlowChip"));
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		setMinimumWidth(0);
+		setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
+	}
+
+	void setPresentation(
+		const QString& caption, const QString& value = QString())
+	{
+		captionText = caption;
+		valueText = value;
+
+		QString summary = caption;
+		if (stackedChip && !value.isEmpty())
+			summary = QStringLiteral("%1, %2").arg(caption, value);
+
+		setAccessibleName(summary);
+		setToolTip(summary);
+		updateGeometry();
+		update();
+	}
+
+	QSize sizeHint() const override
+	{
+		const QFontMetrics captionMetrics(captionFont());
+		const QFontMetrics valueMetrics(valueFont());
+		int textWidth = captionMetrics.horizontalAdvance(captionText);
+		if (stackedChip)
+			textWidth = qMax(textWidth,
+				valueMetrics.horizontalAdvance(valueText));
+		return QSize(
+			textWidth + GUIHelper::scale(28.0),
+			GUIHelper::scale(stackedChip ? 46.0 : 36.0));
+	}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing, true);
+
+		const SkinTokens& tokens = SkinManager::instance()->tokens();
+		const bool dark = skinIsDark(tokens);
+		const qreal devicePixelRatio = devicePixelRatioF();
+		const QRectF frame = crispOnePixelRect(
+			QRectF(rect()), devicePixelRatio);
+		const qreal radius = frame.height() / 2.0;
+
+		const QString roleToken =
+			flowRole == QStringLiteral("bass") ? tokens.accent2
+			: flowRole == QStringLiteral("destination") ? tokens.success
+			: tokens.accent;
+
+		if (isEnabled())
+		{
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(opaqueColor(
+				softPastelize(QColor(roleToken), dark)));
+			painter.drawRoundedRect(frame, radius, radius);
+		}
+		else
+		{
+			QPen sleepPen(opaqueColor(QColor(tokens.border)),
+				1.0 / devicePixelRatio, Qt::DashLine);
+			painter.setPen(sleepPen);
+			painter.setBrush(opaqueColor(QColor(tokens.background)));
+			painter.drawRoundedRect(frame, radius, radius);
+		}
+
+		const QColor ink = isEnabled()
+			? warmChipInk(tokens)
+			: opaqueColor(QColor(tokens.mutedText));
+		const qreal sidePadding = GUIHelper::scale(12.0);
+		const QRectF textArea = frame.adjusted(
+			sidePadding, 0.0, -sidePadding, 0.0);
+
+		painter.setPen(ink);
+		if (stackedChip)
+		{
+			const qreal half = textArea.height() / 2.0;
+			const QRectF captionArea(
+				textArea.left(),
+				textArea.top() + GUIHelper::scale(3.0),
+				textArea.width(), half - GUIHelper::scale(3.0));
+			const QRectF valueArea(
+				textArea.left(), textArea.top() + half,
+				textArea.width(), half - GUIHelper::scale(3.0));
+
+			painter.setFont(captionFont());
+			painter.drawText(captionArea,
+				Qt::AlignHCenter | Qt::AlignVCenter,
+				QFontMetrics(captionFont()).elidedText(captionText,
+					Qt::ElideRight, int(captionArea.width())));
+
+			painter.setFont(valueFont());
+			painter.drawText(valueArea,
+				Qt::AlignHCenter | Qt::AlignVCenter,
+				QFontMetrics(valueFont()).elidedText(valueText,
+					Qt::ElideRight, int(valueArea.width())));
+		}
+		else
+		{
+			painter.setFont(captionFont());
+			painter.drawText(textArea, Qt::AlignCenter,
+				QFontMetrics(captionFont()).elidedText(captionText,
+					Qt::ElideRight, int(textArea.width())));
+		}
+	}
+
+private:
+	QFont captionFont() const
+	{
+		QFont font(SkinManager::instance()->tokens().fontFamily);
+		font.setPointSizeF(9.0);
+		font.setWeight(QFont::DemiBold);
+		return font;
+	}
+
+	QFont valueFont() const
+	{
+		QFont font(SkinManager::instance()->tokens().monoFontFamily);
+		font.setFixedPitch(true);
+		font.setPointSizeF(8.0);
+		font.setWeight(QFont::Medium);
+		return font;
+	}
+
+	QString flowRole;
+	bool stackedChip = false;
+	QString captionText;
+	QString valueText;
 };
 
 class SoftBassFlowWidget : public QWidget
@@ -226,20 +368,42 @@ public:
 		setAttribute(Qt::WA_TransparentForMouseEvents);
 		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 		setMinimumWidth(0);
-		setFixedHeight(GUIHelper::scale(52.0));
+		setFixedHeight(GUIHelper::scale(58.0));
+
+		flowLayout = new QHBoxLayout(this);
+		flowLayout->setContentsMargins(
+			GUIHelper::scale(1.0), GUIHelper::scale(2.0),
+			GUIHelper::scale(1.0), GUIHelper::scale(2.0));
+		flowLayout->setSpacing(GUIHelper::scale(14.0));
+
+		groupChip = new SoftBassFlowChip(
+			QStringLiteral("group"), true, this);
+		flowLayout->addWidget(groupChip, 42);
+
+		bassChip = new SoftBassFlowChip(
+			QStringLiteral("bass"), true, this);
+		flowLayout->addWidget(bassChip, 30);
+
+		destinationChip = new SoftBassFlowChip(
+			QStringLiteral("destination"), false, this);
+		flowLayout->addWidget(destinationChip, 28);
 	}
 
-	void setPresentation(const QString& group, const QString& highPass,
-		const QString& bass, const QString& lowPass,
-		const QString& destination, const QString& accessibleSummary)
+	void setPresentation(
+		const QString& group,
+		const QString& highPass,
+		const QString& bass,
+		const QString& lowPass,
+		const QString& destination,
+		const QString& accessibleSummary)
 	{
-		groupText = group;
-		highPassText = highPass;
-		bassText = bass;
-		lowPassText = lowPass;
-		destinationText = destination;
+		groupChip->setPresentation(group, highPass);
+		bassChip->setPresentation(bass, lowPass);
+		destinationChip->setPresentation(destination);
+
 		setAccessibleName(accessibleSummary);
 		setToolTip(accessibleSummary);
+		updateResponsiveVisibility();
 		update();
 	}
 
@@ -247,181 +411,68 @@ protected:
 	void paintEvent(QPaintEvent*) override
 	{
 		QPainter painter(this);
-		painter.setRenderHint(QPainter::Antialiasing);
+		painter.setRenderHint(QPainter::Antialiasing, false);
 
 		const SkinTokens& tokens = SkinManager::instance()->tokens();
-		const bool dark = skinIsDark(tokens);
-		const bool enabled = isEnabled();
+		QColor lineColor = isEnabled()
+			? opaqueColor(mixColor(
+				QColor(tokens.border),
+				QColor(tokens.mutedText),
+				skinIsDark(tokens) ? 0.36 : 0.26))
+			: opaqueColor(QColor(tokens.border));
+
 		const qreal devicePixelRatio = devicePixelRatioF();
+		QPen pen(lineColor, 1.0 / devicePixelRatio);
+		pen.setCapStyle(Qt::FlatCap);
+		painter.setPen(pen);
 
-		QColor groupFill = opaqueColor(
-			softPastelize(QColor(tokens.accent), dark));
-		QColor bassFill = opaqueColor(
-			softPastelize(QColor(tokens.accent2), dark));
-		QColor destinationFill = opaqueColor(
-			softPastelize(mixColor(QColor(tokens.success),
-				QColor(tokens.accent), 0.35), dark));
-		QColor ink = warmChipInk(tokens);
-		QColor border = opaqueColor(
-			mixColor(QColor(tokens.border), ink, dark ? 0.20 : 0.12));
+		QList<SoftBassFlowChip*> visibleChips;
+		if (groupChip->isVisible())
+			visibleChips.append(groupChip);
+		if (bassChip->isVisible())
+			visibleChips.append(bassChip);
+		if (destinationChip->isVisible())
+			visibleChips.append(destinationChip);
 
-		if (!enabled)
+		for (int index = 0; index + 1 < visibleChips.size(); ++index)
 		{
-			groupFill = opaqueColor(
-				mixColor(groupFill, QColor(tokens.background), 0.68));
-			bassFill = opaqueColor(
-				mixColor(bassFill, QColor(tokens.background), 0.68));
-			destinationFill = opaqueColor(
-				mixColor(destinationFill, QColor(tokens.background), 0.68));
-			ink = QColor(tokens.mutedText);
-			border = QColor(tokens.border);
+			const QRectF firstRect(visibleChips.at(index)->geometry());
+			const QRectF secondRect(
+				visibleChips.at(index + 1)->geometry());
+			const qreal lineY = crispLineCoordinate(
+				(firstRect.center().y() + secondRect.center().y())
+					/ 2.0,
+				devicePixelRatio);
+
+			painter.drawLine(
+				QPointF(firstRect.right(), lineY),
+				QPointF(secondRect.left(), lineY));
 		}
+	}
 
-		const qreal outerMargin = GUIHelper::scale(1.0);
-		const qreal availableWidth = qMax<qreal>(
-			0.0, width() - outerMargin * 2.0);
-		const qreal gap = qBound<qreal>(
-			GUIHelper::scale(7.0),
-			availableWidth * 0.045,
-			GUIHelper::scale(22.0));
-		const qreal chipWidth = qMax<qreal>(
-			0.0, availableWidth - gap * 2.0);
-
-		const qreal groupWidth = chipWidth * 0.42;
-		const qreal bassWidth = chipWidth * 0.30;
-		const qreal destinationWidth = qMax<qreal>(
-			0.0, chipWidth - groupWidth - bassWidth);
-
-		const qreal centerY = height() / 2.0;
-		const qreal groupHeight = GUIHelper::scale(44.0);
-		const qreal bassHeight = GUIHelper::scale(34.0);
-		const qreal destinationHeight = GUIHelper::scale(34.0);
-
-		const QRectF groupRect(outerMargin,
-			centerY - groupHeight / 2.0,
-			groupWidth, groupHeight);
-		const QRectF bassRect(groupRect.right() + gap,
-			centerY - bassHeight / 2.0,
-			bassWidth, bassHeight);
-		const QRectF destinationRect(bassRect.right() + gap,
-			centerY - destinationHeight / 2.0,
-			destinationWidth, destinationHeight);
-
-		QColor flowInk = opaqueColor(
-			mixColor(QColor(tokens.border), QColor(tokens.mutedText),
-				dark ? 0.36 : 0.26));
-		if (!enabled)
-			flowInk = QColor(tokens.border);
-
-		const qreal lineY = crispLineCoordinate(centerY, devicePixelRatio);
-		QPen flowPen(flowInk, GUIHelper::scale(2.0),
-			Qt::SolidLine, Qt::RoundCap);
-		painter.setPen(flowPen);
-		painter.setBrush(Qt::NoBrush);
-		painter.drawLine(
-			QPointF(groupRect.right(), lineY),
-			QPointF(bassRect.left(), lineY));
-		painter.drawLine(
-			QPointF(bassRect.right(), lineY),
-			QPointF(destinationRect.left(), lineY));
-
-		drawRoundedChip(painter, groupRect,
-			groupFill, border, enabled);
-		drawRoundedChip(painter, bassRect,
-			bassFill, border, enabled);
-		drawRoundedChip(painter, destinationRect,
-			destinationFill, border, enabled);
-
-		QFont bodyFont = font();
-		bodyFont.setWeight(QFont::DemiBold);
-		QFont monoFont = fixedPitchFont(tokens, font());
-		monoFont.setWeight(QFont::DemiBold);
-		if (monoFont.pointSizeF() > 7.5)
-			monoFont.setPointSizeF(monoFont.pointSizeF() - 1.0);
-
-		painter.setPen(ink);
-
-		const qreal groupPadding = GUIHelper::scale(10.0);
-		const qreal cornerHeight = GUIHelper::scale(18.0);
-		const QFontMetrics monoMetrics(monoFont);
-		const qreal desiredCornerWidth = monoMetrics.horizontalAdvance(
-			highPassText) + GUIHelper::scale(12.0);
-		const qreal cornerWidth = qBound<qreal>(
-			GUIHelper::scale(30.0),
-			desiredCornerWidth,
-			qMax<qreal>(GUIHelper::scale(30.0),
-				groupRect.width() * 0.52));
-
-		QRectF cornerRect(
-			groupRect.right() - cornerWidth - GUIHelper::scale(4.0),
-			groupRect.top() + GUIHelper::scale(4.0),
-			cornerWidth, cornerHeight);
-		QColor cornerFill = opaqueColor(
-			mixColor(groupFill, ink, dark ? 0.10 : 0.06));
-		if (!enabled)
-		{
-			cornerFill = opaqueColor(
-				mixColor(cornerFill, QColor(tokens.background), 0.45));
-		}
-
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(cornerFill);
-		painter.drawRoundedRect(cornerRect,
-			cornerRect.height() / 2.0, cornerRect.height() / 2.0);
-
-		QRectF groupTextRect = groupRect.adjusted(
-			groupPadding, GUIHelper::scale(5.0),
-			-cornerWidth - GUIHelper::scale(7.0),
-			-GUIHelper::scale(5.0));
-		painter.setFont(bodyFont);
-		painter.setPen(ink);
-		const QFontMetrics bodyMetrics(bodyFont);
-		painter.drawText(groupTextRect,
-			Qt::AlignLeft | Qt::AlignVCenter,
-			bodyMetrics.elidedText(groupText, Qt::ElideRight,
-				qMax(0, qRound(groupTextRect.width()))));
-
-		painter.setFont(monoFont);
-		painter.drawText(cornerRect.adjusted(
-			GUIHelper::scale(5.0), 0,
-			-GUIHelper::scale(5.0), 0),
-			Qt::AlignCenter,
-			monoMetrics.elidedText(highPassText, Qt::ElideRight,
-				qMax(0, qRound(cornerRect.width()
-					- GUIHelper::scale(10.0)))));
-
-		QRectF bassTop = bassRect.adjusted(
-			GUIHelper::scale(7.0), GUIHelper::scale(2.0),
-			-GUIHelper::scale(7.0), -bassRect.height() / 2.0);
-		QRectF bassBottom = bassRect.adjusted(
-			GUIHelper::scale(7.0), bassRect.height() / 2.0,
-			-GUIHelper::scale(7.0), -GUIHelper::scale(2.0));
-
-		painter.setFont(bodyFont);
-		painter.drawText(bassTop, Qt::AlignCenter,
-			bodyMetrics.elidedText(bassText, Qt::ElideRight,
-				qMax(0, qRound(bassTop.width()))));
-
-		painter.setFont(monoFont);
-		painter.drawText(bassBottom, Qt::AlignCenter,
-			monoMetrics.elidedText(lowPassText, Qt::ElideRight,
-				qMax(0, qRound(bassBottom.width()))));
-
-		painter.setFont(bodyFont);
-		QRectF destinationTextRect = destinationRect.adjusted(
-			GUIHelper::scale(7.0), 0,
-			-GUIHelper::scale(7.0), 0);
-		painter.drawText(destinationTextRect, Qt::AlignCenter,
-			bodyMetrics.elidedText(destinationText, Qt::ElideRight,
-				qMax(0, qRound(destinationTextRect.width()))));
+	void resizeEvent(QResizeEvent* event) override
+	{
+		QWidget::resizeEvent(event);
+		updateResponsiveVisibility();
+		update();
 	}
 
 private:
-	QString groupText;
-	QString highPassText;
-	QString bassText;
-	QString lowPassText;
-	QString destinationText;
+	void updateResponsiveVisibility()
+	{
+		const int currentWidth = width();
+
+		groupChip->setVisible(true);
+		bassChip->setVisible(
+			currentWidth >= GUIHelper::scale(250.0));
+		destinationChip->setVisible(
+			currentWidth >= GUIHelper::scale(390.0));
+	}
+
+	QHBoxLayout* flowLayout = nullptr;
+	SoftBassFlowChip* groupChip = nullptr;
+	SoftBassFlowChip* bassChip = nullptr;
+	SoftBassFlowChip* destinationChip = nullptr;
 };
 
 SoftBassManagementCardView::SoftBassManagementCardView(QWidget* parent)
@@ -431,15 +482,8 @@ SoftBassManagementCardView::SoftBassManagementCardView(QWidget* parent)
 	configurePaintOnlyChrome(this);
 	setAttribute(Qt::WA_Hover);
 	setAccessibleName(tr("Bass management summary"));
-	setToolTip(tr("Bass-management crossover, routing and headroom summary"));
-
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = skinIsDark(tokens);
-	const QColor warningFill = opaqueColor(
-		softPastelize(QColor(tokens.warning), dark));
-	const QColor errorFill = opaqueColor(
-		softPastelize(QColor(tokens.danger), dark));
-	const QColor chipInk = warmChipInk(tokens);
+	setToolTip(
+		tr("Bass-management crossover, routing and headroom summary"));
 
 	QVBoxLayout* root = new QVBoxLayout(this);
 	root->setContentsMargins(
@@ -454,43 +498,52 @@ SoftBassManagementCardView::SoftBassManagementCardView(QWidget* parent)
 	headerLayout->setSpacing(GUIHelper::scale(9.0));
 
 	validityChip = new QLabel(headerRow);
-	validityChip->setObjectName(QStringLiteral("SoftBassValidityChip"));
+	validityChip->setObjectName(
+		QStringLiteral("SoftBassValidityChip"));
 	validityChip->setAttribute(Qt::WA_StyledBackground, true);
-	validityChip->setAttribute(Qt::WA_TransparentForMouseEvents);
+	validityChip->setAttribute(
+		Qt::WA_TransparentForMouseEvents);
 	validityChip->setAlignment(Qt::AlignCenter);
-	validityChip->setAccessibleName(tr("Bass-management validity"));
+	validityChip->setAccessibleName(
+		tr("Bass-management validity"));
 	headerLayout->addWidget(validityChip, 0, Qt::AlignVCenter);
 
 	layoutLabel = new ElidedLabel(headerRow);
 	layoutLabel->setObjectName(QStringLiteral("SoftBassLayout"));
 	layoutLabel->setElideMode(Qt::ElideRight);
 	layoutLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-	layoutLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+	layoutLabel->setMinimumWidth(0);
+	layoutLabel->setSizePolicy(
+		QSizePolicy::Ignored, QSizePolicy::Preferred);
 	layoutLabel->setAccessibleName(tr("Speaker layout"));
-	layoutLabel->setStyleSheet(QStringLiteral(
-		"QLabel { color: %1; background: transparent;"
-		" font-size: 11pt; font-weight: 600; }"
-		"QLabel:disabled { color: %2; font-weight: 500; }")
-		.arg(tokens.text, tokens.mutedText));
 	headerLayout->addWidget(layoutLabel, 1, Qt::AlignVCenter);
+
 	root->addWidget(headerRow);
 
-	crossoverLabel = new QLabel(this);
-	crossoverLabel->setObjectName(QStringLiteral("SoftBassCrossover"));
-	crossoverLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+	crossoverLabel = new ElidedLabel(this);
+	crossoverLabel->setObjectName(
+		QStringLiteral("SoftBassCrossover"));
+	crossoverLabel->setElideMode(Qt::ElideRight);
+	crossoverLabel->setAttribute(
+		Qt::WA_TransparentForMouseEvents);
+	crossoverLabel->setMinimumWidth(0);
+	crossoverLabel->setSizePolicy(
+		QSizePolicy::Ignored, QSizePolicy::Preferred);
 	crossoverLabel->setAccessibleName(tr("Crossover summary"));
-	crossoverLabel->setToolTip(
-		tr("Representative high-pass and low-pass crossover sections"));
-	crossoverLabel->setFont(fixedPitchFont(tokens, font()));
-	crossoverLabel->setStyleSheet(QStringLiteral(
-		"QLabel { color: %1; background: transparent;"
-		" font-size: 9pt; font-weight: 600; }"
-		"QLabel:disabled { color: %2; }")
-		.arg(tokens.mutedText, tokens.mutedText));
 	root->addWidget(crossoverLabel);
 
 	flowWidget = new SoftBassFlowWidget(this);
 	root->addWidget(flowWidget);
+
+	errorChip = new SoftBassStatusChip(
+		SoftBassStatusKind::Error, this);
+	errorChip->setVisible(false);
+	root->addWidget(errorChip);
+
+	warningChip = new SoftBassStatusChip(
+		SoftBassStatusKind::Warning, this);
+	warningChip->setVisible(false);
+	root->addWidget(warningChip);
 
 	factRow = new QWidget(this);
 	factRow->setObjectName(QStringLiteral("SoftBassFacts"));
@@ -503,68 +556,59 @@ SoftBassManagementCardView::SoftBassManagementCardView(QWidget* parent)
 	routeFact->setAccessibleName(tr("Active matrix routes"));
 	routeFact->setToolTip(
 		tr("Number of active bass-management matrix routes"));
-	routeFact->setFont(fixedPitchFont(tokens, font()));
 	styleFactChip(routeFact);
 	factLayout->addWidget(routeFact, 0, Qt::AlignVCenter);
 
 	sourceLfeFact = new QLabel(factRow);
-	sourceLfeFact->setObjectName(QStringLiteral("SoftBassFactChip"));
+	sourceLfeFact->setObjectName(
+		QStringLiteral("SoftBassFactChip"));
 	sourceLfeFact->setAccessibleName(tr("Source LFE routing"));
 	sourceLfeFact->setToolTip(
 		tr("Whether source LFE is preserved and at what gain"));
-	sourceLfeFact->setFont(fixedPitchFont(tokens, font()));
 	styleFactChip(sourceLfeFact);
 	factLayout->addWidget(sourceLfeFact, 0, Qt::AlignVCenter);
 
 	headroomFact = new QLabel(factRow);
-	headroomFact->setObjectName(QStringLiteral("SoftBassFactChip"));
+	headroomFact->setObjectName(
+		QStringLiteral("SoftBassFactChip"));
 	headroomFact->setAccessibleName(tr("Headroom"));
-	headroomFact->setToolTip(tr("Automatic or manual headroom trim"));
-	headroomFact->setFont(fixedPitchFont(tokens, font()));
+	headroomFact->setToolTip(
+		tr("Automatic or manual headroom trim"));
 	styleFactChip(headroomFact);
 	factLayout->addWidget(headroomFact, 0, Qt::AlignVCenter);
 
-	profileFact = new QLabel(factRow);
-	profileFact->setObjectName(QStringLiteral("SoftBassProfileChip"));
-	profileFact->setAccessibleName(tr("Bass-management profile"));
-	profileFact->setToolTip(tr("Embedded state or linked profile name"));
+	profileFact = new ElidedLabel(factRow);
+	profileFact->setObjectName(
+		QStringLiteral("SoftBassProfileChip"));
+	profileFact->setElideMode(Qt::ElideRight);
+	profileFact->setMinimumWidth(0);
+	profileFact->setMaximumWidth(GUIHelper::scale(240.0));
+	profileFact->setSizePolicy(
+		QSizePolicy::Ignored, QSizePolicy::Preferred);
+	profileFact->setAccessibleName(
+		tr("Bass-management profile"));
 	styleFactChip(profileFact);
-	factLayout->addWidget(profileFact, 0, Qt::AlignVCenter);
+	factLayout->addWidget(profileFact, 1, Qt::AlignVCenter);
 
 	factLayout->addStretch(1);
 	root->addWidget(factRow);
 
-	errorChip = new SoftBassStatusChip(
-		QStringLiteral("SoftBassErrorChip"),
-		errorFill, chipInk, this);
-	errorChip->setVisible(false);
-	root->addWidget(errorChip);
-
-	warningChip = new SoftBassStatusChip(
-		QStringLiteral("SoftBassWarningChip"),
-		warningFill, chipInk, this);
-	warningChip->setVisible(false);
-	root->addWidget(warningChip);
-
-	QWidget* actionRow = new QWidget(this);
-	actionRow->setObjectName(QStringLiteral("SoftBassActions"));
-	actionRow->setAccessibleName(tr("Bass-management actions"));
-	actionLayout = new QHBoxLayout(actionRow);
+	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
-	actionLayout->setSpacing(GUIHelper::scale(6.0));
-	actionLayout->addStretch(1);
-	root->addWidget(actionRow);
+	actionLayout->setSpacing(GUIHelper::scale(8.0));
+	root->addLayout(actionLayout);
 
-	connect(SkinManager::instance(), &SkinManager::skinChanged,
-		this, [this]()
+	connect(
+		SkinManager::instance(), &SkinManager::skinChanged,
+		this,
+		[this]()
 		{
 			update();
-			if (flowWidget != nullptr)
-				flowWidget->update();
+			flowWidget->update();
+			warningChip->refresh();
+			errorChip->refresh();
 		});
 
-	// Qualified on purpose: seeding the initial presentation from the
-	// constructor must not dispatch to a further-derived override.
 	SoftBassManagementCardView::applyState(state());
 }
 
@@ -574,38 +618,73 @@ void SoftBassManagementCardView::addActionButton(
 	if (button == nullptr)
 		return;
 
+	const int actionIndex = actionButtons.size();
+	const QString fallbackText = actionIndex == 0
+		? tr("Open editor")
+		: actionIndex == 1
+			? tr("Preset")
+			: tr("Action");
+
 	button->setParent(this);
+	button->setObjectName(
+		QStringLiteral("SoftBassActionButton"));
 	button->setMinimumSize(GUIHelper::scale(QSize(40, 40)));
+	button->setIconSize(GUIHelper::scale(QSize(18, 18)));
+
+	if (button->text().isEmpty())
+		button->setText(fallbackText);
 
 	if (button->accessibleName().isEmpty())
-	{
-		button->setAccessibleName(button->text().isEmpty()
-			? tr("Bass-management action")
-			: button->text());
-	}
+		button->setAccessibleName(button->text());
+
 	if (button->toolTip().isEmpty())
 		button->setToolTip(button->accessibleName());
 
 	if (QToolButton* toolButton = qobject_cast<QToolButton*>(button))
+	{
 		toolButton->setAutoRaise(false);
+		toolButton->setToolButtonStyle(
+			toolButton->icon().isNull()
+				? Qt::ToolButtonTextOnly
+				: Qt::ToolButtonTextBesideIcon);
+	}
 
+	actionButtons.append(button);
 	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
+	updateResponsiveVisibility();
 }
 
 void SoftBassManagementCardView::applyState(
 	const BassManagementCardState& state)
 {
-	const bool valid = state.valid && state.errorText.isEmpty();
-	styleValidityChip(valid, !state.errorText.isEmpty());
-	validityChip->setText(valid ? tr("Valid") : tr("Invalid"));
-	validityChip->setToolTip(valid
-		? tr("This bass-management state is valid")
-		: tr("This bass-management state needs attention"));
+	const bool hasError = !state.errorText.isEmpty();
+	const bool valid = state.valid && !hasError;
+
+	styleValidityChip(valid, hasError);
+	if (valid)
+	{
+		validityChip->setText(tr("OK - Valid"));
+		validityChip->setToolTip(
+			tr("This bass-management state is valid"));
+	}
+	else if (hasError)
+	{
+		validityChip->setText(tr("! Error"));
+		validityChip->setToolTip(
+			tr("This bass-management state has an error"));
+	}
+	else
+	{
+		validityChip->setText(tr("! Check"));
+		validityChip->setToolTip(
+			tr("This bass-management state needs attention"));
+	}
 
 	const QString layout = state.layoutLabel.isEmpty()
 		? tr("Unknown layout")
 		: state.layoutLabel;
-	layoutLabel->setFullText(tr("Layout: %1").arg(layout));
+	const QString layoutText = tr("Layout: %1").arg(layout);
+	layoutLabel->setFullText(layoutText);
 	layoutLabel->setToolTip(
 		tr("Physical speaker layout: %1").arg(layout));
 
@@ -620,10 +699,13 @@ void SoftBassManagementCardView::applyState(
 		crossoverParts.append(
 			tr("LP %1").arg(state.representativeLowPass));
 	}
-	crossoverLabel->setText(crossoverParts.isEmpty()
+
+	const QString crossoverText = crossoverParts.isEmpty()
 		? tr("Crossovers: None")
 		: tr("Crossovers: %1").arg(
-			crossoverParts.join(QStringLiteral(" / "))));
+			crossoverParts.join(QStringLiteral(" / ")));
+	crossoverLabel->setFullText(crossoverText);
+	crossoverLabel->setToolTip(crossoverText);
 
 	const QString highPass = state.representativeHighPass.isEmpty()
 		? tr("HP none")
@@ -640,38 +722,38 @@ void SoftBassManagementCardView::applyState(
 		: tr("Output");
 
 	flowWidget->setPresentation(
-		groupText, highPass, bassText, lowPass, destination,
+		groupText,
+		highPass,
+		bassText,
+		lowPass,
+		destination,
 		tr("%1 flow through %2 to %3, with %4 and %5")
-			.arg(groupText, bassText, destination, highPass, lowPass));
+			.arg(
+				groupText,
+				bassText,
+				destination,
+				highPass,
+				lowPass));
 
-	routeFact->setText(tr("%1 routes").arg(state.activeMatrixEdges));
+	routeFact->setText(
+		tr("%1 routes").arg(state.activeMatrixEdges));
 
 	if (state.sourceLfePreserved)
 	{
-		sourceLfeFact->setText(std::isfinite(state.sourceLfeGainDb)
-			? tr("LFE %1 dB").arg(
-				QString::number(state.sourceLfeGainDb, 'f', 1))
-			: tr("LFE preserved"));
+		sourceLfeFact->setText(
+			tr("LFE %1").arg(formattedDb(
+				state.sourceLfeGainDb)));
 	}
 	else
 	{
 		sourceLfeFact->setText(tr("LFE not preserved"));
 	}
 
-	if (state.headroomAuto)
-	{
-		headroomFact->setText(std::isfinite(state.headroomTrimDb)
-			? tr("Auto %1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1))
-			: tr("Auto trim unavailable"));
-	}
-	else
-	{
-		headroomFact->setText(std::isfinite(state.headroomTrimDb)
-			? tr("Manual %1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1))
-			: tr("Manual trim unavailable"));
-	}
+	headroomFact->setText(state.headroomAuto
+		? tr("Auto trim %1").arg(
+			formattedDb(state.headroomTrimDb))
+		: tr("Manual trim %1").arg(
+			formattedDb(state.headroomTrimDb)));
 
 	QString profileText;
 	if (state.linkedProfile)
@@ -679,6 +761,7 @@ void SoftBassManagementCardView::applyState(
 		profileText = state.profileName.isEmpty()
 			? tr("Linked profile")
 			: tr("Linked: %1").arg(state.profileName);
+
 		if (state.profileMissing)
 			profileText += tr(" (missing)");
 	}
@@ -688,26 +771,32 @@ void SoftBassManagementCardView::applyState(
 			? tr("Embedded state")
 			: state.profileName;
 	}
-	profileFact->setText(profileText);
+
+	profileFact->setFullText(profileText);
 	styleFactChip(profileFact, state.profileMissing);
 	profileFact->setToolTip(state.profileMissing
-		? tr("The linked bass-management profile is missing")
-		: tr("Bass-management profile: %1").arg(profileText));
+		? tr("Missing bass-management profile: %1")
+			.arg(profileText)
+		: tr("Bass-management profile: %1")
+			.arg(profileText));
 
-	errorChip->setVisible(!state.errorText.isEmpty());
-	if (!state.errorText.isEmpty())
+	errorChip->setVisible(hasError);
+	if (hasError)
 	{
 		errorChip->setMessage(
 			tr("Error: %1").arg(state.errorText),
-			tr("Bass-management error: %1").arg(state.errorText));
+			tr("Bass-management error: %1")
+				.arg(state.errorText));
 	}
 
-	warningChip->setVisible(!state.warningText.isEmpty());
-	if (!state.warningText.isEmpty())
+	const bool hasWarning = !state.warningText.isEmpty();
+	warningChip->setVisible(hasWarning);
+	if (hasWarning)
 	{
 		warningChip->setMessage(
 			tr("Warning: %1").arg(state.warningText),
-			tr("Bass-management warning: %1").arg(state.warningText));
+			tr("Bass-management warning: %1")
+				.arg(state.warningText));
 	}
 
 	updateResponsiveVisibility();
@@ -726,6 +815,7 @@ bool SoftBassManagementCardView::event(QEvent* event)
 	const bool result = BassManagementCardView::event(event);
 	if (repaint)
 		update();
+
 	return result;
 }
 
@@ -738,7 +828,7 @@ void SoftBassManagementCardView::paintEvent(QPaintEvent* event)
 
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	QColor fill = QColor(tokens.card);
-	QColor border = QColor(tokens.border);
+	const QColor border = QColor(tokens.border);
 
 	if (!isEnabled())
 	{
@@ -758,31 +848,39 @@ void SoftBassManagementCardView::paintEvent(QPaintEvent* event)
 	cardRect = crispOnePixelRect(cardRect, devicePixelRatio);
 
 	QPen cardPen(border, 1.0 / devicePixelRatio);
-	cardPen.setStyle(isEnabled() ? Qt::SolidLine : Qt::DashLine);
+	cardPen.setStyle(isEnabled()
+		? Qt::SolidLine
+		: Qt::DashLine);
 	cardPen.setJoinStyle(Qt::RoundJoin);
 	painter.setPen(cardPen);
 	painter.setBrush(fill);
-	painter.drawRoundedRect(cardRect,
-		GUIHelper::scale(14.0), GUIHelper::scale(14.0));
+	painter.drawRoundedRect(
+		cardRect,
+		GUIHelper::scale(14.0),
+		GUIHelper::scale(14.0));
 
 	if (hasFocus() && isEnabled())
 	{
-		QColor focusColor = withAlpha(
+		const QColor focusColor = withAlpha(
 			QColor(tokens.accent), 90);
-		QRectF focusRect = cardRect.adjusted(
+		const QRectF focusRect = cardRect.adjusted(
 			GUIHelper::scale(2.0), GUIHelper::scale(2.0),
 			-GUIHelper::scale(2.0), -GUIHelper::scale(2.0));
 
-		QPen focusPen(focusColor, GUIHelper::scale(3.0));
+		QPen focusPen(
+			focusColor, GUIHelper::scale(3.0));
 		focusPen.setJoinStyle(Qt::RoundJoin);
 		painter.setPen(focusPen);
 		painter.setBrush(Qt::NoBrush);
-		painter.drawRoundedRect(focusRect,
-			GUIHelper::scale(12.0), GUIHelper::scale(12.0));
+		painter.drawRoundedRect(
+			focusRect,
+			GUIHelper::scale(12.0),
+			GUIHelper::scale(12.0));
 	}
 }
 
-void SoftBassManagementCardView::resizeEvent(QResizeEvent* event)
+void SoftBassManagementCardView::resizeEvent(
+	QResizeEvent* event)
 {
 	BassManagementCardView::resizeEvent(event);
 	updateResponsiveVisibility();
@@ -791,57 +889,57 @@ void SoftBassManagementCardView::resizeEvent(QResizeEvent* event)
 void SoftBassManagementCardView::styleFactChip(
 	QLabel* label, bool warning)
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = skinIsDark(tokens);
-	const QColor seed = warning
-		? QColor(tokens.warning)
-		: mixColor(QColor(tokens.accent),
-			QColor(tokens.mutedText), 0.55);
-	const QColor fill = opaqueColor(softPastelize(seed, dark));
-	const QColor ink = warmChipInk(tokens);
-	const QColor border = opaqueColor(
-		mixColor(fill, ink, dark ? 0.18 : 0.10));
-	const QColor disabledFill = opaqueColor(
-		mixColor(fill, QColor(tokens.background), 0.68));
+	if (label == nullptr)
+		return;
 
 	label->setAttribute(Qt::WA_StyledBackground, true);
 	label->setAttribute(Qt::WA_TransparentForMouseEvents);
-	label->setStyleSheet(QStringLiteral(
-		"QLabel { background: %1; color: %2; border: 1px solid %3;"
-		" border-radius: 10px; padding: 3px 10px;"
-		" font-size: 8pt; font-weight: 600; }"
-		"QLabel:disabled { background: %4; color: %5;"
-		" border: 1px dashed %6; }")
-		.arg(cssColor(fill), cssColor(ink), cssColor(border),
-			cssColor(disabledFill), tokens.mutedText, tokens.border));
+	label->setProperty(
+		"severity",
+		warning
+			? QStringLiteral("warning")
+			: QStringLiteral("normal"));
+	refreshStyle(label);
 }
 
 void SoftBassManagementCardView::styleValidityChip(
 	bool valid, bool hasError)
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const bool dark = skinIsDark(tokens);
-	const QColor seed = valid
-		? QColor(tokens.success)
-		: QColor(hasError ? tokens.danger : tokens.warning);
-	const QColor fill = opaqueColor(softPastelize(seed, dark));
-	const QColor ink = warmChipInk(tokens);
-	const QColor disabledFill = opaqueColor(
-		mixColor(fill, QColor(tokens.background), 0.68));
-
-	validityChip->setStyleSheet(QStringLiteral(
-		"QLabel { background: %1; color: %2; border: 0;"
-		" border-radius: 11px; padding: 4px 11px;"
-		" font-size: 8pt; font-weight: 700; }"
-		"QLabel:disabled { background: %3; color: %4;"
-		" border: 1px dashed %5; }")
-		.arg(cssColor(fill), cssColor(ink),
-			cssColor(disabledFill), tokens.mutedText, tokens.border));
+	validityChip->setProperty(
+		"severity",
+		valid
+			? QStringLiteral("valid")
+			: hasError
+				? QStringLiteral("error")
+				: QStringLiteral("warning"));
+	refreshStyle(validityChip);
 }
 
 void SoftBassManagementCardView::updateResponsiveVisibility()
 {
 	const int currentWidth = width();
+	const bool showButtonText =
+		currentWidth >= GUIHelper::scale(430.0);
+
+	for (QAbstractButton* button : actionButtons)
+	{
+		QToolButton* toolButton =
+			qobject_cast<QToolButton*>(button);
+		if (toolButton == nullptr)
+			continue;
+
+		if (toolButton->icon().isNull())
+		{
+			toolButton->setToolButtonStyle(
+				Qt::ToolButtonTextOnly);
+		}
+		else
+		{
+			toolButton->setToolButtonStyle(showButtonText
+				? Qt::ToolButtonTextBesideIcon
+				: Qt::ToolButtonIconOnly);
+		}
+	}
 
 	const bool showFacts =
 		currentWidth >= GUIHelper::scale(520.0);

@@ -16,11 +16,12 @@
 
 #include "Editor/widgets/cards/BassManagementCardView.h"
 
-class ElidedLabel;
+class QEvent;
 class QGridLayout;
 class QHBoxLayout;
 class QLabel;
 class QPaintEvent;
+class QResizeEvent;
 
 class MinimalBassManagementCardView : public BassManagementCardView
 {
@@ -33,26 +34,32 @@ public:
 
 protected:
 	void applyState(const BassManagementCardState& state) override;
+	void changeEvent(QEvent* event) override;
 	void paintEvent(QPaintEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
 
 private:
 	void addReadoutRow(int row, const QString& caption,
-		ElidedLabel*& valueLabel, const QString& accessibleName,
+		QLabel*& valueLabel, const QString& accessibleName,
 		const QString& toolTip);
 	void paintSeparator(QWidget* separator);
+	void refreshElisions();
+	void setElidedText(QLabel* label, const QString& fullText,
+		const QString& toolTip = QString());
+	void updateActionPresentation();
 
 	QGridLayout* readoutGrid = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
 	QWidget* readoutSeparator = nullptr;
-	QWidget* actionSeparator = nullptr;
 	QWidget* actionRow = nullptr;
 	QLabel* validityLabel = nullptr;
-	ElidedLabel* profileLabel = nullptr;
-	ElidedLabel* layoutValue = nullptr;
-	ElidedLabel* highPassValue = nullptr;
-	ElidedLabel* lowPassValue = nullptr;
-	ElidedLabel* lfeGainValue = nullptr;
-	ElidedLabel* trimValue = nullptr;
-	ElidedLabel* stageLabel = nullptr;
+	QLabel* profileLabel = nullptr;
+	QLabel* layoutValue = nullptr;
+	QLabel* highPassValue = nullptr;
+	QLabel* lowPassValue = nullptr;
+	QLabel* lfeGainValue = nullptr;
+	QLabel* trimValue = nullptr;
+	QLabel* stageLabel = nullptr;
 	QLabel* diagnosticLabel = nullptr;
+	int actionButtonCount = 0;
 };

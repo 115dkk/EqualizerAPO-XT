@@ -17,26 +17,35 @@
 #include <cmath>
 
 #include <QAbstractButton>
-#include <QFont>
+#include <QEvent>
+#include <QFontMetrics>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLayoutItem>
+#include <QList>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPalette>
+#include <QResizeEvent>
 #include <QSizePolicy>
 #include <QStringList>
 #include <QStyle>
+#include <QTimer>
+#include <QToolButton>
 #include <QTransform>
+#include <QVariant>
 #include <QVBoxLayout>
-
-#include "Editor/SkinManager.h"
-#include "Editor/widgets/ElidedLabel.h"
 
 namespace
 {
+const char fullTextProperty[] = "minimalBassFullText";
+
 void repolishChild(QWidget* widget)
 {
+	if (widget == nullptr)
+		return;
+
 	widget->style()->unpolish(widget);
 	widget->style()->polish(widget);
 	widget->update();
@@ -45,12 +54,21 @@ void repolishChild(QWidget* widget)
 QWidget* createSeparator(QWidget* parent)
 {
 	QWidget* separator = new QWidget(parent);
-	separator->setObjectName(QStringLiteral("MinimalBassSeparator"));
+	separator->setObjectName(
+		QStringLiteral("MinimalBassSeparator"));
 	separator->setFixedHeight(1);
 	separator->setFocusPolicy(Qt::NoFocus);
-	separator->setForegroundRole(QPalette::Mid);
+	separator->setForegroundRole(QPalette::WindowText);
 	separator->setAttribute(Qt::WA_TransparentForMouseEvents);
 	return separator;
+}
+
+void configureElidedLabel(QLabel* label)
+{
+	label->setTextFormat(Qt::PlainText);
+	label->setMinimumWidth(0);
+	label->setSizePolicy(
+		QSizePolicy::Ignored, QSizePolicy::Preferred);
 }
 }
 
@@ -58,18 +76,19 @@ MinimalBassManagementCardView::MinimalBassManagementCardView(
 	QWidget* parent)
 	: BassManagementCardView(parent)
 {
-	setObjectName(QStringLiteral("MinimalBassManagementCardView"));
+	setObjectName(
+		QStringLiteral("MinimalBassManagementCardView"));
+	setSizePolicy(
+		QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-	QFont monoFont(
-		SkinManager::instance()->tokens().monoFontFamily);
-	if (monoFont.family().isEmpty())
-		monoFont.setStyleHint(QFont::Monospace);
-	monoFont.setFixedPitch(true);
-	setFont(monoFont);
+	// Two 40 px action targets, their spacing, and the required body
+	// margins must remain representable even at the narrowest width.
+	setMinimumWidth(112);
 
 	QVBoxLayout* root = new QVBoxLayout(this);
-	root->setContentsMargins(10, 8, 10, 8);
-	root->setSpacing(6);
+	root->setContentsMargins(12, 10, 12, 10);
+	root->setSpacing(5);
+	root->setSizeConstraint(QLayout::SetMinimumSize);
 
 	QHBoxLayout* statusLine = new QHBoxLayout();
 	statusLine->setContentsMargins(0, 0, 0, 0);
@@ -80,36 +99,33 @@ MinimalBassManagementCardView::MinimalBassManagementCardView(
 		QStringLiteral("MinimalBassValidity"));
 	validityLabel->setAccessibleName(
 		tr("Bass-management validity"));
+	validityLabel->setTextFormat(Qt::PlainText);
 	validityLabel->setTextInteractionFlags(
 		Qt::TextSelectableByMouse);
-	validityLabel->setForegroundRole(QPalette::WindowText);
-
-	QFont validityFont = monoFont;
-	validityFont.setBold(true);
-	validityLabel->setFont(validityFont);
-	statusLine->addWidget(validityLabel, 0, Qt::AlignVCenter);
+	validityLabel->setSizePolicy(
+		QSizePolicy::Minimum, QSizePolicy::Preferred);
+	statusLine->addWidget(
+		validityLabel, 0, Qt::AlignVCenter);
 
 	statusLine->addStretch(1);
 
-	profileLabel = new ElidedLabel(this);
+	profileLabel = new QLabel(this);
 	profileLabel->setObjectName(
 		QStringLiteral("MinimalBassProfile"));
 	profileLabel->setAccessibleName(
 		tr("Bass-management profile"));
-	profileLabel->setElideMode(Qt::ElideRight);
-	profileLabel->setMinimumWidth(0);
-	profileLabel->setSizePolicy(
-		QSizePolicy::Preferred, QSizePolicy::Preferred);
-	profileLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-	profileLabel->setForegroundRole(QPalette::Mid);
-	statusLine->addWidget(profileLabel, 0, Qt::AlignVCenter);
+	profileLabel->setAlignment(
+		Qt::AlignRight | Qt::AlignVCenter);
+	configureElidedLabel(profileLabel);
+	statusLine->addWidget(
+		profileLabel, 1, Qt::AlignVCenter);
 
 	root->addLayout(statusLine);
 
 	readoutGrid = new QGridLayout();
 	readoutGrid->setContentsMargins(0, 0, 0, 0);
-	readoutGrid->setHorizontalSpacing(18);
-	readoutGrid->setVerticalSpacing(3);
+	readoutGrid->setHorizontalSpacing(16);
+	readoutGrid->setVerticalSpacing(2);
 	readoutGrid->setColumnStretch(1, 1);
 
 	addReadoutRow(0, tr("LAYOUT"), layoutValue,
@@ -133,15 +149,12 @@ MinimalBassManagementCardView::MinimalBassManagementCardView(
 	readoutSeparator = createSeparator(this);
 	root->addWidget(readoutSeparator);
 
-	stageLabel = new ElidedLabel(this);
-	stageLabel->setObjectName(QStringLiteral("MinimalBassStage"));
+	stageLabel = new QLabel(this);
+	stageLabel->setObjectName(
+		QStringLiteral("MinimalBassStage"));
 	stageLabel->setAccessibleName(
 		tr("Bass-management signal stages"));
-	stageLabel->setElideMode(Qt::ElideRight);
-	stageLabel->setMinimumWidth(0);
-	stageLabel->setSizePolicy(
-		QSizePolicy::Expanding, QSizePolicy::Preferred);
-	stageLabel->setForegroundRole(QPalette::WindowText);
+	configureElidedLabel(stageLabel);
 	root->addWidget(stageLabel);
 
 	diagnosticLabel = new QLabel(this);
@@ -149,35 +162,33 @@ MinimalBassManagementCardView::MinimalBassManagementCardView(
 		QStringLiteral("MinimalBassDiagnostic"));
 	diagnosticLabel->setAccessibleName(
 		tr("Bass-management diagnostics"));
+	diagnosticLabel->setTextFormat(Qt::PlainText);
 	diagnosticLabel->setTextInteractionFlags(
 		Qt::TextSelectableByMouse);
+	diagnosticLabel->setAlignment(
+		Qt::AlignLeft | Qt::AlignTop);
 	diagnosticLabel->setWordWrap(true);
-	diagnosticLabel->setForegroundRole(QPalette::WindowText);
+	diagnosticLabel->setMinimumWidth(0);
+	diagnosticLabel->setSizePolicy(
+		QSizePolicy::Ignored, QSizePolicy::Preferred);
 	diagnosticLabel->setVisible(false);
 	root->addWidget(diagnosticLabel);
-
-	actionSeparator = createSeparator(this);
-	actionSeparator->setVisible(false);
-	root->addWidget(actionSeparator);
 
 	actionRow = new QWidget(this);
 	actionRow->setObjectName(
 		QStringLiteral("MinimalBassActionRow"));
 	actionRow->setAccessibleName(
 		tr("Bass-management actions"));
+	actionRow->setSizePolicy(
+		QSizePolicy::Expanding, QSizePolicy::Minimum);
 	actionRow->setVisible(false);
 
 	actionLayout = new QHBoxLayout(actionRow);
 	actionLayout->setContentsMargins(0, 0, 0, 0);
-	actionLayout->setSpacing(6);
+	actionLayout->setSpacing(8);
 	actionLayout->addStretch(1);
-	root->addWidget(actionRow);
 
-	connect(SkinManager::instance(), &SkinManager::skinChanged,
-		this, [this]()
-		{
-			update();
-		});
+	root->addWidget(actionRow);
 
 	// Qualified on purpose: seeding the initial presentation from the
 	// constructor must not dispatch to a further-derived override.
@@ -185,28 +196,30 @@ MinimalBassManagementCardView::MinimalBassManagementCardView(
 }
 
 void MinimalBassManagementCardView::addReadoutRow(
-	int row, const QString& caption, ElidedLabel*& valueLabel,
+	int row, const QString& caption, QLabel*& valueLabel,
 	const QString& accessibleName, const QString& toolTip)
 {
 	QLabel* captionLabel = new QLabel(caption, this);
 	captionLabel->setObjectName(
 		QStringLiteral("MinimalBassCaption"));
+	captionLabel->setAccessibleName(
+		tr("%1 caption").arg(accessibleName));
+	captionLabel->setTextFormat(Qt::PlainText);
 	captionLabel->setAlignment(
 		Qt::AlignLeft | Qt::AlignVCenter);
 	captionLabel->setToolTip(toolTip);
-	captionLabel->setForegroundRole(QPalette::Mid);
+	captionLabel->setSizePolicy(
+		QSizePolicy::Minimum, QSizePolicy::Preferred);
 	readoutGrid->addWidget(captionLabel, row, 0);
 
-	valueLabel = new ElidedLabel(this);
+	valueLabel = new QLabel(this);
 	valueLabel->setObjectName(
 		QStringLiteral("MinimalBassValue"));
 	valueLabel->setAccessibleName(accessibleName);
 	valueLabel->setToolTip(toolTip);
-	valueLabel->setElideMode(Qt::ElideRight);
-	valueLabel->setMinimumWidth(0);
-	valueLabel->setSizePolicy(
-		QSizePolicy::Expanding, QSizePolicy::Preferred);
-	valueLabel->setForegroundRole(QPalette::WindowText);
+	valueLabel->setAlignment(
+		Qt::AlignLeft | Qt::AlignVCenter);
+	configureElidedLabel(valueLabel);
 	readoutGrid->addWidget(valueLabel, row, 1);
 }
 
@@ -217,10 +230,11 @@ void MinimalBassManagementCardView::addActionButton(
 		return;
 
 	button->setParent(actionRow);
+	button->setObjectName(
+		QStringLiteral("MinimalBassActionButton"));
 	button->setProperty("minimalBassAction", true);
 	button->setFocusPolicy(Qt::StrongFocus);
-	button->setMinimumWidth(40);
-	button->setMinimumHeight(40);
+	button->setMinimumSize(40, 40);
 
 	QString actionName = button->accessibleName();
 	if (actionName.isEmpty())
@@ -230,51 +244,107 @@ void MinimalBassManagementCardView::addActionButton(
 		actionName = button->text();
 		actionName.remove(QLatin1Char('&'));
 	}
-	if (actionName.isEmpty())
-		actionName = tr("Bass-management action");
+
+	QString commandText;
+	if (actionButtonCount == 0)
+	{
+		commandText = tr("OPEN EDITOR");
+		if (actionName.isEmpty())
+			actionName = tr("Open editor");
+	}
+	else if (actionButtonCount == 1)
+	{
+		commandText = tr("PRESET");
+		if (actionName.isEmpty())
+			actionName = tr("Preset");
+	}
+	else
+	{
+		if (actionName.isEmpty())
+			actionName = tr("Bass-management action");
+		commandText = actionName.toUpper();
+	}
 
 	if (button->accessibleName().isEmpty())
 		button->setAccessibleName(actionName);
 	if (button->toolTip().isEmpty())
 		button->setToolTip(actionName);
 
-	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
-	actionSeparator->setVisible(true);
+	button->setText(
+		QStringLiteral("[ ")
+		+ commandText
+		+ QStringLiteral(" ]"));
+
+	if (QToolButton* toolButton =
+		qobject_cast<QToolButton*>(button))
+	{
+		toolButton->setToolButtonStyle(
+			Qt::ToolButtonTextOnly);
+	}
+
+	actionLayout->addWidget(
+		button, 0, Qt::AlignVCenter);
+	++actionButtonCount;
+
 	actionRow->setVisible(true);
 	repolishChild(button);
+	actionLayout->invalidate();
+	actionRow->updateGeometry();
+	updateGeometry();
+
+	QTimer::singleShot(0, this, [this]()
+		{
+			updateActionPresentation();
+		});
 }
 
 void MinimalBassManagementCardView::applyState(
 	const BassManagementCardState& state)
 {
-	const bool effectiveValid =
-		state.valid && state.errorText.isEmpty();
+	const bool hasError =
+		!state.valid || !state.errorText.isEmpty();
+	const bool hasWarning =
+		!hasError && !state.warningText.isEmpty();
 
-	validityLabel->setText(effectiveValid
-		? tr("+ VALID")
-		: tr("! INVALID"));
+	QString validityText;
+	QString validityToolTip;
+	QString validitySeverity;
 
-	if (!effectiveValid)
+	if (hasError)
 	{
-		validityLabel->setToolTip(state.errorText.isEmpty()
+		validityText = tr("!! INVALID");
+		validitySeverity = QStringLiteral("error");
+		validityToolTip = state.errorText.isEmpty()
 			? tr("The bass-management state is invalid")
 			: tr("Invalid bass-management state: %1")
-				.arg(state.errorText));
+				.arg(state.errorText);
 	}
-	else if (!state.warningText.isEmpty())
+	else if (hasWarning)
 	{
-		validityLabel->setToolTip(
+		validityText = tr("! VALID / WARNING");
+		validitySeverity = QStringLiteral("warning");
+		validityToolTip =
 			tr("The bass-management state is valid but has a warning: %1")
-				.arg(state.warningText));
+				.arg(state.warningText);
 	}
 	else
 	{
-		validityLabel->setToolTip(
-			tr("The bass-management state is valid"));
+		validityText = tr("+ VALID");
+		validitySeverity = QStringLiteral("valid");
+		validityToolTip =
+			tr("The bass-management state is valid");
 	}
+
+	validityLabel->setText(validityText);
+	validityLabel->setToolTip(validityToolTip);
+	validityLabel->setProperty(
+		"severity", validitySeverity);
+	repolishChild(validityLabel);
 
 	QString profileText;
 	QString profileToolTip;
+	QString profileState = QStringLiteral("normal");
+
 	if (state.linkedProfile)
 	{
 		const QString profileName = state.profileName.isEmpty()
@@ -284,11 +354,12 @@ void MinimalBassManagementCardView::applyState(
 		if (state.profileMissing)
 		{
 			profileText =
-				tr("PROFILE  %1  [LINKED / MISSING]")
+				tr("! PROFILE  %1  [LINKED / MISSING]")
 					.arg(profileName);
 			profileToolTip =
 				tr("Linked profile \"%1\" is missing")
 					.arg(profileName);
+			profileState = QStringLiteral("missing");
 		}
 		else
 		{
@@ -315,27 +386,36 @@ void MinimalBassManagementCardView::applyState(
 			tr("Embedded bass-management profile \"%1\"")
 				.arg(state.profileName);
 	}
-	profileLabel->setFullText(profileText);
-	profileLabel->setToolTip(profileToolTip);
 
-	layoutValue->setFullText(state.layoutLabel.isEmpty()
+	profileLabel->setProperty(
+		"profileState", profileState);
+	setElidedText(
+		profileLabel,
+		profileText,
+		tr("%1\n%2").arg(profileToolTip, profileText));
+	repolishChild(profileLabel);
+
+	const QString layoutText = state.layoutLabel.isEmpty()
 		? tr("UNKNOWN")
-		: state.layoutLabel);
+		: state.layoutLabel;
+	setElidedText(layoutValue, layoutText);
 
-	highPassValue->setFullText(
+	const QString highPassText =
 		state.representativeHighPass.isEmpty()
 			? tr("NONE")
-			: state.representativeHighPass);
+			: state.representativeHighPass;
+	setElidedText(highPassValue, highPassText);
 
-	lowPassValue->setFullText(
+	const QString lowPassText =
 		state.representativeLowPass.isEmpty()
 			? tr("NONE")
-			: state.representativeLowPass);
+			: state.representativeLowPass;
+	setElidedText(lowPassValue, lowPassText);
 
 	const auto formatDb = [this](double value)
 	{
 		if (!std::isfinite(value))
-			return tr("UNAVAILABLE");
+			return QStringLiteral("--");
 
 		if (std::abs(value) < 0.05)
 			value = 0.0;
@@ -347,53 +427,46 @@ void MinimalBassManagementCardView::applyState(
 			: tr("%1 dB").arg(figure);
 	};
 
+	QString lfeGainText;
 	if (!state.sourceLfePreserved)
 	{
-		lfeGainValue->setFullText(tr("NOT PRESERVED"));
-	}
-	else if (!std::isfinite(state.sourceLfeGainDb))
-	{
-		lfeGainValue->setFullText(
-			tr("PRESERVED / GAIN UNAVAILABLE"));
+		lfeGainText = tr("NOT PRESERVED");
 	}
 	else
 	{
-		lfeGainValue->setFullText(
+		lfeGainText =
 			tr("PRESERVED / %1")
-				.arg(formatDb(state.sourceLfeGainDb)));
+				.arg(formatDb(state.sourceLfeGainDb));
 	}
+	setElidedText(lfeGainValue, lfeGainText);
 
-	if (!std::isfinite(state.headroomTrimDb))
-	{
-		trimValue->setFullText(state.headroomAuto
-			? tr("AUTO / UNAVAILABLE")
-			: tr("MANUAL / UNAVAILABLE"));
-	}
-	else
-	{
-		trimValue->setFullText(state.headroomAuto
-			? tr("AUTO / %1")
-				.arg(formatDb(state.headroomTrimDb))
-			: tr("MANUAL / %1")
-				.arg(formatDb(state.headroomTrimDb)));
-	}
+	const QString trimText = state.headroomAuto
+		? tr("AUTO / %1").arg(
+			formatDb(state.headroomTrimDb))
+		: tr("MANUAL / %1").arg(
+			formatDb(state.headroomTrimDb));
+	setElidedText(trimValue, trimText);
 
-	stageLabel->setFullText(
+	const QString stageText =
 		tr("MAIN -> BASS -> OUT  |  %1 GROUPS  |  %2 BASS PATHS")
 			.arg(state.speakerGroupCount)
-			.arg(state.bassPathCount));
-	stageLabel->setToolTip(
+			.arg(state.bassPathCount);
+	const QString stageDetails =
 		tr("MAIN to BASS to OUT; %1 speaker groups, %2 bass paths, "
 			"%3 active matrix routes")
 			.arg(state.speakerGroupCount)
 			.arg(state.bassPathCount)
-			.arg(state.activeMatrixEdges));
+			.arg(state.activeMatrixEdges);
+	setElidedText(
+		stageLabel,
+		stageText,
+		tr("%1\n%2").arg(stageText, stageDetails));
 
 	QStringList diagnostics;
 	if (!state.errorText.isEmpty())
 	{
 		diagnostics.append(
-			tr("! ERROR: %1").arg(state.errorText));
+			tr("!! ERROR: %1").arg(state.errorText));
 	}
 	if (!state.warningText.isEmpty())
 	{
@@ -401,20 +474,75 @@ void MinimalBassManagementCardView::applyState(
 			tr("! WARNING: %1").arg(state.warningText));
 	}
 
-	diagnosticLabel->setText(
-		diagnostics.join(QLatin1Char('\n')));
-	diagnosticLabel->setToolTip(
-		diagnostics.join(QLatin1Char('\n')));
-	diagnosticLabel->setVisible(!diagnostics.isEmpty());
+	const QString diagnosticText =
+		diagnostics.join(QLatin1Char('\n'));
+	diagnosticLabel->setText(diagnosticText);
+	diagnosticLabel->setToolTip(diagnosticText);
+
+	if (!state.errorText.isEmpty())
+	{
+		diagnosticLabel->setProperty(
+			"severity", QStringLiteral("error"));
+	}
+	else if (!state.warningText.isEmpty())
+	{
+		diagnosticLabel->setProperty(
+			"severity", QStringLiteral("warning"));
+	}
+	else
+	{
+		diagnosticLabel->setProperty(
+			"severity", QStringLiteral("none"));
+	}
+
+	diagnosticLabel->setVisible(
+		!diagnosticText.isEmpty());
+	repolishChild(diagnosticLabel);
+
+	diagnosticLabel->updateGeometry();
+	refreshElisions();
+	updateActionPresentation();
+	updateGeometry();
+}
+
+void MinimalBassManagementCardView::changeEvent(
+	QEvent* event)
+{
+	BassManagementCardView::changeEvent(event);
+
+	if (event->type() == QEvent::FontChange
+		|| event->type() == QEvent::ApplicationFontChange
+		|| event->type() == QEvent::StyleChange)
+	{
+		QTimer::singleShot(0, this, [this]()
+			{
+				refreshElisions();
+				updateActionPresentation();
+				updateGeometry();
+			});
+	}
 }
 
 void MinimalBassManagementCardView::paintEvent(
 	QPaintEvent* event)
 {
 	BassManagementCardView::paintEvent(event);
-
 	paintSeparator(readoutSeparator);
-	paintSeparator(actionSeparator);
+}
+
+void MinimalBassManagementCardView::resizeEvent(
+	QResizeEvent* event)
+{
+	BassManagementCardView::resizeEvent(event);
+
+	refreshElisions();
+	updateActionPresentation();
+
+	QTimer::singleShot(0, this, [this]()
+		{
+			refreshElisions();
+			updateActionPresentation();
+		});
 }
 
 void MinimalBassManagementCardView::paintSeparator(
@@ -430,7 +558,8 @@ void MinimalBassManagementCardView::paintSeparator(
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing, false);
 
-	const QTransform deviceTransform = painter.deviceTransform();
+	const QTransform deviceTransform =
+		painter.deviceTransform();
 	bool invertible = false;
 	const QTransform inverse =
 		deviceTransform.inverted(&invertible);
@@ -452,6 +581,169 @@ void MinimalBassManagementCardView::paintSeparator(
 	painter.setPen(pen);
 	painter.drawLine(
 		QPointF(separatorRect.left(), alignedY),
-		QPointF(separatorRect.left()
-			+ separatorRect.width(), alignedY));
+		QPointF(
+			separatorRect.left() + separatorRect.width(),
+			alignedY));
+}
+
+void MinimalBassManagementCardView::refreshElisions()
+{
+	// cppcheck-suppress constVariable // the loop mutates the labels through
+	// these pointers; only the pointer slots themselves are const
+	QLabel* const labels[] =
+	{
+		profileLabel,
+		layoutValue,
+		highPassValue,
+		lowPassValue,
+		lfeGainValue,
+		trimValue,
+		stageLabel
+	};
+
+	for (QLabel* label : labels)
+	{
+		if (label == nullptr)
+			continue;
+
+		const QString fullText =
+			label->property(fullTextProperty).toString();
+		if (!fullText.isNull())
+			setElidedText(
+				label, fullText, label->toolTip());
+	}
+}
+
+void MinimalBassManagementCardView::setElidedText(
+	QLabel* label, const QString& fullText,
+	const QString& toolTip)
+{
+	if (label == nullptr)
+		return;
+
+	label->setProperty(fullTextProperty, fullText);
+	label->setToolTip(
+		toolTip.isEmpty() ? fullText : toolTip);
+
+	if (fullText.isEmpty())
+	{
+		label->clear();
+		return;
+	}
+
+	const int availableWidth =
+		label->contentsRect().width();
+	if (availableWidth <= 0)
+	{
+		label->clear();
+		return;
+	}
+
+	const QFontMetrics metrics(label->font());
+	if (metrics.horizontalAdvance(fullText)
+		<= availableWidth)
+	{
+		label->setText(fullText);
+		return;
+	}
+
+	// Do not leave an ellipsis-only remnant at the right edge. If one
+	// useful character plus the elision marker cannot fit, drop this
+	// secondary readout and retain the complete value in its tooltip.
+	const int minimumUsefulWidth =
+		metrics.horizontalAdvance(QStringLiteral("M..."));
+	if (availableWidth < minimumUsefulWidth)
+	{
+		label->clear();
+		return;
+	}
+
+	label->setText(metrics.elidedText(
+		fullText, Qt::ElideRight, availableWidth));
+}
+
+void MinimalBassManagementCardView::updateActionPresentation()
+{
+	if (actionRow == nullptr || !actionRow->isVisible())
+		return;
+
+	QList<QAbstractButton*> buttons;
+	for (int index = 0;
+		index < actionLayout->count();
+		++index)
+	{
+		QLayoutItem* item =
+			actionLayout->itemAt(index);
+		if (item == nullptr)
+			continue;
+
+		QAbstractButton* button =
+			qobject_cast<QAbstractButton*>(
+				item->widget());
+		if (button != nullptr)
+			buttons.append(button);
+	}
+
+	if (buttons.isEmpty())
+		return;
+
+	for (QAbstractButton* button : buttons)
+	{
+		button->ensurePolished();
+
+		if (QToolButton* toolButton =
+			qobject_cast<QToolButton*>(button))
+		{
+			toolButton->setToolButtonStyle(
+				Qt::ToolButtonTextOnly);
+			toolButton->updateGeometry();
+		}
+	}
+
+	const int availableWidth =
+		actionRow->contentsRect().width();
+	if (availableWidth <= 0)
+		return;
+
+	const auto requiredWidth = [this, &buttons]()
+	{
+		int width = 0;
+		for (QAbstractButton* button : buttons)
+		{
+			width += qMax(
+				button->minimumWidth(),
+				button->sizeHint().width());
+		}
+
+		if (buttons.size() > 1)
+		{
+			width += actionLayout->spacing()
+				* (buttons.size() - 1);
+		}
+		return width;
+	};
+
+	// Preserve both 40 px targets at narrow widths. PRESET drops to its
+	// supplied icon before OPEN EDITOR; text returns automatically as
+	// soon as the action line has sufficient room.
+	for (int index = buttons.size() - 1;
+		index >= 0
+			&& requiredWidth() > availableWidth;
+		--index)
+	{
+		QToolButton* toolButton =
+			qobject_cast<QToolButton*>(
+				buttons.at(index));
+		if (toolButton == nullptr
+			|| toolButton->icon().isNull())
+		{
+			continue;
+		}
+
+		toolButton->setToolButtonStyle(
+			Qt::ToolButtonIconOnly);
+		toolButton->updateGeometry();
+	}
+
+	actionLayout->invalidate();
 }

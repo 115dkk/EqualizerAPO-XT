@@ -8,7 +8,7 @@
 
 	EqualizerAPO-XT is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	MERCHANTIBILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 	GNU General Public License for more details.
 */
 
@@ -25,6 +25,7 @@ class QHBoxLayout;
 class QLabel;
 class QPaintEvent;
 class QResizeEvent;
+class RackElidingLabel;
 
 class RackCrossoverReadout : public QWidget
 {
@@ -93,7 +94,7 @@ private:
 
 	bool automatic = true;
 	double trimDb = 0.0;
-	bool trimAvailable = true;
+	bool trimFinite = true;
 };
 
 class RackBassManagementCardView : public BassManagementCardView
@@ -112,15 +113,14 @@ protected:
 
 private:
 	void updateResponsiveLayout();
-	void updateLabelPalettes(bool invalid, bool warning);
 
 	QWidget* headerWidget = nullptr;
 	QWidget* instrumentWidget = nullptr;
 	QWidget* actionHost = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
 	QLabel* validityLabel = nullptr;
-	QLabel* layoutLabel = nullptr;
-	QLabel* profileLabel = nullptr;
+	RackElidingLabel* layoutLabel = nullptr;
+	RackElidingLabel* profileLabel = nullptr;
 	QLabel* countsLabel = nullptr;
 	QLabel* statusLabel = nullptr;
 	RackCrossoverReadout* highPassReadout = nullptr;

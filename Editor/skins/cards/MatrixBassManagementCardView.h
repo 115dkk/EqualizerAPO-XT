@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <QVector>
+
 #include "Editor/widgets/cards/BassManagementCardView.h"
 
 class MatrixBassManagementBoard;
@@ -14,6 +16,7 @@ class QHBoxLayout;
 class QLabel;
 class QPaintEvent;
 class QResizeEvent;
+class QToolButton;
 class QWidget;
 
 class MatrixBassManagementCardView : public BassManagementCardView
@@ -36,6 +39,9 @@ private:
 		const QString& accessibleName,
 		const QString& toolTip);
 	void updateResponsiveVisibility();
+	void updateCoordinateLine(
+		const BassManagementCardState& state);
+	void updateActionButtonStyles();
 
 	QWidget* summaryStrip = nullptr;
 	QWidget* secondaryStrip = nullptr;
@@ -51,4 +57,5 @@ private:
 	MatrixBassManagementBoard* board = nullptr;
 	QLabel* coordinateLine = nullptr;
 	QLabel* statusLine = nullptr;
+	QVector<QToolButton*> actionButtons;
 };

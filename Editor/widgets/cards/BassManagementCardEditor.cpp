@@ -474,14 +474,16 @@ void BassManagementCardEditor::loadCommand(
 	if (!file.exists())
 	{
 		profileMissing = true;
+		// Name the file only: the resolved path is an implementation detail of
+		// the config directory and can leak user directories into screenshots.
 		loadError = tr("Linked profile was not found: %1")
-			.arg(QDir::toNativeSeparators(absolutePath));
+			.arg(QFileInfo(absolutePath).fileName());
 		return;
 	}
 	if (!file.open(QIODevice::ReadOnly))
 	{
 		loadError = tr("Linked profile could not be read: %1")
-			.arg(QDir::toNativeSeparators(absolutePath));
+			.arg(QFileInfo(absolutePath).fileName());
 		return;
 	}
 
@@ -712,11 +714,16 @@ void BassManagementCardEditor::refreshCard()
 	{
 		card.headroomTrimDb = state.headroom.manualTrimDb;
 	}
-	else if (deviceSampleRate > 0)
+	else
 	{
+		// With no selected device the trim is still worth showing: the
+		// analysis barely moves with the sample rate (log sweep up to
+		// Nyquist), so a 48 kHz estimate beats an "unavailable" dead end.
+		const unsigned analysisRate =
+			deviceSampleRate > 0 ? deviceSampleRate : 48000;
 		const bassmgmt::CompileResult compiled =
 			bassmgmt::compile(state,
-				prepareSpecFor(state, deviceSampleRate));
+				prepareSpecFor(state, analysisRate));
 		if (compiled.headroom.has_value())
 		{
 			card.headroomTrimDb =
@@ -727,11 +734,6 @@ void BassManagementCardEditor::refreshCard()
 			card.headroomTrimDb =
 				std::numeric_limits<double>::quiet_NaN();
 		}
-	}
-	else
-	{
-		card.headroomTrimDb =
-			std::numeric_limits<double>::quiet_NaN();
 	}
 
 	view->setState(card);

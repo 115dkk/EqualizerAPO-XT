@@ -889,3 +889,204 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid @BORDER@;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
+
+/* Bass management summary: roomy stacked flow chips, opaque fact/status
+   pills and full text-bearing action pills. The card itself is painted by
+   SoftBassManagementCardView; all child chrome remains transparent unless
+   it is explicitly a chip or action. */
+QWidget#SoftBassHeader,
+QWidget#SoftBassFacts,
+QWidget#SoftBassFlow {
+    background: transparent;
+    border: 0;
+}
+
+QLabel#SoftBassLayout {
+    background: transparent;
+    color: @TEXT@;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 11pt;
+    font-weight: 600;
+}
+QLabel#SoftBassLayout:disabled {
+    color: @MUTED@;
+    font-weight: 500;
+}
+
+QLabel#SoftBassCrossover {
+    background: transparent;
+    color: @MUTED@;
+    font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace;
+    font-size: 9pt;
+    font-weight: 600;
+}
+QLabel#SoftBassCrossover:disabled {
+    color: @MUTED@;
+}
+
+QLabel#SoftBassValidityChip {
+    background: @WARNING@;
+    color: @BG@;
+    border: 1px solid @WARNING@;
+    border-radius: 12px;
+    padding: 5px 12px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+}
+QLabel#SoftBassValidityChip[severity="valid"] {
+    background: @SUCCESS@;
+    border-color: @SUCCESS@;
+}
+QLabel#SoftBassValidityChip[severity="warning"] {
+    background: @WARNING@;
+    border-color: @WARNING@;
+}
+QLabel#SoftBassValidityChip[severity="error"] {
+    background: @DANGER@;
+    border-color: @DANGER@;
+}
+QLabel#SoftBassValidityChip:disabled {
+    background: @BG@;
+    color: @MUTED@;
+    border: 1px dashed @BORDER@;
+}
+
+QWidget#SoftBassFlowChip {
+    background: @ACCENT@;
+    border: 1px solid @ACCENT@;
+    border-radius: 22px;
+}
+QWidget#SoftBassFlowChip[flowRole="group"] {
+    background: @ACCENT@;
+    border-color: @ACCENT@;
+}
+QWidget#SoftBassFlowChip[flowRole="bass"] {
+    background: @ACCENT2@;
+    border-color: @ACCENT2@;
+}
+QWidget#SoftBassFlowChip[flowRole="destination"] {
+    background: @SUCCESS@;
+    border-color: @SUCCESS@;
+}
+QWidget#SoftBassFlowChip:disabled {
+    background: @BG@;
+    border: 1px dashed @BORDER@;
+}
+
+QLabel#SoftBassFlowCaption,
+QLabel#SoftBassFlowDestination {
+    background: transparent;
+    color: #ffffff;
+    border: 0;
+    padding: 0;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 9pt;
+    font-weight: 700;
+}
+QLabel#SoftBassFlowValue {
+    background: transparent;
+    color: #ffffff;
+    border: 0;
+    padding: 0;
+    font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace;
+    font-size: 8pt;
+    font-weight: 600;
+}
+QWidget#SoftBassFlowChip:disabled QLabel#SoftBassFlowCaption,
+QWidget#SoftBassFlowChip:disabled QLabel#SoftBassFlowDestination,
+QWidget#SoftBassFlowChip:disabled QLabel#SoftBassFlowValue {
+    color: @MUTED@;
+}
+
+QLabel#SoftBassFactChip,
+QLabel#SoftBassProfileChip {
+    background: @ACCENT@;
+    color: #ffffff;
+    border: 1px solid @ACCENT@;
+    border-radius: 11px;
+    padding: 4px 10px;
+    font-size: 8pt;
+    font-weight: 600;
+}
+QLabel#SoftBassFactChip {
+    font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace;
+}
+QLabel#SoftBassProfileChip {
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+}
+QLabel#SoftBassProfileChip[severity="warning"] {
+    background: @WARNING@;
+    border-color: @WARNING@;
+}
+QLabel#SoftBassFactChip:disabled,
+QLabel#SoftBassProfileChip:disabled {
+    background: @BG@;
+    color: @MUTED@;
+    border: 1px dashed @BORDER@;
+}
+
+QWidget#SoftBassErrorChip {
+    background: @DANGER@;
+    border: 1px solid @DANGER@;
+    border-radius: 12px;
+}
+QWidget#SoftBassWarningChip {
+    background: @WARNING@;
+    border: 1px solid @WARNING@;
+    border-radius: 12px;
+}
+QLabel#SoftBassStatusText {
+    background: transparent;
+    color: @BG@;
+    border: 0;
+    padding: 0;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 9pt;
+    font-weight: 600;
+}
+QWidget#SoftBassErrorChip:disabled,
+QWidget#SoftBassWarningChip:disabled {
+    background: @BG@;
+    border: 1px dashed @BORDER@;
+}
+QWidget#SoftBassErrorChip:disabled QLabel#SoftBassStatusText,
+QWidget#SoftBassWarningChip:disabled QLabel#SoftBassStatusText {
+    color: @MUTED@;
+}
+
+QToolButton#SoftBassActionButton {
+    background: @CARD@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 20px;
+    padding: 0 16px;
+    min-width: 40px;
+    min-height: 40px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 9pt;
+    font-weight: 600;
+}
+QToolButton#SoftBassActionButton:hover {
+    background: @CARD_HOVER@;
+    border-color: @ACCENT@;
+}
+QToolButton#SoftBassActionButton:pressed,
+QToolButton#SoftBassActionButton:checked {
+    background: @ACCENT@;
+    color: @BG@;
+    border-color: @ACCENT@;
+}
+QToolButton#SoftBassActionButton:disabled {
+    background: @BG@;
+    color: @MUTED@;
+    border: 1px dashed @BORDER@;
+}
+QToolButton#SoftBassActionButton::menu-indicator {
+    image: none;
+    width: 0;
+    height: 0;
+}
+
+
+

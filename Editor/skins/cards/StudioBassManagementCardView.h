@@ -13,12 +13,15 @@
 
 #include "Editor/widgets/cards/BassManagementCardView.h"
 
-class ElidedLabel;
+class BassInstrumentWidget;
+class GlowReadoutWidget;
+class ProfileSummaryWidget;
 class QAbstractButton;
 class QHBoxLayout;
 class QLabel;
 class QPaintEvent;
 class QResizeEvent;
+class RightElidedLabel;
 
 class StudioBassManagementCardView : public BassManagementCardView
 {
@@ -39,17 +42,15 @@ private:
 
 	QHBoxLayout* actionLayout = nullptr;
 	QLabel* validityChip = nullptr;
-	ElidedLabel* layoutLabel = nullptr;
-	ElidedLabel* profileLabel = nullptr;
-	ElidedLabel* crossoverLabel = nullptr;
-	QWidget* secondaryRow = nullptr;
-	QLabel* groupChip = nullptr;
-	QLabel* pathChip = nullptr;
+	RightElidedLabel* layoutLabel = nullptr;
+	ProfileSummaryWidget* profileSummary = nullptr;
+	RightElidedLabel* crossoverLabel = nullptr;
+	QWidget* factsRow = nullptr;
 	QLabel* routesChip = nullptr;
-	QLabel* lfeLabel = nullptr;
+	QLabel* lfeChip = nullptr;
 	QLabel* statusLabel = nullptr;
-	QWidget* instrumentPane = nullptr;
+	BassInstrumentWidget* instrumentPane = nullptr;
 	QWidget* headroomPane = nullptr;
-	QLabel* headroomReadout = nullptr;
+	GlowReadoutWidget* headroomReadout = nullptr;
 	QList<QAbstractButton*> actionButtons;
 };

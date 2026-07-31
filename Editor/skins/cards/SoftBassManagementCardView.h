@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <QList>
+
 #include "Editor/widgets/cards/BassManagementCardView.h"
 
 class ElidedLabel;
@@ -43,14 +45,15 @@ private:
 
 	ElidedLabel* layoutLabel = nullptr;
 	QLabel* validityChip = nullptr;
-	QLabel* crossoverLabel = nullptr;
+	ElidedLabel* crossoverLabel = nullptr;
 	SoftBassFlowWidget* flowWidget = nullptr;
 	QWidget* factRow = nullptr;
 	QLabel* routeFact = nullptr;
 	QLabel* sourceLfeFact = nullptr;
 	QLabel* headroomFact = nullptr;
-	QLabel* profileFact = nullptr;
+	ElidedLabel* profileFact = nullptr;
 	SoftBassStatusChip* warningChip = nullptr;
 	SoftBassStatusChip* errorChip = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
+	QList<QAbstractButton*> actionButtons;
 };

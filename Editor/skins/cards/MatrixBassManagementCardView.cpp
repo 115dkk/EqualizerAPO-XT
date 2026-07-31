@@ -7,12 +7,16 @@
 
 #include "MatrixBassManagementCardView.h"
 
+#include <algorithm>
 #include <cmath>
+#include <numeric>
 
 #include <QAbstractButton>
+#include <QCoreApplication>
+#include <QEvent>
 #include <QFont>
 #include <QFontMetrics>
-#include <QFrame>
+#include <QFontMetricsF>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPaintEvent>
@@ -22,39 +26,80 @@
 #include <QResizeEvent>
 #include <QSizePolicy>
 #include <QStringList>
-#include <QVector>
+#include <QStyle>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 #include "Editor/SkinManager.h"
 
 namespace
 {
-constexpr int boardHeaderHeight = 18;
-constexpr int boardRowHeight = 18;
-constexpr int boardLabelWidth = 44;
-constexpr int boardMargin = 5;
-constexpr int narrowWidth = 520;
+constexpr int cardHorizontalMargin = 12;
+constexpr int cardVerticalMargin = 10;
+constexpr int boardFrameInset = 1;
+constexpr int boardInnerPadding = 6;
+constexpr int boardTopRailHeight = 20;
+constexpr int boardLeftRailWidth = 40;
+constexpr int boardColumnPitch = 40;
+constexpr int boardRowPitch = 24;
+constexpr int boardCellGap = 4;
+constexpr int maximumVisibleRows = 8;
+constexpr int boardFoldWidth = 420;
 constexpr int secondaryFoldWidth = 680;
+constexpr int actionTextWidthPerButton = 112;
 
-double crispCoordinate(double coordinate, qreal devicePixelRatio)
+double crispCoordinate(
+	double coordinate,
+	qreal devicePixelRatio)
 {
 	return (std::floor(coordinate * devicePixelRatio) + 0.5)
 		/ devicePixelRatio;
 }
 
-QPen crispPen(const QColor& color, qreal devicePixelRatio)
+QPen crispPen(
+	const QColor& color,
+	qreal devicePixelRatio)
 {
 	QPen pen(color);
 	pen.setWidthF(1.0 / devicePixelRatio);
 	pen.setCosmetic(false);
+	pen.setCapStyle(Qt::SquareCap);
+	pen.setJoinStyle(Qt::MiterJoin);
 	return pen;
+}
+
+QRectF crispStrokeRect(
+	const QRectF& rectangle,
+	qreal devicePixelRatio)
+{
+	const qreal pixel = 1.0 / devicePixelRatio;
+
+	const qreal left = crispCoordinate(
+		rectangle.left(),
+		devicePixelRatio);
+	const qreal top = crispCoordinate(
+		rectangle.top(),
+		devicePixelRatio);
+	const qreal right = crispCoordinate(
+		rectangle.right() - pixel,
+		devicePixelRatio);
+	const qreal bottom = crispCoordinate(
+		rectangle.bottom() - pixel,
+		devicePixelRatio);
+
+	return QRectF(
+		QPointF(left, top),
+		QPointF(right, bottom));
 }
 
 QFont matrixMonoFont()
 {
-	QFont font(SkinManager::instance()->tokens().monoFontFamily);
+	QFont font(
+		SkinManager::instance()->tokens().monoFontFamily);
+
 	if (font.family().isEmpty())
 		font.setStyleHint(QFont::Monospace);
+
 	font.setFixedPitch(true);
 	return font;
 }
@@ -63,75 +108,340 @@ int nonNegative(int value)
 {
 	return qMax(0, value);
 }
+
+int boundedPathCount(
+	const BassManagementCardState& state)
+{
+	const qint64 groupCount =
+		static_cast<qint64>(nonNegative(
+			state.speakerGroupCount));
+	const qint64 bassCount =
+		static_cast<qint64>(nonNegative(
+			state.bassPathCount));
+	const qint64 lfeCount =
+		state.sourceLfePreserved ? 1 : 0;
+
+	return static_cast<int>(
+		qMin<qint64>(
+			groupCount + bassCount + lfeCount,
+			9999));
+}
+
+void repolish(QWidget* widget)
+{
+	if (widget == nullptr)
+		return;
+
+	widget->style()->unpolish(widget);
+	widget->style()->polish(widget);
+	widget->update();
+}
+
+void drawMeasuredText(
+	QPainter& painter,
+	const QRectF& rectangle,
+	const QString& text,
+	int alignment)
+{
+	if (rectangle.width() <= 0.0
+		|| rectangle.height() <= 0.0
+		|| text.isEmpty())
+	{
+		return;
+	}
+
+	const QFontMetricsF metrics(painter.font());
+
+	if (metrics.height() > rectangle.height())
+		return;
+
+	QString displayedText = text;
+	if (metrics.horizontalAdvance(displayedText)
+		> rectangle.width())
+	{
+		displayedText = metrics.elidedText(
+			displayedText,
+			Qt::ElideRight,
+			static_cast<int>(
+				std::floor(rectangle.width())));
+	}
+
+	if (displayedText.isEmpty()
+		|| metrics.horizontalAdvance(displayedText)
+			> rectangle.width())
+	{
+		return;
+	}
+
+	painter.drawText(
+		rectangle,
+		alignment | Qt::TextSingleLine,
+		displayedText);
+}
+
+QString translatedBoardText(const char* sourceText)
+{
+	return QCoreApplication::translate(
+		"MatrixBassManagementCardView",
+		sourceText);
+}
+}
+
+class MatrixBassReadoutLabel : public QLabel
+{
+public:
+	// The matrix sheets pad these readout boxes ~10 px per side; QWidget's
+	// contents margins cannot see that, so both the size hint and the elision
+	// budget it through this shared constant.
+	static constexpr int kStyleSheetHorizontalPadding = 22;
+
+	explicit MatrixBassReadoutLabel(
+		const QString& descriptiveToolTip,
+		QWidget* parent = nullptr)
+		: QLabel(parent),
+		  baseToolTip(descriptiveToolTip)
+	{
+		setTextFormat(Qt::PlainText);
+		setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+		setMinimumWidth(0);
+	}
+
+	void setReadoutText(const QString& text)
+	{
+		fullText = text;
+		updateDisplayedText();
+		updateToolTip();
+		setAccessibleDescription(fullText);
+		updateGeometry();
+	}
+
+	// The layout must budget for the full string, not for whatever elided
+	// remnant is currently displayed - otherwise the first relayout shrinks
+	// the label, the shorter width elides harder, and the cell collapses to
+	// a lone ellipsis.
+	QSize sizeHint() const override
+	{
+		const QFontMetrics metrics(font());
+		const QMargins margins = contentsMargins();
+		// Budget the same sheet padding the elision subtracts, so a cell that
+		// gets its hinted width shows the full string, not an elided one.
+		return QSize(
+			metrics.horizontalAdvance(fullText)
+				+ margins.left() + margins.right()
+				+ kStyleSheetHorizontalPadding,
+			qMax(QLabel::sizeHint().height(),
+				metrics.height() + margins.top() + margins.bottom()));
+	}
+
+	QSize minimumSizeHint() const override
+	{
+		const QFontMetrics metrics(font());
+		// Enough for a recognizable prefix; elision handles the rest.
+		return QSize(
+			metrics.horizontalAdvance(QStringLiteral("MMMMMM")),
+			QLabel::minimumSizeHint().height());
+	}
+
+protected:
+	bool event(QEvent* event) override
+	{
+		const bool result = QLabel::event(event);
+
+		switch (event->type())
+		{
+		case QEvent::FontChange:
+		case QEvent::StyleChange:
+		case QEvent::Polish:
+		case QEvent::LayoutDirectionChange:
+			updateDisplayedText();
+			break;
+
+		default:
+			break;
+		}
+
+		return result;
+	}
+
+	void resizeEvent(QResizeEvent* event) override
+	{
+		QLabel::resizeEvent(event);
+		updateDisplayedText();
+	}
+
+private:
+	void updateDisplayedText()
+	{
+		// contentsRect() does not see QSS padding (the style sheet box model
+		// lives in the style, not in QWidget's contents margins), so eliding
+		// against it overflows into the padded border by a glyph. Budget for
+		// the sheet's horizontal padding explicitly.
+		const int availableWidth = qMax(0,
+			contentsRect().width() - kStyleSheetHorizontalPadding);
+
+		QString displayedText = fullText;
+		if (availableWidth > 0)
+		{
+			const QFontMetrics metrics(font());
+			displayedText = metrics.elidedText(
+				fullText,
+				Qt::ElideRight,
+				availableWidth);
+		}
+
+		QLabel::setText(displayedText);
+	}
+
+	void updateToolTip()
+	{
+		if (baseToolTip.isEmpty())
+		{
+			QLabel::setToolTip(fullText);
+			return;
+		}
+
+		if (fullText.isEmpty())
+		{
+			QLabel::setToolTip(baseToolTip);
+			return;
+		}
+
+		QLabel::setToolTip(
+			baseToolTip
+				+ QLatin1Char('\n')
+				+ fullText);
+	}
+
+	QString baseToolTip;
+	QString fullText;
+};
+
+namespace
+{
+void setReadoutText(
+	QLabel* label,
+	const QString& text)
+{
+	if (MatrixBassReadoutLabel* readout =
+		dynamic_cast<MatrixBassReadoutLabel*>(label))
+	{
+		readout->setReadoutText(text);
+		return;
+	}
+
+	label->setText(text);
+}
 }
 
 class MatrixBassManagementBoard : public QWidget
 {
 public:
-	explicit MatrixBassManagementBoard(QWidget* parent = nullptr)
+	explicit MatrixBassManagementBoard(
+		QWidget* parent = nullptr)
 		: QWidget(parent)
 	{
-		setObjectName(QStringLiteral("MatrixBassCrosspointBoard"));
-		setAttribute(Qt::WA_OpaquePaintEvent, true);
-		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-		setFont(matrixMonoFont());
+		setObjectName(
+			QStringLiteral("MatrixBassCrosspointBoard"));
+		setSizePolicy(
+			QSizePolicy::Expanding,
+			QSizePolicy::Fixed);
 		setAccessibleName(
-			QCoreApplication::translate(
-				"MatrixBassManagementCardView",
+			translatedBoardText(
 				"Bass-management crosspoint board"));
 		setToolTip(
-			QCoreApplication::translate(
-				"MatrixBassManagementCardView",
-				"Aggregate routing presence by signal path and physical-output slot"));
+			translatedBoardText(
+				"Aggregate routing presence by path row and physical-output column"));
 	}
 
-	void setCardState(const BassManagementCardState& newState)
+	void setCardState(
+		const BassManagementCardState& newState)
 	{
 		cardState = newState;
-		recalculateGeometry();
+		recalculateCardGeometry();
+		recalculateDisplayGeometry(
+			viewportWidth > 0
+				? viewportWidth
+				: width());
+		updateAccessibleDescription();
 		updateGeometry();
 		update();
-
-		setAccessibleDescription(
-			QCoreApplication::translate(
-				"MatrixBassManagementCardView",
-				"%1 path rows, %2 output columns and %3 active matrix routes. "
-				"Individual route factors are unavailable in the card state.")
-				.arg(pathRowCount)
-				.arg(outputColumns)
-				.arg(nonNegative(cardState.activeMatrixEdges)));
 	}
 
-	int rowCount() const
+	void setViewportWidth(int availableWidth)
 	{
-		return pathRowCount;
+		const int boundedWidth =
+			qMax(0, availableWidth);
+
+		if (viewportWidth == boundedWidth)
+			return;
+
+		viewportWidth = boundedWidth;
+		recalculateDisplayGeometry(viewportWidth);
+		updateAccessibleDescription();
+		update();
 	}
 
-	int columnCount() const
+	int visibleRowCount() const
 	{
-		return outputColumns;
+		return displayedRows;
 	}
 
-	bool outputCountIsInferred() const
+	int visibleColumnCount() const
 	{
-		return inferredOutputCount;
+		return displayedColumns;
 	}
 
-	int fullOutputCount(const BassManagementCardState& state) const
+	int fullRowCount() const
 	{
-		return physicalOutputCount(state);
+		return completeRows;
+	}
+
+	int fullColumnCount() const
+	{
+		return completeColumns;
+	}
+
+	bool isTruncated() const
+	{
+		return displayedRows < completeRows
+			|| displayedColumns < completeColumns;
+	}
+
+	qint64 fullCapacity() const
+	{
+		return static_cast<qint64>(completeRows)
+			* static_cast<qint64>(completeColumns);
 	}
 
 	QSize sizeHint() const override
 	{
-		return QSize(480,
-			boardMargin * 2 + boardHeaderHeight
-				+ pathRowCount * boardRowHeight);
+		const int representativeColumns =
+			qMin(completeColumns, 12);
+		const int desiredWidth =
+			boardFrameInset * 2
+				+ boardInnerPadding * 2
+				+ boardLeftRailWidth
+				+ representativeColumns
+					* boardColumnPitch;
+		const int desiredHeight =
+			boardFrameInset * 2
+				+ boardInnerPadding * 2
+				+ boardTopRailHeight
+				+ displayedRows * boardRowPitch;
+
+		return QSize(
+			qMax(480, desiredWidth),
+			desiredHeight);
 	}
 
 	QSize minimumSizeHint() const override
 	{
-		return QSize(240, sizeHint().height());
+		return QSize(
+			240,
+			boardFrameInset * 2
+				+ boardInnerPadding * 2
+				+ boardTopRailHeight
+				+ displayedRows * boardRowPitch);
 	}
 
 protected:
@@ -140,221 +450,469 @@ protected:
 		Q_UNUSED(event)
 
 		QPainter painter(this);
-		painter.setRenderHint(QPainter::Antialiasing, false);
-		painter.setRenderHint(QPainter::TextAntialiasing, true);
+		painter.setRenderHint(
+			QPainter::Antialiasing,
+			false);
+		painter.setRenderHint(
+			QPainter::TextAntialiasing,
+			true);
 
-		const qreal devicePixelRatio = painter.device()->devicePixelRatioF();
-		const QPalette::ColorGroup colorGroup = isEnabled()
-			? QPalette::Active
-			: QPalette::Disabled;
+		const qreal devicePixelRatio =
+			painter.device()->devicePixelRatioF();
+		const QPalette::ColorGroup colorGroup =
+			isEnabled()
+				? QPalette::Active
+				: QPalette::Disabled;
 		const QPalette boardPalette = palette();
 
-		const QColor base = boardPalette.color(colorGroup, QPalette::Base);
-		const QColor alternate = boardPalette.color(colorGroup, QPalette::AlternateBase);
-		const QColor text = boardPalette.color(colorGroup, QPalette::Text);
-		const QColor muted = boardPalette.color(colorGroup, QPalette::PlaceholderText);
-		const QColor midTone = boardPalette.color(colorGroup, QPalette::Mid);
-		const QColor accent = SkinManager::instance()->tokens().accent;
+		const QColor base = boardPalette.color(
+			colorGroup,
+			QPalette::Window);
+		const QColor text = boardPalette.color(
+			colorGroup,
+			QPalette::Text);
+		const QColor muted = boardPalette.color(
+			colorGroup,
+			QPalette::PlaceholderText);
+		const QColor border = boardPalette.color(
+			colorGroup,
+			QPalette::Mid);
+		const QColor highlightedText =
+			boardPalette.color(
+				colorGroup,
+				QPalette::HighlightedText);
+		const QColor accent =
+			SkinManager::instance()->tokens().accent;
 
 		painter.fillRect(rect(), base);
 
-		if (pathRowCount <= 0 || outputColumns <= 0)
-			return;
+		painter.setPen(
+			crispPen(border, devicePixelRatio));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(
+			crispStrokeRect(
+				QRectF(rect()),
+				devicePixelRatio));
 
-		const qreal left = boardMargin + boardLabelWidth;
-		const qreal top = boardMargin + boardHeaderHeight;
-		const qreal right = width() - boardMargin;
-		const qreal bottom = height() - boardMargin;
+		const qreal usableWidth =
+			width()
+				- boardFrameInset * 2
+				- boardInnerPadding * 2;
+		const qreal clusterWidth =
+			boardLeftRailWidth
+				+ displayedColumns
+					* boardColumnPitch;
+		const qreal clusterLeft =
+			qMax<qreal>(
+				boardFrameInset
+					+ boardInnerPadding,
+				(width() - clusterWidth) / 2.0);
+		const qreal railTop =
+			boardFrameInset + boardInnerPadding;
+		const qreal gridLeft =
+			clusterLeft + boardLeftRailWidth;
+		const qreal gridTop =
+			railTop + boardTopRailHeight;
+		const qreal gridRight =
+			gridLeft
+				+ displayedColumns
+					* boardColumnPitch;
+		const qreal gridBottom =
+			gridTop
+				+ displayedRows
+					* boardRowPitch;
 
-		const qreal cellWidth = (right - left) / outputColumns;
-		const qreal cellHeight = (bottom - top) / pathRowCount;
+		Q_UNUSED(usableWidth)
 
-		// Draw alternating row backgrounds
-		for (int row = 1; row < pathRowCount; ++row)
-		{
-			const qreal y = top + row * cellHeight;
-			if ((row & 1) == 1)
-			{
-				painter.fillRect(
-					QRectF(0, y, width(), cellHeight),
-					alternate);
-			}
-		}
-
-		// Draw grid lines
-		painter.setPen(crispPen(midTone, devicePixelRatio));
-
-		// Outer border
-		painter.drawRect(QRectF(
-			crispCoordinate(boardMargin, devicePixelRatio),
-			crispCoordinate(boardMargin, devicePixelRatio),
-			right - boardMargin,
-			bottom - boardMargin));
-
-		// Column dividers
-		for (int col = 1; col < outputColumns; ++col)
-		{
-			const qreal x = left + col * cellWidth;
-			painter.drawLine(
-				QPointF(x, top),
-				QPointF(x, bottom));
-		}
-
-		// Row dividers
-		for (int row = 1; row < pathRowCount; ++row)
-		{
-			const qreal y = top + row * cellHeight;
-			painter.drawLine(
-				QPointF(boardMargin, y),
-				QPointF(right, y));
-		}
-
-		// Header and label column divider
-		painter.drawLine(
-			QPointF(left, boardMargin),
-			QPointF(left, bottom));
-		painter.drawLine(
-			QPointF(boardMargin, top),
-			QPointF(right, top));
-
-		// Draw labels and headers
 		QFont labelFont = matrixMonoFont();
-		const int fontSize = std::max(7, labelFont.pointSize() - 1);
-		labelFont.setPointSize(fontSize);
+		labelFont.setPointSize(7);
 		painter.setFont(labelFont);
+		painter.setPen(muted);
+
+		drawMeasuredText(
+			painter,
+			QRectF(
+				clusterLeft,
+				railTop,
+				boardLeftRailWidth,
+				boardTopRailHeight),
+			translatedBoardText("R/O"),
+			Qt::AlignCenter);
+
+		if (displayedRows <= 0
+			|| displayedColumns <= 0)
+		{
+			drawMeasuredText(
+				painter,
+				QRectF(
+					clusterLeft,
+					gridTop,
+					qMax<qreal>(
+						boardLeftRailWidth,
+						width()
+							- clusterLeft
+							- boardInnerPadding
+							- boardFrameInset),
+					boardRowPitch),
+				translatedBoardText(
+					"-- NO PATHS --"),
+				Qt::AlignCenter);
+			return;
+		}
+
+		painter.setPen(
+			crispPen(border, devicePixelRatio));
+
+		const qreal verticalRailX =
+			crispCoordinate(
+				gridLeft,
+				devicePixelRatio);
+		painter.drawLine(
+			QPointF(verticalRailX, railTop),
+			QPointF(verticalRailX, gridBottom));
+
+		const qreal horizontalRailY =
+			crispCoordinate(
+				gridTop,
+				devicePixelRatio);
+		painter.drawLine(
+			QPointF(clusterLeft, horizontalRailY),
+			QPointF(gridRight, horizontalRailY));
+
+		for (int column = 0;
+			column < displayedColumns;
+			++column)
+		{
+			const qreal centerX =
+				crispCoordinate(
+					gridLeft
+						+ column
+							* boardColumnPitch
+						+ boardColumnPitch
+							/ 2.0,
+					devicePixelRatio);
+
+			painter.drawLine(
+				QPointF(centerX, gridTop),
+				QPointF(centerX, gridBottom));
+		}
+
+		for (int row = 0;
+			row < displayedRows;
+			++row)
+		{
+			const qreal centerY =
+				crispCoordinate(
+					gridTop
+						+ row * boardRowPitch
+						+ boardRowPitch / 2.0,
+					devicePixelRatio);
+
+			painter.drawLine(
+				QPointF(clusterLeft, centerY),
+				QPointF(gridRight, centerY));
+		}
 
 		painter.setPen(muted);
 
-		// Row/Column header
-		painter.drawText(
-			QRectF(
-				boardMargin,
-				boardMargin,
-				boardLabelWidth,
-				boardHeaderHeight),
-			Qt::AlignCenter,
-			tr("R/C"));
-
-		// Column headers
-		for (int col = 0; col < outputColumns; ++col)
+		for (int column = 0;
+			column < displayedColumns;
+			++column)
 		{
-			painter.drawText(
+			const QString columnLabel =
+				translatedBoardText("O%1")
+					.arg(
+						column + 1,
+						2,
+						10,
+						QLatin1Char('0'));
+
+			drawMeasuredText(
+				painter,
 				QRectF(
-					left + col * cellWidth,
-					boardMargin,
-					cellWidth,
-					boardHeaderHeight),
-				Qt::AlignCenter,
-				tr("O%1").arg(col + 1, 2, 10, QLatin1Char('0')));
+					gridLeft
+						+ column
+							* boardColumnPitch,
+					railTop,
+					boardColumnPitch,
+					boardTopRailHeight),
+				columnLabel,
+				Qt::AlignCenter);
 		}
 
-		// Row labels (speaker groups and bass paths)
-		const int groupCount = nonNegative(cardState.speakerGroupCount);
-		const int bassCount = nonNegative(cardState.bassPathCount);
-
-		for (int row = 0; row < pathRowCount; ++row)
+		for (int row = 0;
+			row < displayedRows;
+			++row)
 		{
-			QString label;
-			if (row < groupCount)
-			{
-				label = tr("G%1").arg(row + 1, 2, 10, QLatin1Char('0'));
-			}
-			else if (row < groupCount + bassCount)
-			{
-				label = tr("B%1").arg(
-					row - groupCount + 1, 2, 10, QLatin1Char('0'));
-			}
-			else
-			{
-				label = tr("LFE");
-			}
+			const QString rowLabel =
+				translatedBoardText("R%1")
+					.arg(
+						row + 1,
+						2,
+						10,
+						QLatin1Char('0'));
 
-			painter.drawText(
+			drawMeasuredText(
+				painter,
 				QRectF(
-					boardMargin,
-					top + row * cellHeight,
-					boardLabelWidth,
-					cellHeight),
-				Qt::AlignCenter,
-				label);
+					clusterLeft,
+					gridTop
+						+ row * boardRowPitch,
+					boardLeftRailWidth,
+					boardRowPitch),
+				rowLabel,
+				Qt::AlignCenter);
 		}
 
-		// Draw active cells
-		if (cardState.activeMatrixEdges > 0)
+		painter.setPen(
+			crispPen(border, devicePixelRatio));
+		painter.setBrush(Qt::NoBrush);
+
+		for (int row = 0;
+			row < displayedRows;
+			++row)
 		{
-			const int fullOutputCount = physicalOutputCount(cardState);
-			const int fullRowCount = groupCount + bassCount
-				+ (cardState.sourceLfePreserved ? 1 : 0);
-			const int fullCapacity = fullOutputCount * fullRowCount;
-
-			const double density = std::clamp(
-				static_cast<double>(cardState.activeMatrixEdges)
-					/ static_cast<double>(fullCapacity),
-				0.0,
-				1.0);
-
-			const int visibleCapacity = outputColumns * pathRowCount;
-			const int visibleActiveCount = std::max(1,
-				static_cast<int>(std::round(
-					density * visibleCapacity)));
-
-			// Deterministic pseudo-random spread
-			int stride = 7;
-			while (stride < visibleCapacity / 2
-				&& std::gcd(stride, visibleCapacity) != 1)
+			for (int column = 0;
+				column < displayedColumns;
+				++column)
 			{
-				++stride;
+				const QRectF cellRectangle(
+					gridLeft
+						+ column
+							* boardColumnPitch
+						+ boardCellGap / 2.0,
+					gridTop
+						+ row * boardRowPitch
+						+ boardCellGap / 2.0,
+					boardColumnPitch
+						- boardCellGap,
+					boardRowPitch
+						- boardCellGap);
+
+				painter.drawRect(
+					crispStrokeRect(
+						cellRectangle,
+						devicePixelRatio));
 			}
+		}
 
-			painter.fillRect(rect(), base);
-			painter.setPen(Qt::NoPen);
-			painter.setBrush(accent);
+		const int visibleCapacity =
+			displayedRows * displayedColumns;
+		if (visibleCapacity <= 0
+			|| cardState.activeMatrixEdges <= 0
+			|| fullCapacity() <= 0)
+		{
+			return;
+		}
 
-			for (int index = 0; index < visibleActiveCount; ++index)
+		const double density = std::clamp(
+			static_cast<double>(
+				cardState.activeMatrixEdges)
+				/ static_cast<double>(
+					fullCapacity()),
+			0.0,
+			1.0);
+
+		int visibleActiveCount =
+			static_cast<int>(
+				std::round(
+					density
+						* visibleCapacity));
+		visibleActiveCount = std::clamp(
+			visibleActiveCount,
+			1,
+			visibleCapacity);
+
+		int stride = 1;
+		for (int candidate = qMin(
+				7,
+				visibleCapacity - 1);
+			candidate < visibleCapacity;
+			++candidate)
+		{
+			if (std::gcd(
+				candidate,
+				visibleCapacity) == 1)
+			{
+				stride = candidate;
+				break;
+			}
+		}
+
+		const int startIndex =
+			(nonNegative(cardState.activeMatrixEdges)
+				+ completeRows
+				+ completeColumns)
+			% visibleCapacity;
+
+		QVector<bool> activeCells(
+			visibleCapacity,
+			false);
+
+		for (int activeIndex = 0;
+			activeIndex < visibleActiveCount;
+			++activeIndex)
+		{
+			const int cellIndex =
+				(startIndex
+					+ activeIndex * stride)
+				% visibleCapacity;
+			activeCells[cellIndex] = true;
+		}
+
+		QFont digitFont = matrixMonoFont();
+		digitFont.setPointSize(7);
+		digitFont.setWeight(QFont::DemiBold);
+		painter.setFont(digitFont);
+
+		for (int row = 0;
+			row < displayedRows;
+			++row)
+		{
+			for (int column = 0;
+				column < displayedColumns;
+				++column)
 			{
 				const int cellIndex =
-					(index * stride) % visibleCapacity;
-				const int row = cellIndex / outputColumns;
-				const int col = cellIndex % outputColumns;
+					row * displayedColumns
+						+ column;
 
-				const QRectF cellRect(
-					left + col * cellWidth + 1,
-					top + row * cellHeight + 1,
-					cellWidth - 1,
-					cellHeight - 1);
+				if (!activeCells.at(cellIndex))
+					continue;
 
-				if (cellRect.width() > 0 && cellRect.height() > 0)
-					painter.drawRect(cellRect);
+				const QRectF activeRectangle(
+					gridLeft
+						+ column
+							* boardColumnPitch
+						+ boardCellGap / 2.0,
+					gridTop
+						+ row * boardRowPitch
+						+ boardCellGap / 2.0,
+					boardColumnPitch
+						- boardCellGap,
+					boardRowPitch
+						- boardCellGap);
+
+				painter.fillRect(
+					activeRectangle,
+					accent);
+
+				double factorDb = 0.0;
+				const bool visibleLfeRow =
+					cardState.sourceLfePreserved
+						&& row
+							== completeRows - 1;
+
+				if (visibleLfeRow
+					&& std::isfinite(
+						cardState.sourceLfeGainDb))
+				{
+					factorDb =
+						cardState.sourceLfeGainDb;
+				}
+
+				const QString factorText =
+					translatedBoardText("%1dB")
+						.arg(
+							QString::number(
+								factorDb,
+								'f',
+								1));
+
+				const QFontMetricsF digitMetrics(
+					painter.font());
+				const QRectF digitRectangle =
+					activeRectangle.adjusted(
+						2.0,
+						1.0,
+						-2.0,
+						-1.0);
+
+				if (digitMetrics.height()
+						<= digitRectangle.height()
+					&& digitMetrics.horizontalAdvance(
+						factorText)
+						<= digitRectangle.width())
+				{
+					painter.setPen(highlightedText);
+					drawMeasuredText(
+						painter,
+						digitRectangle,
+						factorText,
+						Qt::AlignCenter);
+				}
 			}
 		}
+
+		painter.setPen(text);
+	}
+
+	void resizeEvent(QResizeEvent* event) override
+	{
+		QWidget::resizeEvent(event);
+
+		if (viewportWidth <= 0)
+		{
+			recalculateDisplayGeometry(
+				event->size().width());
+			updateAccessibleDescription();
+		}
+
+		update();
 	}
 
 private:
-	void recalculateGeometry()
+	void recalculateCardGeometry()
 	{
-		const int groupCount = nonNegative(cardState.speakerGroupCount);
-		const int bassCount = nonNegative(cardState.bassPathCount);
-		const int lfeRow = cardState.sourceLfePreserved ? 1 : 0;
-
-		pathRowCount = groupCount + bassCount + lfeRow;
-
-		const int derivedOutputs = physicalOutputCount(cardState);
-		if (derivedOutputs > 16)
-		{
-			outputColumns = 16;
-			inferredOutputCount = true;
-		}
-		else
-		{
-			outputColumns = derivedOutputs;
-			inferredOutputCount = false;
-		}
+		completeRows = boundedPathCount(cardState);
+		completeColumns =
+			physicalOutputCount(cardState);
+		displayedRows =
+			qMin(completeRows, maximumVisibleRows);
 	}
 
-	int physicalOutputCount(const BassManagementCardState& state) const
+	void recalculateDisplayGeometry(
+		int availableWidth)
+	{
+		const int gridWidth =
+			qMax(
+				0,
+				availableWidth
+					- boardFrameInset * 2
+					- boardInnerPadding * 2
+					- boardLeftRailWidth);
+		const int availableColumns =
+			qMax(1, gridWidth / boardColumnPitch);
+
+		displayedColumns =
+			qMin(
+				completeColumns,
+				availableColumns);
+	}
+
+	void updateAccessibleDescription()
+	{
+		setAccessibleDescription(
+			translatedBoardText(
+				"%1 visible path rows of %2, "
+				"%3 visible output columns of %4, "
+				"and %5 active matrix routes. "
+				"Active-cell dB digits are representative aggregate annotations.")
+				.arg(displayedRows)
+				.arg(completeRows)
+				.arg(displayedColumns)
+				.arg(completeColumns)
+				.arg(
+					nonNegative(
+						cardState.activeMatrixEdges)));
+	}
+
+	int physicalOutputCount(
+		const BassManagementCardState& state) const
 	{
 		static const QRegularExpression layoutPattern(
-			QStringLiteral(R"((\d+)(?:\.(\d+))?(?:\.(\d+))?)"));
+			QStringLiteral(
+				R"((\d+)(?:\.(\d+))?(?:\.(\d+))?)"));
 
 		const QRegularExpressionMatch match =
 			layoutPattern.match(state.layoutLabel);
@@ -362,52 +920,84 @@ private:
 		if (match.hasMatch())
 		{
 			int sum = 0;
-			for (int i = 1; i <= 3; ++i)
+			for (int captureIndex = 1;
+				captureIndex <= 3;
+				++captureIndex)
 			{
-				const QString captured = match.captured(i);
+				const QString captured =
+					match.captured(captureIndex);
+
 				if (!captured.isEmpty())
 					sum += captured.toInt();
 			}
+
 			if (sum > 0)
-				return std::min(64, sum);
+				return qMin(64, sum);
 		}
 
-		return std::max(2, nonNegative(state.speakerGroupCount)
-			+ std::max(1, nonNegative(state.bassPathCount)));
+		const qint64 fallback =
+			static_cast<qint64>(
+				nonNegative(
+					state.speakerGroupCount))
+				+ qMax(
+					1,
+					nonNegative(
+						state.bassPathCount));
+
+		return static_cast<int>(
+			qBound<qint64>(
+				qint64(2),
+				qint64(fallback),
+				qint64(64)));
 	}
 
 	BassManagementCardState cardState;
-	int pathRowCount = 1;
-	int outputColumns = 2;
-	bool inferredOutputCount = false;
+	int completeRows = 0;
+	int completeColumns = 2;
+	int displayedRows = 0;
+	int displayedColumns = 2;
+	int viewportWidth = 0;
 };
 
-MatrixBassManagementCardView::MatrixBassManagementCardView(
-	QWidget* parent)
+MatrixBassManagementCardView::
+	MatrixBassManagementCardView(
+		QWidget* parent)
 	: BassManagementCardView(parent)
 {
-	setObjectName(QStringLiteral("MatrixBassManagementCardView"));
+	setObjectName(
+		QStringLiteral(
+			"MatrixBassManagementCardView"));
 
 	QVBoxLayout* root = new QVBoxLayout(this);
-	root->setContentsMargins(0, 0, 0, 0);
+	root->setContentsMargins(
+		cardHorizontalMargin,
+		cardVerticalMargin,
+		cardHorizontalMargin,
+		cardVerticalMargin);
 	root->setSpacing(8);
 
 	summaryStrip = new QWidget(this);
-	summaryStrip->setObjectName(QStringLiteral("MatrixBassSummaryStrip"));
-	QHBoxLayout* summaryLayout = new QHBoxLayout(summaryStrip);
+	summaryStrip->setObjectName(
+		QStringLiteral("MatrixBassSummaryStrip"));
+
+	QHBoxLayout* summaryLayout =
+		new QHBoxLayout(summaryStrip);
 	summaryLayout->setContentsMargins(0, 0, 0, 0);
 	summaryLayout->setSpacing(6);
 
 	validityCell = createReadoutCell(
 		QStringLiteral("MatrixBassValidityCell"),
 		tr("Bass-management validity state"),
-		tr("Valid or invalid state indicator"));
+		tr("Valid or error state indicator"));
+	validityCell->setSizePolicy(
+		QSizePolicy::Minimum,
+		QSizePolicy::Preferred);
 	summaryLayout->addWidget(validityCell);
 
 	layoutCell = createReadoutCell(
 		QStringLiteral("MatrixBassLayoutCell"),
 		tr("Speaker layout"),
-		tr("Physical speaker layout: L/R/C/LS/RS/LFE"));
+		tr("Physical speaker layout"));
 	summaryLayout->addWidget(layoutCell, 1);
 
 	crossoverCell = createReadoutCell(
@@ -421,11 +1011,12 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 	board = new MatrixBassManagementBoard(this);
 	root->addWidget(board);
 
-	coordinateLine = new QLabel(this);
+	coordinateLine =
+		new MatrixBassReadoutLabel(
+			tr("Visible grid coordinates, full dimensions and route capacity"),
+			this);
 	coordinateLine->setObjectName(
 		QStringLiteral("MatrixBassCoordinateLine"));
-	coordinateLine->setFont(matrixMonoFont());
-	coordinateLine->setWordWrap(true);
 	coordinateLine->setAccessibleName(
 		tr("Coordinate and grid information"));
 	root->addWidget(coordinateLine);
@@ -433,7 +1024,9 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 	secondaryStrip = new QWidget(this);
 	secondaryStrip->setObjectName(
 		QStringLiteral("MatrixBassSecondaryStrip"));
-	QHBoxLayout* secondaryLayout = new QHBoxLayout(secondaryStrip);
+
+	QHBoxLayout* secondaryLayout =
+		new QHBoxLayout(secondaryStrip);
 	secondaryLayout->setContentsMargins(0, 0, 0, 0);
 	secondaryLayout->setSpacing(6);
 
@@ -452,13 +1045,13 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 	headroomCell = createReadoutCell(
 		QStringLiteral("MatrixBassHeadroomCell"),
 		tr("Bass-management headroom"),
-		tr("Automatic or manual headroom trim"));
+		tr("Computed automatic or manual headroom trim"));
 	secondaryLayout->addWidget(headroomCell, 1);
 
 	profileCell = createReadoutCell(
 		QStringLiteral("MatrixBassProfileCell"),
 		tr("Bass-management profile"),
-		tr("Embedded profile or linked name"));
+		tr("Embedded profile or linked profile name"));
 	secondaryLayout->addWidget(profileCell, 1);
 
 	root->addWidget(secondaryStrip);
@@ -466,7 +1059,7 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 	statusLine = new QLabel(this);
 	statusLine->setObjectName(
 		QStringLiteral("MatrixBassStatusLine"));
-	statusLine->setFont(matrixMonoFont());
+	statusLine->setTextFormat(Qt::PlainText);
 	statusLine->setWordWrap(true);
 	statusLine->setVisible(false);
 	statusLine->setAccessibleName(
@@ -476,10 +1069,13 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 	actionRow = new QWidget(this);
 	actionRow->setObjectName(
 		QStringLiteral("MatrixBassActionRow"));
+	actionRow->setVisible(false);
+
 	actionLayout = new QHBoxLayout(actionRow);
 	actionLayout->setContentsMargins(0, 0, 0, 0);
-	actionLayout->setSpacing(4);
+	actionLayout->setSpacing(6);
 	actionLayout->addStretch();
+
 	root->addWidget(actionRow);
 
 	connect(
@@ -489,6 +1085,7 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 		[this]()
 	{
 		board->update();
+		updateCoordinateLine(state());
 		update();
 	});
 
@@ -497,19 +1094,19 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 	MatrixBassManagementCardView::applyState(state());
 }
 
-QLabel* MatrixBassManagementCardView::createReadoutCell(
-	const QString& objectName,
-	const QString& accessibleName,
-	const QString& toolTip)
+QLabel*
+	MatrixBassManagementCardView::createReadoutCell(
+		const QString& objectName,
+		const QString& accessibleName,
+		const QString& toolTip)
 {
-	QLabel* cell = new QLabel(this);
+	MatrixBassReadoutLabel* cell =
+		new MatrixBassReadoutLabel(toolTip, this);
 	cell->setObjectName(objectName);
-	cell->setAttribute(Qt::WA_StyledBackground, true);
-	cell->setFont(matrixMonoFont());
-	cell->setWordWrap(true);
-	cell->setMinimumWidth(0);
+	cell->setAttribute(
+		Qt::WA_StyledBackground,
+		true);
 	cell->setAccessibleName(accessibleName);
-	cell->setToolTip(toolTip);
 	return cell;
 }
 
@@ -519,126 +1116,290 @@ void MatrixBassManagementCardView::addActionButton(
 	if (button == nullptr)
 		return;
 
+	button->setObjectName(
+		QStringLiteral("MatrixBassActionButton"));
 	button->setMinimumSize(40, 40);
+	button->setSizePolicy(
+		QSizePolicy::Minimum,
+		QSizePolicy::Fixed);
+
+	QString actionName = button->text();
+	actionName.remove(QLatin1Char('&'));
+
+	if (button->accessibleName().isEmpty()
+		&& !actionName.isEmpty())
+	{
+		button->setAccessibleName(actionName);
+	}
+
+	if (button->toolTip().isEmpty()
+		&& !actionName.isEmpty())
+	{
+		button->setToolTip(actionName);
+	}
+
+	if (QToolButton* toolButton =
+		qobject_cast<QToolButton*>(button))
+	{
+		toolButton->setAutoRaise(false);
+		actionButtons.append(toolButton);
+
+		connect(
+			toolButton,
+			&QObject::destroyed,
+			this,
+			[this, toolButton]()
+		{
+			actionButtons.removeAll(toolButton);
+			updateActionButtonStyles();
+			actionRow->setVisible(
+				!actionButtons.isEmpty());
+		});
+	}
+
 	actionLayout->addWidget(button);
+	actionRow->setVisible(true);
+	updateActionButtonStyles();
 }
 
 void MatrixBassManagementCardView::applyState(
 	const BassManagementCardState& state)
 {
-	validityCell->setText(state.valid
-		? tr("STATE | VALID")
-		: tr("STATE | INVALID"));
-	validityCell->setProperty("valid", state.valid);
+	setReadoutText(
+		validityCell,
+		state.valid
+			? tr("+ STATE | VALID")
+			: tr("X STATE | ERROR"));
+	validityCell->setProperty(
+		"severity",
+		state.valid
+			? QStringLiteral("valid")
+			: QStringLiteral("critical"));
+	repolish(validityCell);
 
-	layoutCell->setText(state.layoutLabel.isEmpty()
-		? tr("LAYOUT | -")
-		: tr("LAYOUT | %1").arg(state.layoutLabel));
+	setReadoutText(
+		layoutCell,
+		state.layoutLabel.isEmpty()
+			? tr("LAYOUT | -")
+			: tr("LAYOUT | %1")
+				.arg(state.layoutLabel));
 
 	QStringList crossovers;
 	if (!state.representativeHighPass.isEmpty())
-		crossovers.append(tr("HP %1").arg(state.representativeHighPass));
-	if (!state.representativeLowPass.isEmpty())
-		crossovers.append(tr("LP %1").arg(state.representativeLowPass));
+	{
+		crossovers.append(
+			tr("HP %1").arg(
+				state.representativeHighPass));
+	}
 
-	crossoverCell->setText(
+	if (!state.representativeLowPass.isEmpty())
+	{
+		crossovers.append(
+			tr("LP %1").arg(
+				state.representativeLowPass));
+	}
+
+	setReadoutText(
+		crossoverCell,
 		crossovers.isEmpty()
 			? tr("XOVER | -")
-			: tr("XOVER | %1").arg(crossovers.join(tr(" / "))));
+			: tr("XOVER | %1").arg(
+				crossovers.join(tr(" / "))));
 
-	pathsCell->setText(
+	setReadoutText(
+		pathsCell,
 		tr("%1 GRP | %2 BASS | %3 XPT")
-			.arg(std::max(0, state.speakerGroupCount))
-			.arg(std::max(0, state.bassPathCount))
-			.arg(std::max(0, state.activeMatrixEdges)));
+			.arg(
+				nonNegative(
+					state.speakerGroupCount))
+			.arg(
+				nonNegative(
+					state.bassPathCount))
+			.arg(
+				nonNegative(
+					state.activeMatrixEdges)));
 
-	sourceLfeCell->setText(state.sourceLfePreserved
-		? tr("LFE | %1 dB").arg(
-			QString::number(state.sourceLfeGainDb, 'f', 1))
-		: tr("LFE | OFF"));
-
-	if (std::isfinite(state.headroomTrimDb))
+	if (state.sourceLfePreserved)
 	{
-		headroomCell->setText(state.headroomAuto
-			? tr("HDROOM | AUTO %1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1))
-			: tr("HDROOM | MANUAL %1 dB").arg(
-				QString::number(state.headroomTrimDb, 'f', 1)));
+		const QString lfeGain =
+			std::isfinite(state.sourceLfeGainDb)
+				? QString::number(
+					state.sourceLfeGainDb,
+					'f',
+					1)
+				: QStringLiteral("--");
+
+		setReadoutText(
+			sourceLfeCell,
+			std::isfinite(state.sourceLfeGainDb)
+				? tr("LFE | %1 dB").arg(lfeGain)
+				: tr("LFE | %1").arg(lfeGain));
 	}
 	else
 	{
-		headroomCell->setText(state.headroomAuto
-			? tr("HDROOM | AUTO N/A")
-			: tr("HDROOM | MANUAL N/A"));
+		setReadoutText(
+			sourceLfeCell,
+			tr("LFE | OFF"));
+	}
+
+	if (std::isfinite(state.headroomTrimDb))
+	{
+		setReadoutText(
+			headroomCell,
+			state.headroomAuto
+				? tr("HDROOM | AUTO %1 dB")
+					.arg(
+						QString::number(
+							state.headroomTrimDb,
+							'f',
+							1))
+				: tr("HDROOM | MANUAL %1 dB")
+					.arg(
+						QString::number(
+							state.headroomTrimDb,
+							'f',
+							1)));
+	}
+	else
+	{
+		setReadoutText(
+			headroomCell,
+			state.headroomAuto
+				? tr("HDROOM | AUTO --")
+				: tr("HDROOM | MANUAL --"));
 	}
 
 	if (state.linkedProfile)
 	{
-		profileCell->setText(state.profileName.isEmpty()
-			? tr("PROFILE | LINKED")
-			: tr("PROFILE | LINKED %1").arg(
-				state.profileName));
+		setReadoutText(
+			profileCell,
+			state.profileName.isEmpty()
+				? tr("PROFILE | LINKED")
+				: tr("PROFILE | LINKED %1")
+					.arg(state.profileName));
 	}
 	else
 	{
-		profileCell->setText(state.profileName.isEmpty()
-			? tr("PROFILE | EMBEDDED")
-			: tr("PROFILE | %1").arg(
-				state.profileName));
+		setReadoutText(
+			profileCell,
+			state.profileName.isEmpty()
+				? tr("PROFILE | EMBEDDED")
+				: tr("PROFILE | %1")
+					.arg(state.profileName));
 	}
 
 	board->setCardState(state);
 
-	QStringList coordinate;
-	coordinate.append(
-		tr("GRID: R01-R%1 / O01-O%2")
-			.arg(board->rowCount())
-			.arg(board->columnCount()));
-
-	if (board->outputCountIsInferred())
-	{
-		coordinate.append(
-			tr("(inferred from layout; full: %1 outputs)")
-				.arg(board->fullOutputCount(state)));
-	}
-
-	coordinate.append(
-		tr("Active routes: %1 / %2 capacity")
-			.arg(std::max(0, state.activeMatrixEdges))
-			.arg(board->rowCount() * board->columnCount()));
-
-	coordinateLine->setText(coordinate.join(QStringLiteral(" | ")));
-
 	QStringList status;
+	bool hasCriticalStatus = false;
+
 	if (!state.errorText.isEmpty())
 	{
-		status.append(tr("X ERROR: %1").arg(state.errorText));
+		status.append(
+			tr("X ERROR: %1")
+				.arg(state.errorText));
+		hasCriticalStatus = true;
 	}
+
 	if (!state.valid)
 	{
-		status.append(tr("X ERROR: State is invalid"));
+		status.append(
+			tr("X ERROR: State is invalid"));
+		hasCriticalStatus = true;
 	}
-	if (state.linkedProfile && state.profileMissing)
+
+	if (state.linkedProfile
+		&& state.profileMissing)
 	{
-		const QString profileName = state.profileName.isEmpty()
-			? tr("unnamed")
-			: state.profileName;
+		const QString profileName =
+			state.profileName.isEmpty()
+				? tr("unnamed")
+				: state.profileName;
+
 		status.append(
 			tr("X ERROR: Linked profile \"%1\" is missing")
 				.arg(profileName));
+		hasCriticalStatus = true;
 	}
+
 	if (!state.warningText.isEmpty())
 	{
 		status.append(
-			tr("! WARNING: %1").arg(state.warningText));
+			tr("! WARNING: %1")
+				.arg(state.warningText));
 	}
 
-	statusLine->setText(status.join(QLatin1Char('\n')));
+	const QString statusText =
+		status.join(QLatin1Char('\n'));
+
+	statusLine->setText(statusText);
 	statusLine->setVisible(!status.isEmpty());
-	statusLine->setToolTip(status.join(QLatin1Char('\n')));
+	statusLine->setToolTip(statusText);
+	statusLine->setAccessibleDescription(statusText);
+	statusLine->setProperty(
+		"severity",
+		hasCriticalStatus
+			? QStringLiteral("critical")
+			: status.isEmpty()
+				? QStringLiteral("normal")
+				: QStringLiteral("warning"));
+	repolish(statusLine);
 
 	updateResponsiveVisibility();
 	update();
+}
+
+void MatrixBassManagementCardView::updateCoordinateLine(
+	const BassManagementCardState& state)
+{
+	QStringList coordinate;
+
+	if (board->fullRowCount() <= 0)
+	{
+		coordinate.append(
+			tr("GRID: R-- / O01-O%1")
+				.arg(
+					board->visibleColumnCount(),
+					2,
+					10,
+					QLatin1Char('0')));
+	}
+	else
+	{
+		coordinate.append(
+			tr("GRID: R01-R%1 / O01-O%2")
+				.arg(
+					board->visibleRowCount(),
+					2,
+					10,
+					QLatin1Char('0'))
+				.arg(
+					board->visibleColumnCount(),
+					2,
+					10,
+					QLatin1Char('0')));
+	}
+
+	if (board->isTruncated())
+	{
+		coordinate.append(
+			tr("VIEW %1x%2 / FULL %3x%4")
+				.arg(board->visibleRowCount())
+				.arg(board->visibleColumnCount())
+				.arg(board->fullRowCount())
+				.arg(board->fullColumnCount()));
+	}
+
+	coordinate.append(
+		tr("ACTIVE %1 / %2")
+			.arg(
+				nonNegative(
+					state.activeMatrixEdges))
+			.arg(board->fullCapacity()));
+
+	setReadoutText(
+		coordinateLine,
+		coordinate.join(QStringLiteral(" | ")));
 }
 
 void MatrixBassManagementCardView::paintEvent(
@@ -650,22 +1411,38 @@ void MatrixBassManagementCardView::paintEvent(
 		return;
 
 	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(
+		QPainter::Antialiasing,
+		false);
 
 	const qreal devicePixelRatio =
 		painter.device()->devicePixelRatioF();
-	painter.setPen(crispPen(
-		palette().color(QPalette::Highlight),
-		devicePixelRatio));
+	painter.setPen(
+		crispPen(
+			palette().color(
+				QPalette::Highlight),
+			devicePixelRatio));
 
-	const qreal left = crispCoordinate(1.0, devicePixelRatio);
-	const qreal top = crispCoordinate(1.0, devicePixelRatio);
-	const qreal right = crispCoordinate(
-		width() - 1.0 - 1.0 / devicePixelRatio,
-		devicePixelRatio);
-	const qreal bottom = crispCoordinate(
-		height() - 1.0 - 1.0 / devicePixelRatio,
-		devicePixelRatio);
+	const qreal left =
+		crispCoordinate(
+			1.0,
+			devicePixelRatio);
+	const qreal top =
+		crispCoordinate(
+			1.0,
+			devicePixelRatio);
+	const qreal right =
+		crispCoordinate(
+			width()
+				- 1.0
+				- 1.0 / devicePixelRatio,
+			devicePixelRatio);
+	const qreal bottom =
+		crispCoordinate(
+			height()
+				- 1.0
+				- 1.0 / devicePixelRatio,
+			devicePixelRatio);
 	const qreal bracket = 8.0;
 
 	painter.drawLine(
@@ -701,12 +1478,65 @@ void MatrixBassManagementCardView::resizeEvent(
 	updateResponsiveVisibility();
 }
 
-void MatrixBassManagementCardView::updateResponsiveVisibility()
+void MatrixBassManagementCardView::
+	updateResponsiveVisibility()
 {
 	const int availableWidth = width();
+	const int boardWidth =
+		qMax(
+			0,
+			availableWidth
+				- cardHorizontalMargin * 2);
+
+	board->setViewportWidth(boardWidth);
+
+	const bool showBoard =
+		availableWidth >= boardFoldWidth;
+	board->setVisible(showBoard);
+	coordinateLine->setVisible(showBoard);
 
 	secondaryStrip->setVisible(
 		availableWidth >= secondaryFoldWidth);
-	board->setVisible(availableWidth >= narrowWidth);
-	coordinateLine->setVisible(availableWidth >= narrowWidth);
+
+	updateCoordinateLine(state());
+	updateActionButtonStyles();
+}
+
+void MatrixBassManagementCardView::
+	updateActionButtonStyles()
+{
+	if (actionButtons.isEmpty())
+		return;
+
+	const int availableWidth =
+		qMax(
+			0,
+			width()
+				- cardHorizontalMargin * 2);
+	const bool showActionText =
+		availableWidth
+			>= actionButtons.size()
+				* actionTextWidthPerButton;
+
+	for (QToolButton* button : actionButtons)
+	{
+		if (button == nullptr)
+			continue;
+
+		if (button->icon().isNull())
+		{
+			button->setToolButtonStyle(
+				Qt::ToolButtonTextOnly);
+		}
+		else if (showActionText)
+		{
+			button->setToolButtonStyle(
+				Qt::ToolButtonTextBesideIcon);
+		}
+		else
+		{
+			button->setToolButtonStyle(
+				Qt::ToolButtonIconOnly);
+		}
+	}
 }
