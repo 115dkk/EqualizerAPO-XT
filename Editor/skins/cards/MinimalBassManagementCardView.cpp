@@ -179,7 +179,9 @@ MinimalBassManagementCardView::MinimalBassManagementCardView(
 			update();
 		});
 
-	applyState(state());
+	// Qualified on purpose: seeding the initial presentation from the
+	// constructor must not dispatch to a further-derived override.
+	MinimalBassManagementCardView::applyState(state());
 }
 
 void MinimalBassManagementCardView::addReadoutRow(

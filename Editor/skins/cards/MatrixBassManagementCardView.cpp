@@ -492,7 +492,9 @@ MatrixBassManagementCardView::MatrixBassManagementCardView(
 		update();
 	});
 
-	applyState(state());
+	// Qualified on purpose: seeding the initial presentation from the
+	// constructor must not dispatch to a further-derived override.
+	MatrixBassManagementCardView::applyState(state());
 }
 
 QLabel* MatrixBassManagementCardView::createReadoutCell(

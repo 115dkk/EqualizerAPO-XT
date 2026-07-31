@@ -563,7 +563,9 @@ SoftBassManagementCardView::SoftBassManagementCardView(QWidget* parent)
 				flowWidget->update();
 		});
 
-	applyState(state());
+	// Qualified on purpose: seeding the initial presentation from the
+	// constructor must not dispatch to a further-derived override.
+	SoftBassManagementCardView::applyState(state());
 }
 
 void SoftBassManagementCardView::addActionButton(

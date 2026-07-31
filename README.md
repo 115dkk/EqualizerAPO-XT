@@ -24,7 +24,7 @@ Current work areas:
    show one ([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228),
    [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
 5. Editors for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) — complete. Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, custom-coefficient IIR lines have their own card, and lines with inline `` `expression` `` parameters keep their card in a dynamic mode ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
-6. Bass management ([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)): the `BassManagement:` command, the MIT BassManagementCore DSP library, the standalone VST3 plugin, the 4.1 host-negotiation fix and the Editor card are in; the dedicated full editor dialog and the per-skin card instruments are being finished.
+6. Bass management ([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — the core feature set is complete: the `BassManagement:` command, the MIT BassManagementCore DSP library, the standalone VST3 plugin, the 4.1 host-negotiation fix, the Editor card with a per-skin instrument in every skin, and the full editor dialog with both routing matrices and a response view. Remaining follow-ups: writing changes back to a linked profile file (the dialog currently converts the row to inline state), audition/solo overrides, Korean translations for the new strings, and a custom VST3 editor view (hosts show their generic parameter panel).
 
 ## Features
 

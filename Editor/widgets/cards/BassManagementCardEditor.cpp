@@ -24,6 +24,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/widgets/cards/BassManagementCardView.h"
+#include "Editor/widgets/bassmanagement/BassManagementEditorDialog.h"
 #include "Editor/widgets/cards/FilterCardEditorRegistry.h"
 
 namespace
@@ -387,9 +388,8 @@ BassManagementCardEditor::BassManagementCardEditor(
 		actionColor, 18));
 	openButton->setText(tr("Open editor"));
 	openButton->setAccessibleName(tr("Open editor"));
-	openButton->setToolTip(
-		tr("Full editor arrives with the routing editor"));
-	openButton->setEnabled(false);
+	openButton->setToolTip(tr("Open the full bass-management editor"));
+	openButton->setEnabled(true);
 	connect(openButton, &QToolButton::clicked,
 		this, &BassManagementCardEditor::openFullEditor);
 	view->addActionButton(openButton);
@@ -543,8 +543,34 @@ void BassManagementCardEditor::configureChannels(
 
 void BassManagementCardEditor::openFullEditor()
 {
-	// Wave A deliberately exposes no dialog. Wave B supplies the routing
-	// editor and overrides this hook.
+	if (!currentState.has_value())
+		return;
+
+	BassManagementEditorDialog dialog(
+		*currentState, deviceSampleRate, this);
+
+	auto commitInlineState = [this, &dialog]()
+	{
+		currentState = dialog.state();
+
+		// A linked profile is deliberately converted to inline State form.
+		// The dialog never writes the linked profile file.
+		form = BassManagementCommand::Form::State;
+		originalStatePayload.clear();
+		originalProfileParameters.clear();
+		profilePath.clear();
+		profileMissing = false;
+		loadError.clear();
+
+		refreshCard();
+		emit updateModel();
+	};
+
+	connect(&dialog, &BassManagementEditorDialog::applied,
+		this, commitInlineState);
+
+	if (dialog.exec() == QDialog::Accepted)
+		commitInlineState();
 }
 
 void BassManagementCardEditor::applyPreset(

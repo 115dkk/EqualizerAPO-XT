@@ -217,7 +217,8 @@ protected:
 
 		const QString severity =
 			property("severity").toString();
-		QColor ink = palette().color(QPalette::Text);
+		// Assigned by every severity branch below.
+		QColor ink;
 
 		if (severity == QStringLiteral("valid"))
 		{
@@ -855,7 +856,9 @@ StudioBassManagementCardView::StudioBassManagementCardView(
 			headroomReadout->update();
 		});
 
-	applyState(state());
+	// Qualified on purpose: seeding the initial presentation from the
+	// constructor must not dispatch to a further-derived override.
+	StudioBassManagementCardView::applyState(state());
 	updateResponsiveVisibility(width());
 }
 

@@ -260,6 +260,10 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
 	widgets/cards/BassManagementCardEditor.cpp \
+	widgets/bassmanagement/BassManagementEditorDialog.cpp \
+	widgets/bassmanagement/BassManagementResponseView.cpp \
+	widgets/bassmanagement/BassManagementUiModel.cpp \
+	widgets/routing/BassManagementRoutingAdapter.cpp \
 	widgets/cards/BassManagementCardView.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/CommentCardEditor.cpp \
@@ -531,6 +535,10 @@ HEADERS  += \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
 	widgets/cards/BassManagementCardEditor.h \
+	widgets/bassmanagement/BassManagementEditorDialog.h \
+	widgets/bassmanagement/BassManagementResponseView.h \
+	widgets/bassmanagement/BassManagementUiModel.h \
+	widgets/routing/BassManagementRoutingAdapter.h \
 	widgets/cards/BassManagementCardView.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/CommentCardEditor.h \
