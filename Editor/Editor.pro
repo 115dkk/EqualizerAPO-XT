@@ -352,7 +352,9 @@ HEADERS  += \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \
+	helpers/EditorSettings.h \
 	helpers/GUIHelper.h \
+	helpers/WindowFrameHitTest.h \
 	helpers/QtAppBootstrap.h \
 	stable.h \
 	IFilterGUI.h \

@@ -26,6 +26,7 @@
 #include <TlHelp32.h>
 #include <Winternl.h>
 #include "helpers/ComPtr.h"
+#include "helpers/LogHelper.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/Win32Resource.h"
@@ -43,9 +44,7 @@ using std::wstring;
 using winutil::ComPtr;
 using winutil::CoTaskMem;
 
-#define voicemeeterKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
-#define voicemeeterWowKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
-#define uninstallStringValueName L"UninstallString"
+#include "VoicemeeterDetection.h"
 static const wchar_t* startupFilename = L"Equalizer APO Voicemeeter Client.lnk";
 static const wchar_t* clientFilename = L"VoicemeeterClient.exe";
 static const wchar_t* voicemeeterClientKeyPath = USER_REGPATH L"\\Voicemeeter Client";
@@ -322,6 +321,9 @@ wstring VoicemeeterAPOInfo::getClientPath()
 
 void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path, const wstring& args)
 {
+	// Audit #250 F035: every HRESULT here used to be discarded, so a failed
+	// startup link (the thing that keeps the client running after reboot)
+	// left no trace at all. Still best-effort, but now it says so.
 	ComPtr<IShellLink> shellLink;
 	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
 		IID_PPV_ARGS(shellLink.put()));
@@ -332,8 +334,11 @@ void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path,
 		ComPtr<IPersistFile> persistFile;
 		hr = shellLink->QueryInterface(IID_PPV_ARGS(persistFile.put()));
 		if (SUCCEEDED(hr))
-			persistFile->Save(lnkPath.c_str(), TRUE);
+			hr = persistFile->Save(lnkPath.c_str(), TRUE);
 	}
+
+	if (FAILED(hr))
+		LogFStatic(L"Could not create link %s (HRESULT 0x%08X)", lnkPath.c_str(), hr);
 }
 
 wstring VoicemeeterAPOInfo::getLinkArgs(const wstring& lnkPath, wstring* path)

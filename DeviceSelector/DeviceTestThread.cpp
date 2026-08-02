@@ -22,6 +22,7 @@
 #include <helpers/RegistryHelper.h>
 #include <helpers/WindowsVersion.h>
 #include <helpers/ServiceHelper.h>
+#include <devices/DeviceAPOInfoKeys.h>
 #include <helpers/ComPtr.h>
 #include <ObjBase.h>
 #include "DeviceTestThread.h"
@@ -76,7 +77,7 @@ void DeviceTestThread::run()
 	try
 	{
 		emit log(tr("Restarting audio service..."));
-		ServiceHelper::restartService(L"AudioSrv");
+		ServiceHelper::restartService(audioServiceName);
 	}
 	catch (const ServiceException& e)
 	{
@@ -100,7 +101,7 @@ void DeviceTestThread::run()
 
 		try
 		{
-			RegistryHelper::writeValue(APP_REGPATH, L"DeviceTestPipeName", pipeName);
+			RegistryHelper::writeValue(APP_REGPATH, deviceTestPipeValueName, pipeName);
 		}
 		catch (const RegistryException& e)
 		{
@@ -111,7 +112,7 @@ void DeviceTestThread::run()
 		SCOPE_EXIT{
 			try
 			{
-				RegistryHelper::deleteValue(APP_REGPATH, L"DeviceTestPipeName");
+				RegistryHelper::deleteValue(APP_REGPATH, deviceTestPipeValueName);
 			}
 			catch (const RegistryException& e)
 			{
@@ -256,7 +257,7 @@ void DeviceTestThread::run()
 				try
 				{
 					emit log(tr("Restarting audio service..."));
-					ServiceHelper::restartService(L"AudioSrv");
+					ServiceHelper::restartService(audioServiceName);
 				}
 				catch (const ServiceException& e)
 				{

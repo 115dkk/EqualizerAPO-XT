@@ -85,7 +85,7 @@
 - `EngineOrchestrationTests`가 병렬 작업의 exactly-once 실행과 예외 합류/전파를 검사합니다.
 - `HybridConvTests`가 뒤쪽 슬롯을 먼저 초기화한 배열도 반복 정리 가능한지 검사합니다.
 - `EditorLogicTests`가 build plan의 descriptor/scope/dynamic-line 결과를 기존 계산과 대조합니다.
-- offscreen skin-switch test의 138-row 재구성 상한을 8초에서 4초로 낮췄습니다. 로컬 장시간 검증을 반복하지 않고 PR의 AVX2 CI를 성능·수명 회귀 판정 기준으로 사용합니다.
+- offscreen skin-switch test의 재구성 상한은 코드 기본 8초이고, CI는 `EAPO_SWITCH_LIMIT_MS=5000`/`EAPO_SWITCH_WARN_MS=2500`으로 조입니다(build.yml). 공유 러너의 속도 편차 때문에 한계는 환경 변수로 조정 가능하게 두었고, 로컬 장시간 검증을 반복하지 않고 PR의 AVX2 CI를 성능·수명 회귀 판정 기준으로 사용합니다. (감사 #250 F051: 이전 서술의 "4초"는 실제 CI 값과 어긋난 낡은 기록이었습니다.)
 
 ## 2026-07-16 공유 convolution 필터뱅크
 

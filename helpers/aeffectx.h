@@ -1,6 +1,12 @@
 /* An attempt at an untained clean room reimplementation of the widely popular VST 2.x SDK.
  * Copyright (c) 2020 Xaymar Dirks <info@xaymar.com> (previously known as Michael Fabian Dirks)
  *
+ * EqualizerAPO-XT fork note (audit #250 F062): vendored from the upstream
+ * clean-room header and extended in this repository with the
+ * double-precision processing surface (process_double and the
+ * supports-double effect flag) for the 64-bit engine. Diff against upstream
+ * before syncing a newer revision.
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
  * following conditions are met:
  *

@@ -368,6 +368,14 @@
     <ClInclude Include="helpers\aeffectx.h" />
     <ClInclude Include="helpers\ChannelHelper.h" />
     <ClInclude Include="helpers\ComBoundary.h" />
+    <ClInclude Include="helpers\ComPtr.h" />
+    <ClInclude Include="helpers\MxcsrGuard.h" />
+    <ClInclude Include="helpers\Win32Event.h" />
+    <ClInclude Include="helpers\PathHelper.h" />
+    <ClInclude Include="devices\DeviceAPOInfoKeys.h" />
+    <ClInclude Include="devices\DeviceInstallReport.h" />
+    <ClInclude Include="devices\VoicemeeterDetection.h" />
+    <ClInclude Include="libHybridConv-0.1.1\HcAlignedStorage.h" />
     <ClInclude Include="helpers\FileSharingRetry.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\IRegistry.h" />

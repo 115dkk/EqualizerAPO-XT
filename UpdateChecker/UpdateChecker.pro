@@ -32,6 +32,8 @@ SOURCES += \
 	UpdateInfoFormatter.cpp \
 	VelopackUpdateInfo.cpp \
 	AutoSizeTextEdit.cpp \
+	../helpers/LogHelper.cpp \
+	../helpers/RegistryHelper.cpp \
 	../helpers/StringHelper.cpp \
 	stdafx.cpp
 
@@ -41,6 +43,7 @@ HEADERS += \
 	UpdateInfoFormatter.h \
 	VelopackUpdateInfo.h \
 	AutoSizeTextEdit.h \
+	../helpers/LogHelper.h \
 	../helpers/StringHelper.h \
 	../helpers/RegistryHelper.h \
 	resource.h \
@@ -62,7 +65,7 @@ TRANSLATIONS += \
 INCLUDEPATH += $$PWD/..
 
 # Link against Common library and Windows libraries
-LIBS += -lSecur32 -ltaskschd Kernel32.lib version.lib oleaut32.lib Shlwapi.lib user32.lib advapi32.lib crypt32.lib uuid.lib authz.lib
+LIBS += -lSecur32 -ltaskschd Kernel32.lib version.lib ole32.lib oleaut32.lib Shlwapi.lib user32.lib advapi32.lib crypt32.lib uuid.lib authz.lib
 
 # Include Common.lib
 LIBS += Common.lib

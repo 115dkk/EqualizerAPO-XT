@@ -131,7 +131,18 @@ private:
 	static constexpr unsigned vst3ParameterEditQueueSize = 1024;
 	static constexpr int vst3MaxArrangementCandidates = 4;
 
-	bool initializeVST2();
+	// Audit #250 F040: the VST2 loader distinguishes its failure modes so
+	// initialize() can log the actual reason (the old bool collapsed every
+	// failure into "an exception").
+	enum class Vst2LoadResult
+	{
+		Loaded,
+		Crashed,
+		NoEntryPoint,
+		WrongMagicNumber
+	};
+
+	Vst2LoadResult initializeVST2();
 	bool initializeVST3();
 	void releaseVST3();
 	void configureVST3Buses(int requestedChannelCount);

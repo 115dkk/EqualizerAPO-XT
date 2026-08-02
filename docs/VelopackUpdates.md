@@ -2,7 +2,7 @@
 
 EqualizerAPO-XT publishes installers through the Velopack release job in GitHub Actions. Velopack creates channel-specific assets such as `releases.x64-avx2.json`, `EqualizerAPO-XT-x64-avx2-...-full.nupkg`, and `EqualizerAPO-XT-x64-avx2-Setup.exe`.
 
-`UpdateChecker.exe` now checks the latest GitHub Release for `115dkk/EqualizerAPO-XT` instead of the upstream SourceForge version endpoint. The existing scheduled task still runs it with `-a` at logon, keeps the 24 hour automatic-check throttle, and respects the locally skipped version.
+`UpdateChecker.exe` checks the latest GitHub Release for `115dkk/EqualizerAPO-XT` instead of the upstream SourceForge version endpoint. Its `-a` automatic mode keeps the 24 hour check throttle and respects the locally skipped version. Note (audit #250 F073): nothing registers a logon scheduled task for it anymore - that registration left with the NSIS installer. Automatic checking today is the Editor's in-app Velopack update; UpdateChecker is a manual discovery/notification tool until a logon check is deliberately reintroduced.
 
 The update flow is:
 
@@ -37,7 +37,7 @@ The single elevation is required even though Velopack itself is installed per-us
 
 This logic lives in `helpers/VelopackBootstrap.cpp` (`startBackgroundDownload`, `hasPendingUpdate`, `applyPendingUpdateAndExit`) and is wired into `Editor/main.cpp`. The channel is injected at build time with `EAPO_UPDATE_CHANNEL`, the same macro UpdateChecker uses.
 
-`UpdateChecker.exe` stays as a separate discovery/notification tool. It still runs at logon via the scheduled task, checks the GitHub release feed, and tells the user when a newer version is available; the Editor performs the actual download and apply.
+`UpdateChecker.exe` stays as a separate discovery/notification tool: run manually (or with `-a`), it checks the GitHub release feed and tells the user when a newer version is available; the Editor performs the actual download and apply.
 
 Tests for feed selection, channel matching, setup URL selection, and version comparison live in `Tests/EditorLogicTests`.
 

@@ -27,7 +27,8 @@
 #>
 param(
     [switch]$SkipQt,
-    [string]$QtVersion = "6.10.1",
+    # Audit #250 F059: empty means "use Shared.QtVersion from the manifest".
+    [string]$QtVersion = "",
     [ValidateSet("sse2", "avx", "avx2", "avx512", "avx10_1")]
     [string]$SimdVariant = "avx2",
     [ValidateSet("x64", "ARM64")]
@@ -42,6 +43,7 @@ $workspace = $PSScriptRoot
 # is the restricted-language loader, so this stays plain data.
 $manifestPath = Join-Path $workspace ".github\simd-variants.psd1"
 $simdManifest = Import-PowerShellDataFile -Path $manifestPath
+if (-not $QtVersion) { $QtVersion = $simdManifest.Shared.QtVersion }
 
 # Shared provisioning implementation (download+verify, vcpkg build, Qt install),
 # consumed by both this script and .github/workflows/build.yml so the two can
@@ -92,25 +94,49 @@ Write-Host "  Dependencies downloaded." -ForegroundColor Green
 # Pinned to the manifest's TclapTag, matching the build.yml checkout. Cached
 # clones are re-checked against the tag so a TclapTag bump actually takes
 # effect (the zip downloads above get the same treatment via SHA-256).
-Write-Host "`n=== Step 2: Clone TCLAP ===" -ForegroundColor Yellow
-$tclapTag = $simdManifest.Shared.TclapTag
-$tclapDir = Join-Path $depsDir "tclap"
-$tclapCachedTag = $null
-if ((Test-Path (Join-Path $tclapDir "include")) -and (Test-Path (Join-Path $tclapDir ".git"))) {
-    $tclapCachedTag = (git -C $tclapDir describe --tags --exact-match 2>$null)
-    if ($LASTEXITCODE -ne 0) { $tclapCachedTag = $null; $global:LASTEXITCODE = 0 }
-}
-if ($tclapCachedTag -eq $tclapTag -and $tclapCachedTag) {
-    Write-Host "  [cached] TCLAP already present at $tclapTag"
-} else {
-    if (Test-Path $tclapDir) {
-        Write-Host "  Cached TCLAP is not at $tclapTag; re-cloning..."
-        Remove-Item $tclapDir -Recurse -Force
+# Audit #250 F072/F058: one checkout routine for the three source
+# dependencies. All of them re-verify a cached checkout against the pinned
+# tag (previously only TCLAP did, so a tag bump left local trees stale), and
+# all of them assert the reviewed commit SHA from the manifest - a git tag is
+# movable, and a silently retargeted tag must fail here, not ship.
+function Sync-PinnedCheckout {
+    param(
+        [Parameter(Mandatory)] [string]$Name,
+        [Parameter(Mandatory)] [string]$RepoUrl,
+        [Parameter(Mandatory)] [string]$Tag,
+        [Parameter(Mandatory)] [string]$ExpectedCommit,
+        [Parameter(Mandatory)] [string]$CheckoutDir,
+        [Parameter(Mandatory)] [string]$ProbeFile
+    )
+
+    $cachedCommit = $null
+    if ((Test-Path (Join-Path $CheckoutDir $ProbeFile)) -and (Test-Path (Join-Path $CheckoutDir ".git"))) {
+        $cachedCommit = (git -C $CheckoutDir rev-parse HEAD 2>$null)
+        if ($LASTEXITCODE -ne 0) { $cachedCommit = $null; $global:LASTEXITCODE = 0 }
     }
-    git clone --depth 1 --branch $tclapTag https://github.com/115dkk/tclap $tclapDir
-    if ($LASTEXITCODE -ne 0) { throw "Failed to clone TCLAP" }
-    Write-Host "  -> $tclapDir"
+    if ($cachedCommit -eq $ExpectedCommit -and $cachedCommit) {
+        Write-Host "  [cached] $Name already present at $Tag ($ExpectedCommit)"
+        return
+    }
+
+    if (Test-Path $CheckoutDir) {
+        Write-Host "  Cached $Name is not at $Tag/$ExpectedCommit; re-cloning..."
+        Remove-Item $CheckoutDir -Recurse -Force
+    }
+    git clone --depth 1 --branch $Tag $RepoUrl $CheckoutDir
+    if ($LASTEXITCODE -ne 0) { throw "Failed to clone $Name" }
+
+    $actualCommit = (git -C $CheckoutDir rev-parse HEAD)
+    if ($actualCommit -ne $ExpectedCommit) {
+        throw "$Name tag $Tag resolved to $actualCommit, but the manifest pins $ExpectedCommit. The tag moved - review the diff and update simd-variants.psd1 deliberately."
+    }
+    Write-Host "  -> $CheckoutDir ($actualCommit)"
 }
+
+Write-Host "`n=== Step 2: Clone TCLAP ===" -ForegroundColor Yellow
+Sync-PinnedCheckout -Name "TCLAP" -RepoUrl "https://github.com/115dkk/tclap" `
+    -Tag $simdManifest.Shared.TclapTag -ExpectedCommit $simdManifest.Shared.TclapCommit `
+    -CheckoutDir (Join-Path $depsDir "tclap") -ProbeFile "include"
 
 # --- 2b. Clone VST3 SDK (pluginterfaces only) ---
 # VST3 hosting only needs the Steinberg pluginterfaces headers (COM-style interface
@@ -118,31 +144,19 @@ if ($tclapCachedTag -eq $tclapTag -and $tclapCachedTag) {
 # compiled, so we fetch just the pluginterfaces submodule. Pinned to the 3.8.0 tag,
 # which is the first MIT-licensed release (compatible with our GPLv2-or-later code).
 Write-Host "`n=== Step 2b: Clone VST3 SDK (pluginterfaces) ===" -ForegroundColor Yellow
-$vst3Tag = $simdManifest.Shared.Vst3Tag
 $vst3Dir = Join-Path $depsDir "vst3sdk"
-$vst3InterfacesDir = Join-Path $vst3Dir "pluginterfaces"
-if (Test-Path (Join-Path $vst3InterfacesDir "base\funknown.h")) {
-    Write-Host "  [cached] VST3 pluginterfaces already present"
-} else {
-    New-Item -ItemType Directory -Force -Path $vst3Dir | Out-Null
-    git clone --depth 1 --branch $vst3Tag https://github.com/steinbergmedia/vst3_pluginterfaces $vst3InterfacesDir
-    if ($LASTEXITCODE -ne 0) { throw "Failed to clone VST3 pluginterfaces" }
-    Write-Host "  -> $vst3InterfacesDir"
-}
+New-Item -ItemType Directory -Force -Path $vst3Dir | Out-Null
+Sync-PinnedCheckout -Name "VST3 pluginterfaces" -RepoUrl "https://github.com/steinbergmedia/vst3_pluginterfaces" `
+    -Tag $simdManifest.Shared.Vst3Tag -ExpectedCommit $simdManifest.Shared.Vst3Commit `
+    -CheckoutDir (Join-Path $vst3Dir "pluginterfaces") -ProbeFile "base\funknown.h"
 
 # --- 2c. Clone Google Highway (header-only portable SIMD) ---
 # The Common DSP kernels use Highway in static per-target dispatch mode, so only
 # the headers are needed (no libhwy build, no runtime dispatch table).
 Write-Host "`n=== Step 2c: Clone Highway ===" -ForegroundColor Yellow
-$highwayTag = $simdManifest.Shared.HighwayTag
-$highwayDir = Join-Path $depsDir "highway"
-if (Test-Path (Join-Path $highwayDir "hwy\highway.h")) {
-    Write-Host "  [cached] Highway already present"
-} else {
-    git clone --depth 1 --branch $highwayTag https://github.com/google/highway $highwayDir
-    if ($LASTEXITCODE -ne 0) { throw "Failed to clone Highway" }
-    Write-Host "  -> $highwayDir"
-}
+Sync-PinnedCheckout -Name "Highway" -RepoUrl "https://github.com/google/highway" `
+    -Tag $simdManifest.Shared.HighwayTag -ExpectedCommit $simdManifest.Shared.HighwayCommit `
+    -CheckoutDir (Join-Path $depsDir "highway") -ProbeFile "hwy\highway.h"
 
 # --- 3. Install Qt ---
 # $qtArchDir is also needed by the verification section below when Qt was

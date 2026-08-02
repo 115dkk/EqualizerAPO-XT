@@ -106,4 +106,4 @@ Qt 도구는 CI에서도, 문서화된 로컬 설정에서도 qmake로 빌드합
 
 ## 테스트
 
-`Tests/`에는 프로젝트 다섯 개가 있습니다. `EditorLogicTests`와 `HybridConvTests`(단위 테스트), `EngineOrchestrationTests`(엔진 라우팅과 설정 교체 동작), `AudioRegressionTests`(엔진 출력을 커밋된 참조 데이터와 비교하며, CI에서는 SIMD 변형별로도 실행), `TestVst2Plugin`(VST2 호스트를 런타임에 시험하기 위한 자체 빌드 플러그인)입니다. 변형별 테스트 정책은 [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md)에 함께 있습니다.
+`Tests/`에는 프로젝트 여섯 개가 있습니다. `EditorLogicTests`와 `HybridConvTests`(단위 테스트), `EngineOrchestrationTests`(엔진 라우팅과 설정 교체 동작), `AudioRegressionTests`(엔진 출력을 커밋된 참조 데이터와 비교하며, CI에서는 SIMD 변형별로도 실행), `TestVst2Plugin`/`TestVst3Plugin`(VST2·VST3 호스트를 런타임에 시험하기 위한 자체 빌드 플러그인)입니다. 변형별 테스트 정책은 [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md)에 함께 있습니다.

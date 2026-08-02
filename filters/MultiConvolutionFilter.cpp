@@ -244,7 +244,8 @@ void MultiConvolutionFilter::cleanup()
 	// It runs before the members are cleared so the initialized block size is
 	// still available.
 	if (frameCountMismatchLogged)
-		LogF(L"MultiConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls: %llu total]",
+		LogF(L"%s %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls: %llu total]",
+			kFrameCountMismatchLogPrefix,
 			multiFirstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
 			multiMuteCallCount.load(std::memory_order_relaxed));
 	frameCountMismatchLogged = false;

@@ -56,10 +56,15 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		if (!initialized.load(std::memory_order_relaxed))
 		{
 			wchar_t temp[255];
-			GetTempPathW(sizeof(temp) / sizeof(wchar_t), temp);
+			// Audit #250 F042: an unchecked failure used to leave `temp`
+			// uninitialized and the log path garbage - and that failure was
+			// itself unobservable. With no temp path, run without a file.
+			if (GetTempPathW(sizeof(temp) / sizeof(wchar_t), temp) == 0)
+				temp[0] = L'\0';
 
 			logPath = temp;
-			logPath += L"EqualizerAPO.log";
+			if (!logPath.empty())
+				logPath += L"EqualizerAPO.log";
 
 			// Publish before the registry probe, and do not try to initialize
 			// again even in case of error: the catch below logs through

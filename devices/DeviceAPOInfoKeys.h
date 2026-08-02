@@ -7,11 +7,22 @@
 #define protectedDGKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio"
 #define protectedDGValueName L"DisableProtectedAudioDG"
 #define apoRegistrationKeyPath L"HKEY_CLASSES_ROOT\\AudioEngine\\AudioProcessingObjects"
-#define clsidKeyPath L"HKEY_CLASSES_ROOT\\CLSID"
+// Audit #250 F022: DllRegisterServer writes this tree as
+// HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID; readers used to spell it
+// HKEY_CLASSES_ROOT\CLSID. Same physical key on a real machine, but a fake
+// registry cannot know that - one spelling everywhere.
+#define clsidKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID"
 #define commonKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\MMDevices\\Audio"
 #define renderKeyPath commonKeyPath L"\\Render"
 #define captureKeyPath commonKeyPath L"\\Capture"
 #define childApoPath APP_REGPATH L"\\Child APOs"
+
+// Audit #250 F020: vocabulary shared across binaries. The pipe name is the
+// DeviceSelector <-> APO DLL test protocol (a divergent copy means the device
+// test silently never answers); the service name is what every restart path
+// asks the SCM for.
+inline constexpr wchar_t deviceTestPipeValueName[] = L"DeviceTestPipeName";
+inline constexpr wchar_t audioServiceName[] = L"AudioSrv";
 
 inline constexpr wchar_t preMixChildGuidValueName[] = L"PreMixChild";
 inline constexpr wchar_t postMixChildGuidValueName[] = L"PostMixChild";

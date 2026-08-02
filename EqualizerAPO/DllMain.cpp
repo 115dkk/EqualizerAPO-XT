@@ -80,7 +80,13 @@ STDAPI DllGetClassObject(const CLSID& clsid, const IID& iid, void** ppv)
 STDAPI DllRegisterServer()
 {
 	wchar_t filename[1024];
-	GetModuleFileNameW(hModule, filename, sizeof(filename) / sizeof(wchar_t));
+	// Audit #250 F036: an unchecked failure here would register an
+	// uninitialized path as the InprocServer32 below.
+	if (GetModuleFileNameW(hModule, filename,
+		sizeof(filename) / sizeof(wchar_t)) == 0)
+	{
+		return HRESULT_FROM_WIN32(GetLastError());
+	}
 
 	HRESULT hr = RegisterAPO(EqualizerAPO::regPostMixProperties);
 	if (FAILED(hr))

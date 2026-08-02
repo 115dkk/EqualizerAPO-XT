@@ -31,6 +31,7 @@
 
 #include "LogHelper.h"
 #include "Win32Resource.h"
+#include "PathHelper.h"
 
 namespace
 {
@@ -59,20 +60,9 @@ std::wstring systemPath()
 	return std::wstring(buffer, length);
 }
 
-std::wstring joinPath(const std::wstring& directory, const std::wstring& leaf)
-{
-	if (directory.empty())
-		return leaf;
-	wchar_t last = directory.back();
-	if (last == L'\\' || last == L'/')
-		return directory + leaf;
-	return directory + L"\\" + leaf;
-}
-
-bool pathExists(const std::wstring& path)
-{
-	return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
-}
+// Audit #250 F018: the shared path vocabulary lives in PathHelper.h.
+using pathutil::joinPath;
+using pathutil::pathExists;
 
 // Runs a system tool to completion and returns its exit code, or -1 when it
 // could not be started or timed out. Moved here with the icacls calls it exists
@@ -278,11 +268,16 @@ Grant grantEngineAccess(const std::wstring& installRoot)
 
 Grant grantConfigAccess(const std::wstring& configDir)
 {
-	// Full control for Users because this is the directory they edit configs in,
-	// and modify for LOCAL SERVICE because audiodg both reads the configs and
+	// Modify for Users because this is the directory they edit configs in,
+	// and for LOCAL SERVICE because audiodg both reads the configs and
 	// writes the APO trace log next to them.
+	//
+	// Audit #250 F043: Users used to get F (full control), which includes
+	// WRITE_DAC/WRITE_OWNER - any standard user could re-ACL the directory
+	// and cut LOCAL SERVICE's read, silencing the whole APO. M covers every
+	// operation config editing actually needs.
 	const std::wstring grants =
-		L"/grant " + std::wstring(kUsersSid) + L":(OI)(CI)F "
+		L"/grant " + std::wstring(kUsersSid) + L":(OI)(CI)M "
 		L"/grant " + std::wstring(kLocalServiceSid) + L":(OI)(CI)M";
 	return applyGrant(configDir, grants);
 }

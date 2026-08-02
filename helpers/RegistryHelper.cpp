@@ -65,6 +65,12 @@ wstring RegistryHelper::readValue(const wstring& key, const wstring& valuename)
 		throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": " + StringHelper::getSystemErrorString(status));
 	}
 
+	// Audit #250 F038: a zero-length REG_SZ used to underflow the
+	// termination check's index (bufSize / sizeof(wchar_t) - 1) into an
+	// out-of-bounds read. An empty value is simply the empty string.
+	if (bufSize < sizeof(wchar_t))
+		return wstring();
+
 	// Remove zero-termination
 	if (buf[bufSize / sizeof(wchar_t) - 1] == L'\0')
 		bufSize -= sizeof(wchar_t);

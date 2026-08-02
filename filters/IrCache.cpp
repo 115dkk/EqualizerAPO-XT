@@ -238,7 +238,7 @@ HConvSingleArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sou
 	ParallelExecutor::forEach(prototypes.size(), [&](size_t index) {
 		const unsigned unit = prototypes[index];
 		const ConvolverUnitSource& source = sources[unit];
-		hcInitSingle(&result[unit], const_cast<double*>(source.samples),
+		hcInitSingle(&result[unit], source.samples,
 			static_cast<int>(source.sampleCount), static_cast<int>(frameCount), 1);
 	});
 	for (unsigned unit = 0; unit < sources.size(); ++unit)

@@ -37,27 +37,13 @@
 // Velopack.hpp pulls in the C ABI header; include it after windows.h so the
 // platform headers resolve in the expected order.
 #include <Velopack.hpp>
+#include "PathHelper.h"
 
 namespace
 {
-std::wstring exeDirectory()
-{
-	wchar_t buffer[MAX_PATH];
-	DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
-	if (length == 0)
-		return std::wstring();
-	std::wstring path(buffer, length);
-	size_t slash = path.find_last_of(L"\\/");
-	if (slash == std::wstring::npos)
-		return std::wstring();
-	return path.substr(0, slash);
-}
-
-bool fileExists(const std::wstring& path)
-{
-	DWORD attrs = GetFileAttributesW(path.c_str());
-	return attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
-}
+// Audit #250 F018: the shared path vocabulary lives in PathHelper.h.
+using pathutil::exeDirectory;
+using pathutil::fileExists;
 
 bool isCurrentProcessElevated()
 {

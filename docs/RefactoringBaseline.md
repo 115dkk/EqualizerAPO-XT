@@ -2,7 +2,7 @@
 
 This pass turns the initial "prepare the codebase before serious builds" TODO into explicit, reviewable structure. The work is spread across focused commits instead of one broad rewrite, but the baseline is now concrete:
 
-- Audio regression tests exist in `Tests/HybridConvTests` and are wired into the solution and CI.
+- Audio regression tests exist (today in `Tests/AudioRegressionTests`; at the time of this baseline they started inside `Tests/HybridConvTests`) and are wired into the solution and CI.
 - GUI/update logic tests exist in `Tests/EditorLogicTests` and cover non-audio helper behavior without launching Qt dialogs.
 - Convolution path handling is isolated in `ConvolutionFilePath` and `ConvolutionPathHelper` instead of being duplicated in parser and GUI code.
 - Update release-note formatting is isolated in `UpdateInfoFormatter`, making escaping and skip-version behavior testable.

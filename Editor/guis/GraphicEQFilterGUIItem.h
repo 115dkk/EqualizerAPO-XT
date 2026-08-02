@@ -27,7 +27,7 @@ public:
 	GraphicEQFilterGUIItem(int index, double hz, double db);
 
 	enum {Type = UserType + 2};
-	virtual int type() const
+	int type() const override
 	{
 		return Type;
 	}

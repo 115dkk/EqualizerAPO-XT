@@ -32,6 +32,8 @@ bool suffixNumber(const std::wstring& source, const std::wstring& suffix,
 	}
 	if (text.empty())
 		return false;
+	// Audit #250 F015: accept the decimal comma like the BiQuad family.
+	text = StringHelper::normalizeDecimalComma(text);
 	wchar_t* end = nullptr;
 	out = wcstod(text.c_str(), &end);
 	return end != text.c_str() && *end == L'\0' && std::isfinite(out);

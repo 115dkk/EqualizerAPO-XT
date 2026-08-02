@@ -522,6 +522,11 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		// inside. The fault repeats per block, so a one-shot flag loses nothing.
 		reportCrash = false;
 
+		// Audit #250 F032: stop re-entering the plugin that just faulted -
+		// every later block takes the pass-through fast path above instead
+		// of stepping back into dead code.
+		skipProcessing = true;
+
 		for (unsigned i = 0; i < channelCount; i++)
 			std::copy_n(input[i], frameCount, output[i]);
 	}

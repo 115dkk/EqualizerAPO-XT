@@ -268,7 +268,9 @@ Describe "Bump-Version.ps1" {
             Add-FixtureCommit -Repo $repo -Subject "feat: something"
             $r = Invoke-Bump -Repo $repo
             $r.ExitCode | Should -Not -Be 0
-            $r.Output | Should -Match "Could not find version part REVISION"
+            # Audit #250 F069: the message comes from the unified parser in
+            # Get-VersionPart.ps1 now.
+            $r.Output | Should -Match "Could not find version part: REVISION"
         }
     }
 }

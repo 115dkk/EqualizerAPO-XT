@@ -28,6 +28,7 @@
 #include "UpdateChecker.h"
 #include "UpdateInfoFormatter.h"
 #include "VelopackUpdateInfo.h"
+#include "helpers/LogHelper.h"
 #include "version.h"
 #include "Editor/helpers/QtAppBootstrap.h"
 
@@ -64,9 +65,8 @@ int main(int argc, char* argv[])
 	parser.process(app);
 	bool autoMode = parser.isSet(autoOption);
 
-	QString version = QString("%0.%1").arg(MAJOR).arg(MINOR);
-	if (REVISION != 0)
-		version += QString(".%0").arg(REVISION);
+	// Audit #250 F019: one display-version rule for all binaries (version.h).
+	QString version = QString::fromStdWString(eapoDisplayVersionW());
 
 	QString channel = VelopackUpdateInfo::defaultChannel();
 	QString url = VelopackUpdateInfo::githubLatestReleaseUrl(EAPO_REPO_SLUG);
@@ -78,10 +78,20 @@ int main(int argc, char* argv[])
 
 		if (lastCheckDate.isValid() && lastCheckDate.toUTC().daysTo(QDateTime::currentDateTimeUtc()) < 1)
 			return 1;
-		settings.setValue("lastCheckDate", QDateTime::currentDateTime(QTimeZone::systemTimeZone()).toString(Qt::DateFormat::ISODate));
 
 		skipVersion = settings.value("skipVersion").toString();
 	}
+
+	// Audit #250 F039: the date used to be stamped before the request, so a
+	// failed check also suppressed retries for 24 hours. Stamp it only once
+	// a check actually completed.
+	auto markCheckCompleted = [&]()
+	{
+		if (!autoMode)
+			return;
+		QSettings settings(QString::fromWCharArray(UPDATE_CHECKER_REGPATH), QSettings::NativeFormat);
+		settings.setValue("lastCheckDate", QDateTime::currentDateTime(QTimeZone::systemTimeZone()).toString(Qt::DateFormat::ISODate));
+	};
 
 	QNetworkAccessManager manager;
 	int result = 0;
@@ -96,10 +106,14 @@ int main(int argc, char* argv[])
 	QByteArray json = readUpdateUrl(manager, url, autoMode, &requestOk, &requestError);
 	if (!requestOk)
 	{
+		// Audit #250 F039: with the failure dialog dismissed forever, a
+		// broken check used to be completely silent. The log survives it.
+		LogFStatic(L"Update check failed: %s", requestError.toStdWString().c_str());
 		showFailureMessage(requestError, UpdateChecker::tr("Error while checking for update"));
 	}
 	else if (json.isEmpty())
 	{
+		markCheckCompleted();
 		showNoUpdateMessage();
 	}
 	else
@@ -108,10 +122,12 @@ int main(int argc, char* argv[])
 		QJsonDocument rawDoc = QJsonDocument::fromJson(json, &error);
 		if (error.error != QJsonParseError::NoError)
 		{
+			LogFStatic(L"Update response could not be parsed: %s", error.errorString().toStdWString().c_str());
 			showFailureMessage(error.errorString(), UpdateChecker::tr("Error while reading response of update check"));
 		}
 		else
 		{
+			markCheckCompleted();
 			QJsonDocument updateDoc = rawDoc;
 			if (VelopackUpdateInfo::isGitHubRelease(rawDoc))
 			{
@@ -194,6 +210,13 @@ QByteArray readUpdateUrl(QNetworkAccessManager& manager, const QString& url, boo
 
 	if (reply == nullptr || !reply->isFinished())
 	{
+		// Audit #250 F041: the last attempt's still-running reply used to be
+		// abandoned without abort/deleteLater.
+		if (reply != nullptr)
+		{
+			reply->abort();
+			reply->deleteLater();
+		}
 		if (errorMessage != nullptr)
 			*errorMessage = UpdateChecker::tr("The update check timed out.");
 		return QByteArray();

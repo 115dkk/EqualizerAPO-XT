@@ -127,7 +127,7 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	// --- Phase 3: De-interleave FFTW complex output into planar real/imag ---
 	size_t j = 0;
 	fftw_complex* dft_freq = filter->dft_freq;
-	const double* dft_freq_d = (const double*)dft_freq;
+	const double* dft_freq_d = reinterpret_cast<const double*>(dft_freq);
 
 	// Planar split via one interleaved load: [r0 i0 r1 i1 ...] -> re[], im[].
 	// LoadInterleaved2 is a pure shuffle, so this is bit-identical on every target.
@@ -171,8 +171,8 @@ void hcProcessSingle(HConvSingle* filter)
 		// For large filter banks, prefetch 2 segments ahead for better performance.
 		const int prefetch_distance = (stop - start > 4) ? 2 : 1;
 		if (s + prefetch_distance < stop) {
-			_mm_prefetch((char const*)(filter->filterbuf_freq_real[s + prefetch_distance]), _MM_HINT_T0);
-			_mm_prefetch((char const*)(filter->filterbuf_freq_imag[s + prefetch_distance]), _MM_HINT_T0);
+			_mm_prefetch(reinterpret_cast<const char*>(filter->filterbuf_freq_real[s + prefetch_distance]), _MM_HINT_T0);
+			_mm_prefetch(reinterpret_cast<const char*>(filter->filterbuf_freq_imag[s + prefetch_distance]), _MM_HINT_T0);
 		}
 #endif
 
@@ -270,7 +270,7 @@ void hcGetSingle(HConvSingle* filter, double* y)
 	int flen = filter->framelength;
 	int mpos = filter->mixpos;
 
-	double* out = filter->dft_time;        // length = 2*flen
+	const double* out = filter->dft_time;        // length = 2*flen
 	double* hist = filter->history_time;    // length = flen
 
 	// Move one frequency frame from mixbuf -> dft_freq and zero the source.
@@ -307,7 +307,7 @@ void hcGetAddSingle(HConvSingle* filter, double* y)
 	int flen = filter->framelength;
 	int mpos = filter->mixpos;
 
-	double* out = filter->dft_time;        // length = 2*flen
+	const double* out = filter->dft_time;        // length = 2*flen
 	double* hist = filter->history_time;    // length = flen
 
 	// Move one frequency frame from mixbuf -> dft_freq and zero the source.
@@ -354,7 +354,7 @@ static inline void copy_split_complex_vec(const fftw_complex* __restrict src,
 	double* __restrict im,
 	int n_complex)
 {
-	const double* s = (const double*)src;
+	const double* s = reinterpret_cast<const double*>(src);
 	const hn::ScalableTag<double> d;
 	const int N = (int)hn::Lanes(d);
 	int j = 0;
@@ -503,7 +503,7 @@ namespace
 
 	void transformFilterBank(
 		PendingSingle& pending,
-		HConvFilterBankStorage& bank,
+		const HConvFilterBankStorage& bank,
 		const double* impulse,
 		int impulseLength)
 	{
@@ -547,7 +547,7 @@ namespace
 	}
 }
 
-void hcInitSingle(HConvSingle* filter, double* h, int hlen, int flen, int steps)
+void hcInitSingle(HConvSingle* filter, const double* h, int hlen, int flen, int steps)
 {
 	if (filter == nullptr)
 		throw std::invalid_argument("hcInitSingle requires an output filter");

@@ -32,6 +32,17 @@ using namespace Steinberg::Vst;
 
 namespace
 {
+	// Audit #250 F047: VST3's String128 carries no termination promise (the
+	// VST2 side already force-terminates its buffers). Bound the read.
+	wstring fromString128(const String128& text)
+	{
+		const wchar_t* characters = (const wchar_t*)text;
+		size_t length = 0;
+		while (length < 128 && characters[length] != L'\0')
+			++length;
+		return wstring(characters, length);
+	}
+
 	bool decodeBase64(const wstring& encoded, vector<char>& decoded)
 	{
 		DWORD requiredSize = 0;
@@ -238,7 +249,7 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 				{
 					ParameterInfo info;
 					if (vst3Controller->getParameterInfo(i, info) == kResultOk
-						&& it.first == wstring((wchar_t*)info.title))
+						&& it.first == fromString128(info.title))
 					{
 						vst3Controller->setParamNormalized(info.id, it.second);
 						queueVST3ParameterEdit(info.id, it.second);
@@ -324,7 +335,7 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 			{
 				ParameterInfo info;
 				if (vst3Controller->getParameterInfo(i, info) == kResultOk)
-					paramMap[wstring((wchar_t*)info.title)] = (float)vst3Controller->getParamNormalized(info.id);
+					paramMap[fromString128(info.title)] = (float)vst3Controller->getParamNormalized(info.id);
 			}
 		}
 		return;

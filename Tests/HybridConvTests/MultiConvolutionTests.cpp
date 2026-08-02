@@ -115,7 +115,9 @@ void assertMismatchIsLoggedAndProfiled()
 	std::fclose(logFile);
 	LogHelper::useStream(stdout, true, true, false);
 
-	const std::wstring marker = L"MultiConvolutionFilter: frameCount";
+	// Audit #250 F058t: the marker is the filter's own constant, so a
+	// wording edit cannot silently detach this assertion from the code.
+	const std::wstring marker = MultiConvolutionFilter::kFrameCountMismatchLogPrefix;
 	const size_t first = log.find(marker);
 	harness.expectTrue(first != std::string::npos,
 		"MultiConvolution frame-count mismatch is logged");

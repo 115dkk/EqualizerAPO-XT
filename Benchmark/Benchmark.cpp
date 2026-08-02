@@ -58,10 +58,9 @@ int main(int argc, char** argv)
 {
 	try
 	{
+		// Audit #250 F019: one display-version rule for all binaries (version.h).
 		stringstream versionStream;
-		versionStream << MAJOR << "." << MINOR;
-		if (REVISION != 0)
-			versionStream << "." << REVISION;
+		versionStream << eapoDisplayVersion();
 		TCLAP::CmdLine cmd("Benchmark generates a linear sine sweep or reads from the given input file. "
 			"It then filters the waveform using the Equalizer APO filter configuration "
 			"and finally writes to the given file or into the user's temp directory.", ' ', versionStream.str());
@@ -100,10 +99,7 @@ int main(int argc, char** argv)
 		float length;
 		vector<float> buf;
 
-		if (REVISION == 0)
-			cout << "Benchmark " << MAJOR << "." << MINOR << "\n";
-		else
-			cout << "Benchmark " << MAJOR << "." << MINOR << "." << REVISION << "\n";
+		cout << "Benchmark " << eapoDisplayVersion() << "\n";
 
 		cout << "Run \"" << argv[0] << " -h\" to show usage info\n\n";
 

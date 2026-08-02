@@ -168,25 +168,40 @@ void FilterEngine::finishTransitionIfReady()
 
 void FilterEngine::notificationThread(FilterEngine* engine)
 {
-	ConfigWatcher watcher(
-		engine->configChannel.shutdownHandle(),
-		[engine] {
-			ConfigWatcher::Snapshot snapshot;
-			lock_guard<mutex> lock(engine->loadMutex);
-			snapshot.directory = engine->configPath;
-			snapshot.registryKeys.assign(
-				engine->watchRegistryKeys.begin(),
-				engine->watchRegistryKeys.end());
-			return snapshot;
-		},
-		[engine] {
-			if (!engine->acquireLoadPermit())
-				return false;
+	// Audit #250 F030: this is a std::thread body inside audiodg. An
+	// exception escaping it (Win32Event construction, allocation in the
+	// snapshot lambda) would reach std::terminate and take the audio
+	// engine down with it. Watching stops, but the stream must survive.
+	try
+	{
+		ConfigWatcher watcher(
+			engine->configChannel.shutdownHandle(),
+			[engine] {
+				ConfigWatcher::Snapshot snapshot;
+				lock_guard<mutex> lock(engine->loadMutex);
+				snapshot.directory = engine->configPath;
+				snapshot.registryKeys.assign(
+					engine->watchRegistryKeys.begin(),
+					engine->watchRegistryKeys.end());
+				return snapshot;
+			},
+			[engine] {
+				if (!engine->acquireLoadPermit())
+					return false;
 
-			const bool loaded = engine->loadConfig();
-			if (!loaded)
-				engine->releaseLoadPermit();
-			return true;
-		});
-	watcher.run();
+				const bool loaded = engine->loadConfig();
+				if (!loaded)
+					engine->releaseLoadPermit();
+				return true;
+			});
+		watcher.run();
+	}
+	catch (const exception& e)
+	{
+		LogFStatic(L"Configuration watcher stopped by exception: %S", e.what());
+	}
+	catch (...)
+	{
+		LogFStatic(L"Configuration watcher stopped by an unknown exception");
+	}
 }

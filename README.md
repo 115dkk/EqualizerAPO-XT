@@ -118,4 +118,4 @@ Qt tools are built through qmake in CI and in the documented local setup. A full
 
 ## Tests
 
-`Tests/` holds five projects: `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing and config-swap behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI), and `TestVst2Plugin` (a self-built plug-in used to test the VST2 host at runtime). Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
+`Tests/` holds six projects: `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing and config-swap behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI), and `TestVst2Plugin` / `TestVst3Plugin` (self-built plug-ins used to test the VST2 and VST3 hosts at runtime). Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
