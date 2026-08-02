@@ -142,11 +142,10 @@ void SoftBassManagementCardView::applyState(
 	}
 	else
 	{
-		const double cornerHz = state.lowPassHz > 0.0
-			? state.lowPassHz
-			: state.highPassHz;
-		headline = tr("Bass below %1 plays on the subwoofer.")
-			.arg(formatHz(cornerHz));
+		// The crossover corner already lives in the card header summary;
+		// repeating it here would make the sentence a dressed-up HP/LP
+		// readout (review round 3). The sentence states the outcome.
+		headline = tr("Bass plays on the subwoofer.");
 		if (hasWarning)
 		{
 			caption = state.warningText;

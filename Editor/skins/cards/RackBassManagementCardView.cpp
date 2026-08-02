@@ -287,17 +287,23 @@ RackCrossoverReadout::RackCrossoverReadout(QWidget* parent)
 
 void RackCrossoverReadout::setReadout(
 	const QString& newCaption,
-	const QString& newValue)
+	const QString& newPrimary,
+	const QString& newSecondary)
 {
-	if (caption == newCaption && value == newValue)
+	if (caption == newCaption && primary == newPrimary
+		&& secondary == newSecondary)
+	{
 		return;
+	}
 
 	caption = newCaption;
-	value = newValue;
+	primary = newPrimary;
+	secondary = newSecondary;
 
-	const QString description = tr("%1 corner frequency: %2")
-		.arg(caption, value);
-	setAccessibleName(tr("%1 crossover").arg(caption));
+	const QString description = secondary.isEmpty()
+		? tr("%1: %2").arg(caption, primary)
+		: tr("%1: %2, %3").arg(caption, primary, secondary);
+	setAccessibleName(caption);
 	setAccessibleDescription(description);
 	setToolTip(description);
 	updateGeometry();
@@ -320,23 +326,29 @@ QSize RackCrossoverReadout::sizeHint() const
 	const QFontMetrics valueMetrics(valueFont());
 	const int contentWidth = qMax(
 		captionMetrics.horizontalAdvance(caption),
-		valueMetrics.horizontalAdvance(value));
+		qMax(valueMetrics.horizontalAdvance(primary),
+			valueMetrics.horizontalAdvance(secondary)));
+	const int lines = secondary.isEmpty() ? 1 : 2;
 
 	return QSize(
-		qMax(GUIHelper::scale(112.0), contentWidth + GUIHelper::scale(20.0)),
-		GUIHelper::scale(46.0));
+		qMax(GUIHelper::scale(132.0), contentWidth + GUIHelper::scale(20.0)),
+		GUIHelper::scale(lines == 1 ? 46.0 : 62.0));
 }
 
 QSize RackCrossoverReadout::minimumSizeHint() const
 {
 	// The value is the instrument: never let the layout squeeze the readout
-	// below what its current value needs, or "80 Hz" degrades into "80..."
-	// while decorative neighbours keep their width.
+	// below what its current value needs, or "80 Hz LR4" degrades into
+	// "80..." while decorative neighbours keep their width.
 	const QFontMetrics valueMetrics(valueFont());
+	const int contentWidth = qMax(
+		valueMetrics.horizontalAdvance(primary),
+		valueMetrics.horizontalAdvance(secondary));
+	const int lines = secondary.isEmpty() ? 1 : 2;
 	return QSize(
-		qMax(GUIHelper::scale(82.0),
-			valueMetrics.horizontalAdvance(value) + GUIHelper::scale(14.0)),
-		GUIHelper::scale(42.0));
+		qMax(GUIHelper::scale(96.0),
+			contentWidth + GUIHelper::scale(14.0)),
+		GUIHelper::scale(lines == 1 ? 42.0 : 58.0));
 }
 
 void RackCrossoverReadout::paintEvent(QPaintEvent* event)
@@ -357,83 +369,60 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 	const qreal bottomPadding = GUIHelper::scale(2.0);
 	const qreal availableHeight =
 		height() - topPadding - bottomPadding;
-	const qreal requiredHeight =
-		captionMetrics.height() + valueMetrics.height() +
-		GUIHelper::scale(4.0);
+	const qreal contentWidth =
+		qMax<qreal>(0.0, width() - horizontalPadding * 2.0);
 
-	if (availableHeight < requiredHeight)
-	{
-		if (availableHeight >= valueMetrics.height())
-		{
-			const QRectF valueRect(
-				horizontalPadding,
-				topPadding,
-				qMax<qreal>(0.0, width() - horizontalPadding * 2.0),
-				availableHeight);
-			const QString shown = fittedText(
-				value,
-				valueFace,
-				valueRect.width());
-			drawEngravedText(
-				painter,
-				this,
-				valueRect,
-				Qt::AlignHCenter |
-					Qt::AlignVCenter |
-					Qt::TextSingleLine,
-				shown,
-				valueFace,
-				textInk);
-		}
-
-		return;
-	}
-
-	// The engraved caption over the value readout, nothing else. The old
+	// The engraved caption over the readout lines, nothing else. The old
 	// printed scale pointed at nothing (no knob rides it on a read-only
-	// card) and a fake legend is not hardware - review round 2 removed it.
-	const QRectF captionRect(
-		horizontalPadding,
-		topPadding,
-		qMax<qreal>(0.0, width() - horizontalPadding * 2.0),
-		captionMetrics.height() + GUIHelper::scale(1.0));
-	const QString shownCaption = fittedText(
-		caption,
-		captionFace,
-		captionRect.width());
-	drawEngravedText(
-		painter,
-		this,
-		captionRect,
-		Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextSingleLine,
-		shownCaption,
-		captionFace,
-		mutedInk);
-
-	const qreal valueTop =
-		captionRect.bottom() + GUIHelper::scale(3.0);
-	const QRectF valueRect(
-		horizontalPadding,
-		valueTop,
-		qMax<qreal>(0.0, width() - horizontalPadding * 2.0),
-		qMax<qreal>(0.0, height() - bottomPadding - valueTop));
-	const QString shownValue = fittedText(
-		value,
-		valueFace,
-		valueRect.width());
-
-	if (valueRect.height() >= valueMetrics.height())
+	// card) and a fake legend is not hardware - review rounds 2 and 3
+	// removed the scale and folded the two per-type meters into one.
+	qreal cursorY = topPadding;
+	if (availableHeight >= captionMetrics.height()
+		+ valueMetrics.height() + GUIHelper::scale(4.0))
 	{
+		const QRectF captionRect(
+			horizontalPadding,
+			cursorY,
+			contentWidth,
+			captionMetrics.height() + GUIHelper::scale(1.0));
 		drawEngravedText(
 			painter,
 			this,
-			valueRect,
+			captionRect,
+			Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextSingleLine,
+			fittedText(caption, captionFace, captionRect.width()),
+			captionFace,
+			mutedInk);
+		cursorY = captionRect.bottom() + GUIHelper::scale(3.0);
+	}
+
+	const QString lines[] = {primary, secondary};
+	for (const QString& line : lines)
+	{
+		if (line.isEmpty())
+			continue;
+		if (height() - bottomPadding - cursorY
+			< valueMetrics.height())
+		{
+			break;
+		}
+
+		const QRectF lineRect(
+			horizontalPadding,
+			cursorY,
+			contentWidth,
+			valueMetrics.height());
+		drawEngravedText(
+			painter,
+			this,
+			lineRect,
 			Qt::AlignHCenter |
 				Qt::AlignVCenter |
 				Qt::TextSingleLine,
-			shownValue,
+			fittedText(line, valueFace, lineRect.width()),
 			valueFace,
 			textInk);
+		cursorY = lineRect.bottom() + GUIHelper::scale(2.0);
 	}
 }
 
@@ -1032,15 +1021,9 @@ RackBassManagementCardView::RackBassManagementCardView(QWidget* parent)
 	instrumentLayout->setContentsMargins(0, 0, 0, 0);
 	instrumentLayout->setSpacing(GUIHelper::scale(8.0));
 
-	highPassReadout = new RackCrossoverReadout(instrumentWidget);
+	crossoverReadout = new RackCrossoverReadout(instrumentWidget);
 	instrumentLayout->addWidget(
-		highPassReadout,
-		1,
-		Qt::AlignVCenter);
-
-	lowPassReadout = new RackCrossoverReadout(instrumentWidget);
-	instrumentLayout->addWidget(
-		lowPassReadout,
+		crossoverReadout,
 		1,
 		Qt::AlignVCenter);
 
@@ -1090,12 +1073,10 @@ RackBassManagementCardView::RackBassManagementCardView(QWidget* parent)
 			profileLabel->update();
 			validityLabel->update();
 			statusLabel->update();
-			highPassReadout->updateGeometry();
-			lowPassReadout->updateGeometry();
+			crossoverReadout->updateGeometry();
 			lfeLamp->updateGeometry();
 			headroomMeter->updateGeometry();
-			highPassReadout->update();
-			lowPassReadout->update();
+			crossoverReadout->update();
 			lfeLamp->update();
 			headroomMeter->update();
 			headerWidget->update();
@@ -1252,16 +1233,41 @@ void RackBassManagementCardView::applyState(
 	layoutLabel->setAccessibleDescription(layoutDescription);
 	layoutLabel->setToolTip(layoutDescription);
 
-	highPassReadout->setReadout(
-		tr("HP"),
-		state.highPassHz > 0.0
-			? formatHz(state.highPassHz)
-			: tr("None"));
-	lowPassReadout->setReadout(
-		tr("LP"),
-		state.lowPassHz > 0.0
-			? formatHz(state.lowPassHz)
-			: tr("None"));
+	// One crossover instrument: HP and LP lines with their recognized
+	// alignment labels; a full-range state engraves exactly that.
+	QString highPassLine;
+	if (state.highPassHz > 0.0)
+	{
+		highPassLine = state.highPassSlope.isEmpty()
+			? tr("HP %1").arg(formatHz(state.highPassHz))
+			: tr("HP %1 %2").arg(formatHz(state.highPassHz),
+				state.highPassSlope);
+	}
+	QString lowPassLine;
+	if (state.lowPassHz > 0.0)
+	{
+		lowPassLine = state.lowPassSlope.isEmpty()
+			? tr("LP %1").arg(formatHz(state.lowPassHz))
+			: tr("LP %1 %2").arg(formatHz(state.lowPassHz),
+				state.lowPassSlope);
+	}
+
+	if (highPassLine.isEmpty() && lowPassLine.isEmpty())
+	{
+		crossoverReadout->setReadout(
+			tr("CROSSOVER"), tr("FULL RANGE"));
+	}
+	else if (highPassLine.isEmpty() || lowPassLine.isEmpty())
+	{
+		crossoverReadout->setReadout(
+			tr("CROSSOVER"),
+			highPassLine.isEmpty() ? lowPassLine : highPassLine);
+	}
+	else
+	{
+		crossoverReadout->setReadout(
+			tr("CROSSOVER"), highPassLine, lowPassLine);
+	}
 
 	lfeLamp->setLfeState(
 		state.sourceLfePreserved,
@@ -1536,9 +1542,7 @@ void RackBassManagementCardView::updateResponsiveLayout()
 		availableWidth >= GUIHelper::scale(650.0);
 	const bool showLfe =
 		availableWidth >= GUIHelper::scale(760.0);
-	const bool showBothCrossovers =
-		availableWidth >= GUIHelper::scale(610.0);
-	const bool showHighPass =
+	const bool showCrossover =
 		availableWidth >= GUIHelper::scale(500.0);
 	const bool compactActions =
 		availableWidth < GUIHelper::scale(700.0);
@@ -1547,9 +1551,7 @@ void RackBassManagementCardView::updateResponsiveLayout()
 
 	profileLabel->setVisible(showProfile);
 	lfeLamp->setVisible(showLfe);
-	highPassReadout->setVisible(
-		showHighPass || showBothCrossovers);
-	lowPassReadout->setVisible(showBothCrossovers);
+	crossoverReadout->setVisible(showCrossover);
 	headroomMeter->setVisible(true);
 	actionHost->setVisible(hasActions);
 

@@ -27,6 +27,9 @@ class QPaintEvent;
 class QResizeEvent;
 class RackElidingLabel;
 
+// One engraved crossover instrument: the caption over up to two readout
+// lines (HP and LP, each with its recognized alignment label). Review
+// round 3 folded the two half-empty per-type meters into this one.
 class RackCrossoverReadout : public QWidget
 {
 	Q_OBJECT
@@ -34,7 +37,9 @@ class RackCrossoverReadout : public QWidget
 public:
 	explicit RackCrossoverReadout(QWidget* parent = nullptr);
 
-	void setReadout(const QString& newCaption, const QString& newValue);
+	void setReadout(const QString& newCaption,
+		const QString& newPrimary,
+		const QString& newSecondary = QString());
 
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
@@ -47,7 +52,8 @@ private:
 	QFont valueFont() const;
 
 	QString caption;
-	QString value;
+	QString primary;
+	QString secondary;
 };
 
 class RackLfeLamp : public QWidget
@@ -122,8 +128,7 @@ private:
 	RackElidingLabel* layoutLabel = nullptr;
 	RackElidingLabel* profileLabel = nullptr;
 	QLabel* statusLabel = nullptr;
-	RackCrossoverReadout* highPassReadout = nullptr;
-	RackCrossoverReadout* lowPassReadout = nullptr;
+	RackCrossoverReadout* crossoverReadout = nullptr;
 	RackLfeLamp* lfeLamp = nullptr;
 	RackHeadroomMeter* headroomMeter = nullptr;
 };

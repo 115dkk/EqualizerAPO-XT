@@ -36,9 +36,12 @@ struct BassManagementCardState
 	bool sourceLfePreserved = false;
 	double sourceLfeGainDb = 0.0;
 	// Representative crossover corners; 0.0 when the state has no section of
-	// that type (a full-range layout).
+	// that type (a full-range layout). The slope labels carry the recognized
+	// alignment ("BW2", "LR4"); empty for custom chains.
 	double highPassHz = 0.0;
 	double lowPassHz = 0.0;
+	QString highPassSlope;
+	QString lowPassSlope;
 	bool headroomAuto = true;
 	double headroomTrimDb = 0.0;
 	QString profileName;

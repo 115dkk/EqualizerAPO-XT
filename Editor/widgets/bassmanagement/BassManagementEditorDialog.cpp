@@ -36,6 +36,7 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 
+#include "BassManagement/Crossover.h"
 #include "BassManagement/Preset.h"
 #include "Editor/SkinManager.h"
 #include "Editor/SkinTokens.h"
@@ -164,7 +165,126 @@ QDoubleSpinBox* frequencySpinBox(QWidget* parent)
 	spinBox->setRange(10.0, 20000.0);
 	spinBox->setSingleStep(1.0);
 	spinBox->setSuffix(BassManagementEditorDialog::tr(" Hz"));
+	// The crossover rows budget their width explicitly so frequency,
+	// slope, delay and polarity all stay on one visible line.
+	spinBox->setFixedWidth(110);
 	return spinBox;
+}
+
+QDoubleSpinBox* delaySpinBox(QWidget* parent)
+{
+	QDoubleSpinBox* spinBox = new QDoubleSpinBox(parent);
+	spinBox->setDecimals(2);
+	spinBox->setRange(0.0, 1000.0);
+	spinBox->setSingleStep(0.1);
+	spinBox->setSuffix(BassManagementEditorDialog::tr(" ms"));
+	spinBox->setToolTip(BassManagementEditorDialog::tr(
+		"Path delay applied after the crossover sections"));
+	spinBox->setFixedWidth(100);
+	return spinBox;
+}
+
+// The combo data encodes a supported recipe as order * 2 + alignment;
+// kCustomSlope marks a section chain the recipe vocabulary cannot name
+// (choosing it changes nothing - custom chains are preserved as written).
+constexpr int kCustomSlope = -1;
+
+int encodeSlope(const bassmgmt::CrossoverRecipe& recipe)
+{
+	return recipe.order * 2
+		+ (recipe.alignment
+			== bassmgmt::CrossoverAlignment::LinkwitzRiley
+			? 1
+			: 0);
+}
+
+bassmgmt::CrossoverRecipe decodeSlope(int encoded, double frequencyHz)
+{
+	bassmgmt::CrossoverRecipe recipe;
+	recipe.alignment = (encoded & 1) != 0
+		? bassmgmt::CrossoverAlignment::LinkwitzRiley
+		: bassmgmt::CrossoverAlignment::Butterworth;
+	recipe.order = encoded / 2;
+	recipe.frequencyHz = frequencyHz;
+	return recipe;
+}
+
+QComboBox* slopeComboBox(QWidget* parent)
+{
+	QComboBox* combo = new QComboBox(parent);
+	const bassmgmt::CrossoverAlignment alignments[] = {
+		bassmgmt::CrossoverAlignment::Butterworth,
+		bassmgmt::CrossoverAlignment::LinkwitzRiley
+	};
+	for (const bassmgmt::CrossoverAlignment alignment : alignments)
+	{
+		for (int order = 2; order <= 8; order += 2)
+		{
+			bassmgmt::CrossoverRecipe recipe;
+			recipe.alignment = alignment;
+			recipe.order = order;
+			combo->addItem(
+				QStringLiteral("%1 (%2 dB/oct)")
+					.arg(QString::fromStdString(
+						bassmgmt::crossoverRecipeLabel(recipe)))
+					.arg(bassmgmt::crossoverSlopeDbPerOctave(
+						recipe)),
+				encodeSlope(recipe));
+		}
+	}
+	combo->addItem(
+		BassManagementEditorDialog::tr("Custom"), kCustomSlope);
+	combo->setToolTip(BassManagementEditorDialog::tr(
+		"Crossover alignment and acoustic slope. Custom marks a "
+		"hand-written section chain and leaves it untouched."));
+	combo->setSizeAdjustPolicy(
+		QComboBox::AdjustToMinimumContentsLengthWithIcon);
+	combo->setMinimumContentsLength(9);
+	combo->setFixedWidth(150);
+	return combo;
+}
+
+void syncSlopeCombo(QComboBox* combo,
+	const std::optional<bassmgmt::CrossoverRecipe>& recipe)
+{
+	const int customIndex = combo->findData(kCustomSlope);
+	if (!recipe.has_value())
+	{
+		combo->setCurrentIndex(customIndex);
+		return;
+	}
+
+	const int index = combo->findData(encodeSlope(*recipe));
+	combo->setCurrentIndex(index >= 0 ? index : customIndex);
+}
+
+std::optional<bassmgmt::CrossoverRecipe> groupRecipe(
+	const bassmgmt::BassManagementState& state,
+	const bassmgmt::SpeakerGroup& group)
+{
+	for (const std::string& pathId : group.mainPathIds)
+	{
+		const bassmgmt::Path* path = findPath(state, pathId);
+		if (path == nullptr)
+			continue;
+		return bassmgmt::recognizeCrossover(*path,
+			bassmgmt::BiquadType::HighPass);
+	}
+	return std::nullopt;
+}
+
+std::optional<double> groupDelayMs(
+	const bassmgmt::BassManagementState& state,
+	const bassmgmt::SpeakerGroup& group)
+{
+	for (const std::string& pathId : group.mainPathIds)
+	{
+		const bassmgmt::Path* path = findPath(state, pathId);
+		if (path == nullptr)
+			continue;
+		return pathDelay(*path);
+	}
+	return std::nullopt;
 }
 
 std::vector<std::wstring> bassPathTargets(
@@ -204,7 +324,7 @@ BassManagementEditorDialog::BassManagementEditorDialog(
 {
 	setObjectName(QStringLiteral("BassManagementEditorDialog"));
 	setWindowTitle(tr("Bass Management Editor"));
-	resize(1180, 760);
+	resize(1280, 760);
 	DialogChrome::attach(this);
 
 	QVBoxLayout* outerLayout = new QVBoxLayout(this);
@@ -326,7 +446,9 @@ BassManagementEditorDialog::BassManagementEditorDialog(
 	splitter->addWidget(rightBody);
 	splitter->setStretchFactor(0, 0);
 	splitter->setStretchFactor(1, 1);
-	splitter->setSizes({360, 820});
+	// The crossover rows carry frequency + slope + delay (+ polarity), so
+	// the form pane needs the width a single spin box column never did.
+	splitter->setSizes({600, 680});
 
 	buttonBox = new QDialogButtonBox(
 		QDialogButtonBox::Ok
@@ -450,7 +572,7 @@ void BassManagementEditorDialog::refreshControls()
 
 	std::vector<std::string> existingGroups;
 	existingGroups.reserve(groupControls.size());
-	for (const FrequencyControl& control : groupControls)
+	for (const CrossoverControls& control : groupControls)
 		existingGroups.push_back(control.id);
 
 	std::vector<std::string> expectedBassPaths;
@@ -462,7 +584,7 @@ void BassManagementEditorDialog::refreshControls()
 
 	std::vector<std::string> existingBassPaths;
 	existingBassPaths.reserve(bassPathControls.size());
-	for (const FrequencyControl& control : bassPathControls)
+	for (const CrossoverControls& control : bassPathControls)
 		existingBassPaths.push_back(control.id);
 
 	if (expectedGroups != existingGroups
@@ -498,7 +620,7 @@ void BassManagementEditorDialog::refreshControls()
 		sourceLfeDelay->setValue(pathDelay(*lfe));
 	}
 
-	for (FrequencyControl& control : groupControls)
+	for (CrossoverControls& control : groupControls)
 	{
 		const auto group = std::find_if(
 			current.speakerGroups.begin(),
@@ -512,15 +634,31 @@ void BassManagementEditorDialog::refreshControls()
 
 		const std::optional<double> frequency =
 			groupHighPass(current, *group);
-		control.spinBox->setEnabled(frequency.has_value());
+		control.frequency->setEnabled(frequency.has_value());
 		if (frequency.has_value())
 		{
-			const QSignalBlocker blocker(control.spinBox);
-			control.spinBox->setValue(*frequency);
+			const QSignalBlocker blocker(control.frequency);
+			control.frequency->setValue(*frequency);
+		}
+
+		{
+			const QSignalBlocker blocker(control.slope);
+			control.slope->setEnabled(frequency.has_value());
+			syncSlopeCombo(control.slope,
+				groupRecipe(current, *group));
+		}
+
+		const std::optional<double> delayMs =
+			groupDelayMs(current, *group);
+		control.delay->setEnabled(delayMs.has_value());
+		if (delayMs.has_value())
+		{
+			const QSignalBlocker blocker(control.delay);
+			control.delay->setValue(*delayMs);
 		}
 	}
 
-	for (FrequencyControl& control : bassPathControls)
+	for (CrossoverControls& control : bassPathControls)
 	{
 		const bassmgmt::Path* path =
 			findPath(current, control.id);
@@ -528,11 +666,29 @@ void BassManagementEditorDialog::refreshControls()
 			continue;
 
 		const std::optional<double> frequency = pathLowPass(*path);
-		control.spinBox->setEnabled(frequency.has_value());
+		control.frequency->setEnabled(frequency.has_value());
 		if (frequency.has_value())
 		{
-			const QSignalBlocker blocker(control.spinBox);
-			control.spinBox->setValue(*frequency);
+			const QSignalBlocker blocker(control.frequency);
+			control.frequency->setValue(*frequency);
+		}
+
+		{
+			const QSignalBlocker blocker(control.slope);
+			control.slope->setEnabled(frequency.has_value());
+			syncSlopeCombo(control.slope,
+				bassmgmt::recognizeCrossover(*path,
+					bassmgmt::BiquadType::LowPass));
+		}
+
+		{
+			const QSignalBlocker blocker(control.delay);
+			control.delay->setValue(pathDelay(*path));
+		}
+
+		{
+			const QSignalBlocker blocker(control.polarity);
+			control.polarity->setChecked(pathPolarity(*path));
 		}
 	}
 
@@ -566,24 +722,60 @@ void BassManagementEditorDialog::rebuildFrequencyControls()
 
 	for (const bassmgmt::SpeakerGroup& group : current.speakerGroups)
 	{
-		QDoubleSpinBox* spinBox =
-			frequencySpinBox(groupForm->parentWidget());
+		QWidget* row = new QWidget(groupForm->parentWidget());
+		QHBoxLayout* rowLayout = new QHBoxLayout(row);
+		rowLayout->setContentsMargins(0, 0, 0, 0);
+		rowLayout->setSpacing(6);
+
+		CrossoverControls controls;
+		controls.id = group.id;
+		controls.frequency = frequencySpinBox(row);
+		controls.frequency->setToolTip(
+			tr("High-pass corner for this speaker group"));
+		controls.slope = slopeComboBox(row);
+		controls.delay = delaySpinBox(row);
+		rowLayout->addWidget(controls.frequency);
+		rowLayout->addWidget(controls.slope);
+		rowLayout->addWidget(controls.delay);
+		rowLayout->addStretch(1);
+
 		groupForm->addRow(
 			fromUtf8(group.displayName.empty()
 				? group.id
 				: group.displayName) + tr(" HP:"),
-			spinBox);
+			row);
 
 		const std::string groupId = group.id;
-		connect(spinBox,
+		connect(controls.frequency,
 			qOverload<double>(&QDoubleSpinBox::valueChanged),
 			this,
 			[this, groupId](double frequencyHz)
 			{
 				model->setGroupHighPass(groupId, frequencyHz);
 			});
+		QComboBox* slope = controls.slope;
+		QDoubleSpinBox* frequency = controls.frequency;
+		connect(slope,
+			qOverload<int>(&QComboBox::activated),
+			this,
+			[this, groupId, slope, frequency](int index)
+			{
+				const int encoded =
+					slope->itemData(index).toInt();
+				if (encoded == kCustomSlope)
+					return;
+				model->setGroupCrossover(groupId,
+					decodeSlope(encoded, frequency->value()));
+			});
+		connect(controls.delay,
+			qOverload<double>(&QDoubleSpinBox::valueChanged),
+			this,
+			[this, groupId](double milliseconds)
+			{
+				model->setGroupDelayMs(groupId, milliseconds);
+			});
 
-		groupControls.push_back({group.id, spinBox});
+		groupControls.push_back(controls);
 	}
 
 	for (const bassmgmt::Path& path : current.paths)
@@ -591,20 +783,67 @@ void BassManagementEditorDialog::rebuildFrequencyControls()
 		if (path.kind != bassmgmt::PathKind::Bass)
 			continue;
 
-		QDoubleSpinBox* spinBox =
-			frequencySpinBox(bassPathForm->parentWidget());
-		bassPathForm->addRow(fromUtf8(path.id) + tr(" LP:"), spinBox);
+		QWidget* row = new QWidget(bassPathForm->parentWidget());
+		QHBoxLayout* rowLayout = new QHBoxLayout(row);
+		rowLayout->setContentsMargins(0, 0, 0, 0);
+		rowLayout->setSpacing(6);
+
+		CrossoverControls controls;
+		controls.id = path.id;
+		controls.frequency = frequencySpinBox(row);
+		controls.frequency->setToolTip(
+			tr("Low-pass corner for this bass path"));
+		controls.slope = slopeComboBox(row);
+		controls.delay = delaySpinBox(row);
+		controls.polarity = new QCheckBox(tr("Invert"), row);
+		controls.polarity->setToolTip(tr(
+			"Invert the bass path's polarity (the phase flip a "
+			"summed crossover often needs)"));
+		rowLayout->addWidget(controls.frequency);
+		rowLayout->addWidget(controls.slope);
+		rowLayout->addWidget(controls.delay);
+		rowLayout->addWidget(controls.polarity);
+		rowLayout->addStretch(1);
+
+		bassPathForm->addRow(fromUtf8(path.id) + tr(" LP:"), row);
 
 		const std::string pathId = path.id;
-		connect(spinBox,
+		connect(controls.frequency,
 			qOverload<double>(&QDoubleSpinBox::valueChanged),
 			this,
 			[this, pathId](double frequencyHz)
 			{
 				model->setBassPathLowPass(pathId, frequencyHz);
 			});
+		QComboBox* slope = controls.slope;
+		QDoubleSpinBox* frequency = controls.frequency;
+		connect(slope,
+			qOverload<int>(&QComboBox::activated),
+			this,
+			[this, pathId, slope, frequency](int index)
+			{
+				const int encoded =
+					slope->itemData(index).toInt();
+				if (encoded == kCustomSlope)
+					return;
+				model->setBassPathCrossover(pathId,
+					decodeSlope(encoded, frequency->value()));
+			});
+		connect(controls.delay,
+			qOverload<double>(&QDoubleSpinBox::valueChanged),
+			this,
+			[this, pathId](double milliseconds)
+			{
+				model->setPathDelayMs(pathId, milliseconds);
+			});
+		connect(controls.polarity, &QCheckBox::toggled,
+			this,
+			[this, pathId](bool inverted)
+			{
+				model->setPathPolarity(pathId, inverted);
+			});
 
-		bassPathControls.push_back({path.id, spinBox});
+		bassPathControls.push_back(controls);
 	}
 }
 

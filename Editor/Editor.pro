@@ -182,6 +182,7 @@ SOURCES += main.cpp\
 	../filters/bassManagement/BassManagementFilter.cpp \
 	../filters/bassManagement/BassManagementFilterFactory.cpp \
 	../BassManagementCore/src/Compiler.cpp \
+	../BassManagementCore/src/Crossover.cpp \
 	../BassManagementCore/src/Graph.cpp \
 	../BassManagementCore/src/Json.cpp \
 	../BassManagementCore/src/Preset.cpp \

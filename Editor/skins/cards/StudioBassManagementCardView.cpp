@@ -24,6 +24,7 @@
 #include <QPainter>
 #include <QPen>
 #include <QStyle>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariant>
 
@@ -156,6 +157,14 @@ void StudioBassManagementCardView::addActionButton(
 
 	button->setObjectName(QStringLiteral("StudioBassActionButton"));
 	button->setCursor(Qt::PointingHandCursor);
+
+	// Words, not pictograms (review round 3): the supplied 18px icons
+	// rendered as unreadable specks on the glass chips, and even at a
+	// legible size neither glyph names its action. The buttons already
+	// carry real text - wear it.
+	if (QToolButton* toolButton = qobject_cast<QToolButton*>(button))
+		toolButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+
 	actionLayout->addWidget(button);
 }
 

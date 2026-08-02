@@ -25,6 +25,7 @@
 #include <QObject>
 
 #include "BassManagement/Compiler.h"
+#include "BassManagement/Crossover.h"
 #include "BassManagement/State.h"
 #include "filters/CopyFilter.h"
 
@@ -51,6 +52,21 @@ public:
 		const std::string& groupId, double frequencyHz);
 	void setBassPathLowPass(
 		const std::string& pathId, double frequencyHz);
+	// Crossover recipes (BW/LR alignment x order) rewrite the whole section
+	// run; the frequency setters above keep custom chains intact and only
+	// move the corner.
+	void setGroupCrossover(
+		const std::string& groupId,
+		const bassmgmt::CrossoverRecipe& recipe);
+	void setBassPathCrossover(
+		const std::string& pathId,
+		const bassmgmt::CrossoverRecipe& recipe);
+	void setGroupDelayMs(
+		const std::string& groupId, double milliseconds);
+	void setPathDelayMs(
+		const std::string& pathId, double milliseconds);
+	void setPathPolarity(
+		const std::string& pathId, bool inverted);
 	void setHeadroomAuto(bool automatic);
 	void setManualTrimDb(double trimDb);
 	void applyBassSendAssignments(

@@ -16,6 +16,7 @@
 #include <QToolButton>
 
 #include "BassManagement/Compiler.h"
+#include "BassManagement/Crossover.h"
 #include "BassManagement/Preset.h"
 #include "BassManagement/StateCodec.h"
 #include "devices/AbstractAPOInfo.h"
@@ -156,7 +157,7 @@ QString layoutLabel(const bassmgmt::BassManagementState& state)
 	return QStringLiteral("%1.%2").arg(mainChannels).arg(lfeChannels);
 }
 
-const bassmgmt::BiquadFilter* representativeFilter(
+const bassmgmt::Path* representativeCrossoverPath(
 	const bassmgmt::BassManagementState& state,
 	bassmgmt::BiquadType type)
 {
@@ -167,8 +168,21 @@ const bassmgmt::BiquadFilter* representativeFilter(
 			const bassmgmt::BiquadStage* biquad =
 				std::get_if<bassmgmt::BiquadStage>(&stage);
 			if (biquad != nullptr && biquad->filter.type == type)
-				return &biquad->filter;
+				return &path;
 		}
+	}
+	return nullptr;
+}
+
+const bassmgmt::BiquadFilter* firstSection(
+	const bassmgmt::Path& path, bassmgmt::BiquadType type)
+{
+	for (const bassmgmt::PathStage& stage : path.chain)
+	{
+		const bassmgmt::BiquadStage* biquad =
+			std::get_if<bassmgmt::BiquadStage>(&stage);
+		if (biquad != nullptr && biquad->filter.type == type)
+			return &biquad->filter;
 	}
 	return nullptr;
 }
@@ -643,17 +657,35 @@ void BassManagementCardEditor::refreshCard()
 		? fromUtf8(state.metadata.profileName)
 		: card.profileName;
 
-	const bassmgmt::BiquadFilter* highPass =
-		representativeFilter(state,
+	const bassmgmt::Path* highPassPath =
+		representativeCrossoverPath(state,
 			bassmgmt::BiquadType::HighPass);
-	if (highPass != nullptr)
-		card.highPassHz = highPass->frequencyHz;
+	if (highPassPath != nullptr)
+	{
+		card.highPassHz = firstSection(*highPassPath,
+			bassmgmt::BiquadType::HighPass)->frequencyHz;
+		const std::optional<bassmgmt::CrossoverRecipe> recipe =
+			bassmgmt::recognizeCrossover(*highPassPath,
+				bassmgmt::BiquadType::HighPass);
+		if (recipe.has_value())
+			card.highPassSlope = fromUtf8(
+				bassmgmt::crossoverRecipeLabel(*recipe));
+	}
 
-	const bassmgmt::BiquadFilter* lowPass =
-		representativeFilter(state,
+	const bassmgmt::Path* lowPassPath =
+		representativeCrossoverPath(state,
 			bassmgmt::BiquadType::LowPass);
-	if (lowPass != nullptr)
-		card.lowPassHz = lowPass->frequencyHz;
+	if (lowPassPath != nullptr)
+	{
+		card.lowPassHz = firstSection(*lowPassPath,
+			bassmgmt::BiquadType::LowPass)->frequencyHz;
+		const std::optional<bassmgmt::CrossoverRecipe> recipe =
+			bassmgmt::recognizeCrossover(*lowPassPath,
+				bassmgmt::BiquadType::LowPass);
+		if (recipe.has_value())
+			card.lowPassSlope = fromUtf8(
+				bassmgmt::crossoverRecipeLabel(*recipe));
+	}
 
 	for (const bassmgmt::Path& path : state.paths)
 	{

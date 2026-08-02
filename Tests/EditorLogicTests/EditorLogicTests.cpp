@@ -38,6 +38,7 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/import/LegacyMigrationPolicy.h"
+#include "BassManagement/Crossover.h"
 #include "BassManagement/Preset.h"
 #include "BassManagement/StateCodec.h"
 #include "filters/bassManagement/BassManagementCommand.h"
@@ -832,6 +833,104 @@ void testBassManagementDescriptors()
 		":/icons/modern/bass-management.svg", "bass-management command icon");
 	expectEqual(FilterCardModel::canonicalCommand("BassManagement"),
 		"BassManagement", "bass-management canonical command");
+}
+
+void testBassManagementCrossoverRecipes()
+{
+	// The recipe layer names the alignments practitioners dial in (BW/LR at
+	// even orders) over raw biquad chains. The #246 preset is the parity
+	// fixture: its front speakers are the original config's single 80 Hz
+	// Q 0.707 section (BW2), its front bass path the cascaded pair (LR4).
+	const bassmgmt::PresetCreateResult preset =
+		bassmgmt::createBuiltInPreset(bassmgmt::kIssue246FrontRear41PresetId);
+	requireTrue(preset.succeeded(), "crossover preset fixture created");
+	const bassmgmt::BassManagementState& state = *preset.state;
+
+	const auto pathById = [&state](const char* id) -> const bassmgmt::Path*
+	{
+		for (const bassmgmt::Path& path : state.paths)
+		{
+			if (path.id == id)
+				return &path;
+		}
+		return nullptr;
+	};
+
+	const bassmgmt::Path* frontLeft = pathById("FrontL");
+	requireTrue(frontLeft != nullptr, "preset has FrontL");
+	const std::optional<bassmgmt::CrossoverRecipe> frontHp =
+		bassmgmt::recognizeCrossover(*frontLeft, bassmgmt::BiquadType::HighPass);
+	requireTrue(frontHp.has_value(), "FrontL high-pass recognized");
+	expectEqual(QString::fromStdString(bassmgmt::crossoverRecipeLabel(*frontHp)),
+		"BW2", "FrontL is the original config's single Q 0.707 section");
+	expectTrue(std::abs(frontHp->frequencyHz - 80.0) < 0.01,
+		"FrontL corner is 80 Hz");
+
+	const bassmgmt::Path* frontBass = pathById("FrontBass");
+	requireTrue(frontBass != nullptr, "preset has FrontBass");
+	const std::optional<bassmgmt::CrossoverRecipe> frontLp =
+		bassmgmt::recognizeCrossover(*frontBass, bassmgmt::BiquadType::LowPass);
+	requireTrue(frontLp.has_value(), "FrontBass low-pass recognized");
+	expectEqual(QString::fromStdString(bassmgmt::crossoverRecipeLabel(*frontLp)),
+		"LR4", "FrontBass is the original config's cascaded Q 0.707 pair");
+
+	// Q tables: every supported order, both alignments, exact section counts.
+	expectEqual(static_cast<int>(bassmgmt::crossoverSectionQs(
+		bassmgmt::CrossoverAlignment::Butterworth, 6).size()), 3,
+		"BW6 has three sections");
+	expectEqual(static_cast<int>(bassmgmt::crossoverSectionQs(
+		bassmgmt::CrossoverAlignment::LinkwitzRiley, 6).size()), 3,
+		"LR6 has three sections");
+	expectTrue(bassmgmt::crossoverSectionQs(
+		bassmgmt::CrossoverAlignment::Butterworth, 3).empty(),
+		"odd orders are outside the vocabulary");
+	const std::vector<double> lr6 = bassmgmt::crossoverSectionQs(
+		bassmgmt::CrossoverAlignment::LinkwitzRiley, 6);
+	expectTrue(std::abs(lr6[0] - 0.5) < 1e-9 && std::abs(lr6[1] - 1.0) < 1e-9,
+		"LR6 factors as the squared odd Butterworth half");
+
+	// Apply/recognize round-trip: rewriting FrontBass as LR8 at 60 Hz must
+	// read back as exactly that, and the chain keeps its one delay stage.
+	bassmgmt::Path rewritten = *frontBass;
+	bassmgmt::CrossoverRecipe lr8;
+	lr8.alignment = bassmgmt::CrossoverAlignment::LinkwitzRiley;
+	lr8.order = 8;
+	lr8.frequencyHz = 60.0;
+	requireTrue(bassmgmt::applyCrossoverRecipe(
+		rewritten, bassmgmt::BiquadType::LowPass, lr8),
+		"LR8 recipe applies");
+	const std::optional<bassmgmt::CrossoverRecipe> readBack =
+		bassmgmt::recognizeCrossover(rewritten, bassmgmt::BiquadType::LowPass);
+	requireTrue(readBack.has_value(), "rewritten chain recognized");
+	expectEqual(QString::fromStdString(bassmgmt::crossoverRecipeLabel(*readBack)),
+		"LR8", "round-trip keeps the alignment");
+	expectTrue(std::abs(readBack->frequencyHz - 60.0) < 0.01,
+		"round-trip keeps the corner");
+	int delayStages = 0;
+	for (const bassmgmt::PathStage& stage : rewritten.chain)
+	{
+		if (std::holds_alternative<bassmgmt::DelayStage>(stage))
+			delayStages++;
+	}
+	expectEqual(delayStages, 1, "rewrite preserves the single delay stage");
+
+	// A split-frequency chain is deliberate custom work and must not be
+	// claimed by any recipe.
+	bassmgmt::Path custom = *frontBass;
+	for (bassmgmt::PathStage& stage : custom.chain)
+	{
+		bassmgmt::BiquadStage* biquad =
+			std::get_if<bassmgmt::BiquadStage>(&stage);
+		if (biquad != nullptr
+			&& biquad->filter.type == bassmgmt::BiquadType::LowPass)
+		{
+			biquad->filter.frequencyHz = 95.0;
+			break;
+		}
+	}
+	expectFalse(bassmgmt::recognizeCrossover(
+		custom, bassmgmt::BiquadType::LowPass).has_value(),
+		"split-frequency chains stay custom");
 }
 
 void testFilterCardDepths()
@@ -1792,6 +1891,7 @@ int main(int argc, char** argv)
 		testVelopackFeeds();
 		testFilterCardDescriptors();
 	testBassManagementDescriptors();
+	testBassManagementCrossoverRecipes();
 		testFilterCardDepths();
 		testFilterCardBuildPlans();
 		testConfigImport();

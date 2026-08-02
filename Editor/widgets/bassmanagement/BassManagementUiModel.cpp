@@ -56,19 +56,56 @@ bassmgmt::Path* findPath(
 	return path == state.paths.end() ? nullptr : &*path;
 }
 
-bassmgmt::BiquadFilter* firstBiquad(
+/*
+	Every section of the type moves together: an LR4 is two sections at one
+	corner, and moving only the first would silently split the alignment.
+*/
+bool setSectionFrequencies(
 	bassmgmt::Path& path,
-	bassmgmt::BiquadType type)
+	bassmgmt::BiquadType type,
+	double frequencyHz)
 {
+	bool changed = false;
 	for (bassmgmt::PathStage& stage : path.chain)
 	{
 		bassmgmt::BiquadStage* biquad =
 			std::get_if<bassmgmt::BiquadStage>(&stage);
-		if (biquad != nullptr && biquad->filter.type == type)
-			return &biquad->filter;
-	}
+		if (biquad == nullptr || biquad->filter.type != type)
+			continue;
 
-	return nullptr;
+		biquad->filter.frequencyHz = frequencyHz;
+		changed = true;
+	}
+	return changed;
+}
+
+bassmgmt::SpeakerGroup* findGroup(
+	bassmgmt::BassManagementState& state,
+	const std::string& groupId)
+{
+	const auto group = std::find_if(
+		state.speakerGroups.begin(),
+		state.speakerGroups.end(),
+		[&groupId](const bassmgmt::SpeakerGroup& candidate)
+		{
+			return candidate.id == groupId;
+		});
+	return group == state.speakerGroups.end() ? nullptr : &*group;
+}
+
+bool setPathDelay(bassmgmt::Path& path, double milliseconds)
+{
+	for (bassmgmt::PathStage& stage : path.chain)
+	{
+		bassmgmt::DelayStage* delay =
+			std::get_if<bassmgmt::DelayStage>(&stage);
+		if (delay == nullptr)
+			continue;
+
+		delay->milliseconds = milliseconds;
+		return true;
+	}
+	return false;
 }
 }
 
@@ -183,15 +220,9 @@ void BassManagementUiModel::setGroupHighPass(
 	const std::string& groupId,
 	double frequencyHz)
 {
-	const auto group = std::find_if(
-		currentState.speakerGroups.begin(),
-		currentState.speakerGroups.end(),
-		[&groupId](const bassmgmt::SpeakerGroup& candidate)
-		{
-			return candidate.id == groupId;
-		});
-
-	if (group == currentState.speakerGroups.end())
+	const bassmgmt::SpeakerGroup* group =
+		findGroup(currentState, groupId);
+	if (group == nullptr)
 		return;
 
 	bool changed = false;
@@ -201,13 +232,8 @@ void BassManagementUiModel::setGroupHighPass(
 		if (path == nullptr)
 			continue;
 
-		bassmgmt::BiquadFilter* filter =
-			firstBiquad(*path, bassmgmt::BiquadType::HighPass);
-		if (filter == nullptr)
-			continue;
-
-		filter->frequencyHz = frequencyHz;
-		changed = true;
+		changed |= setSectionFrequencies(*path,
+			bassmgmt::BiquadType::HighPass, frequencyHz);
 	}
 
 	if (changed)
@@ -222,13 +248,103 @@ void BassManagementUiModel::setBassPathLowPass(
 	if (path == nullptr || path->kind != bassmgmt::PathKind::Bass)
 		return;
 
-	bassmgmt::BiquadFilter* filter =
-		firstBiquad(*path, bassmgmt::BiquadType::LowPass);
-	if (filter == nullptr)
+	if (setSectionFrequencies(*path,
+		bassmgmt::BiquadType::LowPass, frequencyHz))
+	{
+		commitMutation();
+	}
+}
+
+void BassManagementUiModel::setGroupCrossover(
+	const std::string& groupId,
+	const bassmgmt::CrossoverRecipe& recipe)
+{
+	const bassmgmt::SpeakerGroup* group =
+		findGroup(currentState, groupId);
+	if (group == nullptr)
 		return;
 
-	filter->frequencyHz = frequencyHz;
-	commitMutation();
+	bool changed = false;
+	for (const std::string& pathId : group->mainPathIds)
+	{
+		bassmgmt::Path* path = findPath(currentState, pathId);
+		if (path == nullptr)
+			continue;
+
+		changed |= bassmgmt::applyCrossoverRecipe(*path,
+			bassmgmt::BiquadType::HighPass, recipe);
+	}
+
+	if (changed)
+		commitMutation();
+}
+
+void BassManagementUiModel::setBassPathCrossover(
+	const std::string& pathId,
+	const bassmgmt::CrossoverRecipe& recipe)
+{
+	bassmgmt::Path* path = findPath(currentState, pathId);
+	if (path == nullptr || path->kind != bassmgmt::PathKind::Bass)
+		return;
+
+	if (bassmgmt::applyCrossoverRecipe(*path,
+		bassmgmt::BiquadType::LowPass, recipe))
+	{
+		commitMutation();
+	}
+}
+
+void BassManagementUiModel::setGroupDelayMs(
+	const std::string& groupId, double milliseconds)
+{
+	const bassmgmt::SpeakerGroup* group =
+		findGroup(currentState, groupId);
+	if (group == nullptr)
+		return;
+
+	bool changed = false;
+	for (const std::string& pathId : group->mainPathIds)
+	{
+		bassmgmt::Path* path = findPath(currentState, pathId);
+		if (path == nullptr)
+			continue;
+
+		changed |= setPathDelay(*path, milliseconds);
+	}
+
+	if (changed)
+		commitMutation();
+}
+
+void BassManagementUiModel::setPathDelayMs(
+	const std::string& pathId, double milliseconds)
+{
+	bassmgmt::Path* path = findPath(currentState, pathId);
+	if (path == nullptr)
+		return;
+
+	if (setPathDelay(*path, milliseconds))
+		commitMutation();
+}
+
+void BassManagementUiModel::setPathPolarity(
+	const std::string& pathId, bool inverted)
+{
+	bassmgmt::Path* path = findPath(currentState, pathId);
+	if (path == nullptr)
+		return;
+
+	for (bassmgmt::PathStage& stage : path->chain)
+	{
+		bassmgmt::PolarityStage* polarity =
+			std::get_if<bassmgmt::PolarityStage>(&stage);
+		if (polarity == nullptr)
+			continue;
+
+		polarity->inverted = inverted;
+		commitMutation();
+		return;
+	}
 }
 
 void BassManagementUiModel::setHeadroomAuto(bool automatic)

@@ -88,6 +88,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\BassManagement\Compiler.h" />
+    <ClInclude Include="include\BassManagement\Crossover.h" />
     <ClInclude Include="include\BassManagement\Graph.h" />
     <ClInclude Include="include\BassManagement\Headroom.h" />
     <ClInclude Include="include\BassManagement\Json.h" />
@@ -98,6 +99,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Compiler.cpp" />
+    <ClCompile Include="src\Crossover.cpp" />
     <ClCompile Include="src\Graph.cpp" />
     <ClCompile Include="src\Json.cpp" />
     <ClCompile Include="src\Preset.cpp" />

@@ -941,7 +941,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		for (const auto& dialogState : dialogStates)
 		{
 			BassManagementEditorDialog dialog(dialogState.value, 48000);
-			dialog.resize(1180, 760);
+			dialog.resize(1280, 760);
 			dialog.show();
 			QApplication::processEvents();
 			failures += saveGrab(&dialog, outDir, skinId, mode,

@@ -58,10 +58,17 @@ private slots:
 	void applyClicked();
 
 private:
-	struct FrequencyControl
+	// One crossover row: corner frequency, alignment/slope recipe, path
+	// delay, and (bass paths only) a polarity switch. The vocabulary a
+	// practitioner's config actually uses - "LP 80 Hz LR4, 2.5 ms,
+	// inverted send" - must be writable here, not just readable.
+	struct CrossoverControls
 	{
 		std::string id;
-		QDoubleSpinBox* spinBox = nullptr;
+		QDoubleSpinBox* frequency = nullptr;
+		QComboBox* slope = nullptr;
+		QDoubleSpinBox* delay = nullptr;
+		QCheckBox* polarity = nullptr;
 	};
 
 	void refreshControls();
@@ -78,8 +85,8 @@ private:
 	QDoubleSpinBox* sourceLfeDelay = nullptr;
 	QFormLayout* groupForm = nullptr;
 	QFormLayout* bassPathForm = nullptr;
-	std::vector<FrequencyControl> groupControls;
-	std::vector<FrequencyControl> bassPathControls;
+	std::vector<CrossoverControls> groupControls;
+	std::vector<CrossoverControls> bassPathControls;
 	QCheckBox* headroomAuto = nullptr;
 	QDoubleSpinBox* manualTrim = nullptr;
 	QLabel* computedTrim = nullptr;
