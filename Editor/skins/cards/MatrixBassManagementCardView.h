@@ -1,23 +1,22 @@
 /*
 	This file is part of EqualizerAPO-XT, a system-wide equalizer.
 
-	Signal Matrix's bass-management card: a terminal-grid summary with an
-	aggregate crosspoint board, coordinate readout and boxed mono facts.
+	Signal Matrix's bass-management card: a departure-board posting. Each
+	fact lives in a boxed sunken mono cell under a mono board caption, the
+	state cell is the only place traffic-light colour is spent, and faults
+	are posted as a single remark line. The review round removed the
+	miniature crosspoint board: an unlabeled grid of lit bars was a display
+	nobody could read, and a board that cannot be read is not a board.
 */
 
 #pragma once
 
-#include <QVector>
-
 #include "Editor/widgets/cards/BassManagementCardView.h"
 
-class MatrixBassManagementBoard;
+class ElidedLabel;
 class QHBoxLayout;
 class QLabel;
 class QPaintEvent;
-class QResizeEvent;
-class QToolButton;
-class QWidget;
 
 class MatrixBassManagementCardView : public BassManagementCardView
 {
@@ -31,31 +30,17 @@ public:
 protected:
 	void applyState(const BassManagementCardState& state) override;
 	void paintEvent(QPaintEvent* event) override;
-	void resizeEvent(QResizeEvent* event) override;
 
 private:
-	QLabel* createReadoutCell(
-		const QString& objectName,
-		const QString& accessibleName,
-		const QString& toolTip);
-	void updateResponsiveVisibility();
-	void updateCoordinateLine(
-		const BassManagementCardState& state);
-	void updateActionButtonStyles();
+	QWidget* makeReadoutColumn(const QString& caption, QLabel*& valueCell,
+		const QString& accessibleName, const QString& toolTip);
 
-	QWidget* summaryStrip = nullptr;
-	QWidget* secondaryStrip = nullptr;
-	QWidget* actionRow = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
-	QLabel* validityCell = nullptr;
+	QLabel* stateCell = nullptr;
 	QLabel* layoutCell = nullptr;
 	QLabel* crossoverCell = nullptr;
-	QLabel* pathsCell = nullptr;
-	QLabel* sourceLfeCell = nullptr;
-	QLabel* headroomCell = nullptr;
-	QLabel* profileCell = nullptr;
-	MatrixBassManagementBoard* board = nullptr;
-	QLabel* coordinateLine = nullptr;
-	QLabel* statusLine = nullptr;
-	QVector<QToolButton*> actionButtons;
+	QLabel* lfeCell = nullptr;
+	QLabel* trimCell = nullptr;
+	ElidedLabel* profileCell = nullptr;
+	QLabel* remarkLine = nullptr;
 };

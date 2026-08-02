@@ -1246,17 +1246,6 @@ QLabel#RackBassProfile[severity="warning"] {
     color: @WARNING@;
 }
 
-QLabel#RackBassCounts {
-    background: transparent;
-    color: @MUTED@;
-    border: 0;
-    padding: 2px 4px;
-    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-
 QLabel#RackBassStatus {
     background: #F6E5BF;
     color: #6A4300;

@@ -992,7 +992,6 @@ QLabel#MinimalBassValidity,
 QLabel#MinimalBassProfile,
 QLabel#MinimalBassCaption,
 QLabel#MinimalBassValue,
-QLabel#MinimalBassStage,
 QLabel#MinimalBassDiagnostic {
     background: transparent;
     border: 0;
@@ -1025,22 +1024,12 @@ QLabel#MinimalBassCaption {
 QLabel#MinimalBassValue {
     color: @TEXT@;
 }
-QLabel#MinimalBassStage {
-    color: @TEXT@;
-    font-weight: 700;
-}
 QLabel#MinimalBassDiagnostic {
     color: @MUTED@;
     font-weight: 700;
 }
 QLabel#MinimalBassDiagnostic[severity="warning"] { color: @WARNING@; }
 QLabel#MinimalBassDiagnostic[severity="error"] { color: @DANGER@; }
-
-QWidget#MinimalBassSeparator {
-    background: transparent;
-    color: @BORDER@;
-    border: 0;
-}
 
 QToolButton#MinimalBassActionButton {
     background: transparent;

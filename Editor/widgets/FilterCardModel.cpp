@@ -4,6 +4,7 @@
 #include <QRegularExpression>
 
 #include <utility>
+#include <variant>
 
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
@@ -588,7 +589,6 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 				else
 				{
 					int lfeChannels = 0;
-					int bassPaths = 0;
 					for (const bassmgmt::PhysicalChannel& channel
 						: decoded.state->layout.channels)
 					{
@@ -600,11 +600,31 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 							lfeChannels++;
 						}
 					}
+
+					// The header speaks the user's language: the layout and
+					// the crossover corner. Internal graph statistics (group
+					// and path counts) belong to the full editor.
+					double crossoverHz = 0.0;
 					for (const bassmgmt::Path& path
 						: decoded.state->paths)
 					{
-						if (path.kind == bassmgmt::PathKind::Bass)
-							bassPaths++;
+						for (const bassmgmt::PathStage& stage : path.chain)
+						{
+							const bassmgmt::BiquadStage* biquad =
+								std::get_if<bassmgmt::BiquadStage>(&stage);
+							if (biquad == nullptr)
+								continue;
+							if (biquad->filter.type
+								== bassmgmt::BiquadType::HighPass
+								|| biquad->filter.type
+								== bassmgmt::BiquadType::LowPass)
+							{
+								crossoverHz = biquad->filter.frequencyHz;
+								break;
+							}
+						}
+						if (crossoverHz > 0.0)
+							break;
 					}
 
 					const int mainChannels =
@@ -615,11 +635,11 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 						QStringLiteral("%1.%2")
 							.arg(mainChannels)
 							.arg(lfeChannels);
-					descriptor.summary =
-						tr("%1 - %2 groups - %3 bass paths")
+					descriptor.summary = crossoverHz > 0.0
+						? tr("%1 - crossover %2 Hz")
 							.arg(layout)
-							.arg(decoded.state->speakerGroups.size())
-							.arg(bassPaths);
+							.arg(QString::number(crossoverHz, 'g', 5))
+						: tr("%1 - full range").arg(layout);
 				}
 			}
 		}

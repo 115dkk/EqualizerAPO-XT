@@ -69,6 +69,8 @@
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/TitleBar.h"
 #include "Editor/widgets/UpdateToast.h"
+#include "Editor/widgets/bassmanagement/BassManagementEditorDialog.h"
+#include "Editor/widgets/cards/BassManagementCardEditor.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 
 namespace
@@ -468,6 +470,8 @@ const QList<GalleryScenario>& galleryScenarios()
 	static const QList<GalleryScenario> scenarios = {
 		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"),
 			QStringLiteral("empty"), QStringLiteral("phasetime") } },
+		{ QStringLiteral("bmdialog"), { QStringLiteral("default"),
+			QStringLiteral("preset") } },
 		{ QStringLiteral("toolbar"), { QStringLiteral("normal") } },
 		{ QStringLiteral("analysis"), { QStringLiteral("normal") } },
 		{ QStringLiteral("titlebar"), { QStringLiteral("normal") } },
@@ -903,6 +907,48 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QApplication::processEvents();
 		failures += saveGrab(picker, outDir, skinId, mode, QStringLiteral("picker"), QStringLiteral("phasetime")) ? 0 : 1;
 		delete picker;
+	}
+
+	// The full bass-management editor dialog, in the two states a user meets
+	// first: the seeded default for a stereo+LFE endpoint, and the built-in
+	// #246 preset. The dialog hosts the skin's routing renderer twice plus
+	// the response view, so it is judged per skin like the picker.
+	{
+		const bassmgmt::PresetCreateResult preset =
+			bassmgmt::createBuiltInPreset(
+				bassmgmt::kIssue246FrontRear41PresetId);
+		const struct
+		{
+			QString state;
+			bassmgmt::BassManagementState value;
+		} dialogStates[] = {
+			{ QStringLiteral("default"),
+				bassmanagementeditor::buildDefaultState(
+					{ L"L", L"R", L"LFE" }) },
+			{ QStringLiteral("preset"),
+				preset.succeeded()
+					? *preset.state
+					: bassmanagementeditor::buildDefaultState(
+						{ L"L", L"R", L"LFE" }) }
+		};
+		if (!preset.succeeded())
+		{
+			qWarning("SkinGallery: built-in bass-management preset failed "
+				"to instantiate; the bmdialog preset shot falls back to "
+				"the default state");
+			failures++;
+		}
+		for (const auto& dialogState : dialogStates)
+		{
+			BassManagementEditorDialog dialog(dialogState.value, 48000);
+			dialog.resize(1180, 760);
+			dialog.show();
+			QApplication::processEvents();
+			failures += saveGrab(&dialog, outDir, skinId, mode,
+				QStringLiteral("bmdialog"), dialogState.state) ? 0 : 1;
+			dialog.close();
+			QApplication::processEvents();
+		}
 	}
 
 	// The skin's main-toolbar chrome on a faithful replica (same object names

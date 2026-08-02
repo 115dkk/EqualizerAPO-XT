@@ -809,8 +809,12 @@ void testBassManagementDescriptors()
 	expectEqual(descriptor.title, "Bass management", "bass-management title");
 	expectFalse(descriptor.color.isEmpty(), "bass-management color is populated");
 	expectFalse(descriptor.summary.isEmpty(), "bass-management state summary is populated");
-	expectTrue(descriptor.summary.contains(QStringLiteral("bass")),
-		QStringLiteral("state summary counts bass paths: ") + descriptor.summary);
+	// Review round 2: the header speaks the user's language - the layout and
+	// the crossover corner - instead of internal graph statistics.
+	expectTrue(descriptor.summary.contains(QStringLiteral("4.1")),
+		QStringLiteral("state summary names the layout: ") + descriptor.summary);
+	expectTrue(descriptor.summary.contains(QStringLiteral("80 Hz")),
+		QStringLiteral("state summary names the crossover corner: ") + descriptor.summary);
 
 	const FilterCardDescriptor profile = FilterCardModel::describeLine(
 		"BassManagement: Profile \"Living Room.bmxt.json\"");

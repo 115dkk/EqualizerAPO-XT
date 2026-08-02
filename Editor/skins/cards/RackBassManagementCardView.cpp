@@ -324,19 +324,19 @@ QSize RackCrossoverReadout::sizeHint() const
 
 	return QSize(
 		qMax(GUIHelper::scale(112.0), contentWidth + GUIHelper::scale(20.0)),
-		GUIHelper::scale(62.0));
+		GUIHelper::scale(46.0));
 }
 
 QSize RackCrossoverReadout::minimumSizeHint() const
 {
 	// The value is the instrument: never let the layout squeeze the readout
-	// below what its current value needs, or "80 Hz, Q 0.707" degrades into
-	// "80 Hz, Q 0..." while decorative neighbours keep their width.
+	// below what its current value needs, or "80 Hz" degrades into "80..."
+	// while decorative neighbours keep their width.
 	const QFontMetrics valueMetrics(valueFont());
 	return QSize(
 		qMax(GUIHelper::scale(82.0),
 			valueMetrics.horizontalAdvance(value) + GUIHelper::scale(14.0)),
-		GUIHelper::scale(58.0));
+		GUIHelper::scale(42.0));
 }
 
 void RackCrossoverReadout::paintEvent(QPaintEvent* event)
@@ -345,14 +345,8 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 
 	QPainter painter(this);
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	const QPalette::ColorGroup group = isEnabled()
-		? QPalette::Active
-		: QPalette::Disabled;
 	const QColor textInk(tokens.text);
 	const QColor mutedInk(tokens.mutedText);
-	const QColor accentInk(tokens.accent);
-	const QColor shadow = palette().color(group, QPalette::Shadow);
-	const QColor highlight = palette().color(group, QPalette::Light);
 
 	const QFont captionFace = captionFont();
 	const QFont valueFace = valueFont();
@@ -365,7 +359,7 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 		height() - topPadding - bottomPadding;
 	const qreal requiredHeight =
 		captionMetrics.height() + valueMetrics.height() +
-		GUIHelper::scale(16.0);
+		GUIHelper::scale(4.0);
 
 	if (availableHeight < requiredHeight)
 	{
@@ -395,6 +389,9 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 		return;
 	}
 
+	// The engraved caption over the value readout, nothing else. The old
+	// printed scale pointed at nothing (no knob rides it on a read-only
+	// card) and a fake legend is not hardware - review round 2 removed it.
 	const QRectF captionRect(
 		horizontalPadding,
 		topPadding,
@@ -413,59 +410,8 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 		captionFace,
 		mutedInk);
 
-	const qreal legendTop =
-		captionRect.bottom() + GUIHelper::scale(3.0);
-	const qreal legendBottom =
-		legendTop + GUIHelper::scale(9.0);
-	const qreal left = GUIHelper::scale(8.0);
-	const qreal right = qMax<qreal>(left, width() - GUIHelper::scale(8.0));
-
-	painter.setRenderHint(QPainter::Antialiasing, false);
-	drawCrispHorizontalLine(
-		painter,
-		this,
-		left,
-		right,
-		legendBottom,
-		enabledInk(this, shadow, 170));
-	drawCrispHorizontalLine(
-		painter,
-		this,
-		left,
-		right,
-		legendBottom + physicalPixel(this),
-		enabledInk(this, highlight, 110));
-
-	for (int index = 0; index < 7; ++index)
-	{
-		const qreal fraction = qreal(index) / 6.0;
-		const qreal x = left + fraction * (right - left);
-		const bool stop = index == 0 || index == 6;
-		const bool detent = index == 3;
-		const qreal tickTop = detent
-			? legendTop - GUIHelper::scale(2.0)
-			: stop
-			? legendTop
-			: legendTop + GUIHelper::scale(3.0);
-		const QColor tickInk = detent
-			? accentInk
-			: stop
-			? textInk
-			: mutedInk;
-
-		drawCrispVerticalLine(
-			painter,
-			this,
-			x,
-			tickTop,
-			legendBottom,
-			enabledInk(this, tickInk, detent ? 230 : 180),
-			detent ? 2.0 : 1.0);
-	}
-
-	painter.setRenderHint(QPainter::Antialiasing, true);
 	const qreal valueTop =
-		legendBottom + GUIHelper::scale(3.0);
+		captionRect.bottom() + GUIHelper::scale(3.0);
 	const QRectF valueRect(
 		horizontalPadding,
 		valueTop,
@@ -1110,17 +1056,6 @@ RackBassManagementCardView::RackBassManagementCardView(QWidget* parent)
 		2,
 		Qt::AlignVCenter);
 
-	countsLabel = new QLabel(instrumentWidget);
-	countsLabel->setObjectName(QStringLiteral("RackBassCounts"));
-	countsLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-	countsLabel->setWordWrap(true);
-	countsLabel->setMinimumWidth(GUIHelper::scale(142.0));
-	countsLabel->setAccessibleName(tr("Bass path counts"));
-	instrumentLayout->addWidget(
-		countsLabel,
-		0,
-		Qt::AlignVCenter);
-
 	actionHost = new QWidget(instrumentWidget);
 	actionHost->setObjectName(QStringLiteral("RackBassActionHost"));
 	actionHost->setAccessibleName(tr("Bass-management actions"));
@@ -1154,7 +1089,6 @@ RackBassManagementCardView::RackBassManagementCardView(QWidget* parent)
 			layoutLabel->update();
 			profileLabel->update();
 			validityLabel->update();
-			countsLabel->update();
 			statusLabel->update();
 			highPassReadout->updateGeometry();
 			lowPassReadout->updateGeometry();
@@ -1266,12 +1200,13 @@ void RackBassManagementCardView::addActionButton(
 void RackBassManagementCardView::applyState(
 	const BassManagementCardState& state)
 {
+	// The contract guarantees a missing linked profile is already described
+	// by errorText, so the flag no longer feeds a second warning.
 	const bool invalid =
 		!state.valid ||
 		!state.errorText.trimmed().isEmpty();
 	const bool hasWarning =
-		!state.warningText.trimmed().isEmpty() ||
-		state.profileMissing;
+		!state.warningText.trimmed().isEmpty();
 
 	QString validityText;
 	QString validityDescription;
@@ -1319,14 +1254,14 @@ void RackBassManagementCardView::applyState(
 
 	highPassReadout->setReadout(
 		tr("HP"),
-		state.representativeHighPass.trimmed().isEmpty()
-			? tr("None")
-			: state.representativeHighPass);
+		state.highPassHz > 0.0
+			? formatHz(state.highPassHz)
+			: tr("None"));
 	lowPassReadout->setReadout(
 		tr("LP"),
-		state.representativeLowPass.trimmed().isEmpty()
-			? tr("None")
-			: state.representativeLowPass);
+		state.lowPassHz > 0.0
+			? formatHz(state.lowPassHz)
+			: tr("None"));
 
 	lfeLamp->setLfeState(
 		state.sourceLfePreserved,
@@ -1334,21 +1269,6 @@ void RackBassManagementCardView::applyState(
 	headroomMeter->setHeadroom(
 		state.headroomAuto,
 		state.headroomTrimDb);
-
-	const QString countsText =
-		tr("GROUPS %1\nBASS PATHS %2\nROUTES %3")
-			.arg(state.speakerGroupCount)
-			.arg(state.bassPathCount)
-			.arg(state.activeMatrixEdges);
-	const QString countsDescription =
-		tr("%1 speaker groups, %2 bass paths and %3 active matrix routes")
-			.arg(state.speakerGroupCount)
-			.arg(state.bassPathCount)
-			.arg(state.activeMatrixEdges);
-
-	countsLabel->setText(countsText);
-	countsLabel->setAccessibleDescription(countsDescription);
-	countsLabel->setToolTip(countsDescription);
 
 	QString profileText;
 	QString profileDescription;
@@ -1360,16 +1280,18 @@ void RackBassManagementCardView::applyState(
 			? tr("Unnamed profile")
 			: state.profileName;
 
+		// The nameplate stays a data readout; when the file is missing the
+		// status line below already posts the cause, so only the ink
+		// (severity) changes here.
+		profileText = tr("LINKED  %1").arg(name);
 		if (state.profileMissing)
 		{
-			profileText = tr("! MISSING PROFILE  %1").arg(name);
 			profileDescription =
 				tr("Linked profile is missing: %1").arg(name);
 			profileSeverity = QStringLiteral("warning");
 		}
 		else
 		{
-			profileText = tr("LINKED  %1").arg(name);
 			profileDescription =
 				tr("Linked bass-management profile: %1").arg(name);
 		}
@@ -1389,41 +1311,27 @@ void RackBassManagementCardView::applyState(
 	profileLabel->setToolTip(profileDescription);
 	setSeverityProperty(profileLabel, profileSeverity);
 
-	QStringList statusLines;
-
+	// One status line, highest severity first - the panel posts a fault
+	// once (status contract, review round 2). The validity lamp names the
+	// state; this line carries the cause.
+	QString statusText;
 	if (!state.errorText.trimmed().isEmpty())
 	{
-		statusLines.append(
-			tr("ERROR: %1").arg(state.errorText));
+		statusText = tr("ERROR: %1").arg(state.errorText);
 	}
-	else if (!state.valid)
+	else if (invalid)
 	{
-		statusLines.append(
-			tr("ERROR: Invalid bass-management state"));
+		statusText = tr("ERROR: Invalid bass-management state");
+	}
+	else if (hasWarning)
+	{
+		statusText = tr("WARNING: %1").arg(state.warningText);
 	}
 
-	if (!state.warningText.trimmed().isEmpty())
-	{
-		statusLines.append(
-			tr("WARNING: %1").arg(state.warningText));
-	}
-
-	if (state.profileMissing)
-	{
-		const QString name = state.profileName.trimmed().isEmpty()
-			? tr("Unnamed profile")
-			: state.profileName;
-		statusLines.append(
-			tr("WARNING: Linked profile is missing: %1")
-				.arg(name));
-	}
-
-	const QString statusText =
-		statusLines.join(QLatin1Char('\n'));
 	statusLabel->setText(statusText);
 	statusLabel->setAccessibleDescription(statusText);
 	statusLabel->setToolTip(statusText);
-	statusLabel->setVisible(!statusLines.isEmpty());
+	statusLabel->setVisible(!statusText.isEmpty());
 	setSeverityProperty(
 		statusLabel,
 		invalid
@@ -1626,8 +1534,6 @@ void RackBassManagementCardView::updateResponsiveLayout()
 	const int availableWidth = width();
 	const bool showProfile =
 		availableWidth >= GUIHelper::scale(650.0);
-	const bool showCounts =
-		availableWidth >= GUIHelper::scale(930.0);
 	const bool showLfe =
 		availableWidth >= GUIHelper::scale(760.0);
 	const bool showBothCrossovers =
@@ -1640,7 +1546,6 @@ void RackBassManagementCardView::updateResponsiveLayout()
 		actionLayout->count() > 0;
 
 	profileLabel->setVisible(showProfile);
-	countsLabel->setVisible(showCounts);
 	lfeLamp->setVisible(showLfe);
 	highPassReadout->setVisible(
 		showHighPass || showBothCrossovers);

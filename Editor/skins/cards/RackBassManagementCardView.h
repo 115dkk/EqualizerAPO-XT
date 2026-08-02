@@ -121,7 +121,6 @@ private:
 	QLabel* validityLabel = nullptr;
 	RackElidingLabel* layoutLabel = nullptr;
 	RackElidingLabel* profileLabel = nullptr;
-	QLabel* countsLabel = nullptr;
 	QLabel* statusLabel = nullptr;
 	RackCrossoverReadout* highPassReadout = nullptr;
 	RackCrossoverReadout* lowPassReadout = nullptr;

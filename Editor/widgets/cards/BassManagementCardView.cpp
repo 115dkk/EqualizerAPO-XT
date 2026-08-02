@@ -35,6 +35,33 @@ const BassManagementCardState& BassManagementCardView::state() const
 	return currentState;
 }
 
+QString BassManagementCardView::formatHz(double hz)
+{
+	return tr("%1 Hz").arg(QString::number(hz, 'g', 5));
+}
+
+QString BassManagementCardView::crossoverSummary(
+	const BassManagementCardState& state)
+{
+	const bool hasHighPass = state.highPassHz > 0.0;
+	const bool hasLowPass = state.lowPassHz > 0.0;
+
+	if (hasHighPass && hasLowPass
+		&& qFuzzyCompare(state.highPassHz, state.lowPassHz))
+	{
+		return formatHz(state.highPassHz);
+	}
+
+	QStringList parts;
+	if (hasHighPass)
+		parts.append(tr("HP %1").arg(formatHz(state.highPassHz)));
+	if (hasLowPass)
+		parts.append(tr("LP %1").arg(formatHz(state.lowPassHz)));
+	return parts.isEmpty()
+		? tr("Full range")
+		: parts.join(QStringLiteral(" / "));
+}
+
 void BassManagementCardView::mouseDoubleClickEvent(
 	QMouseEvent* event)
 {
@@ -77,19 +104,16 @@ DefaultBassManagementCardView::DefaultBassManagementCardView(
 	addReadoutRow(0, tr("Layout"), layoutValue,
 		tr("Speaker layout"),
 		tr("Physical channel layout stored in this bass-management state"));
-	addReadoutRow(1, tr("Paths"), pathsValue,
-		tr("Speaker groups and bass paths"),
-		tr("Number of speaker groups, bass paths and active matrix routes"));
-	addReadoutRow(2, tr("Crossovers"), crossoverValue,
-		tr("Representative crossovers"),
-		tr("Representative high-pass and low-pass crossover sections"));
-	addReadoutRow(3, tr("Source LFE"), sourceLfeValue,
+	addReadoutRow(1, tr("Crossover"), crossoverValue,
+		tr("Representative crossover"),
+		tr("Representative high-pass and low-pass crossover corner"));
+	addReadoutRow(2, tr("Source LFE"), sourceLfeValue,
 		tr("Source LFE routing"),
 		tr("Whether the source LFE signal is preserved and at what gain"));
-	addReadoutRow(4, tr("Headroom"), headroomValue,
+	addReadoutRow(3, tr("Headroom"), headroomValue,
 		tr("Headroom"),
 		tr("Automatic or manual headroom trim"));
-	addReadoutRow(5, tr("Profile"), profileValue,
+	addReadoutRow(4, tr("Profile"), profileValue,
 		tr("Bass-management profile"),
 		tr("Embedded state or linked profile name"));
 
@@ -148,26 +172,7 @@ void DefaultBassManagementCardView::applyState(
 		? tr("Unknown")
 		: state.layoutLabel);
 
-	pathsValue->setText(
-		tr("%1 groups, %2 bass paths, %3 matrix routes")
-			.arg(state.speakerGroupCount)
-			.arg(state.bassPathCount)
-			.arg(state.activeMatrixEdges));
-
-	QStringList crossovers;
-	if (!state.representativeHighPass.isEmpty())
-	{
-		crossovers.append(
-			tr("HP %1").arg(state.representativeHighPass));
-	}
-	if (!state.representativeLowPass.isEmpty())
-	{
-		crossovers.append(
-			tr("LP %1").arg(state.representativeLowPass));
-	}
-	crossoverValue->setText(crossovers.isEmpty()
-		? tr("None")
-		: crossovers.join(QStringLiteral(" / ")));
+	crossoverValue->setText(crossoverSummary(state));
 
 	sourceLfeValue->setText(state.sourceLfePreserved
 		? tr("Preserved at %1 dB").arg(

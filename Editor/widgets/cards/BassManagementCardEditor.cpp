@@ -156,15 +156,6 @@ QString layoutLabel(const bassmgmt::BassManagementState& state)
 	return QStringLiteral("%1.%2").arg(mainChannels).arg(lfeChannels);
 }
 
-QString crossoverText(const bassmgmt::BiquadFilter& filter,
-	QObject* translationObject)
-{
-	Q_UNUSED(translationObject);
-	return BassManagementCardEditor::tr("%1 Hz, Q %2")
-		.arg(QString::number(filter.frequencyHz, 'g', 5),
-			QString::number(filter.q, 'g', 4));
-}
-
 const bassmgmt::BiquadFilter* representativeFilter(
 	const bassmgmt::BassManagementState& state,
 	bassmgmt::BiquadType type)
@@ -648,38 +639,21 @@ void BassManagementCardEditor::refreshCard()
 		bassmgmt::DiagnosticSeverity::Warning);
 
 	card.layoutLabel = layoutLabel(state);
-	card.speakerGroupCount =
-		static_cast<int>(state.speakerGroups.size());
 	card.profileName = card.profileName.isEmpty()
 		? fromUtf8(state.metadata.profileName)
 		: card.profileName;
-
-	for (const bassmgmt::Path& path : state.paths)
-	{
-		if (path.kind == bassmgmt::PathKind::Bass)
-			card.bassPathCount++;
-	}
-
-	for (const bassmgmt::OutputMatrixEntry& output
-		: state.outputMatrix)
-	{
-		card.activeMatrixEdges +=
-			static_cast<int>(output.terms.size());
-	}
 
 	const bassmgmt::BiquadFilter* highPass =
 		representativeFilter(state,
 			bassmgmt::BiquadType::HighPass);
 	if (highPass != nullptr)
-		card.representativeHighPass =
-			crossoverText(*highPass, this);
+		card.highPassHz = highPass->frequencyHz;
 
 	const bassmgmt::BiquadFilter* lowPass =
 		representativeFilter(state,
 			bassmgmt::BiquadType::LowPass);
 	if (lowPass != nullptr)
-		card.representativeLowPass =
-			crossoverText(*lowPass, this);
+		card.lowPassHz = lowPass->frequencyHz;
 
 	for (const bassmgmt::Path& path : state.paths)
 	{

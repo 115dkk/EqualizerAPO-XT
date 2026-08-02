@@ -24,16 +24,11 @@
 #include <QLabel>
 #include <QLayoutItem>
 #include <QList>
-#include <QPainter>
-#include <QPaintEvent>
-#include <QPalette>
 #include <QResizeEvent>
 #include <QSizePolicy>
-#include <QStringList>
 #include <QStyle>
 #include <QTimer>
 #include <QToolButton>
-#include <QTransform>
 #include <QVariant>
 #include <QVBoxLayout>
 
@@ -49,18 +44,6 @@ void repolishChild(QWidget* widget)
 	widget->style()->unpolish(widget);
 	widget->style()->polish(widget);
 	widget->update();
-}
-
-QWidget* createSeparator(QWidget* parent)
-{
-	QWidget* separator = new QWidget(parent);
-	separator->setObjectName(
-		QStringLiteral("MinimalBassSeparator"));
-	separator->setFixedHeight(1);
-	separator->setFocusPolicy(Qt::NoFocus);
-	separator->setForegroundRole(QPalette::WindowText);
-	separator->setAttribute(Qt::WA_TransparentForMouseEvents);
-	return separator;
 }
 
 void configureElidedLabel(QLabel* label)
@@ -131,31 +114,18 @@ MinimalBassManagementCardView::MinimalBassManagementCardView(
 	addReadoutRow(0, tr("LAYOUT"), layoutValue,
 		tr("Speaker layout"),
 		tr("Physical channel layout in this bass-management state"));
-	addReadoutRow(1, tr("HP"), highPassValue,
-		tr("Representative high-pass crossover"),
-		tr("Representative high-pass crossover section"));
-	addReadoutRow(2, tr("LP"), lowPassValue,
-		tr("Representative low-pass crossover"),
-		tr("Representative low-pass crossover section"));
-	addReadoutRow(3, tr("LFE GAIN"), lfeGainValue,
+	addReadoutRow(1, tr("XOVER"), crossoverValue,
+		tr("Representative crossover"),
+		tr("Representative high-pass and low-pass crossover corner; "
+			"the full editor lists the per-group sections"));
+	addReadoutRow(2, tr("LFE GAIN"), lfeGainValue,
 		tr("Source LFE gain"),
 		tr("Whether source LFE is preserved and its applied gain"));
-	addReadoutRow(4, tr("TRIM"), trimValue,
+	addReadoutRow(3, tr("TRIM"), trimValue,
 		tr("Headroom trim"),
 		tr("Automatic or manual headroom trim"));
 
 	root->addLayout(readoutGrid);
-
-	readoutSeparator = createSeparator(this);
-	root->addWidget(readoutSeparator);
-
-	stageLabel = new QLabel(this);
-	stageLabel->setObjectName(
-		QStringLiteral("MinimalBassStage"));
-	stageLabel->setAccessibleName(
-		tr("Bass-management signal stages"));
-	configureElidedLabel(stageLabel);
-	root->addWidget(stageLabel);
 
 	diagnosticLabel = new QLabel(this);
 	diagnosticLabel->setObjectName(
@@ -351,11 +321,15 @@ void MinimalBassManagementCardView::applyState(
 			? tr("UNNAMED")
 			: state.profileName;
 
+		// The profile line is a data readout; when the file is missing the
+		// diagnostic line already carries the cause, so this line only
+		// changes ink (profileState), not words - status is never posted
+		// twice.
+		profileText =
+			tr("PROFILE  %1  [LINKED]")
+				.arg(profileName);
 		if (state.profileMissing)
 		{
-			profileText =
-				tr("! PROFILE  %1  [LINKED / MISSING]")
-					.arg(profileName);
 			profileToolTip =
 				tr("Linked profile \"%1\" is missing")
 					.arg(profileName);
@@ -363,9 +337,6 @@ void MinimalBassManagementCardView::applyState(
 		}
 		else
 		{
-			profileText =
-				tr("PROFILE  %1  [LINKED]")
-					.arg(profileName);
 			profileToolTip =
 				tr("Linked bass-management profile \"%1\"")
 					.arg(profileName);
@@ -400,17 +371,11 @@ void MinimalBassManagementCardView::applyState(
 		: state.layoutLabel;
 	setElidedText(layoutValue, layoutText);
 
-	const QString highPassText =
-		state.representativeHighPass.isEmpty()
-			? tr("NONE")
-			: state.representativeHighPass;
-	setElidedText(highPassValue, highPassText);
-
-	const QString lowPassText =
-		state.representativeLowPass.isEmpty()
-			? tr("NONE")
-			: state.representativeLowPass;
-	setElidedText(lowPassValue, lowPassText);
+	const QString crossoverText =
+		state.highPassHz > 0.0 || state.lowPassHz > 0.0
+			? crossoverSummary(state)
+			: tr("NONE");
+	setElidedText(crossoverValue, crossoverText);
 
 	const auto formatDb = [this](double value)
 	{
@@ -447,45 +412,21 @@ void MinimalBassManagementCardView::applyState(
 			formatDb(state.headroomTrimDb));
 	setElidedText(trimValue, trimText);
 
-	const QString stageText =
-		tr("MAIN -> BASS -> OUT  |  %1 GROUPS  |  %2 BASS PATHS")
-			.arg(state.speakerGroupCount)
-			.arg(state.bassPathCount);
-	const QString stageDetails =
-		tr("MAIN to BASS to OUT; %1 speaker groups, %2 bass paths, "
-			"%3 active matrix routes")
-			.arg(state.speakerGroupCount)
-			.arg(state.bassPathCount)
-			.arg(state.activeMatrixEdges);
-	setElidedText(
-		stageLabel,
-		stageText,
-		tr("%1\n%2").arg(stageText, stageDetails));
-
-	QStringList diagnostics;
+	// One diagnostic line, highest severity first. The validity label
+	// already names the state; this line carries the cause, so the two
+	// never repeat each other (status contract, review round 2).
+	QString diagnosticText;
 	if (!state.errorText.isEmpty())
 	{
-		diagnostics.append(
-			tr("!! ERROR: %1").arg(state.errorText));
-	}
-	if (!state.warningText.isEmpty())
-	{
-		diagnostics.append(
-			tr("! WARNING: %1").arg(state.warningText));
-	}
-
-	const QString diagnosticText =
-		diagnostics.join(QLatin1Char('\n'));
-	diagnosticLabel->setText(diagnosticText);
-	diagnosticLabel->setToolTip(diagnosticText);
-
-	if (!state.errorText.isEmpty())
-	{
+		diagnosticText =
+			tr("!! %1").arg(state.errorText);
 		diagnosticLabel->setProperty(
 			"severity", QStringLiteral("error"));
 	}
 	else if (!state.warningText.isEmpty())
 	{
+		diagnosticText =
+			tr("! %1").arg(state.warningText);
 		diagnosticLabel->setProperty(
 			"severity", QStringLiteral("warning"));
 	}
@@ -494,6 +435,8 @@ void MinimalBassManagementCardView::applyState(
 		diagnosticLabel->setProperty(
 			"severity", QStringLiteral("none"));
 	}
+	diagnosticLabel->setText(diagnosticText);
+	diagnosticLabel->setToolTip(diagnosticText);
 
 	diagnosticLabel->setVisible(
 		!diagnosticText.isEmpty());
@@ -523,13 +466,6 @@ void MinimalBassManagementCardView::changeEvent(
 	}
 }
 
-void MinimalBassManagementCardView::paintEvent(
-	QPaintEvent* event)
-{
-	BassManagementCardView::paintEvent(event);
-	paintSeparator(readoutSeparator);
-}
-
 void MinimalBassManagementCardView::resizeEvent(
 	QResizeEvent* event)
 {
@@ -545,47 +481,6 @@ void MinimalBassManagementCardView::resizeEvent(
 		});
 }
 
-void MinimalBassManagementCardView::paintSeparator(
-	QWidget* separator)
-{
-	if (separator == nullptr || !separator->isVisible())
-		return;
-
-	const QRect separatorRect = separator->geometry();
-	const qreal logicalY =
-		separatorRect.top() + separatorRect.height() / 2.0;
-
-	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing, false);
-
-	const QTransform deviceTransform =
-		painter.deviceTransform();
-	bool invertible = false;
-	const QTransform inverse =
-		deviceTransform.inverted(&invertible);
-
-	qreal alignedY = logicalY;
-	if (invertible)
-	{
-		QPointF devicePoint =
-			deviceTransform.map(QPointF(0.0, logicalY));
-		devicePoint.setY(
-			std::floor(devicePoint.y()) + 0.5);
-		alignedY = inverse.map(devicePoint).y();
-	}
-
-	QPen pen(separator->palette().color(
-		separator->foregroundRole()));
-	pen.setCosmetic(true);
-	pen.setWidth(0);
-	painter.setPen(pen);
-	painter.drawLine(
-		QPointF(separatorRect.left(), alignedY),
-		QPointF(
-			separatorRect.left() + separatorRect.width(),
-			alignedY));
-}
-
 void MinimalBassManagementCardView::refreshElisions()
 {
 	// cppcheck-suppress constVariable // the loop mutates the labels through
@@ -594,11 +489,9 @@ void MinimalBassManagementCardView::refreshElisions()
 	{
 		profileLabel,
 		layoutValue,
-		highPassValue,
-		lowPassValue,
+		crossoverValue,
 		lfeGainValue,
-		trimValue,
-		stageLabel
+		trimValue
 	};
 
 	for (QLabel* label : labels)

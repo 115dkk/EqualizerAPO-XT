@@ -9,20 +9,19 @@
 
 #pragma once
 
-#include <QList>
-
 #include "Editor/widgets/cards/BassManagementCardView.h"
 
-class ElidedLabel;
 class QAbstractButton;
-class QEvent;
 class QHBoxLayout;
 class QLabel;
 class QPaintEvent;
-class QResizeEvent;
-class SoftBassFlowWidget;
-class SoftBassStatusChip;
 
+// Soft reads the bass-management state back as a sentence a consumer
+// settings app would dare to show: one headline ("Bass below 80 Hz plays on
+// the subwoofer."), one dim caption, and a short row of quiet fact pills.
+// The review round retired the palette formula (HP/LP capsule arithmetic):
+// a beginner could not read it, and this skin's tiebreaker removes any
+// element that makes the screen more anxious.
 class SoftBassManagementCardView : public BassManagementCardView
 {
 	Q_OBJECT
@@ -34,26 +33,16 @@ public:
 
 protected:
 	void applyState(const BassManagementCardState& state) override;
-	bool event(QEvent* event) override;
 	void paintEvent(QPaintEvent* event) override;
-	void resizeEvent(QResizeEvent* event) override;
 
 private:
-	void styleFactChip(QLabel* label, bool warning = false);
-	void styleValidityChip(bool valid, bool hasError);
-	void updateResponsiveVisibility();
+	QLabel* makeFactPill();
 
-	ElidedLabel* layoutLabel = nullptr;
-	QLabel* validityChip = nullptr;
-	ElidedLabel* crossoverLabel = nullptr;
-	SoftBassFlowWidget* flowWidget = nullptr;
-	QWidget* factRow = nullptr;
-	QLabel* routeFact = nullptr;
-	QLabel* sourceLfeFact = nullptr;
-	QLabel* headroomFact = nullptr;
-	ElidedLabel* profileFact = nullptr;
-	SoftBassStatusChip* warningChip = nullptr;
-	SoftBassStatusChip* errorChip = nullptr;
+	QLabel* headlineLabel = nullptr;
+	QLabel* captionLabel = nullptr;
+	QLabel* layoutPill = nullptr;
+	QLabel* lfePill = nullptr;
+	QLabel* headroomPill = nullptr;
+	QLabel* profilePill = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
-	QList<QAbstractButton*> actionButtons;
 };

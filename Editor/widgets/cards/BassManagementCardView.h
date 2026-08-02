@@ -18,6 +18,16 @@ class QLabel;
 class QKeyEvent;
 class QMouseEvent;
 
+// The card speaks the user's language: layout, crossover corner, source-LFE
+// handling, headroom and profile. Internal graph statistics (group, path and
+// matrix-edge counts) belong to the full editor, not the summary card.
+//
+// Status contract (review round 2): errorText is the single error sentence
+// and warningText the single advisory sentence. The editor guarantees that
+// valid == false implies a non-empty errorText, and that a missing linked
+// profile is already described by errorText. Views must render each text at
+// most once and must not synthesize additional error lines from `valid` or
+// `profileMissing` - those flags only drive badge tone and short badges.
 struct BassManagementCardState
 {
 	bool enabled = true;
@@ -25,11 +35,10 @@ struct BassManagementCardState
 	QString layoutLabel;
 	bool sourceLfePreserved = false;
 	double sourceLfeGainDb = 0.0;
-	int speakerGroupCount = 0;
-	int bassPathCount = 0;
-	QString representativeHighPass;
-	QString representativeLowPass;
-	int activeMatrixEdges = 0;
+	// Representative crossover corners; 0.0 when the state has no section of
+	// that type (a full-range layout).
+	double highPassHz = 0.0;
+	double lowPassHz = 0.0;
 	bool headroomAuto = true;
 	double headroomTrimDb = 0.0;
 	QString profileName;
@@ -50,6 +59,11 @@ public:
 	const BassManagementCardState& state() const;
 
 	virtual void addActionButton(QAbstractButton* button) = 0;
+
+	// Shared formatting so the five skins agree on the numbers even though
+	// each dresses them in its own grammar.
+	static QString formatHz(double hz);
+	static QString crossoverSummary(const BassManagementCardState& state);
 
 signals:
 	void openEditorRequested();
@@ -83,7 +97,6 @@ private:
 	QGridLayout* grid = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
 	QLabel* layoutValue = nullptr;
-	QLabel* pathsValue = nullptr;
 	QLabel* crossoverValue = nullptr;
 	QLabel* sourceLfeValue = nullptr;
 	QLabel* headroomValue = nullptr;

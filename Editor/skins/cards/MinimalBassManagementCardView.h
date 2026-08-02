@@ -20,7 +20,6 @@ class QEvent;
 class QGridLayout;
 class QHBoxLayout;
 class QLabel;
-class QPaintEvent;
 class QResizeEvent;
 
 class MinimalBassManagementCardView : public BassManagementCardView
@@ -35,14 +34,12 @@ public:
 protected:
 	void applyState(const BassManagementCardState& state) override;
 	void changeEvent(QEvent* event) override;
-	void paintEvent(QPaintEvent* event) override;
 	void resizeEvent(QResizeEvent* event) override;
 
 private:
 	void addReadoutRow(int row, const QString& caption,
 		QLabel*& valueLabel, const QString& accessibleName,
 		const QString& toolTip);
-	void paintSeparator(QWidget* separator);
 	void refreshElisions();
 	void setElidedText(QLabel* label, const QString& fullText,
 		const QString& toolTip = QString());
@@ -50,16 +47,13 @@ private:
 
 	QGridLayout* readoutGrid = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
-	QWidget* readoutSeparator = nullptr;
 	QWidget* actionRow = nullptr;
 	QLabel* validityLabel = nullptr;
 	QLabel* profileLabel = nullptr;
 	QLabel* layoutValue = nullptr;
-	QLabel* highPassValue = nullptr;
-	QLabel* lowPassValue = nullptr;
+	QLabel* crossoverValue = nullptr;
 	QLabel* lfeGainValue = nullptr;
 	QLabel* trimValue = nullptr;
-	QLabel* stageLabel = nullptr;
 	QLabel* diagnosticLabel = nullptr;
 	int actionButtonCount = 0;
 };

@@ -9,20 +9,21 @@
 
 #pragma once
 
-#include <QList>
-
 #include "Editor/widgets/cards/BassManagementCardView.h"
 
-class BassInstrumentWidget;
-class GlowReadoutWidget;
-class ProfileSummaryWidget;
+class ElidedLabel;
 class QAbstractButton;
 class QHBoxLayout;
 class QLabel;
 class QPaintEvent;
-class QResizeEvent;
-class RightElidedLabel;
 
+// Studio dresses the bass-management summary as captioned glass readouts:
+// an identity line (validity chip, layout, profile), a sunken glass window
+// holding the crossover / source-LFE / headroom readouts, and at most one
+// quiet status line. The review round removed the response-trace instrument:
+// theoretical filter curves carry no decision the user can make from the
+// card (crossovers are chosen from measurements), and the skin's tiebreaker
+// deletes anything that is neither arc, label nor value.
 class StudioBassManagementCardView : public BassManagementCardView
 {
 	Q_OBJECT
@@ -35,22 +36,17 @@ public:
 protected:
 	void applyState(const BassManagementCardState& state) override;
 	void paintEvent(QPaintEvent* event) override;
-	void resizeEvent(QResizeEvent* event) override;
 
 private:
-	void updateResponsiveVisibility(int availableWidth);
+	QWidget* makeReadoutCell(const QString& caption, QLabel*& valueLabel,
+		bool primary, const QString& accessibleName, const QString& toolTip);
 
 	QHBoxLayout* actionLayout = nullptr;
 	QLabel* validityChip = nullptr;
-	RightElidedLabel* layoutLabel = nullptr;
-	ProfileSummaryWidget* profileSummary = nullptr;
-	RightElidedLabel* crossoverLabel = nullptr;
-	QWidget* factsRow = nullptr;
-	QLabel* routesChip = nullptr;
-	QLabel* lfeChip = nullptr;
+	QLabel* layoutLabel = nullptr;
+	ElidedLabel* profileLabel = nullptr;
+	QLabel* crossoverValue = nullptr;
+	QLabel* sourceLfeValue = nullptr;
+	QLabel* headroomValue = nullptr;
 	QLabel* statusLabel = nullptr;
-	BassInstrumentWidget* instrumentPane = nullptr;
-	QWidget* headroomPane = nullptr;
-	GlowReadoutWidget* headroomReadout = nullptr;
-	QList<QAbstractButton*> actionButtons;
 };
