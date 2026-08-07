@@ -1,6 +1,6 @@
 {
   "run_id": "31193124291",
-  "pattern": "*controls*",
+  "pattern": "*_menu_*",
   "prefix": "chk_",
   "branch": "gallery-bm-review2"
 }
