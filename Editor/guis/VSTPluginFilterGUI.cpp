@@ -145,6 +145,14 @@ void VSTPluginFilterGUI::storePreferences(QVariantMap& prefs)
 
 void VSTPluginFilterGUI::on_openPanelButton_clicked()
 {
+	// While the panel is embedded, this button is its close affordance; the
+	// options-menu checkbox stays in sync because closing goes through it.
+	if (ui->embedAction->isChecked())
+	{
+		ui->embedAction->setChecked(false);
+		return;
+	}
+
 	initPlugin();
 
 	if (effect != nullptr)
@@ -315,8 +323,6 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 {
 	initPlugin();
 
-	ui->openPanelButton->setVisible(!checked);
-
 	bool enable = checked;
 	if (effect == nullptr)
 		enable = false;
@@ -358,6 +364,18 @@ void VSTPluginFilterGUI::on_embedAction_toggled(bool checked)
 			disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(on_idle()));
 		}
 	}
+
+	// A checked action without a live embed (plugin missing or crashed while
+	// opening the panel) would claim a panel that is not shown; drop the
+	// check so the button reads "Open panel" again. The recursive toggle is
+	// a no-op because embedded already matches.
+	if (checked && !embedded && ui->embedAction->isChecked())
+		ui->embedAction->setChecked(false);
+
+	// The button stays visible while embedded - it is the way out. Hiding it
+	// left the embed removable only through the options menu, which read as
+	// "the panel cannot be closed".
+	ui->openPanelButton->setText(embedded ? tr("Close panel") : tr("Open panel"));
 }
 
 void VSTPluginFilterGUI::on_idle()

@@ -84,7 +84,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 
 	openPanelButton = new QPushButton(tr("Open panel"), view);
 	openPanelButton->setObjectName(QStringLiteral("VSTCardPanelButton"));
-	connect(openPanelButton, SIGNAL(clicked()), this, SLOT(openPanel()));
+	connect(openPanelButton, SIGNAL(clicked()), this, SLOT(panelButtonClicked()));
 	view->addActionButton(ReferenceCardView::ActionRole::OpenPanel, openPanelButton);
 
 	optionsButton = new QToolButton(view);
@@ -196,6 +196,12 @@ void VSTCardEditor::storePreferences(QVariantMap& prefs)
 
 void VSTCardEditor::openPanel()
 {
+	// The panel is already on screen inside the card; opening the dialog on
+	// top would steal the embedded view's window (startEditing recreates the
+	// view for the dialog and the card frame would keep showing nothing).
+	if (embedded)
+		return;
+
 	initPlugin();
 	updateReferenceState();
 
@@ -392,12 +398,21 @@ void VSTCardEditor::selectFile()
 	}
 }
 
+void VSTCardEditor::panelButtonClicked()
+{
+	// One visible button owns the panel either way: it opens the dialog while
+	// nothing is embedded, and closes the embedded panel otherwise. The
+	// options-menu checkbox stays in sync because closing goes through it.
+	if (embedAction->isChecked())
+		embedAction->setChecked(false);
+	else
+		openPanel();
+}
+
 void VSTCardEditor::embedToggled(bool checked)
 {
 	initPlugin();
 	updateReferenceState();
-
-	openPanelButton->setVisible(!checked);
 
 	bool enable = checked;
 	if (effect == nullptr)
@@ -434,6 +449,18 @@ void VSTCardEditor::embedToggled(bool checked)
 			disconnect(QAbstractEventDispatcher::instance(), SIGNAL(aboutToBlock()), this, SLOT(onIdle()));
 		}
 	}
+
+	// A checked action without a live embed (plugin missing or crashed while
+	// opening the panel) would leave the card claiming a panel it does not
+	// show; drop the check so the button reads "Open panel" again. The
+	// recursive toggle is a no-op: embedded already matches.
+	if (checked && !embedded && embedAction->isChecked())
+		embedAction->setChecked(false);
+
+	// The button stays visible while embedded - it is the way out. Hiding it
+	// left the embed removable only through the options menu, which read as
+	// "the panel cannot be closed".
+	openPanelButton->setText(embedded ? tr("Close panel") : tr("Open panel"));
 }
 
 void VSTCardEditor::onIdle()
