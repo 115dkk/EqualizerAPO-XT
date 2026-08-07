@@ -1771,3 +1771,18 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid @BORDER@;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
+
+/* A checked box carries a real check glyph. The stylesheet engine replaces
+   the native indicator drawing wholesale, so without an image the checked
+   state was only a filled accent square - state read through color alone.
+   The partially-checked state gets the same treatment (a dash), which the
+   base rules never covered at all. */
+QCheckBox::indicator:checked { image: url(:/icons/modern/check-light.svg); }
+QCheckBox::indicator:indeterminate {
+    background: @ACCENT@;
+    border-color: @ACCENT@;
+    image: url(:/icons/modern/dash-light.svg);
+}
+/* The menu's checkable items share the square indicator, so they share the
+   glyph. (Rack/Studio/Soft menus keep their round lamp/dot idiom.) */
+QMenu::indicator:checked { image: url(:/icons/modern/check-light.svg); }
