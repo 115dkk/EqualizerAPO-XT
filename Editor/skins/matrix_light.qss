@@ -1756,7 +1756,7 @@ QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; 
 /* ===== Bass-management card: aggregate crosspoint board ===== */
 /* ===== Bass-management card: departure-board posting =====
    See matrix_dark.qss. The light board prints the same cells on paper. */
-QWidget#MatrixBassManagementCardView,
+QWidget#MatrixSubwooferRoutingCardView,
 QWidget#MatrixBassReadoutColumn {
     background: transparent;
     border: 0;
@@ -1842,7 +1842,7 @@ QToolButton#MatrixBassActionButton::menu-indicator {
    cells, so the cells' own rules are the visible structure. Boxing every
    section on top of celled content doubled the rules; a section is a
    captioned region opened by one top rule on the board surface. */
-QDialog#BassManagementEditorDialog QGroupBox {
+QDialog#SubwooferRoutingEditorDialog QGroupBox {
     background: transparent;
     border: none;
     border-top: 1px solid @BORDER@;

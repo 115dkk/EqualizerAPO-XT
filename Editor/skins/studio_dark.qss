@@ -1765,7 +1765,7 @@ QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; 
    crossover (protagonist ink), source-LFE and headroom readouts; at most one
    quiet status line follows. No instrument traces - the card states facts,
    the full editor owns the curves. */
-QWidget#StudioBassManagementCardView,
+QWidget#StudioSubwooferRoutingCardView,
 QWidget#StudioBassReadoutCell {
     background: transparent;
     border: 0;

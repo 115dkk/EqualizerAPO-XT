@@ -17,25 +17,25 @@
     <ClCompile Include="AllPassTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BassManagementCodecTests.cpp">
+    <ClCompile Include="SubwooferRoutingCodecTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BassManagementCommandTests.cpp">
+    <ClCompile Include="SubwooferRoutingCommandTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BassManagementCompilerTests.cpp">
+    <ClCompile Include="SubwooferRoutingCompilerTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BassManagementEngineTests.cpp">
+    <ClCompile Include="SubwooferRoutingEngineTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BassManagementVst3Tests.cpp">
+    <ClCompile Include="SubwooferRoutingVst3Tests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BassManagementJsonTests.cpp">
+    <ClCompile Include="SubwooferRoutingJsonTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BassManagementProcessorTests.cpp">
+    <ClCompile Include="SubwooferRoutingProcessorTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BiQuadKernelTests.cpp">

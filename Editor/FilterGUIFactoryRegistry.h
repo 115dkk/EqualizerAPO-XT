@@ -56,7 +56,7 @@ namespace FilterGUIFactoryOrder
 	constexpr int Spatial = 12;
 	constexpr int VSTPlugin = 13;
 	constexpr int LoudnessCorrection = 14;
-	constexpr int BassManagement = 15;
+	constexpr int SubwooferRouting = 15;
 }
 
 class FilterGUIFactoryRegistry

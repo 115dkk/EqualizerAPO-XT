@@ -8,8 +8,8 @@
 
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
-#include "BassManagement/StateCodec.h"
-#include "filters/bassManagement/BassManagementCommand.h"
+#include "SubwooferRouting/StateCodec.h"
+#include "filters/subwooferRouting/SubwooferRoutingCommand.h"
 #include "filters/BiQuadCommand.h"
 #include "filters/HilbertCommand.h"
 #include "filters/VelvetCommand.h"
@@ -543,7 +543,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	}
 	else if (keyword == QStringLiteral("SubwooferRouting"))
 	{
-		descriptor.type = QStringLiteral("bassmanagement");
+		descriptor.type = QStringLiteral("subwooferrouting");
 		descriptor.badge = QStringLiteral("SUB");
 		descriptor.title = tr("Subwoofer routing");
 		descriptor.color = QStringLiteral("#84cc16");
@@ -558,13 +558,13 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		}
 		else
 		{
-			BassManagementCommand parsed;
-			if (!BassManagementCommand::parse(command.toStdWString(),
+			SubwooferRoutingCommand parsed;
+			if (!SubwooferRoutingCommand::parse(command.toStdWString(),
 				parameters.toStdWString(), parsed))
 			{
 				descriptor.summary = tr("invalid state");
 			}
-			else if (parsed.form == BassManagementCommand::Form::Profile)
+			else if (parsed.form == SubwooferRoutingCommand::Form::Profile)
 			{
 				QString path = QString::fromStdWString(parsed.payload);
 				if (path.size() >= 2 && path.front() == QLatin1Char('"')
@@ -579,9 +579,9 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 			else
 			{
 				const std::string payload =
-					bassManagementToUtf8(parsed.payload);
-				const bassmgmt::StateDecodeResult decoded =
-					bassmgmt::decodeState(payload);
+					subwooferRoutingToUtf8(parsed.payload);
+				const subroute::StateDecodeResult decoded =
+					subroute::decodeState(payload);
 				if (!decoded.succeeded())
 				{
 					descriptor.summary = tr("invalid state");
@@ -589,7 +589,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 				else
 				{
 					int lfeChannels = 0;
-					for (const bassmgmt::PhysicalChannel& channel
+					for (const subroute::PhysicalChannel& channel
 						: decoded.state->layout.channels)
 					{
 						if (QString::fromUtf8(channel.id.data(),
@@ -605,19 +605,19 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 					// the crossover corner. Internal graph statistics (group
 					// and path counts) belong to the full editor.
 					double crossoverHz = 0.0;
-					for (const bassmgmt::Path& path
+					for (const subroute::Path& path
 						: decoded.state->paths)
 					{
-						for (const bassmgmt::PathStage& stage : path.chain)
+						for (const subroute::PathStage& stage : path.chain)
 						{
-							const bassmgmt::BiquadStage* biquad =
-								std::get_if<bassmgmt::BiquadStage>(&stage);
+							const subroute::BiquadStage* biquad =
+								std::get_if<subroute::BiquadStage>(&stage);
 							if (biquad == nullptr)
 								continue;
 							if (biquad->filter.type
-								== bassmgmt::BiquadType::HighPass
+								== subroute::BiquadType::HighPass
 								|| biquad->filter.type
-								== bassmgmt::BiquadType::LowPass)
+								== subroute::BiquadType::LowPass)
 							{
 								crossoverHz = biquad->filter.frequencyHz;
 								break;
@@ -779,10 +779,7 @@ QString FilterCardModel::commandIconResource(const QString& command, const QStri
 		{ "stage", "stage-chain" },
 		{ "copy", "route-channels" },
 		{ "loudnesscorrection", "loudness" },
-		// The command was renamed to SubwooferRouting; the card type id and
-		// the icon resource keep the original asset name.
-		{ "subwooferrouting", "bass-management" },
-		{ "bassmanagement", "bass-management" },
+		{ "subwooferrouting", "subwoofer-routing" },
 		{ "if", "logic-if" },
 		{ "elseif", "logic-if" },
 		{ "else", "logic-if" },

@@ -30,7 +30,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/pickers/SoftFilterPicker.h"
 #include "Editor/skins/cards/SoftReferenceCardView.h"
-#include "Editor/skins/cards/SoftBassManagementCardView.h"
+#include "Editor/skins/cards/SoftSubwooferRoutingCardView.h"
 #include "Editor/widgets/routing/BlockChipRoutingRenderer.h"
 #include "SkinPaint.h"
 #include "SkinSupport.h"
@@ -163,9 +163,9 @@ public:
 		return new SoftReferenceCardView(kind, parent);
 	}
 
-	BassManagementCardView* createBassManagementCardView(QWidget* parent) const override
+	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const override
 	{
-		return new SoftBassManagementCardView(parent);
+		return new SoftSubwooferRoutingCardView(parent);
 	}
 
 	// Window chrome: deliberately NO paintTitleBarChrome override. The

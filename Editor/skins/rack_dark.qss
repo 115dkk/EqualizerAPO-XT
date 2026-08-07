@@ -1231,7 +1231,7 @@ QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; 
 
 /* Subwoofer Routing unit: brushed faceplate instruments, engraved identity
    lines, visible service-state stamps and raised momentary machine keys. */
-RackBassManagementCardView,
+RackSubwooferRoutingCardView,
 RackCrossoverReadout,
 RackLfeLamp,
 RackHeadroomMeter,

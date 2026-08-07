@@ -33,13 +33,13 @@
 // main(); each runXxxTests() is defined in the correspondingly named
 // XxxTests.cpp next to this file.
 void runAllPassTests();
-void runBassManagementCodecTests();
-void runBassManagementCommandTests();
-void runBassManagementCompilerTests();
-void runBassManagementEngineTests();
-void runBassManagementVst3Tests();
-void runBassManagementJsonTests();
-void runBassManagementProcessorTests();
+void runSubwooferRoutingCodecTests();
+void runSubwooferRoutingCommandTests();
+void runSubwooferRoutingCompilerTests();
+void runSubwooferRoutingEngineTests();
+void runSubwooferRoutingVst3Tests();
+void runSubwooferRoutingJsonTests();
+void runSubwooferRoutingProcessorTests();
 void runBiQuadKernelTests();
 void runChannelCommandTests();
 void runCommonLogicTests();
@@ -471,16 +471,16 @@ int runHybridConvTests()
 	// All-pass DSP invariants plus the characterizations the reform in issue
 	// #228 has to preserve or is about to change deliberately.
 	runAllPassTests();
-	// Subwoofer Routing shared core (MIT BassManagementCore) plus its JSON codec:
+	// Subwoofer Routing shared core (MIT SubwooferRoutingCore) plus its JSON codec:
 	// pure-logic suites, no engine or device dependency.
-	runBassManagementJsonTests();
-	runBassManagementCodecTests();
-	runBassManagementCommandTests();
-	runBassManagementCompilerTests();
+	runSubwooferRoutingJsonTests();
+	runSubwooferRoutingCodecTests();
+	runSubwooferRoutingCommandTests();
+	runSubwooferRoutingCompilerTests();
 	// Engine-level integration: original issue #246 chain vs the preset,
 	// Profile-form equivalence, invalid-state pass-through.
-	runBassManagementEngineTests();
-	runBassManagementProcessorTests();
+	runSubwooferRoutingEngineTests();
+	runSubwooferRoutingProcessorTests();
 	runBiQuadKernelTests();
 	runChannelCommandTests();
 	runCommonLogicTests();
@@ -511,7 +511,7 @@ int runHybridConvTests()
 	runVst3HostTests();
 	// Native/VST3 parity for the Subwoofer Routing plugin, loaded through the
 	// same host path as the companion-module suites above.
-	runBassManagementVst3Tests();
+	runSubwooferRoutingVst3Tests();
 	runParserTests();
 	runParserPreampTests();
 	runMultiConvolutionTests();

@@ -41,14 +41,14 @@
     <ClInclude Include="filters\IrCache.h">
       <Filter>filters</Filter>
     </ClInclude>
-    <ClInclude Include="filters\bassManagement\BassManagementCommand.h">
-      <Filter>filters\bassManagement</Filter>
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingCommand.h">
+      <Filter>filters\subwooferRouting</Filter>
     </ClInclude>
-    <ClInclude Include="filters\bassManagement\BassManagementFilter.h">
-      <Filter>filters\bassManagement</Filter>
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingFilter.h">
+      <Filter>filters\subwooferRouting</Filter>
     </ClInclude>
-    <ClInclude Include="filters\bassManagement\BassManagementFilterFactory.h">
-      <Filter>filters\bassManagement</Filter>
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingFilterFactory.h">
+      <Filter>filters\subwooferRouting</Filter>
     </ClInclude>
     <ClInclude Include="filters\HilbertCommand.h"><Filter>filters</Filter></ClInclude>
     <ClInclude Include="filters\HilbertFilter.h"><Filter>filters</Filter></ClInclude>
@@ -299,14 +299,14 @@
     <ClCompile Include="filters\IrCache.cpp">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="filters\bassManagement\BassManagementCommand.cpp">
-      <Filter>filters\bassManagement</Filter>
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingCommand.cpp">
+      <Filter>filters\subwooferRouting</Filter>
     </ClCompile>
-    <ClCompile Include="filters\bassManagement\BassManagementFilter.cpp">
-      <Filter>filters\bassManagement</Filter>
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingFilter.cpp">
+      <Filter>filters\subwooferRouting</Filter>
     </ClCompile>
-    <ClCompile Include="filters\bassManagement\BassManagementFilterFactory.cpp">
-      <Filter>filters\bassManagement</Filter>
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingFilterFactory.cpp">
+      <Filter>filters\subwooferRouting</Filter>
     </ClCompile>
     <ClCompile Include="filters\HilbertCommand.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\HilbertFilter.cpp"><Filter>filters</Filter></ClCompile>
@@ -523,7 +523,7 @@
     <Filter Include="filters\loudnessCorrection">
       <UniqueIdentifier>{c473f978-6002-42aa-adf5-3b5f10868d2d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="filters\bassManagement">
+    <Filter Include="filters\subwooferRouting">
       <UniqueIdentifier>{79d2e3c6-5f68-4e60-9dbe-43972105c4b9}</UniqueIdentifier>
     </Filter>
     <Filter Include="filters\velvet">

@@ -34,7 +34,7 @@ namespace FilterFactoryPriority
 	constexpr int Preamp = 8;
 	constexpr int Delay = 9;
 	constexpr int Copy = 10;
-	constexpr int BassManagement = 11;
+	constexpr int SubwooferRouting = 11;
 	constexpr int Convolution = 12;
 	constexpr int Hilbert = 13;
 	constexpr int Velvet = 14;

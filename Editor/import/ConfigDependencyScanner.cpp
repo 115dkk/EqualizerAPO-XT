@@ -8,7 +8,7 @@
 #include "filters/ConvolutionFilePath.h"
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/VSTPluginCommand.h"
-#include "filters/bassManagement/BassManagementCommand.h"
+#include "filters/subwooferRouting/SubwooferRoutingCommand.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -66,9 +66,9 @@ QString referencePath(const QString& keyword, const QString& parameters)
     {
         // Only the Profile form references a file; inline State is
         // self-contained JSON and must not be treated as a path.
-        BassManagementCommand command;
-        if (!BassManagementCommand::parse(L"SubwooferRouting", parameters.toStdWString(), command)
-            || command.form != BassManagementCommand::Form::Profile)
+        SubwooferRoutingCommand command;
+        if (!SubwooferRoutingCommand::parse(L"SubwooferRouting", parameters.toStdWString(), command)
+            || command.form != SubwooferRoutingCommand::Form::Profile)
             return QString();
         return stripSurroundingQuotes(QString::fromStdWString(command.payload));
     }

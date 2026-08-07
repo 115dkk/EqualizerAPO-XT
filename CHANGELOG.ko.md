@@ -19,7 +19,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   출력을 0 dBFS 아래로 유지하고, 잘못된 상태는 소리를 끊는 대신 오류를
   남기며, 참조되지 않은 채널은 비트 그대로 통과합니다. Editor에는 전용 배지와
   요약을 갖춘 Subwoofer Routing 카드가 생겼습니다. DSP는 아래 플러그인과
-  공유하는 새 MIT 라이선스 BassManagementCore 라이브러리에 있습니다.
+  공유하는 새 MIT 라이선스 SubwooferRoutingCore 라이브러리에 있습니다.
 - **독립 실행형 Subwoofer Routing VST3 플러그인이 모든 릴리스에 실립니다.** MIT
   라이선스의 `EAPO XT Subwoofer Routing` 플러그인(설치본의 `VST3\` 폴더)은 어느
   VST3 호스트에서든 동일한 DSP 코어를 돌리고, 4.1을 포함해 스테레오부터

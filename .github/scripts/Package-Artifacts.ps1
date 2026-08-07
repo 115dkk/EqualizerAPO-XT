@@ -14,8 +14,8 @@ $requiredFiles = @(
 )
 # The standalone MIT Subwoofer Routing VST3 ships inside the same artifact as an
 # optional extra: a standard bundle layout under VST3\ plus its own license.
-$vst3PluginModule = "VST3\BassManagement\$Platform\Release\EapoXtSubwooferRouting.vst3"
-$vst3PluginLicense = "VST3\BassManagement\LICENSE"
+$vst3PluginModule = "VST3\SubwooferRouting\$Platform\Release\EapoXtSubwooferRouting.vst3"
+$vst3PluginLicense = "VST3\SubwooferRouting\LICENSE"
 $vst3BundleArch = if ($Platform -eq "ARM64") { "arm64-win" } else { "x86_64-win" }
 $excludeExtensions = @(".obj", ".res", ".log", ".tlog", ".iobj", ".ipdb", ".ilk", ".pdb")
 $plan = [pscustomobject]@{

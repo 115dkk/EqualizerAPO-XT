@@ -18,7 +18,7 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/cards/DefaultReferenceCardView.h"
-#include "Editor/widgets/cards/BassManagementCardView.h"
+#include "Editor/widgets/cards/SubwooferRoutingCardView.h"
 #include "SkinPaint.h"
 #include "SkinThemeData.h"
 
@@ -475,9 +475,9 @@ ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* 
 	return new DefaultReferenceCardView(parent);
 }
 
-BassManagementCardView* ISkin::createBassManagementCardView(QWidget* parent) const
+SubwooferRoutingCardView* ISkin::createSubwooferRoutingCardView(QWidget* parent) const
 {
-	return new DefaultBassManagementCardView(parent);
+	return new DefaultSubwooferRoutingCardView(parent);
 }
 
 void ISkin::paintTitleBarChrome(QPainter&, const QRect&, const SkinTokens&) const

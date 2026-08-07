@@ -28,7 +28,7 @@ class QPainter;
 class QToolBar;
 class QWidget;
 class ReferenceCardView;
-class BassManagementCardView;
+class SubwooferRoutingCardView;
 
 // Identifies a command row for per-command-type chrome decisions.
 struct CommandRowInfo
@@ -431,10 +431,10 @@ public:
 	// QWidget parent mechanism.
 	virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
 
-	// The compact BassManagement card body. The editor computes and owns the
+	// The compact SubwooferRouting card body. The editor computes and owns the
 	// state and actions; the returned view owns their presentation. The
-	// default is DefaultBassManagementCardView.
-	virtual BassManagementCardView* createBassManagementCardView(QWidget* parent) const;
+	// default is DefaultSubwooferRoutingCardView.
+	virtual SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const;
 
 	// Painted decoration over the custom title bar's QSS background (screws,
 	// grid texture, glows - whatever the skin's constitution calls for).

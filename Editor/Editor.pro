@@ -13,7 +13,7 @@ TEMPLATE = app
 
 # Object files mirror the source tree. Without this, qmake drops every object
 # into one directory by basename, and ../filters/velvet/Processor.cpp then
-# collides with ../BassManagementCore/src/Processor.cpp (last one wins at
+# collides with ../SubwooferRoutingCore/src/Processor.cpp (last one wins at
 # link time).
 CONFIG += object_parallel_to_source
 
@@ -129,7 +129,7 @@ SOURCES += main.cpp\
 	guis/MultiConvolutionFilterGUIFactory.cpp \
 	guis/MultiConvolutionFilterGUI.cpp \
 	guis/SpatialFilterGUIFactory.cpp \
-	guis/BassManagementFilterGUIFactory.cpp \
+	guis/SubwooferRoutingFilterGUIFactory.cpp \
 	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
@@ -178,16 +178,16 @@ SOURCES += main.cpp\
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
-	../filters/bassManagement/BassManagementCommand.cpp \
-	../filters/bassManagement/BassManagementFilter.cpp \
-	../filters/bassManagement/BassManagementFilterFactory.cpp \
-	../BassManagementCore/src/Compiler.cpp \
-	../BassManagementCore/src/Crossover.cpp \
-	../BassManagementCore/src/Graph.cpp \
-	../BassManagementCore/src/Json.cpp \
-	../BassManagementCore/src/Preset.cpp \
-	../BassManagementCore/src/Processor.cpp \
-	../BassManagementCore/src/StateCodec.cpp \
+	../filters/subwooferRouting/SubwooferRoutingCommand.cpp \
+	../filters/subwooferRouting/SubwooferRoutingFilter.cpp \
+	../filters/subwooferRouting/SubwooferRoutingFilterFactory.cpp \
+	../SubwooferRoutingCore/src/Compiler.cpp \
+	../SubwooferRoutingCore/src/Crossover.cpp \
+	../SubwooferRoutingCore/src/Graph.cpp \
+	../SubwooferRoutingCore/src/Json.cpp \
+	../SubwooferRoutingCore/src/Preset.cpp \
+	../SubwooferRoutingCore/src/Processor.cpp \
+	../SubwooferRoutingCore/src/StateCodec.cpp \
 	../filters/HilbertCommand.cpp \
 	../filters/HilbertFilter.cpp \
 	../filters/HilbertFilterFactory.cpp \
@@ -260,12 +260,12 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelCardEditor.cpp \
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
-	widgets/cards/BassManagementCardEditor.cpp \
-	widgets/bassmanagement/BassManagementEditorDialog.cpp \
-	widgets/bassmanagement/BassManagementResponseView.cpp \
-	widgets/bassmanagement/BassManagementUiModel.cpp \
-	widgets/routing/BassManagementRoutingAdapter.cpp \
-	widgets/cards/BassManagementCardView.cpp \
+	widgets/cards/SubwooferRoutingCardEditor.cpp \
+	widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp \
+	widgets/subwooferrouting/SubwooferRoutingResponseView.cpp \
+	widgets/subwooferrouting/SubwooferRoutingUiModel.cpp \
+	widgets/routing/SubwooferRoutingRoutingAdapter.cpp \
+	widgets/cards/SubwooferRoutingCardView.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
@@ -292,11 +292,11 @@ SOURCES += main.cpp\
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	skins/cards/StudioReferenceCardView.cpp \
-	skins/cards/StudioBassManagementCardView.cpp \
-	skins/cards/MinimalBassManagementCardView.cpp \
-	skins/cards/SoftBassManagementCardView.cpp \
-	skins/cards/RackBassManagementCardView.cpp \
-	skins/cards/MatrixBassManagementCardView.cpp \
+	skins/cards/StudioSubwooferRoutingCardView.cpp \
+	skins/cards/MinimalSubwooferRoutingCardView.cpp \
+	skins/cards/SoftSubwooferRoutingCardView.cpp \
+	skins/cards/RackSubwooferRoutingCardView.cpp \
+	skins/cards/MatrixSubwooferRoutingCardView.cpp \
 	skins/cards/MinimalReferenceCardView.cpp \
 	skins/cards/SoftReferenceCardView.cpp \
 	skins/cards/RackReferenceCardView.cpp \
@@ -432,7 +432,7 @@ HEADERS  += \
 	guis/MultiConvolutionFilterGUIFactory.h \
 	guis/MultiConvolutionFilterGUI.h \
 	guis/SpatialFilterGUIFactory.h \
-	guis/BassManagementFilterGUIFactory.h \
+	guis/SubwooferRoutingFilterGUIFactory.h \
 	helpers/AnalysisWorkerRecovery.h \
 	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
@@ -469,9 +469,9 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
-	../filters/bassManagement/BassManagementCommand.h \
-	../filters/bassManagement/BassManagementFilter.h \
-	../filters/bassManagement/BassManagementFilterFactory.h \
+	../filters/subwooferRouting/SubwooferRoutingCommand.h \
+	../filters/subwooferRouting/SubwooferRoutingFilter.h \
+	../filters/subwooferRouting/SubwooferRoutingFilterFactory.h \
 	../filters/HilbertCommand.h \
 	../filters/HilbertFilter.h \
 	../filters/HilbertFilterFactory.h \
@@ -537,12 +537,12 @@ HEADERS  += \
 	widgets/cards/ChannelCardEditor.h \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
-	widgets/cards/BassManagementCardEditor.h \
-	widgets/bassmanagement/BassManagementEditorDialog.h \
-	widgets/bassmanagement/BassManagementResponseView.h \
-	widgets/bassmanagement/BassManagementUiModel.h \
-	widgets/routing/BassManagementRoutingAdapter.h \
-	widgets/cards/BassManagementCardView.h \
+	widgets/cards/SubwooferRoutingCardEditor.h \
+	widgets/subwooferrouting/SubwooferRoutingEditorDialog.h \
+	widgets/subwooferrouting/SubwooferRoutingResponseView.h \
+	widgets/subwooferrouting/SubwooferRoutingUiModel.h \
+	widgets/routing/SubwooferRoutingRoutingAdapter.h \
+	widgets/cards/SubwooferRoutingCardView.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
@@ -567,11 +567,11 @@ HEADERS  += \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTCardEditor.h \
 	skins/cards/StudioReferenceCardView.h \
-	skins/cards/StudioBassManagementCardView.h \
-	skins/cards/MinimalBassManagementCardView.h \
-	skins/cards/SoftBassManagementCardView.h \
-	skins/cards/RackBassManagementCardView.h \
-	skins/cards/MatrixBassManagementCardView.h \
+	skins/cards/StudioSubwooferRoutingCardView.h \
+	skins/cards/MinimalSubwooferRoutingCardView.h \
+	skins/cards/SoftSubwooferRoutingCardView.h \
+	skins/cards/RackSubwooferRoutingCardView.h \
+	skins/cards/MatrixSubwooferRoutingCardView.h \
 	skins/cards/MinimalReferenceCardView.h \
 	skins/cards/SoftReferenceCardView.h \
 	skins/cards/RackReferenceCardView.h \
@@ -699,7 +699,7 @@ contains(QT_ARCH, arm64) {
 	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
 }
 
-INCLUDEPATH += $$PWD/.. $$PWD/../BassManagementCore/include $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
+INCLUDEPATH += $$PWD/.. $$PWD/../SubwooferRoutingCore/include $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
 LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {

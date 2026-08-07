@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{DFC0A7D8-44C5-456B-9FFE-D7F9AE3B7D7E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{B1C2A3D4-5E6F-4708-9A0B-1C2D3E4F5A6B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\SubwooferRouting\Compiler.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SubwooferRouting\Graph.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SubwooferRouting\Headroom.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SubwooferRouting\Json.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SubwooferRouting\Preset.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SubwooferRouting\Processor.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SubwooferRouting\State.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SubwooferRouting\StateCodec.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Compiler.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graph.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Json.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Preset.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Processor.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\StateCodec.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" />
+  </ItemGroup>
+</Project>

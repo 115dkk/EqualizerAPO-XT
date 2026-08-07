@@ -17,12 +17,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VoicemeeterClient", "Voicem
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "Common.vcxproj", "{6758B50E-B9F0-4389-A61D-A842F0545E1B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BassManagementVst3", "VST3\BassManagement\BassManagementVst3.vcxproj", "{7C1E63B8-4A2F-4C41-9E0D-52A8B4F6D913}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SubwooferRoutingVst3", "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj", "{7C1E63B8-4A2F-4C41-9E0D-52A8B4F6D913}"
 	ProjectSection(ProjectDependencies) = postProject
 		{F4A7D224-91E3-430B-B756-6D2E50DFF22C} = {F4A7D224-91E3-430B-B756-6D2E50DFF22C}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BassManagementCore", "BassManagementCore\BassManagementCore.vcxproj", "{F4A7D224-91E3-430B-B756-6D2E50DFF22C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SubwooferRoutingCore", "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj", "{F4A7D224-91E3-430B-B756-6D2E50DFF22C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HybridConvTests", "Tests\HybridConvTests\HybridConvTests.vcxproj", "{035F3206-F8DE-4615-8636-D9845254DFAA}"
 	ProjectSection(ProjectDependencies) = postProject

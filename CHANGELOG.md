@@ -26,7 +26,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   summed outputs below 0 dBFS, invalid states log an error instead of muting,
   and unreferenced channels pass through bit-exactly. The Editor shows a
   Subwoofer Routing card with its own badge and summary. The DSP lives in a new
-  MIT-licensed BassManagementCore library shared with the plugin below.
+  MIT-licensed SubwooferRoutingCore library shared with the plugin below.
 - **A standalone Subwoofer Routing VST3 plugin ships with every release.** The
   MIT-licensed `EAPO XT Subwoofer Routing` plugin (in the `VST3\` folder of the
   install) runs the identical DSP core in any VST3 host, negotiates stereo

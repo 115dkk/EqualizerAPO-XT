@@ -1,8 +1,8 @@
 #include "SkinGallery.h"
 #include "diagnostics/ToolbarPixelProbe.h"
 #include "widgets/MainToolbarKit.h"
-#include "BassManagement/Preset.h"
-#include "BassManagement/StateCodec.h"
+#include "SubwooferRouting/Preset.h"
+#include "SubwooferRouting/StateCodec.h"
 
 #include <cmath>
 #include <complex>
@@ -69,8 +69,8 @@
 #include "Editor/widgets/SkinComboBox.h"
 #include "Editor/widgets/TitleBar.h"
 #include "Editor/widgets/UpdateToast.h"
-#include "Editor/widgets/bassmanagement/BassManagementEditorDialog.h"
-#include "Editor/widgets/cards/BassManagementCardEditor.h"
+#include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
+#include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 
 namespace
@@ -108,14 +108,14 @@ struct GalleryRow
 // endpoint chips.
 // The inline-State fixture is generated through the core instead of pasting
 // JSON, so the gallery always renders exactly what the codec would emit.
-QString bassManagementPresetRowLine()
+QString subwooferRoutingPresetRowLine()
 {
-	const bassmgmt::PresetCreateResult preset =
-		bassmgmt::createBuiltInPreset(bassmgmt::kIssue246FrontRear41PresetId);
+	const subroute::PresetCreateResult preset =
+		subroute::createBuiltInPreset(subroute::kIssue246FrontRear41PresetId);
 	if (!preset.succeeded())
 		return QStringLiteral("SubwooferRouting:");
-	const bassmgmt::StateEncodeResult encoded =
-		bassmgmt::encodeStateCanonical(*preset.state);
+	const subroute::StateEncodeResult encoded =
+		subroute::encodeStateCanonical(*preset.state);
 	if (!encoded.succeeded())
 		return QStringLiteral("SubwooferRouting:");
 	return QStringLiteral("SubwooferRouting: State ")
@@ -188,8 +188,8 @@ QList<GalleryRow> galleryRows()
 		// whose file is missing, which is the warning state every skin must
 		// carry without dropping the card. Appended last (mid-list insertion
 		// renumbers every following scene against the stored baseline).
-		{ QStringLiteral("bassmanagement"), bassManagementPresetRowLine() },
-		{ QStringLiteral("bassmanagement_missing"), QStringLiteral("SubwooferRouting: Profile \"missing.swxt.json\"") }
+		{ QStringLiteral("subwooferrouting"), subwooferRoutingPresetRowLine() },
+		{ QStringLiteral("subwooferrouting_missing"), QStringLiteral("SubwooferRouting: Profile \"missing.swxt.json\"") }
 	};
 }
 
@@ -470,7 +470,7 @@ const QList<GalleryScenario>& galleryScenarios()
 	static const QList<GalleryScenario> scenarios = {
 		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"),
 			QStringLiteral("empty"), QStringLiteral("phasetime") } },
-		{ QStringLiteral("bmdialog"), { QStringLiteral("default"),
+		{ QStringLiteral("srdialog"), { QStringLiteral("default"),
 			QStringLiteral("preset") } },
 		{ QStringLiteral("toolbar"), { QStringLiteral("normal") } },
 		{ QStringLiteral("analysis"), { QStringLiteral("normal") } },
@@ -909,43 +909,43 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		delete picker;
 	}
 
-	// The full bass-management editor dialog, in the two states a user meets
+	// The full subwoofer-routing editor dialog, in the two states a user meets
 	// first: the seeded default for a stereo+LFE endpoint, and the built-in
 	// #246 preset. The dialog hosts the skin's routing renderer twice plus
 	// the response view, so it is judged per skin like the picker.
 	{
-		const bassmgmt::PresetCreateResult preset =
-			bassmgmt::createBuiltInPreset(
-				bassmgmt::kIssue246FrontRear41PresetId);
+		const subroute::PresetCreateResult preset =
+			subroute::createBuiltInPreset(
+				subroute::kIssue246FrontRear41PresetId);
 		const struct
 		{
 			QString state;
-			bassmgmt::BassManagementState value;
+			subroute::SubwooferRoutingState value;
 		} dialogStates[] = {
 			{ QStringLiteral("default"),
-				bassmanagementeditor::buildDefaultState(
+				subwooferroutingeditor::buildDefaultState(
 					{ L"L", L"R", L"LFE" }) },
 			{ QStringLiteral("preset"),
 				preset.succeeded()
 					? *preset.state
-					: bassmanagementeditor::buildDefaultState(
+					: subwooferroutingeditor::buildDefaultState(
 						{ L"L", L"R", L"LFE" }) }
 		};
 		if (!preset.succeeded())
 		{
-			qWarning("SkinGallery: built-in bass-management preset failed "
-				"to instantiate; the bmdialog preset shot falls back to "
+			qWarning("SkinGallery: built-in subwoofer-routing preset failed "
+				"to instantiate; the srdialog preset shot falls back to "
 				"the default state");
 			failures++;
 		}
 		for (const auto& dialogState : dialogStates)
 		{
-			BassManagementEditorDialog dialog(dialogState.value, 48000);
+			SubwooferRoutingEditorDialog dialog(dialogState.value, 48000);
 			dialog.resize(1360, 780);
 			dialog.show();
 			QApplication::processEvents();
 			failures += saveGrab(&dialog, outDir, skinId, mode,
-				QStringLiteral("bmdialog"), dialogState.state) ? 0 : 1;
+				QStringLiteral("srdialog"), dialogState.state) ? 0 : 1;
 			dialog.close();
 			QApplication::processEvents();
 		}

@@ -901,7 +901,7 @@ QToolButton#VelvetAdvancedToggle {
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
 
 /* ===== Bass-management card: compact terminal readout ===== */
-QWidget#MinimalBassManagementCardView,
+QWidget#MinimalSubwooferRoutingCardView,
 QWidget#MinimalBassActionRow {
     background: transparent;
     border: 0;
@@ -991,7 +991,7 @@ QToolButton#MinimalBassActionButton:disabled {
    single hairline, it does not box them - a four-sided frame around every
    form group spent pixels that carry no information. The title line plus
    one top rule is the document's section grammar. */
-QDialog#BassManagementEditorDialog QGroupBox {
+QDialog#SubwooferRoutingEditorDialog QGroupBox {
     background: transparent;
     border: none;
     border-top: 1px solid @BORDER@;

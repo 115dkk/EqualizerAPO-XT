@@ -83,7 +83,7 @@
     <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
   </PropertyGroup>
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\BassManagementCore\include;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\SubwooferRoutingCore\include;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
     <LibraryPath>$(QT_ROOT)\lib;$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -106,7 +106,7 @@
            is added per configuration below because its Debug build has a
            different name. -->
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\BassManagementCore\$(Platform)\$(Configuration)\BassManagementCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\SubwooferRoutingCore\$(Platform)\$(Configuration)\SubwooferRoutingCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if exist "$(QT_ROOT)\bin\Qt6Core.dll" copy /Y "$(QT_ROOT)\bin\Qt6Core.dll" "$(OutDir)"
