@@ -1837,3 +1837,14 @@ QToolButton#MatrixBassActionButton::menu-indicator {
     width: 0;
     height: 0;
 }
+
+/* Bass-management dialog sections: the board posts its facts in sunken
+   cells, so the cells' own rules are the visible structure. Boxing every
+   section on top of celled content doubled the rules; a section is a
+   captioned region opened by one top rule on the board surface. */
+QDialog#BassManagementEditorDialog QGroupBox {
+    background: transparent;
+    border: none;
+    border-top: 1px solid @BORDER@;
+    border-radius: 0;
+}

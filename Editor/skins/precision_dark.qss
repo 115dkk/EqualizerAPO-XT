@@ -1067,3 +1067,14 @@ QToolButton#MinimalBassActionButton:disabled {
     border-bottom: 1px solid @BORDER@;
 }
 
+
+/* Bass-management dialog sections: the terminal separates sections with a
+   single hairline, it does not box them - a four-sided frame around every
+   form group spent pixels that carry no information. The title line plus
+   one top rule is the document's section grammar. */
+QDialog#BassManagementEditorDialog QGroupBox {
+    background: transparent;
+    border: none;
+    border-top: 1px solid @BORDER@;
+    border-radius: 0;
+}
