@@ -1,0 +1,413 @@
+# Biweekly Architecture & Tech Debt Audit
+#
+# Runs /improve-codebase-architecture and /tech-debt-audit in a single
+# Claude Code session. Skips scheduled runs when no relevant code/build files
+# changed since the last audit tag.
+#
+# The audit job runs on the same Windows image as the builds (this is a
+# Windows-MSVC repo) with Git Bash as the step shell, and pre-provisions the
+# build dependencies so the auditing Claude can compile projects and execute
+# the test suites instead of reading blind, which a previous Linux-hosted
+# audit could not do.
+#
+# Requirements:
+#   1. Add CLAUDE_CODE_OAUTH_TOKEN under repository Actions secrets.
+#   2. Set Actions workflow permissions to "Read and write permissions".
+#   3. Keep the two audit skills vendored under .claude/skills.
+
+name: Biweekly Audit
+
+on:
+  schedule:
+    - cron: '0 9 1,15 * *'
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Run even if no relevant code changed'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_audit: ${{ steps.detect.outputs.should_audit }}
+      last_audit_ref: ${{ steps.detect.outputs.last_audit_ref }}
+      changed_files_count: ${{ steps.detect.outputs.changed_files_count }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Detect code changes since last audit
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t code_pathspecs < .github/audit-pathspecs.txt
+
+          if [ "${{ inputs.force_run }}" = "true" ]; then
+            echo "Force run requested."
+            echo "should_audit=true" >> "$GITHUB_OUTPUT"
+            echo "last_audit_ref=HEAD~50" >> "$GITHUB_OUTPUT"
+            echo "changed_files_count=forced" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mapfile -t audit_tags < <(git tag -l 'audit/*' --sort=-creatordate)
+          LAST_AUDIT="${audit_tags[0]:-}"
+
+          if [ -z "$LAST_AUDIT" ]; then
+            echo "Initial audit."
+            echo "should_audit=true" >> "$GITHUB_OUTPUT"
+            echo "last_audit_ref=" >> "$GITHUB_OUTPUT"
+            echo "changed_files_count=initial" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Last audit: $LAST_AUDIT"
+          echo "last_audit_ref=$LAST_AUDIT" >> "$GITHUB_OUTPUT"
+
+          CODE_CHANGES=$(git diff --name-only "$LAST_AUDIT"..HEAD -- "${code_pathspecs[@]}" | wc -l | tr -d ' ')
+
+          echo "Code files changed: $CODE_CHANGES"
+          echo "changed_files_count=$CODE_CHANGES" >> "$GITHUB_OUTPUT"
+
+          if [ "$CODE_CHANGES" -eq 0 ]; then
+            echo "No relevant code changes. Skipping audit."
+            echo "should_audit=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_audit=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  audit:
+    needs: check-changes
+    if: needs.check-changes.outputs.should_audit == 'true'
+    # Same image as the build matrix: VS 2026 (v145), MSBuild, Python, Node.
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 240
+    defaults:
+      run:
+        # Git Bash, which is also what Claude Code's own shell tool uses on
+        # Windows. All run steps below stay POSIX-shaped.
+        shell: bash
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # Give the auditing session a buildable tree: deps/ (FFTW, muparserx,
+      # libsndfile, TCLAP, VST3, Highway, velopack_libc) and Qt, the same way a
+      # developer would set up locally. Hash-verified per simd-variants.psd1.
+      - name: Provision build dependencies
+        shell: pwsh
+        run: ./setup-build.ps1
+
+      - name: Install audit skills
+        run: |
+          mkdir -p "$HOME/.claude/skills"
+          cp -R .claude/skills/improve-codebase-architecture "$HOME/.claude/skills/"
+          cp -R .claude/skills/tech-debt-audit "$HOME/.claude/skills/"
+
+          test -f "$HOME/.claude/skills/improve-codebase-architecture/SKILL.md"
+          test -f "$HOME/.claude/skills/tech-debt-audit/SKILL.md"
+
+          echo "Installed Claude audit skills:"
+          find "$HOME/.claude/skills" -maxdepth 2 -name SKILL.md -print
+
+      - name: Verify Claude subscription credentials
+        run: |
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is not configured."
+            echo "Generate a subscription OAuth token with 'claude setup-token'."
+            echo "Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          if [ -n "${ANTHROPIC_API_KEY:-}" ] || [ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+            echo "::warning::Ignoring ANTHROPIC_* credentials so Claude Code uses CLAUDE_CODE_OAUTH_TOKEN."
+          fi
+
+      - name: Generate change summary
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t code_pathspecs < .github/audit-pathspecs.txt
+
+          LAST_REF="${{ needs.check-changes.outputs.last_audit_ref }}"
+          if [ -n "$LAST_REF" ]; then
+            echo "## Changed files" > change-summary.txt
+            echo "" >> change-summary.txt
+            git diff --stat "$LAST_REF"..HEAD -- "${code_pathspecs[@]}" >> change-summary.txt 2>/dev/null || true
+          else
+            echo "Initial audit run." > change-summary.txt
+          fi
+
+      - name: Run combined audit
+        run: |
+          unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
+
+          # Fable 5's safety classifiers can silently re-run a flagged
+          # request on Opus 4.8 and keep the session there. Restricting
+          # availableModels to Fable 5 blocks that fallback target, so a
+          # flagged request ends with an explicit refusal error instead of
+          # a quiet model switch (and no Opus tokens are spent). See
+          # code.claude.com/docs/en/model-config, "Automatic model
+          # fallback" and "Restrict model selection". Availability-based
+          # fallback is opt-in (--fallback-model) and stays unset.
+          set +e
+          claude \
+            --model claude-fable-5 \
+            --effort xhigh \
+            --settings '{"availableModels": ["claude-fable-5"]}' \
+            --permission-mode auto \
+            --max-turns 100 \
+            -p "
+          You will perform two analyses in sequence within this
+          single session. Each part writes its deliverable to its own
+          Markdown file in the repository root (do not commit them).
+          Print only a short completion summary to stdout: in this
+          non-interactive session only the final message reaches
+          stdout, so anything not written to a file is lost.
+
+          ENVIRONMENT:
+          - You are on a Windows runner (the same image CI builds on) with
+            Visual Studio 2026 (v145), MSBuild on PATH, and Git Bash as your
+            shell.
+          - Build dependencies are pre-provisioned: deps/ holds FFTW,
+            muparserx, libsndfile, TCLAP, the VST3 pluginterfaces, Highway,
+            and velopack_libc; Qt is at Qt/6.10.1/msvc2022_64. CLAUDE.md
+            documents the exact MSBuild/qmake commands and the PATH setup the
+            test executables need.
+          - You MAY compile projects and run the test suites
+            (EditorLogicTests, HybridConvTests, EngineOrchestrationTests,
+            AudioRegressionTests) to verify findings empirically. Prefer
+            targeted project builds over full-solution builds; do not let
+            build experiments crowd out the analysis itself.
+
+          GLOBAL RULES:
+          - Completely ignore all .ipynb files.
+          - Treat docs/, Wiki/, image assets, fonts, compiled translations,
+            and audio reference blobs as out of scope unless they expose a
+            code or build-system issue.
+          - Focus on the C++ audio engine, Qt GUI, tests, build scripts,
+            release automation, and project configuration.
+          - Cite file paths for every finding.
+          - Do not suggest full rewrites.
+          - Do not pad categories with filler findings.
+
+          PART 1: Architecture Analysis
+          Run /improve-codebase-architecture.
+          Identify specific consolidation and deepening opportunities.
+          Instead of the skill's HTML report, write the full
+          deliverable as Markdown to ARCHITECTURE_AUDIT.md in the
+          repository root: every candidate with files, problem,
+          solution, benefits, and recommendation strength, plus the
+          closing top recommendation. Do not write to the OS temp
+          directory and do not open a browser. When the file is
+          complete, proceed immediately to Part 2.
+
+          PART 2: Tech Debt Audit
+          Run /tech-debt-audit.
+          Write the deliverable to TECH_DEBT_AUDIT.md in the
+          repository root as the skill specifies, with severity,
+          effort estimates, and the required 'looks bad but is
+          actually fine' section.
+          " > combined-audit-report.md 2>&1
+          CLAUDE_EXIT=$?
+          set -e
+
+          if [ ! -s combined-audit-report.md ]; then
+            echo "Audit produced no output." > combined-audit-report.md
+            cat combined-audit-report.md
+            exit 1
+          fi
+
+          if [ "$CLAUDE_EXIT" -ne 0 ]; then
+            echo "Claude audit failed with exit code $CLAUDE_EXIT."
+            cat combined-audit-report.md
+            exit "$CLAUDE_EXIT"
+          fi
+
+          # -p prints only the session's final message, so any part not
+          # written to its own file never reaches the issue (the 2026-07-03
+          # run lost Part 1 this way). Both deliverables are therefore
+          # files, and a missing one is a hard failure, not a quiet gap.
+          for deliverable in ARCHITECTURE_AUDIT.md TECH_DEBT_AUDIT.md; do
+            if [ ! -s "$deliverable" ]; then
+              echo "::error::The audit session did not produce ${deliverable}."
+              cat combined-audit-report.md
+              exit 1
+            fi
+          done
+
+      - name: Create GitHub Issue or summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          COUNT="${{ needs.check-changes.outputs.changed_files_count }}"
+
+          {
+            echo "# Biweekly Audit: ${DATE}"
+            echo ""
+            echo "Changed relevant files: **${COUNT}**"
+            echo "Model: Fable 5 - Effort: xhigh - 1M context"
+            echo ""
+            echo "This issue body corresponds to the generated \`issue-body.md\` artifact."
+            echo "The remaining audit outputs are posted in full as file-specific comments below."
+            echo ""
+            echo "Files readable from this issue:"
+            echo "- \`issue-body.md\` - this issue body"
+            echo "- \`change-summary.txt\` - comments"
+            echo "- \`ARCHITECTURE_AUDIT.md\` - comments (Part 1)"
+            echo "- \`TECH_DEBT_AUDIT.md\` - comments (Part 2)"
+            echo "- \`combined-audit-report.md\` - comments (session log)"
+          } > issue-body.md
+
+          post_file_comments() {
+            local issue_number="$1"
+            local file_path="$2"
+            local title="$3"
+
+            if [ ! -s "$file_path" ]; then
+              echo "Skipping empty or missing file: $file_path"
+              return 0
+            fi
+
+            local comment_dir
+            comment_dir=$(mktemp -d)
+            awk -v prefix="$comment_dir/part-" -v limit=18000 '
+              BEGIN {
+                part = 0
+                size = 0
+                file = sprintf("%s%04d", prefix, part)
+              }
+              {
+                line = $0 ORS
+                line_size = length(line)
+                if (size > 0 && size + line_size > limit) {
+                  close(file)
+                  part++
+                  file = sprintf("%s%04d", prefix, part)
+                  size = 0
+                }
+                printf "%s", line >> file
+                size += line_size
+              }
+            ' "$file_path"
+
+            local total
+            total=$(find "$comment_dir" -type f -name 'part-*' | wc -l | tr -d ' ')
+            local index=1
+
+            for part in "$comment_dir"/part-*; do
+              {
+                echo "## ${title} (${index}/${total})"
+                echo ""
+                echo "Source file: \`${file_path}\`"
+                echo ""
+                echo '````markdown'
+                cat "$part"
+                echo ""
+                echo '````'
+              } > "$comment_dir/comment.md"
+
+              gh issue comment "$issue_number" \
+                --repo "${GITHUB_REPOSITORY}" \
+                --body-file "$comment_dir/comment.md"
+
+              index=$((index + 1))
+            done
+          }
+
+          gh label create audit \
+            --repo "${GITHUB_REPOSITORY}" \
+            --color "5319e7" \
+            --description "Architecture and tech debt audit" \
+            >/dev/null 2>&1 || true
+
+          gh label create maintenance \
+            --repo "${GITHUB_REPOSITORY}" \
+            --color "fbca04" \
+            --description "Maintenance work" \
+            >/dev/null 2>&1 || true
+
+          set +e
+          ISSUE_ERROR=$(mktemp)
+          ISSUE_URL=$(gh issue create \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Biweekly Audit: ${DATE}" \
+            --body-file issue-body.md \
+            --label audit \
+            --label maintenance 2>"${ISSUE_ERROR}")
+          ISSUE_EXIT=$?
+          set -e
+
+          if [ "${ISSUE_EXIT}" -eq 0 ]; then
+            echo "Created issue: ${ISSUE_URL}"
+            ISSUE_NUMBER="${ISSUE_URL##*/}"
+
+            post_file_comments "$ISSUE_NUMBER" change-summary.txt "Change summary"
+            post_file_comments "$ISSUE_NUMBER" ARCHITECTURE_AUDIT.md "Architecture audit"
+            post_file_comments "$ISSUE_NUMBER" TECH_DEBT_AUDIT.md "Tech debt audit"
+            post_file_comments "$ISSUE_NUMBER" combined-audit-report.md "Audit session log"
+          else
+            echo "::warning::Could not create a GitHub issue. Writing the audit body to the job summary instead."
+            cat "${ISSUE_ERROR}"
+            {
+              echo "## Biweekly Audit report"
+              echo ""
+              echo "GitHub issue creation failed:"
+              echo '```'
+              cat "${ISSUE_ERROR}"
+              echo '```'
+              echo ""
+              cat issue-body.md
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: "audit-report-${{ github.run_id }}"
+          path: |
+            combined-audit-report.md
+            change-summary.txt
+            ARCHITECTURE_AUDIT.md
+            TECH_DEBT_AUDIT.md
+            issue-body.md
+          retention-days: 90
+
+      - name: Tag audit checkpoint
+        run: |
+          AUDIT_TAG="audit/$(date +%Y%m%d-%H%M%S)"
+          git tag "$AUDIT_TAG"
+          git push origin "$AUDIT_TAG"
+          echo "Tagged: $AUDIT_TAG"

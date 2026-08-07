@@ -1,0 +1,60 @@
+name: Publish gallery shots
+
+# A headless review session cannot reach the Actions artifact storage
+# through its egress proxy, so it pushes a request file to this branch and
+# CI copies the requested shots from a finished run's skin-gallery
+# artifact onto the review branch instead.
+on:
+  push:
+    branches: [gallery-publish-request]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: request
+
+      - name: Read request
+        id: req
+        run: |
+          set -eu
+          echo "run_id=$(jq -r .run_id request/request.json)" >> "$GITHUB_OUTPUT"
+          echo "pattern=$(jq -r .pattern request/request.json)" >> "$GITHUB_OUTPUT"
+          echo "prefix=$(jq -r .prefix request/request.json)" >> "$GITHUB_OUTPUT"
+          echo "branch=$(jq -r .branch request/request.json)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.req.outputs.branch }}
+          path: review
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: skin-gallery
+          run-id: ${{ steps.req.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: __shots
+
+      - name: Copy matching shots and push
+        run: |
+          set -eu
+          copied=0
+          for f in __shots/${{ steps.req.outputs.pattern }}.png; do
+            [ -e "$f" ] || continue
+            cp "$f" "review/${{ steps.req.outputs.prefix }}$(basename "$f")"
+            copied=$((copied+1))
+          done
+          echo "copied $copied shots"
+          [ "$copied" -gt 0 ] || { echo "no shots matched"; exit 1; }
+          cd review
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish ${{ steps.req.outputs.prefix }} gallery shots from run ${{ steps.req.outputs.run_id }}"
+          git push
