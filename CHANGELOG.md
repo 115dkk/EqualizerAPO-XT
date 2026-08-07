@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.32.0 — 2026-08-07
+
 - **Checked checkboxes show a real check mark in every skin.** They used to
   render as a plain filled accent square, so on/off read through color
   alone; the partially-checked state now shows an accent dash instead of
