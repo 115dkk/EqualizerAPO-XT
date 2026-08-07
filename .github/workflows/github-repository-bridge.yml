@@ -1,0 +1,81 @@
+name: ChatGPT repository bundle bridge
+
+on:
+  push:
+    branches:
+      - chatgpt/artifact-bridge
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatgpt-repository-bundle-bridge
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    if: startsWith(github.event.head_commit.message, 'chatgpt-bundle: ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout bridge repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Parse and validate requested commit
+        id: target
+        shell: bash
+        env:
+          REQUEST_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+
+          first_line="${REQUEST_MESSAGE%%$'\n'*}"
+          target="${first_line#chatgpt-bundle: }"
+
+          if [[ ! "$target" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::Expected first line: chatgpt-bundle: <40-hex-commit-sha>"
+            exit 1
+          fi
+
+          target="${target,,}"
+
+          if ! git cat-file -e "${target}^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "$target"
+          fi
+
+          git cat-file -e "${target}^{commit}"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+
+      - name: Create verified Git bundle
+        shell: bash
+        env:
+          TARGET: ${{ steps.target.outputs.target }}
+          TRIGGER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          git branch -f chatgpt-export "$TARGET"
+          git bundle create repository.bundle chatgpt-export
+          git bundle verify repository.bundle
+
+          sha256sum repository.bundle > repository.bundle.sha256
+          {
+            echo "target=$TARGET"
+            echo "trigger=$TRIGGER"
+            echo "export_ref=refs/heads/chatgpt-export"
+          } > bridge-manifest.txt
+
+      - name: Upload repository bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: chatgpt-repository-bundle-${{ steps.target.outputs.target }}
+          path: |
+            repository.bundle
+            repository.bundle.sha256
+            bridge-manifest.txt
+          if-no-files-found: error
+          retention-days: 1
