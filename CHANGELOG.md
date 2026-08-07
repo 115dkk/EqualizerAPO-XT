@@ -14,6 +14,26 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The pencil button on an Include card now opens the included file in the
+  editor.** It used to turn the config line into a raw path text field, while
+  opening the file was hidden behind clicking the name. Editing the path as
+  text is no longer offered on Include cards; choosing a different file stays
+  with Browse/Locate.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+- **Card rows can be dragged from anywhere on their header.** Reordering by
+  drag and drop only worked from the narrow strip around the row number,
+  because the summary text consumed the mouse press and the drag hit-test
+  area was offset by the card margins.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+- **Embedded VST3 panels are stable and can be closed.** The host no longer
+  force-repaints the plugin view on every idle (the VST 3 view paints
+  itself), parameter edits no longer cycle the plugin's activation state on
+  every knob tick (the editor holds the documented Processing state for the
+  whole session, so set values and the saved state stay consistent), and the
+  panel button stays visible as "Close panel" while embedded instead of
+  leaving un-embedding hidden in the options menu.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+
 ## v2.30.2 — 2026-07-30
 
 - **Saving a configuration no longer intermittently fails with "Access is
