@@ -1,6 +1,6 @@
 {
-  "run_id": "31188149407",
-  "pattern": "*filedialog*",
-  "prefix": "p251_",
+  "run_id": "31190912036",
+  "pattern": "*minimal*srdialog*",
+  "prefix": "r5_",
   "branch": "gallery-bm-review2"
 }
