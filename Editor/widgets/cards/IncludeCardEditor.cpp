@@ -6,7 +6,11 @@
 	behavior - path resolution, the file dialog, the jump into the included
 	config, dependency import - and renders through the active skin's
 	ReferenceCardView, so each skin answers the same reference in its own
-	grammar. The path is edited inline through the view's shared edit mode.
+	grammar. The pencil edits the *file* (it opens the included config in the
+	editor, same as clicking the name); the reference itself is changed
+	through Browse/Locate. Inline path-text editing is intentionally not
+	offered here - an edit affordance that rewrote the raw config line
+	instead of opening the file contradicted the card's own grammar.
 */
 
 #include "IncludeCardEditor.h"
@@ -69,9 +73,9 @@ IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& pa
 	editButton = new QToolButton(view);
 	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	editButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/pencil.svg"), actionColor, 18));
-	editButton->setToolTip(tr("Edit the path as text"));
-	connect(editButton, &QToolButton::clicked, view, &ReferenceCardView::enterEditMode);
-	view->addActionButton(ReferenceCardView::ActionRole::EditPath, editButton);
+	editButton->setToolTip(tr("Edit the included file in the editor"));
+	connect(editButton, SIGNAL(clicked()), this, SLOT(openFile()));
+	view->addActionButton(ReferenceCardView::ActionRole::OpenTarget, editButton);
 
 	// Let the active skin decorate this Include body (the row is recreated on
 	// skin switches, so construction is the only moment needed).
@@ -163,6 +167,10 @@ void IncludeCardEditor::updateFileInfo()
 	const bool locate = state.missing && !reference->writtenPath().isEmpty();
 	chooseButton->setText(locate ? tr("Locate...") : QString());
 	chooseButton->setToolTip(locate ? tr("Locate the missing file") : tr("Choose include file"));
+
+	// Opening a reference that does not resolve would only produce an error;
+	// while broken, recovery (Locate) is the offered action instead.
+	editButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty());
 
 	view->setState(state);
 	importButton->setVisible(offerImport);
