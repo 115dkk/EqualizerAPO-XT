@@ -35,6 +35,7 @@
 #include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSplitter>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "SubwooferRouting/Crossover.h"
@@ -854,6 +855,10 @@ void SubwooferRoutingEditorDialog::rebuildFrequencyControls()
 	}
 
 	updateLeftPaneWidth();
+	// The skin polishes the fresh rows after this rebuild returns, and the
+	// styled fonts can be wider than the construction-time metrics (Minimal's
+	// mono face clipped the Invert switches). Measure once more a tick later.
+	QTimer::singleShot(0, this, &SubwooferRoutingEditorDialog::updateLeftPaneWidth);
 }
 
 void SubwooferRoutingEditorDialog::updateLeftPaneWidth()
@@ -869,7 +874,7 @@ void SubwooferRoutingEditorDialog::updateLeftPaneWidth()
 	const int barWidth = verticalBar != nullptr
 		? verticalBar->sizeHint().width()
 		: 0;
-	leftScroll->setMinimumWidth(contentWidth + barWidth + 4);
+	leftScroll->setMinimumWidth(contentWidth + barWidth + 12);
 }
 
 void SubwooferRoutingEditorDialog::rebuildRoutingViews()
