@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Checked checkboxes show a real check mark in every skin.** They used to
+  render as a plain filled accent square, so on/off read through color
+  alone; the partially-checked state now shows an accent dash instead of
+  looking unchecked, and the square menu indicators of the Minimal and
+  Matrix skins carry the same glyph.
+  ([#252](https://github.com/115dkk/EqualizerAPO-XT/pull/252))
+
 ## v2.31.0 — 2026-08-07
 
 - **File dialogs accept a pasted path and carry Explorer-style shortcuts.**
