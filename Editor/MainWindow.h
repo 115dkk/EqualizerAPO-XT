@@ -118,6 +118,7 @@ private slots:
 	void on_actionAnalysisPanel_triggered(bool checked);
 
 	void on_actionApoSettings_triggered();
+	void on_actionOpenProgramFolder_triggered();
 	void languageSelected(bool selected);
 	void interfaceModeSelected(QAction* action);
 	void skinSelected(QAction* action);

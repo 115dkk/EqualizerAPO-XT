@@ -27,6 +27,8 @@
 #include <QStandardItemModel>
 #include <QStringBuilder>
 #include <QScrollArea>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -366,6 +368,12 @@ void MainWindow::doChecks()
 void MainWindow::on_actionApoSettings_triggered()
 {
 	runDeviceSelector();
+}
+
+void MainWindow::on_actionOpenProgramFolder_triggered()
+{
+	QDesktopServices::openUrl(
+		QUrl::fromLocalFile(QCoreApplication::applicationDirPath()));
 }
 
 void MainWindow::runDeviceSelector()
