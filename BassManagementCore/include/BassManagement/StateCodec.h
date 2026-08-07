@@ -81,7 +81,7 @@ struct StateEncodeResult
 	Version 1 canonical document shape:
 
 	{
-		"schema": "equalizerapo.xt.bass-management",
+		"schema": "equalizerapo.xt.subwoofer-routing",
 		"version": 1,
 		"layout": {
 			"channels": [

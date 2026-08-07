@@ -50,7 +50,7 @@ std::string bassManagementToUtf8(const std::wstring& text)
 bool BassManagementCommand::parse(const std::wstring& command,
 	const std::wstring& text, BassManagementCommand& out, std::wstring* error)
 {
-	if (command != L"BassManagement")
+	if (command != L"SubwooferRouting")
 		return false;
 
 	const size_t start = skipWhitespace(text, 0);

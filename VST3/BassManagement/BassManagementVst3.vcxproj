@@ -35,7 +35,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <TargetName>EapoXtBassManagement</TargetName>
+    <TargetName>EapoXtSubwooferRouting</TargetName>
     <TargetExt>.vst3</TargetExt>
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\BassManagementCore\include;$(VST3_SDK);$(IncludePath)</IncludePath>
   </PropertyGroup>

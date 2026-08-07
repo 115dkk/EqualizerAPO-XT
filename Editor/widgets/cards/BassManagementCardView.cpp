@@ -18,7 +18,7 @@ BassManagementCardView::BassManagementCardView(QWidget* parent)
 	: QWidget(parent)
 {
 	setFocusPolicy(Qt::StrongFocus);
-	setAccessibleName(tr("Bass management summary"));
+	setAccessibleName(tr("Subwoofer routing summary"));
 	setToolTip(tr("Bass-management crossover, routing and headroom summary"));
 }
 

@@ -331,12 +331,12 @@ if exist "$(MSBuildThisFileDirectory)..\TestVst2Plugin\$(Platform)\$(Configurati
           DestinationFiles="$(OutDir)TestVst3PluginModule.vst3"
           Condition="Exists('$(MSBuildThisFileDirectory)..\TestVst3Plugin\$(Platform)\$(Configuration)\TestVst3Plugin.vst3')" />
   </Target>
-  <!-- The Bass Management VST3 plugin parity suite stages this module into a
+  <!-- The Subwoofer Routing VST3 plugin parity suite stages this module into a
        standard bundle at runtime, mirroring the TestVst3Plugin staging above. -->
   <Target Name="CopyBassManagementVst3Plugin" AfterTargets="Build">
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\VST3\BassManagement\$(Platform)\$(Configuration)\EapoXtBassManagement.vst3"
-          DestinationFiles="$(OutDir)EapoXtBassManagementModule.vst3"
-          Condition="Exists('$(MSBuildThisFileDirectory)..\..\VST3\BassManagement\$(Platform)\$(Configuration)\EapoXtBassManagement.vst3')" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\VST3\BassManagement\$(Platform)\$(Configuration)\EapoXtSubwooferRouting.vst3"
+          DestinationFiles="$(OutDir)EapoXtSubwooferRoutingModule.vst3"
+          Condition="Exists('$(MSBuildThisFileDirectory)..\..\VST3\BassManagement\$(Platform)\$(Configuration)\EapoXtSubwooferRouting.vst3')" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

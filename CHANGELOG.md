@@ -14,21 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-- **Bass management is now one configuration line instead of a page of Copy
-  chains.** The new `BassManagement:` command (issue
+- **Subwoofer routing is now one configuration line instead of a page of Copy
+  chains.** The new `SubwooferRouting:` command (issue
   [#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) runs
   per-speaker-group crossovers, dedicated bass paths, preservation of the
   physical LFE input as its own source path, per-path gain/polarity/delay/EQ
   and an output summing matrix from a single JSON state, inline or from a
-  `*.bmxt.json` profile file. The built-in `Issue #246 - Front/Rear 4.1`
+  `*.swxt.json` profile file. The built-in `Issue #246 - Front/Rear 4.1`
   preset reproduces the reporter's original low-level chain sample for sample
   (verified by an engine-level parity test), automatic headroom keeps the
   summed outputs below 0 dBFS, invalid states log an error instead of muting,
   and unreferenced channels pass through bit-exactly. The Editor shows a
-  Bass Management card with its own badge and summary. The DSP lives in a new
+  Subwoofer Routing card with its own badge and summary. The DSP lives in a new
   MIT-licensed BassManagementCore library shared with the plugin below.
-- **A standalone Bass Management VST3 plugin ships with every release.** The
-  MIT-licensed `EAPO XT Bass Management` plugin (in the `VST3\` folder of the
+- **A standalone Subwoofer Routing VST3 plugin ships with every release.** The
+  MIT-licensed `EAPO XT Subwoofer Routing` plugin (in the `VST3\` folder of the
   install) runs the identical DSP core in any VST3 host, negotiates stereo
   through 7.1 layouts including 4.1, and exchanges the same JSON state as the
   native command, so presets move between Equalizer APO XT and a DAW

@@ -1180,7 +1180,7 @@ QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; 
 
 
 
-/* Bass Management unit: brushed faceplate instruments, engraved identity
+/* Subwoofer Routing unit: brushed faceplate instruments, engraved identity
    lines, visible service-state stamps and raised momentary machine keys. */
 RackBassManagementCardView,
 RackCrossoverReadout,

@@ -66,7 +66,7 @@ wstring prepareBundle(
 	const wchar_t* moduleName)
 {
 	const wstring source =
-		directory + L"\\EapoXtBassManagementModule.vst3";
+		directory + L"\\EapoXtSubwooferRoutingModule.vst3";
 	if (GetFileAttributesW(source.c_str()) == INVALID_FILE_ATTRIBUTES)
 		return {};
 
@@ -162,18 +162,18 @@ void runBassManagementVst3Tests()
 		? wstring()
 		: prepareBundle(
 			directory,
-			L"EapoXtBassManagement.vst3",
-			L"EapoXtBassManagement.vst3");
+			L"EapoXtSubwooferRouting.vst3",
+			L"EapoXtSubwooferRouting.vst3");
 
 	if (bundle.empty())
 	{
-		harness.expectFalse(bundle.empty(), "Bass Management VST3 module is staged");
+		harness.expectFalse(bundle.empty(), "Subwoofer Routing VST3 module is staged");
 		harness.report();
 		return;
 	}
 
 	shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(bundle);
-	harness.require(library != nullptr, "Bass Management bundle resolves");
+	harness.require(library != nullptr, "Subwoofer Routing bundle resolves");
 	harness.expectTrue(library->isVST3(), "library is recognized as VST3");
 	harness.expectTrue(library->initialize() >= 0, "module initializes");
 	harness.require(library->getFactory() != nullptr, "factory is available");

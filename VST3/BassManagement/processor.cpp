@@ -311,7 +311,7 @@ tresult PLUGIN_API BassManagementProcessor::getBusInfo(
 	info.channelCount = SpeakerArr::getChannelCount(arrangement_);
 	info.busType = kMain;
 	info.flags = BusInfo::kDefaultActive;
-	copyString128(info.name, direction == kInput ? L"Bass Management In" : L"Bass Management Out");
+	copyString128(info.name, direction == kInput ? L"Subwoofer Routing In" : L"Subwoofer Routing Out");
 	return kResultOk;
 }
 
@@ -460,7 +460,7 @@ std::vector<std::string> BassManagementProcessor::channelLayoutForArrangement(
 	};
 
 	// k71Cine uses Lc/Rc rather than Sl/Sr. They map to the same canonical
-	// side-channel IDs because the Bass Management state model uses SL/SR.
+	// side-channel IDs because the Subwoofer Routing state model uses SL/SR.
 	const Role roles[] = {
 		{kSpeakerL, "L"},
 		{kSpeakerR, "R"},

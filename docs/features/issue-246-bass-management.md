@@ -1,5 +1,12 @@
 # Issue #246 Bass Management 구현 계획
 
+> **명칭 변경 안내.** 이 계획서의 'Bass Management'는 구현 후 심사에서
+> **Subwoofer Routing**으로 이름이 바뀌었다. 커맨드는 `SubwooferRouting:`,
+> 프로필 확장자는 `.swxt.json`, 스키마 id는
+> `equalizerapo.xt.subwoofer-routing`, VST3 플러그인은
+> `EAPO XT Subwoofer Routing`(`EapoXtSubwooferRouting.vst3`)이다. 이 문서는
+> 작성 당시 이름 그대로 보존한다.
+
 - 이슈: [#246 너무 복잡한 서브우퍼 라우팅 문제](https://github.com/115dkk/EqualizerAPO-XT/issues/246)
 - 마지막 대조: 2026-07-31
 - 상태: 구현 전 계획

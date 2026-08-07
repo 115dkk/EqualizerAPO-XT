@@ -58,8 +58,8 @@ BassManagementFilterGUIFactory::createFilterTemplates()
 
 	return {
 		FilterTemplate(
-			tr("Bass management (crossover + LFE routing)"),
-			QStringLiteral("BassManagement: State ") + json,
+			tr("Subwoofer routing (crossover + LFE routing)"),
+			QStringLiteral("SubwooferRouting: State ") + json,
 			QStringList(tr("Speaker management")))
 	};
 }
@@ -73,7 +73,7 @@ void BassManagementFilterGUIFactory::startOfFile(
 IFilterGUI* BassManagementFilterGUIFactory::createFilterGUI(
 	QString& command, QString& parameters)
 {
-	if (command != QStringLiteral("BassManagement"))
+	if (command != QStringLiteral("SubwooferRouting"))
 		return nullptr;
 
 	BassManagementCommand parsed;

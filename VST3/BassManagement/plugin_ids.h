@@ -8,7 +8,7 @@
 namespace eapoxt::bassmanagement::vst3
 {
 
-// Stable class IDs registered for EAPO XT Bass Management.
+// Stable class IDs registered for EAPO XT Subwoofer Routing.
 // They must never be reused by another VST3 class. INLINE_UID keeps these
 // header-only: the FUID value constructor lives in the SDK's funknown.cpp,
 // which this repository does not compile (pluginterfaces headers only).
@@ -21,8 +21,8 @@ inline constexpr Steinberg::TUID kControllerCid =
 inline constexpr char kVendor[] = "EqualizerAPO-XT contributors";
 inline constexpr char kUrl[] = "https://github.com/115dkk/EqualizerAPO-XT";
 inline constexpr char kEmail[] = "";
-inline constexpr char kPluginName[] = "EAPO XT Bass Management";
-inline constexpr char kControllerName[] = "EAPO XT Bass Management Controller";
+inline constexpr char kPluginName[] = "EAPO XT Subwoofer Routing";
+inline constexpr char kControllerName[] = "EAPO XT Subwoofer Routing Controller";
 inline constexpr char kVersion[] = "1.0.0";
 inline constexpr char kSdkVersion[] = "VST 3.8";
 inline constexpr char kSubCategories[] = "Fx|Tools";

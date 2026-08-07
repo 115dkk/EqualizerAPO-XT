@@ -804,10 +804,10 @@ void testBassManagementDescriptors()
 	const QString json = QString::fromUtf8(encoded.text->data(),
 		static_cast<int>(encoded.text->size()));
 	const FilterCardDescriptor descriptor = FilterCardModel::describeLine(
-		QStringLiteral("BassManagement: State ") + json);
+		QStringLiteral("SubwooferRouting: State ") + json);
 	expectEqual(descriptor.type, "bassmanagement", "bass-management card type");
-	expectEqual(descriptor.badge, "BASS", "bass-management badge");
-	expectEqual(descriptor.title, "Bass management", "bass-management title");
+	expectEqual(descriptor.badge, "SUB", "subwoofer-routing badge");
+	expectEqual(descriptor.title, "Subwoofer routing", "bass-management title");
 	expectFalse(descriptor.color.isEmpty(), "bass-management color is populated");
 	expectFalse(descriptor.summary.isEmpty(), "bass-management state summary is populated");
 	// Review round 2: the header speaks the user's language - the layout and
@@ -818,21 +818,21 @@ void testBassManagementDescriptors()
 		QStringLiteral("state summary names the crossover corner: ") + descriptor.summary);
 
 	const FilterCardDescriptor profile = FilterCardModel::describeLine(
-		"BassManagement: Profile \"Living Room.bmxt.json\"");
-	expectTrue(profile.summary.contains("Living Room.bmxt.json"),
+		"SubwooferRouting: Profile \"Living Room.swxt.json\"");
+	expectTrue(profile.summary.contains("Living Room.swxt.json"),
 		QStringLiteral("profile summary names the linked file: ") + profile.summary);
 
 	const FilterCardDescriptor broken = FilterCardModel::describeLine(
-		"BassManagement: State {\"schema\":\"wrong\"}");
+		"SubwooferRouting: State {\"schema\":\"wrong\"}");
 	expectEqual(broken.type, "bassmanagement", "invalid state keeps the card type");
 	expectFalse(broken.summary.isEmpty(), "invalid state still has a summary");
 
-	expectEqual(FilterCardModel::badgeIconResource("bassmanagement", "BASS"),
+	expectEqual(FilterCardModel::badgeIconResource("bassmanagement", "SUB"),
 		":/icons/modern/bass-management.svg", "bass-management badge icon");
-	expectEqual(FilterCardModel::commandIconResource("BassManagement"),
+	expectEqual(FilterCardModel::commandIconResource("SubwooferRouting"),
 		":/icons/modern/bass-management.svg", "bass-management command icon");
-	expectEqual(FilterCardModel::canonicalCommand("BassManagement"),
-		"BassManagement", "bass-management canonical command");
+	expectEqual(FilterCardModel::canonicalCommand("SubwooferRouting"),
+		"SubwooferRouting", "bass-management canonical command");
 }
 
 void testBassManagementCrossoverRecipes()

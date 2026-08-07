@@ -12,9 +12,9 @@ $requiredFiles = @(
     "Benchmark\$Platform\Release\Benchmark.exe",
     "VoicemeeterClient\$Platform\Release\VoicemeeterClient.exe"
 )
-# The standalone MIT Bass Management VST3 ships inside the same artifact as an
+# The standalone MIT Subwoofer Routing VST3 ships inside the same artifact as an
 # optional extra: a standard bundle layout under VST3\ plus its own license.
-$vst3PluginModule = "VST3\BassManagement\$Platform\Release\EapoXtBassManagement.vst3"
+$vst3PluginModule = "VST3\BassManagement\$Platform\Release\EapoXtSubwooferRouting.vst3"
 $vst3PluginLicense = "VST3\BassManagement\LICENSE"
 $vst3BundleArch = if ($Platform -eq "ARM64") { "arm64-win" } else { "x86_64-win" }
 $excludeExtensions = @(".obj", ".res", ".log", ".tlog", ".iobj", ".ipdb", ".ilk", ".pdb")
@@ -41,11 +41,11 @@ Copy-Item (Join-Path $WorkspaceRoot "deps\velopack_libc\lib\velopack_libc_win_${
 
 $vst3Source = Join-Path $WorkspaceRoot $vst3PluginModule
 if (-not (Test-Path $vst3Source)) { throw "Required file not found: $vst3PluginModule" }
-$vst3BundleDir = Join-Path $artifactPath "VST3\EapoXtBassManagement.vst3\Contents\$vst3BundleArch"
+$vst3BundleDir = Join-Path $artifactPath "VST3\EapoXtSubwooferRouting.vst3\Contents\$vst3BundleArch"
 New-Item -ItemType Directory -Force -Path $vst3BundleDir | Out-Null
-Copy-Item $vst3Source -Destination (Join-Path $vst3BundleDir "EapoXtBassManagement.vst3") -Force
+Copy-Item $vst3Source -Destination (Join-Path $vst3BundleDir "EapoXtSubwooferRouting.vst3") -Force
 Copy-Item (Join-Path $WorkspaceRoot $vst3PluginLicense) `
-    -Destination (Join-Path $artifactPath "VST3\EapoXtBassManagement.vst3\LICENSE") -Force
+    -Destination (Join-Path $artifactPath "VST3\EapoXtSubwooferRouting.vst3\LICENSE") -Force
 
 foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
     $buildDir = Join-Path $WorkspaceRoot "build-$app-$Platform\release"

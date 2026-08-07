@@ -26,12 +26,12 @@ test::Harness harness("BassManagementCommandTests");
 void testStateRoundTrip()
 {
 	const std::wstring payload =
-		L"{ \"schema\": \"equalizerapo.xt.bass-management\", "
+		L"{ \"schema\": \"equalizerapo.xt.subwoofer-routing\", "
 		L"\"version\": 1, \"note\": \"two  spaces\" }  ";
 	BassManagementCommand command;
 	std::wstring error;
 	const bool parsed = BassManagementCommand::parse(
-		L"BassManagement", L"State " + payload, command, &error);
+		L"SubwooferRouting", L"State " + payload, command, &error);
 
 	harness.expectTrue(parsed, "State form should parse");
 	harness.expectEqual(
@@ -47,10 +47,10 @@ void testStateRoundTrip()
 void testQuotedProfile()
 {
 	const std::wstring payload =
-		L"\"BassManagement\\Living Room.bmxt.json\"";
+		L"\"SubwooferRouting\\Living Room.swxt.json\"";
 	BassManagementCommand command;
 	const bool parsed = BassManagementCommand::parse(
-		L"BassManagement", L"Profile " + payload, command);
+		L"SubwooferRouting", L"Profile " + payload, command);
 
 	harness.expectTrue(parsed, "quoted Profile form should parse");
 	harness.expectEqual(
@@ -66,10 +66,10 @@ void testQuotedProfile()
 void testUnquotedProfile()
 {
 	const std::wstring payload =
-		L"BassManagement\\LivingRoom.bmxt.json";
+		L"SubwooferRouting\\LivingRoom.swxt.json";
 	BassManagementCommand command;
 	const bool parsed = BassManagementCommand::parse(
-		L"BassManagement", L"Profile " + payload, command);
+		L"SubwooferRouting", L"Profile " + payload, command);
 
 	harness.expectTrue(parsed, "unquoted Profile form should parse");
 	harness.expectTrue(command.payload == payload,
@@ -83,7 +83,7 @@ void testWrongTagError()
 	BassManagementCommand command;
 	std::wstring error;
 	const bool parsed = BassManagementCommand::parse(
-		L"BassManagement", L"Preset room.json", command, &error);
+		L"SubwooferRouting", L"Preset room.json", command, &error);
 
 	harness.expectTrue(!parsed, "unknown tag should be rejected");
 	harness.expectTrue(error == L"expected State or Profile",
@@ -95,7 +95,7 @@ void testEmptyParametersError()
 	BassManagementCommand command;
 	std::wstring error;
 	const bool parsed = BassManagementCommand::parse(
-		L"BassManagement", L" \t ", command, &error);
+		L"SubwooferRouting", L" \t ", command, &error);
 
 	harness.expectTrue(!parsed, "empty parameters should be rejected");
 	harness.expectTrue(error == L"expected State or Profile",
@@ -107,7 +107,7 @@ void testTagWithoutPayloadError()
 	BassManagementCommand command;
 	std::wstring error;
 	const bool parsed = BassManagementCommand::parse(
-		L"BassManagement", L"State \t ", command, &error);
+		L"SubwooferRouting", L"State \t ", command, &error);
 
 	harness.expectTrue(!parsed, "tag without a payload should be rejected");
 	harness.expectTrue(error == L"expected State or Profile",
@@ -119,7 +119,7 @@ void testLowercaseStateRejected()
 	BassManagementCommand command;
 	std::wstring error;
 	const bool parsed = BassManagementCommand::parse(
-		L"BassManagement", L"state {}", command, &error);
+		L"SubwooferRouting", L"state {}", command, &error);
 
 	harness.expectTrue(!parsed, "lowercase state tag should be rejected");
 	harness.expectTrue(error == L"expected State or Profile",
@@ -130,11 +130,11 @@ void testSerializeRoundTrips()
 {
 	BassManagementCommand state;
 	state.form = BassManagementCommand::Form::State;
-	state.payload = L"{\"schema\":\"equalizerapo.xt.bass-management\",\"version\":1}";
+	state.payload = L"{\"schema\":\"equalizerapo.xt.subwoofer-routing\",\"version\":1}";
 
 	BassManagementCommand parsedState;
 	const bool stateParsed = BassManagementCommand::parse(
-		L"BassManagement", state.serialize(), parsedState);
+		L"SubwooferRouting", state.serialize(), parsedState);
 	harness.expectTrue(stateParsed, "serialized State form should parse");
 	harness.expectEqual(
 		static_cast<int>(parsedState.form),
@@ -145,11 +145,11 @@ void testSerializeRoundTrips()
 
 	BassManagementCommand profile;
 	profile.form = BassManagementCommand::Form::Profile;
-	profile.payload = L"\"BassManagement\\Living Room.bmxt.json\"";
+	profile.payload = L"\"SubwooferRouting\\Living Room.swxt.json\"";
 
 	BassManagementCommand parsedProfile;
 	const bool profileParsed = BassManagementCommand::parse(
-		L"BassManagement", profile.serialize(), parsedProfile);
+		L"SubwooferRouting", profile.serialize(), parsedProfile);
 	harness.expectTrue(profileParsed, "serialized Profile form should parse");
 	harness.expectEqual(
 		static_cast<int>(parsedProfile.form),

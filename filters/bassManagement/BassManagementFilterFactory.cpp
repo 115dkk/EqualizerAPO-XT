@@ -88,13 +88,13 @@ bool readProfile(const std::wstring& path, std::string& text)
 
 // cppcheck's standalone parser does not expand the static-registration macro.
 // cppcheck-suppress unknownMacro
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::BassManagement, BassManagementFilterFactory, L"BassManagement")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::BassManagement, BassManagementFilterFactory, L"SubwooferRouting")
 
 FilterVector BassManagementFilterFactory::createFilter(
 	const std::wstring& configPath, std::wstring& command,
 	std::wstring& parameters)
 {
-	if (command != L"BassManagement")
+	if (command != L"SubwooferRouting")
 		return {};
 
 	BassManagementCommand parsed;

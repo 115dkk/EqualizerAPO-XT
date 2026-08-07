@@ -290,11 +290,11 @@ private:
 
 		harness.require(
 			!directory_.empty(),
-			"could not create a unique Bass Management engine test directory");
+			"could not create a unique Subwoofer Routing engine test directory");
 
 		originalConfigPath_ = directory_ + L"\\original.txt";
 		stateConfigPath_ = directory_ + L"\\bm_state.txt";
-		profileStatePath_ = directory_ + L"\\preset.bmxt.json";
+		profileStatePath_ = directory_ + L"\\preset.swxt.json";
 		profileConfigPath_ = directory_ + L"\\bm_profile.txt";
 		invalidStatePath_ = directory_ + L"\\invalid_state.txt";
 	}
@@ -321,7 +321,7 @@ private:
 		const std::string& json = *encoded.text;
 		harness.require(
 			isPureAscii(json),
-			"canonical Bass Management state JSON must be pure ASCII");
+			"canonical Subwoofer Routing state JSON must be pure ASCII");
 
 		harness.require(
 			writeUtf8File(originalConfigPath_, kOriginalConfig),
@@ -329,20 +329,20 @@ private:
 		harness.require(
 			writeUtf8File(
 				stateConfigPath_,
-				std::string("BassManagement: State ") + json + "\n"),
+				std::string("SubwooferRouting: State ") + json + "\n"),
 			"could not write bm_state.txt");
 		harness.require(
 			writeUtf8File(profileStatePath_, json),
-			"could not write preset.bmxt.json");
+			"could not write preset.swxt.json");
 		harness.require(
 			writeUtf8File(
 				profileConfigPath_,
-				"BassManagement: Profile preset.bmxt.json\n"),
+				"SubwooferRouting: Profile preset.swxt.json\n"),
 			"could not write bm_profile.txt");
 		harness.require(
 			writeUtf8File(
 				invalidStatePath_,
-				"BassManagement: State "
+				"SubwooferRouting: State "
 				"{\"schema\":\"wrong\",\"version\":1}\n"),
 			"could not write invalid_state.txt");
 	}
@@ -358,14 +358,14 @@ private:
 void testCommandRecognition()
 {
 	harness.expectTrue(
-		FilterFactoryRegistry::canonicalCommand(L"BassManagement")
-			== std::wstring(L"BassManagement"),
+		FilterFactoryRegistry::canonicalCommand(L"SubwooferRouting")
+			== std::wstring(L"SubwooferRouting"),
 		"BassManagement must resolve to its canonical engine command");
 
 	const std::set<std::wstring>& commands =
 		FilterFactoryRegistry::knownConfigCommands();
 	harness.expectTrue(
-		commands.find(L"BassManagement") != commands.end(),
+		commands.find(L"SubwooferRouting") != commands.end(),
 		"knownConfigCommands must contain BassManagement");
 }
 
@@ -679,7 +679,7 @@ void testNonParticipatingChannelPassThrough(
 		"the unreferenced C channel must pass through bit-exactly");
 	harness.expectTrue(
 		participatingChannelChanged,
-		"Bass Management must remain active when the device has an extra C channel");
+		"Subwoofer Routing must remain active when the device has an extra C channel");
 }
 
 }

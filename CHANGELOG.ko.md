@@ -8,20 +8,20 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
-- **베이스 매니지먼트가 Copy 사슬 한 페이지 대신 설정 한 줄이 됐습니다.** 새
-  `BassManagement:` 명령(이슈
+- **서브우퍼 라우팅이 Copy 사슬 한 페이지 대신 설정 한 줄이 됐습니다.** 새
+  `SubwooferRouting:` 명령(이슈
   [#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246))은 스피커
   그룹별 크로스오버, 전용 베이스 경로, 물리 LFE 입력을 별도 소스 경로로
   보존하는 처리, 경로별 게인·극성·지연·EQ, 출력 합산 행렬을 JSON 상태 하나로
-  실행합니다. 줄 안에 직접 쓰거나 `*.bmxt.json` 프로필 파일로 연결합니다.
+  실행합니다. 줄 안에 직접 쓰거나 `*.swxt.json` 프로필 파일로 연결합니다.
   내장 프리셋 `Issue #246 - Front/Rear 4.1`은 제보자의 원본 저수준 사슬을
   샘플 단위로 재현하며(엔진 수준 parity 테스트로 검증), 자동 헤드룸이 합산
   출력을 0 dBFS 아래로 유지하고, 잘못된 상태는 소리를 끊는 대신 오류를
   남기며, 참조되지 않은 채널은 비트 그대로 통과합니다. Editor에는 전용 배지와
-  요약을 갖춘 Bass Management 카드가 생겼습니다. DSP는 아래 플러그인과
+  요약을 갖춘 Subwoofer Routing 카드가 생겼습니다. DSP는 아래 플러그인과
   공유하는 새 MIT 라이선스 BassManagementCore 라이브러리에 있습니다.
-- **독립 실행형 Bass Management VST3 플러그인이 모든 릴리스에 실립니다.** MIT
-  라이선스의 `EAPO XT Bass Management` 플러그인(설치본의 `VST3\` 폴더)은 어느
+- **독립 실행형 Subwoofer Routing VST3 플러그인이 모든 릴리스에 실립니다.** MIT
+  라이선스의 `EAPO XT Subwoofer Routing` 플러그인(설치본의 `VST3\` 폴더)은 어느
   VST3 호스트에서든 동일한 DSP 코어를 돌리고, 4.1을 포함해 스테레오부터
   7.1까지 배치를 협상하며, 네이티브 명령과 같은 JSON 상태를 주고받아 프리셋이
   Equalizer APO XT와 DAW 사이를 그대로 오갑니다. 바이패스, 소스 LFE

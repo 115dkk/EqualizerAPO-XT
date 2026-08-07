@@ -1478,7 +1478,7 @@ void RackBassManagementCardView::paintEvent(QPaintEvent* event)
 			center + QPointF(dx, dy));
 	}
 
-	const QString railText = QStringLiteral("BASS MANAGEMENT");
+	const QString railText = QStringLiteral("SUBWOOFER ROUTING");
 	const QFont railFace = rackFont(7, true, 1.4);
 	const QFontMetrics railMetrics(railFace);
 	const qreal railTop =

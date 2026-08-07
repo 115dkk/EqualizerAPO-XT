@@ -471,7 +471,7 @@ int runHybridConvTests()
 	// All-pass DSP invariants plus the characterizations the reform in issue
 	// #228 has to preserve or is about to change deliberately.
 	runAllPassTests();
-	// Bass Management shared core (MIT BassManagementCore) plus its JSON codec:
+	// Subwoofer Routing shared core (MIT BassManagementCore) plus its JSON codec:
 	// pure-logic suites, no engine or device dependency.
 	runBassManagementJsonTests();
 	runBassManagementCodecTests();
@@ -509,7 +509,7 @@ int runHybridConvTests()
 	// soft-skip: a missing module fails the run, because the module is built
 	// from this repository and its absence is a build problem.
 	runVst3HostTests();
-	// Native/VST3 parity for the Bass Management plugin, loaded through the
+	// Native/VST3 parity for the Subwoofer Routing plugin, loaded through the
 	// same host path as the companion-module suites above.
 	runBassManagementVst3Tests();
 	runParserTests();

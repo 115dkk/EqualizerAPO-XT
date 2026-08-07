@@ -541,11 +541,11 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = tr("Loudness");
 		descriptor.color = QStringLiteral("#eab308");
 	}
-	else if (keyword == QStringLiteral("BassManagement"))
+	else if (keyword == QStringLiteral("SubwooferRouting"))
 	{
 		descriptor.type = QStringLiteral("bassmanagement");
-		descriptor.badge = QStringLiteral("BASS");
-		descriptor.title = tr("Bass management");
+		descriptor.badge = QStringLiteral("SUB");
+		descriptor.title = tr("Subwoofer routing");
 		descriptor.color = QStringLiteral("#84cc16");
 
 		// Keep card-list work bounded. The full editor owns profile I/O and
@@ -779,6 +779,9 @@ QString FilterCardModel::commandIconResource(const QString& command, const QStri
 		{ "stage", "stage-chain" },
 		{ "copy", "route-channels" },
 		{ "loudnesscorrection", "loudness" },
+		// The command was renamed to SubwooferRouting; the card type id and
+		// the icon resource keep the original asset name.
+		{ "subwooferrouting", "bass-management" },
 		{ "bassmanagement", "bass-management" },
 		{ "if", "logic-if" },
 		{ "elseif", "logic-if" },

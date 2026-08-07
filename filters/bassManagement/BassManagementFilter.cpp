@@ -53,7 +53,7 @@ const bassmgmt::ValidationDiagnostic* firstValidationError(
 
 void logValidationError(const bassmgmt::ValidationDiagnostic& diagnostic)
 {
-	LogFStatic(L"BassManagement: %s", fromUtf8(diagnostic.message).c_str());
+	LogFStatic(L"SubwooferRouting: %s", fromUtf8(diagnostic.message).c_str());
 }
 }
 
@@ -82,13 +82,13 @@ std::vector<std::wstring> BassManagementFilter::initialize(float sampleRate,
 
 	if (maxFrameCount == 0)
 	{
-		LogF(L"BassManagement: maximum frame count is zero; using passthrough");
+		LogF(L"SubwooferRouting: maximum frame count is zero; using passthrough");
 		return channelNames;
 	}
 
 	if (channelNames.empty())
 	{
-		LogF(L"BassManagement: no channels are available; using passthrough");
+		LogF(L"SubwooferRouting: no channels are available; using passthrough");
 		return channelNames;
 	}
 
@@ -110,7 +110,7 @@ std::vector<std::wstring> BassManagementFilter::initialize(float sampleRate,
 		if (compileError != nullptr)
 			logValidationError(*compileError);
 		else
-			LogF(L"BassManagement: compilation produced no graph; using passthrough");
+			LogF(L"SubwooferRouting: compilation produced no graph; using passthrough");
 		return channelNames;
 	}
 
@@ -121,13 +121,13 @@ std::vector<std::wstring> BassManagementFilter::initialize(float sampleRate,
 	}
 	catch (const std::exception& exception)
 	{
-		LogF(L"BassManagement: processor preparation failed: %s",
+		LogF(L"SubwooferRouting: processor preparation failed: %s",
 			fromUtf8(exception.what()).c_str());
 		return channelNames;
 	}
 
 	passthrough = false;
-	TraceF(L"BassManagement: %zu paths, %zu outputs, %.2f dB trim",
+	TraceF(L"SubwooferRouting: %zu paths, %zu outputs, %.2f dB trim",
 		graph.paths().size(), graph.outputs().size(),
 		graph.headroom().appliedTrimDb);
 	return channelNames;

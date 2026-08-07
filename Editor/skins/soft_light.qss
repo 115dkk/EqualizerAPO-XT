@@ -864,7 +864,7 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid @BORDER@;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
-/* Bass management summary: one headline sentence, one dim caption, quiet
+/* Subwoofer routing summary: one headline sentence, one dim caption, quiet
    fact pills (see soft_dark.qss). */
 QLabel#SoftBassHeadline {
     color: @TEXT@;

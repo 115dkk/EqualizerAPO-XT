@@ -32,7 +32,7 @@ bool isReferenceCommand(const QString& keyword)
         || keyword == QStringLiteral("Convolution")
         || keyword == QStringLiteral("MultiConvolution")
         || keyword == QStringLiteral("VSTPlugin")
-        || keyword == QStringLiteral("BassManagement");
+        || keyword == QStringLiteral("SubwooferRouting");
 }
 
 // The engine unquotes convolution paths in ConvolutionFilePath::resolve, so a
@@ -62,12 +62,12 @@ QString referencePath(const QString& keyword, const QString& parameters)
     if (keyword == QStringLiteral("VSTPlugin"))
         return QString::fromStdWString(
             VSTPluginCommand::extractLibraryReference(parameters.toStdWString()));
-    if (keyword == QStringLiteral("BassManagement"))
+    if (keyword == QStringLiteral("SubwooferRouting"))
     {
         // Only the Profile form references a file; inline State is
         // self-contained JSON and must not be treated as a path.
         BassManagementCommand command;
-        if (!BassManagementCommand::parse(L"BassManagement", parameters.toStdWString(), command)
+        if (!BassManagementCommand::parse(L"SubwooferRouting", parameters.toStdWString(), command)
             || command.form != BassManagementCommand::Form::Profile)
             return QString();
         return stripSurroundingQuotes(QString::fromStdWString(command.payload));

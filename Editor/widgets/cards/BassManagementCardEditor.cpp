@@ -509,7 +509,7 @@ void BassManagementCardEditor::loadCommand(
 void BassManagementCardEditor::store(
 	QString& command, QString& parameters)
 {
-	command = QStringLiteral("BassManagement");
+	command = QStringLiteral("SubwooferRouting");
 
 	if (form == BassManagementCommand::Form::Profile)
 	{
@@ -745,11 +745,11 @@ void BassManagementCardEditor::refreshCard()
 	view->setState(card);
 }
 
-REGISTER_FILTER_CARD_EDITOR(BassManagement,
+REGISTER_FILTER_CARD_EDITOR(SubwooferRouting,
 	[](FilterTable* table, const QString& command,
 		const QString& parameters) -> IFilterGUI*
 	{
-		if (command != QStringLiteral("BassManagement"))
+		if (command != QStringLiteral("SubwooferRouting"))
 			return nullptr;
 
 		BassManagementCommand parsed;

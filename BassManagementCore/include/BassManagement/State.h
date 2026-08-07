@@ -12,7 +12,7 @@ namespace bassmgmt
 {
 
 inline constexpr char kBassManagementSchema[] =
-	"equalizerapo.xt.bass-management";
+	"equalizerapo.xt.subwoofer-routing";
 
 inline constexpr std::uint32_t kBassManagementSchemaVersion = 1;
 

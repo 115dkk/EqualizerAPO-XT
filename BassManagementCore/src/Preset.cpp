@@ -220,7 +220,7 @@ const std::vector<PresetDescriptor>& builtInPresets()
 		{
 			kIssue246FrontRear41PresetId,
 			"Issue #246 - Front/Rear 4.1",
-			"Front and rear bass management for a five-channel 4.1 layout."
+			"Front and rear subwoofer routing for a five-channel 4.1 layout."
 		}
 	};
 
