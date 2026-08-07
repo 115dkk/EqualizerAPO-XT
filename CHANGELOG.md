@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **File dialogs accept a pasted path and carry Explorer-style shortcuts.**
+  The location dropdown is now editable: paste a path copied from Windows
+  Explorer (quotes from "Copy as path" included) and press Enter to jump
+  there; a full file path selects that file. The sidebar adds the upstream
+  Equalizer APO config folder, the folders of recently opened
+  configurations, and every drive root with its Windows display name.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+- **Settings > Open program folder** shows the install directory in
+  Explorer. ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
 - **The pencil button on an Include card now opens the included file in the
   editor.** It used to turn the config line into a raw path text field, while
   opening the file was hidden behind clicking the name. Editing the path as
