@@ -1,6 +1,6 @@
 {
-  "run_id": "31190912036",
-  "pattern": "*minimal*srdialog*",
-  "prefix": "r5_",
+  "run_id": "31193124291",
+  "pattern": "*controls*",
+  "prefix": "chk_",
   "branch": "gallery-bm-review2"
 }
