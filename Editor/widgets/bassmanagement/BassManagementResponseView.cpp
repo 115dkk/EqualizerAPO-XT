@@ -237,7 +237,55 @@ void BassManagementResponseView::recompute()
 
 QRectF BassManagementResponseView::plotRect() const
 {
-	return QRectF(rect()).adjusted(42.0, 12.0, -12.0, -30.0);
+	// The legend strip lives above the plot, outside the curve area, so
+	// curve lines can never run through its text.
+	return QRectF(rect()).adjusted(
+		42.0, 10.0 + legendHeightPx, -12.0, -30.0);
+}
+
+void BassManagementResponseView::updateLegendLayout()
+{
+	legendEntries.clear();
+
+	if (curves.isEmpty())
+	{
+		legendHeightPx = 0;
+		return;
+	}
+
+	const QFontMetrics metrics(font());
+	const double swatchWidth = 14.0;
+	const double swatchGap = 4.0;
+	const double entryGap = 14.0;
+	const double left = 42.0;
+	const double right = std::max(left + 60.0, width() - 12.0);
+	const int rowHeight = std::max(14, metrics.height() + 2);
+
+	double x = left;
+	int row = 0;
+	for (const ResponseCurve& curve : curves)
+	{
+		const double textWidth = metrics.horizontalAdvance(curve.id);
+		const double entryWidth = swatchWidth + swatchGap + textWidth;
+		if (x > left && x + entryWidth > right)
+		{
+			x = left;
+			row++;
+		}
+
+		LegendEntry entry;
+		entry.id = curve.id;
+		entry.kind = curve.kind;
+		entry.x = x;
+		entry.row = row;
+		entry.textWidth = textWidth;
+		legendEntries.append(entry);
+
+		x += entryWidth + entryGap;
+	}
+
+	legendHeightPx = (row + 1) * rowHeight + 4;
+	legendRowHeightPx = rowHeight;
 }
 
 double BassManagementResponseView::frequencyToX(
@@ -276,6 +324,10 @@ void BassManagementResponseView::paintEvent(QPaintEvent* event)
 	QColor background = textColor;
 	background.setAlpha(10);
 	painter.fillRect(rect(), background);
+
+	// Settle the legend rows first: plotRect() reserves their height, so
+	// every transform below has to agree with the same layout.
+	updateLegendLayout();
 
 	const QRectF area = plotRect();
 	QColor borderColor = textColor;
@@ -367,19 +419,23 @@ void BassManagementResponseView::paintEvent(QPaintEvent* event)
 		painter.drawLine(QPointF(area.left(), y),
 			QPointF(area.right(), y));
 
+		// An opaque badge: curves and grid must not strike through the
+		// readout text.
 		const QString label = tr("Headroom %1 dB")
 			.arg(QString::number(*appliedTrimDb, 'f', 1));
 		const QFontMetrics metrics(font());
 		const int width = metrics.horizontalAdvance(label) + 8;
 		const QRectF labelRect(
-			area.right() - width,
-			std::clamp(y - 18.0, area.top(), area.bottom() - 18.0),
+			area.right() - width - 1.0,
+			std::clamp(y + 3.0, area.top() + 1.0, area.bottom() - 19.0),
 			width,
 			18.0);
 
-		QColor labelBackground = textColor;
-		labelBackground.setAlpha(24);
-		painter.fillRect(labelRect, labelBackground);
+		painter.fillRect(labelRect, QColor(tokens.surface));
+		QColor badgeBorder = textColor;
+		badgeBorder.setAlpha(85);
+		painter.setPen(QPen(badgeBorder, 1.0));
+		painter.drawRect(labelRect);
 		painter.setPen(textColor);
 		painter.drawText(labelRect.adjusted(4.0, 0.0, -4.0, 0.0),
 			Qt::AlignVCenter | Qt::AlignRight, label);
@@ -395,26 +451,23 @@ void BassManagementResponseView::paintEvent(QPaintEvent* event)
 		return;
 	}
 
-	double legendX = area.left() + 6.0;
-	const double legendY = area.top() + 6.0;
-	for (const ResponseCurve& curve : curves)
+	// Legend strip above the plot: every path is listed (rows wrap instead
+	// of silently dropping entries), and nothing is ever drawn over it.
+	for (const LegendEntry& entry : legendEntries)
 	{
-		const QColor color = curveColor(textColor, curve.kind);
-		painter.setPen(QPen(color, 2.0));
+		const double y = 4.0 + entry.row * legendRowHeightPx;
+		const double centerY = y + legendRowHeightPx / 2.0;
+
+		painter.setPen(QPen(curveColor(textColor, entry.kind), 2.0));
 		painter.drawLine(
-			QPointF(legendX, legendY + 6.0),
-			QPointF(legendX + 14.0, legendY + 6.0));
+			QPointF(entry.x, centerY),
+			QPointF(entry.x + 14.0, centerY));
 
 		painter.setPen(textColor);
-		const int textWidth =
-			painter.fontMetrics().horizontalAdvance(curve.id);
 		painter.drawText(
-			QRectF(legendX + 18.0, legendY, textWidth + 4.0, 14.0),
+			QRectF(entry.x + 18.0, y,
+				entry.textWidth + 4.0, legendRowHeightPx),
 			Qt::AlignLeft | Qt::AlignVCenter,
-			curve.id);
-		legendX += textWidth + 32.0;
-
-		if (legendX > area.right() - 80.0)
-			break;
+			entry.id);
 	}
 }

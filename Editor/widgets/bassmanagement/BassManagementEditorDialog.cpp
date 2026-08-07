@@ -32,6 +32,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSplitter>
 #include <QVBoxLayout>
@@ -237,10 +238,9 @@ QComboBox* slopeComboBox(QWidget* parent)
 	combo->setToolTip(BassManagementEditorDialog::tr(
 		"Crossover alignment and acoustic slope. Custom marks a "
 		"hand-written section chain and leaves it untouched."));
-	combo->setSizeAdjustPolicy(
-		QComboBox::AdjustToMinimumContentsLengthWithIcon);
-	combo->setMinimumContentsLength(9);
-	combo->setFixedWidth(150);
+	// Sized to the longest recipe label under the active skin's font: a
+	// fixed width clipped "BW2 (12 dB/oct)" in the wider-glyph skins.
+	combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 	return combo;
 }
 
@@ -323,8 +323,10 @@ BassManagementEditorDialog::BassManagementEditorDialog(
 		  initialState, deviceSampleRate, this))
 {
 	setObjectName(QStringLiteral("BassManagementEditorDialog"));
-	setWindowTitle(tr("Bass Management Editor"));
-	resize(1280, 760);
+	setWindowTitle(tr("Subwoofer Routing Editor"));
+	// Wide enough that the label-sized routing matrices of a 4.1 state keep
+	// every column on screen under every skin's fonts.
+	resize(1360, 780);
 	DialogChrome::attach(this);
 
 	QVBoxLayout* outerLayout = new QVBoxLayout(this);
@@ -334,9 +336,13 @@ BassManagementEditorDialog::BassManagementEditorDialog(
 	QSplitter* splitter = new QSplitter(Qt::Horizontal, this);
 	outerLayout->addWidget(splitter, 1);
 
-	QScrollArea* leftScroll = new QScrollArea(splitter);
+	leftScroll = new QScrollArea(splitter);
 	leftScroll->setWidgetResizable(true);
 	leftScroll->setFrameShape(QFrame::NoFrame);
+	// The pane scrolls vertically only. A horizontal bar here covered the
+	// status line at the pane's bottom and cut rows off; instead the pane
+	// claims the width its widest row needs (updateLeftPaneWidth).
+	leftScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
 	QWidget* leftBody = new QWidget(leftScroll);
 	QVBoxLayout* leftLayout = new QVBoxLayout(leftBody);
@@ -448,7 +454,7 @@ BassManagementEditorDialog::BassManagementEditorDialog(
 	splitter->setStretchFactor(1, 1);
 	// The crossover rows carry frequency + slope + delay (+ polarity), so
 	// the form pane needs the width a single spin box column never did.
-	splitter->setSizes({600, 680});
+	splitter->setSizes({600, 740});
 
 	buttonBox = new QDialogButtonBox(
 		QDialogButtonBox::Ok
@@ -502,6 +508,7 @@ BassManagementEditorDialog::BassManagementEditorDialog(
 		[this](const SkinTokens&)
 		{
 			rebuildRoutingViews();
+			updateLeftPaneWidth();
 			responseView->update();
 		});
 
@@ -845,6 +852,24 @@ void BassManagementEditorDialog::rebuildFrequencyControls()
 
 		bassPathControls.push_back(controls);
 	}
+
+	updateLeftPaneWidth();
+}
+
+void BassManagementEditorDialog::updateLeftPaneWidth()
+{
+	// With the horizontal scrollbar off, the pane has to claim the width
+	// its widest row needs under the active skin's fonts, or rows would
+	// clip silently instead.
+	if (leftScroll == nullptr || leftScroll->widget() == nullptr)
+		return;
+
+	const int contentWidth = leftScroll->widget()->sizeHint().width();
+	const QScrollBar* verticalBar = leftScroll->verticalScrollBar();
+	const int barWidth = verticalBar != nullptr
+		? verticalBar->sizeHint().width()
+		: 0;
+	leftScroll->setMinimumWidth(contentWidth + barWidth + 4);
 }
 
 void BassManagementEditorDialog::rebuildRoutingViews()

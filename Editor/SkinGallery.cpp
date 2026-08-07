@@ -113,12 +113,12 @@ QString bassManagementPresetRowLine()
 	const bassmgmt::PresetCreateResult preset =
 		bassmgmt::createBuiltInPreset(bassmgmt::kIssue246FrontRear41PresetId);
 	if (!preset.succeeded())
-		return QStringLiteral("BassManagement:");
+		return QStringLiteral("SubwooferRouting:");
 	const bassmgmt::StateEncodeResult encoded =
 		bassmgmt::encodeStateCanonical(*preset.state);
 	if (!encoded.succeeded())
-		return QStringLiteral("BassManagement:");
-	return QStringLiteral("BassManagement: State ")
+		return QStringLiteral("SubwooferRouting:");
+	return QStringLiteral("SubwooferRouting: State ")
 		+ QString::fromUtf8(encoded.text->data(),
 			static_cast<int>(encoded.text->size()));
 }
@@ -182,14 +182,14 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("velvet_dynamic"), QStringLiteral("Velvet: Mode=Dynamic Amount=85% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136") },
 		{ QStringLiteral("velvet_static"), QStringLiteral("Velvet: Mode=Static Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136") },
 		{ QStringLiteral("velvet_invalid"), QStringLiteral("Velvet: Mode=Dynamic Length=not-a-time") },
-		// The Bass Management card in its two load-bearing shapes: the built-in
+		// The Subwoofer Routing card in its two load-bearing shapes: the built-in
 		// #246 preset as an inline State (built through the core so the JSON is
 		// always the canonical bytes the engine sees), and a linked profile
 		// whose file is missing, which is the warning state every skin must
 		// carry without dropping the card. Appended last (mid-list insertion
 		// renumbers every following scene against the stored baseline).
 		{ QStringLiteral("bassmanagement"), bassManagementPresetRowLine() },
-		{ QStringLiteral("bassmanagement_missing"), QStringLiteral("BassManagement: Profile \"missing.bmxt.json\"") }
+		{ QStringLiteral("bassmanagement_missing"), QStringLiteral("SubwooferRouting: Profile \"missing.swxt.json\"") }
 	};
 }
 
@@ -941,7 +941,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		for (const auto& dialogState : dialogStates)
 		{
 			BassManagementEditorDialog dialog(dialogState.value, 48000);
-			dialog.resize(1280, 760);
+			dialog.resize(1360, 780);
 			dialog.show();
 			QApplication::processEvents();
 			failures += saveGrab(&dialog, outDir, skinId, mode,

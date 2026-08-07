@@ -55,12 +55,27 @@ private:
 		QVector<QPointF> samples;
 	};
 
+	// One placed legend entry; the strip lives above the plot so curves can
+	// never cross its text, and long channel lists wrap into further rows.
+	struct LegendEntry
+	{
+		QString id;
+		bassmgmt::PathKind kind = bassmgmt::PathKind::Main;
+		double x = 0.0;
+		int row = 0;
+		double textWidth = 0.0;
+	};
+
 	QRectF plotRect() const;
+	void updateLegendLayout();
 	double frequencyToX(double frequencyHz) const;
 	double decibelToY(double decibels) const;
 
 	BassManagementUiModel* model = nullptr;
 	QVector<ResponseCurve> curves;
+	QVector<LegendEntry> legendEntries;
+	int legendHeightPx = 0;
+	int legendRowHeightPx = 16;
 	std::optional<double> appliedTrimDb;
 	double minimumDb = -72.0;
 	double maximumDb = 12.0;

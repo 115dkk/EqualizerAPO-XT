@@ -33,6 +33,7 @@ class QDialogButtonBox;
 class QDoubleSpinBox;
 class QFormLayout;
 class QLabel;
+class QScrollArea;
 class QVBoxLayout;
 class RoutingView;
 
@@ -73,12 +74,14 @@ private:
 
 	void refreshControls();
 	void rebuildFrequencyControls();
+	void updateLeftPaneWidth();
 	void rebuildRoutingViews();
 	void rebuildBassSendRoutingView();
 	void rebuildOutputRoutingView();
 	void refreshValidation();
 
 	BassManagementUiModel* model = nullptr;
+	QScrollArea* leftScroll = nullptr;
 	QComboBox* presetCombo = nullptr;
 	QDoubleSpinBox* sourceLfeGain = nullptr;
 	QCheckBox* sourceLfePolarity = nullptr;
