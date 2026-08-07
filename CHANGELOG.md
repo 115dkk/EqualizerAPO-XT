@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.31.0 — 2026-08-07
+
 - **File dialogs accept a pasted path and carry Explorer-style shortcuts.**
   The location dropdown is now editable: paste a path copied from Windows
   Explorer (quotes from "Copy as path" included) and press Enter to jump
