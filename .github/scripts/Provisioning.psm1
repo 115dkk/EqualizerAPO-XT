@@ -266,12 +266,18 @@ function Build-VcpkgDependencies {
         throw "Effective vcpkg commit '$effectiveVcpkgCommit' does not match pin '$VcpkgCommit'"
     }
     Write-Host "Using pinned vcpkg commit $effectiveVcpkgCommit"
-    if (-not (Test-Path (Join-Path $vcpkgRoot "vcpkg.exe"))) {
-        & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
-        if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed" }
-    }
-
+    # The runner image ships a prebuilt vcpkg.exe for *its* checkout. After
+    # the tree is pinned to the manifest commit, that binary and the pinned
+    # scripts can disagree ("document schema version 1 is not supported by
+    # this version of vcpkg" took down the sse2/avx release builds when the
+    # image updated). Always bootstrap from the pinned tree so the binary
+    # matches the scripts it runs against.
     $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
+    if (Test-Path $vcpkgExe) {
+        Remove-Item $vcpkgExe -Force
+    }
+    & (Join-Path $vcpkgRoot "bootstrap-vcpkg.bat") -disableMetrics
+    if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed" }
     $fftwFeature = if ($SimdVariant -eq "avx") { "fftw3[avx,threads]:x64-windows" } else { "fftw3[sse2,threads]:x64-windows" }
     & $vcpkgExe install $fftwFeature "libsndfile:x64-windows" --clean-after-build
     if ($LASTEXITCODE -ne 0) {
