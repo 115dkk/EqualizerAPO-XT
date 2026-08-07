@@ -135,6 +135,8 @@ private:
 	void queueVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 	Steinberg::Vst::IParameterChanges* prepareVST3ParameterChanges();
 	void flushVST3ParameterChanges();
+	void beginVST3EditorSession();
+	void endVST3EditorSession();
 
 	std::shared_ptr<VSTPluginLibrary> library;
 	VST2EffectPtr effect;
@@ -165,6 +167,10 @@ private:
 	bool vst3ComponentInitialized = false;
 	bool vst3ControllerInitializedSeparately = false;
 	bool vst3Active = false;
+	// An open editor view holds the processor in the Processing state for the
+	// whole session, so parameter-flush process calls need no per-edit
+	// setActive/setProcessing cycling. Guarded by vst3LifecycleMutex.
+	bool vst3EditorSession = false;
 	std::atomic<bool> vst3Processing{ false };
 	Steinberg::Vst::ProcessContext vst3ProcessContext = {};
 	Steinberg::Vst::TSamples vst3SamplePosition = 0;

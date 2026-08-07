@@ -277,36 +277,45 @@ void VSTPluginInstance::flushVST3ParameterChanges()
 		|| vst3ParameterEditRead.load(memory_order_acquire) == vst3ParameterEditWrite.load(memory_order_acquire))
 		return;
 
+	// An open editor session already holds the plug-in in the Processing
+	// state (beginVST3EditorSession), so the flush below is just the
+	// buffer-less process call. Everything else takes the one-shot
+	// activation path.
+	const bool sessionFlush = vst3EditorSession;
+
 	// An instance that never prepared for processing (an Editor preview
 	// before the first analysis run) still needs a valid setup before it may
 	// be activated.
 	bool activatedForFlush = false;
-	if (!vst3Active)
+	if (!sessionFlush)
 	{
-		if (sampleRate <= 0.0f)
+		if (!vst3Active)
 		{
-			ProcessSetup setup;
-			setup.processMode = kRealtime;
-			setup.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
-			setup.maxSamplesPerBlock = 1;
-			setup.sampleRate = 48000.0;
-			if (vst3Processor->setupProcessing(setup) != kResultOk)
+			if (sampleRate <= 0.0f)
+			{
+				ProcessSetup setup;
+				setup.processMode = kRealtime;
+				setup.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
+				setup.maxSamplesPerBlock = 1;
+				setup.sampleRate = 48000.0;
+				if (vst3Processor->setupProcessing(setup) != kResultOk)
+					return;
+			}
+			if (vst3Component->setActive(true) != kResultOk)
 				return;
+			vst3Active = true;
+			activatedForFlush = true;
 		}
-		if (vst3Component->setActive(true) != kResultOk)
-			return;
-		vst3Active = true;
-		activatedForFlush = true;
-	}
 
-	if (vst3Processor->setProcessing(true) != kResultOk)
-	{
-		if (activatedForFlush)
+		if (vst3Processor->setProcessing(true) != kResultOk)
 		{
-			vst3Component->setActive(false);
-			vst3Active = false;
+			if (activatedForFlush)
+			{
+				vst3Component->setActive(false);
+				vst3Active = false;
+			}
+			return;
 		}
-		return;
 	}
 
 	ProcessData data;
@@ -320,13 +329,99 @@ void VSTPluginInstance::flushVST3ParameterChanges()
 	data.inputParameterChanges = prepareVST3ParameterChanges();
 	data.inputEvents = &emptyVST3EventList;
 	vst3Processor->process(data);
-	vst3Processor->setProcessing(false);
 
-	if (activatedForFlush)
+	if (!sessionFlush)
+	{
+		vst3Processor->setProcessing(false);
+
+		if (activatedForFlush)
+		{
+			vst3Component->setActive(false);
+			vst3Active = false;
+		}
+	}
+}
+
+void VSTPluginInstance::beginVST3EditorSession()
+{
+	// The docs place buffer-less parameter-flush process calls in the
+	// Processing state (setActive(true) then setProcessing(true); FAQ: "the
+	// host can call process without buffers ... in order to flush
+	// parameters"). Enter that state once per editor session instead of
+	// cycling it around every performEdit: a plug-in "has to reset its inner
+	// processing state" on each setProcessing transition, and per-knob-tick
+	// activation cycling is what made embedded editing unstable.
+	if (vst3Component == NULL || vst3Processor == NULL)
+		return;
+
+	// Mirrors the flush guard: a plug-in may synchronously call performEdit
+	// from setActive/setProcessing, and the nested flush attempt has to see
+	// this flag and stay queued instead of deadlocking on the lifecycle
+	// mutex.
+	bool expected = false;
+	if (!vst3ParameterFlushInProgress.compare_exchange_strong(expected, true, memory_order_acq_rel))
+		return;
+	struct FlushFlagReset
+	{
+		atomic<bool>& flag;
+		~FlushFlagReset() { flag.store(false, memory_order_release); }
+	} reset{ vst3ParameterFlushInProgress };
+
+	lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
+	if (vst3EditorSession || vst3Active || vst3Processing.load(memory_order_acquire))
+		return;
+
+	if (sampleRate <= 0.0f)
+	{
+		// setupProcessing is only legal while deactivated; give a
+		// never-prepared editor instance a valid setup first.
+		ProcessSetup setup;
+		setup.processMode = kRealtime;
+		setup.symbolicSampleSize = vst3SupportsDouble ? kSample64 : kSample32;
+		setup.maxSamplesPerBlock = 1;
+		setup.sampleRate = 48000.0;
+		if (vst3Processor->setupProcessing(setup) != kResultOk)
+			return;
+	}
+	if (vst3Component->setActive(true) != kResultOk)
+		return;
+	vst3Active = true;
+	if (vst3Processor->setProcessing(true) != kResultOk)
 	{
 		vst3Component->setActive(false);
 		vst3Active = false;
+		return;
 	}
+	vst3EditorSession = true;
+}
+
+void VSTPluginInstance::endVST3EditorSession()
+{
+	{
+		bool expected = false;
+		if (!vst3ParameterFlushInProgress.compare_exchange_strong(expected, true, memory_order_acq_rel))
+			return;
+		struct FlushFlagReset
+		{
+			atomic<bool>& flag;
+			~FlushFlagReset() { flag.store(false, memory_order_release); }
+		} reset{ vst3ParameterFlushInProgress };
+
+		lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
+		if (!vst3EditorSession)
+			return;
+		vst3EditorSession = false;
+		if (vst3Processor != NULL)
+			vst3Processor->setProcessing(false);
+		if (vst3Component != NULL)
+		{
+			vst3Component->setActive(false);
+			vst3Active = false;
+		}
+	}
+	// Edits a plug-in raised synchronously while leaving the session still
+	// need to reach the processor; this one takes the one-shot path.
+	flushVST3ParameterChanges();
 }
 
 bool VSTPluginInstance::initialize()
