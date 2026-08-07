@@ -8,13 +8,13 @@ fork started on 2026-05-22.
 
 Versions are bumped automatically by CI from Conventional Commits message
 types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
-1.23, 1.25, and 2.30.1 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
+1.23, 1.25, 2.30.1, 2.31, and 2.32 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
 ## Unreleased
 
-## v2.32.0 — 2026-08-07
+## v2.33.0 — 2026-08-07
 
 - **Checked checkboxes show a real check mark in every skin.** They used to
   render as a plain filled accent square, so on/off read through color
@@ -23,7 +23,6 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Matrix skins carry the same glyph.
   ([#252](https://github.com/115dkk/EqualizerAPO-XT/pull/252))
 
-## v2.31.0 — 2026-08-07
 
 - **File dialogs accept a pasted path and carry Explorer-style shortcuts.**
   The location dropdown is now editable: paste a path copied from Windows
