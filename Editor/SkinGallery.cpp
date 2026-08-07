@@ -31,6 +31,7 @@
 #include <QMenuBar>
 #include <QPixmap>
 #include <QPointer>
+#include <QRadioButton>
 #include <QToolButton>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -420,7 +421,7 @@ QString buildFileDialogFixture(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus the registered fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, filedialog, graph x2, copyfold x4,
+// addrow x2, seam, toast, controls, filedialog, graph x2, copyfold x4,
 // multiconvfold x2, logic, channelscope). run() multiplies these by skins x 2
 // modes to self-check the
 // output count, so adding a gallery row needs no external count to be
@@ -461,7 +462,8 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
 		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } },
 		{ QStringLiteral("velvet-advanced"), { QStringLiteral("normal") } },
-		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } }
+		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } },
+		{ QStringLiteral("controls"), { QStringLiteral("normal") } }
 	};
 	return scenarios;
 }
@@ -998,6 +1000,52 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		toast->showMessage(QStringLiteral("Update 2.99.0 has been downloaded and will be applied when you close the editor."), 0);
 		QApplication::processEvents();
 		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("toast"), QStringLiteral("normal")) ? 0 : 1;
+	}
+
+	// Every stateful form control the skins restyle, in every state that has
+	// its own QSS rule: check/partial/disabled checkboxes and radio buttons.
+	// This is the shot that catches a stylesheet whose checked box is only a
+	// filled square (the engine replaces native indicator drawing, so the
+	// check glyph must come from the sheet itself).
+	{
+		QWidget controls;
+		controls.setAutoFillBackground(true);
+		QHBoxLayout* controlsLayout = new QHBoxLayout(&controls);
+		controlsLayout->setContentsMargins(16, 12, 16, 12);
+		controlsLayout->setSpacing(18);
+
+		QCheckBox* checkedBox = new QCheckBox(QStringLiteral("Checked"), &controls);
+		checkedBox->setChecked(true);
+		controlsLayout->addWidget(checkedBox);
+
+		QCheckBox* uncheckedBox = new QCheckBox(QStringLiteral("Unchecked"), &controls);
+		controlsLayout->addWidget(uncheckedBox);
+
+		QCheckBox* partialBox = new QCheckBox(QStringLiteral("Partial"), &controls);
+		partialBox->setTristate(true);
+		partialBox->setCheckState(Qt::PartiallyChecked);
+		controlsLayout->addWidget(partialBox);
+
+		QCheckBox* disabledBox = new QCheckBox(QStringLiteral("Disabled"), &controls);
+		disabledBox->setChecked(true);
+		disabledBox->setEnabled(false);
+		controlsLayout->addWidget(disabledBox);
+
+		QRadioButton* radioOn = new QRadioButton(QStringLiteral("Radio on"), &controls);
+		radioOn->setChecked(true);
+		controlsLayout->addWidget(radioOn);
+
+		QRadioButton* radioOff = new QRadioButton(QStringLiteral("Radio off"), &controls);
+		// Two radios in one widget share a button group; keep the second one
+		// out of it so the first stays checked.
+		radioOff->setAutoExclusive(false);
+		controlsLayout->addWidget(radioOff);
+
+		controlsLayout->addStretch(1);
+		controls.resize(760, controls.sizeHint().height());
+		controls.show();
+		QApplication::processEvents();
+		failures += saveGrab(&controls, outDir, skinId, mode, QStringLiteral("controls"), QStringLiteral("normal")) ? 0 : 1;
 	}
 
 	// The skinned file dialog (GUIHelper::prepareFileDialog): Qt's widget
