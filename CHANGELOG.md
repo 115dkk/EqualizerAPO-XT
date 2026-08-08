@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A Hilbert line that goes silent now says so in the log.** When the
+  stream's block size changes, convolvers mute rather than re-initialize
+  on the audio thread; Convolution and MultiConvolution reported that,
+  Hilbert did not - "sound gone, log empty". All three now share one
+  diagnostic and report the mute when the filter winds down
+  ([#258](https://github.com/115dkk/EqualizerAPO-XT/pull/258)).
+
 ## v2.34.2 — 2026-08-08
 
 - **Declining the Device Selector's UAC prompt no longer pops a second
