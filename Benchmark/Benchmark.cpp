@@ -187,7 +187,6 @@ int main(int argc, char** argv)
 			wstring deviceName = StringHelper::toWString(devicenameArg.getValue(), CP_ACP);
 			wstring connectionName = StringHelper::toWString(connectionnameArg.getValue(), CP_ACP);
 			wstring deviceGuid = StringHelper::toWString(guidArg.getValue(), CP_ACP);
-			engine.setDeviceInfo(false, true, deviceName, connectionName, deviceGuid, deviceName + L" " + connectionName + L" " + deviceGuid);
 			wstring customConfigPath = StringHelper::toWString(configPathArg.getValue(), CP_ACP);
 			if (!customConfigPath.empty())
 			{
@@ -195,7 +194,21 @@ int main(int argc, char** argv)
 				if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY))
 					customConfigPath += L"\\config.txt";
 			}
-			engine.initialize(static_cast<float>(sampleRate), channelCount, channelCount, channelCount, channelMask, batchsize, customConfigPath);
+			// Audit #250 A6: the engine assembles the Device: match key from
+			// the parts (Benchmark's old hand-assembly had the name and
+			// connection reversed relative to production).
+			EngineSetup setup;
+			setup.sampleRate = static_cast<float>(sampleRate);
+			setup.inputChannelCount = channelCount;
+			setup.realChannelCount = channelCount;
+			setup.outputChannelCount = channelCount;
+			setup.channelMask = channelMask;
+			setup.maxFrameCount = batchsize;
+			setup.customPath = customConfigPath;
+			setup.deviceName = deviceName;
+			setup.connectionName = connectionName;
+			setup.deviceGuid = deviceGuid;
+			engine.initialize(setup);
 
 			double initTime = timer.stop();
 			if (!verbose)

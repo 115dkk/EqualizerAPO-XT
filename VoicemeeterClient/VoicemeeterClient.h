@@ -46,6 +46,9 @@ private:
 	struct EngineState
 	{
 		std::vector<std::unique_ptr<FilterEngine>> engines;
+		// Parallel to engines: the per-strip device identity, completed with
+		// the stream format at each (re)initialize (audit #250 A6).
+		std::vector<EngineSetup> engineSetups;
 		std::vector<int> idleSampleCounts;
 	};
 

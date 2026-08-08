@@ -45,6 +45,8 @@
 #include "helpers/Win32Event.h"
 #include "Tests/TestHarness.h"
 
+#include "FakeRegistry.h"
+
 namespace
 {
 void testDeviceApoRegistryVocabulary(test::Harness& harness)
@@ -247,8 +249,17 @@ void initializeEngine(FilterEngine& engine, unsigned sampleRate, unsigned channe
 	const std::wstring deviceName = L"EngineOrchestrationTests";
 	const std::wstring connectionName = L"File";
 	const std::wstring deviceGuid = L"";
-	engine.setDeviceInfo(false, true, deviceName, connectionName, deviceGuid, deviceName + L" " + connectionName);
-	engine.initialize((float)sampleRate, channels, channels, channels, 0, maxFrameCount, configPath);
+	EngineSetup setup;
+	setup.sampleRate = (float)sampleRate;
+	setup.inputChannelCount = channels;
+	setup.realChannelCount = channels;
+	setup.outputChannelCount = channels;
+	setup.maxFrameCount = maxFrameCount;
+	setup.customPath = configPath;
+	setup.deviceName = deviceName;
+	setup.connectionName = connectionName;
+	setup.deviceGuid = deviceGuid;
+	engine.initialize(setup);
 }
 
 // Processes one block of interleaved stereo DC input and returns the output.
@@ -739,8 +750,15 @@ void testInitialLoadUsesPublicationChannel(test::Harness& harness)
 
 	FilterEngine engine;
 	const std::wstring deviceName = L"EngineOrchestrationTests";
-	engine.setDeviceInfo(false, true, deviceName, L"File", L"", deviceName + L" File");
-	engine.initialize(48000.0f, 2, 2, 2, 0, 16, configPath);
+	EngineSetup setup;
+	setup.inputChannelCount = 2;
+	setup.realChannelCount = 2;
+	setup.outputChannelCount = 2;
+	setup.maxFrameCount = 16;
+	setup.customPath = configPath;
+	setup.deviceName = deviceName;
+	setup.connectionName = L"File";
+	engine.initialize(setup);
 
 	harness.expect(engine.hasStatefulOrTailFilters(),
 		"initial configuration bypassed the worker-to-RT publication channel");
@@ -787,8 +805,15 @@ void testEmptyConfigurationExpandsRenderChannels(test::Harness& harness)
 
 	FilterEngine engine;
 	const std::wstring deviceName = L"EngineOrchestrationTests";
-	engine.setDeviceInfo(false, true, deviceName, L"File", L"", deviceName + L" File");
-	engine.initialize(48000.0f, 2, 2, 8, 0, 16, configPath);
+	EngineSetup setup;
+	setup.inputChannelCount = 2;
+	setup.realChannelCount = 2;
+	setup.outputChannelCount = 8;
+	setup.maxFrameCount = 16;
+	setup.customPath = configPath;
+	setup.deviceName = deviceName;
+	setup.connectionName = L"File";
+	engine.initialize(setup);
 
 	constexpr unsigned frames = 4;
 	float input[frames * 2] = {
@@ -946,6 +971,41 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 		"a configuration with four unusable lines still loads, because the working lines below them have to run");
 }
 
+// Audit #250 A6/A3: the engine's registry surface (the config language's
+// readRegDWORD here) goes through the injected port, so a config that reads
+// the registry is deterministic under a fake - previously these functions
+// could only ever see the live machine.
+void testConfigRegistryReadsGoThroughThePort(test::Harness& harness)
+{
+	test::FakeRegistry registry;
+	const std::wstring key = L"HKEY_CURRENT_USER\\Software\\EapoPortTest";
+	registry.seedKey(key);
+	registry.seedDword(key, L"gain", 6);
+
+	const std::wstring configPath = writeConfig(harness, L"registry-port.txt",
+		"Eval: g=readRegDWORD(\"HKEY_CURRENT_USER\\\\Software\\\\EapoPortTest\", \"gain\")\n"
+		"Preamp: `-g` dB\n");
+	FilterEngine engine;
+	// The load resolves g = 6 from the seeded value and the preamp
+	// attenuates by 6 dB.
+	EngineSetup setup;
+	setup.sampleRate = 48000.0f;
+	setup.inputChannelCount = 2;
+	setup.realChannelCount = 2;
+	setup.outputChannelCount = 2;
+	setup.maxFrameCount = 16;
+	setup.customPath = configPath;
+	setup.deviceName = L"PortTest";
+	setup.connectionName = L"File";
+	setup.registry = &registry;
+	engine.initialize(setup);
+
+	const std::vector<float> output = processDcBlock(engine, 1.0f, 1.0f, 16);
+	const float expected = static_cast<float>(std::pow(10.0, -6.0 / 20.0));
+	harness.expect(std::fabs(output[(size_t)15 * 2] - expected) < 1e-4f,
+		"readRegDWORD resolves through the injected fake registry");
+}
+
 void testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(
 	test::Harness& harness)
 {
@@ -983,6 +1043,7 @@ void runDeviceApoInfoTests(test::Harness& harness);
 void runRegistryTransactionTests(test::Harness& harness);
 void runInstallDiagnosticsTests(test::Harness& harness);
 void runApoRegistrationTests(test::Harness& harness);
+void runChannelInheritanceTests(test::Harness& harness);
 
 int runEngineOrchestrationTests()
 {
@@ -1023,6 +1084,7 @@ int runEngineOrchestrationTests()
 	runDeviceApoInfoTests(harness);
 	runInstallDiagnosticsTests(harness);
 	runApoRegistrationTests(harness);
+	runChannelInheritanceTests(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);
@@ -1039,6 +1101,7 @@ int runEngineOrchestrationTests()
 	testRealBrirCrossfeed(harness);
 	testConfigLoadTrace(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
+	testConfigRegistryReadsGoThroughThePort(harness);
 	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);
 
 	removeTestDirectory();

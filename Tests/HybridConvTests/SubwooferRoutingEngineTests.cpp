@@ -100,27 +100,17 @@ void initializeEngine(
 	unsigned channels,
 	unsigned channelMask)
 {
-	const std::wstring deviceName = L"SubwooferRoutingEngineTests";
-	const std::wstring connectionName = L"File";
-	const std::wstring deviceGuid;
-	const std::wstring deviceString =
-		deviceName + L" " + connectionName + L" " + deviceGuid;
-
-	engine.setDeviceInfo(
-		false,
-		true,
-		deviceName,
-		connectionName,
-		deviceGuid,
-		deviceString);
-	engine.initialize(
-		static_cast<float>(kSampleRate),
-		channels,
-		channels,
-		channels,
-		channelMask,
-		kBlockFrames,
-		configPath);
+	EngineSetup setup;
+	setup.sampleRate = static_cast<float>(kSampleRate);
+	setup.inputChannelCount = channels;
+	setup.realChannelCount = channels;
+	setup.outputChannelCount = channels;
+	setup.channelMask = channelMask;
+	setup.maxFrameCount = kBlockFrames;
+	setup.customPath = configPath;
+	setup.deviceName = L"SubwooferRoutingEngineTests";
+	setup.connectionName = L"File";
+	engine.initialize(setup);
 }
 
 // The input is deliberately taken by value so every engine receives an

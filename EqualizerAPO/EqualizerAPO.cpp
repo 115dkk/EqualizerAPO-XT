@@ -235,7 +235,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	{
 		LogF(L"Could not convert apo guid to guid string");
 	}
-	engine.setPreMix((apoGuid == EQUALIZERAPO_PRE_MIX_GUID) != 0);
+	engineSetup.preMix = (apoGuid == EQUALIZERAPO_PRE_MIX_GUID) != 0;
 
 	winutil::PropVariant var;
 	HRESULT hr = initStruct->pAPOEndpointProperties->GetValue(PKEY_AudioEndpoint_GUID, &var);
@@ -274,7 +274,11 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 		DeviceAPOInfo apoInfo;
 		if (apoInfo.load(deviceGuid))
 		{
-			engine.setDeviceInfo(apoInfo.isInput(), apoInfo.getCurrentInstallState().installPostMix, apoInfo.getDeviceName(), apoInfo.getConnectionName(), apoInfo.getDeviceGuid(), apoInfo.getDeviceString());
+			engineSetup.capture = apoInfo.isInput();
+			engineSetup.postMixInstalled = apoInfo.getCurrentInstallState().installPostMix;
+			engineSetup.deviceName = apoInfo.getDeviceName();
+			engineSetup.connectionName = apoInfo.getConnectionName();
+			engineSetup.deviceGuid = apoInfo.getDeviceGuid();
 
 			if (apoGuid == EQUALIZERAPO_PRE_MIX_GUID)
 				childApoGuid = apoInfo.getPreMixChildGuid();
@@ -537,7 +541,13 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 
 	try
 	{
-		engine.initialize(outFormat.fFramesPerSecond, inFormat.dwSamplesPerFrame, realChannelCount, outFormat.dwSamplesPerFrame, channelMask, maxFrameCount);
+		engineSetup.sampleRate = outFormat.fFramesPerSecond;
+		engineSetup.inputChannelCount = inFormat.dwSamplesPerFrame;
+		engineSetup.realChannelCount = realChannelCount;
+		engineSetup.outputChannelCount = outFormat.dwSamplesPerFrame;
+		engineSetup.channelMask = channelMask;
+		engineSetup.maxFrameCount = maxFrameCount;
+		engine.initialize(engineSetup);
 	}
 	catch (const std::bad_alloc&)
 	{

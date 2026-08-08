@@ -36,6 +36,23 @@ struct EngineStreamFormat
 	unsigned maxFrameCount = 0;
 };
 
+// The channel-inheritance contract (audit #250 A5), which used to exist only
+// as an unwritten agreement between FilterEngine::addFilters and
+// FilterConfiguration::process:
+//
+// An empty inChannels/outChannels vector does NOT mean "no channels". It
+// means "reuse the pointer set the previous filter left behind" - process()
+// simply skips refilling currentSamples/currentSamples2, so they still hold
+// the previous filter's channels. addFilters may only emit the empty vector
+// when it has proven the reuse is sound: for inChannels, the previous
+// filter's published channel set is identical to this filter's selection;
+// for outChannels, additionally BOTH filters are in-place, because the
+// non-in-place buffer rotation in process() swaps the very pointers an
+// empty outChannels would reuse. The previous load's last in-place flag
+// deliberately carries into the next load for the same reason.
+//
+// The three IFilter hooks (getAllChannels/getInPlace/getSelectChannels) are
+// the third leg of this protocol; their meaning is documented at IFilter.h.
 struct FilterInfo
 {
 	std::unique_ptr<IFilter, FilterDeleter> filter;

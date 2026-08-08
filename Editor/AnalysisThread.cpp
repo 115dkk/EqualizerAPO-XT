@@ -179,8 +179,19 @@ void AnalysisThread::run()
 		FilterEngine engine;
 		engine.setAnalysisMode(true);
 		engine.setLoadTraceSink(&traceCollector);
-		engine.setDeviceInfo(device->isInput(), true, device->getDeviceName(), device->getConnectionName(), device->getDeviceGuid(), device->getDeviceString());
-		engine.initialize(sampleRate, channelCount, channelCount, channelCount, channelMask, frameCount, configPath.toStdWString());
+		EngineSetup setup;
+		setup.sampleRate = sampleRate;
+		setup.inputChannelCount = channelCount;
+		setup.realChannelCount = channelCount;
+		setup.outputChannelCount = channelCount;
+		setup.channelMask = channelMask;
+		setup.maxFrameCount = frameCount;
+		setup.customPath = configPath.toStdWString();
+		setup.capture = device->isInput();
+		setup.deviceName = device->getDeviceName();
+		setup.connectionName = device->getConnectionName();
+		setup.deviceGuid = device->getDeviceGuid();
+		engine.initialize(setup);
 		engine.setLoadTraceSink(nullptr);
 		double initializationTime = (timer.nsecsElapsed() - startTime) / 1e6;
 

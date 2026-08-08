@@ -175,9 +175,17 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 		sampleRate.store(newSampleRate);
 		maxFrameCount.store(newMaxFrameCount);
 		engineState.withLock([&](const EngineState& state) {
-			for (const auto& engine : state.engines)
-				if (engine != nullptr)
-					engine->initialize(newSampleRate, 8, 8, 8, 0, newMaxFrameCount);
+			for (size_t i = 0; i < state.engines.size(); i++)
+				if (state.engines[i] != nullptr)
+				{
+					EngineSetup setup = state.engineSetups[i];
+					setup.sampleRate = newSampleRate;
+					setup.inputChannelCount = 8;
+					setup.realChannelCount = 8;
+					setup.outputChannelCount = 8;
+					setup.maxFrameCount = newMaxFrameCount;
+					state.engines[i]->initialize(setup);
+				}
 		});
 		VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
 	}
@@ -313,12 +321,19 @@ void VoicemeeterClient::detectVoicemeeterType()
 				if (find(outputs.begin(), outputs.end(), output) != outputs.end())
 				{
 					auto engine = std::make_unique<FilterEngine>();
-					engine->setDeviceInfo(false, true, L"Voicemeeter", output, L"", L"Voicemeeter " + output);
+					// Audit #250 A6: the engine assembles the Device: match
+					// key from these parts. Device patterns match per word,
+					// so the assembled order change is behavior-neutral.
+					EngineSetup deviceSetup;
+					deviceSetup.deviceName = L"Voicemeeter";
+					deviceSetup.connectionName = output;
+					replacement.engineSetups.push_back(deviceSetup);
 					replacement.engines.push_back(std::move(engine));
 				}
 				else
 				{
 					replacement.engines.push_back(nullptr);
+					replacement.engineSetups.push_back(EngineSetup{});
 				}
 
 				replacement.idleSampleCounts.push_back(0);
@@ -331,9 +346,17 @@ void VoicemeeterClient::detectVoicemeeterType()
 				const unsigned currentMaxFrameCount = maxFrameCount.load();
 				if (currentSampleRate != 0.0f && currentMaxFrameCount != 0)
 				{
-					for (const auto& engine : replacement.engines)
-						if (engine != nullptr)
-							engine->initialize(currentSampleRate, 8, 8, 8, 0, currentMaxFrameCount);
+					for (size_t i = 0; i < replacement.engines.size(); i++)
+						if (replacement.engines[i] != nullptr)
+						{
+							EngineSetup setup = replacement.engineSetups[i];
+							setup.sampleRate = currentSampleRate;
+							setup.inputChannelCount = 8;
+							setup.realChannelCount = 8;
+							setup.outputChannelCount = 8;
+							setup.maxFrameCount = currentMaxFrameCount;
+							replacement.engines[i]->initialize(setup);
+						}
 				}
 				state = std::move(replacement);
 			});

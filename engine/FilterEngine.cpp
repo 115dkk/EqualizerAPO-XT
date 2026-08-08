@@ -32,6 +32,7 @@
 #include <mpPackageStr.h>
 #include <mpPackageMatrix.h>
 
+#include "helpers/IRegistry.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
@@ -101,9 +102,9 @@ FilterEngine::~FilterEngine()
 	cleanupConfigurations();
 }
 
-void FilterEngine::setPreMix(bool preMix)
+IRegistry& FilterEngine::registryAccess() const
 {
-	this->preMix = preMix;
+	return registryPort != nullptr ? *registryPort : systemRegistry();
 }
 
 bool FilterEngine::hasStatefulOrTailFilters() const
@@ -118,24 +119,36 @@ bool FilterEngine::hasStatefulOrTailFilters() const
 	return !currentConfig->isAllStateless();
 }
 
-void FilterEngine::setDeviceInfo(bool capture, bool postMixInstalled, const wstring& deviceName, const wstring& connectionName, const wstring& deviceGuid, const wstring& deviceString)
+void FilterEngine::initialize(const EngineSetup& setup)
 {
-	this->capture = capture;
-	this->postMixInstalled = postMixInstalled;
-	this->deviceName = deviceName;
-	this->connectionName = connectionName;
-	this->deviceGuid = deviceGuid;
-	this->deviceString = deviceString;
-}
+	const float sampleRate = setup.sampleRate;
+	const unsigned inputChannelCount = setup.inputChannelCount;
+	const unsigned realChannelCount = setup.realChannelCount;
+	const unsigned outputChannelCount = setup.outputChannelCount;
+	unsigned channelMask = setup.channelMask;
+	const unsigned maxFrameCount = setup.maxFrameCount;
+	const wstring& customPath = setup.customPath;
 
-void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsigned realChannelCount, unsigned outputChannelCount, unsigned channelMask, unsigned maxFrameCount, const wstring& customPath)
-{
 	bool shouldLoadConfig = false;
 
 	{
 		lock_guard<mutex> lock(loadMutex);
 
 		cleanupConfigurations();
+
+		this->preMix = setup.preMix;
+		this->capture = setup.capture;
+		this->postMixInstalled = setup.postMixInstalled;
+		this->deviceName = setup.deviceName;
+		this->connectionName = setup.connectionName;
+		this->deviceGuid = setup.deviceGuid;
+		// One assembly of the Device: command's match key (audit #250 A6):
+		// connection name, device name, then the GUID when present - the
+		// spelling DeviceAPOInfo::getDeviceString always produced. Callers
+		// used to hand-assemble this in six different spellings.
+		this->deviceString = setup.connectionName + L" " + setup.deviceName
+			+ (setup.deviceGuid.empty() ? L"" : L" " + setup.deviceGuid);
+		this->registryPort = setup.registry;
 
 		this->sampleRate = sampleRate;
 		this->inputChannelCount = inputChannelCount;
@@ -172,7 +185,9 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 
 		try
 		{
-			configPath = RegistryHelper::readValue(APP_REGPATH, L"ConfigPath");
+			// Through the port (audit #250 A6/A3): a test or embedded host
+			// that supplies a fake registry no longer touches live HKLM here.
+			configPath = registryAccess().readValue(APP_REGPATH, L"ConfigPath");
 		}
 		catch (const RegistryException& e)
 		{

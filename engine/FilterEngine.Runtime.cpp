@@ -63,46 +63,46 @@ void FilterEngine::addFilters(FilterVector filters)
 		filterInfo->filter = move(ownedFilter);
 		IFilter* filter = filterInfo->filter.get();
 		filterInfo->inPlace = filter->getInPlace();
-		vector<wstring> savedChannelNames = currentChannelNames;
+		vector<wstring> savedChannelNames = load.currentChannelNames;
 		bool allChannels = filter->getAllChannels();
 		if (allChannels)
-			currentChannelNames = allChannelNames;
+			load.currentChannelNames = load.allChannelNames;
 
-		if (lastChannelNames == currentChannelNames)
+		if (load.lastChannelNames == load.currentChannelNames)
 		{
 			filterInfo->inChannels.clear();
 		}
 		else
 		{
-			filterInfo->inChannels.resize(currentChannelNames.size());
+			filterInfo->inChannels.resize(load.currentChannelNames.size());
 
 			size_t c = 0;
-			for (vector<wstring>::iterator it2 = currentChannelNames.begin(); it2 != currentChannelNames.end(); it2++)
+			for (vector<wstring>::iterator it2 = load.currentChannelNames.begin(); it2 != load.currentChannelNames.end(); it2++)
 			{
-				vector<wstring>::iterator pos = find(allChannelNames.begin(), allChannelNames.end(), *it2);
-				if (pos == allChannelNames.end())
+				vector<wstring>::iterator pos = find(load.allChannelNames.begin(), load.allChannelNames.end(), *it2);
+				if (pos == load.allChannelNames.end())
 				{
-					// Defensive: every currentChannelNames entry should already be in
-					// allChannelNames (seeded from it, or a filter's own subset). If that
+					// Defensive: every load.currentChannelNames entry should already be in
+					// load.allChannelNames (seeded from it, or a filter's own subset). If that
 					// invariant is ever broken, append the name instead of storing a
 					// one-past-the-end index that process() would read out of bounds; the
 					// appended channel reads the zero-filled virtual range (silence).
 					// Mirrors the outChannels handling below.
-					filterInfo->inChannels[c++] = allChannelNames.size();
-					allChannelNames.push_back(*it2);
+					filterInfo->inChannels[c++] = load.allChannelNames.size();
+					load.allChannelNames.push_back(*it2);
 				}
 				else
 				{
-					filterInfo->inChannels[c++] = pos - allChannelNames.begin();
+					filterInfo->inChannels[c++] = pos - load.allChannelNames.begin();
 				}
 			}
 		}
 
-		lastChannelNames = currentChannelNames;
+		load.lastChannelNames = load.currentChannelNames;
 
-		vector<wstring> newChannelNames = filter->initialize(sampleRate, maxFrameCount, currentChannelNames);
+		vector<wstring> newChannelNames = filter->initialize(sampleRate, maxFrameCount, load.currentChannelNames);
 
-		if (filterInfo->inPlace && lastInPlace && lastNewChannelNames == newChannelNames)
+		if (filterInfo->inPlace && load.lastInPlace && load.lastNewChannelNames == newChannelNames)
 		{
 			filterInfo->outChannels.clear();
 		}
@@ -113,30 +113,30 @@ void FilterEngine::addFilters(FilterVector filters)
 			size_t c = 0;
 			for (vector<wstring>::iterator it2 = newChannelNames.begin(); it2 != newChannelNames.end(); it2++)
 			{
-				vector<wstring>::iterator pos = find(allChannelNames.begin(), allChannelNames.end(), *it2);
-				if (pos == allChannelNames.end())
+				vector<wstring>::iterator pos = find(load.allChannelNames.begin(), load.allChannelNames.end(), *it2);
+				if (pos == load.allChannelNames.end())
 				{
-					filterInfo->outChannels[c++] = allChannelNames.size();
-					allChannelNames.push_back(*it2);
+					filterInfo->outChannels[c++] = load.allChannelNames.size();
+					load.allChannelNames.push_back(*it2);
 				}
 				else
 				{
-					filterInfo->outChannels[c++] = pos - allChannelNames.begin();
+					filterInfo->outChannels[c++] = pos - load.allChannelNames.begin();
 				}
 			}
 		}
 
-		lastNewChannelNames = newChannelNames;
-		lastInPlace = filterInfo->inPlace;
-		if (!lastInPlace)
-			swap(lastChannelNames, lastNewChannelNames);
+		load.lastNewChannelNames = newChannelNames;
+		load.lastInPlace = filterInfo->inPlace;
+		if (!load.lastInPlace)
+			swap(load.lastChannelNames, load.lastNewChannelNames);
 
-		filterInfos.push_back(move(filterInfo));
+		load.filterInfos.push_back(move(filterInfo));
 
 		if (filter->getSelectChannels())
-			currentChannelNames = newChannelNames;
+			load.currentChannelNames = newChannelNames;
 		else
-			currentChannelNames = savedChannelNames;
+			load.currentChannelNames = savedChannelNames;
 	}
 }
 
@@ -181,8 +181,8 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 				lock_guard<mutex> lock(engine->loadMutex);
 				snapshot.directory = engine->configPath;
 				snapshot.registryKeys.assign(
-					engine->watchRegistryKeys.begin(),
-					engine->watchRegistryKeys.end());
+					engine->load.watchRegistryKeys.begin(),
+					engine->load.watchRegistryKeys.end());
 				return snapshot;
 			},
 			[engine] {
