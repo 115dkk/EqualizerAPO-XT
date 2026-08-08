@@ -17,7 +17,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// Adapted version for Equalizer APO. For original version see libHybridConv.h
+// Adapted version for Equalizer APO, forked from libHybridConv 0.1.1
+// (Christian Borss, GPL-2.0+). The vendored "original" pair was removed in
+// audit #250 F025: it no longer built and had diverged from its own header,
+// so it could not serve as a reference. Consult upstream libHybridConv 0.1.1
+// for the pristine source.
 
 #ifndef __LIBHYBRIDCONV_H__
 #define __LIBHYBRIDCONV_H__

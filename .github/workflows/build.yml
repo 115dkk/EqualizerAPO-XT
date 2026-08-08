@@ -622,9 +622,10 @@ jobs:
     #   I/O members are consumed inside the processImpl member template;
     #   cppcheck does not analyze template instantiations, so it reports every
     #   trait member as unused (false positive).
-    # - libHybridConv-0.1.1 (audit #250 F061): only the pristine-reference
-    #   files (libHybridConv.c/.h, hcTest.c) stay excluded as third-party.
-    #   The _eapo fork of that code is first-party DSP under active change,
+    # - libHybridConv-0.1.1 (audit #250 F061/F025): the non-building
+    #   "pristine" pair was deleted - it had diverged from its own header and
+    #   could no longer serve as a reference (maintainer decision 2026-08-09).
+    #   The _eapo fork is first-party DSP under active change,
     #   so it is analyzed like the rest of the tree. Its C-style structs are
     #   initialized by hcInitSingle/hcFree by design, hence the scoped
     #   uninitMemberVarNoCtor suppression.
@@ -650,16 +651,11 @@ jobs:
           --suppress=unknownMacro:helpers/VSTPluginInstanceInternal.h \
           --suppress=unknownMacro:helpers/VSTPluginLibrary.cpp \
           --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
-          --suppress=*:libHybridConv-0.1.1/libHybridConv.c \
-          --suppress=*:libHybridConv-0.1.1/libHybridConv.h \
-          --suppress=*:libHybridConv-0.1.1/hcTest.c \
           --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \
           --error-exitcode=1 \
           --quiet \
           --std=c++17 \
-          -i libHybridConv-0.1.1/libHybridConv.c \
-          -i libHybridConv-0.1.1/hcTest.c \
           -i deps \
           --output-file=cppcheck-report.txt \
           . || failed=1
