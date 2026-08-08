@@ -27,6 +27,7 @@
 #include <windows.h>
 #include <fftw3.h>
 
+#include "ConvolverMuteDiagnostics.h"
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ParallelExecutor.h"
@@ -41,14 +42,8 @@ using std::wstring;
 
 namespace
 {
-	// Running total of process() calls that took the frameCount-mismatch mute path
-	// across all ConvolutionFilter instances, plus the first mismatching block size
-	// seen. The mute path runs on the audio thread, so it may only bump these two
-	// relaxed atomics; cleanup() turns them into the log line, off the real-time
-	// path. Both are process-wide, like the mismatch condition itself: the engine
-	// hands every convolution filter of a configuration the same block size.
-	std::atomic<unsigned long long> muteCallCount{ 0 };
-	std::atomic<unsigned> firstMuteFrameCount{ 0 };
+	// Audit #250 A4: the shared bookkeeping; see ConvolverMuteDiagnostics.h.
+	ConvolverMuteDiagnostics muteDiagnostics;
 }
 
 ConvolutionFilter::ConvolutionFilter(const wstring& filename)
@@ -97,13 +92,7 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 		// for every line, and this branch fires exactly when the stream can least
 		// afford blocking I/O on the audio thread (a format change, a device switch).
 		// cleanup() formats and writes the same information.
-		muteCallCount.fetch_add(1, std::memory_order_relaxed);
-		if (!frameCountMismatchLogged)
-		{
-			// Keep the block size that first failed; the deferred report needs it.
-			firstMuteFrameCount.store(frameCount, std::memory_order_relaxed);
-			frameCountMismatchLogged = true;
-		}
+		muteDiagnostics.recordMute(frameCount, frameCountMismatchLogged);
 		for (unsigned i = 0; i < channelCount; i++)
 			memset(output[i], 0, sizeof(double) * frameCount);
 		return;
@@ -128,9 +117,9 @@ void ConvolutionFilter::cleanup()
 	// It runs before the members are cleared, so the initialized block size is
 	// still available, and only for instances that actually muted.
 	if (frameCountMismatchLogged)
-		LogF(L"ConvolutionFilter: frameCount %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls: %llu total]",
-			firstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
-			muteCallCount.load(std::memory_order_relaxed));
+		LogF(kConvolverMuteReportFormat, kFrameCountMismatchLogPrefix,
+			muteDiagnostics.firstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
+			muteDiagnostics.muteCallCount.load(std::memory_order_relaxed));
 
 	// HConvSingleArray::reset() runs the exact close-then-free sequence; assigning
 	// nullptr makes the teardown automatic and idempotent.

@@ -6,9 +6,16 @@
 #include <complex>
 #include <set>
 
+#include "ConvolverMuteDiagnostics.h"
 #include "helpers/ChannelHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/PerfProfile.h"
+
+namespace
+{
+// Audit #250 A4: the shared bookkeeping; see ConvolverMuteDiagnostics.h.
+ConvolverMuteDiagnostics muteDiagnostics;
+}
 
 namespace
 {
@@ -91,6 +98,16 @@ HilbertFilter::HilbertFilter(const HilbertCommand& command)
 {
 }
 
+HilbertFilter::~HilbertFilter()
+{
+	// Deferred report of the mute path process() took on the audio thread,
+	// like the other convolvers' cleanup(); only for instances that muted.
+	if (frameCountMismatchLogged)
+		LogF(kConvolverMuteReportFormat, kFrameCountMismatchLogPrefix,
+			muteDiagnostics.firstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
+			muteDiagnostics.muteCallCount.load(std::memory_order_relaxed));
+}
+
 std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 	unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
@@ -140,6 +157,13 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 
 	const bool convolverReady = filters != nullptr
 		&& frameCount == filterFrameCount;
+	if (filters != nullptr && frameCount != filterFrameCount)
+	{
+		// No logging here (audio thread); the destructor writes the deferred
+		// report, like the other convolvers (audit #250 A4 - this mute used
+		// to be silent).
+		muteDiagnostics.recordMute(frameCount, frameCountMismatchLogged);
+	}
 	for (size_t unit = 0; unit < shifted.size(); ++unit)
 	{
 		double* out = output[shifted[unit]];
