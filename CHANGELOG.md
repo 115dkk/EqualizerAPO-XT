@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Moving a card up or down is instant again.** Dragging one card to a new
+  position stalled for seconds on a loaded configuration (5-6 s reported on
+  a fast desktop) because the move rebuilt every card in the list; the move
+  now splices only the affected rows, and the moved card keeps its expanded
+  state. Measured on a 174-row document: 0.8-0.9 s down to 24-82 ms per
+  move, in every skin.
+  ([#253](https://github.com/115dkk/EqualizerAPO-XT/pull/253))
 - **Drives in the file dialog sidebar show the drive glyph again.** Since the
   sidebar gained the drive roots, every drive rendered with the folder
   pictogram in the skinned dialogs; drives now carry each skin's dedicated

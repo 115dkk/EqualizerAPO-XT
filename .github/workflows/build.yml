@@ -584,9 +584,10 @@ jobs:
     # Card drag-move latency gate: one card moved down and back up on a 100+
     # row document, per skin x mode. Field report: a single card move cost
     # 5-6 s on a 12600K because the internal drag-move rebuilt every card
-    # row. The warning threshold documents the expected cost per skin; the
-    # hard limit stays generous enough for runner variance while still
-    # failing a return to the multi-second class.
+    # row; the incremental splice moves in 24-82 ms locally and well under
+    # the warning here. The limit sits below the measured full-rebuild cost
+    # on this runner (1.4-1.6 s per move), so a return to the rebuild fails
+    # the gate while leaving the incremental path 6x headroom for slow days.
     - name: Run card move test (offscreen)
       if: matrix.simd_variant == 'avx2'
       timeout-minutes: 10
@@ -598,7 +599,7 @@ jobs:
         # GUI-subsystem exe: qWarning only reaches redirected stderr with this set
         $env:QT_FORCE_STDERR_LOGGING = "1"
         $env:EAPO_MOVE_WARN_MS = "250"
-        $env:EAPO_MOVE_LIMIT_MS = "20000"
+        $env:EAPO_MOVE_LIMIT_MS = "1000"
         $log = "${{ github.workspace }}\card-move-test.log"
         $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
           -ArgumentList @("--card-move-test") -PassThru -Wait -NoNewWindow `

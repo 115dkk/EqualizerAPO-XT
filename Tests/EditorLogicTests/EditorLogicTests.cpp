@@ -287,6 +287,80 @@ static void testFilterListModel()
 	{
 		throw std::runtime_error("FilterListModel boundary normalization failed");
 	}
+
+	// moveItems: the drag-move document mutation. Same final order as
+	// insert-copies-then-remove-originals, but the items survive - the card
+	// path re-seats their widgets on this guarantee.
+	{
+		FilterListModel moveModel;
+		moveModel.setLines(QList<QString>() << "a" << "b" << "c" << "d");
+		FilterListItem* movedDown = moveModel.items()[1];
+
+		// One row down: dropRow counts pre-move rows, so "before d" lands b
+		// behind c.
+		expectTrue(moveModel.moveItems({ movedDown }, 3), "moveItems accepts a document item");
+		expectEqual(moveModel.lines(), QStringList() << "a" << "c" << "b" << "d",
+			"moveItems moves one row down");
+		expectTrue(moveModel.items()[2] == movedDown, "moveItems keeps the moved item alive");
+		expectEqual((int)moveModel.selected().size(), 1, "moveItems selects exactly the moved rows");
+		expectTrue(moveModel.selected().contains(movedDown), "moveItems selects the moved row");
+		expectTrue(moveModel.focused() == movedDown && moveModel.selectionStart() == movedDown,
+			"moveItems focuses and anchors the first moved row");
+		requireFilterListModelInvariants(moveModel, "moveItems down");
+
+		// Back up: drop before the row above.
+		expectTrue(moveModel.moveItems({ movedDown }, 1), "moveItems accepts the move back up");
+		expectEqual(moveModel.lines(), QStringList() << "a" << "b" << "c" << "d",
+			"moveItems moves one row back up");
+		requireFilterListModelInvariants(moveModel, "moveItems up");
+
+		// A non-contiguous multi-selection lands as one block, in document
+		// order, with the insertion point shifted for rows that sat above it.
+		FilterListItem* first = moveModel.items()[0];
+		FilterListItem* third = moveModel.items()[2];
+		expectTrue(moveModel.moveItems({ first, third }, 1), "moveItems accepts a non-contiguous block");
+		expectEqual(moveModel.lines(), QStringList() << "a" << "c" << "b" << "d",
+			"moveItems lands a non-contiguous selection as one ordered block");
+		expectTrue(moveModel.items()[0] == first && moveModel.items()[1] == third,
+			"moveItems keeps non-contiguous items alive in document order");
+		expectEqual((int)moveModel.selected().size(), 2, "moveItems selects the whole moved block");
+		requireFilterListModelInvariants(moveModel, "moveItems non-contiguous");
+
+		// Equivalence with the old copy splice for the same mutation.
+		FilterListModel referenceModel;
+		referenceModel.setLines(QList<QString>() << "a" << "b" << "c" << "d");
+		QList<FilterListItem*> referenceMoved
+			= { referenceModel.items()[0], referenceModel.items()[2] };
+		QStringList referenceTexts;
+		for (FilterListItem* item : referenceMoved)
+			referenceTexts.append(item->text);
+		referenceModel.insertLines(referenceTexts, {}, 1);
+		referenceModel.removeItems(QSet<FilterListItem*>(referenceMoved.cbegin(), referenceMoved.cend()));
+		expectEqual(moveModel.lines(), referenceModel.lines(),
+			"moveItems matches the insert-copies-then-remove-originals order");
+
+		// Boundary drops clamp; a drop inside the moved block is an order
+		// no-op but still commits (selection, focus, anchor).
+		moveModel.setLines(QList<QString>() << "a" << "b" << "c");
+		expectTrue(moveModel.moveItems({ moveModel.items()[2] }, -5), "moveItems clamps a negative drop row");
+		expectEqual(moveModel.lines(), QStringList() << "c" << "a" << "b", "a clamped drop lands at the front");
+		expectTrue(moveModel.moveItems({ moveModel.items()[0] }, 99), "moveItems clamps an oversized drop row");
+		expectEqual(moveModel.lines(), QStringList() << "a" << "b" << "c", "a clamped drop lands at the end");
+		FilterListItem* stationary = moveModel.items()[1];
+		expectTrue(moveModel.moveItems({ stationary }, 1), "a drop inside the moved block still commits");
+		expectEqual(moveModel.lines(), QStringList() << "a" << "b" << "c", "a same-place drop keeps the order");
+		expectTrue(moveModel.selected().contains(stationary) && moveModel.focused() == stationary,
+			"a same-place drop still selects and focuses the row");
+		requireFilterListModelInvariants(moveModel, "moveItems boundaries");
+
+		// Rejections mutate nothing.
+		FilterListItem outsider("outsider");
+		expectFalse(moveModel.moveItems({ &outsider }, 0), "moveItems rejects items outside the document");
+		expectFalse(moveModel.moveItems({}, 0), "moveItems rejects an empty list");
+		expectFalse(moveModel.moveItems({ stationary, stationary }, 0), "moveItems rejects duplicates");
+		expectEqual(moveModel.lines(), QStringList() << "a" << "b" << "c", "rejected moves leave the document unchanged");
+		requireFilterListModelInvariants(moveModel, "moveItems rejections");
+	}
 }
 
 // FilterListUndo: the widget-free undo/redo history FilterTable commits to on
