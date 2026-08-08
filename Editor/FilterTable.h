@@ -102,6 +102,14 @@ public:
 	std::vector<std::wstring> getChannelNames() const;
 	QList<QString> getLines();
 	void setLines(const QString& configPath, const QList<QString>& lines);
+	// The document items in order. The offscreen gates drive moveRows through
+	// this instead of reaching into the private model.
+	const QList<Item*>& documentItems() const;
+	// Commits an internal drag-move: the given document items (in document
+	// order) land as one block before the line currently at dropRow (pre-move
+	// indexing; items().size() appends). Shared by the drag-and-drop commit in
+	// mouseMoveEvent and the offscreen card-move gate.
+	void moveRows(const QList<Item*>& itemsInOrder, int dropRow);
 	Item* addLine(const QString& line, Item* before = nullptr);
 	// The document item following the given one, or nullptr when the item is
 	// last (or not in the document). Lets the card rows insert AFTER
@@ -242,6 +250,11 @@ private:
 	FilterInsertSeam* insertSeam = nullptr;
 	QPoint dragStartPos;
 	bool internalDrag = false;
+	// Set by dropEvent when an internal drag drops on this same table as a
+	// move: the drop row to commit in mouseMoveEvent once drag->exec returns,
+	// instead of mutating the document from inside the drop. -1 outside that
+	// window (external drops, copies, cancelled drags).
+	int pendingInternalMoveRow = -1;
 	// Owns the config lines and the selection state; see FilterListModel for
 	// the item ownership rules.
 	FilterListModel model;

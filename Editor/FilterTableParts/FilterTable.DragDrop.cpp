@@ -98,19 +98,30 @@ void FilterTable::dropEvent(QDropEvent* event)
 		if (dropRow == -1)
 			dropRow = model.items().size();
 
-		int insertedCount = insertLinesFromMimeData(mimeData, dropRow);
-		event->accept();
-
-		if (!internalDrag)
+		if (internalDrag && event->dropAction() == Qt::MoveAction)
 		{
-			emit linesChanged();
-			// A single dropped line splices into the card grid; internal drags
-			// keep the full rebuild in mouseMoveEvent after the originals are
-			// removed.
-			if (insertedCount == 1 && renderMode == ModernCards)
-				insertRowAt(dropRow);
-			else
-				updateGuis();
+			// A same-table move mutates nothing here: mouseMoveEvent commits
+			// the whole move through moveRows() once drag->exec returns, so
+			// the document changes exactly once.
+			pendingInternalMoveRow = dropRow;
+			event->accept();
+		}
+		else
+		{
+			int insertedCount = insertLinesFromMimeData(mimeData, dropRow);
+			event->accept();
+
+			// A same-table copy (Ctrl held at the drop) keeps its rebuild in
+			// mouseMoveEvent after drag->exec returns.
+			if (!internalDrag)
+			{
+				emit linesChanged();
+				// A single dropped line splices into the card grid.
+				if (insertedCount == 1 && renderMode == ModernCards)
+					insertRowAt(dropRow);
+				else
+					updateGuis();
+			}
 		}
 	}
 

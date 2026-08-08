@@ -482,6 +482,11 @@ int main(int argc, char* argv[])
 		if (application.arguments().contains(QStringLiteral("--skin-switch-test")))
 			return SkinGallery::runSwitchTest(application.arguments());
 
+		// Headless card drag-move latency gate (the internal-drag commit
+		// path), same offscreen contract as the gallery.
+		if (application.arguments().contains(QStringLiteral("--card-move-test")))
+			return SkinGallery::runCardMoveTest(application.arguments());
+
 		// Read-only report of what the install hook's config migration would
 		// do on this machine (classification + manifest); writes nothing.
 		if (application.arguments().contains(QStringLiteral("--migration-dry-run")))

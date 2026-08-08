@@ -102,6 +102,37 @@ QList<QString> FilterTable::getLines()
 	return model.lines();
 }
 
+const QList<FilterTable::Item*>& FilterTable::documentItems() const
+{
+	return model.items();
+}
+
+void FilterTable::moveRows(const QList<Item*>& itemsInOrder, int dropRow)
+{
+	// The internal drag-move commit. The document mutation is the same splice
+	// the drop protocol performed inline before this method existed: insert
+	// copies (which become the selection) before the pre-move dropRow line,
+	// then remove the originals.
+	QStringList texts;
+	QList<QVariantMap> prefsList;
+	for (Item* item : itemsInOrder)
+	{
+		if (!model.items().contains(item))
+			return;
+		texts.append(item->text);
+		prefsList.append(item->prefs);
+	}
+	if (texts.isEmpty())
+		return;
+
+	const QSet<Item*> originals(itemsInOrder.cbegin(), itemsInOrder.cend());
+	model.insertLines(texts, prefsList, qBound(0, dropRow, int(model.items().count())));
+	model.removeItems(originals);
+
+	emit linesChanged();
+	updateGuis();
+}
+
 void FilterTable::setLines(const QString& configPath, const QList<QString>& lines)
 {
 	this->configPath = configPath;

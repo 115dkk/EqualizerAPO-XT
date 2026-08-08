@@ -1796,6 +1796,172 @@ int runSwitchTest(const QStringList& arguments)
 	std::_Exit(status);
 }
 
+int runCardMoveTest(const QStringList& arguments)
+{
+	Q_UNUSED(arguments);
+
+	qWarning("CardMoveTest: starting");
+
+	// Scratch reference targets so the reference cards resolve like the
+	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+	{
+		qWarning("CardMoveTest: cannot create a scratch directory");
+		return 2;
+	}
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+	{
+		qWarning("CardMoveTest: cannot write reference target files");
+		return 2;
+	}
+
+	// The same 100+ row document as the switch test: the field lag needs a
+	// loaded document, and six copies of the representative rows exercise
+	// every card type.
+	QList<QString> lines;
+	for (int repeat = 0; repeat < 6; repeat++)
+		for (const GalleryRow& row : galleryRows())
+			lines.append(row.line);
+
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	buildRows(scrollArea, configPath, lines);
+	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+	if (table == nullptr)
+	{
+		qWarning("CardMoveTest: table construction failed");
+		return 1;
+	}
+	// Gallery tables deliberately have no MainWindow; navigation callbacks
+	// must stay harmless in this supported host mode.
+	table->openConfig(QString());
+
+	// Budget contract like the switch test: the limit fails the gate, the
+	// warning only logs. The field regression class this measures cost 5-6 s
+	// per move on a fast desktop, so even the generous default limit would
+	// catch a return to a full rebuild on a slow runner.
+	bool limitOk = false;
+	int limitMs = qEnvironmentVariableIntValue("EAPO_MOVE_LIMIT_MS", &limitOk);
+	if (!limitOk || limitMs <= 0)
+		limitMs = 20000;
+	bool warningOk = false;
+	int warningMs = qEnvironmentVariableIntValue("EAPO_MOVE_WARN_MS", &warningOk);
+	if (!warningOk || warningMs <= 0 || warningMs >= limitMs)
+		warningMs = 0;
+
+	int failures = 0;
+	int moves = 0;
+	qint64 worstMs = 0;
+	QString worstName;
+	for (ISkin* skin : Skins::all())
+	{
+		for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+		{
+			const bool dark = darkIndex == 0;
+			const QString name = QStringLiteral("%1/%2").arg(skin->id(),
+				dark ? QStringLiteral("dark") : QStringLiteral("light"));
+
+			// Fresh rows under this skin, in the live switch order (tear down
+			// before the stylesheet swap, rebuild after).
+			table->clearRows();
+			SkinManager::instance()->applySkin(skin->id(), dark);
+			table->updateGuis();
+			QApplication::processEvents();
+			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+			QApplication::processEvents();
+
+			const int rowCount = int(table->documentItems().count());
+			if (rowCount != lines.size())
+			{
+				qWarning("CardMoveTest: %s expected %lld rows, found %d",
+					qPrintable(name), static_cast<long long>(lines.size()), rowCount);
+				failures++;
+				continue;
+			}
+
+			// One card moved down one row, then back up: two timed commits of
+			// the drag-move path per scene, and the document leaves the scene
+			// in its original order.
+			const int from = rowCount / 2;
+			for (int pass = 0; pass < 2; pass++)
+			{
+				const QList<QString> before = table->getLines();
+				const int sourceRow = pass == 0 ? from : from + 1;
+				const int targetRow = pass == 0 ? from + 1 : from;
+				const int dropRow = pass == 0 ? from + 2 : from;
+				FilterTable::Item* moved = table->documentItems().at(sourceRow);
+
+				QElapsedTimer timer;
+				timer.start();
+				table->moveRows({ moved }, dropRow);
+				QApplication::processEvents();
+				const qint64 elapsed = timer.elapsed();
+				moves++;
+
+				QList<QString> expected = before;
+				expected.move(sourceRow, targetRow);
+				if (table->getLines() != expected)
+				{
+					qWarning("CardMoveTest: %s move %d produced a wrong document order",
+						qPrintable(name), pass + 1);
+					failures++;
+				}
+				// The moved line must stay the (only) selection, at its new
+				// row - by position, not pointer, so both the copy-splice and
+				// the item-preserving implementations of the move pass.
+				const QSet<FilterTable::Item*>& selectedItems = table->getSelectedItems();
+				if (selectedItems.size() != 1
+					|| table->documentItems().indexOf(*selectedItems.cbegin()) != targetRow)
+				{
+					qWarning("CardMoveTest: %s move %d did not leave the moved row selected",
+						qPrintable(name), pass + 1);
+					failures++;
+				}
+				const int rowWidgets = int(table->findChildren<FilterCardRow*>(
+					QString(), Qt::FindDirectChildrenOnly).count());
+				if (rowWidgets != rowCount)
+				{
+					qWarning("CardMoveTest: %s move %d left %d row widgets for %d rows",
+						qPrintable(name), pass + 1, rowWidgets, rowCount);
+					failures++;
+				}
+
+				if (elapsed > limitMs)
+				{
+					qWarning("CardMoveTest: %s move %d took %lld ms (limit %d ms)",
+						qPrintable(name), pass + 1, static_cast<long long>(elapsed), limitMs);
+					failures++;
+				}
+				else if (warningMs > 0 && elapsed > warningMs)
+				{
+					qWarning("CardMoveTest: %s move %d took %lld ms (warning %d ms; hard limit %d ms)",
+						qPrintable(name), pass + 1, static_cast<long long>(elapsed), warningMs, limitMs);
+				}
+				if (elapsed > worstMs)
+				{
+					worstMs = elapsed;
+					worstName = name;
+				}
+				qWarning("CardMoveTest: %s move %d: %lld ms (rows %d, widgets %lld)",
+					qPrintable(name), pass + 1, static_cast<long long>(elapsed), rowCount,
+					static_cast<long long>(QApplication::allWidgets().size()));
+			}
+		}
+	}
+
+	qWarning("CardMoveTest: %d moves over %lld rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
+		moves, static_cast<long long>(lines.size()), static_cast<long long>(worstMs),
+		qPrintable(worstName), warningMs, limitMs, failures);
+
+	// Same no-teardown exit as run().
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
+}
+
 int run(const QStringList& arguments)
 {
 	const int flagIndex = arguments.indexOf(QStringLiteral("--skin-gallery"));
