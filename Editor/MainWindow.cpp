@@ -379,7 +379,15 @@ void MainWindow::runDeviceSelector()
 {
 	// cannot use QProcess::startDetached because of UAC
 	wstring file = (QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/DeviceSelector.exe")).toStdWString();
+	// One UAC ask, decline respected (audit #250 C1, maintainer decision
+	// 2026-08-09). "open" already carries the elevation prompt because
+	// DeviceSelector's manifest requires administrator; the old
+	// SE_ERR_ACCESSDENIED fallback re-asked with "runas" immediately after
+	// a decline, so the user got a second UAC window for saying no. A
+	// decline (or any launch failure) now gets a short notice instead, and
+	// File > APO settings remains the retry path.
 	UINT_PTR result = reinterpret_cast<UINT_PTR>(ShellExecuteW(nullptr, L"open", file.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
-	if (result == SE_ERR_ACCESSDENIED)
-		ShellExecuteW(nullptr, L"runas", file.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+	if (result <= 32)
+		QMessageBox::information(this, tr("Device Selector"),
+			tr("The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File > APO settings."));
 }

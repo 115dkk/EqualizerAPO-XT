@@ -2446,6 +2446,16 @@ Alexander Walch</translation>
         <translation>Signalverbesserungen deaktiviert</translation>
     </message>
     <message>
+        <location filename="../MainWindow.cpp" line="391"/>
+        <source>Device Selector</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="392"/>
+        <source>The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File &gt; APO settings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="61"/>
         <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="94"/>
         <location filename="../MainWindowParts/MainWindow.FileIO.cpp" line="100"/>

@@ -2508,6 +2508,16 @@ Do you want to run the Device Selector application to fix the problem?</source>
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
+        <location filename="../MainWindow.cpp" line="391"/>
+        <source>Device Selector</source>
+        <translation>장치 선택기</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="392"/>
+        <source>The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File &gt; APO settings.</source>
+        <translation>장치 선택기를 열지 않았습니다. 오디오 장치를 관리하려면 관리자 승인이 필요하며, 파일 &gt; APO 설정에서 언제든 다시 열 수 있습니다.</translation>
+    </message>
+    <message>
         <location filename="../MainWindow.cpp" line="134"/>
         <source>Playback devices:</source>
         <translation>재생 장치:</translation>
