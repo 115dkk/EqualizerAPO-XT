@@ -65,43 +65,30 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 	lock_guard<mutex> lock(loadMutex);
 	timer.start();
 
-	// The factories build through these engine-owned scratch fields. Move the
-	// previous idle state aside so the whole load is transactional: any exception
-	// discards the partial filters/channel routing and restores registry watches,
-	// while the active configuration remains untouched.
-	auto savedFilterInfos = move(filterInfos);
-	auto savedCurrentChannelNames = move(currentChannelNames);
-	auto savedLastChannelNames = move(lastChannelNames);
-	auto savedLastNewChannelNames = move(lastNewChannelNames);
-	auto savedAllChannelNames = move(allChannelNames);
-	auto savedWatchRegistryKeys = move(watchRegistryKeys);
-	auto savedTraceFile = move(traceFile);
-	const int savedTraceLine = traceLine;
-	const bool savedLastInPlace = lastInPlace;
-	const bool savedFrozenDynamicAnalysis = frozenDynamicAnalysis;
-	frozenDynamicAnalysis = false;
+	// The factories build through the engine's load session. Move the previous
+	// idle session aside so the whole load is transactional: any exception
+	// discards the partial filters/channel routing and restores registry
+	// watches, while the active configuration remains untouched. Audit #250
+	// A1: the transaction is a move of one value - a field added to
+	// LoadSession is covered by construction, instead of by keeping a save
+	// block, a rollback lambda and the member list in step by hand.
+	LoadSession saved = move(load);
+	load = LoadSession{};
+	// The in-place-ness of the previous load's last filter deliberately
+	// carries across loads: the first filter's output-inheritance test in
+	// addFilters reads it (see the channel-inheritance contract in
+	// FilterConfiguration.h).
+	load.lastInPlace = saved.lastInPlace;
 
 	auto rollback = [&]() noexcept {
-		filterInfos = move(savedFilterInfos);
-		currentChannelNames = move(savedCurrentChannelNames);
-		lastChannelNames = move(savedLastChannelNames);
-		lastNewChannelNames = move(savedLastNewChannelNames);
-		allChannelNames = move(savedAllChannelNames);
-		watchRegistryKeys = move(savedWatchRegistryKeys);
-		traceFile = move(savedTraceFile);
-		traceLine = savedTraceLine;
-		lastInPlace = savedLastInPlace;
-		frozenDynamicAnalysis = savedFrozenDynamicAnalysis;
+		load = move(saved);
 	};
 
 	try
 	{
-		allChannelNames = ChannelHelper::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
+		load.allChannelNames = ChannelHelper::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
 
-		currentChannelNames = allChannelNames;
-		lastChannelNames.clear();
-		lastNewChannelNames.clear();
-		watchRegistryKeys.clear();
+		load.currentChannelNames = load.allChannelNames;
 		parser.beginLoad();
 
 		for (auto it = factories.cbegin(); it != factories.cend(); it++)
@@ -125,9 +112,9 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 				addFilters(move(newFilters));
 		}
 
-		FilterConfigurationPtr config(MemoryHelper::construct<FilterConfiguration>(streamFormat(), move(filterInfos), (unsigned)allChannelNames.size()));
+		FilterConfigurationPtr config(MemoryHelper::construct<FilterConfiguration>(streamFormat(), move(load.filterInfos), (unsigned)load.allChannelNames.size()));
 
-		filterInfos.clear();
+		load.filterInfos.clear();
 
 		double loadTime = timer.stop();
 		TraceF(L"Finished loading configuration after %lf milliseconds", loadTime * 1000.0);
@@ -160,14 +147,14 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	if (!inputStream.good())
 		return;
 
-	vector<wstring> savedChannelNames = currentChannelNames;
+	vector<wstring> savedChannelNames = load.currentChannelNames;
 	// Load-trace position: like the channel names, the position is saved and
 	// restored across the Include recursion so entries reported after a nested
 	// file returns are stamped with the outer file again.
-	wstring savedTraceFile = move(traceFile);
-	int savedTraceLine = traceLine;
-	traceFile = path;
-	traceLine = 0;
+	wstring savedTraceFile = move(load.traceFile);
+	int savedTraceLine = load.traceLine;
+	load.traceFile = path;
+	load.traceLine = 0;
 
 	for (auto it = factories.cbegin(); it != factories.cend(); it++)
 	{
@@ -180,7 +167,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	const vector<wstring> decodedLines = ConfigurationFileReader::decodeLines(inputStream);
 	for (const wstring& line : decodedLines)
 	{
-		traceLine++;
+		load.traceLine++;
 
 		size_t pos = line.find(L':');
 		if (pos != wstring::npos)
@@ -230,9 +217,9 @@ void FilterEngine::loadConfigFile(const wstring& path)
 	}
 
 	// restore channels selected in outer configuration file
-	currentChannelNames = savedChannelNames;
-	traceFile = move(savedTraceFile);
-	traceLine = savedTraceLine;
+	load.currentChannelNames = savedChannelNames;
+	load.traceFile = move(savedTraceFile);
+	load.traceLine = savedTraceLine;
 }
 
 void FilterEngine::reportParseError(const wstring& command, const wstring& reason)
@@ -240,7 +227,7 @@ void FilterEngine::reportParseError(const wstring& command, const wstring& reaso
 	// The log line goes out whether or not a sink is attached: the APO runtime
 	// never attaches one, and a user whose Convolution line silently does nothing
 	// has to be able to find out why from the log.
-	LogF(L"%s: %s (line %d of %s)", command.c_str(), reason.c_str(), traceLine, traceFile.c_str());
+	LogF(L"%s: %s (line %d of %s)", command.c_str(), reason.c_str(), load.traceLine, load.traceFile.c_str());
 
 	ConfigLoadTraceEntry entry;
 	entry.kind = ConfigLoadTraceEntry::Kind::ParseError;
@@ -253,12 +240,12 @@ void FilterEngine::traceLoadEvent(ConfigLoadTraceEntry entry)
 {
 	if (traceSink == nullptr)
 		return;
-	entry.file = traceFile;
-	entry.line = traceLine;
+	entry.file = load.traceFile;
+	entry.line = load.traceLine;
 	traceSink->addEntry(entry);
 }
 
 void FilterEngine::watchRegistryKey(const std::wstring& key)
 {
-	watchRegistryKeys.insert(key);
+	load.watchRegistryKeys.insert(key);
 }

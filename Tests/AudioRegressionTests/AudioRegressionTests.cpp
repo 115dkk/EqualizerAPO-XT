@@ -568,8 +568,16 @@ std::vector<float> runEngineOverBlocks(const std::wstring& configPath, unsigned 
 	FilterEngine engine;
 	std::wstring deviceName = L"AudioRegressionTests";
 	std::wstring connectionName = L"File";
-	engine.setDeviceInfo(false, true, deviceName, connectionName, L"", deviceName + L" " + connectionName + L" ");
-	engine.initialize((float)sampleRate, channels, channels, channels, 0, blockFrames, configPath);
+	EngineSetup setup;
+	setup.sampleRate = (float)sampleRate;
+	setup.inputChannelCount = channels;
+	setup.realChannelCount = channels;
+	setup.outputChannelCount = channels;
+	setup.maxFrameCount = blockFrames;
+	setup.customPath = configPath;
+	setup.deviceName = deviceName;
+	setup.connectionName = connectionName;
+	engine.initialize(setup);
 	for (unsigned b = 0; b < blockCount; ++b)
 	{
 		size_t offset = (size_t)b * blockFrames * channels;
@@ -762,10 +770,19 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 		std::wstring connectionName = L"File";
 		std::wstring deviceGuid = L"";
 		std::wstring deviceString = deviceName + L" " + connectionName + L" " + deviceGuid;
-		engine.setDeviceInfo(false, true, deviceName, connectionName, deviceGuid, deviceString);
+		EngineSetup setup;
+		setup.deviceName = deviceName;
+		setup.connectionName = connectionName;
+		setup.deviceGuid = deviceGuid;
 		// maxFrameCount is the block size, not the signal length: that is what the
 		// APO passes and what the convolution filters partition against.
-		engine.initialize((float)tc.sampleRate, tc.channels, tc.channels, tc.channels, 0, tc.blockFrames, configPath);
+		setup.sampleRate = (float)tc.sampleRate;
+		setup.inputChannelCount = tc.channels;
+		setup.realChannelCount = tc.channels;
+		setup.outputChannelCount = tc.channels;
+		setup.maxFrameCount = tc.blockFrames;
+		setup.customPath = configPath;
+		engine.initialize(setup);
 		for (unsigned offset = 0; offset < tc.frames; offset += tc.blockFrames)
 		{
 			const size_t sampleOffset = (size_t)offset * tc.channels;

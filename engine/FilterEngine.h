@@ -37,6 +37,38 @@
 
 struct ConfigLoadTraceEntry;
 class ConfigLoadTraceSink;
+class IRegistry;
+
+// Everything initialize() needs, in one value (audit #250 A6). The old shape
+// was three calls whose ordering lived only in comments (setPreMix and
+// setDeviceInfo before initialize) and whose adjacent same-typed parameters
+// were silently swappable; twelve call sites each re-assembled the ritual,
+// with six different spellings of the deviceString the Device: command
+// matches against. The engine now assembles deviceString from the parts
+// (connection name, device name, then the GUID when present - the
+// production spelling), and the config source is explicit instead of a
+// sentinel: an empty customPath means "the registry's ConfigPath, with the
+// change watcher" (the APO's mode); a caller-supplied path loads that file
+// and starts no watcher.
+struct EngineSetup
+{
+	float sampleRate = 48000.0f;
+	unsigned inputChannelCount = 0;
+	unsigned realChannelCount = 0;
+	unsigned outputChannelCount = 0;
+	unsigned channelMask = 0;
+	unsigned maxFrameCount = 0;
+	std::wstring customPath;
+	bool preMix = false;
+	bool capture = false;
+	bool postMixInstalled = true;
+	std::wstring deviceName;
+	std::wstring connectionName;
+	std::wstring deviceGuid;
+	// Registry port for the ConfigPath read and the config language's
+	// readRegString/readRegDWORD; null = the live registry.
+	IRegistry* registry = nullptr;
+};
 
 #pragma AVRT_VTABLES_BEGIN
 class FilterEngine
@@ -45,9 +77,11 @@ public:
 	FilterEngine();
 	~FilterEngine();
 
-	void setPreMix(bool preMix);
-	void setDeviceInfo(bool capture, bool postMixInstalled, const std::wstring& deviceName, const std::wstring& connectionName, const std::wstring& deviceGuid, const std::wstring& deviceString);
-	void initialize(float sampleRate, unsigned inputChannelCount, unsigned realChannelCount, unsigned outputChannelCount, unsigned channelMask, unsigned maxFrameCount, const std::wstring& customPath = L"");
+	void initialize(const EngineSetup& setup);
+	// The injected registry (audit #250 A6/A3): the live adapter unless the
+	// setup supplied a fake. Consumed by the ConfigPath read and the config
+	// language's readRegString/readRegDWORD.
+	IRegistry& registryAccess() const;
 	// Builds a complete configuration before publishing it. A failed load keeps
 	// the active configuration and returns false; no initialization exception is
 	// allowed to escape the configuration-loading boundary.
@@ -88,8 +122,8 @@ public:
 	// initialize(), so factories can freeze their dynamic state while loading.
 	void setAnalysisMode(bool enabled) {analysisMode = enabled;}
 	bool isAnalysisMode() const {return analysisMode;}
-	void markFrozenDynamicAnalysis() {frozenDynamicAnalysis = true;}
-	bool usedFrozenDynamicAnalysis() const {return frozenDynamicAnalysis;}
+	void markFrozenDynamicAnalysis() {load.frozenDynamicAnalysis = true;}
+	bool usedFrozenDynamicAnalysis() const {return load.frozenDynamicAnalysis;}
 	// Factories report an evaluation fact for the line currently being
 	// parsed; the engine stamps the file/line position. No-op without a sink.
 	void traceLoadEvent(ConfigLoadTraceEntry entry);
@@ -133,6 +167,9 @@ private:
 	std::wstring deviceGuid;
 	std::wstring deviceString;
 	std::wstring configPath;
+	// Set by initialize() from the setup; null until then (registryAccess()
+	// falls back to the live registry).
+	IRegistry* registryPort = nullptr;
 	float sampleRate = 0.0f;
 	// number of input channels that originally existed before child APO processing
 	unsigned inputChannelCount;
@@ -142,21 +179,38 @@ private:
 	unsigned channelMask = 0;
 	unsigned maxFrameCount = 0;
 
-	// only used during loading
+	// Pre-init inputs that survive across loads: the trace sink and analysis
+	// mode are attached before initialize() and describe every load that
+	// runs while attached.
 	ConfigLoadTraceSink* traceSink = nullptr;
 	bool analysisMode = false;
-	bool frozenDynamicAnalysis = false;
-	// Position of the line loadConfigFile is currently feeding to the
-	// factories; saved/restored across Include recursion like the channel
-	// names. Only meaningful while a sink is attached.
-	std::wstring traceFile;
-	int traceLine = 0;
-	std::vector<std::unique_ptr<FilterInfo>> filterInfos;
-	std::vector<std::wstring> currentChannelNames;
-	std::vector<std::wstring> lastChannelNames;
-	std::vector<std::wstring> lastNewChannelNames;
-	std::vector<std::wstring> allChannelNames;
-	bool lastInPlace = false;
+
+	// Everything a configuration load builds through, as one value (audit
+	// #250 A1). loadConfig's transaction is a move of the whole session -
+	// save it aside, build a fresh one, restore on any exception - so a
+	// field added here is transactional by construction instead of by
+	// keeping the save block, the rollback lambda and the member list in
+	// step by hand (frozenDynamicAnalysis once missed exactly that).
+	// watchRegistryKeys and frozenDynamicAnalysis are the two load results
+	// read after the load: the watcher thread snapshots the keys under
+	// loadMutex, and the Editor's analysis reads the freeze flag.
+	struct LoadSession
+	{
+		std::vector<std::unique_ptr<FilterInfo>> filterInfos;
+		std::vector<std::wstring> currentChannelNames;
+		std::vector<std::wstring> lastChannelNames;
+		std::vector<std::wstring> lastNewChannelNames;
+		std::vector<std::wstring> allChannelNames;
+		std::unordered_set<std::wstring> watchRegistryKeys;
+		// Position of the line loadConfigFile is currently feeding to the
+		// factories; saved/restored across Include recursion like the
+		// channel names. Only meaningful while a sink is attached.
+		std::wstring traceFile;
+		int traceLine = 0;
+		bool lastInPlace = false;
+		bool frozenDynamicAnalysis = false;
+	};
+	LoadSession load;
 	EngineParser parser;
 
 	ConfigSwapChannel<FilterConfigurationPtr> configChannel;
@@ -169,7 +223,6 @@ private:
 	std::mutex loadMutex;
 	PrecisionTimer timer;
 	std::thread notificationWorker;
-	std::unordered_set<std::wstring> watchRegistryKeys;
 	bool lastInputWasSilent;
 };
 #pragma AVRT_VTABLES_END

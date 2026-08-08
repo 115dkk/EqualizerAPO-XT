@@ -32,6 +32,11 @@ class IFilter
 public:
 	virtual ~IFilter() {}
 
+	// These three hooks drive the channel-inheritance protocol in
+	// FilterEngine::addFilters; the full contract (what an empty
+	// inChannels/outChannels vector means and when it may be emitted) is
+	// documented at FilterInfo in FilterConfiguration.h.
+
 	// request to get all channel names instead of selection
 	virtual bool getAllChannels() {return false;}
 	// return false to request that output and input do not point to the same memory locations

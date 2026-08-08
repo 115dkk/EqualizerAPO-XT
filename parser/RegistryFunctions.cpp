@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "stdafx.h"
 #include <memory>
 #include "RegistryFunctions.h"
+#include "helpers/IRegistry.h"
 #include "../helpers/RegistryHelper.h"
 #include "../engine/FilterEngine.h"
 
@@ -46,7 +47,7 @@ void ReadRegStringFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int
 
 	try
 	{
-		wstring value = RegistryHelper::readValue(key, valuename);
+		wstring value = engine->registryAccess().readValue(key, valuename);
 
 		*ret = value;
 
@@ -86,7 +87,7 @@ void ReadRegDWORDFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int 
 
 	try
 	{
-		unsigned long value = RegistryHelper::readDWORDValue(key, valuename);
+		unsigned long value = engine->registryAccess().readDWORDValue(key, valuename);
 
 		*ret = (mup::int_type)value;
 

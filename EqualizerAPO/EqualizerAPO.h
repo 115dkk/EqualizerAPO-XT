@@ -99,6 +99,10 @@ private:
 	long refCount;
 	IUnknown* pUnkOuter;
 	FilterEngine engine;
+	// Accumulates the engine facts across the APO lifecycle (premix at
+	// Initialize, device identity when the endpoint is known, stream format
+	// at LockForProcess) for the one initialize(setup) call (audit #250 A6).
+	EngineSetup engineSetup;
 	bool allowSilentBufferModification;
 
 	void resetChild();
