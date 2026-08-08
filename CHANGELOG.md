@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.34.3 — 2026-08-08
+
 - **A Hilbert line that goes silent now says so in the log.** When the
   stream's block size changes, convolvers mute rather than re-initialize
   on the audio thread; Convolution and MultiConvolution reported that,

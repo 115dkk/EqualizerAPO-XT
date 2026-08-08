@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.34.3 — 2026-08-08
+
 - **Hilbert 필터가 조용해지면 이제 로그에 남습니다.** 스트림 블록 크기가
   바뀌면 convolver들은 오디오 스레드에서 재초기화하는 대신 무음으로
   빠지는데, Convolution/MultiConvolution은 이를 보고했지만 Hilbert는
