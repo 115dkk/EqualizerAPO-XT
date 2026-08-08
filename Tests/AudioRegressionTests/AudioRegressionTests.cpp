@@ -769,7 +769,6 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 		std::wstring deviceName = L"AudioRegressionTests";
 		std::wstring connectionName = L"File";
 		std::wstring deviceGuid = L"";
-		std::wstring deviceString = deviceName + L" " + connectionName + L" " + deviceGuid;
 		EngineSetup setup;
 		setup.deviceName = deviceName;
 		setup.connectionName = connectionName;
