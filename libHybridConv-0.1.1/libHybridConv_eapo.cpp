@@ -17,7 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
- // Adapted version for Equalizer APO. For original version see libHybridConv.c
+ // Adapted version for Equalizer APO; see libHybridConv_eapo.h for the
+ // provenance note (the vendored originals were removed in audit #250 F025).
 
 #include "stdafx.h"
 #ifndef _M_ARM64

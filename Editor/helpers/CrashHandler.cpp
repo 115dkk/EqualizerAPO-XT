@@ -23,16 +23,23 @@ wchar_t breadcrumb[256] = L"(none)";
 wchar_t dumpDirectory[MAX_PATH] = L"";
 std::atomic<bool> handlingCrash(false);
 
-// %LOCALAPPDATA%\EqualizerAPO-XT\crashdumps, created at install() time so the
-// crash path itself only formats a file name.
+// %LOCALAPPDATA%\EqualizerAPO\logs\crash, created at install() time so the
+// crash path itself only formats a file name. Audit #250 C4, maintainer
+// decision 2026-08-09: dumps live under the same product log folder the
+// diagnostics use (LogHelper::useUserFile writes EqualizerAPO\logs), in
+// their own subfolder so operational logs and crash artifacts do not mix -
+// the old EqualizerAPO-XT product root was a second product directory
+// nothing else used.
 void prepareDumpDirectory()
 {
 	wchar_t base[MAX_PATH];
 	if (FAILED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, base)))
 		return;
-	swprintf_s(dumpDirectory, L"%s\\EqualizerAPO-XT", base);
+	swprintf_s(dumpDirectory, L"%s\\EqualizerAPO", base);
 	CreateDirectoryW(dumpDirectory, nullptr);
-	swprintf_s(dumpDirectory, L"%s\\EqualizerAPO-XT\\crashdumps", base);
+	swprintf_s(dumpDirectory, L"%s\\EqualizerAPO\\logs", base);
+	CreateDirectoryW(dumpDirectory, nullptr);
+	swprintf_s(dumpDirectory, L"%s\\EqualizerAPO\\logs\\crash", base);
 	CreateDirectoryW(dumpDirectory, nullptr);
 }
 

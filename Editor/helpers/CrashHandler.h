@@ -3,7 +3,7 @@
 
 	Field crash diagnostics for the Editor. On an unhandled SEH exception (or
 	std::terminate) it writes a minidump plus a small text report to
-	%LOCALAPPDATA%\EqualizerAPO-XT\crashdumps, including the version and the
+	%LOCALAPPDATA%\EqualizerAPO\logs\crash, including the version and the
 	last skin breadcrumb, so crashes that only reproduce on other machines
 	(see the skin-switch crash reported from a PC-bang demo) come back with an
 	analyzable stack instead of an anecdote.
