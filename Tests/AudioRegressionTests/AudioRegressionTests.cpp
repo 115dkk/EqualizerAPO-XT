@@ -98,6 +98,12 @@ const TestCase kCases[] = {
 	{ "delay_512",           "delay_512.txt",           SignalType::ImpulseStereo, 48000, 2, 2048, 256 },
 	{ "graphiceq_15band",    "graphiceq_15band.txt",    SignalType::ImpulseStereo, 48000, 2, 8192, 512 },
 	{ "convolution_short",   "convolution_short.txt",   SignalType::ImpulseStereo, 48000, 2, 4096, 512 },
+	// Audit #250 F055: MultiConvolution had no golden case although its
+	// process/mix path is entirely its own (per-mapping convolve-and-sum
+	// into the target's pre-command signal). The mapping form is the fork's
+	// signature grammar, so the case exercises it rather than the simple
+	// form the unit tests already pin.
+	{ "multiconvolution_short", "multiconvolution_short.txt", SignalType::ImpulseStereo, 48000, 2, 4096, 512 },
 	{ "iir_order2_lowpass",  "iir_order2_lowpass.txt",  SignalType::ImpulseStereo, 48000, 2, 256,  64  },
 	{ "channel_left_only",   "channel_left_only.txt",   SignalType::DCStereo,      48000, 2, 256,  64  },
 	// LoudnessCorrection with State 0 is a deterministic pass-through. With
