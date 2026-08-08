@@ -14,6 +14,11 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Drives in the file dialog sidebar show the drive glyph again.** Since the
+  sidebar gained the drive roots, every drive rendered with the folder
+  pictogram in the skinned dialogs; drives now carry each skin's dedicated
+  drive glyph. ([#253](https://github.com/115dkk/EqualizerAPO-XT/pull/253))
+
 ## v2.33.0 — 2026-08-07
 
 - **Checked checkboxes show a real check mark in every skin.** They used to

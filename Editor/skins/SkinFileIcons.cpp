@@ -10,6 +10,22 @@
 
 namespace
 {
+// Drive entries reach the provider under two spellings. Views ask with the
+// real root ("C:/", isRoot() true), but QFileSystemModel stores drive nodes
+// under the slash-less shell name ("C:", translateDriveName chops the
+// separator) and its icon refresh on setIconProvider rebuilds every node
+// icon from that bare name - and QFileInfo("C:").isRoot() is false while
+// isDir() is true, which dressed every drive in the dialog's sidebar with
+// the folder pictogram. Classify the bare drive spelling explicitly.
+bool isDriveRoot(const QFileInfo& info)
+{
+	if (info.isRoot())
+		return true;
+	const QString path = info.filePath();
+	return path.size() == 2 && path.at(0).isLetter()
+		&& path.at(1) == QLatin1Char(':');
+}
+
 SkinFileIconProvider::Glyph glyphForSuffix(const QString& suffix)
 {
 	if (suffix == QLatin1String("wav") || suffix == QLatin1String("flac") || suffix == QLatin1String("ogg"))
@@ -61,7 +77,7 @@ QIcon SkinFileIconProvider::icon(IconType type) const
 
 QIcon SkinFileIconProvider::icon(const QFileInfo& info) const
 {
-	if (info.isRoot())
+	if (isDriveRoot(info))
 		return cachedIcon(Glyph::Drive);
 	if (info.isDir())
 		return cachedIcon(Glyph::Folder);

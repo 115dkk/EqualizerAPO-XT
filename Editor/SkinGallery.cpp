@@ -18,6 +18,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFrame>
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -62,6 +63,7 @@
 #include "Editor/analysis/AnalysisMetric.h"
 #include "Editor/analysis/AnalysisResponse.h"
 #include "filters/BiQuad.h"
+#include "Editor/skins/SkinFileIcons.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
@@ -1734,6 +1736,35 @@ int runSwitchTest(const QStringList& arguments)
 					}
 				}
 				failures += checkToolbar(name);
+				if (round == 1 && darkIndex == 0)
+				{
+					// The skinned file dialog's icon provider must serve the
+					// drive glyph for both drive spellings: the real root
+					// ("C:/") and the slash-less shell name ("C:") that
+					// QFileSystemModel stores drive nodes under and rebuilds
+					// node icons from on setIconProvider. The bare spelling
+					// is neither isRoot() nor a file, which dressed every
+					// sidebar drive with the folder pictogram in the field.
+					QFileDialog probeDialog;
+					probeDialog.setOption(QFileDialog::DontUseNativeDialog);
+					SkinManager::instance()->styleFileDialog(&probeDialog);
+					if (SkinFileIconProvider* provider
+						= dynamic_cast<SkinFileIconProvider*>(probeDialog.iconProvider()))
+					{
+						const qint64 driveKey
+							= provider->icon(QAbstractFileIconProvider::Drive).cacheKey();
+						const qint64 folderKey
+							= provider->icon(QAbstractFileIconProvider::Folder).cacheKey();
+						if (driveKey == folderKey
+							|| provider->icon(QFileInfo(QStringLiteral("C:"))).cacheKey() != driveKey
+							|| provider->icon(QFileInfo(QStringLiteral("C:/"))).cacheKey() != driveKey)
+						{
+							qWarning("SkinSwitchTest: %s file-dialog provider does not classify a drive root as the drive glyph",
+								qPrintable(skin->id()));
+							failures++;
+						}
+					}
+				}
 				if (elapsed > limitMs)
 				{
 					qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
