@@ -169,13 +169,11 @@ void testFilterCommandCatalogTemplateRoster()
 
 void testFilterCommandCatalogDescriptions()
 {
-	// Commands shipping without a picker description. Filter describes per
-	// response curve instead; Hilbert and Velvet are the known gap this
-	// commit preserves byte-for-byte (the follow-up commit fills them and
-	// flips this list).
-	const QSet<QString> withoutDescription = {
-		QStringLiteral("Filter"), QStringLiteral("Hilbert"), QStringLiteral("Velvet")
-	};
+	// Commands shipping without a per-command picker description: only
+	// Filter, which describes per response curve instead. Every other
+	// command must carry one - Hilbert and Velvet shipped without one until
+	// the catalog made the gap visible.
+	const QSet<QString> withoutDescription = { QStringLiteral("Filter") };
 	for (const FilterCommandCatalog::CommandEntry& entry : FilterCommandCatalog::commands())
 	{
 		const QString keyword = QLatin1String(entry.keyword);
