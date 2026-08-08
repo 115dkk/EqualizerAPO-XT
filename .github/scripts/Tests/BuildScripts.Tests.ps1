@@ -12,6 +12,17 @@ Describe "extracted build script decisions" {
         # links Common.lib whole-archive and so now carries the variant's /arch
         # into a static initializer.
         $plan.RuntimeTests | Should -BeNullOrEmpty
+        # No x86 cross-build on the ARM64 leg; the avx2 leg owns the installer.
+        $plan.InstallerProject | Should -BeNullOrEmpty
+    }
+
+    It "builds the auto-detect installer on the avx2 leg only" {
+        $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
+            -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
+        $avx2.InstallerProject | Should -Be "Installer\Installer.vcxproj"
+        $sse2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
+            -WorkspaceRoot $root -Platform x64 -SimdVariant sse2 -ArchFlag NotSet -PlanOnly
+        $sse2.InstallerProject | Should -BeNullOrEmpty
     }
 
     It "derives the AVX10 and ARM64 update channels" {

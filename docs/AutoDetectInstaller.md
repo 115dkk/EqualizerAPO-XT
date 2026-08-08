@@ -162,6 +162,11 @@ its own table, which is the loudest of these guards.
 - `Installer/Installer.vcxproj` builds the detector for `Win32` only. It has no
   external dependencies (just `winhttp`, `bcrypt`, `comctl32`, `shell32`), so it
   builds without FFTW/Qt/etc.
+- The decision logic (channel mapping, asset grammar, checksum parsing) lives
+  in `Installer/AutoInstallerLogic.{h,cpp}`, which EditorLogicTests compiles
+  directly, so PRs verify it without building the installer.
+- The avx2 leg of `Build-Solution.ps1` builds the whole binary on every PR; a
+  compile break no longer waits for release day.
 - The `create-release` job builds it (`/p:Platform=Win32 /p:Configuration=Release`)
   and uploads it to the release tag as `EqualizerAPO-XT-Setup.exe`, before the
   release notes step so the notes can feature it as the recommended download.
@@ -169,7 +174,7 @@ its own table, which is the loudest of these guards.
 ## Local verification
 
 ```
-Installer\Win32\Release\EqualizerAPO-XT-Setup.exe --detect-only
+Installer\Release\EqualizerAPO-XT-Setup.exe --detect-only
 ```
 
 `--detect-only` prints the resolved channel and the download URL and exits

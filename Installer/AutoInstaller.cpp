@@ -38,8 +38,15 @@
 #include <string>
 
 #include "../helpers/ComPtr.h"
+#include "../helpers/ReleaseAssetNames.h"
 #include "../helpers/Win32Resource.h"
 #include "../version.h"
+#include "AutoInstallerLogic.h"
+
+// The decision logic (channel mapping, asset grammar, checksum parsing, flag
+// scan) lives in AutoInstallerLogic so EditorLogicTests can compile it; this
+// TU keeps the Win32 machinery and the entry point.
+using namespace AutoInstallerLogic;
 
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "bcrypt.lib")
@@ -73,21 +80,9 @@ const wchar_t* kReleasesPage = EAPO_REPO_URL_W L"/releases/latest";
 const wchar_t* kUserAgent = L"EqualizerAPO-XT-Setup";
 
 // Checksums asset that CI publishes to every release, one sha256sum-style
-// "<lowercase-hex-sha256>  <name>" line per asset. The name must match the
-// upload in .github/workflows/build.yml.
-const wchar_t* kChecksumsAssetName = L"SHA256SUMS.txt";
-
-// Channel index used as the process exit code for --detect-only, so a script can
-// read the detected variant without parsing stdout.
-enum ChannelIndex
-{
-    kSse2 = 0,
-    kAvx = 1,
-    kAvx2 = 2,
-    kAvx512 = 3,
-    kAvx10_1 = 4,
-    kArm64 = 5
-};
+// "<lowercase-hex-sha256>  <name>" line per asset. The grammar header keeps
+// this in step with the upload in .github/workflows/build.yml.
+const wchar_t* kChecksumsAssetName = ReleaseAssetNames::checksumsAssetName;
 
 // IsWow64Process2 reports the native machine even when this x86 process runs
 // under x64/ARM64 emulation. Fall back to GetNativeSystemInfo on the (very old)
@@ -114,16 +109,16 @@ bool isArm64Native()
     return si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64;
 }
 
-// Resolve the best build channel for this machine. The CPUID feature bits are
-// gated on the OS having actually enabled the wider register state (XGETBV/XCR0),
-// so we never pick a build the OS cannot context-switch.
-std::wstring detectChannel(int* outIndex)
+// Gather the CPU/OS facts the channel choice needs. The feature bits are
+// gated on the OS having actually enabled the wider register state
+// (XGETBV/XCR0), so we never pick a build the OS cannot context-switch.
+CpuFeatures detectCpuFeatures()
 {
+    CpuFeatures features;
     if (isArm64Native())
     {
-        if (outIndex != nullptr)
-            *outIndex = kArm64;
-        return L"arm64-neon";
+        features.arm64Native = true;
+        return features;
     }
 
     int info[4] = { 0, 0, 0, 0 };
@@ -142,82 +137,31 @@ std::wstring detectChannel(int* outIndex)
         osYmm = (xcr0 & 0x6) == 0x6;                 // bits 1,2
         osZmm = osYmm && ((xcr0 & 0xE0) == 0xE0);    // bits 5,6,7
     }
-    const bool haveAvx = cpuAvx && osYmm;
+    features.avx = cpuAvx && osYmm;
 
-    bool haveAvx2 = false;
-    bool haveAvx512f = false;
-    bool haveAvx10_1 = false;
     if (maxLeaf >= 7)
     {
         __cpuidex(info, 7, 0);
-        haveAvx2 = ((info[1] & (1 << 5)) != 0) && haveAvx;       // EBX[5], needs YMM
-        haveAvx512f = ((info[1] & (1 << 16)) != 0) && osZmm;     // EBX[16], needs ZMM
+        features.avx2 = ((info[1] & (1 << 5)) != 0) && features.avx; // EBX[5], needs YMM
+        features.avx512f = ((info[1] & (1 << 16)) != 0) && osZmm;    // EBX[16], needs ZMM
 
         __cpuidex(info, 7, 1);
-        const bool avx10Enumerated = (info[3] & (1 << 19)) != 0; // EDX[19]
+        const bool avx10Enumerated = (info[3] & (1 << 19)) != 0;     // EDX[19]
         if (avx10Enumerated && maxLeaf >= 0x24)
         {
             __cpuidex(info, 0x24, 0);
-            const int avx10Version = info[1] & 0xFF;             // EBX[7:0]
-            const bool avx10Has512 = (info[1] & (1 << 18)) != 0; // EBX[18] AVX10/512
-            haveAvx10_1 = (avx10Version >= 1) && avx10Has512 && osZmm;
+            const int avx10Version = info[1] & 0xFF;                 // EBX[7:0]
+            const bool avx10Has512 = (info[1] & (1 << 18)) != 0;     // EBX[18] AVX10/512
+            features.avx10_1 = (avx10Version >= 1) && avx10Has512 && osZmm;
         }
     }
-
-    // Most specific / newest first.
-    if (haveAvx10_1)
-    {
-        if (outIndex != nullptr)
-            *outIndex = kAvx10_1;
-        return L"x64-avx10-1";
-    }
-    if (haveAvx512f)
-    {
-        if (outIndex != nullptr)
-            *outIndex = kAvx512;
-        return L"x64-avx512";
-    }
-    if (haveAvx2)
-    {
-        if (outIndex != nullptr)
-            *outIndex = kAvx2;
-        return L"x64-avx2";
-    }
-    if (haveAvx)
-    {
-        if (outIndex != nullptr)
-            *outIndex = kAvx;
-        return L"x64-avx";
-    }
-    if (outIndex != nullptr)
-        *outIndex = kSse2;
-    return L"x64-sse2";
+    return features;
 }
 
-// Per-variant installer asset name. The channel appears twice because each
-// variant's packId already embeds the channel (EqualizerAPO-XT-<channel>), and
-// Velopack appends "-<channel>-Setup.exe".
-std::wstring assetName(const std::wstring& channel)
+// Resolve the best build channel for this machine.
+std::wstring detectChannel(int* outIndex)
 {
-    return L"EqualizerAPO-XT-" + channel + L"-" + channel + L"-Setup.exe";
-}
-
-// Always-latest download path. GitHub redirects /releases/latest/download/<asset>
-// to the newest release's asset, so this binary never needs rebuilding per release.
-std::wstring latestAssetPath(const std::wstring& asset)
-{
-    return std::wstring(L"/") + EAPO_REPO_SLUG_W +
-        L"/releases/latest/download/" + asset;
-}
-
-std::wstring assetPath(const std::wstring& channel)
-{
-    return latestAssetPath(assetName(channel));
-}
-
-std::wstring downloadUrl(const std::wstring& channel)
-{
-    return std::wstring(L"https://github.com") + assetPath(channel);
+    return channelForCpu(detectCpuFeatures(), outIndex);
 }
 
 std::wstring tempFilePath(const std::wstring& fileName)
@@ -409,100 +353,6 @@ cleanup:
     return ok;
 }
 
-bool isHexDigit(char c)
-{
-    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-}
-
-char toLowerAscii(char c)
-{
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
-}
-
-// Find fileName in sha256sum-style checksum text and return its digest as
-// lowercase hex. Each line is "<64 hex chars>  <name>"; the binary-mode form
-// "<hash> *<name>" is accepted too, and the name comparison ignores ASCII
-// case. Returns an empty string when no line matches.
-std::wstring expectedHashFromChecksums(const std::string& text, const std::wstring& fileName)
-{
-    std::string narrowName;
-    int needed = WideCharToMultiByte(CP_UTF8, 0, fileName.c_str(), -1, nullptr, 0,
-        nullptr, nullptr);
-    if (needed > 1)
-    {
-        narrowName.resize(needed - 1);
-        WideCharToMultiByte(CP_UTF8, 0, fileName.c_str(), -1, &narrowName[0], needed - 1,
-            nullptr, nullptr);
-    }
-    if (narrowName.empty())
-        return std::wstring();
-
-    // Skip a UTF-8 byte order mark, in case the generator wrote one.
-    size_t lineStart = 0;
-    if (text.size() >= 3 && text.compare(0, 3, "\xEF\xBB\xBF") == 0)
-        lineStart = 3;
-
-    while (lineStart < text.size())
-    {
-        size_t lineEnd = text.find('\n', lineStart);
-        if (lineEnd == std::string::npos)
-            lineEnd = text.size();
-        std::string line = text.substr(lineStart, lineEnd - lineStart);
-        lineStart = lineEnd + 1;
-        while (!line.empty() &&
-            (line.back() == '\r' || line.back() == ' ' || line.back() == '\t'))
-        {
-            line.pop_back();
-        }
-
-        // 64 hex digits, separating whitespace, an optional '*' binary-mode
-        // marker, then the asset name.
-        if (line.size() < 64 + 2)
-            continue;
-        bool hexOk = true;
-        for (size_t i = 0; i < 64; ++i)
-        {
-            if (!isHexDigit(line[i]))
-            {
-                hexOk = false;
-                break;
-            }
-        }
-        if (!hexOk || (line[64] != ' ' && line[64] != '\t'))
-            continue;
-
-        size_t nameStart = 64;
-        while (nameStart < line.size() && (line[nameStart] == ' ' || line[nameStart] == '\t'))
-            ++nameStart;
-        if (nameStart < line.size() && line[nameStart] == '*')
-            ++nameStart;
-        if (nameStart >= line.size())
-            continue;
-
-        const std::string name = line.substr(nameStart);
-        if (name.size() != narrowName.size())
-            continue;
-        bool nameMatches = true;
-        for (size_t i = 0; i < name.size(); ++i)
-        {
-            if (toLowerAscii(name[i]) != toLowerAscii(narrowName[i]))
-            {
-                nameMatches = false;
-                break;
-            }
-        }
-        if (!nameMatches)
-            continue;
-
-        std::wstring hex;
-        hex.reserve(64);
-        for (size_t i = 0; i < 64; ++i)
-            hex += static_cast<wchar_t>(toLowerAscii(line[i]));
-        return hex;
-    }
-    return std::wstring();
-}
-
 // Read a small file fully into memory. The checksums list is at most a few
 // kilobytes; refuse anything over 1 MiB so an unexpected response cannot
 // balloon.
@@ -610,25 +460,7 @@ bool launchSetup(const std::wstring& setupPath, bool silent, DWORD& exitCode)
     return true;
 }
 
-bool hasFlag(int argc, wchar_t** argv, const wchar_t* flag)
-{
-    for (int i = 1; i < argc; ++i)
-    {
-        if (_wcsicmp(argv[i], flag) == 0)
-            return true;
-    }
-    return false;
-}
-
-const wchar_t* flagValue(int argc, wchar_t** argv, const wchar_t* flag)
-{
-    for (int i = 1; i + 1 < argc; ++i)
-    {
-        if (_wcsicmp(argv[i], flag) == 0)
-            return argv[i + 1];
-    }
-    return nullptr;
-}
+// hasFlag / flagValue moved to AutoInstallerLogic.
 
 void writeTextFile(const wchar_t* path, const std::wstring& text)
 {

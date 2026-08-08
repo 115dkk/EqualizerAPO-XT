@@ -289,100 +289,7 @@ jobs:
     - name: Setup dependency structures
       shell: pwsh
       run: |
-        $depsPath = "${{ github.workspace }}\deps"
-        Write-Host "=== Creating Dependency Structures ==="
-
-        # Check FFTW structure
-        Write-Host "`nFFTW structure:"
-        if (Test-Path "$depsPath\fftw") {
-          Get-ChildItem "$depsPath\fftw" -Recurse | Select-Object FullName
-        } else {
-          Write-Warning "FFTW directory not found"
-        }
-
-        # Check muParserX structure
-        Write-Host "`nmuParserX structure:"
-        if (Test-Path "$depsPath\muparserx") {
-          Get-ChildItem "$depsPath\muparserx" -Recurse | Select-Object FullName
-        } else {
-          Write-Warning "muParserX directory not found"
-        }
-
-        # Check libsndfile structure
-        Write-Host "`nlibsndfile structure:"
-        if (Test-Path "$depsPath\libsndfile") {
-          Get-ChildItem "$depsPath\libsndfile" -Recurse | Select-Object FullName
-        } else {
-          Write-Warning "libsndfile directory not found"
-        }
-
-        # Check TCLAP structure
-        Write-Host "`nTCLAP structure:"
-        if (Test-Path "$depsPath\tclap") {
-          Get-ChildItem "$depsPath\tclap" -Recurse -Depth 1 | Select-Object FullName
-        } else {
-          Write-Warning "TCLAP directory not found"
-        }
-
-        Write-Host "=== Locating dependency files ==="
-
-        # Find actual locations of critical files
-        $fftwHeader = Get-ChildItem -Path "$depsPath\fftw\Include" -Recurse -Filter "fftw3.h" -ErrorAction SilentlyContinue | Select-Object -First 1
-        $fftwLib = Get-ChildItem -Path "$depsPath\fftw\Release" -Recurse -Filter "libfftw3.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
-        $mpxLib = Get-ChildItem -Path "$depsPath\muparserx\build\Release" -Recurse -Filter "muparserx.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
-
-        # Set environment variables pointing to actual locations
-        if ($fftwHeader) {
-          $fftwInclude = $fftwHeader.Directory.FullName
-          echo "FFTW_INCLUDE=$fftwInclude" >> $env:GITHUB_ENV
-          Write-Host "FFTW_INCLUDE=$fftwInclude"
-        } else {
-          Write-Error "fftw3.h not found"
-          exit 1
-        }
-
-        if ($fftwLib) {
-          $fftwLibPath = $fftwLib.Directory.FullName
-          echo "FFTW_LIB=$fftwLibPath" >> $env:GITHUB_ENV
-          Write-Host "FFTW_LIB=$fftwLibPath"
-        } else {
-          Write-Error "libfftw3.lib not found"
-          exit 1
-        }
-
-        if (Test-Path  "$depsPath\muparserx") {
-          echo "MUPARSERX_INCLUDE=$depsPath\muparserx\parser" >> $env:GITHUB_ENV
-          Write-Host "MUPARSERX_INCLUDE=$depsPath\muparserx\parser"
-        } else {
-          Write-Error "muparserx folder not found"
-          exit 1
-        }
-
-        if ($mpxLib) {
-          $mpxLibPath = $mpxLib.Directory.FullName
-          echo "MUPARSERX_LIB=$mpxLibPath" >> $env:GITHUB_ENV
-          Write-Host "MUPARSERX_LIB=$mpxLibPath"
-        } else {
-          Write-Error "muparserx.lib not found"
-          exit 1
-        }
-
-        # Set root paths for libsndfile and tclap (still used by projects)
-        echo "LIBSNDFILE_INCLUDE=$depsPath\libsndfile\include" >> $env:GITHUB_ENV
-        echo "LIBSNDFILE_LIB=$depsPath\libsndfile\build\Release" >> $env:GITHUB_ENV
-        echo "TCLAP_ROOT=$depsPath\tclap" >> $env:GITHUB_ENV
-
-        # VST3 SDK root (contains pluginterfaces/) for VST3 hosting headers.
-        echo "VST3_SDK=$depsPath\vst3sdk" >> $env:GITHUB_ENV
-
-        # Highway header root (contains hwy/) for the portable SIMD kernels.
-        echo "HIGHWAY_INCLUDE=$depsPath\highway" >> $env:GITHUB_ENV
-
-        # Velopack runtime paths for the Editor's auto-update link.
-        echo "VELOPACK_INCLUDE=$depsPath\velopack_libc\include" >> $env:GITHUB_ENV
-        echo "VELOPACK_LIB=$depsPath\velopack_libc\lib" >> $env:GITHUB_ENV
-
-        Write-Host "`nAll dependency paths configured successfully"
+        .\.github\scripts\Initialize-DepsEnvironment.ps1 -DepsPath "${{ github.workspace }}\deps"
 
     - name: Setup Python
       uses: actions/setup-python@v6
@@ -912,7 +819,8 @@ jobs:
       if: steps.version.outputs.needs_source == 'true'
       shell: pwsh
       run: |
-        $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
+        Import-Module .\.github\scripts\ReleaseAssets.psm1
+        $sourceZip = Join-Path "${{ github.workspace }}" (Get-SourceZipAssetName -PackVersion "${{ steps.version.outputs.pack_version }}")
         git archive --format=zip --output="$sourceZip" HEAD
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
@@ -930,158 +838,16 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        $manifest = Import-PowerShellDataFile "${{ github.workspace }}\.github\simd-variants.psd1"
-        dotnet tool install -g vpk --version $manifest.Shared.VelopackVpkVersion
-        if ($LASTEXITCODE -ne 0) {
-          exit $LASTEXITCODE
-        }
-        $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
-
-        $repoUrl = "https://github.com/${{ github.repository }}"
-        $releaseName = "EqualizerAPO-XT ${{ steps.version.outputs.pack_version }}"
-        $tag = "${{ steps.version.outputs.tag }}"
-        $targetCommit = "${{ github.sha }}"
-        $inputRoot = "${{ github.workspace }}\release-input"
-        $licensePath = "${{ github.workspace }}\License.txt"
-        $iconPath = "${{ github.workspace }}\Editor\icons\app-icon.ico"
-        $configSource = "${{ github.workspace }}\Setup\config"
-        $extrasSource = @(
-          "${{ github.workspace }}\Setup\Configuration tutorial (online).url",
-          "${{ github.workspace }}\Setup\Configuration reference (online).url"
-        )
-        $qtPluginFolders = @('iconengines', 'imageformats', 'platforms', 'styles', 'tls')
-        $buildArtifacts = @(Get-ChildItem -Path $inputRoot -Directory -Filter "EqualizerAPO-*")
         $missingChannels = @("${{ steps.version.outputs.missing_channels }}".Split(
           ',', [System.StringSplitOptions]::RemoveEmptyEntries))
-
-        if ($buildArtifacts.Count -eq 0) {
-          Write-Error "No build artifacts were found in $inputRoot"
-          exit 1
-        }
-
-        foreach ($artifact in $buildArtifacts) {
-          $variant = $artifact.Name.Substring("EqualizerAPO-".Length)
-          # Audit #250 F066: resolve the channel from the manifest (the
-          # artifact name is "<platform>-<simd>") instead of re-deriving it
-          # by string convention, which nothing asserted.
-          $sep = $variant.IndexOf('-')
-          $variantPlatform = $variant.Substring(0, $sep)
-          $variantSimd = $variant.Substring($sep + 1)
-          $variantEntry = $manifest.Variants | Where-Object { $_.Platform -eq $variantPlatform -and $_.Simd -eq $variantSimd } | Select-Object -First 1
-          if (-not $variantEntry) {
-            Write-Error "Artifact $($artifact.Name) has no matching variant in simd-variants.psd1"
-            exit 1
-          }
-          $channel = $variantEntry.Channel
-          if ($missingChannels -notcontains $channel) {
-            Write-Host "Channel $channel is already complete on $tag; skipping."
-            continue
-          }
-          $packId = "EqualizerAPO-XT-$channel"
-          $packTitle = "EqualizerAPO-XT $variant"
-          $outputDir = "${{ github.workspace }}\velopack-output\$channel"
-          $packDir = "${{ github.workspace }}\velopack-input\$channel"
-          $mainExe = "Editor.exe"
-          $framework = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist143-arm64" } else { "vcredist143-x64" }
-
-          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-          if (Test-Path $packDir) {
-            Remove-Item -Path $packDir -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path $packDir | Out-Null
-
-          Write-Host "`n=== Preparing Velopack pack dir for $variant ==="
-          # Copy everything from the build artifact (binaries + Qt deps at top level)
-          Copy-Item -Path (Join-Path $artifact.FullName "*") -Destination $packDir -Recurse -Force
-
-          # Editor.exe calls addLibraryPath("qt"), so Qt plugin folders must live under qt\
-          $qtTarget = Join-Path $packDir "qt"
-          New-Item -ItemType Directory -Force -Path $qtTarget | Out-Null
-          foreach ($folder in $qtPluginFolders) {
-            $source = Join-Path $packDir $folder
-            if (Test-Path $source) {
-              $dest = Join-Path $qtTarget $folder
-              if (Test-Path $dest) {
-                Remove-Item -Path $dest -Recurse -Force
-              }
-              Move-Item -Path $source -Destination $dest -Force
-              Write-Host "Relocated $folder -> qt\$folder"
-            }
-          }
-
-          # Bundle the sample configs and shortcuts
-          if (Test-Path $configSource) {
-            $configTarget = Join-Path $packDir "config"
-            New-Item -ItemType Directory -Force -Path $configTarget | Out-Null
-            Copy-Item -Path (Join-Path $configSource "*") -Destination $configTarget -Recurse -Force
-          }
-          foreach ($extra in $extrasSource) {
-            if (Test-Path $extra) {
-              Copy-Item -Path $extra -Destination $packDir -Force
-            }
-          }
-
-          if (-not (Test-Path (Join-Path $packDir $mainExe))) {
-            Write-Error "$mainExe not found in $packDir"
-            exit 1
-          }
-
-          vpk download github `
-            --repoUrl $repoUrl `
-            --token $env:GITHUB_TOKEN `
-            --outputDir $outputDir `
-            --channel $channel
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning "No previous Velopack release was downloaded for channel $channel. Continuing with a full package."
-            $global:LASTEXITCODE = 0
-          }
-
-          $packArgs = @(
-            'pack',
-            '--packId', $packId,
-            '--packVersion', '${{ steps.version.outputs.pack_version }}',
-            '--packDir', $packDir,
-            '--mainExe', $mainExe,
-            '--packTitle', $packTitle,
-            '--packAuthors', 'EqualizerAPO-XT contributors',
-            '--outputDir', $outputDir,
-            '--channel', $channel,
-            '--framework', $framework,
-            '--noPortable',
-            '--skipVeloAppCheck'
-          )
-          if (Test-Path $iconPath) {
-            $packArgs += @('--icon', $iconPath)
-          }
-
-          Write-Host "vpk $($packArgs -join ' ')"
-          vpk @packArgs
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
-
-          vpk upload github `
-            --repoUrl $repoUrl `
-            --token $env:GITHUB_TOKEN `
-            --outputDir $outputDir `
-            --channel $channel `
-            --publish `
-            --merge `
-            --releaseName $releaseName `
-            --tag $tag `
-            --targetCommitish $targetCommit
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
-        }
-
-        if ("${{ steps.version.outputs.needs_source }}" -eq "true") {
-          $sourceZip = "${{ github.workspace }}\EqualizerAPO-XT-source-${{ steps.version.outputs.pack_version }}.zip"
-          gh release upload $tag $sourceZip --clobber --repo "${{ github.repository }}"
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
-        }
+        .\.github\scripts\New-VelopackRelease.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "${{ steps.version.outputs.tag }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -TargetCommit "${{ github.sha }}" `
+          -WorkspaceRoot "${{ github.workspace }}" `
+          -MissingChannels $missingChannels `
+          -NeedsSource:("${{ steps.version.outputs.needs_source }}" -eq "true")
 
     - name: Build and publish auto-detect installer
       if: steps.version.outputs.needs_installer == 'true'

@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <limits>
 
+#include "helpers/ReleaseAssetNames.h"
+
 namespace
 {
 QString normalizedVersion(QString version)
@@ -148,7 +150,8 @@ QString releasePageUrl(const QJsonDocument& githubReleaseDoc)
 
 QJsonObject newestFeedAsset(const QJsonDocument& feedDoc, const QString& channel, const QString& installedVersion)
 {
-	const QString packageId = QString("EqualizerAPO-XT-%0").arg(channel).toLower();
+	const QString packageId = QString::fromStdWString(
+		ReleaseAssetNames::velopackPackId(channel.toStdWString())).toLower();
 	QJsonObject bestAsset;
 	QString bestVersion;
 

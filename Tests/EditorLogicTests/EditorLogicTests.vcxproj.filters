@@ -59,6 +59,12 @@
     <ClCompile Include="FilterCommandCatalogTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AutoInstallerLogicTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Installer\AutoInstallerLogic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -101,6 +107,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Installer\AutoInstallerLogic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h">

@@ -10,6 +10,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Import-Module (Join-Path $PSScriptRoot "ReleaseAssets.psm1") -Force
 
 if (-not $PSBoundParameters.ContainsKey("AssetNames")) {
     $releaseJson = gh release view $Tag --repo $Repository --json assets,body 2>$null
@@ -33,18 +34,18 @@ else {
 $manifest = Import-PowerShellDataFile $ManifestPath
 $missingChannels = @()
 foreach ($channel in @($manifest.Variants.Channel)) {
-    $setup = "EqualizerAPO-XT-$channel-$channel-Setup.exe"
-    $feed = "releases.$channel.json"
+    $setup = Get-SetupAssetName -Channel $channel
+    $feed = Get-FeedAssetName -Channel $channel
     if ($AssetNames -notcontains $setup -or $AssetNames -notcontains $feed) {
         $missingChannels += $channel
     }
 }
 
-$sourceName = "EqualizerAPO-XT-source-$PackVersion.zip"
+$sourceName = Get-SourceZipAssetName -PackVersion $PackVersion
 $needsSource = $AssetNames -notcontains $sourceName
-$needsInstaller = $AssetNames -notcontains "EqualizerAPO-XT-Setup.exe"
+$needsInstaller = $AssetNames -notcontains (Get-UniversalSetupAssetName)
 $releaseShapeChanged = $missingChannels.Count -gt 0 -or $needsSource -or $needsInstaller
-$needsChecksums = $releaseShapeChanged -or $AssetNames -notcontains "SHA256SUMS.txt"
+$needsChecksums = $releaseShapeChanged -or $AssetNames -notcontains (Get-ChecksumsAssetName)
 $needsNotes = $releaseShapeChanged -or [string]::IsNullOrWhiteSpace($ReleaseNotes)
 $complete = -not $needsChecksums -and -not $needsNotes
 

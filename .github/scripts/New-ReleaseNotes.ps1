@@ -19,6 +19,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Import-Module (Join-Path $PSScriptRoot "ReleaseAssets.psm1") -Force
 
 # Release-channel table for the SIMD/architecture builds. The channel KEYS are the
 # single source of truth in .github/simd-variants.psd1 (Variants[].Channel); the
@@ -55,7 +56,7 @@ $UnknownChannelGuidance = "Special-purpose asset. Use one of the setup executabl
 # The architecture-agnostic front-door installer (docs/AutoDetectInstaller.md).
 # It is not a channel: it detects the CPU at install time and pulls the matching
 # per-channel build. Featured first in the download table.
-$UniversalInstallerName = "EqualizerAPO-XT-Setup.exe"
+$UniversalInstallerName = Get-UniversalSetupAssetName
 $UniversalInstallerSortOrder = -1
 $UniversalInstallerGuidance = "Recommended. Detects your CPU (architecture and AVX level) and installs the matching build automatically. Use this unless you have a reason to pick a specific build below."
 

@@ -50,3 +50,7 @@ void testFilterCommandCatalogTemplateRoster();
 void testFilterCommandCatalogDescriptions();
 void testSharedRawBodyAndRoutingViewPredicates();
 void testVstChunkPathCandidates();
+void testAutoInstallerChannelMapping();
+void testAutoInstallerAssetGrammar();
+void testAutoInstallerChecksumParsing();
+void testAutoInstallerFlagScan();
