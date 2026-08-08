@@ -72,6 +72,8 @@ public:
 	unsigned getChannelMask() const {return channelMask;}
 	float getSampleRate() const {return sampleRate;}
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
+	// The three stream facts a FilterConfiguration is built for (audit #250 A2).
+	EngineStreamFormat streamFormat() const {return {realChannelCount, outputChannelCount, maxFrameCount};}
 	// Crossfade length in samples for a configuration swap, set by initialize().
 	// Exposed so tests exercise the real value instead of re-deriving the
 	// sampleRate / 100 formula.

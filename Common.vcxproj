@@ -368,6 +368,7 @@
     <ClInclude Include="libHybridConv-0.1.1\HcAlignedStorage.h" />
     <ClInclude Include="helpers\FileSharingRetry.h" />
     <ClInclude Include="helpers\GainIterator.h" />
+    <ClInclude Include="filters\ConvolverMuteDiagnostics.h" />
     <ClInclude Include="helpers\ClsidRegistration.h" />
     <ClInclude Include="helpers\IRegistry.h" />
     <ClInclude Include="helpers\RegistryTransaction.h" />

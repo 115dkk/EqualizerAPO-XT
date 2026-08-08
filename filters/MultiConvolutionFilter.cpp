@@ -32,6 +32,7 @@
 #include "helpers/MemoryHelper.h"
 #include "helpers/ParallelExecutor.h"
 #include "helpers/PerfProfile.h"
+#include "ConvolverMuteDiagnostics.h"
 #include "MultiConvolutionFilter.h"
 
 using std::find;
@@ -40,12 +41,9 @@ using std::wstring;
 
 namespace
 {
-	// Mute-path diagnostics, written from the audio thread and read in cleanup().
-	// process() may only bump these relaxed atomics; the log line that describes
-	// them is written off the real-time path. See ConvolutionFilter.cpp for the
-	// same pair.
-	std::atomic<unsigned long long> multiMuteCallCount{ 0 };
-	std::atomic<unsigned> multiFirstMuteFrameCount{ 0 };
+	// Audit #250 A4: the shared bookkeeping; see ConvolverMuteDiagnostics.h.
+	// Per-class instance, like ConvolutionFilter's and HilbertFilter's.
+	ConvolverMuteDiagnostics muteDiagnostics;
 }
 
 MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionCommand::Mapping>& mappings, const wstring& filename)
@@ -192,13 +190,7 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 		// No logging here. LogHelper opens, writes and closes %TEMP%\EqualizerAPO.log
 		// for every line, and this branch fires exactly when the stream can least
 		// afford blocking I/O on the audio thread. cleanup() writes the same line.
-		multiMuteCallCount.fetch_add(1, std::memory_order_relaxed);
-		if (!frameCountMismatchLogged)
-		{
-			// Keep the block size that first failed; the deferred report needs it.
-			multiFirstMuteFrameCount.store(frameCount, std::memory_order_relaxed);
-			frameCountMismatchLogged = true;
-		}
+		muteDiagnostics.recordMute(frameCount, frameCountMismatchLogged);
 	}
 
 	// libHybridConv fixes its block length at hcInitSingle time, so a block of
@@ -244,10 +236,9 @@ void MultiConvolutionFilter::cleanup()
 	// It runs before the members are cleared so the initialized block size is
 	// still available.
 	if (frameCountMismatchLogged)
-		LogF(L"%s %u differs from initialized %u; output muted (audio-thread re-init skipped) [mute calls: %llu total]",
-			kFrameCountMismatchLogPrefix,
-			multiFirstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
-			multiMuteCallCount.load(std::memory_order_relaxed));
+		LogF(kConvolverMuteReportFormat, kFrameCountMismatchLogPrefix,
+			muteDiagnostics.firstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
+			muteDiagnostics.muteCallCount.load(std::memory_order_relaxed));
 	frameCountMismatchLogged = false;
 
 	// HConvSingleArray::reset() runs the close-then-free sequence.

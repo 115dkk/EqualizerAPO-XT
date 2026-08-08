@@ -168,7 +168,7 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 		// same release/acquire handoff as a later reload.
 		configChannel.reset(FilterConfigurationPtr(
 			MemoryHelper::construct<FilterConfiguration>(
-				this, vector<std::unique_ptr<FilterInfo>>(), deviceChannelCount)));
+				streamFormat(), vector<std::unique_ptr<FilterInfo>>(), deviceChannelCount)));
 
 		try
 		{

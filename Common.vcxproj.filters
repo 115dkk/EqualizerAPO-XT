@@ -159,6 +159,9 @@
     <ClInclude Include="helpers\ClsidRegistration.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="filters\ConvolverMuteDiagnostics.h">
+      <Filter>filters</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\IRegistry.h">
       <Filter>helpers</Filter>
     </ClInclude>

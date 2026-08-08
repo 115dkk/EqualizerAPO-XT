@@ -31,6 +31,11 @@ class ConvolutionFilter : public IFilter
 public:
 	ConvolutionFilter(const std::wstring& filename);
 	virtual ~ConvolutionFilter();
+	// The deferred mute diagnostic's prefix is part of the filter's
+	// observable contract (HybridConvTests pins it), like
+	// MultiConvolutionFilter's (audit F058t).
+	static constexpr const wchar_t* kFrameCountMismatchLogPrefix =
+		L"ConvolutionFilter: frameCount";
 	bool getInPlace() override { return true; }
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void process(double** output, double** input, unsigned frameCount) override;

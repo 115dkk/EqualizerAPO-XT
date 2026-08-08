@@ -11,10 +11,13 @@
 #include <cmath>
 #include <complex>
 #include <cstddef>
+#include <cstdio>
+#include <string>
 #include <vector>
 
 #include "filters/HilbertCommand.h"
 #include "filters/HilbertFilter.h"
+#include "helpers/LogHelper.h"
 #include "filters/VelvetCommand.h"
 #include "filters/velvet/Processor.h"
 #include "Tests/TestHarness.h"
@@ -247,6 +250,50 @@ void testVelvetDynamicRenewalIsFiniteAndSmooth()
 	harness.expectTrue(largestStep < 2.0,
 		"equal-power renewal avoids discontinuous kernel replacement");
 }
+
+// Audit #250 A4: a mismatched block used to mute Hilbert's shifted channels
+// with no diagnostics at all; the shared convolver bookkeeping now reports
+// it on destruction like the other convolvers' cleanup().
+void testHilbertMismatchIsLoggedOnDestruction()
+{
+	FILE* logFile = nullptr;
+	if (tmpfile_s(&logFile) != 0 || logFile == nullptr)
+	{
+		harness.fail("could not create mismatch log capture");
+		return;
+	}
+	LogHelper::useStream(logFile, false, true, false);
+
+	{
+		HilbertCommand command;
+		harness.require(HilbertCommand::parse(L"Hilbert",
+			L"Shift=ALL Direction=-90", command), "Hilbert mute-test command parses");
+		HilbertFilter filter(command);
+		filter.initialize(48000.0f, 512, { L"L", L"R" });
+
+		constexpr unsigned shortBlock = 256;
+		std::vector<double> inL(shortBlock, 0.25), inR(shortBlock, 0.25);
+		std::vector<double> outL(shortBlock, 1.0), outR(shortBlock, 1.0);
+		double* input[] = { inL.data(), inR.data() };
+		double* output[] = { outL.data(), outR.data() };
+		filter.process(output, input, shortBlock);
+		harness.expectTrue(outL[0] == 0.0,
+			"a mismatched Hilbert block mutes the shifted channel");
+	}
+
+	std::fflush(logFile);
+	std::rewind(logFile);
+	std::wstring log;
+	wchar_t buffer[1024];
+	while (std::fgetws(buffer, 1024, logFile) != nullptr)
+		log.append(buffer);
+	std::fclose(logFile);
+	LogHelper::useStream(stdout, true, true, false);
+
+	const std::wstring marker = HilbertFilter::kFrameCountMismatchLogPrefix;
+	harness.expectTrue(log.find(marker) != std::wstring::npos,
+		"Hilbert frame-count mismatch is logged on destruction");
+}
 }
 
 void runHilbertVelvetTests()
@@ -257,5 +304,6 @@ void runHilbertVelvetTests()
 	testVelvetIsNormalizedAndDecorrelated();
 	testVelvetStreamIsBlockSizeInvariant();
 	testVelvetDynamicRenewalIsFiniteAndSmooth();
+	testHilbertMismatchIsLoggedOnDestruction();
 	harness.report();
 }
