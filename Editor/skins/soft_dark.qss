@@ -889,6 +889,83 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid @BORDER@;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
+/* Subwoofer routing summary: one headline sentence, one dim caption, quiet
+   fact pills. The palette formula (HP/LP capsule arithmetic) was retired in
+   the review round - a settings app states what happens to the sound and
+   keeps the numbers in unhurried pills. */
+QLabel#SoftBassHeadline {
+    color: @TEXT@;
+    background: transparent;
+    border: 0;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 11pt;
+    font-weight: 600;
+}
+QLabel#SoftBassHeadline:disabled { color: @MUTED@; }
+
+QLabel#SoftBassCaption {
+    color: @MUTED@;
+    background: transparent;
+    border: 0;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 500;
+}
+QLabel#SoftBassCaption[severity="warning"] { color: @WARNING@; }
+QLabel#SoftBassCaption[severity="danger"] { color: @DANGER@; }
+QLabel#SoftBassCaption:disabled { color: @MUTED@; }
+
+/* Quiet OFF-pill grammar: sunken ground, thin border, muted ink. Facts are
+   information, not states, so no pastel fill. */
+QLabel#SoftBassFactPill {
+    color: @MUTED@;
+    background: @SURFACE_SUNKEN@;
+    border: 1px solid @BORDER@;
+    border-radius: 12px;
+    padding: 3px 12px;
+    min-height: 18px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 9pt;
+    font-weight: 500;
+}
+QLabel#SoftBassFactPill:disabled {
+    color: @MUTED@;
+    background: @BG@;
+    border: 1px dashed @BORDER@;
+}
+
+QToolButton#SoftBassActionButton {
+    background: @CARD@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 20px;
+    padding: 0 16px;
+    min-width: 40px;
+    min-height: 40px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 9pt;
+    font-weight: 600;
+}
+QToolButton#SoftBassActionButton:hover {
+    background: @CARD_HOVER@;
+    border-color: @ACCENT@;
+}
+QToolButton#SoftBassActionButton:pressed,
+QToolButton#SoftBassActionButton:checked {
+    background: @ACCENT@;
+    color: @BG@;
+    border-color: @ACCENT@;
+}
+QToolButton#SoftBassActionButton:disabled {
+    background: @BG@;
+    color: @MUTED@;
+    border: 1px dashed @BORDER@;
+}
+QToolButton#SoftBassActionButton::menu-indicator {
+    image: none;
+    width: 0;
+    height: 0;
+}
 
 /* A checked box carries a real check glyph. The stylesheet engine replaces
    the native indicator drawing wholesale, so without an image the checked

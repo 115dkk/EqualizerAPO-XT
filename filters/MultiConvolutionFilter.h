@@ -43,6 +43,12 @@
 class MultiConvolutionFilter : public IFilter
 {
 public:
+	// Audit #250 F058t: the deferred mute diagnostic's prefix is part of the
+	// filter's observable contract (HybridConvTests pins it); sharing the
+	// spelling keeps the test from breaking on wording-only edits.
+	static constexpr const wchar_t* kFrameCountMismatchLogPrefix =
+		L"MultiConvolutionFilter: frameCount";
+
 	MultiConvolutionFilter(const std::vector<MultiConvolutionCommand::Mapping>& mappings, const std::wstring& filename);
 	virtual ~MultiConvolutionFilter();
 	bool getAllChannels() override {return true;}

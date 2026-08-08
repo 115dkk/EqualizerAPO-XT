@@ -242,6 +242,11 @@ ReferenceCardView* SkinManager::createReferenceCardView(const QString& kind, QWi
 	return activeSkin->createReferenceCardView(kind, parent);
 }
 
+SubwooferRoutingCardView* SkinManager::createSubwooferRoutingCardView(QWidget* parent) const
+{
+	return activeSkin->createSubwooferRoutingCardView(parent);
+}
+
 void SkinManager::paintTitleBarChrome(QPainter& painter, const QRect& rect) const
 {
 	activeSkin->paintTitleBarChrome(painter, rect, currentTokens);

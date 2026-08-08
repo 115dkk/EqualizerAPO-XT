@@ -226,7 +226,9 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 				}
 				else
 				{
-					summand.factor = wcstod(factor.c_str(), nullptr);
+					// Audit #250 F015: BiQuad/Preamp/Delay normalize the decimal
+					// comma; a raw wcstod here silently truncated "0,5" to 0.
+					summand.factor = wcstod(StringHelper::normalizeDecimalComma(factor).c_str(), nullptr);
 					summand.isDecibel = factor.size() > 2 && StringHelper::toLowerCase(factor.substr(factor.size() - 2)) == L"db";
 					const double linearFactor = summand.isDecibel
 						? pow(10.0, summand.factor / 20.0) : summand.factor;

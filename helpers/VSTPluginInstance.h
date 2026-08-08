@@ -1,4 +1,4 @@
-﻿/*
+/*
     This file is part of Equalizer APO, a system-wide equalizer.
     Copyright (C) 2017  Jonas Thedering
 
@@ -25,6 +25,7 @@
 #include <memory>
 #include <functional>
 #include <mutex>
+#include <vector>
 #include "aeffectx.h"
 #include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/base/smartpointer.h"
@@ -68,6 +69,13 @@ public:
 	// engine on. Returns true only when the plugin accepts both widths
 	// exactly; on rejection the plugin's own preferred layout is re-applied.
 	bool negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount);
+	// Supplies semantic EAPO channel names for the next VST3 negotiation.
+	// The two-vector form supports asymmetric upmixer buses.
+	void setChannelNameHints(const std::vector<std::wstring>& channelNames);
+	void setBusChannelNameHints(const std::vector<std::wstring>& inputChannelNames,
+		const std::vector<std::wstring>& outputChannelNames);
+	const std::vector<int>& getVST3InputChannelMapping() const;
+	const std::vector<int>& getVST3OutputChannelMapping() const;
 	bool canReplacing() const;
 	int uniqueID() const;
 	std::wstring getName() const;
@@ -121,15 +129,33 @@ private:
 	};
 
 	static constexpr unsigned vst3ParameterEditQueueSize = 1024;
-	static constexpr int vst3MaxArrangementCandidates = 2;
+	static constexpr int vst3MaxArrangementCandidates = 4;
 
-	bool initializeVST2();
+	// Audit #250 F040: the VST2 loader distinguishes its failure modes so
+	// initialize() can log the actual reason (the old bool collapsed every
+	// failure into "an exception").
+	enum class Vst2LoadResult
+	{
+		Loaded,
+		Crashed,
+		NoEntryPoint,
+		WrongMagicNumber
+	};
+
+	Vst2LoadResult initializeVST2();
 	bool initializeVST3();
 	void releaseVST3();
 	void configureVST3Buses(int requestedChannelCount);
 	void configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount);
 	void applyVST3BusActivation();
-	int speakerArrangementCandidatesForChannelCount(int count, Steinberg::Vst::SpeakerArrangement* candidates) const;
+	int semanticSpeakerArrangementCandidatesForChannelNames(const std::vector<std::wstring>& channelNames,
+		Steinberg::Vst::SpeakerArrangement* candidates) const;
+	int speakerArrangementCandidatesForChannelCount(int count, const std::vector<std::wstring>& channelNames,
+		Steinberg::Vst::SpeakerArrangement* candidates) const;
+	bool refreshAcceptedVST3Arrangements();
+	void updateVST3ChannelMappings();
+	bool buildVST3ChannelMapping(Steinberg::Vst::SpeakerArrangement arrangement,
+		const std::vector<std::wstring>& channelNames, std::vector<int>& mapping) const;
 	int vst3BusChannelCount(Steinberg::Vst::BusDirection direction) const;
 	void onVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 	void queueVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
@@ -159,6 +185,12 @@ private:
 	int vst3OutputBusCount = 0;
 	int vst3InputChannelCount = 0;
 	int vst3OutputChannelCount = 0;
+	Steinberg::Vst::SpeakerArrangement vst3InputArrangement = Steinberg::Vst::SpeakerArr::kEmpty;
+	Steinberg::Vst::SpeakerArrangement vst3OutputArrangement = Steinberg::Vst::SpeakerArr::kEmpty;
+	std::vector<std::wstring> vst3InputChannelNameHints;
+	std::vector<std::wstring> vst3OutputChannelNameHints;
+	std::vector<int> vst3InputChannelMapping;
+	std::vector<int> vst3OutputChannelMapping;
 	bool vst3SupportsDouble = false;
 	// Whether initialize() succeeded on the component / whether the
 	// controller is a separately created object. A single-component plug-in

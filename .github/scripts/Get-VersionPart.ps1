@@ -15,11 +15,24 @@
     once.
 #>
 function Get-VersionPart {
-  param([string]$Name)
+  # Audit #250 F069: this used to have a second, signature-diverging
+  # implementation inside Bump-Version.ps1. One parser now serves both
+  # callers: pass -Lines when the caller already holds the file content
+  # (Bump-Version rewrites it), or nothing to read version.h directly.
+  param(
+    [string]$Name,
+    [string[]]$Lines
+  )
 
-  $line = Select-String -Path version.h -Pattern "^\s*#define\s+$Name\s+(\d+)" | Select-Object -First 1
-  if (-not $line) {
-    throw "Could not find version part: $Name"
+  if (-not $Lines) {
+    $Lines = Get-Content -Path version.h
   }
-  return $line.Matches[0].Groups[1].Value
+
+  foreach ($line in $Lines) {
+    if ($line -match "^\s*#define\s+$Name\s+(\d+)") {
+      return [int]$Matches[1]
+    }
+  }
+
+  throw "Could not find version part: $Name"
 }

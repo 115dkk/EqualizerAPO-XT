@@ -24,6 +24,7 @@ Current work areas:
    show one ([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228),
    [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
 5. Editors for the programmatic config commands (`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) — complete. Each skin presents blocks with its own instrument driven by the analysis run, the picker inserts the vocabulary, custom-coefficient IIR lines have their own card, and lines with inline `` `expression` `` parameters keep their card in a dynamic mode ([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
+6. Subwoofer routing ([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — the core feature set is complete: the `SubwooferRouting:` command, the MIT SubwooferRoutingCore DSP library, the standalone VST3 plugin, the 4.1 host-negotiation fix, the Editor card with a per-skin instrument in every skin, and the full editor dialog with both routing matrices and a response view. Remaining follow-ups: writing changes back to a linked profile file (the dialog currently converts the row to inline state), audition/solo overrides, Korean translations for the new strings, and a custom VST3 editor view (hosts show their generic parameter panel).
 
 ## Features
 
@@ -43,7 +44,14 @@ Current work areas:
   The independent, MIT-licensed
   [Dynamic Velvet Decorrelator VST3](https://github.com/115dkk/Velvet-Noise-Decorrelator-VST3)
   exposes the same portable DSP outside EqualizerAPO-XT.
-- Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it.
+- One-line subwoofer routing: `SubwooferRouting:` runs per-speaker-group
+  crossovers, dedicated bass paths, preservation of the physical LFE input,
+  per-path gain/polarity/delay/EQ and an output summing matrix from one JSON
+  state (inline or a `*.swxt.json` profile), with automatic headroom and a
+  built-in preset reproducing issue #246's original chain sample for sample.
+  The same MIT-licensed DSP core also ships as the standalone
+  `EAPO XT Subwoofer Routing` VST3 plugin, exchanging the identical JSON state.
+- Native VST3 hosting through the Steinberg VST3 SDK (MIT-licensed pluginterfaces), with 64-bit (double) processing where the plug-in supports it. Channel layouts are negotiated from the actual channel names, so a 4.1 system negotiates as 4.1 instead of being mislabeled 5.0.
 - Portable SIMD kernels written once with [Google Highway](https://github.com/google/highway) and compiled per variant: SSE2, AVX, AVX2, AVX-512, and AVX10.1 on x64, NEON on ARM64.
 - Modernized Qt Editor: card-based filter UI and five fully differentiated visual skins — each with its own row chrome, knob rendering, and Copy routing renderer ([docs/skin-integration-report.md](docs/skin-integration-report.md)) — plus embedded fonts and high-DPI scaling.
 - Automatic updates: the Editor downloads new releases in the background and applies them on exit. A standalone UpdateChecker tool provides notify-only checks.
@@ -110,4 +118,4 @@ Qt tools are built through qmake in CI and in the documented local setup. A full
 
 ## Tests
 
-`Tests/` holds five projects: `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing and config-swap behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI), and `TestVst2Plugin` (a self-built plug-in used to test the VST2 host at runtime). Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).
+`Tests/` holds six projects: `EditorLogicTests` and `HybridConvTests` (unit tests), `EngineOrchestrationTests` (engine routing and config-swap behavior), `AudioRegressionTests` (engine output compared against committed references, also run across SIMD variants in CI), and `TestVst2Plugin` / `TestVst3Plugin` (self-built plug-ins used to test the VST2 and VST3 hosts at runtime). Test policy per variant is part of [docs/SimdBuildMatrix.md](docs/SimdBuildMatrix.md).

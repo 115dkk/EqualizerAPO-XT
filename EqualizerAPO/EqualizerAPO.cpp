@@ -33,6 +33,7 @@
 #include "../helpers/ComPtr.h"
 #include "../helpers/Win32Resource.h"
 #include "../devices/DeviceAPOInfo.h"
+#include "../devices/DeviceAPOInfoKeys.h"
 #include "EqualizerAPO.h"
 
 namespace
@@ -254,8 +255,9 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	wstring deviceTestPipeName;
 	try
 	{
-		if (RegistryHelper::valueExists(APP_REGPATH, L"DeviceTestPipeName"))
-			deviceTestPipeName = RegistryHelper::readValue(APP_REGPATH, L"DeviceTestPipeName");
+		// Audit #250 F020: the pipe name is shared vocabulary (DeviceAPOInfoKeys.h).
+		if (RegistryHelper::valueExists(APP_REGPATH, deviceTestPipeValueName))
+			deviceTestPipeName = RegistryHelper::readValue(APP_REGPATH, deviceTestPipeValueName);
 	}
 	catch (const RegistryException& e)
 	{
@@ -345,7 +347,9 @@ HRESULT EqualizerAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
 	IAudioMediaType* pRequestedInputFormat, IAudioMediaType** ppSupportedInputFormat)
 {
 	return ComBoundary::invoke([&]() -> HRESULT {
-	if (!pRequestedInputFormat)
+	// Audit #250 F028: the output format is dereferenced below just like the
+	// requested input format, so it gets the same guard.
+	if (!pRequestedInputFormat || !pOutputFormat)
 		return E_POINTER;
 
 	UNCOMPRESSEDAUDIOFORMAT inFormat;
@@ -393,7 +397,15 @@ HRESULT EqualizerAPO::IsInputFormatSupported(IAudioMediaType* pOutputFormat,
 		// we do not support downmixing currently
 		if (hr == S_OK && inFormat.dwSamplesPerFrame > 2 && inFormat.dwSamplesPerFrame > outFormat.dwSamplesPerFrame)
 		{
-			CreateAudioMediaTypeFromUncompressedAudioFormat(&outFormat, ppSupportedInputFormat);
+			// Audit #250 F029: a failed media-type creation used to be
+			// forced to S_FALSE, sending the caller to dereference an
+			// unset *ppSupportedInputFormat below.
+			hr = CreateAudioMediaTypeFromUncompressedAudioFormat(&outFormat, ppSupportedInputFormat);
+			if (FAILED(hr))
+			{
+				LogF(L"Error in CreateAudioMediaTypeFromUncompressedAudioFormat");
+				return hr;
+			}
 			hr = S_FALSE;
 		}
 	}
@@ -558,8 +570,11 @@ HRESULT EqualizerAPO::UnlockForProcess()
 		HRESULT hr = childCfg->UnlockForProcess();
 		if (FAILED(hr))
 		{
-			LogF(L"Error in UnlockForProcess");
-			return hr;
+			// Audit #250 F033: returning early here left the base APO
+			// locked forever. LockForProcess detaches a failing child in
+			// the symmetric situation; do the same and keep unlocking.
+			LogF(L"Error in UnlockForProcess of child apo; detaching child");
+			resetChild();
 		}
 	}
 

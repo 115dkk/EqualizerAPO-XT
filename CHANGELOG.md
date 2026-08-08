@@ -14,6 +14,43 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Channel pills in the Minimal skin's routing views are readable on every
+  color.** Names drawn on the light pills (the slate used by non-channel
+  path ids, LFE's amber, the cyan/green family) were printed in white and
+  washed out - most visibly in the subwoofer dialog's output matrix; those
+  pills now switch to dark ink while the darker pills keep white. The hues
+  themselves are unchanged.
+- **Subwoofer routing is now one configuration line instead of a page of Copy
+  chains.** The new `SubwooferRouting:` command (issue
+  [#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) runs
+  per-speaker-group crossovers, dedicated bass paths, preservation of the
+  physical LFE input as its own source path, per-path gain/polarity/delay/EQ
+  and an output summing matrix from a single JSON state, inline or from a
+  `*.swxt.json` profile file. The built-in `Issue #246 - Front/Rear 4.1`
+  preset reproduces the reporter's original low-level chain sample for sample
+  (verified by an engine-level parity test), automatic headroom keeps the
+  summed outputs below 0 dBFS, invalid states log an error instead of muting,
+  and unreferenced channels pass through bit-exactly. The Editor shows a
+  Subwoofer Routing card with its own badge and summary. The DSP lives in a new
+  MIT-licensed SubwooferRoutingCore library shared with the plugin below.
+- **A standalone Subwoofer Routing VST3 plugin ships with every release.** The
+  MIT-licensed `EAPO XT Subwoofer Routing` plugin (in the `VST3\` folder of the
+  install) runs the identical DSP core in any VST3 host, negotiates stereo
+  through 7.1 layouts including 4.1, and exchanges the same JSON state as the
+  native command, so presets move between Equalizer APO XT and a DAW
+  unchanged. It exposes bypass, source-LFE gain/polarity/delay and headroom
+  trim as host-automatable parameters; the full routing graph travels through
+  the plugin state. It has no custom graphical editor yet - hosts show their
+  generic parameter view.
+- **VST3 hosting no longer mislabels 4.1 layouts as 5.0.** The host used to
+  pick a speaker arrangement from the channel count alone, so five channels
+  always negotiated as L/R/C/Ls/Rs and a 4.1 system's LFE was presented to
+  plugins as a Center channel. Arrangements are now chosen from the actual
+  channel names (`L R LFE RL RR` negotiates k41Music), the accepted
+  arrangement is read back from the plugin instead of assumed, and an
+  explicit per-arrangement channel mapping routes each engine channel to the
+  right plugin bus slot.
+
 ## v2.33.1 — 2026-08-08
 
 - **Moving a card up or down is instant again.** Dragging one card to a new

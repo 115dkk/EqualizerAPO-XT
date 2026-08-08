@@ -225,5 +225,9 @@ vector<wstring> StringHelper::splitQuoted(const wstring& s, wchar_t splitChar, w
 
 double StringHelper::parseDouble(const wstring& s)
 {
-	return wcstod(s.c_str(), nullptr);
+	// Audit #250 F016: the declaration promises locale independence, but a
+	// bare wcstod reads LC_NUMERIC. Pin the C locale so the promise holds
+	// even inside a host process that set a comma-decimal locale.
+	static const _locale_t cLocale = _create_locale(LC_NUMERIC, "C");
+	return _wcstod_l(s.c_str(), nullptr, cLocale);
 }

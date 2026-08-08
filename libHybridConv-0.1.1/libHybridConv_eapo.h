@@ -63,7 +63,7 @@ void hcPutSingle(HConvSingle *filter, double*x);
 void hcProcessSingle(HConvSingle *filter);
 void hcGetSingle(HConvSingle *filter, double*y);
 void hcGetAddSingle(HConvSingle *filter, double*y);
-void hcInitSingle(HConvSingle *filter, double*h, int hlen, int flen, int steps);
+void hcInitSingle(HConvSingle *filter, const double* h, int hlen, int flen, int steps);
 void hcInitSingleWithSharedFilterBank(HConvSingle *filter, const HConvSingle *prototype);
 void hcCloseSingle(HConvSingle *filter);
 

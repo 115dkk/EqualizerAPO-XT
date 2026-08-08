@@ -143,3 +143,67 @@ if ($missingTestSources.Count -gt 0) {
 }
 
 Write-Host "The test projects' $checkedTestSources listed sources and headers all exist."
+
+# Audit #250 F071: the two Qt satellite apps hand-maintain a .pro (CI) and a
+# .vcxproj (local VS) in parallel, and they had already drifted - both .pro
+# files compiled QtAppBootstrap.cpp while neither .vcxproj listed it, so CI
+# stayed green while the local VS build silently broke. Assert that every
+# source the .pro compiles is also in the .vcxproj and vice versa.
+$satellitePairs = @(
+  @{ Pro = (Join-Path $RepoRoot "DeviceSelector" "DeviceSelector.pro"); Vcxproj = (Join-Path $RepoRoot "DeviceSelector" "DeviceSelector.vcxproj") },
+  @{ Pro = (Join-Path $RepoRoot "UpdateChecker" "UpdateChecker.pro"); Vcxproj = (Join-Path $RepoRoot "UpdateChecker" "UpdateChecker.vcxproj") }
+)
+
+function Get-NormalizedLeafSet {
+  param([string[]] $Paths)
+  $set = @{}
+  foreach ($p in $Paths) {
+    $leaf = (Split-Path -Leaf ($p -replace '/', '\')).ToLowerInvariant()
+    $set[$leaf] = $true
+  }
+  return $set
+}
+
+$satelliteDrift = @()
+foreach ($pair in $satellitePairs) {
+  if (-not (Test-Path -LiteralPath $pair.Pro) -or -not (Test-Path -LiteralPath $pair.Vcxproj)) { continue }
+
+  # .pro SOURCES: continuation-joined list of paths.
+  $proText = Get-Content -LiteralPath $pair.Pro -Raw
+  $proSources = @()
+  if ($proText -match '(?ms)^SOURCES\s*\+=\s*(.+?)(?:\r?\n\r?\n|\r?\n(?=[A-Z_]+\s*[+]?=))') {
+    $block = $Matches[1] -replace '\\r?\n', ' '
+    $proSources = @($block -split '\s+' | Where-Object { $_ -match '\.(cpp|cc)$' })
+  }
+
+  $vcx = New-Object System.Xml.XmlDocument
+  $vcx.Load((Resolve-Path -LiteralPath $pair.Vcxproj).ProviderPath)
+  $vcxSources = @($vcx.SelectNodes("//*[local-name()='ClCompile'][@Include]") | ForEach-Object { $_.Include })
+
+  # moc/rcc/ui artifacts only exist on one side by design; compare the
+  # hand-written translation units by leaf name.
+  $proSet = Get-NormalizedLeafSet $proSources
+  $vcxSet = Get-NormalizedLeafSet ($vcxSources | Where-Object { (Split-Path -Leaf $_) -notmatch '(?i)^(moc_|qrc_)' })
+
+  $projectName = Split-Path -Leaf $pair.Pro
+  foreach ($leaf in $proSet.Keys) {
+    if (-not $vcxSet.ContainsKey($leaf)) {
+      $satelliteDrift += "$projectName compiles $leaf but the .vcxproj does not list it"
+    }
+  }
+  foreach ($leaf in $vcxSet.Keys) {
+    if (-not $proSet.ContainsKey($leaf)) {
+      $satelliteDrift += "$(Split-Path -Leaf $pair.Vcxproj) compiles $leaf but the .pro does not list it"
+    }
+  }
+}
+
+foreach ($entry in $satelliteDrift) {
+  Write-Host "::error::$entry"
+}
+
+if ($satelliteDrift.Count -gt 0) {
+  throw "A satellite app's .pro and .vcxproj source lists drifted apart."
+}
+
+Write-Host "The satellite apps' .pro and .vcxproj source lists agree."

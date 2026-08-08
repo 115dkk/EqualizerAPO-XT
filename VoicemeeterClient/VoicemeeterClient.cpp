@@ -26,9 +26,7 @@
 #include "VoicemeeterClient.h"
 #include "../devices/VoicemeeterAPOInfo.h"
 
-#define voicemeeterKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
-#define voicemeeterWowKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
-#define uninstallStringValueName L"UninstallString"
+#include "../devices/VoicemeeterDetection.h"
 #ifdef _WIN64
 #define voicemeeterRemoteFileName L"VoicemeeterRemote64.dll"
 #else
@@ -253,8 +251,12 @@ void VoicemeeterClient::initSoftware()
 		rep = vmr.VBVMR_AudioCallbackRegister(VBVMR_AUDIOCALLBACK_OUT, callback, this, clientName);
 		if (rep == 1)
 		{
+			// Audit #250 F046: the third-party DLL fills clientName and does
+			// not promise termination; force it and bound the format read.
+			clientName[sizeof(clientName) - 1] = '\0';
 			wchar_t message[512];
-			wsprintf(message, L"Voicemeeter Output Insert already in use by:\n%S", clientName);
+			_snwprintf_s(message, _TRUNCATE,
+				L"Voicemeeter Output Insert already in use by:\n%.63S", clientName);
 			throw InitError(message);
 		}
 		else if (rep != 0)

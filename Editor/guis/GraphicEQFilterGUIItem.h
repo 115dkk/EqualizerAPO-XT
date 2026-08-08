@@ -27,7 +27,10 @@ public:
 	GraphicEQFilterGUIItem(int index, double hz, double db);
 
 	enum {Type = UserType + 2};
-	virtual int type() const
+	// cppcheck-suppress uselessOverride // false positive: the body is
+	// textually identical to FrequencyPlotItem::type() but returns this
+	// class's own Type (UserType + 2 vs the base's UserType + 1)
+	int type() const override
 	{
 		return Type;
 	}

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -40,6 +40,15 @@
     </ClInclude>
     <ClInclude Include="filters\IrCache.h">
       <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingCommand.h">
+      <Filter>filters\subwooferRouting</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingFilter.h">
+      <Filter>filters\subwooferRouting</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingFilterFactory.h">
+      <Filter>filters\subwooferRouting</Filter>
     </ClInclude>
     <ClInclude Include="filters\HilbertCommand.h"><Filter>filters</Filter></ClInclude>
     <ClInclude Include="filters\HilbertFilter.h"><Filter>filters</Filter></ClInclude>
@@ -290,6 +299,15 @@
     <ClCompile Include="filters\IrCache.cpp">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingCommand.cpp">
+      <Filter>filters\subwooferRouting</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingFilter.cpp">
+      <Filter>filters\subwooferRouting</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingFilterFactory.cpp">
+      <Filter>filters\subwooferRouting</Filter>
+    </ClCompile>
     <ClCompile Include="filters\HilbertCommand.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\HilbertFilter.cpp"><Filter>filters</Filter></ClCompile>
     <ClCompile Include="filters\HilbertFilterFactory.cpp"><Filter>filters</Filter></ClCompile>
@@ -504,6 +522,9 @@
     </Filter>
     <Filter Include="filters\loudnessCorrection">
       <UniqueIdentifier>{c473f978-6002-42aa-adf5-3b5f10868d2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="filters\subwooferRouting">
+      <UniqueIdentifier>{79d2e3c6-5f68-4e60-9dbe-43972105c4b9}</UniqueIdentifier>
     </Filter>
     <Filter Include="filters\velvet">
       <UniqueIdentifier>{0ce9cc67-a2b9-4a19-bdd0-b467f8a5c2d4}</UniqueIdentifier>

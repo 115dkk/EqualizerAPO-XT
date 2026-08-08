@@ -23,6 +23,7 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/skins/cards/MatrixReferenceCardView.h"
+#include "Editor/skins/cards/MatrixSubwooferRoutingCardView.h"
 #include "Editor/skins/pickers/MatrixFilterPicker.h"
 #include "Editor/widgets/routing/CrosspointMatrixRoutingRenderer.h"
 #include "SkinFileIcons.h"
@@ -395,6 +396,11 @@ public:
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override
 	{
 		return new MatrixReferenceCardView(kind, parent);
+	}
+
+	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const override
+	{
+		return new MatrixSubwooferRoutingCardView(parent);
 	}
 	// tokens()/qssResource() ride the ISkin defaults (SkinThemeData tables).
 

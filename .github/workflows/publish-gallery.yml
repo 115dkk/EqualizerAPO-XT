@@ -1,0 +1,57 @@
+name: Publish gallery shots
+
+# Copies selected shots from a finished build run's skin-gallery artifact
+# onto a review branch, so a headless session (whose egress proxy cannot
+# reach the artifact storage) can still inspect and post them.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Workflow run id whose skin-gallery artifact to publish
+        required: true
+      pattern:
+        description: Shell glob the shot filenames must match
+        default: "*srdialog*"
+      prefix:
+        description: Filename prefix for the published copies
+        default: "r4_"
+      branch:
+        description: Review branch to commit onto
+        default: "gallery-bm-review2"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: skin-gallery
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: __shots
+
+      - name: Copy matching shots and push
+        run: |
+          set -eu
+          copied=0
+          for f in __shots/${{ inputs.pattern }}.png; do
+            [ -e "$f" ] || continue
+            cp "$f" "${{ inputs.prefix }}$(basename "$f")"
+            copied=$((copied+1))
+          done
+          rm -rf __shots
+          echo "copied $copied shots"
+          [ "$copied" -gt 0 ] || { echo "no shots matched"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish ${{ inputs.prefix }} gallery shots from run ${{ inputs.run_id }}"
+          git push

@@ -10,17 +10,9 @@ function Invoke-Git {
   & git -c "safe.directory=$safeDirectory" @args
 }
 
-function Get-VersionPart {
-  param([string]$Name, [string[]]$Lines)
-
-  foreach ($line in $Lines) {
-    if ($line -match "^\s*#define\s+$Name\s+(\d+)\s*$") {
-      return [int]$Matches[1]
-    }
-  }
-
-  throw "Could not find version part $Name in $VersionHeader"
-}
+# Audit #250 F069: the version.h parser lives in Get-VersionPart.ps1 (the
+# file whose header claims it is written exactly once - now true again).
+. (Join-Path $PSScriptRoot "Get-VersionPart.ps1")
 
 function Get-BumpKind {
   $lastTag = ""

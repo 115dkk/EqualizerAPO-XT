@@ -174,11 +174,21 @@
         # DependencyReleases assets below. Bump together with VelopackLibcVersion.
         VelopackLibcSha256  = '7b77d378226e4c5b110565dbe1c718cc91eadbf0c4be8b8e6af9ed8ea6202cb1'
         # steinbergmedia/vst3_pluginterfaces — pinned to the first MIT-licensed tag.
+        # Audit #250 F058: git tags are movable, so each source pin also
+        # records the commit the tag resolved to when it was reviewed;
+        # setup-build.ps1 asserts the checkout matches.
         Vst3Tag             = 'v3.8.0_build_66'
+        Vst3Commit          = '31d6eeba6daaa3e2a8bfbe3e7a90ca0b7fbfbc1c'
         # google/highway — header-only portable SIMD.
         HighwayTag          = '1.4.0'
+        HighwayCommit       = '2607d3b5b0113992fe84d3848859eae13b3b52c1'
         # 115dkk/tclap — header-only CLI parser (tag 1.2.5 = fork HEAD).
         TclapTag            = '1.2.5'
+        TclapCommit         = '77561f5fab620e0857a04c240ae981f679449e15'
+        # Audit #250 F059: the Qt toolchain version used to default
+        # independently in setup-build.ps1 (local) and Provisioning.psm1 (CI);
+        # bumping one silently split local from CI. Both read this field now.
+        QtVersion           = '6.10.1'
         # microsoft/vcpkg — commit the sse2/avx dependency builds (FFTW,
         # libsndfile) check out. Pinned so a moving vcpkg HEAD cannot silently
         # change the portfiles those builds compile from; bump deliberately.

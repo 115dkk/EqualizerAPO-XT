@@ -8,6 +8,7 @@
 #include "filters/ConvolutionFilePath.h"
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/VSTPluginCommand.h"
+#include "filters/subwooferRouting/SubwooferRoutingCommand.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -30,7 +31,8 @@ bool isReferenceCommand(const QString& keyword)
     return keyword == QStringLiteral("Include")
         || keyword == QStringLiteral("Convolution")
         || keyword == QStringLiteral("MultiConvolution")
-        || keyword == QStringLiteral("VSTPlugin");
+        || keyword == QStringLiteral("VSTPlugin")
+        || keyword == QStringLiteral("SubwooferRouting");
 }
 
 // The engine unquotes convolution paths in ConvolutionFilePath::resolve, so a
@@ -60,6 +62,16 @@ QString referencePath(const QString& keyword, const QString& parameters)
     if (keyword == QStringLiteral("VSTPlugin"))
         return QString::fromStdWString(
             VSTPluginCommand::extractLibraryReference(parameters.toStdWString()));
+    if (keyword == QStringLiteral("SubwooferRouting"))
+    {
+        // Only the Profile form references a file; inline State is
+        // self-contained JSON and must not be treated as a path.
+        SubwooferRoutingCommand command;
+        if (!SubwooferRoutingCommand::parse(L"SubwooferRouting", parameters.toStdWString(), command)
+            || command.form != SubwooferRoutingCommand::Form::Profile)
+            return QString();
+        return stripSurroundingQuotes(QString::fromStdWString(command.payload));
+    }
     return parameters;
 }
 

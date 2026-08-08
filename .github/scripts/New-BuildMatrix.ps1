@@ -44,6 +44,9 @@ foreach ($variant in $manifest.Variants) {
     simd_variant    = $variant.Simd
     msvcdevplatform = if ($isArm) { 'arm64' } else { 'x64' }
     uses_vcpkg      = [bool]$variant.UsesVcpkg
+    # Audit #250 F066: the Velopack channel rides the matrix instead of being
+    # re-derived from the simd name by string convention downstream.
+    channel         = $variant.Channel
     can_execute     = [bool]$variant.RunnerCanExecute
     primary         = [bool]$variant.Primary
   }

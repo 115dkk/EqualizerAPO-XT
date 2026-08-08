@@ -222,10 +222,13 @@ std::wstring downloadUrl(const std::wstring& channel)
 
 std::wstring tempFilePath(const std::wstring& fileName)
 {
+    // Audit #250 F045: falling back to the bare file name meant downloading
+    // and executing an installer from the current directory. No temp path,
+    // no download.
     wchar_t dir[MAX_PATH] = {};
     DWORD len = GetTempPathW(MAX_PATH, dir);
     if (len == 0 || len > MAX_PATH)
-        return fileName;
+        return std::wstring();
     return std::wstring(dir) + fileName;
 }
 
@@ -594,7 +597,10 @@ bool launchSetup(const std::wstring& setupPath, bool silent, DWORD& exitCode)
     if (silent)
     {
         WaitForSingleObject(proc.process(), INFINITE);
-        GetExitCodeProcess(proc.process(), &exitCode);
+        // Audit #250 F045: an unchecked query left exitCode uninitialized
+        // garbage, letting silent mode report success for a failed setup.
+        if (!GetExitCodeProcess(proc.process(), &exitCode))
+            return false;
     }
     else
     {

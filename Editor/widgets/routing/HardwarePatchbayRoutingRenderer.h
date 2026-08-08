@@ -46,6 +46,7 @@ protected:
 
 private:
 	void rebuildMatrix();
+	void updateMetrics();
 	Assignment& rowAssignment(int outRow);
 	int summandIndex(int outRow, const QString& channel) const;
 	QRect cellRect(int outRow, int inCol) const;
@@ -85,6 +86,8 @@ private:
 	int editCol = -1;
 	QLineEdit* channelEditor = nullptr;
 
+	// Sized from the engraved labels in updateMetrics(); the defaults fit a
+	// Copy row's short device names.
 	int rowHeaderWidth = 60;
 	int colHeaderHeight = 34;
 	int cellW = 56;

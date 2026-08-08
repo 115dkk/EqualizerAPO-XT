@@ -242,9 +242,14 @@ void runVstHostTests()
 	const wstring dllPath = dir + L"\\TestVst2Plugin.dll";
 	if (!fileExists(dllPath))
 	{
-		// Soft skip - never fail the suite when the helper plugin was not built
-		// or copied. The orchestrator wires the post-build copy / CI build.
-		std::printf("VstHostTests skipped: test plugin not found at %ls\n", dllPath.c_str());
+		// Audit #250 F049: this used to be a soft skip, letting a broken
+		// TestVst2Plugin build (or a broken post-build copy) turn the whole
+		// VST2 host suite green without running it. The VST3 side already
+		// states the policy: a module we build ourselves being absent is a
+		// build problem, and a build problem fails.
+		harness.expectTrue(false,
+			"TestVst2Plugin.dll is present next to the test executable "
+			"(missing = build/copy problem, the suite cannot run)");
 		harness.report();
 		return;
 	}

@@ -43,15 +43,16 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 	{
 		if (PathIsRelativeW(libraryReference.c_str()))
 		{
-			wchar_t filePath[MAX_PATH];
+			// Audit #250 F031: the reference is user config input; the old
+			// MAX_PATH stack buffer silently truncated long joins (and its
+			// PathAppendW result was never checked). Join dynamically.
 			wstring pluginPath = VSTPluginLibrary::getDefaultPluginPath();
-			pluginPath._Copy_s(filePath, sizeof(filePath) / sizeof(wchar_t), MAX_PATH);
-			if (pluginPath.size() < MAX_PATH)
-				filePath[pluginPath.size()] = L'\0';
-			else
-				filePath[MAX_PATH - 1] = L'\0';
-			PathAppendW(filePath, libraryReference.c_str());
-			cmd.libraryPath = filePath;
+			while (!pluginPath.empty()
+				&& (pluginPath.back() == L'\\' || pluginPath.back() == L'/'))
+			{
+				pluginPath.pop_back();
+			}
+			cmd.libraryPath = pluginPath + L"\\" + libraryReference;
 		}
 		else
 			cmd.libraryPath = libraryReference;

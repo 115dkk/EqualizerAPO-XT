@@ -424,6 +424,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClInclude Include="..\Editor\skins\SkinThemeData.h" />
+    <ClCompile Include="..\Editor\helpers\QtAppBootstrap.cpp" />
     <ClCompile Include="..\helpers\ServiceHelper.cpp" />
     <ClCompile Include="..\helpers\ApoRegistration.cpp" />
     <ClCompile Include="..\helpers\AudioEngineAccess.cpp" />

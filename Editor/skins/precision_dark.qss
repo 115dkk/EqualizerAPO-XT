@@ -981,6 +981,103 @@ QToolButton#VelvetAdvancedToggle {
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
 
+/* ===== Bass-management card: compact terminal readout ===== */
+QWidget#MinimalSubwooferRoutingCardView,
+QWidget#MinimalBassActionRow {
+    background: transparent;
+    border: 0;
+}
+
+QLabel#MinimalBassValidity,
+QLabel#MinimalBassProfile,
+QLabel#MinimalBassCaption,
+QLabel#MinimalBassValue,
+QLabel#MinimalBassDiagnostic {
+    background: transparent;
+    border: 0;
+    font-family: "@MONO@", "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
+    font-size: 10pt;
+}
+
+QLabel#MinimalBassValidity {
+    color: @TEXT@;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+QLabel#MinimalBassValidity[severity="valid"] { color: @TEXT@; }
+QLabel#MinimalBassValidity[severity="warning"] { color: @WARNING@; }
+QLabel#MinimalBassValidity[severity="error"] { color: @DANGER@; }
+
+QLabel#MinimalBassProfile {
+    color: @MUTED@;
+}
+QLabel#MinimalBassProfile[profileState="missing"] {
+    color: @DANGER@;
+    font-weight: 700;
+}
+
+QLabel#MinimalBassCaption {
+    color: @MUTED@;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+QLabel#MinimalBassValue {
+    color: @TEXT@;
+}
+QLabel#MinimalBassDiagnostic {
+    color: @MUTED@;
+    font-weight: 700;
+}
+QLabel#MinimalBassDiagnostic[severity="warning"] { color: @WARNING@; }
+QLabel#MinimalBassDiagnostic[severity="error"] { color: @DANGER@; }
+
+QToolButton#MinimalBassActionButton {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid transparent;
+    border-bottom: 1px solid @BORDER@;
+    border-radius: 0;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0 8px;
+    font-family: "@MONO@", "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+QToolButton#MinimalBassActionButton:hover {
+    background: @CARD@;
+    color: @TEXT@;
+    border: 1px solid transparent;
+    border-bottom: 1px solid @BORDER@;
+}
+QToolButton#MinimalBassActionButton:pressed {
+    background: @TEXT@;
+    color: @SURFACE@;
+    border: 1px solid transparent;
+    border-bottom: 1px solid @TEXT@;
+}
+QToolButton#MinimalBassActionButton:focus {
+    border: 1px solid @ACCENT@;
+}
+QToolButton#MinimalBassActionButton:disabled {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px solid transparent;
+    border-bottom: 1px solid @BORDER@;
+}
+
+
+/* Bass-management dialog sections: the terminal separates sections with a
+   single hairline, it does not box them - a four-sided frame around every
+   form group spent pixels that carry no information. The title line plus
+   one top rule is the document's section grammar. */
+QDialog#SubwooferRoutingEditorDialog QGroupBox {
+    background: transparent;
+    border: none;
+    border-top: 1px solid @BORDER@;
+    border-radius: 0;
+}
 /* A checked box carries a real check glyph. The stylesheet engine replaces
    the native indicator drawing wholesale, so without an image the checked
    state was only a filled accent square - state read through color alone.

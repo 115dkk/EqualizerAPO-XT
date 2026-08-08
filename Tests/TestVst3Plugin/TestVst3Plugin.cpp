@@ -50,7 +50,11 @@ bool moduleInitialized = false;
 bool rejectComponentInitialize = false;
 bool componentStateUnavailable = false;
 bool upmixerMode = false;
+bool surround41Mode = false;
 std::atomic<int> upmixerComponentCount{0};
+std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
+	static_cast<unsigned long long>(SpeakerArr::kStereo)
+};
 std::atomic<bool> zeroSampleFlushInProgress{false};
 wchar_t loadedModulePath[MAX_PATH] = {};
 
@@ -742,6 +746,164 @@ private:
 	SpeakerArrangement outputArrangement = SpeakerArr::k71Music;
 };
 
+// Surround41.vst3 mode: a symmetric component that accepts stereo, 4.1 Music
+// and 5.0 layouts, records the accepted arrangement for the host tests, and
+// writes a distinct constant into every output slot keyed by that slot's
+// speaker role - so a test can prove which EAPO channel received which role.
+class TestSurround41Component final : public IComponent, public IAudioProcessor, private RefCounted
+{
+public:
+	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
+	{
+		if (obj == nullptr)
+			return kInvalidArgument;
+		if (iidIs(iid, FUnknown::iid) || iidIs(iid, IPluginBase::iid) || iidIs(iid, IComponent::iid))
+			*obj = static_cast<IComponent*>(this);
+		else if (iidIs(iid, IAudioProcessor::iid))
+			*obj = static_cast<IAudioProcessor*>(this);
+		else
+		{
+			*obj = nullptr;
+			return kNoInterface;
+		}
+		addRef();
+		return kResultOk;
+	}
+	uint32 PLUGIN_API addRef() override { return retain(); }
+	uint32 PLUGIN_API release() override { return drop(); }
+
+	tresult PLUGIN_API initialize(FUnknown* context) override
+	{
+		if (context == nullptr || initialized)
+			return kResultFalse;
+		initialized = true;
+		return kResultOk;
+	}
+	tresult PLUGIN_API terminate() override { initialized = false; return kResultOk; }
+	tresult PLUGIN_API getControllerClassId(TUID) override { return kNoInterface; }
+	tresult PLUGIN_API setIoMode(IoMode) override { return kResultOk; }
+	int32 PLUGIN_API getBusCount(MediaType type, BusDirection) override { return type == kAudio ? 1 : 0; }
+	tresult PLUGIN_API getBusInfo(MediaType type, BusDirection direction, int32 index, BusInfo& info) override
+	{
+		if (type != kAudio || index != 0)
+			return kInvalidArgument;
+		std::memset(&info, 0, sizeof(info));
+		info.mediaType = kAudio;
+		info.direction = direction;
+		info.channelCount = SpeakerArr::getChannelCount(arrangement);
+		info.busType = kMain;
+		info.flags = BusInfo::kDefaultActive;
+		copyString128(info.name, direction == kInput ? L"Surround In" : L"Surround Out");
+		return kResultOk;
+	}
+	tresult PLUGIN_API getRoutingInfo(RoutingInfo&, RoutingInfo&) override { return kNotImplemented; }
+	tresult PLUGIN_API activateBus(MediaType type, BusDirection, int32 index, TBool) override
+	{
+		return type == kAudio && index == 0 ? kResultOk : kInvalidArgument;
+	}
+	tresult PLUGIN_API setActive(TBool state) override { active.store(state != 0); return kResultOk; }
+	tresult PLUGIN_API setState(IBStream*) override { return kResultOk; }
+	tresult PLUGIN_API getState(IBStream* stream) override
+	{
+		const uint32 marker = 0x31345253; // SR41
+		return writeState(stream, marker);
+	}
+
+	tresult PLUGIN_API setBusArrangements(SpeakerArrangement* inputs, int32 numIns,
+		SpeakerArrangement* outputs, int32 numOuts) override
+	{
+		if (numIns != 1 || numOuts != 1 || inputs == nullptr || outputs == nullptr
+			|| inputs[0] != outputs[0])
+			return kResultFalse;
+		if (outputs[0] != SpeakerArr::kStereo
+			&& outputs[0] != SpeakerArr::k41Music
+			&& outputs[0] != SpeakerArr::k50)
+			return kResultFalse;
+		arrangement = outputs[0];
+		surround41AcceptedOutputArrangement.store(
+			static_cast<unsigned long long>(arrangement));
+		return kResultOk;
+	}
+	tresult PLUGIN_API getBusArrangement(BusDirection, int32 index, SpeakerArrangement& current) override
+	{
+		if (index != 0)
+			return kInvalidArgument;
+		current = arrangement;
+		return kResultOk;
+	}
+	tresult PLUGIN_API canProcessSampleSize(int32 size) override
+	{
+		return size == kSample32 || size == kSample64 ? kResultOk : kResultFalse;
+	}
+	uint32 PLUGIN_API getLatencySamples() override { return 0; }
+	tresult PLUGIN_API setupProcessing(ProcessSetup& newSetup) override { setup = newSetup; return kResultOk; }
+	tresult PLUGIN_API setProcessing(TBool state) override
+	{
+		processing.store(state != 0);
+		return active.load() ? kResultOk : kResultFalse;
+	}
+	tresult PLUGIN_API process(ProcessData& data) override
+	{
+		if (data.numSamples == 0 && data.numInputs == 0 && data.numOutputs == 0)
+			return kResultOk;
+		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
+			return kResultFalse;
+
+		const int32 channelCount = SpeakerArr::getChannelCount(arrangement);
+		if (data.numInputs != 1 || data.numOutputs != 1 || data.inputs == nullptr || data.outputs == nullptr
+			|| data.inputs[0].numChannels != channelCount || data.outputs[0].numChannels != channelCount)
+			return kResultFalse;
+
+		const struct
+		{
+			Speaker speaker = 0;
+			double value = 0.0;
+		} roles[] = {
+			{kSpeakerL, 0.125},
+			{kSpeakerR, 0.25},
+			{kSpeakerC, 0.75},
+			{kSpeakerLfe, 0.5},
+			{kSpeakerLs, 0.375},
+			{kSpeakerRs, 0.4375}
+		};
+
+		for (int32 channel = 0; channel < channelCount; channel++)
+		{
+			double value = 0.0;
+			for (const auto& role : roles)
+			{
+				if (SpeakerArr::getSpeakerIndex(role.speaker, arrangement) == channel)
+				{
+					value = role.value;
+					break;
+				}
+			}
+
+			if (data.symbolicSampleSize == kSample64)
+			{
+				for (int32 sample = 0; sample < data.numSamples; sample++)
+					data.outputs[0].channelBuffers64[channel][sample] = value;
+			}
+			else
+			{
+				for (int32 sample = 0; sample < data.numSamples; sample++)
+					data.outputs[0].channelBuffers32[channel][sample] = static_cast<float>(value);
+			}
+		}
+		return kResultOk;
+	}
+	uint32 PLUGIN_API getTailSamples() override { return kNoTail; }
+
+private:
+	~TestSurround41Component() override = default;
+
+	bool initialized = false;
+	std::atomic<bool> active{false};
+	std::atomic<bool> processing{false};
+	ProcessSetup setup{};
+	SpeakerArrangement arrangement = SpeakerArr::kStereo;
+};
+
 class TestController final : public IEditController, private RefCounted
 {
 public:
@@ -923,7 +1085,9 @@ public:
 		FUnknown* instance = nullptr;
 		if (FUnknownPrivate::iidEqual(cid, componentCid))
 		{
-			if (upmixerMode)
+			if (surround41Mode)
+				instance = static_cast<IComponent*>(new TestSurround41Component());
+			else if (upmixerMode)
 				instance = static_cast<IComponent*>(new TestUpmixerComponent());
 			else
 			{
@@ -1020,6 +1184,9 @@ extern "C" __declspec(dllexport) bool InitDll()
 	rejectComponentInitialize = wcsstr(modulePath, L"RejectComponent.vst3") != nullptr;
 	componentStateUnavailable = wcsstr(modulePath, L"ControllerState.vst3") != nullptr;
 	upmixerMode = wcsstr(modulePath, L"Upmixer.vst3") != nullptr;
+	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr;
+	surround41AcceptedOutputArrangement.store(
+		static_cast<unsigned long long>(SpeakerArr::kStereo));
 	moduleInitialized = true;
 	return true;
 }
@@ -1039,6 +1206,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	rejectComponentInitialize = false;
 	componentStateUnavailable = false;
 	upmixerMode = false;
+	surround41Mode = false;
 	return true;
 }
 
@@ -1048,6 +1216,14 @@ extern "C" __declspec(dllexport) bool ExitDll()
 extern "C" __declspec(dllexport) int GetUpmixerComponentCount()
 {
 	return upmixerComponentCount.load();
+}
+
+// In-process test hook for Surround41.vst3 mode: returns the speaker mask of
+// the output arrangement the component last accepted, so the host test can
+// prove which layout the negotiation actually landed on.
+extern "C" __declspec(dllexport) unsigned long long GetSurround41AcceptedOutputArrangement()
+{
+	return surround41AcceptedOutputArrangement.load();
 }
 
 extern "C" __declspec(dllexport) IPluginFactory* PLUGIN_API GetPluginFactory()

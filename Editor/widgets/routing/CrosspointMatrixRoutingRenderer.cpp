@@ -48,8 +48,33 @@ void CrosspointMatrixView::rebuildMatrix()
 	for (int row : rowMap)
 		visible.push_back(workingAssignments[row]);
 	matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
+	updateMetrics();
 	syncSizeToHint();
 	update();
+}
+
+void CrosspointMatrixView::updateMetrics()
+{
+	// The stock cell widths fit a Copy row's short device names (L, R,
+	// SL, ...). The subwoofer crossover dialog posts channels like
+	// FrontBass and SourceLFE on the same board, and a pill narrower than
+	// its caption clipped it to fragments ("rontBas"). The caption font
+	// decides the width a column really needs.
+	QFont monoFont(SkinManager::instance()->tokens().monoFontFamily);
+	monoFont.setPixelSize(11);
+	const QFontMetrics fm(monoFont);
+
+	int longestInput = 0;
+	for (const QString& ch : matrix.inputs)
+		longestInput = qMax(longestInput, fm.horizontalAdvance(ch));
+	int longestOutput = 0;
+	for (const QString& out : matrix.outputs)
+		longestOutput = qMax(longestOutput, fm.horizontalAdvance(out));
+
+	// Column pills inset the header cell by 6+6, row pills by 6+8, and the
+	// caption keeps a little air inside the pill.
+	cellW = qMax(52, longestInput + 20);
+	rowHeaderWidth = qMax(64, longestOutput + 22);
 }
 
 std::vector<Assignment> CrosspointMatrixView::assignments() const

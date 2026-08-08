@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -128,27 +128,27 @@
     <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)deps\muparserx\build\Release</MUPARSERX_LIB>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE)</IncludePath>
+    <IncludePath>$(SolutionDir);$(IncludePath);$(LIBSNDFILE_INCLUDE);$(MUPARSERX_INCLUDE);$(FFTW_INCLUDE);$(VST3_SDK);$(HIGHWAY_INCLUDE);$(MSBuildThisFileDirectory)SubwooferRoutingCore\include</IncludePath>
     <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -323,6 +323,9 @@
     <ClInclude Include="filters\MultiConvolutionCommand.h" />
     <ClInclude Include="filters\MultiConvolutionFilter.h" />
     <ClInclude Include="filters\MultiConvolutionFilterFactory.h" />
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingCommand.h" />
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingFilter.h" />
+    <ClInclude Include="filters\subwooferRouting\SubwooferRoutingFilterFactory.h" />
     <ClInclude Include="filters\HilbertCommand.h" />
     <ClInclude Include="filters\HilbertFilter.h" />
     <ClInclude Include="filters\HilbertFilterFactory.h" />
@@ -365,6 +368,14 @@
     <ClInclude Include="helpers\aeffectx.h" />
     <ClInclude Include="helpers\ChannelHelper.h" />
     <ClInclude Include="helpers\ComBoundary.h" />
+    <ClInclude Include="helpers\ComPtr.h" />
+    <ClInclude Include="helpers\MxcsrGuard.h" />
+    <ClInclude Include="helpers\Win32Event.h" />
+    <ClInclude Include="helpers\PathHelper.h" />
+    <ClInclude Include="devices\DeviceAPOInfoKeys.h" />
+    <ClInclude Include="devices\DeviceInstallReport.h" />
+    <ClInclude Include="devices\VoicemeeterDetection.h" />
+    <ClInclude Include="libHybridConv-0.1.1\HcAlignedStorage.h" />
     <ClInclude Include="helpers\FileSharingRetry.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\IRegistry.h" />
@@ -430,6 +441,9 @@
     <ClCompile Include="filters\MultiConvolutionCommand.cpp" />
     <ClCompile Include="filters\MultiConvolutionFilter.cpp" />
     <ClCompile Include="filters\MultiConvolutionFilterFactory.cpp" />
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingCommand.cpp" />
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingFilter.cpp" />
+    <ClCompile Include="filters\subwooferRouting\SubwooferRoutingFilterFactory.cpp" />
     <ClCompile Include="filters\HilbertCommand.cpp" />
     <ClCompile Include="filters\HilbertFilter.cpp" />
     <ClCompile Include="filters\HilbertFilterFactory.cpp" />

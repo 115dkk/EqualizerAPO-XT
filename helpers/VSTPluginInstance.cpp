@@ -432,12 +432,23 @@ bool VSTPluginInstance::initialize()
 	// initializeVST2 must stay free of objects requiring stack unwinding because it
 	// uses a __try/__except guard (MSVC C2712), so log its failure reasons here where
 	// constructing the std::wstring temporary from getLibPath is allowed.
-	bool result = initializeVST2();
-	if (!result)
+	// Audit #250 F040: the loader now reports which of its three failure
+	// modes happened instead of blaming every one on "an exception".
+	switch (initializeVST2())
+	{
+	case Vst2LoadResult::Loaded:
+		return true;
+	case Vst2LoadResult::Crashed:
 		LogF(L"Loading VST2 plugin %s failed due to an exception.", library->getLibPath().c_str());
-	else if (effect == NULL)
+		return false;
+	case Vst2LoadResult::NoEntryPoint:
+		LogF(L"VST2 plugin %s returned no effect from its entry point, not loading it.", library->getLibPath().c_str());
+		return false;
+	case Vst2LoadResult::WrongMagicNumber:
+	default:
 		LogF(L"VST2 plugin %s has wrong magic number, not loading it.", library->getLibPath().c_str());
-	return result;
+		return false;
+	}
 }
 
 int VSTPluginInstance::numInputs() const
@@ -458,6 +469,16 @@ int VSTPluginInstance::numOutputs() const
 		return 0;
 
 	return effect->num_outputs;
+}
+
+const std::vector<int>& VSTPluginInstance::getVST3InputChannelMapping() const
+{
+	return vst3InputChannelMapping;
+}
+
+const std::vector<int>& VSTPluginInstance::getVST3OutputChannelMapping() const
+{
+	return vst3OutputChannelMapping;
 }
 
 bool VSTPluginInstance::canReplacing() const
@@ -524,6 +545,11 @@ bool VSTPluginInstance::canDoubleReplacing() const
 {
 	if (library->isVST3())
 		return vst3SupportsDouble;
+	// Audit #250 F037: the sibling accessors all guard the unloaded case;
+	// this one is currently unreachable without an effect, but it is one
+	// refactoring away from being the exception.
+	if (effect == NULL)
+		return false;
 	return (effect->flags & VST_EFFECT_FLAG_SUPPORTS_DOUBLE) != 0;
 }
 

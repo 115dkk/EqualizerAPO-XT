@@ -93,9 +93,8 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 	ui->setupUi(this);
 	resize(GUIHelper::scale(QSize(1024, 768)));
 
-	QString version = QString("%0.%1").arg(MAJOR).arg(MINOR);
-	if (REVISION != 0)
-		version += QString(".%0").arg(REVISION);
+	// Audit #250 F019: one display-version rule for all binaries (version.h).
+	QString version = QString::fromStdWString(eapoDisplayVersionW());
 	setWindowTitle(tr("Equalizer APO %0 Configuration Editor").arg(version));
 
 	// Custom window chrome (title bar + menu bar in the menu-widget slot);

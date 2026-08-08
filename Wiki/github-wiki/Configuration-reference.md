@@ -238,6 +238,22 @@ Velvet: Mode=Dynamic Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5
 
 The Editor shows the sparse response, tap and correlation statistics, the dynamic controls only when they apply, and an Advanced fold for density, transition, decay and variation. Frequency-response analysis freezes a dynamic filter to its deterministic static snapshot and labels the graph accordingly, so an evolving response is never presented as a stationary measurement.
 
+### SubwooferRouting
+**Syntax:** `SubwooferRouting: State <compact JSON state>`
+**Syntax:** `SubwooferRouting: Profile <profile file (*.swxt.json)>`
+
+Runs a complete subwoofer-routing stage in one line: per-speaker-group crossovers, dedicated bass paths, preservation of the physical LFE input as its own source path, per-path gain/polarity/delay/EQ, and an output matrix that sums the processed paths back onto the physical channels. It replaces the `Copy` → `Channel` → `Filter` → `Copy` chains that such setups otherwise need. The command sees all channels regardless of the current `Channel:` selection, and channels the state does not reference pass through untouched.
+
+The state is a JSON document with schema `equalizerapo.xt.subwoofer-routing`. `State` carries it inline; `Profile` reads the same JSON from a UTF-8 file, relative to the configuration file, optionally quoted, with environment variables such as `%USERPROFILE%` allowed. The state names physical inputs, mixes them into named main/bass/source-LFE paths (a source-LFE path reads the original LFE input even when the output matrix later rewrites the LFE output), processes each path, and mixes the paths onto the outputs. Headroom is either automatic (the compiled response is analyzed from 20 Hz to Nyquist and a common trim keeps the predicted peak at or below 0 dBFS) or a manual trim in dB.
+
+```
+SubwooferRouting: Profile "SubwooferRouting\Issue 246 Front Rear 4.1.swxt.json"
+```
+
+The built-in preset `Issue #246 - Front/Rear 4.1` reproduces the front/rear 4.1 configuration from issue #246: front mains high-passed at 80 Hz with a 4th-order 80 Hz front bass path, rear mains at 100 Hz with a 60 Hz rear bass path, the LFE input preserved at +10 dB, and a summing matrix with -14 dB feeds into the LFE output. Its output matches the original low-level filter chain sample for sample.
+
+An invalid or unreadable state never mutes audio: the line reports its error in the log and the analysis panel, and the rest of the configuration keeps running. The Editor edits the same state as a card; the standalone `EAPO XT Subwoofer Routing` VST3 plugin runs the identical DSP core and exchanges the same JSON via its plugin state, so presets move between the two unchanged.
+
 ## Control commands
 These do not change the audio directly; they control which commands run and how they apply.
 

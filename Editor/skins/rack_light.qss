@@ -1178,6 +1178,139 @@ QToolButton#VelvetAdvancedToggle {
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
 
+
+
+/* Subwoofer Routing unit: brushed faceplate instruments, engraved identity
+   lines, visible service-state stamps and raised momentary machine keys. */
+RackSubwooferRoutingCardView,
+RackCrossoverReadout,
+RackLfeLamp,
+RackHeadroomMeter,
+QWidget#RackBassHeader,
+QWidget#RackBassInstrumentRow,
+QWidget#RackBassActionHost {
+    background: transparent;
+    border: 0;
+}
+
+QLabel#RackBassValidity {
+    background: #EEE7DA;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 2px;
+    padding: 3px 8px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QLabel#RackBassValidity[severity="valid"] {
+    background: #DDEFE5;
+    color: #0D5D3F;
+    border-color: @ACCENT2@;
+}
+QLabel#RackBassValidity[severity="warning"] {
+    background: #F6E5BF;
+    color: #6A4300;
+    border-color: @WARNING@;
+}
+QLabel#RackBassValidity[severity="error"] {
+    background: #F3D8D2;
+    color: #7E251B;
+    border-color: @DANGER@;
+}
+
+QLabel#RackBassLayout {
+    background: transparent;
+    color: @TEXT@;
+    border: 0;
+    padding: 1px 2px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 11pt;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+QLabel#RackBassProfile {
+    background: transparent;
+    color: @MUTED@;
+    border: 0;
+    padding: 1px 2px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+QLabel#RackBassProfile[severity="warning"] {
+    color: @WARNING@;
+}
+
+QLabel#RackBassStatus {
+    background: #F6E5BF;
+    color: #6A4300;
+    border: 1px solid @WARNING@;
+    border-left: 4px solid @WARNING@;
+    border-radius: 2px;
+    padding: 5px 8px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 9pt;
+    font-weight: 700;
+}
+QLabel#RackBassStatus[severity="error"] {
+    background: #F3D8D2;
+    color: #7E251B;
+    border-color: @DANGER@;
+    border-left-color: @DANGER@;
+}
+
+QToolButton#RackBassActionButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFFDF6, stop:0.12 #F8F1E4, stop:1 #DDD4C5);
+    color: @TEXT@;
+    border: 1px solid #9C907A;
+    border-top-color: #FFFFFF;
+    border-bottom-color: #8F8268;
+    border-radius: 3px;
+    min-width: 88px;
+    min-height: 40px;
+    padding: 7px 12px;
+    font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+QToolButton#RackBassActionButton:hover,
+QToolButton#RackBassActionButton:focus {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFFFFF, stop:0.12 #FFF8E9, stop:1 #E8DDC9);
+    color: @TEXT@;
+    border-color: @ACCENT@;
+    border-top-color: #FFFFFF;
+}
+QToolButton#RackBassActionButton:pressed,
+QToolButton#RackBassActionButton:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #CFC3B0, stop:1 #E8DDC9);
+    color: @TEXT@;
+    border-color: @ACCENT@;
+    border-top-color: #8F8268;
+    border-bottom-color: #FFF8E9;
+    padding: 8px 12px 6px 12px;
+}
+QToolButton#RackBassActionButton:disabled {
+    background: #DDD6CA;
+    color: #998F7D;
+    border-color: #C9BFAE;
+    border-top-color: #D8D0C3;
+}
+QToolButton#RackBassActionButton::menu-indicator {
+    image: none;
+    width: 0;
+    height: 0;
+}
+
 /* A checked box carries a real check glyph (dark ink on the lit amber cap);
    without an image the stylesheet engine showed only the filled cap. The
    partially-checked state gets a dash on the same cap - the base rules

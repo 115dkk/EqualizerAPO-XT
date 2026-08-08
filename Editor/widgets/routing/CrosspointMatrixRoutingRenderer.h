@@ -42,6 +42,7 @@ protected:
 
 private:
 	void rebuildMatrix();
+	void updateMetrics();
 	Assignment& rowAssignment(int outRow);
 	int summandIndex(int outRow, const QString& channel) const;
 	QRect cellRect(int outRow, int inCol) const;

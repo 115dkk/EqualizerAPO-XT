@@ -372,6 +372,9 @@
     <QtRcc Include="UpdateChecker.qrc" />
     <QtUic Include="UpdateChecker.ui" />
     <QtMoc Include="UpdateChecker.h" />
+    <ClCompile Include="..\Editor\helpers\QtAppBootstrap.cpp" />
+    <ClCompile Include="..\helpers\LogHelper.cpp" />
+    <ClCompile Include="..\helpers\RegistryHelper.cpp" />
     <ClCompile Include="..\helpers\StringHelper.cpp" />
     <ClCompile Include="AutoSizeTextEdit.cpp" />
     <ClCompile Include="UpdateChecker.cpp" />

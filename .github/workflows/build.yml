@@ -22,7 +22,6 @@ permissions:
   artifact-metadata: write
 
 env:
-  SOLUTION_FILE: EqualizerAPO.sln
   BUILD_CONFIGURATION: Release
 
 jobs:
@@ -497,7 +496,8 @@ jobs:
           -Platform "${{ matrix.platform }}" `
           -SimdVariant "${{ matrix.simd_variant }}" `
           -QtArchFlag "${{ matrix.qt_arch_flag }}" `
-          -MsvcDevPlatform "${{ matrix.msvcdevplatform }}"
+          -MsvcDevPlatform "${{ matrix.msvcdevplatform }}" `
+          -UpdateChannel "${{ matrix.channel }}"
 
 
     # Offscreen skin gallery: proves the Editor renders every skin headless and
@@ -669,6 +669,7 @@ jobs:
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/platforms/
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/styles/
           ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/tls/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/VST3/
         if-no-files-found: error
         retention-days: 90
 
@@ -714,6 +715,12 @@ jobs:
     #   I/O members are consumed inside the processImpl member template;
     #   cppcheck does not analyze template instantiations, so it reports every
     #   trait member as unused (false positive).
+    # - libHybridConv-0.1.1 (audit #250 F061): only the pristine-reference
+    #   files (libHybridConv.c/.h, hcTest.c) stay excluded as third-party.
+    #   The _eapo fork of that code is first-party DSP under active change,
+    #   so it is analyzed like the rest of the tree. Its C-style structs are
+    #   initialized by hcInitSingle/hcFree by design, hence the scoped
+    #   uninitMemberVarNoCtor suppression.
     - name: Run cppcheck
       run: |
         "$HOME/cppcheck-install/bin/cppcheck" \
@@ -736,12 +743,16 @@ jobs:
           --suppress=unknownMacro:helpers/VSTPluginInstanceInternal.h \
           --suppress=unknownMacro:helpers/VSTPluginLibrary.cpp \
           --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
-          --suppress=*:libHybridConv-0.1.1/* \
+          --suppress=*:libHybridConv-0.1.1/libHybridConv.c \
+          --suppress=*:libHybridConv-0.1.1/libHybridConv.h \
+          --suppress=*:libHybridConv-0.1.1/hcTest.c \
+          --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \
           --error-exitcode=1 \
           --quiet \
           --std=c++17 \
-          -i libHybridConv-0.1.1 \
+          -i libHybridConv-0.1.1/libHybridConv.c \
+          -i libHybridConv-0.1.1/hcTest.c \
           -i deps \
           --output-file=cppcheck-report.txt \
           . || failed=1
@@ -828,7 +839,8 @@ jobs:
         path: artifacts
 
     - name: Install numpy
-      run: python3 -m pip install --quiet numpy
+      # Audit #250 F060: pinned like the rest of the toolchain.
+      run: python3 -m pip install --quiet numpy==2.3.2
 
     - name: Compare SIMD variants
       env:
@@ -949,7 +961,18 @@ jobs:
 
         foreach ($artifact in $buildArtifacts) {
           $variant = $artifact.Name.Substring("EqualizerAPO-".Length)
-          $channel = ($variant -replace "_", "-").ToLowerInvariant()
+          # Audit #250 F066: resolve the channel from the manifest (the
+          # artifact name is "<platform>-<simd>") instead of re-deriving it
+          # by string convention, which nothing asserted.
+          $sep = $variant.IndexOf('-')
+          $variantPlatform = $variant.Substring(0, $sep)
+          $variantSimd = $variant.Substring($sep + 1)
+          $variantEntry = $manifest.Variants | Where-Object { $_.Platform -eq $variantPlatform -and $_.Simd -eq $variantSimd } | Select-Object -First 1
+          if (-not $variantEntry) {
+            Write-Error "Artifact $($artifact.Name) has no matching variant in simd-variants.psd1"
+            exit 1
+          }
+          $channel = $variantEntry.Channel
           if ($missingChannels -notcontains $channel) {
             Write-Host "Channel $channel is already complete on $tag; skipping."
             continue

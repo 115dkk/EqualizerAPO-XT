@@ -33,6 +33,7 @@
 #include <objidl.h>
 
 #include "devices/AbstractAPOInfo.h"
+#include "PathHelper.h"
 #include "AudioEngineAccess.h"
 #include "ComPtr.h"
 #include "devices/DeviceAPOInfo.h"
@@ -48,27 +49,10 @@ constexpr wchar_t kAudioRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\W
 constexpr wchar_t kAudioServiceName[] = L"AudioSrv";
 constexpr wchar_t kAudioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";
 
-std::wstring joinPath(const std::wstring& a, const std::wstring& b)
-{
-	if (a.empty())
-		return b;
-	wchar_t last = a.back();
-	if (last == L'\\' || last == L'/')
-		return a + b;
-	return a + L"\\" + b;
-}
-
-bool fileExists(const std::wstring& path)
-{
-	DWORD attrs = GetFileAttributesW(path.c_str());
-	return attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
-}
-
-bool directoryExists(const std::wstring& path)
-{
-	DWORD attrs = GetFileAttributesW(path.c_str());
-	return attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
-}
+// Audit #250 F018: the shared path vocabulary lives in PathHelper.h.
+using pathutil::joinPath;
+using pathutil::fileExists;
+using pathutil::directoryExists;
 
 bool createDirectoryRecursive(const std::wstring& path)
 {
@@ -143,7 +127,15 @@ ApoRegistration::Result ApoRegistration::install(const std::wstring& installDir)
 		RegistryHelper::writeValue(kRegPath, L"InstallPath", installDir);
 
 		std::wstring configDir = joinPath(installDir, L"config");
-		createDirectoryRecursive(configDir);
+		// Audit #250 F034: an ignored failure here used to report Success
+		// while ConfigPath pointed at a directory that does not exist -
+		// "installed but doing nothing".
+		if (!createDirectoryRecursive(configDir))
+		{
+			logLine(L"ERR", L"Could not create config directory %s",
+				configDir.c_str());
+			return Result::RegistryFailed;
+		}
 
 		if (!RegistryHelper::valueExists(kRegPath, L"ConfigPath"))
 			RegistryHelper::writeValue(kRegPath, L"ConfigPath", configDir);

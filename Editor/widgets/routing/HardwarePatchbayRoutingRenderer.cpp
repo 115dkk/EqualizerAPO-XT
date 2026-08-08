@@ -43,8 +43,34 @@ void HardwarePatchbayView::rebuildMatrix()
 	for (int row : rowMap)
 		visible.push_back(workingAssignments[row]);
 	matrix = CopyRoutingAdapter::buildMatrix(visible, fold.inputs);
+	updateMetrics();
 	syncSizeToHint();
 	update();
+}
+
+void HardwarePatchbayView::updateMetrics()
+{
+	// The stock faceplate widths fit the short device names of a Copy row
+	// (L, R, SL, ...). The subwoofer crossover dialog mounts channels like
+	// FrontBass and SourceLFE on the same panel, and an engraved label
+	// longer than its column was clipped to fragments ("ntBass"). The
+	// engraving font decides the width a column really needs.
+	QFont label(SkinManager::instance()->tokens().monoFontFamily);
+	label.setPixelSize(11);
+	label.setLetterSpacing(QFont::AbsoluteSpacing, 1);
+	const QFontMetrics fm(label);
+
+	int longestInput = 0;
+	for (const QString& ch : matrix.inputs)
+		longestInput = qMax(longestInput, fm.horizontalAdvance(ch));
+	int longestOutput = 0;
+	for (const QString& out : matrix.outputs)
+		longestOutput = qMax(longestOutput, fm.horizontalAdvance(out));
+
+	cellW = qMax(56, longestInput + 12);
+	// The row label right-aligns into rowHeaderWidth - 11 (the unpatch
+	// target's slot stays clear).
+	rowHeaderWidth = qMax(60, longestOutput + 17);
 }
 
 std::vector<Assignment> HardwarePatchbayView::assignments() const

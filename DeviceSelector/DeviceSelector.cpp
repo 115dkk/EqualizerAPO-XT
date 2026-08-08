@@ -99,9 +99,8 @@ void DeviceSelector::setupChrome()
 
 	setWindowFlags(windowFlags().setFlag(Qt::WindowContextHelpButtonHint, false));
 
-	QString version = QString("%0.%1").arg(MAJOR).arg(MINOR);
-	if (REVISION != 0)
-		version += QString(".%0").arg(REVISION);
+	// Audit #250 F019: one display-version rule for all binaries (version.h).
+	QString version = QString::fromStdWString(eapoDisplayVersionW());
 	setWindowTitle(QString("Equalizer APO %0 Device Selector").arg(version));
 
 	// The device list renders through the active skin's painter; the tree

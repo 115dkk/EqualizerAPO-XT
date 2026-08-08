@@ -50,13 +50,24 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 	case VST_HOST_OPCODE_CURRENT_EFFECT_ID:
 		return equalizerApoVSTID;
 
-	case VST_EFFECT_OPCODE_PRODUCT_NAME:
+	// Audit #250 F027: these two cases used to be spelled with the effect
+	// constants (0x30/0x31). In the host callback 0x31 is
+	// VST_HOST_OPCODE_GET_INPUT_SPEAKER_ARRANGEMENT, whose contract returns
+	// a pointer - answering it with a version integer invited plugins to
+	// dereference it inside audiodg. The host product/vendor queries are
+	// 0x21/0x22.
+	case VST_HOST_OPCODE_PRODUCT_NAME:
 		strcpy_s((char*) ptr, 64, "Equalizer APO");
 		return 1;
 
-	case VST_EFFECT_OPCODE_VENDOR_VERSION:
+	case VST_HOST_OPCODE_VENDOR_VERSION:
 		// The low byte (a fourth version component) is always zero.
 		return (intptr_t) (MAJOR << 24 | MINOR << 16 | REVISION << 8);
+
+	case VST_HOST_OPCODE_GET_INPUT_SPEAKER_ARRANGEMENT:
+		// Pointer contract; we do not provide an arrangement. Returning 0
+		// (null) is the documented "not supported" answer.
+		return 0;
 
 	case VST_HOST_OPCODE_PIN_CONNECTED:
 		if (instance != NULL)
@@ -129,14 +140,22 @@ static intptr_t callback(struct vst_effect_t* effect, int32_t opcode, int32_t in
 	return 0;
 }
 
-bool VSTPluginInstance::initializeVST2()
+VSTPluginInstance::Vst2LoadResult VSTPluginInstance::initializeVST2()
 {
-	bool result = true;
+	Vst2LoadResult result = Vst2LoadResult::Loaded;
 
 	__try
 	{
 		vst_effect_t* candidate = library->VSTPluginMain(callback);
-		if (candidate != NULL && candidate->magic_number == VST_MAGICNUMBER)
+		if (candidate == NULL)
+		{
+			result = Vst2LoadResult::NoEntryPoint;
+		}
+		else if (candidate->magic_number != VST_MAGICNUMBER)
+		{
+			result = Vst2LoadResult::WrongMagicNumber;
+		}
+		else
 		{
 			effect.reset(candidate);
 			effect->host_internal = this;
@@ -144,14 +163,10 @@ bool VSTPluginInstance::initializeVST2()
 
 			usedChannelCount = max(numInputs(), numOutputs());
 		}
-		else
-		{
-			result = false;
-		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		result = false;
+		result = Vst2LoadResult::Crashed;
 	}
 
 	return result;

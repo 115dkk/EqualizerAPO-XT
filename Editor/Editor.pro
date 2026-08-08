@@ -11,6 +11,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Editor
 TEMPLATE = app
 
+# Object files mirror the source tree. Without this, qmake drops every object
+# into one directory by basename, and ../filters/velvet/Processor.cpp then
+# collides with ../SubwooferRoutingCore/src/Processor.cpp (last one wins at
+# link time).
+CONFIG += object_parallel_to_source
+
 PRECOMPILED_HEADER = stable.h
 QMAKE_CXXFLAGS_WARN_ON -= -w34100
 QMAKE_LFLAGS += /STACK:32000000
@@ -123,6 +129,7 @@ SOURCES += main.cpp\
 	guis/MultiConvolutionFilterGUIFactory.cpp \
 	guis/MultiConvolutionFilterGUI.cpp \
 	guis/SpatialFilterGUIFactory.cpp \
+	guis/SubwooferRoutingFilterGUIFactory.cpp \
 	helpers/ConvolutionPathHelper.cpp \
 	helpers/DisableWheelFilter.cpp \
 	widgets/EscapableLineEdit.cpp \
@@ -171,6 +178,16 @@ SOURCES += main.cpp\
 	../filters/MultiConvolutionCommand.cpp \
 	../filters/MultiConvolutionFilter.cpp \
 	../filters/MultiConvolutionFilterFactory.cpp \
+	../filters/subwooferRouting/SubwooferRoutingCommand.cpp \
+	../filters/subwooferRouting/SubwooferRoutingFilter.cpp \
+	../filters/subwooferRouting/SubwooferRoutingFilterFactory.cpp \
+	../SubwooferRoutingCore/src/Compiler.cpp \
+	../SubwooferRoutingCore/src/Crossover.cpp \
+	../SubwooferRoutingCore/src/Graph.cpp \
+	../SubwooferRoutingCore/src/Json.cpp \
+	../SubwooferRoutingCore/src/Preset.cpp \
+	../SubwooferRoutingCore/src/Processor.cpp \
+	../SubwooferRoutingCore/src/StateCodec.cpp \
 	../filters/HilbertCommand.cpp \
 	../filters/HilbertFilter.cpp \
 	../filters/HilbertFilterFactory.cpp \
@@ -243,6 +260,12 @@ SOURCES += main.cpp\
 	widgets/cards/ChannelCardEditor.cpp \
 	widgets/cards/ChannelSelectionModel.cpp \
 	widgets/cards/ConvolutionCardEditor.cpp \
+	widgets/cards/SubwooferRoutingCardEditor.cpp \
+	widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp \
+	widgets/subwooferrouting/SubwooferRoutingResponseView.cpp \
+	widgets/subwooferrouting/SubwooferRoutingUiModel.cpp \
+	widgets/routing/SubwooferRoutingRoutingAdapter.cpp \
+	widgets/cards/SubwooferRoutingCardView.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
@@ -269,6 +292,11 @@ SOURCES += main.cpp\
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	skins/cards/StudioReferenceCardView.cpp \
+	skins/cards/StudioSubwooferRoutingCardView.cpp \
+	skins/cards/MinimalSubwooferRoutingCardView.cpp \
+	skins/cards/SoftSubwooferRoutingCardView.cpp \
+	skins/cards/RackSubwooferRoutingCardView.cpp \
+	skins/cards/MatrixSubwooferRoutingCardView.cpp \
 	skins/cards/MinimalReferenceCardView.cpp \
 	skins/cards/SoftReferenceCardView.cpp \
 	skins/cards/RackReferenceCardView.cpp \
@@ -324,7 +352,9 @@ HEADERS  += \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \
+	helpers/EditorSettings.h \
 	helpers/GUIHelper.h \
+	helpers/WindowFrameHitTest.h \
 	helpers/QtAppBootstrap.h \
 	stable.h \
 	IFilterGUI.h \
@@ -402,6 +432,7 @@ HEADERS  += \
 	guis/MultiConvolutionFilterGUIFactory.h \
 	guis/MultiConvolutionFilterGUI.h \
 	guis/SpatialFilterGUIFactory.h \
+	guis/SubwooferRoutingFilterGUIFactory.h \
 	helpers/AnalysisWorkerRecovery.h \
 	helpers/ConvolutionPathHelper.h \
 	helpers/DisableWheelFilter.h \
@@ -438,6 +469,9 @@ HEADERS  += \
 	../filters/ConvolutionCommand.h \
 	../filters/ConvolutionFilter.h \
 	../filters/IrCache.h \
+	../filters/subwooferRouting/SubwooferRoutingCommand.h \
+	../filters/subwooferRouting/SubwooferRoutingFilter.h \
+	../filters/subwooferRouting/SubwooferRoutingFilterFactory.h \
 	../filters/HilbertCommand.h \
 	../filters/HilbertFilter.h \
 	../filters/HilbertFilterFactory.h \
@@ -503,6 +537,12 @@ HEADERS  += \
 	widgets/cards/ChannelCardEditor.h \
 	widgets/cards/ChannelSelectionModel.h \
 	widgets/cards/ConvolutionCardEditor.h \
+	widgets/cards/SubwooferRoutingCardEditor.h \
+	widgets/subwooferrouting/SubwooferRoutingEditorDialog.h \
+	widgets/subwooferrouting/SubwooferRoutingResponseView.h \
+	widgets/subwooferrouting/SubwooferRoutingUiModel.h \
+	widgets/routing/SubwooferRoutingRoutingAdapter.h \
+	widgets/cards/SubwooferRoutingCardView.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
@@ -527,6 +567,11 @@ HEADERS  += \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTCardEditor.h \
 	skins/cards/StudioReferenceCardView.h \
+	skins/cards/StudioSubwooferRoutingCardView.h \
+	skins/cards/MinimalSubwooferRoutingCardView.h \
+	skins/cards/SoftSubwooferRoutingCardView.h \
+	skins/cards/RackSubwooferRoutingCardView.h \
+	skins/cards/MatrixSubwooferRoutingCardView.h \
 	skins/cards/MinimalReferenceCardView.h \
 	skins/cards/SoftReferenceCardView.h \
 	skins/cards/RackReferenceCardView.h \
@@ -654,7 +699,7 @@ contains(QT_ARCH, arm64) {
 	DEFINES += EAPO_UPDATE_CHANNEL=\\\"$$EAPO_UPDATE_CHANNEL\\\"
 }
 
-INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
+INCLUDEPATH += $$PWD/.. $$PWD/../SubwooferRoutingCore/include $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE $$VELOPACK_INCLUDE $$VST3_SDK $$HIGHWAY_INCLUDE
 LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib $$VELOPACK_IMPORT_LIB
 
 build_pass:CONFIG(debug, debug|release) {

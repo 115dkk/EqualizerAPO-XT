@@ -34,12 +34,13 @@ namespace FilterFactoryPriority
 	constexpr int Preamp = 8;
 	constexpr int Delay = 9;
 	constexpr int Copy = 10;
-	constexpr int Convolution = 11;
-	constexpr int Hilbert = 12;
-	constexpr int Velvet = 13;
-	constexpr int GraphicEQ = 14;
-	constexpr int VSTPlugin = 15;
-	constexpr int LoudnessCorrection = 16;
+	constexpr int SubwooferRouting = 11;
+	constexpr int Convolution = 12;
+	constexpr int Hilbert = 13;
+	constexpr int Velvet = 14;
+	constexpr int GraphicEQ = 15;
+	constexpr int VSTPlugin = 16;
+	constexpr int LoudnessCorrection = 17;
 }
 
 class FilterFactoryRegistry

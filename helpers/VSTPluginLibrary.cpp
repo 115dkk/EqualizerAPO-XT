@@ -318,21 +318,24 @@ wstring VSTPluginLibrary::resolveVST3ModulePath(const wstring& libPath)
 	const wchar_t* platformDir = L"x86-win";
 #endif
 
-	wchar_t searchPath[MAX_PATH];
-	wcscpy_s(searchPath, libPath.c_str());
-	PathAppendW(searchPath, L"Contents");
-	PathAppendW(searchPath, platformDir);
-	PathAppendW(searchPath, L"*.vst3");
+	// Audit #250 F031: the path comes from a user-written config line, and
+	// a >= MAX_PATH value used to trip wcscpy_s's invalid-parameter handler
+	// and terminate the process. Build the paths dynamically instead - a
+	// too-long path then simply fails to resolve.
+	std::wstring platformBase = libPath;
+	while (!platformBase.empty()
+		&& (platformBase.back() == L'\\' || platformBase.back() == L'/'))
+	{
+		platformBase.pop_back();
+	}
+	platformBase += L"\\Contents\\";
+	platformBase += platformDir;
 
 	WIN32_FIND_DATAW findData;
-	winutil::UniqueFindHandle find(FindFirstFileW(searchPath, &findData));
+	winutil::UniqueFindHandle find(
+		FindFirstFileW((platformBase + L"\\*.vst3").c_str(), &findData));
 	if (!find)
 		return libPath;
 
-	wchar_t modulePath[MAX_PATH];
-	wcscpy_s(modulePath, libPath.c_str());
-	PathAppendW(modulePath, L"Contents");
-	PathAppendW(modulePath, platformDir);
-	PathAppendW(modulePath, findData.cFileName);
-	return modulePath;
+	return platformBase + L"\\" + findData.cFileName;
 }

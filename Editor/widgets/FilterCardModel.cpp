@@ -4,9 +4,12 @@
 #include <QRegularExpression>
 
 #include <utility>
+#include <variant>
 
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "SubwooferRouting/StateCodec.h"
+#include "filters/subwooferRouting/SubwooferRoutingCommand.h"
 #include "filters/BiQuadCommand.h"
 #include "filters/HilbertCommand.h"
 #include "filters/VelvetCommand.h"
@@ -538,6 +541,109 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		descriptor.title = tr("Loudness");
 		descriptor.color = QStringLiteral("#eab308");
 	}
+	else if (keyword == QStringLiteral("SubwooferRouting"))
+	{
+		descriptor.type = QStringLiteral("subwooferrouting");
+		descriptor.badge = QStringLiteral("SUB");
+		descriptor.title = tr("Subwoofer routing");
+		descriptor.color = QStringLiteral("#84cc16");
+
+		// Keep card-list work bounded. The full editor owns profile I/O and
+		// detailed validation; the descriptor only summarizes an in-memory
+		// State payload or names a linked profile.
+		constexpr qsizetype maximumSummaryPayload = 1024 * 1024;
+		if (parameters.size() > maximumSummaryPayload)
+		{
+			descriptor.summary = tr("invalid state");
+		}
+		else
+		{
+			SubwooferRoutingCommand parsed;
+			if (!SubwooferRoutingCommand::parse(command.toStdWString(),
+				parameters.toStdWString(), parsed))
+			{
+				descriptor.summary = tr("invalid state");
+			}
+			else if (parsed.form == SubwooferRoutingCommand::Form::Profile)
+			{
+				QString path = QString::fromStdWString(parsed.payload);
+				if (path.size() >= 2 && path.front() == QLatin1Char('"')
+					&& path.back() == QLatin1Char('"'))
+				{
+					path = path.mid(1, path.size() - 2);
+				}
+				descriptor.summary = QFileInfo(path).fileName();
+				if (descriptor.summary.isEmpty())
+					descriptor.summary = path;
+			}
+			else
+			{
+				const std::string payload =
+					subwooferRoutingToUtf8(parsed.payload);
+				const subroute::StateDecodeResult decoded =
+					subroute::decodeState(payload);
+				if (!decoded.succeeded())
+				{
+					descriptor.summary = tr("invalid state");
+				}
+				else
+				{
+					int lfeChannels = 0;
+					for (const subroute::PhysicalChannel& channel
+						: decoded.state->layout.channels)
+					{
+						if (QString::fromUtf8(channel.id.data(),
+							static_cast<int>(channel.id.size()))
+							.compare(QStringLiteral("LFE"),
+								Qt::CaseInsensitive) == 0)
+						{
+							lfeChannels++;
+						}
+					}
+
+					// The header speaks the user's language: the layout and
+					// the crossover corner. Internal graph statistics (group
+					// and path counts) belong to the full editor.
+					double crossoverHz = 0.0;
+					for (const subroute::Path& path
+						: decoded.state->paths)
+					{
+						for (const subroute::PathStage& stage : path.chain)
+						{
+							const subroute::BiquadStage* biquad =
+								std::get_if<subroute::BiquadStage>(&stage);
+							if (biquad == nullptr)
+								continue;
+							if (biquad->filter.type
+								== subroute::BiquadType::HighPass
+								|| biquad->filter.type
+								== subroute::BiquadType::LowPass)
+							{
+								crossoverHz = biquad->filter.frequencyHz;
+								break;
+							}
+						}
+						if (crossoverHz > 0.0)
+							break;
+					}
+
+					const int mainChannels =
+						static_cast<int>(
+							decoded.state->layout.channels.size())
+						- lfeChannels;
+					const QString layout =
+						QStringLiteral("%1.%2")
+							.arg(mainChannels)
+							.arg(lfeChannels);
+					descriptor.summary = crossoverHz > 0.0
+						? tr("%1 - crossover %2 Hz")
+							.arg(layout)
+							.arg(QString::number(crossoverHz, 'g', 5))
+						: tr("%1 - full range").arg(layout);
+				}
+			}
+		}
+	}
 	else if (keyword == QStringLiteral("If") || keyword == QStringLiteral("ElseIf")
 		|| keyword == QStringLiteral("Else") || keyword == QStringLiteral("EndIf"))
 	{
@@ -673,6 +779,7 @@ QString FilterCardModel::commandIconResource(const QString& command, const QStri
 		{ "stage", "stage-chain" },
 		{ "copy", "route-channels" },
 		{ "loudnesscorrection", "loudness" },
+		{ "subwooferrouting", "subwoofer-routing" },
 		{ "if", "logic-if" },
 		{ "elseif", "logic-if" },
 		{ "else", "logic-if" },

@@ -5,14 +5,22 @@ param(
     [Parameter(Mandatory)] [string] $SimdVariant,
     [AllowEmptyString()] [string] $QtArchFlag,
     [Parameter(Mandatory)] [string] $MsvcDevPlatform,
+    # Audit #250 F066: CI passes matrix.channel; empty means "look it up in
+    # the manifest" (local runs). The old string convention
+    # ("x64-" + simd with _ -> -) could silently drift from the manifest's
+    # Channel field and publish under a different label.
+    [AllowEmptyString()] [string] $UpdateChannel,
     [switch] $PlanOnly
 )
 
-$updateChannel = if ($Platform -eq "ARM64") {
-    "arm64-neon"
-} else {
-    "x64-" + ($SimdVariant -replace "_", "-")
+if (-not $UpdateChannel) {
+    $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot ".." "simd-variants.psd1")
+    $lookupSimd = if ($Platform -eq "ARM64") { "neon" } else { $SimdVariant }
+    $entry = $manifest.Variants | Where-Object { $_.Platform -eq $Platform -and $_.Simd -eq $lookupSimd } | Select-Object -First 1
+    if (-not $entry) { throw "No variant in simd-variants.psd1 for $Platform/$lookupSimd" }
+    $UpdateChannel = $entry.Channel
 }
+$updateChannel = $UpdateChannel
 $requiredExes = @("Editor", "DeviceSelector", "UpdateChecker") |
     ForEach-Object { "build-$_-$Platform\release\$_.exe" }
 $plan = [pscustomobject]@{ UpdateChannel = $updateChannel; RequiredExecutables = $requiredExes }

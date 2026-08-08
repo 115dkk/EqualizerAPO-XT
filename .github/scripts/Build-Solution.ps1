@@ -10,8 +10,10 @@ param(
 )
 
 $projects = @(
+    "SubwooferRoutingCore\SubwooferRoutingCore.vcxproj",
     "Common.vcxproj",
     "Tests\TestVst2Plugin\TestVst2Plugin.vcxproj",
+    "VST3\SubwooferRouting\SubwooferRoutingVst3.vcxproj",
     "Tests\HybridConvTests\HybridConvTests.vcxproj",
     "Tests\EditorLogicTests\EditorLogicTests.vcxproj",
     "Tests\EngineOrchestrationTests\EngineOrchestrationTests.vcxproj",

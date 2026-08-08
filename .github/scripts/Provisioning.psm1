@@ -359,8 +359,15 @@ function Install-QtSdk {
     param(
         [Parameter(Mandatory)] [string]$WorkspaceRoot,
         [Parameter(Mandatory)] [ValidateSet('x64', 'ARM64')] [string]$Platform,
-        [string]$QtVersion = '6.10.1'
+        [string]$QtVersion
     )
+
+    # Audit #250 F059: the version default lives in simd-variants.psd1 so the
+    # CI path (this module) and the local path (setup-build.ps1) cannot drift.
+    if (-not $QtVersion) {
+        $manifest = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot "..\simd-variants.psd1")
+        $QtVersion = $manifest.Shared.QtVersion
+    }
 
     $configPath = Join-Path $WorkspaceRoot "aqt-settings.ini"
     Set-Content -Path $configPath -Encoding ASCII -Value @(
@@ -368,7 +375,9 @@ function Install-QtSdk {
         "concurrency: 1"
     )
 
-    python -m pip install --upgrade "setuptools>=70.1.0" "py7zr==1.0.*" "aqtinstall==3.2.*" | Out-Host
+    # Audit #250 F060: exact pins like every other tool in this pipeline -
+    # a floating minor can change extraction/install behaviour under CI.
+    python -m pip install --upgrade "setuptools==80.9.0" "py7zr==1.0.0" "aqtinstall==3.2.1" | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to install aqtinstall"
     }

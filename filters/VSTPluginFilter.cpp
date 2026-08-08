@@ -119,14 +119,20 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// channels.
 	const bool upmixerLayout = channelCount > 2
 		&& (forceStereoInput || isUpmixerSubCategory(library->getVST3SubCategories()));
-	const auto negotiateInstance = [upmixerLayout](VSTPluginInstance* effect, unsigned targetChannelCount)
+	const auto negotiateInstance = [upmixerLayout](VSTPluginInstance* effect, unsigned targetChannelCount,
+		const std::vector<std::wstring>& outputChannelNames)
 	{
+		effect->setChannelNameHints(outputChannelNames);
 		effect->negotiateChannelCount(static_cast<int>(targetChannelCount));
 		if (upmixerLayout && targetChannelCount > 2)
+		{
+			const std::vector<std::wstring> stereoInputNames = {L"L", L"R"};
+			effect->setBusChannelNameHints(stereoInputNames, outputChannelNames);
 			effect->negotiateBusChannelCounts(2, static_cast<int>(targetChannelCount));
+		}
 	};
 	if (channelCount <= kMaxPluginChannelCount)
-		negotiateInstance(firstEffect.get(), static_cast<unsigned>(channelCount));
+		negotiateInstance(firstEffect.get(), static_cast<unsigned>(channelCount), channelNames);
 
 	// Metadata is plugin-controlled. Snapshot it once, validate the signed
 	// values, and use only the cached values for every allocation and processing
@@ -163,6 +169,34 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		skipProcessing = true;
 		return channelNames;
 	}
+
+	const auto channelNameSlice = [&channelNames](size_t offset, size_t width)
+	{
+		const size_t end = (std::min)(channelNames.size(), offset + width);
+		if (offset >= end)
+			return std::vector<std::wstring>();
+		return std::vector<std::wstring>(channelNames.begin() + offset, channelNames.begin() + end);
+	};
+
+	// If the full-width proposal fell back to a narrower plugin layout, give
+	// the first split instance the same per-instance name slice as every
+	// additional instance. A partial final slice intentionally becomes
+	// non-semantic and therefore retains identity order.
+	if (requiredEffectCount > 1)
+	{
+		negotiateInstance(firstEffect.get(), effectChannelCount,
+			channelNameSlice(0, effectChannelCount));
+		if (firstEffect->numInputs() != reportedInputCount
+			|| firstEffect->numOutputs() != reportedOutputCount
+			|| firstEffect->getInitialDelay() != reportedLatency)
+		{
+			LogF(L"The VST plugin %s changed metadata while configuring its first split instance; passing audio through.",
+				libPath.c_str());
+			skipProcessing = true;
+			return channelNames;
+		}
+	}
+
 	effects.reserve(requiredEffectCount);
 	effects.push_back(std::move(firstEffect));
 	for (size_t i = 1; i < requiredEffectCount; i++)
@@ -186,7 +220,8 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 		// Every additional instance is brought to the same negotiated layout
 		// as the first one before the consistency check below.
-		negotiateInstance(effects[i].get(), effectChannelCount);
+		negotiateInstance(effects[i].get(), effectChannelCount,
+			channelNameSlice(i * effectChannelCount, effectChannelCount));
 
 		const int instanceInputCount = effects[i]->numInputs();
 		const int instanceOutputCount = effects[i]->numOutputs();
@@ -362,21 +397,34 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		for (size_t i = 0; i < effects.size(); i++)
 		{
 			VSTPluginInstance* effect = effects[i].get();
-			// Setup double pointer arrays to point to the correct source/destination double buffers
-			for (unsigned j = 0; j < effectInputCount; j++)
+			const std::vector<int>& inputMapping = effect->getVST3InputChannelMapping();
+			const std::vector<int>& outputMapping = effect->getVST3OutputChannelMapping();
+
+			// Setup double pointer arrays in VST3 bus-slot order. Each mapping
+			// is EAPO slot -> accepted VST3 bus slot; VST2 and invalid VST3
+			// mappings use the existing identity order.
+			for (unsigned eapoSlot = 0; eapoSlot < effectInputCount; eapoSlot++)
 			{
-				if (channelOffset + j < channelCount)
-					inputArray[j] = input[channelOffset + j];
+				const int mappedSlot = inputMapping.size() == effectInputCount
+					? inputMapping[eapoSlot] : static_cast<int>(eapoSlot);
+				const unsigned busSlot = mappedSlot >= 0 && mappedSlot < static_cast<int>(effectInputCount)
+					? static_cast<unsigned>(mappedSlot) : eapoSlot;
+				if (channelOffset + eapoSlot < channelCount)
+					inputArray[busSlot] = input[channelOffset + eapoSlot];
 				else
-					inputArray[j] = emptyChannels[emptyChannelIndex++].get();
+					inputArray[busSlot] = emptyChannels[emptyChannelIndex++].get();
 			}
 
-			for (unsigned j = 0; j < effectOutputCount; j++)
+			for (unsigned eapoSlot = 0; eapoSlot < effectOutputCount; eapoSlot++)
 			{
-				if (channelOffset + j < channelCount)
-					outputArray[j] = output[channelOffset + j];
+				const int mappedSlot = outputMapping.size() == effectOutputCount
+					? outputMapping[eapoSlot] : static_cast<int>(eapoSlot);
+				const unsigned busSlot = mappedSlot >= 0 && mappedSlot < static_cast<int>(effectOutputCount)
+					? static_cast<unsigned>(mappedSlot) : eapoSlot;
+				if (channelOffset + eapoSlot < channelCount)
+					outputArray[busSlot] = output[channelOffset + eapoSlot];
 				else
-					outputArray[j] = emptyChannels[emptyChannelIndex++].get();
+					outputArray[busSlot] = emptyChannels[emptyChannelIndex++].get();
 			}
 
 			if (effect->canDoubleReplacing()) {
@@ -473,6 +521,11 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		// this handler would re-enter is exactly what the plugin just faulted
 		// inside. The fault repeats per block, so a one-shot flag loses nothing.
 		reportCrash = false;
+
+		// Audit #250 F032: stop re-entering the plugin that just faulted -
+		// every later block takes the pass-through fast path above instead
+		// of stepping back into dead code.
+		skipProcessing = true;
 
 		for (unsigned i = 0; i < channelCount; i++)
 			std::copy_n(input[i], frameCount, output[i]);

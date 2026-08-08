@@ -1772,6 +1772,108 @@ QToolButton#VelvetAdvancedToggle {
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
 
+/* ===== Bass-management card: departure-board posting =====
+   Boxed sunken mono cells under mono board captions. The state cell is the
+   only place traffic-light colour is spent (ration book), faults are one
+   remark line, and there is no miniature crosspoint board - an unlabeled
+   grid of lit bars was a display nobody could read. */
+QWidget#MatrixSubwooferRoutingCardView,
+QWidget#MatrixBassReadoutColumn {
+    background: transparent;
+    border: 0;
+}
+
+QLabel#MatrixBassCaption {
+    color: @MUTED@;
+    background: transparent;
+    border: 0;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 7.5pt;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+QLabel#MatrixBassCaption:disabled { color: rgba(136, 152, 178, 0.45); }
+
+/* The authoritative readout: a boxed sunken mono cell (invariant rule 5).
+   Radius 0, crisp 1px rule, bold mono ink. */
+QLabel#MatrixBassValueCell {
+    color: @TEXT@;
+    background: @SURFACE_SUNKEN@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 3px 10px;
+    min-height: 18px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 9.5pt;
+    font-weight: 700;
+}
+QLabel#MatrixBassValueCell[tone="ok"] { color: @SUCCESS@; }
+QLabel#MatrixBassValueCell[tone="warning"] { color: @WARNING@; }
+QLabel#MatrixBassValueCell[tone="danger"] { color: @DANGER@; }
+QLabel#MatrixBassValueCell:disabled {
+    color: @MUTED@;
+    background: transparent;
+    border: 1px dashed @BORDER@;
+}
+
+/* One remark line: the board posts a fault once, in the fault's ink. */
+QLabel#MatrixBassRemark {
+    color: @MUTED@;
+    background: transparent;
+    border: 0;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8.5pt;
+    font-weight: 600;
+}
+QLabel#MatrixBassRemark[tone="warning"] { color: @WARNING@; }
+QLabel#MatrixBassRemark[tone="danger"] { color: @DANGER@; }
+QLabel#MatrixBassRemark:disabled { color: rgba(136, 152, 178, 0.45); }
+
+/* Action cells ride the toolbar train grammar: transparent function cells,
+   hover prelight, engage on press. */
+QToolButton#MatrixBassActionButton {
+    background: transparent;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 0;
+    padding: 5px 11px;
+    min-width: 40px;
+    min-height: 40px;
+    font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
+    font-size: 8.5pt;
+    font-weight: 600;
+}
+QToolButton#MatrixBassActionButton:hover:enabled {
+    background: rgba(34, 211, 238, 0.12);
+    border-color: @ACCENT@;
+}
+QToolButton#MatrixBassActionButton:pressed:enabled,
+QToolButton#MatrixBassActionButton:checked:enabled {
+    background: rgba(34, 211, 238, 0.24);
+    border-color: @ACCENT@;
+    color: @ACCENT@;
+}
+QToolButton#MatrixBassActionButton:disabled {
+    background: transparent;
+    color: @MUTED@;
+    border: 1px dashed @BORDER@;
+}
+QToolButton#MatrixBassActionButton::menu-indicator {
+    image: none;
+    width: 0;
+    height: 0;
+}
+
+/* Bass-management dialog sections: the board posts its facts in sunken
+   cells, so the cells' own rules are the visible structure. Boxing every
+   section on top of celled content doubled the rules; a section is a
+   captioned region opened by one top rule on the board surface. */
+QDialog#SubwooferRoutingEditorDialog QGroupBox {
+    background: transparent;
+    border: none;
+    border-top: 1px solid @BORDER@;
+    border-radius: 0;
+}
 /* A checked box carries a real check glyph. The stylesheet engine replaces
    the native indicator drawing wholesale, so without an image the checked
    state was only a filled accent square - state read through color alone.
