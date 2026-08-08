@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Hilbert and Velvet entries in the add-filter picker now explain
+  themselves.** Both shipped without a description (the Soft skin's picker
+  showed its generic "Choose the details after adding" caption); they now
+  carry one like every other command, in English and Korean
+  ([#254](https://github.com/115dkk/EqualizerAPO-XT/pull/254)).
+- **The subwoofer template's picker entry is translated into Korean.** The
+  "Subwoofer routing" template name and its "Speaker management" section
+  were missing from the translation files. The rest of the subwoofer
+  editor's strings are now registered for translation too, but still show
+  English; translating them is scheduled follow-up work
+  ([#254](https://github.com/115dkk/EqualizerAPO-XT/pull/254)).
+
 ## v2.34.0 — 2026-08-08
 
 - **Channel pills in the Minimal skin's routing views are readable on every
