@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.33.1 — 2026-08-08
+
 - **Moving a card up or down is instant again.** Dragging one card to a new
   position stalled for seconds on a loaded configuration (5-6 s reported on
   a fast desktop) because the move rebuilt every card in the list; the move
