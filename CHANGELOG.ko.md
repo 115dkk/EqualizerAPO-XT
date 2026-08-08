@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **크래시 리포트가 로그 옆으로 이사했습니다.** Editor의 크래시 덤프가
+  진단 로그와 같은 폴더 아래인 `%LOCALAPPDATA%\EqualizerAPO\logs\crash`에
+  남습니다. 아무것도 쓰지 않던 별도의 `EqualizerAPO-XT` 디렉터리는 더
+  쓰지 않습니다. 기존 덤프는 옮기지 않으므로 이전 버전의 리포트는 옛
+  위치에서 찾으면 됩니다
+  ([#261](https://github.com/115dkk/EqualizerAPO-XT/pull/261)).
+
 ## v2.34.3 — 2026-08-08
 
 - **Hilbert 필터가 조용해지면 이제 로그에 남습니다.** 스트림 블록 크기가

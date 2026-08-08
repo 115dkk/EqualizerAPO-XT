@@ -494,7 +494,7 @@ int main(int argc, char* argv[])
 
 		// Diagnostic self-test: crash deliberately so a field machine can verify
 		// that the crash handler leaves a dump + report under
-		// %LOCALAPPDATA%\EqualizerAPO-XT\crashdumps.
+		// %LOCALAPPDATA%\EqualizerAPO\logs\crash.
 		if (application.arguments().contains(QStringLiteral("--selftest-crash")))
 		{
 			CrashHandler::setBreadcrumb(L"selftest-crash");
