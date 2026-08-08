@@ -40,6 +40,21 @@ inline bool directoryExists(const std::wstring& path)
 	return attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
 }
 
+// Creates every missing directory on the path. True when the directory
+// exists afterwards, however much of it already existed.
+inline bool createDirectoryRecursive(const std::wstring& path)
+{
+	if (path.empty() || directoryExists(path))
+		return true;
+	size_t slash = path.find_last_of(L"\\/");
+	if (slash != std::wstring::npos && slash > 0)
+	{
+		if (!createDirectoryRecursive(path.substr(0, slash)))
+			return false;
+	}
+	return CreateDirectoryW(path.c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
+}
+
 inline bool pathExists(const std::wstring& path)
 {
 	return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;

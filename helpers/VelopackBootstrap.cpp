@@ -37,6 +37,7 @@
 // Velopack.hpp pulls in the C ABI header; include it after windows.h so the
 // platform headers resolve in the expected order.
 #include <Velopack.hpp>
+#include "AudioEngineAccess.h"
 #include "PathHelper.h"
 
 namespace
@@ -45,19 +46,11 @@ namespace
 using pathutil::exeDirectory;
 using pathutil::fileExists;
 
+// Audit #250 C1: the elevation query lives in AudioEngineAccess; this file
+// used to carry a token-probing duplicate.
 bool isCurrentProcessElevated()
 {
-	HANDLE token = nullptr;
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
-		return false;
-
-	TOKEN_ELEVATION elevation{};
-	DWORD size = sizeof(elevation);
-	const bool elevated =
-		GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &size)
-		&& elevation.TokenIsElevated != 0;
-	CloseHandle(token);
-	return elevated;
+	return AudioEngineAccess::isElevated();
 }
 
 bool launchElevatedUpdateCoordinator()

@@ -37,6 +37,7 @@ SOURCES += main.cpp\
 	../helpers/InstallDiagnostics.cpp \
 	../helpers/ServiceHelper.cpp \
 	../helpers/ApoRegistration.cpp \
+	../helpers/StartMenuShortcuts.cpp \
 	../helpers/AudioFormatProbe.cpp \
 	../helpers/VelopackBootstrap.cpp \
 	../parser/LogicalOperators.cpp \
@@ -348,6 +349,7 @@ HEADERS  += \
 	../helpers/InstallDiagnostics.h \
 	../helpers/ServiceHelper.h \
 	../helpers/ApoRegistration.h \
+	../helpers/StartMenuShortcuts.h \
 	../helpers/AudioFormatProbe.h \
 	../helpers/VelopackBootstrap.h \
 	../helpers/UpdateElevationPolicy.h \

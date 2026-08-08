@@ -368,6 +368,7 @@
     <ClInclude Include="libHybridConv-0.1.1\HcAlignedStorage.h" />
     <ClInclude Include="helpers\FileSharingRetry.h" />
     <ClInclude Include="helpers\GainIterator.h" />
+    <ClInclude Include="helpers\ClsidRegistration.h" />
     <ClInclude Include="helpers\IRegistry.h" />
     <ClInclude Include="helpers\RegistryTransaction.h" />
     <ClInclude Include="helpers\WindowsVersion.h" />
@@ -475,6 +476,7 @@
     <ClCompile Include="helpers\AbstractLibrary.cpp" />
     <ClCompile Include="helpers\ChannelHelper.cpp" />
     <ClCompile Include="helpers\GainIterator.cpp" />
+    <ClCompile Include="helpers\ClsidRegistration.cpp" />
     <ClCompile Include="helpers\IRegistry.cpp" />
     <ClCompile Include="helpers\RegistryTransaction.cpp" />
     <ClCompile Include="helpers\WindowsVersion.cpp" />

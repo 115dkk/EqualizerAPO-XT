@@ -156,6 +156,9 @@
     <ClInclude Include="helpers\GainIterator.h">
       <Filter>helpers</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\ClsidRegistration.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
     <ClInclude Include="helpers\IRegistry.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -403,6 +406,9 @@
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\GainIterator.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ClsidRegistration.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\IRegistry.cpp">

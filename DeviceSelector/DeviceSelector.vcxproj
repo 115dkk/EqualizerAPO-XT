@@ -421,6 +421,7 @@
     <ClCompile Include="..\Editor\helpers\QtAppBootstrap.cpp" />
     <ClCompile Include="..\helpers\ServiceHelper.cpp" />
     <ClCompile Include="..\helpers\ApoRegistration.cpp" />
+    <ClCompile Include="..\helpers\StartMenuShortcuts.cpp" />
     <ClCompile Include="..\helpers\AudioEngineAccess.cpp" />
     <ClCompile Include="..\helpers\InstallDiagnostics.cpp" />
     <ClCompile Include="DeviceSelector.cpp" />
