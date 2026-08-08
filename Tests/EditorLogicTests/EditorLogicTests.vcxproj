@@ -45,6 +45,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="..\Tests.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -70,16 +71,6 @@
     <QT_ROOT Condition="'$(QT_ROOT)'=='' and '$(Qt6_DIR)'!=''">$(Qt6_DIR)</QT_ROOT>
     <QT_ROOT Condition="'$(QT_ROOT)'==''">$(MSBuildThisFileDirectory)..\..\Qt</QT_ROOT>
   </PropertyGroup>
-  <!-- Same defaults as the other test projects: CI passes these as global
-       properties, a local build falls back to the deps/ layout. Only the
-       library halves are needed - nothing compiled here includes an FFTW,
-       libsndfile or muparserx header; they are link-time dependencies of
-       Common.lib. -->
-  <PropertyGroup>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\fftw\Release</FFTW_LIB>
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\..\deps\muparserx\build\Release</MUPARSERX_LIB>
-  </PropertyGroup>
   <PropertyGroup>
     <IncludePath>$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\SubwooferRoutingCore\include;$(QT_ROOT)\include;$(QT_ROOT)\include\QtCore;$(QT_ROOT)\include\QtGui;$(QT_ROOT)\include\QtWidgets;$(IncludePath)</IncludePath>
     <LibraryPath>$(QT_ROOT)\lib;$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
@@ -94,16 +85,6 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <!-- Whole-archive, in every configuration. The set of recognized config
-           commands is assembled by file-scope self-registration in the filter
-           factory TUs (REGISTER_FILTER_FACTORY), and on-demand linking keeps
-           only the objects something else references, so the registry came up
-           empty and canonicalCommand() answered "unknown" for every key. The
-           remaining libraries are what pulling all of Common.lib in then
-           requires (engine, parser, device registration, VST host); muparserx
-           is added per configuration below because its Debug build has a
-           different name. -->
-      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>..\..\$(Platform)\$(Configuration)\Common.lib;..\..\SubwooferRoutingCore\$(Platform)\$(Configuration)\SubwooferRoutingCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;Qt6Core.lib;Qt6Gui.lib;Qt6Widgets.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>

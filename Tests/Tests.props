@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared scaffolding for the four engine test suites - EditorLogicTests,
+  HybridConvTests, EngineOrchestrationTests, AudioRegressionTests (audit
+  #250 F057). The library-path defaults and the whole-archive rule used to
+  be hand-copied per project and per configuration, which is exactly how a
+  /WHOLEARCHIVE omission shipped once: the flag existed in some Debug
+  configurations and not others, and nothing could tell.
+
+  Import this AFTER $(VCTargetsPath)\Microsoft.Cpp.props: LibraryPath below
+  extends the toolset's value, which does not exist earlier.
+
+  The two test VST plugins (TestVst2Plugin, TestVst3Plugin) do NOT import
+  this file: they link no Common.lib, so the whole-archive rule would break
+  their links.
+
+  CI passes the *_LIB values as global properties; a local build falls back
+  to the deps/ layout. Only the library halves live here - the *_INCLUDE
+  halves are hoisted for the whole tree in the repo root's
+  Directory.Build.props.
+-->
+<Project>
+  <PropertyGroup>
+    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">$(MSBuildThisFileDirectory)..\deps\fftw\Release</FFTW_LIB>
+    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">$(MSBuildThisFileDirectory)..\deps\libsndfile\build\Release</LIBSNDFILE_LIB>
+    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">$(MSBuildThisFileDirectory)..\deps\muparserx\build\Release</MUPARSERX_LIB>
+    <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <!-- Whole-archive, in every configuration of every suite. The set of
+           recognized config commands is assembled by file-scope
+           self-registration in the filter factory TUs
+           (REGISTER_FILTER_FACTORY), and on-demand linking keeps only the
+           objects something else references, so without this the registry
+           comes up empty and canonicalCommand() answers "unknown" for every
+           key. Stated once here so no configuration can lose it again. -->
+      <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>
