@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.34.1 — 2026-08-08
+
 - **The Hilbert and Velvet entries in the add-filter picker now explain
   themselves.** Both shipped without a description (the Soft skin's picker
   showed its generic "Choose the details after adding" caption); they now
