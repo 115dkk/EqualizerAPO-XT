@@ -2012,6 +2012,10 @@ int main(int argc, char** argv)
 		testFilterCommandCatalogDescriptions();
 		testSharedRawBodyAndRoutingViewPredicates();
 		testVstChunkPathCandidates();
+		testAutoInstallerChannelMapping();
+		testAutoInstallerAssetGrammar();
+		testAutoInstallerChecksumParsing();
+		testAutoInstallerFlagScan();
 
 		harness.report();
 		return EXIT_SUCCESS;

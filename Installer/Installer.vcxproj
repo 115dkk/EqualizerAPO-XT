@@ -93,6 +93,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AutoInstaller.cpp" />
+    <ClCompile Include="AutoInstallerLogic.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AutoInstallerLogic.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AutoInstaller.rc" />

@@ -32,11 +32,18 @@ $toolArchitecture = if ($Platform -eq "ARM64") { "ARM64" } else { "x64" }
 # fault at static init, so it belongs behind the same gate as the others.
 $runtimeTests = @()
 if ($CanExecute) { $runtimeTests += @("EditorLogicTests", "HybridConvTests", "EngineOrchestrationTests") }
+# The auto-detect installer is a Win32-only, CPU-baseline binary: it must run
+# on machines with no AVX at all, so it takes no arch flag, and one build
+# covers every variant. The avx2 leg builds it so a PR that breaks it fails
+# in CI instead of on release day (audit #250 F056); the other legs skip the
+# duplicate work, and create-release still builds its own copy to publish.
+$installerProject = if ($Platform -eq "x64" -and $SimdVariant -eq "avx2") { "Installer\Installer.vcxproj" } else { $null }
 $plan = [pscustomobject]@{
     Projects = $projects
     PlatformToolset = $platformToolset
     ToolArchitecture = $toolArchitecture
     RuntimeTests = $runtimeTests
+    InstallerProject = $installerProject
 }
 if ($PlanOnly) { return $plan }
 
@@ -81,6 +88,16 @@ if ($Platform -eq "x64") { $buildParams += "/p:EnableEnhancedInstructionSet=$Arc
 foreach ($project in $projects) {
     msbuild $project @buildParams
     if ($LASTEXITCODE -ne 0) { throw "Build failed for $project" }
+}
+
+if ($installerProject) {
+    $installerParams = @(
+        "/m", "/p:Configuration=$Configuration", "/p:Platform=Win32", "/t:rebuild",
+        "/p:PlatformToolset=$platformToolset",
+        "/p:PreferredToolArchitecture=$toolArchitecture"
+    )
+    msbuild $installerProject @installerParams
+    if ($LASTEXITCODE -ne 0) { throw "Build failed for $installerProject" }
 }
 
 $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$qtRoot\bin;$env:PATH"

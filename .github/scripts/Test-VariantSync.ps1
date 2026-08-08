@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Fails when the channel strings compiled into Installer/AutoInstaller.cpp drift
+    Fails when the channel strings compiled into Installer/AutoInstallerLogic.cpp drift
     from .github/simd-variants.psd1.
 
 .DESCRIPTION
-    AutoInstaller.cpp cannot read the manifest (it is a dependency-free compiled
+    AutoInstallerLogic.cpp cannot read the manifest (it is a dependency-free compiled
     C++ binary), so detectChannel() returns hardcoded channel literals. This lint
     extracts every channel-shaped wide-string literal (L"x64-..." / L"arm64-...")
     from the installer source and requires set equality with the manifest's
@@ -21,7 +21,7 @@ $manifestPath = Join-Path $RepoRoot ".github" "simd-variants.psd1"
 $manifest = Import-PowerShellDataFile -Path $manifestPath
 $manifestChannels = @($manifest.Variants | ForEach-Object { $_.Channel } | Sort-Object -Unique)
 
-$installerPath = Join-Path $RepoRoot "Installer" "AutoInstaller.cpp"
+$installerPath = Join-Path $RepoRoot "Installer" "AutoInstallerLogic.cpp"
 $source = Get-Content -Path $installerPath -Raw
 $pattern = 'L"((?:x64|arm64)-[a-z0-9][a-z0-9-]*)"'
 $installerChannels = @(
@@ -33,12 +33,12 @@ $unknownInInstaller = @($installerChannels | Where-Object { $manifestChannels -n
 
 if ($missingInInstaller.Count -gt 0 -or $unknownInInstaller.Count -gt 0) {
   if ($missingInInstaller.Count -gt 0) {
-    Write-Host "::error file=Installer/AutoInstaller.cpp::Missing manifest channels: $($missingInInstaller -join ', ')"
+    Write-Host "::error file=Installer/AutoInstallerLogic.cpp::Missing manifest channels: $($missingInInstaller -join ', ')"
   }
   if ($unknownInInstaller.Count -gt 0) {
-    Write-Host "::error file=Installer/AutoInstaller.cpp::Channels not in simd-variants.psd1: $($unknownInInstaller -join ', ')"
+    Write-Host "::error file=Installer/AutoInstallerLogic.cpp::Channels not in simd-variants.psd1: $($unknownInInstaller -join ', ')"
   }
-  throw "Installer/AutoInstaller.cpp and .github/simd-variants.psd1 are out of sync."
+  throw "Installer/AutoInstallerLogic.cpp and .github/simd-variants.psd1 are out of sync."
 }
 
-Write-Host "AutoInstaller.cpp channels match simd-variants.psd1: $($manifestChannels -join ', ')"
+Write-Host "AutoInstallerLogic.cpp channels match simd-variants.psd1: $($manifestChannels -join ', ')"
