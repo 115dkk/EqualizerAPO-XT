@@ -38,6 +38,7 @@
 #include <string>
 
 #include "../helpers/ComPtr.h"
+#include "../helpers/ReleaseAssetNames.h"
 #include "../helpers/Win32Resource.h"
 #include "../version.h"
 
@@ -73,9 +74,9 @@ const wchar_t* kReleasesPage = EAPO_REPO_URL_W L"/releases/latest";
 const wchar_t* kUserAgent = L"EqualizerAPO-XT-Setup";
 
 // Checksums asset that CI publishes to every release, one sha256sum-style
-// "<lowercase-hex-sha256>  <name>" line per asset. The name must match the
-// upload in .github/workflows/build.yml.
-const wchar_t* kChecksumsAssetName = L"SHA256SUMS.txt";
+// "<lowercase-hex-sha256>  <name>" line per asset. The grammar header keeps
+// this in step with the upload in .github/workflows/build.yml.
+const wchar_t* kChecksumsAssetName = ReleaseAssetNames::checksumsAssetName;
 
 // Channel index used as the process exit code for --detect-only, so a script can
 // read the detected variant without parsing stdout.
@@ -194,12 +195,11 @@ std::wstring detectChannel(int* outIndex)
     return L"x64-sse2";
 }
 
-// Per-variant installer asset name. The channel appears twice because each
-// variant's packId already embeds the channel (EqualizerAPO-XT-<channel>), and
-// Velopack appends "-<channel>-Setup.exe".
+// Per-variant installer asset name; the shared grammar header explains the
+// doubled channel.
 std::wstring assetName(const std::wstring& channel)
 {
-    return L"EqualizerAPO-XT-" + channel + L"-" + channel + L"-Setup.exe";
+    return ReleaseAssetNames::setupAssetName(channel);
 }
 
 // Always-latest download path. GitHub redirects /releases/latest/download/<asset>

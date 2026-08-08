@@ -13,7 +13,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$asset = "EqualizerAPO-XT-$Channel-$Channel-Setup.exe"
+Import-Module (Join-Path $PSScriptRoot "ReleaseAssets.psm1") -Force
+$asset = Get-SetupAssetName -Channel $Channel
 New-Item -ItemType Directory -Force -Path $DownloadDirectory | Out-Null
 
 if (-not $SkipDownload) {
@@ -26,7 +27,7 @@ if (-not $SkipDownload) {
 
     $sumArgs = @("release", "download")
     if (-not [string]::IsNullOrWhiteSpace($Tag)) { $sumArgs += $Tag }
-    $sumArgs += @("--repo", $Repository, "--pattern", "SHA256SUMS.txt",
+    $sumArgs += @("--repo", $Repository, "--pattern", (Get-ChecksumsAssetName),
         "--dir", $DownloadDirectory, "--clobber")
     gh @sumArgs
     if ($LASTEXITCODE -ne 0) {
@@ -44,7 +45,7 @@ if (-not (Test-Path -LiteralPath $setup)) {
     throw "Could not find $asset"
 }
 
-$sums = Join-Path $DownloadDirectory "SHA256SUMS.txt"
+$sums = Join-Path $DownloadDirectory (Get-ChecksumsAssetName)
 if (Test-Path -LiteralPath $sums) {
     $line = Get-Content -LiteralPath $sums |
         Where-Object { $_ -match ("  " + [regex]::Escape($asset) + '$') } |
@@ -73,7 +74,7 @@ if (-not $SkipInstall) {
 $root = $null
 $current = $null
 if (-not $SkipInstallRootResolution) {
-    $packId = "EqualizerAPO-XT-$Channel"
+    $packId = Get-VelopackPackId -Channel $Channel
     $candidates = @(
         (Join-Path $env:LOCALAPPDATA $packId),
         (Join-Path $env:ProgramData $packId)
