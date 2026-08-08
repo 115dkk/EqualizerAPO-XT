@@ -5,6 +5,8 @@
 #include "StepListRoutingRenderer.h"
 #include "Editor/skins/SkinPaint.h"
 
+#include <cmath>
+
 #include <QMenu>
 #include <QPainter>
 #include <QMouseEvent>
@@ -137,6 +139,22 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(QPen(withAlpha(border, 120), 1));
 	p.drawLine(36, headerH, 36, listingBottom);
 
+	// White ink vanishes on the light members of the channel palette - the
+	// slate fallback every non-channel path id wears (the subwoofer dialog's
+	// output matrix printed white path names on that whitish slate), and the
+	// amber/cyan family reads barely better. Pick the ink per fill: white
+	// only where its WCAG contrast genuinely holds, near-black otherwise.
+	auto pillInk = [](const QColor& fill) -> QColor {
+		auto lin = [](int v) {
+			const double c = v / 255.0;
+			return c <= 0.03928 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+		};
+		const double lum = 0.2126 * lin(fill.red())
+			+ 0.7152 * lin(fill.green()) + 0.0722 * lin(fill.blue());
+		return 1.05 / (lum + 0.05) >= 3.0
+			? QColor(Qt::white) : QColor(QStringLiteral("#111827"));
+	};
+
 	auto drawChannelPill = [&](const QString& ch, int x, int y, int h, bool sourceSide) -> int {
 		const QColor col(CopyRoutingAdapter::channelColor(ch));
 		// Fixed sources (IR file channels) are ports, not virtual channels, so
@@ -155,7 +173,7 @@ void StepListView::paintEvent(QPaintEvent*)
 			p.setBrush(col);
 		}
 		p.drawRect(pill);
-		p.setPen(virt ? col : QColor(Qt::white));
+		p.setPen(virt ? col : pillInk(col));
 		p.drawText(pill, Qt::AlignCenter, ch);
 		return w;
 	};

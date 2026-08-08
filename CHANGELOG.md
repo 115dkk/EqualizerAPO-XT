@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Channel pills in the Minimal skin's routing views are readable on every
+  color.** Names drawn on the light pills (the slate used by non-channel
+  path ids, LFE's amber, the cyan/green family) were printed in white and
+  washed out - most visibly in the subwoofer dialog's output matrix; those
+  pills now switch to dark ink while the darker pills keep white. The hues
+  themselves are unchanged.
 - **Subwoofer routing is now one configuration line instead of a page of Copy
   chains.** The new `SubwooferRouting:` command (issue
   [#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) runs
