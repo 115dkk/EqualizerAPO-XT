@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.34.4 — 2026-08-08
+
 - **크래시 리포트가 로그 옆으로 이사했습니다.** Editor의 크래시 덤프가
   진단 로그와 같은 폴더 아래인 `%LOCALAPPDATA%\EqualizerAPO\logs\crash`에
   남습니다. 아무것도 쓰지 않던 별도의 `EqualizerAPO-XT` 디렉터리는 더

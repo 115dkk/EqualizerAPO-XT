@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.34.4 — 2026-08-08
+
 - **Crash reports moved next to the logs.** The Editor's crash dumps now
   land in `%LOCALAPPDATA%\EqualizerAPO\logs\crash`, under the same folder
   the diagnostic logs use, instead of a separate `EqualizerAPO-XT`
