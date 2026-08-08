@@ -25,7 +25,16 @@
 
 #include "IFilter.h"
 
-class FilterEngine;
+// The stream facts a FilterConfiguration is built for (audit #250 A2). The
+// constructor used to take a FilterEngine* and read exactly these three
+// values once; taking the values themselves lets tests build a configuration
+// without an engine, a config file or a registry read.
+struct EngineStreamFormat
+{
+	unsigned realChannelCount = 0;
+	unsigned outputChannelCount = 0;
+	unsigned maxFrameCount = 0;
+};
 
 struct FilterInfo
 {
@@ -49,7 +58,7 @@ struct FilterInfo
 class FilterConfiguration
 {
 public:
-	FilterConfiguration(const FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount);
+	FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount);
 	~FilterConfiguration();
 
 	void read(double* input, unsigned frameCount);

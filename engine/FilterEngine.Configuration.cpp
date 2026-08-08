@@ -125,7 +125,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 				addFilters(move(newFilters));
 		}
 
-		FilterConfigurationPtr config(MemoryHelper::construct<FilterConfiguration>(this, move(filterInfos), (unsigned)allChannelNames.size()));
+		FilterConfigurationPtr config(MemoryHelper::construct<FilterConfiguration>(streamFormat(), move(filterInfos), (unsigned)allChannelNames.size()));
 
 		filterInfos.clear();
 

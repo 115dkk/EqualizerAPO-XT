@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -28,10 +27,7 @@
 #define NOMINMAX
 #endif
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
 #include "engine/FilterConfiguration.h"
-#include "engine/FilterEngine.h"
 #include "Tests/TestHarness.h"
 
 namespace
@@ -49,43 +45,19 @@ double nextSample(unsigned long long& state)
 	return static_cast<double>(scrambled >> 11) / static_cast<double>(1ULL << 53) * 2.0 - 1.0;
 }
 
-// An engine initialized from an empty temp config; FilterConfiguration only
-// needs its channel counts and max frame count.
-struct IoFixture
+// Audit #250 A2: FilterConfiguration takes the three stream facts directly,
+// so these tests no longer boot a FilterEngine (with its temp config file,
+// registry read and factory registry) per channel count.
+EngineStreamFormat formatFor(unsigned channels)
 {
-	FilterEngine engine;
-	std::wstring configPath;
-
-	IoFixture(test::Harness& harness, unsigned channels)
-	{
-		wchar_t tempPath[MAX_PATH] = {};
-		DWORD len = GetTempPathW(MAX_PATH, tempPath);
-		std::wstring dir = (len > 0 && len < MAX_PATH) ? tempPath : L".\\";
-		configPath = dir + L"SampleIoTests-" + std::to_wstring(GetCurrentProcessId()) + L".txt";
-		std::ofstream stream(configPath, std::ios::binary | std::ios::trunc);
-		stream << "# empty\n";
-		stream.close();
-		if (!stream)
-			harness.fail("could not write SampleIoTests temp config");
-
-		const std::wstring deviceName = L"SampleIoTests";
-		engine.setDeviceInfo(false, true, deviceName, L"File", L"", deviceName + L" File");
-		engine.initialize(48000.0f, channels, channels, channels, 0, maxFrames, configPath);
-	}
-
-	~IoFixture()
-	{
-		DeleteFileW(configPath.c_str());
-	}
-};
+	return EngineStreamFormat{ channels, channels, maxFrames };
+}
 
 // Every conversion path must match the naive scalar loop bit for bit.
 void testConversionsMatchScalarReferenceBitExactly(test::Harness& harness)
 {
 	for (unsigned channels : {1u, 2u, 3u, 4u, 6u, 8u})
 	{
-		IoFixture fixture(harness, channels);
-
 		for (unsigned frames : {480u, 61u})
 		{
 			char label[96];
@@ -100,7 +72,7 @@ void testConversionsMatchScalarReferenceBitExactly(test::Harness& harness)
 			}
 
 			// readFloatInterleaved: planar double result vs scalar promote.
-			FilterConfiguration config(&fixture.engine, {}, channels);
+			FilterConfiguration config(formatFor(channels), {}, channels);
 			config.readFloatInterleaved(floatIn.data(), frames);
 			double** planar = config.getOutputSamples();
 			bool readFloatOk = true;
@@ -225,8 +197,7 @@ void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
 	constexpr bool gateWrite = true;
 	constexpr double requiredRatio = 2.4;
 #endif
-	IoFixture fixture(harness, channels);
-	FilterConfiguration config(&fixture.engine, {}, channels);
+	FilterConfiguration config(formatFor(channels), {}, channels);
 
 	std::vector<float> input((size_t)frames * channels);
 	std::vector<float> output((size_t)frames * channels);

@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <typeinfo>
 
-#include "FilterEngine.h"
 #include "FilterConfiguration.h"
 #include "helpers/PerfProfile.h"
 
@@ -29,12 +28,12 @@
 
 namespace hn = hwy::HWY_NAMESPACE;
 
-FilterConfiguration::FilterConfiguration(const FilterEngine* engine, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
+FilterConfiguration::FilterConfiguration(const EngineStreamFormat& format, std::vector<std::unique_ptr<FilterInfo>> filterInfos, unsigned allChannelCount)
 {
 	this->allChannelCount = allChannelCount;
-	realChannelCount = engine->getRealChannelCount();
-	outputChannelCount = engine->getOutputChannelCount();
-	unsigned maxFrameCount = engine->getMaxFrameCount();
+	realChannelCount = format.realChannelCount;
+	outputChannelCount = format.outputChannelCount;
+	unsigned maxFrameCount = format.maxFrameCount;
 
 	allSamplesData.resize(static_cast<size_t>(allChannelCount) * maxFrameCount);
 	allSamples2Data.resize(static_cast<size_t>(allChannelCount) * maxFrameCount);
