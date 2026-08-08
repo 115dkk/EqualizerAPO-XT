@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.34.0 — 2026-08-08
+
 - **Channel pills in the Minimal skin's routing views are readable on every
   color.** Names drawn on the light pills (the slate used by non-channel
   path ids, LFE's amber, the cyan/green family) were printed in white and
