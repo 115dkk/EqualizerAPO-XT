@@ -29,9 +29,36 @@
     <VST3_SDK Condition="'$(VST3_SDK)'==''">$(MSBuildThisFileDirectory)deps\vst3sdk</VST3_SDK>
     <HIGHWAY_INCLUDE Condition="'$(HIGHWAY_INCLUDE)'==''">$(MSBuildThisFileDirectory)deps\highway</HIGHWAY_INCLUDE>
   </PropertyGroup>
+  <!--
+    Audit #250 F064: the platform toolset default, once. Every project used to
+    hard-code v145 per configuration (62 copies), so a toolset upgrade meant a
+    62-line sweep. CI still overrides per leg (/p:PlatformToolset=v143 on the
+    ARM64 runner, v145 elsewhere); a bare local msbuild gets v145 as before.
+  -->
+  <PropertyGroup>
+    <PlatformToolset Condition="'$(PlatformToolset)'==''">v145</PlatformToolset>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <!--
+    Audit #250 F065: the SIMD /arch idiom, once. Projects that follow the
+    build variant's instruction set opt in with <EapoVariantArch>true</...>
+    and inherit this metadata pair (local default AVX2, CI's
+    /p:EnableEnhancedInstructionSet wins) instead of repeating it per
+    configuration (17 copies before the hoist). Opt-in, not global, because
+    some binaries must NOT follow the variant: EditorLogicTests runs on every
+    runner (so it stays baseline), the auto-detect installer probes CPUs that
+    may have no AVX at all, and the VST plugins/SubwooferRouting projects ship
+    one binary across channels. x64 only - Win32 and ARM64 never take an
+    x86 /arch flag.
+  -->
+  <ItemDefinitionGroup Condition="'$(EapoVariantArch)'=='true' and '$(Platform)'=='x64'">
+    <ClCompile>
+      <EnableEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'==''">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'!=''">$(EnableEnhancedInstructionSet)</EnableEnhancedInstructionSet>
     </ClCompile>
   </ItemDefinitionGroup>
 </Project>
