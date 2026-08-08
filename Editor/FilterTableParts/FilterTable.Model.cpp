@@ -102,6 +102,98 @@ QList<QString> FilterTable::getLines()
 	return model.lines();
 }
 
+const QList<FilterTable::Item*>& FilterTable::documentItems() const
+{
+	return model.items();
+}
+
+void FilterTable::moveRows(const QList<Item*>& itemsInOrder, int dropRow)
+{
+	// The internal drag-move commit. The items survive the move (moveItems
+	// reorders them in place), so the card path can re-seat the existing row
+	// widgets instead of tearing down and rebuilding every card - the full
+	// rebuild cost the user seconds per move on a loaded document.
+	const QList<Item*> oldItems = model.items();
+	const QVector<QWidget*> oldWidgets = rowWidgetsByRow();
+
+	if (!model.moveItems(itemsInOrder, dropRow))
+		return;
+
+	emit linesChanged();
+
+	// The frozen legacy path keeps the full rebuild.
+	if (renderMode != ModernCards || gridLayout == nullptr)
+	{
+		updateGuis();
+		return;
+	}
+
+	QElapsedTimer timer;
+	timer.start();
+
+	// Map each surviving item to its pre-move widget; any hole (a row
+	// without a widget, a stale grid) falls back to the always-correct full
+	// rebuild, like the other incremental splices.
+	const QList<Item*>& newItems = model.items();
+	if (oldWidgets.size() != oldItems.size() || newItems.size() != oldItems.size())
+	{
+		updateGuis();
+		return;
+	}
+	QHash<Item*, QWidget*> widgetForItem;
+	widgetForItem.reserve(int(oldItems.size()));
+	for (int i = 0; i < oldItems.size(); i++)
+	{
+		if (oldWidgets[i] == nullptr)
+		{
+			updateGuis();
+			return;
+		}
+		widgetForItem.insert(oldItems[i], oldWidgets[i]);
+	}
+	QVector<QWidget*> desired(int(newItems.size()));
+	for (int i = 0; i < newItems.size(); i++)
+	{
+		desired[i] = widgetForItem.value(newItems[i]);
+		if (desired[i] == nullptr)
+		{
+			updateGuis();
+			return;
+		}
+	}
+
+	// Re-seat only the cells whose occupant changed: take every such widget
+	// out of the layout first, then re-add each at its new row, so no two
+	// widgets transiently share a cell. removeWidget only drops the layout
+	// item - the widget keeps its parent, styling and state, which is what
+	// makes the move cheap (no card construction, no style re-resolution).
+	const bool updatesWereEnabled = updatesEnabled();
+	setUpdatesEnabled(false);
+	for (int i = 0; i < desired.size(); i++)
+		if (desired[i] != oldWidgets[i])
+			gridLayout->removeWidget(desired[i]);
+	for (int i = 0; i < desired.size(); i++)
+		if (desired[i] != oldWidgets[i])
+			gridLayout->addWidget(desired[i], i, 0);
+
+	// Every row between the splice points changed its 1-based number and
+	// possibly its channel/If scope.
+	if (!renumberRowsBelow(0, FilterCardModel::calculateScopes(getLines())))
+	{
+		setUpdatesEnabled(updatesWereEnabled);
+		updateGuis();
+		return;
+	}
+
+	propagateChannels();
+	// The row widgets read selection/focus state on paint.
+	updateRowWidgets();
+	setUpdatesEnabled(updatesWereEnabled);
+
+	qDebug("Incremental move took %d ms", int(timer.elapsed()));
+	update();
+}
+
 void FilterTable::setLines(const QString& configPath, const QList<QString>& lines)
 {
 	this->configPath = configPath;

@@ -38,6 +38,10 @@
         <file>icons/modern/file-include.svg</file>
         <file>icons/modern/alert-triangle.svg</file>
         <file>icons/modern/waveform.svg</file>
+        <file>icons/modern/check-light.svg</file>
+        <file>icons/modern/check-dark.svg</file>
+        <file>icons/modern/dash-light.svg</file>
+        <file>icons/modern/dash-dark.svg</file>
         <file>icons/modern/chevron-down.svg</file>
         <file>icons/modern/chevron-right.svg</file>
         <file>icons/modern/chevron-up.svg</file>

@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include <QHash>
+
 #include "FilterListModel.h"
 
 // The mutation/selection semantics below mirror their FilterTable call sites
@@ -187,6 +189,70 @@ QList<FilterListItem*> FilterListModel::insertLines(const QStringList& lines, co
 	selectionStartItem = newFocusedItem;
 
 	return inserted;
+}
+
+bool FilterListModel::moveItems(const QList<FilterListItem*>& itemsToMove, int dropRow)
+{
+	if (itemsToMove.isEmpty())
+		return false;
+	QSet<FilterListItem*> moving;
+	moving.reserve(itemsToMove.size());
+	for (FilterListItem* item : itemsToMove)
+	{
+		if (!itemList.contains(item))
+			return false;
+		moving.insert(item);
+	}
+	if (moving.size() != itemsToMove.size())
+		return false;
+
+	dropRow = qBound(0, dropRow, int(itemList.size()));
+
+	// Compute the new order on the projection first: the moved items leave
+	// their rows (shifting the insertion point left for every one that sat
+	// above the drop row) and land as one block, in document order - the
+	// same final order the drag-move's old insert-copies-then-remove-
+	// originals splice produced.
+	QList<FilterListItem*> newItemList;
+	newItemList.reserve(itemList.size());
+	QList<FilterListItem*> movedInOrder;
+	movedInOrder.reserve(itemsToMove.size());
+	int insertAt = dropRow;
+	for (int i = 0; i < itemList.size(); i++)
+	{
+		if (moving.contains(itemList[i]))
+		{
+			if (i < dropRow)
+				insertAt--;
+			movedInOrder.append(itemList[i]);
+		}
+		else
+			newItemList.append(itemList[i]);
+	}
+	for (int i = 0; i < movedInOrder.size(); i++)
+		newItemList.insert(insertAt + i, movedInOrder[i]);
+
+	// All potentially-throwing work (allocations) happens before the owner
+	// vector is disturbed, so the no-throw commit pattern of the other
+	// mutations holds.
+	QHash<FilterListItem*, size_t> ownedIndex;
+	ownedIndex.reserve(int(ownedItems.size()));
+	for (size_t i = 0; i < ownedItems.size(); i++)
+		ownedIndex.insert(ownedItems[i].get(), i);
+	std::vector<OwnedFilterListItem> newOwnedItems;
+	newOwnedItems.reserve(ownedItems.size());
+	QSet<FilterListItem*> newSelectedSet = moving;
+	FilterListItem* firstMoved = movedInOrder.first();
+
+	for (FilterListItem* item : newItemList)
+		newOwnedItems.push_back(std::move(ownedItems[ownedIndex.value(item)]));
+
+	ownedItems.swap(newOwnedItems);
+	itemList.swap(newItemList);
+	selectedSet.swap(newSelectedSet);
+	focusedItem = firstMoved;
+	selectionStartItem = firstMoved;
+	return true;
 }
 
 void FilterListModel::deleteSelected()

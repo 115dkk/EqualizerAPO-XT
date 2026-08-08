@@ -20,6 +20,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFrame>
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -33,6 +34,7 @@
 #include <QMenuBar>
 #include <QPixmap>
 #include <QPointer>
+#include <QRadioButton>
 #include <QToolButton>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -63,6 +65,7 @@
 #include "Editor/analysis/AnalysisMetric.h"
 #include "Editor/analysis/AnalysisResponse.h"
 #include "filters/BiQuad.h"
+#include "Editor/skins/SkinFileIcons.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
@@ -449,7 +452,7 @@ QString buildFileDialogFixture(const QDir& outDir)
 // kStatesPerRow states (normal + hover from renderStates(commented=false), and
 // disabled from renderStates(commented=true)), plus the registered fixed
 // chrome shots (picker x3, toolbar, titlebar, menubar, menu, analysis,
-// addrow x2, seam, toast, filedialog, graph x2, copyfold x4,
+// addrow x2, seam, toast, controls, filedialog, graph x2, copyfold x4,
 // multiconvfold x2, logic, channelscope). run() multiplies these by skins x 2
 // modes to self-check the
 // output count, so adding a gallery row needs no external count to be
@@ -492,7 +495,8 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
 		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } },
 		{ QStringLiteral("velvet-advanced"), { QStringLiteral("normal") } },
-		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } }
+		{ QStringLiteral("velvet-narrow"), { QStringLiteral("normal") } },
+		{ QStringLiteral("controls"), { QStringLiteral("normal") } }
 	};
 	return scenarios;
 }
@@ -1071,6 +1075,52 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		toast->showMessage(QStringLiteral("Update 2.99.0 has been downloaded and will be applied when you close the editor."), 0);
 		QApplication::processEvents();
 		failures += saveGrab(toast, outDir, skinId, mode, QStringLiteral("toast"), QStringLiteral("normal")) ? 0 : 1;
+	}
+
+	// Every stateful form control the skins restyle, in every state that has
+	// its own QSS rule: check/partial/disabled checkboxes and radio buttons.
+	// This is the shot that catches a stylesheet whose checked box is only a
+	// filled square (the engine replaces native indicator drawing, so the
+	// check glyph must come from the sheet itself).
+	{
+		QWidget controls;
+		controls.setAutoFillBackground(true);
+		QHBoxLayout* controlsLayout = new QHBoxLayout(&controls);
+		controlsLayout->setContentsMargins(16, 12, 16, 12);
+		controlsLayout->setSpacing(18);
+
+		QCheckBox* checkedBox = new QCheckBox(QStringLiteral("Checked"), &controls);
+		checkedBox->setChecked(true);
+		controlsLayout->addWidget(checkedBox);
+
+		QCheckBox* uncheckedBox = new QCheckBox(QStringLiteral("Unchecked"), &controls);
+		controlsLayout->addWidget(uncheckedBox);
+
+		QCheckBox* partialBox = new QCheckBox(QStringLiteral("Partial"), &controls);
+		partialBox->setTristate(true);
+		partialBox->setCheckState(Qt::PartiallyChecked);
+		controlsLayout->addWidget(partialBox);
+
+		QCheckBox* disabledBox = new QCheckBox(QStringLiteral("Disabled"), &controls);
+		disabledBox->setChecked(true);
+		disabledBox->setEnabled(false);
+		controlsLayout->addWidget(disabledBox);
+
+		QRadioButton* radioOn = new QRadioButton(QStringLiteral("Radio on"), &controls);
+		radioOn->setChecked(true);
+		controlsLayout->addWidget(radioOn);
+
+		QRadioButton* radioOff = new QRadioButton(QStringLiteral("Radio off"), &controls);
+		// Two radios in one widget share a button group; keep the second one
+		// out of it so the first stays checked.
+		radioOff->setAutoExclusive(false);
+		controlsLayout->addWidget(radioOff);
+
+		controlsLayout->addStretch(1);
+		controls.resize(760, controls.sizeHint().height());
+		controls.show();
+		QApplication::processEvents();
+		failures += saveGrab(&controls, outDir, skinId, mode, QStringLiteral("controls"), QStringLiteral("normal")) ? 0 : 1;
 	}
 
 	// The skinned file dialog (GUIHelper::prepareFileDialog): Qt's widget
@@ -1759,6 +1809,35 @@ int runSwitchTest(const QStringList& arguments)
 					}
 				}
 				failures += checkToolbar(name);
+				if (round == 1 && darkIndex == 0)
+				{
+					// The skinned file dialog's icon provider must serve the
+					// drive glyph for both drive spellings: the real root
+					// ("C:/") and the slash-less shell name ("C:") that
+					// QFileSystemModel stores drive nodes under and rebuilds
+					// node icons from on setIconProvider. The bare spelling
+					// is neither isRoot() nor a file, which dressed every
+					// sidebar drive with the folder pictogram in the field.
+					QFileDialog probeDialog;
+					probeDialog.setOption(QFileDialog::DontUseNativeDialog);
+					SkinManager::instance()->styleFileDialog(&probeDialog);
+					if (SkinFileIconProvider* provider
+						= dynamic_cast<SkinFileIconProvider*>(probeDialog.iconProvider()))
+					{
+						const qint64 driveKey
+							= provider->icon(QAbstractFileIconProvider::Drive).cacheKey();
+						const qint64 folderKey
+							= provider->icon(QAbstractFileIconProvider::Folder).cacheKey();
+						if (driveKey == folderKey
+							|| provider->icon(QFileInfo(QStringLiteral("C:"))).cacheKey() != driveKey
+							|| provider->icon(QFileInfo(QStringLiteral("C:/"))).cacheKey() != driveKey)
+						{
+							qWarning("SkinSwitchTest: %s file-dialog provider does not classify a drive root as the drive glyph",
+								qPrintable(skin->id()));
+							failures++;
+						}
+					}
+				}
 				if (elapsed > limitMs)
 				{
 					qWarning("SkinSwitchTest: switch to %s took %lld ms (limit %d ms)",
@@ -1816,6 +1895,172 @@ int runSwitchTest(const QStringList& arguments)
 
 	// Same no-teardown exit as run(): everything is flushed, and unwinding
 	// the offscreen QApplication can hang the process on a leftover resource.
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
+}
+
+int runCardMoveTest(const QStringList& arguments)
+{
+	Q_UNUSED(arguments);
+
+	qWarning("CardMoveTest: starting");
+
+	// Scratch reference targets so the reference cards resolve like the
+	// gallery's; EAPO_SKIN_GALLERY also skips the audio-service ACL probe.
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+	{
+		qWarning("CardMoveTest: cannot create a scratch directory");
+		return 2;
+	}
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+	{
+		qWarning("CardMoveTest: cannot write reference target files");
+		return 2;
+	}
+
+	// The same 100+ row document as the switch test: the field lag needs a
+	// loaded document, and six copies of the representative rows exercise
+	// every card type.
+	QList<QString> lines;
+	for (int repeat = 0; repeat < 6; repeat++)
+		for (const GalleryRow& row : galleryRows())
+			lines.append(row.line);
+
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	buildRows(scrollArea, configPath, lines);
+	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+	if (table == nullptr)
+	{
+		qWarning("CardMoveTest: table construction failed");
+		return 1;
+	}
+	// Gallery tables deliberately have no MainWindow; navigation callbacks
+	// must stay harmless in this supported host mode.
+	table->openConfig(QString());
+
+	// Budget contract like the switch test: the limit fails the gate, the
+	// warning only logs. The field regression class this measures cost 5-6 s
+	// per move on a fast desktop, so even the generous default limit would
+	// catch a return to a full rebuild on a slow runner.
+	bool limitOk = false;
+	int limitMs = qEnvironmentVariableIntValue("EAPO_MOVE_LIMIT_MS", &limitOk);
+	if (!limitOk || limitMs <= 0)
+		limitMs = 20000;
+	bool warningOk = false;
+	int warningMs = qEnvironmentVariableIntValue("EAPO_MOVE_WARN_MS", &warningOk);
+	if (!warningOk || warningMs <= 0 || warningMs >= limitMs)
+		warningMs = 0;
+
+	int failures = 0;
+	int moves = 0;
+	qint64 worstMs = 0;
+	QString worstName;
+	for (ISkin* skin : Skins::all())
+	{
+		for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+		{
+			const bool dark = darkIndex == 0;
+			const QString name = QStringLiteral("%1/%2").arg(skin->id(),
+				dark ? QStringLiteral("dark") : QStringLiteral("light"));
+
+			// Fresh rows under this skin, in the live switch order (tear down
+			// before the stylesheet swap, rebuild after).
+			table->clearRows();
+			SkinManager::instance()->applySkin(skin->id(), dark);
+			table->updateGuis();
+			QApplication::processEvents();
+			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+			QApplication::processEvents();
+
+			const int rowCount = int(table->documentItems().count());
+			if (rowCount != lines.size())
+			{
+				qWarning("CardMoveTest: %s expected %lld rows, found %d",
+					qPrintable(name), static_cast<long long>(lines.size()), rowCount);
+				failures++;
+				continue;
+			}
+
+			// One card moved down one row, then back up: two timed commits of
+			// the drag-move path per scene, and the document leaves the scene
+			// in its original order.
+			const int from = rowCount / 2;
+			for (int pass = 0; pass < 2; pass++)
+			{
+				const QList<QString> before = table->getLines();
+				const int sourceRow = pass == 0 ? from : from + 1;
+				const int targetRow = pass == 0 ? from + 1 : from;
+				const int dropRow = pass == 0 ? from + 2 : from;
+				FilterTable::Item* moved = table->documentItems().at(sourceRow);
+
+				QElapsedTimer timer;
+				timer.start();
+				table->moveRows({ moved }, dropRow);
+				QApplication::processEvents();
+				const qint64 elapsed = timer.elapsed();
+				moves++;
+
+				QList<QString> expected = before;
+				expected.move(sourceRow, targetRow);
+				if (table->getLines() != expected)
+				{
+					qWarning("CardMoveTest: %s move %d produced a wrong document order",
+						qPrintable(name), pass + 1);
+					failures++;
+				}
+				// The moved line must stay the (only) selection, at its new
+				// row - by position, not pointer, so both the copy-splice and
+				// the item-preserving implementations of the move pass.
+				const QSet<FilterTable::Item*>& selectedItems = table->getSelectedItems();
+				if (selectedItems.size() != 1
+					|| table->documentItems().indexOf(*selectedItems.cbegin()) != targetRow)
+				{
+					qWarning("CardMoveTest: %s move %d did not leave the moved row selected",
+						qPrintable(name), pass + 1);
+					failures++;
+				}
+				const int rowWidgets = int(table->findChildren<FilterCardRow*>(
+					QString(), Qt::FindDirectChildrenOnly).count());
+				if (rowWidgets != rowCount)
+				{
+					qWarning("CardMoveTest: %s move %d left %d row widgets for %d rows",
+						qPrintable(name), pass + 1, rowWidgets, rowCount);
+					failures++;
+				}
+
+				if (elapsed > limitMs)
+				{
+					qWarning("CardMoveTest: %s move %d took %lld ms (limit %d ms)",
+						qPrintable(name), pass + 1, static_cast<long long>(elapsed), limitMs);
+					failures++;
+				}
+				else if (warningMs > 0 && elapsed > warningMs)
+				{
+					qWarning("CardMoveTest: %s move %d took %lld ms (warning %d ms; hard limit %d ms)",
+						qPrintable(name), pass + 1, static_cast<long long>(elapsed), warningMs, limitMs);
+				}
+				if (elapsed > worstMs)
+				{
+					worstMs = elapsed;
+					worstName = name;
+				}
+				qWarning("CardMoveTest: %s move %d: %lld ms (rows %d, widgets %lld)",
+					qPrintable(name), pass + 1, static_cast<long long>(elapsed), rowCount,
+					static_cast<long long>(QApplication::allWidgets().size()));
+			}
+		}
+	}
+
+	qWarning("CardMoveTest: %d moves over %lld rows, worst %lld ms (%s), warning %d ms, limit %d ms, failures %d",
+		moves, static_cast<long long>(lines.size()), static_cast<long long>(worstMs),
+		qPrintable(worstName), warningMs, limitMs, failures);
+
+	// Same no-teardown exit as run().
 	const int status = failures == 0 ? 0 : 1;
 	std::fflush(nullptr);
 	std::_Exit(status);

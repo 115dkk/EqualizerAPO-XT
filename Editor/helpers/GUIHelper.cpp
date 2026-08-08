@@ -21,8 +21,12 @@
 #include "Editor/helpers/EditorSettings.h"
 
 #include <QApplication>
+#include <QComboBox>
 #include <QDir>
 #include <QFileDialog>
+#include <QFileInfo>
+#include <QLineEdit>
+#include <QSet>
 #include <QFont>
 #include <QFontMetrics>
 #include <QHeaderView>
@@ -155,10 +159,30 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	dialog.setViewMode(QFileDialog::Detail);
 
 	// Sidebar: the active config root first (the folder the engine actually
-	// reads, HKLM ConfigPath), then the user's standard folders. Downloads is
-	// included because impulse responses and shared presets usually arrive
-	// there.
+	// reads, HKLM ConfigPath), the upstream Equalizer APO's config folder,
+	// the folders of recently opened configurations, the user's standard
+	// folders (Downloads because impulse responses and shared presets
+	// usually arrive there), and the drive roots Explorer-style. The file
+	// system model names drives by the Windows convention ("Local Disk
+	// (C:)"), and the skin's icon provider carries a dedicated drive glyph.
 	QList<QUrl> sidebar;
+	QSet<QString> sidebarSeen;
+	auto appendSidebar = [&sidebar, &sidebarSeen](const QString& path)
+	{
+		if (path.isEmpty())
+			return false;
+		const QFileInfo info(path);
+		if (!info.isDir())
+			return false;
+		const QString canonical = QDir::cleanPath(info.absoluteFilePath());
+		const QString key = canonical.toLower();
+		if (sidebarSeen.contains(key))
+			return false;
+		sidebarSeen.insert(key);
+		sidebar.append(QUrl::fromLocalFile(canonical));
+		return true;
+	};
+
 	QString configRoot;
 	try
 	{
@@ -171,16 +195,71 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	}
 	if (configRoot.isEmpty())
 		configRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
-	if (!configRoot.isEmpty() && QDir(configRoot).exists())
-		sidebar.append(QUrl::fromLocalFile(QDir(configRoot).absolutePath()));
+	appendSidebar(configRoot);
+
+	// The original Equalizer APO's config folder, for setups that keep the
+	// upstream install (or its leftovers) side by side.
+	const QString programFiles = QDir::fromNativeSeparators(
+		QString::fromLocal8Bit(qgetenv("ProgramFiles")));
+	if (!programFiles.isEmpty())
+		appendSidebar(programFiles + QStringLiteral("/EqualizerAPO/config"));
+
+	// The folders of recently opened configurations (the File menu's list).
+	{
+		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+		const QStringList recent = settings.value(QStringLiteral("recentFiles")).toStringList();
+		int added = 0;
+		for (const QString& file : recent)
+		{
+			if (added >= 4)
+				break;
+			if (appendSidebar(QFileInfo(file).absolutePath()))
+				added++;
+		}
+	}
+
 	for (QStandardPaths::StandardLocation location : { QStandardPaths::DownloadLocation,
 			QStandardPaths::DocumentsLocation, QStandardPaths::DesktopLocation, QStandardPaths::HomeLocation })
-	{
-		const QString path = QStandardPaths::writableLocation(location);
-		if (!path.isEmpty())
-			sidebar.append(QUrl::fromLocalFile(path));
-	}
+		appendSidebar(QStandardPaths::writableLocation(location));
+
+	for (const QFileInfo& drive : QDir::drives())
+		appendSidebar(drive.absoluteFilePath());
+
 	dialog.setSidebarUrls(sidebar);
+
+	// The location dropdown accepts a pasted path: Explorer users copy a
+	// location - often via "Copy as path", quotes included - and expect to
+	// land on it directly instead of clicking down the tree. The dropdown
+	// itself (history + places popup) stays.
+	if (QComboBox* lookInCombo = dialog.findChild<QComboBox*>(QStringLiteral("lookInCombo")))
+	{
+		lookInCombo->setEditable(true);
+		lookInCombo->setInsertPolicy(QComboBox::NoInsert);
+		if (QLineEdit* pathEdit = lookInCombo->lineEdit())
+		{
+			QObject::connect(pathEdit, &QLineEdit::returnPressed, &dialog,
+				[&dialog, pathEdit]()
+				{
+					QString typed = pathEdit->text().trimmed();
+					if (typed.size() >= 2 && typed.startsWith(QLatin1Char('"'))
+						&& typed.endsWith(QLatin1Char('"')))
+						typed = typed.mid(1, typed.size() - 2);
+					if (typed.isEmpty())
+						return;
+					const QFileInfo info(QDir::fromNativeSeparators(typed));
+					if (info.isFile())
+					{
+						// A full file path selects the file itself.
+						dialog.setDirectory(info.absolutePath());
+						dialog.selectFile(info.absoluteFilePath());
+					}
+					else if (info.isDir())
+					{
+						dialog.setDirectory(info.absoluteFilePath());
+					}
+				});
+		}
+	}
 
 	// A roomier default than QFileDialog's compact size hint, so the Detail
 	// columns (name/size/date) fit without immediate scrolling.

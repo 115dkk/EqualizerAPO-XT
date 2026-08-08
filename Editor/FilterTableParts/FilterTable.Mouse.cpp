@@ -160,19 +160,33 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 				drag->setMimeData(mimeData);
 				QSet<Item*> selectedBefore = model.selected();
 				internalDrag = true;
+				pendingInternalMoveRow = -1;
 				Qt::DropAction action = drag->exec(Qt::MoveAction | Qt::CopyAction);
 				internalDrag = false;
-				if (action == Qt::MoveAction)
+				const int moveDropRow = pendingInternalMoveRow;
+				pendingInternalMoveRow = -1;
+				if (action == Qt::MoveAction && moveDropRow >= 0)
 				{
-					// An internal move already re-selected the dropped copies
-					// (insertLinesFromMimeData); remove the originals.
-					model.removeItems(selectedBefore);
+					// A same-table move: dropEvent only recorded the drop row,
+					// so commit the untouched originals as one document move.
+					QList<Item*> itemsInOrder;
+					for (Item* item : model.items())
+						if (selectedBefore.contains(item))
+							itemsInOrder.append(item);
+					moveRows(itemsInOrder, moveDropRow);
 				}
-
-				if (action != Qt::IgnoreAction)
+				else
 				{
-					emit linesChanged();
-					updateGuis();
+					// A move that landed elsewhere (another table, another
+					// application) removes the originals; a copy keeps them.
+					if (action == Qt::MoveAction)
+						model.removeItems(selectedBefore);
+
+					if (action != Qt::IgnoreAction)
+					{
+						emit linesChanged();
+						updateGuis();
+					}
 				}
 			}
 		}

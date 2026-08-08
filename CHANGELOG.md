@@ -8,7 +8,7 @@ fork started on 2026-05-22.
 
 Versions are bumped automatically by CI from Conventional Commits message
 types, so some version numbers were skipped (1.7, 1.9, 1.12.1, 1.14, 1.16,
-1.23, 1.25, and 2.30.1 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
+1.23, 1.25, 2.30.1, 2.31, and 2.32 were never released). Tags up to v1.10.1 carried a `-main.<run>` suffix; from v1.11.0 on,
 tags are clean `vX.Y.Z` names. Installers for every version are on the
 [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases).
 
@@ -44,6 +44,60 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   arrangement is read back from the plugin instead of assumed, and an
   explicit per-arrangement channel mapping routes each engine channel to the
   right plugin bus slot.
+
+## v2.33.1 — 2026-08-08
+
+- **Moving a card up or down is instant again.** Dragging one card to a new
+  position stalled for seconds on a loaded configuration (5-6 s reported on
+  a fast desktop) because the move rebuilt every card in the list; the move
+  now splices only the affected rows, and the moved card keeps its expanded
+  state. Measured on a 174-row document: 0.8-0.9 s down to 24-82 ms per
+  move, in every skin.
+  ([#253](https://github.com/115dkk/EqualizerAPO-XT/pull/253))
+- **Drives in the file dialog sidebar show the drive glyph again.** Since the
+  sidebar gained the drive roots, every drive rendered with the folder
+  pictogram in the skinned dialogs; drives now carry each skin's dedicated
+  drive glyph. ([#253](https://github.com/115dkk/EqualizerAPO-XT/pull/253))
+
+## v2.33.0 — 2026-08-07
+
+- **Checked checkboxes show a real check mark in every skin.** They used to
+  render as a plain filled accent square, so on/off read through color
+  alone; the partially-checked state now shows an accent dash instead of
+  looking unchecked, and the square menu indicators of the Minimal and
+  Matrix skins carry the same glyph.
+  ([#252](https://github.com/115dkk/EqualizerAPO-XT/pull/252))
+
+
+- **File dialogs accept a pasted path and carry Explorer-style shortcuts.**
+  The location dropdown is now editable: paste a path copied from Windows
+  Explorer (quotes from "Copy as path" included) and press Enter to jump
+  there; a full file path selects that file. The sidebar adds the upstream
+  Equalizer APO config folder, the folders of recently opened
+  configurations, and every drive root with its Windows display name.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+- **Settings > Open program folder** shows the install directory in
+  Explorer. ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+- **The pencil button on an Include card now opens the included file in the
+  editor.** It used to turn the config line into a raw path text field, while
+  opening the file was hidden behind clicking the name. Editing the path as
+  text is no longer offered on Include cards; choosing a different file stays
+  with Browse/Locate.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+- **Card rows can be dragged from anywhere on their header.** Reordering by
+  drag and drop only worked from the narrow strip around the row number,
+  because the summary text consumed the mouse press and the drag hit-test
+  area was offset by the card margins.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+- **Embedded VST3 panels are stable and can be closed.** The host no longer
+  force-repaints the plugin view on every idle (the VST 3 view paints
+  itself), parameter edits no longer cycle the plugin's activation state on
+  every knob tick (the editor holds the documented Processing state for the
+  whole session, so set values and the saved state stay consistent), and the
+  panel button stays visible as "Close panel" while embedded instead of
+  leaving un-embedding hidden in the options menu.
+  ([#251](https://github.com/115dkk/EqualizerAPO-XT/pull/251))
+
 ## v2.30.2 — 2026-07-30
 
 - **Saving a configuration no longer intermittently fails with "Access is

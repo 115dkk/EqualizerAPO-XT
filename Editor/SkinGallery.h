@@ -33,4 +33,14 @@ int run(const QStringList& arguments);
 // before the clear-first fix, and left the caption buttons dark-on-dark;
 // this keeps those regression classes out of CI-green.
 int runSwitchTest(const QStringList& arguments);
+
+// Entry point behind --card-move-test: the card drag-move latency gate.
+// Commits a one-card move (down one row, then back) through
+// FilterTable::moveRows - the internal drag-and-drop commit path - on a
+// 100+ row document for every skin x dark/light, and fails on a wrong
+// resulting document order, a lost selection, a row-widget mismatch or a
+// move slower than EAPO_MOVE_LIMIT_MS (EAPO_MOVE_WARN_MS only logs). Field
+// history: one card move cost 5-6 s on a fast desktop while the move
+// rebuilt every card row.
+int runCardMoveTest(const QStringList& arguments);
 }

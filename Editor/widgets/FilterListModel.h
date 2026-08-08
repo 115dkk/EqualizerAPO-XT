@@ -82,6 +82,16 @@ public:
 	// Returns the inserted items in document order.
 	QList<FilterListItem*> insertLines(const QStringList& lines, const QList<QVariantMap>& prefsList, int dropRow);
 
+	// Moves the given document items so they sit as one contiguous block
+	// (kept in document order) before the item currently at dropRow
+	// (pre-move indexing; items().size() appends, out-of-range values are
+	// clamped). The final order matches insertLines-copies-then-removeItems,
+	// but the items themselves survive: pointers, prefs and gui stay valid.
+	// The moved items replace the selection; focus and the anchor land on
+	// the first moved item. Returns false (mutating nothing) when the list
+	// is empty, holds duplicates or holds an item outside the document.
+	bool moveItems(const QList<FilterListItem*>& itemsToMove, int dropRow);
+
 	// Removes and deletes exactly the selected items, clears the selection and
 	// drops focus/anchor if they pointed at a deleted item.
 	void deleteSelected();

@@ -149,6 +149,12 @@ bool VSTPluginInstance::startEditing(HWND hWnd, short* width, short* height, dou
 		if (hasPreAttachSize)
 			vst3View->onSize(&rect);
 		EnumChildWindows(vst3EditorHostWindow.get(), showChildWindow, 0);
+		// Keep the processor flush-ready for the whole editing session so GUI
+		// edits reach the component without per-edit activation cycling.
+		beginVST3EditorSession();
+		// Edits the plug-in raised synchronously while the session was being
+		// established stayed queued (the flush guard was held); drain them.
+		flushVST3ParameterChanges();
 		return true;
 	}
 
@@ -171,16 +177,12 @@ void VSTPluginInstance::doIdle()
 {
 	if (library->isVST3())
 	{
-		if (vst3EditorHostWindow)
-		{
-			InvalidateRect(vst3EditorHostWindow.get(), NULL, FALSE);
-			UpdateWindow(vst3EditorHostWindow.get());
-			EnumChildWindows(vst3EditorHostWindow.get(), [](HWND hWnd, LPARAM) -> BOOL {
-				InvalidateRect(hWnd, NULL, FALSE);
-				UpdateWindow(hWnd);
-				return TRUE;
-			}, 0);
-		}
+		// No host idle duty exists for VST3: the IPlugView contract gives the
+		// host no repaint responsibility - the view's platform representation
+		// paints itself. The forced InvalidateRect/UpdateWindow sweep that
+		// used to run here repainted the whole plug-in GUI synchronously on
+		// every event-loop idle, which starved the Editor's own UI and made
+		// interacting with an embedded panel unstable.
 		return;
 	}
 
@@ -203,6 +205,7 @@ void VSTPluginInstance::stopEditing()
 			vst3View.reset();
 		}
 		vst3EditorHostWindow.reset();
+		endVST3EditorSession();
 		return;
 	}
 

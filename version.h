@@ -1,6 +1,6 @@
 #define MAJOR 2
-#define MINOR 30
-#define REVISION 2
+#define MINOR 33
+#define REVISION 1
 
 // Audit #250 F019: the "MAJOR.MINOR, append REVISION when non-zero" display
 // rule used to be copied into four binaries; in the UpdateChecker that string

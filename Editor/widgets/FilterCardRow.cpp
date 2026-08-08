@@ -119,7 +119,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	summaryLabel = new ElidedLabel(headerWidget);
 	summaryLabel->setObjectName(QStringLiteral("FilterCardSummary"));
 	summaryLabel->setElideMode(Qt::ElideRight);
-	summaryLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+	// No text interaction here: a selectable label consumes the mouse press,
+	// and since this label is the header's expanding filler, that reduced the
+	// row's drag/select surface to the narrow number/title strip. The header
+	// is the drag handle (FilterTable hit-tests getHeaderRect); the raw line
+	// below stays selectable for copying.
 	summaryLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	headerLayout->addWidget(summaryLabel, 1);
 
@@ -417,7 +421,10 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 
 QRect FilterCardRow::getHeaderRect() const
 {
-	return QRect(headerWidget->pos(), headerWidget->size());
+	// In this row's coordinates: headerWidget->pos() alone is relative to
+	// cardFrame and would miss the outer card margins, shifting the drag
+	// hit-test area away from the header the user actually sees.
+	return QRect(headerWidget->mapTo(this, QPoint(0, 0)), headerWidget->size());
 }
 
 void FilterCardRow::editText()

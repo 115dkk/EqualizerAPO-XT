@@ -95,6 +95,7 @@
      <addaction name="separator"/>
     </widget>
     <addaction name="actionApoSettings"/>
+    <addaction name="actionOpenProgramFolder"/>
     <addaction name="separator"/>
     <addaction name="menuLanguage"/>
     <addaction name="separator"/>
@@ -532,6 +533,14 @@
    </property>
    <property name="toolTip">
     <string>Run the Device Selector to install or remove Equalizer APO on audio devices</string>
+   </property>
+  </action>
+  <action name="actionOpenProgramFolder">
+   <property name="text">
+    <string>Open program folder</string>
+   </property>
+   <property name="toolTip">
+    <string>Show the folder this program is installed in</string>
    </property>
   </action>
   <action name="actionUndo">
