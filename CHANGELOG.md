@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Declining the Device Selector's UAC prompt no longer pops a second
+  one.** Opening the Device Selector from the menu or a problem-fix
+  prompt used to re-ask for elevation immediately after you said no, and
+  a failed launch was silent. It now asks once and shows a short notice
+  with the retry path instead
+  ([#257](https://github.com/115dkk/EqualizerAPO-XT/pull/257)).
+
 ## v2.34.1 — 2026-08-08
 
 - **The Hilbert and Velvet entries in the add-filter picker now explain

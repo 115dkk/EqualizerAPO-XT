@@ -25,6 +25,7 @@
 
 #include "EqualizerAPO.h"
 #include "ClassFactory.h"
+#include "../helpers/ClsidRegistration.h"
 #include "../helpers/RegistryHelper.h"
 #include "../helpers/LogHelper.h"
 
@@ -105,21 +106,15 @@ STDAPI DllRegisterServer()
 
 	try
 	{
-		wstring apoClsidString = RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID);
-
-		RegistryHelper::createKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString);
-		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString, L"", L"EqualizerAPO Post-Mix Class");
-		RegistryHelper::createKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32");
-		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32", L"", filename);
-		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32", L"ThreadingModel", L"Both");
-
-		apoClsidString = RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID);
-
-		RegistryHelper::createKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString);
-		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString, L"", L"EqualizerAPO Pre-Mix Class");
-		RegistryHelper::createKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32");
-		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32", L"", filename);
-		RegistryHelper::writeValue(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32", L"ThreadingModel", L"Both");
+		// Audit #250 A3: the tree writes live in ClsidRegistration behind the
+		// registry port, where a fake registry can pin them; this export keeps
+		// the RegisterAPO ordering and the rollback.
+		ClsidRegistration::registerClsidTree(systemRegistry(),
+			RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID),
+			L"EqualizerAPO Post-Mix Class", filename);
+		ClsidRegistration::registerClsidTree(systemRegistry(),
+			RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID),
+			L"EqualizerAPO Pre-Mix Class", filename);
 	}
 	catch (const RegistryException&)
 	{
@@ -135,15 +130,10 @@ STDAPI DllUnregisterServer()
 {
 	try
 	{
-		wstring apoClsidString = RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID);
-
-		RegistryHelper::deleteKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32");
-		RegistryHelper::deleteKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString);
-
-		apoClsidString = RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID);
-
-		RegistryHelper::deleteKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString + L"\\InprocServer32");
-		RegistryHelper::deleteKey(L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\" + apoClsidString);
+		ClsidRegistration::unregisterClsidTree(systemRegistry(),
+			RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+		ClsidRegistration::unregisterClsidTree(systemRegistry(),
+			RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
 	}
 	catch (const RegistryException&)
 	{

@@ -225,17 +225,26 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApoRegistrationTests.cpp" />
     <ClCompile Include="ConfigurationFileReaderTests.cpp" />
     <ClCompile Include="DeviceApoInfoTests.cpp" />
     <ClCompile Include="EngineOrchestrationTests.cpp" />
     <ClCompile Include="InstallDiagnosticsTests.cpp" />
     <ClCompile Include="RegistryTransactionTests.cpp" />
+    <!-- Executable-side helpers under test, compiled directly like
+         AudioEngineAccess: ApoRegistration is not a Common.lib member, and
+         it links against the service and shortcut units. -->
+    <ClCompile Include="..\..\helpers\ApoRegistration.cpp" />
     <ClCompile Include="..\..\helpers\AudioEngineAccess.cpp" />
     <ClCompile Include="..\..\helpers\InstallDiagnostics.cpp" />
+    <ClCompile Include="..\..\helpers\ServiceHelper.cpp" />
+    <ClCompile Include="..\..\helpers\StartMenuShortcuts.cpp" />
     <ClCompile Include="SampleIoTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\engine\FilterEngine.h" />
+    <ClInclude Include="..\..\helpers\ApoRegistration.h" />
+    <ClInclude Include="..\..\helpers\ClsidRegistration.h" />
     <ClInclude Include="..\..\helpers\IRegistry.h" />
     <ClInclude Include="..\..\helpers\RegistryTransaction.h" />
     <ClInclude Include="..\..\helpers\SynchronizedState.h" />

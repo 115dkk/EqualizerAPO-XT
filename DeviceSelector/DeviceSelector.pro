@@ -40,6 +40,7 @@ SOURCES += \
 	skins/MatrixDeviceSkin.cpp \
 	../helpers/ServiceHelper.cpp \
 	../helpers/ApoRegistration.cpp \
+	../helpers/StartMenuShortcuts.cpp \
 	../helpers/AudioEngineAccess.cpp \
 	../helpers/InstallDiagnostics.cpp \
 	stdafx.cpp
@@ -59,6 +60,7 @@ HEADERS += \
 	skins/DeviceSkinPainter.h \
 	../helpers/ServiceHelper.h \
 	../helpers/ApoRegistration.h \
+	../helpers/StartMenuShortcuts.h \
 	../helpers/AudioEngineAccess.h \
 	../helpers/InstallDiagnostics.h \
 	resource.h \

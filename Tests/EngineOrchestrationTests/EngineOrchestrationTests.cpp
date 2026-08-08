@@ -982,6 +982,7 @@ void runConfigurationFileReaderTests(test::Harness& harness);
 void runDeviceApoInfoTests(test::Harness& harness);
 void runRegistryTransactionTests(test::Harness& harness);
 void runInstallDiagnosticsTests(test::Harness& harness);
+void runApoRegistrationTests(test::Harness& harness);
 
 int runEngineOrchestrationTests()
 {
@@ -1021,6 +1022,7 @@ int runEngineOrchestrationTests()
 	runRegistryTransactionTests(harness);
 	runDeviceApoInfoTests(harness);
 	runInstallDiagnosticsTests(harness);
+	runApoRegistrationTests(harness);
 	testProcessWithoutConfigurationDoesNotCrash(harness);
 	testInitialLoadUsesPublicationChannel(harness);
 	testConfigSwapChannelPermitRoundTrip(harness);
