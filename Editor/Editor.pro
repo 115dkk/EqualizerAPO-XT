@@ -102,6 +102,7 @@ SOURCES += main.cpp\
 	guis/IncludeFilterGUIFactory.cpp \
 	helpers/GUIHelper.cpp \
 	helpers/QtAppBootstrap.cpp \
+	helpers/VstChunkScan.cpp \
 	widgets/ResizingLineEdit.cpp \
 	widgets/ChannelGraphScene.cpp \
 	widgets/ChannelGraphItem.cpp \
@@ -308,6 +309,7 @@ SOURCES += main.cpp\
 	widgets/EqGraphView.cpp \
 	widgets/SegmentedControl.cpp \
 	widgets/FilterCardModel.cpp \
+	widgets/FilterCommandCatalog.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/FilterListModel.cpp \
 	widgets/FilterListUndo.cpp \
@@ -356,6 +358,7 @@ HEADERS  += \
 	helpers/GUIHelper.h \
 	helpers/WindowFrameHitTest.h \
 	helpers/QtAppBootstrap.h \
+	helpers/VstChunkScan.h \
 	stable.h \
 	IFilterGUI.h \
 	guis/PreampFilterGUI.h \
@@ -583,6 +586,7 @@ HEADERS  += \
 	widgets/EqGraphView.h \
 	widgets/SegmentedControl.h \
 	widgets/FilterCardModel.h \
+	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
 	widgets/FilterListModel.h \
 	widgets/FilterListUndo.h \

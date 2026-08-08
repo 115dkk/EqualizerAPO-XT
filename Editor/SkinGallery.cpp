@@ -882,8 +882,8 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 	failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), true);
 
 	// The skin's "add filter" picker with the real template set, captured the
-	// same way the rows are. A throwaway FilterTable supplies the entries; its
-	// factories are the same ones chooseFilterTemplate consults at runtime.
+	// same way the rows are. A throwaway FilterTable supplies the entries from
+	// the same command catalog chooseFilterTemplate consults at runtime.
 	{
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);

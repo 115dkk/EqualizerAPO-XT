@@ -22,6 +22,7 @@
 #include <QtMath>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/FilterCardModel.h"
 #include "Editor/skins/pickers/MinimalFilterPicker.h"
 #include "Editor/skins/cards/MinimalReferenceCardView.h"
 #include "Editor/skins/cards/MinimalSubwooferRoutingCardView.h"
@@ -938,8 +939,7 @@ public:
 		// so QSS cannot reach it and the override happens here. Rows are
 		// rebuilt on skin/theme switches, so construction-time token values
 		// stay current.
-		if ((info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
-			|| info.type == QStringLiteral("eval") || info.dynamicLine) && body != nullptr)
+		if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine) && body != nullptr)
 		{
 			const SkinTokens& tk = tokens;
 			if (QLabel* rawText = body->findChild<QLabel*>(QStringLiteral("FilterCardRawText")))

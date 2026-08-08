@@ -111,6 +111,19 @@ public:
 	// down or open in dynamic mode, or a knob turn silently destroys the
 	// expression.
 	static bool hasInlineExpressions(const QString& parameters);
+	// The raw-body eligibility rule the five skins used to restate verbatim:
+	// bare/unmodelled lines (raw text, the If family, Eval) and dynamic lines
+	// host the shared raw editor, so a skin's inline raw styling applies to
+	// them. Eligibility, not presence - a dynamic line with a dynamic-capable
+	// editor has no raw label to style, which the skins' findChild guards
+	// already absorb.
+	static bool hostsSharedRawBody(const QString& type, bool dynamicLine);
+	// A Copy line opens the skin routing view only while its factors are
+	// static: the routing editor parses and re-serializes the parameters, so
+	// inline-expression factors must stay on the raw body or the first edit
+	// would serialize the expression away. Both deciders (the editor factory
+	// gate and the row's body construction) ask this one predicate.
+	static bool opensRoutingView(const FilterCardDescriptor& descriptor);
 
 private:
 	static QStringList parseChannelList(const QString& text);

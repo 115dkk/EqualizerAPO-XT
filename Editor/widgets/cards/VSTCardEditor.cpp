@@ -30,6 +30,7 @@
 #include "helpers/AudioEngineAccess.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/helpers/VstChunkScan.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/MainWindow.h"
@@ -543,25 +544,7 @@ void VSTCardEditor::updatePermissionWarning()
 		return;
 	}
 
-	QStringList files;
-	if (chunkData != L"" && chunkData.length() < 100000)
-	{
-		QByteArray bytes = QByteArray::fromBase64(QString::fromStdWString(chunkData).toUtf8());
-		QString string = QString::fromUtf8(bytes.data(), bytes.length());
-		QRegularExpression regexp("[A-Za-z]:(?:\\\\[\\w \\(\\)-]+)+\\.[A-Za-z]{3}");
-		QRegularExpressionMatchIterator it = regexp.globalMatch(string);
-		while (it.hasNext())
-		{
-			QRegularExpressionMatch m = it.next();
-			QString path = m.captured();
-			QFile file(path);
-			if (file.exists())
-			{
-				if (!AudioEngineAccess::isReadableByAudioEngine(path.toStdWString()))
-					files.append(path);
-			}
-		}
-	}
+	const QStringList files = vstChunkUnreadablePaths(chunkData);
 
 	if (files.isEmpty())
 	{
@@ -570,7 +553,6 @@ void VSTCardEditor::updatePermissionWarning()
 	}
 	else
 	{
-		files.removeDuplicates();
 		QString text = tr("The plugin seemingly accesses these files not readable by the audio service:\n"
 				"%0\n"
 				"Change the file permissions or copy the files to the config directory.").arg(files.join("\n"));

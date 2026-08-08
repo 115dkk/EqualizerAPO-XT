@@ -47,6 +47,18 @@
     <ClCompile Include="..\..\Editor\widgets\FilterCardModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\FilterCommandCatalog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\helpers\AudioEngineAccess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FilterCommandCatalogTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Editor\widgets\cards\ChannelSelectionModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -83,6 +95,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\FilterCardModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\FilterCommandCatalog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h">

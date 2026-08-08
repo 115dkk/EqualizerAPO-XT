@@ -26,6 +26,7 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/FilterCardModel.h"
 #include "Editor/skins/cards/StudioReferenceCardView.h"
 #include "Editor/skins/cards/StudioSubwooferRoutingCardView.h"
 #include "Editor/skins/pickers/StudioFilterPicker.h"
@@ -1751,8 +1752,7 @@ public:
 		if (body == nullptr)
 			return;
 
-		if (info.type == QStringLiteral("text") || info.type == QStringLiteral("if")
-			|| info.type == QStringLiteral("eval") || info.dynamicLine)
+		if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine))
 		{
 			// Raw text (bare note lines), the If/Eval logic rows and dynamic
 			// lines without a dynamic-capable editor host the shared raw

@@ -198,12 +198,10 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	bodyStack->addWidget(lineEdit);
 
 	// A Copy line with inline `expression` factors must not open the routing
-	// view: its parser would read the unresolved text as garbage and the
-	// first edit would serialize the expression away. Such lines keep the
-	// raw body (dynamic-value contract), like every other dynamic line
-	// without a dynamic-capable editor.
-	IRoutingRenderer* routingRenderer = (descriptor.type == QStringLiteral("copy")
-		&& !descriptor.dynamicLine)
+	// view (FilterCardModel::opensRoutingView): such lines keep the raw body
+	// (dynamic-value contract), like every other dynamic line without a
+	// dynamic-capable editor.
+	IRoutingRenderer* routingRenderer = FilterCardModel::opensRoutingView(descriptor)
 		? SkinManager::instance()->routingRenderer() : nullptr;
 
 	if (routingRenderer != nullptr)

@@ -28,6 +28,7 @@
 
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/FilterCardModel.h"
 #include "Editor/skins/pickers/SoftFilterPicker.h"
 #include "Editor/skins/cards/SoftReferenceCardView.h"
 #include "Editor/skins/cards/SoftSubwooferRoutingCardView.h"
@@ -1084,10 +1085,8 @@ public:
 		const SkinTokens& tokens) const override
 	{
 		Q_UNUSED(card);
-		const bool rawBodyRow = info.type == QStringLiteral("text")
-			|| info.type == QStringLiteral("if") || info.type == QStringLiteral("eval")
-			|| info.dynamicLine;
-		if (info.legacyRow || !rawBodyRow)
+		if (info.legacyRow
+			|| !FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine))
 			return;
 
 		// Sentence conditions: a simple If/Eval line is retold in the header
