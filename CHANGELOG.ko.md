@@ -8,6 +8,16 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **필터 추가 픽커의 Hilbert·Velvet 항목에 설명이 붙었습니다.** 두 항목만
+  설명 없이 나가서 Soft 스킨 픽커가 "추가 후 상세를 정합니다" 대체 문구를
+  보여 줬는데, 이제 다른 명령처럼 영어·한국어 설명을 갖습니다
+  ([#254](https://github.com/115dkk/EqualizerAPO-XT/pull/254)).
+- **서브우퍼 템플릿의 픽커 항목이 한국어로 나옵니다.** "Subwoofer routing"
+  템플릿 이름과 "Speaker management" 구획이 번역 파일에서 빠져 있었습니다.
+  서브우퍼 편집기의 나머지 문자열도 이번에 번역 대상으로 등록됐지만 아직
+  영어로 표시되며, 번역 자체는 예정된 후속 작업입니다
+  ([#254](https://github.com/115dkk/EqualizerAPO-XT/pull/254)).
+
 ## v2.34.0 — 2026-08-08
 
 - **Minimal 스킨 라우팅 화면의 채널 알약이 어떤 색 위에서도 읽힙니다.** 밝은

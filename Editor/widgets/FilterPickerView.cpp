@@ -14,6 +14,7 @@
 #include <QVBoxLayout>
 
 #include "Editor/helpers/GUIHelper.h"
+#include "FilterCommandCatalog.h"
 
 QString filterTemplateDescription(const QString& rawLine)
 {
@@ -21,61 +22,36 @@ QString filterTemplateDescription(const QString& rawLine)
 	if (line.isEmpty())
 		return QString();
 	if (line.startsWith(QLatin1Char('#')))
-		return QCoreApplication::translate("FilterPickerView", "A note EqualizerAPO skips while processing");
+	{
+		const FilterCommandCatalog::CommandEntry* comment
+			= FilterCommandCatalog::entryForKeyword(QStringLiteral("#"));
+		return comment == nullptr ? QString() : FilterCommandCatalog::description(*comment);
+	}
 
 	const int colon = line.indexOf(QLatin1Char(':'));
 	const QString command = (colon > 0 ? line.left(colon) : line).trimmed();
 
 	// Biquad templates all share the "Filter" command, so split further on the
-	// type token to give each response shape its own line. The tokens match the
-	// Soft picker's pictogram table (BiQuadFilterGUIFactory writes them).
+	// type token to give each response shape its own line (the catalog's curve
+	// table, the same one the pictograms use).
 	if (command == QLatin1String("Filter"))
 	{
-		static const struct { const char* token; const char* description; } curves[] = {
-			{ " PK ", QT_TRANSLATE_NOOP("FilterPickerView", "Boosts or cuts a band around a center frequency") },
-			{ " LP ", QT_TRANSLATE_NOOP("FilterPickerView", "Passes the lows and rolls off above the cutoff") },
-			{ " HP ", QT_TRANSLATE_NOOP("FilterPickerView", "Passes the highs and rolls off below the cutoff") },
-			{ " BP ", QT_TRANSLATE_NOOP("FilterPickerView", "Passes a band around the center and drops the rest") },
-			{ " LS ", QT_TRANSLATE_NOOP("FilterPickerView", "Raises or lowers everything below the corner frequency") },
-			{ " HS ", QT_TRANSLATE_NOOP("FilterPickerView", "Raises or lowers everything above the corner frequency") },
-			{ " NO ", QT_TRANSLATE_NOOP("FilterPickerView", "Cuts a narrow band deeply and leaves the rest") },
-			{ " AP ", QT_TRANSLATE_NOOP("FilterPickerView", "Changes phase and group delay around the center frequency. Level remains unchanged.") }
-		};
 		// The order distinguishes the two all-pass entries, which share a type
 		// token and would otherwise read identically in the picker.
 		if (line.contains(QLatin1String(" AP ")) && line.contains(QLatin1String("Order 1")))
-			return QCoreApplication::translate("FilterPickerView",
-				"First order. Rotates 180 degrees in total, passing 90 degrees at Fc.");
-		for (const auto& curve : curves)
-			if (line.contains(QLatin1String(curve.token)))
-				return QCoreApplication::translate("FilterPickerView", curve.description);
+			return FilterCommandCatalog::firstOrderAllPassDescription();
+		for (const FilterCommandCatalog::BiquadCurveEntry& curve
+			: FilterCommandCatalog::biquadCurves())
+			if (line.contains(QStringLiteral(" %1 ").arg(QLatin1String(curve.code))))
+				return FilterCommandCatalog::curveDescription(curve);
 		return QString();
 	}
 
-	static const struct { const char* command; const char* description; } commands[] = {
-		{ "Preamp", QT_TRANSLATE_NOOP("FilterPickerView", "Applies overall gain before the other filters") },
-		{ "Delay", QT_TRANSLATE_NOOP("FilterPickerView", "Delays the signal by a time or distance") },
-		{ "Copy", QT_TRANSLATE_NOOP("FilterPickerView", "Mixes and routes the signal between channels") },
-		{ "GraphicEQ", QT_TRANSLATE_NOOP("FilterPickerView", "Sets a gain for each graphic-EQ band") },
-		{ "Convolution", QT_TRANSLATE_NOOP("FilterPickerView", "Applies an impulse response, such as a room or reverb") },
-		{ "MultiConvolution", QT_TRANSLATE_NOOP("FilterPickerView", "Convolves several inputs, as in BRIR headphone synthesis") },
-		{ "LoudnessCorrection", QT_TRANSLATE_NOOP("FilterPickerView", "Compensates hearing at low listening levels") },
-		{ "SubwooferRouting", QT_TRANSLATE_NOOP("FilterPickerView", "Applies crossover filtering and routes bass and source LFE per speaker group") },
-		{ "VSTPlugin", QT_TRANSLATE_NOOP("FilterPickerView", "Runs an external VST audio plugin") },
-		{ "Channel", QT_TRANSLATE_NOOP("FilterPickerView", "Selects which channels the following filters affect") },
-		{ "Device", QT_TRANSLATE_NOOP("FilterPickerView", "Limits the following filters to one device") },
-		{ "Stage", QT_TRANSLATE_NOOP("FilterPickerView", "Chooses the processing stage for the following filters") },
-		{ "Include", QT_TRANSLATE_NOOP("FilterPickerView", "Loads another configuration file here") },
-		{ "Eval", QT_TRANSLATE_NOOP("FilterPickerView", "Computes a variable from an expression") },
-		{ "If", QT_TRANSLATE_NOOP("FilterPickerView", "Applies the following filters only when a condition holds") },
-		{ "ElseIf", QT_TRANSLATE_NOOP("FilterPickerView", "Tries another condition when the previous one failed") },
-		{ "Else", QT_TRANSLATE_NOOP("FilterPickerView", "Runs when none of the conditions above matched") },
-		{ "EndIf", QT_TRANSLATE_NOOP("FilterPickerView", "Closes the conditional block") }
-	};
-	for (const auto& mapping : commands)
-		if (command == QLatin1String(mapping.command))
-			return QCoreApplication::translate("FilterPickerView", mapping.description);
-	return QString();
+	// Exact-match on the canonical spelling, like the engine's own lookup: a
+	// lowercase "preamp:" is a note, not a command, and gets no description.
+	const FilterCommandCatalog::CommandEntry* entry
+		= FilterCommandCatalog::entryForKeyword(command);
+	return entry == nullptr ? QString() : FilterCommandCatalog::description(*entry);
 }
 
 QString filterPickerSection(const FilterPickerEntry& entry)

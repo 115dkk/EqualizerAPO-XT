@@ -362,8 +362,7 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 	// Dynamic Copy parameters still fall through: routing editors must not
 	// parse and rewrite inline expressions.
 	if (renderMode == ModernCards
-		&& preparedDescriptor->type == QStringLiteral("copy")
-		&& !preparedDescriptor->dynamicLine
+		&& FilterCardModel::opensRoutingView(*preparedDescriptor)
 		&& SkinManager::instance()->routingRenderer() != nullptr)
 		return nullptr;
 

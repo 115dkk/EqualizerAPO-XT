@@ -2006,6 +2006,12 @@ int main(int argc, char** argv)
 		testFileReferenceControllerOwnsPathState();
 		testFilterListModel();
 		testFilterListUndo();
+		testFilterCommandCatalogRoster();
+		testFilterCommandCatalogIconsExistOnDisk();
+		testFilterCommandCatalogTemplateRoster();
+		testFilterCommandCatalogDescriptions();
+		testSharedRawBodyAndRoutingViewPredicates();
+		testVstChunkPathCandidates();
 
 		harness.report();
 		return EXIT_SUCCESS;

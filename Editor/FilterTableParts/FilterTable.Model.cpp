@@ -45,7 +45,12 @@
 #include "guis/ConvolutionFilterGUIFactory.h"
 #include "guis/VSTPluginFilterGUIFactory.h"
 #include "guis/LoudnessCorrectionFilterGUIFactory.h"
+#include "devices/AbstractAPOInfo.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/FilterCommandCatalog.h"
+#include "Editor/widgets/FrequencyPlotScene.h"
+#include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
+#include "SubwooferRouting/StateCodec.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
@@ -366,42 +371,76 @@ QMenu* FilterTable::createAddPopupMenu()
 	return rootMenu;
 }
 
+namespace
+{
+// The two GraphicEQ presets derive from the one ISO band table (audit F023)
+// so the plot's data vectors and the inserted line cannot disagree.
+QString graphicEQBandTemplate(const std::vector<double>& bands)
+{
+	QStringList terms;
+	for (const double frequency : bands)
+		terms.append(QStringLiteral("%1 0").arg(frequency));
+	return QStringLiteral("GraphicEQ: ") + terms.join(QStringLiteral("; "));
+}
+
+// The SubwooferRouting template ships a ready-to-edit State payload for the
+// selected device's channel layout, falling back to a stereo layout when the
+// device is unknown or its layout does not encode.
+QString subwooferRoutingTemplateLine(const std::shared_ptr<AbstractAPOInfo>& device)
+{
+	auto encoded = [](const subroute::SubwooferRoutingState& state) {
+		const subroute::StateEncodeResult result = subroute::encodeStateCanonical(state);
+		if (!result.succeeded())
+			return QString();
+		return QString::fromUtf8(result.text->data(),
+			static_cast<int>(result.text->size()));
+	};
+
+	const std::vector<std::wstring> deviceChannels = device == nullptr
+		? std::vector<std::wstring>()
+		: ChannelHelper::getChannelNames(device->getChannelCount(),
+			device->getChannelMask());
+	QString json = encoded(subwooferroutingeditor::buildDefaultState(deviceChannels));
+	if (json.isEmpty())
+		json = encoded(subwooferroutingeditor::buildDefaultState(
+			std::vector<std::wstring>{L"L", L"R"}));
+	return QStringLiteral("SubwooferRouting: State ") + json;
+}
+
+QString resolveTemplateLine(const FilterCommandCatalog::TemplateEntry& entry,
+	const std::shared_ptr<AbstractAPOInfo>& device)
+{
+	switch (entry.kind)
+	{
+	case FilterCommandCatalog::TemplateKind::GraphicEQBands15:
+		return graphicEQBandTemplate(FrequencyPlotScene::getBands(15));
+	case FilterCommandCatalog::TemplateKind::GraphicEQBands31:
+		return graphicEQBandTemplate(FrequencyPlotScene::getBands(31));
+	case FilterCommandCatalog::TemplateKind::SubwooferRoutingDefaultState:
+		return subwooferRoutingTemplateLine(device);
+	case FilterCommandCatalog::TemplateKind::Literal:
+		break;
+	}
+	return QLatin1String(entry.line);
+}
+}
+
 QList<FilterTemplate> FilterTable::pickerFilterTemplates() const
 {
+	// The catalog states the final display order outright: sections grouped
+	// in their intended sequence with Control and Branching closing the
+	// list. The grouped/demoted merge this function used to compute from the
+	// factory chain (registry order x sort-last flag x section first
+	// appearance, with the Convolution/MultiConvolution tie left to link
+	// order) is now simply the row order of one table, and the legacy GUI
+	// factories no longer supply templates - a new filter joins the picker
+	// by adding a catalog row instead of creating a frozen-policy factory.
 	QList<FilterTemplate> templates;
-	QList<QStringList> trailingSections;
-	for (const auto& factory : factories)
-	{
-		const QList<FilterTemplate> factoryTemplates = factory->createFilterTemplates();
-		// A factory can ask for its sections to close the catalog
-		// (templatesSortLast); every shared category moves with it, in the
-		// factory's own listing order - so Control (Eval + Include/Device/
-		// Channel/Stage) precedes Branching (the If family) at the tail even
-		// though the Expression factory's order-0 slot publishes them first.
-		if (factory->templatesSortLast())
-			for (const FilterTemplate& filterTemplate : factoryTemplates)
-				if (!trailingSections.contains(filterTemplate.getPath()))
-					trailingSections.append(filterTemplate.getPath());
-		templates.append(factoryTemplates);
-	}
-
-	// Several factories share one category name (the Expression factory's
-	// If/Eval templates and the Include/Device/Channel/Stage factories all
-	// file under "Control"), so the flat factory order interleaves sections.
-	// Pickers that print a header per contiguous run would show the same
-	// section twice; group the templates by category in first-seen order,
-	// with the trailing sections demoted to the end, the same merge the
-	// QMenu path map performs in createAddPopupMenu. The stable sort keeps
-	// the factory order within each category.
-	QList<QStringList> sectionOrder;
-	for (const FilterTemplate& filterTemplate : templates)
-		if (!trailingSections.contains(filterTemplate.getPath()) && !sectionOrder.contains(filterTemplate.getPath()))
-			sectionOrder.append(filterTemplate.getPath());
-	sectionOrder.append(trailingSections);
-	std::stable_sort(templates.begin(), templates.end(),
-		[&sectionOrder](const FilterTemplate& a, const FilterTemplate& b) {
-		return sectionOrder.indexOf(a.getPath()) < sectionOrder.indexOf(b.getPath());
-	});
+	for (const FilterCommandCatalog::TemplateEntry& entry
+		: FilterCommandCatalog::pickerTemplates())
+		templates.append(FilterTemplate(FilterCommandCatalog::templateName(entry),
+			resolveTemplateLine(entry, getSelectedDevice()),
+			FilterCommandCatalog::templatePath(entry)));
 	return templates;
 }
 
