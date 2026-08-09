@@ -180,23 +180,37 @@ void runVst3HostTests()
 	HANDLE flushEntered = CreateEventW(nullptr, TRUE, FALSE, testvst3::flushEnteredEvent);
 	HANDLE flushContinue = CreateEventW(nullptr, TRUE, FALSE, testvst3::flushContinueEvent);
 	HANDLE concurrentProcessing = CreateEventW(nullptr, TRUE, FALSE, testvst3::concurrentProcessingEvent);
-	std::thread processingStarter([&instance, flushEntered]() {
+	// Audit #250 F053: the release window is anchored to the actual
+	// startProcessing attempt (aboutToStart) instead of free-floating after
+	// flushEntered, and the flush-entered precondition is asserted below so
+	// a stalled runner fails loudly instead of passing vacuously.
+	HANDLE aboutToStart = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+	std::thread processingStarter([&instance, flushEntered, aboutToStart]() {
 		WaitForSingleObject(flushEntered, 5000);
+		SetEvent(aboutToStart);
 		instance.startProcessing();
 	});
-	std::thread flushReleaser([flushEntered, flushContinue]() {
+	std::thread flushReleaser([flushEntered, flushContinue, aboutToStart]() {
 		if (WaitForSingleObject(flushEntered, 5000) == WAIT_OBJECT_0)
 		{
+			// Give the blocked startProcessing a moment to engage the lock
+			// once we know the attempt is imminent, then release the flush.
+			WaitForSingleObject(aboutToStart, 5000);
 			Sleep(100);
-			SetEvent(flushContinue);
 		}
+		SetEvent(flushContinue);
 	});
 	SendMessageW(pluginWindow, WM_APP + 77, 0, 0);
 	processingStarter.join();
 	flushReleaser.join();
+	harness.expectTrue(flushEntered != nullptr
+		&& WaitForSingleObject(flushEntered, 0) == WAIT_OBJECT_0,
+		"the stopped-editor flush actually entered (no vacuous pass)");
 	harness.expectTrue(flushEntered != nullptr && flushContinue != nullptr && concurrentProcessing != nullptr
 		&& WaitForSingleObject(concurrentProcessing, 0) == WAIT_TIMEOUT,
 		"stopped-editor flush is serialized with audio processing startup");
+	if (aboutToStart != nullptr)
+		CloseHandle(aboutToStart);
 	if (flushEntered != nullptr)
 		CloseHandle(flushEntered);
 	if (flushContinue != nullptr)
