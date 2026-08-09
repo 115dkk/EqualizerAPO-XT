@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 #include <new>
 #include <string>
 #define WIN32_LEAN_AND_MEAN
@@ -25,9 +27,9 @@
 
 #include "EqualizerAPO.h"
 #include "ClassFactory.h"
-#include "../helpers/ClsidRegistration.h"
-#include "../helpers/RegistryHelper.h"
-#include "../helpers/LogHelper.h"
+#include "../services/registry/ClsidRegistration.h"
+#include "../services/registry/WindowsRegistry.h"
+#include "../services/logging/Logging.h"
 
 using std::string;
 using std::wstring;
@@ -110,13 +112,13 @@ STDAPI DllRegisterServer()
 		// registry port, where a fake registry can pin them; this export keeps
 		// the RegisterAPO ordering and the rollback.
 		ClsidRegistration::registerClsidTree(systemRegistry(),
-			RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID),
+			winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID),
 			L"EqualizerAPO Post-Mix Class", filename);
 		ClsidRegistration::registerClsidTree(systemRegistry(),
-			RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID),
+			winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID),
 			L"EqualizerAPO Pre-Mix Class", filename);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		UnregisterAPO(EQUALIZERAPO_POST_MIX_GUID);
 		UnregisterAPO(EQUALIZERAPO_PRE_MIX_GUID);
@@ -131,11 +133,11 @@ STDAPI DllUnregisterServer()
 	try
 	{
 		ClsidRegistration::unregisterClsidTree(systemRegistry(),
-			RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+			winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID));
 		ClsidRegistration::unregisterClsidTree(systemRegistry(),
-			RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
+			winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		return E_FAIL;
 	}

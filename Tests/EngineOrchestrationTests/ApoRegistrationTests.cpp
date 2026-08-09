@@ -19,13 +19,14 @@
 */
 
 #include <string>
+#include "services/registry/RegistryPaths.h"
 
 #include <windows.h>
 
-#include "helpers/ApoRegistration.h"
-#include "helpers/ClsidRegistration.h"
-#include "helpers/PathHelper.h"
-#include "helpers/RegistryHelper.h"
+#include "services/install/ApoRegistration.h"
+#include "services/registry/ClsidRegistration.h"
+#include "platform/windows/WindowsPath.h"
+#include "services/registry/WindowsRegistry.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"
@@ -168,7 +169,7 @@ void testClsidTreeFailuresReachTheCallerForRollback(test::Harness& harness)
 		ClsidRegistration::registerClsidTree(registry, clsid,
 			L"EqualizerAPO Post-Mix Class", L"C:\\Install\\EqualizerAPO.dll");
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		threw = true;
 	}

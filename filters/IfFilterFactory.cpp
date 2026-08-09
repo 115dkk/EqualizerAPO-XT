@@ -18,8 +18,7 @@
 */
 
 #include "stdafx.h"
-#include "helpers/LogHelper.h"
-#include "helpers/StringHelper.h"
+#include "services/logging/Logging.h"
 #include "parser/RegexFunctions.h"
 #include "parser/RegistryFunctions.h"
 #include "engine/ConfigLoadTrace.h"

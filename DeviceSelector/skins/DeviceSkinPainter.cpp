@@ -13,7 +13,7 @@
 #include <QFont>
 #include <QPainterPath>
 
-#include "Editor/skins/SkinPaint.h"
+#include "Editor/skins/shared/SkinPaint.h"
 
 const DeviceSkinPainter* studioDeviceSkinPainter();
 const DeviceSkinPainter* minimalDeviceSkinPainter();

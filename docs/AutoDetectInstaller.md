@@ -88,7 +88,7 @@ regardless of process bitness, so detection from x86 is accurate.
   untouched.
 - Each installed variant keeps updating itself within its own channel via the
   build-time `EAPO_UPDATE_CHANNEL` define and the background updater in
-  `helpers/VelopackBootstrap`.
+  `services/update/VelopackBootstrap`.
 - The per-variant `…-Setup.exe` files remain on the release page for users who
   want to pick a specific build by hand.
 

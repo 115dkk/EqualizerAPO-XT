@@ -18,7 +18,7 @@
 
 #include "engine/ConfigurationFileReader.h"
 #include "Tests/TestHarness.h"
-#include "helpers/Win32Resource.h"
+#include "platform/windows/Win32Resource.h"
 
 void runConfigurationFileReaderTests(test::Harness& harness)
 {

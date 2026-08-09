@@ -7,6 +7,7 @@
 */
 
 #include "VSTCardEditor.h"
+#include "services/registry/RegistryPaths.h"
 
 #include <QAbstractEventDispatcher>
 #include <QAction>
@@ -26,8 +27,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "helpers/StringHelper.h"
-#include "helpers/AudioEngineAccess.h"
+#include "services/security/AudioEngineAccess.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/VstChunkScan.h"
@@ -569,8 +569,8 @@ void VSTCardEditor::updatePermissionWarning()
 #include "FilterCardEditorRegistry.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
-#include "helpers/VSTPluginInstance.h"
-#include "helpers/VSTPluginLibrary.h"
+#include "vst/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
 
 REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
 	// Parse the line into the engine's VST filter (no plugin DLL is loaded

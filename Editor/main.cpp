@@ -18,7 +18,11 @@
 */
 
 #include <cstdio>
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
+#include "services/registry/RegistryPaths.h"
 #include <cstring>
+#include <memory>
 #include <string>
 
 #include <QTranslator>
@@ -51,18 +55,17 @@
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
-#include "helpers/VSTPluginInstance.h"
-#include "helpers/VSTPluginLibrary.h"
-#include "helpers/LogHelper.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/ApoRegistration.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/UpdateElevationPolicy.h"
-#include "helpers/Win32Resource.h"
-#include "helpers/AudioEngineAccess.h"
-#include "helpers/InstallDiagnostics.h"
-#include "helpers/VelopackBootstrap.h"
+#include "vst/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/install/ApoRegistration.h"
+#include "services/registry/WindowsRegistry.h"
+#include "platform/windows/Win32Resource.h"
+#include "services/security/AudioEngineAccess.h"
+#include "services/diagnostics/InstallDiagnostics.h"
+#include "services/update/UpdateSession.h"
+#include "services/update/VelopackBootstrap.h"
 #include "version.h"
 #include "helpers/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
@@ -199,7 +202,7 @@ std::wstring widenArg(const char* arg)
 {
 	if (arg == nullptr)
 		return std::wstring();
-	return StringHelper::toWString(std::string(arg), CP_UTF8);
+	return wintext::toWideString(std::string(arg), CP_UTF8);
 }
 
 std::wstring buildArgumentLine(int argc, char* argv[])
@@ -288,7 +291,7 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!hookSeen)
 		return -1;
 
-	if (UpdateElevationPolicy::hookMustSelfElevate(AudioEngineAccess::isElevated()))
+	if (!AudioEngineAccess::isElevated())
 		return relaunchElevatedAndWait(argc, argv);
 
 	for (int i = 1; i < argc; i++)
@@ -352,14 +355,14 @@ int main(int argc, char* argv[])
 	// Before the hooks, not after. The hooks are the part of this program that
 	// registers the APO, restarts the audio service and removes the APO from every
 	// device, and they used to run before any log destination was chosen - so
-	// their output landed in LogHelper's fallback, %TEMP%\EqualizerAPO.log. Under
+	// their output landed in Logging's fallback, %TEMP%\EqualizerAPO.log. Under
 	// elevation that %TEMP% belongs to whichever account the installer elevated
 	// to, which is not the one the user would look in. The hook output now goes
 	// where the rest of the Editor's does. It is still that account's
 	// %LOCALAPPDATA% when elevated, but it is the same file the elevated update
 	// coordinator writes, so there is one place to look rather than two.
-	if (!LogHelper::useUserFile(L"Editor.log", true, false, false))
-		LogHelper::useDefaultApoLog();
+	if (!Logging::useUserFile(L"Editor.log", true, false, false))
+		Logging::useDefaultApoLog();
 
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
@@ -385,7 +388,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	if (hasArgument(argc, argv, UpdateElevationPolicy::kElevatedCoordinatorArgument))
+	if (hasArgument(argc, argv, VelopackBootstrap::kElevatedCoordinatorArgument))
 	{
 		// The coordinator is an internal one-shot process, not a normal Editor
 		// launch. Avoid VelopackApp's startup package scan and go directly to
@@ -397,6 +400,9 @@ int main(int argc, char* argv[])
 	// Initialise the Velopack runtime so UpdateManager resolves the correct
 	// install context. Auto-apply-on-startup is off because we apply on exit instead.
 	Velopack::VelopackApp::Build().SetAutoApplyOnStartup(false).Run();
+	std::unique_ptr<UpdateSession> updateSession = VelopackBootstrap::createUpdateSession(
+		EAPO_REPO_URL,
+		configuredUpdateChannel());
 
 	int result = -1;
 #ifdef _DEBUG
@@ -527,20 +533,20 @@ int main(int argc, char* argv[])
 		QString stableRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
 		QString configPath = !stableRoot.isEmpty() && QDir(stableRoot).exists()
 			? stableRoot : QDir::currentPath();
-		if (RegistryHelper::keyExists(APP_REGPATH) && RegistryHelper::valueExists(APP_REGPATH, L"ConfigPath"))
-			configPath = QString::fromStdWString(RegistryHelper::readValue(APP_REGPATH, L"ConfigPath"));
+		if (WindowsRegistry::keyExists(APP_REGPATH) && WindowsRegistry::valueExists(APP_REGPATH, L"ConfigPath"))
+			configPath = QString::fromStdWString(WindowsRegistry::readValue(APP_REGPATH, L"ConfigPath"));
 		QDir configDir(configPath);
 
-		if (!RegistryHelper::keyExists(USER_REGPATH))
-			RegistryHelper::createKey(USER_REGPATH);
+		if (!WindowsRegistry::keyExists(USER_REGPATH))
+			WindowsRegistry::createKey(USER_REGPATH);
 
-		if (!RegistryHelper::keyExists(EDITOR_REGPATH))
-			RegistryHelper::createKey(EDITOR_REGPATH);
+		if (!WindowsRegistry::keyExists(EDITOR_REGPATH))
+			WindowsRegistry::createKey(EDITOR_REGPATH);
 
-		if (!RegistryHelper::keyExists(EDITOR_PER_FILE_REGPATH))
-			RegistryHelper::createKey(EDITOR_PER_FILE_REGPATH);
+		if (!WindowsRegistry::keyExists(EDITOR_PER_FILE_REGPATH))
+			WindowsRegistry::createKey(EDITOR_PER_FILE_REGPATH);
 
-		MainWindow w(configDir);
+		MainWindow w(configDir, updateSession.get());
 		w.show();
 
 		// One-time notice after the install hook migrated a config tree; a
@@ -569,16 +575,15 @@ int main(int argc, char* argv[])
 		else
 			w.doChecks();
 
-		if (VelopackBootstrap::isVelopackInstall() && !firstRun)
+		if (updateSession && !firstRun)
 		{
 			// Defer the background download so it does not race with audio service
 			// work or a Device Selector launch right after the Editor opens.
 			// 60s is long enough that the initial GUI paint, config load, and
 			// device enumeration are all comfortably finished. The download runs on
 			// its own worker thread and just stages the update for apply-on-exit.
-			QTimer::singleShot(60000, qApp, []() {
-				VelopackBootstrap::startBackgroundDownload(
-					EAPO_REPO_URL, configuredUpdateChannel());
+			QTimer::singleShot(60000, qApp, [session = updateSession.get()]() {
+				session->startDownload();
 			});
 		}
 
@@ -590,13 +595,25 @@ int main(int argc, char* argv[])
 
 	// The session owns the download worker. Join it before inspecting staged state so
 	// neither process shutdown nor static destruction can race with its publication.
-	VelopackBootstrap::shutdown();
+	if (updateSession)
+		updateSession->shutdown();
 
 	// If the background worker staged an update, apply it now. exec() has returned and
 	// the QApplication is destroyed, so no other thread is writing to the install dir.
 	// The apply is silent and does not restart; the new version comes up next launch.
-	if (VelopackBootstrap::isVelopackInstall() && VelopackBootstrap::hasPendingUpdate())
-		VelopackBootstrap::applyPendingUpdateAndExit();
+	if (updateSession && updateSession->hasPendingUpdate())
+	{
+		const UpdateApplyOutcome outcome = updateSession->applyPendingUpdate(
+			AudioEngineAccess::isElevated(),
+			[]() { return VelopackBootstrap::launchElevatedUpdateCoordinator(); });
+		if (outcome == UpdateApplyOutcome::CoordinatorLaunched ||
+			outcome == UpdateApplyOutcome::UpdaterLaunched)
+		{
+			return 0;
+		}
+		if (outcome == UpdateApplyOutcome::Failed)
+			LogFStatic(L"[Editor] staged update could not be applied");
+	}
 
 	return result;
 }

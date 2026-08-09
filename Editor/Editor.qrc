@@ -95,16 +95,16 @@
         <file>translations/qtbase_zh_CN.qm</file>
         <file>translations/Editor_fr.qm</file>
         <file>translations/qtbase_fr.qm</file>
-        <file>skins/studio_dark.qss</file>
-        <file>skins/studio_light.qss</file>
-        <file>skins/precision_dark.qss</file>
-        <file>skins/precision_light.qss</file>
-        <file>skins/soft_dark.qss</file>
-        <file>skins/soft_light.qss</file>
-        <file>skins/rack_dark.qss</file>
-        <file>skins/rack_light.qss</file>
-        <file>skins/matrix_dark.qss</file>
-        <file>skins/matrix_light.qss</file>
+        <file alias="skins/studio_dark.qss">skins/studio/qss/studio_dark.qss</file>
+        <file alias="skins/studio_light.qss">skins/studio/qss/studio_light.qss</file>
+        <file alias="skins/precision_dark.qss">skins/minimal/qss/precision_dark.qss</file>
+        <file alias="skins/precision_light.qss">skins/minimal/qss/precision_light.qss</file>
+        <file alias="skins/soft_dark.qss">skins/soft/qss/soft_dark.qss</file>
+        <file alias="skins/soft_light.qss">skins/soft/qss/soft_light.qss</file>
+        <file alias="skins/rack_dark.qss">skins/rack/qss/rack_dark.qss</file>
+        <file alias="skins/rack_light.qss">skins/rack/qss/rack_light.qss</file>
+        <file alias="skins/matrix_dark.qss">skins/matrix/qss/matrix_dark.qss</file>
+        <file alias="skins/matrix_light.qss">skins/matrix/qss/matrix_light.qss</file>
         <file>fonts/DMSans-Regular.ttf</file>
         <file>fonts/DMSans-Medium.ttf</file>
         <file>fonts/DMSans-SemiBold.ttf</file>

@@ -415,17 +415,15 @@ matrix의 LED는 보드 셀의 추상 점등이다(스큐어모피즘 금지).
 
 ## 구현 지도
 
-- 클래스: `MatrixSkin` — [MatrixSkin.cpp](../../Editor/skins/MatrixSkin.cpp)
-  (감사 #109 F005로 Skins.cpp에서 분리. `MatrixMetrics` 네임스페이스:
-  gridPitch 24, coordinateBandWidth 120, railInset 4, knobCellHeight 16;
-  행 캡션 스트립 `MatrixRowCaption`과 버스 문자 표 `matrixBusLetter`,
-  add row/삽입선 훅도 같은 파일에 있다)
-- QSS: `Editor/skins/matrix_dark.qss`, `matrix_light.qss`
-- 픽커: `Editor/skins/pickers/MatrixFilterPicker.{h,cpp}`
+- 클래스: `MatrixSkin` — [MatrixSkin.cpp](../../Editor/skins/matrix/MatrixSkin.cpp)
+  (얇은 파사드이며, `MatrixMetrics`와 행 캡션·버스 문자·목록 chrome은
+  책임별 `MatrixSkin.*.cpp` 및 `MatrixSkinDetail.h`에 나뉜다)
+- QSS: `Editor/skins/matrix/qss/matrix_dark.qss`, `matrix_light.qss`
+- 픽커: `Editor/skins/matrix/picker/MatrixFilterPicker.{h,cpp}`
   (`galleryShowcase`가 picker_hover/picker_empty 갤러리 상태를 연출한다)
-- 참조 카드: `Editor/skins/cards/MatrixReferenceCardView.{h,cpp}` (VST 포트
+- 참조 카드: `Editor/skins/matrix/cards/MatrixReferenceCardView.{h,cpp}` (VST 포트
   스트립은 prepareCommandRow 주입에서 이 뷰의 vst 표현으로 이관됐다)
-- Copy: `Editor/widgets/routing/CrosspointMatrixRoutingRenderer.{h,cpp}`
+- Copy: `Editor/skins/matrix/routing/CrosspointMatrixRoutingRenderer.{h,cpp}`
   (+ 공유 행렬 변환은 `CopyRoutingAdapter::buildMatrix`)
 - Device Selector: `DeviceSelector/skins/MatrixDeviceSkin.cpp` (공용 폼 계약은
   `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)

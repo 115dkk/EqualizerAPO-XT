@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Editor and shared core now have enforceable module boundaries.** The
+  update client uses an owned, testable session instead of hidden process
+  state; picker and reference-card behavior is shared without flattening the
+  five skins; every skin now lives in its own guarded module; and the root
+  `helpers/` junk drawer has been replaced by domain-owned audio, DSP, Windows,
+  runtime, service, text, and VST modules. This is an internal refactor with no
+  intended configuration-format or visual change
+  ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
+
 ## v2.34.5 — 2026-08-09
 
 - **The Subwoofer Routing Editor remains usable when Copy routes expand.**

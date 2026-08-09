@@ -17,9 +17,9 @@ XT는 Windows 프로젝트입니다. C++ 프로젝트는 Visual Studio 2022 / 20
 ### 소스 코드 구성
 솔루션 `EqualizerAPO.sln`은 다음 프로젝트를 묶습니다.
 
-* **Common** — 필터 엔진(`FilterEngine`, `FilterConfiguration`, `IFilter`), `filters/`의 필터 구현, `parser/`의 muParserX 확장, `helpers/`의 공용 도우미가 들어 있는 정적 라이브러리입니다. 컨볼루션 코드는 `libHybridConv-0.1.1/`에 있습니다. 다른 프로젝트가 여기에 링크합니다.
+* **Common** — 필터 엔진(`FilterEngine`, `FilterConfiguration`, `IFilter`), `filters/`의 필터 구현, `parser/`의 muParserX 확장, `audio/`, `dsp/`, `platform/`, `runtime/`, `services/`, `text/`, `vst/`의 책임별 공용 모듈이 들어 있는 정적 라이브러리입니다. 컨볼루션 코드는 `libHybridConv-0.1.1/`에 있습니다. 다른 프로젝트가 여기에 링크합니다.
 * **EqualizerAPO** — Audio Processing Object DLL(`EqualizerAPO.dll`)입니다. COM 보일러플레이트를 담고 APO 인터페이스를 구현하며 Common 필터 엔진을 호출합니다. ATL 기반이라 `atls.lib`가 필요합니다.
-* **Editor** — Qt 기반 설정 편집기입니다. `Editor.exe`가 Velopack 패키지의 메인 실행 파일이며, `helpers/ApoRegistration`과 `helpers/VelopackBootstrap`을 통해 모든 Velopack 설치/업데이트/제거 훅을 처리합니다.
+* **Editor** — Qt 기반 설정 편집기입니다. `Editor.exe`가 Velopack 패키지의 메인 실행 파일이며, `services/install/ApoRegistration`과 `services/update/VelopackBootstrap`을 통해 모든 Velopack 설치/업데이트/제거 훅을 처리합니다.
 * **DeviceSelector** — 처음 설치한 뒤 사용자가 APO를 등록할 오디오 장치를 고르도록 보여 주는 Qt 도구입니다. 원본의 Configurator를 대체합니다.
 * **UpdateChecker** — 로그온할 때 실행되어 빌드 채널에 새 릴리스가 있으면 알려 주는 Qt 도구입니다.
 * **Benchmark** — 장치에 설치하지 않고 오디오 처리를 시험하는 콘솔 프로그램입니다. 필터 종류를 실험하거나 성능을 잴 때 편합니다.
@@ -39,7 +39,7 @@ APO(Audio Processing Object)는 샘플 데이터가 장치 드라이버에 가�
 1. `HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AudioEngine\AudioProcessingObjects\<GUID>`를 만듭니다. 보통 DDK 함수 `RegisterAPO`(`audioenginebaseapo.h`에 선언)가 처리하며, `UnregisterAPO`가 제거합니다.
 1. `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\<엔드포인트 GUID>\FxProperties`에서 장치별로 APO를 등록합니다(`Render` 경로는 출력 장치, `Capture`는 입력 장치). `FxProperties`에서 `{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1` 값은 LFX APO의 GUID를, `...,2`는 GFX APO의 GUID를 담습니다. 보통 이미 드라이버 APO를 가리키므로, 사용자 APO를 등록하려면 값 하나를 교체하고 원래 값을 다른 곳에 저장합니다(Equalizer APO는 `HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\Child APOs`에 저장). 제거할 때 원래 값을 복원하기 위해서이기도 하고, 사용자 APO가 기존 APO를 불러 호출해 그 기능을 계속 수행하게 하기 위해서이기도 합니다. Windows 8.1부터는 `,5`(LFX)와 `,6`(GFX)으로 끝나는 값도 쓰이며, 이 값으로 등록하면 옛 `,1`/`,2` 값으로 등록한 APO는 무시됩니다. 또 8.1부터 `{d3993a3f-99c2-4402-b5ec-a92a0367664b},5`와 `,6` 값이 처리 모드를 지정하며(MULTI_SZ 형식), 보통 둘 다 기본 처리 모드인 `{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}`으로 설정해야 합니다.
 
-XT에서는 이 등록과 정리를 `helpers/ApoRegistration`이 수행하며, Editor가 처리하는 Velopack 훅에서 구동됩니다.
+XT에서는 이 등록과 정리를 `services/install/ApoRegistration`이 수행하며, Editor가 처리하는 Velopack 훅에서 구동됩니다.
 
 ## 함께 보기
 * [사용자 문서](Korean-Documentation) — EqualizerAPO-XT 사용하기.

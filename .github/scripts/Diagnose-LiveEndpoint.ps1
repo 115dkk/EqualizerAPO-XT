@@ -14,7 +14,7 @@
     `Restart-Service AudioEndpointBuilder`.
 
     THE DIAGNOSED BUG (what these snapshots must demonstrate)
-      helpers/ApoRegistration.cpp::uninstall cycles ONLY the AudioSrv service
+      services/install/ApoRegistration.cpp::uninstall cycles ONLY the AudioSrv service
       (kAudioServiceName = "AudioSrv", ApoRegistration.cpp:44; stop at :252,
       start at :310). It never cycles AudioEndpointBuilder - the service that
       enumerates/activates endpoints and reads FxProperties to build the APO

@@ -23,7 +23,7 @@
 #include <windows.h>
 #include <EndpointVolume.h>
 
-#include "helpers/ComPtr.h"
+#include "platform/windows/ComPtr.h"
 
 class VolumeController
 {

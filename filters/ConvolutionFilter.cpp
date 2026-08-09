@@ -28,11 +28,11 @@
 #include <fftw3.h>
 
 #include "ConvolverMuteDiagnostics.h"
-#include "helpers/LogHelper.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/ParallelExecutor.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "runtime/concurrency/ParallelExecutor.h"
 #include "ConvolutionFilter.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 using std::vector;
 using std::wstring;
@@ -88,7 +88,7 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	// stream에서는 LockForProcess가 frameCount를 고정하므로 이 분기는 거의 들어오지 않는다.
 	if (frameCount != filterFrameCount)
 	{
-		// No logging here. LogHelper opens, writes and closes %TEMP%\EqualizerAPO.log
+		// No logging here. Logging opens, writes and closes %TEMP%\EqualizerAPO.log
 		// for every line, and this branch fires exactly when the stream can least
 		// afford blocking I/O on the audio thread (a format change, a device switch).
 		// cleanup() formats and writes the same information.

@@ -23,6 +23,8 @@
 */
 
 #include <cstring>
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 #include <string>
 #include <vector>
 
@@ -31,7 +33,7 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-// Unknwn.h before mmdeviceapi.h, matching helpers/AudioFormatProbe.cpp: the
+// Unknwn.h before mmdeviceapi.h, matching services/audio/AudioFormatProbe.cpp: the
 // MIDL header needs the COM base types, and WIN32_LEAN_AND_MEAN keeps
 // windows.h from supplying them. mmdeviceapi.h is here only for the
 // DEVICE_STATE_* bits load() tests, and mmreg.h for the WAVEFORMATEXTENSIBLE
@@ -42,8 +44,8 @@
 
 #include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/WindowsVersion.h"
+#include "services/registry/WindowsRegistry.h"
+#include "platform/windows/WindowsVersion.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"
@@ -94,12 +96,12 @@ void seedRenderDevice(FakeRegistry& registry, unsigned long deviceState = DEVICE
 
 std::wstring ourPreMixGuid()
 {
-	return RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID);
+	return winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
 }
 
 std::wstring ourPostMixGuid()
 {
-	return RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID);
+	return winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID);
 }
 
 void testLoadWithoutFxPropertiesMarksTheDeviceExperimental(test::Harness& harness)
@@ -286,7 +288,7 @@ void testLoadRejectsAnInstallationFromANewerBuild(test::Harness& harness)
 	{
 		info.load(testDeviceGuid, otherDeviceGuid);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		refused = true;
 	}
@@ -417,7 +419,7 @@ void testUninstallKeepsFxPropertiesWhenWindowsPutItsOwnSubkeysThere(test::Harnes
 	{
 		registry.deleteKey(fxPropertiesKey);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		wholeKeyDeleteRefused = true;
 	}
@@ -556,7 +558,7 @@ void testInstallLeavesTheEndpointAloneWhenAMidwaySlotWriteFails(test::Harness& h
 	{
 		info.install();
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		threw = true;
 	}
@@ -616,7 +618,7 @@ void testUninstallPutsTheInstallationBackWhenItCannotFinish(test::Harness& harne
 	{
 		info.uninstall();
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		threw = true;
 	}

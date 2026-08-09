@@ -36,13 +36,13 @@
 #include "engine/FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
 #include "engine/ConfigWatcher.h"
-#include "helpers/ComBoundary.h"
-#include "helpers/LogHelper.h"
-#include "helpers/ParallelExecutor.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/SndfileRAII.h"
-#include "helpers/SynchronizedState.h"
-#include "helpers/Win32Event.h"
+#include "platform/windows/ComBoundary.h"
+#include "services/logging/Logging.h"
+#include "runtime/concurrency/ParallelExecutor.h"
+#include "services/registry/WindowsRegistry.h"
+#include "audio/io/SndfileRAII.h"
+#include "runtime/concurrency/SynchronizedState.h"
+#include "platform/windows/Win32Event.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"
@@ -158,7 +158,7 @@ void testLogHelperFileDestination(test::Harness& harness)
 	const std::wstring path = testDirectory() + L"\\LogHelperDestination.log";
 	DeleteFileW(path.c_str());
 
-	LogHelper::useFile(path, true, false, false);
+	Logging::useFile(path, true, false, false);
 	LogFStatic(L"file destination %d", 42);
 
 	std::ifstream stream(path, std::ios::binary);
@@ -168,7 +168,7 @@ void testLogHelperFileDestination(test::Harness& harness)
 	harness.expect(contents.find("file destination 42") != std::string::npos,
 		"file logger writes diagnostics to the selected path");
 
-	LogHelper::useStream(stderr, false, false, false);
+	Logging::useStream(stderr, false, false, false);
 	DeleteFileW(path.c_str());
 }
 
@@ -181,7 +181,7 @@ void testLogHelperUserDestination(test::Harness& harness)
 	CreateDirectoryW(localRoot.c_str(), nullptr);
 	SetEnvironmentVariableW(L"LOCALAPPDATA", localRoot.c_str());
 
-	harness.expect(LogHelper::useUserFile(L"Editor.log", true, false, false),
+	harness.expect(Logging::useUserFile(L"Editor.log", true, false, false),
 		"user logger creates its product log directory");
 	LogFStatic(L"user destination");
 	const std::wstring path = localRoot + L"\\EqualizerAPO\\logs\\Editor.log";
@@ -191,7 +191,7 @@ void testLogHelperUserDestination(test::Harness& harness)
 	harness.expect(contents.find("user destination") != std::string::npos,
 		"user logger writes to the per-user Editor log");
 
-	LogHelper::useStream(stderr, false, false, false);
+	Logging::useStream(stderr, false, false, false);
 	if (previousLength > 0 && previousLength < MAX_PATH)
 		SetEnvironmentVariableW(L"LOCALAPPDATA", previousLocalAppData);
 	else
@@ -205,7 +205,7 @@ void testLogHelperUserDestination(test::Harness& harness)
 void testRegistryExportHeaderPreservesQualifiedRoot(test::Harness& harness)
 {
 	const std::wstring key = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties";
-	harness.expect(RegistryHelper::formatExportHeader(key)
+	harness.expect(WindowsRegistry::formatExportHeader(key)
 			== L"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Vendor\\Device\\FxProperties]",
 		"registry export writes an already-qualified key exactly once");
 }
@@ -624,9 +624,9 @@ void testFailedConfigLoadKeepsActiveConfiguration(test::Harness& harness)
 	std::vector<float> before = processDcBlock(engine, 1.0f, 1.0f, 480);
 	harness.expect(std::fabs(before[0] - 0.5f) < 1e-3f, "transaction test did not establish config A");
 
-	MemoryHelper::failAllocationAfterForTesting(1);
+	AlignedMemory::failAllocationAfterForTesting(1);
 	bool loaded = engine.loadConfig(configB);
-	MemoryHelper::resetAllocationFailureForTesting();
+	AlignedMemory::resetAllocationFailureForTesting();
 	harness.expectFalse(loaded, "reload reported success after injected FilterConfiguration allocation failure");
 
 	std::vector<float> after = processDcBlock(engine, 1.0f, 1.0f, 480);
@@ -1050,7 +1050,7 @@ void runChannelInheritanceTests(test::Harness& harness);
 
 int runEngineOrchestrationTests()
 {
-	LogHelper::set(stderr, false, false, false);
+	Logging::set(stderr, false, false, false);
 
 	test::Harness harness("EngineOrchestrationTests");
 

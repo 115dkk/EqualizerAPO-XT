@@ -1,11 +1,7 @@
 #include "EditorLogicTestSupport.h"
 
-#include <atomic>
-#include <chrono>
-#include <future>
 #include <new>
 #include <stdexcept>
-#include <thread>
 
 #include <QDir>
 #include <QSet>
@@ -20,60 +16,7 @@
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/EditableValueText.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/OwnedBackgroundTask.h"
-#include "helpers/UpdateElevationPolicy.h"
-
-void testOwnedBackgroundTaskJoinsAndStartsOnlyOnce()
-{
-	OwnedBackgroundTask task;
-	std::promise<void> enteredPromise;
-	std::future<void> entered = enteredPromise.get_future();
-	std::promise<void> releasePromise;
-	std::shared_future<void> release = releasePromise.get_future().share();
-	std::atomic<bool> completed{ false };
-
-	expectTrue(task.startOnce([&]() {
-		enteredPromise.set_value();
-		release.wait();
-		completed.store(true);
-	}), "owned background task starts its worker");
-	requireTrue(entered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
-		"owned background task enters its worker");
-	expectFalse(task.startOnce([]() {}), "owned background task rejects a second start");
-
-	std::future<void> joined = std::async(std::launch::async, [&]() {
-		task.join();
-	});
-	expectTrue(joined.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout,
-		"join waits while the owned worker is active");
-	releasePromise.set_value();
-	requireTrue(joined.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
-		"join completes after the owned worker exits");
-	joined.get();
-	expectTrue(completed.load(), "join observes completion of the owned worker");
-}
-
-void testUpdateElevationPolicyUsesOnePromptForEditorUpdates()
-{
-	using UpdateElevationPolicy::ApplyMode;
-
-	expectTrue(
-		UpdateElevationPolicy::chooseApplyMode(true, false) == ApplyMode::LaunchElevatedCoordinator,
-		"an unelevated Editor delegates a staged update to one elevated coordinator");
-	expectTrue(
-		UpdateElevationPolicy::chooseApplyMode(true, true) == ApplyMode::ApplyInCurrentProcess,
-		"the elevated coordinator starts the updater without another elevation");
-	expectFalse(UpdateElevationPolicy::hookMustSelfElevate(true),
-		"update hooks inheriting the elevated updater token do not request UAC again");
-
-	expectTrue(
-		UpdateElevationPolicy::chooseApplyMode(false, false) == ApplyMode::None,
-		"an Editor without a staged update does not request elevation");
-	expectTrue(UpdateElevationPolicy::hookMustSelfElevate(false),
-		"standalone install and uninstall hooks still elevate when required");
-}
-
+#include "runtime/memory/AlignedMemory.h"
 // The roster is the one list of which skins exist, so what is worth pinning is
 // that it is complete and that everything derived from it lands on a real skin.
 // Missing a skin used to be silent: resolveId() falls back to Studio, so a skin
@@ -170,7 +113,8 @@ void testEverySkinSheetResolvesAllThemeTokens()
 		{
 			const QString resource = SkinThemeData::qssResource(skinId, dark);
 			const QString sourcePath = repoRoot.filePath(
-				QStringLiteral("Editor/skins/") + QFileInfo(resource).fileName());
+				QStringLiteral("Editor/skins/%1/qss/%2")
+					.arg(skinId, QFileInfo(resource).fileName()));
 			QFile file(sourcePath);
 			expectTrue(file.open(QIODevice::ReadOnly | QIODevice::Text),
 				QStringLiteral("loads %1 source sheet").arg(resource));
@@ -284,13 +228,13 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 		}
 	};
 
-	// The counters live in MemoryHelper itself; this binary links Common.lib
+	// The counters live in AlignedMemory itself; this binary links Common.lib
 	// whole-archive and therefore cannot substitute its own alloc()/free().
-	MemoryHelper::resetAllocationCountsForTesting();
+	AlignedMemory::resetAllocationCountsForTesting();
 	bool threw = false;
 	try
 	{
-		MemoryHelper::construct<ThrowingConstructor>();
+		AlignedMemory::construct<ThrowingConstructor>();
 	}
 	catch (const std::runtime_error&)
 	{
@@ -298,6 +242,6 @@ void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
 	}
 
 	expectTrue(threw, "construct propagates a constructor exception");
-	expectEqual((int)MemoryHelper::allocationCountForTesting(), 1, "construct allocates storage once");
-	expectEqual((int)MemoryHelper::freeCountForTesting(), 1, "construct releases storage when construction fails");
+	expectEqual((int)AlignedMemory::allocationCountForTesting(), 1, "construct allocates storage once");
+	expectEqual((int)AlignedMemory::freeCountForTesting(), 1, "construct releases storage when construction fails");
 }

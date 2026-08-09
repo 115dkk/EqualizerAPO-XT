@@ -165,7 +165,7 @@ int ChannelSelectionModel::resolveDeviceChip(const QString& token) const
 	if (token.isEmpty())
 		return -1;
 
-	// Mirrors the engine's selector resolution (ChannelHelper::getChannelIndex):
+	// Mirrors the engine's selector resolution (ChannelLayout::getChannelIndex):
 	// 1-based position numbers index the device order; unmatched names fall
 	// back to the historical SL<->RL / SR<->RR / SUB->LFE aliases. The legacy
 	// dialog instead numbered its own checkbox order and kept unmatched

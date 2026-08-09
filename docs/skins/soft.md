@@ -397,13 +397,13 @@ vs 큰 몸통 손잡이 + 파스텔 트랙), raw 미리보기(유지 vs 제거).
 
 ## 구현 지도
 
-- 클래스: `SoftSkin` — [SoftSkin.cpp](../../Editor/skins/SoftSkin.cpp)
+- 클래스: `SoftSkin` — [SoftSkin.cpp](../../Editor/skins/soft/SoftSkin.cpp)
   (혼합/알파/다크 판정은 공유 SkinPaint.h의 `mixColor`/`withAlpha`/`skinIsDark`;
   로스터 조립은 [Skins.cpp](../../Editor/skins/Skins.cpp))
-- QSS: `Editor/skins/soft_dark.qss`, `soft_light.qss`
-- 픽커: `Editor/skins/pickers/SoftFilterPicker.{h,cpp}`
-- 참조 카드: `Editor/skins/cards/SoftReferenceCardView.{h,cpp}`
-- Copy: `Editor/widgets/routing/BlockChipRoutingRenderer.{h,cpp}`
+- QSS: `Editor/skins/soft/qss/soft_dark.qss`, `soft_light.qss`
+- 픽커: `Editor/skins/soft/picker/SoftFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/soft/cards/SoftReferenceCardView.{h,cpp}`
+- Copy: `Editor/skins/soft/routing/BlockChipRoutingRenderer.{h,cpp}`
 - Device Selector: `DeviceSelector/skins/SoftDeviceSkin.cpp` (공용 폼 계약은
   `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)
 

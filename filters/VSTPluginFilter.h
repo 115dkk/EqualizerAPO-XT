@@ -22,9 +22,9 @@
 #include <vector>
 
 #include "engine/IFilter.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/VSTPluginInstance.h"
-#include "helpers/VSTPluginLibrary.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "vst/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class VSTPluginFilter : public IFilter
@@ -55,21 +55,21 @@ private:
 	unsigned effectInputCount = 0;
 	unsigned effectOutputCount = 0;
 	unsigned effectChannelCount = 0;
-	std::vector<MemoryHelper::UniqueObject<VSTPluginInstance>> effects;
-	std::vector<MemoryHelper::UniqueAllocation<double>> emptyChannels;
+	std::vector<AlignedMemory::UniqueObject<VSTPluginInstance>> effects;
+	std::vector<AlignedMemory::UniqueAllocation<double>> emptyChannels;
 	std::vector<double*> inputArray;
 	std::vector<double*> outputArray;
 
 	// Buffers for float conversion
 	std::vector<float*> floatInputs;
-	MemoryHelper::UniqueAllocation<float> floatInputBuffer;
+	AlignedMemory::UniqueAllocation<float> floatInputBuffer;
 	std::vector<float*> floatOutputs;
-	MemoryHelper::UniqueAllocation<float> floatOutputBuffer;
+	AlignedMemory::UniqueAllocation<float> floatOutputBuffer;
 
 	// Delay compensation buffers
 	unsigned delayBufferLength = 0;
-	std::vector<MemoryHelper::UniqueAllocation<double>> delayBuffers;
-	MemoryHelper::UniqueAllocation<double> delayTempBuffer;
+	std::vector<AlignedMemory::UniqueAllocation<double>> delayBuffers;
+	AlignedMemory::UniqueAllocation<double> delayTempBuffer;
 	unsigned delayBufferOffset = 0;
 
 	bool skipProcessing = false;

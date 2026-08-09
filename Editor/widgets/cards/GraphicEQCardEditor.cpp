@@ -205,7 +205,7 @@ void GraphicEQCardEditor::applyBandCount(int bandCount)
 		const vector<double>& bands = FrequencyPlotScene::getBands(bandCount);
 		vector<FilterNode> resampled;
 		vector<FilterNode> current = plot->nodes();
-		GainIterator gainIterator(current);
+		GainCurveIterator gainIterator(current);
 		resampled.reserve(bands.size());
 		for (double band : bands)
 			resampled.push_back(FilterNode(band, std::round(gainIterator.gainAt(band) * 100.0) / 100.0));

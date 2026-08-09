@@ -54,7 +54,7 @@ std::unique_ptr<FilterInfo> makeInfo(RecordingFilter*& outFilter, bool inPlace,
 	std::vector<size_t> inChannels, std::vector<size_t> outChannels)
 {
 	auto info = std::make_unique<FilterInfo>();
-	outFilter = MemoryHelper::construct<RecordingFilter>(inPlace);
+	outFilter = AlignedMemory::construct<RecordingFilter>(inPlace);
 	info->filter = FilterPtr(outFilter);
 	info->inPlace = inPlace;
 	info->inChannels = std::move(inChannels);

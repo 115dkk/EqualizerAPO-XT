@@ -3,9 +3,9 @@
 */
 
 #include "Skins.h"
-#include "SkinSupport.h"
+#include "shared/SkinSupport.h"
 #include "SkinThemeData.h"
-#include "helpers/LogHelper.h"
+#include "services/logging/Logging.h"
 
 namespace
 {

@@ -1,7 +1,7 @@
 Describe "ReleaseAssets grammar module" {
     BeforeAll {
         Import-Module (Join-Path $PSScriptRoot "..\ReleaseAssets.psm1") -Force
-        $headerPath = Join-Path $PSScriptRoot "..\..\..\helpers\ReleaseAssetNames.h"
+        $headerPath = Join-Path $PSScriptRoot "..\..\..\release\ReleaseAssetNames.h"
     }
 
     It "spells the per-channel setup asset with the doubled channel" {

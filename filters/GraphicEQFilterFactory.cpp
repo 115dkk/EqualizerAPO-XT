@@ -19,8 +19,8 @@
 
 #include "stdafx.h"
 
-#include "helpers/MemoryHelper.h"
-#include "helpers/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "GraphicEQFilter.h"
 #include "GraphicEQCommand.h"
 #include "filters/FilterFactoryRegistry.h"

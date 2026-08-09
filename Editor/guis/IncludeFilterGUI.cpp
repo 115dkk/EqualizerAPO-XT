@@ -19,7 +19,7 @@
 
 #include <QFileDialog>
 
-#include "helpers/AudioEngineAccess.h"
+#include "services/security/AudioEngineAccess.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "IncludeFilterGUI.h"

@@ -17,7 +17,7 @@
 
 #include "filters/HilbertCommand.h"
 #include "filters/HilbertFilter.h"
-#include "helpers/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "filters/VelvetCommand.h"
 #include "filters/velvet/Processor.h"
 #include "Tests/TestHarness.h"
@@ -262,7 +262,7 @@ void testHilbertMismatchIsLoggedOnDestruction()
 		harness.fail("could not create mismatch log capture");
 		return;
 	}
-	LogHelper::useStream(logFile, false, true, false);
+	Logging::useStream(logFile, false, true, false);
 
 	{
 		HilbertCommand command;
@@ -288,7 +288,7 @@ void testHilbertMismatchIsLoggedOnDestruction()
 	while (std::fgetws(buffer, 1024, logFile) != nullptr)
 		log.append(buffer);
 	std::fclose(logFile);
-	LogHelper::useStream(stdout, true, true, false);
+	Logging::useStream(stdout, true, true, false);
 
 	const std::wstring marker = HilbertFilter::kFrameCountMismatchLogPrefix;
 	harness.expectTrue(log.find(marker) != std::wstring::npos,

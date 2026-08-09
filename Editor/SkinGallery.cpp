@@ -66,7 +66,7 @@
 #include "Editor/analysis/AnalysisMetric.h"
 #include "Editor/analysis/AnalysisResponse.h"
 #include "filters/BiQuad.h"
-#include "Editor/skins/SkinFileIcons.h"
+#include "Editor/skins/shared/SkinFileIcons.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"

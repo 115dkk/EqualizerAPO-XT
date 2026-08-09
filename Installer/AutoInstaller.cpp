@@ -37,9 +37,9 @@
 #include <intrin.h>      // __cpuid, __cpuidex, _xgetbv
 #include <string>
 
-#include "../helpers/ComPtr.h"
-#include "../helpers/ReleaseAssetNames.h"
-#include "../helpers/Win32Resource.h"
+#include "../platform/windows/ComPtr.h"
+#include "../release/ReleaseAssetNames.h"
+#include "../platform/windows/Win32Resource.h"
 #include "../version.h"
 #include "AutoInstallerLogic.h"
 

@@ -18,6 +18,7 @@
 */
 
 #include <QFileInfo>
+#include "services/registry/RegistryPaths.h"
 #include <QFileDialog>
 #include <QSettings>
 #include <QAbstractEventDispatcher>
@@ -27,8 +28,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "helpers/AudioEngineAccess.h"
-#include "helpers/StringHelper.h"
+#include "services/security/AudioEngineAccess.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/VstChunkScan.h"

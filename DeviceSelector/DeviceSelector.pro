@@ -38,11 +38,11 @@ SOURCES += \
 	skins/SoftDeviceSkin.cpp \
 	skins/RackDeviceSkin.cpp \
 	skins/MatrixDeviceSkin.cpp \
-	../helpers/ServiceHelper.cpp \
-	../helpers/ApoRegistration.cpp \
-	../helpers/StartMenuShortcuts.cpp \
-	../helpers/AudioEngineAccess.cpp \
-	../helpers/InstallDiagnostics.cpp \
+	../services/windows/WindowsService.cpp \
+	../services/install/ApoRegistration.cpp \
+	../services/shell/StartMenuShortcuts.cpp \
+	../services/security/AudioEngineAccess.cpp \
+	../services/diagnostics/InstallDiagnostics.cpp \
 	stdafx.cpp
 
 HEADERS += \
@@ -58,11 +58,11 @@ HEADERS += \
 	ReceiveThread.h \
 	SkinButton.h \
 	skins/DeviceSkinPainter.h \
-	../helpers/ServiceHelper.h \
-	../helpers/ApoRegistration.h \
-	../helpers/StartMenuShortcuts.h \
-	../helpers/AudioEngineAccess.h \
-	../helpers/InstallDiagnostics.h \
+	../services/windows/WindowsService.h \
+	../services/install/ApoRegistration.h \
+	../services/shell/StartMenuShortcuts.h \
+	../services/security/AudioEngineAccess.h \
+	../services/diagnostics/InstallDiagnostics.h \
 	resource.h \
 	stdafx.h
 

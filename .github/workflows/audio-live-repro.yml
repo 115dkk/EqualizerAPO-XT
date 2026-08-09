@@ -18,7 +18,7 @@
 #   INACTIVE/missing WITHOUT a reboot - and whether the fix candidate revives it.
 #
 # THE DIAGNOSED ROOT CAUSE (what this job demonstrates on a real endpoint)
-#   helpers/ApoRegistration.cpp::uninstall cycles ONLY the AudioSrv service
+#   services/install/ApoRegistration.cpp::uninstall cycles ONLY the AudioSrv service
 #   (kAudioServiceName = "AudioSrv", line 44; stopAudioService at 252,
 #   startAudioService at 310). It never cycles AudioEndpointBuilder - the
 #   service that enumerates/activates endpoints and reads FxProperties to build

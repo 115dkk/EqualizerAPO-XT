@@ -143,6 +143,10 @@ jobs:
       shell: pwsh
       run: ./.github/scripts/Test-SourceSync.ps1
 
+    - name: Verify skin module boundaries
+      shell: pwsh
+      run: ./.github/scripts/Test-SkinModules.ps1
+
     - name: Generate build matrix from the manifest
       id: gen
       shell: pwsh
@@ -647,9 +651,9 @@ jobs:
           --suppress=postfixOperator \
           --suppress=noExplicitConstructor \
           --suppress=LocalAllocCalled \
-          --suppress=unknownMacro:helpers/VSTPluginInstance.cpp \
-          --suppress=unknownMacro:helpers/VSTPluginInstanceInternal.h \
-          --suppress=unknownMacro:helpers/VSTPluginLibrary.cpp \
+          --suppress=unknownMacro:vst/VSTPluginInstance.cpp \
+          --suppress=unknownMacro:vst/VSTPluginInstanceInternal.h \
+          --suppress=unknownMacro:vst/VSTPluginLibrary.cpp \
           --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
           --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \

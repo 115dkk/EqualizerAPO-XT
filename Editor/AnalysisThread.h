@@ -31,7 +31,7 @@
 #include "engine/ConfigLoadTrace.h"
 #include "devices/DeviceAPOInfo.h"
 #include "Editor/analysis/AnalysisResponse.h"
-#include "helpers/FftwRAII.h"
+#include "dsp/FftwRAII.h"
 
 class AnalysisThread : public QThread
 {

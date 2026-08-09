@@ -20,9 +20,8 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/ChannelHelper.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"

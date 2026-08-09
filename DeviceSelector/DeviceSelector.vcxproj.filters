@@ -13,7 +13,7 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
-    <Filter Include="helpers">
+    <Filter Include="shared modules">
       <UniqueIdentifier>{e9ecfee9-6e2d-47f7-8149-c8731e9f2ad0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -29,17 +29,17 @@
     <ClCompile Include="DeviceSelector.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\helpers\ServiceHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\services\windows\WindowsService.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
-    <ClCompile Include="..\helpers\AudioEngineAccess.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\services\security\AudioEngineAccess.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
-    <ClCompile Include="..\helpers\InstallDiagnostics.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\services\diagnostics\InstallDiagnostics.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
-    <ClCompile Include="..\helpers\ApoRegistration.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\services\install\ApoRegistration.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
     <ClCompile Include="DeviceTestDialog.cpp" />
     <ClCompile Include="OpacityIconEngine.cpp" />
@@ -53,8 +53,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="..\helpers\ServiceHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="..\services\windows\WindowsService.h">
+      <Filter>shared modules</Filter>
     </ClInclude>
     <ClInclude Include="OpacityIconEngine.h" />
     <ClInclude Include="ReceiveThread.h" />

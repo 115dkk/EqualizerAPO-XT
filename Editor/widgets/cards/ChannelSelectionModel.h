@@ -31,7 +31,7 @@ class ChannelSelectionModel
 {
 public:
 	// Build the chip list from the line's parameters and the device channel
-	// names (ChannelHelper::getChannelNames order; may be empty when no
+	// names (ChannelLayout::getChannelNames order; may be empty when no
 	// device is selected). Device chips come first in the legacy dialog's
 	// canonical order, custom tokens follow in the order they were written.
 	void load(const QString& parameters, const std::vector<std::wstring>& deviceChannels);

@@ -13,6 +13,7 @@
 */
 
 #include <QLayout>
+#include "services/registry/RegistryPaths.h"
 #include <QMenuBar>
 #include <QSettings>
 #include <QVBoxLayout>

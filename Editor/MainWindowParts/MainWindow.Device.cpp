@@ -18,10 +18,9 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/ChannelHelper.h"
-#include "helpers/AudioFormatProbe.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
+#include "services/audio/AudioFormatProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"
@@ -112,7 +111,7 @@ void MainWindow::channelConfigurationSelected(int index)
 			channelMask = KSAUDIO_SPEAKER_7POINT1_SURROUND;
 		}
 
-		vector<wstring> channelNames = ChannelHelper::getChannelNames(channelCount, channelMask);
+		vector<wstring> channelNames = ChannelLayout::getChannelNames(channelCount, channelMask);
 		for (const wstring& channelName : channelNames)
 		{
 			ui->analysisChannelComboBox->addItem(QString::fromStdWString(channelName));
@@ -227,7 +226,7 @@ void MainWindow::getDeviceAndChannelMask(shared_ptr<AbstractAPOInfo>* selectedDe
 		*channelMask = (*selectedDevice)->getChannelMask();
 
 		if (*channelMask == 0)
-			*channelMask = ChannelHelper::getDefaultChannelMask((*selectedDevice)->getChannelCount());
+			*channelMask = ChannelLayout::getDefaultChannelMask((*selectedDevice)->getChannelCount());
 	}
 }
 

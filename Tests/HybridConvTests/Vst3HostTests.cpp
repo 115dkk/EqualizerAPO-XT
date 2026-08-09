@@ -19,8 +19,8 @@
 #include <windows.h>
 #include <wincrypt.h>
 
-#include "helpers/VSTPluginLibrary.h"
-#include "helpers/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
+#include "vst/VSTPluginInstance.h"
 #include "filters/VSTPluginFilter.h"
 // After VSTPluginInstance.h: the VST3 SDK defines a VST_VERSION macro that
 // would otherwise break the enum of the same name in the VST2 aeffectx.h.

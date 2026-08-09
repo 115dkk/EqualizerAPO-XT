@@ -21,11 +21,11 @@
 #include <sstream>
 #include <algorithm>
 
-#include "helpers/MemoryHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/ChannelHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 #include "ChannelFilter.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 using std::vector;
 using std::wstringstream;
@@ -53,7 +53,7 @@ vector<wstring> ChannelFilter::initialize(float sampleRate, unsigned maxFrameCou
 		if (currentWord == L"ALL")
 			selectedChannels = vector<bool>(channelCount, true);
 		else
-			channelNr = ChannelHelper::getChannelIndex(currentWord, channelNames);
+			channelNr = ChannelLayout::getChannelIndex(currentWord, channelNames);
 
 		if (channelNr != -1 && channelNr < static_cast<int>(channelCount))
 		{

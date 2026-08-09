@@ -7,8 +7,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "helpers/Win32Event.h"
-#include "helpers/Win32Resource.h"
+#include "platform/windows/Win32Event.h"
+#include "platform/windows/Win32Resource.h"
 
 // Single-owner channel between the configuration-loading worker and the
 // real-time audio thread. The producer permit prevents a pending config from

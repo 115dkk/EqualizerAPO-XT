@@ -16,8 +16,8 @@
 
     Only the Common.vcxproj -> Editor.pro direction is an error. The reverse is
     normal: Editor.pro also reaches outside the Editor directory for helpers
-    Common.vcxproj does not compile at all (ServiceHelper, ApoRegistration,
-    AudioFormatProbe, VelopackBootstrap - shared with DeviceSelector), so a ../
+    Common.vcxproj does not compile at all (WindowsServiceControl, ApoRegistration,
+    AudioFormatProbe, services/update - shared with DeviceSelector), so a ../
     entry with no ClCompile behind it is not reported.
 
     It then checks that every source and header the test projects list actually
@@ -41,7 +41,7 @@ $ErrorActionPreference = "Stop"
 # was written; they are now listed in Editor.pro rather than excused here.
 $knownEditorOmissions = [ordered]@{
   "stdafx.cpp" = "MSBuild's precompiled-header creator (/Yc stdafx.h); qmake builds its own PCH unit from Editor/stable.h"
-  "helpers/ClsidRegistration.cpp" = "COM class-tree writer consumed only by the APO DLL's DllRegisterServer (a direct call, not self-registration - the linker resolves it or fails loudly); the Editor never registers the COM server"
+  "services/registry/ClsidRegistration.cpp" = "COM class-tree writer consumed only by the APO DLL's DllRegisterServer (a direct call, not self-registration - the linker resolves it or fails loudly); the Editor never registers the COM server"
 }
 
 $projectPath = Join-Path $RepoRoot "Common.vcxproj"

@@ -27,11 +27,10 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "helpers/RegistryHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/ChannelHelper.h"
+#include "services/registry/WindowsRegistry.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "audio/ChannelLayout.h"
 #include "ConfigurationFileReader.h"
 #include "ConfigWatcher.h"
 #include "FilterEngine.h"

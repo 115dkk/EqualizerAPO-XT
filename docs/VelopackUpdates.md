@@ -35,7 +35,7 @@ The Editor embeds the native Velopack client (`velopack_libc`) and updates itsel
 
 The single elevation is required even though Velopack itself is installed per-user. Before replacing `current`, the old `--veloapp-obsolete` hook must stop the Windows audio service so the loaded APO DLL no longer locks the directory. After replacement, the new `--veloapp-updated` hook writes the machine-wide APO registration and restarts the service. Running the updater from the elevated coordinator lets both hooks inherit the same administrator token instead of prompting once per hook.
 
-This logic lives in `helpers/VelopackBootstrap.cpp` (`startBackgroundDownload`, `hasPendingUpdate`, `applyPendingUpdateAndExit`) and is wired into `Editor/main.cpp`. The channel is injected at build time with `EAPO_UPDATE_CHANNEL`, the same macro UpdateChecker uses.
+This logic lives in the owned `UpdateSession` module under `services/update/`. `VelopackBootstrap.cpp` is the SDK adapter, while `Editor/main.cpp` owns the session and decides whether an apply outcome should end the process. The channel is injected at build time with `EAPO_UPDATE_CHANNEL`, the same macro UpdateChecker uses.
 
 `UpdateChecker.exe` stays as a separate discovery/notification tool: run manually (or with `-a`), it checks the GitHub release feed and tells the user when a newer version is available; the Editor performs the actual download and apply.
 

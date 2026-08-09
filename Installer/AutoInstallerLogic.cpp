@@ -11,7 +11,7 @@
 #include <windows.h>
 #include <wchar.h>
 
-#include "../helpers/ReleaseAssetNames.h"
+#include "../release/ReleaseAssetNames.h"
 #include "../version.h"
 
 namespace AutoInstallerLogic

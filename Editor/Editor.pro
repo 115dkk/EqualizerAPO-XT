@@ -27,19 +27,24 @@ DEFINES += MUP_USE_WIDE_STRING
 DEFINES += NOMINMAX
 
 SOURCES += main.cpp\
-	../helpers/LogHelper.cpp \
-	../helpers/StringHelper.cpp \
-	../helpers/RegistryHelper.cpp \
-	../helpers/IRegistry.cpp \
-	../helpers/RegistryTransaction.cpp \
-	../helpers/WindowsVersion.cpp \
-	../helpers/AudioEngineAccess.cpp \
-	../helpers/InstallDiagnostics.cpp \
-	../helpers/ServiceHelper.cpp \
-	../helpers/ApoRegistration.cpp \
-	../helpers/StartMenuShortcuts.cpp \
-	../helpers/AudioFormatProbe.cpp \
-	../helpers/VelopackBootstrap.cpp \
+	../services/logging/Logging.cpp \
+	../text/WideString.cpp \
+	../platform/windows/TextEncoding.cpp \
+	../platform/windows/Win32Error.cpp \
+	../parser/NumericText.cpp \
+	../services/registry/WindowsRegistry.cpp \
+	../services/registry/IRegistry.cpp \
+	../services/registry/RegistryTransaction.cpp \
+	../platform/windows/WindowsVersion.cpp \
+	../platform/windows/GuidText.cpp \
+	../services/security/AudioEngineAccess.cpp \
+	../services/diagnostics/InstallDiagnostics.cpp \
+	../services/windows/WindowsService.cpp \
+	../services/install/ApoRegistration.cpp \
+	../services/shell/StartMenuShortcuts.cpp \
+	../services/audio/AudioFormatProbe.cpp \
+	../services/update/UpdateSession.cpp \
+	../services/update/VelopackBootstrap.cpp \
 	../parser/LogicalOperators.cpp \
 	IFilterGUIFactory.cpp \
 	FilterGUIFactoryRegistry.cpp \
@@ -57,8 +62,8 @@ SOURCES += main.cpp\
 	../filters/PreampCommand.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
-	../helpers/MemoryHelper.cpp \
-	../helpers/ParallelExecutor.cpp \
+	../runtime/memory/AlignedMemory.cpp \
+	../runtime/concurrency/ParallelExecutor.cpp \
 	FilterTableRow.cpp \
 	FilterTemplate.cpp \
 	guis/DeviceFilterGUI.cpp \
@@ -93,7 +98,7 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUIForm.cpp \
 	guis/CopyFilterGUIRow.cpp \
 	helpers/GUIChannelHelper.cpp \
-	../helpers/ChannelHelper.cpp \
+	../audio/ChannelLayout.cpp \
 	guis/DelayFilterGUI.cpp \
 	guis/DelayFilterGUIFactory.cpp \
 	../filters/DelayCommand.cpp \
@@ -115,8 +120,8 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilter.cpp \
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
-	../helpers/FftwPlanningPolicy.cpp \
-	../helpers/GainIterator.cpp \
+	../dsp/FftwPlanningPolicy.cpp \
+	../filters/graphicEq/GainCurveIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
 	widgets/FrequencyPlotHRuler.cpp \
@@ -210,21 +215,21 @@ SOURCES += main.cpp\
 	CustomStyle.cpp \
 	../devices/AbstractAPOInfo.cpp \
 	../devices/VoicemeeterAPOInfo.cpp \
-	../helpers/AbstractLibrary.cpp \
-	../helpers/VST3PluginIIDs.cpp \
-	../helpers/VSTPluginLibrary.cpp \
+	../vst/AbstractLibrary.cpp \
+	../vst/VST3PluginIIDs.cpp \
+	../vst/VSTPluginLibrary.cpp \
 	guis/VSTPluginFilterGUI.cpp \
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
 	../filters/VSTPluginCommand.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
-	../helpers/VSTPluginInstance.cpp \
-	../helpers/VSTPluginInstance.Editor.cpp \
-	../helpers/VSTPluginInstance.State.cpp \
-	../helpers/VSTPluginInstance.VST2.cpp \
-	../helpers/VSTPluginInstance.VST3.cpp \
-	../helpers/PerfProfile.cpp \
+	../vst/VSTPluginInstance.cpp \
+	../vst/VSTPluginInstance.Editor.cpp \
+	../vst/VSTPluginInstance.State.cpp \
+	../vst/VSTPluginInstance.VST2.cpp \
+	../vst/VSTPluginInstance.VST3.cpp \
+	../diagnostics/performance/PerfProfile.cpp \
 	guis/LoudnessCorrectionFilterGUI.cpp \
 	guis/LoudnessCorrectionFilterGUIFactory.cpp \
 	../filters/loudnessCorrection/LoudnessCorrectionCommand.cpp \
@@ -237,20 +242,9 @@ SOURCES += main.cpp\
 	SkinGallery.cpp \
 	SkinManager.cpp \
 	skins/ISkin.cpp \
-	skins/pickers/MatrixFilterPicker.cpp \
-	skins/RackChrome.cpp \
 	skins/Skins.cpp \
-	skins/SkinFileIcons.cpp \
+	skins/shared/SkinFileIcons.cpp \
 	skins/SkinThemeData.cpp \
-	skins/StudioSkin.cpp \
-	skins/MinimalSkin.cpp \
-	skins/SoftSkin.cpp \
-	skins/RackSkin.cpp \
-	skins/MatrixSkin.cpp \
-	skins/pickers/StudioFilterPicker.cpp \
-	skins/pickers/MinimalFilterPicker.cpp \
-	skins/pickers/SoftFilterPicker.cpp \
-	skins/pickers/RackFilterPicker.cpp \
 	widgets/AddCardRow.cpp \
 	widgets/ActivatableListChrome.cpp \
 	widgets/AudioKnob.cpp \
@@ -291,18 +285,9 @@ SOURCES += main.cpp\
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ScalarKnobCardEditor.cpp \
 	widgets/cards/ReferenceCardView.cpp \
+	widgets/cards/ReferenceCardState.cpp \
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
-	skins/cards/StudioReferenceCardView.cpp \
-	skins/cards/StudioSubwooferRoutingCardView.cpp \
-	skins/cards/MinimalSubwooferRoutingCardView.cpp \
-	skins/cards/SoftSubwooferRoutingCardView.cpp \
-	skins/cards/RackSubwooferRoutingCardView.cpp \
-	skins/cards/MatrixSubwooferRoutingCardView.cpp \
-	skins/cards/MinimalReferenceCardView.cpp \
-	skins/cards/SoftReferenceCardView.cpp \
-	skins/cards/RackReferenceCardView.cpp \
-	skins/cards/MatrixReferenceCardView.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
 	widgets/EditableValueText.cpp \
@@ -314,6 +299,7 @@ SOURCES += main.cpp\
 	widgets/FilterCardRow.cpp \
 	widgets/FilterListModel.cpp \
 	widgets/FilterListUndo.cpp \
+	widgets/FilterPickerModel.cpp \
 	widgets/FilterPickerView.cpp \
 	widgets/UpdateToast.cpp \
 	widgets/MainToolbarKit.cpp \
@@ -323,12 +309,7 @@ SOURCES += main.cpp\
 	widgets/routing/CopyRoutingAdapter.cpp \
 	widgets/routing/RoutingFold.cpp \
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
-	widgets/routing/CrosspointMatrixRoutingRenderer.cpp \
-	widgets/routing/StepListRoutingRenderer.cpp \
-	widgets/routing/BlockChipRoutingRenderer.cpp \
-	widgets/routing/LightTraceRoutingRenderer.cpp \
 	widgets/routing/StudioRoutingModel.cpp \
-	widgets/routing/HardwarePatchbayRoutingRenderer.cpp \
 	widgets/MiddleClickTabWidget.cpp \
 	import/ConfigDependencyScanner.cpp \
 	import/ImportDialog.cpp \
@@ -338,21 +319,27 @@ SOURCES += main.cpp\
 	widgets/MiddleClickTabBar.cpp
 
 HEADERS  += \
-	../helpers/FileSharingRetry.h \
-	../helpers/LogHelper.h \
-	../helpers/StringHelper.h \
-	../helpers/RegistryHelper.h \
-	../helpers/IRegistry.h \
-	../helpers/RegistryTransaction.h \
-	../helpers/WindowsVersion.h \
-	../helpers/AudioEngineAccess.h \
-	../helpers/InstallDiagnostics.h \
-	../helpers/ServiceHelper.h \
-	../helpers/ApoRegistration.h \
-	../helpers/StartMenuShortcuts.h \
-	../helpers/AudioFormatProbe.h \
-	../helpers/VelopackBootstrap.h \
-	../helpers/UpdateElevationPolicy.h \
+	../platform/windows/FileSharingRetry.h \
+	../services/logging/Logging.h \
+	../text/WideString.h \
+	../platform/windows/TextEncoding.h \
+	../platform/windows/Win32Error.h \
+	../parser/NumericText.h \
+	../services/registry/WindowsRegistry.h \
+	../services/registry/IRegistry.h \
+	../services/registry/RegistryTransaction.h \
+	../services/registry/RegistryError.h \
+	../services/registry/RegistryPaths.h \
+	../platform/windows/WindowsVersion.h \
+	../platform/windows/GuidText.h \
+	../services/security/AudioEngineAccess.h \
+	../services/diagnostics/InstallDiagnostics.h \
+	../services/windows/WindowsService.h \
+	../services/install/ApoRegistration.h \
+	../services/shell/StartMenuShortcuts.h \
+	../services/audio/AudioFormatProbe.h \
+	../services/update/UpdateSession.h \
+	../services/update/VelopackBootstrap.h \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \
@@ -371,7 +358,7 @@ HEADERS  += \
 	../filters/PreampCommand.h \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
-	../helpers/MemoryHelper.h \
+	../runtime/memory/AlignedMemory.h \
 	FilterTableRow.h \
 	FilterTemplate.h \
 	guis/DeviceFilterGUI.h \
@@ -402,7 +389,7 @@ HEADERS  += \
 	guis/CopyFilterGUIForm.h \
 	guis/CopyFilterGUIRow.h \
 	helpers/GUIChannelHelper.h \
-	../helpers/ChannelHelper.h \
+	../audio/ChannelLayout.h \
 	guis/DelayFilterGUI.h \
 	guis/DelayFilterGUIFactory.h \
 	../filters/DelayCommand.h \
@@ -421,8 +408,8 @@ HEADERS  += \
 	../filters/GraphicEQFilter.h \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
-	../helpers/FftwPlanningPolicy.h \
-	../helpers/GainIterator.h \
+	../dsp/FftwPlanningPolicy.h \
+	../filters/graphicEq/GainCurveIterator.h \
 	guis/GraphicEQFilterGUIScene.h \
 	widgets/FrequencyPlotView.h \
 	widgets/FrequencyPlotHRuler.h \
@@ -495,15 +482,15 @@ HEADERS  += \
 	CustomStyle.h \
 	../devices/AbstractAPOInfo.h \
 	../devices/VoicemeeterAPOInfo.h \
-	../helpers/AbstractLibrary.h \
-	../helpers/VSTPluginLibrary.h \
+	../vst/AbstractLibrary.h \
+	../vst/VSTPluginLibrary.h \
 	guis/VSTPluginFilterGUI.h \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
 	../filters/VSTPluginCommand.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
-	../helpers/VSTPluginInstance.h \
+	../vst/VSTPluginInstance.h \
 	guis/LoudnessCorrectionFilterGUI.h \
 	guis/LoudnessCorrectionFilterGUIFactory.h \
 	../filters/loudnessCorrection/LoudnessCorrectionCommand.h \
@@ -519,18 +506,12 @@ HEADERS  += \
 	SkinTokens.h \
 	SkinManager.h \
 	skins/ISkin.h \
-	skins/pickers/MatrixFilterPicker.h \
-	skins/RackChrome.h \
 	skins/Skins.h \
-	skins/SkinFileIcons.h \
-	skins/SkinChromeOverlay.h \
-	skins/SkinPaint.h \
-	skins/SkinSupport.h \
+	skins/shared/SkinFileIcons.h \
+	skins/shared/SkinChromeOverlay.h \
+	skins/shared/SkinPaint.h \
+	skins/shared/SkinSupport.h \
 	skins/SkinThemeData.h \
-	skins/pickers/StudioFilterPicker.h \
-	skins/pickers/MinimalFilterPicker.h \
-	skins/pickers/SoftFilterPicker.h \
-	skins/pickers/RackFilterPicker.h \
 	widgets/AddCardRow.h \
 	widgets/ActivatableListChrome.h \
 	widgets/AudioKnob.h \
@@ -571,16 +552,6 @@ HEADERS  += \
 	widgets/cards/ReferenceCardView.h \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTCardEditor.h \
-	skins/cards/StudioReferenceCardView.h \
-	skins/cards/StudioSubwooferRoutingCardView.h \
-	skins/cards/MinimalSubwooferRoutingCardView.h \
-	skins/cards/SoftSubwooferRoutingCardView.h \
-	skins/cards/RackSubwooferRoutingCardView.h \
-	skins/cards/MatrixSubwooferRoutingCardView.h \
-	skins/cards/MinimalReferenceCardView.h \
-	skins/cards/SoftReferenceCardView.h \
-	skins/cards/RackReferenceCardView.h \
-	skins/cards/MatrixReferenceCardView.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
 	widgets/EditableValueText.h \
@@ -592,6 +563,7 @@ HEADERS  += \
 	widgets/FilterCardRow.h \
 	widgets/FilterListModel.h \
 	widgets/FilterListUndo.h \
+	widgets/FilterPickerModel.h \
 	widgets/FilterPickerView.h \
 	widgets/UpdateToast.h \
 	widgets/MainToolbarKit.h \
@@ -602,12 +574,7 @@ HEADERS  += \
 	widgets/routing/RoutingFold.h \
 	widgets/routing/MultiConvolutionRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
-	widgets/routing/CrosspointMatrixRoutingRenderer.h \
-	widgets/routing/StepListRoutingRenderer.h \
-	widgets/routing/BlockChipRoutingRenderer.h \
-	widgets/routing/LightTraceRoutingRenderer.h \
 	widgets/routing/StudioRoutingModel.h \
-	widgets/routing/HardwarePatchbayRoutingRenderer.h \
 	widgets/MiddleClickTabWidget.h \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \
@@ -715,6 +682,11 @@ build_pass:CONFIG(debug, debug|release) {
 }
 
 include($$PWD/../common.pri)
+include(skins/studio/studio.pri)
+include(skins/minimal/minimal.pri)
+include(skins/soft/soft.pri)
+include(skins/rack/rack.pri)
+include(skins/matrix/matrix.pri)
 QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB $$VELOPACK_LIB
 
 # The Editor deliberately does NOT link Common.lib: every engine source it

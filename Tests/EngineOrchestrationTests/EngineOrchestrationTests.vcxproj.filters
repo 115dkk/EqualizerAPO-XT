@@ -26,10 +26,10 @@
     <ClCompile Include="InstallDiagnosticsTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\helpers\AudioEngineAccess.cpp">
+    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\helpers\InstallDiagnostics.cpp">
+    <ClCompile Include="..\..\services\diagnostics\InstallDiagnostics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SampleIoTests.cpp">
@@ -43,10 +43,10 @@
     <ClInclude Include="..\TestHarness.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\helpers\IRegistry.h">
+    <ClInclude Include="..\..\services\registry\IRegistry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\helpers\RegistryTransaction.h">
+    <ClInclude Include="..\..\services\registry\RegistryTransaction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FakeRegistry.h">

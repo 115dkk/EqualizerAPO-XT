@@ -4,7 +4,7 @@
 	What one install, uninstall or repair of a device actually did.
 
 	Until this existed, the whole install path was silent. devices/,
-	RegistryHelper, ServiceHelper and DeviceSelector.cpp came to about 950 lines
+	WindowsRegistry, WindowsServiceControl and DeviceSelector.cpp came to about 950 lines
 	with not one log call between them, so a user reporting "Device Selector said
 	access denied" left nothing behind to read: the exception message went into a
 	message box that was already closed, and Editor.log had nothing because the

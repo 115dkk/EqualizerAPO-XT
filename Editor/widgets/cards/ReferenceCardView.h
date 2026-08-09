@@ -22,6 +22,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QHash>
 #include <QWidget>
 
 class QAbstractButton;
@@ -81,6 +82,9 @@ struct ReferenceCardState
 	QString locationPrefix() const;
 };
 
+bool referenceCardNeedsLocate(const ReferenceCardState& state);
+QString referenceCardSeverityName(ReferenceCardState::Severity severity);
+
 class ReferenceCardView : public QWidget
 {
 	Q_OBJECT
@@ -111,7 +115,7 @@ public:
 
 	// Host wiring, called once after construction and before the first
 	// setState, in display order.
-	virtual void addActionButton(ActionRole role, QAbstractButton* button) = 0;
+	void addActionButton(ActionRole role, QAbstractButton* button);
 	// An extra interactive control that is part of the reference grammar
 	// itself (MultiConvolution's output-channel selector). Placement is the
 	// view's decision.
@@ -134,6 +138,12 @@ signals:
 	void pathCommitted(const QString& text);
 
 protected:
+	// Subclasses place the already-registered host button in their visual
+	// structure; role ownership and shared state properties stay in the base.
+	virtual void placeActionButton(ActionRole role, QAbstractButton* button) = 0;
+	QAbstractButton* actionButton(ActionRole role) const;
+	bool locateMode() const;
+
 	// Apply the already-stored state to the subclass's widgets/painting.
 	virtual void applyState(const ReferenceCardState& state) = 0;
 
@@ -152,6 +162,7 @@ private slots:
 	void editCommitted();
 
 private:
+	void updateSharedProperties();
 	void leaveEditMode();
 
 	ReferenceCardState currentState;
@@ -159,5 +170,6 @@ private:
 	QWidget* content = nullptr;
 	QLineEdit* pathEdit = nullptr;
 	QWidget* nameActivationWidget = nullptr;
+	QHash<int, QAbstractButton*> actionRegistry;
 	bool committing = false;
 };

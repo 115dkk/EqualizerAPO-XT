@@ -18,6 +18,11 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
+#include "platform/windows/Win32Error.h"
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 #include <exception>
 #include <new>
 #include <Unknwn.h>
@@ -26,12 +31,11 @@
 #include <mmreg.h>
 #include <ksmedia.h>
 
-#include "../helpers/LogHelper.h"
-#include "../helpers/ComBoundary.h"
-#include "../helpers/RegistryHelper.h"
-#include "../helpers/StringHelper.h"
-#include "../helpers/ComPtr.h"
-#include "../helpers/Win32Resource.h"
+#include "../services/logging/Logging.h"
+#include "../platform/windows/ComBoundary.h"
+#include "../services/registry/WindowsRegistry.h"
+#include "../platform/windows/ComPtr.h"
+#include "../platform/windows/Win32Resource.h"
 #include "../devices/DeviceAPOInfo.h"
 #include "../devices/DeviceAPOInfoKeys.h"
 #include "EqualizerAPO.h"
@@ -202,7 +206,7 @@ HRESULT EqualizerAPO::GetLatency(HNSTIME* pTime)
 HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 {
 	return ComBoundary::invoke([&]() -> HRESULT {
-	LogHelper::reset();
+	Logging::reset();
 
 	TraceF(L"Initialize: cbDataSize=%u (APOInitSystemEffects=%u)", cbDataSize, static_cast<unsigned>(sizeof(APOInitSystemEffects)));
 
@@ -229,9 +233,9 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	GUID apoGuid = initStruct->APOInit.clsid;
 	try
 	{
-		TraceF(L"APO GUID: %s", RegistryHelper::getGuidString(apoGuid).c_str());
+		TraceF(L"APO GUID: %s", winutil::guidToString(apoGuid).c_str());
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		LogF(L"Could not convert apo guid to guid string");
 	}
@@ -256,10 +260,10 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	try
 	{
 		// Audit #250 F020: the pipe name is shared vocabulary (DeviceAPOInfoKeys.h).
-		if (RegistryHelper::valueExists(APP_REGPATH, deviceTestPipeValueName))
-			deviceTestPipeName = RegistryHelper::readValue(APP_REGPATH, deviceTestPipeValueName);
+		if (WindowsRegistry::valueExists(APP_REGPATH, deviceTestPipeValueName))
+			deviceTestPipeName = WindowsRegistry::readValue(APP_REGPATH, deviceTestPipeValueName);
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		LogF(L"%s", e.getMessage().c_str());
 	}
@@ -288,7 +292,7 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 			allowSilentBufferModification = apoInfo.getCurrentInstallState().allowSilentBufferModification;
 		}
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		LogF(L"Could not read endpoint device info because of: %s", e.getMessage().c_str());
 	}
@@ -615,7 +619,7 @@ void EqualizerAPO::resetChild()
 
 void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstring& deviceGuid, GUID apoGuid, const std::string& phase)
 {
-	string message = "{\"deviceGuid\":\"" + StringHelper::toString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
+	string message = "{\"deviceGuid\":\"" + wintext::toNarrowString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
 
 	winutil::UniqueHandle pipe(CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(),
 		GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr));
@@ -629,13 +633,13 @@ void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstr
 	{
 		DWORD bytesWritten;
 		if (!WriteFile(pipe.get(), message.c_str(), static_cast<int>(message.length()), &bytesWritten, nullptr))
-			LogF(L"Could not write to pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
+			LogF(L"Could not write to pipe: %s", win32::errorMessage(GetLastError()).c_str());
 
 		FlushFileBuffers(pipe.get());
 	}
 	else
 	{
-		LogF(L"Could not connect to named pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
+		LogF(L"Could not connect to named pipe: %s", win32::errorMessage(GetLastError()).c_str());
 		deviceTestPipeName = L"";
 	}
 }

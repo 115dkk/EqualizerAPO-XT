@@ -68,7 +68,7 @@ That order is what makes phase and group delay possible at all: both are
 defined across neighbouring bins, not at a single one, so neither can be
 computed from a pixel's frequency alone.
 
-**Magnitude** reproduces `GainIterator`, the path it replaced, exactly — same
+**Magnitude** reproduces `GainCurveIterator`, the path it replaced, exactly — same
 bracketing bins, same log-frequency parameter, same short circuit when both ends
 are equal (which is how `-inf` used to survive), same `-120 dB` display floor.
 A test runs both across all 905 pixel columns of the real graph width and

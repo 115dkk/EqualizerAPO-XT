@@ -5,12 +5,10 @@
 #include "FilterPickerView.h"
 
 #include <QApplication>
-#include <QCoreApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMouseEvent>
-#include <QRegularExpression>
 #include <QVBoxLayout>
 
 #include "Editor/helpers/GUIHelper.h"
@@ -54,27 +52,109 @@ QString filterTemplateDescription(const QString& rawLine)
 	return entry == nullptr ? QString() : FilterCommandCatalog::description(*entry);
 }
 
-QString filterPickerSection(const FilterPickerEntry& entry)
-{
-	return entry.path.isEmpty()
-		? QCoreApplication::translate("FilterPickerView", "General")
-		: entry.path.join(QStringLiteral(" / "));
-}
-
-bool filterPickerMatches(const FilterPickerEntry& entry, const QString& section, const QString& query)
-{
-	const QString haystack = section + QLatin1Char(' ') + entry.name + QLatin1Char(' ') + entry.line;
-	const QStringList terms = query.split(
-		QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-	for (const QString& term : terms)
-		if (!haystack.contains(term, Qt::CaseInsensitive))
-			return false;
-	return true;
-}
-
 FilterPickerView::FilterPickerView(QWidget* parent)
 	: QWidget(parent)
 {
+}
+
+void FilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
+{
+	pickerModel.setEntries(entries);
+	entriesChanged();
+}
+
+const QList<FilterPickerEntry>& FilterPickerView::pickerEntries() const
+{
+	return pickerModel.entries();
+}
+
+QList<FilterPickerMatch> FilterPickerView::pickerMatches() const
+{
+	return pickerModel.matches();
+}
+
+const QString& FilterPickerView::pickerQuery() const
+{
+	return pickerModel.query();
+}
+
+void FilterPickerView::setPickerQuery(const QString& query)
+{
+	pickerModel.setQuery(query);
+}
+
+void FilterPickerView::bindListPicker(
+	QLineEdit* searchEdit,
+	QListWidget* listWidget,
+	int originalIndexRole,
+	std::function<void()> rebuildList)
+{
+	boundSearchEdit = searchEdit;
+	boundListWidget = listWidget;
+	boundOriginalIndexRole = originalIndexRole;
+	boundSearchEdit->installEventFilter(this);
+
+	connect(boundSearchEdit, &QLineEdit::textChanged, this,
+		[this, rebuildList](const QString& query) {
+			setPickerQuery(query);
+			rebuildList();
+		});
+	connect(boundListWidget, &QListWidget::currentItemChanged, this,
+		[this](QListWidgetItem* current) {
+			if (current != nullptr && (current->flags() & Qt::ItemIsSelectable))
+				pickerModel.selectIndex(current->data(boundOriginalIndexRole).toInt());
+		});
+	connect(boundListWidget, &QListWidget::itemClicked,
+		this, &FilterPickerView::activateListItem);
+	connect(boundListWidget, &QListWidget::itemActivated,
+		this, &FilterPickerView::activateListItem);
+}
+
+void FilterPickerView::selectFirstListEntry()
+{
+	if (boundListWidget == nullptr)
+		return;
+	for (int row = 0; row < boundListWidget->count(); row++)
+	{
+		if (boundListWidget->item(row)->flags() & Qt::ItemIsSelectable)
+		{
+			boundListWidget->setCurrentRow(row);
+			return;
+		}
+	}
+}
+
+void FilterPickerView::activateListItem(QListWidgetItem* item)
+{
+	if (item == nullptr || !(item->flags() & Qt::ItemIsSelectable))
+		return;
+	const int originalIndex = item->data(boundOriginalIndexRole).toInt();
+	if (pickerModel.selectIndex(originalIndex))
+		emit entryChosen(originalIndex);
+}
+
+bool FilterPickerView::eventFilter(QObject* watched, QEvent* event)
+{
+	if (watched == boundSearchEdit && event->type() == QEvent::KeyPress)
+	{
+		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+		switch (keyEvent->key())
+		{
+		case Qt::Key_Down:
+		case Qt::Key_Up:
+		case Qt::Key_PageDown:
+		case Qt::Key_PageUp:
+			QApplication::sendEvent(boundListWidget, event);
+			return true;
+		case Qt::Key_Return:
+		case Qt::Key_Enter:
+			activateListItem(boundListWidget->currentItem());
+			return true;
+		default:
+			break;
+		}
+	}
+	return QWidget::eventFilter(watched, event);
 }
 
 void FilterPickerView::galleryShowcase(GalleryShowcase)
@@ -97,8 +177,6 @@ DefaultFilterPickerView::DefaultFilterPickerView(QWidget* parent)
 	searchEdit->setClearButtonEnabled(true);
 	// Arrow keys and Return typed in the search field drive the list below, so
 	// keyboard users never have to leave the field.
-	searchEdit->installEventFilter(this);
-	connect(searchEdit, &QLineEdit::textChanged, this, &DefaultFilterPickerView::rebuildList);
 	layout->addWidget(searchEdit);
 
 	listWidget = new QListWidget(this);
@@ -106,24 +184,15 @@ DefaultFilterPickerView::DefaultFilterPickerView(QWidget* parent)
 	listWidget->setFrameShape(QFrame::NoFrame);
 	listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	listWidget->setUniformItemSizes(false);
-	// Dropdown semantics: one click inserts.
-	connect(listWidget, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(Qt::UserRole).toInt());
-	});
-	connect(listWidget, &QListWidget::itemActivated, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(Qt::UserRole).toInt());
-	});
 	layout->addWidget(listWidget, 1);
+	bindListPicker(searchEdit, listWidget, Qt::UserRole, [this]() { rebuildList(); });
 
 	setMinimumWidth(GUIHelper::scale(300.0));
 	setMaximumHeight(GUIHelper::scale(420.0));
 }
 
-void DefaultFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
+void DefaultFilterPickerView::entriesChanged()
 {
-	allEntries = entries;
 	rebuildList();
 	searchEdit->setFocus();
 }
@@ -164,12 +233,10 @@ void DefaultFilterPickerView::rebuildList()
 
 	QString currentSection;
 	bool sectionStarted = false;
-	for (int i = 0; i < allEntries.size(); i++)
+	for (const FilterPickerMatch& match : pickerMatches())
 	{
-		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = filterPickerSection(entry);
-		if (!filterPickerMatches(entry, section, searchEdit->text()))
-			continue;
+		const FilterPickerEntry& entry = pickerEntries()[match.originalIndex];
+		const QString& section = match.section;
 
 		if (!sectionStarted || section != currentSection)
 		{
@@ -184,48 +251,10 @@ void DefaultFilterPickerView::rebuildList()
 		}
 
 		QListWidgetItem* item = new QListWidgetItem(entry.name, listWidget);
-		item->setData(Qt::UserRole, i);
+		item->setData(Qt::UserRole, match.originalIndex);
 		item->setToolTip(entry.line);
 	}
 
 	// Preselect the first real entry so Return inserts immediately.
-	for (int row = 0; row < listWidget->count(); row++)
-	{
-		if (listWidget->item(row)->flags() & Qt::ItemIsSelectable)
-		{
-			listWidget->setCurrentRow(row);
-			break;
-		}
-	}
-}
-
-void DefaultFilterPickerView::chooseCurrent()
-{
-	QListWidgetItem* item = listWidget->currentItem();
-	if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-		emit entryChosen(item->data(Qt::UserRole).toInt());
-}
-
-bool DefaultFilterPickerView::eventFilter(QObject* watched, QEvent* event)
-{
-	if (watched == searchEdit && event->type() == QEvent::KeyPress)
-	{
-		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-		switch (keyEvent->key())
-		{
-		case Qt::Key_Down:
-		case Qt::Key_Up:
-		case Qt::Key_PageDown:
-		case Qt::Key_PageUp:
-			QApplication::sendEvent(listWidget, event);
-			return true;
-		case Qt::Key_Return:
-		case Qt::Key_Enter:
-			chooseCurrent();
-			return true;
-		default:
-			break;
-		}
-	}
-	return FilterPickerView::eventFilter(watched, event);
+	selectFirstListEntry();
 }

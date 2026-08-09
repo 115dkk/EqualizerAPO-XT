@@ -38,7 +38,7 @@ void testChannelSelectionModel()
 	expectEqual(model.serialize(), "L R", "written order canonicalizes like the dialog");
 
 	// Position numbers resolve against the device order (engine
-	// semantics, ChannelHelper::getChannelIndex), and are written back
+	// semantics, ChannelLayout::getChannelIndex), and are written back
 	// as names like the dialog did.
 	model.load("2", stereo);
 	expectEqual(model.serialize(), "R", "numeric selector resolves in device order");

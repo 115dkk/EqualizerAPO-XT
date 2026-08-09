@@ -17,9 +17,9 @@ The script **`setup-build.ps1`** downloads the binary dependencies (per SIMD var
 ### Source code organization
 The solution `EqualizerAPO.sln` groups these projects:
 
-* **Common** — a static library with the filter engine (`FilterEngine`, `FilterConfiguration`, `IFilter`), the individual filter implementations under `filters/`, the muParserX extensions under `parser/`, and shared helpers under `helpers/`. The convolution code lives in `libHybridConv-0.1.1/`. The other projects link against it.
+* **Common** — a static library with the filter engine (`FilterEngine`, `FilterConfiguration`, `IFilter`), the individual filter implementations under `filters/`, the muParserX extensions under `parser/`, and shared modules grouped under `audio/`, `dsp/`, `platform/`, `runtime/`, `services/`, `text/`, and `vst/`. The convolution code lives in `libHybridConv-0.1.1/`. The other projects link against it.
 * **EqualizerAPO** — the Audio Processing Object DLL (`EqualizerAPO.dll`). It contains the COM boilerplate, implements the APO interfaces, and calls into the Common filter engine. Being ATL-based, it needs `atls.lib`.
-* **Editor** — the Qt-based Configuration Editor. `Editor.exe` is the Velopack package's main executable and handles every Velopack install/update/uninstall hook through `helpers/ApoRegistration` and `helpers/VelopackBootstrap`.
+* **Editor** — the Qt-based Configuration Editor. `Editor.exe` is the Velopack package's main executable and handles every Velopack install/update/uninstall hook through `services/install/ApoRegistration` and `services/update/VelopackBootstrap`.
 * **DeviceSelector** — the Qt utility shown after the first install so the user can pick the audio devices to register the APO for. It replaces the original Configurator.
 * **UpdateChecker** — the Qt tool that runs at logon and notifies the user when a newer release for the build channel is available.
 * **Benchmark** — a console program for testing the audio processing without installing it on a device. Handy for experimenting with filter types and measuring performance.
@@ -39,7 +39,7 @@ Adding a custom APO means clearing two obstacles: the audio engine must be allow
 1. Create `HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AudioEngine\AudioProcessingObjects\<GUID>`. This is normally done by the DDK function `RegisterAPO` (declared in `audioenginebaseapo.h`); `UnregisterAPO` removes it.
 1. Register the APO for a device under `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\<endpoint GUID>\FxProperties` (the `Render` path is output devices; `Capture` is input devices). In `FxProperties`, the value `{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1` holds an LFX APO's GUID and `...,2` a GFX APO's. These usually already point at the driver's APOs, so registering the custom APO means replacing one value and saving the original elsewhere (Equalizer APO stores it under `HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\Child APOs`) — both to restore it on uninstall and to load and call the original APO so it keeps working. Since Windows 8.1 the values ending in `,5` (LFX) and `,6` (GFX) are also used, and when an APO is registered through them, one registered through the old `,1`/`,2` values is ignored. Also since 8.1 the values `{d3993a3f-99c2-4402-b5ec-a92a0367664b},5` and `,6` specify processing modes (type MULTI_SZ); both normally need to be `{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}`, the default processing mode.
 
-In XT this registration and the matching cleanup are performed by `helpers/ApoRegistration`, driven from the Velopack hooks the Editor handles.
+In XT this registration and the matching cleanup are performed by `services/install/ApoRegistration`, driven from the Velopack hooks the Editor handles.
 
 ## See also
 * [Documentation](Documentation) — using EqualizerAPO-XT.
