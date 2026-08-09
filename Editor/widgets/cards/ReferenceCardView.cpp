@@ -1,5 +1,7 @@
 #include "ReferenceCardView.h"
 
+#include <array>
+
 #include <QAbstractButton>
 #include <QEvent>
 #include <QKeyEvent>
@@ -100,7 +102,7 @@ void ReferenceCardView::updateSharedProperties()
 {
 	const QString severity = referenceCardSeverityName(currentState.statusSeverity);
 	const bool locate = locateMode();
-	QWidget* const surfaces[] = { this, content };
+	const std::array<QWidget*, 2> surfaces = { this, content };
 	for (QWidget* surface : surfaces)
 	{
 		surface->setProperty("refKind", currentState.kind);
