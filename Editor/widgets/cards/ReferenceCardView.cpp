@@ -100,7 +100,7 @@ void ReferenceCardView::updateSharedProperties()
 {
 	const QString severity = referenceCardSeverityName(currentState.statusSeverity);
 	const bool locate = locateMode();
-	QWidget* surfaces[] = { this, content };
+	QWidget* const surfaces[] = { this, content };
 	for (QWidget* surface : surfaces)
 	{
 		surface->setProperty("refKind", currentState.kind);
