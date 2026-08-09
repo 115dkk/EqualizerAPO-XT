@@ -15,8 +15,16 @@ The original fork goals are complete: the convolution tail bug is fixed, the eng
 Current work areas:
 
 1. Runtime SIMD dispatch in a single binary, replacing the per-variant release channels ([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
-2. Acting on findings from the biweekly automated code audit.
-3. Refining the Editor skins from community feedback rounds (round 1: the Soft pastel rework, dark-mode state contrast, and the compact analysis panel; round 3: the modern GraphicEQ card, the insertion contract and the skinned Device Selector, [#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
+2. Acting on findings from the biweekly automated code audit. The deferred
+   architecture pass now has an owned update-session seam, deeper picker/card
+   bases, and domain modules in place of the root helper junk drawer
+   ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
+3. Refining the Editor skins from community feedback rounds. The five concrete
+   skins now have guarded per-skin modules so visual work stays local while
+   behavior remains shared ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264));
+   earlier rounds covered the Soft pastel rework, dark-mode state contrast, the
+   compact analysis panel, the modern GraphicEQ card, the insertion contract,
+   and the skinned Device Selector ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
 4. Phase and time. The analysis graph now switches between magnitude, phase and
    group delay, the all-pass filter has its own card and a 1st-order section,
    and `Delay` and the all-pass share a "Phase & Time" group in the picker. An

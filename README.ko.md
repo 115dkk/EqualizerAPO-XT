@@ -15,8 +15,16 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 지금 진행 중인 작업은 다음과 같습니다.
 
 1. 변형별 릴리스 채널을 단일 바이너리 런타임 SIMD dispatch로 대체합니다([docs/RuntimeDispatchEpic.md](docs/RuntimeDispatchEpic.md)).
-2. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다.
-3. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다(1차: Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸 배치. 3차: 그래픽 EQ 모던 카드, 카드 추가·삽입 계약, Device Selector 스킨 동기화, [#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
+2. 격주 자동 코드 감사가 찾아낸 문제를 처리합니다. 미뤄 두었던 아키텍처
+   작업으로 업데이트 세션의 테스트 이음새, 깊어진 픽커·카드 기반, 루트 헬퍼
+   짬통을 대신하는 도메인 모듈까지 마련했습니다
+   ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
+3. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다. 다섯 스킨은
+   공용 동작을 유지하면서 시각 작업이 각 스킨 안에 머물도록 전용 모듈과 자동
+   경계 검사를 갖췄습니다([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
+   앞선 라운드에서는 Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸
+   배치, 그래픽 EQ 모던 카드, 카드 추가·삽입 계약, Device Selector 스킨
+   동기화를 다뤘습니다([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
 4. 위상과 시간. 분석 그래프가 크기·위상·그룹 지연을 전환하고, 올패스 필터에 전용 카드와 1차 섹션이 생겼으며, `Delay`와 올패스가 픽커의 'Phase & Time' 분류로 묶였습니다. 올패스는 음량을 전혀 바꾸지 않으므로 크기만 그리는 그래프로는 볼 수 없는 필터였습니다([#228](https://github.com/115dkk/EqualizerAPO-XT/issues/228), [docs/features/phase-and-time.md](docs/features/phase-and-time.md)).
 5. 프로그래밍 계열 설정 명령(`If:`/`ElseIf:`/`Else:`/`EndIf:`/`Eval:`) 전용 에디터 — 완료. 다섯 스킨이 분석 판정으로 블록을 각자의 계기로 표현하고, 픽커가 이 명령들을 삽입하며, 계수 직접 입력 IIR 줄과 백틱 인라인 식이 든 줄도 각자의 카드를 유지합니다([#178](https://github.com/115dkk/EqualizerAPO-XT/pull/178), [#182](https://github.com/115dkk/EqualizerAPO-XT/pull/182), [#183](https://github.com/115dkk/EqualizerAPO-XT/pull/183), [#184](https://github.com/115dkk/EqualizerAPO-XT/pull/184)).
 6. 서브우퍼 라우팅([#246](https://github.com/115dkk/EqualizerAPO-XT/issues/246)) — 핵심 기능은 완료됐습니다. `SubwooferRouting:` 명령, MIT SubwooferRoutingCore DSP 라이브러리, 독립 실행형 VST3 플러그인, 4.1 호스트 협상 수정, 다섯 스킨 각각의 카드 계기, 그리고 두 라우팅 행렬과 응답 뷰를 갖춘 전체 편집기까지 들어갔습니다. 남은 후속 작업은 연결된 프로필 파일로의 변경 사항 되쓰기(현재는 행을 인라인 상태로 전환), audition/solo 오버라이드, 새 문자열의 한국어 번역, 전용 VST3 편집기 화면(현재는 호스트의 일반 파라미터 화면)입니다.
