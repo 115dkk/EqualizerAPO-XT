@@ -703,7 +703,10 @@ void testConfigWatcherBackoffAndPathRefresh(test::Harness& harness)
 	std::thread worker([&] { watcher.run(); });
 
 	Sleep(120);
-	harness.expect(snapshotCount.load() <= 2,
+	// Audit #250 F054: the bound exists to catch a hot loop (thousands of
+	// snapshots in the window), not to pin the backoff interval - a modest
+	// interval change must not fail this, so the cap is generous.
+	harness.expect(snapshotCount.load() < 50,
 		"unavailable config watch uses backoff instead of hot-looping");
 
 	auto triggerAndWait = [&](int pathIndex, const std::wstring& directory,
