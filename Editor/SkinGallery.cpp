@@ -926,7 +926,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		{
 			QString state;
 			subroute::SubwooferRoutingState value;
-			bool expandRouting;
+			bool expandRouting = false;
 		} dialogStates[] = {
 			{ QStringLiteral("default"),
 				subwooferroutingeditor::buildDefaultState(
@@ -956,7 +956,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 			dialog.show();
 			QApplication::processEvents();
 
-			QWidget* presetFocus = dialog.findChild<QWidget*>(
+			const QWidget* presetFocus = dialog.findChild<QWidget*>(
 				QStringLiteral("SubwooferRoutingPresetCombo"));
 			if (presetFocus == nullptr || dialog.focusWidget() != presetFocus)
 			{
