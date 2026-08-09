@@ -136,13 +136,12 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	root->addWidget(statusLine);
 }
 
-void MatrixReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
+void MatrixReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)
 {
 	// The Browse cell is remembered so applyState can re-speak the host's
 	// Locate affordance as a board token; placement is uniform (the host
 	// hands the buttons over in display order).
-	if (role == ActionRole::Browse)
-		browseButton = button;
+	Q_UNUSED(role);
 	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
 }
 
@@ -216,24 +215,21 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 	statusLine->setVisible(!state.statusText.isEmpty());
 	statusLine->setText(state.statusText.isEmpty()
 		? QString() : QStringLiteral("! ") + state.statusText);
-	statusLine->setProperty("severity",
-		state.statusSeverity == ReferenceCardState::Severity::Critical ? QStringLiteral("critical")
-		: state.statusSeverity == ReferenceCardState::Severity::Warning ? QStringLiteral("warning")
-		: QStringLiteral("none"));
+	statusLine->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
 	repolishCell(statusLine);
 
 	// Browse doubles as the recovery entry while the reference is broken.
 	// The host's translated "Locate..." text is re-spoken as the board's
 	// untranslated LOCATE token (mono caps); the host's translated tooltip
 	// stays. The cell is monochrome at rest - accent arrives only on hover.
-	if (browseButton != nullptr)
+	if (QAbstractButton* browse = actionButton(ActionRole::Browse))
 	{
-		const bool locate = state.missing && !state.editText.trimmed().isEmpty();
-		browseButton->setText(locate ? QStringLiteral("LOCATE") : QString());
-		browseButton->setProperty("matrixLocate", locate);
-		if (QToolButton* toolButton = qobject_cast<QToolButton*>(browseButton))
+		const bool locate = locateMode();
+		browse->setText(locate ? QStringLiteral("LOCATE") : QString());
+		browse->setProperty("matrixLocate", locate);
+		if (QToolButton* toolButton = qobject_cast<QToolButton*>(browse))
 			toolButton->setToolButtonStyle(locate
 				? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly);
-		repolishCell(browseButton);
+		repolishCell(browse);
 	}
 }

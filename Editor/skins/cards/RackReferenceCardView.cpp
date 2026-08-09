@@ -483,11 +483,10 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 	rootLayout->addLayout(actionLayout);
 }
 
-void RackReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
+void RackReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)
 {
 	button->setParent(contentWidget());
-	if (role == ActionRole::Browse)
-		browseButton = button;
+	Q_UNUSED(role);
 	// Host order is display order; the caps mount centered on the plate.
 	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
 }
@@ -568,17 +567,17 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 	// While the reference is broken, the Browse cap carries the engraved
 	// LOCATE service lettering (hardware printing, untranslated; the host's
 	// translated tooltip stays). Healthy caps go back to the icon.
-	if (browseButton != nullptr)
+	if (QAbstractButton* browse = actionButton(ActionRole::Browse))
 	{
-		const bool locate = state.missing && !emptyRef;
-		browseButton->setText(locate ? QStringLiteral("LOCATE") : QString());
-		if (QToolButton* toolButton = qobject_cast<QToolButton*>(browseButton))
+		const bool locate = locateMode();
+		browse->setText(locate ? QStringLiteral("LOCATE") : QString());
+		if (QToolButton* toolButton = qobject_cast<QToolButton*>(browse))
 			toolButton->setToolButtonStyle(locate ? Qt::ToolButtonTextOnly : Qt::ToolButtonIconOnly);
-		if (browseButton->property("rackLocate").toBool() != locate)
+		if (browse->property("rackLocate").toBool() != locate)
 		{
-			browseButton->setProperty("rackLocate", locate);
-			browseButton->style()->unpolish(browseButton);
-			browseButton->style()->polish(browseButton);
+			browse->setProperty("rackLocate", locate);
+			browse->style()->unpolish(browse);
+			browse->style()->polish(browse);
 		}
 	}
 }

@@ -7,7 +7,6 @@
 
 #include <QApplication>
 #include <QCoreApplication>
-#include <QKeyEvent>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMouseEvent>
@@ -371,8 +370,6 @@ SoftFilterPickerView::SoftFilterPickerView(QWidget* parent)
 	searchEdit->setClearButtonEnabled(true);
 	// Arrow keys and Return typed in the pill drive the list below, so
 	// keyboard users never have to leave the field.
-	searchEdit->installEventFilter(this);
-	connect(searchEdit, &QLineEdit::textChanged, this, &SoftFilterPickerView::rebuildList);
 	layout->addWidget(searchEdit);
 
 	listWidget = new QListWidget(this);
@@ -382,29 +379,20 @@ SoftFilterPickerView::SoftFilterPickerView(QWidget* parent)
 	listWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
 	listWidget->setUniformItemSizes(false);
 	listWidget->setItemDelegate(new SoftPickerDelegate(listWidget));
-	// Dropdown semantics: one click inserts.
-	connect(listWidget, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(EntryIndexRole).toInt());
-	});
-	connect(listWidget, &QListWidget::itemActivated, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(EntryIndexRole).toInt());
-	});
 	layout->addWidget(listWidget, 1);
+	bindListPicker(searchEdit, listWidget, EntryIndexRole, [this]() { rebuildList(); });
 
 	// Roomy and approachable: the widest, tallest-rowed picker of the five.
 	setFixedWidth(GUIHelper::scale(380.0));
 	setMaximumHeight(GUIHelper::scale(470.0));
 }
 
-void SoftFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
+void SoftFilterPickerView::entriesChanged()
 {
-	allEntries = entries;
-	entryMonograms = softMonograms(entries);
+	entryMonograms = softMonograms(pickerEntries());
 	sectionColors.clear();
 	const bool dark = SkinManager::instance()->isDark();
-	for (const FilterPickerEntry& entry : entries)
+	for (const FilterPickerEntry& entry : pickerEntries())
 	{
 		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
 		if (!sectionColors.contains(section))
@@ -469,12 +457,10 @@ void SoftFilterPickerView::rebuildList()
 
 	QString currentSection;
 	bool sectionStarted = false;
-	for (int i = 0; i < allEntries.size(); i++)
+	for (const FilterPickerMatch& match : pickerMatches())
 	{
-		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = filterPickerSection(entry);
-		if (!filterPickerMatches(entry, section, searchEdit->text()))
-			continue;
+		const FilterPickerEntry& entry = pickerEntries()[match.originalIndex];
+		const QString& section = match.section;
 
 		const QColor tint = sectionColors.value(section,
 			sectionPastel(0, SkinManager::instance()->isDark()));
@@ -491,7 +477,7 @@ void SoftFilterPickerView::rebuildList()
 		}
 
 		QListWidgetItem* item = new QListWidgetItem(listWidget);
-		item->setData(EntryIndexRole, i);
+		item->setData(EntryIndexRole, match.originalIndex);
 		item->setData(TitleRole, entry.name);
 		// A calm sentence about what the filter does, not the raw config line.
 		// The catalog describes every current template; softCaption stays the
@@ -500,7 +486,7 @@ void SoftFilterPickerView::rebuildList()
 			entry.description.isEmpty() ? softCaption(entry.line) : entry.description);
 		item->setData(TintRole, tint);
 		item->setData(KindRole, EntryItem);
-		item->setData(GlyphRole, entryMonograms.value(i, entry.name.left(1).toUpper()));
+		item->setData(GlyphRole, entryMonograms.value(match.originalIndex, entry.name.left(1).toUpper()));
 		item->setData(IconRole, softEntryIcon(entry));
 		// The tooltip keeps the raw template line even when the caption wears
 		// the friendly phrasing - what gets inserted is never hidden.
@@ -519,14 +505,7 @@ void SoftFilterPickerView::rebuildList()
 	}
 
 	// Preselect the first real entry so Return inserts immediately.
-	for (int row = 0; row < listWidget->count(); row++)
-	{
-		if (listWidget->item(row)->flags() & Qt::ItemIsSelectable)
-		{
-			listWidget->setCurrentRow(row);
-			break;
-		}
-	}
+	selectFirstListEntry();
 
 	listContentHeight = 0;
 	for (int row = 0; row < listWidget->count(); row++)
@@ -541,37 +520,6 @@ QSize SoftFilterPickerView::sizeHint() const
 		+ searchEdit->sizeHint().height() + listContentHeight + GUIHelper::scale(4.0);
 	height = qMin(height, maximumHeight());
 	return QSize(GUIHelper::scale(380.0), height);
-}
-
-void SoftFilterPickerView::chooseCurrent()
-{
-	QListWidgetItem* item = listWidget->currentItem();
-	if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-		emit entryChosen(item->data(EntryIndexRole).toInt());
-}
-
-bool SoftFilterPickerView::eventFilter(QObject* watched, QEvent* event)
-{
-	if (watched == searchEdit && event->type() == QEvent::KeyPress)
-	{
-		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-		switch (keyEvent->key())
-		{
-		case Qt::Key_Down:
-		case Qt::Key_Up:
-		case Qt::Key_PageDown:
-		case Qt::Key_PageUp:
-			QApplication::sendEvent(listWidget, event);
-			return true;
-		case Qt::Key_Return:
-		case Qt::Key_Enter:
-			chooseCurrent();
-			return true;
-		default:
-			break;
-		}
-	}
-	return FilterPickerView::eventFilter(watched, event);
 }
 
 void SoftFilterPickerView::paintEvent(QPaintEvent* event)

@@ -20,12 +20,12 @@ class MatrixFilterPickerView : public FilterPickerView
 public:
 	explicit MatrixFilterPickerView(QWidget* parent = nullptr);
 
-	void setEntries(const QList<FilterPickerEntry>& entries) override;
 	void galleryShowcase(GalleryShowcase kind) override;
 
 	QSize sizeHint() const override;
 
 protected:
+	void entriesChanged() override;
 	void paintEvent(QPaintEvent* event) override;
 	void keyPressEvent(QKeyEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;

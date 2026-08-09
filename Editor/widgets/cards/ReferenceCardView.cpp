@@ -1,6 +1,6 @@
 #include "ReferenceCardView.h"
 
-#include <QDir>
+#include <QAbstractButton>
 #include <QEvent>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -19,16 +19,20 @@ void repolish(QWidget* widget)
 	widget->style()->polish(widget);
 	widget->update();
 }
-}
 
-QString ReferenceCardState::locationPrefix() const
+QString actionRoleName(ReferenceCardView::ActionRole role)
 {
-	if (directory.isEmpty())
-		return QString();
-	// Drive roots ("C:\") already end in their separator.
-	if (directory.endsWith(QLatin1Char('\\')) || directory.endsWith(QLatin1Char('/')))
-		return directory;
-	return directory + QDir::separator();
+	switch (role)
+	{
+	case ReferenceCardView::ActionRole::Browse: return QStringLiteral("browse");
+	case ReferenceCardView::ActionRole::OpenTarget: return QStringLiteral("openTarget");
+	case ReferenceCardView::ActionRole::Import: return QStringLiteral("import");
+	case ReferenceCardView::ActionRole::OpenPanel: return QStringLiteral("openPanel");
+	case ReferenceCardView::ActionRole::Options: return QStringLiteral("options");
+	case ReferenceCardView::ActionRole::EditPath: return QStringLiteral("editPath");
+	}
+	return QString();
+}
 }
 
 ReferenceCardView::ReferenceCardView(QWidget* parent)
@@ -57,14 +61,30 @@ ReferenceCardView::ReferenceCardView(QWidget* parent)
 	stack->setCurrentWidget(content);
 }
 
+void ReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
+{
+	if (button == nullptr)
+		return;
+	actionRegistry.insert(static_cast<int>(role), button);
+	button->setProperty("refActionRole", actionRoleName(role));
+	placeActionButton(role, button);
+	updateSharedProperties();
+}
+
+QAbstractButton* ReferenceCardView::actionButton(ActionRole role) const
+{
+	return actionRegistry.value(static_cast<int>(role), nullptr);
+}
+
+bool ReferenceCardView::locateMode() const
+{
+	return referenceCardNeedsLocate(currentState);
+}
+
 void ReferenceCardView::setState(const ReferenceCardState& state)
 {
 	currentState = state;
-
-	// Shared QSS surface: skins can key any child selector off the card's
-	// kind and broken-reference state without each view re-implementing it.
-	setProperty("refKind", state.kind);
-	setProperty("refMissing", state.missing);
+	updateSharedProperties();
 	applyState(currentState);
 	repolish(this);
 
@@ -74,6 +94,27 @@ void ReferenceCardView::setState(const ReferenceCardState& state)
 
 	if (!pathEdit->hasFocus())
 		pathEdit->setText(state.editText);
+}
+
+void ReferenceCardView::updateSharedProperties()
+{
+	const QString severity = referenceCardSeverityName(currentState.statusSeverity);
+	const bool locate = locateMode();
+	QWidget* surfaces[] = { this, content };
+	for (QWidget* surface : surfaces)
+	{
+		surface->setProperty("refKind", currentState.kind);
+		surface->setProperty("refMissing", currentState.missing);
+		surface->setProperty("refAbsolute", currentState.absolutePath);
+		surface->setProperty("refSeverity", severity);
+	}
+
+	if (QAbstractButton* browse = actionButton(ActionRole::Browse))
+	{
+		browse->setProperty("refLocate", locate);
+		browse->setProperty("locate", locate);
+		repolish(browse);
+	}
 }
 
 const ReferenceCardState& ReferenceCardView::state() const

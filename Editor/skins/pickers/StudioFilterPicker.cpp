@@ -5,8 +5,6 @@
 #include "StudioFilterPicker.h"
 #include "Editor/skins/SkinPaint.h"
 
-#include <QApplication>
-#include <QKeyEvent>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPainter>
@@ -274,8 +272,6 @@ StudioFilterPickerView::StudioFilterPickerView(QWidget* parent)
 			skinTokens.accent, skinTokens.fontFamily, focusBackground));
 	// Arrow keys and Return typed in the search field drive the list below,
 	// so keyboard users never have to leave the field.
-	searchEdit->installEventFilter(this);
-	connect(searchEdit, &QLineEdit::textChanged, this, &StudioFilterPickerView::rebuildList);
 	layout->addWidget(searchEdit);
 	setFocusProxy(searchEdit);
 
@@ -323,25 +319,16 @@ StudioFilterPickerView::StudioFilterPickerView(QWidget* parent)
 			.arg(QColor(skinTokens.accent).red()).arg(QColor(skinTokens.accent).green()).arg(QColor(skinTokens.accent).blue()),
 			skinTokens.accent));
 	listWidget->setMinimumHeight(GUIHelper::scale(330.0));
-	// Dropdown semantics: one click inserts.
-	connect(listWidget, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(EntryIndexRole).toInt());
-	});
-	connect(listWidget, &QListWidget::itemActivated, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(EntryIndexRole).toInt());
-	});
 	layout->addWidget(listWidget, 1);
+	bindListPicker(searchEdit, listWidget, EntryIndexRole, [this]() { rebuildList(); });
 
 	setMinimumWidth(GUIHelper::scale(388.0));
 	setMaximumWidth(GUIHelper::scale(440.0));
 	setMaximumHeight(GUIHelper::scale(470.0));
 }
 
-void StudioFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
+void StudioFilterPickerView::entriesChanged()
 {
-	allEntries = entries;
 	rebuildList();
 	searchEdit->setFocus();
 }
@@ -352,12 +339,10 @@ void StudioFilterPickerView::rebuildList()
 
 	QString currentSection;
 	bool sectionStarted = false;
-	for (int i = 0; i < allEntries.size(); i++)
+	for (const FilterPickerMatch& match : pickerMatches())
 	{
-		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = filterPickerSection(entry);
-		if (!filterPickerMatches(entry, section, searchEdit->text()))
-			continue;
+		const FilterPickerEntry& entry = pickerEntries()[match.originalIndex];
+		const QString& section = match.section;
 
 		if (!sectionStarted || section != currentSection)
 		{
@@ -384,7 +369,7 @@ void StudioFilterPickerView::rebuildList()
 		}
 
 		QListWidgetItem* item = new QListWidgetItem(primary, listWidget);
-		item->setData(EntryIndexRole, i);
+		item->setData(EntryIndexRole, match.originalIndex);
 		item->setData(SecondaryRole, secondary);
 		item->setToolTip(entry.line);
 	}
@@ -398,14 +383,7 @@ void StudioFilterPickerView::rebuildList()
 	}
 
 	// Preselect the first real entry so Return inserts immediately.
-	for (int row = 0; row < listWidget->count(); row++)
-	{
-		if (listWidget->item(row)->flags() & Qt::ItemIsSelectable)
-		{
-			listWidget->setCurrentRow(row);
-			break;
-		}
-	}
+	selectFirstListEntry();
 }
 
 // Gallery staging: the offscreen gallery cannot move a real cursor over a
@@ -443,37 +421,6 @@ void StudioFilterPickerView::galleryShowcase(GalleryShowcase kind)
 	{
 		searchEdit->setText(QStringLiteral("zzz-no-match"));
 	}
-}
-
-void StudioFilterPickerView::chooseCurrent()
-{
-	QListWidgetItem* item = listWidget->currentItem();
-	if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-		emit entryChosen(item->data(EntryIndexRole).toInt());
-}
-
-bool StudioFilterPickerView::eventFilter(QObject* watched, QEvent* event)
-{
-	if (watched == searchEdit && event->type() == QEvent::KeyPress)
-	{
-		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-		switch (keyEvent->key())
-		{
-		case Qt::Key_Down:
-		case Qt::Key_Up:
-		case Qt::Key_PageDown:
-		case Qt::Key_PageUp:
-			QApplication::sendEvent(listWidget, event);
-			return true;
-		case Qt::Key_Return:
-		case Qt::Key_Enter:
-			chooseCurrent();
-			return true;
-		default:
-			break;
-		}
-	}
-	return FilterPickerView::eventFilter(watched, event);
 }
 
 void StudioFilterPickerView::paintEvent(QPaintEvent* event)

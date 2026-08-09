@@ -130,11 +130,10 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 	root->addWidget(statusRow);
 }
 
-void StudioReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
+void StudioReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)
 {
 	button->setParent(contentWidget());
-	if (role == ActionRole::Browse)
-		browseButton = button;
+	Q_UNUSED(role);
 	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
 	actionButtons.append(button);
 }
@@ -205,10 +204,7 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 
 	statusRow->setVisible(!state.statusText.isEmpty());
 	statusLabel->setText(state.statusText);
-	statusLamp->setProperty("lampSeverity",
-		state.statusSeverity == ReferenceCardState::Severity::Critical ? QStringLiteral("critical")
-		: state.statusSeverity == ReferenceCardState::Severity::Warning ? QStringLiteral("warning")
-		: QStringLiteral("none"));
+	statusLamp->setProperty("lampSeverity", referenceCardSeverityName(state.statusSeverity));
 	repolishWidget(statusLamp);
 
 	// A labelled action shows its words - the host swaps Browse to
@@ -222,9 +218,9 @@ void StudioReferenceCardView::applyState(const ReferenceCardState& state)
 			toolButton->setToolButtonStyle(toolButton->text().isEmpty()
 				? Qt::ToolButtonIconOnly : Qt::ToolButtonTextBesideIcon);
 	}
-	if (browseButton != nullptr)
+	if (QAbstractButton* browse = actionButton(ActionRole::Browse))
 	{
-		browseButton->setProperty("studioLocate", state.missing && !browseButton->text().isEmpty());
-		repolishWidget(browseButton);
+		browse->setProperty("studioLocate", locateMode());
+		repolishWidget(browse);
 	}
 }

@@ -25,10 +25,10 @@ class DefaultReferenceCardView : public ReferenceCardView
 public:
 	explicit DefaultReferenceCardView(QWidget* parent = nullptr);
 
-	void addActionButton(ActionRole role, QAbstractButton* button) override;
 	void addLeadingWidget(QWidget* widget) override;
 
 protected:
+	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
 
 private:

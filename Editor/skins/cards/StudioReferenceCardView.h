@@ -24,10 +24,10 @@ class StudioReferenceCardView : public ReferenceCardView
 public:
 	explicit StudioReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
-	void addActionButton(ActionRole role, QAbstractButton* button) override;
 	void addLeadingWidget(QWidget* widget) override;
 
 protected:
+	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
 
 private:
@@ -43,6 +43,5 @@ private:
 	QWidget* statusRow = nullptr;
 	QLabel* statusLamp = nullptr;
 	QLabel* statusLabel = nullptr;
-	QAbstractButton* browseButton = nullptr;
 	QList<QAbstractButton*> actionButtons;
 };

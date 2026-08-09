@@ -292,6 +292,7 @@ SOURCES += main.cpp\
 	widgets/cards/PreampCardEditor.cpp \
 	widgets/cards/ScalarKnobCardEditor.cpp \
 	widgets/cards/ReferenceCardView.cpp \
+	widgets/cards/ReferenceCardState.cpp \
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	skins/cards/StudioReferenceCardView.cpp \
@@ -315,6 +316,7 @@ SOURCES += main.cpp\
 	widgets/FilterCardRow.cpp \
 	widgets/FilterListModel.cpp \
 	widgets/FilterListUndo.cpp \
+	widgets/FilterPickerModel.cpp \
 	widgets/FilterPickerView.cpp \
 	widgets/UpdateToast.cpp \
 	widgets/MainToolbarKit.cpp \
@@ -593,6 +595,7 @@ HEADERS  += \
 	widgets/FilterCardRow.h \
 	widgets/FilterListModel.h \
 	widgets/FilterListUndo.h \
+	widgets/FilterPickerModel.h \
 	widgets/FilterPickerView.h \
 	widgets/UpdateToast.h \
 	widgets/MainToolbarKit.h \

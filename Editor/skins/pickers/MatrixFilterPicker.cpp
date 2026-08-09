@@ -48,10 +48,10 @@ MatrixFilterPickerView::MatrixFilterPickerView(QWidget* parent)
 	setMouseTracking(true);
 }
 
-void MatrixFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
+void MatrixFilterPickerView::entriesChanged()
 {
 	query.clear();
-	rebuildBuses(entries);
+	rebuildBuses(pickerEntries());
 	applyQuery();
 	computeMetrics();
 	setFixedSize(computedSize);

@@ -253,11 +253,10 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, QWidget* paren
 		.arg(cssColor(withAlpha(accent, dark ? 84 : 66)), t.surface, t.mutedText, t.border);
 }
 
-void SoftReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
+void SoftReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)
 {
 	button->setParent(contentWidget());
-	if (role == ActionRole::Browse)
-		browseButton = button;
+	Q_UNUSED(role);
 	if (QToolButton* toolButton = qobject_cast<QToolButton*>(button))
 		toolButton->setAutoRaise(false);
 	// Soft centres its controls in the roomy row instead of pinning them to
@@ -334,10 +333,7 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 
 	statusLabel->setVisible(!state.statusText.isEmpty());
 	statusLabel->setText(state.statusText);
-	statusLabel->setProperty("severity",
-		state.statusSeverity == ReferenceCardState::Severity::Critical ? QStringLiteral("critical")
-		: state.statusSeverity == ReferenceCardState::Severity::Warning ? QStringLiteral("warning")
-		: QStringLiteral("none"));
+	statusLabel->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
 	statusLabel->style()->unpolish(statusLabel);
 	statusLabel->style()->polish(statusLabel);
 
@@ -367,15 +363,16 @@ void SoftReferenceCardView::rebuildChips(const QStringList& readout)
 
 void SoftReferenceCardView::styleBrowseButton()
 {
-	if (browseButton == nullptr)
+	QAbstractButton* browse = actionButton(ActionRole::Browse);
+	if (browse == nullptr)
 		return;
 
 	// The host swaps the Browse label to a translated "Locate..." while the
 	// reference is broken. With a label present the pill becomes the visual
 	// protagonist of the recovery; without one it rests as the quiet icon
 	// pill the sheet gives every card action.
-	const bool locate = !browseButton->text().isEmpty();
-	if (QToolButton* toolButton = qobject_cast<QToolButton*>(browseButton))
+	const bool locate = locateMode();
+	if (QToolButton* toolButton = qobject_cast<QToolButton*>(browse))
 		toolButton->setToolButtonStyle(locate ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly);
-	browseButton->setStyleSheet(locate ? locatePillStyle : QString());
+	browse->setStyleSheet(locate ? locatePillStyle : QString());
 }

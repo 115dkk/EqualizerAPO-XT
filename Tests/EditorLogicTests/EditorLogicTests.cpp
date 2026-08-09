@@ -150,12 +150,15 @@ int main(int argc, char** argv)
 		testEditableValueTextUsesDisplayedDecimalFormatFirst();
 		testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
 		testFileReferenceControllerOwnsPathState();
+		testReferenceCardDerivesSharedPresentationState();
 		testFilterListModel();
 		testFilterListUndo();
 		testFilterCommandCatalogRoster();
 		testFilterCommandCatalogIconsExistOnDisk();
 		testFilterCommandCatalogTemplateRoster();
 		testFilterCommandCatalogDescriptions();
+		testFilterPickerModelMatchesTermsAndPreservesCatalogIndices();
+		testFilterPickerModelOwnsSelectionNavigation();
 		testSharedRawBodyAndRoutingViewPredicates();
 		testVstChunkPathCandidates();
 		testAutoInstallerChannelMapping();

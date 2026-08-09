@@ -22,20 +22,17 @@ class RackFilterPickerView : public FilterPickerView
 public:
 	explicit RackFilterPickerView(QWidget* parent = nullptr);
 
-	void setEntries(const QList<FilterPickerEntry>& entries) override;
 	void galleryShowcase(GalleryShowcase kind) override;
 
 	QSize sizeHint() const override;
 
 protected:
+	void entriesChanged() override;
 	void paintEvent(QPaintEvent* event) override;
-	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
 	void rebuildList();
-	void chooseCurrent();
 
-	QList<FilterPickerEntry> allEntries;
 	QLineEdit* searchEdit = nullptr;
 	QListWidget* listWidget = nullptr;
 	// Natural (uncapped) pixel height of the current list content, kept by

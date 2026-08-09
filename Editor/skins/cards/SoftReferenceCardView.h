@@ -26,10 +26,10 @@ class SoftReferenceCardView : public ReferenceCardView
 public:
 	explicit SoftReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
-	void addActionButton(ActionRole role, QAbstractButton* button) override;
 	void addLeadingWidget(QWidget* widget) override;
 
 protected:
+	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
 
 private:
@@ -46,7 +46,6 @@ private:
 	ElidedLabel* captionLabel = nullptr;
 	QWidget* chipRow = nullptr;
 	QLabel* statusLabel = nullptr;
-	QAbstractButton* browseButton = nullptr;
 	// Inline style blocks precomputed from the tokens at construction (rows
 	// are recreated on every skin/theme switch, so this stays current).
 	QString chipStyle;

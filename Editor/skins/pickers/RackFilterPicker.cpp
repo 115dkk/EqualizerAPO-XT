@@ -10,7 +10,6 @@
 #include "Editor/skins/SkinPaint.h"
 
 #include <QApplication>
-#include <QKeyEvent>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QListWidget>
@@ -252,8 +251,6 @@ RackFilterPickerView::RackFilterPickerView(QWidget* parent)
 	searchEdit = new QLineEdit(this);
 	searchEdit->setObjectName(QStringLiteral("RackFilterPickerSearch"));
 	searchEdit->setPlaceholderText(tr("SEARCH"));
-	searchEdit->installEventFilter(this);
-	connect(searchEdit, &QLineEdit::textChanged, this, &RackFilterPickerView::rebuildList);
 	const QColor lcdInk = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
 	QFont lcdFont(tokens.monoFontFamily);
 	lcdFont.setPointSizeF(9.0);
@@ -284,16 +281,8 @@ RackFilterPickerView::RackFilterPickerView(QWidget* parent)
 		"QListWidget#RackFilterPickerList::item { background: transparent; padding: 0; border: 0; }"));
 	listWidget->viewport()->setMouseTracking(true);
 	listWidget->setItemDelegate(new RackFilterPickerDelegate(listWidget));
-	// Dropdown semantics: one click inserts.
-	connect(listWidget, &QListWidget::itemClicked, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(OriginalIndexRole).toInt());
-	});
-	connect(listWidget, &QListWidget::itemActivated, this, [this](QListWidgetItem* item) {
-		if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-			emit entryChosen(item->data(OriginalIndexRole).toInt());
-	});
 	layout->addWidget(listWidget, 1);
+	bindListPicker(searchEdit, listWidget, OriginalIndexRole, [this]() { rebuildList(); });
 
 	// The host gives focus to the view; the LCD is where typing belongs.
 	setFocusProxy(searchEdit);
@@ -301,9 +290,8 @@ RackFilterPickerView::RackFilterPickerView(QWidget* parent)
 	setMaximumHeight(GUIHelper::scale(480.0));
 }
 
-void RackFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
+void RackFilterPickerView::entriesChanged()
 {
-	allEntries = entries;
 	rebuildList();
 	searchEdit->setFocus();
 }
@@ -370,12 +358,10 @@ void RackFilterPickerView::rebuildList()
 	int entryCount = 0;
 	QString currentSection;
 	bool sectionStarted = false;
-	for (int i = 0; i < allEntries.size(); i++)
+	for (const FilterPickerMatch& match : pickerMatches())
 	{
-		const FilterPickerEntry& entry = allEntries[i];
-		const QString section = filterPickerSection(entry);
-		if (!filterPickerMatches(entry, section, searchEdit->text()))
-			continue;
+		const FilterPickerEntry& entry = pickerEntries()[match.originalIndex];
+		const QString& section = match.section;
 
 		if (!sectionStarted || section != currentSection)
 		{
@@ -388,7 +374,7 @@ void RackFilterPickerView::rebuildList()
 		}
 
 		QListWidgetItem* item = new QListWidgetItem(entry.name, listWidget);
-		item->setData(OriginalIndexRole, i);
+		item->setData(OriginalIndexRole, match.originalIndex);
 		item->setData(KindRole, int(EntryRow));
 		item->setToolTip(entry.line);
 		entryCount++;
@@ -399,45 +385,7 @@ void RackFilterPickerView::rebuildList()
 	updateGeometry();
 
 	// Preselect the first real slot so Return inserts immediately.
-	for (int row = 0; row < listWidget->count(); row++)
-	{
-		if (listWidget->item(row)->flags() & Qt::ItemIsSelectable)
-		{
-			listWidget->setCurrentRow(row);
-			break;
-		}
-	}
-}
-
-void RackFilterPickerView::chooseCurrent()
-{
-	QListWidgetItem* item = listWidget->currentItem();
-	if (item != nullptr && (item->flags() & Qt::ItemIsSelectable))
-		emit entryChosen(item->data(OriginalIndexRole).toInt());
-}
-
-bool RackFilterPickerView::eventFilter(QObject* watched, QEvent* event)
-{
-	if (watched == searchEdit && event->type() == QEvent::KeyPress)
-	{
-		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-		switch (keyEvent->key())
-		{
-		case Qt::Key_Down:
-		case Qt::Key_Up:
-		case Qt::Key_PageDown:
-		case Qt::Key_PageUp:
-			QApplication::sendEvent(listWidget, event);
-			return true;
-		case Qt::Key_Return:
-		case Qt::Key_Enter:
-			chooseCurrent();
-			return true;
-		default:
-			break;
-		}
-	}
-	return FilterPickerView::eventFilter(watched, event);
+	selectFirstListEntry();
 }
 
 void RackFilterPickerView::paintEvent(QPaintEvent* event)

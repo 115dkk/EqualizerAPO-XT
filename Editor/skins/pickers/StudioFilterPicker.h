@@ -24,18 +24,15 @@ class StudioFilterPickerView : public FilterPickerView
 public:
 	explicit StudioFilterPickerView(QWidget* parent = nullptr);
 
-	void setEntries(const QList<FilterPickerEntry>& entries) override;
 	void galleryShowcase(GalleryShowcase kind) override;
 
 protected:
-	bool eventFilter(QObject* watched, QEvent* event) override;
+	void entriesChanged() override;
 	void paintEvent(QPaintEvent* event) override;
 
 private:
 	void rebuildList();
-	void chooseCurrent();
 
-	QList<FilterPickerEntry> allEntries;
 	SkinTokens skinTokens;
 	bool dark = true;
 	QLineEdit* searchEdit = nullptr;

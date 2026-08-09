@@ -78,11 +78,11 @@ class MinimalFilterPickerView : public FilterPickerView
 public:
 	explicit MinimalFilterPickerView(QWidget* parent = nullptr);
 
-	void setEntries(const QList<FilterPickerEntry>& entries) override;
 	void galleryShowcase(GalleryShowcase kind) override;
 	QSize sizeHint() const override;
 
 protected:
+	void entriesChanged() override;
 	bool eventFilter(QObject* watched, QEvent* event) override;
 	void paintEvent(QPaintEvent* event) override;
 
@@ -94,7 +94,6 @@ private:
 	void chooseCurrent();
 	void ensureSelectionVisible();
 
-	QList<FilterPickerEntry> allEntries;
 	// Page coordinates: entry indices in resting display order, and each
 	// entry's 1-based printed number. Assigned once per setEntries; immutable
 	// while filtering so digit jumps stay stable.

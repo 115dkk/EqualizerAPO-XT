@@ -28,10 +28,10 @@ class MinimalReferenceCardView : public ReferenceCardView
 public:
 	explicit MinimalReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
-	void addActionButton(ActionRole role, QAbstractButton* button) override;
 	void addLeadingWidget(QWidget* widget) override;
 
 protected:
+	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
 
 private:
@@ -43,7 +43,6 @@ private:
 	ElidedLabel* dirLabel = nullptr;
 	QLabel* readoutLabel = nullptr;
 	ElidedLabel* statusLabel = nullptr;
-	QAbstractButton* browseButton = nullptr;
 	// Insertion cursor for leading widgets (MultiConvolution's channel combo
 	// sits at the line head, before the payload).
 	int leadingIndex = 0;

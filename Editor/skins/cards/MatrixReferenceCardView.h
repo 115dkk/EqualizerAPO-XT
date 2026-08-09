@@ -24,10 +24,10 @@ class MatrixReferenceCardView : public ReferenceCardView
 public:
 	explicit MatrixReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
-	void addActionButton(ActionRole role, QAbstractButton* button) override;
 	void addLeadingWidget(QWidget* widget) override;
 
 protected:
+	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
 
 private:
@@ -42,6 +42,5 @@ private:
 	QLabel* absCell = nullptr;
 	QLabel* formatCell = nullptr;
 	QLabel* statusLine = nullptr;
-	QAbstractButton* browseButton = nullptr;
 	QList<QLabel*> readoutCells;
 };

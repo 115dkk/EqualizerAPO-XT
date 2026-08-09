@@ -123,7 +123,7 @@ DefaultReferenceCardView::DefaultReferenceCardView(QWidget* parent)
 		.arg(tk.background, tk.danger));
 }
 
-void DefaultReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
+void DefaultReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)
 {
 	Q_UNUSED(role);
 	button->setParent(contentWidget());
@@ -160,10 +160,7 @@ void DefaultReferenceCardView::applyState(const ReferenceCardState& state)
 
 	statusLabel->setVisible(!state.statusText.isEmpty());
 	statusLabel->setText(state.statusText);
-	statusLabel->setProperty("severity",
-		state.statusSeverity == ReferenceCardState::Severity::Critical ? QStringLiteral("critical")
-		: state.statusSeverity == ReferenceCardState::Severity::Warning ? QStringLiteral("warning")
-		: QStringLiteral("none"));
+	statusLabel->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
 	statusLabel->style()->unpolish(statusLabel);
 	statusLabel->style()->polish(statusLabel);
 

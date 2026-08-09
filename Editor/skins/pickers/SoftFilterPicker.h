@@ -24,21 +24,18 @@ class SoftFilterPickerView : public FilterPickerView
 public:
 	explicit SoftFilterPickerView(QWidget* parent = nullptr);
 
-	void setEntries(const QList<FilterPickerEntry>& entries) override;
 	void galleryShowcase(GalleryShowcase kind) override;
 
 	QSize sizeHint() const override;
 
 protected:
-	bool eventFilter(QObject* watched, QEvent* event) override;
+	void entriesChanged() override;
 	void paintEvent(QPaintEvent* event) override;
 
 private:
 	void rebuildList();
-	void chooseCurrent();
 
-	QList<FilterPickerEntry> allEntries;
-	// Per-entry tile monograms, parallel to allEntries; computed once per
+	// Per-entry tile monograms, parallel to pickerEntries(); computed once per
 	// catalog so a search never re-letters the tiles.
 	QStringList entryMonograms;
 	// Category -> pastel tile colour, assigned in catalog order so a category

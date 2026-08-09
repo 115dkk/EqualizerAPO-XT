@@ -128,7 +128,7 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 	lineLayout->addStretch(1);
 }
 
-void MinimalReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button)
+void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)
 {
 	button->setParent(contentWidget());
 	// Re-engrave the host's pictogram button as a terminal command word: in
@@ -141,8 +141,6 @@ void MinimalReferenceCardView::addActionButton(ActionRole role, QAbstractButton*
 	QToolButton* toolButton = qobject_cast<QToolButton*>(button);
 	if (toolButton != nullptr)
 		toolButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
-	if (role == ActionRole::Browse)
-		browseButton = button;
 	lineLayout->addWidget(button, 0, Qt::AlignVCenter);
 	repolishChild(button);
 }
@@ -197,17 +195,14 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 			? QStringLiteral("!!") : QStringLiteral("!");
 		statusLabel->setFullText(marker + QLatin1Char(' ') + state.statusText);
 	}
-	statusLabel->setProperty("severity",
-		state.statusSeverity == ReferenceCardState::Severity::Critical ? QStringLiteral("critical")
-		: state.statusSeverity == ReferenceCardState::Severity::Warning ? QStringLiteral("warning")
-		: QStringLiteral("none"));
+	statusLabel->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
 	repolishChild(statusLabel);
 
 	// The Browse command doubles as the Locate recovery entry while the
 	// reference is broken. Same condition the hosts use for their translated
 	// "Locate..." label; the token is the terminal's word for it, the host's
 	// tooltip keeps the translated explanation.
-	if (browseButton != nullptr)
-		browseButton->setText(state.missing && !state.editText.isEmpty()
+	if (QAbstractButton* browse = actionButton(ActionRole::Browse))
+		browse->setText(locateMode()
 			? QStringLiteral("LOCATE") : QStringLiteral("BROWSE"));
 }

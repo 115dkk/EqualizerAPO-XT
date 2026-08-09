@@ -274,7 +274,10 @@ MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
 	queryEdit->setObjectName(QStringLiteral("MinimalPickerQuery"));
 	queryEdit->setFrame(false);
 	queryEdit->installEventFilter(this);
-	connect(queryEdit, &QLineEdit::textChanged, this, &MinimalFilterPickerView::rebuildIndex);
+	connect(queryEdit, &QLineEdit::textChanged, this, [this](const QString& query) {
+		setPickerQuery(query.trimmed());
+		rebuildIndex();
+	});
 	headerLayout->addWidget(queryEdit, 1);
 
 	countLabel = new QLabel(header);
@@ -315,9 +318,9 @@ MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
 	setMaximumHeight(GUIHelper::scale(460.0));
 }
 
-void MinimalFilterPickerView::setEntries(const QList<FilterPickerEntry>& entries)
+void MinimalFilterPickerView::entriesChanged()
 {
-	allEntries = entries;
+	setPickerQuery(queryEdit->text().trimmed());
 	rebuildDisplayNumbers();
 	rebuildIndex();
 	queryEdit->setFocus();
@@ -359,17 +362,17 @@ void MinimalFilterPickerView::rebuildDisplayNumbers()
 	// user read off the page.
 	QStringList sectionOrder;
 	QHash<QString, QList<int>> sectionEntries;
-	for (int i = 0; i < allEntries.size(); i++)
+	for (int i = 0; i < pickerEntries().size(); i++)
 	{
-		const QString section = sectionKey(allEntries[i]);
+		const QString section = sectionKey(pickerEntries()[i]);
 		if (!sectionEntries.contains(section))
 			sectionOrder.append(section);
 		sectionEntries[section].append(i);
 	}
 
 	displayOrder.clear();
-	displayOrder.reserve(allEntries.size());
-	displayNumbers.fill(0, allEntries.size());
+	displayOrder.reserve(pickerEntries().size());
+	displayNumbers.fill(0, pickerEntries().size());
 	for (const QString& section : sectionOrder)
 	{
 		for (int i : sectionEntries.value(section))
@@ -392,7 +395,7 @@ QSize MinimalFilterPickerView::sizeHint() const
 
 void MinimalFilterPickerView::rebuildIndex()
 {
-	const QString query = queryEdit->text().trimmed();
+	const QString& query = pickerQuery();
 
 	// Pure digits = index jump (the numbers are the menu); anything else is a
 	// plain substring filter over section, name and config line.
@@ -412,9 +415,9 @@ void MinimalFilterPickerView::rebuildIndex()
 	// order rebuildDisplayNumbers() numbered.
 	QStringList sectionOrder;
 	QHash<QString, QList<int>> sectionEntries;
-	for (int i = 0; i < allEntries.size(); i++)
+	for (int i = 0; i < pickerEntries().size(); i++)
 	{
-		const FilterPickerEntry& entry = allEntries[i];
+		const FilterPickerEntry& entry = pickerEntries()[i];
 		const QString section = sectionKey(entry);
 
 		if (!jumpMode && !filterPickerMatches(entry, section, query))
@@ -425,7 +428,7 @@ void MinimalFilterPickerView::rebuildIndex()
 		sectionEntries[section].append(i);
 	}
 
-	const int digits = qMax(2, QString::number(allEntries.size()).size());
+	const int digits = qMax(2, QString::number(pickerEntries().size()).size());
 	QList<MinimalPickerIndexList::Row> rows;
 	int firstVisible = -1;
 	int visibleCount = 0;
@@ -435,7 +438,7 @@ void MinimalFilterPickerView::rebuildIndex()
 		for (int i : sectionEntries.value(section))
 		{
 			rows.append({ QStringLiteral("%1").arg(displayNumbers.value(i), digits, 10, QLatin1Char('0')),
-				allEntries[i].name, i });
+				pickerEntries()[i].name, i });
 			if (firstVisible < 0)
 				firstVisible = i;
 			visibleCount++;
@@ -454,7 +457,7 @@ void MinimalFilterPickerView::rebuildIndex()
 	indexList->setSelectedEntry(target);
 	ensureSelectionVisible();
 
-	countLabel->setText(QStringLiteral("%1/%2").arg(visibleCount).arg(allEntries.size()));
+	countLabel->setText(QStringLiteral("%1/%2").arg(visibleCount).arg(pickerEntries().size()));
 }
 
 void MinimalFilterPickerView::moveSelection(int delta)
