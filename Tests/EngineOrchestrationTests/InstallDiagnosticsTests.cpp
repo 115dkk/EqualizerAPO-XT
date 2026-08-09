@@ -16,6 +16,8 @@
 */
 
 #include <string>
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 #include <vector>
 
 #ifndef NOMINMAX
@@ -26,7 +28,7 @@
 
 #include "devices/DeviceAPOInfoKeys.h"
 #include "services/diagnostics/InstallDiagnostics.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"
@@ -61,8 +63,8 @@ void seedEndpoint(FakeRegistry& registry, const wchar_t* root, const std::wstrin
 void testTheScanNamesEveryEndpointHoldingOurApos(test::Harness& harness)
 {
 	FakeRegistry registry;
-	const std::wstring preMix = RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID);
-	const std::wstring postMix = RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID);
+	const std::wstring preMix = winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
+	const std::wstring postMix = winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID);
 
 	seedEndpoint(registry, renderKeyPath, renderGuid, L"Test Speakers", L"Speakers");
 	registry.seedString(renderKeyPath L"\\" + renderGuid + L"\\FxProperties", sfxGuidValueName, preMix);
@@ -100,7 +102,7 @@ void testTheScanIgnoresEndpointsWithSomebodyElsesApos(test::Harness& harness)
 void testTheScanKeepsGoingPastAnEndpointItCannotRead(test::Harness& harness)
 {
 	FakeRegistry registry;
-	const std::wstring preMix = RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID);
+	const std::wstring preMix = winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
 
 	// A driver that locks its own FxProperties key is exactly the machine this
 	// report gets run on, so the scan must not stop at it.

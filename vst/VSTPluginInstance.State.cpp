@@ -18,9 +18,10 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #include <limits>
 #include <wincrypt.h>
-#include "text/StringHelper.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTPluginInstanceInternal.h"
@@ -283,7 +284,7 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 			char buf[256];
 			effect->control(effect.get(), VST_EFFECT_OPCODE_PARAM_GET_NAME, i, 0, buf, 0.0f);
 			buf[255] = '\0'; // just to be sure
-			wstring name = StringHelper::toWString(buf, CP_UTF8);
+			wstring name = wintext::toWideString(buf, CP_UTF8);
 			auto it = paramMap.find(name);
 			if (it != paramMap.end())
 				effect->set_parameter(effect.get(), i, it->second);
@@ -362,7 +363,7 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 			effect->control(effect.get(), VST_EFFECT_OPCODE_PARAM_GET_NAME, i, 0, buf, 0.0f);
 			buf[255] = '\0'; // just to be sure
 			float value = effect->get_parameter(effect.get(), i);
-			paramMap[StringHelper::toWString(buf, CP_UTF8)] = value;
+			paramMap[wintext::toWideString(buf, CP_UTF8)] = value;
 		}
 	}
 }

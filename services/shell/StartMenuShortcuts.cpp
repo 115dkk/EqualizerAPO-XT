@@ -14,7 +14,7 @@
 #include <objidl.h>
 
 #include "platform/windows/ComPtr.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "platform/windows/WindowsPath.h"
 #include "platform/windows/Win32Resource.h"
 

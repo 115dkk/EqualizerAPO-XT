@@ -18,6 +18,9 @@
 */
 
 #include <cstdio>
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
+#include "services/registry/RegistryPaths.h"
 #include <cstring>
 #include <memory>
 #include <string>
@@ -54,11 +57,10 @@
 #include "guis/VSTPluginFilterGUI.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
 #include "services/install/ApoRegistration.h"
-#include "services/registry/RegistryHelper.h"
-#include "text/StringHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
 #include "services/security/AudioEngineAccess.h"
 #include "services/diagnostics/InstallDiagnostics.h"
@@ -200,7 +202,7 @@ std::wstring widenArg(const char* arg)
 {
 	if (arg == nullptr)
 		return std::wstring();
-	return StringHelper::toWString(std::string(arg), CP_UTF8);
+	return wintext::toWideString(std::string(arg), CP_UTF8);
 }
 
 std::wstring buildArgumentLine(int argc, char* argv[])
@@ -353,14 +355,14 @@ int main(int argc, char* argv[])
 	// Before the hooks, not after. The hooks are the part of this program that
 	// registers the APO, restarts the audio service and removes the APO from every
 	// device, and they used to run before any log destination was chosen - so
-	// their output landed in LogHelper's fallback, %TEMP%\EqualizerAPO.log. Under
+	// their output landed in Logging's fallback, %TEMP%\EqualizerAPO.log. Under
 	// elevation that %TEMP% belongs to whichever account the installer elevated
 	// to, which is not the one the user would look in. The hook output now goes
 	// where the rest of the Editor's does. It is still that account's
 	// %LOCALAPPDATA% when elevated, but it is the same file the elevated update
 	// coordinator writes, so there is one place to look rather than two.
-	if (!LogHelper::useUserFile(L"Editor.log", true, false, false))
-		LogHelper::useDefaultApoLog();
+	if (!Logging::useUserFile(L"Editor.log", true, false, false))
+		Logging::useDefaultApoLog();
 
 	int hookResult = handleVelopackHook(argc, argv);
 	if (hookResult >= 0)
@@ -531,18 +533,18 @@ int main(int argc, char* argv[])
 		QString stableRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
 		QString configPath = !stableRoot.isEmpty() && QDir(stableRoot).exists()
 			? stableRoot : QDir::currentPath();
-		if (RegistryHelper::keyExists(APP_REGPATH) && RegistryHelper::valueExists(APP_REGPATH, L"ConfigPath"))
-			configPath = QString::fromStdWString(RegistryHelper::readValue(APP_REGPATH, L"ConfigPath"));
+		if (WindowsRegistry::keyExists(APP_REGPATH) && WindowsRegistry::valueExists(APP_REGPATH, L"ConfigPath"))
+			configPath = QString::fromStdWString(WindowsRegistry::readValue(APP_REGPATH, L"ConfigPath"));
 		QDir configDir(configPath);
 
-		if (!RegistryHelper::keyExists(USER_REGPATH))
-			RegistryHelper::createKey(USER_REGPATH);
+		if (!WindowsRegistry::keyExists(USER_REGPATH))
+			WindowsRegistry::createKey(USER_REGPATH);
 
-		if (!RegistryHelper::keyExists(EDITOR_REGPATH))
-			RegistryHelper::createKey(EDITOR_REGPATH);
+		if (!WindowsRegistry::keyExists(EDITOR_REGPATH))
+			WindowsRegistry::createKey(EDITOR_REGPATH);
 
-		if (!RegistryHelper::keyExists(EDITOR_PER_FILE_REGPATH))
-			RegistryHelper::createKey(EDITOR_PER_FILE_REGPATH);
+		if (!WindowsRegistry::keyExists(EDITOR_PER_FILE_REGPATH))
+			WindowsRegistry::createKey(EDITOR_PER_FILE_REGPATH);
 
 		MainWindow w(configDir, updateSession.get());
 		w.show();

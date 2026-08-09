@@ -29,7 +29,7 @@
 #include <authz.h>
 #include <sddl.h>
 
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "platform/windows/Win32Resource.h"
 #include "platform/windows/WindowsPath.h"
 
@@ -60,7 +60,7 @@ std::wstring systemPath()
 	return std::wstring(buffer, length);
 }
 
-// Audit #250 F018: the shared path vocabulary lives in PathHelper.h.
+// Audit #250 F018: the shared path vocabulary lives in WindowsPath.h.
 using pathutil::joinPath;
 using pathutil::pathExists;
 
@@ -103,9 +103,9 @@ int runToCompletion(const std::wstring& executable, const std::wstring& argument
 	return static_cast<int>(exitCode);
 }
 
-// The AuthZ access check, moved out of RegistryHelper. It was never a registry
+// The AuthZ access check, moved out of WindowsRegistry. It was never a registry
 // operation: it asks what a principal would be granted on a *file*, and its
-// presence in RegistryHelper.h is part of why that header has to pull in the
+// presence in WindowsRegistry.h is part of why that header has to pull in the
 // Win32 headers for every translation unit that wants to read a registry value.
 // Sub-authorities of one well-known SID. Two are needed because the accounts
 // this module asks about are not the same shape: LOCAL SERVICE is S-1-5-19, one

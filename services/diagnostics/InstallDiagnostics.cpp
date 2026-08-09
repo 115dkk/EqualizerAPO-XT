@@ -9,6 +9,8 @@
 */
 
 #include "services/diagnostics/InstallDiagnostics.h"
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 
 #include <string>
 #include <vector>
@@ -20,7 +22,7 @@
 
 #include "services/security/AudioEngineAccess.h"
 #include "services/registry/IRegistry.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "platform/windows/WindowsVersion.h"
 #include "devices/DeviceAPOInfoKeys.h"
 
@@ -41,7 +43,7 @@ wstring valueOrNote(const IRegistry& registry, const wstring& key, const wstring
 			return missingNote;
 		return registry.readValue(key, valuename);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		return L"(could not be read)";
 	}
@@ -55,7 +57,7 @@ wstring dwordOrNote(const IRegistry& registry, const wstring& key, const wstring
 			return L"(not set)";
 		return std::to_wstring(registry.readDWORDValue(key, valuename));
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		return L"(could not be read)";
 	}
@@ -121,9 +123,9 @@ void appendComRegistration(vector<wstring>& lines, const IRegistry& registry,
 	wstring guidString;
 	try
 	{
-		guidString = RegistryHelper::getGuidString(clsid);
+		guidString = winutil::guidToString(clsid);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		lines.push_back(wstring(label) + L": the CLSID could not be formatted");
 		return;
@@ -153,10 +155,10 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 	wstring postMix;
 	try
 	{
-		preMix = RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID);
-		postMix = RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID);
+		preMix = winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID);
+		postMix = winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		lines.push_back(L"the APO CLSIDs could not be formatted, so no endpoint could be checked");
 		return lines;
@@ -173,7 +175,7 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 				continue;
 			devices = registry.enumSubKeys(root);
 		}
-		catch (const RegistryException&)
+		catch (const RegistryError&)
 		{
 			lines.push_back(wstring(L"could not enumerate ") + root);
 			continue;
@@ -212,7 +214,7 @@ vector<wstring> attachedEndpoints(const IRegistry& registry)
 					attachedSlots += wstring(slotNames[i]) + L"=" + which;
 				}
 			}
-			catch (const RegistryException&)
+			catch (const RegistryError&)
 			{
 				// A driver-locked endpoint key is exactly the kind of machine this
 				// report is run on, so note it and keep going.
@@ -340,7 +342,7 @@ wstring writeReport()
 {
 	const vector<wstring> lines = collect();
 
-	// The same directory LogHelper::useUserFile writes into, so a user asked for
+	// The same directory Logging::useUserFile writes into, so a user asked for
 	// "the logs folder" finds the report there too.
 	wstring path;
 	const wstring localAppData = environmentValue(L"LOCALAPPDATA");

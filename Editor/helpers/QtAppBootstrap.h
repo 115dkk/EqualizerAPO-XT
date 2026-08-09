@@ -20,6 +20,7 @@
 #pragma once
 
 #include <QLocale>
+#include "services/registry/RegistryPaths.h"
 #include <QString>
 
 class QCoreApplication;

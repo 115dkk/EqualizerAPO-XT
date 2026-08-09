@@ -18,12 +18,12 @@
 */
 
 #include "stdafx.h"
+#include "platform/windows/Win32Error.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include "diagnostics/performance/PrecisionTimer.h"
-#include "text/StringHelper.h"
-#include "services/windows/ServiceHelper.h"
+#include "services/windows/WindowsService.h"
 #include "platform/windows/Win32Resource.h"
 
 using std::make_shared;
@@ -31,14 +31,14 @@ using std::shared_ptr;
 using std::vector;
 using std::wstring;
 
-void ServiceHelper::restartService(const wstring& serviceName)
+void WindowsServiceControl::restart(const wstring& serviceName)
 {
 	winutil::UniqueServiceHandle scManager(OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS));
 	if (!scManager)
-		throw ServiceException(L"OpenSCManager failed (" + StringHelper::getSystemErrorString(GetLastError()) + L")");
+		throw WindowsServiceError(L"OpenSCManager failed (" + win32::errorMessage(GetLastError()) + L")");
 
-	vector<shared_ptr<Service>> services;
-	shared_ptr<Service> mainService = make_shared<Service>(scManager.get(), serviceName, true);
+	vector<shared_ptr<WindowsService>> services;
+	shared_ptr<WindowsService> mainService = make_shared<WindowsService>(scManager.get(), serviceName, true);
 	services.push_back(mainService);
 
 	DWORD mainState = mainService->getState();
@@ -47,14 +47,14 @@ void ServiceHelper::restartService(const wstring& serviceName)
 		vector<wstring> dependentServices = mainService->getActiveDependentServices();
 		for (const wstring& dependentServiceName : dependentServices)
 		{
-			shared_ptr<Service> dependentService = make_shared<Service>(scManager.get(), dependentServiceName.c_str(), false);
+			shared_ptr<WindowsService> dependentService = make_shared<WindowsService>(scManager.get(), dependentServiceName.c_str(), false);
 			services.insert(prev(services.end()), dependentService);
 		}
 	}
 
 	PrecisionTimer timer;
 	timer.start();
-	for (shared_ptr<Service> service : services)
+	for (shared_ptr<WindowsService> service : services)
 	{
 		DWORD state = service->getState();
 		if (state == SERVICE_RUNNING)
@@ -63,7 +63,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 		while (state != SERVICE_STOPPED)
 		{
 			if (timer.stop() > 30)
-				throw ServiceException(L"Service stop timed out on service \"" + service->getServiceName() + L"\"");
+				throw WindowsServiceError(L"Service stop timed out on service \"" + service->getServiceName() + L"\"");
 
 			Sleep(100);
 
@@ -75,7 +75,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 
 	for (auto it = services.rbegin(); it != services.rend(); it++)
 	{
-		shared_ptr<Service> service = *it;
+		shared_ptr<WindowsService> service = *it;
 		service->start();
 
 		DWORD state = service->getState();
@@ -84,7 +84,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 		{
 			double time = timer.stop();
 			if (time > 30)
-				throw ServiceException(L"Service start timed out on service \"" + service->getServiceName() + L"\"");
+				throw WindowsServiceError(L"Service start timed out on service \"" + service->getServiceName() + L"\"");
 			if (time > retryDelay)
 			{
 				// sometimes, the service won't start on the first try
@@ -99,7 +99,7 @@ void ServiceHelper::restartService(const wstring& serviceName)
 	}
 }
 
-Service::Service(SC_HANDLE scManager, const std::wstring& serviceName, bool allowEnumerate)
+WindowsService::WindowsService(SC_HANDLE scManager, const std::wstring& serviceName, bool allowEnumerate)
 	: serviceName(serviceName)
 {
 	DWORD desiredAccess = SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS;
@@ -110,12 +110,12 @@ Service::Service(SC_HANDLE scManager, const std::wstring& serviceName, bool allo
 		fail(L"OpenService", GetLastError());
 }
 
-const std::wstring& Service::getServiceName()
+const std::wstring& WindowsService::getServiceName()
 {
 	return serviceName;
 }
 
-DWORD Service::getState()
+DWORD WindowsService::getState()
 {
 	SERVICE_STATUS_PROCESS ssp;
 	DWORD dwBytesNeeded;
@@ -125,13 +125,13 @@ DWORD Service::getState()
 	return ssp.dwCurrentState;
 }
 
-void Service::start()
+void WindowsService::start()
 {
 	if (!StartServiceW(serviceHandle.get(), 0, nullptr))
 		fail(L"StartService", GetLastError());
 }
 
-DWORD Service::stop()
+DWORD WindowsService::stop()
 {
 	SERVICE_STATUS ss;
 	if (!ControlService(serviceHandle.get(), SERVICE_CONTROL_STOP, &ss))
@@ -140,7 +140,7 @@ DWORD Service::stop()
 	return ss.dwCurrentState;
 }
 
-vector<wstring> Service::getActiveDependentServices()
+vector<wstring> WindowsService::getActiveDependentServices()
 {
 	DWORD bytesNeeded, count;
 	if (EnumDependentServicesW(serviceHandle.get(), SERVICE_ACTIVE, nullptr, 0, &bytesNeeded, &count))
@@ -154,7 +154,7 @@ vector<wstring> Service::getActiveDependentServices()
 	winutil::UniqueProcessHeapPtr<ENUM_SERVICE_STATUSW> dependencies(
 		static_cast<LPENUM_SERVICE_STATUSW>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bytesNeeded)));
 	if (!dependencies)
-		throw ServiceException(L"HeapAlloc for EnumDependentServices failed");
+		throw WindowsServiceError(L"HeapAlloc for EnumDependentServices failed");
 
 	if (!EnumDependentServicesW(serviceHandle.get(), SERVICE_ACTIVE, dependencies.get(), bytesNeeded, &bytesNeeded, &count))
 		fail(L"EnumDependentServices", GetLastError());
@@ -166,7 +166,7 @@ vector<wstring> Service::getActiveDependentServices()
 	return result;
 }
 
-void Service::fail(const wstring& functionName, DWORD error)
+void WindowsService::fail(const wstring& functionName, DWORD error)
 {
-	throw ServiceException(functionName + L" failed for service \"" + serviceName + L"\" (" + StringHelper::getSystemErrorString(error) + L")");
+	throw WindowsServiceError(functionName + L" failed for service \"" + serviceName + L"\" (" + win32::errorMessage(error) + L")");
 }

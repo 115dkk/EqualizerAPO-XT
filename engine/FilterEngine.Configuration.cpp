@@ -18,6 +18,7 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <sstream>
@@ -29,11 +30,10 @@
 #include <windows.h>
 #include <mpParser.h>
 
-#include "services/registry/RegistryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
-#include "audio/ChannelHelper.h"
+#include "services/registry/WindowsRegistry.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "audio/ChannelLayout.h"
 #include "ConfigLoadTrace.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
@@ -86,7 +86,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 
 	try
 	{
-		load.allChannelNames = ChannelHelper::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
+		load.allChannelNames = ChannelLayout::getChannelNames(max(realChannelCount, outputChannelCount), channelMask);
 
 		load.currentChannelNames = load.allChannelNames;
 		parser.beginLoad();
@@ -112,7 +112,7 @@ bool FilterEngine::loadConfig(const wstring& customPath)
 				addFilters(move(newFilters));
 		}
 
-		FilterConfigurationPtr config(MemoryHelper::construct<FilterConfiguration>(streamFormat(), move(load.filterInfos), (unsigned)load.allChannelNames.size()));
+		FilterConfigurationPtr config(AlignedMemory::construct<FilterConfiguration>(streamFormat(), move(load.filterInfos), (unsigned)load.allChannelNames.size()));
 
 		load.filterInfos.clear();
 
@@ -176,7 +176,7 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			wstring value = line.substr(pos + 1);
 
 			// allow to use indentation
-			key = StringHelper::trim(key);
+			key = text::trim(key);
 
 			// No verdict is reached here about a line that produced nothing. A
 			// factory that recognised the command and could not use it says so

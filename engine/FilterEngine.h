@@ -33,7 +33,7 @@
 #include "ConfigSwapChannel.h"
 #include "parser/EngineParser.h"
 #include "diagnostics/performance/PrecisionTimer.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "runtime/memory/AlignedMemory.h"
 
 struct ConfigLoadTraceEntry;
 class ConfigLoadTraceSink;

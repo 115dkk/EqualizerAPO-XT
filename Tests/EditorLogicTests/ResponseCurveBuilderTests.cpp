@@ -7,10 +7,10 @@
 
 	The equivalence test is the important one. The analysis graph used to be
 	drawn by converting the complex spectrum to a list of dB nodes and running
-	GainIterator over them; it is now sampled from the spectrum directly. Those
+	GainCurveIterator over them; it is now sampled from the spectrum directly. Those
 	are two different pieces of code that have to agree exactly, or the reform
 	quietly changes every magnitude curve a user has ever looked at. So this
-	test builds the old node list, runs the real GainIterator over it, and
+	test builds the old node list, runs the real GainCurveIterator over it, and
 	demands the same doubles - not a tolerance.
 */
 
@@ -22,7 +22,7 @@
 
 #include "Editor/analysis/AnalysisResponse.h"
 #include "Editor/analysis/ResponseCurveBuilder.h"
-#include "filters/graphicEq/GainIterator.h"
+#include "filters/graphicEq/GainCurveIterator.h"
 
 #include "EditorLogicTestSupport.h"
 
@@ -93,7 +93,7 @@ void testResponseCurveMatchesTheLegacyMagnitudePath()
 		QStringLiteral("the curve carries one value per pixel column"));
 
 	const std::vector<FilterNode> nodes = legacyNodes(*response);
-	GainIterator iterator(nodes);
+	GainCurveIterator iterator(nodes);
 	int mismatches = 0;
 	double worstDelta = 0.0;
 	for (int i = 0; i < request.columnCount; i++)
@@ -111,7 +111,7 @@ void testResponseCurveMatchesTheLegacyMagnitudePath()
 		}
 	}
 	expectTrue(mismatches == 0,
-		QStringLiteral("every magnitude column matches GainIterator exactly (%1 differed, worst %2 dB)")
+		QStringLiteral("every magnitude column matches GainCurveIterator exactly (%1 differed, worst %2 dB)")
 			.arg(mismatches).arg(worstDelta, 0, 'g', 3));
 
 	// The dead band has to survive as the display floor, not as a hole: a

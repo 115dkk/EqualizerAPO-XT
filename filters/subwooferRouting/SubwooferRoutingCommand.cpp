@@ -17,11 +17,12 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #include "SubwooferRoutingCommand.h"
 
 #include <cwctype>
 
-#include "text/StringHelper.h"
 
 namespace
 {
@@ -44,7 +45,7 @@ size_t skipWhitespace(const std::wstring& text, size_t position)
 
 std::string subwooferRoutingToUtf8(const std::wstring& text)
 {
-	return StringHelper::toString(text, Utf8CodePage);
+	return wintext::toNarrowString(text, Utf8CodePage);
 }
 
 bool SubwooferRoutingCommand::parse(const std::wstring& command,
@@ -83,7 +84,7 @@ bool SubwooferRoutingCommand::parse(const std::wstring& command,
 
 	std::wstring payload = text.substr(payloadPosition);
 	if (parsedForm == Form::Profile)
-		payload = StringHelper::trim(payload);
+		payload = text::trim(payload);
 	if (payload.empty())
 		return fail(error);
 

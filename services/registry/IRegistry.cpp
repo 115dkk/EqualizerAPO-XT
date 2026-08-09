@@ -20,14 +20,14 @@
 #include "stdafx.h"
 
 #include "services/registry/IRegistry.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 
 namespace
 {
 // Every method here is a single forwarding call and must stay that way. The
-// adapter exists to give RegistryHelper's static functions an overridable shape,
+// adapter exists to give WindowsRegistry's static functions an overridable shape,
 // not to add behaviour: no argument massaging, no extra existence checks, no
-// translating RegistryException into anything else. If a rule ever belongs on
+// translating RegistryError into anything else. If a rule ever belongs on
 // top of a registry operation, it belongs in the device layer above the port,
 // where the fake can see it too. Anything added here would be invisible in tests
 // and would be running only on real machines - the one place this refactoring
@@ -37,97 +37,97 @@ class SystemRegistry : public IRegistry
 public:
 	std::wstring readValue(const std::wstring& key, const std::wstring& valuename) const override
 	{
-		return RegistryHelper::readValue(key, valuename);
+		return WindowsRegistry::readValue(key, valuename);
 	}
 
 	unsigned long readDWORDValue(const std::wstring& key, const std::wstring& valuename) const override
 	{
-		return RegistryHelper::readDWORDValue(key, valuename);
+		return WindowsRegistry::readDWORDValue(key, valuename);
 	}
 
 	std::vector<std::wstring> readMultiValue(const std::wstring& key, const std::wstring& valuename) const override
 	{
-		return RegistryHelper::readMultiValue(key, valuename);
+		return WindowsRegistry::readMultiValue(key, valuename);
 	}
 
 	std::vector<unsigned char> readBinaryValue(const std::wstring& key, const std::wstring& valuename) const override
 	{
-		return RegistryHelper::readBinaryValue(key, valuename);
+		return WindowsRegistry::readBinaryValue(key, valuename);
 	}
 
 	std::vector<std::wstring> enumSubKeys(const std::wstring& key) const override
 	{
-		return RegistryHelper::enumSubKeys(key);
+		return WindowsRegistry::enumSubKeys(key);
 	}
 
 	std::vector<std::wstring> enumValues(const std::wstring& key) const override
 	{
-		return RegistryHelper::enumValues(key);
+		return WindowsRegistry::enumValues(key);
 	}
 
 	bool keyExists(const std::wstring& key) const override
 	{
-		return RegistryHelper::keyExists(key);
+		return WindowsRegistry::keyExists(key);
 	}
 
 	bool valueExists(const std::wstring& key, const std::wstring& valuename) const override
 	{
-		return RegistryHelper::valueExists(key, valuename);
+		return WindowsRegistry::valueExists(key, valuename);
 	}
 
 	bool keyEmpty(const std::wstring& key) const override
 	{
-		return RegistryHelper::keyEmpty(key);
+		return WindowsRegistry::keyEmpty(key);
 	}
 
 	void writeValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override
 	{
-		RegistryHelper::writeValue(key, valuename, value);
+		WindowsRegistry::writeValue(key, valuename, value);
 	}
 
 	void writeDWORDValue(const std::wstring& key, const std::wstring& valuename, unsigned long value) override
 	{
-		RegistryHelper::writeDWORDValue(key, valuename, value);
+		WindowsRegistry::writeDWORDValue(key, valuename, value);
 	}
 
 	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::wstring& value) override
 	{
-		RegistryHelper::writeMultiValue(key, valuename, value);
+		WindowsRegistry::writeMultiValue(key, valuename, value);
 	}
 
 	void writeMultiValue(const std::wstring& key, const std::wstring& valuename, const std::vector<std::wstring>& values) override
 	{
-		RegistryHelper::writeMultiValue(key, valuename, values);
+		WindowsRegistry::writeMultiValue(key, valuename, values);
 	}
 
 	void deleteValue(const std::wstring& key, const std::wstring& valuename) override
 	{
-		RegistryHelper::deleteValue(key, valuename);
+		WindowsRegistry::deleteValue(key, valuename);
 	}
 
 	void createKey(const std::wstring& key) override
 	{
-		RegistryHelper::createKey(key);
+		WindowsRegistry::createKey(key);
 	}
 
 	void deleteKey(const std::wstring& key) override
 	{
-		RegistryHelper::deleteKey(key);
+		WindowsRegistry::deleteKey(key);
 	}
 
 	void takeOwnership(const std::wstring& key) override
 	{
-		RegistryHelper::takeOwnership(key);
+		WindowsRegistry::takeOwnership(key);
 	}
 
 	void makeWritable(const std::wstring& key) override
 	{
-		RegistryHelper::makeWritable(key);
+		WindowsRegistry::makeWritable(key);
 	}
 
 	void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath) override
 	{
-		RegistryHelper::saveToFile(key, valuenames, filepath);
+		WindowsRegistry::saveToFile(key, valuenames, filepath);
 	}
 };
 }

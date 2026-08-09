@@ -17,9 +17,8 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
-#include "audio/ChannelHelper.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"

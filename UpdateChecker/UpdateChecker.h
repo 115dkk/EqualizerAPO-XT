@@ -20,7 +20,8 @@
 #pragma once
 
 #include <QtWidgets/QDialog>
-#include <services/registry/RegistryHelper.h>
+#include "services/registry/RegistryPaths.h"
+#include <services/registry/WindowsRegistry.h>
 #include "ui_UpdateChecker.h"
 
 #define UPDATE_CHECKER_REGPATH USER_REGPATH L"\\Update Checker"

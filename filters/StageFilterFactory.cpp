@@ -18,9 +18,9 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 #include <mpParser.h>
-#include "services/logging/LogHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
 #include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "StageCommand.h"
@@ -102,7 +102,7 @@ FilterVector StageFilterFactory::createFilter(const wstring& configPath, wstring
 		else
 			// Log the author's text (trimmed, lower-cased) rather than the
 			// canonical serialization, which would collapse repeated spaces.
-			TraceF(L"Not matching stage set \"%s\"", StringHelper::toLowerCase(StringHelper::trim(parameters)).c_str());
+			TraceF(L"Not matching stage set \"%s\"", text::toLower(text::trim(parameters)).c_str());
 	}
 
 	if (!stageMatches)

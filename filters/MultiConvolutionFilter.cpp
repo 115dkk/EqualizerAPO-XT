@@ -27,9 +27,9 @@
 #include <windows.h>
 #include <fftw3.h>
 
-#include "audio/ChannelHelper.h"
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "audio/ChannelLayout.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
 #include "runtime/concurrency/ParallelExecutor.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "ConvolverMuteDiagnostics.h"
@@ -79,7 +79,7 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	for (size_t i = 0; i < mappings.size(); i++)
 	{
 		wstring channelName = mappings[i].targetChannel;
-		int channelIndex = ChannelHelper::getChannelIndex(channelName, channelNames, true);
+		int channelIndex = ChannelLayout::getChannelIndex(channelName, channelNames, true);
 		if (channelIndex != -1)
 			channelName = channelNames[channelIndex];
 
@@ -187,7 +187,7 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 
 	if (filters != nullptr && frameCount != filterFrameCount)
 	{
-		// No logging here. LogHelper opens, writes and closes %TEMP%\EqualizerAPO.log
+		// No logging here. Logging opens, writes and closes %TEMP%\EqualizerAPO.log
 		// for every line, and this branch fires exactly when the stream can least
 		// afford blocking I/O on the audio thread. cleanup() writes the same line.
 		muteDiagnostics.recordMute(frameCount, frameCountMismatchLogged);

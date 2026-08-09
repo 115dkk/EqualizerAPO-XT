@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "services/registry/RegistryPaths.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <sstream>
@@ -33,11 +35,10 @@
 #include <mpPackageMatrix.h>
 
 #include "services/registry/IRegistry.h"
-#include "services/registry/RegistryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
-#include "audio/ChannelHelper.h"
+#include "services/registry/WindowsRegistry.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "audio/ChannelLayout.h"
 #include "ConfigurationFileReader.h"
 #include "FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
@@ -64,7 +65,7 @@ void FilterDeleter::operator()(IFilter* filter) const
 		return;
 
 	filter->~IFilter();
-	MemoryHelper::free(filter);
+	AlignedMemory::free(filter);
 }
 
 void FilterEngine::FilterConfigurationDeleter::operator()(FilterConfiguration* config) const
@@ -73,7 +74,7 @@ void FilterEngine::FilterConfigurationDeleter::operator()(FilterConfiguration* c
 		return;
 
 	config->~FilterConfiguration();
-	MemoryHelper::free(config);
+	AlignedMemory::free(config);
 }
 
 FilterEngine::FilterEngine()
@@ -169,18 +170,18 @@ void FilterEngine::initialize(const EngineSetup& setup)
 			deviceChannelCount = outputChannelCount;
 
 		if (channelMask == 0)
-			channelMask = ChannelHelper::getDefaultChannelMask(deviceChannelCount);
+			channelMask = ChannelLayout::getDefaultChannelMask(deviceChannelCount);
 
 		this->channelMask = channelMask;
 
-		vector<wstring> channelNames = ChannelHelper::getChannelNames(deviceChannelCount, channelMask);
-		TraceF(L"%d channels for this device: %s", deviceChannelCount, StringHelper::join(channelNames, L" ").c_str());
+		vector<wstring> channelNames = ChannelLayout::getChannelNames(deviceChannelCount, channelMask);
+		TraceF(L"%d channels for this device: %s", deviceChannelCount, text::join(channelNames, L" ").c_str());
 
 		// The RT thread always starts from a valid empty configuration. Every
 		// loaded file, including the initial one, is then published through the
 		// same release/acquire handoff as a later reload.
 		configChannel.reset(FilterConfigurationPtr(
-			MemoryHelper::construct<FilterConfiguration>(
+			AlignedMemory::construct<FilterConfiguration>(
 				streamFormat(), vector<std::unique_ptr<FilterInfo>>(), deviceChannelCount)));
 
 		try
@@ -189,7 +190,7 @@ void FilterEngine::initialize(const EngineSetup& setup)
 			// that supplies a fake registry no longer touches live HKLM here.
 			configPath = registryAccess().readValue(APP_REGPATH, L"ConfigPath");
 		}
-		catch (const RegistryException& e)
+		catch (const RegistryError& e)
 		{
 			if (customPath.empty())
 			{

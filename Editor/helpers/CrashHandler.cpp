@@ -26,7 +26,7 @@ std::atomic<bool> handlingCrash(false);
 // %LOCALAPPDATA%\EqualizerAPO\logs\crash, created at install() time so the
 // crash path itself only formats a file name. Audit #250 C4, maintainer
 // decision 2026-08-09: dumps live under the same product log folder the
-// diagnostics use (LogHelper::useUserFile writes EqualizerAPO\logs), in
+// diagnostics use (Logging::useUserFile writes EqualizerAPO\logs), in
 // their own subfolder so operational logs and crash artifacts do not mix -
 // the old EqualizerAPO-XT product root was a second product directory
 // nothing else used.

@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #ifdef DEBUG
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -36,10 +38,9 @@
 
 #include "../version.h"
 #include "../engine/FilterEngine.h"
-#include "../services/logging/LogHelper.h"
-#include "../text/StringHelper.h"
+#include "../services/logging/Logging.h"
 #include "../diagnostics/performance/PrecisionTimer.h"
-#include "../runtime/memory/MemoryHelper.h"
+#include "../runtime/memory/AlignedMemory.h"
 #include "../diagnostics/performance/PerfProfile.h"
 #include "../audio/io/SndfileRAII.h"
 #include "BatchPlan.h"
@@ -86,7 +87,7 @@ int main(int argc, char** argv)
 		cmd.parse(argc, argv);
 
 		bool verbose = verboseArg.getValue();
-		LogHelper::set(stderr, verbose, true, true);
+		Logging::set(stderr, verbose, true, true);
 #ifdef _DEBUG
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 		// _CrtSetBreakAlloc(3318);
@@ -184,10 +185,10 @@ int main(int argc, char** argv)
 		timer.start();
 		{
 			FilterEngine engine;
-			wstring deviceName = StringHelper::toWString(devicenameArg.getValue(), CP_ACP);
-			wstring connectionName = StringHelper::toWString(connectionnameArg.getValue(), CP_ACP);
-			wstring deviceGuid = StringHelper::toWString(guidArg.getValue(), CP_ACP);
-			wstring customConfigPath = StringHelper::toWString(configPathArg.getValue(), CP_ACP);
+			wstring deviceName = wintext::toWideString(devicenameArg.getValue(), CP_ACP);
+			wstring connectionName = wintext::toWideString(connectionnameArg.getValue(), CP_ACP);
+			wstring deviceGuid = wintext::toWideString(guidArg.getValue(), CP_ACP);
+			wstring customConfigPath = wintext::toWideString(configPathArg.getValue(), CP_ACP);
 			if (!customConfigPath.empty())
 			{
 				DWORD attrs = GetFileAttributesW(customConfigPath.c_str());

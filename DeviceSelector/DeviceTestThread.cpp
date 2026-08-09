@@ -18,10 +18,11 @@
 */
 
 #include "stdafx.h"
+#include "services/registry/RegistryPaths.h"
 #include <chrono>
-#include <services/registry/RegistryHelper.h>
+#include <services/registry/WindowsRegistry.h>
 #include <platform/windows/WindowsVersion.h>
-#include <services/windows/ServiceHelper.h>
+#include <services/windows/WindowsService.h>
 #include <devices/DeviceAPOInfoKeys.h>
 #include <platform/windows/ComPtr.h>
 #include <ObjBase.h>
@@ -77,9 +78,9 @@ void DeviceTestThread::run()
 	try
 	{
 		emit log(tr("Restarting audio service..."));
-		ServiceHelper::restartService(audioServiceName);
+		WindowsServiceControl::restart(audioServiceName);
 	}
-	catch (const ServiceException& e)
+	catch (const WindowsServiceError& e)
 	{
 		emit logError(tr("Restart failed."));
 		emit abort(QString::fromStdWString(e.getMessage()), -1);
@@ -101,9 +102,9 @@ void DeviceTestThread::run()
 
 		try
 		{
-			RegistryHelper::writeValue(APP_REGPATH, deviceTestPipeValueName, pipeName);
+			WindowsRegistry::writeValue(APP_REGPATH, deviceTestPipeValueName, pipeName);
 		}
-		catch (const RegistryException& e)
+		catch (const RegistryError& e)
 		{
 			emit logError(tr("Could not prepare the device test."));
 			emit abort(QString::fromStdWString(e.getMessage()), -1);
@@ -112,9 +113,9 @@ void DeviceTestThread::run()
 		SCOPE_EXIT{
 			try
 			{
-				RegistryHelper::deleteValue(APP_REGPATH, deviceTestPipeValueName);
+				WindowsRegistry::deleteValue(APP_REGPATH, deviceTestPipeValueName);
 			}
-			catch (const RegistryException& e)
+			catch (const RegistryError& e)
 			{
 				emit logError(tr("Could not remove the device test registration: %1")
 					.arg(QString::fromStdWString(e.getMessage())));
@@ -257,9 +258,9 @@ void DeviceTestThread::run()
 				try
 				{
 					emit log(tr("Restarting audio service..."));
-					ServiceHelper::restartService(audioServiceName);
+					WindowsServiceControl::restart(audioServiceName);
 				}
-				catch (const ServiceException& e)
+				catch (const WindowsServiceError& e)
 				{
 					emit logError(tr("Restart failed."));
 					emit abort(QString::fromStdWString(e.getMessage()), -1);

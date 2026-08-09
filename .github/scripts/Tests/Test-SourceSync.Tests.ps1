@@ -87,8 +87,8 @@ AfterAll {
 Describe "Test-SourceSync.ps1" {
     It "passes when Editor.pro carries every engine source Common.vcxproj compiles" {
         $root = New-FixtureRepo `
-            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/LogHelper.cpp') `
-            -EditorSources @('../FilterEngine.cpp', '../filters/BiQuadFilter.cpp', '../services/logging/LogHelper.cpp')
+            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/Logging.cpp') `
+            -EditorSources @('../FilterEngine.cpp', '../filters/BiQuadFilter.cpp', '../services/logging/Logging.cpp')
         $result = Invoke-SourceSync -RepoRoot $root
 
         $result.ExitCode | Should -Be 0
@@ -97,8 +97,8 @@ Describe "Test-SourceSync.ps1" {
 
     It "fails and names the file when Editor.pro is missing one engine source" {
         $root = New-FixtureRepo `
-            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/LogHelper.cpp') `
-            -EditorSources @('../FilterEngine.cpp', '../services/logging/LogHelper.cpp')
+            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/Logging.cpp') `
+            -EditorSources @('../FilterEngine.cpp', '../services/logging/Logging.cpp')
         $result = Invoke-SourceSync -RepoRoot $root
 
         # A non-zero exit code is the whole point in CI: the workflow step runs
@@ -113,7 +113,7 @@ Describe "Test-SourceSync.ps1" {
             -CommonSources @('FilterEngine.cpp') `
             -EditorSources @(
                 '../FilterEngine.cpp'
-                '../services/windows/ServiceHelper.cpp'
+                '../services/windows/WindowsService.cpp'
                 '../services/install/ApoRegistration.cpp'
                 '../services/audio/AudioFormatProbe.cpp'
                 '../services/update/UpdateSession.cpp'

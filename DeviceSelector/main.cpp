@@ -18,8 +18,9 @@
 */
 
 #include "stdafx.h"
+#include "services/registry/RegistryPaths.h"
 #include <devices/DeviceAPOInfo.h>
-#include <services/registry/RegistryHelper.h>
+#include <services/registry/WindowsRegistry.h>
 #include <ObjBase.h>
 #include <QDir>
 #include <QFile>
@@ -39,7 +40,7 @@
 #include "Editor/skins/SkinThemeData.h"
 #include "services/install/ApoRegistration.h"
 #include "services/diagnostics/InstallDiagnostics.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 
 namespace
 {
@@ -176,8 +177,8 @@ int main(int argc, char* argv[])
 	// install and until now it wrote no log at all. A user reporting that
 	// installing did nothing left behind an Editor.log with no mention of the
 	// install, because the Editor was not the program that ran it.
-	if (!LogHelper::useUserFile(L"DeviceSelector.log", true, false, false))
-		LogHelper::useDefaultApoLog();
+	if (!Logging::useUserFile(L"DeviceSelector.log", true, false, false))
+		Logging::useDefaultApoLog();
 
 	// Shared bootstrap: anchors the plugin path (a security concern for this
 	// elevated process) and, below, applies the language the user picked in

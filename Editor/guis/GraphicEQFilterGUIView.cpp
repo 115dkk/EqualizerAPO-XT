@@ -33,7 +33,7 @@ void GraphicEQFilterGUIView::drawBackground(QPainter* painter, const QRectF& rec
 	painter->setRenderHint(QPainter::Antialiasing, true);
 	GraphicEQFilterGUIScene* s = qobject_cast<GraphicEQFilterGUIScene*>(scene());
 	std::vector<FilterNode>& nodes = s->getNodes();
-	GainIterator gainIterator(nodes);
+	GainCurveIterator gainIterator(nodes);
 	QPainterPath path;
 	bool first = true;
 	double lastDb = -1000;

@@ -31,9 +31,9 @@
 #define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
 #include <sndfile.h>
 
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "dsp/FftwRAII.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "runtime/memory/AlignedMemory.h"
 #include "GraphicEQFilter.h"
 
 using std::exp;
@@ -129,7 +129,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		auto planForward = fftw::makeComplexPlan(static_cast<int>(fftLength), timeData.get(), freqData.get(), FFTW_FORWARD);
 		auto planReverse = fftw::makeComplexPlan(static_cast<int>(fftLength), freqData.get(), timeData.get(), FFTW_BACKWARD);
 
-		GainIterator gainIterator(nodes);
+		GainCurveIterator gainIterator(nodes);
 		for (unsigned i = 0; i < filterLength; i++)
 		{
 			double freq = i * 1.0 * sampleRate / (filterLength * 2);

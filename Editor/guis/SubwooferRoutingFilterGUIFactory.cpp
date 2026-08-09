@@ -8,7 +8,7 @@
 #include "Editor/FilterTable.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
 #include "filters/subwooferRouting/SubwooferRoutingCommand.h"
-#include "audio/ChannelHelper.h"
+#include "audio/ChannelLayout.h"
 
 // cppcheck's standalone parser does not expand the static-registration macro.
 // cppcheck-suppress unknownMacro
@@ -39,7 +39,7 @@ void SubwooferRoutingFilterGUIFactory::initialize(FilterTable* table)
 	const unsigned value = device == nullptr ? 0 : device->getSampleRate();
 	sampleRate = value == 0 ? 48000 : value;
 	deviceChannels = device == nullptr ? std::vector<std::wstring>()
-		: ChannelHelper::getChannelNames(device->getChannelCount(),
+		: ChannelLayout::getChannelNames(device->getChannelCount(),
 			device->getChannelMask());
 }
 

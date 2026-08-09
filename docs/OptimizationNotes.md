@@ -25,12 +25,12 @@
 ### 메모리 해제
 
 - `new[]`로 만든 배열을 `delete`로 해제하던 부분을 `delete[]`로 고쳤습니다.
-- 대상 파일은 `AnalysisThread`, `ConvolutionFilter`, `GraphicEQFilter`, `RegistryHelper`, `StringHelper`, `VoicemeeterAPOInfo`입니다.
+- 대상 파일은 `AnalysisThread`, `ConvolutionFilter`, `GraphicEQFilter`, `WindowsRegistry`, `WideString`, `VoicemeeterAPOInfo`입니다.
 
 ### 설정과 보조 코드
 
-- `ChannelHelper::getChannelNames`에서 결과 벡터 크기를 미리 예약하고, 맵 조회를 한 번만 하도록 바꿨습니다.
-- `StringHelper::join`은 `wstringstream` 대신 크기를 미리 예약한 `std::wstring`에 붙이도록 바꿨습니다.
+- `ChannelLayout::getChannelNames`에서 결과 벡터 크기를 미리 예약하고, 맵 조회를 한 번만 하도록 바꿨습니다.
+- `text::join`은 `wstringstream` 대신 크기를 미리 예약한 `std::wstring`에 붙이도록 바꿨습니다.
 - `RegexSearchFunction`은 정규식 매치 결과 벡터 크기를 미리 예약하도록 바꿨습니다.
 - `Benchmark`의 임시 경로 버퍼 크기 계산을 문자 배열 기준으로 고쳤습니다.
 

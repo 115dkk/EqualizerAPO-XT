@@ -35,7 +35,7 @@
 #include "Editor/import/ImportExecutor.h"
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 
 IncludeCardEditor::IncludeCardEditor(FilterTable* filterTable, const QString& path, QWidget* parent)
 	: IFilterGUI(parent), filterTable(filterTable),

@@ -18,10 +18,10 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 
 #include "ExpressionCommand.h"
 
-#include "text/StringHelper.h"
 
 using std::vector;
 using std::wstring;
@@ -36,7 +36,7 @@ bool EvalCommand::parse(const wstring& command, const wstring& parameters, EvalC
 	if (command != L"Eval")
 		return false;
 
-	out.expression = StringHelper::trim(parameters);
+	out.expression = text::trim(parameters);
 
 	return true;
 }

@@ -23,8 +23,8 @@
 #include "filters/ConvolutionFilter.h"
 #include "filters/ConvolutionFilePath.h"
 #include "filters/IrCache.h"
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
 #include "audio/io/SndfileRAII.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 #include "Tests/TestHarness.h"
@@ -410,7 +410,7 @@ void assertInvalidConvolverArgumentsLeaveEmptyOutput()
 void assertConvolverArraySupportsOutOfOrderInitialization()
 {
 	constexpr unsigned slotCount = 2;
-	auto slots = MemoryHelper::allocateArray<HConvSingle>(slotCount);
+	auto slots = AlignedMemory::allocateArray<HConvSingle>(slotCount);
 	// cppcheck 2.21 reports a parser error on this ordinary null check after the
 	// templated/static_cast allocation expression; MSVC builds and runs the path.
 	// cppcheck-suppress syntaxError
@@ -453,7 +453,7 @@ void assertConvolutionPathParsing()
 
 int runHybridConvTests()
 {
-	LogHelper::set(stdout, true, true, false);
+	Logging::set(stdout, true, true, false);
 
 	assertFftwWisdomIsExported();
 	assertSparseImpulseResponseSurvivesPastOneSecond(0);

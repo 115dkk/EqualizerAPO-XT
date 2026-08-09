@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 
 #include "GraphicEQCommand.h"
 
@@ -26,8 +28,7 @@
 #include <cstdio>
 #include <regex>
 
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 
 using std::sort;
 using std::wregex;
@@ -47,7 +48,7 @@ void GraphicEQCommand::parse(const wstring& parameters)
 	// commas are turned into periods first.
 	wstring value = parameters;
 	if (value.find(L'.') == wstring::npos)
-		value = StringHelper::replaceCharacters(value, L",", L".");
+		value = text::replaceCharacters(value, L",", L".");
 
 	wsregex_iterator end;
 
@@ -61,8 +62,8 @@ void GraphicEQCommand::parse(const wstring& parameters)
 		if (it == end)
 			break;
 		wsmatch gainMatch = *it++;
-		double freq = StringHelper::parseDouble(freqMatch.str(0));
-		double gain = StringHelper::parseDouble(gainMatch.str(0));
+		double freq = numeric_text::parseDouble(freqMatch.str(0));
+		double gain = numeric_text::parseDouble(gainMatch.str(0));
 		if (!std::isfinite(freq) || !std::isfinite(gain))
 		{
 			LogFStatic(L"GraphicEQ frequency and gain must be finite; ignoring pair %s %s",

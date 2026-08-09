@@ -39,9 +39,8 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
-#include "audio/ChannelHelper.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 #include "services/audio/AudioFormatProbe.h"
 #include "services/update/UpdateSession.h"
 #include "Editor/widgets/UpdateToast.h"

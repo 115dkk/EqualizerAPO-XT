@@ -139,88 +139,103 @@
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="vst\AbstractLibrary.h">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClInclude>
     <ClInclude Include="vst\aeffectx.h">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClInclude>
-    <ClInclude Include="audio\ChannelHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="audio\ChannelLayout.h">
+      <Filter>audio</Filter>
     </ClInclude>
     <ClInclude Include="platform\windows\ComBoundary.h">
-      <Filter>helpers</Filter>
+      <Filter>platform</Filter>
     </ClInclude>
     <ClInclude Include="platform\windows\FileSharingRetry.h">
-      <Filter>helpers</Filter>
+      <Filter>platform</Filter>
     </ClInclude>
-    <ClInclude Include="filters\graphicEq\GainIterator.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="filters\graphicEq\GainCurveIterator.h">
+      <Filter>filters\graphicEq</Filter>
     </ClInclude>
     <ClInclude Include="services\registry\ClsidRegistration.h">
-      <Filter>helpers</Filter>
+      <Filter>services</Filter>
     </ClInclude>
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h">
       <Filter>filters</Filter>
     </ClInclude>
     <ClInclude Include="services\registry\IRegistry.h">
-      <Filter>helpers</Filter>
+      <Filter>services</Filter>
     </ClInclude>
     <ClInclude Include="services\registry\RegistryTransaction.h">
-      <Filter>helpers</Filter>
+      <Filter>services</Filter>
     </ClInclude>
     <ClInclude Include="platform\windows\WindowsVersion.h">
-      <Filter>helpers</Filter>
+      <Filter>platform</Filter>
     </ClInclude>
-    <ClInclude Include="services\logging\LogHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="services\logging\Logging.h">
+      <Filter>services</Filter>
     </ClInclude>
     <ClInclude Include="dsp\FftwRAII.h">
-      <Filter>helpers</Filter>
+      <Filter>dsp</Filter>
     </ClInclude>
     <ClInclude Include="dsp\FftwPlanningPolicy.h">
-      <Filter>helpers</Filter>
+      <Filter>dsp</Filter>
     </ClInclude>
-    <ClInclude Include="runtime\memory\MemoryHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="runtime\memory\AlignedMemory.h">
+      <Filter>runtime</Filter>
     </ClInclude>
     <ClInclude Include="runtime\concurrency\ParallelExecutor.h">
-      <Filter>helpers</Filter>
+      <Filter>runtime</Filter>
     </ClInclude>
     <ClInclude Include="platform\windows\Win32Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="platform\windows\GuidText.h">
+      <Filter>platform</Filter>
+    </ClInclude>
     <ClInclude Include="diagnostics\performance\PerfProfile.h">
-      <Filter>helpers</Filter>
+      <Filter>platform</Filter>
     </ClInclude>
     <ClInclude Include="diagnostics\performance\PrecisionTimer.h">
-      <Filter>helpers</Filter>
+      <Filter>diagnostics</Filter>
     </ClInclude>
-    <ClInclude Include="services\registry\RegistryHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="services\registry\WindowsRegistry.h">
+      <Filter>services</Filter>
     </ClInclude>
-    <ClInclude Include="runtime\lifetime\ScopeGuard.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="services\registry\RegistryError.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="services\registry\RegistryPaths.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="runtime\lifetime\ScopeExit.h">
+      <Filter>services</Filter>
     </ClInclude>
     <ClInclude Include="audio\io\SndfileRAII.h">
-      <Filter>helpers</Filter>
+      <Filter>audio</Filter>
     </ClInclude>
-    <ClInclude Include="text\StringHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="text\WideString.h">
+      <Filter>text</Filter>
     </ClInclude>
-    <ClInclude Include="runtime\lifetime\UncaughtExceptions.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="platform\windows\TextEncoding.h">
+      <Filter>platform</Filter>
+    </ClInclude>
+    <ClInclude Include="platform\windows\Win32Error.h">
+      <Filter>platform</Filter>
+    </ClInclude>
+    <ClInclude Include="parser\NumericText.h">
+      <Filter>parser</Filter>
     </ClInclude>
     <ClInclude Include="vst\VSTPluginInstance.h">
-      <Filter>helpers</Filter>
+      <Filter>text</Filter>
     </ClInclude>
     <ClInclude Include="vst\VST3HostObjects.h">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClInclude>
     <ClInclude Include="vst\VSTPluginInstanceInternal.h">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClInclude>
     <ClInclude Include="vst\VSTPluginLibrary.h">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClInclude>
     <ClInclude Include="libHybridConv-0.1.1\libHybridConv_eapo.h">
       <Filter>libHybridConv-0.1.1</Filter>
@@ -403,70 +418,82 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="vst\AbstractLibrary.cpp">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClCompile>
-    <ClCompile Include="audio\ChannelHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="audio\ChannelLayout.cpp">
+      <Filter>audio</Filter>
     </ClCompile>
-    <ClCompile Include="filters\graphicEq\GainIterator.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="filters\graphicEq\GainCurveIterator.cpp">
+      <Filter>filters\graphicEq</Filter>
     </ClCompile>
     <ClCompile Include="services\registry\ClsidRegistration.cpp">
-      <Filter>helpers</Filter>
+      <Filter>services</Filter>
     </ClCompile>
     <ClCompile Include="services\registry\IRegistry.cpp">
-      <Filter>helpers</Filter>
+      <Filter>services</Filter>
     </ClCompile>
     <ClCompile Include="services\registry\RegistryTransaction.cpp">
-      <Filter>helpers</Filter>
+      <Filter>services</Filter>
     </ClCompile>
     <ClCompile Include="platform\windows\WindowsVersion.cpp">
-      <Filter>helpers</Filter>
+      <Filter>platform</Filter>
     </ClCompile>
-    <ClCompile Include="services\logging\LogHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="platform\windows\GuidText.cpp">
+      <Filter>platform</Filter>
     </ClCompile>
-    <ClCompile Include="runtime\memory\MemoryHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="services\logging\Logging.cpp">
+      <Filter>platform</Filter>
+    </ClCompile>
+    <ClCompile Include="runtime\memory\AlignedMemory.cpp">
+      <Filter>runtime</Filter>
     </ClCompile>
     <ClCompile Include="runtime\concurrency\ParallelExecutor.cpp">
-      <Filter>helpers</Filter>
+      <Filter>runtime</Filter>
     </ClCompile>
     <ClCompile Include="diagnostics\performance\PerfProfile.cpp">
-      <Filter>helpers</Filter>
+      <Filter>diagnostics</Filter>
     </ClCompile>
-    <ClCompile Include="services\registry\RegistryHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="services\registry\WindowsRegistry.cpp">
+      <Filter>services</Filter>
     </ClCompile>
-    <ClCompile Include="text\StringHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="text\WideString.cpp">
+      <Filter>text</Filter>
+    </ClCompile>
+    <ClCompile Include="platform\windows\TextEncoding.cpp">
+      <Filter>platform</Filter>
+    </ClCompile>
+    <ClCompile Include="platform\windows\Win32Error.cpp">
+      <Filter>platform</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\NumericText.cpp">
+      <Filter>parser</Filter>
     </ClCompile>
     <ClCompile Include="vst\VST3PluginIIDs.cpp">
-      <Filter>helpers</Filter>
+      <Filter>text</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginInstance.cpp">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginInstance.Editor.cpp">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginInstance.State.cpp">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginInstance.VST2.cpp">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginInstance.VST3.cpp">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginLibrary.cpp">
-      <Filter>helpers</Filter>
+      <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp">
       <Filter>libHybridConv-0.1.1</Filter>
     </ClCompile>
     <ClCompile Include="dsp\FftwPlanningPolicy.cpp">
-      <Filter>helpers</Filter>
+      <Filter>dsp</Filter>
     </ClCompile>
     <ClCompile Include="parser\ParserExtensions.cpp">
       <Filter>parser</Filter>
@@ -520,14 +547,27 @@
     <Filter Include="filters">
       <UniqueIdentifier>{b8ae5fab-edba-40a4-b387-18079935b5ba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="helpers">
-      <UniqueIdentifier>{25ac0a12-b62f-4862-90ba-30f97623714b}</UniqueIdentifier>
-    </Filter>
+    <Filter Include="audio"><UniqueIdentifier>{25ac0a12-b62f-4862-90ba-30f97623714b}</UniqueIdentifier></Filter>
+    <Filter Include="diagnostics"><UniqueIdentifier>{6ff0c9ad-0582-4e41-b7a4-76e035ee31ac}</UniqueIdentifier></Filter>
+    <Filter Include="dsp"><UniqueIdentifier>{7a7a41cc-6573-4f39-bb5e-e72d716e83f2}</UniqueIdentifier></Filter>
+    <Filter Include="filters\graphicEq"><UniqueIdentifier>{945b1799-664f-4d65-a0c7-09096df447c1}</UniqueIdentifier></Filter>
+    <Filter Include="release"><UniqueIdentifier>{1e70b54b-73e0-43ce-ac98-fcc53177c112}</UniqueIdentifier></Filter>
+    <Filter Include="runtime"><UniqueIdentifier>{53539b4c-8169-4e19-9b97-0571159b42dd}</UniqueIdentifier></Filter>
+    <Filter Include="vst"><UniqueIdentifier>{5013f91b-3400-4c55-a980-09b2414d364c}</UniqueIdentifier></Filter>
     <Filter Include="libHybridConv-0.1.1">
       <UniqueIdentifier>{4c157803-cb45-40b5-b4d5-25bf8dbcc6e6}</UniqueIdentifier>
     </Filter>
     <Filter Include="parser">
       <UniqueIdentifier>{4a6738bc-7359-4b18-bdb4-1f443f41e528}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="platform">
+      <UniqueIdentifier>{cb6338a9-2758-4725-a056-377a42894432}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="services">
+      <UniqueIdentifier>{04047531-aac1-4214-8078-fb270268dfe4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="text">
+      <UniqueIdentifier>{a986d11f-aac5-45ef-954e-f83f92cef11c}</UniqueIdentifier>
     </Filter>
     <Filter Include="filters\loudnessCorrection">
       <UniqueIdentifier>{c473f978-6002-42aa-adf5-3b5f10868d2d}</UniqueIdentifier>

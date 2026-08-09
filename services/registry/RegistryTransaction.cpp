@@ -7,7 +7,7 @@
 #include "stdafx.h"
 
 #include "services/registry/RegistryTransaction.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 
 using std::vector;
 using std::wstring;
@@ -255,7 +255,7 @@ RegistryTransaction::ValueSnapshot RegistryTransaction::snapshot(const wstring& 
 		result.type = ValueSnapshot::Type::String;
 		return result;
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 	}
 
@@ -265,7 +265,7 @@ RegistryTransaction::ValueSnapshot RegistryTransaction::snapshot(const wstring& 
 		result.type = ValueSnapshot::Type::MultiString;
 		return result;
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 	}
 
@@ -275,13 +275,13 @@ RegistryTransaction::ValueSnapshot RegistryTransaction::snapshot(const wstring& 
 		result.type = ValueSnapshot::Type::Dword;
 		return result;
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 	}
 
 	// Refusing here is what keeps the promise: the caller has not applied
 	// anything yet, so the transaction stays exactly reversible.
-	throw RegistryException(L"Registry value " + key + L"\\" + valuename
+	throw RegistryError(L"Registry value " + key + L"\\" + valuename
 		+ L" holds a type this transaction cannot restore, so the change was not applied");
 }
 
@@ -373,7 +373,7 @@ void RegistryTransaction::undo(const Entry& entry)
 			break;
 		}
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		failures.push_back(e.getMessage());
 	}

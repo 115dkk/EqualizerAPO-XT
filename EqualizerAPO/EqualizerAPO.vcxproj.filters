@@ -4,8 +4,8 @@
     <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="EqualizerAPO.cpp" />
-    <ClCompile Include="..\runtime\memory\MemoryHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\runtime\memory\AlignedMemory.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
     <ClCompile Include="..\stdafx.cpp" />
   </ItemGroup>
@@ -13,8 +13,8 @@
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="EqualizerAPO.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="..\runtime\memory\MemoryHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="..\runtime\memory\AlignedMemory.h">
+      <Filter>shared modules</Filter>
     </ClInclude>
     <ClInclude Include="..\stdafx.h" />
     <ClInclude Include="..\version.h" />
@@ -29,7 +29,7 @@
     <None Include="..\EqualizerAPO.licenseheader" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="helpers">
+    <Filter Include="shared modules">
       <UniqueIdentifier>{95612e70-aead-4faa-bcfe-525a3c68d8ec}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

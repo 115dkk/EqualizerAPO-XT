@@ -17,7 +17,7 @@
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/FilterCardEditorRegistry.h"
 #include "devices/AbstractAPOInfo.h"
-#include "audio/ChannelHelper.h"
+#include "audio/ChannelLayout.h"
 #include "filters/ChannelCommand.h"
 #include "filters/HilbertFilter.h"
 
@@ -37,7 +37,7 @@ std::vector<std::wstring> tableDeviceChannels(FilterTable* table)
 		table == nullptr ? nullptr : table->getSelectedDevice();
 	if (device == nullptr)
 		return {};
-	return ChannelHelper::getChannelNames(device->getChannelCount(),
+	return ChannelLayout::getChannelNames(device->getChannelCount(),
 		device->getChannelMask());
 }
 

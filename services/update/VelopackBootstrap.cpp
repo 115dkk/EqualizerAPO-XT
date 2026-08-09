@@ -13,7 +13,7 @@
 #include "UpdateSession.h"
 
 #include "services/security/AudioEngineAccess.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "platform/windows/WindowsPath.h"
 
 #include <memory>

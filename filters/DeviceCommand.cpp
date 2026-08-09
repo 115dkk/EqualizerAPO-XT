@@ -18,12 +18,12 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 
 #include "DeviceCommand.h"
 
 #include <regex>
 
-#include "text/StringHelper.h"
 
 using std::vector;
 using std::wregex;
@@ -43,14 +43,14 @@ bool DeviceCommand::matches(const wstring& deviceString) const
 	{
 		matches = true;
 
-		if (patterns[i].size() == 1 && StringHelper::toLowerCase(patterns[i][0]) == L"all")
+		if (patterns[i].size() == 1 && text::toLower(patterns[i][0]) == L"all")
 			break;
 
 		for (unsigned j = 0; j < patterns[i].size(); j++)
 		{
-			wstring word = StringHelper::toLowerCase(patterns[i][j]);
+			wstring word = text::toLower(patterns[i][j]);
 			const wstring& matchString = word.find('{') == wstring::npos ? deviceStringNoGuid : deviceString;
-			if (StringHelper::toLowerCase(matchString).find(word) == wstring::npos)
+			if (text::toLower(matchString).find(word) == wstring::npos)
 			{
 				matches = false;
 				break;
@@ -90,7 +90,7 @@ DeviceCommand DeviceCommand::fromPattern(const wstring& pattern)
 
 	// Tokenizer preserved from the engine factory: split on spaces and
 	// semicolons, dropping empty words and empty patterns.
-	wstring value = StringHelper::trim(pattern) + L";";
+	wstring value = text::trim(pattern) + L";";
 
 	vector<wstring> currentList;
 	wstring currentWord;

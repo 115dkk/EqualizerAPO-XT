@@ -18,23 +18,24 @@
 */
 
 #include "stdafx.h"
+#include "services/registry/RegistryPaths.h"
 #include <cstdarg>
 #include <mutex>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "services/registry/RegistryHelper.h"
-#include "services/logging/LogHelper.h"
+#include "services/registry/WindowsRegistry.h"
+#include "services/logging/Logging.h"
 
 using std::log;
 using std::wstring;
 
-std::atomic<bool> LogHelper::initialized{false};
-wstring LogHelper::logPath;
-std::atomic<bool> LogHelper::enableTrace{false};
-FILE* LogHelper::presetFP = nullptr;
-bool LogHelper::compact = false;
-bool LogHelper::useConsoleColors = false;
+std::atomic<bool> Logging::initialized{false};
+wstring Logging::logPath;
+std::atomic<bool> Logging::enableTrace{false};
+FILE* Logging::presetFP = nullptr;
+bool Logging::compact = false;
+bool Logging::useConsoleColors = false;
 
 namespace
 {
@@ -45,7 +46,7 @@ std::mutex& logStateMutex()
 }
 }
 
-void LogHelper::log(const char* file, int line, const void* caller, bool trace, const wchar_t* format, ...)
+void Logging::log(const char* file, int line, const void* caller, bool trace, const wchar_t* format, ...)
 {
 	// Two concurrent first-loggers would race on logPath (a std::wstring).
 	// Double-checked init under a mutex; the release store pairs with the
@@ -74,10 +75,10 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 
 			try
 			{
-				if (RegistryHelper::readValue(APP_REGPATH, L"EnableTrace") != L"false")
+				if (WindowsRegistry::readValue(APP_REGPATH, L"EnableTrace") != L"false")
 					enableTrace = true;
 			}
-			catch (const RegistryException& e)
+			catch (const RegistryError& e)
 			{
 				// getMessage() returns a std::wstring; passing it through
 				// varargs is undefined behavior, hence .c_str().
@@ -141,24 +142,24 @@ void LogHelper::log(const char* file, int line, const void* caller, bool trace, 
 		fflush(fp);
 }
 
-void LogHelper::reset()
+void Logging::reset()
 {
 	useDefaultApoLog();
 }
 
-void LogHelper::set(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors)
+void Logging::set(FILE* fp, bool enableTrace, bool compact, bool useConsoleColors)
 {
 	useStream(fp, enableTrace, compact, useConsoleColors);
 }
 
-std::wstring LogHelper::currentPath()
+std::wstring Logging::currentPath()
 {
 	std::lock_guard<std::mutex> lock(logStateMutex());
 	// presetFP wins in log(), so a stream destination has no path to report.
 	return presetFP == nullptr ? logPath : std::wstring();
 }
 
-void LogHelper::useDefaultApoLog()
+void Logging::useDefaultApoLog()
 {
 	std::lock_guard<std::mutex> lock(logStateMutex());
 	presetFP = nullptr;
@@ -169,7 +170,7 @@ void LogHelper::useDefaultApoLog()
 	initialized.store(false, std::memory_order_release);
 }
 
-void LogHelper::useFile(const std::wstring& path, bool traceEnabled, bool compactOutput, bool consoleColors)
+void Logging::useFile(const std::wstring& path, bool traceEnabled, bool compactOutput, bool consoleColors)
 {
 	std::lock_guard<std::mutex> lock(logStateMutex());
 	presetFP = nullptr;
@@ -180,7 +181,7 @@ void LogHelper::useFile(const std::wstring& path, bool traceEnabled, bool compac
 	initialized.store(true, std::memory_order_release);
 }
 
-bool LogHelper::useUserFile(const std::wstring& fileName, bool traceEnabled, bool compactOutput, bool consoleColors)
+bool Logging::useUserFile(const std::wstring& fileName, bool traceEnabled, bool compactOutput, bool consoleColors)
 {
 	wchar_t localAppData[MAX_PATH] = {};
 	DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", localAppData, MAX_PATH);
@@ -199,7 +200,7 @@ bool LogHelper::useUserFile(const std::wstring& fileName, bool traceEnabled, boo
 	return true;
 }
 
-void LogHelper::useStream(FILE* fp, bool traceEnabled, bool compactOutput, bool consoleColors)
+void Logging::useStream(FILE* fp, bool traceEnabled, bool compactOutput, bool consoleColors)
 {
 	std::lock_guard<std::mutex> lock(logStateMutex());
 	presetFP = fp;

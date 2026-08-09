@@ -1,8 +1,8 @@
 #include "stdafx.h"
+#include "platform/windows/Win32Error.h"
 
-#include "services/logging/LogHelper.h"
-#include "services/registry/RegistryHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
+#include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Event.h"
 #include "platform/windows/Win32Resource.h"
 #include "ConfigWatcher.h"
@@ -46,7 +46,7 @@ void ConfigWatcher::run()
 			{
 				LogFStatic(L"Could not watch config directory %s; retrying with backoff: %s",
 					watchedDirectory.c_str(),
-					StringHelper::getSystemErrorString(GetLastError()).c_str());
+					win32::errorMessage(GetLastError()).c_str());
 				watchFailureLogged = true;
 			}
 		}
@@ -56,12 +56,12 @@ void ConfigWatcher::run()
 		{
 			try
 			{
-				keyHandles.push_back(RegistryHelper::openKey(
+				keyHandles.push_back(WindowsRegistry::openKey(
 					key, KEY_NOTIFY | KEY_WOW64_64KEY));
 				RegNotifyChangeKeyValue(keyHandles.back().get(), false,
 					REG_NOTIFY_CHANGE_LAST_SET, registryEvent.get(), true);
 			}
-			catch (const RegistryException& error)
+			catch (const RegistryError& error)
 			{
 				LogFStatic(L"%s", error.getMessage().c_str());
 			}
@@ -88,7 +88,7 @@ void ConfigWatcher::run()
 			if (!waitFailureLogged)
 			{
 				LogFStatic(L"Config watcher wait failed; retrying with backoff: %s",
-					StringHelper::getSystemErrorString(GetLastError()).c_str());
+					win32::errorMessage(GetLastError()).c_str());
 				waitFailureLogged = true;
 			}
 			if (WaitForSingleObject(shutdownEvent, 1000) == WAIT_OBJECT_0)
@@ -105,14 +105,14 @@ void ConfigWatcher::run()
 			if (!FindNextChangeNotification(directoryNotification.get()))
 			{
 				LogFStatic(L"Config directory watch could not be re-armed: %s",
-					StringHelper::getSystemErrorString(GetLastError()).c_str());
+					win32::errorMessage(GetLastError()).c_str());
 				directoryNotification.reset();
 			}
 			else if (WaitForSingleObject(directoryNotification.get(), 10) == WAIT_OBJECT_0
 				&& !FindNextChangeNotification(directoryNotification.get()))
 			{
 				LogFStatic(L"Config directory watch failed during debounce: %s",
-					StringHelper::getSystemErrorString(GetLastError()).c_str());
+					win32::errorMessage(GetLastError()).c_str());
 				directoryNotification.reset();
 			}
 		}

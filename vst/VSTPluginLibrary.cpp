@@ -18,9 +18,10 @@
 */
 
 #include "stdafx.h"
+#include "services/registry/RegistryPaths.h"
 #include <mutex>
-#include "services/registry/RegistryHelper.h"
-#include "services/logging/LogHelper.h"
+#include "services/registry/WindowsRegistry.h"
+#include "services/logging/Logging.h"
 #include "VSTPluginLibrary.h"
 #include "VST3HostObjects.h"
 #include "platform/windows/Win32Resource.h"
@@ -140,10 +141,10 @@ wstring VSTPluginLibrary::getDefaultPluginPath()
 	{
 		try
 		{
-			wstring installPath = RegistryHelper::readValue(APP_REGPATH, L"InstallPath");
+			wstring installPath = WindowsRegistry::readValue(APP_REGPATH, L"InstallPath");
 			defaultPluginPath = installPath + L"\\VSTPlugins";
 		}
-		catch (const RegistryException& e)
+		catch (const RegistryError& e)
 		{
 			// No installed EqualizerAPO (dev tree, CI runner). The exception
 			// must not escape: callers (parsing any VSTPlugin line with a

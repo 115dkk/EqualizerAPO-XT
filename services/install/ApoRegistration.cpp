@@ -18,6 +18,7 @@
 */
 
 #include "services/install/ApoRegistration.h"
+#include "services/registry/RegistryPaths.h"
 
 #include <cstdio>
 #include <memory>
@@ -32,22 +33,22 @@
 #include "platform/windows/WindowsPath.h"
 #include "services/security/AudioEngineAccess.h"
 #include "devices/DeviceAPOInfo.h"
-#include "services/logging/LogHelper.h"
-#include "services/registry/RegistryHelper.h"
-#include "services/windows/ServiceHelper.h"
+#include "services/logging/Logging.h"
+#include "services/registry/WindowsRegistry.h"
+#include "services/windows/WindowsService.h"
 #include "services/shell/StartMenuShortcuts.h"
 #include "platform/windows/Win32Resource.h"
 
 namespace
 {
-// The one spelling lives in RegistryHelper.h; DeviceAPOInfoKeys.h composes
+// The one spelling lives in WindowsRegistry.h; DeviceAPOInfoKeys.h composes
 // on the same macro.
 constexpr const wchar_t* kRegPath = APP_REGPATH;
 constexpr wchar_t kAudioRegPath[] = L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio";
 constexpr wchar_t kAudioServiceName[] = L"AudioSrv";
 constexpr wchar_t kAudioEndpointBuilderServiceName[] = L"AudioEndpointBuilder";
 
-// Audit #250 F018: the shared path vocabulary lives in PathHelper.h.
+// Audit #250 F018: the shared path vocabulary lives in WindowsPath.h.
 using pathutil::joinPath;
 using pathutil::fileExists;
 using pathutil::createDirectoryRecursive;
@@ -115,7 +116,7 @@ ApoRegistration::Result ApoRegistration::writeAppInstallRegistry(
 
 		registry.writeDWORDValue(kAudioRegPath, L"DisableProtectedAudioDG", 1);
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		logLine(L"ERR", L"Registry write failed: %s", e.getMessage().c_str());
 		return Result::RegistryFailed;
@@ -130,7 +131,7 @@ void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
 		if (registry.valueExists(kAudioRegPath, L"DisableProtectedAudioDG"))
 			registry.deleteValue(kAudioRegPath, L"DisableProtectedAudioDG");
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		logLine(L"WARN", L"Failed to clean DisableProtectedAudioDG: %s", e.getMessage().c_str());
 	}
@@ -140,7 +141,7 @@ void ApoRegistration::cleanupAppRegistry(IRegistry& registry)
 		if (registry.keyExists(kRegPath) && registry.keyEmpty(kRegPath))
 			registry.deleteKey(kRegPath);
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		logLine(L"WARN", L"Failed to remove EqualizerAPO registry key: %s", e.getMessage().c_str());
 	}
@@ -234,9 +235,9 @@ ApoRegistration::Result ApoRegistration::uninstall(const std::wstring& installDi
 		// endpoint graph exactly once after every device has been cleaned.
 		try
 		{
-			ServiceHelper::restartService(kAudioEndpointBuilderServiceName);
+			WindowsServiceControl::restart(kAudioEndpointBuilderServiceName);
 		}
-		catch (const ServiceException& e)
+		catch (const WindowsServiceError& e)
 		{
 			logLine(L"WARN", L"Failed to restart AudioEndpointBuilder; a reboot may be needed to fully apply the removal: %s", e.getMessage().c_str());
 		}
@@ -260,7 +261,7 @@ ApoRegistration::Result ApoRegistration::uninstallAllDeviceApos(const DeviceUnin
 				if (apoInfo->isInstalled())
 					apoInfo->uninstall();
 			}
-			catch (const RegistryException& e)
+			catch (const RegistryError& e)
 			{
 				if (errorSink)
 					errorSink(e.getMessage());
@@ -288,7 +289,7 @@ bool ApoRegistration::stopAudioService()
 
 	try
 	{
-		Service service(manager.get(), kAudioServiceName, true);
+		WindowsService service(manager.get(), kAudioServiceName, true);
 		DWORD state = service.getState();
 		if (state == SERVICE_RUNNING)
 		{
@@ -298,7 +299,7 @@ bool ApoRegistration::stopAudioService()
 		}
 		return false;
 	}
-	catch (const ServiceException& e)
+	catch (const WindowsServiceError& e)
 	{
 		logLine(L"ERR", L"Failed to stop AudioSrv: %s", e.getMessage().c_str());
 		return false;
@@ -316,7 +317,7 @@ bool ApoRegistration::startAudioService()
 
 	try
 	{
-		Service service(manager.get(), kAudioServiceName, true);
+		WindowsService service(manager.get(), kAudioServiceName, true);
 		DWORD state = service.getState();
 		if (state == SERVICE_STOPPED)
 		{
@@ -326,7 +327,7 @@ bool ApoRegistration::startAudioService()
 		}
 		return state == SERVICE_RUNNING;
 	}
-	catch (const ServiceException& e)
+	catch (const WindowsServiceError& e)
 	{
 		logLine(L"ERR", L"Failed to start AudioSrv: %s", e.getMessage().c_str());
 		return false;

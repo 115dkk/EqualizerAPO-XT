@@ -18,10 +18,10 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 
 #include "IfCommand.h"
 
-#include "text/StringHelper.h"
 
 using std::wstring;
 
@@ -43,7 +43,7 @@ bool IfCommand::parse(const wstring& command, const wstring& parameters, IfComma
 	else
 		return false;
 
-	out.expression = StringHelper::trim(parameters);
+	out.expression = text::trim(parameters);
 
 	return true;
 }

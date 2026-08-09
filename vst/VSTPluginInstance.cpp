@@ -31,10 +31,11 @@
 //                                    and VST3HostContext, shared across those units.
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #include <wincrypt.h>
 #include <inttypes.h>
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
@@ -509,7 +510,7 @@ int VSTPluginInstance::uniqueID() const
 std::wstring VSTPluginInstance::getName() const
 {
 	if (library->isVST3())
-		return StringHelper::toWString(library->getVST3ClassInfo().name, CP_UTF8);
+		return wintext::toWideString(library->getVST3ClassInfo().name, CP_UTF8);
 	if (effect == NULL)
 		return L"";
 
@@ -518,7 +519,7 @@ std::wstring VSTPluginInstance::getName() const
 	effect->control(effect.get(), VST_EFFECT_OPCODE_EFFECT_NAME, 0, 0, buf, 0.0f);
 	buf[255] = '\0'; // just to be sure
 
-	return StringHelper::toWString(buf, CP_UTF8);
+	return wintext::toWideString(buf, CP_UTF8);
 }
 
 int VSTPluginInstance::getUsedChannelCount() const

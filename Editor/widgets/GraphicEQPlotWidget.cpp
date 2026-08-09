@@ -293,7 +293,7 @@ GraphicEQPlotState GraphicEQPlotWidget::buildState() const
 
 	// Response curve sampled every 2px through the shared engine-side
 	// interpolator, so the drawn response and the audible one agree.
-	GainIterator gainIterator(const_cast<vector<FilterNode>&>(nodeList));
+	GainCurveIterator gainIterator(const_cast<vector<FilterNode>&>(nodeList));
 	const int step = 2;
 	for (int x = int(state.plotRect.left()); x <= int(state.plotRect.right()); x += step)
 	{

@@ -20,8 +20,8 @@
 #include "stdafx.h"
 #include <cmath>
 
-#include "runtime/memory/MemoryHelper.h"
-#include "services/logging/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "DelayFilter.h"
 #include "diagnostics/performance/PerfProfile.h"
 
@@ -58,11 +58,11 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 	}
 	bufferLength = static_cast<unsigned>(samples);
 
-	std::vector<MemoryHelper::UniqueAllocation<double>> preparedBuffers;
+	std::vector<AlignedMemory::UniqueAllocation<double>> preparedBuffers;
 	preparedBuffers.reserve(channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		auto buffer = MemoryHelper::allocateArray<double>(bufferLength);
+		auto buffer = AlignedMemory::allocateArray<double>(bufferLength);
 		if (!buffer)
 		{
 			LogFStatic(L"Delay buffer allocation failed (%u samples); passing audio through", bufferLength);

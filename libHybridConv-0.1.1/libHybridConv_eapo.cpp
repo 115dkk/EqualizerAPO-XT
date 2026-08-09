@@ -41,7 +41,7 @@
 #include <fftw3.h>
 #include "../dsp/FftwRAII.h"
 #include "../dsp/FftwPlanningPolicy.h"
-#include "../services/logging/LogHelper.h"
+#include "../services/logging/Logging.h"
 #include "HcAlignedStorage.h"
 #include "libHybridConv_eapo.h"
 

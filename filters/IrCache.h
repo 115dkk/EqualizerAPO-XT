@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include "runtime/memory/MemoryHelper.h"
+#include "runtime/memory/AlignedMemory.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 
 // Decoded impulse-response PCM, shared between filters that reference the same
@@ -51,7 +51,7 @@ struct IrCacheEntry
 std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, double sampleRate);
 
 // RAII owner for a flat HConvSingle array. The array is a single block
-// allocated with MemoryHelper::alloc(sizeof(HConvSingle) * count) and must be
+// allocated with AlignedMemory::alloc(sizeof(HConvSingle) * count) and must be
 // torn down by closing every successfully initialized element (hcCloseSingle)
 // before freeing the block. Wrapping it makes partial-initialization rollback
 // automatic and idempotent. Counts are stored in the owner rather than read
@@ -88,7 +88,7 @@ public:
 	// slot to hcCloseSingle's inert state. Initialization may then complete in
 	// any order (including on multiple threads); rollback closes every slot,
 	// with untouched slots remaining safe no-ops.
-	void adoptStorage(MemoryHelper::UniqueAllocation<HConvSingle> newPtr, unsigned newCapacity)
+	void adoptStorage(AlignedMemory::UniqueAllocation<HConvSingle> newPtr, unsigned newCapacity)
 	{
 		if (newCapacity != 0 && newPtr == nullptr)
 			throw std::bad_alloc();
@@ -114,7 +114,7 @@ public:
 	void reset();
 
 private:
-	MemoryHelper::UniqueAllocation<HConvSingle> ptr;
+	AlignedMemory::UniqueAllocation<HConvSingle> ptr;
 	unsigned capacity = 0;
 };
 

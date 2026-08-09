@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "engine/IFilter.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "runtime/memory/AlignedMemory.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class DelayFilter : public IFilter
@@ -42,7 +42,7 @@ private:
 	bool isMs;
 	unsigned bufferLength = 0;
 	unsigned channelCount = 0;
-	std::vector<MemoryHelper::UniqueAllocation<double>> buffers;
+	std::vector<AlignedMemory::UniqueAllocation<double>> buffers;
 	unsigned bufferOffset = 0;
 };
 #pragma AVRT_VTABLES_END

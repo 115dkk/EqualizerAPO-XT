@@ -18,10 +18,11 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 #include <cmath>
-#include "runtime/memory/MemoryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "PreampFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "PreampFilterFactory.h"
@@ -39,7 +40,7 @@ bool PreampFilterFactory::parseCommand(const wstring& command, const wstring& pa
 		return false;
 
 	// Conversion to period as decimal mark, if needed
-	wstring value = StringHelper::normalizeDecimalComma(parameters);
+	wstring value = numeric_text::normalizeDecimalComma(parameters);
 
 	double preamp_dB;
 	int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
@@ -83,7 +84,7 @@ FilterVector PreampFilterFactory::createFilter(const wstring& configPath, wstrin
 		}
 		else
 		{
-			LogF(L"Could not parse preamp value \"%s\"; no preamp was applied", StringHelper::trim(parameters).c_str());
+			LogF(L"Could not parse preamp value \"%s\"; no preamp was applied", text::trim(parameters).c_str());
 		}
 	}
 

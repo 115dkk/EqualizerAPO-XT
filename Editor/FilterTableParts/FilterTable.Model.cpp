@@ -51,10 +51,9 @@
 #include "Editor/widgets/FrequencyPlotScene.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
 #include "SubwooferRouting/StateCodec.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
-#include "audio/ChannelHelper.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
+#include "services/registry/WindowsRegistry.h"
 #include "FilterTable.h"
 #include "Editor/widgets/FilterCardRow.h"
 
@@ -73,7 +72,7 @@ vector<wstring> FilterTable::getChannelNames() const
 {
 	vector<wstring> channelNames;
 	if (selectedDevice != nullptr)
-		channelNames = ChannelHelper::getChannelNames(selectedDevice->getChannelCount(), selectedChannelMask);
+		channelNames = ChannelLayout::getChannelNames(selectedDevice->getChannelCount(), selectedChannelMask);
 
 	return channelNames;
 }
@@ -398,7 +397,7 @@ QString subwooferRoutingTemplateLine(const std::shared_ptr<AbstractAPOInfo>& dev
 
 	const std::vector<std::wstring> deviceChannels = device == nullptr
 		? std::vector<std::wstring>()
-		: ChannelHelper::getChannelNames(device->getChannelCount(),
+		: ChannelLayout::getChannelNames(device->getChannelCount(),
 			device->getChannelMask());
 	QString json = encoded(subwooferroutingeditor::buildDefaultState(deviceChannels));
 	if (json.isEmpty())

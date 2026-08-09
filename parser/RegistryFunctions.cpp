@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <memory>
 #include "RegistryFunctions.h"
 #include "services/registry/IRegistry.h"
-#include "../services/registry/RegistryHelper.h"
+#include "../services/registry/WindowsRegistry.h"
 #include "../engine/FilterEngine.h"
 
 using std::make_unique;
@@ -53,7 +53,7 @@ void ReadRegStringFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int
 
 		engine->watchRegistryKey(key);
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		throw ParserError(e.getMessage());
 	}
@@ -93,7 +93,7 @@ void ReadRegDWORDFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int 
 
 		engine->watchRegistryKey(key);
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		throw ParserError(e.getMessage());
 	}

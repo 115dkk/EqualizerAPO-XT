@@ -18,10 +18,9 @@
 */
 
 #include "stdafx.h"
-#include "text/StringHelper.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "VSTPluginCommand.h"
 #include "VSTPluginFilter.h"
 #include "filters/FilterFactoryRegistry.h"

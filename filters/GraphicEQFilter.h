@@ -23,7 +23,7 @@
 
 #include "ConvolutionFilter.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
-#include "filters/graphicEq/GainIterator.h"
+#include "filters/graphicEq/GainCurveIterator.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class GraphicEQFilter : public ConvolutionFilter

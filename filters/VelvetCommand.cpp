@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 #include "VelvetCommand.h"
 
 #include <cmath>
@@ -7,7 +9,6 @@
 #include <limits>
 #include <set>
 
-#include "text/StringHelper.h"
 
 namespace
 {
@@ -21,8 +22,8 @@ std::wstring number(double value)
 bool suffixNumber(const std::wstring& source, const std::wstring& suffix,
 	double& out)
 {
-	std::wstring text = StringHelper::trim(source);
-	const std::wstring lower = StringHelper::toLowerCase(text);
+	std::wstring text = text::trim(source);
+	const std::wstring lower = text::toLower(text);
 	if (!suffix.empty())
 	{
 		if (lower.size() < suffix.size()
@@ -33,7 +34,7 @@ bool suffixNumber(const std::wstring& source, const std::wstring& suffix,
 	if (text.empty())
 		return false;
 	// Audit #250 F015: accept the decimal comma like the BiQuad family.
-	text = StringHelper::normalizeDecimalComma(text);
+	text = numeric_text::normalizeDecimalComma(text);
 	wchar_t* end = nullptr;
 	out = wcstod(text.c_str(), &end);
 	return end != text.c_str() && *end == L'\0' && std::isfinite(out);
@@ -68,27 +69,27 @@ bool VelvetCommand::parse(const std::wstring& command, const std::wstring& text,
 		return false;
 
 	out = VelvetCommand {};
-	const std::wstring trimmed = StringHelper::trim(text);
+	const std::wstring trimmed = text::trim(text);
 	if (trimmed.empty())
 		return true;
 
 	std::set<std::wstring> seen;
-	for (const std::wstring& token : StringHelper::split(trimmed, L' '))
+	for (const std::wstring& token : text::split(trimmed, L' '))
 	{
 		if (token.empty())
 			continue;
-		const std::vector<std::wstring> pair = StringHelper::split(token, L'=');
+		const std::vector<std::wstring> pair = text::split(token, L'=');
 		if (pair.size() != 2 || pair[0].empty() || pair[1].empty())
 			return fail(error, L"expected whitespace-separated key=value settings");
 
-		const std::wstring key = StringHelper::toLowerCase(pair[0]);
+		const std::wstring key = text::toLower(pair[0]);
 		if (!seen.insert(key).second)
 			return fail(error, L"setting \"" + pair[0] + L"\" appears more than once");
 
 		double value = 0.0;
 		if (key == L"mode")
 		{
-			const std::wstring mode = StringHelper::toLowerCase(pair[1]);
+			const std::wstring mode = text::toLower(pair[1]);
 			if (mode == L"dynamic")
 				out.parameters.dynamic = true;
 			else if (mode == L"static")

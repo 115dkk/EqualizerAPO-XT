@@ -22,7 +22,7 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
-#include "runtime/memory/MemoryHelper.h"
+#include "runtime/memory/AlignedMemory.h"
 #include "IIRFilter.h"
 #include "diagnostics/performance/PerfProfile.h"
 

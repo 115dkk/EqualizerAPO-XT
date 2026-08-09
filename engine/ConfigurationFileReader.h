@@ -1,6 +1,8 @@
 #pragma once
 
 #include <istream>
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #include <sstream>
 #include <string>
 #include <utility>
@@ -9,7 +11,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "text/StringHelper.h"
 
 class ConfigurationFileReader
 {
@@ -26,9 +27,9 @@ public:
 			if (!encodedLine.empty() && encodedLine.back() == '\r')
 				encodedLine.pop_back();
 
-			std::wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
+			std::wstring line = wintext::toWideString(encodedLine, CP_UTF8);
 			if (line.find(L'\uFFFD') != std::wstring::npos)
-				line = StringHelper::toWString(encodedLine, CP_ACP);
+				line = wintext::toWideString(encodedLine, CP_ACP);
 			lines.push_back(std::move(line));
 		}
 		return lines;

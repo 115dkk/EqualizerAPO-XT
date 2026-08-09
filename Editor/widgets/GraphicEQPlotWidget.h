@@ -5,7 +5,7 @@
 #include <QWidget>
 
 #include "Editor/skins/ISkin.h"
-#include "filters/graphicEq/GainIterator.h"
+#include "filters/graphicEq/GainCurveIterator.h"
 
 // The interactive response plot of the modern GraphicEQ card. Form before
 // color: this widget owns the model (the node list), the Hz/dB mapping and

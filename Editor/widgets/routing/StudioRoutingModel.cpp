@@ -8,7 +8,7 @@ namespace
 {
 // Case-insensitive port lookup with the legacy scene's aliases: "SUB" finds
 // the LFE chip (and vice versa), and a leading digit reads as the 1-based
-// position among the seeded channels, exactly like ChannelHelper.
+// position among the seeded channels, exactly like ChannelLayout.
 int findPort(const QStringList& ports, int seededCount, const QString& written)
 {
 	if (written.isEmpty())

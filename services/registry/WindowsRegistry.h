@@ -21,25 +21,13 @@
 
 #include <string>
 #include <vector>
-#include <stdexcept>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include "platform/windows/Win32Resource.h"
+#include "services/registry/RegistryError.h"
 
-// {EACD2258-FCAC-4FF4-B36D-419E924A6D79}
-const GUID EQUALIZERAPO_PRE_MIX_GUID = {0xeacd2258, 0xfcac, 0x4ff4, {0xb3, 0x6d, 0x41, 0x9e, 0x92, 0x4a, 0x6d, 0x79}};
-// {EC1CC9CE-FAED-4822-828A-82A81A6F018F}
-const GUID EQUALIZERAPO_POST_MIX_GUID = {0xec1cc9ce, 0xfaed, 0x4822, {0x82, 0x8a, 0x82, 0xa8, 0x1a, 0x6f, 0x01, 0x8f}};
-
-#define APP_REGPATH L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO"
-#define USER_REGPATH L"HKEY_CURRENT_USER\\SOFTWARE\\EqualizerAPO"
-// The Editor's preference tree (language, skin, window state). Defined here
-// beside its parent path because the shared Qt app bootstrap reads the
-// language preference for all three Qt apps.
-#define EDITOR_REGPATH USER_REGPATH L"\\Configuration Editor"
-
-class RegistryHelper
+class WindowsRegistry
 {
 public:
 	static std::wstring readValue(const std::wstring& key, const std::wstring& valuename);
@@ -62,24 +50,8 @@ public:
 	static bool keyEmpty(const std::wstring& key);
 	static std::wstring formatExportHeader(const std::wstring& key);
 	static void saveToFile(const std::wstring& key, const std::vector<std::wstring>& valuenames, const std::wstring& filepath);
-	static std::wstring getGuidString(GUID guid);
 	static winutil::UniqueRegistryKey openKey(const std::wstring& key, REGSAM samDesired);
 
 private:
 	static std::wstring splitKey(const std::wstring& key, HKEY* rootKey);
-};
-
-class RegistryException
-{
-public:
-	RegistryException(const std::wstring& message)
-		: message(message) {}
-
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
 };

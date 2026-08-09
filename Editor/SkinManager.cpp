@@ -4,7 +4,7 @@
 #include <QFile>
 #include <QWidget>
 
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "skins/ISkin.h"
 #include "skins/Skins.h"

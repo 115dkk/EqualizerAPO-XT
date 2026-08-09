@@ -7,8 +7,8 @@
 #include <set>
 
 #include "ConvolverMuteDiagnostics.h"
-#include "audio/ChannelHelper.h"
-#include "services/logging/LogHelper.h"
+#include "audio/ChannelLayout.h"
+#include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
 
 namespace
@@ -49,7 +49,7 @@ std::vector<int> resolve(const std::vector<std::wstring>& requested,
 	std::vector<int> result;
 	for (const std::wstring& name : requested)
 	{
-		const int index = ChannelHelper::getChannelIndex(name, channelNames, true);
+		const int index = ChannelLayout::getChannelIndex(name, channelNames, true);
 		if (index >= 0
 			&& std::find(result.begin(), result.end(), index) == result.end())
 			result.push_back(index);

@@ -22,8 +22,7 @@
 #include <cctype>
 #include <limits>
 #include <new>
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "VSTPluginFilter.h"
 
 using std::max;
@@ -86,10 +85,10 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 	skipProcessing = false;
 
-	MemoryHelper::UniqueObject<VSTPluginInstance> firstEffect;
+	AlignedMemory::UniqueObject<VSTPluginInstance> firstEffect;
 	try
 	{
-		firstEffect = MemoryHelper::constructUnique<VSTPluginInstance>(library, 2);
+		firstEffect = AlignedMemory::constructUnique<VSTPluginInstance>(library, 2);
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -203,7 +202,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	{
 		try
 		{
-			effects.push_back(MemoryHelper::constructUnique<VSTPluginInstance>(library, 2));
+			effects.push_back(AlignedMemory::constructUnique<VSTPluginInstance>(library, 2));
 		}
 		catch (const std::bad_alloc&)
 		{
@@ -252,7 +251,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	emptyChannels.reserve(emptyChannelCount);
 	for (size_t i = 0; i < emptyChannelCount; i++)
 	{
-		auto channel = MemoryHelper::allocateArray<double>(maxFrameCount);
+		auto channel = AlignedMemory::allocateArray<double>(maxFrameCount);
 		if (!channel)
 		{
 			LogF(L"The VST plugin %s could not allocate padding channel %Iu; passing audio through.", libPath.c_str(), i);
@@ -282,7 +281,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		}
 
 		floatInputs.resize(inputCount);
-		floatInputBuffer = MemoryHelper::allocateArray<float>(inputCount * maxFrameCount);
+		floatInputBuffer = AlignedMemory::allocateArray<float>(inputCount * maxFrameCount);
 		if (!floatInputBuffer)
 		{
 			LogF(L"The VST plugin %s could not allocate float input buffers; passing audio through.", libPath.c_str());
@@ -307,7 +306,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		}
 
 		floatOutputs.resize(outputCount);
-		floatOutputBuffer = MemoryHelper::allocateArray<float>(outputCount * maxFrameCount);
+		floatOutputBuffer = AlignedMemory::allocateArray<float>(outputCount * maxFrameCount);
 		if (!floatOutputBuffer)
 		{
 			LogF(L"The VST plugin %s could not allocate float output buffers; passing audio through.", libPath.c_str());
@@ -326,7 +325,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		delayBuffers.reserve(channelCount);
 		for (size_t i = 0; i < channelCount; i++)
 		{
-			auto buffer = MemoryHelper::allocateArray<double>(delayBufferLength);
+			auto buffer = AlignedMemory::allocateArray<double>(delayBufferLength);
 			if (!buffer)
 			{
 				LogF(L"The VST plugin %s could not allocate delay buffer %Iu; passing audio through.", libPath.c_str(), i);
@@ -337,7 +336,7 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			std::fill_n(buffer.get(), delayBufferLength, 0.0);
 			delayBuffers.push_back(std::move(buffer));
 		}
-		delayTempBuffer = MemoryHelper::allocateArray<double>(maxFrameCount);
+		delayTempBuffer = AlignedMemory::allocateArray<double>(maxFrameCount);
 		if (!delayTempBuffer)
 		{
 			LogF(L"The VST plugin %s could not allocate its delay scratch buffer; passing audio through.", libPath.c_str());
@@ -515,7 +514,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		// Only arm the report here; cleanup() writes it. Two reasons not to log on
-		// this thread: LogHelper opens, writes and closes the log file per line
+		// this thread: Logging opens, writes and closes the log file per line
 		// (a file open that a filter driver can stall for milliseconds, on the
 		// audio thread, while the stream is already glitching), and the CRT state
 		// this handler would re-enter is exactly what the plugin just faulted

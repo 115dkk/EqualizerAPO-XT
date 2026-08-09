@@ -20,8 +20,7 @@
 #include "stdafx.h"
 #include <sstream>
 
-#include "services/logging/LogHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
 #include "parser/ParserExtensions.h"
 #include "parser/RegistryFunctions.h"
 #include "engine/ConfigLoadTrace.h"

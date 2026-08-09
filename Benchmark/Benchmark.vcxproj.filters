@@ -3,19 +3,19 @@
   <ItemGroup>
     <ClCompile Include="Benchmark.cpp" />
     <ClCompile Include="..\stdafx.cpp" />
-    <ClCompile Include="..\runtime\memory\MemoryHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\runtime\memory\AlignedMemory.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BatchPlan.h" />
     <ClInclude Include="..\stdafx.h" />
-    <ClInclude Include="..\runtime\memory\MemoryHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="..\runtime\memory\AlignedMemory.h">
+      <Filter>shared modules</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="helpers">
+    <Filter Include="shared modules">
       <UniqueIdentifier>{8c70f87a-7d86-4826-bfa1-7a4c4ec5efec}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

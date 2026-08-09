@@ -18,6 +18,7 @@
 */
 
 #include <string>
+#include "services/registry/RegistryPaths.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -25,7 +26,7 @@
 #include <QSettings>
 #include <QTranslator>
 
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "QtAppBootstrap.h"
 
 namespace

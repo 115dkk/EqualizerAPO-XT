@@ -18,10 +18,10 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 
 #include "ConvolutionCommand.h"
 
-#include "text/StringHelper.h"
 
 const std::wstring& ConvolutionCommand::serialize() const
 {
@@ -33,6 +33,6 @@ bool ConvolutionCommand::parse(const std::wstring& command, const std::wstring& 
 	if (command != L"Convolution")
 		return false;
 
-	out.path = StringHelper::trim(parameters);
+	out.path = text::trim(parameters);
 	return true;
 }

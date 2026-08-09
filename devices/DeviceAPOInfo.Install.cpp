@@ -1,4 +1,7 @@
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <mmreg.h>
@@ -9,9 +12,8 @@
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
 
-#include "services/logging/LogHelper.h"
-#include "text/StringHelper.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/logging/Logging.h"
+#include "services/registry/WindowsRegistry.h"
 
 using std::make_shared;
 using std::move;
@@ -36,7 +38,7 @@ void DeviceAPOInfo::runReported(DeviceInstallReport::Operation operation,
 	{
 		steps(plan);
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		failReport(plan, e.getMessage());
 		throw;
@@ -159,7 +161,7 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 		{
 			plan.createKey(keyPath + L"\\FxProperties");
 		}
-		catch (const RegistryException&)
+		catch (const RegistryError&)
 		{
 			// Permissions were not sufficient, so change them. This is the one
 			// step the transaction cannot take back; see the note in
@@ -197,12 +199,12 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 		{
 			wstring backupDirectory = plan.readValue(APP_REGPATH, L"ConfigPath");
 			if (backupDirectory.empty())
-				throw RegistryException(L"ConfigPath is empty; refusing to write a registry backup to the process directory");
+				throw RegistryError(L"ConfigPath is empty; refusing to write a registry backup to the process directory");
 			if (backupDirectory.back() != L'\\' && backupDirectory.back() != L'/')
 				backupDirectory += L"\\";
 			const wstring backupPath = backupDirectory + L"backup_"
-				+ StringHelper::replaceIllegalCharacters(deviceName)
-				+ L"_" + StringHelper::replaceIllegalCharacters(connectionName) + L".reg";
+				+ text::replaceIllegalFilenameCharacters(deviceName)
+				+ L"_" + text::replaceIllegalFilenameCharacters(connectionName) + L".reg";
 			plan.saveToFile(keyPath + L"\\FxProperties", valuenames, backupPath);
 			// The one report field the caller cannot derive from the transaction:
 			// this file is what a user needs to put the driver's chain back by
@@ -235,9 +237,9 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 	if (selectedInstallState.installMode == INSTALL_LFX_GFX)
 	{
 		if (selectedInstallState.installPreMix)
-			plan.writeValue(keyPath + L"\\FxProperties", lfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
+			plan.writeValue(keyPath + L"\\FxProperties", lfxGuidValueName, winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 		if (selectedInstallState.installPostMix && !input)
-			plan.writeValue(keyPath + L"\\FxProperties", gfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+			plan.writeValue(keyPath + L"\\FxProperties", gfxGuidValueName, winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID));
 		if (plan.valueExists(keyPath + L"\\FxProperties", sfxGuidValueName))
 			plan.deleteValue(keyPath + L"\\FxProperties", sfxGuidValueName);
 		if (plan.valueExists(keyPath + L"\\FxProperties", mfxGuidValueName))
@@ -253,13 +255,13 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 			plan.deleteValue(keyPath + L"\\FxProperties", gfxGuidValueName);
 		if (selectedInstallState.installPreMix)
 		{
-			plan.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
+			plan.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
 				plan.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
 		}
 		if (selectedInstallState.installPostMix && !input)
 		{
-			plan.writeValue(keyPath + L"\\FxProperties", mfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+			plan.writeValue(keyPath + L"\\FxProperties", mfxGuidValueName, winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", mfxProcessingModesValueName))
 				plan.writeMultiValue(keyPath + L"\\FxProperties", mfxProcessingModesValueName, defaultProcessingModeValue);
 		}
@@ -273,14 +275,14 @@ void DeviceAPOInfo::installWithin(RegistryTransaction& plan)
 			plan.deleteValue(keyPath + L"\\FxProperties", gfxGuidValueName);
 		if (selectedInstallState.installPreMix)
 		{
-			plan.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID));
+			plan.writeValue(keyPath + L"\\FxProperties", sfxGuidValueName, winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", sfxProcessingModesValueName))
 				plan.writeMultiValue(keyPath + L"\\FxProperties", sfxProcessingModesValueName, defaultProcessingModeValue);
 		}
 		// don't change mfx
 		if (selectedInstallState.installPostMix && !input)
 		{
-			plan.writeValue(keyPath + L"\\FxProperties", efxGuidValueName, RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID));
+			plan.writeValue(keyPath + L"\\FxProperties", efxGuidValueName, winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID));
 			if (!plan.valueExists(keyPath + L"\\FxProperties", efxProcessingModesValueName))
 				plan.writeMultiValue(keyPath + L"\\FxProperties", efxProcessingModesValueName, defaultProcessingModeValue);
 		}

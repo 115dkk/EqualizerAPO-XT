@@ -18,16 +18,17 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>
 
 #include <cstdio>
 
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
-#include "audio/ChannelHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "audio/ChannelLayout.h"
 #include "CopyFilter.h"
 #include "diagnostics/performance/PerfProfile.h"
 
@@ -53,7 +54,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 	for (const Assignment& a : assignments)
 	{
 		wstring channelName = a.targetChannel;
-		int channelIndex = ChannelHelper::getChannelIndex(a.targetChannel, channelNames, true);
+		int channelIndex = ChannelLayout::getChannelIndex(a.targetChannel, channelNames, true);
 		if (channelIndex != -1)
 			channelName = channelNames[channelIndex];
 		vector<wstring>::const_iterator it = find(outChannelNames.begin(), outChannelNames.end(), channelName);
@@ -68,7 +69,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 		{
 			int sourceChannel;
 			if (s.channel != L"")
-				sourceChannel = ChannelHelper::getChannelIndex(s.channel, channelNames);
+				sourceChannel = ChannelLayout::getChannelIndex(s.channel, channelNames);
 			else
 				sourceChannel = -1;
 
@@ -185,12 +186,12 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 	// copy_crossfeed regression reference pins this exact grammar.
 	vector<Assignment> assignments;
 
-	vector<wstring> assignmentStrings = StringHelper::split(parameters, L' ');
+	vector<wstring> assignmentStrings = text::split(parameters, L' ');
 	for (vector<wstring>::iterator it = assignmentStrings.begin(); it != assignmentStrings.end(); it++)
 	{
 		Assignment assignment;
 
-		vector<wstring> parts = StringHelper::split(*it, L'=');
+		vector<wstring> parts = text::split(*it, L'=');
 		if (parts.size() == 2)
 		{
 			wstring target = parts[0];
@@ -198,11 +199,11 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 
 			assignment.targetChannel = target;
 
-			vector<wstring> summands = StringHelper::split(source, '+');
+			vector<wstring> summands = text::split(source, '+');
 			bool validAssignment = true;
 			for (vector<wstring>::iterator it2 = summands.begin(); it2 != summands.end(); it2++)
 			{
-				vector<wstring> factors = StringHelper::split(*it2, '*');
+				vector<wstring> factors = text::split(*it2, '*');
 				wstring factor;
 				wstring channel;
 				if (factors.size() == 2)
@@ -228,8 +229,8 @@ std::vector<Assignment> parseCopyAssignments(const wstring& parameters)
 				{
 					// Audit #250 F015: BiQuad/Preamp/Delay normalize the decimal
 					// comma; a raw wcstod here silently truncated "0,5" to 0.
-					summand.factor = wcstod(StringHelper::normalizeDecimalComma(factor).c_str(), nullptr);
-					summand.isDecibel = factor.size() > 2 && StringHelper::toLowerCase(factor.substr(factor.size() - 2)) == L"db";
+					summand.factor = wcstod(numeric_text::normalizeDecimalComma(factor).c_str(), nullptr);
+					summand.isDecibel = factor.size() > 2 && text::toLower(factor.substr(factor.size() - 2)) == L"db";
 					const double linearFactor = summand.isDecibel
 						? pow(10.0, summand.factor / 20.0) : summand.factor;
 					if (!std::isfinite(summand.factor) || !std::isfinite(linearFactor))
@@ -346,7 +347,7 @@ void propagateCopyChannels(const vector<Assignment>& assignments, vector<wstring
 		if (!hasSummand)
 			continue;
 
-		if (ChannelHelper::getChannelIndex(assignment.targetChannel, channelNames, true) == -1)
+		if (ChannelLayout::getChannelIndex(assignment.targetChannel, channelNames, true) == -1)
 			channelNames.push_back(assignment.targetChannel);
 	}
 }

@@ -23,7 +23,7 @@
 #include <vector>
 
 // Deliberately no <windows.h> here, and that is the whole point of this file.
-// RegistryHelper.h has to pull the Win32 headers in because openKey takes a
+// WindowsRegistry.h has to pull the Win32 headers in because openKey takes a
 // REGSAM and returns a handle wrapper; every translation unit that wants to talk
 // to the registry therefore inherits the Win32 macro soup. This port names only
 // the operations the device layer performs, all of which are expressible in
@@ -46,10 +46,10 @@
 // first. A port that could only describe the forward direction would leave the
 // rollback guessing.
 //
-// RegistryHelper keeps the rest (openKey, formatExportHeader) plus getGuidString,
-// which is not a registry operation at all. The other two that were not - the
-// Windows version probe and the file access check - have since moved to
-// platform/windows/WindowsVersion.h and services/security/AudioEngineAccess.h.
+// WindowsRegistry keeps the live adapter operations that expose Win32 handles
+// (openKey) or registry export syntax (formatExportHeader). GUID formatting,
+// registry paths, the Windows version probe, and file access checks live in
+// their own vocabulary or platform modules.
 //
 // CONTRACT - read this before writing a fake, because the real implementation's
 // failure behaviour is what the install and uninstall code is built around.
@@ -59,9 +59,9 @@
 //    case-insensitively. A path with no backslash, or an unrecognized root,
 //    is an error, not a miss. All access goes through the 64-bit registry view.
 //
-//  * Errors are reported by throwing RegistryException (declared in
-//    services/registry/RegistryHelper.h - include that header to catch it). It does not
-//    derive from std::exception, so catch(...) or catch(const RegistryException&)
+//  * Errors are reported by throwing RegistryError (declared in
+//    services/registry/RegistryError.h). It does not
+//    derive from std::exception, so catch(...) or catch(const RegistryError&)
 //    are the only things that will stop it.
 //
 //  * A missing key is an exception, not an empty result, for every operation

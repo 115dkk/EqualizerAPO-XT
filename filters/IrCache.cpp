@@ -26,8 +26,8 @@
 #include <unordered_map>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
 #include "runtime/concurrency/ParallelExecutor.h"
 #include "audio/io/SndfileRAII.h"
 #include "IrCache.h"
@@ -220,7 +220,7 @@ HConvSingleArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sou
 		return result;
 
 	fftw_make_planner_thread_safe();
-	auto allocated = MemoryHelper::allocateArray<HConvSingle>(sources.size());
+	auto allocated = AlignedMemory::allocateArray<HConvSingle>(sources.size());
 	if (allocated == nullptr)
 	{
 		LogFStatic(L"Could not allocate %zu convolution unit(s)", sources.size());

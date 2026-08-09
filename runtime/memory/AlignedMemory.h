@@ -34,7 +34,7 @@
 #define AVRT_CODE_END
 #endif
 
-class MemoryHelper
+class AlignedMemory
 {
 public:
 	template<class T>
@@ -42,7 +42,7 @@ public:
 	{
 		void operator()(T* ptr) const noexcept
 		{
-			MemoryHelper::free(ptr);
+			AlignedMemory::free(ptr);
 		}
 	};
 
@@ -51,7 +51,7 @@ public:
 	{
 		void operator()(T* ptr) const noexcept
 		{
-			MemoryHelper::destroy(ptr);
+			AlignedMemory::destroy(ptr);
 		}
 	};
 
@@ -65,7 +65,7 @@ public:
 	static void free(void* ptr);
 	// Deterministic failure injection for allocation-path tests. Passing N lets
 	// N subsequent allocations succeed and makes the following allocation fail;
-	// resetAllocationFailureForTesting() restores normal operation. MemoryHelper
+	// resetAllocationFailureForTesting() restores normal operation. AlignedMemory
 	// is used only while filters/configurations are prepared, never in AVRT_CODE.
 	static void failAllocationAfterForTesting(size_t successfulAllocations) noexcept;
 	static void resetAllocationFailureForTesting() noexcept;

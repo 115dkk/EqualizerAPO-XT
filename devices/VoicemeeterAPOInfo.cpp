@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "services/registry/RegistryPaths.h"
 #include <ShlObj.h>
 #include <fstream>
 #include <algorithm>
@@ -26,9 +28,8 @@
 #include <TlHelp32.h>
 #include <Winternl.h>
 #include "platform/windows/ComPtr.h"
-#include "services/logging/LogHelper.h"
-#include "services/registry/RegistryHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
+#include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
 #include "VoicemeeterAPOInfo.h"
 
@@ -70,7 +71,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list,
 	{
 		size_t index = voicemeeterDirectory.find_last_of(L'\\');
 
-		wstring setupFilename = StringHelper::toLowerCase(voicemeeterDirectory.substr(index + 1));
+		wstring setupFilename = text::toLower(voicemeeterDirectory.substr(index + 1));
 		long voicemeeterType = 1;
 		if (setupFilename == L"voicemeeterprosetup.exe")
 			voicemeeterType = 2;// banana
@@ -152,7 +153,7 @@ VoicemeeterAPOInfo::VoicemeeterAPOInfo(const wstring& connectionName, bool voice
 		if (registry.keyExists(voicemeeterClientKeyPath) && registry.valueExists(voicemeeterClientKeyPath, sampleRateValueName))
 			sampleRate = (unsigned)registry.readDWORDValue(voicemeeterClientKeyPath, sampleRateValueName);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		// ignore
 	}
@@ -419,11 +420,11 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	winutil::UniqueHandle tokenHandle;
 	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
 		tokenHandle.put()))
-		throw RegistryException(L"Error in OpenProcessToken while taking ownership");
+		throw RegistryError(L"Error in OpenProcessToken while taking ownership");
 
 	LUID luid;
 	if (!LookupPrivilegeValue(nullptr, SE_DEBUG_NAME, &luid))
-		throw RegistryException(L"Error in LookupPrivilegeValue while taking ownership");
+		throw RegistryError(L"Error in LookupPrivilegeValue while taking ownership");
 
 	TOKEN_PRIVILEGES tp;
 	tp.PrivilegeCount = 1;
@@ -432,7 +433,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 
 	if (!AdjustTokenPrivileges(tokenHandle.get(), FALSE, &tp,
 		sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
-		throw RegistryException(L"Error in AdjustTokenPrivileges while taking ownership");
+		throw RegistryError(L"Error in AdjustTokenPrivileges while taking ownership");
 
 	winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
 	if (!module)
@@ -510,7 +511,7 @@ void VoicemeeterAPOInfo::saveVoicemeeterSampleRate(unsigned sampleRate, IRegistr
 		registry.createKey(voicemeeterClientKeyPath);
 		registry.writeDWORDValue(voicemeeterClientKeyPath, sampleRateValueName, sampleRate);
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		// ignore
 	}

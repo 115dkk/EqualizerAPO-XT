@@ -18,14 +18,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <regex>
 #include <sstream>
 
-#include "runtime/memory/MemoryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "IIRFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "IIRFilterFactory.h"
@@ -73,7 +74,7 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 		return false;
 
 	wstring coefficientsString = match.str(1);
-	vector<wstring> coefficientStrings = StringHelper::split(coefficientsString, L' ');
+	vector<wstring> coefficientStrings = text::split(coefficientsString, L' ');
 	if (coefficientStrings.size() != (order + 1) * 2)
 	{
 		LogFStatic(L"Invalid number of coefficients. Expected %d coefficients instead of %d", (order + 1) * 2, coefficientStrings.size());
@@ -84,7 +85,7 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 	out.coefficients.clear();
 	for (const wstring& coefficientString : coefficientStrings)
 	{
-		double coefficient = StringHelper::parseDouble(coefficientString);
+		double coefficient = numeric_text::parseDouble(coefficientString);
 		if (!std::isfinite(coefficient))
 		{
 			LogFStatic(L"IIR coefficients must be finite");

@@ -4,26 +4,26 @@
     <ClInclude Include="VoicemeeterClient.h" />
     <ClInclude Include="..\stdafx.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="..\runtime\memory\MemoryHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="..\runtime\memory\AlignedMemory.h">
+      <Filter>shared modules</Filter>
     </ClInclude>
     <ClInclude Include="..\runtime\concurrency\SynchronizedState.h">
-      <Filter>helpers</Filter>
+      <Filter>shared modules</Filter>
     </ClInclude>
     <ClInclude Include="VoicemeeterRemote.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VoicemeeterClient.cpp" />
     <ClCompile Include="..\stdafx.cpp" />
-    <ClCompile Include="..\runtime\memory\MemoryHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\runtime\memory\AlignedMemory.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VoicemeeterClient.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="helpers">
+    <Filter Include="shared modules">
       <UniqueIdentifier>{eb32c27d-e4c2-4cad-a72d-b798d4514714}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

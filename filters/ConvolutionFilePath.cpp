@@ -1,10 +1,10 @@
 ﻿#include "stdafx.h"
 
 #include <filesystem>
+#include "text/WideString.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "text/StringHelper.h"
 #include "ConvolutionFilePath.h"
 
 using std::wstring;
@@ -37,7 +37,7 @@ wstring expandEnvironmentStrings(const wstring& value)
 
 wstring ConvolutionFilePath::normalizeParameter(const wstring& parameters)
 {
-	return expandEnvironmentStrings(unquote(StringHelper::trim(parameters)));
+	return expandEnvironmentStrings(unquote(text::trim(parameters)));
 }
 
 wstring ConvolutionFilePath::resolve(const wstring& configPath, const wstring& parameters)

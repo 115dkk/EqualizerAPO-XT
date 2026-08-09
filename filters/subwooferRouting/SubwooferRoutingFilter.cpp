@@ -17,6 +17,8 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #include "SubwooferRoutingFilter.h"
 
 #include <algorithm>
@@ -26,9 +28,8 @@
 #include <vector>
 
 #include "SubwooferRouting/Compiler.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
-#include "text/StringHelper.h"
 #include "SubwooferRoutingCommand.h"
 
 namespace
@@ -37,7 +38,7 @@ constexpr unsigned Utf8CodePage = 65001;
 
 std::wstring fromUtf8(const std::string& text)
 {
-	return StringHelper::toWString(text, Utf8CodePage);
+	return wintext::toWideString(text, Utf8CodePage);
 }
 
 const subroute::ValidationDiagnostic* firstValidationError(

@@ -20,9 +20,9 @@
 #pragma once
 
 #include <string>
+#include "text/WideString.h"
 #include <unordered_map>
 
-#include "text/StringHelper.h"
 
 // Plain description of a parsed "VSTPlugin:" config line. It holds exactly the
 // three things VSTPluginFilterFactory::createFilter extracts from the parameter
@@ -52,7 +52,7 @@ struct VSTPluginCommand
 	// references while copying only the config and its portable dependencies.
 	static std::wstring extractLibraryReference(const std::wstring& parameters)
 	{
-		const std::vector<std::wstring> parts = StringHelper::splitQuoted(parameters, L' ');
+		const std::vector<std::wstring> parts = text::splitQuoted(parameters, L' ');
 		for (size_t i = 0; i + 1 < parts.size(); i += 2)
 		{
 			if (parts[i] == L"Library")

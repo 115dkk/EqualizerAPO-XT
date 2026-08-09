@@ -18,11 +18,12 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 #include <sstream>
 
-#include "runtime/memory/MemoryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "DelayFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "DelayFilterFactory.h"
@@ -39,7 +40,7 @@ bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameter
 		return false;
 
 	// Conversion to period as decimal mark, if needed
-	wstring value = StringHelper::normalizeDecimalComma(parameters);
+	wstring value = numeric_text::normalizeDecimalComma(parameters);
 
 	double delay = -1;
 	wstring unit;
@@ -54,11 +55,11 @@ bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameter
 	// and reject the command so no DelayFilter is built.
 	if (delay == 0.0)
 	{
-		TraceFStatic(L"Skipping no-op delay (0 %s)", StringHelper::toLowerCase(unit).c_str());
+		TraceFStatic(L"Skipping no-op delay (0 %s)", text::toLower(unit).c_str());
 		return false;
 	}
 
-	if (StringHelper::toLowerCase(unit) == L"ms")
+	if (text::toLower(unit) == L"ms")
 	{
 		TraceFStatic(L"Delaying by %g ms", delay);
 		out.delay = delay;
@@ -66,7 +67,7 @@ bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameter
 		return true;
 	}
 
-	if (StringHelper::toLowerCase(unit) == L"samples")
+	if (text::toLower(unit) == L"samples")
 	{
 		TraceFStatic(L"Delaying by %g samples", delay);
 		out.delay = delay;

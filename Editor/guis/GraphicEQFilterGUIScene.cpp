@@ -356,7 +356,7 @@ void GraphicEQFilterGUIScene::setBandCount(int value)
 		if (!bands.empty())
 		{
 			vector<FilterNode> newNodes;
-			GainIterator gainIterator(nodes);
+			GainCurveIterator gainIterator(nodes);
 			for (double band : bands)
 			{
 				double dbGain = gainIterator.gainAt(band);

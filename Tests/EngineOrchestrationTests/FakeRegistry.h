@@ -12,7 +12,7 @@
 	ownership because createKey threw, uninstall() keeps a key because
 	deleteKey would have thrown - so a fake that is merely convenient would
 	report those branches as untestable or, worse, as dead. Every rule below is
-	taken from services/registry/RegistryHelper.cpp and repeated here on purpose:
+	taken from services/registry/WindowsRegistry.cpp and repeated here on purpose:
 
 	  * A malformed path (no backslash, unknown root) is an error even for
 	    keyExists, because the real keyExists calls splitKey first.
@@ -74,9 +74,9 @@
 #include <vector>
 
 #include "services/registry/IRegistry.h"
-// For RegistryException: the port throws it, and callers up to and including
+// For RegistryError: the port throws it, and callers up to and including
 // DeviceAPOInfo::load catch it by that type.
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 
 namespace test
 {
@@ -222,7 +222,7 @@ public:
 	{
 		const Value& value = requireValue(key, valuename);
 		if (value.type != Value::Type::String)
-			throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
+			throw RegistryError(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
 		return value.stringValue;
 	}
 
@@ -230,7 +230,7 @@ public:
 	{
 		const Value& value = requireValue(key, valuename);
 		if (value.type != Value::Type::Dword)
-			throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
+			throw RegistryError(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
 		return value.dwordValue;
 	}
 
@@ -238,7 +238,7 @@ public:
 	{
 		const Value& value = requireValue(key, valuename);
 		if (value.type != Value::Type::MultiString)
-			throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
+			throw RegistryError(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
 		return value.multiValue;
 	}
 
@@ -246,7 +246,7 @@ public:
 	{
 		const Value& value = requireValue(key, valuename);
 		if (value.type != Value::Type::Binary)
-			throw RegistryException(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
+			throw RegistryError(L"Registry value " + key + L"\\" + valuename + L" has wrong type");
 		return value.binaryValue;
 	}
 
@@ -343,7 +343,7 @@ public:
 		requireWritableValue(key, valuename);
 		ValueMap::iterator it = values.find(valuename);
 		if (it == values.end())
-			throw RegistryException(L"Error while deleting registry value " + key + L"\\" + valuename + L": not found");
+			throw RegistryError(L"Error while deleting registry value " + key + L"\\" + valuename + L": not found");
 		values.erase(it);
 	}
 
@@ -351,7 +351,7 @@ public:
 	{
 		requireWellFormed(key);
 		if (deniedCreateKeys_.find(key) != deniedCreateKeys_.end())
-			throw RegistryException(L"Error while creating registry key " + key + L": access is denied");
+			throw RegistryError(L"Error while creating registry key " + key + L": access is denied");
 		ensureKey(key);
 	}
 
@@ -363,7 +363,7 @@ public:
 		// live uninstall failure (issue #189), so the fake has to refuse too or
 		// the keyEmpty guard in uninstall() would look pointless.
 		if (hasSubKeys(key))
-			throw RegistryException(L"Error while deleting registry key " + key + L": the key has subkeys");
+			throw RegistryError(L"Error while deleting registry key " + key + L": the key has subkeys");
 		keys_.erase(key);
 	}
 
@@ -413,13 +413,13 @@ private:
 		return text.size() > prefix.size() && equalNames(text.substr(0, prefix.size()), prefix);
 	}
 
-	// Mirrors RegistryHelper::splitKey: the root has to be there and has to be
+	// Mirrors WindowsRegistry::splitKey: the root has to be there and has to be
 	// one of the five, or it is a format error rather than a miss.
 	static void requireWellFormed(const std::wstring& key)
 	{
 		const size_t separator = key.find(L'\\');
 		if (separator == std::wstring::npos)
-			throw RegistryException(L"Key " + key + L" has invalid format");
+			throw RegistryError(L"Key " + key + L" has invalid format");
 
 		const std::wstring root = key.substr(0, separator);
 		for (const wchar_t* known : {L"HKEY_CLASSES_ROOT", L"HKEY_CURRENT_CONFIG", L"HKEY_CURRENT_USER",
@@ -429,7 +429,7 @@ private:
 				return;
 		}
 
-		throw RegistryException(L"Unknown root key " + root);
+		throw RegistryError(L"Unknown root key " + root);
 	}
 
 	const ValueMap& requireKey(const std::wstring& key) const
@@ -437,9 +437,9 @@ private:
 		requireWellFormed(key);
 		std::map<std::wstring, ValueMap, CaseInsensitiveLess>::const_iterator it = keys_.find(key);
 		if (it == keys_.end())
-			throw RegistryException(L"Error while opening registry key " + key + L": the system cannot find the file specified");
+			throw RegistryError(L"Error while opening registry key " + key + L": the system cannot find the file specified");
 		if (deniedReadKeys_.find(key) != deniedReadKeys_.end())
-			throw RegistryException(L"Error while opening registry key " + key + L": access is denied");
+			throw RegistryError(L"Error while opening registry key " + key + L": access is denied");
 		return it->second;
 	}
 
@@ -455,7 +455,7 @@ private:
 	void requireWritableValue(const std::wstring& key, const std::wstring& valuename) const
 	{
 		if (failedValueWrites_.find(key + L"\\" + valuename) != failedValueWrites_.end())
-			throw RegistryException(L"Error while writing registry value " + key + L"\\" + valuename + L": access is denied");
+			throw RegistryError(L"Error while writing registry value " + key + L"\\" + valuename + L": access is denied");
 	}
 
 	// The write-side counterpart. Separate only so the const reads cannot reach
@@ -465,7 +465,7 @@ private:
 		requireWellFormed(key);
 		std::map<std::wstring, ValueMap, CaseInsensitiveLess>::iterator it = keys_.find(key);
 		if (it == keys_.end())
-			throw RegistryException(L"Error while opening registry key " + key + L": the system cannot find the file specified");
+			throw RegistryError(L"Error while opening registry key " + key + L": the system cannot find the file specified");
 		return it->second;
 	}
 
@@ -487,7 +487,7 @@ private:
 		const ValueMap& values = requireKey(key);
 		ValueMap::const_iterator it = values.find(valuename);
 		if (it == values.end())
-			throw RegistryException(L"Error while reading registry value " + key + L"\\" + valuename + L": not found");
+			throw RegistryError(L"Error while reading registry value " + key + L"\\" + valuename + L": not found");
 		return it->second;
 	}
 

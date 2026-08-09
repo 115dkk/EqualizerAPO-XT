@@ -1,4 +1,5 @@
 #include <sstream>
+#include "services/registry/RegistryPaths.h"
 #include <QDrag>
 #include <QElapsedTimer>
 #include <QLabel>
@@ -19,9 +20,8 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
-#include "audio/ChannelHelper.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/EditorSettings.h"

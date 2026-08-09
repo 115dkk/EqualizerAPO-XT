@@ -18,9 +18,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "stdafx.h"
-#include "runtime/memory/MemoryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "CopyFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "CopyFilterFactory.h"

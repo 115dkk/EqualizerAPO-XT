@@ -20,7 +20,7 @@
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/MultiConvolutionFilter.h"
 #include "audio/io/SndfileRAII.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "diagnostics/performance/PerfProfile.h"
 #include "Tests/TestHarness.h"
 
@@ -80,7 +80,7 @@ void assertMismatchIsLoggedAndProfiled()
 		harness.fail("could not create mismatch log capture");
 		return;
 	}
-	LogHelper::useStream(logFile, false, true, false);
+	Logging::useStream(logFile, false, true, false);
 	PerfProfile::reset();
 	PerfProfile::enable();
 
@@ -114,7 +114,7 @@ void assertMismatchIsLoggedAndProfiled()
 	while (std::fgetws(buffer, static_cast<int>(std::size(buffer)), logFile) != nullptr)
 		log.append(buffer);
 	std::fclose(logFile);
-	LogHelper::useStream(stdout, true, true, false);
+	Logging::useStream(stdout, true, true, false);
 
 	// Audit #250 F058t: the marker is the filter's own constant, so a
 	// wording edit cannot silently detach this assertion from the code.
@@ -138,7 +138,7 @@ void assertConvolutionMismatchIsLogged()
 		harness.fail("could not create convolution mismatch log capture");
 		return;
 	}
-	LogHelper::useStream(logFile, false, true, false);
+	Logging::useStream(logFile, false, true, false);
 
 	{
 		vector<double> ir(frameLength, 0.0);
@@ -165,7 +165,7 @@ void assertConvolutionMismatchIsLogged()
 	while (std::fgetws(buffer, static_cast<int>(std::size(buffer)), logFile) != nullptr)
 		log.append(buffer);
 	std::fclose(logFile);
-	LogHelper::useStream(stdout, true, true, false);
+	Logging::useStream(stdout, true, true, false);
 
 	const std::wstring marker = ConvolutionFilter::kFrameCountMismatchLogPrefix;
 	const size_t first = log.find(marker);

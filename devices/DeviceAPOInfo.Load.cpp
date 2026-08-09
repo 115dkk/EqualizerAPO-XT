@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <mmreg.h>
@@ -9,8 +11,7 @@
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
 
-#include "text/StringHelper.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "platform/windows/WindowsVersion.h"
 
 using std::make_shared;
@@ -103,7 +104,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 			if (registry.valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
 			{
 				wstring originalApoGuid = registry.readValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
-				if (originalApoGuid == RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID) || originalApoGuid == RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID))
+				if (originalApoGuid == winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID) || originalApoGuid == winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID))
 					originalApoGuid = APOGUID_NOVALUE;
 				originalApoGuids[i] = originalApoGuid;
 			}
@@ -145,7 +146,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 				{
 					version = registry.readValue(childApoPath L"\\" + deviceGuid, versionValueName);
 					if (version != installVersion)
-						throw RegistryException(L"Unsupported version of APO installation detected! Please uninstall newer Equalizer APO before using this version of Device Selector.");
+						throw RegistryError(L"Unsupported version of APO installation detected! Please uninstall newer Equalizer APO before using this version of Device Selector.");
 				}
 				else
 				{

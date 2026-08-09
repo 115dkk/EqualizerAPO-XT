@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include <Imagehlp.h>
 #include "AbstractLibrary.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 
 using std::wstring;
 

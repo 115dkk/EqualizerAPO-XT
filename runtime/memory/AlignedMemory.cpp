@@ -27,8 +27,8 @@
 #include <crtdbg.h>
 #endif
 
-#include "services/logging/LogHelper.h"
-#include "runtime/memory/MemoryHelper.h"
+#include "services/logging/Logging.h"
+#include "runtime/memory/AlignedMemory.h"
 
 namespace
 {
@@ -37,7 +37,7 @@ namespace
 	// Deliberately not guarded by _DEBUG: CI builds and runs Release only, so a
 	// debug-only counter would leave the observing test with nothing to read.
 	// Atomic because configuration preparation can run on several threads at
-	// once (MemoryHelper never runs in AVRT_CODE, so the interlocked increment
+	// once (AlignedMemory never runs in AVRT_CODE, so the interlocked increment
 	// costs nothing on any path where cost matters). Relaxed ordering matches
 	// allocationFailureCountdown: the counters carry no data, and the test
 	// reads them after the work it measures has finished.
@@ -45,7 +45,7 @@ namespace
 	std::atomic<size_t> completedFreeCount{ 0 };
 }
 
-void* MemoryHelper::alloc(size_t size)
+void* AlignedMemory::alloc(size_t size)
 {
 	size_t remaining = allocationFailureCountdown.load(std::memory_order_relaxed);
 	while (remaining != allocationFailureDisabled)
@@ -75,33 +75,33 @@ void* MemoryHelper::alloc(size_t size)
 	return memory;
 }
 
-void MemoryHelper::failAllocationAfterForTesting(size_t successfulAllocations) noexcept
+void AlignedMemory::failAllocationAfterForTesting(size_t successfulAllocations) noexcept
 {
 	allocationFailureCountdown.store(successfulAllocations, std::memory_order_relaxed);
 }
 
-void MemoryHelper::resetAllocationFailureForTesting() noexcept
+void AlignedMemory::resetAllocationFailureForTesting() noexcept
 {
 	allocationFailureCountdown.store(allocationFailureDisabled, std::memory_order_relaxed);
 }
 
-size_t MemoryHelper::allocationCountForTesting() noexcept
+size_t AlignedMemory::allocationCountForTesting() noexcept
 {
 	return successfulAllocationCount.load(std::memory_order_relaxed);
 }
 
-size_t MemoryHelper::freeCountForTesting() noexcept
+size_t AlignedMemory::freeCountForTesting() noexcept
 {
 	return completedFreeCount.load(std::memory_order_relaxed);
 }
 
-void MemoryHelper::resetAllocationCountsForTesting() noexcept
+void AlignedMemory::resetAllocationCountsForTesting() noexcept
 {
 	successfulAllocationCount.store(0, std::memory_order_relaxed);
 	completedFreeCount.store(0, std::memory_order_relaxed);
 }
 
-void MemoryHelper::free(void* ptr)
+void AlignedMemory::free(void* ptr)
 {
 	// A null free is a no-op, so counting it would make the two totals
 	// incomparable: a failed alloc() returns null and is not counted either.

@@ -3,13 +3,14 @@
 */
 
 #include "LegacyMigration.h"
+#include "services/registry/RegistryPaths.h"
 #include "LegacyMigrationPolicy.h"
 #include "ConfigDependencyScanner.h"
 #include "ImportExecutor.h"
 
 #include "services/install/ApoRegistration.h"
-#include "services/logging/LogHelper.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/logging/Logging.h"
+#include "services/registry/WindowsRegistry.h"
 
 #include <cstdio>
 
@@ -32,10 +33,10 @@ QString readRegistryString(const wchar_t* name)
 {
     try
     {
-        if (RegistryHelper::valueExists(APP_REGPATH, name))
-            return QString::fromStdWString(RegistryHelper::readValue(APP_REGPATH, name));
+        if (WindowsRegistry::valueExists(APP_REGPATH, name))
+            return QString::fromStdWString(WindowsRegistry::readValue(APP_REGPATH, name));
     }
-    catch (const RegistryException&)
+    catch (const RegistryError&)
     {
     }
     return QString();
@@ -85,10 +86,10 @@ void seedMissingSamples(const QString& shippedConfigDir, const QString& targetDi
 
 void writeMigrationBreadcrumbs(const QString& from, int filesCopied)
 {
-    RegistryHelper::writeValue(APP_REGPATH, L"MigratedFrom", from.toStdWString());
-    RegistryHelper::writeValue(APP_REGPATH, L"MigrationStamp",
+    WindowsRegistry::writeValue(APP_REGPATH, L"MigratedFrom", from.toStdWString());
+    WindowsRegistry::writeValue(APP_REGPATH, L"MigrationStamp",
         QDateTime::currentDateTime().toString(Qt::ISODate).toStdWString());
-    RegistryHelper::writeDWORDValue(APP_REGPATH, L"MigratedFiles", static_cast<unsigned long>(filesCopied));
+    WindowsRegistry::writeDWORDValue(APP_REGPATH, L"MigratedFiles", static_cast<unsigned long>(filesCopied));
 }
 
 }
@@ -151,7 +152,7 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
         case LegacyMigrationPolicy::Action::AlreadyOurs:
             break;
         case LegacyMigrationPolicy::Action::AdoptStableRoot:
-            RegistryHelper::writeValue(APP_REGPATH, L"ConfigPath",
+            WindowsRegistry::writeValue(APP_REGPATH, L"ConfigPath",
                 QDir::toNativeSeparators(stableRoot).toStdWString());
             LogFStatic(L"Migration: ConfigPath adopted %s",
                 reinterpret_cast<const wchar_t*>(stableRoot.utf16()));
@@ -181,7 +182,7 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
                 LogFStatic(L"Migration: legacy dir %s has no config.txt, repointing without import",
                     reinterpret_cast<const wchar_t*>(existing.utf16()));
             }
-            RegistryHelper::writeValue(APP_REGPATH, L"ConfigPath",
+            WindowsRegistry::writeValue(APP_REGPATH, L"ConfigPath",
                 QDir::toNativeSeparators(stableRoot).toStdWString());
             writeMigrationBreadcrumbs(existing, copied);
             LogFStatic(L"Migration: imported %d file(s) from legacy %s",
@@ -195,7 +196,7 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
             // folder is rescued, not just what config.txt references.
             const int copied = QDir(existing).exists()
                 ? copyTreeOverwriting(existing, stableRoot) : 0;
-            RegistryHelper::writeValue(APP_REGPATH, L"ConfigPath",
+            WindowsRegistry::writeValue(APP_REGPATH, L"ConfigPath",
                 QDir::toNativeSeparators(stableRoot).toStdWString());
             writeMigrationBreadcrumbs(existing, copied);
             LogFStatic(L"Migration: rescued %d file(s) from volatile %s",
@@ -206,7 +207,7 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
             break;
         }
     }
-    catch (const RegistryException& e)
+    catch (const RegistryError& e)
     {
         LogFStatic(L"Migration: registry write failed: %s", e.getMessage().c_str());
         return;

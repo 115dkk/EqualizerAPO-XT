@@ -30,10 +30,10 @@
 */
 
 #include <set>
+#include "text/WideString.h"
 #include <string>
 
 #include "filters/FilterFactoryRegistry.h"
-#include "text/StringHelper.h"
 #include "Tests/TestHarness.h"
 
 using std::set;
@@ -182,11 +182,11 @@ void testEveryRegisteredKeywordRoundTrips()
 		// The guards skip a keyword that is already single-case or whose folded
 		// form is itself registered, which would make the expectation wrong
 		// rather than merely unmet.
-		const wstring lowered = StringHelper::toLowerCase(keyword);
+		const wstring lowered = text::toLower(keyword);
 		if (lowered != keyword && commands.count(lowered) == 0)
 			expectCanonical(lowered, wstring(), "a lower-cased keyword is prose, the way 1.4.2 leaves \"copy: a note\" inert");
 
-		const wstring uppered = StringHelper::toUpperCase(keyword);
+		const wstring uppered = text::toUpper(keyword);
 		if (uppered != keyword && commands.count(uppered) == 0)
 			expectCanonical(uppered, wstring(), "an upper-cased keyword is prose for the same 1.4.2 reason");
 	}

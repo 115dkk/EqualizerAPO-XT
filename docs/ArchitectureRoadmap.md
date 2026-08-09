@@ -84,7 +84,7 @@ Editor 의 6개 호출 지점이 같은 마스크 비교를 각자 적던 것은
 승격 가정은 이제 로그로 드러납니다. 승격 없이 도는 훅을 거부하지는 않습니다.
 설치기가 부르는 훅이라 거부하면 Windows 가 마칠 수 있는 설치까지 깨뜨립니다.
 
-S5c 는 그 침묵을 없앴습니다. `devices/`·`RegistryHelper`·`ServiceHelper`·`DeviceSelector.cpp` 를 합쳐
+S5c 는 그 침묵을 없앴습니다. `devices/`·`WindowsRegistry`·`WindowsServiceControl`·`DeviceSelector.cpp` 를 합쳐
 약 950줄에 로그 호출이 0개였습니다. 설치를 실제로 수행하는 DeviceSelector 가 로그 파일을 아예 열지 않았으니
 사용자가 설치 실패를 신고해도 읽을 것이 없었습니다.
 

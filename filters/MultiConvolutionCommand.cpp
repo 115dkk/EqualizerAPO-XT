@@ -17,12 +17,13 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 
 #include <cwctype>
 
 #include "MultiConvolutionCommand.h"
 
-#include "text/StringHelper.h"
 
 namespace
 {
@@ -82,14 +83,14 @@ bool parseSummand(const std::wstring& word, MultiConvolutionCommand::IrChannelRe
 
 	std::wstring factorText = word.substr(0, star);
 	bool isDecibel = false;
-	if (factorText.size() > 2 && StringHelper::toLowerCase(factorText.substr(factorText.size() - 2)) == L"db")
+	if (factorText.size() > 2 && text::toLower(factorText.substr(factorText.size() - 2)) == L"db")
 	{
 		isDecibel = true;
 		factorText.resize(factorText.size() - 2);
 	}
 
 	// Audit #250 F015: accept the decimal comma like the BiQuad family.
-	factorText = StringHelper::normalizeDecimalComma(factorText);
+	factorText = numeric_text::normalizeDecimalComma(factorText);
 
 	// The factor must be a complete number: a partial parse means the word was
 	// not a summand (e.g. a stray file name), not a factor with trailing junk.
@@ -167,7 +168,7 @@ bool MultiConvolutionCommand::parse(const std::wstring& command, const std::wstr
 	if (command != L"MultiConvolution")
 		return false;
 
-	const std::wstring trimmed = StringHelper::trim(parameters);
+	const std::wstring trimmed = text::trim(parameters);
 
 	std::vector<Mapping> mappings;
 	size_t pos = 0;
@@ -236,7 +237,7 @@ bool MultiConvolutionCommand::parse(const std::wstring& command, const std::wstr
 			return false;
 
 		std::wstring target = trimmed.substr(0, space);
-		path = StringHelper::trim(trimmed.substr(space + 1));
+		path = text::trim(trimmed.substr(space + 1));
 		if (target.empty() || path.empty())
 			return false;
 
@@ -246,7 +247,7 @@ bool MultiConvolutionCommand::parse(const std::wstring& command, const std::wstr
 	{
 		if (pathStart == std::wstring::npos || pathStart >= trimmed.size())
 			return false;
-		path = StringHelper::trim(trimmed.substr(pathStart));
+		path = text::trim(trimmed.substr(pathStart));
 		if (path.empty())
 			return false;
 	}

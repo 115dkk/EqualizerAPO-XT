@@ -18,9 +18,9 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 #include <mpParser.h>
-#include "services/logging/LogHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
 #ifndef NO_FILTERENGINE
 #include "engine/FilterEngine.h"
 #endif
@@ -59,7 +59,7 @@ FilterVector DeviceFilterFactory::createFilter(const wstring& configPath, wstrin
 	{
 		bool matches = cmd.matches(deviceString);
 
-		TraceF(L"%satching pattern \"%s\" with device \"%s\"", matches ? L"M" : L"Not m", StringHelper::trim(parameters).c_str(), deviceString.c_str());
+		TraceF(L"%satching pattern \"%s\" with device \"%s\"", matches ? L"M" : L"Not m", text::trim(parameters).c_str(), deviceString.c_str());
 		deviceMatches = matches;
 	}
 

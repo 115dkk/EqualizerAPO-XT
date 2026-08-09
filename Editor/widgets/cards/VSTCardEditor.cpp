@@ -7,6 +7,7 @@
 */
 
 #include "VSTCardEditor.h"
+#include "services/registry/RegistryPaths.h"
 
 #include <QAbstractEventDispatcher>
 #include <QAction>
@@ -26,7 +27,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "text/StringHelper.h"
 #include "services/security/AudioEngineAccess.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"

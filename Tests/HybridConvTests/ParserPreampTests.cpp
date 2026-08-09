@@ -23,6 +23,8 @@
 */
 
 #include <string>
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 
 #include "filters/PreampFilterFactory.h"
 #include "filters/PreampCommand.h"
@@ -99,7 +101,7 @@ void runParserPreampTests()
 	harness.expectFalse(nonZero.noOp, "-6 dB should not be a no-op");
 
 	// Comma decimal mark is normalized to a period before parsing, matching the
-	// engine factory (StringHelper::normalizeDecimalComma), and serializes back
+	// engine factory (numeric_text::normalizeDecimalComma), and serializes back
 	// with a period.
 	expectRoundTrip(L"-6,5 dB", -6.5, L"-6.5 dB");
 	// The engine hands over line.substr(pos + 1) without trimming, so the

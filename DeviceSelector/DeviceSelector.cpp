@@ -19,10 +19,10 @@
 
 #include "stdafx.h"
 #include <devices/DeviceAPOInfo.h>
-#include <services/logging/LogHelper.h>
-#include <services/registry/RegistryHelper.h>
+#include <services/logging/Logging.h>
+#include <services/registry/WindowsRegistry.h>
 #include <platform/windows/WindowsVersion.h>
-#include <services/windows/ServiceHelper.h>
+#include <services/windows/WindowsService.h>
 #include <platform/windows/Win32Resource.h>
 #include <QDir>
 #include <QPropertyAnimation>
@@ -52,7 +52,7 @@ DeviceSelector::DeviceSelector(QWidget* parent)
 		std::vector<std::shared_ptr<AbstractAPOInfo>> inputDevices = DeviceAPOInfo::loadAllInfos(true);
 		addDevices(inputDevices, inputNode);
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 	}
@@ -285,7 +285,7 @@ void DeviceSelector::onDialogAccepted()
 						deviceUpdated = true;
 				}
 			}
-			catch (const RegistryException& e)
+			catch (const RegistryError& e)
 			{
 				// The operation put the endpoint back before throwing, and its
 				// report is already in DeviceSelector.log. Two things are added
@@ -304,7 +304,7 @@ void DeviceSelector::onDialogAccepted()
 					message += QLatin1String("\n\n") + tr("The device was left as it was before.");
 				}
 				message += QLatin1String("\n\n") + tr("Details are in %1.")
-					.arg(QDir::toNativeSeparators(QString::fromStdWString(LogHelper::currentPath())));
+					.arg(QDir::toNativeSeparators(QString::fromStdWString(Logging::currentPath())));
 				QMessageBox::critical(this, tr("Error while accessing the registry"), message);
 			}
 		}

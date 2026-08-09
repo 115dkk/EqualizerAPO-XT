@@ -26,9 +26,8 @@
 #include <bcrypt.h>
 
 #include "engine/FilterEngine.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "audio/io/SndfileRAII.h"
-#include "text/StringHelper.h"
 #include "platform/windows/Win32Resource.h"
 #include "Tests/TestHarness.h"
 
@@ -837,7 +836,7 @@ bool runCase(const TestCase& tc, const Options& opts, bool& outFailed)
 
 int runAudioRegressionTests(int argc, char** argv)
 {
-	LogHelper::set(stderr, false, false, false);
+	Logging::set(stderr, false, false, false);
 
 	Options opts = parseOptions(argc, argv);
 

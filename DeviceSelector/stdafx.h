@@ -23,4 +23,4 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include "runtime/lifetime/ScopeGuard.h"
+#include "runtime/lifetime/ScopeExit.h"

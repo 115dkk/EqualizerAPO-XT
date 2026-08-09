@@ -20,6 +20,7 @@
 #pragma once
 
 #include <functional>
+#include "services/registry/RegistryPaths.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -34,7 +35,7 @@
 #include "devices/DeviceAPOInfo.h"
 #include "Editor/AnalysisThread.h"
 #include "Editor/widgets/EqGraphView.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 
 #define EDITOR_PER_FILE_REGPATH EDITOR_REGPATH L"\\file-specific"
 

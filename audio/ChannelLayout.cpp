@@ -24,8 +24,8 @@
 #include <Ks.h>
 #include <KsMedia.h>
 
-#include "services/logging/LogHelper.h"
-#include "audio/ChannelHelper.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 
 using std::find;
 using std::to_wstring;
@@ -33,12 +33,12 @@ using std::unordered_map;
 using std::vector;
 using std::wstring;
 
-unordered_map<wstring, int> ChannelHelper::channelNameToPosMap;
-unordered_map<int, wstring> ChannelHelper::channelPosToNameMap;
+unordered_map<wstring, int> ChannelLayout::channelNameToPosMap;
+unordered_map<int, wstring> ChannelLayout::channelPosToNameMap;
 // must come last, so that the static members are already initialized
-ChannelHelper ChannelHelper::instance;
+ChannelLayout ChannelLayout::instance;
 
-ChannelHelper::ChannelHelper()
+ChannelLayout::ChannelLayout()
 {
 	channelNameToPosMap[L"L"] = SPEAKER_FRONT_LEFT;
 	channelNameToPosMap[L"R"] = SPEAKER_FRONT_RIGHT;
@@ -54,7 +54,7 @@ ChannelHelper::ChannelHelper()
 		channelPosToNameMap[it->second] = it->first;
 }
 
-int ChannelHelper::getDefaultChannelMask(int channelCount)
+int ChannelLayout::getDefaultChannelMask(int channelCount)
 {
 	int channelMask;
 
@@ -82,7 +82,7 @@ int ChannelHelper::getDefaultChannelMask(int channelCount)
 	return channelMask;
 }
 
-vector<wstring> ChannelHelper::getChannelNames(int channelCount, int channelMask)
+vector<wstring> ChannelLayout::getChannelNames(int channelCount, int channelMask)
 {
 	vector<wstring> channelNames;
 	channelNames.reserve(channelCount);
@@ -108,7 +108,7 @@ vector<wstring> ChannelHelper::getChannelNames(int channelCount, int channelMask
 	return channelNames;
 }
 
-int ChannelHelper::getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional)
+int ChannelLayout::getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional)
 {
 	int channelIndex = -1;
 

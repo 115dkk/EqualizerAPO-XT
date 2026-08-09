@@ -20,17 +20,17 @@
 #include "stdafx.h"
 #include <algorithm>
 
-#include "filters/graphicEq/GainIterator.h"
+#include "filters/graphicEq/GainCurveIterator.h"
 
 using std::log;
 using std::vector;
 
-GainIterator::GainIterator(const vector<FilterNode>& nodes)
+GainCurveIterator::GainCurveIterator(const vector<FilterNode>& nodes)
 	: nodes(nodes), nodeLeft(nullptr), nodeRight(nullptr), logLeft(0.0), logRightMinusLeft(0.0)
 {
 }
 
-double GainIterator::gainAt(double freq)
+double GainCurveIterator::gainAt(double freq)
 {
 	if (nodeLeft == nullptr && nodeRight == nullptr || nodeLeft != nullptr && freq < nodeLeft->freq)
 	{

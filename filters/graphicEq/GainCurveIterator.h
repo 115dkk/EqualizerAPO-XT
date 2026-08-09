@@ -19,21 +19,41 @@
 
 #pragma once
 
-#include <string>
 #include <vector>
-#include <unordered_map>
 
-class ChannelHelper
+struct FilterNode
+{
+	double freq;
+	double dbGain;
+
+	FilterNode(double freq, double dbGain)
+	{
+		this->freq = freq;
+		this->dbGain = dbGain;
+	}
+
+	bool operator<(FilterNode other) const
+	{
+		return freq < other.freq;
+	}
+};
+
+class GainCurveIterator
 {
 public:
-	static int getDefaultChannelMask(int channelCount);
-	static std::vector<std::wstring> getChannelNames(int channelCount, int channelMask);
-	static int getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional = false);
+	// Holds a reference to the caller's node vector. The caller must keep the
+	// vector alive for the lifetime of the iterator. This avoids copying the
+	// (often 100k+ node) vector that would otherwise happen once per paint.
+	GainCurveIterator(const std::vector<FilterNode>& nodes);
+	double gainAt(double freq);
+
+	GainCurveIterator(const GainCurveIterator&) = delete;
+	GainCurveIterator& operator=(const GainCurveIterator&) = delete;
 
 private:
-	ChannelHelper();
-	static ChannelHelper instance;
-
-	static std::unordered_map<std::wstring, int> channelNameToPosMap;
-	static std::unordered_map<int, std::wstring> channelPosToNameMap;
+	const std::vector<FilterNode>& nodes;
+	const FilterNode* nodeLeft;
+	const FilterNode* nodeRight;
+	double logLeft;
+	double logRightMinusLeft;
 };

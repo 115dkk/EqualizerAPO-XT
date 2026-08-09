@@ -18,6 +18,7 @@
 */
 
 #include "GUIHelper.h"
+#include "services/registry/RegistryPaths.h"
 #include "Editor/helpers/EditorSettings.h"
 
 #include <QApplication>
@@ -41,7 +42,7 @@
 #include <QTreeView>
 #include <QUrl>
 
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "Editor/SkinManager.h"
 #include "Editor/import/LegacyMigration.h"
 #include "Editor/widgets/DialogChrome.h"
@@ -186,10 +187,10 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	QString configRoot;
 	try
 	{
-		if (RegistryHelper::keyExists(APP_REGPATH) && RegistryHelper::valueExists(APP_REGPATH, L"ConfigPath"))
-			configRoot = QString::fromStdWString(RegistryHelper::readValue(APP_REGPATH, L"ConfigPath"));
+		if (WindowsRegistry::keyExists(APP_REGPATH) && WindowsRegistry::valueExists(APP_REGPATH, L"ConfigPath"))
+			configRoot = QString::fromStdWString(WindowsRegistry::readValue(APP_REGPATH, L"ConfigPath"));
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		// Unreadable registry: fall through to the stable root.
 	}

@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "services/registry/RegistryTransaction.h"
 #include "Tests/TestHarness.h"
 
@@ -145,7 +145,7 @@ void testAValueItCannotRestoreIsRefusedBeforeAnythingChanges(test::Harness& harn
 		{
 			plan.writeValue(rootKey, L"Format", L"text");
 		}
-		catch (const RegistryException&)
+		catch (const RegistryError&)
 		{
 			refused = true;
 		}
@@ -216,7 +216,7 @@ void testAWriteThatWasRefusedLeavesNoUndoStep(test::Harness& harness)
 	{
 		plan.writeValue(rootKey, L"Locked", L"attempted");
 	}
-	catch (const RegistryException&)
+	catch (const RegistryError&)
 	{
 		threw = true;
 	}

@@ -238,7 +238,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
     <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
     <ClCompile Include="..\..\services\diagnostics\InstallDiagnostics.cpp" />
-    <ClCompile Include="..\..\services\windows\ServiceHelper.cpp" />
+    <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
     <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
     <ClCompile Include="SampleIoTests.cpp" />
   </ItemGroup>

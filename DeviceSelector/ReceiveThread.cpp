@@ -18,8 +18,8 @@
 */
 
 #include "stdafx.h"
-#include "services/logging/LogHelper.h"
-#include "text/StringHelper.h"
+#include "platform/windows/Win32Error.h"
+#include "services/logging/Logging.h"
 #include "platform/windows/Win32Resource.h"
 #include "ReceiveThread.h"
 
@@ -65,13 +65,13 @@ void ReceiveThread::run()
 	{
 		winutil::UniqueLocalPtr<void> pSD(LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH));
 		if (!pSD)
-			throw ReceiveException(L"Could not allocate security descriptor: " + StringHelper::getSystemErrorString(GetLastError()));
+			throw ReceiveException(L"Could not allocate security descriptor: " + win32::errorMessage(GetLastError()));
 
 		if (!InitializeSecurityDescriptor(pSD.get(), SECURITY_DESCRIPTOR_REVISION))
-			throw ReceiveException(L"Could not initialize security descriptor: " + StringHelper::getSystemErrorString(GetLastError()));
+			throw ReceiveException(L"Could not initialize security descriptor: " + win32::errorMessage(GetLastError()));
 
 		if (!SetSecurityDescriptorDacl(pSD.get(), TRUE, nullptr, FALSE))
-			throw ReceiveException(L"Could not set security descriptor DACL: " + StringHelper::getSystemErrorString(GetLastError()));
+			throw ReceiveException(L"Could not set security descriptor DACL: " + win32::errorMessage(GetLastError()));
 
 		SECURITY_ATTRIBUTES sa;
 		sa.nLength = sizeof(sa);
@@ -85,7 +85,7 @@ void ReceiveThread::run()
 				PIPE_ACCESS_INBOUND, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
 				PIPE_UNLIMITED_INSTANCES, 0, sizeof(buf), 0, &sa));
 			if (!pipe)
-				throw ReceiveException(L"Could not create named pipe: " + StringHelper::getSystemErrorString(GetLastError()));
+				throw ReceiveException(L"Could not create named pipe: " + win32::errorMessage(GetLastError()));
 
 			bool connected = ConnectNamedPipe(pipe.get(), nullptr);
 			if (!connected)
@@ -99,7 +99,7 @@ void ReceiveThread::run()
 			DWORD bytesRead;
 			bool ok = ReadFile(pipe.get(), buf, sizeof(buf), &bytesRead, nullptr);
 			if (!ok || bytesRead == 0)
-				throw ReceiveException(L"Could not read from pipe: " + StringHelper::getSystemErrorString(GetLastError()));
+				throw ReceiveException(L"Could not read from pipe: " + win32::errorMessage(GetLastError()));
 
 			std::string s(buf, bytesRead);
 			if (s == "stop")

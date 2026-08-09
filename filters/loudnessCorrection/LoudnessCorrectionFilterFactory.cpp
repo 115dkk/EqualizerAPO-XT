@@ -23,9 +23,8 @@
 #include <regex>
 #include <sstream>
 
-#include "runtime/memory/MemoryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "LoudnessCorrectionCommand.h"
 #include "LoudnessCorrectionFilter.h"
 #include "filters/FilterFactoryRegistry.h"

@@ -18,6 +18,8 @@
 */
 
 #include "stdafx.h"
+#include "platform/windows/GuidText.h"
+#include "services/registry/RegistryPaths.h"
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <mmreg.h>
@@ -28,8 +30,7 @@
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
 
-#include "text/StringHelper.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "platform/windows/ComPtr.h"
 #include "platform/windows/Win32Resource.h"
 
@@ -119,10 +120,10 @@ bool DeviceAPOInfo::checkAPORegistration(bool fix, const IRegistry& registry)
 {
 	bool result = true;
 
-	if (!registry.keyExists(apoRegistrationKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID))
-		|| !registry.keyExists(apoRegistrationKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID))
-		|| !registry.keyExists(clsidKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID))
-		|| !registry.keyExists(clsidKeyPath L"\\" + RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID)))
+	if (!registry.keyExists(apoRegistrationKeyPath L"\\" + winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID))
+		|| !registry.keyExists(apoRegistrationKeyPath L"\\" + winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID))
+		|| !registry.keyExists(clsidKeyPath L"\\" + winutil::guidToString(EQUALIZERAPO_PRE_MIX_GUID))
+		|| !registry.keyExists(clsidKeyPath L"\\" + winutil::guidToString(EQUALIZERAPO_POST_MIX_GUID)))
 	{
 		result = false;
 

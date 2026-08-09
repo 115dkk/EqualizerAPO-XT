@@ -18,13 +18,13 @@
 */
 
 #include <QSaveFile>
+#include "platform/windows/Win32Error.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include "platform/windows/FileSharingRetry.h"
-#include "services/logging/LogHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
 #include "engine/ConfigurationFileReader.h"
 #include "ConfigFileCodec.h"
 
@@ -80,7 +80,7 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 	if (!file)
 	{
 		result.ok = false;
-		result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
+		result.errorMessage = QString::fromStdWString(win32::errorMessage(error));
 		return result;
 	}
 
@@ -94,7 +94,7 @@ ConfigFileCodec::ReadResult ConfigFileCodec::readConfig(const QString& path)
 		{
 			error = GetLastError();
 			result.ok = false;
-			result.errorMessage = QString::fromStdWString(StringHelper::getSystemErrorString(error));
+			result.errorMessage = QString::fromStdWString(win32::errorMessage(error));
 			return result;
 		}
 		if (bytesRead == 0)

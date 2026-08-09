@@ -18,7 +18,7 @@
 */
 
 #include "stdafx.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTPluginInstanceInternal.h"

@@ -199,7 +199,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
-    <ClInclude Include="..\..\text\StringHelper.h" />
+    <ClInclude Include="..\..\platform\windows\TextEncoding.h" />
     <ClInclude Include="..\..\services\update\UpdateSession.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />

@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include <devices/DeviceAPOInfo.h>
-#include <services/registry/RegistryHelper.h>
+#include <services/registry/WindowsRegistry.h>
 #include "DeviceTestDialog.h"
 #include "OpacityIconEngine.h"
 
@@ -54,7 +54,7 @@ DeviceTestDialog::DeviceTestDialog(QWidget* parent)
 			devices.append(QVector<std::shared_ptr<DeviceAPOInfo>>(inputDevices.begin(), inputDevices.end()));
 		}
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		QMessageBox::critical(this, tr("Error while accessing the registry"), QString::fromStdWString(e.getMessage()));
 	}

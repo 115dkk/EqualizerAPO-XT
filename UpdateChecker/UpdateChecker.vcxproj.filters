@@ -13,7 +13,7 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
-    <Filter Include="helpers">
+    <Filter Include="shared modules">
       <UniqueIdentifier>{51c8deda-ccca-4af7-9cae-78f9fa3ee4d0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -27,11 +27,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="..\services\registry\RegistryHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="..\services\registry\WindowsRegistry.h">
+      <Filter>shared modules</Filter>
     </ClInclude>
-    <ClInclude Include="..\text\StringHelper.h">
-      <Filter>helpers</Filter>
+    <ClInclude Include="..\text\WideString.h">
+      <Filter>shared modules</Filter>
+    </ClInclude>
+    <ClInclude Include="..\platform\windows\Win32Error.h">
+      <Filter>shared modules</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="UpdateInfoFormatter.h" />
@@ -48,8 +51,11 @@
     <ClCompile Include="UpdateInfoFormatter.cpp" />
     <ClCompile Include="VelopackUpdateInfo.cpp" />
     <ClCompile Include="AutoSizeTextEdit.cpp" />
-    <ClCompile Include="..\text\StringHelper.cpp">
-      <Filter>helpers</Filter>
+    <ClCompile Include="..\text\WideString.cpp">
+      <Filter>shared modules</Filter>
+    </ClCompile>
+    <ClCompile Include="..\platform\windows\Win32Error.cpp">
+      <Filter>shared modules</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -18,11 +18,11 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 
 #include <cstdio>
 #include <cwctype>
 
-#include "text/StringHelper.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 #include "VSTPluginCommand.h"
@@ -58,7 +58,7 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 			cmd.libraryPath = libraryReference;
 	}
 
-	vector<wstring> parts = StringHelper::splitQuoted(parameters, ' ');
+	vector<wstring> parts = text::splitQuoted(parameters, ' ');
 	for (unsigned i = 0; i + 1 < parts.size(); i += 2)
 	{
 		wstring key = parts[i];

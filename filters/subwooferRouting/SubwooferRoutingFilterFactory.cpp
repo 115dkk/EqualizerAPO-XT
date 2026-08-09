@@ -17,6 +17,8 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 #include "SubwooferRoutingFilterFactory.h"
 
 #include <filesystem>
@@ -29,7 +31,6 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "filters/ConvolutionFilePath.h"
 #include "filters/FilterFactoryRegistry.h"
-#include "text/StringHelper.h"
 #include "SubwooferRoutingCommand.h"
 #include "SubwooferRoutingFilter.h"
 
@@ -39,7 +40,7 @@ constexpr unsigned Utf8CodePage = 65001;
 
 std::wstring fromUtf8(const std::string& text)
 {
-	return StringHelper::toWString(text, Utf8CodePage);
+	return wintext::toWideString(text, Utf8CodePage);
 }
 
 std::wstring codecErrorMessage(const subroute::StateDecodeResult& result)

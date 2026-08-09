@@ -27,15 +27,19 @@ DEFINES += MUP_USE_WIDE_STRING
 DEFINES += NOMINMAX
 
 SOURCES += main.cpp\
-	../services/logging/LogHelper.cpp \
-	../text/StringHelper.cpp \
-	../services/registry/RegistryHelper.cpp \
+	../services/logging/Logging.cpp \
+	../text/WideString.cpp \
+	../platform/windows/TextEncoding.cpp \
+	../platform/windows/Win32Error.cpp \
+	../parser/NumericText.cpp \
+	../services/registry/WindowsRegistry.cpp \
 	../services/registry/IRegistry.cpp \
 	../services/registry/RegistryTransaction.cpp \
 	../platform/windows/WindowsVersion.cpp \
+	../platform/windows/GuidText.cpp \
 	../services/security/AudioEngineAccess.cpp \
 	../services/diagnostics/InstallDiagnostics.cpp \
-	../services/windows/ServiceHelper.cpp \
+	../services/windows/WindowsService.cpp \
 	../services/install/ApoRegistration.cpp \
 	../services/shell/StartMenuShortcuts.cpp \
 	../services/audio/AudioFormatProbe.cpp \
@@ -58,7 +62,7 @@ SOURCES += main.cpp\
 	../filters/PreampCommand.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
-	../runtime/memory/MemoryHelper.cpp \
+	../runtime/memory/AlignedMemory.cpp \
 	../runtime/concurrency/ParallelExecutor.cpp \
 	FilterTableRow.cpp \
 	FilterTemplate.cpp \
@@ -94,7 +98,7 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUIForm.cpp \
 	guis/CopyFilterGUIRow.cpp \
 	helpers/GUIChannelHelper.cpp \
-	../audio/ChannelHelper.cpp \
+	../audio/ChannelLayout.cpp \
 	guis/DelayFilterGUI.cpp \
 	guis/DelayFilterGUIFactory.cpp \
 	../filters/DelayCommand.cpp \
@@ -117,7 +121,7 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
 	../dsp/FftwPlanningPolicy.cpp \
-	../filters/graphicEq/GainIterator.cpp \
+	../filters/graphicEq/GainCurveIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
 	widgets/FrequencyPlotHRuler.cpp \
@@ -316,15 +320,21 @@ SOURCES += main.cpp\
 
 HEADERS  += \
 	../platform/windows/FileSharingRetry.h \
-	../services/logging/LogHelper.h \
-	../text/StringHelper.h \
-	../services/registry/RegistryHelper.h \
+	../services/logging/Logging.h \
+	../text/WideString.h \
+	../platform/windows/TextEncoding.h \
+	../platform/windows/Win32Error.h \
+	../parser/NumericText.h \
+	../services/registry/WindowsRegistry.h \
 	../services/registry/IRegistry.h \
 	../services/registry/RegistryTransaction.h \
+	../services/registry/RegistryError.h \
+	../services/registry/RegistryPaths.h \
 	../platform/windows/WindowsVersion.h \
+	../platform/windows/GuidText.h \
 	../services/security/AudioEngineAccess.h \
 	../services/diagnostics/InstallDiagnostics.h \
-	../services/windows/ServiceHelper.h \
+	../services/windows/WindowsService.h \
 	../services/install/ApoRegistration.h \
 	../services/shell/StartMenuShortcuts.h \
 	../services/audio/AudioFormatProbe.h \
@@ -348,7 +358,7 @@ HEADERS  += \
 	../filters/PreampCommand.h \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
-	../runtime/memory/MemoryHelper.h \
+	../runtime/memory/AlignedMemory.h \
 	FilterTableRow.h \
 	FilterTemplate.h \
 	guis/DeviceFilterGUI.h \
@@ -379,7 +389,7 @@ HEADERS  += \
 	guis/CopyFilterGUIForm.h \
 	guis/CopyFilterGUIRow.h \
 	helpers/GUIChannelHelper.h \
-	../audio/ChannelHelper.h \
+	../audio/ChannelLayout.h \
 	guis/DelayFilterGUI.h \
 	guis/DelayFilterGUIFactory.h \
 	../filters/DelayCommand.h \
@@ -399,7 +409,7 @@ HEADERS  += \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
 	../dsp/FftwPlanningPolicy.h \
-	../filters/graphicEq/GainIterator.h \
+	../filters/graphicEq/GainCurveIterator.h \
 	guis/GraphicEQFilterGUIScene.h \
 	widgets/FrequencyPlotView.h \
 	widgets/FrequencyPlotHRuler.h \

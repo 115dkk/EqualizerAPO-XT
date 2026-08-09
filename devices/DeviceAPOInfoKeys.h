@@ -1,6 +1,7 @@
 #pragma once
 
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
+#include "services/registry/RegistryPaths.h"
 
 // Registry vocabulary shared by DeviceAPOInfo's split implementation. Keeping
 // install, load, state and uninstall on this table makes ownership symmetric.

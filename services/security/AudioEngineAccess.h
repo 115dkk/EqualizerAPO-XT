@@ -11,7 +11,7 @@
 	Initialize returning E_ACCESSDENIED for the device.
 
 	Before this module the knowledge was spread over three languages and four
-	places: RegistryHelper::getFileAccessForUser did the AuthZ access check (read
+	places: the old registry utility did the AuthZ access check (read
 	only, six call sites in the Editor), ApoRegistration spawned icacls with the
 	grant spelled out inline, tools/Diagnose-EqualizerAPO.ps1 re-derived the same
 	check with Get-Acl, and tools/Repair-EqualizerAPO.ps1 re-derived the same grant
@@ -78,7 +78,7 @@ const wchar_t* describe(Grant grant);
 } // namespace AudioEngineAccess
 
 // Thrown by the accessFor* functions when the path's security descriptor cannot
-// be read. It is a separate type from RegistryException because this module is
+// be read. It is a separate type from RegistryError because this module is
 // about files, and because a caller that catches it has to decide something
 // different from "no access".
 class AccessQueryException

@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-#include "runtime/memory/MemoryHelper.h"
+#include "runtime/memory/AlignedMemory.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class IFilter
@@ -68,7 +68,7 @@ using FilterVector = std::vector<FilterPtr>;
 template<class T, class... Args>
 FilterPtr makeFilter(Args&&... args)
 {
-	return FilterPtr(MemoryHelper::construct<T>(std::forward<Args>(args)...));
+	return FilterPtr(AlignedMemory::construct<T>(std::forward<Args>(args)...));
 }
 
 inline FilterVector singleFilter(FilterPtr filter)

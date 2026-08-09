@@ -32,9 +32,10 @@ SOURCES += \
 	UpdateInfoFormatter.cpp \
 	VelopackUpdateInfo.cpp \
 	AutoSizeTextEdit.cpp \
-	../services/logging/LogHelper.cpp \
-	../services/registry/RegistryHelper.cpp \
-	../text/StringHelper.cpp \
+	../services/logging/Logging.cpp \
+	../services/registry/WindowsRegistry.cpp \
+	../text/WideString.cpp \
+	../platform/windows/Win32Error.cpp \
 	stdafx.cpp
 
 HEADERS += \
@@ -43,9 +44,10 @@ HEADERS += \
 	UpdateInfoFormatter.h \
 	VelopackUpdateInfo.h \
 	AutoSizeTextEdit.h \
-	../services/logging/LogHelper.h \
-	../text/StringHelper.h \
-	../services/registry/RegistryHelper.h \
+	../services/logging/Logging.h \
+	../text/WideString.h \
+	../platform/windows/Win32Error.h \
+	../services/registry/WindowsRegistry.h \
 	resource.h \
 	stdafx.h
 

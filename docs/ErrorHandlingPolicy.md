@@ -10,20 +10,20 @@ another by accident.
 
 | Layer | Model | Representative files |
 | --- | --- | --- |
-| System integration (registry, service control) | Throw an exception | `services/registry/RegistryHelper.cpp`, `services/windows/ServiceHelper.cpp` |
+| System integration (registry, service control) | Throw an exception | `services/registry/WindowsRegistry.cpp`, `services/windows/WindowsService.cpp` |
 | Install / uninstall orchestration | Return a `Result` enum | `services/install/ApoRegistration.h`, `services/install/ApoRegistration.cpp` |
 | VST plugin loading | Return `bool` | `vst/VSTPluginInstance.cpp` |
-| Allocation helpers (audio / real-time path) | Return `nullptr` and log | `runtime/memory/MemoryHelper.cpp` |
+| Aligned allocation (audio / real-time path) | Return `nullptr` and log | `runtime/memory/AlignedMemory.cpp` |
 | Configuration parsing | Report the line and keep loading | `filters/*Factory.cpp`, `ConfigLoadTrace.h` |
 
 ## Why each layer differs
 
 ### System-integration / setup-time code throws
 
-`RegistryHelper` and `ServiceHelper` throw on failure. `RegistryHelper::readValue`
-and the other registry accessors throw `RegistryException` (declared in
-`RegistryHelper.h`) with a descriptive message; `ServiceHelper::restartService`
-and `Service::fail` throw `ServiceException` (declared in `ServiceHelper.h`).
+`WindowsRegistry` and `WindowsServiceControl` throw on failure. `WindowsRegistry::readValue`
+and the other registry accessors throw `RegistryError` (declared in
+`RegistryError.h`) with a descriptive message; `WindowsServiceControl::restart`
+and `WindowsService::fail` throw `WindowsServiceError` (declared in `WindowsService.h`).
 
 These routines run once, off the audio path, during install, uninstall, or a
 service restart. A registry value that is missing or has the wrong type, or a
@@ -87,12 +87,12 @@ them would bury the real diagnostics.
 
 ### Allocation helpers return `nullptr` by contract
 
-`MemoryHelper::alloc` returns `nullptr` on failure and logs the requested size
+`AlignedMemory::alloc` returns `nullptr` on failure and logs the requested size
 with `LogFStatic`. It does not throw and it does not abort. This is the contract
 on the audio / real-time path: that code must not throw, so a null pointer is the
 lightweight no-throw failure signal. Callers are responsible for checking the
 return value before using the buffer. The general rule for the real-time and
-audio-processing path is status returns and no-throw behavior; `MemoryHelper` is
+audio-processing path is status returns and no-throw behavior; `AlignedMemory` is
 the representative allocation case.
 
 ## Note on convergence

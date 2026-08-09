@@ -22,7 +22,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shellapi.h>
-#include "../services/registry/RegistryHelper.h"
+#include "../services/registry/WindowsRegistry.h"
 #include "VoicemeeterClient.h"
 #include "../devices/VoicemeeterAPOInfo.h"
 
@@ -69,7 +69,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		MessageBoxW(nullptr, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
 		return -1;
 	}
-	catch (const RegistryException& e)
+	catch (const RegistryError& e)
 	{
 		MessageBoxW(nullptr, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
 		return -1;
@@ -82,10 +82,10 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 	mainThreadId = GetCurrentThreadId();
 
 	wstring voicemeeterDirectory;
-	if (RegistryHelper::keyExists(voicemeeterKeyPath))
-		voicemeeterDirectory = RegistryHelper::readValue(voicemeeterKeyPath, uninstallStringValueName);
-	else if (RegistryHelper::keyExists(voicemeeterWowKeyPath))
-		voicemeeterDirectory = RegistryHelper::readValue(voicemeeterWowKeyPath, uninstallStringValueName);
+	if (WindowsRegistry::keyExists(voicemeeterKeyPath))
+		voicemeeterDirectory = WindowsRegistry::readValue(voicemeeterKeyPath, uninstallStringValueName);
+	else if (WindowsRegistry::keyExists(voicemeeterWowKeyPath))
+		voicemeeterDirectory = WindowsRegistry::readValue(voicemeeterWowKeyPath, uninstallStringValueName);
 
 	size_t index = voicemeeterDirectory.find_last_of(L'\\');
 	if (index != wstring::npos)

@@ -18,14 +18,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
+#include "parser/NumericText.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <regex>
 #include <sstream>
 
-#include "runtime/memory/MemoryHelper.h"
-#include "text/StringHelper.h"
-#include "services/logging/LogHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
 #include "BiQuadFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "BiQuadFilterFactory.h"
@@ -97,7 +98,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		return false;
 
 	// Conversion to period as decimal mark, if needed
-	parameters = StringHelper::normalizeDecimalComma(parameters);
+	parameters = numeric_text::normalizeDecimalComma(parameters);
 
 	wsmatch match;
 	wstring typeString;
@@ -150,7 +151,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		else
 		{
 			wstring gainString = match.str(1);
-			gain = StringHelper::parseDouble(gainString);
+			gain = numeric_text::parseDouble(gainString);
 			if (type == BiQuad::PEAKING)
 				stream << ", gain " << gain << " dB";
 			else
@@ -167,7 +168,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	if (found)
 	{
 		wstring qString = match.str(1);
-		bandwidthOrQOrS = StringHelper::parseDouble(qString);
+		bandwidthOrQOrS = numeric_text::parseDouble(qString);
 		stream << " and Q " << bandwidthOrQOrS;
 	}
 
@@ -179,7 +180,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		else
 		{
 			wstring bwString = match.str(1);
-			bandwidthOrQOrS = StringHelper::parseDouble(bwString);
+			bandwidthOrQOrS = numeric_text::parseDouble(bwString);
 			isBandwidthOrS = true;
 			stream << " and bandwidth " << bandwidthOrQOrS << " octaves";
 		}
@@ -193,7 +194,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 		else
 		{
 			wstring slopeString = match.str(1);
-			bandwidthOrQOrS = StringHelper::parseDouble(slopeString);
+			bandwidthOrQOrS = numeric_text::parseDouble(slopeString);
 			isBandwidthOrS = true;
 			stream << " and slope " << bandwidthOrQOrS << " dB";
 		}
@@ -301,7 +302,7 @@ double BiQuadFilterFactory::getFreq(const wstring& freqString)
 {
 	double result;
 	// remove thousand's separator for locales utilizing non-breaking space
-	wstring s = StringHelper::replaceCharacters(freqString, L"\u00A0", L"");
+	wstring s = text::replaceCharacters(freqString, L"\u00A0", L"");
 	int matched = swscanf_s(s.c_str(), L"%lf", &result);
 	if (matched == 1)
 	{

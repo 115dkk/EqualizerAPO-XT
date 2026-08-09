@@ -282,7 +282,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BatchPlan.h" />
-    <ClInclude Include="..\runtime\memory\MemoryHelper.h" />
+    <ClInclude Include="..\runtime\memory\AlignedMemory.h" />
     <ClInclude Include="..\stdafx.h" />
   </ItemGroup>
   <ItemGroup>

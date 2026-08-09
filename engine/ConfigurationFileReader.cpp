@@ -1,12 +1,12 @@
 #include "stdafx.h"
+#include "platform/windows/Win32Error.h"
 
 #include "ConfigurationFileReader.h"
 
 #include <windows.h>
 
 #include "platform/windows/FileSharingRetry.h"
-#include "services/logging/LogHelper.h"
-#include "text/StringHelper.h"
+#include "services/logging/Logging.h"
 
 namespace
 {
@@ -25,7 +25,7 @@ std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& pat
 		path.c_str(), GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, error);
 	if (!file)
 	{
-		LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
+		LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), win32::errorMessage(error).c_str());
 		return makeFailedStream();
 	}
 
@@ -37,7 +37,7 @@ std::stringstream ConfigurationFileReader::readWithRetry(const std::wstring& pat
 		if (!ReadFile(file.get(), buf, sizeof(buf), &bytesRead, nullptr))
 		{
 			error = GetLastError();
-			LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), StringHelper::getSystemErrorString(error).c_str());
+			LogFStatic(L"Error while reading configuration file %s: %s", path.c_str(), win32::errorMessage(error).c_str());
 			return makeFailedStream();
 		}
 		if (bytesRead == 0)

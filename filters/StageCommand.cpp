@@ -18,10 +18,10 @@
 */
 
 #include "stdafx.h"
+#include "text/WideString.h"
 
 #include "StageCommand.h"
 
-#include "text/StringHelper.h"
 
 using std::wstring;
 
@@ -52,7 +52,7 @@ bool StageCommand::parse(const wstring& command, const wstring& parameters, Stag
 
 	// Tokenizer preserved from the engine factory: trim, lower-case, split on
 	// single spaces (empty parts are skipped, other whitespace is not split).
-	out.stages = StringHelper::split(StringHelper::toLowerCase(StringHelper::trim(parameters)), L' ');
+	out.stages = text::split(text::toLower(text::trim(parameters)), L' ');
 
 	return true;
 }

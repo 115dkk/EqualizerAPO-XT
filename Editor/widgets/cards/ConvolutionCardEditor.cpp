@@ -24,7 +24,7 @@
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
 #include "filters/ConvolutionCommand.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "audio/io/SndfileRAII.h"
 
 ConvolutionCardEditor::ConvolutionCardEditor(FilterTable* filterTable, const QString& path, QWidget* parent)

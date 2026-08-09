@@ -47,7 +47,7 @@
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
-#include "services/registry/RegistryHelper.h"
+#include "services/registry/WindowsRegistry.h"
 #include "audio/io/SndfileRAII.h"
 
 MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,

@@ -5,7 +5,7 @@
 #include "Skins.h"
 #include "shared/SkinSupport.h"
 #include "SkinThemeData.h"
-#include "services/logging/LogHelper.h"
+#include "services/logging/Logging.h"
 
 namespace
 {

@@ -51,7 +51,7 @@
 
 	  * A value whose previous content cannot be read back - REG_BINARY, or any
 	    type this port cannot write - is refused *before* the change is applied.
-	    The operation throws RegistryException and the journal stays valid, which
+	    The operation throws RegistryError and the journal stays valid, which
 	    keeps the all-or-nothing promise instead of quietly breaking it. No call
 	    site in the device layer overwrites or deletes a binary value; the check
 	    is there so that a future one fails loudly rather than silently.
@@ -182,7 +182,7 @@ private:
 		std::vector<ValueSnapshot> values;
 	};
 
-	// Reads the value so it can be put back. Throws RegistryException when its
+	// Reads the value so it can be put back. Throws RegistryError when its
 	// type cannot be restored, which the caller lets propagate before applying.
 	ValueSnapshot snapshot(const std::wstring& key, const std::wstring& valuename) const;
 	// Builds the entry that would undo a write to this value, whatever it holds

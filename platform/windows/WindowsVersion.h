@@ -6,7 +6,7 @@
 	The answer decides real behaviour in three places: which APO slots a device
 	can be installed into (LFX/GFX only exist as the sole option before Windows
 	8.1), whether the 24H2 subkeys below FxProperties have to be worked around,
-	and what Device Selector offers. It lived in RegistryHelper, which reads it
+	and what Device Selector offers. It lived in WindowsRegistry, which reads it
 	out of kernel32's version resource - not a registry operation at all, and one
 	of the two members that forced every translation unit wanting a registry read
 	to inherit the Win32 headers.

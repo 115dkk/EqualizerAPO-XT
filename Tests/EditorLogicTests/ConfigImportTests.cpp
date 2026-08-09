@@ -11,6 +11,8 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "text/WideString.h"
+#include "platform/windows/TextEncoding.h"
 
 #include <string>
 
@@ -28,7 +30,6 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/import/LegacyMigrationPolicy.h"
-#include "text/StringHelper.h"
 
 #include "EditorLogicTestSupport.h"
 
@@ -171,9 +172,9 @@ void testConfigImport()
 	std::wstring ansiLeafWide;
 	for (const std::wstring& candidate : ansiCandidates)
 	{
-		std::string encoded = StringHelper::toString(candidate, CP_ACP);
+		std::string encoded = wintext::toNarrowString(candidate, CP_ACP);
 		if (encoded.find('?') == std::string::npos
-			&& StringHelper::toWString(encoded, CP_ACP) == candidate
+			&& wintext::toWideString(encoded, CP_ACP) == candidate
 			&& QString::fromUtf8(encoded.data(), static_cast<qsizetype>(encoded.size())).contains(QChar::ReplacementCharacter))
 		{
 			ansiLeafBytes = "ansi-" + encoded + ".wav";

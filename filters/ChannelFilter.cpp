@@ -21,9 +21,9 @@
 #include <sstream>
 #include <algorithm>
 
-#include "runtime/memory/MemoryHelper.h"
-#include "services/logging/LogHelper.h"
-#include "audio/ChannelHelper.h"
+#include "runtime/memory/AlignedMemory.h"
+#include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 #include "ChannelFilter.h"
 #include "diagnostics/performance/PerfProfile.h"
 
@@ -53,7 +53,7 @@ vector<wstring> ChannelFilter::initialize(float sampleRate, unsigned maxFrameCou
 		if (currentWord == L"ALL")
 			selectedChannels = vector<bool>(channelCount, true);
 		else
-			channelNr = ChannelHelper::getChannelIndex(currentWord, channelNames);
+			channelNr = ChannelLayout::getChannelIndex(currentWord, channelNames);
 
 		if (channelNr != -1 && channelNr < static_cast<int>(channelCount))
 		{

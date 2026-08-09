@@ -1,6 +1,6 @@
 /*
     This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+    Copyright (C) 2024  Jonas Thedering
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,41 +19,48 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 
-struct FilterNode
-{
-	double freq;
-	double dbGain;
+#include "platform/windows/Win32Resource.h"
 
-	FilterNode(double freq, double dbGain)
-	{
-		this->freq = freq;
-		this->dbGain = dbGain;
-	}
-
-	bool operator<(FilterNode other) const
-	{
-		return freq < other.freq;
-	}
-};
-
-class GainIterator
+class WindowsServiceControl
 {
 public:
-	// Holds a reference to the caller's node vector. The caller must keep the
-	// vector alive for the lifetime of the iterator. This avoids copying the
-	// (often 100k+ node) vector that would otherwise happen once per paint.
-	GainIterator(const std::vector<FilterNode>& nodes);
-	double gainAt(double freq);
+	static void restart(const std::wstring& serviceName);
+};
 
-	GainIterator(const GainIterator&) = delete;
-	GainIterator& operator=(const GainIterator&) = delete;
+class WindowsService
+{
+public:
+	WindowsService(SC_HANDLE scManager, const std::wstring& serviceName, bool allowEnumerate);
+	virtual ~WindowsService() = default;
+	const std::wstring& getServiceName();
+	DWORD getState();
+	void start();
+	DWORD stop();
+	std::vector<std::wstring> getActiveDependentServices();
 
 private:
-	const std::vector<FilterNode>& nodes;
-	const FilterNode* nodeLeft;
-	const FilterNode* nodeRight;
-	double logLeft;
-	double logRightMinusLeft;
+	void fail(const std::wstring& functionName, DWORD error);
+
+	winutil::UniqueServiceHandle serviceHandle;
+	std::wstring serviceName;
+};
+
+class WindowsServiceError
+{
+public:
+	WindowsServiceError(const std::wstring& message)
+		: message(message)
+	{
+	}
+
+	const std::wstring& getMessage() const
+	{
+		return message;
+	}
+
+private:
+	std::wstring message;
 };

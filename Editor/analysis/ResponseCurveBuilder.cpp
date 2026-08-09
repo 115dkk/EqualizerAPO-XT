@@ -173,7 +173,7 @@ BinSeries groupDelayMs(const AnalysisResponse& response, const BinSeries& phase)
 // Linear interpolation of the metric between the two bins bracketing hz, on a
 // logarithmic frequency axis.
 //
-// This reproduces GainIterator, which is what drew the magnitude curve before:
+// This reproduces GainCurveIterator, which is what drew the magnitude curve before:
 // same bracketing, same log-frequency parameter, same short circuit when both
 // ends are equal (which is what let it carry -inf through). Beyond the last bin
 // it holds the last value, and below the first it holds the first. The graph's

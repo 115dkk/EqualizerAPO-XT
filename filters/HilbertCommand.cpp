@@ -1,11 +1,11 @@
 #include "stdafx.h"
+#include "text/WideString.h"
 #include "HilbertCommand.h"
 
 #include <algorithm>
 #include <cwctype>
 #include <set>
 
-#include "text/StringHelper.h"
 
 namespace
 {
@@ -30,9 +30,9 @@ bool parseChannels(const std::wstring& text, std::vector<std::wstring>& result)
 {
 	result.clear();
 	std::set<std::wstring> seen;
-	for (std::wstring channel : StringHelper::split(text, L','))
+	for (std::wstring channel : text::split(text, L','))
 	{
-		channel = StringHelper::toUpperCase(StringHelper::trim(channel));
+		channel = text::toUpper(text::trim(channel));
 		if (!validChannel(channel) || !seen.insert(channel).second)
 			return false;
 		result.push_back(channel);
@@ -45,7 +45,7 @@ bool parseChannels(const std::wstring& text, std::vector<std::wstring>& result)
 
 std::wstring join(const std::vector<std::wstring>& channels)
 {
-	return StringHelper::join(channels, L",");
+	return text::join(channels, L",");
 }
 }
 
@@ -65,21 +65,21 @@ bool HilbertCommand::parse(const std::wstring& command, const std::wstring& text
 		return false;
 
 	out = HilbertCommand {};
-	const std::wstring trimmed = StringHelper::trim(text);
+	const std::wstring trimmed = text::trim(text);
 	if (trimmed.empty())
 		return true;
 
 	bool sawShift = false;
 	bool sawAlign = false;
 	bool sawDirection = false;
-	for (const std::wstring& token : StringHelper::split(trimmed, L' '))
+	for (const std::wstring& token : text::split(trimmed, L' '))
 	{
 		if (token.empty())
 			continue;
-		const std::vector<std::wstring> pair = StringHelper::split(token, L'=');
+		const std::vector<std::wstring> pair = text::split(token, L'=');
 		if (pair.size() != 2 || pair[0].empty() || pair[1].empty())
 			return fail(error, L"expected Shift=..., Align=... and Direction=±90 settings");
-		const std::wstring key = StringHelper::toLowerCase(pair[0]);
+		const std::wstring key = text::toLower(pair[0]);
 		if (key == L"shift")
 		{
 			if (sawShift)

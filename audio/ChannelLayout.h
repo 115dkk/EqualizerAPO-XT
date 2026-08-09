@@ -1,6 +1,6 @@
 /*
     This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2024  Jonas Thedering
+    Copyright (C) 2015  Jonas Thedering
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,46 +21,19 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
-#include "platform/windows/Win32Resource.h"
-
-class ServiceHelper
+class ChannelLayout
 {
 public:
-	static void restartService(const std::wstring& serviceName);
-};
-
-class Service
-{
-public:
-	Service(SC_HANDLE scManager, const std::wstring& serviceName, bool allowEnumerate);
-	virtual ~Service() = default;
-	const std::wstring& getServiceName();
-	DWORD getState();
-	void start();
-	DWORD stop();
-	std::vector<std::wstring> getActiveDependentServices();
+	static int getDefaultChannelMask(int channelCount);
+	static std::vector<std::wstring> getChannelNames(int channelCount, int channelMask);
+	static int getChannelIndex(std::wstring word, const std::vector<std::wstring>& channelNames, bool allowAdditional = false);
 
 private:
-	void fail(const std::wstring& functionName, DWORD error);
+	ChannelLayout();
+	static ChannelLayout instance;
 
-	winutil::UniqueServiceHandle serviceHandle;
-	std::wstring serviceName;
-};
-
-class ServiceException
-{
-public:
-	ServiceException(const std::wstring& message)
-		: message(message)
-	{
-	}
-
-	const std::wstring& getMessage() const
-	{
-		return message;
-	}
-
-private:
-	std::wstring message;
+	static std::unordered_map<std::wstring, int> channelNameToPosMap;
+	static std::unordered_map<int, std::wstring> channelPosToNameMap;
 };
