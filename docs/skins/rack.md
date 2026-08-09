@@ -413,17 +413,15 @@ Channel×If 중첩이 읽힌다. Eval 행의 본문은 맨텍스트 행과 같�
 
 ## 구현 지도
 
-- 클래스: `RackSkin` — [RackSkin.cpp](../../Editor/skins/RackSkin.cpp)
-  (얇은 심 + 분석 그래프의 `paintAnalysisMonitor`; 로스터 조립은
+- 클래스: `RackSkin` — [RackSkin.cpp](../../Editor/skins/rack/RackSkin.cpp)
+  (얇은 파사드; 로스터 조립은
   [Skins.cpp](../../Editor/skins/Skins.cpp))
-- 그리기: `Editor/skins/RackChrome.{h,cpp}` — 페이스플레이트/나사/LED/잭/
+- 그리기: `Editor/skins/rack/RackSkin.*.cpp` — 페이스플레이트/나사/LED/잭/
   명판/노브 페인터, `earWidth()`/`nameplateReserve()` 예약 폭
-- QSS: `Editor/skins/rack_dark.qss`, `rack_light.qss`
-- 픽커: `Editor/skins/pickers/RackFilterPicker.{h,cpp}`
-- 참조 카드: `Editor/skins/cards/RackReferenceCardView.{h,cpp}` (RackChrome의
-  램프·각인·LCD 문법을 파일 지역 헬퍼로 재현; RackChrome 자체는 프레임
-  전용으로 유지)
-- Copy: `Editor/widgets/routing/HardwarePatchbayRoutingRenderer.{h,cpp}`
+- QSS: `Editor/skins/rack/qss/rack_dark.qss`, `rack_light.qss`
+- 픽커: `Editor/skins/rack/picker/RackFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/rack/cards/RackReferenceCardView.{h,cpp}`
+- Copy: `Editor/skins/rack/routing/HardwarePatchbayRoutingRenderer.{h,cpp}`
 - Device Selector: `DeviceSelector/skins/RackDeviceSkin.cpp` (공용 폼 계약은
   `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)
 

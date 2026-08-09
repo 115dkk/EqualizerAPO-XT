@@ -19,7 +19,7 @@
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/cards/DefaultReferenceCardView.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
-#include "SkinPaint.h"
+#include "shared/SkinPaint.h"
 #include "SkinThemeData.h"
 
 namespace

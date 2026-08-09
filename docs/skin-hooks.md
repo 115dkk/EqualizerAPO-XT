@@ -42,9 +42,9 @@ virtual void paintKnob(QPainter& painter, const QRect& rect,
   pixel-identically and deliberately ignores the hover/drag/focus flags.
 
 `SkinManager::paintKnob` routes the widget to the active skin; a skin implements
-the override on its `ISkin` subclass, which lives in its own translation unit
-(`Editor/skins/StudioSkin.cpp` and its four siblings). `Skins.cpp` only holds the
-roster lookup - it stopped holding the skin classes when they were split apart.
+the override on its `ISkin` subclass, whose definitions are grouped by visual
+responsibility under `Editor/skins/<id>/`. `Skins.cpp` only holds the roster
+lookup; concrete skin code stays inside its module folder.
 
 ## Command-row chrome hook
 
@@ -180,7 +180,7 @@ panel). Hosts hand action buttons over with semantic roles
 the Browse button doubles as the "Locate..." recovery entry while the
 reference is missing. The default is the neutral
 `DefaultReferenceCardView`; the five shipped skins override it in
-`Editor/skins/cards/<Skin>ReferenceCardView.{h,cpp}`. Paths elide at paint
+`Editor/skins/<id>/cards/<Skin>ReferenceCardView.{h,cpp}`. Paths elide at paint
 time (`Editor/widgets/ElidedLabel.h`), never at set time.
 
 ## Routing renderer hook

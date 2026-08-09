@@ -23,7 +23,7 @@
 #include <QPolygonF>
 #include <QtMath>
 
-#include "Editor/skins/SkinPaint.h"
+#include "Editor/skins/shared/SkinPaint.h"
 
 namespace
 {

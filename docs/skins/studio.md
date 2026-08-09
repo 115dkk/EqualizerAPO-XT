@@ -406,19 +406,19 @@ Eval의 값은 램프가 아니라 데이터다: 마지막 분석이 해석한 �
 
 ## 구현 지도
 
-- 클래스: `StudioSkin` — [StudioSkin.cpp](../../Editor/skins/StudioSkin.cpp)
+- 클래스: `StudioSkin` — [StudioSkin.cpp](../../Editor/skins/studio/StudioSkin.cpp)
   (로스터 조립은 [Skins.cpp](../../Editor/skins/Skins.cpp))
-- QSS: `Editor/skins/studio_dark.qss`, `studio_light.qss`
-- 픽커: `Editor/skins/pickers/StudioFilterPicker.{h,cpp}`
-- 참조 카드: `Editor/skins/cards/StudioReferenceCardView.{h,cpp}`
-- Copy: `Editor/widgets/routing/LightTraceRoutingRenderer.{h,cpp}` +
+- QSS: `Editor/skins/studio/qss/studio_dark.qss`, `studio_light.qss`
+- 픽커: `Editor/skins/studio/picker/StudioFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/studio/cards/StudioReferenceCardView.{h,cpp}`
+- Copy: `Editor/skins/studio/routing/LightTraceRoutingRenderer.{h,cpp}` +
   `StudioRoutingModel.{h,cpp}`
 - Device Selector: `DeviceSelector/skins/StudioDeviceSkin.cpp` (공용 폼 계약은
   `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)
 - 헬퍼: 기계적 색 헬퍼(`cssRgba`/`withAlpha`/`skinIsDark`)는 공유
-  `Editor/skins/SkinPaint.h`에 있고, 스킨 고유 헬퍼 `studioBandHex`/
-  `studioBandFamilyForBiQuadType`/`studioBandPaintColor`는 StudioSkin.cpp 익명
-  네임스페이스에 남는다. 밴드 태그는 `prepareCommandRow`가 BiQuad 행의 카드 프레임,
+  `Editor/skins/shared/SkinPaint.h`에 있고, 스킨 고유 헬퍼 `studioBandHex`/
+  `studioBandFamilyForBiQuadType`/`studioBandPaintColor`는 `StudioBandColor.*`에
+  남는다. 밴드 태그는 `prepareCommandRow`가 BiQuad 행의 카드 프레임,
   타입 배지, 노브에 `studioBand` 동적 프로퍼티로 단다. 타입 선택기가 바뀌면
   같은 훅이 건 연결이 태그를 따라 옮기고 다시 폴리시한다. 페인트 훅은 위젯
   포인터를 받지 않으므로 `painter.device()`(= 그려지는 위젯)에서 태그를

@@ -113,7 +113,8 @@ void testEverySkinSheetResolvesAllThemeTokens()
 		{
 			const QString resource = SkinThemeData::qssResource(skinId, dark);
 			const QString sourcePath = repoRoot.filePath(
-				QStringLiteral("Editor/skins/") + QFileInfo(resource).fileName());
+				QStringLiteral("Editor/skins/%1/qss/%2")
+					.arg(skinId, QFileInfo(resource).fileName()));
 			QFile file(sourcePath);
 			expectTrue(file.open(QIODevice::ReadOnly | QIODevice::Text),
 				QStringLiteral("loads %1 source sheet").arg(resource));

@@ -143,6 +143,10 @@ jobs:
       shell: pwsh
       run: ./.github/scripts/Test-SourceSync.ps1
 
+    - name: Verify skin module boundaries
+      shell: pwsh
+      run: ./.github/scripts/Test-SkinModules.ps1
+
     - name: Generate build matrix from the manifest
       id: gen
       shell: pwsh

@@ -352,14 +352,14 @@ If/ElseIf/Else는 분기 판정을, Eval·인라인 값 행은 `= 값`을 찍는
 
 ## 구현 지도
 
-- 클래스: `MinimalSkin` — [MinimalSkin.cpp](../../Editor/skins/MinimalSkin.cpp)
+- 클래스: `MinimalSkin` — [MinimalSkin.cpp](../../Editor/skins/minimal/MinimalSkin.cpp)
   (`paintMinimalKnob`, `paintMinimalGraphicEqPlot`,
   `paintMinimalAnalysisGraph`, `minimalTypeGlyph` 헬퍼 포함; 로스터 조립은
   [Skins.cpp](../../Editor/skins/Skins.cpp))
-- QSS: `Editor/skins/precision_dark.qss`, `precision_light.qss` (이름 유지)
-- 픽커: `Editor/skins/pickers/MinimalFilterPicker.{h,cpp}`
-- 참조 카드: `Editor/skins/cards/MinimalReferenceCardView.{h,cpp}`
-- Copy: `Editor/widgets/routing/StepListRoutingRenderer.{h,cpp}`
+- QSS: `Editor/skins/minimal/qss/precision_dark.qss`, `precision_light.qss` (이름 유지)
+- 픽커: `Editor/skins/minimal/picker/MinimalFilterPicker.{h,cpp}`
+- 참조 카드: `Editor/skins/minimal/cards/MinimalReferenceCardView.{h,cpp}`
+- Copy: `Editor/skins/minimal/routing/StepListRoutingRenderer.{h,cpp}`
 - Device Selector: `DeviceSelector/skins/MinimalDeviceSkin.cpp` (공용 폼 계약은
   `DeviceSelector/skins/DeviceSkinPainter.{h,cpp}`)
 

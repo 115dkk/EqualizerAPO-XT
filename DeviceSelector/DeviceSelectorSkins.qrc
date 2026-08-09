@@ -6,16 +6,16 @@
              the sheets name (DM Sans/DM Mono + Pretendard for Hangul); the
              Sarasa mono-Korean fallback is Editor-only, this dialog has no
              monospace Korean surface worth its 9 MB. -->
-        <file alias="skins/studio_dark.qss">../Editor/skins/studio_dark.qss</file>
-        <file alias="skins/studio_light.qss">../Editor/skins/studio_light.qss</file>
-        <file alias="skins/precision_dark.qss">../Editor/skins/precision_dark.qss</file>
-        <file alias="skins/precision_light.qss">../Editor/skins/precision_light.qss</file>
-        <file alias="skins/soft_dark.qss">../Editor/skins/soft_dark.qss</file>
-        <file alias="skins/soft_light.qss">../Editor/skins/soft_light.qss</file>
-        <file alias="skins/rack_dark.qss">../Editor/skins/rack_dark.qss</file>
-        <file alias="skins/rack_light.qss">../Editor/skins/rack_light.qss</file>
-        <file alias="skins/matrix_dark.qss">../Editor/skins/matrix_dark.qss</file>
-        <file alias="skins/matrix_light.qss">../Editor/skins/matrix_light.qss</file>
+        <file alias="skins/studio_dark.qss">../Editor/skins/studio/qss/studio_dark.qss</file>
+        <file alias="skins/studio_light.qss">../Editor/skins/studio/qss/studio_light.qss</file>
+        <file alias="skins/precision_dark.qss">../Editor/skins/minimal/qss/precision_dark.qss</file>
+        <file alias="skins/precision_light.qss">../Editor/skins/minimal/qss/precision_light.qss</file>
+        <file alias="skins/soft_dark.qss">../Editor/skins/soft/qss/soft_dark.qss</file>
+        <file alias="skins/soft_light.qss">../Editor/skins/soft/qss/soft_light.qss</file>
+        <file alias="skins/rack_dark.qss">../Editor/skins/rack/qss/rack_dark.qss</file>
+        <file alias="skins/rack_light.qss">../Editor/skins/rack/qss/rack_light.qss</file>
+        <file alias="skins/matrix_dark.qss">../Editor/skins/matrix/qss/matrix_dark.qss</file>
+        <file alias="skins/matrix_light.qss">../Editor/skins/matrix/qss/matrix_light.qss</file>
         <file alias="icons/modern/chevron-down.svg">../Editor/icons/modern/chevron-down.svg</file>
         <file alias="icons/modern/chevron-right.svg">../Editor/icons/modern/chevron-right.svg</file>
         <file alias="icons/modern/chevron-up.svg">../Editor/icons/modern/chevron-up.svg</file>
