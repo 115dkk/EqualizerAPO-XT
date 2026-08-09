@@ -45,6 +45,7 @@ class MainWindow;
 class QLabel;
 class TitleBar;
 class UpdateToast;
+class UpdateSession;
 namespace SkinSwitchStorm { void run(MainWindow& window); }
 
 // MainWindow's implementation is split across several translation units (all
@@ -64,7 +65,7 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	explicit MainWindow(QDir configDir, QWidget* parent = 0);
+	explicit MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent = 0);
 	~MainWindow();
 	void doChecks();
 	void runDeviceSelector();
@@ -151,7 +152,7 @@ private:
 	void dressSkinChrome();
 	void syncKnobRangeActions();
 	void setCurrentRenderMode(FilterTable::RenderMode mode);
-	// Polls VelopackBootstrap for a staged background update and raises the
+	// Polls the process-owned UpdateSession for a staged background update and raises the
 	// bottom toast once when one appears (the download itself stays silent).
 	void watchForPendingUpdate();
 	FilterTable* filterTableForTab(int tabIndex) const;
@@ -205,6 +206,7 @@ private:
 	// Bottom-centre notice for the staged auto-update (created on demand).
 	UpdateToast* updateToast = nullptr;
 	QTimer* updateNoticeTimer = nullptr;
+	const UpdateSession* updateSession = nullptr;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

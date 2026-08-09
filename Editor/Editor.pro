@@ -39,7 +39,8 @@ SOURCES += main.cpp\
 	../helpers/ApoRegistration.cpp \
 	../helpers/StartMenuShortcuts.cpp \
 	../helpers/AudioFormatProbe.cpp \
-	../helpers/VelopackBootstrap.cpp \
+	../services/update/UpdateSession.cpp \
+	../services/update/VelopackBootstrap.cpp \
 	../parser/LogicalOperators.cpp \
 	IFilterGUIFactory.cpp \
 	FilterGUIFactoryRegistry.cpp \
@@ -351,8 +352,8 @@ HEADERS  += \
 	../helpers/ApoRegistration.h \
 	../helpers/StartMenuShortcuts.h \
 	../helpers/AudioFormatProbe.h \
-	../helpers/VelopackBootstrap.h \
-	../helpers/UpdateElevationPolicy.h \
+	../services/update/UpdateSession.h \
+	../services/update/VelopackBootstrap.h \
 	../parser/LogicalOperators.h \
 	IFilterGUIFactory.h \
 	FilterGUIFactoryRegistry.h \

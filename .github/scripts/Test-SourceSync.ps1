@@ -17,7 +17,7 @@
     Only the Common.vcxproj -> Editor.pro direction is an error. The reverse is
     normal: Editor.pro also reaches outside the Editor directory for helpers
     Common.vcxproj does not compile at all (ServiceHelper, ApoRegistration,
-    AudioFormatProbe, VelopackBootstrap - shared with DeviceSelector), so a ../
+    AudioFormatProbe, services/update - shared with DeviceSelector), so a ../
     entry with no ClCompile behind it is not reported.
 
     It then checks that every source and header the test projects list actually

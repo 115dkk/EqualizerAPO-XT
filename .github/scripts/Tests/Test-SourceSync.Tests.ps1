@@ -116,7 +116,8 @@ Describe "Test-SourceSync.ps1" {
                 '../helpers/ServiceHelper.cpp'
                 '../helpers/ApoRegistration.cpp'
                 '../helpers/AudioFormatProbe.cpp'
-                '../helpers/VelopackBootstrap.cpp'
+                '../services/update/UpdateSession.cpp'
+                '../services/update/VelopackBootstrap.cpp'
             )
         $result = Invoke-SourceSync -RepoRoot $root
 

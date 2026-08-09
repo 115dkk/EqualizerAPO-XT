@@ -137,6 +137,8 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="SelectionModelTests.cpp" />
     <ClCompile Include="RoutingModelTests.cpp" />
     <ClCompile Include="SubwooferRoutingTests.cpp" />
+    <ClCompile Include="UpdateSessionTests.cpp" />
+    <ClCompile Include="..\..\services\update\UpdateSession.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
     <ClCompile Include="..\..\Editor\analysis\AnalysisResponse.cpp" />
     <ClCompile Include="..\..\Editor\analysis\ResponseCurveBuilder.cpp" />
@@ -193,8 +195,7 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
     <ClInclude Include="..\..\helpers\StringHelper.h" />
-    <ClInclude Include="..\..\helpers\OwnedBackgroundTask.h" />
-    <ClInclude Include="..\..\helpers\UpdateElevationPolicy.h" />
+    <ClInclude Include="..\..\services\update\UpdateSession.h" />
     <ClInclude Include="..\..\filters\BiQuadCommand.h" />
     <ClInclude Include="..\..\filters\ChannelCommand.h" />
     <ClInclude Include="..\..\filters\FilterFactoryRegistry.h" />

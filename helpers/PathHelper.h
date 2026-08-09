@@ -3,7 +3,7 @@
 
 	Audit #250 F018: joinPath / fileExists / directoryExists / exeDirectory
 	used to be copied verbatim into three modules of this static library
-	(ApoRegistration, AudioEngineAccess, VelopackBootstrap). One header-only
+	(ApoRegistration, AudioEngineAccess, services/update/VelopackBootstrap). One header-only
 	home; consumers pull what they need into their namespace.
 */
 

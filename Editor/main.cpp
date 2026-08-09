@@ -19,6 +19,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <string>
 
 #include <QTranslator>
@@ -58,11 +59,11 @@
 #include "helpers/ApoRegistration.h"
 #include "helpers/RegistryHelper.h"
 #include "helpers/StringHelper.h"
-#include "helpers/UpdateElevationPolicy.h"
 #include "helpers/Win32Resource.h"
 #include "helpers/AudioEngineAccess.h"
 #include "helpers/InstallDiagnostics.h"
-#include "helpers/VelopackBootstrap.h"
+#include "services/update/UpdateSession.h"
+#include "services/update/VelopackBootstrap.h"
 #include "version.h"
 #include "helpers/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
@@ -288,7 +289,7 @@ int handleVelopackHook(int argc, char* argv[])
 	if (!hookSeen)
 		return -1;
 
-	if (UpdateElevationPolicy::hookMustSelfElevate(AudioEngineAccess::isElevated()))
+	if (!AudioEngineAccess::isElevated())
 		return relaunchElevatedAndWait(argc, argv);
 
 	for (int i = 1; i < argc; i++)
@@ -385,7 +386,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	if (hasArgument(argc, argv, UpdateElevationPolicy::kElevatedCoordinatorArgument))
+	if (hasArgument(argc, argv, VelopackBootstrap::kElevatedCoordinatorArgument))
 	{
 		// The coordinator is an internal one-shot process, not a normal Editor
 		// launch. Avoid VelopackApp's startup package scan and go directly to
@@ -397,6 +398,9 @@ int main(int argc, char* argv[])
 	// Initialise the Velopack runtime so UpdateManager resolves the correct
 	// install context. Auto-apply-on-startup is off because we apply on exit instead.
 	Velopack::VelopackApp::Build().SetAutoApplyOnStartup(false).Run();
+	std::unique_ptr<UpdateSession> updateSession = VelopackBootstrap::createUpdateSession(
+		EAPO_REPO_URL,
+		configuredUpdateChannel());
 
 	int result = -1;
 #ifdef _DEBUG
@@ -540,7 +544,7 @@ int main(int argc, char* argv[])
 		if (!RegistryHelper::keyExists(EDITOR_PER_FILE_REGPATH))
 			RegistryHelper::createKey(EDITOR_PER_FILE_REGPATH);
 
-		MainWindow w(configDir);
+		MainWindow w(configDir, updateSession.get());
 		w.show();
 
 		// One-time notice after the install hook migrated a config tree; a
@@ -569,16 +573,15 @@ int main(int argc, char* argv[])
 		else
 			w.doChecks();
 
-		if (VelopackBootstrap::isVelopackInstall() && !firstRun)
+		if (updateSession && !firstRun)
 		{
 			// Defer the background download so it does not race with audio service
 			// work or a Device Selector launch right after the Editor opens.
 			// 60s is long enough that the initial GUI paint, config load, and
 			// device enumeration are all comfortably finished. The download runs on
 			// its own worker thread and just stages the update for apply-on-exit.
-			QTimer::singleShot(60000, qApp, []() {
-				VelopackBootstrap::startBackgroundDownload(
-					EAPO_REPO_URL, configuredUpdateChannel());
+			QTimer::singleShot(60000, qApp, [session = updateSession.get()]() {
+				session->startDownload();
 			});
 		}
 
@@ -590,13 +593,25 @@ int main(int argc, char* argv[])
 
 	// The session owns the download worker. Join it before inspecting staged state so
 	// neither process shutdown nor static destruction can race with its publication.
-	VelopackBootstrap::shutdown();
+	if (updateSession)
+		updateSession->shutdown();
 
 	// If the background worker staged an update, apply it now. exec() has returned and
 	// the QApplication is destroyed, so no other thread is writing to the install dir.
 	// The apply is silent and does not restart; the new version comes up next launch.
-	if (VelopackBootstrap::isVelopackInstall() && VelopackBootstrap::hasPendingUpdate())
-		VelopackBootstrap::applyPendingUpdateAndExit();
+	if (updateSession && updateSession->hasPendingUpdate())
+	{
+		const UpdateApplyOutcome outcome = updateSession->applyPendingUpdate(
+			AudioEngineAccess::isElevated(),
+			[]() { return VelopackBootstrap::launchElevatedUpdateCoordinator(); });
+		if (outcome == UpdateApplyOutcome::CoordinatorLaunched ||
+			outcome == UpdateApplyOutcome::UpdaterLaunched)
+		{
+			return 0;
+		}
+		if (outcome == UpdateApplyOutcome::Failed)
+			LogFStatic(L"[Editor] staged update could not be applied");
+	}
 
 	return result;
 }

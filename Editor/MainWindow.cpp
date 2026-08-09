@@ -43,7 +43,7 @@
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
 #include "helpers/AudioFormatProbe.h"
-#include "helpers/VelopackBootstrap.h"
+#include "services/update/UpdateSession.h"
 #include "Editor/widgets/UpdateToast.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
@@ -74,8 +74,11 @@ template<class T> QList<T> MainWindow::toQList(const std::vector<T>& vector)
 	return list;
 }
 
-MainWindow::MainWindow(QDir configDir, QWidget* parent)
-	: QMainWindow(parent), ui(std::make_unique<Ui::MainWindow>()), configDir(configDir)
+MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent)
+	: QMainWindow(parent),
+	ui(std::make_unique<Ui::MainWindow>()),
+	configDir(configDir),
+	updateSession(updateSession)
 {
 	outputDevices = toQList(DeviceAPOInfo::loadAllInfos(false));
 	inputDevices = toQList(DeviceAPOInfo::loadAllInfos(true));
@@ -253,17 +256,17 @@ void MainWindow::watchForPendingUpdate()
 	// silently; this poll is the only place the user learns about it. 20s is
 	// far below the human noticing threshold for "eventually told me" and far
 	// above any cost concern for an atomic-bool read.
-	if (!VelopackBootstrap::isVelopackInstall())
+	if (updateSession == nullptr)
 		return;
 
 	updateNoticeTimer = new QTimer(this);
 	updateNoticeTimer->setInterval(20000);
 	connect(updateNoticeTimer, &QTimer::timeout, this, [this]() {
-		if (!VelopackBootstrap::hasPendingUpdate())
+		if (!updateSession->hasPendingUpdate())
 			return;
 		updateNoticeTimer->stop();
 
-		const QString version = QString::fromStdWString(VelopackBootstrap::pendingUpdateVersion());
+		const QString version = QString::fromStdWString(updateSession->pendingUpdateVersion());
 		if (updateToast == nullptr)
 			updateToast = new UpdateToast(centralWidget());
 		updateToast->showMessage(version.isEmpty()
