@@ -11,7 +11,7 @@
 #include <dbghelp.h>
 #include <shlobj.h>
 
-#include "helpers/Win32Resource.h"
+#include "platform/windows/Win32Resource.h"
 #include "version.h"
 
 namespace

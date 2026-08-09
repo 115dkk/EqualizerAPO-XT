@@ -343,7 +343,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\helpers\MemoryHelper.h" />
+    <ClInclude Include="..\runtime\memory\MemoryHelper.h" />
     <ClInclude Include="..\stdafx.h" />
     <ClInclude Include="..\version.h" />
     <ClInclude Include="ClassFactory.h" />

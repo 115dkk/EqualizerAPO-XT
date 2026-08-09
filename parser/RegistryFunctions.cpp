@@ -20,8 +20,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "stdafx.h"
 #include <memory>
 #include "RegistryFunctions.h"
-#include "helpers/IRegistry.h"
-#include "../helpers/RegistryHelper.h"
+#include "services/registry/IRegistry.h"
+#include "../services/registry/RegistryHelper.h"
 #include "../engine/FilterEngine.h"
 
 using std::make_unique;

@@ -26,9 +26,9 @@
 #include <vector>
 
 #include "SubwooferRouting/Compiler.h"
-#include "helpers/LogHelper.h"
-#include "helpers/PerfProfile.h"
-#include "helpers/StringHelper.h"
+#include "services/logging/LogHelper.h"
+#include "diagnostics/performance/PerfProfile.h"
+#include "text/StringHelper.h"
 #include "SubwooferRoutingCommand.h"
 
 namespace

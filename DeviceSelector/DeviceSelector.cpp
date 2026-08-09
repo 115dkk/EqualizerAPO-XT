@@ -19,11 +19,11 @@
 
 #include "stdafx.h"
 #include <devices/DeviceAPOInfo.h>
-#include <helpers/LogHelper.h>
-#include <helpers/RegistryHelper.h>
-#include <helpers/WindowsVersion.h>
-#include <helpers/ServiceHelper.h>
-#include <helpers/Win32Resource.h>
+#include <services/logging/LogHelper.h>
+#include <services/registry/RegistryHelper.h>
+#include <platform/windows/WindowsVersion.h>
+#include <services/windows/ServiceHelper.h>
+#include <platform/windows/Win32Resource.h>
 #include <QDir>
 #include <QPropertyAnimation>
 #include <devices/VoicemeeterAPOInfo.h>

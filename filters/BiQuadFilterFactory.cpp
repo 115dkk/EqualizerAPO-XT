@@ -23,9 +23,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <regex>
 #include <sstream>
 
-#include "helpers/MemoryHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
+#include "runtime/memory/MemoryHelper.h"
+#include "text/StringHelper.h"
+#include "services/logging/LogHelper.h"
 #include "BiQuadFilter.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "BiQuadFilterFactory.h"

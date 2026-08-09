@@ -21,7 +21,7 @@
 
 #include "ConvolutionCommand.h"
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 const std::wstring& ConvolutionCommand::serialize() const
 {

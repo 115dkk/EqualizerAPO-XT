@@ -22,7 +22,7 @@
 #include <typeinfo>
 
 #include "FilterConfiguration.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 #include "hwy/highway.h"
 

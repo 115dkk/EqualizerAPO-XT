@@ -21,7 +21,7 @@
 
 #include "ExpressionCommand.h"
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 using std::vector;
 using std::wstring;

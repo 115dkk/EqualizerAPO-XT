@@ -12,9 +12,9 @@
 
 #include "UpdateSession.h"
 
-#include "helpers/AudioEngineAccess.h"
-#include "helpers/LogHelper.h"
-#include "helpers/PathHelper.h"
+#include "services/security/AudioEngineAccess.h"
+#include "services/logging/LogHelper.h"
+#include "platform/windows/WindowsPath.h"
 
 #include <memory>
 #include <optional>

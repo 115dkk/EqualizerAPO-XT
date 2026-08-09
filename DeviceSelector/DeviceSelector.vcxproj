@@ -419,13 +419,13 @@
     </ClCompile>
     <ClInclude Include="..\Editor\skins\SkinThemeData.h" />
     <ClCompile Include="..\Editor\helpers\QtAppBootstrap.cpp" />
-    <ClCompile Include="..\helpers\ServiceHelper.cpp" />
-    <ClCompile Include="..\helpers\ApoRegistration.cpp" />
-    <ClCompile Include="..\helpers\StartMenuShortcuts.cpp" />
-    <ClCompile Include="..\helpers\AudioEngineAccess.cpp" />
-    <ClCompile Include="..\helpers\InstallDiagnostics.cpp" />
+    <ClCompile Include="..\services\windows\ServiceHelper.cpp" />
+    <ClCompile Include="..\services\install\ApoRegistration.cpp" />
+    <ClCompile Include="..\services\shell\StartMenuShortcuts.cpp" />
+    <ClCompile Include="..\services\security\AudioEngineAccess.cpp" />
+    <ClCompile Include="..\services\diagnostics\InstallDiagnostics.cpp" />
     <ClCompile Include="DeviceSelector.cpp" />
-    <ClInclude Include="..\helpers\ServiceHelper.h" />
+    <ClInclude Include="..\services\windows\ServiceHelper.h" />
     <QtMoc Include="DeviceTestDialog.h" />
     <QtMoc Include="DeviceTestThread.h" />
     <QtMoc Include="DeviceListDelegate.h" />

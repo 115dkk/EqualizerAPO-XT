@@ -10,10 +10,10 @@ another by accident.
 
 | Layer | Model | Representative files |
 | --- | --- | --- |
-| System integration (registry, service control) | Throw an exception | `helpers/RegistryHelper.cpp`, `helpers/ServiceHelper.cpp` |
-| Install / uninstall orchestration | Return a `Result` enum | `helpers/ApoRegistration.h`, `helpers/ApoRegistration.cpp` |
+| System integration (registry, service control) | Throw an exception | `services/registry/RegistryHelper.cpp`, `services/windows/ServiceHelper.cpp` |
+| Install / uninstall orchestration | Return a `Result` enum | `services/install/ApoRegistration.h`, `services/install/ApoRegistration.cpp` |
 | VST plugin loading | Return `bool` | `vst/VSTPluginInstance.cpp` |
-| Allocation helpers (audio / real-time path) | Return `nullptr` and log | `helpers/MemoryHelper.cpp` |
+| Allocation helpers (audio / real-time path) | Return `nullptr` and log | `runtime/memory/MemoryHelper.cpp` |
 | Configuration parsing | Report the line and keep loading | `filters/*Factory.cpp`, `ConfigLoadTrace.h` |
 
 ## Why each layer differs

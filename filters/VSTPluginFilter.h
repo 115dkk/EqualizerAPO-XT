@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "engine/IFilter.h"
-#include "helpers/MemoryHelper.h"
+#include "runtime/memory/MemoryHelper.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 

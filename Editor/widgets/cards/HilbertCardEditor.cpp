@@ -17,7 +17,7 @@
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
 #include "Editor/widgets/cards/FilterCardEditorRegistry.h"
 #include "devices/AbstractAPOInfo.h"
-#include "helpers/ChannelHelper.h"
+#include "audio/ChannelHelper.h"
 #include "filters/ChannelCommand.h"
 #include "filters/HilbertFilter.h"
 

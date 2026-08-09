@@ -7,9 +7,9 @@
 #include "ConfigDependencyScanner.h"
 #include "ImportExecutor.h"
 
-#include "helpers/ApoRegistration.h"
-#include "helpers/LogHelper.h"
-#include "helpers/RegistryHelper.h"
+#include "services/install/ApoRegistration.h"
+#include "services/logging/LogHelper.h"
+#include "services/registry/RegistryHelper.h"
 
 #include <cstdio>
 

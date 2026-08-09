@@ -22,8 +22,8 @@
 #include "Editor/helpers/ConvolutionPathHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "filters/ConvolutionCommand.h"
-#include "helpers/AudioEngineAccess.h"
-#include "helpers/SndfileRAII.h"
+#include "services/security/AudioEngineAccess.h"
+#include "audio/io/SndfileRAII.h"
 #include "ConvolutionFilterGUI.h"
 #include "ui_ConvolutionFilterGUI.h"
 

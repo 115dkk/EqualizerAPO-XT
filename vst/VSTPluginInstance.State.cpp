@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include <limits>
 #include <wincrypt.h>
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
 #include "VSTPluginInstanceInternal.h"

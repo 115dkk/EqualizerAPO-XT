@@ -39,9 +39,9 @@
 #endif
 #include <math.h>
 #include <fftw3.h>
-#include "../helpers/FftwRAII.h"
-#include "../helpers/FftwPlanningPolicy.h"
-#include "../helpers/LogHelper.h"
+#include "../dsp/FftwRAII.h"
+#include "../dsp/FftwPlanningPolicy.h"
+#include "../services/logging/LogHelper.h"
 #include "HcAlignedStorage.h"
 #include "libHybridConv_eapo.h"
 

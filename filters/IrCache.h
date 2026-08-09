@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include "helpers/MemoryHelper.h"
+#include "runtime/memory/MemoryHelper.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 
 // Decoded impulse-response PCM, shared between filters that reference the same

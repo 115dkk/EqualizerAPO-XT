@@ -19,8 +19,8 @@
 
 #include "stdafx.h"
 
-#include "helpers/MemoryHelper.h"
-#include "helpers/LogHelper.h"
+#include "runtime/memory/MemoryHelper.h"
+#include "services/logging/LogHelper.h"
 #include "ConvolutionCommand.h"
 #include "ConvolutionFilePath.h"
 #include "ConvolutionFilter.h"

@@ -26,8 +26,8 @@
 #include <cstdio>
 #include <regex>
 
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
+#include "text/StringHelper.h"
+#include "services/logging/LogHelper.h"
 
 using std::sort;
 using std::wregex;

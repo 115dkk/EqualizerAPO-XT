@@ -23,7 +23,7 @@
 #include <vector>
 #include <memory>
 #include "AbstractAPOInfo.h"
-#include "helpers/IRegistry.h"
+#include "services/registry/IRegistry.h"
 
 class VoicemeeterAPOInfo : public AbstractAPOInfo
 {

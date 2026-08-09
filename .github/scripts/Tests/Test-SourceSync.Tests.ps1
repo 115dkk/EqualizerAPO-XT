@@ -24,7 +24,7 @@ BeforeAll {
     # list itself as stale - which is the behaviour two of the cases below check.
     $script:KnownOmissions = @(
         'stdafx.cpp'
-        'helpers/ClsidRegistration.cpp'
+        'services/registry/ClsidRegistration.cpp'
     )
 
     function New-FixtureRepo {
@@ -87,8 +87,8 @@ AfterAll {
 Describe "Test-SourceSync.ps1" {
     It "passes when Editor.pro carries every engine source Common.vcxproj compiles" {
         $root = New-FixtureRepo `
-            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'helpers/LogHelper.cpp') `
-            -EditorSources @('../FilterEngine.cpp', '../filters/BiQuadFilter.cpp', '../helpers/LogHelper.cpp')
+            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/LogHelper.cpp') `
+            -EditorSources @('../FilterEngine.cpp', '../filters/BiQuadFilter.cpp', '../services/logging/LogHelper.cpp')
         $result = Invoke-SourceSync -RepoRoot $root
 
         $result.ExitCode | Should -Be 0
@@ -97,8 +97,8 @@ Describe "Test-SourceSync.ps1" {
 
     It "fails and names the file when Editor.pro is missing one engine source" {
         $root = New-FixtureRepo `
-            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'helpers/LogHelper.cpp') `
-            -EditorSources @('../FilterEngine.cpp', '../helpers/LogHelper.cpp')
+            -CommonSources @('FilterEngine.cpp', 'filters/BiQuadFilter.cpp', 'services/logging/LogHelper.cpp') `
+            -EditorSources @('../FilterEngine.cpp', '../services/logging/LogHelper.cpp')
         $result = Invoke-SourceSync -RepoRoot $root
 
         # A non-zero exit code is the whole point in CI: the workflow step runs
@@ -113,9 +113,9 @@ Describe "Test-SourceSync.ps1" {
             -CommonSources @('FilterEngine.cpp') `
             -EditorSources @(
                 '../FilterEngine.cpp'
-                '../helpers/ServiceHelper.cpp'
-                '../helpers/ApoRegistration.cpp'
-                '../helpers/AudioFormatProbe.cpp'
+                '../services/windows/ServiceHelper.cpp'
+                '../services/install/ApoRegistration.cpp'
+                '../services/audio/AudioFormatProbe.cpp'
                 '../services/update/UpdateSession.cpp'
                 '../services/update/VelopackBootstrap.cpp'
             )

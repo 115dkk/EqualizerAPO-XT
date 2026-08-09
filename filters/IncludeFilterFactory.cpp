@@ -20,8 +20,8 @@
 #include "stdafx.h"
 #include <Shlwapi.h>
 
-#include "helpers/LogHelper.h"
-#include "helpers/StringHelper.h"
+#include "services/logging/LogHelper.h"
+#include "text/StringHelper.h"
 #include "engine/FilterEngine.h"
 #include "filters/FilterFactoryRegistry.h"
 #include "IncludeCommand.h"

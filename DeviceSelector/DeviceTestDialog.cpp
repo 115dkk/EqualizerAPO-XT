@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include <devices/DeviceAPOInfo.h>
-#include <helpers/RegistryHelper.h>
+#include <services/registry/RegistryHelper.h>
 #include "DeviceTestDialog.h"
 #include "OpacityIconEngine.h"
 

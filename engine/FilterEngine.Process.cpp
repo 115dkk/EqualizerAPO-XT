@@ -21,8 +21,8 @@
 #include <algorithm>
 #include <cstring>
 
-#include "helpers/PerfProfile.h"
-#include "helpers/MxcsrGuard.h"
+#include "diagnostics/performance/PerfProfile.h"
+#include "dsp/MxcsrGuard.h"
 #include "FilterEngine.h"
 // Filter factory headers intentionally omitted: the factories self-register and
 // are pulled into the link via /WHOLEARCHIVE in the consumers; this hot-path TU

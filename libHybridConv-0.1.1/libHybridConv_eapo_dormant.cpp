@@ -15,7 +15,7 @@
 #include <memory>
 #include <math.h>
 #include <fftw3.h>
-#include "../helpers/LogHelper.h"
+#include "../services/logging/LogHelper.h"
 #include "HcAlignedStorage.h"
 #include "libHybridConv_eapo_dormant.h"
 

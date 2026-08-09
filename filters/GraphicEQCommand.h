@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "helpers/GainIterator.h"
+#include "filters/graphicEq/GainIterator.h"
 
 // Plain, Qt-free description of a parsed "GraphicEQ:" config line. It holds the
 // node list (freq / dB-gain pairs) exactly as GraphicEQFilterFactory::createFilter

@@ -75,12 +75,12 @@ MFX 는 드라이버 것인 엔드포인트가 남았습니다. `load()` 는 둘
 실제 기계에서는 드라이버가 쥔 속성 하나의 ACL 로 일어나는 실패라서, 그 외의 방법으로는 중간에서
 끊어진 설치를 재현할 수 없습니다.
 
-S5d 는 "audiodg(LOCAL SERVICE)가 이 파일을 읽을 수 있는가"를 `helpers/AudioEngineAccess.h` 한 곳으로
+S5d 는 "audiodg(LOCAL SERVICE)가 이 파일을 읽을 수 있는가"를 `services/security/AudioEngineAccess.h` 한 곳으로
 모았습니다. SID 와 각 주체가 필요한 권한을 한 표에 선언하고, 검사와 부여가 같은 표를 읽습니다.
 Editor 의 6개 호출 지점이 같은 마스크 비교를 각자 적던 것은 `isReadableByAudioEngine` 하나로 줄었고,
 `ApoRegistration` 의 `icacls` 인자 문자열 두 개도 그 모듈로 들어갔습니다.
 `getFileAccessForUser`(파일 ACL 질의)와 `isWindowsVersionAtLeast`(kernel32 버전 자원)는
-레지스트리 연산이 아니므로 각각 `AudioEngineAccess` 와 `helpers/WindowsVersion.h` 로 나갔습니다.
+레지스트리 연산이 아니므로 각각 `AudioEngineAccess` 와 `platform/windows/WindowsVersion.h` 로 나갔습니다.
 승격 가정은 이제 로그로 드러납니다. 승격 없이 도는 훅을 거부하지는 않습니다.
 설치기가 부르는 훅이라 거부하면 Windows 가 마칠 수 있는 설치까지 깨뜨립니다.
 

@@ -23,9 +23,9 @@
 #include "filters/ConvolutionFilter.h"
 #include "filters/ConvolutionFilePath.h"
 #include "filters/IrCache.h"
-#include "helpers/LogHelper.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/SndfileRAII.h"
+#include "services/logging/LogHelper.h"
+#include "runtime/memory/MemoryHelper.h"
+#include "audio/io/SndfileRAII.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 #include "Tests/TestHarness.h"
 

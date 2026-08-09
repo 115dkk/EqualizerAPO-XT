@@ -17,7 +17,7 @@
 
 #include "filters/HilbertCommand.h"
 #include "filters/HilbertFilter.h"
-#include "helpers/LogHelper.h"
+#include "services/logging/LogHelper.h"
 #include "filters/VelvetCommand.h"
 #include "filters/velvet/Processor.h"
 #include "Tests/TestHarness.h"

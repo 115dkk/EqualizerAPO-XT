@@ -31,7 +31,7 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-// Unknwn.h before mmdeviceapi.h, matching helpers/AudioFormatProbe.cpp: the
+// Unknwn.h before mmdeviceapi.h, matching services/audio/AudioFormatProbe.cpp: the
 // MIDL header needs the COM base types, and WIN32_LEAN_AND_MEAN keeps
 // windows.h from supplying them. mmdeviceapi.h is here only for the
 // DEVICE_STATE_* bits load() tests, and mmreg.h for the WAVEFORMATEXTENSIBLE
@@ -42,8 +42,8 @@
 
 #include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/WindowsVersion.h"
+#include "services/registry/RegistryHelper.h"
+#include "platform/windows/WindowsVersion.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"

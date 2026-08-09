@@ -40,9 +40,9 @@
 #
 # REGISTRY FOOTPRINT THIS HARNESS MIRRORS (from the recon, file:line):
 #   - EQ pre-mix  APO CLSID  {EACD2258-FCAC-4FF4-B36D-419E924A6D79}
-#       helpers/RegistryHelper.h:29
+#       services/registry/RegistryHelper.h:29
 #   - EQ post-mix APO CLSID  {EC1CC9CE-FAED-4822-828A-82A81A6F018F}
-#       helpers/RegistryHelper.h:31
+#       services/registry/RegistryHelper.h:31
 #   - Per-endpoint FxProperties APO value names (LFX/GFX/SFX/MFX/EFX), all under
 #     the {d04e05a6-594b-4fb6-a80d-01af5eed7d1d} fmtid:
 #       ,1 ,2 ,5 ,6 ,7  -> devices/DeviceAPOInfo.Install.cpp:38-47

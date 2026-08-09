@@ -22,7 +22,7 @@
 
 #include "MultiConvolutionCommand.h"
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 namespace
 {

@@ -22,7 +22,7 @@
 #include <mutex>
 #include <string>
 
-#include "helpers/Win32Resource.h"
+#include "platform/windows/Win32Resource.h"
 
 class AbstractLibrary
 {

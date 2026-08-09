@@ -19,9 +19,9 @@
 #include "filters/ConvolutionFilter.h"
 #include "filters/MultiConvolutionCommand.h"
 #include "filters/MultiConvolutionFilter.h"
-#include "helpers/SndfileRAII.h"
-#include "helpers/LogHelper.h"
-#include "helpers/PerfProfile.h"
+#include "audio/io/SndfileRAII.h"
+#include "services/logging/LogHelper.h"
+#include "diagnostics/performance/PerfProfile.h"
 #include "Tests/TestHarness.h"
 
 using std::vector;

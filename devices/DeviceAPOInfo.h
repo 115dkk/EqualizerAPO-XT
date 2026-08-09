@@ -24,8 +24,8 @@
 #include <vector>
 #include <memory>
 #include "AbstractAPOInfo.h"
-#include "helpers/IRegistry.h"
-#include "helpers/RegistryTransaction.h"
+#include "services/registry/IRegistry.h"
+#include "services/registry/RegistryTransaction.h"
 
 #define APOGUID_NULL L"{00000000-0000-0000-0000-000000000000}"
 #define APOGUID_NOKEY L"!KEY"

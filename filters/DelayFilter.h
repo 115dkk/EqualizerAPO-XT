@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "engine/IFilter.h"
-#include "helpers/MemoryHelper.h"
+#include "runtime/memory/MemoryHelper.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class DelayFilter : public IFilter

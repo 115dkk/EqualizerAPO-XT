@@ -21,7 +21,7 @@
 
 #include "StageCommand.h"
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 using std::wstring;
 

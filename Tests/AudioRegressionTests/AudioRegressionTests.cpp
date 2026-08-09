@@ -26,10 +26,10 @@
 #include <bcrypt.h>
 
 #include "engine/FilterEngine.h"
-#include "helpers/LogHelper.h"
-#include "helpers/SndfileRAII.h"
-#include "helpers/StringHelper.h"
-#include "helpers/Win32Resource.h"
+#include "services/logging/LogHelper.h"
+#include "audio/io/SndfileRAII.h"
+#include "text/StringHelper.h"
+#include "platform/windows/Win32Resource.h"
 #include "Tests/TestHarness.h"
 
 #pragma comment(lib, "bcrypt.lib")

@@ -8,7 +8,7 @@
 #include "Editor/FilterTable.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardEditor.h"
 #include "filters/subwooferRouting/SubwooferRoutingCommand.h"
-#include "helpers/ChannelHelper.h"
+#include "audio/ChannelHelper.h"
 
 // cppcheck's standalone parser does not expand the static-registration macro.
 // cppcheck-suppress unknownMacro

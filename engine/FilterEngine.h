@@ -32,8 +32,8 @@
 #include "FilterConfiguration.h"
 #include "ConfigSwapChannel.h"
 #include "parser/EngineParser.h"
-#include "helpers/PrecisionTimer.h"
-#include "helpers/MemoryHelper.h"
+#include "diagnostics/performance/PrecisionTimer.h"
+#include "runtime/memory/MemoryHelper.h"
 
 struct ConfigLoadTraceEntry;
 class ConfigLoadTraceSink;

@@ -22,7 +22,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shellapi.h>
-#include "../helpers/RegistryHelper.h"
+#include "../services/registry/RegistryHelper.h"
 #include "VoicemeeterClient.h"
 #include "../devices/VoicemeeterAPOInfo.h"
 

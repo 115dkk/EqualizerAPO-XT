@@ -29,7 +29,7 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "filters/ConvolutionFilePath.h"
 #include "filters/FilterFactoryRegistry.h"
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 #include "SubwooferRoutingCommand.h"
 #include "SubwooferRoutingFilter.h"
 

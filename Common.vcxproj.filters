@@ -144,70 +144,70 @@
     <ClInclude Include="vst\aeffectx.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\ChannelHelper.h">
+    <ClInclude Include="audio\ChannelHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\ComBoundary.h">
+    <ClInclude Include="platform\windows\ComBoundary.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\FileSharingRetry.h">
+    <ClInclude Include="platform\windows\FileSharingRetry.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\GainIterator.h">
+    <ClInclude Include="filters\graphicEq\GainIterator.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\ClsidRegistration.h">
+    <ClInclude Include="services\registry\ClsidRegistration.h">
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="filters\ConvolverMuteDiagnostics.h">
       <Filter>filters</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\IRegistry.h">
+    <ClInclude Include="services\registry\IRegistry.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\RegistryTransaction.h">
+    <ClInclude Include="services\registry\RegistryTransaction.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\WindowsVersion.h">
+    <ClInclude Include="platform\windows\WindowsVersion.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\LogHelper.h">
+    <ClInclude Include="services\logging\LogHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\FftwRAII.h">
+    <ClInclude Include="dsp\FftwRAII.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\FftwPlanningPolicy.h">
+    <ClInclude Include="dsp\FftwPlanningPolicy.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\MemoryHelper.h">
+    <ClInclude Include="runtime\memory\MemoryHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\ParallelExecutor.h">
+    <ClInclude Include="runtime\concurrency\ParallelExecutor.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\Win32Resource.h">
+    <ClInclude Include="platform\windows\Win32Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\PerfProfile.h">
+    <ClInclude Include="diagnostics\performance\PerfProfile.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\PrecisionTimer.h">
+    <ClInclude Include="diagnostics\performance\PrecisionTimer.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\RegistryHelper.h">
+    <ClInclude Include="services\registry\RegistryHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\ScopeGuard.h">
+    <ClInclude Include="runtime\lifetime\ScopeGuard.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\SndfileRAII.h">
+    <ClInclude Include="audio\io\SndfileRAII.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\StringHelper.h">
+    <ClInclude Include="text\StringHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\UncaughtExceptions.h">
+    <ClInclude Include="runtime\lifetime\UncaughtExceptions.h">
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="vst\VSTPluginInstance.h">
@@ -405,40 +405,40 @@
     <ClCompile Include="vst\AbstractLibrary.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\ChannelHelper.cpp">
+    <ClCompile Include="audio\ChannelHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\GainIterator.cpp">
+    <ClCompile Include="filters\graphicEq\GainIterator.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\ClsidRegistration.cpp">
+    <ClCompile Include="services\registry\ClsidRegistration.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\IRegistry.cpp">
+    <ClCompile Include="services\registry\IRegistry.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\RegistryTransaction.cpp">
+    <ClCompile Include="services\registry\RegistryTransaction.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\WindowsVersion.cpp">
+    <ClCompile Include="platform\windows\WindowsVersion.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\LogHelper.cpp">
+    <ClCompile Include="services\logging\LogHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\MemoryHelper.cpp">
+    <ClCompile Include="runtime\memory\MemoryHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\ParallelExecutor.cpp">
+    <ClCompile Include="runtime\concurrency\ParallelExecutor.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\PerfProfile.cpp">
+    <ClCompile Include="diagnostics\performance\PerfProfile.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\RegistryHelper.cpp">
+    <ClCompile Include="services\registry\RegistryHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\StringHelper.cpp">
+    <ClCompile Include="text\StringHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="vst\VST3PluginIIDs.cpp">
@@ -465,7 +465,7 @@
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp">
       <Filter>libHybridConv-0.1.1</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\FftwPlanningPolicy.cpp">
+    <ClCompile Include="dsp\FftwPlanningPolicy.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="parser\ParserExtensions.cpp">

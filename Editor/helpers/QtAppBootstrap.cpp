@@ -25,7 +25,7 @@
 #include <QSettings>
 #include <QTranslator>
 
-#include "helpers/RegistryHelper.h"
+#include "services/registry/RegistryHelper.h"
 #include "QtAppBootstrap.h"
 
 namespace

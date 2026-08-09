@@ -26,12 +26,12 @@
 #include <mmreg.h>
 #include <ksmedia.h>
 
-#include "../helpers/LogHelper.h"
-#include "../helpers/ComBoundary.h"
-#include "../helpers/RegistryHelper.h"
-#include "../helpers/StringHelper.h"
-#include "../helpers/ComPtr.h"
-#include "../helpers/Win32Resource.h"
+#include "../services/logging/LogHelper.h"
+#include "../platform/windows/ComBoundary.h"
+#include "../services/registry/RegistryHelper.h"
+#include "../text/StringHelper.h"
+#include "../platform/windows/ComPtr.h"
+#include "../platform/windows/Win32Resource.h"
 #include "../devices/DeviceAPOInfo.h"
 #include "../devices/DeviceAPOInfoKeys.h"
 #include "EqualizerAPO.h"

@@ -28,7 +28,7 @@
 #include "Editor/import/ImportExecutor.h"
 #include "Editor/import/ImportManifest.h"
 #include "Editor/import/LegacyMigrationPolicy.h"
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 #include "EditorLogicTestSupport.h"
 

@@ -22,9 +22,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "helpers/FileSharingRetry.h"
-#include "helpers/LogHelper.h"
-#include "helpers/StringHelper.h"
+#include "platform/windows/FileSharingRetry.h"
+#include "services/logging/LogHelper.h"
+#include "text/StringHelper.h"
 #include "engine/ConfigurationFileReader.h"
 #include "ConfigFileCodec.h"
 

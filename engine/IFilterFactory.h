@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "helpers/MemoryHelper.h"
+#include "runtime/memory/MemoryHelper.h"
 #include "IFilter.h"
 
 class FilterEngine;

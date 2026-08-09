@@ -9,9 +9,9 @@
 #include "VoicemeeterAPOInfo.h"
 #include "DeviceAPOInfoKeys.h"
 
-#include "helpers/StringHelper.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/WindowsVersion.h"
+#include "text/StringHelper.h"
+#include "services/registry/RegistryHelper.h"
+#include "platform/windows/WindowsVersion.h"
 
 using std::make_shared;
 using std::move;

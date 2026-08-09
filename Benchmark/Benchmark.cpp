@@ -36,12 +36,12 @@
 
 #include "../version.h"
 #include "../engine/FilterEngine.h"
-#include "../helpers/LogHelper.h"
-#include "../helpers/StringHelper.h"
-#include "../helpers/PrecisionTimer.h"
-#include "../helpers/MemoryHelper.h"
-#include "../helpers/PerfProfile.h"
-#include "../helpers/SndfileRAII.h"
+#include "../services/logging/LogHelper.h"
+#include "../text/StringHelper.h"
+#include "../diagnostics/performance/PrecisionTimer.h"
+#include "../runtime/memory/MemoryHelper.h"
+#include "../diagnostics/performance/PerfProfile.h"
+#include "../audio/io/SndfileRAII.h"
 #include "BatchPlan.h"
 
 using std::cerr;

@@ -4,7 +4,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 #include "ConvolutionFilePath.h"
 
 using std::wstring;

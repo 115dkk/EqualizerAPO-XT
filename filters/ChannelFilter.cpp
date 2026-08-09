@@ -21,11 +21,11 @@
 #include <sstream>
 #include <algorithm>
 
-#include "helpers/MemoryHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/ChannelHelper.h"
+#include "runtime/memory/MemoryHelper.h"
+#include "services/logging/LogHelper.h"
+#include "audio/ChannelHelper.h"
 #include "ChannelFilter.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 using std::vector;
 using std::wstringstream;

@@ -235,20 +235,20 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     <!-- Executable-side helpers under test, compiled directly like
          AudioEngineAccess: ApoRegistration is not a Common.lib member, and
          it links against the service and shortcut units. -->
-    <ClCompile Include="..\..\helpers\ApoRegistration.cpp" />
-    <ClCompile Include="..\..\helpers\AudioEngineAccess.cpp" />
-    <ClCompile Include="..\..\helpers\InstallDiagnostics.cpp" />
-    <ClCompile Include="..\..\helpers\ServiceHelper.cpp" />
-    <ClCompile Include="..\..\helpers\StartMenuShortcuts.cpp" />
+    <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
+    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
+    <ClCompile Include="..\..\services\diagnostics\InstallDiagnostics.cpp" />
+    <ClCompile Include="..\..\services\windows\ServiceHelper.cpp" />
+    <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
     <ClCompile Include="SampleIoTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\engine\FilterEngine.h" />
-    <ClInclude Include="..\..\helpers\ApoRegistration.h" />
-    <ClInclude Include="..\..\helpers\ClsidRegistration.h" />
-    <ClInclude Include="..\..\helpers\IRegistry.h" />
-    <ClInclude Include="..\..\helpers\RegistryTransaction.h" />
-    <ClInclude Include="..\..\helpers\SynchronizedState.h" />
+    <ClInclude Include="..\..\services\install\ApoRegistration.h" />
+    <ClInclude Include="..\..\services\registry\ClsidRegistration.h" />
+    <ClInclude Include="..\..\services\registry\IRegistry.h" />
+    <ClInclude Include="..\..\services\registry\RegistryTransaction.h" />
+    <ClInclude Include="..\..\runtime\concurrency\SynchronizedState.h" />
     <ClInclude Include="..\TestHarness.h" />
     <ClInclude Include="FakeRegistry.h" />
   </ItemGroup>

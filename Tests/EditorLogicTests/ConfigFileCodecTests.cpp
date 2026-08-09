@@ -14,7 +14,7 @@
 #include <QTemporaryDir>
 
 #include "Editor/ConfigFileCodec.h"
-#include "helpers/Win32Resource.h"
+#include "platform/windows/Win32Resource.h"
 
 void testConfigFileCodec()
 {

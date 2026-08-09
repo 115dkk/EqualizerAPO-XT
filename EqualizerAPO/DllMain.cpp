@@ -25,9 +25,9 @@
 
 #include "EqualizerAPO.h"
 #include "ClassFactory.h"
-#include "../helpers/ClsidRegistration.h"
-#include "../helpers/RegistryHelper.h"
-#include "../helpers/LogHelper.h"
+#include "../services/registry/ClsidRegistration.h"
+#include "../services/registry/RegistryHelper.h"
+#include "../services/logging/LogHelper.h"
 
 using std::string;
 using std::wstring;

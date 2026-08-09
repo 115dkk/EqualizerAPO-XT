@@ -3,8 +3,8 @@
 
 #include <algorithm>
 
-#include "helpers/LogHelper.h"
-#include "helpers/PerfProfile.h"
+#include "services/logging/LogHelper.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 VelvetFilter::VelvetFilter(const velvet::Parameters& parameters)
 	: parameters(parameters)

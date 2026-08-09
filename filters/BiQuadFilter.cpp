@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "BiQuadFilter.h"
 #include "BiQuadKernelPlan.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 #include "hwy/highway.h"
 

@@ -19,7 +19,7 @@
 
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 #include "filters/VSTPluginCommand.h"
 #include "VSTPluginFilterGUI.h"
 #include "VSTPluginFilterGUIFactory.h"

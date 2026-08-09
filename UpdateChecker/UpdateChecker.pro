@@ -32,9 +32,9 @@ SOURCES += \
 	UpdateInfoFormatter.cpp \
 	VelopackUpdateInfo.cpp \
 	AutoSizeTextEdit.cpp \
-	../helpers/LogHelper.cpp \
-	../helpers/RegistryHelper.cpp \
-	../helpers/StringHelper.cpp \
+	../services/logging/LogHelper.cpp \
+	../services/registry/RegistryHelper.cpp \
+	../text/StringHelper.cpp \
 	stdafx.cpp
 
 HEADERS += \
@@ -43,9 +43,9 @@ HEADERS += \
 	UpdateInfoFormatter.h \
 	VelopackUpdateInfo.h \
 	AutoSizeTextEdit.h \
-	../helpers/LogHelper.h \
-	../helpers/StringHelper.h \
-	../helpers/RegistryHelper.h \
+	../services/logging/LogHelper.h \
+	../text/StringHelper.h \
+	../services/registry/RegistryHelper.h \
 	resource.h \
 	stdafx.h
 

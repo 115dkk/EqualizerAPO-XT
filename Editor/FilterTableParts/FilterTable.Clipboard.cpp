@@ -18,10 +18,10 @@
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
 #include "Editor/helpers/GUIHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/ChannelHelper.h"
-#include "helpers/RegistryHelper.h"
+#include "text/StringHelper.h"
+#include "services/logging/LogHelper.h"
+#include "audio/ChannelHelper.h"
+#include "services/registry/RegistryHelper.h"
 #include "FilterTable.h"
 
 using std::list;

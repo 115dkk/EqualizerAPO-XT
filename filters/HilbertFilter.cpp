@@ -7,9 +7,9 @@
 #include <set>
 
 #include "ConvolverMuteDiagnostics.h"
-#include "helpers/ChannelHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/PerfProfile.h"
+#include "audio/ChannelHelper.h"
+#include "services/logging/LogHelper.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 namespace
 {

@@ -22,8 +22,8 @@
 #include <cctype>
 #include <limits>
 #include <new>
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
+#include "text/StringHelper.h"
+#include "services/logging/LogHelper.h"
 #include "VSTPluginFilter.h"
 
 using std::max;

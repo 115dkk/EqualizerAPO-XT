@@ -22,9 +22,9 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
-#include "helpers/MemoryHelper.h"
+#include "runtime/memory/MemoryHelper.h"
 #include "IIRFilter.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 using std::abs;
 using std::vector;

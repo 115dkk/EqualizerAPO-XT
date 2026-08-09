@@ -27,18 +27,18 @@ DEFINES += MUP_USE_WIDE_STRING
 DEFINES += NOMINMAX
 
 SOURCES += main.cpp\
-	../helpers/LogHelper.cpp \
-	../helpers/StringHelper.cpp \
-	../helpers/RegistryHelper.cpp \
-	../helpers/IRegistry.cpp \
-	../helpers/RegistryTransaction.cpp \
-	../helpers/WindowsVersion.cpp \
-	../helpers/AudioEngineAccess.cpp \
-	../helpers/InstallDiagnostics.cpp \
-	../helpers/ServiceHelper.cpp \
-	../helpers/ApoRegistration.cpp \
-	../helpers/StartMenuShortcuts.cpp \
-	../helpers/AudioFormatProbe.cpp \
+	../services/logging/LogHelper.cpp \
+	../text/StringHelper.cpp \
+	../services/registry/RegistryHelper.cpp \
+	../services/registry/IRegistry.cpp \
+	../services/registry/RegistryTransaction.cpp \
+	../platform/windows/WindowsVersion.cpp \
+	../services/security/AudioEngineAccess.cpp \
+	../services/diagnostics/InstallDiagnostics.cpp \
+	../services/windows/ServiceHelper.cpp \
+	../services/install/ApoRegistration.cpp \
+	../services/shell/StartMenuShortcuts.cpp \
+	../services/audio/AudioFormatProbe.cpp \
 	../services/update/UpdateSession.cpp \
 	../services/update/VelopackBootstrap.cpp \
 	../parser/LogicalOperators.cpp \
@@ -58,8 +58,8 @@ SOURCES += main.cpp\
 	../filters/PreampCommand.cpp \
 	../filters/PreampFilter.cpp \
 	../filters/PreampFilterFactory.cpp \
-	../helpers/MemoryHelper.cpp \
-	../helpers/ParallelExecutor.cpp \
+	../runtime/memory/MemoryHelper.cpp \
+	../runtime/concurrency/ParallelExecutor.cpp \
 	FilterTableRow.cpp \
 	FilterTemplate.cpp \
 	guis/DeviceFilterGUI.cpp \
@@ -94,7 +94,7 @@ SOURCES += main.cpp\
 	guis/CopyFilterGUIForm.cpp \
 	guis/CopyFilterGUIRow.cpp \
 	helpers/GUIChannelHelper.cpp \
-	../helpers/ChannelHelper.cpp \
+	../audio/ChannelHelper.cpp \
 	guis/DelayFilterGUI.cpp \
 	guis/DelayFilterGUIFactory.cpp \
 	../filters/DelayCommand.cpp \
@@ -116,8 +116,8 @@ SOURCES += main.cpp\
 	../filters/GraphicEQFilter.cpp \
 	../filters/GraphicEQFilterFactory.cpp \
 	../libHybridConv-0.1.1/libHybridConv_eapo.cpp \
-	../helpers/FftwPlanningPolicy.cpp \
-	../helpers/GainIterator.cpp \
+	../dsp/FftwPlanningPolicy.cpp \
+	../filters/graphicEq/GainIterator.cpp \
 	guis/GraphicEQFilterGUIScene.cpp \
 	widgets/FrequencyPlotView.cpp \
 	widgets/FrequencyPlotHRuler.cpp \
@@ -225,7 +225,7 @@ SOURCES += main.cpp\
 	../vst/VSTPluginInstance.State.cpp \
 	../vst/VSTPluginInstance.VST2.cpp \
 	../vst/VSTPluginInstance.VST3.cpp \
-	../helpers/PerfProfile.cpp \
+	../diagnostics/performance/PerfProfile.cpp \
 	guis/LoudnessCorrectionFilterGUI.cpp \
 	guis/LoudnessCorrectionFilterGUIFactory.cpp \
 	../filters/loudnessCorrection/LoudnessCorrectionCommand.cpp \
@@ -315,19 +315,19 @@ SOURCES += main.cpp\
 	widgets/MiddleClickTabBar.cpp
 
 HEADERS  += \
-	../helpers/FileSharingRetry.h \
-	../helpers/LogHelper.h \
-	../helpers/StringHelper.h \
-	../helpers/RegistryHelper.h \
-	../helpers/IRegistry.h \
-	../helpers/RegistryTransaction.h \
-	../helpers/WindowsVersion.h \
-	../helpers/AudioEngineAccess.h \
-	../helpers/InstallDiagnostics.h \
-	../helpers/ServiceHelper.h \
-	../helpers/ApoRegistration.h \
-	../helpers/StartMenuShortcuts.h \
-	../helpers/AudioFormatProbe.h \
+	../platform/windows/FileSharingRetry.h \
+	../services/logging/LogHelper.h \
+	../text/StringHelper.h \
+	../services/registry/RegistryHelper.h \
+	../services/registry/IRegistry.h \
+	../services/registry/RegistryTransaction.h \
+	../platform/windows/WindowsVersion.h \
+	../services/security/AudioEngineAccess.h \
+	../services/diagnostics/InstallDiagnostics.h \
+	../services/windows/ServiceHelper.h \
+	../services/install/ApoRegistration.h \
+	../services/shell/StartMenuShortcuts.h \
+	../services/audio/AudioFormatProbe.h \
 	../services/update/UpdateSession.h \
 	../services/update/VelopackBootstrap.h \
 	../parser/LogicalOperators.h \
@@ -348,7 +348,7 @@ HEADERS  += \
 	../filters/PreampCommand.h \
 	../filters/PreampFilter.h \
 	../filters/PreampFilterFactory.h \
-	../helpers/MemoryHelper.h \
+	../runtime/memory/MemoryHelper.h \
 	FilterTableRow.h \
 	FilterTemplate.h \
 	guis/DeviceFilterGUI.h \
@@ -379,7 +379,7 @@ HEADERS  += \
 	guis/CopyFilterGUIForm.h \
 	guis/CopyFilterGUIRow.h \
 	helpers/GUIChannelHelper.h \
-	../helpers/ChannelHelper.h \
+	../audio/ChannelHelper.h \
 	guis/DelayFilterGUI.h \
 	guis/DelayFilterGUIFactory.h \
 	../filters/DelayCommand.h \
@@ -398,8 +398,8 @@ HEADERS  += \
 	../filters/GraphicEQFilter.h \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
-	../helpers/FftwPlanningPolicy.h \
-	../helpers/GainIterator.h \
+	../dsp/FftwPlanningPolicy.h \
+	../filters/graphicEq/GainIterator.h \
 	guis/GraphicEQFilterGUIScene.h \
 	widgets/FrequencyPlotView.h \
 	widgets/FrequencyPlotHRuler.h \

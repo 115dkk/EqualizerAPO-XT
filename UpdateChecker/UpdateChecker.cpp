@@ -52,7 +52,7 @@ void UpdateChecker::goToWebsite()
 {
 	QDesktopServices::openUrl(downloadUrl);
 
-	// Intentionally QSettings rather than helpers/RegistryHelper: skipVersion is
+	// Intentionally QSettings rather than services/registry/RegistryHelper: skipVersion is
 	// a per-user (HKCU) preference owned by this Qt tool, where silent-miss
 	// semantics are wanted; RegistryHelper's exception model is for the engine's
 	// HKLM configuration keys.

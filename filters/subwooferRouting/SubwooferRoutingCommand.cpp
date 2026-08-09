@@ -21,7 +21,7 @@
 
 #include <cwctype>
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 namespace
 {

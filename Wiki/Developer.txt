@@ -42,7 +42,7 @@ The Equalizer APO project consists of these parts:
 
 * Benchmark. A console program to test the audio processing implementation without actually installing it for an audio device. It can be handy when experimenting with new filter types or tuning existing ones, especially to evaluate the performance.
 
-* Editor. The Qt Creator project that builds the Configuration Editor. Editor.exe is the `--mainExe` of the Velopack package and handles all Velopack install/update/uninstall hooks via `helpers/ApoRegistration`.
+* Editor. The Qt Creator project that builds the Configuration Editor. Editor.exe is the `--mainExe` of the Velopack package and handles all Velopack install/update/uninstall hooks via `services/install/ApoRegistration`.
 
 * Setup. Holds the sample config files (`config/`) and the documentation `.url` shortcuts that the CI packaging step bundles into the Velopack output.
 

@@ -26,10 +26,10 @@
 #include <unordered_map>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "helpers/LogHelper.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/ParallelExecutor.h"
-#include "helpers/SndfileRAII.h"
+#include "services/logging/LogHelper.h"
+#include "runtime/memory/MemoryHelper.h"
+#include "runtime/concurrency/ParallelExecutor.h"
+#include "audio/io/SndfileRAII.h"
 #include "IrCache.h"
 
 using std::abs;

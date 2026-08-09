@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 #include "../engine/FilterEngine.h"
-#include "../helpers/Win32Resource.h"
-#include "../helpers/SynchronizedState.h"
+#include "../platform/windows/Win32Resource.h"
+#include "../runtime/concurrency/SynchronizedState.h"
 #include "VoicemeeterRemote.h"
 
 class VoicemeeterClient

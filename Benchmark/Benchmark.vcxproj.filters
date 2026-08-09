@@ -3,14 +3,14 @@
   <ItemGroup>
     <ClCompile Include="Benchmark.cpp" />
     <ClCompile Include="..\stdafx.cpp" />
-    <ClCompile Include="..\helpers\MemoryHelper.cpp">
+    <ClCompile Include="..\runtime\memory\MemoryHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BatchPlan.h" />
     <ClInclude Include="..\stdafx.h" />
-    <ClInclude Include="..\helpers\MemoryHelper.h">
+    <ClInclude Include="..\runtime\memory\MemoryHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
   </ItemGroup>

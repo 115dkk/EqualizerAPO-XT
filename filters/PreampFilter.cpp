@@ -24,7 +24,7 @@
 #include "hwy/highway.h"
 
 #include "PreampFilter.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 namespace hn = hwy::HWY_NAMESPACE;
 

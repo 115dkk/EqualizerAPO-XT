@@ -12,7 +12,7 @@
 	ownership because createKey threw, uninstall() keeps a key because
 	deleteKey would have thrown - so a fake that is merely convenient would
 	report those branches as untestable or, worse, as dead. Every rule below is
-	taken from helpers/RegistryHelper.cpp and repeated here on purpose:
+	taken from services/registry/RegistryHelper.cpp and repeated here on purpose:
 
 	  * A malformed path (no backslash, unknown root) is an error even for
 	    keyExists, because the real keyExists calls splitKey first.
@@ -73,10 +73,10 @@
 #include <string>
 #include <vector>
 
-#include "helpers/IRegistry.h"
+#include "services/registry/IRegistry.h"
 // For RegistryException: the port throws it, and callers up to and including
 // DeviceAPOInfo::load catch it by that type.
-#include "helpers/RegistryHelper.h"
+#include "services/registry/RegistryHelper.h"
 
 namespace test
 {

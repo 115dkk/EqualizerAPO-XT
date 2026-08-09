@@ -31,9 +31,9 @@
 #define ENABLE_SNDFILE_WINDOWS_PROTOTYPES 1
 #include <sndfile.h>
 
-#include "helpers/LogHelper.h"
-#include "helpers/FftwRAII.h"
-#include "helpers/MemoryHelper.h"
+#include "services/logging/LogHelper.h"
+#include "dsp/FftwRAII.h"
+#include "runtime/memory/MemoryHelper.h"
 #include "GraphicEQFilter.h"
 
 using std::exp;

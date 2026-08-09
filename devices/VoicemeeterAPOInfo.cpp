@@ -25,11 +25,11 @@
 #include <shellapi.h>
 #include <TlHelp32.h>
 #include <Winternl.h>
-#include "helpers/ComPtr.h"
-#include "helpers/LogHelper.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/Win32Resource.h"
+#include "platform/windows/ComPtr.h"
+#include "services/logging/LogHelper.h"
+#include "services/registry/RegistryHelper.h"
+#include "text/StringHelper.h"
+#include "platform/windows/Win32Resource.h"
 #include "VoicemeeterAPOInfo.h"
 
 using std::exception;

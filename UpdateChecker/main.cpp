@@ -28,7 +28,7 @@
 #include "UpdateChecker.h"
 #include "UpdateInfoFormatter.h"
 #include "VelopackUpdateInfo.h"
-#include "helpers/LogHelper.h"
+#include "services/logging/LogHelper.h"
 #include "version.h"
 #include "Editor/helpers/QtAppBootstrap.h"
 

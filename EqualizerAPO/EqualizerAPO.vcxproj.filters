@@ -4,7 +4,7 @@
     <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="EqualizerAPO.cpp" />
-    <ClCompile Include="..\helpers\MemoryHelper.cpp">
+    <ClCompile Include="..\runtime\memory\MemoryHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="..\stdafx.cpp" />
@@ -13,7 +13,7 @@
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="EqualizerAPO.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="..\helpers\MemoryHelper.h">
+    <ClInclude Include="..\runtime\memory\MemoryHelper.h">
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="..\stdafx.h" />

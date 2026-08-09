@@ -5,7 +5,7 @@
 #include <cwctype>
 #include <set>
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 namespace
 {

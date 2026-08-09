@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "Editor/widgets/FrequencyPlotScene.h"
-#include "helpers/GainIterator.h"
+#include "filters/graphicEq/GainIterator.h"
 #include "GraphicEQFilterGUIItem.h"
 
 class GraphicEQFilterGUIScene : public FrequencyPlotScene

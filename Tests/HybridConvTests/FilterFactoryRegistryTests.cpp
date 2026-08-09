@@ -33,7 +33,7 @@
 #include <string>
 
 #include "filters/FilterFactoryRegistry.h"
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 #include "Tests/TestHarness.h"
 
 using std::set;

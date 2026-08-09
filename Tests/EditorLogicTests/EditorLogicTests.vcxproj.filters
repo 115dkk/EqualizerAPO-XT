@@ -53,7 +53,7 @@
     <ClCompile Include="..\..\Editor\widgets\FilterPickerModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\helpers\AudioEngineAccess.cpp">
+    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Editor\helpers\VstChunkScan.cpp">

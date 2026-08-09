@@ -34,7 +34,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 Equalizer APO 
 - `Tests/`: `HybridConvTests`, `EditorLogicTests`, `AudioRegressionTests` 등 단위/회귀 테스트 프로젝트가 있습니다.
 - `filters/`: 실제 오디오 필터 구현과 각 필터의 factory가 있습니다. 새 필터는 구현 파일, 헤더, factory, 필요하면 GUI를 함께 봅니다.
 - `parser/`: muparserx에 붙는 논리 연산자, 문자열 함수, 정규식 함수, 레지스트리 함수입니다.
-- `helpers/`: 레지스트리, 로그, 문자열, 서비스, VST 로딩 같은 공용 도우미입니다.
+- `audio/`, `dsp/`, `platform/`, `runtime/`, `services/`, `text/`, `vst/`: 오디오 지식, 자원 수명, Windows 어댑터, 서비스, VST 호스트 같은 공용 모듈을 책임별로 나눕니다. 범용 `helpers/` 폴더는 사용하지 않습니다.
 - `libHybridConv-0.1.1/`: convolution 처리에 쓰는 libHybridConv 코드와 Equalizer APO 연결 코드입니다.
 - `Setup/`: 설치 시 함께 들어가는 기본 설정 파일입니다.
 - `.github/workflows/build.yml`: CI 빌드와 설치 파일 생성 파이프라인입니다.
@@ -156,13 +156,13 @@ CI가 만드는 GitHub Release 본문은 `.github/scripts/New-ReleaseNotes.ps1`�
 
 먼저 관련 `.vcxproj`, `.pro`, 소스 파일을 읽고 기존 방식에 맞춥니다.
 
-공용 오디오 처리 변경은 `FilterEngine`, `FilterConfiguration`, `IFilter`, `filters/`, `helpers/`의 영향 범위를 같이 확인합니다.
+공용 오디오 처리 변경은 `FilterEngine`, `FilterConfiguration`, `IFilter`, `filters/`, `audio/`, `dsp/`, `runtime/`의 영향 범위를 같이 확인합니다.
 
 필터를 추가하거나 바꿀 때는 런타임 구현, factory, 설정 파싱, Editor GUI, 리소스 파일, 프로젝트 파일 포함 여부를 함께 확인합니다.
 
 GUI 변경은 Qt `.ui`, `.qrc`, `.pro`, 번역 파일 영향을 확인합니다. 번역 파일은 요청이나 실제 문자열 변경이 있을 때만 건드립니다.
 
-설치 관련 변경은 CI `create-release` job의 `vpk pack` 호출과 `helpers/ApoRegistration`, `helpers/VelopackBootstrap`, `Editor/main.cpp`의 Velopack 훅 처리를 함께 확인합니다. NSIS 기반 설치는 제거되었습니다.
+설치 관련 변경은 CI `create-release` job의 `vpk pack` 호출과 `services/install/ApoRegistration`, `services/update/VelopackBootstrap`, `Editor/main.cpp`의 Velopack 훅 처리를 함께 확인합니다. NSIS 기반 설치는 제거되었습니다.
 
 릴리스 버전 변경은 `version.h`를 기준으로 합니다.
 

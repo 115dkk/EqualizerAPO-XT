@@ -25,8 +25,8 @@
 #include <windows.h>
 
 #include "devices/DeviceAPOInfoKeys.h"
-#include "helpers/InstallDiagnostics.h"
-#include "helpers/RegistryHelper.h"
+#include "services/diagnostics/InstallDiagnostics.h"
+#include "services/registry/RegistryHelper.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"

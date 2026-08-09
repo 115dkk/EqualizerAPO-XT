@@ -19,11 +19,11 @@
 
 #include "stdafx.h"
 #include <chrono>
-#include <helpers/RegistryHelper.h>
-#include <helpers/WindowsVersion.h>
-#include <helpers/ServiceHelper.h>
+#include <services/registry/RegistryHelper.h>
+#include <platform/windows/WindowsVersion.h>
+#include <services/windows/ServiceHelper.h>
 #include <devices/DeviceAPOInfoKeys.h>
-#include <helpers/ComPtr.h>
+#include <platform/windows/ComPtr.h>
 #include <ObjBase.h>
 #include "DeviceTestThread.h"
 

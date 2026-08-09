@@ -18,7 +18,7 @@
 
 #include "stdafx.h"
 
-#include "helpers/MemoryHelper.h"
+#include "runtime/memory/MemoryHelper.h"
 #include "MultiConvolutionCommand.h"
 #include "ConvolutionFilePath.h"
 #include "MultiConvolutionFilter.h"

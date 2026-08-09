@@ -22,7 +22,7 @@
 #include <QScrollBar>
 #include <QTextStream>
 
-#include "helpers/GainIterator.h"
+#include "filters/graphicEq/GainIterator.h"
 #include "filters/GraphicEQCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizeCorner.h"

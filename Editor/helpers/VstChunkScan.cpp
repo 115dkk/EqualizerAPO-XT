@@ -9,7 +9,7 @@
 #include <QRegularExpression>
 #include <QString>
 
-#include "helpers/AudioEngineAccess.h"
+#include "services/security/AudioEngineAccess.h"
 
 QStringList vstChunkPathCandidates(const std::wstring& chunkData)
 {

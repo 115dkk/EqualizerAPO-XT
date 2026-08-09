@@ -4,9 +4,9 @@
 
 #include <windows.h>
 
-#include "helpers/FileSharingRetry.h"
-#include "helpers/LogHelper.h"
-#include "helpers/StringHelper.h"
+#include "platform/windows/FileSharingRetry.h"
+#include "services/logging/LogHelper.h"
+#include "text/StringHelper.h"
 
 namespace
 {

@@ -24,12 +24,12 @@
 
 #include <cstdio>
 
-#include "helpers/LogHelper.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/ChannelHelper.h"
-#include "helpers/StringHelper.h"
+#include "services/logging/LogHelper.h"
+#include "runtime/memory/MemoryHelper.h"
+#include "audio/ChannelHelper.h"
+#include "text/StringHelper.h"
 #include "CopyFilter.h"
-#include "helpers/PerfProfile.h"
+#include "diagnostics/performance/PerfProfile.h"
 
 using std::find;
 using std::pow;

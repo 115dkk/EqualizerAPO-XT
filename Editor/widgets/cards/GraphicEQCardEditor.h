@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "Editor/IFilterGUI.h"
-#include "helpers/GainIterator.h"
+#include "filters/graphicEq/GainIterator.h"
 
 class FilterTable;
 class GraphicEQPlotWidget;

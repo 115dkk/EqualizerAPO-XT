@@ -22,7 +22,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "helpers/StringHelper.h"
+#include "text/StringHelper.h"
 
 // Plain description of a parsed "VSTPlugin:" config line. It holds exactly the
 // three things VSTPluginFilterFactory::createFilter extracts from the parameter

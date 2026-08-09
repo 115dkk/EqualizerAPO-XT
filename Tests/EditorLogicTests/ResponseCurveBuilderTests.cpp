@@ -22,7 +22,7 @@
 
 #include "Editor/analysis/AnalysisResponse.h"
 #include "Editor/analysis/ResponseCurveBuilder.h"
-#include "helpers/GainIterator.h"
+#include "filters/graphicEq/GainIterator.h"
 
 #include "EditorLogicTestSupport.h"
 

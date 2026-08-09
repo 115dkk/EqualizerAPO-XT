@@ -47,8 +47,8 @@
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/SndfileRAII.h"
+#include "services/registry/RegistryHelper.h"
+#include "audio/io/SndfileRAII.h"
 
 MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	const std::vector<MultiConvolutionCommand::Mapping>& mappings,

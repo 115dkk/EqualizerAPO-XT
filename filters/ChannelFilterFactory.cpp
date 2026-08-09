@@ -18,9 +18,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "stdafx.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
+#include "runtime/memory/MemoryHelper.h"
+#include "text/StringHelper.h"
+#include "services/logging/LogHelper.h"
 #include "ChannelCommand.h"
 #include "ChannelFilter.h"
 #include "filters/FilterFactoryRegistry.h"

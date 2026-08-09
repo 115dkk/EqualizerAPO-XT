@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-#include "helpers/MemoryHelper.h"
+#include "runtime/memory/MemoryHelper.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class IFilter

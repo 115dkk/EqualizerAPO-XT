@@ -53,7 +53,7 @@ AudioRegressionTests가 **각 타깃 커널**을 검증해야 하는데, 호스�
 - Highway 배선: `Common.vcxproj`(HIGHWAY_INCLUDE), `Editor.pro`(HIGHWAY_INCLUDE), `.github/workflows/build.yml`(Download Highway), `setup-build.ps1`.
 - FFTW: build.yml 변형별 fetch + `deps/fftw`; libHybridConv·GraphicEQ·Convolution이 사용.
 - CI/릴리스: build.yml matrix + create-release(`vpk pack`) + `.github/scripts/New-ReleaseNotes.ps1`, `Bump-Version.ps1`.
-- 채널/업데이트: `EAPO_UPDATE_CHANNEL`(Editor.pro/UpdateChecker.pro), Editor/UpdateChecker 업데이트 로직, `helpers/ApoRegistration`, `helpers/VelopackBootstrap`.
+- 채널/업데이트: `EAPO_UPDATE_CHANNEL`(Editor.pro/UpdateChecker.pro), Editor/UpdateChecker 업데이트 로직, `services/install/ApoRegistration`, `services/update/VelopackBootstrap`.
 - 문서: `docs/SimdBuildMatrix.md`.
 
 ## 참고

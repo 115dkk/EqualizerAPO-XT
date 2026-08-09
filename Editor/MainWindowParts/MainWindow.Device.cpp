@@ -18,10 +18,10 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
-#include "helpers/ChannelHelper.h"
-#include "helpers/AudioFormatProbe.h"
+#include "text/StringHelper.h"
+#include "services/logging/LogHelper.h"
+#include "audio/ChannelHelper.h"
+#include "services/audio/AudioFormatProbe.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "version.h"

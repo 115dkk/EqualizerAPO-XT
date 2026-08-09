@@ -12,8 +12,8 @@
 #include <vector>
 
 #include "engine/IFilter.h"
-#include "helpers/StringHelper.h"
-#include "helpers/ChannelHelper.h"
+#include "text/StringHelper.h"
+#include "audio/ChannelHelper.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;

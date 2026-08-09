@@ -18,9 +18,9 @@
 */
 
 #include "stdafx.h"
-#include "helpers/LogHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/Win32Resource.h"
+#include "services/logging/LogHelper.h"
+#include "text/StringHelper.h"
+#include "platform/windows/Win32Resource.h"
 #include "ReceiveThread.h"
 
 ReceiveThread::ReceiveThread(const std::wstring& pipeName)

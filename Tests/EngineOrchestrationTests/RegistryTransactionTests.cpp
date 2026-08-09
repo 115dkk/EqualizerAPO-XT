@@ -16,8 +16,8 @@
 #include <string>
 #include <vector>
 
-#include "helpers/RegistryHelper.h"
-#include "helpers/RegistryTransaction.h"
+#include "services/registry/RegistryHelper.h"
+#include "services/registry/RegistryTransaction.h"
 #include "Tests/TestHarness.h"
 
 #include "FakeRegistry.h"

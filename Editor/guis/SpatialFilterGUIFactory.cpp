@@ -7,7 +7,7 @@
 #include "devices/AbstractAPOInfo.h"
 #include "filters/HilbertCommand.h"
 #include "filters/VelvetCommand.h"
-#include "helpers/ChannelHelper.h"
+#include "audio/ChannelHelper.h"
 
 // cppcheck's standalone parser does not expand the static-registration macro.
 // cppcheck-suppress unknownMacro

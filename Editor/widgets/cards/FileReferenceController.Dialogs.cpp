@@ -13,7 +13,7 @@
 #include "Editor/import/ConfigDependencyScanner.h"
 #include "Editor/import/ImportDialog.h"
 #include "Editor/import/ImportExecutor.h"
-#include "helpers/AudioEngineAccess.h"
+#include "services/security/AudioEngineAccess.h"
 
 QString FileReferenceController::chooseExistingFile(QWidget* parent,
 	const QString& title, const QString& initialPath,

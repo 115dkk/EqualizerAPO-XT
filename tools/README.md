@@ -45,4 +45,4 @@ powershell -ExecutionPolicy Bypass -File .\Repair-EqualizerAPO.ps1
 
 `audiodg.exe`는 LOCAL SERVICE 계정으로 실행되어 APO COM 객체를 로드합니다. Velopack은 EqualizerAPO를 `%LocalAppData%\EqualizerAPO-XT-*\current\` 아래에 설치하는데, 이 사용자 프로필 하위 트리의 기본 ACL은 설치한 사용자와 Administrators만 접근을 허용합니다. LOCAL SERVICE에는 권한이 없으므로 audiodg가 EqualizerAPO.dll을 읽지 못하고, audio engine이 device를 invalidated 상태로 만들어 후속 `IAudioClient::GetMixFormat`과 `Initialize` 호출이 `E_ACCESSDENIED`(액세스가 거부되었습니다)를 반환합니다. 한 device 안에서 install mode 세 가지(SFX/EFX, SFX/MFX, LFX/GFX)를 차례로 시도하므로 오류 다이얼로그가 여러 개 쌓이는 것이 보입니다.
 
-`helpers/ApoRegistration.cpp`의 `install()`이 v0.3부터 install root에 LOCAL SERVICE RX, config dir에 LOCAL SERVICE M을 grant하도록 보강되어, 새 설치에서는 이 문제가 발생하지 않습니다.
+`services/install/ApoRegistration.cpp`의 `install()`이 v0.3부터 install root에 LOCAL SERVICE RX, config dir에 LOCAL SERVICE M을 grant하도록 보강되어, 새 설치에서는 이 문제가 발생하지 않습니다.

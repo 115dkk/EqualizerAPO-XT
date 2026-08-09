@@ -26,7 +26,7 @@
 #include <QRegularExpression>
 
 #include "Editor/IFilterGUI.h"
-#include "helpers/GainIterator.h"
+#include "filters/graphicEq/GainIterator.h"
 #include "GraphicEQFilterGUIScene.h"
 
 class FilterTable;

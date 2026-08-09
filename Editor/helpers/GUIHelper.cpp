@@ -41,7 +41,7 @@
 #include <QTreeView>
 #include <QUrl>
 
-#include "helpers/RegistryHelper.h"
+#include "services/registry/RegistryHelper.h"
 #include "Editor/SkinManager.h"
 #include "Editor/import/LegacyMigration.h"
 #include "Editor/widgets/DialogChrome.h"
