@@ -29,6 +29,8 @@
 #include <QFormLayout>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
@@ -427,7 +429,22 @@ SubwooferRoutingEditorDialog::SubwooferRoutingEditorDialog(
 	leftScroll->setWidget(leftBody);
 	splitter->addWidget(leftScroll);
 
-	QWidget* rightBody = new QWidget(splitter);
+	// Routing views can reveal every seeded Copy channel. Keep their changing
+	// minimum height inside a scroll area so an expanded matrix cannot push the
+	// response plot and dialog buttons below the available desktop. When the
+	// views fold again, widgetResizable lets the response plot use the freed
+	// viewport instead of retaining the expanded content height.
+	QScrollArea* rightScroll = new QScrollArea(splitter);
+	rightScroll->setObjectName(
+		QStringLiteral("SubwooferRoutingContentScroll"));
+	rightScroll->setWidgetResizable(true);
+	rightScroll->setFrameShape(QFrame::NoFrame);
+	rightScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	rightScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+	QWidget* rightBody = new QWidget(rightScroll);
+	rightBody->setSizePolicy(
+		QSizePolicy::Preferred, QSizePolicy::Minimum);
 	QVBoxLayout* rightLayout = new QVBoxLayout(rightBody);
 	rightLayout->setContentsMargins(6, 0, 0, 0);
 	rightLayout->setSpacing(8);
@@ -450,7 +467,8 @@ SubwooferRoutingEditorDialog::SubwooferRoutingEditorDialog(
 	responseLayout->addWidget(responseView);
 	rightLayout->addWidget(responseGroup, 2);
 
-	splitter->addWidget(rightBody);
+	rightScroll->setWidget(rightBody);
+	splitter->addWidget(rightScroll);
 	splitter->setStretchFactor(0, 0);
 	splitter->setStretchFactor(1, 1);
 	// The crossover rows carry frequency + slope + delay (+ polarity), so
@@ -462,6 +480,21 @@ SubwooferRoutingEditorDialog::SubwooferRoutingEditorDialog(
 			| QDialogButtonBox::Cancel
 			| QDialogButtonBox::Apply,
 		this);
+	buttonBox->setObjectName(
+		QStringLiteral("SubwooferRoutingButtonBox"));
+	// Copy's inline channel editor commits with Enter. A dialog default button
+	// sees the same key and used to accept the whole editor immediately after
+	// that commit. Keep all actions explicit; keyboard users can still tab to a
+	// button and activate it with Space.
+	for (QAbstractButton* abstractButton : buttonBox->buttons())
+	{
+		QPushButton* pushButton =
+			qobject_cast<QPushButton*>(abstractButton);
+		if (pushButton == nullptr)
+			continue;
+		pushButton->setAutoDefault(false);
+		pushButton->setDefault(false);
+	}
 	outerLayout->addWidget(buttonBox);
 
 	connect(presetCombo,
@@ -517,12 +550,34 @@ SubwooferRoutingEditorDialog::SubwooferRoutingEditorDialog(
 	refreshControls();
 	rebuildRoutingViews();
 	refreshValidation();
+	// Do not let the button box become the dialog's initial focus target.
+	// Starting on the preset field also makes the first keyboard action part of
+	// the editor rather than an accidental confirmation.
+	presetCombo->setObjectName(
+		QStringLiteral("SubwooferRoutingPresetCombo"));
+	presetCombo->setFocus(Qt::OtherFocusReason);
 }
 
 const subroute::SubwooferRoutingState&
 SubwooferRoutingEditorDialog::state() const
 {
 	return model->state();
+}
+
+void SubwooferRoutingEditorDialog::keyPressEvent(QKeyEvent* event)
+{
+	// Inline Copy editors handle Return first and then disappear while
+	// committing their value. Qt can propagate that same key press to the
+	// dialog after focus has moved, where QDialog would activate its main
+	// button even though the button is not auto-default. Consume only that
+	// dialog-level Return/Enter; child editors still receive and handle it.
+	if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+	{
+		event->accept();
+		return;
+	}
+
+	QDialog::keyPressEvent(event);
 }
 
 void SubwooferRoutingEditorDialog::presetActivated(int index)
@@ -730,18 +785,22 @@ void SubwooferRoutingEditorDialog::rebuildFrequencyControls()
 
 	for (const subroute::SpeakerGroup& group : current.speakerGroups)
 	{
-		QWidget* row = new QWidget(groupForm->parentWidget());
-		QHBoxLayout* rowLayout = new QHBoxLayout(row);
+		// Add the layout directly to QFormLayout. A wrapper QWidget would paint
+		// the skin's global window background across the unused stretch at the
+		// right of the controls, leaving a dark rectangular "crumb" inside the
+		// group-box surface.
+		QWidget* rowParent = groupForm->parentWidget();
+		QHBoxLayout* rowLayout = new QHBoxLayout;
 		rowLayout->setContentsMargins(0, 0, 0, 0);
 		rowLayout->setSpacing(6);
 
 		CrossoverControls controls;
 		controls.id = group.id;
-		controls.frequency = frequencySpinBox(row);
+		controls.frequency = frequencySpinBox(rowParent);
 		controls.frequency->setToolTip(
 			tr("High-pass corner for this speaker group"));
-		controls.slope = slopeComboBox(row);
-		controls.delay = delaySpinBox(row);
+		controls.slope = slopeComboBox(rowParent);
+		controls.delay = delaySpinBox(rowParent);
 		rowLayout->addWidget(controls.frequency);
 		rowLayout->addWidget(controls.slope);
 		rowLayout->addWidget(controls.delay);
@@ -751,7 +810,7 @@ void SubwooferRoutingEditorDialog::rebuildFrequencyControls()
 			fromUtf8(group.displayName.empty()
 				? group.id
 				: group.displayName) + tr(" HP:"),
-			row);
+			rowLayout);
 
 		const std::string groupId = group.id;
 		connect(controls.frequency,
@@ -791,19 +850,19 @@ void SubwooferRoutingEditorDialog::rebuildFrequencyControls()
 		if (path.kind != subroute::PathKind::Bass)
 			continue;
 
-		QWidget* row = new QWidget(bassPathForm->parentWidget());
-		QHBoxLayout* rowLayout = new QHBoxLayout(row);
+		QWidget* rowParent = bassPathForm->parentWidget();
+		QHBoxLayout* rowLayout = new QHBoxLayout;
 		rowLayout->setContentsMargins(0, 0, 0, 0);
 		rowLayout->setSpacing(6);
 
 		CrossoverControls controls;
 		controls.id = path.id;
-		controls.frequency = frequencySpinBox(row);
+		controls.frequency = frequencySpinBox(rowParent);
 		controls.frequency->setToolTip(
 			tr("Low-pass corner for this bass path"));
-		controls.slope = slopeComboBox(row);
-		controls.delay = delaySpinBox(row);
-		controls.polarity = new QCheckBox(tr("Invert"), row);
+		controls.slope = slopeComboBox(rowParent);
+		controls.delay = delaySpinBox(rowParent);
+		controls.polarity = new QCheckBox(tr("Invert"), rowParent);
 		controls.polarity->setToolTip(tr(
 			"Invert the bass path's polarity (the phase flip a "
 			"summed crossover often needs)"));
@@ -813,7 +872,8 @@ void SubwooferRoutingEditorDialog::rebuildFrequencyControls()
 		rowLayout->addWidget(controls.polarity);
 		rowLayout->addStretch(1);
 
-		bassPathForm->addRow(fromUtf8(path.id) + tr(" LP:"), row);
+		bassPathForm->addRow(
+			fromUtf8(path.id) + tr(" LP:"), rowLayout);
 
 		const std::string pathId = path.id;
 		connect(controls.frequency,

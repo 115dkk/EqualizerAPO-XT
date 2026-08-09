@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Subwoofer Routing Editor remains usable when Copy routes expand.**
+  Long routing matrices now scroll without pushing the response graph or dialog
+  actions out of reach, Enter commits Copy's inline channel editor without
+  closing the dialog, and the dark blocks beside speaker and bass crossover
+  controls are gone
+  ([#263](https://github.com/115dkk/EqualizerAPO-XT/pull/263)).
+
 ## v2.34.4 — 2026-08-08
 
 - **Crash reports moved next to the logs.** The Editor's crash dumps now

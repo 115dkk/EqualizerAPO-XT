@@ -29,6 +29,7 @@
 #include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
@@ -474,7 +475,7 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("picker"), { QStringLiteral("normal"), QStringLiteral("hover"),
 			QStringLiteral("empty"), QStringLiteral("phasetime") } },
 		{ QStringLiteral("srdialog"), { QStringLiteral("default"),
-			QStringLiteral("preset") } },
+			QStringLiteral("preset"), QStringLiteral("expanded") } },
 		{ QStringLiteral("toolbar"), { QStringLiteral("normal") } },
 		{ QStringLiteral("analysis"), { QStringLiteral("normal") } },
 		{ QStringLiteral("titlebar"), { QStringLiteral("normal") } },
@@ -925,15 +926,21 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		{
 			QString state;
 			subroute::SubwooferRoutingState value;
+			bool expandRouting = false;
 		} dialogStates[] = {
 			{ QStringLiteral("default"),
 				subwooferroutingeditor::buildDefaultState(
-					{ L"L", L"R", L"LFE" }) },
+					{ L"L", L"R", L"LFE" }), false },
 			{ QStringLiteral("preset"),
 				preset.succeeded()
 					? *preset.state
 					: subwooferroutingeditor::buildDefaultState(
-						{ L"L", L"R", L"LFE" }) }
+						{ L"L", L"R", L"LFE" }), false },
+			{ QStringLiteral("expanded"),
+				preset.succeeded()
+					? *preset.state
+					: subwooferroutingeditor::buildDefaultState(
+						{ L"L", L"R", L"LFE" }), true }
 		};
 		if (!preset.succeeded())
 		{
@@ -948,8 +955,80 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 			dialog.resize(1360, 780);
 			dialog.show();
 			QApplication::processEvents();
+
+			const QWidget* presetFocus = dialog.findChild<QWidget*>(
+				QStringLiteral("SubwooferRoutingPresetCombo"));
+			if (presetFocus == nullptr || dialog.focusWidget() != presetFocus)
+			{
+				qWarning("SkinGallery: subwoofer-routing dialog did not start "
+					"on the preset editor (%s %s)",
+					qPrintable(skinId), qPrintable(mode));
+				failures++;
+			}
+
+			const QList<RoutingView*> routingViews =
+				dialog.findChildren<RoutingView*>();
+			if (dialogState.expandRouting)
+			{
+				for (RoutingView* view : routingViews)
+					view->galleryShowcase(QStringLiteral("expanded"));
+				QApplication::processEvents();
+
+				QScrollArea* contentScroll = dialog.findChild<QScrollArea*>(
+					QStringLiteral("SubwooferRoutingContentScroll"));
+				QWidget* buttons = dialog.findChild<QWidget*>(
+					QStringLiteral("SubwooferRoutingButtonBox"));
+				const bool needsVerticalScroll =
+					skinId != QStringLiteral("studio");
+				if (contentScroll == nullptr
+					|| (needsVerticalScroll
+						&& contentScroll->verticalScrollBar()->maximum() <= 0)
+					|| buttons == nullptr || !buttons->isVisibleTo(&dialog)
+					|| buttons->geometry().bottom()
+						> dialog.contentsRect().bottom())
+				{
+					qWarning("SkinGallery: expanded subwoofer-routing dialog "
+						"did not contain overflow or keep its actions visible "
+						"(%s %s)", qPrintable(skinId), qPrintable(mode));
+					failures++;
+				}
+			}
 			failures += saveGrab(&dialog, outDir, skinId, mode,
 				QStringLiteral("srdialog"), dialogState.state) ? 0 : 1;
+
+			// Copy's add-channel field commits with Enter. Exercise the real
+			// inline editor after the screenshot and prove the same key does not
+			// accept the containing dialog.
+			if (!routingViews.isEmpty())
+			{
+				routingViews.front()->galleryShowcase(
+					QStringLiteral("addChannel"));
+				QApplication::processEvents();
+				QPointer<QLineEdit> inlineEditor =
+					qobject_cast<QLineEdit*>(QApplication::focusWidget());
+				if (inlineEditor == nullptr)
+				{
+					qWarning("SkinGallery: Copy add-channel editor did not "
+						"take focus (%s %s)",
+						qPrintable(skinId), qPrintable(mode));
+					failures++;
+				}
+				else
+				{
+					QKeyEvent enterPress(QEvent::KeyPress,
+						Qt::Key_Return, Qt::NoModifier);
+					QApplication::sendEvent(inlineEditor, &enterPress);
+					QApplication::processEvents();
+				}
+				if (!dialog.isVisible()
+					|| dialog.result() == QDialog::Accepted)
+				{
+					qWarning("SkinGallery: Copy add-channel Enter accepted "
+						"the subwoofer-routing dialog (%s %s)",
+						qPrintable(skinId), qPrintable(mode));
+					failures++;
+				}
+			}
 			dialog.close();
 			QApplication::processEvents();
 		}

@@ -32,6 +32,7 @@ class QComboBox;
 class QDialogButtonBox;
 class QDoubleSpinBox;
 class QFormLayout;
+class QKeyEvent;
 class QLabel;
 class QScrollArea;
 class QVBoxLayout;
@@ -51,6 +52,9 @@ public:
 
 signals:
 	void applied();
+
+protected:
+	void keyPressEvent(QKeyEvent* event) override;
 
 private slots:
 	void presetActivated(int index);
