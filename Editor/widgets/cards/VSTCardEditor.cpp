@@ -569,8 +569,8 @@ void VSTCardEditor::updatePermissionWarning()
 #include "FilterCardEditorRegistry.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
-#include "helpers/VSTPluginInstance.h"
-#include "helpers/VSTPluginLibrary.h"
+#include "vst/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
 
 REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable*, const QString&, const QString& parameters) -> IFilterGUI* {
 	// Parse the line into the engine's VST filter (no plugin DLL is loaded

@@ -37,7 +37,7 @@
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/gui/iplugview.h"
-#include "Win32Resource.h"
+#include "helpers/Win32Resource.h"
 
 class VSTPluginLibrary;
 

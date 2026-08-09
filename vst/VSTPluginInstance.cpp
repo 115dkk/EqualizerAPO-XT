@@ -33,8 +33,8 @@
 #include "stdafx.h"
 #include <wincrypt.h>
 #include <inttypes.h>
-#include "StringHelper.h"
-#include "LogHelper.h"
+#include "helpers/StringHelper.h"
+#include "helpers/LogHelper.h"
 #include "../Version.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"

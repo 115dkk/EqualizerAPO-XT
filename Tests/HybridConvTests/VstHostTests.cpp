@@ -23,7 +23,7 @@
 
 	VST headers: this translation unit includes VSTPluginLibrary.h and
 	VSTPluginInstance.h, exactly as VSTPluginInstance.cpp does. Those headers
-	pull in the VST2 ABI (helpers/aeffectx.h) and the Steinberg pluginterfaces/
+	pull in the VST2 ABI (vst/aeffectx.h) and the Steinberg pluginterfaces/
 	vst headers (ibstream, ivstaudioprocessor, ivsteditcontroller, ivstevents,
 	ivsthostapplication, ivstmessage, ivstparameterchanges, ivstprocesscontext,
 	iplugview) that VSTPluginInstance.h needs for its Steinberg::Vst:: pointer
@@ -44,8 +44,8 @@
 #include <windows.h>
 #include <wincrypt.h>
 
-#include "helpers/VSTPluginLibrary.h"
-#include "helpers/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
+#include "vst/VSTPluginInstance.h"
 #include "filters/VSTPluginCommand.h"
 #include "filters/VSTPluginFilter.h"
 #include "filters/loudnessCorrection/VolumeController.h"

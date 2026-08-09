@@ -19,11 +19,11 @@
 
 #include "stdafx.h"
 #include <mutex>
-#include "RegistryHelper.h"
-#include "LogHelper.h"
+#include "helpers/RegistryHelper.h"
+#include "helpers/LogHelper.h"
 #include "VSTPluginLibrary.h"
 #include "VST3HostObjects.h"
-#include "Win32Resource.h"
+#include "helpers/Win32Resource.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
 #include "pluginterfaces/vst/ivsthostapplication.h"

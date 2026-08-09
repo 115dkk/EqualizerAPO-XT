@@ -2,7 +2,7 @@
 	This file is part of EqualizerAPO-XT.
 
 	A minimal, self-contained VST 2.4 plugin built only against the project's
-	vendored VST2 ABI header (helpers/aeffectx.h). It exists so VstHostTests
+	vendored VST2 ABI header (vst/aeffectx.h). It exists so VstHostTests
 	(in Tests/HybridConvTests) can drive the engine's VST host classes
 	(VSTPluginLibrary / VSTPluginInstance) against a real
 	binary at runtime. Because it is compiled from our own source for each
@@ -35,7 +35,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "helpers/aeffectx.h"
+#include "vst/aeffectx.h"
 
 namespace
 {

@@ -12,7 +12,7 @@ another by accident.
 | --- | --- | --- |
 | System integration (registry, service control) | Throw an exception | `helpers/RegistryHelper.cpp`, `helpers/ServiceHelper.cpp` |
 | Install / uninstall orchestration | Return a `Result` enum | `helpers/ApoRegistration.h`, `helpers/ApoRegistration.cpp` |
-| VST plugin loading | Return `bool` | `helpers/VSTPluginInstance.cpp` |
+| VST plugin loading | Return `bool` | `vst/VSTPluginInstance.cpp` |
 | Allocation helpers (audio / real-time path) | Return `nullptr` and log | `helpers/MemoryHelper.cpp` |
 | Configuration parsing | Report the line and keep loading | `filters/*Factory.cpp`, `ConfigLoadTrace.h` |
 

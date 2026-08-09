@@ -23,7 +23,7 @@
 
 #include <QDialog>
 #include <QCheckBox>
-#include "helpers/VSTPluginInstance.h"
+#include "vst/VSTPluginInstance.h"
 
 namespace Ui {
 class VSTPluginFilterGUIDialog;

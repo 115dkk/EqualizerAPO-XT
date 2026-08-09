@@ -138,10 +138,10 @@
     <ClInclude Include="filters\VSTPluginFilterFactory.h">
       <Filter>filters</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\AbstractLibrary.h">
+    <ClInclude Include="vst\AbstractLibrary.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\aeffectx.h">
+    <ClInclude Include="vst\aeffectx.h">
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="helpers\ChannelHelper.h">
@@ -210,16 +210,16 @@
     <ClInclude Include="helpers\UncaughtExceptions.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\VSTPluginInstance.h">
+    <ClInclude Include="vst\VSTPluginInstance.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\VST3HostObjects.h">
+    <ClInclude Include="vst\VST3HostObjects.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\VSTPluginInstanceInternal.h">
+    <ClInclude Include="vst\VSTPluginInstanceInternal.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\VSTPluginLibrary.h">
+    <ClInclude Include="vst\VSTPluginLibrary.h">
       <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="libHybridConv-0.1.1\libHybridConv_eapo.h">
@@ -402,7 +402,7 @@
     <ClCompile Include="filters\VSTPluginFilterFactory.cpp">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\AbstractLibrary.cpp">
+    <ClCompile Include="vst\AbstractLibrary.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="helpers\ChannelHelper.cpp">
@@ -441,25 +441,25 @@
     <ClCompile Include="helpers\StringHelper.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\VST3PluginIIDs.cpp">
+    <ClCompile Include="vst\VST3PluginIIDs.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\VSTPluginInstance.cpp">
+    <ClCompile Include="vst\VSTPluginInstance.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\VSTPluginInstance.Editor.cpp">
+    <ClCompile Include="vst\VSTPluginInstance.Editor.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\VSTPluginInstance.State.cpp">
+    <ClCompile Include="vst\VSTPluginInstance.State.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\VSTPluginInstance.VST2.cpp">
+    <ClCompile Include="vst\VSTPluginInstance.VST2.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\VSTPluginInstance.VST3.cpp">
+    <ClCompile Include="vst\VSTPluginInstance.VST3.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="helpers\VSTPluginLibrary.cpp">
+    <ClCompile Include="vst\VSTPluginLibrary.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp">

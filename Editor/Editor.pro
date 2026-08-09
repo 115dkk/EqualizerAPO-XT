@@ -211,20 +211,20 @@ SOURCES += main.cpp\
 	CustomStyle.cpp \
 	../devices/AbstractAPOInfo.cpp \
 	../devices/VoicemeeterAPOInfo.cpp \
-	../helpers/AbstractLibrary.cpp \
-	../helpers/VST3PluginIIDs.cpp \
-	../helpers/VSTPluginLibrary.cpp \
+	../vst/AbstractLibrary.cpp \
+	../vst/VST3PluginIIDs.cpp \
+	../vst/VSTPluginLibrary.cpp \
 	guis/VSTPluginFilterGUI.cpp \
 	guis/VSTPluginFilterGUIFactory.cpp \
 	guis/VSTPluginFilterGUIDialog.cpp \
 	../filters/VSTPluginCommand.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
-	../helpers/VSTPluginInstance.cpp \
-	../helpers/VSTPluginInstance.Editor.cpp \
-	../helpers/VSTPluginInstance.State.cpp \
-	../helpers/VSTPluginInstance.VST2.cpp \
-	../helpers/VSTPluginInstance.VST3.cpp \
+	../vst/VSTPluginInstance.cpp \
+	../vst/VSTPluginInstance.Editor.cpp \
+	../vst/VSTPluginInstance.State.cpp \
+	../vst/VSTPluginInstance.VST2.cpp \
+	../vst/VSTPluginInstance.VST3.cpp \
 	../helpers/PerfProfile.cpp \
 	guis/LoudnessCorrectionFilterGUI.cpp \
 	guis/LoudnessCorrectionFilterGUIFactory.cpp \
@@ -472,15 +472,15 @@ HEADERS  += \
 	CustomStyle.h \
 	../devices/AbstractAPOInfo.h \
 	../devices/VoicemeeterAPOInfo.h \
-	../helpers/AbstractLibrary.h \
-	../helpers/VSTPluginLibrary.h \
+	../vst/AbstractLibrary.h \
+	../vst/VSTPluginLibrary.h \
 	guis/VSTPluginFilterGUI.h \
 	guis/VSTPluginFilterGUIFactory.h \
 	guis/VSTPluginFilterGUIDialog.h \
 	../filters/VSTPluginCommand.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
-	../helpers/VSTPluginInstance.h \
+	../vst/VSTPluginInstance.h \
 	guis/LoudnessCorrectionFilterGUI.h \
 	guis/LoudnessCorrectionFilterGUIFactory.h \
 	../filters/loudnessCorrection/LoudnessCorrectionCommand.h \

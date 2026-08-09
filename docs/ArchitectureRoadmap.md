@@ -162,7 +162,7 @@ S4 가 없앤 것은 조용한 실패입니다. 스킨을 하나 추가하려면
   깨지는 성질, 즉 목록에 있는 파일이 디스크에 있는지입니다. 이름이 바뀌거나 옮겨진 파일은 지금까지
   매트릭스 레그 20분 지점의 컴파일 오류로만 드러났습니다. pester 케이스 2건을 함께 넣었습니다.
 
-`helpers/VSTPluginLibrary.h` 의 `aeffectx.h` 노출은 **전제가 틀렸습니다.** 로드맵은 6개 Editor TU 가
+`vst/VSTPluginLibrary.h` 의 `aeffectx.h` 노출은 **전제가 틀렸습니다.** 로드맵은 6개 Editor TU 가
 멤버 4개만 쓰면서 98KB 헤더를 통과시킨다고 적었는데, 실제로는 그 TU 들이 전부
 `VSTPluginInstance` 멤버를 직접 씁니다. `VSTPluginLibrary.h` 에서 `VSTPluginInstance.h` include 를
 떼어내려면 그 8곳에 도로 넣어야 했고, 그러면 어떤 TU 의 include 그래프도 줄지 않습니다.

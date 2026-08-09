@@ -651,9 +651,9 @@ jobs:
           --suppress=postfixOperator \
           --suppress=noExplicitConstructor \
           --suppress=LocalAllocCalled \
-          --suppress=unknownMacro:helpers/VSTPluginInstance.cpp \
-          --suppress=unknownMacro:helpers/VSTPluginInstanceInternal.h \
-          --suppress=unknownMacro:helpers/VSTPluginLibrary.cpp \
+          --suppress=unknownMacro:vst/VSTPluginInstance.cpp \
+          --suppress=unknownMacro:vst/VSTPluginInstanceInternal.h \
+          --suppress=unknownMacro:vst/VSTPluginLibrary.cpp \
           --suppress=unusedStructMember:engine/FilterEngine.Process.cpp \
           --suppress=uninitMemberVarNoCtor:libHybridConv-0.1.1/* \
           --suppress=*:deps/* \

@@ -16,7 +16,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\helpers\aeffectx.h">
+    <ClInclude Include="..\..\vst\aeffectx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

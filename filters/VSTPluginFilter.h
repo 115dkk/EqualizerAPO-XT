@@ -23,8 +23,8 @@
 
 #include "engine/IFilter.h"
 #include "helpers/MemoryHelper.h"
-#include "helpers/VSTPluginInstance.h"
-#include "helpers/VSTPluginLibrary.h"
+#include "vst/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class VSTPluginFilter : public IFilter

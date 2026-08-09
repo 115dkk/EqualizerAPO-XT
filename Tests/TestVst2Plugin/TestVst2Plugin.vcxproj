@@ -122,7 +122,7 @@
     <ClCompile Include="TestVst2Plugin.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\helpers\aeffectx.h" />
+    <ClInclude Include="..\..\vst\aeffectx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

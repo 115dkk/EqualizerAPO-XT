@@ -22,8 +22,8 @@
 #include <memory>
 #include <QElapsedTimer>
 #include "Editor/IFilterGUI.h"
-#include "helpers/VSTPluginInstance.h"
-#include "helpers/VSTPluginLibrary.h"
+#include "vst/VSTPluginInstance.h"
+#include "vst/VSTPluginLibrary.h"
 
 namespace Ui {
 class VSTPluginFilterGUI;
