@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.34.6 — 2026-08-09
+
 - **The Editor and shared core now have enforceable module boundaries.** The
   update client uses an owned, testable session instead of hidden process
   state; picker and reference-card behavior is shared without flattening the
