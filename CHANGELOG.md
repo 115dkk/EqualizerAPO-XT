@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.34.5 — 2026-08-09
+
 - **The Subwoofer Routing Editor remains usable when Copy routes expand.**
   Long routing matrices now scroll without pushing the response graph or dialog
   actions out of reach, Enter commits Copy's inline channel editor without
