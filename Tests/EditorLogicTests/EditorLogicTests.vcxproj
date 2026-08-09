@@ -130,6 +130,13 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="AutoInstallerLogicTests.cpp" />
     <ClCompile Include="FilterCommandCatalogTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
+    <ClCompile Include="FilterCardModelTests.cpp" />
+    <ClCompile Include="FilterListModelTests.cpp" />
+    <ClCompile Include="ConfigImportTests.cpp" />
+    <ClCompile Include="UpdateCheckerTests.cpp" />
+    <ClCompile Include="SelectionModelTests.cpp" />
+    <ClCompile Include="RoutingModelTests.cpp" />
+    <ClCompile Include="SubwooferRoutingTests.cpp" />
     <ClCompile Include="..\..\Editor\ConfigFileCodec.cpp" />
     <ClCompile Include="..\..\Editor\analysis\AnalysisResponse.cpp" />
     <ClCompile Include="..\..\Editor\analysis\ResponseCurveBuilder.cpp" />

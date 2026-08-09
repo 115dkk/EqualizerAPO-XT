@@ -3,6 +3,8 @@
 #include <atomic>
 #include <chrono>
 #include <future>
+#include <new>
+#include <stdexcept>
 #include <thread>
 
 #include <QDir>
@@ -14,9 +16,11 @@
 #include <QTemporaryDir>
 
 #include "Benchmark/BatchPlan.h"
+#include "Editor/helpers/AnalysisWorkerRecovery.h"
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/widgets/EditableValueText.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
+#include "helpers/MemoryHelper.h"
 #include "helpers/OwnedBackgroundTask.h"
 #include "helpers/UpdateElevationPolicy.h"
 
@@ -244,4 +248,56 @@ void testFileReferenceControllerOwnsPathState()
 	const QString farSelection = root.filePath(QStringLiteral("outside/plugin.dll"));
 	expectPath(FileReferenceController::displayPathForBaseDirectory(
 		baseDirectory, farSelection), farSelection);
+}
+
+void testAnalysisWorkerRecovery()
+{
+	bool failurePublished = false;
+	try
+	{
+		const bool succeeded = AnalysisWorkerRecovery::run(
+			[] { throw std::bad_alloc(); },
+			[&](const char*) { failurePublished = true; });
+		expectFalse(succeeded, "failed analysis iteration reported success");
+	}
+	catch (...)
+	{
+		harness.fail("analysis iteration exception escaped and would stop the worker");
+	}
+	expectTrue(failurePublished, "analysis failure was not published");
+
+	bool nextIterationRan = false;
+	const bool recovered = AnalysisWorkerRecovery::run(
+		[&] { nextIterationRan = true; },
+		[](const char*) {});
+	expectTrue(recovered, "next analysis iteration did not recover");
+	expectTrue(nextIterationRan, "analysis worker did not accept work after a failure");
+}
+
+void testMemoryHelperConstructReleasesStorageWhenConstructorThrows()
+{
+	struct ThrowingConstructor
+	{
+		ThrowingConstructor()
+		{
+			throw std::runtime_error("constructor failure");
+		}
+	};
+
+	// The counters live in MemoryHelper itself; this binary links Common.lib
+	// whole-archive and therefore cannot substitute its own alloc()/free().
+	MemoryHelper::resetAllocationCountsForTesting();
+	bool threw = false;
+	try
+	{
+		MemoryHelper::construct<ThrowingConstructor>();
+	}
+	catch (const std::runtime_error&)
+	{
+		threw = true;
+	}
+
+	expectTrue(threw, "construct propagates a constructor exception");
+	expectEqual((int)MemoryHelper::allocationCountForTesting(), 1, "construct allocates storage once");
+	expectEqual((int)MemoryHelper::freeCountForTesting(), 1, "construct releases storage when construction fails");
 }
