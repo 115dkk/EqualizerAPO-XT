@@ -20,7 +20,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   layouts never fall back to another arrangement or width: a rejected or inconsistent contract
   leaves every device channel untouched. VST2 modules are rejected from their
   loaded ABI, even when the file extension claims otherwise. Editor controls
-  will follow separately.
+  will follow separately ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)).
 
 ## v2.34.6 — 2026-08-09
 
