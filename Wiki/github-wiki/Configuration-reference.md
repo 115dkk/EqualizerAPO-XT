@@ -217,7 +217,7 @@ Copy: L=L+XL R=R+XR
 
 Loads one VST3 audio effect with an explicit main input/output bus contract. Use this for upmixers, downmixers, height expanders, and other plug-ins whose input and output layouts differ. Both keys are mandatory; write `Auto` explicitly when one direction should use the normal host negotiation.
 
-Supported layouts are `Auto`, `Mono`, `Stereo`, `4.0`, `4.1`, `5.0`, `5.1`, `6.1`, `7.1`, `7.1.2`, and `7.1.4`. Each named layout maps to its canonical Windows-style VST3 speaker arrangement. A same-width arrangement with different speaker roles, such as 4.1 Cine (LCRS+LFE) instead of quad 4.1, is not treated as a match.
+Supported layouts are `Auto`, `Mono`, `Stereo`, `4.0`, `4.1`, `5.0`, `5.1`, `6.1`, `7.1`, `7.1.2`, and `7.1.4`. Where VST3 defines multiple arrangements for the same logical layout, the host proposes the Windows-like Music arrangement first and then the matching Cine alternative. It may change the arrangement within that logical layout, but never the channel count of an explicitly selected direction.
 
 ```
 # Stereo upmixer feeding an eight-channel device

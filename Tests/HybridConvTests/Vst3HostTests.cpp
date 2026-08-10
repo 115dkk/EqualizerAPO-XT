@@ -696,14 +696,24 @@ void runVst3HostTests()
 	harness.expectTrue(!surround41CineOnlyBundle.empty()
 		&& surround41CineOnlyLibrary->initialize() >= 0,
 		"4.1 Cine-only VST3 module initializes");
+	HMODULE surround41CineOnlyModule = GetModuleHandleW(L"TestVst3Surround41CineOnly.vst3");
+	Surround41ArrangementFunc surround41CineOnlyAcceptedArrangement = surround41CineOnlyModule != nullptr
+		? reinterpret_cast<Surround41ArrangementFunc>(
+			GetProcAddress(surround41CineOnlyModule, "GetSurround41AcceptedOutputArrangement")) : nullptr;
+	harness.expectTrue(surround41CineOnlyAcceptedArrangement != nullptr,
+		"4.1 Cine-only accepted-arrangement probe is exported");
 	{
 		VSTPluginInstance cineOnlyProbe(surround41CineOnlyLibrary, 2);
 		harness.expectTrue(cineOnlyProbe.initialize(), "4.1 Cine-only component initializes");
 		cineOnlyProbe.setBusChannelNameHints(vst3BusLayoutChannelNames(VST3BusLayout::Surround41),
 			vst3BusLayoutChannelNames(VST3BusLayout::Surround41));
-		harness.expectFalse(cineOnlyProbe.negotiateBusLayouts(VST3BusLayout::Surround41,
+		harness.expectTrue(cineOnlyProbe.negotiateBusLayouts(VST3BusLayout::Surround41,
 			VST3BusLayout::Surround41, 5),
-			"explicit 4.1 rejects same-width LCRS Cine instead of falling back");
+			"explicit 4.1 tries the allowed same-layout Cine alternative");
+		harness.expectTrue(surround41CineOnlyAcceptedArrangement != nullptr
+			&& surround41CineOnlyAcceptedArrangement()
+				== static_cast<unsigned long long>(Steinberg::Vst::SpeakerArr::k41Cine),
+			"explicit 4.1 records the accepted k41Cine alternative");
 	}
 
 	{

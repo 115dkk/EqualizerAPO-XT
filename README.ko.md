@@ -49,7 +49,7 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
   별도로 배포합니다.
 - 한 줄 서브우퍼 라우팅: `SubwooferRouting:`가 스피커 그룹별 크로스오버, 전용 베이스 경로, 물리 LFE 입력 보존, 경로별 게인·극성·지연·EQ, 출력 합산 행렬을 JSON 상태 하나로(인라인 또는 `*.swxt.json` 프로필) 실행합니다. 자동 헤드룸이 합산 출력을 지키고, 내장 프리셋은 이슈 #246의 원본 사슬을 샘플 단위로 재현합니다. 같은 MIT 라이선스 DSP 코어가 독립 실행형 `EAPO XT Subwoofer Routing` VST3 플러그인으로도 실려, 동일한 JSON 상태를 주고받습니다.
 - Steinberg VST3 SDK(MIT 라이선스 pluginterfaces)로 VST3를 네이티브 호스팅하며, 플러그인이 지원하면 64비트(double)로 처리합니다. 채널 배치는 실제 채널 이름으로 협상하므로 4.1 시스템이 5.0으로 잘못 알려지지 않습니다.
-- `VST3Bus: Library "...\\Plugin.vst3" Input Stereo Output 7.1`처럼 VST3 주 입력·출력 버스를 서로 다르게 지정할 수 있습니다. 각 방향은 Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4를 지원합니다. 플러그인이 계약을 거부하면 다른 배열이나 폭으로 몰래 바꾸지 않고 입력을 그대로 통과시킵니다. 자세한 문법은 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference#vst3bus)에 있습니다.
+- `VST3Bus: Library "...\\Plugin.vst3" Input Stereo Output 7.1`처럼 VST3 주 입력·출력 버스를 서로 다르게 지정할 수 있습니다. 각 방향은 Auto, Mono, Stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4를 지원합니다. 플러그인이 계약을 거부하면 다른 폭으로 몰래 바꾸지 않고 입력을 그대로 통과시킵니다. 자세한 문법은 [설정 레퍼런스](https://github.com/115dkk/EqualizerAPO-XT/wiki/Korean-Configuration-reference#vst3bus)에 있습니다.
 - SIMD 커널은 [Google Highway](https://github.com/google/highway)로 한 번만 작성해 변형별로 컴파일합니다. x64는 SSE2, AVX, AVX2, AVX-512, AVX10.1, ARM64는 NEON입니다.
 - Qt Editor를 현대화했습니다. 카드 기반 필터 UI와 행 chrome·노브 렌더링·Copy 라우팅 렌더러까지 서로 다른 5종 스킨([docs/skin-integration-report.md](docs/skin-integration-report.md)), 내장 폰트, 고해상도(High-DPI) 대응이 들어 있습니다.
 - Editor가 새 릴리스를 백그라운드에서 내려받아 종료할 때 적용하는 자동 업데이트가 들어 있습니다. 알림만 하는 UpdateChecker 도구도 따로 있습니다.

@@ -597,13 +597,15 @@ int VSTPluginInstance::semanticSpeakerArrangementCandidatesForChannelNames(
 		|| channelNamesEqual(channelNames, {L"L", L"R", L"SL", L"SR"}))
 	{
 		candidates[0] = SpeakerArr::k40Music;
-		return 1;
+		candidates[1] = SpeakerArr::k40Cine;
+		return 2;
 	}
 	if (channelNamesEqual(channelNames, {L"L", L"R", L"LFE", L"RL", L"RR"})
 		|| channelNamesEqual(channelNames, {L"L", L"R", L"LFE", L"SL", L"SR"}))
 	{
 		candidates[0] = SpeakerArr::k41Music;
-		return 1;
+		candidates[1] = SpeakerArr::k41Cine;
+		return 2;
 	}
 	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"RL", L"RR"})
 		|| channelNamesEqual(channelNames, {L"L", L"R", L"C", L"SL", L"SR"}))
@@ -619,18 +621,21 @@ int VSTPluginInstance::semanticSpeakerArrangementCandidatesForChannelNames(
 	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"LFE", L"RC", L"SL", L"SR"}))
 	{
 		candidates[0] = SpeakerArr::k61Cine;
-		return 1;
+		candidates[1] = SpeakerArr::k61Music;
+		return 2;
 	}
 	if (channelNamesEqual(channelNames, {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"}))
 	{
 		candidates[0] = SpeakerArr::k71Music;
-		return 1;
+		candidates[1] = SpeakerArr::k71Cine;
+		return 2;
 	}
 	if (channelNamesEqual(channelNames,
 		{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR", L"TSL", L"TSR"}))
 	{
 		candidates[0] = SpeakerArr::k71_2;
-		return 1;
+		candidates[1] = SpeakerArr::k71_2_TF;
+		return 2;
 	}
 	if (channelNamesEqual(channelNames,
 		{L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR",
@@ -708,9 +713,11 @@ int VSTPluginInstance::speakerArrangementCandidatesForLayout(VST3BusLayout layou
 		break;
 	case VST3BusLayout::Surround40:
 		appendArrangementCandidate(SpeakerArr::k40Music, candidates, candidateCount);
+		appendArrangementCandidate(SpeakerArr::k40Cine, candidates, candidateCount);
 		break;
 	case VST3BusLayout::Surround41:
 		appendArrangementCandidate(SpeakerArr::k41Music, candidates, candidateCount);
+		appendArrangementCandidate(SpeakerArr::k41Cine, candidates, candidateCount);
 		break;
 	case VST3BusLayout::Surround50:
 		appendArrangementCandidate(SpeakerArr::k50, candidates, candidateCount);
@@ -720,12 +727,15 @@ int VSTPluginInstance::speakerArrangementCandidatesForLayout(VST3BusLayout layou
 		break;
 	case VST3BusLayout::Surround61:
 		appendArrangementCandidate(SpeakerArr::k61Cine, candidates, candidateCount);
+		appendArrangementCandidate(SpeakerArr::k61Music, candidates, candidateCount);
 		break;
 	case VST3BusLayout::Surround71:
 		appendArrangementCandidate(SpeakerArr::k71Music, candidates, candidateCount);
+		appendArrangementCandidate(SpeakerArr::k71Cine, candidates, candidateCount);
 		break;
 	case VST3BusLayout::Surround712:
 		appendArrangementCandidate(SpeakerArr::k71_2, candidates, candidateCount);
+		appendArrangementCandidate(SpeakerArr::k71_2_TF, candidates, candidateCount);
 		break;
 	case VST3BusLayout::Surround714:
 		appendArrangementCandidate(SpeakerArr::k71_4, candidates, candidateCount);
