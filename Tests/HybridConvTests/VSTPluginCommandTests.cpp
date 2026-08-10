@@ -234,9 +234,9 @@ void testVST3BusCommand()
 
 	const struct
 	{
-		const wchar_t* text;
-		VST3BusLayout layout;
-		int channels;
+		const wchar_t* text = nullptr;
+		VST3BusLayout layout = VST3BusLayout::Auto;
+		int channels = 0;
 	} layouts[] = {
 		{L"Mono", VST3BusLayout::Mono, 1},
 		{L"Stereo", VST3BusLayout::Stereo, 2},
