@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **VST3 plug-ins can use an explicit asymmetric main-bus contract.** The new
+  backend-only `VST3Bus:` command selects `Auto`, mono, stereo, 4.0, 4.1, 5.0,
+  5.1, 6.1, 7.1, 7.1.2, or 7.1.4 independently for input and output. Explicit
+  layouts never fall back to another arrangement or width: a rejected or inconsistent contract
+  leaves every device channel untouched. VST2 modules are rejected from their
+  loaded ABI, even when the file extension claims otherwise. Editor controls
+  will follow separately.
+
 ## v2.34.6 — 2026-08-09
 
 - **The Editor and shared core now have enforceable module boundaries.** The

@@ -22,6 +22,7 @@
 #include <string>
 #include "text/WideString.h"
 #include <unordered_map>
+#include "vst/VST3BusLayout.h"
 
 
 // Plain description of a parsed "VSTPlugin:" config line. It holds exactly the
@@ -76,5 +77,26 @@ struct VSTPluginCommand
 	// %g/QString::arg float formatting. The Library token itself stays in store()
 	// because its relative/absolute path resolution depends on Qt's QDir, so this
 	// serializer owns only the chunk/param body.
+	std::wstring serialize() const;
+};
+
+// Parsed representation of the backend-only VST3Bus command. Input and Output
+// are mandatory even when their value is Auto. A failed parse keeps a precise
+// error string so the engine can report the malformed line without loading a
+// plug-in module.
+struct VST3BusCommand
+{
+	std::wstring libraryPath;
+	std::wstring chunkData;
+	std::unordered_map<std::wstring, float> paramMap;
+	VST3BusContract contract;
+	bool valid = false;
+	std::wstring error;
+
+	static VST3BusCommand parse(const std::wstring& configPath, const std::wstring& parameters);
+
+	// Serializes the complete canonical parameter string after "VST3Bus:".
+	// Absolute paths and parameter names that need quoting are escaped with the
+	// same doubled-quote convention used by VSTPlugin.
 	std::wstring serialize() const;
 };

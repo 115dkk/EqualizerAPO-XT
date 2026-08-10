@@ -51,7 +51,10 @@ bool rejectComponentInitialize = false;
 bool componentStateUnavailable = false;
 bool upmixerMode = false;
 bool surround41Mode = false;
+bool surround41CineOnlyMode = false;
+bool busInfoMismatchMode = false;
 std::atomic<int> upmixerComponentCount{0};
+std::atomic<int> upmixerProcessCount{0};
 std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
 	static_cast<unsigned long long>(SpeakerArr::kStereo)
 };
@@ -580,7 +583,9 @@ private:
     of the input carrying signal, and fills the remaining physical channels
     itself. Like a typical JUCE build it also accepts a plain stereo layout,
     which is exactly what allows a host that only ever proposes stereo to
-    silently degrade it into several blind stereo instances.
+    silently degrade it into several blind stereo instances. The downmix
+    direction is accepted as well so the host tests can exercise both forms
+    of an explicit asymmetric contract deterministically.
 */
 class TestUpmixerComponent final : public IComponent, public IAudioProcessor, private RefCounted
 {
@@ -627,7 +632,8 @@ public:
 		std::memset(&info, 0, sizeof(info));
 		info.mediaType = kAudio;
 		info.direction = direction;
-		info.channelCount = SpeakerArr::getChannelCount(direction == kInput ? inputArrangement : outputArrangement);
+		info.channelCount = busInfoMismatchMode && direction == kOutput
+			? 2 : SpeakerArr::getChannelCount(direction == kInput ? inputArrangement : outputArrangement);
 		info.busType = kMain;
 		info.flags = BusInfo::kDefaultActive;
 		copyString128(info.name, direction == kInput ? L"Upmix In" : L"Upmix Out");
@@ -655,13 +661,13 @@ public:
 		{
 			return a == SpeakerArr::k71Music || a == SpeakerArr::k71Cine;
 		};
-		// Accepted layouts mirror the real plugin: symmetric stereo, symmetric
-		// 7.1 (accepted but the engine stays off there), and the DAW-style
-		// stereo input bus feeding a 7.1 output bus.
+		// Accepted layouts cover symmetric stereo and 7.1 plus both asymmetric
+		// directions. The upmix direction mirrors the real DAW-style contract.
 		const bool symmetric = inputs[0] == outputs[0]
 			&& (inputs[0] == SpeakerArr::kStereo || isSurround(inputs[0]));
 		const bool stereoIntoSurround = inputs[0] == SpeakerArr::kStereo && isSurround(outputs[0]);
-		if (!symmetric && !stereoIntoSurround)
+		const bool surroundIntoStereo = isSurround(inputs[0]) && outputs[0] == SpeakerArr::kStereo;
+		if (!symmetric && !stereoIntoSurround && !surroundIntoStereo)
 			return kResultFalse;
 		inputArrangement = inputs[0];
 		outputArrangement = outputs[0];
@@ -691,6 +697,7 @@ public:
 			return kResultOk;
 		if (!processing.load() || data.symbolicSampleSize != setup.symbolicSampleSize)
 			return kResultFalse;
+		++upmixerProcessCount;
 		const int32 inputChannels = SpeakerArr::getChannelCount(inputArrangement);
 		const int32 outputChannels = SpeakerArr::getChannelCount(outputArrangement);
 		// The host must hand over the full negotiated bus widths; anything
@@ -815,9 +822,11 @@ public:
 		if (numIns != 1 || numOuts != 1 || inputs == nullptr || outputs == nullptr
 			|| inputs[0] != outputs[0])
 			return kResultFalse;
-		if (outputs[0] != SpeakerArr::kStereo
-			&& outputs[0] != SpeakerArr::k41Music
-			&& outputs[0] != SpeakerArr::k50)
+		const bool accepted = surround41CineOnlyMode
+			? outputs[0] == SpeakerArr::kStereo || outputs[0] == SpeakerArr::k41Cine
+			: outputs[0] == SpeakerArr::kStereo
+				|| outputs[0] == SpeakerArr::k41Music || outputs[0] == SpeakerArr::k50;
+		if (!accepted)
 			return kResultFalse;
 		arrangement = outputs[0];
 		surround41AcceptedOutputArrangement.store(
@@ -1183,8 +1192,11 @@ extern "C" __declspec(dllexport) bool InitDll()
 	wcscpy_s(loadedModulePath, modulePath);
 	rejectComponentInitialize = wcsstr(modulePath, L"RejectComponent.vst3") != nullptr;
 	componentStateUnavailable = wcsstr(modulePath, L"ControllerState.vst3") != nullptr;
-	upmixerMode = wcsstr(modulePath, L"Upmixer.vst3") != nullptr;
-	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr;
+	busInfoMismatchMode = wcsstr(modulePath, L"BusInfoMismatch.vst3") != nullptr;
+	upmixerMode = wcsstr(modulePath, L"Upmixer.vst3") != nullptr || busInfoMismatchMode;
+	surround41CineOnlyMode = wcsstr(modulePath, L"Surround41CineOnly.vst3") != nullptr;
+	surround41Mode = wcsstr(modulePath, L"Surround41.vst3") != nullptr || surround41CineOnlyMode;
+	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
 		static_cast<unsigned long long>(SpeakerArr::kStereo));
 	moduleInitialized = true;
@@ -1207,6 +1219,8 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	componentStateUnavailable = false;
 	upmixerMode = false;
 	surround41Mode = false;
+	surround41CineOnlyMode = false;
+	busInfoMismatchMode = false;
 	return true;
 }
 
@@ -1216,6 +1230,11 @@ extern "C" __declspec(dllexport) bool ExitDll()
 extern "C" __declspec(dllexport) int GetUpmixerComponentCount()
 {
 	return upmixerComponentCount.load();
+}
+
+extern "C" __declspec(dllexport) int GetUpmixerProcessCount()
+{
+	return upmixerProcessCount.load();
 }
 
 // In-process test hook for Surround41.vst3 mode: returns the speaker mask of

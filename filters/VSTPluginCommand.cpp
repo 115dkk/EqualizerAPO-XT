@@ -22,6 +22,8 @@
 
 #include <cstdio>
 #include <cwctype>
+#include <cerrno>
+#include <cmath>
 
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
@@ -29,6 +31,71 @@
 
 using std::vector;
 using std::wstring;
+
+namespace
+{
+wstring resolveLibraryReference(const wstring& libraryReference)
+{
+	if (libraryReference.empty())
+		return L"";
+	if (!PathIsRelativeW(libraryReference.c_str()))
+		return libraryReference;
+
+	wstring pluginPath = VSTPluginLibrary::getDefaultPluginPath();
+	while (!pluginPath.empty() && (pluginPath.back() == L'\\' || pluginPath.back() == L'/'))
+		pluginPath.pop_back();
+	return pluginPath + L"\\" + libraryReference;
+}
+
+wstring quoteCommandToken(const wstring& token, bool force = false)
+{
+	if (!force && token.find_first_of(L" \t\"") == wstring::npos)
+		return token;
+
+	wstring result = L"\"";
+	for (wchar_t c : token)
+	{
+		if (c == L'\"')
+			result += L"\"\"";
+		else
+			result += c;
+	}
+	result += L"\"";
+	return result;
+}
+
+bool parseFloatToken(const wstring& token, float& value)
+{
+	if (token.empty())
+		return false;
+	wchar_t* end = nullptr;
+	errno = 0;
+	value = wcstof(token.c_str(), &end);
+	return errno != ERANGE && end != token.c_str() && *end == L'\0' && std::isfinite(value);
+}
+
+wstring serializeState(const wstring& chunkData, const std::unordered_map<wstring, float>& paramMap)
+{
+	wstring result;
+	if (!chunkData.empty())
+	{
+		result += L" ChunkData ";
+		result += quoteCommandToken(chunkData, true);
+		return result;
+	}
+
+	for (const auto& it : paramMap)
+	{
+		wchar_t buffer[64];
+		swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%g", (double)it.second);
+		result += L" ";
+		result += quoteCommandToken(it.first);
+		result += L" ";
+		result += buffer;
+	}
+	return result;
+}
+}
 
 VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const wstring& parameters)
 {
@@ -38,25 +105,7 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 	// one grammar.
 	VSTPluginCommand cmd;
 
-	wstring libraryReference = extractLibraryReference(parameters);
-	if (!libraryReference.empty())
-	{
-		if (PathIsRelativeW(libraryReference.c_str()))
-		{
-			// Audit #250 F031: the reference is user config input; the old
-			// MAX_PATH stack buffer silently truncated long joins (and its
-			// PathAppendW result was never checked). Join dynamically.
-			wstring pluginPath = VSTPluginLibrary::getDefaultPluginPath();
-			while (!pluginPath.empty()
-				&& (pluginPath.back() == L'\\' || pluginPath.back() == L'/'))
-			{
-				pluginPath.pop_back();
-			}
-			cmd.libraryPath = pluginPath + L"\\" + libraryReference;
-		}
-		else
-			cmd.libraryPath = libraryReference;
-	}
+	cmd.libraryPath = resolveLibraryReference(extractLibraryReference(parameters));
 
 	vector<wstring> parts = text::splitQuoted(parameters, ' ');
 	for (unsigned i = 0; i + 1 < parts.size(); i += 2)
@@ -149,5 +198,120 @@ std::wstring VSTPluginCommand::serialize() const
 		}
 	}
 
+	return result;
+}
+
+VST3BusCommand VST3BusCommand::parse(const wstring& /*configPath*/, const wstring& parameters)
+{
+	VST3BusCommand cmd;
+	const vector<wstring> parts = text::splitQuoted(parameters, L' ');
+	if (parts.empty() || parts.size() % 2 != 0)
+	{
+		cmd.error = L"expected key/value pairs with Library, Input and Output";
+		return cmd;
+	}
+
+	bool sawLibrary = false;
+	bool sawInput = false;
+	bool sawOutput = false;
+	bool sawChunkData = false;
+	for (size_t i = 0; i < parts.size(); i += 2)
+	{
+		const wstring& key = parts[i];
+		const wstring& value = parts[i + 1];
+		if (key == L"Library")
+		{
+			if (sawLibrary)
+			{
+				cmd.error = L"duplicate Library key";
+				return cmd;
+			}
+			sawLibrary = true;
+			cmd.libraryPath = resolveLibraryReference(value);
+			if (cmd.libraryPath.empty())
+			{
+				cmd.error = L"Library path must not be empty";
+				return cmd;
+			}
+		}
+		else if (key == L"Input")
+		{
+			if (sawInput)
+			{
+				cmd.error = L"duplicate Input key";
+				return cmd;
+			}
+			sawInput = true;
+			if (!parseVST3BusLayout(value, cmd.contract.input))
+			{
+				cmd.error = L"unsupported Input layout \"" + value + L"\"";
+				return cmd;
+			}
+		}
+		else if (key == L"Output")
+		{
+			if (sawOutput)
+			{
+				cmd.error = L"duplicate Output key";
+				return cmd;
+			}
+			sawOutput = true;
+			if (!parseVST3BusLayout(value, cmd.contract.output))
+			{
+				cmd.error = L"unsupported Output layout \"" + value + L"\"";
+				return cmd;
+			}
+		}
+		else if (key == L"ChunkData")
+		{
+			if (sawChunkData)
+			{
+				cmd.error = L"duplicate ChunkData key";
+				return cmd;
+			}
+			sawChunkData = true;
+			cmd.chunkData = value;
+		}
+		else
+		{
+			if (cmd.paramMap.find(key) != cmd.paramMap.end())
+			{
+				cmd.error = L"duplicate parameter key \"" + key + L"\"";
+				return cmd;
+			}
+			float parameterValue = 0.0f;
+			if (!parseFloatToken(value, parameterValue))
+			{
+				cmd.error = L"parameter \"" + key + L"\" requires a numeric value";
+				return cmd;
+			}
+			cmd.paramMap.emplace(key, parameterValue);
+		}
+	}
+
+	if (!sawLibrary)
+		cmd.error = L"missing required Library key";
+	else if (!sawInput)
+		cmd.error = L"missing required Input key";
+	else if (!sawOutput)
+		cmd.error = L"missing required Output key";
+	else if (sawChunkData && !cmd.paramMap.empty())
+		cmd.error = L"ChunkData and parameter values cannot be combined";
+	else
+		cmd.valid = true;
+	return cmd;
+}
+
+wstring VST3BusCommand::serialize() const
+{
+	if (!valid || libraryPath.empty())
+		return L"";
+	wstring result = L"Library ";
+	result += quoteCommandToken(libraryPath);
+	result += L" Input ";
+	result += vst3BusLayoutName(contract.input);
+	result += L" Output ";
+	result += vst3BusLayoutName(contract.output);
+	result += serializeState(chunkData, paramMap);
 	return result;
 }

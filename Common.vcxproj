@@ -392,6 +392,7 @@
     <ClInclude Include="platform\windows\Win32Error.h" />
     <ClInclude Include="parser\NumericText.h" />
     <ClInclude Include="vst\VSTPluginInstance.h" />
+    <ClInclude Include="vst\VST3BusLayout.h" />
     <ClInclude Include="vst\VST3HostObjects.h" />
     <ClInclude Include="vst\VSTPluginInstanceInternal.h" />
     <ClInclude Include="vst\VSTPluginLibrary.h" />

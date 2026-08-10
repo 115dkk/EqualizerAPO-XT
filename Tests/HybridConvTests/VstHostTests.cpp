@@ -48,6 +48,7 @@
 #include "vst/VSTPluginInstance.h"
 #include "filters/VSTPluginCommand.h"
 #include "filters/VSTPluginFilter.h"
+#include "filters/VSTPluginFilterFactory.h"
 #include "filters/loudnessCorrection/VolumeController.h"
 #include "Tests/TestHarness.h"
 
@@ -281,6 +282,26 @@ void runVstHostTests()
 	int loadResult = library->initialize();
 	harness.expectTrue(loadResult >= 0, "library initialize did not return an error code");
 	harness.expectTrue(library->VSTPluginMain != nullptr, "VSTPluginMain symbol resolved");
+
+	const wstring disguisedVst2Path = dir + L"\\TestVst2Disguised.vst3";
+	if (CopyFileW(dllPath.c_str(), disguisedVst2Path.c_str(), FALSE) != FALSE)
+	{
+		shared_ptr<VSTPluginLibrary> disguisedLibrary = VSTPluginLibrary::getInstance(disguisedVst2Path);
+		harness.expectTrue(disguisedLibrary->initialize() >= 0 && !disguisedLibrary->isVST3(),
+			"loaded module ABI recognizes VST2 even when the file extension is .vst3");
+
+		VSTPluginFilterFactory factory;
+		wstring busCommand = L"VST3Bus";
+		wstring busParameters = L"Library \"" + disguisedVst2Path
+			+ L"\" Input Stereo Output 7.1";
+		FilterVector rejected = factory.createFilter(L"test-vst3bus.txt", busCommand, busParameters);
+		harness.expectTrue(rejected.empty(),
+			"VST3Bus rejects a loaded VST2 module without creating a processing filter");
+		harness.expectTrue(busCommand == L"VST3Bus",
+			"VST3Bus rejection never rewrites the command to VSTPlugin");
+	}
+	else
+		harness.expectTrue(false, "VST2 disguised-extension copy is available for ABI detection");
 
 	expectRejectedMetadataPassesThrough(library, L"huge-inputs", "unrealistic input count");
 	expectRejectedMetadataPassesThrough(library, L"negative-inputs", "negative input count");

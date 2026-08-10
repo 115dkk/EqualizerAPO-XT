@@ -205,6 +205,25 @@ MultiConvolution: L=0 XL=1 XR=2 R=3 brir.wav
 Copy: L=L+XL R=R+XR
 ```
 
+### VST3Bus
+**문법:** `VST3Bus: Library "<VST3 경로>" Input <레이아웃> Output <레이아웃> [ChunkData "<상태>"]`
+
+VST3 오디오 이펙트 하나를 불러와 주 입력·출력 버스를 명시한 계약대로 구성합니다. 업믹서, 다운믹서, 높이 채널 확장기처럼 입력과 출력 레이아웃이 다른 플러그인에 씁니다. `Input`과 `Output`은 항상 적어야 합니다. 한쪽을 일반 자동 협상에 맡기려면 생략하지 말고 `Auto`를 씁니다.
+
+지원 레이아웃은 `Auto`, `Mono`, `Stereo`, `4.0`, `4.1`, `5.0`, `5.1`, `6.1`, `7.1`, `7.1.2`, `7.1.4`입니다. 각 이름은 Windows 순서에 맞춘 canonical VST3 스피커 배열 하나에 대응합니다. 채널 수가 같더라도 quad 4.1 대신 LCRS+LFE를 쓰는 4.1 Cine처럼 스피커 역할이 다른 배열은 같은 레이아웃으로 보지 않습니다.
+
+```
+# 8채널 장치로 출력하는 스테레오 업믹서
+VST3Bus: Library "C:\Program Files\Common Files\VST3\Upmixer.vst3" Input Stereo Output 7.1
+
+# 입력은 자동 협상하고 출력은 7.1.4로 고정
+VST3Bus: Library "C:\Program Files\Common Files\VST3\Height Expander.vst3" Input Auto Output 7.1.4
+```
+
+플러그인이 계약을 거부하거나, 다른 배열·버스 폭을 보고하거나, 잘못된 메타데이터를 내놓으면 필터를 비활성화하고 모든 입력 채널을 그대로 통과시킵니다. 명시한 폭을 다른 값으로 바꾸어 재시도하거나 스테레오 인스턴스를 반복 생성하지 않습니다. `VST3Bus`는 실제 로드된 모듈 ABI로 VST2를 거부합니다. VST2에는 `VSTPlugin:`을 쓰십시오. 플러그인의 `ChunkData`와 파라미터 상태는 `VSTPlugin`과 같은 키/값 형식을 씁니다.
+
+오디오 백엔드는 이 명령을 지원하지만 Qt Editor의 레이아웃 선택기와 전용 카드는 아직 없습니다. 별도 UI 작업이 들어오기 전에는 설정 파일에서 줄을 직접 추가하거나 고쳐야 합니다.
+
 ### Hilbert
 **문법:** `Hilbert: [Shift=<채널>[,<채널>...]] [Align=<채널>[,<채널>...]] [Direction=-90|+90]`
 

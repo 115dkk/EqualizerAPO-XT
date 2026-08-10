@@ -38,6 +38,7 @@
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/gui/iplugview.h"
 #include "platform/windows/Win32Resource.h"
+#include "VST3BusLayout.h"
 
 class VSTPluginLibrary;
 
@@ -69,6 +70,12 @@ public:
 	// engine on. Returns true only when the plugin accepts both widths
 	// exactly; on rejection the plugin's own preferred layout is re-applied.
 	bool negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount);
+	// Negotiates the logical contract used by VST3Bus. Explicit directions
+	// accept only arrangements belonging to that layout; Auto directions retain
+	// the existing device-width negotiation and may use the plug-in's current
+	// arrangement. No preferred-layout fallback is applied after a failure.
+	bool negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout outputLayout,
+		int automaticChannelCount);
 	// Supplies semantic EAPO channel names for the next VST3 negotiation.
 	// The two-vector form supports asymmetric upmixer buses.
 	void setChannelNameHints(const std::vector<std::wstring>& channelNames);
@@ -152,6 +159,12 @@ private:
 		Steinberg::Vst::SpeakerArrangement* candidates) const;
 	int speakerArrangementCandidatesForChannelCount(int count, const std::vector<std::wstring>& channelNames,
 		Steinberg::Vst::SpeakerArrangement* candidates) const;
+	int speakerArrangementCandidatesForLayout(VST3BusLayout layout, int automaticChannelCount,
+		const std::vector<std::wstring>& channelNames, Steinberg::Vst::SpeakerArrangement currentArrangement,
+		Steinberg::Vst::SpeakerArrangement* candidates) const;
+	bool arrangementMatchesLayout(Steinberg::Vst::SpeakerArrangement arrangement,
+		VST3BusLayout layout) const;
+	bool acceptedVST3BusMetadataIsConsistent() const;
 	bool refreshAcceptedVST3Arrangements();
 	void updateVST3ChannelMappings();
 	bool buildVST3ChannelMapping(Steinberg::Vst::SpeakerArrangement arrangement,

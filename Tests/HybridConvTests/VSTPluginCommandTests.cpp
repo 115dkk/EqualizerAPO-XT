@@ -195,6 +195,80 @@ void testStereoInput()
 	harness.expectFalse(off.stereoInput, "stereo-input: 0 reads as off");
 	harness.expectTrue(off.serialize() == L" Gain 0.5", "stereo-input: off flag is not emitted");
 }
+
+void expectInvalidVST3Bus(const wstring& parameters, const wchar_t* expectedErrorPart)
+{
+	const VST3BusCommand cmd = VST3BusCommand::parse(L"", parameters);
+	harness.expectFalse(cmd.valid, "VST3Bus invalid input is rejected");
+	harness.expectTrue(cmd.error.find(expectedErrorPart) != wstring::npos,
+		"VST3Bus parse error identifies the invalid field");
+}
+
+void testVST3BusCommand()
+{
+	const wstring source = L"Library \"C:\\Program Files\\VST3\\Height Expander.vst3\" "
+		L"Input Stereo Output 7.1.4 ChunkData \"QUJDRA==\"";
+	VST3BusCommand cmd = VST3BusCommand::parse(L"", source);
+	harness.expectTrue(cmd.valid, "VST3Bus command parses");
+	harness.expectTrue(cmd.libraryPath == L"C:\\Program Files\\VST3\\Height Expander.vst3",
+		"VST3Bus quoted library path is preserved");
+	harness.expectTrue(cmd.contract.input == VST3BusLayout::Stereo,
+		"VST3Bus input layout parses");
+	harness.expectTrue(cmd.contract.output == VST3BusLayout::Surround714,
+		"VST3Bus output layout parses");
+	harness.expectTrue(cmd.chunkData == L"QUJDRA==", "VST3Bus chunk data parses");
+
+	const wstring serialized = cmd.serialize();
+	VST3BusCommand reparsed = VST3BusCommand::parse(L"", serialized);
+	harness.expectTrue(reparsed.valid && reparsed.serialize() == serialized,
+		"VST3Bus parse/serialize round trip is stable");
+
+	VST3BusCommand autoCommand = VST3BusCommand::parse(L"",
+		L"Library C:\\plugins\\auto.vst3 Input Auto Output Auto Gain 0.5");
+	harness.expectTrue(autoCommand.valid, "VST3Bus Auto/Auto with parameters parses");
+	harness.expectTrue(autoCommand.contract.input == VST3BusLayout::Auto
+		&& autoCommand.contract.output == VST3BusLayout::Auto,
+		"VST3Bus Auto layouts are retained");
+	harness.expectEqual(paramValue(autoCommand.paramMap, L"Gain", "VST3Bus Gain"), 0.5f,
+		"VST3Bus parameter value is retained");
+
+	const struct
+	{
+		const wchar_t* text;
+		VST3BusLayout layout;
+		int channels;
+	} layouts[] = {
+		{L"Mono", VST3BusLayout::Mono, 1},
+		{L"Stereo", VST3BusLayout::Stereo, 2},
+		{L"4.0", VST3BusLayout::Surround40, 4},
+		{L"4.1", VST3BusLayout::Surround41, 5},
+		{L"5.0", VST3BusLayout::Surround50, 5},
+		{L"5.1", VST3BusLayout::Surround51, 6},
+		{L"6.1", VST3BusLayout::Surround61, 7},
+		{L"7.1", VST3BusLayout::Surround71, 8},
+		{L"7.1.2", VST3BusLayout::Surround712, 10},
+		{L"7.1.4", VST3BusLayout::Surround714, 12}
+	};
+	for (const auto& expected : layouts)
+	{
+		VST3BusLayout parsed = VST3BusLayout::Auto;
+		harness.expectTrue(parseVST3BusLayout(expected.text, parsed) && parsed == expected.layout,
+			"VST3Bus supported layout parses");
+		harness.expectEqual(vst3BusLayoutChannelCount(parsed), expected.channels,
+			"VST3Bus supported layout channel count");
+	}
+
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Output 7.1", L"Input");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input Stereo", L"Output");
+	expectInvalidVST3Bus(L"Input Stereo Output 7.1", L"Library");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input 2 Output 8", L"layout");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input Stereo Input Mono Output 7.1", L"duplicate Input");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Output 5.1", L"duplicate Output");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Gain 0.5 Gain 0.7", L"duplicate parameter");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 ChunkData QUJD Gain 0.5", L"cannot be combined");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Gain nan", L"numeric");
+	expectInvalidVST3Bus(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Gain inf", L"numeric");
+}
 }
 
 void runVSTPluginCommandTests()
@@ -208,5 +282,6 @@ void runVSTPluginCommandTests()
 	testNonNumericValueBranch();
 	testSerializeRoundTrip();
 	testStereoInput();
+	testVST3BusCommand();
 	harness.report();
 }

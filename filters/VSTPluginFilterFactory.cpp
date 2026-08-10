@@ -26,7 +26,7 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory, L"VSTPlugin")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory, L"VSTPlugin", L"VST3Bus")
 
 using std::shared_ptr;
 using std::unordered_map;
@@ -37,15 +37,24 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 {
 	FilterPtr filter;
 
-	if (command == L"VSTPlugin")
+	if (command == L"VSTPlugin" || command == L"VST3Bus")
 	{
-		// The parameter parse lives in VSTPluginCommand::parse so the Editor
-		// GUI factory can reuse it. The load decision stays here: only when
-		// configPath is set is the binary loaded via library->initialize().
-		VSTPluginCommand cmd = VSTPluginCommand::parse(configPath, parameters);
-		shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
-		const wstring& chunkData = cmd.chunkData;
-		const unordered_map<wstring, float>& paramMap = cmd.paramMap;
+		const bool explicitBusCommand = command == L"VST3Bus";
+		VSTPluginCommand pluginCommand;
+		VST3BusCommand busCommand;
+		if (explicitBusCommand)
+		{
+			busCommand = VST3BusCommand::parse(configPath, parameters);
+			if (!busCommand.valid)
+				return reportParseError(command, busCommand.error);
+		}
+		else
+			pluginCommand = VSTPluginCommand::parse(configPath, parameters);
+
+		const wstring& libraryPath = explicitBusCommand ? busCommand.libraryPath : pluginCommand.libraryPath;
+		const wstring& chunkData = explicitBusCommand ? busCommand.chunkData : pluginCommand.chunkData;
+		const unordered_map<wstring, float>& paramMap = explicitBusCommand ? busCommand.paramMap : pluginCommand.paramMap;
+		shared_ptr<VSTPluginLibrary> library = libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(libraryPath);
 
 		if (library == nullptr)
 			return reportParseError(command, L"expected Library followed by the path of a plugin");
@@ -81,8 +90,20 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 			create = true;
 		}
 
+		// At runtime initialize() has inspected the loaded module's actual ABI
+		// entry points. The path extension is only a bundle-location hint and is
+		// never used as the VST3Bus acceptance test.
+		if (explicitBusCommand && configPath != L"" && !library->isVST3())
+			return reportParseError(command,
+				L"VST3Bus requires a VST3 plugin. Use VSTPlugin for VST2 plugins.");
+
 		if (create)
-			filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, cmd.stereoInput);
+		{
+			if (explicitBusCommand)
+				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, busCommand.contract);
+			else
+				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, pluginCommand.stereoInput);
+		}
 	}
 
 	if (filter == nullptr)

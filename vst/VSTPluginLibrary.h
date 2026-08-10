@@ -80,6 +80,9 @@ private:
 	static std::wstring defaultPluginPath;
 	std::wstring libPath;
 	std::wstring loadPath;
+	// The extension is used only to resolve a standard .vst3 bundle. Once the
+	// module is loaded, `vst3` is set from its exported ABI entry points.
+	bool vst3PathHint = false;
 	bool vst3 = false;
 	std::unique_ptr<Steinberg::IPluginFactory, FactoryDeleter> factory;
 	// The factory-level host context handed to IPluginFactory3::setHostContext
