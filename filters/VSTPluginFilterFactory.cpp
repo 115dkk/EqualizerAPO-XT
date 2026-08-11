@@ -26,35 +26,23 @@
 #include "filters/FilterFactoryRegistry.h"
 #include "VSTPluginFilterFactory.h"
 
-REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory, L"VSTPlugin", L"VST3Bus")
+REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory, L"VSTPlugin")
 
 using std::shared_ptr;
-using std::unordered_map;
-using std::vector;
 using std::wstring;
 
 FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	FilterPtr filter;
 
-	if (command == L"VSTPlugin" || command == L"VST3Bus")
+	if (command == L"VSTPlugin")
 	{
-		const bool explicitBusCommand = command == L"VST3Bus";
-		VSTPluginCommand pluginCommand;
-		VST3BusCommand busCommand;
-		if (explicitBusCommand)
-		{
-			busCommand = VST3BusCommand::parse(configPath, parameters);
-			if (!busCommand.valid)
-				return reportParseError(command, busCommand.error);
-		}
-		else
-			pluginCommand = VSTPluginCommand::parse(configPath, parameters);
+		const VSTPluginCommand pluginCommand = VSTPluginCommand::parse(configPath, parameters);
+		if (!pluginCommand.valid)
+			return reportParseError(command, pluginCommand.error);
 
-		const wstring& libraryPath = explicitBusCommand ? busCommand.libraryPath : pluginCommand.libraryPath;
-		const wstring& chunkData = explicitBusCommand ? busCommand.chunkData : pluginCommand.chunkData;
-		const unordered_map<wstring, float>& paramMap = explicitBusCommand ? busCommand.paramMap : pluginCommand.paramMap;
-		shared_ptr<VSTPluginLibrary> library = libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(libraryPath);
+		shared_ptr<VSTPluginLibrary> library = pluginCommand.libraryPath.empty()
+			? nullptr : VSTPluginLibrary::getInstance(pluginCommand.libraryPath);
 
 		if (library == nullptr)
 			return reportParseError(command, L"expected Library followed by the path of a plugin");
@@ -90,19 +78,18 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 			create = true;
 		}
 
-		// At runtime initialize() has inspected the loaded module's actual ABI
-		// entry points. The path extension is only a bundle-location hint and is
-		// never used as the VST3Bus acceptance test.
-		if (explicitBusCommand && configPath != L"" && !library->isVST3())
-			return reportParseError(command,
-				L"VST3Bus requires a VST3 plugin. Use VSTPlugin for VST2 plugins.");
-
 		if (create)
 		{
-			if (explicitBusCommand)
-				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, busCommand.contract);
+			// At runtime initialize() has inspected the loaded module's actual ABI.
+			// Explicit layouts affect VST3 only; a loaded VST2 module quietly takes
+			// the existing VST2 path. Parser-only callers retain the contract so a
+			// future Editor can inspect it without loading the binary here.
+			if (pluginCommand.hasBusContract && (configPath.empty() || library->isVST3()))
+				filter = makeFilter<VSTPluginFilter>(library, pluginCommand.chunkData,
+					pluginCommand.paramMap, pluginCommand.busContract);
 			else
-				filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, pluginCommand.stereoInput);
+				filter = makeFilter<VSTPluginFilter>(library, pluginCommand.chunkData,
+					pluginCommand.paramMap, pluginCommand.stereoInput);
 		}
 	}
 

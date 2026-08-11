@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-// Logical main-bus layouts accepted by the VST3Bus configuration command.
+// Logical main-bus layouts accepted by VSTPlugin's Input/Output keys.
 // These are deliberately independent of Steinberg SDK types: the config model
 // can be parsed and serialized without pulling the VST3 host ABI into callers.
 enum class VST3BusLayout

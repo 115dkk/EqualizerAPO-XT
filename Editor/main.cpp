@@ -23,6 +23,7 @@
 #include "services/registry/RegistryPaths.h"
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <QTranslator>
@@ -77,9 +78,10 @@
 namespace
 {
 // Mechanical round-trip check for VST plugin data: parse a VSTPlugin line, feed
-// the parsed (library, chunkData, paramMap) into the real VSTPluginFilterGUI,
-// call its store(), reparse the result and confirm chunkData / paramMap survive.
-// Returns 0 on success, 1 on any loss.
+// the parsed library, opaque state and options into the real VSTPluginFilterGUI,
+// call its store(), reparse the result and confirm ChunkData, parameters,
+// StereoInput and the hidden Input/Output contract survive. Returns 0 on success,
+// 1 on any loss.
 int runVstRoundTripSelfTest()
 {
 	struct Case { const wchar_t* name = nullptr; std::wstring params; };
@@ -88,7 +90,8 @@ int runVstRoundTripSelfTest()
 		{ L"paramMap", L"Library fake.dll Gain 0.5 Mix 0.25 Width 1" },
 		{ L"paramMap-quoted-name", L"Library fake.dll \"Dry/Wet\" 0.75 Output 0.5" },
 		{ L"stereoInput-chunk", L"Library fake.dll StereoInput 1 ChunkData \"QUJDREVGR0g=\"" },
-		{ L"stereoInput-params", L"Library fake.dll StereoInput 1 Gain 0.5" }
+		{ L"stereoInput-params", L"Library fake.dll StereoInput 1 Gain 0.5" },
+		{ L"busContract", L"Library fake.vst3 Input Stereo Output 7.1 Gain 0.5" }
 	};
 
 	int failures = 0;
@@ -108,8 +111,9 @@ int runVstRoundTripSelfTest()
 		std::wstring chunk0 = f0->getChunkData();
 		std::unordered_map<std::wstring, float> map0 = f0->getParamMap();
 		const bool stereo0 = f0->getStereoInput();
+		const std::optional<VST3BusContract> bus0 = f0->getBusContract();
 
-		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0, stereo0);
+		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0, stereo0, bus0);
 		QString outCommand, outParams;
 		gui.store(outCommand, outParams);
 
@@ -126,12 +130,16 @@ int runVstRoundTripSelfTest()
 		std::wstring chunk1 = f1->getChunkData();
 		std::unordered_map<std::wstring, float> map1 = f1->getParamMap();
 		const bool stereo1 = f1->getStereoInput();
-		bool ok = (chunk0 == chunk1) && (map0 == map1) && (stereo0 == stereo1);
+		const std::optional<VST3BusContract> bus1 = f1->getBusContract();
+		const bool sameBusContract = bus0.has_value() == bus1.has_value()
+			&& (!bus0 || (bus0->input == bus1->input && bus0->output == bus1->output));
+		bool ok = (chunk0 == chunk1) && (map0 == map1) && (stereo0 == stereo1) && sameBusContract;
 		if (!ok)
 		{
 			failures++;
-			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu, stereoInput %d->%d\n",
-				c.name, chunk0.c_str(), chunk1.c_str(), map0.size(), map1.size(), stereo0 ? 1 : 0, stereo1 ? 1 : 0);
+			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu, stereoInput %d->%d, bus %d->%d\n",
+				c.name, chunk0.c_str(), chunk1.c_str(), map0.size(), map1.size(), stereo0 ? 1 : 0,
+				stereo1 ? 1 : 0, bus0 ? 1 : 0, bus1 ? 1 : 0);
 			for (auto& kv : map0)
 			{
 				auto it = map1.find(kv.first);

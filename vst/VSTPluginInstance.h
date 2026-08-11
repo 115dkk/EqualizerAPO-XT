@@ -70,7 +70,7 @@ public:
 	// engine on. Returns true only when the plugin accepts both widths
 	// exactly; on rejection the plugin's own preferred layout is re-applied.
 	bool negotiateBusChannelCounts(int inputChannelCount, int outputChannelCount);
-	// Negotiates the logical contract used by VST3Bus. Explicit directions
+	// Negotiates the logical contract used by VSTPlugin Input/Output. Explicit directions
 	// accept only arrangements belonging to that layout; Auto directions retain
 	// the existing device-width negotiation and may use the plug-in's current
 	// arrangement. No preferred-layout fallback is applied after a failure.

@@ -504,7 +504,7 @@ bool VSTPluginInstance::negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLa
 	if (vst3InputBusCount <= 0 || vst3OutputBusCount <= 0)
 		return false;
 
-	// Auto/Auto is intentionally the existing automatic path. VST3Bus adds a
+	// Auto/Auto is intentionally the existing automatic path. The explicit contract adds a
 	// metadata consistency check, but does not change the proposal or fallback
 	// order users already get from VSTPlugin.
 	if (inputLayout == VST3BusLayout::Auto && outputLayout == VST3BusLayout::Auto)

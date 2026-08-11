@@ -26,10 +26,10 @@
 
 
 // Plain description of a parsed "VSTPlugin:" config line. It holds exactly the
-// three things VSTPluginFilterFactory::createFilter extracts from the parameter
-// string before building a VSTPluginFilter: the resolved library PATH (already
-// expanded relative-to-getDefaultPluginPath()), the optional base64 ChunkData,
-// and the parameter map.
+// state VSTPluginFilterFactory::createFilter extracts from the parameter string
+// before building a VSTPluginFilter: the resolved library PATH (already expanded
+// relative-to-getDefaultPluginPath()), the optional VST3 main-bus contract, the
+// optional base64 ChunkData, and the parameter map.
 //
 // The struct stays free of the VST host headers on purpose (it carries only the
 // parsed path string), so it can be parse/serialize round-trip tested without
@@ -42,11 +42,16 @@ struct VSTPluginCommand
 	std::wstring libraryPath;
 	std::wstring chunkData;
 	std::unordered_map<std::wstring, float> paramMap;
+	// "Input <layout> Output <layout>" is an explicit main-bus contract for
+	// VST3. The factory deliberately discards it after loading a VST2 module.
+	VST3BusContract busContract;
+	bool hasBusContract = false;
 	// "StereoInput 1": negotiate a stereo input bus with the full-width output
-	// bus. Upmixer plugins (OpenSpatial Upmixer and similar) key their engine
-	// on that DAW-style layout but often declare only a generic "Fx" VST3
-	// subcategory, so the host cannot recognize them automatically.
+	// bus. This shipped before explicit Input/Output layouts and remains readable
+	// for existing configurations; new configurations should use busContract.
 	bool stereoInput = false;
+	bool valid = true;
+	std::wstring error;
 
 	// Returns the value paired with the Library key without resolving or
 	// loading it. Import/migration uses this to retain VST binaries as external
@@ -62,41 +67,18 @@ struct VSTPluginCommand
 		return L"";
 	}
 
-	// Qt-free parser for a "VSTPlugin:" parameter string: splitQuoted on spaces
-	// into key/value pairs, "Library" resolved through the
-	// relative-to-getDefaultPluginPath() logic and VSTPluginLibrary::getInstance(),
-	// "ChunkData" stored as-is, and any other pair handled by the isdigit()
-	// id-vs-name branch. configPath is accepted to match the factory's signature
-	// but is unused here: the parse is configPath-independent (configPath
-	// only gates the binary load, which stays in the factory).
+	// Qt-free parser for a "VSTPlugin:" parameter string. Existing lines without
+	// Input/Output retain the legacy permissive parameter grammar. If either bus
+	// key is present, both are required and the complete key/value list is parsed
+	// strictly so malformed layout contracts can be reported before loading a
+	// plug-in module. configPath is accepted to match the factory's signature but
+	// is unused here; only the factory loads the binary.
 	static VSTPluginCommand parse(const std::wstring& configPath, const std::wstring& parameters);
 
-	// Re-creates the canonical parameter body that VSTPluginFilterGUI::store()
-	// emits after the "Library <path>" token: either ChunkData "<base64>" or the
-	// space-separated "<name> <value>" param list, with the same name quoting and
-	// %g/QString::arg float formatting. The Library token itself stays in store()
-	// because its relative/absolute path resolution depends on Qt's QDir, so this
-	// serializer owns only the chunk/param body.
-	std::wstring serialize() const;
-};
-
-// Parsed representation of the backend-only VST3Bus command. Input and Output
-// are mandatory even when their value is Auto. A failed parse keeps a precise
-// error string so the engine can report the malformed line without loading a
-// plug-in module.
-struct VST3BusCommand
-{
-	std::wstring libraryPath;
-	std::wstring chunkData;
-	std::unordered_map<std::wstring, float> paramMap;
-	VST3BusContract contract;
-	bool valid = false;
-	std::wstring error;
-
-	static VST3BusCommand parse(const std::wstring& configPath, const std::wstring& parameters);
-
-	// Serializes the complete canonical parameter string after "VST3Bus:".
-	// Absolute paths and parameter names that need quoting are escaped with the
-	// same doubled-quote convention used by VSTPlugin.
+	// Re-creates the canonical parameter body after the "Library <path>" token:
+	// the optional Input/Output contract followed by either ChunkData "<base64>"
+	// or the space-separated "<name> <value>" parameter list. The Library token
+	// stays in the Editor because its relative/absolute path resolution depends
+	// on Qt's QDir.
 	std::wstring serialize() const;
 };

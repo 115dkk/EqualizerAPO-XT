@@ -205,24 +205,24 @@ MultiConvolution: L=0 XL=1 XR=2 R=3 brir.wav
 Copy: L=L+XL R=R+XR
 ```
 
-### VST3Bus
-**문법:** `VST3Bus: Library "<VST3 경로>" Input <레이아웃> Output <레이아웃> [ChunkData "<상태>"]`
+### VSTPlugin 버스 레이아웃
+**문법:** `VSTPlugin: Library "<플러그인 경로>" Input <레이아웃> Output <레이아웃> [ChunkData "<상태>"]`
 
-VST3 오디오 이펙트 하나를 불러와 주 입력·출력 버스를 명시한 계약대로 구성합니다. 업믹서, 다운믹서, 높이 채널 확장기처럼 입력과 출력 레이아웃이 다른 플러그인에 씁니다. `Input`과 `Output`은 항상 적어야 합니다. 한쪽을 일반 자동 협상에 맡기려면 생략하지 말고 `Auto`를 씁니다.
+기존 `VSTPlugin` 명령에 `Input`과 `Output`을 붙이면 주 입출력 버스를 명시한 계약대로 구성합니다. 업믹서, 다운믹서, 높이 채널 확장기처럼 입력과 출력 레이아웃이 다른 VST3 플러그인에 씁니다. 두 키 중 하나를 썼다면 다른 하나도 반드시 적어야 합니다. 한쪽을 일반 자동 협상에 맡기려면 생략하지 말고 `Auto`를 씁니다.
 
 지원 레이아웃은 `Auto`, `Mono`, `Stereo`, `4.0`, `4.1`, `5.0`, `5.1`, `6.1`, `7.1`, `7.1.2`, `7.1.4`입니다. VST3가 같은 논리 레이아웃에 여러 배열을 정의한 경우 Windows 순서에 가까운 Music 배열을 먼저 제안하고, 같은 레이아웃의 Cine 대체 배열을 이어서 시도합니다. 같은 레이아웃 안에서 배열은 바뀔 수 있지만, 명시한 방향의 채널 수는 바꾸지 않습니다.
 
 ```
 # 8채널 장치로 출력하는 스테레오 업믹서
-VST3Bus: Library "C:\Program Files\Common Files\VST3\Upmixer.vst3" Input Stereo Output 7.1
+VSTPlugin: Library "C:\Program Files\Common Files\VST3\Upmixer.vst3" Input Stereo Output 7.1
 
 # 입력은 자동 협상하고 출력은 7.1.4로 고정
-VST3Bus: Library "C:\Program Files\Common Files\VST3\Height Expander.vst3" Input Auto Output 7.1.4
+VSTPlugin: Library "C:\Program Files\Common Files\VST3\Height Expander.vst3" Input Auto Output 7.1.4
 ```
 
-플러그인이 계약을 거부하거나, 다른 배열·버스 폭을 보고하거나, 잘못된 메타데이터를 내놓으면 필터를 비활성화하고 모든 입력 채널을 그대로 통과시킵니다. 명시한 폭을 다른 값으로 바꾸어 재시도하거나 스테레오 인스턴스를 반복 생성하지 않습니다. `VST3Bus`는 실제 로드된 모듈 ABI로 VST2를 거부합니다. VST2에는 `VSTPlugin:`을 쓰십시오. 플러그인의 `ChunkData`와 파라미터 상태는 `VSTPlugin`과 같은 키/값 형식을 씁니다.
+VST3 플러그인이 계약을 거부하거나, 다른 배열·버스 폭을 보고하거나, 잘못된 메타데이터를 내놓으면 필터를 비활성화하고 모든 입력 채널을 그대로 통과시킵니다. 명시한 폭을 다른 값으로 바꾸어 재시도하거나 스테레오 인스턴스를 반복 생성하지 않습니다. 실제 로드된 모듈이 VST2라면 백엔드는 `Input`과 `Output`을 조용히 무시하고 기존 VST2 처리 경로를 계속 씁니다. 예전 설정의 `StereoInput 1`은 계속 읽지만, 새 VST3 설정은 명시적인 레이아웃 쌍을 쓰는 편이 좋습니다. `ChunkData`와 파라미터 상태는 기존 `VSTPlugin` 키/값 형식을 그대로 씁니다.
 
-오디오 백엔드는 이 명령을 지원하지만 Qt Editor의 레이아웃 선택기와 전용 카드는 아직 없습니다. 별도 UI 작업이 들어오기 전에는 설정 파일에서 줄을 직접 추가하거나 고쳐야 합니다.
+오디오 백엔드는 이 키를 지원하지만 Qt Editor의 레이아웃 컨트롤은 아직 없습니다. 별도 UI 작업이 들어오기 전에는 설정 파일에서 줄을 직접 추가하거나 고쳐야 합니다.
 
 ### Hilbert
 **문법:** `Hilbert: [Shift=<채널>[,<채널>...]] [Align=<채널>[,<채널>...]] [Direction=-90|+90]`

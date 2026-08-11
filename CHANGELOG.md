@@ -14,12 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-- **VST3 plug-ins can use an explicit asymmetric main-bus contract.** The new
-  backend-only `VST3Bus:` command selects `Auto`, mono, stereo, 4.0, 4.1, 5.0,
-  5.1, 6.1, 7.1, 7.1.2, or 7.1.4 independently for input and output. Explicit
-  layouts never fall back to another width: a rejected or inconsistent contract
-  leaves every device channel untouched. VST2 modules are rejected from their
-  loaded ABI, even when the file extension claims otherwise. Editor controls
+- **VST3 plug-ins can use an explicit asymmetric main-bus contract.** `VSTPlugin:`
+  now accepts `Input` and `Output` layouts selected independently from `Auto`,
+  mono, stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, or 7.1.4. Explicit layouts
+  never fall back to another width: a rejected or inconsistent VST3 contract
+  leaves every device channel untouched. Loaded VST2 modules quietly ignore the
+  two layout keys and continue through the existing VST2 path. Editor controls
   will follow separately ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)).
 
 ## v2.34.6 — 2026-08-09

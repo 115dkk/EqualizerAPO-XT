@@ -212,24 +212,24 @@ MultiConvolution: L=0 XL=1 XR=2 R=3 brir.wav
 Copy: L=L+XL R=R+XR
 ```
 
-### VST3Bus
-**Syntax:** `VST3Bus: Library "<VST3 path>" Input <layout> Output <layout> [ChunkData "<state>"]`
+### VSTPlugin bus layouts
+**Syntax:** `VSTPlugin: Library "<plug-in path>" Input <layout> Output <layout> [ChunkData "<state>"]`
 
-Loads one VST3 audio effect with an explicit main input/output bus contract. Use this for upmixers, downmixers, height expanders, and other plug-ins whose input and output layouts differ. Both keys are mandatory; write `Auto` explicitly when one direction should use the normal host negotiation.
+`Input` and `Output` add an explicit main-bus contract to the existing `VSTPlugin` command. Use them for VST3 upmixers, downmixers, height expanders, and other plug-ins whose input and output layouts differ. If either key is present, both are mandatory; write `Auto` explicitly when one direction should use the normal host negotiation.
 
 Supported layouts are `Auto`, `Mono`, `Stereo`, `4.0`, `4.1`, `5.0`, `5.1`, `6.1`, `7.1`, `7.1.2`, and `7.1.4`. Where VST3 defines multiple arrangements for the same logical layout, the host proposes the Windows-like Music arrangement first and then the matching Cine alternative. It may change the arrangement within that logical layout, but never the channel count of an explicitly selected direction.
 
 ```
 # Stereo upmixer feeding an eight-channel device
-VST3Bus: Library "C:\Program Files\Common Files\VST3\Upmixer.vst3" Input Stereo Output 7.1
+VSTPlugin: Library "C:\Program Files\Common Files\VST3\Upmixer.vst3" Input Stereo Output 7.1
 
 # Let the plug-in/device negotiate the input, but require a 7.1.4 output bus
-VST3Bus: Library "C:\Program Files\Common Files\VST3\Height Expander.vst3" Input Auto Output 7.1.4
+VSTPlugin: Library "C:\Program Files\Common Files\VST3\Height Expander.vst3" Input Auto Output 7.1.4
 ```
 
-If the plug-in rejects the contract, reports a different arrangement or bus width, or supplies invalid metadata, the filter is disabled and every input channel passes through unchanged. It does not retry with a different explicit width or create repeated stereo instances. `VST3Bus` rejects VST2 modules according to the loaded module ABI; use `VSTPlugin:` for VST2. Existing plug-in `ChunkData` and parameter state use the same key/value form as `VSTPlugin`.
+If a VST3 plug-in rejects the contract, reports a different arrangement or bus width, or supplies invalid metadata, the filter is disabled and every input channel passes through unchanged. It does not retry with a different explicit width or create repeated stereo instances. When the loaded module is VST2, the backend quietly ignores `Input` and `Output` and continues with ordinary VST2 processing. The older `StereoInput 1` key remains readable for existing configurations, but new VST3 configurations should use the explicit layout pair. Existing `ChunkData` and parameter state keep their normal `VSTPlugin` key/value form.
 
-The audio backend supports this command now, but the Qt Editor does not yet provide layout selectors or a dedicated card. Add or edit the line as text until that separate UI work lands.
+The audio backend supports these keys now, but the Qt Editor does not yet provide layout controls. Add or edit them as text until that separate UI work lands.
 
 ### Hilbert
 **Syntax:** `Hilbert: [Shift=<channel>[,<channel>...]] [Align=<channel>[,<channel>...]] [Direction=-90|+90]`

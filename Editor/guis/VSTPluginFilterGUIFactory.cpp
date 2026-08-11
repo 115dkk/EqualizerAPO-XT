@@ -48,11 +48,14 @@ IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString
 		// real VSTPluginFilter, and never loads a plugin binary: getInstance only
 		// returns the cached library object, the DLL is loaded later by the GUI.
 		VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters.toStdWString());
+		const std::optional<VST3BusContract> busContract = cmd.hasBusContract
+			? std::optional<VST3BusContract>(cmd.busContract) : std::nullopt;
 		std::shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
 		if (library != nullptr)
-			result = new VSTPluginFilterGUI(library, cmd.chunkData, cmd.paramMap, cmd.stereoInput);
+			result = new VSTPluginFilterGUI(library, cmd.chunkData, cmd.paramMap, cmd.stereoInput, busContract);
 		else
-			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"", unordered_map<wstring, float>(), cmd.stereoInput);
+			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"",
+				unordered_map<wstring, float>(), cmd.stereoInput, busContract);
 	}
 
 	return result;

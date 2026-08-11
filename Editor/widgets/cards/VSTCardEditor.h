@@ -3,8 +3,8 @@
 
 	Modern card body for VSTPlugin rows. It ports the plugin-lifecycle
 	logic from the legacy VSTPluginFilterGUI (initialise, open panel, embed,
-	store) into a card-native layout, holding the opaque plugin state
-	(chunkData / paramMap) and reproducing it verbatim on store(). The
+	store) into a card-native layout, holding the opaque plugin state and options
+	(chunkData / paramMap / bus contract) and reproducing them on store(). The
 	--selftest-vst round-trip test pins that this state survives
 	parse -> store -> parse without loss.
 
@@ -19,6 +19,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 #include <QElapsedTimer>
@@ -41,7 +42,8 @@ class VSTCardEditor : public IFilterGUI
 
 public:
 	VSTCardEditor(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData,
-		const std::unordered_map<std::wstring, float>& paramMap, bool stereoInput = false, QWidget* parent = nullptr);
+		const std::unordered_map<std::wstring, float>& paramMap, bool stereoInput = false,
+		const std::optional<VST3BusContract>& busContract = std::nullopt, QWidget* parent = nullptr);
 	~VSTCardEditor();
 
 	void store(QString& command, QString& parameters) override;
@@ -74,6 +76,8 @@ private:
 	bool embedded = false;
 	bool autoApplyDialog = false;
 	bool stereoInput = false;
+	// Preserved opaquely until the dedicated Input/Output controls land.
+	std::optional<VST3BusContract> busContract;
 	QElapsedTimer lastReadTimer;
 
 	FileReferenceController* reference = nullptr;

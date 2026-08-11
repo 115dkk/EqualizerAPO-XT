@@ -291,14 +291,22 @@ void runVstHostTests()
 			"loaded module ABI recognizes VST2 even when the file extension is .vst3");
 
 		VSTPluginFilterFactory factory;
-		wstring busCommand = L"VST3Bus";
+		wstring busCommand = L"VSTPlugin";
 		wstring busParameters = L"Library \"" + disguisedVst2Path
 			+ L"\" Input Stereo Output 7.1";
-		FilterVector rejected = factory.createFilter(L"test-vst3bus.txt", busCommand, busParameters);
-		harness.expectTrue(rejected.empty(),
-			"VST3Bus rejects a loaded VST2 module without creating a processing filter");
-		harness.expectTrue(busCommand == L"VST3Bus",
-			"VST3Bus rejection never rewrites the command to VSTPlugin");
+		FilterVector accepted = factory.createFilter(L"test-vst2-layout-ignore.txt", busCommand, busParameters);
+		harness.expectEqual(accepted.size(), (size_t)1,
+			"VSTPlugin accepts Input/Output syntax for a loaded VST2 module");
+		if (!accepted.empty())
+		{
+			VSTPluginFilter* filter = static_cast<VSTPluginFilter*>(accepted[0].get());
+			harness.expectFalse(filter->getBusContract().has_value(),
+				"VST2 quietly discards the VST3-only Input/Output contract");
+			harness.expectFalse(filter->getStereoInput(),
+				"ignored Input/Output does not enable the legacy StereoInput path");
+		}
+		harness.expectTrue(busCommand == L"VSTPlugin",
+			"VST2 Input/Output handling keeps the shared VSTPlugin command");
 	}
 	else
 		harness.expectTrue(false, "VST2 disguised-extension copy is available for ABI detection");

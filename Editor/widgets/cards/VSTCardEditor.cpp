@@ -58,8 +58,10 @@ QString displayPathForLibrary(const wstring& libPath)
 }
 
 VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring& chunkData,
-	const unordered_map<wstring, float>& paramMap, bool stereoInput, QWidget* parent)
-	: IFilterGUI(parent), library(library), chunkData(chunkData), paramMap(paramMap), stereoInput(stereoInput)
+	const unordered_map<wstring, float>& paramMap, bool stereoInput,
+	const std::optional<VST3BusContract>& busContract, QWidget* parent)
+	: IFilterGUI(parent), library(library), chunkData(chunkData), paramMap(paramMap), stereoInput(stereoInput),
+	busContract(busContract)
 {
 	setObjectName(QStringLiteral("VSTCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -161,12 +163,17 @@ void VSTCardEditor::store(QString& command, QString& parameters)
 	parameters = "Library " + relativePath;
 
 	// The Library token stays here for its QDir-based path resolution; the
-	// body (StereoInput, then ChunkData or params) comes from the shared
+	// body (opaque Input/Output or legacy StereoInput, then state) comes from the shared
 	// serializer, so this card and the legacy row emit the same grammar.
 	VSTPluginCommand cmd;
 	cmd.chunkData = chunkData;
 	cmd.paramMap = paramMap;
 	cmd.stereoInput = stereoInput;
+	if (busContract)
+	{
+		cmd.busContract = *busContract;
+		cmd.hasBusContract = true;
+	}
 	parameters += QString::fromStdWString(cmd.serialize());
 }
 
@@ -584,7 +591,8 @@ REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable*, const QString&, const QS
 	if (!filters.empty())
 	{
 		VSTPluginFilter* filter = static_cast<VSTPluginFilter*>(filters[0].get());
-		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap(), filter->getStereoInput());
+		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap(),
+			filter->getStereoInput(), filter->getBusContract());
 	}
 	else
 	{
