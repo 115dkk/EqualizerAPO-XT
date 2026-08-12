@@ -146,6 +146,10 @@ public:
 
 	const QSet<Item*>& getSelectedItems() const;
 	Item* getFocusedItem() const;
+	// Plain clicks accepted by controls inside a modern card do not bubble to
+	// FilterTable::mousePressEvent. The card calls this to apply the same
+	// single-selection/focus result without consuming the control's click.
+	void selectOnlyFromCard(Item* item);
 
 	QString getConfigPath() const;
 	void setConfigPath(const QString& value);

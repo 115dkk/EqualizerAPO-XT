@@ -73,11 +73,13 @@ template<class T> QList<T> MainWindow::toQList(const std::vector<T>& vector)
 	return list;
 }
 
-MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent)
+MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent,
+	bool analysisLayoutTestMode)
 	: QMainWindow(parent),
 	ui(std::make_unique<Ui::MainWindow>()),
 	configDir(configDir),
-	updateSession(updateSession)
+	updateSession(updateSession),
+	analysisLayoutTestMode(analysisLayoutTestMode)
 {
 	outputDevices = toQList(DeviceAPOInfo::loadAllInfos(false));
 	inputDevices = toQList(DeviceAPOInfo::loadAllInfos(true));

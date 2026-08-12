@@ -1,0 +1,49 @@
+EqualizerAPO-XT Editor native automation transcript
+Target: Windows QPA, Qt 6.10.1 Widgets, ko_KR, DPR 2.00
+Candidate: agent/editor-graph-layout-hotfix based on 82d59525651f63e91a0791ec86e5229e4bd1be25
+
+1. Analysis dock journey
+Invocation:
+  Editor.exe --analysis-layout-test <run>/after-right-hold-client.png Setup/config/config.txt
+Automation:
+  Start at a deterministic 1024x768 right-side dock, invoke the real graph-position slot to move Bottom, then invoke it again to move Right.
+Result:
+  Analysis layout target: platform=windows style= dpr=2.00 locale=ko_KR skin=rack dark=1
+  Analysis layout test (right): window=1024x768 central=629 dock=394 controls=374 graph=374 centralProtected=1 dockBounded=1 graphUsable=1 controlsFill=1 stacked=1 screenshot=1
+  Analysis layout test (bottom): area=1 horizontal=1 compactControls=1
+  Analysis layout test (right restored): pass=1
+  Process exit: 0
+Native whole-window proof:
+  after-right-native.png (Win32 PrintWindow, 2048x1536 physical pixels)
+
+2. Card pointer-selection journey
+Invocation:
+  Editor.exe --card-selection-test <run>/card-selection-native
+Automation for every Studio, Minimal, Soft, Rack, and Matrix dark/light scene:
+  - Plain-click the second card header through FilterTable's pointer path.
+  - Press Up to cover the adjacent keyboard-navigation path.
+  - Select all three cards, open the third card's raw editor, then plain-click the QLineEdit that consumes its own event.
+Assertions after each transition:
+  - The selection model contains the expected single item.
+  - The focused model item is the same item.
+  - Exactly one rendered CommandRowFrame has selected=true.
+  - Exactly one rendered CommandRowFrame has focused=true, on that same row.
+Result:
+  CardSelectionTest: target platform=windows style= dpr=2.00 locale=ko_KR
+  CardSelectionTest: 10 scenes, failures 0
+  Process exit: 0
+Rendered client proofs:
+  card-selection-native/*_card-selection.png (10 scenes, 1920x1440 physical pixels each)
+
+3. Adjacent regression journeys
+  EditorLogicTests.exe: passed (2952 checks)
+  CardMoveTest: 20 moves over 186 rows, worst 103 ms, failures 0
+  SkinSwitchTest: 30 switches over 186 rows, worst 2027 ms, failures 0
+  Offscreen analysis layout: right/bottom/right assertions passed, process exit 0
+  Offscreen card selection: 10 scenes, failures 0, process exit 0
+  PyYAML parse of .github/workflows/build.yml: passed
+  device-report.json and quality-gate.json PowerShell JSON parse: passed
+  git diff --check: exit 0
+
+Note:
+  The pointer events above are deterministic QMouseEvent application automation in the native Qt process. OS-level pointer injection was unavailable in this session; this is disclosed in VISUAL_QA.md and does not affect the model/chrome assertions.
