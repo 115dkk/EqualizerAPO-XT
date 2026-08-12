@@ -1232,7 +1232,7 @@ Select a different file or change the device configuration.</source>
         <translation>注释</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="314"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="345"/>
         <source>Text</source>
         <translation>文本</translation>
     </message>
@@ -1252,12 +1252,12 @@ Select a different file or change the device configuration.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="340"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="371"/>
         <source>%1 shifted</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="345"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="376"/>
         <source>%1 aligned</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1267,39 +1267,49 @@ Select a different file or change the device configuration.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="360"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="50"/>
+        <source>Stereo input</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="52"/>
+        <source>No plugin selected</source>
+        <translation type="unfinished">未选择插件</translation>
+    </message>
+    <message>
+        <location filename="../widgets/FilterCardModel.cpp" line="391"/>
         <source>Dynamic</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="360"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="391"/>
         <source>Static</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="393"/>
         <source>%1%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="364"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="395"/>
         <source>%1 ms · %2 taps/ch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="502"/>
-        <location filename="../widgets/FilterCardModel.cpp" line="510"/>
-        <location filename="../widgets/FilterCardModel.cpp" line="532"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="531"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="539"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="561"/>
         <source>invalid state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="584"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="613"/>
         <source>%1 - crossover %2 Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="587"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="616"/>
         <source>%1 - full range</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1309,17 +1319,17 @@ Select a different file or change the device configuration.</source>
         <translation>Biquad</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="390"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="421"/>
         <source>IIR filter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="395"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="426"/>
         <source>Order %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="398"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="429"/>
         <source>%1 coefficients</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1329,7 +1339,7 @@ Select a different file or change the device configuration.</source>
         <translation>图形均衡器</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="429"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="460"/>
         <source>%1 bands</source>
         <translation>%1 个频段</translation>
     </message>
@@ -1339,12 +1349,12 @@ Select a different file or change the device configuration.</source>
         <translation>复制</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="451"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="482"/>
         <source>%1 steps, %2 virtual</source>
         <translation>%1 项，%2 个虚拟声道</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="453"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="484"/>
         <source>%1 steps</source>
         <translation>%1 项</translation>
     </message>
@@ -1447,12 +1457,12 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="792"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="793"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="796"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="797"/>
         <source>Raw</source>
         <translation>原始</translation>
     </message>
@@ -4668,7 +4678,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
     <message>
         <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="100"/>
-        <source>Remove ignored layouts</source>
+        <source>Remove saved layouts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4695,136 +4705,141 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="384"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="525"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="391"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="531"/>
         <source>Select VST plugin</source>
         <translation>选择 VST 插件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="597"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="119"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="603"/>
         <source>Open panel</source>
         <translation>打开面板</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="128"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="82"/>
+        <source>%1 → %2 · %3 inputs / %4 outputs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
         <source>Embed panel in card</source>
         <translation>将面板嵌入卡片</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="137"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="139"/>
         <source>Edit the path as text</source>
         <translation>以文本方式编辑路径</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="315"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="317"/>
         <source>Library could not be loaded.</source>
         <translation>无法加载库。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="320"/>
         <source>Library does not contain needed functions.</source>
         <translation>库中不包含所需的函数。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="326"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="328"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>库的架构不正确。仅支持 %1 位的库。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="341"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="343"/>
         <source>Plugin crashed during initialization.</source>
         <translation>插件在初始化期间崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="355"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="357"/>
         <source>No plugin selected</source>
         <translation>未选择插件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="383"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="390"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="384"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="391"/>
         <source>Locate the missing plugin library</source>
         <translation>定位缺失的插件库</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="396"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="403"/>
         <source>Bus controls become available after the plug-in loads.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="404"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="411"/>
         <source>Input and Output layouts are available only for VST3 plug-ins.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="409"/>
-        <source>VST2 ignores the saved %1 bus layouts. Remove them to avoid misleading settings.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="416"/>
-        <source>VST2 fixed bus: %1 in → %2 out. No layout keys are saved.</source>
+        <source>VST2 uses a fixed bus. Saved %1 layouts are ignored.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="425"/>
-        <source>Close the embedded panel before changing the VST3 bus layout.</source>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="423"/>
+        <source>Fixed bus · %1 inputs / %2 outputs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
-        <source>Bus controls are locked while the panel is open. Current bus: %1.</source>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
+        <source>Panel open · %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="438"/>
-        <source>Detected bus: %1. Choose Input or Output to save an explicit contract.</source>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="445"/>
+        <source>Detected %1. Choose a layout to override.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="460"/>
-        <source>Accepted bus: %1. Active bus: %2.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="463"/>
-        <source> Legacy StereoInput was migrated to Input Stereo / Output Auto.</source>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="467"/>
+        <source>Active · %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="469"/>
-        <source>Rejected bus: %1. Audio will pass through until the layout is changed or removed.</source>
+        <source> Legacy stereo routing was updated.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="526"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="475"/>
+        <source>%1 unavailable. Audio is passing through unchanged.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="432"/>
+        <source>Close the embedded panel before changing the VST3 bus layout.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="532"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 插件 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="572"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="578"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>插件在打开面板时崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="597"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="603"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="673"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="679"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>音频服务无法读取此库。
 请更改文件权限，或将该文件复制到 VSTPlugins 目录。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="690"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="696"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>

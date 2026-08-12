@@ -105,6 +105,10 @@ struct CommandRowInfo
 	// editor host the shared raw body; skins extend their raw-body styling
 	// to these rows through this flag.
 	bool dynamicLine = false;
+	// True only when this row actually fell back to the shared as-written
+	// editor. Structured cards keep their source reachable through the header
+	// edit action, but never print configuration syntax as presentation chrome.
+	bool rawBody = false;
 };
 
 // One value object owns both halves of the type-badge treatment.  Keeping the

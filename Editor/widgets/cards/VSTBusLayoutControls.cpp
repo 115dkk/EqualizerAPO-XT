@@ -97,7 +97,7 @@ VSTBusLayoutControls::VSTBusLayoutControls(QWidget* parent)
 
 	removeButton = new QToolButton(this);
 	removeButton->setObjectName(QStringLiteral("VSTBusRemoveLayouts"));
-	removeButton->setText(tr("Remove ignored layouts"));
+	removeButton->setText(tr("Remove saved layouts"));
 	removeButton->setToolTip(tr("Remove the Input and Output keys that VST2 ignores"));
 	removeButton->setAccessibleName(tr("Remove ignored VST bus layouts"));
 	removeButton->setAutoRaise(true);

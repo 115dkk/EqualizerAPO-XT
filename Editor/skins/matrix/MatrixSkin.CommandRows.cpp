@@ -200,10 +200,11 @@ void MatrixSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 					coordinateCell->setText(matrixBusLetter(info.type) + QString::number(line));
 			}
 
-			// The caption strip docks under the card body and echoes the raw
-			// spec next to that coordinate on hover (see MatrixRowCaption).
+			// Only an actual raw fallback gets an as-written caption. Structured
+			// editors expose source through the edit action instead of printing
+			// configuration syntax into their presentation surface.
 			QVBoxLayout* cardLayout = qobject_cast<QVBoxLayout*>(card->layout());
-			if (cardLayout != nullptr)
+			if (cardLayout != nullptr && info.rawBody)
 			{
 				QLabel* rawSpec = card->findChild<QLabel*>(QStringLiteral("FilterCardRawPreview"));
 				cardLayout->addWidget(new MatrixRowCaption(card, rawSpec, coordinateCell));

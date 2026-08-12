@@ -375,6 +375,7 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	info.depth = descriptor.depth;
 	info.logicDepth = descriptor.logicDepth;
 	info.dynamicLine = descriptor.dynamicLine;
+	info.rawBody = gui == nullptr && routingView == nullptr;
 
 	// The lane geometry, resolved here because this widget is what decides it:
 	// rowIndentUnits() is the same call its own layout margin uses, so a skin's
@@ -795,10 +796,11 @@ void FilterCardRow::applyDescriptor()
 	// (MatrixRowCaption's caption strip does).
 	rawPreviewLabel->setText(tr("Raw") + QStringLiteral("  ") + item->text);
 	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	rawPreviewLabel->setVisible(tokens.showRawPreview);
+	const bool showRawPreview = tokens.showRawPreview && currentRowInfo().rawBody;
+	rawPreviewLabel->setVisible(showRawPreview);
 	// Skins without a raw preview never show the label, and rows are rebuilt
 	// on every skin switch - skip the per-widget stylesheet for them.
-	if (tokens.showRawPreview)
+	if (showRawPreview)
 	{
 		const QString previewStyle = QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")
 			.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily);

@@ -1,5 +1,6 @@
 #include "FilterCardModel.h"
 
+#include <QDir>
 #include <QFileInfo>
 #include <QRegularExpression>
 
@@ -20,6 +21,36 @@ namespace
 QString middleDotSeparator()
 {
 	return QStringLiteral(" %1 ").arg(QChar(0x00B7));
+}
+
+QString commandParameter(const QString& parameters, const QString& key)
+{
+	const QRegularExpression expression(
+		QStringLiteral("(?:^|\\s)%1\\s+(?:\"([^\"]*)\"|(\\S+))")
+			.arg(QRegularExpression::escape(key)));
+	const QRegularExpressionMatch match = expression.match(parameters);
+	if (!match.hasMatch())
+		return QString();
+	return match.captured(1).isNull() ? match.captured(2) : match.captured(1);
+}
+
+QString summarizeVstPlugin(const QString& parameters)
+{
+	const QString path = commandParameter(parameters, QStringLiteral("Library"));
+	const QString fileName = QFileInfo(QDir::fromNativeSeparators(path)).fileName();
+	const QString input = commandParameter(parameters, QStringLiteral("Input"));
+	const QString output = commandParameter(parameters, QStringLiteral("Output"));
+
+	QStringList parts;
+	if (!fileName.isEmpty())
+		parts.append(fileName);
+	if (!input.isEmpty() && !output.isEmpty())
+		parts.append(QStringLiteral("%1 → %2").arg(input, output));
+	else if (commandParameter(parameters, QStringLiteral("StereoInput")) == QStringLiteral("1"))
+		parts.append(FilterCardModel::tr("Stereo input"));
+
+	return parts.isEmpty() ? FilterCardModel::tr("No plugin selected")
+		: parts.join(middleDotSeparator());
 }
 
 // The catalog states each command's card identity once; describeLine keeps
@@ -487,9 +518,7 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	}
 	else if (keyword == QStringLiteral("VSTPlugin"))
 	{
-		descriptor.summary = QFileInfo(parameters).fileName();
-		if (descriptor.summary.isEmpty())
-			descriptor.summary = parameters;
+		descriptor.summary = summarizeVstPlugin(parameters);
 	}
 	else if (keyword == QStringLiteral("SubwooferRouting"))
 	{
