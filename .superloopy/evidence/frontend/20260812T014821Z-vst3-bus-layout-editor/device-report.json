@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-08-12T11:45:27+09:00",
+  "candidateRevision": "befe7cf1e47caca0e15c3770e5df931cd2718b14",
+  "application": "EqualizerAPO-XT Editor",
+  "platform": "windows",
+  "operatingSystem": "Microsoft Windows 10 Pro 10.0.19045 x64",
+  "machine": "x64-based PC, 16 logical processors",
+  "framework": "Qt Widgets 6.9.3 local validation; CI pin Qt 6.10.1",
+  "build": "qmake + MSVC v143 Release x64 /arch:AVX2; repository CI uses v145",
+  "style": "CustomStyle over Qt Fusion with project QSS skins",
+  "graphicsBackend": "Qt offscreen raster client-pixel rendering",
+  "localeMatrix": ["deterministic English", "ko_KR"],
+  "themeMatrix": ["studio", "minimal", "soft", "rack", "matrix"],
+  "colorModes": ["dark", "light"],
+  "galleryFixture": "actual TestVst3Plugin and TestVst2Plugin binaries staged as accepted VST3, rejected VST3, and VST2 disguised with a .vst3 suffix",
+  "captureBoundary": "QWidget client pixels only; no native window chrome, platform dialog, or assistive-technology claim"
+}
