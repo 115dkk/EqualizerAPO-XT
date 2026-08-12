@@ -183,6 +183,38 @@ reference is missing. The default is the neutral
 `Editor/skins/<id>/cards/<Skin>ReferenceCardView.{h,cpp}`. Paths elide at paint
 time (`Editor/widgets/ElidedLabel.h`), never at set time.
 
+## VST bus strip hooks
+
+The VST card's Input/Output contract is one shared instrument
+(`Editor/widgets/cards/VSTBusStrip.{h,cpp}`): two format selectors joined by
+a direction mark, with a compact negotiation verdict trailing them. The
+strip follows the AudioKnob split - the widget owns every bit of behavior
+(the layout popup menu, keyboard access, focus, enable/disable reasons,
+accessibility) and delegates all painting:
+
+```cpp
+// ISkin (Editor/skins/ISkin.h)
+virtual void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const;
+virtual void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const;
+```
+
+`VstBusSelectorState` carries the role in two registers (the untranslated
+`IN`/`OUT` token for engraving/terminal/board constitutions, the translated
+caption for the friendly ones), the layout token in config grammar, and the
+interaction flags. `VstBusFrameState` carries the child geometry plus the
+verdict: either a short word or the negotiated pair split into input/output
+texts, so each skin joins the pair with its own direction mark instead of
+betting a font's arrow glyph. A tone without words is a lamp-only verdict
+(an accepted explicit contract - the selectors already print the pair).
+
+Placement is the reference view's decision
+(`ReferenceCardView::placeBusStrip`): the strip mounts beside the plugin
+identity, in the row's horizontal slack, never as a stacked extra row.
+Long-form bus messages (a rejection, VST2 stale keys, the legacy
+StereoInput migration note) do not enter the strip; the host routes them
+through the card's existing status line, so every skin's status idiom keeps
+speaking.
+
 ## Routing renderer hook
 
 Copy's per-skin routing view generalizes to any command whose body is a

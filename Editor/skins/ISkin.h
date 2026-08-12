@@ -260,6 +260,68 @@ struct SegmentedControlState
 	QRectF segmentRect(double index) const;
 };
 
+// Snapshot of one VSTBusStrip format selector (the input or output half of a
+// VST3 main-bus contract) handed to ISkin::paintVstBusSelector. The widget
+// owns every bit of input handling (menu popup, keyboard, focus); the skin
+// only paints.
+struct VstBusSelectorState
+{
+	QRect rect;
+	// False for the input selector, true for the output selector.
+	bool output = false;
+	// The role in two registers: the untranslated engraving token ("IN" /
+	// "OUT") for the skins whose constitutions print hardware/board/terminal
+	// markings, and the translated caption for the skins that speak the
+	// user's language. Each skin picks one; both describe the same selector.
+	QString roleToken;
+	QString roleText;
+	// The config grammar's layout token ("Auto", "Stereo", "7.1.4") - data,
+	// never translated.
+	QString layoutText;
+	// The layout's fixed width; 0 while the layout is Auto.
+	int channelCount = 0;
+	bool enabled = true;
+	bool hovered = false;
+	bool pressed = false;
+	bool focused = false;
+	// The layout menu is currently open on this selector.
+	bool menuOpen = false;
+};
+
+// Snapshot of the VSTBusStrip around its two selectors, handed to
+// ISkin::paintVstBusFrame: the optional ground panel, the joint between the
+// input and output selectors (the signal direction), and the compact
+// negotiation verdict readout. Painted before the selector children paint
+// themselves.
+struct VstBusFrameState
+{
+	QRect rect;
+	QRect inputRect;
+	QRect outputRect;
+	// The gap between the selectors; where the direction mark lives.
+	QRect jointRect;
+	// The trailing readout area after the output selector.
+	QRect verdictRect;
+	// Compact verdict. Either a short word ("Rejected", "VST2") in
+	// verdictText, or the negotiated pair in verdictInputText/-OutputText
+	// (config grammar). The pair arrives split so each skin joins it with
+	// its own direction mark - a baked-in arrow glyph would hand the joint
+	// to font coverage instead of the constitution. All three empty hides
+	// the readout.
+	QString verdictText;
+	QString verdictInputText;
+	QString verdictOutputText;
+	enum class Tone
+	{
+		Neutral,
+		Success,
+		Warning,
+		Critical
+	};
+	Tone tone = Tone::Neutral;
+	bool enabled = true;
+};
+
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
 // all input handling; the skin only paints.
 struct KnobState
@@ -411,6 +473,23 @@ public:
 	// through three choices reads as one travelling mark instead of three
 	// jumps.
 	virtual void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const;
+
+	// One format selector of the VST bus strip (VSTBusStrip): the interactive
+	// cell that names the input or output layout of a VST3 main-bus contract.
+	// The widget owns the popup menu, keyboard and focus handling and hands
+	// over a finished state; the skin only draws. The default (ISkin.cpp) is
+	// a neutral token-driven strip: muted role caption, the layout token in
+	// data ink, a channel count and a caret. Skins override to answer with
+	// their own instrument (glass strip, terminal caption, pill chip, latch
+	// cap, board cell).
+	virtual void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const;
+
+	// The strip around the two selectors: ground panel (if the skin mounts
+	// one), the direction mark in the joint, and the compact negotiation
+	// verdict readout. Runs before the selector children paint. The default
+	// is a painted arrow in muted ink plus the verdict text behind a small
+	// tone lamp.
+	virtual void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

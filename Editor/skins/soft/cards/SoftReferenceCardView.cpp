@@ -291,6 +291,15 @@ void SoftReferenceCardView::addLeadingWidget(QWidget* widget)
 	rootLayout->insertWidget(1, widget, 0, Qt::AlignVCenter);
 }
 
+void SoftReferenceCardView::placeBusStrip(QWidget* strip)
+{
+	// Between the two-line identity column and the action pills, centred in
+	// the roomy row: the chips read as part of the plugin's description, the
+	// buttons keep the right edge to themselves.
+	strip->setParent(contentWidget());
+	rootLayout->insertWidget(rootLayout->count() - 1, strip, 0, Qt::AlignVCenter);
+}
+
 void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 {
 	const SkinTokens& t = SkinManager::instance()->tokens();

@@ -145,6 +145,15 @@ void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButto
 	repolishChild(button);
 }
 
+void MinimalReferenceCardView::placeBusStrip(QWidget* strip)
+{
+	// The line reads on: path, tokens, readout, then the bus expression,
+	// still one printed line - data first, diagnostics after, commands at
+	// the end. The strip paints its own terminal grammar.
+	strip->setParent(contentWidget());
+	lineLayout->insertWidget(lineLayout->indexOf(statusLabel), strip, 0, Qt::AlignVCenter);
+}
+
 void MinimalReferenceCardView::addLeadingWidget(QWidget* widget)
 {
 	widget->setParent(contentWidget());
@@ -205,4 +214,19 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	if (QAbstractButton* browse = actionButton(ActionRole::Browse))
 		browse->setText(locateMode()
 			? QStringLiteral("LOCATE") : QStringLiteral("BROWSE"));
+
+	// Command words never give way: the sheet declares min-width: 0 for
+	// compactness, which lets layout pressure (the VST bus expression is a
+	// wide, unshrinkable neighbour) crush the engravings into ellipses. A
+	// clipped command carries nothing, while the data columns elide into
+	// tooltips - so the floor is restated from each engraved word, after
+	// the state pass that may have swapped BROWSE for LOCATE.
+	for (ActionRole role : {ActionRole::Browse, ActionRole::OpenTarget, ActionRole::Import,
+		ActionRole::OpenPanel, ActionRole::Options, ActionRole::EditPath})
+	{
+		QAbstractButton* button = actionButton(role);
+		if (button != nullptr)
+			button->setMinimumWidth(
+				button->fontMetrics().horizontalAdvance(button->text()) + 16);
+	}
 }

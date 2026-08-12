@@ -362,3 +362,126 @@ void MatrixSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(frame.adjusted(0, 0, -1, -1));
 	}
+
+// The VST3 bus contract as two coordinate cells on the feed line: 1px
+// rectangles, no curvature, monochrome at rest - the role designation in
+// muted mono, the layout as the cell's bright value, the width as a dim
+// ":n" suffix. Hover is the crossing prelight (accent border + faint
+// fill); a disabled cell is a cancelled departure, dashed on the board.
+void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+	if (state.enabled && (state.hovered || state.menuOpen))
+		painter.fillRect(cell, withAlphaF(QColor(tokens.accent), 0.05));
+	QPen borderPen(QColor(tokens.border), 1);
+	if (!state.enabled)
+		borderPen.setStyle(Qt::DashLine);
+	else if (state.focused || state.menuOpen || state.hovered)
+		borderPen.setColor(withAlpha(QColor(tokens.accent), state.hovered && !state.focused && !state.menuOpen ? 150 : 255));
+	painter.setPen(borderPen);
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(cell);
+
+	QFont roleFont(tokens.monoFontFamily);
+	roleFont.setPixelSize(8);
+	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
+	painter.setFont(roleFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	QRectF textRect = cell.adjusted(6.0, 0, -6.0, 0);
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
+
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(11);
+	painter.setFont(valueFont);
+	painter.setPen(state.enabled ? QColor(tokens.text) : QColor(tokens.mutedText));
+	QRectF valueRect(textRect);
+	valueRect.setLeft(textRect.left() + roleWidth + 6.0);
+	painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, state.layoutText);
+
+	if (state.channelCount > 0)
+	{
+		const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.layoutText);
+		QFont countFont(tokens.monoFontFamily);
+		countFont.setPixelSize(9);
+		painter.setFont(countFont);
+		painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
+		QRectF countRect(valueRect);
+		countRect.setLeft(valueRect.left() + valueWidth);
+		painter.drawText(countRect, Qt::AlignLeft | Qt::AlignVCenter,
+			QStringLiteral(":%1").arg(state.channelCount));
+	}
+}
+
+// The joint is the board's ASCII ">" and the verdict is a status cell: a
+// boxed strip with the abstract cell LED (a lit square, no bezel, no dome)
+// and an uppercase mono remark. Colour is rationed to state, so only the
+// LED wears the tone; the words stay muted ink.
+void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	QFont monoFont(tokens.monoFontFamily);
+	monoFont.setPixelSize(11);
+	painter.setFont(monoFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	painter.drawText(QRectF(state.jointRect), Qt::AlignCenter, QStringLiteral(">"));
+
+	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
+	if (state.verdictRect.isEmpty()
+		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+		return;
+
+	const QRectF box = QRectF(state.verdictRect).adjusted(0.5, 0.5, -0.5, -0.5);
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(box);
+
+	QColor led(tokens.mutedText);
+	bool lit = true;
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success: led = QColor(tokens.success); break;
+	case VstBusFrameState::Tone::Warning: led = QColor(tokens.warning); break;
+	case VstBusFrameState::Tone::Critical: led = QColor(tokens.danger); break;
+	case VstBusFrameState::Tone::Neutral: lit = false; break;
+	}
+	if (!state.enabled)
+		lit = false;
+
+	const QRectF ledRect(box.left() + 5.0, box.center().y() - 2.0, 4.0, 4.0);
+	if (lit)
+		painter.fillRect(ledRect, led);
+	else
+	{
+		painter.setPen(QPen(withAlpha(QColor(tokens.mutedText), 140), 1));
+		painter.drawRect(ledRect.adjusted(0, 0, -1.0, -1.0));
+	}
+
+	if (!hasText)
+		return;
+
+	QFont remarkFont(tokens.monoFontFamily);
+	remarkFont.setPixelSize(pairVerdict ? 10 : 8);
+	remarkFont.setLetterSpacing(QFont::AbsoluteSpacing, pairVerdict ? 0.0 : 0.6);
+	painter.setFont(remarkFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	QRectF textRect(box);
+	textRect.setLeft(ledRect.right() + 6.0);
+	textRect.setRight(box.right() - 5.0);
+	QString text;
+	if (pairVerdict)
+		text = state.verdictInputText + QStringLiteral(">") + state.verdictOutputText;
+	else
+		text = state.verdictText.toUpper();
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
+		QFontMetricsF(remarkFont).elidedText(text, Qt::ElideRight, textRect.width()));
+}

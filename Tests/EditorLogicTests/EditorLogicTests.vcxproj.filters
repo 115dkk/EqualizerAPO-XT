@@ -68,6 +68,9 @@
     <ClCompile Include="ReferenceCardStateTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="VSTBusModelTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="AutoInstallerLogicTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -120,6 +123,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceCardState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\widgets\cards\VSTBusModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

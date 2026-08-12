@@ -19,8 +19,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   mono, stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, or 7.1.4. Explicit layouts
   never fall back to another width: a rejected or inconsistent VST3 contract
   leaves every device channel untouched. Loaded VST2 modules quietly ignore the
-  two layout keys and continue through the existing VST2 path. Editor controls
-  will follow separately ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)).
+  two layout keys and continue through the existing VST2 path. In the Editor,
+  the VST card now carries Input/Output selectors right beside the plugin name,
+  in each skin's own visual language, with a verdict lamp that reports the
+  actually negotiated bus. A rejected contract says so on the card, a module
+  that loaded as VST2 explains why the selectors are locked and offers to
+  remove stale layout keys, and an old `Stereo input` option reopens as
+  `Input Stereo, Output Auto`
+  ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)).
 
 ## v2.34.7 — 2026-08-12
 

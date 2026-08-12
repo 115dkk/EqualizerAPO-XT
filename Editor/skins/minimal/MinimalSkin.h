@@ -26,6 +26,10 @@ public:
 		const SkinTokens& tokens) const override;
 	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state,
 		const SkinTokens& tokens) const override;
+	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state,
+		const SkinTokens& tokens) const override;
+	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state,
+		const SkinTokens& tokens) const override;
 
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
 	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;

@@ -491,6 +491,15 @@ void RackReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* 
 	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
 }
 
+void RackReferenceCardView::placeBusStrip(QWidget* strip)
+{
+	// Where hardware mounts its meters: between the engraved label strip and
+	// the machine buttons, the same seat the LCD readout takes on IR units.
+	// The strip paints its own recessed sub-panel.
+	strip->setParent(contentWidget());
+	rootLayout->insertWidget(rootLayout->indexOf(lcdWindow), strip, 0, Qt::AlignVCenter);
+}
+
 void RackReferenceCardView::addLeadingWidget(QWidget* widget)
 {
 	widget->setParent(contentWidget());

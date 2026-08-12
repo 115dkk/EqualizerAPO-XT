@@ -3,6 +3,7 @@
 #include <array>
 
 #include <QAbstractButton>
+#include <QBoxLayout>
 #include <QEvent>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -76,6 +77,15 @@ void ReferenceCardView::addActionButton(ActionRole role, QAbstractButton* button
 QAbstractButton* ReferenceCardView::actionButton(ActionRole role) const
 {
 	return actionRegistry.value(static_cast<int>(role), nullptr);
+}
+
+void ReferenceCardView::placeBusStrip(QWidget* strip)
+{
+	// Neutral default: the strip joins the end of the content flow. Every
+	// shipped skin overrides this with a seat inside its own geometry.
+	strip->setParent(content);
+	if (QBoxLayout* box = qobject_cast<QBoxLayout*>(content->layout()))
+		box->addWidget(strip, 0, Qt::AlignVCenter);
 }
 
 bool ReferenceCardView::locateMode() const

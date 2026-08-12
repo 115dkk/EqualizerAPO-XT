@@ -145,6 +145,15 @@ void MatrixReferenceCardView::placeActionButton(ActionRole role, QAbstractButton
 	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
 }
 
+void MatrixReferenceCardView::placeBusStrip(QWidget* strip)
+{
+	// The bus cells join the feed line after the type code, before the
+	// stretch: reading order stays marker, place, payload, codes, then the
+	// port formats - and the action cells keep the right edge.
+	strip->setParent(contentWidget());
+	feedLayout->insertWidget(feedLayout->indexOf(formatCell) + 1, strip, 0, Qt::AlignVCenter);
+}
+
 void MatrixReferenceCardView::addLeadingWidget(QWidget* widget)
 {
 	// The MultiConvolution output-channel select: the output bus designation,

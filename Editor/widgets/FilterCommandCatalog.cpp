@@ -58,7 +58,7 @@ const QList<CommandEntry>& commands()
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Convolves several inputs, as in BRIR headphone synthesis") },
 		{ "VSTPlugin", "vst", "VST", "#a855f7", "plugin", false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "VST Plugin"),
-		  QT_TRANSLATE_NOOP("FilterPickerView", "Runs an external VST audio plugin") },
+		  QT_TRANSLATE_NOOP("FilterPickerView", "Runs a VST audio plugin, with explicit VST3 input and output bus layouts") },
 		{ "Device", "device", "DEV", "#64748b", "device-speaker", false,
 		  QT_TRANSLATE_NOOP("FilterCardModel", "Device"),
 		  QT_TRANSLATE_NOOP("FilterPickerView", "Limits the following filters to one device") },

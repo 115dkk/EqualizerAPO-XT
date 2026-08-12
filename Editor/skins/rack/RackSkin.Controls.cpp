@@ -411,3 +411,175 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	painter.setPen(QPen(withAlpha(shadowInk, dark ? 215 : 135), 1));
 	painter.drawPath(well);
 }
+
+namespace
+{
+// The latch-cap ground shared by both bus selectors: a raised cap at rest
+// (top highlight, faint vertical fall-off), latched down while pressed or
+// while its menu holds it (inverted bevel, face sunk one step). The same
+// component law as the Device/Channel caps - a latching selection is a
+// square button, never a dial.
+void paintRackBusCap(QPainter& painter, const QRectF& cap, bool down, bool enabled,
+	const SkinTokens& tokens, bool dark)
+{
+	QLinearGradient face(cap.topLeft(), cap.bottomLeft());
+	if (down)
+	{
+		face.setColorAt(0.0, withAlphaF(QColor(Qt::black), dark ? 0.28 : 0.16));
+		face.setColorAt(1.0, withAlphaF(QColor(Qt::black), dark ? 0.14 : 0.08));
+	}
+	else
+	{
+		face.setColorAt(0.0, withAlphaF(QColor(Qt::white), enabled ? (dark ? 0.07 : 0.35) : 0.03));
+		face.setColorAt(1.0, withAlphaF(QColor(Qt::black), dark ? 0.12 : 0.06));
+	}
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	painter.setBrush(face);
+	painter.drawRoundedRect(cap, 2.0, 2.0);
+
+	// Bevel: light on top while raised, shadow on top while latched down.
+	painter.setPen(QPen(down
+		? withAlphaF(QColor(Qt::black), 0.30)
+		: withAlphaF(QColor(Qt::white), enabled ? (dark ? 0.10 : 0.55) : 0.04), 1));
+	painter.drawLine(QPointF(cap.left() + 2.0, cap.top() + 1.5),
+		QPointF(cap.right() - 2.0, cap.top() + 1.5));
+}
+}
+
+// The VST3 bus contract as service-panel hardware: engraved IN/OUT
+// markings on the plate, the layouts on latching button caps, mounted in
+// the recessed sub-panel paintVstBusFrame digs. Powered down (VST2, not
+// loaded) the caps stay - hardware remains - but the engraving dims and
+// nothing lights.
+void RackSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const bool dark = skinIsDark(tokens);
+	const QRectF rect(state.rect);
+
+	QFont roleFont(tokens.fontFamily);
+	roleFont.setPixelSize(8);
+	roleFont.setBold(true);
+	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.2);
+	painter.setFont(roleFont);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
+	const QColor engraveInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	RackSkinDetail::engraveText(painter,
+		QRectF(rect.left(), rect.top(), roleWidth, rect.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, state.roleToken, engraveInk, dark);
+
+	QRectF cap(rect.left() + roleWidth + 5.0, rect.top() + 0.5,
+		rect.width() - roleWidth - 5.5, rect.height() - 1.0);
+	const bool down = state.pressed || state.menuOpen;
+	paintRackBusCap(painter, cap, down, state.enabled, tokens, dark);
+	if (state.enabled && (state.hovered || state.focused))
+	{
+		// The lamp grammar for attention: the border warms amber; never a lift.
+		painter.setPen(QPen(withAlpha(QColor(tokens.accent), state.focused ? 220 : 140), 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRoundedRect(cap, 2.0, 2.0);
+	}
+
+	// The cap printing: mono value, the width as a small side figure. The
+	// latched cap carries its print down with it.
+	const qreal drop = down ? 1.0 : 0.0;
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(11);
+	painter.setFont(valueFont);
+	QColor print(state.enabled ? tokens.text : tokens.mutedText);
+	QRectF printRect = cap.adjusted(6.0, drop, -5.0, drop);
+	painter.setPen(print);
+	painter.drawText(printRect, Qt::AlignLeft | Qt::AlignVCenter, state.layoutText);
+	if (state.channelCount > 0)
+	{
+		const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.layoutText);
+		QFont countFont(tokens.monoFontFamily);
+		countFont.setPixelSize(8);
+		painter.setFont(countFont);
+		painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+		painter.drawText(QRectF(printRect.left() + valueWidth + 4.0, printRect.top(),
+			printRect.width() - valueWidth - 4.0, printRect.height()),
+			Qt::AlignLeft | Qt::AlignVCenter, QString::number(state.channelCount));
+	}
+}
+
+// The recessed sub-panel around the whole strip (the capture-well recess:
+// shaded top lip, lit bottom lip), the signal direction engraved between
+// the caps, and the verdict as a bezel-set panel LED - paintLed, the only
+// lamp this skin builds - beside a small engraving.
+void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const bool dark = skinIsDark(tokens);
+	const QRectF well = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+	painter.setPen(QPen(QColor(tokens.border), 1));
+	painter.setBrush(withAlphaF(QColor(Qt::black), dark ? 0.18 : 0.08));
+	painter.drawRoundedRect(well, 2.0, 2.0);
+	painter.setPen(QPen(withAlphaF(QColor(Qt::black), dark ? 0.22 : 0.12), 1));
+	painter.drawLine(QPointF(well.left() + 2.0, well.top() + 1.5),
+		QPointF(well.right() - 2.0, well.top() + 1.5));
+	painter.setPen(QPen(withAlphaF(QColor(Qt::white), dark ? 0.06 : 0.40), 1));
+	painter.drawLine(QPointF(well.left() + 2.0, well.bottom() - 0.5),
+		QPointF(well.right() - 2.0, well.bottom() - 0.5));
+
+	// The engraved direction mark between the caps: the recess-edge light
+	// pass one pixel down, then the ink - the engraving formula as a line.
+	const QColor arrowInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	const qreal midY = state.jointRect.center().y() + 0.5;
+	const QPointF tail(state.jointRect.left() + 4.0, midY);
+	const QPointF head(state.jointRect.right() - 4.0, midY);
+	painter.setPen(QPen(dark ? QColor(0, 0, 0, 170) : QColor(255, 255, 255, 200), 1.2, Qt::SolidLine, Qt::RoundCap));
+	painter.drawLine(tail + QPointF(0, 1), head + QPointF(0, 1));
+	painter.drawLine(head + QPointF(0, 1), head + QPointF(-3.0, -2.0));
+	painter.drawLine(head + QPointF(0, 1), head + QPointF(-3.0, 4.0));
+	painter.setPen(QPen(arrowInk, 1.2, Qt::SolidLine, Qt::RoundCap));
+	painter.drawLine(tail, head);
+	painter.drawLine(head, head + QPointF(-3.0, -3.0));
+	painter.drawLine(head, head + QPointF(-3.0, 3.0));
+
+	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
+	if (state.verdictRect.isEmpty()
+		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+		return;
+
+	QColor led(tokens.mutedText);
+	bool lit = true;
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success: led = QColor(tokens.success); break;
+	case VstBusFrameState::Tone::Warning: led = QColor(tokens.accent); break;
+	case VstBusFrameState::Tone::Critical: led = QColor(tokens.danger); break;
+	case VstBusFrameState::Tone::Neutral: lit = false; break;
+	}
+	if (!state.enabled)
+		lit = false;
+
+	const QPointF ledCenter(state.verdictRect.left() + 4.0, state.verdictRect.center().y() + 0.5);
+	RackSkinDetail::paintLed(painter, ledCenter, 3.2, led, lit, dark);
+
+	if (!hasText)
+		return;
+
+	QFont engraveFont(tokens.monoFontFamily);
+	engraveFont.setPixelSize(9);
+	engraveFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.4);
+	painter.setFont(engraveFont);
+	const QColor textInk = state.tone == VstBusFrameState::Tone::Critical && state.enabled
+		? QColor(tokens.danger) : withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	QRectF textRect(state.verdictRect);
+	textRect.setLeft(ledCenter.x() + 9.0);
+	QString text;
+	if (pairVerdict)
+		text = state.verdictInputText + QStringLiteral(" - ") + state.verdictOutputText;
+	else
+		text = state.verdictText;
+	RackSkinDetail::engraveText(painter, textRect, Qt::AlignLeft | Qt::AlignVCenter,
+		QFontMetricsF(engraveFont).elidedText(text, Qt::ElideRight, textRect.width()), textInk, dark);
+}

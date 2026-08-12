@@ -290,3 +290,155 @@ void SoftSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& 
 		painter.drawText(badgeRect, Qt::AlignCenter, state.valueText);
 	}
 }
+
+// The VST3 bus contract as two friendly stadium chips: the caption lives
+// inside the pill with its value ("In · Stereo · 2"), on an opaque pastel
+// under deep warm ink - the ON grammar every engaged thing here wears.
+// Asleep (VST2, not loaded) the chip becomes the sleeping slot: dashed
+// outline, sunken to the tray, muted ink. Never an alarm.
+void SoftSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const bool dark = skinIsDark(tokens);
+	const QRectF pill = QRectF(state.rect).adjusted(0.5, 1.5, -0.5, -1.5);
+	const qreal radius = pill.height() / 2.0;
+
+	QColor fill = softPastelize(QColor(tokens.accent), dark);
+	if (state.pressed || state.menuOpen)
+		fill = mixColor(fill, QColor(tokens.text), 0.10);
+	else if (state.hovered)
+		fill = mixColor(fill, QColor(tokens.text), 0.06);
+	QColor ink(QStringLiteral("#2B251D"));
+
+	if (!state.enabled)
+	{
+		painter.setPen(QPen(QColor(tokens.border), 1, Qt::DashLine));
+		painter.setBrush(QColor(tokens.surface));
+		painter.drawRoundedRect(pill, radius, radius);
+		ink = QColor(tokens.mutedText);
+	}
+	else
+	{
+		painter.setPen(state.focused || state.menuOpen
+			? QPen(QColor(tokens.accent), 1) : QPen(Qt::NoPen));
+		painter.setBrush(fill);
+		painter.drawRoundedRect(pill, radius, radius);
+	}
+
+	QFont roleFont(tokens.fontFamily);
+	roleFont.setPixelSize(9);
+	QFont valueFont(tokens.fontFamily);
+	valueFont.setPixelSize(11);
+	valueFont.setWeight(QFont::DemiBold);
+
+	QRectF textRect = pill.adjusted(8.0, 0, -6.0, 0);
+	painter.setFont(roleFont);
+	painter.setPen(withAlphaF(ink, state.enabled ? 0.72 : 0.9));
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleText);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleText);
+
+	painter.setFont(valueFont);
+	painter.setPen(ink);
+	QString value = state.layoutText;
+	if (state.channelCount > 0)
+		value += QStringLiteral(" %1").arg(state.channelCount);
+	QRectF valueRect(textRect);
+	valueRect.setLeft(textRect.left() + roleWidth + 6.0);
+	painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, value);
+
+	// A soft chevron, round caps - the pill's only sharp thing is nothing.
+	const QPointF caretCenter(textRect.right() - 3.0, pill.center().y() - 0.5);
+	painter.setPen(QPen(withAlphaF(ink, 0.6), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	QPainterPath chevron;
+	chevron.moveTo(caretCenter + QPointF(-3.2, -1.2));
+	chevron.lineTo(caretCenter + QPointF(0.0, 2.0));
+	chevron.lineTo(caretCenter + QPointF(3.2, -1.2));
+	painter.drawPath(chevron);
+}
+
+// The joint is a rounded, unhurried arrow; the verdict a soft dot in a
+// severity hue pulled toward the body ink (informing, not alarming) with a
+// body-face caption - never monospace on this skin.
+void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	QColor arrowInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 170 : 110);
+	const qreal midY = state.jointRect.center().y() + 0.5;
+	painter.setPen(QPen(arrowInk, 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	painter.drawLine(QPointF(state.jointRect.left() + 3.5, midY),
+		QPointF(state.jointRect.right() - 3.5, midY));
+	const QPointF head(state.jointRect.right() - 3.5, midY);
+	painter.drawLine(head, head + QPointF(-3.5, -3.5));
+	painter.drawLine(head, head + QPointF(-3.5, 3.5));
+
+	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
+	if (state.verdictRect.isEmpty()
+		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+		return;
+
+	const bool dark = skinIsDark(tokens);
+	QColor dot(tokens.mutedText);
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success:
+		dot = mixColor(QColor(tokens.success), QColor(tokens.text), 0.20);
+		break;
+	case VstBusFrameState::Tone::Warning:
+		dot = mixColor(QColor(tokens.warning), QColor(tokens.text), dark ? 0.30 : 0.20);
+		break;
+	case VstBusFrameState::Tone::Critical:
+		dot = mixColor(QColor(tokens.danger), QColor(tokens.text), dark ? 0.30 : 0.20);
+		break;
+	case VstBusFrameState::Tone::Neutral:
+		dot = withAlpha(dot, 130);
+		break;
+	}
+	if (!state.enabled)
+		dot = withAlpha(dot, 140);
+
+	const QPointF dotCenter(state.verdictRect.left() + 3.0, state.verdictRect.center().y() + 0.5);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(dot);
+	painter.drawEllipse(dotCenter, 3.0, 3.0);
+
+	if (!hasText)
+		return;
+
+	QFont captionFont(tokens.fontFamily);
+	captionFont.setPixelSize(11);
+	painter.setFont(captionFont);
+	QColor ink(tokens.mutedText);
+	if (state.tone == VstBusFrameState::Tone::Critical)
+		ink = mixColor(QColor(tokens.danger), QColor(tokens.text), dark ? 0.40 : 0.35);
+	painter.setPen(withAlpha(ink, state.enabled ? 255 : 160));
+	QRectF textRect(state.verdictRect);
+	textRect.setLeft(dotCenter.x() + 8.0);
+	if (pairVerdict)
+	{
+		const QFontMetricsF metrics(captionFont);
+		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.verdictInputText);
+		const qreal markLeft = textRect.left() + metrics.horizontalAdvance(state.verdictInputText) + 4.0;
+		const qreal markY = textRect.center().y() + 0.5;
+		painter.setPen(QPen(withAlpha(ink, 190), 1.3, Qt::SolidLine, Qt::RoundCap));
+		painter.drawLine(QPointF(markLeft, markY), QPointF(markLeft + 7.0, markY));
+		painter.drawLine(QPointF(markLeft + 7.0, markY), QPointF(markLeft + 4.8, markY - 2.2));
+		painter.drawLine(QPointF(markLeft + 7.0, markY), QPointF(markLeft + 4.8, markY + 2.2));
+		painter.setPen(withAlpha(ink, state.enabled ? 255 : 160));
+		QRectF outRect(textRect);
+		outRect.setLeft(markLeft + 11.0);
+		painter.drawText(outRect, Qt::AlignLeft | Qt::AlignVCenter,
+			metrics.elidedText(state.verdictOutputText, Qt::ElideRight, outRect.width()));
+	}
+	else
+	{
+		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetricsF(captionFont).elidedText(state.verdictText, Qt::ElideRight, textRect.width()));
+	}
+}
