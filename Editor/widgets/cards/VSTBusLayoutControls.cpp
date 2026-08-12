@@ -147,7 +147,7 @@ void VSTBusLayoutControls::setStatus(const QString& text, StatusTone tone, bool 
 	statusLabel->setText(text);
 	statusLabel->setVisible(!text.isEmpty());
 	removeButton->setVisible(showRemoveAction);
-	statusPresentationChanged();
+	update();
 }
 
 QColor VSTBusLayoutControls::statusColor() const
@@ -161,11 +161,6 @@ QColor VSTBusLayoutControls::statusColor() const
 	case StatusTone::Neutral: return QColor(tokens.mutedText);
 	}
 	return QColor(tokens.mutedText);
-}
-
-void VSTBusLayoutControls::statusPresentationChanged()
-{
-	update();
 }
 
 void VSTBusLayoutControls::selectionChanged()

@@ -58,8 +58,6 @@ protected:
 	StatusTone statusTone() const { return currentTone; }
 	QColor statusColor() const;
 
-	virtual void statusPresentationChanged();
-
 private:
 	void buildNeutralLayout();
 	static VST3BusLayout selectedLayout(const QComboBox* combo);
