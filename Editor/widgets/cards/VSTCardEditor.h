@@ -21,14 +21,12 @@
 #include <memory>
 #include <optional>
 #include <unordered_map>
-#include <vector>
 
 #include <QElapsedTimer>
 
 #include "Editor/IFilterGUI.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
-#include "VSTBusLayoutEditorModel.h"
 
 class QToolButton;
 class QPushButton;
@@ -37,7 +35,6 @@ class QPlainTextEdit;
 class QAction;
 class FileReferenceController;
 class ReferenceCardView;
-class VSTBusLayoutControls;
 
 class VSTCardEditor : public IFilterGUI
 {
@@ -46,9 +43,8 @@ class VSTCardEditor : public IFilterGUI
 public:
 	VSTCardEditor(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData,
 		const std::unordered_map<std::wstring, float>& paramMap, bool stereoInput = false,
-		const std::optional<VST3BusContract>& busContract = std::nullopt,
-		std::vector<std::wstring> deviceChannelNames = {}, QWidget* parent = nullptr);
-	~VSTCardEditor() override;
+		const std::optional<VST3BusContract>& busContract = std::nullopt, QWidget* parent = nullptr);
+	~VSTCardEditor();
 
 	void store(QString& command, QString& parameters) override;
 	void loadPreferences(const QVariantMap& prefs) override;
@@ -62,15 +58,13 @@ private slots:
 	void pathCommitted(const QString& text);
 	void selectFile();
 	void embedToggled(bool checked);
-	void busLayoutsEdited(VST3BusLayout input, VST3BusLayout output);
-	void removeBusLayouts();
+	void stereoInputToggled(bool checked);
 	void onIdle();
 
 private:
 	void initPlugin();
 	bool embedPlugin();
 	void updateReferenceState();
-	void updateBusControls();
 	void updatePermissionWarning();
 	void onAutomate();
 	void onSizeWindow(int w, int h);
@@ -81,8 +75,9 @@ private:
 	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;
 	bool autoApplyDialog = false;
-	VSTBusLayoutEditorModel busLayoutModel;
-	std::vector<std::wstring> deviceChannelNames;
+	bool stereoInput = false;
+	// Preserved opaquely until the dedicated Input/Output controls land.
+	std::optional<VST3BusContract> busContract;
 	QElapsedTimer lastReadTimer;
 
 	FileReferenceController* reference = nullptr;
@@ -95,7 +90,7 @@ private:
 	QPushButton* openPanelButton = nullptr;
 	QToolButton* optionsButton = nullptr;
 	QAction* embedAction = nullptr;
-	VSTBusLayoutControls* busControls = nullptr;
+	QAction* stereoInputAction = nullptr;
 	QFrame* frame = nullptr;
 	QPlainTextEdit* warningTextEdit = nullptr;
 };

@@ -131,7 +131,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="FilterCommandCatalogTests.cpp" />
     <ClCompile Include="FilterPickerModelTests.cpp" />
     <ClCompile Include="ReferenceCardStateTests.cpp" />
-	<ClCompile Include="VSTBusLayoutEditorModelTests.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="FilterCardModelTests.cpp" />
     <ClCompile Include="FilterListModelTests.cpp" />
@@ -167,7 +166,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\widgets\cards\DeviceSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\FileReferenceController.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceCardState.cpp" />
-	<ClCompile Include="..\..\Editor\widgets\cards\VSTBusLayoutEditorModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\cards\StageSelectionModel.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\MultiConvolutionRoutingAdapter.cpp" />
     <ClCompile Include="..\..\Editor\widgets\routing\RoutingFold.cpp" />
@@ -199,7 +197,6 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClInclude Include="..\..\Editor\widgets\cards\ChannelSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\DeviceSelectionModel.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h" />
-	<ClInclude Include="..\..\Editor\widgets\cards\VSTBusLayoutEditorModel.h" />
     <ClInclude Include="..\..\filters\BiQuad.h" />
     <ClInclude Include="..\..\filters\DeviceCommand.h" />
     <ClInclude Include="..\..\platform\windows\TextEncoding.h" />

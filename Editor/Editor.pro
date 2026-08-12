@@ -287,8 +287,6 @@ SOURCES += main.cpp\
 	widgets/cards/ReferenceCardView.cpp \
 	widgets/cards/ReferenceCardState.cpp \
 	widgets/cards/DefaultReferenceCardView.cpp \
-	widgets/cards/VSTBusLayoutEditorModel.cpp \
-	widgets/cards/VSTBusLayoutControls.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
@@ -553,8 +551,6 @@ HEADERS  += \
 	widgets/cards/ScalarKnobCardEditor.h \
 	widgets/cards/ReferenceCardView.h \
 	widgets/cards/DefaultReferenceCardView.h \
-	widgets/cards/VSTBusLayoutEditorModel.h \
-	widgets/cards/VSTBusLayoutControls.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \
