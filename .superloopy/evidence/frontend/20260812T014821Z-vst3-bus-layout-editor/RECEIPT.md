@@ -42,7 +42,7 @@ their Windows Qt target integration are owned by the native Editor.
 
 Proof:
 
-- interaction — `app-automation-transcript.md` and the three full test logs;
+- interaction — `app-automation-transcript.md` and `TEST_RESULTS.md`;
 - visual — `mobile-skin-gallery.png`, `mobile-state-gallery.png`,
   `mobile-ko-state-gallery.png`, and the curated original captures;
 - target — `device-report.json`.

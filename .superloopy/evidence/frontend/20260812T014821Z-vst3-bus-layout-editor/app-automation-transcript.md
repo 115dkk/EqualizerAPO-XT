@@ -21,7 +21,7 @@ Command: `Editor.exe --selftest-vst` with Qt offscreen QPA.
   LegacyRows retains its lossless round trip.
 - PASS — ChunkData and parameter maps survive every legacy and modern store.
 
-Full process output: `selftest-vst.stderr.log`.
+Result ledger: `TEST_RESULTS.md`.
 
 ## Real plug-in host journey
 
@@ -30,7 +30,7 @@ suite checks. Its `Vst3HostTests` block passed 101 checks, including accepted
 `Stereo -> 7.1`, rejected layouts, inconsistent metadata rejection, semantic
 4.1/5.0 distinction, and the newly exposed accepted arrangement diagnostics.
 
-Full process output: `hybridconv-tests.log`.
+Result ledger: `TEST_RESULTS.md`.
 
 ## Model/catalog regression journey
 
@@ -38,4 +38,4 @@ Full process output: `hybridconv-tests.log`.
 Auto/Auto intent, removal, legacy migration, explicit-contract precedence,
 picker/catalog exposure, and adjacent Editor models.
 
-Full process output: `editorlogic-tests.log`.
+Result ledger: `TEST_RESULTS.md`.
