@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.34.7 — 2026-08-12
+
 - **The Editor's right-side graph and card focus now stay under control.**
   Moving the analysis graph to the right starts it at a bounded width instead
   of crushing the filter cards into a sliver, and its source/channel controls
