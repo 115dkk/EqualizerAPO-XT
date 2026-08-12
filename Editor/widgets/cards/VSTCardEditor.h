@@ -48,7 +48,7 @@ public:
 		const std::unordered_map<std::wstring, float>& paramMap, bool stereoInput = false,
 		const std::optional<VST3BusContract>& busContract = std::nullopt,
 		std::vector<std::wstring> deviceChannelNames = {}, QWidget* parent = nullptr);
-	~VSTCardEditor();
+	~VSTCardEditor() override;
 
 	void store(QString& command, QString& parameters) override;
 	void loadPreferences(const QVariantMap& prefs) override;

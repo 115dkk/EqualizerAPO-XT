@@ -104,7 +104,7 @@ int runVstBusControlsSelfTest()
 	QComboBox* input = controls.findChild<QComboBox*>(QStringLiteral("VSTBusInputLayout"));
 	QComboBox* output = controls.findChild<QComboBox*>(QStringLiteral("VSTBusOutputLayout"));
 	QToolButton* remove = controls.findChild<QToolButton*>(QStringLiteral("VSTBusRemoveLayouts"));
-	QLabel* status = controls.findChild<QLabel*>(QStringLiteral("VSTBusStatus"));
+	const QLabel* status = controls.findChild<QLabel*>(QStringLiteral("VSTBusStatus"));
 	expect(input != nullptr && output != nullptr && remove != nullptr && status != nullptr,
 		"semantic controls are discoverable by stable object names");
 	if (input == nullptr || output == nullptr || remove == nullptr || status == nullptr)
