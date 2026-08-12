@@ -19,8 +19,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   mono, stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, or 7.1.4. Explicit layouts
   never fall back to another width: a rejected or inconsistent VST3 contract
   leaves every device channel untouched. Loaded VST2 modules quietly ignore the
-  two layout keys and continue through the existing VST2 path. Editor controls
-  will follow separately ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)).
+  two layout keys and continue through the existing VST2 path. The modern Qt
+  card now exposes paired Input/Output selectors, reports the actual accepted
+  bus or rejection, disables the selectors for the loaded VST2 ABI, and offers
+  to remove stale layout keys. Opening an old `StereoInput 1` setting migrates
+  it to `Input Stereo Output Auto`; new edits never emit the legacy flag
+  ([#265](https://github.com/115dkk/EqualizerAPO-XT/pull/265)).
 
 ## v2.34.7 — 2026-08-12
 

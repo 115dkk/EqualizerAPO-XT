@@ -68,6 +68,9 @@
     <ClCompile Include="ReferenceCardStateTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+	<ClCompile Include="VSTBusLayoutEditorModelTests.cpp">
+	  <Filter>Source Files</Filter>
+	</ClCompile>
     <ClCompile Include="AutoInstallerLogicTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -122,6 +125,9 @@
     <ClCompile Include="..\..\Editor\widgets\cards\ReferenceCardState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+	<ClCompile Include="..\..\Editor\widgets\cards\VSTBusLayoutEditorModel.cpp">
+	  <Filter>Source Files</Filter>
+	</ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Benchmark\BatchPlan.h">
@@ -178,5 +184,8 @@
     <ClInclude Include="..\..\Editor\widgets\cards\FileReferenceController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+	<ClInclude Include="..\..\Editor\widgets\cards\VSTBusLayoutEditorModel.h">
+	  <Filter>Header Files</Filter>
+	</ClInclude>
   </ItemGroup>
 </Project>

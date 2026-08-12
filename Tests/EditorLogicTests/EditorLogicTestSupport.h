@@ -73,6 +73,7 @@ void testEditableValueTextUsesDisplayedDecimalFormatFirst();
 void testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
 void testFileReferenceControllerOwnsPathState();
 void testReferenceCardDerivesSharedPresentationState();
+void testVSTBusLayoutEditorModel();
 void testFilterListModel();
 void testFilterListUndo();
 void testFilterCommandCatalogRoster();

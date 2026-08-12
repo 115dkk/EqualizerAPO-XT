@@ -29,17 +29,21 @@
 #include <QTranslator>
 #include <QApplication>
 #include <QBoxLayout>
+#include <QComboBox>
 #include <QDir>
 #include <QCommandLineParser>
 #include <QDockWidget>
 #include <QFileInfo>
 #include <QFont>
 #include <QFontDatabase>
+#include <QKeyEvent>
+#include <QLabel>
 #include <QPalette>
 #include <QSettings>
 #include <QStyleFactory>
 #include <QStyleHints>
 #include <QTimer>
+#include <QToolButton>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -59,6 +63,8 @@
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
+#include "widgets/cards/VSTCardEditor.h"
+#include "widgets/cards/VSTBusLayoutControls.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 #include "services/logging/Logging.h"
@@ -80,11 +86,84 @@
 
 namespace
 {
+int runVstBusControlsSelfTest()
+{
+	int failures = 0;
+	const auto expect = [&failures](bool value, const char* message) {
+		if (!value)
+		{
+			fprintf(stderr, "[VST controls selftest] FAIL: %s\n", message);
+			failures++;
+		}
+	};
+
+	VSTBusLayoutControls controls;
+	controls.resize(720, controls.sizeHint().height());
+	controls.show();
+	QApplication::processEvents();
+	QComboBox* input = controls.findChild<QComboBox*>(QStringLiteral("VSTBusInputLayout"));
+	QComboBox* output = controls.findChild<QComboBox*>(QStringLiteral("VSTBusOutputLayout"));
+	QToolButton* remove = controls.findChild<QToolButton*>(QStringLiteral("VSTBusRemoveLayouts"));
+	QLabel* status = controls.findChild<QLabel*>(QStringLiteral("VSTBusStatus"));
+	expect(input != nullptr && output != nullptr && remove != nullptr && status != nullptr,
+		"semantic controls are discoverable by stable object names");
+	if (input == nullptr || output == nullptr || remove == nullptr || status == nullptr)
+		return failures;
+
+	controls.setLayouts(VST3BusLayout::Stereo, VST3BusLayout::Surround71);
+	expect(input->currentData().toInt() == static_cast<int>(VST3BusLayout::Stereo),
+		"Input selector presents Stereo");
+	expect(output->currentData().toInt() == static_cast<int>(VST3BusLayout::Surround71),
+		"Output selector presents 7.1");
+	expect(!input->accessibleName().isEmpty() && !output->accessibleName().isEmpty(),
+		"both selectors expose accessible names");
+	expect(input->nextInFocusChain() == output,
+		"logical keyboard focus order is Input then Output");
+
+	bool editSignal = false;
+	VST3BusLayout signalledInput = VST3BusLayout::Auto;
+	VST3BusLayout signalledOutput = VST3BusLayout::Auto;
+	QObject::connect(&controls, &VSTBusLayoutControls::layoutsEdited,
+		[&](VST3BusLayout editedInput, VST3BusLayout editedOutput) {
+			editSignal = true;
+			signalledInput = editedInput;
+			signalledOutput = editedOutput;
+		});
+	input->setFocus();
+	QKeyEvent down(QEvent::KeyPress, Qt::Key_Down, Qt::NoModifier);
+	QApplication::sendEvent(input, &down);
+	expect(editSignal && signalledInput != VST3BusLayout::Stereo
+		&& signalledOutput == VST3BusLayout::Surround71,
+		"keyboard selection emits the paired Input/Output contract");
+
+	controls.setControlsEnabled(false, QStringLiteral("VST3 only"));
+	expect(!input->isEnabled() && !output->isEnabled(),
+		"both selectors disable together for a non-VST3 ABI");
+	expect(input->toolTip() == QStringLiteral("VST3 only")
+		&& output->toolTip() == QStringLiteral("VST3 only"),
+		"disabled selectors retain an explanatory tooltip");
+
+	bool removeSignal = false;
+	QObject::connect(&controls, &VSTBusLayoutControls::removeLayoutsRequested,
+		[&]() { removeSignal = true; });
+	controls.setStatus(QStringLiteral("VST2 ignores these layouts"),
+		VSTBusLayoutControls::StatusTone::Warning, true);
+	QApplication::processEvents();
+	expect(status->text().contains(QStringLiteral("VST2")) && remove->isVisible(),
+		"VST2 warning is textual and exposes the repair action");
+	remove->click();
+	expect(removeSignal, "repair action emits removeLayoutsRequested");
+
+	fprintf(stderr, "[VST controls selftest] %s (%d failure(s))\n",
+		failures == 0 ? "PASS" : "FAIL", failures);
+	return failures;
+}
+
 // Mechanical round-trip check for VST plugin data: parse a VSTPlugin line, feed
-// the parsed library, opaque state and options into the real VSTPluginFilterGUI,
-// call its store(), reparse the result and confirm ChunkData, parameters,
-// StereoInput and the hidden Input/Output contract survive. Returns 0 on success,
-// 1 on any loss.
+// the parsed library, opaque state and options into both real Editor paths.
+// LegacyRows must remain byte-semantically lossless. ModernCards additionally
+// migrates StereoInput to Input Stereo / Output Auto and never writes the old
+// flag. Returns 0 on success, 1 on any loss.
 int runVstRoundTripSelfTest()
 {
 	struct Case { const wchar_t* name = nullptr; std::wstring params; };
@@ -97,7 +176,7 @@ int runVstRoundTripSelfTest()
 		{ L"busContract", L"Library fake.vst3 Input Stereo Output 7.1 Gain 0.5" }
 	};
 
-	int failures = 0;
+	int failures = runVstBusControlsSelfTest();
 	for (const Case& c : cases)
 	{
 		VSTPluginFilterFactory factory;
@@ -156,6 +235,80 @@ int runVstRoundTripSelfTest()
 		{
 			fprintf(stderr, "[VST selftest] %ls: OK (chunk len %zu, %zu params preserved)\n",
 				c.name, chunk0.size(), map0.size());
+		}
+
+		VSTCardEditor modern(f0->getLibrary(), chunk0, map0, stereo0, bus0);
+		QString modernCommand, modernParams;
+		modern.store(modernCommand, modernParams);
+		std::wstring modernCommandW = modernCommand.toStdWString();
+		std::wstring modernParamsW = modernParams.toStdWString();
+		FilterVector modernFilters = factory.createFilter(L"", modernCommandW, modernParamsW);
+		if (modernFilters.empty())
+		{
+			fprintf(stderr, "[VST selftest] %ls-modern: re-parse produced no filter\n", c.name);
+			failures++;
+			continue;
+		}
+		VSTPluginFilter* modernFilter = static_cast<VSTPluginFilter*>(modernFilters[0].get());
+		std::optional<VST3BusContract> expectedModernBus = bus0;
+		if (!expectedModernBus && stereo0)
+			expectedModernBus = VST3BusContract{ VST3BusLayout::Stereo, VST3BusLayout::Auto };
+		const std::optional<VST3BusContract> modernBus = modernFilter->getBusContract();
+		const bool sameModernBus = expectedModernBus.has_value() == modernBus.has_value()
+			&& (!expectedModernBus || (expectedModernBus->input == modernBus->input
+				&& expectedModernBus->output == modernBus->output));
+		const bool modernOk = modernFilter->getChunkData() == chunk0
+			&& modernFilter->getParamMap() == map0
+			&& !modernFilter->getStereoInput()
+			&& sameModernBus;
+		if (!modernOk)
+		{
+			fprintf(stderr, "[VST selftest] %ls-modern: LOSS. stereoInput=%d, bus=%d (expected %d)\n",
+				c.name, modernFilter->getStereoInput() ? 1 : 0, modernBus ? 1 : 0,
+				expectedModernBus ? 1 : 0);
+			failures++;
+		}
+		else
+		{
+			fprintf(stderr, "[VST selftest] %ls-modern: OK (modern migration contract preserved)\n", c.name);
+		}
+	}
+
+	// Exercise the visible VST2 repair path end to end: the controls' button
+	// reaches the card slot, both keys disappear, and the next parse sees no
+	// legacy StereoInput fallback either. The actual-ABI gating and visibility
+	// are covered by the deterministic plug-in gallery.
+	{
+		const VST3BusContract stale{ VST3BusLayout::Stereo, VST3BusLayout::Surround71 };
+		VSTCardEditor repair(VSTPluginLibrary::getInstance(L"fake.dll"), L"",
+			std::unordered_map<std::wstring, float>(), false, stale);
+		QToolButton* remove = repair.findChild<QToolButton*>(QStringLiteral("VSTBusRemoveLayouts"));
+		if (remove == nullptr)
+		{
+			fprintf(stderr, "[VST selftest] remove-layouts: repair action missing\n");
+			failures++;
+		}
+		else
+		{
+			remove->click();
+			QString outCommand, outParams;
+			repair.store(outCommand, outParams);
+			VSTPluginFilterFactory factory;
+			std::wstring command = outCommand.toStdWString();
+			std::wstring params = outParams.toStdWString();
+			FilterVector filters = factory.createFilter(L"", command, params);
+			const bool repaired = !filters.empty()
+				&& !static_cast<VSTPluginFilter*>(filters[0].get())->getBusContract()
+				&& !static_cast<VSTPluginFilter*>(filters[0].get())->getStereoInput();
+			if (!repaired)
+			{
+				fprintf(stderr, "[VST selftest] remove-layouts: stale keys survived repair\n");
+				failures++;
+			}
+			else
+			{
+				fprintf(stderr, "[VST selftest] remove-layouts: OK (paired keys removed)\n");
+			}
 		}
 	}
 
@@ -490,9 +643,28 @@ int main(int argc, char* argv[])
 
 		// Headless screenshot gallery (skin program). Runs before the registry
 		// skin/translator setup on purpose: the gallery applies each skin itself
-		// and renders untranslated English strings for deterministic output.
+		// and renders untranslated English strings for deterministic CI output.
+		// A local evidence run can opt into one bundled catalog with
+		// EAPO_GALLERY_LOCALE (for example ko_KR) without changing that default.
 		if (application.arguments().contains(QStringLiteral("--skin-gallery")))
+		{
+			QTranslator galleryTranslator;
+			const QString galleryLocaleName = qEnvironmentVariable("EAPO_GALLERY_LOCALE");
+			if (!galleryLocaleName.isEmpty())
+			{
+				const QLocale galleryLocale(galleryLocaleName);
+				QLocale::setDefault(galleryLocale);
+				const QString language = galleryLocale.name().section(QLatin1Char('_'), 0, 0);
+				if (!galleryTranslator.load(QStringLiteral(":/translations/Editor_%1.qm").arg(language)))
+				{
+					fprintf(stderr, "Skin gallery: bundled locale '%s' is unavailable\n",
+						qPrintable(galleryLocaleName));
+					return 2;
+				}
+				application.installTranslator(&galleryTranslator);
+			}
 			return SkinGallery::run(application.arguments());
+		}
 
 		// Headless live skin-switch robustness gate (crash + slowness), same
 		// offscreen contract as the gallery.

@@ -423,6 +423,12 @@ void runVst3HostTests()
 			vst3BusLayoutChannelNames(VST3BusLayout::Surround71));
 		harness.expectTrue(upmixerProbe.negotiateBusLayouts(VST3BusLayout::Stereo,
 			VST3BusLayout::Surround71, 8), "VSTPlugin explicit layout accepts Stereo -> 7.1");
+		const std::optional<VST3BusLayout> acceptedInput = upmixerProbe.getNegotiatedVST3InputLayout();
+		const std::optional<VST3BusLayout> acceptedOutput = upmixerProbe.getNegotiatedVST3OutputLayout();
+		harness.expectTrue(acceptedInput && *acceptedInput == VST3BusLayout::Stereo,
+			"accepted VST3 input arrangement is exposed as Stereo for Editor diagnostics");
+		harness.expectTrue(acceptedOutput && *acceptedOutput == VST3BusLayout::Surround71,
+			"accepted VST3 output arrangement is exposed as 7.1 for Editor diagnostics");
 		upmixerProbe.setBusChannelNameHints(vst3BusLayoutChannelNames(VST3BusLayout::Surround71),
 			vst3BusLayoutChannelNames(VST3BusLayout::Surround71));
 		harness.expectTrue(upmixerProbe.negotiateBusLayouts(VST3BusLayout::Surround71,
@@ -670,6 +676,9 @@ void runVst3HostTests()
 			vst3BusLayoutChannelNames(VST3BusLayout::Surround41));
 		harness.expectTrue(surround41Probe.negotiateBusLayouts(VST3BusLayout::Surround41,
 			VST3BusLayout::Surround41, 5), "explicit VSTPlugin 4.1 layout is supported");
+		const std::optional<VST3BusLayout> accepted41 = surround41Probe.getNegotiatedVST3OutputLayout();
+		harness.expectTrue(accepted41 && *accepted41 == VST3BusLayout::Surround41,
+			"accepted 4.1 arrangement is not misreported as same-width 5.0");
 		harness.expectTrue(surround41AcceptedArrangement != nullptr
 			&& surround41AcceptedArrangement()
 				== static_cast<unsigned long long>(Steinberg::Vst::SpeakerArr::k41Music),

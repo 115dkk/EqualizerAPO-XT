@@ -585,6 +585,36 @@ bool VSTPluginInstance::arrangementMatchesLayout(SpeakerArrangement arrangement,
 	return false;
 }
 
+std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3InputLayout() const
+{
+	if (!library->isVST3())
+		return std::nullopt;
+	for (VST3BusLayout layout : { VST3BusLayout::Mono, VST3BusLayout::Stereo,
+		VST3BusLayout::Surround40, VST3BusLayout::Surround41, VST3BusLayout::Surround50,
+		VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
+		VST3BusLayout::Surround712, VST3BusLayout::Surround714 })
+	{
+		if (arrangementMatchesLayout(vst3InputArrangement, layout))
+			return layout;
+	}
+	return std::nullopt;
+}
+
+std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3OutputLayout() const
+{
+	if (!library->isVST3())
+		return std::nullopt;
+	for (VST3BusLayout layout : { VST3BusLayout::Mono, VST3BusLayout::Stereo,
+		VST3BusLayout::Surround40, VST3BusLayout::Surround41, VST3BusLayout::Surround50,
+		VST3BusLayout::Surround51, VST3BusLayout::Surround61, VST3BusLayout::Surround71,
+		VST3BusLayout::Surround712, VST3BusLayout::Surround714 })
+	{
+		if (arrangementMatchesLayout(vst3OutputArrangement, layout))
+			return layout;
+	}
+	return std::nullopt;
+}
+
 int VSTPluginInstance::semanticSpeakerArrangementCandidatesForChannelNames(
 	const vector<wstring>& channelNames, SpeakerArrangement* candidates) const
 {

@@ -133,7 +133,7 @@ QString subwooferRoutingPresetRowLine()
 
 QList<GalleryRow> galleryRows()
 {
-	return {
+	QList<GalleryRow> rows = {
 		{ QStringLiteral("filter"), QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71") },
 		{ QStringLiteral("shelf"), QStringLiteral("Filter 2: ON HSC Fc 8000 Hz Gain -2.5 dB Q 0.71") },
 		{ QStringLiteral("gain0db"), QStringLiteral("Filter 3: ON PK Fc 1000 Hz Gain 0 dB Q 1") },
@@ -199,6 +199,28 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("subwooferrouting"), subwooferRoutingPresetRowLine() },
 		{ QStringLiteral("subwooferrouting_missing"), QStringLiteral("SubwooferRouting: Profile \"missing.swxt.json\"") }
 	};
+
+	const auto quotedPath = [](const char* variable) {
+		return QStringLiteral("\"") + QDir::toNativeSeparators(qEnvironmentVariable(variable))
+			+ QStringLiteral("\"");
+	};
+	if (qEnvironmentVariableIsSet("EAPO_GALLERY_VST3_UPMIXER_STAGED")
+		&& qEnvironmentVariableIsSet("EAPO_GALLERY_VST3_STEREO_STAGED"))
+	{
+		rows.append({ QStringLiteral("vst3_bus_accepted"),
+			QStringLiteral("VSTPlugin: Library %1 Input Stereo Output 7.1")
+				.arg(quotedPath("EAPO_GALLERY_VST3_UPMIXER_STAGED")) });
+		rows.append({ QStringLiteral("vst3_bus_rejected"),
+			QStringLiteral("VSTPlugin: Library %1 Input Stereo Output 7.1")
+				.arg(quotedPath("EAPO_GALLERY_VST3_STEREO_STAGED")) });
+	}
+	if (qEnvironmentVariableIsSet("EAPO_GALLERY_VST2_STAGED"))
+	{
+		rows.append({ QStringLiteral("vst2_bus_ignored"),
+			QStringLiteral("VSTPlugin: Library %1 Input Stereo Output 7.1")
+				.arg(quotedPath("EAPO_GALLERY_VST2_STAGED")) });
+	}
+	return rows;
 }
 
 // Synthetic audio endpoints for the Device rows. Offscreen runners have no
@@ -358,7 +380,9 @@ bool writeWavFile(const QString& path, quint16 channels, quint32 sampleRate, qui
 // config file so relative references resolve: example.txt (Include),
 // example.wav (Convolution, 100 ms mono) and brir.wav (MultiConvolution,
 // 100 ms 4-channel - the "4 ch" readout and the L=0+1 R=2+3 routing view).
-// missing.txt is deliberately absent. Returns the config path setLines gets,
+// missing.txt is deliberately absent. When CI supplies deterministic VST test
+// modules, they are staged under stable names that select accepted, rejected
+// and VST2 modes in the plug-in fixture. Returns the config path setLines gets,
 // or an empty string on failure.
 QString buildReferenceFiles(const QDir& outDir)
 {
@@ -385,6 +409,39 @@ QString buildReferenceFiles(const QDir& outDir)
 	if (!writeWavFile(refsDir.filePath(QStringLiteral("example.wav")), 1, 48000, 4800))
 		return QString();
 	if (!writeWavFile(refsDir.filePath(QStringLiteral("brir.wav")), 4, 48000, 4800))
+		return QString();
+
+	const auto stagePlugin = [&refsDir](const QString& source, const QString& fileName,
+		const char* stagedVariable)
+	{
+		if (source.isEmpty())
+		{
+			qunsetenv(stagedVariable);
+			return true;
+		}
+		if (!QFileInfo::exists(source))
+		{
+			qWarning("SkinGallery: configured test plug-in does not exist: %s", qPrintable(source));
+			return false;
+		}
+		const QString target = refsDir.filePath(fileName);
+		QFile::remove(target);
+		if (!QFile::copy(source, target))
+		{
+			qWarning("SkinGallery: could not stage test plug-in %s as %s",
+				qPrintable(source), qPrintable(target));
+			return false;
+		}
+		return qputenv(stagedVariable, QDir::toNativeSeparators(target).toUtf8());
+	};
+
+	const QString vst3Source = qEnvironmentVariable("EAPO_GALLERY_VST3_PLUGIN");
+	if (!stagePlugin(vst3Source, QStringLiteral("Upmixer.vst3"),
+		"EAPO_GALLERY_VST3_UPMIXER_STAGED")
+		|| !stagePlugin(vst3Source, QStringLiteral("StereoOnly.vst3"),
+			"EAPO_GALLERY_VST3_STEREO_STAGED")
+		|| !stagePlugin(qEnvironmentVariable("EAPO_GALLERY_VST2_PLUGIN"),
+			QStringLiteral("LegacyDisguised.vst3"), "EAPO_GALLERY_VST2_STAGED"))
 		return QString();
 
 	QFile config(refsDir.filePath(QStringLiteral("gallery.txt")));

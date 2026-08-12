@@ -25,6 +25,7 @@
 #include <memory>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <vector>
 #include "aeffectx.h"
 #include "pluginterfaces/base/ibstream.h"
@@ -76,6 +77,11 @@ public:
 	// arrangement. No preferred-layout fallback is applied after a failure.
 	bool negotiateBusLayouts(VST3BusLayout inputLayout, VST3BusLayout outputLayout,
 		int automaticChannelCount);
+	// Logical names for the VST3 arrangements most recently reported by the
+	// processor. Unknown or vendor-specific arrangements intentionally remain
+	// empty so diagnostics never claim a layout from channel count alone.
+	std::optional<VST3BusLayout> getNegotiatedVST3InputLayout() const;
+	std::optional<VST3BusLayout> getNegotiatedVST3OutputLayout() const;
 	// Supplies semantic EAPO channel names for the next VST3 negotiation.
 	// The two-vector form supports asymmetric upmixer buses.
 	void setChannelNameHints(const std::vector<std::wstring>& channelNames);

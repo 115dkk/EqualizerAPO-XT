@@ -410,6 +410,23 @@ jobs:
           -MsvcDevPlatform "${{ matrix.msvcdevplatform }}" `
           -UpdateChannel "${{ matrix.channel }}"
 
+    - name: Run VST Editor self-test (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      timeout-minutes: 3
+      shell: pwsh
+      run: |
+        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll" `
+          -Destination "build-Editor-x64\release\velopack_libc.dll" -Force
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
+        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
+        $env:QT_QPA_PLATFORM = "offscreen"
+        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
+          -ArgumentList @("--selftest-vst") -PassThru -Wait -NoNewWindow
+        if ($proc.ExitCode -ne 0) {
+          Write-Error "VST Editor self-test failed (exit code $($proc.ExitCode))"
+          exit 1
+        }
+
 
     # Offscreen skin gallery: proves the Editor renders every skin headless and
     # publishes the judging material for the skin program (issues #66-#68).
@@ -435,9 +452,20 @@ jobs:
         # offscreen plugin then fails to load and Qt parks a fatal-error dialog
         # forever on the headless runner. Point the platform-plugin search at
         # the full Qt install instead (verified: without this the gallery
-        # hangs; with it, all 120 PNGs render).
+        # hangs; with it, the complete PNG matrix renders).
         $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
         $env:QT_QPA_PLATFORM = "offscreen"
+        # The deterministic host fixtures let the gallery prove all three UI
+        # states against the actual loaded ABI: accepted VST3, rejected VST3,
+        # and VST2 with stale Input/Output keys.
+        $env:EAPO_GALLERY_VST3_PLUGIN = "${{ github.workspace }}\Tests\TestVst3Plugin\${{ matrix.platform }}\Release\TestVst3Plugin.vst3"
+        $env:EAPO_GALLERY_VST2_PLUGIN = "${{ github.workspace }}\Tests\TestVst2Plugin\${{ matrix.platform }}\Release\TestVst2Plugin.dll"
+        foreach ($fixture in @($env:EAPO_GALLERY_VST3_PLUGIN, $env:EAPO_GALLERY_VST2_PLUGIN)) {
+          if (-not (Test-Path $fixture)) {
+            Write-Error "VST gallery fixture not found: $fixture"
+            exit 1
+          }
+        }
         $outDir = "${{ github.workspace }}\skin-gallery"
         # Editor.exe is a GUI-subsystem binary; Start-Process -Wait is the
         # reliable way to collect its exit code from PowerShell.
