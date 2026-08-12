@@ -1,0 +1,76 @@
+CardSelectionTest: starting
+Delete took 0 ms
+QFontDatabase: Cannot find font directory E:/EqualizerAPO-XT/Qt/6.10.1/msvc2022_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+Create took 12 ms (prepare 0, editor guis 2, card rows 9, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: studio/dark header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: studio/dark editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: studio/dark complete
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: studio/light header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: studio/light editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: studio/light complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: minimal/dark header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: minimal/dark editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: minimal/dark complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: minimal/light header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: minimal/light editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: minimal/light complete
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 5 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: soft/dark header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: soft/dark editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: soft/dark complete
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: soft/light header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: soft/light editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: soft/light complete
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: rack/dark header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: rack/dark editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: rack/dark complete
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: rack/light header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: rack/light editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: rack/light complete
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: matrix/dark header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: matrix/dark editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: matrix/dark complete
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: matrix/light header click model=1 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: matrix/light editor click model=0 visual=0 selectedFrames=0 focusedFrames=1
+CardSelectionTest: matrix/light complete
+CardSelectionTest: 10 scenes, failures 20
+QThreadStorage: entry 1 destroyed before end of thread 0x1dfa462acd0
+QThreadStorage: entry 0 destroyed before end of thread 0x1dfa462acd0

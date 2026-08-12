@@ -1,0 +1,70 @@
+CardMoveTest: starting
+Delete took 0 ms
+QFontDatabase: Cannot find font directory E:/EqualizerAPO-XT/Qt/6.10.1/msvc2022_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+Create took 604 ms (prepare 3, editor guis 152, card rows 437, add 0, channels 4, rows 187)
+Delete took 159 ms
+Create took 700 ms (prepare 1, editor guis 164, card rows 518, add 0, channels 6, rows 187)
+Delete took 0 ms
+Create took 1014 ms (prepare 1, editor guis 293, card rows 703, add 0, channels 6, rows 187)
+Incremental move took 24 ms
+CardMoveTest: studio/dark move 1: 75 ms (rows 186, widgets 8255)
+Incremental move took 9 ms
+CardMoveTest: studio/dark move 2: 40 ms (rows 186, widgets 8267)
+Delete took 0 ms
+Create took 1017 ms (prepare 2, editor guis 288, card rows 710, add 0, channels 4, rows 187)
+Incremental move took 12 ms
+CardMoveTest: studio/light move 1: 50 ms (rows 186, widgets 8255)
+Incremental move took 10 ms
+CardMoveTest: studio/light move 2: 48 ms (rows 186, widgets 8267)
+Delete took 0 ms
+Create took 1005 ms (prepare 2, editor guis 307, card rows 680, add 0, channels 6, rows 187)
+Incremental move took 12 ms
+CardMoveTest: minimal/dark move 1: 45 ms (rows 186, widgets 8279)
+Incremental move took 9 ms
+CardMoveTest: minimal/dark move 2: 33 ms (rows 186, widgets 8291)
+Delete took 0 ms
+Create took 989 ms (prepare 1, editor guis 294, card rows 678, add 0, channels 6, rows 187)
+Incremental move took 12 ms
+CardMoveTest: minimal/light move 1: 46 ms (rows 186, widgets 8279)
+Incremental move took 8 ms
+CardMoveTest: minimal/light move 2: 33 ms (rows 186, widgets 8291)
+Delete took 0 ms
+Create took 1242 ms (prepare 1, editor guis 368, card rows 847, add 0, channels 10, rows 187)
+Incremental move took 17 ms
+CardMoveTest: soft/dark move 1: 66 ms (rows 186, widgets 8117)
+Incremental move took 8 ms
+CardMoveTest: soft/dark move 2: 50 ms (rows 186, widgets 8129)
+Delete took 0 ms
+Create took 1388 ms (prepare 2, editor guis 409, card rows 954, add 0, channels 5, rows 187)
+Incremental move took 13 ms
+CardMoveTest: soft/light move 1: 54 ms (rows 186, widgets 8117)
+Incremental move took 12 ms
+CardMoveTest: soft/light move 2: 67 ms (rows 186, widgets 8129)
+Delete took 0 ms
+Create took 1350 ms (prepare 2, editor guis 398, card rows 930, add 0, channels 8, rows 187)
+Incremental move took 13 ms
+CardMoveTest: rack/dark move 1: 103 ms (rows 186, widgets 8237)
+Incremental move took 9 ms
+CardMoveTest: rack/dark move 2: 84 ms (rows 186, widgets 8249)
+Delete took 0 ms
+Create took 1333 ms (prepare 2, editor guis 388, card rows 921, add 0, channels 8, rows 187)
+Incremental move took 15 ms
+CardMoveTest: rack/light move 1: 97 ms (rows 186, widgets 8237)
+Incremental move took 8 ms
+CardMoveTest: rack/light move 2: 75 ms (rows 186, widgets 8249)
+Delete took 0 ms
+Create took 1333 ms (prepare 2, editor guis 391, card rows 919, add 0, channels 7, rows 187)
+Incremental move took 16 ms
+CardMoveTest: matrix/dark move 1: 63 ms (rows 186, widgets 8483)
+Incremental move took 9 ms
+CardMoveTest: matrix/dark move 2: 49 ms (rows 186, widgets 8495)
+Delete took 0 ms
+Create took 1355 ms (prepare 1, editor guis 406, card rows 925, add 0, channels 9, rows 187)
+Incremental move took 17 ms
+CardMoveTest: matrix/light move 1: 56 ms (rows 186, widgets 8483)
+Incremental move took 11 ms
+CardMoveTest: matrix/light move 2: 57 ms (rows 186, widgets 8495)
+CardMoveTest: 20 moves over 186 rows, worst 103 ms (rack/dark), warning 250 ms, limit 1000 ms, failures 0
+QThreadStorage: entry 1 destroyed before end of thread 0x210046f5fe0
+QThreadStorage: entry 0 destroyed before end of thread 0x210046f5fe0

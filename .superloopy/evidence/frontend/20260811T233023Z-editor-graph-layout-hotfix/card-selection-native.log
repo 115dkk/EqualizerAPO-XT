@@ -1,0 +1,55 @@
+CardSelectionTest: starting
+CardSelectionTest: target platform=windows style= dpr=2.00 locale=ko_KR
+Delete took 0 ms
+Create took 913 ms (prepare 0, editor guis 30, card rows 882, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: studio/dark complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: studio/light complete
+Delete took 0 ms
+Create took 9 ms (prepare 0, editor guis 1, card rows 7, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 8 ms (prepare 0, editor guis 1, card rows 7, add 0, channels 0, rows 4)
+CardSelectionTest: minimal/dark complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: minimal/light complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: soft/dark complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 5, add 0, channels 0, rows 4)
+CardSelectionTest: soft/light complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 6 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: rack/dark complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: rack/light complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 1, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: matrix/dark complete
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+Delete took 0 ms
+Create took 7 ms (prepare 0, editor guis 0, card rows 6, add 0, channels 0, rows 4)
+CardSelectionTest: matrix/light complete
+CardSelectionTest: 10 scenes, failures 0
+QThreadStorage: entry 1 destroyed before end of thread 0x1a929c99f00
+QThreadStorage: entry 0 destroyed before end of thread 0x1a929c99f00
