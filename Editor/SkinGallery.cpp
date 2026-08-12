@@ -30,15 +30,18 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMouseEvent>
 #include <QPixmap>
 #include <QPointer>
 #include <QRadioButton>
 #include <QToolButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QScreen>
 #include <QSpinBox>
 #include <QString>
 #include <QStringList>
@@ -68,6 +71,7 @@
 #include "filters/BiQuad.h"
 #include "Editor/skins/shared/SkinFileIcons.h"
 #include "Editor/widgets/FilterCardRow.h"
+#include "Editor/widgets/CommandRowFrame.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/SkinComboBox.h"
@@ -2140,6 +2144,197 @@ int runCardMoveTest(const QStringList& arguments)
 		qPrintable(worstName), warningMs, limitMs, failures);
 
 	// Same no-teardown exit as run().
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
+}
+
+int runCardSelectionTest(const QStringList& arguments)
+{
+	qWarning("CardSelectionTest: starting");
+	QScreen* screen = QGuiApplication::primaryScreen();
+	qWarning("CardSelectionTest: target platform=%s style=%s dpr=%.2f locale=%s",
+		qPrintable(QGuiApplication::platformName()), qPrintable(qApp->style()->objectName()),
+		screen != nullptr ? screen->devicePixelRatio() : 0.0, qPrintable(QLocale().name()));
+
+	const int flagIndex = arguments.indexOf(QStringLiteral("--card-selection-test"));
+	QDir outputDir;
+	bool captureRequested = false;
+	if (flagIndex >= 0 && flagIndex + 1 < arguments.size()
+		&& !arguments.at(flagIndex + 1).startsWith(QStringLiteral("--")))
+	{
+		outputDir = QDir(arguments.at(flagIndex + 1));
+		captureRequested = true;
+		if (!outputDir.mkpath(QStringLiteral(".")))
+		{
+			qWarning("CardSelectionTest: cannot create output directory %s",
+				qPrintable(outputDir.absolutePath()));
+			return 2;
+		}
+	}
+
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+	{
+		qWarning("CardSelectionTest: cannot create a scratch directory");
+		return 2;
+	}
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+	{
+		qWarning("CardSelectionTest: cannot write reference target files");
+		return 2;
+	}
+
+	const auto click = [](QWidget* target, const QPoint& localPos) {
+		const QPoint globalPos = target->mapToGlobal(localPos);
+		QMouseEvent press(QEvent::MouseButtonPress, QPointF(localPos), QPointF(globalPos),
+			Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+		QApplication::sendEvent(target, &press);
+		QMouseEvent release(QEvent::MouseButtonRelease, QPointF(localPos), QPointF(globalPos),
+			Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+		QApplication::sendEvent(target, &release);
+		QApplication::processEvents();
+	};
+	const auto pressKey = [](QWidget* target, int key) {
+		QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+		QApplication::sendEvent(target, &press);
+		QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
+		QApplication::sendEvent(target, &release);
+		QApplication::processEvents();
+	};
+
+	int failures = 0;
+	int scenes = 0;
+	for (ISkin* skin : Skins::all())
+	{
+		for (int darkIndex = 0; darkIndex < 2; darkIndex++)
+		{
+			const bool dark = darkIndex == 0;
+			const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
+			const QString scene = QStringLiteral("%1/%2").arg(skin->id(), mode);
+			SkinManager::instance()->applySkin(skin->id(), dark);
+
+			QScrollArea scrollArea;
+			scrollArea.resize(960, 720);
+			QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
+				QStringLiteral("Preamp: -1 dB"),
+				QStringLiteral("Preamp: -2 dB"),
+				QStringLiteral("Preamp: -3 dB")
+			});
+			FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+			if (table == nullptr || rows.size() != 3)
+			{
+				qWarning("CardSelectionTest: %s table construction failed", qPrintable(scene));
+				failures++;
+				continue;
+			}
+
+			const auto visualState = [&rows](const char* property, int expectedIndex) {
+				int count = 0;
+				bool expected = false;
+				for (int i = 0; i < rows.size(); i++)
+				{
+					CommandRowFrame* frame = rows[i]->findChild<CommandRowFrame*>(
+						QString(), Qt::FindDirectChildrenOnly);
+					const bool active = frame != nullptr && frame->property(property).toBool();
+					if (active)
+						count++;
+					if (i == expectedIndex)
+						expected = active;
+				}
+				return qMakePair(count, expected);
+			};
+
+			// Drive the exact FilterTable pointer path, then compare the model
+			// answer with the dynamic properties the skin actually renders.
+			const QPoint secondHeader = rows[1]->mapTo(table, rows[1]->getHeaderRect().center());
+			click(table, secondHeader);
+			const bool headerModel = table->getSelectedItems().size() == 1
+				&& table->getSelectedItems().contains(table->documentItems().at(1))
+				&& table->getFocusedItem() == table->documentItems().at(1);
+			const QPair<int, bool> headerSelected = visualState("selected", 1);
+			const QPair<int, bool> headerFocused = visualState("focused", 1);
+			const bool headerVisual = headerSelected.first == 1 && headerSelected.second
+				&& headerFocused.first == 1 && headerFocused.second;
+			if (!headerModel || !headerVisual)
+			{
+				qWarning("CardSelectionTest: %s header click model=%d visual=%d selectedFrames=%d focusedFrames=%d",
+					qPrintable(scene), headerModel ? 1 : 0, headerVisual ? 1 : 0,
+					headerSelected.first, headerFocused.first);
+				failures++;
+			}
+
+			// Keyboard navigation is the closest regression path: it uses the
+			// same state synchronizer but must retain the list's existing arrow
+			// behavior after pointer clicks become card-aware.
+			pressKey(table, Qt::Key_Up);
+			const bool keyboardModel = table->getSelectedItems().size() == 1
+				&& table->getSelectedItems().contains(table->documentItems().at(0))
+				&& table->getFocusedItem() == table->documentItems().at(0);
+			const QPair<int, bool> keyboardSelected = visualState("selected", 0);
+			const QPair<int, bool> keyboardFocused = visualState("focused", 0);
+			const bool keyboardVisual = keyboardSelected.first == 1 && keyboardSelected.second
+				&& keyboardFocused.first == 1 && keyboardFocused.second;
+			if (!keyboardModel || !keyboardVisual)
+			{
+				qWarning("CardSelectionTest: %s keyboard move model=%d visual=%d selectedFrames=%d focusedFrames=%d",
+					qPrintable(scene), keyboardModel ? 1 : 0, keyboardVisual ? 1 : 0,
+					keyboardSelected.first, keyboardFocused.first);
+				failures++;
+			}
+
+			// QLineEdit consumes its own press. A plain click there must still
+			// focus/select its owning card and collapse an old multi-selection.
+			rows[2]->editText();
+			QApplication::processEvents();
+			table->selectAll();
+			QApplication::processEvents();
+			QLineEdit* rawEditor = rows[2]->findChild<QLineEdit*>(
+				QStringLiteral("FilterCardRawEditor"));
+			if (rawEditor == nullptr || !rawEditor->isVisible())
+			{
+				qWarning("CardSelectionTest: %s raw editor is unavailable", qPrintable(scene));
+				failures++;
+			}
+			else
+			{
+				click(rawEditor, rawEditor->rect().center());
+				const bool editorModel = table->getSelectedItems().size() == 1
+					&& table->getSelectedItems().contains(table->documentItems().at(2))
+					&& table->getFocusedItem() == table->documentItems().at(2);
+				const QPair<int, bool> editorSelected = visualState("selected", 2);
+				const QPair<int, bool> editorFocused = visualState("focused", 2);
+				const bool editorVisual = editorSelected.first == 1 && editorSelected.second
+					&& editorFocused.first == 1 && editorFocused.second;
+				if (!editorModel || !editorVisual)
+				{
+					qWarning("CardSelectionTest: %s editor click model=%d visual=%d selectedFrames=%d focusedFrames=%d",
+						qPrintable(scene), editorModel ? 1 : 0, editorVisual ? 1 : 0,
+						editorSelected.first, editorFocused.first);
+					failures++;
+				}
+			}
+
+			if (captureRequested)
+			{
+				const QString shot = outputDir.filePath(QStringLiteral("%1_%2_card-selection.png")
+					.arg(skin->id(), mode));
+				if (!table->grab().save(shot, "PNG"))
+				{
+					qWarning("CardSelectionTest: %s could not write %s",
+						qPrintable(scene), qPrintable(shot));
+					failures++;
+				}
+			}
+
+			qWarning("CardSelectionTest: %s complete", qPrintable(scene));
+			scenes++;
+		}
+	}
+
+	qWarning("CardSelectionTest: %d scenes, failures %d", scenes, failures);
 	const int status = failures == 0 ? 0 : 1;
 	std::fflush(nullptr);
 	std::_Exit(status);

@@ -492,6 +492,39 @@ jobs:
           exit 1
         }
 
+    # Analysis dock layout gate: reproduces the right-side placement at the
+    # Editor's 1024x768 default, checks that the filter workspace keeps a
+    # usable majority, the controls fill the dock, and moving back to the
+    # bottom restores the compact horizontal control cell.
+    - name: Run analysis dock layout test (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll" `
+          -Destination "build-Editor-x64\release\velopack_libc.dll" -Force
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
+        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
+        $env:QT_QPA_PLATFORM = "offscreen"
+        $env:QT_FORCE_STDERR_LOGGING = "1"
+        $outDir = "${{ github.workspace }}\analysis-layout"
+        New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+        $shot = Join-Path $outDir "right-dock.png"
+        $log = Join-Path $outDir "analysis-layout-test.log"
+        $fixture = "${{ github.workspace }}\Setup\config\config.txt"
+        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
+          -ArgumentList @("--analysis-layout-test", $shot, $fixture) `
+          -PassThru -Wait -NoNewWindow -RedirectStandardError $log
+        if (Test-Path $log) { Get-Content $log | Write-Host }
+        if ($proc.ExitCode -ne 0) {
+          Write-Error "Analysis dock layout test failed (exit code $($proc.ExitCode))"
+          exit 1
+        }
+        if (-not (Test-Path $shot)) {
+          Write-Error "Analysis dock layout test produced no screenshot"
+          exit 1
+        }
+
     # Card drag-move latency gate: one card moved down and back up on a 100+
     # row document, per skin x mode. Field report: a single card move cost
     # 5-6 s on a 12600K because the internal drag-move rebuilt every card
@@ -521,12 +554,50 @@ jobs:
           exit 1
         }
 
+    # Card pointer-selection gate: ordinary header clicks and clicks consumed
+    # by an in-card editor control must both leave one model selection, one
+    # focused item, and exactly one matching card chrome across every skin.
+    - name: Run card selection test (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
+        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
+        $env:QT_QPA_PLATFORM = "offscreen"
+        $env:QT_FORCE_STDERR_LOGGING = "1"
+        $outDir = "${{ github.workspace }}\card-selection"
+        New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+        $log = Join-Path $outDir "card-selection-test.log"
+        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
+          -ArgumentList @("--card-selection-test", $outDir) `
+          -PassThru -Wait -NoNewWindow -RedirectStandardError $log
+        if (Test-Path $log) { Get-Content $log | Write-Host }
+        if ($proc.ExitCode -ne 0) {
+          Write-Error "Card selection test failed (exit code $($proc.ExitCode))"
+          exit 1
+        }
+
     - name: Upload skin gallery
       if: matrix.simd_variant == 'avx2'
       uses: actions/upload-artifact@v7
       with:
         name: skin-gallery
         path: skin-gallery/*.png
+
+    - name: Upload analysis dock layout proof
+      if: matrix.simd_variant == 'avx2'
+      uses: actions/upload-artifact@v7
+      with:
+        name: analysis-layout
+        path: analysis-layout/*
+
+    - name: Upload card selection proof
+      if: matrix.simd_variant == 'avx2'
+      uses: actions/upload-artifact@v7
+      with:
+        name: card-selection
+        path: card-selection/*
 
     # Pull the debug symbols out of the release dirs so the installers stay
     # lean, and keep them as a run artifact: field crash minidumps written by

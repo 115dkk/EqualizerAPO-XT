@@ -30,6 +30,10 @@ public:
 
 	QRect getHeaderRect() const;
 	void editText();
+	// Pull the document's current selection/focus facts into the skin-owned
+	// frame state. FilterTable calls this after every selection mutation; an
+	// ordinary repaint is intentionally not responsible for changing state.
+	void syncVisualState();
 	// In-place refresh of the 1-based row number and the channel/If scope after
 	// an incremental row insert/remove above this row, so shifted rows do not
 	// need to be rebuilt. Updates exactly what the constructor derived from its
@@ -53,13 +57,13 @@ private slots:
 	void routingEdited();
 
 private:
+	void watchPointerSelection(QWidget* root);
 	void watchEditorScroll(QScrollArea* scroll);
 	void syncEditorScrollHeight(QScrollArea* scroll);
 	void applyDescriptor();
 	void rebuildSummary();
 	void setEditing(bool editing);
 	void buildChannelBadges(const QStringList& channels);
-	void refreshStateProperties();
 	CommandRowInfo currentRowInfo() const;
 	QString uncommentedLine() const;
 	// Indent units for the outer margin. Branch/tail rows of the If family

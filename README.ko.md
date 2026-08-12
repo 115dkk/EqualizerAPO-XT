@@ -21,7 +21,10 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
    ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
 3. 커뮤니티 피드백 라운드를 반영해 Editor 스킨을 다듬습니다. 다섯 스킨은
    공용 동작을 유지하면서 시각 작업이 각 스킨 안에 머물도록 전용 모듈과 자동
-   경계 검사를 갖췄습니다([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
+   경계 검사를 갖췄습니다. 최근 작업에서는 오른쪽 분석 그래프의 처음 너비를
+   균형 있게 잡고, 마우스로 바꾼 카드 선택과 포커스가 어긋나지 않게 했습니다
+   ([#266](https://github.com/115dkk/EqualizerAPO-XT/pull/266)). 스킨 모듈 경계는
+   [#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)에서 마련했습니다.
    앞선 라운드에서는 Soft 파스텔 재작업, 다크 모드 상태 대비, 분석 패널 한칸
    배치, 그래픽 EQ 모던 카드, 카드 추가·삽입 계약, Device Selector 스킨
    동기화를 다뤘습니다([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).

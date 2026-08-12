@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "artifactRefs": [
+    {
+      "id": "windows-editor-interaction",
+      "kind": "app-automation-transcript",
+      "description": "Native Qt analysis-dock and card-selection automation with adjacent regressions.",
+      "path": ".superloopy/evidence/frontend/20260811T233023Z-editor-graph-layout-hotfix/app-automation-transcript.txt"
+    },
+    {
+      "id": "windows-editor-device",
+      "kind": "device-report",
+      "description": "Exact Windows, display, Qt, build, and capture target.",
+      "path": ".superloopy/evidence/frontend/20260811T233023Z-editor-graph-layout-hotfix/device-report.json"
+    },
+    {
+      "id": "windows-analysis-visual",
+      "kind": "screenshot",
+      "description": "Complete native Editor window with the corrected right analysis dock.",
+      "path": ".superloopy/evidence/frontend/20260811T233023Z-editor-graph-layout-hotfix/after-right-native.png"
+    },
+    {
+      "id": "windows-card-visual",
+      "kind": "screenshot",
+      "description": "Native Studio-dark card scene after a consumed editor click moved selection to row three.",
+      "path": ".superloopy/evidence/frontend/20260811T233023Z-editor-graph-layout-hotfix/card-selection-native/studio_dark_card-selection.png"
+    }
+  ],
+  "surfaceEvidence": [
+    {
+      "id": "surface-windows-qt-editor",
+      "surface": "EqualizerAPO-XT Qt Widgets Editor",
+      "target": {
+        "id": "windows-11-qt-editor-4k-200pct",
+        "platform": "windows",
+        "environment": "Qt 6.10.1 Widgets on Windows 11 x64, Windows QPA, DPR 2.00"
+      },
+      "owner": "native",
+      "claims": [
+        "interaction",
+        "visual",
+        "target"
+      ],
+      "scopeReason": "The changed dock layout and card focus/selection chrome are both owned by the native Qt Editor.",
+      "invocation": "Run --analysis-layout-test and --card-selection-test in the candidate native Windows build.",
+      "verdict": "passed",
+      "artifactRefs": [
+        "windows-editor-interaction",
+        "windows-editor-device",
+        "windows-analysis-visual",
+        "windows-card-visual"
+      ]
+    }
+  ]
+}

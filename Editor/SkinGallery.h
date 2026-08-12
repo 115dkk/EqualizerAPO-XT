@@ -43,4 +43,10 @@ int runSwitchTest(const QStringList& arguments);
 // history: one card move cost 5-6 s on a fast desktop while the move
 // rebuilt every card row.
 int runCardMoveTest(const QStringList& arguments);
+
+// Entry point behind --card-selection-test: the pointer-selection regression
+// gate. It verifies that a plain header click moves both the model focus and
+// the rendered card state, then that clicking an interactive control inside a
+// different card collapses a prior multi-selection onto that card.
+int runCardSelectionTest(const QStringList& arguments);
 }

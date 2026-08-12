@@ -1,8 +1,10 @@
 #include "FilterCardRow.h"
 
+#include <QAbstractButton>
 #include <QEvent>
 #include <QIcon>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
 #include <QPixmapCache>
@@ -82,7 +84,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// Children created below inherit the sheets as they appear, and the
 	// applyDescriptor() re-run finds identical strings and properties, so it
 	// skips both the re-set and the construction-time repolish entirely.
-	refreshStateProperties();
+	syncVisualState();
 
 	QHBoxLayout* headerLayout = new QHBoxLayout(headerWidget);
 	headerLayout->setContentsMargins(8, 4, 8, 4);
@@ -328,7 +330,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 
 	bodyStack->setVisible(expandButton->isChecked());
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
-		refreshStateProperties();
+		syncVisualState();
 		update();
 	});
 	// Per-command-type chrome hook: rows are recreated on every skin switch
@@ -336,6 +338,17 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// the active skin to tag or extend this row.
 	SkinManager::instance()->prepareCommandRow(currentRowInfo(), cardFrame, headerWidget, bodyStack);
 	applyDescriptor();
+
+	// Mouse events from the header's blank/label surface naturally bubble to
+	// FilterTable, which also owns drag selection. Interactive controls accept
+	// their events, though, so a click in an expanded card used to leave a
+	// different row focused and could strand a multi-selection indefinitely.
+	// Observe only the non-drag surfaces and select their owning card before
+	// the control handles the same plain click.
+	watchPointerSelection(bodyStack);
+	watchPointerSelection(rawPreviewLabel);
+	for (QAbstractButton* button : headerWidget->findChildren<QAbstractButton*>())
+		watchPointerSelection(button);
 }
 
 void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
@@ -520,6 +533,19 @@ QSize FilterCardRow::minimumSizeHint() const
 // follows the content explicitly: whenever the scroll or its content resizes
 // or relayouts, the scroll's height is fixed to what the content needs at
 // the width it actually has.
+void FilterCardRow::watchPointerSelection(QWidget* root)
+{
+	if (root == nullptr)
+		return;
+
+	root->installEventFilter(this);
+	for (QWidget* child : root->findChildren<QWidget*>(
+		QString(), Qt::FindDirectChildrenOnly))
+	{
+		watchPointerSelection(child);
+	}
+}
+
 void FilterCardRow::watchEditorScroll(QScrollArea* scroll)
 {
 	scroll->installEventFilter(this);
@@ -565,6 +591,23 @@ bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
 {
 	switch (event->type())
 	{
+	case QEvent::ChildPolished:
+	{
+		QChildEvent* childEvent = static_cast<QChildEvent*>(event);
+		watchPointerSelection(qobject_cast<QWidget*>(childEvent->child()));
+		break;
+	}
+	case QEvent::MouseButtonPress:
+	{
+		QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+		if (mouseEvent->button() == Qt::LeftButton
+			&& mouseEvent->modifiers() == Qt::NoModifier
+			&& table != nullptr && item != nullptr)
+		{
+			table->selectOnlyFromCard(item);
+		}
+		break;
+	}
 	case QEvent::Resize:
 	case QEvent::Show:
 	case QEvent::LayoutRequest:
@@ -711,7 +754,7 @@ void FilterCardRow::applyDescriptor()
 	{
 		if (rawPreviewLabel != nullptr)
 			rawPreviewLabel->setVisible(false);
-		refreshStateProperties();
+		syncVisualState();
 		updateGeometry();
 		update();
 		return;
@@ -784,7 +827,7 @@ void FilterCardRow::applyDescriptor()
 	if (badgeChannels.isEmpty() && channelSelectionGatesType(descriptor.type))
 		badgeChannels = descriptor.scopeChannels;
 	buildChannelBadges(badgeChannels);
-	refreshStateProperties();
+	syncVisualState();
 	update();
 }
 
@@ -947,7 +990,7 @@ void FilterCardRow::expandedToggled(bool checked)
 	bodyStack->setVisible(checked);
 }
 
-void FilterCardRow::refreshStateProperties()
+void FilterCardRow::syncVisualState()
 {
 	if (cardFrame == nullptr)
 		return;

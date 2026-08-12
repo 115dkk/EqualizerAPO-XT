@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The Editor's right-side graph and card focus now stay under control.**
+  Moving the analysis graph to the right starts it at a bounded width instead
+  of crushing the filter cards into a sliver, and its source/channel controls
+  now span the dock instead of stopping at a clipped-looking 250 px header.
+  Card selection chrome also follows the live model again: a plain click,
+  including one inside an editor field that consumes the mouse event, moves
+  selection and focus to that card without leaving old cards highlighted
+  ([#266](https://github.com/115dkk/EqualizerAPO-XT/pull/266)).
+
 ## v2.34.6 — 2026-08-09
 
 - **The Editor and shared core now have enforceable module boundaries.** The
