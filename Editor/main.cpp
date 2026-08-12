@@ -28,8 +28,11 @@
 
 #include <QTranslator>
 #include <QApplication>
+#include <QBoxLayout>
 #include <QDir>
 #include <QCommandLineParser>
+#include <QDockWidget>
+#include <QFileInfo>
 #include <QFont>
 #include <QFontDatabase>
 #include <QPalette>
@@ -501,6 +504,12 @@ int main(int argc, char* argv[])
 		if (application.arguments().contains(QStringLiteral("--card-move-test")))
 			return SkinGallery::runCardMoveTest(application.arguments());
 
+		// Headless card pointer-selection gate. This exercises both ordinary
+		// header selection and clicks consumed by an editor control inside a
+		// card, then compares the model with the card chrome's live state.
+		if (application.arguments().contains(QStringLiteral("--card-selection-test")))
+			return SkinGallery::runCardSelectionTest(application.arguments());
+
 		// Read-only report of what the install hook's config migration would
 		// do on this machine (classification + manifest); writes nothing.
 		if (application.arguments().contains(QStringLiteral("--migration-dry-run")))
@@ -554,7 +563,9 @@ int main(int argc, char* argv[])
 		if (!WindowsRegistry::keyExists(EDITOR_PER_FILE_REGPATH))
 			WindowsRegistry::createKey(EDITOR_PER_FILE_REGPATH);
 
-		MainWindow w(configDir, updateSession.get());
+		const bool analysisLayoutTestRequested =
+			application.arguments().contains(QStringLiteral("--analysis-layout-test"));
+		MainWindow w(configDir, updateSession.get(), nullptr, analysisLayoutTestRequested);
 		w.show();
 
 		// One-time notice after the install hook migrated a config tree; a
@@ -567,16 +578,124 @@ int main(int argc, char* argv[])
 		QCommandLineOption stormOption(QStringLiteral("skin-switch-storm"));
 		stormOption.setFlags(QCommandLineOption::HiddenFromHelp);
 		parser.addOption(stormOption);
+		// Deterministic real-window regression probe for the analysis dock. This
+		// runs the same right/bottom layout path as the position combo, records
+		// the live widget geometry and optionally captures the composed surface.
+		QCommandLineOption analysisLayoutOption(QStringLiteral("analysis-layout-test"));
+		analysisLayoutOption.setValueName(QStringLiteral("screenshot"));
+		analysisLayoutOption.setFlags(QCommandLineOption::HiddenFromHelp);
+		parser.addOption(analysisLayoutOption);
 		parser.process(application);
 		QStringList args = parser.positionalArguments();
-		if (args.isEmpty() && w.isEmpty())
+		if (!analysisLayoutTestRequested && args.isEmpty() && w.isEmpty())
 			args = QStringList("config.txt");
 
 		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
 		bool firstRun = VelopackBootstrap::isFirstRun();
-		if (parser.isSet(stormOption))
+		if (parser.isSet(analysisLayoutOption))
+		{
+			QDockWidget* dock = w.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));
+			if (dock == nullptr)
+			{
+				fprintf(stderr, "Analysis layout test: required dock is missing\n");
+				return 1;
+			}
+
+			w.showNormal();
+			w.resize(1024, 768);
+			dock->show();
+			const QString screenshotPath = parser.value(analysisLayoutOption);
+			QTimer::singleShot(750, &w, [&w, dock, screenshotPath]() {
+				fprintf(stderr,
+					"Analysis layout target: platform=%s style=%s dpr=%.2f locale=%s skin=%s dark=%d\n",
+					qPrintable(QGuiApplication::platformName()), qPrintable(qApp->style()->objectName()),
+					w.devicePixelRatioF(), qPrintable(QLocale().name()),
+					qPrintable(SkinManager::instance()->currentSkinId()),
+					SkinManager::instance()->isDark() ? 1 : 0);
+				QWidget* controls = w.findChild<QWidget*>(QStringLiteral("analysisControlBar"));
+				QWidget* graph = w.findChild<QWidget*>(QStringLiteral("ModernAnalysisGraph"));
+				QBoxLayout* layout = w.findChild<QBoxLayout*>(QStringLiteral("analysisDockLayout"));
+				const int centralWidth = w.centralWidget()->width();
+				const int dockWidth = dock->width();
+				const int controlsWidth = controls != nullptr ? controls->width() : -1;
+				const int graphWidth = graph != nullptr ? graph->width() : -1;
+				const bool centralProtected = centralWidth * 100 >= w.width() * 55;
+				const bool dockBounded = dockWidth * 100 <= w.width() * 45;
+				const bool graphUsable = graphWidth >= 300;
+				const bool controlsFill = controlsWidth >= graphWidth - 2;
+				const bool stacked = layout != nullptr && layout->direction() == QBoxLayout::TopToBottom;
+
+				bool screenshotSaved = screenshotPath.isEmpty();
+				if (!screenshotPath.isEmpty())
+				{
+					QFileInfo screenshotInfo(screenshotPath);
+					QDir().mkpath(screenshotInfo.absolutePath());
+					const QPixmap shot = w.grab();
+					screenshotSaved = shot.save(screenshotPath);
+				}
+
+				const bool rightPass = centralProtected && dockBounded && graphUsable
+					&& controlsFill && stacked && screenshotSaved;
+				fprintf(stderr,
+					"Analysis layout test (right): window=%dx%d central=%d dock=%d controls=%d graph=%d "
+					"centralProtected=%d dockBounded=%d graphUsable=%d controlsFill=%d stacked=%d screenshot=%d\n",
+					w.width(), w.height(), centralWidth, dockWidth, controlsWidth, graphWidth,
+					centralProtected ? 1 : 0, dockBounded ? 1 : 0, graphUsable ? 1 : 0,
+					controlsFill ? 1 : 0, stacked ? 1 : 0, screenshotSaved ? 1 : 0);
+
+				const bool bottomRequested = QMetaObject::invokeMethod(&w,
+					"on_graphPositionComboBox_currentIndexChanged", Qt::DirectConnection,
+					Q_ARG(int, 1));
+				QTimer::singleShot(250, &w, [&w, dock, rightPass, bottomRequested]() {
+					QWidget* bottomControls = w.findChild<QWidget*>(QStringLiteral("analysisControlBar"));
+					QBoxLayout* bottomLayout = w.findChild<QBoxLayout*>(QStringLiteral("analysisDockLayout"));
+					const bool bottomArea = w.dockWidgetArea(dock) == Qt::BottomDockWidgetArea;
+					const bool horizontal = bottomLayout != nullptr
+						&& bottomLayout->direction() == QBoxLayout::LeftToRight;
+					const bool compactControls = bottomControls != nullptr
+						&& bottomControls->maximumWidth() < QWIDGETSIZE_MAX
+						&& bottomControls->width() <= bottomControls->maximumWidth();
+					fprintf(stderr,
+						"Analysis layout test (bottom): area=%d horizontal=%d compactControls=%d\n",
+						bottomArea ? 1 : 0, horizontal ? 1 : 0, compactControls ? 1 : 0);
+					const bool bottomPass = bottomRequested && bottomArea
+						&& horizontal && compactControls;
+					const bool rightRestoreRequested = QMetaObject::invokeMethod(&w,
+						"on_graphPositionComboBox_currentIndexChanged", Qt::DirectConnection,
+						Q_ARG(int, 2));
+					QTimer::singleShot(250, &w,
+						[&w, dock, rightPass, bottomPass, rightRestoreRequested]() {
+							QWidget* restoredControls = w.findChild<QWidget*>(
+								QStringLiteral("analysisControlBar"));
+							QWidget* restoredGraph = w.findChild<QWidget*>(
+								QStringLiteral("ModernAnalysisGraph"));
+							QBoxLayout* restoredLayout = w.findChild<QBoxLayout*>(
+								QStringLiteral("analysisDockLayout"));
+							const bool rightRestored = rightRestoreRequested
+								&& w.dockWidgetArea(dock) == Qt::RightDockWidgetArea
+								&& restoredLayout != nullptr
+								&& restoredLayout->direction() == QBoxLayout::TopToBottom
+								&& restoredControls != nullptr && restoredGraph != nullptr
+								&& restoredControls->width() >= restoredGraph->width() - 2;
+							fprintf(stderr, "Analysis layout test (right restored): pass=%d\n",
+								rightRestored ? 1 : 0);
+							const int exitCode = rightPass && bottomPass && rightRestored ? 0 : 1;
+							bool holdOk = false;
+							const int requestedHold = qEnvironmentVariableIntValue(
+								"EAPO_ANALYSIS_LAYOUT_HOLD_MS", &holdOk);
+							const int holdMs = holdOk ? qBound(0, requestedHold, 30000) : 0;
+							if (holdMs > 0)
+								QTimer::singleShot(holdMs, &w,
+									[exitCode]() { QCoreApplication::exit(exitCode); });
+							else
+								QCoreApplication::exit(exitCode);
+						});
+				});
+			});
+		}
+		else if (parser.isSet(stormOption))
 			SkinSwitchStorm::run(w);  // storm sessions skip doChecks: its modal warnings would stall the timer
 		else if (firstRun)
 			launchDeviceSelector(executableDirectory());

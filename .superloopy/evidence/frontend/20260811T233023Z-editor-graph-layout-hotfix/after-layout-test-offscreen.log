@@ -1,0 +1,16 @@
+QFontDatabase: Cannot find font directory E:/EqualizerAPO-XT/Qt/6.10.1/msvc2022_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+This plugin does not support propagateSizeHints()
+Delete took 0 ms
+Create took 14 ms (prepare 0, editor guis 5, card rows 8, add 0, channels 0, rows 4)
+addTab: setup 0, insert 0, setLines 14 ms
+Loading took 16.2 ms
+This plugin does not support propagateSizeHints()
+Analysis layout target: platform=offscreen style= dpr=1.00 locale=ko_KR skin=rack dark=1
+Analysis layout test (right): window=1024x768 central=634 dock=389 controls=369 graph=369 centralProtected=1 dockBounded=1 graphUsable=1 controlsFill=1 stacked=1 screenshot=1
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Analysis layout test (bottom): area=1 horizontal=1 compactControls=1
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+Analysis layout test (right restored): pass=1

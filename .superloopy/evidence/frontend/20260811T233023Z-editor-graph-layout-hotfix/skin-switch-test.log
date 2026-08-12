@@ -1,0 +1,128 @@
+SkinSwitchTest: starting
+QFontDatabase: Cannot find font directory E:/EqualizerAPO-XT/Qt/6.10.1/msvc2022_64/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+Delete took 0 ms
+Create took 643 ms (prepare 2, editor guis 159, card rows 468, add 0, channels 4, rows 187)
+Delete took 167 ms
+Create took 703 ms (prepare 2, editor guis 169, card rows 516, add 0, channels 5, rows 187)
+This plugin does not support propagateSizeHints()
+Delete took 0 ms
+Create took 1040 ms (prepare 1, editor guis 301, card rows 720, add 0, channels 5, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 1 studio/dark: 1431 ms (clear 63, apply 8, rebuild 1360, widgets 8292)
+Delete took 0 ms
+Create took 985 ms (prepare 1, editor guis 282, card rows 681, add 0, channels 6, rows 187)
+SkinSwitchTest: round 1 studio/light: 1469 ms (clear 140, apply 13, rebuild 1316, widgets 8292)
+Delete took 0 ms
+Create took 1049 ms (prepare 1, editor guis 323, card rows 707, add 0, channels 6, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 1 minimal/dark: 1496 ms (clear 129, apply 12, rebuild 1355, widgets 8316)
+Delete took 0 ms
+Create took 1062 ms (prepare 2, editor guis 321, card rows 720, add 0, channels 7, rows 187)
+SkinSwitchTest: round 1 minimal/light: 1486 ms (clear 114, apply 17, rebuild 1355, widgets 8316)
+Delete took 0 ms
+Create took 1368 ms (prepare 1, editor guis 402, card rows 940, add 0, channels 11, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 1 soft/dark: 1815 ms (clear 117, apply 15, rebuild 1683, widgets 8154)
+Delete took 0 ms
+Create took 1376 ms (prepare 2, editor guis 404, card rows 943, add 0, channels 9, rows 187)
+SkinSwitchTest: round 1 soft/light: 1884 ms (clear 141, apply 17, rebuild 1726, widgets 8154)
+This plugin does not support propagateSizeHints()
+Delete took 0 ms
+Create took 1376 ms (prepare 2, editor guis 405, card rows 952, add 0, channels 5, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 1 rack/dark: 1869 ms (clear 141, apply 19, rebuild 1709, widgets 8277)
+Delete took 0 ms
+Create took 1369 ms (prepare 2, editor guis 409, card rows 938, add 0, channels 7, rows 187)
+SkinSwitchTest: round 1 rack/light: 1877 ms (clear 154, apply 18, rebuild 1705, widgets 8277)
+This plugin does not support propagateSizeHints()
+Delete took 0 ms
+Create took 1351 ms (prepare 1, editor guis 401, card rows 930, add 0, channels 6, rows 187)
+SkinSwitchTest: round 1 matrix/dark: 1828 ms (clear 138, apply 21, rebuild 1669, widgets 8525)
+Delete took 0 ms
+Create took 1424 ms (prepare 2, editor guis 433, card rows 962, add 0, channels 8, rows 187)
+SkinSwitchTest: round 1 matrix/light: 1967 ms (clear 156, apply 22, rebuild 1789, widgets 8525)
+Delete took 0 ms
+Create took 1384 ms (prepare 1, editor guis 413, card rows 946, add 0, channels 9, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 2 studio/dark: 1963 ms (clear 163, apply 16, rebuild 1784, widgets 8297)
+Delete took 0 ms
+Create took 1421 ms (prepare 2, editor guis 399, card rows 997, add 0, channels 9, rows 187)
+SkinSwitchTest: round 2 studio/light: 2003 ms (clear 154, apply 21, rebuild 1828, widgets 8297)
+Delete took 0 ms
+Create took 1427 ms (prepare 1, editor guis 440, card rows 961, add 0, channels 11, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 2 minimal/dark: 2027 ms (clear 147, apply 22, rebuild 1858, widgets 8321)
+Delete took 0 ms
+Create took 1413 ms (prepare 2, editor guis 425, card rows 968, add 0, channels 6, rows 187)
+SkinSwitchTest: round 2 minimal/light: 1988 ms (clear 140, apply 20, rebuild 1828, widgets 8321)
+Delete took 0 ms
+Create took 1310 ms (prepare 2, editor guis 389, card rows 897, add 0, channels 6, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 2 soft/dark: 1831 ms (clear 139, apply 19, rebuild 1673, widgets 8159)
+Delete took 0 ms
+Create took 1353 ms (prepare 1, editor guis 396, card rows 936, add 0, channels 6, rows 187)
+SkinSwitchTest: round 2 soft/light: 1846 ms (clear 141, apply 20, rebuild 1685, widgets 8159)
+Delete took 0 ms
+Create took 1318 ms (prepare 2, editor guis 402, card rows 890, add 0, channels 9, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 2 rack/dark: 1826 ms (clear 147, apply 15, rebuild 1664, widgets 8279)
+Delete took 0 ms
+Create took 1325 ms (prepare 1, editor guis 387, card rows 919, add 0, channels 6, rows 187)
+SkinSwitchTest: round 2 rack/light: 1836 ms (clear 141, apply 17, rebuild 1678, widgets 8279)
+Delete took 0 ms
+Create took 1451 ms (prepare 2, editor guis 427, card rows 997, add 0, channels 7, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 2 matrix/dark: 1948 ms (clear 138, apply 20, rebuild 1790, widgets 8525)
+Delete took 0 ms
+Create took 1393 ms (prepare 1, editor guis 425, card rows 944, add 0, channels 9, rows 187)
+SkinSwitchTest: round 2 matrix/light: 1896 ms (clear 141, apply 14, rebuild 1741, widgets 8525)
+Delete took 0 ms
+Create took 1357 ms (prepare 1, editor guis 405, card rows 924, add 0, channels 10, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 3 studio/dark: 1991 ms (clear 155, apply 18, rebuild 1818, widgets 8297)
+Delete took 0 ms
+Create took 1408 ms (prepare 1, editor guis 411, card rows 971, add 0, channels 9, rows 187)
+SkinSwitchTest: round 3 studio/light: 1983 ms (clear 150, apply 19, rebuild 1814, widgets 8297)
+Delete took 0 ms
+Create took 1449 ms (prepare 1, editor guis 446, card rows 979, add 0, channels 8, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 3 minimal/dark: 2027 ms (clear 145, apply 16, rebuild 1866, widgets 8321)
+Delete took 0 ms
+Create took 1417 ms (prepare 2, editor guis 430, card rows 960, add 0, channels 9, rows 187)
+SkinSwitchTest: round 3 minimal/light: 1951 ms (clear 133, apply 19, rebuild 1799, widgets 8321)
+Delete took 0 ms
+Create took 1334 ms (prepare 2, editor guis 398, card rows 910, add 0, channels 9, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 3 soft/dark: 1869 ms (clear 140, apply 27, rebuild 1702, widgets 8159)
+Delete took 0 ms
+Create took 1309 ms (prepare 2, editor guis 386, card rows 898, add 1, channels 7, rows 187)
+SkinSwitchTest: round 3 soft/light: 1827 ms (clear 132, apply 22, rebuild 1673, widgets 8159)
+Delete took 0 ms
+Create took 1355 ms (prepare 1, editor guis 402, card rows 929, add 0, channels 9, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 3 rack/dark: 1883 ms (clear 148, apply 22, rebuild 1713, widgets 8279)
+Delete took 0 ms
+Create took 1300 ms (prepare 1, editor guis 395, card rows 887, add 0, channels 5, rows 187)
+SkinSwitchTest: round 3 rack/light: 1801 ms (clear 152, apply 17, rebuild 1632, widgets 8279)
+Delete took 0 ms
+Create took 1328 ms (prepare 2, editor guis 411, card rows 894, add 0, channels 6, rows 187)
+This plugin does not support propagateSizeHints()
+SkinSwitchTest: round 3 matrix/dark: 1850 ms (clear 147, apply 26, rebuild 1677, widgets 8525)
+Delete took 0 ms
+Create took 1347 ms (prepare 1, editor guis 408, card rows 913, add 0, channels 10, rows 187)
+SkinSwitchTest: round 3 matrix/light: 1882 ms (clear 137, apply 21, rebuild 1724, widgets 8525)
+SkinSwitchTest: widget census QWidget x2126
+SkinSwitchTest: widget census QLabel x1423
+SkinSwitchTest: widget census QToolButton x1334
+SkinSwitchTest: widget census QScrollBar x534
+SkinSwitchTest: widget census QLineEdit x522
+SkinSwitchTest: widget census ElidedLabel x468
+SkinSwitchTest: widget census ValueScrubBox x246
+SkinSwitchTest: widget census ChBadge x242
+SkinSwitchTest: widget census QStackedWidget x186
+SkinSwitchTest: widget census FilterCardRow x186
+SkinSwitchTest: 110 top-level widgets
+SkinSwitchTest: 30 switches over 186 rows, worst 2027 ms (minimal/dark), warning 2500 ms, limit 5000 ms, failures 0
+QThreadStorage: entry 1 destroyed before end of thread 0x19e90d5b320
+QThreadStorage: entry 0 destroyed before end of thread 0x19e90d5b320

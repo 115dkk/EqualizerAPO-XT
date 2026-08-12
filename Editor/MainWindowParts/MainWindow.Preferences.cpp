@@ -8,6 +8,7 @@
 #include <QStandardItemModel>
 #include <QStringBuilder>
 #include <QScrollArea>
+#include <QSizePolicy>
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -65,11 +66,13 @@ void MainWindow::loadPreferences()
 	skinId = choice.id;
 	skinDark = choice.dark;
 	currentRenderMode = settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
-	// Default to the bottom, like the original Equalizer APO's analysis panel.
-	graphDockPosition = qBound(0, settings.value("interface/graphDockPosition", 1).toInt(), 2);
+	// The layout probe starts from a clean, deterministic right dock without
+	// reading or mutating the user's saved window arrangement.
+	graphDockPosition = analysisLayoutTestMode ? 2
+		: qBound(0, settings.value("interface/graphDockPosition", 1).toInt(), 2);
 	applyRedesignPreferences();
 
-	QVariant geometryValue = settings.value("geometry");
+	QVariant geometryValue = analysisLayoutTestMode ? QVariant() : settings.value("geometry");
 	if (geometryValue.isValid())
 		restoreGeometry(geometryValue.toByteArray());
 	instantModeCheckBox->setChecked(settings.value("instantMode", true).toBool());
@@ -104,7 +107,7 @@ void MainWindow::loadPreferences()
 	ui->analysisChannelComboBox->setCurrentText(settings.value("analysis/channel").toString());
 	ui->resolutionSpinBox->setValue(settings.value("analysis/resolution", 65536).toInt());
 
-	QVariant openFilesValue = settings.value("openFiles");
+	QVariant openFilesValue = analysisLayoutTestMode ? QVariant() : settings.value("openFiles");
 	int tabIndex = settings.value("tabIndex").toInt();
 	if (openFilesValue.isValid())
 	{
@@ -137,7 +140,7 @@ void MainWindow::loadPreferences()
 		action->setChecked(action->data().toInt() == language);
 
 	// load window state after initializing channels as it may trigger on_analysisDockWidget_visibilityChanged when analysis panel is detached
-	QVariant stateValue = settings.value("windowState");
+	QVariant stateValue = analysisLayoutTestMode ? QVariant() : settings.value("windowState");
 	if (stateValue.isValid())
 		restoreState(stateValue.toByteArray(), kWindowStateVersion);
 	// The saved window state can carry a hidden main toolbar (e.g. the app
@@ -411,6 +414,7 @@ void MainWindow::applyRedesignPreferences()
 		area = Qt::BottomDockWidgetArea;
 	else if (graphDockPosition == 2)
 		area = Qt::RightDockWidgetArea;
+	const bool dockAreaChanged = dockWidgetArea(ui->analysisDockWidget) != area;
 	// Re-home the analysis dock only when it is not already in the target area.
 	// loadPreferences() runs this both before and after QMainWindow::restoreState();
 	// removing and re-adding a dock that restoreState has just laid out can free a
@@ -420,7 +424,7 @@ void MainWindow::applyRedesignPreferences()
 	// that dangling item without changing where the dock ends up; a genuine position
 	// change (the graph-position dropdown) still re-homes because the current area
 	// differs from the target.
-	if (dockWidgetArea(ui->analysisDockWidget) != area)
+	if (dockAreaChanged)
 	{
 		removeDockWidget(ui->analysisDockWidget);
 		addDockWidget(area, ui->analysisDockWidget);
@@ -429,8 +433,37 @@ void MainWindow::applyRedesignPreferences()
 	// instead of a full-width strip above it. A top/bottom dock lays the cell
 	// to the left of the graph; the narrow right dock stacks it above the
 	// graph instead.
-	ui->analysisDockLayout->setDirection(area == Qt::RightDockWidgetArea
+	const bool dockOnRight = area == Qt::RightDockWidgetArea;
+	ui->analysisDockLayout->setDirection(dockOnRight
 		? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight);
+
+	// Beside a top/bottom graph this is intentionally a compact 250px settings
+	// cell. Above a right-side graph that cap made the controls look like a
+	// clipped header stranded on the left. Let the same form fill the dock in
+	// that orientation, while preserving the compact horizontal layout.
+	QSizePolicy controlPolicy = ui->analysisControlBar->sizePolicy();
+	controlPolicy.setHorizontalPolicy(dockOnRight ? QSizePolicy::Expanding : QSizePolicy::Maximum);
+	ui->analysisControlBar->setSizePolicy(controlPolicy);
+	ui->analysisControlBar->setMaximumWidth(dockOnRight
+		? QWIDGETSIZE_MAX : GUIHelper::scale(250.0));
+
+	// The horizontal graph asks for 960px, which is a useful bottom-dock hint
+	// but a disastrous right-dock width: QMainWindow otherwise grants almost
+	// the whole 1024px window to it and leaves only a card sliver. Give a newly
+	// right-docked graph a bounded, proportional starting width. Only do this
+	// on an actual area change so a restored or manually dragged width remains
+	// the user's choice.
+	if (dockAreaChanged && dockOnRight)
+	{
+		const int minimumGraphDockWidth = GUIHelper::scale(320.0);
+		const int maximumGraphDockWidth = GUIHelper::scale(480.0);
+		const int filterWorkspaceFloor = GUIHelper::scale(520.0);
+		int preferredWidth = qBound(minimumGraphDockWidth, width() * 38 / 100,
+			maximumGraphDockWidth);
+		preferredWidth = qMin(preferredWidth,
+			qMax(minimumGraphDockWidth, width() - filterWorkspaceFloor));
+		resizeDocks({ ui->analysisDockWidget }, { preferredWidth }, Qt::Horizontal);
+	}
 	ui->analysisDockWidget->setVisible(graphFullscreen || graphWasShown);
 
 	setCurrentRenderMode(currentRenderMode);

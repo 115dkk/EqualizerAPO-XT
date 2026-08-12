@@ -35,6 +35,24 @@ using std::vector;
 using std::wstring;
 
 
+void FilterTable::selectOnlyFromCard(Item* item)
+{
+	const int row = model.items().indexOf(item);
+	if (row < 0)
+		return;
+
+	if (model.selected().size() == 1 && model.isSelected(item)
+		&& model.focused() == item && model.selectionStart() == item)
+		return;
+
+	model.selectOnly(item);
+	model.setFocused(item);
+	model.setSelectionStart(item);
+	ensureRowVisible(row);
+	updateRowWidgets();
+}
+
+
 void FilterTable::mousePressEvent(QMouseEvent* event)
 {
 	if (event->buttons() & Qt::LeftButton)

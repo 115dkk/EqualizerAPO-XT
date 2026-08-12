@@ -1,0 +1,41 @@
+{
+  "capturedAtUtc": "2026-08-12T00:23:23Z",
+  "target": {
+    "id": "windows-11-qt-editor-4k-200pct",
+    "platform": "windows",
+    "environment": "EqualizerAPO-XT Editor 2.34.6, Qt 6.10.1 Widgets, Windows QPA"
+  },
+  "operatingSystem": {
+    "caption": "Microsoft Windows 11 Education",
+    "version": "10.0.22621",
+    "build": "22621",
+    "architecture": "x64"
+  },
+  "hardware": {
+    "manufacturer": "Micro-Star International Co., Ltd.",
+    "model": "MS-7D25",
+    "gpu": "NVIDIA GeForce RTX 2080 SUPER",
+    "gpuDriver": "32.0.15.9636"
+  },
+  "display": {
+    "physicalPixels": "3840x2160",
+    "refreshHz": 59,
+    "qtDevicePixelRatio": 2.0,
+    "logicalScalePercent": 200
+  },
+  "application": {
+    "version": "2.34.6",
+    "qtVersion": "6.10.1",
+    "build": "Release x64 AVX2, MSVC 19.44",
+    "sourceBase": "82d59525651f63e91a0791ec86e5229e4bd1be25",
+    "branch": "agent/editor-graph-layout-hotfix",
+    "style": "CustomStyle wrapping Qt Fusion",
+    "graphicsBackend": "Qt Widgets raster via Windows QPA",
+    "locale": "ko_KR"
+  },
+  "nativeCapture": {
+    "method": "Win32 PrintWindow with Per-Monitor-V2 DPI awareness",
+    "logicalWindow": "1024x768",
+    "capturedPixels": "2048x1536"
+  }
+}

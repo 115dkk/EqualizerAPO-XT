@@ -1,0 +1,11 @@
+Delete took 0 ms
+Create took 14 ms (prepare 0, editor guis 5, card rows 9, add 0, channels 0, rows 4)
+addTab: setup 1, insert 1, setLines 20 ms
+Loading took 23.9 ms
+Analysis took 51.3 ms
+Analysis layout target: platform=windows style= dpr=2.00 locale=ko_KR skin=rack dark=1
+Analysis layout test (right): window=1024x768 central=629 dock=394 controls=374 graph=374 centralProtected=1 dockBounded=1 graphUsable=1 controlsFill=1 stacked=1 screenshot=1
+Analysis took 41.1 ms
+Analysis layout test (bottom): area=1 horizontal=1 compactControls=1
+Analysis took 38.3 ms
+Analysis layout test (right restored): pass=1

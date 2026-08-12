@@ -66,7 +66,8 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	explicit MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent = 0);
+	explicit MainWindow(QDir configDir, const UpdateSession* updateSession, QWidget* parent = 0,
+		bool analysisLayoutTestMode = false);
 	~MainWindow();
 	void doChecks();
 	void runDeviceSelector();
@@ -208,6 +209,7 @@ private:
 	UpdateToast* updateToast = nullptr;
 	QTimer* updateNoticeTimer = nullptr;
 	const UpdateSession* updateSession = nullptr;
+	bool analysisLayoutTestMode = false;
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<AbstractAPOInfo>)

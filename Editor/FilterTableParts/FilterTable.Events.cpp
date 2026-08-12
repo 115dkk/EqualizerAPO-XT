@@ -261,7 +261,12 @@ void FilterTable::updateRowWidgets()
 {
 	for (QWidget* rowWidget : rowWidgetsByRow())
 	{
-		if (rowWidget != nullptr)
+		if (FilterCardRow* cardRow = qobject_cast<FilterCardRow*>(rowWidget))
+		{
+			cardRow->syncVisualState();
+			cardRow->update();
+		}
+		else if (rowWidget != nullptr)
 			rowWidget->update();
 	}
 	update();
@@ -286,15 +291,12 @@ void FilterTable::setLoadTraceFacts(const QVector<ConfigLoadTraceEntry>& facts)
 			loadTraceFacts.insert(fact.line - 1, fact);
 	}
 
-	// The dynamic-command presentations read the facts at paint time; repaint
-	// the rows so lamps/readouts follow the analysis run that just finished.
+	// Dynamic-command presentations cache their CommandRowInfo in the card
+	// frame. Synchronize it explicitly so analysis facts and selection use the
+	// same state path rather than waiting for an unrelated rebuild.
 	if (gridLayout == nullptr)
 		return;
-	for (QWidget* rowWidget : rowWidgetsByRow())
-	{
-		if (rowWidget != nullptr)
-			rowWidget->update();
-	}
+	updateRowWidgets();
 }
 
 QList<ConfigLoadTraceEntry> FilterTable::loadTraceFactsForRow(int row) const

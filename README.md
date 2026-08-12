@@ -21,10 +21,14 @@ Current work areas:
    ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264)).
 3. Refining the Editor skins from community feedback rounds. The five concrete
    skins now have guarded per-skin modules so visual work stays local while
-   behavior remains shared ([#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264));
-   earlier rounds covered the Soft pastel rework, dark-mode state contrast, the
-   compact analysis panel, the modern GraphicEQ card, the insertion contract,
-   and the skinned Device Selector ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
+   behavior remains shared. The latest pass gives a right-docked analysis graph
+   a balanced starting width and keeps mouse-driven card selection and focus in
+   sync ([#266](https://github.com/115dkk/EqualizerAPO-XT/pull/266)); the module
+   boundaries landed in
+   [#264](https://github.com/115dkk/EqualizerAPO-XT/pull/264), and earlier rounds
+   covered the Soft pastel rework, dark-mode state contrast, the compact
+   analysis panel, the modern GraphicEQ card, the insertion contract, and the
+   skinned Device Selector ([#172](https://github.com/115dkk/EqualizerAPO-XT/pull/172)).
 4. Phase and time. The analysis graph now switches between magnitude, phase and
    group delay, the all-pass filter has its own card and a 1st-order section,
    and `Delay` and the all-pass share a "Phase & Time" group in the picker. An
