@@ -8,6 +8,7 @@
 #include <QFont>
 #include <QGridLayout>
 #include <QLabel>
+#include <QPalette>
 #include <QSignalBlocker>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -32,29 +33,16 @@ constexpr VST3BusLayout layouts[] = {
 }
 
 VSTBusLayoutControls::VSTBusLayoutControls(QWidget* parent)
+	: VSTBusLayoutControls(parent, true)
+{
+}
+
+VSTBusLayoutControls::VSTBusLayoutControls(QWidget* parent, bool buildNeutralLayout)
 	: QFrame(parent)
 {
 	setObjectName(QStringLiteral("VSTBusLayoutControls"));
 	setFrameShape(QFrame::NoFrame);
 	setFocusPolicy(Qt::NoFocus);
-
-	QVBoxLayout* root = new QVBoxLayout(this);
-	root->setContentsMargins(0, 2, 0, 0);
-	root->setSpacing(5);
-
-	QLabel* title = new QLabel(tr("Main bus"), this);
-	title->setObjectName(QStringLiteral("VSTBusLayoutTitle"));
-	QFont titleFont = title->font();
-	titleFont.setWeight(QFont::DemiBold);
-	title->setFont(titleFont);
-	root->addWidget(title);
-
-	QGridLayout* fields = new QGridLayout();
-	fields->setContentsMargins(0, 0, 0, 0);
-	fields->setHorizontalSpacing(8);
-	fields->setVerticalSpacing(3);
-	fields->setColumnStretch(0, 1);
-	fields->setColumnStretch(2, 1);
 
 	inputLabel = new QLabel(tr("&Input"), this);
 	outputLabel = new QLabel(tr("&Output"), this);
@@ -76,40 +64,54 @@ VSTBusLayoutControls::VSTBusLayoutControls(QWidget* parent)
 		outputCombo->addItem(name, static_cast<int>(layout));
 	}
 
-	QLabel* direction = new QLabel(QString::fromUtf8("\u2192"), this);
-	direction->setObjectName(QStringLiteral("VSTBusDirection"));
-	direction->setAlignment(Qt::AlignCenter);
-	direction->setAccessibleName(tr("routes to"));
-
-	fields->addWidget(inputLabel, 0, 0);
-	fields->addWidget(outputLabel, 0, 2);
-	fields->addWidget(inputCombo, 1, 0);
-	fields->addWidget(direction, 1, 1);
-	fields->addWidget(outputCombo, 1, 2);
-	root->addLayout(fields);
+	directionLabel = new QLabel(QString::fromUtf8("\u2192"), this);
+	directionLabel->setObjectName(QStringLiteral("VSTBusDirection"));
+	directionLabel->setAlignment(Qt::AlignCenter);
+	directionLabel->setAccessibleName(tr("routes to"));
 
 	statusLabel = new QLabel(this);
 	statusLabel->setObjectName(QStringLiteral("VSTBusStatus"));
 	statusLabel->setTextFormat(Qt::PlainText);
 	statusLabel->setWordWrap(true);
 	statusLabel->setAccessibleName(tr("VST bus status"));
-	root->addWidget(statusLabel);
 
 	removeButton = new QToolButton(this);
 	removeButton->setObjectName(QStringLiteral("VSTBusRemoveLayouts"));
-	removeButton->setText(tr("Remove saved layouts"));
+	removeButton->setText(tr("Remove ignored layouts"));
 	removeButton->setToolTip(tr("Remove the Input and Output keys that VST2 ignores"));
 	removeButton->setAccessibleName(tr("Remove ignored VST bus layouts"));
 	removeButton->setAutoRaise(true);
 	removeButton->setVisible(false);
-	root->addWidget(removeButton, 0, Qt::AlignLeft);
-
 	connect(inputCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(selectionChanged()));
 	connect(outputCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(selectionChanged()));
 	connect(removeButton, SIGNAL(clicked()), this, SIGNAL(removeLayoutsRequested()));
 	setFocusProxy(inputCombo);
 	setControlsEnabled(true);
+	if (buildNeutralLayout)
+		this->buildNeutralLayout();
 	setStatus(QString(), StatusTone::Neutral);
+}
+
+void VSTBusLayoutControls::buildNeutralLayout()
+{
+	QVBoxLayout* root = new QVBoxLayout(this);
+	root->setContentsMargins(0, 2, 0, 0);
+	root->setSpacing(5);
+
+	QGridLayout* fields = new QGridLayout();
+	fields->setContentsMargins(0, 0, 0, 0);
+	fields->setHorizontalSpacing(8);
+	fields->setVerticalSpacing(3);
+	fields->setColumnStretch(0, 1);
+	fields->setColumnStretch(2, 1);
+	fields->addWidget(inputLabel, 0, 0);
+	fields->addWidget(outputLabel, 0, 2);
+	fields->addWidget(inputCombo, 1, 0);
+	fields->addWidget(directionLabel, 1, 1);
+	fields->addWidget(outputCombo, 1, 2);
+	root->addLayout(fields);
+	root->addWidget(statusLabel);
+	root->addWidget(removeButton, 0, Qt::AlignLeft);
 }
 
 void VSTBusLayoutControls::setLayouts(VST3BusLayout input, VST3BusLayout output)
@@ -138,19 +140,32 @@ void VSTBusLayoutControls::setControlsEnabled(bool enabled, const QString& disab
 
 void VSTBusLayoutControls::setStatus(const QString& text, StatusTone tone, bool showRemoveAction)
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	QString color = tokens.mutedText;
-	switch (tone)
-	{
-	case StatusTone::Success: color = tokens.success; break;
-	case StatusTone::Warning: color = tokens.warning; break;
-	case StatusTone::Critical: color = tokens.danger; break;
-	case StatusTone::Neutral: break;
-	}
-	statusLabel->setStyleSheet(QStringLiteral("color: %1;").arg(color));
+	currentTone = tone;
+	QPalette statusPalette = statusLabel->palette();
+	statusPalette.setColor(QPalette::WindowText, statusColor());
+	statusLabel->setPalette(statusPalette);
 	statusLabel->setText(text);
 	statusLabel->setVisible(!text.isEmpty());
 	removeButton->setVisible(showRemoveAction);
+	statusPresentationChanged();
+}
+
+QColor VSTBusLayoutControls::statusColor() const
+{
+	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	switch (currentTone)
+	{
+	case StatusTone::Success: return QColor(tokens.success);
+	case StatusTone::Warning: return QColor(tokens.warning);
+	case StatusTone::Critical: return QColor(tokens.danger);
+	case StatusTone::Neutral: return QColor(tokens.mutedText);
+	}
+	return QColor(tokens.mutedText);
+}
+
+void VSTBusLayoutControls::statusPresentationChanged()
+{
+	update();
 }
 
 void VSTBusLayoutControls::selectionChanged()

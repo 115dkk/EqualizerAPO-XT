@@ -13,6 +13,7 @@ public:
 	IRoutingRenderer* routingRenderer() const override;
 	FilterPickerView* createFilterPicker(QWidget* parent) const override;
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override;
+	VSTBusLayoutControls* createVSTBusLayoutControls(QWidget* parent) const override;
 	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const override;
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;

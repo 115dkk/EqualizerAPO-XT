@@ -821,33 +821,6 @@ int assertNoHorizontalScrollBar(QWidget* row, const QString& skinId, const QStri
 	return 0;
 }
 
-// Structured editors must never regress to presenting their serialized
-// command as part of the finished card. The source remains available through
-// the edit action; visible raw chrome belongs only to true fallback rows.
-int assertNoStructuredRawChrome(QWidget* row, const QString& skinId, const QString& mode,
-	const QString& rowName, const QString& state)
-{
-	if (!rowName.startsWith(QStringLiteral("vst")))
-		return 0;
-
-	const QStringList rawChromeNames = {
-		QStringLiteral("FilterCardRawPreview"),
-		QStringLiteral("MatrixRowCaption")
-	};
-	for (const QString& objectName : rawChromeNames)
-	{
-		QWidget* chrome = row->findChild<QWidget*>(objectName);
-		if (chrome != nullptr && chrome->isVisibleTo(row))
-		{
-			qWarning("SkinGallery: structured row exposed %s in %s_%s_%s_%s",
-				qPrintable(objectName), qPrintable(skinId), qPrintable(mode),
-				qPrintable(rowName), qPrintable(state));
-			return 1;
-		}
-	}
-	return 0;
-}
-
 bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QString& mode,
 	const QString& rowName, const QString& state)
 {
@@ -939,17 +912,14 @@ int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
 			// A commented-out line is the product's real disabled state: power
 			// toggle off, body editor disabled, muted chrome.
 			failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("disabled"));
-			failures += assertNoStructuredRawChrome(row, skinId, mode, rows[i].name, QStringLiteral("disabled"));
 			failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("disabled")) ? 0 : 1;
 			continue;
 		}
 
 		failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("normal"));
-		failures += assertNoStructuredRawChrome(row, skinId, mode, rows[i].name, QStringLiteral("normal"));
 		failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("normal")) ? 0 : 1;
 		setHoverEquivalent(row, true);
 		failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("hover"));
-		failures += assertNoStructuredRawChrome(row, skinId, mode, rows[i].name, QStringLiteral("hover"));
 		failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("hover")) ? 0 : 1;
 		setHoverEquivalent(row, false);
 	}

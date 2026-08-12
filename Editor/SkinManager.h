@@ -15,6 +15,7 @@ class QToolBar;
 class QWidget;
 class ReferenceCardView;
 class SubwooferRoutingCardView;
+class VSTBusLayoutControls;
 struct AnalysisGraphState;
 struct BadgeTreatment;
 struct CommandRowInfo;
@@ -91,6 +92,9 @@ public:
 	// The reference-card body view for the active skin
 	// (ISkin::createReferenceCardView). kind is ReferenceCardState::kind.
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
+
+	// Constitution-specific VST main-bus presentation.
+	VSTBusLayoutControls* createVSTBusLayoutControls(QWidget* parent) const;
 
 	// The compact SubwooferRouting card body for the active skin.
 	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const;

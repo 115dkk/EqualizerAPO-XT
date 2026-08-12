@@ -29,6 +29,7 @@ class QToolBar;
 class QWidget;
 class ReferenceCardView;
 class SubwooferRoutingCardView;
+class VSTBusLayoutControls;
 
 // Identifies a command row for per-command-type chrome decisions.
 struct CommandRowInfo
@@ -105,10 +106,6 @@ struct CommandRowInfo
 	// editor host the shared raw body; skins extend their raw-body styling
 	// to these rows through this flag.
 	bool dynamicLine = false;
-	// True only when this row actually fell back to the shared as-written
-	// editor. Structured cards keep their source reachable through the header
-	// edit action, but never print configuration syntax as presentation chrome.
-	bool rawBody = false;
 };
 
 // One value object owns both halves of the type-badge treatment.  Keeping the
@@ -434,6 +431,10 @@ public:
 	// DefaultReferenceCardView. Ownership passes to the caller via the usual
 	// QWidget parent mechanism.
 	virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
+
+	// The VST main-bus editor keeps its model, signals and accessibility in a
+	// shared base, while each skin owns the actual control structure and chrome.
+	virtual VSTBusLayoutControls* createVSTBusLayoutControls(QWidget* parent) const;
 
 	// The compact SubwooferRouting card body. The editor computes and owns the
 	// state and actions; the returned view owns their presentation. The

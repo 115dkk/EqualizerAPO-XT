@@ -13,7 +13,6 @@
 
 #include <QAbstractEventDispatcher>
 #include <QAction>
-#include <QCoreApplication>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -79,8 +78,7 @@ QString activeBusDescription(const VSTPluginInstance* effect)
 		: QStringLiteral("%1 ch").arg(effect->numInputs());
 	const QString output = outputLayout ? layoutName(*outputLayout)
 		: QStringLiteral("%1 ch").arg(effect->numOutputs());
-	return QCoreApplication::translate("VSTCardEditor",
-		"%1 \u2192 %2 \u00b7 %3 inputs / %4 outputs")
+	return QStringLiteral("%1 \u2192 %2 (%3 in / %4 out)")
 		.arg(input, output)
 		.arg(effect->numInputs())
 		.arg(effect->numOutputs());
@@ -140,7 +138,7 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	connect(editButton, &QToolButton::clicked, view, &ReferenceCardView::enterEditMode);
 	view->addActionButton(ReferenceCardView::ActionRole::EditPath, editButton);
 
-	busControls = new VSTBusLayoutControls(this);
+	busControls = SkinManager::instance()->createVSTBusLayoutControls(this);
 	busControls->setLayouts(busLayoutModel.input(), busLayoutModel.output());
 	connect(busControls, SIGNAL(layoutsEdited(VST3BusLayout,VST3BusLayout)),
 		this, SLOT(busLayoutsEdited(VST3BusLayout,VST3BusLayout)));
@@ -355,11 +353,8 @@ void VSTCardEditor::updateReferenceState()
 {
 	reference->setResolvedPath(QString::fromStdWString(library->getLibPath()));
 	ReferenceCardState state = reference->describe(tr("No plugin selected"));
-	// A VST card is an instrument slot, not a path browser. The plug-in name
-	// is the persistent identity; the library path remains available through
-	// Edit path without occupying the card body or a hover-only metadata line.
-	state.directory.clear();
-	state.fullPath.clear();
+	// Preserve the written/resolved path presentation, while keeping the ABS
+	// badge suppressed for VST slots as requested.
 	state.absolutePath = false;
 	if (!reference->writtenPath().isEmpty())
 	{
@@ -414,14 +409,14 @@ void VSTCardEditor::updateBusControls()
 		if (busLayoutModel.contract())
 		{
 			busControls->setStatus(
-				tr("VST2 uses a fixed bus. Saved %1 layouts are ignored.")
+				tr("VST2 ignores the saved %1 bus layouts. Remove them to avoid misleading settings.")
 					.arg(layoutPair(busLayoutModel.input(), busLayoutModel.output())),
 				VSTBusLayoutControls::StatusTone::Warning, true);
 		}
 		else
 		{
 			busControls->setStatus(
-				tr("Fixed bus \u00b7 %1 inputs / %2 outputs")
+				tr("VST2 fixed bus: %1 in \u2192 %2 out. No layout keys are saved.")
 					.arg(effect->numInputs()).arg(effect->numOutputs()),
 				VSTBusLayoutControls::StatusTone::Neutral);
 		}
@@ -433,7 +428,7 @@ void VSTCardEditor::updateBusControls()
 		const QString reason = tr("Close the embedded panel before changing the VST3 bus layout.");
 		busControls->setControlsEnabled(false, reason);
 		busControls->setStatus(
-			tr("Panel open \u00b7 %1")
+			tr("Bus controls are locked while the panel is open. Current bus: %1.")
 				.arg(activeBusDescription(effect.get())),
 			VSTBusLayoutControls::StatusTone::Neutral);
 		return;
@@ -443,7 +438,7 @@ void VSTCardEditor::updateBusControls()
 	if (!busLayoutModel.contract())
 	{
 		busControls->setStatus(
-			tr("Detected %1. Choose a layout to override.")
+			tr("Detected bus: %1. Choose Input or Output to save an explicit contract.")
 				.arg(activeBusDescription(effect.get())),
 			VSTBusLayoutControls::StatusTone::Neutral);
 		return;
@@ -465,15 +460,16 @@ void VSTCardEditor::updateBusControls()
 	const QString requested = layoutPair(requestedInput, requestedOutput);
 	if (accepted)
 	{
-		QString text = tr("Active \u00b7 %1").arg(activeBusDescription(effect.get()));
+		QString text = tr("Accepted bus: %1. Active bus: %2.")
+			.arg(requested, activeBusDescription(effect.get()));
 		if (busLayoutModel.migratedLegacyStereoInput())
-			text += tr(" Legacy stereo routing was updated.");
+			text += tr(" Legacy StereoInput was migrated to Input Stereo / Output Auto.");
 		busControls->setStatus(text, VSTBusLayoutControls::StatusTone::Success);
 	}
 	else
 	{
 		busControls->setStatus(
-			tr("%1 unavailable. Audio is passing through unchanged.")
+			tr("Rejected bus: %1. Audio will pass through until the layout is changed or removed.")
 				.arg(requested),
 			VSTBusLayoutControls::StatusTone::Critical);
 	}

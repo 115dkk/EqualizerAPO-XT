@@ -242,6 +242,11 @@ ReferenceCardView* SkinManager::createReferenceCardView(const QString& kind, QWi
 	return activeSkin->createReferenceCardView(kind, parent);
 }
 
+VSTBusLayoutControls* SkinManager::createVSTBusLayoutControls(QWidget* parent) const
+{
+	return activeSkin->createVSTBusLayoutControls(parent);
+}
+
 SubwooferRoutingCardView* SkinManager::createSubwooferRoutingCardView(QWidget* parent) const
 {
 	return activeSkin->createSubwooferRoutingCardView(parent);

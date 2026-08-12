@@ -1230,7 +1230,7 @@ Select a different file or change the device configuration.</source>
         <translation>주석</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="345"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="314"/>
         <source>Text</source>
         <translation>텍스트</translation>
     </message>
@@ -1250,12 +1250,12 @@ Select a different file or change the device configuration.</source>
         <translation>힐베르트 변환</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="371"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="340"/>
         <source>%1 shifted</source>
         <translation>위상 변환 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="376"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="345"/>
         <source>%1 aligned</source>
         <translation>지연 정렬 %1</translation>
     </message>
@@ -1265,49 +1265,47 @@ Select a different file or change the device configuration.</source>
         <translation>벨벳 비상관화</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="50"/>
         <source>Stereo input</source>
-        <translation>스테레오 입력</translation>
+        <translation type="vanished">스테레오 입력</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="52"/>
         <source>No plugin selected</source>
-        <translation>선택된 플러그인 없음</translation>
+        <translation type="vanished">선택된 플러그인 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="391"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="360"/>
         <source>Dynamic</source>
         <translation>동적</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="391"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="360"/>
         <source>Static</source>
         <translation>고정</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="393"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="362"/>
         <source>%1%</source>
         <translation>%1%</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="395"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="364"/>
         <source>%1 ms · %2 taps/ch</source>
         <translation>%1 ms · 채널당 %2탭</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="531"/>
-        <location filename="../widgets/FilterCardModel.cpp" line="539"/>
-        <location filename="../widgets/FilterCardModel.cpp" line="561"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="502"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="510"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="532"/>
         <source>invalid state</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="613"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="584"/>
         <source>%1 - crossover %2 Hz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="616"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="587"/>
         <source>%1 - full range</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1317,17 +1315,17 @@ Select a different file or change the device configuration.</source>
         <translation>바이쿼드</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="421"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="390"/>
         <source>IIR filter</source>
         <translation>IIR 필터</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="426"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="395"/>
         <source>Order %1</source>
         <translation>차수 %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="429"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="398"/>
         <source>%1 coefficients</source>
         <translation>계수 %1개</translation>
     </message>
@@ -1337,7 +1335,7 @@ Select a different file or change the device configuration.</source>
         <translation>그래픽 EQ</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="460"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="429"/>
         <source>%1 bands</source>
         <translation>%1개 밴드</translation>
     </message>
@@ -1347,12 +1345,12 @@ Select a different file or change the device configuration.</source>
         <translation>복사</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="482"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="451"/>
         <source>%1 steps, %2 virtual</source>
         <translation>%1개 할당, 가상 %2개</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardModel.cpp" line="484"/>
+        <location filename="../widgets/FilterCardModel.cpp" line="453"/>
         <source>%1 steps</source>
         <translation>%1개 할당</translation>
     </message>
@@ -1455,12 +1453,12 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="793"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="792"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="797"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="796"/>
         <source>Raw</source>
         <translation>원본</translation>
     </message>
@@ -4039,6 +4037,13 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
 </context>
 <context>
+    <name>SoftVSTBusLayoutControls</name>
+    <message>
+        <source>From</source>
+        <translation type="obsolete">소스</translation>
+    </message>
+</context>
+<context>
     <name>SpatialFilterGUIFactory</name>
     <message>
         <location filename="../guis/SpatialFilterGUIFactory.cpp" line="31"/>
@@ -4314,6 +4319,17 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <location filename="../skins/studio/cards/StudioSubwooferRoutingCardView.cpp" line="234"/>
         <source>Manual</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>StudioVSTBusLayoutControls</name>
+    <message>
+        <source>&amp;Input</source>
+        <translation type="obsolete">입력(&amp;I)</translation>
+    </message>
+    <message>
+        <source>&amp;Output</source>
+        <translation type="obsolete">출력(&amp;O)</translation>
     </message>
 </context>
 <context>
@@ -4648,236 +4664,244 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTBusLayoutControls</name>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="45"/>
         <source>Main bus</source>
-        <translation>메인 버스</translation>
+        <translation type="vanished">메인 버스</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="59"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="47"/>
         <source>&amp;Input</source>
         <translation>입력(&amp;I)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="60"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="48"/>
         <source>&amp;Output</source>
         <translation>출력(&amp;O)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="67"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="55"/>
         <source>VST3 main input bus layout</source>
         <translation>VST3 메인 입력 버스 레이아웃</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="68"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="56"/>
         <source>VST3 main output bus layout</source>
         <translation>VST3 메인 출력 버스 레이아웃</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="82"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="70"/>
         <source>routes to</source>
         <translation>다음으로 라우팅</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="95"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="76"/>
         <source>VST bus status</source>
         <translation>VST 버스 상태</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="100"/>
         <source>Remove saved layouts</source>
-        <translation>저장된 레이아웃 제거</translation>
+        <translation type="vanished">저장된 레이아웃 제거</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="80"/>
         <source>Remove ignored layouts</source>
-        <translation type="vanished">무시되는 레이아웃 제거</translation>
+        <translation>무시되는 레이아웃 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="101"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="81"/>
         <source>Remove the Input and Output keys that VST2 ignores</source>
         <translation>VST2에서 무시되는 Input 및 Output 키를 제거합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="102"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="82"/>
         <source>Remove ignored VST bus layouts</source>
         <translation>무시되는 VST 버스 레이아웃 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="129"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="131"/>
         <source>Requested layout for the VST3 main input bus</source>
         <translation>VST3 메인 입력 버스에 요청할 레이아웃</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="131"/>
+        <location filename="../widgets/cards/VSTBusLayoutControls.cpp" line="133"/>
         <source>Requested layout for the VST3 main output bus</source>
         <translation>VST3 메인 출력 버스에 요청할 레이아웃</translation>
+    </message>
+    <message>
+        <location filename="../skins/soft/SoftSkin.cpp" line="37"/>
+        <source>From</source>
+        <translation>입력</translation>
+    </message>
+    <message>
+        <location filename="../skins/soft/SoftSkin.cpp" line="38"/>
+        <source>To</source>
+        <translation>출력</translation>
     </message>
 </context>
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="391"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="531"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="387"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="528"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="119"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="603"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="600"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="82"/>
         <source>%1 → %2 · %3 inputs / %4 outputs</source>
-        <translation>%1 → %2 · 입력 %3개 / 출력 %4개</translation>
+        <translation type="vanished">%1 → %2 · 입력 %3개 / 출력 %4개</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="130"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="128"/>
         <source>Embed panel in card</source>
         <translation>카드에 패널 삽입</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="139"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="137"/>
         <source>Edit the path as text</source>
         <translation>경로를 텍스트로 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="317"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="315"/>
         <source>Library could not be loaded.</source>
         <translation>라이브러리를 로드할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="320"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="318"/>
         <source>Library does not contain needed functions.</source>
         <translation>라이브러리에 필요한 함수가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="328"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="326"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>라이브러리의 아키텍처가 올바르지 않습니다. %1비트 라이브러리만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="343"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="341"/>
         <source>Plugin crashed during initialization.</source>
         <translation>초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="357"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="355"/>
         <source>No plugin selected</source>
         <translation>선택된 플러그인 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="390"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="386"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="391"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="387"/>
         <source>Locate the missing plugin library</source>
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="403"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="399"/>
         <source>Bus controls become available after the plug-in loads.</source>
         <translation>플러그인이 로드되면 버스 컨트롤을 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="411"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="407"/>
         <source>Input and Output layouts are available only for VST3 plug-ins.</source>
         <translation>입력 및 출력 레이아웃은 VST3 플러그인에서만 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="416"/>
         <source>VST2 uses a fixed bus. Saved %1 layouts are ignored.</source>
-        <translation>VST2는 고정 버스를 사용합니다. 저장된 %1 레이아웃은 적용되지 않습니다.</translation>
+        <translation type="vanished">VST2는 고정 버스를 사용합니다. 저장된 %1 레이아웃은 적용되지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="423"/>
         <source>Fixed bus · %1 inputs / %2 outputs</source>
-        <translation>고정 버스 · 입력 %1개 / 출력 %2개</translation>
+        <translation type="vanished">고정 버스 · 입력 %1개 / 출력 %2개</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
         <source>Panel open · %1</source>
-        <translation>패널 열림 · %1</translation>
+        <translation type="vanished">패널 열림 · %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="445"/>
         <source>Detected %1. Choose a layout to override.</source>
-        <translation>%1 감지됨. 직접 지정하려면 레이아웃을 선택하세요.</translation>
+        <translation type="vanished">%1 감지됨. 직접 지정하려면 레이아웃을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="467"/>
         <source>Active · %1</source>
-        <translation>활성 · %1</translation>
+        <translation type="vanished">활성 · %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="469"/>
         <source> Legacy stereo routing was updated.</source>
-        <translation> 기존 스테레오 라우팅을 업데이트했습니다.</translation>
+        <translation type="vanished"> 기존 스테레오 라우팅을 업데이트했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="475"/>
         <source>%1 unavailable. Audio is passing through unchanged.</source>
-        <translation>%1을 사용할 수 없습니다. 오디오는 변경 없이 통과합니다.</translation>
+        <translation type="vanished">%1을 사용할 수 없습니다. 오디오는 변경 없이 통과합니다.</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="412"/>
         <source>VST2 ignores the saved %1 bus layouts. Remove them to avoid misleading settings.</source>
-        <translation type="vanished">VST2는 저장된 %1 버스 레이아웃을 무시합니다. 오해의 소지가 있는 설정을 방지하려면 제거하세요.</translation>
+        <translation>VST2는 저장된 %1 버스 레이아웃을 무시합니다. 오해의 소지가 있는 설정을 방지하려면 제거하세요.</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="419"/>
         <source>VST2 fixed bus: %1 in → %2 out. No layout keys are saved.</source>
-        <translation type="vanished">VST2 고정 버스: 입력 %1 → 출력 %2. 레이아웃 키는 저장되지 않습니다.</translation>
+        <translation>VST2 고정 버스: 입력 %1 → 출력 %2. 레이아웃 키는 저장되지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="432"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
         <source>Close the embedded panel before changing the VST3 bus layout.</source>
         <translation>VST3 버스 레이아웃을 변경하기 전에 내장 패널을 닫으세요.</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="431"/>
         <source>Bus controls are locked while the panel is open. Current bus: %1.</source>
-        <translation type="vanished">패널이 열려 있는 동안 버스 컨트롤이 잠깁니다. 현재 버스: %1.</translation>
+        <translation>패널이 열려 있는 동안 버스 컨트롤이 잠깁니다. 현재 버스: %1.</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="441"/>
         <source>Detected bus: %1. Choose Input or Output to save an explicit contract.</source>
-        <translation type="vanished">감지된 버스: %1. 명시적 버스 구성을 저장하려면 입력 또는 출력을 선택하세요.</translation>
+        <translation>감지된 버스: %1. 명시적 버스 구성을 저장하려면 입력 또는 출력을 선택하세요.</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="463"/>
         <source>Accepted bus: %1. Active bus: %2.</source>
-        <translation type="vanished">허용된 버스: %1. 활성 버스: %2.</translation>
+        <translation>허용된 버스: %1. 활성 버스: %2.</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="466"/>
         <source> Legacy StereoInput was migrated to Input Stereo / Output Auto.</source>
-        <translation type="vanished"> 기존 StereoInput 설정을 입력 Stereo / 출력 Auto로 마이그레이션했습니다.</translation>
+        <translation> 기존 StereoInput 설정을 입력 Stereo / 출력 Auto로 마이그레이션했습니다.</translation>
     </message>
     <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="472"/>
         <source>Rejected bus: %1. Audio will pass through until the layout is changed or removed.</source>
-        <translation type="vanished">거부된 버스: %1. 레이아웃을 변경하거나 제거할 때까지 오디오는 그대로 통과합니다.</translation>
+        <translation>거부된 버스: %1. 레이아웃을 변경하거나 제거할 때까지 오디오는 그대로 통과합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="532"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="529"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="578"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="575"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="603"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="600"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="679"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="676"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>오디오 서비스가 이 라이브러리를 읽을 수 없습니다.
 파일 권한을 바꾸거나 VSTPlugins 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="696"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="693"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>

@@ -154,6 +154,27 @@ int runVstBusControlsSelfTest()
 	remove->click();
 	expect(removeSignal, "repair action emits removeLayoutsRequested");
 
+	const struct { const char* skin; const char* objectName; } skinViews[] = {
+		{ "studio", "StudioVSTBusLayoutControls" },
+		{ "minimal", "MinimalVSTBusLayoutControls" },
+		{ "soft", "SoftVSTBusLayoutControls" },
+		{ "rack", "RackVSTBusLayoutControls" },
+		{ "matrix", "MatrixVSTBusLayoutControls" }
+	};
+	for (const auto& expected : skinViews)
+	{
+		SkinManager::instance()->applySkin(QString::fromLatin1(expected.skin), true);
+		std::unique_ptr<VSTBusLayoutControls> skinControl(
+			SkinManager::instance()->createVSTBusLayoutControls(nullptr));
+		expect(skinControl != nullptr
+			&& skinControl->objectName() == QString::fromLatin1(expected.objectName),
+			"each skin owns a distinct VST bus presentation");
+		expect(skinControl != nullptr
+			&& skinControl->findChild<QComboBox*>(QStringLiteral("VSTBusInputLayout")) != nullptr
+			&& skinControl->findChild<QComboBox*>(QStringLiteral("VSTBusOutputLayout")) != nullptr,
+			"skin presentations preserve the shared semantic controls");
+	}
+
 	fprintf(stderr, "[VST controls selftest] %s (%d failure(s))\n",
 		failures == 0 ? "PASS" : "FAIL", failures);
 	return failures;

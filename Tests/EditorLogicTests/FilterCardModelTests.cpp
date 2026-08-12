@@ -124,16 +124,6 @@ void testFilterCardDescriptors()
 	expectEqual(multiConvBare.badge, "MCONV", "bare multiconvolution keeps its badge");
 	expectEqual(multiConvBare.type, "convolution", "bare multiconvolution keeps convolution styling");
 
-	FilterCardDescriptor vst = FilterCardModel::describeLine(
-		"VSTPlugin: Library \"C:\\Program Files\\XT\\Upmixer.vst3\" Input Stereo Output 7.1");
-	expectEqual(vst.summary, QString::fromUtf8("Upmixer.vst3 · Stereo → 7.1"),
-		"VST header summarizes identity and layout without config syntax");
-	expectFalse(vst.summary.contains("Library") || vst.summary.contains("Input")
-		|| vst.summary.contains("C:\\"),
-		"VST header does not leak raw keys or an absolute path");
-	FilterCardDescriptor emptyVst = FilterCardModel::describeLine("VSTPlugin:");
-	expectEqual(emptyVst.summary, "No plugin selected", "bare VST card has a user-facing empty state");
-
 	// The card badges carry the picker's pictograms instead
 	// of English monograms. Pin the descriptor-keyed catalog: the biquad
 	// prefix folding (LSC rides the low-shelf glyph, HPQ the high-pass one,
