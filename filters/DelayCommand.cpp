@@ -22,6 +22,10 @@
 #include "DelayCommand.h"
 
 #include <cstdio>
+#include <sstream>
+
+#include "parser/NumericText.h"
+#include "text/WideString.h"
 
 std::wstring DelayCommand::serialize() const
 {
@@ -35,4 +39,33 @@ std::wstring DelayCommand::serialize() const
 	std::wstring result(buffer);
 	result += isMs ? L" ms" : L" samples";
 	return result;
+}
+
+bool DelayCommand::parse(const std::wstring& parameters, DelayCommand& out)
+{
+	// Conversion to period as decimal mark, if needed
+	std::wstring value = numeric_text::normalizeDecimalComma(parameters);
+
+	double delay = -1;
+	std::wstring unit;
+	std::wstringstream stream(value);
+	stream >> delay >> unit;
+
+	if (delay < 0)
+		return false;
+
+	const std::wstring lowered = text::toLower(unit);
+	if (lowered == L"ms")
+	{
+		out.delay = delay;
+		out.isMs = true;
+		return true;
+	}
+	if (lowered == L"samples")
+	{
+		out.delay = delay;
+		out.isMs = false;
+		return true;
+	}
+	return false;
 }

@@ -18,9 +18,6 @@
 */
 
 #include "stdafx.h"
-#include "text/WideString.h"
-#include "parser/NumericText.h"
-#include <sstream>
 
 #include "runtime/memory/AlignedMemory.h"
 #include "services/logging/Logging.h"
@@ -31,7 +28,6 @@
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory, L"Delay")
 
 using std::vector;
-using std::wstringstream;
 using std::wstring;
 
 bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameters, DelayCommand& out)
@@ -39,43 +35,23 @@ bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameter
 	if (command != L"Delay")
 		return false;
 
-	// Conversion to period as decimal mark, if needed
-	wstring value = numeric_text::normalizeDecimalComma(parameters);
-
-	double delay = -1;
-	wstring unit;
-	wstringstream stream(value);
-	stream >> delay >> unit;
-
-	if (delay < 0)
+	// The codec owns the grammar (and accepts zero, so the Editor can still
+	// open a card for a no-op line); the engine-only decisions below are the
+	// trace and the no-op gate.
+	if (!DelayCommand::parse(parameters, out))
 		return false;
 
 	// A 0-length delay is a no-op: it produces no filter so the chain avoids one
 	// virtual call and one ring-buffer update per block. Report it in the trace
 	// and reject the command so no DelayFilter is built.
-	if (delay == 0.0)
+	if (out.delay == 0.0)
 	{
-		TraceFStatic(L"Skipping no-op delay (0 %s)", text::toLower(unit).c_str());
+		TraceFStatic(L"Skipping no-op delay (0 %s)", out.isMs ? L"ms" : L"samples");
 		return false;
 	}
 
-	if (text::toLower(unit) == L"ms")
-	{
-		TraceFStatic(L"Delaying by %g ms", delay);
-		out.delay = delay;
-		out.isMs = true;
-		return true;
-	}
-
-	if (text::toLower(unit) == L"samples")
-	{
-		TraceFStatic(L"Delaying by %g samples", delay);
-		out.delay = delay;
-		out.isMs = false;
-		return true;
-	}
-
-	return false;
+	TraceFStatic(L"Delaying by %g %s", out.delay, out.isMs ? L"ms" : L"samples");
+	return true;
 }
 
 FilterVector DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
