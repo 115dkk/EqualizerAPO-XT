@@ -4684,13 +4684,13 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="384"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="543"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="98"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="615"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="619"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
@@ -4770,50 +4770,49 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>버스 레이아웃을 바꾸려면 플러그인 패널을 닫으세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="459"/>
         <source>Rejected</source>
-        <translation>거부됨</translation>
+        <translation type="vanished">거부됨</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="460"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="464"/>
         <source>The plugin rejected the %1 in / %2 out contract. All channels pass through unchanged until the layout changes or is removed.</source>
         <translation>플러그인이 입력 %1 / 출력 %2 계약을 거부했습니다. 레이아웃을 바꾸거나 제거할 때까지 모든 채널이 그대로 통과합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="478"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="480"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="482"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
         <source>%1 ch</source>
         <translation>%1채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="489"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="493"/>
         <source>The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.</source>
-        <translation>구형 '스테레오 입력' 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
+        <translation>구형 &apos;스테레오 입력&apos; 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="548"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="590"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="594"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="615"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="619"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="694"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="698"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>오디오 서비스가 이 라이브러리를 읽을 수 없습니다.
 파일 권한을 바꾸거나 VSTPlugins 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="711"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="715"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>

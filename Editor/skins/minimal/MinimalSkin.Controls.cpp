@@ -381,8 +381,13 @@ void MinimalSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& st
 		text = state.verdictInputText + QStringLiteral("->") + state.verdictOutputText;
 	else if (hasText)
 		text = state.verdictText;
-	else
+	else if (state.tone == VstBusFrameState::Tone::Success)
 		text = QStringLiteral("ok");
+	else
+		// A wordless danger/warning verdict prints nothing here: the same
+		// line already carries the "!"-tagged status message, and repeating
+		// it one word earlier was the ink-register version of a second lamp.
+		return;
 	painter.drawText(QRectF(state.verdictRect), Qt::AlignLeft | Qt::AlignVCenter,
 		QFontMetricsF(verdictFont).elidedText(text, Qt::ElideRight, state.verdictRect.width()));
 }

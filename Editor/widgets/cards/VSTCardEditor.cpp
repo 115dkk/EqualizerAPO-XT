@@ -456,7 +456,11 @@ void VSTCardEditor::updateBusControls()
 
 	if (!accepted)
 	{
-		busStrip->setVerdict(tr("Rejected"), VstBusFrameState::Tone::Critical);
+		// Lamp-only, like the accepted verdict: a danger lamp beside the
+		// selectors says it, and the sentence belongs to the status line.
+		// A "Rejected" word in the strip restated the lamp (maintainer
+		// judgement, r2: 사족).
+		busStrip->setVerdict(QString(), VstBusFrameState::Tone::Critical);
 		busStatusText = tr("The plugin rejected the %1 in / %2 out contract. All channels pass through unchanged until the layout changes or is removed.")
 			.arg(layoutName(requestedInput), layoutName(requestedOutput));
 		busStatusSeverity = ReferenceCardState::Severity::Critical;

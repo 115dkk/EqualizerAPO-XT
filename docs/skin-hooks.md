@@ -204,8 +204,10 @@ caption for the friendly ones), the layout token in config grammar, and the
 interaction flags. `VstBusFrameState` carries the child geometry plus the
 verdict: either a short word or the negotiated pair split into input/output
 texts, so each skin joins the pair with its own direction mark instead of
-betting a font's arrow glyph. A tone without words is a lamp-only verdict
-(an accepted explicit contract - the selectors already print the pair).
+betting a font's arrow glyph. A tone without words is a lamp-only verdict:
+an accepted explicit contract (the selectors already print the pair) and a
+rejected one (the status line carries the sentence; a "Rejected" word next
+to a danger lamp restated the lamp - maintainer judgement, r2).
 
 Placement is the reference view's decision
 (`ReferenceCardView::placeBusStrip`): the strip mounts beside the plugin

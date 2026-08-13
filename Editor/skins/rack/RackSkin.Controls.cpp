@@ -506,10 +506,13 @@ void RackSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState&
 	}
 }
 
-// The recessed sub-panel around the whole strip (the capture-well recess:
-// shaded top lip, lit bottom lip), the signal direction engraved between
-// the caps, and the verdict as a bezel-set panel LED - paintLed, the only
-// lamp this skin builds - beside a small engraving.
+// The caps mount directly on the faceplate. An earlier round framed the
+// whole strip in a recessed sub-panel; the outline read as cramped around
+// the engravings and was judged off - the caps are already components, and
+// hardware does not frame two buttons (maintainer decision, r2). The
+// signal direction is engraved into the plate between the caps, and the
+// verdict is a bezel-set panel LED - paintLed, the only lamp this skin
+// builds - beside a small engraving.
 void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
 {
 	QPainterStateGuard guard(&painter);
@@ -517,16 +520,6 @@ void RackSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
 	const bool dark = skinIsDark(tokens);
-	const QRectF well = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
-	painter.setPen(QPen(QColor(tokens.border), 1));
-	painter.setBrush(withAlphaF(QColor(Qt::black), dark ? 0.18 : 0.08));
-	painter.drawRoundedRect(well, 2.0, 2.0);
-	painter.setPen(QPen(withAlphaF(QColor(Qt::black), dark ? 0.22 : 0.12), 1));
-	painter.drawLine(QPointF(well.left() + 2.0, well.top() + 1.5),
-		QPointF(well.right() - 2.0, well.top() + 1.5));
-	painter.setPen(QPen(withAlphaF(QColor(Qt::white), dark ? 0.06 : 0.40), 1));
-	painter.drawLine(QPointF(well.left() + 2.0, well.bottom() - 0.5),
-		QPointF(well.right() - 2.0, well.bottom() - 0.5));
 
 	// The engraved direction mark between the caps: the recess-edge light
 	// pass one pixel down, then the ink - the engraving formula as a line.

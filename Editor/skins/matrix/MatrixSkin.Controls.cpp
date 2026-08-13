@@ -376,13 +376,19 @@ void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 
 	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
 
-	if (state.enabled && (state.hovered || state.menuOpen))
-		painter.fillRect(cell, withAlphaF(QColor(tokens.accent), 0.05));
+	// At rest the cell wears the pressable-cell grammar the board already
+	// taught (the footer caption keys, gate #176: a bare outline does not
+	// read as a button): 1px border rule plus the faint fill. Hover and an
+	// open menu are the accent prelight; a disabled cell is a cancelled
+	// departure, dashed and unfilled.
+	if (state.enabled)
+		painter.fillRect(cell, state.hovered || state.menuOpen
+			? withAlpha(QColor(tokens.accent), 24) : withAlpha(QColor(tokens.border), 18));
 	QPen borderPen(QColor(tokens.border), 1);
 	if (!state.enabled)
 		borderPen.setStyle(Qt::DashLine);
 	else if (state.focused || state.menuOpen || state.hovered)
-		borderPen.setColor(withAlpha(QColor(tokens.accent), state.hovered && !state.focused && !state.menuOpen ? 150 : 255));
+		borderPen.setColor(withAlpha(QColor(tokens.accent), state.hovered && !state.focused && !state.menuOpen ? 200 : 255));
 	painter.setPen(borderPen);
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRect(cell);
@@ -416,6 +422,17 @@ void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 		painter.drawText(countRect, Qt::AlignLeft | Qt::AlignVCenter,
 			QStringLiteral(":%1").arg(state.channelCount));
 	}
+
+	// The dropdown caret, stacked from 1px rules so it stays crisp without
+	// antialiasing (no font glyph decides its shape). Right-aligned in the
+	// cell's padding, muted like the role designation.
+	const int caretRight = qRound(cell.right()) - 5;
+	const int caretMidY = qRound(cell.center().y());
+	painter.setPen(Qt::NoPen);
+	const QColor caretInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 130);
+	painter.fillRect(QRect(caretRight - 4, caretMidY - 1, 5, 1), caretInk);
+	painter.fillRect(QRect(caretRight - 3, caretMidY, 3, 1), caretInk);
+	painter.fillRect(QRect(caretRight - 2, caretMidY + 1, 1, 1), caretInk);
 }
 
 // The joint is the board's ASCII ">" and the verdict is a status cell: a
