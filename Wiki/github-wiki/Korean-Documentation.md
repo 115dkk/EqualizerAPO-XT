@@ -1,11 +1,12 @@
 # 사용자 문서
 **EqualizerAPO-XT**의 사용자 문서입니다. 직접 APO를 만들거나 소스에서 빌드하려면 [개발자 문서](Korean-Developer-documentation)를 보세요. 설치를 마친 뒤 명령을 자세히 알고 싶으면 [설정 레퍼런스](Korean-Configuration-reference)에 전부 정리해 두었습니다.
 ## 설치
-원본 Equalizer APO와 달리 XT 포크는 설치 파일이 하나가 아닙니다. CPU 명령어 집합마다 설치 파일을 따로 빌드하며, **32비트 빌드는 없습니다.** 64비트 x64와 ARM64만 있습니다.
+XT는 호환성을 위한 작은 진입 설치 파일과 CPU별 64비트 패키지 여섯 개를 함께 배포합니다. APO/애플리케이션 본체에는 **32비트 빌드가 없으며** x64와 ARM64만 지원합니다.
 
-1. [릴리스 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에서 CPU에 맞는 `EqualizerAPO_Setup-<변형>.exe`를 받습니다. 변형은 `x64-sse2`, `x64-avx`, `x64-avx2`, `x64-avx512`, `x64-avx10_1`, `arm64`가 있습니다.
-1. 무엇을 받을지 모르겠으면 **`x64-avx2`를 받으면 됩니다.** 대략 2013년 이후 데스크톱 CPU는 거의 다 돌아갑니다. 아주 오래된 x64 CPU라면 호환성이 가장 넓은 `x64-sse2`를, AVX는 되지만 AVX2가 안 되는 CPU라면 `x64-avx`를 받습니다. `x64-avx512`와 `x64-avx10_1`은 CPU가 실제로 그 확장을 지원할 때만, `arm64`는 ARM 기반 Windows 기기에서 받습니다. CPU 종류는 **시작 → 설정 → 시스템 → 정보**에서 확인할 수 있습니다.
-1. 받은 설치 파일을 실행합니다. Velopack 설치 프로그램이 애플리케이션을 풀고 EqualizerAPO-XT를 등록합니다. 설치 경로를 외울 필요는 없습니다. 위치는 레지스트리에 기록됩니다([아래](#설치-위치) 참고).
+1. [릴리스 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에서 **`EqualizerAPO-XT-Setup.exe`**를 받습니다.
+1. 인터넷에 연결한 상태에서 실행합니다. CPU의 실제 아키텍처와 CPU·Windows가 함께 지원하는 가장 높은 AVX 수준을 감지하고, 맞는 Velopack 설치 파일을 받은 뒤 릴리스의 `SHA256SUMS.txt`와 대조해 검증하고 나서 실행합니다.
+1. 오프라인으로 옮기거나 복구하거나 특정 빌드를 의도적으로 설치할 때는 채널별 `…-Setup.exe`도 쓸 수 있습니다. 채널은 `x64-sse2`, `x64-avx`, `x64-avx2`, `x64-avx512`, `x64-avx10-1`, `arm64-neon`입니다. 대상 기기의 지원 여부를 확실히 알 때만 직접 고르세요. 정확한 선택·무결성 검사 방식은 [자동 감지 설치 파일 설계 문서](https://github.com/115dkk/EqualizerAPO-XT/blob/main/docs/AutoDetectInstaller.md)에 있습니다.
+1. 선택된 Velopack 설치 프로그램이 애플리케이션을 풀고 EqualizerAPO-XT를 등록합니다. 설치 경로를 외울 필요는 없습니다. 위치는 레지스트리에 기록됩니다([아래](#설치-위치) 참고).
 1. 처음 설치하면 **장치 선택기(Device Selector)**가 열립니다. Equalizer APO를 적용할 재생 장치나 녹음 장치를 선택합니다. 잘 모르겠으면 기본 출력 장치를 고르면 됩니다. 어느 것이 기본 장치인지는 **시작 → 설정 → 시스템 → 소리**에서 볼 수 있습니다. 나중에 장치를 추가하거나 빼고 싶으면 설치 폴더에서 장치 선택기를 다시 실행하면 됩니다.
 1. Windows가 오디오 서비스를 다시 시작하도록 두거나 재부팅합니다. 새로 등록한 APO는 오디오 엔진이 재시작해야 적용됩니다.
 1. 서비스가 다시 시작되면 APO가 활성화됩니다. 기본 예제 설정에서는 음량이 조금 줄고 저역이 약간 올라가는 정도라 변화가 크지 않습니다. 쓸모 있게 바꾸려면 [첫 설정](#첫-설정)으로 넘어가세요.
@@ -14,7 +15,7 @@
 EqualizerAPO-XT는 경로를 레지스트리 키 **`HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO`**에 기록합니다.
 
 * `InstallPath` — 애플리케이션이 설치된 디렉터리입니다.
-* `ConfigPath` — 설정 파일이 들어 있는 `config` 폴더입니다.
+* `ConfigPath` — 설정 파일이 들어 있는 `config` 폴더입니다. 일반적인 XT 설치는 `%LOCALAPPDATA%\EqualizerAPO-XT\config`를 쓰지만, 사용자가 의도적으로 고른 경로는 보존하므로 레지스트리 값이 기준입니다.
 
 설정 폴더로 가는 가장 쉬운 방법은 **설정 편집기(Configuration Editor)**를 여는 것입니다. 편집기가 이 폴더를 바로 가리킵니다. 폴더에는 자동으로 불러오는 기본 파일 `config.txt`와 함께 바로 쓸 수 있는 예제들이 들어 있습니다. `example.txt`, `demo.txt`, `convolution.txt`, `iir_lowpass.txt`, `multichannel.txt`, `selective_delay.txt`입니다.
 
@@ -72,6 +73,13 @@ C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log
 ```
 
 정상일 때는 이 파일이 아예 없습니다. 오류가 날 때만 만들어집니다. 더 자세한 정보가 필요하면 추적 출력을 켤 수 있습니다. `regedit.exe`를 열고 `HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO`로 가서 **`EnableTrace`** 값을 `true`로 바꿉니다. 그러면 평소 재생이나 녹음 중에도 `(TRACE)` 표시가 붙은 줄이 기록되어, 설정 파일이 어떻게 해석되는지 확인할 때 유용합니다. 끝나면 로그가 불필요하게 커지지 않도록 `EnableTrace`를 다시 `false`로 되돌리세요.
+
+XT의 사용자용 진단 자료는 `%LOCALAPPDATA%\EqualizerAPO\logs` 아래에 모입니다.
+
+* `Editor.log` — Editor, 설치/업데이트 훅, 저장 실패를 기록합니다.
+* `DeviceSelector.log` — 장치 설치, 제거, 복구를 기록합니다.
+* `Editor.exe --diagnose`를 실행하면 `diagnose-<시간>.txt`를 이 폴더와 연결된 콘솔에 씁니다. 설치 상태만 검사하며 관리자 권한은 필요 없습니다.
+* Editor 크래시 미니덤프와 텍스트 보고서는 `crash` 하위 폴더에 들어갑니다.
 
 ### 하드웨어 가속 OpenAL
 OpenAL을 쓰는 애플리케이션은 대개 APO를 지원하는 DirectSound로 폴백하므로 문제가 없습니다. 다만 일부 제조사는 하드웨어에 직접 접근해 APO를 우회하는 하드웨어 가속 OpenAL 라이브러리를 제공합니다. 하드웨어 가속 OpenAL에 APO 지원을 추가할 방법은 없으므로, 애플리케이션을 다른 출력 백엔드로 바꾸거나 OpenAL을 소프트웨어 모드로 돌리는 수밖에 없습니다. 예를 들어 `OpenAL32.dll`을 [OpenAL Soft](https://openal-soft.org/) 빌드로 교체하거나, `C:\Windows\System32` 또는 `C:\Windows\SysWOW64`에 있는 제조사 하드웨어 OpenAL 라이브러리(흔히 `*_oal.dll` 형태)의 이름을 바꾸는 방법이 있습니다. 뒤쪽 방법은 사운드 드라이버를 건드리는 것이라 공식적으로 지원되지 않습니다.

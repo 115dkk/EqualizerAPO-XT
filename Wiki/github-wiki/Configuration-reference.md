@@ -7,7 +7,7 @@ Configuration files are read line by line. Each meaningful line has the form:
 Command: Parameters
 ```
 
-Any line that does not fit this shape is ignored silently, which is how comments work — a line starting with `#` is simply not a recognised command. Lines naming a command that does not exist are ignored as well.
+Lines that do not name a supported command are inert text. That is how comments work — a line starting with `#` is simply not a recognised command — and unknown command names are ignored too. Command names are case-sensitive: `Preamp` is active, while `preamp` is not. Strictly validated commands — including `Copy`, both convolution commands, `VSTPlugin`, `Hilbert`, `Velvet`, `SubwooferRouting` and `LoudnessCorrection` — report the file, line and reason for malformed input in `EqualizerAPO.log` and in the Editor's analysis/card error. Later lines still load. Some older command parsers only leave their own log message.
 
 Example:
 
@@ -40,12 +40,23 @@ Filter: ON  NO       Fc     50 Hz
 These commands change the audio on the currently selected channels directly.
 
 ### Preamp
-**Syntax:** `Preamp: <Negative number> dB`
+**Syntax:** `Preamp: <gain> dB`
 
-Sets a preamplification value in decibels. Use it when filters add positive gain, to keep the signal from clipping. When several preamps apply to the same channel, the effective preamp is their sum in dB.
+Sets a preamplification value in decibels. Positive values raise the level, negative values lower it, and zero is neutral. A negative preamp is commonly used when filters add positive gain, to keep the signal from clipping. When several preamps apply to the same channel, the effective preamp is their sum in dB.
 
 ```
 Preamp: -6.5 dB
+```
+
+### LoudnessCorrection
+**Syntax:** `LoudnessCorrection: State <0|1> ReferenceLevel <integer dB> ReferenceOffset <integer dB> [Attenuation <0..1>]`
+
+Tracks the Windows master volume of the default multimedia playback device and changes a 75 Hz low shelf and a 10 kHz high shelf to compensate for level-dependent hearing. The effective reference is `ReferenceLevel - ReferenceOffset`. Below it, the command increases low- and high-frequency compensation and reduces headroom to accommodate the bass boost; at the reference it is neutral.
+
+`ReferenceLevel` is the Windows master-volume level, in dB, that produces 75 dB at the listening position. The Editor's **Calibrate** dialog plays pink noise and helps set it with a sound-level meter. `ReferenceOffset` moves the effective reference without repeating calibration. `Attenuation` scales the correction from none (`0`) to full (`1`) and defaults to `1`. `State 0` bypasses the filter. After calibration, adjust listening volume with the Windows volume control so the command can follow it.
+
+```
+LoudnessCorrection: State 1 ReferenceLevel -20 ReferenceOffset 0 Attenuation 1.0
 ```
 
 ### Filter
@@ -153,7 +164,7 @@ Copy: <Target channel>=<Source channel>+...
 Copy: <Target channel>=<Constant value>+...
 ```
 
-Replaces the target channel with the sum of the listed source channels, each with an optional factor. To add to the target instead of replacing it, include the target as one of the sources. A factor may be given in dB by appending `dB`. Several assignments can share one line if separated by spaces, so a single assignment must not contain spaces. A constant value can be used in place of a channel/factor; to keep it distinct from a numeric channel index, the constant must contain a decimal point. See the [Channel](#channel) command for channel identifiers.
+Replaces the target channel with the sum of the listed source channels, each with an optional factor. To add to the target instead of replacing it, include the target as one of the sources. A factor may be given in dB by appending `dB`. Several assignments can share one line if separated by spaces, so a single assignment must not contain spaces. A bare `0` is a constant; every other constant must contain a decimal point to distinguish it from a numeric channel index. Thus `L=2` copies channel 2, while `L=2.0` writes the constant 2. See the [Channel](#channel) command for channel identifiers.
 
 ```
 # Adds the audio on channel R multiplied by 0.5 to channel L
@@ -213,7 +224,10 @@ Copy: L=L+XL R=R+XR
 ```
 
 ### VSTPlugin bus layouts
-**Syntax:** `VSTPlugin: Library "<plug-in path>" Input <layout> Output <layout> [ChunkData "<state>"]`
+**Syntax:** `VSTPlugin: Library "<plug-in path>" [ChunkData "<state>" | <parameter name or ID> <value> ...]`
+**With explicit VST3 buses:** `VSTPlugin: Library "<plug-in path>" Input <layout> Output <layout> [ChunkData "<state>" | <parameter name or ID> <value> ...]`
+
+Loads a 64-bit VST2 (`.dll`) or VST3 (`.vst3`) plug-in and processes the currently selected channels. A relative library path is resolved under EqualizerAPO-XT's `VSTPlugins` folder; an absolute path may point elsewhere. The Editor can choose the module, open or embed its panel, and save its state. State is written either as quoted `ChunkData` or as numeric parameter key/value pairs, not both in one canonical line.
 
 `Input` and `Output` add an explicit main-bus contract to the existing `VSTPlugin` command. Use them for VST3 upmixers, downmixers, height expanders, and other plug-ins whose input and output layouts differ. If either key is present, both are mandatory; write `Auto` explicitly when one direction should use the normal host negotiation.
 
@@ -227,9 +241,11 @@ VSTPlugin: Library "C:\Program Files\Common Files\VST3\Upmixer.vst3" Input Stere
 VSTPlugin: Library "C:\Program Files\Common Files\VST3\Height Expander.vst3" Input Auto Output 7.1.4
 ```
 
-If a VST3 plug-in rejects the contract, reports a different arrangement or bus width, or supplies invalid metadata, the filter is disabled and every input channel passes through unchanged. It does not retry with a different explicit width or create repeated stereo instances. When the loaded module is VST2, the backend quietly ignores `Input` and `Output` and continues with ordinary VST2 processing. The older `StereoInput 1` key remains readable for existing configurations, but new VST3 configurations should use the explicit layout pair. Existing `ChunkData` and parameter state keep their normal `VSTPlugin` key/value form.
+If a VST3 plug-in rejects the contract, reports a different arrangement or bus width, or supplies invalid metadata, the filter is disabled and every input channel passes through unchanged. It does not retry with a different explicit width or create repeated stereo instances. When the loaded module is VST2, the backend ignores `Input` and `Output` and continues with ordinary VST2 processing.
 
-The audio backend supports these keys now, but the Qt Editor does not yet provide layout controls. Add or edit them as text until that separate UI work lands.
+The older `StereoInput 1` spelling remains accepted. With no `Input`/`Output` pair and a stream wider than stereo, it marks a VST3 as an upmixer and asks the legacy automatic path for two input channels and the full device-width output. The card-based Editor maps that intent to `Input Stereo Output Auto`, shows a migration notice, and writes the explicit pair on its next save. From that save onward the strict contract behavior above applies: one contract instance, with unchanged passthrough if the pair is rejected. **Legacy rows** mode instead preserves `StereoInput 1` verbatim. Do not combine `StereoInput` with `Input`/`Output`. Existing `ChunkData` and parameter state keep their normal `VSTPlugin` key/value form.
+
+The card-based Editor now provides **Input** and **Output** selectors beside the plug-in identity. For VST3 it probes the same negotiation as the audio engine, displays the actual pair when either side is `Auto`, and reports rejection as unchanged passthrough. The selectors lock while the plug-in is missing, loaded as VST2, or its panel is embedded. If a line carries layouts but the module loads as VST2, use **Options → Remove Input/Output layouts** to return to ordinary automatic negotiation.
 
 ### Hilbert
 **Syntax:** `Hilbert: [Shift=<channel>[,<channel>...]] [Align=<channel>[,<channel>...]] [Direction=-90|+90]`
@@ -255,7 +271,7 @@ Runs an independently generated sparse velvet-noise FIR on every currently selec
 Velvet: Mode=Dynamic Amount=100% Length=27.5625ms Density=1088.435/s Evolution=5s Transition=250ms Decay=-60dB Variation=2050083136
 ```
 
-The Editor shows the sparse response, tap and correlation statistics, the dynamic controls only when they apply, and an Advanced fold for density, transition, decay and variation. Frequency-response analysis freezes a dynamic filter to its deterministic static snapshot and labels the graph accordingly, so an evolving response is never presented as a stationary measurement.
+The Editor keeps the primary controls compact, reveals dynamic controls only when they apply, and puts density, transition, decay and variation in an Advanced fold. The former impulse-tap preview and correlation readout have been removed. Frequency-response analysis freezes a dynamic filter to its deterministic static snapshot and labels the graph accordingly, so an evolving response is never presented as a stationary measurement.
 
 ### SubwooferRouting
 **Syntax:** `SubwooferRouting: State <compact JSON state>`
@@ -299,7 +315,7 @@ Device: High Definition Audio Device Speakers; Benchmark
 ### Channel
 **Syntax:** `Channel: <Channel position 1> <Channel position 2> ...`
 
-Selects the channels that following `Filter` and `Preamp` commands apply to. Positions may be given by identifier (a 1–3 letter acronym) or by number (counted from 1). The supported configurations are listed below; for an unsupported configuration, channels can only be selected by number. Separate several channels with spaces. The special position `all` selects every channel.
+Selects the channels that subsequent ordinary filtering commands apply to, including `Preamp`, `Filter`, `Delay`, `GraphicEQ`, `Convolution`, `VSTPlugin`, `Velvet` and `LoudnessCorrection`. Commands that name their own channels — `Copy`, `MultiConvolution`, `Hilbert` and `SubwooferRouting` — follow their own rules instead. Positions may be given by identifier (a 1–3 letter acronym) or by number (counted from 1). The supported configurations are listed below; for an unsupported configuration, channels can only be selected by number. Separate several channels with spaces. The special position `all` selects every channel.
 
 | Configuration | L | R | C | LFE | RL | RR | RC | SL | SR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

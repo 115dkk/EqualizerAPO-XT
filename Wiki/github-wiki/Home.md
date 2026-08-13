@@ -1,5 +1,5 @@
 # EqualizerAPO-XT Wiki
-EqualizerAPO-XT is a Windows system-wide equalizer based on [Equalizer APO](https://sourceforge.net/projects/equalizerapo/) by Jonas Thedering. The XT fork keeps the familiar configuration workflow while adding 64-bit (double) internal processing, an uncapped convolver impulse-response length, VST2/VST3 hosting, multiple SIMD build variants, ARM64 support, and a Velopack-based installer with automatic updates.
+EqualizerAPO-XT is a Windows system-wide equalizer based on [Equalizer APO](https://sourceforge.net/projects/equalizerapo/) by Jonas Thedering. The XT fork keeps the familiar configuration workflow while adding 64-bit (double) internal processing, an uncapped convolver impulse-response length, BRIR/crossfeed-oriented MultiConvolution, Hilbert and Velvet phase/decorrelation tools, explicit VST3 main-bus layouts, and one-line subwoofer routing shared with a standalone VST3 plug-in. Portable SIMD variants cover x64 through AVX10.1 and ARM64/NEON, while an auto-detect Velopack installer selects the right build and automatic updates keep it current.
 
 This wiki mirrors the structure of the original Equalizer APO documentation and adapts the install and packaging sections to the XT builds.
 
