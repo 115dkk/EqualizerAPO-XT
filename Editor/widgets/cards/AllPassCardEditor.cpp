@@ -86,17 +86,17 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	mainLayout->setSpacing(10);
 
 	// What the filter does is said by the card's tooltip and, visibly, by the
-	// fixed-magnitude readout in the footer. A standing sentence of prose in
-	// the body was the first thing this card was told reads as legacy chrome,
-	// and it is: no other card explains itself in a paragraph.
+	// fixed-magnitude readout at the row's tail. A standing sentence of prose
+	// in the body was the first thing this card was told reads as legacy
+	// chrome, and it is: no other card explains itself in a paragraph.
 	setToolTip(tr("An all-pass changes phase and group delay around Fc. "
 		"The magnitude response stays at 0 dB, so this filter is invisible in the magnitude graph."));
 
-	// Two knobs side by side, the way the legacy row already places them. The
-	// card deliberately does not grow a third or fourth column for the readout
-	// and the buttons: the card body has no horizontal minimum today, and
-	// adding columns would give it one, so a narrowed dock would break this
-	// card before any other.
+	// One row: the two knobs, then the order/graph switches and the magnitude
+	// readout in the horizontal space right of them. Cards are wide, and a
+	// second body row spent that width on nothing; the body sits in the card's
+	// horizontal scroll wrapper, so a narrowed dock scrolls instead of
+	// breaking.
 	QHBoxLayout* parameterRow = new QHBoxLayout();
 	parameterRow->setContentsMargins(0, 0, 0, 0);
 	parameterRow->setSpacing(24);
@@ -132,23 +132,9 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	connect(widthKnob, SIGNAL(valueChanged(int)), this, SLOT(widthKnobChanged(int)));
 	connect(widthModeCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(widthModeChanged(int)));
 
-	parameterRow->addStretch(1);
-	mainLayout->addLayout(parameterRow);
-
-	// Both mode switches live here, captioned alike, so they read as a pair of
-	// settings rather than as one control stranded beside the knobs. The order
-	// used to lead the parameter row, where a narrow two-cell segment next to
-	// two large knob blocks simply stuck out.
-	//
-	// The reform document puts the order in the card header. The header belongs
-	// to FilterCardRow and is shared by every card, so a per-card control there
-	// is a change to the card frame; this keeps the document's binding
-	// constraint - no extra body row - and can move up if the frame ever grows
-	// a per-card header slot.
-	QHBoxLayout* footerRow = new QHBoxLayout();
-	footerRow->setContentsMargins(0, 0, 0, 0);
-	footerRow->setSpacing(24);
-
+	// Both mode switches follow the knobs on the same row, captioned alike, so
+	// they read as a pair of settings rather than as one control stranded
+	// beside the knobs.
 	const auto captionedSegment = [this](const QString& blockName, const QString& segmentName,
 		const QString& caption, const QStringList& labels, SegmentedControl*& out) {
 		QWidget* block = new QWidget(this);
@@ -159,10 +145,10 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 		QLabel* label = new QLabel(caption, block);
 		label->setObjectName(QStringLiteral("AllPassCardCaption"));
 		// Centred over the control it names. Left-aligned captions over compact
-		// controls leave a ragged left edge across the row, which is what this
-		// footer was reported for; the parameter row above keeps its
-		// left-aligned captions because those sit over wide value fields and
-		// follow the Preamp and Delay cards.
+		// controls leave a ragged left edge across the row, which is what the
+		// old footer was reported for; the knob blocks keep their left-aligned
+		// captions because those sit over wide value fields and follow the
+		// Preamp and Delay cards.
 		label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 		layout->addWidget(label);
 		out = new SegmentedControl(block);
@@ -181,7 +167,7 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 		"A 2nd-order section turns a full 360 and has a width."));
 	orderSegment->setCurrentIndex(command.type == BiQuad::ALL_PASS_1 ? 0 : 1);
 	connect(orderSegment, &SegmentedControl::currentIndexChanged, this, &AllPassCardEditor::orderChanged);
-	footerRow->addWidget(orderBlock, 0, Qt::AlignVCenter);
+	parameterRow->addWidget(orderBlock, 0, Qt::AlignVCenter);
 
 	// One segment rather than two buttons: two buttons side by side would fill
 	// the row with nothing but buttons, and these are two views of one thing,
@@ -193,7 +179,7 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 		AnalysisViewController::instance()->requestMetric(
 			index == 1 ? AnalysisMetric::GroupDelayMs : AnalysisMetric::PhaseDegrees);
 	});
-	footerRow->addWidget(graphBlock, 0, Qt::AlignVCenter);
+	parameterRow->addWidget(graphBlock, 0, Qt::AlignVCenter);
 
 	// The one reading this filter has that never moves, stated rather than left
 	// to be inferred from a gain knob that is not there - the whole difficulty
@@ -221,10 +207,10 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	magnitudeNote->setToolTip(tr("An all-pass does not change level at any frequency, so there is nothing to set here."));
 	magnitudeLayout->addWidget(magnitudeNote);
 	magnitudeBlock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-	footerRow->addWidget(magnitudeBlock, 0, Qt::AlignVCenter);
+	parameterRow->addWidget(magnitudeBlock, 0, Qt::AlignVCenter);
 
-	footerRow->addStretch(1);
-	mainLayout->addLayout(footerRow);
+	parameterRow->addStretch(1);
+	mainLayout->addLayout(parameterRow);
 
 	setFrequency(command.freq, false);
 	// A line that arrived as 1st order carries no width, so the card starts

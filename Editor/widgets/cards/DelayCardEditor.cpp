@@ -8,7 +8,6 @@
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
 #include "filters/DelayCommand.h"
-#include "filters/DelayFilterFactory.h"
 
 namespace
 {
@@ -134,17 +133,19 @@ QString DelayCardEditor::delayText() const
 
 REGISTER_DYNAMIC_FILTER_CARD_EDITOR(Delay, [](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
 	// An inline `expression` delay opens the dynamic card (token instead of
-	// a number, knob powered down) - the engine parser below would reject the
+	// a number, knob powered down) - the parser below would reject the
 	// unresolved text and drop the row to the raw body otherwise.
 	if (FilterCardModel::hasInlineExpressions(parameters))
 		return new DelayCardEditor(parameters);
 
-	// Parse through the engine's shared routine; a line it rejects falls back
-	// to the legacy factory chain, exactly like the legacy GUI factory.
+	// Parse through the shared codec, not the engine factory: the factory
+	// rejects a 0 delay so no run-time no-op filter is built, but the line
+	// still owes the user its knob card - "Delay: 0 ms" used to collapse to
+	// the collapsed raw body over exactly this.
+	if (command != QStringLiteral("Delay"))
+		return nullptr;
 	DelayCommand cmd;
-	std::wstring wideCommand = command.toStdWString();
-	std::wstring wideParameters = parameters.toStdWString();
-	if (!DelayFilterFactory::parseCommand(wideCommand, wideParameters, cmd))
+	if (!DelayCommand::parse(parameters.toStdWString(), cmd))
 		return nullptr;
 	return new DelayCardEditor(cmd.delay, cmd.isMs);
 })

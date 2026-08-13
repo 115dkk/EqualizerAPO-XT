@@ -19,7 +19,7 @@
 #include "filters/HilbertFilter.h"
 #include "services/logging/Logging.h"
 #include "filters/VelvetCommand.h"
-#include "filters/velvet/Processor.h"
+#include "filters/velvet/VelvetProcessor.h"
 #include "Tests/TestHarness.h"
 
 namespace

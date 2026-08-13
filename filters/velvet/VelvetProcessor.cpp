@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "stdafx.h"
-#include "Processor.h"
+#include "VelvetProcessor.h"
 
 #include <algorithm>
 #include <cmath>

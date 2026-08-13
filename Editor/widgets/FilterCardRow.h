@@ -87,7 +87,6 @@ private:
 	QLabel* typeBadge = nullptr;
 	ElidedLabel* titleLabel = nullptr;
 	ElidedLabel* summaryLabel = nullptr;
-	QLabel* rawPreviewLabel = nullptr;
 	QWidget* channelBadgeContainer = nullptr;
 	QHBoxLayout* channelBadgeLayout = nullptr;
 	QToolButton* enabledButton = nullptr;

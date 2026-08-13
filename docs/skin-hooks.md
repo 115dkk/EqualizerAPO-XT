@@ -240,12 +240,12 @@ editors; a double-click on a chip/pill removes it where the grid views
 toggle by click). The MultiConvolution card
 (`Editor/widgets/cards/MultiConvolutionCardEditor`) hosts the view under its
 reference card with a `Channel mapping` caption strip
-(`#MultiConvolutionMappingCaption` / `#MultiConvolutionMappingHint` in every
-skin's QSS) and a `+` entry that adds output channels (a new name becomes a
-virtual channel, like Copy). Data rides
-`Editor/widgets/routing/MultiConvolutionRoutingAdapter` both ways; without a
-readable IR file the card shows the hint instead of a view, because the
-simple form ("every file channel") has no known expansion to edit.
+(`#MultiConvolutionMappingCaption` in every skin's QSS) and a `+` entry that
+adds output channels (a new name becomes a virtual channel, like Copy). Data
+rides `Editor/widgets/routing/MultiConvolutionRoutingAdapter` both ways;
+without a readable IR file the whole mapping block hides, because the simple
+form ("every file channel") has no known expansion to edit and the reference
+view's own status grammar already says what is missing.
 
 ## Screenshot gallery
 

@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "Editor/SkinManager.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ChBadge.h"
 #include "Editor/widgets/ElidedLabel.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
@@ -86,8 +87,11 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// skips both the re-set and the construction-time repolish entirely.
 	syncVisualState();
 
+	// 2px vertical margins, not 4: the header's height floor is the skin's
+	// rowHeight token, and the slimmer margins let the compact skins actually
+	// reach it instead of being held up by the button train.
 	QHBoxLayout* headerLayout = new QHBoxLayout(headerWidget);
-	headerLayout->setContentsMargins(8, 4, 8, 4);
+	headerLayout->setContentsMargins(8, 2, 8, 2);
 	headerLayout->setSpacing(8);
 
 	expandButton = new QToolButton(headerWidget);
@@ -124,8 +128,8 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// No text interaction here: a selectable label consumes the mouse press,
 	// and since this label is the header's expanding filler, that reduced the
 	// row's drag/select surface to the narrow number/title strip. The header
-	// is the drag handle (FilterTable hit-tests getHeaderRect); the raw line
-	// below stays selectable for copying.
+	// is the drag handle (FilterTable hit-tests getHeaderRect); copying the
+	// verbatim line is the raw editor's job (the pencil).
 	summaryLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	headerLayout->addWidget(summaryLabel, 1);
 
@@ -167,15 +171,14 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	editButton = new QToolButton(headerWidget);
 	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	editButton->setCheckable(true);
-	editButton->setText(QStringLiteral("..."));
+	// A pencil, not "...": the affordance IS the raw-command editor, and an
+	// ellipsis promises an options menu it never opens. Rows are rebuilt on
+	// every skin switch, so the construction-time ink stays current.
+	editButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/pencil.svg"),
+		QColor(SkinManager::instance()->tokens().text), 14));
 	editButton->setToolTip(tr("Edit raw command"));
 	connect(editButton, SIGNAL(toggled(bool)), this, SLOT(editTextToggled(bool)));
 	headerLayout->addWidget(editButton);
-
-	rawPreviewLabel = new QLabel(cardFrame);
-	rawPreviewLabel->setObjectName(QStringLiteral("FilterCardRawPreview"));
-	rawPreviewLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-	cardLayout->addWidget(rawPreviewLabel);
 
 	bodyStack = new QStackedWidget(cardFrame);
 	bodyStack->setObjectName(QStringLiteral("FilterCardBody"));
@@ -346,7 +349,6 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// Observe only the non-drag surfaces and select their owning card before
 	// the control handles the same plain click.
 	watchPointerSelection(bodyStack);
-	watchPointerSelection(rawPreviewLabel);
 	for (QAbstractButton* button : headerWidget->findChildren<QAbstractButton*>())
 		watchPointerSelection(button);
 }
@@ -741,7 +743,7 @@ void FilterCardRow::rebuildSummary()
 void FilterCardRow::applyDescriptor()
 {
 
-	// Blank lines render as a thin spacer: no header, no body, no raw preview.
+	// Blank lines render as a thin spacer: no header, no body.
 	// The card frame itself stays visible (so its background fills the gap and
 	// scope-rail painting still works for indented blocks) but is collapsed
 	// to a small fixed height by sizeHint() / minimumSizeHint() below.
@@ -752,8 +754,6 @@ void FilterCardRow::applyDescriptor()
 		bodyStack->setVisible(!isSpacer && expandButton != nullptr && expandButton->isChecked());
 	if (isSpacer)
 	{
-		if (rawPreviewLabel != nullptr)
-			rawPreviewLabel->setVisible(false);
 		syncVisualState();
 		updateGeometry();
 		update();
@@ -790,21 +790,6 @@ void FilterCardRow::applyDescriptor()
 	const QString parseError = currentRowInfo().parseError;
 	summaryLabel->setToolTip(parseError.isEmpty() ? descriptor.summary
 		: tr("This line was not applied: %1").arg(parseError));
-	// The text stays current even while the label is hidden: skins may read
-	// it as the live raw-spec source instead of showing the label itself
-	// (MatrixRowCaption's caption strip does).
-	rawPreviewLabel->setText(tr("Raw") + QStringLiteral("  ") + item->text);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
-	rawPreviewLabel->setVisible(tokens.showRawPreview);
-	// Skins without a raw preview never show the label, and rows are rebuilt
-	// on every skin switch - skip the per-widget stylesheet for them.
-	if (tokens.showRawPreview)
-	{
-		const QString previewStyle = QStringLiteral("QLabel#FilterCardRawPreview { background: %1; color: %2; border-top: 1px solid %3; padding: 4px 12px; font-family: \"%4\"; font-size: 9pt; }")
-			.arg(tokens.surfaceSunken, tokens.mutedText, tokens.border, tokens.monoFontFamily);
-		if (rawPreviewLabel->styleSheet() != previewStyle)
-			rawPreviewLabel->setStyleSheet(previewStyle);
-	}
 	enabledButton->blockSignals(true);
 	enabledButton->setChecked(descriptor.enabled);
 	enabledButton->setIcon(QIcon(descriptor.enabled ? QStringLiteral(":/icons/power_on.svg") : QStringLiteral(":/icons/power_off.svg")));

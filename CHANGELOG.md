@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Filter cards no longer print the raw config line, and the tall editor
+  surfaces got compact.** The "Raw" strip under every card (and Signal
+  Matrix's caption echo of the same text) is gone; the verbatim line now
+  opens from a pencil button in the card header, replacing the "..." that
+  looked like an options menu. A `Delay: 0 ms` line - the insert template's
+  own default - opens its knob card again instead of collapsing to raw text.
+  The all-pass and Hilbert cards fold their footer rows into the empty space
+  beside their controls, the velvet decorrelator drops its tap plot and
+  correlation readout and slims every input, the multi-convolution card no
+  longer dangles a channel-mapping hint under an empty file slot, and the
+  analysis panel's source/channel/resolution/position fields plus the card
+  headers take a compact vertical profile, so a short graph dock and a long
+  config both show more at once
+  ([#268](https://github.com/115dkk/EqualizerAPO-XT/pull/268)).
+
 ## v2.35.0 — 2026-08-13
 
 - **VST3 plug-ins can use an explicit asymmetric main-bus contract.** `VSTPlugin:`

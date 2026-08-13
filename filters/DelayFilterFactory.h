@@ -30,12 +30,12 @@ class DelayFilterFactory : public IFilterFactory
 public:
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
-	// Parses a "Delay:" config line into a DelayCommand. This is the single owner
-	// of the Delay config-line grammar: createFilter() uses it to build the
-	// engine filter, and the Editor uses it to populate the Delay GUI without
-	// constructing a throwaway DelayFilter. Returns true only when the line names
-	// a delay that should produce a DelayFilter (delay > 0 with a "ms" or
-	// "samples" unit). A 0-length delay is a no-op and an unknown/missing unit is
+	// Parses a "Delay:" config line into a DelayCommand. The line grammar itself
+	// lives in DelayCommand::parse (which the Editor GUIs use directly, because
+	// they must open an editor even for a no-op line); this wrapper adds the
+	// engine's decisions on top. Returns true only when the line names a delay
+	// that should produce a DelayFilter (delay > 0 with a "ms" or "samples"
+	// unit). A 0-length delay is a no-op and an unknown/missing unit is
 	// rejected, so both return false, exactly as createFilter() decided before.
-	static bool parseCommand(const std::wstring& command, std::wstring& parameters, DelayCommand& out);
+	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, DelayCommand& out);
 };

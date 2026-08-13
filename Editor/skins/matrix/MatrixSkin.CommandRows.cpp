@@ -9,8 +9,6 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPainterStateGuard>
-#include <QVariant>
-#include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
 
@@ -59,84 +57,6 @@ QString matrixBusLetter(const QString& type)
 }
 
 
-
-// Per-row caption strip: a sunken board line under the card body echoing the
-// row's raw spec next to its coordinate, lighting on row hover. The strip
-// needs no event machinery: the frame's :hover QSS rule already forces a
-// frame repaint on enter/leave (the same trigger the painted column band
-// uses), which redraws this child, and the gallery's WA_UnderMouse hover
-// equivalent drives it the same way. It replaces the shared raw-preview
-// strip for this skin (tokens().showRawPreview = false).
-class MatrixRowCaption : public QWidget
-{
-public:
-	MatrixRowCaption(QWidget* card, QLabel* specSource, QLabel* coordinateSource)
-		: QWidget(card), specSource(specSource), coordinateSource(coordinateSource)
-	{
-		setObjectName(QStringLiteral("MatrixRowCaption"));
-		configurePaintOnlyChrome(this);
-		// The strip is a readout, never a control; clicks fall through.
-		setAttribute(Qt::WA_TransparentForMouseEvents);
-		setFixedHeight(18);
-	}
-
-protected:
-	void paintEvent(QPaintEvent*) override
-	{
-		const SkinTokens& tokens = SkinManager::instance()->tokens();
-		QPainter painter(this);
-		painter.setRenderHint(QPainter::Antialiasing, false);
-
-		QWidget* card = parentWidget();
-		// The dynamic property is kept current by FilterCardRow's restyles;
-		// before the first restyle it is simply unset, which reads enabled.
-		const QVariant enabledProperty = card != nullptr ? card->property("filterEnabled") : QVariant();
-		const bool enabled = !enabledProperty.isValid() || enabledProperty.toBool();
-		// A line swallowed by a false If branch idles at the cancelled ink
-		// depth but keeps its verbatim spec: no "#" appears in the raw line
-		// and no cancel treatment is added here.
-		const bool skipped = card != nullptr && card->property("lineSkipped").toBool();
-		const bool lit = enabled && card != nullptr && card->underMouse();
-
-		painter.fillRect(rect(), QColor(tokens.surfaceSunken));
-		painter.setPen(QPen(QColor(tokens.border), 1));
-		painter.drawLine(0, 0, width() - 1, 0);
-
-		QFont mono(tokens.monoFontFamily);
-		mono.setPointSizeF(7.5);
-		painter.setFont(mono);
-		const QFontMetrics metrics(mono);
-
-		QColor idleInk(tokens.mutedText);
-		if (!enabled || skipped)
-			idleInk.setAlpha(120);
-		const QColor accent(tokens.accent);
-		const int pad = 10;
-
-		const QString coordinate = coordinateSource != nullptr ? coordinateSource->text() : QString();
-		const int coordinateWidth = metrics.horizontalAdvance(coordinate);
-		painter.setPen(lit ? accent : idleInk);
-		painter.drawText(QRect(width() - pad - coordinateWidth, 0, coordinateWidth, height()),
-			Qt::AlignVCenter | Qt::AlignLeft, coordinate);
-
-		// The raw-preview label keeps its text current on every model rebuild
-		// even while hidden, so it doubles as the live source of the raw spec.
-		QString spec = specSource != nullptr ? specSource->text() : QString();
-		if (spec.startsWith(QStringLiteral("Raw")))
-			spec = spec.mid(3).trimmed();
-		const QString marker = QStringLiteral("> ");
-		painter.drawText(QRect(pad, 0, width(), height()), Qt::AlignVCenter | Qt::AlignLeft, marker);
-		const int specX = pad + metrics.horizontalAdvance(marker);
-		const int specAvail = width() - pad - coordinateWidth - 12 - specX;
-		painter.setPen(lit ? QColor(tokens.text) : idleInk);
-		painter.drawText(QRect(specX, 0, qMax(0, specAvail), height()), Qt::AlignVCenter | Qt::AlignLeft,
-			metrics.elidedText(spec, Qt::ElideRight, qMax(0, specAvail)));
-	}
-
-private:
-	QLabel* specSource;
-	QLabel* coordinateSource;
-};
 
 }
 
@@ -188,25 +108,15 @@ void MatrixSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 		// The plain line number becomes a board coordinate: the type's bus
 		// letter ahead of the stable line position ("B3"). Spacer rows are
 		// blank board lines and carry no coordinate.
-		QLabel* coordinateCell = nullptr;
 		if (card != nullptr && header != nullptr && info.type != QStringLiteral("spacer"))
 		{
-			coordinateCell = header->findChild<QLabel*>(QStringLiteral("FilterCardNumber"));
+			QLabel* coordinateCell = header->findChild<QLabel*>(QStringLiteral("FilterCardNumber"));
 			if (coordinateCell != nullptr)
 			{
 				bool plainNumber = false;
 				const int line = coordinateCell->text().toInt(&plainNumber);
 				if (plainNumber)
 					coordinateCell->setText(matrixBusLetter(info.type) + QString::number(line));
-			}
-
-			// The caption strip docks under the card body and echoes the raw
-			// spec next to that coordinate on hover (see MatrixRowCaption).
-			QVBoxLayout* cardLayout = qobject_cast<QVBoxLayout*>(card->layout());
-			if (cardLayout != nullptr)
-			{
-				QLabel* rawSpec = card->findChild<QLabel*>(QStringLiteral("FilterCardRawPreview"));
-				cardLayout->addWidget(new MatrixRowCaption(card, rawSpec, coordinateCell));
 			}
 		}
 

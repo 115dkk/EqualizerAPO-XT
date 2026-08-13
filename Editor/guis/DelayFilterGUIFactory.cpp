@@ -18,7 +18,6 @@
 */
 
 #include "filters/DelayCommand.h"
-#include "filters/DelayFilterFactory.h"
 #include "DelayFilterGUI.h"
 #include "DelayFilterGUIFactory.h"
 #include "../FilterGUIFactoryRegistry.h"
@@ -46,13 +45,11 @@ IFilterGUI* DelayFilterGUIFactory::createFilterGUI(QString& command, QString& pa
 
 	if (command == "Delay")
 	{
-		// Parse the config line through the engine's single owning parse routine
-		// and populate the GUI directly from the resulting command, instead of
-		// constructing a throwaway DelayFilter just to read its fields back.
-		std::wstring commandWStr = command.toStdWString();
-		std::wstring paramWStr = parameters.toStdWString();
+		// Parse through the shared codec rather than the engine factory: the
+		// factory's no-op gate rejects a 0 delay (the insert template's own
+		// "Delay: 0 ms"), but the GUI must still open for it.
 		DelayCommand cmd;
-		if (DelayFilterFactory::parseCommand(commandWStr, paramWStr, cmd))
+		if (DelayCommand::parse(parameters.toStdWString(), cmd))
 			result = new DelayFilterGUI(cmd.delay, cmd.isMs);
 	}
 

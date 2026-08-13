@@ -14,22 +14,22 @@
 <context>
     <name>AllPassCardEditor</name>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="179"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
         <source>Order</source>
         <translation type="unfinished">차수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="179"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
         <source>1st</source>
         <translation>1차</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="179"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
         <source>2nd</source>
         <translation>2차</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="180"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="166"/>
         <source>A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. A 2nd-order section turns a full 360 and has a width.</source>
         <translation>1차 섹션은 전체 180도를 돌고 Fc에서 90도를 지납니다. 2차 섹션은 360도를 다 돌고 폭을 가집니다.</translation>
     </message>
@@ -54,42 +54,42 @@
         <translation type="unfinished">대역폭</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
         <source>Phase</source>
         <translation type="unfinished">위상</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
         <source>Group delay</source>
         <translation>그룹 지연</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
         <source>Graph</source>
         <translation type="unfinished">그래프</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="191"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="177"/>
         <source>Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again.</source>
         <translation>이 값을 분석 그래프에 표시합니다. 기존 분석 결과를 다시 쓰며, 다시 측정하지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="214"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="200"/>
         <source>Magnitude</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="218"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="204"/>
         <source>0.0 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="221"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="207"/>
         <source>An all-pass does not change level at any frequency, so there is nothing to set here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="372"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="358"/>
         <source>Oct</source>
         <translation>옥타브</translation>
     </message>
@@ -858,18 +858,18 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DelayCardEditor</name>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="49"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="48"/>
         <source>Time</source>
         <translation>시간</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="50"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="49"/>
         <source>Samples</source>
         <translation>샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="43"/>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="108"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="42"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="107"/>
         <source>samples</source>
         <translation>샘플</translation>
     </message>
@@ -906,13 +906,13 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>DelayFilterGUIFactory</name>
     <message>
-        <location filename="../guis/DelayFilterGUIFactory.cpp" line="39"/>
+        <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="181"/>
         <source>Delay</source>
         <translation>지연</translation>
     </message>
     <message>
-        <location filename="../guis/DelayFilterGUIFactory.cpp" line="39"/>
+        <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="183"/>
         <source>Phase &amp; Time</source>
         <translation>위상과 시간</translation>
@@ -1420,27 +1420,27 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="98"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="102"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="147"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="151"/>
         <source>Enable or comment out this command</source>
         <translation>이 명령을 활성화하거나 주석 처리합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="156"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="160"/>
         <source>Add filter above this card</source>
         <translation>이 카드 위에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="163"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="167"/>
         <source>Remove filter</source>
         <translation>필터 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="171"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="179"/>
         <source>Edit raw command</source>
         <translation>원본 명령 편집</translation>
     </message>
@@ -1448,11 +1448,6 @@ Select a different file or change the device configuration.</source>
         <location filename="../widgets/FilterCardRow.cpp" line="792"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
-    </message>
-    <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="796"/>
-        <source>Raw</source>
-        <translation>원본</translation>
     </message>
 </context>
 <context>
@@ -1533,10 +1528,6 @@ Select a different file or change the device configuration.</source>
         <translation>중심 주파수 부근의 위상과 그룹 지연을 바꿉니다. 음량은 바뀌지 않습니다.</translation>
     </message>
     <message>
-        <source>First order. Rotates 180 degrees in total, passing 90 degrees at Fc.</source>
-        <translation type="vanished">1차입니다. 전체 180도를 돌고 Fc에서 90도를 지납니다.</translation>
-    </message>
-    <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="28"/>
         <source>Applies overall gain before the other filters</source>
         <translation>다른 필터보다 먼저 전체 음량을 조정합니다</translation>
@@ -1570,10 +1561,6 @@ Select a different file or change the device configuration.</source>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="70"/>
         <source>Compensates hearing at low listening levels</source>
         <translation>낮은 음량에서 청감을 보정합니다</translation>
-    </message>
-    <message>
-        <source>Runs an external VST audio plugin</source>
-        <translation type="vanished">외부 VST 오디오 플러그인을 실행합니다</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="49"/>
@@ -1910,7 +1897,7 @@ Select a different file or change the device configuration.</source>
     </message>
     <message>
         <location filename="../widgets/cards/HilbertCardEditor.cpp" line="266"/>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="299"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="279"/>
         <source>Phase</source>
         <translation>위상</translation>
     </message>
@@ -1920,37 +1907,37 @@ Select a different file or change the device configuration.</source>
         <translation>그룹 지연</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="277"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="290"/>
         <source>Phase-shifted channels</source>
         <translation>위상 변환 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="279"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="292"/>
         <source>Latency-aligned channels</source>
         <translation>지연 정렬 채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="300"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="280"/>
         <source>Latency</source>
         <translation>지연 시간</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="302"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="282"/>
         <source>FIR</source>
         <translation>FIR</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="303"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="283"/>
         <source>%1 taps</source>
         <translation>%1탭</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="305"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="285"/>
         <source>Passband</source>
         <translation>통과 대역</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="354"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="353"/>
         <source>%1 ms · %2 samples</source>
         <translation>%1 ms · %2샘플</translation>
     </message>
@@ -1984,10 +1971,6 @@ Select a different file or change the device configuration.</source>
         <location filename="../widgets/cards/IncludeCardEditor.cpp" line="68"/>
         <source>Copy this file and its dependencies into the config directory</source>
         <translation>이 파일과 의존 파일을 구성 디렉터리로 복사</translation>
-    </message>
-    <message>
-        <source>Edit the path as text</source>
-        <translation type="vanished">경로를 텍스트로 편집</translation>
     </message>
     <message>
         <location filename="../widgets/cards/IncludeCardEditor.cpp" line="76"/>
@@ -3244,73 +3227,68 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation>채널 이름 (알 수 없는 이름은 가상 채널을 만듭니다):</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="213"/>
-        <source>Select a readable impulse response file to edit the channel mapping.</source>
-        <translation>채널 매핑을 편집하려면 읽을 수 있는 임펄스 응답 파일을 선택하세요.</translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="250"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="241"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="365"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="251"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="242"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="302"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="320"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="321"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="312"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="322"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="313"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="323"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
         <source>%1 ch</source>
         <translation>%1 ch</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="328"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="319"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="346"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="337"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>매핑이 채널 %1을(를) 참조하지만 파일에는 채널이 %2개뿐입니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="358"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="349"/>
         <source>Not readable by the audio service</source>
         <translation>오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="364"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="365"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
@@ -4675,14 +4653,6 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <source>Stereo input</source>
-        <translation type="vanished">스테레오 입력</translation>
-    </message>
-    <message>
-        <source>Use for upmixers that expand a stereo signal to multichannel.</source>
-        <translation type="vanished">스테레오 신호를 다채널로 확장하는 업믹서에 사용합니다.</translation>
-    </message>
-    <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="384"/>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="567"/>
         <source>Select VST plugin</source>
@@ -4773,14 +4743,6 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
         <source>The plugin rejected %1 in / %2 out. Audio passes through unchanged.</source>
         <translation>플러그인이 입력 %1 / 출력 %2 구성을 거부했습니다. 소리는 그대로 통과합니다.</translation>
-    </message>
-    <message>
-        <source>Rejected</source>
-        <translation type="vanished">거부됨</translation>
-    </message>
-    <message>
-        <source>The plugin rejected the %1 in / %2 out contract. All channels pass through unchanged until the layout changes or is removed.</source>
-        <translation type="vanished">플러그인이 입력 %1 / 출력 %2 계약을 거부했습니다. 레이아웃을 바꾸거나 제거할 때까지 모든 채널이 그대로 통과합니다.</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="502"/>
@@ -4951,87 +4913,74 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VelvetCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="41"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="27"/>
         <source>A sparse, unit-energy velvet-noise FIR. Each processed channel gets an independent kernel; Dynamic mode renews all kernels with an equal-power crossfade.</source>
         <translation>희소 단위 에너지 벨벳 노이즈 FIR입니다. 처리하는 채널마다 독립 커널을 사용하며, 동적 모드는 동일 전력 크로스페이드로 모든 커널을 갱신합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="62"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="48"/>
         <source>Mode</source>
         <translation>모드</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="54"/>
         <source>Static</source>
         <translation>고정</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="54"/>
         <source>Dynamic</source>
         <translation>동적</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="78"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="64"/>
         <source>Amount</source>
         <translation>양</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="80"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="66"/>
         <source>Time spread</source>
         <translation>시간 분산</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="82"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="68"/>
         <source>Evolution</source>
         <translation>변화 주기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="99"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="79"/>
         <source>Advanced</source>
         <translation>고급</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="112"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="92"/>
         <source>Density</source>
         <translation>밀도</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="114"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="94"/>
         <source>Transition</source>
         <translation>전환</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="97"/>
         <source>Decay</source>
         <translation>감쇠</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="120"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="100"/>
         <source>Variation</source>
         <translation>변형</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="128"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="108"/>
         <source>Regenerate</source>
         <translation>다시 생성</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="130"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="110"/>
         <source>Choose the next deterministic variation</source>
         <translation>다음 결정적 변형을 선택합니다</translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="235"/>
-        <source>%1 taps/channel · max zero-lag kernel correlation %2</source>
-        <translation>채널당 %1탭 · 최대 영지연 커널 상관도 %2</translation>
-    </message>
-</context>
-<context>
-    <name>VelvetImpulsePreview</name>
-    <message>
-        <location filename="../widgets/cards/VelvetImpulsePreview.cpp" line="15"/>
-        <source>One deterministic channel kernel. Sparse impulses are normalized to unit energy; dynamic mode crossfades to a newly generated bank.</source>
-        <translation>결정적 채널 커널 하나입니다. 희소 임펄스는 단위 에너지로 정규화되며, 동적 모드는 새로 생성한 뱅크로 크로스페이드합니다.</translation>
     </message>
 </context>
 </TS>

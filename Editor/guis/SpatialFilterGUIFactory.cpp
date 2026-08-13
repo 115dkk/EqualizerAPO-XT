@@ -55,7 +55,7 @@ IFilterGUI* SpatialFilterGUIFactory::createFilterGUI(QString& command,
 		std::wstring error;
 		const bool valid = VelvetCommand::parse(command.toStdWString(),
 			parameters.toStdWString(), parsed, &error);
-		return new VelvetCardEditor(parsed, sampleRate,
+		return new VelvetCardEditor(parsed,
 			valid ? QString() : QString::fromStdWString(error));
 	}
 	return nullptr;

@@ -80,10 +80,14 @@ private:
 	int fileChannelCount = 0;
 
 	ReferenceCardView* view = nullptr;
+	// The whole mapping block (caption, + button, routing view). Hidden while
+	// no readable file is selected: the reference view's own status grammar
+	// already says what is missing, and a mapping that cannot be edited would
+	// only dangle under it as loose text.
+	QWidget* mappingArea = nullptr;
 	QVBoxLayout* routingLayout = nullptr;
 	QLabel* mappingCaption = nullptr;
 	RoutingView* routingView = nullptr;
-	QLabel* routingHint = nullptr;
 	QToolButton* addChannelButton = nullptr;
 	QToolButton* chooseButton = nullptr;
 	QToolButton* editButton = nullptr;

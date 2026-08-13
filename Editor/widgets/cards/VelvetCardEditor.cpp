@@ -13,28 +13,14 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include "Editor/FilterTable.h"
 #include "Editor/widgets/FlowLayout.h"
 #include "Editor/widgets/SegmentedControl.h"
 #include "Editor/widgets/ValueScrubBox.h"
 #include "Editor/widgets/cards/FilterCardEditorRegistry.h"
-#include "Editor/widgets/cards/VelvetImpulsePreview.h"
-#include "devices/AbstractAPOInfo.h"
-
-namespace
-{
-unsigned tableSampleRate(FilterTable* table)
-{
-	const std::shared_ptr<AbstractAPOInfo> device =
-		table == nullptr ? nullptr : table->getSelectedDevice();
-	const unsigned value = device == nullptr ? 0 : device->getSampleRate();
-	return value == 0 ? 48000 : value;
-}
-}
 
 VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
-	unsigned sampleRate, const QString& validationError, QWidget* parent)
-	: IFilterGUI(parent), current(command), sampleRate(sampleRate == 0 ? 48000 : sampleRate)
+	const QString& validationError, QWidget* parent)
+	: IFilterGUI(parent), current(command)
 {
 	setObjectName(QStringLiteral("VelvetCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -42,7 +28,7 @@ VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
 
 	QVBoxLayout* root = new QVBoxLayout(this);
 	root->setContentsMargins(0, 0, 0, 0);
-	root->setSpacing(10);
+	root->setSpacing(8);
 
 	validation = new QLabel(validationError, this);
 	validation->setObjectName(QStringLiteral("CardValidationMessage"));
@@ -52,13 +38,13 @@ VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
 
 	QWidget* primaryWidget = new QWidget(this);
 	primaryWidget->setObjectName(QStringLiteral("VelvetPrimaryRow"));
-	FlowLayout* primary = new FlowLayout(primaryWidget, 0, 18, 10);
+	FlowLayout* primary = new FlowLayout(primaryWidget, 0, 18, 6);
 	QWidget* modeBlock = new QWidget(primaryWidget);
 	modeBlock->setObjectName(QStringLiteral("VelvetValueBlock"));
 	modeBlock->setMinimumWidth(150);
 	QVBoxLayout* modeLayout = new QVBoxLayout(modeBlock);
 	modeLayout->setContentsMargins(0, 0, 0, 0);
-	modeLayout->setSpacing(6);
+	modeLayout->setSpacing(4);
 	QLabel* modeCaption = new QLabel(tr("Mode"), modeBlock);
 	modeCaption->setObjectName(QStringLiteral("VelvetCaption"));
 	modeCaption->setAlignment(Qt::AlignCenter);
@@ -66,7 +52,7 @@ VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
 	mode = new SegmentedControl(modeBlock);
 	mode->setObjectName(QStringLiteral("VelvetMode"));
 	mode->setLabels({tr("Static"), tr("Dynamic")});
-	mode->setMinimumHeight(40);
+	mode->setMinimumHeight(30);
 	mode->setCurrentIndex(current.parameters.dynamic ? 1 : 0);
 	connect(mode, &SegmentedControl::currentIndexChanged, this, [this](int index) {
 		current.parameters.dynamic = index == 1;
@@ -88,12 +74,6 @@ VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
 	length->setValue(current.parameters.lengthMs);
 	evolution->setValue(current.parameters.refreshSeconds);
 
-	preview = new VelvetImpulsePreview(this);
-	root->addWidget(preview);
-	statistics = new QLabel(this);
-	statistics->setObjectName(QStringLiteral("VelvetStatistics"));
-	root->addWidget(statistics);
-
 	advancedToggle = new QToolButton(this);
 	advancedToggle->setObjectName(QStringLiteral("VelvetAdvancedToggle"));
 	advancedToggle->setText(tr("Advanced"));
@@ -108,7 +88,7 @@ VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
 	QGridLayout* advanced = new QGridLayout(advancedPanel);
 	advanced->setContentsMargins(0, 0, 0, 0);
 	advanced->setHorizontalSpacing(18);
-	advanced->setVerticalSpacing(8);
+	advanced->setVerticalSpacing(6);
 	advanced->addWidget(valueBlock(tr("Density"), density, 100.0, 4000.0,
 		10.0, 1, QStringLiteral(" /s")), 0, 0);
 	transitionBlock = valueBlock(tr("Transition"), transition, 1.0, 2000.0,
@@ -126,7 +106,7 @@ VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
 	QToolButton* regenerate = new QToolButton(advancedPanel);
 	regenerate->setObjectName(QStringLiteral("VelvetRegenerate"));
 	regenerate->setText(tr("Regenerate"));
-	regenerate->setMinimumHeight(40);
+	regenerate->setMinimumHeight(30);
 	regenerate->setToolTip(tr("Choose the next deterministic variation"));
 	connect(regenerate, &QToolButton::clicked, this, [this] {
 		std::uint64_t seed = static_cast<std::uint64_t>(
@@ -152,7 +132,6 @@ VelvetCardEditor::VelvetCardEditor(const VelvetCommand& command,
 
 	setAdvanced(false);
 	applyModeVisibility();
-	refreshPreview();
 }
 
 QWidget* VelvetCardEditor::valueBlock(const QString& caption, ValueScrubBox*& box,
@@ -163,9 +142,12 @@ QWidget* VelvetCardEditor::valueBlock(const QString& caption, ValueScrubBox*& bo
 	block->setObjectName(QStringLiteral("VelvetValueBlock"));
 	QVBoxLayout* layout = new QVBoxLayout(block);
 	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(6);
+	layout->setSpacing(4);
 	QLabel* label = new QLabel(caption, block);
 	label->setObjectName(QStringLiteral("VelvetCaption"));
+	// Centred over the box like the Mode caption beside it: a row that mixes
+	// centred and left-hung captions reads as misaligned, not as two styles.
+	label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 	layout->addWidget(label);
 	box = new ValueScrubBox(block);
 	box->setObjectName(QStringLiteral("VelvetValue"));
@@ -175,7 +157,7 @@ QWidget* VelvetCardEditor::valueBlock(const QString& caption, ValueScrubBox*& bo
 	box->setSuffix(suffix);
 	box->setKeyboardTracking(false);
 	box->setMinimumWidth(118);
-	box->setMinimumHeight(40);
+	box->setMinimumHeight(30);
 	layout->addWidget(box);
 	return block;
 }
@@ -184,12 +166,6 @@ void VelvetCardEditor::store(QString& command, QString& parameters)
 {
 	command = QStringLiteral("Velvet");
 	parameters = QString::fromStdWString(current.serialize());
-}
-
-void VelvetCardEditor::configureChannels(std::vector<std::wstring>& channelNames)
-{
-	channelCount = static_cast<unsigned>(std::max<std::size_t>(channelNames.size(), 1));
-	refreshPreview();
 }
 
 void VelvetCardEditor::applyModeVisibility()
@@ -219,22 +195,7 @@ void VelvetCardEditor::parametersChanged()
 	current.parameters.seed = static_cast<std::uint64_t>(
 		std::llround(variation->value()));
 	validation->setVisible(false);
-	refreshPreview();
 	emit updateModel();
-}
-
-void VelvetCardEditor::refreshPreview()
-{
-	velvet::Processor processor;
-	if (!processor.prepare(sampleRate, std::max(2U, channelCount))
-		|| !processor.setParameters(current.parameters))
-		return;
-	const velvet::Statistics values = processor.statistics();
-	preview->setImpulse(processor.activeTaps(0),
-		processor.activeTapCount(0), processor.tailSamples());
-	statistics->setText(tr("%1 taps/channel · max zero-lag kernel correlation %2")
-		.arg(values.tapsPerChannel)
-		.arg(values.maximumZeroLagCorrelation, 0, 'f', 3));
 }
 
 void VelvetCardEditor::setAdvanced(bool expanded)
@@ -267,13 +228,13 @@ void VelvetCardEditor::setAdvanced(bool expanded)
 }
 
 REGISTER_FILTER_CARD_EDITOR(Velvet,
-	[](FilterTable* table, const QString& command, const QString& parameters) -> IFilterGUI* {
+	[](FilterTable*, const QString& command, const QString& parameters) -> IFilterGUI* {
 		VelvetCommand parsed;
 		std::wstring error;
 		const bool valid = VelvetCommand::parse(command.toStdWString(),
 			parameters.toStdWString(), parsed, &error);
 		if (command != QStringLiteral("Velvet"))
 			return nullptr;
-		return new VelvetCardEditor(parsed, tableSampleRate(table),
+		return new VelvetCardEditor(parsed,
 			valid ? QString() : QString::fromStdWString(error));
 	})

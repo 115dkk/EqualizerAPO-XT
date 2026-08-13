@@ -322,7 +322,7 @@
     <ClInclude Include="filters\VelvetCommand.h" />
     <ClInclude Include="filters\VelvetFilter.h" />
     <ClInclude Include="filters\VelvetFilterFactory.h" />
-    <ClInclude Include="filters\velvet\Processor.h" />
+    <ClInclude Include="filters\velvet\VelvetProcessor.h" />
     <ClInclude Include="filters\CopyFilter.h" />
     <ClInclude Include="filters\CopyFilterFactory.h" />
     <ClInclude Include="filters\DelayCommand.h" />
@@ -448,7 +448,7 @@
     <ClCompile Include="filters\VelvetCommand.cpp" />
     <ClCompile Include="filters\VelvetFilter.cpp" />
     <ClCompile Include="filters\VelvetFilterFactory.cpp" />
-    <ClCompile Include="filters\velvet\Processor.cpp" />
+    <ClCompile Include="filters\velvet\VelvetProcessor.cpp" />
     <ClCompile Include="filters\CopyFilter.cpp" />
     <ClCompile Include="filters\CopyFilterFactory.cpp" />
     <ClCompile Include="filters\DelayCommand.cpp" />

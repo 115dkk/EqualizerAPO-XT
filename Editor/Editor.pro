@@ -12,10 +12,17 @@ TARGET = Editor
 TEMPLATE = app
 
 # Object files mirror the source tree. Without this, qmake drops every object
-# into one directory by basename, and ../filters/velvet/Processor.cpp then
-# collides with ../SubwooferRoutingCore/src/Processor.cpp (last one wins at
-# link time).
-CONFIG += object_parallel_to_source
+# into one directory by basename, so any two sources that ever share a name
+# collide (last one wins at link time).
+#
+# no_batch is load-bearing, not an optimisation choice: nmake's batch
+# inference rules cannot follow the mirrored object directories, so a batch
+# Makefile lists objects under release\...\ that no rule ever builds
+# (LNK1181). It was silently in effect for as long as the tree carried the
+# duplicate velvet/Processor.cpp vs SubwooferRoutingCore/src/Processor.cpp
+# basenames - qmake forces no_batch (with a warning) on any duplicate - and
+# renaming that pair away removed the accidental trigger, so declare it.
+CONFIG += object_parallel_to_source no_batch
 
 PRECOMPILED_HEADER = stable.h
 QMAKE_CXXFLAGS_WARN_ON -= -w34100
@@ -201,7 +208,7 @@ SOURCES += main.cpp\
 	../filters/VelvetCommand.cpp \
 	../filters/VelvetFilter.cpp \
 	../filters/VelvetFilterFactory.cpp \
-	../filters/velvet/Processor.cpp \
+	../filters/velvet/VelvetProcessor.cpp \
 	../engine/ConfigurationFileReader.cpp \
 	../filters/IrCache.cpp \
 	../parser/ParserExtensions.cpp \
@@ -278,7 +285,6 @@ SOURCES += main.cpp\
 	widgets/cards/AllPassCardEditor.cpp \
 	widgets/cards/HilbertCardEditor.cpp \
 	widgets/cards/VelvetCardEditor.cpp \
-	widgets/cards/VelvetImpulsePreview.cpp \
 	widgets/cards/FilterCardEditorRouter.cpp \
 	analysis/AnalysisViewController.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
@@ -472,7 +478,7 @@ HEADERS  += \
 	../filters/VelvetCommand.h \
 	../filters/VelvetFilter.h \
 	../filters/VelvetFilterFactory.h \
-	../filters/velvet/Processor.h \
+	../filters/velvet/VelvetProcessor.h \
 	../parser/RegexFunctions.h \
 	../parser/RegistryFunctions.h \
 	../parser/ParserExtensions.h \
@@ -546,7 +552,6 @@ HEADERS  += \
 	widgets/cards/AllPassCardEditor.h \
 	widgets/cards/HilbertCardEditor.h \
 	widgets/cards/VelvetCardEditor.h \
-	widgets/cards/VelvetImpulsePreview.h \
 	analysis/AnalysisViewController.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \
