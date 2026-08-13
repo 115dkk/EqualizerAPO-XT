@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.35.0 — 2026-08-13
+
 - **VST3 plug-ins can use an explicit asymmetric main-bus contract.** `VSTPlugin:`
   now accepts `Input` and `Output` layouts selected independently from `Auto`,
   mono, stereo, 4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, or 7.1.4. Explicit layouts

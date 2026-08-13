@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.35.0 — 2026-08-13
+
 - **VST3 플러그인의 주 입출력 버스를 서로 다르게 명시할 수 있습니다.**
   `VSTPlugin:`에 `Input`과 `Output`을 추가해 각 방향에 `Auto`, Mono, Stereo,
   4.0, 4.1, 5.0, 5.1, 6.1, 7.1, 7.1.2, 7.1.4를 지정할 수 있습니다. 명시한
