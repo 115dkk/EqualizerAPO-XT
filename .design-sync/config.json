@@ -1,0 +1,6 @@
+{
+  "projectId": "dabe0a0e-3fc1-4d39-a5e7-aeeb712ceb57",
+  "projectName": "EqualizerAPO-XT Skins",
+  "shape": "offscript-qt",
+  "notes": "Qt Widgets C++ repo - outside the converter envelope. No React component bundle by decision (reimplementation forbidden). Uploads: tokens (SkinThemeData.cpp 5 skins x dark/light), fonts (Editor/fonts), guidelines (docs/skins/*.md), gallery captures as visual reference, styles.css + conventions README. No _ds_sync.json (no anchor; every sync re-verifies)."
+}
