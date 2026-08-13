@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.37.0 — 2026-08-13
+
 - **The "not readable by the audio service" VST warning stopped being a
   phantom, and an Import button now fixes it in one click.** The warning was
   real - the audio service reads plugins with the LOCAL SERVICE account's
