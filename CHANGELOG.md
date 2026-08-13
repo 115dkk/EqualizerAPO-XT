@@ -25,7 +25,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   toggles, and it comes with an Import button that copies the library into
   the config directory (a location the audio service can always read, and
   one that survives updates - unlike the install directory's VSTPlugins
-  folder the old message suggested).
+  folder the old message suggested)
+  ([#270](https://github.com/115dkk/EqualizerAPO-XT/pull/270)).
 - **Card headers no longer echo the config line's parameters.** A VST row's
   header used to print its entire base64 `ChunkData` blob through a naive
   file-name shortcut, and every other card restated its parameters as a
@@ -35,7 +36,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   raw-line editor in the header wears a `</>` code mark instead of a pencil
   (the pencil now belongs solely to Include's "edit the included file"),
   and the confusing in-body path pencils on the VST and convolution cards
-  are gone.
+  are gone ([#270](https://github.com/115dkk/EqualizerAPO-XT/pull/270)).
 
 ## v2.36.0 — 2026-08-13
 
