@@ -164,13 +164,15 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// Header band fill (the header widget itself is transparent).
 		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
 
-		// The VST body is one dark board panel. The reference view's port
-		// strip and feed line stand on the window ground, but the layout
-		// margins around the view let the card face peek through, which
-		// read as a flake floating mid-card (r3 judging). Flooding the whole
-		// body band with the same ground fuses decoration, feed line and
-		// caption strip into one block.
-		if (info.type == QStringLiteral("vst") && content.height() > headerHeight)
+		// Every card body is one dark board panel (invariant rule 3). The
+		// body editors assemble that panel from several widgets standing on
+		// the window ground, but the layout margins and spacing between them
+		// let the lighter card face peek through, which read as flakes
+		// floating mid-card (r3 judging on the VST body; the same speckle
+		// pattern was measured on the other card types). Flooding the whole
+		// body band with the ground the editors already paint fuses their
+		// panels, strips and cells into one block.
+		if (content.height() > headerHeight)
 			painter.fillRect(QRect(content.left(), content.top() + headerHeight,
 				content.width(), content.height() - headerHeight), QColor(tokens.background));
 

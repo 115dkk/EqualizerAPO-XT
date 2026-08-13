@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Signal Matrix cards no longer show lighter speckles floating in their
+  bodies.** Every card body is meant to read as one dark board panel, but
+  the lighter card face leaked through the layout gaps between the body's
+  editor panels, scattering pale flakes across nearly every card type (the
+  effect the VST row was already cured of). The body band of every matrix
+  card is now flooded with the board ground, so BiQuad, IIR, GraphicEQ,
+  Copy, Convolution and the rest render as a single continuous panel in
+  both dark and light mode
+  ([#271](https://github.com/115dkk/EqualizerAPO-XT/pull/271)).
+
 ## v2.37.0 — 2026-08-13
 
 - **The "not readable by the audio service" VST warning stopped being a
