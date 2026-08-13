@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.37.1 — 2026-08-13
+
 - **Signal Matrix cards no longer show lighter speckles floating in their
   bodies.** Every card body is meant to read as one dark board panel, but
   the lighter card face leaked through the layout gaps between the body's
