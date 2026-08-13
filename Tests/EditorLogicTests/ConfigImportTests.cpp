@@ -241,6 +241,25 @@ void testConfigImport()
 	expectTrue(singleExec.success, "single wav import should succeed");
 	expectEqual(singleExec.filesCopied, 1, "single wav import copies exactly one file");
 	expectTrue(QFile::exists(convConfigDest + "/Surround/ir.wav"), "ir.wav missing after single-file import");
+
+	// A bare plugin binary - the path the VSTCardEditor import button takes
+	// for a library the audio service cannot read - scans the same way: one
+	// Root item, no recursion, the source folder kept as a subdirectory.
+	// (The card then writes the copy's absolute path, because the engine
+	// resolves relative Library references against the install VSTPlugins
+	// directory, not the config directory.)
+	writeBlob(surroundDir + "/TestPlugin.dll", 96);
+	QString vstConfigDest = tempDir.path() + "/vst-configdir";
+	EqAPO::Import::ImportManifest pluginSingle = EqAPO::Import::ConfigDependencyScanner::scan(
+		surroundDir + "/TestPlugin.dll", vstConfigDest);
+	expectFalse(pluginSingle.hasErrors, "single dll scan should not flag errors");
+	requireEqual(int(pluginSingle.items.size()), 1, "single dll scan yields exactly one item");
+	expectEqual(pluginSingle.items[0].kind, "Root", "single dll item is the root");
+	expectEqual(pluginSingle.rootDest, "Surround/TestPlugin.dll", "single dll keeps its source folder");
+
+	EqAPO::Import::ExecutionResult pluginExec = EqAPO::Import::ImportExecutor::execute(pluginSingle, vstConfigDest);
+	expectTrue(pluginExec.success, "single dll import should succeed");
+	expectTrue(QFile::exists(vstConfigDest + "/Surround/TestPlugin.dll"), "dll missing after single-file import");
 }
 
 void testLegacyMigrationScanAndPolicy()

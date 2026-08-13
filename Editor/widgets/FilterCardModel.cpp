@@ -1,29 +1,19 @@
 #include "FilterCardModel.h"
 
-#include <QFileInfo>
 #include <QRegularExpression>
 
 #include <utility>
-#include <variant>
 
 #include "filters/ExpressionCommand.h"
 #include "filters/FilterFactoryRegistry.h"
-#include "SubwooferRouting/StateCodec.h"
-#include "filters/subwooferRouting/SubwooferRoutingCommand.h"
 #include "filters/BiQuadCommand.h"
 #include "filters/HilbertCommand.h"
-#include "filters/VelvetCommand.h"
 #include "FilterCommandCatalog.h"
 
 namespace
 {
-QString middleDotSeparator()
-{
-	return QStringLiteral(" %1 ").arg(QChar(0x00B7));
-}
-
 // The catalog states each command's card identity once; describeLine keeps
-// only the per-line summary work below.
+// only the per-line badge/title/chip work below.
 void applyCommandIdentity(FilterCardDescriptor& descriptor,
 	const FilterCommandCatalog::CommandEntry& entry)
 {
@@ -62,72 +52,6 @@ QString biquadTypeTitle(const QString& code)
 	else
 		return QStringLiteral("Biquad");
 	return QString::fromWCharArray(::biquadTypeTitle(type));
-}
-
-QString firstCapture(const QRegularExpression& expression, const QString& text)
-{
-	const QRegularExpressionMatch match = expression.match(text);
-	return match.hasMatch() ? match.captured(1).trimmed() : QString();
-}
-
-// Reproduces the same labelling the legacy BiQuad GUI shows so the modern card
-// agrees with it, including the LSC/HSC/LPQ/HPQ/PEQ/Modal variants.
-//
-// Deliberately NOT routed through BiQuadCommand::parse: the engine parser is
-// intentionally lossy - missing tokens are synthesized as defaults and
-// variants are merged (see BiQuadCommand.h) - while this badge must echo only
-// what the author wrote, in the author's own spelling. The structural pieces
-// already come from shared sources: the command vocabulary from
-// FilterFactoryRegistry and the type titles from BiQuadCommand's table (above).
-QString summarizeBiquad(const QString& parameters, const QString& code, const QString& state)
-{
-	static const QRegularExpression frequencyExpression(
-		QStringLiteral("\\bFc\\s*([-+0-9.,eE\\x{00A0}]+)\\s*H\\s*z"),
-		QRegularExpression::CaseInsensitiveOption);
-	static const QRegularExpression gainExpression(
-		QStringLiteral("\\bGain\\s*([-+0-9.,eE]+)\\s*dB"),
-		QRegularExpression::CaseInsensitiveOption);
-	static const QRegularExpression slopeExpression(
-		QStringLiteral("^\\s*(?:ON|OFF)\\s+[A-Za-z]+\\s+([-+0-9.,eE]+)\\s*dB"),
-		QRegularExpression::CaseInsensitiveOption);
-	static const QRegularExpression qExpression(
-		QStringLiteral("\\bQ\\s*([-+0-9.,eE]+)"),
-		QRegularExpression::CaseInsensitiveOption);
-	static const QRegularExpression bandwidthExpression(
-		QStringLiteral("\\bBW\\s+Oct\\s*([-+0-9.,eE]+)"),
-		QRegularExpression::CaseInsensitiveOption);
-
-	QStringList parts;
-	const bool shelf = code == QStringLiteral("LS") || code == QStringLiteral("LSC") || code == QStringLiteral("HS") || code == QStringLiteral("HSC");
-	const bool centerFrequency = code == QStringLiteral("LSC") || code == QStringLiteral("HSC");
-
-	const QString freq = firstCapture(frequencyExpression, parameters);
-	if (!freq.isEmpty())
-		parts.append(QStringLiteral("%1 %2 Hz").arg(shelf ? (centerFrequency ? QStringLiteral("Center") : QStringLiteral("Corner")) : QStringLiteral("Fc"), freq));
-
-	const QString gain = firstCapture(gainExpression, parameters);
-	if (!gain.isEmpty())
-		parts.append(QStringLiteral("Gain %1 dB").arg(gain));
-
-	if (shelf)
-	{
-		const QString slope = firstCapture(slopeExpression, parameters);
-		if (!slope.isEmpty())
-			parts.append(QStringLiteral("Slope %1 dB/Oct").arg(slope));
-	}
-
-	const QString q = firstCapture(qExpression, parameters);
-	if (!q.isEmpty())
-		parts.append(QStringLiteral("Q %1").arg(q));
-
-	const QString bandwidth = firstCapture(bandwidthExpression, parameters);
-	if (!bandwidth.isEmpty())
-		parts.append(QStringLiteral("BW %1 Oct").arg(bandwidth));
-
-	QString summary = parts.isEmpty() ? parameters.simplified() : parts.join(middleDotSeparator());
-	if (state == QStringLiteral("OFF"))
-		summary = QStringLiteral("OFF") + middleDotSeparator() + summary;
-	return summary;
 }
 
 // keyword is the engine's canonical command (FilterCardModel::canonicalCommand),
@@ -317,15 +241,12 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 	descriptor.badge = QStringLiteral("TXT");
 	descriptor.color = QStringLiteral("#64748b");
 
-	if (!descriptor.enabled && command != QStringLiteral("#"))
-		descriptor.summary = compactWhitespace(parameters);
-
 	// One identity application for every recognized command; the ladder below
-	// keeps only the branches that compute a summary from the parameters.
-	// Commands whose card is fully described by their catalog row (Preamp,
-	// Delay, Device, Stage, Loudness, Eval, the If family) need no branch.
-	if (const FilterCommandCatalog::CommandEntry* entry
-		= FilterCommandCatalog::entryForKeyword(keyword))
+	// keeps only the branches that derive non-summary card facts (badges,
+	// titles, channel chips) from the parameters.
+	const FilterCommandCatalog::CommandEntry* entry
+		= FilterCommandCatalog::entryForKeyword(keyword);
+	if (entry != nullptr)
 		applyCommandIdentity(descriptor, *entry);
 
 	if (keyword == QStringLiteral("Hilbert"))
@@ -334,35 +255,8 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		if (HilbertCommand::parse(command.toStdWString(),
 			parameters.toStdWString(), parsed))
 		{
-			QStringList parts;
-			parts.append(parsed.directionDegrees < 0
-				? QStringLiteral("−90°") : QStringLiteral("+90°"));
-			parts.append(tr("%1 shifted").arg(parsed.shiftedChannels.size() == 1
-				&& parsed.shiftedChannels.front() == L"ALL"
-				? QStringLiteral("ALL")
-				: QString::number(parsed.shiftedChannels.size())));
-			if (!parsed.alignedChannels.empty())
-				parts.append(tr("%1 aligned").arg(parsed.alignedChannels.size()));
-			descriptor.summary = parts.join(middleDotSeparator());
 			for (const std::wstring& channel : parsed.shiftedChannels)
 				descriptor.channelBadges.append(QString::fromStdWString(channel));
-		}
-	}
-	else if (keyword == QStringLiteral("Velvet"))
-	{
-		VelvetCommand parsed;
-		if (VelvetCommand::parse(command.toStdWString(),
-			parameters.toStdWString(), parsed))
-		{
-			const int taps = qMax(2, qRound(parsed.parameters.lengthMs
-				* parsed.parameters.density / 1000.0));
-			descriptor.summary = QStringLiteral("%1%2%3%4%5")
-				.arg(parsed.parameters.dynamic ? tr("Dynamic") : tr("Static"),
-					middleDotSeparator(),
-					tr("%1%").arg(parsed.parameters.amount * 100.0, 0, 'g', 4),
-					middleDotSeparator(),
-					tr("%1 ms · %2 taps/ch")
-						.arg(parsed.parameters.lengthMs, 0, 'g', 5).arg(taps));
 		}
 	}
 	else if (keyword == QStringLiteral("Filter"))
@@ -370,63 +264,36 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		// EAPO syntax allows numbered filter lines such as `Filter 1:`, `Filter 99:`
 		// (commonly emitted by REW, Room EQ Wizard, Dirac, and other tools).
 		// canonicalCommand already folds the trailing token away, so both spellings
-		// land here and keep the type-specific badge/title/summary.
+		// land here and keep the type-specific badge and title.
 
 		// The custom-coefficient IIR grammar ("ON IIR Order N Coefficients ...")
 		// keeps the biquad card type so every skin's biquad styling applies;
-		// only the badge/title/summary say IIR. Like the biquad summary this
-		// echoes what the author wrote with light regexes - the engine
+		// only the badge and title say IIR. The engine
 		// (IIRFilterFactory::parseCommand) stays the single grammar owner.
 		static const QRegularExpression iirExpression(
 			QStringLiteral("^\\s*(ON|OFF)\\s+IIR\\b"), QRegularExpression::CaseInsensitiveOption);
-		static const QRegularExpression orderExpression(
-			QStringLiteral("\\bOrder\\s+([0-9]+)"), QRegularExpression::CaseInsensitiveOption);
-		static const QRegularExpression coefficientExpression(
-			QStringLiteral("\\bCoefficients((?:\\s+[-+0-9.eE]+)+)"), QRegularExpression::CaseInsensitiveOption);
 		const QRegularExpressionMatch iirMatch = iirExpression.match(parameters);
 		if (iirMatch.hasMatch())
 		{
 			descriptor.badge = QStringLiteral("IIR");
 			descriptor.title = tr("IIR filter");
-
-			QStringList parts;
-			const QString orderText = firstCapture(orderExpression, parameters);
-			if (!orderText.isEmpty())
-				parts.append(tr("Order %1").arg(orderText));
-			const QString coefficientList = firstCapture(coefficientExpression, parameters).simplified();
-			if (!coefficientList.isEmpty())
-				parts.append(tr("%1 coefficients").arg(coefficientList.split(QLatin1Char(' ')).size()));
-			if (!parts.isEmpty())
-			{
-				descriptor.summary = parts.join(middleDotSeparator());
-				if (iirMatch.captured(1).toUpper() == QStringLiteral("OFF"))
-					descriptor.summary = QStringLiteral("OFF") + middleDotSeparator() + descriptor.summary;
-			}
 		}
 		else
 		{
 			// Recognise the full BiQuadFilterFactory vocabulary (including LSC/HSC
 			// shelf-with-slope, LPQ/HPQ Q-form, PEQ alias and Modal) so the card
-			// title and summary agree with the legacy GUI.
+			// title agrees with the legacy GUI.
 			static const QRegularExpression typeExpression(
 				QStringLiteral("^\\s*(ON|OFF)\\s+(PK|PEQ|MODAL|LPQ|HPQ|LSC|HSC|LP|HP|BP|LS|HS|NO|AP)\\b"),
 				QRegularExpression::CaseInsensitiveOption);
 			const QRegularExpressionMatch match = typeExpression.match(parameters);
 			if (match.hasMatch())
 			{
-				const QString state = match.captured(1).toUpper();
 				const QString code = match.captured(2).toUpper();
 				descriptor.badge = code;
 				descriptor.title = biquadTypeTitle(code);
-				descriptor.summary = summarizeBiquad(parameters, code, state);
 			}
 		}
-	}
-	else if (keyword == QStringLiteral("GraphicEQ"))
-	{
-		int bandCount = parameters.count(';') + 1;
-		if (!parameters.trimmed().isEmpty())
-			descriptor.summary = tr("%1 bands").arg(bandCount);
 	}
 	else if (keyword == QStringLiteral("Copy"))
 	{
@@ -436,173 +303,31 @@ FilterCardDescriptor FilterCardModel::describeLine(const QString& line, int dept
 		while (matches.hasNext())
 			destinations.append(matches.next().captured(1).toUpper());
 
-		int virtualCount = 0;
 		for (const QString& destination : destinations)
 		{
-			if (destination.startsWith('V'))
-				virtualCount++;
-			else
+			if (!destination.startsWith('V'))
 				descriptor.channelBadges.append(destination);
-		}
-
-		if (!destinations.isEmpty())
-		{
-			if (virtualCount > 0)
-				descriptor.summary = tr("%1 steps, %2 virtual").arg(destinations.size()).arg(virtualCount);
-			else
-				descriptor.summary = tr("%1 steps").arg(destinations.size());
 		}
 	}
 	else if (keyword == QStringLiteral("Channel"))
 	{
 		descriptor.channelBadges = parseChannelList(parameters);
-		descriptor.summary = descriptor.channelBadges.join(' ');
 	}
-	else if (keyword == QStringLiteral("Include"))
-	{
-		descriptor.summary = QFileInfo(parameters).fileName();
-		if (descriptor.summary.isEmpty())
-			descriptor.summary = parameters;
-	}
-	else if (keyword == QStringLiteral("Convolution"))
-	{
-		QString fileName = QFileInfo(parameters.section(' ', 0, 0)).fileName();
-		if (!fileName.isEmpty())
-			descriptor.summary = fileName;
-	}
-	else if (keyword == QStringLiteral("MultiConvolution"))
-	{
-		// The grammar differs from Convolution: the first token is the output
-		// channel and the remainder is the impulse-response path, so the header
-		// reads "<channel> · <file>" (e.g. "L · brir.wav").
-		const QString trimmedParams = parameters.trimmed();
-		static const QRegularExpression whitespaceExpression(QStringLiteral("\\s"));
-		const int split = trimmedParams.indexOf(whitespaceExpression);
-		const QString channel = split < 0 ? trimmedParams : trimmedParams.left(split);
-		const QString fileName = split < 0 ? QString() : QFileInfo(trimmedParams.mid(split + 1).trimmed()).fileName();
-		if (!channel.isEmpty() && !fileName.isEmpty())
-			descriptor.summary = channel + middleDotSeparator() + fileName;
-		else if (!channel.isEmpty())
-			descriptor.summary = channel;
-	}
-	else if (keyword == QStringLiteral("VSTPlugin"))
-	{
-		descriptor.summary = QFileInfo(parameters).fileName();
-		if (descriptor.summary.isEmpty())
-			descriptor.summary = parameters;
-	}
-	else if (keyword == QStringLiteral("SubwooferRouting"))
-	{
-		// Keep card-list work bounded. The full editor owns profile I/O and
-		// detailed validation; the descriptor only summarizes an in-memory
-		// State payload or names a linked profile.
-		constexpr qsizetype maximumSummaryPayload = 1024 * 1024;
-		if (parameters.size() > maximumSummaryPayload)
-		{
-			descriptor.summary = tr("invalid state");
-		}
-		else
-		{
-			SubwooferRoutingCommand parsed;
-			if (!SubwooferRoutingCommand::parse(command.toStdWString(),
-				parameters.toStdWString(), parsed))
-			{
-				descriptor.summary = tr("invalid state");
-			}
-			else if (parsed.form == SubwooferRoutingCommand::Form::Profile)
-			{
-				QString path = QString::fromStdWString(parsed.payload);
-				if (path.size() >= 2 && path.front() == QLatin1Char('"')
-					&& path.back() == QLatin1Char('"'))
-				{
-					path = path.mid(1, path.size() - 2);
-				}
-				descriptor.summary = QFileInfo(path).fileName();
-				if (descriptor.summary.isEmpty())
-					descriptor.summary = path;
-			}
-			else
-			{
-				const std::string payload =
-					subwooferRoutingToUtf8(parsed.payload);
-				const subroute::StateDecodeResult decoded =
-					subroute::decodeState(payload);
-				if (!decoded.succeeded())
-				{
-					descriptor.summary = tr("invalid state");
-				}
-				else
-				{
-					int lfeChannels = 0;
-					for (const subroute::PhysicalChannel& channel
-						: decoded.state->layout.channels)
-					{
-						if (QString::fromUtf8(channel.id.data(),
-							static_cast<int>(channel.id.size()))
-							.compare(QStringLiteral("LFE"),
-								Qt::CaseInsensitive) == 0)
-						{
-							lfeChannels++;
-						}
-					}
 
-					// The header speaks the user's language: the layout and
-					// the crossover corner. Internal graph statistics (group
-					// and path counts) belong to the full editor.
-					double crossoverHz = 0.0;
-					for (const subroute::Path& path
-						: decoded.state->paths)
-					{
-						for (const subroute::PathStage& stage : path.chain)
-						{
-							const subroute::BiquadStage* biquad =
-								std::get_if<subroute::BiquadStage>(&stage);
-							if (biquad == nullptr)
-								continue;
-							if (biquad->filter.type
-								== subroute::BiquadType::HighPass
-								|| biquad->filter.type
-								== subroute::BiquadType::LowPass)
-							{
-								crossoverHz = biquad->filter.frequencyHz;
-								break;
-							}
-						}
-						if (crossoverHz > 0.0)
-							break;
-					}
-
-					const int mainChannels =
-						static_cast<int>(
-							decoded.state->layout.channels.size())
-						- lfeChannels;
-					const QString layout =
-						QStringLiteral("%1.%2")
-							.arg(mainChannels)
-							.arg(lfeChannels);
-					descriptor.summary = crossoverHz > 0.0
-						? tr("%1 - crossover %2 Hz")
-							.arg(layout)
-							.arg(QString::number(crossoverHz, 'g', 5))
-						: tr("%1 - full range").arg(layout);
-				}
-			}
-		}
-	}
-	// The If family and Eval keep their as-written condition text as the
-	// summary; each branch keyword is its own catalog row (shared "if" card
-	// type, distinct badge), so no branch code is needed here.
-
-	// Rows whose summary is the parameter text as written (raw text lines and
-	// the programmatic If/Eval vocabulary) would otherwise fall through to the
-	// whole-line fallback and print the command twice ("ENDIF  EndIf:"). An
-	// empty summary is the honest reading there: the title already carries
-	// everything the line says.
-	const bool commandOnlyRow = !command.isEmpty()
-		&& (descriptor.type == QStringLiteral("text")
-		|| descriptor.type == QStringLiteral("if")
-		|| descriptor.type == QStringLiteral("eval"));
-	if (descriptor.summary.isEmpty() && !commandOnlyRow)
+	// Header summaries do not echo or paraphrase a recognized command's
+	// parameters (round 2 of the raw-exposure cleanup: a VSTPlugin header
+	// used to print its whole ChunkData blob, and even the friendly biquad
+	// readout restated what the body already shows as controls). The rows
+	// that keep text are the ones whose text IS the content: prose keeps the
+	// whole line, an unknown "key: value" keeps its value text from the
+	// default above, comment rows returned early with their note, and the
+	// raw-body hosts (If family, Eval, dynamic lines) keep their condition
+	// or expression, because their body is the line editor itself, not a
+	// second presentation of the parameters.
+	if (entry != nullptr
+		&& !hostsSharedRawBody(descriptor.type, descriptor.dynamicLine))
+		descriptor.summary.clear();
+	else if (descriptor.summary.isEmpty() && command.isEmpty())
 		descriptor.summary = compactWhitespace(line);
 
 	return descriptor;

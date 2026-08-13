@@ -90,6 +90,5 @@ private:
 	RoutingView* routingView = nullptr;
 	QToolButton* addChannelButton = nullptr;
 	QToolButton* chooseButton = nullptr;
-	QToolButton* editButton = nullptr;
 	QToolButton* importButton = nullptr;
 };

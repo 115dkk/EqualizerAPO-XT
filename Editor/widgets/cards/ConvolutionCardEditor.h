@@ -35,6 +35,5 @@ private:
 	FileReferenceController* reference = nullptr;
 	ReferenceCardView* view = nullptr;
 	QToolButton* chooseButton = nullptr;
-	QToolButton* editButton = nullptr;
 	QToolButton* importButton = nullptr;
 };

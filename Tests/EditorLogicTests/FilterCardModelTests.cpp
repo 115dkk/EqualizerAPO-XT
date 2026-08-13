@@ -29,29 +29,32 @@ void testFilterCardDescriptors()
 	harness.require(!FilterFactoryRegistry::knownConfigCommands().empty(),
 		"knownConfigCommands() is empty; no filter factory translation unit is linked into this test binary");
 
+	// Raw-exposure cleanup round 2: the header summary never echoes or
+	// paraphrases a recognized command's parameters (a VSTPlugin header used
+	// to print its whole ChunkData blob through the QFileInfo shortcut, and
+	// the biquad readout restated the body's controls). Recognized rows keep
+	// an empty summary; only prose, unknown keys, and comments keep text.
 	FilterCardDescriptor preamp = FilterCardModel::describeLine("Preamp: -6 dB");
 	expectEqual(preamp.badge, "PRE", "preamp card badge");
 	expectEqual(preamp.title, "Preamp", "preamp card title");
-	expectEqual(preamp.summary, "-6 dB", "preamp card summary");
+	expectTrue(preamp.summary.isEmpty(), "preamp header must not echo its parameters");
 	expectTrue(preamp.enabled, "preamp card was marked disabled");
 
 	FilterCardDescriptor disabledFilter = FilterCardModel::describeLine("# Filter: ON PK Fc 1000 Hz Gain -3 dB Q 0.71");
 	expectFalse(disabledFilter.enabled, "commented filter was marked enabled");
 	expectEqual(disabledFilter.badge, "PK", "disabled biquad badge");
 	expectEqual(disabledFilter.title, "Peaking", "disabled biquad title");
-	expectEqual(disabledFilter.summary, "Fc 1000 Hz · Gain -3 dB · Q 0.71", "disabled biquad summary");
+	expectTrue(disabledFilter.summary.isEmpty(), "disabled biquad header must not echo its parameters");
 
 	FilterCardDescriptor lowShelfCenterFilter = FilterCardModel::describeLine("Filter: ON LSC 12 dB Fc 200 Hz Gain 3 dB");
 	expectEqual(lowShelfCenterFilter.badge, "LSC", "low-shelf center badge");
 	expectEqual(lowShelfCenterFilter.title, "Low-shelf", "low-shelf center title");
-	expectTrue(lowShelfCenterFilter.summary.contains("Center 200 Hz") && lowShelfCenterFilter.summary.contains("Gain 3 dB") && lowShelfCenterFilter.summary.contains("Slope 12 dB/Oct"),
-		QStringLiteral("low-shelf center summary missing expected fields: ") + lowShelfCenterFilter.summary);
+	expectTrue(lowShelfCenterFilter.summary.isEmpty(), "low-shelf center header must not echo its parameters");
 
 	FilterCardDescriptor lowShelfCornerFilter = FilterCardModel::describeLine("Filter: ON LS 6 dB Fc 120 Hz Gain -2 dB");
 	expectEqual(lowShelfCornerFilter.badge, "LS", "low-shelf corner badge");
 	expectEqual(lowShelfCornerFilter.title, "Low-shelf", "low-shelf corner title");
-	expectTrue(lowShelfCornerFilter.summary.contains("Corner 120 Hz") && lowShelfCornerFilter.summary.contains("Gain -2 dB") && lowShelfCornerFilter.summary.contains("Slope 6 dB/Oct"),
-		QStringLiteral("low-shelf corner summary missing expected fields: ") + lowShelfCornerFilter.summary);
+	expectTrue(lowShelfCornerFilter.summary.isEmpty(), "low-shelf corner header must not echo its parameters");
 
 	FilterCardDescriptor pureComment = FilterCardModel::describeLine("    # purely explanatory comment");
 	expectFalse(pureComment.enabled, "pure comment was marked enabled");
@@ -65,18 +68,14 @@ void testFilterCardDescriptors()
 
 	FilterCardDescriptor graphicEq = FilterCardModel::describeLine("GraphicEQ: 20 -1; 100 0; 1000 2");
 	expectEqual(graphicEq.badge, "GEQ", "graphic eq badge");
-	expectEqual(graphicEq.summary, "3 bands", "graphic eq band count");
+	expectTrue(graphicEq.summary.isEmpty(), "graphic eq header must not paraphrase its bands");
 
 	FilterCardDescriptor hilbert = FilterCardModel::describeLine(
 		"Hilbert: Shift=SL,SR Align=L,R Direction=-90");
 	expectEqual(hilbert.type, "hilbert", "Hilbert gets its own card type");
 	expectEqual(hilbert.badge, "H90", "Hilbert card badge");
 	expectEqual(hilbert.title, "Hilbert transform", "Hilbert card title");
-	expectTrue(hilbert.summary.contains(QString::fromUtf8("−90°"))
-		&& hilbert.summary.contains("2 shifted")
-		&& hilbert.summary.contains("2 aligned"),
-		QStringLiteral("Hilbert summary exposes phase and both explicit roles: ")
-			+ hilbert.summary);
+	expectTrue(hilbert.summary.isEmpty(), "Hilbert header must not paraphrase its parameters");
 	expectTrue(hilbert.channelBadges == QStringList({"SL", "SR"}),
 		"Hilbert header badges identify only phase-shifted channels");
 	expectEqual(FilterCardModel::badgeIconResource("hilbert", "H90"),
@@ -89,33 +88,37 @@ void testFilterCardDescriptors()
 	expectEqual(velvet.type, "velvet", "Velvet gets its own card type");
 	expectEqual(velvet.badge, "VEL", "Velvet card badge");
 	expectEqual(velvet.title, "Velvet decorrelator", "Velvet card title");
-	expectTrue(velvet.summary.contains("Dynamic")
-		&& velvet.summary.contains("85%")
-		&& velvet.summary.contains("30 taps/ch"),
-		QStringLiteral("Velvet summary exposes mode, mix and sparse size: ")
-			+ velvet.summary);
+	expectTrue(velvet.summary.isEmpty(), "Velvet header must not paraphrase its parameters");
 	expectEqual(FilterCardModel::badgeIconResource("velvet", "VEL"),
 		":/icons/modern/waveform.svg", "Velvet uses the sparse-waveform pictogram");
 
 	FilterCardDescriptor copy = FilterCardModel::describeLine("Copy: VL=L VR=R L=VL R=VR");
 	expectEqual(copy.badge, "CPY", "copy card badge");
-	expectEqual(copy.summary, "4 steps, 2 virtual", "copy card summary");
+	expectTrue(copy.summary.isEmpty(), "copy header must not paraphrase its steps");
 	expectTrue(copy.channelBadges.contains("L") && copy.channelBadges.contains("R"), "copy card did not expose final physical channels");
 
 	FilterCardDescriptor channel = FilterCardModel::describeLine("Channel: L, R");
 	expectEqual(channel.badge, "CH", "channel card badge");
-	expectEqual(channel.summary, "L R", "channel card summary");
+	expectTrue(channel.summary.isEmpty(), "channel header must not echo its selection");
 	expectTrue(channel.channelBadges.contains("L") && channel.channelBadges.contains("R"), "channel badges were not parsed");
 
 	// MultiConvolution must get its own card header rather than falling through to
-	// the generic TXT descriptor. Its grammar is "<output channel> <IR path>", so
-	// the summary leads with the channel and ends with the file name.
+	// the generic TXT descriptor.
 	FilterCardDescriptor multiConv = FilterCardModel::describeLine("MultiConvolution: L brir.wav");
 	expectEqual(multiConv.badge, "MCONV", "multiconvolution card badge");
 	expectEqual(multiConv.title, "MultiConvolution", "multiconvolution card title");
 	expectEqual(multiConv.type, "convolution", "multiconvolution shares the convolution row type");
-	expectTrue(multiConv.summary.startsWith("L") && multiConv.summary.contains("brir.wav"),
-		QStringLiteral("multiconvolution summary should show channel and file: ") + multiConv.summary);
+	expectTrue(multiConv.summary.isEmpty(), "multiconvolution header must not echo channel and file");
+
+	// The line that started round 2: a VSTPlugin row's summary ran the whole
+	// parameter string through QFileInfo::fileName(), so everything after the
+	// path's last backslash - the file name, the closing quote, and the entire
+	// base64 ChunkData blob - landed in the header.
+	FilterCardDescriptor vstRow = FilterCardModel::describeLine(
+		"VSTPlugin: Library \"C:\\Plugins\\Reverb.dll\" ChunkData \"VkMyIVEFAAA8TEVYSUNPTl9QUkVTRVQ=\"");
+	expectEqual(vstRow.type, "vst", "VSTPlugin row type");
+	expectTrue(vstRow.summary.isEmpty(),
+		QStringLiteral("VSTPlugin header must not leak path or chunk data: ") + vstRow.summary);
 
 	// A freshly inserted bare "MultiConvolution:" template (no channel/path yet)
 	// still classifies as multiconvolution so the header keeps its badge instead of
@@ -145,9 +148,12 @@ void testFilterCardDescriptors()
 		"picker command vocabulary shares the biquad curve split");
 
 	// The programmatic vocabulary is modelled. The
-	// If family shares one card type with per-branch badges, Eval gets its own
-	// type, the condition/expression is the summary, and a parameterless line
-	// does not echo itself twice ("ENDIF  EndIf:"). A bare note line keeps the
+	// If family shares one card type with per-branch badges, Eval gets its
+	// own type, and - unlike the structured cards above - their headers KEEP
+	// the condition/expression text: these rows host the shared raw body, so
+	// the header is the only collapsed reading of the line (and soft's
+	// sentence rewrite feeds on it). A parameterless line still does not
+	// echo itself twice ("ENDIF  EndIf:"), and a bare note line keeps the
 	// whole line as its summary.
 	FilterCardDescriptor ifLine = FilterCardModel::describeLine("If: inputChannelCount == 2");
 	expectEqual(ifLine.type, "if", "If line carries the if card type");
