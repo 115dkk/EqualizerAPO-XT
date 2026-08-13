@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.36.0 — 2026-08-13
+
 - **Filter cards no longer print the raw config line, and the tall editor
   surfaces got compact.** The "Raw" strip under every card (and Signal
   Matrix's caption echo of the same text) is gone; the verbatim line now
