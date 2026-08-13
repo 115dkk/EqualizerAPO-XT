@@ -1,5 +1,5 @@
 # EqualizerAPO-XT 위키
-EqualizerAPO-XT는 Jonas Thedering의 [Equalizer APO](https://sourceforge.net/projects/equalizerapo/)를 바탕으로 한 Windows 시스템 전체 이퀄라이저입니다. XT 포크는 기존 설정 방식을 그대로 유지하면서 64비트(double) 내부 처리, 길이 제한이 없는 컨볼버 임펄스 응답, VST2/VST3 호스팅, 여러 SIMD 빌드 변형, ARM64 지원, 자동 업데이트가 되는 Velopack 설치 파일을 더했습니다.
+EqualizerAPO-XT는 Jonas Thedering의 [Equalizer APO](https://sourceforge.net/projects/equalizerapo/)를 바탕으로 한 Windows 시스템 전체 이퀄라이저입니다. XT 포크는 기존 설정 방식을 그대로 유지하면서 64비트(double) 내부 처리, 길이 제한이 없는 컨볼버 임펄스 응답, BRIR/크로스피드용 MultiConvolution, Hilbert·Velvet 위상/비상관화 도구, 명시적 VST3 주 버스 레이아웃, 독립 VST3 플러그인과 코어를 공유하는 한 줄 서브우퍼 라우팅을 더했습니다. 이식 가능한 SIMD 변형은 AVX10.1까지의 x64와 ARM64/NEON을 지원하며, 자동 감지 Velopack 설치 파일이 맞는 빌드를 고르고 자동 업데이트가 최신 상태를 유지합니다.
 
 이 위키는 원본 Equalizer APO 문서의 구성을 따르되, 설치와 패키징 부분을 XT 빌드에 맞게 고쳐 썼습니다.
 

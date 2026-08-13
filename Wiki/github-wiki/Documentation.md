@@ -1,11 +1,12 @@
 # Documentation
 This is the user documentation for **EqualizerAPO-XT**. If you write your own APO or want to build the project from source, see the [Developer documentation](Developer-documentation) instead. Once you have it installed, the detailed command list lives in the [Configuration reference](Configuration-reference).
 ## Installation
-Unlike the original Equalizer APO, the XT fork does not ship a single universal installer. It builds one installer per CPU instruction set, and there is **no 32-bit build** — only 64-bit x64 and ARM64.
+XT publishes a small compatibility front-door installer together with six CPU-specific 64-bit packages. The APO/application payload has **no 32-bit build** — only x64 and ARM64.
 
-1. Open the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases) and download the `EqualizerAPO_Setup-<variant>.exe` that matches your CPU. The available variants are `x64-sse2`, `x64-avx`, `x64-avx2`, `x64-avx512`, `x64-avx10_1` and `arm64`.
-1. If you are not sure which one to take, **`x64-avx2` is the recommended default** and runs on virtually every desktop CPU released since about 2013. Use `x64-sse2` as the maximum-compatibility fallback for very old x64 processors, `x64-avx` if your CPU has AVX but not AVX2, `x64-avx512` or `x64-avx10_1` only if your CPU actually supports those extensions, and `arm64` on Windows-on-ARM devices. You can check your CPU's type under **Start → Settings → System → About**.
-1. Run the downloaded setup. The Velopack installer unpacks the application and registers EqualizerAPO-XT. You do not need to remember an install path; the location is recorded in the registry (see [Where things live](#where-things-live)).
+1. Open the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases) and download **`EqualizerAPO-XT-Setup.exe`**.
+1. Run it while connected to the internet. It detects the native architecture and the highest AVX level that both the CPU and Windows support, downloads the matching Velopack installer, verifies it against the release's `SHA256SUMS.txt`, and only then starts it.
+1. For an offline transfer, recovery, or an intentionally fixed build, the per-channel `…-Setup.exe` files remain available. The channels are `x64-sse2`, `x64-avx`, `x64-avx2`, `x64-avx512`, `x64-avx10-1` and `arm64-neon`; choose one manually only when you know the target machine supports it. The [auto-detect installer design](https://github.com/115dkk/EqualizerAPO-XT/blob/main/docs/AutoDetectInstaller.md) documents the exact selection and integrity checks.
+1. The selected Velopack installer unpacks the application and registers EqualizerAPO-XT. You do not need to remember an install path; the location is recorded in the registry (see [Where things live](#where-things-live)).
 1. After the first install the **Device Selector** opens. Tick the playback and/or capture devices that Equalizer APO should attach to. If you are unsure, pick your default output device — you can see which one that is under **Start → Settings → System → Sound**. You can run the Device Selector again at any time from the installation folder if you want to add or remove devices later.
 1. Allow Windows to restart the audio service (or reboot). A freshly registered APO is not picked up until the audio engine restarts.
 1. Once the service has restarted the APO is active. With the bundled example configuration this is only noticeable as a small drop in volume and a mild low-frequency boost. To make it do something useful, continue with the [First configuration](#first-configuration) section.
@@ -14,7 +15,7 @@ Unlike the original Equalizer APO, the XT fork does not ship a single universal 
 EqualizerAPO-XT records its paths in the registry key **`HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO`**:
 
 * `InstallPath` — the directory the application was installed to.
-* `ConfigPath` — the `config` folder that holds your configuration files.
+* `ConfigPath` — the `config` folder that holds your configuration files. A normal XT install uses `%LOCALAPPDATA%\EqualizerAPO-XT\config`; an intentionally chosen custom path is preserved, so the registry value is authoritative.
 
 The easiest way to reach the configuration folder is to open the **Configuration Editor**, which points at it directly. The folder ships with `config.txt` (the main file, loaded automatically) plus several ready-made examples: `example.txt`, `demo.txt`, `convolution.txt`, `iir_lowpass.txt`, `multichannel.txt` and `selective_delay.txt`.
 
@@ -72,6 +73,13 @@ C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp\EqualizerAPO.log
 ```
 
 Under normal operation the file does not even exist — it is only created on an error. For more detail you can enable trace output: open `regedit.exe`, go to `HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO`, and set the value **`EnableTrace`** to `true`. Lines marked `(TRACE)` are then written during normal playback or recording, which is useful for checking how your configuration files are interpreted. Set `EnableTrace` back to `false` when you are done so the log does not grow without need.
+
+XT's user-facing diagnostics live under `%LOCALAPPDATA%\EqualizerAPO\logs`:
+
+* `Editor.log` records Editor, install/update-hook and save failures.
+* `DeviceSelector.log` records device installation, removal and repair.
+* Running `Editor.exe --diagnose` writes `diagnose-<time>.txt` there (and to an attached console). It only inspects the installation and does not need administrator rights.
+* Editor crash minidumps and text reports go in the `crash` subfolder.
 
 ### Hardware-accelerated OpenAL
 Applications that use OpenAL usually pose no problem because they fall back to DirectSound, which supports APOs. Some vendors, however, ship hardware-accelerated OpenAL libraries that talk to the hardware directly and bypass APOs entirely. There is no way to add APO support to hardware-accelerated OpenAL, so the options are to switch the application to another output backend, or to force OpenAL into software mode — for example by replacing `OpenAL32.dll` with the [OpenAL Soft](https://openal-soft.org/) build, or by renaming the vendor's hardware OpenAL library (often named like `*_oal.dll`) in `C:\Windows\System32` or `C:\Windows\SysWOW64`. The latter changes the sound driver and is not officially supported.
