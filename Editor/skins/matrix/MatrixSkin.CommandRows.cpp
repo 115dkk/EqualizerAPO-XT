@@ -254,6 +254,16 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// Header band fill (the header widget itself is transparent).
 		painter.fillRect(headerBand, QColor(info.selected ? tokens.surfaceRaised : tokens.cardHover));
 
+		// The VST body is one dark board panel. The reference view's port
+		// strip and feed line stand on the window ground, but the layout
+		// margins around the view let the card face peek through, which
+		// read as a flake floating mid-card (r3 judging). Flooding the whole
+		// body band with the same ground fuses decoration, feed line and
+		// caption strip into one block.
+		if (info.type == QStringLiteral("vst") && content.height() > headerHeight)
+			painter.fillRect(QRect(content.left(), content.top() + headerHeight,
+				content.width(), content.height() - headerHeight), QColor(tokens.background));
+
 		// A remark row (pure comment) is addressable but carries no signal
 		// state: full grid ink and hover pre-light like an enabled row, but
 		// no status lamp.

@@ -384,6 +384,23 @@ void VSTCardEditor::updateReferenceState()
 	selectButton->setToolTip(locate ? tr("Locate the missing plugin library") : tr("Select VST plugin"));
 	openPanelButton->setEnabled(!state.missing && !reference->writtenPath().isEmpty());
 
+	// Post the loaded ABI for the row chrome (CommandRowFrame samples the
+	// property at paint time): rack engraves it into the brass nameplate.
+	// The editor is parented into the row after construction, so the walk
+	// only finds the frame from the loadPreferences pass onward.
+	for (QWidget* ancestor = parentWidget(); ancestor != nullptr; ancestor = ancestor->parentWidget())
+	{
+		if (ancestor->objectName() == QLatin1String("FilterCardRow"))
+		{
+			if (ancestor->property("rowFormatTag").toString() != state.formatBadge)
+			{
+				ancestor->setProperty("rowFormatTag", state.formatBadge);
+				ancestor->update();
+			}
+			break;
+		}
+	}
+
 	view->setState(state);
 }
 
@@ -461,7 +478,10 @@ void VSTCardEditor::updateBusControls()
 		// A "Rejected" word in the strip restated the lamp (maintainer
 		// judgement, r2: 사족).
 		busStrip->setVerdict(QString(), VstBusFrameState::Tone::Critical);
-		busStatusText = tr("The plugin rejected the %1 in / %2 out contract. All channels pass through unchanged until the layout changes or is removed.")
+		// One short sentence: the fact and its consequence. The full escape
+		// routes (change or remove the layouts) are the selectors sitting
+		// right there - prose walking through them read as a wall (r3).
+		busStatusText = tr("The plugin rejected %1 in / %2 out. Audio passes through unchanged.")
 			.arg(layoutName(requestedInput), layoutName(requestedOutput));
 		busStatusSeverity = ReferenceCardState::Severity::Critical;
 		return;

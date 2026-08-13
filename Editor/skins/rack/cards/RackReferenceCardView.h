@@ -144,7 +144,6 @@ private:
 	QHBoxLayout* actionLayout = nullptr;
 	RackStatusLamp* lamp = nullptr;
 	RackEngravedLabel* captionLabel = nullptr;
-	RackEngravedLabel* formatStamp = nullptr;
 	RackEngravedLabel* absStamp = nullptr;
 	RackEngravedLabel* serviceTag = nullptr;
 	RackEngravedLabel* nameLabel = nullptr;

@@ -4684,13 +4684,13 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="384"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="567"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="98"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="619"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="639"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
@@ -4750,69 +4750,73 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="411"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
         <source>The bus layout can be changed after the plugin loads.</source>
         <translation>버스 레이아웃은 플러그인이 로드된 뒤에 바꿀 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="419"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="436"/>
         <source>Input and Output layouts are only supported for VST3 plugins.</source>
         <translation>Input/Output 레이아웃은 VST3 플러그인에서만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="423"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="440"/>
         <source>This module loaded as VST2 and ignores the saved Input/Output layouts. Remove them via Options.</source>
         <translation>이 모듈은 VST2로 로드되어 저장된 Input/Output 레이아웃을 무시합니다. 옵션 메뉴에서 제거할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="437"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="454"/>
         <source>Close the plugin panel to change the bus layout.</source>
         <translation>버스 레이아웃을 바꾸려면 플러그인 패널을 닫으세요.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
+        <source>The plugin rejected %1 in / %2 out. Audio passes through unchanged.</source>
+        <translation>플러그인이 입력 %1 / 출력 %2 구성을 거부했습니다. 소리는 그대로 통과합니다.</translation>
     </message>
     <message>
         <source>Rejected</source>
         <translation type="vanished">거부됨</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="464"/>
         <source>The plugin rejected the %1 in / %2 out contract. All channels pass through unchanged until the layout changes or is removed.</source>
-        <translation>플러그인이 입력 %1 / 출력 %2 계약을 거부했습니다. 레이아웃을 바꾸거나 제거할 때까지 모든 채널이 그대로 통과합니다.</translation>
+        <translation type="vanished">플러그인이 입력 %1 / 출력 %2 계약을 거부했습니다. 레이아웃을 바꾸거나 제거할 때까지 모든 채널이 그대로 통과합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="482"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="502"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="504"/>
         <source>%1 ch</source>
         <translation>%1채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="493"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="513"/>
         <source>The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.</source>
         <translation>구형 &apos;스테레오 입력&apos; 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="548"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="568"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="594"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="614"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="619"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="639"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="698"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="718"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>오디오 서비스가 이 라이브러리를 읽을 수 없습니다.
 파일 권한을 바꾸거나 VSTPlugins 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="715"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="735"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>

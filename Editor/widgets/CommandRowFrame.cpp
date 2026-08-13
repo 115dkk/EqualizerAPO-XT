@@ -84,6 +84,10 @@ void CommandRowFrame::paintEvent(QPaintEvent* event)
 	// would always lag one state behind.
 	CommandRowInfo paintInfo = info;
 	paintInfo.hovered = underMouse();
+	// Facts a body editor posts after construction ride a dynamic property
+	// for the same reason hovered is sampled here: the stored info predates
+	// them (the VST card posts the loaded ABI for rack's nameplate).
+	paintInfo.formatTag = property("rowFormatTag").toString();
 
 	QPainter painter(this);
 	SkinManager::instance()->paintCardChrome(painter, rect(), paintInfo);

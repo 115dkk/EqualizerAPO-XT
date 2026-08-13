@@ -383,6 +383,13 @@ void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
 		return;
 
+	// A wordless danger verdict draws nothing here: on this skin the
+	// problem lives in the reference tile (the stroke "!" transition), and
+	// a red dot floating beside the chips read as a second, disorienting
+	// alarm (r3 judging). The caption below explains; the chips stay calm.
+	if (!hasText && state.tone == VstBusFrameState::Tone::Critical)
+		return;
+
 	const bool dark = skinIsDark(tokens);
 	QColor dot(tokens.mutedText);
 	switch (state.tone)

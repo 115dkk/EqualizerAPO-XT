@@ -457,11 +457,6 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
 		return;
 
-	const QRectF box = QRectF(state.verdictRect).adjusted(0.5, 0.5, -0.5, -0.5);
-	painter.setPen(QPen(QColor(tokens.border), 1));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRect(box);
-
 	QColor led(tokens.mutedText);
 	bool lit = true;
 	switch (state.tone)
@@ -474,31 +469,38 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	if (!state.enabled)
 		lit = false;
 
-	const QRectF ledRect(box.left() + 5.0, box.center().y() - 2.0, 4.0, 4.0);
-	if (lit)
-		painter.fillRect(ledRect, led);
-	else
+	// The verdict beacon: a control-room segment stack - three crisp bars
+	// with 1px air, lit solid in the rationed tone, dim when unlit - and no
+	// cell around it (r3 judging: a box around a lamp is furniture, and a
+	// lone 4px dot looked cheap on the board). The stack borrows the VU
+	// segment shape, so it reads as an indicator bank, not a fleck.
+	const int segWidth = 7;
+	const int segHeight = 2;
+	const int segGap = 1;
+	const int segCount = 3;
+	const int beaconHeight = segCount * segHeight + (segCount - 1) * segGap;
+	const int beaconLeft = state.verdictRect.left() + 1;
+	const int beaconTop = state.verdictRect.center().y() - beaconHeight / 2;
+	for (int i = 0; i < segCount; i++)
 	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.mutedText), 140), 1));
-		painter.drawRect(ledRect.adjusted(0, 0, -1.0, -1.0));
+		const QRect segment(beaconLeft, beaconTop + i * (segHeight + segGap), segWidth, segHeight);
+		painter.fillRect(segment, lit ? led : withAlpha(QColor(tokens.mutedText), 70));
 	}
 
-	if (!hasText)
+	// The remark speaks only for a negotiated pair. Word verdicts stay
+	// beacon-only: the port strip's device engraving already posts the ABI
+	// ("EXTERNAL DEVICE · VST2"), so a VST2 remark here restated the board
+	// one cell over (maintainer judgement, r3).
+	if (!pairVerdict)
 		return;
 
 	QFont remarkFont(tokens.monoFontFamily);
-	remarkFont.setPixelSize(pairVerdict ? 10 : 8);
-	remarkFont.setLetterSpacing(QFont::AbsoluteSpacing, pairVerdict ? 0.0 : 0.6);
+	remarkFont.setPixelSize(10);
 	painter.setFont(remarkFont);
 	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
-	QRectF textRect(box);
-	textRect.setLeft(ledRect.right() + 6.0);
-	textRect.setRight(box.right() - 5.0);
-	QString text;
-	if (pairVerdict)
-		text = state.verdictInputText + QStringLiteral(">") + state.verdictOutputText;
-	else
-		text = state.verdictText.toUpper();
+	QRectF textRect(state.verdictRect);
+	textRect.setLeft(beaconLeft + segWidth + 6.0);
+	const QString text = state.verdictInputText + QStringLiteral(">") + state.verdictOutputText;
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
 		QFontMetricsF(remarkFont).elidedText(text, Qt::ElideRight, textRect.width()));
 }

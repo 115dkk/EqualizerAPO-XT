@@ -4662,13 +4662,13 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     <name>VSTCardEditor</name>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="384"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="567"/>
         <source>Select VST plugin</source>
         <translation>选择 VST 插件</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="98"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="619"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="639"/>
         <source>Open panel</source>
         <translation>打开面板</translation>
     </message>
@@ -4728,65 +4728,65 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>定位缺失的插件库</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="411"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
         <source>The bus layout can be changed after the plugin loads.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="419"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="436"/>
         <source>Input and Output layouts are only supported for VST3 plugins.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="423"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="440"/>
         <source>This module loaded as VST2 and ignores the saved Input/Output layouts. Remove them via Options.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="437"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="454"/>
         <source>Close the plugin panel to change the bus layout.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="464"/>
-        <source>The plugin rejected the %1 in / %2 out contract. All channels pass through unchanged until the layout changes or is removed.</source>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
+        <source>The plugin rejected %1 in / %2 out. Audio passes through unchanged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="482"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="502"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="504"/>
         <source>%1 ch</source>
         <translation type="unfinished">%1 声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="493"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="513"/>
         <source>The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="548"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="568"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 插件 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="594"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="614"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>插件在打开面板时崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="619"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="639"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="698"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="718"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>音频服务无法读取此库。
 请更改文件权限，或将该文件复制到 VSTPlugins 目录。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="715"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="735"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>

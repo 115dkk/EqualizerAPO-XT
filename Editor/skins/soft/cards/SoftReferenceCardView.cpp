@@ -306,14 +306,29 @@ void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 	const bool dark = skinIsDark(t);
 	const QString kind = state.kind.isEmpty() ? cardKind : state.kind;
 
-	// The broken-state transition lives in the tile, still on the pastel
-	// shelf: an empty reference ("no file selected") is a quiet warning tint
-	// - nothing broke yet - while a dangling path leans on the danger hue,
-	// pastelized so it worries without alarming.
+	// Problems live in the tile - the one place this row already taught to
+	// change state, so nothing new has to shout. The broken reference keeps
+	// its transition (empty = quiet warning tint, dangling = danger hue),
+	// and a warning/critical status line now flips the same stroke "!"
+	// grammar with its severity's pastel: a rejected bus contract or stale
+	// VST2 keys read from the picture first, and the caption below only has
+	// to explain (r3 judging - a problem stated by long text alone was
+	// disorienting).
 	QColor pastel = kindTilePastel(kind, t, dark);
+	bool alert = state.missing;
 	if (state.missing)
 		pastel = softPastelize(QColor(state.editText.trimmed().isEmpty() ? t.warning : t.danger), dark);
-	tile->setAppearance(pastel, kindIconResource(kind), state.missing);
+	else if (state.statusSeverity == ReferenceCardState::Severity::Critical)
+	{
+		pastel = softPastelize(QColor(t.danger), dark);
+		alert = true;
+	}
+	else if (state.statusSeverity == ReferenceCardState::Severity::Warning)
+	{
+		pastel = softPastelize(QColor(t.warning), dark);
+		alert = true;
+	}
+	tile->setAppearance(pastel, kindIconResource(kind), alert);
 
 	nameLabel->setFullText(state.name);
 	if (!state.fullPath.isEmpty())

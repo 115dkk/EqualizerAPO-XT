@@ -42,6 +42,9 @@ private:
 	ElidedLabel* locationCell = nullptr;
 	QLabel* absCell = nullptr;
 	QLabel* formatCell = nullptr;
+	// The port strip's centre engraving; on a VST feed it also posts the
+	// loaded ABI ("EXTERNAL DEVICE · VST3").
+	QLabel* deviceLabel = nullptr;
 	QLabel* statusLine = nullptr;
 	QList<QLabel*> readoutCells;
 };

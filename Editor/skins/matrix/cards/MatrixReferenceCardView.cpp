@@ -59,9 +59,9 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 		inPort->setObjectName(QStringLiteral("MatrixRefPortLabel"));
 		stripLayout->addWidget(inPort);
 		stripLayout->addStretch(1);
-		QLabel* device = new QLabel(QStringLiteral("EXTERNAL DEVICE"), portStrip);
-		device->setObjectName(QStringLiteral("MatrixRefDeviceLabel"));
-		stripLayout->addWidget(device);
+		deviceLabel = new QLabel(QStringLiteral("EXTERNAL DEVICE"), portStrip);
+		deviceLabel->setObjectName(QStringLiteral("MatrixRefDeviceLabel"));
+		stripLayout->addWidget(deviceLabel);
 		stripLayout->addStretch(1);
 		QLabel* outPort = new QLabel(QStringLiteral("OUT >"), portStrip);
 		outPort->setObjectName(QStringLiteral("MatrixRefPortLabel"));
@@ -191,10 +191,24 @@ void MatrixReferenceCardView::applyState(const ReferenceCardState& state)
 	// grammar: a hazard notice, not an engaged state).
 	absCell->setVisible(state.absolutePath && !state.missing);
 
-	// Format code (VST2/VST3): type identity stays monochrome (the
-	// typeBadgeStyle precedent).
-	formatCell->setVisible(!state.formatBadge.isEmpty());
-	formatCell->setText(state.formatBadge);
+	// Format code (VST2/VST3): on a VST feed the loaded ABI is posted in the
+	// port strip's device engraving ("EXTERNAL DEVICE · VST3") - a second
+	// code cell down on the feed line restated it and nagged the eye
+	// (maintainer judgement, r3). Type identity stays monochrome either way
+	// (the typeBadgeStyle precedent).
+	if (deviceLabel != nullptr)
+	{
+		formatCell->setVisible(false);
+		deviceLabel->setText(state.formatBadge.isEmpty()
+			? QStringLiteral("EXTERNAL DEVICE")
+			: QStringLiteral("EXTERNAL DEVICE %1 %2")
+				.arg(QChar(0x00B7)).arg(state.formatBadge));
+	}
+	else
+	{
+		formatCell->setVisible(!state.formatBadge.isEmpty());
+		formatCell->setText(state.formatBadge);
+	}
 
 	// Location readout: muted mono ahead of the payload, "Surround@" - the
 	// at-sign closes the place. Elided at paint time.
