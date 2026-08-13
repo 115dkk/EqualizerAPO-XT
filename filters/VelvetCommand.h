@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include "filters/velvet/Processor.h"
+#include "filters/velvet/VelvetProcessor.h"
 
 struct VelvetCommand
 {

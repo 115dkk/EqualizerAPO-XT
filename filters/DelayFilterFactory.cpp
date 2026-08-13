@@ -30,7 +30,7 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory, L"Dela
 using std::vector;
 using std::wstring;
 
-bool DelayFilterFactory::parseCommand(const wstring& command, wstring& parameters, DelayCommand& out)
+bool DelayFilterFactory::parseCommand(const wstring& command, const wstring& parameters, DelayCommand& out)
 {
 	if (command != L"Delay")
 		return false;

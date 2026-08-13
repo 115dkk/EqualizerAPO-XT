@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/IFilter.h"
-#include "filters/velvet/Processor.h"
+#include "filters/velvet/VelvetProcessor.h"
 
 #pragma AVRT_VTABLES_BEGIN
 class VelvetFilter : public IFilter
