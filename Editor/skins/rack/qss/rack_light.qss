@@ -477,6 +477,17 @@ QCheckBox#AnalysisFormCheck {
 }
 
 QComboBox#AnalysisFormCombo { min-width: 80px; }
+/* Compact vertical profile for the analysis bar's stacked fields: four
+   field rows over the metric segment and the readout chips set the dock's
+   minimum height, and at the global field height that stack crowded the
+   graph out of short docks. Type size is untouched; nothing may clip at
+   the dock minimum. */
+QComboBox#AnalysisFormCombo,
+QAbstractSpinBox#AnalysisFormSpin {
+    min-height: 20px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
 QFrame#AnalysisStatChip { background: #11150F; border: 1px solid #4A4438; border-radius: 2px; }
 QLabel#AnalysisStatLabel {
     color: #9AA08E; background: transparent;
@@ -610,10 +621,6 @@ QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
     font-size: 7pt; font-weight: 700; letter-spacing: 2px;
     text-transform: uppercase;
-}
-QLabel#MultiConvolutionMappingHint {
-    color: #A99F8E;
-    font-size: 8pt; letter-spacing: 1px;
 }
 
 /* ── GraphicEQ unit: the oscilloscope display, its readout strip, machine
@@ -1161,19 +1168,19 @@ QWidget#HilbertCardEditor, QWidget#HilbertModeBlock, QWidget#HilbertChannelRole,
 QWidget#HilbertChannelChips, QWidget#HilbertReadoutBlock,
 QWidget#VelvetCardEditor, QWidget#VelvetPrimaryRow, QWidget#VelvetValueBlock, QWidget#VelvetAdvancedPanel,
 QLabel#HilbertCaption, QLabel#HilbertReadout, QLabel#VelvetCaption,
-QLabel#VelvetStatistics, QLabel#CardValidationMessage {
+QLabel#CardValidationMessage {
     background: transparent;
     border: 0;
 }
 QLabel#HilbertCaption, QLabel#VelvetCaption { color: @MUTED@; font-weight: 600; }
-QLabel#HilbertReadout, QLabel#VelvetStatistics {
+QLabel#HilbertReadout {
     color: @TEXT@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
 }
 QLabel#CardValidationMessage { color: @DANGER@; font-weight: 700; }
 QToolButton#VelvetAdvancedToggle {
-    min-height: 40px; padding: 0 10px; color: @MUTED@;
+    min-height: 28px; padding: 0 10px; color: @MUTED@;
     background: transparent; border: 1px solid @BORDER@;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }

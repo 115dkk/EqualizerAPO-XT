@@ -55,7 +55,6 @@ struct SkinTokens
 	int graphRadius = 10;
 	int density = 1;
 	bool showCardMiniGraphs = false;
-	bool showRawPreview = true;
 	bool zebraStripe = false;
 	// Width (in px) of the coloured rail drawn on the left edge of each filter
 	// card. Used by Signal Matrix to make the routing structure visible. 0 means

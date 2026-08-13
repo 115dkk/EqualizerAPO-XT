@@ -278,7 +278,6 @@ SOURCES += main.cpp\
 	widgets/cards/AllPassCardEditor.cpp \
 	widgets/cards/HilbertCardEditor.cpp \
 	widgets/cards/VelvetCardEditor.cpp \
-	widgets/cards/VelvetImpulsePreview.cpp \
 	widgets/cards/FilterCardEditorRouter.cpp \
 	analysis/AnalysisViewController.cpp \
 	widgets/cards/IncludeCardEditor.cpp \
@@ -546,7 +545,6 @@ HEADERS  += \
 	widgets/cards/AllPassCardEditor.h \
 	widgets/cards/HilbertCardEditor.h \
 	widgets/cards/VelvetCardEditor.h \
-	widgets/cards/VelvetImpulsePreview.h \
 	analysis/AnalysisViewController.h \
 	widgets/cards/IncludeCardEditor.h \
 	widgets/cards/PreampCardEditor.h \

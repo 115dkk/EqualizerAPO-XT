@@ -227,7 +227,12 @@ QList<GalleryRow> galleryRows()
 		// carry without dropping the card. Appended last (mid-list insertion
 		// renumbers every following scene against the stored baseline).
 		{ QStringLiteral("subwooferrouting"), subwooferRoutingPresetRowLine() },
-		{ QStringLiteral("subwooferrouting_missing"), QStringLiteral("SubwooferRouting: Profile \"missing.swxt.json\"") }
+		{ QStringLiteral("subwooferrouting_missing"), QStringLiteral("SubwooferRouting: Profile \"missing.swxt.json\"") },
+		// The no-op delay. The engine builds no filter for it, but the card
+		// must still open the knob editor - this exact line (the insert
+		// template's default) used to collapse to the raw body. Appended last
+		// (mid-list insertion renumbers every following scene).
+		{ QStringLiteral("delay_zero"), QStringLiteral("Delay: 0 ms") }
 	};
 	// Fixture-gated VST bus scenes, appended last (mid-list insertion
 	// renumbers every following scene against the stored baseline).
@@ -1890,8 +1895,6 @@ int runSwitchTest(const QStringList& arguments)
 				}
 				if (skin->id() == QLatin1String("soft"))
 					checkPaintOnlyChrome(QStringLiteral("SoftReferenceTile"));
-				else if (skin->id() == QLatin1String("matrix"))
-					checkPaintOnlyChrome(QStringLiteral("MatrixRowCaption"));
 				{
 					// Caption ink check. tintedIcon paints every covered pixel
 					// in the ink colour, so the strongest-coverage pixel must

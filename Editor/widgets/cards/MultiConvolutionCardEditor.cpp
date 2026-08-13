@@ -94,7 +94,7 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 
 	// The channel mapping rides under the file reference: a caption row with
 	// the virtual-output entry point, then the active skin's routing view.
-	QWidget* mappingArea = new QWidget(this);
+	mappingArea = new QWidget(this);
 	mappingArea->setObjectName(QStringLiteral("MultiConvolutionMappingArea"));
 	QVBoxLayout* mappingLayout = new QVBoxLayout(mappingArea);
 	mappingLayout->setContentsMargins(4, 0, 4, 2);
@@ -195,29 +195,20 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 		routingView->deleteLater();
 		routingView = nullptr;
 	}
-	if (routingHint != nullptr)
-	{
-		routingLayout->removeWidget(routingHint);
-		routingHint->hide();
-		routingHint->deleteLater();
-		routingHint = nullptr;
-	}
 
 	IRoutingRenderer* renderer = SkinManager::instance()->routingRenderer();
 
 	// Without a readable file the mapping cannot be edited: the view could not
 	// know what the simple form ("every channel") expands to, and an edit
-	// would persist a wrong expansion. Show why instead.
-	if (renderer == nullptr || fileChannelCount <= 0)
-	{
-		routingHint = new QLabel(tr("Select a readable impulse response file to edit the channel mapping."), this);
-		routingHint->setObjectName(QStringLiteral("MultiConvolutionMappingHint"));
-		routingHint->setWordWrap(true);
-		routingLayout->addWidget(routingHint);
-		addChannelButton->setEnabled(false);
+	// would persist a wrong expansion. The whole block hides rather than
+	// explaining itself in loose text: the reference view's status grammar
+	// (missing / unsupported / unreadable) already carries the why, and the
+	// mapping state survives untouched for when a file arrives.
+	const bool editable = renderer != nullptr && fileChannelCount > 0;
+	if (mappingArea != nullptr)
+		mappingArea->setVisible(editable);
+	if (!editable)
 		return;
-	}
-	addChannelButton->setEnabled(true);
 
 	std::vector<Assignment> assignments = MultiConvolutionRoutingAdapter::toAssignments(mappings, fileChannelCount);
 

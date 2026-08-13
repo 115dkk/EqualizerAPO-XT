@@ -271,6 +271,19 @@ HilbertCardEditor::HilbertCardEditor(const HilbertCommand& command,
 	});
 	graphLayout->addWidget(graph);
 	modeRow->addWidget(graphBlock);
+	// The four readouts share the switch row: the channel selectors below make
+	// the card tall already, and a separate footer row of fixed figures spent
+	// another line on nothing (the same judgement that folded the all-pass
+	// card's footer into its knob row).
+	modeRow->addSpacing(6);
+	modeRow->addWidget(readoutBlock(this, tr("Phase"), phaseValue));
+	modeRow->addWidget(readoutBlock(this, tr("Latency"), latencyValue));
+	QLabel* taps = nullptr;
+	modeRow->addWidget(readoutBlock(this, tr("FIR"), taps));
+	taps->setText(tr("%1 taps").arg(HilbertTapCount));
+	QLabel* magnitude = nullptr;
+	modeRow->addWidget(readoutBlock(this, tr("Passband"), magnitude));
+	magnitude->setText(QStringLiteral("0.0 dB"));
 	modeRow->addStretch(1);
 	root->addLayout(modeRow);
 
@@ -292,20 +305,6 @@ HilbertCardEditor::HilbertCardEditor(const HilbertCommand& command,
 	alignedSelector->configure(deviceChannels);
 	root->addWidget(shiftedSelector);
 	root->addWidget(alignedSelector);
-
-	QHBoxLayout* readouts = new QHBoxLayout();
-	readouts->setContentsMargins(0, 0, 0, 0);
-	readouts->setSpacing(24);
-	readouts->addWidget(readoutBlock(this, tr("Phase"), phaseValue));
-	readouts->addWidget(readoutBlock(this, tr("Latency"), latencyValue));
-	QLabel* taps = nullptr;
-	readouts->addWidget(readoutBlock(this, tr("FIR"), taps));
-	taps->setText(tr("%1 taps").arg(HilbertTapCount));
-	QLabel* magnitude = nullptr;
-	readouts->addWidget(readoutBlock(this, tr("Passband"), magnitude));
-	magnitude->setText(QStringLiteral("0.0 dB"));
-	readouts->addStretch(1);
-	root->addLayout(readouts);
 	refreshReadouts();
 }
 

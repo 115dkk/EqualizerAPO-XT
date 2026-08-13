@@ -14,22 +14,22 @@
 <context>
     <name>AllPassCardEditor</name>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="179"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
         <source>Order</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="179"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
         <source>1st</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="179"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="165"/>
         <source>2nd</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="180"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="166"/>
         <source>A 1st-order section turns 180 degrees in total and passes 90 degrees at Fc. A 2nd-order section turns a full 360 and has a width.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -54,42 +54,42 @@
         <translation type="unfinished">Bande passante</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
         <source>Phase</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
         <source>Group delay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="176"/>
         <source>Graph</source>
         <translation type="unfinished">Graphique</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="191"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="177"/>
         <source>Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="214"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="200"/>
         <source>Magnitude</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="218"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="204"/>
         <source>0.0 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="221"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="207"/>
         <source>An all-pass does not change level at any frequency, so there is nothing to set here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="372"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="358"/>
         <source>Oct</source>
         <translation type="unfinished"></translation>
     </message>
@@ -867,18 +867,18 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>DelayCardEditor</name>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="49"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="48"/>
         <source>Time</source>
         <translation type="unfinished">Durée</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="50"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="49"/>
         <source>Samples</source>
         <translation type="unfinished">Échantillons</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="43"/>
-        <location filename="../widgets/cards/DelayCardEditor.cpp" line="108"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="42"/>
+        <location filename="../widgets/cards/DelayCardEditor.cpp" line="107"/>
         <source>samples</source>
         <translation type="unfinished"></translation>
     </message>
@@ -915,13 +915,13 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>DelayFilterGUIFactory</name>
     <message>
-        <location filename="../guis/DelayFilterGUIFactory.cpp" line="39"/>
+        <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="181"/>
         <source>Delay</source>
         <translation>Delay (Retard)</translation>
     </message>
     <message>
-        <location filename="../guis/DelayFilterGUIFactory.cpp" line="39"/>
+        <location filename="../guis/DelayFilterGUIFactory.cpp" line="38"/>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="183"/>
         <source>Phase &amp; Time</source>
         <translation type="unfinished"></translation>
@@ -1429,27 +1429,27 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="98"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="102"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="147"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="151"/>
         <source>Enable or comment out this command</source>
         <translation>Activer ou commenter cette commande</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="156"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="160"/>
         <source>Add filter above this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="163"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="167"/>
         <source>Remove filter</source>
         <translation>Supprimer le filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="171"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="179"/>
         <source>Edit raw command</source>
         <translation>Modifier la commande brute</translation>
     </message>
@@ -1457,11 +1457,6 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <location filename="../widgets/FilterCardRow.cpp" line="792"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="796"/>
-        <source>Raw</source>
-        <translation>Brut</translation>
     </message>
 </context>
 <context>
@@ -1912,7 +1907,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     </message>
     <message>
         <location filename="../widgets/cards/HilbertCardEditor.cpp" line="266"/>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="299"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="279"/>
         <source>Phase</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1922,37 +1917,37 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="277"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="290"/>
         <source>Phase-shifted channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="279"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="292"/>
         <source>Latency-aligned channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="300"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="280"/>
         <source>Latency</source>
         <translation type="unfinished">Latence</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="302"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="282"/>
         <source>FIR</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="303"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="283"/>
         <source>%1 taps</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="305"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="285"/>
         <source>Passband</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="354"/>
+        <location filename="../widgets/cards/HilbertCardEditor.cpp" line="353"/>
         <source>%1 ms · %2 samples</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1986,10 +1981,6 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <location filename="../widgets/cards/IncludeCardEditor.cpp" line="68"/>
         <source>Copy this file and its dependencies into the config directory</source>
         <translation>Copier ce fichier et ses dépendances dans le dossier de configuration</translation>
-    </message>
-    <message>
-        <source>Edit the path as text</source>
-        <translation type="vanished">Modifier le chemin en tant que texte</translation>
     </message>
     <message>
         <location filename="../widgets/cards/IncludeCardEditor.cpp" line="76"/>
@@ -3247,73 +3238,68 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>Nom du canal (un nom inconnu crée un canal virtuel) :</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="213"/>
-        <source>Select a readable impulse response file to edit the channel mapping.</source>
-        <translation>Sélectionnez un fichier de réponse impulsionnelle lisible pour modifier le mappage des canaux.</translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="250"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="241"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="365"/>
         <source>Select impulse response file</source>
         <translation>Sélectionner le fichier de réponse impulsionnelle</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="251"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="242"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
         <source>No file selected</source>
         <translation>Aucun fichier sélectionné</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="302"/>
         <source>Unsupported file format</source>
         <translation>Format de fichier non pris en charge</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="320"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="311"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="321"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="312"/>
         <source>%1 samples</source>
         <translation>%1 éch.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="322"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="313"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="323"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
         <source>%1 ch</source>
         <translation>%1 can.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="328"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="319"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>La fréquence d&apos;échantillonnage ne correspond pas au périphérique (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="346"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="337"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>Le mappage référence le canal %1, mais le fichier ne compte que %2 canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="358"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="349"/>
         <source>Not readable by the audio service</source>
         <translation>Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="364"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="374"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="365"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -4932,86 +4918,73 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
 <context>
     <name>VelvetCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="41"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="27"/>
         <source>A sparse, unit-energy velvet-noise FIR. Each processed channel gets an independent kernel; Dynamic mode renews all kernels with an equal-power crossfade.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="62"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="48"/>
         <source>Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="54"/>
         <source>Static</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="54"/>
         <source>Dynamic</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="78"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="64"/>
         <source>Amount</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="80"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="66"/>
         <source>Time spread</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="82"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="68"/>
         <source>Evolution</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="99"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="79"/>
         <source>Advanced</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="112"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="92"/>
         <source>Density</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="114"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="94"/>
         <source>Transition</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="97"/>
         <source>Decay</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="120"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="100"/>
         <source>Variation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="128"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="108"/>
         <source>Regenerate</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="130"/>
+        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="110"/>
         <source>Choose the next deterministic variation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/VelvetCardEditor.cpp" line="235"/>
-        <source>%1 taps/channel · max zero-lag kernel correlation %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>VelvetImpulsePreview</name>
-    <message>
-        <location filename="../widgets/cards/VelvetImpulsePreview.cpp" line="15"/>
-        <source>One deterministic channel kernel. Sparse impulses are normalized to unit energy; dynamic mode crossfades to a newly generated bank.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

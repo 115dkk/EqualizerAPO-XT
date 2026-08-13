@@ -28,7 +28,10 @@ SkinTokens studioTokens(bool dark)
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 8;
-	t.rowHeight = 40;
+	// 36, down from 40 (2026-08 density round): a long config only ever
+	// shows a handful of cards per screen, and the header floor was the
+	// binding height on every collapsed row.
+	t.rowHeight = 36;
 	t.channelGroupIndent = 18;
 	t.channelGroupStyle = SkinTokens::GradientBar;
 	t.badgeStyle = SkinTokens::ColorPill;
@@ -120,12 +123,13 @@ SkinTokens softTokens(bool dark)
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 14;
-	t.rowHeight = 48;
+	// 44, down from 48 (2026-08 density round): still the airiest header of
+	// the five, but no longer half again the compact skins' height.
+	t.rowHeight = 44;
 	t.channelGroupIndent = 20;
 	t.density = 2;
 	t.channelGroupStyle = SkinTokens::SoftShadow;
 	t.badgeStyle = SkinTokens::SoftPill;
-	t.showRawPreview = false;
 	// The accent and the semantic colours live on the pastel shelf
 	// themselves (the softPastelize recipe applied to the old saturated
 	// values), so every consumer - knob arcs, focus rings, toggles, ON
@@ -177,7 +181,6 @@ SkinTokens rackTokens(bool dark)
 	t.fontFamily = QStringLiteral("DM Sans");
 	t.monoFontFamily = QStringLiteral("DM Mono");
 	t.borderRadius = 3;
-	t.showRawPreview = false;
 	t.rowHeight = 36;
 	t.channelGroupIndent = 16;
 	t.channelGroupStyle = SkinTokens::DottedLine;
@@ -227,9 +230,6 @@ SkinTokens matrixTokens(bool dark)
 	t.channelGroupStyle = SkinTokens::GradientBar;
 	t.badgeStyle = SkinTokens::OutlineOnly;
 	t.cardRailWidth = 3;
-	// The shared raw-preview strip is replaced by this skin's own caption
-	// strip (MatrixRowCaption).
-	t.showRawPreview = false;
 	t.accent = dark ? QStringLiteral("#22D3EE") : QStringLiteral("#008EAA");
 	t.accent2 = dark ? QStringLiteral("#7CFFB2") : QStringLiteral("#0A8F57");
 	if (dark)
