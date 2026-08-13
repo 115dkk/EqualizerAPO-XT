@@ -25,6 +25,7 @@ public:
 	explicit MatrixReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
 	void addLeadingWidget(QWidget* widget) override;
+	void placeBusStrip(QWidget* strip) override;
 
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
@@ -41,6 +42,9 @@ private:
 	ElidedLabel* locationCell = nullptr;
 	QLabel* absCell = nullptr;
 	QLabel* formatCell = nullptr;
+	// The port strip's centre engraving; on a VST feed it also posts the
+	// loaded ABI ("EXTERNAL DEVICE · VST3").
+	QLabel* deviceLabel = nullptr;
 	QLabel* statusLine = nullptr;
 	QList<QLabel*> readoutCells;
 };

@@ -252,12 +252,17 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 		plateFont.setBold(true);
 		plateFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.5);
 		painter.setFont(plateFont);
+		// The brand carries the loaded ABI once the card posts it (r3
+		// judging: the plate is the one place the format should live, not a
+		// stamped tag crowding the MODULE caption). Until a module loads,
+		// the plate reads the plain family brand.
+		const QString brand = info.formatTag.isEmpty() ? QStringLiteral("VST") : info.formatTag;
 		// Engraved into the brass itself, so the passes are brass-tinted in
 		// both modes rather than following the panel's engraving direction.
 		painter.setPen(QColor(255, 240, 200, 160));
-		painter.drawText(plateRect.translated(1, 1), Qt::AlignCenter, QStringLiteral("VST"));
+		painter.drawText(plateRect.translated(1, 1), Qt::AlignCenter, brand);
 		painter.setPen(QColor(0x3A, 0x2A, 0x0C));
-		painter.drawText(plateRect, Qt::AlignCenter, QStringLiteral("VST"));
+		painter.drawText(plateRect, Qt::AlignCenter, brand);
 
 		painter.setPen(QPen(QColor(0x55, 0x40, 0x14), 0.8));
 		painter.setBrush(QColor(0xE9, 0xD3, 0x9A));

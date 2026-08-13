@@ -6,6 +6,8 @@
 
 #include <QFontMetricsF>
 #include <QPainter>
+#include <QPainterPath>
+#include <QPainterStateGuard>
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
@@ -275,4 +277,117 @@ void MinimalSkin::paintSegmentedControl(QPainter& painter, const SegmentedContro
 	painter.setPen(QPen(QColor(state.focused && state.enabled ? tokens.focusRing : tokens.border), 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRect(rect.adjusted(0, 0, -1, -1));
+}
+
+// The VST3 bus contract folded into the terminal line: a lowercase caption
+// ("in"/"out"), the value as bright ink wearing the X5 selector grammar - a
+// caret and a 1px underline that exists only under the cursor or focus,
+// accent only while open - and ASCII throughout. No cell, no fill; the line
+// is the instrument.
+void MinimalSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRectF rect(state.rect);
+	QFont roleFont(tokens.monoFontFamily);
+	roleFont.setPixelSize(10);
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(12);
+
+	QColor roleInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	QColor valueInk(state.enabled ? tokens.text : tokens.mutedText);
+
+	const QString role = state.roleToken.toLower();
+	painter.setFont(roleFont);
+	painter.setPen(roleInk);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(role);
+	painter.drawText(QRectF(rect.left() + 3.0, rect.top(), roleWidth, rect.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, role);
+
+	QString value = state.layoutText;
+	if (state.channelCount > 0)
+		value += QStringLiteral(":%1").arg(state.channelCount);
+	painter.setFont(valueFont);
+	painter.setPen(valueInk);
+	const qreal valueLeft = rect.left() + 3.0 + roleWidth + 5.0;
+	const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(value);
+	painter.drawText(QRectF(valueLeft, rect.top(), rect.width() - (valueLeft - rect.left()), rect.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, value);
+
+	// The caret the X5 caption wears; painted, so no font decides its shape.
+	const qreal caretLeft = valueLeft + valueWidth + 4.0;
+	const qreal caretHalf = 2.5;
+	const qreal caretMidY = rect.center().y() + 1.0;
+	QColor caretInk = state.menuOpen || state.focused ? QColor(tokens.accent) : roleInk;
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	QPainterPath caret;
+	caret.moveTo(caretLeft, caretMidY - caretHalf / 2.0);
+	caret.lineTo(caretLeft + caretHalf * 2.0, caretMidY - caretHalf / 2.0);
+	caret.lineTo(caretLeft + caretHalf, caretMidY + caretHalf);
+	caret.closeSubpath();
+	painter.fillPath(caret, caretInk);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+
+	// The 1px underline: absent at rest, hairline under the cursor, accent
+	// while focused or open (state as ink, not chrome).
+	if (state.enabled && (state.hovered || state.focused || state.menuOpen))
+	{
+		const QColor line = state.focused || state.menuOpen
+			? QColor(tokens.accent) : QColor(tokens.mutedText);
+		painter.setPen(QPen(line, 1));
+		const int underlineY = qRound(rect.bottom() - 3.0);
+		painter.drawLine(QPointF(valueLeft, underlineY), QPointF(valueLeft + valueWidth, underlineY));
+	}
+}
+
+// The joint is the terminal's ASCII "->", and the verdict is a printed tag
+// on the severity ink ladder ("ok" for an engaged contract - untranslated
+// like every terminal token). No lamps: state is ink on this instrument.
+void MinimalSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	QFont monoFont(tokens.monoFontFamily);
+	monoFont.setPixelSize(11);
+	painter.setFont(monoFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	painter.drawText(QRectF(state.jointRect), Qt::AlignCenter, QStringLiteral("->"));
+
+	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
+	if (state.verdictRect.isEmpty()
+		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+		return;
+
+	QColor ink(tokens.mutedText);
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success: ink = QColor(tokens.success); break;
+	case VstBusFrameState::Tone::Warning: ink = QColor(tokens.warning); break;
+	case VstBusFrameState::Tone::Critical: ink = QColor(tokens.danger); break;
+	case VstBusFrameState::Tone::Neutral: break;
+	}
+	if (!state.enabled)
+		ink = withAlpha(ink, 150);
+
+	QFont verdictFont(tokens.monoFontFamily);
+	verdictFont.setPixelSize(10);
+	painter.setFont(verdictFont);
+	painter.setPen(ink);
+	QString text;
+	if (pairVerdict)
+		text = state.verdictInputText + QStringLiteral("->") + state.verdictOutputText;
+	else if (hasText)
+		text = state.verdictText;
+	else if (state.tone == VstBusFrameState::Tone::Success)
+		text = QStringLiteral("ok");
+	else
+		// A wordless danger/warning verdict prints nothing here: the same
+		// line already carries the "!"-tagged status message, and repeating
+		// it one word earlier was the ink-register version of a second lamp.
+		return;
+	painter.drawText(QRectF(state.verdictRect), Qt::AlignLeft | Qt::AlignVCenter,
+		QFontMetricsF(verdictFont).elidedText(text, Qt::ElideRight, state.verdictRect.width()));
 }

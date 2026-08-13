@@ -133,6 +133,7 @@ public:
 	explicit RackReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
 	void addLeadingWidget(QWidget* widget) override;
+	void placeBusStrip(QWidget* strip) override;
 
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
@@ -143,7 +144,6 @@ private:
 	QHBoxLayout* actionLayout = nullptr;
 	RackStatusLamp* lamp = nullptr;
 	RackEngravedLabel* captionLabel = nullptr;
-	RackEngravedLabel* formatStamp = nullptr;
 	RackEngravedLabel* absStamp = nullptr;
 	RackEngravedLabel* serviceTag = nullptr;
 	RackEngravedLabel* nameLabel = nullptr;

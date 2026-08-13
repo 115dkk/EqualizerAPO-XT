@@ -29,8 +29,6 @@
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::VSTPlugin, VSTPluginFilterFactory, L"VSTPlugin")
 
 using std::shared_ptr;
-using std::unordered_map;
-using std::vector;
 using std::wstring;
 
 FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
@@ -39,13 +37,12 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 
 	if (command == L"VSTPlugin")
 	{
-		// The parameter parse lives in VSTPluginCommand::parse so the Editor
-		// GUI factory can reuse it. The load decision stays here: only when
-		// configPath is set is the binary loaded via library->initialize().
-		VSTPluginCommand cmd = VSTPluginCommand::parse(configPath, parameters);
-		shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
-		const wstring& chunkData = cmd.chunkData;
-		const unordered_map<wstring, float>& paramMap = cmd.paramMap;
+		const VSTPluginCommand pluginCommand = VSTPluginCommand::parse(configPath, parameters);
+		if (!pluginCommand.valid)
+			return reportParseError(command, pluginCommand.error);
+
+		shared_ptr<VSTPluginLibrary> library = pluginCommand.libraryPath.empty()
+			? nullptr : VSTPluginLibrary::getInstance(pluginCommand.libraryPath);
 
 		if (library == nullptr)
 			return reportParseError(command, L"expected Library followed by the path of a plugin");
@@ -82,7 +79,18 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 		}
 
 		if (create)
-			filter = makeFilter<VSTPluginFilter>(library, chunkData, paramMap, cmd.stereoInput);
+		{
+			// At runtime initialize() has inspected the loaded module's actual ABI.
+			// Explicit layouts affect VST3 only; a loaded VST2 module quietly takes
+			// the existing VST2 path. Parser-only callers retain the contract so a
+			// future Editor can inspect it without loading the binary here.
+			if (pluginCommand.hasBusContract && (configPath.empty() || library->isVST3()))
+				filter = makeFilter<VSTPluginFilter>(library, pluginCommand.chunkData,
+					pluginCommand.paramMap, pluginCommand.busContract);
+			else
+				filter = makeFilter<VSTPluginFilter>(library, pluginCommand.chunkData,
+					pluginCommand.paramMap, pluginCommand.stereoInput);
+		}
 	}
 
 	if (filter == nullptr)

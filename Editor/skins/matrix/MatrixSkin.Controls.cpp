@@ -362,3 +362,145 @@ void MatrixSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(frame.adjusted(0, 0, -1, -1));
 	}
+
+// The VST3 bus contract as two coordinate cells on the feed line: 1px
+// rectangles, no curvature, monochrome at rest - the role designation in
+// muted mono, the layout as the cell's bright value, the width as a dim
+// ":n" suffix. Hover is the crossing prelight (accent border + faint
+// fill); a disabled cell is a cancelled departure, dashed on the board.
+void MatrixSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+	// At rest the cell wears the pressable-cell grammar the board already
+	// taught (the footer caption keys, gate #176: a bare outline does not
+	// read as a button): 1px border rule plus the faint fill. Hover and an
+	// open menu are the accent prelight; a disabled cell is a cancelled
+	// departure, dashed and unfilled.
+	if (state.enabled)
+		painter.fillRect(cell, state.hovered || state.menuOpen
+			? withAlpha(QColor(tokens.accent), 24) : withAlpha(QColor(tokens.border), 18));
+	QPen borderPen(QColor(tokens.border), 1);
+	if (!state.enabled)
+		borderPen.setStyle(Qt::DashLine);
+	else if (state.focused || state.menuOpen || state.hovered)
+		borderPen.setColor(withAlpha(QColor(tokens.accent), state.hovered && !state.focused && !state.menuOpen ? 200 : 255));
+	painter.setPen(borderPen);
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(cell);
+
+	QFont roleFont(tokens.monoFontFamily);
+	roleFont.setPixelSize(8);
+	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
+	painter.setFont(roleFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	QRectF textRect = cell.adjusted(6.0, 0, -6.0, 0);
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
+
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(11);
+	painter.setFont(valueFont);
+	painter.setPen(state.enabled ? QColor(tokens.text) : QColor(tokens.mutedText));
+	QRectF valueRect(textRect);
+	valueRect.setLeft(textRect.left() + roleWidth + 6.0);
+	painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, state.layoutText);
+
+	if (state.channelCount > 0)
+	{
+		const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.layoutText);
+		QFont countFont(tokens.monoFontFamily);
+		countFont.setPixelSize(9);
+		painter.setFont(countFont);
+		painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
+		QRectF countRect(valueRect);
+		countRect.setLeft(valueRect.left() + valueWidth);
+		painter.drawText(countRect, Qt::AlignLeft | Qt::AlignVCenter,
+			QStringLiteral(":%1").arg(state.channelCount));
+	}
+
+	// The dropdown caret, stacked from 1px rules so it stays crisp without
+	// antialiasing (no font glyph decides its shape). Right-aligned in the
+	// cell's padding, muted like the role designation.
+	const int caretRight = qRound(cell.right()) - 5;
+	const int caretMidY = qRound(cell.center().y());
+	painter.setPen(Qt::NoPen);
+	const QColor caretInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 130);
+	painter.fillRect(QRect(caretRight - 4, caretMidY - 1, 5, 1), caretInk);
+	painter.fillRect(QRect(caretRight - 3, caretMidY, 3, 1), caretInk);
+	painter.fillRect(QRect(caretRight - 2, caretMidY + 1, 1, 1), caretInk);
+}
+
+// The joint is the board's ASCII ">" and the verdict is a status cell: a
+// boxed strip with the abstract cell LED (a lit square, no bezel, no dome)
+// and an uppercase mono remark. Colour is rationed to state, so only the
+// LED wears the tone; the words stay muted ink.
+void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	QFont monoFont(tokens.monoFontFamily);
+	monoFont.setPixelSize(11);
+	painter.setFont(monoFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	painter.drawText(QRectF(state.jointRect), Qt::AlignCenter, QStringLiteral(">"));
+
+	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
+	if (state.verdictRect.isEmpty()
+		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+		return;
+
+	QColor led(tokens.mutedText);
+	bool lit = true;
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success: led = QColor(tokens.success); break;
+	case VstBusFrameState::Tone::Warning: led = QColor(tokens.warning); break;
+	case VstBusFrameState::Tone::Critical: led = QColor(tokens.danger); break;
+	case VstBusFrameState::Tone::Neutral: lit = false; break;
+	}
+	if (!state.enabled)
+		lit = false;
+
+	// The verdict beacon: a control-room segment stack - three crisp bars
+	// with 1px air, lit solid in the rationed tone, dim when unlit - and no
+	// cell around it (r3 judging: a box around a lamp is furniture, and a
+	// lone 4px dot looked cheap on the board). The stack borrows the VU
+	// segment shape, so it reads as an indicator bank, not a fleck.
+	const int segWidth = 7;
+	const int segHeight = 2;
+	const int segGap = 1;
+	const int segCount = 3;
+	const int beaconHeight = segCount * segHeight + (segCount - 1) * segGap;
+	const int beaconLeft = state.verdictRect.left() + 1;
+	const int beaconTop = state.verdictRect.center().y() - beaconHeight / 2;
+	for (int i = 0; i < segCount; i++)
+	{
+		const QRect segment(beaconLeft, beaconTop + i * (segHeight + segGap), segWidth, segHeight);
+		painter.fillRect(segment, lit ? led : withAlpha(QColor(tokens.mutedText), 70));
+	}
+
+	// The remark speaks only for a negotiated pair. Word verdicts stay
+	// beacon-only: the port strip's device engraving already posts the ABI
+	// ("EXTERNAL DEVICE · VST2"), so a VST2 remark here restated the board
+	// one cell over (maintainer judgement, r3).
+	if (!pairVerdict)
+		return;
+
+	QFont remarkFont(tokens.monoFontFamily);
+	remarkFont.setPixelSize(10);
+	painter.setFont(remarkFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	QRectF textRect(state.verdictRect);
+	textRect.setLeft(beaconLeft + segWidth + 6.0);
+	const QString text = state.verdictInputText + QStringLiteral(">") + state.verdictOutputText;
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
+		QFontMetricsF(remarkFont).elidedText(text, Qt::ElideRight, textRect.width()));
+}

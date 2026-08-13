@@ -197,17 +197,26 @@ const std::string& VSTPluginLibrary::getVST3SubCategories() const
 
 bool VSTPluginLibrary::loadFunctions()
 {
-	if (vst3)
+	// Detect the format from the loaded module, not from its file extension.
+	// A raw VST3 module may be named .dll, and a file named .vst3 is not proof
+	// that it implements the VST3 factory ABI. Prefer VST3 when a module happens
+	// to expose both entry points.
+	GetPluginFactory = (getPluginFactoryFunc)GetProcAddress(module.get(), "GetPluginFactory");
+	VSTPluginMain = (vstPluginMain)GetProcAddress(module.get(), "VSTPluginMain");
+	if (GetPluginFactory != NULL)
 	{
+		vst3 = true;
 		// InitDll/ExitDll are optional in the module ABI; only
 		// GetPluginFactory is mandatory.
 		InitDll = (vst3ModuleEntryFunc)GetProcAddress(module.get(), "InitDll");
 		ExitDll = (vst3ModuleEntryFunc)GetProcAddress(module.get(), "ExitDll");
-		GetPluginFactory = (getPluginFactoryFunc)GetProcAddress(module.get(), "GetPluginFactory");
-		return GetPluginFactory != NULL;
+		VSTPluginMain = nullptr;
+		return true;
 	}
 
-	VSTPluginMain = (vstPluginMain)GetProcAddress(module.get(), "VSTPluginMain");
+	vst3 = false;
+	InitDll = nullptr;
+	ExitDll = nullptr;
 	return VSTPluginMain != NULL;
 }
 
@@ -300,8 +309,9 @@ VSTPluginLibrary::VSTPluginLibrary(const wstring& libPath)
 {
 	wchar_t extension[_MAX_EXT];
 	_wsplitpath_s(libPath.c_str(), NULL, 0, NULL, 0, NULL, 0, extension, _MAX_EXT);
-	vst3 = _wcsicmp(extension, L".vst3") == 0;
-	if (vst3)
+	vst3PathHint = _wcsicmp(extension, L".vst3") == 0;
+	vst3 = vst3PathHint;
+	if (vst3PathHint)
 		loadPath = resolveVST3ModulePath(libPath);
 }
 

@@ -25,6 +25,7 @@ public:
 	explicit StudioReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
 	void addLeadingWidget(QWidget* widget) override;
+	void placeBusStrip(QWidget* strip) override;
 
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
@@ -33,6 +34,8 @@ protected:
 private:
 	QHBoxLayout* identityLayout = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
+	QHBoxLayout* windowLayout = nullptr;
+	QWidget* busStrip = nullptr;
 	ElidedLabel* nameLabel = nullptr;
 	QLabel* formatChip = nullptr;
 	QLabel* absChip = nullptr;

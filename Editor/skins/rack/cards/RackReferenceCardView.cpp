@@ -416,13 +416,10 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 	captionLabel->setText(captionForKind(kind));
 	captionLayout->addWidget(captionLabel, 0, Qt::AlignVCenter);
 
-	formatStamp = new RackEngravedLabel(captionRow);
-	formatStamp->setPixelSize(8);
-	formatStamp->setLetterSpacing(1.0);
-	formatStamp->setInk(RackEngravedLabel::Ink::Muted);
-	formatStamp->setStamped(true);
-	formatStamp->setVisible(false);
-	captionLayout->addWidget(formatStamp, 0, Qt::AlignVCenter);
+	// No format stamp beside the caption: on a VST unit the loaded ABI is
+	// engraved into the brass brand nameplate at the header's right edge
+	// (RackSkin::paintCardChrome reads the row's posted format), and a
+	// second wireframe tag crowding MODULE was judged cramped (r3).
 
 	// The absolute-path hazard as a stamped wireframe tag in warning ink
 	// (untranslated hardware marking).
@@ -491,6 +488,15 @@ void RackReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* 
 	actionLayout->addWidget(button, 0, Qt::AlignVCenter);
 }
 
+void RackReferenceCardView::placeBusStrip(QWidget* strip)
+{
+	// Where hardware mounts its meters: between the engraved label strip and
+	// the machine buttons, the same seat the LCD readout takes on IR units.
+	// The strip paints its own recessed sub-panel.
+	strip->setParent(contentWidget());
+	rootLayout->insertWidget(rootLayout->indexOf(lcdWindow), strip, 0, Qt::AlignVCenter);
+}
+
 void RackReferenceCardView::addLeadingWidget(QWidget* widget)
 {
 	widget->setParent(contentWidget());
@@ -510,8 +516,6 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 	nameLabel->setHotTrack(state.nameClickable && !state.missing);
 	nameLabel->setToolTip(state.fullPath);
 
-	formatStamp->setText(state.formatBadge);
-	formatStamp->setVisible(!state.formatBadge.isEmpty());
 	absStamp->setVisible(state.absolutePath && !state.missing);
 
 	// The service condition: a broken reference engraves NOT FOUND; a

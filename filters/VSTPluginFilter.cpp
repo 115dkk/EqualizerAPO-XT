@@ -64,6 +64,13 @@ VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std:
 {
 }
 
+VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData,
+	const std::unordered_map<std::wstring, float>& paramMap, VST3BusContract busContract)
+	: library(library), libPath(library->getLibPath()), chunkData(chunkData), paramMap(paramMap),
+	busContract(busContract)
+{
+}
+
 VSTPluginFilter::~VSTPluginFilter()
 {
 	cleanup();
@@ -116,11 +123,22 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// subcategory; it is never inferred from accepted layouts alone, because
 	// for anything but an upmixer a narrowed input bus would discard device
 	// channels.
-	const bool upmixerLayout = channelCount > 2
+	const bool upmixerLayout = !busContract && channelCount > 2
 		&& (forceStereoInput || isUpmixerSubCategory(library->getVST3SubCategories()));
-	const auto negotiateInstance = [upmixerLayout](VSTPluginInstance* effect, unsigned targetChannelCount,
+	const auto negotiateInstance = [this, upmixerLayout](VSTPluginInstance* effect, unsigned targetChannelCount,
 		const std::vector<std::wstring>& outputChannelNames)
 	{
+		if (busContract)
+		{
+			const std::vector<std::wstring> inputNames = busContract->input == VST3BusLayout::Auto
+				? outputChannelNames : vst3BusLayoutChannelNames(busContract->input);
+			const std::vector<std::wstring> contractOutputNames = busContract->output == VST3BusLayout::Auto
+				? outputChannelNames : vst3BusLayoutChannelNames(busContract->output);
+			effect->setBusChannelNameHints(inputNames, contractOutputNames);
+			return effect->negotiateBusLayouts(busContract->input, busContract->output,
+				static_cast<int>(targetChannelCount));
+		}
+
 		effect->setChannelNameHints(outputChannelNames);
 		effect->negotiateChannelCount(static_cast<int>(targetChannelCount));
 		if (upmixerLayout && targetChannelCount > 2)
@@ -129,9 +147,16 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 			effect->setBusChannelNameHints(stereoInputNames, outputChannelNames);
 			effect->negotiateBusChannelCounts(2, static_cast<int>(targetChannelCount));
 		}
+		return true;
 	};
-	if (channelCount <= kMaxPluginChannelCount)
-		negotiateInstance(firstEffect.get(), static_cast<unsigned>(channelCount), channelNames);
+	if (channelCount <= kMaxPluginChannelCount
+		&& !negotiateInstance(firstEffect.get(), static_cast<unsigned>(channelCount), channelNames))
+	{
+		LogF(L"The VST3 plugin %s does not support the requested %s -> %s bus contract; passing audio through.",
+			libPath.c_str(), vst3BusLayoutName(busContract->input), vst3BusLayoutName(busContract->output));
+		skipProcessing = true;
+		return channelNames;
+	}
 
 	// Metadata is plugin-controlled. Snapshot it once, validate the signed
 	// values, and use only the cached values for every allocation and processing
@@ -160,7 +185,9 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	}
 
 	// round up
-	const size_t requiredEffectCount = channelCount / effectChannelCount + (channelCount % effectChannelCount != 0 ? 1 : 0);
+	const bool oneContractInstance = busContract && busContract->hasExplicitLayout();
+	const size_t requiredEffectCount = oneContractInstance ? 1
+		: channelCount / effectChannelCount + (channelCount % effectChannelCount != 0 ? 1 : 0);
 	size_t paddedChannelCount = 0;
 	if (!checkedMultiply(requiredEffectCount, effectChannelCount, paddedChannelCount))
 	{
@@ -183,8 +210,14 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	// non-semantic and therefore retains identity order.
 	if (requiredEffectCount > 1)
 	{
-		negotiateInstance(firstEffect.get(), effectChannelCount,
-			channelNameSlice(0, effectChannelCount));
+		if (!negotiateInstance(firstEffect.get(), effectChannelCount,
+			channelNameSlice(0, effectChannelCount)))
+		{
+			LogF(L"The VST3 plugin %s rejected its repeated automatic bus layout; passing audio through.",
+				libPath.c_str());
+			skipProcessing = true;
+			return channelNames;
+		}
 		if (firstEffect->numInputs() != reportedInputCount
 			|| firstEffect->numOutputs() != reportedOutputCount
 			|| firstEffect->getInitialDelay() != reportedLatency)
@@ -219,8 +252,14 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 		// Every additional instance is brought to the same negotiated layout
 		// as the first one before the consistency check below.
-		negotiateInstance(effects[i].get(), effectChannelCount,
-			channelNameSlice(i * effectChannelCount, effectChannelCount));
+		if (!negotiateInstance(effects[i].get(), effectChannelCount,
+			channelNameSlice(i * effectChannelCount, effectChannelCount)))
+		{
+			LogF(L"The VST3 plugin %s rejected an automatic bus layout on instance %Iu; passing audio through.",
+				libPath.c_str(), i);
+			skipProcessing = true;
+			return channelNames;
+		}
 
 		const int instanceInputCount = effects[i]->numInputs();
 		const int instanceOutputCount = effects[i]->numOutputs();
@@ -240,14 +279,16 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		return channelNames;
 
 	// 2 times for input and output
-	if (paddedChannelCount < channelCount
-		|| paddedChannelCount - channelCount > (std::numeric_limits<size_t>::max)() / 2)
+	const size_t paddingChannelCount = paddedChannelCount > channelCount
+		? paddedChannelCount - channelCount : 0;
+	if ((!oneContractInstance && paddedChannelCount < channelCount)
+		|| paddingChannelCount > (std::numeric_limits<size_t>::max)() / 2)
 	{
 		LogF(L"The VST plugin %s reported metadata that overflows its padding count; passing audio through.", libPath.c_str());
 		skipProcessing = true;
 		return channelNames;
 	}
-	const size_t emptyChannelCount = 2 * (paddedChannelCount - channelCount);
+	const size_t emptyChannelCount = 2 * paddingChannelCount;
 	emptyChannels.reserve(emptyChannelCount);
 	for (size_t i = 0; i < emptyChannelCount; i++)
 	{
@@ -467,6 +508,11 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			channelOffset += effectChannelCount;
 		}
 
+		// An explicit downmix or otherwise narrower contract owns one main bus,
+		// never repeated instances. Device channels outside that bus stay intact.
+		for (unsigned channel = channelOffset; channel < channelCount; channel++)
+			std::copy_n(input[channel], frameCount, output[channel]);
+
 		// Apply delay compensation if needed
 		if (!delayBuffers.empty() && delayBufferLength > 0)
 		{
@@ -550,6 +596,11 @@ const std::unordered_map<std::wstring, float>& VSTPluginFilter::getParamMap() co
 bool VSTPluginFilter::getStereoInput() const
 {
 	return forceStereoInput;
+}
+
+const std::optional<VST3BusContract>& VSTPluginFilter::getBusContract() const
+{
+	return busContract;
 }
 
 void VSTPluginFilter::cleanup()

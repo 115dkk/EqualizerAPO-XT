@@ -287,3 +287,177 @@ void StudioSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 			cellMetrics.elidedText(state.labels.at(i), Qt::ElideRight, qMax(8.0, cell.width() - 6.0)));
 	}
 }
+
+// The VST3 bus contract as two quiet glass strips inside the reference
+// card's data window: the caption sits outside on the pane, the value lives
+// behind glass (the glass formula: alpha single-colour fill + top-edge
+// reflection + 8px). Emphasis is wattage, never a new colour - rest < hover
+// < open - and disabled is lights-out: the reflection and the caret's
+// accent go dark with the ink.
+void StudioSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const bool dark = skinIsDark(tokens);
+	const QColor glassInk = dark ? QColor(Qt::white) : QColor(Qt::black);
+	const QRectF rect(state.rect);
+
+	// The caption on the pane, right-aligned against the glass.
+	QFont roleFont(tokens.fontFamily);
+	roleFont.setPixelSize(9);
+	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
+	const QString role = state.roleText.toUpper();
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(role);
+	painter.setFont(roleFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	painter.drawText(QRectF(rect.left(), rect.top(), roleWidth, rect.height()),
+		Qt::AlignRight | Qt::AlignVCenter, role);
+
+	const QRectF cell = QRectF(rect.left() + roleWidth + 6.0, rect.top(),
+		rect.width() - roleWidth - 6.0, rect.height()).adjusted(0.5, 0.5, -0.5, -0.5);
+	const qreal radius = 8.0;
+
+	const qreal fill = !state.enabled ? 0.02
+		: (state.pressed || state.menuOpen ? 0.085 : (state.hovered ? 0.06 : 0.035));
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(withAlphaF(glassInk, fill));
+	painter.drawRoundedRect(cell, radius, radius);
+
+	QColor border = withAlphaF(glassInk, state.enabled ? 0.09 : 0.05);
+	if (state.enabled && (state.focused || state.menuOpen))
+		border = QColor(tokens.accent);
+	else if (state.enabled && state.hovered)
+		border = withAlpha(QColor(tokens.accent), 140);
+	painter.setPen(QPen(border, 1));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRoundedRect(cell, radius, radius);
+
+	if (state.enabled)
+	{
+		// The top-edge reflection, clipped to the glass.
+		QPainterPath clip;
+		clip.addRoundedRect(cell.adjusted(1.0, 1.0, -1.0, -1.0), radius - 1.0, radius - 1.0);
+		painter.setClipPath(clip);
+		painter.setPen(QPen(withAlphaF(glassInk, 0.07), 1));
+		painter.drawLine(QPointF(cell.left() + radius, cell.top() + 1.0),
+			QPointF(cell.right() - radius, cell.top() + 1.0));
+		painter.setClipping(false);
+	}
+
+	// Value in the window's mono data ink; the fixed width whispers in
+	// accent behind it, and the caret keeps the accent's low wattage.
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(12);
+	painter.setFont(valueFont);
+	QColor valueInk(state.hovered || state.menuOpen ? tokens.text : tokens.mutedText);
+	if (!state.enabled)
+		valueInk = withAlpha(QColor(tokens.mutedText), 150);
+	painter.setPen(valueInk);
+	QRectF textRect = cell.adjusted(6.0, 0, -6.0, 0);
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.layoutText);
+
+	const qreal caretWidth = 6.0;
+	QColor caretInk = withAlpha(QColor(tokens.accent), state.enabled ? 130 : 0);
+	if (!state.enabled)
+		caretInk = withAlpha(QColor(tokens.mutedText), 110);
+	if (state.channelCount > 0)
+	{
+		painter.setPen(withAlpha(QColor(tokens.accent), state.enabled ? 150 : 90));
+		const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.layoutText);
+		painter.drawText(QRectF(textRect.left() + valueWidth + 5.0, textRect.top(),
+			textRect.width() - valueWidth - 5.0, textRect.height()),
+			Qt::AlignLeft | Qt::AlignVCenter, QString::number(state.channelCount));
+	}
+	const QPointF caretCenter(textRect.right() - caretWidth / 2.0, cell.center().y());
+	QPainterPath caret;
+	caret.moveTo(caretCenter + QPointF(-caretWidth / 2.0, -caretWidth / 4.0));
+	caret.lineTo(caretCenter + QPointF(caretWidth / 2.0, -caretWidth / 4.0));
+	caret.lineTo(caretCenter + QPointF(0.0, caretWidth / 2.0));
+	caret.closeSubpath();
+	painter.fillPath(caret, caretInk);
+}
+
+// The joint and verdict on the pane: a thin light trace carries the signal
+// from IN to OUT, and the verdict is a lamp point whose glow is faked with
+// stroke rings (no effects), followed by quiet mono data ink.
+void StudioSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	QColor trace(tokens.mutedText);
+	trace = withAlpha(trace, state.enabled ? 170 : 100);
+	const qreal midY = state.jointRect.center().y() + 0.5;
+	const QPointF tail(state.jointRect.left() + 3.0, midY);
+	const QPointF head(state.jointRect.right() - 3.0, midY);
+	painter.setPen(QPen(trace, 1.1, Qt::SolidLine, Qt::RoundCap));
+	painter.drawLine(tail, head);
+	painter.drawLine(head, head + QPointF(-3.5, -3.5));
+	painter.drawLine(head, head + QPointF(-3.5, 3.5));
+
+	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
+	if (state.verdictRect.isEmpty()
+		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+		return;
+
+	QColor lamp(tokens.mutedText);
+	bool lit = true;
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success: lamp = QColor(tokens.success); break;
+	case VstBusFrameState::Tone::Warning: lamp = QColor(tokens.warning); break;
+	case VstBusFrameState::Tone::Critical: lamp = QColor(tokens.danger); break;
+	case VstBusFrameState::Tone::Neutral: lit = false; break;
+	}
+	if (!state.enabled)
+		lit = false;
+
+	const QPointF lampCenter(state.verdictRect.left() + 3.0, state.verdictRect.center().y() + 0.5);
+	if (lit)
+	{
+		// Faked glow: two stroke rings losing wattage outward.
+		painter.setPen(QPen(withAlpha(lamp, 60), 3.0));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawEllipse(lampCenter, 3.6, 3.6);
+	}
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(lit ? lamp : withAlpha(QColor(tokens.mutedText), 110));
+	painter.drawEllipse(lampCenter, 2.4, 2.4);
+
+	if (!hasText)
+		return;
+
+	QFont verdictFont(tokens.monoFontFamily);
+	verdictFont.setPixelSize(10);
+	painter.setFont(verdictFont);
+	const QColor ink = state.tone == VstBusFrameState::Tone::Critical
+		? lamp : withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	painter.setPen(ink);
+	QRectF textRect(state.verdictRect);
+	textRect.setLeft(lampCenter.x() + 8.0);
+	if (pairVerdict)
+	{
+		const QFontMetricsF metrics(verdictFont);
+		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.verdictInputText);
+		const qreal markLeft = textRect.left() + metrics.horizontalAdvance(state.verdictInputText) + 3.0;
+		const qreal markY = textRect.center().y() + 0.5;
+		painter.setPen(QPen(ink, 1.0, Qt::SolidLine, Qt::RoundCap));
+		painter.drawLine(QPointF(markLeft, markY), QPointF(markLeft + 8.0, markY));
+		painter.drawLine(QPointF(markLeft + 8.0, markY), QPointF(markLeft + 5.5, markY - 2.5));
+		painter.drawLine(QPointF(markLeft + 8.0, markY), QPointF(markLeft + 5.5, markY + 2.5));
+		painter.setPen(ink);
+		QRectF outRect(textRect);
+		outRect.setLeft(markLeft + 12.0);
+		painter.drawText(outRect, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetricsF(verdictFont).elidedText(state.verdictOutputText, Qt::ElideRight, outRect.width()));
+	}
+	else
+	{
+		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetricsF(verdictFont).elidedText(state.verdictText, Qt::ElideRight, textRect.width()));
+	}
+}

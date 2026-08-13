@@ -88,6 +88,13 @@ void testNamedParams()
 	harness.expectEqual(cmd.paramMap.size(), (size_t)2, "named-params: two params");
 	harness.expectEqual(paramValue(cmd.paramMap, L"Gain", "named-params Gain"), 0.5f, "named-params: Gain value");
 	harness.expectEqual(paramValue(cmd.paramMap, L"Mix", "named-params Mix"), 0.25f, "named-params: Mix value");
+
+	VSTPluginCommand outputParameter = VSTPluginCommand::parse(
+		L"", L"Library C:\\plugins\\reverb.dll Output 0.5");
+	harness.expectTrue(outputParameter.valid && !outputParameter.hasBusContract,
+		"legacy numeric Output parameter is not mistaken for a bus contract");
+	harness.expectEqual(paramValue(outputParameter.paramMap, L"Output", "named-params Output"),
+		0.5f, "named-params: reserved-looking Output value");
 }
 
 void testQuotedName()
@@ -195,6 +202,86 @@ void testStereoInput()
 	harness.expectFalse(off.stereoInput, "stereo-input: 0 reads as off");
 	harness.expectTrue(off.serialize() == L" Gain 0.5", "stereo-input: off flag is not emitted");
 }
+
+void expectInvalidBusContract(const wstring& parameters, const wchar_t* expectedErrorPart)
+{
+	const VSTPluginCommand cmd = VSTPluginCommand::parse(L"", parameters);
+	harness.expectFalse(cmd.valid, "VSTPlugin invalid bus contract is rejected");
+	harness.expectTrue(cmd.error.find(expectedErrorPart) != wstring::npos,
+		"VSTPlugin bus-contract error identifies the invalid field");
+}
+
+void testVSTPluginBusContract()
+{
+	const wstring source = L"Library \"C:\\Program Files\\VST3\\Height Expander.vst3\" "
+		L"Input Stereo Output 7.1.4 ChunkData \"QUJDRA==\"";
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", source);
+	harness.expectTrue(cmd.valid, "VSTPlugin explicit bus contract parses");
+	harness.expectTrue(cmd.libraryPath == L"C:\\Program Files\\VST3\\Height Expander.vst3",
+		"VSTPlugin quoted library path is preserved");
+	harness.expectTrue(cmd.hasBusContract, "VSTPlugin retains its explicit bus contract");
+	harness.expectTrue(cmd.hasBusContract && cmd.busContract.input == VST3BusLayout::Stereo,
+		"VSTPlugin input layout parses");
+	harness.expectTrue(cmd.hasBusContract && cmd.busContract.output == VST3BusLayout::Surround714,
+		"VSTPlugin output layout parses");
+	harness.expectTrue(cmd.chunkData == L"QUJDRA==", "VSTPlugin chunk data parses");
+
+	const wstring serializedBody = cmd.serialize();
+	VSTPluginCommand reparsed = VSTPluginCommand::parse(L"",
+		L"Library \"C:\\Program Files\\VST3\\Height Expander.vst3\"" + serializedBody);
+	harness.expectTrue(reparsed.valid && reparsed.serialize() == serializedBody,
+		"VSTPlugin bus-contract parse/serialize round trip is stable");
+
+	VSTPluginCommand autoCommand = VSTPluginCommand::parse(L"",
+		L"Library C:\\plugins\\auto.vst3 Input Auto Output Auto Gain 0.5");
+	harness.expectTrue(autoCommand.valid, "VSTPlugin Auto/Auto with parameters parses");
+	harness.expectTrue(autoCommand.hasBusContract
+		&& autoCommand.busContract.input == VST3BusLayout::Auto
+		&& autoCommand.busContract.output == VST3BusLayout::Auto,
+		"VSTPlugin Auto layouts are retained");
+	harness.expectEqual(paramValue(autoCommand.paramMap, L"Gain", "VSTPlugin bus Gain"), 0.5f,
+		"VSTPlugin bus-contract parameter value is retained");
+
+	const struct
+	{
+		const wchar_t* text = nullptr;
+		VST3BusLayout layout = VST3BusLayout::Auto;
+		int channels = 0;
+	} layouts[] = {
+		{L"Mono", VST3BusLayout::Mono, 1},
+		{L"Stereo", VST3BusLayout::Stereo, 2},
+		{L"4.0", VST3BusLayout::Surround40, 4},
+		{L"4.1", VST3BusLayout::Surround41, 5},
+		{L"5.0", VST3BusLayout::Surround50, 5},
+		{L"5.1", VST3BusLayout::Surround51, 6},
+		{L"6.1", VST3BusLayout::Surround61, 7},
+		{L"7.1", VST3BusLayout::Surround71, 8},
+		{L"7.1.2", VST3BusLayout::Surround712, 10},
+		{L"7.1.4", VST3BusLayout::Surround714, 12}
+	};
+	for (const auto& expected : layouts)
+	{
+		VST3BusLayout parsed = VST3BusLayout::Auto;
+		harness.expectTrue(parseVST3BusLayout(expected.text, parsed) && parsed == expected.layout,
+			"VSTPlugin supported VST3 layout parses");
+		harness.expectEqual(vst3BusLayoutChannelCount(parsed), expected.channels,
+			"VSTPlugin supported VST3 layout channel count");
+	}
+
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Output 7.1", L"Input");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo", L"Output");
+	expectInvalidBusContract(L"Input Stereo Output 7.1", L"Library");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input 2 Output 8", L"layout");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Input Mono Output 7.1", L"duplicate Input");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Output 5.1", L"duplicate Output");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Gain 0.5 Gain 0.7", L"duplicate parameter");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 ChunkData QUJD Gain 0.5", L"cannot be combined");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Gain nan", L"numeric");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output 7.1 Gain inf", L"numeric");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input", L"key/value pairs");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 StereoInput 1 Input Stereo Output 7.1",
+		L"cannot be combined");
+}
 }
 
 void runVSTPluginCommandTests()
@@ -208,5 +295,6 @@ void runVSTPluginCommandTests()
 	testNonNumericValueBranch();
 	testSerializeRoundTrip();
 	testStereoInput();
+	testVSTPluginBusContract();
 	harness.report();
 }

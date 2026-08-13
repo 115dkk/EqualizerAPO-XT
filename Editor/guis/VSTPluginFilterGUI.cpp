@@ -48,8 +48,9 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap,
-	bool stereoInput)
-	: ui(std::make_unique<Ui::VSTPluginFilterGUI>()), library(library), chunkData(chunkData), paramMap(paramMap), stereoInput(stereoInput)
+	bool stereoInput, const std::optional<VST3BusContract>& busContract)
+	: ui(std::make_unique<Ui::VSTPluginFilterGUI>()), library(library), chunkData(chunkData), paramMap(paramMap),
+	stereoInput(stereoInput), busContract(busContract)
 {
 	ui->setupUi(this);
 	ui->frame->setVisible(false);
@@ -110,12 +111,17 @@ void VSTPluginFilterGUI::store(QString& command, QString& parameters)
 	parameters = "Library " + relativePath;
 
 	// The Library token stays here because its relative/absolute resolution needs
-	// Qt's QDir. The ChunkData-or-param body is produced by the shared serializer
-	// (the same one the round-trip tests exercise).
+	// Qt's QDir. The opaque bus contract and ChunkData-or-param body are produced
+	// by the shared serializer (the same one the round-trip tests exercise).
 	VSTPluginCommand cmd;
 	cmd.chunkData = chunkData;
 	cmd.paramMap = paramMap;
 	cmd.stereoInput = stereoInput;
+	if (busContract)
+	{
+		cmd.busContract = *busContract;
+		cmd.hasBusContract = true;
+	}
 	parameters += QString::fromStdWString(cmd.serialize());
 }
 

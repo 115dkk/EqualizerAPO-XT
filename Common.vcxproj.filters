@@ -228,6 +228,9 @@
     <ClInclude Include="vst\VSTPluginInstance.h">
       <Filter>text</Filter>
     </ClInclude>
+    <ClInclude Include="vst\VST3BusLayout.h">
+      <Filter>vst</Filter>
+    </ClInclude>
     <ClInclude Include="vst\VST3HostObjects.h">
       <Filter>vst</Filter>
     </ClInclude>

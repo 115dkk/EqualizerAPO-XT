@@ -20,6 +20,7 @@
 #pragma once
 
 #include <vector>
+#include <optional>
 
 #include "engine/IFilter.h"
 #include "runtime/memory/AlignedMemory.h"
@@ -32,6 +33,8 @@ class VSTPluginFilter : public IFilter
 public:
 	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap,
 		bool stereoInput = false);
+	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData,
+		const std::unordered_map<std::wstring, float>& paramMap, VST3BusContract busContract);
 	~VSTPluginFilter();
 
 	bool getInPlace() override {return false;}
@@ -43,6 +46,7 @@ public:
 	const std::wstring& getChunkData() const;
 	const std::unordered_map<std::wstring, float>& getParamMap() const;
 	bool getStereoInput() const;
+	const std::optional<VST3BusContract>& getBusContract() const;
 
 private:
 	void cleanup();
@@ -75,5 +79,6 @@ private:
 	bool skipProcessing = false;
 	bool reportCrash = true;
 	bool forceStereoInput = false;
+	std::optional<VST3BusContract> busContract;
 };
 #pragma AVRT_VTABLES_END

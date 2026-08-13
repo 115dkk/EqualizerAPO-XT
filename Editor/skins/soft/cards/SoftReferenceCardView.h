@@ -27,6 +27,7 @@ public:
 	explicit SoftReferenceCardView(const QString& kind, QWidget* parent = nullptr);
 
 	void addLeadingWidget(QWidget* widget) override;
+	void placeBusStrip(QWidget* strip) override;
 
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;

@@ -430,6 +430,159 @@ void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState
 	}
 }
 
+void ISkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state, const SkinTokens& tokens) const
+{
+	// Neutral default: a quiet token-coloured cell - muted role caption, the
+	// layout token in data ink, the channel count and a caret. Deliberately
+	// unspectacular; each shipped skin answers with its own instrument.
+	QPainterStateGuard painterState(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+	const qreal radius = qMin(cell.height() / 4.0, qreal(qMax(2, tokens.borderRadius / 2)));
+	QColor border(state.focused || state.menuOpen ? tokens.focusRing : tokens.border);
+	if (!state.enabled)
+		border = withAlpha(QColor(tokens.border), 130);
+	else if (state.hovered && !state.focused && !state.menuOpen)
+		border = QColor(tokens.mutedText);
+	painter.setPen(QPen(border, 1));
+	painter.setBrush(QColor(state.pressed || state.menuOpen ? tokens.cardHover : tokens.surface));
+	painter.drawRoundedRect(cell, radius, radius);
+
+	QColor roleInk(tokens.mutedText);
+	QColor valueInk(tokens.text);
+	if (!state.enabled)
+	{
+		roleInk = withAlpha(roleInk, 130);
+		valueInk = withAlpha(QColor(tokens.mutedText), 170);
+	}
+
+	const int pad = GUIHelper::scale(8.0);
+	QRectF textRect = cell.adjusted(pad, 0, -pad, 0);
+
+	QFont roleFont = painter.font();
+	roleFont.setPixelSize(GUIHelper::scale(9.0));
+	painter.setFont(roleFont);
+	painter.setPen(roleInk);
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleText);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleText);
+
+	// Caret: a small down triangle at the right edge, the shared dropdown cue.
+	const qreal caretWidth = GUIHelper::scale(7.0);
+	const QPointF caretCenter(textRect.right() - caretWidth / 2.0, cell.center().y() + 0.5);
+	QPainterPath caret;
+	caret.moveTo(caretCenter + QPointF(-caretWidth / 2.0, -caretWidth / 4.0));
+	caret.lineTo(caretCenter + QPointF(caretWidth / 2.0, -caretWidth / 4.0));
+	caret.lineTo(caretCenter + QPointF(0.0, caretWidth / 2.0));
+	caret.closeSubpath();
+	painter.fillPath(caret, roleInk);
+
+	QFont valueFont = painter.font();
+	valueFont.setPixelSize(GUIHelper::scale(12.0));
+	painter.setFont(valueFont);
+	painter.setPen(valueInk);
+	QString value = state.layoutText;
+	if (state.channelCount > 0)
+		value += QStringLiteral(" %1").arg(state.channelCount);
+	textRect.setLeft(textRect.left() + roleWidth + GUIHelper::scale(6.0));
+	textRect.setRight(textRect.right() - caretWidth - GUIHelper::scale(4.0));
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, value);
+}
+
+void ISkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const
+{
+	// Neutral default: no ground panel, a painted arrow through the joint and
+	// the verdict text behind a small tone lamp.
+	QPainterStateGuard painterState(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	QColor muted(tokens.mutedText);
+	if (!state.enabled)
+		muted = withAlpha(muted, 150);
+
+	// The direction mark: shaft plus chevron, drawn instead of a text arrow so
+	// no font coverage decides whether the signal flow is visible.
+	const qreal midY = state.jointRect.center().y() + 0.5;
+	const qreal margin = qMax(2.0, state.jointRect.width() / 5.0);
+	const QPointF tail(state.jointRect.left() + margin, midY);
+	const QPointF head(state.jointRect.right() - margin, midY);
+	painter.setPen(QPen(muted, 1.2, Qt::SolidLine, Qt::RoundCap));
+	painter.drawLine(tail, head);
+	const qreal barb = qMin(4.0, state.jointRect.width() / 4.0);
+	painter.drawLine(head, head + QPointF(-barb, -barb));
+	painter.drawLine(head, head + QPointF(-barb, barb));
+
+	const bool pairVerdict = !state.verdictInputText.isEmpty() || !state.verdictOutputText.isEmpty();
+	const bool hasText = pairVerdict || !state.verdictText.isEmpty();
+	// A tone without words is a lamp-only verdict (an accepted explicit
+	// contract - the selectors already print the pair).
+	if (state.verdictRect.isEmpty()
+		|| (!hasText && state.tone == VstBusFrameState::Tone::Neutral))
+		return;
+
+	QColor lamp(tokens.mutedText);
+	switch (state.tone)
+	{
+	case VstBusFrameState::Tone::Success:
+		lamp = QColor(tokens.success);
+		break;
+	case VstBusFrameState::Tone::Warning:
+		lamp = QColor(tokens.warning);
+		break;
+	case VstBusFrameState::Tone::Critical:
+		lamp = QColor(tokens.danger);
+		break;
+	case VstBusFrameState::Tone::Neutral:
+		break;
+	}
+	if (!state.enabled)
+		lamp = withAlpha(lamp, 150);
+
+	const qreal lampRadius = GUIHelper::scale(2.5);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(lamp);
+	painter.drawEllipse(QPointF(state.verdictRect.left() + lampRadius,
+		state.verdictRect.center().y() + 0.5), lampRadius, lampRadius);
+	if (!hasText)
+		return;
+
+	QFont verdictFont = painter.font();
+	verdictFont.setPixelSize(GUIHelper::scale(10.0));
+	painter.setFont(verdictFont);
+	const QColor ink = state.tone == VstBusFrameState::Tone::Critical ? lamp : muted;
+	painter.setPen(ink);
+	QRectF textRect(state.verdictRect);
+	textRect.setLeft(textRect.left() + lampRadius * 2.0 + GUIHelper::scale(5.0));
+	if (pairVerdict)
+	{
+		// The pair joins over the same painted mark as the joint, so the
+		// readout repeats the strip's direction grammar instead of a glyph.
+		const QFontMetricsF metrics(verdictFont);
+		const qreal inWidth = metrics.horizontalAdvance(state.verdictInputText);
+		const qreal markWidth = GUIHelper::scale(14.0);
+		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.verdictInputText);
+		const qreal markLeft = textRect.left() + inWidth + GUIHelper::scale(3.0);
+		const qreal midY = textRect.center().y() + 0.5;
+		painter.setPen(QPen(ink, 1.1, Qt::SolidLine, Qt::RoundCap));
+		painter.drawLine(QPointF(markLeft, midY), QPointF(markLeft + markWidth - GUIHelper::scale(6.0), midY));
+		const QPointF head(markLeft + markWidth - GUIHelper::scale(6.0), midY);
+		painter.drawLine(head, head + QPointF(-3.0, -3.0));
+		painter.drawLine(head, head + QPointF(-3.0, 3.0));
+		painter.setPen(ink);
+		QRectF outRect(textRect);
+		outRect.setLeft(markLeft + markWidth);
+		painter.drawText(outRect, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetrics(verdictFont).elidedText(state.verdictOutputText, Qt::ElideRight, qRound(outRect.width())));
+	}
+	else
+	{
+		painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
+			QFontMetrics(verdictFont).elidedText(state.verdictText, Qt::ElideRight, qRound(textRect.width())));
+	}
+}
+
 void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: an accent hairline across the boundary with a small
