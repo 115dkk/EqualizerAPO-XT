@@ -29,7 +29,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "services/security/AudioEngineAccess.h"
 #include "filters/VSTPluginCommand.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/VstChunkScan.h"
@@ -69,9 +68,10 @@ QString layoutName(VST3BusLayout layout)
 VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring& chunkData,
 	const unordered_map<wstring, float>& paramMap, bool stereoInput,
 	const std::optional<VST3BusContract>& busContract,
-	std::vector<std::wstring> deviceChannelNames, QWidget* parent)
+	std::vector<std::wstring> deviceChannelNames, FilterTable* filterTable, QWidget* parent)
 	: IFilterGUI(parent), library(library), chunkData(chunkData), paramMap(paramMap),
-	busModel(busContract, stereoInput), deviceChannelNames(std::move(deviceChannelNames))
+	busModel(busContract, stereoInput), deviceChannelNames(std::move(deviceChannelNames)),
+	filterTable(filterTable)
 {
 	setObjectName(QStringLiteral("VSTCardEditor"));
 	setAttribute(Qt::WA_StyledBackground, true);
@@ -94,6 +94,21 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	selectButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/folder-open.svg"), actionColor, 18));
 	connect(selectButton, SIGNAL(clicked()), this, SLOT(selectFile()));
 	view->addActionButton(ReferenceCardView::ActionRole::Browse, selectButton);
+
+	// The remedy for a library the audio service cannot read: copy it into
+	// the config directory, which the installer ACLs for LOCAL SERVICE and
+	// which survives Velopack updates (the install dir's VSTPlugins does
+	// not). Shown only when the readability probe fails - unlike the
+	// convolution card, a readable plugin is never offered for import,
+	// because plugin binaries are machine-installed dependencies
+	// (ConfigDependencyScanner states the same rule for bundle imports).
+	importButton = new QToolButton(view);
+	importButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	importButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/import.svg"), actionColor, 18));
+	importButton->setToolTip(tr("Copy the library into the config directory so the audio service can read it"));
+	importButton->setVisible(false);
+	connect(importButton, SIGNAL(clicked()), this, SLOT(importToConfig()));
+	view->addActionButton(ReferenceCardView::ActionRole::Import, importButton);
 
 	openPanelButton = new QPushButton(tr("Open panel"), view);
 	openPanelButton->setObjectName(QStringLiteral("VSTCardPanelButton"));
@@ -118,12 +133,8 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	optionsButton->setMenu(menu);
 	view->addActionButton(ReferenceCardView::ActionRole::Options, optionsButton);
 
-	editButton = new QToolButton(view);
-	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	editButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/pencil.svg"), actionColor, 18));
-	editButton->setToolTip(tr("Edit the path as text"));
-	connect(editButton, &QToolButton::clicked, view, &ReferenceCardView::enterEditMode);
-	view->addActionButton(ReferenceCardView::ActionRole::EditPath, editButton);
+	// No in-body path pencil: it duplicated the header's raw-line editor and
+	// read as "edit this plugin". Browse is the path affordance here.
 
 	// The bus instrument mounts beside the plugin identity (the view decides
 	// where exactly); the card is wide, so the contract lives in the row's
@@ -371,6 +382,26 @@ void VSTCardEditor::updateReferenceState()
 		}
 	}
 
+	// The audio service opens the library with LOCAL SERVICE's rights, not
+	// the user's: a file under the user profile loads fine in the Editor and
+	// still never loads during playback. The probe deliberately does not
+	// require a loaded plugin instance - gated on one, the verdict appeared
+	// when a panel opened and silently vanished on the next row rebuild,
+	// which read as a phantom error.
+	bool offerImport = false;
+	if (!reference->writtenPath().isEmpty() && !state.missing
+		&& !FileReferenceController::isReadableByAudioService(
+			QString::fromStdWString(library->getLibPath())))
+	{
+		if (state.statusText.isEmpty())
+		{
+			state.statusText = tr("Not readable by the audio service");
+			state.statusSeverity = ReferenceCardState::Severity::Critical;
+		}
+		offerImport = filterTable != nullptr;
+	}
+	importButton->setVisible(offerImport);
+
 	// The bus contract's long-form message rides the card's status line;
 	// a load error already occupying it stays the more urgent fact.
 	if (state.statusText.isEmpty() && !busStatusText.isEmpty())
@@ -574,6 +605,22 @@ void VSTCardEditor::selectFile()
 	}
 }
 
+void VSTCardEditor::importToConfig()
+{
+	if (filterTable == nullptr)
+		return;
+
+	reference->setResolvedPath(QString::fromStdWString(library->getLibPath()));
+	if (!reference->importIntoConfig(this, filterTable->getConfigPath()))
+		return;
+
+	// The engine resolves relative Library references against the install
+	// VSTPlugins directory, not the config directory, so the imported copy
+	// has to be written by its absolute path. pathCommitted reloads the
+	// library from the copy and re-runs the readability verdict.
+	pathCommitted(QDir::toNativeSeparators(reference->resolvedPath()));
+}
+
 void VSTCardEditor::panelButtonClicked()
 {
 	// One visible button owns the panel either way: it opens the dialog while
@@ -704,25 +751,15 @@ bool VSTCardEditor::embedPlugin()
 	return result;
 }
 
+// The chunk-referenced-files warning. The library's own readability verdict
+// lives on the reference card's status line (updateReferenceState), where it
+// is computed from the path alone; this one scans the saved plugin state and
+// so needs only chunkData, never a loaded plugin instance. The old gate on
+// effect made both warnings appear when a panel opened and silently vanish on
+// the next row rebuild - a permission problem that toggles with the UI reads
+// as a false alarm.
 void VSTCardEditor::updatePermissionWarning()
 {
-	if (effect == nullptr)
-	{
-		warningTextEdit->setVisible(false);
-		return;
-	}
-
-	if (!FileReferenceController::isReadableByAudioService(
-		QString::fromStdWString(library->getLibPath())))
-	{
-		QString text = tr("The library is not readable by the audio service.\nChange the file permissions or copy the file to the VSTPlugins directory.");
-		warningTextEdit->setPlainText(text);
-		QSize textSize = warningTextEdit->fontMetrics().size(0, text);
-		warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
-		warningTextEdit->setVisible(true);
-		return;
-	}
-
 	const QStringList files = vstChunkUnreadablePaths(chunkData);
 
 	if (files.isEmpty())
@@ -765,11 +802,13 @@ REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable* filterTable, const QStrin
 		VSTPluginFilter* filter = static_cast<VSTPluginFilter*>(filters[0].get());
 		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap(),
 			filter->getStereoInput(), filter->getBusContract(),
-			filterTable != nullptr ? filterTable->getChannelNames() : std::vector<std::wstring>());
+			filterTable != nullptr ? filterTable->getChannelNames() : std::vector<std::wstring>(),
+			filterTable);
 	}
 	else
 	{
-		editor = new VSTCardEditor(VSTPluginLibrary::getInstance(L""), L"", std::unordered_map<std::wstring, float>());
+		editor = new VSTCardEditor(VSTPluginLibrary::getInstance(L""), L"", std::unordered_map<std::wstring, float>(),
+			false, std::nullopt, std::vector<std::wstring>(), filterTable);
 	}
 	return editor;
 })

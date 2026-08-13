@@ -171,10 +171,12 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	editButton = new QToolButton(headerWidget);
 	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	editButton->setCheckable(true);
-	// A pencil, not "...": the affordance IS the raw-command editor, and an
-	// ellipsis promises an options menu it never opens. Rows are rebuilt on
-	// every skin switch, so the construction-time ink stays current.
-	editButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/pencil.svg"),
+	// A code mark ("</>"), not "..." and not a pencil: the ellipsis promised
+	// an options menu it never opens, and the pencil collided with the
+	// Include card's pencil, which edits the included file's contents. This
+	// button edits the config line itself. Rows are rebuilt on every skin
+	// switch, so the construction-time ink stays current.
+	editButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/code-line.svg"),
 		QColor(SkinManager::instance()->tokens().text), 14));
 	editButton->setToolTip(tr("Edit raw command"));
 	connect(editButton, SIGNAL(toggled(bool)), this, SLOT(editTextToggled(bool)));

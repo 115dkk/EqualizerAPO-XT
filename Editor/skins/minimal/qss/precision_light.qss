@@ -389,13 +389,10 @@ QLabel#MinimalTypeGlyph {
 QWidget#BiQuadFilterGUI QLabel { background: transparent; color: @MUTED@; }
 QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
-/* Include and VST rows are single text lines whose payload is the file name:
-   the data is dark (primary), the command word drops to grey (secondary).
-   Hierarchy by text value, not by size. */
-QFrame#FilterCardRow[filterKind="include"] QLabel#FilterCardTitle,
-QFrame#FilterCardRow[filterKind="vstplugin"] QLabel#FilterCardTitle { color: @MUTED@; }
-QFrame#FilterCardRow[filterKind="include"] QLabel#FilterCardSummary,
-QFrame#FilterCardRow[filterKind="vstplugin"] QLabel#FilterCardSummary { color: @TEXT@; }
+/* (Raw-exposure cleanup round 2) Include/VST headers no longer print the
+   file name as a summary - the reference card in the body owns the file
+   identity - so the old dark-payload/grey-command hierarchy is gone and
+   their titles read like every other row's. */
 /* A commented-out line: every text value falls to secondary grey (the frame
    itself drops one background step via MinimalSkin::cardFrameStyle). */
 QFrame#FilterCardRow[filterEnabled="false"] QLabel#FilterCardTitle,
@@ -405,7 +402,7 @@ QFrame#FilterCardRow[filterEnabled="false"] QLabel#MinimalTypeGlyph { color: @MU
 /* A line swallowed by a false If branch (dynamic commands) sinks like the
    comment register: to the engine both are dead code, so both wear the same
    secondary ink - form, not colour. State rule, so it stays behind the kind
-   rules above (cascade law) and wins the include/vst bright-summary rule.
+   rules above (cascade law).
    The verdicts themselves live in the painted readout column
    (MinimalSkin::paintCardChrome), which QSS deliberately does not touch. */
 QFrame#FilterCardRow[lineSkipped="true"] QLabel#FilterCardTitle,

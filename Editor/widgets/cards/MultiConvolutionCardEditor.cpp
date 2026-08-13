@@ -85,12 +85,8 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	connect(importButton, SIGNAL(clicked()), this, SLOT(importToConfig()));
 	view->addActionButton(ReferenceCardView::ActionRole::Import, importButton);
 
-	editButton = new QToolButton(view);
-	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
-	editButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/pencil.svg"), actionColor, 18));
-	editButton->setToolTip(tr("Edit the path as text"));
-	connect(editButton, &QToolButton::clicked, view, &ReferenceCardView::enterEditMode);
-	view->addActionButton(ReferenceCardView::ActionRole::EditPath, editButton);
+	// No in-body path pencil: it duplicated the header's raw-line editor and
+	// read as "edit this file". Browse is the path affordance here.
 
 	// The channel mapping rides under the file reference: a caption row with
 	// the virtual-output entry point, then the active skin's routing view.

@@ -37,6 +37,7 @@ class QFrame;
 class QPlainTextEdit;
 class QAction;
 class FileReferenceController;
+class FilterTable;
 class VSTBusStrip;
 
 class VSTCardEditor : public IFilterGUI
@@ -48,6 +49,7 @@ public:
 		const std::unordered_map<std::wstring, float>& paramMap, bool stereoInput = false,
 		const std::optional<VST3BusContract>& busContract = std::nullopt,
 		std::vector<std::wstring> deviceChannelNames = std::vector<std::wstring>(),
+		FilterTable* filterTable = nullptr,
 		QWidget* parent = nullptr);
 	~VSTCardEditor();
 
@@ -62,6 +64,7 @@ private slots:
 	void autoApplyToggled(bool checked);
 	void pathCommitted(const QString& text);
 	void selectFile();
+	void importToConfig();
 	void embedToggled(bool checked);
 	void busLayoutsPicked(VST3BusLayout input, VST3BusLayout output);
 	void removeBusLayouts();
@@ -94,12 +97,15 @@ private:
 	QElapsedTimer lastReadTimer;
 
 	FileReferenceController* reference = nullptr;
+	// The filter table owning this row; nullptr in contexts without one
+	// (tests, previews), which merely hides the import affordance.
+	FilterTable* filterTable = nullptr;
 	QString initErrorText;
 	bool libraryMissing = false;
 
 	ReferenceCardView* view = nullptr;
 	QToolButton* selectButton = nullptr;
-	QToolButton* editButton = nullptr;
+	QToolButton* importButton = nullptr;
 	QPushButton* openPanelButton = nullptr;
 	QToolButton* optionsButton = nullptr;
 	QAction* embedAction = nullptr;

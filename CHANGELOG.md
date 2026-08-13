@@ -14,6 +14,30 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The "not readable by the audio service" VST warning stopped being a
+  phantom, and an Import button now fixes it in one click.** The warning was
+  real - the audio service reads plugins with the LOCAL SERVICE account's
+  rights, and a DLL under your user profile (Desktop, Downloads) genuinely
+  never loads during playback - but it was only evaluated while a plugin
+  panel was open, so it appeared on first load and silently vanished after a
+  toggle or restart while the file stayed unreadable. The verdict is now a
+  status line on the VST card computed from the path alone, stable across
+  toggles, and it comes with an Import button that copies the library into
+  the config directory (a location the audio service can always read, and
+  one that survives updates - unlike the install directory's VSTPlugins
+  folder the old message suggested)
+  ([#270](https://github.com/115dkk/EqualizerAPO-XT/pull/270)).
+- **Card headers no longer echo the config line's parameters.** A VST row's
+  header used to print its entire base64 `ChunkData` blob through a naive
+  file-name shortcut, and every other card restated its parameters as a
+  small-print summary next to the title. Recognized commands now show a
+  clean header (badge, title, chips); the text stays only where it is the
+  content itself - notes, unknown lines, and If/Eval conditions. The
+  raw-line editor in the header wears a `</>` code mark instead of a pencil
+  (the pencil now belongs solely to Include's "edit the included file"),
+  and the confusing in-body path pencils on the VST and convolution cards
+  are gone ([#270](https://github.com/115dkk/EqualizerAPO-XT/pull/270)).
+
 ## v2.36.0 — 2026-08-13
 
 - **Filter cards no longer print the raw config line, and the tall editor

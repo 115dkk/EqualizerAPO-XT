@@ -44,23 +44,18 @@ void testSubwooferRoutingDescriptors()
 	expectEqual(descriptor.badge, "SUB", "subwoofer-routing badge");
 	expectEqual(descriptor.title, "Subwoofer routing", "subwoofer-routing title");
 	expectFalse(descriptor.color.isEmpty(), "subwoofer-routing color is populated");
-	expectFalse(descriptor.summary.isEmpty(), "subwoofer-routing state summary is populated");
-	// Review round 2: the header speaks the user's language - the layout and
-	// the crossover corner - instead of internal graph statistics.
-	expectTrue(descriptor.summary.contains(QStringLiteral("4.1")),
-		QStringLiteral("state summary names the layout: ") + descriptor.summary);
-	expectTrue(descriptor.summary.contains(QStringLiteral("80 Hz")),
-		QStringLiteral("state summary names the crossover corner: ") + descriptor.summary);
+	// Raw-exposure cleanup round 2: recognized command headers carry no
+	// summary; the full editor is where the layout and crossover live.
+	expectTrue(descriptor.summary.isEmpty(), "subwoofer-routing header must not paraphrase its state");
 
 	const FilterCardDescriptor profile = FilterCardModel::describeLine(
 		"SubwooferRouting: Profile \"Living Room.swxt.json\"");
-	expectTrue(profile.summary.contains("Living Room.swxt.json"),
-		QStringLiteral("profile summary names the linked file: ") + profile.summary);
+	expectTrue(profile.summary.isEmpty(), "profile header must not echo the linked file");
 
 	const FilterCardDescriptor broken = FilterCardModel::describeLine(
 		"SubwooferRouting: State {\"schema\":\"wrong\"}");
 	expectEqual(broken.type, "subwooferrouting", "invalid state keeps the card type");
-	expectFalse(broken.summary.isEmpty(), "invalid state still has a summary");
+	expectTrue(broken.summary.isEmpty(), "invalid state header carries no summary either");
 
 	expectEqual(FilterCardModel::badgeIconResource("subwooferrouting", "SUB"),
 		":/icons/modern/subwoofer-routing.svg", "subwoofer-routing badge icon");

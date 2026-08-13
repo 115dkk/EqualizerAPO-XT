@@ -452,7 +452,12 @@ bool VSTPluginFilterGUI::embedPlugin()
 
 void VSTPluginFilterGUI::updatePermissionWarning()
 {
-	if (effect == nullptr)
+	// Evaluated from the library path and the saved chunk alone. Gated on a
+	// loaded plugin instance, the warning appeared when a panel opened and
+	// silently vanished on the next row rebuild, while the file stayed
+	// unreadable for the audio service - a real problem reading as a false
+	// alarm.
+	if (library->getLibPath().empty())
 	{
 		ui->warningTextEdit->setVisible(false);
 		return;
