@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.37.2 — 2026-08-14
+
 - **Precision Minimal의 Copy·MultiConvolution 채널 토큰을 원색 칩에서
   터미널 잉크로 바꿨습니다.** 채널 색이 전 스킨 공용 웹 원색을 솔리드
   알약으로 그대로 받아 써서, 무채색 터미널이라는 이 스킨의 인상과

@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.37.2 — 2026-08-14
+
 - **Precision Minimal's Copy and MultiConvolution channel tokens are now
   terminal ink instead of saturated color chips.** The channel colors used
   to be the cross-skin web primaries painted as solid pills, which clashed
