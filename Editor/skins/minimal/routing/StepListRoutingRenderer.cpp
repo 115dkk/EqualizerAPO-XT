@@ -5,8 +5,6 @@
 #include "StepListRoutingRenderer.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
-#include <cmath>
-
 #include <QMenu>
 #include <QPainter>
 #include <QMouseEvent>
@@ -71,6 +69,24 @@ static QFont monoFont()
 	QFont f(SkinManager::instance()->tokens().monoFontFamily);
 	f.setPixelSize(12);
 	return f;
+}
+
+// The cross-skin channel hues are web primaries; on this skin's console/print
+// ground a solid primary chip is GUI badge vocabulary. The hue is the
+// cross-skin channel identity, so it stays; saturation and lightness re-tone
+// to the medium. Dark sits between the muted and body inks (a console SGR
+// color), light is sunken print ink. (Constitution: Copy 라우팅, 판례 채널 톤 r1)
+static QColor channelInk(const QColor& base, bool dark)
+{
+	float h, s, l;
+	base.getHslF(&h, &s, &l);
+	// Achromatic bases report hue -1; the slate fallback is chromatic, but
+	// keep the guard so a neutral never turns red.
+	if (h < 0.0f)
+		h = 0.0f;
+	return dark
+		? QColor::fromHslF(h, qMin(s, 0.42f), 0.64f)
+		: QColor::fromHslF(h, qMin(s, 0.52f), 0.38f);
 }
 
 QSize StepListView::sizeHint() const
@@ -139,41 +155,21 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(QPen(withAlpha(border, 120), 1));
 	p.drawLine(36, headerH, 36, listingBottom);
 
-	// White ink vanishes on the light members of the channel palette - the
-	// slate fallback every non-channel path id wears (the subwoofer dialog's
-	// output matrix printed white path names on that whitish slate), and the
-	// amber/cyan family reads barely better. Pick the ink per fill: white
-	// only where its WCAG contrast genuinely holds, near-black otherwise.
-	auto pillInk = [](const QColor& fill) -> QColor {
-		auto lin = [](int v) {
-			const double c = v / 255.0;
-			return c <= 0.03928 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
-		};
-		const double lum = 0.2126 * lin(fill.red())
-			+ 0.7152 * lin(fill.green()) + 0.0722 * lin(fill.blue());
-		return 1.05 / (lum + 0.05) >= 3.0
-			? QColor(Qt::white) : QColor(QStringLiteral("#111827"));
-	};
-
 	auto drawChannelPill = [&](const QString& ch, int x, int y, int h, bool sourceSide) -> int {
-		const QColor col(CopyRoutingAdapter::channelColor(ch));
-		// Fixed sources (IR file channels) are ports, not virtual channels, so
-		// they keep the solid pill styling.
+		// A bare colored token, the way a terminal marks special text (ls
+		// --color). Only virtual channels keep the dashed hairline frame:
+		// fixed sources (IR file channels) are ports, not virtual channels.
 		const bool virt = (sourceSide && portModel.fixedSourceMode()) ? false : CopyRoutingAdapter::isVirtualChannel(ch);
+		const QColor ink = channelInk(QColor(CopyRoutingAdapter::channelColor(ch)), t.dark);
 		const int w = fm.horizontalAdvance(ch) + 12;
 		const QRect pill(x, y + (rowH - h) / 2, w, h);
 		if (virt)
 		{
-			p.setPen(QPen(withAlpha(col, 180), 1, Qt::DashLine));
-			p.setBrush(withAlpha(col, 28));
+			p.setPen(QPen(withAlpha(ink, 150), 1, Qt::DashLine));
+			p.setBrush(Qt::NoBrush);
+			p.drawRect(pill);
 		}
-		else
-		{
-			p.setPen(Qt::NoPen);
-			p.setBrush(col);
-		}
-		p.drawRect(pill);
-		p.setPen(virt ? col : pillInk(col));
+		p.setPen(ink);
 		p.drawText(pill, Qt::AlignCenter, ch);
 		return w;
 	};

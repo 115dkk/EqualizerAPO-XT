@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Precision Minimal's Copy and MultiConvolution channel tokens are now
+  terminal ink instead of saturated color chips.** The channel colors used
+  to be the cross-skin web primaries painted as solid pills, which clashed
+  with the skin's monochrome terminal look. Each channel keeps its hue
+  identity (L=red, R=blue, …) but is now printed as a bare colored token,
+  toned to the medium: desaturated console ink in dark mode, sunken print
+  ink in light mode. Virtual channels keep their dashed hairline frame
+  ([#274](https://github.com/115dkk/EqualizerAPO-XT/pull/274)).
+
 ## v2.37.1 — 2026-08-13
 
 - **Signal Matrix cards no longer show lighter speckles floating in their
