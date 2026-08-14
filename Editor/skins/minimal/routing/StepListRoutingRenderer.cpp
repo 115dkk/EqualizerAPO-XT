@@ -5,8 +5,6 @@
 #include "StepListRoutingRenderer.h"
 #include "Editor/skins/shared/SkinPaint.h"
 
-#include <cmath>
-
 #include <QMenu>
 #include <QPainter>
 #include <QMouseEvent>
@@ -71,6 +69,46 @@ static QFont monoFont()
 	QFont f(SkinManager::instance()->tokens().monoFontFamily);
 	f.setPixelSize(12);
 	return f;
+}
+
+// The cross-skin channel hues are web primaries; on this skin's console/print
+// ground a solid primary chip is GUI badge vocabulary, so channels print as
+// bare colored ink instead. The inks are a designed table, not a transform of
+// the shared hue: merely desaturating the shared palette leaves three
+// neighbor pairs (RL/LFE 13°, SBR/RR 16°, SBL/SL 13°) indistinguishable at
+// console saturation. The table re-spaces the eight primary channels onto
+// ANSI/base16 hue families (min neighbor gap 24°) and migrates SBL/SBR to
+// genuinely free wheel regions (violet 300°, olive 95°). Dark sits between
+// the muted and body inks; light is sunken print ink, every value ≥4.3:1 on
+// its ground. (Constitution: Copy 라우팅, 판례 채널 톤 r1/r2)
+static QColor channelInk(const QColor& base, bool dark)
+{
+	struct Ink { const char* dark; const char* light; };
+	static const QHash<QString, Ink> inks = {
+		{ QStringLiteral("#ef4444"), { "#CC7578", "#972B2E" } },  // L    red 358°
+		{ QStringLiteral("#3b82f6"), { "#809BD0", "#2E539E" } },  // R    blue 220°
+		{ QStringLiteral("#22c55e"), { "#79C38C", "#2D8042" } },  // C    green 135°
+		{ QStringLiteral("#f59e0b"), { "#C8B879", "#8A7728" } },  // LFE  yellow 48°
+		{ QStringLiteral("#f97316"), { "#C39779", "#8C5531" } },  // RL   orange 24°
+		{ QStringLiteral("#06b6d4"), { "#7DC5CA", "#2E848A" } },  // RR   cyan 184°
+		{ QStringLiteral("#a855f7"), { "#AB84CD", "#6F389F" } },  // SL   purple 272°
+		{ QStringLiteral("#ec4899"), { "#CA7DA1", "#91305E" } },  // SR   magenta 332°
+		{ QStringLiteral("#8b5cf6"), { "#B86FB8", "#9F419F" } },  // SBL  violet 300°
+		{ QStringLiteral("#14b8a6"), { "#93BC76", "#558532" } },  // SBR  olive 95°
+	};
+	const auto it = inks.constFind(base.name());
+	if (it != inks.constEnd())
+		return QColor(QLatin1String(dark ? it->dark : it->light));
+	// Unmapped identities (the slate fallback, future channels): clamp the
+	// base toward the medium so nothing ever paints as a web primary. The
+	// hue guard keeps a true neutral (reported hue -1) from turning red.
+	float h, s, l;
+	base.getHslF(&h, &s, &l);
+	if (h < 0.0f)
+		h = 0.0f;
+	return dark
+		? QColor::fromHslF(h, qMin(s, 0.42f), 0.64f)
+		: QColor::fromHslF(h, qMin(s, 0.52f), 0.38f);
 }
 
 QSize StepListView::sizeHint() const
@@ -139,41 +177,21 @@ void StepListView::paintEvent(QPaintEvent*)
 	p.setPen(QPen(withAlpha(border, 120), 1));
 	p.drawLine(36, headerH, 36, listingBottom);
 
-	// White ink vanishes on the light members of the channel palette - the
-	// slate fallback every non-channel path id wears (the subwoofer dialog's
-	// output matrix printed white path names on that whitish slate), and the
-	// amber/cyan family reads barely better. Pick the ink per fill: white
-	// only where its WCAG contrast genuinely holds, near-black otherwise.
-	auto pillInk = [](const QColor& fill) -> QColor {
-		auto lin = [](int v) {
-			const double c = v / 255.0;
-			return c <= 0.03928 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
-		};
-		const double lum = 0.2126 * lin(fill.red())
-			+ 0.7152 * lin(fill.green()) + 0.0722 * lin(fill.blue());
-		return 1.05 / (lum + 0.05) >= 3.0
-			? QColor(Qt::white) : QColor(QStringLiteral("#111827"));
-	};
-
 	auto drawChannelPill = [&](const QString& ch, int x, int y, int h, bool sourceSide) -> int {
-		const QColor col(CopyRoutingAdapter::channelColor(ch));
-		// Fixed sources (IR file channels) are ports, not virtual channels, so
-		// they keep the solid pill styling.
+		// A bare colored token, the way a terminal marks special text (ls
+		// --color). Only virtual channels keep the dashed hairline frame:
+		// fixed sources (IR file channels) are ports, not virtual channels.
 		const bool virt = (sourceSide && portModel.fixedSourceMode()) ? false : CopyRoutingAdapter::isVirtualChannel(ch);
+		const QColor ink = channelInk(QColor(CopyRoutingAdapter::channelColor(ch)), t.dark);
 		const int w = fm.horizontalAdvance(ch) + 12;
 		const QRect pill(x, y + (rowH - h) / 2, w, h);
 		if (virt)
 		{
-			p.setPen(QPen(withAlpha(col, 180), 1, Qt::DashLine));
-			p.setBrush(withAlpha(col, 28));
+			p.setPen(QPen(withAlpha(ink, 150), 1, Qt::DashLine));
+			p.setBrush(Qt::NoBrush);
+			p.drawRect(pill);
 		}
-		else
-		{
-			p.setPen(Qt::NoPen);
-			p.setBrush(col);
-		}
-		p.drawRect(pill);
-		p.setPen(virt ? col : pillInk(col));
+		p.setPen(ink);
 		p.drawText(pill, Qt::AlignCenter, ch);
 		return w;
 	};
