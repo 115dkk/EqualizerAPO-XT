@@ -18,152 +18,21 @@
 */
 
 #include "stdafx.h"
-#define _USE_MATH_DEFINES
-#include <cmath>
-#include <sstream>
-#include <fstream>
-#include <algorithm>
 #include <exception>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 
-#include "services/registry/WindowsRegistry.h"
 #include "services/logging/Logging.h"
-#include "runtime/memory/AlignedMemory.h"
-#include "audio/ChannelLayout.h"
-#include "ConfigurationFileReader.h"
 #include "ConfigWatcher.h"
 #include "FilterEngine.h"
-// Filter factory headers intentionally omitted: the factories self-register and
-// are pulled into the link via /WHOLEARCHIVE in the consumers; this TU names none
-// of them (see FilterEngine.Configuration.cpp).
+
+// This TU is the configuration-watch thread glue and nothing else. The
+// load-time graph construction (addFilters) lives with the rest of the
+// loading code in FilterEngine.Configuration.cpp, and the realtime
+// transition bookkeeping (finishTransitionIfReady) lives with the
+// processing hot path in FilterEngine.Process.cpp (audit #275 A6).
 
 using std::exception;
-using std::find;
 using std::lock_guard;
-using std::make_unique;
-using std::max;
-using std::move;
 using std::mutex;
-using std::string;
-using std::stringstream;
-using std::swap;
-using std::thread;
-using std::unique_lock;
-using std::vector;
-using std::wstring;
-
-
-void FilterEngine::addFilters(FilterVector filters)
-{
-	for (FilterPtr& ownedFilter : filters)
-	{
-		auto filterInfo = make_unique<FilterInfo>();
-		filterInfo->filter = move(ownedFilter);
-		IFilter* filter = filterInfo->filter.get();
-		filterInfo->inPlace = filter->getInPlace();
-		vector<wstring> savedChannelNames = load.currentChannelNames;
-		bool allChannels = filter->getAllChannels();
-		if (allChannels)
-			load.currentChannelNames = load.allChannelNames;
-
-		if (load.lastChannelNames == load.currentChannelNames)
-		{
-			filterInfo->inChannels.clear();
-		}
-		else
-		{
-			filterInfo->inChannels.resize(load.currentChannelNames.size());
-
-			size_t c = 0;
-			for (vector<wstring>::iterator it2 = load.currentChannelNames.begin(); it2 != load.currentChannelNames.end(); it2++)
-			{
-				vector<wstring>::iterator pos = find(load.allChannelNames.begin(), load.allChannelNames.end(), *it2);
-				if (pos == load.allChannelNames.end())
-				{
-					// Defensive: every load.currentChannelNames entry should already be in
-					// load.allChannelNames (seeded from it, or a filter's own subset). If that
-					// invariant is ever broken, append the name instead of storing a
-					// one-past-the-end index that process() would read out of bounds; the
-					// appended channel reads the zero-filled virtual range (silence).
-					// Mirrors the outChannels handling below.
-					filterInfo->inChannels[c++] = load.allChannelNames.size();
-					load.allChannelNames.push_back(*it2);
-				}
-				else
-				{
-					filterInfo->inChannels[c++] = pos - load.allChannelNames.begin();
-				}
-			}
-		}
-
-		load.lastChannelNames = load.currentChannelNames;
-
-		vector<wstring> newChannelNames = filter->initialize(sampleRate, maxFrameCount, load.currentChannelNames);
-
-		if (filterInfo->inPlace && load.lastInPlace && load.lastNewChannelNames == newChannelNames)
-		{
-			filterInfo->outChannels.clear();
-		}
-		else
-		{
-			filterInfo->outChannels.resize(newChannelNames.size());
-
-			size_t c = 0;
-			for (vector<wstring>::iterator it2 = newChannelNames.begin(); it2 != newChannelNames.end(); it2++)
-			{
-				vector<wstring>::iterator pos = find(load.allChannelNames.begin(), load.allChannelNames.end(), *it2);
-				if (pos == load.allChannelNames.end())
-				{
-					filterInfo->outChannels[c++] = load.allChannelNames.size();
-					load.allChannelNames.push_back(*it2);
-				}
-				else
-				{
-					filterInfo->outChannels[c++] = pos - load.allChannelNames.begin();
-				}
-			}
-		}
-
-		load.lastNewChannelNames = newChannelNames;
-		load.lastInPlace = filterInfo->inPlace;
-		if (!load.lastInPlace)
-			swap(load.lastChannelNames, load.lastNewChannelNames);
-
-		load.filterInfos.push_back(move(filterInfo));
-
-		if (filter->getSelectChannels())
-			load.currentChannelNames = newChannelNames;
-		else
-			load.currentChannelNames = savedChannelNames;
-	}
-}
-
-void FilterEngine::cleanupConfigurations()
-{
-	configChannel.reset();
-}
-
-bool FilterEngine::acquireLoadPermit()
-{
-	return configChannel.acquirePublishPermit();
-}
-
-void FilterEngine::releaseLoadPermit()
-{
-	configChannel.releasePublishPermit();
-}
-
-void FilterEngine::finishTransitionIfReady()
-{
-	// ConfigSwapChannel's acquire load observes the producer's fully-constructed
-	// configuration before it is dereferenced on ARM64.
-	if (configChannel.hasPending() && transitionCounter >= transitionLength)
-	{
-		configChannel.completeTransition();
-		transitionCounter = 0;
-	}
-}
 
 void FilterEngine::notificationThread(FilterEngine* engine)
 {
@@ -185,12 +54,12 @@ void FilterEngine::notificationThread(FilterEngine* engine)
 				return snapshot;
 			},
 			[engine] {
-				if (!engine->acquireLoadPermit())
+				if (!engine->configChannel.acquirePublishPermit())
 					return false;
 
 				const bool loaded = engine->loadConfig();
 				if (!loaded)
-					engine->releaseLoadPermit();
+					engine->configChannel.releasePublishPermit();
 				return true;
 			});
 		watcher.run();

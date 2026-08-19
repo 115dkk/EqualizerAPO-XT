@@ -102,10 +102,7 @@ HilbertFilter::~HilbertFilter()
 {
 	// Deferred report of the mute path process() took on the audio thread,
 	// like the other convolvers' cleanup(); only for instances that muted.
-	if (frameCountMismatchLogged)
-		LogF(kConvolverMuteReportFormat, kFrameCountMismatchLogPrefix,
-			muteDiagnostics.firstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
-			muteDiagnostics.muteCallCount.load(std::memory_order_relaxed));
+	muteState.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 }
 
 std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
@@ -114,7 +111,7 @@ std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 	(void)sampleRate;
 	filters = nullptr;
 	channelCount = static_cast<unsigned>(channelNames.size());
-	filterFrameCount = 0;
+	muteState.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 	delayOffset = 0;
 	shifted = resolve(command.shiftedChannels, channelNames, true);
 	aligned = resolve(command.alignedChannels, channelNames, false);
@@ -135,7 +132,7 @@ std::vector<std::wstring> HilbertFilter::initialize(float sampleRate,
 				static_cast<unsigned>(coefficients.size()), 0};
 		filters = buildConvolverArray(sources, maxFrameCount);
 		if (filters != nullptr)
-			filterFrameCount = maxFrameCount;
+			muteState.arm(maxFrameCount);
 	}
 
 	delayLines.assign(channelCount, {});
@@ -156,13 +153,13 @@ void HilbertFilter::process(double** output, double** input, unsigned frameCount
 			std::copy_n(input[channel], frameCount, output[channel]);
 
 	const bool convolverReady = filters != nullptr
-		&& frameCount == filterFrameCount;
-	if (filters != nullptr && frameCount != filterFrameCount)
+		&& !muteState.shouldMute(frameCount);
+	if (filters != nullptr && muteState.shouldMute(frameCount))
 	{
 		// No logging here (audio thread); the destructor writes the deferred
-		// report, like the other convolvers (audit #250 A4 - this mute used
-		// to be silent).
-		muteDiagnostics.recordMute(frameCount, frameCountMismatchLogged);
+		// report through muteState.finishAndReport(), like the other
+		// convolvers (audit #250 A4 - this mute used to be silent).
+		muteState.recordMute(muteDiagnostics, frameCount);
 	}
 	for (size_t unit = 0; unit < shifted.size(); ++unit)
 	{

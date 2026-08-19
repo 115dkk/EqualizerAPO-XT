@@ -21,6 +21,7 @@
 
 #include <stdexcept>
 
+#include "dsp/FftwPlanningPolicy.h"
 #include "engine/FilterEngine.h"
 #include "helpers/AnalysisWorkerRecovery.h"
 #include "AnalysisThread.h"
@@ -219,7 +220,13 @@ void AnalysisThread::run()
 			// to, wasted half the buffer and left the tail uninitialized for
 			// anyone who read the whole thing.
 			auto newFreqData = fftw::allocateComplex(AnalysisResponse::binCountFor(frameCount));
-			auto newPlan = fftw::makeRealToComplexPlan(frameCount, newTimeData.get(), newFreqData.get());
+			fftw::Plan newPlan;
+			{
+				// Plan creation happens under the process-wide planning policy
+				// (see dsp/FftwPlanningPolicy.h).
+				FftwPlanningPolicy::Session planning;
+				newPlan = fftw::makeRealToComplexPlan(frameCount, newTimeData.get(), newFreqData.get());
+			}
 			planForward.reset();
 			timeData = std::move(newTimeData);
 			freqData = std::move(newFreqData);

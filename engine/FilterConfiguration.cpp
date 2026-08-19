@@ -25,6 +25,7 @@
 #include "diagnostics/performance/PerfProfile.h"
 
 #include "hwy/highway.h"
+#include "dsp/SampleConversion.h"
 
 namespace hn = hwy::HWY_NAMESPACE;
 
@@ -76,37 +77,14 @@ FilterConfiguration::~FilterConfiguration()
 namespace
 {
 // Fused format conversions between the APO-facing interleaved buffers and the
-// engine's planar double storage, one explicit Highway kernel per channel
+// engine's planar double storage (the plain promote/demote kernel itself
+// lives in dsp/SampleConversion.h), one explicit Highway kernel per channel
 // count the interleaved load/store family supports (2/3/4). PromoteTo is
 // exact, DemoteTo rounds to nearest-even like static_cast<float>, and the
 // interleaved shuffles only move bits, so each kernel is bit-identical to the
 // scalar loop it replaces; SampleIoTests pins that equality. 6/8/arbitrary
 // channels stay on the strided scalar loops below: Highway has no interleaved
 // op for those strides and their conversion share is small.
-
-void promoteFloats(double* dest, const float* src, size_t count)
-{
-	const hn::ScalableTag<double> dd;
-	const hn::Rebind<float, decltype(dd)> df;
-	const size_t N = hn::Lanes(dd);
-	size_t i = 0;
-	for (; i + N <= count; i += N)
-		hn::StoreU(hn::PromoteTo(dd, hn::LoadU(df, src + i)), dd, dest + i);
-	for (; i < count; i++)
-		dest[i] = static_cast<double>(src[i]);
-}
-
-void demoteDoubles(float* dest, const double* src, size_t count)
-{
-	const hn::ScalableTag<double> dd;
-	const hn::Rebind<float, decltype(dd)> df;
-	const size_t N = hn::Lanes(dd);
-	size_t i = 0;
-	for (; i + N <= count; i += N)
-		hn::StoreU(hn::DemoteTo(df, hn::LoadU(dd, src + i)), df, dest + i);
-	for (; i < count; i++)
-		dest[i] = static_cast<float>(src[i]);
-}
 
 void readFloat2(double* d0, double* d1, const float* input, size_t frameCount)
 {
@@ -323,12 +301,6 @@ void FilterConfiguration::read(double* input, unsigned frameCount)
 	}
 }
 
-void FilterConfiguration::read(double** input, unsigned frameCount)
-{
-	for (unsigned c = 0; c < realChannelCount; c++)
-		std::copy_n(input[c], frameCount, allSamples[c]);
-}
-
 #define READ_FLOAT_INTERLEAVED_MACRO(ccount)\
 	{\
 		for (size_t c = 0; c < (ccount); c++)\
@@ -345,7 +317,7 @@ void FilterConfiguration::readFloatInterleaved(const float* input, unsigned fram
 	switch (realChannelCount)
 	{
 	case 1:
-		promoteFloats(allSamples[0], input, frameCount);
+		sampleconv::promote(allSamples[0], input, frameCount);
 		break;
 	case 2:
 		readFloat2(allSamples[0], allSamples[1], input, frameCount);
@@ -369,10 +341,11 @@ void FilterConfiguration::readFloatInterleaved(const float* input, unsigned fram
 
 #undef READ_FLOAT_INTERLEAVED_MACRO
 
+
 void FilterConfiguration::readFloatPlanar(const float* const* input, unsigned frameCount)
 {
 	for (unsigned c = 0; c < realChannelCount; c++)
-		promoteFloats(allSamples[c], input[c], frameCount);
+		sampleconv::promote(allSamples[c], input[c], frameCount);
 }
 
 void FilterConfiguration::process(unsigned frameCount)
@@ -469,12 +442,6 @@ void FilterConfiguration::write(double* output, unsigned frameCount)
 	}
 }
 
-void FilterConfiguration::write(double** output, unsigned frameCount)
-{
-	for (unsigned i = 0; i < outputChannelCount; i++)
-		std::copy_n(allSamples[i], frameCount, output[i]);
-}
-
 #define WRITE_FLOAT_INTERLEAVED_MACRO(ccount)\
 	{\
 		for (size_t c = 0; c < (ccount); c++)\
@@ -491,7 +458,7 @@ void FilterConfiguration::writeFloatInterleaved(float* output, unsigned frameCou
 	switch (outputChannelCount)
 	{
 	case 1:
-		demoteDoubles(output, allSamples[0], frameCount);
+		sampleconv::demote(output, allSamples[0], frameCount);
 		break;
 	case 2:
 		writeFloat2(output, allSamples[0], allSamples[1], frameCount);
@@ -515,12 +482,14 @@ void FilterConfiguration::writeFloatInterleaved(float* output, unsigned frameCou
 
 #undef WRITE_FLOAT_INTERLEAVED_MACRO
 
+#pragma AVRT_CODE_END
+
+
 void FilterConfiguration::writeFloatPlanar(float* const* output, unsigned frameCount)
 {
-	for (unsigned c = 0; c < outputChannelCount; c++)
-		demoteDoubles(output[c], allSamples[c], frameCount);
+	for (unsigned c = 0; c < realChannelCount; c++)
+		sampleconv::demote(output[c], allSamples[c], frameCount);
 }
-#pragma AVRT_CODE_END
 
 bool FilterConfiguration::isEmpty()
 {

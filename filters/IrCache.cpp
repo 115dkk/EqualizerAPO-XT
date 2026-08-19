@@ -24,6 +24,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include "runtime/WeakValueCache.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "services/logging/Logging.h"
@@ -73,15 +74,9 @@ namespace
 		}
 	};
 
-	std::mutex& irCacheMutex()
+	WeakValueCache<IrCacheKey, const IrCacheEntry, IrCacheKeyHash>& irCache()
 	{
-		static std::mutex m;
-		return m;
-	}
-
-	std::unordered_map<IrCacheKey, std::weak_ptr<const IrCacheEntry>, IrCacheKeyHash>& irCache()
-	{
-		static std::unordered_map<IrCacheKey, std::weak_ptr<const IrCacheEntry>, IrCacheKeyHash> c;
+		static WeakValueCache<IrCacheKey, const IrCacheEntry, IrCacheKeyHash> c;
 		return c;
 	}
 
@@ -100,18 +95,8 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, d
 	const int sampleRateKey = static_cast<int>(sampleRate);
 	IrCacheKey key{ filename, getMtime(filename), sampleRateKey };
 
-	{
-		std::lock_guard<std::mutex> lock(irCacheMutex());
-		auto it = irCache().find(key);
-		if (it != irCache().end())
-		{
-			if (auto entry = it->second.lock())
-				return entry;
-			// Weak reference expired (last filter using it was destroyed);
-			// drop the dead slot and fall through to reload.
-			irCache().erase(it);
-		}
-	}
+	if (auto entry = irCache().find(key))
+		return entry;
 
 	SF_INFO info{};
 	SNDFILE* opened = sf_wchar_open(filename.c_str(), SFM_READ, &info);
@@ -182,21 +167,9 @@ std::shared_ptr<const IrCacheEntry> loadIrCached(const std::wstring& filename, d
 		for (unsigned c = 0; c < channels; ++c)
 			deinterleaveChannel(c);
 
-	{
-		std::lock_guard<std::mutex> lock(irCacheMutex());
-		// Prune slots whose entries have been freed so the map does not keep
-		// accumulating dead keys as IRs come and go across config reloads.
-		for (auto it = irCache().begin(); it != irCache().end();)
-		{
-			if (it->second.expired())
-				it = irCache().erase(it);
-			else
-				++it;
-		}
-		// store_or_replace: a concurrent loader may have inserted the same key
-		// (possibly now expired); overwrite with our live weak reference.
-		irCache()[std::move(key)] = entry;
-	}
+	// store-or-replace with expired-slot pruning; a concurrent loader may
+	// have inserted the same key, and the last write wins with a live entry.
+	irCache().store(key, entry);
 	return entry;
 }
 
@@ -219,7 +192,9 @@ HConvSingleArray buildConvolverArray(const std::vector<ConvolverUnitSource>& sou
 	if (sources.empty())
 		return result;
 
-	fftw_make_planner_thread_safe();
+	// Plan creation happens inside hcInitSingle under an
+	// FftwPlanningPolicy::Session (see dsp/FftwPlanningPolicy.h), which
+	// also serializes the parallel prototype initialization below.
 	auto allocated = AlignedMemory::allocateArray<HConvSingle>(sources.size());
 	if (allocated == nullptr)
 	{

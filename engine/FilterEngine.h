@@ -88,10 +88,15 @@ public:
 	bool loadConfig(const std::wstring& customPath = L"");
 	void loadConfigFile(const std::wstring& path);
 	void watchRegistryKey(const std::wstring& key);
+	// Three surfaces: float interleaved (the APO's usual connection format),
+	// float planar (VoicemeeterClient - Voicemeeter hands per-channel pointer
+	// arrays), and double interleaved (the APO's double connection, Benchmark,
+	// the Editor's analysis engine). The double-planar overload was removed in
+	// audit #275 (A7/TD-17): it had no production caller and only a null-path
+	// test, so it claimed support nothing verified.
 	void process(float* output, float* input, unsigned frameCount);
 	void process(float** output, float** input, unsigned frameCount);
 	void process(double* output, double* input, unsigned frameCount);
-	void process(double** output, double** input, unsigned frameCount);
 
 	bool isPreMix() const {return preMix;}
 	bool isCapture() const {return capture;}
@@ -146,12 +151,9 @@ private:
 	using FilterConfigurationPtr = std::unique_ptr<FilterConfiguration, FilterConfigurationDeleter>;
 
 	void addFilters(FilterVector filters);
-	void cleanupConfigurations();
 	static void notificationThread(FilterEngine* engine);
-	bool acquireLoadPermit();
-	void releaseLoadPermit();
 	void finishTransitionIfReady();
-	// The single choreography behind the four public process() overloads;
+	// The single choreography behind the three public process() overloads;
 	// IoTraits carries the per-layout bypass copy and configuration read/write.
 	// Defined and instantiated only in engine/FilterEngine.Process.cpp.
 	template <typename IoTraits, typename SampleType>

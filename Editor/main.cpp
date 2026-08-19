@@ -70,6 +70,7 @@
 #include "services/diagnostics/InstallDiagnostics.h"
 #include "services/update/UpdateSession.h"
 #include "services/update/VelopackBootstrap.h"
+#include "dsp/FftwPlanningPolicy.h"
 #include "version.h"
 #include "helpers/QtAppBootstrap.h"
 #include "Editor/helpers/CrashHandler.h"
@@ -429,7 +430,7 @@ int main(int argc, char* argv[])
 	// in Qt layout code or abort()). This installs an internal lock so every
 	// planner call across all threads is serialised. Must run once, before any
 	// planning and before the analysis thread starts.
-	fftw_make_planner_thread_safe();
+	FftwPlanningPolicy::ensurePlannerThreadSafe();
 
 	// Anchor the Qt plugin search to the executable's directory; shared with
 	// DeviceSelector and UpdateChecker.

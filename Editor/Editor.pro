@@ -420,6 +420,8 @@ HEADERS  += \
 	../filters/GraphicEQFilterFactory.h \
 	../libHybridConv-0.1.1/libHybridConv_eapo.h \
 	../dsp/FftwPlanningPolicy.h \
+	../dsp/SampleConversion.h \
+	../runtime/WeakValueCache.h \
 	../filters/graphicEq/GainCurveIterator.h \
 	guis/GraphicEQFilterGUIScene.h \
 	widgets/FrequencyPlotView.h \

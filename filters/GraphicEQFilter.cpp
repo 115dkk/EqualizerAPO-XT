@@ -32,7 +32,9 @@
 #include <sndfile.h>
 
 #include "services/logging/Logging.h"
+#include "runtime/WeakValueCache.h"
 #include "dsp/FftwRAII.h"
+#include "dsp/FftwPlanningPolicy.h"
 #include "runtime/memory/AlignedMemory.h"
 #include "GraphicEQFilter.h"
 
@@ -81,15 +83,9 @@ namespace
 		}
 	};
 
-	std::mutex& eqIrCacheMutex()
+	WeakValueCache<EqIrCacheKey, const std::vector<double>, EqIrCacheKeyHash>& eqIrCache()
 	{
-		static std::mutex m;
-		return m;
-	}
-
-	std::unordered_map<EqIrCacheKey, std::weak_ptr<const std::vector<double>>, EqIrCacheKeyHash>& eqIrCache()
-	{
-		static std::unordered_map<EqIrCacheKey, std::weak_ptr<const std::vector<double>>, EqIrCacheKeyHash> c;
+		static WeakValueCache<EqIrCacheKey, const std::vector<double>, EqIrCacheKeyHash> c;
 		return c;
 	}
 }
@@ -107,13 +103,7 @@ const std::vector<FilterNode>& GraphicEQFilter::getNodes()
 void GraphicEQFilter::initializeFilters(unsigned frameCount)
 {
 	EqIrCacheKey key{ nodes, static_cast<int>(sampleRate), filterLength };
-	std::shared_ptr<const std::vector<double>> cached;
-	{
-		std::lock_guard<std::mutex> lock(eqIrCacheMutex());
-		auto it = eqIrCache().find(key);
-		if (it != eqIrCache().end())
-			cached = it->second.lock();
-	}
+	std::shared_ptr<const std::vector<double>> cached = eqIrCache().find(key);
 
 	if (!cached)
 	{
@@ -123,11 +113,17 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		auto entry = std::make_shared<std::vector<double>>(filterLength);
 		const size_t fftLength = static_cast<size_t>(filterLength) * 2;
 
-		fftw_make_planner_thread_safe();
 		auto timeData = fftw::allocateComplex(fftLength);
 		auto freqData = fftw::allocateComplex(fftLength);
-		auto planForward = fftw::makeComplexPlan(static_cast<int>(fftLength), timeData.get(), freqData.get(), FFTW_FORWARD);
-		auto planReverse = fftw::makeComplexPlan(static_cast<int>(fftLength), freqData.get(), timeData.get(), FFTW_BACKWARD);
+		fftw::Plan planForward;
+		fftw::Plan planReverse;
+		{
+			// Plan creation happens under the process-wide planning policy
+			// (see dsp/FftwPlanningPolicy.h); flags stay FFTW_ESTIMATE.
+			FftwPlanningPolicy::Session planning;
+			planForward = fftw::makeComplexPlan(static_cast<int>(fftLength), timeData.get(), freqData.get(), FFTW_FORWARD);
+			planReverse = fftw::makeComplexPlan(static_cast<int>(fftLength), freqData.get(), timeData.get(), FFTW_BACKWARD);
+		}
 
 		GainCurveIterator gainIterator(nodes);
 		for (unsigned i = 0; i < filterLength; i++)
@@ -162,17 +158,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		for (unsigned i = 0; i < filterLength; i++)
 			(*entry)[i] = timeData.get()[i][0];
 
-		{
-			std::lock_guard<std::mutex> lock(eqIrCacheMutex());
-			for (auto it = eqIrCache().begin(); it != eqIrCache().end();)
-			{
-				if (it->second.expired())
-					it = eqIrCache().erase(it);
-				else
-					++it;
-			}
-			eqIrCache()[std::move(key)] = entry;
-		}
+		eqIrCache().store(key, entry);
 		cached = entry;
 	}
 	synthesizedIr = cached;

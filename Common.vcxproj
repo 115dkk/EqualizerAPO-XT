@@ -359,6 +359,7 @@
     <ClInclude Include="audio\ChannelLayout.h" />
     <ClInclude Include="platform\windows\ComBoundary.h" />
     <ClInclude Include="platform\windows\ComPtr.h" />
+    <ClInclude Include="dsp\SampleConversion.h" />
     <ClInclude Include="dsp\MxcsrGuard.h" />
     <ClInclude Include="platform\windows\Win32Event.h" />
     <ClInclude Include="platform\windows\WindowsPath.h" />
@@ -378,6 +379,7 @@
     <ClInclude Include="dsp\FftwRAII.h" />
     <ClInclude Include="dsp\FftwPlanningPolicy.h" />
     <ClInclude Include="runtime\memory\AlignedMemory.h" />
+    <ClInclude Include="runtime\WeakValueCache.h" />
     <ClInclude Include="runtime\concurrency\ParallelExecutor.h" />
     <ClInclude Include="platform\windows\Win32Resource.h" />
     <ClInclude Include="platform\windows\GuidText.h" />

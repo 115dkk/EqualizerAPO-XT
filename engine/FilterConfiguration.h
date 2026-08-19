@@ -79,10 +79,10 @@ public:
 	~FilterConfiguration();
 
 	void read(double* input, unsigned frameCount);
-	void read(double** input, unsigned frameCount);
-	// Fused float32 -> double + deinterleave (or planar copy) directly into the
-	// internal planar storage. Used by the APO when the connection is float32,
-	// avoiding an intermediate conversion buffer.
+	// Fused float32 -> double + deinterleave (or planar copy) directly into
+	// the internal planar storage. The interleaved variant serves the APO's
+	// float32 connection; the planar variant serves VoicemeeterClient. The
+	// double-planar read was removed in audit #275 (A7): no caller.
 	void readFloatInterleaved(const float* input, unsigned frameCount);
 	void readFloatPlanar(const float* const* input, unsigned frameCount);
 	void process(unsigned frameCount);
@@ -92,9 +92,8 @@ public:
 	// std::cos call inside the audio hot path.
 	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength, const double* factorTable);
 	void write(double* output, unsigned frameCount);
-	void write(double** output, unsigned frameCount);
-	// Fused double -> float32 + interleave (or planar copy) directly from the
-	// internal planar storage. Mirrors the readFloat variants.
+	// Fused double -> float32 + interleave (or planar copy) directly from
+	// the internal planar storage. Mirrors the readFloat variants.
 	void writeFloatInterleaved(float* output, unsigned frameCount);
 	void writeFloatPlanar(float* const* output, unsigned frameCount);
 	double** getOutputSamples() {return allSamples.data();}

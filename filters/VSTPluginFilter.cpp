@@ -23,6 +23,7 @@
 #include <limits>
 #include <new>
 #include "services/logging/Logging.h"
+#include "dsp/SampleConversion.h"
 #include "VSTPluginFilter.h"
 
 using std::max;
@@ -416,10 +417,6 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 }
 
 #pragma AVRT_CODE_BEGIN
-void convertFloatToDouble(double* dest, const float* src, size_t count);
-
-// Converts a block of doubles back to floats.
-void convertDoubleToFloat(float* dest, const double* src, size_t count);
 
 void VSTPluginFilter::process(double** output, double** input, unsigned frameCount)
 {
@@ -474,7 +471,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				// Convert input from double** to float** using pre-allocated buffers
 				for (unsigned j = 0; j < effectInputCount; j++)
 				{
-					convertDoubleToFloat(floatInputs[j], inputArray[j], frameCount);
+					sampleconv::demote(floatInputs[j], inputArray[j], frameCount);
 				}
 
 				if (effect->canReplacing())
@@ -492,7 +489,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				// Convert output from float** back to double** into the final destination
 				for (unsigned j = 0; j < effectOutputCount; j++)
 				{
-					convertFloatToDouble(outputArray[j], floatOutputs[j], frameCount);
+					sampleconv::promote(outputArray[j], floatOutputs[j], frameCount);
 				}
 			}
 

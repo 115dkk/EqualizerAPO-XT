@@ -51,8 +51,6 @@ MultiConvolutionFilter::MultiConvolutionFilter(const vector<MultiConvolutionComm
 	this->mappings = mappings;
 	this->filename = filename;
 	sampleRate = 0.0f;
-	filterFrameCount = 0;
-	frameCountMismatchLogged = false;
 	unitCount = 0;
 }
 
@@ -66,7 +64,6 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	cleanup();
 
 	this->sampleRate = sampleRate;
-	filterFrameCount = 0;
 
 	// Resolve every mapping's output slot and input channel first: the targets
 	// are declared regardless of whether the IR loads, so a bad path degrades to
@@ -173,7 +170,7 @@ vector<wstring> MultiConvolutionFilter::initialize(float sampleRate, unsigned ma
 	if (filters == nullptr)
 		return outChannelNames;
 	unitCount = next;
-	filterFrameCount = maxFrameCount;
+	muteState.arm(maxFrameCount);
 
 	return outChannelNames;
 }
@@ -185,19 +182,18 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 	if (frameCount == 0)
 		return;
 
-	if (filters != nullptr && frameCount != filterFrameCount)
+	if (filters != nullptr && muteState.shouldMute(frameCount))
 	{
-		// No logging here. Logging opens, writes and closes %TEMP%\EqualizerAPO.log
-		// for every line, and this branch fires exactly when the stream can least
-		// afford blocking I/O on the audio thread. cleanup() writes the same line.
-		muteDiagnostics.recordMute(frameCount, frameCountMismatchLogged);
+		// The deferred report is written by cleanup() through
+		// muteState.finishAndReport(); nothing is logged on the audio thread.
+		muteState.recordMute(muteDiagnostics, frameCount);
 	}
 
 	// libHybridConv fixes its block length at hcInitSingle time, so a block of
 	// any other size cannot be fed to the convolver; without a usable IR there
 	// is nothing to feed at all. Either way every mapping target still gets
 	// written (silence), never left uninitialized.
-	const bool usable = filters != nullptr && frameCount == filterFrameCount;
+	const bool usable = filters != nullptr && !muteState.shouldMute(frameCount);
 
 	for (const MappingPlan& plan : plans)
 	{
@@ -232,14 +228,9 @@ void MultiConvolutionFilter::process(double** output, double** input, unsigned f
 
 void MultiConvolutionFilter::cleanup()
 {
-	// Deferred report of the mute path that process() took on the audio thread.
-	// It runs before the members are cleared so the initialized block size is
-	// still available.
-	if (frameCountMismatchLogged)
-		LogF(kConvolverMuteReportFormat, kFrameCountMismatchLogPrefix,
-			muteDiagnostics.firstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
-			muteDiagnostics.muteCallCount.load(std::memory_order_relaxed));
-	frameCountMismatchLogged = false;
+	// Deferred report of the mute path that process() took on the audio
+	// thread; finishAndReport also disarms, so teardown order below is free.
+	muteState.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 
 	// HConvSingleArray::reset() runs the close-then-free sequence.
 	filters = nullptr;
@@ -250,5 +241,4 @@ void MultiConvolutionFilter::cleanup()
 	unitFactors.clear();
 	plans.clear();
 	tempBuffer.clear();
-	filterFrameCount = 0;
 }
