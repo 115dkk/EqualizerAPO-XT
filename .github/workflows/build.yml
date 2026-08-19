@@ -429,204 +429,76 @@ jobs:
 
     # The VSTPlugin store()/parse round-trip self-test: opening and saving a
     # line must never lose chunk data, parameters or the bus contract.
+    # The six Editor offscreen gates share one headless preamble (velopack
+    # SONAME copy, dependency PATH, QT_QPA offscreen setup with the platform-
+    # plugin search pointed at the full Qt install, stderr capture for a
+    # GUI-subsystem binary). It lived as six inline YAML copies; it now lives
+    # once in .github/scripts/Invoke-EditorOffscreenTest.ps1 (audit #275
+    # D6/TD-24), with -PlanOnly Pester coverage. Primary avx2 variant only:
+    # the gates exercise QSS/QPainter/widget behavior, which does not vary by
+    # SIMD variant.
+    #
+    # Gate notes (history lives with each gate's entry in the script):
+    # - skin-gallery publishes the judging material for the skin program
+    #   (issues #66-#68) and hard-fails on an empty run.
+    # - skin-switch replays MainWindow::skinSelected's exact sequence over a
+    #   100+ row config; both regression classes it guards (switch crashes,
+    #   seconds-per-switch repolish storms) have shipped before.
+    # - analysis-layout reproduces the right-dock placement at 1024x768 and
+    #   the bottom/back relayout.
+    # - card-move keeps the drag-move on the incremental splice path (a full
+    #   rebuild costs 1.4-1.6 s per move on this runner and fails the gate).
+    # - card-selection pins pointer-selection chrome across skins.
     - name: Run VST Editor self-test (offscreen)
       if: matrix.simd_variant == 'avx2'
       timeout-minutes: 3
       shell: pwsh
       run: |
-        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll" `
-          -Destination "build-Editor-x64\release\velopack_libc.dll" -Force
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
-        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
-        $env:QT_QPA_PLATFORM = "offscreen"
-        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
-          -ArgumentList @("--selftest-vst") -PassThru -Wait -NoNewWindow
-        if ($proc.ExitCode -ne 0) {
-          Write-Error "VST Editor self-test failed (exit code $($proc.ExitCode))"
-          exit 1
-        }
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate selftest-vst
 
-    # Offscreen skin gallery: proves the Editor renders every skin headless and
-    # publishes the judging material for the skin program (issues #66-#68).
-    # Primary avx2 variant only: the gallery is QSS/QPainter output and does
-    # not vary by SIMD variant.
+    # A hard step timeout on every gate: if the Editor ever blocks on a
+    # fatal-error dialog again, the job must fail in minutes, not hang for
+    # hours.
     - name: Run skin gallery (offscreen)
       if: matrix.simd_variant == 'avx2'
-      # A hard step timeout: if the Editor ever blocks on a fatal-error dialog
-      # again, the job must fail in minutes instead of hanging for hours.
       timeout-minutes: 10
       shell: pwsh
       run: |
-        # The import lib embeds the SONAME velopack_libc.dll (see the Package
-        # binaries step); the gallery runs from the build dir, so the renamed
-        # DLL must sit next to Editor.exe here too.
-        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll" `
-          -Destination "build-Editor-x64\release\velopack_libc.dll" -Force
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate skin-gallery -Platform "${{ matrix.platform }}"
 
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
-        # windeployqt deployed only the qwindows platform plugin next to
-        # Editor.exe, and the deployed Qt6Core.dll in the app dir wins the DLL
-        # search, which limits plugin resolution to the deployed set - the
-        # offscreen plugin then fails to load and Qt parks a fatal-error dialog
-        # forever on the headless runner. Point the platform-plugin search at
-        # the full Qt install instead (verified: without this the gallery
-        # hangs; with it, all 120 PNGs render).
-        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
-        $env:QT_QPA_PLATFORM = "offscreen"
-        # Deterministic VST bus scenes against the actually loaded ABI: the
-        # solution's test plugins provide accepted / auto / rejected VST3
-        # states and the VST2 stale-keys warning. A copy named Upmixer.vst3
-        # flips TestVst3Plugin into its Stereo -> 7.1 mode (filename-driven),
-        # which is the asymmetric accepted scene.
-        $env:EAPO_GALLERY_VST3_PLUGIN = "${{ github.workspace }}\Tests\TestVst3Plugin\${{ matrix.platform }}\Release\TestVst3Plugin.vst3"
-        $env:EAPO_GALLERY_VST2_PLUGIN = "${{ github.workspace }}\Tests\TestVst2Plugin\${{ matrix.platform }}\Release\TestVst2Plugin.dll"
-        $env:EAPO_GALLERY_VST3_UPMIXER = "$env:RUNNER_TEMP\Upmixer.vst3"
-        foreach ($fixture in @($env:EAPO_GALLERY_VST3_PLUGIN, $env:EAPO_GALLERY_VST2_PLUGIN)) {
-          if (-not (Test-Path $fixture)) {
-            Write-Error "VST gallery fixture not found: $fixture"
-            exit 1
-          }
-        }
-        Copy-Item $env:EAPO_GALLERY_VST3_PLUGIN -Destination $env:EAPO_GALLERY_VST3_UPMIXER -Force
-        $outDir = "${{ github.workspace }}\skin-gallery"
-        # Editor.exe is a GUI-subsystem binary; Start-Process -Wait is the
-        # reliable way to collect its exit code from PowerShell.
-        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
-          -ArgumentList @("--skin-gallery", $outDir) -PassThru -Wait -NoNewWindow
-        if ($proc.ExitCode -ne 0) {
-          Write-Error "Skin gallery failed (exit code $($proc.ExitCode))"
-          exit 1
-        }
-        $pngs = @(Get-ChildItem $outDir -Filter *.png)
-        Write-Host "Gallery wrote $($pngs.Count) PNGs"
-        # SkinGallery self-checks the shot count (skins x 2 modes x (rows x 3 +
-        # fixed chrome)) and exits non-zero on any mismatch, so the exit-code
-        # check above already catches a missing or extra shot. Adding a gallery
-        # row no longer needs a hard-coded count here; just guard against an
-        # empty run.
-        if ($pngs.Count -lt 1) {
-          Write-Error "Gallery produced no PNGs"
-          exit 1
-        }
-
-    # Live skin-switch robustness gate: replays MainWindow::skinSelected's
-    # exact sequence (clearRows -> applySkin -> palette -> updateGuis) over a
-    # 100+ row synthetic config, 3 rounds x 5 skins x 2 modes. Fails on a
-    # crash, a wrong resulting skin id, or a switch slower than the in-test
-    # ceiling - both regression classes (switch crashes, seconds-per-switch
-    # repolish storms) have shipped before. avx2 only, like the gallery: the
-    # switch path does not vary by SIMD variant.
     - name: Run skin switch test (offscreen)
       if: matrix.simd_variant == 'avx2'
       timeout-minutes: 10
       shell: pwsh
       run: |
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
-        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
-        $env:QT_QPA_PLATFORM = "offscreen"
-        # GUI-subsystem exe: qWarning only reaches redirected stderr with this set
-        $env:QT_FORCE_STDERR_LOGGING = "1"
-        # Keep the measured 100+ row card rebuild within a useful regression
-        # budget. The historical default (8 s) was a crash-storm guard; after
-        # the construct-in-place/no-repolish startup work the same rebuild
-        # runs in well under half the previous 4 s budget.
-        $env:EAPO_SWITCH_WARN_MS = "2500"
-        $env:EAPO_SWITCH_LIMIT_MS = "5000"
-        $log = "${{ github.workspace }}\skin-switch-test.log"
-        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
-          -ArgumentList @("--skin-switch-test") -PassThru -Wait -NoNewWindow `
-          -RedirectStandardError $log
-        if (Test-Path $log) { Get-Content $log | Write-Host }
-        if ($proc.ExitCode -ne 0) {
-          Write-Error "Skin switch test failed (exit code $($proc.ExitCode))"
-          exit 1
-        }
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate skin-switch
 
-    # Analysis dock layout gate: reproduces the right-side placement at the
-    # Editor's 1024x768 default, checks that the filter workspace keeps a
-    # usable majority, the controls fill the dock, and moving back to the
-    # bottom restores the compact horizontal control cell.
     - name: Run analysis dock layout test (offscreen)
       if: matrix.simd_variant == 'avx2'
       timeout-minutes: 5
       shell: pwsh
       run: |
-        Copy-Item "${{ github.workspace }}\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll" `
-          -Destination "build-Editor-x64\release\velopack_libc.dll" -Force
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
-        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
-        $env:QT_QPA_PLATFORM = "offscreen"
-        $env:QT_FORCE_STDERR_LOGGING = "1"
-        $outDir = "${{ github.workspace }}\analysis-layout"
-        New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-        $shot = Join-Path $outDir "right-dock.png"
-        $log = Join-Path $outDir "analysis-layout-test.log"
-        $fixture = "${{ github.workspace }}\Setup\config\config.txt"
-        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
-          -ArgumentList @("--analysis-layout-test", $shot, $fixture) `
-          -PassThru -Wait -NoNewWindow -RedirectStandardError $log
-        if (Test-Path $log) { Get-Content $log | Write-Host }
-        if ($proc.ExitCode -ne 0) {
-          Write-Error "Analysis dock layout test failed (exit code $($proc.ExitCode))"
-          exit 1
-        }
-        if (-not (Test-Path $shot)) {
-          Write-Error "Analysis dock layout test produced no screenshot"
-          exit 1
-        }
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate analysis-layout
 
-    # Card drag-move latency gate: one card moved down and back up on a 100+
-    # row document, per skin x mode. Field report: a single card move cost
-    # 5-6 s on a 12600K because the internal drag-move rebuilt every card
-    # row; the incremental splice moves in 24-82 ms locally and well under
-    # the warning here. The limit sits below the measured full-rebuild cost
-    # on this runner (1.4-1.6 s per move), so a return to the rebuild fails
-    # the gate while leaving the incremental path 6x headroom for slow days.
     - name: Run card move test (offscreen)
       if: matrix.simd_variant == 'avx2'
       timeout-minutes: 10
       shell: pwsh
       run: |
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
-        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
-        $env:QT_QPA_PLATFORM = "offscreen"
-        # GUI-subsystem exe: qWarning only reaches redirected stderr with this set
-        $env:QT_FORCE_STDERR_LOGGING = "1"
-        $env:EAPO_MOVE_WARN_MS = "250"
-        $env:EAPO_MOVE_LIMIT_MS = "1000"
-        $log = "${{ github.workspace }}\card-move-test.log"
-        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
-          -ArgumentList @("--card-move-test") -PassThru -Wait -NoNewWindow `
-          -RedirectStandardError $log
-        if (Test-Path $log) { Get-Content $log | Write-Host }
-        if ($proc.ExitCode -ne 0) {
-          Write-Error "Card move test failed (exit code $($proc.ExitCode))"
-          exit 1
-        }
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate card-move
 
-    # Card pointer-selection gate: ordinary header clicks and clicks consumed
-    # by an in-card editor control must both leave one model selection, one
-    # focused item, and exactly one matching card chrome across every skin.
     - name: Run card selection test (offscreen)
       if: matrix.simd_variant == 'avx2'
       timeout-minutes: 5
       shell: pwsh
       run: |
-        $env:PATH = "$env:FFTW_LIB;$env:LIBSNDFILE_LIB;$env:QT_ROOT\bin;$env:PATH"
-        $env:QT_QPA_PLATFORM_PLUGIN_PATH = "$env:QT_ROOT\plugins\platforms"
-        $env:QT_QPA_PLATFORM = "offscreen"
-        $env:QT_FORCE_STDERR_LOGGING = "1"
-        $outDir = "${{ github.workspace }}\card-selection"
-        New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-        $log = Join-Path $outDir "card-selection-test.log"
-        $proc = Start-Process -FilePath "build-Editor-x64\release\Editor.exe" `
-          -ArgumentList @("--card-selection-test", $outDir) `
-          -PassThru -Wait -NoNewWindow -RedirectStandardError $log
-        if (Test-Path $log) { Get-Content $log | Write-Host }
-        if ($proc.ExitCode -ne 0) {
-          Write-Error "Card selection test failed (exit code $($proc.ExitCode))"
-          exit 1
-        }
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate card-selection
 
     - name: Upload skin gallery
       if: matrix.simd_variant == 'avx2'
@@ -1016,38 +888,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        $ErrorActionPreference = "Stop"
-        $tag = "${{ steps.version.outputs.tag }}"
-        $repo = "${{ github.repository }}"
-
-        $assetNames = @(gh release view $tag --repo $repo --json assets --jq '.assets[].name' |
-            Where-Object { $_ -match '-Setup\.exe$' })
-        if ($assetNames.Count -eq 0) {
-          throw "No setup executables found on release $tag; nothing to checksum."
-        }
-
-        $downloadDir = Join-Path "${{ github.workspace }}" "checksum-input"
-        New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
-
-        $lines = @()
-        foreach ($name in ($assetNames | Sort-Object)) {
-          gh release download $tag --repo $repo --pattern $name --dir $downloadDir --clobber
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to download release asset $name for checksumming"
-          }
-          $hash = (Get-FileHash -Path (Join-Path $downloadDir $name) -Algorithm SHA256).Hash.ToLowerInvariant()
-          $lines += "$hash  $name"
-          Write-Host "$hash  $name"
-        }
-
-        # sha256sum-compatible format: <lowercase-hex>, two spaces, <name>, LF.
-        $sumsPath = Join-Path "${{ github.workspace }}" "SHA256SUMS.txt"
-        [System.IO.File]::WriteAllText($sumsPath, (($lines -join "`n") + "`n"))
-
-        gh release upload $tag $sumsPath --clobber --repo $repo
-        if ($LASTEXITCODE -ne 0) {
-          exit $LASTEXITCODE
-        }
+        .\.github\scripts\New-ReleaseChecksums.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "${{ steps.version.outputs.tag }}" `
+          -WorkspaceRoot "${{ github.workspace }}"
 
     - name: Write release notes
       if: steps.version.outputs.needs_notes == 'true'
