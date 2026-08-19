@@ -173,6 +173,9 @@ int main(int argc, char** argv)
 		testAutoInstallerAssetGrammar();
 		testAutoInstallerChecksumParsing();
 		testAutoInstallerFlagScan();
+		testInstallerUiModelStepTransitions();
+		testInstallerUiModelFormatting();
+		testInstallerUiModelChannelDescriptions();
 
 		harness.report();
 		return EXIT_SUCCESS;

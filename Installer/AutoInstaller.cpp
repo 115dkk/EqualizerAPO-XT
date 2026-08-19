@@ -32,16 +32,20 @@
 #include <windows.h>
 #include <winhttp.h>
 #include <bcrypt.h>      // BCrypt* SHA-256 hashing (CNG)
-#include <shlobj.h>      // IProgressDialog
 #include <shellapi.h>    // CommandLineToArgvW
 #include <intrin.h>      // __cpuid, __cpuidex, _xgetbv
+#include <cstdlib>       // _wcstoui64 (Content-Length)
+#include <functional>
 #include <string>
+#include <thread>
 
 #include "../platform/windows/ComPtr.h"
 #include "../release/ReleaseAssetNames.h"
 #include "../platform/windows/Win32Resource.h"
 #include "../version.h"
 #include "AutoInstallerLogic.h"
+#include "InstallerUiModel.h"
+#include "InstallerWindow.h"
 
 // The decision logic (channel mapping, asset grammar, checksum parsing, flag
 // scan) lives in AutoInstallerLogic so EditorLogicTests can compile it; this
@@ -176,16 +180,30 @@ std::wstring tempFilePath(const std::wstring& fileName)
     return std::wstring(dir) + fileName;
 }
 
+enum class DownloadOutcome
+{
+    Ok,
+    Failed,
+    Canceled
+};
+
 // Download github.com<path> to outFile over HTTPS. WinHTTP follows GitHub's
 // redirect to the objects CDN automatically (https->https, allowed by the
-// default redirect policy). Returns true on HTTP 200 + complete write.
-bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::wstring& error)
+// default redirect policy). progress, when set, is called per received chunk
+// with (bytesSoFar, totalBytes) - totalBytes is 0 when the server sent no
+// Content-Length - and cancels the download by returning false. Returns Ok
+// on HTTP 200 + complete write.
+DownloadOutcome downloadToFile(const std::wstring& path, const std::wstring& outFile,
+    std::wstring& error,
+    const std::function<bool(unsigned long long, unsigned long long)>& progress = {})
 {
-    bool ok = false;
+    DownloadOutcome outcome = DownloadOutcome::Failed;
     winutil::UniqueWinHttpHandle session;
     winutil::UniqueWinHttpHandle connect;
     winutil::UniqueWinHttpHandle request;
     winutil::UniqueHandle file;
+    unsigned long long totalBytes = 0;
+    unsigned long long receivedBytes = 0;
 
     session.reset(WinHttpOpen(kUserAgent, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
         WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
@@ -194,6 +212,11 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
         error = L"Could not initialise WinHTTP.";
         goto cleanup;
     }
+
+    // Bound every blocking phase: with the window's close button acting as a
+    // cancel, the worker must never sit in a system default (potentially
+    // multi-minute) wait after the user already gave up.
+    WinHttpSetTimeouts(session.get(), 15000, 15000, 30000, 30000);
 
     connect.reset(WinHttpConnect(session.get(), L"github.com", INTERNET_DEFAULT_HTTPS_PORT, 0));
     if (!connect)
@@ -232,6 +255,16 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
         }
     }
 
+    {
+        wchar_t lengthText[32] = {};
+        DWORD lengthSize = sizeof(lengthText);
+        if (WinHttpQueryHeaders(request.get(), WINHTTP_QUERY_CONTENT_LENGTH,
+                WINHTTP_HEADER_NAME_BY_INDEX, lengthText, &lengthSize, WINHTTP_NO_HEADER_INDEX))
+        {
+            totalBytes = _wcstoui64(lengthText, nullptr, 10);
+        }
+    }
+
     file.reset(CreateFileW(outFile.c_str(), GENERIC_WRITE, 0, nullptr,
         CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
     if (!file)
@@ -266,18 +299,27 @@ bool downloadToFile(const std::wstring& path, const std::wstring& outFile, std::
             error = L"Could not write the downloaded installer to disk.";
             goto cleanup;
         }
+
+        receivedBytes += read;
+        if (progress && !progress(receivedBytes, totalBytes))
+        {
+            outcome = DownloadOutcome::Canceled;
+            goto cleanup;
+        }
     }
 
-    ok = true;
+    if (progress)
+        progress(receivedBytes, totalBytes);
+    outcome = DownloadOutcome::Ok;
 
 cleanup:
     {
-        const bool removePartialFile = !ok && static_cast<bool>(file);
+        const bool removePartialFile = outcome != DownloadOutcome::Ok && static_cast<bool>(file);
         file.reset();
         if (removePartialFile)
             DeleteFileW(outFile.c_str());
     }
-    return ok;
+    return outcome;
 }
 
 // Compute the SHA-256 of a file as lowercase hex using CNG. The file is
@@ -380,14 +422,16 @@ bool readSmallFile(const std::wstring& path, std::string& outData)
 
 // Verify the downloaded installer against the SHA256SUMS.txt asset that CI
 // publishes to the same release. Returns true only when the checksums file
-// downloads, lists the installer, and the SHA-256 matches.
+// downloads, lists the installer, and the SHA-256 matches. outActualHash,
+// when set, receives the computed digest so the window can show it.
 bool verifySetupChecksum(const std::wstring& setupFile, const std::wstring& setupName,
-    std::wstring& error)
+    std::wstring& error, std::wstring* outActualHash = nullptr)
 {
     const std::wstring sumsFile = tempFilePath(kChecksumsAssetName);
 
     std::wstring downloadError;
-    if (!downloadToFile(latestAssetPath(kChecksumsAssetName), sumsFile, downloadError))
+    if (downloadToFile(latestAssetPath(kChecksumsAssetName), sumsFile, downloadError)
+        != DownloadOutcome::Ok)
     {
         error = L"The integrity checksums file could not be downloaded from the release page."
             L" If a release was published only moments ago it may still be uploading;"
@@ -414,6 +458,8 @@ bool verifySetupChecksum(const std::wstring& setupFile, const std::wstring& setu
     std::wstring actual;
     if (!sha256OfFile(setupFile, actual, error))
         return false;
+    if (outActualHash != nullptr)
+        *outActualHash = actual;
 
     if (actual != expected)
     {
@@ -479,6 +525,20 @@ void writeTextFile(const wchar_t* path, const std::wstring& text)
     }
 }
 
+// Mark the verified download as coming from the internet - the same
+// Zone.Identifier stream a browser writes. Defender's behavior heuristics
+// read launching an untagged, freshly downloaded executable as dropper
+// behavior, and the tag lets SmartScreen judge the child on its own record
+// instead of silently inheriting this process's. Best effort: alternate
+// streams do not exist on FAT volumes.
+void tagAsInternetDownload(const std::wstring& path, const std::wstring& sourceUrl)
+{
+    const std::wstring streamPath = path + L":Zone.Identifier";
+    const std::wstring text = std::wstring(L"[ZoneTransfer]\r\nZoneId=3\r\nReferrerUrl=") +
+        kReleasesPage + L"\r\nHostUrl=" + sourceUrl + L"\r\n";
+    writeTextFile(streamPath.c_str(), text);
+}
+
 // Print the detection result for --detect-only. Try the parent console first
 // (so it works from a shell), then fall back to a message box and an optional
 // --out file. Returns the channel index for use as the process exit code.
@@ -509,92 +569,176 @@ int reportDetection(const std::wstring& channel, const std::wstring& url,
 
     return index;
 }
+
+// Runs detect -> download -> verify -> launch, reporting into the window
+// when one is attached. ui == nullptr with silent == false is the fallback
+// for a failed window creation: the flow then reports errors the pre-window
+// way, through message boxes. Silent mode is fully headless - errors only
+// reach the exit code, so an unattended install can never block on a dialog.
+int runInstallFlow(InstallerUi::InstallerWindow* ui, bool silent)
+{
+    using namespace InstallerUi;
+    const bool useMessageBoxes = (ui == nullptr && !silent);
+
+    const auto fail = [ui, useMessageBoxes](int step, int exitCode, const std::wstring& text)
+    {
+        if (ui != nullptr)
+        {
+            ui->update([step, text](Model& model) { failStep(model, step, text); });
+            ui->finish(exitCode, 0);
+        }
+        else if (useMessageBoxes)
+        {
+            const std::wstring message = text +
+                L"\n\nYou can download a build manually from:\n" + kReleasesPage;
+            MessageBoxW(nullptr, message.c_str(),
+                L"EqualizerAPO-XT - install failed", MB_OK | MB_ICONERROR);
+        }
+        return exitCode;
+    };
+
+    if (ui != nullptr)
+    {
+        ui->update([](Model& model)
+        {
+            startStep(model, kStepDetect, L"Reading CPUID and the OS-enabled register state");
+        });
+    }
+    int index = kAvx2;
+    const std::wstring channel = detectChannel(&index);
+    if (ui != nullptr)
+    {
+        const std::wstring detected = describeChannel(channel) + L" \u2014 " + channel + L" build";
+        ui->update([detected](Model& model) { finishStep(model, kStepDetect, detected); });
+    }
+
+    const std::wstring setupName = assetName(channel);
+    const std::wstring outFile = tempFilePath(setupName);
+    if (outFile.empty())
+        return fail(kStepDownload, kExitDownloadFailed,
+            L"No temporary directory is available for the download.");
+
+    if (ui != nullptr)
+        ui->update([](Model& model) { startStep(model, kStepDownload, L"Connecting to github.com"); });
+
+    unsigned long long downloadedTotal = 0;
+    unsigned long long lastPostedBytes = 0;
+    const auto progress = [ui, &downloadedTotal, &lastPostedBytes](
+        unsigned long long received, unsigned long long total)
+    {
+        downloadedTotal = received;
+        if (ui == nullptr)
+            return true;
+        if (ui->isCancelRequested())
+            return false;
+        // Post at most every 512 KiB (plus the final chunk) so a fast
+        // connection cannot flood the message queue.
+        if (received - lastPostedBytes < 512 * 1024 && !(total != 0 && received >= total))
+            return true;
+        lastPostedBytes = received;
+        ui->update([received, total](Model& model)
+        {
+            model.downloadedBytes = received;
+            model.totalBytes = total;
+            model.details[kStepDownload] = formatDownloadDetail(received, total);
+        });
+        return true;
+    };
+
+    std::wstring error;
+    const DownloadOutcome downloaded = downloadToFile(assetPath(channel), outFile, error, progress);
+    if (downloaded == DownloadOutcome::Canceled)
+    {
+        if (ui != nullptr)
+            ui->finish(kExitCanceled, 0);
+        return kExitCanceled;
+    }
+    if (downloaded != DownloadOutcome::Ok)
+        return fail(kStepDownload, kExitDownloadFailed, error);
+
+    if (ui != nullptr)
+    {
+        const std::wstring downloadedText = formatByteSize(downloadedTotal) + L" downloaded";
+        ui->update([downloadedText](Model& model)
+        {
+            finishStep(model, kStepDownload, downloadedText);
+            startStep(model, kStepVerify, L"Computing SHA-256 and matching the release checksums");
+        });
+    }
+
+    // Check the download against the release's SHA256SUMS.txt before anything
+    // is executed. A failed or impossible verification discards the download.
+    std::wstring actualHash;
+    if (!verifySetupChecksum(outFile, setupName, error, &actualHash))
+    {
+        DeleteFileW(outFile.c_str());
+        return fail(kStepVerify, kExitVerifyFailed, error);
+    }
+    if (ui != nullptr)
+    {
+        const std::wstring verifiedText =
+            L"SHA-256 matches the published checksum (" + shortHash(actualHash) + L")";
+        ui->update([verifiedText](Model& model) { finishStep(model, kStepVerify, verifiedText); });
+    }
+
+    // Only a verified file is tagged and launched.
+    tagAsInternetDownload(outFile, downloadUrl(channel));
+
+    if (ui != nullptr)
+        ui->update([](Model& model) { startStep(model, kStepLaunch, L"Handing off to the Velopack installer"); });
+    DWORD setupExit = 0;
+    if (!launchSetup(outFile, silent, setupExit))
+        return fail(kStepLaunch, kExitLaunchFailed,
+            L"The downloaded installer could not be started.");
+    if (silent)
+        return static_cast<int>(setupExit);
+
+    if (ui != nullptr)
+    {
+        ui->update([](Model& model)
+        {
+            finishStep(model, kStepLaunch, L"Velopack installer started \u2014 this window closes itself");
+            model.completed = true;
+        });
+        ui->finish(kExitSuccess, 1500);
+    }
+    return kExitSuccess;
+}
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int)
 {
     int argc = 0;
     winutil::UniqueLocalPtr<wchar_t*> argv(CommandLineToArgvW(GetCommandLineW(), &argc));
     const bool detectOnly = argv && hasFlag(argc, argv.get(), L"--detect-only");
     const bool silent = argv && hasFlag(argc, argv.get(), L"--silent");
     const wchar_t* outPath = argv ? flagValue(argc, argv.get(), L"--out") : nullptr;
-
-    int index = kAvx2;
-    const std::wstring channel = detectChannel(&index);
-    const std::wstring url = downloadUrl(channel);
+    const wchar_t* uiShotDir = argv ? flagValue(argc, argv.get(), L"--ui-shot") : nullptr;
 
     if (detectOnly)
-        return reportDetection(channel, url, outPath, index);
+    {
+        int index = kAvx2;
+        const std::wstring channel = detectChannel(&index);
+        return reportDetection(channel, downloadUrl(channel), outPath, index);
+    }
 
+    // COM is for WIC (--ui-shot) and shell handoffs; the install flow itself
+    // no longer needs it.
     winutil::ComApartment apartment(COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-    // A marquee shell progress dialog covers the detect+download gap so the user
-    // is not left staring at nothing before Velopack's installer appears.
-    winutil::ComPtr<IProgressDialog> progress;
-    if (apartment.isUsable()
-        && SUCCEEDED(CoCreateInstance(CLSID_ProgressDialog, nullptr, CLSCTX_INPROC_SERVER,
-            IID_PPV_ARGS(progress.put()))) && progress)
-    {
-        progress->SetTitle(L"EqualizerAPO-XT");
-        progress->SetLine(1, L"Selecting the best build for your CPU...", FALSE, nullptr);
-        progress->SetLine(2, channel.c_str(), FALSE, nullptr);
-        progress->StartProgressDialog(nullptr, nullptr,
-            PROGDLG_MARQUEEPROGRESS | PROGDLG_NOMINIMIZE | PROGDLG_NOCANCEL, nullptr);
-    }
+    // Renders the window states as PNGs - the review evidence for UI changes.
+    if (uiShotDir != nullptr)
+        return InstallerUi::InstallerWindow::renderShots(uiShotDir) ? 0 : 1;
 
-    const std::wstring outFile = tempFilePath(assetName(channel));
-    std::wstring error;
-    const bool downloaded = downloadToFile(assetPath(channel), outFile, error);
+    if (silent)
+        return runInstallFlow(nullptr, true);
 
-    // Check the download against the release's SHA256SUMS.txt before anything
-    // is executed. A failed or impossible verification discards the download.
-    bool verified = false;
-    if (downloaded)
-    {
-        if (progress)
-            progress->SetLine(1, L"Verifying the downloaded installer...", FALSE, nullptr);
-        verified = verifySetupChecksum(outFile, assetName(channel), error);
-    }
+    InstallerUi::InstallerWindow window;
+    if (!window.create(instance))
+        return runInstallFlow(nullptr, false);
 
-    if (progress)
-    {
-        progress->StopProgressDialog();
-        progress.reset();
-    }
-
-    int result = 0;
-    if (!downloaded)
-    {
-        const std::wstring message = error + L"\n\nYou can download a build manually from:\n" +
-            kReleasesPage;
-        MessageBoxW(nullptr, message.c_str(),
-            L"EqualizerAPO-XT - install failed", MB_OK | MB_ICONERROR);
-        result = 2;
-    }
-    else if (!verified)
-    {
-        DeleteFileW(outFile.c_str());
-        const std::wstring message = error +
-            L"\n\nPlease try again or download a build manually from:\n" + kReleasesPage;
-        MessageBoxW(nullptr, message.c_str(),
-            L"EqualizerAPO-XT - install failed", MB_OK | MB_ICONERROR);
-        result = 4;
-    }
-    else
-    {
-        DWORD setupExit = 0;
-        if (!launchSetup(outFile, silent, setupExit))
-        {
-            MessageBoxW(nullptr,
-                L"The downloaded installer could not be started.",
-                L"EqualizerAPO-XT - install failed", MB_OK | MB_ICONERROR);
-            result = 3;
-        }
-        else if (silent)
-        {
-            result = static_cast<int>(setupExit);
-        }
-    }
-
+    std::thread worker([&window] { runInstallFlow(&window, false); });
+    const int result = window.runMessageLoop();
+    worker.join();
     return result;
 }
