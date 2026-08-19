@@ -765,7 +765,7 @@ bool savePng(IWICImagingFactory* wic, IWICBitmap* bitmap, const std::wstring& pa
 
 struct ShotFixture
 {
-	const wchar_t* name;
+	const wchar_t* name = L"";
 	Model model;
 };
 
