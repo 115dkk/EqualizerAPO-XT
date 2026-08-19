@@ -377,7 +377,7 @@ void VSTPluginInstance::updateVST3ChannelMappings()
 }
 
 bool VSTPluginInstance::buildVST3ChannelMapping(SpeakerArrangement arrangement,
-	const vector<wstring>& channelNames, vector<int>& mapping) const
+	const vector<wstring>& channelNames, vector<int>& mapping)
 {
 	const int channelCount = arrangement != SpeakerArr::kEmpty
 		? SpeakerArr::getChannelCount(arrangement) : 0;
@@ -572,7 +572,7 @@ bool VSTPluginInstance::acceptedVST3BusMetadataIsConsistent() const
 }
 
 bool VSTPluginInstance::arrangementMatchesLayout(SpeakerArrangement arrangement,
-	VST3BusLayout layout) const
+	VST3BusLayout layout)
 {
 	SpeakerArrangement candidates[vst3MaxArrangementCandidates];
 	const int candidateCount = speakerArrangementCandidatesForLayout(layout, 0, {},
@@ -678,7 +678,7 @@ int VSTPluginInstance::semanticSpeakerArrangementCandidatesForChannelNames(
 }
 
 int VSTPluginInstance::speakerArrangementCandidatesForChannelCount(int count,
-	const vector<wstring>& channelNames, SpeakerArrangement* candidates) const
+	const vector<wstring>& channelNames, SpeakerArrangement* candidates)
 {
 	int candidateCount = semanticSpeakerArrangementCandidatesForChannelNames(channelNames, candidates);
 
@@ -721,7 +721,7 @@ int VSTPluginInstance::speakerArrangementCandidatesForChannelCount(int count,
 
 int VSTPluginInstance::speakerArrangementCandidatesForLayout(VST3BusLayout layout,
 	int automaticChannelCount, const vector<wstring>& channelNames,
-	SpeakerArrangement currentArrangement, SpeakerArrangement* candidates) const
+	SpeakerArrangement currentArrangement, SpeakerArrangement* candidates)
 {
 	if (layout == VST3BusLayout::Auto)
 	{
