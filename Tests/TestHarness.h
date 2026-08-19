@@ -72,14 +72,33 @@ public:
 	// destruction where std::exit is not allowed - _Exit is, after a manual
 	// flush. aborting_ keeps an in-flight fail() from tripping the sibling
 	// harnesses that never got their turn to report.
+	//
+	// The zero-check case is a failure too (audit #275 TD-10/D4): the suite
+	// binaries assemble their sub-suites with a hand-maintained
+	// declaration/call list, so a runXxxTests() that is declared, compiled and
+	// linked but never called used to finish green with zero checks. Its
+	// namespace-scope harness still constructs and destructs, which is where
+	// this catches it. Suites that legitimately run nothing (soft skips) call
+	// report(), which keeps them out of this branch.
 	~Harness()
 	{
-		if (failed_ == 0 || reported_ || aborting_)
+		if (reported_ || aborting_)
 			return;
-		std::fprintf(stderr, "%s FAILED (%u of %u checks failed) and never called report()\n",
-			name_.c_str(), failed_, passed_ + failed_);
-		std::fflush(nullptr);
-		std::_Exit(1);
+		if (failed_ != 0)
+		{
+			std::fprintf(stderr, "%s FAILED (%u of %u checks failed) and never called report()\n",
+				name_.c_str(), failed_, passed_ + failed_);
+			std::fflush(nullptr);
+			std::_Exit(1);
+		}
+		if (passed_ == 0)
+		{
+			std::fprintf(stderr, "%s is linked into this binary but ran zero checks and never called report()."
+				" Its runner is probably missing from the suite's main(); a compiled-but-uncalled"
+				" suite must not pass silently.\n", name_.c_str());
+			std::fflush(nullptr);
+			std::_Exit(1);
+		}
 	}
 
 	// Prints the failure to stderr and terminates with exit code 1, matching
@@ -123,6 +142,23 @@ public:
 		{
 			std::ostringstream oss;
 			oss << message << ": expected '" << expected << "', got '" << actual << "'";
+			recordFailure(oss.str());
+			return;
+		}
+		++passed_;
+	}
+
+	// Approximate floating-point equality with an absolute tolerance (audit
+	// #275 D5/TD-23: the suites carried three private variants of this). A
+	// NaN on either side fails, because !(diff <= tolerance) is then true.
+	void expectNear(double actual, double expected, double tolerance, const std::string& message)
+	{
+		const double diff = actual > expected ? actual - expected : expected - actual;
+		if (!(diff <= tolerance))
+		{
+			std::ostringstream oss;
+			oss << message << ": expected '" << expected << "' within " << tolerance
+				<< ", got '" << actual << "'";
 			recordFailure(oss.str());
 			return;
 		}

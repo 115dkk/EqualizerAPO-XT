@@ -145,6 +145,9 @@ int main(int argc, char** argv)
 		testUpdateCoordinatorContainsAdapterFailure();
 		testLegacyMigrationHookAdoptsStableRootThroughThePort();
 		testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
+		testSubwooferRoutingUiStateTracksMutationsAndValidation();
+		testSubwooferRoutingUiStateRejectsUnknownTargets();
+		testSubwooferRoutingUiStateHeadroomModes();
 		testVelopackInstallRootFollowsTheCurrentLeafRule();
 		testElevatedCoordinatorArgumentHasOneSpelling();
 		testTheSkinRosterIsTheOneList();

@@ -268,6 +268,7 @@ SOURCES += main.cpp\
 	widgets/cards/SubwooferRoutingCardEditor.cpp \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.cpp \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.cpp \
+	widgets/subwooferrouting/SubwooferRoutingUiState.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.cpp \
 	widgets/routing/SubwooferRoutingRoutingAdapter.cpp \
 	widgets/cards/SubwooferRoutingCardView.cpp \
@@ -542,6 +543,7 @@ HEADERS  += \
 	widgets/cards/SubwooferRoutingCardEditor.h \
 	widgets/subwooferrouting/SubwooferRoutingEditorDialog.h \
 	widgets/subwooferrouting/SubwooferRoutingResponseView.h \
+	widgets/subwooferrouting/SubwooferRoutingUiState.h \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.h \
 	widgets/routing/SubwooferRoutingRoutingAdapter.h \
 	widgets/cards/SubwooferRoutingCardView.h \

@@ -24,6 +24,7 @@
 #include <audioenginebaseapo.h>
 #include <BaseAudioProcessingObject.h>
 #include "../engine/FilterEngine.h"
+#include "ApoFormat.h"
 
 // Identifies the single, user-configurable processing effect that
 // EqualizerAPO represents. Reported through IAudioSystemEffects2::GetEffectsList
@@ -88,12 +89,9 @@ public:
 	static const CRegAPOProperties<1> regPostMixProperties;
 	static const CRegAPOProperties<1> regPreMixProperties;
 
-	enum class ApoSampleFormat
-	{
-		Unsupported = 0,
-		Float32 = 1,
-		Float64 = 2
-	};
+	// The pure format decisions live in ApoFormat.h (audit #275 A8/TD-28)
+	// so EngineOrchestrationTests can pin them without the COM class.
+	using ApoSampleFormat = apo::SampleFormat;
 
 private:
 	long refCount;

@@ -24,11 +24,12 @@
 
 #include <QObject>
 
-#include "SubwooferRouting/Compiler.h"
-#include "SubwooferRouting/Crossover.h"
-#include "SubwooferRouting/State.h"
-#include "filters/CopyFilter.h"
+#include "SubwooferRoutingUiState.h"
 
+// QObject shell around SubwooferRoutingUiState (audit #275 B3/TD-30): the
+// widgets connect to the two signals here, and every piece of behavior lives
+// in the signal-free core, where EditorLogicTests can reach it (the test
+// project has no moc step, so anything behind Q_OBJECT is outside the seam).
 class SubwooferRoutingUiModel : public QObject
 {
 	Q_OBJECT
@@ -39,53 +40,72 @@ public:
 		unsigned deviceSampleRate,
 		QObject* parent = nullptr);
 
-	const subroute::SubwooferRoutingState& state() const;
-	const subroute::ValidationResult& validation() const;
-	unsigned sampleRate() const;
-	bool isDirty() const;
-	std::optional<double> computedTrimDb() const;
+	const subroute::SubwooferRoutingState& state() const {return core.state();}
+	const subroute::ValidationResult& validation() const {return core.validation();}
+	unsigned sampleRate() const {return core.sampleRate();}
+	bool isDirty() const {return core.isDirty();}
+	std::optional<double> computedTrimDb() const {return core.computedTrimDb();}
 
-	void setSourceLfeGainDb(double gainDb);
-	void setSourceLfePolarity(bool inverted);
-	void setSourceLfeDelayMs(double milliseconds);
-	void setGroupHighPass(
-		const std::string& groupId, double frequencyHz);
-	void setBassPathLowPass(
-		const std::string& pathId, double frequencyHz);
-	// Crossover recipes (BW/LR alignment x order) rewrite the whole section
-	// run; the frequency setters above keep custom chains intact and only
-	// move the corner.
-	void setGroupCrossover(
-		const std::string& groupId,
-		const subroute::CrossoverRecipe& recipe);
-	void setBassPathCrossover(
-		const std::string& pathId,
-		const subroute::CrossoverRecipe& recipe);
-	void setGroupDelayMs(
-		const std::string& groupId, double milliseconds);
-	void setPathDelayMs(
-		const std::string& pathId, double milliseconds);
-	void setPathPolarity(
-		const std::string& pathId, bool inverted);
-	void setHeadroomAuto(bool automatic);
-	void setManualTrimDb(double trimDb);
-	void applyBassSendAssignments(
-		const std::vector<Assignment>& assignments);
-	void applyOutputAssignments(
-		const std::vector<Assignment>& assignments);
-	void replaceState(const subroute::SubwooferRoutingState& state);
+	void setSourceLfeGainDb(double gainDb) {relay(core.setSourceLfeGainDb(gainDb));}
+	void setSourceLfePolarity(bool inverted) {relay(core.setSourceLfePolarity(inverted));}
+	void setSourceLfeDelayMs(double milliseconds) {relay(core.setSourceLfeDelayMs(milliseconds));}
+	void setGroupHighPass(const std::string& groupId, double frequencyHz)
+	{
+		relay(core.setGroupHighPass(groupId, frequencyHz));
+	}
+	void setBassPathLowPass(const std::string& pathId, double frequencyHz)
+	{
+		relay(core.setBassPathLowPass(pathId, frequencyHz));
+	}
+	void setGroupCrossover(const std::string& groupId, const subroute::CrossoverRecipe& recipe)
+	{
+		relay(core.setGroupCrossover(groupId, recipe));
+	}
+	void setBassPathCrossover(const std::string& pathId, const subroute::CrossoverRecipe& recipe)
+	{
+		relay(core.setBassPathCrossover(pathId, recipe));
+	}
+	void setGroupDelayMs(const std::string& groupId, double milliseconds)
+	{
+		relay(core.setGroupDelayMs(groupId, milliseconds));
+	}
+	void setPathDelayMs(const std::string& pathId, double milliseconds)
+	{
+		relay(core.setPathDelayMs(pathId, milliseconds));
+	}
+	void setPathPolarity(const std::string& pathId, bool inverted)
+	{
+		relay(core.setPathPolarity(pathId, inverted));
+	}
+	void setHeadroomAuto(bool automatic) {relay(core.setHeadroomAuto(automatic));}
+	void setManualTrimDb(double trimDb) {relay(core.setManualTrimDb(trimDb));}
+	void applyBassSendAssignments(const std::vector<Assignment>& assignments)
+	{
+		relay(core.applyBassSendAssignments(assignments));
+	}
+	void applyOutputAssignments(const std::vector<Assignment>& assignments)
+	{
+		relay(core.applyOutputAssignments(assignments));
+	}
+	void replaceState(const subroute::SubwooferRoutingState& state)
+	{
+		relay(core.replaceState(state));
+	}
 
 signals:
 	void stateEdited();
 	void validationChanged();
 
 private:
-	void commitMutation();
-	void refreshValidation();
+	// A mutation that changed the core state becomes the signal pair the
+	// widgets listen for; a rejected/no-op mutation stays silent, as before.
+	void relay(bool mutated)
+	{
+		if (!mutated)
+			return;
+		emit stateEdited();
+		emit validationChanged();
+	}
 
-	subroute::SubwooferRoutingState currentState;
-	subroute::ValidationResult currentValidation;
-	unsigned deviceSampleRate = 0;
-	bool dirty = false;
-	std::optional<double> appliedTrimDb;
+	SubwooferRoutingUiState core;
 };
