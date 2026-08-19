@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.37.3 — 2026-08-19
+
 - **"Reset all global preferences" now really resets the analysis dock's
   view choices.** The graph metric (Mag/Phase/GD) and the "include base
   delay" toggle were stored in a stray registry location that the reset
