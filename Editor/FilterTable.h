@@ -80,7 +80,7 @@ public:
 	// keeps compiling unchanged.
 	using Item = FilterListItem;
 
-	explicit FilterTable(MainWindow* mainWindow, QWidget* parent = 0);
+	explicit FilterTable(QWidget* parent = nullptr);
 	~FilterTable();
 	void initialize(QScrollArea* scrollArea, const QList<std::shared_ptr<AbstractAPOInfo>>& outputDevices, const QList<std::shared_ptr<AbstractAPOInfo>>& inputDevices);
 	void updateDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo> selectedDevice, int selectedChannelMask);
@@ -179,6 +179,12 @@ public:
 
 signals:
 	void linesChanged();
+	// The two calls FilterTable used to make through a stored MainWindow*
+	// (audit #275 B6) - the linesChanged shape, applied to the last two
+	// couplings, so the table stands without a MainWindow (offscreen gates,
+	// any future harness).
+	void configOpenRequested(const QString& path);
+	void analysisUpdateRequested();
 
 public slots:
 	void updateModel();
@@ -247,7 +253,6 @@ private:
 	// without recording the replacement as a new undo step.
 	void applyHistoryState(const QList<QString>& lines);
 
-	MainWindow* mainWindow;
 	QScrollArea* scrollArea = nullptr;
 	QGridLayout* gridLayout;
 	QLabel* insertArrow;

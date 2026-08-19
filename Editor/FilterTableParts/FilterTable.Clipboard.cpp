@@ -153,9 +153,7 @@ void FilterTable::addActionTriggered()
 
 void FilterTable::openConfig(QString path)
 {
-	if (mainWindow == nullptr)
-		return;
-	mainWindow->load(path);
+	emit configOpenRequested(path);
 }
 
 void FilterTable::savePreferences()
@@ -204,7 +202,7 @@ void FilterTable::setScrollOffsets(int x, int y)
 
 void FilterTable::updateAnalysis()
 {
-	if (mainWindow != nullptr && isVisible())
-		mainWindow->startAnalysis();
+	if (isVisible())
+		emit analysisUpdateRequested();
 }
 

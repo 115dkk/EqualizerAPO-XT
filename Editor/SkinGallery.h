@@ -17,6 +17,8 @@
 
 #include <QStringList>
 
+class MainWindow;
+
 namespace SkinGallery
 {
 // Entry point behind the Editor's --skin-gallery flag. arguments are the full
@@ -49,4 +51,15 @@ int runCardMoveTest(const QStringList& arguments);
 // the rendered card state, then that clicking an interactive control inside a
 // different card collapses a prior multi-selection onto that card.
 int runCardSelectionTest(const QStringList& arguments);
+
+// Entry point behind --selftest-vst: the VSTPlugin store()/parse round-trip
+// gate (opening and saving a line must never lose chunk data, parameters or
+// the bus contract). Lived inline in main.cpp before audit #275 B7.
+int runVstRoundTripSelfTest();
+
+// Entry point behind --analysis-layout-test: arms the timed probe over the
+// live MainWindow (dock geometry, right/bottom relayout, restore) and later
+// exits the event loop with the verdict. Returns false when the required
+// dock is missing, in which case the caller exits 1 immediately.
+bool armAnalysisLayoutProbe(MainWindow& window, const QString& screenshotPath);
 }

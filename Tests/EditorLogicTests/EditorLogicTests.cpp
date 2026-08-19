@@ -105,6 +105,7 @@ int main(int argc, char** argv)
 	testSubwooferRoutingDescriptors();
 	testSubwooferRoutingCrossoverRecipes();
 		testFilterCardDepths();
+		testRowGuiPolicyRoutesEachLineShape();
 		testFilterCardBuildPlans();
 		testConfigImport();
 		testLegacyMigrationScanAndPolicy();

@@ -5,6 +5,14 @@
 #include <QJsonObject>
 #include <QLocale>
 
+QString UpdateInfoFormatter::newestVersion(const QJsonDocument& doc)
+{
+	const QJsonArray versionsArray = doc.object().value("versions").toArray();
+	if (versionsArray.isEmpty())
+		return QString();
+	return versionsArray.first().toObject().value("version").toString();
+}
+
 QString UpdateInfoFormatter::releaseHtml(const QJsonDocument& doc, QString* newestVersion)
 {
 	if (newestVersion != nullptr)
