@@ -21,6 +21,11 @@ regenerating from a whole-buffer run and letting the blocked comparison prove
 invariance again, rather than regenerating in block mode - the latter would
 silently discard the evidence.
 
+CI never regenerates implicitly: the build workflow verifies against the
+committed set and fails if `cases.json` is missing. Re-recording on CI requires
+dispatching `build.yml` with the `regenerate_references` input set to true,
+which logs a warning on the run so the decision is visible.
+
 Note that `blockFrames` must divide `frames`. `ConvolutionFilter` freezes its
 block length at `initialize()` and mutes any block of a different size, so a
 short final block would silence the tail instead of testing it. The harness

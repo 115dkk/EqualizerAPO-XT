@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)] [ValidateSet("x64", "ARM64")] [string] $Platform,
     [Parameter(Mandatory)] [string] $SimdVariant,
+    [string] $ManifestPath = (Join-Path $PSScriptRoot "..\simd-variants.psd1"),
     [switch] $PlanOnly
 )
 
@@ -18,10 +19,16 @@ $vst3PluginModule = "VST3\SubwooferRouting\$Platform\Release\EapoXtSubwooferRout
 $vst3PluginLicense = "VST3\SubwooferRouting\LICENSE"
 $vst3BundleArch = if ($Platform -eq "ARM64") { "arm64-win" } else { "x86_64-win" }
 $excludeExtensions = @(".obj", ".res", ".log", ".tlog", ".iobj", ".ipdb", ".ilk", ".pdb")
+# The Qt plugin folder list lives in the manifest (Shared.QtPluginFolders) so
+# the packaging assertion below and New-VelopackRelease.ps1's qt\ relocation
+# cannot drift apart (audit #275 TD-11: generic/ and networkinformation/ were
+# deployed by windeployqt but silently missing from releases).
+$qtPluginFolders = @((Import-PowerShellDataFile $ManifestPath).Shared.QtPluginFolders)
 $plan = [pscustomobject]@{
     ArtifactName = $artifactName
     RequiredFiles = $requiredFiles
     ExcludedExtensions = $excludeExtensions
+    QtPluginFolders = $qtPluginFolders
 }
 if ($PlanOnly) { return $plan }
 
@@ -51,16 +58,30 @@ foreach ($app in @("Editor", "DeviceSelector", "UpdateChecker")) {
     $buildDir = Join-Path $WorkspaceRoot "build-$app-$Platform\release"
     $exe = Join-Path $buildDir "$app.exe"
     if (-not (Test-Path $exe)) { throw "$app.exe not built" }
-    Get-ChildItem -Path $buildDir -Recurse | Where-Object {
-        $_.PSIsContainer -or $excludeExtensions -notcontains $_.Extension.ToLowerInvariant()
+    # Files only: directories materialize with their first file, so the
+    # object-mirror folders (whose contents the extension filter drops
+    # entirely) never appear as empty directories in the artifact. That keeps
+    # the artifact directory uploadable as a whole.
+    Get-ChildItem -Path $buildDir -Recurse -File | Where-Object {
+        $excludeExtensions -notcontains $_.Extension.ToLowerInvariant()
     } | ForEach-Object {
         $relative = $_.FullName.Substring($buildDir.Length + 1)
         $target = Join-Path $artifactPath $relative
-        if ($_.PSIsContainer) {
-            New-Item -ItemType Directory -Force -Path $target | Out-Null
-        } else {
-            New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
-            Copy-Item -LiteralPath $_.FullName -Destination $target -Force
-        }
+        New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $target -Force
     }
+}
+
+# Every DLL-carrying folder in the artifact must be a known Qt plugin folder
+# (VST3\ carries the .vst3 bundle, not DLLs). When windeployqt starts emitting
+# a folder this manifest list does not know, fail here - the alternative is a
+# release where that plugin family is silently absent on user machines.
+$unknownDllFolders = @(Get-ChildItem -Path $artifactPath -Directory | Where-Object {
+    $qtPluginFolders -notcontains $_.Name -and
+    @(Get-ChildItem -Path $_.FullName -Recurse -File -Filter "*.dll").Count -gt 0
+} | ForEach-Object { $_.Name })
+if ($unknownDllFolders.Count -gt 0) {
+    throw ("Artifact folders carry DLLs but are not in Shared.QtPluginFolders " +
+        "(.github/simd-variants.psd1): $($unknownDllFolders -join ', '). " +
+        "Add them to the manifest so releases relocate them under qt\.")
 }

@@ -6,6 +6,16 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      regenerate_references:
+        # Audit #275 TD-08: seeding used to switch on the mere absence of
+        # references/cases.json, so deleting or renaming the reference set
+        # silently turned the verify gate into a re-record. Seeding is now an
+        # explicit, logged decision; see
+        # Tests/AudioRegressionTests/references/README.md before using it.
+        description: 'Re-record AudioRegressionTests references instead of verifying against them'
+        type: boolean
+        default: false
 
 # Serialize runs per ref. On main this queues release pipelines so two quick
 # merges can't both try to create the same release (which raced to a 403 on the
@@ -351,28 +361,34 @@ jobs:
         $hasRefs = Test-Path (Join-Path $repoRefDir "cases.json")
         # The primary (reference-seeding) variant is flagged in simd-variants.psd1.
         $isPrimary = "${{ matrix.primary }}" -eq "true"
+        # Seeding is an explicit workflow_dispatch decision (audit #275 TD-08).
+        # Empty on push/pull_request events, which therefore always verify.
+        $regenerate = "${{ inputs.regenerate_references }}" -eq "true"
 
         Push-Location "${{ github.workspace }}\Tests\AudioRegressionTests"
         try {
-          if ($hasRefs) {
-            Write-Host "Reference set present in tree; running verify mode for variant '$variant'"
-            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "AudioRegressionTests verify failed for variant '$variant'"
-              exit $LASTEXITCODE
+          if ($regenerate) {
+            if ($isPrimary) {
+              Write-Host "::warning::regenerate_references was requested; primary variant '$variant' is RE-RECORDING the golden references instead of verifying against them. See Tests/AudioRegressionTests/references/README.md before committing the result."
+            } else {
+              Write-Host "::warning::regenerate_references was requested; recording variant output only (non-primary variant '$variant')"
             }
-          } elseif ($isPrimary) {
-            Write-Host "No reference set in tree; primary variant '$variant' will record fresh references"
             & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
             if ($LASTEXITCODE -ne 0) {
-              Write-Error "AudioRegressionTests reference generation failed"
+              Write-Error "AudioRegressionTests reference generation failed for variant '$variant'"
               exit $LASTEXITCODE
             }
           } else {
-            Write-Host "No reference set in tree; recording variant output only (non-primary variant)"
-            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output --generate-references
+            if (-not $hasRefs) {
+              # Never fall back to seeding implicitly: a deleted or renamed
+              # reference set must fail the gate, not re-record it.
+              Write-Error "references/cases.json is missing and regenerate_references was not requested. Restore the committed reference set, or dispatch the workflow with regenerate_references=true if re-recording is genuinely intended."
+              exit 1
+            }
+            Write-Host "Running verify mode for variant '$variant'"
+            & $exe --variant $variant --config-dir configs --ref-dir references --out-dir output
             if ($LASTEXITCODE -ne 0) {
-              Write-Error "AudioRegressionTests output recording failed for variant '$variant'"
+              Write-Error "AudioRegressionTests verify failed for variant '$variant'"
               exit $LASTEXITCODE
             }
           }
@@ -672,20 +688,16 @@ jobs:
           -SimdVariant "${{ matrix.simd_variant }}"
 
 
-    # Upload artifacts
+    # Upload artifacts. Package-Artifacts.ps1 curates the artifact directory
+    # (extension filter + Qt-plugin-folder assertion against the manifest's
+    # Shared.QtPluginFolders), so the whole directory is the payload; keeping a
+    # second folder list here is how generic/ and networkinformation/ went
+    # silently missing from releases (audit #275 TD-11).
     - name: Upload build artifacts
       uses: actions/upload-artifact@v7
       with:
         name: EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}
-        path: |
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/*.dll
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/*.exe
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/iconengines/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/imageformats/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/platforms/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/styles/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/tls/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/VST3/
+        path: ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}\
         if-no-files-found: error
         retention-days: 90
 
@@ -926,7 +938,11 @@ jobs:
       run: |
         Import-Module .\.github\scripts\ReleaseAssets.psm1
         $sourceZip = Join-Path "${{ github.workspace }}" (Get-SourceZipAssetName -PackVersion "${{ steps.version.outputs.pack_version }}")
-        git archive --format=zip --output="$sourceZip" HEAD
+        # Archive the explicit release SHA (the bumped commit), not HEAD:
+        # HEAD is only correct because the checkout step above happens to use
+        # the same ref, and a drift there would silently ship pre-bump source
+        # (audit #275 TD-13).
+        git archive --format=zip --output="$sourceZip" "${{ needs.version-bump.outputs.bumped_sha || github.sha }}"
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }
@@ -974,7 +990,11 @@ jobs:
           exit $LASTEXITCODE
         }
 
-        $setupExe = "${{ github.workspace }}\Installer\Release\EqualizerAPO-XT-Setup.exe"
+        # Asset name from the grammar module, not a fourth literal spelling
+        # (audit #275 TD-14). ReleaseAssets.Tests.ps1 keeps the vcxproj
+        # TargetName and the .rc OriginalFilename aligned with the grammar.
+        Import-Module .\.github\scripts\ReleaseAssets.psm1
+        $setupExe = Join-Path "${{ github.workspace }}\Installer\Release" (Get-UniversalSetupAssetName)
         if (-not (Test-Path $setupExe)) {
           Write-Error "Auto-detect installer was not produced at $setupExe"
           exit 1
@@ -1057,3 +1077,26 @@ jobs:
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }
+
+    # Every step above is gated on a `needs_*` output consumed as a string, so
+    # a renamed output would skip its step while the job stays green (audit
+    # #275 TD-09). Re-running the planner and demanding a complete release
+    # turns that whole failure class into a job failure.
+    - name: Assert release completeness
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $plan = .\.github\scripts\Publish-Release.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag "${{ steps.version.outputs.tag }}" `
+          -PackVersion "${{ steps.version.outputs.pack_version }}" `
+          -PassThru
+        if (-not $plan.Complete) {
+          throw ("Release ${{ steps.version.outputs.tag }} is incomplete after the release steps ran: " +
+            "missing channels='$($plan.MissingChannels -join ',')', " +
+            "needsSource=$($plan.NeedsSource), needsInstaller=$($plan.NeedsInstaller), " +
+            "needsChecksums=$($plan.NeedsChecksums), needsNotes=$($plan.NeedsNotes). " +
+            "A release step was skipped or its outputs drifted; see Publish-Release.ps1.")
+        }
+        Write-Host "Release ${{ steps.version.outputs.tag }} is complete."
