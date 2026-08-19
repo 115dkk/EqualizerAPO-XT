@@ -40,8 +40,9 @@ int s(double pixel)
 }
 }
 
-MatrixFilterPickerView::MatrixFilterPickerView(QWidget* parent)
-	: FilterPickerView(parent)
+MatrixFilterPickerView::MatrixFilterPickerView(const SkinTokens& tokens, QWidget* parent)
+	: FilterPickerView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("MatrixFilterPicker"));
 	setFocusPolicy(Qt::StrongFocus);
@@ -385,7 +386,7 @@ QRect MatrixFilterPickerView::entryCellRect(int visibleRow) const
 
 QFont MatrixFilterPickerView::monoFont(double pointSize, bool bold, double letterSpacing) const
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	QFont font(tokens.monoFontFamily);
 	font.setFamilies(QStringList()
 		<< tokens.monoFontFamily
@@ -401,7 +402,7 @@ QFont MatrixFilterPickerView::monoFont(double pointSize, bool bold, double lette
 void MatrixFilterPickerView::paintEvent(QPaintEvent* event)
 {
 	Q_UNUSED(event);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const QColor border(tokens.border);
 	const QColor accent(tokens.accent);
 	const QColor textColor(tokens.text);

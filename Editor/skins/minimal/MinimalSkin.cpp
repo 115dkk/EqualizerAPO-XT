@@ -20,21 +20,25 @@ IRoutingRenderer* MinimalSkin::routingRenderer() const
 	static StepListRoutingRenderer renderer;
 	return &renderer;
 }
-FilterPickerView* MinimalSkin::createFilterPicker(QWidget* parent) const
+FilterPickerView* MinimalSkin::createFilterPicker(QWidget* parent, const SkinTokens& tokens) const
 {
 	// The add-filter dropdown as a numbered terminal index; see
 	// MinimalFilterPicker.h for the design.
-	return new MinimalFilterPickerView(parent);
+	return new MinimalFilterPickerView(tokens, parent);
 }
 // The reference bodies as one line of type; see
 // MinimalReferenceCardView.h.
-ReferenceCardView* MinimalSkin::createReferenceCardView(const QString& kind, QWidget* parent) const
+ReferenceCardView* MinimalSkin::createReferenceCardView(const QString& kind, QWidget* parent,
+	const SkinTokens& tokens) const
 {
+	Q_UNUSED(tokens);
 	return new MinimalReferenceCardView(kind, parent);
 }
 
-SubwooferRoutingCardView* MinimalSkin::createSubwooferRoutingCardView(QWidget* parent) const
+SubwooferRoutingCardView* MinimalSkin::createSubwooferRoutingCardView(QWidget* parent,
+	const SkinTokens& tokens) const
 {
+	Q_UNUSED(tokens);
 	return new MinimalSubwooferRoutingCardView(parent);
 }
 

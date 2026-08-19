@@ -19,6 +19,7 @@
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "filters/CopyFilter.h"
+#include "Editor/SkinTokens.h"
 
 class StepListView : public RoutingView
 {
@@ -27,7 +28,7 @@ class StepListView : public RoutingView
 public:
 	StepListView(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-		QWidget* parent);
+		QWidget* parent, const SkinTokens& tokens);
 
 	std::vector<Assignment> assignments() const override;
 	void galleryShowcase(const QString& state) override;
@@ -42,6 +43,7 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	struct Hit { int row = 0; int summand = 0; QRect rect; };
 	struct AddHit { int row = 0; QRect rect; };
 
@@ -88,6 +90,6 @@ class StepListRoutingRenderer : public IRoutingRenderer
 public:
 	RoutingView* create(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-		QWidget* parent) override;
+		QWidget* parent, const SkinTokens& tokens) override;
 	const char* id() const override { return "step-list"; }
 };

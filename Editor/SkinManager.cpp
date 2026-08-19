@@ -244,17 +244,17 @@ void SkinManager::paintVstBusFrame(QPainter& painter, const VstBusFrameState& st
 
 FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 {
-	return activeSkin->createFilterPicker(parent);
+	return activeSkin->createFilterPicker(parent, tokens());
 }
 
 ReferenceCardView* SkinManager::createReferenceCardView(const QString& kind, QWidget* parent) const
 {
-	return activeSkin->createReferenceCardView(kind, parent);
+	return activeSkin->createReferenceCardView(kind, parent, tokens());
 }
 
 SubwooferRoutingCardView* SkinManager::createSubwooferRoutingCardView(QWidget* parent) const
 {
-	return activeSkin->createSubwooferRoutingCardView(parent);
+	return activeSkin->createSubwooferRoutingCardView(parent, tokens());
 }
 
 void SkinManager::paintTitleBarChrome(QPainter& painter, const QRect& rect) const

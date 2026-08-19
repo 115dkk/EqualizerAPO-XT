@@ -16,6 +16,7 @@
 #include <QVector>
 
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/SkinTokens.h"
 
 class QLabel;
 class QLineEdit;
@@ -35,7 +36,7 @@ public:
 		int entryIndex = -1;  // original index into the entries list; -1 = caption
 	};
 
-	explicit MinimalPickerIndexList(QWidget* parent = nullptr);
+	explicit MinimalPickerIndexList(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setRows(const QList<Row>& rows);
 	const QList<Row>& rows() const { return rowList; }
@@ -62,6 +63,7 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	int rowAt(const QPoint& pos) const;
 
 	QList<Row> rowList;
@@ -76,7 +78,7 @@ class MinimalFilterPickerView : public FilterPickerView
 	Q_OBJECT
 
 public:
-	explicit MinimalFilterPickerView(QWidget* parent = nullptr);
+	explicit MinimalFilterPickerView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void galleryShowcase(GalleryShowcase kind) override;
 	QSize sizeHint() const override;
@@ -87,6 +89,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QString sectionKey(const FilterPickerEntry& entry) const;
 	void rebuildDisplayNumbers();
 	void rebuildIndex();

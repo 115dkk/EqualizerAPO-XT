@@ -95,7 +95,7 @@ public:
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state) const;
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
-	FilterPickerView* createFilterPicker(QWidget* parent) const;
+	FilterPickerView* createFilterPicker(QWidget* parent) const;  // injects tokens()
 
 	// The reference-card body view for the active skin
 	// (ISkin::createReferenceCardView). kind is ReferenceCardState::kind.

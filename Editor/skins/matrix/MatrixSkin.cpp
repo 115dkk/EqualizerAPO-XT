@@ -20,19 +20,22 @@ IRoutingRenderer* MatrixSkin::routingRenderer() const
 	return &renderer;
 }
 
-FilterPickerView* MatrixSkin::createFilterPicker(QWidget* parent) const
+FilterPickerView* MatrixSkin::createFilterPicker(QWidget* parent, const SkinTokens& tokens) const
 {
-	return new MatrixFilterPickerView(parent);
+	return new MatrixFilterPickerView(tokens, parent);
 }
 
-ReferenceCardView* MatrixSkin::createReferenceCardView(const QString& kind, QWidget* parent) const
+ReferenceCardView* MatrixSkin::createReferenceCardView(const QString& kind, QWidget* parent,
+	const SkinTokens& tokens) const
 {
+	Q_UNUSED(tokens);
 	return new MatrixReferenceCardView(kind, parent);
 }
 
-SubwooferRoutingCardView* MatrixSkin::createSubwooferRoutingCardView(QWidget* parent) const
+SubwooferRoutingCardView* MatrixSkin::createSubwooferRoutingCardView(QWidget* parent,
+	const SkinTokens& tokens) const
 {
-	return new MatrixSubwooferRoutingCardView(parent);
+	return new MatrixSubwooferRoutingCardView(tokens, parent);
 }
 
 ISkin* matrixSkin()

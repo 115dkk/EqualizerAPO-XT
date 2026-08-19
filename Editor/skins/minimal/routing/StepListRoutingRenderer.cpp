@@ -17,8 +17,8 @@ using std::vector;
 
 StepListView::StepListView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-	QWidget* parent)
-	: RoutingView(parent),
+	QWidget* parent, const SkinTokens& tokens)
+	: RoutingView(parent), skinTokens(tokens),
 	// Seed every device channel as a step so an emptied Copy can be refilled
 	// from the GUI; steps whose source sum stays empty are skipped by the
 	// serializer and never reach the config line. The fold decides which
@@ -64,9 +64,9 @@ void StepListView::galleryShowcase(const QString& state)
 	}
 }
 
-static QFont monoFont()
+static QFont monoFont(const SkinTokens& tokens)
 {
-	QFont f(SkinManager::instance()->tokens().monoFontFamily);
+	QFont f(tokens.monoFontFamily);
 	f.setPixelSize(12);
 	return f;
 }
@@ -113,7 +113,7 @@ static QColor channelInk(const QColor& base, bool dark)
 
 QSize StepListView::sizeHint() const
 {
-	QFontMetrics fm(monoFont());
+	QFontMetrics fm(monoFont(skinTokens));
 	int maxWidth = 220;
 	for (int row : fold.visibleRows)
 	{
@@ -143,10 +143,10 @@ QSize StepListView::minimumSizeHint() const
 
 void StepListView::paintEvent(QPaintEvent*)
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	QPainter p(this);
 	p.setRenderHint(QPainter::TextAntialiasing, true);
-	const QFont mono = monoFont();
+	const QFont mono = monoFont(skinTokens);
 	p.setFont(mono);
 	QFontMetrics fm(mono);
 
@@ -576,7 +576,8 @@ void StepListView::commitChannelEditor()
 }
 
 RoutingView* StepListRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent,
+	const SkinTokens& tokens)
 {
-	return new StepListView(assignments, channelNames, portModel, parent);
+	return new StepListView(assignments, channelNames, portModel, parent, tokens);
 }

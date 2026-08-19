@@ -54,13 +54,15 @@ QString kindIconResource(const QString& kind)
 class SoftReferenceTile : public QWidget
 {
 public:
-	explicit SoftReferenceTile(QWidget* parent = nullptr)
-		: QWidget(parent)
+	explicit SoftReferenceTile(const SkinTokens& tokens, QWidget* parent = nullptr)
+		: QWidget(parent), skinTokens(tokens)
 	{
 		setObjectName(QStringLiteral("SoftReferenceTile"));
 		configurePaintOnlyChrome(this);
 		setFixedSize(GUIHelper::scale(QSize(34, 34)));
 	}
+
+	const SkinTokens skinTokens;
 
 	void setAppearance(const QColor& pastel, const QString& newIconResource, bool alert)
 	{
@@ -76,7 +78,7 @@ protected:
 		QPainter painter(this);
 		painter.setRenderHint(QPainter::Antialiasing);
 
-		const SkinTokens& t = SkinManager::instance()->tokens();
+		const SkinTokens& t = skinTokens;
 		const qreal side = qMin(width(), height());
 		QRectF tileRect((width() - side) / 2.0, (height() - side) / 2.0, side, side);
 		tileRect.adjust(1.0, 1.0, -1.0, -1.0);
@@ -127,10 +129,10 @@ private:
 	bool showAlert = false;
 };
 
-SoftReferenceCardView::SoftReferenceCardView(const QString& kind, QWidget* parent)
-	: ReferenceCardView(parent), cardKind(kind)
+SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinTokens& tokens, QWidget* parent)
+	: ReferenceCardView(parent), skinTokens(tokens), cardKind(kind)
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	const bool dark = skinIsDark(t);
 
 	QWidget* page = contentWidget();
@@ -140,7 +142,7 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, QWidget* paren
 		GUIHelper::scale(2.0), GUIHelper::scale(6.0));
 	rootLayout->setSpacing(GUIHelper::scale(12.0));
 
-	tile = new SoftReferenceTile(page);
+	tile = new SoftReferenceTile(skinTokens, page);
 	rootLayout->addWidget(tile, 0, Qt::AlignVCenter);
 
 	QWidget* textColumn = new QWidget(page);
@@ -274,7 +276,7 @@ void SoftReferenceCardView::addLeadingWidget(QWidget* widget)
 	// above the body tray with its arrow visible; disabled it keeps only a
 	// dashed outline - a sleeping slot, not an alarm. The inner line edit
 	// rides flat inside the pill.
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	widget->setStyleSheet(QStringLiteral(
 		"QComboBox { background: %1; color: %2; border: 1px solid %3; border-radius: 13px;"
 		" padding: 2px 18px 2px 10px; min-height: 22px; font-weight: 600; }"
@@ -302,7 +304,7 @@ void SoftReferenceCardView::placeBusStrip(QWidget* strip)
 
 void SoftReferenceCardView::applyState(const ReferenceCardState& state)
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	const bool dark = skinIsDark(t);
 	const QString kind = state.kind.isEmpty() ? cardKind : state.kind;
 

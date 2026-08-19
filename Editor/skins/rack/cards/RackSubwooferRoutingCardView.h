@@ -19,6 +19,7 @@
 #include <QWidget>
 
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
+#include "Editor/SkinTokens.h"
 
 class QAbstractButton;
 class QHBoxLayout;
@@ -35,7 +36,7 @@ class RackCrossoverReadout : public QWidget
 	Q_OBJECT
 
 public:
-	explicit RackCrossoverReadout(QWidget* parent = nullptr);
+	explicit RackCrossoverReadout(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setReadout(const QString& newCaption,
 		const QString& newPrimary,
@@ -48,6 +49,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QFont captionFont() const;
 	QFont valueFont() const;
 
@@ -61,7 +63,7 @@ class RackLfeLamp : public QWidget
 	Q_OBJECT
 
 public:
-	explicit RackLfeLamp(QWidget* parent = nullptr);
+	explicit RackLfeLamp(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setLfeState(bool newPreserved, double newGainDb);
 
@@ -72,6 +74,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QFont captionFont() const;
 	QFont valueFont() const;
 
@@ -84,7 +87,7 @@ class RackHeadroomMeter : public QWidget
 	Q_OBJECT
 
 public:
-	explicit RackHeadroomMeter(QWidget* parent = nullptr);
+	explicit RackHeadroomMeter(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setHeadroom(bool newAutomatic, double newTrimDb);
 
@@ -95,6 +98,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QFont captionFont() const;
 	QFont scaleFont() const;
 
@@ -108,7 +112,7 @@ class RackSubwooferRoutingCardView : public SubwooferRoutingCardView
 	Q_OBJECT
 
 public:
-	explicit RackSubwooferRoutingCardView(QWidget* parent = nullptr);
+	explicit RackSubwooferRoutingCardView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void addActionButton(QAbstractButton* button) override;
 
@@ -118,6 +122,7 @@ protected:
 	void resizeEvent(QResizeEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	void updateResponsiveLayout();
 
 	QWidget* headerWidget = nullptr;

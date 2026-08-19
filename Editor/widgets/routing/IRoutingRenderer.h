@@ -20,6 +20,8 @@
 
 #include "filters/CopyFilter.h"
 
+struct SkinTokens;
+
 // Base class for every per-skin routing widget. The host (FilterCardRow for
 // Copy, MultiConvolutionCardEditor for MultiConvolution) connects
 // routingChanged() and reads back assignments() to serialise edits.
@@ -101,10 +103,12 @@ public:
 	// channel layout in scope (used for target seeding / labelling); it may be
 	// empty when channels are not yet known. portModel selects between Copy's
 	// symmetric behaviour (default) and a fixed-source command such as
-	// MultiConvolution.
+	// MultiConvolution. tokens is the building skin's palette; the views used
+	// to pull SkinManager::instance() mid-paint instead (audit #275 B1), and
+	// rows rebuild on every skin switch, so construction injection is safe.
 	virtual RoutingView* create(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-		QWidget* parent) = 0;
+		QWidget* parent, const SkinTokens& tokens) = 0;
 
 	// Short identifier, mainly for diagnostics.
 	virtual const char* id() const = 0;

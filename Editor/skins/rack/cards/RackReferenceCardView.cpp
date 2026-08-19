@@ -37,8 +37,8 @@ QString captionForKind(const QString& kind)
 
 // ---- RackEngravedLabel -----------------------------------------------------
 
-RackEngravedLabel::RackEngravedLabel(QWidget* parent)
-	: QWidget(parent)
+RackEngravedLabel::RackEngravedLabel(const SkinTokens& tokens, QWidget* parent)
+	: QWidget(parent), skinTokens(tokens)
 {
 	// Preferred keeps the shrink flag, so elidable printing survives narrow
 	// layouts instead of forcing a horizontal scrollbar (the 960px gate).
@@ -117,7 +117,7 @@ QFont RackEngravedLabel::engraveFont() const
 {
 	// The letter-spaced DM Sans approximation of condensed engraving type
 	// (rack.md), read from the live tokens at use time.
-	QFont font(SkinManager::instance()->tokens().fontFamily);
+	QFont font(skinTokens.fontFamily);
 	font.setPixelSize(pixelSize);
 	font.setBold(boldFace);
 	if (letterSpacing > 0.0)
@@ -154,7 +154,7 @@ void RackEngravedLabel::paintEvent(QPaintEvent*)
 
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const bool dark = skinIsDark(tokens);
 
 	QColor bodyInk;
@@ -237,9 +237,10 @@ void RackEngravedLabel::leaveEvent(QEvent* event)
 
 // ---- RackStatusLamp --------------------------------------------------------
 
-RackStatusLamp::RackStatusLamp(QWidget* parent)
+RackStatusLamp::RackStatusLamp(const SkinTokens& tokens, QWidget* parent)
 	: QWidget(parent)
-	, litColor(SkinManager::instance()->tokens().accent2)
+	, skinTokens(tokens)
+	, litColor(tokens.accent2)
 {
 	setFixedSize(GUIHelper::scale(QSize(20, 20)));
 }
@@ -255,7 +256,7 @@ void RackStatusLamp::paintEvent(QPaintEvent*)
 {
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const bool dark = skinIsDark(tokens);
 	const QPointF center = QRectF(rect()).center();
 	const qreal radius = qMin(width(), height()) / 2.0 - 4.5;
@@ -300,8 +301,8 @@ void RackStatusLamp::paintEvent(QPaintEvent*)
 
 // ---- RackLcdWindow ---------------------------------------------------------
 
-RackLcdWindow::RackLcdWindow(QWidget* parent)
-	: QWidget(parent)
+RackLcdWindow::RackLcdWindow(const SkinTokens& tokens, QWidget* parent)
+	: QWidget(parent), skinTokens(tokens)
 {
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 	setMaximumWidth(GUIHelper::scale(320.0));
@@ -319,7 +320,7 @@ void RackLcdWindow::setSegments(const QString& newText)
 
 QFont RackLcdWindow::segmentFont() const
 {
-	QFont font(SkinManager::instance()->tokens().monoFontFamily);
+	QFont font(skinTokens.monoFontFamily);
 	font.setPixelSize(10);
 	font.setBold(true);
 	font.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
@@ -348,7 +349,7 @@ void RackLcdWindow::paintEvent(QPaintEvent*)
 {
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const bool dark = skinIsDark(tokens);
 
 	// The display-window clause: an LCD set into the plate keeps its dark
@@ -382,8 +383,8 @@ void RackLcdWindow::paintEvent(QPaintEvent*)
 
 // ---- RackReferenceCardView -------------------------------------------------
 
-RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* parent)
-	: ReferenceCardView(parent)
+RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinTokens& tokens, QWidget* parent)
+	: ReferenceCardView(parent), skinTokens(tokens)
 {
 	QWidget* page = contentWidget();
 	rootLayout = new QHBoxLayout(page);
@@ -392,7 +393,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 
 	// The status lamp leads the face: on hardware the service lamp sits
 	// beside the label strip, and state is read from lamps before words.
-	lamp = new RackStatusLamp(page);
+	lamp = new RackStatusLamp(skinTokens, page);
 	rootLayout->addWidget(lamp, 0, Qt::AlignVCenter);
 
 	// The engraved label strip: function caption + stamped tags over the
@@ -409,7 +410,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 	captionLayout->setContentsMargins(0, 0, 0, 0);
 	captionLayout->setSpacing(6);
 
-	captionLabel = new RackEngravedLabel(captionRow);
+	captionLabel = new RackEngravedLabel(skinTokens, captionRow);
 	captionLabel->setPixelSize(8);
 	captionLabel->setLetterSpacing(2.0);
 	captionLabel->setInk(RackEngravedLabel::Ink::Muted);
@@ -423,7 +424,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 
 	// The absolute-path hazard as a stamped wireframe tag in warning ink
 	// (untranslated hardware marking).
-	absStamp = new RackEngravedLabel(captionRow);
+	absStamp = new RackEngravedLabel(skinTokens, captionRow);
 	absStamp->setPixelSize(8);
 	absStamp->setLetterSpacing(1.0);
 	absStamp->setInk(RackEngravedLabel::Ink::Warning);
@@ -434,7 +435,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 
 	// The service condition caption (NOT FOUND / EMPTY SLOT): one small
 	// engraving, never an alarm sentence across the plate.
-	serviceTag = new RackEngravedLabel(captionRow);
+	serviceTag = new RackEngravedLabel(skinTokens, captionRow);
 	serviceTag->setPixelSize(8);
 	serviceTag->setLetterSpacing(1.5);
 	serviceTag->setInk(RackEngravedLabel::Ink::Warning);
@@ -444,14 +445,14 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 	captionLayout->addStretch(1);
 	labelLayout->addWidget(captionRow);
 
-	nameLabel = new RackEngravedLabel(labelArea);
+	nameLabel = new RackEngravedLabel(skinTokens, labelArea);
 	nameLabel->setPixelSize(13);
 	nameLabel->setLetterSpacing(0.4);
 	nameLabel->setElideMode(Qt::ElideMiddle);
 	installNameActivation(nameLabel);
 	labelLayout->addWidget(nameLabel);
 
-	dirLabel = new RackEngravedLabel(labelArea);
+	dirLabel = new RackEngravedLabel(skinTokens, labelArea);
 	dirLabel->setPixelSize(10);
 	dirLabel->setBoldFace(false);
 	dirLabel->setInk(RackEngravedLabel::Ink::Muted);
@@ -459,7 +460,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 	dirLabel->setVisible(false);
 	labelLayout->addWidget(dirLabel);
 
-	statusLabel = new RackEngravedLabel(labelArea);
+	statusLabel = new RackEngravedLabel(skinTokens, labelArea);
 	statusLabel->setPixelSize(10);
 	statusLabel->setBoldFace(false);
 	statusLabel->setElideMode(Qt::ElideRight);
@@ -470,7 +471,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, QWidget* paren
 
 	// The impulse-response readout window sits between the label strip and
 	// the machine buttons, where hardware mounts its meters.
-	lcdWindow = new RackLcdWindow(page);
+	lcdWindow = new RackLcdWindow(skinTokens, page);
 	lcdWindow->setVisible(false);
 	rootLayout->addWidget(lcdWindow, 0, Qt::AlignVCenter);
 
@@ -548,7 +549,7 @@ void RackReferenceCardView::applyState(const ReferenceCardState& state)
 
 	// The lamp reads the reference's health: green = resolved, amber =
 	// service warning, red = broken/unreadable, dark dome = empty slot.
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	QColor lampColor(tokens.accent2);
 	bool lampLit = true;
 	if (state.missing)

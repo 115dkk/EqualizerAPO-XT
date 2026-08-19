@@ -38,9 +38,8 @@ QColor enabledInk(const QWidget* widget, const QColor& color, int enabledAlpha)
 		widget->isEnabled() ? enabledAlpha : qMin(enabledAlpha, 90));
 }
 
-QFont rackFont(int pixelSize, bool bold, qreal letterSpacing)
+QFont rackFont(const SkinTokens& tokens, int pixelSize, bool bold, qreal letterSpacing)
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	QFont font(tokens.fontFamily);
 	font.setPixelSize(pixelSize);
 	font.setBold(bold);
@@ -51,9 +50,8 @@ QFont rackFont(int pixelSize, bool bold, qreal letterSpacing)
 	return font;
 }
 
-QFont rackMonoFont(int pixelSize, bool bold, qreal letterSpacing)
+QFont rackMonoFont(const SkinTokens& tokens, int pixelSize, bool bold, qreal letterSpacing)
 {
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	QFont font(tokens.monoFontFamily);
 
 	if (tokens.monoFontFamily.isEmpty())

@@ -10,6 +10,7 @@
 #pragma once
 
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
+#include "Editor/SkinTokens.h"
 
 class QAbstractButton;
 class QHBoxLayout;
@@ -27,7 +28,7 @@ class SoftSubwooferRoutingCardView : public SubwooferRoutingCardView
 	Q_OBJECT
 
 public:
-	explicit SoftSubwooferRoutingCardView(QWidget* parent = nullptr);
+	explicit SoftSubwooferRoutingCardView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void addActionButton(QAbstractButton* button) override;
 
@@ -36,6 +37,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QLabel* makeFactPill();
 
 	QLabel* headlineLabel = nullptr;

@@ -44,8 +44,9 @@ QString decibels(double value)
 }
 
 SoftSubwooferRoutingCardView::SoftSubwooferRoutingCardView(
-	QWidget* parent)
-	: SubwooferRoutingCardView(parent)
+	const SkinTokens& tokens, QWidget* parent)
+	: SubwooferRoutingCardView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("SoftSubwooferRoutingCardView"));
 
@@ -218,7 +219,7 @@ void SoftSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 	// Focus is a quiet halo, not a hard ring (this skin's focused grammar).
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing, true);
-	QColor halo(SkinManager::instance()->tokens().focusRing);
+	QColor halo(skinTokens.focusRing);
 	halo.setAlpha(90);
 	painter.setPen(QPen(halo, 3.0));
 	painter.setBrush(Qt::NoBrush);

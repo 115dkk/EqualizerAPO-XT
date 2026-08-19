@@ -14,8 +14,8 @@ using std::vector;
 
 CrosspointMatrixView::CrosspointMatrixView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-	QWidget* parent)
-	: RoutingView(parent),
+	QWidget* parent, const SkinTokens& tokens)
+	: RoutingView(parent), skinTokens(tokens),
 	// Seeding every device channel as a row keeps the grid editable even when
 	// the command references few (or no) channels; without it an emptied Copy
 	// could never be refilled from the GUI. Empty rows are skipped by the
@@ -60,7 +60,7 @@ void CrosspointMatrixView::updateMetrics()
 	// FrontBass and SourceLFE on the same board, and a pill narrower than
 	// its caption clipped it to fragments ("rontBas"). The caption font
 	// decides the width a column really needs.
-	QFont monoFont(SkinManager::instance()->tokens().monoFontFamily);
+	QFont monoFont(skinTokens.monoFontFamily);
 	monoFont.setPixelSize(11);
 	const QFontMetrics fm(monoFont);
 
@@ -160,7 +160,7 @@ static QColor mix(const QColor& c, int alpha)
 
 void CrosspointMatrixView::paintEvent(QPaintEvent*)
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, false);
 	p.setRenderHint(QPainter::TextAntialiasing, true);
@@ -542,7 +542,8 @@ void CrosspointMatrixView::commitChannelEditor()
 }
 
 RoutingView* CrosspointMatrixRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent,
+	const SkinTokens& tokens)
 {
-	return new CrosspointMatrixView(assignments, channelNames, portModel, parent);
+	return new CrosspointMatrixView(assignments, channelNames, portModel, parent, tokens);
 }

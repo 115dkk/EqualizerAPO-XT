@@ -983,7 +983,8 @@ void SubwooferRoutingEditorDialog::rebuildBassSendRoutingView()
 			model->state()),
 		bassPathTargets(model->state()),
 		portModel,
-		bassSendRoutingLayout->parentWidget());
+		bassSendRoutingLayout->parentWidget(),
+		SkinManager::instance()->tokens());
 	bassSendRoutingLayout->addWidget(bassSendRoutingView);
 
 	connect(bassSendRoutingView, &RoutingView::routingChanged,
@@ -1031,7 +1032,8 @@ void SubwooferRoutingEditorDialog::rebuildOutputRoutingView()
 			model->state()),
 		physicalTargets(model->state()),
 		portModel,
-		outputRoutingLayout->parentWidget());
+		outputRoutingLayout->parentWidget(),
+		SkinManager::instance()->tokens());
 	outputRoutingLayout->addWidget(outputRoutingView);
 
 	connect(outputRoutingView, &RoutingView::routingChanged,

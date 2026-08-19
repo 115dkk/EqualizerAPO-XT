@@ -11,6 +11,7 @@
 #include <QList>
 
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/SkinTokens.h"
 
 class QLineEdit;
 class QListWidget;
@@ -20,7 +21,7 @@ class RackFilterPickerView : public FilterPickerView
 	Q_OBJECT
 
 public:
-	explicit RackFilterPickerView(QWidget* parent = nullptr);
+	explicit RackFilterPickerView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void galleryShowcase(GalleryShowcase kind) override;
 
@@ -31,6 +32,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	void rebuildList();
 
 	QLineEdit* searchEdit = nullptr;

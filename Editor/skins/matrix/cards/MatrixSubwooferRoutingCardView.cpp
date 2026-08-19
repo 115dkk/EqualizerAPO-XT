@@ -47,8 +47,9 @@ qreal crispCoordinate(qreal logical, qreal devicePixelRatio)
 }
 
 MatrixSubwooferRoutingCardView::MatrixSubwooferRoutingCardView(
-	QWidget* parent)
-	: SubwooferRoutingCardView(parent)
+	const SkinTokens& tokens, QWidget* parent)
+	: SubwooferRoutingCardView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("MatrixSubwooferRoutingCardView"));
 
@@ -263,7 +264,7 @@ void MatrixSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 
 	const qreal devicePixelRatio =
 		painter.device()->devicePixelRatioF();
-	QColor ink(SkinManager::instance()->tokens().accent);
+	QColor ink(skinTokens.accent);
 	painter.setPen(QPen(ink, 1.0));
 
 	const qreal left = crispCoordinate(1.0, devicePixelRatio);

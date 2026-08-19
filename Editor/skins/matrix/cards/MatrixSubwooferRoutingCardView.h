@@ -12,6 +12,7 @@
 #pragma once
 
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
+#include "Editor/SkinTokens.h"
 
 class ElidedLabel;
 class QHBoxLayout;
@@ -23,7 +24,7 @@ class MatrixSubwooferRoutingCardView : public SubwooferRoutingCardView
 	Q_OBJECT
 
 public:
-	explicit MatrixSubwooferRoutingCardView(QWidget* parent = nullptr);
+	explicit MatrixSubwooferRoutingCardView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void addActionButton(QAbstractButton* button) override;
 
@@ -32,6 +33,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QWidget* makeReadoutColumn(const QString& caption, QLabel*& valueCell,
 		const QString& accessibleName, const QString& toolTip);
 

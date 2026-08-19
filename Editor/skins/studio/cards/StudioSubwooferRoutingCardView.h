@@ -10,6 +10,7 @@
 #pragma once
 
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
+#include "Editor/SkinTokens.h"
 
 class ElidedLabel;
 class QAbstractButton;
@@ -29,7 +30,7 @@ class StudioSubwooferRoutingCardView : public SubwooferRoutingCardView
 	Q_OBJECT
 
 public:
-	explicit StudioSubwooferRoutingCardView(QWidget* parent = nullptr);
+	explicit StudioSubwooferRoutingCardView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void addActionButton(QAbstractButton* button) override;
 
@@ -41,6 +42,7 @@ private:
 	QWidget* makeReadoutCell(const QString& caption, QLabel*& valueLabel,
 		bool primary, const QString& accessibleName, const QString& toolTip);
 
+	const SkinTokens skinTokens;
 	QHBoxLayout* actionLayout = nullptr;
 	QLabel* validityChip = nullptr;
 	QLabel* layoutLabel = nullptr;
