@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The auto-detect installer got a real window.** Instead of a bare Windows
+  progress dialog and message-box errors, EqualizerAPO-XT-Setup.exe now shows
+  a dark four-step view: the CPU it detected, download progress with actual
+  byte counts, the SHA-256 verification result, and the hand-off to the
+  install UI. Errors appear in the window with an "Open releases page"
+  button, and closing the window cancels a running download. `--silent` no
+  longer shows any dialog, so scripted installs cannot get stuck
+  ([#287](https://github.com/115dkk/EqualizerAPO-XT/pull/287)).
+- **Fewer Windows Defender false alarms on the installer.** Releases are
+  still unsigned, so Defender sometimes flagged a fresh download with the
+  generic `Wacatac.B!ml` label. The installer binary is now only republished
+  when its code actually changes - so its reputation accumulates on one file
+  hash instead of resetting every release - and the build it downloads is
+  marked with the same "from the internet" tag a browser would write before
+  it runs ([#287](https://github.com/115dkk/EqualizerAPO-XT/pull/287)).
+
 ## v2.37.3 — 2026-08-19
 
 - **"Reset all global preferences" now really resets the analysis dock's
