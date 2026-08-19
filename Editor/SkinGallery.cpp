@@ -946,7 +946,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
 		buildRows(scrollArea, configPath, { QStringLiteral("Preamp: -6 dB") });
-		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		const FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		FilterPickerView* picker = SkinManager::instance()->createFilterPicker(nullptr);
 		picker->setEntries(table != nullptr ? table->filterPickerEntries() : QList<FilterPickerEntry>());
 		picker->adjustSize();
