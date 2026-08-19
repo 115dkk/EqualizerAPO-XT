@@ -38,6 +38,22 @@ function Get-ChecksumsAssetName {
     "SHA256SUMS.txt"
 }
 
+# Picks the release whose auto-detect installer can be reused: the newest
+# published (non-draft, non-prerelease) release that is not the one being
+# assembled. $Releases is the gh release list order, newest first.
+function Select-PreviousReleaseTag {
+    param(
+        [AllowEmptyCollection()] [object[]] $Releases,
+        [Parameter(Mandatory)] [string] $CurrentTag
+    )
+    foreach ($release in @($Releases)) {
+        if ($release.tagName -eq $CurrentTag) { continue }
+        if ($release.isDraft -or $release.isPrerelease) { continue }
+        return $release.tagName
+    }
+    return $null
+}
+
 Export-ModuleMember -Function Get-VelopackPackId, Get-SetupAssetName,
 Get-UniversalSetupAssetName, Get-FeedAssetName, Get-SourceZipAssetName,
-Get-ChecksumsAssetName
+Get-ChecksumsAssetName, Select-PreviousReleaseTag

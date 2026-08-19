@@ -76,6 +76,32 @@ variants are packaged or how each one updates itself.
 5. **Run the verified `Setup.exe`.** By default Velopack shows its normal
    install UI for the auto-selected variant. Passing `--silent` to the detector
    forwards `-s/--silent` to that `Setup.exe` for fully unattended installs.
+   Before the launch the verified file is tagged with a browser-style
+   `Zone.Identifier` stream (Mark of the Web), so the child runs with its true
+   internet origin recorded instead of executing as an unmarked dropped binary.
+
+### What the user sees
+
+The detector draws its own window: a dark, fixed-size Direct2D/DirectWrite
+surface (everything in-box - `d2d1`, `dwrite`, `windowscodecs`, `dwmapi` - so
+the binary keeps zero external dependencies). It renders the four stages as a
+timeline: the detected CPU and chosen channel, a real progress bar with byte
+counts taken from `Content-Length`, the computed SHA-256 prefix once the
+checksum matched, and the Velopack hand-off. Failures render in an in-window
+error panel with an "Open releases page" button instead of a `MessageBox`.
+Closing the window mid-download cancels it (exit code 5) and deletes the
+partial file.
+
+Auxiliary modes:
+
+- `--silent` is fully headless. No window, no dialogs; errors surface only
+  through the exit code, so unattended installs can never block on UI.
+- `--ui-shot <dir>` renders every window state (detecting, downloading,
+  verifying, hand-off, both error panels) as PNGs at 1x and 2x through the
+  same render function the live window uses. This is the review evidence for
+  UI changes - the PNGs are pixel-exact, not screenshots.
+- If the window cannot be created (broken graphics stack), the flow falls back
+  to the old headless-with-message-boxes behavior.
 
 The detector is built as a 32-bit (x86) Win32 GUI app. x86 runs natively on x64
 and under emulation on ARM64 (both Windows 10 and 11 ARM), so one binary covers
@@ -120,6 +146,7 @@ Exit codes in normal (non-`--detect-only`) mode:
 | 2 | the installer download failed |
 | 3 | the verified installer could not be started |
 | 4 | integrity verification failed |
+| 5 | the user closed the window while the download was still running |
 
 Caveat for scripts: with `--silent`, a successful launch forwards the
 per-variant `Setup.exe`'s own exit code, so a nonzero code can also originate
@@ -167,9 +194,42 @@ its own table, which is the loudest of these guards.
   directly, so PRs verify it without building the installer.
 - The avx2 leg of `Build-Solution.ps1` builds the whole binary on every PR; a
   compile break no longer waits for release day.
-- The `create-release` job builds it (`/p:Platform=Win32 /p:Configuration=Release`)
-  and uploads it to the release tag as `EqualizerAPO-XT-Setup.exe`, before the
-  release notes step so the notes can feature it as the recommended download.
+- The `create-release` job publishes it as `EqualizerAPO-XT-Setup.exe`, before
+  the release notes step so the notes can feature it as the recommended
+  download. It first asks `Get-PreviousInstallerAsset.ps1` whether the previous
+  release's binary can be reused (see the next section); only when the
+  installer's inputs changed does it build a fresh copy
+  (`/p:Platform=Win32 /p:Configuration=Release`).
+
+## Defender false positives and the installer's shape
+
+Unsigned releases were reported (2026-06) as `Trojan:Win32/Wacatac.B!ml` - a
+cloud-ML reputation verdict, not a signature match. The shape that triggers
+it: a small, unsigned, zero-reputation GUI binary whose import profile is
+"WinHTTP + crypto + CreateProcess", downloading and executing another
+unsigned binary. That is also the shape of a trojan downloader, and every
+release used to reset the file hash, so reputation never accumulated.
+
+What the installer does about it, in decreasing order of leverage:
+
+- **Hash stability.** The binary always resolves `/releases/latest`, so it
+  does not need a rebuild per release. `Get-PreviousInstallerAsset.ps1` reuses
+  the previous release's exact bytes whenever `Installer/`, `release/`,
+  `platform/windows/` and the embedded icon are untouched, so one hash keeps
+  collecting download reputation across releases. `version.h` is deliberately
+  not watched: it only stamps the version resource, so a reused binary
+  reports the version of the release that last changed the installer.
+- **No unmarked drop-and-execute.** The verified download gets a
+  `Zone.Identifier` (Mark of the Web) before launch, like a browser download.
+- **A real window instead of a minimal downloader.** The Direct2D UI gives
+  the binary the static profile of an application rather than of a 130 KB
+  downloader stub.
+- **Hardening flags.** `/guard:cf`, SafeSEH, DEP/ASLR and
+  `/DEPENDENTLOADFLAG:0x800` (static imports resolve from System32 only -
+  the binary lives in Downloads, the classic DLL-planting directory).
+
+None of this replaces code signing (see Limitations); it removes the
+avoidable parts of the false-positive surface while signing remains open.
 
 ## Local verification
 

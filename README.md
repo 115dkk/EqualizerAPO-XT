@@ -78,7 +78,9 @@ Current work areas:
 
 Install from the [Releases page](https://github.com/115dkk/EqualizerAPO-XT/releases). A push to `main` builds all supported variants and creates a GitHub Release with Velopack-packaged installers and a source code zip.
 
-The recommended download is **EqualizerAPO-XT-Setup.exe**, an auto-detect installer. It detects your CPU (architecture and AVX level), downloads the matching build, and verifies it against the release's `SHA256SUMS.txt` before launching it. The per-channel `…-Setup.exe` files stay available for installing a specific build. See [docs/AutoDetectInstaller.md](docs/AutoDetectInstaller.md).
+The recommended download is **EqualizerAPO-XT-Setup.exe**, an auto-detect installer. It detects your CPU (architecture and AVX level), downloads the matching build, shows the progress and the SHA-256 verification in its own window, and only launches a download that matches the release's `SHA256SUMS.txt`. The per-channel `…-Setup.exe` files stay available for installing a specific build. See [docs/AutoDetectInstaller.md](docs/AutoDetectInstaller.md).
+
+Releases are not code-signed yet, so Windows Defender/SmartScreen can flag a fresh download as unknown (reports have used the generic `Trojan:Win32/Wacatac.B!ml` label - a reputation verdict on unsigned new files, not an actual analysis). Every asset can be checked against the release's `SHA256SUMS.txt`; the auto-detect installer does this automatically before anything runs.
 
 After installation the Editor keeps itself current: it downloads newer releases in the background and applies them when the Editor closes. The flow is documented in [docs/VelopackUpdates.md](docs/VelopackUpdates.md).
 
