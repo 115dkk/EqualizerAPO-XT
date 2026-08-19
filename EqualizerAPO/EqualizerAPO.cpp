@@ -260,8 +260,8 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	try
 	{
 		// Audit #250 F020: the pipe name is shared vocabulary (DeviceAPOInfoKeys.h).
-		if (WindowsRegistry::valueExists(APP_REGPATH, deviceTestPipeValueName))
-			deviceTestPipeName = WindowsRegistry::readValue(APP_REGPATH, deviceTestPipeValueName);
+		if (systemRegistry().valueExists(APP_REGPATH, deviceTestPipeValueName))
+			deviceTestPipeName = systemRegistry().readValue(APP_REGPATH, deviceTestPipeValueName);
 	}
 	catch (const RegistryError& e)
 	{

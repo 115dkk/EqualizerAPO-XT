@@ -150,6 +150,12 @@ if exist "$(LIBSNDFILE_LIB)\*.dll" copy /Y "$(LIBSNDFILE_LIB)\*.dll" "$(OutDir)"
     <ClCompile Include="..\..\Editor\import\ConfigDependencyScanner.cpp" />
     <ClCompile Include="..\..\Editor\import\ImportExecutor.cpp" />
     <ClCompile Include="..\..\Editor\import\LegacyMigrationPolicy.cpp" />
+    <ClCompile Include="LegacyMigrationHookTests.cpp" />
+    <ClCompile Include="..\..\Editor\import\LegacyMigration.cpp" />
+    <ClCompile Include="..\..\services\install\ApoRegistration.cpp" />
+    <ClCompile Include="..\..\services\security\AudioEngineAccess.cpp" />
+    <ClCompile Include="..\..\services\windows\WindowsService.cpp" />
+    <ClCompile Include="..\..\services\shell\StartMenuShortcuts.cpp" />
     <ClCompile Include="..\..\Editor\skins\SkinThemeData.cpp" />
     <!-- Like EngineOrchestrationTests, AudioEngineAccess is compiled here
          directly: it is an executable-side source (Editor/DeviceSelector), not

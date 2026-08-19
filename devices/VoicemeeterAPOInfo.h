@@ -66,7 +66,6 @@ private:
 	static std::wstring getLinkArgs(const std::wstring& lnkPath, std::wstring* path = nullptr);
 	static std::vector<std::wstring> splitArgs(const std::wstring& argString);
 	static std::wstring joinArgs(const std::vector<std::wstring>& args);
-	static void closeProcess(unsigned long processId);
 
 	std::wstring connectionName;
 	unsigned sampleRate;

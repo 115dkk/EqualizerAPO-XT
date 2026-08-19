@@ -29,12 +29,12 @@ namespace EqAPO::Import
 namespace
 {
 
-QString readRegistryString(const wchar_t* name)
+QString readRegistryString(const IRegistry& registry, const wchar_t* name)
 {
     try
     {
-        if (WindowsRegistry::valueExists(APP_REGPATH, name))
-            return QString::fromStdWString(WindowsRegistry::readValue(APP_REGPATH, name));
+        if (registry.valueExists(APP_REGPATH, name))
+            return QString::fromStdWString(registry.readValue(APP_REGPATH, name));
     }
     catch (const RegistryError&)
     {
@@ -84,12 +84,12 @@ void seedMissingSamples(const QString& shippedConfigDir, const QString& targetDi
     }
 }
 
-void writeMigrationBreadcrumbs(const QString& from, int filesCopied)
+void writeMigrationBreadcrumbs(IRegistry& registry, const QString& from, int filesCopied)
 {
-    WindowsRegistry::writeValue(APP_REGPATH, L"MigratedFrom", from.toStdWString());
-    WindowsRegistry::writeValue(APP_REGPATH, L"MigrationStamp",
+    registry.writeValue(APP_REGPATH, L"MigratedFrom", from.toStdWString());
+    registry.writeValue(APP_REGPATH, L"MigrationStamp",
         QDateTime::currentDateTime().toString(Qt::ISODate).toStdWString());
-    WindowsRegistry::writeDWORDValue(APP_REGPATH, L"MigratedFiles", static_cast<unsigned long>(filesCopied));
+    registry.writeDWORDValue(APP_REGPATH, L"MigratedFiles", static_cast<unsigned long>(filesCopied));
 }
 
 }
@@ -119,6 +119,11 @@ bool LegacyMigration::looksLikeLegacyApoConfigDir(const QString& configDir)
 
 void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
 {
+    runElevatedHookStep(exeDir, systemRegistry());
+}
+
+void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir, IRegistry& registry)
+{
     const QString stableRoot = stableConfigRoot();
     if (stableRoot.isEmpty())
     {
@@ -126,7 +131,7 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
         return;
     }
 
-    const QString existing = readRegistryString(L"ConfigPath");
+    const QString existing = readRegistryString(registry, L"ConfigPath");
     const LegacyMigrationPolicy::Action action = LegacyMigrationPolicy::classify(
         existing, stableRoot,
         looksLikeLegacyApoConfigDir(existing),
@@ -152,7 +157,7 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
         case LegacyMigrationPolicy::Action::AlreadyOurs:
             break;
         case LegacyMigrationPolicy::Action::AdoptStableRoot:
-            WindowsRegistry::writeValue(APP_REGPATH, L"ConfigPath",
+            registry.writeValue(APP_REGPATH, L"ConfigPath",
                 QDir::toNativeSeparators(stableRoot).toStdWString());
             LogFStatic(L"Migration: ConfigPath adopted %s",
                 reinterpret_cast<const wchar_t*>(stableRoot.utf16()));
@@ -182,9 +187,9 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
                 LogFStatic(L"Migration: legacy dir %s has no config.txt, repointing without import",
                     reinterpret_cast<const wchar_t*>(existing.utf16()));
             }
-            WindowsRegistry::writeValue(APP_REGPATH, L"ConfigPath",
+            registry.writeValue(APP_REGPATH, L"ConfigPath",
                 QDir::toNativeSeparators(stableRoot).toStdWString());
-            writeMigrationBreadcrumbs(existing, copied);
+            writeMigrationBreadcrumbs(registry, existing, copied);
             LogFStatic(L"Migration: imported %d file(s) from legacy %s",
                 copied, reinterpret_cast<const wchar_t*>(existing.utf16()));
             break;
@@ -196,9 +201,9 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
             // folder is rescued, not just what config.txt references.
             const int copied = QDir(existing).exists()
                 ? copyTreeOverwriting(existing, stableRoot) : 0;
-            WindowsRegistry::writeValue(APP_REGPATH, L"ConfigPath",
+            registry.writeValue(APP_REGPATH, L"ConfigPath",
                 QDir::toNativeSeparators(stableRoot).toStdWString());
-            writeMigrationBreadcrumbs(existing, copied);
+            writeMigrationBreadcrumbs(registry, existing, copied);
             LogFStatic(L"Migration: rescued %d file(s) from volatile %s",
                 copied, reinterpret_cast<const wchar_t*>(existing.utf16()));
             break;
@@ -221,7 +226,7 @@ void LegacyMigration::runElevatedHookStep(const std::wstring& exeDir)
 int LegacyMigration::dryRun()
 {
 	const QString stableRoot = stableConfigRoot();
-	const QString existing = readRegistryString(L"ConfigPath");
+	const QString existing = readRegistryString(systemRegistry(), L"ConfigPath");
 	const bool legacyMarkers = looksLikeLegacyApoConfigDir(existing);
 	const bool volatileXt = LegacyMigrationPolicy::isVolatileXtConfigDir(existing);
 	const LegacyMigrationPolicy::Action action = LegacyMigrationPolicy::classify(
@@ -272,7 +277,7 @@ int LegacyMigration::dryRun()
 
 QString LegacyMigration::adoptMigratedFile(const QString& path)
 {
-	const QString migratedFrom = readRegistryString(L"MigratedFrom");
+	const QString migratedFrom = readRegistryString(systemRegistry(), L"MigratedFrom");
 	if (migratedFrom.isEmpty())
 		return path;
 
@@ -322,7 +327,7 @@ QString LegacyMigration::adoptMigratedFile(const QString& path)
 
 void LegacyMigration::maybeShowStartupNotice(QWidget* parent)
 {
-    const QString stamp = readRegistryString(L"MigrationStamp");
+    const QString stamp = readRegistryString(systemRegistry(), L"MigrationStamp");
     if (stamp.isEmpty())
         return;
 
@@ -330,7 +335,7 @@ void LegacyMigration::maybeShowStartupNotice(QWidget* parent)
     if (settings.value(QStringLiteral("interface/migrationNoticeShown")).toString() == stamp)
         return;
 
-    const QString from = readRegistryString(L"MigratedFrom");
+    const QString from = readRegistryString(systemRegistry(), L"MigratedFrom");
     const QString root = stableConfigRoot();
     QMessageBox::information(parent, QObject::tr("Configuration folder moved"),
         QObject::tr("Your Equalizer APO configuration was imported into the EqualizerAPO-XT "

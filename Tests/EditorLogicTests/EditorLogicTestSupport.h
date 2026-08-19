@@ -65,6 +65,8 @@ void testUpdateSessionContainsApplyFailure();
 void testUpdateSessionKeepsPendingUpdateWhenElevationIsCancelled();
 void testUpdateCoordinatorReportsNoPendingRestart();
 void testUpdateCoordinatorContainsAdapterFailure();
+void testLegacyMigrationHookAdoptsStableRootThroughThePort();
+void testLegacyMigrationHookRescuesVolatileTreeAndLeavesBreadcrumbs();
 void testVelopackInstallRootFollowsTheCurrentLeafRule();
 void testElevatedCoordinatorArgumentHasOneSpelling();
 void testTheSkinRosterIsTheOneList();

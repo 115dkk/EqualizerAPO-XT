@@ -31,6 +31,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "devices/DeviceAPOInfo.h"
+#include "devices/VoicemeeterAPOInfo.h"
+#include "devices/VoicemeeterDetection.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "engine/ConfigLoadTrace.h"
 #include "runtime/WeakValueCache.h"
@@ -952,6 +954,53 @@ void testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(test::Harness&
 	harness.expect(cache.find(1) == replacement, "storing an existing key replaces its entry");
 }
 
+// Audit #275 TD-31: VoicemeeterAPOInfo reads through the injected registry
+// port, yet no test file mentioned Voicemeeter at all. The cheapest starting
+// point is the edition -> output-count mapping of prependInfos, which decides
+// how many Output A* strips the device list offers.
+void testVoicemeeterPrependInfosMapsEditionToOutputCount(test::Harness& harness)
+{
+	struct EditionCase
+	{
+		const wchar_t* setupExe;
+		size_t outputs;
+		const char* what;
+	};
+	const EditionCase editions[] = {
+		{ L"VoicemeeterSetup.exe", 1, "standard Voicemeeter offers one output strip" },
+		{ L"VoicemeeterProSetup.exe", 3, "Banana offers three output strips" },
+		{ L"Voicemeeter8Setup.exe", 5, "Potato offers five output strips" },
+	};
+
+	for (const EditionCase& edition : editions)
+	{
+		test::FakeRegistry registry;
+		registry.seedKey(voicemeeterKeyPath);
+		registry.seedString(voicemeeterKeyPath, uninstallStringValueName,
+			std::wstring(L"C:\\Program Files (x86)\\VB\\Voicemeeter\\") + edition.setupExe);
+
+		std::vector<std::shared_ptr<AbstractAPOInfo>> list;
+		VoicemeeterAPOInfo::prependInfos(list, registry);
+
+		harness.requireEqual(list.size(), edition.outputs, std::string(edition.what) + ": strip count");
+		harness.expect(list.front()->getConnectionName() == L"Output A1",
+			std::string(edition.what) + ": the first strip is Output A1");
+		harness.expect(list.back()->getConnectionName()
+			== (L"Output A" + std::to_wstring(edition.outputs)),
+			std::string(edition.what) + ": the last strip matches the edition");
+	}
+
+	// The Wow6432Node fallback answers the same way for a 32-bit install.
+	test::FakeRegistry wowRegistry;
+	wowRegistry.seedKey(voicemeeterWowKeyPath);
+	wowRegistry.seedString(voicemeeterWowKeyPath, uninstallStringValueName,
+		L"C:\\VB\\VoicemeeterProSetup.exe");
+	std::vector<std::shared_ptr<AbstractAPOInfo>> wowList;
+	VoicemeeterAPOInfo::prependInfos(wowList, wowRegistry);
+	harness.expectEqual(wowList.size(), size_t(3),
+		"the Wow6432Node uninstall key detects the edition too");
+}
+
 // The parse-error channel that replaced the engine's guess. What matters is the
 // pair of judgements: a factory's own broken line is reported, and a line no
 // factory claimed is not - because prose and notes are how 1.4.2 configurations
@@ -1143,6 +1192,7 @@ int runEngineOrchestrationTests()
 	testRealBrirCrossfeed(harness);
 	testConfigLoadTrace(harness);
 	testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(harness);
+	testVoicemeeterPrependInfosMapsEditionToOutputCount(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
 	testConfigRegistryReadsGoThroughThePort(harness);
 	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);

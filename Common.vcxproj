@@ -393,6 +393,8 @@
     <ClInclude Include="text\WideString.h" />
     <ClInclude Include="platform\windows\TextEncoding.h" />
     <ClInclude Include="platform\windows\ComSelfRegistration.h" />
+    <ClInclude Include="platform\windows\ProcessCommandLine.h" />
+    <ClInclude Include="platform\windows\ShellLink.h" />
     <ClInclude Include="platform\windows\Win32Error.h" />
     <ClInclude Include="parser\NumericText.h" />
     <ClInclude Include="vst\VSTPluginInstance.h" />
@@ -488,10 +490,11 @@
     <ClCompile Include="audio\ChannelLayout.cpp" />
     <ClCompile Include="filters\graphicEq\GainCurveIterator.cpp" />
     <ClCompile Include="services\registry\ClsidRegistration.cpp" />
-    <ClCompile Include="services\registry\IRegistry.cpp" />
     <ClCompile Include="services\registry\RegistryTransaction.cpp" />
     <ClCompile Include="platform\windows\WindowsVersion.cpp" />
     <ClCompile Include="platform\windows\ComSelfRegistration.cpp" />
+    <ClCompile Include="platform\windows\ProcessCommandLine.cpp" />
+    <ClCompile Include="platform\windows\ShellLink.cpp" />
     <ClCompile Include="platform\windows\GuidText.cpp" />
     <ClCompile Include="services\logging\Logging.cpp" />
     <ClCompile Include="runtime\memory\AlignedMemory.cpp" />

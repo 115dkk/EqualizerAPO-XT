@@ -38,7 +38,7 @@ using std::wofstream;
 using std::wstring;
 
 
-wstring WindowsRegistry::readValue(const wstring& key, const wstring& valuename)
+wstring WindowsRegistry::readValue(const wstring& key, const wstring& valuename) const
 {
 	wstring result;
 
@@ -80,7 +80,7 @@ wstring WindowsRegistry::readValue(const wstring& key, const wstring& valuename)
 	return result;
 }
 
-unsigned long WindowsRegistry::readDWORDValue(const wstring& key, const wstring& valuename)
+unsigned long WindowsRegistry::readDWORDValue(const wstring& key, const wstring& valuename) const
 {
 	unsigned long result;
 
@@ -110,7 +110,7 @@ unsigned long WindowsRegistry::readDWORDValue(const wstring& key, const wstring&
 	return result;
 }
 
-vector<wstring> WindowsRegistry::readMultiValue(const wstring& key, const wstring& valuename)
+vector<wstring> WindowsRegistry::readMultiValue(const wstring& key, const wstring& valuename) const
 {
 	vector<wstring> result;
 
@@ -159,7 +159,7 @@ vector<wstring> WindowsRegistry::readMultiValue(const wstring& key, const wstrin
 	return result;
 }
 
-vector<unsigned char> WindowsRegistry::readBinaryValue(const wstring& key, const wstring& valuename)
+vector<unsigned char> WindowsRegistry::readBinaryValue(const wstring& key, const wstring& valuename) const
 {
 	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY));
 
@@ -377,7 +377,7 @@ void WindowsRegistry::takeOwnership(const wstring& key)
 		throw RegistryError(L"Error in AdjustTokenPrivileges while taking ownership");
 }
 
-bool WindowsRegistry::keyExists(const wstring& key)
+bool WindowsRegistry::keyExists(const wstring& key) const
 {
 	bool result;
 
@@ -391,7 +391,7 @@ bool WindowsRegistry::keyExists(const wstring& key)
 	return result;
 }
 
-bool WindowsRegistry::valueExists(const wstring& key, const wstring& valuename)
+bool WindowsRegistry::valueExists(const wstring& key, const wstring& valuename) const
 {
 	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY));
 
@@ -401,7 +401,7 @@ bool WindowsRegistry::valueExists(const wstring& key, const wstring& valuename)
 	return status == ERROR_SUCCESS;
 }
 
-vector<wstring> WindowsRegistry::enumSubKeys(const wstring& key)
+vector<wstring> WindowsRegistry::enumSubKeys(const wstring& key) const
 {
 	vector<wstring> result;
 
@@ -425,7 +425,7 @@ vector<wstring> WindowsRegistry::enumSubKeys(const wstring& key)
 	return result;
 }
 
-vector<wstring> WindowsRegistry::enumValues(const wstring& key)
+vector<wstring> WindowsRegistry::enumValues(const wstring& key) const
 {
 	vector<wstring> result;
 
@@ -451,7 +451,7 @@ vector<wstring> WindowsRegistry::enumValues(const wstring& key)
 	return result;
 }
 
-bool WindowsRegistry::keyEmpty(const wstring& key)
+bool WindowsRegistry::keyEmpty(const wstring& key) const
 {
 	winutil::UniqueRegistryKey keyHandle(openKey(key, KEY_QUERY_VALUE | KEY_WOW64_64KEY));
 
@@ -527,4 +527,15 @@ wstring WindowsRegistry::splitKey(const wstring& key, HKEY* rootKey)
 		throw RegistryError(L"Unknown root key " + rootPart);
 
 	return pathPart;
+}
+
+// The adapter over the live Windows registry. One instance is enough for the
+// whole process, and it is a function-local static so that its construction is
+// ordered by first use rather than by translation-unit order - the device code
+// is reached from an APO DLL's COM activation, which can run before any
+// namespace-scope object of this DLL would have been constructed.
+IRegistry& systemRegistry()
+{
+	static WindowsRegistry instance;
+	return instance;
 }

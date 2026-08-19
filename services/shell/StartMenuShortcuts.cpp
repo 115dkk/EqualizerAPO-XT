@@ -17,6 +17,7 @@
 #include "services/logging/Logging.h"
 #include "services/logging/TaggedLogger.h"
 #include "platform/windows/WindowsPath.h"
+#include "platform/windows/ShellLink.h"
 #include "platform/windows/Win32Resource.h"
 
 namespace
@@ -40,32 +41,6 @@ std::wstring publicProgramsPath()
 	return path;
 }
 
-HRESULT writeShellLink(const std::wstring& target, const std::wstring& workingDir,
-	const std::wstring& description, const std::wstring& iconPath, int iconIndex,
-	const std::wstring& linkPath)
-{
-	winutil::ComPtr<IShellLinkW> shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
-		IID_IShellLinkW, reinterpret_cast<void**>(shellLink.put()));
-	if (FAILED(hr) || !shellLink)
-		return hr;
-
-	shellLink->SetPath(target.c_str());
-	if (!workingDir.empty())
-		shellLink->SetWorkingDirectory(workingDir.c_str());
-	if (!description.empty())
-		shellLink->SetDescription(description.c_str());
-	if (!iconPath.empty())
-		shellLink->SetIconLocation(iconPath.c_str(), iconIndex);
-
-	winutil::ComPtr<IPersistFile> persistFile;
-	hr = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<void**>(persistFile.put()));
-	if (SUCCEEDED(hr) && persistFile)
-	{
-		hr = persistFile->Save(linkPath.c_str(), TRUE);
-	}
-	return hr;
-}
 }
 
 namespace StartMenuShortcuts
@@ -102,7 +77,7 @@ bool create(const std::wstring& installDir)
 	}
 
 	std::wstring linkPath = joinPath(shortcutFolder, kDeviceSelectorShortcutFile);
-	HRESULT hr = writeShellLink(deviceSelector, installDir,
+	HRESULT hr = winutil::writeShellLink(deviceSelector, installDir, std::wstring(),
 		L"Configure which audio devices use EqualizerAPO",
 		deviceSelector, 0, linkPath);
 
