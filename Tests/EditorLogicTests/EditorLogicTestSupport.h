@@ -27,6 +27,7 @@ void testFilterCardDescriptors();
 void testSubwooferRoutingDescriptors();
 void testSubwooferRoutingCrossoverRecipes();
 void testFilterCardDepths();
+void testRowGuiPolicyRoutesEachLineShape();
 void testFilterCardBuildPlans();
 void testConfigImport();
 void testLegacyMigrationScanAndPolicy();

@@ -128,7 +128,11 @@ FilterTable* MainWindow::addTab(QString title, QString tooltip, QString configPa
 	phaseTimer.start();
 	QScrollArea* scrollArea = new QScrollArea(ui->tabWidget);
 	scrollArea->setWidgetResizable(true);
-	FilterTable* filterTable = new FilterTable(this);
+	FilterTable* filterTable = new FilterTable();
+	connect(filterTable, &FilterTable::configOpenRequested,
+		this, [this](const QString& path) { load(path); });
+	connect(filterTable, &FilterTable::analysisUpdateRequested,
+		this, [this]() { startAnalysis(); });
 	scrollArea->setWidget(filterTable);
 	filterTable->setAcceptDrops(true);
 	filterTable->setFocusPolicy(Qt::WheelFocus);

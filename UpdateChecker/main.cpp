@@ -154,9 +154,7 @@ int main(int argc, char* argv[])
 
 			if (autoMode && !skipVersion.isEmpty() && !updateDoc.isEmpty())
 			{
-				QString newestVersion;
-				UpdateInfoFormatter::releaseHtml(updateDoc, &newestVersion);
-				if (newestVersion == skipVersion)
+				if (UpdateInfoFormatter::newestVersion(updateDoc) == skipVersion)
 					updateDoc = QJsonDocument();
 			}
 

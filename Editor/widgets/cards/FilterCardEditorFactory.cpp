@@ -6,12 +6,12 @@
 #include "Editor/widgets/FilterCardModel.h"
 #include "FilterCardEditorRegistry.h"
 
-IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QString& command, const QString& parameters)
+bool FilterCardEditorFactory::available(const QString& command, const QString& parameters)
 {
 	// The roster lives in the card editors' own translation units via
 	// REGISTER_FILTER_CARD_EDITOR (see FilterCardEditorRegistry.h); this
-	// function is just the lookup, so adding a card does not mean editing
-	// an if-chain here.
+	// is just the lookup, so adding a card does not mean editing an
+	// if-chain here.
 	//
 	// The key is resolved by the engine's rule, not by a private one: that is
 	// what lets "Filter 1:" (REW's and Dirac's default spelling) reach the same
@@ -29,12 +29,19 @@ IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QStr
 	if (FilterCardModel::hasInlineExpressions(parameters))
 	{
 		if (!FilterCardEditorRegistry::supportsDynamicParameters(commandKeyword))
-			return nullptr;
+			return false;
 	}
 
-	FilterCardEditorCreator creator = FilterCardEditorRegistry::find(commandKeyword);
-	if (creator == nullptr)
+	return FilterCardEditorRegistry::find(commandKeyword) != nullptr;
+}
+
+IFilterGUI* FilterCardEditorFactory::create(FilterTable* filterTable, const QString& command, const QString& parameters)
+{
+	if (!available(command, parameters))
 		return nullptr;
+
+	FilterCardEditorCreator creator = FilterCardEditorRegistry::find(
+		FilterCardModel::canonicalCommand(command));
 	// The creator still sees the key as written, because the Filter entry is
 	// shared: IIRCardEditor hands it to IIRFilterFactory::parseCommand, which is
 	// what tells "Filter 1: ON IIR ..." apart from an ordinary BiQuad line and

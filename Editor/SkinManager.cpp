@@ -8,6 +8,7 @@
 #include "Editor/helpers/CrashHandler.h"
 #include "skins/ISkin.h"
 #include "skins/Skins.h"
+#include "Editor/skins/HeritageSkin.h"
 #include "skins/SkinThemeData.h"
 
 SkinManager::SkinManager(QObject* parent)
@@ -52,34 +53,13 @@ void SkinManager::applyHeritage()
 	LogFStatic(L"Applying heritage presentation (legacy rows)");
 
 	heritageMode = true;
-	// Token donor and the base-class knob painter; nothing of the skin's own
-	// look survives below.
-	activeSkin = Skins::byId(QStringLiteral("studio"));
-	skinId = QStringLiteral("heritage");
+	// The heritage identity - classic light tokens, no QSS, no routing view,
+	// native toolbar/dialog, neutral base painters - lives in HeritageSkin
+	// (audit #275 B5); this method only does the app-level work.
+	activeSkin = heritageSkin();
+	skinId = activeSkin->id();
 	darkMode = false;
-
-	// Classic light values for the custom painters that consume tokens. The
-	// widget chrome itself comes from the native style, untouched by QSS.
-	SkinTokens tokens = activeSkin->tokens(false);
-	tokens.dark = false;
-	tokens.background = QStringLiteral("#f0f0f0");
-	tokens.surface = QStringLiteral("#ffffff");
-	tokens.surfaceRaised = QStringLiteral("#f5f5f5");
-	tokens.surfaceSunken = QStringLiteral("#e8e8e8");
-	tokens.card = QStringLiteral("#ffffff");
-	tokens.cardHover = QStringLiteral("#f0f6fc");
-	tokens.text = QStringLiteral("#000000");
-	tokens.mutedText = QStringLiteral("#606060");
-	tokens.border = QStringLiteral("#adadad");
-	tokens.graph = QStringLiteral("#ffffff");
-	tokens.graphGridMajor = QStringLiteral("#c8c8c8");
-	tokens.graphGridMinor = QStringLiteral("#e4e4e4");
-	tokens.accent = QStringLiteral("#0078d7");
-	tokens.accent2 = QStringLiteral("#2b88d8");
-	tokens.focusRing = QStringLiteral("#0078d7");
-	tokens.fontFamily = QStringLiteral("Segoe UI");
-	tokens.monoFontFamily = QStringLiteral("Consolas");
-	currentTokens = tokens;
+	currentTokens = activeSkin->tokens(false);
 
 	qApp->setStyleSheet(QString());
 	qApp->setPalette(qApp->style()->standardPalette());
@@ -141,20 +121,13 @@ void SkinManager::applySkin(const QString& newSkinId, bool dark)
 
 IRoutingRenderer* SkinManager::routingRenderer() const
 {
-	if (heritageMode)
-		return nullptr;
 	return activeSkin->routingRenderer();
 }
 
 void SkinManager::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state) const
 {
-	if (heritageMode)
-	{
-		// The ISkin base implementation is exactly the heritage AudioKnob
-		// painter.
-		activeSkin->ISkin::paintKnob(painter, rect, state, currentTokens);
-		return;
-	}
+	// HeritageSkin inherits the base painter, which is exactly the heritage
+	// AudioKnob rendering; no conditional needed.
 	activeSkin->paintKnob(painter, rect, state, currentTokens);
 }
 
@@ -212,23 +185,11 @@ void SkinManager::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState
 
 void SkinManager::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& state) const
 {
-	if (heritageMode)
-	{
-		// The neutral base rendering with the heritage tokens is the classic
-		// white analysis graph; no skin instrument leaks into legacy rows.
-		activeSkin->ISkin::paintAnalysisGraph(painter, state, currentTokens);
-		return;
-	}
 	activeSkin->paintAnalysisGraph(painter, state, currentTokens);
 }
 
 void SkinManager::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state) const
 {
-	if (heritageMode)
-	{
-		activeSkin->ISkin::paintSegmentedControl(painter, state, currentTokens);
-		return;
-	}
 	activeSkin->paintSegmentedControl(painter, state, currentTokens);
 }
 
@@ -264,8 +225,6 @@ void SkinManager::paintTitleBarChrome(QPainter& painter, const QRect& rect) cons
 
 void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 {
-	if (heritageMode)
-		return; // native toolbar: the .ui's classic icons stay in place
 	if (toolBar == nullptr)
 		return;
 	// Reset the shared mutable toolbar state before delegating so one skin's
@@ -277,7 +236,5 @@ void SkinManager::styleMainToolbar(QToolBar* toolBar) const
 
 void SkinManager::styleFileDialog(QFileDialog* dialog) const
 {
-	if (heritageMode)
-		return; // the dialog stays platform-native in heritage mode
 	activeSkin->styleFileDialog(dialog, currentTokens);
 }

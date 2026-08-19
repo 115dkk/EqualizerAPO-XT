@@ -81,88 +81,8 @@
 
 namespace
 {
-// Mechanical round-trip check for VST plugin data: parse a VSTPlugin line, feed
-// the parsed library, opaque state and options into the real VSTPluginFilterGUI,
-// call its store(), reparse the result and confirm ChunkData, parameters,
-// StereoInput and the hidden Input/Output contract survive. Returns 0 on success,
-// 1 on any loss.
-int runVstRoundTripSelfTest()
-{
-	struct Case { const wchar_t* name = nullptr; std::wstring params; };
-	const Case cases[] = {
-		{ L"chunkData", L"Library \"fake plugin.dll\" ChunkData \"QUJDREVGR0g=\"" },
-		{ L"paramMap", L"Library fake.dll Gain 0.5 Mix 0.25 Width 1" },
-		{ L"paramMap-quoted-name", L"Library fake.dll \"Dry/Wet\" 0.75 Output 0.5" },
-		{ L"stereoInput-chunk", L"Library fake.dll StereoInput 1 ChunkData \"QUJDREVGR0g=\"" },
-		{ L"stereoInput-params", L"Library fake.dll StereoInput 1 Gain 0.5" },
-		{ L"busContract", L"Library fake.vst3 Input Stereo Output 7.1 Gain 0.5" }
-	};
-
-	int failures = 0;
-	for (const Case& c : cases)
-	{
-		VSTPluginFilterFactory factory;
-		std::wstring command = L"VSTPlugin";
-		std::wstring params = c.params;
-		FilterVector filters = factory.createFilter(L"", command, params);
-		if (filters.empty())
-		{
-			fprintf(stderr, "[VST selftest] %ls: parse produced no filter\n", c.name);
-			failures++;
-			continue;
-		}
-		VSTPluginFilter* f0 = static_cast<VSTPluginFilter*>(filters[0].get());
-		std::wstring chunk0 = f0->getChunkData();
-		std::unordered_map<std::wstring, float> map0 = f0->getParamMap();
-		const bool stereo0 = f0->getStereoInput();
-		const std::optional<VST3BusContract> bus0 = f0->getBusContract();
-
-		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0, stereo0, bus0);
-		QString outCommand, outParams;
-		gui.store(outCommand, outParams);
-
-		std::wstring command2 = outCommand.toStdWString();
-		std::wstring params2 = outParams.toStdWString();
-		FilterVector filters2 = factory.createFilter(L"", command2, params2);
-		if (filters2.empty())
-		{
-			fprintf(stderr, "[VST selftest] %ls: re-parse produced no filter (params='%ls')\n", c.name, params2.c_str());
-			failures++;
-			continue;
-		}
-		VSTPluginFilter* f1 = static_cast<VSTPluginFilter*>(filters2[0].get());
-		std::wstring chunk1 = f1->getChunkData();
-		std::unordered_map<std::wstring, float> map1 = f1->getParamMap();
-		const bool stereo1 = f1->getStereoInput();
-		const std::optional<VST3BusContract> bus1 = f1->getBusContract();
-		const bool sameBusContract = bus0.has_value() == bus1.has_value()
-			&& (!bus0 || (bus0->input == bus1->input && bus0->output == bus1->output));
-		bool ok = (chunk0 == chunk1) && (map0 == map1) && (stereo0 == stereo1) && sameBusContract;
-		if (!ok)
-		{
-			failures++;
-			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu, stereoInput %d->%d, bus %d->%d\n",
-				c.name, chunk0.c_str(), chunk1.c_str(), map0.size(), map1.size(), stereo0 ? 1 : 0,
-				stereo1 ? 1 : 0, bus0 ? 1 : 0, bus1 ? 1 : 0);
-			for (auto& kv : map0)
-			{
-				auto it = map1.find(kv.first);
-				if (it == map1.end())
-					fprintf(stderr, "    dropped param '%ls'=%g\n", kv.first.c_str(), kv.second);
-				else if (it->second != kv.second)
-					fprintf(stderr, "    param '%ls' %g -> %g\n", kv.first.c_str(), kv.second, it->second);
-			}
-		}
-		else
-		{
-			fprintf(stderr, "[VST selftest] %ls: OK (chunk len %zu, %zu params preserved)\n",
-				c.name, chunk0.size(), map0.size());
-		}
-	}
-
-	fprintf(stderr, "[VST selftest] %s (%d failure(s))\n", failures == 0 ? "PASS" : "FAIL", failures);
-	return failures == 0 ? 0 : 1;
-}
+// The VST round-trip self test lives with the other offscreen gates in
+// SkinGallery.cpp (audit #275 B7).
 
 std::wstring executableDirectory()
 {
@@ -487,7 +407,7 @@ int main(int argc, char* argv[])
 		}
 
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
-			return runVstRoundTripSelfTest();
+			return SkinGallery::runVstRoundTripSelfTest();
 
 		// Headless screenshot gallery (skin program). Runs before the registry
 		// skin/translator setup on purpose: the gallery applies each skin itself
@@ -597,104 +517,11 @@ int main(int argc, char* argv[])
 		bool firstRun = VelopackBootstrap::isFirstRun();
 		if (parser.isSet(analysisLayoutOption))
 		{
-			QDockWidget* dock = w.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));
-			if (dock == nullptr)
-			{
-				fprintf(stderr, "Analysis layout test: required dock is missing\n");
+			// The probe itself lives with the other offscreen gates in
+			// SkinGallery.cpp (audit #275 B7); it arms the timers and later
+			// exits the event loop with the verdict.
+			if (!SkinGallery::armAnalysisLayoutProbe(w, parser.value(analysisLayoutOption)))
 				return 1;
-			}
-
-			w.showNormal();
-			w.resize(1024, 768);
-			dock->show();
-			const QString screenshotPath = parser.value(analysisLayoutOption);
-			QTimer::singleShot(750, &w, [&w, dock, screenshotPath]() {
-				fprintf(stderr,
-					"Analysis layout target: platform=%s style=%s dpr=%.2f locale=%s skin=%s dark=%d\n",
-					qPrintable(QGuiApplication::platformName()), qPrintable(qApp->style()->objectName()),
-					w.devicePixelRatioF(), qPrintable(QLocale().name()),
-					qPrintable(SkinManager::instance()->currentSkinId()),
-					SkinManager::instance()->isDark() ? 1 : 0);
-				QWidget* controls = w.findChild<QWidget*>(QStringLiteral("analysisControlBar"));
-				QWidget* graph = w.findChild<QWidget*>(QStringLiteral("ModernAnalysisGraph"));
-				QBoxLayout* layout = w.findChild<QBoxLayout*>(QStringLiteral("analysisDockLayout"));
-				const int centralWidth = w.centralWidget()->width();
-				const int dockWidth = dock->width();
-				const int controlsWidth = controls != nullptr ? controls->width() : -1;
-				const int graphWidth = graph != nullptr ? graph->width() : -1;
-				const bool centralProtected = centralWidth * 100 >= w.width() * 55;
-				const bool dockBounded = dockWidth * 100 <= w.width() * 45;
-				const bool graphUsable = graphWidth >= 300;
-				const bool controlsFill = controlsWidth >= graphWidth - 2;
-				const bool stacked = layout != nullptr && layout->direction() == QBoxLayout::TopToBottom;
-
-				bool screenshotSaved = screenshotPath.isEmpty();
-				if (!screenshotPath.isEmpty())
-				{
-					QFileInfo screenshotInfo(screenshotPath);
-					QDir().mkpath(screenshotInfo.absolutePath());
-					const QPixmap shot = w.grab();
-					screenshotSaved = shot.save(screenshotPath);
-				}
-
-				const bool rightPass = centralProtected && dockBounded && graphUsable
-					&& controlsFill && stacked && screenshotSaved;
-				fprintf(stderr,
-					"Analysis layout test (right): window=%dx%d central=%d dock=%d controls=%d graph=%d "
-					"centralProtected=%d dockBounded=%d graphUsable=%d controlsFill=%d stacked=%d screenshot=%d\n",
-					w.width(), w.height(), centralWidth, dockWidth, controlsWidth, graphWidth,
-					centralProtected ? 1 : 0, dockBounded ? 1 : 0, graphUsable ? 1 : 0,
-					controlsFill ? 1 : 0, stacked ? 1 : 0, screenshotSaved ? 1 : 0);
-
-				const bool bottomRequested = QMetaObject::invokeMethod(&w,
-					"on_graphPositionComboBox_currentIndexChanged", Qt::DirectConnection,
-					Q_ARG(int, 1));
-				QTimer::singleShot(250, &w, [&w, dock, rightPass, bottomRequested]() {
-					QWidget* bottomControls = w.findChild<QWidget*>(QStringLiteral("analysisControlBar"));
-					QBoxLayout* bottomLayout = w.findChild<QBoxLayout*>(QStringLiteral("analysisDockLayout"));
-					const bool bottomArea = w.dockWidgetArea(dock) == Qt::BottomDockWidgetArea;
-					const bool horizontal = bottomLayout != nullptr
-						&& bottomLayout->direction() == QBoxLayout::LeftToRight;
-					const bool compactControls = bottomControls != nullptr
-						&& bottomControls->maximumWidth() < QWIDGETSIZE_MAX
-						&& bottomControls->width() <= bottomControls->maximumWidth();
-					fprintf(stderr,
-						"Analysis layout test (bottom): area=%d horizontal=%d compactControls=%d\n",
-						bottomArea ? 1 : 0, horizontal ? 1 : 0, compactControls ? 1 : 0);
-					const bool bottomPass = bottomRequested && bottomArea
-						&& horizontal && compactControls;
-					const bool rightRestoreRequested = QMetaObject::invokeMethod(&w,
-						"on_graphPositionComboBox_currentIndexChanged", Qt::DirectConnection,
-						Q_ARG(int, 2));
-					QTimer::singleShot(250, &w,
-						[&w, dock, rightPass, bottomPass, rightRestoreRequested]() {
-							QWidget* restoredControls = w.findChild<QWidget*>(
-								QStringLiteral("analysisControlBar"));
-							QWidget* restoredGraph = w.findChild<QWidget*>(
-								QStringLiteral("ModernAnalysisGraph"));
-							QBoxLayout* restoredLayout = w.findChild<QBoxLayout*>(
-								QStringLiteral("analysisDockLayout"));
-							const bool rightRestored = rightRestoreRequested
-								&& w.dockWidgetArea(dock) == Qt::RightDockWidgetArea
-								&& restoredLayout != nullptr
-								&& restoredLayout->direction() == QBoxLayout::TopToBottom
-								&& restoredControls != nullptr && restoredGraph != nullptr
-								&& restoredControls->width() >= restoredGraph->width() - 2;
-							fprintf(stderr, "Analysis layout test (right restored): pass=%d\n",
-								rightRestored ? 1 : 0);
-							const int exitCode = rightPass && bottomPass && rightRestored ? 0 : 1;
-							bool holdOk = false;
-							const int requestedHold = qEnvironmentVariableIntValue(
-								"EAPO_ANALYSIS_LAYOUT_HOLD_MS", &holdOk);
-							const int holdMs = holdOk ? qBound(0, requestedHold, 30000) : 0;
-							if (holdMs > 0)
-								QTimer::singleShot(holdMs, &w,
-									[exitCode]() { QCoreApplication::exit(exitCode); });
-							else
-								QCoreApplication::exit(exitCode);
-						});
-				});
-			});
 		}
 		else if (parser.isSet(stormOption))
 			SkinSwitchStorm::run(w);  // storm sessions skip doChecks: its modal warnings would stall the timer

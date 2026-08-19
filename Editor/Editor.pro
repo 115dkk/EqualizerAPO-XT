@@ -252,6 +252,7 @@ SOURCES += main.cpp\
 	SkinManager.cpp \
 	skins/ISkin.cpp \
 	skins/Skins.cpp \
+	skins/HeritageSkin.cpp \
 	skins/shared/SkinFileIcons.cpp \
 	skins/SkinThemeData.cpp \
 	widgets/AddCardRow.cpp \
@@ -306,6 +307,7 @@ SOURCES += main.cpp\
 	widgets/EqGraphView.cpp \
 	widgets/SegmentedControl.cpp \
 	widgets/FilterCardModel.cpp \
+	widgets/FilterRowGuiPolicy.cpp \
 	widgets/FilterCommandCatalog.cpp \
 	widgets/FilterCardRow.cpp \
 	widgets/FilterListModel.cpp \
@@ -524,6 +526,7 @@ HEADERS  += \
 	SkinManager.h \
 	skins/ISkin.h \
 	skins/Skins.h \
+	skins/HeritageSkin.h \
 	skins/shared/SkinFileIcons.h \
 	skins/shared/SkinChromeOverlay.h \
 	skins/shared/SkinPaint.h \
@@ -578,6 +581,7 @@ HEADERS  += \
 	widgets/EqGraphView.h \
 	widgets/SegmentedControl.h \
 	widgets/FilterCardModel.h \
+	widgets/FilterRowGuiPolicy.h \
 	widgets/FilterCommandCatalog.h \
 	widgets/FilterCardRow.h \
 	widgets/FilterListModel.h \

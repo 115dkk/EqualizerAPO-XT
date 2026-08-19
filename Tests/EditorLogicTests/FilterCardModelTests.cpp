@@ -13,6 +13,7 @@
 #include <QVector>
 
 #include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterRowGuiPolicy.h"
 #include "filters/FilterFactoryRegistry.h"
 
 #include "EditorLogicTestSupport.h"
@@ -369,4 +370,62 @@ void testFilterCardBuildPlans()
 		"build plan carries the enclosing channel selection");
 	expectEqual(plans[1].descriptor.scopeChannels, QStringList({ "L", "R" }),
 		"if head carries the enclosing channel selection");
+}
+
+// Audit #275 B4: the row-GUI decision used to live inline in the widget-bound
+// FilterTable::createRowGui, guarded only by the offscreen pixel gate. As a
+// pure function its policy is pinned here directly; the two environment facts
+// (routing renderer, card editor availability) are injected so every branch
+// is reachable without a skin or the card registry.
+void testRowGuiPolicyRoutesEachLineShape()
+{
+	const FilterCardDescriptor comment = FilterCardModel::describeLine(
+		QStringLiteral("# just a note to self"));
+	expectTrue(decideRowGui(true, QStringLiteral("# just a note to self"), &comment, true, false)
+		== RowGuiDecision::CommentCard,
+		QStringLiteral("modern cards give a pure comment the comment card"));
+	const FilterCardDescriptor prose = FilterCardModel::describeLine(
+		QStringLiteral("just a note to self"));
+	expectTrue(decideRowGui(true, QStringLiteral("just a note to self"), &prose, true, false)
+		== RowGuiDecision::RawRow,
+		QStringLiteral("colon-less prose stays a raw row even in modern cards"));
+	expectTrue(decideRowGui(false, QStringLiteral("just a note to self"), nullptr, true, false)
+		== RowGuiDecision::RawRow,
+		QStringLiteral("the frozen legacy path keeps prose as a raw row"));
+
+	const FilterCardDescriptor copy = FilterCardModel::describeLine(
+		QStringLiteral("Copy: L=R"));
+	expectTrue(decideRowGui(true, QStringLiteral("Copy: L=R"), &copy, true, false)
+		== RowGuiDecision::SkinRoutingView,
+		QStringLiteral("a static Copy line opens the skin routing view"));
+	expectTrue(decideRowGui(true, QStringLiteral("Copy: L=R"), &copy, false, true)
+		== RowGuiDecision::CardEditor,
+		QStringLiteral("without a routing renderer the Copy line falls to its card editor"));
+
+	const FilterCardDescriptor dynamicCopy = FilterCardModel::describeLine(
+		QStringLiteral("Copy: L=`x`*R"));
+	expectTrue(decideRowGui(true, QStringLiteral("Copy: L=`x`*R"), &dynamicCopy, true, false)
+		== RowGuiDecision::LegacyChain,
+		QStringLiteral("a dynamic Copy line must not open a routing editor"));
+
+	const FilterCardDescriptor preamp = FilterCardModel::describeLine(
+		QStringLiteral("Preamp: -3 dB"));
+	expectTrue(decideRowGui(true, QStringLiteral("Preamp: -3 dB"), &preamp, true, true)
+		== RowGuiDecision::CardEditor,
+		QStringLiteral("a card-covered command goes straight to its card editor"));
+	expectTrue(decideRowGui(true, QStringLiteral("Preamp: -3 dB"), &preamp, true, false)
+		== RowGuiDecision::LegacyChain,
+		QStringLiteral("an uncovered command runs the legacy chain"));
+	expectTrue(decideRowGui(false, QStringLiteral("Preamp: -3 dB"), nullptr, true, true)
+		== RowGuiDecision::LegacyChain,
+		QStringLiteral("legacy mode always runs the chain for command lines"));
+
+	// A commented command line is not card-available under its written key;
+	// the chain (which strips the '#') owns it, and the post-chain card retry
+	// is a construction mechanic outside this decision.
+	const FilterCardDescriptor commented = FilterCardModel::describeLine(
+		QStringLiteral("# Preamp: -3 dB"));
+	expectTrue(decideRowGui(true, QStringLiteral("# Preamp: -3 dB"), &commented, true, false)
+		== RowGuiDecision::LegacyChain,
+		QStringLiteral("a commented command line takes the chain toward the comment-stripped retry"));
 }

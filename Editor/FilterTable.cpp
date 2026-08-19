@@ -48,6 +48,7 @@
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
 #include "Editor/widgets/FilterCardModel.h"
+#include "Editor/widgets/FilterRowGuiPolicy.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/cards/CommentCardEditor.h"
 #include "Editor/widgets/cards/FilterCardEditorFactory.h"
@@ -62,8 +63,8 @@ using std::string;
 using std::vector;
 using std::wstring;
 
-FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
-	: QWidget(parent), mainWindow(mainWindow)
+FilterTable::FilterTable(QWidget* parent)
+	: QWidget(parent)
 {
 	gridLayout = new QGridLayout(this);
 
@@ -349,43 +350,33 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 		preparedDescriptor = &derivedDescriptor;
 	}
 
-	// A pure comment has no "command: parameters" shape (with or without an
-	// inner colon), so it never reaches the factories below. In card mode it
-	// still gets a real editor; the legacy path stays frozen (raw row).
-	if (renderMode == ModernCards && preparedDescriptor->type == QStringLiteral("comment"))
-		return new CommentCardEditor(line);
-
-	// Copy's maintained card editor is the skin routing view built directly by
-	// FilterCardRow. Channel propagation is handled by the row's Qt-free Copy
-	// domain logic, so a normal Copy row no longer needs a hidden heritage GUI.
-	// Dynamic Copy parameters still fall through: routing editors must not
-	// parse and rewrite inline expressions.
-	if (renderMode == ModernCards
-		&& FilterCardModel::opensRoutingView(*preparedDescriptor)
-		&& SkinManager::instance()->routingRenderer() != nullptr)
-		return nullptr;
-
 	int pos = line.indexOf(':');
-	if (pos == -1)
-		return nullptr;
-
 	// allow to use indentation
-	QString factoryKey = line.mid(0, pos).trimmed();
-	QString factoryValue = line.mid(pos + 1);
+	QString factoryKey = pos == -1 ? QString() : line.mid(0, pos).trimmed();
+	QString factoryValue = pos == -1 ? QString() : line.mid(pos + 1);
 
-	if (renderMode == ModernCards)
+	// The decision itself is pure and pinned by EditorLogicTests
+	// (FilterRowGuiPolicy, audit #275 B4); this function only constructs
+	// what was decided.
+	const RowGuiDecision decision = decideRowGui(renderMode == ModernCards, line,
+		preparedDescriptor,
+		SkinManager::instance()->routingRenderer() != nullptr,
+		pos != -1 && FilterCardEditorFactory::available(factoryKey, factoryValue));
+
+	switch (decision)
 	{
-		// Card editors take precedence, so ask them before running the legacy
-		// chain: constructing a legacy GUI only to replace and delete it would
-		// parse VSTPlugin state twice per rebuild. Safe to short-circuit because
-		// the card-covered factories keep no per-row state in createFilterGUI
-		// (their state is set in initialize()/startOfFile()). Commented lines
-		// ("# ...") do not match here and fall through to the chain, where
-		// CommentFilterGUIFactory strips the '#'; the post-chain lookup below
-		// then gives them the same card editor as their active form.
-		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
-		if (cardGui != nullptr)
-			return cardGui;
+	case RowGuiDecision::CommentCard:
+		return new CommentCardEditor(line);
+	case RowGuiDecision::SkinRoutingView:
+		// FilterCardRow builds the skin routing view; channel propagation is
+		// handled by the row's Qt-free Copy domain logic.
+		return nullptr;
+	case RowGuiDecision::RawRow:
+		return nullptr;
+	case RowGuiDecision::CardEditor:
+		return FilterCardEditorFactory::create(this, factoryKey, factoryValue);
+	case RowGuiDecision::LegacyChain:
+		break;
 	}
 
 	// Factory results are parentless until the selected row adopts them. Keep
