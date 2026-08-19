@@ -27,9 +27,7 @@
 class DeviceFilterFactory : public IFilterFactory
 {
 public:
-#ifndef NO_FILTERENGINE
 	void initialize(FilterEngine* engine) override;
-#endif
 	FilterVector startOfConfiguration() override;
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 	FilterVector endOfFile(const std::wstring& configPath) override;

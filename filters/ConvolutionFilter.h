@@ -23,6 +23,7 @@
 #include <memory>
 
 #include "engine/IFilter.h"
+#include "ConvolverMuteDiagnostics.h"
 #include "IrCache.h"
 
 #pragma AVRT_VTABLES_BEGIN
@@ -55,7 +56,6 @@ private:
 	void cleanup();
 
 	std::wstring filename;
-	unsigned filterFrameCount;
-	bool frameCountMismatchLogged;
+	ConvolverMuteState muteState;
 };
 #pragma AVRT_VTABLES_END

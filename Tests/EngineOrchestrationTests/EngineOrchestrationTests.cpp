@@ -33,6 +33,7 @@
 #include "devices/DeviceAPOInfo.h"
 #include "devices/DeviceAPOInfoKeys.h"
 #include "engine/ConfigLoadTrace.h"
+#include "runtime/WeakValueCache.h"
 #include "engine/FilterEngine.h"
 #include "engine/ConfigSwapChannel.h"
 #include "engine/ConfigWatcher.h"
@@ -657,16 +658,11 @@ void testProcessWithoutConfigurationDoesNotCrash(test::Harness& harness)
 	float* outF[2] = {planarFOut.data(), planarFOut.data() + frames};
 	engine.process(outF, inF, frames);
 
-	std::vector<double> planarDIn((size_t)2 * frames, 0.25);
-	std::vector<double> planarDOut((size_t)2 * frames, -1.0);
-	double* inD[2] = {planarDIn.data(), planarDIn.data() + frames};
-	double* outD[2] = {planarDOut.data(), planarDOut.data() + frames};
-	engine.process(outD, inD, frames);
 
 	// Reaching this line is the point: no null dereference. Before
 	// initialize() the channel counts are zero, so the bypass copies nothing
 	// and the output buffers stay untouched.
-	harness.expect(outputF[0] == -1.0f && outputD[0] == -1.0 && planarFOut[0] == -1.0f && planarDOut[0] == -1.0,
+	harness.expect(outputF[0] == -1.0f && outputD[0] == -1.0 && planarFOut[0] == -1.0f,
 		"process() without a configuration wrote output despite zero channel counts");
 }
 
@@ -922,6 +918,40 @@ void testConfigLoadTrace(test::Harness& harness)
 		"detached sink receives nothing on a reload");
 }
 
+// Audit #275 A5/TD-32: the weak-value cache dynamics (hit while alive, miss
+// after the last user drops its reference, expired-slot pruning on store)
+// used to be hand-rolled twice, in IrCache.cpp and GraphicEQFilter.cpp, and
+// tested nowhere; one utility, one test, both consumers covered.
+void testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(test::Harness& harness)
+{
+	WeakValueCache<int, const std::vector<double>> cache;
+
+	auto first = std::make_shared<const std::vector<double>>(3, 1.0);
+	cache.store(1, first);
+	harness.expect(cache.find(1) == first, "a stored entry is found while a user holds it");
+	harness.expect(cache.find(2) == nullptr, "an unknown key misses");
+
+	{
+		auto second = std::make_shared<const std::vector<double>>(3, 2.0);
+		cache.store(2, second);
+		harness.expect(cache.find(2) == second, "a second entry lives alongside the first");
+		harness.expectEqual(cache.liveCount(), size_t(2), "both entries are live while both are held");
+	}
+	harness.expect(cache.find(2) == nullptr,
+		"an entry dies with its last shared_ptr - the cache holds only weak references");
+
+	// Pruning: storing anything sweeps the expired slot, so the map cannot
+	// accumulate dead keys across config reloads.
+	auto third = std::make_shared<const std::vector<double>>(3, 3.0);
+	cache.store(3, third);
+	harness.expectEqual(cache.liveCount(), size_t(2), "the expired slot was pruned on store");
+
+	// store-or-replace: the last writer's live entry wins.
+	auto replacement = std::make_shared<const std::vector<double>>(3, 4.0);
+	cache.store(1, replacement);
+	harness.expect(cache.find(1) == replacement, "storing an existing key replaces its entry");
+}
+
 // The parse-error channel that replaced the engine's guess. What matters is the
 // pair of judgements: a factory's own broken line is reported, and a line no
 // factory claimed is not - because prose and notes are how 1.4.2 configurations
@@ -1103,6 +1133,7 @@ int runEngineOrchestrationTests()
 	testFailedConfigLoadKeepsActiveConfiguration(harness);
 	testRealBrirCrossfeed(harness);
 	testConfigLoadTrace(harness);
+	testWeakValueCacheKeepsEntriesExactlyAsLongAsSomeoneUsesThem(harness);
 	testParseErrorsAreReportedPerLineAndProseIsNot(harness);
 	testConfigRegistryReadsGoThroughThePort(harness);
 	testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(harness);

@@ -35,33 +35,6 @@
 namespace hn = hwy::HWY_NAMESPACE;
 
 #pragma AVRT_CODE_BEGIN
-void convertFloatToDouble(double* dest, const float* src, size_t count) {
-	// Promote float -> double (exact). One portable Highway loop; NEON on ARM64.
-	const hn::ScalableTag<double> dd;
-	const hn::Rebind<float, decltype(dd)> df;  // float tag with dd's lane count
-	const size_t N = hn::Lanes(dd);
-	size_t i = 0;
-	for (; i + N <= count; i += N) {
-		const auto f = hn::LoadU(df, src + i);
-		hn::StoreU(hn::PromoteTo(dd, f), dd, dest + i);
-	}
-	for (; i < count; ++i) dest[i] = static_cast<double>(src[i]);
-}
-
-// Converts a block of doubles back to floats.
-void convertDoubleToFloat(float* dest, const double* src, size_t count) {
-	// Demote double -> float (round to nearest even, same as
-	// static_cast<float>). One portable Highway loop, NEON on ARM64.
-	const hn::ScalableTag<double> dd;
-	const hn::Rebind<float, decltype(dd)> df;
-	const size_t N = hn::Lanes(dd);
-	size_t i = 0;
-	for (; i + N <= count; i += N) {
-		const auto v = hn::LoadU(dd, src + i);
-		hn::StoreU(hn::DemoteTo(df, v), df, dest + i);
-	}
-	for (; i < count; ++i) dest[i] = static_cast<float>(src[i]);
-}
 
 namespace
 {
@@ -84,7 +57,9 @@ namespace
 
 		const unsigned copiedChannelCount = (std::min)(inputChannelCount, outputChannelCount);
 		// Equal layouts and zero outputs returned above, so a remaining mono input
-		// necessarily expands to at least stereo.
+		// necessarily expands to at least stereo. Same rule as the configured
+		// path's upmix in FilterConfiguration::process(), which documents why
+		// (Windows would upmix mono to stereo itself if no APO were present).
 		const bool copyMonoToStereo = inputChannelCount == 1;
 		auto adaptFrame = [&](unsigned frame) {
 			Sample* outputFrame = output + static_cast<size_t>(frame) * outputChannelCount;
@@ -116,6 +91,7 @@ namespace
 		}
 	}
 
+
 	template <typename Sample>
 	void bypassPlanar(Sample** output, Sample** input, unsigned inputChannelCount,
 		unsigned outputChannelCount, unsigned frameCount)
@@ -129,6 +105,8 @@ namespace
 		}
 
 		unsigned initializedChannelCount = copiedChannelCount;
+		// Same mono -> stereo rule as the interleaved bypass above and the
+		// configured path in FilterConfiguration::process().
 		if (inputChannelCount == 1 && outputChannelCount >= 2)
 		{
 			if (output[1] != output[0])
@@ -169,6 +147,7 @@ namespace
 			config.writeFloatInterleaved(output, frameCount);
 		}
 	};
+
 
 	struct FloatPlanarIo
 	{
@@ -216,27 +195,6 @@ namespace
 		}
 	};
 
-	struct DoublePlanarIo
-	{
-		static constexpr const char* totalLabel = "FilterEngine::process(double planar)";
-		static constexpr const char* readCurrentLabel = "FilterConfiguration::read(planar)";
-		static constexpr const char* readNextLabel = "FilterConfiguration::read(planar)";
-		static constexpr const char* writeLabel = "FilterConfiguration::write(planar)";
-
-		static void bypass(double** output, double** input, unsigned inputChannelCount,
-			unsigned outputChannelCount, unsigned frameCount)
-		{
-			bypassPlanar(output, input, inputChannelCount, outputChannelCount, frameCount);
-		}
-		static void read(FilterConfiguration& config, double** input, unsigned frameCount)
-		{
-			config.read(input, frameCount);
-		}
-		static void write(FilterConfiguration& config, double** output, unsigned frameCount)
-		{
-			config.write(output, frameCount);
-		}
-	};
 }
 
 // The single hot-path choreography behind all four public overloads: null and
@@ -308,7 +266,9 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 	processImpl<FloatInterleavedIo>(output, input, frameCount);
 }
 
-// Process non-interleaved audio (float**)
+
+// Process non-interleaved audio (float**) - Voicemeeter hands per-channel
+// pointer arrays (VoicemeeterClient is the production caller).
 void FilterEngine::process(float** output, float** input, unsigned frameCount)
 {
 	processImpl<FloatPlanarIo>(output, input, frameCount);
@@ -320,9 +280,29 @@ void FilterEngine::process(double* output, double* input, unsigned frameCount)
 	processImpl<DoubleInterleavedIo>(output, input, frameCount);
 }
 
-// Process non-interleaved audio (double**) - native double precision without conversion
-void FilterEngine::process(double** output, double** input, unsigned frameCount)
+// Realtime transition bookkeeping and the silence-skip query live with the
+// hot path they belong to (moved from FilterEngine.Runtime.cpp and
+// FilterEngine.cpp, audit #275 A6).
+void FilterEngine::finishTransitionIfReady()
 {
-	processImpl<DoublePlanarIo>(output, input, frameCount);
+	// ConfigSwapChannel's acquire load observes the producer's fully-constructed
+	// configuration before it is dereferenced on ARM64.
+	if (configChannel.hasPending() && transitionCounter >= transitionLength)
+	{
+		configChannel.completeTransition();
+		transitionCounter = 0;
+	}
+}
+
+bool FilterEngine::hasStatefulOrTailFilters() const
+{
+	if (configChannel.hasPending())
+		return true;
+	const FilterConfigurationPtr& currentConfig = configChannel.current();
+	if (!currentConfig)
+		return true;
+	if (currentConfig->isEmpty())
+		return false;
+	return !currentConfig->isAllStateless();
 }
 #pragma AVRT_CODE_END

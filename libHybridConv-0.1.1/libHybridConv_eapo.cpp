@@ -78,18 +78,6 @@ struct HConvSingleStorage
 	HcAlignedPtr<double> historyTime;
 };
 
-double hcTime(void)
-{
-#ifdef WIN32
-	ULONGLONG t = GetTickCount64();
-	return static_cast<double>(t) * 0.001;
-#else
-	struct timeval tv;
-	gettimeofday(&tv, nullptr);
-	return tv.tv_sec + tv.tv_usec * 0.000001;
-#endif
-}
-
 ////////////////////////////////////////////////////////////////
 
 void hcPutSingle(HConvSingle* filter, double* x)
@@ -300,39 +288,6 @@ void hcGetSingle(HConvSingle* filter, double* y)
 	copy_hist_from_out_tail_simd(hist, out + flen, flen);
 
 	// Advance circular position.
-	filter->mixpos = (mpos + 1) % filter->num_mixbuf;
-}
-
-void hcGetAddSingle(HConvSingle* filter, double* y)
-{
-	int flen = filter->framelength;
-	int mpos = filter->mixpos;
-
-	const double* out = filter->dft_time;        // length = 2*flen
-	double* hist = filter->history_time;    // length = flen
-
-	// Move one frequency frame from mixbuf -> dft_freq and zero the source.
-	for (int j = 0; j < flen + 1; ++j)
-	{
-		filter->dft_freq[j][0] = filter->mixbuf_freq_real[mpos][j];
-		filter->dft_freq[j][1] = filter->mixbuf_freq_imag[mpos][j];
-	}
-
-	zero_doubles_simd(filter->mixbuf_freq_real[mpos], flen + 1);
-	zero_doubles_simd(filter->mixbuf_freq_imag[mpos], flen + 1);
-
-	fftw_execute(filter->ifft);
-
-	// Accumulate: y[n] += out[n] + hist[n]   (vectorized).
-	add_out_hist_to_y_simd(/*out:*/ out,
-		/*hist:*/ hist,
-		/*y:*/ y,
-		/*len:*/ flen,
-		/*add_to_existing_y:*/ 1);
-
-	// Update history with tail.
-	copy_hist_from_out_tail_simd(hist, out + flen, flen);
-
 	filter->mixpos = (mpos + 1) % filter->num_mixbuf;
 }
 
@@ -597,6 +552,5 @@ void hcCloseSingle(HConvSingle* filter)
 	*filter = {};
 }
 
-// The dual/triple-segment (low-latency) API lives in
-// libHybridConv_eapo_dormant.cpp, which no project compiles; see the
-// banner there.
+// The dual/triple-segment (low-latency) API and its dormant carrier files
+// were removed in audit #275 (TD-15): no project compiled them.

@@ -47,8 +47,16 @@ void initializeWisdom()
 }
 }
 
+void FftwPlanningPolicy::ensurePlannerThreadSafe()
+{
+	static std::once_flag installed;
+	std::call_once(installed, [] {
+		fftw_make_planner_thread_safe();
+	});
+}
+
 FftwPlanningPolicy::Session::Session()
-	: plannerLock(plannerMutex())
+	: plannerLock((ensurePlannerThreadSafe(), plannerMutex()))
 {
 	initializeWisdom();
 }

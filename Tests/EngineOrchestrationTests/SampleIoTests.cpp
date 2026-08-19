@@ -116,7 +116,8 @@ void testConversionsMatchScalarReferenceBitExactly(test::Harness& harness)
 			snprintf(label, sizeof(label), "write(double*) ch=%u frames=%u differs from scalar", channels, frames);
 			harness.expect(writeDoubleOk, label);
 
-			// Planar float pair: promote in, demote out.
+			// Planar float pair: promote in, demote out (the VoicemeeterClient
+			// surface).
 			std::vector<float> planarIn((size_t)frames * channels);
 			std::vector<const float*> planarInPtrs(channels);
 			std::vector<float> planarOut((size_t)frames * channels, -2.0f);
@@ -147,6 +148,7 @@ void testConversionsMatchScalarReferenceBitExactly(test::Harness& harness)
 				}
 			snprintf(label, sizeof(label), "writeFloatPlanar ch=%u frames=%u differs from scalar", channels, frames);
 			harness.expect(planarOutOk, label);
+
 		}
 	}
 }

@@ -28,11 +28,6 @@
 #include <exception>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <mpParser.h>
-#include <mpPackageCommon.h>
-#include <mpPackageNonCmplx.h>
-#include <mpPackageStr.h>
-#include <mpPackageMatrix.h>
 
 #include "services/registry/IRegistry.h"
 #include "services/registry/WindowsRegistry.h"
@@ -57,7 +52,6 @@ using std::thread;
 using std::unique_lock;
 using std::vector;
 using std::wstring;
-using namespace mup;
 
 void FilterDeleter::operator()(IFilter* filter) const
 {
@@ -100,24 +94,12 @@ FilterEngine::~FilterEngine()
 		TraceF(L"Successfully terminated directory change notification thread");
 	}
 
-	cleanupConfigurations();
+	configChannel.reset();
 }
 
 IRegistry& FilterEngine::registryAccess() const
 {
 	return registryPort != nullptr ? *registryPort : systemRegistry();
-}
-
-bool FilterEngine::hasStatefulOrTailFilters() const
-{
-	if (configChannel.hasPending())
-		return true;
-	const FilterConfigurationPtr& currentConfig = configChannel.current();
-	if (!currentConfig)
-		return true;
-	if (currentConfig->isEmpty())
-		return false;
-	return !currentConfig->isAllStateless();
 }
 
 void FilterEngine::initialize(const EngineSetup& setup)
@@ -135,7 +117,7 @@ void FilterEngine::initialize(const EngineSetup& setup)
 	{
 		lock_guard<mutex> lock(loadMutex);
 
-		cleanupConfigurations();
+		configChannel.reset();
 
 		this->preMix = setup.preMix;
 		this->capture = setup.capture;

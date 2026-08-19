@@ -21,9 +21,7 @@
 #include "text/WideString.h"
 #include <mpParser.h>
 #include "services/logging/Logging.h"
-#ifndef NO_FILTERENGINE
 #include "engine/FilterEngine.h"
-#endif
 #include "filters/FilterFactoryRegistry.h"
 #include "DeviceCommand.h"
 #include "DeviceFilterFactory.h"
@@ -33,7 +31,6 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Device, DeviceFilterFactory, L"De
 using std::vector;
 using std::wstring;
 
-#ifndef NO_FILTERENGINE
 void DeviceFilterFactory::initialize(FilterEngine* engine)
 {
 	deviceString = engine->getDeviceString();
@@ -43,7 +40,6 @@ void DeviceFilterFactory::initialize(FilterEngine* engine)
 	parser->defineConst(L"connectionName", engine->getConnectionName());
 	parser->defineConst(L"deviceGuid", engine->getDeviceGuid());
 }
-#endif
 
 FilterVector DeviceFilterFactory::startOfConfiguration()
 {

@@ -62,17 +62,16 @@ typedef struct str_HConvSingle
 
 
 /* single filter functions */
-double hcTime(void);
 void hcPutSingle(HConvSingle *filter, double*x);
 void hcProcessSingle(HConvSingle *filter);
 void hcGetSingle(HConvSingle *filter, double*y);
-void hcGetAddSingle(HConvSingle *filter, double*y);
 void hcInitSingle(HConvSingle *filter, const double* h, int hlen, int flen, int steps);
 void hcInitSingleWithSharedFilterBank(HConvSingle *filter, const HConvSingle *prototype);
 void hcCloseSingle(HConvSingle *filter);
 
-/* The dual/tripple (low-latency) API is parked in
-   libHybridConv_eapo_dormant.h; no project compiles it. */
+/* The dual/tripple (low-latency) API was removed together with its
+   dormant carrier files (audit #275 TD-15): no project compiled them,
+   and hcTime/hcGetAddSingle existed only for their benefit. */
 
 
 #endif // __LIBHYBRIDCONV_H__

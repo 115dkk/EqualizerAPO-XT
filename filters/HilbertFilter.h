@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "engine/IFilter.h"
+#include "filters/ConvolverMuteDiagnostics.h"
 #include "filters/HilbertCommand.h"
 #include "filters/IrCache.h"
 
@@ -38,7 +39,6 @@ private:
 	std::vector<std::vector<double>> delayLines;
 	unsigned delayOffset = 0;
 	unsigned channelCount = 0;
-	unsigned filterFrameCount = 0;
-	bool frameCountMismatchLogged = false;
+	ConvolverMuteState muteState;
 };
 #pragma AVRT_VTABLES_END

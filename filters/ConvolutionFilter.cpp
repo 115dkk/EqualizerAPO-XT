@@ -49,8 +49,6 @@ namespace
 ConvolutionFilter::ConvolutionFilter(const wstring& filename)
 {
 	this->filename = filename;
-	filterFrameCount = 0;
-	frameCountMismatchLogged = false;
 }
 
 ConvolutionFilter::~ConvolutionFilter()
@@ -64,11 +62,10 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 
 	this->sampleRate = sampleRate;
 	channelCount = (unsigned)channelNames.size();
-	filterFrameCount = 0;
 
 	initializeFilters(maxFrameCount);
 	if (filters != nullptr)
-		filterFrameCount = maxFrameCount;
+		muteState.arm(maxFrameCount);
 
 	return channelNames;
 }
@@ -86,13 +83,11 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 	// audio 콜백 중 재초기화는 파일 I/O, FFTW plan, malloc/free를 일으키므로 금지한다.
 	// mismatch가 들어오면 무음으로 빠지고, 진단은 원자 카운터에만 남긴다. 정상
 	// stream에서는 LockForProcess가 frameCount를 고정하므로 이 분기는 거의 들어오지 않는다.
-	if (frameCount != filterFrameCount)
+	if (muteState.shouldMute(frameCount))
 	{
-		// No logging here. Logging opens, writes and closes %TEMP%\EqualizerAPO.log
-		// for every line, and this branch fires exactly when the stream can least
-		// afford blocking I/O on the audio thread (a format change, a device switch).
-		// cleanup() formats and writes the same information.
-		muteDiagnostics.recordMute(frameCount, frameCountMismatchLogged);
+		// The deferred report is written by cleanup() through
+		// muteState.finishAndReport(); nothing is logged on the audio thread.
+		muteState.recordMute(muteDiagnostics, frameCount);
 		for (unsigned i = 0; i < channelCount; i++)
 			memset(output[i], 0, sizeof(double) * frameCount);
 		return;
@@ -113,13 +108,9 @@ void ConvolutionFilter::process(double** output, double** input, unsigned frameC
 
 void ConvolutionFilter::cleanup()
 {
-	// Deferred report of the mute path that process() took on the audio thread.
-	// It runs before the members are cleared, so the initialized block size is
-	// still available, and only for instances that actually muted.
-	if (frameCountMismatchLogged)
-		LogF(kConvolverMuteReportFormat, kFrameCountMismatchLogPrefix,
-			muteDiagnostics.firstMuteFrameCount.load(std::memory_order_relaxed), filterFrameCount,
-			muteDiagnostics.muteCallCount.load(std::memory_order_relaxed));
+	// Deferred report of the mute path that process() took on the audio
+	// thread; finishAndReport also disarms, so teardown order below is free.
+	muteState.finishAndReport(muteDiagnostics, kFrameCountMismatchLogPrefix, __FILE__, __LINE__, this);
 
 	// HConvSingleArray::reset() runs the exact close-then-free sequence; assigning
 	// nullptr makes the teardown automatic and idempotent.
@@ -127,8 +118,6 @@ void ConvolutionFilter::cleanup()
 	// Release this filter's hold on the cached IR. With the cache holding only weak
 	// references, dropping the last shared_ptr frees the entry.
 	irEntry.reset();
-	filterFrameCount = 0;
-	frameCountMismatchLogged = false;
 }
 
 void ConvolutionFilter::initializeFilters(unsigned frameCount)

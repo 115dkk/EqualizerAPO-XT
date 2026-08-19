@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "engine/IFilter.h"
+#include "ConvolverMuteDiagnostics.h"
 #include "IrCache.h"
 #include "MultiConvolutionCommand.h"
 
@@ -62,8 +63,7 @@ private:
 	std::vector<MultiConvolutionCommand::Mapping> mappings;
 	std::wstring filename;
 	float sampleRate;
-	unsigned filterFrameCount;
-	bool frameCountMismatchLogged;
+	ConvolverMuteState muteState;
 
 	// Where one mapping reads and writes: units [firstUnit, firstUnit+unitCount)
 	// of the flat convolution-state array feed output[outputSlot] from
