@@ -34,10 +34,11 @@
 #include "services/security/AudioEngineAccess.h"
 #include "devices/DeviceAPOInfo.h"
 #include "services/logging/Logging.h"
+#include "services/logging/TaggedLogger.h"
 #include "services/registry/WindowsRegistry.h"
 #include "services/windows/WindowsService.h"
 #include "services/shell/StartMenuShortcuts.h"
-#include "platform/windows/Win32Resource.h"
+#include "platform/windows/ComSelfRegistration.h"
 
 namespace
 {
@@ -53,39 +54,14 @@ using pathutil::joinPath;
 using pathutil::fileExists;
 using pathutil::createDirectoryRecursive;
 
-void logLine(const wchar_t* level, const wchar_t* format, ...)
-{
-	wchar_t buffer[1024];
-	va_list args;
-	va_start(args, format);
-	_vsnwprintf_s(buffer, _TRUNCATE, format, args);
-	va_end(args);
-	LogFStatic(L"[ApoRegistration] %s: %s", level, buffer);
-}
+constexpr logging::TaggedLogger logLine(L"ApoRegistration");
 }
 
 int ApoRegistration::registerComServer(const std::wstring& dllPath, bool unregister)
 {
-	// LOAD_WITH_ALTERED_SEARCH_PATH resolves EqualizerAPO.dll's own dependencies
-	// (FFTW, libsndfile, ...) relative to the DLL directory, matching how the
-	// audio engine and regsvr32 load it.
-	winutil::UniqueModule module(LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH));
-	if (!module)
-	{
-		logLine(L"ERR", L"LoadLibrary failed for %s (gle=%lu)", dllPath.c_str(), GetLastError());
-		return -1;
-	}
-
-	using DllServerProc = HRESULT(__stdcall*)();
-	const char* entryName = unregister ? "DllUnregisterServer" : "DllRegisterServer";
-	DllServerProc proc = reinterpret_cast<DllServerProc>(GetProcAddress(module.get(), entryName));
-
-	HRESULT hr = E_FAIL;
-	if (proc != nullptr)
-		hr = proc();
-	else
-		logLine(L"ERR", L"%S not found in %s (gle=%lu)", entryName, dllPath.c_str(), GetLastError());
-
+	// Shared with DeviceAPOInfo's recovery branch (audit #275 TD-04); the
+	// helper logs load/lookup/entry failures itself.
+	const HRESULT hr = winutil::selfRegisterComServer(L"ApoRegistration", dllPath, unregister);
 	return SUCCEEDED(hr) ? 0 : static_cast<int>(hr);
 }
 

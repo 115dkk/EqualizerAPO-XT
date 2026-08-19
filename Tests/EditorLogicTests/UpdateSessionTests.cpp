@@ -11,6 +11,7 @@
 #include "EditorLogicTestSupport.h"
 
 #include "services/update/UpdateSession.h"
+#include "services/update/VelopackBootstrap.h"
 
 #include <memory>
 #include <optional>
@@ -244,4 +245,47 @@ void testUpdateSessionPublishesStagedVersionAfterJoin()
 		QString::fromStdWString(session.pendingUpdateVersion()),
 		QStringLiteral("9.9.9"),
 		QStringLiteral("the staged version survives worker shutdown"));
+}
+
+void testVelopackInstallRootFollowsTheCurrentLeafRule()
+{
+	// Audit #275 TD-29: the 'leaf "current" means its parent is the install
+	// root' rule is pure string logic; pin it here so the Velopack layout
+	// assumption cannot drift silently.
+	using VB = VelopackBootstrap;
+	expectEqual(
+		QString::fromStdWString(VB::installRootFromBinDir(L"C:\\Apps\\EqualizerAPO-XT\\current")),
+		QStringLiteral("C:\\Apps\\EqualizerAPO-XT"),
+		QStringLiteral("a bin dir whose leaf is 'current' resolves to its parent"));
+	expectEqual(
+		QString::fromStdWString(VB::installRootFromBinDir(L"C:\\Apps\\EqualizerAPO-XT\\CURRENT")),
+		QStringLiteral("C:\\Apps\\EqualizerAPO-XT"),
+		QStringLiteral("the leaf comparison is case-insensitive"));
+	expectEqual(
+		QString::fromStdWString(VB::installRootFromBinDir(L"C:/Apps/EqualizerAPO-XT/current")),
+		QStringLiteral("C:/Apps/EqualizerAPO-XT"),
+		QStringLiteral("forward slashes separate the leaf too"));
+	expectEqual(
+		QString::fromStdWString(VB::installRootFromBinDir(L"C:\\Apps\\EqualizerAPO-XT\\bin")),
+		QStringLiteral("C:\\Apps\\EqualizerAPO-XT\\bin"),
+		QStringLiteral("a non-Velopack layout is its own root"));
+	expectEqual(
+		QString::fromStdWString(VB::installRootFromBinDir(L"current")),
+		QStringLiteral("current"),
+		QStringLiteral("a bare path without separators stays as-is"));
+	expectTrue(
+		VB::installRootFromBinDir(std::wstring()).empty(),
+		QStringLiteral("an empty bin dir resolves to an empty root"));
+}
+
+void testElevatedCoordinatorArgumentHasOneSpelling()
+{
+	// Audit #275 TD-02: the parse side reads the narrow constant and the
+	// ShellExecuteExW side passes the wide one; both must be the same text.
+	const std::string narrow = VelopackBootstrap::kElevatedCoordinatorArgument;
+	const std::wstring wide = VelopackBootstrap::kElevatedCoordinatorArgumentW;
+	expectEqual(
+		QString::fromStdWString(wide),
+		QString::fromStdString(narrow),
+		QStringLiteral("the elevated coordinator argument has a single spelling"));
 }

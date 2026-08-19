@@ -25,7 +25,7 @@
 #include "engine/IFilter.h"
 #include "PreampCommand.h"
 
-class PreampFilterFactory : public IFilterFactory
+class PreampFilterFactory : public ParseReportingFactory
 {
 public:
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;

@@ -30,8 +30,11 @@ REGISTER_FILTER_FACTORY(FilterFactoryPriority::Delay, DelayFilterFactory, L"Dela
 using std::vector;
 using std::wstring;
 
-bool DelayFilterFactory::parseCommand(const wstring& command, const wstring& parameters, DelayCommand& out)
+bool DelayFilterFactory::parseCommand(const wstring& command, const wstring& parameters, DelayCommand& out,
+	bool* malformed)
 {
+	if (malformed != nullptr)
+		*malformed = false;
 	if (command != L"Delay")
 		return false;
 
@@ -39,7 +42,11 @@ bool DelayFilterFactory::parseCommand(const wstring& command, const wstring& par
 	// open a card for a no-op line); the engine-only decisions below are the
 	// trace and the no-op gate.
 	if (!DelayCommand::parse(parameters, out))
+	{
+		if (malformed != nullptr)
+			*malformed = true;
 		return false;
+	}
 
 	// A 0-length delay is a no-op: it produces no filter so the chain avoids one
 	// virtual call and one ring-buffer update per block. Report it in the trace
@@ -57,8 +64,13 @@ bool DelayFilterFactory::parseCommand(const wstring& command, const wstring& par
 FilterVector DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	DelayCommand cmd;
-	if (!parseCommand(command, parameters, cmd))
+	bool malformed = false;
+	if (!parseCommand(command, parameters, cmd, &malformed))
+	{
+		if (malformed)
+			return reportParseError(command, L"expected a delay like \"3.5 ms\" or \"160 samples\"");
 		return {};
+	}
 
 	return singleFilter(makeFilter<DelayFilter>(cmd.delay, cmd.isMs));
 }

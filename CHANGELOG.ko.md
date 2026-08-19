@@ -8,6 +8,28 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **'전체 전역 설정 초기화'가 이제 분석 도크의 보기 선택까지 실제로
+  초기화합니다.** 그래프 지표(Mag/Phase/GD)와 '기본 지연 포함' 토글이
+  초기화 동작(과 제거 정리)이 건드리지 않는 엉뚱한 레지스트리 위치에
+  저장되어 전체 초기화를 살아남았습니다. 이제 다른 모든 Editor 설정과
+  같은 곳에 저장되며, 기존 값은 시작 시 한 번 옮겨 옵니다
+  ([#277](https://github.com/115dkk/EqualizerAPO-XT/pull/277)).
+- **깨진 `Filter`·`IIR`·`Delay`·`Preamp` 줄이 무엇이 잘못됐는지 해당 줄
+  위에서 Editor가 보여 줍니다.** 이 네 명령 계열은 다른 명령들이 받은
+  줄 단위 파싱 보고 이전 세대라서, `Coefficients` 목록 누락 같은 실수가
+  느슨한 로그 한 줄로 흩어지거나 아무 말 없이 무시됐습니다. 이제 같은
+  줄 단위 채널로 보고되어 Editor가 정확한 줄을 표시하고, 로그에는 파일과
+  줄 번호가 함께 남습니다. `Include` 줄의 상대 경로가 260자에서 조용히
+  잘리던 문제도 함께 고쳤습니다
+  ([#277](https://github.com/115dkk/EqualizerAPO-XT/pull/277)).
+- **설치 파일에 Qt `generic/`·`networkinformation/` 플러그인 폴더가
+  다시 들어갑니다.** windeployqt는 일곱 개의 플러그인 폴더를 배포하는데
+  릴리스 파이프라인의 수기 업로드 목록이 다섯 개만 알고 있어, 두 폴더가
+  모든 릴리스에서 조용히 빠졌습니다. 폴더 목록을 매니페스트 한 곳으로
+  모았고, windeployqt가 목록에 없는 폴더를 내면 빌드가 시끄럽게
+  실패합니다
+  ([#276](https://github.com/115dkk/EqualizerAPO-XT/pull/276)).
+
 ## v2.37.2 — 2026-08-14
 
 - **Precision Minimal의 Copy·MultiConvolution 채널 토큰을 원색 칩에서

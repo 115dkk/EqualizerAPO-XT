@@ -420,11 +420,15 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	winutil::UniqueHandle tokenHandle;
 	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
 		tokenHandle.put()))
-		throw RegistryError(L"Error in OpenProcessToken while taking ownership");
+		// Not a registry failure (audit #275 TD-07): these three calls adjust
+		// this process's own token so the PEB of the running client can be
+		// read. Reporting them as RegistryError sent readers of the log to
+		// the registry ownership code.
+		throw exception("Error in OpenProcessToken while enabling SeDebugPrivilege for the Voicemeeter client check");
 
 	LUID luid;
 	if (!LookupPrivilegeValue(nullptr, SE_DEBUG_NAME, &luid))
-		throw RegistryError(L"Error in LookupPrivilegeValue while taking ownership");
+		throw exception("Error in LookupPrivilegeValue while enabling SeDebugPrivilege for the Voicemeeter client check");
 
 	TOKEN_PRIVILEGES tp;
 	tp.PrivilegeCount = 1;
@@ -433,7 +437,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 
 	if (!AdjustTokenPrivileges(tokenHandle.get(), FALSE, &tp,
 		sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
-		throw RegistryError(L"Error in AdjustTokenPrivileges while taking ownership");
+		throw exception("Error in AdjustTokenPrivileges while enabling SeDebugPrivilege for the Voicemeeter client check");
 
 	winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
 	if (!module)

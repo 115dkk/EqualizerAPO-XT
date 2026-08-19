@@ -374,6 +374,7 @@
     <ClInclude Include="services\registry\RegistryTransaction.h" />
     <ClInclude Include="platform\windows\WindowsVersion.h" />
     <ClInclude Include="services\logging\Logging.h" />
+    <ClInclude Include="services\logging\TaggedLogger.h" />
     <ClInclude Include="dsp\FftwRAII.h" />
     <ClInclude Include="dsp\FftwPlanningPolicy.h" />
     <ClInclude Include="runtime\memory\AlignedMemory.h" />
@@ -389,6 +390,7 @@
     <ClInclude Include="audio\io\SndfileRAII.h" />
     <ClInclude Include="text\WideString.h" />
     <ClInclude Include="platform\windows\TextEncoding.h" />
+    <ClInclude Include="platform\windows\ComSelfRegistration.h" />
     <ClInclude Include="platform\windows\Win32Error.h" />
     <ClInclude Include="parser\NumericText.h" />
     <ClInclude Include="vst\VSTPluginInstance.h" />
@@ -487,6 +489,7 @@
     <ClCompile Include="services\registry\IRegistry.cpp" />
     <ClCompile Include="services\registry\RegistryTransaction.cpp" />
     <ClCompile Include="platform\windows\WindowsVersion.cpp" />
+    <ClCompile Include="platform\windows\ComSelfRegistration.cpp" />
     <ClCompile Include="platform\windows\GuidText.cpp" />
     <ClCompile Include="services\logging\Logging.cpp" />
     <ClCompile Include="runtime\memory\AlignedMemory.cpp" />

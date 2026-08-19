@@ -933,9 +933,16 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 		"Channel:\n"                        // line 2: its own command, no channel
 		"Copy:\n"                           // line 3: its own command, no assignment
 		"GraphicEQ:\n"                      // line 4: its own command, no nodes
-		"remember to try 2 dB less here\n"  // line 5: prose, not an error
-		"copy: a note to self\n"            // line 6: wrong case, so prose
-		"Preamp: -3 dB\n");                 // line 7: fine, and must still run
+		// The pre-S7 factories joined the reporting generation in audit #275
+		// (TD-03); the four lines below used to fail in silence or log-only.
+		"Filter 1: ON PK Fc 1000 Hz\n"      // line 5: peaking without gain or Q
+		"Filter 2: ON IIR Order 2\n"        // line 6: IIR without coefficients (one report, not a BiQuad echo)
+		"Delay: quickly\n"                  // line 7: delay without a parsable amount
+		"Preamp: loud\n"                    // line 8: preamp without a parsable gain
+		"remember to try 2 dB less here\n"  // line 9: prose, not an error
+		"copy: a note to self\n"            // line 10: wrong case, so prose
+		"Filter 3: OFF PK Fc 99999999 Hz\n" // line 11: disabled, so a no-op rather than an error
+		"Preamp: -3 dB\n");                 // line 12: fine, and must still run
 
 	struct Collector : ConfigLoadTraceSink
 	{
@@ -962,16 +969,18 @@ void testParseErrorsAreReportedPerLineAndProseIsNot(test::Harness& harness)
 		errorLines.push_back(entry.line);
 	}
 
-	harness.requireEqual(errorLines.size(), size_t(4),
-		"one report per broken line, and none for the two lines that are prose");
-	harness.expect(errorLines[0] == 1 && errorLines[1] == 2 && errorLines[2] == 3 && errorLines[3] == 4,
-		"the reports land on the lines that are broken, in order");
+	harness.requireEqual(errorLines.size(), size_t(8),
+		"one report per broken line, none for the prose lines, none for the disabled filter, "
+		"and no BiQuad echo of the broken IIR line");
+	for (int line = 0; line < 8; line++)
+		harness.expectEqual(errorLines[(size_t)line], line + 1,
+			"the reports land on the lines that are broken, in order");
 
 	// The load kept going: half a configuration is still worth running, and a
 	// broken line must not take the working ones below it with it. loadConfig
 	// answers false only when the whole load failed.
 	harness.expect(engine.loadConfig(configPath),
-		"a configuration with four unusable lines still loads, because the working lines below them have to run");
+		"a configuration with eight unusable lines still loads, because the working lines below them have to run");
 }
 
 // Audit #250 A6/A3: the engine's registry surface (the config language's

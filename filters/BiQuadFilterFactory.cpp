@@ -91,11 +91,23 @@ BiQuadFilterFactory::BiQuadFilterFactory()
 {
 }
 
-bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& parameters, BiQuadCommand& out)
+bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& parameters, BiQuadCommand& out,
+	wstring* errorOut)
 {
 	// starts-with check (rfind at position 0), the pre-C++20 idiom
 	if (command.rfind(L"Filter", 0) != 0)
 		return false;
+
+	// Collected reasons for a recognized-but-malformed line. They reach the
+	// per-line trace through createFilter/reportParseError on the engine path,
+	// or the log for direct callers - previously each site logged on its own
+	// and the Editor could not mark the line (audit #275 TD-03).
+	wstring reason;
+	auto noteError = [&reason](const wstring& text) {
+		if (!reason.empty())
+			reason += L"; ";
+		reason += text;
+	};
 
 	// Conversion to period as decimal mark, if needed
 	parameters = numeric_text::normalizeDecimalComma(parameters);
@@ -111,7 +123,14 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	BiQuad::Type type;
 	if (!biquadTypeFromName(typeString, type))
 	{
-		if (typeString != L"None")
+		// "None" is a valid no-op line. "IIR" belongs to IIRFilterFactory,
+		// which runs at higher priority and reports its own parse errors, so
+		// a broken IIR line must not earn a second report here.
+		if (typeString == L"None" || typeString == L"IIR")
+			return false;
+		if (errorOut != nullptr)
+			*errorOut = L"unrecognized filter type \"" + typeString + L"\"";
+		else
 			LogFStatic(L"Invalid filter type %s", typeString.c_str());
 		return false;
 	}
@@ -139,7 +158,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	}
 	else
 	{
-		LogFStatic(L"No frequency given in filter string %s%s", typeString.c_str(), parameters.c_str());
+		noteError(L"no frequency given");
 		error = true;
 	}
 
@@ -160,7 +179,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	}
 	else if (type == BiQuad::PEAKING || type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
 	{
-		LogFStatic(L"No gain given in filter string %s%s", typeString.c_str(), parameters.c_str());
+		noteError(L"no gain given");
 		error = true;
 	}
 
@@ -217,7 +236,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 			}
 			else if (order != 2)
 			{
-				LogFStatic(L"Order must be 1 or 2 in filter string %s%s", typeString.c_str(), parameters.c_str());
+				noteError(L"the order must be 1 or 2");
 				error = true;
 			}
 			orderWasExplicit = true;
@@ -237,8 +256,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 
 	if (!std::isfinite(freq) || !std::isfinite(gain) || !std::isfinite(bandwidthOrQOrS))
 	{
-		LogFStatic(L"Filter parameters must be finite in filter string %s%s",
-			typeString.c_str(), parameters.c_str());
+		noteError(L"filter parameters must be finite");
 		error = true;
 	}
 
@@ -246,7 +264,7 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	{
 		if (type == BiQuad::PEAKING || type == BiQuad::ALL_PASS)
 		{
-			LogFStatic(L"No Q or bandwidth given in filter string %s%s", typeString.c_str(), parameters.c_str());
+			noteError(L"no Q or bandwidth given");
 			error = true;
 		}
 		else if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::BAND_PASS)
@@ -273,7 +291,13 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 	}
 
 	if (error)
+	{
+		if (errorOut != nullptr)
+			*errorOut = reason;
+		else
+			LogFStatic(L"%s in filter string %s%s", reason.c_str(), typeString.c_str(), parameters.c_str());
 		return false;
+	}
 
 	TraceFStatic(L"%s", stream.str().c_str());
 
@@ -291,8 +315,13 @@ bool BiQuadFilterFactory::parseCommand(const wstring& command, wstring& paramete
 FilterVector BiQuadFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	BiQuadCommand cmd;
-	if (!parseCommand(command, parameters, cmd))
+	wstring error;
+	if (!parseCommand(command, parameters, cmd, &error))
+	{
+		if (!error.empty())
+			return reportParseError(command, error);
 		return {};
+	}
 
 	return singleFilter(makeFilter<BiQuadFilter>(
 		cmd.type, cmd.dbGain, cmd.freq, cmd.bandwidthOrQOrS, cmd.isBandwidthOrS, cmd.isCornerFreq));

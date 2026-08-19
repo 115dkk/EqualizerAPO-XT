@@ -143,6 +143,8 @@ int main(int argc, char** argv)
 		testUpdateSessionKeepsPendingUpdateWhenElevationIsCancelled();
 		testUpdateCoordinatorReportsNoPendingRestart();
 		testUpdateCoordinatorContainsAdapterFailure();
+		testVelopackInstallRootFollowsTheCurrentLeafRule();
+		testElevatedCoordinatorArgumentHasOneSpelling();
 		testTheSkinRosterIsTheOneList();
 		testSkinTokensCarryExplicitMode();
 		testTokenSubstitutionOffersAnAlphaForm();
