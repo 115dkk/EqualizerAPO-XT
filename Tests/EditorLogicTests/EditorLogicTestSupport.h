@@ -96,3 +96,6 @@ void testAutoInstallerChannelMapping();
 void testAutoInstallerAssetGrammar();
 void testAutoInstallerChecksumParsing();
 void testAutoInstallerFlagScan();
+void testInstallerUiModelStepTransitions();
+void testInstallerUiModelFormatting();
+void testInstallerUiModelChannelDescriptions();

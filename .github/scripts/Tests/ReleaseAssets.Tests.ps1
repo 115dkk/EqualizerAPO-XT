@@ -55,4 +55,27 @@ Describe "ReleaseAssets grammar module" {
                 Should -Match "^EqualizerAPO-XT-$([regex]::Escape($channel))-$([regex]::Escape($channel))-Setup\.exe$"
         }
     }
+
+    Context "previous-release selection for installer reuse" {
+        It "skips the release being assembled and anything unpublished" {
+            $releases = @(
+                [pscustomobject]@{ tagName = "v2.38.0"; isDraft = $false; isPrerelease = $false }
+                [pscustomobject]@{ tagName = "v2.37.9"; isDraft = $true; isPrerelease = $false }
+                [pscustomobject]@{ tagName = "v2.37.8"; isDraft = $false; isPrerelease = $true }
+                [pscustomobject]@{ tagName = "v2.37.3"; isDraft = $false; isPrerelease = $false }
+            )
+            Select-PreviousReleaseTag -Releases $releases -CurrentTag "v2.38.0" |
+                Should -Be "v2.37.3"
+        }
+
+        It "returns nothing when the only published release is the current one" {
+            $releases = @(
+                [pscustomobject]@{ tagName = "v1.0.0"; isDraft = $false; isPrerelease = $false }
+            )
+            Select-PreviousReleaseTag -Releases $releases -CurrentTag "v1.0.0" |
+                Should -BeNullOrEmpty
+            Select-PreviousReleaseTag -Releases @() -CurrentTag "v1.0.0" |
+                Should -BeNullOrEmpty
+        }
+    }
 }

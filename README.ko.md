@@ -65,7 +65,9 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 [Releases 페이지](https://github.com/115dkk/EqualizerAPO-XT/releases)에서 설치합니다. `main`에 push되면 CI가 지원하는 모든 변형을 빌드하고, Velopack으로 감싼 설치 파일과 소스 코드 zip을 담은 GitHub Release를 만듭니다.
 
-권장 다운로드는 자동 감지 설치기인 **EqualizerAPO-XT-Setup.exe**입니다. CPU(아키텍처와 AVX 수준)를 감지해 맞는 빌드를 내려받으므로 SIMD 변형을 직접 고를 필요가 없으며, 내려받은 파일은 실행 전에 릴리스의 `SHA256SUMS.txt`로 검증합니다. 특정 빌드를 골라 설치하고 싶다면 채널별 `…-Setup.exe` 파일도 그대로 받을 수 있습니다. [docs/AutoDetectInstaller.md](docs/AutoDetectInstaller.md)를 참고하십시오.
+권장 다운로드는 자동 감지 설치기인 **EqualizerAPO-XT-Setup.exe**입니다. CPU(아키텍처와 AVX 수준)를 감지해 맞는 빌드를 내려받으므로 SIMD 변형을 직접 고를 필요가 없으며, 다운로드 진행률과 SHA-256 검증 과정을 자체 창에 보여주고 릴리스의 `SHA256SUMS.txt`와 일치하는 파일만 실행합니다. 특정 빌드를 골라 설치하고 싶다면 채널별 `…-Setup.exe` 파일도 그대로 받을 수 있습니다. [docs/AutoDetectInstaller.md](docs/AutoDetectInstaller.md)를 참고하십시오.
+
+릴리스는 아직 코드 서명이 없어서, 갓 받은 파일을 Windows Defender/SmartScreen이 알 수 없는 파일로 표시할 수 있습니다(제보된 라벨은 제네릭 `Trojan:Win32/Wacatac.B!ml`로, 실제 분석 결과가 아니라 서명 없는 새 파일에 붙는 평판 판정입니다). 모든 자산은 릴리스의 `SHA256SUMS.txt`로 직접 검증할 수 있고, 자동 감지 설치기는 실행 전에 이 검증을 자동으로 수행합니다.
 
 설치 후에는 Editor가 스스로 최신 상태를 유지합니다. 새 릴리스를 백그라운드에서 내려받아 두었다가 Editor를 닫을 때 적용합니다. 자세한 흐름은 [docs/VelopackUpdates.md](docs/VelopackUpdates.md)에 있습니다.
 

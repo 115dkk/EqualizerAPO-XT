@@ -854,19 +854,42 @@ jobs:
         # See docs/AutoDetectInstaller.md.
         $tag = "${{ steps.version.outputs.tag }}"
 
-        msbuild Installer\Installer.vcxproj `
-          /p:Configuration=Release `
-          /p:Platform=Win32 `
-          /m /v:minimal /nologo
-        if ($LASTEXITCODE -ne 0) {
-          exit $LASTEXITCODE
-        }
-
         # Asset name from the grammar module, not a fourth literal spelling
         # (audit #275 TD-14). ReleaseAssets.Tests.ps1 keeps the vcxproj
         # TargetName and the .rc OriginalFilename aligned with the grammar.
         Import-Module .\.github\scripts\ReleaseAssets.psm1
-        $setupExe = Join-Path "${{ github.workspace }}\Installer\Release" (Get-UniversalSetupAssetName)
+        $assetName = Get-UniversalSetupAssetName
+
+        # Reputation preservation: the binary resolves /releases/latest, so it
+        # only truly changes when its inputs change. When they have not, ship
+        # the previous release's exact bytes - Defender/SmartScreen reputation
+        # is per file hash, and an unsigned binary that re-hashes every release
+        # restarts at zero reputation every time (the Wacatac.B!ml reports).
+        # Any anomaly falls back to a fresh build. See the script's header.
+        $reusePath = Join-Path "${{ github.workspace }}" "reused-$assetName"
+        $decision = .\.github\scripts\Get-PreviousInstallerAsset.ps1 `
+          -Repository "${{ github.repository }}" `
+          -Tag $tag `
+          -ReleaseSha "${{ needs.version-bump.outputs.bumped_sha || github.sha }}" `
+          -AssetName $assetName `
+          -OutputPath $reusePath
+        Write-Host ("Installer reuse decision: reuse={0} previous='{1}' ({2})" -f `
+          $decision.Reuse, $decision.PreviousTag, $decision.Reason)
+
+        if ($decision.Reuse) {
+          $setupExe = $reusePath
+        }
+        else {
+          msbuild Installer\Installer.vcxproj `
+            /p:Configuration=Release `
+            /p:Platform=Win32 `
+            /m /v:minimal /nologo
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          $setupExe = Join-Path "${{ github.workspace }}\Installer\Release" $assetName
+        }
+
         if (-not (Test-Path $setupExe)) {
           Write-Error "Auto-detect installer was not produced at $setupExe"
           exit 1
