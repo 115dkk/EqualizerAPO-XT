@@ -616,7 +616,7 @@ std::optional<VST3BusLayout> VSTPluginInstance::getNegotiatedVST3OutputLayout() 
 }
 
 int VSTPluginInstance::semanticSpeakerArrangementCandidatesForChannelNames(
-	const vector<wstring>& channelNames, SpeakerArrangement* candidates) const
+	const vector<wstring>& channelNames, SpeakerArrangement* candidates)
 {
 	if (channelNamesEqual(channelNames, {L"L", L"R"}))
 	{

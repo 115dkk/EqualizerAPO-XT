@@ -165,8 +165,8 @@ private:
 	void configureVST3Buses(int requestedChannelCount);
 	void configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount);
 	void applyVST3BusActivation();
-	int semanticSpeakerArrangementCandidatesForChannelNames(const std::vector<std::wstring>& channelNames,
-		Steinberg::Vst::SpeakerArrangement* candidates) const;
+	static int semanticSpeakerArrangementCandidatesForChannelNames(const std::vector<std::wstring>& channelNames,
+		Steinberg::Vst::SpeakerArrangement* candidates);
 	int speakerArrangementCandidatesForChannelCount(int count, const std::vector<std::wstring>& channelNames,
 		Steinberg::Vst::SpeakerArrangement* candidates) const;
 	int speakerArrangementCandidatesForLayout(VST3BusLayout layout, int automaticChannelCount,
