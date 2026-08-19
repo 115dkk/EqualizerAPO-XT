@@ -85,6 +85,7 @@ if exist "$(MUPARSERX_LIB)\*.dll" copy /Y "$(MUPARSERX_LIB)\*.dll" "$(OutDir)"</
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApoFormatTests.cpp" />
     <ClCompile Include="ApoRegistrationTests.cpp" />
     <ClCompile Include="ChannelInheritanceTests.cpp" />
     <ClCompile Include="ConfigurationFileReaderTests.cpp" />

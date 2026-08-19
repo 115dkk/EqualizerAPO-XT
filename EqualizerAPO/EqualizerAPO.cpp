@@ -42,35 +42,10 @@
 
 namespace
 {
-	EqualizerAPO::ApoSampleFormat detectSampleFormat(const UNCOMPRESSEDAUDIOFORMAT& f)
-	{
-		// Windows audio engine normally hands system-effect APOs IEEE_FLOAT samples
-		// even when the endpoint runs an integer format underneath. We only need to
-		// match the container size to pick the right reinterpret. Validating the
-		// exact dwValidBitsPerSample value is too strict — some virtual devices
-		// (CABLE Input, loopback adapters, etc.) report non-canonical valid-bit
-		// counts even though the container is plain 32-bit float. Rejecting them
-		// here would fall through to silent output and make the device sound
-		// dead.
-		if (IsEqualGUID(f.guidFormatType, KSDATAFORMAT_SUBTYPE_IEEE_FLOAT))
-		{
-			if (f.dwBytesPerSampleContainer == 4)
-				return EqualizerAPO::ApoSampleFormat::Float32;
-			if (f.dwBytesPerSampleContainer == 8)
-				return EqualizerAPO::ApoSampleFormat::Float64;
-		}
-		return EqualizerAPO::ApoSampleFormat::Unsupported;
-	}
-
-	size_t bytesPerSample(EqualizerAPO::ApoSampleFormat fmt)
-	{
-		switch (fmt)
-		{
-		case EqualizerAPO::ApoSampleFormat::Float32: return sizeof(float);
-		case EqualizerAPO::ApoSampleFormat::Float64: return sizeof(double);
-		default: return 0;
-		}
-	}
+	// detectSampleFormat and bytesPerSample live in ApoFormat.h (audit #275
+	// A8/TD-28), where EngineOrchestrationTests pins them.
+	using apo::detectSampleFormat;
+	using apo::bytesPerSample;
 
 	// Shared block processing parameterized on the connection sample type. The
 	// FilterEngine has overloads for both float* and double* so the same body
@@ -105,19 +80,11 @@ namespace
 		{
 			if (allowSilentBufferModification)
 			{
-				unsigned outputSampleCount = frameCount * outputChannelCount;
-				bool silent = true;
-				const SampleT threshold = static_cast<SampleT>(1e-10);
-				for (unsigned i = 0; i < outputSampleCount; i++)
-				{
-					if (std::abs(outputFrames[i]) > threshold)
-					{
-						silent = false;
-						break;
-					}
-				}
 				// BUFFER_SILENT seems to be important for some sound card drivers,
-				// so only use BUFFER_VALID if there really is audio.
+				// so only use BUFFER_VALID if there really is audio. The verdict
+				// itself is apo::isBlockSilent (ApoFormat.h), pinned by tests.
+				const bool silent = apo::isBlockSilent(outputFrames,
+					(size_t)frameCount * outputChannelCount);
 				ppOutputConnections[0]->u32BufferFlags = silent ? BUFFER_SILENT : BUFFER_VALID;
 			}
 			else
@@ -529,19 +496,9 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 	else
 		realChannelCount = inFormat.dwSamplesPerFrame;
 
-	unsigned channelMask;
-	if (engine.isCapture())
-	{
-		channelMask = inFormat.dwChannelMask;
-		if (channelMask == 0 && inFormat.dwSamplesPerFrame == outFormat.dwSamplesPerFrame)
-			channelMask = outFormat.dwChannelMask;
-	}
-	else
-	{
-		channelMask = outFormat.dwChannelMask;
-		if (channelMask == 0 && inFormat.dwSamplesPerFrame == outFormat.dwSamplesPerFrame)
-			channelMask = inFormat.dwChannelMask;
-	}
+	const unsigned channelMask = apo::resolveChannelMask(engine.isCapture(),
+		inFormat.dwChannelMask, inFormat.dwSamplesPerFrame,
+		outFormat.dwChannelMask, outFormat.dwSamplesPerFrame);
 
 	try
 	{

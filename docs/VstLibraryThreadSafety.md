@@ -42,6 +42,35 @@ This is independent of layout ordering: it reproduced with both the old
 so once the map, the lazy statics, and the lazy module load are guarded, the
 load/unload path is safe.
 
+## The second scheme: per-instance VST3 synchronization
+
+The mutexes above guard library load/unload. A `VSTPluginInstance` hosting a
+VST3 plugin carries a second, independent synchronization scheme of its own
+(audit #275 TD-35; it previously existed only as code comments in
+`vst/VSTPluginInstance.cpp`, around lines 206-344):
+
+- **`vst3LifecycleMutex`** serializes the component lifecycle transitions
+  (activate/deactivate, processing start/stop) against the control thread.
+  Process calls themselves do not take it - the audio thread must not block
+  on a mutex the GUI thread can hold.
+- **`vst3Processing` (atomic)** tells the control thread whether the audio
+  side currently owns the component state. While it is set, a parameter edit
+  must not be persisted synchronously: the component only adopts the value
+  when its next process call drains `inputParameterChanges`, so a synchronous
+  save would persist the previous state.
+- **The SPSC parameter-edit ring** (`vst3ParameterEdit{Write,Read}` atomics
+  over a 1024-slot ring) carries parameter edits from the single control
+  thread (the Editor GUI thread for `performEdit`/`writeToEffect`; in the
+  engine, the configuration loader before processing starts) to whichever
+  thread runs the next process call. A full ring drops the edit - the next
+  edit of the same control supersedes it anyway. The single-producer
+  assumption is a hosting contract: nothing may queue edits from two threads
+  at once.
+
+When touching this area keep the two schemes distinct: the library mutexes
+protect *which modules exist*, the instance scheme protects *one component's
+state hand-off between the control and audio threads*.
+
 ## Manual repro / verification
 
 Automated testing is impractical: the crash is a nondeterministic data race that

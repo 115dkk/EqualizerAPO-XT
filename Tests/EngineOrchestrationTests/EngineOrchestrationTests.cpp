@@ -47,6 +47,7 @@
 #include "runtime/concurrency/SynchronizedState.h"
 #include "platform/windows/Win32Event.h"
 #include "Tests/TestHarness.h"
+#include "Tests/TestDirectory.h"
 
 #include "FakeRegistry.h"
 
@@ -119,29 +120,28 @@ void testParallelExecutor(test::Harness& harness)
 	harness.expect(propagated, "parallel executor joins workers and propagates the first exception");
 }
 
-std::vector<std::wstring>& writtenConfigFiles()
+// The shared per-process fixture (Tests/TestDirectory.h) is the pattern this
+// suite pioneered; the thin named wrappers below keep the many call sites
+// unchanged (audit #275 D5/TD-23).
+test::TestDirectory& testDirectoryFixture()
 {
-	static std::vector<std::wstring> files;
-	return files;
+	static test::TestDirectory directory(L"EngineOrchestrationTests");
+	return directory;
 }
 
-// Per-process directory so parallel runs on one machine cannot collide.
 std::wstring testDirectory()
 {
-	wchar_t tempPath[MAX_PATH] = {};
-	DWORD len = GetTempPathW(MAX_PATH, tempPath);
-	std::wstring dir = (len > 0 && len < MAX_PATH) ? tempPath : L".\\";
-	dir += L"EngineOrchestrationTests-" + std::to_wstring(GetCurrentProcessId());
-	CreateDirectoryW(dir.c_str(), nullptr);
-	return dir;
+	return testDirectoryFixture().path();
+}
+
+void trackWrittenFile(const std::wstring& path)
+{
+	testDirectoryFixture().track(path);
 }
 
 void removeTestDirectory()
 {
-	for (const std::wstring& file : writtenConfigFiles())
-		DeleteFileW(file.c_str());
-	writtenConfigFiles().clear();
-	RemoveDirectoryW(testDirectory().c_str());
+	testDirectoryFixture().removeAll();
 }
 
 std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, const std::string& content)
@@ -152,7 +152,7 @@ std::wstring writeConfig(test::Harness& harness, const std::wstring& fileName, c
 	stream.close();
 	if (!stream)
 		harness.fail("could not write temp config file");
-	writtenConfigFiles().push_back(path);
+	trackWrittenFile(path);
 	return path;
 }
 
@@ -312,7 +312,7 @@ std::wstring writeStereoDeltaIr(test::Harness& harness, const std::wstring& file
 		harness.fail("could not write stereo delta IR");
 	sf_writef_double(file.get(), interleaved.data(), frames);
 
-	writtenConfigFiles().push_back(path);
+	trackWrittenFile(path);
 	return path;
 }
 
@@ -417,7 +417,7 @@ void writeStereoIr(const std::wstring& path, const std::vector<double>& ch0, con
 	info.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
 	sndfile::Handle file(sf_wchar_open(path.c_str(), SFM_WRITE, &info));
 	sf_writef_double(file.get(), interleaved.data(), (sf_count_t)frames);
-	writtenConfigFiles().push_back(path);
+	trackWrittenFile(path);
 }
 
 // Drives a single unit impulse on the LEFT input through the engine and returns
@@ -1129,6 +1129,8 @@ void testAnalysisFreezesDynamicVelvetAndLabelsTheSnapshot(
 
 // Defined in SampleIoTests.cpp next to this file.
 void runSampleIoTests(test::Harness& harness);
+// Defined in ApoFormatTests.cpp next to this file.
+void runApoFormatTests(test::Harness& harness);
 void runConfigurationFileReaderTests(test::Harness& harness);
 void runDeviceApoInfoTests(test::Harness& harness);
 void runRegistryTransactionTests(test::Harness& harness);
@@ -1184,6 +1186,7 @@ int runEngineOrchestrationTests()
 	testConfigWatcherBackoffAndPathRefresh(harness);
 	runConfigurationFileReaderTests(harness);
 	runSampleIoTests(harness);
+	runApoFormatTests(harness);
 	testChannelSelectorRouting(harness);
 	testCopySwapsChannels(harness);
 	testMultiConvolutionIgnoresChannelSelection(harness);
