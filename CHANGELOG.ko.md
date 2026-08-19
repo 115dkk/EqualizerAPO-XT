@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.38.0 — 2026-08-19
+
 - **자동 감지 설치기에 제대로 된 창이 생겼습니다.** 밋밋한 Windows 진행
   대화상자와 메시지 박스 대신, EqualizerAPO-XT-Setup.exe가 감지한 CPU,
   실제 바이트 수가 표시되는 다운로드 진행률, SHA-256 검증 결과, 설치 UI로의

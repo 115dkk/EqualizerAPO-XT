@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.38.0 — 2026-08-19
+
 - **The auto-detect installer got a real window.** Instead of a bare Windows
   progress dialog and message-box errors, EqualizerAPO-XT-Setup.exe now shows
   a dark four-step view: the CPU it detected, download progress with actual
