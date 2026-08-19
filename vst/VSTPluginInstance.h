@@ -108,6 +108,10 @@ public:
 
 	void startProcessing();
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount);
+	// Shared VST3 body behind both widths; defined in VSTPluginInstance.cpp.
+	template<typename SampleType>
+	void processVst3Replacing(SampleType** inputArray, SampleType** outputArray, int frameCount);
+
 	void processReplacing(float** inputArray, float** outputArray, int frameCount);
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();

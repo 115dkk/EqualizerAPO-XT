@@ -46,6 +46,17 @@ using namespace std;
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 
+namespace
+{
+// Clears the parameter-flush guard on scope exit. Was defined inline three
+// times at its use sites (audit #275 TD-25/C4 stage 1).
+struct FlushFlagReset
+{
+	std::atomic<bool>& flag;
+	~FlushFlagReset() { flag.store(false, std::memory_order_release); }
+};
+}
+
 // The parameter-change list handed to IAudioProcessor::process. Fixed-size
 // and allocation-free after construction, so filling it on the audio thread
 // stays RT-safe. Each parameter gets a single-point queue (sample offset 0):
@@ -267,11 +278,7 @@ void VSTPluginInstance::flushVST3ParameterChanges()
 	bool expected = false;
 	if (!vst3ParameterFlushInProgress.compare_exchange_strong(expected, true, memory_order_acq_rel))
 		return;
-	struct FlushFlagReset
-	{
-		atomic<bool>& flag;
-		~FlushFlagReset() { flag.store(false, memory_order_release); }
-	} reset{ vst3ParameterFlushInProgress };
+	FlushFlagReset reset{ vst3ParameterFlushInProgress };
 
 	lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
 	if (vst3Processing.load(memory_order_acquire)
@@ -362,11 +369,7 @@ void VSTPluginInstance::beginVST3EditorSession()
 	bool expected = false;
 	if (!vst3ParameterFlushInProgress.compare_exchange_strong(expected, true, memory_order_acq_rel))
 		return;
-	struct FlushFlagReset
-	{
-		atomic<bool>& flag;
-		~FlushFlagReset() { flag.store(false, memory_order_release); }
-	} reset{ vst3ParameterFlushInProgress };
+	FlushFlagReset reset{ vst3ParameterFlushInProgress };
 
 	lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
 	if (vst3EditorSession || vst3Active || vst3Processing.load(memory_order_acquire))
@@ -402,11 +405,7 @@ void VSTPluginInstance::endVST3EditorSession()
 		bool expected = false;
 		if (!vst3ParameterFlushInProgress.compare_exchange_strong(expected, true, memory_order_acq_rel))
 			return;
-		struct FlushFlagReset
-		{
-			atomic<bool>& flag;
-			~FlushFlagReset() { flag.store(false, memory_order_release); }
-		} reset{ vst3ParameterFlushInProgress };
+		FlushFlagReset reset{ vst3ParameterFlushInProgress };
 
 		lock_guard<mutex> lifecycleLock(vst3LifecycleMutex);
 		if (!vst3EditorSession)
@@ -645,35 +644,64 @@ void VSTPluginInstance::startProcessing()
 	effect->control(effect.get(), VST_EFFECT_OPCODE_PROCESS_BEGIN, 0, 0, NULL, 0.0f);
 }
 
+namespace
+{
+// The one VST3 process-call choreography behind both sample widths (audit
+// #275 TD-25): the float and double bodies were 35-line near-clones whose
+// only differences were the buffer field and the symbolic sample size.
+template<typename SampleType>
+struct Vst3SampleTraits;
+
+template<>
+struct Vst3SampleTraits<float>
+{
+	static constexpr int32 symbolicSampleSize = kSample32;
+	static void attach(AudioBusBuffers& buffers, float** channels) { buffers.channelBuffers32 = channels; }
+};
+
+template<>
+struct Vst3SampleTraits<double>
+{
+	static constexpr int32 symbolicSampleSize = kSample64;
+	static void attach(AudioBusBuffers& buffers, double** channels) { buffers.channelBuffers64 = channels; }
+};
+}
+
+template<typename SampleType>
+void VSTPluginInstance::processVst3Replacing(SampleType** inputArray, SampleType** outputArray, int frameCount)
+{
+	if (vst3Processor == NULL)
+		return;
+	AudioBusBuffers inputBuffers;
+	inputBuffers.numChannels = numInputs();
+	Vst3SampleTraits<SampleType>::attach(inputBuffers, inputArray);
+	AudioBusBuffers outputBuffers;
+	outputBuffers.numChannels = numOutputs();
+	Vst3SampleTraits<SampleType>::attach(outputBuffers, outputArray);
+	ProcessData data;
+	data.processMode = kRealtime;
+	data.symbolicSampleSize = Vst3SampleTraits<SampleType>::symbolicSampleSize;
+	data.numSamples = frameCount;
+	data.numInputs = vst3InputBusCount > 0 ? 1 : 0;
+	data.numOutputs = vst3OutputBusCount > 0 ? 1 : 0;
+	data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
+	data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
+	data.inputParameterChanges = prepareVST3ParameterChanges();
+	data.inputEvents = &emptyVST3EventList;
+	data.processContext = &vst3ProcessContext;
+	vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
+	vst3ProcessContext.sampleRate = sampleRate;
+	vst3ProcessContext.projectTimeSamples = vst3SamplePosition;
+	vst3ProcessContext.continousTimeSamples = vst3SamplePosition;
+	if (vst3Processor->process(data) == kResultOk)
+		vst3SamplePosition += frameCount;
+}
+
 void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray, int frameCount)
 {
 	if (library->isVST3())
 	{
-		if (vst3Processor == NULL)
-			return;
-		AudioBusBuffers inputBuffers;
-		inputBuffers.numChannels = numInputs();
-		inputBuffers.channelBuffers32 = inputArray;
-		AudioBusBuffers outputBuffers;
-		outputBuffers.numChannels = numOutputs();
-		outputBuffers.channelBuffers32 = outputArray;
-		ProcessData data;
-		data.processMode = kRealtime;
-		data.symbolicSampleSize = kSample32;
-		data.numSamples = frameCount;
-		data.numInputs = vst3InputBusCount > 0 ? 1 : 0;
-		data.numOutputs = vst3OutputBusCount > 0 ? 1 : 0;
-		data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
-		data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
-		data.inputParameterChanges = prepareVST3ParameterChanges();
-		data.inputEvents = &emptyVST3EventList;
-		data.processContext = &vst3ProcessContext;
-		vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
-		vst3ProcessContext.sampleRate = sampleRate;
-		vst3ProcessContext.projectTimeSamples = vst3SamplePosition;
-		vst3ProcessContext.continousTimeSamples = vst3SamplePosition;
-		if (vst3Processor->process(data) == kResultOk)
-			vst3SamplePosition += frameCount;
+		processVst3Replacing(inputArray, outputArray, frameCount);
 		return;
 	}
 
@@ -687,31 +715,7 @@ void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** out
 {
 	if (library->isVST3())
 	{
-		if (vst3Processor == NULL)
-			return;
-		AudioBusBuffers inputBuffers;
-		inputBuffers.numChannels = numInputs();
-		inputBuffers.channelBuffers64 = inputArray;
-		AudioBusBuffers outputBuffers;
-		outputBuffers.numChannels = numOutputs();
-		outputBuffers.channelBuffers64 = outputArray;
-		ProcessData data;
-		data.processMode = kRealtime;
-		data.symbolicSampleSize = kSample64;
-		data.numSamples = frameCount;
-		data.numInputs = vst3InputBusCount > 0 ? 1 : 0;
-		data.numOutputs = vst3OutputBusCount > 0 ? 1 : 0;
-		data.inputs = data.numInputs > 0 ? &inputBuffers : NULL;
-		data.outputs = data.numOutputs > 0 ? &outputBuffers : NULL;
-		data.inputParameterChanges = prepareVST3ParameterChanges();
-		data.inputEvents = &emptyVST3EventList;
-		data.processContext = &vst3ProcessContext;
-		vst3ProcessContext.state = ProcessContext::kPlaying | ProcessContext::kContTimeValid;
-		vst3ProcessContext.sampleRate = sampleRate;
-		vst3ProcessContext.projectTimeSamples = vst3SamplePosition;
-		vst3ProcessContext.continousTimeSamples = vst3SamplePosition;
-		if (vst3Processor->process(data) == kResultOk)
-			vst3SamplePosition += frameCount;
+		processVst3Replacing(inputArray, outputArray, frameCount);
 		return;
 	}
 

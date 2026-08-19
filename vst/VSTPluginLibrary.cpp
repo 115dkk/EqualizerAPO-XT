@@ -24,6 +24,7 @@
 #include "services/logging/Logging.h"
 #include "VSTPluginLibrary.h"
 #include "VST3HostObjects.h"
+#include "VST3RefCounted.h"
 #include "platform/windows/Win32Resource.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
@@ -38,26 +39,9 @@ namespace
 // name or ask it to manufacture IMessage/IAttributeList objects during
 // factory-level setup. Ported from the ripDZL fork's VST3 compatibility
 // work (github.com/ripDZL/EqualizerAPO-XT/pull/1).
-class VST3FactoryHostContext : public Steinberg::Vst::IHostApplication
+class VST3FactoryHostContext : public VST3RefCounted<Steinberg::Vst::IHostApplication>
 {
 public:
-	Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void** obj) override
-	{
-		QUERY_INTERFACE(iid, obj, Steinberg::FUnknown::iid, Steinberg::Vst::IHostApplication)
-		QUERY_INTERFACE(iid, obj, Steinberg::Vst::IHostApplication::iid, Steinberg::Vst::IHostApplication)
-		*obj = NULL;
-		return Steinberg::kNoInterface;
-	}
-
-	Steinberg::uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
-	Steinberg::uint32 PLUGIN_API release() override
-	{
-		Steinberg::uint32 result = InterlockedDecrement(&refCount);
-		if (result == 0)
-			delete this;
-		return result;
-	}
-
 	Steinberg::tresult PLUGIN_API getName(Steinberg::Vst::String128 name) override
 	{
 		wcsncpy_s((wchar_t*)name, 128, L"Equalizer APO", _TRUNCATE);
@@ -68,10 +52,20 @@ public:
 	{
 		return VST3HostObjects::createInstance(cid, iid, obj);
 	}
-
-private:
-	volatile LONG refCount = 1;
 };
+
+// The factory-3 lookup both call sites used to repeat: IPluginFactory
+// predates the FUnknown casting helpers, so the iid must be spelled as a
+// TUID by hand before queryInterface.
+Steinberg::IPtr<Steinberg::IPluginFactory3> queryFactory3(Steinberg::IPluginFactory* factory) noexcept
+{
+	Steinberg::TUID factory3Iid;
+	Steinberg::IPluginFactory3::iid.toTUID(factory3Iid);
+	Steinberg::IPluginFactory3* rawFactory3 = nullptr;
+	if (factory->queryInterface(factory3Iid, (void**)&rawFactory3) == Steinberg::kResultOk && rawFactory3 != nullptr)
+		return Steinberg::IPtr<Steinberg::IPluginFactory3>::adopt(rawFactory3);
+	return Steinberg::IPtr<Steinberg::IPluginFactory3>();
+}
 
 // Detach the host context from the factory before either side goes away, so
 // the module never holds a dangling host pointer.
@@ -79,14 +73,8 @@ void clearFactoryHostContext(Steinberg::IPluginFactory* factory, Steinberg::IPtr
 {
 	if (factory != nullptr && context != nullptr)
 	{
-		Steinberg::TUID factory3Iid;
-		Steinberg::IPluginFactory3::iid.toTUID(factory3Iid);
-		Steinberg::IPluginFactory3* rawFactory3 = nullptr;
-		if (factory->queryInterface(factory3Iid, (void**)&rawFactory3) == Steinberg::kResultOk && rawFactory3 != nullptr)
-		{
-			auto factory3 = Steinberg::IPtr<Steinberg::IPluginFactory3>::adopt(rawFactory3);
+		if (auto factory3 = queryFactory3(factory))
 			factory3->setHostContext(nullptr);
-		}
 	}
 	context.reset();
 }
@@ -241,12 +229,8 @@ int VSTPluginLibrary::customInitialize()
 	if (!factory)
 		return FUNCTIONS_MISSING;
 
-	Steinberg::TUID factory3Iid;
-	Steinberg::IPluginFactory3::iid.toTUID(factory3Iid);
-	Steinberg::IPluginFactory3* rawFactory3 = nullptr;
-	if (factory->queryInterface(factory3Iid, (void**)&rawFactory3) == Steinberg::kResultOk && rawFactory3 != nullptr)
+	if (auto factory3 = queryFactory3(factory.get()))
 	{
-		auto factory3 = Steinberg::IPtr<Steinberg::IPluginFactory3>::adopt(rawFactory3);
 		vst3FactoryHostContext = Steinberg::IPtr<Steinberg::FUnknown>::adopt(
 			static_cast<Steinberg::Vst::IHostApplication*>(new VST3FactoryHostContext()));
 		if (factory3->setHostContext(vst3FactoryHostContext.get()) != Steinberg::kResultOk)
