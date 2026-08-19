@@ -82,10 +82,10 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 	mainThreadId = GetCurrentThreadId();
 
 	wstring voicemeeterDirectory;
-	if (WindowsRegistry::keyExists(voicemeeterKeyPath))
-		voicemeeterDirectory = WindowsRegistry::readValue(voicemeeterKeyPath, uninstallStringValueName);
-	else if (WindowsRegistry::keyExists(voicemeeterWowKeyPath))
-		voicemeeterDirectory = WindowsRegistry::readValue(voicemeeterWowKeyPath, uninstallStringValueName);
+	if (systemRegistry().keyExists(voicemeeterKeyPath))
+		voicemeeterDirectory = systemRegistry().readValue(voicemeeterKeyPath, uninstallStringValueName);
+	else if (systemRegistry().keyExists(voicemeeterWowKeyPath))
+		voicemeeterDirectory = systemRegistry().readValue(voicemeeterWowKeyPath, uninstallStringValueName);
 
 	size_t index = voicemeeterDirectory.find_last_of(L'\\');
 	if (index != wstring::npos)

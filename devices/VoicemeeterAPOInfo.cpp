@@ -25,9 +25,9 @@
 #include <algorithm>
 #include <KsMedia.h>
 #include <shellapi.h>
-#include <TlHelp32.h>
-#include <Winternl.h>
 #include "platform/windows/ComPtr.h"
+#include "platform/windows/ProcessCommandLine.h"
+#include "platform/windows/ShellLink.h"
 #include "services/logging/Logging.h"
 #include "services/registry/WindowsRegistry.h"
 #include "platform/windows/Win32Resource.h"
@@ -50,14 +50,6 @@ static const wchar_t* startupFilename = L"Equalizer APO Voicemeeter Client.lnk";
 static const wchar_t* clientFilename = L"VoicemeeterClient.exe";
 static const wchar_t* voicemeeterClientKeyPath = USER_REGPATH L"\\Voicemeeter Client";
 static const wchar_t* sampleRateValueName = L"sampleRate";
-
-typedef NTSTATUS(NTAPI* pfnNtQueryInformationProcess)(
-	IN HANDLE ProcessHandle,
-	IN PROCESSINFOCLASS ProcessInformationClass,
-	OUT PVOID ProcessInformation,
-	IN ULONG ProcessInformationLength,
-	OUT PULONG ReturnLength OPTIONAL
-	);
 
 void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list, IRegistry& registry)
 {
@@ -276,13 +268,7 @@ void VoicemeeterAPOInfo::uninstall()
 		sort(args.begin(), args.end());
 		argString = joinArgs(args);
 
-		wchar_t filename[MAX_PATH];
-		GetModuleFileNameW(nullptr, filename, ARRAYSIZE(filename));
-		PathRemoveFileSpecW(filename);
-		wstring clientPath = filename;
-		clientPath = clientPath + L"\\" + clientFilename;
-
-		createLink(startupFilePath, clientPath, argString);
+		createLink(startupFilePath, getClientPath(), argString);
 	}
 	else
 	{
@@ -324,20 +310,10 @@ void VoicemeeterAPOInfo::createLink(const wstring& lnkPath, const wstring& path,
 {
 	// Audit #250 F035: every HRESULT here used to be discarded, so a failed
 	// startup link (the thing that keeps the client running after reboot)
-	// left no trace at all. Still best-effort, but now it says so.
-	ComPtr<IShellLink> shellLink;
-	HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
-		IID_PPV_ARGS(shellLink.put()));
-	if (SUCCEEDED(hr))
-	{
-		shellLink->SetPath(path.c_str());
-		shellLink->SetArguments(args.c_str());
-		ComPtr<IPersistFile> persistFile;
-		hr = shellLink->QueryInterface(IID_PPV_ARGS(persistFile.put()));
-		if (SUCCEEDED(hr))
-			hr = persistFile->Save(lnkPath.c_str(), TRUE);
-	}
-
+	// left no trace at all. Still best-effort, but now it says so. The
+	// IShellLink choreography itself is winutil::writeShellLink (audit #275 C5).
+	const HRESULT hr = winutil::writeShellLink(
+		path, std::wstring(), args, std::wstring(), std::wstring(), 0, lnkPath);
 	if (FAILED(hr))
 		LogFStatic(L"Could not create link %s (HRESULT 0x%08X)", lnkPath.c_str(), hr);
 }
@@ -417,89 +393,22 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	vector<wstring> args = splitArgs(argString);
 	wstring clientPath = getClientPath();
 
-	winutil::UniqueHandle tokenHandle;
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
-		tokenHandle.put()))
-		// Not a registry failure (audit #275 TD-07): these three calls adjust
-		// this process's own token so the PEB of the running client can be
-		// read. Reporting them as RegistryError sent readers of the log to
-		// the registry ownership code.
-		throw exception("Error in OpenProcessToken while enabling SeDebugPrivilege for the Voicemeeter client check");
-
-	LUID luid;
-	if (!LookupPrivilegeValue(nullptr, SE_DEBUG_NAME, &luid))
-		throw exception("Error in LookupPrivilegeValue while enabling SeDebugPrivilege for the Voicemeeter client check");
-
-	TOKEN_PRIVILEGES tp;
-	tp.PrivilegeCount = 1;
-	tp.Privileges[0].Luid = luid;
-	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-	if (!AdjustTokenPrivileges(tokenHandle.get(), FALSE, &tp,
-		sizeof(TOKEN_PRIVILEGES), nullptr, nullptr))
-		throw exception("Error in AdjustTokenPrivileges while enabling SeDebugPrivilege for the Voicemeeter client check");
-
-	winutil::UniqueModule module(LoadLibraryW(L"ntdll.dll"));
-	if (!module)
-		throw exception("Could not load ntdll.dll");
-
-	pfnNtQueryInformationProcess NtQueryInformationProcess =
-		reinterpret_cast<pfnNtQueryInformationProcess>(GetProcAddress(module.get(), "NtQueryInformationProcess"));
-	if (NtQueryInformationProcess == nullptr)
-		throw exception("Function NtQueryInformationProcess not found in ntdll.dll");
-
-	winutil::UniqueHandle snapshotHandle(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
-	if (!snapshotHandle)
-		throw exception("Could not take a snapshot of all processes");
-
+	// The privilege dance and the PEB walk live in
+	// platform/windows/ProcessCommandLine.cpp (audit #275 C5); what stays
+	// here is the Voicemeeter decision: a client whose command line does not
+	// match the startup link's is asked to close and relaunched.
 	bool matchingProcessExists = false;
-
-	PROCESSENTRY32W entry;
-	entry.dwSize = sizeof(PROCESSENTRY32W);
-	bool loop = Process32FirstW(snapshotHandle.get(), &entry) != 0;
-	while (loop)
+	for (const winutil::ProcessWithCommandLine& process
+		: winutil::findProcessesByExeName(clientFilename))
 	{
-		if (wcscmp(entry.szExeFile, clientFilename) == 0)
-		{
-			winutil::UniqueHandle processHandle(OpenProcess(
-				PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE,
-				FALSE, entry.th32ProcessID));
-			if (!processHandle)
-				throw exception("Could not open process");
+		vector<wstring> processArgs = splitArgs(process.commandLine);
+		wstring path = processArgs.front();
+		processArgs.erase(processArgs.begin());
 
-			PROCESS_BASIC_INFORMATION basicInformation;
-			NTSTATUS status = NtQueryInformationProcess(processHandle.get(), ProcessBasicInformation,
-				&basicInformation, sizeof(basicInformation), nullptr);
-			if (status < 0)
-				throw exception("Could not query process information");
-
-			_PEB peb;
-			if (!ReadProcessMemory(processHandle.get(), basicInformation.PebBaseAddress,
-				&peb, sizeof(peb), nullptr))
-				throw exception("Could not read peb from process memory");
-
-			RTL_USER_PROCESS_PARAMETERS processParams;
-			if (!ReadProcessMemory(processHandle.get(), peb.ProcessParameters,
-				&processParams, sizeof(processParams), nullptr))
-				throw exception("Could not read process parameters from process memory");
-
-			vector<wchar_t> cmdLineBuf(processParams.CommandLine.Length / sizeof(wchar_t));
-			if (!ReadProcessMemory(processHandle.get(), processParams.CommandLine.Buffer,
-				cmdLineBuf.data(), processParams.CommandLine.Length, nullptr))
-				throw exception("Could not read command line from process memory");
-			wstring cmdLine(cmdLineBuf.data(), cmdLineBuf.size());
-
-			vector<wstring> processArgs = splitArgs(cmdLine);
-			wstring path = processArgs.front();
-			processArgs.erase(processArgs.begin());
-
-			if (path != clientPath || processArgs != args)
-				closeProcess(entry.th32ProcessID);
-			else
-				matchingProcessExists = true;
-		}
-
-		loop = Process32NextW(snapshotHandle.get(), &entry) != 0;
+		if (path != clientPath || processArgs != args)
+			winutil::requestProcessClose(process.processId);
+		else
+			matchingProcessExists = true;
 	}
 
 	if (!matchingProcessExists && !args.empty())
@@ -521,21 +430,3 @@ void VoicemeeterAPOInfo::saveVoicemeeterSampleRate(unsigned sampleRate, IRegistr
 	}
 }
 
-void VoicemeeterAPOInfo::closeProcess(unsigned long processId)
-{
-	winutil::UniqueHandle snapshotHandle(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0));
-	if (!snapshotHandle)
-		throw exception("Could not take a snapshot of all processes");
-
-	THREADENTRY32 entry;
-	entry.dwSize = sizeof(THREADENTRY32);
-	bool loop = Thread32First(snapshotHandle.get(), &entry) != 0;
-	while (loop)
-	{
-		if (entry.th32OwnerProcessID == processId)
-			// will just fail for threads not having a message queue
-			PostThreadMessageW(entry.th32ThreadID, WM_QUIT, 0, 0);
-
-		loop = Thread32Next(snapshotHandle.get(), &entry) != 0;
-	}
-}

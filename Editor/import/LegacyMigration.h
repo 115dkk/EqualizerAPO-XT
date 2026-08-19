@@ -17,6 +17,7 @@
 #include <string>
 
 class QWidget;
+class IRegistry;
 
 namespace EqAPO::Import
 {
@@ -34,8 +35,13 @@ public:
 
     // The whole hook-side step. Runs elevated (registry writes go to HKLM);
     // must not show UI. exeDir is the install's current\ dir, whose config\
-    // subfolder carries the shipped sample configs.
+    // subfolder carries the shipped sample configs. The registry-taking
+    // overload is the real implementation (audit #275 C1): the machine
+    // -changing writes here (ConfigPath, the migration breadcrumbs) used to
+    // bypass the port and were untestable off a real machine; EditorLogicTests
+    // now drives this through a fake registry.
     static void runElevatedHookStep(const std::wstring& exeDir);
+    static void runElevatedHookStep(const std::wstring& exeDir, IRegistry& registry);
 
     // "--migration-dry-run": print the classification and the manifest the
     // hook would act on, write nothing. Field diagnostics for "why did my

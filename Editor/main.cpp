@@ -551,18 +551,18 @@ int main(int argc, char* argv[])
 		QString stableRoot = EqAPO::Import::LegacyMigration::stableConfigRoot();
 		QString configPath = !stableRoot.isEmpty() && QDir(stableRoot).exists()
 			? stableRoot : QDir::currentPath();
-		if (WindowsRegistry::keyExists(APP_REGPATH) && WindowsRegistry::valueExists(APP_REGPATH, L"ConfigPath"))
-			configPath = QString::fromStdWString(WindowsRegistry::readValue(APP_REGPATH, L"ConfigPath"));
+		if (systemRegistry().keyExists(APP_REGPATH) && systemRegistry().valueExists(APP_REGPATH, L"ConfigPath"))
+			configPath = QString::fromStdWString(systemRegistry().readValue(APP_REGPATH, L"ConfigPath"));
 		QDir configDir(configPath);
 
-		if (!WindowsRegistry::keyExists(USER_REGPATH))
-			WindowsRegistry::createKey(USER_REGPATH);
+		if (!systemRegistry().keyExists(USER_REGPATH))
+			systemRegistry().createKey(USER_REGPATH);
 
-		if (!WindowsRegistry::keyExists(EDITOR_REGPATH))
-			WindowsRegistry::createKey(EDITOR_REGPATH);
+		if (!systemRegistry().keyExists(EDITOR_REGPATH))
+			systemRegistry().createKey(EDITOR_REGPATH);
 
-		if (!WindowsRegistry::keyExists(EDITOR_PER_FILE_REGPATH))
-			WindowsRegistry::createKey(EDITOR_PER_FILE_REGPATH);
+		if (!systemRegistry().keyExists(EDITOR_PER_FILE_REGPATH))
+			systemRegistry().createKey(EDITOR_PER_FILE_REGPATH);
 
 		const bool analysisLayoutTestRequested =
 			application.arguments().contains(QStringLiteral("--analysis-layout-test"));

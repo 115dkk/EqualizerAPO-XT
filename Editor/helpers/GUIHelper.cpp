@@ -187,8 +187,8 @@ void GUIHelper::prepareFileDialog(QFileDialog& dialog)
 	QString configRoot;
 	try
 	{
-		if (WindowsRegistry::keyExists(APP_REGPATH) && WindowsRegistry::valueExists(APP_REGPATH, L"ConfigPath"))
-			configRoot = QString::fromStdWString(WindowsRegistry::readValue(APP_REGPATH, L"ConfigPath"));
+		if (systemRegistry().keyExists(APP_REGPATH) && systemRegistry().valueExists(APP_REGPATH, L"ConfigPath"))
+			configRoot = QString::fromStdWString(systemRegistry().readValue(APP_REGPATH, L"ConfigPath"));
 	}
 	catch (const RegistryError&)
 	{

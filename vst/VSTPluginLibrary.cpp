@@ -141,7 +141,7 @@ wstring VSTPluginLibrary::getDefaultPluginPath()
 	{
 		try
 		{
-			wstring installPath = WindowsRegistry::readValue(APP_REGPATH, L"InstallPath");
+			wstring installPath = systemRegistry().readValue(APP_REGPATH, L"InstallPath");
 			defaultPluginPath = installPath + L"\\VSTPlugins";
 		}
 		catch (const RegistryError& e)

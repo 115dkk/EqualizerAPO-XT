@@ -75,7 +75,7 @@ void Logging::log(const char* file, int line, const void* caller, bool trace, co
 
 			try
 			{
-				if (WindowsRegistry::readValue(APP_REGPATH, L"EnableTrace") != L"false")
+				if (systemRegistry().readValue(APP_REGPATH, L"EnableTrace") != L"false")
 					enableTrace = true;
 			}
 			catch (const RegistryError& e)

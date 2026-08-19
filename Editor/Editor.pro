@@ -40,10 +40,11 @@ SOURCES += main.cpp\
 	../platform/windows/Win32Error.cpp \
 	../parser/NumericText.cpp \
 	../services/registry/WindowsRegistry.cpp \
-	../services/registry/IRegistry.cpp \
 	../services/registry/RegistryTransaction.cpp \
 	../platform/windows/WindowsVersion.cpp \
 	../platform/windows/ComSelfRegistration.cpp \
+	../platform/windows/ProcessCommandLine.cpp \
+	../platform/windows/ShellLink.cpp \
 	../platform/windows/GuidText.cpp \
 	../services/security/AudioEngineAccess.cpp \
 	../services/diagnostics/InstallDiagnostics.cpp \
@@ -334,6 +335,8 @@ HEADERS  += \
 	../text/WideString.h \
 	../platform/windows/TextEncoding.h \
 	../platform/windows/ComSelfRegistration.h \
+	../platform/windows/ProcessCommandLine.h \
+	../platform/windows/ShellLink.h \
 	../platform/windows/Win32Error.h \
 	../parser/NumericText.h \
 	../services/registry/WindowsRegistry.h \

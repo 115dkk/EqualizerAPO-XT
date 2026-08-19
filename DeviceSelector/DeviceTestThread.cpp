@@ -102,7 +102,7 @@ void DeviceTestThread::run()
 
 		try
 		{
-			WindowsRegistry::writeValue(APP_REGPATH, deviceTestPipeValueName, pipeName);
+			systemRegistry().writeValue(APP_REGPATH, deviceTestPipeValueName, pipeName);
 		}
 		catch (const RegistryError& e)
 		{
@@ -113,7 +113,7 @@ void DeviceTestThread::run()
 		SCOPE_EXIT{
 			try
 			{
-				WindowsRegistry::deleteValue(APP_REGPATH, deviceTestPipeValueName);
+				systemRegistry().deleteValue(APP_REGPATH, deviceTestPipeValueName);
 			}
 			catch (const RegistryError& e)
 			{
