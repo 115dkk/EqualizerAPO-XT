@@ -136,6 +136,19 @@ jobs:
           test -f "$HOME/.claude/skills/improve-codebase-architecture/SKILL.md"
           test -f "$HOME/.claude/skills/tech-debt-audit/SKILL.md"
 
+          # The vendored tech-debt-audit skill is locked with
+          # disable-model-invocation so interactive sessions never trigger a
+          # whole-repo audit by accident. This run's prompt explicitly says
+          # "Run /tech-debt-audit", and the model can only do that through the
+          # Skill tool, which the lock blocks (the 2026-08-15 audit had to
+          # improvise Part 2 without the skill). Unlock the installed copy
+          # only; the copy in the repository stays locked.
+          sed -i '/^disable-model-invocation:/d' "$HOME/.claude/skills/tech-debt-audit/SKILL.md"
+          if grep -q "disable-model-invocation" "$HOME/.claude/skills/tech-debt-audit/SKILL.md"; then
+            echo "::error::tech-debt-audit SKILL.md still carries disable-model-invocation after the unlock"
+            exit 1
+          fi
+
           echo "Installed Claude audit skills:"
           find "$HOME/.claude/skills" -maxdepth 2 -name SKILL.md -print
 
