@@ -234,6 +234,9 @@
     <ClInclude Include="vst\VST3HostObjects.h">
       <Filter>vst</Filter>
     </ClInclude>
+    <ClInclude Include="vst\VST3RefCounted.h">
+      <Filter>vst</Filter>
+    </ClInclude>
     <ClInclude Include="vst\VSTPluginInstanceInternal.h">
       <Filter>vst</Filter>
     </ClInclude>

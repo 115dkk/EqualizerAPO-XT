@@ -108,6 +108,10 @@ public:
 
 	void startProcessing();
 	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount);
+	// Shared VST3 body behind both widths; defined in VSTPluginInstance.cpp.
+	template<typename SampleType>
+	void processVst3Replacing(SampleType** inputArray, SampleType** outputArray, int frameCount);
+
 	void processReplacing(float** inputArray, float** outputArray, int frameCount);
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();
@@ -161,20 +165,20 @@ private:
 	void configureVST3Buses(int requestedChannelCount);
 	void configureVST3Buses(int requestedInputChannelCount, int requestedOutputChannelCount);
 	void applyVST3BusActivation();
-	int semanticSpeakerArrangementCandidatesForChannelNames(const std::vector<std::wstring>& channelNames,
-		Steinberg::Vst::SpeakerArrangement* candidates) const;
-	int speakerArrangementCandidatesForChannelCount(int count, const std::vector<std::wstring>& channelNames,
-		Steinberg::Vst::SpeakerArrangement* candidates) const;
-	int speakerArrangementCandidatesForLayout(VST3BusLayout layout, int automaticChannelCount,
+	static int semanticSpeakerArrangementCandidatesForChannelNames(const std::vector<std::wstring>& channelNames,
+		Steinberg::Vst::SpeakerArrangement* candidates);
+	static int speakerArrangementCandidatesForChannelCount(int count, const std::vector<std::wstring>& channelNames,
+		Steinberg::Vst::SpeakerArrangement* candidates);
+	static int speakerArrangementCandidatesForLayout(VST3BusLayout layout, int automaticChannelCount,
 		const std::vector<std::wstring>& channelNames, Steinberg::Vst::SpeakerArrangement currentArrangement,
-		Steinberg::Vst::SpeakerArrangement* candidates) const;
-	bool arrangementMatchesLayout(Steinberg::Vst::SpeakerArrangement arrangement,
-		VST3BusLayout layout) const;
+		Steinberg::Vst::SpeakerArrangement* candidates);
+	static bool arrangementMatchesLayout(Steinberg::Vst::SpeakerArrangement arrangement,
+		VST3BusLayout layout);
 	bool acceptedVST3BusMetadataIsConsistent() const;
 	bool refreshAcceptedVST3Arrangements();
 	void updateVST3ChannelMappings();
-	bool buildVST3ChannelMapping(Steinberg::Vst::SpeakerArrangement arrangement,
-		const std::vector<std::wstring>& channelNames, std::vector<int>& mapping) const;
+	static bool buildVST3ChannelMapping(Steinberg::Vst::SpeakerArrangement arrangement,
+		const std::vector<std::wstring>& channelNames, std::vector<int>& mapping);
 	int vst3BusChannelCount(Steinberg::Vst::BusDirection direction) const;
 	void onVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);
 	void queueVST3ParameterEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value);

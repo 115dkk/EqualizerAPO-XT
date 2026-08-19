@@ -36,6 +36,7 @@
 
 #include <vector>
 #include "VST3HostObjects.h"
+#include "VST3RefCounted.h"
 #include "VSTPluginInstance.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/gui/iplugviewcontentscalesupport.h"
@@ -45,28 +46,11 @@ using namespace std;
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 
-class VSTPluginInstance::VST3MemoryStream : public IBStream
+class VSTPluginInstance::VST3MemoryStream : public VST3RefCounted<IBStream>
 {
 public:
 	VST3MemoryStream() {}
 	VST3MemoryStream(const vector<char>& data) : data(data) {}
-
-	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
-	{
-		QUERY_INTERFACE(iid, obj, FUnknown::iid, IBStream)
-		QUERY_INTERFACE(iid, obj, IBStream::iid, IBStream)
-		*obj = NULL;
-		return kNoInterface;
-	}
-
-	uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
-	uint32 PLUGIN_API release() override
-	{
-		uint32 result = InterlockedDecrement(&refCount);
-		if (result == 0)
-			delete this;
-		return result;
-	}
 
 	tresult PLUGIN_API read(void* buffer, int32 numBytes, int32* numBytesRead = nullptr) override
 	{
@@ -126,37 +110,15 @@ public:
 	const vector<char>& getData() const { return data; }
 
 private:
-	volatile LONG refCount = 1;
 	vector<char> data;
 	size_t position = 0;
 };
 
-class VSTPluginInstance::VST3HostContext : public IHostApplication, public IComponentHandler,
-	public IComponentHandler2, public IPlugFrame, public IPlugInterfaceSupport
+class VSTPluginInstance::VST3HostContext : public VST3RefCounted<IHostApplication,
+	IComponentHandler, IComponentHandler2, IPlugFrame, IPlugInterfaceSupport>
 {
 public:
 	VST3HostContext(VSTPluginInstance* instance) : instance(instance) {}
-
-	tresult PLUGIN_API queryInterface(const TUID iid, void** obj) override
-	{
-		QUERY_INTERFACE(iid, obj, FUnknown::iid, IHostApplication)
-		QUERY_INTERFACE(iid, obj, IHostApplication::iid, IHostApplication)
-		QUERY_INTERFACE(iid, obj, IComponentHandler::iid, IComponentHandler)
-		QUERY_INTERFACE(iid, obj, IComponentHandler2::iid, IComponentHandler2)
-		QUERY_INTERFACE(iid, obj, IPlugFrame::iid, IPlugFrame)
-		QUERY_INTERFACE(iid, obj, IPlugInterfaceSupport::iid, IPlugInterfaceSupport)
-		*obj = NULL;
-		return kNoInterface;
-	}
-
-	uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
-	uint32 PLUGIN_API release() override
-	{
-		uint32 result = InterlockedDecrement(&refCount);
-		if (result == 0)
-			delete this;
-		return result;
-	}
 
 	tresult PLUGIN_API getName(String128 name) override
 	{
@@ -227,6 +189,5 @@ public:
 	}
 
 private:
-	volatile LONG refCount = 1;
 	VSTPluginInstance* instance;
 };

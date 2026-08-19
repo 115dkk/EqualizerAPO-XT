@@ -400,6 +400,7 @@
     <ClInclude Include="vst\VSTPluginInstance.h" />
     <ClInclude Include="vst\VST3BusLayout.h" />
     <ClInclude Include="vst\VST3HostObjects.h" />
+    <ClInclude Include="vst\VST3RefCounted.h" />
     <ClInclude Include="vst\VSTPluginInstanceInternal.h" />
     <ClInclude Include="vst\VSTPluginLibrary.h" />
     <ClInclude Include="engine\IFilter.h" />

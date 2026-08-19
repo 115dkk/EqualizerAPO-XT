@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "VST3RefCounted.h"
 #include "pluginterfaces/base/funknown.h"
 #include "pluginterfaces/base/futils.h"
 #include "pluginterfaces/vst/ivstattributes.h"
@@ -30,36 +31,9 @@ namespace VST3HostObjects
 // The maps are mutex-guarded because IConnectionPoint messages may be
 // produced and consumed on different threads (a plug-in's private worker
 // posting to the controller on the GUI thread).
-class AttributeList : public Steinberg::Vst::IAttributeList
+class AttributeList : public VST3RefCounted<Steinberg::Vst::IAttributeList>
 {
 public:
-	// Spelled out instead of the SDK's QUERY_INTERFACE macro: cppcheck cannot
-	// expand SDK macros in a standalone header and fails the gate on them
-	// (the .cpp-hosted host objects keep the macro form).
-	Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void** obj) override
-	{
-		if (obj == NULL)
-			return Steinberg::kInvalidArgument;
-		if (Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::FUnknown::iid)
-			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IAttributeList::iid))
-		{
-			*obj = static_cast<Steinberg::Vst::IAttributeList*>(this);
-			addRef();
-			return Steinberg::kResultOk;
-		}
-		*obj = NULL;
-		return Steinberg::kNoInterface;
-	}
-
-	Steinberg::uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
-	Steinberg::uint32 PLUGIN_API release() override
-	{
-		Steinberg::uint32 result = InterlockedDecrement(&refCount);
-		if (result == 0)
-			delete this;
-		return result;
-	}
-
 	Steinberg::tresult PLUGIN_API setInt(AttrID id, Steinberg::int64 value) override
 	{
 		if (id == NULL)
@@ -150,7 +124,6 @@ private:
 		return length;
 	}
 
-	volatile LONG refCount = 1;
 	std::mutex dataMutex;
 	std::unordered_map<std::string, Steinberg::int64> intValues;
 	std::unordered_map<std::string, double> floatValues;
@@ -158,43 +131,18 @@ private:
 	std::unordered_map<std::string, std::vector<char>> binaryValues;
 };
 
-class Message : public Steinberg::Vst::IMessage
+class Message : public VST3RefCounted<Steinberg::Vst::IMessage>
 {
 public:
 	Message() : attributes(new AttributeList()) {}
-
-	Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID iid, void** obj) override
-	{
-		if (obj == NULL)
-			return Steinberg::kInvalidArgument;
-		if (Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::FUnknown::iid)
-			|| Steinberg::FUnknownPrivate::iidEqual(iid, Steinberg::Vst::IMessage::iid))
-		{
-			*obj = static_cast<Steinberg::Vst::IMessage*>(this);
-			addRef();
-			return Steinberg::kResultOk;
-		}
-		*obj = NULL;
-		return Steinberg::kNoInterface;
-	}
-
-	Steinberg::uint32 PLUGIN_API addRef() override { return InterlockedIncrement(&refCount); }
-	Steinberg::uint32 PLUGIN_API release() override
-	{
-		Steinberg::uint32 result = InterlockedDecrement(&refCount);
-		if (result == 0)
-			delete this;
-		return result;
-	}
 
 	Steinberg::FIDString PLUGIN_API getMessageID() override { return messageId.empty() ? NULL : messageId.c_str(); }
 	void PLUGIN_API setMessageID(Steinberg::FIDString id) override { messageId = id != NULL ? id : ""; }
 	Steinberg::Vst::IAttributeList* PLUGIN_API getAttributes() override { return attributes; }
 
 private:
-	~Message() { attributes->release(); }
+	~Message() override { attributes->release(); }
 
-	volatile LONG refCount = 1;
 	std::string messageId;
 	AttributeList* attributes;
 };
