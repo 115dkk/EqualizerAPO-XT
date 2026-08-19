@@ -18,7 +18,7 @@
 */
 
 #include "stdafx.h"
-#include <Shlwapi.h>
+#include <filesystem>
 
 #include "services/logging/Logging.h"
 #include "engine/FilterEngine.h"
@@ -59,19 +59,21 @@ FilterVector IncludeFilterFactory::createFilter(const wstring& configPath, wstri
 	{
 		const wstring& value = cmd.path;
 
+		// Same relative-path dialect as ConvolutionFilePath::resolve
+		// (audit #275 TD-06): relative to the including config file, resolved
+		// with std::filesystem. The previous Shlwapi variant went through a
+		// MAX_PATH buffer, so a long path was silently truncated.
+		namespace filesystem = std::filesystem;
+		const filesystem::path includedPath(value);
 		wstring includePath;
-		if (PathIsRelativeW(value.c_str()))
-		{
-			wchar_t filePath[MAX_PATH];
-			// Standard copy + truncate; _Copy_s is an MSVC-internal helper.
-			const size_t copyLength = configPath.copy(filePath, MAX_PATH - 1);
-			filePath[copyLength] = L'\0';
-			PathRemoveFileSpecW(filePath);
-			PathAppendW(filePath, value.c_str());
-			includePath = filePath;
-		}
+		if (includedPath.is_absolute())
+			includePath = includedPath.lexically_normal().wstring();
 		else
-			includePath = value;
+		{
+			filesystem::path basePath(configPath);
+			basePath.remove_filename();
+			includePath = (basePath / includedPath).lexically_normal().wstring();
+		}
 
 		if (recursionDepth >= RECURSION_LIMIT)
 			LogF(L"Skipping include of %s as recursion limit of %d has been reached", value.c_str(), RECURSION_LIMIT);

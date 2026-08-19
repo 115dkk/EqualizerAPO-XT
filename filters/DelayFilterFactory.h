@@ -25,7 +25,7 @@
 #include "engine/IFilter.h"
 #include "DelayCommand.h"
 
-class DelayFilterFactory : public IFilterFactory
+class DelayFilterFactory : public ParseReportingFactory
 {
 public:
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
@@ -37,5 +37,9 @@ public:
 	// that should produce a DelayFilter (delay > 0 with a "ms" or "samples"
 	// unit). A 0-length delay is a no-op and an unknown/missing unit is
 	// rejected, so both return false, exactly as createFilter() decided before.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, DelayCommand& out);
+	// `malformed` (optional) is set when the command keyword was "Delay" but
+	// the parameter text did not parse - the case createFilter() reports as a
+	// parse error, as opposed to the deliberate no-op of a zero delay.
+	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, DelayCommand& out,
+		bool* malformed = nullptr);
 };

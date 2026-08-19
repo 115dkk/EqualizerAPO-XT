@@ -49,8 +49,22 @@ IIRFilterFactory::IIRFilterFactory()
 {
 }
 
-bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& parameters, IIRCommand& out)
+bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& parameters, IIRCommand& out,
+	wstring* error)
 {
+	// A recognized-but-malformed IIR line either fills `error` (engine path:
+	// createFilter turns it into a per-line parse report) or logs directly
+	// (legacy direct callers). The distinction from "not an IIR line" is the
+	// whole point: two of these branches used to return false in silence
+	// (audit #275 TD-03).
+	auto fail = [&](const wstring& reason) {
+		if (error != nullptr)
+			*error = reason;
+		else
+			LogFStatic(L"%s", reason.c_str());
+		return false;
+	};
+
 	// starts-with check (rfind at position 0), the pre-C++20 idiom
 	if (command.rfind(L"Filter", 0) != 0)
 		return false;
@@ -60,25 +74,23 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 		return false;
 
 	if (!regex_search(parameters, match, regexOrder))
-		return false;
+		return fail(L"expected Order followed by the filter order");
 
 	wstring orderString = match.str(1);
 	unsigned order = wcstol(orderString.c_str(), nullptr, 10);
 	if (order < 1)
-	{
-		LogFStatic(L"Order %d not supported, must at least be 1", order);
-		return false;
-	}
+		return fail(L"the order must be at least 1");
 
 	if (!regex_search(parameters, match, regexCoefficients))
-		return false;
+		return fail(L"expected Coefficients followed by the b and a coefficient lists");
 
 	wstring coefficientsString = match.str(1);
 	vector<wstring> coefficientStrings = text::split(coefficientsString, L' ');
 	if (coefficientStrings.size() != (order + 1) * 2)
 	{
-		LogFStatic(L"Invalid number of coefficients. Expected %d coefficients instead of %d", (order + 1) * 2, coefficientStrings.size());
-		return false;
+		wstringstream reason;
+		reason << L"expected " << (order + 1) * 2 << L" coefficients instead of " << coefficientStrings.size();
+		return fail(reason.str());
 	}
 
 	out.order = order;
@@ -87,17 +99,11 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 	{
 		double coefficient = numeric_text::parseDouble(coefficientString);
 		if (!std::isfinite(coefficient))
-		{
-			LogFStatic(L"IIR coefficients must be finite");
-			return false;
-		}
+			return fail(L"IIR coefficients must be finite");
 		out.coefficients.push_back(coefficient);
 	}
 	if (out.coefficients[order + 1] == 0.0)
-	{
-		LogFStatic(L"IIR a0 coefficient must not be zero");
-		return false;
-	}
+		return fail(L"the a0 coefficient must not be zero");
 
 	return true;
 }
@@ -105,8 +111,13 @@ bool IIRFilterFactory::parseCommand(const wstring& command, const wstring& param
 FilterVector IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IIRCommand cmd;
-	if (!parseCommand(command, parameters, cmd))
+	wstring error;
+	if (!parseCommand(command, parameters, cmd, &error))
+	{
+		if (!error.empty())
+			return reportParseError(command, error);
 		return {};
+	}
 
 	wstringstream stream;
 	stream << L"Adding IIR filter of order " << cmd.order << " with coefficients";

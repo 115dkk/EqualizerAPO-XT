@@ -194,7 +194,10 @@ void FilterEngine::loadConfigFile(const wstring& path)
 				}
 				catch (const exception& e)
 				{
-					LogF(L"%S", e.what());
+					// Stamped like reportParseError's log line, so an exception
+					// escaping a factory is as locatable as a parse error
+					// (audit #275 TD-03).
+					LogF(L"%S (line %d of %s)", e.what(), load.traceLine, load.traceFile.c_str());
 				}
 
 				if (key == L"")

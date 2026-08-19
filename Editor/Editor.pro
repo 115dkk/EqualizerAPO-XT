@@ -43,6 +43,7 @@ SOURCES += main.cpp\
 	../services/registry/IRegistry.cpp \
 	../services/registry/RegistryTransaction.cpp \
 	../platform/windows/WindowsVersion.cpp \
+	../platform/windows/ComSelfRegistration.cpp \
 	../platform/windows/GuidText.cpp \
 	../services/security/AudioEngineAccess.cpp \
 	../services/diagnostics/InstallDiagnostics.cpp \
@@ -329,8 +330,10 @@ SOURCES += main.cpp\
 HEADERS  += \
 	../platform/windows/FileSharingRetry.h \
 	../services/logging/Logging.h \
+	../services/logging/TaggedLogger.h \
 	../text/WideString.h \
 	../platform/windows/TextEncoding.h \
+	../platform/windows/ComSelfRegistration.h \
 	../platform/windows/Win32Error.h \
 	../parser/NumericText.h \
 	../services/registry/WindowsRegistry.h \

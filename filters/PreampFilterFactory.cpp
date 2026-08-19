@@ -84,7 +84,8 @@ FilterVector PreampFilterFactory::createFilter(const wstring& configPath, wstrin
 		}
 		else
 		{
-			LogF(L"Could not parse preamp value \"%s\"; no preamp was applied", text::trim(parameters).c_str());
+			return reportParseError(command,
+				L"could not parse the preamp value \"" + text::trim(parameters) + L"\"; no preamp was applied");
 		}
 	}
 

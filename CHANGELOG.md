@@ -14,6 +14,30 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **"Reset all global preferences" now really resets the analysis dock's
+  view choices.** The graph metric (Mag/Phase/GD) and the "include base
+  delay" toggle were stored in a stray registry location that the reset
+  action (and uninstall cleanup) never touched, so they survived a full
+  reset. They now live with every other Editor preference; an existing
+  value is migrated over once on startup
+  ([#277](https://github.com/115dkk/EqualizerAPO-XT/pull/277)).
+- **Broken `Filter`, `IIR`, `Delay`, and `Preamp` lines now say what is
+  wrong, on the line, in the Editor.** These four command families predate
+  the per-line parse reporting the other commands got, so a typo like a
+  missing `Coefficients` list either logged a loose message or failed in
+  complete silence. They now report through the same per-line channel:
+  the Editor marks the exact line and the log records the reason with a
+  file and line stamp. An `Include` line's relative path also no longer
+  gets silently truncated at 260 characters
+  ([#277](https://github.com/115dkk/EqualizerAPO-XT/pull/277)).
+- **Installers ship the Qt `generic/` and `networkinformation/` plugin
+  folders again.** windeployqt deploys seven plugin folders, but the
+  release pipeline's hand-written upload list only knew five, so two were
+  silently missing from every release. The folder list now lives in one
+  manifest and the build fails loudly if windeployqt ever emits a folder
+  the list does not know
+  ([#276](https://github.com/115dkk/EqualizerAPO-XT/pull/276)).
+
 ## v2.37.2 — 2026-08-14
 
 - **Precision Minimal's Copy and MultiConvolution channel tokens are now

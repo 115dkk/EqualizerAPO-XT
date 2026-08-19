@@ -420,6 +420,7 @@
     <ClInclude Include="..\Editor\skins\SkinThemeData.h" />
     <ClCompile Include="..\Editor\helpers\QtAppBootstrap.cpp" />
     <ClCompile Include="..\services\windows\WindowsService.cpp" />
+    <ClCompile Include="..\platform\windows\ComSelfRegistration.cpp" />
     <ClCompile Include="..\services\install\ApoRegistration.cpp" />
     <ClCompile Include="..\services\shell\StartMenuShortcuts.cpp" />
     <ClCompile Include="..\services\security\AudioEngineAccess.cpp" />

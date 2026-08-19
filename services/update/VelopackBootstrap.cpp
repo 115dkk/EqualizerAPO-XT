@@ -139,16 +139,7 @@ std::wstring VelopackBootstrap::currentBinDir()
 
 std::wstring VelopackBootstrap::installRoot()
 {
-	std::wstring bin = exeDirectory();
-	if (bin.empty())
-		return std::wstring();
-	size_t slash = bin.find_last_of(L"\\/");
-	if (slash == std::wstring::npos)
-		return bin;
-	std::wstring leaf = bin.substr(slash + 1);
-	if (_wcsicmp(leaf.c_str(), L"current") != 0)
-		return bin;
-	return bin.substr(0, slash);
+	return installRootFromBinDir(exeDirectory());
 }
 
 std::wstring VelopackBootstrap::updateExePath()
@@ -198,7 +189,7 @@ bool VelopackBootstrap::launchElevatedUpdateCoordinator()
 	info.fMask = SEE_MASK_NOASYNC;
 	info.lpVerb = L"runas";
 	info.lpFile = exePath;
-	info.lpParameters = L"--eapo-apply-update-elevated";
+	info.lpParameters = kElevatedCoordinatorArgumentW;
 	info.nShow = SW_HIDE;
 
 	if (ShellExecuteExW(&info))

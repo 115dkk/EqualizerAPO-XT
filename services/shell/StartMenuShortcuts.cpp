@@ -15,6 +15,7 @@
 
 #include "platform/windows/ComPtr.h"
 #include "services/logging/Logging.h"
+#include "services/logging/TaggedLogger.h"
 #include "platform/windows/WindowsPath.h"
 #include "platform/windows/Win32Resource.h"
 
@@ -27,15 +28,7 @@ using pathutil::createDirectoryRecursive;
 constexpr wchar_t kShortcutFolderName[] = L"EqualizerAPO-XT";
 constexpr wchar_t kDeviceSelectorShortcutFile[] = L"Device Selector.lnk";
 
-void logLine(const wchar_t* level, const wchar_t* format, ...)
-{
-	wchar_t buffer[1024];
-	va_list args;
-	va_start(args, format);
-	_vsnwprintf_s(buffer, _TRUNCATE, format, args);
-	va_end(args);
-	LogFStatic(L"[StartMenuShortcuts] %s: %s", level, buffer);
-}
+constexpr logging::TaggedLogger logLine(L"StartMenuShortcuts");
 
 std::wstring publicProgramsPath()
 {

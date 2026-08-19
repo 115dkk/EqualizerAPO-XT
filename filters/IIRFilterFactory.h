@@ -25,15 +25,17 @@
 #include "engine/IFilter.h"
 #include "IIRCommand.h"
 
-class IIRFilterFactory : public IFilterFactory
+class IIRFilterFactory : public ParseReportingFactory
 {
 public:
 	IIRFilterFactory();
 	FilterVector createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 	// Parses a "Filter:" IIR config line into an IIRCommand. This is the single
-	// owner of the IIR grammar; grammar errors (order below 1, wrong coefficient
-	// count) are reported through the log helpers, lines of other filter types
-	// just return false.
-	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out);
+	// owner of the IIR grammar; lines of other filter types just return false.
+	// When `error` is given, a recognized-but-malformed IIR line fills it with
+	// the reason (createFilter reports it through ParseReportingFactory);
+	// without it the reason goes to the log, as before, for direct callers.
+	static bool parseCommand(const std::wstring& command, const std::wstring& parameters, IIRCommand& out,
+		std::wstring* error = nullptr);
 };

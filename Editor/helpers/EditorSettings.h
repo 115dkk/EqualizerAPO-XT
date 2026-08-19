@@ -12,6 +12,12 @@ inline constexpr char Dark[] = "interface/dark";
 inline constexpr char LegacyRows[] = "interface/legacyRows";
 inline constexpr char NativeTitleBar[] = "interface/nativeTitleBar";
 inline constexpr char KnobGainRange[] = "interface/knobGainRange";
+// Analysis dock view choices. Stored under EDITOR_REGPATH like every other
+// preference; they briefly lived in Qt's default QSettings location, which
+// "Reset all global preferences" could not reach (audit #275 TD-01) - the
+// migration in MainWindow.Analysis.cpp moves old values over once.
+inline constexpr char AnalysisViewMetric[] = "analysis/viewMetric";
+inline constexpr char AnalysisIncludeLatency[] = "analysis/includeLatency";
 }
 
 struct SkinChoice

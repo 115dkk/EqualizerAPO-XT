@@ -22,6 +22,8 @@
 
 #include "Editor/analysis/AnalysisMetric.h"
 #include "Editor/analysis/AnalysisViewController.h"
+#include "Editor/helpers/EditorSettings.h"
+#include "services/registry/RegistryPaths.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/SegmentedControl.h"
 #include "services/logging/Logging.h"
@@ -153,10 +155,30 @@ void MainWindow::setupAnalysisMetricControls()
 		tr("The analyzer removes the configuration's bulk delay before measuring, so a filter's own phase is readable. "
 		   "Switch this on to put that delay back into the reading."));
 
-	QSettings settings;
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	// One-time migration (audit #275 TD-01): these two keys used to be written
+	// through a default-constructed QSettings, which lands in Qt's fallback
+	// registry location instead of EDITOR_REGPATH. That store survived "Reset
+	// all global preferences" and uninstall cleanup. Carry an old value over
+	// once, then drop the stray store's copy.
+	{
+		QSettings legacy;
+		for (const char* key : {EditorSettings::Keys::AnalysisViewMetric,
+		                        EditorSettings::Keys::AnalysisIncludeLatency})
+		{
+			const QLatin1String keyString(key);
+			if (legacy.contains(keyString))
+			{
+				if (!settings.contains(keyString))
+					settings.setValue(keyString, legacy.value(keyString));
+				legacy.remove(keyString);
+			}
+		}
+	}
 	const AnalysisMetric metric = metricFromSettingName(
-		settings.value(QStringLiteral("analysis/viewMetric")).toString());
-	const bool includeLatency = settings.value(QStringLiteral("analysis/includeLatency"), false).toBool();
+		settings.value(QLatin1String(EditorSettings::Keys::AnalysisViewMetric)).toString());
+	const bool includeLatency = settings.value(
+		QLatin1String(EditorSettings::Keys::AnalysisIncludeLatency), false).toBool();
 
 	ui->analysisMetricSegment->setCurrentIndex(metricIndex(metric));
 	ui->includeBaseDelayCheckBox->setChecked(includeLatency);
@@ -174,12 +196,14 @@ void MainWindow::setupAnalysisMetricControls()
 		if (eqGraphView != nullptr)
 			eqGraphView->setMetric(chosen);
 		ui->includeBaseDelayCheckBox->setVisible(chosen != AnalysisMetric::MagnitudeDb);
-		QSettings().setValue(QStringLiteral("analysis/viewMetric"), metricSettingName(chosen));
+		QSettings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat)
+		.setValue(QLatin1String(EditorSettings::Keys::AnalysisViewMetric), metricSettingName(chosen));
 	});
 	connect(ui->includeBaseDelayCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
 		if (eqGraphView != nullptr)
 			eqGraphView->setIncludeLatency(checked);
-		QSettings().setValue(QStringLiteral("analysis/includeLatency"), checked);
+		QSettings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat)
+		.setValue(QLatin1String(EditorSettings::Keys::AnalysisIncludeLatency), checked);
 	});
 
 	// A filter card can ask for a reading that makes its own filter legible.
