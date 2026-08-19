@@ -613,14 +613,18 @@ void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChro
 		Qt::AlignCenter, QStringLiteral("+"));
 }
 
-FilterPickerView* ISkin::createFilterPicker(QWidget* parent) const
+FilterPickerView* ISkin::createFilterPicker(QWidget* parent, const SkinTokens& tokens) const
 {
-	// Neutral default: the shared search-over-sections dropdown.
+	// Neutral default: the shared search-over-sections dropdown, styled by
+	// QSS rather than tokens.
+	Q_UNUSED(tokens);
 	return new DefaultFilterPickerView(parent);
 }
 
-ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* parent) const
+ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* parent,
+	const SkinTokens& tokens) const
 {
+	Q_UNUSED(tokens);
 	// Neutral default: the plain token-styled information hierarchy. kind is
 	// unused here because the neutral view derives everything from the state;
 	// skins that split their answer per kind branch on it.
@@ -628,8 +632,10 @@ ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* 
 	return new DefaultReferenceCardView(parent);
 }
 
-SubwooferRoutingCardView* ISkin::createSubwooferRoutingCardView(QWidget* parent) const
+SubwooferRoutingCardView* ISkin::createSubwooferRoutingCardView(QWidget* parent,
+	const SkinTokens& tokens) const
 {
+	Q_UNUSED(tokens);
 	return new DefaultSubwooferRoutingCardView(parent);
 }
 

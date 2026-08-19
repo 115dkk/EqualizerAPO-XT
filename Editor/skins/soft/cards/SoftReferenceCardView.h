@@ -12,6 +12,7 @@
 #include <QString>
 
 #include "Editor/widgets/cards/ReferenceCardView.h"
+#include "Editor/SkinTokens.h"
 
 class ElidedLabel;
 class QAbstractButton;
@@ -24,7 +25,7 @@ class SoftReferenceCardView : public ReferenceCardView
 	Q_OBJECT
 
 public:
-	explicit SoftReferenceCardView(const QString& kind, QWidget* parent = nullptr);
+	explicit SoftReferenceCardView(const QString& kind, const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void addLeadingWidget(QWidget* widget) override;
 	void placeBusStrip(QWidget* strip) override;
@@ -34,6 +35,7 @@ protected:
 	void applyState(const ReferenceCardState& state) override;
 
 private:
+	const SkinTokens skinTokens;
 	void rebuildChips(const QStringList& readout);
 	void styleBrowseButton();
 

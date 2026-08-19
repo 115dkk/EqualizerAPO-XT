@@ -101,8 +101,9 @@ private:
 
 
 
-RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(QWidget* parent)
-	: SubwooferRoutingCardView(parent)
+RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(const SkinTokens& tokens, QWidget* parent)
+	: SubwooferRoutingCardView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("RackSubwooferRoutingCardView"));
 	setAutoFillBackground(false);
@@ -155,19 +156,19 @@ RackSubwooferRoutingCardView::RackSubwooferRoutingCardView(QWidget* parent)
 	instrumentLayout->setContentsMargins(0, 0, 0, 0);
 	instrumentLayout->setSpacing(GUIHelper::scale(8.0));
 
-	crossoverReadout = new RackCrossoverReadout(instrumentWidget);
+	crossoverReadout = new RackCrossoverReadout(skinTokens, instrumentWidget);
 	instrumentLayout->addWidget(
 		crossoverReadout,
 		1,
 		Qt::AlignVCenter);
 
-	lfeLamp = new RackLfeLamp(instrumentWidget);
+	lfeLamp = new RackLfeLamp(skinTokens, instrumentWidget);
 	instrumentLayout->addWidget(
 		lfeLamp,
 		0,
 		Qt::AlignVCenter);
 
-	headroomMeter = new RackHeadroomMeter(instrumentWidget);
+	headroomMeter = new RackHeadroomMeter(skinTokens, instrumentWidget);
 	instrumentLayout->addWidget(
 		headroomMeter,
 		2,
@@ -489,7 +490,7 @@ void RackSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const bool dark = skinIsDark(tokens);
 	const QPalette::ColorGroup group = isEnabled()
 		? QPalette::Active
@@ -612,7 +613,7 @@ void RackSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 	}
 
 	const QString railText = QStringLiteral("SUBWOOFER ROUTING");
-	const QFont railFace = rackFont(7, true, 1.4);
+	const QFont railFace = rackFont(skinTokens, 7, true, 1.4);
 	const QFontMetrics railMetrics(railFace);
 	const qreal railTop =
 		screwInset + screwRadius + GUIHelper::scale(5.0);

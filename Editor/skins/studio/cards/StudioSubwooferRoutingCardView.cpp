@@ -41,8 +41,9 @@ void repolish(QWidget* widget)
 }
 
 StudioSubwooferRoutingCardView::StudioSubwooferRoutingCardView(
-	QWidget* parent)
-	: SubwooferRoutingCardView(parent)
+	const SkinTokens& tokens, QWidget* parent)
+	: SubwooferRoutingCardView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("StudioSubwooferRoutingCardView"));
 
@@ -266,7 +267,7 @@ void StudioSubwooferRoutingCardView::paintEvent(QPaintEvent* event)
 	// ring in the skin's focus colour on the card's single 8px radius.
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing, true);
-	QColor ring(SkinManager::instance()->tokens().focusRing);
+	QColor ring(skinTokens.focusRing);
 	ring.setAlpha(170);
 	painter.setPen(QPen(ring, 1.0));
 	painter.setBrush(Qt::NoBrush);

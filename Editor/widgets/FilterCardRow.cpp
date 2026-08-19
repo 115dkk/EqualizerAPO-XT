@@ -233,7 +233,8 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		std::vector<std::wstring> channelNames = table->getChannelNames();
 		// Copy uses the default port model: symmetric sources/targets seeded
 		// from the device channels, with editable factors.
-		routingView = routingRenderer->create(routingAssignments, channelNames, RoutingPortModel(), editorContainer);
+		routingView = routingRenderer->create(routingAssignments, channelNames, RoutingPortModel(), editorContainer,
+			SkinManager::instance()->tokens());
 
 		QScrollArea* routingScroll = new QScrollArea(editorContainer);
 		routingScroll->setObjectName(QStringLiteral("FilterCardEditorScroll"));

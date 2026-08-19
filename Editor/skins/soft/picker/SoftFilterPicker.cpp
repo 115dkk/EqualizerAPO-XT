@@ -145,7 +145,12 @@ QString softCaption(const QString& line)
 class SoftPickerDelegate : public QStyledItemDelegate
 {
 public:
-	using QStyledItemDelegate::QStyledItemDelegate;
+	SoftPickerDelegate(const SkinTokens& tokens, QObject* parent)
+		: QStyledItemDelegate(parent), skinTokens(tokens)
+	{
+	}
+
+	const SkinTokens skinTokens;
 
 	QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
@@ -166,8 +171,8 @@ public:
 
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
-		const SkinTokens& t = SkinManager::instance()->tokens();
-		const bool dark = SkinManager::instance()->isDark();
+		const SkinTokens& t = skinTokens;
+		const bool dark = skinTokens.dark;
 		const QString title = index.data(TitleRole).toString();
 
 		painter->save();
@@ -352,8 +357,9 @@ private:
 };
 }
 
-SoftFilterPickerView::SoftFilterPickerView(QWidget* parent)
-	: FilterPickerView(parent)
+SoftFilterPickerView::SoftFilterPickerView(const SkinTokens& tokens, QWidget* parent)
+	: FilterPickerView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("SoftFilterPicker"));
 
@@ -378,7 +384,7 @@ SoftFilterPickerView::SoftFilterPickerView(QWidget* parent)
 	listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	listWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
 	listWidget->setUniformItemSizes(false);
-	listWidget->setItemDelegate(new SoftPickerDelegate(listWidget));
+	listWidget->setItemDelegate(new SoftPickerDelegate(skinTokens, listWidget));
 	layout->addWidget(listWidget, 1);
 	bindListPicker(searchEdit, listWidget, EntryIndexRole, [this]() { rebuildList(); });
 
@@ -391,7 +397,7 @@ void SoftFilterPickerView::entriesChanged()
 {
 	entryMonograms = softMonograms(pickerEntries());
 	sectionColors.clear();
-	const bool dark = SkinManager::instance()->isDark();
+	const bool dark = skinTokens.dark;
 	for (const FilterPickerEntry& entry : pickerEntries())
 	{
 		const QString section = entry.path.isEmpty() ? tr("General") : entry.path.join(QStringLiteral(" / "));
@@ -463,7 +469,7 @@ void SoftFilterPickerView::rebuildList()
 		const QString& section = match.section;
 
 		const QColor tint = sectionColors.value(section,
-			sectionPastel(0, SkinManager::instance()->isDark()));
+			sectionPastel(0, skinTokens.dark));
 		if (!sectionStarted || section != currentSection)
 		{
 			sectionStarted = true;
@@ -525,8 +531,8 @@ QSize SoftFilterPickerView::sizeHint() const
 void SoftFilterPickerView::paintEvent(QPaintEvent* event)
 {
 	Q_UNUSED(event);
-	const SkinTokens& t = SkinManager::instance()->tokens();
-	const bool dark = SkinManager::instance()->isDark();
+	const SkinTokens& t = skinTokens;
+	const bool dark = skinTokens.dark;
 
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing);

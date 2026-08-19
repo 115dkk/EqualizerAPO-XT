@@ -20,19 +20,22 @@ IRoutingRenderer* StudioSkin::routingRenderer() const
 	return &renderer;
 }
 
-FilterPickerView* StudioSkin::createFilterPicker(QWidget* parent) const
+FilterPickerView* StudioSkin::createFilterPicker(QWidget* parent, const SkinTokens& tokens) const
 {
-	return new StudioFilterPickerView(parent);
+	return new StudioFilterPickerView(tokens, parent);
 }
 
-ReferenceCardView* StudioSkin::createReferenceCardView(const QString& kind, QWidget* parent) const
+ReferenceCardView* StudioSkin::createReferenceCardView(const QString& kind, QWidget* parent,
+	const SkinTokens& tokens) const
 {
+	Q_UNUSED(tokens);
 	return new StudioReferenceCardView(kind, parent);
 }
 
-SubwooferRoutingCardView* StudioSkin::createSubwooferRoutingCardView(QWidget* parent) const
+SubwooferRoutingCardView* StudioSkin::createSubwooferRoutingCardView(QWidget* parent,
+	const SkinTokens& tokens) const
 {
-	return new StudioSubwooferRoutingCardView(parent);
+	return new StudioSubwooferRoutingCardView(tokens, parent);
 }
 
 ISkin* studioSkin()

@@ -13,6 +13,7 @@
 #include <QStringList>
 
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/SkinTokens.h"
 
 class QLineEdit;
 class QListWidget;
@@ -22,7 +23,7 @@ class SoftFilterPickerView : public FilterPickerView
 	Q_OBJECT
 
 public:
-	explicit SoftFilterPickerView(QWidget* parent = nullptr);
+	explicit SoftFilterPickerView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void galleryShowcase(GalleryShowcase kind) override;
 
@@ -33,6 +34,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	void rebuildList();
 
 	// Per-entry tile monograms, parallel to pickerEntries(); computed once per

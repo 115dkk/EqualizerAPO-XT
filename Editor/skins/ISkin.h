@@ -503,7 +503,12 @@ public:
 	// default (ISkin.cpp) is the neutral DefaultFilterPickerView: a search
 	// field over one sectioned list. Ownership passes to the caller via the
 	// usual QWidget parent mechanism.
-	virtual FilterPickerView* createFilterPicker(QWidget* parent) const;
+	//
+	// tokens is passed like every other hook's (audit #275 B1, the S3
+	// treatment): the views these hooks build used to reach for
+	// SkinManager::instance() in their constructors and paintEvents, which
+	// works only while the singleton happens to hold the skin being asked.
+	virtual FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const;
 
 	// The reference-card body view for rows that point at an external file
 	// (kind: "include", "convolution", "multiconvolution", "vst"). The host
@@ -513,12 +518,14 @@ public:
 	// of a palette swap. The default (ISkin.cpp) is the neutral
 	// DefaultReferenceCardView. Ownership passes to the caller via the usual
 	// QWidget parent mechanism.
-	virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
+	virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,
+		const SkinTokens& tokens) const;
 
 	// The compact SubwooferRouting card body. The editor computes and owns the
 	// state and actions; the returned view owns their presentation. The
 	// default is DefaultSubwooferRoutingCardView.
-	virtual SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const;
+	virtual SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent,
+		const SkinTokens& tokens) const;
 
 	// Painted decoration over the custom title bar's QSS background (screws,
 	// grid texture, glows - whatever the skin's constitution calls for).

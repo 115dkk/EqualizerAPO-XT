@@ -37,9 +37,9 @@ int sidePadding()
 	return GUIHelper::scale(10.0);
 }
 
-QFont pickerMonoFont(double pointSize, bool bold = false)
+QFont pickerMonoFont(const SkinTokens& tokens, double pointSize, bool bold = false)
 {
-	QFont font(SkinManager::instance()->tokens().monoFontFamily);
+	QFont font(tokens.monoFontFamily);
 	font.setPointSizeF(pointSize);
 	font.setBold(bold);
 	return font;
@@ -48,8 +48,9 @@ QFont pickerMonoFont(double pointSize, bool bold = false)
 
 // ── MinimalPickerIndexList ───────────────────────────────────────────────────
 
-MinimalPickerIndexList::MinimalPickerIndexList(QWidget* parent)
-	: QWidget(parent)
+MinimalPickerIndexList::MinimalPickerIndexList(const SkinTokens& tokens, QWidget* parent)
+	: QWidget(parent),
+	  skinTokens(tokens)
 {
 	setMouseTracking(true);
 }
@@ -120,11 +121,11 @@ int MinimalPickerIndexList::rowAt(const QPoint& pos) const
 void MinimalPickerIndexList::paintEvent(QPaintEvent* event)
 {
 	QPainter painter(this);
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	painter.fillRect(rect(), QColor(t.background));
 
-	QFont entryFont = pickerMonoFont(9.0);
-	QFont captionFont = pickerMonoFont(7.5, true);
+	QFont entryFont = pickerMonoFont(skinTokens, 9.0);
+	QFont captionFont = pickerMonoFont(skinTokens, 7.5, true);
 	captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.5);
 	const QFontMetrics entryMetrics(entryFont);
 
@@ -246,8 +247,9 @@ void MinimalPickerIndexList::hoverFirstEntryForGallery()
 
 // ── MinimalFilterPickerView ──────────────────────────────────────────────────
 
-MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
-	: FilterPickerView(parent)
+MinimalFilterPickerView::MinimalFilterPickerView(const SkinTokens& tokens, QWidget* parent)
+	: FilterPickerView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("MinimalFilterPicker"));
 
@@ -292,7 +294,7 @@ MinimalFilterPickerView::MinimalFilterPickerView(QWidget* parent)
 	scrollArea->setWidgetResizable(true);
 	scrollArea->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 	scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	indexList = new MinimalPickerIndexList(scrollArea);
+	indexList = new MinimalPickerIndexList(skinTokens, scrollArea);
 	indexList->onEntryActivated = [this](int entryIndex)
 	{
 		emit entryChosen(entryIndex);
@@ -502,7 +504,7 @@ void MinimalFilterPickerView::paintEvent(QPaintEvent* event)
 	Q_UNUSED(event);
 	// The whole control sits in one square hairline frame; no other chrome.
 	QPainter painter(this);
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	painter.fillRect(rect(), QColor(t.background));
 	painter.setPen(QColor(t.border));
 	painter.drawRect(rect().adjusted(0, 0, -1, -1));

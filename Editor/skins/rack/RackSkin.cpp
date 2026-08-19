@@ -21,19 +21,21 @@ IRoutingRenderer* RackSkin::routingRenderer() const
 	return &renderer;
 }
 
-FilterPickerView* RackSkin::createFilterPicker(QWidget* parent) const
+FilterPickerView* RackSkin::createFilterPicker(QWidget* parent, const SkinTokens& tokens) const
 {
-	return new RackFilterPickerView(parent);
+	return new RackFilterPickerView(tokens, parent);
 }
 
-ReferenceCardView* RackSkin::createReferenceCardView(const QString& kind, QWidget* parent) const
+ReferenceCardView* RackSkin::createReferenceCardView(const QString& kind, QWidget* parent,
+	const SkinTokens& tokens) const
 {
-	return new RackReferenceCardView(kind, parent);
+	return new RackReferenceCardView(kind, tokens, parent);
 }
 
-SubwooferRoutingCardView* RackSkin::createSubwooferRoutingCardView(QWidget* parent) const
+SubwooferRoutingCardView* RackSkin::createSubwooferRoutingCardView(QWidget* parent,
+	const SkinTokens& tokens) const
 {
-	return new RackSubwooferRoutingCardView(parent);
+	return new RackSubwooferRoutingCardView(tokens, parent);
 }
 
 ISkin* rackSkin()

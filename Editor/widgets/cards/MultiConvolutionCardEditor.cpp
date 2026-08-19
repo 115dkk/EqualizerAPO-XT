@@ -219,7 +219,8 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 	RoutingPortModel portModel;
 	portModel.fixedSources = MultiConvolutionRoutingAdapter::sourcePorts(fileChannelCount, mappings);
 
-	routingView = renderer->create(assignments, targets, portModel, this);
+	routingView = renderer->create(assignments, targets, portModel, this,
+		SkinManager::instance()->tokens());
 	routingLayout->addWidget(routingView);
 	connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
 }

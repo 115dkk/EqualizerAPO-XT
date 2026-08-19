@@ -233,11 +233,11 @@ private:
 };
 }
 
-StudioFilterPickerView::StudioFilterPickerView(QWidget* parent)
+StudioFilterPickerView::StudioFilterPickerView(const SkinTokens& tokens, QWidget* parent)
 	: FilterPickerView(parent)
 {
 	setObjectName(QStringLiteral("StudioFilterPicker"));
-	skinTokens = SkinManager::instance()->tokens();
+	skinTokens = tokens;
 	// The hooks convention: studio's dark background is near-black, so
 	// luminance is an unambiguous mode proxy (see Skins.cpp).
 	dark = skinIsDark(skinTokens);

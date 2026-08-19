@@ -24,6 +24,7 @@
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/RoutingFold.h"
 #include "Editor/widgets/routing/StudioRoutingModel.h"
+#include "Editor/SkinTokens.h"
 
 class StudioRoutingView : public RoutingView
 {
@@ -32,7 +33,7 @@ class StudioRoutingView : public RoutingView
 public:
 	StudioRoutingView(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-		QWidget* parent);
+		QWidget* parent, const SkinTokens& tokens);
 
 	std::vector<Assignment> assignments() const override;
 	void galleryShowcase(const QString& state) override;
@@ -55,6 +56,7 @@ private slots:
 	void commitChannelEditor();
 
 private:
+	const SkinTokens skinTokens;
 	struct TraceShape
 	{
 		QPainterPath path;   // the visible curve
@@ -118,6 +120,6 @@ class LightTraceRoutingRenderer : public IRoutingRenderer
 public:
 	RoutingView* create(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-		QWidget* parent) override;
+		QWidget* parent, const SkinTokens& tokens) override;
 	const char* id() const override { return "light-trace"; }
 };

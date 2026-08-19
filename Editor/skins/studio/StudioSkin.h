@@ -11,9 +11,11 @@ class StudioSkin final : public ISkin
 public:
 	QString id() const override;
 	IRoutingRenderer* routingRenderer() const override;
-	FilterPickerView* createFilterPicker(QWidget* parent) const override;
-	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const override;
-	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const override;
+	FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const override;
+	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,
+		const SkinTokens& tokens) const override;
+	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent,
+		const SkinTokens& tokens) const override;
 
 	void paintTitleBarChrome(QPainter& painter, const QRect& rect, const SkinTokens& tokens) const override;
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;

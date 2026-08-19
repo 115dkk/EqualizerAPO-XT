@@ -34,8 +34,8 @@ using namespace RackSubwooferRoutingDetail;
 
 // ---- RackCrossoverReadout -------------------------------------------------
 
-RackCrossoverReadout::RackCrossoverReadout(QWidget* parent)
-	: QWidget(parent)
+RackCrossoverReadout::RackCrossoverReadout(const SkinTokens& tokens, QWidget* parent)
+	: QWidget(parent), skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("RackBassCrossoverReadout"));
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -69,12 +69,12 @@ void RackCrossoverReadout::setReadout(
 
 QFont RackCrossoverReadout::captionFont() const
 {
-	return rackFont(8, true, 1.5);
+	return rackFont(skinTokens, 8, true, 1.5);
 }
 
 QFont RackCrossoverReadout::valueFont() const
 {
-	return rackMonoFont(12, true, 0.3);
+	return rackMonoFont(skinTokens, 12, true, 0.3);
 }
 
 QSize RackCrossoverReadout::sizeHint() const
@@ -113,7 +113,7 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 	QWidget::paintEvent(event);
 
 	QPainter painter(this);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const QColor textInk(tokens.text);
 	const QColor mutedInk(tokens.mutedText);
 
@@ -185,8 +185,8 @@ void RackCrossoverReadout::paintEvent(QPaintEvent* event)
 
 // ---- RackLfeLamp ----------------------------------------------------------
 
-RackLfeLamp::RackLfeLamp(QWidget* parent)
-	: QWidget(parent)
+RackLfeLamp::RackLfeLamp(const SkinTokens& tokens, QWidget* parent)
+	: QWidget(parent), skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("RackBassLfeLamp"));
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -221,12 +221,12 @@ void RackLfeLamp::setLfeState(bool newPreserved, double newGainDb)
 
 QFont RackLfeLamp::captionFont() const
 {
-	return rackFont(8, true, 1.4);
+	return rackFont(skinTokens, 8, true, 1.4);
 }
 
 QFont RackLfeLamp::valueFont() const
 {
-	return rackMonoFont(8, true, 0.2);
+	return rackMonoFont(skinTokens, 8, true, 0.2);
 }
 
 QSize RackLfeLamp::sizeHint() const
@@ -248,7 +248,7 @@ void RackLfeLamp::paintEvent(QPaintEvent* event)
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const QPalette::ColorGroup group = isEnabled()
 		? QPalette::Active
 		: QPalette::Disabled;
@@ -418,8 +418,8 @@ void RackLfeLamp::paintEvent(QPaintEvent* event)
 
 // ---- RackHeadroomMeter ----------------------------------------------------
 
-RackHeadroomMeter::RackHeadroomMeter(QWidget* parent)
-	: QWidget(parent)
+RackHeadroomMeter::RackHeadroomMeter(const SkinTokens& tokens, QWidget* parent)
+	: QWidget(parent), skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("RackBassHeadroomMeter"));
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -456,12 +456,12 @@ void RackHeadroomMeter::setHeadroom(bool newAutomatic, double newTrimDb)
 
 QFont RackHeadroomMeter::captionFont() const
 {
-	return rackMonoFont(9, true, 0.3);
+	return rackMonoFont(skinTokens, 9, true, 0.3);
 }
 
 QFont RackHeadroomMeter::scaleFont() const
 {
-	return rackMonoFont(7, false);
+	return rackMonoFont(skinTokens, 7, false);
 }
 
 QSize RackHeadroomMeter::sizeHint() const
@@ -483,7 +483,7 @@ void RackHeadroomMeter::paintEvent(QPaintEvent* event)
 	QWidget::paintEvent(event);
 
 	QPainter painter(this);
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const QColor textInk(tokens.text);
 	const QColor mutedInk(tokens.mutedText);
 	const QColor accentInk(tokens.accent);

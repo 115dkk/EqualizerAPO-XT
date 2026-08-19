@@ -29,8 +29,8 @@ int sc(int px) { return GUIHelper::scale(px); }
 
 StudioRoutingView::StudioRoutingView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-	QWidget* parent)
-	: RoutingView(parent), portModel(portModel),
+	QWidget* parent, const SkinTokens& tokens)
+	: RoutingView(parent), skinTokens(tokens), portModel(portModel),
 	// Targets the command referenced stay on the glass for the whole session,
 	// even if their last trace is deleted.
 	pinnedChannels(RoutingFold::referencedTargets(assignments))
@@ -82,7 +82,7 @@ QString StudioRoutingView::chipLabel(bool inputRow, int index) const
 
 void StudioRoutingView::relayout()
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	const int chipH = sc(22);
 	const int gap = sc(10);
 	const int marginX = sc(12);
@@ -299,7 +299,7 @@ QSize StudioRoutingView::minimumSizeHint() const
 
 void StudioRoutingView::paintEvent(QPaintEvent*)
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	const bool dark = skinIsDark(t);
 	const bool lit = isEnabled();
 	QPainter p(this);
@@ -906,7 +906,8 @@ void StudioRoutingView::commitChannelEditor()
 }
 
 RoutingView* LightTraceRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent,
+	const SkinTokens& tokens)
 {
-	return new StudioRoutingView(assignments, channelNames, portModel, parent);
+	return new StudioRoutingView(assignments, channelNames, portModel, parent, tokens);
 }

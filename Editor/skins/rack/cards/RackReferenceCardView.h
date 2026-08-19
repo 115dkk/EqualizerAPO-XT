@@ -14,6 +14,7 @@
 #include <QFont>
 
 #include "Editor/widgets/cards/ReferenceCardView.h"
+#include "Editor/SkinTokens.h"
 
 class QHBoxLayout;
 
@@ -39,7 +40,7 @@ public:
 		Danger
 	};
 
-	explicit RackEngravedLabel(QWidget* parent = nullptr);
+	explicit RackEngravedLabel(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setText(const QString& newText);
 	void setInk(Ink newInk);
@@ -63,6 +64,7 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QFont engraveFont() const;
 
 	QString text;
@@ -86,7 +88,7 @@ class RackStatusLamp : public QWidget
 	Q_OBJECT
 
 public:
-	explicit RackStatusLamp(QWidget* parent = nullptr);
+	explicit RackStatusLamp(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setLamp(const QColor& color, bool newLit);
 
@@ -94,6 +96,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QColor litColor;
 	bool lit = false;
 };
@@ -108,7 +111,7 @@ class RackLcdWindow : public QWidget
 	Q_OBJECT
 
 public:
-	explicit RackLcdWindow(QWidget* parent = nullptr);
+	explicit RackLcdWindow(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setSegments(const QString& newText);
 
@@ -119,6 +122,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	QFont segmentFont() const;
 	QString displayText() const;
 
@@ -130,7 +134,7 @@ class RackReferenceCardView : public ReferenceCardView
 	Q_OBJECT
 
 public:
-	explicit RackReferenceCardView(const QString& kind, QWidget* parent = nullptr);
+	explicit RackReferenceCardView(const QString& kind, const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void addLeadingWidget(QWidget* widget) override;
 	void placeBusStrip(QWidget* strip) override;
@@ -140,6 +144,7 @@ protected:
 	void applyState(const ReferenceCardState& state) override;
 
 private:
+	const SkinTokens skinTokens;
 	QHBoxLayout* rootLayout = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
 	RackStatusLamp* lamp = nullptr;

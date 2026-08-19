@@ -18,6 +18,7 @@
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/RoutingFold.h"
+#include "Editor/SkinTokens.h"
 
 class CrosspointMatrixView : public RoutingView
 {
@@ -26,7 +27,7 @@ class CrosspointMatrixView : public RoutingView
 public:
 	CrosspointMatrixView(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-		QWidget* parent);
+		QWidget* parent, const SkinTokens& tokens);
 
 	std::vector<Assignment> assignments() const override;
 	void galleryShowcase(const QString& state) override;
@@ -41,6 +42,7 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	void rebuildMatrix();
 	void updateMetrics();
 	Assignment& rowAssignment(int outRow);
@@ -95,6 +97,6 @@ class CrosspointMatrixRoutingRenderer : public IRoutingRenderer
 public:
 	RoutingView* create(const std::vector<Assignment>& assignments,
 		const std::vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-		QWidget* parent) override;
+		QWidget* parent, const SkinTokens& tokens) override;
 	const char* id() const override { return "crosspoint-matrix"; }
 };

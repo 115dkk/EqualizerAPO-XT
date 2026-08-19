@@ -129,10 +129,12 @@ void paintLed(QPainter& painter, const QPointF& center, qreal radius, const QCol
 class RackFilterPickerDelegate : public QStyledItemDelegate
 {
 public:
-	explicit RackFilterPickerDelegate(QObject* parent = nullptr)
-		: QStyledItemDelegate(parent)
+	RackFilterPickerDelegate(const SkinTokens& tokens, QObject* parent)
+		: QStyledItemDelegate(parent), skinTokens(tokens)
 	{
 	}
+
+	const SkinTokens skinTokens;
 
 	QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
@@ -143,7 +145,7 @@ public:
 
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
 	{
-		const SkinTokens& tokens = SkinManager::instance()->tokens();
+		const SkinTokens& tokens = skinTokens;
 		const bool dark = skinIsDark(tokens);
 
 		painter->save();
@@ -233,12 +235,12 @@ private:
 };
 }
 
-RackFilterPickerView::RackFilterPickerView(QWidget* parent)
-	: FilterPickerView(parent)
+RackFilterPickerView::RackFilterPickerView(const SkinTokens& tokens, QWidget* parent)
+	: FilterPickerView(parent),
+	  skinTokens(tokens)
 {
 	setObjectName(QStringLiteral("RackFilterPicker"));
 
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
 	const bool dark = skinIsDark(tokens);
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
@@ -280,7 +282,7 @@ RackFilterPickerView::RackFilterPickerView(QWidget* parent)
 		"QListWidget#RackFilterPickerList { background: transparent; border: 0; }"
 		"QListWidget#RackFilterPickerList::item { background: transparent; padding: 0; border: 0; }"));
 	listWidget->viewport()->setMouseTracking(true);
-	listWidget->setItemDelegate(new RackFilterPickerDelegate(listWidget));
+	listWidget->setItemDelegate(new RackFilterPickerDelegate(skinTokens, listWidget));
 	layout->addWidget(listWidget, 1);
 	bindListPicker(searchEdit, listWidget, OriginalIndexRole, [this]() { rebuildList(); });
 
@@ -392,7 +394,7 @@ void RackFilterPickerView::paintEvent(QPaintEvent* event)
 {
 	Q_UNUSED(event);
 
-	const SkinTokens& tokens = SkinManager::instance()->tokens();
+	const SkinTokens& tokens = skinTokens;
 	const bool dark = skinIsDark(tokens);
 
 	QPainter painter(this);

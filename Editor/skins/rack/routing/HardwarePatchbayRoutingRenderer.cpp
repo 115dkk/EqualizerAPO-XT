@@ -14,8 +14,8 @@ using std::vector;
 
 HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-	QWidget* parent)
-	: RoutingView(parent),
+	QWidget* parent, const SkinTokens& tokens)
+	: RoutingView(parent), skinTokens(tokens),
 	// Seed every device channel as a row so an emptied Copy can be refilled
 	// from the GUI; empty rows are skipped by the serializer. The fold below
 	// decides which seeded rows are actually mounted on the panel.
@@ -55,7 +55,7 @@ void HardwarePatchbayView::updateMetrics()
 	// FrontBass and SourceLFE on the same panel, and an engraved label
 	// longer than its column was clipped to fragments ("ntBass"). The
 	// engraving font decides the width a column really needs.
-	QFont label(SkinManager::instance()->tokens().monoFontFamily);
+	QFont label(skinTokens.monoFontFamily);
 	label.setPixelSize(11);
 	label.setLetterSpacing(QFont::AbsoluteSpacing, 1);
 	const QFontMetrics fm(label);
@@ -146,8 +146,8 @@ static QColor a8(const QColor& c, int a) { QColor r = c; r.setAlpha(a); return r
 
 void HardwarePatchbayView::paintEvent(QPaintEvent*)
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
-	const bool dark = SkinManager::instance()->isDark();
+	const SkinTokens& t = skinTokens;
+	const bool dark = skinTokens.dark;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
 
@@ -594,7 +594,8 @@ void HardwarePatchbayView::commitChannelEditor()
 }
 
 RoutingView* HardwarePatchbayRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent,
+	const SkinTokens& tokens)
 {
-	return new HardwarePatchbayView(assignments, channelNames, portModel, parent);
+	return new HardwarePatchbayView(assignments, channelNames, portModel, parent, tokens);
 }

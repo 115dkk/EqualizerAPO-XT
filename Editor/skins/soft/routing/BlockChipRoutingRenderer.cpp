@@ -17,8 +17,8 @@ using std::vector;
 
 BlockChipView::BlockChipView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
-	QWidget* parent)
-	: RoutingView(parent),
+	QWidget* parent, const SkinTokens& tokens)
+	: RoutingView(parent), skinTokens(tokens),
 	// Seed every device channel as an equation block so an emptied Copy can be
 	// refilled from the GUI; blocks whose source sum stays empty are skipped by
 	// the serializer and never reach the config line. The fold decides which
@@ -64,16 +64,16 @@ void BlockChipView::galleryShowcase(const QString& state)
 	}
 }
 
-static QFont uiFont(int px)
+static QFont uiFont(const SkinTokens& tokens, int px)
 {
-	QFont f(SkinManager::instance()->tokens().fontFamily);
+	QFont f(tokens.fontFamily);
 	f.setPixelSize(px);
 	return f;
 }
 
 QSize BlockChipView::sizeHint() const
 {
-	QFontMetrics fm(uiFont(13));
+	QFontMetrics fm(uiFont(skinTokens, 13));
 	int maxW = 240;
 	for (int row : fold.visibleRows)
 	{
@@ -98,7 +98,7 @@ static QColor alpha(const QColor& c, int a) { QColor r = c; r.setAlpha(a); retur
 
 void BlockChipView::paintEvent(QPaintEvent*)
 {
-	const SkinTokens& t = SkinManager::instance()->tokens();
+	const SkinTokens& t = skinTokens;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
 	const int radius = qMax(8, t.borderRadius);
@@ -132,7 +132,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		p.setBrush(destCol);
 		p.drawRoundedRect(QRect(block.left() + 6, y, 5, blockH), 2, 2);
 
-		QFont big = uiFont(14);
+		QFont big = uiFont(skinTokens, 14);
 		big.setBold(true);
 		p.setFont(big);
 		QFontMetrics bfm(big);
@@ -144,7 +144,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 		p.drawText(QRect(x, y, 16, blockH), Qt::AlignCenter, QStringLiteral("="));
 		x += 22;
 
-		QFont chipFont = uiFont(13);
+		QFont chipFont = uiFont(skinTokens, 13);
 		p.setFont(chipFont);
 		QFontMetrics fm(chipFont);
 
@@ -248,7 +248,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 	// step) and the dashed "add channel" chip (the not-hardware-backed
 	// grammar shared with the per-block [+]).
 	const int y = gap + fold.visibleRows.size() * (blockH + gap);
-	QFont chipFont = uiFont(12);
+	QFont chipFont = uiFont(skinTokens, 12);
 	p.setFont(chipFont);
 	QFontMetrics fm(chipFont);
 	int x = 8;
@@ -521,7 +521,8 @@ void BlockChipView::commitChannelEditor()
 }
 
 RoutingView* BlockChipRoutingRenderer::create(const vector<Assignment>& assignments,
-	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent)
+	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel, QWidget* parent,
+	const SkinTokens& tokens)
 {
-	return new BlockChipView(assignments, channelNames, portModel, parent);
+	return new BlockChipView(assignments, channelNames, portModel, parent, tokens);
 }

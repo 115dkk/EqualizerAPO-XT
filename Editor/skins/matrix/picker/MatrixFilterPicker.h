@@ -12,13 +12,14 @@
 #include <QVector>
 
 #include "Editor/widgets/FilterPickerView.h"
+#include "Editor/SkinTokens.h"
 
 class MatrixFilterPickerView : public FilterPickerView
 {
 	Q_OBJECT
 
 public:
-	explicit MatrixFilterPickerView(QWidget* parent = nullptr);
+	explicit MatrixFilterPickerView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void galleryShowcase(GalleryShowcase kind) override;
 
@@ -33,6 +34,7 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
+	const SkinTokens skinTokens;
 	// One insertable template, parked at a fixed coordinate of the board.
 	struct Cell
 	{

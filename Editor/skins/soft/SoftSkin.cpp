@@ -22,21 +22,23 @@ IRoutingRenderer* SoftSkin::routingRenderer() const
 }
 
 // A rounded menu card picker (soft/picker/SoftFilterPicker.cpp).
-FilterPickerView* SoftSkin::createFilterPicker(QWidget* parent) const
+FilterPickerView* SoftSkin::createFilterPicker(QWidget* parent, const SkinTokens& tokens) const
 {
-	return new SoftFilterPickerView(parent);
+	return new SoftFilterPickerView(tokens, parent);
 }
 
 // The reference rows in the consumer-settings grammar
 // (soft/cards/SoftReferenceCardView.cpp).
-ReferenceCardView* SoftSkin::createReferenceCardView(const QString& kind, QWidget* parent) const
+ReferenceCardView* SoftSkin::createReferenceCardView(const QString& kind, QWidget* parent,
+	const SkinTokens& tokens) const
 {
-	return new SoftReferenceCardView(kind, parent);
+	return new SoftReferenceCardView(kind, tokens, parent);
 }
 
-SubwooferRoutingCardView* SoftSkin::createSubwooferRoutingCardView(QWidget* parent) const
+SubwooferRoutingCardView* SoftSkin::createSubwooferRoutingCardView(QWidget* parent,
+	const SkinTokens& tokens) const
 {
-	return new SoftSubwooferRoutingCardView(parent);
+	return new SoftSubwooferRoutingCardView(tokens, parent);
 }
 
 // Window chrome: deliberately NO paintTitleBarChrome override. The

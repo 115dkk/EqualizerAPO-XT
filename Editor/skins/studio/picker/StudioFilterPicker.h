@@ -22,7 +22,7 @@ class StudioFilterPickerView : public FilterPickerView
 	Q_OBJECT
 
 public:
-	explicit StudioFilterPickerView(QWidget* parent = nullptr);
+	explicit StudioFilterPickerView(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void galleryShowcase(GalleryShowcase kind) override;
 
