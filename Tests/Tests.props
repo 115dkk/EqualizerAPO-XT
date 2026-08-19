@@ -7,6 +7,15 @@
   /WHOLEARCHIVE omission shipped once: the flag existed in some Debug
   configurations and not others, and nothing could tell.
 
+  Audit #275 D1/TD-20 hoisted the rest of the copy-paste here: the common
+  compile settings, the shared engine link inputs, and the muparserx
+  Debug/Release spelling. The suites used to repeat these per configuration
+  (six times per project), and the copies had already diverged - one suite's
+  Debug linked muparserx.lib while the other three linked muparserxd.lib.
+  The Debug spelling follows the muparserx convention (trailing 'd'); note
+  the deps/ layout ships Release libraries only, so a Debug link needs a
+  locally built Debug muparserx either way.
+
   Import this AFTER $(VCTargetsPath)\Microsoft.Cpp.props: LibraryPath below
   extends the toolset's value, which does not exist earlier.
 
@@ -27,7 +36,14 @@
     <LibraryPath>$(FFTW_LIB);$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
     <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <!-- Whole-archive, in every configuration of every suite. The set of
            recognized config commands is assembled by file-scope
            self-registration in the filter factory TUs
@@ -36,6 +52,30 @@
            comes up empty and canonicalCommand() answers "unknown" for every
            key. Stated once here so no configuration can lose it again. -->
       <AdditionalOptions>/WHOLEARCHIVE:Common.lib %(AdditionalOptions)</AdditionalOptions>
+      <!-- The engine link inputs every suite shares. muparserx is added per
+           configuration below because its Debug library carries a 'd'. -->
+      <AdditionalDependencies>$(MSBuildThisFileDirectory)..\$(Platform)\$(Configuration)\Common.lib;$(MSBuildThisFileDirectory)..\SubwooferRoutingCore\$(Platform)\$(Configuration)\SubwooferRoutingCore.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;libfftw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 </Project>

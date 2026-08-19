@@ -152,6 +152,48 @@ const TestCase kCases[] = {
 	{ "velvet_dynamic",        "velvet_dynamic.txt",        SignalType::DCStereo,      48000, 2, 12288, 256 },
 };
 
+// Audit #275 TD-19: a config file that exists in configs\ but is named by no
+// kCases[] entry would silently never run - the same blind spot the project
+// file's hand-kept Text list had (8 of 20 configs). Enumerate the shipped
+// configs and fail loudly on an orphan, so adding a config without its case
+// stops the run instead of quietly testing nothing.
+bool verifyEveryConfigHasACase(const std::wstring& configDir)
+{
+	bool allCovered = true;
+	WIN32_FIND_DATAW findData;
+	const std::wstring pattern = configDir + L"\\*.txt";
+	HANDLE find = FindFirstFileW(pattern.c_str(), &findData);
+	if (find == INVALID_HANDLE_VALUE)
+	{
+		fprintf(stderr, "  ERROR: could not enumerate %S\n", pattern.c_str());
+		return false;
+	}
+	do
+	{
+		const std::wstring fileName = findData.cFileName;
+		bool named = false;
+		for (const auto& tc : kCases)
+		{
+			std::wstring caseFile(tc.configFile, tc.configFile + strlen(tc.configFile));
+			if (_wcsicmp(caseFile.c_str(), fileName.c_str()) == 0)
+			{
+				named = true;
+				break;
+			}
+		}
+		if (!named)
+		{
+			fprintf(stderr,
+				"  ERROR: %S is in the config directory but no kCases[] entry names it; "
+				"it would silently never run. Add a case or remove the file.\n",
+				fileName.c_str());
+			allCovered = false;
+		}
+	} while (FindNextFileW(find, &findData));
+	FindClose(find);
+	return allCovered;
+}
+
 bool writeCaseManifest(const std::wstring& directory)
 {
 	ensureDirectory(directory);
@@ -850,6 +892,8 @@ int runAudioRegressionTests(int argc, char** argv)
 	printf("  cases       = %zu\n", sizeof(kCases) / sizeof(kCases[0]));
 
 	bool anyFailed = false;
+	if (!verifyEveryConfigHasACase(opts.configDir))
+		anyFailed = true;
 	const std::wstring outVariantDir = opts.outDir + L"\\" + toWide(opts.variant);
 	if (!writeCaseManifest(outVariantDir))
 	{

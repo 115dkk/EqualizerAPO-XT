@@ -42,3 +42,27 @@ if ($missingInInstaller.Count -gt 0 -or $unknownInInstaller.Count -gt 0) {
 }
 
 Write-Host "AutoInstallerLogic.cpp channels match simd-variants.psd1: $($manifestChannels -join ', ')"
+
+# Audit #275 D2/TD-21: the /arch decision has exactly one mechanism - the
+# EapoVariantArch opt-in resolved by Directory.Build.props (locally AVX2,
+# overridden per CI leg via /p:EnableEnhancedInstructionSet). A literal
+# EnableEnhancedInstructionSet in a project file is a second mechanism that
+# silently beats both, which is how a Debug|x64 Benchmark once ignored every
+# /p: override. Fail on any such literal.
+$projectFiles = @(Get-ChildItem -Path $RepoRoot -Recurse -Filter *.vcxproj -File |
+  Where-Object { $_.FullName -notmatch '[\\/](deps|build-[^\\/]+|\.claude|\.codex-worktrees)[\\/]' })
+$offenders = @()
+foreach ($project in $projectFiles) {
+  $content = Get-Content -Path $project.FullName -Raw
+  if ($content -match '<EnableEnhancedInstructionSet>') {
+    $offenders += $project.FullName.Substring($RepoRoot.Length).TrimStart('\', '/')
+  }
+}
+if ($offenders.Count -gt 0) {
+  foreach ($offender in $offenders) {
+    Write-Host "::error file=$offender::Literal <EnableEnhancedInstructionSet> found; use the EapoVariantArch opt-in in Directory.Build.props instead."
+  }
+  throw "Per-project EnableEnhancedInstructionSet literals bypass the single /arch mechanism."
+}
+
+Write-Host "No per-project EnableEnhancedInstructionSet literals outside Directory.Build.props."
