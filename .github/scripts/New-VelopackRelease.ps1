@@ -73,28 +73,40 @@ foreach ($artifact in $buildArtifacts) {
 }
 
 $plan = [pscustomobject]@{
-    VpkVersion    = $manifest.Shared.VelopackVpkVersion
-    ReleaseName   = "EqualizerAPO-XT $PackVersion"
-    RepoUrl       = "https://github.com/$Repository"
-    Channels      = @($channelWork)
-    NeedsSource   = [bool]$NeedsSource
-    SourceZipPath = Join-Path $WorkspaceRoot (Get-SourceZipAssetName -PackVersion $PackVersion)
+    VpkVersion      = $manifest.Shared.VelopackVpkVersion
+    ReleaseName     = "EqualizerAPO-XT $PackVersion"
+    RepoUrl         = "https://github.com/$Repository"
+    Channels        = @($channelWork)
+    NeedsSource     = [bool]$NeedsSource
+    SourceZipPath   = Join-Path $WorkspaceRoot (Get-SourceZipAssetName -PackVersion $PackVersion)
+    # Single source: Shared.QtPluginFolders in simd-variants.psd1, shared with
+    # the Package-Artifacts.ps1 staging assertion (audit #275 TD-11).
+    QtPluginFolders = @($manifest.Shared.QtPluginFolders)
 }
 if ($PlanOnly) {
     return $plan
 }
 
 dotnet tool install -g vpk --version $plan.VpkVersion
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($LASTEXITCODE -ne 0) { throw "dotnet tool install vpk $($plan.VpkVersion) failed with exit code $LASTEXITCODE" }
 $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
 
+# Required payload. These used to sit behind Test-Path guards, so a moved
+# Setup\config or icon shipped a package silently missing its sample configs
+# (audit #275 TD-11): every file below is release content, so a miss is an
+# error, not a skip.
 $iconPath = Join-Path $WorkspaceRoot "Editor\icons\app-icon.ico"
 $configSource = Join-Path $WorkspaceRoot "Setup\config"
 $extrasSource = @(
     (Join-Path $WorkspaceRoot "Setup\Configuration tutorial (online).url"),
     (Join-Path $WorkspaceRoot "Setup\Configuration reference (online).url")
 )
-$qtPluginFolders = @('iconengines', 'imageformats', 'platforms', 'styles', 'tls')
+foreach ($required in (@($iconPath, $configSource) + $extrasSource)) {
+    if (-not (Test-Path $required)) {
+        throw "Required release payload is missing: $required"
+    }
+}
+$qtPluginFolders = $plan.QtPluginFolders
 $mainExe = "Editor.exe"
 
 foreach ($work in $plan.Channels) {
@@ -128,16 +140,12 @@ foreach ($work in $plan.Channels) {
         }
     }
 
-    # Bundle the sample configs and shortcuts
-    if (Test-Path $configSource) {
-        $configTarget = Join-Path $work.PackDir "config"
-        New-Item -ItemType Directory -Force -Path $configTarget | Out-Null
-        Copy-Item -Path (Join-Path $configSource "*") -Destination $configTarget -Recurse -Force
-    }
+    # Bundle the sample configs and shortcuts (existence asserted above)
+    $configTarget = Join-Path $work.PackDir "config"
+    New-Item -ItemType Directory -Force -Path $configTarget | Out-Null
+    Copy-Item -Path (Join-Path $configSource "*") -Destination $configTarget -Recurse -Force
     foreach ($extra in $extrasSource) {
-        if (Test-Path $extra) {
-            Copy-Item -Path $extra -Destination $work.PackDir -Force
-        }
+        Copy-Item -Path $extra -Destination $work.PackDir -Force
     }
 
     if (-not (Test-Path (Join-Path $work.PackDir $mainExe))) {
@@ -168,13 +176,27 @@ foreach ($work in $plan.Channels) {
         '--noPortable',
         '--skipVeloAppCheck'
     )
-    if (Test-Path $iconPath) {
-        $packArgs += @('--icon', $iconPath)
-    }
+    $packArgs += @('--icon', $iconPath)
 
     Write-Host "vpk $($packArgs -join ' ')"
     vpk @packArgs
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($LASTEXITCODE -ne 0) { throw "vpk pack failed for channel $($work.Channel) with exit code $LASTEXITCODE" }
+
+    # The asset-name grammar (ReleaseAssets.psm1) rests on the observation
+    # that vpk names its outputs <packId>-<channel>-Setup.exe and
+    # releases.<channel>.json. Publish-Release.ps1's missing-channel resume
+    # matches release assets against that grammar, so if a VelopackVpkVersion
+    # bump ever changes the naming, every channel would read as missing forever.
+    # Assert the contract right where the files are produced (audit #275
+    # TD-12) instead.
+    foreach ($expected in @((Get-SetupAssetName -Channel $work.Channel),
+                            (Get-FeedAssetName -Channel $work.Channel))) {
+        if (-not (Test-Path (Join-Path $work.OutputDir $expected))) {
+            throw ("vpk pack did not produce '$expected' in $($work.OutputDir). " +
+                "The vpk naming convention has drifted from ReleaseAssets.psm1; " +
+                "align the grammar before releasing.")
+        }
+    }
 
     vpk upload github `
         --repoUrl $plan.RepoUrl `
@@ -186,10 +208,10 @@ foreach ($work in $plan.Channels) {
         --releaseName $plan.ReleaseName `
         --tag $Tag `
         --targetCommitish $TargetCommit
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($LASTEXITCODE -ne 0) { throw "vpk upload failed for channel $($work.Channel) with exit code $LASTEXITCODE" }
 }
 
 if ($plan.NeedsSource) {
     gh release upload $Tag $plan.SourceZipPath --clobber --repo $Repository
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($LASTEXITCODE -ne 0) { throw "Source zip upload failed with exit code $LASTEXITCODE" }
 }

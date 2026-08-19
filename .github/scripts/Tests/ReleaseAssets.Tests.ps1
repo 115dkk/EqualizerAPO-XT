@@ -31,6 +31,23 @@ Describe "ReleaseAssets grammar module" {
         $header | Should -Match ([regex]::Escape('std::wstring(productPrefix) + L"-Setup.exe"'))
     }
 
+    It "stays in step with the installer project's TargetName and resource metadata" {
+        # Audit #275 TD-14: the universal installer name is also spelled by the
+        # MSBuild TargetName and the .rc version block. build.yml derives its
+        # path from the grammar module, so these two are the remaining
+        # spellings; a TargetName change must fail here, not on release day.
+        $expected = Get-UniversalSetupAssetName
+        $expectedBase = [System.IO.Path]::GetFileNameWithoutExtension($expected)
+
+        $vcxproj = Get-Content (Join-Path $PSScriptRoot "..\..\..\Installer\Installer.vcxproj") -Raw
+        $vcxproj -match '<TargetName>([^<]+)</TargetName>' | Should -BeTrue
+        $Matches[1] | Should -Be $expectedBase
+
+        $rc = Get-Content (Join-Path $PSScriptRoot "..\..\..\Installer\AutoInstaller.rc") -Raw
+        $rc -match '"OriginalFilename",\s*"([^"]+)"' | Should -BeTrue
+        $Matches[1] | Should -Be $expected
+    }
+
     It "yields well-formed names for every manifest channel" {
         $manifest = Import-PowerShellDataFile (Join-Path $PSScriptRoot "..\..\simd-variants.psd1")
         foreach ($channel in @($manifest.Variants.Channel)) {

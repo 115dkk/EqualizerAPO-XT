@@ -23,16 +23,17 @@ Import-Module (Join-Path $PSScriptRoot "ReleaseAssets.psm1") -Force
 
 # Release-channel table for the SIMD/architecture builds. The channel KEYS are the
 # single source of truth in .github/simd-variants.psd1 (Variants[].Channel); the
-# Pattern / SortOrder / Guidance columns are release-notes-specific and stay here.
-# Order matters: Get-ChannelFromAssetName matches Pattern values top to bottom,
-# so more specific patterns (e.g. avx10/avx512/avx2) must precede broader ones (avx).
+# SortOrder / Guidance columns are release-notes-specific and stay here.
+# Classification no longer pattern-matches (audit #275): Get-ChannelFromAssetName
+# compares against the exact names the ReleaseAssets.psm1 grammar computes, so
+# there is no ordering sensitivity between e.g. avx and avx2.
 $ChannelTable = [ordered]@{
-  "arm64-neon"  = @{ Pattern = "arm64";                      SortOrder = 40;  Guidance = "Windows on ARM64 devices." }
-  "x64-sse2"    = @{ Pattern = "sse2|baseline";              SortOrder = 5;   Guidance = "Baseline 64-bit Intel/AMD systems. Pick this for older x64 CPUs that do not support AVX." }
-  "x64-avx10-1" = @{ Pattern = "avx10-1|avx10_1";            SortOrder = 30;  Guidance = "64-bit Intel/AMD systems with AVX10.1 support. Note: CI compiles but cannot execute this instruction set on its hosted runners, so this build skips the runtime audio tests that the sse2/avx/avx2 builds pass." }
-  "x64-avx512"  = @{ Pattern = "avx512";                     SortOrder = 20;  Guidance = "64-bit Intel/AMD systems where you specifically want the AVX-512 build. Note: CI compiles but cannot execute this instruction set on its hosted runners, so this build skips the runtime audio tests that the sse2/avx/avx2 builds pass." }
-  "x64-avx2"    = @{ Pattern = "avx2";                       SortOrder = 10;  Guidance = "Most 64-bit Intel/AMD systems with AVX2. Use this if you are unsure which x64 build to pick." }
-  "x64-avx"     = @{ Pattern = "(^|[-_.])avx($|[-_.])";      SortOrder = 8;   Guidance = "64-bit Intel/AMD systems with AVX, but not AVX2." }
+  "arm64-neon"  = @{ SortOrder = 40;  Guidance = "Windows on ARM64 devices." }
+  "x64-sse2"    = @{ SortOrder = 5;   Guidance = "Baseline 64-bit Intel/AMD systems. Pick this for older x64 CPUs that do not support AVX." }
+  "x64-avx10-1" = @{ SortOrder = 30;  Guidance = "64-bit Intel/AMD systems with AVX10.1 support. Note: CI compiles but cannot execute this instruction set on its hosted runners, so this build skips the runtime audio tests that the sse2/avx/avx2 builds pass." }
+  "x64-avx512"  = @{ SortOrder = 20;  Guidance = "64-bit Intel/AMD systems where you specifically want the AVX-512 build. Note: CI compiles but cannot execute this instruction set on its hosted runners, so this build skips the runtime audio tests that the sse2/avx/avx2 builds pass." }
+  "x64-avx2"    = @{ SortOrder = 10;  Guidance = "Most 64-bit Intel/AMD systems with AVX2. Use this if you are unsure which x64 build to pick." }
+  "x64-avx"     = @{ SortOrder = 8;   Guidance = "64-bit Intel/AMD systems with AVX, but not AVX2." }
 }
 
 # Fail loudly if the manifest's channel set drifts from this table, so a new or
@@ -93,9 +94,17 @@ function Get-ChannelFromAssetName {
     [string]$AssetName
   )
 
-  $lowerName = $AssetName.ToLowerInvariant()
-  foreach ($channel in $ChannelTable.Keys) {
-    if ($lowerName -match $ChannelTable[$channel].Pattern) {
+  # Exact names from the grammar module (setup, feed), and the pack-id prefix
+  # for the versioned nupkgs. Longest pack id first so e.g. x64-avx cannot
+  # claim an x64-avx2 nupkg by prefix.
+  $byPackIdLength = @($ChannelTable.Keys | Sort-Object `
+    { (Get-VelopackPackId -Channel $_).Length } -Descending)
+  foreach ($channel in $byPackIdLength) {
+    if ($AssetName -ieq (Get-SetupAssetName -Channel $channel)) { return $channel }
+    if ($AssetName -ieq (Get-FeedAssetName -Channel $channel)) { return $channel }
+    if ($AssetName -match '\.nupkg$' -and
+        $AssetName.StartsWith("$(Get-VelopackPackId -Channel $channel)-", `
+          [System.StringComparison]::OrdinalIgnoreCase)) {
       return $channel
     }
   }
@@ -344,7 +353,10 @@ $builtVariantsPhrase = if ($manifestChannels.Count -gt 0) {
 } else {
   "installers for every SIMD/architecture channel"
 }
-[void]$lines.Add("The linked workflow builds $builtVariantsPhrase. It runs EditorLogicTests on every build variant, and runs HybridConvTests, EngineOrchestrationTests, and AudioRegressionTests (plus a cross-variant output comparison) where the GitHub-hosted runner can execute the target instruction set.")
+# EditorLogicTests sits behind the same CanExecute gate as the other suites
+# since it started linking Common.lib whole-archive (Build-Solution.ps1), so
+# it must not be advertised as running on every variant (audit #275 TD-34).
+[void]$lines.Add("The linked workflow builds $builtVariantsPhrase. It runs EditorLogicTests, HybridConvTests, EngineOrchestrationTests, and AudioRegressionTests (plus a cross-variant output comparison) on the variants whose instruction set the GitHub-hosted runner can execute; the remaining variants are compile-verified.")
 [void]$lines.Add("")
 [void]$lines.Add("Release page: [$Tag]($releaseUrl)")
 

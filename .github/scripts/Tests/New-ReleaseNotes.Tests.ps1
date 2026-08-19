@@ -17,7 +17,12 @@ Describe "New-ReleaseNotes.ps1" {
                 )
                 foreach ($channel in $channels) {
                     $assets += @{ name = "EqualizerAPO-XT-$channel-$channel-Setup.exe"; size = 10; browser_download_url = "https://example/$channel" }
+                    $assets += @{ name = "releases.$channel.json"; size = 10; browser_download_url = "https://example/$channel-feed" }
                 }
+                # Prefix neighbours: exact/prefix classification must not let
+                # x64-avx claim the x64-avx2 nupkg or vice versa (audit #275).
+                $assets += @{ name = "EqualizerAPO-XT-x64-avx-9.9.9-full.nupkg"; size = 10; browser_download_url = "https://example/avx-full" }
+                $assets += @{ name = "EqualizerAPO-XT-x64-avx2-9.9.9-full.nupkg"; size = 10; browser_download_url = "https://example/avx2-full" }
                 return (@{ assets = $assets } | ConvertTo-Json -Depth 5 -Compress)
             }
             if ($joined.Contains("releases?per_page")) {
@@ -57,7 +62,10 @@ Describe "New-ReleaseNotes.ps1" {
         $notes = Get-Content $output -Raw
         foreach ($channel in (Import-PowerShellDataFile $manifestPath).Variants.Channel) {
             $notes | Should -Match ([regex]::Escape("Manual installer for the $channel channel."))
+            $notes | Should -Match ([regex]::Escape("Velopack update feed for the $channel channel."))
         }
+        $notes | Should -Match ([regex]::Escape("Velopack full package for the x64-avx channel."))
+        $notes | Should -Match ([regex]::Escape("Velopack full package for the x64-avx2 channel."))
         $notes | Should -Match "x64-avx10-1-x64-avx10-1-Setup.exe"
         $notes | Should -Match "Changes since"
         $notes | Should -Match "A tested change"

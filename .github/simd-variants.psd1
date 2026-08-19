@@ -164,6 +164,14 @@
     )
 
     Shared = @{
+        # Qt plugin folders windeployqt deploys next to the Qt apps. Spelled
+        # once here: Package-Artifacts.ps1 asserts the staged artifact carries
+        # no DLL folder outside this list (so a new windeployqt folder fails
+        # the build instead of silently missing from releases), and
+        # New-VelopackRelease.ps1 relocates exactly these folders under qt\
+        # (Editor.exe calls addLibraryPath("qt")).
+        QtPluginFolders     = @('generic', 'iconengines', 'imageformats',
+                                'networkinformation', 'platforms', 'styles', 'tls')
         # velopack_libc ships as a single cross-platform zip attached to the
         # velopack/velopack release. The asset name is velopack_libc_<version>.zip.
         VelopackLibcVersion = '1.1.1'

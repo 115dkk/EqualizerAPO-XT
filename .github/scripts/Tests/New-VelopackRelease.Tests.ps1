@@ -21,6 +21,16 @@ Describe "New-VelopackRelease.ps1 planning" {
         }
     }
 
+    It "carries the Qt plugin folder list from the shared manifest" {
+        # Audit #275 TD-11: the qt\ relocation list and the packaging
+        # assertion must be the same list, spelled once in the manifest.
+        $tree = NewInputRoot @("EqualizerAPO-x64-avx2")
+        $plan = PlanFor $tree @("x64-avx2")
+        $expected = @((Import-PowerShellDataFile $manifestPath).Shared.QtPluginFolders)
+        $expected.Count | Should -BeGreaterThan 0
+        @($plan.QtPluginFolders) | Should -Be $expected
+    }
+
     It "resolves channels from the manifest, not a naming convention" {
         $tree = NewInputRoot @("EqualizerAPO-x64-avx10_1", "EqualizerAPO-ARM64-neon")
         $plan = PlanFor $tree @("x64-avx10-1", "arm64-neon")

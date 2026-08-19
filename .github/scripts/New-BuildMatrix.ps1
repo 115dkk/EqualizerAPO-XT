@@ -19,7 +19,10 @@
 #>
 param(
   [Parameter(Mandatory = $true)]
-  [string]$EventName
+  [string]$EventName,
+  # Return the expanded matrix as an object (for Pester) in addition to the
+  # GITHUB_OUTPUT lines (audit #275 TD-33).
+  [switch]$PassThru
 )
 
 $ErrorActionPreference = "Stop"
@@ -91,4 +94,11 @@ Write-Host "Runner-executable x64 variants: $compareJson"
 if ($env:GITHUB_OUTPUT) {
   "matrix=$json" >> $env:GITHUB_OUTPUT
   "runner_executable_variants=$compareJson" >> $env:GITHUB_OUTPUT
+}
+
+if ($PassThru) {
+  [pscustomobject]@{
+    Matrix                   = $matrix
+    RunnerExecutableVariants = @($compareVariants)
+  }
 }
