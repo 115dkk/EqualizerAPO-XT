@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.39.0 — 2026-08-20
+
 - **설치된 앱 이름이 읽기 좋아집니다.** 지금까지는 시작 메뉴, 바탕 화면
   바로가기, '설치된 앱' 목록에 "EqualizerAPO-XT x64-avx2"처럼 표시되었습니다.
   새로 설치하면 "EQ APO XT"(기본 SSE2 빌드), "EQ APO XT AVX",

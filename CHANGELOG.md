@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.39.0 — 2026-08-20
+
 - **The installed app has a readable name now.** It used to appear as
   "EqualizerAPO-XT x64-avx2" in the Start menu, on the desktop shortcut and
   in Apps & Features. New installs show up as "EQ APO XT" (baseline SSE2
