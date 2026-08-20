@@ -866,7 +866,14 @@ jobs:
         # is per file hash, and an unsigned binary that re-hashes every release
         # restarts at zero reputation every time (the Wacatac.B!ml reports).
         # Any anomaly falls back to a fresh build. See the script's header.
-        $reusePath = Join-Path "${{ github.workspace }}" "reused-$assetName"
+        # gh release upload names the asset after the local file, so the
+        # reused copy must carry the canonical asset name. v2.39.0 first
+        # exercised this path and shipped the front door as
+        # "reused-EqualizerAPO-XT-Setup.exe" because the prefix was spelled
+        # into the file name; a subdirectory keeps the copy apart instead.
+        $reuseDir = Join-Path "${{ github.workspace }}" "reused-installer"
+        New-Item -ItemType Directory -Force -Path $reuseDir | Out-Null
+        $reusePath = Join-Path $reuseDir $assetName
         $decision = .\.github\scripts\Get-PreviousInstallerAsset.ps1 `
           -Repository "${{ github.repository }}" `
           -Tag $tag `
@@ -892,6 +899,10 @@ jobs:
 
         if (-not (Test-Path $setupExe)) {
           Write-Error "Auto-detect installer was not produced at $setupExe"
+          exit 1
+        }
+        if ((Split-Path $setupExe -Leaf) -ne $assetName) {
+          Write-Error "Installer file '$setupExe' must be named '$assetName'; gh release upload names the asset after the local file"
           exit 1
         }
 
