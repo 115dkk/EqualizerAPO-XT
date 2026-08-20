@@ -50,6 +50,26 @@ Describe "New-VelopackRelease.ps1 planning" {
         $plan.ReleaseName | Should -Be "EqualizerAPO-XT 9.9.9"
     }
 
+    It "packs under the manifest's display title" {
+        # The Start menu / Apps & Features name is manifest data (Title), not
+        # a string convention over the artifact name.
+        $tree = NewInputRoot @("EqualizerAPO-x64-avx2")
+        $plan = PlanFor $tree @("x64-avx2")
+        $expected = ((Import-PowerShellDataFile $manifestPath).Variants |
+            Where-Object { $_.Channel -eq "x64-avx2" }).Title
+        $expected | Should -Not -BeNullOrEmpty
+        $plan.Channels[0].PackTitle | Should -Be $expected
+    }
+
+    It "requires a distinct non-empty display title on every manifest variant" {
+        # Titles land as shortcut and Apps & Features names; a duplicate would
+        # make two side-by-side variants indistinguishable after install.
+        $titles = @((Import-PowerShellDataFile $manifestPath).Variants |
+            ForEach-Object { $_.Title })
+        $titles | ForEach-Object { $_ | Should -Not -BeNullOrEmpty }
+        @($titles | Sort-Object -Unique).Count | Should -Be $titles.Count
+    }
+
     It "skips channels the release already carries (resume)" {
         $tree = NewInputRoot @("EqualizerAPO-x64-avx2", "EqualizerAPO-x64-sse2")
         $plan = PlanFor $tree @("x64-sse2")

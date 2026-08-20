@@ -26,6 +26,8 @@
 #                                            compiled into Installer/AutoInstaller.cpp
 #                                            drift from Variants[].Channel)
 #   - .github/scripts/New-ReleaseNotes.ps1  (release-channel guidance/sort table)
+#   - .github/scripts/New-VelopackRelease.ps1 (packs each channel under its
+#                                            Channel/Title identity)
 #
 #   NOT yet consumed: the .vcxproj files. Those keep their inline AVX2 default for
 #   local builds (CI always overrides per variant) and report the chosen value at
@@ -42,6 +44,14 @@
 #     QtArchFlag  /arch:* flag the .pro files compile with (matrix.qt_arch_flag).
 #                 $null when none is passed (sse2 baseline, ARM64).
 #     Channel     Velopack / EAPO_UPDATE_CHANNEL string (e.g. "x64-avx2", "arm64").
+#     Title       Human-facing name Velopack stamps on the install: the Start
+#                 menu/desktop shortcut, the Apps & Features entry and the
+#                 per-channel Setup window. Kept distinct per variant so a user
+#                 can tell which build is installed. Safe to rename between
+#                 releases: velopack 1.1.1's update apply rewrites the
+#                 uninstall entry and renames existing shortcuts (matched by
+#                 target path, not by name), so installed apps migrate to a
+#                 new Title on their next update without user action.
 #     Fftw        amd-fftw release asset zip ($null when built from vcpkg).
 #     Muparserx   muparserx release asset zip (always present).
 #     Sndfile     libsndfile release asset zip ($null when built from vcpkg).
@@ -85,6 +95,7 @@
             ArchFlag  = $null                                   # expands to "NotSet"
             QtArchFlag = $null                                  # baseline code generation
             Channel   = 'x64-sse2'
+            Title     = 'EQ APO XT'
             Fftw      = $null                                   # built from vcpkg
             # The avx2 zip is a SOURCE carrier here: CI recompiles muparserx from
             # parser/*.cpp with this variant's /arch flag (build.yml "Build
@@ -101,6 +112,7 @@
             ArchFlag  = 'AdvancedVectorExtensions'
             QtArchFlag = '/arch:AVX'
             Channel   = 'x64-avx'
+            Title     = 'EQ APO XT AVX'
             Fftw      = $null                                   # built from vcpkg
             # Source carrier, recompiled with /arch:AVX (see the sse2 note above).
             Muparserx = 'muparserx-msvc-release-x64-avx2.zip'
@@ -115,6 +127,7 @@
             ArchFlag  = 'AdvancedVectorExtensions2'
             QtArchFlag = '/arch:AVX2'
             Channel   = 'x64-avx2'
+            Title     = 'EQ APO XT AVX2'
             Fftw      = 'fftw-windows-release-x64-avx2.zip'
             Muparserx = 'muparserx-msvc-release-x64-avx2.zip'
             Sndfile   = 'libsndfile-x64-avx2.zip'
@@ -129,6 +142,7 @@
             ArchFlag  = 'AdvancedVectorExtensions512'
             QtArchFlag = '/arch:AVX512'
             Channel   = 'x64-avx512'
+            Title     = 'EQ APO XT AVX-512'
             Fftw      = 'fftw-windows-release-x64-avx512.zip'
             Muparserx = 'muparserx-msvc-release-x64-avx512.zip'
             Sndfile   = 'libsndfile-x64-avx512.zip'
@@ -142,6 +156,7 @@
             ArchFlag  = 'AdvancedVectorExtensions101'
             QtArchFlag = '/arch:AVX10.1'
             Channel   = 'x64-avx10-1'
+            Title     = 'EQ APO XT AVX10'
             Fftw      = 'fftw-windows-release-x64-avx10.zip'
             Muparserx = 'muparserx-msvc-release-x64-avx10.zip'
             Sndfile   = 'libsndfile-x64-avx10.zip'
@@ -155,6 +170,7 @@
             ArchFlag  = $null                                   # ARM64 passes no /arch override
             QtArchFlag = $null
             Channel   = 'arm64-neon'                            # matches the published Velopack channel
+            Title     = 'EQ APO XT Neon'
             Fftw      = 'fftw-windows-release-arm64.zip'
             Muparserx = 'muparserx-msvc-release-ARM64.zip'
             Sndfile   = 'libsndfile-arm64.zip'
