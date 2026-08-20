@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The installed app has a readable name now.** It used to appear as
+  "EqualizerAPO-XT x64-avx2" in the Start menu, on the desktop shortcut and
+  in Apps & Features. New installs show up as "EQ APO XT" (baseline SSE2
+  build), "EQ APO XT AVX", "EQ APO XT AVX2", "EQ APO XT AVX-512",
+  "EQ APO XT AVX10" or "EQ APO XT Neon". Existing installs migrate by
+  themselves: the next update renames the shortcuts and rewrites the
+  Apps & Features entry ([#288](https://github.com/115dkk/EqualizerAPO-XT/pull/288)).
+
 ## v2.38.0 — 2026-08-19
 
 - **The auto-detect installer got a real window.** Instead of a bare Windows

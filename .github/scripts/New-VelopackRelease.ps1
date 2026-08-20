@@ -58,6 +58,9 @@ foreach ($artifact in $buildArtifacts) {
     if (-not $variantEntry) {
         throw "Artifact $($artifact.Name) has no matching variant in simd-variants.psd1"
     }
+    if (-not $variantEntry.Title) {
+        throw "Variant $($artifact.Name) has no Title in simd-variants.psd1; the display name is release content"
+    }
     $channel = $variantEntry.Channel
     $channelWork += [pscustomobject]@{
         ArtifactPath = $artifact.FullName
@@ -65,7 +68,7 @@ foreach ($artifact in $buildArtifacts) {
         Channel      = $channel
         Skipped      = $MissingChannels -notcontains $channel
         PackId       = Get-VelopackPackId -Channel $channel
-        PackTitle    = "EqualizerAPO-XT $variant"
+        PackTitle    = $variantEntry.Title
         Framework    = if ($variant -like "ARM64*" -or $variant -like "arm64*") { "vcredist143-arm64" } else { "vcredist143-x64" }
         PackDir      = Join-Path $WorkspaceRoot "velopack-input\$channel"
         OutputDir    = Join-Path $WorkspaceRoot "velopack-output\$channel"

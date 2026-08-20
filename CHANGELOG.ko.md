@@ -8,6 +8,13 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **설치된 앱 이름이 읽기 좋아집니다.** 지금까지는 시작 메뉴, 바탕 화면
+  바로가기, '설치된 앱' 목록에 "EqualizerAPO-XT x64-avx2"처럼 표시되었습니다.
+  새로 설치하면 "EQ APO XT"(기본 SSE2 빌드), "EQ APO XT AVX",
+  "EQ APO XT AVX2", "EQ APO XT AVX-512", "EQ APO XT AVX10",
+  "EQ APO XT Neon"으로 표시됩니다. 기존 설치는 손댈 필요 없이 다음 업데이트
+  때 바로가기 이름과 앱 목록 항목이 함께 바뀝니다 ([#288](https://github.com/115dkk/EqualizerAPO-XT/pull/288)).
+
 ## v2.38.0 — 2026-08-19
 
 - **자동 감지 설치기에 제대로 된 창이 생겼습니다.** 밋밋한 Windows 진행

@@ -82,6 +82,11 @@ The recommended download is **EqualizerAPO-XT-Setup.exe**, an auto-detect instal
 
 Releases are not code-signed yet, so Windows Defender/SmartScreen can flag a fresh download as unknown (reports have used the generic `Trojan:Win32/Wacatac.B!ml` label - a reputation verdict on unsigned new files, not an actual analysis). Every asset can be checked against the release's `SHA256SUMS.txt`; the auto-detect installer does this automatically before anything runs.
 
+After installation the app appears in the Start menu and in Apps & Features
+as **EQ APO XT** plus its instruction set: the baseline SSE2 build is just
+"EQ APO XT", the others are "EQ APO XT AVX", "EQ APO XT AVX2",
+"EQ APO XT AVX-512", "EQ APO XT AVX10" and "EQ APO XT Neon".
+
 After installation the Editor keeps itself current: it downloads newer releases in the background and applies them when the Editor closes. The flow is documented in [docs/VelopackUpdates.md](docs/VelopackUpdates.md).
 
 ## Documentation

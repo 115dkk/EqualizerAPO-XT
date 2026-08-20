@@ -69,6 +69,11 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
 
 릴리스는 아직 코드 서명이 없어서, 갓 받은 파일을 Windows Defender/SmartScreen이 알 수 없는 파일로 표시할 수 있습니다(제보된 라벨은 제네릭 `Trojan:Win32/Wacatac.B!ml`로, 실제 분석 결과가 아니라 서명 없는 새 파일에 붙는 평판 판정입니다). 모든 자산은 릴리스의 `SHA256SUMS.txt`로 직접 검증할 수 있고, 자동 감지 설치기는 실행 전에 이 검증을 자동으로 수행합니다.
 
+설치하고 나면 시작 메뉴와 '설치된 앱' 목록에 **EQ APO XT** 뒤에 명령어 집합을
+붙인 이름으로 표시됩니다. 기본 SSE2 빌드는 "EQ APO XT"이고, 나머지는
+"EQ APO XT AVX", "EQ APO XT AVX2", "EQ APO XT AVX-512", "EQ APO XT AVX10",
+"EQ APO XT Neon"입니다.
+
 설치 후에는 Editor가 스스로 최신 상태를 유지합니다. 새 릴리스를 백그라운드에서 내려받아 두었다가 Editor를 닫을 때 적용합니다. 자세한 흐름은 [docs/VelopackUpdates.md](docs/VelopackUpdates.md)에 있습니다.
 
 ## 문서
