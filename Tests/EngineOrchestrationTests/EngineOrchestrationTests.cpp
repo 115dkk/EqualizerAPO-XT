@@ -46,6 +46,7 @@
 #include "audio/io/SndfileRAII.h"
 #include "runtime/concurrency/SynchronizedState.h"
 #include "platform/windows/Win32Event.h"
+#include "Tests/AlignedMemoryGate.h"
 #include "Tests/TestHarness.h"
 #include "Tests/TestDirectory.h"
 
@@ -1202,7 +1203,7 @@ int runEngineOrchestrationTests()
 
 	removeTestDirectory();
 	harness.report();
-	return 0;
+	return test::reportAlignedMemoryBalance("EngineOrchestrationTests");
 }
 
 int main()
