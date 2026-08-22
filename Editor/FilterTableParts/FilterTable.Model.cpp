@@ -80,6 +80,9 @@ vector<wstring> FilterTable::getChannelNames() const
 void FilterTable::propagateChannels()
 {
 	vector<wstring> channelNames = getChannelNames();
+	// The engine's selection flow, mirrored: the device set until a Channel
+	// row replaces it (configureSelectedChannels), never widened by Copy.
+	vector<wstring> selectedChannels = channelNames;
 
 	const QVector<QWidget*> rowWidgets = renderMode == ModernCards
 		? rowWidgetsByRow() : QVector<QWidget*>();
@@ -92,12 +95,16 @@ void FilterTable::propagateChannels()
 			if (cardRow != nullptr)
 			{
 				cardRow->configureChannels(channelNames);
+				cardRow->configureSelectedChannels(selectedChannels);
 				continue;
 			}
 		}
 
 		if (item->gui != nullptr)
+		{
 			item->gui->configureChannels(channelNames);
+			item->gui->configureSelectedChannels(selectedChannels);
+		}
 	}
 }
 

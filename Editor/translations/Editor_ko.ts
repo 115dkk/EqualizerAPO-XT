@@ -289,17 +289,17 @@
 <context>
     <name>ChannelCardEditor</name>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="21"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="23"/>
         <source>Select every channel</source>
         <translation>모든 채널 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="35"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="37"/>
         <source>Add channel</source>
         <translation>채널 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="36"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="38"/>
         <source>Add a custom or virtual channel name (e.g. VSL)</source>
         <translation>사용자 지정 또는 가상 채널 이름 추가 (예: VSL)</translation>
     </message>
@@ -1368,7 +1368,7 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="795"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="803"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
@@ -4571,130 +4571,140 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="611"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="724"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="116"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="699"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="111"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="112"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>오디오 서비스가 읽을 수 있도록 라이브러리를 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="127"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="128"/>
         <source>Embed panel in card</source>
         <translation>카드에 패널 삽입</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="133"/>
         <source>Remove Input/Output layouts</source>
         <translation>Input/Output 레이아웃 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="133"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="134"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation>이 줄에 저장된 VST3 버스 레이아웃을 삭제합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="328"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="140"/>
+        <source>Remove channel fill</source>
+        <translation>채널 채우기 제거</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="141"/>
+        <source>Deletes the saved per-slot channel lists from this line.</source>
+        <translation>이 라인에 저장된 슬롯별 채널 목록을 지웁니다.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="441"/>
         <source>Library could not be loaded.</source>
         <translation>라이브러리를 로드할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="331"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="444"/>
         <source>Library does not contain needed functions.</source>
         <translation>라이브러리에 필요한 함수가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="339"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="452"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>라이브러리의 아키텍처가 올바르지 않습니다. %1비트 라이브러리만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="354"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="467"/>
         <source>Plugin crashed during initialization.</source>
         <translation>초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="366"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="479"/>
         <source>No plugin selected</source>
         <translation>선택된 플러그인 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="411"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="524"/>
         <source>Not readable by the audio service</source>
         <translation>오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="427"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
         <source>Locate the missing plugin library</source>
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="472"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="585"/>
         <source>The bus layout can be changed after the plugin loads.</source>
         <translation>버스 레이아웃은 플러그인이 로드된 뒤에 바꿀 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="480"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="593"/>
         <source>Input and Output layouts are only supported for VST3 plugins.</source>
         <translation>Input/Output 레이아웃은 VST3 플러그인에서만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="597"/>
         <source>This module loaded as VST2 and ignores the saved Input/Output layouts. Remove them via Options.</source>
         <translation>이 모듈은 VST2로 로드되어 저장된 Input/Output 레이아웃을 무시합니다. 옵션 메뉴에서 제거할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="498"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="611"/>
         <source>Close the plugin panel to change the bus layout.</source>
         <translation>버스 레이아웃을 바꾸려면 플러그인 패널을 닫으세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="528"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="641"/>
         <source>The plugin rejected %1 in / %2 out. Audio passes through unchanged.</source>
         <translation>플러그인이 입력 %1 / 출력 %2 구성을 거부했습니다. 소리는 그대로 통과합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="548"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="659"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="661"/>
         <source>%1 ch</source>
         <translation>%1채널</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="557"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="670"/>
         <source>The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.</source>
         <translation>구형 &apos;스테레오 입력&apos; 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="612"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="725"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="674"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="787"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="699"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
         <source>Close panel</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">패널 닫기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="785"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="898"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4706,19 +4716,19 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTPluginFilterGUI</name>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="74"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="79"/>
         <source>Stereo input</source>
         <translation>스테레오 입력</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="77"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="206"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="82"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="319"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation>스테레오 신호를 다채널로 확장하는 업믹서에 사용합니다.</translation>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="459"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
@@ -4748,74 +4758,104 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>삽입</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="199"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="252"/>
+        <source>Channel fill</source>
+        <translation>채널 채우기</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="254"/>
+        <source>Choose which channels occupy the negotiated bus slots.</source>
+        <translation>협상된 버스 슬롯을 어느 채널로 채울지 고릅니다.</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="260"/>
+        <source>Output fill</source>
+        <translation>출력 채우기</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="260"/>
+        <source>Input fill</source>
+        <translation>입력 채우기</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="273"/>
+        <source>Discard (-)</source>
+        <translation>버림 (-)</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="273"/>
+        <source>Silence (-)</source>
+        <translation>무음 (-)</translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="312"/>
         <source>A VST2 plugin ignores the Input and Output layouts.</source>
         <translation>VST2 플러그인은 입력/출력 레이아웃을 무시합니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="205"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="318"/>
         <source>Not available while Input and Output layouts are set.</source>
         <translation>입력/출력 레이아웃이 설정된 동안에는 쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="278"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="400"/>
         <source>No file selected.</source>
         <translation>선택된 파일 없음.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="291"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="413"/>
         <source>File not found.</source>
         <translation>파일을 찾을 수 없음.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="294"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
         <source>Library could not be loaded.</source>
         <translation>라이브러리를 로드할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="297"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="419"/>
         <source>Library does not contain needed functions.</source>
         <translation>라이브러리에 필요한 함수가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="305"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="427"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>라이브러리의 아키텍처가 올바르지 않습니다. %1비트 라이브러리만 지원합니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="325"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="447"/>
         <source>Plugin crashed during initialization.</source>
         <translation>초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="386"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="508"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="510"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="434"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="556"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="459"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
         <source>Close panel</source>
         <translation>패널 닫기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="542"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="664"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>오디오 서비스가 이 라이브러리를 읽을 수 없습니다.
 파일 권한을 바꾸거나 VSTPlugins 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="560"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="682"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4845,6 +4885,37 @@ Change the file permissions or copy the files to the config directory.</source>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="214"/>
         <source>Plugins</source>
         <translation>플러그인</translation>
+    </message>
+</context>
+<context>
+    <name>VSTSlotFillCell</name>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="75"/>
+        <source>Output slot channel</source>
+        <translation>출력 슬롯 채널</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="75"/>
+        <source>Input slot channel</source>
+        <translation>입력 슬롯 채널</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="205"/>
+        <source>Discard (-)</source>
+        <translation>버림 (-)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="205"/>
+        <source>Silence (-)</source>
+        <translation>무음 (-)</translation>
+    </message>
+</context>
+<context>
+    <name>VSTSlotFillRail</name>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="245"/>
+        <source>Channel fill</source>
+        <translation>채널 채우기</translation>
     </message>
 </context>
 <context>

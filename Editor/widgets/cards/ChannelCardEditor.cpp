@@ -4,6 +4,8 @@
 #include <QLineEdit>
 #include <QToolButton>
 
+#include "filters/ChannelCommand.h"
+
 ChannelCardEditor::ChannelCardEditor(const QString& parameters, QWidget* parent)
 	: IFilterGUI(parent), parameters(parameters)
 {
@@ -57,6 +59,18 @@ void ChannelCardEditor::configureChannels(std::vector<std::wstring>& channelName
 	// selection (parameters tracks the latest edit).
 	model.load(parameters, deviceChannels);
 	reloadChips();
+}
+
+void ChannelCardEditor::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
+{
+	// Replace the flowing selection with this line's, resolved by the same
+	// routine the tests pin to ChannelFilter. deviceChannels is the in-scope
+	// vector configureChannels just delivered, so Copy-created channels
+	// above this row resolve here exactly as they would in the engine.
+	ChannelCommand cmd;
+	if (!ChannelCommand::parse(L"Channel", parameters.toStdWString(), cmd))
+		return;
+	selectedChannels = ChannelCommand::resolveSelection(cmd.channels, deviceChannels);
 }
 
 void ChannelCardEditor::allToggled(bool checked)

@@ -57,6 +57,18 @@ void ChannelFilterGUI::configureChannels(vector<wstring>& channelNames)
 	refreshGui();
 }
 
+void ChannelFilterGUI::configureSelectedChannels(std::vector<std::wstring>& flowSelection)
+{
+	// Same resolution as the card editor: this line's selector tokens over
+	// the in-scope names configureChannels just delivered, so the legacy
+	// rows mirror the engine's selection flow too.
+	const QStringList current = scene != nullptr ? scene->getSelectedChannels() : selectedChannels;
+	std::vector<std::wstring> tokens;
+	for (const QString& channel : current)
+		tokens.push_back(channel.toUpper().toStdWString());
+	flowSelection = ChannelCommand::resolveSelection(tokens, channelNames);
+}
+
 void ChannelFilterGUI::store(QString& command, QString& parameters)
 {
 	command = "Channel";

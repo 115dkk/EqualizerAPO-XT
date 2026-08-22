@@ -290,17 +290,17 @@
 <context>
     <name>ChannelCardEditor</name>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="21"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="23"/>
         <source>Select every channel</source>
         <translation>Alle Kanäle auswählen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="35"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="37"/>
         <source>Add channel</source>
         <translation>Kanal hinzufügen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="36"/>
+        <location filename="../widgets/cards/ChannelCardEditor.cpp" line="38"/>
         <source>Add a custom or virtual channel name (e.g. VSL)</source>
         <translation>Eigenen oder virtuellen Kanalnamen hinzufügen (z. B. VSL)</translation>
     </message>
@@ -1371,7 +1371,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Rohbefehl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="795"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="803"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4567,130 +4567,140 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="611"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="724"/>
         <source>Select VST plugin</source>
         <translation>VST-Plugin auswählen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="116"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="699"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="117"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
         <source>Open panel</source>
         <translation>Bedienfeld öffnen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="111"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="112"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>Bibliothek in das Konfigurationsverzeichnis kopieren, damit der Audiodienst sie lesen kann</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="127"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="128"/>
         <source>Embed panel in card</source>
         <translation>Bedienfeld in Karte einbetten</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="133"/>
         <source>Remove Input/Output layouts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="133"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="134"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="328"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="140"/>
+        <source>Remove channel fill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="141"/>
+        <source>Deletes the saved per-slot channel lists from this line.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="441"/>
         <source>Library could not be loaded.</source>
         <translation>Bibliothek konnte nicht geladen werden.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="331"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="444"/>
         <source>Library does not contain needed functions.</source>
         <translation>Bibliothek enthält nicht die benötigten Funktionen.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="339"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="452"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>Bibliothek hat die falsche Architektur. Es werden nur %1-Bit-Bibliotheken unterstützt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="354"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="467"/>
         <source>Plugin crashed during initialization.</source>
         <translation>Plugin ist während der Initialisierung abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="366"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="479"/>
         <source>No plugin selected</source>
         <translation>Kein Plugin ausgewählt</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="411"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="524"/>
         <source>Not readable by the audio service</source>
         <translation>Für den Audiodienst nicht lesbar</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="427"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
         <source>Locate...</source>
         <translation>Suchen...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="428"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
         <source>Locate the missing plugin library</source>
         <translation>Fehlende Plugin-Bibliothek suchen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="472"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="585"/>
         <source>The bus layout can be changed after the plugin loads.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="480"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="593"/>
         <source>Input and Output layouts are only supported for VST3 plugins.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="484"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="597"/>
         <source>This module loaded as VST2 and ignores the saved Input/Output layouts. Remove them via Options.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="498"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="611"/>
         <source>Close the plugin panel to change the bus layout.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="528"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="641"/>
         <source>The plugin rejected %1 in / %2 out. Audio passes through unchanged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="548"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="659"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="661"/>
         <source>%1 ch</source>
         <translation type="unfinished">%1 Kan.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="557"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="670"/>
         <source>The legacy Stereo input option now reads as Input Stereo, Output Auto and will be saved that way.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="612"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="725"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST-Plugins (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="674"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="787"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>Plugin ist beim Öffnen des Bedienfelds abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="699"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="812"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="785"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="898"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4702,13 +4712,13 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTPluginFilterGUI</name>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="74"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="79"/>
         <source>Stereo input</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="77"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="206"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="82"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="319"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4724,7 +4734,7 @@ Change the file permissions or copy the files to the config directory.</source>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="459"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
         <source>Open panel</source>
         <translation>Panel öffnen</translation>
     </message>
@@ -4744,74 +4754,104 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>Einbetten</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="199"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="252"/>
+        <source>Channel fill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="254"/>
+        <source>Choose which channels occupy the negotiated bus slots.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="260"/>
+        <source>Output fill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="260"/>
+        <source>Input fill</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="273"/>
+        <source>Discard (-)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="273"/>
+        <source>Silence (-)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="312"/>
         <source>A VST2 plugin ignores the Input and Output layouts.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="205"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="318"/>
         <source>Not available while Input and Output layouts are set.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="278"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="400"/>
         <source>No file selected.</source>
         <translation>Keine Datei gewählt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="291"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="413"/>
         <source>File not found.</source>
         <translation>Datei nicht gefunden.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="294"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
         <source>Library could not be loaded.</source>
         <translation>Bibliothek konnte nicht geladen werden.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="297"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="419"/>
         <source>Library does not contain needed functions.</source>
         <translation>Bibliothek enthält benötigte Funktionen nicht.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="305"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="427"/>
         <source>Library has the wrong architecture. Only %1-bit libraries are supported.</source>
         <translation>Bibliothek hat die falsche Architektur. Nur %1-bit-Bibliotheken werden unterstützt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="325"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="447"/>
         <source>Plugin crashed during initialization.</source>
         <translation>Plugin ist bei der Initialisierung abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="386"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="508"/>
         <source>Select VST plugin</source>
         <translation>VST-Plugin wählen</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="510"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST-Plugins (*.dll *.vst3)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="434"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="556"/>
         <source>Plugin crashed when opening panel.</source>
         <translation>Plugin ist beim Öffnen des Panels abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="459"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="581"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="542"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="664"/>
         <source>The library is not readable by the audio service.
 Change the file permissions or copy the file to the VSTPlugins directory.</source>
         <translation>Die Bibliothek ist für den Audiodienst nicht lesbar.
 Ändern Sie die Dateiberechtigungen oder kopieren Sie die Datei in das VSTPlugins-Verzeichnis.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="560"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="682"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>
@@ -4841,6 +4881,37 @@ Change the file permissions or copy the files to the config directory.</source>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="214"/>
         <source>Plugins</source>
         <translation>Plugins</translation>
+    </message>
+</context>
+<context>
+    <name>VSTSlotFillCell</name>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="75"/>
+        <source>Output slot channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="75"/>
+        <source>Input slot channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="205"/>
+        <source>Discard (-)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="205"/>
+        <source>Silence (-)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>VSTSlotFillRail</name>
+    <message>
+        <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="245"/>
+        <source>Channel fill</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

@@ -37,4 +37,13 @@ struct ChannelCommand
 	// Returns true when command names a Channel line; channels is then filled
 	// from parameters. Emptiness policy stays with the caller.
 	static bool parse(const std::wstring& command, const std::wstring& parameters, ChannelCommand& out);
+
+	// The selection ChannelFilter::initialize would produce for these
+	// selector tokens over channelNames: a subset of channelNames IN
+	// channelNames ORDER (never the written order), ALL selecting
+	// everything, unknown selectors ignored. Kept equivalent to the filter
+	// by ChannelCommandTests; the Editor mirrors the engine's selection
+	// flow through this one routine.
+	static std::vector<std::wstring> resolveSelection(const std::vector<std::wstring>& selectorTokens,
+		const std::vector<std::wstring>& channelNames);
 };

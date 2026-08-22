@@ -186,6 +186,13 @@ QList<GalleryRow> galleryRows()
 		{ QStringLiteral("include_nested"), QStringLiteral("Include: Surround\\example.txt") },
 		{ QStringLiteral("include_missing"), QStringLiteral("Include: missing.txt") },
 		{ QStringLiteral("vst"), QStringLiteral("VSTPlugin: Library example.dll") },
+		// The channel-fill rails on a forced contract: input rail under the
+		// header, output rail under the body, expanded because both lists
+		// are explicit. Deviceless, so the values render without a missing
+		// verdict (no selection context to judge against).
+		{ QStringLiteral("vst_slotfill"), QStringLiteral(
+			  "VSTPlugin: Library example.vst3 Input 5.1 InputChannels L,R,C,-,SL,SR"
+			  " Output 5.1 OutputChannels L,R,C,LFE,RL,RR") },
 		{ QStringLiteral("device"), QStringLiteral("Device: Speakers Example Audio; Microphone Example Audio") },
 		{ QStringLiteral("device_all"), QStringLiteral("Device: all") },
 		{ QStringLiteral("channel"), QStringLiteral("Channel: L R") },

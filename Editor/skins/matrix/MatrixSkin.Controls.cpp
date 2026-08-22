@@ -504,3 +504,97 @@ void MatrixSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& sta
 	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
 		QFontMetricsF(remarkFont).elidedText(text, Qt::ElideRight, textRect.width()));
 }
+
+void MatrixSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	// Postings, not keys: the fill cells carry only a bottom rule, so they
+	// never compete with the fully boxed bus cells. A missing channel is a
+	// cancelled posting - dashed rule, danger ink.
+	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+	QFont roleFont(tokens.monoFontFamily);
+	roleFont.setPixelSize(8);
+	roleFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.8);
+	painter.setFont(roleFont);
+	painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	QRectF textRect = cell.adjusted(4.0, 0, -4.0, 0);
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
+
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(11);
+	painter.setFont(valueFont);
+	QColor valueInk(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
+	if (state.missingChannel)
+		valueInk = QColor(tokens.danger);
+	if (!state.enabled)
+		valueInk = QColor(tokens.mutedText);
+	painter.setPen(valueInk);
+	QRectF valueRect(textRect);
+	valueRect.setLeft(textRect.left() + roleWidth + 5.0);
+	painter.drawText(valueRect, Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
+
+	QColor ruleColor(tokens.border);
+	if (state.missingChannel)
+		ruleColor = QColor(tokens.danger);
+	else if (state.enabled && (state.focused || state.menuOpen))
+		ruleColor = QColor(tokens.accent);
+	else if (state.enabled && state.hovered)
+		ruleColor = withAlpha(QColor(tokens.accent), 200);
+	QPen rulePen(ruleColor, 1);
+	if (state.missingChannel || !state.enabled)
+		rulePen.setStyle(Qt::DashLine);
+	painter.setPen(rulePen);
+	painter.drawLine(QPointF(cell.left() + 2.0, cell.bottom()), QPointF(cell.right() - 2.0, cell.bottom()));
+
+	const qreal caretHalf = 2.0;
+	const QPointF caretMid(cell.right() - 5.0, cell.center().y() + 0.5);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	QPainterPath caret;
+	caret.moveTo(caretMid + QPointF(-caretHalf, -caretHalf / 2.0));
+	caret.lineTo(caretMid + QPointF(caretHalf, -caretHalf / 2.0));
+	caret.lineTo(caretMid + QPointF(0.0, caretHalf));
+	caret.closeSubpath();
+	painter.fillPath(caret, withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
+}
+
+void MatrixSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	// One departure-board rule above the postings; nothing else.
+	const QRectF band(state.rect);
+	painter.setPen(QPen(withAlpha(QColor(tokens.border), 160), 1));
+	painter.drawLine(QPointF(band.left() + 2.0, band.top() + 0.5),
+		QPointF(band.right() - 2.0, band.top() + 0.5));
+
+	if (state.latchRect.isNull())
+		return;
+	// The fold is a boarding-gate cell: boxed and lit while the strip is
+	// posted, dashed - a cancellation - while it is folded away.
+	const QRectF gate = QRectF(state.latchRect).adjusted(0.5, 1.5, -0.5, -1.5);
+	if (!state.collapsed)
+		painter.fillRect(gate, withAlpha(QColor(tokens.accent), state.latchHovered || state.latchPressed ? 34 : 24));
+	else if (state.latchHovered || state.latchPressed)
+		painter.fillRect(gate, withAlpha(QColor(tokens.border), 18));
+	QPen gatePen(state.collapsed ? QColor(tokens.border) : QColor(tokens.accent), 1);
+	if (state.collapsed)
+		gatePen.setStyle(Qt::DashLine);
+	if (state.latchFocused)
+		gatePen.setColor(QColor(tokens.accent));
+	painter.setPen(gatePen);
+	painter.setBrush(Qt::NoBrush);
+	painter.drawRect(gate);
+	QFont gateFont(tokens.monoFontFamily);
+	gateFont.setPixelSize(8);
+	gateFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
+	painter.setFont(gateFont);
+	painter.setPen(state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.text));
+	painter.drawText(gate, Qt::AlignCenter, QStringLiteral("FILL"));
+}

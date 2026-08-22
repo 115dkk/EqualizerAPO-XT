@@ -27,6 +27,7 @@ public:
 	FilterCardRow(FilterTable* table, int number, FilterTable::Item* item, IFilterGUI* gui,
 		FilterCardDescriptor descriptor, QWidget* parent = nullptr);
 	void configureChannels(std::vector<std::wstring>& channelNames);
+	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels);
 
 	QRect getHeaderRect() const;
 	void editText();

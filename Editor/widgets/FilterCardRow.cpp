@@ -369,6 +369,14 @@ void FilterCardRow::configureChannels(std::vector<std::wstring>& channelNames)
 		gui->configureChannels(channelNames);
 }
 
+void FilterCardRow::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
+{
+	// The Copy routing rows have no gui, and Copy never changes the
+	// selection anyway (getSelectChannels is false in the engine).
+	if (gui != nullptr)
+		gui->configureSelectedChannels(selectedChannels);
+}
+
 CommandRowInfo FilterCardRow::currentRowInfo() const
 {
 	CommandRowInfo info;

@@ -24,6 +24,8 @@ struct ListChromeState;
 struct SegmentedControlState;
 struct VstBusFrameState;
 struct VstBusSelectorState;
+struct VstSlotFillCellState;
+struct VstSlotFillRailState;
 
 class SkinManager : public QObject
 {
@@ -93,6 +95,11 @@ public:
 	// the neutral base answers for skins without an override.
 	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state) const;
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state) const;
+
+	// The VST channel-fill rails (ISkin::paintVstSlotFillCell /
+	// ISkin::paintVstSlotFillRail). Same heritage reasoning as the bus strip.
+	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state) const;
+	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state) const;
 
 	// The "add filter" picker view for the active skin (ISkin::createFilterPicker).
 	FilterPickerView* createFilterPicker(QWidget* parent) const;  // injects tokens()

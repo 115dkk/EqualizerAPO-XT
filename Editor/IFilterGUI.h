@@ -34,6 +34,15 @@ public:
 
 	virtual void configureChannels(std::vector<std::wstring>& channelNames) {}
 
+	// The channels SELECTED at this row, walked top-down right after
+	// configureChannels: a Channel row replaces the vector with its own
+	// resolved selection for the rows below it (mirroring the engine's
+	// getSelectChannels flow), a consumer copies it, everyone else leaves it
+	// alone. Distinct from configureChannels on purpose - that vector is the
+	// names IN SCOPE (Copy keeps adding to it), this one is what the engine
+	// would actually hand a filter on this line.
+	virtual void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) {}
+
 	virtual void store(QString& command, QString& parameters) = 0;
 
 	virtual void loadPreferences(const QVariantMap& prefs) {}

@@ -23,6 +23,11 @@
 #include <QSettings>
 #include <QAbstractEventDispatcher>
 #include <QAction>
+#include <QBrush>
+#include <QCheckBox>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QMenu>
 #include <QStringList>
 
@@ -94,7 +99,24 @@ VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library
 	}
 	connect(ui->busInputComboBox, &QComboBox::activated, this, &VSTPluginFilterGUI::busLayoutPicked);
 	connect(ui->busOutputComboBox, &QComboBox::activated, this, &VSTPluginFilterGUI::busLayoutPicked);
+
+	// The channel-fill rows sit between the bus dropdowns and the embed
+	// frame, inside the row (never below the table's add button). Their
+	// combos are rebuilt from VSTSlotFillModel whenever the contract, the
+	// lists or the selected channels change.
+	QGridLayout* grid = static_cast<QGridLayout*>(layout());
+	inputFillRow = new QWidget(this);
+	new QHBoxLayout(inputFillRow);
+	static_cast<QHBoxLayout*>(inputFillRow->layout())->setContentsMargins(0, 0, 0, 0);
+	grid->addWidget(inputFillRow, 3, 0, 1, 4);
+	outputFillRow = new QWidget(this);
+	new QHBoxLayout(outputFillRow);
+	static_cast<QHBoxLayout*>(outputFillRow->layout())->setContentsMargins(0, 0, 0, 0);
+	grid->addWidget(outputFillRow, 4, 0, 1, 4);
+	fillCollapsed = this->inputChannels.empty() && this->outputChannels.empty();
+
 	updateBusControls();
+	updateFillRows();
 
 	// Frozen legacy row: it stays functional under every skin, so it consults
 	// the same chrome hook as the card editors (legacyRow marks it for skins
@@ -182,7 +204,98 @@ void VSTPluginFilterGUI::busLayoutPicked()
 		stereoInputAction->setChecked(false);
 	}
 	updateBusControls();
+	updateFillRows();
 	updateModel();
+}
+
+void VSTPluginFilterGUI::fillToggleClicked(bool checked)
+{
+	fillCollapsed = !checked;
+	fillCollapsedFromPrefs = true;
+	updateFillRows();
+}
+
+void VSTPluginFilterGUI::configureSelectedChannels(std::vector<std::wstring>& selectedChannels)
+{
+	fillModel.setSelectedChannels(selectedChannels);
+	updateFillRows();
+}
+
+void VSTPluginFilterGUI::updateFillRows()
+{
+	fillModel.setContract(busContract);
+	fillModel.setFill(inputChannels, outputChannels);
+	// A single rail never folds; the toggle quietly disappears with it.
+	if (!fillModel.latchPresent())
+		fillCollapsed = false;
+	rebuildFillRow(false);
+	rebuildFillRow(true);
+	inputFillRow->setVisible(fillModel.railPresent(false));
+	outputFillRow->setVisible(fillModel.railPresent(true) && !fillCollapsed);
+}
+
+void VSTPluginFilterGUI::rebuildFillRow(bool output)
+{
+	QWidget* row = output ? outputFillRow : inputFillRow;
+	QHBoxLayout* box = static_cast<QHBoxLayout*>(row->layout());
+	while (QLayoutItem* item = box->takeAt(0))
+	{
+		if (item->widget() != nullptr)
+			item->widget()->deleteLater();
+		delete item;
+	}
+	if (!output)
+		fillToggle = nullptr;
+
+	if (!output && fillModel.latchPresent())
+	{
+		fillToggle = new QCheckBox(tr("Channel fill"), row);
+		fillToggle->setChecked(!fillCollapsed);
+		fillToggle->setToolTip(tr("Choose which channels occupy the negotiated bus slots."));
+		connect(fillToggle, &QCheckBox::toggled, this, &VSTPluginFilterGUI::fillToggleClicked);
+		box->addWidget(fillToggle);
+	}
+	else
+	{
+		box->addWidget(new QLabel(output ? tr("Output fill") : tr("Input fill"), row));
+	}
+
+	if (!fillCollapsed)
+	{
+		const int count = fillModel.slotCount(output);
+		for (int slot = 0; slot < count; slot++)
+		{
+			box->addWidget(new QLabel(QString::fromStdWString(fillModel.slotRole(output, slot)), row));
+			QComboBox* combo = new QComboBox(row);
+			combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+			for (const std::wstring& name : fillModel.selectedChannels())
+				combo->addItem(QString::fromStdWString(name), QString::fromStdWString(name));
+			combo->addItem(output ? tr("Discard (-)") : tr("Silence (-)"), QStringLiteral("-"));
+			const QString value = QString::fromStdWString(fillModel.slotValue(output, slot));
+			int index = combo->findData(value);
+			if (index < 0)
+			{
+				// A committed channel outside the current selection stays
+				// visible (the engine would refuse it), marked in red.
+				combo->insertItem(0, value, value);
+				combo->setItemData(0, QBrush(Qt::red), Qt::ForegroundRole);
+				index = 0;
+			}
+			combo->setCurrentIndex(index);
+			connect(combo, &QComboBox::activated, this, [this, combo, output, slot](int picked)
+			{
+				fillModel.setContract(busContract);
+				fillModel.setFill(inputChannels, outputChannels);
+				fillModel.pickSlot(output, slot, combo->itemData(picked).toString().toStdWString());
+				inputChannels = fillModel.inputFill();
+				outputChannels = fillModel.outputFill();
+				updateFillRows();
+				updateModel();
+			});
+			box->addWidget(combo);
+		}
+	}
+	box->addStretch(1);
 }
 
 void VSTPluginFilterGUI::updateBusControls()
@@ -210,6 +323,13 @@ void VSTPluginFilterGUI::loadPreferences(const QVariantMap& prefs)
 {
 	autoApplyDialog = prefs.value("autoApplyDialog").toBool();
 
+	if (prefs.contains("slotFillCollapsed"))
+	{
+		fillCollapsed = prefs.value("slotFillCollapsed").toBool();
+		fillCollapsedFromPrefs = true;
+		updateFillRows();
+	}
+
 	if (prefs.value("embed").toBool())
 		// will also call initPlugin
 		ui->embedAction->setChecked(true);
@@ -221,6 +341,8 @@ void VSTPluginFilterGUI::storePreferences(QVariantMap& prefs)
 {
 	prefs.insert("embed", ui->embedAction->isChecked());
 	prefs.insert("autoApplyDialog", autoApplyDialog);
+	if (fillCollapsedFromPrefs)
+		prefs.insert("slotFillCollapsed", fillCollapsed);
 }
 
 void VSTPluginFilterGUI::on_openPanelButton_clicked()
