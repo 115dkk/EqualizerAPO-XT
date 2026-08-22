@@ -614,7 +614,16 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	QPainterPath windowPath;
 	windowPath.addRoundedRect(window, 2.0, 2.0);
 	painter.setPen(Qt::NoPen);
-	painter.fillPath(windowPath, panel.darker(dark ? 178 : 122));
+	// The readout floor is warm display glass, not a shadow pit: the panel
+	// stepped down and warmed by the accent lamp's tint. Verdict r6 - the
+	// dark floor at darker(178) was effectively pure black (color.md), and
+	// the light plate's grey shade read as a pit too, so both modes take
+	// the glass. The switch mounts around it stay plain recesses; only the
+	// readout is glass.
+	const QColor windowFloor = dark
+		? mixColor(panel.darker(150), amber, 0.07)
+		: mixColor(panel.darker(112), amber, 0.10);
+	painter.fillPath(windowPath, windowFloor);
 	{
 		QPainterStateGuard windowState(&painter);
 		painter.setClipPath(windowPath);
