@@ -103,6 +103,43 @@
     </widget>
    </item>
    <item row="2" column="0" colspan="4">
+    <layout class="QHBoxLayout" name="busLayoutRow">
+     <item>
+      <widget class="QLabel" name="busInputLabel">
+       <property name="text">
+        <string>Input</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="busInputComboBox"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="busOutputLabel">
+       <property name="text">
+        <string>Output</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="busOutputComboBox"/>
+     </item>
+     <item>
+      <spacer name="busSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item row="3" column="0" colspan="4">
     <widget class="QFrame" name="frame">
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -112,7 +149,7 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0" colspan="4">
+   <item row="4" column="0" colspan="4">
     <widget class="QPlainTextEdit" name="warningTextEdit">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">

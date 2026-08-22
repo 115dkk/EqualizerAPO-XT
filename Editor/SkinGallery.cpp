@@ -2508,7 +2508,9 @@ int SkinGallery::runVstRoundTripSelfTest()
 		{ L"paramMap-quoted-name", L"Library fake.dll \"Dry/Wet\" 0.75 Output 0.5" },
 		{ L"stereoInput-chunk", L"Library fake.dll StereoInput 1 ChunkData \"QUJDREVGR0g=\"" },
 		{ L"stereoInput-params", L"Library fake.dll StereoInput 1 Gain 0.5" },
-		{ L"busContract", L"Library fake.vst3 Input Stereo Output 7.1 Gain 0.5" }
+		{ L"busContract", L"Library fake.vst3 Input Stereo Output 7.1 Gain 0.5" },
+		{ L"busContract-slotFill",
+		  L"Library fake.vst3 Input 5.1 InputChannels L,R,C,-,SL,SR Output 5.1 OutputChannels L,R,C,LFE,RL,RR Gain 0.5" }
 	};
 
 	int failures = 0;
@@ -2529,8 +2531,10 @@ int SkinGallery::runVstRoundTripSelfTest()
 		std::unordered_map<std::wstring, float> map0 = f0->getParamMap();
 		const bool stereo0 = f0->getStereoInput();
 		const std::optional<VST3BusContract> bus0 = f0->getBusContract();
+		const std::vector<std::wstring> fillIn0 = f0->getInputChannels();
+		const std::vector<std::wstring> fillOut0 = f0->getOutputChannels();
 
-		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0, stereo0, bus0);
+		VSTPluginFilterGUI gui(f0->getLibrary(), chunk0, map0, stereo0, bus0, fillIn0, fillOut0);
 		QString outCommand, outParams;
 		gui.store(outCommand, outParams);
 
@@ -2550,13 +2554,15 @@ int SkinGallery::runVstRoundTripSelfTest()
 		const std::optional<VST3BusContract> bus1 = f1->getBusContract();
 		const bool sameBusContract = bus0.has_value() == bus1.has_value()
 			&& (!bus0 || (bus0->input == bus1->input && bus0->output == bus1->output));
-		bool ok = (chunk0 == chunk1) && (map0 == map1) && (stereo0 == stereo1) && sameBusContract;
+		const bool sameSlotFill = fillIn0 == f1->getInputChannels() && fillOut0 == f1->getOutputChannels();
+		bool ok = (chunk0 == chunk1) && (map0 == map1) && (stereo0 == stereo1) && sameBusContract && sameSlotFill;
 		if (!ok)
 		{
 			failures++;
-			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu, stereoInput %d->%d, bus %d->%d\n",
+			fprintf(stderr, "[VST selftest] %ls: LOSS. chunk %ls->%ls, params %zu->%zu, stereoInput %d->%d, bus %d->%d, fill %zu/%zu->%zu/%zu\n",
 				c.name, chunk0.c_str(), chunk1.c_str(), map0.size(), map1.size(), stereo0 ? 1 : 0,
-				stereo1 ? 1 : 0, bus0 ? 1 : 0, bus1 ? 1 : 0);
+				stereo1 ? 1 : 0, bus0 ? 1 : 0, bus1 ? 1 : 0,
+				fillIn0.size(), fillOut0.size(), f1->getInputChannels().size(), f1->getOutputChannels().size());
 			for (auto& kv : map0)
 			{
 				auto it = map1.find(kv.first);

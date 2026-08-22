@@ -68,9 +68,12 @@ QString layoutName(VST3BusLayout layout)
 VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring& chunkData,
 	const unordered_map<wstring, float>& paramMap, bool stereoInput,
 	const std::optional<VST3BusContract>& busContract,
-	std::vector<std::wstring> deviceChannelNames, FilterTable* filterTable, QWidget* parent)
+	std::vector<std::wstring> deviceChannelNames, FilterTable* filterTable, QWidget* parent,
+	std::vector<std::wstring> inputChannels, std::vector<std::wstring> outputChannels)
 	: IFilterGUI(parent), library(library), chunkData(chunkData), paramMap(paramMap),
-	busModel(busContract, stereoInput), deviceChannelNames(std::move(deviceChannelNames)),
+	busModel(busContract, stereoInput),
+	inputChannels(std::move(inputChannels)), outputChannels(std::move(outputChannels)),
+	deviceChannelNames(std::move(deviceChannelNames)),
 	filterTable(filterTable)
 {
 	setObjectName(QStringLiteral("VSTCardEditor"));
@@ -204,6 +207,8 @@ void VSTCardEditor::store(QString& command, QString& parameters)
 	{
 		cmd.busContract = *busModel.contract();
 		cmd.hasBusContract = true;
+		cmd.inputChannels = inputChannels;
+		cmd.outputChannels = outputChannels;
 	}
 	parameters += QString::fromStdWString(cmd.serialize());
 }
@@ -212,6 +217,12 @@ void VSTCardEditor::busLayoutsPicked(VST3BusLayout input, VST3BusLayout output)
 {
 	if (busModel.contract() && busModel.input() == input && busModel.output() == output)
 		return;
+	// A changed layout invalidates that side's per-slot channel fill: the
+	// slot count no longer matches, so the stale list would fail to parse.
+	if (input != busModel.input())
+		inputChannels.clear();
+	if (output != busModel.output())
+		outputChannels.clear();
 	busModel.setLayouts(input, output);
 	updateBusControls();
 	updateReferenceState();
@@ -223,6 +234,8 @@ void VSTCardEditor::removeBusLayouts()
 	if (!busModel.contract())
 		return;
 	busModel.clear();
+	inputChannels.clear();
+	outputChannels.clear();
 	updateBusControls();
 	updateReferenceState();
 	updateModel();
@@ -803,7 +816,8 @@ REGISTER_FILTER_CARD_EDITOR(VSTPlugin, [](FilterTable* filterTable, const QStrin
 		editor = new VSTCardEditor(filter->getLibrary(), filter->getChunkData(), filter->getParamMap(),
 			filter->getStereoInput(), filter->getBusContract(),
 			filterTable != nullptr ? filterTable->getChannelNames() : std::vector<std::wstring>(),
-			filterTable);
+			filterTable, nullptr,
+			filter->getInputChannels(), filter->getOutputChannels());
 	}
 	else
 	{

@@ -52,10 +52,12 @@ IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString
 			? std::optional<VST3BusContract>(cmd.busContract) : std::nullopt;
 		std::shared_ptr<VSTPluginLibrary> library = cmd.libraryPath.empty() ? nullptr : VSTPluginLibrary::getInstance(cmd.libraryPath);
 		if (library != nullptr)
-			result = new VSTPluginFilterGUI(library, cmd.chunkData, cmd.paramMap, cmd.stereoInput, busContract);
+			result = new VSTPluginFilterGUI(library, cmd.chunkData, cmd.paramMap, cmd.stereoInput, busContract,
+				cmd.inputChannels, cmd.outputChannels);
 		else
 			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"",
-				unordered_map<wstring, float>(), cmd.stereoInput, busContract);
+				unordered_map<wstring, float>(), cmd.stereoInput, busContract,
+				cmd.inputChannels, cmd.outputChannels);
 	}
 
 	return result;

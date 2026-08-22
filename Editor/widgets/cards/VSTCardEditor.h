@@ -50,7 +50,9 @@ public:
 		const std::optional<VST3BusContract>& busContract = std::nullopt,
 		std::vector<std::wstring> deviceChannelNames = std::vector<std::wstring>(),
 		FilterTable* filterTable = nullptr,
-		QWidget* parent = nullptr);
+		QWidget* parent = nullptr,
+		std::vector<std::wstring> inputChannels = {},
+		std::vector<std::wstring> outputChannels = {});
 	~VSTCardEditor();
 
 	void store(QString& command, QString& parameters) override;
@@ -86,6 +88,12 @@ private:
 	bool embedded = false;
 	bool autoApplyDialog = false;
 	VSTBusModel busModel;
+	// Per-slot channel fill for the forced layouts. The card has no editor
+	// for these yet; it preserves them losslessly and only drops a side's
+	// list when that side's layout changes, because the slot count no longer
+	// matches.
+	std::vector<std::wstring> inputChannels;
+	std::vector<std::wstring> outputChannels;
 	// The active device's channel names, for Auto-direction negotiation
 	// hints; empty in contexts without a filter table (tests, previews).
 	std::vector<std::wstring> deviceChannelNames;

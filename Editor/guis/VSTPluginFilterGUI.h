@@ -36,7 +36,8 @@ class VSTPluginFilterGUI : public IFilterGUI
 
 public:
 	explicit VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap,
-		bool stereoInput = false, const std::optional<VST3BusContract>& busContract = std::nullopt);
+		bool stereoInput = false, const std::optional<VST3BusContract>& busContract = std::nullopt,
+		std::vector<std::wstring> inputChannels = {}, std::vector<std::wstring> outputChannels = {});
 	~VSTPluginFilterGUI() override;
 
 	void store(QString& command, QString& parameters) override;
@@ -53,12 +54,14 @@ private slots:
 	void on_selectButton_clicked();
 	void on_embedAction_toggled(bool checked);
 	void stereoInputToggled(bool checked);
+	void busLayoutPicked();
 	void on_idle();
 
 private:
 	void initPlugin();
 	bool embedPlugin();
 	void updatePermissionWarning();
+	void updateBusControls();
 
 	std::unique_ptr<Ui::VSTPluginFilterGUI> ui;
 	std::shared_ptr<VSTPluginLibrary> library;
@@ -68,8 +71,12 @@ private:
 	bool embedded = false;
 	bool autoApplyDialog = false;
 	bool stereoInput = false;
-	// Preserved opaquely until the dedicated Input/Output controls land.
 	std::optional<VST3BusContract> busContract;
+	// Per-slot channel fill for the forced layouts. The row has no editor for
+	// these yet; it preserves them losslessly and only drops a side's list when
+	// that side's layout changes, because the slot count no longer matches.
+	std::vector<std::wstring> inputChannels;
+	std::vector<std::wstring> outputChannels;
 	QAction* stereoInputAction = nullptr;
 	QElapsedTimer lastReadTimer;
 };
