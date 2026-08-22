@@ -584,6 +584,12 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
 	const bool dark = skinIsDark(tokens);
+	const QColor panel(tokens.card);
+	const QColor amber(tokens.accent);
+	const QColor bodyInk(tokens.text);
+	const QColor mutedInk(tokens.mutedText);
+	const QColor shadowInk = dark ? QColor(0, 0, 0) : mixColor(bodyInk, QColor(0, 0, 0), 0.35);
+	const QColor lightInk(255, 255, 255);
 	const QRectF rect(state.rect);
 
 	QFont roleFont(tokens.fontFamily);
@@ -595,50 +601,91 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	RackSkinDetail::engraveText(painter,
 		QRectF(rect.left(), rect.top(), roleWidth, rect.height()),
 		Qt::AlignLeft | Qt::AlignVCenter, state.roleToken,
-		withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150), dark);
+		withAlpha(mutedInk, state.enabled ? 255 : 150), dark);
 
-	// A sunken patch socket, not the bus row's latch-down cap: the fill is
-	// wiring, so its wells sit IN the panel instead of standing on it.
-	const QRectF well = QRectF(rect.left() + roleWidth + 5.0, rect.top() + 1.0,
-		rect.width() - roleWidth - 5.0, rect.height() - 2.0).adjusted(0.5, 0.5, -0.5, -0.5);
+	// The selector is a thumbwheel switch: a milled window over the wheel
+	// face with a knurled grip strip at its edge - the hardware spelling of
+	// a dropdown, and deliberately nothing like the bus row's latch caps or
+	// the fold's machined key. The grip's ridges are the affordance; this
+	// panel prints no caret glyphs.
+	const qreal gripWidth = 7.0;
+	const QRectF frame = QRectF(rect.left() + roleWidth + 5.0, rect.top() + 0.5,
+		rect.width() - roleWidth - 5.5, rect.height() - 1.0);
+	QPainterPath window;
+	window.addRoundedRect(frame, 2.0, 2.0);
 	painter.setPen(Qt::NoPen);
-	painter.setBrush(withAlpha(QColor(tokens.surfaceSunken), dark ? 235 : 90));
-	painter.drawRoundedRect(well, 3.0, 3.0);
-	// The recess edge: dark above, light below, the skin's engraving order.
-	painter.setPen(QPen(withAlphaF(QColor(Qt::black), dark ? 0.5 : 0.18), 1));
-	painter.drawLine(QPointF(well.left() + 2.0, well.top() + 0.5), QPointF(well.right() - 2.0, well.top() + 0.5));
-	painter.setPen(QPen(withAlphaF(QColor(Qt::white), dark ? 0.08 : 0.6), 1));
-	painter.drawLine(QPointF(well.left() + 2.0, well.bottom() - 0.5), QPointF(well.right() - 2.0, well.bottom() - 0.5));
-	QColor border = withAlpha(QColor(tokens.border), state.enabled ? 255 : 150);
-	if (state.missingChannel)
-		border = QColor(tokens.danger);
-	else if (state.enabled && (state.focused || state.menuOpen))
-		border = QColor(tokens.accent);
-	else if (state.enabled && state.hovered)
-		border = withAlpha(QColor(tokens.accent), 140);
-	painter.setPen(QPen(border, 1));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawRoundedRect(well, 3.0, 3.0);
+	painter.fillPath(window, panel.darker(dark ? 178 : 122));
+	{
+		QPainterStateGuard windowState(&painter);
+		painter.setClipPath(window);
+		QLinearGradient overhang(frame.topLeft(), QPointF(frame.left(), frame.top() + 3.0));
+		overhang.setColorAt(0.0, withAlpha(shadowInk, dark ? 165 : 120));
+		overhang.setColorAt(1.0, withAlpha(shadowInk, 0));
+		painter.fillRect(QRectF(frame.left(), frame.top(), frame.width(), 3.0), overhang);
 
+		const QRectF grip(frame.right() - gripWidth, frame.top(), gripWidth, frame.height());
+		const bool turning = state.enabled && (state.pressed || state.menuOpen);
+		QLinearGradient gripFace(grip.topLeft(), grip.bottomLeft());
+		if (!turning)
+		{
+			gripFace.setColorAt(0.0, dark ? panel.lighter(134) : panel);
+			gripFace.setColorAt(0.55, dark ? panel.lighter(114) : panel.darker(103));
+			gripFace.setColorAt(1.0, panel.darker(dark ? 112 : 110));
+		}
+		else
+		{
+			gripFace.setColorAt(0.0, panel.darker(dark ? 146 : 124));
+			gripFace.setColorAt(0.45, panel.darker(dark ? 124 : 113));
+			gripFace.setColorAt(1.0, dark ? panel.lighter(118) : panel);
+		}
+		painter.fillRect(grip, gripFace);
+
+		painter.setRenderHint(QPainter::Antialiasing, false);
+		painter.setPen(QPen(withAlpha(shadowInk, dark ? 200 : 130), 1));
+		painter.drawLine(QPointF(grip.left() - 0.5, grip.top()), QPointF(grip.left() - 0.5, grip.bottom()));
+		for (int ridge = -1; ridge <= 1; ridge++)
+		{
+			const qreal y = grip.center().y() + ridge * 4.0;
+			painter.setPen(QPen(withAlpha(shadowInk, dark ? 160 : 110), 1));
+			painter.drawLine(QPointF(grip.left() + 1.5, y - 0.5), QPointF(grip.right() - 1.0, y - 0.5));
+			painter.setPen(QPen(withAlpha(lightInk, dark ? 40 : 150), 1));
+			painter.drawLine(QPointF(grip.left() + 1.5, y + 0.5), QPointF(grip.right() - 1.0, y + 0.5));
+		}
+		painter.setRenderHint(QPainter::Antialiasing, true);
+	}
+
+	// The window's lower lip catches the work light like every recess here.
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setPen(QPen(withAlpha(lightInk, dark ? 30 : 140), 1));
+	painter.drawLine(QPointF(frame.left() + 2.0, frame.bottom() + 0.5),
+		QPointF(frame.right() - 2.0, frame.bottom() + 0.5));
+	painter.setRenderHint(QPainter::Antialiasing, true);
+
+	QColor rim(tokens.border);
+	if (state.missingChannel)
+		rim = QColor(tokens.danger);
+	else if (state.enabled && (state.focused || state.menuOpen))
+		rim = amber;
+	else if (state.enabled && state.hovered)
+		rim = withAlpha(amber, 150);
+	else
+		rim = withAlpha(rim, state.enabled ? 255 : 150);
+	painter.setBrush(Qt::NoBrush);
+	painter.setPen(QPen(rim, 1));
+	painter.drawPath(window);
+
+	// The wheel face's printing, read through the window.
 	QFont valueFont(tokens.monoFontFamily);
 	valueFont.setPixelSize(11);
 	painter.setFont(valueFont);
-	QColor print(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
+	QColor print(state.silent || state.defaulted ? mutedInk : bodyInk);
 	if (state.missingChannel)
 		print = QColor(tokens.danger);
 	if (!state.enabled)
-		print = withAlpha(QColor(tokens.mutedText), 150);
+		print = withAlpha(mutedInk, 150);
 	painter.setPen(print);
-	painter.drawText(well.adjusted(5.0, 0, -11.0, 0), Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
-
-	const qreal caretHalf = 2.5;
-	const QPointF caretMid(well.right() - 6.0, well.center().y() + 0.5);
-	QPainterPath caret;
-	caret.moveTo(caretMid + QPointF(-caretHalf, -caretHalf / 2.0));
-	caret.lineTo(caretMid + QPointF(caretHalf, -caretHalf / 2.0));
-	caret.lineTo(caretMid + QPointF(0.0, caretHalf));
-	caret.closeSubpath();
-	painter.fillPath(caret, withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
+	painter.drawText(frame.adjusted(5.0, 0, -(gripWidth + 4.0), 0),
+		Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
 }
 
 void RackSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
