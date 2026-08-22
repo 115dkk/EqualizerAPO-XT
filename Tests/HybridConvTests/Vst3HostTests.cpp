@@ -630,6 +630,92 @@ void runVst3HostTests()
 			"a stereo device still negotiates the upmixer's stereo layout");
 	}
 
+	{
+		// Per-slot channel fill on an explicit contract. Each config channel
+		// carries its own DC level, so which channel reached which negotiated
+		// slot - and which channel the plugin wrote - is visible in the output.
+		const std::vector<wstring> surroundChannels = {L"L", L"R", L"C", L"LFE", L"RL", L"RR", L"SL", L"SR"};
+		const double fillLevels[8] = {0.5, 0.25, 0.125, 0.0625, -0.5, -0.25, -0.125, -0.0625};
+		const auto runChannelFill = [&upmixerLibrary, &surroundChannels, &fillLevels](
+			VST3BusLayout inputLayout, VST3BusLayout outputLayout,
+			const std::vector<wstring>& fillInput, const std::vector<wstring>& fillOutput,
+			double (&firstSample)[8])
+		{
+			VST3BusContract contract;
+			contract.input = inputLayout;
+			contract.output = outputLayout;
+			VSTPluginFilter filter(upmixerLibrary, wstring(), std::unordered_map<wstring, float>(),
+				contract, fillInput, fillOutput);
+			filter.initialize(48000.0f, 4, surroundChannels);
+
+			double inputData[8][4] = {};
+			double outputData[8][4] = {};
+			double* inputs[8];
+			double* outputs[8];
+			for (int channel = 0; channel < 8; channel++)
+			{
+				inputs[channel] = inputData[channel];
+				outputs[channel] = outputData[channel];
+				for (int sample = 0; sample < 4; sample++)
+					inputData[channel][sample] = fillLevels[channel];
+			}
+			filter.process(outputs, inputs, 4);
+			for (int channel = 0; channel < 8; channel++)
+				firstSample[channel] = outputData[channel][0];
+		};
+
+		double mappedInput[8] = {};
+		runChannelFill(VST3BusLayout::Stereo, VST3BusLayout::Surround71,
+			{L"RL", L"RR"}, std::vector<wstring>(), mappedInput);
+		harness.expectTrue(closeEnough(mappedInput[0], fillLevels[4]) && closeEnough(mappedInput[1], fillLevels[5]),
+			"InputChannels feeds the named config channels into the negotiated input slots");
+		harness.expectTrue(closeEnough(mappedInput[2], fillLevels[4] + fillLevels[5])
+			&& closeEnough(mappedInput[6], 0.5 * fillLevels[4]),
+			"a filled input bus drives every channel of the negotiated output bus");
+
+		double silentSlotInput[8] = {};
+		runChannelFill(VST3BusLayout::Stereo, VST3BusLayout::Surround71,
+			{L"L", L"-"}, std::vector<wstring>(), silentSlotInput);
+		harness.expectTrue(closeEnough(silentSlotInput[1], 0.0) && closeEnough(silentSlotInput[5], 0.0),
+			"a dash input slot stays silent");
+		harness.expectTrue(closeEnough(silentSlotInput[2], fillLevels[0]),
+			"the filled input slots beside a dash keep their config channel");
+
+		double mappedOutput[8] = {};
+		runChannelFill(VST3BusLayout::Surround71, VST3BusLayout::Stereo,
+			std::vector<wstring>(), {L"SL", L"SR"}, mappedOutput);
+		harness.expectTrue(closeEnough(mappedOutput[6], fillLevels[0]) && closeEnough(mappedOutput[7], fillLevels[1]),
+			"OutputChannels writes the negotiated output slots to the named config channels");
+		bool untargetedPassedThrough = true;
+		for (int channel = 0; channel < 6; channel++)
+			untargetedPassedThrough = untargetedPassedThrough && closeEnough(mappedOutput[channel], fillLevels[channel]);
+		harness.expectTrue(untargetedPassedThrough,
+			"config channels no output slot targets pass through instead of being zero-filled");
+
+		double discardedOutput[8] = {};
+		runChannelFill(VST3BusLayout::Stereo, VST3BusLayout::Stereo,
+			{L"C", L"LFE"}, {L"L", L"-"}, discardedOutput);
+		harness.expectTrue(closeEnough(discardedOutput[0], fillLevels[2]),
+			"a filled input slot reaches the channel its output slot names");
+		harness.expectTrue(closeEnough(discardedOutput[1], fillLevels[1]),
+			"a dash output slot is discarded instead of reaching a config channel");
+		harness.expectTrue(closeEnough(discardedOutput[3], fillLevels[3]),
+			"a config channel read by an input slot still passes through");
+
+		const int fillProcessCallsBefore = upmixerProcessCount != nullptr ? upmixerProcessCount() : -1;
+		double unresolvedFill[8] = {};
+		runChannelFill(VST3BusLayout::Stereo, VST3BusLayout::Surround71,
+			{L"L", L"Nonexistent"}, std::vector<wstring>(), unresolvedFill);
+		bool unresolvedPassedThrough = true;
+		for (int channel = 0; channel < 8; channel++)
+			unresolvedPassedThrough = unresolvedPassedThrough && closeEnough(unresolvedFill[channel], fillLevels[channel]);
+		harness.expectTrue(unresolvedPassedThrough,
+			"a channel fill naming an absent channel passes every config channel through");
+		if (upmixerProcessCount != nullptr)
+			harness.expectEqual(upmixerProcessCount() - fillProcessCallsBefore, 0,
+				"a channel fill naming an absent channel never calls plugin processing");
+	}
+
 	const wstring mismatchBundle = prepareBundle(directory,
 		L"BusInfoMismatchBundle.vst3", L"TestVst3BusInfoMismatch.vst3");
 	shared_ptr<VSTPluginLibrary> mismatchLibrary = VSTPluginLibrary::getInstance(mismatchBundle);

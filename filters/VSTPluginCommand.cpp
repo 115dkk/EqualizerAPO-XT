@@ -74,6 +74,56 @@ bool parseFloatToken(const wstring& token, float& value)
 	return errno != ERANGE && end != token.c_str() && *end == L'\0' && std::isfinite(value);
 }
 
+bool splitChannelFill(const wstring& value, vector<wstring>& fill)
+{
+	fill.clear();
+	size_t start = 0;
+	while (true)
+	{
+		const size_t separator = value.find(L',', start);
+		wstring element = separator == wstring::npos
+			? value.substr(start) : value.substr(start, separator - start);
+		if (element.empty())
+			return false;
+		fill.push_back(std::move(element));
+		if (separator == wstring::npos)
+			return true;
+		start = separator + 1;
+	}
+}
+
+bool validateChannelFill(const wchar_t* fillKey, const wchar_t* layoutKey, const vector<wstring>& fill,
+	VST3BusLayout layout, wstring& error)
+{
+	if (fill.empty())
+		return true;
+	if (layout == VST3BusLayout::Auto)
+	{
+		error = wstring(fillKey) + L" requires an explicit " + layoutKey + L" layout";
+		return false;
+	}
+	const size_t slotCount = (size_t)vst3BusLayoutChannelCount(layout);
+	if (fill.size() != slotCount)
+	{
+		error = wstring(fillKey) + L" must name " + std::to_wstring(slotCount) + L" channels for the "
+			+ vst3BusLayoutName(layout) + L" layout";
+		return false;
+	}
+	return true;
+}
+
+wstring serializeChannelFill(const vector<wstring>& fill)
+{
+	wstring result;
+	for (size_t slot = 0; slot < fill.size(); slot++)
+	{
+		if (slot != 0)
+			result += L',';
+		result += fill[slot];
+	}
+	return quoteCommandToken(result);
+}
+
 wstring serializeState(const wstring& chunkData, const std::unordered_map<wstring, float>& paramMap)
 {
 	wstring result;
@@ -143,6 +193,10 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 		bool sawInput = false;
 		bool sawOutput = false;
 		bool sawChunkData = false;
+		bool sawInputChannels = false;
+		bool sawOutputChannels = false;
+		vector<wstring> inputChannelFill;
+		vector<wstring> outputChannelFill;
 		VST3BusContract contract;
 		for (size_t i = 0; i < parts.size(); i += 2)
 		{
@@ -191,6 +245,47 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 					return cmd;
 				}
 			}
+			else if (key == L"InputChannels")
+			{
+				if (sawInputChannels)
+				{
+					cmd.error = L"duplicate InputChannels key";
+					return cmd;
+				}
+				sawInputChannels = true;
+				if (!splitChannelFill(value, inputChannelFill))
+				{
+					cmd.error = L"InputChannels must be a comma-separated channel list";
+					return cmd;
+				}
+			}
+			else if (key == L"OutputChannels")
+			{
+				if (sawOutputChannels)
+				{
+					cmd.error = L"duplicate OutputChannels key";
+					return cmd;
+				}
+				sawOutputChannels = true;
+				if (!splitChannelFill(value, outputChannelFill))
+				{
+					cmd.error = L"OutputChannels must be a comma-separated channel list";
+					return cmd;
+				}
+				for (size_t slot = 0; slot < outputChannelFill.size(); slot++)
+				{
+					if (outputChannelFill[slot] == L"-")
+						continue;
+					for (size_t other = slot + 1; other < outputChannelFill.size(); other++)
+					{
+						if (outputChannelFill[slot] == outputChannelFill[other])
+						{
+							cmd.error = L"duplicate OutputChannels entry \"" + outputChannelFill[slot] + L"\"";
+							return cmd;
+						}
+					}
+				}
+			}
 			else if (key == L"StereoInput")
 			{
 				cmd.error = L"StereoInput cannot be combined with Input/Output";
@@ -231,10 +326,13 @@ VSTPluginCommand VSTPluginCommand::parse(const wstring& /*configPath*/, const ws
 			cmd.error = L"missing required Output key";
 		else if (sawChunkData && !cmd.paramMap.empty())
 			cmd.error = L"ChunkData and parameter values cannot be combined";
-		else
+		else if (validateChannelFill(L"InputChannels", L"Input", inputChannelFill, contract.input, cmd.error)
+			&& validateChannelFill(L"OutputChannels", L"Output", outputChannelFill, contract.output, cmd.error))
 		{
 			cmd.busContract = contract;
 			cmd.hasBusContract = true;
+			cmd.inputChannels = std::move(inputChannelFill);
+			cmd.outputChannels = std::move(outputChannelFill);
 			cmd.valid = true;
 		}
 		return cmd;
@@ -293,8 +391,18 @@ std::wstring VSTPluginCommand::serialize() const
 	{
 		result += L" Input ";
 		result += vst3BusLayoutName(busContract.input);
+		if (!inputChannels.empty())
+		{
+			result += L" InputChannels ";
+			result += serializeChannelFill(inputChannels);
+		}
 		result += L" Output ";
 		result += vst3BusLayoutName(busContract.output);
+		if (!outputChannels.empty())
+		{
+			result += L" OutputChannels ";
+			result += serializeChannelFill(outputChannels);
+		}
 	}
 	else if (stereoInput)
 		result += L" StereoInput 1";

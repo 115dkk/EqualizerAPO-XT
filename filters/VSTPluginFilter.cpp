@@ -23,6 +23,7 @@
 #include <limits>
 #include <new>
 #include "services/logging/Logging.h"
+#include "audio/ChannelLayout.h"
 #include "dsp/SampleConversion.h"
 #include "VSTPluginFilter.h"
 
@@ -57,6 +58,29 @@ bool checkedMultiply(size_t left, size_t right, size_t& result) noexcept
 	result = left * right;
 	return true;
 }
+
+// "-" is the only selector the config resolves itself; everything else goes
+// through the same name/alias/number lookup the Copy command uses, so a fill
+// accepts exactly the channel spellings the rest of a configuration does.
+bool resolveChannelFill(const std::vector<std::wstring>& fill,
+	const std::vector<std::wstring>& channelNames, std::vector<int>& resolved)
+{
+	resolved.clear();
+	resolved.reserve(fill.size());
+	for (const std::wstring& selector : fill)
+	{
+		if (selector == L"-")
+		{
+			resolved.push_back(-1);
+			continue;
+		}
+		const int channelIndex = ChannelLayout::getChannelIndex(selector, channelNames);
+		if (channelIndex < 0)
+			return false;
+		resolved.push_back(channelIndex);
+	}
+	return true;
+}
 }
 
 VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap,
@@ -66,9 +90,10 @@ VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std:
 }
 
 VSTPluginFilter::VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData,
-	const std::unordered_map<std::wstring, float>& paramMap, VST3BusContract busContract)
+	const std::unordered_map<std::wstring, float>& paramMap, VST3BusContract busContract,
+	std::vector<std::wstring> inputChannels, std::vector<std::wstring> outputChannels)
 	: library(library), libPath(library->getLibPath()), chunkData(chunkData), paramMap(paramMap),
-	busContract(busContract)
+	busContract(busContract), inputChannels(std::move(inputChannels)), outputChannels(std::move(outputChannels))
 {
 }
 
@@ -197,6 +222,82 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		return channelNames;
 	}
 
+	// Every "-" slot is handed its own scratch buffer, so the fills add to the
+	// padding buffers allocated below.
+	size_t fillScratchCount = 0;
+	if (!inputChannels.empty() || !outputChannels.empty())
+	{
+		if (requiredEffectCount != 1)
+		{
+			LogF(L"The VST plugin %s needs several instances, which a channel fill cannot address; passing audio through.",
+				libPath.c_str());
+			skipProcessing = true;
+			return channelNames;
+		}
+		if ((!inputChannels.empty() && inputChannels.size() != effectInputCount)
+			|| (!outputChannels.empty() && outputChannels.size() != effectOutputCount))
+		{
+			LogF(L"The VST plugin %s negotiated a different bus slot count than its channel fill names; passing audio through.",
+				libPath.c_str());
+			skipProcessing = true;
+			return channelNames;
+		}
+
+		std::vector<int> resolvedInput;
+		std::vector<int> resolvedOutput;
+		if (!resolveChannelFill(inputChannels, channelNames, resolvedInput)
+			|| !resolveChannelFill(outputChannels, channelNames, resolvedOutput))
+		{
+			LogF(L"The VST plugin %s has a channel fill naming a channel this device does not have; passing audio through.",
+				libPath.c_str());
+			skipProcessing = true;
+			return channelNames;
+		}
+
+		std::vector<bool> writtenChannels(channelCount, false);
+		if (resolvedOutput.empty())
+		{
+			for (unsigned channel = 0; channel < effectOutputCount && channel < channelCount; channel++)
+				writtenChannels[channel] = true;
+		}
+		else
+		{
+			for (int channelIndex : resolvedOutput)
+			{
+				if (channelIndex < 0)
+					continue;
+				if (writtenChannels[static_cast<size_t>(channelIndex)])
+				{
+					LogF(L"The VST plugin %s has two output slots resolving to the same channel; passing audio through.",
+						libPath.c_str());
+					skipProcessing = true;
+					return channelNames;
+				}
+				writtenChannels[static_cast<size_t>(channelIndex)] = true;
+			}
+		}
+
+		for (int channelIndex : resolvedInput)
+		{
+			if (channelIndex < 0)
+				fillScratchCount++;
+		}
+		for (int channelIndex : resolvedOutput)
+		{
+			if (channelIndex < 0)
+				fillScratchCount++;
+		}
+
+		passthroughChannels.reserve(channelCount);
+		for (size_t channel = 0; channel < channelCount; channel++)
+		{
+			if (!writtenChannels[channel])
+				passthroughChannels.push_back(static_cast<unsigned>(channel));
+		}
+		resolvedInputChannels = std::move(resolvedInput);
+		resolvedOutputChannels = std::move(resolvedOutput);
+	}
+
 	const auto channelNameSlice = [&channelNames](size_t offset, size_t width)
 	{
 		const size_t end = (std::min)(channelNames.size(), offset + width);
@@ -283,13 +384,13 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	const size_t paddingChannelCount = paddedChannelCount > channelCount
 		? paddedChannelCount - channelCount : 0;
 	if ((!oneContractInstance && paddedChannelCount < channelCount)
-		|| paddingChannelCount > (std::numeric_limits<size_t>::max)() / 2)
+		|| paddingChannelCount > ((std::numeric_limits<size_t>::max)() - fillScratchCount) / 2)
 	{
 		LogF(L"The VST plugin %s reported metadata that overflows its padding count; passing audio through.", libPath.c_str());
 		skipProcessing = true;
 		return channelNames;
 	}
-	const size_t emptyChannelCount = 2 * paddingChannelCount;
+	const size_t emptyChannelCount = 2 * paddingChannelCount + fillScratchCount;
 	emptyChannels.reserve(emptyChannelCount);
 	for (size_t i = 0; i < emptyChannelCount; i++)
 	{
@@ -429,6 +530,8 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 
 	__try
 	{
+		const bool inputFill = !resolvedInputChannels.empty();
+		const bool outputFill = !resolvedOutputChannels.empty();
 		unsigned channelOffset = 0;
 		unsigned emptyChannelIndex = 0;
 		for (size_t i = 0; i < effects.size(); i++)
@@ -446,7 +549,13 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					? inputMapping[eapoSlot] : static_cast<int>(eapoSlot);
 				const unsigned busSlot = mappedSlot >= 0 && mappedSlot < static_cast<int>(effectInputCount)
 					? static_cast<unsigned>(mappedSlot) : eapoSlot;
-				if (channelOffset + eapoSlot < channelCount)
+				if (inputFill)
+				{
+					const int sourceChannel = resolvedInputChannels[eapoSlot];
+					inputArray[busSlot] = sourceChannel >= 0
+						? input[sourceChannel] : emptyChannels[emptyChannelIndex++].get();
+				}
+				else if (channelOffset + eapoSlot < channelCount)
 					inputArray[busSlot] = input[channelOffset + eapoSlot];
 				else
 					inputArray[busSlot] = emptyChannels[emptyChannelIndex++].get();
@@ -458,7 +567,13 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					? outputMapping[eapoSlot] : static_cast<int>(eapoSlot);
 				const unsigned busSlot = mappedSlot >= 0 && mappedSlot < static_cast<int>(effectOutputCount)
 					? static_cast<unsigned>(mappedSlot) : eapoSlot;
-				if (channelOffset + eapoSlot < channelCount)
+				if (outputFill)
+				{
+					const int targetChannel = resolvedOutputChannels[eapoSlot];
+					outputArray[busSlot] = targetChannel >= 0
+						? output[targetChannel] : emptyChannels[emptyChannelIndex++].get();
+				}
+				else if (channelOffset + eapoSlot < channelCount)
 					outputArray[busSlot] = output[channelOffset + eapoSlot];
 				else
 					outputArray[busSlot] = emptyChannels[emptyChannelIndex++].get();
@@ -493,7 +608,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				}
 			}
 
-			if (effectOutputCount < effectInputCount)
+			if (!inputFill && !outputFill && effectOutputCount < effectInputCount)
 			{
 				for (unsigned j = effectOutputCount; j < effectInputCount; j++)
 				{
@@ -505,10 +620,21 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			channelOffset += effectChannelCount;
 		}
 
-		// An explicit downmix or otherwise narrower contract owns one main bus,
-		// never repeated instances. Device channels outside that bus stay intact.
-		for (unsigned channel = channelOffset; channel < channelCount; channel++)
-			std::copy_n(input[channel], frameCount, output[channel]);
+		if (inputFill || outputFill)
+		{
+			// A fill decides which channels the plugin writes, so every other
+			// channel keeps its own signal. Reading a channel into a bus slot
+			// does not consume it.
+			for (unsigned channel : passthroughChannels)
+				std::copy_n(input[channel], frameCount, output[channel]);
+		}
+		else
+		{
+			// An explicit downmix or otherwise narrower contract owns one main bus,
+			// never repeated instances. Device channels outside that bus stay intact.
+			for (unsigned channel = channelOffset; channel < channelCount; channel++)
+				std::copy_n(input[channel], frameCount, output[channel]);
+		}
 
 		// Apply delay compensation if needed
 		if (!delayBuffers.empty() && delayBufferLength > 0)
@@ -600,6 +726,16 @@ const std::optional<VST3BusContract>& VSTPluginFilter::getBusContract() const
 	return busContract;
 }
 
+const std::vector<std::wstring>& VSTPluginFilter::getInputChannels() const
+{
+	return inputChannels;
+}
+
+const std::vector<std::wstring>& VSTPluginFilter::getOutputChannels() const
+{
+	return outputChannels;
+}
+
 void VSTPluginFilter::cleanup()
 {
 	// Deferred crash report from process(): the audio thread only clears the flag
@@ -617,6 +753,10 @@ void VSTPluginFilter::cleanup()
 	effectInputCount = 0;
 	effectOutputCount = 0;
 	effectChannelCount = 0;
+
+	resolvedInputChannels.clear();
+	resolvedOutputChannels.clear();
+	passthroughChannels.clear();
 
 	emptyChannels.clear();
 	inputArray.clear();

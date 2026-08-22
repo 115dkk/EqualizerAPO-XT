@@ -22,6 +22,7 @@
 #include <string>
 #include "text/WideString.h"
 #include <unordered_map>
+#include <vector>
 #include "vst/VST3BusLayout.h"
 
 
@@ -46,6 +47,8 @@ struct VSTPluginCommand
 	// VST3. The factory deliberately discards it after loading a VST2 module.
 	VST3BusContract busContract;
 	bool hasBusContract = false;
+	std::vector<std::wstring> inputChannels;
+	std::vector<std::wstring> outputChannels;
 	// "StereoInput 1": negotiate a stereo input bus with the full-width output
 	// bus. This shipped before explicit Input/Output layouts and remains readable
 	// for existing configurations; new configurations should use busContract.

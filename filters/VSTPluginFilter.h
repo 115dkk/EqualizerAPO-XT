@@ -34,7 +34,9 @@ public:
 	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData, const std::unordered_map<std::wstring, float>& paramMap,
 		bool stereoInput = false);
 	VSTPluginFilter(std::shared_ptr<VSTPluginLibrary> library, std::wstring chunkData,
-		const std::unordered_map<std::wstring, float>& paramMap, VST3BusContract busContract);
+		const std::unordered_map<std::wstring, float>& paramMap, VST3BusContract busContract,
+		std::vector<std::wstring> inputChannels = std::vector<std::wstring>(),
+		std::vector<std::wstring> outputChannels = std::vector<std::wstring>());
 	~VSTPluginFilter();
 
 	bool getInPlace() override {return false;}
@@ -47,6 +49,8 @@ public:
 	const std::unordered_map<std::wstring, float>& getParamMap() const;
 	bool getStereoInput() const;
 	const std::optional<VST3BusContract>& getBusContract() const;
+	const std::vector<std::wstring>& getInputChannels() const;
+	const std::vector<std::wstring>& getOutputChannels() const;
 
 private:
 	void cleanup();
@@ -80,5 +84,10 @@ private:
 	bool reportCrash = true;
 	bool forceStereoInput = false;
 	std::optional<VST3BusContract> busContract;
+	std::vector<std::wstring> inputChannels;
+	std::vector<std::wstring> outputChannels;
+	std::vector<int> resolvedInputChannels;
+	std::vector<int> resolvedOutputChannels;
+	std::vector<unsigned> passthroughChannels;
 };
 #pragma AVRT_VTABLES_END
