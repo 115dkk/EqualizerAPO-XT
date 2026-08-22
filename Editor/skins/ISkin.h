@@ -327,6 +327,56 @@ struct VstBusFrameState
 	bool enabled = true;
 };
 
+// One slot cell of the VST channel-fill rails (VSTSlotFillRail): the
+// interactive cell assigning a config channel to one negotiated bus slot.
+// Distinct from VstBusSelectorState on purpose - the bus selectors pick a
+// LAYOUT, these cells pick a CHANNEL, and the two must not read as the same
+// control (see the fill rail section in docs/skin-hooks.md).
+struct VstSlotFillCellState
+{
+	QRect rect;
+	// False on the input rail (channel feeds the slot), true on the output
+	// rail (slot writes the channel).
+	bool output = false;
+	// The slot's role in the negotiated layout, untranslated config grammar
+	// ("L", "LFE", "RL", ...).
+	QString roleToken;
+	// The assigned channel ("SL", "7") or "-" while silent/discarded.
+	QString valueText;
+	// The "-" slot: silence into the plugin, or plugin output discarded.
+	bool silent = false;
+	// No explicit list on this side yet: the shown value is the engine's
+	// implicit default. Skins render it quieter than a committed value.
+	bool defaulted = false;
+	// The committed value does not resolve into the channels selected at
+	// this row; the engine would disable the plugin over it.
+	bool missingChannel = false;
+	bool enabled = true;
+	bool hovered = false;
+	bool pressed = false;
+	bool focused = false;
+	bool menuOpen = false;
+};
+
+// The rail around the slot cells, painted before the cell children. The
+// latch (the whole feature's fold affordance) belongs to the rail frame, NOT
+// to the cell grammar: it must not look like one more channel dropdown.
+struct VstSlotFillRailState
+{
+	QRect rect;
+	bool output = false;
+	// The cells' bounding area (empty while collapsed).
+	QRect cellsRect;
+	// The fold latch area on the input rail; null when the latch is absent
+	// (single-rail cards do not fold).
+	QRect latchRect;
+	bool collapsed = false;
+	bool latchHovered = false;
+	bool latchPressed = false;
+	bool latchFocused = false;
+	bool enabled = true;
+};
+
 // Snapshot of an AudioKnob's state handed to ISkin::paintKnob. The widget owns
 // all input handling; the skin only paints.
 struct KnobState
@@ -495,6 +545,20 @@ public:
 	// is a painted arrow in muted ink plus the verdict text behind a small
 	// tone lamp.
 	virtual void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, const SkinTokens& tokens) const;
+
+	// One slot cell of the VST channel-fill rails: role engraving, the
+	// assigned channel, and the dropdown cue, sized by the widget so text
+	// never collides with the caret. The default is a neutral cell that
+	// reads visibly different from paintVstBusSelector (no channel-count
+	// suffix, silent slots in muted strike ink, missing channels in the
+	// danger tone).
+	virtual void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const;
+
+	// The rail under a row of slot cells plus the fold latch. The latch is
+	// the feature's on/off fold and must be a different affordance than the
+	// channel cells (the default draws a small labelled toggle, not another
+	// dropdown).
+	virtual void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const;
 
 	// The "add filter" picker that matches this skin's philosophy. The caller
 	// (FilterTable::chooseFilterTemplate) hosts the returned view in a

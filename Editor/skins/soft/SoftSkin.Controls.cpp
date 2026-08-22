@@ -449,3 +449,105 @@ void SoftSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state
 			QFontMetricsF(captionFont).elidedText(state.verdictText, Qt::ElideRight, textRect.width()));
 	}
 }
+
+void SoftSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const bool dark = skinIsDark(tokens);
+	const QRectF pill = QRectF(state.rect).adjusted(0.5, 1.5, -0.5, -1.5);
+	const qreal radius = pill.height() / 2.0;
+
+	// An OUTLINED pill, unlike the bus selector's filled accent pill: the
+	// fill cells are the quieter, many-of-them controls. A dash slot wears
+	// the dashed outline the skin already uses for not-there things.
+	QColor ink(QStringLiteral("#2B251D"));
+	if (dark)
+		ink = QColor(tokens.text);
+	QColor border = softPastelize(QColor(tokens.accent), dark);
+	if (state.missingChannel)
+		border = QColor(tokens.danger);
+	QPen borderPen(border, 1);
+	if (state.silent)
+		borderPen.setStyle(Qt::DashLine);
+	if (state.enabled && (state.focused || state.menuOpen))
+		borderPen.setWidthF(1.6);
+	painter.setPen(borderPen);
+	QColor fill(tokens.surface);
+	if (state.enabled && (state.pressed || state.menuOpen))
+		fill = mixColor(fill, border, 0.18);
+	else if (state.enabled && state.hovered)
+		fill = mixColor(fill, border, 0.10);
+	painter.setBrush(fill);
+	painter.drawRoundedRect(pill, radius, radius);
+
+	QFont roleFont(tokens.fontFamily);
+	roleFont.setPixelSize(9);
+	QFont valueFont(tokens.fontFamily);
+	valueFont.setPixelSize(11);
+	valueFont.setWeight(QFont::DemiBold);
+
+	QRectF textRect = pill.adjusted(8.0, 0, -6.0, 0);
+	painter.setFont(roleFont);
+	painter.setPen(withAlphaF(ink, state.enabled ? 0.62 : 0.4));
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
+
+	painter.setFont(valueFont);
+	QColor valueInk = withAlphaF(ink, state.enabled ? (state.silent || state.defaulted ? 0.55 : 0.95) : 0.4);
+	if (state.missingChannel)
+		valueInk = QColor(tokens.danger);
+	painter.setPen(valueInk);
+	painter.drawText(QRectF(textRect.left() + roleWidth + 5.0, textRect.top(),
+		textRect.width() - roleWidth - 5.0 - 8.0, textRect.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
+
+	const qreal caretHalf = 2.5;
+	const QPointF caretMid(textRect.right() - 3.0, pill.center().y() + 0.5);
+	QPainterPath caret;
+	caret.moveTo(caretMid + QPointF(-caretHalf, -caretHalf / 2.0));
+	caret.lineTo(caretMid + QPointF(caretHalf, -caretHalf / 2.0));
+	caret.lineTo(caretMid + QPointF(0.0, caretHalf));
+	caret.closeSubpath();
+	painter.fillPath(caret, withAlphaF(ink, state.enabled ? 0.5 : 0.3));
+}
+
+void SoftSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const bool dark = skinIsDark(tokens);
+	const QColor pastel = softPastelize(QColor(tokens.accent), dark);
+
+	// The tray: a soft rounded wash holding the pills together as one
+	// gesture of the card, not a scatter of chips.
+	if (!state.cellsRect.isNull() && !state.collapsed)
+	{
+		const QRectF tray = QRectF(state.cellsRect).adjusted(-6.0, -3.0, 6.0, 3.0);
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlphaF(pastel, dark ? 0.10 : 0.22));
+		painter.drawRoundedRect(tray, tray.height() / 2.0, tray.height() / 2.0);
+	}
+
+	if (state.latchRect.isNull())
+		return;
+	// The fold is a little toggle: a dot that fills while the tray is out.
+	const QRectF latch(state.latchRect);
+	QColor ink(dark ? QColor(tokens.text) : QColor(QStringLiteral("#2B251D")));
+	const QPointF dotCenter(latch.left() + 7.0, latch.center().y() + 0.5);
+	painter.setPen(QPen(state.latchFocused ? QColor(tokens.accent) : withAlphaF(ink, 0.45), 1.2));
+	painter.setBrush(state.collapsed ? QBrush(Qt::NoBrush) : QBrush(pastel));
+	painter.drawEllipse(dotCenter, 4.0, 4.0);
+	QFont latchFont(tokens.fontFamily);
+	latchFont.setPixelSize(10);
+	if (state.latchHovered)
+		latchFont.setUnderline(true);
+	painter.setFont(latchFont);
+	painter.setPen(withAlphaF(ink, state.collapsed ? 0.55 : 0.9));
+	painter.drawText(QRectF(latch.left() + 15.0, latch.top(), latch.width() - 15.0, latch.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("Fill"));
+}

@@ -217,6 +217,45 @@ StereoInput migration note) do not enter the strip; the host routes them
 through the card's existing status line, so every skin's status idiom keeps
 speaking.
 
+## VST channel-fill rail hooks
+
+The per-slot channel fill of a forced contract (`InputChannels` /
+`OutputChannels`) renders as two rails inside the card - the input rail
+under the row header, the output rail under the reference body - built from
+one shared widget (`Editor/widgets/cards/VSTSlotFillRail.{h,cpp}`) over the
+document model (`VSTSlotFillModel`). The same widget/paint split as the bus
+strip:
+
+```cpp
+// ISkin (Editor/skins/ISkin.h)
+virtual void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const;
+virtual void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const;
+```
+
+Two constitutional constraints, both from the design gate:
+
+- A fill cell picks a CHANNEL, the bus selector picks a LAYOUT, and the two
+  must not read as the same control. Every skin answers the cell with a
+  different register than its bus selector (scribble well vs. glass pane,
+  patch socket vs. latch cap, posting rule vs. boxed key, outlined pill
+  vs. filled pill; minimal stays bare ink in both, and that is its answer).
+- The fold latch is the rail frame's affordance, never one more dropdown:
+  a lit console switch (studio), the latch button with its pilot LED
+  (rack), a reverse-video token (minimal), a dot toggle (soft), a boarding
+  gate cell whose collapsed state is a dashed cancellation (matrix).
+
+Cell states carry the slot role token, the assigned channel, and three
+verdicts the skin must voice: `silent` (the `-` slot), `defaulted` (no
+explicit list; render quieter than a committed value) and `missingChannel`
+(the committed channel does not resolve into the channels selected at this
+row - danger ink, the engine would pass audio through over it). The rail
+state carries the cells' bounding rect, the latch rect (null when the card
+has a single rail - a single rail never folds) and the collapsed flag.
+
+The rails' presence rules live in `VSTSlotFillModel`, not in skins: an
+`Auto` side has no rail, only a two-rail card gets the latch, and a
+collapsed card keeps just the input rail's latch as its slim reminder.
+
 ## Routing renderer hook
 
 Copy's per-skin routing view generalizes to any command whose body is a

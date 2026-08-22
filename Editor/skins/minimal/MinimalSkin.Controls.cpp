@@ -391,3 +391,93 @@ void MinimalSkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& st
 	painter.drawText(QRectF(state.verdictRect), Qt::AlignLeft | Qt::AlignVCenter,
 		QFontMetricsF(verdictFont).elidedText(text, Qt::ElideRight, state.verdictRect.width()));
 }
+
+void MinimalSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	// Bare ink, the approved reading: lowercase role, mono channel, painted
+	// caret. No chrome; the states live entirely in the ink.
+	const QRectF rect(state.rect);
+	QFont roleFont(tokens.monoFontFamily);
+	roleFont.setPixelSize(10);
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(11);
+
+	QColor roleInk = withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150);
+	QColor valueInk(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
+	if (state.missingChannel)
+		valueInk = QColor(tokens.danger);
+	if (!state.enabled)
+		valueInk = withAlpha(QColor(tokens.mutedText), 150);
+
+	const QString role = state.roleToken.toLower();
+	painter.setFont(roleFont);
+	painter.setPen(roleInk);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(role);
+	painter.drawText(QRectF(rect.left() + 3.0, rect.top(), roleWidth, rect.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, role);
+
+	painter.setFont(valueFont);
+	painter.setPen(valueInk);
+	const qreal valueLeft = rect.left() + 3.0 + roleWidth + 5.0;
+	const qreal valueWidth = QFontMetricsF(valueFont).horizontalAdvance(state.valueText);
+	painter.drawText(QRectF(valueLeft, rect.top(), rect.width() - (valueLeft - rect.left()), rect.height()),
+		Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
+
+	const qreal caretLeft = valueLeft + valueWidth + 4.0;
+	const qreal caretHalf = 2.5;
+	const qreal caretMidY = rect.center().y() + 1.0;
+	QColor caretInk = state.menuOpen || state.focused ? QColor(tokens.accent) : roleInk;
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	QPainterPath caret;
+	caret.moveTo(caretLeft, caretMidY - caretHalf / 2.0);
+	caret.lineTo(caretLeft + caretHalf * 2.0, caretMidY - caretHalf / 2.0);
+	caret.lineTo(caretLeft + caretHalf, caretMidY + caretHalf);
+	caret.closeSubpath();
+	painter.fillPath(caret, caretInk);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+
+	if (state.enabled && (state.hovered || state.focused || state.menuOpen))
+	{
+		painter.setPen(QPen(state.focused || state.menuOpen ? QColor(tokens.accent) : roleInk, 1));
+		painter.drawLine(QPointF(valueLeft, rect.bottom() - 2.5), QPointF(valueLeft + valueWidth, rect.bottom() - 2.5));
+	}
+}
+
+void MinimalSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+{
+	QPainterStateGuard guard(&painter);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	// No tray: the rail is negative space. Only the latch prints, in the
+	// skin's reverse-video register while the strip is engaged.
+	if (state.latchRect.isNull())
+		return;
+	QFont latchFont(tokens.monoFontFamily);
+	latchFont.setPixelSize(10);
+	painter.setFont(latchFont);
+	const QString token = QStringLiteral("fill");
+	const QRectF latch(state.latchRect);
+	const qreal tokenWidth = QFontMetricsF(latchFont).horizontalAdvance(token);
+	const QRectF chip(latch.left(), latch.center().y() - 8.0, tokenWidth + 10.0, 16.0);
+	if (!state.collapsed)
+	{
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlpha(QColor(tokens.text), state.enabled ? 255 : 150));
+		painter.fillRect(chip, painter.brush());
+		painter.setPen(QColor(tokens.background));
+	}
+	else
+	{
+		if (state.latchHovered || state.latchFocused)
+		{
+			painter.setPen(QPen(state.latchFocused ? QColor(tokens.accent) : QColor(tokens.border), 1));
+			painter.setBrush(Qt::NoBrush);
+			painter.drawRect(chip.adjusted(0.5, 0.5, -0.5, -0.5));
+		}
+		painter.setPen(withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150));
+	}
+	painter.drawText(chip, Qt::AlignCenter, token);
+}

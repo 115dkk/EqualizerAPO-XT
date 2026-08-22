@@ -299,6 +299,8 @@ SOURCES += main.cpp\
 	widgets/cards/DefaultReferenceCardView.cpp \
 	widgets/cards/VSTBusModel.cpp \
 	widgets/cards/VSTBusStrip.cpp \
+	widgets/cards/VSTSlotFillModel.cpp \
+	widgets/cards/VSTSlotFillRail.cpp \
 	widgets/cards/VSTCardEditor.cpp \
 	widgets/ElidedLabel.cpp \
 	widgets/EditableValue.cpp \
@@ -573,6 +575,8 @@ HEADERS  += \
 	widgets/cards/DefaultReferenceCardView.h \
 	widgets/cards/VSTBusModel.h \
 	widgets/cards/VSTBusStrip.h \
+	widgets/cards/VSTSlotFillModel.h \
+	widgets/cards/VSTSlotFillRail.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/ElidedLabel.h \
 	widgets/EditableValue.h \

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "filters/ChannelCommand.h"
+#include "filters/ChannelFilter.h"
 #include "Tests/TestHarness.h"
 
 using std::wstring;
@@ -87,6 +88,45 @@ void testRoundTrip()
 	ChannelCommand::parse(L"Channel", L" c,l  r ", canonical);
 	harness.expectTrue(canonical.serialize() == L"C L R", "canonical serialization is single-spaced and upper-cased");
 }
+
+void testResolveSelection()
+{
+	// resolveSelection must stay equivalent to ChannelFilter::initialize's
+	// selection: a subset of channelNames in channelNames order, ALL
+	// selecting everything, unknown selectors ignored. The equivalence run
+	// below pins it to the real filter.
+	const std::vector<wstring> names = {L"L", L"R", L"C", L"LFE", L"RL", L"RR"};
+
+	std::vector<wstring> picked = ChannelCommand::resolveSelection({L"RR", L"L"}, names);
+	harness.requireEqual(picked.size(), (size_t)2, "two selectors resolve to two channels");
+	harness.expectTrue(picked[0] == L"L" && picked[1] == L"RR",
+		"the selection keeps channel order, not written order");
+
+	picked = ChannelCommand::resolveSelection({L"ALL"}, names);
+	harness.expectTrue(picked == names, "ALL selects every channel");
+
+	picked = ChannelCommand::resolveSelection({L"2", L"SL"}, names);
+	harness.requireEqual(picked.size(), (size_t)2, "numbers and aliases resolve");
+	harness.expectTrue(picked[0] == L"R" && picked[1] == L"RL",
+		"position 2 is R and the SL alias lands on RL");
+
+	picked = ChannelCommand::resolveSelection({L"NOSUCH", L"9"}, names);
+	harness.expectTrue(picked.empty(), "unknown selectors are ignored");
+
+	picked = ChannelCommand::resolveSelection({}, names);
+	harness.expectTrue(picked.empty(), "an empty Channel line selects nothing");
+
+	// Equivalence against the real filter over a few representative lines.
+	const std::vector<std::vector<wstring>> tokenSets = {
+		{L"L", L"R"}, {L"ALL"}, {L"SL", L"SR", L"1"}, {L"C", L"C", L"NOSUCH"}, {}};
+	for (const std::vector<wstring>& tokens : tokenSets)
+	{
+		ChannelFilter filter(tokens);
+		const std::vector<wstring> fromFilter = filter.initialize(48000.0f, 512, names);
+		harness.expectTrue(ChannelCommand::resolveSelection(tokens, names) == fromFilter,
+			"resolveSelection matches ChannelFilter::initialize");
+	}
+}
 }
 
 void runChannelCommandTests()
@@ -94,6 +134,7 @@ void runChannelCommandTests()
 	testTokenization();
 	testCommandRecognition();
 	testRoundTrip();
+	testResolveSelection();
 
 	harness.report();
 }

@@ -28,6 +28,7 @@
 #include "Editor/IFilterGUI.h"
 #include "Editor/widgets/cards/ReferenceCardView.h"
 #include "Editor/widgets/cards/VSTBusModel.h"
+#include "Editor/widgets/cards/VSTSlotFillModel.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
 
@@ -39,6 +40,7 @@ class QAction;
 class FileReferenceController;
 class FilterTable;
 class VSTBusStrip;
+class VSTSlotFillRail;
 
 class VSTCardEditor : public IFilterGUI
 {
@@ -56,6 +58,7 @@ public:
 	~VSTCardEditor();
 
 	void store(QString& command, QString& parameters) override;
+	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) override;
 	void loadPreferences(const QVariantMap& prefs) override;
 	void storePreferences(QVariantMap& prefs) override;
 
@@ -70,6 +73,9 @@ private slots:
 	void embedToggled(bool checked);
 	void busLayoutsPicked(VST3BusLayout input, VST3BusLayout output);
 	void removeBusLayouts();
+	void fillSlotPicked(int slot, const QString& value, bool output);
+	void fillLatchToggled();
+	void removeChannelFill();
 	void onIdle();
 
 private:
@@ -77,6 +83,7 @@ private:
 	bool embedPlugin();
 	void updateReferenceState();
 	void updateBusControls();
+	void updateFillRails();
 	void updatePermissionWarning();
 	void onAutomate();
 	void onSizeWindow(int w, int h);
@@ -94,6 +101,15 @@ private:
 	// matches.
 	std::vector<std::wstring> inputChannels;
 	std::vector<std::wstring> outputChannels;
+	// The fill rails' document-side state; kept in sync with busModel and
+	// the two lists above, plus the selection configureSelectedChannels
+	// delivers.
+	VSTSlotFillModel fillModel;
+	// The fold state of the two rails (only meaningful while both exist).
+	// Persisted per row; defaults to collapsed while both sides are still
+	// implicit so untouched contract cards keep their height.
+	bool fillCollapsed = false;
+	bool fillCollapsedFromPrefs = false;
 	// The active device's channel names, for Auto-direction negotiation
 	// hints; empty in contexts without a filter table (tests, previews).
 	std::vector<std::wstring> deviceChannelNames;
@@ -118,7 +134,10 @@ private:
 	QToolButton* optionsButton = nullptr;
 	QAction* embedAction = nullptr;
 	QAction* removeBusAction = nullptr;
+	QAction* removeFillAction = nullptr;
 	VSTBusStrip* busStrip = nullptr;
+	VSTSlotFillRail* inputRail = nullptr;
+	VSTSlotFillRail* outputRail = nullptr;
 	QFrame* frame = nullptr;
 	QPlainTextEdit* warningTextEdit = nullptr;
 };

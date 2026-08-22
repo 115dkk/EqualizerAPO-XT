@@ -20,6 +20,10 @@ public:
 		const SkinTokens& tokens) const override;
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state,
 		const SkinTokens& tokens) const override;
+	void paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state,
+		const SkinTokens& tokens) const override;
+	void paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state,
+		const SkinTokens& tokens) const override;
 
 	QString cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;
 	QString cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const override;

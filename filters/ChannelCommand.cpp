@@ -23,6 +23,8 @@
 
 #include <cwctype>
 
+#include "audio/ChannelLayout.h"
+
 std::wstring ChannelCommand::serialize() const
 {
 	std::wstring result;
@@ -65,4 +67,31 @@ bool ChannelCommand::parse(const std::wstring& command, const std::wstring& para
 	}
 
 	return true;
+}
+
+std::vector<std::wstring> ChannelCommand::resolveSelection(const std::vector<std::wstring>& selectorTokens,
+	const std::vector<std::wstring>& channelNames)
+{
+	std::vector<bool> selected(channelNames.size(), false);
+	for (const std::wstring& token : selectorTokens)
+	{
+		if (token == L"ALL")
+		{
+			selected.assign(channelNames.size(), true);
+			continue;
+		}
+		// allowAdditional suppresses the invalid-name log line: the Editor
+		// resolves on every channel propagation, not once per config load.
+		const int index = ChannelLayout::getChannelIndex(token, channelNames, true);
+		if (index >= 0 && index < static_cast<int>(channelNames.size()))
+			selected[static_cast<size_t>(index)] = true;
+	}
+
+	std::vector<std::wstring> selectedNames;
+	for (size_t i = 0; i < channelNames.size(); i++)
+	{
+		if (selected[i])
+			selectedNames.push_back(channelNames[i]);
+	}
+	return selectedNames;
 }

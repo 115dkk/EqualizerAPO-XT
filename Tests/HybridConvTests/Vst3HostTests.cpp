@@ -714,6 +714,39 @@ void runVst3HostTests()
 		if (upmixerProcessCount != nullptr)
 			harness.expectEqual(upmixerProcessCount() - fillProcessCallsBefore, 0,
 				"a channel fill naming an absent channel never calls plugin processing");
+
+		// Copy-created virtual channels reach the fill by name: the engine
+		// hands the filter the SELECTED channel list, which is where a
+		// Channel: line places Copy targets, and resolution is the same
+		// name lookup Copy uses - custom spellings included. Channel
+		// restriction is the same fact from the other side: names outside
+		// the handed-in list simply do not exist here.
+		{
+			const std::vector<wstring> virtualChannels = {L"V1", L"V2", L"L", L"R"};
+			VST3BusContract virtualContract;
+			virtualContract.input = VST3BusLayout::Stereo;
+			virtualContract.output = VST3BusLayout::Stereo;
+			VSTPluginFilter virtualFill(upmixerLibrary, wstring(), std::unordered_map<wstring, float>(),
+				virtualContract, {L"V2", L"V1"}, {L"V1", L"-"});
+			virtualFill.initialize(48000.0f, 4, virtualChannels);
+			double inputData[4][4] = {};
+			double outputData[4][4] = {};
+			double* inputs[4];
+			double* outputs[4];
+			for (int channel = 0; channel < 4; channel++)
+			{
+				inputs[channel] = inputData[channel];
+				outputs[channel] = outputData[channel];
+				for (int sample = 0; sample < 4; sample++)
+					inputData[channel][sample] = fillLevels[channel];
+			}
+			virtualFill.process(outputs, inputs, 4);
+			harness.expectTrue(closeEnough(outputData[0][0], fillLevels[1]),
+				"a virtual channel name feeds a slot and receives the slot's output");
+			harness.expectTrue(closeEnough(outputData[1][0], fillLevels[1])
+				&& closeEnough(outputData[2][0], fillLevels[2]) && closeEnough(outputData[3][0], fillLevels[3]),
+				"channels no output slot targets pass through, virtual ones included");
+		}
 	}
 
 	const wstring mismatchBundle = prepareBundle(directory,

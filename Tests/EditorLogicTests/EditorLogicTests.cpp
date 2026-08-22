@@ -160,6 +160,7 @@ int main(int argc, char** argv)
 		testFileReferenceControllerOwnsPathState();
 		testReferenceCardDerivesSharedPresentationState();
 		testVSTBusModelMigratesAndEdits();
+		testVSTSlotFillModel();
 		testFilterListModel();
 		testFilterListUndo();
 		testFilterCommandCatalogRoster();

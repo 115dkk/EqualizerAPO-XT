@@ -36,6 +36,7 @@ public:
 	explicit ChannelFilterGUI(const QString& parameters, int selectedChannelMask);
 	~ChannelFilterGUI();
 	void configureChannels(std::vector<std::wstring>& channelNames) override;
+	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) override;
 	void store(QString& command, QString& parameters) override;
 
 private slots:

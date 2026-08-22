@@ -583,6 +583,114 @@ void ISkin::paintVstBusFrame(QPainter& painter, const VstBusFrameState& state, c
 	}
 }
 
+void ISkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state, const SkinTokens& tokens) const
+{
+	// Neutral default, deliberately unlike the bus selector: no channel-count
+	// suffix and a flatter cell, so a channel pick never reads as a layout
+	// pick. The widget sizes the cell from the same fonts used here, so the
+	// role, the value and the caret never collide.
+	QPainterStateGuard painterState(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	const QRectF cell = QRectF(state.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+	const qreal radius = qMin(cell.height() / 5.0, qreal(qMax(2, tokens.borderRadius / 3)));
+	QColor border(state.focused || state.menuOpen ? tokens.focusRing : tokens.border);
+	if (state.missingChannel)
+		border = QColor(tokens.danger);
+	else if (!state.enabled)
+		border = withAlpha(QColor(tokens.border), 130);
+	else if (state.hovered && !state.focused && !state.menuOpen)
+		border = QColor(tokens.mutedText);
+	painter.setPen(QPen(border, 1));
+	painter.setBrush(QColor(state.pressed || state.menuOpen ? tokens.cardHover : tokens.surfaceSunken));
+	painter.drawRoundedRect(cell, radius, radius);
+
+	QColor roleInk(tokens.mutedText);
+	QColor valueInk(tokens.text);
+	if (state.silent || state.defaulted)
+		valueInk = QColor(tokens.mutedText);
+	if (state.missingChannel)
+		valueInk = QColor(tokens.danger);
+	if (!state.enabled)
+	{
+		roleInk = withAlpha(roleInk, 130);
+		valueInk = withAlpha(valueInk, 150);
+	}
+
+	const qreal pad = GUIHelper::scale(6.0);
+	QRectF textRect = cell.adjusted(pad, 0, -pad, 0);
+
+	QFont roleFont = painter.font();
+	roleFont.setPixelSize(GUIHelper::scale(9.0));
+	painter.setFont(roleFont);
+	painter.setPen(roleInk);
+	painter.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, state.roleToken);
+	const qreal roleWidth = QFontMetricsF(roleFont).horizontalAdvance(state.roleToken);
+
+	const qreal caretWidth = GUIHelper::scale(6.0);
+	const QPointF caretCenter(textRect.right() - caretWidth / 2.0, cell.center().y() + 0.5);
+	QPainterPath caret;
+	caret.moveTo(caretCenter + QPointF(-caretWidth / 2.0, -caretWidth / 4.0));
+	caret.lineTo(caretCenter + QPointF(caretWidth / 2.0, -caretWidth / 4.0));
+	caret.lineTo(caretCenter + QPointF(0.0, caretWidth / 2.0));
+	caret.closeSubpath();
+	painter.fillPath(caret, roleInk);
+
+	QFont valueFont(tokens.monoFontFamily);
+	valueFont.setPixelSize(GUIHelper::scale(11.0));
+	painter.setFont(valueFont);
+	painter.setPen(valueInk);
+	textRect.setLeft(textRect.left() + roleWidth + GUIHelper::scale(5.0));
+	textRect.setRight(textRect.right() - caretWidth - GUIHelper::scale(4.0));
+	painter.drawText(textRect, Qt::AlignRight | Qt::AlignVCenter, state.valueText);
+}
+
+void ISkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
+{
+	// Neutral default: a quiet sunken tray under the cells, and the fold
+	// latch as a small labelled toggle - a state dot plus the FILL token -
+	// so the whole-feature fold never reads as one more channel dropdown.
+	QPainterStateGuard painterState(&painter);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+	if (!state.cellsRect.isNull() && !state.collapsed)
+	{
+		const QRectF tray = QRectF(state.cellsRect).adjusted(-GUIHelper::scale(4.0), -GUIHelper::scale(3.0),
+			GUIHelper::scale(4.0), GUIHelper::scale(3.0));
+		painter.setPen(QPen(withAlpha(QColor(tokens.border), 120), 1));
+		painter.setBrush(withAlpha(QColor(tokens.surfaceSunken), 90));
+		painter.drawRoundedRect(tray, GUIHelper::scale(4.0), GUIHelper::scale(4.0));
+	}
+
+	if (state.latchRect.isNull())
+		return;
+
+	const QRectF latch = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
+	QColor latchBorder(state.latchFocused ? tokens.focusRing : tokens.border);
+	if (state.latchHovered && !state.latchFocused)
+		latchBorder = QColor(tokens.mutedText);
+	painter.setPen(QPen(latchBorder, 1));
+	painter.setBrush(QColor(state.latchPressed ? tokens.cardHover : tokens.surface));
+	painter.drawRoundedRect(latch, latch.height() / 2.0, latch.height() / 2.0);
+
+	const qreal dotRadius = GUIHelper::scale(3.0);
+	const QColor dot = state.collapsed ? QColor(tokens.mutedText) : QColor(tokens.accent);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(state.enabled ? dot : withAlpha(dot, 140));
+	painter.drawEllipse(QPointF(latch.left() + GUIHelper::scale(9.0), latch.center().y() + 0.5),
+		dotRadius, dotRadius);
+
+	QFont latchFont = painter.font();
+	latchFont.setPixelSize(GUIHelper::scale(9.0));
+	painter.setFont(latchFont);
+	painter.setPen(QColor(state.collapsed ? tokens.mutedText : tokens.text));
+	QRectF labelRect = latch;
+	labelRect.setLeft(latch.left() + GUIHelper::scale(15.0));
+	painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
+}
+
 void ISkin::paintInsertSeam(QPainter& painter, const QRect& rect, const ListChromeState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: an accent hairline across the boundary with a small

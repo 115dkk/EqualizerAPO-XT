@@ -203,6 +203,16 @@ void SkinManager::paintVstBusFrame(QPainter& painter, const VstBusFrameState& st
 	activeSkin->paintVstBusFrame(painter, state, currentTokens);
 }
 
+void SkinManager::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellState& state) const
+{
+	activeSkin->paintVstSlotFillCell(painter, state, currentTokens);
+}
+
+void SkinManager::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state) const
+{
+	activeSkin->paintVstSlotFillRail(painter, state, currentTokens);
+}
+
 FilterPickerView* SkinManager::createFilterPicker(QWidget* parent) const
 {
 	return activeSkin->createFilterPicker(parent, tokens());

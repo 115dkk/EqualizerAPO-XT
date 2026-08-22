@@ -82,6 +82,7 @@ void testBenchmarkBatchPlanUsesOnlyComparableFullBatches();
 void testFileReferenceControllerOwnsPathState();
 void testReferenceCardDerivesSharedPresentationState();
 void testVSTBusModelMigratesAndEdits();
+void testVSTSlotFillModel();
 void testFilterListModel();
 void testFilterListUndo();
 void testFilterCommandCatalogRoster();

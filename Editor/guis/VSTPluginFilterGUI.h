@@ -23,8 +23,11 @@
 #include <optional>
 #include <QElapsedTimer>
 #include "Editor/IFilterGUI.h"
+#include "Editor/widgets/cards/VSTSlotFillModel.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
+
+class QCheckBox;
 
 namespace Ui {
 class VSTPluginFilterGUI;
@@ -41,6 +44,7 @@ public:
 	~VSTPluginFilterGUI() override;
 
 	void store(QString& command, QString& parameters) override;
+	void configureSelectedChannels(std::vector<std::wstring>& selectedChannels) override;
 	void loadPreferences(const QVariantMap& prefs) override;
 	void storePreferences(QVariantMap& prefs) override;
 	void onAutomate();
@@ -55,6 +59,7 @@ private slots:
 	void on_embedAction_toggled(bool checked);
 	void stereoInputToggled(bool checked);
 	void busLayoutPicked();
+	void fillToggleClicked(bool checked);
 	void on_idle();
 
 private:
@@ -62,6 +67,8 @@ private:
 	bool embedPlugin();
 	void updatePermissionWarning();
 	void updateBusControls();
+	void updateFillRows();
+	void rebuildFillRow(bool output);
 
 	std::unique_ptr<Ui::VSTPluginFilterGUI> ui;
 	std::shared_ptr<VSTPluginLibrary> library;
@@ -72,11 +79,17 @@ private:
 	bool autoApplyDialog = false;
 	bool stereoInput = false;
 	std::optional<VST3BusContract> busContract;
-	// Per-slot channel fill for the forced layouts. The row has no editor for
-	// these yet; it preserves them losslessly and only drops a side's list when
-	// that side's layout changes, because the slot count no longer matches.
+	// Per-slot channel fill for the forced layouts, edited by the two plain
+	// combo rows below the bus dropdowns. A side's list drops when that
+	// side's layout changes, because the slot count no longer matches.
 	std::vector<std::wstring> inputChannels;
 	std::vector<std::wstring> outputChannels;
+	VSTSlotFillModel fillModel;
+	bool fillCollapsed = false;
+	bool fillCollapsedFromPrefs = false;
+	QWidget* inputFillRow = nullptr;
+	QWidget* outputFillRow = nullptr;
+	QCheckBox* fillToggle = nullptr;
 	QAction* stereoInputAction = nullptr;
 	QElapsedTimer lastReadTimer;
 };
