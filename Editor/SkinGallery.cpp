@@ -2684,3 +2684,260 @@ bool SkinGallery::armAnalysisLayoutProbe(MainWindow& window, const QString& scre
 	});
 	return true;
 }
+
+// ---- VST3 slot-fill design mockup (mockup branch only; never merged) -------
+// Renders the proposed per-slot channel fill rails above and below the VST
+// card in every skin, plus the legacy-rows variant, for the design-gate
+// issue. Chips reuse ISkin::paintVstBusSelector so each skin dresses them in
+// its own selector idiom without new skin code.
+namespace
+{
+struct MockFillSlot
+{
+	QString role;
+	QString value;
+};
+
+class SlotFillRailMock : public QWidget
+{
+public:
+	SlotFillRailMock(bool output, bool collapsed, const QList<MockFillSlot>& fillSlots)
+		: output(output), collapsed(collapsed), fillSlots(fillSlots)
+	{
+	}
+
+	QSize sizeHint() const override
+	{
+		return QSize(400, GUIHelper::scale(20.0) + GUIHelper::scale(10.0));
+	}
+
+protected:
+	void paintEvent(QPaintEvent*) override
+	{
+		QPainter painter(this);
+		painter.fillRect(rect(), QColor(SkinManager::instance()->tokens().background));
+		const int chipHeight = GUIHelper::scale(20.0);
+		const int gap = GUIHelper::scale(4.0);
+		const int y = (height() - chipHeight) / 2;
+		int x = GUIHelper::scale(14.0);
+
+		if (!output)
+		{
+			VstBusSelectorState latch;
+			latch.rect = QRect(x, y, chipWidth(QStringLiteral("FILL"),
+				collapsed ? QStringLiteral("Off") : QStringLiteral("On")), chipHeight);
+			latch.output = false;
+			latch.roleToken = QStringLiteral("FILL");
+			latch.roleText = QStringLiteral("Fill");
+			latch.layoutText = collapsed ? QStringLiteral("Off") : QStringLiteral("On");
+			latch.enabled = true;
+			SkinManager::instance()->paintVstBusSelector(painter, latch);
+			x += latch.rect.width() + gap * 2;
+		}
+		if (collapsed)
+			return;
+		for (const MockFillSlot& slot : fillSlots)
+		{
+			VstBusSelectorState chip;
+			chip.rect = QRect(x, y, chipWidth(slot.role, slot.value), chipHeight);
+			chip.output = output;
+			chip.roleToken = slot.role;
+			chip.roleText = slot.role;
+			chip.layoutText = slot.value;
+			chip.enabled = true;
+			SkinManager::instance()->paintVstBusSelector(painter, chip);
+			x += chip.rect.width() + gap;
+		}
+	}
+
+private:
+	int chipWidth(const QString& role, const QString& value) const
+	{
+		const SkinTokens& t = SkinManager::instance()->tokens();
+		QFont valueFont(t.monoFontFamily);
+		valueFont.setPixelSize(GUIHelper::scale(12.0));
+		QFont roleFont(t.fontFamily);
+		roleFont.setPixelSize(GUIHelper::scale(9.0));
+		return qRound(GUIHelper::scale(6.0) * 2
+			+ QFontMetricsF(roleFont).horizontalAdvance(role) + GUIHelper::scale(4.0)
+			+ QFontMetricsF(valueFont).horizontalAdvance(value) + GUIHelper::scale(6.0));
+	}
+
+	bool output = false;
+	bool collapsed = false;
+	QList<MockFillSlot> fillSlots;
+};
+
+QWidget* buildLegacyRailMock(bool output, bool collapsed, const QList<MockFillSlot>& fillSlots)
+{
+	QWidget* rail = new QWidget();
+	QHBoxLayout* box = new QHBoxLayout(rail);
+	box->setContentsMargins(14, 3, 14, 3);
+	if (!output)
+	{
+		QCheckBox* toggle = new QCheckBox(QStringLiteral("Channel fill"));
+		toggle->setChecked(!collapsed);
+		box->addWidget(toggle);
+	}
+	else
+	{
+		box->addWidget(new QLabel(QStringLiteral("Out")));
+	}
+	if (!collapsed)
+	{
+		for (const MockFillSlot& slot : fillSlots)
+		{
+			box->addWidget(new QLabel(slot.role));
+			QComboBox* combo = new QComboBox();
+			combo->addItem(slot.value);
+			box->addWidget(combo);
+		}
+	}
+	box->addStretch(1);
+	return rail;
+}
+
+bool saveComposite(const QDir& outDir, const QString& fileName, const QColor& background,
+	QPixmap topRail, QPixmap rowPix, QPixmap bottomRail)
+{
+	const qreal dpr = rowPix.devicePixelRatio();
+	const int margin = 10;
+	const int width = qRound(rowPix.width() / dpr) + 2 * margin;
+	int height = 2 * margin + qRound(topRail.height() / dpr) + qRound(rowPix.height() / dpr);
+	if (!bottomRail.isNull())
+		height += qRound(bottomRail.height() / dpr);
+	QImage canvas(qRound(width * dpr), qRound(height * dpr), QImage::Format_ARGB32_Premultiplied);
+	canvas.setDevicePixelRatio(dpr);
+	canvas.fill(background);
+	QPainter painter(&canvas);
+	int y = margin;
+	painter.drawPixmap(margin, y, topRail);
+	y += qRound(topRail.height() / dpr);
+	painter.drawPixmap(margin, y, rowPix);
+	y += qRound(rowPix.height() / dpr);
+	if (!bottomRail.isNull())
+		painter.drawPixmap(margin, y, bottomRail);
+	painter.end();
+	if (!canvas.save(outDir.filePath(fileName), "PNG"))
+	{
+		qWarning("SlotFillMockup: could not write %s", qPrintable(fileName));
+		return false;
+	}
+	return true;
+}
+}
+
+int SkinGallery::runVstSlotFillMockup(const QStringList& arguments)
+{
+	const int flagIndex = arguments.indexOf(QStringLiteral("--vst-slotfill-mockup"));
+	QString outPath = QStringLiteral("gallery-vst-slotfill-mock");
+	if (flagIndex >= 0 && flagIndex + 1 < arguments.size()
+		&& !arguments[flagIndex + 1].startsWith(QLatin1Char('-')))
+		outPath = arguments[flagIndex + 1];
+	if (!QDir().mkpath(outPath))
+		return 2;
+	const QDir outDir(outPath);
+
+	QTemporaryDir scratch;
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+
+	const QList<MockFillSlot> inputSlots = {
+		{QStringLiteral("L"), QStringLiteral("L")}, {QStringLiteral("R"), QStringLiteral("R")},
+		{QStringLiteral("C"), QStringLiteral("C")}, {QStringLiteral("LFE"), QStringLiteral("-")},
+		{QStringLiteral("RL"), QStringLiteral("SL")}, {QStringLiteral("RR"), QStringLiteral("SR")}};
+	const QList<MockFillSlot> outputSlots = {
+		{QStringLiteral("L"), QStringLiteral("L")}, {QStringLiteral("R"), QStringLiteral("R")},
+		{QStringLiteral("C"), QStringLiteral("C")}, {QStringLiteral("LFE"), QStringLiteral("LFE")},
+		{QStringLiteral("RL"), QStringLiteral("RL")}, {QStringLiteral("RR"), QStringLiteral("RR")}};
+	const QString line = QStringLiteral(
+		"VSTPlugin: Library example.vst3 Input 5.1 InputChannels L,R,C,-,SL,SR"
+		" Output 5.1 OutputChannels L,R,C,LFE,RL,RR");
+
+	int failures = 0;
+
+	// Legacy rows first: the heritage presentation must render before any
+	// skin stylesheet lands on the application (renderHeritage's order).
+	qputenv("EAPO_GALLERY_LEGACY", "1");
+	SkinManager::instance()->applyHeritage();
+	for (bool collapsed : {false, true})
+	{
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		buildRows(scrollArea, configPath, {line});
+		QWidget* row = scrollArea.widget();
+		if (row == nullptr)
+		{
+			qWarning("SlotFillMockup: no legacy table built");
+			failures++;
+			continue;
+		}
+		QPixmap rowPix = row->grab();
+		// The heritage table fills the whole 720px scroll area; keep only the
+		// single-row region so the output rail docks under the card.
+		const int cropHeight = qRound(170 * rowPix.devicePixelRatio());
+		if (rowPix.height() > cropHeight)
+			rowPix = rowPix.copy(0, 0, rowPix.width(), cropHeight);
+		const int railWidth = qRound(rowPix.width() / rowPix.devicePixelRatio());
+		const QColor background = row->palette().window().color();
+
+		std::unique_ptr<QWidget> top(buildLegacyRailMock(false, collapsed, inputSlots));
+		top->resize(railWidth, top->sizeHint().height());
+		QPixmap topPix = top->grab();
+		QPixmap bottomPix;
+		if (!collapsed)
+		{
+			std::unique_ptr<QWidget> bottom(buildLegacyRailMock(true, false, outputSlots));
+			bottom->resize(railWidth, bottom->sizeHint().height());
+			bottomPix = bottom->grab();
+		}
+		failures += saveComposite(outDir,
+			QStringLiteral("slotfill_legacy_%1.png").arg(collapsed ? QStringLiteral("off") : QStringLiteral("on")),
+			background, topPix, rowPix, bottomPix) ? 0 : 1;
+	}
+	qunsetenv("EAPO_GALLERY_LEGACY");
+
+	const char* skinIds[] = {"studio", "rack", "soft", "minimal", "matrix"};
+	for (const char* skinId : skinIds)
+	{
+		for (bool dark : {false, true})
+		{
+			SkinManager::instance()->applySkin(QString::fromLatin1(skinId), dark);
+			for (bool collapsed : {false, true})
+			{
+				QScrollArea scrollArea;
+				scrollArea.resize(960, 720);
+				QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {line});
+				if (rows.isEmpty())
+				{
+					qWarning("SlotFillMockup: no row built for %s", skinId);
+					failures++;
+					continue;
+				}
+				QWidget* row = rows.first();
+				QPixmap rowPix = row->grab();
+				const int railWidth = qRound(rowPix.width() / rowPix.devicePixelRatio());
+				const QColor background(SkinManager::instance()->tokens().background);
+
+				SlotFillRailMock top(false, collapsed, inputSlots);
+				top.resize(railWidth, top.sizeHint().height());
+				QPixmap topPix = top.grab();
+				QPixmap bottomPix;
+				if (!collapsed)
+				{
+					SlotFillRailMock bottom(true, false, outputSlots);
+					bottom.resize(railWidth, bottom.sizeHint().height());
+					bottomPix = bottom.grab();
+				}
+				failures += saveComposite(outDir,
+					QStringLiteral("slotfill_%1_%2_%3.png")
+					.arg(QString::fromLatin1(skinId),
+						dark ? QStringLiteral("dark") : QStringLiteral("light"),
+						collapsed ? QStringLiteral("off") : QStringLiteral("on")),
+					background, topPix, rowPix, bottomPix) ? 0 : 1;
+			}
+		}
+	}
+
+	fprintf(stderr, "SlotFillMockup: %d failure(s)\n", failures);
+	return failures == 0 ? 0 : 1;
+}

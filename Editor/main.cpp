@@ -409,6 +409,9 @@ int main(int argc, char* argv[])
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
 			return SkinGallery::runVstRoundTripSelfTest();
 
+		if (application.arguments().contains(QStringLiteral("--vst-slotfill-mockup")))
+			return SkinGallery::runVstSlotFillMockup(application.arguments());
+
 		// Headless screenshot gallery (skin program). Runs before the registry
 		// skin/translator setup on purpose: the gallery applies each skin itself
 		// and renders untranslated English strings for deterministic output.

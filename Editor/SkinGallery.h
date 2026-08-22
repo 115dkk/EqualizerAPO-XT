@@ -57,6 +57,10 @@ int runCardSelectionTest(const QStringList& arguments);
 // the bus contract). Lived inline in main.cpp before audit #275 B7.
 int runVstRoundTripSelfTest();
 
+// Entry point behind --vst-slotfill-mockup: renders the proposed per-slot
+// channel fill rails for the design-gate issue (mockup branch only).
+int runVstSlotFillMockup(const QStringList& arguments);
+
 // Entry point behind --analysis-layout-test: arms the timed probe over the
 // live MainWindow (dock geometry, right/bottom relayout, restore) and later
 // exits the event loop with the verdict. Returns false when the required
