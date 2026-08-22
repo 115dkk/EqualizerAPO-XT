@@ -53,12 +53,14 @@ int cellWidth(const QString& role, const QString& value)
 
 int latchWidth()
 {
+	// Wide enough for the busiest skin answer (rack's machined key: recess
+	// walls, a bezel LED and the engraved legend side by side).
 	const SkinTokens& t = SkinManager::instance()->tokens();
 	QFont latchFont(t.fontFamily);
 	latchFont.setPixelSize(GUIHelper::scale(9.0));
-	return qRound(GUIHelper::scale(15.0)
+	return qRound(GUIHelper::scale(21.0)
 		+ QFontMetricsF(latchFont).horizontalAdvance(QStringLiteral("FILL"))
-		+ GUIHelper::scale(8.0));
+		+ GUIHelper::scale(10.0));
 }
 }
 

@@ -584,6 +584,12 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
 	const bool dark = skinIsDark(tokens);
+	const QColor panel(tokens.card);
+	const QColor amber(tokens.accent);
+	const QColor bodyInk(tokens.text);
+	const QColor mutedInk(tokens.mutedText);
+	const QColor shadowInk = dark ? QColor(0, 0, 0) : mixColor(bodyInk, QColor(0, 0, 0), 0.35);
+	const QColor lightInk(255, 255, 255);
 	const QRectF rect(state.rect);
 
 	QFont roleFont(tokens.fontFamily);
@@ -595,50 +601,116 @@ void RackSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellStat
 	RackSkinDetail::engraveText(painter,
 		QRectF(rect.left(), rect.top(), roleWidth, rect.height()),
 		Qt::AlignLeft | Qt::AlignVCenter, state.roleToken,
-		withAlpha(QColor(tokens.mutedText), state.enabled ? 255 : 150), dark);
+		withAlpha(mutedInk, state.enabled ? 255 : 150), dark);
 
-	// A sunken patch socket, not the bus row's latch-down cap: the fill is
-	// wiring, so its wells sit IN the panel instead of standing on it.
-	const QRectF well = QRectF(rect.left() + roleWidth + 5.0, rect.top() + 1.0,
-		rect.width() - roleWidth - 5.0, rect.height() - 2.0).adjusted(0.5, 0.5, -0.5, -0.5);
+	// A rack unit's channel selector: the milled readout window shows the
+	// assigned channel, and the machined SELECT button beside it - a real
+	// cap with a milled down-chevron - is what says "press me to choose".
+	// The window alone read as a locked field (verdict r4), so the actuator
+	// is a button, not a texture.
+	const qreal buttonWidth = 11.0;
+	const QRectF window(rect.left() + roleWidth + 5.0, rect.top() + 0.5,
+		rect.width() - roleWidth - 5.5 - buttonWidth - 1.0, rect.height() - 1.0);
+	QPainterPath windowPath;
+	windowPath.addRoundedRect(window, 2.0, 2.0);
 	painter.setPen(Qt::NoPen);
-	painter.setBrush(withAlpha(QColor(tokens.surfaceSunken), dark ? 235 : 90));
-	painter.drawRoundedRect(well, 3.0, 3.0);
-	// The recess edge: dark above, light below, the skin's engraving order.
-	painter.setPen(QPen(withAlphaF(QColor(Qt::black), dark ? 0.5 : 0.18), 1));
-	painter.drawLine(QPointF(well.left() + 2.0, well.top() + 0.5), QPointF(well.right() - 2.0, well.top() + 0.5));
-	painter.setPen(QPen(withAlphaF(QColor(Qt::white), dark ? 0.08 : 0.6), 1));
-	painter.drawLine(QPointF(well.left() + 2.0, well.bottom() - 0.5), QPointF(well.right() - 2.0, well.bottom() - 0.5));
-	QColor border = withAlpha(QColor(tokens.border), state.enabled ? 255 : 150);
+	// The readout floor is warm display glass, not a shadow pit: the panel
+	// stepped down and warmed by the accent lamp's tint. Verdict r6 - the
+	// dark floor at darker(178) was effectively pure black (color.md), and
+	// the light plate's grey shade read as a pit too, so both modes take
+	// the glass. The switch mounts around it stay plain recesses; only the
+	// readout is glass.
+	const QColor windowFloor = dark
+		? mixColor(panel.darker(150), amber, 0.07)
+		: mixColor(panel.darker(112), amber, 0.10);
+	painter.fillPath(windowPath, windowFloor);
+	{
+		QPainterStateGuard windowState(&painter);
+		painter.setClipPath(windowPath);
+		QLinearGradient overhang(window.topLeft(), QPointF(window.left(), window.top() + 3.0));
+		overhang.setColorAt(0.0, withAlpha(shadowInk, dark ? 165 : 120));
+		overhang.setColorAt(1.0, withAlpha(shadowInk, 0));
+		painter.fillRect(QRectF(window.left(), window.top(), window.width(), 3.0), overhang);
+	}
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setPen(QPen(withAlpha(lightInk, dark ? 30 : 140), 1));
+	painter.drawLine(QPointF(window.left() + 2.0, window.bottom() + 0.5),
+		QPointF(window.right() - 2.0, window.bottom() + 0.5));
+	painter.setRenderHint(QPainter::Antialiasing, true);
+
+	QColor rim(withAlpha(QColor(tokens.border), state.enabled ? 255 : 150));
 	if (state.missingChannel)
-		border = QColor(tokens.danger);
-	else if (state.enabled && (state.focused || state.menuOpen))
-		border = QColor(tokens.accent);
-	else if (state.enabled && state.hovered)
-		border = withAlpha(QColor(tokens.accent), 140);
-	painter.setPen(QPen(border, 1));
+		rim = QColor(tokens.danger);
 	painter.setBrush(Qt::NoBrush);
-	painter.drawRoundedRect(well, 3.0, 3.0);
+	painter.setPen(QPen(rim, 1));
+	painter.drawPath(windowPath);
 
 	QFont valueFont(tokens.monoFontFamily);
 	valueFont.setPixelSize(11);
 	painter.setFont(valueFont);
-	QColor print(state.silent || state.defaulted ? tokens.mutedText : tokens.text);
+	QColor print(state.silent || state.defaulted ? mutedInk : bodyInk);
 	if (state.missingChannel)
 		print = QColor(tokens.danger);
 	if (!state.enabled)
-		print = withAlpha(QColor(tokens.mutedText), 150);
+		print = withAlpha(mutedInk, 150);
 	painter.setPen(print);
-	painter.drawText(well.adjusted(5.0, 0, -11.0, 0), Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
+	painter.drawText(window.adjusted(5.0, 0, -4.0, 0),
+		Qt::AlignLeft | Qt::AlignVCenter, state.valueText);
 
-	const qreal caretHalf = 2.5;
-	const QPointF caretMid(well.right() - 6.0, well.center().y() + 0.5);
-	QPainterPath caret;
-	caret.moveTo(caretMid + QPointF(-caretHalf, -caretHalf / 2.0));
-	caret.lineTo(caretMid + QPointF(caretHalf, -caretHalf / 2.0));
-	caret.lineTo(caretMid + QPointF(0.0, caretHalf));
-	caret.closeSubpath();
-	painter.fillPath(caret, withAlpha(QColor(tokens.mutedText), state.enabled ? 220 : 130));
+	// The SELECT cap: the segmented bank's machined face, pressed while the
+	// menu is out, pre-heated amber under the hand, its chevron milled into
+	// the metal rather than printed on it.
+	const QRectF cap(window.right() + 1.5, rect.top() + 1.0, buttonWidth, rect.height() - 2.0);
+	const bool down = state.enabled && (state.pressed || state.menuOpen);
+	QPainterPath capPath;
+	capPath.addRoundedRect(cap, 2.0, 2.0);
+	QLinearGradient face(cap.topLeft(), cap.bottomLeft());
+	if (!down)
+	{
+		face.setColorAt(0.0, dark ? panel.lighter(134) : panel);
+		face.setColorAt(0.55, dark ? panel.lighter(114) : panel.darker(103));
+		face.setColorAt(1.0, panel.darker(dark ? 112 : 110));
+	}
+	else
+	{
+		face.setColorAt(0.0, panel.darker(dark ? 146 : 124));
+		face.setColorAt(0.45, panel.darker(dark ? 124 : 113));
+		face.setColorAt(1.0, dark ? panel.lighter(118) : panel);
+	}
+	painter.setPen(Qt::NoPen);
+	painter.fillPath(capPath, face);
+	const QColor topEdge = !down ? withAlpha(lightInk, dark ? 46 : 155) : withAlpha(shadowInk, dark ? 175 : 125);
+	const QColor bottomEdge = !down ? withAlpha(shadowInk, dark ? 165 : 95) : withAlpha(lightInk, dark ? 70 : 175);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setPen(QPen(topEdge, 1));
+	painter.drawLine(QPointF(cap.left() + 1.5, cap.top() + 0.5), QPointF(cap.right() - 1.5, cap.top() + 0.5));
+	painter.setPen(QPen(bottomEdge, 1));
+	painter.drawLine(QPointF(cap.left() + 1.5, cap.bottom() - 0.5), QPointF(cap.right() - 1.5, cap.bottom() - 0.5));
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setBrush(Qt::NoBrush);
+	painter.setPen(QPen(withAlpha(shadowInk, dark ? 200 : 115), 1));
+	painter.drawPath(capPath);
+	if (state.enabled && !down && (state.hovered || state.focused))
+	{
+		painter.setPen(Qt::NoPen);
+		painter.fillPath(capPath, withAlpha(amber, dark ? 38 : 34));
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(withAlpha(amber, dark ? 195 : 210), 1));
+		painter.drawPath(capPath);
+	}
+
+	const qreal chevronHalf = 2.5;
+	const QPointF chevronMid(cap.center().x(), cap.center().y() + (down ? 1.0 : 0.5));
+	QPainterPath chevron;
+	chevron.moveTo(chevronMid + QPointF(-chevronHalf, -chevronHalf / 2.0));
+	chevron.lineTo(chevronMid + QPointF(chevronHalf, -chevronHalf / 2.0));
+	chevron.lineTo(chevronMid + QPointF(0.0, chevronHalf));
+	chevron.closeSubpath();
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(withAlpha(lightInk, dark ? 55 : 210));
+	painter.drawPath(chevron.translated(0.0, 1.0));
+	painter.setBrush(withAlpha(state.enabled ? shadowInk : mixColor(shadowInk, panel, 0.5), dark ? 230 : 200));
+	painter.drawPath(chevron);
 }
 
 void RackSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailState& state, const SkinTokens& tokens) const
@@ -662,25 +734,112 @@ void RackSkin::paintVstSlotFillRail(QPainter& painter, const VstSlotFillRailStat
 
 	if (state.latchRect.isNull())
 		return;
-	// The fold is the skin's latch button: cap down while the strip is
-	// engaged, with the one lamp this skin owns (paintLed) as its pilot.
-	const QRectF cap = QRectF(state.latchRect).adjusted(0.5, 1.0, -0.5, -1.0);
-	const bool down = !state.collapsed || state.latchPressed;
-	paintRackBusCap(painter, cap, down, state.enabled, tokens, dark);
-	if (state.enabled && (state.latchHovered || state.latchFocused))
+
+	// The fold is one machined key in its own recessed mount - the segmented
+	// bank's cap construction (metal gradient, grain, inverting bevels, the
+	// lamp's heat on the latched face), not a printed chip. Latched down =
+	// the strip is engaged, the same direction every switch on this machine
+	// latches.
+	const QColor panel(tokens.card);
+	const QColor amber(tokens.accent);
+	const QColor bodyInk(tokens.text);
+	const QColor mutedInk(tokens.mutedText);
+	const QColor shadowInk = dark ? QColor(0, 0, 0) : mixColor(bodyInk, QColor(0, 0, 0), 0.35);
+	const QColor lightInk(255, 255, 255);
+	const QColor grainInk = dark ? lightInk : mixColor(bodyInk, panel, 0.30);
+
+	const QRectF mount = QRectF(state.latchRect).adjusted(0.5, 0.5, -0.5, -0.5);
+	QPainterPath well;
+	well.addRoundedRect(mount, 3.0, 3.0);
+	painter.setPen(Qt::NoPen);
+	painter.fillPath(well, panel.darker(dark ? 178 : 122));
 	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.accent), state.latchFocused ? 220 : 140), 1));
-		painter.setBrush(Qt::NoBrush);
-		painter.drawRoundedRect(cap, 2.0, 2.0);
+		QPainterStateGuard wellState(&painter);
+		painter.setClipPath(well);
+		QLinearGradient overhang(mount.topLeft(), QPointF(mount.left(), mount.top() + 3.0));
+		overhang.setColorAt(0.0, withAlpha(shadowInk, dark ? 165 : 120));
+		overhang.setColorAt(1.0, withAlpha(shadowInk, 0));
+		painter.fillRect(QRectF(mount.left(), mount.top(), mount.width(), 3.0), overhang);
 	}
-	const qreal drop = down ? 1.0 : 0.0;
-	RackSkinDetail::paintLed(painter, QPointF(cap.left() + 8.0, cap.center().y() + 0.5 + drop), 2.6,
-		QColor(tokens.accent), state.enabled && !state.collapsed, dark);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setPen(QPen(withAlpha(lightInk, dark ? 30 : 140), 1));
+	painter.drawLine(QPointF(mount.left() + 2.0, mount.bottom() - 0.5),
+		QPointF(mount.right() - 2.0, mount.bottom() - 0.5));
+	painter.setRenderHint(QPainter::Antialiasing, true);
+
+	const QRectF cap = mount.adjusted(2.0, 2.0, -2.0, -2.0);
+	const bool down = !state.collapsed || state.latchPressed;
+	QPainterPath capPath;
+	capPath.addRoundedRect(cap, 2.0, 2.0);
+	QLinearGradient face(cap.topLeft(), cap.bottomLeft());
+	if (!down)
+	{
+		face.setColorAt(0.0, dark ? panel.lighter(134) : panel);
+		face.setColorAt(0.55, dark ? panel.lighter(114) : panel.darker(103));
+		face.setColorAt(1.0, panel.darker(dark ? 112 : 110));
+	}
+	else
+	{
+		face.setColorAt(0.0, panel.darker(dark ? 146 : 124));
+		face.setColorAt(0.45, panel.darker(dark ? 124 : 113));
+		face.setColorAt(1.0, dark ? panel.lighter(118) : panel);
+	}
+	painter.setPen(Qt::NoPen);
+	painter.fillPath(capPath, face);
+	{
+		QPainterStateGuard capState(&painter);
+		painter.setClipPath(capPath);
+		RackSkinDetail::paintGrain(painter, cap, grainInk, 2654435761u);
+	}
+	const QColor topEdge = !down ? withAlpha(lightInk, dark ? 46 : 155) : withAlpha(shadowInk, dark ? 175 : 125);
+	const QColor bottomEdge = !down ? withAlpha(shadowInk, dark ? 165 : 95) : withAlpha(lightInk, dark ? 70 : 175);
+	painter.setRenderHint(QPainter::Antialiasing, false);
+	painter.setPen(QPen(topEdge, 1));
+	painter.drawLine(QPointF(cap.left() + 1.5, cap.top() + 0.5), QPointF(cap.right() - 1.5, cap.top() + 0.5));
+	painter.setPen(QPen(bottomEdge, 1));
+	painter.drawLine(QPointF(cap.left() + 1.5, cap.bottom() - 0.5), QPointF(cap.right() - 1.5, cap.bottom() - 0.5));
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	painter.setBrush(Qt::NoBrush);
+	painter.setPen(QPen(withAlpha(shadowInk, dark ? 200 : 115), 1));
+	painter.drawPath(capPath);
+
+	// Lamp light on metal, never a fill as the cap's own colour: the latched
+	// face takes the bleed, a hovered or focused key pre-heats with the warm
+	// amber edge no other state draws.
+	const bool warmed = state.enabled && !down && (state.latchHovered || state.latchFocused);
+	if (state.enabled && (down || warmed))
+	{
+		painter.setPen(Qt::NoPen);
+		painter.fillPath(capPath, withAlpha(amber, down ? (dark ? 58 : 42) : (dark ? 38 : 34)));
+		if (warmed || state.latchFocused)
+		{
+			painter.setBrush(Qt::NoBrush);
+			painter.setPen(QPen(withAlpha(amber, dark ? 195 : 210), 1));
+			painter.drawPath(capPath);
+		}
+	}
+
+	const qreal lampRadius = 2.4;
+	const QPointF lampCenter(cap.left() + 5.0 + lampRadius, cap.center().y() + 0.5);
+	RackSkinDetail::paintLed(painter, lampCenter, lampRadius, amber,
+		state.enabled && !state.collapsed, dark);
+	if (warmed)
+	{
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlpha(amber, 95));
+		painter.drawEllipse(lampCenter, lampRadius * 0.75, lampRadius * 0.75);
+	}
+
+	// FILL is hardware printing, so it is engraved like the plate's other
+	// designations and its ink rides the cap's state.
 	QFont capFont(tokens.fontFamily);
 	capFont.setPixelSize(8);
 	capFont.setBold(true);
 	capFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	painter.setFont(capFont);
-	painter.setPen(withAlpha(QColor(state.collapsed ? tokens.mutedText : tokens.text), state.enabled ? 255 : 150));
-	painter.drawText(cap.adjusted(14.0, drop, -3.0, drop), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"));
+	const QColor legendInk = withAlpha(QColor(state.collapsed ? mutedInk : bodyInk),
+		state.enabled ? 255 : 150);
+	RackSkinDetail::engraveText(painter,
+		cap.adjusted(lampRadius * 2.0 + 8.0, 0.0, -3.0, 0.0),
+		Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("FILL"), legendInk, dark);
 }
