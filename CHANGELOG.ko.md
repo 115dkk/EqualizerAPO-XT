@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.40.0 — 2026-08-22
+
 - **강제 협상한 VST3 버스에 임의 채널을 넣을 수 있습니다.** 지금까지
   `Input`/`Output` 계약은 장치 순서 앞쪽 채널을 그대로 소비했습니다. 새
   `InputChannels`/`OutputChannels` 목록은 협상된 슬롯마다 어느 설정 채널을

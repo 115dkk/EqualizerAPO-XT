@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.40.0 — 2026-08-22
+
 - **A forced VST3 bus can now take its channels from anywhere.** `Input`/
   `Output` used to consume the first channels in device order. New
   `InputChannels`/`OutputChannels` lists name the config channel for each
