@@ -14,6 +14,23 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The rack fill rail speaks one relief language.** v2.41.1's mix of a
+  recessed readout, a raised select cap and a machined fold key read as
+  three different depths in one row; every cell and the fold now wear the
+  same modest latch-down cap as the card's IN/OUT selectors, with the fold
+  keeping only its pilot LED and engraved FILL
+  ([#295](https://github.com/115dkk/EqualizerAPO-XT/pull/295)).
+
+## v2.41.1 — 2026-08-23
+
+- **The rack skin's channel-fill rails got hardware styling.** The fold
+  became a machined key with a pilot LED, the channel dropdowns became
+  readout windows with a milled select cap, and the window floors took a
+  warm-glass tint instead of a near-black pit, in both light and dark
+  ([#294](https://github.com/115dkk/EqualizerAPO-XT/pull/294)). (This
+  entry was recorded after the release; the styling was reworked again in
+  the next version above.)
+
 ## v2.41.0 — 2026-08-22
 
 - **The channel fill got its editor, in every skin.** The per-slot lists
