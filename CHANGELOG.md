@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The channel fill got its editor, in every skin.** The per-slot lists
+  from v2.40.0 no longer require hand-editing the line: the VST card grows
+  two rails inside the card (input under the header, output under the
+  body) with one channel dropdown per negotiated slot, dressed in each
+  skin's own language, and the legacy row gets plain combo rows. Rails
+  exist only for explicitly negotiated sides; when both exist, a fill
+  switch folds them away to save space. The dropdowns offer exactly the
+  channels selected at that line - `Channel:` restrictions and
+  `Copy:`-created channels included - and a saved channel outside the
+  selection shows in the danger color
+  ([#292](https://github.com/115dkk/EqualizerAPO-XT/pull/292)).
+
 ## v2.40.0 — 2026-08-22
 
 - **A forced VST3 bus can now take its channels from anywhere.** `Input`/
