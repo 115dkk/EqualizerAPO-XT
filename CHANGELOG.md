@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.41.2 — 2026-08-22
+
 - **The rack fill rail speaks one relief language.** v2.41.1's mix of a
   recessed readout, a raised select cap and a machined fold key read as
   three different depths in one row; every cell and the fold now wear the
