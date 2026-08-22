@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.41.0 — 2026-08-22
+
 - **The channel fill got its editor, in every skin.** The per-slot lists
   from v2.40.0 no longer require hand-editing the line: the VST card grows
   two rails inside the card (input under the header, output under the
