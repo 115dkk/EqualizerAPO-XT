@@ -308,7 +308,7 @@ QSize VSTSlotFillRail::sizeHint() const
 		width += latchWidth() + GUIHelper::scale(10.0);
 	if (!collapsed)
 	{
-		for (VSTSlotFillCell* cell : cells)
+		for (const VSTSlotFillCell* cell : cells)
 			width += cell->sizeHint().width() + GUIHelper::scale(4.0);
 	}
 	return QSize(width + GUIHelper::scale(8.0), railHeight());
@@ -330,7 +330,7 @@ void VSTSlotFillRail::paintEvent(QPaintEvent*)
 	if (!collapsed && !cells.isEmpty())
 	{
 		QRect bounds;
-		for (VSTSlotFillCell* cell : cells)
+		for (const VSTSlotFillCell* cell : cells)
 			bounds = bounds.isNull() ? cell->geometry() : bounds.united(cell->geometry());
 		state.cellsRect = bounds;
 	}
