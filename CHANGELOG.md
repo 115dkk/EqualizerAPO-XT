@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **A forced VST3 bus can now take its channels from anywhere.** `Input`/
+  `Output` used to consume the first channels in device order. New
+  `InputChannels`/`OutputChannels` lists name the config channel for each
+  negotiated slot (`Copy`-style names or numbers, `-` for a silent input
+  slot or a discarded output slot), so a stereo-only plug-in can process the
+  side pair, or an upmixer can feed a height bed, while every untouched
+  channel passes through unchanged
+  ([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)).
+- **The legacy VST row can edit the bus contract.** Plain Input/Output
+  dropdowns set or remove the VST3 layout pair without switching to the
+  card view ([#290](https://github.com/115dkk/EqualizerAPO-XT/pull/290)).
+
 ## v2.39.0 — 2026-08-20
 
 - **The installed app has a readable name now.** It used to appear as

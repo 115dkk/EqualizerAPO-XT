@@ -226,6 +226,7 @@ Copy: L=L+XL R=R+XR
 ### VSTPlugin bus layouts
 **Syntax:** `VSTPlugin: Library "<plug-in path>" [ChunkData "<state>" | <parameter name or ID> <value> ...]`
 **With explicit VST3 buses:** `VSTPlugin: Library "<plug-in path>" Input <layout> Output <layout> [ChunkData "<state>" | <parameter name or ID> <value> ...]`
+**With per-slot channel fill:** `VSTPlugin: Library "<plug-in path>" Input <layout> [InputChannels <ch,ch,...>] Output <layout> [OutputChannels <ch,ch,...>] ...`
 
 Loads a 64-bit VST2 (`.dll`) or VST3 (`.vst3`) plug-in and processes the currently selected channels. A relative library path is resolved under EqualizerAPO-XT's `VSTPlugins` folder; an absolute path may point elsewhere. The Editor can choose the module, open or embed its panel, and save its state. State is written either as quoted `ChunkData` or as numeric parameter key/value pairs, not both in one canonical line.
 
@@ -243,9 +244,23 @@ VSTPlugin: Library "C:\Program Files\Common Files\VST3\Height Expander.vst3" Inp
 
 If a VST3 plug-in rejects the contract, reports a different arrangement or bus width, or supplies invalid metadata, the filter is disabled and every input channel passes through unchanged. It does not retry with a different explicit width or create repeated stereo instances. When the loaded module is VST2, the backend ignores `Input` and `Output` and continues with ordinary VST2 processing.
 
+`InputChannels` and `OutputChannels` choose which configuration channels occupy the negotiated slots. Without them, an explicit contract consumes the first channels in device order: `Input 5.1` reads channels 1–6 and `Output 5.1` writes channels 1–6. With a fill list, each negotiated slot names its channel explicitly, one entry per slot in the layout's channel order (for `5.1`: L, R, C, LFE, RL, RR). Entries accept the same channel names, aliases and 1-based numbers as `Copy`; `-` makes an input slot silent or discards an output slot. Each list requires an explicit (non-`Auto`) layout on its side, and its length must equal that layout's channel count. One channel may feed several input slots, but two output slots cannot write the same channel.
+
+With a fill present, reading a channel into an input slot does not consume it: every channel that no output slot targets passes through unchanged, and nothing is zero-filled. If a fill names a channel the device does not have, the filter logs the reason, is disabled, and passes all audio through, like a rejected contract.
+
+```
+# Process the side pair through a stereo-only plug-in; everything else passes through
+VSTPlugin: Library "C:\Program Files\Common Files\VST3\StereoVerb.vst3" Input Stereo InputChannels SL,SR Output Stereo OutputChannels SL,SR
+
+# Upmix the rear pair to a 7.1 bed, keep the plug-in's LFE out of the device LFE
+VSTPlugin: Library "C:\Program Files\Common Files\VST3\Upmixer.vst3" Input Stereo InputChannels RL,RR Output 7.1 OutputChannels 1,2,3,-,5,6,7,8
+```
+
 The older `StereoInput 1` spelling remains accepted. With no `Input`/`Output` pair and a stream wider than stereo, it marks a VST3 as an upmixer and asks the legacy automatic path for two input channels and the full device-width output. The card-based Editor maps that intent to `Input Stereo Output Auto`, shows a migration notice, and writes the explicit pair on its next save. From that save onward the strict contract behavior above applies: one contract instance, with unchanged passthrough if the pair is rejected. **Legacy rows** mode instead preserves `StereoInput 1` verbatim. Do not combine `StereoInput` with `Input`/`Output`. Existing `ChunkData` and parameter state keep their normal `VSTPlugin` key/value form.
 
 The card-based Editor now provides **Input** and **Output** selectors beside the plug-in identity. For VST3 it probes the same negotiation as the audio engine, displays the actual pair when either side is `Auto`, and reports rejection as unchanged passthrough. The selectors lock while the plug-in is missing, loaded as VST2, or its panel is embedded. If a line carries layouts but the module loads as VST2, use **Options → Remove Input/Output layouts** to return to ordinary automatic negotiation.
+
+**Legacy rows** mode has plain **Input** and **Output** dropdowns for the same contract. Setting both back to `Auto` removes the keys from the line, and an explicit pair disables the legacy Stereo input toggle (the two spellings cannot be combined). Channel fill lists have no editor yet in either mode; both the card and the legacy row preserve them when saving, and drop a side's list only when that side's layout changes.
 
 ### Hilbert
 **Syntax:** `Hilbert: [Shift=<channel>[,<channel>...]] [Align=<channel>[,<channel>...]] [Direction=-90|+90]`

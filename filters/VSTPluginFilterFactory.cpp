@@ -86,7 +86,8 @@ FilterVector VSTPluginFilterFactory::createFilter(const wstring& configPath, wst
 			// future Editor can inspect it without loading the binary here.
 			if (pluginCommand.hasBusContract && (configPath.empty() || library->isVST3()))
 				filter = makeFilter<VSTPluginFilter>(library, pluginCommand.chunkData,
-					pluginCommand.paramMap, pluginCommand.busContract);
+					pluginCommand.paramMap, pluginCommand.busContract,
+					pluginCommand.inputChannels, pluginCommand.outputChannels);
 			else
 				filter = makeFilter<VSTPluginFilter>(library, pluginCommand.chunkData,
 					pluginCommand.paramMap, pluginCommand.stereoInput);

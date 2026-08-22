@@ -282,6 +282,70 @@ void testVSTPluginBusContract()
 	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 StereoInput 1 Input Stereo Output 7.1",
 		L"cannot be combined");
 }
+
+void testVSTPluginChannelFill()
+{
+	// Per-slot fill: one selector per negotiated bus slot, "-" for a silent
+	// input slot or a discarded output slot. Selectors stay verbatim because
+	// the device channel names only exist at engine time.
+	const wstring source = L"Library C:\\plugins\\fill.vst3 Input 5.1 InputChannels L,R,C,-,SL,SR "
+		L"Output 5.1 OutputChannels L,R,C,LFE,RL,RR";
+	VSTPluginCommand cmd = VSTPluginCommand::parse(L"", source);
+	harness.expectTrue(cmd.valid, "channel-fill: parses");
+	harness.expectEqual(cmd.inputChannels.size(), (size_t)6, "channel-fill: one input selector per slot");
+	harness.expectEqual(cmd.outputChannels.size(), (size_t)6, "channel-fill: one output selector per slot");
+	harness.expectTrue(cmd.inputChannels.size() == 6 && cmd.inputChannels[0] == L"L"
+		&& cmd.inputChannels[3] == L"-" && cmd.inputChannels[5] == L"SR",
+		"channel-fill: input selector order and dash slot are retained");
+	harness.expectTrue(cmd.outputChannels.size() == 6 && cmd.outputChannels[3] == L"LFE",
+		"channel-fill: output selector order is retained");
+
+	expectBodyRoundTrip(source,
+		L" Input 5.1 InputChannels L,R,C,-,SL,SR Output 5.1 OutputChannels L,R,C,LFE,RL,RR");
+	expectBodyRoundTrip(L"Library C:\\plugins\\fill.vst3 Input Stereo InputChannels RL,RR Output 7.1",
+		L" Input Stereo InputChannels RL,RR Output 7.1");
+	expectBodyRoundTrip(L"Library C:\\plugins\\fill.vst3 Input Stereo Output Stereo OutputChannels 5,6 Gain 0.5",
+		L" Input Stereo Output Stereo OutputChannels 5,6 Gain 0.5");
+
+	VSTPluginCommand repeatedInput = VSTPluginCommand::parse(L"",
+		L"Library C:\\plugins\\fill.vst3 Input Stereo InputChannels C,C Output Stereo");
+	harness.expectTrue(repeatedInput.valid,
+		"channel-fill: one channel may feed several input slots");
+	VSTPluginCommand discardedOutputs = VSTPluginCommand::parse(L"",
+		L"Library C:\\plugins\\fill.vst3 Input Stereo Output Stereo OutputChannels -,-");
+	harness.expectTrue(discardedOutputs.valid,
+		"channel-fill: several output slots may be discarded");
+
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo InputChannels L,R "
+		L"InputChannels R,L Output Stereo", L"duplicate InputChannels");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output Stereo "
+		L"OutputChannels L,R OutputChannels R,L", L"duplicate OutputChannels key");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Auto InputChannels L,R Output Stereo",
+		L"explicit Input layout");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output Auto OutputChannels L,R",
+		L"explicit Output layout");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo InputChannels L,R,C Output Stereo",
+		L"must name");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output 5.1 OutputChannels L,R",
+		L"must name");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo InputChannels L,,R Output Stereo",
+		L"comma-separated");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo InputChannels L, Output Stereo",
+		L"comma-separated");
+	expectInvalidBusContract(L"Library C:\\plugins\\x.vst3 Input Stereo Output Stereo OutputChannels L,L",
+		L"duplicate OutputChannels entry");
+
+	// Without the Input/Output keys the line keeps the legacy grammar, where
+	// InputChannels is an ordinary plugin parameter name.
+	VSTPluginCommand legacy = VSTPluginCommand::parse(L"",
+		L"Library C:\\plugins\\reverb.dll InputChannels 0.5");
+	harness.expectTrue(legacy.valid && !legacy.hasBusContract,
+		"channel-fill: legacy line without Input/Output keeps the permissive grammar");
+	harness.expectTrue(legacy.inputChannels.empty(),
+		"channel-fill: legacy line has no slot fill");
+	harness.expectEqual(paramValue(legacy.paramMap, L"InputChannels", "legacy InputChannels"), 0.5f,
+		"channel-fill: legacy InputChannels stays a plugin parameter");
+}
 }
 
 void runVSTPluginCommandTests()
@@ -296,5 +360,6 @@ void runVSTPluginCommandTests()
 	testSerializeRoundTrip();
 	testStereoInput();
 	testVSTPluginBusContract();
+	testVSTPluginChannelFill();
 	harness.report();
 }
