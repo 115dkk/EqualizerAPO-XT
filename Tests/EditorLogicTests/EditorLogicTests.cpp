@@ -8,6 +8,7 @@
 #include <QString>
 #include <QStringList>
 
+#include "Tests/AlignedMemoryGate.h"
 #include "Tests/TestHarness.h"
 #include "EditorLogicTestSupport.h"
 
@@ -180,6 +181,8 @@ int main(int argc, char** argv)
 		testInstallerUiModelChannelDescriptions();
 
 		harness.report();
+		if (test::reportAlignedMemoryBalance("EditorLogicTests") != 0)
+			return EXIT_FAILURE;
 		return EXIT_SUCCESS;
 	}
 	catch (const std::exception& error)

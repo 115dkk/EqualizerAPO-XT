@@ -285,5 +285,12 @@ void testStereoFloatConversionBeatsScalarReference(test::Harness& harness)
 void runSampleIoTests(test::Harness& harness)
 {
 	testConversionsMatchScalarReferenceBitExactly(harness);
+	// Timing contracts are meaningless under AddressSanitizer: the
+	// instrumentation cost lands on the vectorized candidate, not on the
+	// reference loop shape, so the ratio inverts regardless of the code
+	// under test. The memcheck CI leg builds with /fsanitize=address and
+	// still runs the bit-exactness half above.
+#ifndef __SANITIZE_ADDRESS__
 	testStereoFloatConversionBeatsScalarReference(harness);
+#endif
 }

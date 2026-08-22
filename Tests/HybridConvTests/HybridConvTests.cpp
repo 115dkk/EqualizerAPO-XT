@@ -28,6 +28,7 @@
 #include "audio/io/SndfileRAII.h"
 #include "libHybridConv-0.1.1/libHybridConv_eapo.h"
 #include "Tests/TestHarness.h"
+#include "Tests/AlignedMemoryGate.h"
 
 // Forward declarations for the additional suites that share this binary's
 // main(); each runXxxTests() is defined in the correspondingly named
@@ -518,7 +519,7 @@ int runHybridConvTests()
 
 	cleanupFftwWisdomTest();
 	harness.report();
-	return 0;
+	return test::reportAlignedMemoryBalance("HybridConvTests");
 }
 
 int main()
