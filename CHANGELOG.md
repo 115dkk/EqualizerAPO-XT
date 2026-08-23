@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.41.5 — 2026-08-23
+
 - **Adding or removing a card no longer flashes the list or jumps to the
   top.** The + and - in a card's header, and the inline text edit, used to
   rebuild every card in the document, which threw the view back to the top
