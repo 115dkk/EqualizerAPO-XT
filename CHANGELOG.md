@@ -14,6 +14,24 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The APO now ignores a device-test pipe name that could point outside the
+  pipe namespace.** The DeviceSelector device test hands the APO a named-pipe
+  name through the registry; the APO used to append it to `\\.\pipe\` as
+  is. It now accepts only letters, digits, `_` and `-` (up to 128 characters)
+  and otherwise behaves as if no test were running. The name DeviceSelector
+  writes is unchanged, so the device test works as before. This closes CodeQL
+  alerts #9 and #10; the two remaining registry-path alerts (#11 configuration
+  directory, #12 Voicemeeter DLL location) are dismissed as false positives,
+  because both values live under HKLM, which only administrators can write,
+  and every reader runs with less privilege than that.
+- **The weekly CodeQL scan sees registry-derived paths again.** Since v2.37.3
+  every registry read goes through the `IRegistry` port, which CodeQL's
+  built-in Windows models do not follow; a control scan of unchanged code
+  reported all four registry alerts as gone. An in-repository model pack now
+  declares the port's read methods as registry sources, and a scan with it
+  re-detects #11/#12 (still dismissed) while confirming the pipe-name fix
+  ([#296](https://github.com/115dkk/EqualizerAPO-XT/pull/296)).
+
 ## v2.41.2 — 2026-08-22
 
 - **The rack fill rail speaks one relief language.** v2.41.1's mix of a
@@ -23,7 +41,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   keeping only its pilot LED and engraved FILL
   ([#295](https://github.com/115dkk/EqualizerAPO-XT/pull/295)).
 
-## v2.41.1 — 2026-08-23
+## v2.41.1 — 2026-08-22
 
 - **The rack skin's channel-fill rails got hardware styling.** The fold
   became a machined key with a pilot LED, the channel dropdowns became
