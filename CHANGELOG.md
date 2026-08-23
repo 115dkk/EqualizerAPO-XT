@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Larger, heavier type in every skin.** Every text size in the editor is up
+  one step (body 10pt to 11pt, the smallest labels 7pt to 8pt) and body text
+  renders in the Medium weight instead of Regular, after a report that the
+  editor's type read thin and small on a 27-inch screen. Cells that the
+  larger type overflowed (the analysis instrument column, the Subwoofer
+  Routing dialog's spinboxes, the add-channel fields) grew with it
+  ([#300](https://github.com/115dkk/EqualizerAPO-XT/pull/300)).
+
 ## v2.42.2 — 2026-08-24
 
 - **Scrolling a maximized window is smooth in the Rack skin again.** The
