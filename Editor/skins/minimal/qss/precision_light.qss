@@ -388,7 +388,11 @@ QLabel#MinimalTypeGlyph {
    caption layer: secondary ink, so the black figures below carry the
    line (importance = brightness). */
 QWidget#BiQuadFilterGUI QLabel { background: transparent; color: @MUTED@; }
-QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+/* Bold, like every other engraved header in this skin (the toolbar words,
+   the analysis captions): the terminal convention for a section head is
+   bold type, and 400 read too thin as a card title (maintainer, type-scale
+   round). DM Mono ships no SemiBold cut, so 700 is the working step. */
+QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
 /* (Raw-exposure cleanup round 2) Include/VST headers no longer print the
    file name as a summary - the reference card in the body owns the file
