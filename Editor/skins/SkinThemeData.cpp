@@ -13,6 +13,7 @@
 #include <QFile>
 #include <QFont>
 #include <QFontDatabase>
+#include <QRegularExpression>
 #include <QStyleFactory>
 
 // finishTokens; header-only, no link dependency on the skin classes.
@@ -20,6 +21,87 @@
 
 namespace
 {
+// Tone mockup scaffold for the brightness round (2026-08-23 field report:
+// "the backgrounds are bright overall", and rack dark's highlights too
+// bright). EAPO_GALLERY_TONE names a variant; every colour above a
+// lightness threshold, in the tokens and in the stylesheet, has its
+// lightness above that threshold compressed by factor k (white moves the
+// most, a colour at the threshold not at all). The light variants touch
+// only the near-white surfaces (threshold 0.85: backgrounds and cards),
+// the dark variants everything brighter than a mid-tone (threshold 0.5:
+// inks, highlights, the rack amber). Gallery-only: unset, nothing
+// changes. The winning variant gets written into the tokens and sheets by
+// hand and this scaffold is removed, like the minimal channel-tone round.
+struct ToneMockup
+{
+	bool active = false;
+	bool dark = false;
+	double threshold = 1.0;
+	double k = 1.0;
+};
+
+const ToneMockup& toneMockup()
+{
+	static const ToneMockup mockup = []()
+	{
+		ToneMockup m;
+		const QByteArray variant = qgetenv("EAPO_GALLERY_TONE").trimmed().toLower();
+		// White lands at 0.96 / 0.92 / 0.88 lightness for light-a/b/c.
+		if (variant == "light-a") { m = {true, false, 0.85, 0.7333}; }
+		else if (variant == "light-b") { m = {true, false, 0.85, 0.4667}; }
+		else if (variant == "light-c") { m = {true, false, 0.85, 0.2}; }
+		else if (variant == "dark-a") { m = {true, true, 0.5, 0.85}; }
+		else if (variant == "dark-b") { m = {true, true, 0.5, 0.7}; }
+		return m;
+	}();
+	return mockup;
+}
+
+QString toneColor(const QString& hex, const ToneMockup& m)
+{
+	QColor color(hex);
+	if (!color.isValid())
+		return hex;
+	const double l = color.lightnessF();
+	if (l <= m.threshold)
+		return hex;
+	const double toned = m.threshold + (l - m.threshold) * m.k;
+	color.setHslF(color.hslHueF(), color.hslSaturationF(), qBound(0.0, toned, 1.0), color.alphaF());
+	return color.name(color.alpha() < 255 ? QColor::HexArgb : QColor::HexRgb).toUpper();
+}
+
+void applyToneMockup(SkinTokens& t)
+{
+	const ToneMockup& m = toneMockup();
+	if (!m.active || m.dark != t.dark)
+		return;
+	for (QString* field : { &t.background, &t.surface, &t.card, &t.cardHover, &t.surfaceRaised,
+		&t.surfaceSunken, &t.cardSelected, &t.text, &t.mutedText, &t.border, &t.graph,
+		&t.graphGridMajor, &t.graphGridMinor, &t.accent, &t.accent2, &t.success, &t.warning,
+		&t.danger, &t.focusRing })
+		*field = toneColor(*field, m);
+}
+
+QString applyToneMockup(QString qss, bool dark)
+{
+	const ToneMockup& m = toneMockup();
+	if (!m.active || m.dark != dark)
+		return qss;
+	static const QRegularExpression hex(QStringLiteral("#[0-9A-Fa-f]{6}\\b"));
+	QString out;
+	qsizetype last = 0;
+	QRegularExpressionMatchIterator it = hex.globalMatch(qss);
+	while (it.hasNext())
+	{
+		const QRegularExpressionMatch match = it.next();
+		out += qss.mid(last, match.capturedStart() - last);
+		out += toneColor(match.captured(), m);
+		last = match.capturedEnd();
+	}
+	out += qss.mid(last);
+	return out;
+}
+
 // Constitution: docs/skins/studio.md
 SkinTokens studioTokens(bool dark)
 {
@@ -390,13 +472,15 @@ void applyToApplication(QApplication& app, const QString& skinId, bool dark,
 		styleSheet = QString::fromUtf8(sheet.readAll());
 
 	app.setPalette(palette(themeTokens, dark));
-	app.setStyleSheet(substituteTokens(styleSheet, themeTokens)
+	app.setStyleSheet(substituteTokens(applyToneMockup(styleSheet, dark), themeTokens)
 		+ comboArrowOverride() + fileDialogOverride());
 }
 
 SkinTokens tokens(const QString& id, bool dark)
 {
-	return entry(id).tokens(dark);
+	SkinTokens t = entry(id).tokens(dark);
+	applyToneMockup(t);
+	return t;
 }
 
 QString qssResource(const QString& id, bool dark)
