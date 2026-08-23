@@ -151,6 +151,9 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	editButton->setToolTip(tr("Edit raw command"));
 	connect(editButton, SIGNAL(toggled(bool)), this, SLOT(editTextToggled(bool)));
 	headerLayout->addWidget(editButton);
+	// A breath between the control column and the identity (badge pictogram,
+	// title), so the buttons and the pictogram do not read as one train.
+	headerLayout->addSpacing(10);
 
 	typeBadge = new QLabel(headerWidget);
 	typeBadge->setObjectName(QStringLiteral("FilterTypeBadge"));

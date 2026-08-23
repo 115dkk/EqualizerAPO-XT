@@ -467,7 +467,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	statusLabel->setVisible(false);
 	labelLayout->addWidget(statusLabel);
 
-	rootLayout->addWidget(labelArea, 1, Qt::AlignVCenter);
+	rootLayout->addWidget(labelArea, 0, Qt::AlignVCenter);
 
 	// The impulse-response readout window sits between the label strip and
 	// the machine buttons, where hardware mounts its meters.
@@ -475,10 +475,13 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	lcdWindow->setVisible(false);
 	rootLayout->addWidget(lcdWindow, 0, Qt::AlignVCenter);
 
+	// The machine buttons mount right after the readout window, not on the
+	// far end of the plate; the empty plate continues to the right.
 	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(4);
 	rootLayout->addLayout(actionLayout);
+	rootLayout->addStretch(1);
 }
 
 void RackReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)

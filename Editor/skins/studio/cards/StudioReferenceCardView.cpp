@@ -73,12 +73,14 @@ StudioReferenceCardView::StudioReferenceCardView(const QString& kind, QWidget* p
 	missingChip = makeChip(QStringLiteral("MISSING"), QStringLiteral("missing"), page);
 	identityLayout->addWidget(missingChip, 0, Qt::AlignVCenter);
 
-	identityLayout->addStretch(1);
-
+	// The action buttons follow the chips instead of riding the pane's
+	// right edge; the stretch owns the leftover identity-line width.
 	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(4);
 	identityLayout->addLayout(actionLayout);
+
+	identityLayout->addStretch(1);
 
 	root->addLayout(identityLayout);
 

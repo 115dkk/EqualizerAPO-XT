@@ -101,7 +101,6 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	mappingCaption = new QLabel(tr("Channel mapping"), mappingArea);
 	mappingCaption->setObjectName(QStringLiteral("MultiConvolutionMappingCaption"));
 	captionRow->addWidget(mappingCaption);
-	captionRow->addStretch(1);
 
 	addChannelButton = new QToolButton(mappingArea);
 	addChannelButton->setObjectName(QStringLiteral("FilterCardIconButton"));
@@ -109,6 +108,7 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	addChannelButton->setToolTip(tr("Add an output channel (a new name creates a virtual channel)"));
 	connect(addChannelButton, SIGNAL(clicked()), this, SLOT(addOutputChannel()));
 	captionRow->addWidget(addChannelButton);
+	captionRow->addStretch(1);
 	mappingLayout->addLayout(captionRow);
 
 	routingLayout = new QVBoxLayout();

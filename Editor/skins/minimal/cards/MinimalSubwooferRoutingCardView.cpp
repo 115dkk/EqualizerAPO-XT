@@ -252,7 +252,8 @@ void MinimalSubwooferRoutingCardView::addActionButton(
 			Qt::ToolButtonTextOnly);
 	}
 
-	actionLayout->addWidget(
+	// Before the trailing stretch: commands pack left with the print.
+	actionLayout->insertWidget(actionLayout->count() - 1,
 		button, 0, Qt::AlignVCenter);
 	++actionButtonCount;
 

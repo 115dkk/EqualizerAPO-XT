@@ -141,7 +141,10 @@ void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButto
 	QToolButton* toolButton = qobject_cast<QToolButton*>(button);
 	if (toolButton != nullptr)
 		toolButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
-	lineLayout->addWidget(button, 0, Qt::AlignVCenter);
+	// Before the slack collector: the line still ends with the commands,
+	// but packed to the left with the rest of the print instead of flushed
+	// to the terminal's right edge.
+	lineLayout->insertWidget(lineLayout->count() - 1, button, 0, Qt::AlignVCenter);
 	repolishChild(button);
 }
 
