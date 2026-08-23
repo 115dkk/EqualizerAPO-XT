@@ -373,8 +373,18 @@ void FilterCardRow::configureSelectedChannels(std::vector<std::wstring>& selecte
 {
 	// The Copy routing rows have no gui, and Copy never changes the
 	// selection anyway (getSelectChannels is false in the engine).
-	if (gui != nullptr)
+	if (gui == nullptr)
+		return;
+	if (descriptor.enabled)
+	{
 		gui->configureSelectedChannels(selectedChannels);
+		return;
+	}
+	// A powered-off row still sees the selection (its controls keep their
+	// meaning) but must not change what flows to the rows below: the engine
+	// skips commented lines, so a commented Channel row narrows nothing.
+	std::vector<std::wstring> copy = selectedChannels;
+	gui->configureSelectedChannels(copy);
 }
 
 CommandRowInfo FilterCardRow::currentRowInfo() const

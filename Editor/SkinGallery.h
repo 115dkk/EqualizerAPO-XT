@@ -57,6 +57,14 @@ int runCardSelectionTest(const QStringList& arguments);
 // the bus contract). Lived inline in main.cpp before audit #275 B7.
 int runVstRoundTripSelfTest();
 
+// Second half of --selftest-vst: the channel-fill menus of a VST row must
+// offer the channels selected at that row in both presentations, and follow
+// a Channel row above it. Field report (v2.41.2): under the heritage
+// (LegacyRows) presentation every fill combo listed only "Silence (-)" while
+// the card path offered every device channel, so a stereo-to-5.1 upmixer
+// could not be fed from the legacy rows at all.
+int runVstFillSelfTest();
+
 // Entry point behind --analysis-layout-test: arms the timed probe over the
 // live MainWindow (dock geometry, right/bottom relayout, restore) and later
 // exits the event loop with the verdict. Returns false when the required

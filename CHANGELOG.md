@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The legacy rows offer real channels in a VST row's channel fill again.**
+  Under the heritage (legacy rows) presentation, every fill dropdown of a VST
+  row listed only "Silence (-)" / "Discard (-)", while the card presentation
+  offered every device channel; a stereo-to-5.1 upmixer could not be fed from
+  the legacy rows at all. The legacy power-toggle wrapper around each row
+  never passed the selected channels on to the row's editor. It does now, so
+  the fill dropdowns list the device channels, and a `Channel:` row above the
+  VST row narrows them as it should. A powered-off (`#`) `Channel:` row no
+  longer narrows the rows below it in either presentation; the card
+  presentation used to do that. The VST self-test gate now checks all three
+  cases in both presentations
+  ([#297](https://github.com/115dkk/EqualizerAPO-XT/pull/297)).
+
 ## v2.41.3 — 2026-08-23
 
 - **The APO now ignores a device-test pipe name that could point outside the

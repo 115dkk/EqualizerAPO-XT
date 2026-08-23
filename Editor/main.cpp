@@ -407,7 +407,12 @@ int main(int argc, char* argv[])
 		}
 
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
-			return SkinGallery::runVstRoundTripSelfTest();
+		{
+			// Both halves always run so one log shows every loss at once.
+			const int roundTrip = SkinGallery::runVstRoundTripSelfTest();
+			const int fill = SkinGallery::runVstFillSelfTest();
+			return (roundTrip != 0 || fill != 0) ? 1 : 0;
+		}
 
 		// Headless screenshot gallery (skin program). Runs before the registry
 		// skin/translator setup on purpose: the gallery applies each skin itself
