@@ -23,7 +23,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   alerts #9 and #10; the two remaining registry-path alerts (#11 configuration
   directory, #12 Voicemeeter DLL location) are dismissed as false positives,
   because both values live under HKLM, which only administrators can write,
-  and every reader runs with less privilege than that
+  and every reader runs with less privilege than that.
+- **The weekly CodeQL scan sees registry-derived paths again.** Since v2.37.3
+  every registry read goes through the `IRegistry` port, which CodeQL's
+  built-in Windows models do not follow; a control scan of unchanged code
+  reported all four registry alerts as gone. An in-repository model pack now
+  declares the port's read methods as registry sources, and a scan with it
+  re-detects #11/#12 (still dismissed) while confirming the pipe-name fix
   ([#296](https://github.com/115dkk/EqualizerAPO-XT/pull/296)).
 
 ## v2.41.2 — 2026-08-22
