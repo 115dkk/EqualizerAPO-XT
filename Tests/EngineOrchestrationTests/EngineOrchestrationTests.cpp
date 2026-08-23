@@ -72,6 +72,29 @@ void testDeviceApoRegistryVocabulary(test::Harness& harness)
 	}
 }
 
+void testDeviceTestPipeNameAllowList(test::Harness& harness)
+{
+	// The literal DeviceTestThread writes must survive untouched, or the
+	// device test silently never gets an answer from the APO.
+	harness.expectTrue(sanitizeDeviceTestPipeName(L"EqualizerAPODeviceTest") == L"EqualizerAPODeviceTest",
+		"the device test pipe name passes the allow-list unchanged");
+	harness.expectTrue(sanitizeDeviceTestPipeName(L"eapo_test-42") == L"eapo_test-42",
+		"underscore, dash and digits are pipe-namespace safe");
+	// Anything that could leave \\.\pipe\ is dropped whole, not trimmed:
+	// a partially accepted name would connect to a pipe nobody listens on.
+	for (const wchar_t* hostile : {
+		L"..\\..\\PhysicalDrive0", L"a/b", L"a\\b", L"name.", L"..", L"a b",
+		L"", L"\u00e9apo" })
+	{
+		harness.expectTrue(sanitizeDeviceTestPipeName(hostile).empty(),
+			"a pipe name with separators, dots, blanks or non-ASCII is ignored");
+	}
+	harness.expectTrue(sanitizeDeviceTestPipeName(std::wstring(129, L'a')).empty(),
+		"an oversized pipe name is ignored");
+	harness.expectEqual(sanitizeDeviceTestPipeName(std::wstring(128, L'a')).size(), size_t(128),
+		"128 characters is the longest accepted pipe name");
+}
+
 void testInstallStateComparisonIgnoresPadding(test::Harness& harness)
 {
 	using InstallState = DeviceAPOInfo::InstallState;
@@ -1173,6 +1196,7 @@ int runEngineOrchestrationTests()
 	testRegistryExportHeaderPreservesQualifiedRoot(harness);
 	testSynchronizedStateSerializesReplacement(harness);
 	testDeviceApoRegistryVocabulary(harness);
+	testDeviceTestPipeNameAllowList(harness);
 	testInstallStateComparisonIgnoresPadding(harness);
 	runRegistryTransactionTests(harness);
 	runDeviceApoInfoTests(harness);

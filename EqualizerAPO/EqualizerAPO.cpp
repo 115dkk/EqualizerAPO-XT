@@ -228,7 +228,12 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	{
 		// Audit #250 F020: the pipe name is shared vocabulary (DeviceAPOInfoKeys.h).
 		if (systemRegistry().valueExists(APP_REGPATH, deviceTestPipeValueName))
-			deviceTestPipeName = systemRegistry().readValue(APP_REGPATH, deviceTestPipeValueName);
+		{
+			const wstring rawPipeName = systemRegistry().readValue(APP_REGPATH, deviceTestPipeValueName);
+			deviceTestPipeName = sanitizeDeviceTestPipeName(rawPipeName);
+			if (deviceTestPipeName.empty() && !rawPipeName.empty())
+				LogF(L"Ignoring device test pipe name with characters outside the pipe namespace");
+		}
 	}
 	catch (const RegistryError& e)
 	{
