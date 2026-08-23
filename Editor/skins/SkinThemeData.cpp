@@ -38,6 +38,14 @@ struct ToneMockup
 	bool dark = false;
 	double threshold = 1.0;
 	double k = 1.0;
+	// Round 2: rack's warm cream gained chroma as its lightness fell (fixed
+	// HSL saturation) and turned garish yellow; this keeps the absolute
+	// chroma across the step instead.
+	bool preserveChroma = false;
+	// Round 2: studio dark's problem is the dark surfaces themselves, so
+	// this variant compresses the LOW band (l < threshold scaled by k)
+	// and leaves the bright inks alone.
+	bool lowerBand = false;
 };
 
 const ToneMockup& toneMockup()
@@ -52,6 +60,11 @@ const ToneMockup& toneMockup()
 		else if (variant == "light-c") { m = {true, false, 0.85, 0.2}; }
 		else if (variant == "dark-a") { m = {true, true, 0.5, 0.85}; }
 		else if (variant == "dark-b") { m = {true, true, 0.5, 0.7}; }
+		else if (variant == "rack-light-a") { m = {true, false, 0.85, 0.7333, true}; }
+		else if (variant == "rack-light-b") { m = {true, false, 0.85, 0.4667, true}; }
+		else if (variant == "rack-light-c") { m = {true, false, 0.85, 0.2, true}; }
+		else if (variant == "dark-bg-a") { m = {true, true, 0.35, 0.8, false, true}; }
+		else if (variant == "dark-bg-b") { m = {true, true, 0.35, 0.65, false, true}; }
 		return m;
 	}();
 	return mockup;
@@ -63,10 +76,27 @@ QString toneColor(const QString& hex, const ToneMockup& m)
 	if (!color.isValid())
 		return hex;
 	const double l = color.lightnessF();
-	if (l <= m.threshold)
-		return hex;
-	const double toned = m.threshold + (l - m.threshold) * m.k;
-	color.setHslF(color.hslHueF(), color.hslSaturationF(), qBound(0.0, toned, 1.0), color.alphaF());
+	double toned = l;
+	if (m.lowerBand)
+	{
+		if (l >= m.threshold)
+			return hex;
+		toned = l * m.k;
+	}
+	else
+	{
+		if (l <= m.threshold)
+			return hex;
+		toned = m.threshold + (l - m.threshold) * m.k;
+	}
+	double saturation = color.hslSaturationF();
+	if (m.preserveChroma)
+	{
+		const double span = 1.0 - qAbs(2.0 * toned - 1.0);
+		const double chroma = saturation * (1.0 - qAbs(2.0 * l - 1.0));
+		saturation = span > 0.0001 ? qBound(0.0, chroma / span, 1.0) : 0.0;
+	}
+	color.setHslF(color.hslHueF(), saturation, qBound(0.0, toned, 1.0), color.alphaF());
 	return color.name(color.alpha() < 255 ? QColor::HexArgb : QColor::HexRgb).toUpper();
 }
 

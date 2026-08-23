@@ -48,7 +48,14 @@ QString RackSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& t
 		// colours.
 		const bool dark = skinIsDark(tokens);
 		const QString seam = dark ? QStringLiteral("#060809") : QStringLiteral("#8F8268");
-		const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : seam);
+		// Border-colour mockup for the brightness round (issue #301): the
+		// selected frame's full amber both pops and glares in dark mode.
+		// The env names a replacement for the selected/focused frame only;
+		// lamps, checked buttons and knob markers keep the accent.
+		static const QString borderOverride = QString::fromLatin1(qgetenv("EAPO_GALLERY_RACK_BORDER").trimmed());
+		const QString engaged = borderOverride.isEmpty()
+			? (info.focused ? tokens.focusRing : tokens.accent) : borderOverride;
+		const QString borderColor = info.focused || info.selected ? engaged : seam;
 		const QString background = info.selected ? tokens.cardSelected : tokens.card;
 		return QStringLiteral(
 			"QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: %3px; }"
@@ -294,7 +301,10 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	// kept as small as a hardware unit's rail light).
 	if (info.focused)
 	{
-		painter.setPen(QPen(withAlpha(QColor(tokens.focusRing), 190), 1));
+		// Same border-colour mockup as cardFrameStyle (issue #301): the
+		// bezel is the second half of the visible frame.
+		static const QString bezelOverride = QString::fromLatin1(qgetenv("EAPO_GALLERY_RACK_BORDER").trimmed());
+		painter.setPen(QPen(withAlpha(QColor(bezelOverride.isEmpty() ? tokens.focusRing : bezelOverride), 190), 1));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRoundedRect(r.adjusted(1.5, 1.5, -1.5, -1.5), radius - 1, radius - 1);
 	}
