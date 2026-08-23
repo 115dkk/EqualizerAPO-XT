@@ -103,7 +103,27 @@ jobs:
             }
           }
 
+      # 저장소 안의 모델 팩(.github/codeql/eapo-models)을 질의 평가에 얹는다.
+      # CodeQL의 windows-registry 출처는 RegQueryValueExW 같은 원시 Win32 호출에만
+      # 붙어 있어, 감사 #275 이후 IRegistry 포트를 거치는 읽기는 스캔에서 보이지
+      # 않았다(2026-08-17에 잡힌 #9~#12가 코드 변경 없이 다음 스캔에서 사라짐).
+      # 모델 팩이 포트의 읽기 메서드를 같은 출처로 선언한다. 전달 방식은
+      # codeql-action이 자기 diff-range 확장 팩을 넘기는 것과 같다
+      # (run-queries에 --additional-packs + 팩 이름). codeql-action의 config
+      # 'packs' 키는 레지스트리에 게시된 팩만 받으므로 쓸 수 없다. 경로는 JSON
+      # 문자열 안에 들어가므로 백슬래시를 슬래시로 바꿔 env로 넘긴다.
+      - name: Locate the in-repo CodeQL model pack
+        shell: pwsh
+        run: |
+          $pack = (Join-Path $env:GITHUB_WORKSPACE ".github\codeql\eapo-models") -replace '\\', '/'
+          "EAPO_CODEQL_MODEL_PACK=$pack" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
+        env:
+          CODEQL_ACTION_EXTRA_OPTIONS: >-
+            {"database":{"run-queries":[
+              "--additional-packs=${{ env.EAPO_CODEQL_MODEL_PACK }}",
+              "--model-packs=eapo/cpp-models"]}}
         with:
           category: "/language:${{ matrix.language }}"

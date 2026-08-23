@@ -1,0 +1,26 @@
+# CodeQL models-as-data for this repository's registry port.
+#
+# CodeQL ships "windows-registry" sources only for the raw Win32 calls
+# (RegQueryValueExW and friends, cpp/ql/lib/ext/Windows.model.yml). Since
+# audit #275 C1 every product call site reads the registry through the
+# IRegistry port (systemRegistry().readValue(...)), and the weekly scan
+# stopped seeing those flows: the four registry-derived alerts (#9-#12)
+# found on 2026-08-17 vanished on a later scan of unchanged code. These rows
+# declare the port's read methods as the same kind of source, so a value
+# read through the port is tracked exactly like one read from RegQueryValueExW.
+#
+# Row format (cpp sourceModel):
+#   [namespace, type, subtypes, name, signature, ext, output, kind, provenance]
+# subtypes=True makes the rows apply to WindowsRegistry's overrides as well.
+# The set mirrors what CodeQL itself models: RegQueryValueEx (readValue,
+# readMultiValue, readBinaryValue) and RegEnumValue (enumValues); it does not
+# model RegEnumKeyEx, so enumSubKeys stays out.
+extensions:
+  - addsTo:
+      pack: codeql/cpp-all
+      extensible: sourceModel
+    data:
+      - ["", "IRegistry", True, "readValue", "", "", "ReturnValue", "windows-registry", "manual"]
+      - ["", "IRegistry", True, "readMultiValue", "", "", "ReturnValue", "windows-registry", "manual"]
+      - ["", "IRegistry", True, "readBinaryValue", "", "", "ReturnValue", "windows-registry", "manual"]
+      - ["", "IRegistry", True, "enumValues", "", "", "ReturnValue", "windows-registry", "manual"]
