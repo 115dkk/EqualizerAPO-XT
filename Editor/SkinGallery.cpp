@@ -2202,6 +2202,69 @@ int runCardMoveTest(const QStringList& arguments)
 		moves, static_cast<long long>(lines.size()), static_cast<long long>(worstMs),
 		qPrintable(worstName), warningMs, limitMs, failures);
 
+	// Scroll-position contract for the row edits a user makes from a card's
+	// own header (+ / - / text edit) and for the full rebuild behind every
+	// other structural change. Field report: adding or removing one line
+	// flashed the whole list and threw the view back to the top, so on a
+	// long document every edit cost a scroll back down. The scrolled view
+	// must stay where it was, within the height of the row that changed.
+	{
+		scrollArea.show();
+		QApplication::processEvents();
+		QScrollBar* bar = scrollArea.verticalScrollBar();
+		const int rowCount = int(table->documentItems().count());
+		const int middle = rowCount / 2;
+		const int target = bar->maximum() / 2;
+		const auto settle = [&bar]() {
+			QApplication::processEvents();
+			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+			QApplication::processEvents();
+			return bar->value();
+		};
+		const auto check = [&](const char* what, int before, int after) {
+			// One card's height is the most a splice above the viewport may
+			// legitimately shift the content by.
+			const int tolerance = 160;
+			if (std::abs(after - before) > tolerance)
+			{
+				qWarning("CardMoveTest: scroll after %s jumped %d -> %d (max %d)", what, before, after, bar->maximum());
+				failures++;
+			}
+			else
+			{
+				qWarning("CardMoveTest: scroll after %s held %d -> %d (max %d)", what, before, after, bar->maximum());
+			}
+		};
+
+		bar->setValue(target);
+		int before = settle();
+		if (before <= 0)
+		{
+			qWarning("CardMoveTest: the document does not scroll (max %d); scroll contract not exercised", bar->maximum());
+			failures++;
+		}
+		else
+		{
+			FilterTable::Item* anchor = table->documentItems().at(middle);
+			FilterTable::Item* inserted = table->insertLine(QStringLiteral("Preamp: -1 dB"), anchor);
+			check("header insert", before, settle());
+			before = bar->value();
+			table->removeLine(inserted);
+			check("header remove", before, settle());
+			before = bar->value();
+			table->updateGuis();
+			check("full rebuild", before, settle());
+			// The live skin switch tears down first and rebuilds after the
+			// stylesheet swap (MainWindow::skinSelected); the position must
+			// survive that gap too.
+			before = bar->value();
+			table->clearRows();
+			SkinManager::instance()->applySkin(Skins::all().first()->id(), false);
+			table->updateGuis();
+			check("skin switch", before, settle());
+		}
+	}
+
 	// Same no-teardown exit as run().
 	const int status = failures == 0 ? 0 : 1;
 	std::fflush(nullptr);
