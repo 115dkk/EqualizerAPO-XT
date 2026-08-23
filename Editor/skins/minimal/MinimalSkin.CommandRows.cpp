@@ -163,16 +163,14 @@ void MinimalSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Co
 		ink = QColor(tokens.mutedText);
 	}
 
-	// Right-aligned in the header band, ending ~205px short of the right
-	// edge so the whole header button train (power / + / - / ..., which
-	// spans just under 200px from the frame's right edge) keeps clear
-	// ground; the readout is painted under the buttons, so anything
-	// narrower prints beneath them and only a clipped sliver survives.
-	// The If/Eval summaries are empty by model contract, so the column
-	// prints on empty line space; a cramped card drops the readout
-	// rather than colliding with the line head.
+	// Right-aligned in the header band, a hair short of the right edge.
+	// The header button train sits in the fixed column at the left now
+	// (after the row number), so the right end of the band is clear
+	// ground. The If/Eval summaries are empty by model contract, so the
+	// column prints on empty line space; a cramped card drops the
+	// readout rather than colliding with the line head.
 	const int headerHeight = qMin(tokens.rowHeight, rect.height());
-	const QRect column(rect.left() + 8, rect.top(), rect.width() - 213, headerHeight);
+	const QRect column(rect.left() + 8, rect.top(), rect.width() - 24, headerHeight);
 	if (column.width() < 60)
 		return;
 

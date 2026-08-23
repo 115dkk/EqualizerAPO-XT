@@ -277,14 +277,12 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 			mono.setPointSizeF(7.5);
 			mono.setBold(true);
 			const QFontMetrics metrics(mono);
-			// The button train keeps its reserved zone on the right; the four
-			// buttons span ~180px from the band's right
-			// edge and the cell is painted *under* them, so the reserve must
-			// clear the train entirely or the cell's tail hides beneath the
-			// power button. The cell never grows left into the coordinate
-			// band, and a reading that still does not fit is elided, never
-			// squeezed.
-			const int reserved = 192;
+			// The button train lives in the fixed column after the coordinate
+			// band now, so the band's right end is clear ground; only a
+			// small margin is kept. The cell never grows left into the
+			// coordinate band, and a reading that still does not fit is
+			// elided, never squeezed.
+			const int reserved = 12;
 			const int cellRight = headerBand.right() - reserved;
 			const int maxWidth = qMin(220, cellRight - headerBand.left() - MatrixMetrics::coordinateBandWidth);
 			if (maxWidth > 40)

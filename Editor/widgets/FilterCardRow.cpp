@@ -109,42 +109,12 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	numberLabel->setMinimumWidth(28);
 	headerLayout->addWidget(numberLabel);
 
-	typeBadge = new QLabel(headerWidget);
-	typeBadge->setObjectName(QStringLiteral("FilterTypeBadge"));
-	typeBadge->setAlignment(Qt::AlignCenter);
-	typeBadge->setMinimumWidth(46);
-	headerLayout->addWidget(typeBadge);
-
-	titleLabel = new ElidedLabel(headerWidget);
-	titleLabel->setObjectName(QStringLiteral("FilterCardTitle"));
-	titleLabel->setElideMode(Qt::ElideRight);
-	titleLabel->setMinimumWidth(92);
-	titleLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-	headerLayout->addWidget(titleLabel);
-
-	summaryLabel = new ElidedLabel(headerWidget);
-	summaryLabel->setObjectName(QStringLiteral("FilterCardSummary"));
-	summaryLabel->setElideMode(Qt::ElideRight);
-	// No text interaction here: a selectable label consumes the mouse press,
-	// and since this label is the header's expanding filler, that reduced the
-	// row's drag/select surface to the narrow number/title strip. The header
-	// is the drag handle (FilterTable hit-tests getHeaderRect); copying the
-	// verbatim line is the raw editor's job (the pencil).
-	summaryLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-	headerLayout->addWidget(summaryLabel, 1);
-
-	channelBadgeContainer = new QWidget(headerWidget);
-	// A plain QWidget matches every skin's global "QWidget { background: @BG@ }"
-	// rule, and the style then paints that app-background plate over the card
-	// surface - a dark rectangle cut around the badges. The widget-level rule
-	// outranks any skin sheet, so the strip stays transparent under all skins.
-	channelBadgeContainer->setStyleSheet(QStringLiteral("background: transparent;"));
-	channelBadgeLayout = new QHBoxLayout(channelBadgeContainer);
-	channelBadgeLayout->setContentsMargins(0, 0, 0, 0);
-	channelBadgeLayout->setSpacing(3);
-	channelBadgeContainer->setVisible(false);
-	headerLayout->addWidget(channelBadgeContainer);
-
+	// The controls form a fixed column right after the number, the way the
+	// original rows laid them out (toolbar and power switch at the left,
+	// content after), so every row's switch and buttons line up and the eye
+	// never has to travel to the far edge of a wide window to reach them.
+	// Field report from a 27-inch screen: content at the left, buttons at
+	// the right.
 	enabledButton = new QToolButton(headerWidget);
 	enabledButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	enabledButton->setCheckable(true);
@@ -182,6 +152,45 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	connect(editButton, SIGNAL(toggled(bool)), this, SLOT(editTextToggled(bool)));
 	headerLayout->addWidget(editButton);
 
+	typeBadge = new QLabel(headerWidget);
+	typeBadge->setObjectName(QStringLiteral("FilterTypeBadge"));
+	typeBadge->setAlignment(Qt::AlignCenter);
+	typeBadge->setMinimumWidth(46);
+	headerLayout->addWidget(typeBadge);
+
+	titleLabel = new ElidedLabel(headerWidget);
+	titleLabel->setObjectName(QStringLiteral("FilterCardTitle"));
+	titleLabel->setElideMode(Qt::ElideRight);
+	titleLabel->setMinimumWidth(92);
+	titleLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+	headerLayout->addWidget(titleLabel);
+
+	summaryLabel = new ElidedLabel(headerWidget);
+	summaryLabel->setObjectName(QStringLiteral("FilterCardSummary"));
+	summaryLabel->setElideMode(Qt::ElideRight);
+	// No text interaction here: a selectable label consumes the mouse press,
+	// which would reduce the row's drag/select surface to the narrow
+	// number/title strip. The header is the drag handle (FilterTable
+	// hit-tests getHeaderRect); copying the verbatim line is the raw
+	// editor's job (the pencil). The label takes its text width and yields
+	// (elides) when the header is narrower; the trailing stretch below owns
+	// the leftover, so the summary never pushes anything to the far edge.
+	summaryLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+	headerLayout->addWidget(summaryLabel);
+
+	channelBadgeContainer = new QWidget(headerWidget);
+	// A plain QWidget matches every skin's global "QWidget { background: @BG@ }"
+	// rule, and the style then paints that app-background plate over the card
+	// surface - a dark rectangle cut around the badges. The widget-level rule
+	// outranks any skin sheet, so the strip stays transparent under all skins.
+	channelBadgeContainer->setStyleSheet(QStringLiteral("background: transparent;"));
+	channelBadgeLayout = new QHBoxLayout(channelBadgeContainer);
+	channelBadgeLayout->setContentsMargins(0, 0, 0, 0);
+	channelBadgeLayout->setSpacing(3);
+	channelBadgeContainer->setVisible(false);
+	headerLayout->addWidget(channelBadgeContainer);
+	headerLayout->addStretch(1);
+
 	bodyStack = new QStackedWidget(cardFrame);
 	bodyStack->setObjectName(QStringLiteral("FilterCardBody"));
 	bodyStack->setAttribute(Qt::WA_StyledBackground, true);
@@ -189,8 +198,8 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// QTreeWidget with sizeAdjustPolicy=AdjustToContents, or any other GUI that
 	// reports a content-driven sizeHint) from propagating its preferred width
 	// up through the card. Otherwise the card grows past the visible viewport
-	// and the right-side header toolbar (enable / + / - / ...) renders
-	// thousands of pixels off screen and becomes invisible.
+	// and everything past the header's left column (badges, body editors)
+	// renders thousands of pixels off screen and becomes invisible.
 	// Ignored sizePolicy alone is not enough: it stops sizeHint propagation
 	// but the layout system still inherits the inner widgets' minimumSize.
 	// Pin the bodyStack's own minimumSize to 0 so the card frame's minimum
@@ -273,8 +282,7 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 		// internal AdjustToContents widgets) propagates a huge minimumSize up
 		// through editorContainer/bodyStack/cardFrame/FilterCardRow and the
 		// QGridLayout in FilterTable then forces every card column to that
-		// width, pushing the right-side header toolbar (enable / + / - / ...)
-		// thousands of pixels off screen.
+		// width, pushing the cards' content thousands of pixels off screen.
 		QWidget* guiWidget = qobject_cast<QWidget*>(gui);
 		if (guiWidget != nullptr)
 		{
@@ -519,7 +527,7 @@ QSize FilterCardRow::sizeHint() const
 	// QTreeWidget AdjustToContents, VST / Convolution / Stage editors) report
 	// a sizeHint matching their full content (thousands of pixels), which
 	// would otherwise inflate the entire QGridLayout column in FilterTable and
-	// push the right-side header toolbar far off screen.
+	// push the cards' content far off screen.
 	int height = QWidget::sizeHint().height();
 	int width = headerWidget ? headerWidget->sizeHint().width() : QWidget::sizeHint().width();
 	if (layout() != nullptr)
@@ -540,8 +548,8 @@ QSize FilterCardRow::minimumSizeHint() const
 	// Cap the cell's minimum width at a small constant so the QGridLayout in
 	// FilterTable does not inherit any content-driven minimum from a card's
 	// body editor. Without this, ONE row with a wide legacy filter GUI forces
-	// EVERY card column wide enough to push the right-side header toolbar far
-	// off screen. Height stays layout-driven so cards still vertically size to
+	// EVERY card column wide enough to push the cards' content far off
+	// screen. Height stays layout-driven so cards still vertically size to
 	// fit their bodies.
 	int height = QWidget::minimumSizeHint().height();
 	return QSize(0, height);
