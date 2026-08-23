@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.41.3 — 2026-08-23
+
 - **APO가 파이프 이름공간 밖을 가리킬 수 있는 장치 테스트 파이프 이름을
   무시합니다.** DeviceSelector의 장치 테스트는 레지스트리로 APO에 명명된
   파이프 이름을 건네는데, APO는 그 값을 `\\.\pipe\` 뒤에 그대로

@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.41.3 — 2026-08-23
+
 - **The APO now ignores a device-test pipe name that could point outside the
   pipe namespace.** The DeviceSelector device test hands the APO a named-pipe
   name through the registry; the APO used to append it to `\\.\pipe\` as
