@@ -105,6 +105,14 @@ public:
 	// The document items in order. The offscreen gates drive moveRows through
 	// this instead of reaching into the private model.
 	const QList<Item*>& documentItems() const;
+	// One-row structural edits that keep every other row widget alive: the
+	// new line lands before the anchor (appends when null) and only its own
+	// card is built; removeLine tears down only that row. These are what a
+	// card's header + / - call, so a long document no longer rebuilds every
+	// card (a visible flash) and loses its scroll position on each edit.
+	// The legacy presentation takes the full rebuild inside, unchanged.
+	Item* insertLine(const QString& line, Item* before);
+	void removeLine(Item* item);
 	// Commits an internal drag-move: the given document items (in document
 	// order) land as one block before the line currently at dropRow (pre-move
 	// indexing; items().size() appends). Shared by the drag-and-drop commit in
@@ -285,6 +293,9 @@ private:
 	int selectedChannelMask = 0;
 	QString configPath;
 	int minimumHeightHint = 0;
+	// Scroll position captured by clearRows() and restored by updateGuis().
+	int rebuildScrollX = 0;
+	int rebuildScrollY = 0;
 	int presetScrollX = -1;
 	int presetScrollY = -1;
 	RenderMode renderMode = ModernCards;

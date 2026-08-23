@@ -889,23 +889,22 @@ void FilterCardRow::addAbove()
 	FilterTemplate filterTemplate;
 	if (table->chooseFilterTemplate(&filterTemplate, addButton->mapToGlobal(QPoint(0, addButton->height()))))
 	{
-		// A card header's + belongs to that card's leading edge: addLine takes
-		// an insert-before anchor, so this row itself is the desired anchor.
-		table->addLine(filterTemplate.getLine(), item);
-		FilterTable* targetTable = table;
-		QTimer::singleShot(0, targetTable, [targetTable]() {
-			targetTable->updateGuis();
-		});
+		// A card header's + belongs to that card's leading edge: insertLine
+		// takes an insert-before anchor, so this row itself is the desired
+		// anchor. Only the new card is built; this row and every other one
+		// stay put, and with them the scroll position.
+		table->insertLine(filterTemplate.getLine(), item);
 	}
 }
 
 void FilterCardRow::removeThis()
 {
+	// Deferred because removeLine deletes this very widget, which is still
+	// on the dispatch path of its own header button.
 	FilterTable* targetTable = table;
 	FilterTable::Item* targetItem = item;
 	QTimer::singleShot(0, targetTable, [targetTable, targetItem]() {
-		targetTable->removeItem(targetItem);
-		targetTable->updateGuis();
+		targetTable->removeLine(targetItem);
 	});
 }
 
@@ -945,9 +944,13 @@ void FilterCardRow::lineEditingFinished()
 			item->text = lineEdit->text();
 			table->updateModel();
 			editingDone = false;
+			// In-place like the enabled toggle: only this row's card changes
+			// (the rows below re-scope in place), instead of rebuilding every
+			// card and dropping the scroll position.
 			FilterTable* targetTable = table;
-			QTimer::singleShot(0, targetTable, [targetTable]() {
-				targetTable->updateGuis();
+			FilterTable::Item* targetItem = item;
+			QTimer::singleShot(0, targetTable, [targetTable, targetItem]() {
+				targetTable->updateSingleRowGui(targetItem);
 			});
 			return;
 		}
