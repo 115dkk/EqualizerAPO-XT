@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Adding or removing a card no longer flashes the list or jumps to the
+  top.** The + and - in a card's header, and the inline text edit, used to
+  rebuild every card in the document, which threw the view back to the top
+  on every edit of a long configuration. They now build or remove only the
+  affected card. The full rebuild behind multi-row edits, undo and skin
+  switches keeps the scroll position too
+  ([#298](https://github.com/115dkk/EqualizerAPO-XT/pull/298)).
+
 ## v2.41.4 — 2026-08-23
 
 - **The legacy rows offer real channels in a VST row's channel fill again.**
