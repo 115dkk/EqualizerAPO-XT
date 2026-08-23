@@ -29,7 +29,7 @@ void MinimalSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState
 
 	// Axis labels: secondary-ink mono print in the margins.
 	QFont labelFont(tokens.monoFontFamily);
-	labelFont.setPointSizeF(7.5);
+	labelFont.setPointSizeF(8.5);
 	painter.setFont(labelFont);
 
 	const int plotLeft = int(state.plotRect.left());

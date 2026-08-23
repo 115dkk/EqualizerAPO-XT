@@ -54,7 +54,7 @@ void MatrixSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChr
 		// Designation cell: muted at rest, accent pre-light on hover, LED
 		// fill while engaged.
 		QFont mono(tokens.monoFontFamily);
-		mono.setPointSizeF(9.0);
+		mono.setPointSizeF(10.0);
 		mono.setBold(true);
 		const QFontMetrics monoMetrics(mono);
 		const int designationWidth = monoMetrics.horizontalAdvance(QStringLiteral("+")) + 12;
@@ -77,7 +77,7 @@ void MatrixSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChr
 
 		// Mono board caption; body ink while the crosspoint is lit.
 		QFont caption(tokens.monoFontFamily);
-		caption.setPointSizeF(8.0);
+		caption.setPointSizeF(9.0);
 		caption.setWeight(QFont::DemiBold);
 		caption.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 		painter.setFont(caption);

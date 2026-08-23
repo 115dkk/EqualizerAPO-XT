@@ -173,7 +173,7 @@ void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 					- (header->layout() != nullptr ? header->layout()->contentsMargins().right() : 8);
 				const QRectF span(summaryOrigin, QSizeF(headerRight - summaryOrigin.x(), summary->height()));
 				QFont readoutFont(tokens.monoFontFamily);
-				readoutFont.setPointSizeF(8.0);
+				readoutFont.setPointSizeF(9.0);
 				const QFontMetricsF readoutMetrics(readoutFont);
 				const QString readout = QStringLiteral("= ") + info.evalText;
 				const QFontMetricsF summaryMetrics(summary->font());

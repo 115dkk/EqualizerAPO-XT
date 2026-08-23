@@ -16,7 +16,8 @@ QWidget {
     background: @BG@;
     color: @TEXT@;
     font-family: "@MONO@", "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
-    font-size: 10pt;
+    font-size: 11pt;
+    font-weight: 500;
 }
 
 QMainWindow, QDialog { background: @BG@; }
@@ -112,7 +113,7 @@ QToolBar#MainToolBar QCheckBox:checked { color: @TEXT@; }
    unsaved changes are simply brighter ink. */
 QToolBar#MainToolBar QLabel#DirtyStatusBadge {
     color: @MUTED@; background: transparent; border: 0;
-    padding: 0 8px; font-size: 9pt; font-weight: 700;
+    padding: 0 8px; font-size: 10pt; font-weight: 700;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QToolBar#MainToolBar QLabel#DirtyStatusBadge[dirty="true"] { color: @TEXT@; }
@@ -120,7 +121,7 @@ QToolBar#MainToolBar QLabel#DirtyStatusBadge[dirty="true"] { color: @TEXT@; }
    (like the analysis chips), never a fill or a box. */
 QToolBar#MainToolBar QLabel#DeviceFormatBadge {
     color: @MUTED@; background: transparent; border: 0;
-    padding: 0 6px; font-size: 9pt; font-weight: 700;
+    padding: 0 6px; font-size: 10pt; font-weight: 700;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QToolBar#MainToolBar QLabel#DeviceFormatBadge[severity="warning"] { color: @WARNING@; }
@@ -387,7 +388,7 @@ QFrame#AnalysisStatChip {
 }
 QLabel#AnalysisStatLabel {
     color: @MUTED@; background: transparent;
-    font-weight: 700; font-size: 9pt;
+    font-weight: 700; font-size: 10pt;
     text-transform: uppercase; letter-spacing: 2px;
 }
 QLabel#AnalysisStatValue {
@@ -418,12 +419,12 @@ QLabel#FilterTypeBadge {
     background: transparent; color: @TEXT@;
     border: 0; border-radius: 0;
     font-weight: 700; padding: 1px 2px; min-height: 18px;
-    font-size: 9pt; text-transform: uppercase; letter-spacing: 1px;
+    font-size: 10pt; text-transform: uppercase; letter-spacing: 1px;
 }
 /* Leading type glyph (inserted by MinimalSkin::prepareCommandRow). */
 QLabel#MinimalTypeGlyph {
     background: transparent; color: @MUTED@;
-    font-weight: 700; font-size: 9pt;
+    font-weight: 700; font-size: 10pt;
 }
 /* The BiQuad strip's plain captions (e.g. "Gain") share the selectors'
    caption layer: secondary ink, so the bright figures below carry the
@@ -495,7 +496,7 @@ QLabel#PreampCardCaption { background: transparent; border: 0; }
 QWidget#GraphicEQReadout { background: transparent; border: 0; }
 QLabel#GraphicEQBandCaption {
     background: transparent; color: @MUTED@;
-    font-weight: 700; font-size: 9pt;
+    font-weight: 700; font-size: 10pt;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QLabel#GraphicEQReadoutLabel { background: transparent; color: @MUTED@; }
@@ -537,7 +538,7 @@ QToolButton#UpdateToastClose:focus { border: 1px solid @ACCENT@; }
 QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 2px; font-size: 9pt;
+    text-transform: uppercase; letter-spacing: 2px; font-size: 10pt;
 }
 QLabel#EditableValue {
     background: #1a1a1a; color: @TEXT@;
@@ -675,10 +676,10 @@ QLabel#MinimalPickerPrompt { color: @ACCENT@; background: transparent; font-weig
 QLineEdit#MinimalPickerQuery, QLineEdit#MinimalPickerQuery:focus {
     background: transparent; border: 0; border-radius: 0; padding: 0; color: @TEXT@;
 }
-QLabel#MinimalPickerCount { color: @MUTED@; background: transparent; font-size: 8pt; font-weight: 700; }
+QLabel#MinimalPickerCount { color: @MUTED@; background: transparent; font-size: 9pt; font-weight: 700; }
 QLabel#MinimalPickerLegend {
     color: @MUTED@; background: @BG@; border: 0; border-top: 1px solid @BORDER@;
-    padding: 4px 10px; font-size: 7pt; font-weight: 700; letter-spacing: 1px;
+    padding: 4px 10px; font-size: 8pt; font-weight: 700; letter-spacing: 1px;
 }
 QScrollArea#MinimalPickerScroll, QScrollArea#MinimalPickerScroll > QWidget > QWidget { background: @BG@; border: 0; }
 
@@ -700,7 +701,7 @@ QWidget#AppTitleBar {
 QLabel#TitleBarText {
     background: transparent;
     color: @MUTED@;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 /* Caption buttons: square pure glyphs at rest. Hover is exactly one
@@ -730,7 +731,7 @@ QToolButton#TitleBarClose:hover, QToolButton#TitleBarClose:pressed {
 QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", monospace;
-    font-size: 8pt; letter-spacing: 1px;
+    font-size: 9pt; letter-spacing: 1px;
 }
 /* ====================================================================
    Scope and note cards (Device / Channel / Stage / Comment).
@@ -999,7 +1000,7 @@ QLabel#MinimalBassDiagnostic {
     background: transparent;
     border: 0;
     font-family: "@MONO@", "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 
 QLabel#MinimalBassValidity {
@@ -1044,7 +1045,7 @@ QToolButton#MinimalBassActionButton {
     min-height: 40px;
     padding: 0 8px;
     font-family: "@MONO@", "Consolas", "JetBrains Mono", "DejaVu Sans Mono", "Noto Sans Mono CJK KR", monospace;
-    font-size: 10pt;
+    font-size: 11pt;
     font-weight: 700;
     letter-spacing: 1px;
 }

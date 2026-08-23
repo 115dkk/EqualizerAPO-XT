@@ -617,12 +617,12 @@ QWidget* buildAnalysisPanelReplica(QWidget* parent)
 	QFrame* bar = new QFrame;
 	bar->setObjectName(QStringLiteral("analysisControlBar"));
 	bar->setAttribute(Qt::WA_StyledBackground, true);
-	bar->setMaximumWidth(250);
+	bar->setMaximumWidth(280);
 	QGridLayout* grid = new QGridLayout(bar);
 	// Matches MainWindow.ui after the metric switch and the base-delay option
 	// joined this bar: the two extra rows are paid for by tightening the
 	// rhythm and by pairing the four readouts two to a row, so the row count
-	// stays at nine and the 250px cap is untouched.
+	// stays at nine; the cap grew with the type scale (250 -> 280px).
 	grid->setContentsMargins(10, 6, 18, 6);
 	grid->setHorizontalSpacing(8);
 	grid->setVerticalSpacing(4);
@@ -1018,7 +1018,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 		for (const auto& dialogState : dialogStates)
 		{
 			SubwooferRoutingEditorDialog dialog(dialogState.value, 48000);
-			dialog.resize(1360, 780);
+			dialog.resize(1360, 810);
 			dialog.show();
 			QApplication::processEvents();
 

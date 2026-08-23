@@ -18,7 +18,8 @@ QWidget {
     background: @BG@;
     color: @TEXT@;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
+    font-weight: 500;
 }
 
 QMainWindow, QDialog { background: @BG@; }
@@ -36,7 +37,7 @@ QMenuBar {
     color: @TEXT@;
     padding: 3px 8px;
     border: 0; border-top: 1px solid #FFFFFF; border-bottom: 1px solid #AFA288;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QMenuBar::item { background: transparent; color: @MUTED@; padding: 5px 12px; border-radius: 2px; }
@@ -162,7 +163,7 @@ QToolButton[rackTransport="true"]:disabled {
    collapses and RackSkin paints a real LED in the padding-reserved well. */
 QCheckBox#InstantModeCheckBox, QCheckBox#AnalysisFormCheck {
     color: @TEXT@; background: transparent;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
     padding: 2px 4px 2px 22px; spacing: 0;
 }
@@ -187,7 +188,7 @@ QLabel#DirtyStatusBadge {
     border: 1px solid #4A4438; border-bottom-color: #6B6354;
     border-radius: 2px; padding: 4px 10px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QLabel#DirtyStatusBadge[dirty="true"] { color: #F2C063; }
@@ -195,12 +196,12 @@ QLabel#DirtyStatusBadge[dirty="true"] { color: #F2C063; }
 QLabel#DeviceFormatBadge {
     background: transparent; color: @MUTED@;
     border: 1px solid @MUTED@; border-radius: 1px;
-    padding: 2px 6px; font-weight: 700; font-size: 8pt;
+    padding: 2px 6px; font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QLabel#DeviceFormatBadge[severity="warning"] { color: @WARNING@; border-color: @WARNING@; }
 
-QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; font-size: 8pt; text-transform: uppercase; letter-spacing: 2px; }
+QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; font-size: 9pt; text-transform: uppercase; letter-spacing: 2px; }
 
 /* Push buttons are raised switch caps: lit top edge, shadowed base; pressing
    inverts the gradient (the cap goes in). */
@@ -260,7 +261,7 @@ QAbstractSpinBox[valueScrub="true"] {
     border: 1px solid #4A4438; border-bottom-color: #6B6354;
     border-radius: 2px; padding: 3px 6px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     selection-background-color: #3ED68E; selection-color: #11150F;
 }
 QAbstractSpinBox[valueScrub="true"]:focus { border: 1px solid @ACCENT@; }
@@ -301,7 +302,7 @@ QComboBox[paramSelector="true"] {
     border: 0; border-bottom: 1px solid #B4A890;
     border-radius: 0;
     padding: 1px 14px 1px 2px; min-height: 18px;
-    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+    font-weight: 700; font-size: 9pt; letter-spacing: 1px;
 }
 QComboBox[paramSelector="true"]:hover { color: @TEXT@; border-bottom-color: @ACCENT@; }
 QComboBox[paramSelector="true"]:focus, QComboBox[paramSelector="true"]:on {
@@ -319,7 +320,7 @@ QComboBox[paramSelector="true"]::down-arrow {
    a powered-down unit it fades to the same shade as the selectors. */
 QLabel#gainLabel {
     background: transparent; color: @MUTED@;
-    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+    font-weight: 700; font-size: 9pt; letter-spacing: 1px;
     padding: 1px 2px;
 }
 QFrame#FilterCardRow[filterEnabled="false"] QLabel#gainLabel { color: #A99F8E; }
@@ -491,7 +492,7 @@ QAbstractSpinBox#AnalysisFormSpin {
 QFrame#AnalysisStatChip { background: #11150F; border: 1px solid #4A4438; border-radius: 2px; }
 QLabel#AnalysisStatLabel {
     color: #9AA08E; background: transparent;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 2px;
 }
 QLabel#AnalysisStatValue { color: #3ED68E; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; }
@@ -526,7 +527,7 @@ QLabel#FilterTypeBadge {
     background: transparent; color: @TEXT@;
     border: 1px solid @TEXT@; border-radius: 1px;
     font-weight: 700; padding: 1px 6px; min-height: 18px;
-    font-size: 8pt; text-transform: uppercase; letter-spacing: 1px;
+    font-size: 9pt; text-transform: uppercase; letter-spacing: 1px;
 }
 QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
@@ -559,7 +560,7 @@ QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 2px; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 2px; font-size: 9pt;
 }
 /* Value readouts are LED display windows set into the plate: dark glass with
    lit green digits, even on the cream faceplate - as real hardware reads. */
@@ -603,7 +604,7 @@ QLineEdit#RefPathEdit {
     border: 1px solid #4A4438; border-bottom-color: #6B6354;
     border-radius: 2px; padding: 4px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     selection-background-color: #3ED68E; selection-color: #11150F;
 }
 QLineEdit#RefPathEdit:focus { border: 1px solid @ACCENT@; }
@@ -612,14 +613,14 @@ QLineEdit#RefPathEdit:focus { border: 1px solid @ACCENT@; }
    border, so the recovery entry sits lit beside the label area. */
 QToolButton#FilterCardIconButton[rackLocate="true"] {
     color: @TEXT@; border-color: @ACCENT@; border-top-color: #FFFFFF;
-    font-size: 7pt; letter-spacing: 2px; padding: 2px 8px;
+    font-size: 8pt; letter-spacing: 2px; padding: 2px 8px;
 }
 /* MultiConvolution's channel-mapping strip: the caption is engraved plate
    printing (uppercase tracking like the other rack captions), the hint is
    quieter service text; the patch grid below paints itself. */
 QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
-    font-size: 7pt; font-weight: 700; letter-spacing: 2px;
+    font-size: 8pt; font-weight: 700; letter-spacing: 2px;
     text-transform: uppercase;
 }
 
@@ -641,12 +642,12 @@ QWidget#GraphicEQPlot { background: transparent; }
 QWidget#GraphicEQReadout { background: transparent; border: 0; }
 QLabel#GraphicEQBandCaption {
     color: @MUTED@; background: transparent;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 2px;
 }
 QLabel#GraphicEQReadoutLabel {
     color: @MUTED@; background: transparent;
-    font-weight: 700; font-size: 8pt; letter-spacing: 1px;
+    font-weight: 700; font-size: 9pt; letter-spacing: 1px;
     text-transform: uppercase;
 }
 QToolButton#GraphicEQActionButton {
@@ -729,7 +730,7 @@ QWidget#AppTitleBar {
 QLabel#TitleBarText {
     background: transparent;
     color: @MUTED@;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
     padding-left: 14px;
 }
@@ -797,7 +798,7 @@ QToolButton#DeviceChip {
     border: 1px solid #AFA288; border-top-color: #FFFFFF;
     border-radius: 2px;
     padding: 3px 9px; min-height: 20px;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 0.5px;
 }
 QToolButton#DeviceChip:hover {
@@ -941,7 +942,7 @@ QToolButton#DeviceChipMore {
     border: 1px solid #C4BBA6; border-top-color: #FFFFFF;
     border-radius: 2px;
     padding: 3px 9px; min-height: 20px;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 0.5px;
 }
 QToolButton#DeviceChipMore:hover { border-color: @ACCENT@; border-top-color: #FFFFFF; color: #5C3A00; }
@@ -966,7 +967,7 @@ QToolButton#ChannelChip {
     border: 1px solid #AFA288; border-top-color: #FFFFFF;
     border-radius: 2px;
     padding: 3px 8px; min-width: 18px; min-height: 20px;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QToolButton#ChannelChip:hover {
@@ -1043,7 +1044,7 @@ QLineEdit#ChannelChipAdd {
     background: #FCF8EE; color: @TEXT@;
     border: 1px solid #8F8268; border-bottom-color: #FFFFFF;
     border-radius: 2px; padding: 3px 8px;
-    min-height: 18px; font-size: 8pt; letter-spacing: 1px;
+    min-height: 18px; font-size: 9pt; letter-spacing: 1px;
 }
 QLineEdit#ChannelChipAdd:focus { border: 1px solid @ACCENT@; }
 QLineEdit#ChannelChipAdd:disabled { color: #A99F8E; background: #E2DCCE; }
@@ -1057,7 +1058,7 @@ QLineEdit#ChannelChipAdd:disabled { color: #A99F8E; background: #E2DCCE; }
    lights the amber service edge. */
 QLabel#CommentCardGlyph {
     background: transparent; color: @MUTED@;
-    font-weight: 700; font-size: 10pt;
+    font-weight: 700; font-size: 11pt;
     padding: 0 2px;
 }
 QLineEdit#CommentCardText {
@@ -1092,7 +1093,7 @@ QToolButton#StageChip {
     border: 1px solid #AFA288; border-top-color: #FFFFFF;
     border-radius: 2px;
     padding: 3px 12px; min-height: 20px;
-    font-weight: 700; font-size: 8pt;
+    font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QToolButton#StageChip:hover {
@@ -1152,14 +1153,14 @@ QToolButton#StageChipUnknown {
     border: 1px dashed #C2A36A;
     border-radius: 2px;
     padding: 3px 10px; min-height: 20px;
-    font-size: 8pt; letter-spacing: 1px;
+    font-size: 9pt; letter-spacing: 1px;
 }
 /* Lane legends and the chain arrow: printed faceplate lettering
    (PLAYBACK / RECORDING) - muted tracked caps; the arrow is the
    printed signal-flow marker between the two playback switches. */
 QLabel#StageLaneCaption {
     background: transparent; color: @MUTED@;
-    font-size: 7pt; font-weight: 700;
+    font-size: 8pt; font-weight: 700;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QLabel#StageChainArrow { background: transparent; color: @MUTED@; font-weight: 700; }
@@ -1207,7 +1208,7 @@ QLabel#RackBassValidity {
     border-radius: 2px;
     padding: 3px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1234,7 +1235,7 @@ QLabel#RackBassLayout {
     border: 0;
     padding: 1px 2px;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 11pt;
+    font-size: 12pt;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
@@ -1245,7 +1246,7 @@ QLabel#RackBassProfile {
     border: 0;
     padding: 1px 2px;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
@@ -1261,7 +1262,7 @@ QLabel#RackBassStatus {
     border-radius: 2px;
     padding: 5px 8px;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 700;
 }
 QLabel#RackBassStatus[severity="error"] {
@@ -1283,7 +1284,7 @@ QToolButton#RackBassActionButton {
     min-height: 40px;
     padding: 7px 12px;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;

@@ -35,7 +35,7 @@ void MinimalSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListCh
 	painter.drawRect(rect.adjusted(0, 0, -1, -1));
 
 	QFont font(tokens.monoFontFamily);
-	font.setPointSizeF(9.0);
+	font.setPointSizeF(10.0);
 	font.setWeight(QFont::Bold);
 	font.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	painter.setFont(font);

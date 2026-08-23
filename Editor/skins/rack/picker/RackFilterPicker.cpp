@@ -255,7 +255,7 @@ RackFilterPickerView::RackFilterPickerView(const SkinTokens& tokens, QWidget* pa
 	searchEdit->setPlaceholderText(tr("SEARCH"));
 	const QColor lcdInk = dark ? QColor(0x86, 0xF2, 0xBA) : QColor(0x3E, 0xD6, 0x8E);
 	QFont lcdFont(tokens.monoFontFamily);
-	lcdFont.setPointSizeF(9.0);
+	lcdFont.setPointSizeF(10.0);
 	lcdFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	searchEdit->setFont(lcdFont);
 	searchEdit->setStyleSheet(QStringLiteral(

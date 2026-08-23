@@ -40,7 +40,7 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	// Axis captions ride the body face in faded ink - the constitution
 	// reserves mono for value chips, and these are captions.
 	QFont labelFont(tokens.fontFamily);
-	labelFont.setPointSizeF(7.5);
+	labelFont.setPointSizeF(8.5);
 	labelFont.setWeight(QFont::DemiBold);
 	painter.setFont(labelFont);
 	const QColor labelInk = withAlpha(muted, state.enabled ? 210 : 120);
@@ -209,7 +209,7 @@ void SoftSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	if (state.enabled && state.cursorValid && !state.cursorText.isEmpty())
 	{
 		QFont pillFont(tokens.fontFamily);
-		pillFont.setPointSizeF(7.5);
+		pillFont.setPointSizeF(8.5);
 		pillFont.setWeight(QFont::DemiBold);
 		const QFontMetricsF pillMetrics(pillFont);
 		const qreal pillH = 18.0;

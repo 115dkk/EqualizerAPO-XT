@@ -41,7 +41,7 @@ void MinimalSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobStat
 
 	QFont numberFont(tokens.monoFontFamily);
 	numberFont.setBold(true);
-	numberFont.setPointSizeF(9.0);
+	numberFont.setPointSizeF(10.0);
 
 	QPointF arcCenter;
 	QRectF numberRect;
@@ -116,7 +116,7 @@ void MinimalSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobStat
 		// The real value sits in the adjacent scrub box, so a percentage is
 		// the only honest readout for log-scaled legacy dials.
 		QFont readoutFont(tokens.monoFontFamily);
-		readoutFont.setPointSizeF(7.5);
+		readoutFont.setPointSizeF(8.5);
 		painter.setFont(readoutFont);
 		painter.setPen(state.dragging ? active : secondary);
 		const QRectF readoutRect(rect.left(), rect.bottom() - 14.0, rect.width(), 14.0);
@@ -178,7 +178,7 @@ void MinimalSkin::paintSegmentedControl(QPainter& painter, const SegmentedContro
 	// and weight here, never size). A cramped cell shrinks the type the way the
 	// knob's figure does - never clipped - and only elides at the floor.
 	QFont font(tokens.monoFontFamily);
-	font.setPointSizeF(9.0);
+	font.setPointSizeF(10.0);
 	font.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	const double cellWidth = state.segmentRect(0).width();
 	const auto widestWord = [&words](const QFont& probe) {

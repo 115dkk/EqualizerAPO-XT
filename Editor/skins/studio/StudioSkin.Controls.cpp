@@ -260,7 +260,7 @@ void StudioSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 	// chosen cell ends in the light's own ink over the translucent fill,
 	// which is the lit glass chip - never inverted text on a solid block.
 	QFont labelFont(tokens.fontFamily);
-	labelFont.setPointSizeF(9.0);
+	labelFont.setPointSizeF(10.0);
 	for (int i = 0; i < state.labels.size(); i++)
 	{
 		const QRectF cell = state.segmentRect(i);

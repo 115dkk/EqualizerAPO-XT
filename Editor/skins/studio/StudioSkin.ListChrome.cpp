@@ -68,7 +68,7 @@ void StudioSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChr
 
 	// Caption: drawn plus + translated label, centred as one unit.
 	QFont captionFont(tokens.fontFamily);
-	captionFont.setPointSizeF(9.5);
+	captionFont.setPointSizeF(10.5);
 	captionFont.setWeight(QFont::DemiBold);
 	const QFontMetricsF metrics(captionFont);
 	const double plusRadius = 4.0;
