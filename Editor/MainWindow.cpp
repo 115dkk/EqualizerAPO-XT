@@ -165,7 +165,7 @@ MainWindow::MainWindow(QDir configDir, const UpdateSession* updateSession, QWidg
 	ui->analysisControlBar->setAttribute(Qt::WA_StyledBackground, true);
 	for (QLabel* label : { ui->startFromLabel, ui->analysisChannelLabel, ui->resolutionLabel })
 		label->setObjectName(QStringLiteral("AnalysisFormLabel"));
-	// Ignored rather than Preferred: these sit in a bar capped at 250px, and a
+	// Ignored rather than Preferred: these sit in a bar capped at 280px, and a
 	// combo's own size hint is its widest item plus the drop-down and whatever
 	// padding the active skin gives it. That hint has always been larger than
 	// the column can offer, so the layout laid them out at their minimum and

@@ -132,7 +132,7 @@ void MatrixSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState
 		if (!state.valueText.isEmpty())
 		{
 			QFont monoFont(tokens.monoFontFamily);
-			monoFont.setPointSizeF(7.5);
+			monoFont.setPointSizeF(8.5);
 			monoFont.setBold(true);
 			const QFontMetrics metrics(monoFont);
 			const int cellWidth = qMin(rect.width(), metrics.horizontalAdvance(state.valueText) + 12);
@@ -291,7 +291,7 @@ void MatrixSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 		// position and light, never from size), all caps, elided rather than
 		// squeezed.
 		QFont cellFont(tokens.monoFontFamily);
-		cellFont.setPointSizeF(7.5);
+		cellFont.setPointSizeF(8.5);
 		cellFont.setWeight(QFont::DemiBold);
 		cellFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
 		painter.setFont(cellFont);

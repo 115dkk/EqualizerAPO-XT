@@ -175,7 +175,7 @@ void ISkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeSt
 
 	painter.setPen(QColor(state.hovered || state.pressed ? tokens.accent : tokens.mutedText));
 	QFont font(tokens.fontFamily);
-	font.setPointSizeF(9.5);
+	font.setPointSizeF(10.5);
 	font.setWeight(QFont::DemiBold);
 	painter.setFont(font);
 	painter.drawText(rect, Qt::AlignCenter, QStringLiteral("+  ") + state.label);
@@ -201,7 +201,7 @@ void ISkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& stat
 	painter.fillRect(state.rect, ground);
 
 	QFont labelFont(tokens.monoFontFamily);
-	labelFont.setPointSizeF(7.5);
+	labelFont.setPointSizeF(8.5);
 	painter.setFont(labelFont);
 
 	for (const GraphicEQPlotState::GridLine& line : state.vertical)

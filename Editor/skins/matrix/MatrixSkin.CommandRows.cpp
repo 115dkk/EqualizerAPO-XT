@@ -274,7 +274,7 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 			const QString reading = QStringLiteral("= ")
 				+ (info.evalText.isEmpty() ? QStringLiteral("ERR") : info.evalText);
 			QFont mono(tokens.monoFontFamily);
-			mono.setPointSizeF(7.5);
+			mono.setPointSizeF(8.5);
 			mono.setBold(true);
 			const QFontMetrics metrics(mono);
 			// The button train lives in the fixed column after the coordinate

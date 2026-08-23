@@ -175,7 +175,7 @@ void MinimalSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Co
 		return;
 
 	QFont font(tokens.monoFontFamily);
-	font.setPointSizeF(9.0);
+	font.setPointSizeF(10.0);
 	font.setBold(bold);
 	painter.setFont(font);
 	painter.setPen(ink);

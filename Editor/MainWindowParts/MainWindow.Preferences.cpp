@@ -437,7 +437,7 @@ void MainWindow::applyRedesignPreferences()
 	ui->analysisDockLayout->setDirection(dockOnRight
 		? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight);
 
-	// Beside a top/bottom graph this is intentionally a compact 250px settings
+	// Beside a top/bottom graph this is intentionally a compact 280px settings
 	// cell. Above a right-side graph that cap made the controls look like a
 	// clipped header stranded on the left. Let the same form fill the dock in
 	// that orientation, while preserving the compact horizontal layout.
@@ -445,7 +445,7 @@ void MainWindow::applyRedesignPreferences()
 	controlPolicy.setHorizontalPolicy(dockOnRight ? QSizePolicy::Expanding : QSizePolicy::Maximum);
 	ui->analysisControlBar->setSizePolicy(controlPolicy);
 	ui->analysisControlBar->setMaximumWidth(dockOnRight
-		? QWIDGETSIZE_MAX : GUIHelper::scale(250.0));
+		? QWIDGETSIZE_MAX : GUIHelper::scale(280.0));
 
 	// The horizontal graph asks for 960px, which is a useful bottom-dock hint
 	// but a disastrous right-dock width: QMainWindow otherwise grants almost

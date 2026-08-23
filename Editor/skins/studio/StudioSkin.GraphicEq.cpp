@@ -50,7 +50,7 @@ void StudioSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 	// Margin labels: the in-between ticks' labels recede one step
 	// further than the majors.
 	QFont labelFont(tokens.monoFontFamily);
-	labelFont.setPointSizeF(7.5);
+	labelFont.setPointSizeF(8.5);
 	painter.setFont(labelFont);
 	for (const GraphicEQPlotState::GridLine& line : state.vertical)
 	{

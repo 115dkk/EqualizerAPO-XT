@@ -96,7 +96,7 @@ void RackSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	// Axis figures: etched in the glass margins in segment ink (numerals,
 	// never translated). Majors read a step brighter than minors.
 	QFont axisFont(tokens.monoFontFamily);
-	axisFont.setPointSizeF(7.0);
+	axisFont.setPointSizeF(8.0);
 	axisFont.setBold(true);
 	painter.setFont(axisFont);
 	const QColor axisInk = powered ? segmentDim : segmentOff;
@@ -222,7 +222,7 @@ void RackSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState& s
 	if (powered && state.cursorValid && !state.cursorText.isEmpty())
 	{
 		QFont readoutFont(tokens.monoFontFamily);
-		readoutFont.setPointSizeF(7.5);
+		readoutFont.setPointSizeF(8.5);
 		readoutFont.setBold(true);
 		painter.setFont(readoutFont);
 		painter.setPen(segmentBright);

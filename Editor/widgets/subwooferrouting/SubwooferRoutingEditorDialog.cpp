@@ -171,7 +171,7 @@ QDoubleSpinBox* frequencySpinBox(QWidget* parent)
 	spinBox->setSuffix(SubwooferRoutingEditorDialog::tr(" Hz"));
 	// The crossover rows budget their width explicitly so frequency,
 	// slope, delay and polarity all stay on one visible line.
-	spinBox->setFixedWidth(110);
+	spinBox->setFixedWidth(124);
 	return spinBox;
 }
 
@@ -184,7 +184,7 @@ QDoubleSpinBox* delaySpinBox(QWidget* parent)
 	spinBox->setSuffix(SubwooferRoutingEditorDialog::tr(" ms"));
 	spinBox->setToolTip(SubwooferRoutingEditorDialog::tr(
 		"Path delay applied after the crossover sections"));
-	spinBox->setFixedWidth(100);
+	spinBox->setFixedWidth(112);
 	return spinBox;
 }
 
@@ -329,7 +329,7 @@ SubwooferRoutingEditorDialog::SubwooferRoutingEditorDialog(
 	setWindowTitle(tr("Subwoofer Routing Editor"));
 	// Wide enough that the label-sized routing matrices of a 4.1 state keep
 	// every column on screen under every skin's fonts.
-	resize(1360, 780);
+	resize(1360, 810);
 	DialogChrome::attach(this);
 
 	QVBoxLayout* outerLayout = new QVBoxLayout(this);

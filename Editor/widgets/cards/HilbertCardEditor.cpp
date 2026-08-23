@@ -184,7 +184,7 @@ private:
 		QLineEdit* add = new QLineEdit(container);
 		add->setObjectName(QStringLiteral("ChannelChipAdd"));
 		add->setPlaceholderText(tr("Add channel"));
-		add->setMaximumWidth(110);
+		add->setMaximumWidth(124);
 		add->setMinimumHeight(40);
 		add->setEnabled(!all);
 		connect(add, &QLineEdit::returnPressed, this, [this, add]() {
