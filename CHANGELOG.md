@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.41.4 — 2026-08-23
+
 - **The legacy rows offer real channels in a VST row's channel fill again.**
   Under the heritage (legacy rows) presentation, every fill dropdown of a VST
   row listed only "Silence (-)" / "Discard (-)", while the card presentation
