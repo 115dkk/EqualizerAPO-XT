@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Four skins' light modes are less bright.** After a report that the light
+  backgrounds glare, every near-white surface steps down - deepest in Studio
+  and Minimal, mid-step in Signal Matrix, a mild step in Soft (the
+  maintainer's picks from the judged mockups). Rack's light mode is untouched
+  for now: the same mechanical step turned its warm cream yellow, and a
+  corrected variant is still being judged
+  ([#302](https://github.com/115dkk/EqualizerAPO-XT/pull/302)).
 - **Larger, heavier type in every skin.** Every text size in the editor is up
   one step (body 10pt to 11pt, the smallest labels 7pt to 8pt) and body text
   renders in the Medium weight instead of Regular, after a report that the
