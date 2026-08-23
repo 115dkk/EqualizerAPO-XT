@@ -12,6 +12,7 @@
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 #include "guis/VSTPluginFilterGUI.h"
+#include "widgets/cards/VSTSlotFillRail.h"
 #include "MainWindow.h"
 #include "diagnostics/ToolbarPixelProbe.h"
 #include "widgets/MainToolbarKit.h"
@@ -2587,6 +2588,121 @@ int SkinGallery::runVstRoundTripSelfTest()
 	}
 
 	fprintf(stderr, "[VST selftest] %s (%d failure(s))\n", failures == 0 ? "PASS" : "FAIL", failures);
+	return failures == 0 ? 0 : 1;
+}
+
+int SkinGallery::runVstFillSelfTest()
+{
+	// A 7.1 endpoint (the layout Windows offers for the field setup); the
+	// row itself negotiates Stereo in / 5.1 out like a stereo upmixer. Each
+	// case lists the rows above the VST row and the channels its fill menus
+	// must offer: the device set, a Channel row's narrowed selection, and
+	// the device set again when that Channel row is powered off (the engine
+	// skips commented lines).
+	struct Case { const char* name; QList<QString> rowsAbove; QStringList expected; };
+	const QStringList deviceChannels = {
+		QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"), QStringLiteral("LFE"),
+		QStringLiteral("RL"), QStringLiteral("RR"), QStringLiteral("SL"), QStringLiteral("SR")};
+	const Case cases[] = {
+		{ "device", {}, deviceChannels },
+		{ "channel-narrowed", { QStringLiteral("Channel: L R") },
+		  { QStringLiteral("L"), QStringLiteral("R") } },
+		{ "channel-commented", { QStringLiteral("# Channel: L R") }, deviceChannels }
+	};
+	const QString vstLine = QStringLiteral("VSTPlugin: Library example.vst3 Input Stereo Output 5.1");
+
+	int failures = 0;
+	for (const Case& c : cases)
+	{
+		for (int modeIndex = 0; modeIndex < 2; modeIndex++)
+		{
+			const bool legacy = modeIndex == 1;
+			const QByteArray label = QByteArray(c.name) + (legacy ? "/legacy" : "/cards");
+			QScrollArea scrollArea;
+			scrollArea.setWidgetResizable(true);
+			scrollArea.resize(960, 720);
+			FilterTable* table = new FilterTable();
+			table->setRenderMode(legacy ? FilterTable::LegacyRows : FilterTable::ModernCards);
+			scrollArea.setWidget(table);
+			QList<std::shared_ptr<AbstractAPOInfo>> outputDevices, inputDevices;
+			galleryDevices(outputDevices, inputDevices);
+			std::shared_ptr<AbstractAPOInfo> device =
+				std::make_shared<GalleryAPOInfo>(L"Speakers", L"Example Audio", false, true, 8, 0x63F);
+			table->updateDeviceAndChannelMask(device, 0x63F);
+			table->initialize(&scrollArea, outputDevices, inputDevices);
+			QList<QString> lines = c.rowsAbove;
+			lines.append(vstLine);
+			table->setLines(QString(), lines);
+			table->updateGuis();
+			scrollArea.show();
+			QApplication::processEvents();
+
+			// Both presentations report the menu of every slot; the cards
+			// path through the rail cells, the legacy row through its combos
+			// after the fold latch is opened (a defaulted fill starts folded,
+			// exactly as the field report found it).
+			QList<QStringList> menus;
+			if (legacy)
+			{
+				VSTPluginFilterGUI* gui = table->findChild<VSTPluginFilterGUI*>();
+				if (gui == nullptr)
+				{
+					fprintf(stderr, "[VST fill selftest] %s: no VSTPluginFilterGUI row\n", label.constData());
+					failures++;
+					continue;
+				}
+				QCheckBox* latch = gui->findChild<QCheckBox*>();
+				if (latch != nullptr && !latch->isChecked())
+					latch->setChecked(true);
+				QApplication::processEvents();
+				for (QComboBox* combo : gui->findChildren<QComboBox*>())
+				{
+					if (!combo->objectName().isEmpty())
+						continue;
+					QStringList items;
+					for (int i = 0; i < combo->count(); i++)
+						items.append(combo->itemData(i).toString());
+					menus.append(items);
+				}
+			}
+			else
+			{
+				for (VSTSlotFillCell* cell : table->findChildren<VSTSlotFillCell*>())
+					menus.append(cell->channelChoices());
+			}
+
+			// Stereo in + 5.1 out: two input slots and six output slots.
+			if (menus.size() != 8)
+			{
+				fprintf(stderr, "[VST fill selftest] %s: expected 8 slot menus, found %d\n",
+					label.constData(), int(menus.size()));
+				failures++;
+				continue;
+			}
+			bool ok = true;
+			for (const QStringList& menu : menus)
+			{
+				QStringList channels = menu;
+				channels.removeAll(QStringLiteral("-"));
+				if (channels != c.expected)
+					ok = false;
+			}
+			if (!ok)
+			{
+				failures++;
+				fprintf(stderr, "[VST fill selftest] %s: expected %s, menus offer:\n", label.constData(),
+					c.expected.join(QLatin1Char(',')).toUtf8().constData());
+				for (const QStringList& menu : menus)
+					fprintf(stderr, "    %s\n", menu.join(QLatin1Char(',')).toUtf8().constData());
+			}
+			else
+			{
+				fprintf(stderr, "[VST fill selftest] %s: OK (%s)\n", label.constData(),
+					c.expected.join(QLatin1Char(',')).toUtf8().constData());
+			}
+		}
+	}
+	fprintf(stderr, "[VST fill selftest] %s (%d failure(s))\n", failures == 0 ? "PASS" : "FAIL", failures);
 	return failures == 0 ? 0 : 1;
 }
 

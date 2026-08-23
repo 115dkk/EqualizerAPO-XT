@@ -99,6 +99,13 @@ void VSTSlotFillCell::setChannelChoices(const QStringList& names)
 	choices = names;
 }
 
+QStringList VSTSlotFillCell::channelChoices() const
+{
+	QStringList menu = choices;
+	menu.append(QStringLiteral("-"));
+	return menu;
+}
+
 QSize VSTSlotFillCell::sizeHint() const
 {
 	return QSize(cellWidth(role, value), cellHeight());

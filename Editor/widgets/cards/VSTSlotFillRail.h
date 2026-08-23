@@ -35,6 +35,9 @@ public:
 	void setContent(const QString& role, const QString& value,
 		bool silent, bool defaulted, bool missing);
 	void setChannelChoices(const QStringList& names);
+	// The menu this cell would open: the selected channels in order, then
+	// the silence/discard entry ("-"). Read by the --selftest-vst fill gate.
+	QStringList channelChoices() const;
 
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;

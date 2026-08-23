@@ -59,6 +59,26 @@ void CommentFilterGUI::configureChannels(vector<wstring>& channelNames)
 	}
 }
 
+void CommentFilterGUI::configureSelectedChannels(vector<wstring>& selectedChannels)
+{
+	// Every legacy row sits behind this decorator, so a missing forward here
+	// left the whole LegacyRows presentation without the selection flow: a
+	// VST row's channel fill offered nothing but silence, and a Channel row
+	// could not narrow the rows below it. Same rule as configureChannels: a
+	// powered-off line still sees the selection (its controls stay
+	// meaningful) but cannot change what flows on, because the engine skips
+	// commented lines.
+	if (ui->actionPowerOn->isChecked())
+	{
+		child->configureSelectedChannels(selectedChannels);
+	}
+	else
+	{
+		vector<wstring> copy = selectedChannels;
+		child->configureSelectedChannels(copy);
+	}
+}
+
 void CommentFilterGUI::store(QString& command, QString& parameters)
 {
 	child->store(command, parameters);
