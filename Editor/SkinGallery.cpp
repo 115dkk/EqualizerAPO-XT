@@ -63,6 +63,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolBar>
+#include <QTranslator>
 #include <QTreeView>
 #include <QUrl>
 
@@ -2488,6 +2489,20 @@ int run(const QStringList& arguments)
 	{
 		for (ISkin* skin : Skins::all())
 			skinIds.append(skin->id());
+	}
+
+	// The gallery renders untranslated English by default (deterministic
+	// output for the pixel gates). EAPO_GALLERY_LANG installs a shipped
+	// catalog instead, for judging translated typography - the type-scale
+	// round asked how the Korean strings read under the new sizes.
+	const QByteArray galleryLang = qgetenv("EAPO_GALLERY_LANG").trimmed();
+	if (!galleryLang.isEmpty())
+	{
+		QTranslator* translator = new QTranslator(qApp);
+		if (translator->load(QStringLiteral(":/translations/Editor_") + QString::fromLatin1(galleryLang)))
+			QCoreApplication::installTranslator(translator);
+		else
+			qWarning("SkinGallery: no catalog for EAPO_GALLERY_LANG=%s", galleryLang.constData());
 	}
 
 	// The reference cards probe target files; the gallery provides synthetic
