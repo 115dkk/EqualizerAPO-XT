@@ -2599,7 +2599,7 @@ int SkinGallery::runVstFillSelfTest()
 	// must offer: the device set, a Channel row's narrowed selection, and
 	// the device set again when that Channel row is powered off (the engine
 	// skips commented lines).
-	struct Case { const char* name; QList<QString> rowsAbove; QStringList expected; };
+	struct Case { const char* name = nullptr; QList<QString> rowsAbove; QStringList expected; };
 	const QStringList deviceChannels = {
 		QStringLiteral("L"), QStringLiteral("R"), QStringLiteral("C"), QStringLiteral("LFE"),
 		QStringLiteral("RL"), QStringLiteral("RR"), QStringLiteral("SL"), QStringLiteral("SR")};
@@ -2667,7 +2667,7 @@ int SkinGallery::runVstFillSelfTest()
 			}
 			else
 			{
-				for (VSTSlotFillCell* cell : table->findChildren<VSTSlotFillCell*>())
+				for (const VSTSlotFillCell* cell : table->findChildren<VSTSlotFillCell*>())
 					menus.append(cell->channelChoices());
 			}
 
