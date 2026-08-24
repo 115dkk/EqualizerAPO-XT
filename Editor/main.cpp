@@ -406,6 +406,8 @@ int main(int argc, char* argv[])
 			SkinThemeData::registerBundledFonts(true);
 		}
 
+		if (application.arguments().contains(QStringLiteral("--scroll-bench")))
+			return SkinGallery::runScrollBench();
 		if (application.arguments().contains(QStringLiteral("--power-toggle-test")))
 			return SkinGallery::runPowerToggleTest();
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))

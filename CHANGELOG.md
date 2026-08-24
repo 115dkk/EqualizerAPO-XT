@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Scrolling a maximized window is smooth in the Rack skin again.** The
+  brushed-metal grain was drawn as hundreds of full-width translucent
+  hairlines on every repaint, which made a wheel step on a maximized QHD
+  window cost ~195 ms; it is now a cached one-pixel tile stretched in a
+  single blit (~39 ms, in line with the other skins)
+  ([#305](https://github.com/115dkk/EqualizerAPO-XT/pull/305)).
 ## v2.42.1 — 2026-08-24
 
 - **Parametric filter rows have their knob editor back.** Since v2.37.3 every
