@@ -80,7 +80,11 @@ QToolButton {
     padding: 3px 8px; min-height: 22px;
 }
 QToolButton:hover { background: @CARD_HOVER@; border: 1px solid @BORDER@; }
-QToolButton:pressed, QToolButton:checked { background: #2a3a55; border: 1px solid @ACCENT@; }
+QToolButton:pressed { background: #2a3a55; border: 1px solid @ACCENT@; }
+/* Checked without press is a persistent record, not an activity: an
+   achromatic step and the body-ink border (accent only while active;
+   maintainer re-ruling 2026-08-24). */
+QToolButton:checked { background: @CARD_HOVER@; border: 1px solid @TEXT@; }
 QToolButton::menu-indicator { image: none; width: 0; height: 0; }
 
 QLabel#ToolBarLabel {
@@ -470,7 +474,10 @@ QToolButton#FilterCardIconButton {
     padding: 2px 4px; font-weight: 700;
 }
 QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color: @ACCENT@; }
-QToolButton#FilterCardIconButton:checked { background: #1a3358; border-color: @ACCENT@; }
+/* Checked is a persistent record, not an activity: an achromatic ground
+   step and the body-ink border, no accent (accent only while active;
+   maintainer re-ruling 2026-08-24). */
+QToolButton#FilterCardIconButton:checked { background: @CARD_HOVER@; border-color: @TEXT@; }
 QLineEdit#FilterCardRawEditor {
     background: #0e0e0e; border: 1px solid @ACCENT@;
     border-radius: 0; padding: 4px 8px;
@@ -742,13 +749,12 @@ QLabel#MultiConvolutionMappingCaption {
    One chip grammar, three legal registers of type. A chip is a DM Mono
    token in a 1px hairline box (radius 0). State keeps to the value
    ladder (rule 3): rest = card, hover = exactly one step up, inert =
-   melted one step down into the strip, and SELECTION is the accent-
-   family value step cardSelected #2A4878 (tokens.cardSelected,
-   MinimalSkin.cpp) plus the accent hairline - the same treatment
-   cardFrameStyle gives a selected row. The inverted block stays where
-   the constitution keeps it (pickers, transient cursors); the only
-   inversion in these cards is DeviceChipMore's :pressed instant, the
-   engraved-command canon. Kind rides line and letter, never hue: a
+   melted one step down into the strip, and SELECTION is the reverse
+   video (ink and ground swapped outright), the console's bluntest
+   marker and since the 2026-08-24 re-ruling the one selection canon of
+   this sheet - the Device chips held it first, the Channel/Stage chips
+   and the row cursor joined it when the blue cardSelected step retired
+   ("accent only while active"). Kind rides line and letter, never hue: a
    dashed hairline means "no verified substance behind this token"
    (APO not installed / virtual channel / unknown selector). Registers
    stay inside the typography law - uppercase + tracking, weight,
@@ -822,16 +828,15 @@ QToolButton#DeviceChip:hover, QToolButton#ChannelChip:hover,
 QToolButton#StageChip:hover {
     background: @CARD_HOVER@;
 }
-/* Selection (Channel/Stage): the accent-family value step (rule 3,
-   cardSelected #2A4878 = tokens.cardSelected, hardcoded the way this
-   sheet already hardcodes its accent-family steps) + the accent
-   hairline. The press instant previews the selection it is about to
-   commit - the sheet's own QToolButton:pressed/:checked pairing. A
-   solid edge always sits under the cursor, so dashes never read
-   through it. */
+/* Selection (Channel/Stage): the terminal's reverse video, the same
+   canon the Device chips already hold - ink and ground swap outright,
+   no third color (the old cardSelected blue broke "accent only while
+   active"; maintainer re-ruling 2026-08-24). The press instant previews
+   the selection it is about to commit. A solid edge always sits under
+   the cursor, so dashes never read through it. */
 QToolButton#ChannelChip:pressed, QToolButton#StageChip:pressed,
 QToolButton#ChannelChip:checked, QToolButton#StageChip:checked {
-    background: #2A4878; color: @TEXT@; border: 1px solid @ACCENT@;
+    background: @TEXT@; color: @SURFACE@; border: 1px solid @TEXT@;
 }
 /* Selection (Device): a routed endpoint is the console's current
    selection, so it takes the terminal's reverse video - the
@@ -861,13 +866,12 @@ QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
 QToolButton#ChannelChip[customChannel="true"]:disabled {
     border: 1px dashed @BORDER@;
 }
-/* Selected but inert (a stored selection while ALL rules): the
-   cardSelected ground survives as the record; ink and border retire
-   with the activity (accent only while active). Last on purpose: it
-   wins the 121-tie against the dashed inert-kind rule, so a stored
-   selection reads selected first. */
+/* Selected but inert (a stored selection while ALL rules): the reverse
+   block dims to the muted ink but the swap survives as the record.
+   Last on purpose: it wins the 121-tie against the dashed inert-kind
+   rule, so a stored selection reads selected first. */
 QToolButton#ChannelChip:checked:disabled, QToolButton#StageChip:checked:disabled {
-    background: #2A4878; color: @MUTED@; border: 1px solid @BORDER@;
+    background: @MUTED@; color: @SURFACE@; border: 1px solid @BORDER@;
 }
 /* Device stored selection while inert: the reverse video dims to a
    muted block - still unmistakably inverted, no longer the live

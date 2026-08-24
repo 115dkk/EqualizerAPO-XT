@@ -475,6 +475,13 @@ public:
 	// info carries the lane geometry (cardLeft, laneCount, laneCenter).
 	virtual bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info, const SkinTokens& tokens) const;
 
+	// One channel-scope token in a card header (the "Channel:'s influence"
+	// badges). Return true to replace ChBadge's shared chip painting; the
+	// neutral default keeps it, so every skin stays pixel-identical until
+	// it answers. virtualChannel marks a Copy-created (unverified) name.
+	virtual bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+		bool virtualChannel, const SkinTokens& tokens) const;
+
 	// Layout policy for the If family's branch/tail rows (ElseIf/Else/EndIf):
 	// true indents them with the block members (logicDepth) instead of at
 	// their head's level, so a painted scope lane in the gutter passes them

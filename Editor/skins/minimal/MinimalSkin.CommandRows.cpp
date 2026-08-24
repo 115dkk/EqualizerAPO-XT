@@ -12,6 +12,8 @@
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "Editor/skins/minimal/MinimalChannelInk.h"
+#include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "Editor/widgets/FilterCardModel.h"
 
 namespace
@@ -48,11 +50,16 @@ QString MinimalSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens
 	// one step below the resting card; a line a false If branch swallowed
 	// takes the same step down (to the engine both are dead code). The
 	// '#' glyph and the readout column keep skipped and commented apart.
+	//
+	// Cursor and marks are achromatic (maintainer, 2026-08-24: the blue
+	// cardSelected step and the accent frame broke "accent only while
+	// active"): the focused row - the list cursor - and every marked row
+	// take a body-ink hairline, nothing is filled, and the cursor's row
+	// number goes reverse video in cardHeaderStyle below. Accent ink now
+	// appears in the list only while a control is actually being worked.
 	const bool sunken = !info.enabled || info.lineSkipped;
-	const QString background = sunken ? tokens.surface
-		: (info.selected ? tokens.cardSelected : tokens.card);
-	const QString borderColor = info.focused ? tokens.focusRing
-		: (info.selected ? tokens.accent : tokens.border);
+	const QString background = sunken ? tokens.surface : tokens.card;
+	const QString borderColor = info.focused || info.selected ? tokens.text : tokens.border;
 	QString style = QStringLiteral("QFrame#FilterCardRow { background: %1; border: 1px solid %2; border-radius: 0; }")
 		.arg(background, borderColor);
 	if (!info.selected)
@@ -62,11 +69,44 @@ QString MinimalSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens
 	}
 	return style;
 }
-QString MinimalSkin::cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) const
+QString MinimalSkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
 	// No separate header plate: the row reads as a single text line, so
 	// the header inherits the frame's background through transparency.
-	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0; }");
+	QString style = QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0; }");
+	// The list cursor is the terminal's reverse-video block, printed on the
+	// row number - the bluntest marker a text instrument has (the same
+	// canon the picker and the Device chips already follow).
+	if (info.focused)
+	{
+		style += QStringLiteral(" QLabel#FilterCardNumber { background: %1; color: %2; }")
+			.arg(tokens.text, tokens.background);
+	}
+	return style;
+}
+
+bool MinimalSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+	bool virtualChannel, const SkinTokens& tokens) const
+{
+	// Terminal print, not a GUI chip (maintainer, 2026-08-24): the header's
+	// channel-scope tokens follow the Copy listing's grammar - the designed
+	// console ink on bare ground, uppercase mono, no pill chrome. Virtual
+	// channels keep the dashed frame (the unverified-token dash grammar).
+	const QColor ink = minimalChannelInk(
+		QColor(CopyRoutingAdapter::channelColor(channel)), skinIsDark(tokens));
+	QFont font(tokens.monoFontFamily);
+	font.setPointSizeF(9.5);
+	font.setBold(true);
+	painter.setFont(font);
+	painter.setPen(ink);
+	painter.drawText(rect, Qt::AlignCenter, channel);
+	if (virtualChannel)
+	{
+		painter.setPen(QPen(ink, 1.0, Qt::DashLine));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(QRectF(rect).adjusted(1.5, 2.5, -1.5, -2.5));
+	}
+	return true;
 }
 void MinimalSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 	const SkinTokens& tokens) const
