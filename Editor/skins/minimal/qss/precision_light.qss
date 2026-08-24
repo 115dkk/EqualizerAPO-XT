@@ -69,7 +69,11 @@ QToolBar { background: @SURFACE@; border: 0; border-bottom: 1px solid @BORDER@; 
 QToolBar::separator { background: @BORDER@; width: 1px; margin: 4px 6px; }
 QToolButton { background: transparent; color: @TEXT@; border: 1px solid transparent; border-radius: 0; padding: 3px 8px; min-height: 22px; }
 QToolButton:hover { background: #d8d8d8; border: 1px solid @BORDER@; }
-QToolButton:pressed, QToolButton:checked { background: #C2D3F0; border: 1px solid @ACCENT@; }
+QToolButton:pressed { background: #C2D3F0; border: 1px solid @ACCENT@; }
+/* Checked without press is a persistent record, not an activity: an
+   achromatic step and the body-ink border (accent only while active;
+   maintainer re-ruling 2026-08-24). */
+QToolButton:checked { background: @CARD_HOVER@; border: 1px solid @TEXT@; }
 QToolButton::menu-indicator { image: none; width: 0; height: 0; }
 
 QLabel#ToolBarLabel { color: @MUTED@; background: transparent; padding: 0 4px 0 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
@@ -421,7 +425,10 @@ QToolButton#FilterCardIconButton {
     min-width: 24px; min-height: 24px; padding: 2px 4px; font-weight: 700;
 }
 QToolButton#FilterCardIconButton:hover { background: #DADADA; border-color: @ACCENT@; }
-QToolButton#FilterCardIconButton:checked { background: #C2D3F0; border-color: @ACCENT@; }
+/* Checked is a persistent record, not an activity: an achromatic ground
+   step and the body-ink border, no accent (accent only while active;
+   maintainer re-ruling 2026-08-24). */
+QToolButton#FilterCardIconButton:checked { background: @CARD_HOVER@; border-color: @TEXT@; }
 QLineEdit#FilterCardRawEditor { background: #E0E0E0; border: 1px solid @ACCENT@; border-radius: 0; padding: 4px 8px; }
 QCheckBox#FilterCardEnabled { background: transparent; }
 
@@ -690,10 +697,11 @@ QLabel#MultiConvolutionMappingCaption {
 /* ====================================================================
    Scope and note cards (Device / Channel / Stage / Comment),
    printed. Identical grammar to the dark console: boxed mono tokens on
-   the paper, SELECTION as the accent-family value step cardSelected
-   #BDD7FF (tokens.cardSelected, MinimalSkin.cpp) plus the accent
-   hairline - the selected row's own treatment - and a dashed hairline
-   for "no verified substance". Registers stay inside the typography
+   the paper, SELECTION as the printed reverse video (ink and ground
+   swapped outright; the one selection canon of this sheet since the
+   2026-08-24 re-ruling - the blue cardSelected step retired), and a
+   dashed hairline for "no verified substance". Registers stay inside
+   the typography
    law (uppercase + tracking, weight, brightness; no italic - the
    bundled DM Mono has no italic face). One palette divergence: this
    sheet has surface == card == #E0E0E0, so "inert = one step below
@@ -755,13 +763,14 @@ QToolButton#DeviceChip:hover, QToolButton#ChannelChip:hover,
 QToolButton#StageChip:hover {
     background: @CARD_HOVER@;
 }
-/* Selection (Channel/Stage): the accent-family value step (rule 3,
-   cardSelected #BDD7FF = tokens.cardSelected) + the accent hairline;
-   the press instant previews it (the sheet's QToolButton:pressed/
-   :checked pairing). A solid edge always sits under the cursor. */
+/* Selection (Channel/Stage): the printed reverse video, the same canon
+   the Device chips already hold - ink and ground swap outright, no
+   third color (the old cardSelected blue broke "accent only while
+   active"; maintainer re-ruling 2026-08-24). The press instant
+   previews the selection it is about to commit. */
 QToolButton#ChannelChip:pressed, QToolButton#StageChip:pressed,
 QToolButton#ChannelChip:checked, QToolButton#StageChip:checked {
-    background: #BDD7FF; color: @TEXT@; border: 1px solid @ACCENT@;
+    background: @TEXT@; color: @SURFACE@; border: 1px solid @TEXT@;
 }
 /* Selection (Device): a routed endpoint is the console's current
    selection, so it takes the printed reverse video - the
@@ -788,11 +797,11 @@ QToolButton#DeviceChip[deviceInstalled="false"]:disabled,
 QToolButton#ChannelChip[customChannel="true"]:disabled {
     border: 1px dashed @BORDER@;
 }
-/* Selected but inert: the cardSelected ground survives as the record;
-   ink and border retire with the activity. Last on purpose (wins the
-   121-tie against the dashed inert-kind rule). */
+/* Selected but inert: the reverse block dims to the muted ink but the
+   swap survives as the record. Last on purpose (wins the 121-tie
+   against the dashed inert-kind rule). */
 QToolButton#ChannelChip:checked:disabled, QToolButton#StageChip:checked:disabled {
-    background: #BDD7FF; color: @MUTED@; border: 1px solid @BORDER@;
+    background: @MUTED@; color: @SURFACE@; border: 1px solid @BORDER@;
 }
 /* Device stored selection while inert: the reverse video dims to a
    muted block - still inverted, no longer the live cursor. */

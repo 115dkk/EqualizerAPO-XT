@@ -89,6 +89,17 @@ void ISkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& sta
 	}
 }
 
+bool ISkin::paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+	bool virtualChannel, const SkinTokens& tokens) const
+{
+	Q_UNUSED(painter);
+	Q_UNUSED(rect);
+	Q_UNUSED(channel);
+	Q_UNUSED(virtualChannel);
+	Q_UNUSED(tokens);
+	return false;
+}
+
 QString ISkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
 	const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);

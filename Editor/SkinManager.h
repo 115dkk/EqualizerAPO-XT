@@ -68,6 +68,8 @@ public:
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info) const;
+	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
+		bool virtualChannel) const;
 	bool logicSiblingsIndentAsMembers() const;
 
 	// List-level insertion chrome, delegated to the active skin (see

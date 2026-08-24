@@ -15,6 +15,7 @@ SOURCES += \
 
 HEADERS += \
 	$$PWD/MinimalSkin.h \
+	$$PWD/MinimalChannelInk.h \
 	$$PWD/picker/MinimalFilterPicker.h \
 	$$PWD/cards/MinimalReferenceCardView.h \
 	$$PWD/cards/MinimalSubwooferRoutingCardView.h \
