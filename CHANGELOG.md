@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.42.0 — 2026-08-24
+
 - **The card header's controls sit in a fixed column at the left.** Power,
   `+`, `-` and the raw-line editor used to be pushed to the far right edge of
   the window, a long glance away from the content on a wide screen. They now
