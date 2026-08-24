@@ -2769,6 +2769,58 @@ int SkinGallery::runVstFillSelfTest()
 	return failures == 0 ? 0 : 1;
 }
 
+int SkinGallery::runScrollBench()
+{
+	qWarning("ScrollBench: starting");
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+		return 2;
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+		return 2;
+
+	QList<QString> lines;
+	for (int repeat = 0; repeat < 6; repeat++)
+		for (const GalleryRow& row : galleryRows())
+			lines.append(row.line);
+
+	for (ISkin* skin : Skins::all())
+	{
+		QScrollArea scrollArea;
+		// A maximized QHD editor: the card column is ~2500 px wide.
+		scrollArea.resize(2560, 1300);
+		SkinManager::instance()->applySkin(skin->id(), true);
+		buildRows(scrollArea, configPath, lines);
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr)
+			continue;
+		table->openConfig(QString());
+		QApplication::processEvents();
+
+		QScrollBar* bar = scrollArea.verticalScrollBar();
+		bar->setValue(0);
+		QApplication::processEvents();
+		// Force real rasterization per step: grab() renders the viewport
+		// through the same paint path the screen would use.
+		QElapsedTimer timer;
+		timer.start();
+		int steps = 0;
+		for (int value = 0; value <= bar->maximum() && steps < 40; value += 120, steps++)
+		{
+			bar->setValue(value);
+			QApplication::processEvents();
+			scrollArea.viewport()->grab();
+		}
+		const qint64 elapsed = timer.elapsed();
+		qWarning("ScrollBench: %s %d steps in %lld ms (%.1f ms/step)",
+			qPrintable(skin->id()), steps, static_cast<long long>(elapsed),
+			steps > 0 ? double(elapsed) / steps : 0.0);
+	}
+	std::fflush(nullptr);
+	std::_Exit(0);
+}
+
 int SkinGallery::runPowerToggleTest()
 {
 	qWarning("PowerToggleTest: starting");

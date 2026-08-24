@@ -72,6 +72,11 @@ int runVstFillSelfTest();
 // biquad on left the card collapsed and its body a raw fragment.
 int runPowerToggleTest();
 
+// Entry point behind --scroll-bench: per-skin wall time of wheel-sized
+// scroll steps on a maximized-width viewport, for the "rack lags when
+// maximized" report. Diagnostic, not a CI gate.
+int runScrollBench();
+
 // Entry point behind --analysis-layout-test: arms the timed probe over the
 // live MainWindow (dock geometry, right/bottom relayout, restore) and later
 // exits the event loop with the verdict. Returns false when the required
