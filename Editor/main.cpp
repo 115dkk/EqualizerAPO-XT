@@ -406,6 +406,8 @@ int main(int argc, char* argv[])
 			SkinThemeData::registerBundledFonts(true);
 		}
 
+		if (application.arguments().contains(QStringLiteral("--power-toggle-test")))
+			return SkinGallery::runPowerToggleTest();
 		if (application.arguments().contains(QStringLiteral("--selftest-vst")))
 		{
 			// Both halves always run so one log shows every loss at once.

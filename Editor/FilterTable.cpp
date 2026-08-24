@@ -423,7 +423,19 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 	case RowGuiDecision::RawRow:
 		return nullptr;
 	case RowGuiDecision::CardEditor:
-		return FilterCardEditorFactory::create(this, factoryKey, factoryValue);
+	{
+		IFilterGUI* cardGui = FilterCardEditorFactory::create(this, factoryKey, factoryValue);
+		if (cardGui != nullptr)
+			return cardGui;
+		// The decision only says the registry answers this keyword; the
+		// shared "Filter" creator still returns nullptr on purpose for an
+		// ordinary biquad line (FilterCardEditorRouter - that nullptr is
+		// load-bearing). It has to fall through to the legacy chain like it
+		// did before the policy extraction (audit #275 B4): returning the
+		// nullptr here left every plain "Filter: ON PK/LP/NO ..." row a
+		// collapsed raw fragment with no knob editor.
+		break;
+	}
 	case RowGuiDecision::LegacyChain:
 		break;
 	}

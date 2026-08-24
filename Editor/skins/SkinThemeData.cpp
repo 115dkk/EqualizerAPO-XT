@@ -271,11 +271,19 @@ namespace SkinThemeData
 {
 void registerBundledFonts(bool includeSarasa)
 {
-	static bool commonAdded = false;
-	static bool sarasaAdded = false;
+	// Guarded per QApplication, not per process: the Editor restarts inside
+	// one process (interface-mode and language switches), and destroying the
+	// QApplication drops every registered application font while a plain
+	// static guard stayed true - the run after a legacy-rows round trip came
+	// back with DM Sans / DM Mono / Pretendard missing and every skin fell
+	// back to the system font.
+	static const QCoreApplication* commonOwner = nullptr;
+	static const QCoreApplication* sarasaOwner = nullptr;
+	const bool commonAdded = commonOwner == QCoreApplication::instance();
+	const bool sarasaAdded = sarasaOwner == QCoreApplication::instance();
 	if (!commonAdded)
 	{
-		commonAdded = true;
+		commonOwner = QCoreApplication::instance();
 		const QStringList fonts = {
 			QStringLiteral(":/fonts/DMSans-Regular.ttf"),
 			QStringLiteral(":/fonts/DMSans-Medium.ttf"),
@@ -293,7 +301,7 @@ void registerBundledFonts(bool includeSarasa)
 	}
 	if (includeSarasa && !sarasaAdded)
 	{
-		sarasaAdded = true;
+		sarasaOwner = QCoreApplication::instance();
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Regular.ttf"));
 		QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SarasaMonoK-Bold.ttf"));
 	}

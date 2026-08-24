@@ -21,7 +21,7 @@
 param(
     [Parameter(Mandatory)] [string] $WorkspaceRoot,
     [Parameter(Mandatory)]
-    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection")]
+    [ValidateSet("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle")]
     [string] $Gate,
     [string] $Platform = "x64",
     [switch] $PlanOnly
@@ -92,6 +92,12 @@ $gates = @{
         Arguments  = @("--card-selection-test", (Join-Path $WorkspaceRoot "card-selection"))
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
         LogPath    = Join-Path $WorkspaceRoot "card-selection\card-selection-test.log"
+        PostChecks = @()
+    }
+    "power-toggle" = [pscustomobject]@{
+        Arguments  = @("--power-toggle-test")
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        LogPath    = Join-Path $WorkspaceRoot "power-toggle-test.log"
         PostChecks = @()
     }
 }
