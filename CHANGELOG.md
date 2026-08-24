@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The minimal skin drops its resting blue.** The selected and focused rows,
+  the checked buttons and the engaged Channel/Stage chips all wore blue at
+  rest, against the skin's own "accent only while active" rule. The list
+  cursor now reads as a terminal cursor (ink hairline, reverse-video row
+  number), engagement is the same ink-and-ground swap the Device chips
+  already used, and the header's channel-scope letters print in the same
+  designed console inks as the Copy listing instead of colored chips
+  ([#303](https://github.com/115dkk/EqualizerAPO-XT/pull/303)).
 - **Four skins' light modes are less bright.** After a report that the light
   backgrounds glare, every near-white surface steps down - deepest in Studio
   and Minimal, mid-step in Signal Matrix, a mild step in Soft (the
