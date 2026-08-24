@@ -107,12 +107,14 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	formatCell->setVisible(false);
 	feedLayout->addWidget(formatCell, 0, Qt::AlignVCenter);
 
-	feedLayout->addStretch(1);
-
+	// The action cells follow the codes on the feed line; the stretch
+	// owns the line's tail instead of pushing them to the board's edge.
 	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(4);
 	feedLayout->addLayout(actionLayout);
+
+	feedLayout->addStretch(1);
 
 	root->addWidget(feedLine);
 
@@ -147,9 +149,9 @@ void MatrixReferenceCardView::placeActionButton(ActionRole role, QAbstractButton
 
 void MatrixReferenceCardView::placeBusStrip(QWidget* strip)
 {
-	// The bus cells join the feed line after the type code, before the
-	// stretch: reading order stays marker, place, payload, codes, then the
-	// port formats - and the action cells keep the right edge.
+	// The bus cells join the feed line after the type code: reading order
+	// stays marker, place, payload, codes, then the port formats, then the
+	// action cells; the stretch owns the tail of the line.
 	strip->setParent(contentWidget());
 	feedLayout->insertWidget(feedLayout->indexOf(formatCell) + 1, strip, 0, Qt::AlignVCenter);
 }

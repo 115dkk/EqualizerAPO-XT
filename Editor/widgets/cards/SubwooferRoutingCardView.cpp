@@ -130,6 +130,7 @@ DefaultSubwooferRoutingCardView::DefaultSubwooferRoutingCardView(
 	actionLayout = new QHBoxLayout(actionRow);
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(6);
+	// Trailing: the buttons above insert before this stretch.
 	actionLayout->addStretch(1);
 	root->addWidget(actionRow);
 }
@@ -162,7 +163,9 @@ void DefaultSubwooferRoutingCardView::addActionButton(
 	if (button == nullptr)
 		return;
 
-	actionLayout->addWidget(button);
+	// Before the trailing stretch: the buttons pack left after the
+	// readouts instead of riding the card's right edge.
+	actionLayout->insertWidget(actionLayout->count() - 1, button);
 }
 
 void DefaultSubwooferRoutingCardView::applyState(

@@ -90,12 +90,17 @@ DefaultReferenceCardView::DefaultReferenceCardView(QWidget* parent)
 	statusLabel->setVisible(false);
 	textLayout->addWidget(statusLabel);
 
-	rootLayout->addWidget(textBlock, 1);
+	rootLayout->addWidget(textBlock);
 
+	// The action buttons follow the content instead of riding the card's
+	// right edge (the header-control rule applied to the body: the eye
+	// should not have to travel across a wide window). The trailing
+	// stretch owns the leftover width.
 	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(4);
 	rootLayout->addLayout(actionLayout);
+	rootLayout->addStretch(1);
 
 	// Neutral styling straight from the tokens, so the default stays legible
 	// under any skin that has not supplied its own view.

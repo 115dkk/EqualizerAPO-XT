@@ -71,8 +71,6 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 	connect(modeCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(modeSelected(int)));
 	controlsLayout->addWidget(modeCombo);
 
-	controlsLayout->addStretch(1);
-
 	const struct
 	{
 		QToolButton** member = nullptr;
@@ -98,6 +96,10 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 		controlsLayout->addWidget(button);
 		*action.member = button;
 	}
+
+	// The buttons follow the mode selector instead of riding the card's
+	// right edge; the stretch owns the leftover width.
+	controlsLayout->addStretch(1);
 
 	mainLayout->addLayout(controlsLayout);
 

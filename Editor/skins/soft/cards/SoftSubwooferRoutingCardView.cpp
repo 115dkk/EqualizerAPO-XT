@@ -28,6 +28,7 @@
 #include <QVariant>
 
 #include "Editor/SkinManager.h"
+#include "Editor/helpers/GUIHelper.h"
 
 namespace
 {
@@ -63,14 +64,20 @@ SoftSubwooferRoutingCardView::SoftSubwooferRoutingCardView(
 	headlineLabel = new QLabel(this);
 	headlineLabel->setObjectName(QStringLiteral("SoftBassHeadline"));
 	headlineLabel->setWordWrap(true);
+	// Word-wrapped labels size to an aspect-ratio heuristic, which folded
+	// the short headline in half once the pills stopped absorbing the row's
+	// slack; the floor keeps a one-sentence headline on one line while a
+	// long translation still wraps instead of widening the card.
+	headlineLabel->setMinimumWidth(GUIHelper::scale(360.0));
 	headlineLabel->setAccessibleName(tr("Bass-management summary"));
-	headlineRow->addWidget(headlineLabel, 1);
+	headlineRow->addWidget(headlineLabel);
 
 	QWidget* actionColumn = new QWidget(this);
 	actionLayout = new QHBoxLayout(actionColumn);
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(6);
 	headlineRow->addWidget(actionColumn, 0, Qt::AlignTop);
+	headlineRow->addStretch(1);
 	root->addLayout(headlineRow);
 
 	// This skin's two-line grammar: the caption is the dim second line that

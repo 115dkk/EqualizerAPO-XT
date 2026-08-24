@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **The card header's controls sit in a fixed column at the left.** Power,
+  `+`, `-` and the raw-line editor used to be pushed to the far right edge of
+  the window, a long glance away from the content on a wide screen. They now
+  follow the row number, the way the original rows laid them out, and the
+  type badge, title and summary come after them. The skins' right-edge
+  readouts (minimal's watch column, matrix's readout cell, studio's `= value`)
+  use the freed edge ([#299](https://github.com/115dkk/EqualizerAPO-XT/pull/299)).
+
 ## v2.41.5 — 2026-08-23
 
 - **Adding or removing a card no longer flashes the list or jumps to the

@@ -105,13 +105,14 @@ StudioSubwooferRoutingCardView::StudioSubwooferRoutingCardView(
 		tr("Automatic or manual headroom trim")));
 	wellLayout->addStretch(1);
 
-	readoutRow->addWidget(readoutWell, 1);
+	readoutRow->addWidget(readoutWell);
 
 	QWidget* actionColumn = new QWidget(this);
 	actionLayout = new QHBoxLayout(actionColumn);
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(6);
 	readoutRow->addWidget(actionColumn, 0, Qt::AlignVCenter);
+	readoutRow->addStretch(1);
 	root->addLayout(readoutRow);
 
 	// At most one quiet status line; the state contract guarantees that

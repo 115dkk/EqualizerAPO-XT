@@ -194,12 +194,15 @@ SoftReferenceCardView::SoftReferenceCardView(const QString& kind, const SkinToke
 	statusLabel->setVisible(false);
 	textLayout->addWidget(statusLabel);
 
-	rootLayout->addWidget(textColumn, 1);
+	rootLayout->addWidget(textColumn);
 
+	// The action buttons follow the text column instead of riding the
+	// card's right edge; the stretch owns the leftover width.
 	actionLayout = new QHBoxLayout();
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(GUIHelper::scale(6.0));
 	rootLayout->addLayout(actionLayout);
+	rootLayout->addStretch(1);
 
 	nameLabel->setStyleSheet(QStringLiteral(
 		"QLabel { color: %1; font-size: 11pt; font-weight: 600; background: transparent; }"
@@ -295,11 +298,10 @@ void SoftReferenceCardView::addLeadingWidget(QWidget* widget)
 
 void SoftReferenceCardView::placeBusStrip(QWidget* strip)
 {
-	// Between the two-line identity column and the action pills, centred in
-	// the roomy row: the chips read as part of the plugin's description, the
-	// buttons keep the right edge to themselves.
+	// Between the two-line identity column and the action pills: the chips
+	// read as part of the plugin's description, and the pills follow them.
 	strip->setParent(contentWidget());
-	rootLayout->insertWidget(rootLayout->count() - 1, strip, 0, Qt::AlignVCenter);
+	rootLayout->insertWidget(rootLayout->indexOf(actionLayout), strip, 0, Qt::AlignVCenter);
 }
 
 void SoftReferenceCardView::applyState(const ReferenceCardState& state)

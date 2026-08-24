@@ -105,7 +105,7 @@ MatrixSubwooferRoutingCardView::MatrixSubwooferRoutingCardView(
 			tr("Embedded state or linked profile name"));
 		layout->addWidget(cell);
 		profileCell = cell;
-		postingRow->addWidget(column, 1);
+		postingRow->addWidget(column);
 	}
 
 	QWidget* actionColumn = new QWidget(this);
@@ -113,6 +113,7 @@ MatrixSubwooferRoutingCardView::MatrixSubwooferRoutingCardView(
 	actionLayout->setContentsMargins(0, 0, 0, 0);
 	actionLayout->setSpacing(6);
 	postingRow->addWidget(actionColumn, 0, Qt::AlignBottom);
+	postingRow->addStretch(1);
 	root->addLayout(postingRow);
 
 	// One remark line for faults; the contract guarantees errorText already

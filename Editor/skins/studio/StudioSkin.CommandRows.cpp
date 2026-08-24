@@ -156,17 +156,22 @@ void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// An Eval row the last analysis run resolved shows "= value" at
 		// the header's right. It is painted here rather than tagged in
 		// prepareCommandRow because the fact refreshes with every
-		// analysis run and only paint time sees fresh values. The summary
-		// label bounds the readout, so a long expression keeps the right
-		// of way and the value yields.
+		// analysis run and only paint time sees fresh values. The span
+		// runs from the summary label to the header's right edge (the
+		// label itself is only as wide as its text), so a long expression
+		// keeps the right of way and the value yields.
 		if (info.type == QStringLiteral("eval") && !info.evalText.isEmpty() && !info.valueError
 			&& painter.device() != nullptr && painter.device()->devType() == QInternal::Widget)
 		{
 			const QWidget* frame = static_cast<const QWidget*>(painter.device());
 			const QLabel* summary = frame->findChild<QLabel*>(QStringLiteral("FilterCardSummary"));
-			if (summary != nullptr && summary->isVisible())
+			const QWidget* header = summary != nullptr ? summary->parentWidget() : nullptr;
+			if (summary != nullptr && header != nullptr && summary->isVisible())
 			{
-				const QRectF span(summary->mapTo(frame, QPoint(0, 0)), QSizeF(summary->size()));
+				const QPoint summaryOrigin = summary->mapTo(frame, QPoint(0, 0));
+				const int headerRight = header->mapTo(frame, QPoint(header->width(), 0)).x()
+					- (header->layout() != nullptr ? header->layout()->contentsMargins().right() : 8);
+				const QRectF span(summaryOrigin, QSizeF(headerRight - summaryOrigin.x(), summary->height()));
 				QFont readoutFont(tokens.monoFontFamily);
 				readoutFont.setPointSizeF(8.0);
 				const QFontMetricsF readoutMetrics(readoutFont);
