@@ -277,8 +277,8 @@ void registerBundledFonts(bool includeSarasa)
 	// static guard stayed true - the run after a legacy-rows round trip came
 	// back with DM Sans / DM Mono / Pretendard missing and every skin fell
 	// back to the system font.
-	static QCoreApplication* commonOwner = nullptr;
-	static QCoreApplication* sarasaOwner = nullptr;
+	static const QCoreApplication* commonOwner = nullptr;
+	static const QCoreApplication* sarasaOwner = nullptr;
 	const bool commonAdded = commonOwner == QCoreApplication::instance();
 	const bool sarasaAdded = sarasaOwner == QCoreApplication::instance();
 	if (!commonAdded)
