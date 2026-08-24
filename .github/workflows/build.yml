@@ -457,6 +457,18 @@ jobs:
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
           -WorkspaceRoot "${{ github.workspace }}" -Gate selftest-vst
 
+    # The header power toggle and the row-editor construction policy: every
+    # valid line keeps a real editor through load and an off/on round trip
+    # (the audit #275 B4 extraction silently turned every plain biquad row
+    # into a collapsed raw fragment), and the toggle round-trips the text.
+    - name: Run power toggle test (offscreen)
+      if: matrix.simd_variant == 'avx2'
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate power-toggle
+
     # A hard step timeout on every gate: if the Editor ever blocks on a
     # fatal-error dialog again, the job must fail in minutes, not hang for
     # hours.

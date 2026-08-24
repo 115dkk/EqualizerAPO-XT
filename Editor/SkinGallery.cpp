@@ -2769,6 +2769,136 @@ int SkinGallery::runVstFillSelfTest()
 	return failures == 0 ? 0 : 1;
 }
 
+int SkinGallery::runPowerToggleTest()
+{
+	qWarning("PowerToggleTest: starting");
+	QTemporaryDir scratch;
+	if (!scratch.isValid())
+	{
+		qWarning("PowerToggleTest: cannot create a scratch directory");
+		return 2;
+	}
+	qputenv("EAPO_SKIN_GALLERY", "1");
+	const QString configPath = buildReferenceFiles(QDir(scratch.path()));
+	if (configPath.isEmpty())
+	{
+		qWarning("PowerToggleTest: cannot write reference target files");
+		return 2;
+	}
+
+	// Gain-less biquads (the field report) and full-grammar controls must
+	// keep a real editor through load and an off/on round trip; a peaking
+	// line missing its gain is one the ENGINE rejects ("no gain given"),
+	// so its raw presentation is correct and only the text round trip is
+	// held. Every line must survive the toggle byte-identically.
+	struct Case { QString line; bool editor = true; };
+	const QList<Case> cases = {
+		{ QStringLiteral("Filter: ON NO Fc 800 Hz"), true },
+		{ QStringLiteral("Filter: ON AP Fc 900 Hz BW Oct 1"), true },
+		{ QStringLiteral("Filter: ON LP Fc 5000 Hz"), true },
+		{ QStringLiteral("Filter: ON HPQ Fc 80 Hz Q 0.5"), true },
+		{ QStringLiteral("Filter: ON BP Fc 1000 Hz Q 2"), true },
+		{ QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71"), true },
+		{ QStringLiteral("Filter: ON PK Fc 1000 Hz Q 1"), false },
+		{ QStringLiteral("Preamp: -3 dB"), true }
+	};
+	QList<QString> lines;
+	for (const Case& c : cases)
+		lines.append(c.line);
+
+	int failures = 0;
+	for (ISkin* skin : Skins::all())
+	{
+		const QString name = skin->id();
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		SkinManager::instance()->applySkin(skin->id(), true);
+		buildRows(scrollArea, configPath, lines);
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr)
+		{
+			qWarning("PowerToggleTest: %s table construction failed", qPrintable(name));
+			failures++;
+			continue;
+		}
+		table->openConfig(QString());
+
+		const auto rowWidget = [table](int index) -> FilterCardRow* {
+			QList<FilterCardRow*> rows = table->findChildren<FilterCardRow*>(
+				QString(), Qt::FindDirectChildrenOnly);
+			std::sort(rows.begin(), rows.end(), [](FilterCardRow* a, FilterCardRow* b) {
+				return a->y() < b->y();
+			});
+			return index < rows.size() ? rows[index] : nullptr;
+		};
+		const auto powerButton = [](FilterCardRow* row) -> QToolButton* {
+			for (QToolButton* button : row->findChildren<QToolButton*>())
+			{
+				if (button->toolTip() == QStringLiteral("Enable or comment out this command"))
+					return button;
+			}
+			return nullptr;
+		};
+		const auto settle = []() {
+			QApplication::processEvents();
+			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+			QApplication::processEvents();
+		};
+
+		for (int i = 0; i < lines.size(); i++)
+		{
+			const QString original = table->documentItems().at(i)->text;
+			if ((table->documentItems().at(i)->gui != nullptr) != cases[i].editor)
+			{
+				// The load-time half of the regression this gate pins: the
+				// audit #275 B4 policy extraction dropped the card-to-chain
+				// fallthrough and every plain biquad loaded as a raw row.
+				qWarning("PowerToggleTest: %s row %d editor presence %d at load (expected %d)",
+					qPrintable(name), i + 1,
+					table->documentItems().at(i)->gui != nullptr ? 1 : 0, cases[i].editor ? 1 : 0);
+				failures++;
+			}
+			for (int phase = 0; phase < 2; phase++)
+			{
+				FilterCardRow* row = rowWidget(i);
+				QToolButton* button = row != nullptr ? powerButton(row) : nullptr;
+				if (button == nullptr)
+				{
+					qWarning("PowerToggleTest: %s row %d lost its power button in phase %d",
+						qPrintable(name), i + 1, phase);
+					failures++;
+					break;
+				}
+				button->setChecked(phase == 1);
+				settle();
+				const QString text = table->documentItems().at(i)->text;
+				const QString expected = phase == 0
+					? QStringLiteral("# ") + original : original;
+				if (text != expected)
+				{
+					qWarning("PowerToggleTest: %s row %d phase %d text '%s' (expected '%s')",
+						qPrintable(name), i + 1, phase,
+						qPrintable(text), qPrintable(expected));
+					failures++;
+				}
+			}
+			FilterCardRow* row = rowWidget(i);
+			const bool hasGui = table->documentItems().at(i)->gui != nullptr;
+			if (hasGui != cases[i].editor)
+			{
+				qWarning("PowerToggleTest: %s row %d editor presence %d after the toggle (expected %d)",
+					qPrintable(name), i + 1, hasGui ? 1 : 0, cases[i].editor ? 1 : 0);
+				failures++;
+			}
+			Q_UNUSED(row);
+		}
+	}
+	qWarning("PowerToggleTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
+	const int status = failures == 0 ? 0 : 1;
+	std::fflush(nullptr);
+	std::_Exit(status);
+}
+
 bool SkinGallery::armAnalysisLayoutProbe(MainWindow& window, const QString& screenshotPath)
 {
 	QDockWidget* dock = window.findChild<QDockWidget*>(QStringLiteral("analysisDockWidget"));

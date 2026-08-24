@@ -11,7 +11,7 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
     }
 
     It "copies the velopack SONAME for every gate" {
-        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection")) {
+        foreach ($gate in @("selftest-vst", "skin-gallery", "skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle")) {
             (PlanFor $gate).VelopackDllSource |
                 Should -Be "C:\ws\deps\velopack_libc\lib\velopack_libc_win_x64_msvc.dll"
         }
@@ -44,7 +44,7 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
     }
 
     It "captures stderr for the GUI-subsystem gates that log through qWarning" {
-        foreach ($gate in @("skin-switch", "analysis-layout", "card-move", "card-selection")) {
+        foreach ($gate in @("skin-switch", "analysis-layout", "card-move", "card-selection", "power-toggle")) {
             $plan = PlanFor $gate
             $plan.LogPath | Should -Not -BeNullOrEmpty
             $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
