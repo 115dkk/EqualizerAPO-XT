@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.42.1 — 2026-08-24
+
 - **Parametric filter rows have their knob editor back.** Since v2.37.3 every
   plain "Filter:" line (peaking, low/high-pass, band-pass, notch - everything
   except the IIR and all-pass cards) loaded as a collapsed card whose body was
@@ -25,6 +27,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   fonts (DM Sans, DM Mono, Pretendard) and the editor fell back to the system
   font until a full relaunch
   ([#304](https://github.com/115dkk/EqualizerAPO-XT/pull/304)).
+
 ## v2.42.0 — 2026-08-24
 
 - **The card header's controls sit in a fixed column at the left.** Power,
