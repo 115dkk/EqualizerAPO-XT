@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.46.0 — 2026-08-27
+
 - **The minimal skin drops its resting blue.** The selected and focused rows,
   the checked buttons and the engaged Channel/Stage chips all wore blue at
   rest, against the skin's own "accent only while active" rule. The list
