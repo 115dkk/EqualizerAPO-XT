@@ -16,7 +16,8 @@ QWidget {
     background: @BG@;
     color: @TEXT@;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 10pt;
+    font-size: 11pt;
+    font-weight: 500;
 }
 
 QMainWindow,
@@ -162,7 +163,7 @@ QLabel#ToolBarLabel {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 
 /* ===== Main toolbar: the board's header strip =====
@@ -208,7 +209,7 @@ QToolBar#MainToolBar QCheckBox#InstantModeCheckBox, QCheckBox#AnalysisFormCheck 
     min-height: 24px;
     max-height: 24px;
     font-weight: 600;
-    font-size: 9pt;
+    font-size: 10pt;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -237,7 +238,7 @@ QToolBar#MainToolBar QLabel#DirtyStatusBadge {
     max-height: 24px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 500;
-    font-size: 9pt;
+    font-size: 10pt;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -256,7 +257,7 @@ QToolBar#MainToolBar QLabel#ToolBarLabel {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 /* Destination readouts: square sunken cells (device names are names, not
    values, so they keep the board's sans type). */
@@ -267,7 +268,7 @@ QToolBar#MainToolBar QComboBox#ToolBarComboBox {
     padding: 2px 6px 2px 8px;
     min-height: 24px;
     max-height: 24px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QToolBar#MainToolBar QComboBox#ToolBarComboBox:hover {
     border-color: @ACCENT@;
@@ -287,7 +288,7 @@ QToolBar#MainToolBar QLabel#DeviceFormatBadge {
     min-height: 24px;
     max-height: 24px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QToolBar#MainToolBar QLabel#DeviceFormatBadge[severity="warning"] {
     color: @WARNING@;
@@ -404,7 +405,7 @@ QSpinBox[valueScrub="true"] {
     border: 1px solid @BORDER@;
     border-radius: 0;
     padding: 2px 6px;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 700;
 }
 QDoubleSpinBox[valueScrub="true"]:hover,
@@ -485,7 +486,7 @@ QComboBox QAbstractItemView::item:selected {
 QComboBox[paramSelector="true"] {
     background: transparent;
     color: @MUTED@;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -516,7 +517,7 @@ QComboBox[filterSelector="true"] {
 QLabel#gainLabel {
     color: @MUTED@;
     background: transparent;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -643,7 +644,7 @@ QDockWidget::title {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QDockWidget::close-button,
 QDockWidget::float-button {
@@ -727,7 +728,7 @@ QGroupBox::title {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 
 /* ===== Headers / Item Views ===== */
@@ -746,7 +747,7 @@ QHeaderView::section {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QHeaderView::section:hover {
     color: @TEXT@;
@@ -853,7 +854,7 @@ QStatusBar {
     border: 0;
     border-top: 1px solid @BORDER@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QStatusBar::item { border: 0; }
 
@@ -895,7 +896,7 @@ QLabel#AnalysisFormLabel {
     text-transform: uppercase;
     letter-spacing: 1px;
     padding: 0 4px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 /* The base-delay option speaks in the same register as the field labels
    beside it, derived from this skin's own AnalysisFormLabel rule. Its
@@ -905,7 +906,7 @@ QCheckBox#AnalysisFormCheck {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size: 9pt;
+    font-size: 10pt;
     background: transparent;
 }
 
@@ -932,7 +933,7 @@ QLabel#AnalysisStatLabel {
     color: @MUTED@;
     background: transparent;
     font-weight: 600;
-    font-size: 9pt;
+    font-size: 10pt;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -980,14 +981,14 @@ QLabel#FilterTypeBadge {
     font-weight: 700;
     padding: 2px 6px;
     min-height: 18px;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 QLabel#FilterCardTitle {
     color: @TEXT@;
     background: transparent;
     font-weight: 700;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 /* A bypassed (commented-out) row reads as a cancelled departure:
    struck-through title on top of the dashed frame and amber lamp. */
@@ -1081,7 +1082,7 @@ QLabel#PreampCardCaption {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLabel#EditableValue {
     background: #FFFFFF;
@@ -1145,7 +1146,7 @@ QLabel#GraphicEQBandCaption {
     background: transparent;
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1153,7 +1154,7 @@ QLabel#GraphicEQBandCaption {
 QLabel#GraphicEQReadoutLabel {
     background: transparent;
     color: @MUTED@;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -1166,7 +1167,7 @@ QLabel#UpdateToastLabel {
     background: transparent;
     color: @TEXT@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QToolButton#UpdateToastClose {
     background: transparent;
@@ -1209,7 +1210,7 @@ QLabel#MatrixRefMarker {
     padding: 2px 6px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 /* Broken feed: the marker becomes the danger readout (NO FEED / MISSING).
@@ -1229,7 +1230,7 @@ QLabel#MatrixRefName {
     color: @TEXT@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 QLabel#MatrixRefName[nameClickable="true"]:hover {
     color: @ACCENT@;
@@ -1241,7 +1242,7 @@ QLabel#MatrixRefLocation {
     background: transparent;
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
+    font-size: 9pt;
 }
 /* ABS: a hollow amber token. An absolute path is a portability hazard, and
    amber is the rationed caution ink; hollow keeps it a notice, not a lamp. */
@@ -1253,7 +1254,7 @@ QLabel#MatrixRefAbsCell {
     padding: 1px 5px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 7pt;
+    font-size: 8pt;
     letter-spacing: 1px;
 }
 /* Format code (VST2/VST3): a monochrome code cell. */
@@ -1265,7 +1266,7 @@ QLabel#MatrixRefFormatCell {
     padding: 1px 5px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 7pt;
+    font-size: 8pt;
     letter-spacing: 1px;
 }
 /* Boxed readout cells: authoritative numbers live in boxed sunken mono
@@ -1278,7 +1279,7 @@ QLabel#MatrixRefReadoutCell {
     padding: 2px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLabel#MatrixRefReadoutCell:disabled {
     color: @MUTED@;
@@ -1289,7 +1290,7 @@ QLabel#MatrixRefStatusLine {
     background: transparent;
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLabel#MatrixRefStatusLine[severity="warning"] { color: @WARNING@; }
 QLabel#MatrixRefStatusLine[severity="critical"] { color: @DANGER@; }
@@ -1305,14 +1306,14 @@ QLabel#MatrixRefPortLabel {
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 QLabel#MatrixRefDeviceLabel {
     background: transparent;
     color: @MUTED@;
     font-weight: 600;
-    font-size: 8pt;
+    font-size: 9pt;
     letter-spacing: 2px;
 }
 /* Output bus cell (MultiConvolution): the destination designation as a
@@ -1326,7 +1327,7 @@ QComboBox[matrixBusCell="true"] {
     max-height: 22px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 600;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QComboBox[matrixBusCell="true"]:hover,
 QComboBox[matrixBusCell="true"]:focus,
@@ -1345,13 +1346,13 @@ QPushButton#VSTCardPanelButton {
     padding: 2px 10px;
     min-height: 22px;
     max-height: 22px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 /* LOCATE: an untranslated mono-caps board token, monochrome at rest; the
    shared icon-button hover supplies the accent pre-light. */
 QToolButton#FilterCardIconButton[matrixLocate="true"] {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 /* Inline path editor: the scan readout strip (the picker's search grammar) -
@@ -1392,7 +1393,7 @@ QLabel#TitleBarText {
     background: transparent;
     color: @TEXT@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
@@ -1425,7 +1426,7 @@ QToolButton#TitleBarClose:pressed {
 QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", monospace;
-    font-size: 8pt; letter-spacing: 2px;
+    font-size: 9pt; letter-spacing: 2px;
     text-transform: uppercase;
 }
 /* ====================================================================
@@ -1457,7 +1458,7 @@ QToolButton#DeviceChip {
     border-radius: 0;
     padding: 2px 8px;
     min-height: 24px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 /* Capture endpoint: identical cell by law (colour rationing). */
 QToolButton#DeviceChip[deviceInput="true"] {
@@ -1530,7 +1531,7 @@ QToolButton#DeviceChipMore {
     padding: 2px 8px;
     min-height: 24px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -1561,7 +1562,7 @@ QToolButton#ChannelChip {
     min-height: 24px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 /* ALL: the master seat command in the caption register (needs the
@@ -1620,7 +1621,7 @@ QLineEdit#ChannelChipAdd {
     padding: 2px 8px;
     min-height: 24px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLineEdit#ChannelChipAdd:hover {
     border-color: @ACCENT@;
@@ -1643,7 +1644,7 @@ QToolButton#StageChip {
     border-radius: 0;
     padding: 2px 12px;
     min-height: 24px;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1675,7 +1676,7 @@ QToolButton#StageChipUnknown:disabled {
     padding: 2px 10px;
     min-height: 24px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 /* Lane captions: board section headings in the toolbar caption
@@ -1683,7 +1684,7 @@ QToolButton#StageChipUnknown:disabled {
    order between the playback cells. */
 QLabel#StageLaneCaption {
     background: transparent; color: @MUTED@;
-    font-size: 8pt; font-weight: 600;
+    font-size: 9pt; font-weight: 600;
     text-transform: uppercase; letter-spacing: 1px;
 }
 QLabel#StageChainArrow { background: transparent; color: @MUTED@; }
@@ -1702,7 +1703,7 @@ QLabel#CommentCardGlyph {
     padding: 2px 7px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
     font-weight: 700;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 QLineEdit#CommentCardText,
 QLineEdit#CommentCardText:disabled {
@@ -1712,7 +1713,7 @@ QLineEdit#CommentCardText:disabled {
     border-radius: 0;
     padding: 2px 6px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLineEdit#CommentCardText:hover {
     background: #FFFFFF;
@@ -1767,7 +1768,7 @@ QLabel#MatrixBassCaption {
     background: transparent;
     border: 0;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 7.5pt;
+    font-size: 8.5pt;
     font-weight: 600;
     letter-spacing: 1px;
 }
@@ -1781,7 +1782,7 @@ QLabel#MatrixBassValueCell {
     padding: 3px 10px;
     min-height: 18px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9.5pt;
+    font-size: 10.5pt;
     font-weight: 700;
 }
 QLabel#MatrixBassValueCell[tone="ok"] { color: @SUCCESS@; }
@@ -1798,7 +1799,7 @@ QLabel#MatrixBassRemark {
     background: transparent;
     border: 0;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8.5pt;
+    font-size: 9.5pt;
     font-weight: 600;
 }
 QLabel#MatrixBassRemark[tone="warning"] { color: @WARNING@; }
@@ -1814,7 +1815,7 @@ QToolButton#MatrixBassActionButton {
     min-width: 40px;
     min-height: 40px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8.5pt;
+    font-size: 9.5pt;
     font-weight: 600;
 }
 QToolButton#MatrixBassActionButton:hover:enabled {

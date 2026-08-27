@@ -231,7 +231,7 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 	// is engraved once on the plate's legend window rather than repeated down
 	// the column.
 	QFont axisFont(tokens.monoFontFamily);
-	axisFont.setPointSizeF(7.0);
+	axisFont.setPointSizeF(8.0);
 	axisFont.setBold(true);
 	painter.setFont(axisFont);
 	qreal figureGap = 1000.0;
@@ -385,7 +385,7 @@ void RackSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 		if (!state.cursorText.isEmpty())
 		{
 			QFont readoutFont(tokens.monoFontFamily);
-			readoutFont.setPointSizeF(7.5);
+			readoutFont.setPointSizeF(8.5);
 			readoutFont.setBold(true);
 			painter.setFont(readoutFont);
 			const QFontMetricsF readoutMetrics(readoutFont);

@@ -44,7 +44,7 @@ void SoftSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& s
 	// Axis captions ride the body face in faded ink, exactly like the
 	// GraphicEQ plot (the constitution reserves mono for value chips).
 	QFont labelFont(tokens.fontFamily);
-	labelFont.setPointSizeF(7.5);
+	labelFont.setPointSizeF(8.5);
 	labelFont.setWeight(QFont::DemiBold);
 	painter.setFont(labelFont);
 	const QColor labelInk = withAlpha(muted, 210);

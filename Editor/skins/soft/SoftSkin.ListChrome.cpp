@@ -50,7 +50,7 @@ void SoftSkin::paintAddRow(QPainter& painter, const QRect& rect, const ListChrom
 
 	// Centred friendly composition: the "+" disc and the caption.
 	QFont font(tokens.fontFamily);
-	font.setPointSizeF(10.0);
+	font.setPointSizeF(11.0);
 	font.setWeight(QFont::DemiBold);
 	const QFontMetricsF metrics(font);
 	const qreal discD = 24.0;

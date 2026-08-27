@@ -146,7 +146,7 @@ AnalysisMetric metricAtIndex(int index)
 void MainWindow::setupAnalysisMetricControls()
 {
 	// Three abbreviations rather than three words: the control bar is capped at
-	// 250px wide and this control gets no label column, so the cells have to
+	// 280px wide and this control gets no label column, so the cells have to
 	// carry the whole width themselves.
 	ui->analysisMetricSegment->setLabels({tr("Mag"), tr("Phase"), tr("GD")});
 	ui->includeBaseDelayCheckBox->setObjectName(QStringLiteral("AnalysisFormCheck"));
@@ -289,7 +289,7 @@ void MainWindow::updateAnalysisPanel()
 	// Milliseconds only. The frame count moved to the tooltip when the metric
 	// switch and the base-delay option joined this bar: two readouts now share
 	// a row, and "0.0 ms (0 s.)" does not fit beside another one inside the
-	// bar's 250px cap.
+	// bar's 280px cap.
 	ui->latencyValueLabel->setText(tr("%0 ms").arg(latency * 1000.0 / sampleRate, 0, 'f', 1));
 	ui->latencyChip->setToolTip(tr("%0 ms (%1 samples) of latency the analyzer removed before measuring")
 		.arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));

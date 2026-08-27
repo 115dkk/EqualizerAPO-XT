@@ -34,7 +34,7 @@ void MatrixSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 		painter.fillRect(state.rect, ground);
 
 		QFont labelFont(tokens.monoFontFamily);
-		labelFont.setPointSizeF(7.5);
+		labelFont.setPointSizeF(8.5);
 		painter.setFont(labelFont);
 		const QFontMetrics labelMetrics(labelFont);
 
@@ -175,7 +175,7 @@ void MatrixSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 			const bool engaged = state.selectedNodes.contains(state.focusedNode);
 
 			QFont tagFont(tokens.monoFontFamily);
-			tagFont.setPointSizeF(7.0);
+			tagFont.setPointSizeF(8.0);
 			tagFont.setBold(true);
 			const QFontMetrics tagMetrics(tagFont);
 			const QString tag = QString::number(state.focusedNode + 1);
@@ -204,7 +204,7 @@ void MatrixSkin::paintGraphicEqPlot(QPainter& painter, const GraphicEQPlotState&
 		if (state.cursorValid && !state.cursorText.isEmpty())
 		{
 			QFont probeFont(tokens.monoFontFamily);
-			probeFont.setPointSizeF(7.5);
+			probeFont.setPointSizeF(8.5);
 			probeFont.setBold(true);
 			const QFontMetrics probeMetrics(probeFont);
 			const int cellWidth = probeMetrics.horizontalAdvance(state.cursorText) + 12;

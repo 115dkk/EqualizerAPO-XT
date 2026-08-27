@@ -16,7 +16,8 @@ QWidget {
     background: @BG@;
     color: @TEXT@;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 10pt;
+    font-size: 11pt;
+    font-weight: 500;
 }
 
 QMainWindow,
@@ -159,7 +160,7 @@ QLabel#ToolBarLabel {
     color: @MUTED@;
     background: transparent;
     padding: 0 6px 0 10px;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 500;
 }
 
@@ -227,7 +228,7 @@ QCheckBox#InstantModeCheckBox::indicator:checked:disabled, QCheckBox#AnalysisFor
    light an amber lamp behind the glass (the format-warning grammar). */
 QLabel#DirtyStatusBadge {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
     color: @MUTED@;
     background: #08080f;
     border: 1px solid @BORDER@;
@@ -245,7 +246,7 @@ QLabel#DirtyStatusBadge[dirty="true"] {
    lighting the glass from behind, not a recoloured label. */
 QLabel#DeviceFormatBadge {
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
     color: @MUTED@;
     background: #08080f;
     border: 1px solid @BORDER@;
@@ -445,7 +446,7 @@ QComboBox[paramSelector="true"] {
     border-radius: 6px;
     padding: 1px 14px 1px 8px;
     min-height: 20px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QComboBox[paramSelector="true"]:hover {
     color: @TEXT@;
@@ -875,7 +876,7 @@ QLabel#AnalysisStatLabel {
     color: @MUTED@;
     background: transparent;
     font-weight: 600;
-    font-size: 9pt;
+    font-size: 10pt;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -935,14 +936,14 @@ QLabel#FilterTypeBadge {
     font-weight: 800;
     padding: 2px 8px;
     min-height: 18px;
-    font-size: 9pt;
+    font-size: 10pt;
     letter-spacing: 1px;
 }
 QLabel#FilterCardTitle {
     color: @TEXT@;
     background: transparent;
     font-weight: 700;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 QLabel#FilterCardSummary,
 QLabel#FilterCardRawText {
@@ -1009,7 +1010,7 @@ QLabel#PreampCardCaption {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLabel#EditableValue {
     background: rgba(255, 255, 255, 0.04);
@@ -1051,7 +1052,7 @@ QLabel#StudioRefName {
     /* Body scale: 12pt and 11pt both read as heavy (user's final call);
        the pane's presence comes from the left inset and the always-there
        data window, not from type size. */
-    font-size: 10pt;
+    font-size: 11pt;
     font-weight: 600;
 }
 QLabel#StudioRefName[refClickable="true"]:hover:enabled { color: #FFFFFF; }
@@ -1064,7 +1065,7 @@ QLabel#StudioRefChip {
     border-radius: 8px;
     padding: 1px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 7pt;
+    font-size: 8pt;
     font-weight: 700;
     letter-spacing: 1px;
 }
@@ -1106,14 +1107,14 @@ QLabel#StudioRefFacts {
     background: transparent;
     border: 0;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
+    font-size: 9pt;
 }
 QWidget#StudioRefStatusRow { background: transparent; border: 0; }
 QLabel#StudioRefLamp {
     color: @MUTED@;
     background: transparent;
     border: 0;
-    font-size: 7pt;
+    font-size: 8pt;
 }
 QLabel#StudioRefLamp[lampSeverity="warning"] { color: @WARNING@; }
 QLabel#StudioRefLamp[lampSeverity="critical"] { color: @DANGER@; }
@@ -1123,7 +1124,7 @@ QLabel#StudioRefStatus {
     color: @MUTED@;
     background: transparent;
     border: 0;
-    font-size: 8pt;
+    font-size: 9pt;
 }
 /* The shared inline path editor: sunken glass under an accent edge. */
 QLineEdit#RefPathEdit {
@@ -1152,7 +1153,7 @@ QToolButton#FilterCardIconButton[studioLocate="true"]:hover {
 QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
+    font-size: 9pt;
     letter-spacing: 1px;
 }
 
@@ -1209,13 +1210,13 @@ QLabel#GraphicEQBandCaption {
     color: @MUTED@;
     background: transparent;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
+    font-size: 9pt;
     letter-spacing: 1px;
 }
 QLabel#GraphicEQReadoutLabel {
     color: @MUTED@;
     background: transparent;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1251,7 +1252,7 @@ QToolButton#GraphicEQActionButton:disabled {
    caption-button grammar. */
 QLabel#UpdateToastLabel {
     background: transparent;
-    font-size: 9.5pt;
+    font-size: 10.5pt;
     font-weight: 500;
 }
 QToolButton#UpdateToastClose {
@@ -1261,7 +1262,7 @@ QToolButton#UpdateToastClose {
     border-radius: 6px;
     padding: 0 5px;
     min-height: 18px;
-    font-size: 10pt;
+    font-size: 11pt;
     font-weight: 600;
 }
 QToolButton#UpdateToastClose:hover {
@@ -1289,7 +1290,7 @@ QWidget#AppTitleBar {
 QLabel#TitleBarText {
     background: transparent;
     color: @MUTED@;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
     background: transparent;
@@ -1364,7 +1365,7 @@ QToolButton#DeviceChip {
     border-top-color: rgba(255, 255, 255, 0.16);
     border-radius: 8px;
     padding: 4px 10px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 /* APO not installed: the endpoint cannot carry signal yet - fainter
    ink, fainter glass. No warning colour. */
@@ -1462,7 +1463,7 @@ QToolButton#DeviceChipMore {
     border-top-color: rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     padding: 4px 10px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QToolButton#DeviceChipMore:hover:enabled {
     color: @TEXT@;
@@ -1500,7 +1501,7 @@ QToolButton#ChannelChip {
     border-radius: 8px;
     padding: 4px 10px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 600;
     letter-spacing: 1px;
 }
@@ -1583,7 +1584,7 @@ QLineEdit#ChannelChipAdd {
     border-radius: 8px;
     padding: 3px 8px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLineEdit#ChannelChipAdd:hover:enabled {
     color: @TEXT@;
@@ -1613,7 +1614,7 @@ QToolButton#StageChip {
     border-left: 3px solid rgba(255, 255, 255, 0.10);
     border-radius: 8px;
     padding: 4px 10px;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 600;
 }
 QToolButton#StageChip:checked:enabled {
@@ -1671,7 +1672,7 @@ QToolButton#StageChipUnknown {
     border-radius: 8px;
     padding: 4px 10px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 /* Lane captions and the chain arrow: wayfinding, not controls - the
    section-label dialect (small tracked caps in muted ink); the arrow
@@ -1679,7 +1680,7 @@ QToolButton#StageChipUnknown {
 QLabel#StageLaneCaption {
     background: transparent;
     color: @MUTED@;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1687,7 +1688,7 @@ QLabel#StageLaneCaption {
 QLabel#StageChainArrow {
     background: transparent;
     color: @MUTED@;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 
 /* ----- Comment - quiet ink on the unlit pane -----
@@ -1737,7 +1738,7 @@ QLineEdit#StudioRoutingChannelEditor {
     border-radius: 6px;
     padding: 1px 6px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 QLineEdit#StudioRoutingFactorEditor:focus,
 QLineEdit#StudioRoutingChannelEditor:focus {
@@ -1786,7 +1787,7 @@ QLabel#StudioBassValidity {
     padding: 2px 10px;
     min-height: 22px;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 700;
     letter-spacing: 1px;
 }
@@ -1820,7 +1821,7 @@ QLabel#StudioBassLayout {
     background: transparent;
     border: 0;
     font-family: "@FONT@", "Pretendard", "Noto Sans", sans-serif;
-    font-size: 10pt;
+    font-size: 11pt;
     font-weight: 600;
 }
 QLabel#StudioBassLayout:disabled { color: rgba(145, 160, 186, 0.55); }
@@ -1830,7 +1831,7 @@ QLabel#StudioBassProfile {
     background: transparent;
     border: 0;
     font-family: "@FONT@", "Pretendard", "Noto Sans", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 500;
 }
 QLabel#StudioBassProfile:disabled { color: rgba(145, 160, 186, 0.40); }
@@ -1854,7 +1855,7 @@ QLabel#StudioBassReadoutCaption {
     background: transparent;
     border: 0;
     font-family: "@FONT@", "Pretendard", "Noto Sans", sans-serif;
-    font-size: 7.5pt;
+    font-size: 8.5pt;
     font-weight: 700;
     letter-spacing: 1px;
 }
@@ -1865,7 +1866,7 @@ QLabel#StudioBassReadoutValue {
     background: transparent;
     border: 0;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 10pt;
+    font-size: 11pt;
     font-weight: 600;
 }
 QLabel#StudioBassReadoutValue:disabled { color: rgba(145, 160, 186, 0.50); }
@@ -1875,7 +1876,7 @@ QLabel#StudioBassReadoutValuePrimary {
     background: transparent;
     border: 0;
     font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace;
-    font-size: 12pt;
+    font-size: 13pt;
     font-weight: 700;
 }
 QLabel#StudioBassReadoutValuePrimary:disabled { color: rgba(145, 160, 186, 0.50); }
@@ -1887,7 +1888,7 @@ QLabel#StudioBassStatus {
     border-radius: 8px;
     padding: 6px 10px;
     font-family: "@FONT@", "Pretendard", "Noto Sans", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 600;
 }
 QLabel#StudioBassStatus[severity="warning"] {
@@ -1911,7 +1912,7 @@ QToolButton#StudioBassActionButton {
     min-width: 40px;
     min-height: 40px;
     font-family: "@FONT@", "Pretendard", "Noto Sans", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 600;
 }
 QToolButton#StudioBassActionButton:hover:enabled {

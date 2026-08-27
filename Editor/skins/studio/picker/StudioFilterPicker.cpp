@@ -101,7 +101,7 @@ private:
 		rect.setTop(rect.bottom() - GUIHelper::scale(20.0));
 
 		QFont font(t.fontFamily);
-		font.setPointSizeF(7.6);
+		font.setPointSizeF(8.6);
 		font.setWeight(QFont::DemiBold);
 		font.setLetterSpacing(QFont::AbsoluteSpacing, 1.1);
 		painter->setFont(font);
@@ -129,7 +129,7 @@ private:
 	void paintEmptyNote(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 	{
 		QFont font(t.fontFamily);
-		font.setPointSizeF(9.0);
+		font.setPointSizeF(10.0);
 		font.setItalic(true);
 		painter->setFont(font);
 		painter->setPen(withAlpha(t.mutedText, 200));
@@ -193,7 +193,7 @@ private:
 		}
 
 		QFont font(t.fontFamily);
-		font.setPointSizeF(9.4);
+		font.setPointSizeF(10.4);
 		if (selected)
 			font.setWeight(QFont::DemiBold);
 		painter->setFont(font);
@@ -215,7 +215,7 @@ private:
 		if (!caption.isEmpty() && captionSpace > GUIHelper::scale(56.0))
 		{
 			QFont captionFont(t.fontFamily);
-			captionFont.setPointSizeF(8.1);
+			captionFont.setPointSizeF(9.1);
 			painter->setFont(captionFont);
 			QColor captionColor(t.mutedText);
 			if (selected || hovered)

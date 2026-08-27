@@ -142,7 +142,7 @@ void MatrixSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 		if (state.metric != AnalysisMetric::MagnitudeDb)
 		{
 			QFont gapFont(tokens.monoFontFamily);
-			gapFont.setPointSizeF(7.0);
+			gapFont.setPointSizeF(8.0);
 			gapFont.setBold(true);
 			const QFontMetrics gapMetrics(gapFont);
 			const QString gapText = QStringLiteral("NO SIGNAL");
@@ -191,7 +191,7 @@ void MatrixSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 		// Frequency tags ride the bottom edge; a tag that would collide with
 		// its neighbour is skipped, never squeezed.
 		QFont tagFont(tokens.monoFontFamily);
-		tagFont.setPointSizeF(7.0);
+		tagFont.setPointSizeF(8.0);
 		const QFontMetrics tagMetrics(tagFont);
 		const int tagHeight = tagMetrics.height();
 		QColor minorLabelInk(mutedInk);
@@ -296,7 +296,7 @@ void MatrixSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 			if (peakFound && peak.y() < state.zeroY)
 			{
 				QFont overFont(tokens.monoFontFamily);
-				overFont.setPointSizeF(7.0);
+				overFont.setPointSizeF(8.0);
 				overFont.setBold(true);
 				const QFontMetrics overMetrics(overFont);
 				const QString overText = QStringLiteral("OVER");
@@ -370,7 +370,7 @@ void MatrixSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 			if (!state.cursorText.isEmpty())
 			{
 				QFont probeFont(tokens.monoFontFamily);
-				probeFont.setPointSizeF(7.5);
+				probeFont.setPointSizeF(8.5);
 				probeFont.setBold(true);
 				const QFontMetrics probeMetrics(probeFont);
 				const int probeWidth = probeMetrics.horizontalAdvance(state.cursorText) + 12;
@@ -405,7 +405,7 @@ void MatrixSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 				: QStringLiteral("%1 [%2]").arg(quantity, state.unit.toUpper());
 		}
 		QFont captionFont(tokens.monoFontFamily);
-		captionFont.setPointSizeF(7.0);
+		captionFont.setPointSizeF(8.0);
 		captionFont.setWeight(QFont::DemiBold);
 		captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 		painter.setFont(captionFont);
@@ -423,7 +423,7 @@ void MatrixSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 		painter.drawLine(state.rect.left() + 1, footerTop, state.rect.right() - 1, footerTop);
 
 		QFont footerFont(tokens.monoFontFamily);
-		footerFont.setPointSizeF(7.5);
+		footerFont.setPointSizeF(8.5);
 		painter.setFont(footerFont);
 		const QFontMetrics footerMetrics(footerFont);
 		const QRect footerRect(state.rect.left() + 10, footerTop + 1, state.rect.width() - 20, 16);

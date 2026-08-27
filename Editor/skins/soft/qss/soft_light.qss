@@ -19,7 +19,8 @@ QWidget {
     background: @BG@;
     color: @TEXT@;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 10pt;
+    font-size: 11pt;
+    font-weight: 500;
 }
 
 QMainWindow, QDialog { background: @BG@; }
@@ -242,7 +243,7 @@ QAbstractSpinBox#AnalysisFormSpin {
     padding-bottom: 1px;
 }
 QFrame#AnalysisStatChip { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 14px; }
-QLabel#AnalysisStatLabel { color: @MUTED@; background: transparent; font-weight: 600; font-size: 9pt; letter-spacing: 1px; }
+QLabel#AnalysisStatLabel { color: @MUTED@; background: transparent; font-weight: 600; font-size: 10pt; letter-spacing: 1px; }
 QLabel#AnalysisStatValue { color: @TEXT@; background: transparent; font-weight: 700; font-family: "@MONO@", "Consolas", "JetBrains Mono", "Malgun Gothic", monospace; }
 QLabel#AnalysisStatValue[severity="warning"] { color: #d97706; }
 QLabel#AnalysisStatValue[severity="critical"] { color: #dc2626; }
@@ -265,9 +266,9 @@ QWidget#FilterCardBody, QWidget#FilterCardEditor { background: @BG@; border-bott
 QLabel#FilterTypeBadge {
     border-radius: 11px;
     font-weight: 700; padding: 4px 10px; min-height: 22px;
-    font-size: 9pt; letter-spacing: 1px;
+    font-size: 10pt; letter-spacing: 1px;
 }
-QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 600; font-size: 11pt; }
+QLabel#FilterCardTitle { color: @TEXT@; background: transparent; font-weight: 600; font-size: 12pt; }
 QLabel#FilterCardSummary, QLabel#FilterCardRawText { color: @MUTED@; background: transparent; }
 QLabel#FilterCardNumber { color: @MUTED@; background: transparent; font-family: "@MONO@", "Consolas", "Malgun Gothic", monospace; font-weight: 600; }
 
@@ -312,7 +313,7 @@ QComboBox[paramSelector="true"], QComboBox[filterSelector="true"] {
     padding: 3px 22px 3px 12px; min-height: 20px;
 }
 QComboBox[filterSelector="true"] { font-weight: 600; }
-QComboBox[paramSelector="true"] { color: @MUTED@; font-size: 9pt; }
+QComboBox[paramSelector="true"] { color: @MUTED@; font-size: 10pt; }
 QComboBox[paramSelector="true"]:hover, QComboBox[filterSelector="true"]:hover {
     background: @CARD_HOVER@; border-color: rgba(97, 144, 209, 0.50);
 }
@@ -344,7 +345,7 @@ QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#AllPassCardCaption, QLabel#AllPassCardMagnitudeValue,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#AllPassCardCaption,
-QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 9pt; }
+QLabel#PreampCardCaption { color: @MUTED@; font-weight: 600; letter-spacing: 1px; font-size: 10pt; }
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @BORDER@; border-radius: 16px;
@@ -457,7 +458,7 @@ QLabel#DirtyStatusBadge {
     background: @SUCCESS@; color: #2B251D;
     border: 1px solid @SUCCESS@;
     border-radius: 13px; padding: 5px 14px;
-    font-weight: 600; font-size: 9pt;
+    font-weight: 600; font-size: 10pt;
 }
 QLabel#DirtyStatusBadge[dirty="true"] {
     background: @WARNING@; color: #2B251D;
@@ -470,7 +471,7 @@ QLabel#DeviceFormatBadge {
     background: @ACCENT@; color: #2B251D;
     border: 1px solid @ACCENT@;
     border-radius: 13px; padding: 5px 12px;
-    font-weight: 600; font-size: 9pt;
+    font-weight: 600; font-size: 10pt;
 }
 QLabel#DeviceFormatBadge[severity="warning"] {
     background: @WARNING@; color: #2B251D;
@@ -503,7 +504,7 @@ QWidget#AppTitleBar {
 QLabel#TitleBarText {
     background: transparent;
     color: @TEXT@;
-    font-size: 10pt;
+    font-size: 11pt;
     font-weight: 600;
 }
 QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
@@ -541,7 +542,7 @@ QToolButton#TitleBarClose:pressed {
    the equation blocks, and a plain-language hint when no file is set. */
 QLabel#MultiConvolutionMappingCaption {
     color: @MUTED@;
-    font-size: 9pt; font-weight: 600;
+    font-size: 10pt; font-weight: 600;
 }
 /* ====================================================================
    The plumbing cards (Device / Channel / Comment / Stage) in
@@ -752,7 +753,7 @@ QToolButton#StageChipUnknown {
    guides beside the pill bank, in the sheet's secondary ink. */
 QLabel#StageLaneCaption {
     background: transparent; color: @MUTED@;
-    font-size: 8pt; font-weight: 600;
+    font-size: 9pt; font-weight: 600;
 }
 QLabel#StageChainArrow { background: transparent; color: @MUTED@; }
 
@@ -815,12 +816,12 @@ QToolButton#GraphicEQActionButton:disabled {
 QWidget#GraphicEQReadout { background: transparent; }
 QLabel#GraphicEQBandCaption {
     background: transparent; color: @MUTED@;
-    font-weight: 600; font-size: 9pt; padding: 0 2px;
+    font-weight: 600; font-size: 10pt; padding: 0 2px;
 }
 QLabel#GraphicEQBandCaption:disabled { color: rgba(120, 111, 103, 0.55); }
 QLabel#GraphicEQReadoutLabel {
     background: transparent; color: @MUTED@;
-    font-size: 9pt; padding: 0 2px;
+    font-size: 10pt; padding: 0 2px;
 }
 QLabel#GraphicEQReadoutLabel:disabled { color: rgba(120, 111, 103, 0.45); }
 
@@ -878,7 +879,7 @@ QLabel#SoftBassHeadline {
     background: transparent;
     border: 0;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 11pt;
+    font-size: 12pt;
     font-weight: 600;
 }
 QLabel#SoftBassHeadline:disabled { color: @MUTED@; }
@@ -888,7 +889,7 @@ QLabel#SoftBassCaption {
     background: transparent;
     border: 0;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 9.5pt;
+    font-size: 10.5pt;
     font-weight: 500;
 }
 QLabel#SoftBassCaption[severity="warning"] { color: @WARNING@; }
@@ -903,7 +904,7 @@ QLabel#SoftBassFactPill {
     padding: 3px 12px;
     min-height: 18px;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 500;
 }
 QLabel#SoftBassFactPill:disabled {
@@ -921,7 +922,7 @@ QToolButton#SoftBassActionButton {
     min-width: 40px;
     min-height: 40px;
     font-family: "@FONT@", "Pretendard", "Noto Sans KR", "Noto Sans", "Malgun Gothic", "Microsoft YaHei", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 600;
 }
 QToolButton#SoftBassActionButton:hover {

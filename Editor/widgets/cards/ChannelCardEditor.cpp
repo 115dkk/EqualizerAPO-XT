@@ -36,7 +36,7 @@ ChannelCardEditor::ChannelCardEditor(const QString& parameters, QWidget* parent)
 	customEdit->setObjectName(QStringLiteral("ChannelChipAdd"));
 	customEdit->setPlaceholderText(tr("Add channel"));
 	customEdit->setToolTip(tr("Add a custom or virtual channel name (e.g. VSL)"));
-	customEdit->setMaximumWidth(110);
+	customEdit->setMaximumWidth(124);
 	connect(customEdit, SIGNAL(returnPressed()), this, SLOT(customEntered()));
 	layout->addWidget(customEdit);
 

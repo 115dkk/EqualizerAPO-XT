@@ -67,7 +67,7 @@ void StudioSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 	// their ticks, dB figures inside the pane's left edge. Tight fits
 	// shed minor labels first.
 	QFont labelFont(tokens.monoFontFamily);
-	labelFont.setPointSizeF(7.5);
+	labelFont.setPointSizeF(8.5);
 	painter.setFont(labelFont);
 	const int vCount = state.vertical.size();
 	const double vSpacing = vCount > 1 ? plot.width() / (vCount - 1) : plot.width();
@@ -300,7 +300,7 @@ void StudioSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 	if (state.clipping)
 	{
 		QFont chipFont(tokens.monoFontFamily);
-		chipFont.setPointSizeF(7.0);
+		chipFont.setPointSizeF(8.0);
 		chipFont.setWeight(QFont::DemiBold);
 		chipFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 		const QFontMetricsF chipMetrics(chipFont);
@@ -375,7 +375,7 @@ void StudioSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState&
 		if (!state.cursorText.isEmpty())
 		{
 			QFont readoutFont(tokens.monoFontFamily);
-			readoutFont.setPointSizeF(7.5);
+			readoutFont.setPointSizeF(8.5);
 			readoutFont.setWeight(QFont::DemiBold);
 			const QFontMetricsF readoutMetrics(readoutFont);
 			const QString readout = readoutMetrics.elidedText(state.cursorText, Qt::ElideRight,

@@ -64,7 +64,7 @@ void MinimalSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState
 	const double plotBottom = state.plotRect.bottom();
 
 	QFont labelFont(tokens.monoFontFamily);
-	labelFont.setPointSizeF(7.5);
+	labelFont.setPointSizeF(8.5);
 
 	// Vertical grid and the frequency figures under the plot. A figure that
 	// would run into the previous print is skipped (majors always print) -
@@ -253,7 +253,7 @@ void MinimalSkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState
 	// plotter's margin note in the crosshair's rising ink.
 	const QRectF topBand(plotLeft, state.rect.top() + 2.0, plotRight - plotLeft, 12.0);
 	QFont captionFont(tokens.monoFontFamily);
-	captionFont.setPointSizeF(7.5);
+	captionFont.setPointSizeF(8.5);
 	captionFont.setBold(true);
 	captionFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
 	painter.setFont(captionFont);
