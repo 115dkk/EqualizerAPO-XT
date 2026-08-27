@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.43.0 — 2026-08-27
+
 - **Plugin panels now show live audio.** Level meters, analyzers, and other
   audio-reactive displays inside VST plugin panels sat dead because the
   Editor never fed audio into the preview instance behind the panel. While
