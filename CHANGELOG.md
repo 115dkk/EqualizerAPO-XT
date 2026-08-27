@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.45.0 — 2026-08-27
+
 - **Every skin's light mode is less bright.** After a report that the light
   backgrounds glare, every near-white surface steps down - deepest in Studio
   and Minimal, mid-step in Signal Matrix, a mild step in Soft, and the

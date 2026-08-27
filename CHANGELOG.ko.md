@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.45.0 — 2026-08-27
+
 - **모든 스킨의 라이트 모드가 덜 밝아집니다.** 라이트 배경이 눈부시다는 제보에
   따라 흰색에 가까운 면을 한 단계씩 낮췄습니다. Studio와 Minimal이 가장 깊게,
   Signal Matrix가 중간, Soft가 약하게 내려가고, Rack은 가장 깊은 단계를 크로마를
